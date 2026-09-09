@@ -1,5 +1,5 @@
 // page/settings/themeMenu/subscription.ts
-import { Effect, Schema as S, Stream } from 'effect'
+import { Effect, Schema, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 
 import { type Message, PressedEscape } from './message'
@@ -7,7 +7,7 @@ import type { Model } from './model'
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   escapeKey: entry(
-    { isOpen: S.Boolean },
+    { isOpen: Schema.Boolean },
     {
       modelToDependencies: model => ({ isOpen: model.isOpen }),
       dependenciesToStream: ({ isOpen }) =>

@@ -1,17 +1,17 @@
-import { Scene } from 'foldkit'
+import { role } from 'foldkit/scene'
 
 // Match by role alone
-Scene.role('button')
+role('button')
 
 // Narrow by accessible name (exact match)
-Scene.role('button', { name: 'Save' })
+role('button', { name: 'Save' })
 
 // Narrow by accessible name (regex match)
-Scene.role('option', { name: /PM/ })
+role('option', { name: /PM/ })
 
 // Narrow by heading level
-Scene.role('heading', { level: 2 })
+role('heading', { level: 2 })
 
 // Narrow by ARIA state
-Scene.role('checkbox', { checked: true })
-Scene.role('button', { pressed: true, disabled: false })
+role('checkbox', { checked: true })
+role('button', { pressed: true, disabled: false })

@@ -1,52 +1,40 @@
 import { Option } from 'effect'
-import { Story } from 'foldkit'
+import { Command, given, message, model, story } from 'foldkit/story'
+import { evo } from 'foldkit/struct'
 import { expect, test } from 'vitest'
 
 import {
-  ClickedFindMe,
-  ClickedLocation,
-  ClickedMarker,
-  CompletedLockBodyScroll,
-  CompletedUnlockBodyScroll,
-  DismissedGeolocate,
-  FailedGeolocate,
-  FailedMountMap,
   FlyTo,
   Geolocate,
-  GeolocateFailed,
-  GeolocateLocating,
+  GeolocateState,
   LockBodyScroll,
-  MovedMap,
-  SucceededFlyTo,
-  SucceededGeolocate,
-  SucceededMountMap,
+  Message,
   UnlockBodyScroll,
-  UpdatedSearchQuery,
   update,
 } from './main'
-import { eiffelTower, initialModel, mountedModel } from './main.fixtures'
+import { eiffelTower, initialModel, mountedModel } from './main.fixture'
 
 test('mounting the map records the host id in the Model', () => {
-  Story.story(
+  story(
     update,
-    Story.with(initialModel),
-    Story.message(SucceededMountMap({ hostId: 'map-host-1' })),
-    Story.model(model => {
+    given(initialModel),
+    message(Message.SucceededMountMap({ hostId: 'map-host-1' })),
+    model(model => {
       expect(model.maybeMapHostId).toStrictEqual(Option.some('map-host-1'))
     }),
   )
 })
 
 test('movement events update the Model bounds', () => {
-  Story.story(
+  story(
     update,
-    Story.with(mountedModel),
-    Story.message(
-      MovedMap({
+    given(mountedModel),
+    message(
+      Message.MovedMap({
         bounds: { west: -180, south: -85, east: 180, north: 85 },
       }),
     ),
-    Story.model(model => {
+    model(model => {
       expect(model.maybeBounds).toStrictEqual(
         Option.some({ west: -180, south: -85, east: 180, north: 85 }),
       )
@@ -55,11 +43,11 @@ test('movement events update the Model bounds', () => {
 })
 
 test('clicking a marker selects the corresponding location', () => {
-  Story.story(
+  story(
     update,
-    Story.with(mountedModel),
-    Story.message(ClickedMarker({ locationId: eiffelTower.id })),
-    Story.model(model => {
+    given(mountedModel),
+    message(Message.ClickedMarker({ locationId: eiffelTower.id })),
+    model(model => {
       expect(model.maybeSelectedLocationId).toStrictEqual(
         Option.some(eiffelTower.id),
       )
@@ -68,118 +56,120 @@ test('clicking a marker selects the corresponding location', () => {
 })
 
 test('clicking a sidebar location selects it and emits a fly Command', () => {
-  Story.story(
+  story(
     update,
-    Story.with(mountedModel),
-    Story.message(ClickedLocation({ locationId: eiffelTower.id })),
-    Story.model(model => {
+    given(mountedModel),
+    message(Message.ClickedLocation({ locationId: eiffelTower.id })),
+    model(model => {
       expect(model.maybeSelectedLocationId).toStrictEqual(
         Option.some(eiffelTower.id),
       )
     }),
-    Story.Command.expectHas(FlyTo),
-    Story.Command.resolve(FlyTo, SucceededFlyTo()),
+    Command.expectHas(FlyTo),
+    Command.resolve(FlyTo, Message.SucceededFlyTo()),
   )
 })
 
 test('clicking a sidebar location before the map mounts still emits FlyTo', () => {
-  Story.story(
+  story(
     update,
-    Story.with(initialModel),
-    Story.message(ClickedLocation({ locationId: eiffelTower.id })),
-    Story.model(model => {
+    given(initialModel),
+    message(Message.ClickedLocation({ locationId: eiffelTower.id })),
+    model(model => {
       expect(model.maybeSelectedLocationId).toStrictEqual(
         Option.some(eiffelTower.id),
       )
       expect(model.maybeMapHostId).toStrictEqual(Option.none())
     }),
-    Story.Command.expectHas(FlyTo),
-    Story.Command.resolve(FlyTo, SucceededFlyTo()),
+    Command.expectHas(FlyTo),
+    Command.resolve(FlyTo, Message.SucceededFlyTo()),
   )
 })
 
 test('a failed map mount surfaces the reason in the Model', () => {
-  Story.story(
+  story(
     update,
-    Story.with(initialModel),
-    Story.message(FailedMountMap({ reason: 'Network timeout' })),
-    Story.model(model => {
+    given(initialModel),
+    message(Message.FailedMountMap({ reason: 'Network timeout' })),
+    model(model => {
       expect(model.maybeMapError).toStrictEqual(Option.some('Network timeout'))
     }),
   )
 })
 
 test('clicking a sidebar location with an unknown id is a no-op', () => {
-  Story.story(
+  story(
     update,
-    Story.with(mountedModel),
-    Story.message(ClickedLocation({ locationId: 'does-not-exist' })),
-    Story.model(model => {
+    given(mountedModel),
+    message(Message.ClickedLocation({ locationId: 'does-not-exist' })),
+    model(model => {
       expect(model.maybeSelectedLocationId).toStrictEqual(Option.none())
     }),
-    Story.Command.expectNone(),
+    Command.expectNone(),
   )
 })
 
 test('typing in the filter input updates the query', () => {
-  Story.story(
+  story(
     update,
-    Story.with(initialModel),
-    Story.message(UpdatedSearchQuery({ value: 'Paris' })),
-    Story.model(model => {
+    given(initialModel),
+    message(Message.UpdatedSearchQuery({ value: 'Paris' })),
+    model(model => {
       expect(model.searchQuery).toBe('Paris')
     }),
   )
 })
 
 test('clicking find-me transitions to the locating state and emits Geolocate', () => {
-  Story.story(
+  story(
     update,
-    Story.with(initialModel),
-    Story.message(ClickedFindMe()),
-    Story.model(model => {
-      expect(model.geolocateState._tag).toBe('GeolocateLocating')
+    given(initialModel),
+    message(Message.ClickedFindMe()),
+    model(model => {
+      expect(model.geolocateState._tag).toBe('Locating')
     }),
-    Story.Command.expectHas(LockBodyScroll, Geolocate),
-    Story.Command.resolve(LockBodyScroll, CompletedLockBodyScroll()),
-    Story.Command.resolve(
+    Command.expectHas(LockBodyScroll, Geolocate),
+    Command.resolve(LockBodyScroll, Message.CompletedLockBodyScroll()),
+    Command.resolve(
       Geolocate,
-      FailedGeolocate({ reason: 'Test cleanup' }),
+      Message.FailedGeolocate({ reason: 'Test cleanup' }),
     ),
   )
 })
 
 test('a successful geolocation result clears the locating state and flies the map', () => {
-  Story.story(
+  story(
     update,
-    Story.with({
-      ...mountedModel,
-      geolocateState: GeolocateLocating(),
-    }),
-    Story.message(SucceededGeolocate({ lng: 2.35, lat: 48.85 })),
-    Story.model(model => {
-      expect(model.geolocateState._tag).toBe('GeolocateIdle')
+    given(
+      evo(mountedModel, {
+        geolocateState: () => GeolocateState.Locating(),
+      }),
+    ),
+    message(Message.SucceededGeolocate({ lng: 2.35, lat: 48.85 })),
+    model(model => {
+      expect(model.geolocateState._tag).toBe('Idle')
       expect(model.maybeUserLocation).toStrictEqual(
         Option.some({ lng: 2.35, lat: 48.85 }),
       )
     }),
-    Story.Command.expectHas(UnlockBodyScroll, FlyTo),
-    Story.Command.resolve(UnlockBodyScroll, CompletedUnlockBodyScroll()),
-    Story.Command.resolve(FlyTo, SucceededFlyTo()),
+    Command.expectHas(UnlockBodyScroll, FlyTo),
+    Command.resolve(UnlockBodyScroll, Message.CompletedUnlockBodyScroll()),
+    Command.resolve(FlyTo, Message.SucceededFlyTo()),
   )
 })
 
 test('a failed geolocation result surfaces the reason in the geolocate state', () => {
-  Story.story(
+  story(
     update,
-    Story.with({
-      ...initialModel,
-      geolocateState: GeolocateLocating(),
-    }),
-    Story.message(FailedGeolocate({ reason: 'Permission denied' })),
-    Story.model(model => {
-      expect(model.geolocateState._tag).toBe('GeolocateFailed')
-      if (model.geolocateState._tag === 'GeolocateFailed') {
+    given(
+      evo(initialModel, {
+        geolocateState: () => GeolocateState.Locating(),
+      }),
+    ),
+    message(Message.FailedGeolocate({ reason: 'Permission denied' })),
+    model(model => {
+      expect(model.geolocateState._tag).toBe('Failed')
+      if (model.geolocateState._tag === 'Failed') {
         expect(model.geolocateState.reason).toBe('Permission denied')
       }
     }),
@@ -187,16 +177,17 @@ test('a failed geolocation result surfaces the reason in the geolocate state', (
 })
 
 test('dismissing the geolocate overlay returns to idle', () => {
-  Story.story(
+  story(
     update,
-    Story.with({
-      ...initialModel,
-      geolocateState: GeolocateFailed({ reason: 'Timed out' }),
+    given(
+      evo(initialModel, {
+        geolocateState: () => GeolocateState.Failed({ reason: 'Timed out' }),
+      }),
+    ),
+    message(Message.DismissedGeolocate()),
+    model(model => {
+      expect(model.geolocateState._tag).toBe('Idle')
     }),
-    Story.message(DismissedGeolocate()),
-    Story.model(model => {
-      expect(model.geolocateState._tag).toBe('GeolocateIdle')
-    }),
-    Story.Command.resolve(UnlockBodyScroll, CompletedUnlockBodyScroll()),
+    Command.resolve(UnlockBodyScroll, Message.CompletedUnlockBodyScroll()),
   )
 })

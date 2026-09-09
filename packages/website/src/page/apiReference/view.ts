@@ -1,12 +1,21 @@
 import { clsx } from 'clsx'
 import { Array, Option, Record, Result, pipe } from 'effect'
 import { Submodel } from 'foldkit'
-import { Html, createKeyedLazy, html } from 'foldkit/html'
+import {
+  Html,
+  type HtmlBuilder,
+  createKeyedLazy,
+  inertHtml as ih,
+} from 'foldkit/html'
 
 import { Disclosure } from '@foldkit/ui'
 
 import { Icon } from '../../icon'
-import { heading, headingLinkButton, pageTitle } from '../../prose'
+import {
+  type RenderHeadingLink,
+  headingWithContent,
+  pageTitle,
+} from '../../prose'
 import {
   type ApiFunction,
   type ApiInterface,
@@ -17,7 +26,7 @@ import {
   scopedId,
   sectionId,
 } from './domain'
-import { GotDisclosureMessage, type Message } from './message'
+import { Message } from './message'
 import type { ApiData, Model } from './model'
 
 type Highlights = ApiData['highlights']
@@ -25,35 +34,33 @@ type Highlights = ApiData['highlights']
 const sourceLink = (
   sourceUrl: Option.Option<string>,
   name: string,
-): ReadonlyArray<Html> => {
-  const h = html<Message>()
-
-  return Option.match(sourceUrl, {
+): ReadonlyArray<Html> =>
+  Option.match(sourceUrl, {
     onNone: () => [],
     onSome: url => [
-      h.a(
+      ih.a(
         [
-          h.Class(
+          ih.Class(
             'text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300',
           ),
-          h.AriaLabel(`View source for ${name}`),
-          h.Href(url),
+          ih.AriaLabel(`View source for ${name}`),
+          ih.Href(url),
         ],
         ['source'],
       ),
     ],
   })
-}
 
 const lazyItem = createKeyedLazy()
 
 const functionView = (
   moduleName: string,
   apiFunction: ApiFunction,
-  maybeDisclosure: Disclosure.Model | undefined,
+  isSignatureDisclosureOpen: boolean | undefined,
   highlights: Highlights,
+  renderHeadingLink: RenderHeadingLink,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<Message>()
   const id = scopedId('function', moduleName, apiFunction.name)
 
   return h.div(
@@ -67,12 +74,12 @@ const functionView = (
         ],
         [
           h.div(
-            [h.Class('flex items-center gap-2')],
+            [h.Class('flex flex-wrap items-center gap-2')],
             [
               h.h3(
                 [
                   h.Class(
-                    'text-base font-mono font-code text-gray-900 dark:text-white scroll-mt-6',
+                    'text-base font-mono font-code text-gray-900 dark:text-white scroll-mt-6 wrap-anywhere',
                   ),
                   h.Id(id),
                 ],
@@ -89,34 +96,32 @@ const functionView = (
               ...sourceLink(apiFunction.sourceUrl, apiFunction.name),
             ],
           ),
-          headingLinkButton(id, apiFunction.name),
+          renderHeadingLink(id, apiFunction.name),
         ],
       ),
-      signaturesView(id, apiFunction, maybeDisclosure, highlights),
+      signaturesView(id, apiFunction, isSignatureDisclosureOpen, highlights, h),
     ],
   )
 }
 
 const allParameterDescriptions = (
   apiFunction: ApiFunction,
-): ReadonlyArray<Html> => {
-  const h = html<Message>()
-
-  return pipe(
+): ReadonlyArray<Html> =>
+  pipe(
     Array.flatMap(apiFunction.signatures, signature => signature.parameters),
     Array.dedupeWith((a, b) => a.name === b.name),
     Array.filterMap(parameter =>
       Result.fromOption(
         Option.map(parameter.description, description =>
-          h.div(
-            [h.Class('mb-1')],
+          ih.div(
+            [ih.Class('mb-1')],
             [
-              h.span(
-                [h.Class('font-normal text-gray-900 dark:text-gray-200')],
+              ih.span(
+                [ih.Class('font-normal text-gray-900 dark:text-gray-200')],
                 [parameter.name],
               ),
-              h.span(
-                [h.Class('text-gray-500 dark:text-gray-400')],
+              ih.span(
+                [ih.Class('text-gray-500 dark:text-gray-400')],
                 [`: ${description}`],
               ),
             ],
@@ -128,9 +133,9 @@ const allParameterDescriptions = (
     Array.match({
       onEmpty: () => [],
       onNonEmpty: items => [
-        h.div(
+        ih.div(
           [
-            h.Class(
+            ih.Class(
               'mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-sm',
             ),
           ],
@@ -139,14 +144,11 @@ const allParameterDescriptions = (
       ],
     }),
   )
-}
 
-const chevron = (isOpen: boolean): Html => {
-  const h = html<Message>()
-
-  return h.span(
+const chevron = (isOpen: boolean): Html =>
+  ih.span(
     [
-      h.Class(
+      ih.Class(
         clsx('text-gray-500 dark:text-gray-400', {
           'rotate-180': isOpen,
         }),
@@ -154,7 +156,6 @@ const chevron = (isOpen: boolean): Html => {
     ],
     [Icon.chevronDown('w-4 h-4')],
   )
-}
 
 const disclosureButtonClassName =
   'w-full flex items-center justify-between px-3 py-2 text-left text-base cursor-pointer transition border border-gray-200 dark:border-gray-700/50 text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-800 rounded-lg data-[open]:rounded-b-none select-none'
@@ -164,12 +165,12 @@ const disclosurePanelClassName = 'rounded-b-lg overflow-x-auto'
 const signaturesView = (
   key: string,
   apiFunction: ApiFunction,
-  maybeDisclosure: Disclosure.Model | undefined,
+  isSignatureDisclosureOpen: boolean | undefined,
   highlights: Highlights,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<Message>()
   const maybeHighlighted = Record.get(highlights, key)
-  const isInDisclosure = maybeDisclosure !== undefined
+  const isInDisclosure = isSignatureDisclosureOpen !== undefined
 
   const { wrapperClass, content } = Option.match(maybeHighlighted, {
     onSome: highlighted => ({
@@ -182,7 +183,7 @@ const signaturesView = (
         },
       ),
       content: [
-        h.div([h.InnerHTML(highlighted)], []),
+        h.div([h.InnerHTML(highlighted)]),
         ...allParameterDescriptions(apiFunction),
       ],
     }),
@@ -200,61 +201,61 @@ const signaturesView = (
     }),
   })
 
-  return maybeDisclosure !== undefined
-    ? h.submodel({
-        slotId: maybeDisclosure.id,
-        model: maybeDisclosure,
-        view: Disclosure.view,
-        viewInputs: {
-          toView: attributes =>
-            h.div(
-              [],
-              [
-                h.button(
-                  [...attributes.button, h.Class(disclosureButtonClassName)],
-                  [
-                    h.div(
-                      [h.Class('flex items-center justify-between w-full')],
-                      [
-                        h.span([], ['Show signature']),
-                        chevron(maybeDisclosure.isOpen),
-                      ],
-                    ),
-                  ],
-                ),
-                maybeDisclosure.isOpen
-                  ? h.div(
-                      [...attributes.panel, h.Class(disclosurePanelClassName)],
-                      [h.div([h.Class(wrapperClass)], content)],
-                    )
-                  : h.empty,
-              ],
-            ),
-        },
-        toParentMessage: message => GotDisclosureMessage({ id: key, message }),
-      })
-    : h.div([h.Class(wrapperClass)], content)
+  if (isSignatureDisclosureOpen !== undefined) {
+    return Disclosure.view(
+      {
+        id: key,
+        isOpen: isSignatureDisclosureOpen,
+        onToggle: isOpen => Message.ToggledSignature({ id: key, isOpen }),
+        toView: attributes =>
+          h.div(
+            [],
+            [
+              h.button(
+                [...attributes.button, h.Class(disclosureButtonClassName)],
+                [
+                  h.div(
+                    [h.Class('flex items-center justify-between w-full')],
+                    [
+                      h.span([], ['Show signature']),
+                      chevron(isSignatureDisclosureOpen),
+                    ],
+                  ),
+                ],
+              ),
+              isSignatureDisclosureOpen
+                ? h.div(
+                    [...attributes.panel, h.Class(disclosurePanelClassName)],
+                    [h.div([h.Class(wrapperClass)], content)],
+                  )
+                : h.empty,
+            ],
+          ),
+      },
+      h,
+    )
+  } else {
+    return h.div([h.Class(wrapperClass)], content)
+  }
 }
 
 const parameterDescriptions = (
   parameters: ReadonlyArray<ApiParameter>,
-): ReadonlyArray<Html> => {
-  const h = html<Message>()
-
-  return pipe(
+): ReadonlyArray<Html> =>
+  pipe(
     parameters,
     Array.filterMap(parameter =>
       Result.fromOption(
         Option.map(parameter.description, description =>
-          h.div(
-            [h.Class('mb-1')],
+          ih.div(
+            [ih.Class('mb-1')],
             [
-              h.span(
-                [h.Class('font-normal text-gray-900 dark:text-gray-200')],
+              ih.span(
+                [ih.Class('font-normal text-gray-900 dark:text-gray-200')],
                 [parameter.name],
               ),
-              h.span(
-                [h.Class('text-gray-500 dark:text-gray-400')],
+              ih.span(
+                [ih.Class('text-gray-500 dark:text-gray-400')],
                 [`: ${description}`],
               ),
             ],
@@ -266,9 +267,9 @@ const parameterDescriptions = (
     Array.match({
       onEmpty: () => [],
       onNonEmpty: items => [
-        h.div(
+        ih.div(
           [
-            h.Class(
+            ih.Class(
               'mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-sm',
             ),
           ],
@@ -277,38 +278,29 @@ const parameterDescriptions = (
       ],
     }),
   )
-}
 
-const punctuation = (text: string): Html => {
-  const h = html<Message>()
+const punctuation = (text: string): Html =>
+  ih.span([ih.Class('text-gray-500')], [text])
 
-  return h.span([h.Class('text-gray-500')], [text])
-}
-
-const parameterView = (parameter: ApiParameter): ReadonlyArray<Html> => {
-  const h = html<Message>()
-
-  return [
-    h.span(
-      [h.Class('font-normal text-gray-900 dark:text-gray-200')],
-      [parameter.name],
-    ),
-    ...(parameter.isOptional ? [punctuation('?')] : []),
-    punctuation(': '),
-    h.span([h.Class('whitespace-pre-wrap')], [parameter.type]),
-  ]
-}
+const parameterView = (parameter: ApiParameter): ReadonlyArray<Html> => [
+  ...(parameter.isRest ? [punctuation('...')] : []),
+  ih.span(
+    [ih.Class('font-normal text-gray-900 dark:text-gray-200')],
+    [parameter.name],
+  ),
+  ...(parameter.isOptional ? [punctuation('?')] : []),
+  punctuation(': '),
+  ih.span([ih.Class('whitespace-pre-wrap')], [parameter.type]),
+]
 
 const parameterListView = (
   parameters: ReadonlyArray<ApiParameter>,
-): ReadonlyArray<Html> => {
-  const h = html<Message>()
-
-  return Array.match(parameters, {
-    onEmpty: () => [h.div([h.Class('mb-2')], [punctuation('()')])],
+): ReadonlyArray<Html> =>
+  Array.match(parameters, {
+    onEmpty: () => [ih.div([ih.Class('mb-2')], [punctuation('()')])],
     onNonEmpty: nonEmpty => [
-      h.div(
-        [h.Class('mb-2')],
+      ih.div(
+        [ih.Class('mb-2')],
         [
           punctuation('('),
           ...Array.flatMap(nonEmpty, (parameter, index) => [
@@ -321,64 +313,54 @@ const parameterListView = (
       ...parameterDescriptions(nonEmpty),
     ],
   })
-}
 
-const returnTypeView = (returnType: string): Html => {
-  const h = html<Message>()
-
-  return h.div(
-    [h.Class('whitespace-pre-wrap')],
+const returnTypeView = (returnType: string): Html =>
+  ih.div(
+    [ih.Class('whitespace-pre-wrap')],
     [
       punctuation('→ '),
-      h.span([h.Class('text-accent-600 dark:text-accent-400')], [returnType]),
+      ih.span([ih.Class('text-accent-600 dark:text-accent-400')], [returnType]),
     ],
   )
-}
 
 const descriptionCommentFallback = (
   maybeDescription: Option.Option<string>,
-): ReadonlyArray<Html> => {
-  const h = html<Message>()
-
-  return Option.match(maybeDescription, {
+): ReadonlyArray<Html> =>
+  Option.match(maybeDescription, {
     onNone: () => [],
     onSome: description => [
-      h.div(
-        [h.Class('text-gray-500 dark:text-gray-400 mb-3 whitespace-pre-wrap')],
+      ih.div(
+        [ih.Class('text-gray-500 dark:text-gray-400 mb-3 whitespace-pre-wrap')],
         [`/** ${description} */`],
       ),
     ],
   })
-}
 
 const signatureChildrenFallback = (signature: {
   readonly parameters: ReadonlyArray<ApiParameter>
   readonly returnType: string
   readonly typeParameters: ReadonlyArray<string>
-}): ReadonlyArray<Html> => {
-  const h = html<Message>()
-
-  return [
-    ...Array.match(signature.typeParameters, {
-      onEmpty: () => [],
-      onNonEmpty: typeParameters => [
-        h.div(
-          [h.Class('text-gray-500 mb-2')],
-          [`<${Array.join(typeParameters, ', ')}>`],
-        ),
-      ],
-    }),
-    ...parameterListView(signature.parameters),
-    returnTypeView(signature.returnType),
-  ]
-}
+}): ReadonlyArray<Html> => [
+  ...Array.match(signature.typeParameters, {
+    onEmpty: () => [],
+    onNonEmpty: typeParameters => [
+      ih.div(
+        [ih.Class('text-gray-500 mb-2')],
+        [`<${Array.join(typeParameters, ', ')}>`],
+      ),
+    ],
+  }),
+  ...parameterListView(signature.parameters),
+  returnTypeView(signature.returnType),
+]
 
 const typeView = (
   moduleName: string,
   type: ApiType,
   highlights: Highlights,
+  renderHeadingLink: RenderHeadingLink,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<Message>()
   const id = scopedId('type', moduleName, type.name)
   const maybeHighlighted = Record.get(highlights, id)
 
@@ -393,12 +375,12 @@ const typeView = (
         ],
         [
           h.div(
-            [h.Class('flex items-center gap-2')],
+            [h.Class('flex flex-wrap items-center gap-2')],
             [
               h.h3(
                 [
                   h.Class(
-                    'text-base font-mono font-code text-gray-900 dark:text-white scroll-mt-6',
+                    'text-base font-mono font-code text-gray-900 dark:text-white scroll-mt-6 wrap-anywhere',
                   ),
                   h.Id(id),
                 ],
@@ -415,20 +397,17 @@ const typeView = (
               ...sourceLink(type.sourceUrl, type.name),
             ],
           ),
-          headingLinkButton(id, type.name),
+          renderHeadingLink(id, type.name),
         ],
       ),
       ...Option.match(maybeHighlighted, {
         onSome: highlighted => [
-          h.div(
-            [
-              h.Class(
-                'rounded text-sm [&_pre]:!rounded [&_pre]:!py-4 [&_pre]:!pl-4 [&_pre]:!pr-0 [&_code]:block [&_code]:w-fit [&_code]:min-w-full [&_code]:pr-4',
-              ),
-              h.InnerHTML(highlighted),
-            ],
-            [],
-          ),
+          h.div([
+            h.Class(
+              'rounded text-sm [&_pre]:!rounded [&_pre]:!py-4 [&_pre]:!pl-4 [&_pre]:!pr-0 [&_code]:block [&_code]:w-fit [&_code]:min-w-full [&_code]:pr-4',
+            ),
+            h.InnerHTML(highlighted),
+          ]),
         ],
         onNone: () => [
           h.div(
@@ -452,8 +431,9 @@ const interfaceView = (
   moduleName: string,
   apiInterface: ApiInterface,
   highlights: Highlights,
+  renderHeadingLink: RenderHeadingLink,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<Message>()
   const id = scopedId('interface', moduleName, apiInterface.name)
   const maybeHighlighted = Record.get(highlights, id)
 
@@ -468,12 +448,12 @@ const interfaceView = (
         ],
         [
           h.div(
-            [h.Class('flex items-center gap-2')],
+            [h.Class('flex flex-wrap items-center gap-2')],
             [
               h.h3(
                 [
                   h.Class(
-                    'text-base font-mono font-code text-gray-900 dark:text-white scroll-mt-6',
+                    'text-base font-mono font-code text-gray-900 dark:text-white scroll-mt-6 wrap-anywhere',
                   ),
                   h.Id(id),
                 ],
@@ -490,20 +470,17 @@ const interfaceView = (
               ...sourceLink(apiInterface.sourceUrl, apiInterface.name),
             ],
           ),
-          headingLinkButton(id, apiInterface.name),
+          renderHeadingLink(id, apiInterface.name),
         ],
       ),
       ...Option.match(maybeHighlighted, {
         onSome: highlighted => [
-          h.div(
-            [
-              h.Class(
-                'rounded text-sm [&_pre]:!rounded [&_pre]:!py-4 [&_pre]:!pl-4 [&_pre]:!pr-0 [&_code]:block [&_code]:w-fit [&_code]:min-w-full [&_code]:pr-4',
-              ),
-              h.InnerHTML(highlighted),
-            ],
-            [],
-          ),
+          h.div([
+            h.Class(
+              'rounded text-sm [&_pre]:!rounded [&_pre]:!py-4 [&_pre]:!pl-4 [&_pre]:!pr-0 [&_code]:block [&_code]:w-fit [&_code]:min-w-full [&_code]:pr-4',
+            ),
+            h.InnerHTML(highlighted),
+          ]),
         ],
         onNone: () => [
           h.div(
@@ -527,8 +504,9 @@ const variableView = (
   moduleName: string,
   variable: ApiVariable,
   highlights: Highlights,
+  renderHeadingLink: RenderHeadingLink,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<Message>()
   const id = scopedId('const', moduleName, variable.name)
   const maybeHighlighted = Record.get(highlights, id)
 
@@ -543,12 +521,12 @@ const variableView = (
         ],
         [
           h.div(
-            [h.Class('flex items-center gap-2')],
+            [h.Class('flex flex-wrap items-center gap-2')],
             [
               h.h3(
                 [
                   h.Class(
-                    'text-base font-mono font-code text-gray-900 dark:text-white scroll-mt-6',
+                    'text-base font-mono font-code text-gray-900 dark:text-white scroll-mt-6 wrap-anywhere',
                   ),
                   h.Id(id),
                 ],
@@ -565,20 +543,17 @@ const variableView = (
               ...sourceLink(variable.sourceUrl, variable.name),
             ],
           ),
-          headingLinkButton(id, variable.name),
+          renderHeadingLink(id, variable.name),
         ],
       ),
       ...Option.match(maybeHighlighted, {
         onSome: highlighted => [
-          h.div(
-            [
-              h.Class(
-                'rounded text-sm [&_pre]:!rounded [&_pre]:!py-4 [&_pre]:!pl-4 [&_pre]:!pr-0 [&_code]:block [&_code]:w-fit [&_code]:min-w-full [&_code]:pr-4',
-              ),
-              h.InnerHTML(highlighted),
-            ],
-            [],
-          ),
+          h.div([
+            h.Class(
+              'rounded text-sm [&_pre]:!rounded [&_pre]:!py-4 [&_pre]:!pl-4 [&_pre]:!pr-0 [&_code]:block [&_code]:w-fit [&_code]:min-w-full [&_code]:pr-4',
+            ),
+            h.InnerHTML(highlighted),
+          ]),
         ],
         onNone: () => [
           h.div(
@@ -602,12 +577,19 @@ const section = <T extends { readonly name: string }>(
   moduleName: string,
   label: string,
   items: ReadonlyArray<T>,
+  renderHeadingLink: RenderHeadingLink,
   itemView: (item: T) => Html,
 ): ReadonlyArray<Html> =>
   Array.match(items, {
     onEmpty: () => [],
     onNonEmpty: items => [
-      heading('h2', sectionId(moduleName, label), label),
+      headingWithContent(
+        'h2',
+        sectionId(moduleName, label),
+        label,
+        [label],
+        renderHeadingLink,
+      ),
       ...Array.map(items, itemView),
     ],
   })
@@ -615,115 +597,146 @@ const section = <T extends { readonly name: string }>(
 type ViewInputs = Readonly<{
   module: ApiModule
   highlights: Highlights
+  renderHeadingLink: RenderHeadingLink
 }>
 
+/**
+ * Renders one API module: its sections and every function, type, interface, and
+ * constant it exports.
+ *
+ * The page is dispatched through `h.submodel`, so it takes `renderHeadingLink`
+ * from its parent rather than building the copy-link itself. The control carries
+ * an app-level Message, and a handler's dispatcher comes from the frame the
+ * element is built in, so one built here would be rejected by this Submodel's
+ * `toParentMessage`.
+ */
 export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, { module, highlights }): Html => {
-    const h = html<Message>()
-
-    return h.div(
+  (model, { module, highlights, renderHeadingLink }, h): Html =>
+    h.div(
       [h.DataAttribute('pagefind-meta', 'kind:API Reference')],
       [
         pageTitle(module.name, module.name),
-        ...section(module.name, 'Functions', module.functions, apiFunction => {
-          const key = scopedId('function', module.name, apiFunction.name)
-          return lazyItem(key, functionView, [
-            module.name,
-            apiFunction,
-            model.disclosures[key],
-            highlights,
-          ])
-        }),
-        ...section(module.name, 'Types', module.types, type => {
-          const key = scopedId('type', module.name, type.name)
-          return lazyItem(key, typeView, [module.name, type, highlights])
-        }),
+        ...section(
+          module.name,
+          'Functions',
+          module.functions,
+          renderHeadingLink,
+          apiFunction => {
+            const key = scopedId('function', module.name, apiFunction.name)
+            return lazyItem(key, functionView, [
+              module.name,
+              apiFunction,
+              model.disclosures[key],
+              highlights,
+              renderHeadingLink,
+              h,
+            ])
+          },
+        ),
+        ...section(
+          module.name,
+          'Types',
+          module.types,
+          renderHeadingLink,
+          type => {
+            const key = scopedId('type', module.name, type.name)
+            return lazyItem(key, typeView, [
+              module.name,
+              type,
+              highlights,
+              renderHeadingLink,
+              h,
+            ])
+          },
+        ),
         ...section(
           module.name,
           'Interfaces',
           module.interfaces,
+          renderHeadingLink,
           apiInterface => {
             const key = scopedId('interface', module.name, apiInterface.name)
             return lazyItem(key, interfaceView, [
               module.name,
               apiInterface,
               highlights,
+              renderHeadingLink,
+              h,
             ])
           },
         ),
-        ...section(module.name, 'Constants', module.variables, variable => {
-          const key = scopedId('const', module.name, variable.name)
-          return lazyItem(key, variableView, [
-            module.name,
-            variable,
-            highlights,
-          ])
-        }),
+        ...section(
+          module.name,
+          'Constants',
+          module.variables,
+          renderHeadingLink,
+          variable => {
+            const key = scopedId('const', module.name, variable.name)
+            return lazyItem(key, variableView, [
+              module.name,
+              variable,
+              highlights,
+              renderHeadingLink,
+              h,
+            ])
+          },
+        ),
       ],
-    )
-  },
+    ),
 )
 
 const skeletonFunctionBlocks: ReadonlyArray<{
+  readonly id: string
   readonly labelWidth: string
   readonly bodyHeight: string
 }> = [
-  { labelWidth: 'w-56', bodyHeight: 'h-24' },
-  { labelWidth: 'w-48', bodyHeight: 'h-20' },
-  { labelWidth: 'w-64', bodyHeight: 'h-28' },
-  { labelWidth: 'w-40', bodyHeight: 'h-16' },
-  { labelWidth: 'w-52', bodyHeight: 'h-24' },
-  { labelWidth: 'w-44', bodyHeight: 'h-20' },
+  { id: 'skeleton-block-0', labelWidth: 'w-56', bodyHeight: 'h-24' },
+  { id: 'skeleton-block-1', labelWidth: 'w-48', bodyHeight: 'h-20' },
+  { id: 'skeleton-block-2', labelWidth: 'w-64', bodyHeight: 'h-28' },
+  { id: 'skeleton-block-3', labelWidth: 'w-40', bodyHeight: 'h-16' },
+  { id: 'skeleton-block-4', labelWidth: 'w-52', bodyHeight: 'h-24' },
+  { id: 'skeleton-block-5', labelWidth: 'w-44', bodyHeight: 'h-20' },
 ]
 
 const skeletonSurfaceClass = 'bg-gray-200 dark:bg-gray-800'
 
-export const skeletonView = (): Html => {
-  const h = html<Message>()
-
-  return h.div(
-    [h.Class('animate-pulse')],
+export const skeletonView = (): Html =>
+  ih.div(
+    [ih.Class('animate-pulse')],
     [
-      h.div([h.Class(`h-10 w-72 mb-10 rounded ${skeletonSurfaceClass}`)], []),
-      h.div([h.Class(`h-7 w-36 mb-6 rounded ${skeletonSurfaceClass}`)], []),
-      ...Array.map(skeletonFunctionBlocks, ({ labelWidth, bodyHeight }) =>
-        h.div(
-          [h.Class('mb-8')],
+      ih.div([ih.Class(`h-10 w-72 mb-10 rounded ${skeletonSurfaceClass}`)]),
+      ih.div([ih.Class(`h-7 w-36 mb-6 rounded ${skeletonSurfaceClass}`)]),
+      ...Array.map(skeletonFunctionBlocks, ({ id, labelWidth, bodyHeight }) =>
+        ih.keyed('div')(
+          id,
+          [ih.Class('mb-8')],
           [
-            h.div(
-              [
-                h.Class(
-                  `h-5 ${labelWidth} mb-3 rounded ${skeletonSurfaceClass}`,
-                ),
-              ],
-              [],
-            ),
-            h.div(
-              [h.Class(`${bodyHeight} w-full rounded ${skeletonSurfaceClass}`)],
-              [],
-            ),
+            ih.div([
+              ih.Class(
+                `h-5 ${labelWidth} mb-3 rounded ${skeletonSurfaceClass}`,
+              ),
+            ]),
+            ih.div([
+              ih.Class(`${bodyHeight} w-full rounded ${skeletonSurfaceClass}`),
+            ]),
           ],
         ),
       ),
     ],
   )
-}
 
-export const failureView = (error: string): Html => {
-  const h = html<Message>()
-
-  return h.div(
-    [h.Class('rounded-lg border border-red-300 dark:border-red-800 p-6')],
+export const failureView = (error: string): Html =>
+  ih.div(
+    [ih.Class('rounded-lg border border-red-300 dark:border-red-800 p-6')],
     [
-      h.h3(
+      ih.h3(
         [
-          h.Class(
+          ih.Class(
             'text-base font-semibold text-red-700 dark:text-red-400 mb-2',
           ),
         ],
         ['Failed to load API reference'],
       ),
-      h.div([h.Class('text-sm text-gray-600 dark:text-gray-400')], [error]),
+      ih.div([ih.Class('text-sm text-gray-600 dark:text-gray-400')], [error]),
     ],
   )
-}

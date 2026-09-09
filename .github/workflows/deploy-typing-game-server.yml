@@ -8,7 +8,9 @@ on:
       - 'packages/typing-game/server/**'
       - 'packages/typing-game/shared/**'
       - 'packages/typing-game/server/Dockerfile'
+      - 'pnpm-lock.yaml'
       - '.github/workflows/deploy-typing-game-server.yml'
+  workflow_dispatch:
 
 jobs:
   deploy:

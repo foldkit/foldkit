@@ -1,3 +1,3 @@
 # Foldkit Website
 
-Folkdit documentation website.
+Foldkit documentation website.

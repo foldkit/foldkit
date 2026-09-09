@@ -30,9 +30,8 @@ export const today = {
   /**
    * The current calendar date in the browser's local timezone.
    */
-  local: Effect.map(
-    Clock.currentTimeMillis,
-    (millis): CalendarDate => fromDateLocal(new Date(millis)),
+  local: Effect.map(Clock.currentTimeMillis, (millis): CalendarDate =>
+    fromDateLocal(new Date(millis)),
   ),
 
   /**
@@ -40,8 +39,7 @@ export const today = {
    * (e.g. `"America/New_York"`, `"Europe/London"`, `"Asia/Tokyo"`).
    */
   inZone: (timeZone: string) =>
-    Effect.map(
-      Clock.currentTimeMillis,
-      (millis): CalendarDate => fromDateInZone(new Date(millis), timeZone),
+    Effect.map(Clock.currentTimeMillis, (millis): CalendarDate =>
+      fromDateInZone(new Date(millis), timeZone),
     ),
 }

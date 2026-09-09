@@ -7,6 +7,13 @@ test.describe('counter example', () => {
     await Page.assertLoadedCleanly(page)
   })
 
+  test('mounts the development DevTools overlay automatically', async ({
+    page,
+  }) => {
+    await page.goto('/')
+    await expect(page.locator('#foldkit-devtools')).toBeAttached()
+  })
+
   test('increments when + is clicked', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('button', { name: '+' }).click()

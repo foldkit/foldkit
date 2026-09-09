@@ -1,0 +1,17 @@
+import type { HtmlBuilder } from 'foldkit/html'
+
+// ❌ Bad
+// The array index is not a stable identity: reordering patches the wrong rows.
+const badList = (tasks: ReadonlyArray<Task>, h: HtmlBuilder<Message>) =>
+  h.ul(
+    [],
+    tasks.map((task, index) => h.keyed('li')(index, [], [task.title])),
+  )
+
+// ✅ Good
+// Key by a stable Model identifier.
+const goodList = (tasks: ReadonlyArray<Task>, h: HtmlBuilder<Message>) =>
+  h.ul(
+    [],
+    tasks.map(task => h.keyed('li')(task.id, [], [task.title])),
+  )

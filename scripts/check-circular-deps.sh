@@ -23,6 +23,7 @@ ALLOWLIST=(
 
 DIRS=(
   packages/typing-game/client/src
+  packages/website/src
 )
 
 FOUND_NEW=0

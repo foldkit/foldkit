@@ -26,7 +26,7 @@ const makeEntry = (
 ): HistoryEntry => ({
   tag,
   message: { _tag: tag },
-  commands: [],
+  commands: Array.empty(),
   mountStarts: [],
   mountEnds: [],
   timestamp: 0,

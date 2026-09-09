@@ -1,43 +1,36 @@
-import { Match as M } from 'effect'
-import { Document, Html, html } from 'foldkit/html'
+import { Document, Html, HtmlBuilder } from 'foldkit/html'
 
-import { GotHomeMessage, GotRoomMessage, Message } from '../message'
+import { Message } from '../message'
 import { Model } from '../model'
 import { Home, Room } from '../page'
-import { NotFoundRoute } from '../route'
+import { AppRoute } from '../route'
 
 const routeTitle = (route: Model['route']): string =>
-  M.value(route).pipe(
-    M.tagsExhaustive({
-      Home: () => 'Typing Game',
-      Room: ({ roomId }) => `Room ${roomId} | Typing Game`,
-      NotFound: () => 'Not Found | Typing Game',
-    }),
-  )
+  AppRoute.match(route, {
+    Home: () => 'Typing Game',
+    Room: ({ roomId }) => `Room ${roomId} | Typing Game`,
+    NotFound: () => 'Not Found | Typing Game',
+  })
 
-export const view = (model: Model): Document => {
-  const h = html<Message>()
-
-  const content = M.value(model.route).pipe(
-    M.tagsExhaustive({
-      Home: () =>
-        h.submodel({
-          slotId: 'home',
-          model: model.home,
-          view: Home.view,
-          toParentMessage: message => GotHomeMessage({ message }),
-        }),
-      Room: ({ roomId }) =>
-        h.submodel({
-          slotId: 'room',
-          model: model.room,
-          view: Room.view,
-          viewInputs: { roomId },
-          toParentMessage: message => GotRoomMessage({ message }),
-        }),
-      NotFound: notFound,
-    }),
-  )
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+  const content = AppRoute.match(model.route, {
+    Home: () =>
+      h.submodel({
+        slotId: 'home',
+        model: model.home,
+        view: Home.view,
+        toParentMessage: message => Message.GotHomeMessage({ message }),
+      }),
+    Room: ({ roomId }) =>
+      h.submodel({
+        slotId: 'room',
+        model: model.room,
+        view: Room.view,
+        viewInputs: { roomId },
+        toParentMessage: message => Message.GotRoomMessage({ message }),
+      }),
+    NotFound: route => notFound(route, h),
+  })
 
   const footerElement = h.footer(
     [h.Class('mt-auto pt-8')],
@@ -62,21 +55,16 @@ export const view = (model: Model): Document => {
     title: routeTitle(model.route),
     body: h.div(
       [h.Class('min-h-screen flex flex-col p-16')],
-      [
-        h.main(
-          [h.Class('flex-1 flex flex-col')],
-          [h.keyed('div')(model.route._tag, [], [content])],
-        ),
-        footerElement,
-      ],
+      [h.main([h.Class('flex-1 flex flex-col')], [content]), footerElement],
     ),
   }
 }
 
-const notFound = ({ path }: NotFoundRoute): Html => {
-  const h = html<Message>()
-
-  return h.section(
+const notFound = (
+  { path }: typeof AppRoute.NotFound.Type,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.section(
     [h.Class('max-w-4xl')],
     [
       h.h1([h.Class('mb-6 uppercase')], ['404 - Not Found']),
@@ -84,4 +72,3 @@ const notFound = ({ path }: NotFoundRoute): Html => {
       h.div([], ['> Enter to go home']),
     ],
   )
-}

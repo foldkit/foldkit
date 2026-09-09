@@ -1,13 +1,29 @@
-import { Scene } from 'foldkit'
+import {
+  blur,
+  change,
+  click,
+  contextMenu,
+  doubleClick,
+  focus,
+  hover,
+  keydown,
+  label,
+  pointerDown,
+  pointerUp,
+  role,
+  submit,
+  type,
+} from 'foldkit/scene'
 
-Scene.click(Scene.role('button', { name: 'Log out' }))
-Scene.doubleClick(Scene.role('button', { name: 'Expand' }))
-Scene.pointerDown(Scene.role('button', { name: 'Toggle' }))
-Scene.pointerUp(Scene.role('button', { name: 'Toggle' }))
-Scene.hover(Scene.role('menuitem', { name: 'File' }))
-Scene.focus(Scene.label('Email'))
-Scene.blur(Scene.label('Email'))
-Scene.type(Scene.label('Email'), 'alice@example.com')
-Scene.change(Scene.label('Country'), 'US')
-Scene.submit(Scene.role('form'))
-Scene.keydown(Scene.label('Search'), 'Enter')
+click(role('button', { name: 'Log out' }))
+doubleClick(role('button', { name: 'Expand' }))
+contextMenu(role('row', { name: 'Quarterly report' }))
+pointerDown(role('button', { name: 'Toggle' }))
+pointerUp(role('button', { name: 'Toggle' }))
+hover(role('menuitem', { name: 'File' }))
+focus(label('Email'))
+blur(label('Email'))
+type(label('Email'), 'alice@example.com')
+change(label('Country'), 'US')
+submit(role('form'))
+keydown(label('Search'), 'Enter')

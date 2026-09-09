@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
-import { Command, Runtime } from 'foldkit'
-import { Document, html } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { Runtime, type Update } from 'foldkit'
+import { Document, HtmlBuilder } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 
 import { Button } from '@foldkit/ui'
 
@@ -12,9 +12,10 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const ClickedCrash = m('ClickedCrash')
+export const Message = defineMessageUnion({
+  ClickedCrash: {},
+})
 
-export const Message = Schema.Union([ClickedCrash])
 export type Message = typeof Message.Type
 
 // UPDATE
@@ -22,26 +23,26 @@ export type Message = typeof Message.Type
 export const update = (
   _model: Model,
   _message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] => {
+): Update.Return<Model, Message> => {
   throw new Error('This is a simulated crash!')
 }
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [null, []]
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: null,
+})
 
 // VIEW
 
-export const view = (_model: Model): Document => {
-  const h = html<Message>()
-
-  return {
-    title: 'Crash View Example',
-    body: h.div(
-      [h.Class('min-h-screen bg-white flex items-center justify-center')],
-      [
-        Button.view<Message>({
-          onClick: ClickedCrash(),
+export const view = (_model: Model, h: HtmlBuilder<Message>): Document => ({
+  title: 'Crash View Example',
+  body: h.div(
+    [h.Class('min-h-screen bg-white flex items-center justify-center')],
+    [
+      Button.view(
+        {
+          onClick: Message.ClickedCrash(),
           toView: attributes =>
             h.button(
               [
@@ -52,40 +53,37 @@ export const view = (_model: Model): Document => {
               ],
               ['Crash'],
             ),
-        }),
-      ],
-    ),
-  }
-}
+        },
+        h,
+      ),
+    ],
+  ),
+})
 
 // CRASH
 
-export const crashView = ({
-  error,
-}: Runtime.CrashContext<Model, Message>): Document => {
-  const h = html<never>()
-
-  return {
-    title: 'Crash View Example | crashed',
-    body: h.div(
-      [h.Class('min-h-screen flex items-center justify-center bg-red-50 p-8')],
-      [
-        h.div(
-          [
-            h.Class(
-              'max-w-md w-full bg-white rounded-lg border border-red-200 p-8 text-center',
-            ),
-          ],
-          [
-            h.h1(
-              [h.Class('text-red-600 text-2xl font-semibold mb-4')],
-              ['Something went wrong'],
-            ),
-            h.p(
-              [h.Class('text-gray-700 mb-6 leading-relaxed')],
-              [error.message],
-            ),
-            Button.view<never>({
+export const crashView = (
+  { error }: Runtime.CrashContext<Model, Message>,
+  h: HtmlBuilder<never>,
+): Document => ({
+  title: 'Crash View Example | crashed',
+  body: h.div(
+    [h.Class('min-h-screen flex items-center justify-center bg-red-50 p-8')],
+    [
+      h.div(
+        [
+          h.Class(
+            'max-w-md w-full bg-white rounded-lg border border-red-200 p-8 text-center',
+          ),
+        ],
+        [
+          h.h1(
+            [h.Class('text-red-600 text-2xl font-semibold mb-4')],
+            ['Something went wrong'],
+          ),
+          h.p([h.Class('text-gray-700 mb-6 leading-relaxed')], [error.message]),
+          Button.view(
+            {
               toView: attributes =>
                 h.button(
                   [
@@ -93,14 +91,16 @@ export const crashView = ({
                     h.Class(
                       'bg-red-600 text-white border-none px-6 py-2.5 rounded-md text-sm font-medium cursor-pointer hover:bg-red-700 transition',
                     ),
+                    // oxlint-disable-next-line foldkit/no-raw-dom-event-attributes -- the crash view renders outside the dispatch loop, so there is no runtime to route a Message
                     h.Attribute('onclick', 'location.reload()'),
                   ],
                   ['Reload'],
                 ),
-            }),
-          ],
-        ),
-      ],
-    ),
-  }
-}
+            },
+            h,
+          ),
+        ],
+      ),
+    ],
+  ),
+})

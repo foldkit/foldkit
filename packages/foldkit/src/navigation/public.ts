@@ -6,6 +6,4 @@ export {
   load,
   openUrl,
   UrlRequest,
-  Internal,
-  External,
 } from './index.js'

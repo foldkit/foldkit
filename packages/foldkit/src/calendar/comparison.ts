@@ -1,7 +1,7 @@
 import {
+  Order as EffectOrder,
   type Equivalence as Equivalence_,
   Function,
-  Order as Order_,
 } from 'effect'
 
 import type { CalendarDate } from './calendarDate.js'
@@ -24,10 +24,10 @@ import type { CalendarDate } from './calendarDate.js'
  * Array.sort(dates, Calendar.Order)
  * ```
  */
-export const Order: Order_.Order<CalendarDate> = Order_.Struct({
-  year: Order_.Number,
-  month: Order_.Number,
-  day: Order_.Number,
+export const Order: EffectOrder.Order<CalendarDate> = EffectOrder.Struct({
+  year: EffectOrder.Number,
+  month: EffectOrder.Number,
+  day: EffectOrder.Number,
 })
 
 /**
@@ -126,10 +126,8 @@ export const isAfterOrEqual: {
 export const min: {
   (that: CalendarDate): (self: CalendarDate) => CalendarDate
   (self: CalendarDate, that: CalendarDate): CalendarDate
-} = Function.dual(
-  2,
-  (self: CalendarDate, that: CalendarDate): CalendarDate =>
-    Order(self, that) <= 0 ? self : that,
+} = Function.dual(2, (self: CalendarDate, that: CalendarDate): CalendarDate =>
+  Order(self, that) <= 0 ? self : that,
 )
 
 /**
@@ -138,10 +136,8 @@ export const min: {
 export const max: {
   (that: CalendarDate): (self: CalendarDate) => CalendarDate
   (self: CalendarDate, that: CalendarDate): CalendarDate
-} = Function.dual(
-  2,
-  (self: CalendarDate, that: CalendarDate): CalendarDate =>
-    Order(self, that) >= 0 ? self : that,
+} = Function.dual(2, (self: CalendarDate, that: CalendarDate): CalendarDate =>
+  Order(self, that) >= 0 ? self : that,
 )
 
 /**

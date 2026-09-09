@@ -1,6 +1,6 @@
 import { Context, Effect, Option, Queue, Schema, Stream } from 'effect'
 
-import { persistent } from '../runtime/subscription.js'
+import { persistent } from '../subscription/subscription.js'
 
 /** Type-level brand for inbound Port values. */
 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -60,8 +60,8 @@ export type Ports = Readonly<{
  * @example
  * ```ts
  * export const ports = {
- *   inbound: { stepChanged: Port.inbound(S.Number) },
- *   outbound: { countChanged: Port.outbound(S.Number) },
+ *   inbound: { stepChanged: Port.inbound(Schema.Number) },
+ *   outbound: { countChanged: Port.outbound(Schema.Number) },
  * }
  * ```
  */
@@ -80,8 +80,8 @@ export const inbound = <Value, Encoded>(
  * @example
  * ```ts
  * export const ports = {
- *   inbound: { stepChanged: Port.inbound(S.Number) },
- *   outbound: { countChanged: Port.outbound(S.Number) },
+ *   inbound: { stepChanged: Port.inbound(Schema.Number) },
+ *   outbound: { countChanged: Port.outbound(Schema.Number) },
  * }
  * ```
  */
@@ -143,7 +143,7 @@ export const __makeInboundChannel = (): __InboundChannel => {
   const attach = (push: (value: unknown) => void): (() => void) => {
     subscribers.add(push)
     if (Option.isSome(maybeBacklog)) {
-      const backlog = maybeBacklog.value
+      const { value: backlog } = maybeBacklog
       maybeBacklog = Option.none()
       backlog.forEach(push)
     }
@@ -229,15 +229,14 @@ export const subscription = <Value, Encoded, Message>(
  * Effect:
  *
  * ```ts
- * const ReportCount = Command.define(
- *   'ReportCount',
- *   { count: S.Number },
- *   CompletedReportCount,
- * )(({ count }) =>
- *   Port.emit(ports.outbound.countChanged, count).pipe(
- *     Effect.as(CompletedReportCount()),
- *   ),
- * )
+ * const ReportCount = Command.define('ReportCount', {
+ *   args: { count: Schema.Number },
+ *   messages: [CompletedReportCount],
+ *   execute: ({ count }) =>
+ *     Port.emit(ports.outbound.countChanged, count).pipe(
+ *       Effect.as(CompletedReportCount()),
+ *     ),
+ * })
  * ```
  *
  * When the program runs without an embed handle (started with `Runtime.run`),

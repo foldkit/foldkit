@@ -6,5 +6,6 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["*.ts"]
+  "include": ["*.ts", "*.mts", "fixtures/**/*.ts"],
+  "exclude": ["fixtures/packed-ssr-consumer"]
 }

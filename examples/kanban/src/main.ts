@@ -1,4 +1,4 @@
-import { Effect, Option, Schema as S } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/unstable/persistence'
 import { Runtime } from 'foldkit'
 
@@ -7,15 +7,15 @@ import { DragAndDrop } from '@foldkit/ui'
 
 import { DEFAULT_COLUMNS, STORAGE_KEY } from './constant'
 import { Message } from './message'
-import { Model, SavedBoard } from './model'
+import { Model, SavedBoard, SavedBoardJsonString } from './model'
 import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
 // FLAGS
 
-export const Flags = S.Struct({
-  maybeSavedBoard: S.Option(SavedBoard),
+export const Flags = Schema.Struct({
+  maybeSavedBoard: Schema.Option(SavedBoard),
 })
 export type Flags = typeof Flags.Type
 
@@ -24,7 +24,7 @@ export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   const json = yield* Effect.fromOption(
     Option.fromNullishOr(yield* store.get(STORAGE_KEY)),
   )
-  const decoded = yield* S.decodeEffect(S.fromJsonString(SavedBoard))(json)
+  const decoded = yield* Schema.decodeEffect(SavedBoardJsonString)(json)
   return Flags.make({ maybeSavedBoard: Option.some(decoded) })
 }).pipe(
   Effect.catch(() =>
@@ -41,16 +41,15 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => {
     onSome: ({ columns }) => columns,
   })
 
-  return [
-    {
+  return {
+    model: {
       columns,
       dragAndDrop: DragAndDrop.init({ id: 'kanban' }),
       maybeNewCardColumnId: Option.none(),
       newCardTitle: '',
       announcement: '',
     },
-    [],
-  ]
+  }
 }
 
 export { Message, Model, subscriptions, update, view }

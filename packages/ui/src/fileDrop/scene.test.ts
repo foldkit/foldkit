@@ -1,38 +1,39 @@
-import { html } from 'foldkit/html'
+import type { HtmlBuilder } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
 
 import { describe, it } from '@effect/vitest'
 
-import type { Message, Model, ViewInputs } from './index.js'
-import { EnteredDragZone, init, update, view } from './index.js'
+import type { Model, ViewInputs } from './index.js'
+import { Message, init, update, view } from './index.js'
 
 const sceneView =
   (overrides: Omit<Partial<ViewInputs>, 'toView'> = {}) =>
-  (model: Model) => {
-    const h = html<Message>()
-
-    return view(model, {
-      toView: attrs =>
-        h.label(attrs.root, [
-          h.p([], ['Drop files or click to upload']),
-          h.input(attrs.input),
-        ]),
-      ...overrides,
-    })
-  }
+  (model: Model, h: HtmlBuilder<Message>) =>
+    view(
+      model,
+      {
+        toView: attrs =>
+          h.label(attrs.root, [
+            h.p([], ['Drop files or click to upload']),
+            h.input(attrs.input),
+          ]),
+        ...overrides,
+      },
+      h,
+    )
 
 const dropZone = Scene.selector('label')
 const fileInput = Scene.selector('input[type="file"]')
 
 const initialModel = init({ id: 'uploader' })
-const [dragOverModel] = update(initialModel, EnteredDragZone())
+const dragEntry = update(initialModel, Message.EnteredDragZone())
 
 describe('FileDrop', () => {
   describe('rendering', () => {
     it('renders a label wrapping a hidden file input', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.expect(dropZone).toExist(),
         Scene.expect(fileInput).toExist(),
         Scene.expect(fileInput).toHaveAttr('id', 'uploader'),
@@ -42,7 +43,7 @@ describe('FileDrop', () => {
     it('applies sr-only to the input so it stays hidden visually', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.expect(fileInput).toHaveClass('sr-only'),
       )
     })
@@ -50,7 +51,7 @@ describe('FileDrop', () => {
     it('does not set multiple on the input by default', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.expect(fileInput).not.toHaveAttr('multiple'),
       )
     })
@@ -58,7 +59,7 @@ describe('FileDrop', () => {
     it('sets multiple when ViewConfig.multiple is true', () => {
       Scene.scene(
         { update, view: sceneView({ multiple: true }) },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.expect(fileInput).toHaveAttr('multiple'),
       )
     })
@@ -66,7 +67,7 @@ describe('FileDrop', () => {
     it('sets accept joined by commas when ViewConfig.accept is provided', () => {
       Scene.scene(
         { update, view: sceneView({ accept: ['application/pdf', '.doc'] }) },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.expect(fileInput).toHaveAttr('accept', 'application/pdf,.doc'),
       )
     })
@@ -76,7 +77,7 @@ describe('FileDrop', () => {
     it('does not set data-drag-over initially', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.expect(dropZone).not.toHaveAttr('data-drag-over'),
       )
     })
@@ -84,7 +85,7 @@ describe('FileDrop', () => {
     it('sets data-drag-over on the root after EnteredDragZone', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(dragOverModel),
+        Scene.given(dragEntry.model),
         Scene.expect(dropZone).toHaveAttr('data-drag-over'),
       )
     })
@@ -94,7 +95,7 @@ describe('FileDrop', () => {
     it('sets data-disabled on the root when disabled', () => {
       Scene.scene(
         { update, view: sceneView({ isDisabled: true }) },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.expect(dropZone).toHaveAttr('data-disabled'),
       )
     })
@@ -102,7 +103,7 @@ describe('FileDrop', () => {
     it('disables the hidden input when disabled', () => {
       Scene.scene(
         { update, view: sceneView({ isDisabled: true }) },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.expect(fileInput).toBeDisabled(),
       )
     })

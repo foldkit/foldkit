@@ -1,44 +1,26 @@
-import { Match as M, Option } from 'effect'
-import { Command } from 'foldkit'
+import { Option } from 'effect'
+import { Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
-import {
-  GotLoginMessage,
-  Message,
-  type OutMessage,
-  SucceededLogin,
-} from './message'
+import { Message, OutMessage } from './message'
 import { Model } from './model'
 import * as Login from './page/login'
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-  Option.Option<OutMessage>,
-]
-const withUpdateReturn = M.withReturnType<UpdateReturn>()
+const foldLogin = Update.foldChild({
+  update: Login.update,
+  read: (model: Model) => Option.some(model.loginModel),
+  write: (model, nextLoginModel) =>
+    evo(model, { loginModel: () => nextLoginModel }),
+  toParentMessage: message => Message.GotLoginMessage({ message }),
+  toParentOutMessage: Login.OutMessage.match<OutMessage>({
+    SucceededLogin: ({ session }) => OutMessage.SucceededLogin({ session }),
+  }),
+})
 
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    withUpdateReturn,
-    M.tagsExhaustive({
-      GotLoginMessage: ({ message }) => {
-        const [loginModel, commands, maybeOutMessage] = Login.update(
-          model.loginModel,
-          message,
-        )
-
-        const mappedCommands = Command.mapMessages(commands, message =>
-          GotLoginMessage({ message }),
-        )
-
-        return [
-          evo(model, { loginModel: () => loginModel }),
-          mappedCommands,
-          Option.map(maybeOutMessage, ({ session }) =>
-            SucceededLogin({ session }),
-          ),
-        ]
-      },
-    }),
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
+    message,
+    {
+      GotLoginMessage: ({ message }) => foldLogin(model, message),
+    },
   )

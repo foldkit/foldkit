@@ -2,24 +2,20 @@ export {
   init,
   update,
   reflectRange,
-  reflectValue,
   view,
   subscriptions,
   subscriptionsForRoot,
   fractionOfValue,
+  snapAndClamp,
   Model,
   Message,
   OutMessage,
+  type PressedThumb,
+  type PressedPointer,
+  type MovedDragPointer,
+  type ReleasedDragPointer,
+  type CancelledDrag,
+  type PressedKeyboardNavigation,
 } from './index.js'
 
-export type {
-  InitConfig,
-  ViewInputs,
-  SliderAttributes,
-  PressedThumb,
-  PressedPointer,
-  MovedDragPointer,
-  ReleasedDragPointer,
-  CancelledDrag,
-  PressedKeyboardNavigation,
-} from './index.js'
+export type { InitConfig, ViewInputs, SliderAttributes } from './index.js'

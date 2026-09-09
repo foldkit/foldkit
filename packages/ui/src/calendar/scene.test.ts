@@ -1,51 +1,52 @@
-import { Match as M } from 'effect'
+import { Match, Option } from 'effect'
 import * as Calendar from 'foldkit/calendar'
-import { html } from 'foldkit/html'
+import { inertHtml as ih } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
 
 import { describe, it } from '@effect/vitest'
 
-import type { CalendarAttributes, Message, Model, ViewInputs } from './index.js'
-import { CompletedFocusGrid, FocusGrid, init, update, view } from './index.js'
+import type { CalendarAttributes } from './index.js'
+import { FocusGrid, Message, init, update, view } from './index.js'
 
-const resolveFocusGrid = Scene.Command.resolve(FocusGrid, CompletedFocusGrid())
+const resolveFocusGrid = Scene.Command.resolve(
+  FocusGrid,
+  Message.CompletedFocusGrid(),
+)
 
 const today = Calendar.make(2026, 4, 13)
 
 /** Wires Calendar attribute groups into actual HTML elements so the scene
  * can query them. Pattern-matches on `_tag` so each viewMode renders the
  * appropriate grid (days, months, years). */
-const testToView = (attrs: CalendarAttributes) => {
-  const h = html<Message>()
-
-  return M.value(attrs).pipe(
-    M.tagsExhaustive({
+const testToView = (attrs: CalendarAttributes) =>
+  Match.value(attrs).pipe(
+    Match.tagsExhaustive({
       Days: days =>
-        h.div(days.root, [
-          h.div(
+        ih.div(days.root, [
+          ih.div(
             [],
             [
-              h.button(days.previousMonthButton, ['prev']),
-              h.button(
-                [h.Id(days.heading.id), ...days.headingButton],
+              ih.button(days.previousMonthButton, ['prev']),
+              ih.button(
+                [ih.Id(days.heading.id), ...days.headingButton],
                 [days.heading.text],
               ),
-              h.button(days.nextMonthButton, ['next']),
+              ih.button(days.nextMonthButton, ['next']),
             ],
           ),
-          h.div(days.grid, [
-            h.div(
+          ih.div(days.grid, [
+            ih.div(
               days.headerRow,
               days.columnHeaders.map(header =>
-                h.div(header.attributes, [header.name]),
+                ih.div(header.attributes, [header.name]),
               ),
             ),
             ...days.weeks.map(week =>
-              h.div(
+              ih.div(
                 week.attributes,
                 week.cells.map(cell =>
-                  h.div(cell.cellAttributes, [
-                    h.button(cell.buttonAttributes, [cell.label]),
+                  ih.div(cell.cellAttributes, [
+                    ih.button(cell.buttonAttributes, [cell.label]),
                   ]),
                 ),
               ),
@@ -53,71 +54,71 @@ const testToView = (attrs: CalendarAttributes) => {
           ]),
         ]),
       Months: months =>
-        h.div(months.root, [
-          h.div(
+        ih.div(months.root, [
+          ih.div(
             [],
             [
-              h.button(
-                [h.Id(months.heading.id), ...months.headingButton],
+              ih.button(
+                [ih.Id(months.heading.id), ...months.headingButton],
                 [months.heading.text],
               ),
             ],
           ),
-          h.div(
+          ih.div(
             months.grid,
             months.cells.map(cell =>
-              h.div(cell.cellAttributes, [
-                h.button(cell.buttonAttributes, [cell.label]),
+              ih.div(cell.cellAttributes, [
+                ih.button(cell.buttonAttributes, [cell.label]),
               ]),
             ),
           ),
         ]),
       Years: years =>
-        h.div(years.root, [
-          h.div(
+        ih.div(years.root, [
+          ih.div(
             [],
             [
-              h.button(years.previousPageButton, ['prev page']),
-              h.h2([h.Id(years.heading.id)], [years.heading.text]),
-              h.button(years.nextPageButton, ['next page']),
+              ih.button(years.previousPageButton, ['prev page']),
+              ih.h2([ih.Id(years.heading.id)], [years.heading.text]),
+              ih.button(years.nextPageButton, ['next page']),
             ],
           ),
-          h.div(
+          ih.div(
             years.grid,
             years.cells.map(cell =>
-              h.div(cell.cellAttributes, [
-                h.button(cell.buttonAttributes, [cell.label]),
+              ih.div(cell.cellAttributes, [
+                ih.button(cell.buttonAttributes, [cell.label]),
               ]),
             ),
           ),
         ]),
     }),
   )
-}
 
-const sceneView =
-  (overrides: Omit<Partial<ViewInputs>, 'toView'> = {}) =>
-  (model: Model) =>
-    view(model, {
-      toView: testToView,
-      ...overrides,
-    })
+const sceneView = Scene.withViewInputs(view, {
+  maybeSelectedDate: Option.none(),
+  toView: testToView,
+})
 
-const grid = Scene.getByRole('grid')
-const previousMonthButton = Scene.getByLabel('Previous month')
-const nextMonthButton = Scene.getByLabel('Next month')
-const previousYearsPageButton = Scene.getByLabel('Previous 12 years')
-const nextYearsPageButton = Scene.getByLabel('Next 12 years')
-const monthsHeadingButton = Scene.getByLabel('Switch to month picker')
-const yearsHeadingButton = Scene.getByLabel('Switch to year picker')
+const grid = Scene.role('grid')
+const previousMonthButton = Scene.label('Previous month')
+const nextMonthButton = Scene.label('Next month')
+const previousYearsPageButton = Scene.label('Previous 12 years')
+const nextYearsPageButton = Scene.label('Next 12 years')
+const monthsHeadingButton = Scene.label('Switch to month picker')
+const yearsHeadingButton = Scene.label('Switch to year picker')
+// NOTE: The days heading button's accessible name is its aria-label
+// ("Switch to month picker"), not the visible month text, so
+// Scene.role('button', { name: text }) cannot find it. Scope to the
+// labeled button and match the heading text within it.
 const daysHeadingFor = (text: string) =>
-  Scene.getByText(text, { selector: 'button' })
+  Scene.within(monthsHeadingButton, Scene.text(text))
 const yearsHeadingFor = (text: string) =>
-  Scene.getByText(text, { selector: 'h2' })
-const dayButton = (label: string) => Scene.getByLabel(label)
+  Scene.role('heading', { name: text, level: 2 })
+const dayButton = (label: string) => Scene.label(label)
 const monthButtonForYear = (label: string, year: number) =>
-  Scene.getByLabel(`${label} ${year}`)
-const yearButton = (year: number) => Scene.getByLabel(String(year))
+  Scene.label(`${label} ${year}`)
+const yearButton = (year: number) => Scene.label(String(year))
 const dayCellById = (
   modelId: string,
   year: number,
@@ -139,7 +140,7 @@ describe('Calendar', () => {
       // with a month name and triggers the TTS date-parsing path.
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.expect(grid).toExist(),
         Scene.expect(grid).toHaveAttr('aria-label', 'Calendar, April 2026'),
         Scene.expect(grid).toHaveAttr('tabIndex', '0'),
@@ -149,7 +150,7 @@ describe('Calendar', () => {
     it('renders the formatted month and year in the heading', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.expect(daysHeadingFor('April 2026')).toExist(),
       )
     })
@@ -157,7 +158,7 @@ describe('Calendar', () => {
     it('renders the previous and next month buttons with aria-labels', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.expect(previousMonthButton).toExist(),
         Scene.expect(nextMonthButton).toExist(),
       )
@@ -166,7 +167,7 @@ describe('Calendar', () => {
     it('emits type="button" on prev, next, and day-cell buttons so they do not submit a surrounding form', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.expect(previousMonthButton).toHaveAttr('type', 'button'),
         Scene.expect(nextMonthButton).toHaveAttr('type', 'button'),
         Scene.expect(dayButton('Monday, April 13, 2026')).toHaveAttr(
@@ -179,7 +180,7 @@ describe('Calendar', () => {
     it('renders 42 day-cell buttons (6 weeks of 7)', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.expectAll(Scene.all.role('gridcell')).toHaveCount(42),
       )
     })
@@ -187,7 +188,7 @@ describe('Calendar', () => {
     it('marks the today cell with data-today', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.expect(dayCellById('test', 2026, 4, 13)).toHaveAttr(
           'data-today',
           '',
@@ -199,7 +200,7 @@ describe('Calendar', () => {
       // 2026-04-01 is a Wednesday; the Sunday before (2026-03-29) is outside-month
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.expect(dayCellById('test', 2026, 3, 29)).toHaveAttr(
           'data-outside-month',
           '',
@@ -210,14 +211,11 @@ describe('Calendar', () => {
     it('marks the selected cell with aria-selected and data-selected', () => {
       const selected = Calendar.make(2026, 4, 20)
       Scene.scene(
-        { update, view: sceneView() },
-        Scene.with(
-          init({
-            id: 'test',
-            today,
-            initialSelectedDate: selected,
-          }),
-        ),
+        {
+          update,
+          view: sceneView({ maybeSelectedDate: Option.some(selected) }),
+        },
+        Scene.given(init({ id: 'test', today, initialViewDate: selected })),
         Scene.expect(dayCellById('test', 2026, 4, 20)).toHaveAttr(
           'aria-selected',
           'true',
@@ -232,7 +230,7 @@ describe('Calendar', () => {
     it('marks disabled cells with data-disabled and aria-disabled on the button', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(
+        Scene.given(
           init({
             id: 'test',
             today,
@@ -253,7 +251,7 @@ describe('Calendar', () => {
     it('points aria-activedescendant at the focused cell id', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.expect(grid).toHaveAttr(
           'aria-activedescendant',
           'test-cell-2026-4-13',
@@ -264,7 +262,7 @@ describe('Calendar', () => {
     it('emits WAI-ARIA grid positional attributes (aria-rowcount, aria-colcount, aria-rowindex, aria-colindex)', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.expect(grid).toHaveAttr('aria-rowcount', '7'),
         Scene.expect(grid).toHaveAttr('aria-colcount', '7'),
         Scene.expect(dayCellById('test', 2026, 4, 13)).toHaveAttr(
@@ -281,9 +279,9 @@ describe('Calendar', () => {
       // Do not remove the aria-label from week row attributes.
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
-        Scene.expect(Scene.getByLabel('Week of March 29, 2026')).toExist(),
-        Scene.expect(Scene.getByLabel('Week of April 12, 2026')).toExist(),
+        Scene.given(init({ id: 'test', today })),
+        Scene.expect(Scene.label('Week of March 29, 2026')).toExist(),
+        Scene.expect(Scene.label('Week of April 12, 2026')).toExist(),
       )
     })
 
@@ -294,23 +292,23 @@ describe('Calendar', () => {
       }
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today, locale: mondayLocale })),
+        Scene.given(init({ id: 'test', today, locale: mondayLocale })),
         // First column header should be Monday's short name
         Scene.expectAll(Scene.all.role('columnheader')).toHaveCount(7),
-        Scene.expect(Scene.getByLabel('Monday')).toExist(),
+        Scene.expect(Scene.label('Monday')).toExist(),
       )
     })
   })
 
   describe('interactions', () => {
-    it('clicking a day selects it', () => {
+    it('clicking a day moves the focus cursor onto it', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.click(dayButton('Monday, April 20, 2026')),
-        Scene.expect(dayCellById('test', 2026, 4, 20)).toHaveAttr(
-          'aria-selected',
-          'true',
+        Scene.expect(grid).toHaveAttr(
+          'aria-activedescendant',
+          'test-cell-2026-4-20',
         ),
       )
     })
@@ -318,7 +316,7 @@ describe('Calendar', () => {
     it('clicking the next month button advances the heading to May 2026', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.click(nextMonthButton),
         Scene.expect(daysHeadingFor('May 2026')).toExist(),
       )
@@ -327,7 +325,7 @@ describe('Calendar', () => {
     it('clicking the previous month button retreats the heading to March 2026', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.click(previousMonthButton),
         Scene.expect(daysHeadingFor('March 2026')).toExist(),
       )
@@ -336,7 +334,7 @@ describe('Calendar', () => {
     it('clicking next month moves the focus cursor to the same day in the new month', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.click(nextMonthButton),
         Scene.expect(grid).toHaveAttr(
           'aria-activedescendant',
@@ -348,7 +346,7 @@ describe('Calendar', () => {
     it('clicking previous month moves the focus cursor to the same day in the new month', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.click(previousMonthButton),
         Scene.expect(grid).toHaveAttr(
           'aria-activedescendant',
@@ -360,7 +358,7 @@ describe('Calendar', () => {
     it('clicking next month clamps the focus cursor when the day does not exist in the new month', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today: Calendar.make(2026, 1, 31) })),
+        Scene.given(init({ id: 'test', today: Calendar.make(2026, 1, 31) })),
         Scene.click(nextMonthButton),
         Scene.expect(grid).toHaveAttr(
           'aria-activedescendant',
@@ -372,7 +370,7 @@ describe('Calendar', () => {
     it('after clicking next month, the cell referenced by aria-activedescendant is rendered in the DOM', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.click(nextMonthButton),
         Scene.expect(dayCellById('test', 2026, 5, 13)).toExist(),
       )
@@ -381,7 +379,7 @@ describe('Calendar', () => {
     it('clicking an outside-month day moves both the view and the cursor to that day', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.click(dayButton('Tuesday, May 5, 2026')),
         Scene.expect(daysHeadingFor('May 2026')).toExist(),
         Scene.expect(grid).toHaveAttr(
@@ -395,7 +393,7 @@ describe('Calendar', () => {
     it('ArrowLeft at minDate boundary clamps the cursor to minDate', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(
+        Scene.given(
           init({
             id: 'test',
             today,
@@ -413,7 +411,7 @@ describe('Calendar', () => {
     it('ArrowRight at maxDate boundary clamps the cursor to maxDate', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(
+        Scene.given(
           init({
             id: 'test',
             today,
@@ -431,7 +429,7 @@ describe('Calendar', () => {
     it('ArrowRight skips a range of consecutive disabled days', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(
+        Scene.given(
           init({
             id: 'test',
             today,
@@ -453,7 +451,7 @@ describe('Calendar', () => {
     it('tabbing out of the grid and back preserves the focus cursor', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.focus(grid),
         Scene.keydown(grid, 'ArrowRight'),
         Scene.blur(grid),
@@ -468,7 +466,7 @@ describe('Calendar', () => {
     it('clicking previous month after the focus has drifted puts the cursor back inside the visible grid', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.click(nextMonthButton),
         Scene.click(nextMonthButton),
         Scene.click(previousMonthButton),
@@ -484,7 +482,7 @@ describe('Calendar', () => {
     it('pressing ArrowRight moves the keyboard cursor forward by one day', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.keydown(grid, 'ArrowRight'),
         Scene.expect(grid).toHaveAttr(
           'aria-activedescendant',
@@ -496,7 +494,7 @@ describe('Calendar', () => {
     it('pressing PageDown advances to next month and emits ChangedViewMonth', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.keydown(grid, 'PageDown'),
         Scene.expect(daysHeadingFor('May 2026')).toExist(),
       )
@@ -505,7 +503,7 @@ describe('Calendar', () => {
     it('focusing the grid sets isGridFocused (data-focused appears on focused cell)', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.focus(grid),
         Scene.expect(dayCellById('test', 2026, 4, 13)).toHaveAttr(
           'data-focused',
@@ -517,7 +515,7 @@ describe('Calendar', () => {
     it('blurring the grid clears data-focused on the focused cell', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.focus(grid),
         Scene.blur(grid),
         Scene.expect(dayCellById('test', 2026, 4, 13)).not.toHaveAttr(
@@ -531,7 +529,7 @@ describe('Calendar', () => {
     it('clicking the heading in Days mode switches to Months mode', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.click(monthsHeadingButton),
         resolveFocusGrid,
         Scene.expect(yearsHeadingButton).toExist(),
@@ -542,7 +540,7 @@ describe('Calendar', () => {
     it('clicking the heading in Months mode switches to Years mode', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.click(monthsHeadingButton),
         resolveFocusGrid,
         Scene.click(yearsHeadingButton),
@@ -556,7 +554,7 @@ describe('Calendar', () => {
     it('Months mode renders 12 month-cell buttons', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.click(monthsHeadingButton),
         resolveFocusGrid,
         Scene.expectAll(Scene.all.role('gridcell')).toHaveCount(12),
@@ -566,7 +564,7 @@ describe('Calendar', () => {
     it('Years mode renders 12 year-cell buttons', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.click(monthsHeadingButton),
         resolveFocusGrid,
         Scene.click(yearsHeadingButton),
@@ -578,7 +576,7 @@ describe('Calendar', () => {
     it('clicking a month cell returns to Days mode at that month', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.click(monthsHeadingButton),
         resolveFocusGrid,
         Scene.click(monthButtonForYear('September', 2026)),
@@ -590,7 +588,7 @@ describe('Calendar', () => {
     it('clicking a year cell returns to Months mode at that year', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.click(monthsHeadingButton),
         resolveFocusGrid,
         Scene.click(yearsHeadingButton),
@@ -604,7 +602,7 @@ describe('Calendar', () => {
     it('clicking the next-page button in Years mode advances the window by 12 years', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.click(monthsHeadingButton),
         resolveFocusGrid,
         Scene.click(yearsHeadingButton),
@@ -617,7 +615,7 @@ describe('Calendar', () => {
     it('clicking the previous-page button in Years mode retreats the window by 12 years', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.click(monthsHeadingButton),
         resolveFocusGrid,
         Scene.click(yearsHeadingButton),
@@ -630,7 +628,7 @@ describe('Calendar', () => {
     it('Months grid marks the calendar viewMonth with aria-selected and data-selected', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.click(monthsHeadingButton),
         resolveFocusGrid,
         Scene.expect(monthCellById('test', 4)).toHaveAttr(
@@ -644,7 +642,7 @@ describe('Calendar', () => {
     it('Years grid marks the calendar viewYear with aria-selected and data-selected', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.click(monthsHeadingButton),
         resolveFocusGrid,
         Scene.click(yearsHeadingButton),
@@ -663,7 +661,7 @@ describe('Calendar', () => {
     it('completes the full year-jump round trip: Days → Months → Years → pick year → pick month → Days', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today })),
+        Scene.given(init({ id: 'test', today })),
         Scene.click(monthsHeadingButton),
         resolveFocusGrid,
         Scene.click(yearsHeadingButton),
@@ -682,12 +680,13 @@ describe('Calendar', () => {
       const maxDate = Calendar.make(2026, 4, 30)
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today, maxDate })),
+        Scene.given(init({ id: 'test', today, maxDate })),
         Scene.click(monthsHeadingButton),
         resolveFocusGrid,
         Scene.keydown(grid, 'ArrowDown'),
         Scene.keydown(grid, 'ArrowDown'),
         Scene.keydown(grid, 'Enter'),
+        Scene.expectIgnored(),
         Scene.expect(yearsHeadingButton).toExist(),
       )
     })
@@ -698,13 +697,14 @@ describe('Calendar', () => {
       const minDate = Calendar.make(2020, 1, 1)
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(init({ id: 'test', today, minDate })),
+        Scene.given(init({ id: 'test', today, minDate })),
         Scene.click(monthsHeadingButton),
         resolveFocusGrid,
         Scene.click(yearsHeadingButton),
         resolveFocusGrid,
         Scene.keydown(grid, 'PageUp'),
         Scene.keydown(grid, 'Enter'),
+        Scene.expectIgnored(),
         Scene.expect(previousYearsPageButton).toExist(),
       )
     })

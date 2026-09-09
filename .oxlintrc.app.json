@@ -1,0 +1,43 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": ["./packages/oxlint-plugin-foldkit/recommended.json"],
+  "plugins": ["typescript"],
+  "categories": {
+    "correctness": "off"
+  },
+  "rules": {
+    "no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_"
+      }
+    ],
+    "typescript/no-explicit-any": "error",
+    "typescript/consistent-type-assertions": [
+      "error",
+      { "assertionStyle": "never" }
+    ],
+    "sort-imports": [
+      "error",
+      { "ignoreDeclarationSort": true, "ignoreCase": false }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["examples/slow-warnings/src/main.ts"],
+      "rules": {
+        "foldkit/no-impure-call-at-decision-time": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "**/*.d.ts",
+    "**/vite.config.ts",
+    "**/*.config.js",
+    "**/*.config.mjs",
+    "packages/website/src/snippet/"
+  ]
+}

@@ -1,12 +1,12 @@
-import { Effect, Layer, Match as M, String } from 'effect'
+import { Effect, Layer, Match, String } from 'effect'
 import { HttpClient, HttpClientResponse } from 'effect/unstable/http'
 import { expect, test } from 'vitest'
 
 test('fetchWeather returns SucceededFetchWeather on success', async () => {
   const mockClient = HttpClient.make(request =>
     Effect.sync(() => {
-      const responseData = M.value(request.url).pipe(
-        M.when(String.includes('geocoding'), () => ({
+      const responseData = Match.value(request.url).pipe(
+        Match.when(String.includes('geocoding'), () => ({
           results: [
             {
               name: 'Beverly Hills',
@@ -16,7 +16,7 @@ test('fetchWeather returns SucceededFetchWeather on success', async () => {
             },
           ],
         })),
-        M.when(String.includes('forecast'), () => ({
+        Match.when(String.includes('forecast'), () => ({
           current: {
             time: '2026-03-10T01:30',
             interval: 900,
@@ -26,7 +26,7 @@ test('fetchWeather returns SucceededFetchWeather on success', async () => {
             weather_code: 0,
           },
         })),
-        M.orElse(url => {
+        Match.orElse(url => {
           throw new Error(`Unexpected request URL: ${url}`)
         }),
       )

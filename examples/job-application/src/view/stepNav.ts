@@ -1,13 +1,13 @@
 import clsx from 'clsx'
 import { Equal, HashSet, Match, Number, flow } from 'effect'
-import { type Html, html } from 'foldkit/html'
+import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Menu, Tabs } from '@foldkit/ui'
 
 import { Step } from '../domain'
 import type { Message } from '../message'
 import { type Model } from '../model'
-import { chevronDown } from './icon'
+import * as Icon from './icon'
 
 const StepMenu = Menu.create<Step.Step>()
 
@@ -42,10 +42,9 @@ const stepMarker = (
   status: StepStatus,
   index: number,
   needsAttention: boolean,
-): Html => {
-  const h = html()
-
-  return h.span(
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.span(
     [
       h.Class(
         clsx(
@@ -64,7 +63,6 @@ const stepMarker = (
     ],
     [stepMarkerGlyph(status, index, needsAttention)],
   )
-}
 
 const stepButtonClass = (status: StepStatus, needsAttention: boolean): string =>
   clsx(
@@ -90,8 +88,8 @@ export const stepTabButton = (
   tab: Tabs.TabInfo<Step.Step>,
   currentStep: Step.Step,
   stepsNeedingAttention: HashSet.HashSet<Step.Step>,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<Message>()
   const status = stepToStatus(tab.value, currentStep)
   const needsAttention = HashSet.has(stepsNeedingAttention, tab.value)
 
@@ -99,16 +97,17 @@ export const stepTabButton = (
     tab.value,
     [...tab.tab, h.Class(stepButtonClass(status, needsAttention))],
     [
-      stepMarker(status, tab.index, needsAttention),
+      stepMarker(status, tab.index, needsAttention, h),
       h.span([], [Step.show(tab.value)]),
     ],
   )
 }
 
-const stepMenuTrigger = (currentStep: Step.Step): Html => {
-  const h = html()
-
-  return h.div(
+const stepMenuTrigger = (
+  currentStep: Step.Step,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
     [h.Class('flex items-center justify-between w-full gap-3')],
     [
       h.div(
@@ -126,25 +125,23 @@ const stepMenuTrigger = (currentStep: Step.Step): Html => {
           ),
         ],
       ),
-      h.span([h.Class('text-gray-400 shrink-0')], [chevronDown()]),
+      h.span([h.Class('text-gray-400 shrink-0')], [Icon.chevronDown()]),
     ],
   )
-}
 
 export const stepMenu = (
   model: Model,
   stepsNeedingAttention: HashSet.HashSet<Step.Step>,
   toParentMessage: (message: Menu.Message) => Message,
-): Html => {
-  const h = html<Message>()
-
-  return h.submodel({
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.submodel({
     slotId: model.stepMenu.id,
     model: model.stepMenu,
     view: StepMenu.view,
     viewInputs: {
       items: Step.all,
-      buttonContent: stepMenuTrigger(model.currentStep),
+      buttonContent: stepMenuTrigger(model.currentStep, h),
       buttonClassName:
         'flex items-center w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-gray-300 cursor-pointer',
       itemsClassName:
@@ -171,7 +168,7 @@ export const stepMenu = (
           content: h.div(
             [h.Class('flex items-center gap-3')],
             [
-              stepMarker(status, index, needsAttention),
+              stepMarker(status, index, needsAttention, h),
               h.span([], [Step.show(step)]),
             ],
           ),
@@ -182,4 +179,3 @@ export const stepMenu = (
     },
     toParentMessage,
   })
-}

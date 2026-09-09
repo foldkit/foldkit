@@ -1,0 +1,1 @@
+Runtime.run(application, { flags })

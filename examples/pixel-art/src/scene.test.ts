@@ -1,24 +1,21 @@
 import { Option } from 'effect'
-import { Scene } from 'foldkit'
+import { Command, click, expect, given, role, scene, text } from 'foldkit/scene'
+import { evo } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
-import { Dialog, Listbox, RadioGroup, Switch } from '@foldkit/ui'
+import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
 
 import { ExportPng, SaveCanvas } from './command'
 import { createEmptyGrid } from './grid'
-import {
-  CompletedSaveCanvas,
-  FailedExportPng,
-  GotErrorDialogMessage,
-  GotGridSizeConfirmDialogMessage,
-  GotGridSizeRadioGroupMessage,
-  GotToolRadioGroupMessage,
-  type Message,
-  SucceededExportPng,
-} from './message'
+import { Message } from './message'
 import { type Model, type PaletteIndex } from './model'
 import { update } from './update'
 import { view } from './view'
+
+const resolveFocusOption = Command.resolve(
+  RadioGroup.FocusOption,
+  RadioGroup.Message.CompletedFocusOption(),
+)
 
 const createTestModel = (): Model => ({
   grid: createEmptyGrid(4),
@@ -35,290 +32,228 @@ const createTestModel = (): Model => ({
   paletteThemeIndex: 0,
   gridSizeConfirmDialog: Dialog.init({ id: 'grid-size-confirm-dialog' }),
   maybePendingGridSize: Option.none(),
-  toolRadioGroup: RadioGroup.init({
-    id: 'tool-picker',
-    selectedValue: 'Brush',
-  }),
-  gridSizeRadioGroup: RadioGroup.init({
-    id: 'grid-size-picker',
-    selectedValue: '4',
-    orientation: 'Horizontal',
-  }),
-  paletteRadioGroup: RadioGroup.init({
-    id: 'palette-picker',
-    selectedValue: '0',
-    orientation: 'Horizontal',
-  }),
-  mirrorHorizontalSwitch: Switch.init({ id: 'mirror-horizontal' }),
-  mirrorVerticalSwitch: Switch.init({ id: 'mirror-vertical' }),
-  themeListbox: Listbox.init({ id: 'theme-picker', selectedItem: '0' }),
+  themeListbox: Listbox.init({ id: 'theme-picker' }),
+  toolRadioGroup: RadioGroup.init({ id: 'tool-picker' }),
+  gridSizeRadioGroup: RadioGroup.init({ id: 'grid-size-picker' }),
+  paletteRadioGroup: RadioGroup.init({ id: 'palette-picker' }),
 })
 
-const createPaintedModel = (): Model => ({
-  ...createTestModel(),
-  grid: createEmptyGrid(4).map((row, y) =>
-    row.map((cell, x) =>
-      x === 0 && y === 0 ? Option.some<PaletteIndex>(0) : cell,
-    ),
-  ),
-})
-
-const errorDialogMessageToMessage = (message: Dialog.Message): Message =>
-  GotErrorDialogMessage({ message })
-
-const confirmDialogMessageToMessage = (message: Dialog.Message): Message =>
-  GotGridSizeConfirmDialogMessage({ message })
-
-const toolRadioGroupMessageToMessage = (message: RadioGroup.Message): Message =>
-  GotToolRadioGroupMessage({ message })
+const createPaintedModel = (): Model =>
+  evo(createTestModel(), {
+    grid: () =>
+      createEmptyGrid(4).map((row, y) =>
+        row.map((cell, x) =>
+          x === 0 && y === 0 ? Option.some<PaletteIndex>(0) : cell,
+        ),
+      ),
+  })
 
 describe('export workflow', () => {
   test('clicking Export PNG produces ExportPng Command', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(createTestModel()),
-      Scene.click(Scene.role('button', { name: 'Export PNG' })),
-      Scene.Command.expectExact(ExportPng),
-      Scene.Command.resolve(ExportPng, SucceededExportPng()),
-      Scene.Command.expectNone(),
+      given(createTestModel()),
+      click(role('button', { name: 'Export PNG' })),
+      Command.expectExact(ExportPng),
+      Command.resolve(ExportPng, Message.SucceededExportPng()),
+      Command.expectNone(),
     )
   })
 
   test('failed export opens error dialog with message', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(createTestModel()),
-      Scene.click(Scene.role('button', { name: 'Export PNG' })),
-      Scene.Command.resolve(
+      given(createTestModel()),
+      click(role('button', { name: 'Export PNG' })),
+      Command.resolve(
         ExportPng,
-        FailedExportPng({ error: 'Canvas 2D context not available' }),
+        Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
-      Scene.Command.resolve(
-        Dialog.ShowDialog,
-        Dialog.CompletedShowDialog(),
-        errorDialogMessageToMessage,
-      ),
-      Scene.expect(Scene.text('Export Failed')).toExist(),
-      Scene.expect(Scene.text('Canvas 2D context not available')).toExist(),
-      Scene.expect(Scene.role('button', { name: 'Dismiss' })).toExist(),
+      Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      expect(text('Export Failed')).toExist(),
+      expect(text('Canvas 2D context not available')).toExist(),
+      expect(role('button', { name: 'Dismiss' })).toExist(),
     )
   })
 
   test('dismissing error dialog closes it', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(createTestModel()),
-      Scene.click(Scene.role('button', { name: 'Export PNG' })),
-      Scene.Command.resolve(
+      given(createTestModel()),
+      click(role('button', { name: 'Export PNG' })),
+      Command.resolve(
         ExportPng,
-        FailedExportPng({ error: 'Canvas 2D context not available' }),
+        Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
       ),
-      Scene.Command.resolve(
-        Dialog.ShowDialog,
-        Dialog.CompletedShowDialog(),
-        errorDialogMessageToMessage,
-      ),
-      Scene.expect(Scene.text('Export Failed')).toExist(),
-      Scene.click(Scene.role('button', { name: 'Dismiss' })),
-      Scene.Command.resolve(
+      Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      expect(text('Export Failed')).toExist(),
+      click(role('button', { name: 'Dismiss' })),
+      Command.resolve(
         Dialog.CloseDialog,
-        Dialog.CompletedCloseDialog(),
-        errorDialogMessageToMessage,
+        Dialog.Message.CompletedCloseDialog(),
       ),
-      Scene.expect(Scene.text('Export Failed')).toBeAbsent(),
+      expect(text('Export Failed')).toBeAbsent(),
     )
   })
 })
 
 describe('header', () => {
   test('renders PixelForge title and Export PNG button', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(createTestModel()),
-      Scene.expect(Scene.role('heading', { name: 'PixelForge' })).toExist(),
-      Scene.expect(Scene.role('button', { name: 'Export PNG' })).toExist(),
+      given(createTestModel()),
+      expect(role('heading', { name: 'PixelForge' })).toExist(),
+      expect(role('button', { name: 'Export PNG' })).toExist(),
     )
   })
 })
 
 describe('toolbar', () => {
   test('Brush tool is selected by default', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(createTestModel()),
-      Scene.expect(
-        Scene.role('radio', { name: /^Brush/, checked: true }),
-      ).toExist(),
-      Scene.expect(
-        Scene.role('radio', { name: /^Fill/, checked: false }),
-      ).toExist(),
-      Scene.expect(
-        Scene.role('radio', { name: /^Eraser/, checked: false }),
-      ).toExist(),
+      given(createTestModel()),
+      expect(role('radio', { name: /^Brush/, checked: true })).toExist(),
+      expect(role('radio', { name: /^Fill/, checked: false })).toExist(),
+      expect(role('radio', { name: /^Eraser/, checked: false })).toExist(),
     )
   })
 
   test('clear canvas button is disabled when canvas is empty', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(createTestModel()),
-      Scene.expect(
-        Scene.role('button', { name: 'Clear Canvas' }),
-      ).toBeDisabled(),
+      given(createTestModel()),
+      expect(role('button', { name: 'Clear Canvas' })).toBeDisabled(),
     )
   })
 
   test('clicking Fill tool selects it', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(createTestModel()),
-      Scene.click(Scene.role('radio', { name: /^Fill/ })),
-      Scene.Command.resolve(
-        RadioGroup.FocusOption,
-        RadioGroup.CompletedFocusOption(),
-        toolRadioGroupMessageToMessage,
-      ),
-      Scene.expect(
-        Scene.role('radio', { name: /^Fill/, checked: true }),
-      ).toExist(),
-      Scene.expect(
-        Scene.role('radio', { name: /^Brush/, checked: false }),
-      ).toExist(),
+      given(createTestModel()),
+      click(role('radio', { name: /^Fill/ })),
+      resolveFocusOption,
+      expect(role('radio', { name: /^Fill/, checked: true })).toExist(),
+      expect(role('radio', { name: /^Brush/, checked: false })).toExist(),
     )
   })
 
   test('clear canvas enables after painting then disables after clearing', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(createPaintedModel()),
-      Scene.expect(
-        Scene.role('button', { name: 'Clear Canvas' }),
-      ).toBeEnabled(),
-      Scene.click(Scene.role('button', { name: 'Clear Canvas' })),
-      Scene.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Scene.expect(
-        Scene.role('button', { name: 'Clear Canvas' }),
-      ).toBeDisabled(),
+      given(createPaintedModel()),
+      expect(role('button', { name: 'Clear Canvas' })).toBeEnabled(),
+      click(role('button', { name: 'Clear Canvas' })),
+      Command.resolve(SaveCanvas, Message.CompletedSaveCanvas()),
+      expect(role('button', { name: 'Clear Canvas' })).toBeDisabled(),
     )
   })
 })
 
 describe('history panel', () => {
   test('undo and redo buttons are disabled with no history', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(createTestModel()),
-      Scene.expect(Scene.role('button', { name: /^Undo/ })).toBeDisabled(),
-      Scene.expect(Scene.role('button', { name: /^Redo/ })).toBeDisabled(),
+      given(createTestModel()),
+      expect(role('button', { name: /^Undo/ })).toBeDisabled(),
+      expect(role('button', { name: /^Redo/ })).toBeDisabled(),
     )
   })
 
   test('current history entry is visible', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(createTestModel()),
-      Scene.expect(Scene.text('Current')).toExist(),
+      given(createTestModel()),
+      expect(text('Current')).toExist(),
     )
   })
 
   test('undo enables after painting and re-disables after undoing', () => {
-    const modelWithHistory: Model = {
-      ...createTestModel(),
-      grid: createEmptyGrid(4).map((row, y) =>
-        row.map((cell, x) =>
-          x === 0 && y === 0 ? Option.some<PaletteIndex>(0) : cell,
+    const modelWithHistory: Model = evo(createTestModel(), {
+      grid: () =>
+        createEmptyGrid(4).map((row, y) =>
+          row.map((cell, x) =>
+            x === 0 && y === 0 ? Option.some<PaletteIndex>(0) : cell,
+          ),
         ),
-      ),
-      undoStack: [createEmptyGrid(4)],
-    }
+      undoStack: () => [createEmptyGrid(4)],
+    })
 
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(modelWithHistory),
-      Scene.expect(Scene.role('button', { name: /^Undo/ })).toBeEnabled(),
-      Scene.expect(Scene.role('button', { name: /^Redo/ })).toBeDisabled(),
-      Scene.click(Scene.role('button', { name: /^Undo/ })),
-      Scene.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Scene.expect(Scene.role('button', { name: /^Undo/ })).toBeDisabled(),
-      Scene.expect(Scene.role('button', { name: /^Redo/ })).toBeEnabled(),
+      given(modelWithHistory),
+      expect(role('button', { name: /^Undo/ })).toBeEnabled(),
+      expect(role('button', { name: /^Redo/ })).toBeDisabled(),
+      click(role('button', { name: /^Undo/ })),
+      Command.resolve(SaveCanvas, Message.CompletedSaveCanvas()),
+      expect(role('button', { name: /^Undo/ })).toBeDisabled(),
+      expect(role('button', { name: /^Redo/ })).toBeEnabled(),
     )
   })
 })
 
 describe('grid size change', () => {
   test('painted canvas opens confirmation dialog', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(createPaintedModel()),
-      Scene.click(Scene.role('radio', { name: '8' })),
-      Scene.Command.resolve(
-        RadioGroup.FocusOption,
-        RadioGroup.CompletedFocusOption(),
-        radioMessage => GotGridSizeRadioGroupMessage({ message: radioMessage }),
-      ),
-      Scene.Command.resolve(
-        Dialog.ShowDialog,
-        Dialog.CompletedShowDialog(),
-        confirmDialogMessageToMessage,
-      ),
-      Scene.expect(Scene.text('Change to 8\u00d78?')).toExist(),
-      Scene.expect(
-        Scene.text('This will clear your canvas and reset undo history.'),
+      given(createPaintedModel()),
+      click(role('radio', { name: '8' })),
+      resolveFocusOption,
+      Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      expect(text('Change to 8\u00d78?')).toExist(),
+      expect(
+        text('This will clear your canvas and reset undo history.'),
       ).toExist(),
-      Scene.expect(Scene.role('button', { name: 'Cancel' })).toExist(),
-      Scene.expect(
-        Scene.role('button', { name: 'Clear and Resize' }),
-      ).toExist(),
+      expect(role('button', { name: 'Cancel' })).toExist(),
+      expect(role('button', { name: 'Clear and Resize' })).toExist(),
     )
   })
 
   test('confirming grid size change closes dialog and saves canvas', () => {
-    const modelWithPendingResize: Model = {
-      ...createTestModel(),
-      maybePendingGridSize: Option.some(8),
-      gridSizeConfirmDialog: Dialog.init({
-        id: 'grid-size-confirm-dialog',
-        isOpen: true,
-      }),
-      undoStack: [createEmptyGrid(4)],
-    }
+    const modelWithPendingResize: Model = evo(createTestModel(), {
+      maybePendingGridSize: () => Option.some(8),
+      gridSizeConfirmDialog: () =>
+        Dialog.init({
+          id: 'grid-size-confirm-dialog',
+          isOpen: true,
+        }),
+      undoStack: () => [createEmptyGrid(4)],
+    })
 
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(modelWithPendingResize),
-      Scene.expect(Scene.text('Change to 8\u00d78?')).toExist(),
-      Scene.click(Scene.role('button', { name: 'Clear and Resize' })),
-      Scene.Command.resolve(
+      given(modelWithPendingResize),
+      expect(text('Change to 8\u00d78?')).toExist(),
+      click(role('button', { name: 'Clear and Resize' })),
+      Command.resolve(
         Dialog.CloseDialog,
-        Dialog.CompletedCloseDialog(),
-        confirmDialogMessageToMessage,
+        Dialog.Message.CompletedCloseDialog(),
       ),
-      Scene.Command.resolve(SaveCanvas, CompletedSaveCanvas()),
-      Scene.expect(Scene.text('Change to 8\u00d78?')).toBeAbsent(),
+      Command.resolve(SaveCanvas, Message.CompletedSaveCanvas()),
+      expect(text('Change to 8\u00d78?')).toBeAbsent(),
     )
   })
 
   test('cancelling grid size change keeps current size', () => {
-    const modelWithPendingResize: Model = {
-      ...createTestModel(),
-      maybePendingGridSize: Option.some(8),
-      gridSizeConfirmDialog: Dialog.init({
-        id: 'grid-size-confirm-dialog',
-        isOpen: true,
-      }),
-    }
+    const modelWithPendingResize: Model = evo(createTestModel(), {
+      maybePendingGridSize: () => Option.some(8),
+      gridSizeConfirmDialog: () =>
+        Dialog.init({
+          id: 'grid-size-confirm-dialog',
+          isOpen: true,
+        }),
+    })
 
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(modelWithPendingResize),
-      Scene.expect(Scene.text('Change to 8\u00d78?')).toExist(),
-      Scene.click(Scene.role('button', { name: 'Cancel' })),
-      Scene.Command.resolve(
+      given(modelWithPendingResize),
+      expect(text('Change to 8\u00d78?')).toExist(),
+      click(role('button', { name: 'Cancel' })),
+      Command.resolve(
         Dialog.CloseDialog,
-        Dialog.CompletedCloseDialog(),
-        confirmDialogMessageToMessage,
+        Dialog.Message.CompletedCloseDialog(),
       ),
-      Scene.expect(Scene.text('Change to 8\u00d78?')).toBeAbsent(),
+      expect(text('Change to 8\u00d78?')).toBeAbsent(),
     )
   })
 })

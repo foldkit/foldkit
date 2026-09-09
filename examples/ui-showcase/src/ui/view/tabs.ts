@@ -1,17 +1,11 @@
-import { Array, Match as M } from 'effect'
+import { Array, Match } from 'effect'
 import { Submodel } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Tabs } from '@foldkit/ui'
 
-import {
-  GotHorizontalTabsDemoMessage,
-  GotVerticalTabsDemoMessage,
-  type UiMessage,
-} from '../message'
-import type { UiModel } from '../model'
-
-type DemoTab = 'Foldkit' | 'React' | 'Elm'
+import { Message as UiMessage } from '../message'
+import { type DemoTab, type UiModel } from '../model'
 
 const demoTabs: ReadonlyArray<DemoTab> = ['Foldkit', 'React', 'Elm']
 
@@ -29,9 +23,7 @@ const verticalButtonClassName =
 const verticalPanelClassName =
   'flex-1 p-6 bg-white rounded-r-lg rounded-bl-lg border border-gray-200'
 
-const foldkitPanel = (): Html => {
-  const h = html()
-
+const foldkitPanel = (h: HtmlBuilder<UiMessage>): Html => {
   return h.div(
     [],
     [
@@ -52,9 +44,7 @@ const foldkitPanel = (): Html => {
   )
 }
 
-const reactPanel = (): Html => {
-  const h = html()
-
+const reactPanel = (h: HtmlBuilder<UiMessage>): Html => {
   return h.div(
     [],
     [
@@ -75,9 +65,7 @@ const reactPanel = (): Html => {
   )
 }
 
-const elmPanel = (): Html => {
-  const h = html()
-
+const elmPanel = (h: HtmlBuilder<UiMessage>): Html => {
   return h.div(
     [],
     [
@@ -98,98 +86,102 @@ const elmPanel = (): Html => {
   )
 }
 
-const panelFor = (tab: DemoTab): Html =>
-  M.value(tab).pipe(
-    M.when('Foldkit', () => foldkitPanel()),
-    M.when('React', () => reactPanel()),
-    M.when('Elm', () => elmPanel()),
-    M.exhaustive,
+const panelFor = (tab: DemoTab, h: HtmlBuilder<UiMessage>): Html =>
+  Match.value(tab).pipe(
+    Match.when('Foldkit', () => foldkitPanel(h)),
+    Match.when('React', () => reactPanel(h)),
+    Match.when('Elm', () => elmPanel(h)),
+    Match.exhaustive,
   )
 
-export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
-  const h = html<UiMessage>()
+export const view = Submodel.defineView<UiModel, UiMessage>(
+  (model, h): Html => {
+    return h.div(
+      [],
+      [
+        h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Tabs']),
 
-  return h.div(
-    [],
-    [
-      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Tabs']),
-
-      h.h3(
-        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
-        ['Horizontal'],
-      ),
-      h.submodel({
-        slotId: 'horizontal-tabs-demo',
-        model: model.horizontalTabsDemo,
-        view: DemoTabs.view,
-        viewInputs: {
-          tabs: demoTabs,
-          ariaLabel: 'Framework comparison tabs',
-          toView: ({ tablist, tabs, activeIndex }) =>
-            h.div(
-              [],
-              [
-                h.div(
-                  [...tablist, h.Class('flex')],
-                  tabs.map(tab =>
-                    h.button(
-                      [...tab.tab, h.Class(horizontalButtonClassName)],
-                      [h.span([], [tab.value])],
+        h.h3(
+          [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+          ['Horizontal'],
+        ),
+        h.submodel({
+          slotId: 'horizontal-tabs-demo',
+          model: model.horizontalTabsDemo,
+          view: DemoTabs.view,
+          viewInputs: {
+            tabs: demoTabs,
+            selectedValue: model.horizontalTabsDemoTab,
+            ariaLabel: 'Framework comparison tabs',
+            toView: ({ tablist, tabs, activeIndex }) =>
+              h.div(
+                [],
+                [
+                  h.div(
+                    [...tablist, h.Class('flex')],
+                    tabs.map(tab =>
+                      h.button(
+                        [...tab.tab, h.Class(horizontalButtonClassName)],
+                        [h.span([], [tab.value])],
+                      ),
                     ),
                   ),
-                ),
-                ...Array.map(
-                  Array.filter(tabs, tab => tab.index === activeIndex),
-                  tab =>
-                    h.div(
-                      [...tab.panel, h.Class(horizontalPanelClassName)],
-                      [panelFor(tab.value)],
-                    ),
-                ),
-              ],
-            ),
-        },
-        toParentMessage: message => GotHorizontalTabsDemoMessage({ message }),
-      }),
+                  ...Array.map(
+                    Array.filter(tabs, tab => tab.index === activeIndex),
+                    tab =>
+                      h.div(
+                        [...tab.panel, h.Class(horizontalPanelClassName)],
+                        [panelFor(tab.value, h)],
+                      ),
+                  ),
+                ],
+              ),
+          },
+          toParentMessage: message =>
+            UiMessage.GotHorizontalTabsDemoMessage({ message }),
+        }),
 
-      h.h3(
-        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
-        ['Vertical'],
-      ),
-      h.submodel({
-        slotId: 'vertical-tabs-demo',
-        model: model.verticalTabsDemo,
-        view: DemoTabs.view,
-        viewInputs: {
-          tabs: demoTabs,
-          ariaLabel: 'Framework comparison tabs',
-          orientation: 'Vertical',
-          toView: ({ tablist, tabs, activeIndex }) =>
-            h.div(
-              [h.Class('flex')],
-              [
-                h.div(
-                  [...tablist, h.Class('flex flex-col')],
-                  tabs.map(tab =>
-                    h.button(
-                      [...tab.tab, h.Class(verticalButtonClassName)],
-                      [h.span([], [tab.value])],
+        h.h3(
+          [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+          ['Vertical'],
+        ),
+        h.submodel({
+          slotId: 'vertical-tabs-demo',
+          model: model.verticalTabsDemo,
+          view: DemoTabs.view,
+          viewInputs: {
+            tabs: demoTabs,
+            selectedValue: model.verticalTabsDemoTab,
+            ariaLabel: 'Framework comparison tabs',
+            orientation: 'Vertical',
+            toView: ({ tablist, tabs, activeIndex }) =>
+              h.div(
+                [h.Class('flex')],
+                [
+                  h.div(
+                    [...tablist, h.Class('flex flex-col')],
+                    tabs.map(tab =>
+                      h.button(
+                        [...tab.tab, h.Class(verticalButtonClassName)],
+                        [h.span([], [tab.value])],
+                      ),
                     ),
                   ),
-                ),
-                ...Array.map(
-                  Array.filter(tabs, tab => tab.index === activeIndex),
-                  tab =>
-                    h.div(
-                      [...tab.panel, h.Class(verticalPanelClassName)],
-                      [panelFor(tab.value)],
-                    ),
-                ),
-              ],
-            ),
-        },
-        toParentMessage: message => GotVerticalTabsDemoMessage({ message }),
-      }),
-    ],
-  )
-})
+                  ...Array.map(
+                    Array.filter(tabs, tab => tab.index === activeIndex),
+                    tab =>
+                      h.div(
+                        [...tab.panel, h.Class(verticalPanelClassName)],
+                        [panelFor(tab.value, h)],
+                      ),
+                  ),
+                ],
+              ),
+          },
+          toParentMessage: message =>
+            UiMessage.GotVerticalTabsDemoMessage({ message }),
+        }),
+      ],
+    )
+  },
+)

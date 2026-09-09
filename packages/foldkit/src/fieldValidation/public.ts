@@ -1,5 +1,6 @@
 export {
   makeRules,
+  match,
   validate,
   validateAll,
   isValid,

@@ -1,19 +1,13 @@
-import { type Document, html } from 'foldkit/html'
+import type { Document, HtmlBuilder } from 'foldkit/html'
 
-import { Model } from './model'
+import type { Message } from './message'
+import type { Model } from './model'
 
 // ❌ Don't do this in view
-const view = (model: Model): Document => {
-  const h = html()
-
-  // Fetching data in view
+const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   fetch('/api/user').then(res => res.json())
-
-  // Setting timers
   setTimeout(() => console.log('tick'), 1000)
+  window.addEventListener('resize', () => {})
 
-  // Subscriptions
-  window.addEventListener('resize', handleResize)
-
-  return { title: 'Hello', body: h.div([], ['Hello']) }
+  return { title: model.title, body: h.div([], [model.title]) }
 }

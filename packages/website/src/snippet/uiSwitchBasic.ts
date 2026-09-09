@@ -1,76 +1,50 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Match as M, Option } from 'effect'
-import { Command } from 'foldkit'
-import { html } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { Schema } from 'effect'
+import type { HtmlBuilder } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Switch } from '@foldkit/ui'
 
-// Add a field to your Model for the Switch Submodel:
-const Model = S.Struct({
-  switchDemo: Switch.Model,
+// Store the on/off state as a plain boolean field in your Model:
+const Model = Schema.Struct({
+  notificationsEnabled: Schema.Boolean,
   // ...your other fields
 })
 
-// In your init function, initialize the Switch Submodel with a unique id:
-const init = () => [
-  {
-    switchDemo: Switch.init({ id: 'notifications' }),
+// In your init function, start it off:
+const init = () => ({
+  model: {
+    notificationsEnabled: false,
     // ...your other fields
   },
-  [],
-]
-
-// Embed the Switch Message in your parent Message:
-const GotSwitchMessage = m('GotSwitchMessage', {
-  message: Switch.Message,
 })
 
-// Inside your update function's M.tagsExhaustive({...}), delegate to
-// Switch.update. The OutMessage's `ToggledChecked` carries the new
-// `isChecked` value. Use it to save a preference, sync to a backend,
-// or trigger a side effect at the toggle moment.
-GotSwitchMessage: ({ message }) => {
-  const [nextSwitch, commands, maybeOutMessage] = Switch.update(
-    model.switchDemo,
-    message,
-  )
-  const mappedCommands = Command.mapMessages(commands, message =>
-    GotSwitchMessage({ message }),
-  )
+// A verb-first, past-tense Message carries the new checked state:
 
-  return Option.match(maybeOutMessage, {
-    onNone: () => [
-      evo(model, { switchDemo: () => nextSwitch }),
-      mappedCommands,
-    ],
-    onSome: M.type<Switch.OutMessage>().pipe(
-      M.tagsExhaustive({
-        ToggledChecked: ({ isChecked }) => {
-          // The child has emitted `ToggledChecked`. The body commits
-          // the child's next state as usual. In this arm the parent
-          // can also update its own state or dispatch its own
-          // Commands, for example persist the preference, fire
-          // analytics, or dispatch a downstream Command.
-          return [evo(model, { switchDemo: () => nextSwitch }), mappedCommands]
-        },
-      }),
-    ),
-  })
-}
+const Message = defineMessageUnion({
+  ToggledNotifications: { isChecked: Schema.Boolean },
+})
 
-// Inside your view function, embed the Switch via h.submodel:
-const view = () => {
-  const h = html<Message>()
+// In the corresponding Message.match handler, store the value.
+// This is the moment to persist the preference, sync to a backend, or fire
+// analytics.
+ToggledNotifications: ({ isChecked }) => ({
+  model: evo(model, { notificationsEnabled: () => isChecked }),
+})
 
-  return h.submodel({
-    slotId: 'switch-demo',
-    model: model.switchDemo,
-    view: Switch.view,
-    viewInputs: {
+// Inside your view function, render the switch with Switch.view. It reads the
+// checked state from your Model and calls onToggle with the new state. The
+// track color keys off the data-checked attribute; the knob position derives
+// from the same Model field.
+const view = (model, h: HtmlBuilder<Message>) =>
+  Switch.view(
+    {
+      id: 'notifications',
+      isChecked: model.notificationsEnabled,
+      onToggle: isChecked => Message.ToggledNotifications({ isChecked }),
       toView: attributes =>
         h.div(
           [h.Class('flex items-center gap-3')],
@@ -79,18 +53,15 @@ const view = () => {
               [
                 ...attributes.button,
                 h.Class(
-                  'relative h-6 w-11 rounded-full transition-colors data-[checked]:bg-blue-600 bg-gray-200',
+                  'relative inline-flex h-6 w-11 items-center rounded-full transition-colors data-[checked]:bg-blue-600 bg-gray-200',
                 ),
               ],
               [
-                h.div(
-                  [
-                    h.Class(
-                      'absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform',
-                    ),
-                  ],
-                  [],
-                ),
+                h.span([
+                  h.Class(
+                    `inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${model.notificationsEnabled ? 'translate-x-6' : 'translate-x-1'}`,
+                  ),
+                ]),
               ],
             ),
             h.div(
@@ -109,6 +80,5 @@ const view = () => {
           ],
         ),
     },
-    toParentMessage: message => GotSwitchMessage({ message }),
-  })
-}
+    h,
+  )

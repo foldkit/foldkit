@@ -1,61 +1,49 @@
-import { Console, Effect, Schema as S } from 'effect'
+import { Console, Effect, Schema } from 'effect'
 import { KeyValueStore } from 'effect/unstable/persistence'
 import { Command } from 'foldkit'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 
 import { SESSION_STORAGE_KEY } from './constant'
-import { Session } from './domain/session'
-import {
-  CompletedLogError,
-  FailedClearSession,
-  FailedSaveSession,
-  SucceededClearSession,
-  SucceededSaveSession,
-} from './message'
+import { Session, SessionJsonString } from './domain/session'
+import { Message } from './message'
 
-export const SaveSession = Command.define(
-  'SaveSession',
-  { session: Session },
-  SucceededSaveSession,
-  FailedSaveSession,
-)(({ session }) =>
-  Effect.gen(function* () {
-    const store = yield* KeyValueStore.KeyValueStore
-    yield* store.set(
-      SESSION_STORAGE_KEY,
-      S.encodeSync(S.fromJsonString(Session))(session),
-    )
-    return SucceededSaveSession()
-  }).pipe(
-    Effect.catch(error =>
-      Effect.succeed(FailedSaveSession({ error: String(error) })),
+export const SaveSession = Command.define('SaveSession', {
+  args: { session: Session },
+  messages: [Message.SucceededSaveSession, Message.FailedSaveSession],
+  execute: ({ session }) =>
+    Effect.gen(function* () {
+      const store = yield* KeyValueStore.KeyValueStore
+      yield* store.set(
+        SESSION_STORAGE_KEY,
+        Schema.encodeSync(SessionJsonString)(session),
+      )
+      return Message.SucceededSaveSession()
+    }).pipe(
+      Effect.catch(error =>
+        Effect.succeed(Message.FailedSaveSession({ error: String(error) })),
+      ),
+      Effect.provide(BrowserKeyValueStore.layerLocalStorage),
     ),
-    Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-  ),
-)
+})
 
-export const ClearSession = Command.define(
-  'ClearSession',
-  SucceededClearSession,
-  FailedClearSession,
-)(
-  Effect.gen(function* () {
+export const ClearSession = Command.define('ClearSession', {
+  messages: [Message.SucceededClearSession, Message.FailedClearSession],
+  execute: Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
     yield* store.remove(SESSION_STORAGE_KEY)
-    return SucceededClearSession()
+    return Message.SucceededClearSession()
   }).pipe(
     Effect.catch(error =>
-      Effect.succeed(FailedClearSession({ error: String(error) })),
+      Effect.succeed(Message.FailedClearSession({ error: String(error) })),
     ),
     Effect.provide(BrowserKeyValueStore.layerLocalStorage),
   ),
-)
+})
 
-export const LogError = Command.define(
-  'LogError',
-  { entries: S.Array(S.Unknown) },
-  CompletedLogError,
-)(({ entries }) =>
-  Console.error(...entries).pipe(Effect.as(CompletedLogError())),
-)
+export const LogError = Command.define('LogError', {
+  args: { entries: Schema.Array(Schema.Unknown) },
+  messages: [Message.CompletedLogError],
+  execute: ({ entries }) =>
+    Console.error(...entries).pipe(Effect.as(Message.CompletedLogError())),
+})

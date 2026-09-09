@@ -1,13 +1,12 @@
 import { Array, Option } from 'effect'
 import * as Story from 'foldkit/story'
+import { evo } from 'foldkit/struct'
 import { describe, expect, it } from 'vitest'
 
 import {
   ApplyScroll,
-  CompletedApplyScroll,
-  MeasuredContainer,
+  Message,
   type Model,
-  ScrolledContainer,
   init,
   scrollToIndex,
   scrollToIndexVariable,
@@ -19,11 +18,11 @@ import {
 const defaultInit = (): Model => init({ id: 'test', rowHeightPx: 30 })
 
 const measuredInit = (containerHeight: number): Model => {
-  const [measured] = update(
+  const measurement = update(
     defaultInit(),
-    MeasuredContainer({ containerHeight }),
+    Message.MeasuredContainer({ containerHeight }),
   )
-  return measured
+  return measurement.model
 }
 
 describe('VirtualList', () => {
@@ -52,8 +51,8 @@ describe('VirtualList', () => {
     it('writes the new scrollTop into the model', () => {
       Story.story(
         update,
-        Story.with(defaultInit()),
-        Story.message(ScrolledContainer({ scrollTop: 450 })),
+        Story.given(defaultInit()),
+        Story.message(Message.ScrolledContainer({ scrollTop: 450 })),
         Story.model(model => {
           expect(model.scrollTop).toBe(450)
         }),
@@ -65,8 +64,8 @@ describe('VirtualList', () => {
     it('transitions Unmeasured to Measured with the reported height', () => {
       Story.story(
         update,
-        Story.with(defaultInit()),
-        Story.message(MeasuredContainer({ containerHeight: 600 })),
+        Story.given(defaultInit()),
+        Story.message(Message.MeasuredContainer({ containerHeight: 600 })),
         Story.model(model => {
           expect(model.measurement._tag).toBe('Measured')
           if (model.measurement._tag === 'Measured') {
@@ -79,9 +78,9 @@ describe('VirtualList', () => {
     it('updates the height when already Measured', () => {
       Story.story(
         update,
-        Story.with(defaultInit()),
-        Story.message(MeasuredContainer({ containerHeight: 600 })),
-        Story.message(MeasuredContainer({ containerHeight: 720 })),
+        Story.given(defaultInit()),
+        Story.message(Message.MeasuredContainer({ containerHeight: 600 })),
+        Story.message(Message.MeasuredContainer({ containerHeight: 720 })),
         Story.model(model => {
           if (model.measurement._tag === 'Measured') {
             expect(model.measurement.containerHeight).toBe(720)
@@ -93,8 +92,8 @@ describe('VirtualList', () => {
     it('issues no Command on the initial Unmeasured to Measured transition when scrollTop is 0', () => {
       Story.story(
         update,
-        Story.with(defaultInit()),
-        Story.message(MeasuredContainer({ containerHeight: 600 })),
+        Story.given(defaultInit()),
+        Story.message(Message.MeasuredContainer({ containerHeight: 600 })),
         Story.Command.expectNone(),
       )
     })
@@ -102,10 +101,10 @@ describe('VirtualList', () => {
     it('issues an apply-scroll Command on the initial transition when scrollTop is non-zero', () => {
       Story.story(
         update,
-        Story.with(
+        Story.given(
           init({ id: 'test', rowHeightPx: 30, initialScrollTop: 600 }),
         ),
-        Story.message(MeasuredContainer({ containerHeight: 300 })),
+        Story.message(Message.MeasuredContainer({ containerHeight: 300 })),
         Story.Command.expectHas(ApplyScroll),
         Story.model(model => {
           expect(model.pendingScroll._tag).toBe('ScrollingToIndex')
@@ -116,7 +115,7 @@ describe('VirtualList', () => {
         }),
         Story.Command.resolve(
           ApplyScroll,
-          CompletedApplyScroll({ version: 1 }),
+          Message.CompletedApplyScroll({ version: 1 }),
         ),
       )
     })
@@ -124,15 +123,15 @@ describe('VirtualList', () => {
     it('issues no Command on subsequent MeasuredContainer once already Measured (resize-only path)', () => {
       Story.story(
         update,
-        Story.with(
+        Story.given(
           init({ id: 'test', rowHeightPx: 30, initialScrollTop: 600 }),
         ),
-        Story.message(MeasuredContainer({ containerHeight: 300 })),
+        Story.message(Message.MeasuredContainer({ containerHeight: 300 })),
         Story.Command.resolve(
           ApplyScroll,
-          CompletedApplyScroll({ version: 1 }),
+          Message.CompletedApplyScroll({ version: 1 }),
         ),
-        Story.message(MeasuredContainer({ containerHeight: 320 })),
+        Story.message(Message.MeasuredContainer({ containerHeight: 320 })),
         Story.Command.expectNone(),
       )
     })
@@ -141,48 +140,53 @@ describe('VirtualList', () => {
   describe('CompletedApplyScroll', () => {
     it('clears pendingScroll when the version matches', () => {
       const baseModel = defaultInit()
-      const [scrolledModel] = scrollToIndex(baseModel, 50)
-      expect(scrolledModel.pendingScroll._tag).toBe('ScrollingToIndex')
+      const indexScroll = scrollToIndex(baseModel, 50)
+      expect(indexScroll.model.pendingScroll._tag).toBe('ScrollingToIndex')
 
-      const [resolvedModel] = update(
-        scrolledModel,
-        CompletedApplyScroll({ version: scrolledModel.pendingScrollVersion }),
+      const completion = update(
+        indexScroll.model,
+        Message.CompletedApplyScroll({
+          version: indexScroll.model.pendingScrollVersion,
+        }),
       )
-      expect(resolvedModel.pendingScroll._tag).toBe('Idle')
+      expect(completion.model.pendingScroll._tag).toBe('Idle')
     })
 
     it('ignores a stale completion when a newer scroll is in flight', () => {
-      const [first] = scrollToIndex(defaultInit(), 10)
-      const [second] = scrollToIndex(first, 20)
-      expect(second.pendingScrollVersion).toBe(2)
+      const firstScroll = scrollToIndex(defaultInit(), 10)
+      const secondScroll = scrollToIndex(firstScroll.model, 20)
+      expect(secondScroll.model.pendingScrollVersion).toBe(2)
 
-      const [unchanged] = update(second, CompletedApplyScroll({ version: 1 }))
-      expect(unchanged.pendingScroll._tag).toBe('ScrollingToIndex')
-      if (unchanged.pendingScroll._tag === 'ScrollingToIndex') {
-        expect(unchanged.pendingScroll.version).toBe(2)
+      const staleCompletion = update(
+        secondScroll.model,
+        Message.CompletedApplyScroll({ version: 1 }),
+      )
+      expect(staleCompletion.model.pendingScroll._tag).toBe('ScrollingToIndex')
+      if (staleCompletion.model.pendingScroll._tag === 'ScrollingToIndex') {
+        expect(staleCompletion.model.pendingScroll.version).toBe(2)
       }
     })
   })
 
   describe('scrollToIndex', () => {
     it('bumps the version and stores the target index in pendingScroll', () => {
-      const [model, commands] = scrollToIndex(defaultInit(), 42)
-      expect(model.pendingScrollVersion).toBe(1)
-      expect(model.pendingScroll._tag).toBe('ScrollingToIndex')
-      if (model.pendingScroll._tag === 'ScrollingToIndex') {
-        expect(model.pendingScroll.index).toBe(42)
-        expect(model.pendingScroll.version).toBe(1)
+      const indexScroll = scrollToIndex(defaultInit(), 42)
+      expect(indexScroll.model.pendingScrollVersion).toBe(1)
+      expect(indexScroll.model.pendingScroll._tag).toBe('ScrollingToIndex')
+      if (indexScroll.model.pendingScroll._tag === 'ScrollingToIndex') {
+        expect(indexScroll.model.pendingScroll.index).toBe(42)
+        expect(indexScroll.model.pendingScroll.version).toBe(1)
       }
-      expect(commands).toHaveLength(1)
+      expect(indexScroll.commands ?? []).toHaveLength(1)
     })
 
     it('increments the version monotonically across calls', () => {
-      const [first] = scrollToIndex(defaultInit(), 10)
-      const [second] = scrollToIndex(first, 20)
-      const [third] = scrollToIndex(second, 30)
-      expect(first.pendingScrollVersion).toBe(1)
-      expect(second.pendingScrollVersion).toBe(2)
-      expect(third.pendingScrollVersion).toBe(3)
+      const firstScroll = scrollToIndex(defaultInit(), 10)
+      const secondScroll = scrollToIndex(firstScroll.model, 20)
+      const thirdScroll = scrollToIndex(secondScroll.model, 30)
+      expect(firstScroll.model.pendingScrollVersion).toBe(1)
+      expect(secondScroll.model.pendingScrollVersion).toBe(2)
+      expect(thirdScroll.model.pendingScrollVersion).toBe(3)
     })
   })
 
@@ -193,7 +197,7 @@ describe('VirtualList', () => {
     })
 
     it('computes the slice from scrollTop, containerHeight, and rowHeightPx', () => {
-      const model: Model = { ...measuredInit(300), scrollTop: 0 }
+      const model: Model = evo(measuredInit(300), { scrollTop: () => 0 })
       const result = visibleWindow(model, 1000, 0)
 
       expect(Option.isSome(result)).toBe(true)
@@ -206,7 +210,7 @@ describe('VirtualList', () => {
     })
 
     it('shifts the slice as scrollTop advances', () => {
-      const model: Model = { ...measuredInit(300), scrollTop: 600 }
+      const model: Model = evo(measuredInit(300), { scrollTop: () => 600 })
       const result = visibleWindow(model, 1000, 0)
 
       if (Option.isSome(result)) {
@@ -218,7 +222,7 @@ describe('VirtualList', () => {
     })
 
     it('expands the slice by the overscan buffer on each side', () => {
-      const model: Model = { ...measuredInit(300), scrollTop: 600 }
+      const model: Model = evo(measuredInit(300), { scrollTop: () => 600 })
       const result = visibleWindow(model, 1000, 5)
 
       if (Option.isSome(result)) {
@@ -228,7 +232,7 @@ describe('VirtualList', () => {
     })
 
     it('clamps startIndex to 0 when overscan crosses the top edge', () => {
-      const model: Model = { ...measuredInit(300), scrollTop: 30 }
+      const model: Model = evo(measuredInit(300), { scrollTop: () => 30 })
       const result = visibleWindow(model, 1000, 5)
 
       if (Option.isSome(result)) {
@@ -238,7 +242,7 @@ describe('VirtualList', () => {
     })
 
     it('clamps endIndex to itemCount when overscan crosses the bottom edge', () => {
-      const model: Model = { ...measuredInit(300), scrollTop: 0 }
+      const model: Model = evo(measuredInit(300), { scrollTop: () => 0 })
       const result = visibleWindow(model, 8, 5)
 
       if (Option.isSome(result)) {
@@ -248,7 +252,7 @@ describe('VirtualList', () => {
     })
 
     it('produces an empty slice when itemCount is 0', () => {
-      const model: Model = { ...measuredInit(300), scrollTop: 0 }
+      const model: Model = evo(measuredInit(300), { scrollTop: () => 0 })
       const result = visibleWindow(model, 0, 5)
 
       if (Option.isSome(result)) {
@@ -278,7 +282,7 @@ describe('VirtualList', () => {
     })
 
     it('computes the slice from cumulative heights at scrollTop 0', () => {
-      const model: Model = { ...measuredInit(60), scrollTop: 0 }
+      const model: Model = evo(measuredInit(60), { scrollTop: () => 0 })
       const result = visibleWindowVariable(model, rows, heightOf, 0)
 
       expect(Option.isSome(result)).toBe(true)
@@ -291,7 +295,7 @@ describe('VirtualList', () => {
     })
 
     it('shifts the slice into rows whose offsets straddle scrollTop', () => {
-      const model: Model = { ...measuredInit(60), scrollTop: 25 }
+      const model: Model = evo(measuredInit(60), { scrollTop: () => 25 })
       const result = visibleWindowVariable(model, rows, heightOf, 0)
 
       if (Option.isSome(result)) {
@@ -303,7 +307,7 @@ describe('VirtualList', () => {
     })
 
     it('expands the slice by overscan and recomputes spacers from cumulative heights', () => {
-      const model: Model = { ...measuredInit(60), scrollTop: 25 }
+      const model: Model = evo(measuredInit(60), { scrollTop: () => 25 })
       const result = visibleWindowVariable(model, rows, heightOf, 1)
 
       if (Option.isSome(result)) {
@@ -315,7 +319,7 @@ describe('VirtualList', () => {
     })
 
     it('clamps the slice to itemCount when scrollTop exceeds total content height', () => {
-      const model: Model = { ...measuredInit(60), scrollTop: 1000 }
+      const model: Model = evo(measuredInit(60), { scrollTop: () => 1000 })
       const result = visibleWindowVariable(model, rows, heightOf, 0)
 
       if (Option.isSome(result)) {
@@ -327,7 +331,7 @@ describe('VirtualList', () => {
     })
 
     it('produces an empty slice when items is empty', () => {
-      const model: Model = { ...measuredInit(60), scrollTop: 0 }
+      const model: Model = evo(measuredInit(60), { scrollTop: () => 0 })
       const result = visibleWindowVariable(model, [], heightOf, 0)
 
       if (Option.isSome(result)) {
@@ -350,36 +354,48 @@ describe('VirtualList', () => {
     const heightOf = (row: Row): number => row.height
 
     it('bumps the version and stores the target index in pendingScroll', () => {
-      const [model, commands] = scrollToIndexVariable(
+      const variableIndexScroll = scrollToIndexVariable(
         defaultInit(),
         rows,
         heightOf,
         2,
       )
-      expect(model.pendingScrollVersion).toBe(1)
-      expect(model.pendingScroll._tag).toBe('ScrollingToIndex')
-      if (model.pendingScroll._tag === 'ScrollingToIndex') {
-        expect(model.pendingScroll.index).toBe(2)
-        expect(model.pendingScroll.version).toBe(1)
+      expect(variableIndexScroll.model.pendingScrollVersion).toBe(1)
+      expect(variableIndexScroll.model.pendingScroll._tag).toBe(
+        'ScrollingToIndex',
+      )
+      if (variableIndexScroll.model.pendingScroll._tag === 'ScrollingToIndex') {
+        expect(variableIndexScroll.model.pendingScroll.index).toBe(2)
+        expect(variableIndexScroll.model.pendingScroll.version).toBe(1)
       }
-      expect(commands).toHaveLength(1)
+      expect(variableIndexScroll.commands ?? []).toHaveLength(1)
     })
 
     it('increments the version monotonically across calls', () => {
-      const [first] = scrollToIndexVariable(defaultInit(), rows, heightOf, 1)
-      const [second] = scrollToIndexVariable(first, rows, heightOf, 2)
-      expect(first.pendingScrollVersion).toBe(1)
-      expect(second.pendingScrollVersion).toBe(2)
+      const firstScroll = scrollToIndexVariable(
+        defaultInit(),
+        rows,
+        heightOf,
+        1,
+      )
+      const secondScroll = scrollToIndexVariable(
+        firstScroll.model,
+        rows,
+        heightOf,
+        2,
+      )
+      expect(firstScroll.model.pendingScrollVersion).toBe(1)
+      expect(secondScroll.model.pendingScrollVersion).toBe(2)
     })
 
     it('emits an ApplyScroll Command per call', () => {
-      const [, commands] = scrollToIndexVariable(
+      const variableIndexScroll = scrollToIndexVariable(
         defaultInit(),
         rows,
         heightOf,
         3,
       )
-      expect(commands).toHaveLength(1)
+      expect(variableIndexScroll.commands ?? []).toHaveLength(1)
     })
   })
 
@@ -389,7 +405,7 @@ describe('VirtualList', () => {
     const constantHeight = (): number => 30
 
     it('visibleWindow and visibleWindowVariable produce the same slice for uniform-height inputs', () => {
-      const model: Model = { ...measuredInit(300), scrollTop: 600 }
+      const model: Model = evo(measuredInit(300), { scrollTop: () => 600 })
       const uniform = visibleWindow(model, rows.length, 5)
       const variable = visibleWindowVariable(model, rows, constantHeight, 5)
 

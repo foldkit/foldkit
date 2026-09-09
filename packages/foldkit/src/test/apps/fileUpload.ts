@@ -1,8 +1,10 @@
-import { Match as M, Schema as S } from 'effect'
+import { Schema } from 'effect'
 
 import { File } from '../../file/index.js'
-import { type Html, html } from '../../html/index.js'
-import { m } from '../../message/index.js'
+import type { Html, HtmlBuilder } from '../../html/index.js'
+import { defineMessageUnion } from '../../message/index.js'
+import { evo } from '../../struct/index.js'
+import type * as Update from '../../update/index.js'
 
 // MODEL
 
@@ -14,29 +16,24 @@ export const initialModel: Model = { receivedFiles: [] }
 
 // MESSAGE
 
-export const ReceivedFiles = m('ReceivedFiles', { files: S.Array(File) })
+export const Message = defineMessageUnion({
+  ReceivedFiles: { files: Schema.Array(File) },
+})
 
-export const Message = S.Union([ReceivedFiles])
 export type Message = typeof Message.Type
 
 // UPDATE
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<never>] =>
-  M.value(message).pipe(
-    M.withReturnType<readonly [Model, ReadonlyArray<never>]>(),
-    M.tagsExhaustive({
-      ReceivedFiles: ({ files }) => [{ ...model, receivedFiles: files }, []],
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ReceivedFiles: ({ files }) => ({
+      model: evo(model, { receivedFiles: () => files }),
     }),
-  )
+  })
 
 // VIEW
 
-export const view = (model: Model): Html => {
-  const h = html<Message>()
-
+export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
   return h.div(
     [],
     [
@@ -44,13 +41,13 @@ export const view = (model: Model): Html => {
         h.Key('file-input'),
         h.AriaLabel('resume'),
         h.Type('file'),
-        h.OnFileChange(files => ReceivedFiles({ files })),
+        h.OnFileChange(files => Message.ReceivedFiles({ files })),
       ]),
       h.div(
         [
           h.Key('drop-zone'),
           h.AriaLabel('attachments'),
-          h.OnDropFiles(files => ReceivedFiles({ files })),
+          h.OnDropFiles(files => Message.ReceivedFiles({ files })),
         ],
         ['Drop files here'],
       ),

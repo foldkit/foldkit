@@ -1,11 +1,11 @@
-import { Array, Schema as S } from 'effect'
+import { Array, Schema } from 'effect'
 
 import type { Direction } from './direction'
 import * as Position from './position'
 
 export const INITIAL_LENGTH = 3
 
-export const Snake = S.NonEmptyArray(Position.Position)
+export const Snake = Schema.NonEmptyArray(Position.Position)
 export type Snake = typeof Snake.Type
 
 export const create = (startPos: Position.Position): Snake =>

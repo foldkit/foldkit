@@ -1,41 +1,41 @@
 // Pseudocode — Select is view-only. The selected value lives in your own
 // Model as a string. Replace model.country and UpdatedCountry with your
 // own field and Message.
-import { html } from 'foldkit/html'
+import type { HtmlBuilder } from 'foldkit/html'
 
 import { Select } from '@foldkit/ui'
 
-const view = () => {
-  const h = html<Message>()
-
-  return Select.view({
-    id: 'country',
-    value: model.country, // your Model field
-    onChange: value => UpdatedCountry({ value }), // your Message
-    toView: attributes =>
-      h.div(
-        [h.Class('flex flex-col gap-1.5')],
-        [
-          h.label(
-            [...attributes.label, h.Class('text-sm font-medium')],
-            ['Country'],
-          ),
-          h.select(
-            [
-              ...attributes.select,
-              h.Class('w-full rounded-lg border px-3 py-2'),
-            ],
-            [
-              h.option([h.Value('us')], ['United States']),
-              h.option([h.Value('ca')], ['Canada']),
-              h.option([h.Value('gb')], ['United Kingdom']),
-            ],
-          ),
-          h.span(
-            [...attributes.description, h.Class('text-sm text-gray-500')],
-            ['Where you currently reside.'],
-          ),
-        ],
-      ),
-  })
-}
+const view = (h: HtmlBuilder<Message>) =>
+  Select.view(
+    {
+      id: 'country',
+      value: model.country, // your Model field
+      onChange: value => UpdatedCountry({ value }), // your Message
+      toView: attributes =>
+        h.div(
+          [h.Class('flex flex-col gap-1.5')],
+          [
+            h.label(
+              [...attributes.label, h.Class('text-sm font-medium')],
+              ['Country'],
+            ),
+            h.select(
+              [
+                ...attributes.select,
+                h.Class('w-full rounded-lg border px-3 py-2'),
+              ],
+              [
+                h.option([h.Value('us')], ['United States']),
+                h.option([h.Value('ca')], ['Canada']),
+                h.option([h.Value('gb')], ['United Kingdom']),
+              ],
+            ),
+            h.span(
+              [...attributes.description, h.Class('text-sm text-gray-500')],
+              ['Where you currently reside.'],
+            ),
+          ],
+        ),
+    },
+    h,
+  )

@@ -1,6 +1,48 @@
-import { Effect } from 'effect'
+import { Context, Effect, Option } from 'effect'
 
-import { Document, html } from '../html/index.js'
+import {
+  Document,
+  Html,
+  type HtmlBuilder,
+  __clearRuntime as clearHtmlRuntime,
+  __htmlBuilder as htmlBuilderFor,
+  inertHtml as ih,
+  __setRuntime as setHtmlRuntime,
+} from '../html/index.js'
+import { MountTracker } from '../mount/index.js'
+import { VNode, __patchVNode } from '../vdom.js'
+import { Dispatch } from './dispatch.js'
+import { applyDocumentMetadata } from './documentMetadata.js'
+
+/** Context provided to crash.view and crash.report when the runtime encounters
+ *  an unrecoverable error. `message` is the Message being processed when the
+ *  crash occurred, present as an `Option` because a crash during the initial
+ *  render has no triggering Message. */
+export type CrashContext<Model, Message> = Readonly<{
+  error: Error
+  model: Model
+  message: Option.Option<Message>
+}>
+
+/** Configuration for crash handling, with custom crash UI and/or crash
+ *  reporting. The crash view renders after the dispatch loop has stopped, so
+ *  its builder's Message is `never` and no handler is expressible. Reload or
+ *  navigate with a raw DOM attribute instead. */
+export type CrashConfig<Model, Message> = Readonly<{
+  view?: (
+    context: CrashContext<Model, Message>,
+    h: HtmlBuilder<never>,
+  ) => Document
+  report?: (context: CrashContext<Model, Message>) => void
+}>
+
+/** Configuration for crash handling in a `makeElement` app. The crash view
+ *  returns `Html`, not a `Document`, because a scoped app never owns the
+ *  document `<head>`. */
+export type ElementCrashConfig<Model, Message> = Readonly<{
+  view?: (context: CrashContext<Model, Message>, h: HtmlBuilder<never>) => Html
+  report?: (context: CrashContext<Model, Message>) => void
+}>
 
 export const noOpDispatch = {
   dispatchAsync: (_message: unknown) => Effect.void,
@@ -25,12 +67,10 @@ const monoStack =
   'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace'
 
 export const defaultCrashView = (
-  context: Readonly<{ error: Error }>,
+  context: CrashContext<unknown, unknown>,
   viewError?: unknown,
 ): Document => {
-  const h = html()
-
-  const codeBlockStyle = h.Style({
+  const codeBlockStyle = ih.Style({
     fontFamily: monoStack,
     color: colors.textPrimary,
     margin: '0',
@@ -41,14 +81,14 @@ export const defaultCrashView = (
     borderRadius: '0.375rem',
   })
 
-  const labelStyle = h.Style({
+  const labelStyle = ih.Style({
     color: colors.textSecondary,
     margin: '0 0 0.5rem 0',
     fontSize: '0.875rem',
     fontWeight: '500',
   })
 
-  const inlineCodeStyle = h.Style({
+  const inlineCodeStyle = ih.Style({
     fontFamily: monoStack,
     backgroundColor: colors.codeBg,
     padding: '0.125rem 0.375rem',
@@ -61,7 +101,7 @@ export const defaultCrashView = (
   const introText = viewError
     ? [
         'Your custom ',
-        h.span([inlineCodeStyle], ['crash.view']),
+        ih.span([inlineCodeStyle], ['crash.view']),
         ' threw an error while rendering.',
       ]
     : [
@@ -70,25 +110,25 @@ export const defaultCrashView = (
 
   const errorContent = viewError
     ? [
-        h.div(
-          [h.Style({ margin: '0 0 1rem 0' })],
+        ih.div(
+          [ih.Style({ margin: '0 0 1rem 0' })],
           [
-            h.p([labelStyle], ['Original error']),
-            h.p([codeBlockStyle], [context.error.message]),
+            ih.p([labelStyle], ['Original error']),
+            ih.p([codeBlockStyle], [context.error.message]),
           ],
         ),
-        h.div(
-          [h.Style({ margin: '0 0 1.25rem 0' })],
+        ih.div(
+          [ih.Style({ margin: '0 0 1.25rem 0' })],
           [
-            h.p([labelStyle], ['crash.view error']),
-            h.p([codeBlockStyle], [viewErrorMessage]),
+            ih.p([labelStyle], ['crash.view error']),
+            ih.p([codeBlockStyle], [viewErrorMessage]),
           ],
         ),
       ]
     : [
-        h.p(
+        ih.p(
           [
-            h.Style({
+            ih.Style({
               fontFamily: monoStack,
               color: colors.textPrimary,
               margin: '0 0 1.25rem 0',
@@ -106,9 +146,9 @@ export const defaultCrashView = (
   const footerText = viewError
     ? []
     : [
-        h.p(
+        ih.p(
           [
-            h.Style({
+            ih.Style({
               color: colors.textSecondary,
               margin: '1.5rem 0 0 0',
               fontSize: '0.875rem',
@@ -119,15 +159,15 @@ export const defaultCrashView = (
           ],
           [
             'This is the default crash view. You can customize it by providing a ',
-            h.span([inlineCodeStyle], ['crash.view']),
+            ih.span([inlineCodeStyle], ['crash.view']),
             ' function.',
           ],
         ),
       ]
 
-  const body = h.div(
+  const body = ih.div(
     [
-      h.Style({
+      ih.Style({
         fontFamily: fontStack,
         padding: '2rem',
         minHeight: '100vh',
@@ -138,9 +178,9 @@ export const defaultCrashView = (
       }),
     ],
     [
-      h.div(
+      ih.div(
         [
-          h.Style({
+          ih.Style({
             width: '100%',
             maxWidth: '960px',
             margin: '0 auto',
@@ -152,9 +192,9 @@ export const defaultCrashView = (
           }),
         ],
         [
-          h.h1(
+          ih.h1(
             [
-              h.Style({
+              ih.Style({
                 color: colors.errorAccent,
                 margin: '0 0 0.75rem 0',
                 fontSize: '1.25rem',
@@ -164,9 +204,9 @@ export const defaultCrashView = (
             ],
             ['Application Crash'],
           ),
-          h.p(
+          ih.p(
             [
-              h.Style({
+              ih.Style({
                 color: colors.textPrimary,
                 margin: '0 0 1rem 0',
                 fontSize: '1rem',
@@ -176,9 +216,9 @@ export const defaultCrashView = (
             introText,
           ),
           ...errorContent,
-          h.p(
+          ih.p(
             [
-              h.Style({
+              ih.Style({
                 color: colors.textPrimary,
                 margin: '0 0 1.5rem 0',
                 fontSize: '1rem',
@@ -189,9 +229,9 @@ export const defaultCrashView = (
               '→ Check the browser console for the full stack trace with source-mapped line numbers.',
             ],
           ),
-          h.button(
+          ih.button(
             [
-              h.Style({
+              ih.Style({
                 fontFamily: fontStack,
                 backgroundColor: colors.buttonBg,
                 color: colors.buttonText,
@@ -202,7 +242,7 @@ export const defaultCrashView = (
                 fontWeight: '500',
                 cursor: 'pointer',
               }),
-              h.Attribute('onclick', 'location.reload()'),
+              ih.Attribute('onclick', 'location.reload()'),
             ],
             ['Reload'],
           ),
@@ -213,4 +253,82 @@ export const defaultCrashView = (
   )
 
   return { title: 'Application Crash', body }
+}
+
+/** Mutable holder for the vnode tree currently mounted in the container.
+ *  The render frame writes it after every patch; the dispose finalizer, the
+ *  replay render, and {@link renderCrashView} read it. A plain object rather
+ *  than a Ref because every reader runs synchronously on the main thread. */
+export type VNodeSlot = {
+  maybeCurrentVNode: Option.Option<VNode>
+}
+
+export const renderCrashView = <Model, Message>(
+  context: CrashContext<Model, Message>,
+  crash: CrashConfig<Model, Message> | undefined,
+  container: HTMLElement,
+  vnodeSlot: VNodeSlot,
+  manageDocument: boolean,
+): void => {
+  console.error('[foldkit] Application crash:', context.error)
+
+  if (crash?.report) {
+    try {
+      crash.report(context)
+    } catch (reportError) {
+      console.error('[foldkit] crash.report failed:', reportError)
+    }
+  }
+
+  const crashContext = Context.make(Dispatch, noOpDispatch).pipe(
+    Context.add(MountTracker, {
+      started: () => {},
+      ended: () => {},
+    }),
+  )
+
+  try {
+    setHtmlRuntime(noOpDispatch.dispatchSync, crashContext)
+    let crashDocument: Document
+    try {
+      crashDocument = crash?.view
+        ? crash.view(context, htmlBuilderFor<never>())
+        : defaultCrashView(context)
+    } finally {
+      clearHtmlRuntime()
+    }
+
+    const patchedVNode = __patchVNode(
+      vnodeSlot.maybeCurrentVNode,
+      crashDocument.body,
+      container,
+    )
+    vnodeSlot.maybeCurrentVNode = Option.some(patchedVNode)
+    if (manageDocument) {
+      applyDocumentMetadata(crashDocument, patchedVNode.elm)
+    }
+  } catch (viewError) {
+    console.error('[foldkit] crash.view failed:', viewError)
+
+    const fallbackViewError =
+      viewError instanceof Error ? viewError : new Error(String(viewError))
+
+    setHtmlRuntime(noOpDispatch.dispatchSync, crashContext)
+    let fallbackDocument: Document
+    try {
+      fallbackDocument = defaultCrashView(context, fallbackViewError)
+    } finally {
+      clearHtmlRuntime()
+    }
+
+    const patchedVNode = __patchVNode(
+      vnodeSlot.maybeCurrentVNode,
+      fallbackDocument.body,
+      container,
+    )
+    vnodeSlot.maybeCurrentVNode = Option.some(patchedVNode)
+    if (manageDocument) {
+      applyDocumentMetadata(fallbackDocument, patchedVNode.elm)
+    }
+  }
 }

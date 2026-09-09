@@ -1,23 +1,25 @@
-import { Match as M, Option, Schema as S } from 'effect'
+import { Option, Schema } from 'effect'
 
-import type { Command } from '../../command/index.js'
-import { type Html, html } from '../../html/index.js'
-import { m } from '../../message/index.js'
+import type { Html, HtmlBuilder } from '../../html/index.js'
+import { defineMessageUnion } from '../../message/index.js'
+import { evo } from '../../struct/index.js'
+import type * as Update from '../../update/index.js'
 
 // MODEL
 
-export const Model = S.Struct({
-  body: S.String,
+export const Model = Schema.Struct({
+  body: Schema.String,
 })
 
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const UpdatedBody = m('UpdatedBody', { value: S.String })
-export const InsertedText = m('InsertedText', { value: S.String })
+export const Message = defineMessageUnion({
+  UpdatedBody: { value: Schema.String },
+  InsertedText: { value: Schema.String },
+})
 
-export const Message = S.Union([UpdatedBody, InsertedText])
 export type Message = typeof Message.Type
 
 // INIT
@@ -28,23 +30,19 @@ export const initialModel: Model = {
 
 // UPDATE
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<readonly [Model, ReadonlyArray<Command<Message>>]>(),
-    M.tagsExhaustive({
-      UpdatedBody: ({ value }) => [{ ...model, body: value }, []],
-      InsertedText: ({ value }) => [{ ...model, body: model.body + value }, []],
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    UpdatedBody: ({ value }) => ({
+      model: evo(model, { body: () => value }),
     }),
-  )
+    InsertedText: ({ value }) => ({
+      model: evo(model, { body: body => body + value }),
+    }),
+  })
 
 // VIEW
 
-export const view = (model: Model): Html => {
-  const h = html<Message>()
-
+export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
   return h.div(
     [h.Id('app')],
     [
@@ -53,10 +51,10 @@ export const view = (model: Model): Html => {
           h.DataAttribute('testid', 'editor'),
           h.Contenteditable('true'),
           h.Role('textbox'),
-          h.OnInput(value => UpdatedBody({ value })),
+          h.OnInput(value => Message.UpdatedBody({ value })),
           h.OnBeforeInputPreventDefault((inputType, data) =>
             inputType === 'insertText'
-              ? Option.map(data, value => InsertedText({ value }))
+              ? Option.map(data, value => Message.InsertedText({ value }))
               : Option.none(),
           ),
         ],

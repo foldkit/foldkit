@@ -1,5 +1,5 @@
 // page/settings/subscription.ts
-import { Effect, Schema as S, Stream } from 'effect'
+import { Effect, Schema, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 
 import {
@@ -20,7 +20,7 @@ const themeMenuSubscriptions = Subscription.lift(ThemeMenu.subscriptions)<
 
 const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
   unsavedChangesWarning: entry(
-    { hasUnsavedChanges: S.Boolean },
+    { hasUnsavedChanges: Schema.Boolean },
     {
       modelToDependencies: model => ({
         hasUnsavedChanges: model.hasUnsavedChanges,

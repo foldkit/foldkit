@@ -1,24 +1,33 @@
-import { Context } from 'effect'
-import { h as snabbdomH } from 'snabbdom'
-import { afterEach, beforeEach, expect } from 'vitest'
+import { Context, Stream } from 'effect'
+import { afterEach, beforeEach, expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
 import { MountTracker } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
+import { h as snabbdomH } from '../snabbdom/index.js'
 import {
   type BoundaryRegistry,
   beginRender,
   createBoundaryRegistry,
 } from './boundary.js'
-import { childAttributes } from './childAttribute.js'
-import { html } from './index.js'
+import { type ChildAttribute, childAttributes } from './childAttribute.js'
+import { type Html, __htmlBuilder } from './index.js'
 import {
   type DispatchSync,
   clearRuntime,
   setRuntime,
 } from './runtimeSingleton.js'
-import { submodel } from './submodel.js'
+import {
+  type AnySubmodelView,
+  type SubmodelConfig,
+  defineView,
+  submodel as submodelImpl,
+} from './submodel.js'
+
+const submodel = <View extends AnySubmodelView>(
+  config: SubmodelConfig<View, unknown>,
+): Html => submodelImpl(config, __htmlBuilder())
 
 const setUpRuntime = (
   registry: BoundaryRegistry,
@@ -68,6 +77,82 @@ describe('childAttributes', () => {
     clearRuntime()
   })
 
+  it('captures a Mount dispatch resolver only for groups containing OnMount', () => {
+    const h = __htmlBuilder<ChildClicked>()
+    const clickAttributes = childAttributes([
+      h.OnClick({ _tag: 'ChildClicked' }),
+    ])
+    const mountAttributes = childAttributes([
+      h.OnMount({
+        name: 'ObserveChild',
+        f: (_element, _viewStateChanges) => Stream.never,
+      }),
+    ])
+
+    expect(
+      clickAttributes.every(
+        attribute => attribute.resolveMountDispatch === undefined,
+      ),
+    ).toBe(true)
+    expect(
+      mountAttributes.every(
+        attribute => attribute.resolveMountDispatch !== undefined,
+      ),
+    ).toBe(true)
+  })
+
+  it('keeps a later OnMount group bound to the child boundary after an event-only group', async () => {
+    type CheckboxViewInputs = Readonly<{
+      toView: (attributes: {
+        event: ReadonlyArray<ChildAttribute>
+        mount: ReadonlyArray<ChildAttribute>
+      }) => Html
+    }>
+
+    const fakeCheckboxView = defineView<
+      object,
+      ChildClicked,
+      CheckboxViewInputs
+    >((_model, viewInputs) => {
+      const h = __htmlBuilder<ChildClicked>()
+      return viewInputs.toView({
+        event: childAttributes([h.OnClick({ _tag: 'ChildClicked' })]),
+        mount: childAttributes([
+          h.OnMount({
+            name: 'ObserveChild',
+            f: (_element, _viewStateChanges) =>
+              Stream.make({ _tag: 'ChildClicked' }),
+          }),
+        ]),
+      })
+    })
+
+    const result = submodel({
+      slotId: 'fake-checkbox',
+      model: {},
+      view: fakeCheckboxView,
+      viewInputs: {
+        toView: attributes => {
+          const hParent = __htmlBuilder<ParentDirect>()
+          return hParent.div([...attributes.event, ...attributes.mount])
+        },
+      },
+      toParentMessage: message => GotChild({ message }),
+    })
+    if (result === null) {
+      throw new Error('Expected the Submodel to render an element')
+    }
+    result.elm = document.createElement('div')
+    result.data?.hook?.insert?.(result)
+
+    await vi.waitFor(() => {
+      expect(dispatched).toContainEqual({
+        _tag: 'GotChild',
+        message: { _tag: 'ChildClicked' },
+      })
+    })
+  })
+
   it('routes a published OnClick through the Submodel boundary even when the consumer builds the element in the parent boundary', () => {
     // This is the scenario the ChildAttribute design solves. The
     // Submodel publishes attribute records that the consumer spreads
@@ -77,29 +162,30 @@ describe('childAttributes', () => {
     // wrap. With childAttributes, the published attribute carries
     // the child's dispatcher and the runtime routes the handler
     // through Checkbox's wrap.
-    const fakeCheckboxView = (_model: object, viewInputs: { toView: any }) => {
-      const h = html<ChildClicked>()
+    type CheckboxViewInputs = Readonly<{
+      toView: (attributes: { checkbox: ReadonlyArray<ChildAttribute> }) => Html
+    }>
+
+    const fakeCheckboxView = defineView<
+      object,
+      ChildClicked,
+      CheckboxViewInputs
+    >((_model, viewInputs) => {
+      const h = __htmlBuilder<ChildClicked>()
       const checkboxAttributes = [h.OnClick({ _tag: 'ChildClicked' })]
       return viewInputs.toView({
         checkbox: childAttributes(checkboxAttributes),
       })
-    }
-
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    const branded = fakeCheckboxView as any
+    })
 
     const result = submodel({
       slotId: 'fake-checkbox',
       model: {},
-      view: branded,
+      view: fakeCheckboxView,
       viewInputs: {
-        toView: (attributes: { checkbox: ReadonlyArray<unknown> }) => {
-          const hParent = html<ParentDirect>()
-          return hParent.div(
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            [...(attributes.checkbox as any)],
-            [],
-          )
+        toView: attributes => {
+          const hParent = __htmlBuilder<ParentDirect>()
+          return hParent.div([...attributes.checkbox])
         },
       },
       toParentMessage: message => GotChild({ message }),
@@ -122,38 +208,39 @@ describe('childAttributes', () => {
     // ones. Each routes through the correct dispatcher: the consumer's
     // OnClick goes unwrapped (parent boundary), the published one
     // routes through the Submodel's wrap.
-    const fakeCheckboxView = (_model: object, viewInputs: { toView: any }) => {
-      const h = html<ChildClicked>()
+    type CheckboxViewInputs = Readonly<{
+      toView: (attributes: { checkbox: ReadonlyArray<ChildAttribute> }) => Html
+    }>
+
+    const fakeCheckboxView = defineView<
+      object,
+      ChildClicked,
+      CheckboxViewInputs
+    >((_model, viewInputs) => {
+      const h = __htmlBuilder<ChildClicked>()
       const checkboxAttributes = [h.OnClick({ _tag: 'ChildClicked' })]
       return viewInputs.toView({
         checkbox: childAttributes(checkboxAttributes),
       })
-    }
-
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    const branded = fakeCheckboxView as any
+    })
 
     const result = submodel({
       slotId: 'fake-checkbox',
       model: {},
-      view: branded,
+      view: fakeCheckboxView,
       viewInputs: {
-        toView: (attributes: { checkbox: ReadonlyArray<unknown> }) => {
-          const hParent = html<ParentDirect>()
+        toView: attributes => {
+          const hParent = __htmlBuilder<ParentDirect>()
           // Consumer wraps Checkbox's checkbox attributes in a button,
           // adding their own keyup handler. The keyup should dispatch
           // ParentDirect (no wrap); the click should dispatch
           // GotChild({ ChildClicked }).
-          return hParent.button(
-            [
-              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-              ...(attributes.checkbox as any),
-              hParent.OnKeyPress(() => ({
-                _tag: 'ParentDirect' as const,
-              })),
-            ],
-            [],
-          )
+          return hParent.button([
+            ...attributes.checkbox,
+            hParent.OnKeyPress(() => ({
+              _tag: 'ParentDirect' as const,
+            })),
+          ])
         },
       },
       toParentMessage: message => GotChild({ message }),
@@ -204,22 +291,25 @@ describe('childAttributes', () => {
       ...args,
     })
 
-    let firstAttributes: ReadonlyArray<unknown> = []
-    let secondAttributes: ReadonlyArray<unknown> = []
+    type CaptureInputs = Readonly<{
+      capture: (attributes: ReadonlyArray<ChildAttribute>) => void
+    }>
+
+    let firstAttributes: ReadonlyArray<ChildAttribute> = []
+    let secondAttributes: ReadonlyArray<ChildAttribute> = []
 
     submodel({
       slotId: 'first',
       model: {},
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      view: ((_: object, viewInputs: { capture: any }) => {
-        const h = html<FirstChild>()
+      view: defineView<object, FirstChild, CaptureInputs>((_, viewInputs) => {
+        const h = __htmlBuilder<FirstChild>()
         firstAttributes = childAttributes([h.OnClick({ _tag: 'FirstChild' })])
         viewInputs.capture(firstAttributes)
         return snabbdomH('span')
-      }) as any,
+      }),
       viewInputs: {
-        capture: (attrs: ReadonlyArray<unknown>) => {
-          firstAttributes = attrs
+        capture: attributes => {
+          firstAttributes = attributes
         },
       },
       toParentMessage: message => GotFirst({ message }),
@@ -228,16 +318,15 @@ describe('childAttributes', () => {
     submodel({
       slotId: 'second',
       model: {},
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      view: ((_: object, viewInputs: { capture: any }) => {
-        const h = html<SecondChild>()
+      view: defineView<object, SecondChild, CaptureInputs>((_, viewInputs) => {
+        const h = __htmlBuilder<SecondChild>()
         secondAttributes = childAttributes([h.OnClick({ _tag: 'SecondChild' })])
         viewInputs.capture(secondAttributes)
         return snabbdomH('span')
-      }) as any,
+      }),
       viewInputs: {
-        capture: (attrs: ReadonlyArray<unknown>) => {
-          secondAttributes = attrs
+        capture: attributes => {
+          secondAttributes = attributes
         },
       },
       toParentMessage: message => GotSecond({ message }),
@@ -245,12 +334,8 @@ describe('childAttributes', () => {
 
     // Build a parent vnode using both attribute sets and verify each
     // routes correctly.
-    const hParent = html<ParentDirect>()
-    const merged = hParent.div(
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      [...firstAttributes, ...secondAttributes] as any,
-      [],
-    )
+    const hParent = __htmlBuilder<ParentDirect>()
+    const merged = hParent.div([...firstAttributes, ...secondAttributes])
 
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const onClick = merged?.data?.on?.click as () => void
@@ -268,31 +353,30 @@ describe('childAttributes', () => {
     // published ChildAttribute OnClick alongside their own OnClick
     // would silently drop one of the two. The chained behavior fires
     // both in spread order, each through the correct dispatch chain.
-    const fakeView = (_model: object, viewInputs: { toView: any }) => {
-      const h = html<ChildClicked>()
-      return viewInputs.toView({
-        attrs: childAttributes([h.OnClick({ _tag: 'ChildClicked' })]),
-      })
-    }
+    type FakeViewInputs = Readonly<{
+      toView: (inputs: { attributes: ReadonlyArray<ChildAttribute> }) => Html
+    }>
 
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    const branded = fakeView as any
+    const fakeView = defineView<object, ChildClicked, FakeViewInputs>(
+      (_model, viewInputs) => {
+        const h = __htmlBuilder<ChildClicked>()
+        return viewInputs.toView({
+          attributes: childAttributes([h.OnClick({ _tag: 'ChildClicked' })]),
+        })
+      },
+    )
 
     const result = submodel({
       slotId: 'fake',
       model: {},
-      view: branded,
+      view: fakeView,
       viewInputs: {
-        toView: (a: { attrs: ReadonlyArray<unknown> }) => {
-          const hParent = html<ParentDirect>()
-          return hParent.button(
-            [
-              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-              ...(a.attrs as any),
-              hParent.OnClick({ _tag: 'ParentDirect' }),
-            ],
-            [],
-          )
+        toView: inputs => {
+          const hParent = __htmlBuilder<ParentDirect>()
+          return hParent.button([
+            ...inputs.attributes,
+            hParent.OnClick({ _tag: 'ParentDirect' }),
+          ])
         },
       },
       toParentMessage: message => GotChild({ message }),

@@ -1,8 +1,10 @@
-import { h } from 'snabbdom'
+import { Option } from 'effect'
 import { describe, expect, it } from 'vitest'
 
+import { h } from './snabbdom/index.js'
 import {
   type VNode,
+  __patchVNode,
   dedupeSharedVNodes,
   memoizedVNodes,
   patch,
@@ -48,6 +50,32 @@ describe('dedupeSharedVNodes', () => {
     expect(asVNode(result.children?.[0])).not.toBe(shared)
     expect(asVNode(result.children?.[0]).elm).toBeUndefined()
     expect(asVNode(result.children?.[1]).elm).toBeUndefined()
+  })
+
+  it('carries identity onto clones of a branded vnode reused across positions', () => {
+    const shared = h('span', {}, ['✓'])
+    shared.identity = 'badge'
+    const tree = h('div', {}, [shared, shared])
+
+    const result = dedupeSharedVNodes(tree)
+
+    expect(asVNode(result.children?.[0])).toBe(shared)
+    expect(asVNode(result.children?.[0]).identity).toBe('badge')
+    expect(asVNode(result.children?.[1])).not.toBe(shared)
+    expect(asVNode(result.children?.[1]).identity).toBe('badge')
+  })
+
+  it('carries identity onto the clone of a branded vnode with a stale elm', () => {
+    const reused = h('span', {}, ['✓'])
+    reused.identity = 'badge'
+    reused.elm = document.createElement('span')
+    const tree = h('div', {}, [reused])
+
+    const result = dedupeSharedVNodes(tree)
+
+    expect(asVNode(result.children?.[0])).not.toBe(reused)
+    expect(asVNode(result.children?.[0]).identity).toBe('badge')
+    expect(asVNode(result.children?.[0]).elm).toBeUndefined()
   })
 
   it('clones a single-occurrence vnode that carries a stale elm', () => {
@@ -176,5 +204,49 @@ describe('dedupeSharedVNodes', () => {
 
     mounted = patch(mounted, dedupeSharedVNodes(renderTree(true)))
     expect(spanCountsIn(mounted.elm)).toEqual([1, 1, 1])
+  })
+})
+
+describe('__patchVNode', () => {
+  it('fires insert hooks on a fresh render even when the container DOM matches', () => {
+    const container = document.createElement('div')
+    container.innerHTML = '<span>hi</span>'
+    document.body.appendChild(container)
+
+    let rootInserts = 0
+    let childInserts = 0
+    const view = h(
+      'div',
+      {
+        hook: {
+          insert: () => {
+            rootInserts += 1
+          },
+        },
+      },
+      [
+        h(
+          'span',
+          {
+            hook: {
+              insert: () => {
+                childInserts += 1
+              },
+            },
+          },
+          ['hi'],
+        ),
+      ],
+    )
+
+    const patched = __patchVNode(Option.none(), view, container)
+
+    expect(rootInserts).toBe(1)
+    expect(childInserts).toBe(1)
+
+    const rendered = patched.elm
+    if (rendered instanceof Node && rendered.parentNode) {
+      rendered.parentNode.removeChild(rendered)
+    }
   })
 })

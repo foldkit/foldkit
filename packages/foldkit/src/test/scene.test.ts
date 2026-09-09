@@ -1,31 +1,80 @@
-import { Option, pipe } from 'effect'
-import { h } from 'snabbdom'
-import type { VNode } from 'snabbdom'
-import { describe, expect, test } from 'vitest'
+import { Option, Schema, pipe } from 'effect'
+import { describe, expect, expectTypeOf, test } from 'vitest'
 
+import * as CustomElement from '../customElement/index.js'
+import {
+  type HtmlBuilder,
+  __htmlBuilder as attributeHtml,
+  inertHtml,
+} from '../html/index.js'
+import { defineMessageUnion } from '../message/index.js'
+import { h } from '../snabbdom/index.js'
+import type { VNode } from '../snabbdom/index.js'
+import { evo } from '../struct/index.js'
+import { defineView } from '../submodel/public.js'
+import type * as Update from '../update/index.js'
+import {
+  testId as attributeTestId,
+  update as attributeUpdate,
+  view as attributeView,
+} from './apps/attributes.js'
+import type {
+  Message as AttributeMessage,
+  Model as AttributeModel,
+} from './apps/attributes.js'
 import {
   initialModel as bubblingInitialModel,
   update as bubblingUpdate,
   view as bubblingView,
 } from './apps/bubbling.js'
 import {
+  initialModel as colorPickerInitialModel,
+  update as colorPickerUpdate,
+  view as colorPickerView,
+  viewWithoutHandler as colorPickerViewWithoutHandler,
+  hexColorPicker,
+} from './apps/colorPicker.js'
+import {
   initialModel as contentEditableInitialModel,
   update as contentEditableUpdate,
   view as contentEditableView,
 } from './apps/contentEditableEditor.js'
 import {
+  initialModel as contextMenuInitialModel,
+  update as contextMenuUpdate,
+  view as contextMenuView,
+} from './apps/contextMenu.js'
+import {
+  Message as CounterMessage,
   FetchCount,
   FetchCountById,
-  SucceededFetchCount,
   initialModel as counterInitialModel,
   update as counterUpdate,
   view as counterView,
 } from './apps/counter.js'
 import {
+  Message as DraftsMessage,
+  SaveDraft,
+  update as draftsUpdate,
+  view as draftsView,
+  initialModel as initialDraftsModel,
+} from './apps/drafts.js'
+import {
+  feedResources,
+  initialModel as feedSocketInitialModel,
+  update as feedSocketUpdate,
+  view as feedSocketView,
+} from './apps/feedSocket.js'
+import {
   initialModel as fileUploadInitialModel,
   update as fileUploadUpdate,
   view as fileUploadView,
 } from './apps/fileUpload.js'
+import {
+  initialModel as focusBoundaryInitialModel,
+  update as focusBoundaryUpdate,
+  view as focusBoundaryView,
+} from './apps/focusBoundary.js'
 import {
   initialModel as interactionsInitialModel,
   update as interactionsUpdate,
@@ -34,29 +83,30 @@ import {
 import { update as keyUpdate, view as keyView } from './apps/keypress.js'
 import {
   Authenticate,
-  FailedAuthenticate,
-  SucceededAuthenticate,
+  Message as LoginMessage,
   initialModel,
   update,
   view,
 } from './apps/login.js'
 import type { Model } from './apps/login.js'
 import {
-  RequestedLogout,
+  Message as LogoutButtonMessage,
+  OutMessage,
   initialModel as logoutInitialModel,
   update as logoutUpdate,
   view as logoutView,
 } from './apps/logoutButton.js'
 import {
-  CompletedFocusButton,
-  FailedMountSidebar,
+  Message as LogoutMessage,
+  Model as LogoutModel,
+  OutMessage as LogoutOutMessage,
+} from './apps/logoutButton.js'
+import {
   FocusButton,
   MeasurePanel,
-  MeasuredPanel,
-  ClickedIncrement as MountClickedIncrement,
-  ClickedToggle as MountClickedToggle,
+  Message as MountPanelMessage,
+  type Model as MountPanelModel,
   ScrollList,
-  ScrolledTo,
   initialModel as mountInitialModel,
   scrollListView as mountScrollListView,
   twoPanelView as mountTwoPanelView,
@@ -74,19 +124,37 @@ import {
   view as pointerView,
 } from './apps/pointer.js'
 import {
-  CancelledSelectResume,
-  FailedReadPreview,
   ReadResumePreview,
+  Message as ResumeUploadMessage,
   SelectResume,
-  SelectedResume,
-  SucceededReadPreview,
   initialModel as resumeInitialModel,
   update as resumeUpdate,
   view as resumeView,
 } from './apps/resumeUpload.js'
 import type { Model as ResumeModel } from './apps/resumeUpload.js'
+import {
+  initialModel as scorePanelInitialModel,
+  update as scorePanelUpdate,
+  view as scorePanelView,
+} from './apps/scorePanel.js'
+import {
+  appId as selectiveKeysAppId,
+  initialModel as selectiveKeysInitialModel,
+  resetId as selectiveKeysResetId,
+  update as selectiveKeysUpdate,
+  view as selectiveKeysView,
+} from './apps/selectiveKeys.js'
+import {
+  UploadFile,
+  Message as UploadsMessage,
+  initialModel as initialUploadsModel,
+  update as uploadsUpdate,
+  view as uploadsView,
+} from './apps/uploads.js'
 import { parseSelector } from './query.js'
 import {
+  accessibleDescription,
+  accessibleName,
   attr,
   find,
   findAll,
@@ -293,6 +361,113 @@ describe('query functions', () => {
       const element = Option.getOrThrow(find(tree, '#email'))
       expect(Option.isNone(attr(element, 'role'))).toBe(true)
     })
+  })
+})
+
+describe('accessible name hidden content', () => {
+  test('ignores an aria-hidden decorative child and retains sibling text', () => {
+    const option = h('div', { attrs: { role: 'option' } }, [
+      h('span', { attrs: { 'aria-hidden': 'true' } }, ['check']),
+      'Triage',
+    ])
+
+    expect(accessibleName(option)(option)).toBe('Triage')
+  })
+
+  test('ignores a hidden descendant subtree and retains visible nested text', () => {
+    const option = h('div', { attrs: { role: 'option' } }, [
+      'Triage ',
+      h('span', { attrs: { hidden: 'true' } }, [
+        h('span', {}, ['hidden subtree']),
+      ]),
+      h('span', {}, ['visible ', h('strong', {}, ['nested text'])]),
+    ])
+
+    expect(accessibleName(option)(option)).toBe('Triage visible nested text')
+  })
+
+  test('ignores a descendant with hidden="false"', () => {
+    const option = h('div', { attrs: { role: 'option' } }, [
+      h('span', { attrs: { hidden: 'false' } }, ['archived']),
+      'Triage',
+    ])
+
+    expect(accessibleName(option)(option)).toBe('Triage')
+  })
+
+  test('includes a descendant with Hidden(false)', () => {
+    const option = Option.getOrThrow(
+      Option.fromNullishOr(
+        inertHtml.div(
+          [inertHtml.Role('option')],
+          ['Triage ', inertHtml.span([inertHtml.Hidden(false)], ['visible'])],
+        ),
+      ),
+    )
+
+    expect(accessibleName(option)(option)).toBe('Triage visible')
+  })
+
+  test('ignores a descendant styled with display none', () => {
+    const option = h('div', { attrs: { role: 'option' } }, [
+      h('span', { style: { display: 'none' } }, ['archived']),
+      'Triage',
+    ])
+
+    expect(accessibleName(option)(option)).toBe('Triage')
+  })
+
+  test('ignores a descendant styled with visibility hidden', () => {
+    const option = h('div', { attrs: { role: 'option' } }, [
+      h('span', { style: { visibility: 'hidden' } }, ['archived']),
+      'Triage',
+    ])
+
+    expect(accessibleName(option)(option)).toBe('Triage')
+  })
+
+  test('includes the full subtree of a hidden aria-labelledby reference', () => {
+    const tree = h('div', {}, [
+      h('span', { attrs: { id: 'hidden-label', 'aria-hidden': 'true' } }, [
+        h('span', { style: { display: 'none' } }, ['Hidden']),
+        ' label',
+      ]),
+      h('button', { attrs: { 'aria-labelledby': 'hidden-label' } }, []),
+    ])
+    const button = Option.getOrThrow(find(tree, 'button'))
+
+    expect(accessibleName(tree)(button)).toBe('Hidden label')
+  })
+
+  test('includes the full subtree of a hidden aria-describedby reference', () => {
+    const tree = h('div', {}, [
+      h('span', { attrs: { id: 'hidden-description', hidden: 'true' } }, [
+        h('span', { style: { visibility: 'hidden' } }, ['Hidden']),
+        ' description',
+      ]),
+      h('button', {
+        attrs: { 'aria-describedby': 'hidden-description' },
+      }),
+    ])
+    const button = Option.getOrThrow(find(tree, 'button'))
+
+    expect(accessibleDescription(tree)(button)).toBe('Hidden description')
+  })
+
+  test('resolves a role by name while literal text still sees hidden content', () => {
+    Scene.scene(
+      {
+        update,
+        view: (_model, html) =>
+          html.div(
+            [html.Role('option')],
+            [html.span([html.AriaHidden(true)], ['check']), 'Triage'],
+          ),
+      },
+      Scene.given(initialModel),
+      Scene.expect(Scene.role('option', { name: 'Triage' })).toExist(),
+      Scene.expect(Scene.text('check')).toExist(),
+    )
   })
 })
 
@@ -1247,6 +1422,18 @@ describe('custom matchers', () => {
     },
     ['Sign in'],
   )
+  const styledElement = Option.getOrThrow(
+    Option.fromNullishOr(
+      inertHtml.div([
+        inertHtml.Style({
+          '--accent': 'blue',
+          WebkitLineClamp: '2',
+          backgroundColor: 'red',
+          cssFloat: 'left',
+        }),
+      ]),
+    ),
+  )
 
   test('toHaveText passes for matching text', () => {
     expect(Option.some(element)).toHaveText('Sign in')
@@ -1280,6 +1467,16 @@ describe('custom matchers', () => {
     expect(() => expect(Option.some(element)).toHaveAttr('name')).toThrow(
       'Expected element to have attribute "name"',
     )
+  })
+
+  test('toHaveStyle normalizes property aliases and declaration names', () => {
+    expect(Option.some(styledElement)).toHaveStyle('backgroundColor', 'red')
+    expect(Option.some(styledElement)).toHaveStyle('background-color', 'red')
+    expect(Option.some(styledElement)).toHaveStyle('cssFloat', 'left')
+    expect(Option.some(styledElement)).toHaveStyle('float', 'left')
+    expect(Option.some(styledElement)).toHaveStyle('WebkitLineClamp', '2')
+    expect(Option.some(styledElement)).toHaveStyle('-webkit-line-clamp', '2')
+    expect(Option.some(styledElement)).toHaveStyle('--accent', 'blue')
   })
 
   test('toExist passes for defined element', () => {
@@ -1353,6 +1550,20 @@ describe('custom matchers', () => {
     )
   })
 
+  test('toBeVisible fails for hidden="false"', () => {
+    const hidden: VNode = h('div', { attrs: { hidden: 'false' } }, [])
+    expect(() => expect(Option.some(hidden)).toBeVisible()).toThrow(
+      'Expected element to be visible',
+    )
+  })
+
+  test('toBeVisible passes for Hidden(false)', () => {
+    const visible = Option.getOrThrow(
+      Option.fromNullishOr(inertHtml.div([inertHtml.Hidden(false)])),
+    )
+    expect(Option.some(visible)).toBeVisible()
+  })
+
   test('toBeVisible fails for element with aria-hidden="true"', () => {
     const hidden: VNode = h('div', { attrs: { 'aria-hidden': 'true' } }, [])
     expect(() => expect(Option.some(hidden)).toBeVisible()).toThrow(
@@ -1390,7 +1601,7 @@ describe('scene', () => {
   test('renders the view after with', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(Scene.label('Email')).toExist(),
       Scene.expect(Scene.label('Password')).toExist(),
       Scene.expect(Scene.role('button')).toHaveText('Sign in'),
@@ -1400,7 +1611,7 @@ describe('scene', () => {
   test('type updates the Model through the view', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.type(Scene.label('Email'), 'alice@example.com'),
       Scene.expect(Scene.label('Email')).toHaveValue('alice@example.com'),
     )
@@ -1409,7 +1620,7 @@ describe('scene', () => {
   test('submit dispatches the form Message', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.type(Scene.label('Email'), 'alice@example.com'),
       Scene.type(Scene.label('Password'), 'secret'),
       Scene.submit(Scene.role('form')),
@@ -1420,24 +1631,23 @@ describe('scene', () => {
       }),
       Scene.Command.resolve(
         Authenticate,
-        SucceededAuthenticate({ username: 'alice' }),
+        LoginMessage.SucceededAuthenticate({ username: 'alice' }),
       ),
       Scene.expect(Scene.role('status')).toHaveText('Welcome, alice!'),
     )
   })
 
   test('clicking a disabled element throws a clear error', () => {
-    const submittingModel: Model = {
-      ...initialModel,
-      status: 'Submitting',
-      email: 'alice@example.com',
-      password: 'secret',
-    }
+    const submittingModel: Model = evo(initialModel, {
+      status: () => 'Submitting',
+      email: () => 'alice@example.com',
+      password: () => 'secret',
+    })
 
     expect(() =>
       Scene.scene(
         { update, view },
-        Scene.with(submittingModel),
+        Scene.given(submittingModel),
         Scene.click(Scene.role('button', { name: 'Signing in...' })),
       ),
     ).toThrow(/it is disabled/)
@@ -1446,29 +1656,28 @@ describe('scene', () => {
   test('clicking a submit button falls through to the enclosing form', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.type(Scene.label('Email'), 'alice@example.com'),
       Scene.type(Scene.label('Password'), 'secret'),
       Scene.click(Scene.role('button', { name: 'Sign in' })),
       Scene.expect(Scene.role('button')).toHaveText('Signing in...'),
       Scene.Command.resolve(
         Authenticate,
-        SucceededAuthenticate({ username: 'alice' }),
+        LoginMessage.SucceededAuthenticate({ username: 'alice' }),
       ),
       Scene.expect(Scene.role('status')).toHaveText('Welcome, alice!'),
     )
   })
 
   test('click dispatches the button Message', () => {
-    const loggedInModel: Model = {
-      ...initialModel,
-      status: 'LoggedIn',
-      username: 'alice',
-    }
+    const loggedInModel: Model = evo(initialModel, {
+      status: () => 'LoggedIn',
+      username: () => 'alice',
+    })
 
     Scene.scene(
       { update, view },
-      Scene.with(loggedInModel),
+      Scene.given(loggedInModel),
       Scene.tap(({ html }) => {
         expect(find(html, '[role="status"]')).toHaveText('Welcome, alice!')
       }),
@@ -1481,12 +1690,16 @@ describe('scene', () => {
   test('re-renders after resolve', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.submit(Scene.role('form')),
       Scene.expect(Scene.role('button')).toHaveText('Signing in...'),
-      Scene.Command.resolve(
+      Scene.Command.resolve<
+        'Authenticate',
+        | typeof LoginMessage.SucceededAuthenticate.Type
+        | typeof LoginMessage.FailedAuthenticate.Type
+      >(
         Authenticate,
-        FailedAuthenticate({ error: 'Invalid credentials' }),
+        LoginMessage.FailedAuthenticate({ error: 'Invalid credentials' }),
       ),
       Scene.tap(({ html }) => {
         expect(find(html, '[role="alert"]')).toHaveText('Invalid credentials')
@@ -1495,10 +1708,43 @@ describe('scene', () => {
     )
   })
 
+  test('resolves a keyed Command by its bare Definition, matching by name', () => {
+    Scene.scene(
+      { update: uploadsUpdate, view: uploadsView },
+      Scene.given(initialUploadsModel),
+      Scene.click(Scene.role('button', { name: 'Start upload' })),
+      Scene.Command.expectExact(UploadFile),
+      Scene.Command.resolve(
+        UploadFile,
+        UploadsMessage.SucceededUploadFile({ uploadId: 0 }),
+      ),
+      Scene.Command.expectNone(),
+      Scene.tap(({ html }) => {
+        expect(find(html, 'span')).toHaveText('upload 0: Done')
+      }),
+    )
+  })
+
+  test('resolves a name-keyed Command by its bare Definition, matching by name', () => {
+    Scene.scene(
+      { update: draftsUpdate, view: draftsView },
+      Scene.given(initialDraftsModel),
+      Scene.click(Scene.role('button', { name: 'Save draft' })),
+      Scene.Command.resolve(
+        SaveDraft,
+        DraftsMessage.SucceededSaveDraft({ revision: 0 }),
+      ),
+      Scene.Command.expectNone(),
+      Scene.tap(({ html }) => {
+        expect(find(html, 'span')).toHaveText('draft: Saved')
+      }),
+    )
+  })
+
   test('keydown dispatches the key Message', () => {
     Scene.scene(
       { update: keyUpdate, view: keyView },
-      Scene.with({ lastKey: '', isShifted: false }),
+      Scene.given({ lastKey: '', isShifted: false }),
       Scene.keydown(Scene.role('application', { name: 'Key press area' }), 'a'),
       Scene.expect(Scene.label('Last key')).toHaveText('a'),
       Scene.expect(Scene.label('Shift pressed')).toHaveText('false'),
@@ -1508,7 +1754,7 @@ describe('scene', () => {
   test('keydown with modifiers', () => {
     Scene.scene(
       { update: keyUpdate, view: keyView },
-      Scene.with({ lastKey: '', isShifted: false }),
+      Scene.given({ lastKey: '', isShifted: false }),
       Scene.keydown(
         Scene.role('application', { name: 'Key press area' }),
         'A',
@@ -1522,26 +1768,69 @@ describe('scene', () => {
   test('re-renders after keydown so updated text is visible', () => {
     Scene.scene(
       { update: keyUpdate, view: keyView },
-      Scene.with({ lastKey: '', isShifted: false }),
+      Scene.given({ lastKey: '', isShifted: false }),
       Scene.keydown(Scene.role('application', { name: 'Key press area' }), 'x'),
       Scene.tap(({ html }) => {
         expect(getByLabel('Last key')(html)).toHaveText('x')
       }),
     )
   })
+
+  test('typeContentEditable dispatches the rendered text through OnInput', () => {
+    Scene.scene(
+      { update: contentEditableUpdate, view: contentEditableView },
+      Scene.given(contentEditableInitialModel),
+      Scene.typeContentEditable(Scene.testId('editor'), 'Hello, world'),
+      Scene.expect(Scene.testId('editor')).toHaveText('Hello, world'),
+    )
+  })
+
+  test('typeContentEditable replaces the rendered text on the next input', () => {
+    Scene.scene(
+      { update: contentEditableUpdate, view: contentEditableView },
+      Scene.given(contentEditableInitialModel),
+      Scene.typeContentEditable(Scene.testId('editor'), 'first'),
+      Scene.typeContentEditable(Scene.testId('editor'), 'second'),
+      Scene.expect(Scene.testId('editor')).toHaveText('second'),
+    )
+  })
+
+  test('beforeInput lets update own contenteditable insertions', () => {
+    Scene.scene(
+      { update: contentEditableUpdate, view: contentEditableView },
+      Scene.given(contentEditableInitialModel),
+      Scene.beforeInput(Scene.testId('editor'), 'insertText', Option.some('A')),
+      Scene.beforeInput(Scene.testId('editor'), 'insertText', Option.some('B')),
+      Scene.expect(Scene.testId('editor')).toHaveText('AB'),
+    )
+  })
+
+  test('beforeInput records an unclaimed edit as ignored', () => {
+    Scene.scene(
+      { update: contentEditableUpdate, view: contentEditableView },
+      Scene.given(contentEditableInitialModel),
+      Scene.beforeInput(Scene.testId('editor'), 'insertText', Option.some('A')),
+      Scene.beforeInput(
+        Scene.testId('editor'),
+        'deleteContentBackward',
+        Option.none(),
+      ),
+      Scene.expectIgnored(),
+      Scene.expect(Scene.testId('editor')).toHaveText('A'),
+    )
+  })
 })
 
 describe('scene with locators', () => {
   test('click accepts a Locator', () => {
-    const loggedInModel: Model = {
-      ...initialModel,
-      status: 'LoggedIn',
-      username: 'alice',
-    }
+    const loggedInModel: Model = evo(initialModel, {
+      status: () => 'LoggedIn',
+      username: () => 'alice',
+    })
 
     Scene.scene(
       { update, view },
-      Scene.with(loggedInModel),
+      Scene.given(loggedInModel),
       Scene.click(Scene.role('button', { name: 'Log out' })),
       Scene.expect(Scene.role('button')).toHaveText('Sign in'),
     )
@@ -1550,7 +1839,7 @@ describe('scene with locators', () => {
   test('type accepts a Locator', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.type(Scene.label('Email'), 'alice@example.com'),
       Scene.expect(Scene.label('Email')).toHaveValue('alice@example.com'),
     )
@@ -1559,14 +1848,14 @@ describe('scene with locators', () => {
   test('submit accepts a Locator', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.type(Scene.label('Email'), 'alice@example.com'),
       Scene.type(Scene.label('Password'), 'secret'),
       Scene.submit(Scene.role('form')),
       Scene.expect(Scene.role('button')).toHaveText('Signing in...'),
       Scene.Command.resolve(
         Authenticate,
-        SucceededAuthenticate({ username: 'alice' }),
+        LoginMessage.SucceededAuthenticate({ username: 'alice' }),
       ),
     )
   })
@@ -1574,7 +1863,7 @@ describe('scene with locators', () => {
   test('type is dual: data-last pipes the target', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       pipe(Scene.label('Email'), Scene.type('alice@example.com')),
       Scene.expect(Scene.label('Email')).toHaveValue('alice@example.com'),
     )
@@ -1583,7 +1872,7 @@ describe('scene with locators', () => {
   test('keydown is dual: data-last pipes the target', () => {
     Scene.scene(
       { update: keyUpdate, view: keyView },
-      Scene.with({ lastKey: '', isShifted: false }),
+      Scene.given({ lastKey: '', isShifted: false }),
       pipe(
         Scene.role('application', { name: 'Key press area' }),
         Scene.keydown('a'),
@@ -1595,7 +1884,7 @@ describe('scene with locators', () => {
   test('keydown data-last with modifiers', () => {
     Scene.scene(
       { update: keyUpdate, view: keyView },
-      Scene.with({ lastKey: '', isShifted: false }),
+      Scene.given({ lastKey: '', isShifted: false }),
       pipe(
         Scene.role('application', { name: 'Key press area' }),
         Scene.keydown('A', { shiftKey: true }),
@@ -1609,7 +1898,7 @@ describe('scene with locators', () => {
     expect(() =>
       Scene.scene(
         { update, view },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.click(Scene.role('button', { name: 'Nonexistent' })),
       ),
     ).toThrow('I could not find an element matching button "Nonexistent"')
@@ -1620,7 +1909,7 @@ describe('scene with expect', () => {
   test('toExist passes when element exists', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(Scene.role('form')).toExist(),
     )
   })
@@ -1629,7 +1918,7 @@ describe('scene with expect', () => {
     expect(() =>
       Scene.scene(
         { update, view },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.expect(Scene.role('dialog')).toExist(),
       ),
     ).toThrow('Expected element matching dialog to exist but it does not.')
@@ -1638,29 +1927,84 @@ describe('scene with expect', () => {
   test('toBeAbsent passes when element is missing', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(Scene.role('dialog')).toBeAbsent(),
+    )
+  })
+
+  test('not.toBeAbsent passes when element exists', () => {
+    Scene.scene(
+      { update, view },
+      Scene.given(initialModel),
+      Scene.expect(Scene.role('button')).not.toBeAbsent(),
+    )
+  })
+
+  test('positive property assertion throws when the element is missing', () => {
+    expect(() =>
+      Scene.scene(
+        { update, view },
+        Scene.given(initialModel),
+        Scene.expect(Scene.role('dialog')).toHaveText('Settings'),
+      ),
+    ).toThrow(
+      'Expected element matching dialog to have text "Settings" but the element does not exist.',
+    )
+  })
+
+  test('negated property assertion throws when the element is missing', () => {
+    expect(() =>
+      Scene.scene(
+        { update, view },
+        Scene.given(initialModel),
+        Scene.expect(Scene.role('dialog')).not.toHaveAttr('aria-modal'),
+      ),
+    ).toThrow(
+      'Expected element matching dialog not to have attribute "aria-modal" but the element does not exist.',
+    )
+  })
+
+  test('negated state assertion throws when the element is missing', () => {
+    expect(() =>
+      Scene.scene(
+        { update, view },
+        Scene.given(initialModel),
+        Scene.expect(Scene.role('dialog')).not.toBeDisabled(),
+      ),
+    ).toThrow(
+      'Expected element matching dialog not to be disabled but the element does not exist.',
+    )
+  })
+
+  test('negated accessibility assertion throws when the element is missing', () => {
+    expect(() =>
+      Scene.scene(
+        { update, view },
+        Scene.given(initialModel),
+        Scene.expect(Scene.role('dialog')).not.toHaveAccessibleName('Settings'),
+      ),
+    ).toThrow(
+      'Expected element matching dialog not to have accessible name "Settings" but the element does not exist.',
     )
   })
 
   test('toHaveText checks text content', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(Scene.role('button')).toHaveText('Sign in'),
     )
   })
 
   test('toContainText checks substring', () => {
-    const loggedInModel: Model = {
-      ...initialModel,
-      status: 'LoggedIn',
-      username: 'alice',
-    }
+    const loggedInModel: Model = evo(initialModel, {
+      status: () => 'LoggedIn',
+      username: () => 'alice',
+    })
 
     Scene.scene(
       { update, view },
-      Scene.with(loggedInModel),
+      Scene.given(loggedInModel),
       Scene.expect(Scene.role('status')).toContainText('alice'),
     )
   })
@@ -1668,15 +2012,53 @@ describe('scene with expect', () => {
   test('toHaveAttr checks attribute value', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(Scene.label('Email')).toHaveAttr('type', 'email'),
+    )
+  })
+
+  test('toHaveStyle accepts the same style spellings as the builder', () => {
+    Scene.scene(
+      {
+        update,
+        view: (_model, h) =>
+          h.div([
+            h.Id('styled'),
+            h.Style({
+              '--accent': 'blue',
+              WebkitLineClamp: '2',
+              backgroundColor: 'red',
+              cssFloat: 'left',
+            }),
+          ]),
+      },
+      Scene.given(initialModel),
+      Scene.expect(Scene.selector('#styled')).toHaveStyle(
+        'backgroundColor',
+        'red',
+      ),
+      Scene.expect(Scene.selector('#styled')).toHaveStyle(
+        'background-color',
+        'red',
+      ),
+      Scene.expect(Scene.selector('#styled')).toHaveStyle('cssFloat', 'left'),
+      Scene.expect(Scene.selector('#styled')).toHaveStyle('float', 'left'),
+      Scene.expect(Scene.selector('#styled')).toHaveStyle(
+        'WebkitLineClamp',
+        '2',
+      ),
+      Scene.expect(Scene.selector('#styled')).toHaveStyle(
+        '-webkit-line-clamp',
+        '2',
+      ),
+      Scene.expect(Scene.selector('#styled')).toHaveStyle('--accent', 'blue'),
     )
   })
 
   test('not.toExist passes when element is missing', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(Scene.role('dialog')).not.toExist(),
     )
   })
@@ -1684,7 +2066,7 @@ describe('scene with expect', () => {
   test('not.toHaveAttr checks attribute absence', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(Scene.role('button')).not.toHaveAttr('disabled', 'true'),
     )
   })
@@ -1692,7 +2074,7 @@ describe('scene with expect', () => {
   test('works between interaction steps', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(Scene.role('button')).toHaveText('Sign in'),
       Scene.type(Scene.label('Email'), 'alice@example.com'),
       Scene.type(Scene.label('Password'), 'secret'),
@@ -1700,7 +2082,7 @@ describe('scene with expect', () => {
       Scene.expect(Scene.role('button')).toHaveText('Signing in...'),
       Scene.Command.resolve(
         Authenticate,
-        SucceededAuthenticate({ username: 'alice' }),
+        LoginMessage.SucceededAuthenticate({ username: 'alice' }),
       ),
       Scene.expect(Scene.role('status')).toHaveText('Welcome, alice!'),
     )
@@ -1709,7 +2091,7 @@ describe('scene with expect', () => {
   test('toHaveId checks element id', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(Scene.selector('#app')).toHaveId('app'),
       Scene.expect(Scene.label('Email')).toHaveId('email'),
     )
@@ -1719,7 +2101,7 @@ describe('scene with expect', () => {
     expect(() =>
       Scene.scene(
         { update, view },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.expect(Scene.label('Email')).toHaveId('wrong'),
       ),
     ).toThrow(
@@ -1730,20 +2112,19 @@ describe('scene with expect', () => {
   test('toHaveId not.toHaveId passes for different id', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(Scene.label('Email')).not.toHaveId('wrong'),
     )
   })
 
   test('toBeEmpty passes for empty element', () => {
-    const loggedInModel: Model = {
-      ...initialModel,
-      status: 'LoggedIn',
-      username: 'alice',
-    }
+    const loggedInModel: Model = evo(initialModel, {
+      status: () => 'LoggedIn',
+      username: () => 'alice',
+    })
     Scene.scene(
-      { update, view: () => view(loggedInModel) },
-      Scene.with(loggedInModel),
+      { update, view: (_model, h) => view(loggedInModel, h) },
+      Scene.given(loggedInModel),
       Scene.expect(Scene.role('status')).not.toBeEmpty(),
     )
   })
@@ -1752,7 +2133,7 @@ describe('scene with expect', () => {
     expect(() =>
       Scene.scene(
         { update, view },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.expect(Scene.role('button')).toBeEmpty(),
       ),
     ).toThrow(
@@ -1763,7 +2144,7 @@ describe('scene with expect', () => {
   test('toHaveText accepts a regex', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(Scene.role('button')).toHaveText(/^Sign in$/),
     )
   })
@@ -1772,7 +2153,7 @@ describe('scene with expect', () => {
     expect(() =>
       Scene.scene(
         { update, view },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.expect(Scene.role('button')).toHaveText(/^Log in$/),
       ),
     ).toThrow('to have text /^Log in$/ but received "Sign in"')
@@ -1781,20 +2162,19 @@ describe('scene with expect', () => {
   test('toContainText accepts a regex', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(Scene.role('button')).toContainText(/ign/),
     )
   })
 
   test('toHaveAccessibleName matches aria-label', () => {
-    const loggedInModel: Model = {
-      ...initialModel,
-      status: 'LoggedIn',
-      username: 'alice',
-    }
+    const loggedInModel: Model = evo(initialModel, {
+      status: () => 'LoggedIn',
+      username: () => 'alice',
+    })
     Scene.scene(
       { update, view },
-      Scene.with(loggedInModel),
+      Scene.given(loggedInModel),
       Scene.expect(Scene.role('region')).toHaveAccessibleName('User session'),
     )
   })
@@ -1802,7 +2182,7 @@ describe('scene with expect', () => {
   test('toHaveAccessibleName matches via regex', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(Scene.role('button')).toHaveAccessibleName(/^Sign/),
     )
   })
@@ -1810,7 +2190,7 @@ describe('scene with expect', () => {
   test('toBeVisible passes for visible element', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(Scene.role('button')).toBeVisible(),
     )
   })
@@ -1820,16 +2200,27 @@ describe('scene with extra interactions', () => {
   test('doubleClick fires the dblclick handler', () => {
     Scene.scene(
       { update: interactionsUpdate, view: interactionsView },
-      Scene.with(interactionsInitialModel),
+      Scene.given(interactionsInitialModel),
       Scene.doubleClick(Scene.label('action')),
       Scene.expect(Scene.label('action')).toContainText('dbl=1'),
+    )
+  })
+
+  test('contextMenu fires a direct handler and renders the resulting menu', () => {
+    Scene.scene(
+      { update: contextMenuUpdate, view: contextMenuView },
+      Scene.given(contextMenuInitialModel),
+      Scene.contextMenu(Scene.label('direct target')),
+      Scene.expect(
+        Scene.role('menu', { name: 'Direct context menu' }),
+      ).toHaveText('Direct context menu opens=1'),
     )
   })
 
   test('hover fires mouseenter handler', () => {
     Scene.scene(
       { update: interactionsUpdate, view: interactionsView },
-      Scene.with(interactionsInitialModel),
+      Scene.given(interactionsInitialModel),
       Scene.hover(Scene.label('action')),
       Scene.tap(({ html }) => {
         expect(html).toBeDefined()
@@ -1840,16 +2231,30 @@ describe('scene with extra interactions', () => {
   test('focus fires focus handler; blur fires blur handler', () => {
     Scene.scene(
       { update: interactionsUpdate, view: interactionsView },
-      Scene.with(interactionsInitialModel),
+      Scene.given(interactionsInitialModel),
       Scene.focus(Scene.label('name')),
       Scene.blur(Scene.label('name')),
+    )
+  })
+
+  test('focusEnter and focusLeave drive a focus region', () => {
+    const editorRegion = Scene.role('region', { name: 'Editor' })
+
+    Scene.scene(
+      { update: focusBoundaryUpdate, view: focusBoundaryView },
+      Scene.given(focusBoundaryInitialModel),
+      Scene.expect(editorRegion).toContainText('focus=Outside'),
+      Scene.focusEnter(editorRegion),
+      Scene.expect(editorRegion).toContainText('focus=Within'),
+      Scene.focusLeave(editorRegion),
+      Scene.expect(editorRegion).toContainText('focus=Outside'),
     )
   })
 
   test('change fires change handler with the new value', () => {
     Scene.scene(
       { update: interactionsUpdate, view: interactionsView },
-      Scene.with(interactionsInitialModel),
+      Scene.given(interactionsInitialModel),
       Scene.change(Scene.label('fruit'), 'banana'),
     )
   })
@@ -1857,7 +2262,7 @@ describe('scene with extra interactions', () => {
   test('change is dual: data-last form works in pipe', () => {
     Scene.scene(
       { update: interactionsUpdate, view: interactionsView },
-      Scene.with(interactionsInitialModel),
+      Scene.given(interactionsInitialModel),
       pipe(Scene.label('fruit'), Scene.change('apple')),
     )
   })
@@ -1865,7 +2270,7 @@ describe('scene with extra interactions', () => {
   test('click still works through the new event-name map', () => {
     Scene.scene(
       { update: interactionsUpdate, view: interactionsView },
-      Scene.with(interactionsInitialModel),
+      Scene.given(interactionsInitialModel),
       Scene.click(Scene.label('action')),
       Scene.expect(Scene.label('action')).toContainText('clicks=1'),
     )
@@ -1886,7 +2291,7 @@ describe('scene with file uploads', () => {
   test('changeFiles captures a single file on an OnFileChange input', () => {
     Scene.scene(
       { update: fileUploadUpdate, view: fileUploadView },
-      Scene.with(fileUploadInitialModel),
+      Scene.given(fileUploadInitialModel),
       Scene.changeFiles(Scene.label('resume'), [resumePdf]),
       Scene.expect(Scene.selector('[key="received-count"]')).toContainText(
         'count=1',
@@ -1900,7 +2305,7 @@ describe('scene with file uploads', () => {
   test('changeFiles captures multiple files in one dispatch', () => {
     Scene.scene(
       { update: fileUploadUpdate, view: fileUploadView },
-      Scene.with(fileUploadInitialModel),
+      Scene.given(fileUploadInitialModel),
       Scene.changeFiles(Scene.label('resume'), [
         resumePdf,
         coverLetter,
@@ -1918,10 +2323,9 @@ describe('scene with file uploads', () => {
   test('changeFiles dispatches an empty array when no files are provided', () => {
     Scene.scene(
       { update: fileUploadUpdate, view: fileUploadView },
-      Scene.with({
-        ...fileUploadInitialModel,
-        receivedFiles: [resumePdf],
-      }),
+      Scene.given(
+        evo(fileUploadInitialModel, { receivedFiles: () => [resumePdf] }),
+      ),
       Scene.changeFiles(Scene.label('resume'), []),
       Scene.expect(Scene.selector('[key="received-count"]')).toContainText(
         'count=0',
@@ -1932,7 +2336,7 @@ describe('scene with file uploads', () => {
   test('changeFiles is dual: data-last form works in pipe', () => {
     Scene.scene(
       { update: fileUploadUpdate, view: fileUploadView },
-      Scene.with(fileUploadInitialModel),
+      Scene.given(fileUploadInitialModel),
       pipe(Scene.label('resume'), Scene.changeFiles([resumePdf])),
       Scene.expect(Scene.selector('[key="received-count"]')).toContainText(
         'count=1',
@@ -1943,7 +2347,7 @@ describe('scene with file uploads', () => {
   test('dropFiles captures files dropped on an OnDropFiles zone', () => {
     Scene.scene(
       { update: fileUploadUpdate, view: fileUploadView },
-      Scene.with(fileUploadInitialModel),
+      Scene.given(fileUploadInitialModel),
       Scene.dropFiles(Scene.label('attachments'), [portfolio]),
       Scene.expect(Scene.selector('[key="received-count"]')).toContainText(
         'count=1',
@@ -1957,7 +2361,7 @@ describe('scene with file uploads', () => {
   test('dropFiles captures multiple dropped files', () => {
     Scene.scene(
       { update: fileUploadUpdate, view: fileUploadView },
-      Scene.with(fileUploadInitialModel),
+      Scene.given(fileUploadInitialModel),
       Scene.dropFiles(Scene.label('attachments'), [coverLetter, portfolio]),
       Scene.expect(Scene.selector('[key="received-count"]')).toContainText(
         'count=2',
@@ -1971,7 +2375,7 @@ describe('scene with file uploads', () => {
   test('dropFiles is dual: data-last form works in pipe', () => {
     Scene.scene(
       { update: fileUploadUpdate, view: fileUploadView },
-      Scene.with(fileUploadInitialModel),
+      Scene.given(fileUploadInitialModel),
       pipe(Scene.label('attachments'), Scene.dropFiles([resumePdf])),
       Scene.expect(Scene.selector('[key="received-count"]')).toContainText(
         'count=1',
@@ -1983,7 +2387,7 @@ describe('scene with file uploads', () => {
     expect(() =>
       Scene.scene(
         { update: interactionsUpdate, view: interactionsView },
-        Scene.with(interactionsInitialModel),
+        Scene.given(interactionsInitialModel),
         Scene.dropFiles(Scene.label('action'), [resumePdf]),
       ),
     ).toThrow(/drop/)
@@ -1993,7 +2397,7 @@ describe('scene with file uploads', () => {
     expect(() =>
       Scene.scene(
         { update: interactionsUpdate, view: interactionsView },
-        Scene.with(interactionsInitialModel),
+        Scene.given(interactionsInitialModel),
         Scene.changeFiles(Scene.label('fruit'), [resumePdf]),
       ),
     ).toThrow(/OnFileChange/)
@@ -2012,25 +2416,27 @@ describe('scene with Command-based file upload flow', () => {
   const readingStatus = Scene.role('status')
   const errorAlert = Scene.role('alert')
 
-  const resumeSelectedModel: ResumeModel = {
-    ...resumeInitialModel,
-    maybeResume: Option.some(resumePdf),
-    maybePreviewDataUrl: Option.some(previewDataUrl),
-    readStatus: 'Idle',
-  }
+  const resumeSelectedModel: ResumeModel = evo(resumeInitialModel, {
+    maybeResume: () => Option.some(resumePdf),
+    maybePreviewDataUrl: () => Option.some(previewDataUrl),
+    readStatus: () => 'Idle',
+  })
 
   test('happy path: click → resolve select → resolve preview → file visible', () => {
     Scene.scene(
       { update: resumeUpdate, view: resumeView },
-      Scene.with(resumeInitialModel),
+      Scene.given(resumeInitialModel),
       Scene.expect(chooseButton).toExist(),
       Scene.click(chooseButton),
-      Scene.Command.resolve(SelectResume, SelectedResume({ file: resumePdf })),
+      Scene.Command.resolve(
+        SelectResume,
+        ResumeUploadMessage.CompletedSelectResume({ file: resumePdf }),
+      ),
       Scene.expect(Scene.text('resume.pdf')).toExist(),
       Scene.expect(readingStatus).toHaveText('Reading preview...'),
       Scene.Command.resolve(
         ReadResumePreview,
-        SucceededReadPreview({ dataUrl: previewDataUrl }),
+        ResumeUploadMessage.SucceededReadPreview({ dataUrl: previewDataUrl }),
       ),
       Scene.expect(previewImage).toExist(),
       Scene.expect(previewImage).toHaveAttr('src', previewDataUrl),
@@ -2041,9 +2447,12 @@ describe('scene with Command-based file upload flow', () => {
   test('cancel path: resolve SelectResume with CancelledSelectResume leaves view unchanged', () => {
     Scene.scene(
       { update: resumeUpdate, view: resumeView },
-      Scene.with(resumeInitialModel),
+      Scene.given(resumeInitialModel),
       Scene.click(chooseButton),
-      Scene.Command.resolve(SelectResume, CancelledSelectResume()),
+      Scene.Command.resolve(
+        SelectResume,
+        ResumeUploadMessage.CancelledSelectResume(),
+      ),
       Scene.expect(chooseButton).toExist(),
       Scene.expect(Scene.text('resume.pdf')).toBeAbsent(),
     )
@@ -2052,10 +2461,16 @@ describe('scene with Command-based file upload flow', () => {
   test('preview failure: reading fails → file still visible, alert shown', () => {
     Scene.scene(
       { update: resumeUpdate, view: resumeView },
-      Scene.with(resumeInitialModel),
+      Scene.given(resumeInitialModel),
       Scene.click(chooseButton),
-      Scene.Command.resolve(SelectResume, SelectedResume({ file: resumePdf })),
-      Scene.Command.resolve(ReadResumePreview, FailedReadPreview()),
+      Scene.Command.resolve(
+        SelectResume,
+        ResumeUploadMessage.CompletedSelectResume({ file: resumePdf }),
+      ),
+      Scene.Command.resolve(
+        ReadResumePreview,
+        ResumeUploadMessage.FailedReadPreview(),
+      ),
       Scene.expect(Scene.text('resume.pdf')).toExist(),
       Scene.expect(errorAlert).toHaveText('Could not read preview'),
       Scene.expect(previewImage).toBeAbsent(),
@@ -2066,7 +2481,7 @@ describe('scene with Command-based file upload flow', () => {
   test('remove flow: clicking Remove clears the resume', () => {
     Scene.scene(
       { update: resumeUpdate, view: resumeView },
-      Scene.with(resumeSelectedModel),
+      Scene.given(resumeSelectedModel),
       Scene.expect(Scene.text('resume.pdf')).toExist(),
       Scene.expect(removeButton).toExist(),
       Scene.click(removeButton),
@@ -2084,19 +2499,35 @@ describe('scene with Command-based file upload flow', () => {
 
     Scene.scene(
       { update: resumeUpdate, view: resumeView },
-      Scene.with(resumeInitialModel),
+      Scene.given(resumeInitialModel),
       Scene.click(chooseButton),
       Scene.Command.resolveAll(
-        [SelectResume, SelectedResume({ file: resumePdf })],
-        [ReadResumePreview, SucceededReadPreview({ dataUrl: previewDataUrl })],
+        [
+          SelectResume,
+          ResumeUploadMessage.CompletedSelectResume({ file: resumePdf }),
+        ],
+        [
+          ReadResumePreview,
+          ResumeUploadMessage.SucceededReadPreview({
+            dataUrl: previewDataUrl,
+          }),
+        ],
       ),
       Scene.expect(Scene.text('resume.pdf')).toExist(),
       Scene.click(removeButton),
       Scene.expect(chooseButton).toExist(),
       Scene.click(chooseButton),
       Scene.Command.resolveAll(
-        [SelectResume, SelectedResume({ file: secondResume })],
-        [ReadResumePreview, SucceededReadPreview({ dataUrl: secondDataUrl })],
+        [
+          SelectResume,
+          ResumeUploadMessage.CompletedSelectResume({ file: secondResume }),
+        ],
+        [
+          ReadResumePreview,
+          ResumeUploadMessage.SucceededReadPreview({
+            dataUrl: secondDataUrl,
+          }),
+        ],
       ),
       Scene.expect(Scene.text('resume-v2.pdf')).toExist(),
       Scene.expect(previewImage).toHaveAttr('src', secondDataUrl),
@@ -2105,16 +2536,15 @@ describe('scene with Command-based file upload flow', () => {
 })
 
 describe('scene with expectAll', () => {
-  const loggedInModel: Model = {
-    ...initialModel,
-    status: 'LoggedIn',
-    username: 'alice',
-  }
+  const loggedInModel: Model = evo(initialModel, {
+    status: () => 'LoggedIn',
+    username: () => 'alice',
+  })
 
   test('toHaveCount matches the number of elements', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expectAll(Scene.all.role('button')).toHaveCount(1),
       Scene.expectAll(Scene.all.role('textbox')).toHaveCount(2),
     )
@@ -2124,7 +2554,7 @@ describe('scene with expectAll', () => {
     expect(() =>
       Scene.scene(
         { update, view },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.expectAll(Scene.all.role('button')).toHaveCount(3),
       ),
     ).toThrow(
@@ -2135,7 +2565,7 @@ describe('scene with expectAll', () => {
   test('toBeEmpty passes when no matches', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expectAll(Scene.all.role('dialog')).toBeEmpty(),
     )
   })
@@ -2144,7 +2574,7 @@ describe('scene with expectAll', () => {
     expect(() =>
       Scene.scene(
         { update, view },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.expectAll(Scene.all.role('button')).toBeEmpty(),
       ),
     ).toThrow(
@@ -2155,7 +2585,7 @@ describe('scene with expectAll', () => {
   test('not.toHaveCount inverts the assertion', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expectAll(Scene.all.role('button')).not.toHaveCount(3),
     )
   })
@@ -2163,7 +2593,7 @@ describe('scene with expectAll', () => {
   test('expectAll respects Scene.inside scope', () => {
     Scene.scene(
       { update, view },
-      Scene.with(loggedInModel),
+      Scene.given(loggedInModel),
       Scene.inside(
         Scene.role('region', { name: 'User session' }),
         Scene.expectAll(Scene.all.role('button')).toHaveCount(1),
@@ -2178,7 +2608,7 @@ describe('scene errors', () => {
     expect(() =>
       Scene.scene(
         { update, view },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.click('#nonexistent'),
       ),
     ).toThrow('I could not find an element matching "#nonexistent"')
@@ -2188,7 +2618,7 @@ describe('scene errors', () => {
     expect(() =>
       Scene.scene(
         { update, view },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.click('#email'),
       ),
     ).toThrow('neither it nor any ancestor has a click handler')
@@ -2198,7 +2628,7 @@ describe('scene errors', () => {
     expect(() =>
       Scene.scene(
         { update, view },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.submit(Scene.role('form')),
       ),
     ).toThrow('I found Commands without resolvers')
@@ -2206,16 +2636,67 @@ describe('scene errors', () => {
 })
 
 describe('scene with resolveAll', () => {
+  test('requires each result Message to belong to its Command', () => {
+    Scene.Command.resolveAll([
+      Authenticate,
+      // @ts-expect-error CompletedAction is not an Authenticate result Message
+      LogoutButtonMessage.CompletedAction(),
+    ])
+  })
+
   test('resolveAll works in scene context', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.submit(Scene.role('form')),
       Scene.Command.resolveAll([
         Authenticate,
-        SucceededAuthenticate({ username: 'bob' }),
+        LoginMessage.SucceededAuthenticate({ username: 'bob' }),
       ]),
       Scene.expect(Scene.role('status')).toHaveText('Welcome, bob!'),
+    )
+  })
+})
+
+describe('scene with resolveAllExact', () => {
+  test('requires each result Message to belong to its Command', () => {
+    Scene.Command.resolveAllExact([
+      Authenticate,
+      // @ts-expect-error CompletedAction is not an Authenticate result Message
+      LogoutButtonMessage.CompletedAction(),
+    ])
+  })
+
+  test('resolveAllExact works in scene context', () => {
+    Scene.scene(
+      { update, view },
+      Scene.given(initialModel),
+      Scene.submit(Scene.role('form')),
+      Scene.Command.resolveAllExact([
+        Authenticate,
+        LoginMessage.SucceededAuthenticate({ username: 'bob' }),
+      ]),
+      Scene.expect(Scene.role('status')).toHaveText('Welcome, bob!'),
+    )
+  })
+
+  test('resolveAllExact rejects an unmatched expected Command', () => {
+    expect(() =>
+      Scene.scene(
+        { update, view },
+        Scene.given(initialModel),
+        Scene.submit(Scene.role('form')),
+        Scene.Command.resolveAllExact(
+          [
+            Authenticate,
+            LoginMessage.SucceededAuthenticate({ username: 'bob' }),
+          ],
+          [FetchCount, CounterMessage.SucceededFetchCount({ count: 1 })],
+        ),
+      ),
+    ).toThrow(
+      'resolveAllExact expected Commands that were not dispatched:\n\n' +
+        '    FetchCount',
     )
   })
 })
@@ -2225,9 +2706,12 @@ describe('scene with resolve ambiguity', () => {
     expect(() =>
       Scene.scene(
         { update: counterUpdate, view: counterView },
-        Scene.with(counterInitialModel),
+        Scene.given(counterInitialModel),
         Scene.click(Scene.role('button', { name: 'Start three fetches' })),
-        Scene.Command.resolve(FetchCount, SucceededFetchCount({ count: 42 })),
+        Scene.Command.resolve(
+          FetchCount,
+          CounterMessage.SucceededFetchCount({ count: 42 }),
+        ),
       ),
     ).toThrow(
       'I tried to resolve "FetchCount" but multiple pending Commands match',
@@ -2238,11 +2722,11 @@ describe('scene with resolve ambiguity', () => {
     expect(() =>
       Scene.scene(
         { update: counterUpdate, view: counterView },
-        Scene.with(counterInitialModel),
+        Scene.given(counterInitialModel),
         Scene.click(Scene.role('button', { name: 'Start two fetches by id' })),
         Scene.Command.resolve(
           FetchCountById({ id: 5 }),
-          SucceededFetchCount({ count: 10 }),
+          CounterMessage.SucceededFetchCount({ count: 10 }),
         ),
       ),
     ).toThrow(
@@ -2255,26 +2739,698 @@ describe('scene with outMessage', () => {
   test('outMessage is tracked in scene', () => {
     Scene.scene(
       { update: logoutUpdate, view: logoutView },
-      Scene.with(logoutInitialModel),
+      Scene.given(logoutInitialModel),
       Scene.click(Scene.role('button', { name: 'Log out' })),
       Scene.tap(({ outMessage }) => {
-        expect(outMessage).toEqual(Option.some(RequestedLogout()))
+        expect(outMessage).toEqual(OutMessage.RequestedLogout())
       }),
     )
   })
 })
 
-describe('scene with within', () => {
-  test('within scopes a locator to a parent', () => {
-    const loggedInModel: Model = {
-      ...initialModel,
-      status: 'LoggedIn',
-      username: 'alice',
+describe('Scene.Subscription.emit', () => {
+  test('drives a Message into a running scene and re-renders', () => {
+    Scene.scene(
+      { update: counterUpdate, view: counterView },
+      Scene.given(counterInitialModel),
+      Scene.expect(Scene.role('status')).toHaveText('count: 0'),
+      Scene.Subscription.emit(CounterMessage.Ticked()),
+      Scene.expect(Scene.role('status')).toHaveText('count: 1'),
+      Scene.Subscription.emit(CounterMessage.Ticked()),
+      Scene.expect(Scene.role('status')).toHaveText('count: 2'),
+    )
+  })
+
+  test('requires the Message to belong to the tested update', () => {
+    expectTypeOf(() =>
+      Scene.scene(
+        { update: counterUpdate, view: counterView },
+        Scene.given(counterInitialModel),
+        // @ts-expect-error CompletedAction is not a Counter Message
+        Scene.Subscription.emit(LogoutButtonMessage.CompletedAction()),
+      ),
+    ).toBeFunction()
+  })
+
+  test('Commands produced by an emitted Message become pending', () => {
+    Scene.scene(
+      { update: counterUpdate, view: counterView },
+      Scene.given(counterInitialModel),
+      Scene.Subscription.emit(CounterMessage.PolledCount()),
+      Scene.Command.expectExact(FetchCount),
+      Scene.Command.resolve(
+        FetchCount,
+        CounterMessage.SucceededFetchCount({ count: 7 }),
+      ),
+      Scene.expect(Scene.role('status')).toHaveText('count: 7'),
+    )
+  })
+
+  test('throws when unresolved Commands are pending', () => {
+    expect(() =>
+      Scene.scene(
+        { update: counterUpdate, view: counterView },
+        Scene.given(counterInitialModel),
+        Scene.click(Scene.role('button', { name: 'Start three fetches' })),
+        Scene.Subscription.emit(CounterMessage.Ticked()),
+      ),
+    ).toThrow(
+      'I found unresolved Commands when a Subscription emitted a new Message',
+    )
+  })
+
+  test('throws when unresolved Mounts are pending', () => {
+    const openModel = evo(mountInitialModel, { isOpen: () => true })
+    expect(() =>
+      Scene.scene(
+        { update: mountUpdate, view: mountView },
+        Scene.given(openModel),
+        Scene.Subscription.emit(MountPanelMessage.CompletedFocusButton()),
+      ),
+    ).toThrow(
+      'I found unresolved Mounts when a Subscription emitted a new Message',
+    )
+  })
+
+  test('throws when unacknowledged unmounts are pending', () => {
+    const openModel = evo(mountInitialModel, { isOpen: () => true })
+    expect(() =>
+      Scene.scene(
+        { update: mountUpdate, view: mountView },
+        Scene.given(openModel),
+        Scene.Mount.resolve(
+          MeasurePanel,
+          MountPanelMessage.MeasuredPanel({ width: 400 }),
+        ),
+        Scene.Mount.resolve(
+          FocusButton,
+          MountPanelMessage.CompletedFocusButton(),
+        ),
+        Scene.click(Scene.role('button')),
+        Scene.Subscription.emit(MountPanelMessage.CompletedFocusButton()),
+      ),
+    ).toThrow(
+      'I found unacknowledged unmounts when a Subscription emitted a new Message',
+    )
+  })
+})
+
+describe('Scene.ManagedResource', () => {
+  test('acquire and release drive the declared lifecycle Messages through update', () => {
+    Scene.scene(
+      { update: feedSocketUpdate, view: feedSocketView },
+      Scene.given(feedSocketInitialModel),
+      Scene.expect(Scene.role('status')).toHaveText('Disconnected'),
+      Scene.click(Scene.role('button', { name: 'Open feed' })),
+      Scene.ManagedResource.acquire(feedResources.feedSocket, {
+        socketId: 'sock-1',
+      }),
+      Scene.expect(Scene.role('status')).toHaveText('Connected'),
+      Scene.click(Scene.role('button', { name: 'Close feed' })),
+      Scene.ManagedResource.release(feedResources.feedSocket),
+      Scene.expect(Scene.role('status')).toHaveText('Disconnected'),
+    )
+  })
+
+  test('failAcquire drives onAcquireError through update', () => {
+    Scene.scene(
+      { update: feedSocketUpdate, view: feedSocketView },
+      Scene.given(feedSocketInitialModel),
+      Scene.click(Scene.role('button', { name: 'Open feed' })),
+      Scene.ManagedResource.failAcquire(
+        feedResources.feedSocket,
+        new Error('offline'),
+      ),
+      Scene.expect(Scene.role('status')).toHaveText('Failed'),
+    )
+  })
+
+  test('acquire throws when the Model does not request the resource', () => {
+    expect(() =>
+      Scene.scene(
+        { update: feedSocketUpdate, view: feedSocketView },
+        Scene.given(feedSocketInitialModel),
+        Scene.ManagedResource.acquire(feedResources.feedSocket, {
+          socketId: 'sock-1',
+        }),
+      ),
+    ).toThrow(
+      'I tried to acquire the ManagedResource "FeedSocket" but the current Model does not request it',
+    )
+  })
+
+  test('failAcquire throws when the Model does not request the resource', () => {
+    expect(() =>
+      Scene.scene(
+        { update: feedSocketUpdate, view: feedSocketView },
+        Scene.given(feedSocketInitialModel),
+        Scene.ManagedResource.failAcquire(
+          feedResources.feedSocket,
+          new Error('offline'),
+        ),
+      ),
+    ).toThrow(
+      'I tried to fail acquiring the ManagedResource "FeedSocket" but the current Model does not request it',
+    )
+  })
+
+  test('release throws while the Model still requests the resource', () => {
+    expect(() =>
+      Scene.scene(
+        { update: feedSocketUpdate, view: feedSocketView },
+        Scene.given(feedSocketInitialModel),
+        Scene.click(Scene.role('button', { name: 'Open feed' })),
+        Scene.ManagedResource.release(feedResources.feedSocket),
+      ),
+    ).toThrow(
+      'I tried to release the ManagedResource "FeedSocket" but the current Model still requests it',
+    )
+  })
+
+  test('acquire takes no value when the entry onAcquired ignores it', () => {
+    Scene.scene(
+      { update: feedSocketUpdate, view: feedSocketView },
+      Scene.given(feedSocketInitialModel),
+      Scene.click(Scene.role('button', { name: 'Open feed' })),
+      Scene.ManagedResource.acquire(feedResources.presence),
+      Scene.expect(Scene.role('status')).toHaveText('Connected'),
+    )
+  })
+
+  test('acquire arguments mirror the entry onAcquired at the type level', () => {
+    // @ts-expect-error the feedSocket onAcquired consumes the value, so it is required
+    Scene.ManagedResource.acquire(feedResources.feedSocket)
+
+    Scene.ManagedResource.acquire(
+      feedResources.presence,
+      // @ts-expect-error the presence onAcquired ignores the value, so none is accepted
+      'online',
+    )
+  })
+})
+
+describe('Scene.CustomElement.emit', () => {
+  test('dispatches a declared CustomEvent through the element mapping and re-renders', () => {
+    Scene.scene(
+      { update: colorPickerUpdate, view: colorPickerView },
+      Scene.given(colorPickerInitialModel),
+      Scene.expect(Scene.role('status')).toHaveText('#000000'),
+      Scene.CustomElement.emit(
+        hexColorPicker,
+        Scene.selector('hex-color-picker'),
+        'color-changed',
+        { value: '#ff0000' },
+      ),
+      Scene.expect(Scene.role('status')).toHaveText('#ff0000'),
+    )
+  })
+
+  test('throws when the element has no handler for the event', () => {
+    expect(() =>
+      Scene.scene(
+        { update: colorPickerUpdate, view: colorPickerViewWithoutHandler },
+        Scene.given(colorPickerInitialModel),
+        Scene.CustomElement.emit(
+          hexColorPicker,
+          Scene.selector('hex-color-picker'),
+          'color-changed',
+          { value: '#ff0000' },
+        ),
+      ),
+    ).toThrow(
+      'has no color-changed handler.\n\n' +
+        'Make sure the element has the OnColorChanged attribute from its CustomElement builder.',
+    )
+  })
+
+  test('throws when no element matches the target', () => {
+    expect(() =>
+      Scene.scene(
+        { update: colorPickerUpdate, view: colorPickerView },
+        Scene.given(colorPickerInitialModel),
+        Scene.CustomElement.emit(
+          hexColorPicker,
+          Scene.selector('rgb-color-picker'),
+          'color-changed',
+          { value: '#ff0000' },
+        ),
+      ),
+    ).toThrow('I could not find an element matching')
+  })
+
+  test('detail is typed by the declared event Schema', () => {
+    Scene.CustomElement.emit(
+      hexColorPicker,
+      Scene.selector('hex-color-picker'),
+      'color-changed',
+      // @ts-expect-error detail must match the color-changed Schema
+      { value: 5 },
+    )
+  })
+
+  test('accepts encoded detail and dispatches the decoded value', () => {
+    const transformedDetailElement = CustomElement.define({
+      tag: 'fk-transformed-detail',
+      properties: {},
+      events: { changed: Schema.NumberFromString },
+    })
+    const TransformedMessage = defineMessageUnion({
+      ChangedValue: { value: Schema.Number },
+    })
+    type TransformedMessage = typeof TransformedMessage.Type
+    const TransformedModel = Schema.Struct({ value: Schema.Number })
+    type TransformedModel = typeof TransformedModel.Type
+    const initialModel = TransformedModel.make({ value: 0 })
+    const update = (model: TransformedModel, message: TransformedMessage) =>
+      TransformedMessage.match<
+        Update.Return<TransformedModel, TransformedMessage>
+      >(message, {
+        ChangedValue: ({ value }) => ({
+          model: evo(model, { value: () => value }),
+        }),
+      })
+    const view = (
+      model: TransformedModel,
+      h: HtmlBuilder<TransformedMessage>,
+    ) => {
+      const element = transformedDetailElement.withMessage(h)
+
+      return h.div(
+        [],
+        [
+          element([
+            element.OnChanged(value =>
+              TransformedMessage.ChangedValue({ value }),
+            ),
+          ]),
+          h.span([h.Role('status')], [globalThis.String(model.value)]),
+        ],
+      )
     }
 
     Scene.scene(
       { update, view },
-      Scene.with(loggedInModel),
+      Scene.given(initialModel),
+      Scene.CustomElement.emit(
+        transformedDetailElement,
+        Scene.selector('fk-transformed-detail'),
+        'changed',
+        '5',
+      ),
+      Scene.expect(Scene.role('status')).toHaveText('5'),
+    )
+  })
+
+  test('throws when the event is not declared by the spec', () => {
+    expect(() =>
+      Scene.scene(
+        { update: colorPickerUpdate, view: colorPickerView },
+        Scene.given(colorPickerInitialModel),
+        Scene.CustomElement.emit(
+          hexColorPicker,
+          Scene.selector('hex-color-picker'),
+          // @ts-expect-error the spec declares only color-changed
+          'size-changed',
+          { value: '#ff0000' },
+        ),
+      ),
+    ).toThrow(
+      'I tried to emit "size-changed" but the \'hex-color-picker\' element does not declare it',
+    )
+  })
+})
+
+const mixedArityUpdate = (model: LogoutModel, message: LogoutMessage) =>
+  LogoutMessage.match<
+    Update.ReturnWithOutMessage<LogoutModel, LogoutMessage, LogoutOutMessage>
+  >(message, {
+    ClickedLogout: () => ({ model, outMessage: OutMessage.RequestedLogout() }),
+    CompletedAction: () => ({ model }),
+  })
+
+const outMessageBubblingView = (
+  model: LogoutModel,
+  h: HtmlBuilder<LogoutMessage>,
+) =>
+  h.div(
+    [h.OnClick(LogoutButtonMessage.CompletedAction())],
+    [h.button([h.OnClick(LogoutButtonMessage.ClickedLogout())], [model.label])],
+  )
+
+const InteractionMessage = defineMessageUnion({
+  ClickedExpand: {},
+  ClickedRow: {},
+  SubmittedForm: {},
+  CompletedAction: {},
+})
+
+type InteractionMessage = typeof InteractionMessage.Type
+
+const InteractionOutMessage = defineMessageUnion({
+  RequestedExpand: {},
+  RequestedFocus: {},
+  RequestedMeasurement: {},
+  RequestedSelection: {},
+  RequestedSubmission: {},
+})
+
+type InteractionOutMessage = typeof InteractionOutMessage.Type
+
+const multipleOutMessagesUpdate = (
+  model: LogoutModel,
+  message: InteractionMessage,
+) =>
+  InteractionMessage.match<
+    Update.ReturnWithOutMessage<
+      LogoutModel,
+      InteractionMessage,
+      InteractionOutMessage
+    >
+  >(message, {
+    ClickedExpand: () => ({
+      model,
+      outMessage: InteractionOutMessage.RequestedExpand(),
+    }),
+    ClickedRow: () => ({
+      model,
+      outMessage: InteractionOutMessage.RequestedSelection(),
+    }),
+    SubmittedForm: () => ({
+      model,
+      outMessage: InteractionOutMessage.RequestedSubmission(),
+    }),
+    CompletedAction: () => ({ model }),
+  })
+
+const multipleOutMessagesView = (
+  model: LogoutModel,
+  h: HtmlBuilder<InteractionMessage>,
+) =>
+  h.div(
+    [h.OnClick(InteractionMessage.ClickedRow())],
+    [
+      h.button(
+        [h.OnClick(InteractionMessage.ClickedExpand()), h.Type('button')],
+        [model.label],
+      ),
+    ],
+  )
+
+const clickAndSubmitOutMessagesView = (
+  model: LogoutModel,
+  h: HtmlBuilder<InteractionMessage>,
+) =>
+  h.form(
+    [h.OnSubmit(InteractionMessage.SubmittedForm())],
+    [
+      h.button(
+        [h.OnClick(InteractionMessage.ClickedExpand()), h.Type('submit')],
+        [model.label],
+      ),
+    ],
+  )
+
+const interactionInitialModel = LogoutModel.make({ label: 'Expand' })
+const submitInteractionInitialModel = LogoutModel.make({ label: 'Submit' })
+
+const multipleMountOutMessagesUpdate = (
+  model: MountPanelModel,
+  message: MountPanelMessage,
+) => {
+  const mountPanelUpdate = mountUpdate(model, message)
+
+  return MountPanelMessage.match<
+    Update.ReturnWithOutMessage<
+      MountPanelModel,
+      MountPanelMessage,
+      InteractionOutMessage
+    >
+  >(message, {
+    ClickedToggle: () => mountPanelUpdate,
+    MeasuredPanel: () => ({
+      ...mountPanelUpdate,
+      outMessage: InteractionOutMessage.RequestedMeasurement(),
+    }),
+    CompletedFocusButton: () => ({
+      ...mountPanelUpdate,
+      outMessage: InteractionOutMessage.RequestedFocus(),
+    }),
+    FailedMountSidebar: () => mountPanelUpdate,
+    ClickedIncrement: () => mountPanelUpdate,
+    ScrolledTo: () => mountPanelUpdate,
+  })
+}
+
+describe('Scene OutMessage assertions', () => {
+  test('assert the OutMessage across steps', () => {
+    Scene.scene(
+      { update: logoutUpdate, view: logoutView },
+      Scene.given(logoutInitialModel),
+      Scene.expectNoOutMessage(),
+      Scene.click(Scene.role('button', { name: 'Log out' })),
+      Scene.expectOutMessage(OutMessage.RequestedLogout()),
+      Scene.Subscription.emit(LogoutButtonMessage.CompletedAction()),
+      Scene.expectNoOutMessage(),
+    )
+  })
+
+  test('expectOutMessage fails when no OutMessage was emitted', () => {
+    expect(() =>
+      Scene.scene(
+        { update: logoutUpdate, view: logoutView },
+        Scene.given(logoutInitialModel),
+        Scene.expectOutMessage(OutMessage.RequestedLogout()),
+      ),
+    ).toThrow('Expected OutMessage:')
+  })
+
+  test('expectOutMessage fails with expected and actual values when the OutMessage is wrong', () => {
+    expect(() =>
+      Scene.scene(
+        { update: multipleOutMessagesUpdate, view: multipleOutMessagesView },
+        Scene.given(interactionInitialModel),
+        Scene.Subscription.emit(InteractionMessage.ClickedExpand()),
+        Scene.expectOutMessage(InteractionOutMessage.RequestedSelection()),
+      ),
+    ).toThrow(
+      `Expected OutMessage:\n\n    ${JSON.stringify(InteractionOutMessage.RequestedSelection())}\n\nBut got:\n\n    ${JSON.stringify(InteractionOutMessage.RequestedExpand())}`,
+    )
+  })
+
+  test('requires expected OutMessages to belong to the tested update', () => {
+    expectTypeOf(() =>
+      Scene.scene(
+        // @ts-expect-error CompletedAction is not an Interaction OutMessage
+        { update: multipleOutMessagesUpdate, view: multipleOutMessagesView },
+        Scene.given(interactionInitialModel),
+        Scene.expectOutMessage(LogoutButtonMessage.CompletedAction()),
+      ),
+    ).toBeFunction()
+
+    expectTypeOf(() =>
+      Scene.scene(
+        // @ts-expect-error CompletedAction is not an Interaction OutMessage
+        { update: multipleOutMessagesUpdate, view: multipleOutMessagesView },
+        Scene.given(interactionInitialModel),
+        Scene.expectOutMessages(
+          InteractionOutMessage.RequestedExpand(),
+          LogoutButtonMessage.CompletedAction(),
+        ),
+      ),
+    ).toBeFunction()
+  })
+
+  test('rejects an OutMessage assertion when update cannot emit one', () => {
+    expectTypeOf(() =>
+      Scene.scene(
+        { update: counterUpdate, view: counterView },
+        Scene.given(counterInitialModel),
+        // @ts-expect-error counter update cannot emit an OutMessage
+        Scene.expectOutMessage(OutMessage.RequestedLogout()),
+      ),
+    ).toBeFunction()
+  })
+
+  test('expectNoOutMessage fails when an OutMessage is present', () => {
+    expect(() =>
+      Scene.scene(
+        { update: logoutUpdate, view: logoutView },
+        Scene.given(logoutInitialModel),
+        Scene.click(Scene.role('button', { name: 'Log out' })),
+        Scene.expectNoOutMessage(),
+      ),
+    ).toThrow('Expected no OutMessage but got:')
+  })
+
+  test('an omitted OutMessage clears the previous OutMessage', () => {
+    Scene.scene(
+      { update: mixedArityUpdate, view: logoutView },
+      Scene.given(logoutInitialModel),
+      Scene.click(Scene.role('button', { name: 'Log out' })),
+      Scene.expectOutMessage(OutMessage.RequestedLogout()),
+      Scene.Subscription.emit(LogoutButtonMessage.CompletedAction()),
+      Scene.expectNoOutMessage(),
+    )
+  })
+
+  test('preserves an OutMessage followed by a Message without one', () => {
+    Scene.scene(
+      { update: mixedArityUpdate, view: outMessageBubblingView },
+      Scene.given(logoutInitialModel),
+      Scene.click(Scene.role('button', { name: 'Log out' })),
+      Scene.expectOutMessage(OutMessage.RequestedLogout()),
+    )
+  })
+
+  test('asserts target and ancestor OutMessages in runtime order', () => {
+    Scene.scene(
+      { update: multipleOutMessagesUpdate, view: multipleOutMessagesView },
+      Scene.given(interactionInitialModel),
+      Scene.click(Scene.role('button', { name: 'Expand' })),
+      Scene.expectOutMessages(
+        InteractionOutMessage.RequestedExpand(),
+        InteractionOutMessage.RequestedSelection(),
+      ),
+      Scene.tap(({ outMessage }) => {
+        expect(outMessage).toBeUndefined()
+      }),
+    )
+  })
+
+  test('preserves click and submit OutMessages in runtime order', () => {
+    Scene.scene(
+      {
+        update: multipleOutMessagesUpdate,
+        view: clickAndSubmitOutMessagesView,
+      },
+      Scene.given(submitInteractionInitialModel),
+      Scene.click(Scene.role('button', { name: 'Submit' })),
+      Scene.expectOutMessages(
+        InteractionOutMessage.RequestedExpand(),
+        InteractionOutMessage.RequestedSubmission(),
+      ),
+    )
+  })
+
+  test('preserves every OutMessage from Mount.resolveAll', () => {
+    Scene.scene(
+      { update: multipleMountOutMessagesUpdate, view: mountView },
+      Scene.given(evo(mountInitialModel, { isOpen: () => true })),
+      Scene.Mount.resolveAll(
+        [FocusButton, MountPanelMessage.CompletedFocusButton()],
+        [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 100 })],
+      ),
+      Scene.expectOutMessages(
+        InteractionOutMessage.RequestedFocus(),
+        InteractionOutMessage.RequestedMeasurement(),
+      ),
+      Scene.tap(({ outMessage }) => {
+        expect(outMessage).toBeUndefined()
+      }),
+    )
+  })
+
+  test('a later update replaces every OutMessage from the previous step', () => {
+    Scene.scene(
+      { update: multipleOutMessagesUpdate, view: multipleOutMessagesView },
+      Scene.given(interactionInitialModel),
+      Scene.click(Scene.role('button', { name: 'Expand' })),
+      Scene.expectOutMessages(
+        InteractionOutMessage.RequestedExpand(),
+        InteractionOutMessage.RequestedSelection(),
+      ),
+      Scene.Subscription.emit(InteractionMessage.CompletedAction()),
+      Scene.expectNoOutMessage(),
+    )
+  })
+
+  test('inside preserves the sequence from its latest child step', () => {
+    Scene.scene(
+      { update: multipleOutMessagesUpdate, view: multipleOutMessagesView },
+      Scene.given(interactionInitialModel),
+      Scene.inside(
+        Scene.selector('div'),
+        Scene.Subscription.emit(InteractionMessage.ClickedExpand()),
+        Scene.Subscription.emit(InteractionMessage.ClickedRow()),
+      ),
+      Scene.expectOutMessage(InteractionOutMessage.RequestedSelection()),
+    )
+  })
+
+  test('expectOutMessage fails when multiple OutMessages were emitted', () => {
+    expect(() =>
+      Scene.scene(
+        { update: multipleOutMessagesUpdate, view: multipleOutMessagesView },
+        Scene.given(interactionInitialModel),
+        Scene.click(Scene.role('button', { name: 'Expand' })),
+        Scene.expectOutMessage(InteractionOutMessage.RequestedExpand()),
+      ),
+    ).toThrow('Expected exactly one OutMessage but got multiple')
+  })
+
+  test('expectOutMessages fails when the runtime order is wrong', () => {
+    expect(() =>
+      Scene.scene(
+        { update: multipleOutMessagesUpdate, view: multipleOutMessagesView },
+        Scene.given(interactionInitialModel),
+        Scene.click(Scene.role('button', { name: 'Expand' })),
+        Scene.expectOutMessages(
+          InteractionOutMessage.RequestedSelection(),
+          InteractionOutMessage.RequestedExpand(),
+        ),
+      ),
+    ).toThrow('Expected OutMessages:')
+  })
+
+  test('expectOutMessages requires at least two expected values', () => {
+    // @ts-expect-error use expectNoOutMessage to assert an empty sequence
+    Scene.expectOutMessages()
+    // @ts-expect-error use expectOutMessage to assert one value
+    Scene.expectOutMessages(InteractionOutMessage.RequestedExpand())
+  })
+})
+
+describe('Scene.withViewInputs', () => {
+  const sceneView = Scene.withViewInputs(scorePanelView, {
+    label: 'Score',
+    toView: ({ label, score }) =>
+      inertHtml.span([inertHtml.Role('status')], [`${label}: ${score}`]),
+  })
+
+  test('adapts a ViewInputs view to the shape Scene.scene takes', () => {
+    Scene.scene(
+      { update: scorePanelUpdate, view: sceneView() },
+      Scene.given(scorePanelInitialModel),
+      Scene.expect(Scene.role('status')).toHaveText('Score: 0'),
+      Scene.click(Scene.role('button', { name: 'Increment' })),
+      Scene.expect(Scene.role('status')).toHaveText('Score: 1'),
+    )
+  })
+
+  test('overrides vary value inputs while the renderer stays pinned', () => {
+    Scene.scene(
+      { update: scorePanelUpdate, view: sceneView({ label: 'Points' }) },
+      Scene.given(scorePanelInitialModel),
+      Scene.expect(Scene.role('status')).toHaveText('Points: 0'),
+    )
+  })
+
+  test('toView is not overridable', () => {
+    // @ts-expect-error toView is pinned by the defaults
+    sceneView({ toView: () => null })
+  })
+})
+
+describe('scene with within', () => {
+  test('within scopes a locator to a parent', () => {
+    const loggedInModel: Model = evo(initialModel, {
+      status: () => 'LoggedIn',
+      username: () => 'alice',
+    })
+
+    Scene.scene(
+      { update, view },
+      Scene.given(loggedInModel),
       Scene.expect(
         Scene.within(
           Scene.role('region', { name: 'User session' }),
@@ -2287,7 +3443,7 @@ describe('scene with within', () => {
   test('within returns absent when parent is not found', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(
         Scene.within(Scene.selector('.nonexistent'), Scene.role('button')),
       ).toBeAbsent(),
@@ -2297,7 +3453,7 @@ describe('scene with within', () => {
   test('within returns absent when child is not in parent', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(
         Scene.within(Scene.role('form'), Scene.role('status')),
       ).toBeAbsent(),
@@ -2307,7 +3463,7 @@ describe('scene with within', () => {
   test('within composes in pipe chains', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(
         pipe(Scene.role('form'), Scene.within(Scene.label('Email'))),
       ).toExist(),
@@ -2315,15 +3471,14 @@ describe('scene with within', () => {
   })
 
   test('click works with within', () => {
-    const loggedInModel: Model = {
-      ...initialModel,
-      status: 'LoggedIn',
-      username: 'alice',
-    }
+    const loggedInModel: Model = evo(initialModel, {
+      status: () => 'LoggedIn',
+      username: () => 'alice',
+    })
 
     Scene.scene(
       { update, view },
-      Scene.with(loggedInModel),
+      Scene.given(loggedInModel),
       Scene.click(
         Scene.within(
           Scene.role('region', { name: 'User session' }),
@@ -2338,7 +3493,7 @@ describe('scene with within', () => {
     expect(() =>
       Scene.scene(
         { update, view },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.click(
           Scene.within(
             Scene.role('form'),
@@ -2353,16 +3508,15 @@ describe('scene with within', () => {
 })
 
 describe('scene with inside', () => {
-  const loggedInModel: Model = {
-    ...initialModel,
-    status: 'LoggedIn',
-    username: 'alice',
-  }
+  const loggedInModel: Model = evo(initialModel, {
+    status: () => 'LoggedIn',
+    username: () => 'alice',
+  })
 
   test('inside scopes multiple assertion steps to a parent', () => {
     Scene.scene(
       { update, view },
-      Scene.with(loggedInModel),
+      Scene.given(loggedInModel),
       Scene.inside(
         Scene.role('region', { name: 'User session' }),
         Scene.expect(Scene.role('status')).toContainText('Welcome, alice!'),
@@ -2374,7 +3528,7 @@ describe('scene with inside', () => {
   test('inside scopes interaction steps to a parent', () => {
     Scene.scene(
       { update, view },
-      Scene.with(loggedInModel),
+      Scene.given(loggedInModel),
       Scene.inside(
         Scene.role('region', { name: 'User session' }),
         Scene.click(Scene.role('button', { name: 'Log out' })),
@@ -2386,7 +3540,7 @@ describe('scene with inside', () => {
   test('inside restores the prior scope after its block', () => {
     Scene.scene(
       { update, view },
-      Scene.with(loggedInModel),
+      Scene.given(loggedInModel),
       Scene.inside(
         Scene.role('region', { name: 'User session' }),
         Scene.expect(Scene.role('button', { name: 'Log out' })).toExist(),
@@ -2398,7 +3552,7 @@ describe('scene with inside', () => {
   test('inside composes with nested inside via within', () => {
     Scene.scene(
       { update, view },
-      Scene.with(loggedInModel),
+      Scene.given(loggedInModel),
       Scene.inside(
         Scene.role('region', { name: 'User session' }),
         Scene.inside(
@@ -2413,7 +3567,7 @@ describe('scene with inside', () => {
     expect(() =>
       Scene.scene(
         { update, view },
-        Scene.with(loggedInModel),
+        Scene.given(loggedInModel),
         Scene.inside(
           Scene.role('region', { name: 'User session' }),
           Scene.expect(Scene.role('button', { name: 'Sign in' })).toExist(),
@@ -2428,7 +3582,7 @@ describe('scene with inside', () => {
     expect(() =>
       Scene.scene(
         { update, view },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.inside(
           Scene.role('region', { name: 'User session' }),
           Scene.expect(Scene.role('button')).toExist(),
@@ -2440,7 +3594,7 @@ describe('scene with inside', () => {
   test('inside scopes a CSS selector target', () => {
     Scene.scene(
       { update, view },
-      Scene.with(loggedInModel),
+      Scene.given(loggedInModel),
       Scene.inside(
         Scene.role('region', { name: 'User session' }),
         Scene.click('button'),
@@ -2452,7 +3606,7 @@ describe('scene with inside', () => {
   test('inside passes the full html to tap (tap ignores scope)', () => {
     Scene.scene(
       { update, view },
-      Scene.with(loggedInModel),
+      Scene.given(loggedInModel),
       Scene.inside(
         Scene.role('region', { name: 'User session' }),
         Scene.tap(({ html }) => {
@@ -2467,7 +3621,7 @@ describe('scene with text locator', () => {
   test('text locator finds by exact text', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(Scene.text('Sign in')).toExist(),
     )
   })
@@ -2475,7 +3629,7 @@ describe('scene with text locator', () => {
   test('text locator returns absent for non-matching text', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(Scene.text('Nonexistent')).toBeAbsent(),
     )
   })
@@ -2557,7 +3711,7 @@ describe('new matchers', () => {
   test('Scene.expect toHaveValue works in scene context', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.type(Scene.label('Email'), 'alice@example.com'),
       Scene.expect(Scene.label('Email')).toHaveValue('alice@example.com'),
     )
@@ -2566,7 +3720,7 @@ describe('new matchers', () => {
   test('Scene.expect toBeDisabled works in scene context', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(Scene.role('button')).not.toBeDisabled(),
     )
   })
@@ -2574,7 +3728,7 @@ describe('new matchers', () => {
   test('Scene.expect toBeEnabled works in scene context', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(Scene.role('button')).toBeEnabled(),
     )
   })
@@ -2582,7 +3736,7 @@ describe('new matchers', () => {
   test('Scene.role matches any token in a fallback role list', () => {
     Scene.scene(
       { update: multiRoleUpdate, view: multiRoleView },
-      Scene.with(multiRoleInitialModel),
+      Scene.given(multiRoleInitialModel),
       Scene.expect(Scene.role('doc-subtitle')).toExist(),
       Scene.expect(Scene.role('heading')).toContainText('clicks=0'),
       Scene.click(Scene.role('heading')),
@@ -2593,7 +3747,7 @@ describe('new matchers', () => {
   test('Scene.role accepts RegExp for accessible name matching', () => {
     Scene.scene(
       { update, view },
-      Scene.with(initialModel),
+      Scene.given(initialModel),
       Scene.expect(Scene.role('button', { name: /Sign/ })).toExist(),
       Scene.expect(Scene.role('button', { name: /sign/i })).toExist(),
       Scene.expect(Scene.role('button', { name: /Nonexistent/ })).not.toExist(),
@@ -2605,16 +3759,76 @@ describe('scene with click bubbling', () => {
   test('click bubbles from child to parent with handler', () => {
     Scene.scene(
       { update: bubblingUpdate, view: bubblingView },
-      Scene.with(bubblingInitialModel),
+      Scene.given(bubblingInitialModel),
       Scene.click(Scene.text('clicks=0')),
       Scene.expect(Scene.text('clicks=1')).toExist(),
+    )
+  })
+
+  test('click invokes handlers on the target and its ancestor', () => {
+    Scene.scene(
+      { update: bubblingUpdate, view: bubblingView },
+      Scene.given(bubblingInitialModel),
+      Scene.click(Scene.role('button', { name: 'Bubbling child' })),
+      Scene.expect(Scene.text('child clicks=1')).toExist(),
+      Scene.expect(Scene.text('clicks=1')).toExist(),
+    )
+  })
+
+  test('click stops before an ancestor when propagation is stopped', () => {
+    Scene.scene(
+      { update: bubblingUpdate, view: bubblingView },
+      Scene.given(bubblingInitialModel),
+      Scene.click(Scene.role('button', { name: 'Stopped child' })),
+      Scene.expect(Scene.text('stopped child clicks=1')).toExist(),
+      Scene.expect(Scene.text('clicks=0')).toExist(),
+    )
+  })
+
+  test('click submits a form when its default action is allowed', () => {
+    Scene.scene(
+      { update: bubblingUpdate, view: bubblingView },
+      Scene.given(bubblingInitialModel),
+      Scene.click(Scene.text('Submit with default')),
+      Scene.expect(Scene.text('child clicks=1')).toExist(),
+      Scene.expect(Scene.text('submissions=1')).toExist(),
+    )
+  })
+
+  test('click uses a submit button explicit form owner', () => {
+    Scene.scene(
+      { update: bubblingUpdate, view: bubblingView },
+      Scene.given(bubblingInitialModel),
+      Scene.click(Scene.role('button', { name: 'Submit through form owner' })),
+      Scene.expect(Scene.text('child clicks=1')).toExist(),
+      Scene.expect(Scene.text('submissions=1')).toExist(),
+    )
+  })
+
+  test('an invalid button type defaults to submit', () => {
+    Scene.scene(
+      { update: bubblingUpdate, view: bubblingView },
+      Scene.given(bubblingInitialModel),
+      Scene.click(Scene.role('button', { name: 'Submit with invalid type' })),
+      Scene.expect(Scene.text('child clicks=1')).toExist(),
+      Scene.expect(Scene.text('submissions=1')).toExist(),
+    )
+  })
+
+  test('click does not submit a form when its default action is prevented', () => {
+    Scene.scene(
+      { update: bubblingUpdate, view: bubblingView },
+      Scene.given(bubblingInitialModel),
+      Scene.click(Scene.role('button', { name: 'Submit without default' })),
+      Scene.expect(Scene.text('child clicks=1')).toExist(),
+      Scene.expect(Scene.text('submissions=0')).toExist(),
     )
   })
 
   test('doubleClick bubbles from child to parent with handler', () => {
     Scene.scene(
       { update: bubblingUpdate, view: bubblingView },
-      Scene.with(bubblingInitialModel),
+      Scene.given(bubblingInitialModel),
       Scene.doubleClick(Scene.text('dbl=0')),
       Scene.expect(Scene.text('dbl=1')).toExist(),
     )
@@ -2624,7 +3838,7 @@ describe('scene with click bubbling', () => {
     expect(() =>
       Scene.scene(
         { update: bubblingUpdate, view: bubblingView },
-        Scene.with(bubblingInitialModel),
+        Scene.given(bubblingInitialModel),
         Scene.click(Scene.text('dbl=0')),
       ),
     ).toThrow(/neither it nor any ancestor has a click handler/)
@@ -2634,10 +3848,91 @@ describe('scene with click bubbling', () => {
     expect(() =>
       Scene.scene(
         { update: bubblingUpdate, view: bubblingView },
-        Scene.with(bubblingInitialModel),
+        Scene.given(bubblingInitialModel),
         Scene.doubleClick(Scene.text('clicks=0')),
       ),
     ).toThrow(/neither it nor any ancestor has a dblclick handler/)
+  })
+})
+
+describe('scene with context menu bubbling', () => {
+  test('contextMenu bubbles from child to an ancestor with a handler', () => {
+    Scene.scene(
+      { update: contextMenuUpdate, view: contextMenuView },
+      Scene.given(contextMenuInitialModel),
+      Scene.contextMenu(Scene.label('outer target')),
+      Scene.expect(
+        Scene.role('menu', { name: 'Outer context menu' }),
+      ).toHaveText('Outer context menu opens=1'),
+    )
+  })
+
+  test('contextMenu invokes the nearest ancestor handler', () => {
+    Scene.scene(
+      { update: contextMenuUpdate, view: contextMenuView },
+      Scene.given(contextMenuInitialModel),
+      Scene.contextMenu(Scene.label('nearest target')),
+      Scene.expect(
+        Scene.role('menu', { name: 'Inner context menu' }),
+      ).toHaveText('Inner context menu opens=1'),
+      Scene.expect(
+        Scene.role('menu', { name: 'Outer context menu' }),
+      ).toBeAbsent(),
+    )
+  })
+
+  test('a direct contextMenu handler prevents ancestor handlers from firing', () => {
+    Scene.scene(
+      { update: contextMenuUpdate, view: contextMenuView },
+      Scene.given(contextMenuInitialModel),
+      Scene.contextMenu(Scene.label('direct target')),
+      Scene.expect(
+        Scene.role('menu', { name: 'Direct context menu' }),
+      ).toHaveText('Direct context menu opens=1'),
+      Scene.expect(
+        Scene.role('menu', { name: 'Inner context menu' }),
+      ).toBeAbsent(),
+      Scene.expect(
+        Scene.role('menu', { name: 'Outer context menu' }),
+      ).toBeAbsent(),
+    )
+  })
+
+  test('contextMenu resolves an ambiguous target to the first match', () => {
+    Scene.scene(
+      { update: contextMenuUpdate, view: contextMenuView },
+      Scene.given(contextMenuInitialModel),
+      Scene.contextMenu('span'),
+      Scene.expect(
+        Scene.role('menu', { name: 'Outer context menu' }),
+      ).toHaveText('Outer context menu opens=1'),
+    )
+  })
+
+  test('contextMenu throws when the target does not exist', () => {
+    expect(() =>
+      Scene.scene(
+        { update: contextMenuUpdate, view: contextMenuView },
+        Scene.given(contextMenuInitialModel),
+        Scene.contextMenu(Scene.label('missing target')),
+      ),
+    ).toThrow(
+      'I could not find an element matching label "missing target".\n\n' +
+        'Check that your selector matches an element in the current view.',
+    )
+  })
+
+  test('contextMenu throws when no handler exists in the ancestor chain', () => {
+    expect(() =>
+      Scene.scene(
+        { update: contextMenuUpdate, view: contextMenuView },
+        Scene.given(contextMenuInitialModel),
+        Scene.contextMenu(Scene.label('no handler')),
+      ),
+    ).toThrow(
+      'I found an element matching label "no handler" but neither it nor any ancestor has a contextmenu handler.\n\n' +
+        'Make sure the element or a parent has an OnContextMenu attribute.',
+    )
   })
 })
 
@@ -2645,7 +3940,7 @@ describe('scene with pointer events', () => {
   test('pointerDown dispatches the handler', () => {
     Scene.scene(
       { update: pointerUpdate, view: pointerView },
-      Scene.with(pointerInitialModel),
+      Scene.given(pointerInitialModel),
       Scene.pointerDown(Scene.label('pointer target')),
       Scene.expect(Scene.label('pointer target')).toContainText('down=1'),
     )
@@ -2654,7 +3949,7 @@ describe('scene with pointer events', () => {
   test('pointerDown passes pointerType option', () => {
     Scene.scene(
       { update: pointerUpdate, view: pointerView },
-      Scene.with(pointerInitialModel),
+      Scene.given(pointerInitialModel),
       Scene.pointerDown(Scene.label('pointer target'), {
         pointerType: 'touch',
       }),
@@ -2669,7 +3964,7 @@ describe('scene with pointer events', () => {
   test('pointerDown defaults to mouse', () => {
     Scene.scene(
       { update: pointerUpdate, view: pointerView },
-      Scene.with(pointerInitialModel),
+      Scene.given(pointerInitialModel),
       Scene.pointerDown(Scene.label('nested target')),
       Scene.expect(
         Scene.within(Scene.label('nested target'), Scene.selector('span')),
@@ -2680,7 +3975,7 @@ describe('scene with pointer events', () => {
   test('pointerDown bubbles from child to parent', () => {
     Scene.scene(
       { update: pointerUpdate, view: pointerView },
-      Scene.with(pointerInitialModel),
+      Scene.given(pointerInitialModel),
       Scene.pointerDown(Scene.text('type=')),
       Scene.expect(
         Scene.within(Scene.label('nested target'), Scene.selector('span')),
@@ -2691,7 +3986,7 @@ describe('scene with pointer events', () => {
   test('pointerUp dispatches the handler', () => {
     Scene.scene(
       { update: pointerUpdate, view: pointerView },
-      Scene.with(pointerInitialModel),
+      Scene.given(pointerInitialModel),
       Scene.pointerUp(Scene.label('pointer target')),
       Scene.expect(Scene.label('pointer target')).toContainText('up=1'),
     )
@@ -2700,7 +3995,7 @@ describe('scene with pointer events', () => {
   test('pointerUp passes pointerType option', () => {
     Scene.scene(
       { update: pointerUpdate, view: pointerView },
-      Scene.with(pointerInitialModel),
+      Scene.given(pointerInitialModel),
       Scene.pointerUp(Scene.label('pointer target'), {
         pointerType: 'touch',
       }),
@@ -2716,7 +4011,7 @@ describe('scene with pointer events', () => {
     expect(() =>
       Scene.scene(
         { update: pointerUpdate, view: pointerView },
-        Scene.with(pointerInitialModel),
+        Scene.given(pointerInitialModel),
         Scene.pointerDown(Scene.label('no handler')),
       ),
     ).toThrow(/neither it nor any ancestor has a pointerdown handler/)
@@ -2726,7 +4021,7 @@ describe('scene with pointer events', () => {
     expect(() =>
       Scene.scene(
         { update: pointerUpdate, view: pointerView },
-        Scene.with(pointerInitialModel),
+        Scene.given(pointerInitialModel),
         Scene.pointerUp(Scene.label('no handler')),
       ),
     ).toThrow(/neither it nor any ancestor has a pointerup handler/)
@@ -2736,13 +4031,13 @@ describe('scene with pointer events', () => {
 describe('scene mounts', () => {
   const acknowledgeFocusButton = Scene.Mount.resolve(
     FocusButton,
-    CompletedFocusButton(),
+    MountPanelMessage.CompletedFocusButton(),
   )
 
   test('expectHasMounts succeeds when the named mount is rendered', () => {
     Scene.scene(
       { update: mountUpdate, view: mountView },
-      Scene.with(mountInitialModel),
+      Scene.given(mountInitialModel),
       Scene.Mount.expectHas(FocusButton),
       acknowledgeFocusButton,
     )
@@ -2752,7 +4047,7 @@ describe('scene mounts', () => {
     expect(() =>
       Scene.scene(
         { update: mountUpdate, view: mountView },
-        Scene.with(mountInitialModel),
+        Scene.given(mountInitialModel),
         Scene.Mount.expectHas(MeasurePanel),
         acknowledgeFocusButton,
       ),
@@ -2762,18 +4057,18 @@ describe('scene mounts', () => {
   test('expectExactMounts succeeds when the rendered mounts match', () => {
     Scene.scene(
       { update: mountUpdate, view: mountView },
-      Scene.with(mountInitialModel),
+      Scene.given(mountInitialModel),
       Scene.Mount.expectExact(FocusButton),
       acknowledgeFocusButton,
     )
   })
 
   test('expectExactMounts fails when an unexpected mount is rendered', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = evo(mountInitialModel, { isOpen: () => true })
     expect(() =>
       Scene.scene(
         { update: mountUpdate, view: mountView },
-        Scene.with(openModel),
+        Scene.given(openModel),
         Scene.Mount.expectExact(FocusButton),
       ),
     ).toThrow(/Expected exactly these Mounts/)
@@ -2782,13 +4077,13 @@ describe('scene mounts', () => {
   test('expectNoMounts succeeds when no OnMount nodes are rendered', () => {
     Scene.scene(
       {
-        update: (): readonly [
+        update: (): Update.Return<
           typeof mountInitialModel,
-          ReadonlyArray<never>,
-        ] => [mountInitialModel, []],
+          MountPanelMessage
+        > => ({ model: mountInitialModel }),
         view: () => h('div', {}, []),
       },
-      Scene.with(mountInitialModel),
+      Scene.given(mountInitialModel),
       Scene.Mount.expectNone(),
     )
   })
@@ -2797,19 +4092,22 @@ describe('scene mounts', () => {
     expect(() =>
       Scene.scene(
         { update: mountUpdate, view: mountView },
-        Scene.with(mountInitialModel),
+        Scene.given(mountInitialModel),
         Scene.Mount.expectNone(),
       ),
     ).toThrow(/Expected no Mounts/)
   })
 
   test('resolveMount feeds the result Message through update', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = evo(mountInitialModel, { isOpen: () => true })
     Scene.scene(
       { update: mountUpdate, view: mountView },
-      Scene.with(openModel),
+      Scene.given(openModel),
       Scene.Mount.expectHas(MeasurePanel, FocusButton),
-      Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 200 })),
+      Scene.Mount.resolve(
+        MeasurePanel,
+        MountPanelMessage.MeasuredPanel({ width: 200 }),
+      ),
       Scene.tap(({ html }) => {
         expect(textContent(html)).toContain('width: 200')
       }),
@@ -2821,20 +4119,23 @@ describe('scene mounts', () => {
     expect(() =>
       Scene.scene(
         { update: mountUpdate, view: mountView },
-        Scene.with(mountInitialModel),
-        Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 0 })),
+        Scene.given(mountInitialModel),
+        Scene.Mount.resolve(
+          MeasurePanel,
+          MountPanelMessage.MeasuredPanel({ width: 0 }),
+        ),
       ),
     ).toThrow(/I tried to resolve Mount MeasurePanel/)
   })
 
   test('resolveAllMounts resolves a batch in order', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = evo(mountInitialModel, { isOpen: () => true })
     Scene.scene(
       { update: mountUpdate, view: mountView },
-      Scene.with(openModel),
+      Scene.given(openModel),
       Scene.Mount.resolveAll(
-        [FocusButton, CompletedFocusButton()],
-        [MeasurePanel, MeasuredPanel({ width: 100 })],
+        [FocusButton, MountPanelMessage.CompletedFocusButton()],
+        [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 100 })],
       ),
       Scene.tap(({ html }) => {
         expect(textContent(html)).toContain('width: 100')
@@ -2843,12 +4144,15 @@ describe('scene mounts', () => {
   })
 
   test('resolved mounts that disappear between renders must be acknowledged with expectEnded', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = evo(mountInitialModel, { isOpen: () => true })
     Scene.scene(
       { update: mountUpdate, view: mountView },
-      Scene.with(openModel),
+      Scene.given(openModel),
       Scene.Mount.expectHas(MeasurePanel, FocusButton),
-      Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 400 })),
+      Scene.Mount.resolve(
+        MeasurePanel,
+        MountPanelMessage.MeasuredPanel({ width: 400 }),
+      ),
       acknowledgeFocusButton,
       Scene.click(Scene.role('button')),
       Scene.Mount.expectEnded(MeasurePanel),
@@ -2857,11 +4161,11 @@ describe('scene mounts', () => {
   })
 
   test('an interaction with an unresolved mount throws a clear error', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = evo(mountInitialModel, { isOpen: () => true })
     expect(() =>
       Scene.scene(
         { update: mountUpdate, view: mountView },
-        Scene.with(openModel),
+        Scene.given(openModel),
         Scene.click(Scene.role('button')),
       ),
     ).toThrow(/I found unresolved Mounts/)
@@ -2871,18 +4175,21 @@ describe('scene mounts', () => {
     expect(() =>
       Scene.scene(
         { update: mountUpdate, view: mountView },
-        Scene.with(mountInitialModel),
+        Scene.given(mountInitialModel),
       ),
     ).toThrow(/I found Mounts without resolvers/)
   })
 
   test('a resolved mount stays resolved across re-renders', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = evo(mountInitialModel, { isOpen: () => true })
     Scene.scene(
       { update: mountUpdate, view: mountView },
-      Scene.with(openModel),
+      Scene.given(openModel),
       acknowledgeFocusButton,
-      Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 50 })),
+      Scene.Mount.resolve(
+        MeasurePanel,
+        MountPanelMessage.MeasuredPanel({ width: 50 }),
+      ),
       Scene.Mount.expectNone(),
     )
   })
@@ -2890,102 +4197,117 @@ describe('scene mounts', () => {
   test('two same-named mounts get distinct occurrence indices', () => {
     Scene.scene(
       { update: mountUpdate, view: mountTwoPanelView },
-      Scene.with(mountInitialModel),
+      Scene.given(mountInitialModel),
       Scene.tap(({ mounts }) => {
         expect(mounts).toHaveLength(2)
         expect(mounts[0]).toEqual({ name: 'MeasurePanel', occurrence: 0 })
         expect(mounts[1]).toEqual({ name: 'MeasurePanel', occurrence: 1 })
       }),
-      Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 1 })),
-      Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 2 })),
+      Scene.Mount.resolve(
+        MeasurePanel,
+        MountPanelMessage.MeasuredPanel({ width: 1 }),
+      ),
+      Scene.Mount.resolve(
+        MeasurePanel,
+        MountPanelMessage.MeasuredPanel({ width: 2 }),
+      ),
     )
   })
 
-  test('resolveMount accepts a toParentMessage lifter', () => {
+  test('resolveMount replays a Submodel-embedded mount boundary lift', () => {
+    // A mount that lives inside an h.submodel boundary has its result lifted
+    // into the parent's Message space by the boundary at dispatch time (via
+    // ctx.dispatch) in production. resolveMount replays that lift from the
+    // chain snapshotted onto the mount marker, so the test resolves the mount
+    // with the child's raw result and never restates the wrapping.
+    type ChildMessage = typeof MountPanelMessage.CompletedFocusButton.Type
+    type ChildModel = { readonly focused: boolean }
     type ParentMessage = Readonly<{
-      _tag: 'GotPanelMessage'
-      message:
-        | typeof MeasuredPanel.Type
-        | typeof FailedMountSidebar.Type
-        | typeof CompletedFocusButton.Type
-        | typeof MountClickedToggle.Type
-        | typeof MountClickedIncrement.Type
+      _tag: 'GotChildMessage'
+      message: ChildMessage
     }>
+    type ParentModel = { readonly child: ChildModel }
+
+    const childView = defineView<ChildModel, ChildMessage>(() => {
+      const h = attributeHtml<ChildMessage>()
+      return h.button([h.OnMount(FocusButton())])
+    })
 
     const seen: Array<ParentMessage> = []
-
     const parentUpdate = (
-      _model: { count: number },
+      model: ParentModel,
       message: ParentMessage,
-    ): readonly [{ count: number }, ReadonlyArray<never>] => {
+    ): Update.Return<ParentModel, ParentMessage> => {
       seen.push(message)
-      return [{ count: 0 }, []]
+      return { model }
     }
 
-    const openModel = { ...mountInitialModel, isOpen: true }
-    const parentView = (_model: { count: number }) => mountView(openModel)
+    const parentView = (model: ParentModel) => {
+      const h = attributeHtml<ParentMessage>()
+      return h.div(
+        [],
+        [
+          h.submodel({
+            slotId: 'child',
+            model: model.child,
+            view: childView,
+            toParentMessage: message => ({
+              _tag: 'GotChildMessage' as const,
+              message,
+            }),
+          }),
+        ],
+      )
+    }
 
     Scene.scene(
       { update: parentUpdate, view: parentView },
-      Scene.with({ count: 0 }),
-      Scene.Mount.resolve(FocusButton, CompletedFocusButton(), message => ({
-        _tag: 'GotPanelMessage' as const,
-        message,
-      })),
+      Scene.given({ child: { focused: false } }),
+      Scene.Mount.expectHas(FocusButton),
       Scene.Mount.resolve(
-        MeasurePanel,
-        MeasuredPanel({ width: 7 }),
-        message => ({
-          _tag: 'GotPanelMessage' as const,
-          message,
-        }),
+        FocusButton,
+        MountPanelMessage.CompletedFocusButton(),
       ),
     )
 
-    expect(seen).toContainEqual({
-      _tag: 'GotPanelMessage',
-      message: { _tag: 'CompletedFocusButton' },
-    })
-    expect(seen).toContainEqual({
-      _tag: 'GotPanelMessage',
-      message: { _tag: 'MeasuredPanel', width: 7 },
-    })
+    // The child's raw CompletedFocusButton arrived at parent update wrapped as
+    // GotChildMessage by the recovered Submodel-boundary lift.
+    expect(seen).toEqual([
+      { _tag: 'GotChildMessage', message: { _tag: 'CompletedFocusButton' } },
+    ])
   })
 
   test('mounts on view returning Document are tracked', () => {
-    const documentView = (model: typeof mountInitialModel) => ({
-      head: [],
-      body: mountView(model),
+    const documentView = (
+      model: typeof mountInitialModel,
+      h: HtmlBuilder<MountPanelMessage>,
+    ) => ({
+      title: 'Mount panel',
+      body: mountView(model, h),
     })
 
     Scene.scene(
       { update: mountUpdate, view: documentView },
-      Scene.with(mountInitialModel),
+      Scene.given(mountInitialModel),
       Scene.Mount.expectHas(FocusButton),
       acknowledgeFocusButton,
     )
   })
 
   test('a pending mount whose element disappears must be acknowledged with expectEnded', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
-    type Message =
-      | typeof MountClickedToggle.Type
-      | typeof CompletedFocusButton.Type
-      | typeof MeasuredPanel.Type
-      | typeof FailedMountSidebar.Type
-      | typeof MountClickedIncrement.Type
+    const openModel = evo(mountInitialModel, { isOpen: () => true })
 
     const closingUpdate = (
       model: typeof mountInitialModel,
-      message: Message,
-    ): readonly [typeof mountInitialModel, ReadonlyArray<never>] =>
+      message: MountPanelMessage,
+    ): Update.Return<typeof mountInitialModel, MountPanelMessage> =>
       message._tag === 'CompletedFocusButton'
-        ? [{ ...model, isOpen: false }, []]
+        ? { model: evo(model, { isOpen: () => false }) }
         : mountUpdate(model, message)
 
     Scene.scene(
       { update: closingUpdate, view: mountView },
-      Scene.with(openModel),
+      Scene.given(openModel),
       Scene.Mount.expectHas(MeasurePanel, FocusButton),
       acknowledgeFocusButton,
       Scene.Mount.expectEnded(MeasurePanel),
@@ -2996,12 +4318,15 @@ describe('scene mounts', () => {
   test('a mount that appears mid-scene becomes pending', () => {
     Scene.scene(
       { update: mountUpdate, view: mountView },
-      Scene.with(mountInitialModel),
+      Scene.given(mountInitialModel),
       Scene.Mount.expectExact(FocusButton),
       acknowledgeFocusButton,
       Scene.click(Scene.role('button')),
       Scene.Mount.expectExact(MeasurePanel),
-      Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 256 })),
+      Scene.Mount.resolve(
+        MeasurePanel,
+        MountPanelMessage.MeasuredPanel({ width: 256 }),
+      ),
       Scene.tap(({ html }) => {
         expect(textContent(html)).toContain('width: 256')
       }),
@@ -3009,38 +4334,35 @@ describe('scene mounts', () => {
   })
 
   test('an unacknowledged unmount throws at end of scene', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
-    type Message =
-      | typeof MountClickedToggle.Type
-      | typeof CompletedFocusButton.Type
-      | typeof MeasuredPanel.Type
-      | typeof FailedMountSidebar.Type
-      | typeof MountClickedIncrement.Type
+    const openModel = evo(mountInitialModel, { isOpen: () => true })
 
     const closingUpdate = (
       model: typeof mountInitialModel,
-      message: Message,
-    ): readonly [typeof mountInitialModel, ReadonlyArray<never>] =>
+      message: MountPanelMessage,
+    ): Update.Return<typeof mountInitialModel, MountPanelMessage> =>
       message._tag === 'CompletedFocusButton'
-        ? [{ ...model, isOpen: false }, []]
+        ? { model: evo(model, { isOpen: () => false }) }
         : mountUpdate(model, message)
 
     expect(() => {
       Scene.scene(
         { update: closingUpdate, view: mountView },
-        Scene.with(openModel),
+        Scene.given(openModel),
         acknowledgeFocusButton,
       )
     }).toThrow(/MeasurePanel/)
   })
 
   test('a previously resolved mount whose element disappears must still be acknowledged', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = evo(mountInitialModel, { isOpen: () => true })
     expect(() => {
       Scene.scene(
         { update: mountUpdate, view: mountView },
-        Scene.with(openModel),
-        Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 200 })),
+        Scene.given(openModel),
+        Scene.Mount.resolve(
+          MeasurePanel,
+          MountPanelMessage.MeasuredPanel({ width: 200 }),
+        ),
         acknowledgeFocusButton,
         Scene.click(Scene.role('button')),
       )
@@ -3051,19 +4373,22 @@ describe('scene mounts', () => {
     expect(() => {
       Scene.scene(
         { update: mountUpdate, view: mountView },
-        Scene.with(mountInitialModel),
+        Scene.given(mountInitialModel),
         Scene.Mount.expectEnded(MeasurePanel),
       )
     }).toThrow(/MeasurePanel/)
   })
 
   test('an interaction throws when a previous unmount was not acknowledged', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = evo(mountInitialModel, { isOpen: () => true })
     expect(() => {
       Scene.scene(
         { update: mountUpdate, view: mountView },
-        Scene.with(openModel),
-        Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 200 })),
+        Scene.given(openModel),
+        Scene.Mount.resolve(
+          MeasurePanel,
+          MountPanelMessage.MeasuredPanel({ width: 200 }),
+        ),
         acknowledgeFocusButton,
         Scene.click(Scene.role('button')),
         Scene.click(Scene.role('button')),
@@ -3072,17 +4397,23 @@ describe('scene mounts', () => {
   })
 
   test('a same-key mount that disappears and reappears starts fresh as pending', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = evo(mountInitialModel, { isOpen: () => true })
     Scene.scene(
       { update: mountUpdate, view: mountView },
-      Scene.with(openModel),
-      Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 200 })),
+      Scene.given(openModel),
+      Scene.Mount.resolve(
+        MeasurePanel,
+        MountPanelMessage.MeasuredPanel({ width: 200 }),
+      ),
       acknowledgeFocusButton,
       Scene.click(Scene.role('button')),
       Scene.Mount.expectEnded(MeasurePanel),
       Scene.click(Scene.role('button')),
       Scene.Mount.expectExact(MeasurePanel),
-      Scene.Mount.resolve(MeasurePanel, MeasuredPanel({ width: 320 })),
+      Scene.Mount.resolve(
+        MeasurePanel,
+        MountPanelMessage.MeasuredPanel({ width: 320 }),
+      ),
     )
   })
 
@@ -3091,11 +4422,14 @@ describe('scene mounts', () => {
     Scene.scene(
       {
         update: mountUpdate,
-        view: () => mountScrollListView(offset),
+        view: (_model, h) => mountScrollListView(offset, h),
       },
-      Scene.with(mountInitialModel),
+      Scene.given(mountInitialModel),
       Scene.Mount.expectHas(ScrollList({ offset })),
-      Scene.Mount.resolve(ScrollList({ offset }), ScrolledTo({ offset })),
+      Scene.Mount.resolve(
+        ScrollList({ offset }),
+        MountPanelMessage.ScrolledTo({ offset }),
+      ),
     )
   })
 
@@ -3105,9 +4439,9 @@ describe('scene mounts', () => {
       Scene.scene(
         {
           update: mountUpdate,
-          view: () => mountScrollListView(offset),
+          view: (_model, h) => mountScrollListView(offset, h),
         },
-        Scene.with(mountInitialModel),
+        Scene.given(mountInitialModel),
         Scene.Mount.expectHas(ScrollList({ offset: 999 })),
       ),
     ).toThrow(/Expected to find Mounts/)
@@ -3118,11 +4452,11 @@ describe('scene mounts', () => {
     Scene.scene(
       {
         update: mountUpdate,
-        view: () => mountScrollListView(offset),
+        view: (_model, h) => mountScrollListView(offset, h),
       },
-      Scene.with(mountInitialModel),
+      Scene.given(mountInitialModel),
       Scene.Mount.expectHas(ScrollList),
-      Scene.Mount.resolve(ScrollList, ScrolledTo({ offset })),
+      Scene.Mount.resolve(ScrollList, MountPanelMessage.ScrolledTo({ offset })),
     )
   })
 
@@ -3131,57 +4465,1531 @@ describe('scene mounts', () => {
       Scene.scene(
         {
           update: mountUpdate,
-          view: () => mountScrollListView(240),
+          view: (_model, h) => mountScrollListView(240, h),
         },
-        Scene.with(mountInitialModel),
+        Scene.given(mountInitialModel),
         Scene.Mount.resolve(
           ScrollList({ offset: 999 }),
-          ScrolledTo({ offset: 999 }),
+          MountPanelMessage.ScrolledTo({ offset: 999 }),
         ),
       ),
     ).toThrow(/ScrollList \{"offset":240\}/)
   })
 })
 
-describe('OnInput on a contenteditable host', () => {
-  test('reads the rendered text and updates the Model through the view', () => {
-    Scene.scene(
-      { update: contentEditableUpdate, view: contentEditableView },
-      Scene.with(contentEditableInitialModel),
-      Scene.typeContentEditable(Scene.testId('editor'), 'Hello, world'),
-      Scene.expect(Scene.testId('editor')).toHaveText('Hello, world'),
-    )
-  })
+describe('attribute builders map to DOM names', () => {
+  const h = attributeHtml<AttributeMessage>()
 
-  test('replaces the rendered text on the next input', () => {
-    Scene.scene(
-      { update: contentEditableUpdate, view: contentEditableView },
-      Scene.with(contentEditableInitialModel),
-      Scene.typeContentEditable(Scene.testId('editor'), 'first'),
-      Scene.typeContentEditable(Scene.testId('editor'), 'second'),
-      Scene.expect(Scene.testId('editor')).toHaveText('second'),
-    )
-  })
+  type AttributeCase = Readonly<{
+    label: string
+    attribute: AttributeModel['attribute']
+    domName: string
+    value: string
+  }>
+
+  const ELEMENT_BY_ATTRIBUTE_LABEL: Readonly<Record<string, string>> = {
+    Placeholder: 'input',
+    Name: 'input',
+    Disabled: 'button',
+    Readonly: 'input',
+    Required: 'input',
+    Multiple: 'input',
+    Type: 'input',
+    Accept: 'input',
+    Autocomplete: 'input',
+    Pattern: 'input',
+    Maxlength: 'input',
+    Minlength: 'input',
+    Size: 'input',
+    Cols: 'textarea',
+    Rows: 'textarea',
+    Max: 'input',
+    Min: 'input',
+    Step: 'input',
+    For: 'label',
+    Action: 'form',
+    Method: 'form',
+    Enctype: 'form',
+    Novalidate: 'form',
+    Formaction: 'button',
+    Formmethod: 'button',
+    Formnovalidate: 'button',
+    Formtarget: 'button',
+    Formenctype: 'button',
+    Wrap: 'textarea',
+    LabelAttr: 'option',
+    High: 'meter',
+    Low: 'meter',
+    Optimum: 'meter',
+    Href: 'a',
+    Target: 'a',
+    Rel: 'a',
+    Download: 'a',
+    Src: 'img',
+    Alt: 'img',
+    Autoplay: 'audio',
+    Controls: 'audio',
+    Loop: 'audio',
+    Muted: 'audio',
+    Poster: 'video',
+    Preload: 'audio',
+    Playsinline: 'video',
+    Ismap: 'img',
+    Colspan: 'td',
+    Rowspan: 'td',
+    Span: 'col',
+    Start: 'ol',
+    Reversed: 'ol',
+    CiteAttr: 'blockquote',
+    Datetime: 'time',
+  }
+
+  const ATTRIBUTE_CASES: ReadonlyArray<AttributeCase> = [
+    // GLOBAL
+    { label: 'Id', attribute: h.Id('main'), domName: 'id', value: 'main' },
+    {
+      label: 'Title',
+      attribute: h.Title('Close'),
+      domName: 'title',
+      value: 'Close',
+    },
+    { label: 'Lang', attribute: h.Lang('en'), domName: 'lang', value: 'en' },
+    { label: 'Dir', attribute: h.Dir('rtl'), domName: 'dir', value: 'rtl' },
+    {
+      label: 'Tabindex',
+      attribute: h.Tabindex(0),
+      domName: 'tabIndex',
+      value: '0',
+    },
+    {
+      label: 'Hidden',
+      attribute: h.Hidden(true),
+      domName: 'hidden',
+      value: 'true',
+    },
+    {
+      label: 'Contenteditable',
+      attribute: h.Contenteditable('true'),
+      domName: 'contenteditable',
+      value: 'true',
+    },
+    {
+      label: 'Draggable',
+      attribute: h.Draggable(true),
+      domName: 'draggable',
+      value: 'true',
+    },
+    {
+      label: 'Accesskey',
+      attribute: h.Accesskey('s'),
+      domName: 'accesskey',
+      value: 's',
+    },
+    {
+      label: 'Translate',
+      attribute: h.Translate('no'),
+      domName: 'translate',
+      value: 'no',
+    },
+    {
+      label: 'Inert',
+      attribute: h.Inert(true),
+      domName: 'inert',
+      value: 'true',
+    },
+    {
+      label: 'Popover',
+      attribute: h.Popover('auto'),
+      domName: 'popover',
+      value: 'auto',
+    },
+    {
+      label: 'Popovertarget',
+      attribute: h.Popovertarget('menu'),
+      domName: 'popovertarget',
+      value: 'menu',
+    },
+    {
+      label: 'Popovertargetaction',
+      attribute: h.Popovertargetaction('show'),
+      domName: 'popovertargetaction',
+      value: 'show',
+    },
+    { label: 'Role', attribute: h.Role('tab'), domName: 'role', value: 'tab' },
+
+    // FORM
+    {
+      label: 'Placeholder',
+      attribute: h.Placeholder('Email'),
+      domName: 'placeholder',
+      value: 'Email',
+    },
+    {
+      label: 'Name',
+      attribute: h.Name('email'),
+      domName: 'name',
+      value: 'email',
+    },
+    {
+      label: 'Disabled',
+      attribute: h.Disabled(true),
+      domName: 'disabled',
+      value: 'true',
+    },
+    {
+      label: 'Readonly',
+      attribute: h.Readonly(true),
+      domName: 'readOnly',
+      value: 'true',
+    },
+    {
+      label: 'Required',
+      attribute: h.Required(true),
+      domName: 'required',
+      value: 'true',
+    },
+    {
+      label: 'Autofocus',
+      attribute: h.Autofocus(true),
+      domName: 'autofocus',
+      value: 'true',
+    },
+    {
+      label: 'Spellcheck',
+      attribute: h.Spellcheck(true),
+      domName: 'spellcheck',
+      value: 'true',
+    },
+    {
+      label: 'Autocorrect',
+      attribute: h.Autocorrect('on'),
+      domName: 'autocorrect',
+      value: 'on',
+    },
+    {
+      label: 'Autocapitalize',
+      attribute: h.Autocapitalize('words'),
+      domName: 'autocapitalize',
+      value: 'words',
+    },
+    {
+      label: 'InputMode',
+      attribute: h.InputMode('numeric'),
+      domName: 'inputmode',
+      value: 'numeric',
+    },
+    {
+      label: 'EnterKeyHint',
+      attribute: h.EnterKeyHint('go'),
+      domName: 'enterkeyhint',
+      value: 'go',
+    },
+    {
+      label: 'Multiple',
+      attribute: h.Multiple(true),
+      domName: 'multiple',
+      value: 'true',
+    },
+    {
+      label: 'Type',
+      attribute: h.Type('password'),
+      domName: 'type',
+      value: 'password',
+    },
+    {
+      label: 'Accept',
+      attribute: h.Accept('image/png'),
+      domName: 'accept',
+      value: 'image/png',
+    },
+    {
+      label: 'Autocomplete',
+      attribute: h.Autocomplete('email'),
+      domName: 'autocomplete',
+      value: 'email',
+    },
+    {
+      label: 'Pattern',
+      attribute: h.Pattern('[0-9]+'),
+      domName: 'pattern',
+      value: '[0-9]+',
+    },
+    {
+      label: 'Maxlength',
+      attribute: h.Maxlength(40),
+      domName: 'maxLength',
+      value: '40',
+    },
+    {
+      label: 'Minlength',
+      attribute: h.Minlength(4),
+      domName: 'minLength',
+      value: '4',
+    },
+    { label: 'Size', attribute: h.Size(20), domName: 'size', value: '20' },
+    { label: 'Cols', attribute: h.Cols(80), domName: 'cols', value: '80' },
+    { label: 'Rows', attribute: h.Rows(10), domName: 'rows', value: '10' },
+    { label: 'Max', attribute: h.Max('100'), domName: 'max', value: '100' },
+    { label: 'Min', attribute: h.Min('0'), domName: 'min', value: '0' },
+    { label: 'Step', attribute: h.Step('0.5'), domName: 'step', value: '0.5' },
+    {
+      label: 'For',
+      attribute: h.For('email'),
+      domName: 'htmlFor',
+      value: 'email',
+    },
+    {
+      label: 'Action',
+      attribute: h.Action('/submit'),
+      domName: 'action',
+      value: '/submit',
+    },
+    {
+      label: 'Method',
+      attribute: h.Method('post'),
+      domName: 'method',
+      value: 'post',
+    },
+    {
+      label: 'Enctype',
+      attribute: h.Enctype('multipart/form-data'),
+      domName: 'enctype',
+      value: 'multipart/form-data',
+    },
+    {
+      label: 'Novalidate',
+      attribute: h.Novalidate(true),
+      domName: 'noValidate',
+      value: 'true',
+    },
+    {
+      label: 'Formaction',
+      attribute: h.Formaction('/save'),
+      domName: 'formAction',
+      value: '/save',
+    },
+    {
+      label: 'Formmethod',
+      attribute: h.Formmethod('post'),
+      domName: 'formMethod',
+      value: 'post',
+    },
+    {
+      label: 'Formnovalidate',
+      attribute: h.Formnovalidate(true),
+      domName: 'formNoValidate',
+      value: 'true',
+    },
+    {
+      label: 'Formtarget',
+      attribute: h.Formtarget('_blank'),
+      domName: 'formTarget',
+      value: '_blank',
+    },
+    {
+      label: 'Formenctype',
+      attribute: h.Formenctype('text/plain'),
+      domName: 'formEnctype',
+      value: 'text/plain',
+    },
+    {
+      label: 'Wrap',
+      attribute: h.Wrap('soft'),
+      domName: 'wrap',
+      value: 'soft',
+    },
+    {
+      label: 'List',
+      attribute: h.List('options'),
+      domName: 'list',
+      value: 'options',
+    },
+    {
+      label: 'FormAttr',
+      attribute: h.FormAttr('login'),
+      domName: 'form',
+      value: 'login',
+    },
+    {
+      label: 'LabelAttr',
+      attribute: h.LabelAttr('Group'),
+      domName: 'label',
+      value: 'Group',
+    },
+    {
+      label: 'ContentAttr',
+      attribute: h.ContentAttr('width=device-width'),
+      domName: 'content',
+      value: 'width=device-width',
+    },
+    {
+      label: 'Charset',
+      attribute: h.Charset('utf-8'),
+      domName: 'charset',
+      value: 'utf-8',
+    },
+    {
+      label: 'HttpEquiv',
+      attribute: h.HttpEquiv('refresh'),
+      domName: 'http-equiv',
+      value: 'refresh',
+    },
+    { label: 'High', attribute: h.High(80), domName: 'high', value: '80' },
+    { label: 'Low', attribute: h.Low(20), domName: 'low', value: '20' },
+    {
+      label: 'Optimum',
+      attribute: h.Optimum(50),
+      domName: 'optimum',
+      value: '50',
+    },
+
+    // ANCHOR
+    {
+      label: 'Href',
+      attribute: h.Href('/docs'),
+      domName: 'href',
+      value: '/docs',
+    },
+    {
+      label: 'Target',
+      attribute: h.Target('_blank'),
+      domName: 'target',
+      value: '_blank',
+    },
+    {
+      label: 'Rel',
+      attribute: h.Rel('noopener'),
+      domName: 'rel',
+      value: 'noopener',
+    },
+    {
+      label: 'Download',
+      attribute: h.Download('report.pdf'),
+      domName: 'download',
+      value: 'report.pdf',
+    },
+    {
+      label: 'Hreflang',
+      attribute: h.Hreflang('en'),
+      domName: 'hreflang',
+      value: 'en',
+    },
+    {
+      label: 'Ping',
+      attribute: h.Ping('/track'),
+      domName: 'ping',
+      value: '/track',
+    },
+    {
+      label: 'Referrerpolicy',
+      attribute: h.Referrerpolicy('no-referrer'),
+      domName: 'referrerpolicy',
+      value: 'no-referrer',
+    },
+
+    // MEDIA
+    {
+      label: 'Src',
+      attribute: h.Src('/logo.png'),
+      domName: 'src',
+      value: '/logo.png',
+    },
+    {
+      label: 'Alt',
+      attribute: h.Alt('Logo'),
+      domName: 'alt',
+      value: 'Logo',
+    },
+    {
+      label: 'Srcset',
+      attribute: h.Srcset('/logo-2x.png 2x'),
+      domName: 'srcset',
+      value: '/logo-2x.png 2x',
+    },
+    {
+      label: 'Sizes',
+      attribute: h.Sizes('100vw'),
+      domName: 'sizes',
+      value: '100vw',
+    },
+    {
+      label: 'Loading',
+      attribute: h.Loading('lazy'),
+      domName: 'loading',
+      value: 'lazy',
+    },
+    {
+      label: 'Decoding',
+      attribute: h.Decoding('async'),
+      domName: 'decoding',
+      value: 'async',
+    },
+    {
+      label: 'Fetchpriority',
+      attribute: h.Fetchpriority('high'),
+      domName: 'fetchpriority',
+      value: 'high',
+    },
+    {
+      label: 'Crossorigin',
+      attribute: h.Crossorigin('anonymous'),
+      domName: 'crossorigin',
+      value: 'anonymous',
+    },
+    {
+      label: 'Integrity',
+      attribute: h.Integrity('sha256-abc'),
+      domName: 'integrity',
+      value: 'sha256-abc',
+    },
+    {
+      label: 'Sandbox',
+      attribute: h.Sandbox('allow-scripts'),
+      domName: 'sandbox',
+      value: 'allow-scripts',
+    },
+    {
+      label: 'Allow',
+      attribute: h.Allow('fullscreen'),
+      domName: 'allow',
+      value: 'fullscreen',
+    },
+    {
+      label: 'Srcdoc',
+      attribute: h.Srcdoc('<p>Hi</p>'),
+      domName: 'srcdoc',
+      value: '<p>Hi</p>',
+    },
+    {
+      label: 'Autoplay',
+      attribute: h.Autoplay(true),
+      domName: 'autoplay',
+      value: 'true',
+    },
+    {
+      label: 'Controls',
+      attribute: h.Controls(true),
+      domName: 'controls',
+      value: 'true',
+    },
+    {
+      label: 'Loop',
+      attribute: h.Loop(true),
+      domName: 'loop',
+      value: 'true',
+    },
+    {
+      label: 'Muted',
+      attribute: h.Muted(true),
+      domName: 'muted',
+      value: 'true',
+    },
+    {
+      label: 'Poster',
+      attribute: h.Poster('/poster.png'),
+      domName: 'poster',
+      value: '/poster.png',
+    },
+    {
+      label: 'Preload',
+      attribute: h.Preload('auto'),
+      domName: 'preload',
+      value: 'auto',
+    },
+    {
+      label: 'Playsinline',
+      attribute: h.Playsinline(true),
+      domName: 'playsInline',
+      value: 'true',
+    },
+    {
+      label: 'Usemap',
+      attribute: h.Usemap('#map'),
+      domName: 'usemap',
+      value: '#map',
+    },
+    {
+      label: 'Ismap',
+      attribute: h.Ismap(true),
+      domName: 'isMap',
+      value: 'true',
+    },
+
+    // TABLE
+    {
+      label: 'Colspan',
+      attribute: h.Colspan(2),
+      domName: 'colSpan',
+      value: '2',
+    },
+    {
+      label: 'Rowspan',
+      attribute: h.Rowspan(3),
+      domName: 'rowSpan',
+      value: '3',
+    },
+    {
+      label: 'Scope',
+      attribute: h.Scope('col'),
+      domName: 'scope',
+      value: 'col',
+    },
+    {
+      label: 'Headers',
+      attribute: h.Headers('h1 h2'),
+      domName: 'headers',
+      value: 'h1 h2',
+    },
+    { label: 'Span', attribute: h.Span(2), domName: 'span', value: '2' },
+    { label: 'Start', attribute: h.Start(5), domName: 'start', value: '5' },
+    {
+      label: 'Reversed',
+      attribute: h.Reversed(true),
+      domName: 'reversed',
+      value: 'true',
+    },
+    {
+      label: 'CiteAttr',
+      attribute: h.CiteAttr('/source'),
+      domName: 'cite',
+      value: '/source',
+    },
+    {
+      label: 'Datetime',
+      attribute: h.Datetime('2026-06-30'),
+      domName: 'dateTime',
+      value: '2026-06-30',
+    },
+
+    // ARIA
+    {
+      label: 'AriaLabel',
+      attribute: h.AriaLabel('Close'),
+      domName: 'aria-label',
+      value: 'Close',
+    },
+    {
+      label: 'AriaLabelledBy',
+      attribute: h.AriaLabelledBy('title'),
+      domName: 'aria-labelledby',
+      value: 'title',
+    },
+    {
+      label: 'AriaDescribedBy',
+      attribute: h.AriaDescribedBy('hint'),
+      domName: 'aria-describedby',
+      value: 'hint',
+    },
+    {
+      label: 'AriaHidden',
+      attribute: h.AriaHidden(true),
+      domName: 'aria-hidden',
+      value: 'true',
+    },
+    {
+      label: 'AriaExpanded',
+      attribute: h.AriaExpanded(false),
+      domName: 'aria-expanded',
+      value: 'false',
+    },
+    {
+      label: 'AriaSelected',
+      attribute: h.AriaSelected(true),
+      domName: 'aria-selected',
+      value: 'true',
+    },
+    {
+      label: 'AriaChecked',
+      attribute: h.AriaChecked('mixed'),
+      domName: 'aria-checked',
+      value: 'mixed',
+    },
+    {
+      label: 'AriaDisabled',
+      attribute: h.AriaDisabled(true),
+      domName: 'aria-disabled',
+      value: 'true',
+    },
+    {
+      label: 'AriaRequired',
+      attribute: h.AriaRequired(true),
+      domName: 'aria-required',
+      value: 'true',
+    },
+    {
+      label: 'AriaInvalid',
+      attribute: h.AriaInvalid(true),
+      domName: 'aria-invalid',
+      value: 'true',
+    },
+    {
+      label: 'AriaLive',
+      attribute: h.AriaLive('polite'),
+      domName: 'aria-live',
+      value: 'polite',
+    },
+    {
+      label: 'AriaControls',
+      attribute: h.AriaControls('panel'),
+      domName: 'aria-controls',
+      value: 'panel',
+    },
+    {
+      label: 'AriaCurrent',
+      attribute: h.AriaCurrent('page'),
+      domName: 'aria-current',
+      value: 'page',
+    },
+    {
+      label: 'AriaOrientation',
+      attribute: h.AriaOrientation('vertical'),
+      domName: 'aria-orientation',
+      value: 'vertical',
+    },
+    {
+      label: 'AriaPressed',
+      attribute: h.AriaPressed('true'),
+      domName: 'aria-pressed',
+      value: 'true',
+    },
+    {
+      label: 'AriaHasPopup',
+      attribute: h.AriaHasPopup('menu'),
+      domName: 'aria-haspopup',
+      value: 'menu',
+    },
+    {
+      label: 'AriaActiveDescendant',
+      attribute: h.AriaActiveDescendant('option-1'),
+      domName: 'aria-activedescendant',
+      value: 'option-1',
+    },
+    {
+      label: 'AriaSort',
+      attribute: h.AriaSort('ascending'),
+      domName: 'aria-sort',
+      value: 'ascending',
+    },
+    {
+      label: 'AriaMultiSelectable',
+      attribute: h.AriaMultiSelectable(true),
+      domName: 'aria-multiselectable',
+      value: 'true',
+    },
+    {
+      label: 'AriaModal',
+      attribute: h.AriaModal(true),
+      domName: 'aria-modal',
+      value: 'true',
+    },
+    {
+      label: 'AriaBusy',
+      attribute: h.AriaBusy(true),
+      domName: 'aria-busy',
+      value: 'true',
+    },
+    {
+      label: 'AriaErrorMessage',
+      attribute: h.AriaErrorMessage('err'),
+      domName: 'aria-errormessage',
+      value: 'err',
+    },
+    {
+      label: 'AriaRoleDescription',
+      attribute: h.AriaRoleDescription('slide'),
+      domName: 'aria-roledescription',
+      value: 'slide',
+    },
+    {
+      label: 'AriaAtomic',
+      attribute: h.AriaAtomic(true),
+      domName: 'aria-atomic',
+      value: 'true',
+    },
+    {
+      label: 'AriaAutocomplete',
+      attribute: h.AriaAutocomplete('list'),
+      domName: 'aria-autocomplete',
+      value: 'list',
+    },
+    {
+      label: 'AriaColcount',
+      attribute: h.AriaColcount(3),
+      domName: 'aria-colcount',
+      value: '3',
+    },
+    {
+      label: 'AriaColindex',
+      attribute: h.AriaColindex(2),
+      domName: 'aria-colindex',
+      value: '2',
+    },
+    {
+      label: 'AriaColspan',
+      attribute: h.AriaColspan(2),
+      domName: 'aria-colspan',
+      value: '2',
+    },
+    {
+      label: 'AriaDescription',
+      attribute: h.AriaDescription('A field'),
+      domName: 'aria-description',
+      value: 'A field',
+    },
+    {
+      label: 'AriaDetails',
+      attribute: h.AriaDetails('details-1'),
+      domName: 'aria-details',
+      value: 'details-1',
+    },
+    {
+      label: 'AriaFlowto',
+      attribute: h.AriaFlowto('next'),
+      domName: 'aria-flowto',
+      value: 'next',
+    },
+    {
+      label: 'AriaKeyshortcuts',
+      attribute: h.AriaKeyshortcuts('Control+S'),
+      domName: 'aria-keyshortcuts',
+      value: 'Control+S',
+    },
+    {
+      label: 'AriaLevel',
+      attribute: h.AriaLevel(2),
+      domName: 'aria-level',
+      value: '2',
+    },
+    {
+      label: 'AriaOwns',
+      attribute: h.AriaOwns('child'),
+      domName: 'aria-owns',
+      value: 'child',
+    },
+    {
+      label: 'AriaPlaceholder',
+      attribute: h.AriaPlaceholder('Search'),
+      domName: 'aria-placeholder',
+      value: 'Search',
+    },
+    {
+      label: 'AriaPosinset',
+      attribute: h.AriaPosinset(1),
+      domName: 'aria-posinset',
+      value: '1',
+    },
+    {
+      label: 'AriaReadonly',
+      attribute: h.AriaReadonly(true),
+      domName: 'aria-readonly',
+      value: 'true',
+    },
+    {
+      label: 'AriaRelevant',
+      attribute: h.AriaRelevant('additions'),
+      domName: 'aria-relevant',
+      value: 'additions',
+    },
+    {
+      label: 'AriaRowcount',
+      attribute: h.AriaRowcount(5),
+      domName: 'aria-rowcount',
+      value: '5',
+    },
+    {
+      label: 'AriaRowindex',
+      attribute: h.AriaRowindex(3),
+      domName: 'aria-rowindex',
+      value: '3',
+    },
+    {
+      label: 'AriaRowspan',
+      attribute: h.AriaRowspan(2),
+      domName: 'aria-rowspan',
+      value: '2',
+    },
+    {
+      label: 'AriaSetsize',
+      attribute: h.AriaSetsize(10),
+      domName: 'aria-setsize',
+      value: '10',
+    },
+    {
+      label: 'AriaValuemax',
+      attribute: h.AriaValuemax(100),
+      domName: 'aria-valuemax',
+      value: '100',
+    },
+    {
+      label: 'AriaValuemin',
+      attribute: h.AriaValuemin(0),
+      domName: 'aria-valuemin',
+      value: '0',
+    },
+    {
+      label: 'AriaValuenow',
+      attribute: h.AriaValuenow(42),
+      domName: 'aria-valuenow',
+      value: '42',
+    },
+    {
+      label: 'AriaValuetext',
+      attribute: h.AriaValuetext('42 percent'),
+      domName: 'aria-valuetext',
+      value: '42 percent',
+    },
+
+    // SVG
+    {
+      label: 'ViewBox',
+      attribute: h.ViewBox('0 0 100 100'),
+      domName: 'viewBox',
+      value: '0 0 100 100',
+    },
+    {
+      label: 'Xmlns',
+      attribute: h.Xmlns('http://www.w3.org/2000/svg'),
+      domName: 'xmlns',
+      value: 'http://www.w3.org/2000/svg',
+    },
+    {
+      label: 'Fill',
+      attribute: h.Fill('red'),
+      domName: 'fill',
+      value: 'red',
+    },
+    {
+      label: 'FillRule',
+      attribute: h.FillRule('evenodd'),
+      domName: 'fill-rule',
+      value: 'evenodd',
+    },
+    {
+      label: 'ClipRule',
+      attribute: h.ClipRule('nonzero'),
+      domName: 'clip-rule',
+      value: 'nonzero',
+    },
+    {
+      label: 'Stroke',
+      attribute: h.Stroke('blue'),
+      domName: 'stroke',
+      value: 'blue',
+    },
+    {
+      label: 'StrokeWidth',
+      attribute: h.StrokeWidth('2'),
+      domName: 'stroke-width',
+      value: '2',
+    },
+    {
+      label: 'StrokeLinecap',
+      attribute: h.StrokeLinecap('round'),
+      domName: 'stroke-linecap',
+      value: 'round',
+    },
+    {
+      label: 'StrokeLinejoin',
+      attribute: h.StrokeLinejoin('miter'),
+      domName: 'stroke-linejoin',
+      value: 'miter',
+    },
+    {
+      label: 'D',
+      attribute: h.D('M0 0 L1 1'),
+      domName: 'd',
+      value: 'M0 0 L1 1',
+    },
+    { label: 'Cx', attribute: h.Cx('5'), domName: 'cx', value: '5' },
+    { label: 'Cy', attribute: h.Cy('6'), domName: 'cy', value: '6' },
+    { label: 'R', attribute: h.R('4'), domName: 'r', value: '4' },
+    { label: 'X', attribute: h.X('1'), domName: 'x', value: '1' },
+    { label: 'Y', attribute: h.Y('2'), domName: 'y', value: '2' },
+    {
+      label: 'Width',
+      attribute: h.Width('10'),
+      domName: 'width',
+      value: '10',
+    },
+    {
+      label: 'Height',
+      attribute: h.Height('20'),
+      domName: 'height',
+      value: '20',
+    },
+    { label: 'X1', attribute: h.X1('0'), domName: 'x1', value: '0' },
+    { label: 'Y1', attribute: h.Y1('0'), domName: 'y1', value: '0' },
+    { label: 'X2', attribute: h.X2('10'), domName: 'x2', value: '10' },
+    { label: 'Y2', attribute: h.Y2('10'), domName: 'y2', value: '10' },
+    {
+      label: 'Points',
+      attribute: h.Points('0,0 1,1'),
+      domName: 'points',
+      value: '0,0 1,1',
+    },
+    {
+      label: 'Transform',
+      attribute: h.Transform('rotate(45)'),
+      domName: 'transform',
+      value: 'rotate(45)',
+    },
+    {
+      label: 'Opacity',
+      attribute: h.Opacity('0.5'),
+      domName: 'opacity',
+      value: '0.5',
+    },
+    {
+      label: 'StrokeDasharray',
+      attribute: h.StrokeDasharray('4 2'),
+      domName: 'stroke-dasharray',
+      value: '4 2',
+    },
+    {
+      label: 'StrokeDashoffset',
+      attribute: h.StrokeDashoffset('1'),
+      domName: 'stroke-dashoffset',
+      value: '1',
+    },
+    { label: 'Dx', attribute: h.Dx('1'), domName: 'dx', value: '1' },
+    { label: 'Dy', attribute: h.Dy('2'), domName: 'dy', value: '2' },
+    {
+      label: 'Rotate',
+      attribute: h.Rotate('15'),
+      domName: 'rotate',
+      value: '15',
+    },
+    {
+      label: 'TextAnchor',
+      attribute: h.TextAnchor('middle'),
+      domName: 'text-anchor',
+      value: 'middle',
+    },
+    {
+      label: 'DominantBaseline',
+      attribute: h.DominantBaseline('central'),
+      domName: 'dominant-baseline',
+      value: 'central',
+    },
+    {
+      label: 'AlignmentBaseline',
+      attribute: h.AlignmentBaseline('middle'),
+      domName: 'alignment-baseline',
+      value: 'middle',
+    },
+    {
+      label: 'BaselineShift',
+      attribute: h.BaselineShift('super'),
+      domName: 'baseline-shift',
+      value: 'super',
+    },
+    {
+      label: 'TextLength',
+      attribute: h.TextLength('40'),
+      domName: 'textLength',
+      value: '40',
+    },
+    {
+      label: 'LengthAdjust',
+      attribute: h.LengthAdjust('spacing'),
+      domName: 'lengthAdjust',
+      value: 'spacing',
+    },
+    {
+      label: 'FontFamily',
+      attribute: h.FontFamily('serif'),
+      domName: 'font-family',
+      value: 'serif',
+    },
+    {
+      label: 'FontSize',
+      attribute: h.FontSize('12'),
+      domName: 'font-size',
+      value: '12',
+    },
+    {
+      label: 'FontWeight',
+      attribute: h.FontWeight('bold'),
+      domName: 'font-weight',
+      value: 'bold',
+    },
+    {
+      label: 'FontStyle',
+      attribute: h.FontStyle('italic'),
+      domName: 'font-style',
+      value: 'italic',
+    },
+    {
+      label: 'LetterSpacing',
+      attribute: h.LetterSpacing('1'),
+      domName: 'letter-spacing',
+      value: '1',
+    },
+    {
+      label: 'WordSpacing',
+      attribute: h.WordSpacing('2'),
+      domName: 'word-spacing',
+      value: '2',
+    },
+    {
+      label: 'TextDecoration',
+      attribute: h.TextDecoration('underline'),
+      domName: 'text-decoration',
+      value: 'underline',
+    },
+    {
+      label: 'WritingMode',
+      attribute: h.WritingMode('horizontal-tb'),
+      domName: 'writing-mode',
+      value: 'horizontal-tb',
+    },
+    { label: 'Rx', attribute: h.Rx('4'), domName: 'rx', value: '4' },
+    { label: 'Ry', attribute: h.Ry('4'), domName: 'ry', value: '4' },
+    {
+      label: 'PathLength',
+      attribute: h.PathLength('100'),
+      domName: 'pathLength',
+      value: '100',
+    },
+    {
+      label: 'FillOpacity',
+      attribute: h.FillOpacity('0.5'),
+      domName: 'fill-opacity',
+      value: '0.5',
+    },
+    {
+      label: 'StrokeOpacity',
+      attribute: h.StrokeOpacity('0.8'),
+      domName: 'stroke-opacity',
+      value: '0.8',
+    },
+    {
+      label: 'StrokeMiterlimit',
+      attribute: h.StrokeMiterlimit('2'),
+      domName: 'stroke-miterlimit',
+      value: '2',
+    },
+    {
+      label: 'PaintOrder',
+      attribute: h.PaintOrder('stroke'),
+      domName: 'paint-order',
+      value: 'stroke',
+    },
+    {
+      label: 'VectorEffect',
+      attribute: h.VectorEffect('non-scaling-stroke'),
+      domName: 'vector-effect',
+      value: 'non-scaling-stroke',
+    },
+    {
+      label: 'Color',
+      attribute: h.Color('black'),
+      domName: 'color',
+      value: 'black',
+    },
+    {
+      label: 'Visibility',
+      attribute: h.Visibility('visible'),
+      domName: 'visibility',
+      value: 'visible',
+    },
+    {
+      label: 'Display',
+      attribute: h.Display('inline'),
+      domName: 'display',
+      value: 'inline',
+    },
+    {
+      label: 'Overflow',
+      attribute: h.Overflow('visible'),
+      domName: 'overflow',
+      value: 'visible',
+    },
+    {
+      label: 'PointerEvents',
+      attribute: h.PointerEvents('none'),
+      domName: 'pointer-events',
+      value: 'none',
+    },
+    {
+      label: 'Cursor',
+      attribute: h.Cursor('pointer'),
+      domName: 'cursor',
+      value: 'pointer',
+    },
+    {
+      label: 'ShapeRendering',
+      attribute: h.ShapeRendering('crispEdges'),
+      domName: 'shape-rendering',
+      value: 'crispEdges',
+    },
+    {
+      label: 'TextRendering',
+      attribute: h.TextRendering('optimizeLegibility'),
+      domName: 'text-rendering',
+      value: 'optimizeLegibility',
+    },
+    {
+      label: 'ImageRendering',
+      attribute: h.ImageRendering('pixelated'),
+      domName: 'image-rendering',
+      value: 'pixelated',
+    },
+    {
+      label: 'ClipPath',
+      attribute: h.ClipPath('url(#clip)'),
+      domName: 'clip-path',
+      value: 'url(#clip)',
+    },
+    {
+      label: 'Mask',
+      attribute: h.Mask('url(#mask)'),
+      domName: 'mask',
+      value: 'url(#mask)',
+    },
+    {
+      label: 'Filter',
+      attribute: h.Filter('url(#filter)'),
+      domName: 'filter',
+      value: 'url(#filter)',
+    },
+    {
+      label: 'ClipPathUnits',
+      attribute: h.ClipPathUnits('userSpaceOnUse'),
+      domName: 'clipPathUnits',
+      value: 'userSpaceOnUse',
+    },
+    {
+      label: 'MaskUnits',
+      attribute: h.MaskUnits('userSpaceOnUse'),
+      domName: 'maskUnits',
+      value: 'userSpaceOnUse',
+    },
+    {
+      label: 'MaskContentUnits',
+      attribute: h.MaskContentUnits('userSpaceOnUse'),
+      domName: 'maskContentUnits',
+      value: 'userSpaceOnUse',
+    },
+    {
+      label: 'FilterUnits',
+      attribute: h.FilterUnits('userSpaceOnUse'),
+      domName: 'filterUnits',
+      value: 'userSpaceOnUse',
+    },
+    {
+      label: 'PrimitiveUnits',
+      attribute: h.PrimitiveUnits('userSpaceOnUse'),
+      domName: 'primitiveUnits',
+      value: 'userSpaceOnUse',
+    },
+    {
+      label: 'Offset',
+      attribute: h.Offset('0.5'),
+      domName: 'offset',
+      value: '0.5',
+    },
+    {
+      label: 'StopColor',
+      attribute: h.StopColor('red'),
+      domName: 'stop-color',
+      value: 'red',
+    },
+    {
+      label: 'StopOpacity',
+      attribute: h.StopOpacity('0.9'),
+      domName: 'stop-opacity',
+      value: '0.9',
+    },
+    {
+      label: 'GradientUnits',
+      attribute: h.GradientUnits('userSpaceOnUse'),
+      domName: 'gradientUnits',
+      value: 'userSpaceOnUse',
+    },
+    {
+      label: 'GradientTransform',
+      attribute: h.GradientTransform('rotate(45)'),
+      domName: 'gradientTransform',
+      value: 'rotate(45)',
+    },
+    {
+      label: 'SpreadMethod',
+      attribute: h.SpreadMethod('reflect'),
+      domName: 'spreadMethod',
+      value: 'reflect',
+    },
+    { label: 'Fx', attribute: h.Fx('0.1'), domName: 'fx', value: '0.1' },
+    { label: 'Fy', attribute: h.Fy('0.2'), domName: 'fy', value: '0.2' },
+    { label: 'Fr', attribute: h.Fr('0.3'), domName: 'fr', value: '0.3' },
+    {
+      label: 'PatternUnits',
+      attribute: h.PatternUnits('userSpaceOnUse'),
+      domName: 'patternUnits',
+      value: 'userSpaceOnUse',
+    },
+    {
+      label: 'PatternContentUnits',
+      attribute: h.PatternContentUnits('userSpaceOnUse'),
+      domName: 'patternContentUnits',
+      value: 'userSpaceOnUse',
+    },
+    {
+      label: 'PatternTransform',
+      attribute: h.PatternTransform('scale(2)'),
+      domName: 'patternTransform',
+      value: 'scale(2)',
+    },
+    {
+      label: 'MarkerStart',
+      attribute: h.MarkerStart('url(#start)'),
+      domName: 'marker-start',
+      value: 'url(#start)',
+    },
+    {
+      label: 'MarkerMid',
+      attribute: h.MarkerMid('url(#mid)'),
+      domName: 'marker-mid',
+      value: 'url(#mid)',
+    },
+    {
+      label: 'MarkerEnd',
+      attribute: h.MarkerEnd('url(#end)'),
+      domName: 'marker-end',
+      value: 'url(#end)',
+    },
+    {
+      label: 'MarkerWidth',
+      attribute: h.MarkerWidth('6'),
+      domName: 'markerWidth',
+      value: '6',
+    },
+    {
+      label: 'MarkerHeight',
+      attribute: h.MarkerHeight('6'),
+      domName: 'markerHeight',
+      value: '6',
+    },
+    {
+      label: 'MarkerUnits',
+      attribute: h.MarkerUnits('strokeWidth'),
+      domName: 'markerUnits',
+      value: 'strokeWidth',
+    },
+    { label: 'RefX', attribute: h.RefX('3'), domName: 'refX', value: '3' },
+    { label: 'RefY', attribute: h.RefY('3'), domName: 'refY', value: '3' },
+    {
+      label: 'Orient',
+      attribute: h.Orient('auto'),
+      domName: 'orient',
+      value: 'auto',
+    },
+    {
+      label: 'PreserveAspectRatio',
+      attribute: h.PreserveAspectRatio('xMidYMid meet'),
+      domName: 'preserveAspectRatio',
+      value: 'xMidYMid meet',
+    },
+  ]
+
+  test.each(ATTRIBUTE_CASES)(
+    '$label renders as $domName',
+    ({ label, attribute, domName, value }) => {
+      const tagName = ELEMENT_BY_ATTRIBUTE_LABEL[label]
+      const model: AttributeModel =
+        tagName === undefined ? { attribute } : { attribute, tagName }
+
+      Scene.scene(
+        { update: attributeUpdate, view: attributeView },
+        Scene.given(model),
+        Scene.expect(Scene.testId(attributeTestId)).toHaveAttr(domName, value),
+      )
+    },
+  )
 })
 
-describe('OnBeforeInputPreventDefault on a contenteditable host', () => {
-  test('owns insertions through beforeinput', () => {
+describe('expectHandled and expectIgnored', () => {
+  const app = { update: selectiveKeysUpdate, view: selectiveKeysView }
+  const target = Scene.selector(`#${selectiveKeysAppId}`)
+
+  test('expectHandled passes when the handler produced a Message', () => {
     Scene.scene(
-      { update: contentEditableUpdate, view: contentEditableView },
-      Scene.with(contentEditableInitialModel),
-      Scene.beforeInput(Scene.testId('editor'), 'insertText', 'A'),
-      Scene.beforeInput(Scene.testId('editor'), 'insertText', 'B'),
-      Scene.expect(Scene.testId('editor')).toHaveText('AB'),
+      app,
+      Scene.given(selectiveKeysInitialModel),
+      Scene.keydown(target, 'Enter'),
+      Scene.expectHandled(),
+      Scene.expect(Scene.selector('.commits')).toHaveText('1'),
     )
   })
 
-  test('leaves the Model unchanged when the handler returns None', () => {
+  test('expectIgnored passes when the handler let the key fall through', () => {
     Scene.scene(
-      { update: contentEditableUpdate, view: contentEditableView },
-      Scene.with(contentEditableInitialModel),
-      Scene.beforeInput(Scene.testId('editor'), 'insertText', 'A'),
-      Scene.beforeInput(Scene.testId('editor'), 'deleteContentBackward', null),
-      Scene.expect(Scene.testId('editor')).toHaveText('A'),
+      app,
+      Scene.given(selectiveKeysInitialModel),
+      Scene.keydown(target, 'a'),
+      Scene.expectIgnored(),
+      Scene.expect(Scene.selector('.commits')).toHaveText('0'),
+    )
+  })
+
+  test('expectHandled throws when the handler produced nothing', () => {
+    expect(() =>
+      Scene.scene(
+        app,
+        Scene.given(selectiveKeysInitialModel),
+        Scene.keydown(target, 'a'),
+        Scene.expectHandled(),
+      ),
+    ).toThrow('its handler produced no Message')
+  })
+
+  test('expectIgnored throws when the handler produced a Message', () => {
+    expect(() =>
+      Scene.scene(
+        app,
+        Scene.given(selectiveKeysInitialModel),
+        Scene.keydown(target, 'Enter'),
+        Scene.expectIgnored(),
+      ),
+    ).toThrow('but its handler produced a Message')
+  })
+
+  test('expectIgnored throws when no interaction has run', () => {
+    expect(() =>
+      Scene.scene(
+        app,
+        Scene.given(selectiveKeysInitialModel),
+        Scene.expectIgnored(),
+      ),
+    ).toThrow('no interaction has run yet')
+  })
+
+  test('expectHandled throws when no interaction has run', () => {
+    expect(() =>
+      Scene.scene(
+        app,
+        Scene.given(selectiveKeysInitialModel),
+        Scene.expectHandled(),
+      ),
+    ).toThrow('no interaction has run yet')
+  })
+
+  test('an unacknowledged fall-through fails at the end of the scene', () => {
+    expect(() =>
+      Scene.scene(
+        app,
+        Scene.given(selectiveKeysInitialModel),
+        Scene.keydown(target, 'a'),
+        Scene.expect(Scene.selector('.commits')).toHaveText('0'),
+      ),
+    ).toThrow('nothing asserted that')
+  })
+
+  test('an unacknowledged fall-through names the event and the target', () => {
+    expect(() =>
+      Scene.scene(
+        app,
+        Scene.given(selectiveKeysInitialModel),
+        Scene.keydown(target, 'a'),
+      ),
+    ).toThrow(/keydown.*selective-keys/s)
+  })
+
+  test('an unacknowledged fall-through fails at the next interaction', () => {
+    expect(() =>
+      Scene.scene(
+        app,
+        Scene.given(selectiveKeysInitialModel),
+        Scene.keydown(target, 'a'),
+        Scene.keydown(target, 'Enter'),
+        Scene.expectHandled(),
+      ),
+    ).toThrow('nothing asserted that')
+  })
+
+  test('expectIgnored acknowledges the fall-through for later interactions', () => {
+    Scene.scene(
+      app,
+      Scene.given(selectiveKeysInitialModel),
+      Scene.keydown(target, 'a'),
+      Scene.expectIgnored(),
+      Scene.keydown(target, 'Enter'),
+      Scene.expectHandled(),
+      Scene.expect(Scene.selector('.commits')).toHaveText('1'),
+    )
+  })
+
+  test('a handled interaction needs no acknowledgement', () => {
+    Scene.scene(
+      app,
+      Scene.given(selectiveKeysInitialModel),
+      Scene.keydown(target, 'Enter'),
+      Scene.expect(Scene.selector('.commits')).toHaveText('1'),
+    )
+  })
+
+  test('two fall-throughs need one acknowledgement each', () => {
+    expect(() =>
+      Scene.scene(
+        app,
+        Scene.given(selectiveKeysInitialModel),
+        Scene.keydown(target, 'a'),
+        Scene.keydown(target, 'b'),
+        Scene.expectIgnored(),
+      ),
+    ).toThrow('nothing asserted that')
+  })
+
+  test('an acknowledgement does not cover a later fall-through', () => {
+    expect(() =>
+      Scene.scene(
+        app,
+        Scene.given(selectiveKeysInitialModel),
+        Scene.keydown(target, 'a'),
+        Scene.expectIgnored(),
+        Scene.keydown(target, 'b'),
+      ),
+    ).toThrow('nothing asserted that')
+  })
+
+  // NOTE: a second helper, because the check lives in one place and a helper
+  // added later could bypass it. `CustomElement.emit` did exactly that when
+  // the pair was introduced.
+  test('a fall-through fails at a following interaction of any kind', () => {
+    expect(() =>
+      Scene.scene(
+        app,
+        Scene.given(selectiveKeysInitialModel),
+        Scene.keydown(target, 'a'),
+        Scene.click(Scene.selector(`#${selectiveKeysResetId}`)),
+      ),
+    ).toThrow('nothing asserted that')
+  })
+
+  test('bookkeeping failures surface before an unacknowledged fall-through', () => {
+    expect(() =>
+      Scene.scene(
+        app,
+        Scene.given(selectiveKeysInitialModel),
+        Scene.click(Scene.selector(`#${selectiveKeysResetId}`)),
+        Scene.keydown(target, 'a'),
+      ),
+    ).toThrow(/unresolved Commands|Commands without resolvers/)
+  })
+
+  // NOTE: the reason the pair exists. A read-only widget that stops
+  // committing keeps its handler and returns None, which changes no Model,
+  // no OutMessage, and no DOM. Without expectIgnored the only available
+  // assertions hold just as well against a handler that was deleted, so a
+  // regression to a silently falling-through key would pass.
+  test('an ignored key is indistinguishable without the pair', () => {
+    Scene.scene(
+      app,
+      Scene.given(selectiveKeysInitialModel),
+      Scene.keydown(target, 'a'),
+      Scene.Command.expectNone(),
+      Scene.expect(Scene.selector('.commits')).toHaveText('0'),
+      Scene.expectIgnored(),
     )
   })
 })

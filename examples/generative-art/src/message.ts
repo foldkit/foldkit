@@ -1,56 +1,35 @@
-import { Schema as S } from 'effect'
-import { m } from 'foldkit/message'
+import { Schema } from 'effect'
+import { defineMessageUnion } from 'foldkit/message'
 
 import { Slider } from '@foldkit/ui'
 
-const spawnedParticleFields = {
-  x: S.Number,
-  y: S.Number,
-  baseHue: S.Number,
-  hueDriftPerSecond: S.Number,
-  lifespanMs: S.Number,
-  speed: S.Number,
-  initialAngle: S.Option(S.Number),
-  initialSpeedScale: S.Number,
+const generatedParticleFields = {
+  x: Schema.Number,
+  y: Schema.Number,
+  baseHue: Schema.Number,
+  hueDriftPerSecond: Schema.Number,
+  lifespanMs: Schema.Number,
+  speed: Schema.Number,
+  initialAngle: Schema.Option(Schema.Number),
+  initialSpeedScale: Schema.Number,
 }
 
-export const TickedFrame = m('TickedFrame', {
-  deltaTimeMs: S.Number,
-})
-export const SpawnedAmbientParticle = m(
-  'SpawnedAmbientParticle',
-  spawnedParticleFields,
-)
-export const SpawnedBurstParticle = m(
-  'SpawnedBurstParticle',
-  spawnedParticleFields,
-)
-export const PressedCanvas = m('PressedCanvas', {
-  x: S.Number,
-  y: S.Number,
-})
-export const MovedPointer = m('MovedPointer', {
-  x: S.Number,
-  y: S.Number,
-})
-export const ClickedTogglePlay = m('ClickedTogglePlay')
-export const ClickedReset = m('ClickedReset')
-export const GotFlowStrengthSliderMessage = m('GotFlowStrengthSliderMessage', {
-  message: Slider.Message,
-})
-export const GotNoiseScaleSliderMessage = m('GotNoiseScaleSliderMessage', {
-  message: Slider.Message,
+export const Message = defineMessageUnion({
+  TickedFrame: { deltaTimeMs: Schema.Number },
+  CompletedGenerateAmbientParticle: generatedParticleFields,
+  CompletedGenerateBurstParticle: generatedParticleFields,
+  PressedCanvas: {
+    x: Schema.Number,
+    y: Schema.Number,
+  },
+  MovedPointer: {
+    x: Schema.Number,
+    y: Schema.Number,
+  },
+  ClickedTogglePlay: {},
+  ClickedReset: {},
+  GotFlowStrengthSliderMessage: { message: Slider.Message },
+  GotNoiseScaleSliderMessage: { message: Slider.Message },
 })
 
-export const Message = S.Union([
-  TickedFrame,
-  SpawnedAmbientParticle,
-  SpawnedBurstParticle,
-  PressedCanvas,
-  MovedPointer,
-  ClickedTogglePlay,
-  ClickedReset,
-  GotFlowStrengthSliderMessage,
-  GotNoiseScaleSliderMessage,
-])
 export type Message = typeof Message.Type

@@ -1,59 +1,48 @@
-import { Effect, Match as M, Schema as S } from 'effect'
-import {
-  FetchHttpClient,
-  HttpClient,
-  HttpClientRequest,
-} from 'effect/unstable/http'
-import { Command } from 'foldkit'
-import { m } from 'foldkit/message'
+import { Effect, Schema } from 'effect'
+import { HttpClient, HttpClientRequest } from 'effect/unstable/http'
+import { Command, Http, type Update } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+import { evo } from 'foldkit/struct'
 
-const SubmittedWeatherForm = m('SubmittedWeatherForm')
-const SucceededFetchWeather = m('SucceededFetchWeather', {
-  weather: WeatherSchema,
+const Message = defineMessageUnion({
+  SubmittedWeatherForm: {},
+  SucceededFetchWeather: { weather: WeatherSchema },
+  FailedFetchWeather: { error: Schema.String },
 })
-const FailedFetchWeather = m('FailedFetchWeather', { error: S.String })
 
-const FetchWeather = Command.define(
-  'FetchWeather',
-  // Args schema: the per-dispatch inputs the factory needs.
-  { zipCode: S.String },
-  SucceededFetchWeather,
-  FailedFetchWeather,
-)(
-  // The factory receives a typed args record.
-  ({ zipCode }) =>
+const FetchWeather = Command.define('FetchWeather', {
+  // Args schema: the per-dispatch inputs the Command needs.
+  args: { zipCode: Schema.String },
+  // Every Message this Command can produce.
+  messages: [Message.SucceededFetchWeather, Message.FailedFetchWeather],
+  // The Effect receives a typed args record.
+  execute: ({ zipCode }) =>
     Effect.gen(function* () {
       const client = yield* HttpClient.HttpClient
       const response = yield* client.execute(
         HttpClientRequest.get(`/api/weather?zip=${zipCode}`),
       )
-      const weather = yield* S.decodeUnknownEffect(WeatherSchema)(
+      const weather = yield* Schema.decodeUnknownEffect(WeatherSchema)(
         yield* response.json,
       )
-      return SucceededFetchWeather({ weather })
+      return Message.SucceededFetchWeather({ weather })
     }).pipe(
       Effect.catch(error =>
-        Effect.succeed(FailedFetchWeather({ error: String(error) })),
+        Effect.succeed(Message.FailedFetchWeather({ error: String(error) })),
       ),
-      Effect.provide(FetchHttpClient.layer),
+      Effect.provide(Http.layer),
     ),
-)
+})
 
-const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
-    M.tagsExhaustive({
-      // Pass args when dispatching the Command.
-      SubmittedWeatherForm: () => [
-        model,
-        [FetchWeather({ zipCode: model.zipCodeInput })],
-      ],
-      SucceededFetchWeather: ({ weather }) => [{ ...model, weather }, []],
-      FailedFetchWeather: () => [model, []],
+const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    // Pass args when dispatching the Command.
+    SubmittedWeatherForm: () => ({
+      model,
+      commands: [FetchWeather({ zipCode: model.zipCodeInput })],
     }),
-  )
+    SucceededFetchWeather: ({ weather }) => ({
+      model: evo(model, { weather: () => weather }),
+    }),
+    FailedFetchWeather: () => ({ model }),
+  })

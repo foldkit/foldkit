@@ -1,12 +1,12 @@
-import { Array, Option, Schema as S, pipe } from 'effect'
+import { Array, Option, Schema, pipe } from 'effect'
 
 // MODEL
 
-export const ChartMode = S.Literals(['Adoption', 'Velocity', 'Ecosystem'])
+export const ChartMode = Schema.Literals(['Adoption', 'Velocity', 'Ecosystem'])
 export type ChartMode = typeof ChartMode.Type
 export const chartModes: ReadonlyArray<ChartMode> = ChartMode.literals
 
-export const Period = S.Literals([
+export const Period = Schema.Literals([
   'LastEightWeeks',
   'LastSixteenWeeks',
   'LastYear',
@@ -14,15 +14,20 @@ export const Period = S.Literals([
 export type Period = typeof Period.Type
 export const periods: ReadonlyArray<Period> = Period.literals
 
-export const PackageId = S.Literals(['Core', 'Ui', 'Devtools', 'VitePlugin'])
+export const PackageId = Schema.Literals([
+  'Core',
+  'Ui',
+  'Devtools',
+  'VitePlugin',
+])
 export type PackageId = typeof PackageId.Type
 export const packageIds: ReadonlyArray<PackageId> = PackageId.literals
 
-export const PackageSpec = S.Struct({
+export const PackageSpec = Schema.Struct({
   id: PackageId,
-  npmName: S.String,
-  displayName: S.String,
-  role: S.String,
+  npmName: Schema.String,
+  displayName: Schema.String,
+  role: Schema.String,
 })
 export type PackageSpec = typeof PackageSpec.Type
 
@@ -53,68 +58,68 @@ export const packageSpecs: ReadonlyArray<PackageSpec> = [
   },
 ]
 
-export const WeeklyTelemetry = S.Struct({
-  weekStart: S.String,
-  cumulativeStars: S.Number,
-  commits: S.Number,
-  releases: S.Number,
+export const WeeklyTelemetry = Schema.Struct({
+  weekStart: Schema.String,
+  cumulativeStars: Schema.Number,
+  commits: Schema.Number,
+  releases: Schema.Number,
 })
 export type WeeklyTelemetry = typeof WeeklyTelemetry.Type
 
-export const WeeklyDownloads = S.Struct({
-  weekStart: S.String,
-  downloads: S.Number,
+export const WeeklyDownloads = Schema.Struct({
+  weekStart: Schema.String,
+  downloads: Schema.Number,
 })
 export type WeeklyDownloads = typeof WeeklyDownloads.Type
 
-export const PackageSnapshot = S.Struct({
+export const PackageSnapshot = Schema.Struct({
   id: PackageId,
-  npmName: S.String,
-  displayName: S.String,
-  role: S.String,
-  latestVersion: S.String,
-  publishedAt: S.String,
-  totalDownloads: S.Number,
-  lastWeekDownloads: S.Number,
-  dependencyCount: S.Number,
-  downloadsByWeek: S.Array(WeeklyDownloads),
+  npmName: Schema.String,
+  displayName: Schema.String,
+  role: Schema.String,
+  latestVersion: Schema.String,
+  publishedAt: Schema.String,
+  totalDownloads: Schema.Number,
+  lastWeekDownloads: Schema.Number,
+  dependencyCount: Schema.Number,
+  downloadsByWeek: Schema.Array(WeeklyDownloads),
 })
 export type PackageSnapshot = typeof PackageSnapshot.Type
 
-export const DependencyEdge = S.Struct({
+export const DependencyEdge = Schema.Struct({
   source: PackageId,
   target: PackageId,
-  kind: S.Literals(['Dependency', 'PeerDependency']),
+  kind: Schema.Literals(['Dependency', 'PeerDependency']),
 })
 export type DependencyEdge = typeof DependencyEdge.Type
 
-export const ContributorSummary = S.Struct({
-  login: S.String,
-  contributions: S.Number,
-  avatarUrl: S.Option(S.String),
+export const ContributorSummary = Schema.Struct({
+  login: Schema.String,
+  contributions: Schema.Number,
+  avatarUrl: Schema.Option(Schema.String),
 })
 export type ContributorSummary = typeof ContributorSummary.Type
 
-export const RepositorySnapshot = S.Struct({
-  stars: S.Number,
-  forks: S.Number,
-  watchers: S.Number,
-  openIssues: S.Number,
-  openPullRequests: S.Number,
-  visibleContributors: S.Number,
-  pushedAt: S.String,
-  defaultBranch: S.String,
+export const RepositorySnapshot = Schema.Struct({
+  stars: Schema.Number,
+  forks: Schema.Number,
+  watchers: Schema.Number,
+  openIssues: Schema.Number,
+  openPullRequests: Schema.Number,
+  visibleContributors: Schema.Number,
+  pushedAt: Schema.String,
+  defaultBranch: Schema.String,
 })
 export type RepositorySnapshot = typeof RepositorySnapshot.Type
 
-export const Telemetry = S.Struct({
-  fetchedAt: S.Number,
+export const Telemetry = Schema.Struct({
+  fetchedAt: Schema.Number,
   repository: RepositorySnapshot,
-  packages: S.Array(PackageSnapshot),
-  weeks: S.Array(WeeklyTelemetry),
-  dependencyEdges: S.Array(DependencyEdge),
-  topContributors: S.Array(ContributorSummary),
-  warnings: S.Array(S.String),
+  packages: Schema.Array(PackageSnapshot),
+  weeks: Schema.Array(WeeklyTelemetry),
+  dependencyEdges: Schema.Array(DependencyEdge),
+  topContributors: Schema.Array(ContributorSummary),
+  warnings: Schema.Array(Schema.String),
 })
 export type Telemetry = typeof Telemetry.Type
 

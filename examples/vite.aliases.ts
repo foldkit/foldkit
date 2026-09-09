@@ -2,6 +2,10 @@ import path from 'path'
 
 /** Vite resolve aliases that point foldkit subpath imports at the local source. */
 export const foldkitAliases = (dirname: string) => ({
+  'foldkit/asyncData': path.resolve(
+    dirname,
+    '../../packages/foldkit/src/asyncData/public',
+  ),
   'foldkit/calendar': path.resolve(
     dirname,
     '../../packages/foldkit/src/calendar',
@@ -20,12 +24,25 @@ export const foldkitAliases = (dirname: string) => ({
     '../../packages/foldkit/src/devTools/host',
   ),
   'foldkit/dom': path.resolve(dirname, '../../packages/foldkit/src/dom'),
+  'foldkit/experimental/machine': path.resolve(
+    dirname,
+    '../../packages/foldkit/src/experimental/machine',
+  ),
+  'foldkit/experimental/server': path.resolve(
+    dirname,
+    '../../packages/foldkit/src/experimental/server/public',
+  ),
+  'foldkit/experimental': path.resolve(
+    dirname,
+    '../../packages/foldkit/src/experimental',
+  ),
   'foldkit/fieldValidation': path.resolve(
     dirname,
     '../../packages/foldkit/src/fieldValidation',
   ),
   'foldkit/file': path.resolve(dirname, '../../packages/foldkit/src/file'),
   'foldkit/html': path.resolve(dirname, '../../packages/foldkit/src/html'),
+  'foldkit/http': path.resolve(dirname, '../../packages/foldkit/src/http'),
   'foldkit/managedResource': path.resolve(
     dirname,
     '../../packages/foldkit/src/managedResource',
@@ -67,7 +84,15 @@ export const foldkitAliases = (dirname: string) => ({
     dirname,
     '../../packages/foldkit/src/test/vitest',
   ),
+  'foldkit/update': path.resolve(
+    dirname,
+    '../../packages/foldkit/src/update/public',
+  ),
   'foldkit/url': path.resolve(dirname, '../../packages/foldkit/src/url'),
+  '@foldkit/ui/anchor': path.resolve(
+    dirname,
+    '../../packages/ui/src/anchor/public',
+  ),
   '@foldkit/ui/animation': path.resolve(
     dirname,
     '../../packages/ui/src/animation/public',
@@ -165,9 +190,17 @@ export const foldkitAliases = (dirname: string) => ({
     '../../packages/ui/src/virtualList/public',
   ),
   '@foldkit/ui': path.resolve(dirname, '../../packages/ui/src/index'),
-  '@foldkit/devtools': path.resolve(
+  '@foldkit/markdown/vite': path.resolve(
     dirname,
-    '../../packages/devtools/src/index',
+    '../../packages/markdown/src/vite/public',
+  ),
+  '@foldkit/markdown': path.resolve(
+    dirname,
+    '../../packages/markdown/src/index',
+  ),
+  '@foldkit/devtools/vite': path.resolve(
+    dirname,
+    '../../packages/devtools/src/vite',
   ),
   foldkit: path.resolve(dirname, '../../packages/foldkit/src/index'),
 })

@@ -1,4 +1,4 @@
-const h = html<Message>()
+// Inside a view, with its builder `h` in scope.
 
 // OnKeyDownPreventDefault: calls event.preventDefault()
 // inline and dispatches the Message when the function
@@ -7,7 +7,7 @@ h.input([
   h.Value(model.draft),
   h.OnKeyDownPreventDefault(key =>
     key === 'Enter' && model.draft !== ''
-      ? Option.some(SubmittedDraft())
+      ? Option.some(Message.SubmittedDraft())
       : Option.none(),
   ),
 ])
@@ -23,21 +23,40 @@ h.input([
 // update can delete the selection.
 h.div([
   h.Contenteditable('true'),
-  h.OnPastePreventDefault(text => Option.some(PastedText({ text }))),
+  h.OnPastePreventDefault(text => Option.some(Message.PastedText({ text }))),
   h.OnCopyText(serializeSelectionToMarkdown(model)),
-  h.OnCutText(serializeSelectionToMarkdown(model), CutSelection()),
+  h.OnCutText(serializeSelectionToMarkdown(model), Message.CutSelection()),
 ])
 
-// OnClickFocus: synchronously focuses the element matching
-// the selector, then dispatches the Message. The focus runs
-// inside the click event, so iOS Safari opens the on-screen
-// keyboard. The target here is an always-present warmup input;
-// a Dom.focus Command hands focus to the real search input
-// once the dialog mounts.
+// OnClick controls can be combined. This nested expand button prevents
+// its browser default and stops the row's OnClick from also
+// selecting the row.
+h.div(
+  [h.Role('treeitem'), h.OnClick(Message.ClickedSelectRow())],
+  [
+    h.button(
+      [
+        h.OnClick(Message.ClickedExpandRow(), {
+          defaultAction: 'Prevent',
+          propagation: 'Stop',
+        }),
+      ],
+      ['Expand'],
+    ),
+  ],
+)
+
+// focusSelector synchronously focuses the matching element,
+// then dispatches the Message. The focus runs inside the click
+// event, so iOS Safari opens the on-screen keyboard. The target
+// here is an always-present warmup input; a Dom.focus Command
+// hands focus to the real search input once the dialog mounts.
 h.button(
   [
     h.AriaLabel('Search documentation'),
-    h.OnClickFocus('#search-keyboard-warmup', ClickedSearch()),
+    h.OnClick(Message.ClickedSearch(), {
+      focusSelector: '#search-keyboard-warmup',
+    }),
   ],
   [Icon.magnifyingGlass()],
 )

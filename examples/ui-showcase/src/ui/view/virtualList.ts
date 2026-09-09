@@ -1,16 +1,10 @@
-import { Array, Match as M, Option, pipe } from 'effect'
+import { Array, Match, Option, pipe } from 'effect'
 import { Submodel } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { VirtualList } from '@foldkit/ui'
 
-import {
-  ClickedVirtualListScrollToMiddle,
-  ClickedVirtualListVariableScrollToMiddle,
-  GotVirtualListDemoMessage,
-  GotVirtualListVariableDemoMessage,
-  type UiMessage,
-} from '../message'
+import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 
 type Activity = Readonly<{
@@ -94,11 +88,11 @@ const formatTimeAgo = (hours: number): string => {
 
 const targetForVerb = (verb: string, index: number): string => {
   const number = ((index * 13) % 9999) + 1
-  return M.value(verb).pipe(
-    M.withReturnType<string>(),
-    M.when('pushed to', () => cycle(branchNames, index)),
-    M.whenOr('opened', 'closed', 'reopened', () => `issue #${number}`),
-    M.orElse(() => `PR #${number}`),
+  return Match.value(verb).pipe(
+    Match.withReturnType<string>(),
+    Match.when('pushed to', () => cycle(branchNames, index)),
+    Match.whenOr('opened', 'closed', 'reopened', () => `issue #${number}`),
+    Match.orElse(() => `PR #${number}`),
   )
 }
 
@@ -216,9 +210,7 @@ const variableArtifactClassName =
 
 const subsectionHeadingClassName = 'text-lg font-semibold text-gray-900 mt-2'
 
-const shortRow = (row: Activity): Html => {
-  const h = html<UiMessage>()
-
+const shortRow = (row: Activity, h: HtmlBuilder<UiMessage>): Html => {
   return h.div(
     [h.Class(rowClassName)],
     [
@@ -238,9 +230,11 @@ const shortRow = (row: Activity): Html => {
   )
 }
 
-const tallRow = (row: Activity, summary: Summary): Html => {
-  const h = html<UiMessage>()
-
+const tallRow = (
+  row: Activity,
+  summary: Summary,
+  h: HtmlBuilder<UiMessage>,
+): Html => {
   return h.div(
     [h.Class(variableTallRowClassName)],
     [
@@ -268,95 +262,100 @@ const tallRow = (row: Activity, summary: Summary): Html => {
   )
 }
 
-export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
-  const h = html<UiMessage>()
-
-  return h.div(
-    [],
-    [
-      h.h2(
-        [h.Class('text-2xl font-bold text-gray-900 mb-6')],
-        ['Virtual List'],
-      ),
-      h.div(
-        [h.Class('flex flex-col gap-8 max-w-2xl')],
-        [
-          h.div(
-            [h.Class('flex flex-col gap-4')],
-            [
-              h.h3([h.Class(subsectionHeadingClassName)], ['Basic']),
-              h.div(
-                [h.Class(headerClassName)],
-                [
-                  h.span([], [`${ROW_COUNT.toLocaleString()} activity events`]),
-                  h.button(
-                    [
-                      h.Class(buttonClassName),
-                      h.OnClick(ClickedVirtualListScrollToMiddle()),
-                    ],
-                    ['Jump to middle'],
-                  ),
-                ],
-              ),
-              h.submodel({
-                slotId: model.virtualListDemo.id,
-                model: model.virtualListDemo,
-                view: VirtualList.view<Activity>(),
-                viewInputs: {
-                  items: sampleActivities,
-                  itemToKey: row => String(row.id),
-                  itemToView: row => shortRow(row),
-                  containerClassName,
-                },
-                toParentMessage: message =>
-                  GotVirtualListDemoMessage({ message }),
-              }),
-            ],
-          ),
-          h.div(
-            [h.Class('flex flex-col gap-4')],
-            [
-              h.h3(
-                [h.Class(subsectionHeadingClassName)],
-                ['Variable row heights'],
-              ),
-              h.div(
-                [h.Class(headerClassName)],
-                [
-                  h.span(
-                    [],
-                    ['Every fourth row is taller and shows a summary block'],
-                  ),
-                  h.button(
-                    [
-                      h.Class(buttonClassName),
-                      h.OnClick(ClickedVirtualListVariableScrollToMiddle()),
-                    ],
-                    ['Jump to middle'],
-                  ),
-                ],
-              ),
-              h.submodel({
-                slotId: model.virtualListVariableDemo.id,
-                model: model.virtualListVariableDemo,
-                view: VirtualList.view<Activity>(),
-                viewInputs: {
-                  items: variableActivities,
-                  itemToKey: row => String(row.id),
-                  itemToRowHeightPx: variableRowHeightPx,
-                  itemToView: (row, index) =>
-                    row.hasSummary
-                      ? tallRow(row, summaryFor(index))
-                      : shortRow(row),
-                  containerClassName,
-                },
-                toParentMessage: message =>
-                  GotVirtualListVariableDemoMessage({ message }),
-              }),
-            ],
-          ),
-        ],
-      ),
-    ],
-  )
-})
+export const view = Submodel.defineView<UiModel, UiMessage>(
+  (model, h): Html => {
+    return h.div(
+      [],
+      [
+        h.h2(
+          [h.Class('text-2xl font-bold text-gray-900 mb-6')],
+          ['Virtual List'],
+        ),
+        h.div(
+          [h.Class('flex flex-col gap-8 max-w-2xl')],
+          [
+            h.div(
+              [h.Class('flex flex-col gap-4')],
+              [
+                h.h3([h.Class(subsectionHeadingClassName)], ['Basic']),
+                h.div(
+                  [h.Class(headerClassName)],
+                  [
+                    h.span(
+                      [],
+                      [`${ROW_COUNT.toLocaleString()} activity events`],
+                    ),
+                    h.button(
+                      [
+                        h.Class(buttonClassName),
+                        h.OnClick(UiMessage.ClickedVirtualListScrollToMiddle()),
+                      ],
+                      ['Jump to middle'],
+                    ),
+                  ],
+                ),
+                h.submodel({
+                  slotId: model.virtualListDemo.id,
+                  model: model.virtualListDemo,
+                  view: VirtualList.view<Activity>(),
+                  viewInputs: {
+                    items: sampleActivities,
+                    itemToKey: row => String(row.id),
+                    itemToView: row => shortRow(row, h),
+                    containerClassName,
+                  },
+                  toParentMessage: message =>
+                    UiMessage.GotVirtualListDemoMessage({ message }),
+                }),
+              ],
+            ),
+            h.div(
+              [h.Class('flex flex-col gap-4')],
+              [
+                h.h3(
+                  [h.Class(subsectionHeadingClassName)],
+                  ['Variable row heights'],
+                ),
+                h.div(
+                  [h.Class(headerClassName)],
+                  [
+                    h.span(
+                      [],
+                      ['Every fourth row is taller and shows a summary block'],
+                    ),
+                    h.button(
+                      [
+                        h.Class(buttonClassName),
+                        h.OnClick(
+                          UiMessage.ClickedVirtualListVariableScrollToMiddle(),
+                        ),
+                      ],
+                      ['Jump to middle'],
+                    ),
+                  ],
+                ),
+                h.submodel({
+                  slotId: model.virtualListVariableDemo.id,
+                  model: model.virtualListVariableDemo,
+                  view: VirtualList.view<Activity>(),
+                  viewInputs: {
+                    items: variableActivities,
+                    itemToKey: row => String(row.id),
+                    itemToRowHeightPx: variableRowHeightPx,
+                    itemToView: (row, index) =>
+                      row.hasSummary
+                        ? tallRow(row, summaryFor(index), h)
+                        : shortRow(row, h),
+                    containerClassName,
+                  },
+                  toParentMessage: message =>
+                    UiMessage.GotVirtualListVariableDemoMessage({ message }),
+                }),
+              ],
+            ),
+          ],
+        ),
+      ],
+    )
+  },
+)

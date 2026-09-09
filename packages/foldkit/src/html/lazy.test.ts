@@ -1,11 +1,11 @@
 import { Context } from 'effect'
-import { h } from 'snabbdom'
 import { afterEach, beforeEach, expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
 import { MountTracker } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
+import { h } from '../snabbdom/index.js'
 import { type VNode, dedupeSharedVNodes, memoizedVNodes } from '../vdom.js'
 import {
   type BoundaryRegistry,
@@ -350,6 +350,22 @@ describe('createLazy', () => {
 
     expect(callCount).toBe(2)
   })
+
+  it('recomputes when Mount render ownership changes with the same dispatch', () => {
+    let callCount = 0
+    const viewFn = (label: string) => {
+      callCount++
+      return h('div', {}, [label])
+    }
+
+    const lazy = createLazy()
+    lazy(viewFn, ['hello'])
+    clearRuntime()
+    setRuntime(noOpDispatchSync, noOpContext, undefined, 'Replay')
+    lazy(viewFn, ['hello'])
+
+    expect(callCount).toBe(2)
+  })
 })
 
 describe('createKeyedLazy', () => {
@@ -388,6 +404,28 @@ describe('createKeyedLazy', () => {
     lazy('b', viewFn, ['world'])
 
     expect(callCount).toBe(2)
+  })
+
+  it('caches PropertyKeys by identity', () => {
+    let callCount = 0
+    const viewFn = (label: string) => {
+      callCount++
+      return h('div', {}, [label])
+    }
+
+    const firstSymbol = Symbol('1')
+    const secondSymbol = Symbol('1')
+    const lazy = createKeyedLazy()
+    lazy(1, viewFn, ['number'])
+    lazy('1', viewFn, ['string'])
+    lazy(firstSymbol, viewFn, ['first symbol'])
+    lazy(secondSymbol, viewFn, ['second symbol'])
+    lazy(1, viewFn, ['number'])
+    lazy('1', viewFn, ['string'])
+    lazy(firstSymbol, viewFn, ['first symbol'])
+    lazy(secondSymbol, viewFn, ['second symbol'])
+
+    expect(callCount).toBe(4)
   })
 
   it('recomputes only the key whose args changed', () => {
