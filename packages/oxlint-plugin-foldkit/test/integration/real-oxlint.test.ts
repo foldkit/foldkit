@@ -1,4 +1,3 @@
-import { build, transform } from 'esbuild'
 import {
   copyFileSync,
   existsSync,
@@ -11,7 +10,14 @@ import {
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { build } from 'rolldown'
+import { transform } from 'rolldown/experimental'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+
+// An autofix must leave TypeScript that still parses. The transform reports
+// syntax errors rather than throwing, so the assertion is on that list.
+const parseErrors = async (source: string) =>
+  (await transform('fixed.ts', source)).errors
 
 import { type LintDiagnostic, runOxlint } from './run-oxlint.ts'
 
@@ -31,11 +37,9 @@ const bundlePath = join(workDir, 'plugin.mjs')
 
 beforeAll(async () => {
   await build({
-    entryPoints: [join(pluginRoot, 'src', 'index.ts')],
-    bundle: true,
+    input: join(pluginRoot, 'src', 'index.ts'),
     platform: 'node',
-    format: 'esm',
-    outfile: bundlePath,
+    output: { file: bundlePath, format: 'esm' },
   })
 })
 
@@ -206,9 +210,7 @@ describe('real-oxlint rule fixtures', () => {
     expect(fixedSource.match(/commands: \[\]/g)).toHaveLength(1)
     expect(fixedSource).toContain('// A comment does not make this a Command.')
     expect(fixedSource).toContain('[propertyName]: dynamicCommands')
-    await expect(
-      transform(fixedSource, { loader: 'ts' }),
-    ).resolves.toBeDefined()
+    await expect(parseErrors(fixedSource)).resolves.toEqual([])
   })
 
   it('fixes only structurally safe empty parent OutMessage mappers', async () => {
@@ -243,9 +245,7 @@ describe('real-oxlint rule fixtures', () => {
     expect(fixedSource).toContain(
       '// This comment must survive an autofix pass.',
     )
-    await expect(
-      transform(fixedSource, { loader: 'ts' }),
-    ).resolves.toBeDefined()
+    await expect(parseErrors(fixedSource)).resolves.toEqual([])
   })
 
   it('renames an Effect module only when the exported name is unbound', async () => {
@@ -282,7 +282,7 @@ describe('real-oxlint rule fixtures', () => {
     expect(safeSource).toContain('const Model = Schema.Struct')
     expect(safeSource).toContain('const render = Match.value')
     expect(safeSource).toContain('String.isNonEmpty')
-    await expect(transform(safeSource, { loader: 'ts' })).resolves.toBeDefined()
+    await expect(parseErrors(safeSource)).resolves.toEqual([])
 
     const collisionSourcePath = join(
       fixturesRoot,

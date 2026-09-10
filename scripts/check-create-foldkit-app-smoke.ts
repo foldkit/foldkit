@@ -27,7 +27,6 @@ const PNPM_WORKSPACE_POLICY_PATH = join(
   'pnpm-workspace.yaml',
 )
 const PNPM_WORKSPACE_POLICY = `allowBuilds:
-  esbuild: true
   msgpackr-extract: false
 `
 const pnpmExecutable = process.env['FOLDKIT_PNPM_EXECUTABLE'] ?? 'pnpm'
@@ -417,7 +416,7 @@ const assertPnpmWorkspacePolicy = (): void => {
   )
   assertSmoke(
     readFileSync(PNPM_WORKSPACE_POLICY_PATH, 'utf-8') === PNPM_WORKSPACE_POLICY,
-    'pnpm package manager template must allow esbuild and deny msgpackr-extract builds through allowBuilds',
+    'pnpm package manager template must deny msgpackr-extract builds through allowBuilds',
   )
 }
 
