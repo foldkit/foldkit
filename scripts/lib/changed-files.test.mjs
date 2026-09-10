@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 
 import { resolveChangedFiles } from './changed-files.mjs'
+import { gitTestEnvironment } from './test-git.mjs'
 
 const ZERO_SHA = '0'.repeat(40)
 const MISSING_SHA_A = 'deadbeef'.repeat(5)
@@ -75,21 +76,10 @@ test('a real revision range resolves the files it touched', () => {
 })
 
 const git = (repositoryDir, ...args) => {
-  const result = spawnSync(
-    'git',
-    [
-      '-C',
-      repositoryDir,
-      '-c',
-      'user.email=test@example.com',
-      '-c',
-      'user.name=Test',
-      '-c',
-      'commit.gpgsign=false',
-      ...args,
-    ],
-    { encoding: 'utf8' },
-  )
+  const result = spawnSync('git', ['-C', repositoryDir, ...args], {
+    encoding: 'utf8',
+    env: gitTestEnvironment,
+  })
 
   assert.equal(result.status, 0, `git ${args.join(' ')}: ${result.stderr}`)
 

@@ -6,6 +6,8 @@ import { dirname, join, resolve } from 'node:path'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
+import { gitTestEnvironment } from './lib/test-git.mjs'
+
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const SCRIPT_PATH = resolve(REPO_ROOT, 'scripts/plan-website-deploy.mjs')
 const PACKAGES = [
@@ -27,7 +29,11 @@ const SHARED_PACKAGE_INPUTS = [
 ]
 
 const run = (cwd, command, args) => {
-  const result = spawnSync(command, args, { cwd, encoding: 'utf8' })
+  const result = spawnSync(command, args, {
+    cwd,
+    encoding: 'utf8',
+    env: gitTestEnvironment,
+  })
   assert.equal(
     result.status,
     0,
@@ -38,16 +44,7 @@ const run = (cwd, command, args) => {
 
 const commit = (repo, message) => {
   run(repo, 'git', ['add', '.'])
-  run(repo, 'git', [
-    '-c',
-    'user.name=Foldkit Test',
-    '-c',
-    'user.email=foldkit@example.com',
-    'commit',
-    '-q',
-    '-m',
-    message,
-  ])
+  run(repo, 'git', ['commit', '-q', '-m', message])
 }
 
 const write = (repo, path, contents) => {
@@ -86,12 +83,14 @@ const plan = repo =>
   spawnSync(process.execPath, [SCRIPT_PATH], {
     cwd: repo,
     encoding: 'utf8',
+    env: gitTestEnvironment,
   })
 
 const planTarget = (repo, target) =>
   spawnSync(process.execPath, [SCRIPT_PATH, target], {
     cwd: repo,
     encoding: 'utf8',
+    env: gitTestEnvironment,
   })
 
 const planReleaseTarget = (repo, target) =>
@@ -101,6 +100,7 @@ const planReleaseTarget = (repo, target) =>
     {
       cwd: repo,
       encoding: 'utf8',
+      env: gitTestEnvironment,
     },
   )
 
