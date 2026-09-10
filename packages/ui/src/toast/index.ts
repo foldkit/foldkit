@@ -284,7 +284,9 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           h.DataAttribute('variant', entry.variant),
           h.Style({
             pointerEvents: 'auto',
-            touchAction: 'pan-y',
+            ...(Option.isSome(model.maybeSwipeThreshold)
+              ? { touchAction: 'pan-y' }
+              : {}),
           }),
           h.OnMouseEnter(toast.Message.HoveredEntry({ entryId: entry.id })),
           h.OnMouseLeave(toast.Message.LeftEntry({ entryId: entry.id })),

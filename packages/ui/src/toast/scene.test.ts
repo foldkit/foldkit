@@ -227,6 +227,22 @@ describe('Toast', () => {
       )
     })
 
+    it('does not restrict touch behavior when swipe is disabled', () => {
+      Scene.scene(
+        { update: Toast.update, view: sceneView() },
+        Scene.given(withDisabledEntry()),
+        Scene.expect(entryZero).not.toHaveStyle('touchAction'),
+      )
+    })
+
+    it('allows vertical panning when swipe is enabled', () => {
+      Scene.scene(
+        { update: Toast.update, view: sceneView() },
+        Scene.given(withEntry()),
+        Scene.expect(entryZero).toHaveStyle('touchAction', 'pan-y'),
+      )
+    })
+
     it('keeps the released offset rendered while the leave runs', () => {
       Scene.scene(
         { update: Toast.update, view: sceneView() },
