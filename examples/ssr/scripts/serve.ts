@@ -28,7 +28,7 @@ const FETCH_MODULE_URL = new URL('../dist/server/fetch.js', import.meta.url)
   .href
 const DEFAULT_PORT = 3000
 
-const PORT = Config.withDefault(Config.port('PORT'), DEFAULT_PORT)
+const PORT = Config.withDefault(Config.Port('PORT'), DEFAULT_PORT)
 
 // NOTE: the origin this deployment serves. A client may send an absolute-form
 // target or a network-path reference such as `//elsewhere.example/page`.
@@ -36,7 +36,7 @@ const PORT = Config.withDefault(Config.port('PORT'), DEFAULT_PORT)
 // and cookie domains, so a target that resolves anywhere else is refused
 // before static files or fetch. Set ORIGIN when deploying behind a proxy or
 // TLS terminator.
-const ORIGIN = Config.option(Config.string('ORIGIN')).pipe(
+const ORIGIN = Config.option(Config.String('ORIGIN')).pipe(
   Config.map(Option.filter(String.isNonEmpty)),
 )
 

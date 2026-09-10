@@ -24,7 +24,7 @@ type CreateInput = Readonly<{
 
 const isWindows = process.platform === 'win32'
 
-const promptForName = Prompt.text({
+const promptForName = Prompt.String({
   message: 'Give your project a name',
   validate: value =>
     Option.match(validateProjectName(value), {
@@ -33,7 +33,7 @@ const promptForName = Prompt.text({
     }),
 })
 
-const promptForRendering = Prompt.select<Rendering>({
+const promptForRendering = Prompt.Select<Rendering>({
   message: 'Pick a rendering mode',
   choices: renderings.map(({ value, title, description }) => ({
     value,
@@ -42,7 +42,7 @@ const promptForRendering = Prompt.select<Rendering>({
   })),
 })
 
-const promptForExample = Prompt.autoComplete({
+const promptForExample = Prompt.AutoComplete({
   message: 'Pick a starting example',
   choices: examples.map(({ value, title, description }) => ({
     value,
@@ -51,7 +51,7 @@ const promptForExample = Prompt.autoComplete({
   })),
 })
 
-const promptForPackageManager = Prompt.select<PackageManager>({
+const promptForPackageManager = Prompt.Select<PackageManager>({
   message: 'Pick a package manager',
   choices: [
     { value: 'pnpm', title: 'pnpm' },

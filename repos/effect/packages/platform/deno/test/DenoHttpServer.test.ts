@@ -1,5 +1,6 @@
 import * as DenoHttpServer from "@effect/platform-deno/DenoHttpServer"
 import { assert, describe, it } from "@effect/vitest"
+import * as ByteSize from "effect/ByteSize"
 import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
@@ -27,6 +28,7 @@ import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
 import * as Multipart from "effect/unstable/http/Multipart"
 import * as UrlParams from "effect/unstable/http/UrlParams"
 import * as HttpApiError from "effect/unstable/httpapi/HttpApiError"
+import type * as NetAddress from "effect/unstable/net/NetAddress"
 import type * as Socket from "effect/unstable/socket/Socket"
 
 const Todo = Schema.Struct({
@@ -151,7 +153,7 @@ describe("DenoHttpServer", () => {
       ).pipe(
         HttpRouter.serve,
         Layer.build,
-        Effect.provideService(Multipart.MaxFileSize, 100)
+        Effect.provideService(Multipart.MaxFileSize, ByteSize.bytes(100))
       )
       const formData = new FormData()
       formData.append("file", new Blob([new Uint8Array(1000)], { type: "text/plain" }), "test.txt")
@@ -175,7 +177,7 @@ describe("DenoHttpServer", () => {
       ).pipe(
         HttpRouter.serve,
         Layer.build,
-        Effect.provideService(Multipart.MaxFieldSize, 100)
+        Effect.provideService(Multipart.MaxFieldSize, ByteSize.bytes(100))
       )
       const formData = new FormData()
       formData.append("file", "x".repeat(1000))
@@ -495,7 +497,7 @@ describe("DenoHttpServer", () => {
       )
       yield* Effect.promise(() => runtime.context())
       const downstreamServer = yield* Effect.promise(() => runtime.runPromise(HttpServer.HttpServer))
-      const downstreamPort = (downstreamServer.address as HttpServer.TcpAddress).port
+      const downstreamPort = (downstreamServer.address as NetAddress.InetAddress).port
 
       const controller = new AbortController()
       const downstream = fetch(`http://127.0.0.1:${downstreamPort}`, {
@@ -638,26 +640,23 @@ describe("DenoHttpServer", () => {
 
   it.effect("round trips WebSocket frames and closes cleanly", () =>
     Effect.gen(function*() {
-      yield* serveWebSocket(Effect.fnUntraced(function*(socket) {
-        const write = yield* socket.writer
-        yield* socket.runRaw((message) => write(message))
-      }))
+      yield* serveWebSocket(echoWebSocket)
       const server = yield* HttpServer.HttpServer
-      const port = (server.address as HttpServer.TcpAddress).port
+      const port = (server.address as NetAddress.InetAddress).port
       const messages = yield* connectWebSocket(`ws://127.0.0.1:${port}/`, (socket) => socket.send("hello"), 1)
       assert.deepStrictEqual(messages, ["hello"])
     }).pipe(Effect.provide(DenoHttpServer.layerTest)))
 
   it.effect("preserves eager WebSocket frames across an async boundary", () =>
     Effect.gen(function*() {
-      yield* serveWebSocket(Effect.fnUntraced(function*(socket) {
-        yield* Effect.promise(() => new Promise<void>((resolve) => setTimeout(resolve, 0)))
-        const write = yield* socket.writer
-        yield* socket.runRaw((message) => write(message))
-      }))
+      yield* serveWebSocket((socket) =>
+        Effect.promise(() => new Promise<void>((resolve) => setTimeout(resolve, 0))).pipe(
+          Effect.andThen(echoWebSocket(socket))
+        )
+      )
 
       const server = yield* HttpServer.HttpServer
-      const port = (server.address as HttpServer.TcpAddress).port
+      const port = (server.address as NetAddress.InetAddress).port
       const messages = yield* connectWebSocket(`ws://127.0.0.1:${port}/`, (socket) => {
         socket.send("first")
         socket.send("second")
@@ -669,15 +668,24 @@ describe("DenoHttpServer", () => {
   it.effect("delivers binary WebSocket frames as Uint8Array", () =>
     Effect.gen(function*() {
       const received = yield* Queue.unbounded<Uint8Array>()
-      yield* serveWebSocket(Effect.fnUntraced(function*(socket) {
-        yield* socket.runRaw((message) => {
-          assert(message instanceof Uint8Array)
-          return Queue.offer(received, message)
-        })
-      }))
+      yield* serveWebSocket((socket) =>
+        Effect.gen(function*() {
+          const { pull } = yield* socket.reader
+          while (true) {
+            const chunk = yield* pull
+            for (const message of chunk) {
+              assert(message instanceof Uint8Array)
+              yield* Queue.offer(received, message)
+            }
+          }
+        }).pipe(
+          Effect.catchReason("SocketError", "SocketCloseError", () => Effect.void),
+          Effect.orDie
+        )
+      )
 
       const server = yield* HttpServer.HttpServer
-      const port = (server.address as HttpServer.TcpAddress).port
+      const port = (server.address as NetAddress.InetAddress).port
       const socket = yield* openWebSocket(`ws://127.0.0.1:${port}/`)
       socket.send(new Uint8Array([1, 2, 3]))
 
@@ -685,6 +693,18 @@ describe("DenoHttpServer", () => {
       socket.close()
     }).pipe(Effect.provide(DenoHttpServer.layerTest)))
 })
+
+const echoWebSocket = (socket: Socket.Socket) =>
+  Effect.gen(function*() {
+    const writer = yield* socket.writer
+    const { pull } = yield* socket.reader
+    while (true) {
+      yield* writer.writeAll(yield* pull)
+    }
+  }).pipe(
+    Effect.catchReason("SocketError", "SocketCloseError", () => Effect.void),
+    Effect.orDie
+  )
 
 const serveWebSocket = (
   run: (socket: Socket.Socket) => Effect.Effect<void, Socket.SocketError, Scope.Scope>

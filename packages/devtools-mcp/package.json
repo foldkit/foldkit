@@ -23,7 +23,7 @@
     "typecheck": "tsc -b --noEmit"
   },
   "peerDependencies": {
-    "effect": "4.0.0-rc.112",
+    "effect": "4.0.0-rc.113",
     "foldkit": ">=0.153.0"
   },
   "dependencies": {
@@ -33,7 +33,7 @@
   "devDependencies": {
     "@types/node": "^26.4.0",
     "@types/ws": "^8.18.1",
-    "effect": "4.0.0-rc.112",
+    "effect": "4.0.0-rc.113",
     "esbuild": "^0.28.2",
     "foldkit": "workspace:*",
     "rimraf": "^6.1.3",

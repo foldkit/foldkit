@@ -211,7 +211,7 @@ const isoPattern = /^(\d{4})-(\d{2})-(\d{2})$/
 export const CalendarDateFromIsoString = Schema.String.pipe(
   Schema.decodeTo(
     CalendarDate,
-    SchemaTransformation.transformOrFail({
+    SchemaTransformation.transformEffect({
       decode: input => {
         const match = input.match(isoPattern)
         if (match === null) {

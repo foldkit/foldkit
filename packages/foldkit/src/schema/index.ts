@@ -1,4 +1,4 @@
-import { Array, Match, Schema, SchemaAST, Types } from 'effect'
+import { Array, Cause, Match, Schema, SchemaAST, Types } from 'effect'
 
 /** A `TaggedStruct` schema that can be called directly as a constructor: `Foo({ count: 1 })` instead of `Foo.make({ count: 1 })`. */
 export type CallableTaggedStruct<
@@ -34,12 +34,21 @@ const assignPlainProperty = (
   }
 }
 
+const runConstructorOperation = <Value>(operation: () => Value): Value => {
+  try {
+    return operation()
+  } catch (error) {
+    throw new Error('Constructor adapter can only throw schema issues', {
+      cause: Cause.die(error),
+    })
+  }
+}
+
 const isDirectlyCopyable = (ast: SchemaAST.AST): boolean => {
   if (
     ast.checks !== undefined ||
     ast.encoding !== undefined ||
-    ast.context !== undefined ||
-    ast.annotations?.['parseOptions'] !== undefined
+    ast.context !== undefined
   ) {
     return false
   }
@@ -66,8 +75,8 @@ const isDirectlyCopyable = (ast: SchemaAST.AST): boolean => {
       TemplateLiteral: ({ parts }) => parts.every(isDirectlyCopyable),
       Arrays: () => false,
       Objects: () => false,
-      Union: ({ mode, types }) =>
-        mode !== 'oneOf' && types.every(isDirectlyCopyable),
+      Union: ({ options, types }) =>
+        options?.mode !== 'oneOf' && types.every(isDirectlyCopyable),
       Suspend: () => false,
     }),
   )
@@ -114,31 +123,26 @@ const makeCallable = <Tag extends string, Fields extends Schema.Struct.Fields>(
           const output: Record<PropertyKey, unknown> = {}
 
           for (const name of propertyNames) {
-            const descriptor = Object.getOwnPropertyDescriptor(input, name)
-
-            if (
-              name !== '_tag' &&
-              descriptor === undefined &&
-              Reflect.has(input, name)
-            ) {
-              return make(value)
-            }
-
-            if (descriptor !== undefined && !('value' in descriptor)) {
-              return make(value)
-            }
-
-            const inputValue =
-              descriptor === undefined ? undefined : input[name]
+            const inputValue = runConstructorOperation(() => {
+              const hasProperty =
+                name === '__proto__'
+                  ? Object.hasOwn(input, name)
+                  : Reflect.has(input, name)
+              return hasProperty ? input[name] : undefined
+            })
 
             if (name === '_tag') {
               if (inputValue !== undefined && inputValue !== tag) {
                 return make(value)
               }
 
-              assignPlainProperty(output, name, tag)
+              runConstructorOperation(() =>
+                assignPlainProperty(output, name, tag),
+              )
             } else {
-              assignPlainProperty(output, name, inputValue)
+              runConstructorOperation(() =>
+                assignPlainProperty(output, name, inputValue),
+              )
             }
           }
 

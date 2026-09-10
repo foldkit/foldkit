@@ -10,10 +10,10 @@
     "bench": "vitest run --config vitest.bench.config.ts"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0-rc.112",
+    "@effect/platform-browser": "4.0.0-rc.113",
     "@foldkit/ui": "workspace:*",
     "clsx": "^2.1.1",
-    "effect": "4.0.0-rc.112",
+    "effect": "4.0.0-rc.113",
     "foldkit": "workspace:*"
   },
   "devDependencies": {

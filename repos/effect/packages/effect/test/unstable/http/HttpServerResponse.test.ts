@@ -15,9 +15,23 @@ describe("HttpServerResponse", () => {
     assert.strictEqual(response.headers["content-length"], "1")
   })
 
+  it.effect("fromWeb preserves content-length through a Web round trip", () =>
+    Effect.gen(function*() {
+      const response = HttpServerResponse.fromWeb(
+        new Response("hello", { headers: { "content-length": "5" } })
+      )
+      const roundTrip = HttpServerResponse.toWeb(response)
+
+      assert.strictEqual(yield* Effect.promise(() => roundTrip.text()), "hello")
+      assert.strictEqual(roundTrip.headers.get("content-length"), "5")
+    }))
+
   it.effect("fromClientResponse preserves status, headers, cookies, and json", () =>
     Effect.gen(function*() {
-      const request = HttpClientRequest.get("http://localhost:3000/todos/1")
+      const request = HttpClientRequest.get("http://localhost:3000/todos/1?existing=1", {
+        urlParams: { value: "a#b" },
+        hash: "fragment"
+      })
       const clientResponse = HttpServerResponse.toClientResponse(
         HttpServerResponse.jsonUnsafe({ foo: "bar" }, { status: 201 }).pipe(
           HttpServerResponse.setHeader("x-test", "ok"),
@@ -29,6 +43,8 @@ describe("HttpServerResponse", () => {
       const response = HttpServerResponse.fromClientResponse(clientResponse)
       const roundTrip = HttpServerResponse.toClientResponse(response, { request })
 
+      assert.strictEqual(clientResponse.url, "http://localhost:3000/todos/1?existing=1&value=a%23b")
+      assert.strictEqual(roundTrip.url, clientResponse.url)
       assert.strictEqual(response.status, 201)
       assert.strictEqual(response.headers["content-type"], "application/json")
       assert.strictEqual(response.headers["x-test"], "ok")
@@ -50,6 +66,7 @@ describe("HttpServerResponse", () => {
 
       const response = HttpServerResponse.fromClientResponse(clientResponse)
       const roundTrip = HttpServerResponse.toClientResponse(response)
+      assert.strictEqual(roundTrip.url, "")
       const text = yield* roundTrip.text.pipe(
         Effect.provideService(TestValue, 420)
       )
@@ -85,6 +102,22 @@ describe("HttpServerResponse", () => {
       assert.strictEqual(response.status, 200)
       assert.strictEqual(yield* roundTrip.text, "")
     }))
+
+  it("fromClientResponse ignores malformed or unsafe content lengths", () => {
+    const request = HttpClientRequest.get("http://localhost:3000")
+    for (const contentLength of ["2junk", "1.5", "1e3", "9007199254740992"]) {
+      const clientResponse = HttpClientResponse.fromWeb(
+        request,
+        new Response("hello", { headers: { "content-length": contentLength } })
+      )
+      const response = HttpServerResponse.fromClientResponse(clientResponse)
+
+      assert.strictEqual(response.body._tag, "Stream")
+      if (response.body._tag === "Stream") {
+        assert.strictEqual(response.body.contentLength, undefined)
+      }
+    }
+  })
 
   it("synchronizes body metadata headers for empty and replaced bodies", () => {
     const emptyBytes = HttpServerResponse.uint8Array(new Uint8Array())
