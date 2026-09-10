@@ -252,3 +252,27 @@ export const EventFrame = Schema.Struct({
 })
 /** A wire frame carrying a runtime lifecycle event. */
 export type EventFrame = typeof EventFrame.Type
+
+// RELAY REGISTRY
+
+/** The version of the record a dev server publishes about its DevTools MCP relay. Bump it when the shape of `RelayRecord` changes, so an MCP server ignores records written by a plugin it does not understand. */
+export const RELAY_RECORD_VERSION = 1
+
+/** The directory, under the user's runtime directory or the operating system's temporary directory, where dev servers publish their relay records. */
+export const RELAY_REGISTRY_DIRECTORY_NAME = 'foldkit-devtools-relays'
+
+/** The environment variable that relocates the relay registry, for sandboxes and tests. The Vite plugin and the MCP server read the same one. */
+export const RELAY_REGISTRY_DIRECTORY_VARIABLE =
+  'FOLDKIT_DEVTOOLS_RELAY_DIRECTORY'
+
+/** What a running Foldkit dev server publishes while its DevTools MCP relay is listening, one record per Vite project root, so the MCP server can find the relay for a project without a configured port. `id` names the relay that wrote the record, since a replacement dev server can publish the same `url`. */
+export const RelayRecord = Schema.Struct({
+  version: Schema.Literal(RELAY_RECORD_VERSION),
+  id: Schema.String,
+  root: Schema.String,
+  url: Schema.String,
+  pid: Schema.Number,
+  startedAt: Schema.Number,
+})
+/** What a running dev server publishes about its DevTools MCP relay. */
+export type RelayRecord = typeof RelayRecord.Type
