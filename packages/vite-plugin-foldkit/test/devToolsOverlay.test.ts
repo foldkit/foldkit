@@ -70,7 +70,7 @@ const PLUGIN_CONTEXT = {
   meta: {
     rollupVersion: '4',
     rolldownVersion: '1',
-    viteVersion: '7',
+    viteVersion: '8',
     watchMode: false,
   },
   debug: () => {},

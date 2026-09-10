@@ -3,7 +3,7 @@ import { Rpc } from 'effect/unstable/rpc'
 
 import * as Shared from '@typing-game/shared'
 
-import * as Rooms from '../roomById.js'
+import * as Rooms from '../roomById.ts'
 
 export const getRoomById =
   (roomByIdRef: SubscriptionRef.SubscriptionRef<Shared.RoomById>) =>

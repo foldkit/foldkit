@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 
 import * as Shared from '@typing-game/shared'
 
-import * as Rooms from '../roomById.js'
+import * as Rooms from '../roomById.ts'
 
 const makeUniqueUsername = (
   desiredUsername: string,

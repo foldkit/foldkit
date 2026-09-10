@@ -405,9 +405,10 @@ const CONTAINER_PLACEHOLDER = `<div id="${CONTAINER_ID}"></div>`
 const SERVER_ENTRY_PATH = resolve(WEBSITE_DIR, 'dist-server/entry.server.js')
 
 // NOTE: the app module graph uses Vite-only specifiers (`virtual:*`, `.md`,
-// `?raw`, `import.meta.glob`), so it cannot be imported by tsx directly. The
-// `preprerender` script builds `src/entry.server.ts` with `vite build --ssr`
-// first, and this dynamic import loads that bundle.
+// `?raw`, `import.meta.glob`) that only the application's plugins resolve, and
+// the scripts build loads none of them. The `preprerender` script builds
+// `src/entry.server.ts` with the application config first, and this dynamic
+// import loads that bundle.
 const loadServerEntry: Effect.Effect<typeof ServerEntry> = Effect.promise(
   () => import(pathToFileURL(SERVER_ENTRY_PATH).href),
 )

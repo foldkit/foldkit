@@ -4,8 +4,8 @@ import { randomUUID } from 'node:crypto'
 
 import * as Shared from '@typing-game/shared'
 
-import { ROOM_ID_WORDS } from '../constants.js'
-import * as Room from '../room.js'
+import { ROOM_ID_WORDS } from '../constants.ts'
+import * as Room from '../room.ts'
 
 export const createRoom =
   (roomByIdRef: SubscriptionRef.SubscriptionRef<Shared.RoomById>) =>

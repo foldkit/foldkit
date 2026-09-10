@@ -12,7 +12,7 @@ import {
   RENAMED_PROPERTY_ATTRIBUTES,
   isHtmlPropertyRepresentable,
   reflectedAttributeName,
-} from '../packages/foldkit/src/domReflection.js'
+} from '../packages/foldkit/dist/domReflection.js'
 
 // The state a served element is in, compared against the state the client puts
 // the same element in.
