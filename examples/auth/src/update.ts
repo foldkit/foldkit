@@ -1,190 +1,166 @@
-import { Effect, Match as M, Option, Schema as S } from 'effect'
-import { Command } from 'foldkit'
-import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
+import { Effect, Match, Option, Schema } from 'effect'
+import { Command, Update } from 'foldkit'
+import { UrlRequest, load, pushUrl, replaceUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
 
 import { ClearSession, LogError, SaveSession } from './command'
-import {
-  CompletedLoadExternal,
-  CompletedNavigateInternal,
-  GotLoggedInMessage,
-  GotLoggedOutMessage,
-  Message,
-} from './message'
+import { Message } from './message'
 import { LoggedIn, LoggedOut, Model } from './model'
 import {
-  DashboardRoute,
-  HomeRoute,
+  AppRoute,
   dashboardRouter,
   homeRouter,
   loginRouter,
   urlToAppRoute,
 } from './route'
 
-const NavigateInternal = Command.define(
-  'NavigateInternal',
-  { url: S.String },
-  CompletedNavigateInternal,
-)(({ url }) => pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())))
+const NavigateInternal = Command.define('NavigateInternal', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateInternal],
+  execute: ({ url }) =>
+    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+})
 
-const LoadExternal = Command.define(
-  'LoadExternal',
-  { href: S.String },
-  CompletedLoadExternal,
-)(({ href }) => load(href).pipe(Effect.as(CompletedLoadExternal())))
+const LoadExternal = Command.define('LoadExternal', {
+  args: { href: Schema.String },
+  messages: [Message.CompletedLoadExternal],
+  execute: ({ href }) =>
+    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+})
 
-const RedirectToLogin = Command.define(
-  'RedirectToLogin',
-  CompletedNavigateInternal,
-)(replaceUrl(loginRouter()).pipe(Effect.as(CompletedNavigateInternal())))
+export const RedirectToLogin = Command.define('RedirectToLogin', {
+  messages: [Message.CompletedNavigateInternal],
+  execute: replaceUrl(loginRouter()).pipe(
+    Effect.as(Message.CompletedNavigateInternal()),
+  ),
+})
 
-export const RedirectToDashboard = Command.define(
-  'RedirectToDashboard',
-  CompletedNavigateInternal,
-)(replaceUrl(dashboardRouter()).pipe(Effect.as(CompletedNavigateInternal())))
+export const RedirectToDashboard = Command.define('RedirectToDashboard', {
+  messages: [Message.CompletedNavigateInternal],
+  execute: replaceUrl(dashboardRouter()).pipe(
+    Effect.as(Message.CompletedNavigateInternal()),
+  ),
+})
 
-const RedirectToHome = Command.define(
-  'RedirectToHome',
-  CompletedNavigateInternal,
-)(replaceUrl(homeRouter()).pipe(Effect.as(CompletedNavigateInternal())))
+const RedirectToHome = Command.define('RedirectToHome', {
+  messages: [Message.CompletedNavigateInternal],
+  execute: replaceUrl(homeRouter()).pipe(
+    Effect.as(Message.CompletedNavigateInternal()),
+  ),
+})
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
-const withUpdateReturn = M.withReturnType<UpdateReturn>()
+type UpdateReturn = Update.Return<Model, Message>
+const withUpdateReturn = Match.withReturnType<UpdateReturn>()
 
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    withUpdateReturn,
-    M.tags({
-      ClickedLink: ({ request }) =>
-        M.value(request).pipe(
-          withUpdateReturn,
-          M.tagsExhaustive({
-            Internal: ({ url }) => [
-              model,
-              [NavigateInternal({ url: urlToString(url) })],
-            ],
-            External: ({ href }) => [model, [LoadExternal({ href })]],
-          }),
-        ),
-
-      ChangedUrl: ({ url }) => {
-        const route = urlToAppRoute(url)
-
-        return M.value(model).pipe(
-          withUpdateReturn,
-          M.tagsExhaustive({
-            LoggedOut: loggedOutModel =>
-              M.value(route).pipe(
-                withUpdateReturn,
-                M.tag('Home', 'Login', 'NotFound', route => [
-                  evo(loggedOutModel, { route: () => route }),
-                  [],
-                ]),
-                M.orElse(() => [model, [RedirectToLogin()]]),
-              ),
-
-            LoggedIn: loggedInModel =>
-              M.value(route).pipe(
-                withUpdateReturn,
-                M.tag('Dashboard', 'Settings', 'NotFound', route => [
-                  evo(loggedInModel, { route: () => route }),
-                  [],
-                ]),
-                M.orElse(() => [model, [RedirectToDashboard()]]),
-              ),
-          }),
-        )
-      },
-
-      FailedSaveSession: ({ error }) => [
-        model,
-        [LogError({ entries: ['Failed to save session:', error] })],
-      ],
-
-      FailedClearSession: ({ error }) => [
-        model,
-        [LogError({ entries: ['Failed to clear session:', error] })],
-      ],
-
-      GotLoggedOutMessage: ({ message }) =>
-        handleGotLoggedOutMessage(model, message),
-
-      GotLoggedInMessage: ({ message }) =>
-        handleGotLoggedInMessage(model, message),
+const foldLoggedOutOutMessage = LoggedOut.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  SucceededLogin:
+    ({ session }) =>
+    () => ({
+      model: LoggedIn.init(AppRoute.Dashboard(), session),
+      commands: [SaveSession({ session }), RedirectToDashboard()],
     }),
-    M.tag(
-      'CompletedNavigateInternal',
-      'CompletedLoadExternal',
-      'CompletedLogError',
-      'SucceededSaveSession',
-      'SucceededClearSession',
-      () => [model, []],
+})
+
+const foldLoggedOut = Update.foldChild({
+  update: LoggedOut.update,
+  read: (model: Model) =>
+    Match.value(model).pipe(
+      Match.tagsExhaustive({
+        LoggedOut: loggedOutModel => Option.some(loggedOutModel),
+        LoggedIn: () => Option.none(),
+      }),
     ),
-    M.exhaustive,
-  )
+  write: (_model, nextLoggedOut) => nextLoggedOut,
+  toParentMessage: message => Message.GotLoggedOutMessage({ message }),
+  foldOutMessage: foldLoggedOutOutMessage,
+})
 
-const handleGotLoggedOutMessage = (
-  model: Model,
-  message: LoggedOut.Message,
-): UpdateReturn => {
-  if (model._tag !== 'LoggedOut') {
-    return [model, []]
-  }
+const foldLoggedInOutMessage = LoggedIn.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  RequestedLogout: () => () => ({
+    model: LoggedOut.init(AppRoute.Home()),
+    commands: [ClearSession(), RedirectToHome()],
+  }),
+})
 
-  const [nextModel, commands, maybeOutMessage] = LoggedOut.update(
-    model,
-    message,
-  )
+const foldLoggedIn = Update.foldChild({
+  update: LoggedIn.update,
+  read: (model: Model) =>
+    Match.value(model).pipe(
+      Match.tagsExhaustive({
+        LoggedOut: () => Option.none(),
+        LoggedIn: loggedInModel => Option.some(loggedInModel),
+      }),
+    ),
+  write: (_model, nextLoggedIn) => nextLoggedIn,
+  toParentMessage: message => Message.GotLoggedInMessage({ message }),
+  foldOutMessage: foldLoggedInOutMessage,
+})
 
-  const mappedCommands = Command.mapMessages(commands, message =>
-    GotLoggedOutMessage({ message }),
-  )
-
-  return Option.match(maybeOutMessage, {
-    onNone: () => [nextModel, mappedCommands],
-    onSome: outMessage =>
-      M.value(outMessage).pipe(
-        withUpdateReturn,
-        M.tagsExhaustive({
-          SucceededLogin: ({ session }) => [
-            LoggedIn.init(DashboardRoute(), session),
-            [
-              ...mappedCommands,
-              SaveSession({ session }),
-              RedirectToDashboard(),
-            ],
-          ],
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    ClickedLink: ({ request }) =>
+      UrlRequest.match<UpdateReturn>(request, {
+        Internal: ({ url }) => ({
+          model,
+          commands: [NavigateInternal({ url: urlToString(url) })],
         }),
-      ),
-  })
-}
-
-const handleGotLoggedInMessage = (
-  model: Model,
-  message: LoggedIn.Message,
-): UpdateReturn => {
-  if (model._tag !== 'LoggedIn') {
-    return [model, []]
-  }
-
-  const [nextModel, commands, maybeOutMessage] = LoggedIn.update(model, message)
-
-  const mappedCommands = Command.mapMessages(commands, message =>
-    GotLoggedInMessage({ message }),
-  )
-
-  return Option.match(maybeOutMessage, {
-    onNone: () => [nextModel, mappedCommands],
-    onSome: outMessage =>
-      M.value(outMessage).pipe(
-        withUpdateReturn,
-        M.tagsExhaustive({
-          RequestedLogout: () => [
-            LoggedOut.init(HomeRoute()),
-            [...mappedCommands, ClearSession(), RedirectToHome()],
-          ],
+        External: ({ href }) => ({
+          model,
+          commands: [LoadExternal({ href })],
         }),
-      ),
+      }),
+
+    ChangedUrl: ({ url }) => {
+      const route = urlToAppRoute(url)
+
+      return Match.value(model).pipe(
+        withUpdateReturn,
+        Match.tagsExhaustive({
+          LoggedOut: loggedOutModel =>
+            Match.value(route).pipe(
+              withUpdateReturn,
+              Match.tag('Home', 'Login', 'NotFound', route => ({
+                model: evo(loggedOutModel, { route: () => route }),
+              })),
+              Match.orElse(() => ({ model, commands: [RedirectToLogin()] })),
+            ),
+
+          LoggedIn: loggedInModel =>
+            Match.value(route).pipe(
+              withUpdateReturn,
+              Match.tag('Dashboard', 'Settings', 'NotFound', route => ({
+                model: evo(loggedInModel, { route: () => route }),
+              })),
+              Match.orElse(() => ({
+                model,
+                commands: [RedirectToDashboard()],
+              })),
+            ),
+        }),
+      )
+    },
+
+    FailedSaveSession: ({ error }) => ({
+      model,
+      commands: [LogError({ entries: ['Failed to save session:', error] })],
+    }),
+
+    FailedClearSession: ({ error }) => ({
+      model,
+      commands: [LogError({ entries: ['Failed to clear session:', error] })],
+    }),
+
+    GotLoggedOutMessage: ({ message }) => foldLoggedOut(model, message),
+
+    GotLoggedInMessage: ({ message }) => foldLoggedIn(model, message),
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
+    CompletedLogError: () => ({ model }),
+    SucceededSaveSession: () => ({ model }),
+    SucceededClearSession: () => ({ model }),
   })
-}

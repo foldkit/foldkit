@@ -60,5 +60,9 @@ export const SETTLE_BAND_PX = 80
 
 export const FLOW_STRENGTH_MIN = 0.25
 export const FLOW_STRENGTH_MAX = 3
+export const FLOW_STRENGTH_STEP = 0.05
+export const INITIAL_FLOW_STRENGTH = 1.4
 export const NOISE_SCALE_MIN_DIVISOR = 0.4
 export const NOISE_SCALE_MAX_DIVISOR = 2.4
+export const NOISE_SCALE_STEP = 0.05
+export const INITIAL_NOISE_SCALE = 1

@@ -2,10 +2,11 @@ export {
   SlowPhase,
   defaultSlowCallback,
   embed,
+  hydrate,
   makeApplication,
   makeElement,
   run,
-} from './runtime.js'
+} from './index.js'
 
 export type {
   RoutingConfig,
@@ -22,12 +23,14 @@ export type {
   RoutingApplicationInit,
   ElementInit,
   EmbedHandle,
+  HydrateOptions,
   InboundPortHandle,
   InboundPortHandles,
   OutboundPortHandle,
   OutboundPortHandles,
   PortHandles,
   MakeRuntimeReturn,
+  RunOptions,
   Visibility,
   SlowConfig,
   SlowContext,
@@ -39,6 +42,8 @@ export type {
   DevToolsConfig,
   DevToolsMode,
   DevToolsModeConfig,
-  DevToolsOverlay,
   DevToolsPosition,
-} from './runtime.js'
+  ViewTransitionConfig,
+  ViewTransitionContext,
+  ViewTransitionDecision,
+} from './index.js'

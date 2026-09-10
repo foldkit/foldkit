@@ -8,9 +8,8 @@ export const getCell = (grid: Grid, x: number, y: number): Cell =>
   grid[y]?.[x] ?? null
 
 export const createEmptyGrid = (size: number): Grid =>
-  Array.from(
-    { length: size },
-    (): ReadonlyArray<Cell> => Array.from({ length: size }, (): Cell => null),
+  Array.from({ length: size }, (): ReadonlyArray<Cell> =>
+    Array.from({ length: size }, (): Cell => null),
   )
 
 export const setPixel = (

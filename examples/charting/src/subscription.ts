@@ -1,19 +1,18 @@
-import { Effect, Option, Queue, Schema as S, Stream, pipe } from 'effect'
+import { Effect, Option, Queue, Schema, Stream, pipe } from 'effect'
 import { Subscription } from 'foldkit'
 
 import { getChart } from './chartHost'
-import { ClickedChartDatum } from './message'
-import type { Message } from './message'
+import { Message } from './message'
 import type { Model } from './model'
 
-const ChartClickPayload = S.Struct({
-  data: S.OptionFromOptional(S.Struct({ id: S.String })),
+const ChartClickPayload = Schema.Struct({
+  data: Schema.OptionFromOptional(Schema.Struct({ id: Schema.String })),
 })
 
 const chartClickToDatumId = (event: unknown): Option.Option<string> =>
   pipe(
     event,
-    S.decodeUnknownOption(ChartClickPayload),
+    Schema.decodeUnknownOption(ChartClickPayload),
     Option.flatMap(({ data }) => data),
     Option.map(({ id }) => id),
   )
@@ -33,7 +32,7 @@ const chartEvents = (hostId: string): Stream.Stream<Message> =>
             if (Option.isSome(maybeDatumId)) {
               Queue.offerUnsafe(
                 queue,
-                ClickedChartDatum({ datumId: maybeDatumId.value }),
+                Message.ClickedChartDatum({ datumId: maybeDatumId.value }),
               )
             }
           }
@@ -56,7 +55,7 @@ const chartEvents = (hostId: string): Stream.Stream<Message> =>
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   chartEvents: entry(
-    { maybeChartHostId: S.Option(S.String) },
+    { maybeChartHostId: Schema.Option(Schema.String) },
     {
       modelToDependencies: model => ({
         maybeChartHostId: model.maybeChartHostId,

@@ -3,6 +3,7 @@ export type {
   CommandDefinition,
   CommandDefinitionNoArgs,
   CommandDefinitionWithArgs,
+  InterruptOption,
 } from './index.js'
 export {
   CommandDefinitionTypeId,
@@ -11,3 +12,4 @@ export {
   mapMessage,
   mapMessages,
 } from './index.js'
+export * as Interruptible from './interruptible/public.js'

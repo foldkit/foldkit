@@ -1,10 +1,7 @@
-import { Duration, Schema as S } from 'effect'
-import { m } from 'foldkit/message'
+import { Duration, Schema } from 'effect'
+import { defineMessageUnion } from 'foldkit/message'
 
-import {
-  Message as AnimationMessage,
-  Model as AnimationModel,
-} from '../animation/schema.js'
+import * as Animation from '../animation/schema.js'
 
 // VARIANT
 
@@ -13,13 +10,13 @@ import {
  *  `data-variant` on each entry for per-variant CSS. This is the only
  *  content-adjacent field the component owns. The rest of the entry's
  *  content lives in the user-provided payload. */
-export const Variant = S.Literals(['Info', 'Success', 'Warning', 'Error'])
+export const Variant = Schema.Literals(['Info', 'Success', 'Warning', 'Error'])
 export type Variant = typeof Variant.Type
 
 // POSITION
 
 /** Where the toast viewport is anchored on the screen and how entries stack. */
-export const Position = S.Literals([
+export const Position = Schema.Literals([
   'TopLeft',
   'TopCenter',
   'TopRight',
@@ -37,14 +34,14 @@ export type Position = typeof Position.Type
  *  `variant` (for ARIA role), `animation`, `maybeDuration`,
  *  `pendingDismissVersion` (for cancellable auto-dismiss), and `isHovered`
  *  (for pause-on-hover). */
-export const makeEntry = <A, I>(payloadSchema: S.Codec<A, I>) =>
-  S.Struct({
-    id: S.String,
+export const makeEntry = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
+  Schema.Struct({
+    id: Schema.String,
     variant: Variant,
-    animation: AnimationModel,
-    maybeDuration: S.Option(S.DurationFromMillis),
-    pendingDismissVersion: S.Number,
-    isHovered: S.Boolean,
+    animation: Animation.Model,
+    maybeDuration: Schema.Option(Schema.DurationFromMillis),
+    pendingDismissVersion: Schema.Number,
+    isHovered: Schema.Boolean,
     payload: payloadSchema,
   })
 
@@ -55,74 +52,61 @@ export const makeEntry = <A, I>(payloadSchema: S.Codec<A, I>) =>
  *  state. Thread the updated model through successive `show()` calls.
  *  Calling `show()` twice against the same pre-update model in the same tick
  *  will produce duplicate entry IDs. */
-export const makeModel = <A, I>(payloadSchema: S.Codec<A, I>) =>
-  S.Struct({
-    id: S.String,
-    defaultDuration: S.DurationFromMillis,
-    entries: S.Array(makeEntry(payloadSchema)),
-    nextEntryKey: S.Number,
+export const makeModel = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
+  Schema.Struct({
+    id: Schema.String,
+    defaultDuration: Schema.DurationFromMillis,
+    entries: Schema.Array(makeEntry(payloadSchema)),
+    nextEntryKey: Schema.Number,
   })
 
 // MESSAGE
 
-/** Sent when an entry should begin dismissing. Starts the leave animation;
- *  the entry is removed from the stack when `TransitionedOut` fires. */
-export const Dismissed = m('Dismissed', { entryId: S.String })
-/** Sent when every currently-visible entry should begin dismissing. */
-export const DismissedAll = m('DismissedAll')
-/** Sent when an entry's auto-dismiss timer fires. Carries a version echoed
- *  from the scheduling moment so stale timers (from hover or manual dismiss)
- *  are discarded. */
-export const ElapsedDuration = m('ElapsedDuration', {
-  entryId: S.String,
-  version: S.Number,
-})
-/** Sent when the pointer enters an entry. Pauses the auto-dismiss timer by
- *  advancing the entry's version. */
-export const HoveredEntry = m('HoveredEntry', { entryId: S.String })
-/** Sent when the pointer leaves an entry. Restarts the auto-dismiss timer
- *  with the entry's full duration. */
-export const LeftEntry = m('LeftEntry', { entryId: S.String })
-/** Wraps a single entry's Animation submodel message for delegation. */
-export const GotAnimationMessage = m('GotAnimationMessage', {
-  entryId: S.String,
-  message: AnimationMessage,
+/** Payload-independent Message variants shared by every bound Toast module. */
+export const Message = defineMessageUnion({
+  Dismissed: { entryId: Schema.String },
+  DismissedAll: {},
+  CompletedWaitBeforeDismissal: {
+    entryId: Schema.String,
+    version: Schema.Number,
+  },
+  HoveredEntry: { entryId: Schema.String },
+  LeftEntry: { entryId: Schema.String },
+  GotAnimationMessage: {
+    entryId: Schema.String,
+    message: Animation.Message,
+  },
 })
 
-export type Dismissed = typeof Dismissed.Type
-export type DismissedAll = typeof DismissedAll.Type
-export type ElapsedDuration = typeof ElapsedDuration.Type
-export type HoveredEntry = typeof HoveredEntry.Type
-export type LeftEntry = typeof LeftEntry.Type
-export type GotAnimationMessage = typeof GotAnimationMessage.Type
-
-/** Factory for the `Added` message, which carries a fully-constructed entry
- *  whose shape depends on the user-provided payload. */
-export const makeAdded = <A, I>(payloadSchema: S.Codec<A, I>) =>
-  m('Added', { entry: makeEntry(payloadSchema) })
+export type Dismissed = typeof Message.Dismissed.Type
+export type DismissedAll = typeof Message.DismissedAll.Type
+export type CompletedWaitBeforeDismissal =
+  typeof Message.CompletedWaitBeforeDismissal.Type
+export type HoveredEntry = typeof Message.HoveredEntry.Type
+export type LeftEntry = typeof Message.LeftEntry.Type
+export type GotAnimationMessage = typeof Message.GotAnimationMessage.Type
 
 /** Factory for the union of all messages the toast component can produce. */
-export const makeMessage = <A, I>(payloadSchema: S.Codec<A, I>) =>
-  S.Union([
-    makeAdded(payloadSchema),
-    Dismissed,
-    DismissedAll,
-    ElapsedDuration,
-    HoveredEntry,
-    LeftEntry,
-    GotAnimationMessage,
-  ])
-
-/** Factory for `DismissedToast`, the OutMessage emitted once an entry has
- *  finished dismissing (leave-animation `TransitionedOut`). Carries the
- *  payload so consumers can lift the dismissal into a domain Message
- *  without looking the entry up from a stale model. */
-export const makeDismissedToast = <A, I>(payloadSchema: S.Codec<A, I>) =>
-  m('DismissedToast', { payload: payloadSchema })
+export const makeMessage = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
+  defineMessageUnion({
+    Added: { entry: makeEntry(payloadSchema) },
+    Dismissed: { entryId: Schema.String },
+    DismissedAll: {},
+    CompletedWaitBeforeDismissal: {
+      entryId: Schema.String,
+      version: Schema.Number,
+    },
+    HoveredEntry: { entryId: Schema.String },
+    LeftEntry: { entryId: Schema.String },
+    GotAnimationMessage: {
+      entryId: Schema.String,
+      message: Animation.Message,
+    },
+  })
 
 /** Factory for the union of out-messages the toast component can produce. */
-export const makeOutMessage = <A, I>(payloadSchema: S.Codec<A, I>) =>
-  S.Union([makeDismissedToast(payloadSchema)])
+export const makeOutMessage = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
+  defineMessageUnion({ DismissedToast: { payload: payloadSchema } })
 
 // INIT
 

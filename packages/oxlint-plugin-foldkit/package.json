@@ -1,33 +1,41 @@
 {
   "name": "@foldkit/oxlint-plugin",
-  "version": "0.2.0",
+  "version": "0.12.0",
   "description": "Oxlint rules for Foldkit applications",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./recommended.json": "./recommended.json",
+    "./all.json": "./all.json"
   },
   "scripts": {
-    "clean": "rimraf dist *.tsbuildinfo",
-    "build": "pnpm run clean && esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js",
+    "clean": "rimraf dist recommended.json all.json *.tsbuildinfo",
+    "build": "pnpm run clean && esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js && tsc -b tsconfig.build.json && node scripts/generate-presets.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "effect-oxlint": "^0.3.2"
+    "effect-oxlint": "^0.3.4"
   },
   "devDependencies": {
-    "effect": "4.0.0-beta.88",
-    "esbuild": "^0.28.1",
+    "@types/node": "^26.4.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "effect": "4.0.0-rc.112",
+    "esbuild": "^0.28.2",
     "rimraf": "^6.1.3",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.9"
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "vitest": "^4.1.11"
   },
   "files": [
-    "dist"
+    "dist",
+    "recommended.json",
+    "all.json"
   ],
   "keywords": [
     "foldkit",

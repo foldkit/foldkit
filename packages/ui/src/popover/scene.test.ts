@@ -1,64 +1,69 @@
-import { html } from 'foldkit/html'
+import type { HtmlBuilder } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import type { Message, Model, ViewInputs } from './index.js'
+import type { Model, ViewInputs } from './public.js'
 import {
   AnchorPopover,
-  CompletedAnchorPopover,
-  CompletedPortalPopoverBackdrop,
+  Message,
   PortalPopoverBackdrop,
-  RequestedOpen,
+  arrowId,
   buttonId,
   init,
   update,
   view,
-} from './index.js'
+} from './public.js'
 
 const acknowledgeAnchor = Scene.Mount.resolve(
   AnchorPopover,
-  CompletedAnchorPopover(),
+  Message.CompletedAnchorPopover(),
 )
 const acknowledgeBackdrop = Scene.Mount.resolve(
   PortalPopoverBackdrop,
-  CompletedPortalPopoverBackdrop(),
+  Message.CompletedPortalPopoverBackdrop(),
 )
 
 const sceneView =
   (overrides: Omit<Partial<ViewInputs>, 'toView' | 'anchor'> = {}) =>
-  (model: Model) => {
-    const h = html<Message>()
-
-    return view(model, {
-      anchor: { placement: 'bottom-start' },
-      toView: ({ button, panel, backdrop, isVisible }) =>
-        h.div(
-          [],
-          [
-            h.keyed('button')('test-button', [...button], []),
-            ...(isVisible
-              ? [
-                  h.keyed('div')('test-backdrop', [...backdrop], []),
-                  h.keyed('div')('test-panel-container', [...panel], []),
-                ]
-              : []),
-          ],
-        ),
-      ...overrides,
-    })
-  }
+  (model: Model, h: HtmlBuilder<Message>) =>
+    view(
+      model,
+      {
+        anchor: { placement: 'bottom-start' },
+        toView: ({ button, panel, backdrop, arrow, isVisible }) =>
+          h.div(
+            [],
+            [
+              h.keyed('button')('test-button', [...button]),
+              ...(isVisible
+                ? [
+                    h.keyed('div')('test-backdrop', [...backdrop]),
+                    h.keyed('div')(
+                      'test-panel-container',
+                      [...panel],
+                      [h.keyed('div')('test-arrow', [...arrow])],
+                    ),
+                  ]
+                : []),
+            ],
+          ),
+        ...overrides,
+      },
+      h,
+    )
 
 const button = Scene.selector('[key="test-button"]')
 const panel = Scene.selector('[key="test-panel-container"]')
 const backdrop = Scene.selector('[key="test-backdrop"]')
+const arrow = Scene.selector('[key="test-arrow"]')
 
 const closedModel = init({ id: 'test' })
-const [openModel] = update(init({ id: 'test' }), RequestedOpen())
-const [openContentFocusModel] = update(
+const openPopover = update(init({ id: 'test' }), Message.RequestedOpen())
+const openContentFocusPopover = update(
   init({ id: 'test', contentFocus: true }),
-  RequestedOpen(),
+  Message.RequestedOpen(),
 )
 
 describe('Popover', () => {
@@ -66,7 +71,7 @@ describe('Popover', () => {
     it('renders button with aria-expanded false when closed', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(closedModel),
+        Scene.given(closedModel),
         Scene.expect(button).toHaveAttr('aria-expanded', 'false'),
         Scene.expect(button).toHaveAttr('aria-controls', 'test-panel'),
       )
@@ -75,7 +80,7 @@ describe('Popover', () => {
     it('renders button with aria-expanded true when open', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(openModel),
+        Scene.given(openPopover.model),
         Scene.expect(button).toHaveAttr('aria-expanded', 'true'),
         acknowledgeAnchor,
         acknowledgeBackdrop,
@@ -85,7 +90,7 @@ describe('Popover', () => {
     it('renders panel when open', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(openModel),
+        Scene.given(openPopover.model),
         Scene.expect(panel).toExist(),
         Scene.expect(panel).toHaveAttr('tabIndex', '0'),
         acknowledgeAnchor,
@@ -96,7 +101,7 @@ describe('Popover', () => {
     it('does not render panel when closed', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(closedModel),
+        Scene.given(closedModel),
         Scene.expect(panel).toBeAbsent(),
       )
     })
@@ -104,7 +109,7 @@ describe('Popover', () => {
     it('renders backdrop when open', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(openModel),
+        Scene.given(openPopover.model),
         Scene.expect(backdrop).toExist(),
         acknowledgeAnchor,
         acknowledgeBackdrop,
@@ -114,7 +119,7 @@ describe('Popover', () => {
     it('does not have aria-haspopup on the button', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(closedModel),
+        Scene.given(closedModel),
         Scene.expect(button).toExist(),
         Scene.expect(button).not.toHaveAttr('aria-haspopup'),
       )
@@ -123,7 +128,7 @@ describe('Popover', () => {
     it('does not have role on the panel', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(openModel),
+        Scene.given(openPopover.model),
         Scene.expect(panel).toExist(),
         Scene.expect(panel).not.toHaveAttr('role'),
         acknowledgeAnchor,
@@ -134,7 +139,7 @@ describe('Popover', () => {
     it('adds anchor positioning styles and hooks', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(openModel),
+        Scene.given(openPopover.model),
         Scene.expect(panel).toHaveStyle('position', 'absolute'),
         Scene.expect(panel).toHaveStyle('margin', '0'),
         Scene.expect(panel).toHaveStyle('visibility', 'hidden'),
@@ -145,11 +150,55 @@ describe('Popover', () => {
       )
     })
 
+    it('emits the derived id and aria-hidden on the arrow', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.given(openPopover.model),
+        Scene.expect(arrow).toHaveAttr('id', 'test-arrow'),
+        Scene.expect(arrow).toHaveAttr('aria-hidden', 'true'),
+        acknowledgeAnchor,
+        acknowledgeBackdrop,
+      )
+    })
+
+    it('passes the arrow id to the anchor Mount', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.given(openPopover.model),
+        Scene.Mount.expectHas(
+          AnchorPopover({
+            buttonId: 'test-button',
+            anchor: { placement: 'bottom-start' },
+            arrowId: 'test-arrow',
+          }),
+        ),
+        acknowledgeAnchor,
+        acknowledgeBackdrop,
+      )
+    })
+
+    it('passes the arrow padding to the anchor Mount when given', () => {
+      Scene.scene(
+        { update, view: sceneView({ arrowPadding: 8 }) },
+        Scene.given(openPopover.model),
+        Scene.Mount.expectHas(
+          AnchorPopover({
+            buttonId: 'test-button',
+            anchor: { placement: 'bottom-start' },
+            arrowId: 'test-arrow',
+            arrowPadding: 8,
+          }),
+        ),
+        acknowledgeAnchor,
+        acknowledgeBackdrop,
+      )
+    })
+
     describe('contentFocus mode', () => {
       it('renders panel without tabindex when contentFocus is enabled', () => {
         Scene.scene(
           { update, view: sceneView() },
-          Scene.with(openContentFocusModel),
+          Scene.given(openContentFocusPopover.model),
           Scene.expect(panel).toExist(),
           Scene.expect(panel).not.toHaveAttr('tabIndex'),
           acknowledgeAnchor,
@@ -160,7 +209,7 @@ describe('Popover', () => {
       it('renders panel without blur handler when contentFocus is enabled', () => {
         Scene.scene(
           { update, view: sceneView() },
-          Scene.with(openContentFocusModel),
+          Scene.given(openContentFocusPopover.model),
           Scene.expect(panel).not.toHaveHandler('blur'),
           acknowledgeAnchor,
           acknowledgeBackdrop,
@@ -170,7 +219,7 @@ describe('Popover', () => {
       it('keeps the panel keydown handler when contentFocus is enabled', () => {
         Scene.scene(
           { update, view: sceneView() },
-          Scene.with(openContentFocusModel),
+          Scene.given(openContentFocusPopover.model),
           Scene.expect(panel).toHaveHandler('keydown'),
           acknowledgeAnchor,
           acknowledgeBackdrop,
@@ -182,7 +231,7 @@ describe('Popover', () => {
       it('no aria-label or aria-labelledby on the button by default', () => {
         Scene.scene(
           { update, view: sceneView() },
-          Scene.with(closedModel),
+          Scene.given(closedModel),
           Scene.expect(button).not.toHaveAttr('aria-label'),
           Scene.expect(button).not.toHaveAttr('aria-labelledby'),
         )
@@ -191,7 +240,7 @@ describe('Popover', () => {
       it('applies aria-label to the button when ariaLabel is provided', () => {
         Scene.scene(
           { update, view: sceneView({ ariaLabel: 'Options' }) },
-          Scene.with(closedModel),
+          Scene.given(closedModel),
           Scene.expect(button).toHaveAttr('aria-label', 'Options'),
           Scene.expect(button).not.toHaveAttr('aria-labelledby'),
         )
@@ -200,7 +249,7 @@ describe('Popover', () => {
       it('applies aria-labelledby to the button when ariaLabelledBy is provided', () => {
         Scene.scene(
           { update, view: sceneView({ ariaLabelledBy: 'options-label' }) },
-          Scene.with(closedModel),
+          Scene.given(closedModel),
           Scene.expect(button).toHaveAttr('aria-labelledby', 'options-label'),
           Scene.expect(button).not.toHaveAttr('aria-label'),
         )
@@ -215,7 +264,7 @@ describe('Popover', () => {
               ariaLabelledBy: 'options-label',
             }),
           },
-          Scene.with(closedModel),
+          Scene.given(closedModel),
           Scene.expect(button).toHaveAttr('aria-label', 'Options'),
           Scene.expect(button).not.toHaveAttr('aria-labelledby'),
         )
@@ -223,6 +272,10 @@ describe('Popover', () => {
 
       it('buttonId derives the trigger id from the base id', () => {
         expect(buttonId('test')).toBe('test-button')
+      })
+
+      it('arrowId derives the arrow id from the base id', () => {
+        expect(arrowId('test')).toBe('test-arrow')
       })
     })
   })

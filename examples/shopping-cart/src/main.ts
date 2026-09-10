@@ -1,7 +1,7 @@
-import { Effect, Match as M, Option, Schema as S } from 'effect'
-import { Command, Runtime } from 'foldkit'
-import { Document, Html, html } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { Effect, Match, Option, Schema } from 'effect'
+import { Command, Runtime, Update } from 'foldkit'
+import { Document, Html, HtmlBuilder } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { evo } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
@@ -19,54 +19,31 @@ import {
 
 // MODEL
 
-export const Model = S.Struct({
+export const Model = Schema.Struct({
   route: AppRoute,
   cart: Cart.Cart,
-  deliveryInstructions: S.String,
-  orderPlaced: S.Boolean,
+  deliveryInstructions: Schema.String,
+  orderPlaced: Schema.Boolean,
   productsPage: Products.Model,
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const CompletedNavigateInternal = m('CompletedNavigateInternal')
-export const CompletedLoadExternal = m('CompletedLoadExternal')
-export const ClickedLink = m('ClickedLink', {
-  request: UrlRequest,
+export const Message = defineMessageUnion({
+  CompletedNavigateInternal: {},
+  CompletedLoadExternal: {},
+  ClickedLink: { request: UrlRequest },
+  ChangedUrl: { url: Url },
+  GotProductsMessage: { message: Products.Message },
+  ClickedIncrementQuantity: { itemId: Schema.String },
+  ClickedDecrementQuantity: { itemId: Schema.String },
+  ClickedRemoveCartItem: { itemId: Schema.String },
+  ClickedClearCart: {},
+  UpdatedDeliveryInstructions: { value: Schema.String },
+  ClickedPlaceOrder: {},
 })
-export const ChangedUrl = m('ChangedUrl', { url: Url })
-export const GotProductsMessage = m('GotProductsMessage', {
-  message: Products.Message,
-})
-export const ClickedIncrementQuantity = m('ClickedIncrementQuantity', {
-  itemId: S.String,
-})
-export const ClickedDecrementQuantity = m('ClickedDecrementQuantity', {
-  itemId: S.String,
-})
-export const ClickedRemoveCartItem = m('ClickedRemoveCartItem', {
-  itemId: S.String,
-})
-export const ClickedClearCart = m('ClickedClearCart')
-export const UpdatedDeliveryInstructions = m('UpdatedDeliveryInstructions', {
-  value: S.String,
-})
-export const ClickedPlaceOrder = m('ClickedPlaceOrder')
 
-export const Message = S.Union([
-  CompletedNavigateInternal,
-  CompletedLoadExternal,
-  ClickedLink,
-  ChangedUrl,
-  GotProductsMessage,
-  ClickedIncrementQuantity,
-  ClickedDecrementQuantity,
-  ClickedRemoveCartItem,
-  ClickedClearCart,
-  UpdatedDeliveryInstructions,
-  ClickedPlaceOrder,
-])
 export type Message = typeof Message.Type
 
 // INIT
@@ -74,157 +51,136 @@ export type Message = typeof Message.Type
 export const init: Runtime.RoutingApplicationInit<Model, Message> = (
   url: Url,
 ) => {
-  return [
-    {
+  return {
+    model: {
       route: urlToAppRoute(url),
       cart: [],
       deliveryInstructions: '',
       orderPlaced: false,
       productsPage: Products.init(products),
     },
-    [],
-  ]
+  }
 }
 
 // COMMAND
 
-const NavigateInternal = Command.define(
-  'NavigateInternal',
-  { url: S.String },
-  CompletedNavigateInternal,
-)(({ url }) => pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())))
+const NavigateInternal = Command.define('NavigateInternal', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateInternal],
+  execute: ({ url }) =>
+    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+})
 
-const LoadExternal = Command.define(
-  'LoadExternal',
-  { href: S.String },
-  CompletedLoadExternal,
-)(({ href }) => load(href).pipe(Effect.as(CompletedLoadExternal())))
+const LoadExternal = Command.define('LoadExternal', {
+  args: { href: Schema.String },
+  messages: [Message.CompletedLoadExternal],
+  execute: ({ href }) =>
+    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+})
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
-const withUpdateReturn = M.withReturnType<UpdateReturn>()
+type UpdateReturn = Update.Return<Model, Message>
 
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    withUpdateReturn,
-    M.tagsExhaustive({
-      CompletedNavigateInternal: () => [model, []],
-      CompletedLoadExternal: () => [model, []],
-
-      ClickedLink: ({ request }) =>
-        M.value(request).pipe(
-          withUpdateReturn,
-          M.tagsExhaustive({
-            Internal: ({ url }) => [
-              model,
-              [NavigateInternal({ url: urlToString(url) })],
-            ],
-
-            External: ({ href }) => [model, [LoadExternal({ href })]],
-          }),
-        ),
-
-      ChangedUrl: ({ url }) => [
-        evo(model, {
-          route: () => urlToAppRoute(url),
-        }),
-        [],
-      ],
-
-      GotProductsMessage: ({ message }) => {
-        const [nextProductsModel, commands, maybeOutMessage] = Products.update(
-          model.productsPage,
-          message,
-        )
-        const mappedCommands = Command.mapMessages(commands, message =>
-          GotProductsMessage({ message }),
-        )
-        return Option.match(maybeOutMessage, {
-          onNone: (): UpdateReturn => [
-            evo(model, { productsPage: () => nextProductsModel }),
-            mappedCommands,
-          ],
-          onSome: M.type<Products.OutMessage>().pipe(
-            withUpdateReturn,
-            M.tagsExhaustive({
-              AddedToCart: ({ item }) => [
-                evo(model, {
-                  productsPage: () => nextProductsModel,
-                  cart: Cart.addItem(item),
-                }),
-                mappedCommands,
-              ],
-              IncrementedQuantity: ({ itemId }) => [
-                evo(model, {
-                  productsPage: () => nextProductsModel,
-                  cart: Cart.incrementQuantity(itemId),
-                }),
-                mappedCommands,
-              ],
-              DecrementedQuantity: ({ itemId }) => [
-                evo(model, {
-                  productsPage: () => nextProductsModel,
-                  cart: Cart.decrementQuantity(itemId),
-                }),
-                mappedCommands,
-              ],
-            }),
-          ),
-        })
-      },
-
-      ClickedIncrementQuantity: ({ itemId }) => [
-        evo(model, {
-          cart: Cart.incrementQuantity(itemId),
-        }),
-        [],
-      ],
-
-      ClickedDecrementQuantity: ({ itemId }) => [
-        evo(model, {
-          cart: Cart.decrementQuantity(itemId),
-        }),
-        [],
-      ],
-
-      ClickedRemoveCartItem: ({ itemId }) => [
-        evo(model, {
-          cart: Cart.removeItem(itemId),
-        }),
-        [],
-      ],
-
-      ClickedClearCart: () => [
-        evo(model, {
-          cart: () => [],
-        }),
-        [],
-      ],
-
-      UpdatedDeliveryInstructions: ({ value }) => [
-        evo(model, {
-          deliveryInstructions: () => value,
-        }),
-        [],
-      ],
-
-      ClickedPlaceOrder: () => [
-        evo(model, {
-          orderPlaced: () => true,
-          cart: () => [],
-          deliveryInstructions: () => '',
-        }),
-        [],
-      ],
+const foldProductsOutMessage = Products.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  AddedToCart:
+    ({ item }) =>
+    model => ({ model: evo(model, { cart: Cart.addItem(item) }) }),
+  IncrementedQuantity:
+    ({ itemId }) =>
+    model => ({
+      model: evo(model, { cart: Cart.incrementQuantity(itemId) }),
     }),
-  )
+  DecrementedQuantity:
+    ({ itemId }) =>
+    model => ({
+      model: evo(model, { cart: Cart.decrementQuantity(itemId) }),
+    }),
+})
+
+const foldProducts = Update.foldChild({
+  update: Products.update,
+  read: (model: Model) => Option.some(model.productsPage),
+  write: (model, nextProductsPage) =>
+    evo(model, { productsPage: () => nextProductsPage }),
+  toParentMessage: message => Message.GotProductsMessage({ message }),
+  foldOutMessage: foldProductsOutMessage,
+})
+
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
+
+    ClickedLink: ({ request }) =>
+      UrlRequest.match<UpdateReturn>(request, {
+        Internal: ({ url }) => ({
+          model,
+          commands: [NavigateInternal({ url: urlToString(url) })],
+        }),
+
+        External: ({ href }) => ({
+          model,
+          commands: [LoadExternal({ href })],
+        }),
+      }),
+
+    ChangedUrl: ({ url }) => ({
+      model: evo(model, {
+        route: () => urlToAppRoute(url),
+      }),
+    }),
+
+    GotProductsMessage: ({ message }) => foldProducts(model, message),
+
+    ClickedIncrementQuantity: ({ itemId }) => ({
+      model: evo(model, {
+        cart: Cart.incrementQuantity(itemId),
+      }),
+    }),
+
+    ClickedDecrementQuantity: ({ itemId }) => ({
+      model: evo(model, {
+        cart: Cart.decrementQuantity(itemId),
+      }),
+    }),
+
+    ClickedRemoveCartItem: ({ itemId }) => ({
+      model: evo(model, {
+        cart: Cart.removeItem(itemId),
+      }),
+    }),
+
+    ClickedClearCart: () => ({
+      model: evo(model, {
+        cart: () => [],
+      }),
+    }),
+
+    UpdatedDeliveryInstructions: ({ value }) => ({
+      model: evo(model, {
+        deliveryInstructions: () => value,
+      }),
+    }),
+
+    ClickedPlaceOrder: () => ({
+      model: evo(model, {
+        orderPlaced: () => true,
+        cart: () => [],
+        deliveryInstructions: () => '',
+      }),
+    }),
+  })
 
 // VIEW
 
-const navigationView = (currentRoute: AppRoute, cartCount: number): Html => {
-  const h = html<Message>()
-
+const navigationView = (
+  currentRoute: AppRoute,
+  cartCount: number,
+  h: HtmlBuilder<Message>,
+): Html => {
   const navLinkClassName = (isActive: boolean) =>
     `hover:bg-blue-600 font-medium px-3 py-1 rounded transition ${isActive ? 'bg-blue-700 bg-opacity-50' : ''}`
 
@@ -276,33 +232,23 @@ const navigationView = (currentRoute: AppRoute, cartCount: number): Html => {
   )
 }
 
-const productsView = (model: Model): Html => {
-  const h = html<Message>()
-  return h.submodel({
+const productsView = (model: Model, h: HtmlBuilder<Message>): Html =>
+  h.submodel({
     slotId: 'products',
     model: model.productsPage,
     view: Products.view,
     viewInputs: { cart: model.cart },
-    toParentMessage: message => GotProductsMessage({ message }),
+    toParentMessage: message => Message.GotProductsMessage({ message }),
   })
-}
 
-const cartView = (model: Model): Html => {
-  return CartPage.view(model.cart)
-}
+const cartView = (model: Model, h: HtmlBuilder<Message>): Html =>
+  CartPage.view(model.cart, h)
 
-const checkoutView = (model: Model): Html => {
-  return Checkout.view(
-    model.cart,
-    model.deliveryInstructions,
-    model.orderPlaced,
-  )
-}
+const checkoutView = (model: Model, h: HtmlBuilder<Message>): Html =>
+  Checkout.view(model.cart, model.deliveryInstructions, model.orderPlaced, h)
 
-const notFoundView = (path: string): Html => {
-  const h = html<Message>()
-
-  return h.div(
+const notFoundView = (path: string, h: HtmlBuilder<Message>): Html =>
+  h.div(
     [h.Class('max-w-4xl mx-auto px-4 text-center')],
     [
       h.h1(
@@ -322,25 +268,20 @@ const notFoundView = (path: string): Html => {
       ),
     ],
   )
-}
 
 const routeTitle = (route: Model['route']): string =>
-  M.value(route).pipe(
-    M.tag('Products', () => 'Shopping Cart'),
-    M.orElse(({ _tag }) => `${_tag} | Shopping Cart`),
+  Match.value(route).pipe(
+    Match.tag('Products', () => 'Shopping Cart'),
+    Match.orElse(({ _tag }) => `${_tag} | Shopping Cart`),
   )
 
-export const view = (model: Model): Document => {
-  const h = html<Message>()
-
-  const routeContent = M.value(model.route).pipe(
-    M.tagsExhaustive({
-      Products: () => productsView(model),
-      Cart: () => cartView(model),
-      Checkout: () => checkoutView(model),
-      NotFound: ({ path }) => notFoundView(path),
-    }),
-  )
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+  const routeContent = AppRoute.match(model.route, {
+    Products: () => productsView(model, h),
+    Cart: () => cartView(model, h),
+    Checkout: () => checkoutView(model, h),
+    NotFound: ({ path }) => notFoundView(path, h),
+  })
 
   return {
     title: routeTitle(model.route),
@@ -349,12 +290,9 @@ export const view = (model: Model): Document => {
       [
         h.header(
           [],
-          [navigationView(model.route, Cart.totalItems(model.cart))],
+          [navigationView(model.route, Cart.totalItems(model.cart), h)],
         ),
-        h.main(
-          [h.Class('py-8')],
-          [h.keyed('div')(model.route._tag, [], [routeContent])],
-        ),
+        h.main([h.Class('py-8')], [routeContent]),
       ],
     ),
   }

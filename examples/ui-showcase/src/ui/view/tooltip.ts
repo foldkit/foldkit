@@ -1,14 +1,10 @@
 import { Submodel } from 'foldkit'
-import { Html, html } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 
 import { Tooltip } from '@foldkit/ui'
 import type { AnchorConfig } from '@foldkit/ui/tooltip'
 
-import {
-  GotTooltipBasicDemoMessage,
-  GotTooltipNoDelayDemoMessage,
-  type UiMessage,
-} from '../message'
+import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 
 const triggerClassName =
@@ -25,102 +21,103 @@ const TOOLTIP_ANCHOR: AnchorConfig = {
   padding: 8,
 }
 
-export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
-  const h = html<UiMessage>()
+export const view = Submodel.defineView<UiModel, UiMessage>(
+  (model, h): Html => {
+    return h.div(
+      [],
+      [
+        h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Tooltip']),
 
-  return h.div(
-    [],
-    [
-      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Tooltip']),
+        h.h3(
+          [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+          ['Basic'],
+        ),
+        h.label(
+          [
+            h.For(Tooltip.triggerId(model.tooltipBasicDemo.id)),
+            h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+          ],
+          ['Tooltip trigger'],
+        ),
+        h.div(
+          [h.Class('relative')],
+          [
+            h.submodel({
+              slotId: model.tooltipBasicDemo.id,
+              model: model.tooltipBasicDemo,
+              view: Tooltip.view,
+              viewInputs: {
+                anchor: TOOLTIP_ANCHOR,
+                toView: ({ trigger, panel, isVisible }) =>
+                  h.div(
+                    [h.Class(wrapperClassName)],
+                    [
+                      h.button(
+                        [...trigger, h.Class(triggerClassName)],
+                        [h.span([], ['Hover or focus me'])],
+                      ),
+                      ...(isVisible
+                        ? [
+                            h.div(
+                              [...panel, h.Class(panelClassName)],
+                              [h.span([], ['This is a tooltip'])],
+                            ),
+                          ]
+                        : []),
+                    ],
+                  ),
+              },
+              toParentMessage: message =>
+                UiMessage.GotTooltipBasicDemoMessage({ message }),
+            }),
+          ],
+        ),
 
-      h.h3(
-        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
-        ['Basic'],
-      ),
-      h.label(
-        [
-          h.For(Tooltip.triggerId(model.tooltipBasicDemo.id)),
-          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
-        ],
-        ['Tooltip trigger'],
-      ),
-      h.div(
-        [h.Class('relative')],
-        [
-          h.submodel({
-            slotId: model.tooltipBasicDemo.id,
-            model: model.tooltipBasicDemo,
-            view: Tooltip.view,
-            viewInputs: {
-              anchor: TOOLTIP_ANCHOR,
-              toView: ({ trigger, panel, isVisible }) =>
-                h.div(
-                  [h.Class(wrapperClassName)],
-                  [
-                    h.button(
-                      [...trigger, h.Class(triggerClassName)],
-                      [h.span([], ['Hover or focus me'])],
-                    ),
-                    ...(isVisible
-                      ? [
-                          h.div(
-                            [...panel, h.Class(panelClassName)],
-                            [h.span([], ['This is a tooltip'])],
-                          ),
-                        ]
-                      : []),
-                  ],
-                ),
-            },
-            toParentMessage: message => GotTooltipBasicDemoMessage({ message }),
-          }),
-        ],
-      ),
-
-      h.h3(
-        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
-        ['No delay'],
-      ),
-      h.label(
-        [
-          h.For(Tooltip.triggerId(model.tooltipNoDelayDemo.id)),
-          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
-        ],
-        ['Tooltip trigger'],
-      ),
-      h.div(
-        [h.Class('relative')],
-        [
-          h.submodel({
-            slotId: model.tooltipNoDelayDemo.id,
-            model: model.tooltipNoDelayDemo,
-            view: Tooltip.view,
-            viewInputs: {
-              anchor: TOOLTIP_ANCHOR,
-              toView: ({ trigger, panel, isVisible }) =>
-                h.div(
-                  [h.Class(wrapperClassName)],
-                  [
-                    h.button(
-                      [...trigger, h.Class(triggerClassName)],
-                      [h.span([], ['No delay'])],
-                    ),
-                    ...(isVisible
-                      ? [
-                          h.div(
-                            [...panel, h.Class(panelClassName)],
-                            [h.span([], ['Shows immediately'])],
-                          ),
-                        ]
-                      : []),
-                  ],
-                ),
-            },
-            toParentMessage: message =>
-              GotTooltipNoDelayDemoMessage({ message }),
-          }),
-        ],
-      ),
-    ],
-  )
-})
+        h.h3(
+          [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+          ['No delay'],
+        ),
+        h.label(
+          [
+            h.For(Tooltip.triggerId(model.tooltipNoDelayDemo.id)),
+            h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+          ],
+          ['Tooltip trigger'],
+        ),
+        h.div(
+          [h.Class('relative')],
+          [
+            h.submodel({
+              slotId: model.tooltipNoDelayDemo.id,
+              model: model.tooltipNoDelayDemo,
+              view: Tooltip.view,
+              viewInputs: {
+                anchor: TOOLTIP_ANCHOR,
+                toView: ({ trigger, panel, isVisible }) =>
+                  h.div(
+                    [h.Class(wrapperClassName)],
+                    [
+                      h.button(
+                        [...trigger, h.Class(triggerClassName)],
+                        [h.span([], ['No delay'])],
+                      ),
+                      ...(isVisible
+                        ? [
+                            h.div(
+                              [...panel, h.Class(panelClassName)],
+                              [h.span([], ['Shows immediately'])],
+                            ),
+                          ]
+                        : []),
+                    ],
+                  ),
+              },
+              toParentMessage: message =>
+                UiMessage.GotTooltipNoDelayDemoMessage({ message }),
+            }),
+          ],
+        ),
+      ],
+    )
+  },
+)

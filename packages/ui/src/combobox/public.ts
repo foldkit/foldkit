@@ -5,24 +5,20 @@ export { inputId } from './shared.js'
 export {
   Message,
   OutMessage,
-  Selected,
-  SelectedItem,
-  CompletedLockScroll,
-  CompletedUnlockScroll,
-  CompletedInertOthers,
-  CompletedRestoreInert,
-  CompletedFocusInput,
-  CompletedScrollIntoView,
-  CompletedClickItem,
-  CompletedAnchorCombobox,
-  CompletedAttachComboboxPreventBlur,
-  CompletedAttachComboboxSelectOnFocus,
-  CompletedPortalComboboxBackdrop,
+  type Selected,
+  type ClearedSelection,
+  type SelectedItem,
+  type CompletedLockScroll,
+  type CompletedUnlockScroll,
+  type CompletedInertOthers,
+  type CompletedRestoreInert,
+  type CompletedFocusInput,
+  type CompletedScrollIntoView,
+  type CompletedClickItem,
   AnchorCombobox,
   AttachComboboxPreventBlur,
   AttachComboboxSelectOnFocus,
   PortalComboboxBackdrop,
-  GotAnimationMessage,
   LockScroll,
   UnlockScroll,
   InertOthers,
@@ -31,25 +27,27 @@ export {
   ScrollIntoView,
   ClickItem,
   DetectMovementOrAnimationEnd,
+  type Opened,
+  type Closed,
+  type BlurredInput,
+  type ActivatedItem,
+  type DeactivatedItem,
+  type MovedPointerOverItem,
+  type RequestedItemClick,
+  type SuppressedItemCommit,
+  type UpdatedInputValue,
+  type PressedToggleButton,
 } from './shared.js'
 
 export type {
   ActivationTrigger,
-  Opened,
-  Closed,
-  BlurredInput,
-  ActivatedItem,
-  DeactivatedItem,
-  MovedPointerOverItem,
-  RequestedItemClick,
-  UpdatedInputValue,
-  PressedToggleButton,
   ItemConfig,
   GroupHeading,
+  BaseViewInputsCommon,
 } from './shared.js'
 
-export type { InitConfig, ViewInputs } from './single.js'
+export type { Bundle, InitConfig, ViewInputs } from './single.js'
 
-export type { AnchorConfig } from '../anchor.js'
+export type { AnchorConfig } from '../anchor/index.js'
 
 export * as Multi from './multiPublic.js'

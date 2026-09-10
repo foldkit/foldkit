@@ -1,7 +1,8 @@
-import { Option, String as String_ } from 'effect'
+import { Option, String } from 'effect'
 
+import { serializedStylePropertyName } from '../domReflection.js'
 import type { VNode } from '../vdom.js'
-import { attr, textContent } from './query.js'
+import { attr, isHidden, textContent } from './query.js'
 
 type MatcherContext = Readonly<{ isNot: boolean }>
 
@@ -158,7 +159,9 @@ export const sceneMatchers = {
             : `Expected element to have style ${name}="${expectedValue}" but the element does not exist.`,
       }),
       onSome: vnode => {
-        const maybeActualValue = Option.fromNullishOr(vnode.data?.style?.[name])
+        const maybeActualValue = Option.fromNullishOr(
+          vnode.data?.style?.[serializedStylePropertyName(name)],
+        )
 
         if (expectedValue === undefined) {
           return {
@@ -178,7 +181,7 @@ export const sceneMatchers = {
               `Expected element to have style ${name}="${expectedValue}" but the style is not present.`,
           }),
           onSome: actualValue => {
-            const actual = String(actualValue)
+            const actual = globalThis.String(actualValue)
             return {
               pass: actual === expectedValue,
               message: () =>
@@ -321,8 +324,8 @@ export const sceneMatchers = {
       onSome: vnode => {
         const childCount = (vnode.children ?? []).length
         const text = textContent(vnode)
-        const pass = String_.isEmpty(text) && childCount === 0
-        const actual: string = String_.isNonEmpty(text)
+        const pass = String.isEmpty(text) && childCount === 0
+        const actual: string = String.isNonEmpty(text)
           ? `received text "${text}"`
           : `received ${childCount} child(ren)`
         return {
@@ -345,21 +348,8 @@ export const sceneMatchers = {
           'Expected element to be visible but the element does not exist.',
       }),
       onSome: vnode => {
-        const hiddenAttr = attr(vnode, 'hidden')
-        const hiddenByAttr =
-          Option.isSome(hiddenAttr) && hiddenAttr.value !== 'false'
-        const ariaHidden = attr(vnode, 'aria-hidden')
-        const hiddenByAria =
-          Option.isSome(ariaHidden) && ariaHidden.value === 'true'
-        const display = vnode.data?.style?.['display']
-        const visibility = vnode.data?.style?.['visibility']
-        const isHidden =
-          hiddenByAttr ||
-          hiddenByAria ||
-          display === 'none' ||
-          visibility === 'hidden'
         return {
-          pass: !isHidden,
+          pass: !isHidden(vnode),
           message: () =>
             // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             (this as unknown as MatcherContext).isNot

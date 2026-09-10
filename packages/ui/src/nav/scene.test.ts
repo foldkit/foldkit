@@ -1,6 +1,7 @@
-import { Schema as S } from 'effect'
-import { html } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { Schema } from 'effect'
+import { type Update } from 'foldkit'
+import type { HtmlBuilder } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import * as Scene from 'foldkit/scene'
 import { evo } from 'foldkit/struct'
 
@@ -8,27 +9,30 @@ import { describe, it } from '@effect/vitest'
 
 import { view } from './index.js'
 
-const Section = S.Literals(['Dashboard', 'Projects', 'Settings'])
+const Section = Schema.Literals(['Dashboard', 'Projects', 'Settings'])
 type Section = typeof Section.Type
 
 const sections: ReadonlyArray<Section> = ['Dashboard', 'Projects', 'Settings']
 
-const Model = S.Struct({ current: Section })
+const Model = Schema.Struct({ current: Section })
 type Model = typeof Model.Type
 
-const ClickedSection = m('ClickedSection', { section: Section })
-type Message = typeof ClickedSection.Type
+const Message = defineMessageUnion({
+  ClickedSection: { section: Section },
+})
 
-const update = (model: Model, message: Message): readonly [Model, []] => [
-  evo(model, { current: () => message.section }),
-  [],
-]
+type Message = typeof Message.Type
+
+const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ClickedSection: ({ section }) => ({
+      model: evo(model, { current: () => section }),
+    }),
+  })
 
 const sectionToHref = (section: Section): string => `#${section.toLowerCase()}`
 
-const sceneView = (model: Model) => {
-  const h = html<Message>()
-
+const sceneView = (model: Model, h: HtmlBuilder<Message>) => {
   return view<Section>({
     items: sections,
     ariaLabel: 'Primary',
@@ -39,7 +43,10 @@ const sceneView = (model: Model) => {
         nav,
         items.map(item =>
           h.a(
-            [...item.link, h.OnClick(ClickedSection({ section: item.value }))],
+            [
+              ...item.link,
+              h.OnClick(Message.ClickedSection({ section: item.value })),
+            ],
             [item.value],
           ),
         ),
@@ -59,7 +66,7 @@ describe('Nav', () => {
     it('renders a nav landmark labelled by ariaLabel', () => {
       Scene.scene(
         { update, view: sceneView },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.expect(navLandmark).toExist(),
         Scene.expect(navLandmark).toHaveAttr('aria-label', 'Primary'),
       )
@@ -68,7 +75,7 @@ describe('Nav', () => {
     it('renders one link per item with its href and label', () => {
       Scene.scene(
         { update, view: sceneView },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.expect(dashboardLink).toHaveText('Dashboard'),
         Scene.expect(projectsLink).toHaveText('Projects'),
         Scene.expect(settingsLink).toHaveText('Settings'),
@@ -80,7 +87,7 @@ describe('Nav', () => {
     it('marks the current link with aria-current="page" and data-current', () => {
       Scene.scene(
         { update, view: sceneView },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.expect(dashboardLink).toHaveAttr('aria-current', 'page'),
         Scene.expect(dashboardLink).toHaveAttr('data-current'),
       )
@@ -89,7 +96,7 @@ describe('Nav', () => {
     it('leaves non-current links without aria-current or data-current', () => {
       Scene.scene(
         { update, view: sceneView },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.expect(projectsLink).not.toHaveAttr('aria-current'),
         Scene.expect(projectsLink).not.toHaveAttr('data-current'),
         Scene.expect(settingsLink).not.toHaveAttr('aria-current'),
@@ -99,7 +106,7 @@ describe('Nav', () => {
     it('moves aria-current to the newly current link', () => {
       Scene.scene(
         { update, view: sceneView },
-        Scene.with(initialModel),
+        Scene.given(initialModel),
         Scene.click(projectsLink),
         Scene.expect(projectsLink).toHaveAttr('aria-current', 'page'),
         Scene.expect(dashboardLink).not.toHaveAttr('aria-current'),

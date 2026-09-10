@@ -1,0 +1,19 @@
+{
+  "name": "@foldkit/api-reference-generator",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "generate": "node generate.mjs",
+    "generate:foldkit": "node generate.mjs foldkit",
+    "generate:ui": "node generate.mjs ui",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@foldkit/ui": "workspace:*",
+    "@types/node": "^26.4.0",
+    "foldkit": "workspace:*",
+    "typedoc": "^0.28.20",
+    "typescript": "6.0.3"
+  }
+}

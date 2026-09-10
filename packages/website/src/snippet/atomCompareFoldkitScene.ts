@@ -1,17 +1,23 @@
-import { Scene } from 'foldkit'
+import {
+  Command,
+  click,
+  expect,
+  given,
+  inside,
+  role,
+  scene,
+  text,
+} from 'foldkit/scene'
 import { test } from 'vitest'
 
 test('click load, resolve the fetch, see the profile', () => {
-  Scene.scene(
+  scene(
     { update, view },
-    Scene.with(model),
-    Scene.click(Scene.role('button', { name: 'Load user' })),
-    Scene.expect(Scene.text('Loading…')).toExist(),
-    Scene.Command.expectExact(FetchUser),
-    Scene.Command.resolve(FetchUser, SucceededLoadUser({ user: ada })),
-    Scene.inside(
-      Scene.role('article'),
-      Scene.expect(Scene.text('Ada Lovelace')).toExist(),
-    ),
+    given(model),
+    click(role('button', { name: 'Load user' })),
+    expect(text('Loading…')).toExist(),
+    Command.expectExact(FetchUser),
+    Command.resolve(FetchUser, SucceededLoadUser({ user: ada })),
+    inside(role('article'), expect(text('Ada Lovelace')).toExist()),
   )
 })

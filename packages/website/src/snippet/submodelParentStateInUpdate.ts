@@ -1,42 +1,44 @@
-import { Match as M } from 'effect'
-import type { Command } from 'foldkit'
+import { Option } from 'effect'
+import { Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
-import type { User } from '../user'
-import { type Message, PersistSettings } from './message'
-import type { Model } from './model'
+import { Message } from '../../message'
+import type { Model as AppModel } from '../../model'
+import { PersistSettings, Message as SettingsMessage } from './message'
+import type { Model as SettingsModel } from './model'
+import type { User } from './user'
 
-// The Context shape is declared by the child. The parent assembles it
-// inline when delegating in its own update handler.
 type Context = Readonly<{
   currentUser: User
 }>
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
-
-// The child's update grows a third `context` argument carrying the
-// parent state it needs.
 export const update = (
-  model: Model,
-  message: Message,
+  model: SettingsModel,
+  message: SettingsMessage,
   context: Context,
-): UpdateReturn =>
-  M.value(message).pipe(
-    M.withReturnType<UpdateReturn>(),
-    M.tagsExhaustive({
-      ChangedTheme: ({ theme }) => [
-        evo(model, { theme: () => theme }),
-        [PersistSettings({ userId: context.currentUser.id, theme })],
-      ],
+) =>
+  SettingsMessage.match<Update.Return<SettingsModel, SettingsMessage>>(
+    message,
+    {
+      ChangedTheme: ({ theme }) => ({
+        model: evo(model, { theme: () => theme }),
+        commands: [PersistSettings({ userId: context.currentUser.id, theme })],
+      }),
       // ...other arms
-    }),
+    },
   )
 
-// Inside the parent's update handler, assemble the context from the
-// parent Model and pass it through to the child's update:
-GotSettingsMessage: ({ message }) => {
-  const [nextSettings, commands] = Settings.update(model.settings, message, {
-    currentUser: model.currentUser,
+// PARENT UPDATE
+
+const foldSettings = (currentUser: User) =>
+  Update.foldChild({
+    update: (settings: SettingsModel, message: SettingsMessage) =>
+      update(settings, message, { currentUser }),
+    read: (model: AppModel) => Option.some(model.settings),
+    write: (model, nextSettings) =>
+      evo(model, { settings: () => nextSettings }),
+    toParentMessage: message => Message.GotSettingsMessage({ message }),
   })
-  // ...usual wrapping of `commands`
-}
+
+GotSettingsMessage: ({ message }) =>
+  foldSettings(model.currentUser)(model, message)

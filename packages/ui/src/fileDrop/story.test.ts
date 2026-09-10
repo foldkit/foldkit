@@ -4,21 +4,12 @@ import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import {
-  DroppedFiles,
-  DroppedNonFiles,
-  EnteredDragZone,
-  LeftDragZone,
-  ReceivedFiles,
-  RejectedNonFiles,
-  init,
-  update,
-} from './index.js'
+import { Message, OutMessage, init, update } from './index.js'
 
 const makeFile = (name: string, type = 'application/pdf'): File =>
   new globalThis.File(['content'], name, { type })
 
-const withInitial = Story.with(init({ id: 'test' }))
+const givenInitial = Story.given(init({ id: 'test' }))
 
 describe('FileDrop', () => {
   describe('init', () => {
@@ -34,8 +25,8 @@ describe('FileDrop', () => {
       it('sets isDragOver to true', () => {
         Story.story(
           update,
-          withInitial,
-          Story.message(EnteredDragZone()),
+          givenInitial,
+          Story.message(Message.EnteredDragZone()),
           Story.model(model => {
             expect(model.isDragOver).toBe(true)
           }),
@@ -48,9 +39,9 @@ describe('FileDrop', () => {
       it('sets isDragOver to false', () => {
         Story.story(
           update,
-          withInitial,
-          Story.message(EnteredDragZone()),
-          Story.message(LeftDragZone()),
+          givenInitial,
+          Story.message(Message.EnteredDragZone()),
+          Story.message(Message.LeftDragZone()),
           Story.model(model => {
             expect(model.isDragOver).toBe(false)
           }),
@@ -64,9 +55,9 @@ describe('FileDrop', () => {
         const file = makeFile('resume.pdf')
         Story.story(
           update,
-          withInitial,
-          Story.message(DroppedFiles({ files: [file] })),
-          Story.expectOutMessage(ReceivedFiles({ files: [file] })),
+          givenInitial,
+          Story.message(Message.DroppedFiles({ files: [file] })),
+          Story.expectOutMessage(OutMessage.ReceivedFiles({ files: [file] })),
         )
       })
 
@@ -74,9 +65,9 @@ describe('FileDrop', () => {
         const file = makeFile('resume.pdf')
         Story.story(
           update,
-          withInitial,
-          Story.message(EnteredDragZone()),
-          Story.message(DroppedFiles({ files: [file] })),
+          givenInitial,
+          Story.message(Message.EnteredDragZone()),
+          Story.message(Message.DroppedFiles({ files: [file] })),
           Story.model(model => {
             expect(model.isDragOver).toBe(false)
           }),
@@ -91,9 +82,9 @@ describe('FileDrop', () => {
         )
         Story.story(
           update,
-          withInitial,
-          Story.message(DroppedFiles({ files })),
-          Story.expectOutMessage(ReceivedFiles({ files })),
+          givenInitial,
+          Story.message(Message.DroppedFiles({ files })),
+          Story.expectOutMessage(OutMessage.ReceivedFiles({ files })),
         )
       })
     })
@@ -102,18 +93,18 @@ describe('FileDrop', () => {
       it('emits RejectedNonFiles as an OutMessage', () => {
         Story.story(
           update,
-          withInitial,
-          Story.message(DroppedNonFiles()),
-          Story.expectOutMessage(RejectedNonFiles()),
+          givenInitial,
+          Story.message(Message.DroppedNonFiles()),
+          Story.expectOutMessage(OutMessage.RejectedNonFiles()),
         )
       })
 
       it('resets isDragOver to false', () => {
         Story.story(
           update,
-          withInitial,
-          Story.message(EnteredDragZone()),
-          Story.message(DroppedNonFiles()),
+          givenInitial,
+          Story.message(Message.EnteredDragZone()),
+          Story.message(Message.DroppedNonFiles()),
           Story.model(model => {
             expect(model.isDragOver).toBe(false)
           }),

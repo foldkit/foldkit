@@ -1,7 +1,7 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 import { CustomElement } from 'foldkit'
-import { type Html, html } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import type { Html, HtmlBuilder } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import 'vanilla-colorful/hex-color-picker.js'
 
 import '@shoelace-style/shoelace/dist/components/qr-code/qr-code.js'
@@ -19,45 +19,44 @@ import '@shoelace-style/shoelace/dist/components/qr-code/qr-code.js'
 const hexColorPicker = CustomElement.define({
   tag: 'hex-color-picker',
   properties: {
-    color: S.String,
+    color: Schema.String,
   },
   events: {
-    'color-changed': S.Struct({ value: S.String }),
+    'color-changed': Schema.Struct({ value: Schema.String }),
   },
 })
 
 const qrCode = CustomElement.define({
   tag: 'sl-qr-code',
   properties: {
-    value: S.String,
-    fill: S.String,
-    background: S.String,
-    size: S.Number,
+    value: Schema.String,
+    fill: Schema.String,
+    background: Schema.String,
+    size: Schema.Number,
   },
   events: {},
 })
 
-// Mint typed builders for your Message universe (mirrors
-// `M.withReturnType<T>()`).
-
-const ChangedFillColor = m('ChangedFillColor', { value: S.String })
-
-const Message = S.Union([ChangedFillColor])
+const Message = defineMessageUnion({
+  ChangedFillColor: { value: Schema.String },
+})
 type Message = typeof Message.Type
 
-const fillPicker = hexColorPicker.withMessage<Message>()
-const qr = qrCode.withMessage<Message>()
-
+// Inside a view, mint typed builders with `withMessage(h)`. The view's
+// builder fixes the Message universe, so the elements' event factories can
+// only produce Messages the surrounding frame dispatches.
+//
 // Use the builders inline next to standard elements. Property factories
 // write JS properties through Snabbdom's propsModule. Event factories
 // convert kebab-case CustomEvents into Messages. The picker and the QR
 // never talk directly; they share state through the Model.
 
-export const designerView = (model: {
-  content: string
-  fillColor: string
-}): Html => {
-  const h = html<Message>()
+export const designerView = (
+  model: { content: string; fillColor: string },
+  h: HtmlBuilder<Message>,
+): Html => {
+  const fillPicker = hexColorPicker.withMessage(h)
+  const qr = qrCode.withMessage(h)
 
   return h.div(
     [h.Class('flex gap-6')],
@@ -65,7 +64,7 @@ export const designerView = (model: {
       fillPicker([
         fillPicker.Color(model.fillColor),
         fillPicker.OnColorChanged(detail =>
-          ChangedFillColor({ value: detail.value }),
+          Message.ChangedFillColor({ value: detail.value }),
         ),
       ]),
       qr([

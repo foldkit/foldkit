@@ -1,4 +1,16 @@
 import { Context, Effect } from 'effect'
+import { afterEach, beforeEach, expect, vi } from 'vitest'
+
+import { describe, it } from '@effect/vitest'
+
+import {
+  __htmlBuilder,
+  __clearRuntime as clearHtmlRuntime,
+  __setRuntime as setHtmlRuntime,
+} from '../html/index.js'
+import { MountTracker } from '../mount/index.js'
+import { propsModule } from '../propsModule.js'
+import { Dispatch } from '../runtime/index.js'
 import {
   attributesModule,
   classModule,
@@ -7,18 +19,7 @@ import {
   init,
   styleModule,
   toVNode,
-} from 'snabbdom'
-import { afterEach, beforeEach, expect, vi } from 'vitest'
-
-import { describe, it } from '@effect/vitest'
-
-import {
-  __clearRuntime as clearHtmlRuntime,
-  __setRuntime as setHtmlRuntime,
-} from '../html/index.js'
-import { MountTracker } from '../mount/index.js'
-import { propsModule } from '../propsModule.js'
-import { Dispatch } from '../runtime/index.js'
+} from '../snabbdom/index.js'
 import type { VNode } from '../vdom.js'
 import { Circle, Rect } from './shape.js'
 import { view } from './view.js'
@@ -31,6 +32,10 @@ const patch = init([
   propsModule,
   styleModule,
 ])
+
+type CanvasTestMessage = Readonly<{ _tag: 'ClickedCanvas' }>
+
+const h = __htmlBuilder<CanvasTestMessage>()
 
 const createCapturingDispatch = () => {
   const dispatched: Array<unknown> = []
@@ -128,11 +133,14 @@ describe('Canvas.view', () => {
     const { dispatch } = createCapturingDispatch()
     const vnode = renderView(
       () =>
-        view({
-          width: 400,
-          height: 300,
-          shapes: [],
-        }),
+        view(
+          {
+            width: 400,
+            height: 300,
+            shapes: [],
+          },
+          h,
+        ),
       dispatch,
     )
     expect(vnode.sel).toBe('canvas')
@@ -144,11 +152,16 @@ describe('Canvas.view', () => {
     const { dispatch } = createCapturingDispatch()
     const vnode = renderView(
       () =>
-        view({
-          width: 100,
-          height: 100,
-          shapes: [Rect({ x: 0, y: 0, width: 100, height: 100, fill: 'red' })],
-        }),
+        view(
+          {
+            width: 100,
+            height: 100,
+            shapes: [
+              Rect({ x: 0, y: 0, width: 100, height: 100, fill: 'red' }),
+            ],
+          },
+          h,
+        ),
       dispatch,
     )
     const container = document.createElement('div')
@@ -165,11 +178,14 @@ describe('Canvas.view', () => {
     const { dispatch } = createCapturingDispatch()
     const initialVNode = renderView(
       () =>
-        view({
-          width: 100,
-          height: 100,
-          shapes: [Rect({ x: 0, y: 0, width: 10, height: 10, fill: 'red' })],
-        }),
+        view(
+          {
+            width: 100,
+            height: 100,
+            shapes: [Rect({ x: 0, y: 0, width: 10, height: 10, fill: 'red' })],
+          },
+          h,
+        ),
       dispatch,
     )
     const container = document.createElement('div')
@@ -184,14 +200,17 @@ describe('Canvas.view', () => {
 
     const nextVNode = renderView(
       () =>
-        view({
-          width: 100,
-          height: 100,
-          shapes: [
-            Rect({ x: 0, y: 0, width: 10, height: 10, fill: 'red' }),
-            Circle({ x: 50, y: 50, radius: 25, fill: 'blue' }),
-          ],
-        }),
+        view(
+          {
+            width: 100,
+            height: 100,
+            shapes: [
+              Rect({ x: 0, y: 0, width: 10, height: 10, fill: 'red' }),
+              Circle({ x: 50, y: 50, radius: 25, fill: 'blue' }),
+            ],
+          },
+          h,
+        ),
       dispatch,
     )
     patch(inserted, nextVNode)
@@ -209,12 +228,15 @@ describe('Canvas.view', () => {
     const { dispatch } = createCapturingDispatch()
     const vnode = renderView(
       () =>
-        view({
-          width: 100,
-          height: 100,
-          shapes: [],
-          className: 'rounded shadow',
-        }),
+        view(
+          {
+            width: 100,
+            height: 100,
+            shapes: [],
+            className: 'rounded shadow',
+          },
+          h,
+        ),
       dispatch,
     )
     expect(vnode.data?.class).toEqual({ rounded: true, shadow: true })
@@ -222,15 +244,20 @@ describe('Canvas.view', () => {
 
   it('wires pointer event listeners only when handlers are provided', () => {
     const { dispatch } = createCapturingDispatch()
-    const onPointerDown = vi.fn(() => ({ _tag: 'ClickedCanvas' }))
+    const onPointerDown = vi.fn((): CanvasTestMessage => ({
+      _tag: 'ClickedCanvas',
+    }))
     const vnode = renderView(
       () =>
-        view({
-          width: 100,
-          height: 100,
-          shapes: [],
-          onPointerDown,
-        }),
+        view(
+          {
+            width: 100,
+            height: 100,
+            shapes: [],
+            onPointerDown,
+          },
+          h,
+        ),
       dispatch,
     )
     expect(vnode.data?.on?.pointerdown).toBeDefined()
@@ -242,11 +269,14 @@ describe('Canvas.view', () => {
     const { dispatch } = createCapturingDispatch()
     const vnode = renderView(
       () =>
-        view({
-          width: 100,
-          height: 100,
-          shapes: [],
-        }),
+        view(
+          {
+            width: 100,
+            height: 100,
+            shapes: [],
+          },
+          h,
+        ),
       dispatch,
     )
     expect(vnode.data?.class).toBeUndefined()

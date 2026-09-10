@@ -1,5 +1,12 @@
 export const overlayStyles = `:host {
-  position: relative;
+  /* The host spans the viewport so it has real bounds to snapshot: it carries a
+     \`view-transition-name\` (set in \`overlay.ts\`, see the note there) to stay
+     out of an application's View Transitions, and a name on a zero-size element
+     captures nothing. The box itself is inert; the panels inside opt back into
+     hit-testing through \`.fixed\`. */
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
   z-index: 2147483647;
 
   --dt-bg: #1e1e2e;
@@ -37,11 +44,27 @@ ul {
   list-style: none;
 }
 
+/* The host is \`pointer-events: none\` so its viewport-spanning box cannot
+   swallow clicks meant for the application, and everything the shadow root
+   renders opts back in here. The boundary is the shadow root's children rather
+   than any one panel class: content arrives by routes a class list does not
+   cover, including the portal root \`@foldkit/ui\` prepends for anchored
+   dropdowns, and a surface that misses the opt-in is silently unclickable.
+   These wrappers are zero-height, so granting them hit-testing costs nothing;
+   descendants that must stay transparent, like the listbox backdrop, set
+   \`pointer-events: none\` on themselves. */
+:host > * {
+  pointer-events: auto;
+}
+
 .fixed {
   position: fixed;
 }
 .flex {
   display: flex;
+}
+.contents {
+  display: contents;
 }
 .flex-col {
   flex-direction: column;

@@ -1,123 +1,147 @@
-import { Story } from 'foldkit'
+import { Command, given, message, model, story } from 'foldkit/story'
+import { evo } from 'foldkit/struct'
 import { expect, test } from 'vitest'
 
+import { RadioGroup } from '@foldkit/ui'
+
 import { FetchTelemetry, SyncChart } from './command'
-import { loadingModel, readyModel, sampleTelemetry } from './main.fixtures'
 import {
-  ClickedChartDatum,
-  ClickedRefresh,
-  CompletedSyncChart,
-  FailedFetchTelemetry,
-  SelectedChartMode,
-  SelectedPackage,
-  SucceededFetchTelemetry,
-  SucceededMountChart,
-} from './message'
-import { TelemetryRefreshing } from './model'
+  type ChartMode,
+  type PackageId,
+  chartModes,
+  packageIds,
+} from './domain'
+import { loadingModel, readyModel, sampleTelemetry } from './main.fixture'
+import { Message } from './message'
+import { TelemetryAsyncData } from './model'
 import { update } from './update'
 
+const selectedChartMode = (chartMode: ChartMode) =>
+  Message.GotChartModeRadioGroupMessage({
+    message: RadioGroup.Message.SelectedOption({
+      index: chartModes.indexOf(chartMode),
+      value: chartMode,
+    }),
+  })
+
+const selectedPackage = (packageId: PackageId) =>
+  Message.GotPackageRadioGroupMessage({
+    message: RadioGroup.Message.SelectedOption({
+      index: packageIds.indexOf(packageId),
+      value: packageId,
+    }),
+  })
+
+const resolveChartModeFocus = Command.resolve(
+  RadioGroup.FocusOption,
+  RadioGroup.Message.CompletedFocusOption(),
+)
+
 test('mounting the chart syncs current telemetry into ECharts', () => {
-  Story.story(
+  story(
     update,
-    Story.with(readyModel),
-    Story.message(SucceededMountChart({ hostId: 'chart-host' })),
-    Story.Command.expectHas(SyncChart),
-    Story.Command.resolve(SyncChart, CompletedSyncChart()),
+    given(readyModel),
+    message(Message.SucceededMountChart({ hostId: 'chart-host' })),
+    Command.expectHas(SyncChart),
+    Command.resolve(SyncChart, Message.SucceededSyncChart()),
   )
 })
 
 test('selecting a chart mode clears selected datum and syncs the chart', () => {
-  Story.story(
+  story(
     update,
-    Story.with(readyModel),
-    Story.message(
-      ClickedChartDatum({ datumId: 'Velocity:Commits:2026-06-15' }),
+    given(readyModel),
+    message(
+      Message.ClickedChartDatum({ datumId: 'Velocity:Commits:2026-06-15' }),
     ),
-    Story.Command.resolve(SyncChart, CompletedSyncChart()),
-    Story.message(SelectedChartMode({ chartMode: 'Velocity' })),
-    Story.model(model => {
+    Command.resolve(SyncChart, Message.SucceededSyncChart()),
+    message(selectedChartMode('Velocity')),
+    resolveChartModeFocus,
+    model(model => {
       expect(model.chartMode).toBe('Velocity')
       expect(model.maybeSelectedDatumId._tag).toBe('None')
     }),
-    Story.Command.expectHas(SyncChart),
-    Story.Command.resolve(SyncChart, CompletedSyncChart()),
+    Command.expectHas(SyncChart),
+    Command.resolve(SyncChart, Message.SucceededSyncChart()),
   )
 })
 
 test('selecting a package syncs the selected package into the chart', () => {
-  Story.story(
+  story(
     update,
-    Story.with(readyModel),
-    Story.message(SelectedPackage({ packageId: 'Ui' })),
-    Story.model(model => {
+    given(readyModel),
+    message(selectedPackage('Ui')),
+    resolveChartModeFocus,
+    model(model => {
       expect(model.selectedPackageId).toBe('Ui')
     }),
-    Story.Command.expectHas(SyncChart),
-    Story.Command.resolve(SyncChart, CompletedSyncChart()),
+    Command.expectHas(SyncChart),
+    Command.resolve(SyncChart, Message.SucceededSyncChart()),
   )
 })
 
 test('refreshing with data keeps the old dashboard while fetching', () => {
-  Story.story(
+  story(
     update,
-    Story.with(readyModel),
-    Story.message(ClickedRefresh()),
-    Story.model(model => {
-      expect(model.telemetry._tag).toBe('TelemetryRefreshing')
-      if (model.telemetry._tag === 'TelemetryRefreshing') {
+    given(readyModel),
+    message(Message.ClickedRefresh()),
+    model(model => {
+      expect(model.telemetry._tag).toBe('Refreshing')
+      if (model.telemetry._tag === 'Refreshing') {
         expect(model.telemetry.data.repository.stars).toBe(342)
       }
     }),
-    Story.Command.expectHas(FetchTelemetry),
-    Story.Command.resolve(
+    Command.expectHas(FetchTelemetry),
+    Command.resolve(
       FetchTelemetry,
-      FailedFetchTelemetry({ error: 'Test cleanup' }),
+      Message.FailedFetchTelemetry({ error: 'Test cleanup' }),
     ),
   )
 })
 
-test('a failed refresh preserves stale data in the failure state', () => {
-  Story.story(
+test('a failed refresh preserves stale data in the stale state', () => {
+  story(
     update,
-    Story.with({
-      ...readyModel,
-      telemetry: TelemetryRefreshing({ data: sampleTelemetry }),
-    }),
-    Story.message(FailedFetchTelemetry({ error: 'rate limited' })),
-    Story.model(model => {
-      expect(model.telemetry._tag).toBe('TelemetryFailure')
-      if (model.telemetry._tag === 'TelemetryFailure') {
+    given(
+      evo(readyModel, {
+        telemetry: () =>
+          TelemetryAsyncData.Refreshing({ data: sampleTelemetry }),
+      }),
+    ),
+    message(Message.FailedFetchTelemetry({ error: 'rate limited' })),
+    model(model => {
+      expect(model.telemetry._tag).toBe('Stale')
+      if (model.telemetry._tag === 'Stale') {
         expect(model.telemetry.error).toBe('rate limited')
-        expect(model.telemetry.maybeData._tag).toBe('Some')
+        expect(model.telemetry.data.repository.stars).toBe(342)
       }
     }),
   )
 })
 
 test('failed fetch transitions to failure without stale data when loading', () => {
-  Story.story(
+  story(
     update,
-    Story.with(loadingModel),
-    Story.message(FailedFetchTelemetry({ error: 'offline' })),
-    Story.model(model => {
-      expect(model.telemetry._tag).toBe('TelemetryFailure')
-      if (model.telemetry._tag === 'TelemetryFailure') {
+    given(loadingModel),
+    message(Message.FailedFetchTelemetry({ error: 'offline' })),
+    model(model => {
+      expect(model.telemetry._tag).toBe('Failure')
+      if (model.telemetry._tag === 'Failure') {
         expect(model.telemetry.error).toBe('offline')
-        expect(model.telemetry.maybeData._tag).toBe('None')
       }
     }),
   )
 })
 
 test('successful fetch stores data and syncs when mounted', () => {
-  Story.story(
+  story(
     update,
-    Story.with(readyModel),
-    Story.message(SucceededFetchTelemetry({ telemetry: sampleTelemetry })),
-    Story.model(model => {
-      expect(model.telemetry._tag).toBe('TelemetryOk')
+    given(readyModel),
+    message(Message.SucceededFetchTelemetry({ telemetry: sampleTelemetry })),
+    model(model => {
+      expect(model.telemetry._tag).toBe('Success')
     }),
-    Story.Command.expectHas(SyncChart),
-    Story.Command.resolve(SyncChart, CompletedSyncChart()),
+    Command.expectHas(SyncChart),
+    Command.resolve(SyncChart, Message.SucceededSyncChart()),
   )
 })

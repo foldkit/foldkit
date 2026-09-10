@@ -30,7 +30,7 @@ Create a single local commit for Foldkit changes. Do not push.
 Concise description of the change.
 ```
 
-Use `patch` for bug fixes, docs, internal refactors, and metadata changes. Use `minor` for new features, non-breaking API additions, and breaking changes while the project is pre-1.0. Do not use `major`.
+Use an empty changeset, a file holding only the two frontmatter delimiters, for an internal change with no user-facing effect, such as a pure refactor, a move between modules that leaves the published surface and behavior unchanged, or a test-only change. It satisfies `changeset status` without adding a release entry. Use `patch` for bug fixes, docs, and metadata changes. Use `minor` for new features, non-breaking API additions, and breaking changes while the project is pre-1.0. Do not use `major`.
 
 For breaking changes, include a brief migration note in the changeset description.
 

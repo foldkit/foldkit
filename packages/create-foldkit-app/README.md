@@ -1,6 +1,6 @@
 # create-foldkit-app
 
-Scaffolding CLI for new Foldkit applications. Creates a ready-to-run project with Vite, Tailwind CSS, TypeScript, [`@foldkit/vite-plugin`](https://www.npmjs.com/package/@foldkit/vite-plugin) for state-preserving live reload, and your choice of starter example.
+Scaffolding CLI for new Foldkit applications. Creates a ready-to-run project with Vite, Tailwind CSS, TypeScript, [`@foldkit/vite-plugin`](https://www.npmjs.com/package/@foldkit/vite-plugin) for state-preserving live reload, your choice of rendering mode, and a starter example for SPA scaffolds.
 
 ## Usage
 
@@ -14,7 +14,17 @@ yarn create foldkit-app
 bun create foldkit-app
 ```
 
-The CLI prompts you for a project name, starter example, and package manager. Pass `--name`, `--example`, and/or `--package-manager` to skip the matching prompts.
+The CLI prompts you for a project name, rendering mode, starter example, and package manager. Pass `--name`, `--rendering`, `--example`, and/or `--package-manager` to skip the matching prompts.
+
+## Rendering
+
+| Mode  | Description                                                                                                                                                                                  |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spa` | Render entirely in the browser. Starts from your choice of starter example below.                                                                                                            |
+| `ssg` | Prerender routes to static HTML at build time, then hydrate in the browser. Scaffolds a small routed app with a server entry. One `vite build` writes every route.                           |
+| `ssr` | Render each request, then hydrate in the browser. Scaffolds a counter whose Flags come from the request. One `vite build` emits a Web `fetch` handler; `start` runs `node scripts/serve.ts`. |
+
+The starter examples apply to `spa` rendering. The `ssg` and `ssr` modes scaffold their own starter apps.
 
 ## Examples
 
@@ -32,12 +42,14 @@ The CLI prompts you for a project name, starter example, and package manager. Pa
 | `api-cache`              | Query caching in the Model with stale-while-revalidate, request deduplication, and interval refetching |
 | `charting`               | Live GitHub and npm telemetry rendered through an ECharts Mount adapter                                |
 | `routing`                | URL routing with parser combinators and route parameters                                               |
+| `upload`                 | Simulated file uploads with cancellable, restartable interruptible Commands                            |
 | `query-sync`             | URL-driven filtering, sorting, and search with query parameters                                        |
 | `snake`                  | Classic game built with Subscriptions                                                                  |
 | `canvas-art`             | Declarative 2D canvas with shapes, animation-frame Subscriptions, and pointer events                   |
 | `generative-art`         | Perlin-noise flow field with evolving particle trails, mouse vortex, and high-frequency Messages       |
 | `auth`                   | Authentication with Submodels, OutMessage, and protected routes                                        |
 | `shopping-cart`          | Complex state management with nested Models and routing                                                |
+| `state-machine`          | Experimental state machine checkout with guarded branches and edge Commands                            |
 | `pixel-art`              | Pixel editor with undo/redo, UI components, and localStorage persistence                               |
 | `websocket-chat`         | Managed resources with WebSocket integration                                                           |
 | `managed-resource-layer` | Layer-backed ManagedResource lifecycle with an Effect service                                          |

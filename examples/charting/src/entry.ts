@@ -1,7 +1,5 @@
 import { Runtime } from 'foldkit'
 
-import { overlay } from '@foldkit/devtools'
-
 import { registerEcharts } from './echarts'
 import { init } from './init'
 import { Message } from './message'
@@ -20,7 +18,6 @@ const application = Runtime.makeApplication({
   subscriptions,
   container: document.getElementById('root'),
   devTools: {
-    overlay,
     Message,
   },
 })

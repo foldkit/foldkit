@@ -12,6 +12,7 @@ import {
   bestPracticesSideEffectsRouter,
   comingFromReactRouter,
   comingFromTanStackQueryRouter,
+  contentApiRouter,
   coreArchitectureRouter,
   coreCanvasRouter,
   coreCommandsRouter,
@@ -23,7 +24,9 @@ import {
   coreEmbeddingRouter,
   coreFileRouter,
   coreFreezeModelRouter,
+  coreHttpRouter,
   coreInitAndFlagsRouter,
+  coreMachineRouter,
   coreManagedResourcesRouter,
   coreMessagesRouter,
   coreModelRouter,
@@ -32,19 +35,20 @@ import {
   coreRenderRouter,
   coreResourcesRouter,
   coreRuntimeRouter,
+  coreServerRenderingRouter,
   coreSlowWarningsRouter,
   coreSubmodelRouter,
   coreSubscriptionsRouter,
   coreUpdateRouter,
   coreViewMemoizationRouter,
   coreViewRouter,
+  coreViewTransitionsRouter,
   effectAtomComparisonRouter,
   elmComparisonRouter,
   exampleDetailRouter,
   examplesRouter,
   fieldValidationRouter,
-  gettingStartedRouter,
-  manifestoRouter,
+  getStartedRouter,
   patternsInformingSubmodelsRouter,
   patternsSubscriptionOrganizationRouter,
   performanceRouter,
@@ -57,6 +61,7 @@ import {
   testingStoryRouter,
   toolingLintingRouter,
   typingTerminalRouter,
+  uiAnchorRouter,
   uiAnimationRouter,
   uiButtonRouter,
   uiCalendarRouter,
@@ -68,6 +73,7 @@ import {
   uiDragAndDropRouter,
   uiFieldsetRouter,
   uiFileDropRouter,
+  uiHoverIntentRouter,
   uiInputRouter,
   uiListboxRouter,
   uiMenuRouter,
@@ -84,8 +90,7 @@ import {
   uiToastRouter,
   uiTooltipRouter,
   uiVirtualListRouter,
-  whatAboutSsrRouter,
-  whyNoJsxRouter,
+  whyFoldkitRouter,
 } from './route'
 import { type GroupKey } from './sidebarStorage'
 
@@ -130,21 +135,22 @@ export type DocsSection = Readonly<{
   pageGroups: ReadonlyArray<ReadonlyArray<NavPage>>
 }>
 
+export const getStartedPage: NavPage = {
+  _tag: 'GetStarted',
+  href: getStartedRouter(),
+  label: 'Get Started',
+}
+
 export const docsSections: ReadonlyArray<DocsSection> = [
   {
-    key: 'getStarted',
-    label: 'Get Started',
+    key: 'introduction',
+    label: 'Introduction',
     pageGroups: [
       [
         {
-          _tag: 'Manifesto',
-          href: manifestoRouter(),
-          label: 'Manifesto',
-        },
-        {
-          _tag: 'GettingStarted',
-          href: gettingStartedRouter(),
-          label: 'Getting Started',
+          _tag: 'WhyFoldkit',
+          href: whyFoldkitRouter(),
+          label: 'Why Foldkit',
         },
         {
           _tag: 'Roadmap',
@@ -156,7 +162,7 @@ export const docsSections: ReadonlyArray<DocsSection> = [
   },
   {
     key: 'coreConcepts',
-    label: 'Core Concepts',
+    label: 'Core',
     pageGroups: [
       [
         {
@@ -219,6 +225,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           label: 'Runtime',
         },
         {
+          _tag: 'CoreServerRendering',
+          href: coreServerRenderingRouter(),
+          label: 'Server Rendering',
+        },
+        {
           _tag: 'CoreEmbedding',
           href: coreEmbeddingRouter(),
           label: 'Embedding',
@@ -227,6 +238,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'RoutingAndNavigation',
           href: routingAndNavigationRouter(),
           label: 'Routing & Navigation',
+        },
+        {
+          _tag: 'CoreViewTransitions',
+          href: coreViewTransitionsRouter(),
+          label: 'View Transitions',
         },
       ],
       [
@@ -261,6 +277,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           label: 'File',
         },
         {
+          _tag: 'CoreHttp',
+          href: coreHttpRouter(),
+          label: 'Http',
+        },
+        {
           _tag: 'FieldValidation',
           href: fieldValidationRouter(),
           label: 'Field Validation',
@@ -269,6 +290,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'AsyncData',
           href: asyncDataRouter(),
           label: 'Async Data',
+        },
+        {
+          _tag: 'CoreMachine',
+          href: coreMachineRouter(),
+          label: 'Machine',
         },
       ],
       [
@@ -398,16 +424,6 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     pageGroups: [
       [
         {
-          _tag: 'WhyNoJsx',
-          href: whyNoJsxRouter(),
-          label: 'Why no JSX?',
-        },
-        {
-          _tag: 'WhatAboutSsr',
-          href: whatAboutSsrRouter(),
-          label: 'What about SSR?',
-        },
-        {
           _tag: 'Performance',
           href: performanceRouter(),
           label: 'Performance',
@@ -512,6 +528,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           label: 'Tooltip',
         },
         {
+          _tag: 'UiHoverIntent',
+          href: uiHoverIntentRouter(),
+          label: 'Hover Intent',
+        },
+        {
           _tag: 'UiToast',
           href: uiToastRouter(),
           label: 'Toast',
@@ -559,6 +580,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           label: 'Animation',
         },
         {
+          _tag: 'UiAnchor',
+          href: uiAnchorRouter(),
+          label: 'Anchor',
+        },
+        {
           _tag: 'UiVirtualList',
           href: uiVirtualListRouter(),
           label: 'Virtual List',
@@ -585,6 +611,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'AiMcp',
           href: aiMcpRouter(),
           label: 'DevTools MCP',
+        },
+        {
+          _tag: 'ContentApi',
+          href: contentApiRouter(),
+          label: 'Content API',
         },
       ],
     ],
@@ -667,10 +698,10 @@ export const docsSections: ReadonlyArray<DocsSection> = [
 
 // FLAT PAGE LIST
 
-export const allPages: ReadonlyArray<NavPage> = Array.flatMap(
-  docsSections,
-  ({ pageGroups }) => Array.flatten(pageGroups),
-)
+export const allPages: ReadonlyArray<NavPage> = [
+  getStartedPage,
+  ...Array.flatMap(docsSections, ({ pageGroups }) => Array.flatten(pageGroups)),
+]
 
 // NEXT / PREV LOOKUP
 
@@ -699,10 +730,14 @@ export const findActiveSectionKey = (
   routeTag: string,
   maybeExampleSlug: Option.Option<string>,
 ): Option.Option<GroupKey> => {
-  // NOTE: ApiModule pages aren't in docsSections; their apiReference group is
+  // NOTE: ApiModule and Blog pages aren't in docsSections. Their groups are
   // rendered separately, so map them explicitly.
   if (routeTag === 'ApiModule') {
     return Option.some('apiReference')
+  }
+
+  if (routeTag === 'Blog' || routeTag === 'BlogPost') {
+    return Option.some('blog')
   }
   return pipe(
     docsSections,

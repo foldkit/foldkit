@@ -1,4 +1,5 @@
 node_modules
+.pnpm-store/
 dist
 coverage
 *.tsbuildinfo
@@ -6,10 +7,17 @@ coverage
 *.cpuprofile
 .vercel
 **/.claude/*
-!/.claude/commands/
+!/.claude/skills/
 !/.claude/settings.json
 packages/website/src/generated/
+packages/website/public/fonts/ABCFavorit-Book.woff2
+packages/website/public/fonts/ABCFavorit-Light.woff2
+packages/oxlint-plugin-foldkit/recommended.json
+packages/oxlint-plugin-foldkit/all.json
 .playwright-mcp/
 playwright-report/
 test-results/
 .DS_Store
+
+# Build output written by the vite-plugin build tests
+dist-test

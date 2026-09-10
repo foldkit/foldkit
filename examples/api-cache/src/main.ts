@@ -4,15 +4,15 @@ import {
   Duration,
   Effect,
   HashMap,
-  Match as M,
+  Match,
   Option,
-  Schema as S,
+  Schema,
   Stream,
   pipe,
 } from 'effect'
-import { AsyncData, Command, Runtime, Subscription } from 'foldkit'
-import { Document, Html, html } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { AsyncData, Command, Runtime, Subscription, Update } from 'foldkit'
+import { Document, Html, HtmlBuilder } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Button, Tabs } from '@foldkit/ui'
@@ -32,94 +32,79 @@ export const TABS_ID = 'api-cache-tabs'
 
 // MODEL
 
-const FetchedPosts = S.Struct({ posts: S.Array(Post), fetchedAt: S.Number })
-
-const FetchedPostDetail = S.Struct({
-  detail: PostDetail,
-  fetchedAt: S.Number,
+const FetchedPosts = Schema.Struct({
+  posts: Schema.Array(Post),
+  fetchedAt: Schema.Number,
 })
 
-const FetchedStats = S.Struct({ stats: Stats, fetchedAt: S.Number })
+const FetchedPostDetail = Schema.Struct({
+  detail: PostDetail,
+  fetchedAt: Schema.Number,
+})
 
-export const PostsData = AsyncData.Schema(FetchedPosts, S.String)
-export const PostDetailData = AsyncData.Schema(FetchedPostDetail, S.String)
-export const StatsData = AsyncData.Schema(FetchedStats, S.String)
+const FetchedStats = Schema.Struct({ stats: Stats, fetchedAt: Schema.Number })
+
+export const PostsData = AsyncData.Schema(FetchedPosts, Schema.String)
+export const PostDetailData = AsyncData.Schema(FetchedPostDetail, Schema.String)
+export const StatsData = AsyncData.Schema(FetchedStats, Schema.String)
 
 type PostsData = typeof PostsData.schema.Type
 type PostDetailData = typeof PostDetailData.schema.Type
 type StatsData = typeof StatsData.schema.Type
 
-const Tab = S.Literals(['Posts', 'Stats'])
+const Tab = Schema.Literals(['Posts', 'Stats'])
 type Tab = typeof Tab.Type
 
 const tabValues: ReadonlyArray<Tab> = Tab.literals
 
 export const AppTabs = Tabs.create<Tab>()
 
-export const Model = S.Struct({
+export const Model = Schema.Struct({
   tabs: Tabs.Model,
   activeTab: Tab,
   posts: PostsData.schema,
-  postDetailById: S.HashMap(S.String, PostDetailData.schema),
-  maybeSelectedPostId: S.Option(S.String),
+  postDetailById: Schema.HashMap(Schema.String, PostDetailData.schema),
+  maybeSelectedPostId: Schema.Option(Schema.String),
   stats: StatsData.schema,
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const GotTabsMessage = m('GotTabsMessage', { message: Tabs.Message })
-export const ClickedPost = m('ClickedPost', { postId: S.String })
-export const ClickedBackToPosts = m('ClickedBackToPosts')
-export const ClickedInvalidatePosts = m('ClickedInvalidatePosts')
-export const ClickedRetryPosts = m('ClickedRetryPosts')
-export const ClickedRetryPostDetail = m('ClickedRetryPostDetail', {
-  postId: S.String,
-})
-export const ClickedRefreshStats = m('ClickedRefreshStats')
-export const ClickedRetryStats = m('ClickedRetryStats')
-export const TickedRevalidateStats = m('TickedRevalidateStats')
-export const SettledFetchPosts = m('SettledFetchPosts', {
-  result: S.Result(FetchedPosts, S.String),
-})
-export const SettledFetchPostDetail = m('SettledFetchPostDetail', {
-  postId: S.String,
-  result: S.Result(FetchedPostDetail, S.String),
-})
-export const SettledFetchStats = m('SettledFetchStats', {
-  result: S.Result(FetchedStats, S.String),
+export const Message = defineMessageUnion({
+  GotTabsMessage: { message: Tabs.Message },
+  ClickedPost: { postId: Schema.String },
+  ClickedBackToPosts: {},
+  ClickedInvalidatePosts: {},
+  ClickedRetryPosts: {},
+  ClickedRetryPostDetail: { postId: Schema.String },
+  ClickedRefreshStats: {},
+  ClickedRetryStats: {},
+  TickedRevalidateStats: {},
+  SettledFetchPosts: { result: Schema.Result(FetchedPosts, Schema.String) },
+  SettledFetchPostDetail: {
+    postId: Schema.String,
+    result: Schema.Result(FetchedPostDetail, Schema.String),
+  },
+  SettledFetchStats: { result: Schema.Result(FetchedStats, Schema.String) },
 })
 
-export const Message = S.Union([
-  GotTabsMessage,
-  ClickedPost,
-  ClickedBackToPosts,
-  ClickedInvalidatePosts,
-  ClickedRetryPosts,
-  ClickedRetryPostDetail,
-  ClickedRefreshStats,
-  ClickedRetryStats,
-  TickedRevalidateStats,
-  SettledFetchPosts,
-  SettledFetchPostDetail,
-  SettledFetchStats,
-])
 export type Message = typeof Message.Type
 
 // UPDATE
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+type UpdateReturn = Update.Return<Model, Message>
 
 const applyPostsTransition = (
   model: Model,
   maybeNextPosts: Option.Option<PostsData>,
 ): UpdateReturn =>
   Option.match(maybeNextPosts, {
-    onNone: () => [model, []],
-    onSome: nextPosts => [
-      evo(model, { posts: () => nextPosts }),
-      [FetchPosts()],
-    ],
+    onNone: () => ({ model }),
+    onSome: nextPosts => ({
+      model: evo(model, { posts: () => nextPosts }),
+      commands: [FetchPosts()],
+    }),
   })
 
 const applyStatsTransition = (
@@ -127,11 +112,11 @@ const applyStatsTransition = (
   maybeNextStats: Option.Option<StatsData>,
 ): UpdateReturn =>
   Option.match(maybeNextStats, {
-    onNone: () => [model, []],
-    onSome: nextStats => [
-      evo(model, { stats: () => nextStats }),
-      [FetchStats()],
-    ],
+    onNone: () => ({ model }),
+    onSome: nextStats => ({
+      model: evo(model, { stats: () => nextStats }),
+      commands: [FetchStats()],
+    }),
   })
 
 const setPostDetail = (postId: string, postDetail: PostDetailData) =>
@@ -140,130 +125,107 @@ const setPostDetail = (postId: string, postDetail: PostDetailData) =>
 const activateTab = (model: Model, tab: Tab): UpdateReturn => {
   const modelWithActiveTab = evo(model, { activeTab: () => tab })
 
-  return M.value(tab).pipe(
-    M.withReturnType<UpdateReturn>(),
-    M.when('Posts', () =>
-      AsyncData.isIdle(modelWithActiveTab.posts)
-        ? [
-            evo(modelWithActiveTab, { posts: () => PostsData.Loading() }),
-            [FetchPosts()],
-          ]
-        : [modelWithActiveTab, []],
+  return Match.value(tab).pipe(
+    Match.withReturnType<UpdateReturn>(),
+    Match.when('Posts', () =>
+      applyPostsTransition(
+        modelWithActiveTab,
+        AsyncData.loadIfMissing(modelWithActiveTab.posts),
+      ),
     ),
-    M.when('Stats', () =>
-      AsyncData.isIdle(modelWithActiveTab.stats)
-        ? [
-            evo(modelWithActiveTab, { stats: () => StatsData.Loading() }),
-            [FetchStats()],
-          ]
-        : [modelWithActiveTab, []],
+    Match.when('Stats', () =>
+      applyStatsTransition(
+        modelWithActiveTab,
+        AsyncData.loadIfMissing(modelWithActiveTab.stats),
+      ),
     ),
-    M.exhaustive,
+    Match.exhaustive,
   )
 }
 
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    M.withReturnType<UpdateReturn>(),
-    M.tagsExhaustive({
-      GotTabsMessage: ({ message }) => {
-        const [nextTabs, tabsCommands, maybeOutMessage] = AppTabs.update(
-          model.tabs,
-          message,
-        )
+const foldTabsOutMessage = Tabs.OutMessage.match<
+  Update.Step<Model, Message>,
+  Tabs.OutMessage<Tab>
+>({
+  Selected:
+    ({ value }) =>
+    model =>
+      activateTab(model, value),
+})
 
-        const tabsModel = evo(model, { tabs: () => nextTabs })
-        const mappedCommands = Command.mapMessages(tabsCommands, message =>
-          GotTabsMessage({ message }),
-        )
+const foldTabs = Update.foldChild({
+  update: AppTabs.update,
+  read: (model: Model) => Option.some(model.tabs),
+  write: (model, nextTabs) => evo(model, { tabs: () => nextTabs }),
+  toParentMessage: message => Message.GotTabsMessage({ message }),
+  foldOutMessage: foldTabsOutMessage,
+})
 
-        return Option.match(maybeOutMessage, {
-          onNone: () => [tabsModel, mappedCommands],
-          onSome: M.type<Tabs.OutMessage<Tab>>().pipe(
-            M.withReturnType<UpdateReturn>(),
-            M.tagsExhaustive({
-              Selected: ({ value }) => {
-                const [activatedModel, activationCommands] = activateTab(
-                  tabsModel,
-                  value,
-                )
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    GotTabsMessage: ({ message }) => foldTabs(model, message),
 
-                return [
-                  activatedModel,
-                  Array.appendAll(mappedCommands, activationCommands),
-                ]
-              },
-            }),
-          ),
-        })
-      },
+    ClickedPost: ({ postId }) => {
+      const selectedModel = evo(model, {
+        maybeSelectedPostId: () => Option.some(postId),
+      })
 
-      ClickedPost: ({ postId }) => {
-        const selectedModel = evo(model, {
-          maybeSelectedPostId: () => Option.some(postId),
-        })
-
-        return Option.match(HashMap.get(model.postDetailById, postId), {
-          onNone: () => [
-            evo(selectedModel, {
-              postDetailById: setPostDetail(postId, PostDetailData.Loading()),
-            }),
-            [FetchPostDetail({ postId })],
-          ],
-          onSome: () => [selectedModel, []],
-        })
-      },
-
-      ClickedBackToPosts: () => [
-        evo(model, { maybeSelectedPostId: () => Option.none() }),
-        [],
-      ],
-
-      ClickedInvalidatePosts: () =>
-        applyPostsTransition(model, AsyncData.revalidateOrLoad(model.posts)),
-
-      ClickedRetryPosts: () =>
-        applyPostsTransition(model, AsyncData.revalidateOrLoad(model.posts)),
-
-      ClickedRetryPostDetail: ({ postId }) => [
-        evo(model, {
-          postDetailById: setPostDetail(postId, PostDetailData.Loading()),
+      return Option.match(HashMap.get(model.postDetailById, postId), {
+        onNone: () => ({
+          model: evo(selectedModel, {
+            postDetailById: setPostDetail(postId, PostDetailData.Loading()),
+          }),
+          commands: [FetchPostDetail({ postId })],
         }),
-        [FetchPostDetail({ postId })],
-      ],
+        onSome: () => ({ model: selectedModel }),
+      })
+    },
 
-      ClickedRefreshStats: () =>
-        applyStatsTransition(model, AsyncData.revalidateOrLoad(model.stats)),
-
-      ClickedRetryStats: () =>
-        applyStatsTransition(model, AsyncData.revalidateOrLoad(model.stats)),
-
-      TickedRevalidateStats: () =>
-        applyStatsTransition(model, AsyncData.revalidate(model.stats)),
-
-      SettledFetchPosts: ({ result }) => [
-        evo(model, { posts: AsyncData.settle(result) }),
-        [],
-      ],
-
-      SettledFetchPostDetail: ({ postId, result }) => [
-        evo(model, {
-          postDetailById: HashMap.modify(postId, AsyncData.settle(result)),
-        }),
-        [],
-      ],
-
-      SettledFetchStats: ({ result }) => [
-        evo(model, { stats: AsyncData.settle(result) }),
-        [],
-      ],
+    ClickedBackToPosts: () => ({
+      model: evo(model, { maybeSelectedPostId: () => Option.none() }),
     }),
-  )
+
+    ClickedInvalidatePosts: () =>
+      applyPostsTransition(model, AsyncData.revalidateOrLoad(model.posts)),
+
+    ClickedRetryPosts: () =>
+      applyPostsTransition(model, AsyncData.revalidateOrLoad(model.posts)),
+
+    ClickedRetryPostDetail: ({ postId }) => ({
+      model: evo(model, {
+        postDetailById: setPostDetail(postId, PostDetailData.Loading()),
+      }),
+      commands: [FetchPostDetail({ postId })],
+    }),
+
+    ClickedRefreshStats: () =>
+      applyStatsTransition(model, AsyncData.revalidateOrLoad(model.stats)),
+
+    ClickedRetryStats: () =>
+      applyStatsTransition(model, AsyncData.revalidateOrLoad(model.stats)),
+
+    TickedRevalidateStats: () =>
+      applyStatsTransition(model, AsyncData.revalidate(model.stats)),
+
+    SettledFetchPosts: ({ result }) => ({
+      model: evo(model, { posts: AsyncData.settle(result) }),
+    }),
+
+    SettledFetchPostDetail: ({ postId, result }) => ({
+      model: evo(model, {
+        postDetailById: HashMap.modify(postId, AsyncData.settle(result)),
+      }),
+    }),
+
+    SettledFetchStats: ({ result }) => ({
+      model: evo(model, { stats: AsyncData.settle(result) }),
+    }),
+  })
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  {
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: {
     tabs: Tabs.init({ id: TABS_ID }),
     activeTab: 'Posts',
     posts: PostsData.Loading(),
@@ -271,62 +233,57 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => [
     maybeSelectedPostId: Option.none(),
     stats: StatsData.Idle(),
   },
-  [FetchPosts()],
-]
+  commands: [FetchPosts()],
+})
 
 // COMMAND
 
-export const FetchPosts = Command.define(
-  'FetchPosts',
-  SettledFetchPosts,
-)(
-  pipe(
+export const FetchPosts = Command.define('FetchPosts', {
+  messages: [Message.SettledFetchPosts],
+  execute: pipe(
     Effect.gen(function* () {
       const posts = yield* fetchPosts
       const fetchedAt = yield* Clock.currentTimeMillis
       return FetchedPosts.make({ posts, fetchedAt })
     }),
     Effect.result,
-    Effect.map(result => SettledFetchPosts({ result })),
+    Effect.map(result => Message.SettledFetchPosts({ result })),
   ),
-)
+})
 
-export const FetchPostDetail = Command.define(
-  'FetchPostDetail',
-  { postId: S.String },
-  SettledFetchPostDetail,
-)(({ postId }) =>
-  pipe(
-    Effect.gen(function* () {
-      const detail = yield* fetchPostDetail(postId)
-      const fetchedAt = yield* Clock.currentTimeMillis
-      return FetchedPostDetail.make({ detail, fetchedAt })
-    }),
-    Effect.result,
-    Effect.map(result => SettledFetchPostDetail({ postId, result })),
-  ),
-)
+export const FetchPostDetail = Command.define('FetchPostDetail', {
+  args: { postId: Schema.String },
+  messages: [Message.SettledFetchPostDetail],
+  execute: ({ postId }) =>
+    pipe(
+      Effect.gen(function* () {
+        const detail = yield* fetchPostDetail(postId)
+        const fetchedAt = yield* Clock.currentTimeMillis
+        return FetchedPostDetail.make({ detail, fetchedAt })
+      }),
+      Effect.result,
+      Effect.map(result => Message.SettledFetchPostDetail({ postId, result })),
+    ),
+})
 
-export const FetchStats = Command.define(
-  'FetchStats',
-  SettledFetchStats,
-)(
-  pipe(
+export const FetchStats = Command.define('FetchStats', {
+  messages: [Message.SettledFetchStats],
+  execute: pipe(
     Effect.gen(function* () {
       const stats = yield* fetchStats
       const fetchedAt = yield* Clock.currentTimeMillis
       return FetchedStats.make({ stats, fetchedAt })
     }),
     Effect.result,
-    Effect.map(result => SettledFetchStats({ result })),
+    Effect.map(result => Message.SettledFetchStats({ result })),
   ),
-)
+})
 
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   revalidateStats: entry(
-    { isObservingStats: S.Boolean },
+    { isObservingStats: Schema.Boolean },
     {
       modelToDependencies: model => ({
         isObservingStats:
@@ -338,7 +295,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
           // emission so freshly loaded stats are not refetched instantly.
           Stream.tick(STATS_REFETCH_INTERVAL).pipe(
             Stream.drop(1),
-            Stream.map(TickedRevalidateStats),
+            Stream.map(Message.TickedRevalidateStats),
           ),
           Effect.sync(() => isObservingStats),
         ),
@@ -357,72 +314,67 @@ const tabButtonClassName =
 const toolbarButtonClassName =
   'px-3 py-1.5 bg-white text-slate-700 text-sm font-semibold rounded-md shadow hover:bg-slate-50 transition cursor-pointer data-[disabled]:opacity-50 data-[disabled]:cursor-default data-[disabled]:hover:bg-white'
 
-export const view = (model: Model): Document => {
-  const h = html<Message>()
-
-  return {
-    title: 'API Cache',
-    body: h.div(
-      [h.Class('min-h-screen bg-slate-100 flex justify-center p-6')],
-      [
-        h.div(
-          [h.Class('w-full max-w-2xl flex flex-col gap-6')],
-          [
-            headerView(),
-            h.submodel({
-              slotId: TABS_ID,
-              model: model.tabs,
-              view: AppTabs.view,
-              viewInputs: {
-                tabs: tabValues,
-                ariaLabel: 'API cache sections',
-                toView: ({ tablist, tabs }) =>
-                  h.div(
-                    [h.Class('flex flex-col gap-6')],
-                    [
-                      h.div(
-                        [...tablist, h.Class('flex gap-2')],
-                        Array.map(tabs, tabInfo =>
-                          h.keyed('button')(
-                            tabInfo.value,
-                            [...tabInfo.tab, h.Class(tabButtonClassName)],
-                            [tabInfo.value],
-                          ),
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+  title: 'API Cache',
+  body: h.div(
+    [h.Class('min-h-screen bg-slate-100 flex justify-center p-6')],
+    [
+      h.div(
+        [h.Class('w-full max-w-2xl flex flex-col gap-6')],
+        [
+          headerView(h),
+          h.submodel({
+            slotId: TABS_ID,
+            model: model.tabs,
+            view: AppTabs.view,
+            viewInputs: {
+              tabs: tabValues,
+              selectedValue: model.activeTab,
+              ariaLabel: 'API cache sections',
+              toView: ({ tablist, tabs }) =>
+                h.div(
+                  [h.Class('flex flex-col gap-6')],
+                  [
+                    h.div(
+                      [...tablist, h.Class('flex gap-2')],
+                      Array.map(tabs, tabInfo =>
+                        h.keyed('button')(
+                          tabInfo.value,
+                          [...tabInfo.tab, h.Class(tabButtonClassName)],
+                          [tabInfo.value],
                         ),
                       ),
-                      ...pipe(
-                        tabs,
-                        Array.filter(tabInfo => tabInfo.isActive),
-                        Array.map(tabInfo =>
-                          h.keyed('div')(
-                            tabInfo.value,
-                            [...tabInfo.panel, h.Class('flex flex-col gap-4')],
-                            [
-                              M.value(tabInfo.value).pipe(
-                                M.when('Posts', () => postsTabView(model)),
-                                M.when('Stats', () => statsTabView(model)),
-                                M.exhaustive,
-                              ),
-                            ],
-                          ),
+                    ),
+                    ...pipe(
+                      tabs,
+                      Array.filter(tabInfo => tabInfo.isActive),
+                      Array.map(tabInfo =>
+                        h.keyed('div')(
+                          tabInfo.value,
+                          [...tabInfo.panel, h.Class('flex flex-col gap-4')],
+                          [
+                            Match.value(tabInfo.value).pipe(
+                              Match.when('Posts', () => postsTabView(model, h)),
+                              Match.when('Stats', () => statsTabView(model, h)),
+                              Match.exhaustive,
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-              },
-              toParentMessage: message => GotTabsMessage({ message }),
-            }),
-          ],
-        ),
-      ],
-    ),
-  }
-}
+                    ),
+                  ],
+                ),
+            },
+            toParentMessage: message => Message.GotTabsMessage({ message }),
+          }),
+        ],
+      ),
+    ],
+  ),
+})
 
-const headerView = (): Html => {
-  const h = html<Message>()
-
-  return h.header(
+const headerView = (h: HtmlBuilder<Message>): Html =>
+  h.header(
     [h.Class('flex flex-col gap-1')],
     [
       h.h1([h.Class('text-3xl font-bold text-slate-900')], ['API Cache']),
@@ -434,30 +386,20 @@ const headerView = (): Html => {
       ),
     ],
   )
-}
 
-const postsTabView = (model: Model): Html => {
-  const h = html<Message>()
-
-  return Option.match(model.maybeSelectedPostId, {
+const postsTabView = (model: Model, h: HtmlBuilder<Message>): Html =>
+  Option.match(model.maybeSelectedPostId, {
     onNone: () =>
-      h.keyed('section')(
-        'PostsList',
-        [h.Class('flex flex-col gap-4')],
-        [postsListView(model)],
-      ),
+      h.section([h.Class('flex flex-col gap-4')], [postsListView(model, h)]),
     onSome: postId =>
       h.keyed('section')(
         postId,
         [h.Class('flex flex-col gap-4')],
-        [postDetailView(model, postId)],
+        [postDetailView(model, postId, h)],
       ),
   })
-}
 
-const postsListView = (model: Model): Html => {
-  const h = html<Message>()
-
+const postsListView = (model: Model, h: HtmlBuilder<Message>): Html => {
   const isPending = AsyncData.isPending(model.posts)
 
   return h.div(
@@ -467,19 +409,22 @@ const postsListView = (model: Model): Html => {
         [h.Class('flex items-center justify-between')],
         [
           h.h2([h.Class('text-xl font-bold text-slate-800')], ['Posts']),
-          Button.view({
-            onClick: ClickedInvalidatePosts(),
-            isDisabled: isPending,
-            toView: attributes =>
-              h.button(
-                [...attributes.button, h.Class(toolbarButtonClassName)],
-                [
-                  AsyncData.isRefreshing(model.posts)
-                    ? 'Refreshing...'
-                    : 'Invalidate',
-                ],
-              ),
-          }),
+          Button.view(
+            {
+              onClick: Message.ClickedInvalidatePosts(),
+              isDisabled: isPending,
+              toView: attributes =>
+                h.button(
+                  [...attributes.button, h.Class(toolbarButtonClassName)],
+                  [
+                    AsyncData.isRefreshing(model.posts)
+                      ? 'Refreshing...'
+                      : 'Invalidate',
+                  ],
+                ),
+            },
+            h,
+          ),
         ],
       ),
       h.p(
@@ -488,30 +433,23 @@ const postsListView = (model: Model): Html => {
           'Open a post, go back, and open it again. The second visit renders instantly from the Model. Invalidate marks the list stale and refetches it while the current list stays on screen.',
         ],
       ),
-      AsyncData.matchDataSplit(model.posts, {
-        onIdle: () =>
-          h.keyed('div')('Idle', [], [loadingPanel('Loading posts...')]),
-        onLoading: () =>
-          h.keyed('div')('Loading', [], [loadingPanel('Loading posts...')]),
-        onFailure: error =>
-          h.keyed('div')(
-            'Failure',
-            [],
-            [errorPanel(error, ClickedRetryPosts())],
-          ),
+      AsyncData.matchDataSplitEmpty(model.posts, {
+        onIdle: () => loadingPanel('Loading posts...', h),
+        onLoading: () => loadingPanel('Loading posts...', h),
+        onFailure: error => errorPanel(error, Message.ClickedRetryPosts(), h),
         onData: ({ posts }) =>
-          h.keyed('div')(
-            'Loaded',
+          h.div(
             [h.Class('flex flex-col gap-4')],
             [
               ...Option.match(AsyncData.getError(model.posts), {
                 onNone: () => [],
-                onSome: error => [staleView(error, ClickedRetryPosts())],
+                onSome: error => [
+                  staleView(error, Message.ClickedRetryPosts(), h),
+                ],
               }),
-              h.keyed('ul')(
-                'list',
+              h.ul(
                 [h.Class('flex flex-col gap-2')],
-                postListItems(posts, model.postDetailById),
+                postListItems(posts, model.postDetailById, h),
               ),
             ],
           ),
@@ -529,56 +467,62 @@ const isPostDetailCached = (
 const postListItems = (
   posts: ReadonlyArray<Post>,
   postDetailById: HashMap.HashMap<string, PostDetailData>,
-): ReadonlyArray<Html> => {
-  const h = html<Message>()
-
-  return Array.map(posts, post =>
+  h: HtmlBuilder<Message>,
+): ReadonlyArray<Html> =>
+  Array.map(posts, post =>
     h.keyed('li')(
       post.id,
       [],
       [
-        Button.view({
-          onClick: ClickedPost({ postId: post.id }),
-          toView: attributes =>
-            h.button(
-              [
-                ...attributes.button,
-                h.Class(
-                  'w-full text-left bg-white rounded-lg shadow px-4 py-3 hover:bg-slate-50 transition cursor-pointer flex items-center justify-between gap-4',
-                ),
-              ],
-              [
-                h.div(
-                  [],
-                  [
-                    h.div(
-                      [h.Class('font-semibold text-slate-800')],
-                      [post.title],
-                    ),
-                    h.div([h.Class('text-sm text-slate-500')], [post.excerpt]),
-                  ],
-                ),
-                isPostDetailCached(postDetailById, post.id)
-                  ? h.span(
-                      [
-                        h.Class(
-                          'shrink-0 text-xs font-semibold text-emerald-700 bg-emerald-100 rounded-full px-2 py-1',
-                        ),
-                      ],
-                      ['Cached'],
-                    )
-                  : h.empty,
-              ],
-            ),
-        }),
+        Button.view(
+          {
+            onClick: Message.ClickedPost({ postId: post.id }),
+            toView: attributes =>
+              h.button(
+                [
+                  ...attributes.button,
+                  h.Class(
+                    'w-full text-left bg-white rounded-lg shadow px-4 py-3 hover:bg-slate-50 transition cursor-pointer flex items-center justify-between gap-4',
+                  ),
+                ],
+                [
+                  h.div(
+                    [],
+                    [
+                      h.div(
+                        [h.Class('font-semibold text-slate-800')],
+                        [post.title],
+                      ),
+                      h.div(
+                        [h.Class('text-sm text-slate-500')],
+                        [post.excerpt],
+                      ),
+                    ],
+                  ),
+                  isPostDetailCached(postDetailById, post.id)
+                    ? h.span(
+                        [
+                          h.Class(
+                            'shrink-0 text-xs font-semibold text-emerald-700 bg-emerald-100 rounded-full px-2 py-1',
+                          ),
+                        ],
+                        ['Cached'],
+                      )
+                    : h.empty,
+                ],
+              ),
+          },
+          h,
+        ),
       ],
     ),
   )
-}
 
-const postDetailView = (model: Model, postId: string): Html => {
-  const h = html<Message>()
-
+const postDetailView = (
+  model: Model,
+  postId: string,
+  h: HtmlBuilder<Message>,
+): Html => {
   const postDetailData = Option.getOrElse(
     HashMap.get(model.postDetailById, postId),
     () => PostDetailData.Idle(),
@@ -587,42 +531,42 @@ const postDetailView = (model: Model, postId: string): Html => {
   return h.div(
     [h.Class('flex flex-col gap-4')],
     [
-      Button.view({
-        onClick: ClickedBackToPosts(),
-        toView: attributes =>
-          h.button(
-            [
-              ...attributes.button,
-              h.Class(
-                'self-start text-sm font-semibold text-indigo-600 hover:underline cursor-pointer',
-              ),
-            ],
-            ['Back to posts'],
-          ),
-      }),
-      AsyncData.matchDataSplit(postDetailData, {
-        onIdle: () =>
-          h.keyed('div')('Idle', [], [loadingPanel('Loading post...')]),
-        onLoading: () =>
-          h.keyed('div')('Loading', [], [loadingPanel('Loading post...')]),
+      Button.view(
+        {
+          onClick: Message.ClickedBackToPosts(),
+          toView: attributes =>
+            h.button(
+              [
+                ...attributes.button,
+                h.Class(
+                  'self-start text-sm font-semibold text-indigo-600 hover:underline cursor-pointer',
+                ),
+              ],
+              ['Back to posts'],
+            ),
+        },
+        h,
+      ),
+      AsyncData.matchDataSplitEmpty(postDetailData, {
+        onIdle: () => loadingPanel('Loading post...', h),
+        onLoading: () => loadingPanel('Loading post...', h),
         onFailure: error =>
-          h.keyed('div')(
-            'Failure',
-            [],
-            [errorPanel(error, ClickedRetryPostDetail({ postId }))],
-          ),
+          errorPanel(error, Message.ClickedRetryPostDetail({ postId }), h),
         onData: ({ detail, fetchedAt }) =>
-          h.keyed('div')(
-            'Loaded',
+          h.div(
             [h.Class('flex flex-col gap-4')],
             [
               ...Option.match(AsyncData.getError(postDetailData), {
                 onNone: () => [],
                 onSome: error => [
-                  staleView(error, ClickedRetryPostDetail({ postId })),
+                  staleView(
+                    error,
+                    Message.ClickedRetryPostDetail({ postId }),
+                    h,
+                  ),
                 ],
               }),
-              postDetailCard(detail, fetchedAt),
+              postDetailCard(detail, fetchedAt, h),
             ],
           ),
       }),
@@ -630,11 +574,12 @@ const postDetailView = (model: Model, postId: string): Html => {
   )
 }
 
-const postDetailCard = (detail: PostDetail, fetchedAt: number): Html => {
-  const h = html<Message>()
-
-  return h.keyed('article')(
-    'detail',
+const postDetailCard = (
+  detail: PostDetail,
+  fetchedAt: number,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.article(
     [h.Class('bg-white rounded-xl shadow p-6 flex flex-col gap-3')],
     [
       h.h2([h.Class('text-2xl font-bold text-slate-900')], [detail.title]),
@@ -648,11 +593,8 @@ const postDetailCard = (detail: PostDetail, fetchedAt: number): Html => {
       ),
     ],
   )
-}
 
-const statsTabView = (model: Model): Html => {
-  const h = html<Message>()
-
+const statsTabView = (model: Model, h: HtmlBuilder<Message>): Html => {
   const isPending = AsyncData.isPending(model.stats)
 
   return h.div(
@@ -662,15 +604,18 @@ const statsTabView = (model: Model): Html => {
         [h.Class('flex items-center justify-between')],
         [
           h.h2([h.Class('text-xl font-bold text-slate-800')], ['Stats']),
-          Button.view({
-            onClick: ClickedRefreshStats(),
-            isDisabled: isPending,
-            toView: attributes =>
-              h.button(
-                [...attributes.button, h.Class(toolbarButtonClassName)],
-                [isPending ? 'Refreshing...' : 'Refresh'],
-              ),
-          }),
+          Button.view(
+            {
+              onClick: Message.ClickedRefreshStats(),
+              isDisabled: isPending,
+              toView: attributes =>
+                h.button(
+                  [...attributes.button, h.Class(toolbarButtonClassName)],
+                  [isPending ? 'Refreshing...' : 'Refresh'],
+                ),
+            },
+            h,
+          ),
         ],
       ),
       h.p(
@@ -679,27 +624,26 @@ const statsTabView = (model: Model): Html => {
           'Stats refetch every 5 seconds while this tab is open. The old numbers stay on screen while the new ones load.',
         ],
       ),
-      AsyncData.matchDataSplit(model.stats, {
-        onIdle: () =>
-          h.keyed('div')('Idle', [], [loadingPanel('Loading stats...')]),
-        onLoading: () =>
-          h.keyed('div')('Loading', [], [loadingPanel('Loading stats...')]),
-        onFailure: error =>
-          h.keyed('div')(
-            'Failure',
-            [],
-            [errorPanel(error, ClickedRetryStats())],
-          ),
+      AsyncData.matchDataSplitEmpty(model.stats, {
+        onIdle: () => loadingPanel('Loading stats...', h),
+        onLoading: () => loadingPanel('Loading stats...', h),
+        onFailure: error => errorPanel(error, Message.ClickedRetryStats(), h),
         onData: ({ stats, fetchedAt }) =>
-          h.keyed('div')(
-            'Loaded',
+          h.div(
             [h.Class('flex flex-col gap-4')],
             [
               ...Option.match(AsyncData.getError(model.stats), {
                 onNone: () => [],
-                onSome: error => [staleView(error, ClickedRetryStats())],
+                onSome: error => [
+                  staleView(error, Message.ClickedRetryStats(), h),
+                ],
               }),
-              statsCards(stats, fetchedAt, AsyncData.isRefreshing(model.stats)),
+              statsCards(
+                stats,
+                fetchedAt,
+                AsyncData.isRefreshing(model.stats),
+                h,
+              ),
             ],
           ),
       }),
@@ -711,33 +655,26 @@ const statsCards = (
   stats: Stats,
   fetchedAt: number,
   isRefreshing: boolean,
-): Html => {
-  const h = html<Message>()
-
-  return h.keyed('div')(
-    'stats',
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
     [h.Class('flex flex-col gap-3')],
     [
       h.div(
         [h.Class('grid grid-cols-3 gap-4')],
         [
-          statCard('Active users', `${stats.activeUsers}`),
-          statCard('Requests per second', `${stats.requestsPerSecond}`),
-          statCard('Cache hit rate', `${stats.cacheHitRatePercent}%`),
+          statCard('Active users', `${stats.activeUsers}`, h),
+          statCard('Requests per second', `${stats.requestsPerSecond}`, h),
+          statCard('Cache hit rate', `${stats.cacheHitRatePercent}%`, h),
         ],
       ),
       h.div(
         [h.Class('flex items-center gap-3 text-sm text-slate-500')],
         [
-          h.keyed('span')(
-            'updatedAt',
-            [],
-            [`Updated at ${formatFetchedAt(fetchedAt)}`],
-          ),
+          h.span([], [`Updated at ${formatFetchedAt(fetchedAt)}`]),
           ...(isRefreshing
             ? [
-                h.keyed('span')(
-                  'refreshing',
+                h.span(
                   [h.Class('text-indigo-600 font-semibold')],
                   ['Refreshing'],
                 ),
@@ -747,39 +684,38 @@ const statsCards = (
       ),
     ],
   )
-}
 
-const statCard = (label: string, value: string): Html => {
-  const h = html<Message>()
-
-  return h.div(
+const statCard = (
+  label: string,
+  value: string,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
     [h.Class('bg-white rounded-xl shadow p-4 flex flex-col gap-1')],
     [
       h.div([h.Class('text-sm text-slate-500')], [label]),
       h.div([h.Class('text-2xl font-bold text-slate-900')], [value]),
     ],
   )
-}
 
-const loadingPanel = (text: string): Html => {
-  const h = html<Message>()
-
-  return h.div(
+const loadingPanel = (text: string, h: HtmlBuilder<Message>): Html =>
+  h.div(
     [h.Class('bg-white rounded-lg shadow p-6 text-center text-slate-500')],
     [text],
   )
-}
 
-const staleView = (error: string, retryMessage: Message): Html => {
-  const h = html<Message>()
+const staleView = (
+  error: string,
+  retryMessage: Message,
+  h: HtmlBuilder<Message>,
+): Html => errorPanel(error, retryMessage, h)
 
-  return h.keyed('div')('stale', [], [errorPanel(error, retryMessage)])
-}
-
-const errorPanel = (error: string, retryMessage: Message): Html => {
-  const h = html<Message>()
-
-  return h.div(
+const errorPanel = (
+  error: string,
+  retryMessage: Message,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
     [
       h.Class(
         'bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 flex items-center justify-between gap-4',
@@ -787,19 +723,21 @@ const errorPanel = (error: string, retryMessage: Message): Html => {
     ],
     [
       h.p([], [error]),
-      Button.view({
-        onClick: retryMessage,
-        toView: attributes =>
-          h.button(
-            [
-              ...attributes.button,
-              h.Class(
-                'shrink-0 px-3 py-1.5 bg-red-600 text-white text-sm font-semibold rounded-md hover:bg-red-700 transition cursor-pointer',
-              ),
-            ],
-            ['Retry'],
-          ),
-      }),
+      Button.view(
+        {
+          onClick: retryMessage,
+          toView: attributes =>
+            h.button(
+              [
+                ...attributes.button,
+                h.Class(
+                  'shrink-0 px-3 py-1.5 bg-red-600 text-white text-sm font-semibold rounded-md hover:bg-red-700 transition cursor-pointer',
+                ),
+              ],
+              ['Retry'],
+            ),
+        },
+        h,
+      ),
     ],
   )
-}

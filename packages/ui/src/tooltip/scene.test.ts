@@ -1,14 +1,13 @@
-import { html, submodel } from 'foldkit/html'
+import type { HtmlBuilder } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import type { Message, Model } from './index.js'
+import type { Model } from './index.js'
 import {
   AnchorTooltip,
-  CompletedAnchorTooltip,
-  FocusedTrigger,
+  Message,
   init,
   triggerId,
   update,
@@ -17,7 +16,7 @@ import {
 
 const acknowledgeAnchor = Scene.Mount.resolve(
   AnchorTooltip,
-  CompletedAnchorTooltip(),
+  Message.CompletedAnchorTooltip(),
 )
 
 const sceneView =
@@ -28,10 +27,8 @@ const sceneView =
       ariaLabelledBy?: string
     } = {},
   ) =>
-  (model: Model) => {
-    const h = html<Message>()
-
-    return submodel({
+  (model: Model, h: HtmlBuilder<Message>) =>
+    h.submodel({
       slotId: 'test',
       view,
       model,
@@ -41,28 +38,24 @@ const sceneView =
         toView: ({ trigger, panel, isVisible }) =>
           h.div(
             [],
-            [
-              h.button([...trigger], []),
-              ...(isVisible ? [h.div([...panel], [])] : []),
-            ],
+            [h.button([...trigger]), ...(isVisible ? [h.div([...panel])] : [])],
           ),
       },
       toParentMessage: message => message,
     })
-  }
 
 const trigger = Scene.selector('#test-trigger')
 const panel = Scene.selector('#test-panel')
 
 const hiddenModel = init({ id: 'test' })
-const [openModel] = update(init({ id: 'test' }), FocusedTrigger())
+const triggerFocus = update(init({ id: 'test' }), Message.FocusedTrigger())
 
 describe('Tooltip', () => {
   describe('view', () => {
     it('renders the trigger with aria-describedby and no data-open when hidden', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(hiddenModel),
+        Scene.given(hiddenModel),
         Scene.expect(trigger).toHaveAttr('aria-describedby', 'test-panel'),
         Scene.expect(trigger).not.toHaveAttr('data-open'),
       )
@@ -71,7 +64,7 @@ describe('Tooltip', () => {
     it('does not render the panel when hidden', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(hiddenModel),
+        Scene.given(hiddenModel),
         Scene.expect(panel).toBeAbsent(),
       )
     })
@@ -79,7 +72,7 @@ describe('Tooltip', () => {
     it('renders the panel with role=tooltip when open', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(openModel),
+        Scene.given(triggerFocus.model),
         Scene.expect(panel).toExist(),
         Scene.expect(panel).toHaveAttr('role', 'tooltip'),
         Scene.expect(panel).toHaveAttr('id', 'test-panel'),
@@ -90,7 +83,7 @@ describe('Tooltip', () => {
     it('marks the trigger with data-open when visible', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(openModel),
+        Scene.given(triggerFocus.model),
         Scene.expect(trigger).toHaveAttr('data-open', ''),
         acknowledgeAnchor,
       )
@@ -99,7 +92,7 @@ describe('Tooltip', () => {
     it('adds anchor positioning styles and hooks to the panel', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(openModel),
+        Scene.given(triggerFocus.model),
         Scene.expect(panel).toHaveStyle('position', 'absolute'),
         Scene.expect(panel).toHaveStyle('margin', '0'),
         Scene.expect(panel).toHaveStyle('visibility', 'hidden'),
@@ -113,7 +106,7 @@ describe('Tooltip', () => {
     it('does not attach interaction handlers when disabled', () => {
       Scene.scene(
         { update, view: sceneView({ isDisabled: true }) },
-        Scene.with(hiddenModel),
+        Scene.given(hiddenModel),
         Scene.expect(trigger).toHaveAttr('aria-disabled', 'true'),
         Scene.expect(trigger).toHaveAttr('data-disabled', ''),
         Scene.expect(trigger).not.toHaveHandler('mouseenter'),
@@ -126,7 +119,7 @@ describe('Tooltip', () => {
     it('no aria-label or aria-labelledby on the trigger by default', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(hiddenModel),
+        Scene.given(hiddenModel),
         Scene.expect(trigger).not.toHaveAttr('aria-label'),
         Scene.expect(trigger).not.toHaveAttr('aria-labelledby'),
       )
@@ -135,7 +128,7 @@ describe('Tooltip', () => {
     it('applies aria-label to the trigger when ariaLabel is provided', () => {
       Scene.scene(
         { update, view: sceneView({ ariaLabel: 'More info' }) },
-        Scene.with(hiddenModel),
+        Scene.given(hiddenModel),
         Scene.expect(trigger).toHaveAttr('aria-label', 'More info'),
         Scene.expect(trigger).not.toHaveAttr('aria-labelledby'),
       )
@@ -144,7 +137,7 @@ describe('Tooltip', () => {
     it('applies aria-labelledby to the trigger when ariaLabelledBy is provided', () => {
       Scene.scene(
         { update, view: sceneView({ ariaLabelledBy: 'info-label' }) },
-        Scene.with(hiddenModel),
+        Scene.given(hiddenModel),
         Scene.expect(trigger).toHaveAttr('aria-labelledby', 'info-label'),
         Scene.expect(trigger).not.toHaveAttr('aria-label'),
       )
@@ -159,7 +152,7 @@ describe('Tooltip', () => {
             ariaLabelledBy: 'info-label',
           }),
         },
-        Scene.with(hiddenModel),
+        Scene.given(hiddenModel),
         Scene.expect(trigger).toHaveAttr('aria-label', 'More info'),
         Scene.expect(trigger).not.toHaveAttr('aria-labelledby'),
       )

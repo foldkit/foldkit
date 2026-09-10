@@ -1,38 +1,36 @@
 import { Predicate } from 'effect'
-import type { Attribute } from 'foldkit/html'
-import { html } from 'foldkit/html'
-import type { Html } from 'foldkit/html'
+import type { Attribute, Html, HtmlBuilder } from 'foldkit/html'
 
 // VIEW
 
 /** Attribute groups the select component provides to the consumer's `toView` callback. */
-export type SelectAttributes<ParentMessage> = Readonly<{
-  select: ReadonlyArray<Attribute<ParentMessage>>
-  label: ReadonlyArray<Attribute<ParentMessage>>
-  description: ReadonlyArray<Attribute<ParentMessage>>
+export type SelectAttributes<Message> = Readonly<{
+  select: ReadonlyArray<Attribute<Message>>
+  label: ReadonlyArray<Attribute<Message>>
+  description: ReadonlyArray<Attribute<Message>>
 }>
 
 /** Configuration for rendering a select with `view`. */
-export type ViewConfig<ParentMessage> = Readonly<{
+export type ViewConfig<Message> = Readonly<{
   id: string
-  toView: (attributes: SelectAttributes<ParentMessage>) => Html
-  onChange?: (value: string) => ParentMessage
+  toView: (attributes: SelectAttributes<Message>) => Html
+  onChange?: (value: string) => Message
   value?: string
   isDisabled?: boolean
   isInvalid?: boolean
   isAutofocus?: boolean
+  hasDescription?: boolean
   name?: string
 }>
 
-/** Generates the description element ID from the select's base ID. */
+/** Returns the description element id, derived from the select's base id. */
 export const descriptionId = (id: string): string => `${id}-description`
 
 /** Renders an accessible select by building ARIA attribute groups and delegating layout to the consumer's `toView` callback. */
-export const view = <ParentMessage>(
-  config: ViewConfig<ParentMessage>,
+export const view = <Message>(
+  config: ViewConfig<Message>,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<ParentMessage>()
-
   const {
     toView,
     id,
@@ -41,11 +39,12 @@ export const view = <ParentMessage>(
     isDisabled = false,
     isInvalid = false,
     isAutofocus = false,
+    hasDescription = false,
     name,
   } = config
 
   const disabledAttributes = isDisabled
-    ? [h.AriaDisabled(true), h.Disabled(true), h.DataAttribute('disabled', '')]
+    ? [h.Disabled(true), h.DataAttribute('disabled', '')]
     : []
 
   const invalidAttributes = isInvalid
@@ -65,9 +64,13 @@ export const view = <ParentMessage>(
 
   const nameAttributes = Predicate.isNotUndefined(name) ? [h.Name(name)] : []
 
+  const describedByAttributes = hasDescription
+    ? [h.AriaDescribedBy(descriptionId(id))]
+    : []
+
   const allSelectAttributes = [
     h.Id(id),
-    h.AriaDescribedBy(descriptionId(id)),
+    ...describedByAttributes,
     ...disabledAttributes,
     ...invalidAttributes,
     ...changeAttributes,

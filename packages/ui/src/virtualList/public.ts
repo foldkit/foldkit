@@ -9,9 +9,8 @@ export {
   visibleWindowVariable,
   Model,
   Message,
-  ScrolledContainer,
-  MeasuredContainer,
-  CompletedApplyScroll,
+  type ScrolledContainer,
+  type MeasuredContainer,
 } from './index.js'
 
 export type { InitConfig, ViewInputs, VisibleWindow } from './index.js'

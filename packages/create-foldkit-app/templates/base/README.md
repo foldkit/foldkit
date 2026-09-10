@@ -5,11 +5,11 @@ A Foldkit application built with Effect.
 ## Getting Started
 
 ```bash
-pnpm install
-pnpm dev
+{{installCommand}}
+{{devCommand}}
 ```
 
 ## Learn More
 
-- [Foldkit Documentation](https://github.com/foldkit/foldkit)
+- [Foldkit Documentation](https://foldkit.dev)
 - [Effect Documentation](https://effect.website)

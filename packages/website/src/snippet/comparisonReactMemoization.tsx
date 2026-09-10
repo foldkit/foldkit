@@ -6,9 +6,7 @@ export const App = () => {
     [state.paletteThemeIndex],
   )
 
-  const handleExport = useCallback(() => {
-    exportPng(stateRef.current, dispatch)
-  }, [dispatch])
+  const handleExport = () => exportPng(state, dispatch)
 
   const currentGrid = useMemo(
     () =>
@@ -33,10 +31,7 @@ export const App = () => {
   )
 }
 
-// Every component must be wrapped in memo() to avoid re-rendering
-const Header = memo(function Header({ onExport }: { onExport: () => void }) {
-  // ...
-})
+// Every component receiving state slices is wrapped in memo()
 const Toolbar = memo(function Toolbar({
   tool,
   mirrorMode,

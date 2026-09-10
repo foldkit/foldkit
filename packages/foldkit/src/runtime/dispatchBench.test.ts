@@ -1,10 +1,11 @@
-import { Effect, Match as M, Predicate, Schema as S } from 'effect'
+import { Effect, Number, Predicate, Schema } from 'effect'
 import { describe, it } from 'vitest'
 
-import { Document, __requireDispatch, html } from '../html/index.js'
-import { m } from '../message/index.js'
-import { type EnvelopedMessage, orderByPriority } from './messagePriority.js'
-import { makeApplication } from './runtime.js'
+import { Document, __htmlBuilder, __requireDispatch } from '../html/index.js'
+import { defineMessageUnion } from '../message/index.js'
+import { evo } from '../struct/index.js'
+import type * as Update from '../update/index.js'
+import { makeApplication } from './makeApplication.js'
 
 /**
  * Internal dispatch-throughput benchmark. Skipped by default to keep CI
@@ -14,9 +15,8 @@ import { makeApplication } from './runtime.js'
  *
  * Constructs a minimal Foldkit application (counter Model, trivial view that
  * captures the runtime dispatcher), starts it under happy-dom, then dispatches
- * N Messages from outside the runtime and measures wall-clock time for the
- * queue to drain. Also includes a pure-function microbenchmark of
- * `orderByPriority`.
+ * N Messages from outside the runtime and measures wall-clock time until
+ * every Message has been processed.
  */
 
 // NOTE: reads process.env through globalThis so this browser-typed package
@@ -36,12 +36,13 @@ const readBenchFlag = (): unknown => {
 
 const isBenchEnabled = readBenchFlag() === '1'
 
-const Model = S.Struct({ count: S.Number })
+const Model = Schema.Struct({ count: Schema.Number })
 type Model = typeof Model.Type
 
-const Increment = m('Increment')
-const Done = m('Done')
-const Message = S.Union([Increment, Done])
+const Message = defineMessageUnion({
+  Increment: {},
+  Done: {},
+})
 type Message = typeof Message.Type
 
 let captureDispatch: ((d: (message: unknown) => void) => void) | null = null
@@ -51,14 +52,16 @@ const view = (model: Model): Document => {
     captureDispatch(__requireDispatch())
     captureDispatch = null
   }
-  const h = html<Message>()
+  const h = __htmlBuilder<Message>()
   return {
     title: 'bench',
     body: h.div([], [model.count.toString()]),
   }
 }
 
-const init = (): readonly [Model, ReadonlyArray<never>] => [{ count: 0 }, []]
+type UpdateReturn = Update.Return<Model, Message>
+
+const init = (): UpdateReturn => ({ model: { count: 0 } })
 
 const runOnce = async (messageCount: number): Promise<number> => {
   const container = document.createElement('div')
@@ -70,20 +73,14 @@ const runOnce = async (messageCount: number): Promise<number> => {
     resolveDone = resolve
   })
 
-  const update = (
-    model: Model,
-    message: Message,
-  ): readonly [Model, ReadonlyArray<never>] =>
-    M.value(message).pipe(
-      M.withReturnType<readonly [Model, ReadonlyArray<never>]>(),
-      M.tagsExhaustive({
-        Increment: () => [{ count: model.count + 1 }, []],
-        Done: () => {
-          resolveDone()
-          return [model, []]
-        },
-      }),
-    )
+  const update = (model: Model, message: Message) =>
+    Message.match<UpdateReturn>(message, {
+      Increment: () => ({ model: evo(model, { count: Number.increment }) }),
+      Done: () => {
+        resolveDone()
+        return { model }
+      },
+    })
 
   let capturedDispatch: ((message: unknown) => void) | null = null
   captureDispatch = d => {
@@ -117,9 +114,9 @@ const runOnce = async (messageCount: number): Promise<number> => {
 
   const start = performance.now()
   for (let index = 0; index < messageCount; index++) {
-    dispatch(Increment())
+    dispatch(Message.Increment())
   }
-  dispatch(Done())
+  dispatch(Message.Done())
   await done
   const elapsed = performance.now() - start
 
@@ -148,20 +145,9 @@ const summarize = (
   )
 }
 
-const buildBatch = (size: number): ReadonlyArray<EnvelopedMessage<Message>> => {
-  const items: Array<EnvelopedMessage<Message>> = []
-  for (let index = 0; index < size; index++) {
-    items.push({
-      priority: index % 3 === 0 ? 'High' : 'Normal',
-      message: Increment(),
-    })
-  }
-  return items
-}
-
 describe.skipIf(!isBenchEnabled)('dispatch throughput', () => {
   it(
-    'measures throughput of an external Message burst draining the queue',
+    'measures throughput of an external Message burst',
     { timeout: 120_000 },
     async () => {
       const WARMUP_RUNS = 2
@@ -180,27 +166,4 @@ describe.skipIf(!isBenchEnabled)('dispatch throughput', () => {
       summarize('external burst', COUNT, samples)
     },
   )
-
-  it('measures orderByPriority over mixed batches', () => {
-    const WARMUP_ROUNDS = 1_000
-    const MEASURED_ROUNDS = 5_000
-    const BATCH_SIZE = 100
-    const batch = buildBatch(BATCH_SIZE)
-
-    for (let index = 0; index < WARMUP_ROUNDS; index++) {
-      orderByPriority(batch)
-    }
-
-    const samples: Array<number> = []
-    const TRIALS = 5
-    for (let trial = 0; trial < TRIALS; trial++) {
-      const start = performance.now()
-      for (let index = 0; index < MEASURED_ROUNDS; index++) {
-        orderByPriority(batch)
-      }
-      samples.push(performance.now() - start)
-    }
-
-    summarize(`orderByPriority (batch=${BATCH_SIZE})`, MEASURED_ROUNDS, samples)
-  })
 })

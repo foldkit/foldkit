@@ -1,0 +1,232 @@
+name: Deploy Website Build
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        description: Commit to build and deploy
+        required: true
+        type: string
+      channel:
+        description: Website deployment channel
+        required: true
+        type: string
+      hostname:
+        description: Stable hostname for the deployment channel
+        required: true
+        type: string
+    secrets:
+      vercel_token:
+        required: true
+      vercel_org_id:
+        required: true
+      vercel_project_id:
+        required: true
+      website_book_font:
+        required: true
+      website_light_font:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --filter . --filter website... --filter '{examples/**}...'
+
+      # NOTE: Production playgrounds install these packages from npm in a
+      # visitor's browser. The registry may need a short propagation window
+      # after Changesets returns, so production checks the actual artifacts
+      # and normal npm peer resolution before building anything public.
+      - name: Verify the complete promoted package release
+        if: inputs.channel == 'production'
+        run: pnpm release:verify-latest
+
+      - name: Verify the playground versions and peer ranges are published
+        if: inputs.channel == 'production'
+        run: pnpm check:published-versions -- --wait
+
+      - name: Build the exact transformed SSG playground
+        if: inputs.channel == 'production'
+        run: pnpm check:playground-ssg-build
+
+      - name: Build core packages
+        run: pnpm --filter 'website^...' build
+
+      - name: Build examples
+        run: pnpm build:examples
+
+      - name: Restore licensed website fonts
+        run: bash scripts/restore-website-fonts.sh
+        env:
+          ABC_FAVORIT_BOOK_WOFF2_BASE64: ${{ secrets.website_book_font }}
+          ABC_FAVORIT_LIGHT_WOFF2_BASE64: ${{ secrets.website_light_font }}
+
+      - name: Resolve GitHub star count
+        id: github-stars
+        env:
+          GH_API_TOKEN: ${{ github.token }}
+        run: |
+          count=$(curl -sfL --connect-timeout 10 --max-time 30 \
+            -H "Authorization: Bearer ${GH_API_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "User-Agent: foldkit-website-build" \
+            https://api.github.com/repos/foldkit/foldkit \
+            | jq -r '.stargazers_count // empty') || count=""
+          echo "count=${count}" >> "$GITHUB_OUTPUT"
+
+      - name: Identify the canary build
+        if: inputs.channel == 'canary'
+        env:
+          TARGET: ${{ inputs.target }}
+        run: echo "VITE_FOLDKIT_CANARY_COMMIT=${TARGET}" >> "$GITHUB_ENV"
+
+      - name: Build website
+        run: pnpm --filter website build
+        env:
+          FOLDKIT_GITHUB_STAR_COUNT: ${{ steps.github-stars.outputs.count }}
+
+      - name: Install Playwright chromium
+        run: pnpm --filter website exec playwright install --with-deps chromium
+
+      - name: Prerender
+        run: pnpm --filter website prerender
+        env:
+          FOLDKIT_GITHUB_STAR_COUNT: ${{ steps.github-stars.outputs.count }}
+
+      - name: Prepare Vercel output
+        env:
+          DEPLOYMENT_CHANNEL: ${{ inputs.channel }}
+        run: |
+          mkdir -p .vercel/output/static
+          cp -r packages/website/dist/. .vercel/output/static/
+          node scripts/website-vercel-config.mjs "${DEPLOYMENT_CHANNEL}"
+
+      - name: Deploy immutable website build
+        id: deployment
+        env:
+          DEPLOYMENT_CHANNEL: ${{ inputs.channel }}
+          VERCEL_TOKEN: ${{ secrets.vercel_token }}
+          VERCEL_ORG_ID: ${{ secrets.vercel_org_id }}
+          VERCEL_PROJECT_ID: ${{ secrets.vercel_project_id }}
+        run: |
+          if [[ "${DEPLOYMENT_CHANNEL}" == 'production' ]]; then
+            deployment_url=$(pnpm dlx vercel@55.0.0 deploy --prebuilt --prod --token "$VERCEL_TOKEN")
+          else
+            deployment_url=$(pnpm dlx vercel@55.0.0 deploy --prebuilt --prod --skip-domain --token "$VERCEL_TOKEN")
+          fi
+          deployment_url="${deployment_url%/}"
+          echo "url=${deployment_url}" >> "$GITHUB_OUTPUT"
+
+      - name: Select smoke target
+        env:
+          DEPLOYMENT_CHANNEL: ${{ inputs.channel }}
+          DEPLOYMENT_URL: ${{ steps.deployment.outputs.url }}
+          HOSTNAME: ${{ inputs.hostname }}
+        run: |
+          if [[ "${DEPLOYMENT_CHANNEL}" == 'production' ]]; then
+            smoke_url="https://${HOSTNAME}"
+          else
+            smoke_url="${DEPLOYMENT_URL}"
+          fi
+          echo "FOLDKIT_SMOKE_URL=${smoke_url}" >> "$GITHUB_ENV"
+          echo "FOLDKIT_LIVE_WEBSITE_URL=${smoke_url}" >> "$GITHUB_ENV"
+
+      - name: Wait for the deployed website build
+        env:
+          EXPECTED_BUILD: ${{ inputs.target }}
+        run: |
+          response_file="${RUNNER_TEMP}/foldkit-website-smoke.html"
+          for attempt in $(seq 1 30); do
+            if curl -fsSL \
+              -H 'Cache-Control: no-cache' \
+              "${FOLDKIT_SMOKE_URL}/playground/ssr?release-smoke=${GITHUB_RUN_ID}-${attempt}" \
+              -o "${response_file}"; then
+              if grep -Fq "data-foldkit-build=\"${EXPECTED_BUILD}\"" "${response_file}"; then
+                echo "${FOLDKIT_SMOKE_URL} is serving build ${EXPECTED_BUILD}"
+                exit 0
+              fi
+            fi
+            echo "${FOLDKIT_SMOKE_URL} has not reached build ${EXPECTED_BUILD}; waiting"
+            sleep 5
+          done
+          echo "${FOLDKIT_SMOKE_URL} did not reach build ${EXPECTED_BUILD}" >&2
+          exit 1
+
+      - name: Check deployed Monaco worker isolation
+        run: |
+          headers_file="${RUNNER_TEMP}/foldkit-monaco-worker-headers.txt"
+          curl -fsSIL \
+            -H 'Cache-Control: no-cache' \
+            -D "${headers_file}" \
+            -o /dev/null \
+            "${FOLDKIT_SMOKE_URL}/monacoworkers/ts.worker.bundle.js?release-smoke=${GITHUB_RUN_ID}"
+          header_value() {
+            grep -i "^${1}:" "${headers_file}" |
+              sed -E 's/^[^:]+:[[:space:]]*//; s/\r$//'
+          }
+          coep_value="$(header_value 'Cross-Origin-Embedder-Policy' || true)"
+          corp_value="$(header_value 'Cross-Origin-Resource-Policy' || true)"
+          if [[ "${coep_value}" != 'credentialless' ]]; then
+            echo "Expected one COEP credentialless header; received '${coep_value:-<missing>}'." >&2
+            cat "${headers_file}" >&2
+            exit 1
+          fi
+          if [[ "${corp_value}" != 'same-origin' ]]; then
+            echo "Expected one CORP same-origin header; received '${corp_value:-<missing>}'." >&2
+            cat "${headers_file}" >&2
+            exit 1
+          fi
+
+      - name: Smoke the deployed SSR and SSG playgrounds
+        run: pnpm --filter website exec playwright test
+
+      - name: Promote the canary deployment
+        if: inputs.channel == 'canary'
+        env:
+          DEPLOYMENT_URL: ${{ steps.deployment.outputs.url }}
+          VERCEL_TOKEN: ${{ secrets.vercel_token }}
+          VERCEL_ORG_ID: ${{ secrets.vercel_org_id }}
+          VERCEL_PROJECT_ID: ${{ secrets.vercel_project_id }}
+        run: pnpm dlx vercel@55.0.0 promote "$DEPLOYMENT_URL" --yes --token "$VERCEL_TOKEN"
+
+      - name: Verify the promoted canary
+        if: inputs.channel == 'canary'
+        env:
+          EXPECTED_BUILD: ${{ inputs.target }}
+          HOSTNAME: ${{ inputs.hostname }}
+        run: |
+          response_file="${RUNNER_TEMP}/foldkit-canary-promotion.html"
+          for attempt in $(seq 1 30); do
+            if curl -fsSL \
+              -H 'Cache-Control: no-cache' \
+              "https://${HOSTNAME}/?canary-smoke=${GITHUB_RUN_ID}-${attempt}" \
+              -o "${response_file}"; then
+              if grep -Fq "data-foldkit-build=\"${EXPECTED_BUILD}\"" "${response_file}"; then
+                echo "${HOSTNAME} is serving build ${EXPECTED_BUILD}"
+                exit 0
+              fi
+            fi
+            echo "${HOSTNAME} has not reached build ${EXPECTED_BUILD}; waiting"
+            sleep 5
+          done
+          echo "${HOSTNAME} did not reach build ${EXPECTED_BUILD}" >&2
+          exit 1

@@ -7,7 +7,7 @@ export {
   close,
   selectDate,
   clear,
-  reflectSelectedDate,
+  focusDate,
   reflectMinDate,
   reflectMaxDate,
   reflectDisabledDates,
@@ -15,14 +15,9 @@ export {
   Model,
   Message,
   OutMessage,
-  GotCalendarMessage,
-  GotPopoverMessage,
-  RequestedSelectDate,
-  SelectedDate,
-  Cleared,
-  Opened,
-  Closed,
-  ChangedViewMonth,
+  type SelectedDate,
+  type ClearedDate,
+  type ChangedViewMonth,
 } from './index.js'
 
 export type { InitConfig, ViewInputs } from './index.js'

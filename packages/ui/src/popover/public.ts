@@ -5,24 +5,16 @@ export {
   close,
   view,
   buttonId,
+  arrowId,
   Model,
   Message,
   OutMessage,
-  Opened,
-  Closed,
-  RequestedOpen,
-  RequestedClose,
-  CompletedFocusPanel,
-  CompletedFocusButton,
-  CompletedLockScroll,
-  CompletedUnlockScroll,
-  CompletedInertOthers,
-  CompletedRestoreInert,
-  CompletedAnchorPopover,
-  CompletedPortalPopoverBackdrop,
+  type Opened,
+  type Closed,
+  type RequestedOpen,
+  type RequestedClose,
   AnchorPopover,
   PortalPopoverBackdrop,
-  GotAnimationMessage,
   LockScroll,
   UnlockScroll,
   InertOthers,
@@ -30,16 +22,12 @@ export {
   FocusPanel,
   FocusButton,
   DetectMovementOrAnimationEnd,
+  type BlurredPanel,
+  type PressedPointerOnButton,
+  type IgnoredMouseClick,
+  type SuppressedSpaceScroll,
 } from './index.js'
 
-export type {
-  BlurredPanel,
-  PressedPointerOnButton,
-  IgnoredMouseClick,
-  SuppressedSpaceScroll,
-  InitConfig,
-  ViewInputs,
-  RenderInfo,
-} from './index.js'
+export type { InitConfig, ViewInputs, RenderInfo } from './index.js'
 
-export type { AnchorConfig } from '../anchor.js'
+export type { AnchorConfig } from '../anchor/index.js'

@@ -25,14 +25,21 @@
       "error",
       { "assertionStyle": "never" }
     ],
+    "sort-imports": [
+      "error",
+      { "ignoreDeclarationSort": true, "ignoreCase": false }
+    ],
     "foldkit/no-noop-message": "error",
     "foldkit/got-submodel-message-name": "error",
-    "foldkit/message-binding-matches-tag": "error",
     "foldkit/got-prefix-requires-submodel-payload": "error",
+    "foldkit/no-empty-children-array": "error",
+    "foldkit/no-empty-commands-array": "error",
+    "foldkit/no-empty-to-parent-out-message": "error",
     "foldkit/no-empty-object-tagged-call": "error",
     "foldkit/prefer-callable-message-constructor": "error",
     "foldkit/command-binding-matches-name": "error",
-    "foldkit/no-module-level-mutable-state": "error"
+    "foldkit/no-module-level-mutable-state": "error",
+    "foldkit/prefer-effect-module-names": "error"
   },
   "overrides": [
     {
@@ -40,6 +47,25 @@
       "rules": {
         "typescript/no-explicit-any": "off",
         "foldkit/no-module-level-mutable-state": "off"
+      }
+    },
+    {
+      "files": [
+        "**/entry.server.ts",
+        "**/entry.server.tsx",
+        "**/server/**/*.ts",
+        "**/server/**/*.tsx",
+        "**/prerender.ts",
+        "**/prerender.tsx"
+      ],
+      "excludeFiles": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx"
+      ],
+      "rules": {
+        "foldkit/no-nonportable-server-globals": "error"
       }
     }
   ],
@@ -55,6 +81,9 @@
     "packages/oxlint-plugin-foldkit/",
     "packages/typing-game/shared/",
     "packages/vite-plugin-foldkit/",
+    "examples/",
+    "packages/website/src/",
+    "packages/typing-game/client/src/",
     "**/*.d.ts",
     "**/vite.config.ts",
     "**/*.config.js",
@@ -62,6 +91,7 @@
     "packages/website/public/example-apps-embed/",
     "packages/website/playwright-report/",
     "packages/website/test-results/",
-    "packages/website/src/snippet/"
+    "!packages/website/scripts/prerender.ts",
+    "!packages/vite-plugin-foldkit/test/fixtures/"
   ]
 }

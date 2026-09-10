@@ -17,7 +17,7 @@ const boot = (
 
   const application = makeApplication<App.Model, App.Message>({
     Model: App.Model,
-    init: () => [initialModel, commands],
+    init: () => ({ model: initialModel, commands }),
     update: App.update,
     view: App.view,
     container,

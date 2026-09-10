@@ -1,6 +1,6 @@
-import { Match as M, Schema as S } from 'effect'
+import { Match, Schema } from 'effect'
 
-export const Step = S.Literals([
+export const Step = Schema.Literals([
   'PersonalInfo',
   'WorkHistory',
   'Education',
@@ -16,13 +16,13 @@ export const all = Step.literals
 export const indexOf = (step: Step): number => all.indexOf(step)
 
 export const show = (step: Step): string =>
-  M.value(step).pipe(
-    M.when('PersonalInfo', () => 'Personal Info'),
-    M.when('WorkHistory', () => 'Work History'),
-    M.when('Education', () => 'Education'),
-    M.when('Skills', () => 'Skills'),
-    M.when('CoverLetter', () => 'Cover Letter'),
-    M.when('Attachments', () => 'Attachments'),
-    M.when('Review', () => 'Review'),
-    M.exhaustive,
+  Match.value(step).pipe(
+    Match.when('PersonalInfo', () => 'Personal Info'),
+    Match.when('WorkHistory', () => 'Work History'),
+    Match.when('Education', () => 'Education'),
+    Match.when('Skills', () => 'Skills'),
+    Match.when('CoverLetter', () => 'Cover Letter'),
+    Match.when('Attachments', () => 'Attachments'),
+    Match.when('Review', () => 'Review'),
+    Match.exhaustive,
   )

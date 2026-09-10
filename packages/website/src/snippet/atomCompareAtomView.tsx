@@ -1,6 +1,6 @@
 import { memo, useCallback } from 'react'
 
-import { useAtomSet } from '@effect-atom/atom-react'
+import { useAtomSet } from '@effect/atom-react'
 
 // The view layer is still React: memo to skip re-renders, useCallback to keep
 // the handler reference stable, a dependency array you have to get right.

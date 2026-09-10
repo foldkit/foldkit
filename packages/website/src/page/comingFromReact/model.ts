@@ -1,6 +1,4 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 
-import { Disclosure } from '@foldkit/ui'
-
-export const Model = S.Record(S.String, Disclosure.Model)
+export const Model = Schema.Record(Schema.String, Schema.Boolean)
 export type Model = typeof Model.Type

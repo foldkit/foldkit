@@ -1,6 +1,6 @@
 // page/home/index.ts
-export * as Model from './model'
-export * as Message from './message'
+export { Model } from './model'
+export { Message } from './message'
 export * from './init'
 export * from './update'
 export * from './view'

@@ -1,15 +1,22 @@
-import { Array, Match as M, Option, Schema as S, pipe } from 'effect'
+import { Array, Match, Option, Schema, pipe } from 'effect'
+import { existsSync } from 'node:fs'
 import { readFile, readdir } from 'node:fs/promises'
 import { basename, extname, join, relative, resolve } from 'node:path'
 import { codeToHtml } from 'shiki'
 import { type Plugin, defineConfig } from 'vite'
 
+import { markdown } from '@foldkit/markdown/vite'
 import { foldkit } from '@foldkit/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
 
+import {
+  counterDemoCodePlugin,
+  notePlayerDemoCodePlugin,
+} from './scripts/demoCodePlugin'
 import { monacoWorkersPlugin } from './scripts/monacoWorkersPlugin'
 import { playgroundFilesPlugin } from './scripts/playgroundFilesPlugin'
 import { playgroundTypesPlugin } from './scripts/playgroundTypesPlugin'
+import { islandAttributes } from './src/markdown/islandAttributes'
 import {
   ParsedApiReference,
   collectNamedSchemas,
@@ -30,6 +37,7 @@ import {
   type TypeDocSignature,
   type TypeDocTypeParam,
 } from './src/page/apiReference/typedoc'
+import { PostFrontmatter } from './src/page/blog/frontmatter'
 import { exampleSlugs } from './src/page/example/meta'
 import { shikiDarkTheme, shikiLightTheme } from './src/shikiTheme'
 
@@ -42,17 +50,24 @@ const highlightLanguage = (filePath: string): string => {
   if (filePath.endsWith('.tsx')) {
     return 'tsx'
   }
+  if (filePath.endsWith('.sh')) {
+    return 'bash'
+  }
   if (filePath.endsWith('.elm')) {
     return 'elm'
   }
   if (filePath.endsWith('.json')) {
     return 'json'
   }
+  if (filePath.endsWith('.html')) {
+    return 'html'
+  }
   return 'typescript'
 }
 
 const highlightCodePlugin = (): Plugin => ({
   name: 'highlight-code',
+  enforce: 'pre',
   async transform(_code, id) {
     if (!id.includes('?highlighted')) {
       return undefined
@@ -62,30 +77,86 @@ const highlightCodePlugin = (): Plugin => ({
     const rawCode = await readFile(filePath, 'utf-8')
     const code = rawCode.trimEnd()
 
-    const lines = code.split('\n')
-    const lineCount = lines.length
-    const lineDigits = String(lineCount).length
-
     const lang = highlightLanguage(filePath)
 
-    const html = await codeToHtml(code, {
-      lang,
-      themes: shikiThemes,
-      decorations: lines.map((line, i) => ({
-        start: { line: i, character: 0 },
-        end: { line: i, character: line.length },
-        properties: { 'data-line': i + 1 },
-      })),
-    })
+    const html = await codeToHtml(code, { lang, themes: shikiThemes })
 
-    const htmlWithDigits = html.replace(
-      '<pre ',
-      `<pre data-line-digits="${lineDigits}" `,
-    )
-
-    return `export default ${JSON.stringify(htmlWithDigits)}`
+    return `export default ${JSON.stringify(html)}`
   },
 })
+
+const CSS_SNIPPETS_ID = 'virtual:css-snippets'
+const RESOLVED_CSS_SNIPPETS_ID = '\0' + CSS_SNIPPETS_ID
+
+/**
+ * Highlights `src/snippet/*.css` and serves the results as one virtual module.
+ *
+ * The other snippet types ride `import.meta.glob` with a `?highlighted` query,
+ * which cannot work here: Vite routes every `.css` id into its own stylesheet
+ * pipeline no matter what query is attached, so the module's JavaScript output
+ * reaches lightningcss as if it were CSS source and the build fails. Reading
+ * the files at config time keeps them out of the module graph entirely.
+ *
+ * Being outside the module graph is also why `load` registers each file as a
+ * watch dependency and `hotUpdate` invalidates the virtual module: nothing else
+ * connects a `.css` snippet to the dev server, so without this an edit is
+ * invisible until restart while every `.ts` snippet hot-updates.
+ */
+const cssSnippetsPlugin = (): Plugin => {
+  const snippetDirectory = resolve(__dirname, 'src/snippet')
+  const isCssSnippet = (filePath: string): boolean =>
+    filePath.startsWith(snippetDirectory) && filePath.endsWith('.css')
+
+  return {
+    name: 'css-snippets',
+    resolveId(id) {
+      return id === CSS_SNIPPETS_ID ? RESOLVED_CSS_SNIPPETS_ID : undefined
+    },
+    async load(id) {
+      if (id !== RESOLVED_CSS_SNIPPETS_ID) {
+        return undefined
+      }
+
+      const fileNames = (await readdir(snippetDirectory)).filter(fileName =>
+        fileName.endsWith('.css'),
+      )
+
+      const entries = await Promise.all(
+        fileNames.map(async fileName => {
+          const filePath = join(snippetDirectory, fileName)
+          this.addWatchFile(filePath)
+          const raw = (await readFile(filePath, 'utf-8')).trimEnd()
+
+          const highlighted = await codeToHtml(raw, {
+            lang: 'css',
+            themes: shikiThemes,
+          })
+
+          return [fileName.replace(/\.css$/, ''), { raw, highlighted }] as const
+        }),
+      )
+
+      return `export default ${JSON.stringify(Object.fromEntries(entries))}`
+    },
+    // NOTE: Vite runs this once per environment. Without the client guard a
+    // single snippet edit sends a full reload for the client and again for
+    // ssr.
+    hotUpdate({ file, server, modules }) {
+      if (this.environment.name !== 'client' || !isCssSnippet(file)) {
+        return undefined
+      }
+
+      const virtualModule = server.moduleGraph.getModuleById(
+        RESOLVED_CSS_SNIPPETS_ID,
+      )
+      if (virtualModule !== undefined) {
+        server.moduleGraph.invalidateModule(virtualModule)
+      }
+      server.ws.send({ type: 'full-reload' })
+      return modules
+    },
+  }
+}
 
 const VIRTUAL_MODULE_ID = 'virtual:api-highlights'
 const RESOLVED_VIRTUAL_MODULE_ID = '\0' + VIRTUAL_MODULE_ID
@@ -114,7 +185,7 @@ const loadApiTypeDocJson = async (): Promise<TypeDocJson> => {
     ...core,
     children: [...(core.children ?? []), ...(ui.children ?? [])],
   }
-  return S.decodeUnknownSync(TypeDocJson)(merged)
+  return Schema.decodeUnknownSync(TypeDocJson)(merged)
 }
 
 const formatTypeParam =
@@ -327,12 +398,12 @@ const itemToEntries = (namedSchemas: NamedSchemas) => {
     prefix: string,
     item: TypeDocItem,
   ): ReadonlyArray<readonly [string, string]> =>
-    M.value(item.kind).pipe(
-      M.when(Kind.Function, () => fnEntries(prefix, item)),
-      M.when(Kind.TypeAlias, () => typeEntries(prefix, item)),
-      M.when(Kind.Interface, () => ifaceEntries(prefix, item)),
-      M.when(Kind.Variable, () => varEntries(prefix, item)),
-      M.orElse(() => []),
+    Match.value(item.kind).pipe(
+      Match.when(Kind.Function, () => fnEntries(prefix, item)),
+      Match.when(Kind.TypeAlias, () => typeEntries(prefix, item)),
+      Match.when(Kind.Interface, () => ifaceEntries(prefix, item)),
+      Match.when(Kind.Variable, () => varEntries(prefix, item)),
+      Match.orElse(() => []),
     )
 }
 
@@ -474,231 +545,23 @@ const parsedApiPlugin = (): Plugin => ({
 
     const json = await loadApiTypeDocJson()
     const parsed = parseTypedocJson(json)
-    const encoded = S.encodeSync(ParsedApiReference)(parsed)
+    const encoded = Schema.encodeSync(ParsedApiReference)(parsed)
 
     return `export default ${JSON.stringify(encoded)}`
   },
 })
 
-const COUNTER_DEMO_CODE_ID = 'virtual:counter-demo-code'
-const RESOLVED_COUNTER_DEMO_CODE_ID = '\0' + COUNTER_DEMO_CODE_ID
-
-const DEMO_CODE = `// MODEL
-
-const Model = S.Struct({
-  count: S.Number,
-  isResetting: S.Boolean,
-  resetDuration: S.Number,
-})
-
-// MESSAGE
-
-const ClickedIncrement = m('ClickedIncrement')
-const ChangedResetDuration = m('ChangedResetDuration', {
-  seconds: S.Number,
-})
-const ClickedResetAfterDelay = m('ClickedResetAfterDelay')
-const CompletedDelayReset = m('CompletedDelayReset')
-
-// COMMAND
-
-const DelayReset = Command.define(
-  'DelayReset',
-  { seconds: S.Number },
-  CompletedDelayReset,
-)(({ seconds }) =>
-  Effect.sleep(\`\${seconds} seconds\`).pipe(
-    Effect.as(CompletedDelayReset()),
-  ),
-)
-
-// UPDATE
-
-M.tagsExhaustive({
-  ClickedIncrement: () => [
-    evo(model, { count: count => count + 1 }),
-    [],
-  ],
-  ChangedResetDuration: ({ seconds }) => [
-    evo(model, { resetDuration: () => seconds }),
-    [],
-  ],
-  ClickedResetAfterDelay: () => [
-    evo(model, { isResetting: () => true }),
-    [DelayReset({ seconds: model.resetDuration })],
-  ],
-  CompletedDelayReset: () => [
-    evo(model, { count: () => 0, isResetting: () => false }),
-    [],
-  ],
-})`
-
-const counterDemoCodePlugin = (): Plugin => ({
-  name: 'counter-demo-code',
-  resolveId(id) {
-    if (id === COUNTER_DEMO_CODE_ID) {
-      return RESOLVED_COUNTER_DEMO_CODE_ID
-    } else {
-      return undefined
-    }
-  },
-  async load(id) {
-    if (id !== RESOLVED_COUNTER_DEMO_CODE_ID) {
-      return undefined
-    }
-
-    const code = DEMO_CODE.trimEnd()
-    const lines = code.split('\n')
-    const lineCount = lines.length
-    const lineDigits = String(lineCount).length
-
-    const html = await codeToHtml(code, {
-      lang: 'typescript',
-      themes: shikiThemes,
-      decorations: lines.map((line, i) => ({
-        start: { line: i, character: 0 },
-        end: { line: i, character: line.length },
-        properties: { 'data-line': i + 1 },
-      })),
-    })
-
-    const htmlWithDigits = html.replace(
-      '<pre ',
-      `<pre data-line-digits="${lineDigits}" `,
-    )
-
-    return `export default ${JSON.stringify(htmlWithDigits)}`
-  },
-})
-
-const NOTE_PLAYER_DEMO_CODE_ID = 'virtual:note-player-demo-code'
-const RESOLVED_NOTE_PLAYER_DEMO_CODE_ID = '\0' + NOTE_PLAYER_DEMO_CODE_ID
-
-const NOTE_PLAYER_DEMO_CODE = `// MODEL
-
-const Model = S.Struct({
-  noteInput: NoteInputField.Union,
-  noteDuration: NoteDuration,
-  playbackState: PlaybackState, // Idle | Playing | Paused
-})
-
-// MESSAGE
-
-const ClickedPlay = m('ClickedPlay')
-const ClickedPause = m('ClickedPause')
-const CompletedPlayNote = m('CompletedPlayNote', {
-  noteIndex: S.Number,
-})
-
-// UPDATE
-
-M.tagsExhaustive({
-  ClickedPlay: () => [
-    evo(model, {
-      playbackState: () =>
-        Playing({ noteSequence, currentNoteIndex: 0 }),
-    }),
-    [playNote(firstNote, model.noteDuration, 0)],
-  ],
-  ClickedPause: () => [
-    evo(model, {
-      playbackState: () =>
-        Paused({ noteSequence, currentNoteIndex }),
-    }),
-    [],
-  ],
-  CompletedPlayNote: ({ noteIndex }) => {
-    if (nextIndex >= noteSequence.length) {
-      return [
-        evo(model, { playbackState: () => Idle() }),
-        [],
-      ]
-    } else {
-      return [
-        evo(model, {
-          playbackState: () =>
-            Playing({
-              noteSequence,
-              currentNoteIndex: nextIndex,
-            }),
-        }),
-        [playNote(nextNote, model.noteDuration, nextIndex)],
-      ]
-    }
-  },
-})
-
-// RESOURCE
-
-class AudioContextService extends Context.Service<
-  AudioContextService,
-  AudioContext
->()('AudioContextService') {
-  static readonly Default = Layer.sync(this, () => new AudioContext())
-}
-
-// COMMAND
-
-const PlayNote = Command.define(
-  'PlayNote',
-  { note: Note, duration: S.Number, noteIndex: S.Number },
-  CompletedPlayNote,
-)(({ note, duration, noteIndex }) =>
-  Effect.gen(function* () {
-    const audioContext = yield* AudioContextService
-
-    return yield* Effect.callback(resume => {
-      const oscillator = audioContext.createOscillator()
-      oscillator.frequency.setValueAtTime(NOTE_FREQUENCIES[note])
-      oscillator.connect(audioContext.destination)
-      oscillator.start()
-      oscillator.stop(audioContext.currentTime + duration)
-      oscillator.onended = () =>
-        resume(Effect.succeed(CompletedPlayNote({ noteIndex })))
-    })
-  }),
-)`
-
-const notePlayerDemoCodePlugin = (): Plugin => ({
-  name: 'note-player-demo-code',
-  resolveId(id) {
-    if (id === NOTE_PLAYER_DEMO_CODE_ID) {
-      return RESOLVED_NOTE_PLAYER_DEMO_CODE_ID
-    } else {
-      return undefined
-    }
-  },
-  async load(id) {
-    if (id !== RESOLVED_NOTE_PLAYER_DEMO_CODE_ID) {
-      return undefined
-    }
-
-    const code = NOTE_PLAYER_DEMO_CODE.trimEnd()
-    const lines = code.split('\n')
-    const lineCount = lines.length
-    const lineDigits = String(lineCount).length
-
-    const html = await codeToHtml(code, {
-      lang: 'typescript',
-      themes: shikiThemes,
-      decorations: lines.map((line, i) => ({
-        start: { line: i, character: 0 },
-        end: { line: i, character: line.length },
-        properties: { 'data-line': i + 1 },
-      })),
-    })
-
-    const htmlWithDigits = html.replace(
-      '<pre ',
-      `<pre data-line-digits="${lineDigits}" `,
-    )
-
-    return `export default ${JSON.stringify(htmlWithDigits)}`
-  },
-})
-
 const LANDING_DATA_ID = 'virtual:landing-data'
 const RESOLVED_LANDING_DATA_ID = '\0' + LANDING_DATA_ID
+
+const readBakedStarCount = (): number | null => {
+  const raw = process.env['FOLDKIT_GITHUB_STAR_COUNT']
+  if (raw === undefined || raw === '') {
+    return null
+  }
+  const parsed = Number(raw)
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null
+}
 
 const landingDataPlugin = (): Plugin => ({
   name: 'landing-data',
@@ -718,7 +581,13 @@ const landingDataPlugin = (): Plugin => ({
       await readFile(resolve(__dirname, '../foldkit/package.json'), 'utf-8'),
     )
 
-    return `export const foldkitVersion = ${JSON.stringify(packageJson.version)}`
+    const githubStarCount = readBakedStarCount()
+
+    return [
+      `export const foldkitVersion = ${JSON.stringify(packageJson.version)}`,
+      `export const effectVersion = ${JSON.stringify(packageJson.peerDependencies.effect)}`,
+      `export const githubStarCount = ${JSON.stringify(githubStarCount)}`,
+    ].join('\n')
   },
 })
 
@@ -763,7 +632,13 @@ const RESOLVED_EXAMPLE_SOURCES_PREFIX = '\0' + EXAMPLE_SOURCES_PREFIX
 
 const EXAMPLE_SLUG_SET: Set<string> = new Set(exampleSlugs)
 
-const EXAMPLE_FILE_EXTENSIONS = new Set(['.ts', '.tsx', '.css'])
+export const EXAMPLE_FILE_EXTENSIONS: ReadonlySet<string> = new Set([
+  '.ts',
+  '.tsx',
+  '.css',
+  '.md',
+  '.mjs',
+])
 
 const langFromExtension = (filePath: string): string => {
   const extension = extname(filePath)
@@ -773,8 +648,24 @@ const langFromExtension = (filePath: string): string => {
   if (extension === '.css') {
     return 'css'
   }
+  if (extension === '.md') {
+    return 'markdown'
+  }
+  if (extension === '.mjs') {
+    return 'javascript'
+  }
   return 'typescript'
 }
+
+export const EXAMPLE_SOURCE_ROOTS: ReadonlyArray<string> = [
+  'src',
+  'server',
+  'scripts',
+]
+
+// The build command reads the config, which is where a generated project
+// computes its build id, so a reader of an example's source has to be shown it.
+export const EXAMPLE_ROOT_FILES: ReadonlyArray<string> = ['vite.config.ts']
 
 const collectSourceFiles = async (
   directory: string,
@@ -782,6 +673,11 @@ const collectSourceFiles = async (
   const entries = await readdir(directory, {
     recursive: true,
     withFileTypes: true,
+  }).catch((error: unknown) => {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+      return []
+    }
+    throw error
   })
   return entries
     .filter(
@@ -823,29 +719,13 @@ const highlightExampleFile = async (
 ) => {
   const rawCode = await readFile(filePath, 'utf-8')
   const code = rawCode.trimEnd()
-  const lines = code.split('\n')
-  const lineCount = lines.length
-  const lineDigits = String(lineCount).length
   const lang = langFromExtension(filePath)
 
-  const html = await codeToHtml(code, {
-    lang,
-    themes: shikiThemes,
-    decorations: lines.map((line, i) => ({
-      start: { line: i, character: 0 },
-      end: { line: i, character: line.length },
-      properties: { 'data-line': i + 1 },
-    })),
-  })
-
-  const htmlWithDigits = html.replace(
-    '<pre ',
-    `<pre data-line-digits="${lineDigits}" `,
-  )
+  const html = await codeToHtml(code, { lang, themes: shikiThemes })
 
   return {
     path: relative(baseDirectory, filePath),
-    highlightedHtml: htmlWithDigits,
+    highlightedHtml: html,
     rawCode: code,
   }
 }
@@ -870,9 +750,18 @@ const highlightExampleSourcesPlugin = (): Plugin => ({
     }
 
     const exampleDirectory = resolve(__dirname, `../../examples/${slug}`)
-    const sourceDirectory = join(exampleDirectory, 'src')
-    const allFiles = await collectSourceFiles(sourceDirectory)
-    const sortedFiles = sortExampleFiles(allFiles, exampleDirectory)
+    const collected = await Promise.all(
+      EXAMPLE_SOURCE_ROOTS.map(root =>
+        collectSourceFiles(join(exampleDirectory, root)),
+      ),
+    )
+    const rootFiles = EXAMPLE_ROOT_FILES.map(fileName =>
+      join(exampleDirectory, fileName),
+    ).filter(filePath => existsSync(filePath))
+    const sortedFiles = sortExampleFiles(
+      [...collected.flat(), ...rootFiles],
+      exampleDirectory,
+    )
 
     const files = await Promise.all(
       sortedFiles.map(filePath =>
@@ -913,18 +802,20 @@ const embeddedExampleRedirectPlugin = (): Plugin => ({
 // boots in `pnpm dev` and `pnpm preview`. The deployed Vercel config is
 // the source of truth; this is the dev-mode equivalent.
 //
-// CORP same-origin goes on every response (not just /playground/*) so
-// that Monaco's editor and worker scripts loaded by the credentialless
-// /playground/* page satisfy COEP. Workers in credentialless contexts
-// require their script URLs to return a CORP-compatible response, and
-// Vite serves those from non-/playground paths.
+// CORP same-origin goes on every response so Monaco's scripts satisfy
+// the playground page's embedder policy. Monaco worker responses also
+// carry COEP credentialless so their WorkerGlobalScope stays isolated.
 const setIsolationHeaders = (
   url: string | undefined,
   res: { setHeader: (name: string, value: string) => void },
 ) => {
+  const isPlaygroundRequest = url?.startsWith('/playground/') ?? false
+  const isMonacoWorkerRequest = url?.startsWith('/monacoworkers/') ?? false
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin')
-  if (url?.startsWith('/playground/')) {
+  if (isPlaygroundRequest || isMonacoWorkerRequest) {
     res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless')
+  }
+  if (isPlaygroundRequest) {
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
   }
 }
@@ -947,17 +838,34 @@ const playgroundIsolationHeadersPlugin = (): Plugin => ({
 
 // NOTE: Mirrors the `/playground/(.*)` rewrite in
 // .github/workflows/deploy-website.yml so the prerendered build can be
-// verified with `pnpm preview`. Playground routes aren't prerendered, so the
-// SPA fallback would otherwise serve the home page and flash the landing view
-// before the app boots. `pnpm dev` needs nothing: there's no prerender, so
-// `#root` is empty and there's no landing markup to flash.
+// verified with `pnpm preview`. A prerender writes metadata shells for known
+// Playground slugs; builds without those files and unknown slugs still need
+// the shared shell so the SPA fallback doesn't flash the landing view before
+// the app boots. `pnpm dev` needs nothing: there's no prerender, so `#root` is
+// empty and there's no landing markup to flash.
 const playgroundShellFallbackPlugin = (): Plugin => ({
   name: 'playground-shell-fallback',
   configurePreviewServer(server) {
     server.middlewares.use((req, _res, next) => {
       if (req.url) {
         const { pathname, search } = new URL(req.url, 'http://localhost')
-        if (
+        const isPrerenderedPlaygroundRoute = Array.some(
+          exampleSlugs,
+          exampleSlug =>
+            pathname === `/playground/${exampleSlug}` &&
+            existsSync(
+              resolve(
+                import.meta.dirname,
+                'dist',
+                'playground',
+                exampleSlug,
+                'index.html',
+              ),
+            ),
+        )
+        if (isPrerenderedPlaygroundRoute) {
+          req.url = `${pathname}/index.html${search}`
+        } else if (
           pathname.startsWith('/playground/') &&
           pathname !== '/playground/index.html'
         ) {
@@ -972,11 +880,16 @@ const playgroundShellFallbackPlugin = (): Plugin => ({
 export default defineConfig({
   plugins: [
     tailwindcss(),
-    foldkit({ devToolsMcpPort: 9988 }),
+    foldkit({
+      devToolsMcpPort: 9988,
+      ssr: { serverEntry: '/src/entry.server.ts' },
+    }),
+    markdown({ islands: islandAttributes, frontmatter: PostFrontmatter }),
     embeddedExampleRedirectPlugin(),
     playgroundIsolationHeadersPlugin(),
     playgroundShellFallbackPlugin(),
     highlightCodePlugin(),
+    cssSnippetsPlugin(),
     highlightApiSignaturesPlugin(),
     apiModuleIndexPlugin(),
     parsedApiPlugin(),

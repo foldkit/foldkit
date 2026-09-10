@@ -1,6 +1,6 @@
-import { Effect, Match as M, Schema as S } from 'effect'
-import { AsyncData, Command } from 'foldkit'
-import { m } from 'foldkit/message'
+import { Effect, Schema } from 'effect'
+import { AsyncData, Command, type Update } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
 
 import { Api } from './api'
 
@@ -10,58 +10,47 @@ import { Api } from './api'
 // union, so there is no hand-rolled loading/failure/stale union to maintain.
 const UserAsyncData = AsyncData.Schema(User, ApiError)
 
-export const Model = S.Struct({
+export const Model = Schema.Struct({
   user: UserAsyncData.schema,
 })
 type Model = typeof Model.Type
 
 // MESSAGE
 
-const ClickedLoadUser = m('ClickedLoadUser')
-const SucceededLoadUser = m('SucceededLoadUser', { user: User })
-const FailedLoadUser = m('FailedLoadUser', { error: ApiError })
-
-const Message = S.Union([ClickedLoadUser, SucceededLoadUser, FailedLoadUser])
+const Message = defineMessageUnion({
+  ClickedLoadUser: {},
+  SucceededLoadUser: { user: User },
+  FailedLoadUser: { error: ApiError },
+})
 type Message = typeof Message.Type
 
 // COMMAND
 
 // Api is an Effect service; Api.Default is its layer.
-const FetchUser = Command.define(
-  'FetchUser',
-  SucceededLoadUser,
-  FailedLoadUser,
-)(
-  Effect.gen(function* () {
+const FetchUser = Command.define('FetchUser', {
+  messages: [Message.SucceededLoadUser, Message.FailedLoadUser],
+  execute: Effect.gen(function* () {
     const api = yield* Api
     const user = yield* api.getUser()
-    return SucceededLoadUser({ user })
+    return Message.SucceededLoadUser({ user })
   }).pipe(
-    Effect.catch(error => Effect.succeed(FailedLoadUser({ error }))),
+    Effect.catch(error => Effect.succeed(Message.FailedLoadUser({ error }))),
     Effect.provide(Api.Default),
   ),
-)
+})
 
 // UPDATE
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  M.value(message).pipe(
-    withUpdateReturn,
-    M.tagsExhaustive({
-      ClickedLoadUser: () => [
-        evo(model, { user: () => UserAsyncData.Loading() }),
-        [FetchUser()],
-      ],
-      SucceededLoadUser: ({ user }) => [
-        evo(model, { user: () => UserAsyncData.Success({ data: user }) }),
-        [],
-      ],
-      FailedLoadUser: ({ error }) => [
-        evo(model, { user: () => UserAsyncData.Failure({ error }) }),
-        [],
-      ],
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ClickedLoadUser: () => ({
+      model: evo(model, { user: () => UserAsyncData.Loading() }),
+      commands: [FetchUser()],
     }),
-  )
+    SucceededLoadUser: ({ user }) => ({
+      model: evo(model, { user: () => UserAsyncData.Success({ data: user }) }),
+    }),
+    FailedLoadUser: ({ error }) => ({
+      model: evo(model, { user: () => UserAsyncData.Failure({ error }) }),
+    }),
+  })

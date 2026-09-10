@@ -1,97 +1,94 @@
-import { Match as M, Schema as S } from 'effect'
-import { Command, Runtime } from 'foldkit'
-import { Document, html } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { Schema } from 'effect'
+import { Runtime, type Update } from 'foldkit'
+import { Document, HtmlBuilder } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
+import { evo } from 'foldkit/struct'
 
 import { Button } from '@foldkit/ui'
 
 // MODEL
 
-export const Model = S.Struct({ count: S.Number })
+export const Model = Schema.Struct({ count: Schema.Number })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const ClickedDecrement = m('ClickedDecrement')
-export const ClickedIncrement = m('ClickedIncrement')
-export const ClickedReset = m('ClickedReset')
-
-export const Message = S.Union([
-  ClickedDecrement,
-  ClickedIncrement,
-  ClickedReset,
-])
+export const Message = defineMessageUnion({
+  ClickedDecrement: {},
+  ClickedIncrement: {},
+  ClickedReset: {},
+})
 export type Message = typeof Message.Type
 
 // UPDATE
 
-export const update = (
-  model: Model,
-  message: Message,
-): readonly [Model, ReadonlyArray<Command.Command<Message>>] =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
-    M.tagsExhaustive({
-      ClickedDecrement: () => [{ count: model.count - 1 }, []],
-      ClickedIncrement: () => [{ count: model.count + 1 }, []],
-      ClickedReset: () => [{ count: 0 }, []],
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ClickedDecrement: () => ({
+      model: evo(model, { count: count => count - 1 }),
     }),
-  )
+    ClickedIncrement: () => ({
+      model: evo(model, { count: count => count + 1 }),
+    }),
+    ClickedReset: () => ({ model: evo(model, { count: () => 0 }) }),
+  })
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  { count: 0 },
-  [],
-]
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: { count: 0 },
+})
 
 // VIEW
 
-export const view = (model: Model): Document => {
-  const h = html<Message>()
-
-  return {
-    title: `Counter: ${model.count}`,
-    body: h.div(
-      [
-        h.Class(
-          'min-h-screen bg-white flex flex-col items-center justify-center gap-6 p-6',
-        ),
-      ],
-      [
-        h.div(
-          [h.Class('text-6xl font-bold text-gray-800')],
-          [model.count.toString()],
-        ),
-        h.div(
-          [h.Class('flex flex-wrap justify-center gap-4')],
-          [
-            Button.view<Message>({
-              onClick: ClickedDecrement(),
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+  title: `Counter: ${model.count}`,
+  body: h.div(
+    [
+      h.Class(
+        'min-h-screen bg-white flex flex-col items-center justify-center gap-6 p-6',
+      ),
+    ],
+    [
+      h.p(
+        [h.Class('text-6xl font-bold text-gray-800')],
+        [model.count.toString()],
+      ),
+      h.div(
+        [h.Class('flex flex-wrap justify-center gap-4')],
+        [
+          Button.view(
+            {
+              onClick: Message.ClickedDecrement(),
               toView: attributes =>
                 h.button([...attributes.button, h.Class(buttonStyle)], ['-']),
-            }),
-            Button.view<Message>({
-              onClick: ClickedReset(),
+            },
+            h,
+          ),
+          Button.view(
+            {
+              onClick: Message.ClickedReset(),
               toView: attributes =>
                 h.button(
                   [...attributes.button, h.Class(buttonStyle)],
                   ['Reset'],
                 ),
-            }),
-            Button.view<Message>({
-              onClick: ClickedIncrement(),
+            },
+            h,
+          ),
+          Button.view(
+            {
+              onClick: Message.ClickedIncrement(),
               toView: attributes =>
                 h.button([...attributes.button, h.Class(buttonStyle)], ['+']),
-            }),
-          ],
-        ),
-      ],
-    ),
-  }
-}
+            },
+            h,
+          ),
+        ],
+      ),
+    ],
+  ),
+})
 
 // STYLE
 

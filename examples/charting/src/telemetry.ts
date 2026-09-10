@@ -1,12 +1,4 @@
-import {
-  Array,
-  Clock,
-  Effect,
-  Option,
-  Order,
-  Record as Record_,
-  pipe,
-} from 'effect'
+import { Array, Clock, Effect, Option, Order, Record, pipe } from 'effect'
 
 import {
   ContributorSummary,
@@ -109,19 +101,20 @@ const lastWeekDownloads = (
     }),
   )
 
-const recordSize = (record: Readonly<Record<string, string>>): number =>
-  Array.length(Record_.keys(record))
+const recordSize = (
+  record: Readonly<globalThis.Record<string, string>>,
+): number => Array.length(Record.keys(record))
 
 const dependenciesOrEmpty = (
-  maybeDependencies: Option.Option<Readonly<Record<string, string>>>,
-): Readonly<Record<string, string>> =>
-  Option.getOrElse(maybeDependencies, Record_.empty<string, string>)
+  maybeDependencies: Option.Option<Readonly<globalThis.Record<string, string>>>,
+): Readonly<globalThis.Record<string, string>> =>
+  Option.getOrElse(maybeDependencies, Record.empty<string, string>)
 
 const latestMetadata = (
   packument: typeof NpmPackument.Type,
 ): NpmVersionMetadata =>
   Option.getOrElse(
-    Record_.get(packument.versions, packument['dist-tags'].latest),
+    Record.get(packument.versions, packument['dist-tags'].latest),
     () => ({
       dependencies: Option.none(),
       peerDependencies: Option.none(),
@@ -137,7 +130,7 @@ export const dependencyEdgesForPackage = (
 
   const dependencyEdges = Array.map(
     Array.filter(packageSpecs, spec =>
-      Array.contains(Record_.keys(dependencies), spec.npmName),
+      Array.contains(Record.keys(dependencies), spec.npmName),
     ),
     spec =>
       DependencyEdge.make({
@@ -149,7 +142,7 @@ export const dependencyEdgesForPackage = (
 
   const peerDependencyEdges = Array.map(
     Array.filter(packageSpecs, spec =>
-      Array.contains(Record_.keys(peerDependencies), spec.npmName),
+      Array.contains(Record.keys(peerDependencies), spec.npmName),
     ),
     spec =>
       DependencyEdge.make({
@@ -178,7 +171,7 @@ export const packageSnapshotFromResponses = (
   const downloadsByWeek = weeklyDownloads(downloads, weekStarts)
 
   const publishedAt = Option.getOrElse(
-    Record_.get(packument.time, distTags.latest),
+    Record.get(packument.time, distTags.latest),
     () => 'unknown',
   )
   const totalDownloads = Array.reduce(

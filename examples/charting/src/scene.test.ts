@@ -1,67 +1,74 @@
-import { Option } from 'effect'
-import { Scene } from 'foldkit'
+import {
+  Command,
+  Mount,
+  click,
+  expect,
+  given,
+  label,
+  role,
+  scene,
+  text,
+} from 'foldkit/scene'
+import { evo } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { RadioGroup } from '@foldkit/ui'
 
 import { SyncChart } from './command'
-import { loadingModel, readyModel, sampleTelemetry } from './main.fixtures'
-import {
-  CompletedSyncChart,
-  GotChartModeRadioGroupMessage,
-  SucceededMountChart,
-} from './message'
-import { TelemetryFailure, TelemetryRefreshing } from './model'
+import { loadingModel, readyModel, sampleTelemetry } from './main.fixture'
+import { Message } from './message'
+import { TelemetryAsyncData } from './model'
 import { update } from './update'
 import { CHART_HOST_ID, MountChart } from './view/chart'
 import { view } from './view/index'
 
-const acknowledgeChartMount = Scene.Mount.resolve(
+const acknowledgeChartMount = Mount.resolve(
   MountChart,
-  SucceededMountChart({ hostId: CHART_HOST_ID }),
+  Message.SucceededMountChart({ hostId: CHART_HOST_ID }),
 )
 
-const acknowledgeChartSync = Scene.Command.resolve(
+const acknowledgeChartSync = Command.resolve(
   SyncChart,
-  CompletedSyncChart(),
+  Message.SucceededSyncChart(),
+)
+
+const resolveFocusOption = Command.resolve(
+  RadioGroup.FocusOption,
+  RadioGroup.Message.CompletedFocusOption(),
 )
 
 describe('view', () => {
   test('loading view shows a telemetry progress state', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(loadingModel),
-      Scene.expect(Scene.label('Loading telemetry')).toExist(),
+      given(loadingModel),
+      expect(label('Loading telemetry')).toExist(),
     )
   })
 
   test('ready view shows summaries and chart controls', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(readyModel),
+      given(readyModel),
       acknowledgeChartMount,
       acknowledgeChartSync,
-      Scene.expect(Scene.text('Foldkit Adoption Observatory')).toExist(),
-      Scene.expect(Scene.text('Downloads')).toExist(),
-      Scene.expect(Scene.role('radio', { name: 'Velocity' })).toExist(),
-      Scene.expect(Scene.role('radio', { name: /@foldkit\/ui/ })).toExist(),
+      expect(text('Foldkit Adoption Observatory')).toExist(),
+      expect(text('Downloads')).toExist(),
+      expect(role('radio', { name: 'Velocity' })).toExist(),
+      expect(role('radio', { name: /@foldkit\/ui/ })).toExist(),
     )
   })
 
   test('clicking a chart mode updates the visible selected control', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with(readyModel),
+      given(readyModel),
       acknowledgeChartMount,
       acknowledgeChartSync,
-      Scene.click(Scene.role('radio', { name: 'Velocity' })),
-      Scene.Command.resolve(
-        RadioGroup.FocusOption,
-        RadioGroup.CompletedFocusOption(),
-        message => GotChartModeRadioGroupMessage({ message }),
-      ),
-      Scene.Command.resolve(SyncChart, CompletedSyncChart()),
-      Scene.expect(Scene.role('radio', { name: 'Velocity' })).toHaveAttr(
+      click(role('radio', { name: 'Velocity' })),
+      resolveFocusOption,
+      Command.resolve(SyncChart, Message.SucceededSyncChart()),
+      expect(role('radio', { name: 'Velocity' })).toHaveAttr(
         'aria-checked',
         'true',
       ),
@@ -69,31 +76,31 @@ describe('view', () => {
   })
 
   test('refreshing state keeps the dashboard visible', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with({
-        ...readyModel,
-        telemetry: TelemetryRefreshing({ data: sampleTelemetry }),
-      }),
+      given(
+        evo(readyModel, {
+          telemetry: () =>
+            TelemetryAsyncData.Refreshing({ data: sampleTelemetry }),
+        }),
+      ),
       acknowledgeChartMount,
       acknowledgeChartSync,
-      Scene.expect(Scene.text('Refreshing public data')).toExist(),
-      Scene.expect(Scene.text('Contributors')).toExist(),
+      expect(text('Refreshing public data')).toExist(),
+      expect(text('Contributors')).toExist(),
     )
   })
 
   test('failure without stale data shows retry', () => {
-    Scene.scene(
+    scene(
       { update, view },
-      Scene.with({
-        ...loadingModel,
-        telemetry: TelemetryFailure({
-          error: 'offline',
-          maybeData: Option.none(),
+      given(
+        evo(loadingModel, {
+          telemetry: () => TelemetryAsyncData.Failure({ error: 'offline' }),
         }),
-      }),
-      Scene.expect(Scene.label('Telemetry failed')).toExist(),
-      Scene.expect(Scene.role('button', { name: 'Retry' })).toExist(),
+      ),
+      expect(label('Telemetry failed')).toExist(),
+      expect(role('button', { name: 'Retry' })).toExist(),
     )
   })
 })

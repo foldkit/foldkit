@@ -1,6 +1,6 @@
-import { Match as M, Option } from 'effect'
+import { Match, Option } from 'effect'
 import * as Calendar from 'foldkit/calendar'
-import { html } from 'foldkit/html'
+import { type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
 import { expect } from 'vitest'
 
@@ -8,60 +8,49 @@ import { describe, it } from '@effect/vitest'
 
 import * as UiCalendar from '../calendar/index.js'
 import * as Popover from '../popover/public.js'
-import type { Message, Model, ViewInputs } from './index.js'
-import {
-  GotPopoverMessage,
-  Opened,
-  init,
-  triggerId,
-  update,
-  view,
-} from './index.js'
+import type { Model, ViewInputs } from './index.js'
+import { Message, init, triggerId, update, view } from './index.js'
 
 const acknowledgeAnchorPopover = Scene.Mount.resolve(
   Popover.AnchorPopover,
-  Popover.CompletedAnchorPopover(),
-  message => GotPopoverMessage({ message }),
+  Popover.Message.CompletedAnchorPopover(),
 )
 const acknowledgePopoverBackdrop = Scene.Mount.resolve(
   Popover.PortalPopoverBackdrop,
-  Popover.CompletedPortalPopoverBackdrop(),
-  message => GotPopoverMessage({ message }),
+  Popover.Message.CompletedPortalPopoverBackdrop(),
 )
 
 const today = Calendar.make(2026, 4, 13)
 
-const testToCalendarView = (attrs: UiCalendar.CalendarAttributes) => {
-  const h = html<Message>()
-
-  return M.value(attrs).pipe(
-    M.tagsExhaustive({
+const testToCalendarView = (attrs: UiCalendar.CalendarAttributes) =>
+  Match.value(attrs).pipe(
+    Match.tagsExhaustive({
       Days: days =>
-        h.div(days.root, [
-          h.div(
+        ih.div(days.root, [
+          ih.div(
             [],
             [
-              h.button(days.previousMonthButton, ['prev']),
-              h.button(
-                [h.Id(days.heading.id), ...days.headingButton],
+              ih.button(days.previousMonthButton, ['prev']),
+              ih.button(
+                [ih.Id(days.heading.id), ...days.headingButton],
                 [days.heading.text],
               ),
-              h.button(days.nextMonthButton, ['next']),
+              ih.button(days.nextMonthButton, ['next']),
             ],
           ),
-          h.div(days.grid, [
-            h.div(
+          ih.div(days.grid, [
+            ih.div(
               days.headerRow,
               days.columnHeaders.map(header =>
-                h.div(header.attributes, [header.name]),
+                ih.div(header.attributes, [header.name]),
               ),
             ),
             ...days.weeks.map(week =>
-              h.div(
+              ih.div(
                 week.attributes,
                 week.cells.map(cell =>
-                  h.div(cell.cellAttributes, [
-                    h.button(cell.buttonAttributes, [cell.label]),
+                  ih.div(cell.cellAttributes, [
+                    ih.button(cell.buttonAttributes, [cell.label]),
                   ]),
                 ),
               ),
@@ -69,52 +58,49 @@ const testToCalendarView = (attrs: UiCalendar.CalendarAttributes) => {
           ]),
         ]),
       Months: months =>
-        h.div(months.root, [
-          h.div(
+        ih.div(months.root, [
+          ih.div(
             [],
             [
-              h.button(
-                [h.Id(months.heading.id), ...months.headingButton],
+              ih.button(
+                [ih.Id(months.heading.id), ...months.headingButton],
                 [months.heading.text],
               ),
             ],
           ),
-          h.div(
+          ih.div(
             months.grid,
             months.cells.map(cell =>
-              h.div(cell.cellAttributes, [
-                h.button(cell.buttonAttributes, [cell.label]),
+              ih.div(cell.cellAttributes, [
+                ih.button(cell.buttonAttributes, [cell.label]),
               ]),
             ),
           ),
         ]),
       Years: years =>
-        h.div(years.root, [
-          h.div(
+        ih.div(years.root, [
+          ih.div(
             [],
             [
-              h.button(years.previousPageButton, ['prev page']),
-              h.h2([h.Id(years.heading.id)], [years.heading.text]),
-              h.button(years.nextPageButton, ['next page']),
+              ih.button(years.previousPageButton, ['prev page']),
+              ih.h2([ih.Id(years.heading.id)], [years.heading.text]),
+              ih.button(years.nextPageButton, ['next page']),
             ],
           ),
-          h.div(
+          ih.div(
             years.grid,
             years.cells.map(cell =>
-              h.div(cell.cellAttributes, [
-                h.button(cell.buttonAttributes, [cell.label]),
+              ih.div(cell.cellAttributes, [
+                ih.button(cell.buttonAttributes, [cell.label]),
               ]),
             ),
           ),
         ]),
     }),
   )
-}
 
-const triggerContent = (maybeDate: Option.Option<Calendar.CalendarDate>) => {
-  const h = html<Message>()
-
-  return h.span(
+const triggerContent = (maybeDate: Option.Option<Calendar.CalendarDate>) =>
+  ih.span(
     [],
     [
       Option.match(maybeDate, {
@@ -123,7 +109,6 @@ const triggerContent = (maybeDate: Option.Option<Calendar.CalendarDate>) => {
       }),
     ],
   )
-}
 
 const sceneView =
   (
@@ -132,13 +117,18 @@ const sceneView =
       'anchor' | 'triggerContent' | 'toCalendarView'
     > = {},
   ) =>
-  (model: Model) =>
-    view(model, {
-      anchor: { placement: 'bottom-start' },
-      triggerContent,
-      toCalendarView: testToCalendarView,
-      ...overrides,
-    })
+  (model: Model, h: HtmlBuilder<Message>) =>
+    view(
+      model,
+      {
+        anchor: { placement: 'bottom-start' },
+        maybeSelectedDate: Option.none(),
+        triggerContent,
+        toCalendarView: testToCalendarView,
+        ...overrides,
+      },
+      h,
+    )
 
 const trigger = Scene.selector('#picker-popover-button')
 const panel = Scene.selector('#picker-popover-panel')
@@ -146,14 +136,14 @@ const grid = Scene.role('grid')
 const hiddenInput = Scene.selector('input[type="hidden"]')
 
 const closedModel = init({ id: 'picker', today })
-const [openModel] = update(closedModel, Opened())
+const pickerOpen = update(closedModel, Message.Opened())
 
 describe('DatePicker', () => {
   describe('rendering', () => {
     it('renders the trigger button with type=button and default aria-expanded false', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(closedModel),
+        Scene.given(closedModel),
         Scene.expect(trigger).toExist(),
         Scene.expect(trigger).toHaveAttr('type', 'button'),
         Scene.expect(trigger).toHaveAttr('aria-expanded', 'false'),
@@ -163,20 +153,19 @@ describe('DatePicker', () => {
     it('renders the trigger placeholder text when no date is selected', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(closedModel),
+        Scene.given(closedModel),
         Scene.expect(trigger).toHaveText('Pick a date'),
       )
     })
 
     it('renders the trigger with the selected date when one is set', () => {
-      const seeded = init({
-        id: 'picker',
-        today,
-        initialSelectedDate: Calendar.make(2026, 4, 20),
-      })
+      const selected = Calendar.make(2026, 4, 20)
       Scene.scene(
-        { update, view: sceneView() },
-        Scene.with(seeded),
+        {
+          update,
+          view: sceneView({ maybeSelectedDate: Option.some(selected) }),
+        },
+        Scene.given(closedModel),
         Scene.expect(trigger).toHaveText('2026-4-20'),
       )
     })
@@ -184,7 +173,7 @@ describe('DatePicker', () => {
     it('does not render the calendar grid when the popover is closed', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(closedModel),
+        Scene.given(closedModel),
         Scene.expect(grid).toBeAbsent(),
       )
     })
@@ -192,7 +181,7 @@ describe('DatePicker', () => {
     it('renders the calendar grid inside the popover panel when open', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(openModel),
+        Scene.given(pickerOpen.model),
         Scene.expect(panel).toExist(),
         Scene.expect(grid).toExist(),
         acknowledgeAnchorPopover,
@@ -205,7 +194,7 @@ describe('DatePicker', () => {
     it('does not put tabindex on the popover panel when open', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(openModel),
+        Scene.given(pickerOpen.model),
         Scene.expect(panel).not.toHaveAttr('tabIndex'),
         acknowledgeAnchorPopover,
         acknowledgePopoverBackdrop,
@@ -215,7 +204,7 @@ describe('DatePicker', () => {
     it('does not attach a blur handler to the popover panel when open', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(openModel),
+        Scene.given(pickerOpen.model),
         Scene.expect(panel).not.toHaveHandler('blur'),
         acknowledgeAnchorPopover,
         acknowledgePopoverBackdrop,
@@ -228,7 +217,7 @@ describe('DatePicker', () => {
       // Removing this while retaining contentFocus would break Escape-to-close.
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(openModel),
+        Scene.given(pickerOpen.model),
         Scene.expect(panel).toHaveHandler('keydown'),
         acknowledgeAnchorPopover,
         acknowledgePopoverBackdrop,
@@ -240,7 +229,7 @@ describe('DatePicker', () => {
     it('does not render a hidden input when no name is provided', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(closedModel),
+        Scene.given(closedModel),
         Scene.expect(hiddenInput).toBeAbsent(),
       )
     })
@@ -248,7 +237,7 @@ describe('DatePicker', () => {
     it('renders a hidden input with the name when provided', () => {
       Scene.scene(
         { update, view: sceneView({ name: 'dob' }) },
-        Scene.with(closedModel),
+        Scene.given(closedModel),
         Scene.expect(hiddenInput).toExist(),
         Scene.expect(hiddenInput).toHaveAttr('name', 'dob'),
       )
@@ -257,33 +246,37 @@ describe('DatePicker', () => {
     it('emits an empty hidden input value when no date is selected', () => {
       Scene.scene(
         { update, view: sceneView({ name: 'dob' }) },
-        Scene.with(closedModel),
+        Scene.given(closedModel),
         Scene.expect(hiddenInput).toHaveValue(''),
       )
     })
 
     it('encodes the selected date as ISO YYYY-MM-DD', () => {
-      const seeded = init({
-        id: 'picker',
-        today,
-        initialSelectedDate: Calendar.make(2026, 4, 5),
-      })
+      const selected = Calendar.make(2026, 4, 5)
       Scene.scene(
-        { update, view: sceneView({ name: 'dob' }) },
-        Scene.with(seeded),
+        {
+          update,
+          view: sceneView({
+            name: 'dob',
+            maybeSelectedDate: Option.some(selected),
+          }),
+        },
+        Scene.given(closedModel),
         Scene.expect(hiddenInput).toHaveValue('2026-04-05'),
       )
     })
 
     it('pads single-digit months and days to two characters', () => {
-      const seeded = init({
-        id: 'picker',
-        today,
-        initialSelectedDate: Calendar.make(2026, 1, 9),
-      })
+      const selected = Calendar.make(2026, 1, 9)
       Scene.scene(
-        { update, view: sceneView({ name: 'dob' }) },
-        Scene.with(seeded),
+        {
+          update,
+          view: sceneView({
+            name: 'dob',
+            maybeSelectedDate: Option.some(selected),
+          }),
+        },
+        Scene.given(closedModel),
         Scene.expect(hiddenInput).toHaveValue('2026-01-09'),
       )
     })
@@ -293,7 +286,7 @@ describe('DatePicker', () => {
     it('no aria-label or aria-labelledby on the trigger by default', () => {
       Scene.scene(
         { update, view: sceneView() },
-        Scene.with(closedModel),
+        Scene.given(closedModel),
         Scene.expect(trigger).not.toHaveAttr('aria-label'),
         Scene.expect(trigger).not.toHaveAttr('aria-labelledby'),
       )
@@ -302,7 +295,7 @@ describe('DatePicker', () => {
     it('applies aria-label to the trigger when ariaLabel is provided', () => {
       Scene.scene(
         { update, view: sceneView({ ariaLabel: 'Due date' }) },
-        Scene.with(closedModel),
+        Scene.given(closedModel),
         Scene.expect(trigger).toHaveAttr('aria-label', 'Due date'),
         Scene.expect(trigger).not.toHaveAttr('aria-labelledby'),
       )
@@ -311,7 +304,7 @@ describe('DatePicker', () => {
     it('applies aria-labelledby to the trigger when ariaLabelledBy is provided', () => {
       Scene.scene(
         { update, view: sceneView({ ariaLabelledBy: 'due-label' }) },
-        Scene.with(closedModel),
+        Scene.given(closedModel),
         Scene.expect(trigger).toHaveAttr('aria-labelledby', 'due-label'),
         Scene.expect(trigger).not.toHaveAttr('aria-label'),
       )
@@ -326,7 +319,7 @@ describe('DatePicker', () => {
             ariaLabelledBy: 'due-label',
           }),
         },
-        Scene.with(closedModel),
+        Scene.given(closedModel),
         Scene.expect(trigger).toHaveAttr('aria-label', 'Due date'),
         Scene.expect(trigger).not.toHaveAttr('aria-labelledby'),
       )

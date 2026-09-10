@@ -1,15 +1,7 @@
-import {
-  Array,
-  Match as M,
-  Number,
-  Option,
-  Schema as S,
-  Stream,
-  pipe,
-} from 'effect'
-import { Command, Runtime, Subscription } from 'foldkit'
-import { type Document, type Html, createLazy, html } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { Array, Match, Number, Option, Schema, Stream, pipe } from 'effect'
+import { Runtime, Subscription, type Update } from 'foldkit'
+import { type Document, type Html, HtmlBuilder, createLazy } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 const UPDATE_WORK_MS = 10
@@ -19,7 +11,7 @@ const PATCH_ROW_COUNT = 4000
 const MAX_WARNING_COUNT = 8
 const SLOW_WARNING_EVENT = 'foldkit:slow-warning'
 
-const Workload = S.Literals([
+const Workload = Schema.Literals([
   'Idle',
   'Update',
   'View',
@@ -30,53 +22,43 @@ type Workload = typeof Workload.Type
 
 type SlowPhase = Runtime.SlowPhase
 
-export const SlowWarningReport = S.Struct({
+export const SlowWarningReport = Schema.Struct({
   phase: Runtime.SlowPhase,
-  durationMs: S.Number,
-  thresholdMs: S.Number,
-  trigger: S.String,
-  details: S.String,
+  durationMs: Schema.Number,
+  thresholdMs: Schema.Number,
+  trigger: Schema.String,
+  details: Schema.String,
 })
 export type SlowWarningReport = typeof SlowWarningReport.Type
 
-export const SlowWarning = S.Struct({
-  id: S.Number,
+export const SlowWarning = Schema.Struct({
+  id: Schema.Number,
   ...SlowWarningReport.fields,
 })
 export type SlowWarning = typeof SlowWarning.Type
 
 // MODEL
 
-export const Model = S.Struct({
+export const Model = Schema.Struct({
   activeWorkload: Workload,
-  nextWarningId: S.Number,
-  warnings: S.Array(SlowWarning),
-  patchRows: S.Number,
-  patchRun: S.Number,
+  nextWarningId: Schema.Number,
+  warnings: Schema.Array(SlowWarning),
+  patchRows: Schema.Number,
+  patchRun: Schema.Number,
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-export const ClickedRunUpdateWork = m('ClickedRunUpdateWork')
-export const ClickedRunViewWork = m('ClickedRunViewWork')
-export const ClickedRunPatchWork = m('ClickedRunPatchWork')
-export const ClickedRunSubscriptionDependenciesWork = m(
-  'ClickedRunSubscriptionDependenciesWork',
-)
-export const ClickedClearWarnings = m('ClickedClearWarnings')
-export const RecordedSlowWarning = m('RecordedSlowWarning', {
-  report: SlowWarningReport,
+export const Message = defineMessageUnion({
+  ClickedRunUpdateWork: {},
+  ClickedRunViewWork: {},
+  ClickedRunPatchWork: {},
+  ClickedRunSubscriptionDependenciesWork: {},
+  ClickedClearWarnings: {},
+  RecordedSlowWarning: { report: SlowWarningReport },
 })
 
-export const Message = S.Union([
-  ClickedRunUpdateWork,
-  ClickedRunViewWork,
-  ClickedRunPatchWork,
-  ClickedRunSubscriptionDependenciesWork,
-  ClickedClearWarnings,
-  RecordedSlowWarning,
-])
 export type Message = typeof Message.Type
 
 const slowWarningTarget = new EventTarget()
@@ -103,9 +85,9 @@ const maybeMessageTrigger = (message: Option.Option<Message>): string =>
 const triggerForSlowContext = (
   context: Runtime.SlowContext<Model, Message>,
 ): string =>
-  M.value(context).pipe(
-    M.withReturnType<string>(),
-    M.tagsExhaustive({
+  Match.value(context).pipe(
+    Match.withReturnType<string>(),
+    Match.tagsExhaustive({
       Update: ({ message }) => messageToTag(message),
       View: ({ message }) => maybeMessageTrigger(message),
       Patch: ({ message }) => maybeMessageTrigger(message),
@@ -116,9 +98,9 @@ const triggerForSlowContext = (
 const detailsForSlowContext = (
   context: Runtime.SlowContext<Model, Message>,
 ): string =>
-  M.value(context).pipe(
-    M.withReturnType<string>(),
-    M.tagsExhaustive({
+  Match.value(context).pipe(
+    Match.withReturnType<string>(),
+    Match.tagsExhaustive({
       Update: () =>
         'CPU work ran inside update before Foldkit could return the next Model.',
       View: () =>
@@ -131,13 +113,13 @@ const detailsForSlowContext = (
   )
 
 const phaseLabel = (phase: SlowPhase): string =>
-  M.value(phase).pipe(
-    M.withReturnType<string>(),
-    M.when('Update', () => 'Update'),
-    M.when('View', () => 'View'),
-    M.when('Patch', () => 'Patch'),
-    M.when('SubscriptionDependencies', () => 'Subscription dependencies'),
-    M.exhaustive,
+  Match.value(phase).pipe(
+    Match.withReturnType<string>(),
+    Match.when('Update', () => 'Update'),
+    Match.when('View', () => 'View'),
+    Match.when('Patch', () => 'Patch'),
+    Match.when('SubscriptionDependencies', () => 'Subscription dependencies'),
+    Match.exhaustive,
   )
 
 const slowContextToReport = (
@@ -170,79 +152,67 @@ const prependWarning =
   (warnings: ReadonlyArray<SlowWarning>): ReadonlyArray<SlowWarning> =>
     pipe(warnings, Array.prepend(warning), Array.take(MAX_WARNING_COUNT))
 
-type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>]
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ClickedRunUpdateWork: () => {
+      burnCpu(UPDATE_WORK_MS)
 
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    M.withReturnType<UpdateReturn>(),
-    M.tagsExhaustive({
-      ClickedRunUpdateWork: () => {
-        burnCpu(UPDATE_WORK_MS)
-
-        return [
-          evo(model, {
-            activeWorkload: () => 'Update',
-          }),
-          [],
-        ]
-      },
-      ClickedRunViewWork: () => [
-        evo(model, {
-          activeWorkload: () => 'View',
+      return {
+        model: evo(model, {
+          activeWorkload: () => 'Update',
         }),
-        [],
-      ],
-      ClickedRunPatchWork: () => [
-        evo(model, {
-          activeWorkload: () => 'Patch',
-          patchRows: () => PATCH_ROW_COUNT,
-          patchRun: Number.increment,
-        }),
-        [],
-      ],
-      ClickedRunSubscriptionDependenciesWork: () => [
-        evo(model, {
-          activeWorkload: () => 'SubscriptionDependencies',
-        }),
-        [],
-      ],
-      ClickedClearWarnings: () => [
-        evo(model, {
-          activeWorkload: () => 'Idle',
-          warnings: () => [],
-        }),
-        [],
-      ],
-      RecordedSlowWarning: ({ report }) => {
-        const warning: SlowWarning = {
-          id: model.nextWarningId,
-          ...report,
-        }
-
-        return [
-          evo(model, {
-            activeWorkload: () => 'Idle',
-            nextWarningId: Number.increment,
-            warnings: prependWarning(warning),
-          }),
-          [],
-        ]
-      },
+      }
+    },
+    ClickedRunViewWork: () => ({
+      model: evo(model, {
+        activeWorkload: () => 'View',
+      }),
     }),
-  )
+    ClickedRunPatchWork: () => ({
+      model: evo(model, {
+        activeWorkload: () => 'Patch',
+        patchRows: () => PATCH_ROW_COUNT,
+        patchRun: Number.increment,
+      }),
+    }),
+    ClickedRunSubscriptionDependenciesWork: () => ({
+      model: evo(model, {
+        activeWorkload: () => 'SubscriptionDependencies',
+      }),
+    }),
+    ClickedClearWarnings: () => ({
+      model: evo(model, {
+        activeWorkload: () => 'Idle',
+        warnings: () => [],
+      }),
+    }),
+    RecordedSlowWarning: ({ report }) => {
+      const warning: SlowWarning = {
+        id: model.nextWarningId,
+        ...report,
+      }
+
+      return {
+        model: evo(model, {
+          activeWorkload: () => 'Idle',
+          nextWarningId: Number.increment,
+          warnings: prependWarning(warning),
+        }),
+      }
+    },
+  })
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => [
-  {
+export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+  model: {
     activeWorkload: 'Idle',
     nextWarningId: 1,
     warnings: [],
     patchRows: 0,
     patchRun: 0,
   },
-  [],
-]
+})
 
 // SUBSCRIPTION
 
@@ -250,15 +220,15 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   slowWarnings: Subscription.persistent(
     Subscription.fromEventFilterMap<
       CustomEvent,
-      typeof RecordedSlowWarning.Type
+      typeof Message.RecordedSlowWarning.Type
     >({
       target: slowWarningTarget,
       type: SLOW_WARNING_EVENT,
       toMessage: event =>
         pipe(
           event.detail,
-          S.decodeUnknownOption(SlowWarningReport),
-          Option.map(report => RecordedSlowWarning({ report })),
+          Schema.decodeUnknownOption(SlowWarningReport),
+          Option.map(report => Message.RecordedSlowWarning({ report })),
         ),
     }),
   ),
@@ -292,16 +262,16 @@ const secondaryButtonClass =
   'inline-flex items-center justify-center rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 transition hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950'
 
 const phaseAccentClass = (phase: SlowPhase): string =>
-  M.value(phase).pipe(
-    M.withReturnType<string>(),
-    M.when('Update', () => 'border-amber-400 bg-amber-50 text-amber-950'),
-    M.when('View', () => 'border-sky-400 bg-sky-50 text-sky-950'),
-    M.when('Patch', () => 'border-rose-400 bg-rose-50 text-rose-950'),
-    M.when(
+  Match.value(phase).pipe(
+    Match.withReturnType<string>(),
+    Match.when('Update', () => 'border-amber-400 bg-amber-50 text-amber-950'),
+    Match.when('View', () => 'border-sky-400 bg-sky-50 text-sky-950'),
+    Match.when('Patch', () => 'border-rose-400 bg-rose-50 text-rose-950'),
+    Match.when(
       'SubscriptionDependencies',
       () => 'border-emerald-400 bg-emerald-50 text-emerald-950',
     ),
-    M.exhaustive,
+    Match.exhaustive,
   )
 
 const burnCpuDuringView = (workload: Workload): void => {
@@ -310,24 +280,25 @@ const burnCpuDuringView = (workload: Workload): void => {
   }
 }
 
-const scenarioCard = ({
-  phase,
-  thresholdMs,
-  title,
-  body,
-  buttonText,
-  message,
-}: Readonly<{
-  phase: SlowPhase
-  thresholdMs: number
-  title: string
-  body: string
-  buttonText: string
-  message: Message
-}>): Html => {
-  const h = html<Message>()
-
-  return h.article(
+const scenarioCard = (
+  {
+    phase,
+    thresholdMs,
+    title,
+    body,
+    buttonText,
+    message,
+  }: Readonly<{
+    phase: SlowPhase
+    thresholdMs: number
+    title: string
+    body: string
+    buttonText: string
+    message: Message
+  }>,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.article(
     [h.Class(`rounded-lg border p-4 shadow-sm ${phaseAccentClass(phase)}`)],
     [
       h.div(
@@ -352,12 +323,9 @@ const scenarioCard = ({
       ),
     ],
   )
-}
 
-const warningView = (warning: SlowWarning): Html => {
-  const h = html<Message>()
-
-  return h.keyed('li')(
+const warningView = (warning: SlowWarning, h: HtmlBuilder<Message>): Html =>
+  h.keyed('li')(
     warning.id.toString(),
     [
       h.Class(
@@ -384,12 +352,12 @@ const warningView = (warning: SlowWarning): Html => {
       ),
     ],
   )
-}
 
-const warningsView = (warnings: ReadonlyArray<SlowWarning>): Html => {
-  const h = html<Message>()
-
-  return h.section(
+const warningsView = (
+  warnings: ReadonlyArray<SlowWarning>,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.section(
     [h.Class('rounded-lg border border-zinc-200 bg-white p-4 shadow-sm')],
     [
       h.div(
@@ -412,38 +380,38 @@ const warningsView = (warnings: ReadonlyArray<SlowWarning>): Html => {
             [
               h.Type('button'),
               h.Class(secondaryButtonClass),
-              h.OnClick(ClickedClearWarnings()),
+              h.OnClick(Message.ClickedClearWarnings()),
             ],
             ['Clear'],
           ),
         ],
       ),
-      h.keyed('div')(
-        Array.isReadonlyArrayEmpty(warnings) ? 'empty' : 'warnings',
-        [],
-        Array.isReadonlyArrayEmpty(warnings)
-          ? [
-              h.div(
-                [
-                  h.Class(
-                    'rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-6 text-sm text-zinc-600',
-                  ),
-                ],
-                ['Run a workload to record a warning.'],
+      Array.match(warnings, {
+        onEmpty: () =>
+          h.div(
+            [
+              h.Class(
+                'rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-6 text-sm text-zinc-600',
               ),
-            ]
-          : [h.ul([h.Class('grid gap-3')], Array.map(warnings, warningView))],
-      ),
+            ],
+            ['Run a workload to record a warning.'],
+          ),
+        onNonEmpty: warnings =>
+          h.ul(
+            [h.Class('grid gap-3')],
+            Array.map(warnings, warning => warningView(warning, h)),
+          ),
+      }),
     ],
   )
-}
 
-const patchRowsView = (rowCount: number, patchRun: number): Html => {
-  const h = html<Message>()
-
+const patchRowsView = (
+  rowCount: number,
+  patchRun: number,
+  h: HtmlBuilder<Message>,
+): Html => {
   if (rowCount === 0) {
-    return h.keyed('div')(
-      'empty',
+    return h.div(
       [
         h.Class(
           'rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-6 text-sm text-zinc-600',
@@ -473,10 +441,8 @@ const patchRowsView = (rowCount: number, patchRun: number): Html => {
   }
 }
 
-const patchSurfaceView = (model: Model): Html => {
-  const h = html<Message>()
-
-  return h.section(
+const patchSurfaceView = (model: Model, h: HtmlBuilder<Message>): Html =>
+  h.section(
     [h.Class('rounded-lg border border-zinc-200 bg-white p-4 shadow-sm')],
     [
       h.div(
@@ -497,14 +463,11 @@ const patchSurfaceView = (model: Model): Html => {
           ),
         ],
       ),
-      lazyPatchRows(patchRowsView, [model.patchRows, model.patchRun]),
+      lazyPatchRows(patchRowsView, [model.patchRows, model.patchRun, h]),
     ],
   )
-}
 
-export const view = (model: Model): Document => {
-  const h = html<Message>()
-
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   burnCpuDuringView(model.activeWorkload)
 
   return {
@@ -538,42 +501,54 @@ export const view = (model: Model): Document => {
             h.section(
               [h.Class('grid gap-4 md:grid-cols-2')],
               [
-                scenarioCard({
-                  phase: 'Update',
-                  thresholdMs: 4,
-                  title: 'Slow update',
-                  body: 'Runs CPU work before returning the next Model.',
-                  buttonText: 'Run update work',
-                  message: ClickedRunUpdateWork(),
-                }),
-                scenarioCard({
-                  phase: 'View',
-                  thresholdMs: 16,
-                  title: 'Slow view',
-                  body: 'Runs CPU work while the view builds the VNode tree.',
-                  buttonText: 'Run view work',
-                  message: ClickedRunViewWork(),
-                }),
-                scenarioCard({
-                  phase: 'Patch',
-                  thresholdMs: 8,
-                  title: 'Slow patch',
-                  body: 'Mounts thousands of keyed rows into the DOM.',
-                  buttonText: 'Run patch work',
-                  message: ClickedRunPatchWork(),
-                }),
-                scenarioCard({
-                  phase: 'SubscriptionDependencies',
-                  thresholdMs: 2,
-                  title: 'Slow subscription dependencies',
-                  body: 'Burns CPU while deriving subscription dependencies.',
-                  buttonText: 'Run dependency extraction',
-                  message: ClickedRunSubscriptionDependenciesWork(),
-                }),
+                scenarioCard(
+                  {
+                    phase: 'Update',
+                    thresholdMs: 4,
+                    title: 'Slow update',
+                    body: 'Runs CPU work before returning the next Model.',
+                    buttonText: 'Run update work',
+                    message: Message.ClickedRunUpdateWork(),
+                  },
+                  h,
+                ),
+                scenarioCard(
+                  {
+                    phase: 'View',
+                    thresholdMs: 16,
+                    title: 'Slow view',
+                    body: 'Runs CPU work while the view builds the VNode tree.',
+                    buttonText: 'Run view work',
+                    message: Message.ClickedRunViewWork(),
+                  },
+                  h,
+                ),
+                scenarioCard(
+                  {
+                    phase: 'Patch',
+                    thresholdMs: 8,
+                    title: 'Slow patch',
+                    body: 'Mounts thousands of keyed rows into the DOM.',
+                    buttonText: 'Run patch work',
+                    message: Message.ClickedRunPatchWork(),
+                  },
+                  h,
+                ),
+                scenarioCard(
+                  {
+                    phase: 'SubscriptionDependencies',
+                    thresholdMs: 2,
+                    title: 'Slow subscription dependencies',
+                    body: 'Burns CPU while deriving subscription dependencies.',
+                    buttonText: 'Run dependency extraction',
+                    message: Message.ClickedRunSubscriptionDependenciesWork(),
+                  },
+                  h,
+                ),
               ],
             ),
-            warningsView(model.warnings),
-            patchSurfaceView(model),
+            warningsView(model.warnings, h),
+            patchSurfaceView(model, h),
           ],
         ),
       ],

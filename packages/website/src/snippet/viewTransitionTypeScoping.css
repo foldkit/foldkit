@@ -1,0 +1,24 @@
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 300ms;
+}
+
+:root:active-view-transition-type(
+    to-artwork-detail
+  )::view-transition-old(root) {
+  animation-name: slide-out-to-left;
+}
+
+:root:active-view-transition-type(
+    to-artwork-detail
+  )::view-transition-new(root) {
+  animation-name: slide-in-from-right;
+}
+
+:root:active-view-transition-type(to-gallery)::view-transition-old(root) {
+  animation-name: slide-out-to-right;
+}
+
+:root:active-view-transition-type(to-gallery)::view-transition-new(root) {
+  animation-name: slide-in-from-left;
+}

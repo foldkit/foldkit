@@ -16,6 +16,6 @@ test('loading a user renders the profile', async () => {
   expect(screen.getByText('Loading…')).toBeInTheDocument()
 
   // The atom resolves asynchronously, so findByText has to poll until the
-  // Result transitions to Success and React re-renders.
+  // AsyncResult transitions to Success and React re-renders.
   expect(await screen.findByText('Ada Lovelace')).toBeInTheDocument()
 })

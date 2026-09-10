@@ -1,8 +1,6 @@
 import { Option } from 'effect'
 import { Runtime } from 'foldkit'
 
-import { overlay } from '@foldkit/devtools'
-
 import { Message, Model, crashView, init, update, view } from './main'
 
 const application = Runtime.makeApplication({
@@ -23,7 +21,6 @@ const application = Runtime.makeApplication({
   },
   container: document.getElementById('root'),
   devTools: {
-    overlay,
     Message,
   },
 })

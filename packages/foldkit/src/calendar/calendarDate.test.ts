@@ -1,4 +1,4 @@
-import { Schema as S } from 'effect'
+import { Schema } from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -198,8 +198,8 @@ describe('toDateLocal', () => {
 })
 
 describe('CalendarDateFromIsoString', () => {
-  const decode = S.decodeUnknownSync(CalendarDateFromIsoString)
-  const encode = S.encodeSync(CalendarDateFromIsoString)
+  const decode = Schema.decodeUnknownSync(CalendarDateFromIsoString)
+  const encode = Schema.encodeSync(CalendarDateFromIsoString)
 
   it('decodes a valid ISO date string', () => {
     expect(decode('2026-04-13')).toStrictEqual({
@@ -256,7 +256,7 @@ describe('CalendarDateFromIsoString', () => {
 })
 
 describe('CalendarDate schema', () => {
-  const decode = S.decodeUnknownSync(CalendarDate)
+  const decode = Schema.decodeUnknownSync(CalendarDate)
 
   it('validates a proper struct', () => {
     expect(decode({ year: 2026, month: 4, day: 13 })).toStrictEqual({

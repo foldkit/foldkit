@@ -1,96 +1,84 @@
-import { Effect, Match as M, Schema as S, pipe } from 'effect'
-import { Command, Navigation, Route, Url } from 'foldkit'
-import { m } from 'foldkit/message'
-import { int, literal, r, slash } from 'foldkit/route'
+import { Effect, Schema, pipe } from 'effect'
+import { Command, Navigation, Route, type Update, Url } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+import { defineRouteUnion, int, literal, slash } from 'foldkit/route'
 import { evo } from 'foldkit/struct'
 
 // ROUTE
 
-const HomeRoute = r('Home')
-const PersonRoute = r('Person', { personId: S.Number })
-const NotFoundRoute = r('NotFound', { path: S.String })
-const AppRoute = S.Union([HomeRoute, PersonRoute, NotFoundRoute])
+const AppRoute = defineRouteUnion({
+  Home: {},
+  Person: { personId: Schema.Number },
+  NotFound: { path: Schema.String },
+})
 type AppRoute = typeof AppRoute.Type
 
-const homeRouter = pipe(Route.root, Route.mapTo(HomeRoute))
+const homeRouter = pipe(Route.root, Route.mapTo(AppRoute.Home))
 const personRouter = pipe(
   literal('people'),
   slash(int('personId')),
-  Route.mapTo(PersonRoute),
+  Route.mapTo(AppRoute.Person),
 )
 const routeParser = Route.oneOf(personRouter, homeRouter)
-const urlToAppRoute = Route.parseUrlWithFallback(routeParser, NotFoundRoute)
+const urlToAppRoute = Route.parseUrlWithFallback(routeParser, AppRoute.NotFound)
 
 // MODEL
 
-const Model = S.Struct({ route: AppRoute })
+const Model = Schema.Struct({ route: AppRoute })
 type Model = typeof Model.Type
 
 // MESSAGE
 
-const CompletedNavigateInternal = m('CompletedNavigateInternal')
-const CompletedLoadExternal = m('CompletedLoadExternal')
-const ClickedLink = m('ClickedLink', { request: Navigation.UrlRequest })
-const ChangedUrl = m('ChangedUrl', { url: Url.Url })
-
-const Message = S.Union([
-  CompletedNavigateInternal,
-  CompletedLoadExternal,
-  ClickedLink,
-  ChangedUrl,
-])
+const Message = defineMessageUnion({
+  CompletedNavigateInternal: {},
+  CompletedLoadExternal: {},
+  ClickedLink: { request: Navigation.UrlRequest },
+  ChangedUrl: { url: Url.Url },
+})
 type Message = typeof Message.Type
 
 // COMMAND
 
-const NavigateInternal = Command.define(
-  'NavigateInternal',
-  { url: S.String },
-  CompletedNavigateInternal,
-)(({ url }) =>
-  Navigation.pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())),
-)
+const NavigateInternal = Command.define('NavigateInternal', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateInternal],
+  execute: ({ url }) =>
+    Navigation.pushUrl(url).pipe(
+      Effect.as(Message.CompletedNavigateInternal()),
+    ),
+})
 
-const LoadExternal = Command.define(
-  'LoadExternal',
-  { href: S.String },
-  CompletedLoadExternal,
-)(({ href }) => Navigation.load(href).pipe(Effect.as(CompletedLoadExternal())))
+const LoadExternal = Command.define('LoadExternal', {
+  args: { href: Schema.String },
+  messages: [Message.CompletedLoadExternal],
+  execute: ({ href }) =>
+    Navigation.load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+})
 
 // UPDATE
 
+type UpdateReturn = Update.Return<Model, Message>
+
 const update = (model: Model, message: Message) =>
-  M.value(message).pipe(
-    M.withReturnType<
-      readonly [Model, ReadonlyArray<Command.Command<Message>>]
-    >(),
-    M.tagsExhaustive({
-      CompletedNavigateInternal: () => [model, []],
-      CompletedLoadExternal: () => [model, []],
+  Message.match<UpdateReturn>(message, {
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
 
-      ClickedLink: ({ request }) =>
-        M.value(request).pipe(
-          M.tagsExhaustive({
-            Internal: ({
-              url,
-            }): readonly [Model, ReadonlyArray<Command.Command<Message>>] => [
-              model,
-              [NavigateInternal({ url: Url.toString(url) })],
-            ],
-            External: ({
-              href,
-            }): readonly [Model, ReadonlyArray<Command.Command<Message>>] => [
-              model,
-              [LoadExternal({ href })],
-            ],
-          }),
-        ),
-
-      ChangedUrl: ({ url }) => [
-        evo(model, {
-          route: () => urlToAppRoute(url),
+    ClickedLink: ({ request }) =>
+      Navigation.UrlRequest.match<UpdateReturn>(request, {
+        Internal: ({ url }) => ({
+          model,
+          commands: [NavigateInternal({ url: Url.toString(url) })],
         }),
-        [],
-      ],
+        External: ({ href }) => ({
+          model,
+          commands: [LoadExternal({ href })],
+        }),
+      }),
+
+    ChangedUrl: ({ url }) => ({
+      model: evo(model, {
+        route: () => urlToAppRoute(url),
+      }),
     }),
-  )
+  })

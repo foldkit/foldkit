@@ -2,35 +2,36 @@ import {
   Array,
   Effect,
   Equal,
-  Match as M,
+  Match,
   Option,
   Predicate,
-  Schema as S,
-  String as Str,
+  Schema,
+  String,
   pipe,
 } from 'effect'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
-import { type ChildAttribute, type Html, html } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import type { ChildAttribute, Html } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import * as Mount from 'foldkit/mount'
 import { evo } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
+import * as Update from 'foldkit/update'
 
-import { AnchorConfig, anchorSetup, portalToContainingRoot } from '../anchor.js'
+import {
+  AnchorConfig,
+  anchorSetup,
+  portalToContainingRoot,
+} from '../anchor/index.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → menu → animation.
 // The barrel (../animation) imports from html, which starts the cycle.
+import * as Animation from '../animation/schema.js'
 import {
-  EndedAnimation as AnimationEndedAnimation,
-  Hid as AnimationHid,
-  Message as AnimationMessage,
-  Model as AnimationModel,
-  type OutMessage as AnimationOutMessage,
-  Showed as AnimationShowed,
-  init as animationInit,
-} from '../animation/schema.js'
-import { update as animationUpdate } from '../animation/update.js'
+  hide as animationHide,
+  show as animationShow,
+  update as animationUpdate,
+} from '../animation/update.js'
 import { groupContiguous } from '../group.js'
 import * as OptionExt from '../internal/optionExtensions.js'
 import { idSelector } from '../internal/selectors.js'
@@ -44,182 +45,91 @@ import { resolveTypeaheadMatch } from '../typeahead.js'
 // MODEL
 
 /** Schema for the activation trigger: whether the user interacted via mouse or keyboard. */
-export const ActivationTrigger = S.Literals(['Pointer', 'Keyboard'])
+export const ActivationTrigger = Schema.Literals(['Pointer', 'Keyboard'])
 export type ActivationTrigger = typeof ActivationTrigger.Type
 
-const PointerOrigin = S.Struct({
-  screenX: S.Number,
-  screenY: S.Number,
-  timeStamp: S.Number,
+const PointerOrigin = Schema.Struct({
+  screenX: Schema.Number,
+  screenY: Schema.Number,
+  timeStamp: Schema.Number,
 })
 
 /** Schema for the menu component's state, tracking open/closed status, active item, activation trigger, and typeahead search. */
-export const Model = S.Struct({
-  id: S.String,
-  isOpen: S.Boolean,
-  isAnimated: S.Boolean,
-  isModal: S.Boolean,
-  animation: AnimationModel,
-  maybeActiveItemIndex: S.Option(S.Number),
+export const Model = Schema.Struct({
+  id: Schema.String,
+  isOpen: Schema.Boolean,
+  isAnimated: Schema.Boolean,
+  isModal: Schema.Boolean,
+  animation: Animation.Model,
+  maybeActiveItemIndex: Schema.Option(Schema.Number),
   activationTrigger: ActivationTrigger,
-  searchQuery: S.String,
-  searchVersion: S.Number,
-  maybeLastPointerPosition: S.Option(
-    S.Struct({ screenX: S.Number, screenY: S.Number }),
+  searchQuery: Schema.String,
+  searchVersion: Schema.Number,
+  maybeLastPointerPosition: Schema.Option(
+    Schema.Struct({ screenX: Schema.Number, screenY: Schema.Number }),
   ),
-  maybeLastButtonPointerType: S.Option(S.String),
-  maybePointerOrigin: S.Option(PointerOrigin),
+  maybeLastButtonPointerType: Schema.Option(Schema.String),
+  maybePointerOrigin: Schema.Option(PointerOrigin),
 })
 
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-/** Sent when the menu opens via button click or keyboard. Contains an optional initial active item index: None for pointer, Some for keyboard. */
-export const Opened = m('Opened', {
-  maybeActiveItemIndex: S.Option(S.Number),
-})
-/** Sent when the menu closes via Escape key or backdrop click. */
-export const Closed = m('Closed')
-/** Sent when the menu items container loses focus. */
-export const BlurredItems = m('BlurredItems')
-/** Sent when an item is highlighted via arrow keys or mouse hover. Includes activation trigger. */
-export const ActivatedItem = m('ActivatedItem', {
-  index: S.Number,
-  activationTrigger: ActivationTrigger,
-})
-/** Sent when the mouse leaves an enabled item. */
-export const DeactivatedItem = m('DeactivatedItem')
-/** Sent when an item is selected via Enter, Space, or click. */
-export const SelectedItem = m('SelectedItem', {
-  index: S.Number,
-  item: S.String,
-})
-/** Sent when Enter or Space is pressed on the active item, triggering a programmatic click on the DOM element. */
-export const RequestedItemClick = m('RequestedItemClick', {
-  index: S.Number,
-})
-/** Sent when a printable character is typed for typeahead search. */
-export const Searched = m('Searched', {
-  key: S.String,
-  maybeTargetIndex: S.Option(S.Number),
-})
-/** Sent after the search debounce period to clear the accumulated query. */
-export const ClearedSearch = m('ClearedSearch', { version: S.Number })
-/** Sent when the pointer moves over a menu item, carrying screen coordinates for tracked-pointer comparison. */
-export const MovedPointerOverItem = m('MovedPointerOverItem', {
-  index: S.Number,
-  screenX: S.Number,
-  screenY: S.Number,
-})
-/** Sent when the focus-items command completes after opening the menu. */
-export const CompletedFocusItems = m('CompletedFocusItems')
-/** Sent when the focus-button command completes after closing or selecting. */
-export const CompletedFocusButton = m('CompletedFocusButton')
-/** Sent when the scroll lock command completes. */
-export const CompletedLockScroll = m('CompletedLockScroll')
-/** Sent when the scroll unlock command completes. */
-export const CompletedUnlockScroll = m('CompletedUnlockScroll')
-/** Sent when the inert-others command completes. */
-export const CompletedInertOthers = m('CompletedInertOthers')
-/** Sent when the restore-inert command completes. */
-export const CompletedRestoreInert = m('CompletedRestoreInert')
-/** Sent when the scroll-into-view command completes after keyboard activation. */
-export const CompletedScrollIntoView = m('CompletedScrollIntoView')
-/** Sent when the programmatic click command completes. */
-export const CompletedClickItem = m('CompletedClickItem')
-/** Sent when a mouse click on the button is ignored because pointer-down already handled the toggle. */
-export const IgnoredMouseClick = m('IgnoredMouseClick')
-/** Sent when a Space key-up is captured to prevent page scrolling. */
-export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
-/** Sent when the menu items panel mounts and Floating UI has positioned it. Update no-ops; the side effect is the act of positioning, surfaced for DevTools observability. */
-export const CompletedAnchorMenu = m('CompletedAnchorMenu')
-/** Sent when the menu backdrop mounts and is portaled to the document body. Update no-ops; surfaces the portal side effect for DevTools. */
-export const CompletedPortalMenuBackdrop = m('CompletedPortalMenuBackdrop')
-/** Wraps an Animation submodel message for delegation. */
-export const GotAnimationMessage = m('GotAnimationMessage', {
-  message: AnimationMessage,
-})
-/** Sent when the user presses a pointer device on the menu button. Records pointer type and toggles for mouse. */
-export const PressedPointerOnButton = m('PressedPointerOnButton', {
-  pointerType: S.String,
-  button: S.Number,
-  screenX: S.Number,
-  screenY: S.Number,
-  timeStamp: S.Number,
-})
-/** Sent when the user releases a pointer on the items container, enabling drag-to-select for mouse. */
-export const ReleasedPointerOnItems = m('ReleasedPointerOnItems', {
-  screenX: S.Number,
-  screenY: S.Number,
-  timeStamp: S.Number,
-})
-
 /** Union of all messages the menu component can produce. */
-export const Message: S.Union<
-  [
-    typeof Opened,
-    typeof Closed,
-    typeof BlurredItems,
-    typeof ActivatedItem,
-    typeof DeactivatedItem,
-    typeof SelectedItem,
-    typeof MovedPointerOverItem,
-    typeof RequestedItemClick,
-    typeof Searched,
-    typeof ClearedSearch,
-    typeof CompletedFocusItems,
-    typeof CompletedFocusButton,
-    typeof CompletedLockScroll,
-    typeof CompletedUnlockScroll,
-    typeof CompletedInertOthers,
-    typeof CompletedRestoreInert,
-    typeof CompletedScrollIntoView,
-    typeof CompletedClickItem,
-    typeof IgnoredMouseClick,
-    typeof SuppressedSpaceScroll,
-    typeof CompletedAnchorMenu,
-    typeof CompletedPortalMenuBackdrop,
-    typeof GotAnimationMessage,
-    typeof PressedPointerOnButton,
-    typeof ReleasedPointerOnItems,
-  ]
-> = S.Union([
-  Opened,
-  Closed,
-  BlurredItems,
-  ActivatedItem,
-  DeactivatedItem,
-  SelectedItem,
-  MovedPointerOverItem,
-  RequestedItemClick,
-  Searched,
-  ClearedSearch,
-  CompletedFocusItems,
-  CompletedFocusButton,
-  CompletedLockScroll,
-  CompletedUnlockScroll,
-  CompletedInertOthers,
-  CompletedRestoreInert,
-  CompletedScrollIntoView,
-  CompletedClickItem,
-  IgnoredMouseClick,
-  SuppressedSpaceScroll,
-  CompletedAnchorMenu,
-  CompletedPortalMenuBackdrop,
-  GotAnimationMessage,
-  PressedPointerOnButton,
-  ReleasedPointerOnItems,
-])
+export const Message = defineMessageUnion({
+  Opened: { maybeActiveItemIndex: Schema.Option(Schema.Number) },
+  Closed: {},
+  BlurredItems: {},
+  ActivatedItem: { index: Schema.Number, activationTrigger: ActivationTrigger },
+  DeactivatedItem: {},
+  SelectedItem: { index: Schema.Number, item: Schema.String },
+  RequestedItemClick: { index: Schema.Number },
+  Searched: {
+    key: Schema.String,
+    maybeTargetIndex: Schema.Option(Schema.Number),
+  },
+  CompletedDelayClearSearch: { version: Schema.Number },
+  MovedPointerOverItem: {
+    index: Schema.Number,
+    screenX: Schema.Number,
+    screenY: Schema.Number,
+  },
+  CompletedFocusItems: {},
+  CompletedFocusButton: {},
+  CompletedLockScroll: {},
+  CompletedUnlockScroll: {},
+  CompletedInertOthers: {},
+  CompletedRestoreInert: {},
+  CompletedScrollIntoView: {},
+  CompletedClickItem: {},
+  IgnoredMouseClick: {},
+  SuppressedSpaceScroll: {},
+  CompletedAnchorMenu: {},
+  CompletedPortalMenuBackdrop: {},
+  GotAnimationMessage: { message: Animation.Message },
+  PressedPointerOnButton: {
+    pointerType: Schema.String,
+    button: Schema.Number,
+    screenX: Schema.Number,
+    screenY: Schema.Number,
+    timeStamp: Schema.Number,
+  },
+  ReleasedPointerOnItems: {
+    screenX: Schema.Number,
+    screenY: Schema.Number,
+    timeStamp: Schema.Number,
+  },
+})
 
 export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-/** Sent to the parent when a menu item is selected. Carries both the selected value (from the `viewInputs.items` array supplied at view time) and its index. The menu has already closed when this fires; the parent does not need to dispatch `Menu.close`. */
-export const Selected = m('Selected', {
-  value: S.String,
-  index: S.Number,
+/** Union of OutMessages the menu component can produce. The parent's
+ *  `Update.foldChild` config handles them through `foldOutMessage`. */
+export const OutMessage = defineMessageUnion({
+  Selected: { value: Schema.String, index: Schema.Number },
 })
 
 export type Selected<Value extends string = string> = Readonly<{
@@ -228,28 +138,26 @@ export type Selected<Value extends string = string> = Readonly<{
   readonly index: number
 }>
 
-/** Union of out-messages the menu component can produce. Surfaced as the third element of `update`'s return tuple and pattern-matched by the parent. */
-export const OutMessage = S.Union([Selected])
-
 /** Generic over `Value extends string` so consumers using the typed
  *  `Menu.create<MyUnion>()` factory receive `value: MyUnion` in the
  *  `Selected` OutMessage. Defaults to `string`. */
 export type OutMessage<Value extends string = string> = Selected<Value>
 
-export type Opened = typeof Opened.Type
-export type Closed = typeof Closed.Type
-export type BlurredItems = typeof BlurredItems.Type
-export type ActivatedItem = typeof ActivatedItem.Type
-export type DeactivatedItem = typeof DeactivatedItem.Type
-export type SelectedItem = typeof SelectedItem.Type
-export type MovedPointerOverItem = typeof MovedPointerOverItem.Type
-export type RequestedItemClick = typeof RequestedItemClick.Type
-export type Searched = typeof Searched.Type
-export type ClearedSearch = typeof ClearedSearch.Type
-export type IgnoredMouseClick = typeof IgnoredMouseClick.Type
-export type SuppressedSpaceScroll = typeof SuppressedSpaceScroll.Type
-export type PressedPointerOnButton = typeof PressedPointerOnButton.Type
-export type ReleasedPointerOnItems = typeof ReleasedPointerOnItems.Type
+export type Opened = typeof Message.Opened.Type
+export type Closed = typeof Message.Closed.Type
+export type BlurredItems = typeof Message.BlurredItems.Type
+export type ActivatedItem = typeof Message.ActivatedItem.Type
+export type DeactivatedItem = typeof Message.DeactivatedItem.Type
+export type SelectedItem = typeof Message.SelectedItem.Type
+export type MovedPointerOverItem = typeof Message.MovedPointerOverItem.Type
+export type RequestedItemClick = typeof Message.RequestedItemClick.Type
+export type Searched = typeof Message.Searched.Type
+export type CompletedDelayClearSearch =
+  typeof Message.CompletedDelayClearSearch.Type
+export type IgnoredMouseClick = typeof Message.IgnoredMouseClick.Type
+export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
+export type PressedPointerOnButton = typeof Message.PressedPointerOnButton.Type
+export type ReleasedPointerOnItems = typeof Message.ReleasedPointerOnItems.Type
 
 // INIT
 
@@ -271,7 +179,7 @@ export const init = (config: InitConfig): Model => ({
   isOpen: false,
   isAnimated: config.isAnimated ?? false,
   isModal: config.isModal ?? false,
-  animation: animationInit({ id: `${config.id}-items` }),
+  animation: Animation.init({ id: `${config.id}-items` }),
   maybeActiveItemIndex: Option.none(),
   activationTrigger: 'Keyboard',
   searchQuery: '',
@@ -305,143 +213,147 @@ const itemsSelector = (id: string): string => idSelector(`${id}-items`)
 const itemSelector = (id: string, index: number): string =>
   idSelector(`${id}-item-${index}`)
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-  Option.Option<OutMessage>,
-]
-const withUpdateReturn = M.withReturnType<UpdateReturn>()
+type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 
 /** Prevents page scrolling while the menu is open. */
-export const LockScroll = Command.define(
-  'LockScroll',
-  CompletedLockScroll,
-)(Dom.lockScroll.pipe(Effect.as(CompletedLockScroll())))
+export const LockScroll = Command.define('LockScroll', {
+  messages: [Message.CompletedLockScroll],
+  execute: Dom.lockScroll.pipe(Effect.as(Message.CompletedLockScroll())),
+})
 /** Re-enables page scrolling after the menu closes. */
-export const UnlockScroll = Command.define(
-  'UnlockScroll',
-  CompletedUnlockScroll,
-)(Dom.unlockScroll.pipe(Effect.as(CompletedUnlockScroll())))
+export const UnlockScroll = Command.define('UnlockScroll', {
+  messages: [Message.CompletedUnlockScroll],
+  execute: Dom.unlockScroll.pipe(Effect.as(Message.CompletedUnlockScroll())),
+})
 /** Marks all elements outside the menu as inert for modal behavior. */
-export const InertOthers = Command.define(
-  'InertOthers',
-  { id: S.String },
-  CompletedInertOthers,
-)(({ id }) =>
-  Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]).pipe(
-    Effect.as(CompletedInertOthers()),
-  ),
-)
+export const InertOthers = Command.define('InertOthers', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedInertOthers],
+  execute: ({ id }) =>
+    Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]).pipe(
+      Effect.as(Message.CompletedInertOthers()),
+    ),
+})
 /** Removes the inert attribute from elements outside the menu. */
-export const RestoreInert = Command.define(
-  'RestoreInert',
-  { id: S.String },
-  CompletedRestoreInert,
-)(({ id }) => Dom.restoreInert(id).pipe(Effect.as(CompletedRestoreInert())))
+export const RestoreInert = Command.define('RestoreInert', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedRestoreInert],
+  execute: ({ id }) =>
+    Dom.restoreInert(id).pipe(Effect.as(Message.CompletedRestoreInert())),
+})
 /** Moves focus to the menu items container after opening. */
-export const FocusItems = Command.define(
-  'FocusItems',
-  { id: S.String },
-  CompletedFocusItems,
-)(({ id }) =>
-  Dom.focus(itemsSelector(id)).pipe(
-    Effect.ignore,
-    Effect.as(CompletedFocusItems()),
-  ),
-)
+export const FocusItems = Command.define('FocusItems', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedFocusItems],
+  execute: ({ id }) =>
+    Dom.focus(itemsSelector(id)).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedFocusItems()),
+    ),
+})
 /** Moves focus back to the menu button after closing. */
-export const FocusButton = Command.define(
-  'FocusButton',
-  { id: S.String },
-  CompletedFocusButton,
-)(({ id }) =>
-  Dom.focus(buttonSelector(id)).pipe(
-    Effect.ignore,
-    Effect.as(CompletedFocusButton()),
-  ),
-)
+export const FocusButton = Command.define('FocusButton', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedFocusButton],
+  execute: ({ id }) =>
+    Dom.focus(buttonSelector(id)).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedFocusButton()),
+    ),
+})
 /** Scrolls the active menu item into view after keyboard navigation. */
-export const ScrollIntoView = Command.define(
-  'ScrollIntoView',
-  { id: S.String, index: S.Number },
-  CompletedScrollIntoView,
-)(({ id, index }) =>
-  Dom.scrollIntoView(itemSelector(id, index)).pipe(
-    Effect.ignore,
-    Effect.as(CompletedScrollIntoView()),
-  ),
-)
+export const ScrollIntoView = Command.define('ScrollIntoView', {
+  args: { id: Schema.String, index: Schema.Number },
+  messages: [Message.CompletedScrollIntoView],
+  execute: ({ id, index }) =>
+    Dom.scrollIntoView(itemSelector(id, index)).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedScrollIntoView()),
+    ),
+})
 /** Programmatically clicks the active menu item's DOM element. */
-export const ClickItem = Command.define(
-  'ClickItem',
-  { id: S.String, index: S.Number },
-  CompletedClickItem,
-)(({ id, index }) =>
-  Dom.clickElement(itemSelector(id, index)).pipe(
-    Effect.ignore,
-    Effect.as(CompletedClickItem()),
-  ),
-)
+export const ClickItem = Command.define('ClickItem', {
+  args: { id: Schema.String, index: Schema.Number },
+  messages: [Message.CompletedClickItem],
+  execute: ({ id, index }) =>
+    Dom.clickElement(itemSelector(id, index)).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedClickItem()),
+    ),
+})
 /** Waits for the typeahead search debounce period before clearing the query. */
-export const DelayClearSearch = Command.define(
-  'DelayClearSearch',
-  { version: S.Number },
-  ClearedSearch,
-)(({ version }) =>
-  Effect.sleep(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
-    Effect.as(ClearedSearch({ version })),
-  ),
-)
+export const DelayClearSearch = Command.define('DelayClearSearch', {
+  args: { version: Schema.Number },
+  messages: [Message.CompletedDelayClearSearch],
+  execute: ({ version }) =>
+    Effect.sleep(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
+      Effect.as(Message.CompletedDelayClearSearch({ version })),
+    ),
+})
 /** Detects whether the menu button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation submodel that leave is complete. */
 export const DetectMovementOrAnimationEnd = Command.define(
   'DetectMovementOrAnimationEnd',
-  { id: S.String },
-  GotAnimationMessage,
-)(({ id }) =>
-  Effect.raceFirst(
-    Dom.detectElementMovement(buttonSelector(id)).pipe(
-      Effect.as(GotAnimationMessage({ message: AnimationEndedAnimation() })),
-    ),
-    Dom.waitForAnimationSettled(itemsSelector(id)).pipe(
-      Effect.as(GotAnimationMessage({ message: AnimationEndedAnimation() })),
-    ),
-  ),
+  {
+    args: { id: Schema.String },
+    messages: [Message.GotAnimationMessage],
+    execute: ({ id }) =>
+      Effect.raceFirst(
+        Dom.detectElementMovement(buttonSelector(id)).pipe(
+          Effect.as(
+            Message.GotAnimationMessage({
+              message: Animation.Message.EndedAnimation(),
+            }),
+          ),
+        ),
+        Dom.waitForAnimationSettled(itemsSelector(id)).pipe(
+          Effect.as(
+            Message.GotAnimationMessage({
+              message: Animation.Message.EndedAnimation(),
+            }),
+          ),
+        ),
+      ),
+  },
 )
 
-const delegateToAnimation = (
-  model: Model,
-  animationMessage: AnimationMessage,
-): UpdateReturn => {
-  const [nextAnimation, animationCommands, maybeOutMessage] = animationUpdate(
-    model.animation,
-    animationMessage,
-  )
+const foldAnimationOutMessage = Animation.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  StartedLeaveAnimating: () => model => ({
+    model,
+    commands: [DetectMovementOrAnimationEnd({ id: model.id })],
+  }),
+  TransitionedOut: () => model => ({ model }),
+})
 
-  const mappedCommands = Command.mapMessages(animationCommands, message =>
-    GotAnimationMessage({ message }),
-  )
-
-  const additionalCommands = Option.match(maybeOutMessage, {
-    onNone: () => [],
-    onSome: M.type<AnimationOutMessage>().pipe(
-      M.tagsExhaustive({
-        StartedLeaveAnimating: () => [
-          DetectMovementOrAnimationEnd({ id: model.id }),
-        ],
-        TransitionedOut: () => [],
-      }),
-    ),
-  })
-
-  return [
+const foldAnimation = Update.foldChild({
+  update: animationUpdate,
+  read: (model: Model) => Option.some(model.animation),
+  write: (model, nextAnimation) =>
     evo(model, { animation: () => nextAnimation }),
-    [...mappedCommands, ...additionalCommands],
-    Option.none(),
-  ]
-}
+  toParentMessage: message => Message.GotAnimationMessage({ message }),
+  foldOutMessage: foldAnimationOutMessage,
+})
 
-/** Processes a menu message and returns the next model and commands. */
-export const update = (model: Model, message: Message): UpdateReturn => {
+const foldAnimationShow = Update.foldChildStep({
+  update: animationShow,
+  read: (model: Model) => Option.some(model.animation),
+  write: (model, nextAnimation) =>
+    evo(model, { animation: () => nextAnimation }),
+  toParentMessage: message => Message.GotAnimationMessage({ message }),
+})
+
+const foldAnimationHide = Update.foldChildStep({
+  update: animationHide,
+  read: (model: Model) => Option.some(model.animation),
+  write: (model, nextAnimation) =>
+    evo(model, { animation: () => nextAnimation }),
+  toParentMessage: message => Message.GotAnimationMessage({ message }),
+})
+
+/** Processes a Menu Message and returns the next Model, optional Commands, and
+ *  an optional OutMessage. */
+export const update = (model: Model, message: Message) => {
   const maybeLockScroll = OptionExt.when(model.isModal, LockScroll())
 
   const maybeUnlockScroll = OptionExt.when(model.isModal, UnlockScroll())
@@ -456,326 +368,321 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     RestoreInert({ id: model.id }),
   )
 
-  const openCommands = [
+  const openCommands: ReadonlyArray<Command.Command<Message>> = [
     ...Array.getSomes([maybeLockScroll, maybeInertOthers]),
     FocusItems({ id: model.id }),
   ]
 
-  const closeWithFocusCommands = [
+  const closeWithFocusCommands: ReadonlyArray<Command.Command<Message>> = [
     FocusButton({ id: model.id }),
     ...Array.getSomes([maybeUnlockScroll, maybeRestoreInert]),
   ]
 
-  const closeWithoutFocusCommands = Array.getSomes([
-    maybeUnlockScroll,
-    maybeRestoreInert,
-  ])
+  const closeWithoutFocusCommands: ReadonlyArray<Command.Command<Message>> =
+    Array.getSomes([maybeUnlockScroll, maybeRestoreInert])
 
-  const openMenu = (baseModel: Model): UpdateReturn => {
+  const openMenu = (baseModel: Model): Update.Return<Model, Message> => {
     if (model.isAnimated) {
-      const [nextModel, animationCommands] = delegateToAnimation(
-        baseModel,
-        AnimationShowed(),
-      )
-      return [
-        evo(nextModel, { isOpen: () => true }),
-        [...openCommands, ...animationCommands],
-        Option.none(),
-      ]
+      return Update.combine(baseModel, [
+        stepModel => ({ model: stepModel, commands: openCommands }),
+        foldAnimationShow,
+        stepModel => ({
+          model: evo(stepModel, { isOpen: () => true }),
+        }),
+      ])
     }
 
-    return [evo(baseModel, { isOpen: () => true }), openCommands, Option.none()]
+    return {
+      model: evo(baseModel, { isOpen: () => true }),
+      commands: openCommands,
+    }
   }
 
   const closeMenu = (
     baseModel: Model,
     commands: ReadonlyArray<Command.Command<Message>>,
-    maybeOutMessage: Option.Option<OutMessage> = Option.none(),
-  ): UpdateReturn => {
+  ): Update.Return<Model, Message> => {
+    if (!baseModel.isOpen) {
+      return { model: baseModel }
+    }
+
     const closed = closedModel(baseModel)
 
     if (model.isAnimated) {
-      const [nextModel, animationCommands] = delegateToAnimation(
-        closed,
-        AnimationHid(),
-      )
-      return [nextModel, [...commands, ...animationCommands], maybeOutMessage]
+      return Update.combine(closed, [
+        stepModel => ({ model: stepModel, commands }),
+        foldAnimationHide,
+      ])
     }
 
-    return [closed, commands, maybeOutMessage]
+    return { model: closed, commands }
   }
 
-  return M.value(message).pipe(
-    withUpdateReturn,
-    M.tag(
-      'CompletedFocusItems',
-      'CompletedFocusButton',
-      'CompletedLockScroll',
-      'CompletedUnlockScroll',
-      'CompletedInertOthers',
-      'CompletedRestoreInert',
-      'CompletedScrollIntoView',
-      'CompletedClickItem',
-      'SuppressedSpaceScroll',
-      'CompletedAnchorMenu',
-      'CompletedPortalMenuBackdrop',
-      () => [model, [], Option.none()],
-    ),
-    M.tagsExhaustive({
-      Opened: ({ maybeActiveItemIndex }) =>
-        openMenu(
-          evo(model, {
-            maybeActiveItemIndex: () => maybeActiveItemIndex,
-            activationTrigger: () =>
-              Option.match(maybeActiveItemIndex, {
-                onNone: () => 'Pointer',
-                onSome: () => 'Keyboard',
-              }),
-            searchQuery: () => '',
-            searchVersion: () => 0,
-            maybeLastPointerPosition: () => Option.none(),
-          }),
-        ),
+  return Message.match<UpdateReturn>(message, {
+    CompletedFocusItems: () => ({ model }),
+    CompletedFocusButton: () => ({ model }),
+    CompletedLockScroll: () => ({ model }),
+    CompletedUnlockScroll: () => ({ model }),
+    CompletedInertOthers: () => ({ model }),
+    CompletedRestoreInert: () => ({ model }),
+    CompletedScrollIntoView: () => ({ model }),
+    CompletedClickItem: () => ({ model }),
+    SuppressedSpaceScroll: () => ({ model }),
+    CompletedAnchorMenu: () => ({ model }),
+    CompletedPortalMenuBackdrop: () => ({ model }),
 
-      Closed: () => closeMenu(model, closeWithFocusCommands),
-
-      BlurredItems: () => {
-        if (
-          Option.exists(model.maybeLastButtonPointerType, Equal.equals('mouse'))
-        ) {
-          return [model, [], Option.none()]
-        }
-
-        return closeMenu(model, closeWithoutFocusCommands)
-      },
-
-      ActivatedItem: ({ index, activationTrigger }) => [
+    Opened: ({ maybeActiveItemIndex }) =>
+      openMenu(
         evo(model, {
-          maybeActiveItemIndex: () => Option.some(index),
-          activationTrigger: () => activationTrigger,
+          maybeActiveItemIndex: () => maybeActiveItemIndex,
+          activationTrigger: () =>
+            Option.match(maybeActiveItemIndex, {
+              onNone: () => 'Pointer',
+              onSome: () => 'Keyboard',
+            }),
+          searchQuery: () => '',
+          searchVersion: () => 0,
+          maybeLastPointerPosition: () => Option.none(),
         }),
+      ),
+
+    Closed: () => closeMenu(model, closeWithFocusCommands),
+
+    BlurredItems: () => {
+      if (
+        Option.exists(model.maybeLastButtonPointerType, Equal.equals('mouse'))
+      ) {
+        return { model }
+      }
+
+      return closeMenu(model, closeWithoutFocusCommands)
+    },
+
+    ActivatedItem: ({ index, activationTrigger }) => ({
+      model: evo(model, {
+        maybeActiveItemIndex: () => Option.some(index),
+        activationTrigger: () => activationTrigger,
+      }),
+      commands:
         activationTrigger === 'Keyboard'
           ? [ScrollIntoView({ id: model.id, index })]
           : [],
-        Option.none(),
-      ],
+    }),
 
-      MovedPointerOverItem: ({ index, screenX, screenY }) => {
-        const isSamePosition = Option.exists(
-          model.maybeLastPointerPosition,
-          position =>
-            position.screenX === screenX && position.screenY === screenY,
-        )
+    MovedPointerOverItem: ({ index, screenX, screenY }) => {
+      const isSamePosition = Option.exists(
+        model.maybeLastPointerPosition,
+        position =>
+          position.screenX === screenX && position.screenY === screenY,
+      )
 
-        if (isSamePosition) {
-          return [model, [], Option.none()]
-        }
+      if (isSamePosition) {
+        return { model }
+      }
 
-        return [
-          evo(model, {
-            maybeActiveItemIndex: () => Option.some(index),
-            activationTrigger: () => 'Pointer',
-            maybeLastPointerPosition: () => Option.some({ screenX, screenY }),
-          }),
-          [],
-          Option.none(),
-        ]
-      },
+      return {
+        model: evo(model, {
+          maybeActiveItemIndex: () => Option.some(index),
+          activationTrigger: () => 'Pointer',
+          maybeLastPointerPosition: () => Option.some({ screenX, screenY }),
+        }),
+      }
+    },
 
-      DeactivatedItem: () =>
-        model.activationTrigger === 'Pointer'
-          ? [
-              evo(model, { maybeActiveItemIndex: () => Option.none() }),
-              [],
-              Option.none(),
-            ]
-          : [model, [], Option.none()],
+    DeactivatedItem: () =>
+      model.activationTrigger === 'Pointer'
+        ? { model: evo(model, { maybeActiveItemIndex: () => Option.none() }) }
+        : { model },
 
-      SelectedItem: ({ index, item }) =>
-        closeMenu(
-          model,
-          closeWithFocusCommands,
-          Option.some(Selected({ value: item, index })),
-        ),
+    SelectedItem: ({ index, item }) =>
+      pipe(
+        closeMenu(model, closeWithFocusCommands),
+        Update.withOutMessage(OutMessage.Selected({ value: item, index })),
+      ),
 
-      RequestedItemClick: ({ index }) => [
-        model,
-        [ClickItem({ id: model.id, index })],
-        Option.none(),
-      ],
+    RequestedItemClick: ({ index }) => ({
+      model,
+      commands: [ClickItem({ id: model.id, index })],
+    }),
 
-      Searched: ({ key, maybeTargetIndex }) => {
-        const nextSearchQuery = model.searchQuery + key
-        const nextSearchVersion = model.searchVersion + 1
+    Searched: ({ key, maybeTargetIndex }) => {
+      const nextSearchQuery = model.searchQuery + key
+      const nextSearchVersion = model.searchVersion + 1
 
-        return [
-          evo(model, {
-            searchQuery: () => nextSearchQuery,
-            searchVersion: () => nextSearchVersion,
-            maybeActiveItemIndex: () =>
-              Option.orElse(maybeTargetIndex, () => model.maybeActiveItemIndex),
-          }),
-          [DelayClearSearch({ version: nextSearchVersion })],
-          Option.none(),
-        ]
-      },
+      return {
+        model: evo(model, {
+          searchQuery: () => nextSearchQuery,
+          searchVersion: () => nextSearchVersion,
+          maybeActiveItemIndex: () =>
+            Option.orElse(maybeTargetIndex, () => model.maybeActiveItemIndex),
+        }),
+        commands: [DelayClearSearch({ version: nextSearchVersion })],
+      }
+    },
 
-      ClearedSearch: ({ version }) => {
-        if (version !== model.searchVersion) {
-          return [model, [], Option.none()]
-        }
+    CompletedDelayClearSearch: ({ version }) => {
+      if (version !== model.searchVersion) {
+        return { model }
+      }
 
-        return [evo(model, { searchQuery: () => '' }), [], Option.none()]
-      },
+      return { model: evo(model, { searchQuery: () => '' }) }
+    },
 
-      GotAnimationMessage: ({ message: animationMessage }) =>
-        delegateToAnimation(model, animationMessage),
+    GotAnimationMessage: ({ message: animationMessage }) =>
+      foldAnimation(model, animationMessage),
 
-      PressedPointerOnButton: ({
-        pointerType,
-        button,
-        screenX,
-        screenY,
-        timeStamp,
-      }) => {
-        const withPointerType = evo(model, {
-          maybeLastButtonPointerType: () => Option.some(pointerType),
-        })
+    PressedPointerOnButton: ({
+      pointerType,
+      button,
+      screenX,
+      screenY,
+      timeStamp,
+    }) => {
+      const withPointerType = evo(model, {
+        maybeLastButtonPointerType: () => Option.some(pointerType),
+      })
 
-        if (pointerType !== 'mouse' || button !== LEFT_MOUSE_BUTTON) {
-          return [withPointerType, [], Option.none()]
-        }
+      if (pointerType !== 'mouse' || button !== LEFT_MOUSE_BUTTON) {
+        return { model: withPointerType }
+      }
 
-        if (model.isOpen) {
-          const [closed, commands] = closeMenu(
-            withPointerType,
-            closeWithFocusCommands,
-          )
-          return [
-            evo(closed, {
+      if (model.isOpen) {
+        return Update.combine(withPointerType, [
+          stepModel => closeMenu(stepModel, closeWithFocusCommands),
+          stepModel => ({
+            model: evo(stepModel, {
               maybeLastButtonPointerType: () => Option.some(pointerType),
             }),
-            commands,
-            Option.none(),
-          ]
-        }
-
-        return openMenu(
-          evo(withPointerType, {
-            maybeActiveItemIndex: () => Option.none(),
-            activationTrigger: () => 'Pointer',
-            searchQuery: () => '',
-            searchVersion: () => 0,
-            maybeLastPointerPosition: () => Option.none(),
-            maybePointerOrigin: () =>
-              Option.some({ screenX, screenY, timeStamp }),
           }),
-        )
-      },
+        ])
+      }
 
-      ReleasedPointerOnItems: ({ screenX, screenY, timeStamp }) => {
-        const hasNoOrigin = Option.isNone(model.maybePointerOrigin)
+      return openMenu(
+        evo(withPointerType, {
+          maybeActiveItemIndex: () => Option.none(),
+          activationTrigger: () => 'Pointer',
+          searchQuery: () => '',
+          searchVersion: () => 0,
+          maybeLastPointerPosition: () => Option.none(),
+          maybePointerOrigin: () =>
+            Option.some({ screenX, screenY, timeStamp }),
+        }),
+      )
+    },
 
-        const hasNoActiveItem = Option.isNone(model.maybeActiveItemIndex)
+    ReleasedPointerOnItems: ({ screenX, screenY, timeStamp }) => {
+      const hasNoOrigin = Option.isNone(model.maybePointerOrigin)
 
-        const isMovementBelowThreshold = Option.exists(
-          model.maybePointerOrigin,
-          origin =>
-            Math.abs(screenX - origin.screenX) <
-              POINTER_MOVEMENT_THRESHOLD_PIXELS &&
-            Math.abs(screenY - origin.screenY) <
-              POINTER_MOVEMENT_THRESHOLD_PIXELS,
-        )
+      const hasNoActiveItem = Option.isNone(model.maybeActiveItemIndex)
 
-        const isHoldTimeBelowThreshold = Option.exists(
-          model.maybePointerOrigin,
-          origin =>
-            timeStamp - origin.timeStamp < POINTER_HOLD_THRESHOLD_MILLISECONDS,
-        )
+      const isMovementBelowThreshold = Option.exists(
+        model.maybePointerOrigin,
+        origin =>
+          Math.abs(screenX - origin.screenX) <
+            POINTER_MOVEMENT_THRESHOLD_PIXELS &&
+          Math.abs(screenY - origin.screenY) <
+            POINTER_MOVEMENT_THRESHOLD_PIXELS,
+      )
 
-        if (
-          hasNoOrigin ||
-          isMovementBelowThreshold ||
-          isHoldTimeBelowThreshold ||
-          hasNoActiveItem
-        ) {
-          return [model, [], Option.none()]
-        }
+      const isHoldTimeBelowThreshold = Option.exists(
+        model.maybePointerOrigin,
+        origin =>
+          timeStamp - origin.timeStamp < POINTER_HOLD_THRESHOLD_MILLISECONDS,
+      )
 
-        return [
-          model,
-          [
-            ClickItem({
-              id: model.id,
-              index: model.maybeActiveItemIndex.value,
-            }),
-          ],
-          Option.none(),
-        ]
-      },
+      if (
+        hasNoOrigin ||
+        isMovementBelowThreshold ||
+        isHoldTimeBelowThreshold ||
+        hasNoActiveItem
+      ) {
+        return { model }
+      }
 
-      IgnoredMouseClick: () => [
-        evo(model, { maybeLastButtonPointerType: () => Option.none() }),
-        [],
-        Option.none(),
-      ],
+      return {
+        model,
+        commands: [
+          ClickItem({
+            id: model.id,
+            index: model.maybeActiveItemIndex.value,
+          }),
+        ],
+      }
+    },
+
+    IgnoredMouseClick: () => ({
+      model: evo(model, { maybeLastButtonPointerType: () => Option.none() }),
     }),
-  )
+  })
 }
 
 /** The anchor-positioning Mount this Menu renders on its panel. The panel is
  *  always anchored to the button via Floating UI and portaled to the document
  *  body (opt out of portaling with `anchor.portal: false`), so it escapes
- *  ancestor stacking contexts and overflow clipping. Exposed so Scene tests
- *  can call `Scene.Mount.resolve(AnchorMenu, CompletedAnchorMenu())`. */
-export const AnchorMenu = Mount.define(
-  'AnchorMenu',
-  { buttonId: S.String, anchor: AnchorConfig },
-  CompletedAnchorMenu,
-)(
-  ({ buttonId, anchor }) =>
-    element =>
-      Effect.gen(function* () {
-        yield* Effect.acquireRelease(
-          Effect.sync(() => anchorSetup({ buttonId, anchor })(element)),
-          cleanup => Effect.sync(cleanup),
-        )
-        return CompletedAnchorMenu()
-      }),
-)
+ *  ancestor stacking contexts and overflow clipping.
+ *
+ *  It also carries the open-focus for the anchored panel. An anchored panel
+ *  renders `visibility: hidden` until Floating UI resolves its first position,
+ *  and `.focus()` does not land on a hidden element, so `FocusItems` alone
+ *  cannot focus it. `focusAfterPosition` focuses the panel as part of that
+ *  first reveal. `FocusItems` still focuses the panel when no anchor is
+ *  configured, where the panel is visible as soon as the render commits.
+ *
+ *  Exposed so Scene tests can call
+ *  `Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu())`. */
+export const AnchorMenu = Mount.define('AnchorMenu', {
+  args: { buttonId: Schema.String, anchor: AnchorConfig },
+  messages: [Message.CompletedAnchorMenu],
+  execute: ({ element, buttonId, anchor }) =>
+    Effect.gen(function* () {
+      yield* Effect.acquireRelease(
+        Effect.sync(() =>
+          anchorSetup(element, {
+            buttonId,
+            anchor,
+            focusAfterPosition: true,
+          }),
+        ),
+        cleanup => Effect.sync(cleanup),
+      )
+      return Message.CompletedAnchorMenu()
+    }),
+})
 
 /** The backdrop-portaling Mount this Menu renders. Exposed so Scene tests can
- *  call `Scene.Mount.resolve(PortalMenuBackdrop, CompletedPortalMenuBackdrop())` to
+ *  call `Scene.Mount.resolve(PortalMenuBackdrop, Message.CompletedPortalMenuBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
-export const PortalMenuBackdrop = Mount.define(
-  'PortalMenuBackdrop',
-  CompletedPortalMenuBackdrop,
-)(element =>
-  Effect.gen(function* () {
-    yield* Effect.acquireRelease(
-      Effect.sync(() => portalToContainingRoot(element)),
-      cleanup => Effect.sync(cleanup),
-    )
-    return CompletedPortalMenuBackdrop()
-  }),
-)
+export const PortalMenuBackdrop = Mount.define('PortalMenuBackdrop', {
+  messages: [Message.CompletedPortalMenuBackdrop],
+  execute: ({ element }) =>
+    Effect.gen(function* () {
+      yield* Effect.acquireRelease(
+        Effect.sync(() => portalToContainingRoot(element)),
+        cleanup => Effect.sync(cleanup),
+      )
+      return Message.CompletedPortalMenuBackdrop()
+    }),
+})
 
-/** Programmatically opens the menu, updating the model and returning
- *  focus and modal commands. Use this in domain-event handlers to open the menu. */
+/** Programmatically opens the Menu, updating the Model and returning focus and
+ *  modal Commands. Use this in domain-event handlers. */
 export const open = (model: Model): UpdateReturn =>
-  update(model, Opened({ maybeActiveItemIndex: Option.none() }))
+  update(model, Message.Opened({ maybeActiveItemIndex: Option.none() }))
 
-/** Programmatically closes the menu, updating the model and returning
- *  focus and modal commands. Use this in domain-event handlers to close the menu. */
-export const close = (model: Model): UpdateReturn => update(model, Closed())
+/** Programmatically closes the menu. If it is open, returns the closed Model
+ *  with focus and modal Commands. If it is already closed, returns the Model
+ *  unchanged with no Commands. Use this in domain-event handlers to close the
+ *  menu. */
+export const close = (model: Model): UpdateReturn =>
+  update(model, Message.Closed())
 
-/** Programmatically selects a menu item, closing the menu and returning
- *  focus commands plus a `Selected` OutMessage. Use this in domain-event handlers. */
+/** Programmatically selects a Menu item, closing the Menu and returning focus
+ *  Commands plus a `Selected` OutMessage. Use this in domain-event handlers. */
 export const selectItem = (
   model: Model,
   item: string,
   index: number,
-): UpdateReturn => update(model, SelectedItem({ index, item }))
+): UpdateReturn => update(model, Message.SelectedItem({ index, item }))
 
 // VIEW
 
@@ -793,9 +700,9 @@ export type GroupHeading = Readonly<{
 
 /** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
  *
- *  The Menu emits a `Selected({ value, index })` OutMessage on commit.
- *  The menu has already closed by the time this fires; consumers
- *  pattern-match it in their `GotMenuMessage` handler to react. */
+ *  The Menu emits an `OutMessage.Selected({ value, index })` OutMessage on commit.
+ *  The menu has already closed by the time this fires. Handle it in the
+ *  `foldOutMessage` of the Menu's `Update.foldChild` config. */
 export type ViewInputs<Item extends string> = Readonly<{
   items: ReadonlyArray<Item>
   itemToConfig: (
@@ -845,9 +752,7 @@ const internalView = <Item extends string>() =>
   menuViewImpl as unknown as ViewForItem<Item>
 
 const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
-  (model, viewInputs) => {
-    const h = html<Message>()
-
+  (model, viewInputs, h) => {
     const {
       id,
       isOpen,
@@ -886,7 +791,7 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
     } = viewInputs
 
     const dispatchSelectedItem = (item: string, index: number) =>
-      SelectedItem({ index, item })
+      Message.SelectedItem({ index, item })
 
     const isLeaving =
       transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
@@ -894,26 +799,26 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
 
     const animationAttributes: ReadonlyArray<
       ReturnType<typeof h.DataAttribute>
-    > = M.value(transitionState).pipe(
-      M.when('EnterStart', () => [
+    > = Match.value(transitionState).pipe(
+      Match.when('EnterStart', () => [
         h.DataAttribute('closed', ''),
         h.DataAttribute('enter', ''),
         h.DataAttribute('transition', ''),
       ]),
-      M.when('EnterAnimating', () => [
+      Match.when('EnterAnimating', () => [
         h.DataAttribute('enter', ''),
         h.DataAttribute('transition', ''),
       ]),
-      M.when('LeaveStart', () => [
+      Match.when('LeaveStart', () => [
         h.DataAttribute('leave', ''),
         h.DataAttribute('transition', ''),
       ]),
-      M.when('LeaveAnimating', () => [
+      Match.when('LeaveAnimating', () => [
         h.DataAttribute('closed', ''),
         h.DataAttribute('leave', ''),
         h.DataAttribute('transition', ''),
       ]),
-      M.orElse(() => []),
+      Match.orElse(() => []),
     )
 
     const isDisabled = (index: number): boolean =>
@@ -941,18 +846,22 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
         return handleItemsKeyDown(key)
       }
 
-      return M.value(key).pipe(
-        M.whenOr('Enter', ' ', 'ArrowDown', () =>
+      return Match.value(key).pipe(
+        Match.whenOr('Enter', ' ', 'ArrowDown', () =>
           Option.some(
-            Opened({ maybeActiveItemIndex: Option.some(firstEnabledIndex) }),
+            Message.Opened({
+              maybeActiveItemIndex: Option.some(firstEnabledIndex),
+            }),
           ),
         ),
-        M.when('ArrowUp', () =>
+        Match.when('ArrowUp', () =>
           Option.some(
-            Opened({ maybeActiveItemIndex: Option.some(lastEnabledIndex) }),
+            Message.Opened({
+              maybeActiveItemIndex: Option.some(lastEnabledIndex),
+            }),
           ),
         ),
-        M.orElse(() => Option.none()),
+        Match.orElse(() => Option.none()),
       )
     }
 
@@ -964,7 +873,7 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       timeStamp: number,
     ): Option.Option<Message> =>
       Option.some(
-        PressedPointerOnButton({
+        Message.PressedPointerOnButton({
           pointerType,
           button,
           screenX,
@@ -980,16 +889,16 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       )
 
       if (isMouse) {
-        return IgnoredMouseClick()
+        return Message.IgnoredMouseClick()
       } else if (isOpen) {
-        return Closed()
+        return Message.Closed()
       } else {
-        return Opened({ maybeActiveItemIndex: Option.none() })
+        return Message.Opened({ maybeActiveItemIndex: Option.none() })
       }
     }
 
     const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
-      OptionExt.when(key === ' ', SuppressedSpaceScroll())
+      OptionExt.when(key === ' ', Message.SuppressedSpaceScroll())
 
     const resolveActiveIndex = keyToIndex(
       'ArrowDown',
@@ -1007,27 +916,27 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
         maybeActiveItemIndex,
         isDisabled,
         itemToSearchText,
-        Str.isNonEmpty(searchQuery),
+        String.isNonEmpty(searchQuery),
       )
-      return Option.some(Searched({ key, maybeTargetIndex }))
+      return Option.some(Message.Searched({ key, maybeTargetIndex }))
     }
 
     const handleItemsKeyDown = (key: string): Option.Option<Message> =>
-      M.value(key).pipe(
-        M.when('Escape', () => Option.some(Closed())),
-        M.when('Enter', () =>
+      Match.value(key).pipe(
+        Match.when('Escape', () => Option.some(Message.Closed())),
+        Match.when('Enter', () =>
           Option.map(maybeActiveItemIndex, index =>
-            RequestedItemClick({ index }),
+            Message.RequestedItemClick({ index }),
           ),
         ),
-        M.when(' ', () =>
-          Str.isNonEmpty(searchQuery)
+        Match.when(' ', () =>
+          String.isNonEmpty(searchQuery)
             ? searchForKey(' ')
             : Option.map(maybeActiveItemIndex, index =>
-                RequestedItemClick({ index }),
+                Message.RequestedItemClick({ index }),
               ),
         ),
-        M.whenOr(
+        Match.whenOr(
           'ArrowDown',
           'ArrowUp',
           'Home',
@@ -1036,14 +945,14 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
           'PageDown',
           () =>
             Option.some(
-              ActivatedItem({
+              Message.ActivatedItem({
                 index: resolveActiveIndex(key),
                 activationTrigger: 'Keyboard',
               }),
             ),
         ),
-        M.when(isPrintableKey, () => searchForKey(key)),
-        M.orElse(() => Option.none()),
+        Match.when(isPrintableKey, () => searchForKey(key)),
+        Match.orElse(() => Option.none()),
       )
 
     const handleItemsPointerUp = (
@@ -1054,7 +963,7 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
     ): Option.Option<Message> =>
       OptionExt.when(
         pointerType === 'mouse',
-        ReleasedPointerOnItems({ screenX, screenY, timeStamp }),
+        Message.ReleasedPointerOnItems({ screenX, screenY, timeStamp }),
       )
 
     const resolveButtonLabel = () => {
@@ -1118,7 +1027,7 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
             h.OnKeyDownPreventDefault(handleItemsKeyDown),
             h.OnKeyUpPreventDefault(handleSpaceKeyUp),
             h.OnPointerUp(handleItemsPointerUp),
-            h.OnBlur(BlurredItems()),
+            h.OnBlur(Message.BlurredItems()),
           ]),
       ...(itemsClassName ? [h.Class(itemsClassName)] : []),
       ...itemsAttributes,
@@ -1155,12 +1064,19 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
                       h.OnPointerMove((screenX, screenY, pointerType) =>
                         OptionExt.when(
                           pointerType !== 'touch',
-                          MovedPointerOverItem({ index, screenX, screenY }),
+                          Message.MovedPointerOverItem({
+                            index,
+                            screenX,
+                            screenY,
+                          }),
                         ),
                       ),
                     ]),
                 h.OnPointerLeave(pointerType =>
-                  OptionExt.when(pointerType !== 'touch', DeactivatedItem()),
+                  OptionExt.when(
+                    pointerType !== 'touch',
+                    Message.DeactivatedItem(),
+                  ),
                 ),
               ]
             : []),
@@ -1226,17 +1142,11 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
           (separatorClassName ||
             Array.isReadonlyArrayNonEmpty(separatorAttributes))
             ? [
-                h.keyed('div')(
-                  `${id}-separator-${segmentIndex}`,
-                  [
-                    h.Role('separator'),
-                    ...(separatorClassName
-                      ? [h.Class(separatorClassName)]
-                      : []),
-                    ...separatorAttributes,
-                  ],
-                  [],
-                ),
+                h.keyed('div')(`${id}-separator-${segmentIndex}`, [
+                  h.Role('separator'),
+                  ...(separatorClassName ? [h.Class(separatorClassName)] : []),
+                  ...separatorAttributes,
+                ]),
               ]
             : []
 
@@ -1244,16 +1154,12 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       })
     }
 
-    const backdrop = h.keyed('div')(
-      `${id}-backdrop`,
-      [
-        h.OnMount(PortalMenuBackdrop()),
-        ...(isLeaving ? [] : [h.OnClick(Closed())]),
-        ...(backdropClassName ? [h.Class(backdropClassName)] : []),
-        ...backdropAttributes,
-      ],
-      [],
-    )
+    const backdrop = h.keyed('div')(`${id}-backdrop`, [
+      h.OnMount(PortalMenuBackdrop()),
+      ...(isLeaving ? [] : [h.OnClick(Message.Closed())]),
+      ...(backdropClassName ? [h.Class(backdropClassName)] : []),
+      ...backdropAttributes,
+    ])
 
     const renderedItems = renderGroupedItems()
 
@@ -1297,6 +1203,29 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
   },
 )
 
+/** The `view`, `update`, and programmatic helpers that `Menu.create`
+ *  returns, bound to one `Item` type. Name it to annotate a value that
+ *  holds a created bundle, such as a field on a config object or a
+ *  function parameter that takes the bundle rather than calling `create`
+ *  itself. */
+type BundleUpdateReturn<Item extends string> = Update.ReturnWithOutMessage<
+  Model,
+  Message,
+  OutMessage<Item>
+>
+
+export type Bundle<Item extends string = string> = Readonly<{
+  view: SubmodelView<Model, Message, ViewInputs<Item>>
+  update: (model: Model, message: Message) => BundleUpdateReturn<Item>
+  selectItem: (
+    model: Model,
+    item: Item,
+    index: number,
+  ) => BundleUpdateReturn<Item>
+  open: (model: Model) => BundleUpdateReturn<Item>
+  close: (model: Model) => BundleUpdateReturn<Item>
+}>
+
 /** Pairs the menu's `view` and `update` (and programmatic helpers)
  *  behind a single Item-typed entry point. Declaring the menu once at
  *  module scope ensures the view's `Item` type and the OutMessage's
@@ -1308,50 +1237,16 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
  *  // In view:
  *  h.submodel({ view: ActionMenu.view, ... })
  *
- *  // In update:
- *  const [next, commands, maybeOutMessage] = ActionMenu.update(model.menu, message)
- *  // maybeOutMessage: Option<Menu.OutMessage<Action>>
+ *  // In the parent update, pass ActionMenu.update to Update.foldChild and
+ *  // handle Menu.OutMessage<Action> in foldOutMessage.
  *  ```
  */
-export const create = <Item extends string = string>(): Readonly<{
-  view: ViewForItem<Item>
-  update: (
-    model: Model,
-    message: Message,
-  ) => readonly [
+export const create = <Item extends string = string>(): Bundle<Item> => {
+  type GenericReturn = Update.ReturnWithOutMessage<
     Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Item>>,
-  ]
-  selectItem: (
-    model: Model,
-    item: Item,
-    index: number,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Item>>,
-  ]
-  open: (
-    model: Model,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Item>>,
-  ]
-  close: (
-    model: Model,
-  ) => readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Item>>,
-  ]
-}> => {
-  type GenericReturn = readonly [
-    Model,
-    ReadonlyArray<Command.Command<Message>>,
-    Option.Option<OutMessage<Item>>,
-  ]
+    Message,
+    OutMessage<Item>
+  >
   const cast = (result: UpdateReturn): GenericReturn =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     result as unknown as GenericReturn

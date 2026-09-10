@@ -1,27 +1,21 @@
-import { Effect, Match as M, Option, Schema as S } from 'effect'
+import { Effect, Match, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/unstable/persistence'
-import { Command, Runtime } from 'foldkit'
-import { replaceUrl } from 'foldkit/navigation'
+import { Runtime, type Update } from 'foldkit'
 import { Url } from 'foldkit/url'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 
 import { SESSION_STORAGE_KEY } from './constant'
-import { Session } from './domain/session'
-import { CompletedNavigateInternal, Message } from './message'
+import { Session, SessionJsonString } from './domain/session'
+import { Message } from './message'
 import { LoggedIn, LoggedOut, Model } from './model'
-import {
-  DashboardRoute,
-  LoginRoute,
-  dashboardRouter,
-  loginRouter,
-  urlToAppRoute,
-} from './route'
+import { AppRoute, urlToAppRoute } from './route'
+import { RedirectToDashboard, RedirectToLogin } from './update'
 
 // FLAGS
 
-export const Flags = S.Struct({
-  maybeSession: S.Option(Session),
+export const Flags = Schema.Struct({
+  maybeSession: Schema.Option(Session),
 })
 
 export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
@@ -30,7 +24,7 @@ export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
     Option.fromNullishOr(yield* store.get(SESSION_STORAGE_KEY)),
   )
 
-  const decodeSession = S.decodeEffect(S.fromJsonString(Session))
+  const decodeSession = Schema.decodeEffect(SessionJsonString)
   const session = yield* decodeSession(sessionJson)
 
   return Flags.make({ maybeSession: Option.some(session) })
@@ -43,22 +37,10 @@ export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
 
 export type Flags = typeof Flags.Type
 
-// COMMAND
-
-const RedirectToLogin = Command.define(
-  'RedirectToLogin',
-  CompletedNavigateInternal,
-)(replaceUrl(loginRouter()).pipe(Effect.as(CompletedNavigateInternal())))
-
-const RedirectToDashboard = Command.define(
-  'RedirectToDashboard',
-  CompletedNavigateInternal,
-)(replaceUrl(dashboardRouter()).pipe(Effect.as(CompletedNavigateInternal())))
-
 // INIT
 
-type InitReturn = [Model, ReadonlyArray<Command.Command<Message>>]
-const withInitReturn = M.withReturnType<InitReturn>()
+type InitReturn = Update.Return<Model, Message>
+const withInitReturn = Match.withReturnType<InitReturn>()
 
 export const init: Runtime.RoutingApplicationInit<Model, Message, Flags> = (
   flags: Flags,
@@ -68,26 +50,27 @@ export const init: Runtime.RoutingApplicationInit<Model, Message, Flags> = (
 
   return Option.match(flags.maybeSession, {
     onNone: () =>
-      M.value(route).pipe(
+      Match.value(route).pipe(
         withInitReturn,
-        M.tag('Home', 'Login', 'NotFound', route => [
-          LoggedOut.init(route),
-          [],
-        ]),
-        M.orElse(() => [LoggedOut.init(LoginRoute()), [RedirectToLogin()]]),
+        Match.tag('Home', 'Login', 'NotFound', route => ({
+          model: LoggedOut.init(route),
+        })),
+        Match.orElse(() => ({
+          model: LoggedOut.init(AppRoute.Login()),
+          commands: [RedirectToLogin()],
+        })),
       ),
 
     onSome: session =>
-      M.value(route).pipe(
+      Match.value(route).pipe(
         withInitReturn,
-        M.tag('Dashboard', 'Settings', 'NotFound', route => [
-          LoggedIn.init(route, session),
-          [],
-        ]),
-        M.orElse(() => [
-          LoggedIn.init(DashboardRoute(), session),
-          [RedirectToDashboard()],
-        ]),
+        Match.tag('Dashboard', 'Settings', 'NotFound', route => ({
+          model: LoggedIn.init(route, session),
+        })),
+        Match.orElse(() => ({
+          model: LoggedIn.init(AppRoute.Dashboard(), session),
+          commands: [RedirectToDashboard()],
+        })),
       ),
   })
 }

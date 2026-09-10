@@ -1,72 +1,73 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Array, Effect, Match as M, Option } from 'effect'
-import { Command } from 'foldkit'
-import { childAttributes, html } from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { Array, Option, Schema } from 'effect'
+import { Update } from 'foldkit'
+import { type HtmlBuilder, childAttributes } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import { evo } from 'foldkit/struct'
 
 import { Combobox } from '@foldkit/ui'
 
-type City = 'Johannesburg' | 'Kyiv' | 'Oxford' | 'Wellington'
+const City = Schema.Literals(['Johannesburg', 'Kyiv', 'Oxford', 'Wellington'])
+type City = typeof City.Type
 
 // Declare a typed Combobox once at module scope:
 const CityCombobox = Combobox.create<City>()
 
 // Add a field to your Model for the Combobox Submodel, plus a field for
-// the selected value your app actually cares about:
-const Model = S.Struct({
-  maybeCity: S.Option(S.String),
+// the selected value your app actually cares about. Using the `City`
+// Schema keeps the field literal-typed end to end:
+const Model = Schema.Struct({
+  maybeCity: Schema.Option(City),
   combobox: Combobox.Model,
   // ...your other fields
 })
 
 // In your init function, initialize the Combobox Submodel with a unique id:
-const init = () => [
-  {
+const init = () => ({
+  model: {
     maybeCity: Option.none(),
     combobox: Combobox.init({ id: 'city' }),
     // ...your other fields
   },
-  [],
-]
-
-// Wrap Combobox's Messages so they can flow through your update:
-const GotComboboxMessage = m('GotComboboxMessage', {
-  message: Combobox.Message,
 })
 
-// Delegate keyboard navigation, typeahead, and open/close to
-// CityCombobox.update. The OutMessage's `Selected` carries the chosen
-// item; lift it into your domain state:
-GotComboboxMessage: ({ message }) => {
-  const [nextCombobox, commands, maybeOutMessage] = CityCombobox.update(
-    model.combobox,
-    message,
-  )
-  const mappedCommands = Command.mapMessages(commands, message =>
-    GotComboboxMessage({ message }),
-  )
+// Wrap Combobox's Messages so they can flow through your update:
+const Message = defineMessageUnion({
+  GotComboboxMessage: { message: Combobox.Message },
+})
 
-  return Option.match(maybeOutMessage, {
-    onNone: () => [
-      evo(model, { combobox: () => nextCombobox }),
-      mappedCommands,
-    ],
-    onSome: M.type<Combobox.OutMessage>().pipe(
-      M.tagsExhaustive({
-        Selected: ({ value }) => [
-          evo(model, {
-            combobox: () => nextCombobox,
-            maybeCity: () => Option.some(value),
-          }),
-          mappedCommands,
-        ],
-      }),
-    ),
-  })
-}
+// At module scope, fold the OutMessage into your own Model. `Selected`
+// carries the activated item; fold it into the selection you own.
+// `ClearedSelection` only fires for nullable comboboxes, so this combobox
+// keeps its selection there and the fold stays exhaustive. Each arm returns
+// an Update.Step over the parent Model, which already has the next Combobox
+// Model written back:
+const foldComboboxOutMessage = Combobox.OutMessage.match<
+  Update.Step<Model, Message>,
+  Combobox.OutMessage<City>
+>({
+  Selected:
+    ({ value }) =>
+    model => ({ model: evo(model, { maybeCity: () => Option.some(value) }) }),
+  ClearedSelection: () => model => ({ model }),
+})
+
+// Update.foldChild wires the child into the parent: it delegates keyboard
+// navigation, typeahead, and open/close to CityCombobox.update, writes the
+// next Combobox Model back, maps the Submodel's Commands into your Message
+// type, and hands any OutMessage to foldOutMessage.
+const foldCombobox = Update.foldChild({
+  update: CityCombobox.update,
+  read: (model: Model) => Option.some(model.combobox),
+  write: (model, nextCombobox) => evo(model, { combobox: () => nextCombobox }),
+  toParentMessage: message => Message.GotComboboxMessage({ message }),
+  foldOutMessage: foldComboboxOutMessage,
+})
+
+// In the corresponding Message.match handler, call the fold:
+GotComboboxMessage: ({ message }) => foldCombobox(model, message)
 
 const cities: ReadonlyArray<City> = [
   'Johannesburg',
@@ -88,9 +89,7 @@ const filteredCities =
 // from a native `<label for>`, and pass `ariaLabelledBy` so the input is named
 // by the label. The attribute is only emitted when provided, so the input
 // never carries a dangling `aria-labelledby`.
-const view = () => {
-  const h = html<Message>()
-
+const view = (model: Model, h: HtmlBuilder<Message>) => {
   const labelId = 'city-label'
 
   return h.div(
@@ -104,6 +103,10 @@ const view = () => {
         viewInputs: {
           ariaLabelledBy: labelId,
           items: filteredCities,
+          // The parent owns the selection; pass it in, plus the text the
+          // input rests at when closed (the selected city, or empty):
+          maybeSelectedValue: model.maybeCity,
+          restingInputValue: Option.getOrElse(model.maybeCity, () => ''),
           itemToValue: city => city,
           itemToDisplayText: city => city,
           itemToConfig: (city, { isSelected }) => ({
@@ -111,7 +114,7 @@ const view = () => {
             content: h.div(
               [h.Class('flex items-center gap-2')],
               [
-                isSelected ? h.span([], ['✓']) : h.span([h.Class('w-4')], []),
+                isSelected ? h.span([], ['✓']) : h.span([h.Class('w-4')]),
                 h.span([], [city]),
               ],
             ),
@@ -126,7 +129,7 @@ const view = () => {
           backdropAttributes: childAttributes([h.Class('fixed inset-0')]),
           anchor: { placement: 'bottom-start', gap: 8, padding: 8 },
         },
-        toParentMessage: message => GotComboboxMessage({ message }),
+        toParentMessage: message => Message.GotComboboxMessage({ message }),
       }),
     ],
   )

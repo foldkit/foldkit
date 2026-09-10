@@ -1,7 +1,7 @@
-import { Option, Schema as S } from 'effect'
+import { Option, Schema } from 'effect'
 import { describe, expect, it } from 'vitest'
 
-import { ts } from '../schema/index.js'
+import { defineMessageUnion, taggedStruct } from '../schema/index.js'
 import {
   indexMessageSchemaDocument,
   narrowToVariant,
@@ -13,25 +13,17 @@ const expectSome = <A>(option: Option.Option<A>): A => {
   return Option.getOrThrow(option)
 }
 
-const ChildOpened = ts('Opened')
-const ChildClosed = ts('Closed')
-const ChildMessage = S.Union([ChildOpened, ChildClosed])
+const ChildMessage = defineMessageUnion({ Opened: {}, Closed: {} })
 
-const Completed = ts('Completed')
-const ScrolledSidebar = ts('ScrolledSidebar', { scroll: S.Number })
-const ClickedLink = ts('ClickedLink', { href: S.String })
-const GotChildMessage = ts('GotChildMessage', { message: ChildMessage })
-const WithMaybeNote = ts('WithMaybeNote', { maybeNote: S.Option(S.String) })
+const Message = defineMessageUnion({
+  Completed: {},
+  ScrolledSidebar: { scroll: Schema.Number },
+  ClickedLink: { href: Schema.String },
+  GotChildMessage: { message: ChildMessage },
+  WithMaybeNote: { maybeNote: Schema.Option(Schema.String) },
+})
 
-const Message = S.Union([
-  Completed,
-  ScrolledSidebar,
-  ClickedLink,
-  GotChildMessage,
-  WithMaybeNote,
-])
-
-const document = S.toJsonSchemaDocument(Message)
+const document = Schema.toJsonSchemaDocument(Message)
 
 describe('indexMessageSchemaDocument', () => {
   it('returns one entry per top-level variant', () => {
@@ -67,7 +59,7 @@ describe('indexMessageSchemaDocument', () => {
     ])
   })
 
-  it('flags S.Option payload fields via unionFields because they render as tagged unions', () => {
+  it('flags Schema.Option payload fields via unionFields because they render as tagged unions', () => {
     const entries = expectSome(indexMessageSchemaDocument(document))
     expect(entries).toContainEqual(
       expect.objectContaining({
@@ -78,7 +70,9 @@ describe('indexMessageSchemaDocument', () => {
   })
 
   it('returns None for non-discriminated documents', () => {
-    const plain = S.toJsonSchemaDocument(S.Struct({ name: S.String }))
+    const plain = Schema.toJsonSchemaDocument(
+      Schema.Struct({ name: Schema.String }),
+    )
     expect(indexMessageSchemaDocument(plain)).toEqual(Option.none())
   })
 })
@@ -166,12 +160,12 @@ describe('narrowToVariant', () => {
   })
 
   it('returns None for a variant with multiple tagged-union payload fields', () => {
-    const TwoUnionsVariant = ts('TwoUnions', {
+    const TwoUnions = taggedStruct('TwoUnions', {
       message: ChildMessage,
       fallback: ChildMessage,
     })
-    const messageWithTwoUnions = S.Union([TwoUnionsVariant])
-    const twoUnionDoc = S.toJsonSchemaDocument(messageWithTwoUnions)
+    const unionWithTwoUnions = Schema.Union([TwoUnions])
+    const twoUnionDoc = Schema.toJsonSchemaDocument(unionWithTwoUnions)
     expect(narrowToVariant(twoUnionDoc, 'TwoUnions.Opened')).toEqual(
       Option.none(),
     )
@@ -182,17 +176,17 @@ describe('narrowToVariant', () => {
   })
 
   it('collapses discriminated unions inside the definitions block', () => {
-    const SharedUnion = S.Union([
-      S.TaggedStruct('Alpha', { value: S.String }),
-      S.TaggedStruct('Beta', { value: S.Number }),
+    const SharedUnion = Schema.Union([
+      Schema.TaggedStruct('Alpha', { value: Schema.String }),
+      Schema.TaggedStruct('Beta', { value: Schema.Number }),
     ]).annotate({ identifier: 'SharedUnion' })
 
-    const SharedDocMessage = S.Union([
-      S.TaggedStruct('UsesA', { shared: SharedUnion }),
-      S.TaggedStruct('UsesB', { shared: SharedUnion }),
+    const SharedDocMessage = Schema.Union([
+      Schema.TaggedStruct('UsesA', { shared: SharedUnion }),
+      Schema.TaggedStruct('UsesB', { shared: SharedUnion }),
     ])
 
-    const sharedDoc = S.toJsonSchemaDocument(SharedDocMessage)
+    const sharedDoc = Schema.toJsonSchemaDocument(SharedDocMessage)
     const narrowed = expectSome(narrowToVariant(sharedDoc, 'UsesA'))
     expect(narrowed).toMatchObject({
       definitions: {

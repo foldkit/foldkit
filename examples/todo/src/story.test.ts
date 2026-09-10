@@ -1,26 +1,14 @@
 import { Array, Option } from 'effect'
-import { Story } from 'foldkit'
+import { Command, given, message, model, story } from 'foldkit/story'
+import { evo } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import {
-  AddedTodo,
-  CancelledEdit,
-  ClearedCompleted,
-  DeletedTodo,
-  Editing,
+  EditingState,
   GenerateTodo,
-  GeneratedTodo,
+  Message,
   type Model,
-  NotEditing,
   SaveTodos,
-  SavedEdit,
-  SavedTodos,
-  SelectedFilter,
-  StartedEditing,
-  ToggledAll,
-  ToggledTodo,
-  UpdatedEditingTodo,
-  UpdatedNewTodo,
   update,
 } from './main'
 
@@ -28,7 +16,7 @@ const emptyModel: Model = {
   todos: [],
   newTodoText: '',
   filter: 'All',
-  editing: NotEditing(),
+  editing: EditingState.NotEditing(),
 }
 
 const buyMilk = {
@@ -52,26 +40,29 @@ const doneTask = {
   createdAt: 3000,
 }
 
-const modelWithTodos: Model = {
-  ...emptyModel,
-  todos: [buyMilk, walkDog, doneTask],
-}
+const modelWithTodos: Model = evo(emptyModel, {
+  todos: () => [buyMilk, walkDog, doneTask],
+})
 
 describe('update', () => {
   describe('add todo', () => {
     test('AddedTodo with text produces a GenerateTodo Command', () => {
-      Story.story(
+      story(
         update,
-        Story.with({ ...emptyModel, newTodoText: 'Buy milk' }),
-        Story.message(AddedTodo()),
-        Story.Command.expectHas(GenerateTodo),
-        Story.Command.resolve(
+        given(evo(emptyModel, { newTodoText: () => 'Buy milk' })),
+        message(Message.AddedTodo()),
+        Command.expectHas(GenerateTodo),
+        Command.resolve(
           GenerateTodo,
-          GeneratedTodo({ id: 'abc', timestamp: 1000, text: 'Buy milk' }),
+          Message.CompletedGenerateTodo({
+            id: 'abc',
+            timestamp: 1000,
+            text: 'Buy milk',
+          }),
         ),
-        Story.Command.resolve(
+        Command.resolve(
           SaveTodos,
-          SavedTodos({
+          Message.SucceededSaveTodos({
             todos: [
               {
                 id: 'abc',
@@ -82,7 +73,7 @@ describe('update', () => {
             ],
           }),
         ),
-        Story.model(model => {
+        model(model => {
           expect(model.todos).toHaveLength(1)
           expect(model.todos[0]?.text).toBe('Buy milk')
           expect(model.todos[0]?.completed).toBe(false)
@@ -92,29 +83,29 @@ describe('update', () => {
     })
 
     test('AddedTodo with empty text is ignored', () => {
-      Story.story(
+      story(
         update,
-        Story.with({ ...emptyModel, newTodoText: '' }),
-        Story.message(AddedTodo()),
-        Story.Command.expectNone(),
+        given(evo(emptyModel, { newTodoText: () => '' })),
+        message(Message.AddedTodo()),
+        Command.expectNone(),
       )
     })
 
     test('AddedTodo with whitespace-only text is ignored', () => {
-      Story.story(
+      story(
         update,
-        Story.with({ ...emptyModel, newTodoText: '   ' }),
-        Story.message(AddedTodo()),
-        Story.Command.expectNone(),
+        given(evo(emptyModel, { newTodoText: () => '   ' })),
+        message(Message.AddedTodo()),
+        Command.expectNone(),
       )
     })
 
     test('UpdatedNewTodo updates the input text', () => {
-      Story.story(
+      story(
         update,
-        Story.with(emptyModel),
-        Story.message(UpdatedNewTodo({ text: 'Walk' })),
-        Story.model(model => {
+        given(emptyModel),
+        message(Message.UpdatedNewTodo({ text: 'Walk' })),
+        model(model => {
           expect(model.newTodoText).toBe('Walk')
         }),
       )
@@ -124,15 +115,18 @@ describe('update', () => {
   describe('toggle and delete', () => {
     test('ToggledTodo flips the completed state', () => {
       const toggledTodos = modelWithTodos.todos.map(todo =>
-        todo.id === 'abc' ? { ...todo, completed: true } : todo,
+        todo.id === 'abc' ? evo(todo, { completed: () => true }) : todo,
       )
 
-      Story.story(
+      story(
         update,
-        Story.with(modelWithTodos),
-        Story.message(ToggledTodo({ id: 'abc' })),
-        Story.Command.resolve(SaveTodos, SavedTodos({ todos: toggledTodos })),
-        Story.model(model => {
+        given(modelWithTodos),
+        message(Message.ToggledTodo({ id: 'abc' })),
+        Command.resolve(
+          SaveTodos,
+          Message.SucceededSaveTodos({ todos: toggledTodos }),
+        ),
+        model(model => {
           const todo = Array.findFirst(model.todos, ({ id }) => id === 'abc')
           expect(Option.map(todo, ({ completed }) => completed)).toStrictEqual(
             Option.some(true),
@@ -143,15 +137,18 @@ describe('update', () => {
 
     test('ToggledTodo on completed todo marks it active', () => {
       const toggledTodos = modelWithTodos.todos.map(todo =>
-        todo.id === 'ghi' ? { ...todo, completed: false } : todo,
+        todo.id === 'ghi' ? evo(todo, { completed: () => false }) : todo,
       )
 
-      Story.story(
+      story(
         update,
-        Story.with(modelWithTodos),
-        Story.message(ToggledTodo({ id: 'ghi' })),
-        Story.Command.resolve(SaveTodos, SavedTodos({ todos: toggledTodos })),
-        Story.model(model => {
+        given(modelWithTodos),
+        message(Message.ToggledTodo({ id: 'ghi' })),
+        Command.resolve(
+          SaveTodos,
+          Message.SucceededSaveTodos({ todos: toggledTodos }),
+        ),
+        model(model => {
           const todo = Array.findFirst(model.todos, ({ id }) => id === 'ghi')
           expect(Option.map(todo, ({ completed }) => completed)).toStrictEqual(
             Option.some(false),
@@ -165,12 +162,15 @@ describe('update', () => {
         ({ id }) => id !== 'abc',
       )
 
-      Story.story(
+      story(
         update,
-        Story.with(modelWithTodos),
-        Story.message(DeletedTodo({ id: 'abc' })),
-        Story.Command.resolve(SaveTodos, SavedTodos({ todos: remainingTodos })),
-        Story.model(model => {
+        given(modelWithTodos),
+        message(Message.DeletedTodo({ id: 'abc' })),
+        Command.resolve(
+          SaveTodos,
+          Message.SucceededSaveTodos({ todos: remainingTodos }),
+        ),
+        model(model => {
           expect(model.todos).toHaveLength(2)
           expect(
             Array.findFirst(model.todos, ({ id }) => id === 'abc'),
@@ -182,98 +182,99 @@ describe('update', () => {
 
   describe('editing', () => {
     test('StartedEditing enters editing state with the todo text', () => {
-      Story.story(
+      story(
         update,
-        Story.with(modelWithTodos),
-        Story.message(StartedEditing({ id: 'abc' })),
-        Story.model(model => {
+        given(modelWithTodos),
+        message(Message.StartedEditing({ id: 'abc' })),
+        model(model => {
           expect(model.editing).toStrictEqual(
-            Editing({ id: 'abc', text: 'Buy milk' }),
+            EditingState.Editing({ id: 'abc', text: 'Buy milk' }),
           )
         }),
       )
     })
 
     test('UpdatedEditingTodo updates the editing text', () => {
-      const editingModel: Model = {
-        ...modelWithTodos,
-        editing: Editing({ id: 'abc', text: 'Buy milk' }),
-      }
+      const editingModel: Model = evo(modelWithTodos, {
+        editing: () => EditingState.Editing({ id: 'abc', text: 'Buy milk' }),
+      })
 
-      Story.story(
+      story(
         update,
-        Story.with(editingModel),
-        Story.message(UpdatedEditingTodo({ text: 'Buy oat milk' })),
-        Story.model(model => {
+        given(editingModel),
+        message(Message.UpdatedEditingTodo({ text: 'Buy oat milk' })),
+        model(model => {
           expect(model.editing).toStrictEqual(
-            Editing({ id: 'abc', text: 'Buy oat milk' }),
+            EditingState.Editing({ id: 'abc', text: 'Buy oat milk' }),
           )
         }),
       )
     })
 
     test('SavedEdit updates the todo text and exits editing', () => {
-      const editingModel: Model = {
-        ...modelWithTodos,
-        editing: Editing({ id: 'abc', text: 'Buy oat milk' }),
-      }
+      const editingModel: Model = evo(modelWithTodos, {
+        editing: () =>
+          EditingState.Editing({ id: 'abc', text: 'Buy oat milk' }),
+      })
 
       const editedTodos = modelWithTodos.todos.map(todo =>
-        todo.id === 'abc' ? { ...todo, text: 'Buy oat milk' } : todo,
+        todo.id === 'abc' ? evo(todo, { text: () => 'Buy oat milk' }) : todo,
       )
 
-      Story.story(
+      story(
         update,
-        Story.with(editingModel),
-        Story.message(SavedEdit()),
-        Story.Command.resolve(SaveTodos, SavedTodos({ todos: editedTodos })),
-        Story.model(model => {
+        given(editingModel),
+        message(Message.SavedEdit()),
+        Command.resolve(
+          SaveTodos,
+          Message.SucceededSaveTodos({ todos: editedTodos }),
+        ),
+        model(model => {
           const todo = Array.findFirst(model.todos, ({ id }) => id === 'abc')
           expect(Option.map(todo, ({ text }) => text)).toStrictEqual(
             Option.some('Buy oat milk'),
           )
-          expect(model.editing).toStrictEqual(NotEditing())
+          expect(model.editing).toStrictEqual(EditingState.NotEditing())
         }),
       )
     })
 
     test('SavedEdit with empty text exits editing without saving', () => {
-      const editingModel: Model = {
-        ...modelWithTodos,
-        editing: Editing({ id: 'abc', text: '   ' }),
-      }
+      const editingModel: Model = evo(modelWithTodos, {
+        editing: () => EditingState.Editing({ id: 'abc', text: '   ' }),
+      })
 
-      Story.story(
+      story(
         update,
-        Story.with(editingModel),
-        Story.message(SavedEdit()),
-        Story.model(model => {
+        given(editingModel),
+        message(Message.SavedEdit()),
+        model(model => {
           const todo = Array.findFirst(model.todos, ({ id }) => id === 'abc')
           expect(Option.map(todo, ({ text }) => text)).toStrictEqual(
             Option.some('Buy milk'),
           )
-          expect(model.editing).toStrictEqual(NotEditing())
+          expect(model.editing).toStrictEqual(EditingState.NotEditing())
         }),
-        Story.Command.expectNone(),
+        Command.expectNone(),
       )
     })
 
     test('CancelledEdit exits editing without changes', () => {
-      const editingModel: Model = {
-        ...modelWithTodos,
-        editing: Editing({ id: 'abc', text: 'Changed text' }),
-      }
+      const editingModel: Model = evo(modelWithTodos, {
+        editing: () =>
+          EditingState.Editing({ id: 'abc', text: 'Changed text' }),
+      })
 
-      Story.story(
+      story(
         update,
-        Story.with(editingModel),
-        Story.message(CancelledEdit()),
-        Story.model(model => {
+        given(editingModel),
+        message(Message.CancelledEdit()),
+        model(model => {
           const todo = Array.findFirst(model.todos, ({ id }) => id === 'abc')
           expect(Option.map(todo, ({ text }) => text)).toStrictEqual(
             Option.some('Buy milk'),
           )
-          expect(model.editing).toStrictEqual(NotEditing())
+          expect(model.editing).toStrictEqual(EditingState.NotEditing())
         }),
       )
     })
@@ -281,20 +282,19 @@ describe('update', () => {
 
   describe('bulk operations', () => {
     test('ToggledAll marks all todos completed when some are active', () => {
-      const allCompletedTodos = modelWithTodos.todos.map(todo => ({
-        ...todo,
-        completed: true,
-      }))
+      const allCompletedTodos = modelWithTodos.todos.map(todo =>
+        evo(todo, { completed: () => true }),
+      )
 
-      Story.story(
+      story(
         update,
-        Story.with(modelWithTodos),
-        Story.message(ToggledAll()),
-        Story.Command.resolve(
+        given(modelWithTodos),
+        message(Message.ToggledAll()),
+        Command.resolve(
           SaveTodos,
-          SavedTodos({ todos: allCompletedTodos }),
+          Message.SucceededSaveTodos({ todos: allCompletedTodos }),
         ),
-        Story.model(model => {
+        model(model => {
           expect(Array.every(model.todos, ({ completed }) => completed)).toBe(
             true,
           )
@@ -303,25 +303,26 @@ describe('update', () => {
     })
 
     test('ToggledAll marks all todos active when all are completed', () => {
-      const allCompletedModel: Model = {
-        ...emptyModel,
-        todos: modelWithTodos.todos.map(todo => ({
-          ...todo,
-          completed: true,
-        })),
-      }
+      const allCompletedModel: Model = evo(emptyModel, {
+        todos: () =>
+          modelWithTodos.todos.map(todo =>
+            evo(todo, { completed: () => true }),
+          ),
+      })
 
-      const allActiveTodos = allCompletedModel.todos.map(todo => ({
-        ...todo,
-        completed: false,
-      }))
+      const allActiveTodos = allCompletedModel.todos.map(todo =>
+        evo(todo, { completed: () => false }),
+      )
 
-      Story.story(
+      story(
         update,
-        Story.with(allCompletedModel),
-        Story.message(ToggledAll()),
-        Story.Command.resolve(SaveTodos, SavedTodos({ todos: allActiveTodos })),
-        Story.model(model => {
+        given(allCompletedModel),
+        message(Message.ToggledAll()),
+        Command.resolve(
+          SaveTodos,
+          Message.SucceededSaveTodos({ todos: allActiveTodos }),
+        ),
+        model(model => {
           expect(Array.every(model.todos, ({ completed }) => !completed)).toBe(
             true,
           )
@@ -334,12 +335,15 @@ describe('update', () => {
         ({ completed }) => !completed,
       )
 
-      Story.story(
+      story(
         update,
-        Story.with(modelWithTodos),
-        Story.message(ClearedCompleted()),
-        Story.Command.resolve(SaveTodos, SavedTodos({ todos: activeTodos })),
-        Story.model(model => {
+        given(modelWithTodos),
+        message(Message.ClearedCompleted()),
+        Command.resolve(
+          SaveTodos,
+          Message.SucceededSaveTodos({ todos: activeTodos }),
+        ),
+        model(model => {
           expect(model.todos).toHaveLength(2)
           expect(Array.every(model.todos, ({ completed }) => !completed)).toBe(
             true,
@@ -351,11 +355,11 @@ describe('update', () => {
 
   describe('filter', () => {
     test('SelectedFilter changes the active filter', () => {
-      Story.story(
+      story(
         update,
-        Story.with(modelWithTodos),
-        Story.message(SelectedFilter({ filter: 'Active' })),
-        Story.model(model => {
+        given(modelWithTodos),
+        message(Message.SelectedFilter({ filter: 'Active' })),
+        model(model => {
           expect(model.filter).toBe('Active')
         }),
       )

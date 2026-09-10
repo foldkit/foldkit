@@ -2,155 +2,99 @@ import {
   Array,
   Effect,
   Equal,
-  Match as M,
+  Match,
   Option,
   Predicate,
-  Schema as S,
+  Schema,
+  pipe,
 } from 'effect'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
-import {
-  type ChildAttribute,
-  type Html,
-  childAttributes,
-  html,
-} from 'foldkit/html'
-import { m } from 'foldkit/message'
+import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
+import { defineMessageUnion } from 'foldkit/message'
 import * as Mount from 'foldkit/mount'
 import { evo } from 'foldkit/struct'
 import { defineView } from 'foldkit/submodel'
+import * as Update from 'foldkit/update'
 
-import { AnchorConfig, anchorSetup, portalToContainingRoot } from '../anchor.js'
+import {
+  AnchorConfig,
+  anchorSetup,
+  portalToContainingRoot,
+} from '../anchor/index.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → popover → animation.
 // The barrel (../animation) imports from html, which starts the cycle.
+import * as Animation from '../animation/schema.js'
 import {
-  EndedAnimation as AnimationEndedAnimation,
-  Hid as AnimationHid,
-  Message as AnimationMessage,
-  Model as AnimationModel,
-  type OutMessage as AnimationOutMessage,
-  Showed as AnimationShowed,
-  init as animationInit,
-} from '../animation/schema.js'
-import { update as animationUpdate } from '../animation/update.js'
+  hide as animationHide,
+  show as animationShow,
+  update as animationUpdate,
+} from '../animation/update.js'
 import * as OptionExt from '../internal/optionExtensions.js'
 import { idSelector } from '../internal/selectors.js'
 
 // MODEL
 
 /** Schema for the popover component's state, tracking open/closed status and animation lifecycle. */
-export const Model = S.Struct({
-  id: S.String,
-  isOpen: S.Boolean,
-  isAnimated: S.Boolean,
-  isModal: S.Boolean,
-  contentFocus: S.Boolean,
-  animation: AnimationModel,
-  maybeLastButtonPointerType: S.Option(S.String),
+export const Model = Schema.Struct({
+  id: Schema.String,
+  isOpen: Schema.Boolean,
+  isAnimated: Schema.Boolean,
+  isModal: Schema.Boolean,
+  contentFocus: Schema.Boolean,
+  animation: Animation.Model,
+  maybeLastButtonPointerType: Schema.Option(Schema.String),
 })
 
 export type Model = typeof Model.Type
 
 // MESSAGE
 
-/** Sent when the popover should open via button click or keyboard activation. */
-export const RequestedOpen = m('RequestedOpen')
-/** Sent when the popover should close via Escape key or backdrop click. Returns focus to the button. */
-export const RequestedClose = m('RequestedClose')
-/** Sent when the popover panel loses focus. Does NOT return focus to the button. */
-export const BlurredPanel = m('BlurredPanel')
-/** Sent when the user presses a pointer device on the popover button. Records pointer type and toggles for mouse. */
-export const PressedPointerOnButton = m('PressedPointerOnButton', {
-  pointerType: S.String,
-  button: S.Number,
-})
-/** Sent when the focus-panel command completes after opening the popover. */
-export const CompletedFocusPanel = m('CompletedFocusPanel')
-/** Sent when the focus-button command completes after closing. */
-export const CompletedFocusButton = m('CompletedFocusButton')
-/** Sent when the scroll lock command completes. */
-export const CompletedLockScroll = m('CompletedLockScroll')
-/** Sent when the scroll unlock command completes. */
-export const CompletedUnlockScroll = m('CompletedUnlockScroll')
-/** Sent when the inert-others command completes. */
-export const CompletedInertOthers = m('CompletedInertOthers')
-/** Sent when the restore-inert command completes. */
-export const CompletedRestoreInert = m('CompletedRestoreInert')
-/** Sent when a mouse click on the button is ignored because pointer-down already handled the toggle. */
-export const IgnoredMouseClick = m('IgnoredMouseClick')
-/** Sent when a Space key-up is captured to prevent page scrolling. */
-export const SuppressedSpaceScroll = m('SuppressedSpaceScroll')
-/** Sent when the popover panel mounts and Floating UI has positioned it. Update no-ops; the side effect is the act of positioning, surfaced for DevTools observability. */
-export const CompletedAnchorPopover = m('CompletedAnchorPopover')
-/** Sent when the popover backdrop mounts and is portaled to the document body. Update no-ops; surfaces the portal side effect for DevTools. */
-export const CompletedPortalPopoverBackdrop = m(
-  'CompletedPortalPopoverBackdrop',
-)
-/** Wraps an Animation submodel message for delegation. */
-export const GotAnimationMessage = m('GotAnimationMessage', {
-  message: AnimationMessage,
-})
-
 /** Union of all messages the popover component can produce. */
-export const Message: S.Union<
-  [
-    typeof RequestedOpen,
-    typeof RequestedClose,
-    typeof BlurredPanel,
-    typeof PressedPointerOnButton,
-    typeof CompletedFocusPanel,
-    typeof CompletedFocusButton,
-    typeof CompletedLockScroll,
-    typeof CompletedUnlockScroll,
-    typeof CompletedInertOthers,
-    typeof CompletedRestoreInert,
-    typeof IgnoredMouseClick,
-    typeof SuppressedSpaceScroll,
-    typeof CompletedAnchorPopover,
-    typeof CompletedPortalPopoverBackdrop,
-    typeof GotAnimationMessage,
-  ]
-> = S.Union([
-  RequestedOpen,
-  RequestedClose,
-  BlurredPanel,
-  PressedPointerOnButton,
-  CompletedFocusPanel,
-  CompletedFocusButton,
-  CompletedLockScroll,
-  CompletedUnlockScroll,
-  CompletedInertOthers,
-  CompletedRestoreInert,
-  IgnoredMouseClick,
-  SuppressedSpaceScroll,
-  CompletedAnchorPopover,
-  CompletedPortalPopoverBackdrop,
-  GotAnimationMessage,
-])
+export const Message = defineMessageUnion({
+  RequestedOpen: {},
+  RequestedClose: {},
+  BlurredPanel: {},
+  PressedPointerOnButton: {
+    pointerType: Schema.String,
+    button: Schema.Number,
+  },
+  CompletedFocusPanel: {},
+  CompletedFocusButton: {},
+  CompletedLockScroll: {},
+  CompletedUnlockScroll: {},
+  CompletedInertOthers: {},
+  CompletedRestoreInert: {},
+  IgnoredMouseClick: {},
+  SuppressedSpaceScroll: {},
+  CompletedAnchorPopover: {},
+  CompletedPortalPopoverBackdrop: {},
+  GotAnimationMessage: { message: Animation.Message },
+})
 
-export type RequestedOpen = typeof RequestedOpen.Type
-export type RequestedClose = typeof RequestedClose.Type
-export type BlurredPanel = typeof BlurredPanel.Type
-export type PressedPointerOnButton = typeof PressedPointerOnButton.Type
-export type IgnoredMouseClick = typeof IgnoredMouseClick.Type
-export type SuppressedSpaceScroll = typeof SuppressedSpaceScroll.Type
+export type RequestedOpen = typeof Message.RequestedOpen.Type
+export type RequestedClose = typeof Message.RequestedClose.Type
+export type BlurredPanel = typeof Message.BlurredPanel.Type
+export type PressedPointerOnButton = typeof Message.PressedPointerOnButton.Type
+export type IgnoredMouseClick = typeof Message.IgnoredMouseClick.Type
+export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
 
 export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
-/** Sent to the parent after the popover transitions to its open state. Fires once `update` has processed `RequestedOpen` and `isOpen` reflects the new state. */
-export const Opened = m('Opened')
-/** Sent to the parent after the popover transitions to its closed state. */
-export const Closed = m('Closed')
-
-/** Union of out-messages the popover component can produce. Parents reacting to open/close transitions (e.g. to reset related state, fire analytics) read this from the third element of `update`'s return tuple. */
-export const OutMessage = S.Union([Opened, Closed])
+/** Union of OutMessages the popover component can produce. Handle open and
+ *  close transitions in the `foldOutMessage` of the Popover's
+ *  `Update.foldChild` config. */
+export const OutMessage = defineMessageUnion({
+  Opened: {},
+  Closed: {},
+})
 export type OutMessage = typeof OutMessage.Type
 
-export type Opened = typeof Opened.Type
-export type Closed = typeof Closed.Type
+export type Opened = typeof OutMessage.Opened.Type
+export type Closed = typeof OutMessage.Closed.Type
 
 // INIT
 
@@ -171,7 +115,7 @@ export const init = (config: InitConfig): Model => ({
   isAnimated: config.isAnimated ?? false,
   isModal: config.isModal ?? false,
   contentFocus: config.contentFocus ?? false,
-  animation: animationInit({ id: `${config.id}-panel` }),
+  animation: Animation.init({ id: `${config.id}-panel` }),
   maybeLastButtonPointerType: Option.none(),
 })
 
@@ -192,111 +136,124 @@ const panelSelector = (id: string): string => idSelector(`${id}-panel`)
  *  `aria-labelledby` reference. */
 export const buttonId = (id: string): string => `${id}-button`
 
-type UpdateReturn = readonly [
-  Model,
-  ReadonlyArray<Command.Command<Message>>,
-  Option.Option<OutMessage>,
-]
-const withUpdateReturn = M.withReturnType<UpdateReturn>()
+/** Returns the bare DOM id of the popover arrow, derived from the popover's
+ *  base id. The `arrow` bundle already carries this id, so reach for this when
+ *  you need the id on its own, such as asserting the panel Mount's `arrowId`
+ *  argument in a Scene test. */
+export const arrowId = (id: string): string => `${id}-arrow`
+
+type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 
 /** Prevents page scrolling while the popover is open in modal mode. */
-export const LockScroll = Command.define(
-  'LockScroll',
-  CompletedLockScroll,
-)(Dom.lockScroll.pipe(Effect.as(CompletedLockScroll())))
+export const LockScroll = Command.define('LockScroll', {
+  messages: [Message.CompletedLockScroll],
+  execute: Dom.lockScroll.pipe(Effect.as(Message.CompletedLockScroll())),
+})
 /** Re-enables page scrolling after the popover closes. */
-export const UnlockScroll = Command.define(
-  'UnlockScroll',
-  CompletedUnlockScroll,
-)(Dom.unlockScroll.pipe(Effect.as(CompletedUnlockScroll())))
+export const UnlockScroll = Command.define('UnlockScroll', {
+  messages: [Message.CompletedUnlockScroll],
+  execute: Dom.unlockScroll.pipe(Effect.as(Message.CompletedUnlockScroll())),
+})
 /** Marks all elements outside the popover as inert for modal behavior. */
-export const InertOthers = Command.define(
-  'InertOthers',
-  { id: S.String },
-  CompletedInertOthers,
-)(({ id }) =>
-  Dom.inertOthers(id, [buttonSelector(id), panelSelector(id)]).pipe(
-    Effect.as(CompletedInertOthers()),
-  ),
-)
+export const InertOthers = Command.define('InertOthers', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedInertOthers],
+  execute: ({ id }) =>
+    Dom.inertOthers(id, [buttonSelector(id), panelSelector(id)]).pipe(
+      Effect.as(Message.CompletedInertOthers()),
+    ),
+})
 /** Removes the inert attribute from elements outside the popover. */
-export const RestoreInert = Command.define(
-  'RestoreInert',
-  { id: S.String },
-  CompletedRestoreInert,
-)(({ id }) => Dom.restoreInert(id).pipe(Effect.as(CompletedRestoreInert())))
+export const RestoreInert = Command.define('RestoreInert', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedRestoreInert],
+  execute: ({ id }) =>
+    Dom.restoreInert(id).pipe(Effect.as(Message.CompletedRestoreInert())),
+})
 /** Moves focus to the popover panel after opening. */
-export const FocusPanel = Command.define(
-  'FocusPanel',
-  { id: S.String },
-  CompletedFocusPanel,
-)(({ id }) =>
-  Dom.focus(panelSelector(id)).pipe(
-    Effect.ignore,
-    Effect.as(CompletedFocusPanel()),
-  ),
-)
+export const FocusPanel = Command.define('FocusPanel', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedFocusPanel],
+  execute: ({ id }) =>
+    Dom.focus(panelSelector(id)).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedFocusPanel()),
+    ),
+})
 /** Moves focus back to the popover button after closing. */
-export const FocusButton = Command.define(
-  'FocusButton',
-  { id: S.String },
-  CompletedFocusButton,
-)(({ id }) =>
-  Dom.focus(buttonSelector(id)).pipe(
-    Effect.ignore,
-    Effect.as(CompletedFocusButton()),
-  ),
-)
+export const FocusButton = Command.define('FocusButton', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedFocusButton],
+  execute: ({ id }) =>
+    Dom.focus(buttonSelector(id)).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedFocusButton()),
+    ),
+})
 /** Detects whether the popover button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation submodel that leave is complete. */
 export const DetectMovementOrAnimationEnd = Command.define(
   'DetectMovementOrAnimationEnd',
-  { id: S.String },
-  GotAnimationMessage,
-)(({ id }) =>
-  Effect.raceFirst(
-    Dom.detectElementMovement(buttonSelector(id)).pipe(
-      Effect.as(GotAnimationMessage({ message: AnimationEndedAnimation() })),
-    ),
-    Dom.waitForAnimationSettled(panelSelector(id)).pipe(
-      Effect.as(GotAnimationMessage({ message: AnimationEndedAnimation() })),
-    ),
-  ),
+  {
+    args: { id: Schema.String },
+    messages: [Message.GotAnimationMessage],
+    execute: ({ id }) =>
+      Effect.raceFirst(
+        Dom.detectElementMovement(buttonSelector(id)).pipe(
+          Effect.as(
+            Message.GotAnimationMessage({
+              message: Animation.Message.EndedAnimation(),
+            }),
+          ),
+        ),
+        Dom.waitForAnimationSettled(panelSelector(id)).pipe(
+          Effect.as(
+            Message.GotAnimationMessage({
+              message: Animation.Message.EndedAnimation(),
+            }),
+          ),
+        ),
+      ),
+  },
 )
 
-const delegateToAnimation = (
-  model: Model,
-  animationMessage: AnimationMessage,
-): UpdateReturn => {
-  const [nextAnimation, animationCommands, maybeOutMessage] = animationUpdate(
-    model.animation,
-    animationMessage,
-  )
+const foldAnimationOutMessage = Animation.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  StartedLeaveAnimating: () => model => ({
+    model,
+    commands: [DetectMovementOrAnimationEnd({ id: model.id })],
+  }),
+  TransitionedOut: () => model => ({ model }),
+})
 
-  const mappedCommands = Command.mapMessages(animationCommands, message =>
-    GotAnimationMessage({ message }),
-  )
-
-  const additionalCommands = Option.match(maybeOutMessage, {
-    onNone: () => [],
-    onSome: M.type<AnimationOutMessage>().pipe(
-      M.tagsExhaustive({
-        StartedLeaveAnimating: () => [
-          DetectMovementOrAnimationEnd({ id: model.id }),
-        ],
-        TransitionedOut: () => [],
-      }),
-    ),
-  })
-
-  return [
+const foldAnimation = Update.foldChild({
+  update: animationUpdate,
+  read: (model: Model) => Option.some(model.animation),
+  write: (model, nextAnimation) =>
     evo(model, { animation: () => nextAnimation }),
-    [...mappedCommands, ...additionalCommands],
-    Option.none(),
-  ]
-}
+  toParentMessage: message => Message.GotAnimationMessage({ message }),
+  foldOutMessage: foldAnimationOutMessage,
+})
 
-/** Processes a popover message and returns the next model, commands, and optional OutMessage. */
-export const update = (model: Model, message: Message): UpdateReturn => {
+const foldAnimationShow = Update.foldChildStep({
+  update: animationShow,
+  read: (model: Model) => Option.some(model.animation),
+  write: (model, nextAnimation) =>
+    evo(model, { animation: () => nextAnimation }),
+  toParentMessage: message => Message.GotAnimationMessage({ message }),
+})
+
+const foldAnimationHide = Update.foldChildStep({
+  update: animationHide,
+  read: (model: Model) => Option.some(model.animation),
+  write: (model, nextAnimation) =>
+    evo(model, { animation: () => nextAnimation }),
+  toParentMessage: message => Message.GotAnimationMessage({ message }),
+})
+
+/** Processes a Popover Message and returns the next Model, optional Commands,
+ *  and an optional OutMessage. */
+export const update = (model: Model, message: Message) => {
   const maybeLockScroll = OptionExt.when(model.isModal, LockScroll())
   const maybeUnlockScroll = OptionExt.when(model.isModal, UnlockScroll())
   const maybeInertOthers = OptionExt.when(
@@ -310,36 +267,56 @@ export const update = (model: Model, message: Message): UpdateReturn => {
 
   const focusButton = FocusButton({ id: model.id })
 
-  const openCommands = Array.getSomes([maybeLockScroll, maybeInertOthers])
+  const openCommands: ReadonlyArray<Command.Command<Message>> = Array.getSomes([
+    maybeLockScroll,
+    maybeInertOthers,
+  ])
 
-  const closeWithFocusCommands = [
+  const closeWithFocusCommands: ReadonlyArray<Command.Command<Message>> = [
     focusButton,
     ...Array.getSomes([maybeUnlockScroll, maybeRestoreInert]),
   ]
 
-  const closeWithoutFocusCommands = Array.getSomes([
-    maybeUnlockScroll,
-    maybeRestoreInert,
-  ])
+  const closeWithoutFocusCommands: ReadonlyArray<Command.Command<Message>> =
+    Array.getSomes([maybeUnlockScroll, maybeRestoreInert])
 
   const openPopover = (baseModel: Model): UpdateReturn => {
     if (model.isAnimated) {
-      const [nextModel, animationCommands] = delegateToAnimation(
-        baseModel,
-        AnimationShowed(),
-      )
-      return [
-        evo(nextModel, { isOpen: () => true }),
-        [...openCommands, ...animationCommands],
-        Option.some(Opened()),
-      ]
+      const popoverOpen = Update.combine(baseModel, [
+        stepModel => ({ model: stepModel, commands: openCommands }),
+        foldAnimationShow,
+        stepModel => ({
+          model: evo(stepModel, { isOpen: () => true }),
+        }),
+      ])
+
+      return pipe(popoverOpen, Update.withOutMessage(OutMessage.Opened()))
     }
 
-    return [
-      evo(baseModel, { isOpen: () => true }),
-      openCommands,
-      Option.some(Opened()),
-    ]
+    return {
+      model: evo(baseModel, { isOpen: () => true }),
+      commands: openCommands,
+      outMessage: OutMessage.Opened(),
+    }
+  }
+
+  const closePopoverModel = (
+    baseModel: Model,
+    commands: ReadonlyArray<Command.Command<Message>>,
+  ): Update.Return<Model, Message> => {
+    if (!baseModel.isOpen) {
+      return { model: baseModel }
+    }
+    const closed = closedModel(baseModel)
+
+    if (model.isAnimated) {
+      return Update.combine(closed, [
+        stepModel => ({ model: stepModel, commands }),
+        foldAnimationHide,
+      ])
+    }
+
+    return { model: closed, commands }
   }
 
   const closePopover = (
@@ -347,145 +324,137 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     commands: ReadonlyArray<Command.Command<Message>>,
   ): UpdateReturn => {
     if (!baseModel.isOpen) {
-      return [baseModel, commands, Option.none()]
-    }
-    const closed = closedModel(baseModel)
-
-    if (model.isAnimated) {
-      const [nextModel, animationCommands] = delegateToAnimation(
-        closed,
-        AnimationHid(),
-      )
-      return [
-        nextModel,
-        [...commands, ...animationCommands],
-        Option.some(Closed()),
-      ]
+      return { model: baseModel }
     }
 
-    return [closed, commands, Option.some(Closed())]
+    return pipe(
+      closePopoverModel(baseModel, commands),
+      Update.withOutMessage(OutMessage.Closed()),
+    )
   }
 
-  return M.value(message).pipe(
-    withUpdateReturn,
-    M.tagsExhaustive({
-      RequestedOpen: () => openPopover(model),
+  return Message.match<UpdateReturn>(message, {
+    RequestedOpen: () => openPopover(model),
 
-      RequestedClose: () => closePopover(model, closeWithFocusCommands),
+    RequestedClose: () => closePopover(model, closeWithFocusCommands),
 
-      BlurredPanel: () => {
-        if (
-          Option.exists(model.maybeLastButtonPointerType, Equal.equals('mouse'))
-        ) {
-          return [model, [], Option.none()]
-        }
+    BlurredPanel: () => {
+      if (
+        Option.exists(model.maybeLastButtonPointerType, Equal.equals('mouse'))
+      ) {
+        return { model }
+      }
 
-        return closePopover(model, closeWithoutFocusCommands)
-      },
+      return closePopover(model, closeWithoutFocusCommands)
+    },
 
-      PressedPointerOnButton: ({ pointerType, button }) => {
-        const withPointerType = evo(model, {
-          maybeLastButtonPointerType: () => Option.some(pointerType),
-        })
+    PressedPointerOnButton: ({ pointerType, button }) => {
+      const withPointerType = evo(model, {
+        maybeLastButtonPointerType: () => Option.some(pointerType),
+      })
 
-        if (pointerType !== 'mouse' || button !== LEFT_MOUSE_BUTTON) {
-          return [withPointerType, [], Option.none()]
-        }
+      if (pointerType !== 'mouse' || button !== LEFT_MOUSE_BUTTON) {
+        return { model: withPointerType }
+      }
 
-        if (model.isOpen) {
-          const [closed, commands, maybeOutMessage] = closePopover(
-            withPointerType,
-            closeWithFocusCommands,
-          )
-          return [
-            evo(closed, {
+      if (model.isOpen) {
+        const popoverClose = Update.combine(withPointerType, [
+          stepModel => closePopoverModel(stepModel, closeWithFocusCommands),
+          stepModel => ({
+            model: evo(stepModel, {
               maybeLastButtonPointerType: () => Option.some(pointerType),
             }),
-            commands,
-            maybeOutMessage,
-          ]
-        }
+          }),
+        ])
 
-        return openPopover(withPointerType)
-      },
+        return pipe(popoverClose, Update.withOutMessage(OutMessage.Closed()))
+      }
 
-      GotAnimationMessage: ({ message: animationMessage }) =>
-        delegateToAnimation(model, animationMessage),
+      return openPopover(withPointerType)
+    },
 
-      CompletedFocusPanel: () => [model, [], Option.none()],
-      CompletedFocusButton: () => [model, [], Option.none()],
-      CompletedLockScroll: () => [model, [], Option.none()],
-      CompletedUnlockScroll: () => [model, [], Option.none()],
-      CompletedInertOthers: () => [model, [], Option.none()],
-      CompletedRestoreInert: () => [model, [], Option.none()],
-      IgnoredMouseClick: () => [
-        evo(model, { maybeLastButtonPointerType: () => Option.none() }),
-        [],
-        Option.none(),
-      ],
-      SuppressedSpaceScroll: () => [model, [], Option.none()],
-      CompletedAnchorPopover: () => [model, [], Option.none()],
-      CompletedPortalPopoverBackdrop: () => [model, [], Option.none()],
+    GotAnimationMessage: ({ message: animationMessage }) =>
+      foldAnimation(model, animationMessage),
+
+    CompletedFocusPanel: () => ({ model }),
+    CompletedFocusButton: () => ({ model }),
+    CompletedLockScroll: () => ({ model }),
+    CompletedUnlockScroll: () => ({ model }),
+    CompletedInertOthers: () => ({ model }),
+    CompletedRestoreInert: () => ({ model }),
+    IgnoredMouseClick: () => ({
+      model: evo(model, { maybeLastButtonPointerType: () => Option.none() }),
     }),
-  )
+    SuppressedSpaceScroll: () => ({ model }),
+    CompletedAnchorPopover: () => ({ model }),
+    CompletedPortalPopoverBackdrop: () => ({ model }),
+  })
 }
 
 /** The anchor-positioning Mount this Popover renders on its panel. Exposed so
  *  Scene tests can call `Scene.Mount.resolve(AnchorPopover, CompletedAnchorPopover())`
  *  to acknowledge the mount produced by the rendered panel. */
-export const AnchorPopover = Mount.define(
-  'AnchorPopover',
-  {
-    buttonId: S.String,
+export const AnchorPopover = Mount.define('AnchorPopover', {
+  args: {
+    buttonId: Schema.String,
     anchor: AnchorConfig,
-    focusSelector: S.optional(S.String),
+    focusSelector: Schema.optional(Schema.String),
+    arrowId: Schema.optional(Schema.String),
+    arrowPadding: Schema.optional(Schema.Number),
   },
-  CompletedAnchorPopover,
-)(
-  ({ buttonId, anchor, focusSelector }) =>
-    element =>
-      Effect.gen(function* () {
-        yield* Effect.acquireRelease(
-          Effect.sync(() =>
-            anchorSetup({
-              buttonId,
-              anchor,
-              interceptTab: false,
-              focusAfterPosition: true,
-              ...(focusSelector !== undefined && { focusSelector }),
-            })(element),
-          ),
-          cleanup => Effect.sync(cleanup),
-        )
-        return CompletedAnchorPopover()
-      }),
-)
+  messages: [Message.CompletedAnchorPopover],
+  execute: ({
+    element,
+    buttonId,
+    anchor,
+    focusSelector,
+    arrowId,
+    arrowPadding,
+  }) =>
+    Effect.gen(function* () {
+      yield* Effect.acquireRelease(
+        Effect.sync(() =>
+          anchorSetup(element, {
+            buttonId,
+            anchor,
+            interceptTab: false,
+            focusAfterPosition: true,
+            ...(focusSelector !== undefined && { focusSelector }),
+            ...(arrowId !== undefined && { arrowId }),
+            ...(arrowPadding !== undefined && { arrowPadding }),
+          }),
+        ),
+        cleanup => Effect.sync(cleanup),
+      )
+      return Message.CompletedAnchorPopover()
+    }),
+})
 
 /** The backdrop-portaling Mount this Popover renders. Exposed so Scene tests can
  *  call `Scene.Mount.resolve(PortalPopoverBackdrop, CompletedPortalPopoverBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
-export const PortalPopoverBackdrop = Mount.define(
-  'PortalPopoverBackdrop',
-  CompletedPortalPopoverBackdrop,
-)(element =>
-  Effect.gen(function* () {
-    yield* Effect.acquireRelease(
-      Effect.sync(() => portalToContainingRoot(element)),
-      cleanup => Effect.sync(cleanup),
-    )
-    return CompletedPortalPopoverBackdrop()
-  }),
-)
+export const PortalPopoverBackdrop = Mount.define('PortalPopoverBackdrop', {
+  messages: [Message.CompletedPortalPopoverBackdrop],
+  execute: ({ element }) =>
+    Effect.gen(function* () {
+      yield* Effect.acquireRelease(
+        Effect.sync(() => portalToContainingRoot(element)),
+        cleanup => Effect.sync(cleanup),
+      )
+      return Message.CompletedPortalPopoverBackdrop()
+    }),
+})
 
-/** Programmatically opens the popover, updating the model and returning
- *  focus and modal commands plus an `Opened` OutMessage. */
+/** Programmatically opens the Popover, updating the Model and returning
+ *  focus and modal Commands plus an `Opened` OutMessage. */
 export const open = (model: Model): UpdateReturn =>
-  update(model, RequestedOpen())
+  update(model, Message.RequestedOpen())
 
-/** Programmatically closes the popover, updating the model and returning
- *  focus and modal commands plus a `Closed` OutMessage when it was open. */
+/** Programmatically closes the popover. When it was open, updates the Model
+ *  and returns focus and modal Commands plus a `Closed` OutMessage. When it
+ *  was already closed, it is a no-op: no Commands and no OutMessage. */
 export const close = (model: Model): UpdateReturn =>
-  update(model, RequestedClose())
+  update(model, Message.RequestedClose())
 
 // VIEW
 
@@ -498,6 +467,11 @@ export const close = (model: Model): UpdateReturn =>
  *  - `backdrop`: attribute bundle for the modal backdrop. Includes the
  *    portal Mount that moves the backdrop to document.body. The
  *    backdrop's OnClick closes the popover.
+ *  - `arrow`: attribute bundle for an arrow element inside the panel.
+ *    Carries the id the anchor Mount resolves and hides the element from
+ *    assistive technology. Spread it onto your own element and place it
+ *    with the `--arrow-x` and `--arrow-y` custom properties Anchor
+ *    publishes on the panel. Nothing renders until you do.
  *  - `isVisible`: derived from `isOpen` and the Animation
  *    `transitionState`. The consumer renders the panel + backdrop only
  *    while this is true. */
@@ -505,6 +479,7 @@ export type RenderInfo = Readonly<{
   button: ReadonlyArray<ChildAttribute>
   panel: ReadonlyArray<ChildAttribute>
   backdrop: ReadonlyArray<ChildAttribute>
+  arrow: ReadonlyArray<ChildAttribute>
   isVisible: boolean
 }>
 
@@ -514,15 +489,14 @@ export type ViewInputs = Readonly<{
   toView: (render: RenderInfo) => Html
   isDisabled?: boolean
   focusSelector?: string
+  arrowPadding?: number
   ariaLabel?: string
   ariaLabelledBy?: string
 }>
 
 /** Renders a headless popover with a trigger button and a floating panel. */
 export const view = defineView<Model, Message, ViewInputs>(
-  (model, viewInputs): Html => {
-    const h = html<Message>()
-
+  (model, viewInputs, h): Html => {
     const {
       id,
       isOpen,
@@ -535,6 +509,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       toView,
       isDisabled,
       focusSelector,
+      arrowPadding,
       ariaLabel,
       ariaLabelledBy,
     } = viewInputs
@@ -543,44 +518,48 @@ export const view = defineView<Model, Message, ViewInputs>(
       transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
     const isVisible = isOpen || isLeaving
 
-    const animationAttributes = M.value(transitionState).pipe(
-      M.when('EnterStart', () => [
+    const animationAttributes = Match.value(transitionState).pipe(
+      Match.when('EnterStart', () => [
         h.DataAttribute('closed', ''),
         h.DataAttribute('enter', ''),
         h.DataAttribute('transition', ''),
       ]),
-      M.when('EnterAnimating', () => [
+      Match.when('EnterAnimating', () => [
         h.DataAttribute('enter', ''),
         h.DataAttribute('transition', ''),
       ]),
-      M.when('LeaveStart', () => [
+      Match.when('LeaveStart', () => [
         h.DataAttribute('leave', ''),
         h.DataAttribute('transition', ''),
       ]),
-      M.when('LeaveAnimating', () => [
+      Match.when('LeaveAnimating', () => [
         h.DataAttribute('closed', ''),
         h.DataAttribute('leave', ''),
         h.DataAttribute('transition', ''),
       ]),
-      M.orElse(() => []),
+      Match.orElse(() => []),
     )
 
     const handleButtonKeyDown = (
       key: string,
     ): Option.Option<RequestedOpen | RequestedClose> =>
-      M.value(key).pipe(
-        M.whenOr('Enter', ' ', 'ArrowDown', () =>
-          Option.some(isOpen ? RequestedClose() : RequestedOpen()),
+      Match.value(key).pipe(
+        Match.whenOr('Enter', ' ', 'ArrowDown', () =>
+          Option.some(
+            isOpen ? Message.RequestedClose() : Message.RequestedOpen(),
+          ),
         ),
-        M.when('Escape', () => OptionExt.when(isOpen, RequestedClose())),
-        M.orElse(() => Option.none()),
+        Match.when('Escape', () =>
+          OptionExt.when(isOpen, Message.RequestedClose()),
+        ),
+        Match.orElse(() => Option.none()),
       )
 
     const handleButtonPointerDown = (
       pointerType: string,
       button: number,
     ): Option.Option<PressedPointerOnButton> =>
-      Option.some(PressedPointerOnButton({ pointerType, button }))
+      Option.some(Message.PressedPointerOnButton({ pointerType, button }))
 
     const handleButtonClick = ():
       | RequestedOpen
@@ -592,23 +571,23 @@ export const view = defineView<Model, Message, ViewInputs>(
       )
 
       if (isMouse) {
-        return IgnoredMouseClick()
+        return Message.IgnoredMouseClick()
       } else if (isOpen) {
-        return RequestedClose()
+        return Message.RequestedClose()
       } else {
-        return RequestedOpen()
+        return Message.RequestedOpen()
       }
     }
 
     const handleSpaceKeyUp = (
       key: string,
     ): Option.Option<SuppressedSpaceScroll> =>
-      OptionExt.when(key === ' ', SuppressedSpaceScroll())
+      OptionExt.when(key === ' ', Message.SuppressedSpaceScroll())
 
     const handlePanelKeyDown = (key: string): Option.Option<RequestedClose> =>
-      M.value(key).pipe(
-        M.when('Escape', () => Option.some(RequestedClose())),
-        M.orElse(() => Option.none()),
+      Match.value(key).pipe(
+        Match.when('Escape', () => Option.some(Message.RequestedClose())),
+        Match.orElse(() => Option.none()),
       )
 
     const resolveButtonLabel = () => {
@@ -654,6 +633,8 @@ export const view = defineView<Model, Message, ViewInputs>(
           buttonId: `${id}-button`,
           anchor,
           ...(focusSelector !== undefined && { focusSelector }),
+          arrowId: arrowId(id),
+          ...(arrowPadding !== undefined && { arrowPadding }),
         }),
       ),
       ...animationAttributes,
@@ -661,19 +642,22 @@ export const view = defineView<Model, Message, ViewInputs>(
         ? []
         : [
             h.OnKeyDownPreventDefault(handlePanelKeyDown),
-            ...(contentFocus ? [] : [h.OnBlur(BlurredPanel())]),
+            ...(contentFocus ? [] : [h.OnBlur(Message.BlurredPanel())]),
           ]),
     ]
 
     const backdropAttributes = [
       h.OnMount(PortalPopoverBackdrop()),
-      ...(isLeaving ? [] : [h.OnClick(RequestedClose())]),
+      ...(isLeaving ? [] : [h.OnClick(Message.RequestedClose())]),
     ]
+
+    const arrowAttributes = [h.Id(arrowId(id)), h.AriaHidden(true)]
 
     return toView({
       button: childAttributes(buttonAttributes),
       panel: childAttributes(panelAttributes),
       backdrop: childAttributes(backdropAttributes),
+      arrow: childAttributes(arrowAttributes),
       isVisible,
     })
   },

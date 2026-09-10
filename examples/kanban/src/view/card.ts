@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 import { Option, String } from 'effect'
-import { Html, html } from 'foldkit/html'
+import { Html, HtmlBuilder } from 'foldkit/html'
 
 import { DragAndDrop } from '@foldkit/ui'
 
@@ -8,20 +8,20 @@ import { Card } from '../domain'
 import type { Message } from '../message'
 import type { Model } from '../model'
 
-const cardContent = (card: Card.Card): ReadonlyArray<Html> => {
-  const h = html<Message>()
-  return [
-    h.span([h.Class('text-sm font-medium text-gray-900')], [card.title]),
-    ...(String.isNonEmpty(card.description)
-      ? [
-          h.div(
-            [h.Class('mt-1 text-xs text-gray-500 line-clamp-2')],
-            [card.description],
-          ),
-        ]
-      : []),
-  ]
-}
+const cardContent = (
+  card: Card.Card,
+  h: HtmlBuilder<Message>,
+): ReadonlyArray<Html> => [
+  h.span([h.Class('text-sm font-medium text-gray-900')], [card.title]),
+  ...(String.isNonEmpty(card.description)
+    ? [
+        h.div(
+          [h.Class('mt-1 text-xs text-gray-500 line-clamp-2')],
+          [card.description],
+        ),
+      ]
+    : []),
+]
 
 export const cardView = (
   model: Model,
@@ -29,9 +29,8 @@ export const cardView = (
   columnId: string,
   index: number,
   toParentMessage: (message: DragAndDrop.Message) => Message,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<Message>()
-
   const isThisCardBeingDragged = Option.exists(
     DragAndDrop.maybeDraggedItemId(model.dragAndDrop),
     id => id === card.id,
@@ -54,26 +53,27 @@ export const cardView = (
             !isPointerDragged && !isKeyboardDragged,
         }),
       ),
-      ...DragAndDrop.draggable({
-        model: model.dragAndDrop,
-        toParentMessage,
-        itemId: card.id,
-        containerId: columnId,
-        index,
-      }),
+      ...DragAndDrop.draggable(
+        {
+          model: model.dragAndDrop,
+          toParentMessage,
+          itemId: card.id,
+          containerId: columnId,
+          index,
+        },
+        h,
+      ),
     ],
-    cardContent(card),
+    cardContent(card, h),
   )
 }
 
-export const ghostCardView = (card: Card.Card): Html => {
-  const h = html<Message>()
-  return h.div(
+export const ghostCardView = (card: Card.Card, h: HtmlBuilder<Message>): Html =>
+  h.div(
     [
       h.Class(
         'rounded-lg bg-white shadow-lg p-3 border border-gray-200 scale-105 rotate-2',
       ),
     ],
-    cardContent(card),
+    cardContent(card, h),
   )
-}

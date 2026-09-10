@@ -1,35 +1,29 @@
+import { Dialog } from '@foldkit/ui'
+
 test('failed export shows error dialog that can be dismissed', () => {
-  Scene.scene(
+  scene(
     { update, view },
-    Scene.with(createTestModel()),
+    given(createTestModel()),
     // Click Export PNG. The update function returns an ExportPng Command.
-    Scene.click(Scene.role('button', { name: 'Export PNG' })),
-    // Resolve the Command with a failure — the update function opens
+    click(role('button', { name: 'Export PNG' })),
+    // Resolve the Command with a failure. The update function opens
     // the error dialog in response.
-    Scene.Command.resolve(
+    Command.resolve(
       ExportPng,
       FailedExportPng({ error: 'Canvas 2D context not available' }),
     ),
-    Scene.Command.resolve(
-      Dialog.ShowDialog,
-      Dialog.CompletedShowDialog(),
-      errorDialogMessageToMessage,
-    ),
-    // The error dialog is open. Find elements by role and text content —
+    Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+    // The error dialog is open. Find elements by role and text content:
     // no CSS selectors, no test IDs, no DOM.
-    Scene.expect(Scene.text('Export Failed')).toExist(),
-    Scene.expect(Scene.text('Canvas 2D context not available')).toExist(),
+    expect(text('Export Failed')).toExist(),
+    expect(text('Canvas 2D context not available')).toExist(),
     // Click the Dismiss button. Scene finds the handler on the virtual
     // DOM node, dispatches the Message, and feeds it through update.
-    Scene.click(Scene.role('button', { name: 'Dismiss' })),
+    click(role('button', { name: 'Dismiss' })),
     // The update function returned a CloseDialog Command. Resolve it
-    // the same way Story.Command.resolve does — synchronously, inline.
-    Scene.Command.resolve(
-      Dialog.CloseDialog,
-      Dialog.CompletedCloseDialog(),
-      errorDialogMessageToMessage,
-    ),
+    // the same way a story test does: synchronously, inline.
+    Command.resolve(Dialog.CloseDialog, Dialog.Message.CompletedCloseDialog()),
     // After the Command resolves, the dialog is gone.
-    Scene.expect(Scene.text('Export Failed')).toBeAbsent(),
+    expect(text('Export Failed')).toBeAbsent(),
   )
 })

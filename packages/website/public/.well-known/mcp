@@ -1,0 +1,20 @@
+{
+  "name": "Foldkit",
+  "description": "Foldkit is a TypeScript frontend framework built on Effect. Its first-party MCP server connects an agent to a running Foldkit application in development.",
+  "website": "https://foldkit.dev",
+  "documentation": "https://foldkit.dev/ai/mcp",
+  "servers": [
+    {
+      "name": "foldkit-devtools",
+      "package": "@foldkit/devtools-mcp",
+      "registry": "https://www.npmjs.com/package/@foldkit/devtools-mcp",
+      "description": "Exposes a running Foldkit app to agents: read the current or any historical Model, inspect the Message history with diffs and Command lifecycle, replay to past states, discover the Message Schema as JSON Schema, and dispatch Schema-validated Messages.",
+      "transport": {
+        "type": "stdio",
+        "command": "npx",
+        "args": ["-y", "@foldkit/devtools-mcp"]
+      },
+      "setup": "Run `npx @foldkit/devtools-mcp init` in a Foldkit project root to write the .mcp.json entry. Projects scaffolded with create-foldkit-app ship with it pre-wired. Requires the app's dev server running with devToolsMcpPort configured in @foldkit/vite-plugin."
+    }
+  ]
+}

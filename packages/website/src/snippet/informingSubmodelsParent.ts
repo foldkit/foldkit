@@ -1,44 +1,44 @@
-import { Match as M } from 'effect'
-import { Command } from 'foldkit'
+import { Match, Option } from 'effect'
+import { Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
 
 import { People } from './page'
 
-export const update = (model: Model, message: Message): UpdateReturn =>
-  M.value(message).pipe(
-    M.tagsExhaustive({
-      ChangedUrl: ({ url }) => {
-        const nextRoute = urlToAppRoute(url)
-        const modelWithNextRoute = evo(model, { route: () => nextRoute })
+const foldPeople = Update.foldChild({
+  update: People.update,
+  read: (model: Model) => Option.some(model.peoplePage),
+  write: (model, nextPeoplePage) =>
+    evo(model, { peoplePage: () => nextPeoplePage }),
+  toParentMessage: message => Message.GotPeopleMessage({ message }),
+})
 
-        return M.value(nextRoute).pipe(
-          M.tag('People', peopleRoute => {
-            const [nextPeoplePage, peopleCommands] = People.informRouteChanged(
-              modelWithNextRoute.peoplePage,
-              peopleRoute,
-            )
-            return [
-              evo(modelWithNextRoute, { peoplePage: () => nextPeoplePage }),
-              Command.mapMessages(peopleCommands, childMessage =>
-                GotPeopleMessage({ message: childMessage }),
-              ),
-            ]
-          }),
-          M.orElse(() => [modelWithNextRoute, []]),
-        )
-      },
+const foldPeopleRouteChanged = Update.foldChild({
+  update: People.informRouteChanged,
+  read: (model: Model) => Option.some(model.peoplePage),
+  write: (model, nextPeoplePage) =>
+    evo(model, { peoplePage: () => nextPeoplePage }),
+  toParentMessage: message => Message.GotPeopleMessage({ message }),
+})
 
-      GotPeopleMessage: ({ message }) => {
-        const [nextPeoplePage, peopleCommands] = People.update(
-          model.peoplePage,
-          message,
-        )
-        return [
-          evo(model, { peoplePage: () => nextPeoplePage }),
-          Command.mapMessages(peopleCommands, childMessage =>
-            GotPeopleMessage({ message: childMessage }),
-          ),
-        ]
-      },
-    }),
-  )
+const setRoute =
+  (nextRoute: AppRoute): Update.Step<Model, Message> =>
+  model => ({ model: evo(model, { route: () => nextRoute }) })
+
+export const update = (model: Model, message: Message) =>
+  Message.match<UpdateReturn>(message, {
+    ChangedUrl: ({ url }) => {
+      const nextRoute = urlToAppRoute(url)
+
+      const routeSteps = Match.value(nextRoute).pipe(
+        Match.withReturnType<ReadonlyArray<Update.Step<Model, Message>>>(),
+        Match.tag('People', peopleRoute => [
+          foldPeopleRouteChanged(peopleRoute),
+        ]),
+        Match.orElse(() => []),
+      )
+
+      return Update.combine(model, [setRoute(nextRoute), ...routeSteps])
+    },
+
+    GotPeopleMessage: ({ message }) => foldPeople(model, message),
+  })

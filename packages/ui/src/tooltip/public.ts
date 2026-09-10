@@ -7,20 +7,18 @@ export {
   Model,
   Message,
   OutMessage,
-  Shown,
-  Hidden,
-  EnteredTrigger,
-  LeftTrigger,
-  FocusedTrigger,
-  BlurredTrigger,
-  PressedEscape,
-  PressedPointerOnTrigger,
-  ElapsedShowDelay,
-  ShowAfterDelay,
-  CompletedAnchorTooltip,
+  type Shown,
+  type Hidden,
+  type EnteredTrigger,
+  type LeftTrigger,
+  type FocusedTrigger,
+  type BlurredTrigger,
+  type PressedEscape,
+  type PressedPointerOnTrigger,
+  WaitBeforeShowing,
   AnchorTooltip,
 } from './index.js'
 
 export type { InitConfig, ViewInputs, RenderInfo } from './index.js'
 
-export type { AnchorConfig } from '../anchor.js'
+export type { AnchorConfig } from '../anchor/index.js'

@@ -1,15 +1,11 @@
-import { Match as M } from 'effect'
+import { Match } from 'effect'
 import { Submodel } from 'foldkit'
-import { Html, childAttributes, html } from 'foldkit/html'
+import { type Html, type HtmlBuilder, childAttributes } from 'foldkit/html'
 
 import { Menu } from '@foldkit/ui'
 
 import * as Icon from '../../icon'
-import {
-  GotMenuAnimatedDemoMessage,
-  GotMenuBasicDemoMessage,
-  type UiMessage,
-} from '../message'
+import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
 
 const triggerClassName =
@@ -46,32 +42,33 @@ const MENU_ITEMS: ReadonlyArray<MenuItem> = [
 ]
 
 const menuItemIcon = (item: MenuItem): Html =>
-  M.value(item).pipe(
-    M.when('Edit', () => Icon.pencil(ICON_SIZE)),
-    M.when('Duplicate', () => Icon.documentDuplicate(ICON_SIZE)),
-    M.when('Archive', () => Icon.archiveBox(ICON_SIZE)),
-    M.when('Move', () => Icon.arrowRight(ICON_SIZE)),
-    M.when('Delete', () => Icon.trash(ICON_SIZE)),
-    M.exhaustive,
+  Match.value(item).pipe(
+    Match.when('Edit', () => Icon.pencil(ICON_SIZE)),
+    Match.when('Duplicate', () => Icon.documentDuplicate(ICON_SIZE)),
+    Match.when('Archive', () => Icon.archiveBox(ICON_SIZE)),
+    Match.when('Move', () => Icon.arrowRight(ICON_SIZE)),
+    Match.when('Delete', () => Icon.trash(ICON_SIZE)),
+    Match.exhaustive,
   )
 
 const isItemDisabled = (item: MenuItem): boolean => item === 'Archive'
 
 const itemGroupKey = (item: MenuItem): string =>
-  M.value(item).pipe(
-    M.when('Delete', () => 'Danger'),
-    M.orElse(() => 'Actions'),
+  Match.value(item).pipe(
+    Match.when('Delete', () => 'Danger'),
+    Match.orElse(() => 'Actions'),
   )
 
-const groupToHeading = (groupKey: string): Menu.GroupHeading | undefined => {
-  const h = html()
-
-  return M.value(groupKey).pipe(
-    M.when('Danger', () => ({
+const groupToHeading = (
+  groupKey: string,
+  h: HtmlBuilder<UiMessage>,
+): Menu.GroupHeading | undefined => {
+  return Match.value(groupKey).pipe(
+    Match.when('Danger', () => ({
       content: h.span([], ['Danger Zone']),
       className: headingClassName,
     })),
-    M.orElse(() => undefined),
+    Match.orElse(() => undefined),
   )
 }
 
@@ -81,9 +78,10 @@ const MENU_ANCHOR = {
   padding: 8,
 }
 
-const menuViewConfig = (itemsClassNameValue: string) => {
-  const h = html<UiMessage>()
-
+const menuViewConfig = (
+  itemsClassNameValue: string,
+  h: HtmlBuilder<UiMessage>,
+) => {
   return {
     anchor: MENU_ANCHOR,
     items: MENU_ITEMS,
@@ -104,69 +102,71 @@ const menuViewConfig = (itemsClassNameValue: string) => {
     backdropAttributes: childAttributes([h.Class(backdropClassName)]),
     attributes: childAttributes([h.Class(wrapperClassName)]),
     itemGroupKey,
-    groupToHeading,
+    groupToHeading: (groupKey: string) => groupToHeading(groupKey, h),
   }
 }
 
-export const view = Submodel.defineView<UiModel, UiMessage>((model): Html => {
-  const h = html<UiMessage>()
+export const view = Submodel.defineView<UiModel, UiMessage>(
+  (model, h): Html => {
+    return h.div(
+      [],
+      [
+        h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Menu']),
 
-  return h.div(
-    [],
-    [
-      h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Menu']),
+        h.h3(
+          [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+          ['Basic'],
+        ),
+        h.label(
+          [
+            h.For(Menu.buttonId(model.menuBasicDemo.id)),
+            h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+          ],
+          ['Row actions'],
+        ),
+        h.div(
+          [h.Class('relative')],
+          [
+            h.submodel({
+              slotId: model.menuBasicDemo.id,
+              model: model.menuBasicDemo,
+              view: ActionMenu.view,
+              viewInputs: {
+                ...menuViewConfig(basicItemsClassName, h),
+              },
+              toParentMessage: message =>
+                UiMessage.GotMenuBasicDemoMessage({ message }),
+            }),
+          ],
+        ),
 
-      h.h3(
-        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
-        ['Basic'],
-      ),
-      h.label(
-        [
-          h.For(Menu.buttonId(model.menuBasicDemo.id)),
-          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
-        ],
-        ['Row actions'],
-      ),
-      h.div(
-        [h.Class('relative')],
-        [
-          h.submodel({
-            slotId: model.menuBasicDemo.id,
-            model: model.menuBasicDemo,
-            view: ActionMenu.view,
-            viewInputs: {
-              ...menuViewConfig(basicItemsClassName),
-            },
-            toParentMessage: message => GotMenuBasicDemoMessage({ message }),
-          }),
-        ],
-      ),
-
-      h.h3(
-        [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
-        ['Animated'],
-      ),
-      h.label(
-        [
-          h.For(Menu.buttonId(model.menuAnimatedDemo.id)),
-          h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
-        ],
-        ['Row actions'],
-      ),
-      h.div(
-        [h.Class('relative')],
-        [
-          h.submodel({
-            slotId: model.menuAnimatedDemo.id,
-            model: model.menuAnimatedDemo,
-            view: ActionMenu.view,
-            viewInputs: {
-              ...menuViewConfig(animatedItemsClassName),
-            },
-            toParentMessage: message => GotMenuAnimatedDemoMessage({ message }),
-          }),
-        ],
-      ),
-    ],
-  )
-})
+        h.h3(
+          [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
+          ['Animated'],
+        ),
+        h.label(
+          [
+            h.For(Menu.buttonId(model.menuAnimatedDemo.id)),
+            h.Class('block mb-1.5 text-sm font-medium text-gray-900'),
+          ],
+          ['Row actions'],
+        ),
+        h.div(
+          [h.Class('relative')],
+          [
+            h.submodel({
+              slotId: model.menuAnimatedDemo.id,
+              model: model.menuAnimatedDemo,
+              view: ActionMenu.view,
+              viewInputs: {
+                ...menuViewConfig(animatedItemsClassName, h),
+              },
+              toParentMessage: message =>
+                UiMessage.GotMenuAnimatedDemoMessage({ message }),
+            }),
+          ],
+        ),
+      ],
+    )
+  },
+)

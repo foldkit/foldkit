@@ -1,21 +1,20 @@
 import clsx from 'clsx'
-import { Match as M } from 'effect'
+import { Match } from 'effect'
+import { FieldValidation } from 'foldkit'
 import { type Field } from 'foldkit/fieldValidation'
-import { type Html, html } from 'foldkit/html'
+import type { Html, HtmlBuilder } from 'foldkit/html'
 
-import { Input, Textarea } from '@foldkit/ui'
+import { Checkbox, Input, Textarea } from '@foldkit/ui'
 
 const borderClass = (field: Field<string>): string =>
-  M.value(field).pipe(
-    M.tagsExhaustive({
-      NotValidated: () => 'border-gray-300',
-      Validating: () => 'border-blue-300',
-      Valid: () => 'border-green-500',
-      Invalid: () => 'border-red-500',
-    }),
-  )
+  FieldValidation.match(field, {
+    onNotValidated: () => 'border-gray-300',
+    onValidating: () => 'border-blue-300',
+    onValid: () => 'border-green-500',
+    onInvalid: () => 'border-red-500',
+  })
 
-export const inputField = <ParentMessage>(
+export const input = <ParentMessage>(
   config: Readonly<{
     id: string
     label: string
@@ -24,73 +23,123 @@ export const inputField = <ParentMessage>(
     type?: string
     placeholder?: string
   }>,
-): Html => {
-  const h = html<ParentMessage>()
-
-  return Input.view({
-    id: config.id,
-    value: config.field.value,
-    onInput: config.onInput,
-    isInvalid: config.field._tag === 'Invalid',
-    ...(config.type !== undefined && { type: config.type }),
-    ...(config.placeholder !== undefined && {
-      placeholder: config.placeholder,
-    }),
-    toView: attributes =>
-      h.keyed('div')(
-        config.id,
-        [h.Class('space-y-1')],
-        [
-          h.div(
-            [h.Class('flex items-center gap-2')],
-            [
-              h.label(
-                [
-                  ...attributes.label,
-                  h.Class('block text-sm font-medium text-gray-700'),
-                ],
-                [config.label],
-              ),
-              ...M.value(config.field).pipe(
-                M.tag('Validating', () => [
-                  h.span(
-                    [h.Class('text-blue-600 text-sm animate-spin')],
-                    ['◐'],
-                  ),
-                ]),
-                M.tag('Valid', () => [
-                  h.span([h.Class('text-green-600 text-sm')], ['✓']),
-                ]),
-                M.orElse(() => []),
-              ),
-            ],
-          ),
-          h.input([
-            ...attributes.input,
-            h.Class(
-              clsx(
-                'w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500',
-                borderClass(config.field),
-              ),
-            ),
-          ]),
-          ...(config.field._tag === 'Invalid'
-            ? [
-                h.span(
+  h: HtmlBuilder<ParentMessage>,
+): Html =>
+  Input.view(
+    {
+      id: config.id,
+      value: config.field.value,
+      onInput: config.onInput,
+      isInvalid: config.field._tag === 'Invalid',
+      hasDescription: config.field._tag === 'Invalid',
+      ...(config.type !== undefined && { type: config.type }),
+      ...(config.placeholder !== undefined && {
+        placeholder: config.placeholder,
+      }),
+      toView: attributes =>
+        h.keyed('div')(
+          config.id,
+          [h.Class('space-y-1')],
+          [
+            h.div(
+              [h.Class('flex items-center gap-2')],
+              [
+                h.label(
                   [
-                    ...attributes.description,
-                    h.Class('block text-sm text-red-600 mt-0.5'),
+                    ...attributes.label,
+                    h.Class('block text-sm font-medium text-gray-700'),
                   ],
-                  [config.field.errors[0]],
+                  [config.label],
                 ),
-              ]
-            : []),
-        ],
-      ),
-  })
-}
+                ...Match.value(config.field).pipe(
+                  Match.tag('Validating', () => [
+                    h.span(
+                      [h.Class('text-blue-600 text-sm animate-spin')],
+                      ['◐'],
+                    ),
+                  ]),
+                  Match.tag('Valid', () => [
+                    h.span([h.Class('text-green-600 text-sm')], ['✓']),
+                  ]),
+                  Match.orElse(() => []),
+                ),
+              ],
+            ),
+            h.input([
+              ...attributes.input,
+              h.Class(
+                clsx(
+                  'w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500',
+                  borderClass(config.field),
+                ),
+              ),
+            ]),
+            ...(config.field._tag === 'Invalid'
+              ? [
+                  h.span(
+                    [
+                      ...attributes.description,
+                      h.Class('block text-sm text-red-600 mt-0.5'),
+                    ],
+                    [config.field.errors[0]],
+                  ),
+                ]
+              : []),
+          ],
+        ),
+    },
+    h,
+  )
 
-export const textareaField = <ParentMessage>(
+export const checkbox = <ParentMessage>(
+  config: Readonly<{
+    id: string
+    label: string
+    isChecked: boolean
+    onToggle: (isChecked: boolean) => ParentMessage
+  }>,
+  h: HtmlBuilder<ParentMessage>,
+): Html =>
+  Checkbox.view(
+    {
+      id: config.id,
+      isChecked: config.isChecked,
+      onToggle: config.onToggle,
+      toView: attributes =>
+        h.div(
+          [h.Class('flex items-center gap-2')],
+          [
+            h.div(
+              [
+                ...attributes.checkbox,
+                h.Class(
+                  `flex h-4 w-4 items-center justify-center rounded border transition cursor-pointer ${
+                    config.isChecked
+                      ? 'border-indigo-600 bg-indigo-600'
+                      : 'border-gray-300'
+                  }`,
+                ),
+              ],
+              [
+                ...(config.isChecked
+                  ? [h.span([h.Class('text-white text-xs')], ['✓'])]
+                  : []),
+              ],
+            ),
+            h.label(
+              [
+                ...attributes.label,
+                h.Class('text-sm text-gray-700 select-none cursor-pointer'),
+              ],
+              [config.label],
+            ),
+          ],
+        ),
+    },
+    h,
+  )
+
+export const textarea = <ParentMessage>(
   config: Readonly<{
     id: string
     label: string
@@ -99,38 +148,36 @@ export const textareaField = <ParentMessage>(
     rows?: number
     placeholder?: string
   }>,
-): Html => {
-  const h = html<ParentMessage>()
-
-  return Textarea.view({
-    id: config.id,
-    value: config.value,
-    onInput: config.onInput,
-    rows: config.rows ?? 4,
-    ...(config.placeholder !== undefined && {
-      placeholder: config.placeholder,
-    }),
-    toView: attributes =>
-      h.div(
-        [h.Class('space-y-1')],
-        [
-          h.label(
-            [
-              ...attributes.label,
-              h.Class('block text-sm font-medium text-gray-700'),
-            ],
-            [config.label],
-          ),
-          h.textarea(
-            [
+  h: HtmlBuilder<ParentMessage>,
+): Html =>
+  Textarea.view(
+    {
+      id: config.id,
+      value: config.value,
+      onInput: config.onInput,
+      rows: config.rows ?? 4,
+      ...(config.placeholder !== undefined && {
+        placeholder: config.placeholder,
+      }),
+      toView: attributes =>
+        h.div(
+          [h.Class('space-y-1')],
+          [
+            h.label(
+              [
+                ...attributes.label,
+                h.Class('block text-sm font-medium text-gray-700'),
+              ],
+              [config.label],
+            ),
+            h.textarea([
               ...attributes.textarea,
               h.Class(
                 'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500',
               ),
-            ],
-            [],
-          ),
-        ],
-      ),
-  })
-}
+            ]),
+          ],
+        ),
+    },
+    h,
+  )

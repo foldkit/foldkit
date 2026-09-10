@@ -1,16 +1,14 @@
-import { Html, html } from 'foldkit/html'
+import { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
 import { Session } from '../../../domain/session'
-import { ClickedLogout, type Message } from '../message'
+import { Message } from '../message'
 
 // VIEW
 
-const infoRow = (label: string, value: string): Html => {
-  const h = html<Message>()
-
-  return h.div(
+const infoRow = (label: string, value: string, h: HtmlBuilder<Message>): Html =>
+  h.div(
     [
       h.Class(
         'flex justify-between items-center py-2 border-b border-gray-100',
@@ -21,12 +19,9 @@ const infoRow = (label: string, value: string): Html => {
       h.p([h.Class('font-medium text-gray-800')], [value]),
     ],
   )
-}
 
-export const view = (session: Session): Html => {
-  const h = html<Message>()
-
-  return h.div(
+export const view = (session: Session, h: HtmlBuilder<Message>): Html =>
+  h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
     [
       h.h1([h.Class('text-4xl font-bold text-gray-800 mb-6')], ['Settings']),
@@ -40,9 +35,9 @@ export const view = (session: Session): Html => {
           h.div(
             [h.Class('space-y-4')],
             [
-              infoRow('User ID', session.userId),
-              infoRow('Email', session.email),
-              infoRow('Name', session.name),
+              infoRow('User ID', session.userId, h),
+              infoRow('Email', session.email, h),
+              infoRow('Name', session.name, h),
             ],
           ),
         ],
@@ -54,21 +49,23 @@ export const view = (session: Session): Html => {
             [h.Class('text-xl font-semibold text-gray-800 mb-4')],
             ['Actions'],
           ),
-          Button.view<Message>({
-            onClick: ClickedLogout(),
-            toView: attributes =>
-              h.button(
-                [
-                  ...attributes.button,
-                  h.Class(
-                    'px-6 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition cursor-pointer',
-                  ),
-                ],
-                ['Sign Out'],
-              ),
-          }),
+          Button.view(
+            {
+              onClick: Message.ClickedLogout(),
+              toView: attributes =>
+                h.button(
+                  [
+                    ...attributes.button,
+                    h.Class(
+                      'px-6 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition cursor-pointer',
+                    ),
+                  ],
+                  ['Sign Out'],
+                ),
+            },
+            h,
+          ),
         ],
       ),
     ],
   )
-}
