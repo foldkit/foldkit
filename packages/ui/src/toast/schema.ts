@@ -27,43 +27,26 @@ export const Position = Schema.Literals([
 ])
 export type Position = typeof Position.Type
 
-// ENTRY
-
-/** Schema factory for a single toast entry. `payloadSchema` is user-provided
- *  and defines the shape of per-entry content, whatever the consumer wants
- *  to encode. The component itself owns only lifecycle + a11y fields: `id`,
- *  `variant` (for ARIA role), `animation`, `maybeDuration`,
- *  `pendingDismissVersion` (for cancellable auto-dismiss), and `isHovered`
- *  (for pause-on-hover). */
-export const makeEntry = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
-  Schema.Struct({
-    id: Schema.String,
-    variant: Variant,
-    animation: Animation.Model,
-    maybeDuration: Schema.Option(Schema.DurationFromMillis),
-    pendingDismissVersion: Schema.Number,
-    isHovered: Schema.Boolean,
-    payload: payloadSchema,
-  })
-
 // SWIPE
 
-/** Tracks the active swipe gesture. Only one toast can be swiped at a time.
- *  `Settling` is the released-but-not-yet-resting phase: it retains the
- *  entry's final offset so the view keeps rendering it after the pointer
- *  is gone. A release past the threshold settles into the leave
- *  animation with the offset held; a release below the threshold (or a
- *  cancel) settles back toward zero while consumer CSS animates the
- *  snap-back behind `data-swipe="settling"`. */
+/** Per-entry swipe gesture state. `Dragging` retains the initiating
+ *  `pointerId`, so move, release, and cancel Messages update only the entry
+ *  that started the gesture and ignore unrelated touches. `Settling` is the
+ *  released-but-not-yet-resting phase: it retains the entry's final offset so
+ *  the view keeps rendering it after the pointer is gone. A release past the
+ *  threshold settles into the leave animation with the offset held; a release
+ *  below the threshold (or a cancel) settles back toward zero while consumer
+ *  CSS animates the snap-back behind `data-swipe="settling"`. The settle
+ *  generation lives in the entry's `swipeVersion` so a stale settle timer
+ *  cannot clear a later gesture. */
 export const SwipeState = defineTaggedUnion({
   Idle: {},
   Dragging: {
-    entryId: Schema.String,
+    pointerId: Schema.Number,
     startX: Schema.Number,
     currentX: Schema.Number,
   },
   Settling: {
-    entryId: Schema.String,
     offsetX: Schema.Number,
   },
 })
@@ -75,6 +58,28 @@ export const DEFAULT_SWIPE_THRESHOLD = 80
  *  swipe so consumer CSS can animate the snap-back. Match a custom
  *  `transition` on `[data-swipe="settling"]` to this duration. */
 export const SWIPE_SETTLE_DURATION = Duration.millis(150)
+
+// ENTRY
+
+/** Schema factory for a single toast entry. `payloadSchema` is user-provided
+ *  and defines the shape of per-entry content, whatever the consumer wants
+ *  to encode. The component itself owns only lifecycle + a11y fields: `id`,
+ *  `variant` (for ARIA role), `animation`, `maybeDuration`,
+ *  `pendingDismissVersion` (for cancellable auto-dismiss), `isHovered`
+ *  (for pause-on-hover), and `swipeState` + `swipeVersion` (for the
+ *  opt-in swipe gesture). */
+export const makeEntry = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
+  Schema.Struct({
+    id: Schema.String,
+    variant: Variant,
+    animation: Animation.Model,
+    maybeDuration: Schema.Option(Schema.DurationFromMillis),
+    pendingDismissVersion: Schema.Number,
+    isHovered: Schema.Boolean,
+    swipeState: SwipeState,
+    swipeVersion: Schema.Number,
+    payload: payloadSchema,
+  })
 
 // MODEL
 
@@ -89,9 +94,7 @@ export const makeModel = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
     defaultDuration: Schema.DurationFromMillis,
     entries: Schema.Array(makeEntry(payloadSchema)),
     nextEntryKey: Schema.Number,
-    swipeState: SwipeState,
     maybeSwipeThreshold: Schema.Option(Schema.Number),
-    swipeVersion: Schema.Number,
   })
 
 // MESSAGE
@@ -110,10 +113,14 @@ export const Message = defineMessageUnion({
     entryId: Schema.String,
     message: Animation.Message,
   },
-  PressedEntryPointer: { entryId: Schema.String, clientX: Schema.Number },
-  MovedSwipePointer: { clientX: Schema.Number },
-  ReleasedSwipePointer: { clientX: Schema.Number },
-  CancelledSwipe: {},
+  PressedEntryPointer: {
+    entryId: Schema.String,
+    pointerId: Schema.Number,
+    clientX: Schema.Number,
+  },
+  MovedSwipePointer: { pointerId: Schema.Number, clientX: Schema.Number },
+  ReleasedSwipePointer: { pointerId: Schema.Number, clientX: Schema.Number },
+  CancelledSwipe: { pointerId: Schema.Number },
   CompletedWaitForSwipeSettled: {
     entryId: Schema.String,
     version: Schema.Number,
@@ -150,10 +157,14 @@ export const makeMessage = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
       entryId: Schema.String,
       message: Animation.Message,
     },
-    PressedEntryPointer: { entryId: Schema.String, clientX: Schema.Number },
-    MovedSwipePointer: { clientX: Schema.Number },
-    ReleasedSwipePointer: { clientX: Schema.Number },
-    CancelledSwipe: {},
+    PressedEntryPointer: {
+      entryId: Schema.String,
+      pointerId: Schema.Number,
+      clientX: Schema.Number,
+    },
+    MovedSwipePointer: { pointerId: Schema.Number, clientX: Schema.Number },
+    ReleasedSwipePointer: { pointerId: Schema.Number, clientX: Schema.Number },
+    CancelledSwipe: { pointerId: Schema.Number },
     CompletedWaitForSwipeSettled: {
       entryId: Schema.String,
       version: Schema.Number,

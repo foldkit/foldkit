@@ -6,7 +6,7 @@ export {
   SwipeState,
   DEFAULT_SWIPE_THRESHOLD,
   SWIPE_SETTLE_DURATION,
-  swipeOffsetForEntry,
+  swipeOffset,
   type Dismissed,
   type DismissedAll,
   type CompletedWaitBeforeDismissal,

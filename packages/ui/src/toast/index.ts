@@ -2,7 +2,7 @@ import { Match, Option, Schema } from 'effect'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { defineView } from 'foldkit/submodel'
 
-import { Position, Variant } from './schema.js'
+import { Position, SwipeState, Variant } from './schema.js'
 import { makeRuntime } from './update.js'
 
 export type {
@@ -36,7 +36,7 @@ export {
 export {
   WaitBeforeDismissal,
   WaitForSwipeSettled,
-  swipeOffsetForEntry,
+  swipeOffset,
 } from './update.js'
 
 // VIEW
@@ -225,21 +225,14 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           Match.orElse(() => []),
         )
 
-        const swipeOffset = toast.swipeOffsetForEntry(
-          model.swipeState,
-          entry.id,
-        )
-        const swipePhase = Match.value(model.swipeState).pipe(
-          Match.withReturnType<Option.Option<'move' | 'settling'>>(),
-          Match.tag('Dragging', dragging =>
-            dragging.entryId === entry.id ? Option.some('move') : Option.none(),
-          ),
-          Match.tag('Settling', settling =>
-            settling.entryId === entry.id
-              ? Option.some('settling')
-              : Option.none(),
-          ),
-          Match.orElse(() => Option.none()),
+        const swipeOffset = toast.swipeOffset(entry.swipeState)
+        const swipePhase = SwipeState.match<Option.Option<'move' | 'settling'>>(
+          entry.swipeState,
+          {
+            Idle: () => Option.none(),
+            Dragging: () => Option.some('move'),
+            Settling: () => Option.some('settling'),
+          },
         )
         const swipeAttributes = Option.match(swipePhase, {
           onNone: () => [],
@@ -264,6 +257,7 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           _timeStamp: number,
           clientX: number,
           _clientY: number,
+          pointerId: number,
         ): Option.Option<ToastMessage> => {
           if (pointerType === 'mouse' && button !== LEFT_MOUSE_BUTTON) {
             return Option.none()
@@ -271,6 +265,7 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
             return Option.some(
               toast.Message.PressedEntryPointer({
                 entryId: entry.id,
+                pointerId,
                 clientX,
               }),
             )

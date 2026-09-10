@@ -620,6 +620,7 @@ export type Attribute<Message> = Data.TaggedEnum<{
       timeStamp: number,
       clientX: number,
       clientY: number,
+      pointerId: number,
     ) => Option.Option<Message>
   }
   OnPointerUp: {
@@ -1716,6 +1717,7 @@ const attributeHandlers: AttributeHandlers = {
           event.timeStamp,
           event.clientX,
           event.clientY,
+          event.pointerId,
         )
         if (Option.isSome(maybeMessage)) {
           ctx.dispatch(maybeMessage.value)
@@ -3860,6 +3862,7 @@ type HtmlAttributes<Message> = {
       timeStamp: number,
       clientX: number,
       clientY: number,
+      pointerId: number,
     ) => Option.Option<Message>,
   ) => {
     readonly _tag: 'OnPointerDown'
@@ -3871,6 +3874,7 @@ type HtmlAttributes<Message> = {
       timeStamp: number,
       clientX: number,
       clientY: number,
+      pointerId: number,
     ) => Option.Option<Message>
   }
   OnPointerUp: (
@@ -4971,6 +4975,7 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
       timeStamp: number,
       clientX: number,
       clientY: number,
+      pointerId: number,
     ) => Option.Option<Message>,
   ) => OnPointerDown({ f: toMaybeMessage }),
   OnPointerUp: (

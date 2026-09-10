@@ -28,6 +28,8 @@ type Entry = typeof Toast.Entry.Type
 
 const STALE_VERSION = -1
 
+const POINTER_ID = 1
+
 // Swipe version after one press and one release: each gesture transition
 // bumps it, so the settle timer scheduled by that release carries 2.
 const SETTLE_VERSION = 2
@@ -39,6 +41,8 @@ const makeSettledEntry = (overrides: Partial<Entry> = {}): Entry => ({
   maybeDuration: Option.some(Duration.seconds(4)),
   pendingDismissVersion: 0,
   isHovered: false,
+  swipeState: SwipeState.Idle(),
+  swipeVersion: 0,
   payload: { body: 'Hello' },
   ...overrides,
 })
@@ -53,6 +57,8 @@ const makeFreshEntry = (overrides: Partial<Entry> = {}): Entry => ({
   maybeDuration: Option.some(Duration.seconds(4)),
   pendingDismissVersion: 0,
   isHovered: false,
+  swipeState: SwipeState.Idle(),
+  swipeVersion: 0,
   payload: { body: 'Hello' },
   ...overrides,
 })
@@ -71,8 +77,6 @@ describe('Toast', () => {
         defaultDuration: Duration.seconds(4),
         entries: [],
         nextEntryKey: 0,
-        swipeState: SwipeState.Idle(),
-        swipeVersion: 0,
         maybeSwipeThreshold: Option.none(),
       })
     })
@@ -88,8 +92,6 @@ describe('Toast', () => {
         defaultDuration: Duration.millis(1000),
         entries: [],
         nextEntryKey: 0,
-        swipeState: SwipeState.Idle(),
-        swipeVersion: 0,
         maybeSwipeThreshold: Option.none(),
       })
     })
@@ -100,8 +102,6 @@ describe('Toast', () => {
         defaultDuration: Duration.seconds(4),
         entries: [],
         nextEntryKey: 0,
-        swipeState: SwipeState.Idle(),
-        swipeVersion: 0,
         maybeSwipeThreshold: Option.some(80),
       })
     })
@@ -117,8 +117,6 @@ describe('Toast', () => {
         defaultDuration: Duration.seconds(4),
         entries: [],
         nextEntryKey: 0,
-        swipeState: SwipeState.Idle(),
-        swipeVersion: 0,
         maybeSwipeThreshold: Option.some(120),
       })
     })
@@ -574,10 +572,14 @@ describe('Toast', () => {
         Toast.update,
         Story.given(model),
         Story.message(
-          Message.PressedEntryPointer({ entryId: firstEntryId, clientX: 100 }),
+          Message.PressedEntryPointer({
+            entryId: firstEntryId,
+            pointerId: POINTER_ID,
+            clientX: 100,
+          }),
         ),
         Story.model((next: Model) => {
-          expect(next.swipeState).toStrictEqual(SwipeState.Idle())
+          expect(next.entries[0]?.swipeState).toStrictEqual(SwipeState.Idle())
           expect(next.entries[0]?.pendingDismissVersion).toBe(0)
         }),
         Story.Command.expectNone(),
@@ -594,12 +596,16 @@ describe('Toast', () => {
         Toast.update,
         Story.given(model),
         Story.message(
-          Message.PressedEntryPointer({ entryId: firstEntryId, clientX: 100 }),
+          Message.PressedEntryPointer({
+            entryId: firstEntryId,
+            pointerId: POINTER_ID,
+            clientX: 100,
+          }),
         ),
         Story.model((next: Model) => {
-          expect(next.swipeState).toStrictEqual(
+          expect(next.entries[0]?.swipeState).toStrictEqual(
             SwipeState.Dragging({
-              entryId: firstEntryId,
+              pointerId: POINTER_ID,
               startX: 100,
               currentX: 100,
             }),
@@ -620,18 +626,71 @@ describe('Toast', () => {
         Toast.update,
         Story.given(model),
         Story.message(
-          Message.PressedEntryPointer({ entryId: firstEntryId, clientX: 100 }),
+          Message.PressedEntryPointer({
+            entryId: firstEntryId,
+            pointerId: POINTER_ID,
+            clientX: 100,
+          }),
         ),
-        Story.message(Message.MovedSwipePointer({ clientX: 150 })),
+        Story.message(
+          Message.MovedSwipePointer({
+            pointerId: POINTER_ID,
+            clientX: 150,
+          }),
+        ),
         Story.model((next: Model) => {
-          expect(next.swipeState).toStrictEqual(
+          expect(next.entries[0]?.swipeState).toStrictEqual(
             SwipeState.Dragging({
-              entryId: firstEntryId,
+              pointerId: POINTER_ID,
               startX: 100,
               currentX: 150,
             }),
           )
         }),
+      )
+    })
+
+    it('ignores move and release from an unrelated pointer', () => {
+      const model: Model = {
+        ...swipeInit,
+        entries: [makeSettledEntry()],
+        nextEntryKey: 1,
+      }
+      Story.story(
+        Toast.update,
+        Story.given(model),
+        Story.message(
+          Message.PressedEntryPointer({
+            entryId: firstEntryId,
+            pointerId: POINTER_ID,
+            clientX: 100,
+          }),
+        ),
+        Story.message(
+          Message.MovedSwipePointer({
+            pointerId: POINTER_ID + 1,
+            clientX: 500,
+          }),
+        ),
+        Story.message(
+          Message.ReleasedSwipePointer({
+            pointerId: POINTER_ID + 1,
+            clientX: 500,
+          }),
+        ),
+        Story.model((next: Model) => {
+          expect(next.entries[0]?.swipeState).toStrictEqual(
+            SwipeState.Dragging({
+              pointerId: POINTER_ID,
+              startX: 100,
+              currentX: 100,
+            }),
+          )
+          expect(next.entries[0]?.animation.transitionState).not.toBe(
+            'LeaveStart',
+          )
+        }),
+        Story.Command.expectNone(),
       )
     })
 
@@ -645,13 +704,27 @@ describe('Toast', () => {
         Toast.update,
         Story.given(model),
         Story.message(
-          Message.PressedEntryPointer({ entryId: firstEntryId, clientX: 100 }),
+          Message.PressedEntryPointer({
+            entryId: firstEntryId,
+            pointerId: POINTER_ID,
+            clientX: 100,
+          }),
         ),
-        Story.message(Message.MovedSwipePointer({ clientX: 130 })),
-        Story.message(Message.ReleasedSwipePointer({ clientX: 130 })),
+        Story.message(
+          Message.MovedSwipePointer({
+            pointerId: POINTER_ID,
+            clientX: 130,
+          }),
+        ),
+        Story.message(
+          Message.ReleasedSwipePointer({
+            pointerId: POINTER_ID,
+            clientX: 130,
+          }),
+        ),
         Story.model((next: Model) => {
-          expect(next.swipeState).toStrictEqual(
-            SwipeState.Settling({ entryId: firstEntryId, offsetX: 0 }),
+          expect(next.entries[0]?.swipeState).toStrictEqual(
+            SwipeState.Settling({ offsetX: 0 }),
           )
           expect(next.entries[0]?.pendingDismissVersion).toBe(2)
           expect(next.entries[0]?.animation.transitionState).toBe('Idle')
@@ -666,7 +739,7 @@ describe('Toast', () => {
           }),
         ),
         Story.model((next: Model) => {
-          expect(next.swipeState).toStrictEqual(SwipeState.Idle())
+          expect(next.entries[0]?.swipeState).toStrictEqual(SwipeState.Idle())
         }),
         Story.Command.resolve(
           WaitBeforeDismissal,
@@ -691,13 +764,27 @@ describe('Toast', () => {
         Toast.update,
         Story.given(model),
         Story.message(
-          Message.PressedEntryPointer({ entryId: firstEntryId, clientX: 100 }),
+          Message.PressedEntryPointer({
+            entryId: firstEntryId,
+            pointerId: POINTER_ID,
+            clientX: 100,
+          }),
         ),
-        Story.message(Message.MovedSwipePointer({ clientX: 200 })),
-        Story.message(Message.ReleasedSwipePointer({ clientX: 200 })),
+        Story.message(
+          Message.MovedSwipePointer({
+            pointerId: POINTER_ID,
+            clientX: 200,
+          }),
+        ),
+        Story.message(
+          Message.ReleasedSwipePointer({
+            pointerId: POINTER_ID,
+            clientX: 200,
+          }),
+        ),
         Story.model((next: Model) => {
-          expect(next.swipeState).toStrictEqual(
-            SwipeState.Settling({ entryId: firstEntryId, offsetX: 100 }),
+          expect(next.entries[0]?.swipeState).toStrictEqual(
+            SwipeState.Settling({ offsetX: 100 }),
           )
           expect(next.entries[0]?.animation.transitionState).toBe('LeaveStart')
         }),
@@ -710,7 +797,6 @@ describe('Toast', () => {
         ),
         Story.model((next: Model) => {
           expect(next.entries).toHaveLength(0)
-          expect(next.swipeState).toStrictEqual(SwipeState.Idle())
         }),
       )
     })
@@ -725,13 +811,22 @@ describe('Toast', () => {
         Toast.update,
         Story.given(model),
         Story.message(
-          Message.PressedEntryPointer({ entryId: firstEntryId, clientX: 100 }),
+          Message.PressedEntryPointer({
+            entryId: firstEntryId,
+            pointerId: POINTER_ID,
+            clientX: 100,
+          }),
         ),
-        Story.message(Message.MovedSwipePointer({ clientX: 180 })),
-        Story.message(Message.CancelledSwipe()),
+        Story.message(
+          Message.MovedSwipePointer({
+            pointerId: POINTER_ID,
+            clientX: 180,
+          }),
+        ),
+        Story.message(Message.CancelledSwipe({ pointerId: POINTER_ID })),
         Story.model((next: Model) => {
-          expect(next.swipeState).toStrictEqual(
-            SwipeState.Settling({ entryId: firstEntryId, offsetX: 0 }),
+          expect(next.entries[0]?.swipeState).toStrictEqual(
+            SwipeState.Settling({ offsetX: 0 }),
           )
           expect(next.entries[0]?.animation.transitionState).toBe('Idle')
           expect(next.entries[0]?.pendingDismissVersion).toBe(2)
@@ -745,7 +840,7 @@ describe('Toast', () => {
           }),
         ),
         Story.model((next: Model) => {
-          expect(next.swipeState).toStrictEqual(SwipeState.Idle())
+          expect(next.entries[0]?.swipeState).toStrictEqual(SwipeState.Idle())
         }),
         Story.Command.resolve(
           WaitBeforeDismissal,
@@ -760,18 +855,21 @@ describe('Toast', () => {
       )
     })
 
-    it('ignores PressedEntryPointer when already dragging another entry', () => {
-      const entryOne = makeSettledEntry({ id: 'test-entry-0' })
+    it('ignores PressedEntryPointer when another entry is already dragging', () => {
+      const dragging = SwipeState.Dragging({
+        pointerId: POINTER_ID,
+        startX: 100,
+        currentX: 120,
+      })
+      const entryOne = makeSettledEntry({
+        id: 'test-entry-0',
+        swipeState: dragging,
+      })
       const entryTwo = makeSettledEntry({ id: 'test-entry-1' })
       const model: Model = {
         ...swipeInit,
         entries: [entryOne, entryTwo],
         nextEntryKey: 2,
-        swipeState: SwipeState.Dragging({
-          entryId: 'test-entry-0',
-          startX: 100,
-          currentX: 120,
-        }),
       }
       Story.story(
         Toast.update,
@@ -779,17 +877,13 @@ describe('Toast', () => {
         Story.message(
           Message.PressedEntryPointer({
             entryId: 'test-entry-1',
+            pointerId: POINTER_ID + 1,
             clientX: 200,
           }),
         ),
         Story.model((next: Model) => {
-          expect(next.swipeState).toStrictEqual(
-            SwipeState.Dragging({
-              entryId: 'test-entry-0',
-              startX: 100,
-              currentX: 120,
-            }),
-          )
+          expect(next.entries[0]?.swipeState).toStrictEqual(dragging)
+          expect(next.entries[1]?.swipeState).toStrictEqual(SwipeState.Idle())
         }),
       )
     })
@@ -811,10 +905,14 @@ describe('Toast', () => {
         Toast.update,
         Story.given(model),
         Story.message(
-          Message.PressedEntryPointer({ entryId: firstEntryId, clientX: 100 }),
+          Message.PressedEntryPointer({
+            entryId: firstEntryId,
+            pointerId: POINTER_ID,
+            clientX: 100,
+          }),
         ),
         Story.model((next: Model) => {
-          expect(next.swipeState).toStrictEqual(SwipeState.Idle())
+          expect(next.entries[0]?.swipeState).toStrictEqual(SwipeState.Idle())
         }),
       )
     })
@@ -829,13 +927,27 @@ describe('Toast', () => {
         Toast.update,
         Story.given(model),
         Story.message(
-          Message.PressedEntryPointer({ entryId: firstEntryId, clientX: 200 }),
+          Message.PressedEntryPointer({
+            entryId: firstEntryId,
+            pointerId: POINTER_ID,
+            clientX: 200,
+          }),
         ),
-        Story.message(Message.MovedSwipePointer({ clientX: 50 })),
-        Story.message(Message.ReleasedSwipePointer({ clientX: 50 })),
+        Story.message(
+          Message.MovedSwipePointer({
+            pointerId: POINTER_ID,
+            clientX: 50,
+          }),
+        ),
+        Story.message(
+          Message.ReleasedSwipePointer({
+            pointerId: POINTER_ID,
+            clientX: 50,
+          }),
+        ),
         Story.model((next: Model) => {
-          expect(next.swipeState).toStrictEqual(
-            SwipeState.Settling({ entryId: firstEntryId, offsetX: -150 }),
+          expect(next.entries[0]?.swipeState).toStrictEqual(
+            SwipeState.Settling({ offsetX: -150 }),
           )
           expect(next.entries[0]?.animation.transitionState).toBe('LeaveStart')
         }),
@@ -848,22 +960,20 @@ describe('Toast', () => {
         ),
         Story.model((next: Model) => {
           expect(next.entries).toHaveLength(0)
-          expect(next.swipeState).toStrictEqual(SwipeState.Idle())
         }),
       )
     })
 
     it('CompletedWaitForSwipeSettled ignores a stale completion while dragging', () => {
       const dragging = SwipeState.Dragging({
-        entryId: firstEntryId,
+        pointerId: POINTER_ID,
         startX: 100,
         currentX: 150,
       })
       const model: Model = {
         ...swipeInit,
-        entries: [makeSettledEntry()],
+        entries: [makeSettledEntry({ swipeState: dragging })],
         nextEntryKey: 1,
-        swipeState: dragging,
       }
       Story.story(
         Toast.update,
@@ -875,22 +985,18 @@ describe('Toast', () => {
           }),
         ),
         Story.model((next: Model) => {
-          expect(next.swipeState).toStrictEqual(dragging)
+          expect(next.entries[0]?.swipeState).toStrictEqual(dragging)
         }),
         Story.Command.expectNone(),
       )
     })
 
     it('CompletedWaitForSwipeSettled ignores an unknown entry', () => {
-      const settling = SwipeState.Settling({
-        entryId: firstEntryId,
-        offsetX: 0,
-      })
+      const settling = SwipeState.Settling({ offsetX: 0 })
       const model: Model = {
         ...swipeInit,
-        entries: [makeSettledEntry()],
+        entries: [makeSettledEntry({ swipeState: settling })],
         nextEntryKey: 1,
-        swipeState: settling,
       }
       Story.story(
         Toast.update,
@@ -902,7 +1008,7 @@ describe('Toast', () => {
           }),
         ),
         Story.model((next: Model) => {
-          expect(next.swipeState).toStrictEqual(settling)
+          expect(next.entries[0]?.swipeState).toStrictEqual(settling)
         }),
         Story.Command.expectNone(),
       )
@@ -911,23 +1017,25 @@ describe('Toast', () => {
     it('PressedEntryPointer during settling starts a fresh drag', () => {
       const model: Model = {
         ...swipeInit,
-        entries: [makeSettledEntry()],
+        entries: [
+          makeSettledEntry({ swipeState: SwipeState.Settling({ offsetX: 0 }) }),
+        ],
         nextEntryKey: 1,
-        swipeState: SwipeState.Settling({
-          entryId: firstEntryId,
-          offsetX: 0,
-        }),
       }
       Story.story(
         Toast.update,
         Story.given(model),
         Story.message(
-          Message.PressedEntryPointer({ entryId: firstEntryId, clientX: 50 }),
+          Message.PressedEntryPointer({
+            entryId: firstEntryId,
+            pointerId: POINTER_ID,
+            clientX: 50,
+          }),
         ),
         Story.model((next: Model) => {
-          expect(next.swipeState).toStrictEqual(
+          expect(next.entries[0]?.swipeState).toStrictEqual(
             SwipeState.Dragging({
-              entryId: firstEntryId,
+              pointerId: POINTER_ID,
               startX: 50,
               currentX: 50,
             }),
@@ -941,9 +1049,9 @@ describe('Toast', () => {
           }),
         ),
         Story.model((next: Model) => {
-          expect(next.swipeState).toStrictEqual(
+          expect(next.entries[0]?.swipeState).toStrictEqual(
             SwipeState.Dragging({
-              entryId: firstEntryId,
+              pointerId: POINTER_ID,
               startX: 50,
               currentX: 50,
             }),
@@ -954,16 +1062,11 @@ describe('Toast', () => {
     })
 
     it('CompletedWaitForSwipeSettled ignores a stale version', () => {
-      const settling = SwipeState.Settling({
-        entryId: firstEntryId,
-        offsetX: 0,
-      })
+      const settling = SwipeState.Settling({ offsetX: 0 })
       const model: Model = {
         ...swipeInit,
-        entries: [makeSettledEntry()],
+        entries: [makeSettledEntry({ swipeState: settling, swipeVersion: 1 })],
         nextEntryKey: 1,
-        swipeState: settling,
-        swipeVersion: 1,
       }
       Story.story(
         Toast.update,
@@ -975,7 +1078,7 @@ describe('Toast', () => {
           }),
         ),
         Story.model((next: Model) => {
-          expect(next.swipeState).toStrictEqual(settling)
+          expect(next.entries[0]?.swipeState).toStrictEqual(settling)
         }),
         Story.Command.expectNone(),
       )
@@ -995,16 +1098,13 @@ describe('Toast', () => {
           isShowing: false,
           transitionState: 'LeaveAnimating',
         },
+        swipeState: SwipeState.Settling({ offsetX: 100 }),
+        swipeVersion: 4,
       })
       const model: Model = {
         ...swipeInit,
         entries: [entry],
         nextEntryKey: 1,
-        swipeState: SwipeState.Settling({
-          entryId: firstEntryId,
-          offsetX: 100,
-        }),
-        swipeVersion: 4,
       }
       Story.story(
         Toast.update,
@@ -1016,8 +1116,8 @@ describe('Toast', () => {
           }),
         ),
         Story.model((next: Model) => {
-          expect(next.swipeState).toStrictEqual(
-            SwipeState.Settling({ entryId: firstEntryId, offsetX: 100 }),
+          expect(next.entries[0]?.swipeState).toStrictEqual(
+            SwipeState.Settling({ offsetX: 100 }),
           )
           expect(next.entries[0]?.animation.transitionState).toBe(
             'LeaveAnimating',
@@ -1027,7 +1127,7 @@ describe('Toast', () => {
       )
     })
 
-    it('dismissing a dragged entry clears the drag when its leave completes', () => {
+    it('dismissing a dragged entry removes it after its leave completes', () => {
       const model: Model = {
         ...swipeInit,
         entries: [makeSettledEntry()],
@@ -1037,13 +1137,17 @@ describe('Toast', () => {
         Toast.update,
         Story.given(model),
         Story.message(
-          Message.PressedEntryPointer({ entryId: firstEntryId, clientX: 100 }),
+          Message.PressedEntryPointer({
+            entryId: firstEntryId,
+            pointerId: POINTER_ID,
+            clientX: 100,
+          }),
         ),
         Story.message(Message.Dismissed({ entryId: firstEntryId })),
         Story.model((next: Model) => {
-          expect(next.swipeState).toStrictEqual(
+          expect(next.entries[0]?.swipeState).toStrictEqual(
             SwipeState.Dragging({
-              entryId: firstEntryId,
+              pointerId: POINTER_ID,
               startX: 100,
               currentX: 100,
             }),
@@ -1059,7 +1163,6 @@ describe('Toast', () => {
         ),
         Story.model((next: Model) => {
           expect(next.entries).toHaveLength(0)
-          expect(next.swipeState).toStrictEqual(SwipeState.Idle())
         }),
       )
     })

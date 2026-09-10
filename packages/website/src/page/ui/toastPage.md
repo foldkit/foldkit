@@ -118,7 +118,7 @@ export const subscriptions = Subscription.lift(Toast.subscriptions)<
 
 Without the lift the view still renders `data-swipe="move"` for the initial `pointerdown`, but `pointermove` and `pointerup` never reach the update and the gesture cannot complete.
 
-For custom renderers (for example a foldcn-style stack that owns its own `<li>`), read the offset with `Toast.swipeOffsetForEntry(model.swipeState, entry.id)` and apply `translate: <offset>px` yourself. Mirror the `data-swipe` phases: `move` while `swipeState` is `Dragging` for the entry, `settling` while it is `Settling`.
+For custom renderers (for example a foldcn-style stack that owns its own `<li>`), read the offset with `Toast.swipeOffset(entry.swipeState)` and apply `translate: <offset>px` yourself. Mirror the `data-swipe` phases: `move` while `entry.swipeState` is `Dragging`, `settling` while it is `Settling`.
 
 ### OutMessage {#out-message}
 

@@ -2098,6 +2098,7 @@ type PointerDownOptions = Readonly<{
   screenY?: number
   clientX?: number
   clientY?: number
+  pointerId?: number
 }>
 
 const DEFAULT_POINTER_DOWN_OPTIONS: Required<PointerDownOptions> = {
@@ -2107,6 +2108,7 @@ const DEFAULT_POINTER_DOWN_OPTIONS: Required<PointerDownOptions> = {
   screenY: 0,
   clientX: 0,
   clientY: 0,
+  pointerId: 0,
 }
 
 /** Simulates a pointerdown event on the element matching the target.
@@ -2133,7 +2135,15 @@ export const pointerDown =
     }
 
     const { value: element } = maybeElement
-    const { pointerType, button, screenX, screenY, clientX, clientY } = {
+    const {
+      pointerType,
+      button,
+      screenX,
+      screenY,
+      clientX,
+      clientY,
+      pointerId,
+    } = {
       ...DEFAULT_POINTER_DOWN_OPTIONS,
       ...options,
     }
@@ -2146,6 +2156,7 @@ export const pointerDown =
         timeStamp: 0,
         clientX,
         clientY,
+        pointerId,
       })
     }
 

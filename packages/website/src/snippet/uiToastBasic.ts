@@ -117,7 +117,7 @@ export const subscriptions = Subscription.lift(Toast.subscriptions)<
 
 // Custom renderers (for example a foldcn stack) can read the drag offset
 // directly and apply it themselves:
-// Toast.swipeOffsetForEntry(model.toast.swipeState, entry.id)
+// Toast.swipeOffset(entry.swipeState)
 
 // In your view, embed Toast via h.submodel once at the app root. The
 // entryToView callback lays out each entry from its payload. The
