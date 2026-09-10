@@ -155,8 +155,8 @@ describe('rendering templates', () => {
       const viteConfig = readTemplateFile(
         `rendering/${rendering}/vite.config.ts`,
       )
-      expect(viteConfig).toContain('devToolsMcpPort: 9988')
-      expect(baseViteConfig).toContain('devToolsMcpPort: 9988')
+      expect(viteConfig).not.toContain('devToolsMcpPort')
+      expect(baseViteConfig).not.toContain('devToolsMcpPort')
     }
 
     expect(readTemplateTsconfig('rendering/ssg/tsconfig.json').include).toEqual(

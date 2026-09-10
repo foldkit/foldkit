@@ -12,7 +12,7 @@ The same Runtime data also powers [DevTools](/core/devtools). DevTools presents 
 
 ### Projects Created with create-foldkit-app
 
-New projects already include `@foldkit/devtools-mcp`, a `.mcp.json` entry named `foldkit-devtools`, and a Vite relay on port `9988`. Start the development server, open the application in a browser tab, and open the project in your AI agent.
+New projects already include `@foldkit/devtools-mcp` and a `.mcp.json` entry named `foldkit-devtools`. Start the development server, open the application in a browser tab, and open the project in your AI agent.
 
 ### Existing Projects
 
@@ -26,9 +26,9 @@ Install the server as a development dependency when you want to avoid an `npx` l
 
 ::Snippet{name="aiMcpInstall" label="install the DevTools MCP server"}
 
-In `vite.config.ts`, set `devToolsMcpPort` so the Foldkit plugin opens the WebSocket relay:
+The Foldkit Vite plugin serves the WebSocket relay on the development server itself, at `/__foldkit/devtools-mcp`, and publishes its address for the MCP server to find. Set `devToolsMcpPort` in `vite.config.ts` only when the relay must listen on a fixed port of its own, and then give the MCP server the same value in `FOLDKIT_DEVTOOLS_MCP_PORT`:
 
-::Snippet{name="aiMcpViteConfig" label="Vite config snippet"}
+::Snippet{name="aiMcpViteConfig" label="Vite config snippet for a fixed port"}
 
 To let an agent dispatch Messages, pass the application's `Message` Schema to `Runtime.makeApplication`:
 
@@ -36,7 +36,7 @@ To let an agent dispatch Messages, pass the application's `Message` Schema to `R
 
 Inspection and replay tools work without the Schema. Dispatch tools reject every request until it is configured.
 
-Restart the development server after changing the Vite config, then restart the AI agent so it reads `.mcp.json`. The tools appear under the `foldkit-devtools` server.
+Restart the AI agent so it reads `.mcp.json`. The tools appear under the `foldkit-devtools` server.
 
 The application must be open in a browser tab. Its browser bridge connects the running Foldkit Runtime to the Vite relay. Closing the tab removes that Runtime from `foldkit_list_runtimes`.
 
@@ -64,13 +64,13 @@ Every tool except `foldkit_list_runtimes` accepts an optional `runtime_id`. With
 
 ## Connection Flow
 
-The browser bridge runs alongside DevTools and subscribes to the DevTools store. The Vite plugin opens a WebSocket server on `devToolsMcpPort` and relays requests between connected browser tabs and MCP clients. The MCP server runs as a child process of the AI agent and exposes those requests as typed tools.
+The browser bridge runs alongside DevTools and subscribes to the DevTools store. The Vite plugin serves a WebSocket endpoint on the development server, or opens a socket of its own on `devToolsMcpPort` when one is set, publishes its address to a per-user registry, and relays requests between connected browser tabs and MCP clients. The MCP server runs as a child process of the AI agent, looks up the relay of the dev server most recently started for the project it runs in, and exposes those requests as typed tools. `FOLDKIT_PROJECT_ROOT` names another project, and `FOLDKIT_DEVTOOLS_MCP_PORT` skips the lookup for a fixed port.
 
 More than one browser tab can connect at once. `foldkit_list_runtimes` returns each connection ID, and `runtime_id` selects one explicitly. When a tab closes, the relay removes it from the live Runtime list.
 
 Messages stay as Effect Schema values across the connection. Before dispatching, an agent can call `foldkit_get_message_schema` for the top-level variants and then inspect the payload shape of the variant it needs. The Runtime decodes the constructed value before it reaches update. A batch is fully decoded before its first Message is dispatched.
 
-If the development server restarts, the MCP process reconnects to the relay with exponential backoff. The agent does not need another restart.
+If the development server restarts, the MCP process looks the relay up again and reconnects with exponential backoff. The agent does not need another restart, and neither does a development server started after the agent.
 
 ## Development and Production
 

@@ -36,21 +36,7 @@ pnpm add -D @foldkit/devtools-mcp
 yarn add -D @foldkit/devtools-mcp
 ```
 
-Then make two edits to your project.
-
-In `vite.config.ts`, pass `devToolsMcpPort` to the Foldkit plugin so it opens the relay:
-
-```typescript
-import { defineConfig } from 'vite'
-
-import { foldkit } from '@foldkit/vite-plugin'
-
-export default defineConfig({
-  plugins: [foldkit({ devToolsMcpPort: 9988 })],
-})
-```
-
-In your `Runtime.makeApplication` call, pass your `Message` Schema. The Runtime decodes every dispatched payload against it, returning a clean error if the shape does not match before it reaches your update function:
+Then, in your `Runtime.makeApplication` call, pass your `Message` Schema. The Runtime decodes every dispatched payload against it, returning a clean error if the shape does not match before it reaches your update function:
 
 ```typescript
 Runtime.makeApplication({
@@ -108,17 +94,19 @@ High-frequency flows (drag-paint, scroll, keystroke) can fill the history buffer
 Three components cooperate:
 
 - **Browser bridge** (in `foldkit`): runs alongside DevTools, subscribes to the DevTools store, and exchanges typed frames over Vite's HMR WebSocket.
-- **Vite plugin relay** (in `@foldkit/vite-plugin`): opens a separate WebSocket server on `devToolsMcpPort` and forwards traffic between browsers and MCP clients.
+- **Vite plugin relay** (in `@foldkit/vite-plugin`): serves a WebSocket endpoint on the dev server itself, publishes its address to a per-user registry, and forwards traffic between browsers and MCP clients. `devToolsMcpPort` opens a socket of its own on a fixed port instead.
 - **MCP server** (this package): runs as a Node child process under your AI agent, connects to the plugin's relay over WebSocket, and exposes the typed tools over MCP's stdio transport.
 
 Multiple browser tabs can be connected at once and each is addressable by its connection id. Tabs that close (gracefully or not) are pruned from the live Runtime list automatically.
 
 ## Configuration
 
-| Environment variable        | Default     | Description                                                                              |
-| --------------------------- | ----------- | ---------------------------------------------------------------------------------------- |
-| `FOLDKIT_DEVTOOLS_MCP_HOST` | `localhost` | Hostname of the Vite plugin relay.                                                       |
-| `FOLDKIT_DEVTOOLS_MCP_PORT` | `9988`      | Port the Vite plugin relay listens on. Must match `devToolsMcpPort` in your Vite config. |
+| Environment variable               | Default                    | Description                                                                                                                                                |
+| ---------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FOLDKIT_PROJECT_ROOT`             | the working directory      | The project whose dev server to look for. A relay published for this directory, or for one inside it, is used; the most recently started wins.             |
+| `FOLDKIT_DEVTOOLS_MCP_PORT`        | discovered                 | Skips discovery and connects to this port. Set it to the `devToolsMcpPort` in your Vite config. Without it, and with no relay found, port `9988` is tried. |
+| `FOLDKIT_DEVTOOLS_MCP_HOST`        | the relay's published host | Hostname of the Vite plugin relay.                                                                                                                         |
+| `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY` | the OS temporary directory | Where dev servers publish their relays. Set the same value for the Vite plugin when the two run in different sandboxes.                                    |
 
 ## Notes
 

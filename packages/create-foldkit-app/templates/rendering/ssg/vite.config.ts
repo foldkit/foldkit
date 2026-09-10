@@ -25,7 +25,6 @@ export default defineConfig({
     tailwindcss(),
     foldkit({
       buildId,
-      devToolsMcpPort: 9988,
       ssr: {
         serverEntry: '/src/entry.server.ts',
         build: { prerender: true },
