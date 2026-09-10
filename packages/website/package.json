@@ -13,12 +13,12 @@
     "typecheck": "tsc --noEmit",
     "format": "oxfmt",
     "test": "vitest run",
-    "openapi": "tsx scripts/openApi.ts",
+    "openapi": "vite build --config vite.scripts.config.ts --ssr scripts/openApi.ts --outDir dist-scripts && node dist-scripts/openApi.js",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
     "preprerender": "export FOLDKIT_BUILD_ID=\"${FOLDKIT_BUILD_ID:-$(git rev-parse HEAD 2>/dev/null)}\"; vite build --ssr src/entry.server.ts --outDir dist-server",
-    "prerender": "tsx scripts/prerender.ts",
+    "prerender": "vite build --config vite.scripts.config.ts --ssr scripts/prerender.ts --outDir dist-scripts && node dist-scripts/prerender.js",
     "postprerender": "pagefind",
     "preview:search": "pnpm build && pnpm prerender && vite preview"
   },
@@ -51,7 +51,6 @@
     "rolldown": "^1.2.6",
     "satori": "^0.33.4",
     "tailwindcss": "^4.3.3",
-    "tsx": "^4.23.12",
     "typescript": "^7.0.2",
     "vite": "^8.2.2",
     "vitest": "^4.1.11"

@@ -59,15 +59,11 @@ export type FoldkitSsrOptions = Readonly<{
   quietStandDown?: boolean
 }>
 
-// Whether an environment can evaluate modules in this process, which is what
-// loading the server entry needs. Vite's own `isRunnableDevEnvironment` is an
-// `instanceof` check against the `RunnableDevEnvironment` class of whichever
-// copy of Vite the caller imported — and a plugin supporting a range of majors
-// is not always imported by the copy that created the server, so that check
-// reports a perfectly runnable environment as not runnable. The lazily
-// constructed `runner` accessor is the shape every major agrees on, and `in`
-// reads the descriptor rather than invoking the getter, so probing costs
-// nothing.
+// NOTE: Vite's `isRunnableDevEnvironment` is an `instanceof` check against the
+// plugin's own copy of Vite, and the server may have been created by another
+// copy, so it can call a runnable environment not runnable. The lazy `runner`
+// getter is the shape every copy shares, and `in` reads its descriptor without
+// invoking it.
 const isRunnable = (environment: DevEnvironment): boolean =>
   'runner' in environment
 

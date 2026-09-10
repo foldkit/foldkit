@@ -222,9 +222,7 @@ const coverMimeType = (src: string): Effect.Effect<string, Error> =>
 // NOTE: Chromium decodes the cover and re-encodes it as PNG because resvg
 // cannot embed webp sources, and PNG is the one format every OG consumer
 // renders. The cover is center-cropped onto the standard 1200x630 card so
-// every platform shows the same crop instead of choosing its own. The
-// string-form evaluate polyfills the `__name` helper tsx injects into
-// compiled callbacks; see the note on PAGE_INIT_SCRIPT in prerender.ts.
+// every platform shows the same crop instead of choosing its own.
 const renderCoverOgImage = (browser: Browser, cover: PostCover) =>
   Effect.gen(function* () {
     const mimeType = yield* coverMimeType(cover.src)
@@ -236,9 +234,6 @@ const renderCoverOgImage = (browser: Browser, cover: PostCover) =>
       Effect.tryPromise(() => browser.newPage()),
       page =>
         Effect.gen(function* () {
-          yield* Effect.tryPromise(() =>
-            page.evaluate('window.__name = (target) => target'),
-          )
           return yield* Effect.tryPromise(() =>
             page.evaluate(
               async ({ source, targetHeight, targetWidth }) => {

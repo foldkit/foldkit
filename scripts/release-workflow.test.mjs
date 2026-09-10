@@ -60,7 +60,7 @@ test('version planning coordinates shared inputs using the complete release hist
   )
   assert.equal(
     rootPackage.scripts['version-packages:apply'],
-    'changeset version && node scripts/version-alignment-notes.mjs && tsx scripts/reset-peer-deps.ts && pnpm install --no-frozen-lockfile',
+    'changeset version && node scripts/version-alignment-notes.mjs && node scripts/reset-peer-deps.ts && pnpm install --no-frozen-lockfile',
   )
   assert.match(
     versionJob,

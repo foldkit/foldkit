@@ -18,7 +18,7 @@ export default defineConfig({
     target: 'es2022',
     minify: 'oxc',
     sourcemap: false,
-    rollupOptions: {
+    rolldownOptions: {
       input: isOptimised ? 'index.optimised.html' : 'index.html',
       output: {
         entryFileNames: 'assets/[name]-[hash].js',

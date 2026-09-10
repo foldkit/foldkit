@@ -14,7 +14,7 @@ import {
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { examples } from '../packages/website/src/page/example/meta'
+import { examples } from '../packages/website/src/page/example/meta.ts'
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = resolve(SCRIPT_DIR, '..')

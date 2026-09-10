@@ -12,7 +12,7 @@ import {
 import { tmpdir } from 'node:os'
 import { join, relative, sep } from 'node:path'
 
-import { EXAMPLE_VALUES } from '../packages/create-foldkit-app/src/examples.js'
+import { EXAMPLE_VALUES } from '../packages/create-foldkit-app/src/examples.ts'
 
 const PACKAGE_DIR = 'packages/create-foldkit-app'
 const OXLINT_PLUGIN_DIR = 'packages/oxlint-plugin-foldkit'

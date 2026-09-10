@@ -471,7 +471,7 @@ describe('foldkitBuild orchestration', () => {
       config: () => ({
         environments: {
           client: {
-            build: { rollupOptions: { input: { app: '/entry.client.ts' } } },
+            build: { rolldownOptions: { input: { app: '/entry.client.ts' } } },
           },
         },
       }),
@@ -521,7 +521,7 @@ describe('foldkitBuild orchestration', () => {
         environments: {
           ssr: {
             build: {
-              rollupOptions: {
+              rolldownOptions: {
                 input: {
                   unrelated: '/unrelated.ts',
                   'entry.server': '/entry.server.ts',

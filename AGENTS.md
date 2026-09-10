@@ -19,6 +19,7 @@ Read those when a rule needs context.
 - Always use Schema types (not plain TypeScript types), full names like `Message` (not `Msg`), and `withReturnType` (not `as const` or type casting).
 - Foldkit is tightly coupled to Effect-TS. Do not suggest solutions outside the Effect ecosystem. Check existing features in `create-foldkit-app` before suggesting new ones.
 - Push back on any direction that violates Elm Architecture principles: unidirectional data flow, Messages as facts, Model as single source of truth, side effects confined to Commands. Flag the issue and propose the Foldkit approach that preserves those principles.
+- Run TypeScript scripts with `node` directly, as in `node scripts/check-peer-floors.ts`. Every Node version in `engines` strips types, so the workspace has no `tsx`, `vite-node`, or other loader, and none may be added. Node resolves imports literally: write the extension the file has, and reach package code through its built entry rather than its source. A script whose module graph needs Vite's resolution, such as the website's `openapi` and `prerender`, is bundled with `vite build --ssr` first and the bundle runs under `node`. `erasableSyntaxOnly` in the base tsconfig keeps every source within what Node can strip.
 
 ## Exemplar Files
 

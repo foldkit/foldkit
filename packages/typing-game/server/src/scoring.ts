@@ -11,7 +11,7 @@ import {
 
 import * as Shared from '@typing-game/shared'
 
-import { CHARS_PER_WORD, PLAYING_SECONDS } from './game.js'
+import { CHARS_PER_WORD, PLAYING_SECONDS } from './game.ts'
 
 type ProgressByGamePlayer = HashMap.HashMap<
   Shared.GamePlayer,

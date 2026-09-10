@@ -6,7 +6,7 @@ import { Order } from 'effect'
  * The blog's own title and description, shared by the rendered index, the
  * page metadata the prerender writes into each document, and the RSS channel.
  *
- * Kept dependency-light (Effect only) so `scripts/` can import it under tsx
+ * Kept dependency-light (Effect only) so `scripts/` can import it under node
  * without pulling in the browser view layer.
  */
 export const BLOG_TITLE = 'Blog'

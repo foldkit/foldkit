@@ -13,11 +13,11 @@ import { randomUUID } from 'node:crypto'
 
 import * as Shared from '@typing-game/shared'
 
-import { gameSequence } from '../game.js'
-import { GAME_TEXTS, generateGameText } from '../gameText.js'
-import * as Rooms from '../roomById.js'
-import { updateRoom, updateRoomStatus } from '../roomById.js'
-import { calculateScoreboard } from '../scoring.js'
+import { gameSequence } from '../game.ts'
+import { GAME_TEXTS, generateGameText } from '../gameText.ts'
+import * as Rooms from '../roomById.ts'
+import { updateRoom, updateRoomStatus } from '../roomById.ts'
+import { calculateScoreboard } from '../scoring.ts'
 
 type ProgressByGamePlayer = HashMap.HashMap<
   Shared.GamePlayer,

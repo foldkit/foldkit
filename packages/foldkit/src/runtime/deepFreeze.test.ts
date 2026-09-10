@@ -91,7 +91,7 @@ describe('deepFreeze', () => {
 
   it('leaves class instances untouched', () => {
     class Counter {
-      constructor(public count = 0) {}
+      count = 0
     }
     const counter = new Counter()
     const model = { counter }
