@@ -220,6 +220,45 @@ type TaggedUnionMatchCases<
   ) => Output
 }
 
+type TaggedUnionMatchOrElseCases<
+  CasesByTag extends Record<string, Schema.Struct.Fields>,
+  Input extends TaggedUnionType<CasesByTag>,
+  Output,
+> = {
+  readonly [Tag in keyof CasesByTag & string]?: (
+    value: Extract<Input, { readonly _tag: Tag }>,
+  ) => Output
+}
+
+type TaggedUnionMatchOrElseCaseReturns<Cases> = {
+  [Tag in keyof Cases]-?: NonNullable<Cases[Tag]> extends (
+    ...args: never
+  ) => infer Output
+    ? Output
+    : never
+}[keyof Cases]
+
+type TaggedUnionMatchOrElseOutput<Cases, OrElse> =
+  | TaggedUnionMatchOrElseCaseReturns<Cases>
+  | (OrElse extends (...args: never) => infer Output ? Output : never)
+
+type TaggedUnionMatchOrElseHandledTags<
+  CasesByTag extends Record<string, Schema.Struct.Fields>,
+  Cases,
+> = Extract<
+  {
+    [Tag in keyof Cases]-?: {} extends Pick<Cases, Tag> ? never : Tag
+  }[keyof Cases],
+  keyof CasesByTag & string
+>
+
+type ValidateMatchOrElseCases<
+  CasesByTag extends Record<string, Schema.Struct.Fields>,
+  Cases,
+> = {
+  readonly [Tag in Exclude<keyof Cases, keyof CasesByTag & string>]: never
+}
+
 type TaggedUnionMatch<CasesByTag extends Record<string, Schema.Struct.Fields>> =
   {
     <
@@ -236,6 +275,62 @@ type TaggedUnionMatch<CasesByTag extends Record<string, Schema.Struct.Fields>> =
       cases: TaggedUnionMatchCases<CasesByTag, Input, Output>,
     ): Output
   }
+
+type TaggedUnionMatchOrElse<
+  CasesByTag extends Record<string, Schema.Struct.Fields>,
+> = {
+  <
+    Input extends TaggedUnionType<CasesByTag>,
+    const Cases extends TaggedUnionMatchOrElseCases<CasesByTag, Input, unknown>,
+    OrElse extends (
+      value: Exclude<
+        Input,
+        {
+          readonly _tag: TaggedUnionMatchOrElseHandledTags<CasesByTag, Cases>
+        }
+      >,
+    ) => unknown,
+  >(
+    value: Input,
+    cases: Cases & ValidateMatchOrElseCases<CasesByTag, Cases>,
+    orElse: OrElse,
+  ): TaggedUnionMatchOrElseOutput<Cases, OrElse>
+  <
+    const Cases extends TaggedUnionMatchOrElseCases<
+      CasesByTag,
+      TaggedUnionType<CasesByTag>,
+      unknown
+    >,
+    OrElse extends (
+      value: Exclude<
+        TaggedUnionType<CasesByTag>,
+        {
+          readonly _tag: TaggedUnionMatchOrElseHandledTags<CasesByTag, Cases>
+        }
+      >,
+    ) => unknown,
+  >(
+    cases: Cases & ValidateMatchOrElseCases<CasesByTag, Cases>,
+    orElse: OrElse,
+  ): (
+    value: TaggedUnionType<CasesByTag>,
+  ) => TaggedUnionMatchOrElseOutput<Cases, OrElse>
+  <
+    Output,
+    Input extends TaggedUnionType<CasesByTag> = TaggedUnionType<CasesByTag>,
+  >(
+    cases: TaggedUnionMatchOrElseCases<CasesByTag, Input, Output>,
+    orElse: (value: Input) => Output,
+  ): (value: Input) => Output
+  <
+    Output,
+    Input extends TaggedUnionType<CasesByTag> = TaggedUnionType<CasesByTag>,
+  >(
+    value: Input,
+    cases: TaggedUnionMatchOrElseCases<CasesByTag, Input, Output>,
+    orElse: (value: Input) => Output,
+  ): Output
+}
 
 interface UnionSchema<
   CasesByTag extends Record<string, Schema.Struct.Fields>,
@@ -281,6 +376,7 @@ interface RichUnionSchema<
 > extends UnionSchema<CasesByTag> {
   readonly guards: BaseTaggedUnion<CasesByTag>['guards']
   readonly isAnyOf: BaseTaggedUnion<CasesByTag>['isAnyOf']
+  readonly matchOrElse: TaggedUnionMatchOrElse<CasesByTag>
   readonly members: ReadonlyArray<TaggedUnionMember<CasesByTag>>
   /** Returns a Schema that accepts only the named variants. */
   readonly subset: <
@@ -291,8 +387,10 @@ interface RichUnionSchema<
 }
 
 /** The Schema returned by `defineTaggedUnion`. It includes callable variant
- * constructors, exhaustive `match`, `guards`, `isAnyOf`, `subset`, and
- * `members`. */
+ * constructors, exhaustive `match`, partial `matchOrElse`, `guards`,
+ * `isAnyOf`, `subset`, and `members`. Pass a structurally refined union as a
+ * matcher's optional second type argument to preserve narrower payload fields
+ * in each handler. */
 export type TaggedUnion<
   CasesByTag extends Record<string, Schema.Struct.Fields>,
 > = RichUnionSchema<CasesByTag> & {
@@ -394,8 +492,8 @@ const defineUnion = <CasesByTag extends Record<string, Schema.Struct.Fields>>(
  * fields.
  *
  * A tag cannot use a name already owned by the union, such as `make`, `match`,
- * `cases`, `ast`, `members`, or `subset`. TypeScript rejects these names, and
- * untyped calls throw an error.
+ * `matchOrElse`, `cases`, `ast`, `members`, or `subset`. TypeScript rejects
+ * these names, and untyped calls throw an error.
  *
  * @example
  * ```typescript
@@ -426,6 +524,7 @@ export function defineMessageUnion<
  *
  * - One callable Schema constructor per variant.
  * - `match` for exhaustive handling.
+ * - `matchOrElse` for selected variants with a fallback for the rest.
  * - `guards` and `isAnyOf` for variant checks.
  * - `subset` for a Schema that accepts only the named variants.
  * - `members` for APIs such as `Machine.define` that enumerate the union.
@@ -434,8 +533,8 @@ export function defineMessageUnion<
  * unions and standalone tagged structs are the common cases.
  *
  * A tag cannot use a name already owned by the union, such as `make`, `match`,
- * `cases`, `ast`, `members`, or `subset`. TypeScript rejects these names, and
- * untyped calls throw an error.
+ * `matchOrElse`, `cases`, `ast`, `members`, or `subset`. TypeScript rejects
+ * these names, and untyped calls throw an error.
  *
  * @example
  * ```typescript
@@ -468,17 +567,18 @@ export function defineTaggedUnion<
  * `parseUrlWithFallback`, while `AppRoute.Person({ personId: 42 })` constructs
  * a value.
  *
- * Use `match` to handle every Route, `guards` or `isAnyOf` to check selected
- * tags, and `subset` when another Schema accepts only some Routes. A subset
- * includes only the tags named in the call. Adding a Route to `AppRoute` does
- * not change an existing subset.
+ * Use `match` to handle every Route, `matchOrElse` to handle selected Routes
+ * with a fallback, `guards` or `isAnyOf` to check selected tags, and `subset`
+ * when another Schema accepts only some Routes. A subset includes only the
+ * tags named in the call. Adding a Route to `AppRoute` does not change an
+ * existing subset.
  *
  * Routers remain separate. A Route is the parsed value; a Router describes the
  * URL that produces it.
  *
  * A tag cannot use a name already owned by the union, such as `make`, `match`,
- * `cases`, `ast`, `members`, or `subset`. TypeScript rejects these names, and
- * untyped calls throw an error.
+ * `matchOrElse`, `cases`, `ast`, `members`, or `subset`. TypeScript rejects
+ * these names, and untyped calls throw an error.
  *
  * @example
  * ```typescript

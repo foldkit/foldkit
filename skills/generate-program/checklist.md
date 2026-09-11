@@ -305,7 +305,7 @@ Foldkit ships these; reaching past them is a finding, not a style choice.
 ## Effect-TS patterns
 
 - [ ] `pipe()` keeps a meaningful transformed value as the subject of left-to-right data flow; ordinary single calls stay direct
-- [ ] `Message.match` for exhaustive Message matching; Effect `Match` for state unions, partial matches, fallbacks, and shared multi-tag handlers (no switch)
+- [ ] `Message.match` for exhaustive Message matching; a declared domain or Route union's `match` / `matchOrElse` for exhaustive / partial matching; Effect `Match` for partial Message matches, shared multi-tag handlers, and unions without their own matcher (no switch)
 - [ ] `Array.match({ onEmpty, onNonEmpty })` for branching on a Model array (not `.length === 0` / `.length > 0`, and not `Array.isArrayEmpty` / `Array.isArrayNonEmpty`, which take a mutable `Array<A>` and reject the `ReadonlyArray` that `Schema.Array(...)` decodes to)
 - [ ] `evo()` for Model updates (not spread)
 - [ ] Callable constructors (not `as` casts or manual `_tag` objects)
