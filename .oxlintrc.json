@@ -39,6 +39,11 @@
     "foldkit/prefer-callable-message-constructor": "error",
     "foldkit/command-binding-matches-name": "error",
     "foldkit/no-module-level-mutable-state": "error",
+    "foldkit/no-switch-on-message-tag": "error",
+    "foldkit/acquire-release-constructs-in-acquire-body": "error",
+    "foldkit/prefer-option-over-nullable-in-model": "error",
+    "foldkit/prefer-command-mapmessage": "error",
+    "foldkit/no-route-query-constructor-default": "error",
     "foldkit/prefer-effect-module-names": "error"
   },
   "overrides": [
