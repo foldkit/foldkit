@@ -3977,6 +3977,15 @@ describe('scene with pointer events', () => {
     )
   })
 
+  test('pointerDown passes pointerId option', () => {
+    Scene.scene(
+      { update: pointerUpdate, view: pointerView },
+      Scene.given(pointerInitialModel),
+      Scene.pointerDown(Scene.label('pointer target'), { pointerId: 42 }),
+      Scene.expect(Scene.label('last pointer id')).toHaveText('42'),
+    )
+  })
+
   test('pointerDown defaults to mouse', () => {
     Scene.scene(
       { update: pointerUpdate, view: pointerView },

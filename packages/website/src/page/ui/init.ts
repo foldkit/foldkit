@@ -147,7 +147,7 @@ export const init = (today: Calendar.CalendarDate): InitReturn => ({
     }),
     fileDropBasicDemo: FileDrop.init({ id: 'file-drop-basic-demo' }),
     fileDropBasicDemoFiles: [],
-    toastDemo: Toast.init({ id: 'toast-demo' }),
+    toastDemo: Toast.init({ id: 'toast-demo', swipeToDismiss: {} }),
     maybeLastDismissedToastTitle: Option.none(),
     tooltipDemo: Tooltip.init({ id: 'tooltip-demo' }),
     hoverIntentCardDemo: HoverIntent.init(),

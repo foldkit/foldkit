@@ -6,7 +6,14 @@ import { evo } from 'foldkit/struct'
 import { describe, it } from '@effect/vitest'
 
 import * as Animation from '../animation/index.js'
-import { type EntryHandlers, type Variant, make } from './index.js'
+import {
+  type EntryHandlers,
+  SwipeState,
+  type Variant,
+  WaitBeforeDismissal,
+  WaitForSwipeSettled,
+  make,
+} from './index.js'
 
 const TestPayload = Schema.Struct({ body: Schema.String })
 type TestPayload = typeof TestPayload.Type
@@ -24,6 +31,8 @@ const makeSettledEntry = (overrides: Partial<Entry> = {}): Entry => ({
   maybeDuration: Option.some(Duration.seconds(4)),
   pendingDismissVersion: 0,
   isHovered: false,
+  swipeState: SwipeState.Idle(),
+  swipeVersion: 0,
   payload: { body: 'Hello' },
   ...overrides,
 })
@@ -54,7 +63,19 @@ const sceneView =
 const container = Scene.selector('[key="test"]')
 const entryZero = Scene.selector('[key="test-entry-0"]')
 
+const STALE_VERSION = -1
+
+const POINTER_ID = 0
+
+const RELEASED_SWIPE_VERSION = 2
+
 const withEntry = (overrides: Partial<Entry> = {}): Model =>
+  evo(Toast.init({ id: 'test', swipeToDismiss: {} }), {
+    entries: () => [makeSettledEntry(overrides)],
+    nextEntryKey: () => 1,
+  })
+
+const withDisabledEntry = (overrides: Partial<Entry> = {}): Model =>
   evo(Toast.init({ id: 'test' }), {
     entries: () => [makeSettledEntry(overrides)],
     nextEntryKey: () => 1,
@@ -157,6 +178,138 @@ describe('Toast', () => {
         { update: Toast.update, view: sceneView({ ariaLabel: 'Toasts' }) },
         Scene.given(Toast.init({ id: 'test' })),
         Scene.expect(container).toHaveAttr('aria-label', 'Toasts'),
+      )
+    })
+
+    it('attaches pointerdown handler for swipe', () => {
+      Scene.scene(
+        { update: Toast.update, view: sceneView() },
+        Scene.given(withEntry()),
+        Scene.expect(entryZero).toHaveHandler('pointerdown'),
+      )
+    })
+
+    it('adds data-swipe=move and translate offset when dragging', () => {
+      const model: Model = withEntry({
+        swipeState: SwipeState.Dragging({
+          pointerId: POINTER_ID,
+          startX: 100,
+          currentX: 180,
+        }),
+      })
+      Scene.scene(
+        { update: Toast.update, view: sceneView() },
+        Scene.given(model),
+        Scene.expect(entryZero).toHaveAttr('data-swipe', 'move'),
+        Scene.expect(entryZero).toHaveStyle('translate', '80px'),
+        Scene.expect(entryZero).toHaveStyle('pointerEvents', 'auto'),
+        Scene.expect(entryZero).toHaveStyle('touchAction', 'pan-y'),
+        Scene.expect(entryZero).not.toHaveStyle('transform'),
+      )
+    })
+
+    it('does not add data-swipe when idle', () => {
+      Scene.scene(
+        { update: Toast.update, view: sceneView() },
+        Scene.given(withEntry()),
+        Scene.expect(entryZero).not.toHaveAttr('data-swipe'),
+      )
+    })
+
+    it('attaches no pointerdown handler when swipe is disabled', () => {
+      Scene.scene(
+        { update: Toast.update, view: sceneView() },
+        Scene.given(withDisabledEntry()),
+        Scene.expect(entryZero).not.toHaveHandler('pointerdown'),
+      )
+    })
+
+    it('does not restrict touch behavior when swipe is disabled', () => {
+      Scene.scene(
+        { update: Toast.update, view: sceneView() },
+        Scene.given(withDisabledEntry()),
+        Scene.expect(entryZero).not.toHaveStyle('touchAction'),
+      )
+    })
+
+    it('allows vertical panning when swipe is enabled', () => {
+      Scene.scene(
+        { update: Toast.update, view: sceneView() },
+        Scene.given(withEntry()),
+        Scene.expect(entryZero).toHaveStyle('touchAction', 'pan-y'),
+      )
+    })
+
+    it('keeps the released offset rendered while the leave runs', () => {
+      Scene.scene(
+        { update: Toast.update, view: sceneView() },
+        Scene.given(withEntry()),
+        Scene.pointerDown(entryZero, { clientX: 100 }),
+        Scene.expect(entryZero).toHaveAttr('data-swipe', 'move'),
+        Scene.Subscription.emit(
+          Toast.Message.MovedSwipePointer({
+            pointerId: POINTER_ID,
+            clientX: 200,
+          }),
+        ),
+        Scene.expect(entryZero).toHaveStyle('translate', '100px'),
+        Scene.Subscription.emit(
+          Toast.Message.ReleasedSwipePointer({
+            pointerId: POINTER_ID,
+            clientX: 200,
+          }),
+        ),
+        Scene.expect(entryZero).toHaveAttr('data-swipe', 'settling'),
+        Scene.expect(entryZero).toHaveStyle('translate', '100px'),
+        Scene.expect(entryZero).not.toHaveStyle('transform'),
+        Scene.expect(entryZero).toHaveAttr('data-leave', ''),
+        Scene.Command.resolveAll(
+          [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
+          [
+            Animation.WaitForAnimationSettled,
+            Animation.Message.EndedAnimation(),
+          ],
+        ),
+        Scene.expect(entryZero).toBeAbsent(),
+      )
+    })
+
+    it('renders settling without an offset after a cancelled release', () => {
+      Scene.scene(
+        { update: Toast.update, view: sceneView() },
+        Scene.given(withEntry()),
+        Scene.pointerDown(entryZero, { clientX: 100 }),
+        Scene.Subscription.emit(
+          Toast.Message.MovedSwipePointer({
+            pointerId: POINTER_ID,
+            clientX: 130,
+          }),
+        ),
+        Scene.Subscription.emit(
+          Toast.Message.ReleasedSwipePointer({
+            pointerId: POINTER_ID,
+            clientX: 130,
+          }),
+        ),
+        Scene.expect(entryZero).toHaveAttr('data-swipe', 'settling'),
+        Scene.expect(entryZero).not.toHaveStyle('translate'),
+        Scene.expect(entryZero).not.toHaveAttr('data-leave'),
+        Scene.Command.resolve(
+          WaitForSwipeSettled,
+          Toast.Message.CompletedWaitForSwipeSettled({
+            entryId: 'test-entry-0',
+            version: RELEASED_SWIPE_VERSION,
+          }),
+        ),
+        Scene.expect(entryZero).not.toHaveAttr('data-swipe'),
+        Scene.Command.resolve(
+          WaitBeforeDismissal,
+          Toast.Message.CompletedWaitBeforeDismissal({
+            entryId: 'test-entry-0',
+            version: STALE_VERSION,
+          }),
+        ),
+        Scene.expect(entryZero).toExist(),
       )
     })
   })
