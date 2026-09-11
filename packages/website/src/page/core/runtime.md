@@ -15,7 +15,7 @@ The Runtime API makes two independent choices:
 
 ### Without routing
 
-Without a `routing` config, the program doesn't manage the URL bar. This is the default for most programs.
+Without a `routing` config, the program doesn't manage the URL bar.
 
 ::Snippet{name="runMakeApplication" label="makeApplication without routing example"}
 
