@@ -167,6 +167,20 @@ describe('real-oxlint rule fixtures', () => {
     expect(countDiagnostics('no-noop-message', 'invalid')).toBe(2)
   })
 
+  it('reports every offense for the five added convention rules', () => {
+    expect(
+      countDiagnostics('acquire-release-constructs-in-acquire-body', 'invalid'),
+    ).toBe(7)
+    expect(
+      countDiagnostics('no-route-query-constructor-default', 'invalid'),
+    ).toBe(2)
+    expect(countDiagnostics('no-switch-on-message-tag', 'invalid')).toBe(2)
+    expect(countDiagnostics('prefer-command-mapmessage', 'invalid')).toBe(4)
+    expect(
+      countDiagnostics('prefer-option-over-nullable-in-model', 'invalid'),
+    ).toBe(7)
+  })
+
   it('recognizes explicit and contextual HtmlBuilder parameters', () => {
     expect(countDiagnostics('no-empty-children-array', 'invalid')).toBe(6)
   })

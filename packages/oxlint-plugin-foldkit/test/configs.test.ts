@@ -29,7 +29,11 @@ const entryFilePatterns = [
 
 const serverRuleId = 'foldkit/no-nonportable-server-globals'
 const decisionTimeRuleId = 'foldkit/no-impure-call-at-decision-time'
-const effectModuleNamesRuleId = 'foldkit/prefer-effect-module-names'
+const rulesApplicableToTests = new Set([
+  'foldkit/acquire-release-constructs-in-acquire-body',
+  'foldkit/no-switch-on-message-tag',
+  'foldkit/prefer-effect-module-names',
+])
 
 const presets = [
   { name: 'recommended', config: plugin.configs.recommended },
@@ -50,7 +54,7 @@ describe('configs', () => {
         )
         expect(config.rules['foldkit/got-submodel-message-name']).toBe('error')
         expect(config.rules[decisionTimeRuleId]).toBe('error')
-        expect(config.rules[effectModuleNamesRuleId]).toBe('error')
+        expect(config.rules['foldkit/prefer-effect-module-names']).toBe('error')
       })
 
       it('scopes the server portability rule to recognized server files', () => {
@@ -79,7 +83,7 @@ describe('configs', () => {
         expect(testOverride?.files).toEqual(testFilePatterns)
         for (const ruleId of Object.keys(config.rules)) {
           expect(testOverride?.rules[ruleId]).toBe(
-            ruleId === effectModuleNamesRuleId ? undefined : 'off',
+            rulesApplicableToTests.has(ruleId) ? undefined : 'off',
           )
         }
       })
