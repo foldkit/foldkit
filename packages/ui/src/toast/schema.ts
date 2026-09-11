@@ -52,6 +52,7 @@ export const SwipeState = defineTaggedUnion({
 })
 export type SwipeState = typeof SwipeState.Type
 
+/** Default distance in pixels a pointer must travel to dismiss a Toast. */
 export const DEFAULT_SWIPE_THRESHOLD = 80
 
 /** How long the view holds `data-swipe="settling"` after a cancelled

@@ -633,36 +633,30 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       {
         modelToDependencies: swipeDependencies,
         dependenciesToStream: ({ isSwipeEnabled, maybeActivePointerId }) => {
-          const moveStream = Stream.fromEventListener<PointerEvent>(
-            document,
-            'pointermove',
-          ).pipe(
-            Stream.map(event =>
+          const moveStream = Subscription.fromEvent<PointerEvent, Message>({
+            target: document,
+            type: 'pointermove',
+            toMessage: event =>
               MessageSchema.MovedSwipePointer({
                 pointerId: event.pointerId,
                 clientX: event.clientX,
               }),
-            ),
-          )
-          const upStream = Stream.fromEventListener<PointerEvent>(
-            document,
-            'pointerup',
-          ).pipe(
-            Stream.map(event =>
+          })
+          const upStream = Subscription.fromEvent<PointerEvent, Message>({
+            target: document,
+            type: 'pointerup',
+            toMessage: event =>
               MessageSchema.ReleasedSwipePointer({
                 pointerId: event.pointerId,
                 clientX: event.clientX,
               }),
-            ),
-          )
-          const cancelStream = Stream.fromEventListener<PointerEvent>(
-            document,
-            'pointercancel',
-          ).pipe(
-            Stream.map(event =>
+          })
+          const cancelStream = Subscription.fromEvent<PointerEvent, Message>({
+            target: document,
+            type: 'pointercancel',
+            toMessage: event =>
               MessageSchema.CancelledSwipe({ pointerId: event.pointerId }),
-            ),
-          )
+          })
           const pointerEvents = Stream.merge(
             Stream.merge(moveStream, upStream),
             cancelStream,
@@ -714,16 +708,16 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         modelToDependencies: swipeDependencies,
         dependenciesToStream: ({ isSwipeEnabled, maybeActivePointerId }) =>
           Stream.when(
-            Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-              Stream.filter(({ key }) => key === 'Escape'),
-              Stream.flatMap(() =>
-                Option.match(maybeActivePointerId, {
-                  onNone: () => Stream.empty,
-                  onSome: pointerId =>
-                    Stream.make(MessageSchema.CancelledSwipe({ pointerId })),
-                }),
-              ),
-            ),
+            Subscription.fromEventFilterMap<KeyboardEvent, Message>({
+              target: document,
+              type: 'keydown',
+              toMessage: event =>
+                event.key === 'Escape'
+                  ? Option.map(maybeActivePointerId, pointerId =>
+                      MessageSchema.CancelledSwipe({ pointerId }),
+                    )
+                  : Option.none(),
+            }),
             Effect.sync(
               () => isSwipeEnabled && Option.isSome(maybeActivePointerId),
             ),

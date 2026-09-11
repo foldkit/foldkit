@@ -2,11 +2,7 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Option, Schema } from 'effect'
-import { Update } from 'foldkit'
-// Wire pointer subscriptions once at the app root so swipe tracking
-// continues when the pointer leaves the entry. Without this lift the
-// view still sets data-swipe on pointerdown but never receives move/up.
-import { Subscription } from 'foldkit'
+import { Subscription, Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -107,6 +103,9 @@ ClickedSave: () =>
     },
   })
 
+// Wire pointer subscriptions once at the app root so swipe tracking
+// continues when the pointer leaves the entry. Without this lift the
+// view still sets data-swipe on pointerdown but never receives move/up.
 export const subscriptions = Subscription.lift(Toast.subscriptions)<
   Model,
   Message

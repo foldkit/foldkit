@@ -226,27 +226,16 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         )
 
         const swipeOffset = toast.swipeOffset(entry.swipeState)
-        const swipePhase = SwipeState.match<Option.Option<'move' | 'settling'>>(
-          entry.swipeState,
-          {
-            Idle: () => Option.none(),
-            Dragging: () => Option.some('move'),
-            Settling: () => Option.some('settling'),
-          },
-        )
-        const swipeAttributes = Option.match(swipePhase, {
+        const maybeSwipePhase = SwipeState.match<
+          Option.Option<'move' | 'settling'>
+        >(entry.swipeState, {
+          Idle: () => Option.none(),
+          Dragging: () => Option.some('move'),
+          Settling: () => Option.some('settling'),
+        })
+        const swipeAttributes = Option.match(maybeSwipePhase, {
           onNone: () => [],
-          onSome: phase => [
-            h.DataAttribute('swipe', phase),
-            ...(swipeOffset !== 0
-              ? [
-                  h.Style({
-                    translate: `${String(swipeOffset)}px`,
-                    '--toast-swipe-move-x': `${String(swipeOffset)}px`,
-                  }),
-                ]
-              : []),
-          ],
+          onSome: phase => [h.DataAttribute('swipe', phase)],
         })
 
         const handlePointerDown = (
@@ -281,6 +270,12 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
             pointerEvents: 'auto',
             ...(Option.isSome(model.maybeSwipeThreshold)
               ? { touchAction: 'pan-y' }
+              : {}),
+            ...(swipeOffset !== 0
+              ? {
+                  translate: `${String(swipeOffset)}px`,
+                  '--toast-swipe-move-x': `${String(swipeOffset)}px`,
+                }
               : {}),
           }),
           h.OnMouseEnter(toast.Message.HoveredEntry({ entryId: entry.id })),

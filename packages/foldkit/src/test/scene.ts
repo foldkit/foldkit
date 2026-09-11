@@ -2114,7 +2114,8 @@ const DEFAULT_POINTER_DOWN_OPTIONS: Required<PointerDownOptions> = {
 /** Simulates a pointerdown event on the element matching the target.
  *  When the element has no pointerdown handler, the event bubbles up to
  *  the nearest ancestor with one, mirroring browser event propagation.
- *  Defaults to `pointerType: 'mouse'`, `button: 0`, and `screenX/screenY: 0`. */
+ *  Defaults to `pointerType: 'mouse'`, `button: 0`, `screenX/screenY: 0`,
+ *  `clientX/clientY: 0`, and `pointerId: 0`. */
 export const pointerDown =
   (target: string | Locator, options?: PointerDownOptions) =>
   <Model, Message, OutMessage = undefined>(

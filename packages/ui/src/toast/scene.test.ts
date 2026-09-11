@@ -67,9 +67,7 @@ const STALE_VERSION = -1
 
 const POINTER_ID = 0
 
-// Swipe version after one press and one release: each gesture transition
-// bumps it, so the settle timer scheduled by that release carries 2.
-const SETTLE_VERSION = 2
+const RELEASED_SWIPE_VERSION = 2
 
 const withEntry = (overrides: Partial<Entry> = {}): Model =>
   evo(Toast.init({ id: 'test', swipeToDismiss: {} }), {
@@ -210,6 +208,8 @@ describe('Toast', () => {
         Scene.given(model),
         Scene.expect(entryZero).toHaveAttr('data-swipe', 'move'),
         Scene.expect(entryZero).toHaveStyle('translate', '80px'),
+        Scene.expect(entryZero).toHaveStyle('pointerEvents', 'auto'),
+        Scene.expect(entryZero).toHaveStyle('touchAction', 'pan-y'),
         Scene.expect(entryZero).not.toHaveStyle('transform'),
       )
     })
@@ -304,7 +304,7 @@ describe('Toast', () => {
           WaitForSwipeSettled,
           Toast.Message.CompletedWaitForSwipeSettled({
             entryId: 'test-entry-0',
-            version: SETTLE_VERSION,
+            version: RELEASED_SWIPE_VERSION,
           }),
         ),
         Scene.expect(entryZero).not.toHaveAttr('data-swipe'),
