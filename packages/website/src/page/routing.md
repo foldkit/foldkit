@@ -78,6 +78,8 @@ Query parameters use [Effect Schema](https://effect.website/docs/schema/introduc
 
 `Schema.OptionFromOptional` makes parameters optional. Missing params become `Option.none()`. `Schema.FiniteFromString` automatically parses string query values into numbers.
 
+`Schema.withConstructorDefault` does not provide a query-string default. Constructor defaults run only when calling a Schema’s `make` constructor, while `Route.query` decodes and encodes values. Use `Schema.withDecodingDefaultKey` when a missing query key should decode to a concrete value, or `Schema.OptionFromOptional` when the Route should preserve its absence. The `foldkit/no-route-query-constructor-default` rule catches the inert constructor-default form.
+
 For a complete routing example, see the [Routing example](/example-apps/routing). For a deeper look at query parameters (custom schema transforms, lenient parsing, and bidirectional URL sync), see the [Query Sync example](/example-apps/query-sync).
 
 ## Schema Segments

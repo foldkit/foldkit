@@ -392,11 +392,12 @@ export function define(name: string, config: DefineConfig): unknown {
  *  message-mapping chain. Reach for this to adjust the Effect itself (provide a
  *  service, add a delay or retry), not to lift the result Message. Never use it
  *  to transform the result Message, even via
- *  `Effect.map(childMessage => Parent({ childMessage }))`. That dispatches
+ *  `Effect.map(message => Message.GotChildMessage({ message }))`. That dispatches
  *  correctly in production but is invisible to `Story`/`Scene` `resolve`, which
  *  replays only the recorded chain and never runs the Effect, so the test would
  *  see the child's raw Message instead of the wrapped one. Lift result Messages
- *  with {@link mapMessage} / {@link mapMessages}, which record the lift. */
+ *  with {@link mapMessage} / {@link mapMessages}, which record the lift. The
+ *  `foldkit/prefer-command-mapmessage` lint rule flags this misuse. */
 export const mapEffect: {
   <A, E1, R1, B, E2, R2>(
     f: (effect: Effect.Effect<A, E1, R1>) => Effect.Effect<B, E2, R2>,

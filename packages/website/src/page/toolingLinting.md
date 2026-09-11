@@ -84,6 +84,20 @@ Rejects Command structs assembled by hand. Command.define attaches the identity,
 
 ::Snippet{name="lintNoHandRolledCommandStruct" label="foldkit/no-hand-rolled-command-struct example"}
 
+## Commands and Effects {#command-effect-rules}
+
+### foldkit/acquire-release-constructs-in-acquire-body {#acquire-release-constructs-in-acquire-body}
+
+Requires the acquire Effect passed to `Effect.acquireRelease` to construct its resource lazily. Returning a handle captured from an outer binding, or wrapping an eagerly constructed resource in `Effect.succeed`, leaves a window where interruption can leak the resource before its release action is registered.
+
+::Snippet{name="lintAcquireReleaseConstructsInAcquireBody" label="foldkit/acquire-release-constructs-in-acquire-body example"}
+
+### foldkit/prefer-command-mapmessage {#prefer-command-mapmessage}
+
+Lifts a Command result Message with `Command.mapMessage` or `Command.mapMessages`, not by mapping the Effect inside `Command.mapEffect`. Mapping the Effect dispatches correctly in production but records nothing on the message-mapping chain, so Story and Scene `resolve` see the raw child Message.
+
+::Snippet{name="lintPreferCommandMapmessage" label="foldkit/prefer-command-mapmessage example"}
+
 ## Model Updates {#model-update-rules}
 
 ### foldkit/no-empty-commands-array {#no-empty-commands-array}
@@ -102,6 +116,20 @@ Rejects object spreads inside an evo updater. Evolve nested fields with a nested
 
 ::Snippet{name="lintNoSpreadInEvo" label="foldkit/no-spread-in-evo example"}
 
+## State Modeling {#state-modeling-rules}
+
+### foldkit/no-switch-on-message-tag {#no-switch-on-message-tag}
+
+Rejects a `switch` on a Message or state `_tag`. Use the tagged union’s `match` helper for exhaustive dispatch, or Effect `Match` when the union has no matcher, so adding a variant produces a type error instead of a silent fall-through.
+
+::Snippet{name="lintNoSwitchOnMessageTag" label="foldkit/no-switch-on-message-tag example"}
+
+### foldkit/prefer-option-over-nullable-in-model {#prefer-option-over-nullable-in-model}
+
+Requires a direct field in the `Model` Schema to represent absence with `Schema.Option`, not a nullable, undefined, or optional Schema field. The rule stays scoped to `const Model = Schema.Struct({...})`, leaving wire and API Schemas free to preserve nullable input formats.
+
+::Snippet{name="lintPreferOptionOverNullableInModel" label="foldkit/prefer-option-over-nullable-in-model example"}
+
 ## Routing {#routing-rules}
 
 ### foldkit/no-hardcoded-route-strings {#no-hardcoded-route-strings}
@@ -109,6 +137,12 @@ Rejects object spreads inside an evo updater. Evolve nested fields with a nested
 Rejects hardcoded path and URL strings passed to link and navigation helpers. Build them from the Route module so they stay in sync with the routes.
 
 ::Snippet{name="lintNoHardcodedRouteStrings" label="foldkit/no-hardcoded-route-strings example"}
+
+### foldkit/no-route-query-constructor-default {#no-route-query-constructor-default}
+
+Rejects `Schema.withConstructorDefault` inside `Route.query`. Constructor defaults run only when a Schema constructs a value with `make`; route query parameters are decoded and encoded, so the annotation does not supply a default for a missing parameter. Use `Schema.withDecodingDefaultKey` when an absent key should decode to a value, or `Schema.OptionFromOptional` when absence belongs in the Route.
+
+::Snippet{name="lintNoRouteQueryConstructorDefault" label="foldkit/no-route-query-constructor-default example"}
 
 ## View Keying and Accessibility {#view-rules}
 
