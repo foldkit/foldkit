@@ -48,19 +48,23 @@ const printNextSteps = (alreadyRegistered: boolean): void => {
   console.log('Next steps:')
   console.log('')
   console.log(
-    '  1. Add devToolsMcpPort to your Vite plugin call in vite.config.ts:',
-  )
-  console.log('')
-  console.log('       plugins: [foldkit({ devToolsMcpPort: 9988 })]')
-  console.log('')
-  console.log(
-    '  2. Pass your Message Schema to Runtime.makeApplication (enables dispatch):',
+    '  1. Pass your Message Schema to Runtime.makeApplication (enables dispatch):',
   )
   console.log('')
   console.log('       devTools: { Message }')
   console.log('')
   console.log(
-    '  3. Restart your dev server, then restart your AI agent (Claude Code, Cursor, etc.).',
+    '  2. Start your dev server, then restart your AI agent (Claude Code, Cursor, etc.).',
+  )
+  console.log('')
+  console.log(
+    '     The Foldkit Vite plugin publishes its DevTools relay for this server to find.',
+  )
+  console.log(
+    '     Set devToolsMcpPort in vite.config.ts only for a fixed port, and then set',
+  )
+  console.log(
+    '     FOLDKIT_DEVTOOLS_MCP_PORT to the same value for this server.',
   )
   console.log('')
   console.log(

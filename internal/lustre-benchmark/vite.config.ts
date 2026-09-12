@@ -16,7 +16,7 @@ export default defineConfig({
   build: {
     outDir: isOptimised ? 'dist/optimised' : 'dist/naive',
     target: 'es2022',
-    minify: 'esbuild',
+    minify: 'oxc',
     sourcemap: false,
     rollupOptions: {
       input: isOptimised ? 'index.optimised.html' : 'index.html',
