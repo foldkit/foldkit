@@ -380,6 +380,14 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Slider',
     'A numeric range Submodel with pointer dragging, keyboard navigation, constraints, steps, and ARIA slider semantics.',
   ),
+  UiMeter: ui(
+    'Meter',
+    'A scalar value in a known range with meter semantics, clamped aria-valuenow, and threshold data attributes.',
+  ),
+  UiProgress: ui(
+    'Progress',
+    'Task progress with determinate and indeterminate states, progressbar semantics, and data-state styling hooks.',
+  ),
   UiSwitch: ui(
     'Switch',
     'A stateless, controlled toggle for immediate on-and-off actions, with keyboard behavior and switch semantics.',
