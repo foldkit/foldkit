@@ -78,11 +78,11 @@ const inFlightBuilds = new Map<string, Promise<void>>()
 const buildWorkerBundle = async (worker: WorkerEntry): Promise<Uint8Array> => {
   const outfile = resolve(CACHE_DIR, worker.filename)
   if (!existsSync(outfile)) {
-    let inFlight = inFlightBuilds.get(outfile)
-    if (inFlight === undefined) {
+    let inFlightBuild = inFlightBuilds.get(outfile)
+    if (inFlightBuild === undefined) {
       mkdirSync(CACHE_DIR, { recursive: true })
       const entryPoint = resolve(WEBSITE_ROOT, 'node_modules', worker.entry)
-      inFlight = build({
+      inFlightBuild = build({
         input: entryPoint,
         platform: 'browser',
         transform: { target: 'es2022' },
@@ -92,9 +92,9 @@ const buildWorkerBundle = async (worker: WorkerEntry): Promise<Uint8Array> => {
         .finally(() => {
           inFlightBuilds.delete(outfile)
         })
-      inFlightBuilds.set(outfile, inFlight)
+      inFlightBuilds.set(outfile, inFlightBuild)
     }
-    await inFlight
+    await inFlightBuild
   }
   return readFileSync(outfile)
 }
