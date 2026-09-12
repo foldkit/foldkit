@@ -1,5 +1,48 @@
 # foldkit
 
+## 0.160.0
+
+### Minor Changes
+
+- [#663](https://github.com/foldkit/foldkit/pull/663) [`63fa8e9`](https://github.com/foldkit/foldkit/commit/63fa8e97d24aadf7a312ee16324c4a956285ad0e) Thanks [@devinjameson](https://github.com/devinjameson)! - Add five Foldkit convention rules, including three from @artile's [#624](https://github.com/foldkit/foldkit/issues/624) that were curated against real code with real Oxlint and reimplemented from their behavior specifications in Foldkit's current rule infrastructure. The remaining rules from that proposal were cut because they overlap accessibility linters, match CSS strings, depend on filenames or cross-file helper tracing, or enforce a debatable opinion.
+
+  - Dispatch: `no-switch-on-message-tag` steers `switch (value._tag)` to the union's exhaustive `match` helper or Effect `Match`.
+  - Effect resources: `acquire-release-constructs-in-acquire-body` requires the acquire Effect to build its resource lazily instead of returning an eagerly created or captured handle that can leak on interruption.
+  - State modeling: `prefer-option-over-nullable-in-model` keeps direct `Model` fields on `Schema.Option` instead of nullable or optional Schema fields.
+  - Routing: `no-route-query-constructor-default` rejects constructor defaults that do not run while `Route.query` decodes, pointing to `Schema.withDecodingDefaultKey` or `Schema.OptionFromOptional` instead.
+  - Command composition: `prefer-command-mapmessage` rejects lifting a result Message by mapping the Effect, which dispatches correctly but leaves Story and Scene unable to recover the lift. Use `Command.mapMessage` or `Command.mapMessages` instead.
+
+  Each rule ships with a colocated unit test, a real-Oxlint integration fixture, and website documentation. The rules are enabled in the recommended preset.
+
+  `Command.mapEffect` now preserves the Command's result Message type while still allowing transformations of its error and requirement channels. This makes its execution-only role explicit in the API.
+
+  BREAKING CHANGE: A `Command.mapEffect` transform can no longer change the result Message type. Replace result transforms with `Command.mapMessage` or `Command.mapMessages`. Transforms that provide services, add retry or delay behavior, or otherwise preserve the result Message continue to work unchanged.
+
+- [#1385](https://github.com/foldkit/foldkit/pull/1385) [`51d0d00`](https://github.com/foldkit/foldkit/commit/51d0d002f20ce59203f09d33537950ac1fad5baf) Thanks [@devinjameson](https://github.com/devinjameson)! - Run page-owning applications with Effect's `BrowserRuntime` again now that it interrupts on a non-persisted `pagehide` instead of `beforeunload`.
+
+  Real page discards once again get best-effort runtime finalization, while downloads, cancelled navigations, and back/forward cache restores leave the application alive. `foldkit` once again requires `@effect/platform-browser@4.0.0-rc.115` as a peer dependency; install it alongside `effect@4.0.0-rc.115`.
+
+- [#1383](https://github.com/foldkit/foldkit/pull/1383) [`b6d0a9b`](https://github.com/foldkit/foldkit/commit/b6d0a9bb32979c08c2ddfee9ffbf5c19d9f5594c) Thanks [@devinjameson](https://github.com/devinjameson)! - Bump Effect to `4.0.0-rc.115` (from `4.0.0-rc.112`). Foldkit's `effect` peer dependency now requires `4.0.0-rc.115`, and `@foldkit/devtools` pins its `@effect/platform-browser` peer dependency to the same version.
+
+  Pin your Effect packages to `4.0.0-rc.115` to match this release. While Effect v4 is in prerelease, use exact pins rather than ranges:
+
+  ```sh
+  pnpm add effect@4.0.0-rc.115 @effect/platform-browser@4.0.0-rc.115
+  pnpm add -D vitest@^5.0.0 @effect/vitest@4.0.0-rc.115
+  ```
+
+  `@effect/vitest@4.0.0-rc.115` requires Vitest 5. Upgrade `vitest` and any `@vitest/*` packages together.
+
+- [#1040](https://github.com/foldkit/foldkit/pull/1040) [`c50a8a2`](https://github.com/foldkit/foldkit/commit/c50a8a225a71083c3456d1e2ca39ba97c87e78dd) Thanks [@devinjameson](https://github.com/devinjameson)! - Adds `Subscription.fromEventFilterMapPreventDefault`, the cancelling variant of `Subscription.fromEventFilterMap`. Its `toMessage` returns `Option.some(message)` to mark a dispatch handled. The helper evaluates the mapper, calls `event.preventDefault()`, and queues the Message before the native listener returns; `Option.none()` leaves the default behavior intact. The mapper never calls `preventDefault()` itself, mirroring `h.OnKeyDownPreventDefault` from `foldkit/html`.
+
+  Some browsers default wheel and touch listeners on global targets to passive, where `preventDefault()` is ignored. Because cancelling is the point, the helper registers its listener with `passive: false` when the config does not specify it. Passing `passive: true` explicitly contradicts the helper's purpose and throws at construction.
+
+  The TSDoc for `fromEvent` and `fromEventFilterMap` now explains that `preventDefault()` is ineffective in a passive listener and shows the `options: { passive: false }` fix.
+
+### Patch Changes
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
 ## 0.159.0
 
 ### Minor Changes

@@ -1,5 +1,26 @@
 # @foldkit/ui
 
+## 0.160.0
+
+### Minor Changes
+
+- [#1040](https://github.com/foldkit/foldkit/pull/1040) [`c50a8a2`](https://github.com/foldkit/foldkit/commit/c50a8a225a71083c3456d1e2ca39ba97c87e78dd) Thanks [@devinjameson](https://github.com/devinjameson)! - Fixes DragAndDrop's keyboard-drag key handling. `preventDefault()` for Tab, Space, Enter, and the arrow keys ran inside a `Stream.mapEffect` stage, a turn after the browser's event dispatch, so during a keyboard drag Tab still moved focus and Space and the arrow keys still scrolled the page. The listener now uses `Subscription.fromEventFilterMapPreventDefault`, which cancels handled events inside the dispatch, and the Foldkit peer dependency now requires the release that provides the helper.
+
+- [#1383](https://github.com/foldkit/foldkit/pull/1383) [`b6d0a9b`](https://github.com/foldkit/foldkit/commit/b6d0a9bb32979c08c2ddfee9ffbf5c19d9f5594c) Thanks [@devinjameson](https://github.com/devinjameson)! - Bump Effect to `4.0.0-rc.115` (from `4.0.0-rc.112`). Foldkit's `effect` peer dependency now requires `4.0.0-rc.115`, and `@foldkit/devtools` pins its `@effect/platform-browser` peer dependency to the same version.
+
+  Pin your Effect packages to `4.0.0-rc.115` to match this release. While Effect v4 is in prerelease, use exact pins rather than ranges:
+
+  ```sh
+  pnpm add effect@4.0.0-rc.115 @effect/platform-browser@4.0.0-rc.115
+  pnpm add -D vitest@^5.0.0 @effect/vitest@4.0.0-rc.115
+  ```
+
+  `@effect/vitest@4.0.0-rc.115` requires Vitest 5. Upgrade `vitest` and any `@vitest/*` packages together.
+
+### Patch Changes
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
 ## 0.159.0
 
 ### Minor Changes

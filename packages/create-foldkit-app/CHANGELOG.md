@@ -1,5 +1,13 @@
 # create-foldkit-app
 
+## 0.35.0
+
+### Minor Changes
+
+- [#1383](https://github.com/foldkit/foldkit/pull/1383) [`b6d0a9b`](https://github.com/foldkit/foldkit/commit/b6d0a9bb32979c08c2ddfee9ffbf5c19d9f5594c) Thanks [@devinjameson](https://github.com/devinjameson)! - Bump bundled Effect dependencies to `4.0.0-rc.115`. Newly scaffolded apps will get the updated pins from the example sources and use Vitest 5, which is required by `foldkit/test/vitest` and `@effect/vitest@4.0.0-rc.115`.
+
+  The CLI now pins `effect`, `@effect/platform-node`, and `@effect/platform-node-shared` to exactly `4.0.0-rc.115` to match this release (exact versions, not ranges, while Effect v4 is in prerelease).
+
 ## 0.34.0
 
 ### Minor Changes
