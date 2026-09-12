@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import { parsedAttributeName } from '../domReflection.js'
+import { markDirty } from './dirtyFlag.js'
 import type { Module } from './module.js'
 import { type VNode, type VNodeData, VNodeDataMask } from './vnode.js'
 
@@ -82,6 +83,7 @@ function updateClass(oldVnode: VNode, vnode: VNode): void {
     for (name in klass) {
       if (klass[name] && !elm.classList.contains(name)) {
         elm.classList.add(name)
+        markDirty()
       }
     }
     return
@@ -95,14 +97,17 @@ function updateClass(oldVnode: VNode, vnode: VNode): void {
       !nextRawClassNames.has(name)
     ) {
       elm.classList.remove(name)
+      markDirty()
     }
   }
   for (name in klass) {
     cur = klass[name]
     if (cur && !elm.classList.contains(name)) {
       elm.classList.add(name)
+      markDirty()
     } else if (cur !== oldClass[name] && !nextRawClassNames.has(name)) {
       elm.classList.remove(name)
+      markDirty()
     }
   }
 }

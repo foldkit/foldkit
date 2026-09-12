@@ -19,7 +19,6 @@ import {
   coreCounterExampleRouter,
   coreCrashViewRouter,
   coreCustomElementRouter,
-  coreDevToolsRouter,
   coreDomRouter,
   coreEmbeddingRouter,
   coreFileRouter,
@@ -43,6 +42,8 @@ import {
   coreViewMemoizationRouter,
   coreViewRouter,
   coreViewTransitionsRouter,
+  devToolsOverviewRouter,
+  devToolsReRenderOutlinesRouter,
   effectAtomComparisonRouter,
   elmComparisonRouter,
   exampleDetailRouter,
@@ -337,11 +338,22 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           label: 'Preserve Scroll',
         },
       ],
+    ],
+  },
+  {
+    key: 'devtools',
+    label: 'DevTools',
+    pageGroups: [
       [
         {
-          _tag: 'CoreDevTools',
-          href: coreDevToolsRouter(),
-          label: 'DevTools',
+          _tag: 'DevToolsOverview',
+          href: devToolsOverviewRouter(),
+          label: 'Overview',
+        },
+        {
+          _tag: 'DevToolsReRenderOutlines',
+          href: devToolsReRenderOutlinesRouter(),
+          label: 'Re-render Outlines',
         },
       ],
     ],

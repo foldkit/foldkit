@@ -28,6 +28,7 @@ import {
   Contact,
   ContentApi,
   Core,
+  DevTools,
   EffectAtomComparison,
   ElmComparison,
   FieldValidation,
@@ -118,7 +119,9 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             CoreSlowWarnings: () => Core.Slow.tableOfContents,
             CoreFreezeModel: () => Core.FreezeModel.tableOfContents,
             CorePreserveScroll: () => Core.PreserveScroll.tableOfContents,
-            CoreDevTools: () => Core.DevTools.tableOfContents,
+            DevToolsOverview: () => DevTools.Overview.tableOfContents,
+            DevToolsReRenderOutlines: () =>
+              DevTools.ReRenderOutlines.tableOfContents,
             CoreSubmodel: () => Core.SubmodelPage.tableOfContents,
             CoreMachine: () => Core.Machine.tableOfContents,
             AsyncData: () => AsyncDataPage.tableOfContents,

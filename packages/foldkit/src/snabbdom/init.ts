@@ -1,4 +1,10 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
+import {
+  beginDirty,
+  consumeDirty,
+  isOutlineRecordingEnabled,
+  markDirty,
+} from './dirtyFlag.js'
 import { type DOMAPI, htmlDomApi } from './htmldomapi.js'
 import * as is from './is.js'
 import type { Module } from './module.js'
@@ -94,6 +100,7 @@ export type Options = {
   experimental?: {
     fragments?: boolean
   }
+  onDirty?: (vnode: VNode) => void
 }
 
 let duplicateKeyWarningOverride: boolean | undefined = undefined
@@ -229,6 +236,7 @@ export function init(
         )
       }
       const dataMask = data?.[vnodeDataMaskKey]
+      beginDirty()
       if (
         !isCreateModuleDataMaskCoverageComplete ||
         dataMask === undefined ||
@@ -248,6 +256,14 @@ export function init(
             moduleHooks.create[moduleIndex]!(emptyNode, vnode)
           }
         }
+      }
+      consumeDirty()
+      if (
+        isOutlineRecordingEnabled() &&
+        vnode.identity !== undefined &&
+        options?.onDirty
+      ) {
+        options.onDirty(vnode)
       }
       if (
         is.primitive(vnode.text) &&
@@ -278,6 +294,7 @@ export function init(
         api.createDocumentFragment ?? documentFragmentIsNotSupported
       )()
       const dataMask = data?.[vnodeDataMaskKey]
+      beginDirty()
       if (
         !isCreateModuleDataMaskCoverageComplete ||
         dataMask === undefined ||
@@ -297,6 +314,14 @@ export function init(
             moduleHooks.create[moduleIndex]!(emptyNode, vnode)
           }
         }
+      }
+      consumeDirty()
+      if (
+        isOutlineRecordingEnabled() &&
+        vnode.identity !== undefined &&
+        options?.onDirty
+      ) {
+        options.onDirty(vnode)
       }
       for (
         let childIndex = 0;
@@ -630,6 +655,7 @@ export function init(
     const hook = vnode.data?.hook
     hook?.prepatch?.(oldVnode, vnode)
     const element = (vnode.elm = oldVnode.elm!)
+    beginDirty()
     if (
       vnode.data !== undefined ||
       (vnode.text !== undefined && vnode.text !== oldVnode.text)
@@ -675,7 +701,10 @@ export function init(
           )
         }
       } else if (nextChildren !== undefined) {
-        if (oldVnode.text !== undefined) api.setTextContent(element, '')
+        if (oldVnode.text !== undefined) {
+          api.setTextContent(element, '')
+          markDirty()
+        }
         addVnodes(
           element,
           null,
@@ -688,12 +717,18 @@ export function init(
         removeVnodes(element, previousChildren, 0, previousChildren.length - 1)
       } else if (oldVnode.text !== undefined) {
         api.setTextContent(element, '')
+        markDirty()
       }
     } else if (oldVnode.text !== vnode.text) {
       if (previousChildren !== undefined) {
         removeVnodes(element, previousChildren, 0, previousChildren.length - 1)
       }
       api.setTextContent(element, vnode.text)
+      markDirty()
+    }
+    const didMutate = consumeDirty()
+    if (didMutate && vnode.identity !== undefined && options?.onDirty) {
+      options.onDirty(vnode)
     }
     hook?.postpatch?.(oldVnode, vnode)
   }
