@@ -18,7 +18,7 @@ Read those when a rule needs context.
 - In prose, capitalize architecture types: Model, Message, Command, Subscription, Mount, ManagedResource, CustomElement, Submodel, OutMessage. Keep lowercase for plain functions: view, update, init.
 - Always use Schema types (not plain TypeScript types), full names like `Message` (not `Msg`), and `withReturnType` (not `as const` or type casting).
 - Foldkit is tightly coupled to Effect-TS. Do not suggest solutions outside the Effect ecosystem. Check existing features in `create-foldkit-app` before suggesting new ones.
-- Push back on any direction that violates Elm Architecture principles: unidirectional data flow, Messages as facts, Model as single source of truth, side effects confined to Commands. Flag the issue and propose the idiomatic Foldkit approach.
+- Push back on any direction that violates Elm Architecture principles: unidirectional data flow, Messages as facts, Model as single source of truth, side effects confined to Commands. Flag the issue and propose the Foldkit approach that preserves those principles.
 
 ## Exemplar Files
 
@@ -32,7 +32,7 @@ The principles below apply broadly. Calibrate to the right context: library desi
 ## Naming
 
 - Messages are verb-first, past-tense facts: `SubmittedUsernameForm`, `CreatedRoom`, `PressedKey`. Verb prefixes: `Clicked*`, `Updated*`, `Succeeded*`/`Failed*` (when failure is meaningful), `Completed*` (every other Command result), `Got*` (child Submodel results only).
-- Never name a Message `NoOp`. This is a rule about the name, not about the behavior: a Message whose update handler changes nothing is fine and often necessary, and it gets a descriptive name stating the fact like any other. For example: `IgnoredMouseClick`, `SuppressedSpaceScroll`. Reaching for a Message so an interaction stays visible to update is the idiomatic move, not something to design around. `Completed*` mirrors the Command name verb-first: `LockScroll` produces `CompletedLockScroll`.
+- Never name a Message `NoOp`. This is a rule about the name, not about the behavior: a Message whose update handler changes nothing is fine and often necessary, and it gets a descriptive name stating the fact like any other. For example: `IgnoredMouseClick`, `SuppressedSpaceScroll`. Dispatch the Message even when update leaves the Model unchanged. `Completed*` mirrors the Command name verb-first: `LockScroll` produces `CompletedLockScroll`.
 - A Command's result Message is named from the Command, not from the fact it reports, and that holds whether or not it carries a payload: `DetermineStartTime` produces `CompletedDetermineStartTime`, never `DeterminedStartTime`. The one exception is a Message with more than one cause, such as `EndedAnimation`, which both `WaitForAnimationSettled` and each component's `DetectMovementOrAnimationEnd` race produce. Name that for the fact.
 - Commands are verb-first imperatives: `FetchWeather`, `FocusButton`, `LockScroll`. Name the effect the Command's execute body performs, not the later Model transition caused when update handles its result. A timer that only waits before update starts a dismissal is `WaitBeforeDismissal`, not `DismissAfter`.
 - Mount Definitions are verb-first imperatives like Commands: `AnchorPopover`, `PortalPopoverBackdrop`, `SyncSidebarScroll`. Result Messages follow the standard Message convention.
@@ -113,6 +113,7 @@ Don't add inline or block comments to explain code. If code needs explanation, r
 - Section headers: `// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// VIEW`, `// COMMAND`, and short descriptive headers for sections outside that set (`// SHARED STYLES`, `// TABLE OF CONTENTS`).
 - TSDoc (`/** ... */`) on all public exports of a published package (`packages/*`). An `export const` in `examples/` is module wiring so `entry.ts` and scene tests can import it, not public API, and takes a `// NOTE:` like any other explanatory comment.
 - `// NOTE:` comments, with a high bar. Only for behavior that would mislead a careful reader (timing dependency, upstream bug workaround, browser quirk). Not for normal patterns, state machine shapes, framework idioms, or what a function does.
+- The first source comment in a bad or good documentation snippet, marked with ❌ or ✅ using the language's comment syntax.
 
 ## View Architecture
 
@@ -217,15 +218,19 @@ No em dashes in prose. You compulsively reach for `—` as a substitute for a pe
 
 Never describe our own writing as honest ("an honest note", "an honest ledger", "honestly"). We are honest by default; labeling it reads as a tell and implies the rest is less honest. Delete the label and say the thing plainly. Applies everywhere: docs, page metadata, commit messages, conversation.
 
-Explain a thing the way you would say it out loud to another person. You write a clear explanation in conversation and then translate it into something worse for the docs: the mechanism described from inside itself, an abstraction where the conversation had an example, and the point buried at the end of a long sentence. The conversational version was the good one. Write that down instead. `.agents/writing-prose.md` has worked examples for these rules, all of them real.
+Explain a thing the way you would say it out loud to another person. You write a clear explanation in conversation and then translate it into something worse for the docs: the mechanism described from inside itself, an abstraction where the conversation had an example, and the point buried at the end of a long sentence. The conversational version was the good one. Write that down instead. `.agents/writing-prose.md` has worked examples for these rules, all of them real. Read it before writing or substantially revising public documentation.
 
 - Lead with the claim, not the machinery. A reader who stops after two sentences should still have the model.
+- Write for a reader who begins at the current heading. Introduce the scenario and its nouns before drawing a conclusion. Do not rely on context from an issue, pull request, or conversation.
 - Describe runtime behavior before type assignability. Say what an operation does before explaining which generic return type accepts its result.
+- Give architecture types accurate agency. A Message records a fact, update decides how the Model changes, and a Command describes work for the Runtime to perform. Do not write that a Message "requires", "runs", or "performs" work.
 - Say what happens to a person. Not "the comparison is off", which describes the system's internal state and leaves the reader to work out the consequence.
 - A failure should read as bad news. If your description of the broken case could be mistaken for reassurance, it will be.
+- State the behavior or consequence directly. Words such as "works", "fails", "correct", "idiomatic", and "the intended way" are verdicts, not explanations. If you use a verdict, immediately say what the code does or what the reader must do.
 - Name the thing you are pointing at. When a demonstrative ("that ordering", "this check") reaches back more than a sentence, repeat the noun.
 - Use the specific name when one exists. If the implementation names three attributes, the prose names them too.
 - One concrete example beats three abstract clauses.
+- Signal an example before presenting it. A reader should not have to infer that several claims illustrate a larger rule. If the examples need different setup, put them in their own sections instead of compressing them into one sentence.
 - Say when you are describing a scenario. "Imagine", "Say", or "Picture", rather than hanging a hypothetical off a colon.
 - Short sentences carry the turns. Pivot a paragraph on a short flat one.
 - Do not assert that something matters. "That is the whole point", "is what makes it worth anything" claim importance instead of delivering it.
@@ -237,6 +242,7 @@ Explain a thing the way you would say it out loud to another person. You write a
 - Headings are labels, not claims. You reach for a pithy parallel ("One model, two levels", "One application using both") because it sounds like insight, but a heading's job is navigation. Name the topic plainly. If it would work as a talk title, it is wrong for a sidebar.
 - Read each artifact the way a reader meets it: headings alone, callouts without the paragraph above them, bullets without their siblings. Prose that reads fine in place loses its antecedent in isolation, and that is where most surviving problems are.
 - Cut trailing appositives that restate rather than advance.
+- Give every code-focused anti-pattern section dedicated bad and good snippets. Mark the bad label with ❌ and the good label with ✅. When a snippet format supports comments, repeat the marker in its first source comment using that language's syntax. For a commentless format such as JSON, use the rendered label alone. If a shared snippet cannot explain its role in the current section, make a page-specific copy with the right example and label.
 
 The test is whether you would say the sentence to a colleague at a whiteboard. If you would not, it is jargon or hedging, and the version you would say is the one to write. That catches word choice too: "three rules govern the value" is stiffer than anything anyone says out loud, where it would be "three things have to be true". Idioms fail from the other side, since "has the most miles" reads fine and does not survive translation.
 
