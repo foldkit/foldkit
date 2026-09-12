@@ -1,3 +1,8 @@
+import {
+  setOutlineRecordingEnabled,
+  shouldRecordOutline,
+} from '../outline/recording.js'
+import type { VNode } from '../snabbdom/vnode.js'
 import type { DispatchSync } from './runtimeSingleton.js'
 
 /** Wrapping descriptor stored per Submodel boundary. */
@@ -119,6 +124,17 @@ const splitBoundary = (boundaryId: BoundaryId): ReadonlyArray<string> =>
  *  view throws or returns `null`, every nested registration and cache entry it
  *  produced is restored because none of those VNodes will reach snabbdom and
  *  run its destroy hook. */
+export type OutlineEntry = Readonly<{
+  boundaryId: string
+  label: string
+  vnode: VNode
+}>
+
+export type PatchOutlineEntry = Readonly<{
+  patchId: string
+  label: string
+  vnode: VNode
+}>
 export type BoundaryRegistry = {
   readonly wraps: Map<BoundaryId, WrapDescriptor>
   readonly boundaryDispatches: WeakMap<
@@ -135,6 +151,15 @@ export type BoundaryRegistry = {
   // between the top-level dedupe pass and createLazy's own dedupe so a const
   // reused across memoized results is cloned. Cleared each render.
   readonly dedupeSeen: Set<object>
+  readonly outlineBuffer: Array<OutlineEntry>
+  readonly patchOutlineBuffer: Array<PatchOutlineEntry>
+  /** Shallow field snapshot of the last model passed to each Submodel boundary.
+   *  Compared by reference on the next render so outlines fire when child input
+   *  changes, not when the parent re-renders with identical field refs. */
+  readonly submodelModelSnapshots: Map<
+    BoundaryId,
+    Readonly<Record<string, unknown>>
+  >
 }
 
 export const createBoundaryRegistry = (): BoundaryRegistry => ({
@@ -147,7 +172,45 @@ export const createBoundaryRegistry = (): BoundaryRegistry => ({
   boundaryWrapTransactionLog: [],
   activeBoundaryWrapTransaction: undefined,
   dedupeSeen: new Set(),
+  outlineBuffer: [],
+  patchOutlineBuffer: [],
+  submodelModelSnapshots: new Map(),
 })
+
+const readModelFieldSnapshot = (
+  model: unknown,
+): Readonly<Record<string, unknown>> => {
+  if (typeof model !== 'object' || model === null) {
+    return {}
+  }
+  return Object.fromEntries(Object.entries(model))
+}
+
+/** Returns true when any field reference on the Submodel child model changed
+ *  since the last render of this boundary. The first render stores a snapshot
+ *  and returns false so init does not flash. */
+export const submodelModelChanged = (
+  registry: BoundaryRegistry,
+  boundaryId: BoundaryId,
+  model: unknown,
+): boolean => {
+  const next = readModelFieldSnapshot(model)
+  const previous = registry.submodelModelSnapshots.get(boundaryId)
+  registry.submodelModelSnapshots.set(boundaryId, next)
+  if (previous === undefined) {
+    return false
+  }
+  const nextKeys = Object.keys(next)
+  if (Object.keys(previous).length !== nextKeys.length) {
+    return true
+  }
+  for (const key of nextKeys) {
+    if (previous[key] !== next[key]) {
+      return true
+    }
+  }
+  return false
+}
 
 const captureCallSite = (): string => {
   const stack = new Error().stack ?? ''
@@ -342,6 +405,7 @@ export const deregisterBoundaryWrap = (
   descriptor: WrapDescriptor,
   mountOuterDispatch: DispatchSync,
 ): void => {
+  registry.submodelModelSnapshots.delete(boundaryId)
   if (registry.wraps.get(boundaryId) === descriptor) {
     registry.wraps.delete(boundaryId)
     const mountWrapOwners = registry.mountWrapOwners.get(boundaryId)
@@ -757,7 +821,101 @@ export const resolveMountBoundaryDispatch = (
  *  same parent boundary can be re-validated. Does not touch the wrap
  *  or dispatcher tables. Those persist across renders and are evicted
  *  by VNode destroy hooks instead. */
+export { setOutlineRecordingEnabled, shouldRecordOutline }
+
+export const trackOutline = (
+  registry: BoundaryRegistry,
+  boundaryId: string,
+  label: string,
+  vnode: VNode,
+): void => {
+  if (!shouldRecordOutline()) {
+    return
+  }
+  registry.outlineBuffer.push({ boundaryId, label, vnode })
+}
+
+const collectVNodesInSubtree = (root: VNode): ReadonlySet<VNode> => {
+  const seen = new Set<VNode>()
+  const walk = (node: VNode | string): void => {
+    if (typeof node === 'string') {
+      return
+    }
+    seen.add(node)
+    if (node.children === undefined) {
+      return
+    }
+    for (const child of node.children) {
+      walk(child)
+    }
+  }
+  walk(root)
+  return seen
+}
+
+/** True when a lazy or patch outline already targets a vnode strictly inside
+ *  `root`. Used to skip the coarse Submodel boundary outline when finer
+ *  tracking already captured the render work beneath it. */
+export const hasNestedOutlineForSubtree = (
+  registry: BoundaryRegistry,
+  root: VNode,
+): boolean => {
+  const subtree = collectVNodesInSubtree(root)
+  for (const entry of registry.outlineBuffer) {
+    if (entry.vnode !== root && subtree.has(entry.vnode)) {
+      return true
+    }
+  }
+  for (const entry of registry.patchOutlineBuffer) {
+    if (entry.vnode !== root && subtree.has(entry.vnode)) {
+      return true
+    }
+  }
+  return false
+}
+
+export const drainOutlines = (
+  registry: BoundaryRegistry,
+): ReadonlyArray<OutlineEntry> => {
+  if (registry.outlineBuffer.length === 0) {
+    return []
+  }
+  const entries = registry.outlineBuffer.slice()
+  registry.outlineBuffer.length = 0
+  return entries
+}
+
+export const trackPatchOutline = (
+  registry: BoundaryRegistry,
+  vnode: VNode,
+): void => {
+  if (!shouldRecordOutline()) {
+    return
+  }
+  if (vnode.identity === undefined) {
+    return
+  }
+  registry.patchOutlineBuffer.push({
+    patchId: vnode.identity,
+    label: vnode.identity,
+    vnode,
+  })
+}
+
+export const drainPatchOutlines = (
+  registry: BoundaryRegistry,
+): ReadonlyArray<PatchOutlineEntry> => {
+  if (registry.patchOutlineBuffer.length === 0) {
+    return []
+  }
+  const entries = registry.patchOutlineBuffer.slice()
+  registry.patchOutlineBuffer.length = 0
+  return entries
+}
+
 export const beginRender = (registry: BoundaryRegistry): void => {
   registry.seenThisRender.clear()
   registry.dedupeSeen.clear()
+  registry.outlineBuffer.length = 0
+  registry.patchOutlineBuffer.length = 0
 }

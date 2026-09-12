@@ -27,6 +27,7 @@ import {
   Contact,
   ContentApi,
   Core,
+  DevTools,
   EffectAtomComparison,
   ElmComparison,
   Example,
@@ -701,10 +702,18 @@ export const view = (
           lazyDocsContent(Core.ManagedResources.view, [model.snippetCopy, h]),
           Core.ManagedResources.tableOfContents,
         ),
-      CoreDevTools: () =>
+      DevToolsOverview: () =>
         withTableOfContents(
-          lazyDocsContent(Core.DevTools.view, [model.snippetCopy, h]),
-          Core.DevTools.tableOfContents,
+          lazyDocsContent(DevTools.Overview.view, [model.snippetCopy, h]),
+          DevTools.Overview.tableOfContents,
+        ),
+      DevToolsReRenderOutlines: () =>
+        withTableOfContents(
+          lazyDocsContent(DevTools.ReRenderOutlines.view, [
+            model.snippetCopy,
+            h,
+          ]),
+          DevTools.ReRenderOutlines.tableOfContents,
         ),
       CoreCrashView: () =>
         withTableOfContents(

@@ -6,7 +6,7 @@
 
 The server complements [Foldkit skills](/ai/skills) and the vendored source. Those references explain how the code should be structured. The MCP server shows what the code is doing now.
 
-The same Runtime data also powers [DevTools](/core/devtools). DevTools presents it in a panel for people, while the MCP server exposes it as tools for agents.
+The same Runtime data also powers [DevTools](/devtools). DevTools presents it in a panel for people, while the MCP server exposes it as tools for agents.
 
 ## Setup
 

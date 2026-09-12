@@ -1,5 +1,7 @@
-import { Option } from 'effect'
+import { Option, Predicate } from 'effect'
 
+import type { BoundaryRegistry } from './html/boundary.js'
+import { trackPatchOutline } from './html/boundary.js'
 import { onUnmountModule } from './onUnmountModule.js'
 import { propsModule } from './propsModule.js'
 import {
@@ -17,6 +19,8 @@ import {
 export type { VNode } from './snabbdom/index.js'
 export { toVNode }
 
+let currentPatchRegistry: BoundaryRegistry | undefined
+
 // NOTE: module order is load-bearing for hydration. `attributesModule` must run
 // before `propsModule`. When a controlled input is adopted, the seeded server
 // `value` attribute is removed by the attrs module first, which resets
@@ -24,15 +28,25 @@ export { toVNode }
 // `elm[key] !== cur` guard now seeing a cleared value. In the reverse order the
 // props write is skipped as a no-op and the later attribute removal blanks the
 // input. The controlled-input hydration tests fail if this order is changed.
-export const patch = init([
-  attributesModule,
-  classModule,
-  datasetModule,
-  eventListenersModule,
-  onUnmountModule,
-  propsModule,
-  styleModule,
-])
+export const patch = init(
+  [
+    attributesModule,
+    classModule,
+    datasetModule,
+    eventListenersModule,
+    onUnmountModule,
+    propsModule,
+    styleModule,
+  ],
+  undefined,
+  {
+    onDirty: vnode => {
+      if (currentPatchRegistry !== undefined) {
+        trackPatchOutline(currentPatchRegistry, vnode)
+      }
+    },
+  },
+)
 
 // NOTE: snabbdom records each element's live DOM node on `vnode.elm` by
 // mutating the vnode object during patch, and assumes one vnode object per tree
@@ -152,15 +166,29 @@ export const __patchVNode = (
   container: HTMLElement,
   seen?: Set<object>,
   onRootPatched?: (vnode: VNode) => void,
+  registry?: BoundaryRegistry,
 ): VNode => {
-  const dedupedVNode =
-    nextVNode !== null ? dedupeSharedVNodes(nextVNode, seen) : h('!')
+  const dedupedVNode = Predicate.isNotNull(nextVNode)
+    ? dedupeSharedVNodes(nextVNode, seen)
+    : h('!')
 
-  if (Option.isNone(maybeCurrentVNode)) {
-    return patchFreshInto(container, dedupedVNode, onRootPatched)
+  if (registry === undefined) {
+    if (Option.isNone(maybeCurrentVNode)) {
+      return patchFreshInto(container, dedupedVNode, onRootPatched)
+    }
+
+    return patch(maybeCurrentVNode.value, dedupedVNode, onRootPatched)
   }
+  currentPatchRegistry = registry
+  try {
+    if (Option.isNone(maybeCurrentVNode)) {
+      return patchFreshInto(container, dedupedVNode, onRootPatched)
+    }
 
-  return patch(maybeCurrentVNode.value, dedupedVNode, onRootPatched)
+    return patch(maybeCurrentVNode.value, dedupedVNode, onRootPatched)
+  } finally {
+    currentPatchRegistry = undefined
+  }
 }
 
 export const __recoverVNodeAfterPatchFailure = (currentVNode: VNode): VNode => {

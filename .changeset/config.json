@@ -52,6 +52,7 @@
     "interrupting-commands-example",
     "view-transitions-example",
     "ssr-example",
-    "ssg-example"
+    "ssg-example",
+    "re-render-outlines-example"
   ]
 }

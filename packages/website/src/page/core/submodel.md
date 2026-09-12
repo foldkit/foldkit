@@ -310,7 +310,7 @@ Test the parent when the behavior crosses the boundary, such as routing a wrappe
 
 ## Debugging Submodels in DevTools {#debugging-in-devtools}
 
-The `Got*Message` convention powers the Submodel filter in [Foldkit DevTools](/core/devtools). Selecting a child scopes the timeline and Model diffs to that boundary.
+The `Got*Message` convention powers the Submodel filter in [Foldkit DevTools](/devtools). Selecting a child scopes the timeline and Model diffs to that boundary.
 
 Another wrapper name still routes correctly, but DevTools cannot discover it for the filter.
 
