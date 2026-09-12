@@ -51,6 +51,20 @@ test('package changelogs credit pull request authors', () => {
   assert.match(versionJob, /github-token: \$\{\{ secrets\.GITHUB_TOKEN \}\}/)
 })
 
+test('version planning coordinates shared inputs using the complete release history', () => {
+  const versionJob = job('version', 'stable')
+
+  assert.match(
+    rootPackage.scripts['version-packages'],
+    /^node scripts\/prepare-website-release\.mjs && changeset version && /,
+  )
+  assert.match(
+    versionJob,
+    /- name: Checkout Repo\n\s+uses: actions\/checkout@v4\n\s+with:\n\s+fetch-depth: 0\n\s+fetch-tags: true/,
+  )
+  assert.match(workflow, /^\s+- 'scripts\/prepare-website-release\.mjs'$/m)
+})
+
 test('Changesets only versions packages and cannot parse publisher output', () => {
   assert.equal(
     rootPackage.scripts.release,

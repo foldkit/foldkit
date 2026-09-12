@@ -24,6 +24,7 @@ on:
       - 'scripts/build-public-packages.mjs'
       - 'scripts/check-playground-ssg-build.ts'
       - 'scripts/check-website-release-inputs.mjs'
+      - 'scripts/prepare-website-release.mjs'
       - 'scripts/coherent-release.mjs'
       - 'scripts/finalize-github-release.mjs'
       - 'scripts/example-bridge.js'
@@ -60,6 +61,9 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4

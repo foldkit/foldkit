@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process'
 
 import {
   packageBuildInputs,
-  SHARED_PACKAGE_INPUTS,
+  sharedPackageInputsDiffer,
   WEBSITE_PACKAGES,
 } from './lib/website-package-inputs.mjs'
 
@@ -157,20 +157,9 @@ if (publishedTagCommits.length > 0) {
   const unversionedWebsitePackages = WEBSITE_PACKAGES.filter(
     packageEntry => !versionedWebsitePackages.has(packageEntry.name),
   ).map(packageEntry => packageEntry.name)
-  const latestPackageRelease = git(['rev-list', '-1', ...publishedTagCommits])
-  if (latestPackageRelease.status !== 0) {
-    throw new Error(
-      latestPackageRelease.stderr.trim() ||
-        'could not identify the latest published website package release',
-    )
-  }
 
   if (
-    differs(
-      latestPackageRelease.stdout.trim(),
-      target,
-      SHARED_PACKAGE_INPUTS,
-    ) &&
+    sharedPackageInputsDiffer({ git, publishedTagCommits, target }) &&
     isPackageRelease &&
     unversionedWebsitePackages.at(0) !== undefined
   ) {

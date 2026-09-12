@@ -84,7 +84,7 @@
     "dev:example:ssg": "pnpm --filter ssg-example dev",
     "dev:example:ssr": "pnpm --filter ssr-example dev",
     "changeset": "changeset",
-    "version-packages": "changeset version && node scripts/version-alignment-notes.mjs && tsx scripts/reset-peer-deps.ts && pnpm install --no-frozen-lockfile",
+    "version-packages": "node scripts/prepare-website-release.mjs && changeset version && node scripts/version-alignment-notes.mjs && tsx scripts/reset-peer-deps.ts && pnpm install --no-frozen-lockfile",
     "release": "pnpm check:peer-floors && node scripts/coherent-release.mjs stable",
     "release:canary": "node scripts/coherent-release.mjs canary",
     "release:finalize-github": "node scripts/finalize-github-release.mjs",
