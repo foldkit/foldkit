@@ -86,6 +86,7 @@ import {
   getStartedRouter,
   homeRouter,
   newsletterRouter,
+  patternsAntiPatternsRouter,
   patternsInformingSubmodelsRouter,
   patternsSubscriptionOrganizationRouter,
   performanceRouter,
@@ -208,6 +209,7 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   AppRoute.CoreSubmodel(),
   AppRoute.CoreMachine(),
   AppRoute.AsyncData(),
+  AppRoute.PatternsAntiPatterns(),
   AppRoute.PatternsInformingSubmodels(),
   AppRoute.PatternsSubscriptionOrganization(),
   AppRoute.CoreViewMemoization(),
@@ -312,6 +314,7 @@ export const routeToUrlPath = (route: AppRoute): string =>
     CoreSubmodel: () => coreSubmodelRouter(),
     CoreMachine: () => coreMachineRouter(),
     AsyncData: () => asyncDataRouter(),
+    PatternsAntiPatterns: () => patternsAntiPatternsRouter(),
     PatternsInformingSubmodels: () => patternsInformingSubmodelsRouter(),
     PatternsSubscriptionOrganization: () =>
       patternsSubscriptionOrganizationRouter(),

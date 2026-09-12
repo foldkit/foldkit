@@ -122,6 +122,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             CoreSubmodel: () => Core.SubmodelPage.tableOfContents,
             CoreMachine: () => Core.Machine.tableOfContents,
             AsyncData: () => AsyncDataPage.tableOfContents,
+            PatternsAntiPatterns: () => Patterns.AntiPatterns.tableOfContents,
             PatternsInformingSubmodels: () =>
               Patterns.InformingSubmodels.tableOfContents,
             PatternsSubscriptionOrganization: () =>

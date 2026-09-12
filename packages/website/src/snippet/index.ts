@@ -256,6 +256,8 @@ export { default as submodelParentViewInputsRaw } from './submodelParentViewInpu
 export { default as submodelParentViewInputsHighlighted } from './submodelParentViewInputs.ts?highlighted'
 export { default as submodelDirectEvoAntipatternRaw } from './submodelDirectEvoAntipattern.ts?raw'
 export { default as submodelDirectEvoAntipatternHighlighted } from './submodelDirectEvoAntipattern.ts?highlighted'
+export { default as submodelInternalMessageAntipatternRaw } from './submodelInternalMessageAntipattern.ts?raw'
+export { default as submodelInternalMessageAntipatternHighlighted } from './submodelInternalMessageAntipattern.ts?highlighted'
 export { default as submodelDelegateViaHelperRaw } from './submodelDelegateViaHelper.ts?raw'
 export { default as submodelDelegateViaHelperHighlighted } from './submodelDelegateViaHelper.ts?highlighted'
 export { default as commandMapMessagesUnderHoodRaw } from './commandMapMessagesUnderHood.ts?raw'

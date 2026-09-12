@@ -72,6 +72,7 @@ export const AppRoute = defineRouteUnion({
   CoreSubmodel: {},
   CoreMachine: {},
   AsyncData: {},
+  PatternsAntiPatterns: {},
   PatternsInformingSubmodels: {},
   PatternsSubscriptionOrganization: {},
   UiOverview: {},
@@ -173,6 +174,7 @@ export const DocsRoute = AppRoute.subset([
   'CoreSubmodel',
   'CoreMachine',
   'AsyncData',
+  'PatternsAntiPatterns',
   'PatternsInformingSubmodels',
   'PatternsSubscriptionOrganization',
   'UiOverview',
@@ -431,6 +433,10 @@ export const coreSubmodelRouter = core('submodel', AppRoute.CoreSubmodel)
 export const coreMachineRouter = core('machine', AppRoute.CoreMachine)
 export const asyncDataRouter = core('async-data', AppRoute.AsyncData)
 
+export const patternsAntiPatternsRouter = patterns(
+  'anti-patterns',
+  AppRoute.PatternsAntiPatterns,
+)
 export const patternsInformingSubmodelsRouter = patterns(
   'informing-submodels',
   AppRoute.PatternsInformingSubmodels,
@@ -550,6 +556,7 @@ const coreParser = oneOf(
 )
 
 const patternsParser = oneOf(
+  patternsAntiPatternsRouter,
   patternsInformingSubmodelsRouter,
   patternsSubscriptionOrganizationRouter,
   projectOrganizationRouter,

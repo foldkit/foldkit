@@ -49,6 +49,7 @@ import {
   examplesRouter,
   fieldValidationRouter,
   getStartedRouter,
+  patternsAntiPatternsRouter,
   patternsInformingSubmodelsRouter,
   patternsSubscriptionOrganizationRouter,
   performanceRouter,
@@ -387,6 +388,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
     label: 'Patterns',
     pageGroups: [
       [
+        {
+          _tag: 'PatternsAntiPatterns',
+          href: patternsAntiPatternsRouter(),
+          label: 'Anti-patterns',
+        },
         {
           _tag: 'ProjectOrganization',
           href: projectOrganizationRouter(),
