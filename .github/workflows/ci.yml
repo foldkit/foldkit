@@ -74,6 +74,12 @@ jobs:
           FOLDKIT_CI_REPOSITORY: ${{ github.repository }}
         run: node scripts/check-changeset-status.mjs
 
+      - name: Verify Version Packages website release inputs
+        if: github.event_name == 'pull_request' && github.head_ref == 'changeset-release/main' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          RELEASE_COMMIT: ${{ github.event.pull_request.head.sha }}
+        run: pnpm check:website-release-inputs "$RELEASE_COMMIT"
+
       - name: Lint
         run: pnpm --filter @foldkit/oxlint-plugin build && pnpm lint:ci
 
