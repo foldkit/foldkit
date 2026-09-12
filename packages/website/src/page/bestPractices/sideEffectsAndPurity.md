@@ -15,7 +15,7 @@ Effectful work lives at boundaries managed by the Runtime. Depending on the boun
 - [Resources](/core/resources) provide app-lifetime services shared by Commands, Subscriptions, Mounts, and Flags.
 - [ManagedResource](/core/managed-resources) acquires a typed stateful handle while a Model condition holds. Commands and Subscriptions can use that handle while it is live.
 
-These descriptions do nothing until the Runtime starts them. One narrow exception stays inside its boundary: a mapper passed to `Subscription.fromEvent` may perform synchronous browser work such as `event.preventDefault()` before returning a Message.
+These descriptions do nothing until the Runtime starts them. One narrow exception stays inside its boundary: a DOM-event mapper may need to perform synchronous browser work before returning a Message. Use `Subscription.fromEventPreventDefault` when handling an event should also cancel its default action. The helper runs its mapper and calls `preventDefault()` inside the browser's dispatch, while a downstream `Stream` operator runs too late to cancel the event.
 
 A [CustomElement](/core/custom-element) binding remains declarative. Properties flow from the Model into the native element, and its events return as Messages. The browser owns the custom element's internal implementation.
 
