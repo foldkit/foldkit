@@ -46,6 +46,13 @@ test('changeset status receives trusted pull request context', () => {
   )
 })
 
+test('trusted Version Packages pull requests verify their release commit inputs', () => {
+  assert.match(
+    workflow,
+    /- name: Verify Version Packages website release inputs\n\s+if: github\.event_name == 'pull_request' && github\.head_ref == 'changeset-release\/main' && github\.event\.pull_request\.head\.repo\.full_name == github\.repository\n\s+env:\n\s+RELEASE_COMMIT: \$\{\{ github\.event\.pull_request\.head\.sha \}\}\n\s+run: pnpm check:website-release-inputs "\$RELEASE_COMMIT"/,
+  )
+})
+
 test('the packed SSR consumer runs its critical browser matrix in CI', () => {
   assert.match(
     workflow,
