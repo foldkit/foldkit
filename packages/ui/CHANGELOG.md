@@ -1,5 +1,19 @@
 # @foldkit/ui
 
+## 0.159.0
+
+### Minor Changes
+
+- [#541](https://github.com/foldkit/foldkit/pull/541) [`5f58bed`](https://github.com/foldkit/foldkit/commit/5f58bedf7b196ab07ba7d11990e3c594d8bc69a1) Thanks [@devinjameson](https://github.com/devinjameson)! - Gate `aria-describedby` on an explicit opt-in in Dialog, Input, Textarea, Select, Fieldset, Checkbox, Switch, and RadioGroup. These components previously emitted a reference on every render even when no description was rendered. Pass `hasDescription: true` when a component renders its description element; for RadioGroup, use `hasOptionDescription` to identify the described options.
+
+### Patch Changes
+
+- [#540](https://github.com/foldkit/foldkit/pull/540) [`0d22a9f`](https://github.com/foldkit/foldkit/commit/0d22a9fa5d757b8a93cdfa8ccc94fb0a9061eeed) Thanks [@devinjameson](https://github.com/devinjameson)! - Keep `Dialog` open when a file picker inside it is canceled. The dialog now suppresses native `cancel` events and responds only to the distinct cancel signal that `Dom.showDialog` dispatches for an unhandled Escape on the topmost Dialog.
+
+  Add `h.OnCancelPreventDefault` for preventing a native `cancel` event without dispatching a Message, with an optional Message for a synthetic `CustomEvent` signal.
+
+- [#960](https://github.com/foldkit/foldkit/pull/960) [`40b6ef2`](https://github.com/foldkit/foldkit/commit/40b6ef2babe96011264ba14911318d4a31d5a6d8) Thanks [@armancharan](https://github.com/armancharan)! - `Runtime.embed` now reports unhandled startup failures in the console, matching `Runtime.run` and `Runtime.hydrate`, while host disposal and other interrupt-only exits stay quiet. A failing Flags or resource Effect no longer leaves an embedded program blank without explaining why.
+
 ## 0.158.2
 
 ### Version Alignment
