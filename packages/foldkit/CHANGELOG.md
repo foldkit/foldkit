@@ -1,5 +1,47 @@
 # foldkit
 
+## 0.159.0
+
+### Minor Changes
+
+- [#913](https://github.com/foldkit/foldkit/pull/913) [`6b80081`](https://github.com/foldkit/foldkit/commit/6b80081f5a2fcc6509d7e1a4daa0568e00722928) Thanks [@devinjameson](https://github.com/devinjameson)! - Decode each CustomElement event's `detail` against its declared Schema before invoking the event callback. Invalid details are reported to the console and dispatch no Message, Schema transformations run at the browser boundary, and undeclared fields are removed during decoding.
+
+  When a Schema rejects the nullish detail of a payload-less `CustomEvent`, retry with an empty object so `Schema.Struct({})` remains the natural declaration for events without a payload. Schemas that accept the raw nullish value receive it unchanged.
+
+  CustomElement event declarations now require Schemas that decode without Effect services because browser event handlers run synchronously. Replace any decoding-service-dependent event Schema with a service-free decoding boundary Schema; encoding services remain supported.
+
+  `Scene.CustomElement.emit` now accepts the encoded side of the declared event Schema, matching the detail supplied by the browser before runtime decoding.
+
+- [#540](https://github.com/foldkit/foldkit/pull/540) [`0d22a9f`](https://github.com/foldkit/foldkit/commit/0d22a9fa5d757b8a93cdfa8ccc94fb0a9061eeed) Thanks [@devinjameson](https://github.com/devinjameson)! - Keep `Dialog` open when a file picker inside it is canceled. The dialog now suppresses native `cancel` events and responds only to the distinct cancel signal that `Dom.showDialog` dispatches for an unhandled Escape on the topmost Dialog.
+
+  Add `h.OnCancelPreventDefault` for preventing a native `cancel` event without dispatching a Message, with an optional Message for a synthetic `CustomEvent` signal.
+
+- [#525](https://github.com/foldkit/foldkit/pull/525) [`af3250e`](https://github.com/foldkit/foldkit/commit/af3250ec30c54dbfb60045220ad855af68b0a83d) Thanks [@devinjameson](https://github.com/devinjameson)! - Add `OnKeyDownSelf` and `OnKeyDownSelfPreventDefault` to `foldkit/html`. They mirror `OnKeyDown` and `OnKeyDownPreventDefault` but fire only when the keydown targets the element itself (`event.target === event.currentTarget`) rather than bubbling up from a descendant. A composite widget that owns the keyboard for a region but embeds interactive children inside it can now ignore the children's keystrokes declaratively. For a contenteditable host the focused element is the host itself, so its own typing fires the handler while keys typed in an embedded input bubble through untouched.
+
+- [#1371](https://github.com/foldkit/foldkit/pull/1371) [`6670662`](https://github.com/foldkit/foldkit/commit/667066266ec7c927152d41d32d655f47776c7ed2) Thanks [@devinjameson](https://github.com/devinjameson)! - Add `matchOrElse` to unions returned by `defineTaggedUnion` and `defineRouteUnion`. Selected variants receive narrowed handlers, while inferred calls narrow the fallback to the remaining variants. Both data-first and data-last calls preserve structurally refined input unions.
+
+- [#524](https://github.com/foldkit/foldkit/pull/524) [`052c866`](https://github.com/foldkit/foldkit/commit/052c86603d9a59a5471f763a0bd12c232c440a12) Thanks [@devinjameson](https://github.com/devinjameson)! - Make `OnInput` read from `Contenteditable` hosts. A contenteditable element has no `value`, so previously its `input` events could not be observed declaratively and the host had to masquerade as a form control by defining a `value` getter. `OnInput` now reads the host's rendered text (`innerText`, falling back to `textContent`) when the target has no string `value`, so plain `OnInput` works on a contenteditable host. `OnChange` reads its value the same way. Form controls are unaffected: they still report their `value`.
+
+  Add `OnBeforeInput` and `OnBeforeInputPreventDefault` for editor-grade input on a contenteditable host. Both receive the edit's `inputType` and its `data` as an `Option` (`None` for edits that carry no text, such as most deletions). `OnBeforeInputPreventDefault` returns an `Option<Message>`: `Some` cancels the native edit through `preventDefault` and dispatches, letting update own the document mutation instead of reconciling after the browser has already edited the DOM; `None` lets the native edit proceed. This catches edits that never surface as a keystroke, such as autocorrect and spellcheck replacements. A non-cancelable edit, including some IME composition input, proceeds without dispatching and can be reconciled through `OnInput`.
+
+  The test harness gains `Scene.typeContentEditable` to drive `OnInput` and `Scene.beforeInput` to drive `OnBeforeInput` or `OnBeforeInputPreventDefault` on a contenteditable element.
+
+- [#651](https://github.com/foldkit/foldkit/pull/651) [`b950c05`](https://github.com/foldkit/foldkit/commit/b950c054bbe3ffafd85cbca21aa817c5f4c45f44) Thanks [@devinjameson](https://github.com/devinjameson)! - Rename the `foldkit/hmr-protocol` export to `foldkit/model-preservation` and correct dev-reload terminology.
+
+  Foldkit's dev-time state preservation serializes the Model, triggers a full page reload, and restores the Model on the fresh boot. That is live reload, not hot module replacement, so the naming now matches the mechanism. The public subpath `foldkit/hmr-protocol` is now `foldkit/model-preservation`, and the `PreserveModelMessage` `isHmrReload` field is now `isReloadFlush`. If you import `foldkit/hmr-protocol` directly, update the specifier to `foldkit/model-preservation`.
+
+- [#1310](https://github.com/foldkit/foldkit/pull/1310) [`e083c60`](https://github.com/foldkit/foldkit/commit/e083c601b1018c3682dabbd851762a3948ff57f5) Thanks [@filipfalcon](https://github.com/filipfalcon)! - Make the Foldkit server a Web `fetch` handler.
+
+  `ssr.build` no longer takes `entry` pointing at a Node HTTP process or a custom Worker. One `vite build` emits `dist/server/fetch.js` whose default export is `{ fetch }`. Node and Workers both run that module. `handleRequest` in `foldkit/experimental/server` is the shared implementation.
+
+  When another plugin owns the `ssr` environment (workerd), Foldkit still stands down in dev. With `ssr.build` set it stays quiet, because production still needs `ssr.serverEntry`.
+
+  **Migration:** drop `ssr.build.entry` and keep `ssr.serverEntry`. Your Node host is no longer built by `vite build`. Replace it with a script that serves `dist/client` and falls through to `dist/server/fetch.js`, using the SSR example's `scripts/serve.ts` as the reference, and start with `node scripts/serve.ts` instead of `node dist/server/main.js`. A host that imported `dist/server/entry.server.js` now imports `dist/server/fetch.js`, which still exports `renderPage`. A Cloudflare Worker can default-export `fetch.js` directly. `foldkit.build.json` records `fetch.js` as `serverEntry`. The handler trusts `Request.url` as the platform constructed it; a Node adapter resolves the raw request target against its configured origin before calling `fetch`, as `scripts/serve.ts` does.
+
+### Patch Changes
+
+- [#960](https://github.com/foldkit/foldkit/pull/960) [`40b6ef2`](https://github.com/foldkit/foldkit/commit/40b6ef2babe96011264ba14911318d4a31d5a6d8) Thanks [@armancharan](https://github.com/armancharan)! - `Runtime.embed` now reports unhandled startup failures in the console, matching `Runtime.run` and `Runtime.hydrate`, while host disposal and other interrupt-only exits stay quiet. A failing Flags or resource Effect no longer leaves an embedded program blank without explaining why.
+
 ## 0.158.2
 
 ### Patch Changes
