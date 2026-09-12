@@ -25,6 +25,7 @@ on:
       - 'scripts/check-playground-ssg-build.ts'
       - 'scripts/check-website-release-inputs.mjs'
       - 'scripts/prepare-website-release.mjs'
+      - 'scripts/version-packages.mjs'
       - 'scripts/coherent-release.mjs'
       - 'scripts/finalize-github-release.mjs'
       - 'scripts/example-bridge.js'

@@ -16,7 +16,9 @@ import { fileURLToPath } from 'node:url'
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const PREPARE = resolve(ROOT, 'scripts/prepare-website-release.mjs')
 const CHECK = resolve(ROOT, 'scripts/check-website-release-inputs.mjs')
+const VERSION = resolve(ROOT, 'scripts/version-packages.mjs')
 const CHANGESETS = fileURLToPath(import.meta.resolve('@changesets/cli/bin.js'))
+const CHANGESETS_COMMAND = `node '${CHANGESETS.replaceAll("'", "'\\''")}' version`
 const GENERATED_CHANGESET = '.changeset/generated-website-build-inputs.md'
 const PACKAGES = [
   { directory: 'foldkit', name: 'foldkit' },
@@ -55,10 +57,15 @@ const fixture = context => {
   run(repo, 'git', ['init', '-q'])
   run(repo, 'git', ['config', 'user.name', 'Foldkit Test'])
   run(repo, 'git', ['config', 'user.email', 'foldkit@example.com'])
+  write(repo, '.gitignore', 'node_modules/\n')
   writeJson(repo, 'package.json', {
     name: 'release-fixture',
+    version: '1.0.0',
     private: true,
     packageManager: 'pnpm@11.8.0',
+    scripts: {
+      'version-packages:apply': `${CHANGESETS_COMMAND} && pnpm install --lockfile-only --offline --ignore-scripts --config.manage-package-manager-versions=false`,
+    },
   })
   write(repo, 'pnpm-workspace.yaml', "packages:\n  - 'packages/*'\n")
   write(repo, 'pnpm-lock.yaml', "lockfileVersion: '9.0'\n")
@@ -107,6 +114,25 @@ const changeSharedInputs = repo => {
 const version = repo => {
   run(repo, process.execPath, [CHANGESETS, 'version'])
   commit(repo, 'version packages')
+}
+
+const install = repo =>
+  run(repo, 'pnpm', [
+    'install',
+    '--lockfile-only',
+    '--offline',
+    '--ignore-scripts',
+    '--config.manage-package-manager-versions=false',
+  ])
+
+const tagPackages = repo => {
+  for (const pkg of PACKAGES) {
+    run(repo, 'git', [
+      'tag',
+      '-f',
+      `${pkg.name}@${packageVersion(repo, pkg.directory)}`,
+    ])
+  }
 }
 
 const packageVersion = (repo, directory) =>
@@ -231,4 +257,261 @@ test('a finalized coordinated release does not schedule the same bumps again', c
   run(repo, process.execPath, [PREPARE])
 
   assert.equal(existsSync(join(repo, GENERATED_CHANGESET)), false)
+})
+
+test('versioning-induced lockfile changes receive coordination bumps', context => {
+  const repo = fixture(context)
+  writeJson(repo, 'packages/ui/package.json', {
+    name: '@foldkit/ui',
+    version: '1.0.0',
+    devDependencies: { foldkit: 'workspace:^1.0.0' },
+  })
+  install(repo)
+  commit(repo, 'publish explicit workspace range')
+  tagPackages(repo)
+  const originalLockfile = readFileSync(join(repo, 'pnpm-lock.yaml'), 'utf8')
+  addFeature(repo)
+  run(repo, process.execPath, [PREPARE])
+  assert.equal(existsSync(join(repo, GENERATED_CHANGESET)), false)
+
+  run(repo, process.execPath, [VERSION])
+  assert.notEqual(
+    readFileSync(join(repo, 'pnpm-lock.yaml'), 'utf8'),
+    originalLockfile,
+  )
+  assert.equal(packageVersion(repo, 'foldkit'), '1.1.0')
+  assert.equal(packageVersion(repo, 'ui'), '1.1.0')
+  assert.equal(packageVersion(repo, 'devtools'), '1.1.0')
+  assert.equal(packageVersion(repo, 'markdown'), '1.0.1')
+  assert.equal(packageVersion(repo, 'vite-plugin-foldkit'), '1.0.1')
+  assert.equal(existsSync(join(repo, GENERATED_CHANGESET)), false)
+  assert.equal(existsSync(join(repo, '.changeset/feature.md')), false)
+  commit(repo, 'version packages')
+
+  run(repo, process.execPath, [CHECK])
+})
+
+test('the coordinator keeps package-specific plans and is repeatable after finalization', context => {
+  const repo = fixture(context)
+  install(repo)
+  commit(repo, 'publish lockfile')
+  tagPackages(repo)
+  addFeature(repo)
+
+  const output = run(repo, process.execPath, [VERSION])
+
+  assert.doesNotMatch(output, /Replanning with coordination patches/)
+  assert.equal(packageVersion(repo, 'foldkit'), '1.1.0')
+  assert.equal(packageVersion(repo, 'markdown'), '1.0.0')
+  assert.equal(packageVersion(repo, 'vite-plugin-foldkit'), '1.0.0')
+  commit(repo, 'version packages')
+  run(repo, process.execPath, [CHECK])
+  tagPackages(repo)
+  addFeature(repo)
+
+  run(repo, process.execPath, [VERSION])
+
+  assert.equal(packageVersion(repo, 'foldkit'), '1.2.0')
+  assert.equal(packageVersion(repo, 'markdown'), '1.0.0')
+  assert.equal(packageVersion(repo, 'vite-plugin-foldkit'), '1.0.0')
+  commit(repo, 'version the next release')
+  run(repo, process.execPath, [CHECK])
+})
+
+test('the coordinator rejects dirty files without changing them', context => {
+  const repo = fixture(context)
+  addFeature(repo)
+  write(repo, 'personal-notes.txt', 'Uncommitted notes.\n')
+
+  const result = execute(repo, process.execPath, [VERSION])
+
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /requires a clean working tree/)
+  assert.equal(
+    readFileSync(join(repo, 'personal-notes.txt'), 'utf8'),
+    'Uncommitted notes.\n',
+  )
+  assert.equal(packageVersion(repo, 'foldkit'), '1.0.0')
+  assert.equal(existsSync(join(repo, '.changeset/feature.md')), true)
+})
+
+test('the coordinator leaves a missing-tag checkout unchanged', context => {
+  const repo = fixture(context)
+  addFeature(repo)
+  run(repo, 'git', ['tag', '-d', '@foldkit/markdown@1.0.0'])
+
+  const result = execute(repo, process.execPath, [VERSION])
+
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /has no release tag/)
+  assert.equal(run(repo, 'git', ['status', '--porcelain']), '')
+})
+
+const replaceVersionCommand = (repo, command) => {
+  const manifest = JSON.parse(readFileSync(join(repo, 'package.json'), 'utf8'))
+  writeJson(repo, 'package.json', {
+    ...manifest,
+    scripts: { 'version-packages:apply': command },
+  })
+  commit(repo, 'configure version fixture')
+}
+
+test('failed versioning restores consumed changesets and removes new release metadata', context => {
+  const repo = fixture(context)
+  addFeature(repo)
+  write(
+    repo,
+    'fail-version.mjs',
+    `
+    import { writeFileSync } from 'node:fs'
+    writeFileSync('packages/markdown/CHANGELOG.md', 'Partial release notes.')
+    process.exit(1)
+  `,
+  )
+  replaceVersionCommand(repo, `${CHANGESETS_COMMAND} && node fail-version.mjs`)
+
+  const result = execute(repo, process.execPath, [VERSION])
+
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /package versioning failed/)
+  assert.equal(run(repo, 'git', ['status', '--porcelain']), '')
+  assert.equal(packageVersion(repo, 'foldkit'), '1.0.0')
+  assert.equal(existsSync(join(repo, '.changeset/feature.md')), true)
+  assert.equal(existsSync(join(repo, 'packages/markdown/CHANGELOG.md')), false)
+})
+
+test('the coordinator refuses an unconsumed generated changeset', context => {
+  const repo = fixture(context)
+  replaceVersionCommand(repo, 'node -e "process.exit(0)"')
+
+  const result = execute(repo, process.execPath, [VERSION])
+
+  assert.equal(result.status, 1)
+  assert.match(
+    result.stderr,
+    /did not consume the generated coordination changeset/,
+  )
+  assert.equal(run(repo, 'git', ['status', '--porcelain']), '')
+})
+
+test('the coordinator reports and preserves changes outside release metadata', context => {
+  const repo = fixture(context)
+  addFeature(repo)
+  write(
+    repo,
+    'write-unexpected.mjs',
+    `
+    import { writeFileSync } from 'node:fs'
+    writeFileSync('unexpected.txt', 'Inspect this output.')
+  `,
+  )
+  replaceVersionCommand(
+    repo,
+    `${CHANGESETS_COMMAND} && node write-unexpected.mjs`,
+  )
+
+  const result = execute(repo, process.execPath, [VERSION])
+
+  assert.equal(result.status, 1)
+  assert.match(
+    result.stderr,
+    /versioning changed unexpected.txt outside the saved release metadata/,
+  )
+  assert.equal(
+    readFileSync(join(repo, 'unexpected.txt'), 'utf8'),
+    'Inspect this output.',
+  )
+  assert.equal(run(repo, 'git', ['status', '--porcelain']), '?? unexpected.txt')
+  assert.equal(packageVersion(repo, 'foldkit'), '1.0.0')
+})
+
+test('a failed coordinated retry restores the original release plan', context => {
+  const repo = fixture(context)
+  writeJson(repo, 'packages/ui/package.json', {
+    name: '@foldkit/ui',
+    version: '1.0.0',
+    devDependencies: { foldkit: 'workspace:^1.0.0' },
+  })
+  write(
+    repo,
+    'retry-version.mjs',
+    `
+    import { existsSync, writeFileSync } from 'node:fs'
+    import { spawnSync } from 'node:child_process'
+    const isCoordinated = existsSync('${GENERATED_CHANGESET}')
+    const version = spawnSync(process.execPath, [${JSON.stringify(CHANGESETS)}, 'version'], { stdio: 'inherit' })
+    if (version.status !== 0) { process.exit(1) }
+    const install = spawnSync('pnpm', ['install', '--lockfile-only', '--offline', '--ignore-scripts', '--config.manage-package-manager-versions=false'], { stdio: 'inherit' })
+    if (install.status !== 0) { process.exit(1) }
+    if (isCoordinated) {
+      writeFileSync('packages/markdown/CHANGELOG.md', 'Partial retry notes.')
+      process.exit(1)
+    }
+  `,
+  )
+  replaceVersionCommand(repo, 'node retry-version.mjs')
+  install(repo)
+  commit(repo, 'publish lockfile')
+  tagPackages(repo)
+  addFeature(repo)
+
+  const result = execute(repo, process.execPath, [VERSION])
+
+  assert.equal(result.status, 1)
+  assert.match(result.stdout, /Replanning with coordination patches/)
+  assert.match(result.stderr, /package versioning failed/)
+  assert.equal(run(repo, 'git', ['status', '--porcelain']), '')
+  assert.equal(packageVersion(repo, 'foldkit'), '1.0.0')
+  assert.equal(existsSync(join(repo, '.changeset/feature.md')), true)
+})
+
+test('prerelease versioning preserves consumed changesets through coordination replanning', context => {
+  const repo = fixture(context)
+  addFeature(repo)
+  run(repo, process.execPath, [CHANGESETS, 'pre', 'enter', 'next'])
+  commit(repo, 'enter prerelease mode')
+
+  const output = run(repo, process.execPath, [VERSION])
+
+  assert.match(output, /Replanning with coordination patches/)
+  assert.equal(packageVersion(repo, 'foldkit'), '1.1.0-next.0')
+  assert.equal(packageVersion(repo, 'markdown'), '1.0.1-next.0')
+  assert.equal(existsSync(join(repo, '.changeset/feature.md')), false)
+  assert.equal(existsSync(join(repo, GENERATED_CHANGESET)), false)
+  assert.equal(existsSync(join(repo, '.changeset/pre/feature.md')), true)
+  assert.equal(
+    existsSync(join(repo, '.changeset/pre/generated-website-build-inputs.md')),
+    true,
+  )
+  commit(repo, 'version prerelease packages')
+  run(repo, process.execPath, [CHECK])
+})
+
+test('failed prerelease versioning restores existing nested changesets and removes only new copies', context => {
+  const repo = fixture(context)
+  addFeature(repo)
+  const previous =
+    "---\n'@foldkit/markdown': patch\n---\n\nPrevious prerelease change.\n"
+  write(repo, '.changeset/pre/previous.md', previous)
+  run(repo, process.execPath, [CHANGESETS, 'pre', 'enter', 'next'])
+  replaceVersionCommand(
+    repo,
+    `${CHANGESETS_COMMAND} && node -e "process.exit(1)"`,
+  )
+
+  const result = execute(repo, process.execPath, [VERSION])
+
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /package versioning failed/)
+  assert.equal(run(repo, 'git', ['status', '--porcelain']), '')
+  assert.equal(
+    readFileSync(join(repo, '.changeset/pre/previous.md'), 'utf8'),
+    previous,
+  )
+  assert.equal(existsSync(join(repo, '.changeset/pre/feature.md')), false)
+  assert.equal(
+    existsSync(join(repo, '.changeset/pre/generated-website-build-inputs.md')),
+    false,
+  )
+  assert.equal(existsSync(join(repo, '.changeset/feature.md')), true)
 })

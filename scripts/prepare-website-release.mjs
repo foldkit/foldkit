@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import {
   sharedPackageInputsDiffer,
@@ -20,7 +21,9 @@ const CHANGESET = [
 const git = args =>
   spawnSync('git', args, { cwd: process.cwd(), encoding: 'utf8' })
 
-const main = () => {
+export const prepareWebsiteRelease = ({
+  isCoordinationRequired = false,
+} = {}) => {
   const changesetPath = resolve(CHANGESET_PATH)
   const isExistingChangeset = existsSync(changesetPath)
 
@@ -51,7 +54,11 @@ const main = () => {
     return result.stdout.trim()
   })
 
-  if (sharedPackageInputsDiffer({ git, publishedTagCommits })) {
+  const isCoordinated =
+    isCoordinationRequired ||
+    sharedPackageInputsDiffer({ git, publishedTagCommits })
+
+  if (isCoordinated) {
     if (!isExistingChangeset) {
       writeFileSync(changesetPath, CHANGESET, { flag: 'wx' })
     }
@@ -68,13 +75,17 @@ const main = () => {
       'Shared build inputs are already covered by the published website packages.',
     )
   }
+
+  return { isCoordinated, publishedTagCommits }
 }
 
-try {
-  main()
-} catch (error) {
-  console.error(
-    `[website-release] ${error instanceof Error ? error.message : String(error)}`,
-  )
-  process.exitCode = 1
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  try {
+    prepareWebsiteRelease()
+  } catch (error) {
+    console.error(
+      `[website-release] ${error instanceof Error ? error.message : String(error)}`,
+    )
+    process.exitCode = 1
+  }
 }
