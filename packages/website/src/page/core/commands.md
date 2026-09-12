@@ -75,44 +75,47 @@ Foldkit prefixes a derived key with the Command name, so definitions with distin
 
 ::Snippet{name="commandInterruptible" label="interruptible command example"}
 
-### Choosing a Key
+### Choosing an Interruption Key
 
-Derive the key from the Model identity that owns the in-flight work, such as a list item id or entity id. Update is pure, so it never generates a cancellation key. If two invocations can be targeted separately, the Model already contains the fact that distinguishes them. Two uploads of the same file still need different keys because the Model tracks them as separate entities.
+Key the work by the Model identity a user can cancel. For example, an upload row uses `uploadId`, while a document editor might use `documentId`. Do not key an upload by the file name: two rows may upload the same file and still need separate Cancel buttons.
 
-The Command name is the interrupt namespace, so interruptible Command names must be unique across the application. Two definitions with the same name share a key space. An Interrupt stops every holder of the addressed key, regardless of which duplicate definition dispatched it. Unique names also keep DevTools traces, Story matchers, and span names unambiguous.
+::Snippet{name="commandInterruptKey" label="interruption key example"}
 
-Reusable Submodels need the same care. Two instances that run the same Command share its key unless the args distinguish them. Include the instance identity in the key args, such as `({ instanceId }) => instanceId`. A Submodel with only one instance needs no extra scoping.
+`keyFields` also controls the args accepted by `UploadFile.Interrupt`, so the cancellation site only needs `{ uploadId }`, not the original `file`.
 
-### The Interrupt Constructor
+The Command name prefixes every key. Keep interruptible Command names unique across the application, or two definitions with the same name can cancel each other's work. For a reusable Submodel with several live instances, include its `instanceId` in the key. A single-instance Submodel needs no extra field.
 
-`Definition.Interrupt` returns an ordinary Command. For a name-keyed definition, it accepts a function from the interruption outcome to a Message. For a definition keyed by args, those key args come first. Update stays pure, DevTools records the dispatch, and tests resolve it like any other Command.
+### Dispatching an Interrupt
 
-The outcome is `Interrupted` when at least one in-flight Command was stopped. It is `NotFound` when nothing held the key because the work had already completed or never started. Those two cases are intentionally indistinguishable within `NotFound`.
+`Definition.Interrupt` builds an ordinary Command. With `interrupt: true`, pass only the function that turns the outcome into a Message. With an args-derived key, pass the key args first:
 
-After `Interrupted`, the target's result Message is guaranteed never to dispatch. The code that requested interruption therefore owns the state transition. In the example, that branch marks the upload `Cancelled`; the `NotFound` branch leaves the Model alone.
+::Snippet{name="commandInterruptConstructor" label="Interrupt constructor example"}
 
-A key is an address, not a lock. Several invocations may run under one key, and dispatching a Command never stops existing work. Only an explicit Interrupt Command stops the current holders. Cancellation therefore remains visible in update, DevTools history, and tests.
+The result is `Interrupted` when at least one invocation stopped. Its normal result Message will never dispatch, so the cancellation handler owns the next Model state. `NotFound` means no invocation held the key; the work had already finished or never started.
 
-### Replacing Cancelled Work
+Several invocations can hold one key. The key is only an address, and dispatching more work does not cancel anything. An Interrupt stops every invocation currently registered at that address.
 
-Start replacement work from the Interrupt's result Message. Return the new Command from the `CompletedCancel<CommandName>` handler. Commands returned in one list run concurrently with no ordering guarantee, so returning the Interrupt and replacement together creates a race.
+### Sequencing Replacement Work
 
-For a typeahead search, `ChangedQuery` can store the newest query and return the cancel Command. `CompletedCancelFetchWeather` then reads the current query from the Model and starts the replacement. Both interruption outcomes can proceed because `Interrupted` and `NotFound` agree on the relevant fact: the key is now free.
+Wait for cancellation to finish before starting the replacement. Commands returned together run concurrently, so `[FetchSuggestions.Interrupt(...), FetchSuggestions(...)]` races the old request against the new one.
 
-### Cancellations with Multiple Meanings
+::Snippet{name="commandInterruptReplacement" label="replacement sequencing example"}
 
-If cancellation can mean different things, give each cause its own result Message. A Cancel button and choosing another file produce different facts:
+The first `UpdatedQuery` received while a request runs increments `generation`, enters `Cancelling`, and returns one Interrupt. Incrementing the generation makes the old request's result stale before cancellation begins. More query changes replace `model.query` without dispatching another Interrupt. When cancellation completes, the handler reads the latest query and starts one replacement with the current generation.
 
-```text
-CompletedCancelUploadFileDueToClickedCancel
-CompletedCancelUploadFileDueToSelectedNewFile
-```
+The result Message does not carry the outcome because `Interrupted` and `NotFound` mean the same thing here: the key is free. Each request carries its generation so a result that finished just before `NotFound` cannot overwrite newer suggestions, even when the user returns to the same query.
 
-The `toMessage` function lives at the dispatch site, so each handler can construct the Message that records its cause.
+### Recording Why Cancellation Happened
 
-Do not encode the intended follow-up in that Message. A Message records what happened; update decides what to do next. Use payload fields for data the handler needs, such as `uploadId`, not as a second behavior tag. When every cancellation records the same meaning, one `CompletedCancel<CommandName>` Message is enough. A per-upload Cancel button and a Cancel all button differ in how many keys they interrupt, not in what each result means.
+Use a different result Message when cancellation records a different fact. Clicking Cancel and selecting a replacement file mean different things, even though both interrupt `UploadFile`:
 
-Intent chosen at dispatch time can become stale when cancellation contexts interleave on the same key. The user may click Cancel, then type again before the acknowledgment arrives. Store the current intent in the Model as a union such as `CancellingToStop | CancellingToRevalidate`. Later Messages can update that intent, and one acknowledgment handler can read the newest state. The acknowledgment only says that the key is free; the Model decides what follows now.
+::Snippet{name="commandInterruptCauses" label="cancellation cause example"}
+
+Do not add a second behavior tag to one result Message. The Message records why cancellation completed; update chooses the follow-up. Data needed for that decision, such as `uploadId` or the newly selected file, belongs in the payload.
+
+Use one result Message when the meaning is the same. A per-row Cancel button and Cancel all both record `CompletedCancelUploadFile`; they only differ in how many keys they interrupt.
+
+If the desired follow-up can change before the Interrupt completes, store that intent in the Model. For example, a `CancellingToStop | CancellingToReplace` union lets a later Message replace the intent. The cancellation result then reads the current variant instead of obeying a decision captured earlier.
 
 The [interrupting-commands example](/example-apps/interrupting-commands) shows concurrent uploads keyed by upload id, per-upload cancellation, Cancel all, and restarting work under a freed key.
 
