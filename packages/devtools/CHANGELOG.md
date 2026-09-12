@@ -1,5 +1,13 @@
 # @foldkit/devtools
 
+## 0.159.0
+
+### Patch Changes
+
+- [#1377](https://github.com/foldkit/foldkit/pull/1377) [`2ff8b86`](https://github.com/foldkit/foldkit/commit/2ff8b867fde5914b4ad4729127efef15f3dec786) Thanks [@devinjameson](https://github.com/devinjameson)! - Gate `aria-describedby` on an explicit opt-in in Dialog, Input, Textarea, Select, Fieldset, Checkbox, Switch, and RadioGroup. These components previously emitted a reference on every render even when no description was rendered. Pass `hasDescription: true` when a component renders its description element; for RadioGroup, use `hasOptionDescription` to identify the described options.
+
+- [#1377](https://github.com/foldkit/foldkit/pull/1377) [`2ff8b86`](https://github.com/foldkit/foldkit/commit/2ff8b867fde5914b4ad4729127efef15f3dec786) Thanks [@devinjameson](https://github.com/devinjameson)! - `Runtime.embed` now reports unhandled startup failures in the console, matching `Runtime.run` and `Runtime.hydrate`, while host disposal and other interrupt-only exits stay quiet. A failing Flags or resource Effect no longer leaves an embedded program blank without explaining why.
+
 ## 0.158.2
 
 ### Version Alignment

@@ -1,5 +1,23 @@
 # @foldkit/vite-plugin
 
+## 0.21.0
+
+### Minor Changes
+
+- [#1377](https://github.com/foldkit/foldkit/pull/1377) [`2ff8b86`](https://github.com/foldkit/foldkit/commit/2ff8b867fde5914b4ad4729127efef15f3dec786) Thanks [@devinjameson](https://github.com/devinjameson)! - Make the Foldkit server a Web `fetch` handler.
+
+  `ssr.build` no longer takes `entry` pointing at a Node HTTP process or a custom Worker. One `vite build` emits `dist/server/fetch.js` whose default export is `{ fetch }`. Node and Workers both run that module. `handleRequest` in `foldkit/experimental/server` is the shared implementation.
+
+  When another plugin owns the `ssr` environment (workerd), Foldkit still stands down in dev. With `ssr.build` set it stays quiet, because production still needs `ssr.serverEntry`.
+
+  **Migration:** drop `ssr.build.entry` and keep `ssr.serverEntry`. Your Node host is no longer built by `vite build`. Replace it with a script that serves `dist/client` and falls through to `dist/server/fetch.js`, using the SSR example's `scripts/serve.ts` as the reference, and start with `node scripts/serve.ts` instead of `node dist/server/main.js`. A host that imported `dist/server/entry.server.js` now imports `dist/server/fetch.js`, which still exports `renderPage`. A Cloudflare Worker can default-export `fetch.js` directly. `foldkit.build.json` records `fetch.js` as `serverEntry`. The handler trusts `Request.url` as the platform constructed it; a Node adapter resolves the raw request target against its configured origin before calling `fetch`, as `scripts/serve.ts` does.
+
+- [#1377](https://github.com/foldkit/foldkit/pull/1377) [`2ff8b86`](https://github.com/foldkit/foldkit/commit/2ff8b867fde5914b4ad4729127efef15f3dec786) Thanks [@devinjameson](https://github.com/devinjameson)! - Describe the plugin as state-preserving live reload rather than hot module reloading. The Vite plugin `name` is now `foldkit`, its log prefixes are `[foldkit:preserve]`, and the npm description and keywords no longer claim HMR. It imports Foldkit's renamed `model-preservation` protocol.
+
+### Patch Changes
+
+- [#1377](https://github.com/foldkit/foldkit/pull/1377) [`2ff8b86`](https://github.com/foldkit/foldkit/commit/2ff8b867fde5914b4ad4729127efef15f3dec786) Thanks [@devinjameson](https://github.com/devinjameson)! - `Runtime.embed` now reports unhandled startup failures in the console, matching `Runtime.run` and `Runtime.hydrate`, while host disposal and other interrupt-only exits stay quiet. A failing Flags or resource Effect no longer leaves an embedded program blank without explaining why.
+
 ## 0.20.2
 
 ### Patch Changes

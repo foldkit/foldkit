@@ -1,5 +1,11 @@
 # @foldkit/markdown
 
+## 0.9.2
+
+### Patch Changes
+
+- [#1377](https://github.com/foldkit/foldkit/pull/1377) [`2ff8b86`](https://github.com/foldkit/foldkit/commit/2ff8b867fde5914b4ad4729127efef15f3dec786) Thanks [@devinjameson](https://github.com/devinjameson)! - Rebuild Markdown with the release's shared tooling configuration so the published package and website use the same build inputs.
+
 ## 0.9.1
 
 ### Patch Changes
