@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-import { Effect, Layer, Option, Schema } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { Command, Flag } from 'effect/unstable/cli'
 import { createRequire } from 'node:module'
 
-import { NodeRuntime, NodeServices, NodeStdio } from '@effect/platform-node'
+import { NodeRuntime, NodeServices } from '@effect/platform-node'
 
 import { create as create_ } from './commands/create.js'
 import { EXAMPLE_VALUES } from './examples.js'
@@ -26,14 +26,14 @@ const nameSchema = Schema.String.pipe(
   ),
 )
 
-const name = Flag.string('name').pipe(
+const name = Flag.String('name').pipe(
   Flag.withAlias('n'),
   Flag.withDescription('The name of the project to create'),
   Flag.withSchema(nameSchema),
   Flag.optional,
 )
 
-const rendering = Flag.choice('rendering', RENDERING_VALUES).pipe(
+const rendering = Flag.Literals('rendering', RENDERING_VALUES).pipe(
   Flag.withAlias('r'),
   Flag.withDescription(
     'How the application renders: spa renders entirely in the browser, ssg prerenders routes to static HTML at build time, ssr renders each request then hydrates',
@@ -41,7 +41,7 @@ const rendering = Flag.choice('rendering', RENDERING_VALUES).pipe(
   Flag.optional,
 )
 
-const example = Flag.choice('example', EXAMPLE_VALUES).pipe(
+const example = Flag.Literals('example', EXAMPLE_VALUES).pipe(
   Flag.withAlias('e'),
   Flag.withDescription(
     "The example application to start from with spa rendering. Run with no flags for an interactive picker that shows each example's description.",
@@ -49,7 +49,7 @@ const example = Flag.choice('example', EXAMPLE_VALUES).pipe(
   Flag.optional,
 )
 
-const packageManager = Flag.choice('package-manager', [
+const packageManager = Flag.Literals('package-manager', [
   'pnpm',
   'npm',
   'yarn',
@@ -81,7 +81,4 @@ const cli = Command.run(create, {
   version: packageJson.version,
 })
 
-cli.pipe(
-  Effect.provide([Layer.mergeAll(NodeServices.layer, NodeStdio.layer)]),
-  NodeRuntime.runMain,
-)
+cli.pipe(Effect.provide(NodeServices.layer), NodeRuntime.runMain)

@@ -240,7 +240,7 @@ describe('renderToString', () => {
         const PrefixedTheme = Schema.String.pipe(
           Schema.decodeTo(
             Schema.String,
-            SchemaTransformation.transformOrFail({
+            SchemaTransformation.transformEffect({
               decode: raw =>
                 raw.startsWith('theme:')
                   ? Effect.succeed(raw.slice('theme:'.length))
@@ -896,7 +896,7 @@ describe('renderToString', () => {
         const AsyncTheme = Schema.String.pipe(
           Schema.decodeTo(
             Schema.String,
-            SchemaTransformation.transformOrFail({
+            SchemaTransformation.transformEffect({
               decode: raw => Effect.promise(() => Promise.resolve(raw)),
               encode: theme => Effect.succeed(theme),
             }),

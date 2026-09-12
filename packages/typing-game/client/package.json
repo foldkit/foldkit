@@ -12,10 +12,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0-rc.112",
+    "@effect/platform-browser": "4.0.0-rc.115",
     "@typing-game/shared": "workspace:*",
     "clsx": "^2.1.1",
-    "effect": "4.0.0-rc.112",
+    "effect": "4.0.0-rc.115",
     "foldkit": "workspace:*"
   },
   "devDependencies": {

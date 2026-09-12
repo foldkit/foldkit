@@ -254,21 +254,107 @@ describe('makeCallable', () => {
     expect(constructed).toStrictEqual({ 0: 1, _tag: 'ChangedIndex' })
   })
 
-  it('falls back for accessor fields before reading them', () => {
+  it('matches make for a throwing accessor without retrying it', () => {
     const getterError = new Error('id getter')
-    const makeInput = () => ({
-      get id(): string {
-        throw getterError
-      },
-    })
-    const makeError = getError(() => ClickedItem.make(makeInput()))
-    const callableError = getError(() => ClickedItem(makeInput()))
+    const makeInput = () => {
+      let readCount = 0
+      return {
+        input: {
+          get id(): string {
+            readCount += 1
+            if (readCount === 1) {
+              throw getterError
+            }
+            return 'item-1'
+          },
+        },
+        readCount: () => readCount,
+      }
+    }
+    const madeInput = makeInput()
+    const callableInput = makeInput()
+    const makeError = getError(() => ClickedItem.make(madeInput.input))
+    const callableError = getError(() => ClickedItem(callableInput.input))
 
     expect(callableError.message).toBe(makeError.message)
     expect(callableError.cause).toStrictEqual(makeError.cause)
+    expect(madeInput.readCount()).toBe(1)
+    expect(callableInput.readCount()).toBe(1)
   })
 
-  it('falls back for fields inherited from the input prototype', () => {
+  it('matches make for a throwing Proxy has trap without retrying it', () => {
+    const trapError = new Error('has trap')
+    const makeInput = () => {
+      let trapCount = 0
+      return {
+        input: new Proxy(
+          { id: 'item-1' },
+          {
+            has: (target, name) => {
+              trapCount += 1
+              if (trapCount === 1) {
+                throw trapError
+              }
+              return Reflect.has(target, name)
+            },
+          },
+        ),
+        trapCount: () => trapCount,
+      }
+    }
+    const madeInput = makeInput()
+    const callableInput = makeInput()
+    const makeError = getError(() => ClickedItem.make(madeInput.input))
+    const callableError = getError(() => ClickedItem(callableInput.input))
+
+    expect(callableError.message).toBe(makeError.message)
+    expect(callableError.cause).toStrictEqual(makeError.cause)
+    expect(madeInput.trapCount()).toBe(1)
+    expect(callableInput.trapCount()).toBe(1)
+  })
+
+  it('matches make when an inherited setter throws during assignment', () => {
+    const setterError = new Error('setter trap')
+    const originalDescriptor = Object.getOwnPropertyDescriptor(
+      Object.prototype,
+      'id',
+    )
+    const restoreDescriptor = () => {
+      if (originalDescriptor === undefined) {
+        Reflect.deleteProperty(Object.prototype, 'id')
+      } else {
+        Object.defineProperty(Object.prototype, 'id', originalDescriptor)
+      }
+    }
+    const installThrowingSetter = () => {
+      Object.defineProperty(Object.prototype, 'id', {
+        configurable: true,
+        set: () => {
+          throw setterError
+        },
+      })
+    }
+
+    try {
+      installThrowingSetter()
+      const makeError = getError(
+        () => ClickedItem.make({ id: 'item-1' }),
+        restoreDescriptor,
+      )
+      installThrowingSetter()
+      const callableError = getError(
+        () => ClickedItem({ id: 'item-1' }),
+        restoreDescriptor,
+      )
+
+      expect(callableError.message).toBe(makeError.message)
+      expect(callableError.cause).toStrictEqual(makeError.cause)
+    } finally {
+      restoreDescriptor()
+    }
+  })
+
+  it('matches make for fields inherited from the input prototype', () => {
     class Row {
       get id(): string {
         return 'item-1'
@@ -279,16 +365,19 @@ describe('makeCallable', () => {
       id: 'item-1',
     })
 
-    expect(() => ClickedItem.make(new Row())).toThrow(
-      'Schema validation failed',
-    )
-    expect(() => ClickedItem(new Row())).toThrow('Schema validation failed')
-    expect(() => ClickedItem.make(inheritedDataInput)).toThrow(
-      'Schema validation failed',
-    )
-    expect(() => ClickedItem(inheritedDataInput)).toThrow(
-      'Schema validation failed',
-    )
+    const madeRow = ClickedItem.make(new Row())
+    const constructedRow = ClickedItem(new Row())
+    const madeInheritedData = ClickedItem.make(inheritedDataInput)
+    const constructedInheritedData = ClickedItem(inheritedDataInput)
+
+    expect(constructedRow).toStrictEqual(madeRow)
+    expect(constructedRow).toStrictEqual({
+      _tag: 'ClickedItem',
+      id: 'item-1',
+    })
+    expect(Object.hasOwn(constructedRow, 'id')).toBe(true)
+    expect(constructedInheritedData).toStrictEqual(madeInheritedData)
+    expect(Object.hasOwn(constructedInheritedData, 'id')).toBe(true)
   })
 
   it('falls back for an explicitly wrong top-level tag', () => {
@@ -739,7 +828,7 @@ describe('makeCallable', () => {
     })
   })
 
-  it('falls back for value-shaping parse options', () => {
+  it('matches make when obsolete value-shaping parse options are annotated', () => {
     const profile = Schema.Struct({ name: Schema.String }).annotate({
       parseOptions: { onExcessProperty: 'preserve' },
     })
@@ -747,7 +836,7 @@ describe('makeCallable', () => {
     const input = { profile: { name: 'Ada', extra: true } }
 
     expect(ChangedProfile(input)).toStrictEqual(ChangedProfile.make(input))
-    expect(ChangedProfile(input).profile).toHaveProperty('extra', true)
+    expect(ChangedProfile(input).profile).toStrictEqual({ name: 'Ada' })
   })
 
   it('falls back for child Message fields', () => {

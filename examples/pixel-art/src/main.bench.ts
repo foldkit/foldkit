@@ -1,6 +1,6 @@
 import { Option } from 'effect'
 import { evo } from 'foldkit/struct'
-import { bench, describe } from 'vitest'
+import { describe, test } from 'vitest'
 
 import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
 
@@ -56,29 +56,35 @@ const buildHistoryModel = (steps: number): Model => {
 }
 
 describe('update: single operations', () => {
-  bench('brush stroke (press + release)', () => {
-    dispatch(
-      initialModel,
-      Message.PressedCell({ x: 5, y: 5 }),
-      Message.ReleasedMouse(),
-    )
+  test('brush stroke (press + release)', async ({ bench }) => {
+    await bench('brush stroke (press + release)', () => {
+      dispatch(
+        initialModel,
+        Message.PressedCell({ x: 5, y: 5 }),
+        Message.ReleasedMouse(),
+      )
+    }).run()
   })
 
-  bench('brush drag (5 cells)', () => {
-    dispatch(
-      initialModel,
-      Message.PressedCell({ x: 0, y: 0 }),
-      Message.EnteredCell({ x: 1, y: 0 }),
-      Message.EnteredCell({ x: 2, y: 0 }),
-      Message.EnteredCell({ x: 3, y: 0 }),
-      Message.EnteredCell({ x: 4, y: 0 }),
-      Message.ReleasedMouse(),
-    )
+  test('brush drag (5 cells)', async ({ bench }) => {
+    await bench('brush drag (5 cells)', () => {
+      dispatch(
+        initialModel,
+        Message.PressedCell({ x: 0, y: 0 }),
+        Message.EnteredCell({ x: 1, y: 0 }),
+        Message.EnteredCell({ x: 2, y: 0 }),
+        Message.EnteredCell({ x: 3, y: 0 }),
+        Message.EnteredCell({ x: 4, y: 0 }),
+        Message.ReleasedMouse(),
+      )
+    }).run()
   })
 
-  bench('flood fill (empty grid)', () => {
-    const fillModel: Model = evo(initialModel, { tool: () => 'Fill' })
-    dispatch(fillModel, Message.PressedCell({ x: 0, y: 0 }))
+  test('flood fill (empty grid)', async ({ bench }) => {
+    await bench('flood fill (empty grid)', () => {
+      const fillModel: Model = evo(initialModel, { tool: () => 'Fill' })
+      dispatch(fillModel, Message.PressedCell({ x: 0, y: 0 }))
+    }).run()
   })
 })
 
@@ -86,49 +92,59 @@ describe('update: undo/redo with history', () => {
   const modelWith10Steps = buildHistoryModel(10)
   const modelWith30Steps = buildHistoryModel(30)
 
-  bench('undo (10 history entries)', () => {
-    dispatch(modelWith10Steps, Message.ClickedUndo())
+  test('undo (10 history entries)', async ({ bench }) => {
+    await bench('undo (10 history entries)', () => {
+      dispatch(modelWith10Steps, Message.ClickedUndo())
+    }).run()
   })
 
-  bench('undo (30 history entries)', () => {
-    dispatch(modelWith30Steps, Message.ClickedUndo())
+  test('undo (30 history entries)', async ({ bench }) => {
+    await bench('undo (30 history entries)', () => {
+      dispatch(modelWith30Steps, Message.ClickedUndo())
+    }).run()
   })
 
-  bench('5x undo then 5x redo', () => {
-    let model = modelWith10Steps
-    for (let i = 0; i < 5; i++) {
-      model = update(model, Message.ClickedUndo()).model
-    }
-    for (let i = 0; i < 5; i++) {
-      model = update(model, Message.ClickedRedo()).model
-    }
+  test('5x undo then 5x redo', async ({ bench }) => {
+    await bench('5x undo then 5x redo', () => {
+      let model = modelWith10Steps
+      for (let i = 0; i < 5; i++) {
+        model = update(model, Message.ClickedUndo()).model
+      }
+      for (let i = 0; i < 5; i++) {
+        model = update(model, Message.ClickedRedo()).model
+      }
+    }).run()
   })
 })
 
 describe('update: paint sequence (16x16 grid)', () => {
-  bench('paint 50 random cells', () => {
-    let model = initialModel
-    for (let i = 0; i < 50; i++) {
-      const x = (i * 7 + 3) % GRID_SIZE
-      const y = (i * 11 + 5) % GRID_SIZE
-      model = dispatch(
-        model,
-        Message.PressedCell({ x, y }),
-        Message.ReleasedMouse(),
-      )
-    }
+  test('paint 50 random cells', async ({ bench }) => {
+    await bench('paint 50 random cells', () => {
+      let model = initialModel
+      for (let i = 0; i < 50; i++) {
+        const x = (i * 7 + 3) % GRID_SIZE
+        const y = (i * 11 + 5) % GRID_SIZE
+        model = dispatch(
+          model,
+          Message.PressedCell({ x, y }),
+          Message.ReleasedMouse(),
+        )
+      }
+    }).run()
   })
 
-  bench('paint 50 cells with mirror mode', () => {
-    let model: Model = evo(initialModel, { mirrorMode: () => 'Both' })
-    for (let i = 0; i < 50; i++) {
-      const x = (i * 7 + 3) % GRID_SIZE
-      const y = (i * 11 + 5) % GRID_SIZE
-      model = dispatch(
-        model,
-        Message.PressedCell({ x, y }),
-        Message.ReleasedMouse(),
-      )
-    }
+  test('paint 50 cells with mirror mode', async ({ bench }) => {
+    await bench('paint 50 cells with mirror mode', () => {
+      let model: Model = evo(initialModel, { mirrorMode: () => 'Both' })
+      for (let i = 0; i < 50; i++) {
+        const x = (i * 7 + 3) % GRID_SIZE
+        const y = (i * 11 + 5) % GRID_SIZE
+        model = dispatch(
+          model,
+          Message.PressedCell({ x, y }),
+          Message.ReleasedMouse(),
+        )
+      }
+    }).run()
   })
 })

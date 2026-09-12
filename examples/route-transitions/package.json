@@ -9,8 +9,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0-rc.112",
-    "effect": "4.0.0-rc.112",
+    "@effect/platform-browser": "4.0.0-rc.115",
+    "effect": "4.0.0-rc.115",
     "foldkit": "workspace:*"
   },
   "devDependencies": {
@@ -21,6 +21,6 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.2.2",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.0"
   }
 }

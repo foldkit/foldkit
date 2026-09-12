@@ -9,10 +9,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0-rc.112",
+    "@effect/platform-browser": "4.0.0-rc.115",
     "@foldkit/ui": "workspace:*",
     "clsx": "^2.1.1",
-    "effect": "4.0.0-rc.112",
+    "effect": "4.0.0-rc.115",
     "foldkit": "workspace:*",
     "fractional-indexing": "^4.0.0"
   },
@@ -24,6 +24,6 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.2.2",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.0"
   }
 }

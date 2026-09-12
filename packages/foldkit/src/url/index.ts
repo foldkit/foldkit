@@ -32,7 +32,7 @@ const LocationAndHref = Schema.Struct({
 const LocationAndHrefFromString = Schema.String.pipe(
   Schema.decodeTo(
     LocationAndHref,
-    SchemaTransformation.transformOrFail({
+    SchemaTransformation.transformEffect({
       decode: urlString =>
         Effect.try({
           try: () => {
