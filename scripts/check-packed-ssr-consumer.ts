@@ -239,11 +239,15 @@ const writeConsumerProject = (
   const exampleManifest = readJson<Manifest>(
     join(REPO_ROOT, 'examples/ssr/package.json'),
   )
+  const platformBrowserVersion =
+    foldkitManifest.peerDependencies?.['@effect/platform-browser']
   const effectVersion = foldkitManifest.peerDependencies?.['effect']
   const viteVersion = exampleManifest.devDependencies?.['vite']
   assertConsumer(
-    effectVersion !== undefined && viteVersion !== undefined,
-    'could not read the effect and vite versions the consumer must install',
+    platformBrowserVersion !== undefined &&
+      effectVersion !== undefined &&
+      viteVersion !== undefined,
+    'could not read the platform-browser, effect, and vite versions the consumer must install',
   )
 
   writeFileSync(
@@ -256,6 +260,7 @@ const writeConsumerProject = (
         type: 'module',
         scripts: { build: 'vite build' },
         dependencies: {
+          '@effect/platform-browser': platformBrowserVersion,
           effect: effectVersion,
           foldkit: `file:${foldkitTarball}`,
         },

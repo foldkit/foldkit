@@ -1,13 +1,6 @@
-import {
-  Cause,
-  Effect,
-  Fiber,
-  Function,
-  Option,
-  Predicate,
-  Runtime,
-  pipe,
-} from 'effect'
+import { Cause, Effect, Fiber, Option, Predicate, Runtime, pipe } from 'effect'
+
+import { BrowserRuntime } from '@effect/platform-browser'
 
 import type { Ports } from '../port/index.js'
 import { provideBrowserScheduler } from './browserScheduler.js'
@@ -71,19 +64,6 @@ export const __startProgram = (
   )
 }
 
-// NOTE: deliberately not `BrowserRuntime.runMain`, which interrupts the
-// runtime on `beforeunload`. `beforeunload` is a question, not a commitment:
-// the browser also fires it for a click on a download link, for a navigation
-// the user cancels, and when freezing the page into the back/forward cache.
-// The document survives all three, but the interrupt finalizer has already
-// put the container element back empty, so the page is left alive with no app
-// in it. A page-owning runtime gains nothing from tearing itself down while
-// the document is on its way out, so it starts with no page-lifecycle
-// interrupt at all and lets the document take the runtime with it. The
-// keep-alive interval still comes from `makeRunMain`; Foldkit owns the shared
-// error-reporting policy used by page-owning and embedded runtimes below.
-const runMainWithoutUnloadInterrupt = Runtime.makeRunMain(Function.constVoid)
-
 /** Reports unhandled non-interrupt Causes using Effect's runtime policy.
  * @internal */
 export const __reportUnhandledCause = <E>(
@@ -108,7 +88,7 @@ const startProgram = (
   flags?: Effect.Effect<unknown, never, any>,
   buildId?: string,
 ): void => {
-  runMainWithoutUnloadInterrupt(
+  BrowserRuntime.runMain(
     withUnhandledCauseReporting(
       provideBrowserScheduler(
         Effect.flatMap(

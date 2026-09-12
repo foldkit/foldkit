@@ -53,6 +53,15 @@ const dispatchPageShow = (isRestoredFromBfcache: boolean): void => {
   window.dispatchEvent(event)
 }
 
+const dispatchPageHide = (isEnteringBfcache: boolean): void => {
+  const event = new Event('pagehide')
+  Object.defineProperty(event, 'persisted', {
+    value: isEnteringBfcache,
+    configurable: true,
+  })
+  window.dispatchEvent(event)
+}
+
 const awaitBodyText = (text: string): Promise<void> =>
   vi.waitFor(() => {
     expect(document.body.textContent).toContain(text)
@@ -63,6 +72,9 @@ const clickIncrement = (): void => {
   expect(button).not.toBeNull()
   button?.click()
 }
+
+const awaitPageLifecycleHandling = (): Promise<void> =>
+  new Promise(resolve => setTimeout(resolve, 0))
 
 describe('run + page lifecycle events', () => {
   let container: HTMLElement
@@ -89,24 +101,26 @@ describe('run + page lifecycle events', () => {
       .mockImplementation(() => undefined)
   })
 
-  afterEach(() => {
+  afterEach(async () => {
+    dispatchPageHide(false)
+    await vi.waitFor(() => {
+      expect(document.body.textContent).not.toContain(APP_TEXT)
+    })
     reloadSpy.mockRestore()
     document.body.innerHTML = ''
   })
 
   // NOTE: the browser fires `beforeunload` for navigations the document
-  // survives, including a click on a download link. Tearing the runtime down
-  // there would leave a live page with an empty container, so the runtime
-  // starts with no page-lifecycle interrupt. Clicking after the event proves
-  // the runtime is still driving the app, not just that the DOM has not been
-  // emptied yet. Each `run` here outlives its test, since nothing interrupts a
-  // page-owning runtime.
+  // survives, including a click on a download link. BrowserRuntime listens to
+  // `pagehide` instead, so clicking after `beforeunload` proves the runtime is
+  // still driving the app, not just that the DOM has not been emptied yet.
   it('keeps the app rendered and interactive after a beforeunload', async () => {
     runApp()
 
     await awaitBodyText(`${APP_TEXT}:0`)
 
     window.dispatchEvent(new Event('beforeunload'))
+    await awaitPageLifecycleHandling()
 
     clickIncrement()
 
@@ -122,6 +136,8 @@ describe('run + page lifecycle events', () => {
     await awaitBodyText(`${APP_TEXT}:1`)
 
     window.dispatchEvent(new Event('beforeunload'))
+    dispatchPageHide(true)
+    await awaitPageLifecycleHandling()
     dispatchPageShow(true)
 
     expect(reloadSpy).not.toHaveBeenCalled()
@@ -129,5 +145,17 @@ describe('run + page lifecycle events', () => {
     clickIncrement()
 
     await awaitBodyText(`${APP_TEXT}:2`)
+  })
+
+  it('tears down when a pagehide discards the document', async () => {
+    runApp()
+
+    await awaitBodyText(`${APP_TEXT}:0`)
+
+    dispatchPageHide(false)
+
+    await vi.waitFor(() => {
+      expect(document.body.textContent).not.toContain(APP_TEXT)
+    })
   })
 })

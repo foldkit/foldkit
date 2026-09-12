@@ -1498,6 +1498,9 @@ importers:
 
   internal/lustre-benchmark:
     dependencies:
+      '@effect/platform-browser':
+        specifier: 4.0.0-rc.115
+        version: 4.0.0-rc.115(effect@4.0.0-rc.115)
       effect:
         specifier: 4.0.0-rc.115
         version: 4.0.0-rc.115
@@ -1529,6 +1532,9 @@ importers:
 
   internal/performance-harness:
     dependencies:
+      '@effect/platform-browser':
+        specifier: 4.0.0-rc.115
+        version: 4.0.0-rc.115(effect@4.0.0-rc.115)
       effect:
         specifier: 4.0.0-rc.115
         version: 4.0.0-rc.115
@@ -1684,6 +1690,9 @@ importers:
         specifier: ^8.0.1
         version: 8.0.1
     devDependencies:
+      '@effect/platform-browser':
+        specifier: 4.0.0-rc.115
+        version: 4.0.0-rc.115(effect@4.0.0-rc.115)
       '@effect/vitest':
         specifier: 4.0.0-rc.115
         version: 4.0.0-rc.115(effect@4.0.0-rc.115)(vitest@5.0.0)
