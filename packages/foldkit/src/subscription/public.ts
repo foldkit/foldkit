@@ -18,9 +18,8 @@ export type { FromEventConfig, FromEventFilterMapConfig } from './fromEvent.js'
 export { keyboardShortcuts } from './keyboardShortcuts.js'
 
 export type {
-  ChordBinding,
-  KeyBinding,
+  KeyboardShortcut,
+  KeyboardShortcutBinding,
   KeyboardShortcutsConfig,
-  ShortcutBinding,
   WhileTyping,
 } from './keyboardShortcuts.js'

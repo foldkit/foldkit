@@ -384,6 +384,8 @@ export { default as subscriptionEquivalenceRaw } from './subscriptionEquivalence
 export { default as subscriptionEquivalenceHighlighted } from './subscriptionEquivalence.ts?highlighted'
 export { default as subscriptionFromEventRaw } from './subscriptionFromEvent.ts?raw'
 export { default as subscriptionFromEventHighlighted } from './subscriptionFromEvent.ts?highlighted'
+export { default as subscriptionKeyboardShortcutsRaw } from './subscriptionKeyboardShortcuts.ts?raw'
+export { default as subscriptionKeyboardShortcutsHighlighted } from './subscriptionKeyboardShortcuts.ts?highlighted'
 export { default as comparisonFoldkitModelRaw } from './comparisonFoldkitModel.ts?raw'
 export { default as comparisonFoldkitModelHighlighted } from './comparisonFoldkitModel.ts?highlighted'
 export { default as comparisonReactStateRaw } from './comparisonReactState.tsx?raw'

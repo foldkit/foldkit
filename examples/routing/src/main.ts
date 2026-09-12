@@ -154,25 +154,25 @@ export const subscriptions = Subscription.make<Model, Message>()(() => ({
     Subscription.keyboardShortcuts<Message>({
       bindings: [
         {
-          chord: ['g', 'h'],
-          message: () =>
+          shortcut: ['G', 'H'],
+          toMessage: () =>
             Message.PressedNavigationShortcut({ url: homeRouter() }),
         },
         {
-          chord: ['g', 'p'],
-          message: () =>
+          shortcut: ['G', 'P'],
+          toMessage: () =>
             Message.PressedNavigationShortcut({
               url: peopleRouter({ searchText: Option.none() }),
             }),
         },
         {
-          chord: ['g', 'f'],
-          message: () =>
+          shortcut: ['G', 'F'],
+          toMessage: () =>
             Message.PressedNavigationShortcut({ url: filesIndexRouter() }),
         },
         {
-          chord: ['g', 'n'],
-          message: () =>
+          shortcut: ['G', 'N'],
+          toMessage: () =>
             Message.PressedNavigationShortcut({ url: nestedRouter() }),
         },
       ],
