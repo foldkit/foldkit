@@ -2,141 +2,184 @@
 
 ## How to Use This Guide {#overview}
 
-An anti-pattern is a design that works but makes a Foldkit application harder to explain, test, or change. The examples on this page come from real Foldkit applications and from The Elm Architecture more generally. Each pattern makes at least one of these questions difficult to answer:
+A Foldkit application can behave correctly and still be difficult to explain, test, or change. The examples on this page reflect common anti-patterns in Foldkit applications.
 
-- What does the Model say is true?
-- Which Message caused the Model to change?
-- Which part of the application owns the state, effect, or lifetime?
+When reviewing an application, ask:
 
-Judge the behavior, not an isolated piece of syntax. A Boolean can model an independent fact, an async result needs extra identity only when it can become stale, and a public Submodel helper is correct when it preserves the child's update boundary.
+- Can the Model describe a state that should never occur?
+- Does more than one place claim to hold the same state?
+- Does the Model Schema enforce the same states its TypeScript type promises?
+- Does the Runtime control every effect and live resource?
+- Does every Message name the event that DevTools should show?
+- Does a Command result Message carry enough context for update to decide whether it still applies to the current Model?
+- Does dependent or replacement work begin only after the result it depends on?
+- Does each Submodel own its state transitions?
+
+The sections below show how each problem appears in code and the Foldkit design that avoids it.
 
 ## Make Impossible States Unrepresentable
 
-Several fields can accidentally describe alternatives that should never occur together. For example, a Model with `isLoading`, `maybeData`, and `maybeError` can say that loading and failure are both active.
+Imagine a screen that can be idle, loading, showing data, or showing an error. Representing those mutually exclusive states in separate fields allows the Model to describe impossible combinations.
 
-If changing one field requires checking or resetting the others, replace the fields with one discriminated union. This makes impossible states unrepresentable. See [State with Variants](/core/model#state-with-variants) for the Foldkit pattern.
+::Snippet{name="antiPatternMutuallyExclusiveStateBad" label="❌ Separate fields can contradict one another" class="mb-4"}
 
-::Snippet{name="modelTaggedUnion" label="discriminated Model state"}
+Every handler must now remember which fields to set and which fields to clear. If one handler forgets, view and update receive a state the application never intended to support.
 
-For remote data, use [AsyncData](/core/async-data) instead of recreating its loading, refreshing, stale, failure, and success variants. Use [Machine](/core/machine) when the application must also restrict which variants may follow one another.
+Use one discriminated union when only one state can be active. Each variant carries exactly the data available in that state.
 
-Booleans and `Option` remain appropriate when the facts vary independently. The problem is using separate fields for alternatives that cannot coexist.
+::Snippet{name="antiPatternMutuallyExclusiveStateGood" label="✅ One union permits only valid states"}
+
+See [State with Variants](/core/model#state-with-variants) for the general Foldkit pattern. [AsyncData](/core/async-data) provides the usual remote-data states.
+
+For smaller custom flows, enforce legal transitions in an exhaustive Message match. Consider the experimental [Machine](/core/machine) module when a substantial transition table needs to be collected and traced. Use a Boolean for an independent yes-or-no fact and `Option` when one value may be absent independently of the surrounding state.
 
 ## Store Each Piece of State Once
 
-Storing the same information in more than one place creates a synchronization problem. Common forms include:
+Suppose the Model stores `items`, the current `query`, and a filtered copy named `visibleItems`. Every handler that changes either `items` or `query` must also update `visibleItems`.
 
-- storing filtered or sorted results beside the source collection;
-- treating a module variable or browser storage as a second live copy of a Model field;
-- treating a DOM class, attribute, or uncontrolled widget value as application state;
-- copying shared parent state into a child Model only so the child can read it.
+::Snippet{name="antiPatternDuplicatedStateBad" label="❌ Stored derived state can become stale" class="mb-4"}
 
-Store each piece of state once, in the Model field or Submodel responsible for changing it, and derive other values from that source. Pass parent-owned data needed only for rendering through Submodel `viewInputs`, and pass current parent context as an explicit input to a child update. When a change to parent-owned state must cause a child transition, [inform the child through its public boundary](/patterns/informing-submodels).
+The source fields and `visibleItems` now give two answers to the same question: which items should be shown. Store only `items` and `query`, then derive the filtered collection when the view needs it.
 
-Caching a derived value in the Model can be a deliberate performance optimization. For example, if the Model stores both `items` and `sortedItems`, every handler that changes `items` must also update `sortedItems`. Profile first, use [view memoization](/core/view-memoization) when building or diffing the view is expensive, and cache derived data in the Model only when profiling shows that the computation itself is the bottleneck. The [performance guide](/faq/performance#the-optimization-toolkit) explains that tradeoff.
+::Snippet{name="antiPatternDuplicatedStateGood" label="✅ The view derives visible items from source state"}
 
-A cached field remains derived only when recomputing it from the source always produces the same value. If users can edit the cached value independently, or if stale cached data changes what update does, the application has two conflicting sources of truth.
+The same rule applies outside derived collections. Browser storage may persist a snapshot of the Model, and a DOM attribute may display its current state. Neither should become a second value that update treats as authoritative. A module variable that mirrors a Model field creates the same conflict while also hiding the value from the Runtime and DevTools.
+
+Copying parent-owned data into a child Model just so the child can render it also creates two sources of truth. Pass that data through the child's `viewInputs` instead. When child update needs current parent context while handling its own Message, pass the value through update's third `context` argument. Use a public child helper when a parent-owned change must trigger a child transition.
+
+Cache a derived Model value only after profiling shows that deriving it is expensive. If the cost comes from building or diffing the view, prefer [view memoization](/core/view-memoization). A value users can change independently is domain state, not a cache. The [performance guide](/faq/performance#the-optimization-toolkit) compares Model caching with view memoization.
 
 ## Define the Model with Schema
 
-A handwritten TypeScript type beside a weaker runtime Schema creates two definitions of the same state. TypeScript and the decoder can then disagree about the Model's shape.
+Suppose a handwritten TypeScript type says that `session` contains a user, while the Model Schema accepts any value in that field. TypeScript lets update and view read `userId`, but the decoder can produce a value with no `userId` at all.
 
-Define the Model with Schema and derive its TypeScript type from that value. Avoid placeholders such as `Schema.Unknown` for fields whose shape is already known, and define each valid variant in the Schema instead of adding a stricter, unrelated TypeScript interface later.
+::Snippet{name="antiPatternModelSchemaBad" label="❌ The type promises more than the Schema checks" class="mb-4"}
 
-This matters even when no data crosses a network boundary. Foldkit uses the Model Schema to restore state across development reloads, so a weaker Schema can accept a value that the handwritten type claims is impossible. The same Schema can validate unknown data at application boundaries. It is part of the application architecture, not an unrelated serialization layer.
+Define the Model with Schema and derive the TypeScript type from it. The decoder and the type checker then agree on the Model's shape.
 
-See [Model](/core/model) for the complete pattern.
+::Snippet{name="antiPatternModelSchemaGood" label="✅ Derive the Model type from its Schema"}
+
+Deriving the Model type from its Schema matters even when the application does not decode an API response. Foldkit uses the Model Schema when it restores state after a development reload. Use `Schema.Unknown` only when no narrower Schema describes the value at that boundary, and represent every valid state variant in the Schema itself. See [Model](/core/model) for the complete pattern.
 
 ## Keep Effects Out of init, update, and view
 
-Calling `fetch` inside view starts another request whenever Foldkit renders that view. Calling `Date.now`, `Math.random`, storage APIs, DOM APIs, or `Effect.run*` inside init or update similarly makes the next Model depend on work the Runtime cannot observe or control. A storage or DOM write inside update also runs again during DevTools replay.
+Calling `fetch` inside view starts another request whenever Foldkit renders that view. Reading `Date.now()` or `Math.random()` inside init or update lets the same inputs produce a different Model. Writing to the DOM or browser storage inside update repeats that write when DevTools replays the Message.
 
-::Snippet{name="updatePureBad" label="effect during update" class="mb-4"}
+::Snippet{name="antiPatternEffectInUpdateBad" label="❌ update performs a DOM effect" class="mb-4"}
 
-::Snippet{name="updatePureGood" label="Command returned from update"}
+Keep init, update, and view deterministic. The `ClickedOpenDialog` handler should set `dialogState` to `Open` and return a `FocusSearchInput` Command.
 
-Choose the boundary from the cause:
+::Snippet{name="antiPatternEffectInUpdateGood" label="✅ update returns a Command"}
 
-- A Message requires one-time work: return a [Command](/core/commands).
-- The initial Model needs outside data: decode it through [Flags](/core/init-and-flags#flags).
-- Model-derived dependencies control the lifetime of a scoped Stream: use a [Subscription](/core/subscriptions).
-- The work requires a particular live element: use [Mount](/core/mount).
+`Effect`, `Stream`, and `Layer` values describe work; constructing one should not perform that work. Supply the lazy description to the boundary that controls its lifetime, and let the Runtime execute it.
 
-Returning an Effect, Stream, or Layer description is pure when creating that description does not eagerly perform the work. The Foldkit Runtime starts it at the chosen boundary.
-
-## Name Messages After Facts
-
-A Message records a fact. Names such as `SetUsername`, `FetchWeather`, and `ShowDialog` tell update what to do and hide the event that caused the decision. Use `UpdatedUsername`, `ClickedRefresh`, and `ClickedOpenDialog`; update can then decide what each fact means in the current Model.
-
-Commands are the imperative half of the vocabulary. `FetchWeather`, `FocusSearchInput`, and `SaveDraft` are good Command names because they instruct the Runtime to perform work. Their result Messages report what happened: `SucceededFetchWeather`, `FailedFetchWeather`, and `CompletedFocusSearchInput`.
-
-The name `NoOp` fails for a different reason: it hides the fact that caused the Message. A Message whose handler leaves the Model unchanged is fine. Name the fact, such as `IgnoredMouseClick` or `SuppressedSpaceScroll`, so history and tests retain the cause.
-
-See [Messages](/best-practices/messages) for naming and Command-to-Message pairs.
-
-## Reject Stale Async Results
-
-An async result can arrive after the Model has moved on. For example, a search for `ca` may finish after a newer search for `cat`. If the result Message carries only the response, the older result can overwrite the newer search state.
-
-Include enough context in the result Message to decide whether it still applies. Depending on the domain, that may be the entity id, query, route key, generation, or revision that started the work. The result handler compares that context with the current Model and explicitly accepts or ignores the result.
-
-Do not add a request id mechanically. Extra context is unnecessary only when every possible completion remains valid for whatever Model can receive it. Ask whether an older completion could be mistaken for the current answer.
-
-## Sequence Dependent Commands Through Messages
-
-Commands returned together start independently. Their array positions do not mean “first save, then navigate” or “cancel the old request, then start the new one.” If navigation depends on a successful save, return the save Command first and return the navigation Command from its success Message handler.
-
-Declaring `interrupt` makes targeted in-flight work stoppable and adds an `Interrupt` constructor to the Command Definition. It does not make a new invocation with the same key replace an older one. To replace work, return the Interrupt, wait for its result Message, and return the replacement Command from that handler.
-
-An Interrupt is not guaranteed to stop a Command. It reports `NotFound` when the keyed work already completed or never started. Either result means the key is free, so the result handler can start the replacement. When the target already completed, its result Message may be queued and can still reach update. The stale-result check from the previous section therefore remains necessary.
-
-Parallel Commands are appropriate when they are genuinely independent. Starting dependent work from a result Message makes the order explicit in update, DevTools, and tests. See [Replacing Cancelled Work](/core/commands#replacing-cancelled-work) for the full interruption protocol.
-
-## Preserve Submodel Boundaries
-
-A parent stores a Submodel's Model, but the child owns its transitions. A parent can violate that boundary in three different ways:
-
-- Changing child fields with `evo` bypasses the child update and skips its invariants, Commands, and OutMessages.
-- Importing and constructing an internal child Message makes the parent depend on the child's implementation instead of its public API.
-- Manually unpacking a child update result can drop its Commands or OutMessage.
-
-::Snippet{name="submodelDirectEvoAntipattern" label="boundary bypass" class="mb-4"}
-
-The second mistake can look safer because the parent still calls the child update, but it exposes an internal event as a parent-facing API:
-
-::Snippet{name="submodelInternalMessageAntipattern" label="parent constructs a child Message" class="mb-4"}
-
-Preserve the direction of communication:
-
-- A Message originating in the child is wrapped in one `Got*Message` variant and delegated with `Update.foldChild`.
-- A parent-owned fact drives the child through a named helper the child exports, folded with `Update.foldChild` or `Update.foldChildStep`.
-- A fact the child needs to surface becomes a tagged OutMessage that the parent matches through `foldOutMessage`.
-
-::Snippet{name="submodelDelegateViaHelper" label="public child transition"}
-
-A public helper is idiomatic when it preserves the child's single transition path. It runs the child's internal Message through update without exposing that Message constructor.
-
-See [Submodel](/core/submodel) for the complete boundary and [Informing Submodels](/patterns/informing-submodels) for changes the child needs to hear about but does not own.
+Use [Flags](/core/init-and-flags#flags) when the initial Model needs outside data. For work after initialization, choose the Runtime boundary based on what starts the work and how long it must live.
 
 ## Keep Live Handles Behind Runtime Boundaries
 
-A selected `File` is application data and may belong in the Model. A camera stream, `WebSocket`, worker, observer, editor instance, or DOM element is different: it is a live handle with acquisition and cleanup. Keep whether the handle is needed, whether it is ready, and other user-visible facts in the Model. Let a Runtime boundary own the handle itself.
+Imagine a chat screen that needs a `WebSocket` only while the visitor is in a room. Opening the socket inside update and storing it in a module variable puts it outside the Runtime's lifecycle. The Runtime therefore cannot close it when the visitor leaves the room, and replaying the Message in DevTools can open another connection.
 
-Choose a Runtime boundary by what causes the work and how long it must live:
+Storing the socket in the Model does not give it a Runtime-controlled lifetime. The live connection cannot be recreated from the Model Schema after a development reload, and update would still be responsible for opening and closing it. Keep the room and connection status in the Model, and let a ManagedResource own the `WebSocket` itself.
 
-| Cause or lifetime                                                           | Boundary        |
-| --------------------------------------------------------------------------- | --------------- |
-| A Message requires one-shot work                                            | Command         |
-| A rendered element exists, and the work uses that element                   | Mount           |
-| Model-derived dependencies control the lifetime of a scoped Stream          | Subscription    |
-| A Model condition controls a typed handle used by Commands or Subscriptions | ManagedResource |
-| A service lives for the entire application Runtime                          | Resources       |
-| A native web component is rendered declaratively                            | CustomElement   |
+::Snippet{name="antiPatternLiveHandleBad" label="❌ A module variable owns the WebSocket" class="mb-4"}
 
-A Mount whose `execute` function ignores its element is the clearest warning sign: the element does not actually cause the work. A module variable holding a connection is another; its lifetime is no longer tied to the Model or Runtime.
+::Snippet{name="antiPatternLiveHandleGood" label="✅ A ManagedResource owns the WebSocket lifetime"}
 
-Keep the desired lifetime and user-visible status in the Model. Let the chosen boundary perform the work and any required cleanup. The [Mount comparison](/core/mount#when-to-reach-for-mount) and [Managed Resources](/core/managed-resources) guides cover the boundaries in depth.
+ManagedResource fits when Commands or Subscriptions need the typed handle. In this example, `acquire` returns the Effect that creates the socket, and `release` returns the Effect that closes it when the room requirements disappear. The Runtime performs both Effects. When the Runtime performs `SendChatMessage`, that Command's Effect retrieves the live `ChatSocket`. When the socket only produces an event stream, a Subscription can own the connection directly.
 
-## What Linting Can Catch
+Choose the boundary whose lifetime matches the work:
 
-The [Foldkit linter](/tooling/oxlint-plugin) catches many local signatures of these problems, including module-level mutable state, eager clock and randomness calls at decision time, parent construction of child Messages, and Submodel boundary mistakes. Linting cannot decide who owns a piece of domain state or whether an async result is stale. Use the questions above for that design review.
+| Cause or lifetime                                                     | Boundary                                   |
+| --------------------------------------------------------------------- | ------------------------------------------ |
+| One-time work started while handling a Message                        | [Command](/core/commands)                  |
+| Work that requires one rendered element                               | [Mount](/core/mount)                       |
+| Ongoing work controlled by Model-derived dependencies                 | [Subscription](/core/subscriptions)        |
+| A typed handle needed while a Model condition holds                   | [ManagedResource](/core/managed-resources) |
+| A service shared for the entire application Runtime                   | [Resources](/core/resources)               |
+| A native web component whose properties and events remain declarative | [CustomElement](/core/custom-element)      |
+
+If a Mount's `execute` function never uses its element, the work should not be tied to that element's lifetime. Choose the boundary based on what actually starts and stops the work. The [Mount comparison](/core/mount#when-to-reach-for-mount) and [Managed Resources](/core/managed-resources) guides cover these choices in depth.
+
+## Name Messages After Facts
+
+Suppose a visitor clicks a refresh button. A Message named `FetchWeather` sounds like an instruction to perform a request, but it does not say what happened in the interface.
+
+::Snippet{name="antiPatternImperativeMessageBad" label="❌ The Message is named after an instruction" class="mb-4"}
+
+Name the Message `ClickedRefresh`. When update handles it, update may return a Command named `FetchWeather`. Message names describe events that happened; Command names describe work to perform.
+
+::Snippet{name="antiPatternImperativeMessageGood" label="✅ The Message records the click"}
+
+See [Event Names](/best-practices/messages#events) and [Command Result Names](/best-practices/messages#command-results) for the complete conventions.
+
+## Never Name a Message `NoOp`
+
+Suppose an event handler must return a Message, but update does not need to change the Model for that event. Naming the Message `NoOp` means DevTools and tests record only `NoOp`, not the mouse click that occurred.
+
+::Snippet{name="antiPatternNoOpMessageBad" label="❌ NoOp hides the event" class="mb-4"}
+
+Name the Message `IgnoredMouseClick` even though its update handler returns the unchanged Model.
+
+::Snippet{name="antiPatternNoOpMessageGood" label="✅ The Message records the ignored click"}
+
+See [Descriptive Results](/best-practices/messages#no-noop) for more examples of Messages whose handlers leave the Model unchanged.
+
+## Include Enough Context in Command Result Messages {#reject-stale-async-results}
+
+Imagine that a visitor searches for `ca` and then immediately searches for `cat`. Both requests remain in flight, and the `ca` response may arrive last. If the result Message carries only the suggestions, the older response overwrites the current results.
+
+::Snippet{name="antiPatternStaleResultBad" label="❌ An old response can replace current results" class="mb-4"}
+
+Assign each search an incrementing generation number and include it in `SucceededSearch`. The handler accepts the response only when that number matches the current generation in the Model.
+
+::Snippet{name="antiPatternStaleResultGood" label="✅ The result identifies the request that produced it"}
+
+Choose context that tells update whether the result still applies. A generation number distinguishes repeated searches for the same query, an entity id can distinguish entity requests, and a revision can distinguish editor saves. Omit additional context when an older result cannot overwrite or invalidate newer state.
+
+## Sequence Dependent Commands Through Messages
+
+Suppose saving a draft must finish before the application leaves the editor. When update returns `SaveDraft` and `NavigateToDocuments` together, the Runtime starts both Commands independently. Their positions in the array do not determine which finishes first.
+
+::Snippet{name="antiPatternDependentCommandsBad" label="❌ Array order does not sequence Commands" class="mb-4"}
+
+Have update return only `SaveDraft`. When `SucceededSaveDraft` reaches update, return `NavigateToDocuments`.
+
+::Snippet{name="antiPatternDependentCommandsGood" label="✅ update returns NavigateToDocuments after SaveDraft succeeds"}
+
+Return Commands together only when they can run independently. Otherwise, when the first result Message reaches update, have update return the next Command. If no distinct result Message or update decision belongs between two operations, sequence them inside one Command.
+
+## Wait for Interruption Before Starting Replacement Work
+
+Suppose `FetchSuggestions` is interruptible and a new search should replace the running search. When update returns `FetchSuggestions.Interrupt` and a new `FetchSuggestions` Command together, the Runtime starts both without an ordering guarantee. The replacement may register under the same interruption key before the Interrupt runs, so the Interrupt can cancel both requests and leave no current search in flight.
+
+::Snippet{name="antiPatternInterruptReplacementBad" label="❌ Interrupt and replacement start independently" class="mb-4"}
+
+On the first query change, move the search from `Running` to `Cancelling`, increment its generation, and return only the Interrupt. Further query changes while `Cancelling` update the stored query without dispatching another Interrupt. When `CompletedCancelFetchSuggestions` reaches update, return one `FetchSuggestions` Command with the latest query and generation from the Model.
+
+::Snippet{name="antiPatternInterruptReplacementGood" label="✅ update returns FetchSuggestions after interruption"}
+
+The old `FetchSuggestions` Command may finish just before the Interrupt runs, leaving `SucceededFetchSuggestions` already queued. Incrementing the generation before interruption makes that completion stale. The result handler must still compare the result's generation with the current Model before accepting it. See [Include Enough Context in Command Result Messages](#reject-stale-async-results) and [Sequencing Replacement Work](/core/commands#sequencing-replacement-work) for both parts of the protocol.
+
+## Preserve Submodel Boundaries
+
+A parent stores a Submodel's Model, but the child owns every transition of that state. If the parent changes a child field directly, the child's update function does not run.
+
+::Snippet{name="antiPatternSubmodelMutationBad" label="❌ The parent changes a child field directly" class="mb-4"}
+
+The direct change may skip validation, Commands, or OutMessages that the child needs. Importing an internal child Message does not fix the boundary: it turns that private event into an API the parent depends on.
+
+::Snippet{name="antiPatternSubmodelMessageBad" label="❌ The parent constructs an internal child Message" class="mb-4"}
+
+Manually copying the child Model from a helper result causes a separate problem. The parent can keep the next child Model while silently discarding Commands returned with it.
+
+::Snippet{name="antiPatternSubmodelResultBad" label="❌ The parent keeps only the child Model" class="mb-4"}
+
+Export a helper from the child for transitions the parent is allowed to request. The helper constructs the internal Message and immediately passes it through the child's update function. The parent calls the helper without importing the child's Message constructor.
+
+::Snippet{name="antiPatternSubmodelBoundaryGood" label="✅ A public helper preserves the child's update boundary"}
+
+`Update.foldChild` and `Update.foldChildStep` write the returned child Model into the parent and lift the child's Commands. When the child can emit OutMessages, pass `foldOutMessage` so the parent handles every variant instead of accidentally omitting one. The [Submodel guide](/core/submodel) explains child Messages and OutMessages. [Informing Submodels](/patterns/informing-submodels) covers parent-owned facts that a child needs to hear about.
+
+## Know What Linting Can Catch {#what-linting-can-catch}
+
+The [Foldkit linter](/tooling/oxlint-plugin) can recognize code shapes such as a module-level `let`, `Date.now()` inside update, a parent constructing a child Message, or a Mount whose `execute` function never uses its element. It cannot decide whether two domain states may coexist, whether an async result can become stale, or which part of an application should own a value. Those questions still require design review.

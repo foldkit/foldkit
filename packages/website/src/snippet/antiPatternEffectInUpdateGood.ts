@@ -1,9 +1,8 @@
+// ✅ Good: update returns a Command and the Runtime performs the effect.
+
 import { Effect } from 'effect'
 import { Command, Dom, type Update } from 'foldkit'
 import { evo } from 'foldkit/struct'
-
-import { Message } from './message'
-import type { Model } from './model'
 
 const FocusSearchInput = Command.define('FocusSearchInput', {
   messages: [Message.CompletedFocusSearchInput],
@@ -13,10 +12,9 @@ const FocusSearchInput = Command.define('FocusSearchInput', {
   ),
 })
 
-// ✅ Return the next Model and a Command
 const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
-    OpenedDialog: () => ({
+    ClickedOpenDialog: () => ({
       model: evo(model, { dialogState: () => 'Open' }),
       commands: [FocusSearchInput()],
     }),
