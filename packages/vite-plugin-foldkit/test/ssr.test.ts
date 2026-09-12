@@ -75,16 +75,6 @@ const requestWithTarget = (
     clientRequest.end()
   })
 
-// Vite's `DevEnvironment` constructor, as the two installed majors both shape
-// it. Their classes are nominally incompatible for the same reason their
-// `Plugin` types are, so a test that instantiates either one describes the
-// shared shape itself.
-type DevEnvironmentConstructor = new (
-  name: string,
-  config: ResolvedConfig,
-  context: { hot: boolean },
-) => DevEnvironment
-
 // A logger that keeps warnings, so a test can assert what the plugin told the
 // developer rather than only what it did.
 const collectingLogger = (warnings: Array<string>): Logger => ({
@@ -102,8 +92,6 @@ const collectingLogger = (warnings: Array<string>): Logger => ({
 })
 
 const FIXTURE_ROOT = resolve(import.meta.dirname, 'fixtures/ssr')
-const VITE_MAJORS: ReadonlyArray<7 | 8> = [7, 8]
-
 const findFreePort = () =>
   new Promise<number>((resolvePort, reject) => {
     const probe = createNetServer()
@@ -195,24 +183,20 @@ const allowedHostsConfiguration = (
 
 // Stands in for a host plugin that backs the `ssr` environment with its own
 // runtime, such as a Workers plugin running the entry in workerd: the
-// environment is a plain `DevEnvironment`, so it has no module runner. The
-// class comes from the same copy of Vite that creates the server, because Vite
-// only accepts its own.
-const nonRunnableSsrPlugin = (
-  DevEnvironmentClass: DevEnvironmentConstructor,
-): Plugin => ({
+// environment is a plain `DevEnvironment`, so it has no module runner.
+const nonRunnableSsrPlugin: Plugin = {
   name: 'test:non-runnable-ssr',
   config: () => ({
     environments: {
       ssr: {
         dev: {
           createEnvironment: (name: string, config: ResolvedConfig) =>
-            new DevEnvironmentClass(name, config, { hot: false }),
+            new DevEnvironment(name, config, { hot: false }),
         },
       },
     },
   }),
-})
+}
 
 const startServer = async (
   options: Readonly<{
@@ -222,7 +206,6 @@ const startServer = async (
     cors?: boolean | CorsOptions
     proxyTarget?: string
     seedVary?: string
-    viteMajor?: 7 | 8
     buildId?: string
     runnableSsr?: false
     quietStandDown?: true
@@ -230,20 +213,7 @@ const startServer = async (
   }> = {},
 ) => {
   const port = await findFreePort()
-  let createServer = createViteServer
-  let DevEnvironmentClass: DevEnvironmentConstructor =
-    DevEnvironment as unknown as DevEnvironmentConstructor
-  if (options.viteMajor === 7) {
-    // NOTE: Vite's Plugin type exposes its bundler internals, which changed
-    // from Rollup in Vite 7 to Rolldown in Vite 8. The dev-server contract this
-    // test exercises is shared, but the otherwise-compatible Plugin types are
-    // nominally incompatible across the two installed majors.
-    const vite7 = await import('vite7')
-    createServer = vite7.createServer as unknown as typeof createViteServer
-    DevEnvironmentClass =
-      vite7.DevEnvironment as unknown as DevEnvironmentConstructor
-  }
-  const server = await createServer({
+  const server = await createViteServer({
     root: FIXTURE_ROOT,
     ...(options.base === undefined ? {} : { base: options.base }),
     configFile: false,
@@ -252,9 +222,7 @@ const startServer = async (
       ? {}
       : { customLogger: collectingLogger(options.warnings) }),
     plugins: [
-      ...(options.runnableSsr === false
-        ? [nonRunnableSsrPlugin(DevEnvironmentClass)]
-        : []),
+      ...(options.runnableSsr === false ? [nonRunnableSsrPlugin] : []),
       ...(options.seedVary === undefined
         ? []
         : [seedVaryPlugin(options.seedVary)]),
@@ -473,34 +441,31 @@ describe('foldkitSsr', () => {
   // Workers plugin running the entry in workerd — leaves the environment
   // without a module runner, and serves pages through that runtime itself.
   // Rendering here would need the runner, so the plugin stands down and lets
-  // the host answer, rather than failing every page request. Both majors are
-  // covered because the check cannot be Vite's own `isRunnableDevEnvironment`:
-  // that is an `instanceof` against the class of whichever copy of Vite the
-  // plugin imported, which is not always the copy that made the server.
-  for (const viteMajor of VITE_MAJORS) {
-    it(`stands down when Vite ${String(viteMajor)} gives the ssr environment no runner`, async () => {
-      const warnings: Array<string> = []
-      const origin = await startServer({
-        viteMajor,
-        runnableSsr: false,
-        warnings,
-      })
-
-      const response = await fetch(`${origin}/rendered`, {
-        headers: { accept: 'text/html' },
-      })
-
-      // Nothing rendered, and nothing failed either: the request reached the
-      // end of the middleware chain, which in this test has no host waiting
-      // behind Foldkit.
-      expect(response.status).toBe(404)
-      expect(await response.text()).not.toContain('data-foldkit-app')
-      expect(warnings.join('\n')).toContain(
-        'the "ssr" environment is not runnable',
-      )
-      expect(warnings.join('\n')).not.toContain('Remove `ssr.serverEntry`')
+  // the host answer, rather than failing every page request. The check cannot
+  // be Vite's own `isRunnableDevEnvironment`: that is an `instanceof` against
+  // the class of whichever copy of Vite the plugin imported, which is not
+  // always the copy that made the server.
+  it(`stands down when Vite gives the ssr environment no runner`, async () => {
+    const warnings: Array<string> = []
+    const origin = await startServer({
+      runnableSsr: false,
+      warnings,
     })
-  }
+
+    const response = await fetch(`${origin}/rendered`, {
+      headers: { accept: 'text/html' },
+    })
+
+    // Nothing rendered, and nothing failed either: the request reached the
+    // end of the middleware chain, which in this test has no host waiting
+    // behind Foldkit.
+    expect(response.status).toBe(404)
+    expect(await response.text()).not.toContain('data-foldkit-app')
+    expect(warnings.join('\n')).toContain(
+      'the "ssr" environment is not runnable',
+    )
+    expect(warnings.join('\n')).not.toContain('Remove `ssr.serverEntry`')
+  })
 
   it('stays quiet when standing down under ssr.build', async () => {
     const warnings: Array<string> = []
@@ -518,24 +483,21 @@ describe('foldkitSsr', () => {
     expect(warnings).toEqual([])
   })
 
-  for (const viteMajor of VITE_MAJORS) {
-    it(`preserves the browser URL across the Vite ${String(viteMajor)} base middleware`, async () => {
-      const origin = await startServer({
-        base: '/app/',
-        origin: 'https://app.example',
-        viteMajor,
-      })
-      const response = await requestWithTarget(
-        origin,
-        '/app/request-info?tab=details',
-      )
-
-      expect(response.status).toBe(200)
-      expect(response.body).toBe(
-        'https://app.example/app/request-info?tab=details',
-      )
+  it(`preserves the browser URL across the Vite base middleware`, async () => {
+    const origin = await startServer({
+      base: '/app/',
+      origin: 'https://app.example',
     })
-  }
+    const response = await requestWithTarget(
+      origin,
+      '/app/request-info?tab=details',
+    )
+
+    expect(response.status).toBe(200)
+    expect(response.body).toBe(
+      'https://app.example/app/request-info?tab=details',
+    )
+  })
 
   it('refuses a target that names another origin than the configured one', async () => {
     const origin = await startServer({
@@ -602,33 +564,28 @@ describe('foldkitSsr', () => {
     expect(response.body).toBe(`${origin}/request-info`)
   })
 
-  for (const viteMajor of VITE_MAJORS) {
-    it(`validates and normalizes targets before Vite ${String(viteMajor)} source ownership`, async () => {
-      const origin = await startServer({ viteMajor })
-      const source = await requestWithTarget(
-        origin,
-        `${origin}/entry.server.ts`,
-      )
-      expect(source.status).toBe(200)
+  it(`validates and normalizes targets before Vite source ownership`, async () => {
+    const origin = await startServer()
+    const source = await requestWithTarget(origin, `${origin}/entry.server.ts`)
+    expect(source.status).toBe(200)
 
-      for (const target of [
-        '//evil.example/../entry.server.ts',
-        '//evil.example/%2e%2e/entry.server.ts',
-      ]) {
-        const response = await requestWithTarget(origin, target)
-        expect(response.status, target).toBe(400)
-        expect(response.body, target).not.toContain('renderPage')
-      }
+    for (const target of [
+      '//evil.example/../entry.server.ts',
+      '//evil.example/%2e%2e/entry.server.ts',
+    ]) {
+      const response = await requestWithTarget(origin, target)
+      expect(response.status, target).toBe(400)
+      expect(response.body, target).not.toContain('renderPage')
+    }
 
-      const refusedMethod = await requestWithTarget(
-        origin,
-        '//evil.example/../deep/route',
-        { method: 'TRACE' },
-      )
-      expect(refusedMethod.status).toBe(400)
-      expect(refusedMethod.headers['allow']).toBeUndefined()
-    })
-  }
+    const refusedMethod = await requestWithTarget(
+      origin,
+      '//evil.example/../deep/route',
+      { method: 'TRACE' },
+    )
+    expect(refusedMethod.status).toBe(400)
+    expect(refusedMethod.headers['allow']).toBeUndefined()
+  })
 
   it('returns 404 rather than HTML for a missing asset', async () => {
     // A browser fetches scripts with `Accept: */*`, which accepts HTML. Without
@@ -768,92 +725,86 @@ describe('foldkitSsr', () => {
     expect(response.headers.get('access-control-allow-methods')).toBeNull()
   })
 
-  for (const viteMajor of VITE_MAJORS) {
-    it(`hands ordinary asset-looking OPTIONS to the entry under Vite ${String(viteMajor)}`, async () => {
-      const origin = await startServer({ viteMajor })
-      const response = await requestWithTarget(origin, '/entry.client.ts', {
-        method: 'OPTIONS',
-      })
-
-      expect(response.status).toBe(204)
-      expect(response.headers['x-preflight']).toBe('/entry.client.ts')
-      expect(response.headers['access-control-allow-origin']).toBeUndefined()
+  it(`hands ordinary asset-looking OPTIONS to the entry under Vite`, async () => {
+    const origin = await startServer()
+    const response = await requestWithTarget(origin, '/entry.client.ts', {
+      method: 'OPTIONS',
     })
 
-    it(`does not treat a requested method without Origin as a Vite ${String(viteMajor)} preflight`, async () => {
-      const origin = await startServer({ viteMajor })
-      const response = await requestWithTarget(origin, '/entry.client.ts', {
-        method: 'OPTIONS',
-        headers: { 'access-control-request-method': 'GET' },
-      })
+    expect(response.status).toBe(204)
+    expect(response.headers['x-preflight']).toBe('/entry.client.ts')
+    expect(response.headers['access-control-allow-origin']).toBeUndefined()
+  })
 
-      expect(response.status).toBe(204)
-      expect(response.headers['x-preflight']).toBe('/entry.client.ts')
-      expect(response.headers['access-control-allow-origin']).toBeUndefined()
+  it(`does not treat a requested method without Origin as a Vite preflight`, async () => {
+    const origin = await startServer()
+    const response = await requestWithTarget(origin, '/entry.client.ts', {
+      method: 'OPTIONS',
+      headers: { 'access-control-request-method': 'GET' },
     })
 
-    it(`hands a POST preflight for an asset-looking path to the entry under Vite ${String(viteMajor)}`, async () => {
-      const origin = await startServer({ viteMajor })
-      const response = await requestWithTarget(origin, '/entry.client.ts', {
+    expect(response.status).toBe(204)
+    expect(response.headers['x-preflight']).toBe('/entry.client.ts')
+    expect(response.headers['access-control-allow-origin']).toBeUndefined()
+  })
+
+  it(`hands a POST preflight for an asset-looking path to the entry under Vite`, async () => {
+    const origin = await startServer()
+    const response = await requestWithTarget(origin, '/entry.client.ts', {
+      method: 'OPTIONS',
+      headers: {
+        origin: 'https://browser.example',
+        'access-control-request-method': 'POST',
+      },
+    })
+
+    expect(response.status).toBe(204)
+    expect(response.headers['x-preflight']).toBe('/entry.client.ts')
+    expect(response.headers['access-control-allow-origin']).toBeUndefined()
+  })
+
+  it(`validates an asset-looking preflight target before Vite CORS`, async () => {
+    const origin = await startServer()
+    const response = await requestWithTarget(
+      origin,
+      'http://evil.example/entry.client.ts',
+      {
         method: 'OPTIONS',
         headers: {
           origin: 'https://browser.example',
-          'access-control-request-method': 'POST',
+          'access-control-request-method': 'GET',
         },
-      })
+      },
+    )
 
-      expect(response.status).toBe(204)
-      expect(response.headers['x-preflight']).toBe('/entry.client.ts')
-      expect(response.headers['access-control-allow-origin']).toBeUndefined()
+    expect(response.status).toBe(400)
+    expect(response.headers['access-control-allow-origin']).toBeUndefined()
+    expect(response.headers['x-preflight']).toBeUndefined()
+  })
+
+  it(`removes Vite CORS from application GET and POST responses`, async () => {
+    const origin = await startServer({ cors: true })
+    const getResponse = await requestWithTarget(origin, '/rendered', {
+      headers: {
+        accept: 'text/html',
+        origin: 'https://browser.example',
+      },
+    })
+    const postResponse = await requestWithTarget(origin, '/echo', {
+      method: 'POST',
+      body: 'payload',
+      headers: { origin: 'https://browser.example' },
     })
 
-    it(`validates an asset-looking preflight target before Vite ${String(viteMajor)} CORS`, async () => {
-      const origin = await startServer({ viteMajor })
-      const response = await requestWithTarget(
-        origin,
-        'http://evil.example/entry.client.ts',
-        {
-          method: 'OPTIONS',
-          headers: {
-            origin: 'https://browser.example',
-            'access-control-request-method': 'GET',
-          },
-        },
-      )
-
-      expect(response.status).toBe(400)
-      expect(response.headers['access-control-allow-origin']).toBeUndefined()
-      expect(response.headers['x-preflight']).toBeUndefined()
-    })
-  }
-
-  for (const viteMajor of VITE_MAJORS) {
-    it(`removes Vite ${String(viteMajor)} CORS from application GET and POST responses`, async () => {
-      const origin = await startServer({ cors: true, viteMajor })
-      const getResponse = await requestWithTarget(origin, '/rendered', {
-        headers: {
-          accept: 'text/html',
-          origin: 'https://browser.example',
-        },
-      })
-      const postResponse = await requestWithTarget(origin, '/echo', {
-        method: 'POST',
-        body: 'payload',
-        headers: { origin: 'https://browser.example' },
-      })
-
-      expect(getResponse.status).toBe(203)
-      expect(getResponse.headers['access-control-allow-origin']).toBeUndefined()
-      expect(getResponse.headers['vary']?.toLowerCase()).not.toContain('origin')
-      expect(postResponse.status).toBe(202)
-      expect(
-        postResponse.headers['access-control-allow-origin'],
-      ).toBeUndefined()
-      expect((postResponse.headers['vary'] ?? '').toLowerCase()).not.toContain(
-        'origin',
-      )
-    })
-  }
+    expect(getResponse.status).toBe(203)
+    expect(getResponse.headers['access-control-allow-origin']).toBeUndefined()
+    expect(getResponse.headers['vary']?.toLowerCase()).not.toContain('origin')
+    expect(postResponse.status).toBe(202)
+    expect(postResponse.headers['access-control-allow-origin']).toBeUndefined()
+    expect((postResponse.headers['vary'] ?? '').toLowerCase()).not.toContain(
+      'origin',
+    )
+  })
 
   it('preserves CORS headers authored by the server entry', async () => {
     const origin = await startServer({
@@ -909,59 +860,54 @@ describe('foldkitSsr', () => {
       expectedCredentials: string | undefined
     }>
   >) {
-    for (const viteMajor of VITE_MAJORS) {
-      it(`keeps Vite ${String(viteMajor)} CORS ${testCase.name} for Vite-owned source`, async () => {
-        const origin = await startServer({
-          cors: testCase.cors,
-          viteMajor,
-        })
-        const response = await requestWithTarget(origin, '/entry.client.ts', {
-          headers: { origin: 'https://browser.example' },
-        })
-
-        expect(response.status).toBe(200)
-        expect(response.body).toContain('export')
-        expect(response.headers['access-control-allow-origin']).toBe(
-          testCase.expectedOrigin,
-        )
-        expect(response.headers['access-control-allow-credentials']).toBe(
-          testCase.expectedCredentials,
-        )
+    it(`keeps Vite CORS ${testCase.name} for Vite-owned source`, async () => {
+      const origin = await startServer({
+        cors: testCase.cors,
       })
-    }
-  }
-
-  for (const viteMajor of VITE_MAJORS) {
-    it(`keeps a Vite ${String(viteMajor)} source-module preflight under Vite CORS ownership`, async () => {
-      const origin = await startServer({ cors: true, viteMajor })
       const response = await requestWithTarget(origin, '/entry.client.ts', {
-        method: 'OPTIONS',
-        headers: {
-          origin: 'https://browser.example',
-          'access-control-request-method': 'GET',
-        },
+        headers: { origin: 'https://browser.example' },
       })
 
-      expect(response.status).toBe(204)
-      expect(response.headers['access-control-allow-origin']).toBe('*')
-      expect(response.headers['x-preflight']).toBeUndefined()
-    })
-
-    it(`keeps a base-prefixed Vite ${String(viteMajor)} client preflight under Vite CORS ownership`, async () => {
-      const origin = await startServer({ base: '/app/', cors: true, viteMajor })
-      const response = await requestWithTarget(origin, '/app/@vite/client', {
-        method: 'OPTIONS',
-        headers: {
-          origin: 'https://browser.example',
-          'access-control-request-method': 'GET',
-        },
-      })
-
-      expect(response.status).toBe(204)
-      expect(response.headers['access-control-allow-origin']).toBe('*')
-      expect(response.headers['x-preflight']).toBeUndefined()
+      expect(response.status).toBe(200)
+      expect(response.body).toContain('export')
+      expect(response.headers['access-control-allow-origin']).toBe(
+        testCase.expectedOrigin,
+      )
+      expect(response.headers['access-control-allow-credentials']).toBe(
+        testCase.expectedCredentials,
+      )
     })
   }
+
+  it(`keeps a Vite source-module preflight under Vite CORS ownership`, async () => {
+    const origin = await startServer({ cors: true })
+    const response = await requestWithTarget(origin, '/entry.client.ts', {
+      method: 'OPTIONS',
+      headers: {
+        origin: 'https://browser.example',
+        'access-control-request-method': 'GET',
+      },
+    })
+
+    expect(response.status).toBe(204)
+    expect(response.headers['access-control-allow-origin']).toBe('*')
+    expect(response.headers['x-preflight']).toBeUndefined()
+  })
+
+  it(`keeps a base-prefixed Vite client preflight under Vite CORS ownership`, async () => {
+    const origin = await startServer({ base: '/app/', cors: true })
+    const response = await requestWithTarget(origin, '/app/@vite/client', {
+      method: 'OPTIONS',
+      headers: {
+        origin: 'https://browser.example',
+        'access-control-request-method': 'GET',
+      },
+    })
+
+    expect(response.status).toBe(204)
+    expect(response.headers['access-control-allow-origin']).toBe('*')
+    expect(response.headers['x-preflight']).toBeUndefined()
+  })
 
   it('leaves the Vite client and HMR ping under Vite ownership', async () => {
     const origin = await startServer({ cors: true })
@@ -981,28 +927,26 @@ describe('foldkitSsr', () => {
     expect(pingResponse.headers['access-control-allow-origin']).toBe('*')
   })
 
-  for (const viteMajor of VITE_MAJORS) {
-    it(`validates Host in Vite ${String(viteMajor)} before application OPTIONS and refused methods`, async () => {
-      const origin = await startServer({ viteMajor })
-      const preflight = await requestWithTarget(origin, '/deep/route', {
-        method: 'OPTIONS',
-        headers: {
-          host: 'evil.example',
-          origin: 'https://browser.example',
-          'access-control-request-method': 'POST',
-        },
-      })
-      const trace = await requestWithTarget(origin, '/', {
-        method: 'TRACE',
-        headers: { host: 'evil.example' },
-      })
-
-      expect(preflight.status).toBe(403)
-      expect(preflight.headers['x-preflight']).toBeUndefined()
-      expect(trace.status).toBe(403)
-      expect(trace.headers['allow']).toBeUndefined()
+  it(`validates Host in Vite before application OPTIONS and refused methods`, async () => {
+    const origin = await startServer()
+    const preflight = await requestWithTarget(origin, '/deep/route', {
+      method: 'OPTIONS',
+      headers: {
+        host: 'evil.example',
+        origin: 'https://browser.example',
+        'access-control-request-method': 'POST',
+      },
     })
-  }
+    const trace = await requestWithTarget(origin, '/', {
+      method: 'TRACE',
+      headers: { host: 'evil.example' },
+    })
+
+    expect(preflight.status).toBe(403)
+    expect(preflight.headers['x-preflight']).toBeUndefined()
+    expect(trace.status).toBe(403)
+    expect(trace.headers['allow']).toBeUndefined()
+  })
 
   it('lets an explicitly allowed Host reach application OPTIONS', async () => {
     const origin = await startServer({ allowedHosts: ['evil.example'] })
@@ -1019,34 +963,31 @@ describe('foldkitSsr', () => {
     expect(response.headers['x-preflight']).toBe('/deep/route')
   })
 
-  for (const viteMajor of VITE_MAJORS) {
-    it(`leaves GET and OPTIONS for a Vite ${String(viteMajor)} proxy under proxy ownership`, async () => {
-      const proxyTarget = await startProxyTarget()
-      const origin = await startServer({
-        cors: true,
-        proxyTarget,
-        viteMajor,
-      })
-      const getResponse = await requestWithTarget(origin, '/api/items', {
-        headers: { origin: 'https://browser.example' },
-      })
-      const optionsResponse = await requestWithTarget(origin, '/api/items', {
-        method: 'OPTIONS',
-        headers: {
-          origin: 'https://browser.example',
-          'access-control-request-method': 'POST',
-        },
-      })
-
-      expect(getResponse.status).toBe(218)
-      expect(getResponse.headers['x-request-owner']).toBe('proxy')
-      expect(getResponse.body).toBe('GET:/api/items:')
-      expect(optionsResponse.status).toBe(218)
-      expect(optionsResponse.headers['x-request-owner']).toBe('proxy')
-      expect(optionsResponse.headers['x-preflight']).toBeUndefined()
-      expect(optionsResponse.body).toBe('OPTIONS:/api/items:')
+  it(`leaves GET and OPTIONS for a Vite proxy under proxy ownership`, async () => {
+    const proxyTarget = await startProxyTarget()
+    const origin = await startServer({
+      cors: true,
+      proxyTarget,
     })
-  }
+    const getResponse = await requestWithTarget(origin, '/api/items', {
+      headers: { origin: 'https://browser.example' },
+    })
+    const optionsResponse = await requestWithTarget(origin, '/api/items', {
+      method: 'OPTIONS',
+      headers: {
+        origin: 'https://browser.example',
+        'access-control-request-method': 'POST',
+      },
+    })
+
+    expect(getResponse.status).toBe(218)
+    expect(getResponse.headers['x-request-owner']).toBe('proxy')
+    expect(getResponse.body).toBe('GET:/api/items:')
+    expect(optionsResponse.status).toBe(218)
+    expect(optionsResponse.headers['x-request-owner']).toBe('proxy')
+    expect(optionsResponse.headers['x-preflight']).toBeUndefined()
+    expect(optionsResponse.body).toBe('OPTIONS:/api/items:')
+  })
 
   it('does not vary a refusal the path alone settles', async () => {
     // `/assets/stale-hash.js` is an asset for every client, so the refusal is

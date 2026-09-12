@@ -7,11 +7,6 @@ packages:
 
 allowBuilds:
   '@parcel/watcher': true
-  # Nothing here builds with esbuild any more, and its binary comes from the
-  # platform package rather than the install script; Vite 7 and tsx still
-  # install it, and a fresh install refuses while an ignored build has no
-  # entry.
-  esbuild: false
   msgpackr-extract: true
   simple-git-hooks: true
 

@@ -53,7 +53,7 @@ test('the packed SSR consumer runs its critical browser matrix in CI', () => {
   )
   assert.equal(
     rootPackage.scripts['check:packed-ssr-consumer:ci'],
-    'tsx scripts/check-packed-ssr-consumer.ts --skip-build --critical-browser-matrix',
+    'node scripts/check-packed-ssr-consumer.ts --skip-build --critical-browser-matrix',
   )
 })
 

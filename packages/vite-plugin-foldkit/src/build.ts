@@ -580,7 +580,7 @@ export const foldkitBuild = (
         build: {
           ssr: true,
           outDir: serverOutDir,
-          rollupOptions: {
+          rolldownOptions: {
             input: { [FETCH_CHUNK_NAME]: FOLDKIT_FETCH_MODULE_ID },
           },
         },
