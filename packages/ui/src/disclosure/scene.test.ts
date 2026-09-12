@@ -22,7 +22,10 @@ const update = (model: Model, message: Message) =>
   })
 
 const testView =
-  ({ isDisabled = false }: { isDisabled?: boolean } = {}) =>
+  ({
+    isDisabled = false,
+    peek,
+  }: { isDisabled?: boolean; peek?: string } = {}) =>
   (model: Model, h: HtmlBuilder<Message>) =>
     view(
       {
@@ -30,12 +33,17 @@ const testView =
         isOpen: model.isOpen,
         onToggle: isOpen => Message.Toggled({ isOpen }),
         isDisabled,
+        // A section around a paragraph, so the only divs in the scene are
+        // the two animatePanel draws and `div div` reaches its inner box.
         toView: ({ button, panel, animatePanel }) =>
-          h.div(
+          h.section(
             [],
             [
               h.button([...button], ['Details']),
-              animatePanel(h.div([...panel], ['Panel content'])),
+              animatePanel(
+                h.p([...panel], ['Panel content']),
+                peek === undefined ? {} : { peek },
+              ),
             ],
           ),
       },
@@ -43,6 +51,8 @@ const testView =
     )
 
 const button = Scene.selector('#test-button')
+// The box animatePanel draws around the panel: the inner of its two divs.
+const panelBox = Scene.selector('div div')
 
 describe('Disclosure controlled view', () => {
   it('reflects the open state from the parent', () => {
@@ -88,6 +98,30 @@ describe('Disclosure controlled view', () => {
       Scene.given({ isOpen: false }),
       Scene.expect(button).toBeDisabled(),
       Scene.expect(button).toHaveAttr('data-disabled', ''),
+    )
+  })
+
+  it('hides the collapsed panel from assistive technology', () => {
+    Scene.scene(
+      { update, view: testView() },
+      Scene.given({ isOpen: false }),
+      Scene.expect(panelBox).toHaveAttr('aria-hidden', 'true'),
+      Scene.expect(panelBox).toHaveStyle('min-height', '0px'),
+      Scene.click(button),
+      Scene.expect(panelBox).not.toHaveAttr('aria-hidden'),
+    )
+  })
+
+  it('keeps a peek of the collapsed panel in view, readable, and as the floor once open', () => {
+    Scene.scene(
+      { update, view: testView({ peek: '7.5em' }) },
+      Scene.given({ isOpen: false }),
+      Scene.expect(panelBox).toHaveStyle('min-height', '7.5em'),
+      Scene.expect(panelBox).not.toHaveAttr('aria-hidden'),
+      // The floor stays up while open, so the height transition starts from
+      // the peek rather than from nothing.
+      Scene.click(button),
+      Scene.expect(panelBox).toHaveStyle('min-height', '7.5em'),
     )
   })
 

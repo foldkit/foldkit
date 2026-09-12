@@ -31,8 +31,24 @@ export type DisclosureAttributes<Message> = Readonly<{
    *  disclosure opens and closes. The panel stays mounted while collapsed, so
    *  the transition has something to animate from and to. Spread the `panel`
    *  bundle onto the element you pass in, and render it unconditionally rather
-   *  than gating on `isOpen`. The collapsed content is marked `aria-hidden`. */
-  animatePanel: (content: Html) => Html
+   *  than gating on `isOpen`.
+   *
+   *  Without options the collapsed panel is fully hidden and its content is
+   *  marked `aria-hidden`. With `peek`, the collapsed panel keeps that height
+   *  and shows the top of its content, which is what a "read more" fold
+   *  wants. The visible part is real content, so it is not hidden from
+   *  assistive technology. */
+  animatePanel: (content: Html, options?: AnimatePanelOptions) => Html
+}>
+
+/** Options for {@link DisclosureAttributes.animatePanel}.
+ *
+ *  - `peek`: a CSS height the collapsed panel keeps, such as `'7.5em'` for
+ *    five lines at a 1.5 leading. Content past it is clipped until the
+ *    disclosure opens, and the open transition runs from that height rather
+ *    than from zero. */
+export type AnimatePanelOptions = Readonly<{
+  peek?: string
 }>
 
 /** Per-render view configuration for the stateless controlled {@link view}.
@@ -137,8 +153,20 @@ export const view = <Message>(
     ...(isOpen ? [h.DataAttribute('open', '')] : []),
   ]
 
-  const animatePanel = (content: Html): Html =>
-    h.div(
+  // The inner box's min-height is the collapsed track's floor: a 0fr track
+  // still honors its item's minimum, so `peek` is what keeps the top of the
+  // content in view while closed, and 0px is what lets the panel close fully.
+  // The floor holds while OPEN too. The transition interpolates the track
+  // from 0fr, and at its first frame 0fr with no floor is nothing at all —
+  // a peeking panel would snap below its peek and then grow. Open, the 1fr
+  // track is taller than the peek anyway, so a constant floor costs nothing.
+  const animatePanel = (
+    content: Html,
+    options: AnimatePanelOptions = {},
+  ): Html => {
+    const peek = options.peek
+    const isPeeking = Predicate.isNotUndefined(peek)
+    return h.div(
       [
         h.Style({
           display: 'grid',
@@ -150,13 +178,17 @@ export const view = <Message>(
       [
         h.div(
           [
-            h.Style({ minHeight: '0px', overflow: 'hidden' }),
-            ...(isOpen ? [] : [h.AriaHidden(true)]),
+            h.Style({
+              minHeight: isPeeking ? peek : '0px',
+              overflow: 'hidden',
+            }),
+            ...(isOpen || isPeeking ? [] : [h.AriaHidden(true)]),
           ],
           [content],
         ),
       ],
     )
+  }
 
   return toView({
     button: buttonAttributes,

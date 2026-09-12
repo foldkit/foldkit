@@ -18,6 +18,16 @@ Provide a `toView` callback that receives the `button` and `panel` attribute bun
 
 The example renders the panel unconditionally and passes it through `animatePanel`, which wraps the content in a CSS-grid container that transitions its height, keeping the panel mounted while collapsed so there is something to animate. To skip the animation, render the panel only while `isOpen`.
 
+### Read more folds
+
+A "read more" fold shows the top of its content while collapsed rather than nothing. Pass `peek` with the height the collapsed panel keeps, and the panel clips past it until it opens; the open transition then runs from that height instead of from zero. Because the visible part is real content, a peeking panel is not marked `aria-hidden`.
+
+```ts
+animatePanel(h.p([...panel], [statement]), { peek: '7.5em' })
+```
+
+Five lines at a 1.5 leading is `7.5em`; write the height in `em` so it follows the panel's own type size.
+
 ## Styling
 
 Use the `data-open` attribute to style the button and panel differently when open.
@@ -62,8 +72,16 @@ Configuration object passed to `Disclosure.view()`.
 
 Attribute bundles delivered to the `toView` callback each render.
 
-| Name           | Type                                | Default | Description                                                                                                                                                                                                                                                                                                                    |
-| -------------- | ----------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `button`       | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the toggle button element. Includes `aria-expanded`, `aria-controls`, `tabindex`, the click + Enter/Space keyboard handlers, and `type="button"` so a trigger inside a form does not submit it.                                                                                                                    |
-| `panel`        | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the panel element. Includes the panel id (`${id}-panel`) and a `data-open` attribute when open.                                                                                                                                                                                                                    |
-| `animatePanel` | `(content: Html) => Html`           | —       | Wraps panel content in a CSS-grid container that animates height as the disclosure opens and closes. Render the panel unconditionally (rather than gating on isOpen) and pass it here; the panel stays mounted while collapsed so the height transition has something to animate. The collapsed content is marked aria-hidden. |
+| Name           | Type                                                     | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -------------- | -------------------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `button`       | `ReadonlyArray<Attribute<Message>>`                      | —       | Spread onto the toggle button element. Includes `aria-expanded`, `aria-controls`, `tabindex`, the click + Enter/Space keyboard handlers, and `type="button"` so a trigger inside a form does not submit it.                                                                                                                                                                                                                                        |
+| `panel`        | `ReadonlyArray<Attribute<Message>>`                      | —       | Spread onto the panel element. Includes the panel id (`${id}-panel`) and a `data-open` attribute when open.                                                                                                                                                                                                                                                                                                                                        |
+| `animatePanel` | `(content: Html, options?: AnimatePanelOptions) => Html` | —       | Wraps panel content in a CSS-grid container that animates height as the disclosure opens and closes. Render the panel unconditionally (rather than gating on isOpen) and pass it here; the panel stays mounted while collapsed so the height transition has something to animate. Without `peek` the collapsed content is marked aria-hidden; with `peek` the collapsed panel keeps that height, shows the top of its content, and stays readable. |
+
+### AnimatePanelOptions {#animate-panel-options}
+
+Options for `animatePanel`.
+
+| Name   | Type     | Default | Description                                                                                                                                       |
+| ------ | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `peek` | `string` | —       | A CSS height the collapsed panel keeps, such as `'7.5em'` for five lines at a 1.5 leading. Content past it is clipped until the disclosure opens. |
