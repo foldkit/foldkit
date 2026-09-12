@@ -1,5 +1,5 @@
 import { Array, Effect, Match, Option, Schema } from 'effect'
-import { Command, Runtime, Update } from 'foldkit'
+import { Command, Runtime, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
@@ -42,6 +42,7 @@ export const Message = defineMessageUnion({
   CompletedLoadExternal: {},
   ClickedLink: { request: UrlRequest },
   ChangedUrl: { url: Url },
+  PressedNavigationShortcut: { url: Schema.String },
   GotPeopleMessage: { message: People.Message },
 })
 
@@ -138,8 +139,46 @@ export const update = (model: Model, message: Message) =>
       return Update.combine(model, [setRoute(nextRoute), ...routeSteps])
     },
 
+    PressedNavigationShortcut: ({ url }) => ({
+      model,
+      commands: [NavigateInternal({ url })],
+    }),
+
     GotPeopleMessage: ({ message }) => foldPeople(model, message),
   })
+
+// SUBSCRIPTION
+
+export const subscriptions = Subscription.make<Model, Message>()(() => ({
+  shortcuts: Subscription.persistent(
+    Subscription.keyboardShortcuts<Message>({
+      bindings: [
+        {
+          shortcut: ['G', 'H'],
+          toMessage: () =>
+            Message.PressedNavigationShortcut({ url: homeRouter() }),
+        },
+        {
+          shortcut: ['G', 'P'],
+          toMessage: () =>
+            Message.PressedNavigationShortcut({
+              url: peopleRouter({ searchText: Option.none() }),
+            }),
+        },
+        {
+          shortcut: ['G', 'F'],
+          toMessage: () =>
+            Message.PressedNavigationShortcut({ url: filesIndexRouter() }),
+        },
+        {
+          shortcut: ['G', 'N'],
+          toMessage: () =>
+            Message.PressedNavigationShortcut({ url: nestedRouter() }),
+        },
+      ],
+    }),
+  ),
+}))
 
 // VIEW
 

@@ -14,3 +14,12 @@ export type { AnimationFrameConfig } from './animationFrame.js'
 export { fromEvent, fromEventFilterMap } from './fromEvent.js'
 
 export type { FromEventConfig, FromEventFilterMapConfig } from './fromEvent.js'
+
+export { keyboardShortcuts } from './keyboardShortcuts.js'
+
+export type {
+  KeyboardShortcut,
+  KeyboardShortcutBinding,
+  KeyboardShortcutsConfig,
+  WhileTyping,
+} from './keyboardShortcuts.js'
