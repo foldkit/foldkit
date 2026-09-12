@@ -23,7 +23,7 @@
     "preview:search": "pnpm build && pnpm prerender && vite preview"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0-rc.112",
+    "@effect/platform-browser": "4.0.0-rc.115",
     "@foldkit/devtools": "workspace:*",
     "@foldkit/markdown": "workspace:*",
     "@foldkit/ui": "workspace:*",
@@ -31,14 +31,14 @@
     "@vercel/speed-insights": "^2.0.0",
     "@webcontainer/api": "^1.6.4",
     "clsx": "^2.1.1",
-    "effect": "4.0.0-rc.112",
+    "effect": "4.0.0-rc.115",
     "foldkit": "workspace:*",
     "monaco-editor": "^0.56.0",
     "shiki": "^4.4.3",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
-    "@effect/platform-node": "4.0.0-rc.112",
+    "@effect/platform-node": "4.0.0-rc.115",
     "@foldkit/api-reference-generator": "workspace:*",
     "@foldkit/vite-plugin": "workspace:*",
     "@playwright/test": "^1.62.1",
