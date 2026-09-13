@@ -2,7 +2,7 @@
 
 ## Overview
 
-A stack of transient notifications anchored to a corner of the viewport. Each entry has its own enter and leave animation, its own auto-dismiss timer, and its own hover-to-pause behavior. One container lives at the app root; entries are added dynamically via `Toast.show`.
+A stack of transient notifications anchored to a corner of the viewport. Each entry has its own enter and leave animation, its own auto-dismiss timer, its own hover-to-pause behavior, and an opt-in pointer swipe to dismiss. One container lives at the app root; entries are added dynamically via `Toast.show`.
 
 Toast is parameterized on a payload Schema that you provide. The component owns its id, semantic variant, transition, dismiss timer, and hover state. Everything else lives in your payload and is rendered by your `entryToView` callback. `Toast.make(PayloadSchema)` returns a module whose Model, helpers, and view are bound to that payload type.
 
@@ -12,7 +12,7 @@ Check out how Toast is wired up in a [real Foldkit app](https://github.com/foldk
 
 ## Examples
 
-Click a variant to push a toast onto the stack. Hover a toast to pause its auto-dismiss; move away and the timer restarts.
+Click a variant to push a toast onto the stack. Hover a toast to pause its auto-dismiss; move away and the timer restarts. Drag a toast horizontally to swipe it away; release past the threshold to dismiss, otherwise it snaps back. Press Escape while dragging to cancel.
 
 ::Demo{name="demo"}
 
@@ -24,17 +24,32 @@ Toast is headless. The container gets `position: fixed` and flex-column layout f
 
 Each entry’s enter/leave animations flow through the [Animation](/ui/animation) module. Style with CSS transitions or CSS keyframe animations. Animation advances once every animation on the element has settled.
 
-| Attribute         | Condition                                                                                                                                                  |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-variant`    | Present on each entry, with the variant value (Info, Success, Warning, Error). Use for per-variant CSS.                                                    |
-| `data-enter`      | Present on an entry while its enter animation runs.                                                                                                        |
-| `data-leave`      | Present on an entry while its leave animation runs.                                                                                                        |
-| `data-closed`     | Present on an entry at the closed extreme of its enter or leave animation. Pair with data-enter or data-leave to drive the starting and ending CSS states. |
-| `data-transition` | Present on an entry while either animation runs.                                                                                                           |
+## Gestures
+
+Swipe is pointer-driven and opt-in. Pass `swipeToDismiss` to `Toast.init` (`{}` for the default 80px threshold, `{ threshold: 120 }` to tune it); without it the view attaches no `pointerdown` handler and the gesture Messages are no-ops, so an existing Toast without wired subscriptions can never get stuck mid-drag. With it enabled, `Toast.view` attaches `pointerdown` per entry and `Toast.subscriptions` drives `pointermove`, `pointerup`, and `pointercancel` plus `Escape` to cancel, locking `user-select` and cursor to `grabbing` while dragging. Wire the subscriptions at the app root with `Subscription.lift(Toast.subscriptions)`. See the snippet below and [Toast subscriptions in the demo app](https://github.com/foldkit/foldkit/blob/main/packages/website/src/page/ui/subscriptions.ts).
+
+While dragging the entry follows the pointer with `data-swipe="move"` and an inline `translate` property holding the offset. The offset lives on `translate` rather than `transform` on purpose: the two compose, so a leave animation that moves the entry with `transform` starts from the release position instead of fighting an inline style. Releasing with `abs(offset) >= threshold` holds the offset behind `data-swipe="settling"` while the leave animation runs, then emits `DismissedToast` on removal. A slide-out leave needs no swipe-specific CSS; it runs from wherever the pointer let go. Releasing below the threshold (or cancelling with `Escape`) settles back toward zero and reschedules the auto-dismiss timer. The component holds `data-swipe="settling"` for 150ms (`SWIPE_SETTLE_DURATION`) after a cancel so your CSS can animate the snap-back; transition the `translate` property on the settling state:
+
+```css
+.toast-entry[data-swipe='settling'] {
+  transition: translate 150ms ease-out;
+}
+```
+
+The view also exposes the live offset as `--toast-swipe-move-x` for custom styling, such as fading in an action background behind the entry as it moves.
+
+| Attribute         | Condition                                                                                                                                                                                                                                                                                               |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-variant`    | Present on each entry, with the variant value (Info, Success, Warning, Error). Use for per-variant CSS.                                                                                                                                                                                                 |
+| `data-enter`      | Present on an entry while its enter animation runs.                                                                                                                                                                                                                                                     |
+| `data-leave`      | Present on an entry while its leave animation runs.                                                                                                                                                                                                                                                     |
+| `data-closed`     | Present on an entry at the closed extreme of its enter or leave animation. Pair with data-enter or data-leave to drive the starting and ending CSS states.                                                                                                                                              |
+| `data-transition` | Present on an entry while either animation runs.                                                                                                                                                                                                                                                        |
+| `data-swipe`      | `move` while an entry is being dragged, `settling` after release until the entry rests or its leave completes. The view positions the entry with the inline `translate` property (which composes with your `transform` animations) and exposes the offset as `--toast-swipe-move-x` for custom styling. |
 
 ## Accessibility
 
-The container is a `role="region"` with `aria-live="polite"`, always rendered (even when empty) so screen readers observe the live region from page load. Individual entries receive `role="status"` for Info and Success variants, `role="alert"` for Warning and Error. Auto-dismiss pauses on pointer hover.
+The container is a `role="region"` with `aria-live="polite"`, always rendered (even when empty) so screen readers observe the live region from page load. Individual entries receive `role="status"` for Info and Success variants, `role="alert"` for Warning and Error. Auto-dismiss pauses on pointer hover and while dragging. Dismiss via swipe and the close button both flow through the same leave animation and `DismissedToast` OutMessage.
 
 ## API Reference
 
@@ -42,10 +57,11 @@ The container is a `role="region"` with `aria-live="polite"`, always rendered (e
 
 Configuration object passed to `Toast.init()`.
 
-| Name              | Type             | Default               | Description                                                                                                                                                                                    |
-| ----------------- | ---------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`              | `string`         | —                     | Unique ID for the toast container.                                                                                                                                                             |
-| `defaultDuration` | `Duration.Input` | `Duration.seconds(4)` | Auto-dismiss duration applied to any show() call that does not provide its own duration or pass sticky: true. Accepts any Effect Duration input; a bare number is interpreted as milliseconds. |
+| Name              | Type                     | Default               | Description                                                                                                                                                                                                                                          |
+| ----------------- | ------------------------ | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`              | `string`                 | —                     | Unique ID for the toast container.                                                                                                                                                                                                                   |
+| `defaultDuration` | `Duration.Input`         | `Duration.seconds(4)` | Auto-dismiss duration applied to any show() call that does not provide its own duration or pass sticky: true. Accepts any Effect Duration input; a bare number is interpreted as milliseconds.                                                       |
+| `swipeToDismiss`  | `{ threshold?: number }` | —                     | Opts the container into swipe-to-dismiss. Omit it to leave swipe disabled. Pass `{}` for the default 80px threshold or `{ threshold }` to set how far in pixels the pointer must travel before a release dismisses the entry. Applies per container. |
 
 ### ShowInput {#show-input}
 
@@ -66,7 +82,7 @@ Configuration object passed to `Toast.view()`.
 | -------------------- | ------------------------------------------------------------------------------------------------ | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `model`              | `Toast.Model`                                                                                    | —                 | The toast container state from your parent Model.                                                                                                                                                                                                                                                                                                            |
 | `position`           | `'TopLeft' \| 'TopCenter' \| 'TopRight' \| 'BottomLeft' \| 'BottomCenter' \| 'BottomRight'`      | —                 | Where the toast viewport is anchored on the screen.                                                                                                                                                                                                                                                                                                          |
-| `toParentMessage`    | `(childMessage: Dismissed \| HoveredEntry \| LeftEntry) => ParentMessage`                        | —                 | Wraps the subset of Toast Messages that fire from DOM events in your parent Message type.                                                                                                                                                                                                                                                                    |
+| `toParentMessage`    | `(childMessage: Toast.Message) => ParentMessage`                                                 | —                 | Wraps Toast Messages in your parent Message type. The view emits `Dismissed`, `HoveredEntry`, `LeftEntry`, and `PressedEntryPointer`.                                                                                                                                                                                                                        |
 | `entryToView`        | `(entry: typeof Toast.Entry.Type, handlers: { dismiss: ReadonlyArray<ChildAttribute> }) => Html` | —                 | Renders each entry from its lifecycle fields (for example id, variant, and animation) and its payload (your shape). The component wraps the return in an `<li>` with role, lifecycle handlers, and transition data attributes. Spread handlers.dismiss onto a close button (h.button([...handlers.dismiss], [...])) so users can dismiss the entry manually. |
 | `ariaLabel`          | `string`                                                                                         | `'Notifications'` | aria-label on the container region.                                                                                                                                                                                                                                                                                                                          |
 | `containerClassName` | `string`                                                                                         | —                 | CSS class for the container `<ol>`.                                                                                                                                                                                                                                                                                                                          |
@@ -81,6 +97,28 @@ Toast helpers are child entry points. Fold `show` and `dismiss` with `Update.fol
 | `show`       | `(model: Model, input: ShowInput) => Update.ReturnWithOutMessage<Model, Message, OutMessage>` | —       | Adds a new toast entry. Fold it from any parent handler that needs to surface a notification. Returns the next Model plus Commands for the enter animation and the auto-dismiss timer. |
 | `dismiss`    | `(model: Model, entryId: string) => Update.ReturnWithOutMessage<Model, Message, OutMessage>`  | —       | Begins dismissing a specific entry. Calling it for an entry that is already leaving or has been removed is a no-op.                                                                    |
 | `dismissAll` | `(model: Model) => Update.ReturnWithOutMessage<Model, Message, OutMessage>`                   | —       | Begins dismissing every currently-visible entry.                                                                                                                                       |
+
+### Subscriptions
+
+Toast exposes `Toast.subscriptions` with `swipePointer` and `swipeEscape`. Lift them once at the app root so pointer tracking continues even when the pointer leaves the entry:
+
+```ts
+import { Subscription } from 'foldkit'
+
+import { Toast } from './toastModule'
+
+export const subscriptions = Subscription.lift(Toast.subscriptions)<
+  Model,
+  Message
+>({
+  toChildModel: model => model.toast,
+  toParentMessage: message => Message.GotToastMessage({ message }),
+})
+```
+
+Without the lift the view still renders `data-swipe="move"` for the initial `pointerdown`, but `pointermove` and `pointerup` never reach the update and the gesture cannot complete.
+
+For custom renderers (for example a [foldcn](https://github.com/elianiva/foldcn)-style stack that owns its own `<li>`), read the offset with `Toast.swipeOffset(entry.swipeState)` and apply `translate: <offset>px` yourself. Mirror the `data-swipe` phases: `move` while `entry.swipeState` is `Dragging`, `settling` while it is `Settling`.
 
 ### OutMessage {#out-message}
 

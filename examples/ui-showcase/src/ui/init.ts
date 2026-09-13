@@ -166,7 +166,7 @@ export const uiInit = (today: Calendar.CalendarDate): InitReturn => ({
       id: 'vertical-tabs-demo',
     }),
     verticalTabsDemoTab: 'Foldkit',
-    toastDemo: Toast.init({ id: 'toast-demo' }),
+    toastDemo: Toast.init({ id: 'toast-demo', swipeToDismiss: {} }),
     tooltipBasicDemo: Tooltip.init({ id: 'tooltip-basic-demo' }),
     tooltipNoDelayDemo: Tooltip.init({
       id: 'tooltip-no-delay-demo',
