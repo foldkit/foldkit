@@ -430,6 +430,8 @@ const assertClientCarriesBuildId = (
 
 type ServerEntry = Readonly<{
   buildId?: string
+  /** The shell this deployment renders into; the browser build does not publish it. */
+  template: string
   renderHtml: (template: string) => Promise<string>
   renderWithoutBuildIdTag: () => Promise<string>
 }>
@@ -1470,16 +1472,17 @@ const main = async (): Promise<void> => {
           'define, so the entry must read it and pass it explicitly.',
       )
 
-      const templateOf = (buildDir: string): string =>
-        readFileSync(join(buildDir, 'client/index.html'), 'utf8')
+      // Each deployment's shell comes from its own server bundle: the browser
+      // build does not publish the template, the handler carries it.
+      const currentEntry = await loadServerEntry(currentDir)
 
       // The page a visitor already had open: rendered and stamped by the
       // deployment that served it, then met by the client bundle of the
       // deployment now live. The template it is injected into is the live one,
       // so its script tag loads the live client.
-      const same = await servedEntry.renderHtml(templateOf(servedDir))
+      const same = await servedEntry.renderHtml(servedEntry.template)
       const csp = same
-      const stale = await servedEntry.renderHtml(templateOf(currentDir))
+      const stale = await servedEntry.renderHtml(currentEntry.template)
 
       // The same page, damaged in each of the ways a handoff can fail. The
       // build id still matches, so what refuses is the handoff itself.

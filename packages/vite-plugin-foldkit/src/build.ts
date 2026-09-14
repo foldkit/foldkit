@@ -340,11 +340,16 @@ const fetchModuleSource = (
   // NOTE: `export *` re-exports whatever the application entry actually names,
   // so a missing `prerenderPaths` is absent rather than a Vite undefined-import
   // warning.
+  //
+  // The template is exported as well: the browser build does not publish it,
+  // so this module is where a host that needs the shell itself, to render a
+  // page of its own into, gets it. A local export shadows a same-named
+  // re-export rather than clashing with it.
   return `${[
     `import { handleRequest } from 'foldkit/experimental/server'`,
     `import * as server from ${JSON.stringify(serverEntry)}`,
     `export * from ${JSON.stringify(serverEntry)}`,
-    `const template = ${JSON.stringify(template)}`,
+    `export const template = ${JSON.stringify(template)}`,
     `const containerId = ${containerLiteral}`,
     `export default {`,
     `  fetch(request) {`,

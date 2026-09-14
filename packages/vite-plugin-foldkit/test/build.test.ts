@@ -119,6 +119,19 @@ describe('foldkitBuild', () => {
     expect(await response.text()).toContain('>/</main>')
   })
 
+  // With the template gone from the browser output, the server bundle is
+  // where a host that renders a page of its own gets the shell.
+  it('exports the template the handler renders into', async () => {
+    const { server } = await buildFixture('template-export')
+
+    const { pathToFileURL } = await import('node:url')
+    const built = await import(pathToFileURL(resolve(server, 'fetch.js')).href)
+    expect(built.template).toContain('<div id="root"></div>')
+    expect(built.template).toContain('<title>Fixture</title>')
+    // The built shell, not the source one: the entry script has been bundled.
+    expect(built.template).not.toContain('entry.client.ts')
+  })
+
   it('serves the Request.url the platform constructed', async () => {
     const { server } = await buildFixture('platform-origin')
     const { pathToFileURL } = await import('node:url')
