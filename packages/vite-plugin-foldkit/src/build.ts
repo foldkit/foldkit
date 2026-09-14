@@ -376,10 +376,8 @@ const templateForFetchModule = (
  *
  * Vite drives both environments and every host plugin composes with them, so a
  * deployment target that runs `vite build` gets the whole application rather
- * than the browser half. The browser build's `index.html` is the template the
- * handler renders into and is carried by the handler rather than published
- * with the assets, so the browser output holds a page at `/` only when the
- * build generated one. The generated pages take their template from the
+ * than the browser half. The template is carried by the handler, not published
+ * with the assets. The generated pages take their template from the
  * browser build's own output, so generating twice over one build produces the
  * same pages. The server bundle's default export is `{ fetch }`.
  */
@@ -570,8 +568,6 @@ export const foldkitBuild = (
         delete bundle[TEMPLATE_FILE_NAME]
       },
     },
-    // By `writeBundle` the bundle is whatever the environment actually
-    // produced, so the entry chunk is matched against the final output.
     writeBundle(_options, bundle) {
       if (this.environment.name !== 'ssr') {
         return
