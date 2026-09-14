@@ -273,7 +273,6 @@ describe('foldkitBuild', () => {
 
     expect(manifest.prerendered).toEqual(['/', '/about'])
     expect(manifest.serverEntry).toBe('fetch.js')
-    expect(manifest.host).toBe('fetch')
     expect(manifest.client).toContain('client')
     expect(manifest.server).toContain('server')
   })
@@ -287,7 +286,8 @@ describe('foldkitBuild', () => {
 
     expect(manifest.prerendered).toEqual([])
     expect(manifest.serverEntry).toBe('fetch.js')
-    expect(manifest.host).toBe('fetch')
+    // Nothing says how to run the entry: every host wraps `fetch`.
+    expect('host' in manifest).toBe(false)
   })
 
   // The manifest describes the deployment, and the browser build is the part of

@@ -83,11 +83,6 @@ export const FoldkitBuildManifest = Schema.Struct({
   serverEntry: Schema.String,
   /** Every path this build generated a page for, in the order it generated. */
   prerendered: Schema.Array(Schema.String),
-  /**
-   * How a request-time host should run the server entry. Always `'fetch'`:
-   * the entry is a Web `fetch` handler, not a Node process.
-   */
-  host: Schema.Literals(['fetch']),
 })
 
 /**
@@ -473,7 +468,6 @@ export const foldkitBuild = (
       server: manifestPath(builder.config.root, serverOutDir),
       serverEntry: entryFileName,
       prerendered,
-      host: 'fetch',
     })
     await writeFile(
       resolve(serverDirectory, MANIFEST_FILE_NAME),
