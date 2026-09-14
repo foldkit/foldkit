@@ -88,12 +88,35 @@ describe('foldkitBuild', () => {
     const { client, server } = await buildFixture('both')
 
     expect(await filesUnder(server)).toEqual(['fetch.js', 'foldkit.build.json'])
-    expect(await filesUnder(client)).toContain('index.html')
+    expect(await filesUnder(client)).not.toContain('index.html')
 
     const { pathToFileURL } = await import('node:url')
     const built = await import(pathToFileURL(resolve(server, 'fetch.js')).href)
     expect(typeof built.default.fetch).toBe('function')
     expect(typeof built.renderPage).toBe('function')
+  })
+
+  // The browser build's `index.html` is the template, and a template published
+  // beside the assets is served as a page: an empty container at `/`, and at
+  // every deep link on a host that falls back to `index.html`. The handler
+  // carries it instead, so the browser output holds a page at `/` only when
+  // the build generated one.
+  it('keeps the template out of the browser build', async () => {
+    const { client, server } = await buildFixture('template-private', {
+      prerender: { paths: ['/about'] },
+    })
+
+    const files = await filesUnder(client)
+    expect(files).toContain('about/index.html')
+    expect(files).not.toContain('index.html')
+
+    const { pathToFileURL } = await import('node:url')
+    const built = await import(pathToFileURL(resolve(server, 'fetch.js')).href)
+    const response: Response = await built.default.fetch(
+      new Request('http://localhost/'),
+    )
+    expect(response.status).toBe(200)
+    expect(await response.text()).toContain('>/</main>')
   })
 
   it('serves the Request.url the platform constructed', async () => {
@@ -195,9 +218,9 @@ describe('foldkitBuild', () => {
 
     const files = await filesUnder(client)
     expect(files).toContain('about/index.html')
-    expect(await readFile(resolve(client, 'index.html'), 'utf8')).toContain(
-      '<div id="root"></div>',
-    )
+    // `/` was not named, so nothing is published there: not a page, and not
+    // the template either.
+    expect(files).not.toContain('index.html')
   })
 
   // The fixture renders `url.pathname` into the page, so a request built by

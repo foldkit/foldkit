@@ -1,4 +1,4 @@
-import { Array, Schema } from 'effect'
+import { Schema } from 'effect'
 import type { RenderedApplication } from 'foldkit/experimental/server'
 import { mkdir, writeFile } from 'node:fs/promises'
 import nodePath, { dirname, resolve } from 'node:path'
@@ -134,6 +134,7 @@ export const manifestPath = (
 }
 
 const MANIFEST_FILE_NAME = 'foldkit.build.json'
+const TEMPLATE_FILE_NAME = 'index.html'
 const DEFAULT_CLIENT_OUT_DIR = 'dist/client'
 const DEFAULT_SERVER_OUT_DIR = 'dist/server'
 const DEFAULT_PRERENDER_ORIGIN = 'http://localhost'
@@ -380,7 +381,10 @@ const templateForFetchModule = (
  *
  * Vite drives both environments and every host plugin composes with them, so a
  * deployment target that runs `vite build` gets the whole application rather
- * than the browser half. The generated pages take their template from the
+ * than the browser half. The browser build's `index.html` is the template the
+ * handler renders into and is carried by the handler rather than published
+ * with the assets, so the browser output holds a page at `/` only when the
+ * build generated one. The generated pages take their template from the
  * browser build's own output, so generating twice over one build produces the
  * same pages. The server bundle's default export is `{ fetch }`.
  */
@@ -551,26 +555,46 @@ export const foldkitBuild = (
       const template = templateForFetchModule(state.template)
       return fetchModuleSource(serverEntry, template, containerId)
     },
-    // NOTE: `writeBundle` rather than `generateBundle`: Vite's own HTML plugin
-    // emits `index.html` from a `generateBundle` hook of its own, and hook
-    // order between plugins decides whether that asset exists yet. By
-    // `writeBundle` the bundle is whatever the environment actually produced.
-    writeBundle(_options, bundle) {
-      const state = captured(this.environment.config.root)
-      const outputs = Object.values(bundle)
-      if (this.environment.name === 'client') {
-        const html = Array.findFirst(
-          outputs,
-          file => file.type === 'asset' && file.fileName === 'index.html',
-        )
-        if (html._tag === 'Some' && html.value.type === 'asset') {
-          state.template = String(html.value.source)
+    // The browser build's `index.html` is the template the fetch handler
+    // renders into, not a page: its container is empty until a render fills
+    // it. Left in the browser output it is served as one. A static host
+    // answers `/` with the empty container, and a host that falls back to
+    // `index.html` for a request matching no file answers every deep link
+    // with it, both at 200. So the template is taken out of the bundle here,
+    // before anything is written, and the handler carries it. Generating `/`
+    // writes a real page to that path.
+    //
+    // NOTE: `order: 'post'` rather than plugin position: Vite's own HTML
+    // plugin emits `index.html` from a `generateBundle` hook of its own, and
+    // a post-ordered hook is the one place guaranteed to run after every
+    // normally ordered hook, so by here the asset exists if the environment
+    // produced it at all.
+    generateBundle: {
+      order: 'post',
+      handler(_options, bundle) {
+        if (this.environment.name !== 'client') {
+          return
         }
+        const html = bundle[TEMPLATE_FILE_NAME]
+        if (html === undefined || html.type !== 'asset') {
+          return
+        }
+        const state = captured(this.environment.config.root)
+        state.template = String(html.source)
+        delete bundle[TEMPLATE_FILE_NAME]
+      },
+    },
+    // By `writeBundle` the bundle is whatever the environment actually
+    // produced, so the entry chunk is matched against the final output.
+    writeBundle(_options, bundle) {
+      if (this.environment.name !== 'ssr') {
         return
       }
-      if (this.environment.name === 'ssr') {
-        state.serverEntryFile = serverEntryFile(outputs, FETCH_CHUNK_NAME)
-      }
+      const state = captured(this.environment.config.root)
+      state.serverEntryFile = serverEntryFile(
+        Object.values(bundle),
+        FETCH_CHUNK_NAME,
+      )
     },
     config: userConfig => {
       const client: EnvironmentOptions = {

@@ -228,7 +228,7 @@ Generation is part of the build. `ssr.build.prerender` builds the browser bundle
 
 ::Snippet{name="serverRenderingBuildSsg" label="SSG build configuration"}
 
-The template those pages are rendered into comes from the browser build that produced it rather than from the file on disk, so the generated `/`, which replaces `index.html`, cannot become the template a later build reads.
+The template those pages are rendered into comes from the browser build that produced it rather than from a file on disk. The build does not publish that template: the browser output carries no `index.html` of its own, the fetch handler carries the template, and `/` is a file there only when the build generated it. A template published beside the assets would be served as a page, an empty container at `/` and, on a host that falls back to `index.html` for a request matching no file, at every deep link, all at 200.
 
 A host that generates its pages itself, as this website does, runs its own loop over the same contract:
 
