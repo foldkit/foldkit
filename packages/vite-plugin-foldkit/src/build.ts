@@ -334,11 +334,7 @@ const fetchModuleSource = (
     containerId === undefined ? 'undefined' : JSON.stringify(containerId)
   // NOTE: `export *` re-exports whatever the application entry actually names,
   // so a missing `prerenderPaths` is absent rather than a Vite undefined-import
-  // warning.
-  //
-  // The template stays private to this module. It is not a document: for an
-  // application that hydrates, an unfilled shell served as a page is an empty
-  // container at 200. A host obtains documents by rendering, through `fetch`.
+  // warning. The template is deliberately not exported: it is not a document.
   return `${[
     `import { handleRequest } from 'foldkit/experimental/server'`,
     `import * as server from ${JSON.stringify(serverEntry)}`,
@@ -553,20 +549,12 @@ export const foldkitBuild = (
       const template = templateForFetchModule(state.template)
       return fetchModuleSource(serverEntry, template, containerId)
     },
-    // The browser build's `index.html` is the template the fetch handler
-    // renders into, not a page: its container is empty until a render fills
-    // it. Left in the browser output it is served as one. A static host
-    // answers `/` with the empty container, and a host that falls back to
-    // `index.html` for a request matching no file answers every deep link
-    // with it, both at 200. So the template is taken out of the bundle here,
-    // before anything is written, and the handler carries it. Generating `/`
-    // writes a real page to that path.
+    // `index.html` is the template the handler renders into, not a page:
+    // published with the assets, a host serves its empty container at 200.
+    // It is captured and dropped from the bundle before anything is written.
     //
-    // NOTE: `order: 'post'` rather than plugin position: Vite's own HTML
-    // plugin emits `index.html` from a `generateBundle` hook of its own, and
-    // a post-ordered hook is the one place guaranteed to run after every
-    // normally ordered hook, so by here the asset exists if the environment
-    // produced it at all.
+    // NOTE: `order: 'post'` because Vite's own HTML plugin emits `index.html`
+    // from a `generateBundle` of its own; post is guaranteed to run after it.
     generateBundle: {
       order: 'post',
       handler(_options, bundle) {
