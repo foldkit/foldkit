@@ -1,5 +1,126 @@
 # foldkit
 
+## 0.161.0
+
+### Minor Changes
+
+- [#884](https://github.com/foldkit/foldkit/pull/884) [`10b9fda`](https://github.com/foldkit/foldkit/commit/10b9fda28a245f25ddad22ca7da8ad52c3dd754f) Thanks [@devinjameson](https://github.com/devinjameson)! - Drive calendar date formatting from the locale instead of hardcoding English
+
+  `Calendar.LocaleConfig` carried translated month and day names, but the formatters built their output with English word order, so a German locale rendered "Januar 15, 2026" rather than "15. Januar 2026". Ordering now lives in the config as data.
+
+  `LocaleConfig` gains `longFormat`, `shortFormat`, `ariaLabelFormat`, and `monthYearFormat`. A `DateFormat` is a non-empty ordered list of `Calendar.DatePart` values, so day-first and year-first locales render correctly without a code change. `MonthYearFormat` accepts only month, year, and literal parts. `Calendar.format` applies an arbitrary `DateFormat`, and the new `Calendar.formatMonthYear` renders the month-and-year shape used by calendar headings.
+
+  This is a breaking change to `LocaleConfig`. A locale built by spreading `defaultEnglishLocale` keeps working; one constructed field by field needs the four new fields.
+
+  In `@foldkit/ui`, the Calendar drew column header accessible names from a hardcoded English array, ignoring `locale.dayNames` entirely, and built its heading and month-cell labels by interpolating month name and year in English order. Both now go through the locale. The remaining date-dependent English copy is overridable through `ViewInputs`: `toDaysGridLabel`, `toWeekLabel`, `toMonthsGridLabel`, and `toYearsGridLabel`, each defaulting to the previous English text. DatePicker accepts the same Calendar label fields and forwards them to its embedded Calendar.
+
+- [#1055](https://github.com/foldkit/foldkit/pull/1055) [`bb42870`](https://github.com/foldkit/foldkit/commit/bb4287038802343c07d53ebb5cedb064e9f05038) Thanks [@devinjameson](https://github.com/devinjameson)! - Infer Subscription and ManagedResource types from the values passed to their composition helpers.
+
+  `Subscription.aggregate` and `ManagedResource.aggregate` now accept records directly without Model, Message, or service type arguments. The result preserves each named entry and its exact dependency, Schema, service, and callback types.
+
+  Before:
+
+  ```ts
+  const subscriptions = Subscription.aggregate<Model, Message>()(
+    homeSubscriptions,
+    roomSubscriptions,
+  )
+
+  const managedResources = ManagedResource.aggregate<Model, Message>()(
+    cameraManagedResources,
+    socketManagedResources,
+  )
+  ```
+
+  After:
+
+  ```ts
+  const subscriptions = Subscription.aggregate(
+    homeSubscriptions,
+    roomSubscriptions,
+  )
+
+  const managedResources = ManagedResource.aggregate(
+    cameraManagedResources,
+    socketManagedResources,
+  )
+  ```
+
+  The curried form remains available when an explicit record contract is required. The first record with a Model dependency establishes the common Model. Later records are checked against it, while Message and Effect service requirements widen across the aggregate. A record containing only `Subscription.persistent` entries does not establish the Model. Directly inferred aggregates preserve literal keys instead of adding a string index signature; use the curried form or a `Subscriptions<Model, Message>` annotation when dynamic string indexing is part of the contract.
+
+  `Subscription.fromEvent`, `fromEventFilterMap`, and `fromEventFilterMapPreventDefault` now infer the event from `target` and `type`. DOM event names are checked against the target, and the mapper receives the corresponding event type.
+
+  Before:
+
+  ```ts
+  Subscription.fromEvent<KeyboardEvent, Message>({
+    target: window,
+    type: 'keydown',
+    toMessage: event => Message.PressedKey({ key: event.key }),
+  })
+  ```
+
+  After:
+
+  ```ts
+  Subscription.fromEvent({
+    target: window,
+    type: 'keydown',
+    toMessage: event => Message.PressedKey({ key: event.key }),
+  })
+  ```
+
+  **Breaking:** remove the Event and Message type arguments from all three event helpers. A custom `EventTarget` that dispatches typed events now declares its event map through `Subscription.TypedEventTarget`.
+
+  Before:
+
+  ```ts
+  const slowWarningTarget = new EventTarget()
+
+  const slowWarnings = Subscription.fromEvent<
+    CustomEvent<SlowWarningReport>,
+    Message
+  >({
+    target: slowWarningTarget,
+    type: 'foldkit:slow-warning',
+    toMessage: event => Message.ReceivedSlowWarning({ report: event.detail }),
+  })
+  ```
+
+  After:
+
+  ```ts
+  const slowWarningTarget: Subscription.TypedEventTarget<{
+    'foldkit:slow-warning': CustomEvent<SlowWarningReport>
+  }> = new EventTarget()
+
+  const slowWarnings = Subscription.fromEvent({
+    target: slowWarningTarget,
+    type: 'foldkit:slow-warning',
+    toMessage: event => Message.ReceivedSlowWarning({ report: event.detail }),
+  })
+  ```
+
+  On a native target, the annotation adds custom events while retaining native events and overrides a native event only when it declares the same name. Named config types now take Target, Type, and Message type parameters:
+
+  Before:
+
+  ```ts
+  type ShortcutConfig = Subscription.FromEventConfig<KeyboardEvent, Message>
+  ```
+
+  After:
+
+  ```ts
+  type ShortcutConfig = Subscription.FromEventConfig<Window, 'keydown', Message>
+  ```
+
+  Apply the same change to `FromEventFilterMapConfig` and `FromEventFilterMapPreventDefaultConfig`. The prevent-default config also rejects `options: { passive: true }` at compile time; its runtime guard remains for unchecked JavaScript inputs.
+
+### Patch Changes
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
 ## 0.160.0
 
 ### Minor Changes
