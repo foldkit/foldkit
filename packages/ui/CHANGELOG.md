@@ -1,5 +1,23 @@
 # @foldkit/ui
 
+## 0.161.0
+
+### Minor Changes
+
+- [#884](https://github.com/foldkit/foldkit/pull/884) [`10b9fda`](https://github.com/foldkit/foldkit/commit/10b9fda28a245f25ddad22ca7da8ad52c3dd754f) Thanks [@devinjameson](https://github.com/devinjameson)! - Drive calendar date formatting from the locale instead of hardcoding English
+
+  `Calendar.LocaleConfig` carried translated month and day names, but the formatters built their output with English word order, so a German locale rendered "Januar 15, 2026" rather than "15. Januar 2026". Ordering now lives in the config as data.
+
+  `LocaleConfig` gains `longFormat`, `shortFormat`, `ariaLabelFormat`, and `monthYearFormat`. A `DateFormat` is a non-empty ordered list of `Calendar.DatePart` values, so day-first and year-first locales render correctly without a code change. `MonthYearFormat` accepts only month, year, and literal parts. `Calendar.format` applies an arbitrary `DateFormat`, and the new `Calendar.formatMonthYear` renders the month-and-year shape used by calendar headings.
+
+  This is a breaking change to `LocaleConfig`. A locale built by spreading `defaultEnglishLocale` keeps working; one constructed field by field needs the four new fields.
+
+  In `@foldkit/ui`, the Calendar drew column header accessible names from a hardcoded English array, ignoring `locale.dayNames` entirely, and built its heading and month-cell labels by interpolating month name and year in English order. Both now go through the locale. The remaining date-dependent English copy is overridable through `ViewInputs`: `toDaysGridLabel`, `toWeekLabel`, `toMonthsGridLabel`, and `toYearsGridLabel`, each defaulting to the previous English text. DatePicker accepts the same Calendar label fields and forwards them to its embedded Calendar.
+
+### Patch Changes
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
 ## 0.160.0
 
 ### Minor Changes

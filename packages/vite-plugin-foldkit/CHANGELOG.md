@@ -1,5 +1,15 @@
 # @foldkit/vite-plugin
 
+## 0.23.0
+
+### Minor Changes
+
+- [#1370](https://github.com/foldkit/foldkit/pull/1370) [`a5f7ce8`](https://github.com/foldkit/foldkit/commit/a5f7ce8dd039a9dac587ee5edaffc4d6514f1f48) Thanks [@filipfalcon](https://github.com/filipfalcon)! - Drop Vite 7 from the `vite` peer range. Both packages now require Vite ^8.0.0, and the Vite plugin's tests run against the one installed major. The plugin's `transformViewIdentity` returns magic-string's source map unchanged, since Rolldown accepts it as generated; the normalization Rollup needed under Vite 7 is gone, and `map.file` in `ViewIdentityTransformResult` is typed `string | undefined`.
+
+### Patch Changes
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
 ## 0.22.0
 
 ### Minor Changes
