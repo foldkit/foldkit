@@ -79,17 +79,6 @@ describe('update', () => {
       )
     })
 
-    test('NavigatedToStep jumps directly to a step', () => {
-      story(
-        update,
-        givenInitial,
-        message(Message.NavigatedToStep({ step: 'Skills' })),
-        model(model => {
-          expect(model.currentStep).toBe('Skills')
-        }),
-      )
-    })
-
     test('GotStepTabsMessage selects the matching step', () => {
       story(
         update,

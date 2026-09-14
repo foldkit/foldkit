@@ -139,10 +139,6 @@ export const update = (model: Model, message: Message) =>
 
     GotStepTabsMessage: ({ message }) => foldStepTabs(model, message),
 
-    NavigatedToStep: ({ step }) => ({
-      model: evo(model, { currentStep: () => step }),
-    }),
-
     ClickedNext: () => ({ model: evo(model, { currentStep: toNextStep }) }),
 
     ClickedPrevious: () => ({
