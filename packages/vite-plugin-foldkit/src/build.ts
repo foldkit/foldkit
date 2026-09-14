@@ -87,7 +87,7 @@ export const FoldkitBuildManifest = Schema.Struct({
    * How a request-time host should run the server entry. Always `'fetch'`:
    * the entry is a Web `fetch` handler, not a Node process.
    */
-  host: Schema.optional(Schema.Literals(['fetch'])),
+  host: Schema.Literals(['fetch']),
 })
 
 /**
