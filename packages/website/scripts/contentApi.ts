@@ -1,13 +1,12 @@
 import { Array, Option, Order, Record, String, pipe } from 'effect'
 
 import { type ExampleMeta } from '../src/page/example/meta'
+import { SITE_URL } from '../src/route'
 import { type BlogPostEntry } from './blogPosts'
 import { SECTION_ORDER } from './markdown'
 import { type PageMetadata } from './metadata'
 
 // CONSTANTS
-
-export const SITE_URL = 'https://foldkit.dev'
 
 /** The only version of the content API that is currently served. */
 export const API_VERSION = 'v1'

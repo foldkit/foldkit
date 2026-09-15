@@ -9,7 +9,7 @@ import { Resvg } from '@resvg/resvg-js'
 
 import { type PostCover, maybePostCover } from '../src/page/blog/frontmatter'
 import { BLOG_AUTHOR, BLOG_SECTION } from '../src/page/blog/meta'
-import { type AppRoute } from '../src/route'
+import { type AppRoute, SITE_URL } from '../src/route'
 import {
   type BlogPostEntry,
   PUBLIC_DIR,
@@ -372,8 +372,6 @@ export const generateOgImages = (
   })
 
 // STRUCTURED DATA
-
-const SITE_URL = 'https://foldkit.dev'
 
 const SITE_NAME = 'Foldkit'
 

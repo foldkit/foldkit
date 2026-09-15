@@ -232,7 +232,7 @@ describe('makeElement', () => {
 })
 
 describe('makeApplication', () => {
-  it('owns the document head, applying title and canonical metadata', async () => {
+  it('owns the document title and creates no canonical or og:url the view did not set', async () => {
     const application = makeApplication({
       Model,
       init: () => ({ model: { label: 'hello' } }),
@@ -247,12 +247,258 @@ describe('makeApplication', () => {
       await awaitBodyText('hello')
 
       expect(document.title).toBe('hello')
+      expect(document.head.querySelector('link[rel="canonical"]')).toBeNull()
+      expect(document.head.querySelector('meta[property="og:url"]')).toBeNull()
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('leaves a served canonical and og:url alone when the view omits them, whatever the location', async () => {
+    const servedUrl = 'https://example.com/served'
+    const canonical = document.createElement('link')
+    canonical.setAttribute('rel', 'canonical')
+    canonical.setAttribute('href', servedUrl)
+    const ogUrl = document.createElement('meta')
+    ogUrl.setAttribute('property', 'og:url')
+    ogUrl.setAttribute('content', servedUrl)
+    document.head.append(canonical, ogUrl)
+    const originalHref = window.location.href
+    const application = makeApplication({
+      Model,
+      init: () => ({ model: { label: 'hello' } }),
+      update,
+      view: model => ({
+        title: model.label,
+        body: h.button([h.OnClick(Message.ClickedBump())], [model.label]),
+      }),
+      container,
+    })
+
+    const fiber = Effect.runFork(application.start())
+
+    try {
+      await awaitBodyText('hello')
+      const button = document.body.querySelector('button')
+      if (button === null) {
+        throw new Error('expected application button')
+      }
+
+      history.pushState(null, '', new URL('/next?utm_source=x', originalHref))
+      button.click()
+      await awaitBodyText('world')
+
+      expect(canonical.getAttribute('href')).toBe(servedUrl)
+      expect(ogUrl.getAttribute('content')).toBe(servedUrl)
       expect(
-        document.head.querySelector('link[rel="canonical"]'),
-      ).not.toBeNull()
+        document.head.querySelectorAll('link[rel="canonical"]'),
+      ).toHaveLength(1)
       expect(
-        document.head.querySelector('meta[property="og:url"]'),
-      ).not.toBeNull()
+        document.head.querySelectorAll('meta[property="og:url"]'),
+      ).toHaveLength(1)
+    } finally {
+      history.replaceState(null, '', originalHref)
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('gives og:url the canonical when the view sets only the canonical', async () => {
+    const canonicalUrl = 'https://example.com/todos'
+    const application = makeApplication({
+      Model,
+      init: () => ({ model: { label: 'hello' } }),
+      update,
+      view: model => ({
+        title: model.label,
+        canonical: canonicalUrl,
+        body: h.div([], [model.label]),
+      }),
+      container,
+    })
+
+    const fiber = Effect.runFork(application.start())
+
+    try {
+      await awaitBodyText('hello')
+
+      expect(
+        document.head
+          .querySelector('link[rel="canonical"]')
+          ?.getAttribute('href'),
+      ).toBe(canonicalUrl)
+      expect(
+        document.head
+          .querySelector('meta[property="og:url"]')
+          ?.getAttribute('content'),
+      ).toBe(canonicalUrl)
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('puts a served canonical and og:url back when a later render omits them', async () => {
+    const servedUrl = 'https://example.com/served'
+    const canonical = document.createElement('link')
+    canonical.setAttribute('rel', 'canonical')
+    canonical.setAttribute('href', servedUrl)
+    const ogUrl = document.createElement('meta')
+    ogUrl.setAttribute('property', 'og:url')
+    ogUrl.setAttribute('content', servedUrl)
+    document.head.append(canonical, ogUrl)
+    const projectUrl = 'https://example.com/projects/hello'
+    const application = makeApplication({
+      Model,
+      init: () => ({ model: { label: 'hello' } }),
+      update,
+      view: model => ({
+        title: model.label,
+        ...(model.label === 'hello' ? { canonical: projectUrl } : {}),
+        body: h.button([h.OnClick(Message.ClickedBump())], [model.label]),
+      }),
+      container,
+    })
+
+    const fiber = Effect.runFork(application.start())
+
+    try {
+      await awaitBodyText('hello')
+      expect(canonical.getAttribute('href')).toBe(projectUrl)
+      expect(ogUrl.getAttribute('content')).toBe(projectUrl)
+
+      const button = document.body.querySelector('button')
+      if (button === null) {
+        throw new Error('expected application button')
+      }
+      button.click()
+      await awaitBodyText('world')
+
+      expect(canonical.getAttribute('href')).toBe(servedUrl)
+      expect(ogUrl.getAttribute('content')).toBe(servedUrl)
+      expect(
+        document.head.querySelectorAll('link[rel="canonical"]'),
+      ).toHaveLength(1)
+      expect(
+        document.head.querySelectorAll('meta[property="og:url"]'),
+      ).toHaveLength(1)
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('removes the canonical and og:url it created when a later render omits them', async () => {
+    const projectUrl = 'https://example.com/projects/hello'
+    const application = makeApplication({
+      Model,
+      init: () => ({ model: { label: 'hello' } }),
+      update,
+      view: model => ({
+        title: model.label,
+        ...(model.label === 'hello' ? { canonical: projectUrl } : {}),
+        body: h.button([h.OnClick(Message.ClickedBump())], [model.label]),
+      }),
+      container,
+    })
+
+    const fiber = Effect.runFork(application.start())
+
+    try {
+      await awaitBodyText('hello')
+      expect(
+        document.head
+          .querySelector('link[rel="canonical"]')
+          ?.getAttribute('href'),
+      ).toBe(projectUrl)
+      expect(
+        document.head
+          .querySelector('meta[property="og:url"]')
+          ?.getAttribute('content'),
+      ).toBe(projectUrl)
+
+      const button = document.body.querySelector('button')
+      if (button === null) {
+        throw new Error('expected application button')
+      }
+      button.click()
+      await awaitBodyText('world')
+
+      expect(document.head.querySelector('link[rel="canonical"]')).toBeNull()
+      expect(document.head.querySelector('meta[property="og:url"]')).toBeNull()
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('drops the href it wrote when the served canonical had none and a later render omits it', async () => {
+    const canonical = document.createElement('link')
+    canonical.setAttribute('rel', 'canonical')
+    document.head.append(canonical)
+    const projectUrl = 'https://example.com/projects/hello'
+    const application = makeApplication({
+      Model,
+      init: () => ({ model: { label: 'hello' } }),
+      update,
+      view: model => ({
+        title: model.label,
+        ...(model.label === 'hello' ? { canonical: projectUrl } : {}),
+        body: h.button([h.OnClick(Message.ClickedBump())], [model.label]),
+      }),
+      container,
+    })
+
+    const fiber = Effect.runFork(application.start())
+
+    try {
+      await awaitBodyText('hello')
+      expect(canonical.getAttribute('href')).toBe(projectUrl)
+
+      const button = document.body.querySelector('button')
+      if (button === null) {
+        throw new Error('expected application button')
+      }
+      button.click()
+      await awaitBodyText('world')
+
+      expect(canonical.hasAttribute('href')).toBe(false)
+      expect(
+        document.head.querySelectorAll('link[rel="canonical"]'),
+      ).toHaveLength(1)
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('does not re-create a canonical a script removed when a later render omits it', async () => {
+    const projectUrl = 'https://example.com/projects/hello'
+    const application = makeApplication({
+      Model,
+      init: () => ({ model: { label: 'hello' } }),
+      update,
+      view: model => ({
+        title: model.label,
+        ...(model.label === 'hello' ? { canonical: projectUrl } : {}),
+        body: h.button([h.OnClick(Message.ClickedBump())], [model.label]),
+      }),
+      container,
+    })
+
+    const fiber = Effect.runFork(application.start())
+
+    try {
+      await awaitBodyText('hello')
+      const canonical = document.head.querySelector('link[rel="canonical"]')
+      if (canonical === null) {
+        throw new Error('expected the canonical the runtime created')
+      }
+      canonical.remove()
+
+      const button = document.body.querySelector('button')
+      if (button === null) {
+        throw new Error('expected application button')
+      }
+      button.click()
+      await awaitBodyText('world')
+
+      expect(document.head.querySelector('link[rel="canonical"]')).toBeNull()
     } finally {
       await Effect.runPromise(Fiber.interrupt(fiber))
     }
@@ -337,45 +583,6 @@ describe('makeApplication', () => {
         ogUrlSetAttributeSpy.mockRestore()
       }
     } finally {
-      await Effect.runPromise(Fiber.interrupt(fiber))
-    }
-  })
-
-  it('invalidates the default canonical cache when the location changes', async () => {
-    const originalHref = window.location.href
-    const nextUrl = new URL('/next?mode=fast#ignored', originalHref)
-    const nextCanonicalUrl = `${nextUrl.origin}${nextUrl.pathname}${nextUrl.search}`
-    const application = makeApplication({
-      Model,
-      init: () => ({ model: { label: 'hello' } }),
-      update,
-      view: model => ({
-        title: model.label,
-        body: h.button([h.OnClick(Message.ClickedBump())], [model.label]),
-      }),
-      container,
-    })
-
-    const fiber = Effect.runFork(application.start())
-
-    try {
-      await awaitBodyText('hello')
-      const canonicalElement = document.head.querySelector(
-        'link[rel="canonical"]',
-      )
-      const button = document.body.querySelector('button')
-      if (!(canonicalElement instanceof HTMLLinkElement) || button === null) {
-        throw new Error('expected application canonical metadata and button')
-      }
-
-      history.pushState(null, '', nextUrl)
-      button.click()
-
-      await vi.waitFor(() => {
-        expect(canonicalElement.getAttribute('href')).toBe(nextCanonicalUrl)
-      })
-    } finally {
-      history.replaceState(null, '', originalHref)
       await Effect.runPromise(Fiber.interrupt(fiber))
     }
   })

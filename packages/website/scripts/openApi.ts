@@ -2,13 +2,13 @@ import { writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
+import { SITE_URL } from '../src/route'
 import {
   API_BASE_PATH,
   DEPRECATION_NOTICE_DAYS,
   PROBLEMS,
   RATE_LIMIT_QUOTA,
   RATE_LIMIT_WINDOW_SECONDS,
-  SITE_URL,
 } from './contentApi'
 
 // DOCUMENT

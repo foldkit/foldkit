@@ -260,15 +260,21 @@ export const textDirectionToAttribute = (
  *  (creating it if absent), syncs `ogUrl` to `<meta property="og:url">`
  *  (creating it if absent), and patches `body` into the application container.
  *
- *  When `canonical` is omitted, it defaults to the current URL (origin +
- *  pathname + search). When `ogUrl` is omitted, it falls back to `canonical`.
+ *  No optional field has a default, but an omitted field is handled in one of
+ *  two ways. An omitted `lang` or `dir` is not touched: the attribute keeps
+ *  whatever it holds, whether the served HTML or an earlier render put it
+ *  there. An omitted `canonical` or `ogUrl` is restored: the runtime puts back
+ *  the value it found in the served HTML, or removes the element it created,
+ *  so neither outlives the page that set it. Drive `lang` and `dir` from the
+ *  Model when the app switches language at runtime. The served HTML still
+ *  decides what a crawler sees on first paint, because the runtime can only
+ *  sync after the first render.
  *
- *  `lang` and `dir` have no default. When either is omitted the runtime does not
- *  touch that attribute, leaving whatever value it currently holds, so a view
- *  that never sets it leaves the served HTML in place. Drive them from the Model
- *  when the app switches language at runtime. The served HTML still decides what
- *  a crawler sees on first paint, because the runtime can only sync after the
- *  first render.
+ *  `canonical` is never derived from the address bar. Only the app knows which
+ *  query parameters are part of a page's identity, so a canonical guessed from
+ *  the location would declare every tracking variant a page of its own. Build
+ *  it from the route instead. When `ogUrl` is omitted it follows `canonical`
+ *  when that is set, since the share URL should name the same page.
  *
  *  This is the return type of a `makeApplication` view, which owns the document. An
  *  app embedded at a node should use `makeElement` instead, whose view returns

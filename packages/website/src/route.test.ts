@@ -4,7 +4,7 @@ import { describe, expect, test } from 'vitest'
 
 import * as Route from './route'
 
-const SITE = 'https://foldkit.dev'
+const SITE = Route.SITE_URL
 
 // Routers that take route data; excluded from the parameterless round-trip
 // below because calling them without it throws.
@@ -46,6 +46,30 @@ describe('route table', () => {
       expect(parsed._tag).toBe(expectedTag(name))
     },
   )
+})
+
+describe('routeToCanonicalUrl', () => {
+  test.each(parameterlessRouters)(
+    '%s gets a canonical that parses back to its own route',
+    (name, path) => {
+      const canonical = Route.routeToCanonicalUrl(
+        Route.urlToAppRoute(Option.getOrThrow(urlFromString(`${SITE}${path}`))),
+      )
+      expect(canonical).toBe(`${SITE}${path}`)
+      expect(
+        Route.urlToAppRoute(Option.getOrThrow(urlFromString(canonical)))._tag,
+      ).toBe(expectedTag(name))
+    },
+  )
+
+  test('names the page, never the address bar', () => {
+    const route = Route.urlToAppRoute(
+      Option.getOrThrow(
+        urlFromString(`${SITE}/blog/some-post?utm_source=newsletter`),
+      ),
+    )
+    expect(Route.routeToCanonicalUrl(route)).toBe(`${SITE}/blog/some-post`)
+  })
 })
 
 describe('blog routes', () => {

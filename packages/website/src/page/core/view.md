@@ -18,14 +18,14 @@ React functional components can hold local state and run effects through hooks, 
 
 A `makeApplication` view returns a `Document`, not bare HTML. The Document contains the body to patch into the application container and the document-level state that should track the Model.
 
-| Field       | Type                       | Required | What the runtime does with it                                                                  |
-| ----------- | -------------------------- | -------- | ---------------------------------------------------------------------------------------------- |
-| `title`     | `string`                   | Yes      | Writes it to `document.title`, so the browser tab tracks the current page.                     |
-| `body`      | `Html`                     | Yes      | Patches it into the application container.                                                     |
-| `lang`      | `string`                   | No       | Syncs it to `lang` on `<html>`. Omit it and the current value stands.                          |
-| `dir`       | `'Ltr' \| 'Rtl' \| 'Auto'` | No       | Syncs it to `dir` on `<html>`, lowercased. Omit it and the current value stands.               |
-| `canonical` | `string`                   | No       | Syncs it to `<link rel="canonical">`, creating the tag if absent. Defaults to the current URL. |
-| `ogUrl`     | `string`                   | No       | Syncs it to `<meta property="og:url">`, creating the tag if absent. Defaults to `canonical`.   |
+| Field       | Type                       | Required | What the runtime does with it                                                                                                       |
+| ----------- | -------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `title`     | `string`                   | Yes      | Writes it to `document.title`, so the browser tab tracks the current page.                                                          |
+| `body`      | `Html`                     | Yes      | Patches it into the application container.                                                                                          |
+| `lang`      | `string`                   | No       | Syncs it to `lang` on `<html>`. Omit it and the attribute is left as it is, including a value an earlier render wrote.              |
+| `dir`       | `'Ltr' \| 'Rtl' \| 'Auto'` | No       | Syncs it to `dir` on `<html>`, lowercased. Omit it and the attribute is left as it is, including a value an earlier render wrote.   |
+| `canonical` | `string`                   | No       | Syncs it to `<link rel="canonical">`, creating the tag if absent. Omit it and the served value comes back, or the created tag goes. |
+| `ogUrl`     | `string`                   | No       | Syncs it to `<meta property="og:url">`, creating the tag if absent. Omit it and it follows `canonical`, restored the same way.      |
 
 Every field is a function of the Model, just like `body`. There is no imperative `setTitle` or separate head-management API. Return the values you want, and the runtime makes the document match after each render.
 
@@ -39,17 +39,17 @@ A `makeElement` view returns `Html` directly. An embedded app does not own the p
 
 `dir` accepts `'Ltr'`, `'Rtl'`, or `'Auto'`. The runtime writes the corresponding lowercase attribute value. `Auto` delegates to the browser's first-strong-character heuristic. If the Model stores direction rather than deriving it, use the `TextDirection` Schema exported by `foldkit/html`.
 
-Neither field has a default. If view omits one, the runtime leaves the existing attribute alone. An application that never sets `lang` therefore keeps the value from `index.html`.
+Neither field has a default. If the view omits one, the runtime does not touch the attribute: it keeps whatever it holds, whether `index.html` or an earlier render put it there. An application that never sets `lang` therefore keeps the value from `index.html`, and one that sets it on some pages and not others keeps the last value it set. `canonical` and `ogUrl` behave differently when omitted, as the next section describes.
 
 The runtime can only synchronize these fields after the first render. Served HTML still determines what a crawler sees on first paint. If language is known per request, stamp `<html lang>` into the HTML shell and let the runtime keep it current after startup. Use the `Lang` attribute on an individual element when only one passage differs from the page language.
 
 ### Canonical and Share URLs
 
-`canonical` and `ogUrl` keep `<link rel="canonical">` and `<meta property="og:url">` current as the route changes. If both are omitted, they resolve to the current URL. If only `canonical` is set, `ogUrl` uses the same value.
+`canonical` and `ogUrl` keep `<link rel="canonical">` and `<meta property="og:url">` current as the route changes. Neither is ever derived from the address bar. Only the application knows which query parameters are part of a page's identity: `?page=2` names a different page, `?utm_source=newsletter` does not, and a canonical guessed from the location would declare every tracking variant a page of its own. Build the canonical from the route, the way `title` is built from the Model.
 
-Set them explicitly when the address bar does not identify the page you want indexed or shared. For example: later pages in a paginated list may point to the first page as canonical.
+An omitted `canonical` is restored, not left as it is, which is where it differs from `lang` and `dir`. An application that never sets one keeps the value from `index.html`, or has none. A view that sets `canonical` on one page and omits it on the next gets the served tag back on the next page, or no tag where the runtime had created one, so a canonical never outlives the page that set it. If only `canonical` is set, `ogUrl` uses the same value, since the share URL should name the same page, and it is restored the same way. The server render carries both fields through unchanged, so what a crawler reads before hydration is what the hydrated page keeps.
 
-On a server render, the default is the full request URL, including its query string. Set `canonical` explicitly when a query parameter is not part of the page's identity, such as a tracking parameter or session token. Otherwise, a crawler can treat each query variant as a separate canonical page.
+Set `canonical` to a page other than the current one when that is the page you want indexed. For example: later pages in a paginated list may point to the first page as canonical.
 
 ## Typed HTML Helpers
 

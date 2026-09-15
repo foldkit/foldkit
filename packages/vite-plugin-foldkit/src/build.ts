@@ -19,8 +19,9 @@ export type FoldkitPrerenderOptions = Readonly<{
   paths?: ReadonlyArray<string>
   /**
    * The origin the entry sees as `Request.url` while generating, such as
-   * `'https://app.example'`. It reaches canonical URLs and Open Graph URLs, so
-   * a deployment that publishes those should set the origin it publishes.
+   * `'https://app.example'`. An entry that builds canonical URLs and Open
+   * Graph URLs from `Request.url` sees this origin, so a deployment that
+   * publishes those should set the origin it publishes.
    */
   origin?: string
   /**

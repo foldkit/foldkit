@@ -1290,25 +1290,6 @@ const parseUrl = (url: string): Effect.Effect<Url, InvalidUrl> =>
     onSome: Effect.succeed,
   })
 
-// The client defaults canonical to `origin + pathname + search` of the current
-// location, which drops the fragment and normalizes host case and default
-// ports. Building the server default with the WHATWG URL parser reproduces that
-// exact string, so the metadata a crawler reads before hydration matches what
-// the hydrated page computes.
-const normalizedRequestUrl = (
-  rawUrl: string | undefined,
-): string | undefined => {
-  if (rawUrl === undefined) {
-    return undefined
-  }
-  try {
-    const parsed = new URL(rawUrl)
-    return `${parsed.origin}${parsed.pathname}${parsed.search}`
-  } catch {
-    return undefined
-  }
-}
-
 const validateHydrationRoot = (
   body: Document['body'],
 ): Effect.Effect<void, InvalidHydrationRoot> => {
@@ -1345,12 +1326,11 @@ const validateHydrationRoot = (
  * reconstruct, so the served DOM and the client's first render agree by
  * construction even for codecs whose round trip is not the identity.
  *
- * When a routing view omits `Document.canonical`, the render defaults it (and
- * `ogUrl`) to the request URL, normalized the way the client computes the
- * current location but with the query string kept. Set `Document.canonical`
- * explicitly when the query string is not part of the page's identity, such as
- * tracking parameters or a session token, so a crawler does not index every
- * variant as its own canonical page.
+ * `Document.canonical` and `Document.ogUrl` are carried through as the view
+ * returns them, never derived from the request URL: only the app knows which
+ * query parameters are part of a page's identity. A view that omits
+ * `canonical` leaves the template's `<link rel="canonical">` untouched, and an
+ * omitted `ogUrl` follows the canonical the view did set.
  *
  * @example
  * ```typescript
@@ -1495,15 +1475,7 @@ export function renderToString(
     const flagsPayload =
       flagsHandoff !== undefined ? flagsHandoff.payloadScript : ''
 
-    // Mirror the client's document-metadata defaults so the served HTML a
-    // crawler reads carries the same canonical and Open Graph URL the hydrated
-    // page computes: canonical falls back to the request URL, and ogUrl to the
-    // resolved canonical, the chain the runtime applies on the client. A
-    // non-routing render has no request URL, so it inherits only an explicitly
-    // set canonical.
-    const resolvedCanonical =
-      nextDocument.canonical ??
-      (hasRouting ? normalizedRequestUrl(options?.url) : undefined)
+    const resolvedCanonical = nextDocument.canonical
     const resolvedOgUrl = nextDocument.ogUrl ?? resolvedCanonical
 
     return {
