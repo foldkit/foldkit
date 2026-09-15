@@ -84,6 +84,7 @@ export const init = (today: Calendar.CalendarDate): InitReturn => ({
     }),
     nestedDialogChildDemo: Dialog.init({ id: 'nested-dialog-child-demo' }),
     isDisclosureDemoOpen: false,
+    isDisclosureCollapsedPreviewDemoOpen: false,
     listboxDemo: Listbox.init({ id: 'listbox-demo' }),
     maybeListboxDemoSelectedItem: Option.none(),
     listboxMultiDemo: Listbox.Multi.init({

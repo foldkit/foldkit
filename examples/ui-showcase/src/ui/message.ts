@@ -54,6 +54,7 @@ export const Message = defineMessageUnion({
   ClickedOpenProjectSettings: {},
   ToggledDisclosureBasicDemo: { isOpen: Schema.Boolean },
   ToggledDisclosureAnimatedDemo: { isOpen: Schema.Boolean },
+  ToggledDisclosureCollapsedPreviewDemo: { isOpen: Schema.Boolean },
   GotCalendarBasicDemoMessage: { message: Calendar.Message },
   GotDatePickerBasicDemoMessage: { message: DatePicker.Message },
   GotDragAndDropDemoMessage: { message: DragAndDrop.Message },

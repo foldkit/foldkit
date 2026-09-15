@@ -98,6 +98,7 @@ export const Model = Schema.Struct({
   nestedDialogParentDemo: Dialog.Model,
   nestedDialogChildDemo: Dialog.Model,
   isDisclosureDemoOpen: Schema.Boolean,
+  isDisclosureCollapsedPreviewDemoOpen: Schema.Boolean,
   listboxDemo: Listbox.Model,
   maybeListboxDemoSelectedItem: Schema.Option(ListboxItem),
   listboxMultiDemo: Listbox.Multi.Model,

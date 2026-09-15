@@ -1,5 +1,5 @@
 import { Calendar } from 'foldkit'
-import { expect, given, role, scene, text } from 'foldkit/scene'
+import { click, expect, given, role, scene, text } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
 import { AppRoute, type Model, update, view } from './main'
@@ -82,6 +82,18 @@ describe('view', () => {
       expect(
         text('Foldkit is an Elm-inspired UI framework', { exact: false }),
       ).toExist(),
+    )
+  })
+
+  test('the Disclosure collapsed preview expands from its own control', () => {
+    scene(
+      { update, view },
+      given(modelForRoute(AppRoute.Disclosure())),
+      expect(role('heading', { name: 'Basic' })).toExist(),
+      expect(role('heading', { name: 'Animated' })).toExist(),
+      expect(role('heading', { name: 'Collapsed preview' })).toExist(),
+      click(role('button', { name: 'Read more' })),
+      expect(role('button', { name: 'Show less' })).toExist(),
     )
   })
 

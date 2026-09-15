@@ -86,6 +86,7 @@ export const uiInit = (today: Calendar.CalendarDate): InitReturn => ({
     nestedDialogChildDemo: Dialog.init({ id: 'nested-dialog-child-demo' }),
     isDisclosureBasicDemoOpen: false,
     isDisclosureAnimatedDemoOpen: false,
+    isDisclosureCollapsedPreviewDemoOpen: false,
     dragAndDropDemo: DragAndDrop.init({ id: 'drag-and-drop-demo' }),
     dragAndDropDemoColumns: [
       {

@@ -102,6 +102,7 @@ export const UiModel = Schema.Struct({
   nestedDialogChildDemo: Dialog.Model,
   isDisclosureBasicDemoOpen: Schema.Boolean,
   isDisclosureAnimatedDemoOpen: Schema.Boolean,
+  isDisclosureCollapsedPreviewDemoOpen: Schema.Boolean,
   dragAndDropDemo: DragAndDrop.Model,
   dragAndDropDemoColumns: Schema.Array(DemoColumn),
   fileDropBasicDemo: FileDrop.Model,

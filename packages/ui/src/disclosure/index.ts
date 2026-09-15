@@ -31,8 +31,22 @@ export type DisclosureAttributes<Message> = Readonly<{
    *  disclosure opens and closes. The panel stays mounted while collapsed, so
    *  the transition has something to animate from and to. Spread the `panel`
    *  bundle onto the element you pass in, and render it unconditionally rather
-   *  than gating on `isOpen`. The collapsed content is marked `aria-hidden`. */
-  animatePanel: (content: Html) => Html
+   *  than gating on `isOpen`.
+   *
+   *  Without options the collapsed panel is fully hidden. With `peek`, it keeps
+   *  that height as a visual preview of its content. In either case, the
+   *  collapsed content is inert and hidden from assistive technology until the
+   *  disclosure opens. */
+  animatePanel: (content: Html, options?: AnimatePanelOptions) => Html
+}>
+
+/** Options for {@link DisclosureAttributes.animatePanel}.
+ *
+ *  - `peek`: a CSS height the collapsed panel keeps, such as `'7.5em'` for
+ *    five lines at a 1.5 leading. The visible content is an inert preview;
+ *    content becomes accessible and interactive when the disclosure opens. */
+export type AnimatePanelOptions = Readonly<{
+  peek?: string
 }>
 
 /** Per-render view configuration for the stateless controlled {@link view}.
@@ -137,8 +151,13 @@ export const view = <Message>(
     ...(isOpen ? [h.DataAttribute('open', '')] : []),
   ]
 
-  const animatePanel = (content: Html): Html =>
-    h.div(
+  const animatePanel = (
+    content: Html,
+    options: AnimatePanelOptions = {},
+  ): Html => {
+    const collapsedMinHeight = options.peek ?? '0px'
+
+    return h.div(
       [
         h.Style({
           display: 'grid',
@@ -150,13 +169,17 @@ export const view = <Message>(
       [
         h.div(
           [
-            h.Style({ minHeight: '0px', overflow: 'hidden' }),
-            ...(isOpen ? [] : [h.AriaHidden(true)]),
+            h.Style({
+              minHeight: collapsedMinHeight,
+              overflow: 'hidden',
+            }),
+            ...(isOpen ? [] : [h.Inert(true), h.AriaHidden(true)]),
           ],
           [content],
         ),
       ],
     )
+  }
 
   return toView({
     button: buttonAttributes,

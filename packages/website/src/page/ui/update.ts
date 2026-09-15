@@ -1053,6 +1053,12 @@ export const update = (model: Model, message: Message) =>
       model: evo(model, { isDisclosureDemoOpen: () => isOpen }),
     }),
 
+    ToggledDisclosureCollapsedPreviewDemo: ({ isOpen }) => ({
+      model: evo(model, {
+        isDisclosureCollapsedPreviewDemoOpen: () => isOpen,
+      }),
+    }),
+
     GotListboxDemoMessage: ({ message }) => foldListboxDemo(model, message),
 
     GotListboxMultiDemoMessage: ({ message }) =>

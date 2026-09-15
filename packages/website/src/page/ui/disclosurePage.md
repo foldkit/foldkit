@@ -10,6 +10,8 @@ Check out how Disclosure is wired up in a [real Foldkit app](https://github.com/
 
 ## Examples
 
+### Basic
+
 Provide a `toView` callback that receives the `button` and `panel` attribute bundles. Spread them onto your own elements; Disclosure manages the ARIA linking and toggle behavior.
 
 ::Demo{name="basic"}
@@ -17,6 +19,18 @@ Provide a `toView` callback that receives the `button` and `panel` attribute bun
 ::Snippet{name="uiDisclosureBasic" label="disclosure example"}
 
 The example renders the panel unconditionally and passes it through `animatePanel`, which wraps the content in a CSS-grid container that transitions its height, keeping the panel mounted while collapsed so there is something to animate. To skip the animation, render the panel only while `isOpen`.
+
+### Collapsed preview
+
+A collapsed preview keeps some of its panel visually on screen while closed. Pass `peek` with the height of that preview. The panel clips everything past the preview until it opens, and the transition starts at the preview height instead of zero.
+
+::Demo{name="collapsedPreview"}
+
+::Snippet{name="uiDisclosureCollapsedPreview" label="collapsed preview example"}
+
+The preview is visual only. While the disclosure is closed, `animatePanel` marks the whole panel inert and hides it from assistive technology. Links, buttons, and other controls inside the panel cannot receive focus or interaction until it opens. Keep controls that must remain available, such as a code block's copy button, outside the panel.
+
+Choose a CSS height that follows the content's typography. The example uses `6rem`; an `em` value follows the panel's own font size.
 
 ## Styling
 
@@ -37,6 +51,8 @@ Use the `data-open` attribute to style the button and panel differently when ope
 ## Accessibility
 
 The toggle button receives `aria-expanded` and `aria-controls` linking to the panel. Toggling is user-driven, so focus stays on the button the user activated; there is no focus Command to handle in update.
+
+An animated panel stays mounted so its height can transition. While the disclosure is closed, `animatePanel` makes that mounted content inert and hides it from assistive technology. With `peek`, sighted users see a visual preview, while other users encounter the collapsed trigger and receive the complete panel after opening it.
 
 Give the toggle an accessible name when its content is not self-describing. For a visible label, wire a native `<label for>` that targets the toggle id with `Disclosure.buttonId(id)` rather than hardcoding the `-button` convention. The `for` association makes the toggle properly labeled: assistive technology announces it by the visible label text, and clicking the label opens the disclosure. That is why it is the recommended pattern.
 
@@ -62,8 +78,16 @@ Configuration object passed to `Disclosure.view()`.
 
 Attribute bundles delivered to the `toView` callback each render.
 
-| Name           | Type                                | Default | Description                                                                                                                                                                                                                                                                                                                    |
-| -------------- | ----------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `button`       | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the toggle button element. Includes `aria-expanded`, `aria-controls`, `tabindex`, the click + Enter/Space keyboard handlers, and `type="button"` so a trigger inside a form does not submit it.                                                                                                                    |
-| `panel`        | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the panel element. Includes the panel id (`${id}-panel`) and a `data-open` attribute when open.                                                                                                                                                                                                                    |
-| `animatePanel` | `(content: Html) => Html`           | —       | Wraps panel content in a CSS-grid container that animates height as the disclosure opens and closes. Render the panel unconditionally (rather than gating on isOpen) and pass it here; the panel stays mounted while collapsed so the height transition has something to animate. The collapsed content is marked aria-hidden. |
+| Name           | Type                                                     | Default | Description                                                                                                                                                                                                                                                                                               |
+| -------------- | -------------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `button`       | `ReadonlyArray<Attribute<Message>>`                      | —       | Spread onto the toggle button element. Includes `aria-expanded`, `aria-controls`, `tabindex`, the click + Enter/Space keyboard handlers, and `type="button"` so a trigger inside a form does not submit it.                                                                                               |
+| `panel`        | `ReadonlyArray<Attribute<Message>>`                      | —       | Spread onto the panel element. Includes the panel id (`${id}-panel`) and a `data-open` attribute when open.                                                                                                                                                                                               |
+| `animatePanel` | `(content: Html, options?: AnimatePanelOptions) => Html` | —       | Wraps panel content in a CSS-grid container that animates height as the disclosure opens and closes. Render the panel unconditionally and pass it here. While collapsed, the mounted content is inert and hidden from assistive technology. With `peek`, the panel keeps that height as a visual preview. |
+
+### AnimatePanelOptions {#animate-panel-options}
+
+Options for `animatePanel`.
+
+| Name   | Type     | Default | Description                                                                                                                                                                                |
+| ------ | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `peek` | `string` | —       | A CSS height the collapsed panel keeps as an inert visual preview. Content past that height is clipped, and the entire panel becomes accessible and interactive when the disclosure opens. |

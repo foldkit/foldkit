@@ -1009,6 +1009,12 @@ export const uiUpdate = (model: UiModel, message: UiMessage) =>
       }),
     }),
 
+    ToggledDisclosureCollapsedPreviewDemo: ({ isOpen }) => ({
+      model: evo(model, {
+        isDisclosureCollapsedPreviewDemoOpen: () => isOpen,
+      }),
+    }),
+
     GotCalendarBasicDemoMessage: ({ message }) =>
       foldCalendarBasicDemo(model, message),
 
