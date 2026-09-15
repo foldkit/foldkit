@@ -32,15 +32,16 @@ Locators find elements by role, label, visible text, and other user-facing prope
 
 ::Snippet{name="sceneRole" label="role examples"}
 
-| Option     | Type                 | Matches                                                                                                                                             |
-| ---------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`     | `string \| RegExp`   | Accessible name (aria-label, aria-labelledby, label[for], or text content). Strings match exactly; regular expressions match against the full name. |
-| `level`    | `number`             | Heading level (for role: "heading")                                                                                                                 |
-| `checked`  | `boolean \| 'mixed'` | aria-checked or the checked attribute                                                                                                               |
-| `selected` | `boolean`            | aria-selected                                                                                                                                       |
-| `pressed`  | `boolean \| 'mixed'` | aria-pressed                                                                                                                                        |
-| `expanded` | `boolean`            | aria-expanded                                                                                                                                       |
-| `disabled` | `boolean`            | aria-disabled or the disabled attribute                                                                                                             |
+| Option     | Type                                                            | Matches                                                                                                                                             |
+| ---------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`     | `string \| RegExp`                                              | Accessible name (aria-label, aria-labelledby, label[for], or text content). Strings match exactly; regular expressions match against the full name. |
+| `level`    | `number`                                                        | Heading level (for role: "heading")                                                                                                                 |
+| `checked`  | `boolean \| 'mixed'`                                            | aria-checked or the checked attribute                                                                                                               |
+| `selected` | `boolean`                                                       | aria-selected                                                                                                                                       |
+| `pressed`  | `boolean \| 'mixed'`                                            | aria-pressed                                                                                                                                        |
+| `expanded` | `boolean`                                                       | aria-expanded                                                                                                                                       |
+| `disabled` | `boolean`                                                       | aria-disabled or the disabled attribute                                                                                                             |
+| `current`  | `boolean \| 'page' \| 'step' \| 'location' \| 'date' \| 'time'` | aria-current. `true` matches `"true"` only, `false` matches a missing attribute or `"false"`, and a token matches itself.                           |
 
 ### Scoping
 

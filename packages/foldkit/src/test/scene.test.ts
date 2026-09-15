@@ -713,6 +713,90 @@ describe('accessible locators', () => {
       })(locatorTree)
       expect(Option.isSome(result)).toBe(true)
     })
+
+    describe('current', () => {
+      const navigation = h('nav', [
+        h('a', { attrs: { href: '/work', 'aria-current': 'page' } }, ['Work']),
+        h('a', { attrs: { href: '/contact', 'aria-current': 'false' } }, [
+          'Contact',
+        ]),
+        h('a', { attrs: { href: '/about' } }, ['About']),
+        h('a', { attrs: { href: '/team', 'aria-current': 'true' } }, ['Team']),
+      ])
+
+      test('a token matches itself exactly', () => {
+        const result = getByRole('link', { current: 'page' })(navigation)
+        expect(Option.isSome(result)).toBe(true)
+        expect(textContent(Option.getOrThrow(result))).toBe('Work')
+        expect(
+          Option.isNone(getByRole('link', { current: 'step' })(navigation)),
+        ).toBe(true)
+      })
+
+      test('false matches an absent attribute and an explicit false alike', () => {
+        const links = getAllByRole('link', { current: false })(navigation)
+        const names = links.map(textContent)
+        expect(names).toEqual(['Contact', 'About'])
+      })
+
+      test('true matches only aria-current="true"', () => {
+        const links = getAllByRole('link', { current: true })(navigation)
+        const names = links.map(textContent)
+        expect(names).toEqual(['Team'])
+      })
+
+      test('true does not match a token', () => {
+        const page = h('nav', [
+          h('a', { attrs: { href: '/work', 'aria-current': 'page' } }, [
+            'Work',
+          ]),
+        ])
+        expect(Option.isNone(getByRole('link', { current: true })(page))).toBe(
+          true,
+        )
+      })
+
+      test('reads aria-current from props', () => {
+        const page = h('nav', [
+          h('a', { attrs: { href: '/about' } }, ['About']),
+          h('a', { props: { href: '/work', 'aria-current': 'page' } }, [
+            'Work',
+          ]),
+        ])
+        const result = getByRole('link', { current: 'page' })(page)
+        expect(Option.isSome(result)).toBe(true)
+        expect(textContent(Option.getOrThrow(result))).toBe('Work')
+      })
+
+      test('names the option in the locator description', () => {
+        expect(
+          Scene.role('link', { name: 'Work', current: 'page' }).description,
+        ).toBe('link "Work" current=page')
+      })
+
+      test('selects the current link through a Scene', () => {
+        Scene.scene(
+          {
+            update,
+            view: (_model, html) =>
+              html.nav(
+                [],
+                [
+                  html.a([html.Href('/about')], ['About']),
+                  html.a(
+                    [html.Href('/work'), html.AriaCurrent('page')],
+                    ['Work'],
+                  ),
+                ],
+              ),
+          },
+          Scene.given(initialModel),
+          Scene.expect(Scene.role('link', { current: 'page' })).toHaveText(
+            'Work',
+          ),
+        )
+      })
+    })
   })
 
   describe('getAllByRole', () => {

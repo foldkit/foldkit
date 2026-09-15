@@ -868,6 +868,21 @@ const disabledMatches =
     return disabled === expected
   }
 
+const currentMatches =
+  (expected: boolean | 'page' | 'step' | 'location' | 'date' | 'time') =>
+  (vnode: VNode): boolean => {
+    const maybeCurrent = lookupStringAttribute('aria-current')(vnode)
+
+    if (expected === false) {
+      return Option.isNone(maybeCurrent) || maybeCurrent.value === 'false'
+    } else {
+      return Option.exists(
+        maybeCurrent,
+        value => value === globalThis.String(expected),
+      )
+    }
+  }
+
 type RoleOptions = Readonly<{
   name?: string | RegExp
   level?: number
@@ -876,6 +891,7 @@ type RoleOptions = Readonly<{
   pressed?: boolean | 'mixed'
   expanded?: boolean
   disabled?: boolean
+  current?: boolean | 'page' | 'step' | 'location' | 'date' | 'time'
 }>
 
 const roleOptionsMatch =
@@ -929,12 +945,18 @@ const roleOptionsMatch =
     ) {
       return false
     }
+    if (
+      options.current !== undefined &&
+      !currentMatches(options.current)(node)
+    ) {
+      return false
+    }
     return true
   }
 
 /** Finds the first element with the given ARIA role and optional matching options.
  *  Supports `name` (accessible name), `level` (heading level), `checked`,
- *  `selected`, `pressed`, `expanded`, and `disabled` state filters. */
+ *  `selected`, `pressed`, `expanded`, `disabled`, and `current` state filters. */
 export const getByRole =
   (role: string, options?: RoleOptions) =>
   (html: VNode): Option.Option<VNode> => {
@@ -1208,11 +1230,15 @@ const describeRoleOptions = (options: RoleOptions): string => {
   if (options.pressed !== undefined) parts.push(`pressed=${options.pressed}`)
   if (options.expanded !== undefined) parts.push(`expanded=${options.expanded}`)
   if (options.disabled !== undefined) parts.push(`disabled=${options.disabled}`)
+  if (options.current !== undefined) parts.push(`current=${options.current}`)
   return Array.join(parts, ' ')
 }
 
 /** Creates a Locator that finds an element by ARIA role. Supports matching on
- *  `name`, `level`, `checked`, `selected`, `pressed`, `expanded`, and `disabled`. */
+ *  `name`, `level`, `checked`, `selected`, `pressed`, `expanded`, `disabled`, and
+ *  `current`. For `current`, `true` matches `aria-current="true"` only, `false`
+ *  matches a missing attribute or `aria-current="false"`, and a token such as
+ *  `'page'` matches itself. */
 export const role = (roleValue: string, options?: RoleOptions): Locator => {
   const optionsDescription = options ? describeRoleOptions(options) : ''
   const description = String.isEmpty(optionsDescription)
