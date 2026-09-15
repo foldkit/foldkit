@@ -117,13 +117,15 @@ const waitForClose = (socket: WebSocket): Effect.Effect<void> =>
  * Construct a WebSocket client that maintains its connection to the Foldkit
  * Vite plugin's DevTools relay in the background. The Effect succeeds
  * immediately with a client whose connection state evolves over time. The
- * initial connect is retried with exponential backoff; later disconnects
+ * relay's address is resolved afresh before every attempt, so a dev server
+ * that starts later, or restarts on another port, is found by the same loop.
+ * The initial connect is retried with exponential backoff; later disconnects
  * reconnect via the same loop. `sendRequest` fails with a clear "not
  * connected" error while no relay is reachable.
  */
-export const connectWebSocketClient = (
-  url: string,
-): Effect.Effect<WebSocketClient> =>
+export const connectWebSocketClient = <Services>(
+  resolveUrl: Effect.Effect<string, never, Services>,
+): Effect.Effect<WebSocketClient, never, Services> =>
   Effect.gen(function* () {
     const pendingResponsesRef = yield* Ref.make<PendingResponses>(
       HashMap.empty(),
@@ -145,36 +147,47 @@ export const connectWebSocketClient = (
       })
     }
 
-    const openWithBackoff: Effect.Effect<WebSocket> = pipe(
-      attemptOpen(url),
-      Effect.tapError(error =>
-        Console.error(
-          `[foldkit-devtools-mcp] connect attempt failed: ${error.message}`,
+    const openWithBackoff: Effect.Effect<
+      Readonly<{ socket: WebSocket; url: string }>,
+      never,
+      Services
+    > = pipe(
+      resolveUrl,
+      Effect.flatMap(url =>
+        attemptOpen(url).pipe(
+          Effect.map(socket => ({ socket, url })),
+          Effect.tapError(error =>
+            Console.error(
+              `[foldkit-devtools-mcp] connect attempt to ${url} failed: ${error.message}`,
+            ),
+          ),
         ),
       ),
       Effect.retry(reconnectSchedule),
       Effect.orDie,
     )
 
-    const maintainConnection: Effect.Effect<void> = Effect.gen(function* () {
-      const socket = yield* openWithBackoff
-      yield* Console.error(`[foldkit-devtools-mcp] connected to ${url}`)
-      attachMessageHandler(socket)
-      yield* Ref.set(currentSocketRef, Option.some(socket))
+    const maintainConnection: Effect.Effect<void, never, Services> = Effect.gen(
+      function* () {
+        const { socket, url } = yield* openWithBackoff
+        yield* Console.error(`[foldkit-devtools-mcp] connected to ${url}`)
+        attachMessageHandler(socket)
+        yield* Ref.set(currentSocketRef, Option.some(socket))
 
-      yield* waitForClose(socket)
+        yield* waitForClose(socket)
 
-      const isManual = yield* Ref.get(isManuallyClosedRef)
-      if (isManual) {
-        return
-      }
+        const isManual = yield* Ref.get(isManuallyClosedRef)
+        if (isManual) {
+          return
+        }
 
-      yield* Ref.set(currentSocketRef, Option.none())
-      yield* Console.error(
-        '[foldkit-devtools-mcp] connection lost, reconnecting',
-      )
-      yield* maintainConnection
-    })
+        yield* Ref.set(currentSocketRef, Option.none())
+        yield* Console.error(
+          '[foldkit-devtools-mcp] connection lost, reconnecting',
+        )
+        yield* maintainConnection
+      },
+    )
 
     const connectionFiber = yield* Effect.forkDetach(maintainConnection)
 

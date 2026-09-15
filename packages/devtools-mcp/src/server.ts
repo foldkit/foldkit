@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-import { Console, Effect, HashMap, Option } from 'effect'
+import { Console, Effect, HashMap, Layer, Option } from 'effect'
 
+import * as NodeFileSystem from '@effect/platform-node/NodeFileSystem'
+import * as NodePath from '@effect/platform-node/NodePath'
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {
@@ -9,17 +11,16 @@ import {
 } from '@modelcontextprotocol/sdk/types.js'
 
 import { runInit } from './install.js'
+import { loadSettings, resolveRelayUrl } from './relayLocation.js'
 import { buildTools } from './tools.js'
 import { connectWebSocketClient } from './webSocketClient.js'
 
-const DEFAULT_PORT = 9988
-const DEFAULT_HOST = 'localhost'
-
-const port = Number(process.env['FOLDKIT_DEVTOOLS_MCP_PORT'] ?? DEFAULT_PORT)
-const host = process.env['FOLDKIT_DEVTOOLS_MCP_HOST'] ?? DEFAULT_HOST
-
-const main: Effect.Effect<void, Error> = Effect.gen(function* () {
-  const wsClient = yield* connectWebSocketClient(`ws://${host}:${port}`)
+const main = Effect.gen(function* () {
+  const settings = yield* loadSettings
+  yield* Console.error(
+    `[foldkit-devtools-mcp] looking for a Foldkit dev server under ${settings.projectRoot}`,
+  )
+  const wsClient = yield* connectWebSocketClient(resolveRelayUrl(settings))
   const tools = buildTools(wsClient)
   const toolsByName = HashMap.fromIterable(
     tools.map(tool => [tool.name, tool] as const),
@@ -88,7 +89,11 @@ const subcommand = process.argv[2]
 if (subcommand === 'init') {
   runInit()
 } else {
-  Effect.runPromise(main).then(
+  Effect.runPromise(
+    main.pipe(
+      Effect.provide(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)),
+    ),
+  ).then(
     () => process.exit(0),
     error => {
       console.error('[foldkit-devtools-mcp] fatal error', error)

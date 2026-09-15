@@ -110,13 +110,15 @@ To include the overlay in production, list `@foldkit/devtools` in regular `depen
 
 ## DevTools MCP relay
 
-Pass `devToolsMcpPort` to enable the relay that exposes your running Foldkit app to AI agents via the [`@foldkit/devtools-mcp`](https://www.npmjs.com/package/@foldkit/devtools-mcp) MCP server:
+In development the plugin serves a WebSocket relay that exposes your running Foldkit app to AI agents via the [`@foldkit/devtools-mcp`](https://www.npmjs.com/package/@foldkit/devtools-mcp) MCP server. The MCP server connects to it and forwards typed `Request` and `Response` frames between AI agents and your Runtime.
+
+By default the dev server serves the relay itself, at `/__foldkit/devtools-mcp`, and publishes its address to a per-user registry, where the MCP server finds the relay for the project it was started in. Nothing has to be configured, two projects never contend for a port, and `server.host` decides who can reach the relay the same way it decides who can reach the app. In middleware mode, where there is no HTTP server to host it, and on an HTTPS dev server, whose self-signed certificate the MCP server could not verify, the relay takes a free loopback port instead. The published address carries a random token and the relay refuses a connection without it, so serving with `--host` opens the app to the network but not Model inspection or Message dispatch. Pass `devToolsMcpPort` to keep a socket of its own on a fixed port, on every interface, for an MCP server that is told the port through `FOLDKIT_DEVTOOLS_MCP_PORT`:
 
 ```typescript
 plugins: [foldkit({ devToolsMcpPort: 9988 })]
 ```
 
-When set, the plugin opens a separate WebSocket server on the given port. The MCP server connects to it and forwards typed `Request` and `Response` frames between AI agents and your Runtime. Without `devToolsMcpPort` (the default), the relay is not started and the plugin behaves exactly as before.
+That socket carries no token, since an MCP server told a port cannot learn one. `devToolsMcpPort: false` starts no relay. The relay never starts under Vitest, which loads a config in `test` mode or with its own plugins, and it is not part of production builds.
 
 See the [DevTools MCP documentation](https://foldkit.dev/ai/mcp) for setup, the available tools, and how dispatch validation works.
 
