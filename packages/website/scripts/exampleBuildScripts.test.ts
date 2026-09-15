@@ -85,6 +85,31 @@ describe('server-rendered example build scripts', () => {
     expect(manifest.devDependencies).toHaveProperty('vite')
   })
 
+  it('uses the LiveStore Vite config in the cross-tab tasks playground', async () => {
+    const bySlug = await loadPlaygroundFiles()
+    const crossTabTasksEntry = Object.entries(bySlug).find(
+      ([slug]) => slug === 'cross-tab-tasks',
+    )
+    if (crossTabTasksEntry === undefined) {
+      throw new Error('the transformed playground files omit cross-tab-tasks')
+    }
+    const [, crossTabTasks] = crossTabTasksEntry
+
+    const viteConfigFile = Object.entries(crossTabTasks.files).find(
+      ([path]) => path === 'vite.config.ts',
+    )
+    if (viteConfigFile === undefined) {
+      throw new Error(
+        'the transformed cross-tab-tasks playground omits vite.config.ts',
+      )
+    }
+    const [, viteConfig] = viteConfigFile
+
+    expect(viteConfig).toBe(
+      exampleFile('cross-tab-tasks', 'vite.config.playground.ts'),
+    )
+  })
+
   it('pins every transformed workspace dependency to its exact version', async () => {
     const [bySlug, versions] = await Promise.all([
       loadPlaygroundFiles(),

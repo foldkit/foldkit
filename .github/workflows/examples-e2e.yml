@@ -64,7 +64,14 @@ jobs:
           pnpm install --frozen-lockfile "${filters[@]}"
 
       - name: Build E2E prerequisites
-        run: pnpm --filter foldkit --filter @foldkit/markdown --filter @foldkit/vite-plugin build
+        env:
+          EXAMPLES: ${{ matrix.examples }}
+        run: |
+          filters=()
+          for example in $EXAMPLES; do
+            filters+=(--filter "{examples/$example}^...")
+          done
+          pnpm -r "${filters[@]}" run --if-present build
 
       - name: Install Playwright browsers
         run: pnpm --filter @foldkit/examples-e2e exec playwright install --with-deps chromium

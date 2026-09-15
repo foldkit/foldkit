@@ -16,6 +16,15 @@ minimumReleaseAgeExclude:
   - '@effect/platform-node@4.0.0-rc.115'
   - '@effect/vitest@4.0.0-rc.115'
   - effect@4.0.0-rc.115
+  - '@livestore/adapter-web@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219'
+  - '@livestore/common-cf@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219'
+  - '@livestore/common@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219'
+  - '@livestore/livestore@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219'
+  - '@livestore/peer-deps@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219'
+  - '@livestore/sqlite-wasm@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219'
+  - '@livestore/utils@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219'
+  - '@livestore/wa-sqlite@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219'
+  - '@livestore/webmesh@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219'
 
 overrides:
   '@mapbox/jsonlint-lines-primitives': 2.0.2

@@ -1,6 +1,6 @@
 import { request as nodeRequest } from 'node:http'
 
-import { type Page, expect } from '@playwright/test'
+import { type Locator, type Page, expect } from '@playwright/test'
 
 const collectErrors = (page: Page): Array<string> => {
   const errors: Array<string> = []
@@ -10,9 +10,18 @@ const collectErrors = (page: Page): Array<string> => {
   return errors
 }
 
-export const assertLoadedCleanly = async (page: Page): Promise<void> => {
+export const assertLoadedCleanly = async (
+  page: Page,
+  options: Readonly<{
+    readyLocator?: Locator
+    waitUntil?: 'commit' | 'domcontentloaded' | 'load' | 'networkidle'
+  }> = {},
+): Promise<void> => {
   const errors = collectErrors(page)
-  await page.goto('/', { waitUntil: 'networkidle' })
+  await page.goto('/', { waitUntil: options.waitUntil ?? 'networkidle' })
+  if (options.readyLocator !== undefined) {
+    await expect(options.readyLocator).toBeVisible()
+  }
   await expect(page.locator('#root')).toHaveCount(0)
   expect(errors).toEqual([])
 }
