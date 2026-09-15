@@ -429,8 +429,8 @@ const assertClientCarriesBuildId = (
 // THE SERVED PAGES
 
 type ServerEntry = Readonly<{
+  default: Readonly<{ fetch: (request: Request) => Promise<Response> }>
   buildId?: string
-  renderHtml: (template: string) => Promise<string>
   renderWithoutBuildIdTag: () => Promise<string>
 }>
 
@@ -1470,16 +1470,45 @@ const main = async (): Promise<void> => {
           'define, so the entry must read it and pass it explicitly.',
       )
 
-      const templateOf = (buildDir: string): string =>
-        readFileSync(join(buildDir, 'client/index.html'), 'utf8')
+      const currentEntry = await loadServerEntry(currentDir)
+
+      // A document comes from a render, the way a host gets one: the browser
+      // build publishes no template, and the server bundle hands none out.
+      const pageOf = async (entry: ServerEntry): Promise<string> => {
+        const response = await entry.default.fetch(new Request(`${ORIGIN}/`))
+        assertConsumer(
+          response.status === 200,
+          `the server bundle answered "/" with ${response.status}, not a page.`,
+        )
+        return response.text()
+      }
+
+      // The module script that loads a deployment's client. Each build was
+      // given its own `--base`, so the two never name the same file.
+      const clientScript = (page: string, buildDir: string): string => {
+        const script = /<script type="module"[^>]*\ssrc="[^"]+"[^>]*><\/script>/
+        const match = script.exec(page)?.[0]
+        assertConsumer(
+          match !== undefined,
+          `the page rendered by ${buildDir} carries no module script, so ` +
+            'there is no client to hand the page to.',
+        )
+        return match
+      }
 
       // The page a visitor already had open: rendered and stamped by the
       // deployment that served it, then met by the client bundle of the
-      // deployment now live. The template it is injected into is the live one,
-      // so its script tag loads the live client.
-      const same = await servedEntry.renderHtml(templateOf(servedDir))
+      // deployment now live. Only the module script is swapped for the live
+      // one; stylesheets and modulepreloads still name the served build. That
+      // is enough, because the build id handoff fails on the script, and it
+      // is less than a full page swap into the live template, which no longer
+      // exists as a file to swap into.
+      const same = await pageOf(servedEntry)
       const csp = same
-      const stale = await servedEntry.renderHtml(templateOf(currentDir))
+      const stale = same.replace(
+        clientScript(same, servedDir),
+        clientScript(await pageOf(currentEntry), currentDir),
+      )
 
       // The same page, damaged in each of the ways a handoff can fail. The
       // build id still matches, so what refuses is the handoff itself.

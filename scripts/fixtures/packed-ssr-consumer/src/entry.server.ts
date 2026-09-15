@@ -13,19 +13,6 @@ export const renderPage = (): Promise<Server.EntryResult> =>
     ).pipe(Effect.map(rendered => Server.Rendered(rendered))),
   )
 
-export const renderHtml = (template: string): Promise<string> =>
-  Effect.runPromise(
-    Server.renderToString(
-      { Flags, init, view },
-      { flags: { start: 0 }, buildId },
-    ).pipe(
-      Effect.map(rendered =>
-        Server.toResponse(template, Server.Rendered(rendered)),
-      ),
-      Effect.flatMap(response => Effect.promise(() => response.text())),
-    ),
-  )
-
 export const renderWithoutBuildIdTag = (): Promise<string> =>
   Effect.runPromise(
     Effect.map(

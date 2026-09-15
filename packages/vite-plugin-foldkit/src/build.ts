@@ -1,4 +1,4 @@
-import { Array, Schema } from 'effect'
+import { Schema } from 'effect'
 import type { RenderedApplication } from 'foldkit/experimental/server'
 import { mkdir, writeFile } from 'node:fs/promises'
 import nodePath, { dirname, resolve } from 'node:path'
@@ -58,11 +58,11 @@ export const FOLDKIT_FETCH_MODULE_ID = 'virtual:foldkit/fetch'
  * deploys it.
  *
  * A host has to decide what the asset layer does with a request that matches no
- * file, and that answer follows from the build rather than from taste: an
- * application with generated pages and no others wants a miss to stay a miss,
- * one with a server wants a miss to reach it, and one with neither wants the
- * template. Reading it here is how a deployment target gets that right without
- * asking its user to configure it twice.
+ * file, and that answer follows from the build rather than from taste: a path
+ * the build generated a page for is a file, and any other request reaches the
+ * server, since a build that writes this manifest always has one. Reading it
+ * here is how a deployment target gets that right without asking its user to
+ * configure it twice.
  */
 export const FoldkitBuildManifest = Schema.Struct({
   /**
@@ -83,11 +83,6 @@ export const FoldkitBuildManifest = Schema.Struct({
   serverEntry: Schema.String,
   /** Every path this build generated a page for, in the order it generated. */
   prerendered: Schema.Array(Schema.String),
-  /**
-   * How a request-time host should run the server entry. Always `'fetch'`:
-   * the entry is a Web `fetch` handler, not a Node process.
-   */
-  host: Schema.optional(Schema.Literals(['fetch'])),
 })
 
 /**
@@ -95,11 +90,11 @@ export const FoldkitBuildManifest = Schema.Struct({
  * deploys it.
  *
  * A host has to decide what the asset layer does with a request that matches no
- * file, and that answer follows from the build rather than from taste: an
- * application with generated pages and no others wants a miss to stay a miss,
- * one with a server wants a miss to reach it, and one with neither wants the
- * template. Reading it here is how a deployment target gets that right without
- * asking its user to configure it twice.
+ * file, and that answer follows from the build rather than from taste: a path
+ * the build generated a page for is a file, and any other request reaches the
+ * server, since a build that writes this manifest always has one. Reading it
+ * here is how a deployment target gets that right without asking its user to
+ * configure it twice.
  *
  * It is a file on disk that something else writes the next time it builds, so a
  * consumer decodes it with this Schema and fails closed rather than trusting
@@ -134,6 +129,7 @@ export const manifestPath = (
 }
 
 const MANIFEST_FILE_NAME = 'foldkit.build.json'
+const TEMPLATE_FILE_NAME = 'index.html'
 const DEFAULT_CLIENT_OUT_DIR = 'dist/client'
 const DEFAULT_SERVER_OUT_DIR = 'dist/server'
 const DEFAULT_PRERENDER_ORIGIN = 'http://localhost'
@@ -338,7 +334,7 @@ const fetchModuleSource = (
     containerId === undefined ? 'undefined' : JSON.stringify(containerId)
   // NOTE: `export *` re-exports whatever the application entry actually names,
   // so a missing `prerenderPaths` is absent rather than a Vite undefined-import
-  // warning.
+  // warning. The template is deliberately not exported: it is not a document.
   return `${[
     `import { handleRequest } from 'foldkit/experimental/server'`,
     `import * as server from ${JSON.stringify(serverEntry)}`,
@@ -380,7 +376,8 @@ const templateForFetchModule = (
  *
  * Vite drives both environments and every host plugin composes with them, so a
  * deployment target that runs `vite build` gets the whole application rather
- * than the browser half. The generated pages take their template from the
+ * than the browser half. The template is carried by the handler, not published
+ * with the assets. The generated pages take their template from the
  * browser build's own output, so generating twice over one build produces the
  * same pages. The server bundle's default export is `{ fetch }`.
  */
@@ -465,7 +462,6 @@ export const foldkitBuild = (
       server: manifestPath(builder.config.root, serverOutDir),
       serverEntry: entryFileName,
       prerendered,
-      host: 'fetch',
     })
     await writeFile(
       resolve(serverDirectory, MANIFEST_FILE_NAME),
@@ -533,7 +529,6 @@ export const foldkitBuild = (
     name: 'foldkit:build',
     apply: 'build',
     api: {
-      host: 'fetch' as const,
       serverEntry,
       fetchModuleId: FOLDKIT_FETCH_MODULE_ID,
     },
@@ -551,26 +546,37 @@ export const foldkitBuild = (
       const template = templateForFetchModule(state.template)
       return fetchModuleSource(serverEntry, template, containerId)
     },
-    // NOTE: `writeBundle` rather than `generateBundle`: Vite's own HTML plugin
-    // emits `index.html` from a `generateBundle` hook of its own, and hook
-    // order between plugins decides whether that asset exists yet. By
-    // `writeBundle` the bundle is whatever the environment actually produced.
-    writeBundle(_options, bundle) {
-      const state = captured(this.environment.config.root)
-      const outputs = Object.values(bundle)
-      if (this.environment.name === 'client') {
-        const html = Array.findFirst(
-          outputs,
-          file => file.type === 'asset' && file.fileName === 'index.html',
-        )
-        if (html._tag === 'Some' && html.value.type === 'asset') {
-          state.template = String(html.value.source)
+    // Each environment records what it emitted before anything is written.
+    //
+    // The browser build's `index.html` is the template the handler renders
+    // into, not a page: published with the assets, a host serves its empty
+    // container at 200. It is captured and dropped from the bundle here. The
+    // server build's entry chunk name is all `finalize` needs, and the bundle
+    // already carries it.
+    //
+    // NOTE: `order: 'post'` because Vite's own HTML plugin emits `index.html`
+    // from a `generateBundle` of its own; post is guaranteed to run after it.
+    generateBundle: {
+      order: 'post',
+      handler(_options, bundle) {
+        const state = captured(this.environment.config.root)
+        if (this.environment.name === 'ssr') {
+          state.serverEntryFile = serverEntryFile(
+            Object.values(bundle),
+            FETCH_CHUNK_NAME,
+          )
+          return
         }
-        return
-      }
-      if (this.environment.name === 'ssr') {
-        state.serverEntryFile = serverEntryFile(outputs, FETCH_CHUNK_NAME)
-      }
+        if (this.environment.name !== 'client') {
+          return
+        }
+        const html = bundle[TEMPLATE_FILE_NAME]
+        if (html === undefined || html.type !== 'asset') {
+          return
+        }
+        state.template = String(html.source)
+        delete bundle[TEMPLATE_FILE_NAME]
+      },
     },
     config: userConfig => {
       const client: EnvironmentOptions = {
