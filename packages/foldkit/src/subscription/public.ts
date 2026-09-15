@@ -23,3 +23,12 @@ export type {
   FromEventFilterMapPreventDefaultConfig,
   TypedEventTarget,
 } from './fromEvent.js'
+
+export { keyboardShortcuts } from './keyboardShortcuts.js'
+
+export type {
+  KeyboardShortcut,
+  KeyboardShortcutBinding,
+  KeyboardShortcutsConfig,
+  WhileTyping,
+} from './keyboardShortcuts.js'
