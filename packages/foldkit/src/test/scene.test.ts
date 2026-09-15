@@ -689,6 +689,38 @@ describe('accessible locators', () => {
       expect(textContent(Option.getOrThrow(result))).toBe('Menu')
     })
 
+    describe('current', () => {
+      const navigation = h('nav', [
+        h('a', { attrs: { href: '/work', 'aria-current': 'page' } }, ['Work']),
+        h('a', { attrs: { href: '/contact', 'aria-current': 'false' } }, [
+          'Contact',
+        ]),
+        h('a', { attrs: { href: '/about' } }, ['About']),
+      ])
+
+      test('a token matches itself exactly', () => {
+        const result = getByRole('link', { current: 'page' })(navigation)
+        expect(Option.isSome(result)).toBe(true)
+        expect(textContent(Option.getOrThrow(result))).toBe('Work')
+        expect(
+          Option.isNone(getByRole('link', { current: 'step' })(navigation)),
+        ).toBe(true)
+      })
+
+      test('true accepts any token but false', () => {
+        const result = getByRole('link', { current: true })(navigation)
+        expect(Option.isSome(result)).toBe(true)
+        expect(textContent(Option.getOrThrow(result))).toBe('Work')
+      })
+
+      test('false matches an absent attribute and an explicit false alike', () => {
+        const names = getAllByRole('link', { current: false })(navigation).map(
+          textContent,
+        )
+        expect(names).toEqual(['Contact', 'About'])
+      })
+    })
+
     test('filters button by disabled=true via prop', () => {
       const result = getByRole('button', {
         name: 'Submit form',
