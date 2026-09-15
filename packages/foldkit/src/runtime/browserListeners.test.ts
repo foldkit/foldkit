@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, expect } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
@@ -61,16 +61,25 @@ const click = (
   return event
 }
 
-describe('addLinkClickListener', () => {
-  beforeAll(() => {
-    // NOTE: happy-dom follows links whose default isn't prevented. Without
-    // this, the fall-through tests would trigger a real fetch to the link's
-    // href and log ECONNREFUSED every time they pass.
-    if (window.happyDOM !== undefined) {
-      window.happyDOM.settings.navigation.disableMainFrameNavigation = true
-    }
+// NOTE: happy-dom follows links whose default isn't prevented. Without this,
+// the fall-through tests would trigger a real fetch to the link's href and log
+// ECONNREFUSED every time they pass.
+const disableMainFrameNavigation = () => {
+  if (window.happyDOM !== undefined) {
+    window.happyDOM.settings.navigation.disableMainFrameNavigation = true
+  }
+}
 
-    addLinkClickListener(dispatch, routingConfig)
+describe('addLinkClickListener', () => {
+  let removeListener: () => void
+
+  beforeAll(() => {
+    disableMainFrameNavigation()
+    removeListener = addLinkClickListener(dispatch, routingConfig)
+  })
+
+  afterAll(() => {
+    removeListener()
   })
 
   beforeEach(() => {
@@ -207,5 +216,60 @@ describe('addLinkClickListener', () => {
 
     expect(dispatched).toHaveLength(0)
     expect(event.defaultPrevented).toBe(true)
+  })
+})
+
+describe('addLinkClickListener without onUrlRequest', () => {
+  const announcedPaths: Array<string> = []
+  const onUrlChangeEvent = () => {
+    announcedPaths.push(window.location.pathname)
+  }
+  let removeListener: () => void
+
+  beforeAll(() => {
+    disableMainFrameNavigation()
+    window.addEventListener('foldkit:urlchange', onUrlChangeEvent)
+    removeListener = addLinkClickListener(dispatch, { onUrlChange })
+  })
+
+  afterAll(() => {
+    removeListener()
+    window.removeEventListener('foldkit:urlchange', onUrlChangeEvent)
+  })
+
+  beforeEach(() => {
+    dispatched.length = 0
+    announcedPaths.length = 0
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  it('pushes a same-origin link to history and announces it, dispatching no Message', () => {
+    const link = makeLink(`${window.location.origin}/about`)
+    const event = click(link)
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(dispatched).toHaveLength(0)
+    expect(window.location.pathname).toBe('/about')
+    expect(announcedPaths).toEqual(['/about'])
+  })
+
+  it('leaves a cross-origin link to the browser', () => {
+    const link = makeLink('https://example.com/news')
+    const event = click(link)
+
+    expect(event.defaultPrevented).toBe(false)
+    expect(dispatched).toHaveLength(0)
+    expect(announcedPaths).toHaveLength(0)
+  })
+
+  it('still falls through on a modified click', () => {
+    const link = makeLink(`${window.location.origin}/contact`)
+    const event = click(link, { metaKey: true })
+
+    expect(event.defaultPrevented).toBe(false)
+    expect(announcedPaths).toHaveLength(0)
   })
 })
