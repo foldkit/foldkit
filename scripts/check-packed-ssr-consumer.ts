@@ -1498,8 +1498,11 @@ const main = async (): Promise<void> => {
 
       // The page a visitor already had open: rendered and stamped by the
       // deployment that served it, then met by the client bundle of the
-      // deployment now live. Its script tag is swapped for the live one, so
-      // the served markup meets the live client.
+      // deployment now live. Only the module script is swapped for the live
+      // one; stylesheets and modulepreloads still name the served build. That
+      // is enough, because the build id handoff fails on the script, and it
+      // is less than a full page swap into the live template, which no longer
+      // exists as a file to swap into.
       const same = await pageOf(servedEntry)
       const csp = same
       const stale = same.replace(

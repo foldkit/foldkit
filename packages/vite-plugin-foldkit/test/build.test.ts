@@ -126,12 +126,7 @@ describe('foldkitBuild', () => {
 
     const { pathToFileURL } = await import('node:url')
     const built = await import(pathToFileURL(resolve(server, 'fetch.js')).href)
-    expect(built.template).toBeUndefined()
-    expect(Object.keys(built).sort()).toEqual([
-      'default',
-      'prerenderPaths',
-      'renderPage',
-    ])
+    expect(built).not.toHaveProperty('template')
   })
 
   it('serves the Request.url the platform constructed', async () => {

@@ -58,11 +58,11 @@ export const FOLDKIT_FETCH_MODULE_ID = 'virtual:foldkit/fetch'
  * deploys it.
  *
  * A host has to decide what the asset layer does with a request that matches no
- * file, and that answer follows from the build rather than from taste: an
- * application with generated pages and no others wants a miss to stay a miss,
- * one with a server wants a miss to reach it, and one with neither wants the
- * template. Reading it here is how a deployment target gets that right without
- * asking its user to configure it twice.
+ * file, and that answer follows from the build rather than from taste: a path
+ * the build generated a page for is a file, and any other request reaches the
+ * server, since a build that writes this manifest always has one. Reading it
+ * here is how a deployment target gets that right without asking its user to
+ * configure it twice.
  */
 export const FoldkitBuildManifest = Schema.Struct({
   /**
@@ -90,11 +90,11 @@ export const FoldkitBuildManifest = Schema.Struct({
  * deploys it.
  *
  * A host has to decide what the asset layer does with a request that matches no
- * file, and that answer follows from the build rather than from taste: an
- * application with generated pages and no others wants a miss to stay a miss,
- * one with a server wants a miss to reach it, and one with neither wants the
- * template. Reading it here is how a deployment target gets that right without
- * asking its user to configure it twice.
+ * file, and that answer follows from the build rather than from taste: a path
+ * the build generated a page for is a file, and any other request reaches the
+ * server, since a build that writes this manifest always has one. Reading it
+ * here is how a deployment target gets that right without asking its user to
+ * configure it twice.
  *
  * It is a file on disk that something else writes the next time it builds, so a
  * consumer decodes it with this Schema and fails closed rather than trusting
@@ -529,7 +529,6 @@ export const foldkitBuild = (
     name: 'foldkit:build',
     apply: 'build',
     api: {
-      host: 'fetch' as const,
       serverEntry,
       fetchModuleId: FOLDKIT_FETCH_MODULE_ID,
     },
@@ -547,15 +546,27 @@ export const foldkitBuild = (
       const template = templateForFetchModule(state.template)
       return fetchModuleSource(serverEntry, template, containerId)
     },
-    // `index.html` is the template the handler renders into, not a page:
-    // published with the assets, a host serves its empty container at 200.
-    // It is captured and dropped from the bundle before anything is written.
+    // Each environment records what it emitted before anything is written.
+    //
+    // The browser build's `index.html` is the template the handler renders
+    // into, not a page: published with the assets, a host serves its empty
+    // container at 200. It is captured and dropped from the bundle here. The
+    // server build's entry chunk name is all `finalize` needs, and the bundle
+    // already carries it.
     //
     // NOTE: `order: 'post'` because Vite's own HTML plugin emits `index.html`
     // from a `generateBundle` of its own; post is guaranteed to run after it.
     generateBundle: {
       order: 'post',
       handler(_options, bundle) {
+        const state = captured(this.environment.config.root)
+        if (this.environment.name === 'ssr') {
+          state.serverEntryFile = serverEntryFile(
+            Object.values(bundle),
+            FETCH_CHUNK_NAME,
+          )
+          return
+        }
         if (this.environment.name !== 'client') {
           return
         }
@@ -563,20 +574,9 @@ export const foldkitBuild = (
         if (html === undefined || html.type !== 'asset') {
           return
         }
-        const state = captured(this.environment.config.root)
         state.template = String(html.source)
         delete bundle[TEMPLATE_FILE_NAME]
       },
-    },
-    writeBundle(_options, bundle) {
-      if (this.environment.name !== 'ssr') {
-        return
-      }
-      const state = captured(this.environment.config.root)
-      state.serverEntryFile = serverEntryFile(
-        Object.values(bundle),
-        FETCH_CHUNK_NAME,
-      )
     },
     config: userConfig => {
       const client: EnvironmentOptions = {
