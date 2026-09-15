@@ -182,4 +182,4 @@ Export a helper from the child for transitions the parent is allowed to request.
 
 ## Know What Linting Can Catch {#what-linting-can-catch}
 
-The [Foldkit linter](/tooling/oxlint-plugin) can recognize code shapes such as a module-level `let`, `Date.now()` inside update, a parent constructing a child Message, or a Mount whose `execute` function never uses its element. It cannot decide whether two domain states may coexist, whether an async result can become stale, or which part of an application should own a value. Those questions still require design review.
+The [Foldkit linter](/tooling/oxlint-plugin) can recognize code shapes such as a module-level `let`, `Date.now()` inside update, a parent constructing a child Message, or a Mount whose `execute` function never uses its element. It also flags direct child Model edits and manual child Return copies when an in-file fold establishes the Submodel boundary. It cannot decide whether two domain states may coexist, whether an async result can become stale, or which part of an application should own a value without that boundary evidence. Those questions still require design review.

@@ -47,6 +47,12 @@ describe('configs', () => {
         expect(
           config.rules['foldkit/no-child-message-construction-in-root'],
         ).toBe('error')
+        expect(config.rules['foldkit/no-direct-submodel-state-update']).toBe(
+          'error',
+        )
+        expect(
+          config.rules['foldkit/require-fold-for-child-update-result'],
+        ).toBe('error')
         expect(config.rules['foldkit/no-noop-message']).toBe('error')
         expect(config.rules['foldkit/no-empty-commands-array']).toBe('error')
         expect(config.rules['foldkit/no-empty-to-parent-out-message']).toBe(

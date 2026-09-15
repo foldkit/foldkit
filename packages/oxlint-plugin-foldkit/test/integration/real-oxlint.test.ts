@@ -135,7 +135,13 @@ describe('real-oxlint rule fixtures', () => {
     ).toBe(5)
   })
 
-  it('reports every direct child Message import form', () => {
+  it('traces direct and named data-last combine Steps', () => {
+    expect(countDiagnostics('no-direct-submodel-state-update', 'invalid')).toBe(
+      2,
+    )
+  })
+
+  it('reports direct child Message construction and local constructor aliases', () => {
     const diagnostics = diagnosticsFor(
       'no-child-message-construction-in-root',
       'invalid',
@@ -143,11 +149,14 @@ describe('real-oxlint rule fixtures', () => {
 
     expect(diagnostics.map(reportedCalleeLabel).sort()).toEqual(
       [
+        'Child.Message.ClickedAliasSave',
         'Child.Message.ClickedBarrelSave',
         'Child.Message.ClickedDirectBarrelSave',
         'Child.Message.ClickedNestedSave',
+        'Child.Message.ClickedNamespaceAliasSave',
         'Child.Message.ClickedParentViewSave',
         'Child.Message.ClickedWorkspaceSave',
+        'Child.Message.ClickedWorkspaceAliasSave',
         'Child.server.Message.ClickedServerChildSave',
         'CommandPalette.Message.OpenedCommandPalette',
         'DirectChild.Message.ClickedDirectChildSave',
@@ -195,6 +204,12 @@ describe('real-oxlint rule fixtures', () => {
 
   it('tracks same-named tagged unions by binding', () => {
     expect(countDiagnostics('no-empty-object-tagged-call', 'invalid')).toBe(3)
+  })
+
+  it('derives child fields from the fold read and write functions', () => {
+    expect(
+      countDiagnostics('require-fold-for-child-update-result', 'invalid'),
+    ).toBe(3)
   })
 
   it('fixes only structurally safe empty commands properties', async () => {
