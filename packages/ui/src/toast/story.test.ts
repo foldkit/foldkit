@@ -840,7 +840,7 @@ describe('Toast', () => {
       )
     })
 
-    it('ignores PressedEntryPointer when another entry is already dragging', () => {
+    it('starts a second drag with a different pointerId while another entry is dragging', () => {
       const dragging = SwipeState.Dragging({
         pointerId: POINTER_ID,
         startX: 100,
@@ -865,7 +865,219 @@ describe('Toast', () => {
         Story.model((next: Model) => {
           expect(requireEntry(next, 0).swipeState).toStrictEqual(dragging)
           expect(requireEntry(next, 1).swipeState).toStrictEqual(
+            SwipeState.Dragging({
+              pointerId: POINTER_ID + 1,
+              startX: 200,
+              currentX: 200,
+            }),
+          )
+          expect(requireEntry(next, 1).pendingDismissVersion).toBe(1)
+        }),
+        Story.Command.expectNone(),
+      )
+    })
+
+    it('ignores a second press that reuses an already-active pointerId on another entry', () => {
+      const dragging = SwipeState.Dragging({
+        pointerId: POINTER_ID,
+        startX: 100,
+        currentX: 120,
+      })
+      const entryOne = makeSettledEntry({
+        id: 'test-entry-0',
+        swipeState: dragging,
+      })
+      const entryTwo = makeSettledEntry({ id: 'test-entry-1' })
+      const model = withEntries(swipeInit, [entryOne, entryTwo])
+      Story.story(
+        Toast.update,
+        Story.given(model),
+        Story.message(
+          Message.PressedEntryPointer({
+            entryId: 'test-entry-1',
+            pointerId: POINTER_ID,
+            clientX: 200,
+          }),
+        ),
+        Story.model((next: Model) => {
+          expect(requireEntry(next, 0).swipeState).toStrictEqual(dragging)
+          expect(requireEntry(next, 1).swipeState).toStrictEqual(
             SwipeState.Idle(),
+          )
+        }),
+        Story.Command.expectNone(),
+      )
+    })
+
+    it('routes moves and releases to the correct entry while two drags are active', () => {
+      const entryOne = makeSettledEntry({ id: 'test-entry-0' })
+      const entryTwo = makeSettledEntry({ id: 'test-entry-1' })
+      const model = withEntries(swipeInit, [entryOne, entryTwo])
+      Story.story(
+        Toast.update,
+        Story.given(model),
+        Story.message(
+          Message.PressedEntryPointer({
+            entryId: 'test-entry-0',
+            pointerId: POINTER_ID,
+            clientX: 100,
+          }),
+        ),
+        Story.message(
+          Message.PressedEntryPointer({
+            entryId: 'test-entry-1',
+            pointerId: POINTER_ID + 1,
+            clientX: 300,
+          }),
+        ),
+        Story.message(
+          Message.MovedSwipePointer({
+            pointerId: POINTER_ID,
+            clientX: 130,
+          }),
+        ),
+        Story.message(
+          Message.MovedSwipePointer({
+            pointerId: POINTER_ID + 1,
+            clientX: 340,
+          }),
+        ),
+        Story.model((next: Model) => {
+          expect(requireEntry(next, 0).swipeState).toStrictEqual(
+            SwipeState.Dragging({
+              pointerId: POINTER_ID,
+              startX: 100,
+              currentX: 130,
+            }),
+          )
+          expect(requireEntry(next, 1).swipeState).toStrictEqual(
+            SwipeState.Dragging({
+              pointerId: POINTER_ID + 1,
+              startX: 300,
+              currentX: 340,
+            }),
+          )
+        }),
+        Story.message(
+          Message.ReleasedSwipePointer({
+            pointerId: POINTER_ID,
+            clientX: 130,
+          }),
+        ),
+        Story.model((next: Model) => {
+          expect(requireEntry(next, 0).swipeState).toStrictEqual(
+            SwipeState.Settling({ offsetX: 0 }),
+          )
+          expect(requireEntry(next, 1).swipeState).toStrictEqual(
+            SwipeState.Dragging({
+              pointerId: POINTER_ID + 1,
+              startX: 300,
+              currentX: 340,
+            }),
+          )
+        }),
+        Story.Command.resolve(
+          WaitForSwipeSettled,
+          Message.CompletedWaitForSwipeSettled({
+            entryId: 'test-entry-0',
+            version: RELEASED_SWIPE_VERSION,
+          }),
+        ),
+        Story.model((next: Model) => {
+          expect(requireEntry(next, 0).swipeState).toStrictEqual(
+            SwipeState.Idle(),
+          )
+          expect(requireEntry(next, 1).swipeState).toStrictEqual(
+            SwipeState.Dragging({
+              pointerId: POINTER_ID + 1,
+              startX: 300,
+              currentX: 340,
+            }),
+          )
+        }),
+        Story.Command.resolve(
+          WaitBeforeDismissal,
+          Message.CompletedWaitBeforeDismissal({
+            entryId: 'test-entry-0',
+            version: STALE_VERSION,
+          }),
+        ),
+        Story.model((next: Model) => {
+          expect(requireEntry(next, 0).animation.transitionState).toBe('Idle')
+          expect(requireEntry(next, 1).swipeState).toStrictEqual(
+            SwipeState.Dragging({
+              pointerId: POINTER_ID + 1,
+              startX: 300,
+              currentX: 340,
+            }),
+          )
+        }),
+      )
+    })
+
+    it('dismisses one entry past threshold while the other keeps dragging', () => {
+      const entryOne = makeSettledEntry({ id: 'test-entry-0' })
+      const entryTwo = makeSettledEntry({ id: 'test-entry-1' })
+      const model = withEntries(swipeInit, [entryOne, entryTwo])
+      Story.story(
+        Toast.update,
+        Story.given(model),
+        Story.message(
+          Message.PressedEntryPointer({
+            entryId: 'test-entry-0',
+            pointerId: POINTER_ID,
+            clientX: 100,
+          }),
+        ),
+        Story.message(
+          Message.PressedEntryPointer({
+            entryId: 'test-entry-1',
+            pointerId: POINTER_ID + 1,
+            clientX: 300,
+          }),
+        ),
+        Story.message(
+          Message.MovedSwipePointer({
+            pointerId: POINTER_ID,
+            clientX: 200,
+          }),
+        ),
+        Story.message(
+          Message.ReleasedSwipePointer({
+            pointerId: POINTER_ID,
+            clientX: 200,
+          }),
+        ),
+        Story.model((next: Model) => {
+          const dismissed = requireEntry(next, 0)
+          expect(dismissed.swipeState).toStrictEqual(
+            SwipeState.Settling({ offsetX: 100 }),
+          )
+          expect(dismissed.animation.transitionState).toBe('LeaveStart')
+          expect(requireEntry(next, 1).swipeState).toStrictEqual(
+            SwipeState.Dragging({
+              pointerId: POINTER_ID + 1,
+              startX: 300,
+              currentX: 300,
+            }),
+          )
+        }),
+        Story.Command.resolveAll(
+          [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
+          [
+            Animation.WaitForAnimationSettled,
+            Animation.Message.EndedAnimation(),
+          ],
+        ),
+        Story.model((next: Model) => {
+          expect(next.entries).toHaveLength(1)
+          expect(requireEntry(next, 0).id).toBe('test-entry-1')
+          expect(requireEntry(next, 0).swipeState).toStrictEqual(
+            SwipeState.Dragging({
+              pointerId: POINTER_ID + 1,
+              startX: 300,
+              currentX: 300,
+            }),
           )
         }),
       )

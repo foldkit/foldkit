@@ -5,6 +5,7 @@ import {
   Match,
   Number,
   Option,
+  Result,
   Schema,
   Stream,
   pipe,
@@ -156,17 +157,20 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     )
   }
 
-  const activePointerId = (model: Model): Option.Option<number> =>
-    pipe(
-      Array.findFirst(model.entries, entry => isDragging(entry.swipeState)),
-      Option.flatMap(entry =>
-        SwipeState.match(entry.swipeState, {
-          Idle: () => Option.none(),
-          Dragging: dragging => Option.some(dragging.pointerId),
-          Settling: () => Option.none(),
-        }),
-      ),
+  const activePointerIds = (model: Model): ReadonlyArray<number> =>
+    Array.filterMap(model.entries, entry =>
+      SwipeState.match<Result.Result<number, void>>(entry.swipeState, {
+        Idle: () => Result.failVoid,
+        Dragging: dragging => Result.succeed(dragging.pointerId),
+        Settling: () => Result.failVoid,
+      }),
     )
+
+  const isPointerActive = (model: Model, pointerId: number): boolean =>
+    Array.contains(activePointerIds(model), pointerId)
+
+  const isAnyDragging = (model: Model): boolean =>
+    Array.some(model.entries, entry => isDragging(entry.swipeState))
 
   const findDraggingEntry = (
     model: Model,
@@ -491,7 +495,8 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           onSome: entry => {
             if (
               isEntryLeaving(entry) ||
-              Option.isSome(activePointerId(model))
+              isDragging(entry.swipeState) ||
+              isPointerActive(model, pointerId)
             ) {
               return { model }
             } else {
@@ -621,19 +626,20 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
   const swipeDependencies = (model: Model) => ({
     isSwipeEnabled: Option.isSome(model.maybeSwipeThreshold),
-    maybeActivePointerId: activePointerId(model),
+    isAnyDragging: isAnyDragging(model),
+    activePointerIds: activePointerIds(model),
   })
 
   const subscriptions = Subscription.make<Model, Message>()(entry => ({
     swipePointer: entry(
       {
         isSwipeEnabled: Schema.Boolean,
-        maybeActivePointerId: Schema.Option(Schema.Number),
+        isAnyDragging: Schema.Boolean,
       },
       {
         modelToDependencies: swipeDependencies,
-        dependenciesToStream: ({ isSwipeEnabled, maybeActivePointerId }) => {
-          const moveStream = Subscription.fromEvent<PointerEvent, Message>({
+        dependenciesToStream: ({ isSwipeEnabled, isAnyDragging }) => {
+          const moveStream = Subscription.fromEvent({
             target: document,
             type: 'pointermove',
             toMessage: event =>
@@ -642,7 +648,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
                 clientX: event.clientX,
               }),
           })
-          const upStream = Subscription.fromEvent<PointerEvent, Message>({
+          const upStream = Subscription.fromEvent({
             target: document,
             type: 'pointerup',
             toMessage: event =>
@@ -651,7 +657,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
                 clientX: event.clientX,
               }),
           })
-          const cancelStream = Subscription.fromEvent<PointerEvent, Message>({
+          const cancelStream = Subscription.fromEvent({
             target: document,
             type: 'pointercancel',
             toMessage: event =>
@@ -691,9 +697,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
           return Stream.when(
             Stream.merge(pointerEvents, documentSwipeStyles),
-            Effect.sync(
-              () => isSwipeEnabled && Option.isSome(maybeActivePointerId),
-            ),
+            Effect.sync(() => isSwipeEnabled && isAnyDragging),
           )
         },
       },
@@ -702,25 +706,33 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     swipeEscape: entry(
       {
         isSwipeEnabled: Schema.Boolean,
-        maybeActivePointerId: Schema.Option(Schema.Number),
+        isAnyDragging: Schema.Boolean,
+        activePointerIds: Schema.Array(Schema.Number),
       },
       {
         modelToDependencies: swipeDependencies,
-        dependenciesToStream: ({ isSwipeEnabled, maybeActivePointerId }) =>
+        dependenciesToStream: ({
+          isSwipeEnabled,
+          isAnyDragging,
+          activePointerIds,
+        }) =>
           Stream.when(
-            Subscription.fromEventFilterMap<KeyboardEvent, Message>({
-              target: document,
-              type: 'keydown',
-              toMessage: event =>
+            Stream.flatMap(
+              Subscription.fromEvent({
+                target: document,
+                type: 'keydown',
+                toMessage: event => event,
+              }),
+              event =>
                 event.key === 'Escape'
-                  ? Option.map(maybeActivePointerId, pointerId =>
-                      MessageSchema.CancelledSwipe({ pointerId }),
+                  ? Stream.fromIterable(
+                      Array.map(activePointerIds, pointerId =>
+                        MessageSchema.CancelledSwipe({ pointerId }),
+                      ),
                     )
-                  : Option.none(),
-            }),
-            Effect.sync(
-              () => isSwipeEnabled && Option.isSome(maybeActivePointerId),
+                  : Stream.empty,
             ),
+            Effect.sync(() => isSwipeEnabled && isAnyDragging),
           ),
       },
     ),
