@@ -48,7 +48,7 @@ export const computeDiff = (
       return
     }
 
-    if (globalThis.Array.isArray(curr) && globalThis.Array.isArray(prev)) {
+    if (Array.isArray(curr) && Array.isArray(prev)) {
       walkArray(prev, curr, path)
     } else if (Predicate.isObject(curr) && Predicate.isObject(prev)) {
       walkObject(prev, curr, path)
@@ -381,14 +381,11 @@ export const createDevToolsStore = (
           state.entries,
           maybeEntryIndex.value,
           entry =>
-            pipe(
-              updateCommands(entry.commands),
-              Option.match({
-                onNone: () => entry,
-                onSome: nextCommands =>
-                  evo(entry, { commands: () => nextCommands }),
-              }),
-            ),
+            Option.match(updateCommands(entry.commands), {
+              onNone: () => entry,
+              onSome: nextCommands =>
+                evo(entry, { commands: () => nextCommands }),
+            }),
         )
 
         return Option.match(maybeEntries, {

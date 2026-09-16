@@ -1462,22 +1462,29 @@ const buildOverlayView = (
                       onNone: () => [
                         h.div(
                           [h.Class('text-2xs text-dt-muted font-mono')],
-                          ['Destination unresolved'],
+                          [
+                            h.span([h.AriaHidden(true)], ['…']),
+                            h.span(
+                              [h.Class('sr-only')],
+                              ['Destination pending'],
+                            ),
+                          ],
                         ),
                       ],
                       onSome: submodelPath =>
-                        Array.isReadonlyArrayEmpty(submodelPath)
-                          ? []
-                          : [
-                              h.div(
-                                [
-                                  h.Class(
-                                    'text-2xs text-dt-muted font-mono truncate',
-                                  ),
-                                ],
-                                [formatSubmodelPath(submodelPath)],
-                              ),
-                            ],
+                        Array.match(submodelPath, {
+                          onEmpty: () => [],
+                          onNonEmpty: submodelPath => [
+                            h.div(
+                              [
+                                h.Class(
+                                  'text-2xs text-dt-muted font-mono truncate',
+                                ),
+                              ],
+                              [formatSubmodelPath(submodelPath)],
+                            ),
+                          ],
+                        }),
                     }),
                     ...Array.map(
                       flattenCommand(command, index, expandedPaths),
