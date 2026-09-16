@@ -1677,6 +1677,7 @@ const buildOverlayView = (
             tabs: INSPECTOR_TABS,
             selectedValue: model.activeInspectorTab,
             ariaLabel: 'Inspector tabs',
+            panelMount: 'All',
             toView: ({ tablist, tabs, activeIndex }) =>
               h.div(
                 [h.Class('flex flex-col flex-1 min-h-0')],

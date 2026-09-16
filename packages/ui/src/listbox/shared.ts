@@ -1030,7 +1030,7 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
         h.Type('button'),
         h.AriaHasPopup('listbox'),
         h.AriaExpanded(isVisible),
-        h.AriaControls(`${id}-items`),
+        ...(isVisible ? [h.AriaControls(`${id}-items`)] : []),
         ...buttonLabelAttributes,
         ...(isButtonEffectivelyDisabled
           ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]

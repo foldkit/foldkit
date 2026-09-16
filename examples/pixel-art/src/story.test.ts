@@ -316,10 +316,9 @@ describe('grid size', () => {
     const modelWithPending: Model = evo(emptyModel, {
       maybePendingGridSize: () => Option.some(8),
       gridSizeConfirmDialog: () =>
-        Dialog.init({
+        Dialog.boot({
           id: 'grid-size-confirm-dialog',
-          isOpen: true,
-        }),
+        }).model,
       undoStack: () => [createEmptyGrid(4)],
     })
 

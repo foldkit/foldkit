@@ -111,9 +111,13 @@ Focus stays on the input while arrow keys navigate items via `aria-activedescend
 
 Opening, closing, and arrow, `Home`, and `End` navigation are unaffected by `isReadOnly`. See [Read-Only](#read-only).
 
+When filtering leaves no items, the listbox disappears and navigation keys have no item to activate. The input stays focused. A modal Combobox keeps its backdrop available, so Escape and a backdrop click still close it and release the page. Render a visible and announced "No results" status in your view if users need feedback about the empty search.
+
 ## Accessibility
 
 The input receives `role="combobox"` with `aria-expanded` and `aria-activedescendant`. The items container receives `role="listbox"` and each item receives `role="option"` with `aria-selected`. The input also receives the native `readonly` attribute and `aria-readonly="true"`, and the items container receives `aria-readonly="true"`, when `isReadOnly` is set. The ARIA attribute is emitted on the input in addition to the native one because the explicit `role="combobox"` overrides the element's native semantics, so the native attribute alone is not exposed to assistive technology. See [Read-Only](#read-only).
+
+When the filtered listbox disappears, the input reports `aria-expanded="false"` and drops `aria-controls` and `aria-activedescendant` rather than pointing at missing elements.
 
 The input is a form field, so give it an accessible name. For a visible label, wire a native `<label for>` that targets the input id with `Combobox.inputId(id)` rather than hardcoding the `-input` convention. The `for` association makes the input properly labeled: assistive technology announces it by the visible label text, and clicking the label focuses the input. That is why it is the recommended pattern.
 

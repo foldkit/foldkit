@@ -27,7 +27,7 @@ export type Message = typeof Message.Type
 
 export const initialModel: Model = {
   isEnabled: false,
-  dialog: Dialog.init({ id: 'test-dialog', isOpen: true }),
+  dialog: Dialog.boot({ id: 'test-dialog' }).model,
 }
 
 // UPDATE

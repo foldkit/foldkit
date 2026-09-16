@@ -1,7 +1,6 @@
 import { Option } from 'effect'
+import { Scene, Story } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
-import * as Scene from 'foldkit/scene'
-import * as Story from 'foldkit/story'
 import { evo } from 'foldkit/struct'
 import { expect } from 'vitest'
 
@@ -1351,6 +1350,23 @@ describe('Listbox', () => {
         )
 
     describe('ARIA', () => {
+      it('only points at the items panel while it is rendered', () => {
+        Scene.scene(
+          { update, view: sceneView() },
+          Scene.given(closedModel()),
+          Scene.expect(Scene.selector('[key="test-button"]')).not.toHaveAttr(
+            'aria-controls',
+          ),
+          Scene.given(openModel()),
+          Scene.expect(Scene.selector('[key="test-button"]')).toHaveAttr(
+            'aria-controls',
+            'test-items',
+          ),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+        )
+      })
+
       it('button has aria-haspopup="listbox"', () => {
         Scene.scene(
           { update, view: sceneView() },

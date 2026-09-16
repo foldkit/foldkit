@@ -1,5 +1,5 @@
 import { Array, Match, Option, pipe } from 'effect'
-import type { HtmlBuilder } from 'foldkit/html'
+import { type HtmlBuilder, childAttributes } from 'foldkit/html'
 
 import { VirtualList } from '@foldkit/ui'
 
@@ -190,6 +190,10 @@ export const view = (model: VirtualList.Model, h: HtmlBuilder<Message>) => {
                 ],
               ),
             containerClassName,
+            containerAttributes: childAttributes([
+              h.AriaLabel('Activity events'),
+              h.Tabindex(0),
+            ]),
           },
           toParentMessage: message =>
             Message.GotVirtualListDemoMessage({ message }),
@@ -353,6 +357,10 @@ export const virtualListVariableDemo = (
                 ? variableTallRow(row, summaryFor(index))
                 : variableShortRow(row),
             containerClassName,
+            containerAttributes: childAttributes([
+              h.AriaLabel('Variable-height activity events'),
+              h.Tabindex(0),
+            ]),
           },
           toParentMessage: message =>
             Message.GotVirtualListVariableDemoMessage({ message }),

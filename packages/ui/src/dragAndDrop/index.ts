@@ -40,7 +40,8 @@ const DropTarget = Schema.Struct({
   index: Schema.Number,
 })
 
-const DragState = defineTaggedUnion({
+/** Schema for the current pointer or keyboard drag phase. */
+export const DragState = defineTaggedUnion({
   Idle: {},
   Pending: {
     itemId: Schema.String,
@@ -64,6 +65,8 @@ const DragState = defineTaggedUnion({
     targetIndex: Schema.Number,
   },
 })
+/** Current pointer or keyboard drag phase. */
+export type DragState = typeof DragState.Type
 
 /** Schema for the drag-and-drop component's state, tracking its unique ID, orientation, and current drag phase. */
 export const Model = Schema.Struct({

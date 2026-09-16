@@ -146,6 +146,7 @@ export const init = (today: Calendar.CalendarDate): InitReturn => ({
     dragAndDropDemo: DragAndDrop.init({
       id: 'drag-and-drop-demo',
     }),
+    dragAndDropDemoAnnouncement: '',
     fileDropBasicDemo: FileDrop.init({ id: 'file-drop-basic-demo' }),
     fileDropBasicDemoFiles: [],
     toastDemo: Toast.init({ id: 'toast-demo' }),

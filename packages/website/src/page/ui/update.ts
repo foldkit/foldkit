@@ -1,5 +1,6 @@
-import { Array, Number, Option, pipe } from 'effect'
+import { Array, Number, Option, Schema, pipe } from 'effect'
 import { Update } from 'foldkit'
+import { defineTaggedUnion } from 'foldkit/schema'
 import { evo } from 'foldkit/struct'
 
 import {
@@ -83,6 +84,116 @@ const reorderColumns = (
       }),
   })
 }
+
+const findDragAndDropDemoCardLabel = (
+  columns: ReadonlyArray<typeof DemoColumn.Type>,
+  itemId: string,
+): string =>
+  pipe(
+    columns,
+    Array.flatMap(column => column.cards),
+    Array.findFirst(card => card.id === itemId),
+    Option.match({
+      onNone: () => itemId,
+      onSome: card => card.label,
+    }),
+  )
+
+const findDragAndDropDemoColumnLabel = (
+  columns: ReadonlyArray<typeof DemoColumn.Type>,
+  containerId: string,
+): string =>
+  pipe(
+    columns,
+    Array.findFirst(column => column.id === containerId),
+    Option.match({
+      onNone: () => containerId,
+      onSome: column => column.label,
+    }),
+  )
+
+const DragAndDropDemoAnnouncement = defineTaggedUnion({
+  PickedUp: { label: Schema.String },
+  MovedToColumn: { columnLabel: Schema.String, position: Schema.Number },
+  MovedWithinColumn: { columnLabel: Schema.String, position: Schema.Number },
+  Dropped: {
+    label: Schema.String,
+    columnLabel: Schema.String,
+    position: Schema.Number,
+  },
+  Cancelled: {},
+})
+type DragAndDropDemoAnnouncement = typeof DragAndDropDemoAnnouncement.Type
+
+const dragAndDropDemoAnnouncementToText = DragAndDropDemoAnnouncement.match({
+  PickedUp: ({ label }) =>
+    `Picked up ${label}. Use arrow keys to move within a column, Tab to move between columns, Space to drop, Escape to cancel.`,
+  MovedToColumn: ({ columnLabel, position }) =>
+    `Moved to ${columnLabel}, position ${position}.`,
+  MovedWithinColumn: ({ columnLabel, position }) =>
+    `Position ${position} in ${columnLabel}.`,
+  Dropped: ({ label, columnLabel, position }) =>
+    `Dropped ${label} in position ${position} of ${columnLabel}.`,
+  Cancelled: () => 'Drag cancelled.',
+})
+
+const maybeDragAndDropDemoKeyboardAnnouncement = (
+  model: Model,
+  nextDragAndDrop: DragAndDrop.Model,
+): Option.Option<DragAndDropDemoAnnouncement> =>
+  DragAndDrop.DragState.matchOrElse<Option.Option<DragAndDropDemoAnnouncement>>(
+    nextDragAndDrop.dragState,
+    {
+      KeyboardDragging: nextState =>
+        DragAndDrop.DragState.matchOrElse<
+          Option.Option<DragAndDropDemoAnnouncement>
+        >(
+          model.dragAndDropDemo.dragState,
+          {
+            Idle: () =>
+              Option.some(
+                DragAndDropDemoAnnouncement.PickedUp({
+                  label: findDragAndDropDemoCardLabel(
+                    model.dragAndDropDemoColumns,
+                    nextState.itemId,
+                  ),
+                }),
+              ),
+            KeyboardDragging: previousState => {
+              const columnLabel = findDragAndDropDemoColumnLabel(
+                model.dragAndDropDemoColumns,
+                nextState.targetContainerId,
+              )
+              const position = nextState.targetIndex + 1
+
+              if (
+                previousState.targetContainerId !== nextState.targetContainerId
+              ) {
+                return Option.some(
+                  DragAndDropDemoAnnouncement.MovedToColumn({
+                    columnLabel,
+                    position,
+                  }),
+                )
+              }
+
+              if (previousState.targetIndex !== nextState.targetIndex) {
+                return Option.some(
+                  DragAndDropDemoAnnouncement.MovedWithinColumn({
+                    columnLabel,
+                    position,
+                  }),
+                )
+              }
+
+              return Option.none()
+            },
+          },
+          () => Option.none(),
+        ),
+    },
+    () => Option.none(),
+  )
 
 export type UpdateReturn = Update.Return<Model, Message>
 
@@ -837,26 +948,62 @@ const foldDragAndDropDemoOutMessage = DragAndDrop.OutMessage.match<
 >({
   Reordered:
     ({ itemId, fromContainerId, toContainerId, toIndex }) =>
-    model => ({
-      model: evo(model, {
-        dragAndDropDemoColumns: dragAndDropDemoColumns =>
-          reorderColumns(
-            dragAndDropDemoColumns,
-            itemId,
-            fromContainerId,
-            toContainerId,
-            toIndex,
-          ),
-      }),
+    model => {
+      const label = findDragAndDropDemoCardLabel(
+        model.dragAndDropDemoColumns,
+        itemId,
+      )
+      const columnLabel = findDragAndDropDemoColumnLabel(
+        model.dragAndDropDemoColumns,
+        toContainerId,
+      )
+
+      return {
+        model: evo(model, {
+          dragAndDropDemoColumns: dragAndDropDemoColumns =>
+            reorderColumns(
+              dragAndDropDemoColumns,
+              itemId,
+              fromContainerId,
+              toContainerId,
+              toIndex,
+            ),
+          dragAndDropDemoAnnouncement: () =>
+            dragAndDropDemoAnnouncementToText(
+              DragAndDropDemoAnnouncement.Dropped({
+                label,
+                columnLabel,
+                position: toIndex + 1,
+              }),
+            ),
+        }),
+      }
+    },
+  Cancelled: () => model => ({
+    model: evo(model, {
+      dragAndDropDemoAnnouncement: () =>
+        dragAndDropDemoAnnouncementToText(
+          DragAndDropDemoAnnouncement.Cancelled(),
+        ),
     }),
-  Cancelled: () => model => ({ model }),
+  }),
 })
 
 const foldDragAndDropDemo = Update.foldChild({
   update: DragAndDrop.update,
   read: (model: Model) => Option.some(model.dragAndDropDemo),
   write: (model, nextDragAndDropDemo) =>
-    evo(model, { dragAndDropDemo: () => nextDragAndDropDemo }),
+    evo(model, {
+      dragAndDropDemo: () => nextDragAndDropDemo,
+      dragAndDropDemoAnnouncement: dragAndDropDemoAnnouncement =>
+        Option.match(
+          maybeDragAndDropDemoKeyboardAnnouncement(model, nextDragAndDropDemo),
+          {
+            onNone: () => dragAndDropDemoAnnouncement,
+            onSome: dragAndDropDemoAnnouncementToText,
+          },
+        ),
+    }),
   toParentMessage: message => Message.GotDragAndDropDemoMessage({ message }),
   foldOutMessage: foldDragAndDropDemoOutMessage,
 })

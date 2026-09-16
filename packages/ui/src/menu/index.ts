@@ -983,7 +983,7 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       h.Type('button'),
       h.AriaHasPopup('menu'),
       h.AriaExpanded(isVisible),
-      h.AriaControls(`${id}-items`),
+      ...(isVisible ? [h.AriaControls(`${id}-items`)] : []),
       ...buttonLabelAttributes,
       ...(isButtonDisabled
         ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]

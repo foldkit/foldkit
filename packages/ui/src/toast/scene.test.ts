@@ -51,8 +51,8 @@ const sceneView =
       h,
     )
 
-const container = Scene.selector('[key="test"]')
-const entryZero = Scene.selector('[key="test-entry-0"]')
+const container = Scene.selector('div[key="test"]')
+const entryZero = Scene.selector('div[key="test-entry-0"]')
 
 const withEntry = (overrides: Partial<Entry> = {}): Model =>
   evo(Toast.init({ id: 'test' }), {

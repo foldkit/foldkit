@@ -101,10 +101,9 @@ describe('update', () => {
       const modelWithOpenMenu: Model = evo(initialModel, {
         uiModel: evo({
           mobileMenuDialog: () =>
-            Dialog.init({
+            Dialog.boot({
               id: 'mobile-menu',
-              isOpen: true,
-            }),
+            }).model,
         }),
       })
 

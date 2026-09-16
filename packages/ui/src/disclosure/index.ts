@@ -133,7 +133,7 @@ export const view = <Message>(
     h.Id(buttonId(id)),
     h.Type('button'),
     h.AriaExpanded(isOpen),
-    h.AriaControls(panelId(id)),
+    ...(isOpen ? [h.AriaControls(panelId(id))] : []),
     ...resolveButtonLabel(),
     h.Tabindex(0),
     ...(isOpen ? [h.DataAttribute('open', '')] : []),

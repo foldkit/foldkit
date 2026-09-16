@@ -1,7 +1,6 @@
-import { Option } from 'effect'
+import { Array, Effect, Option } from 'effect'
+import { Scene, Story } from 'foldkit'
 import { type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
-import * as Scene from 'foldkit/scene'
-import * as Story from 'foldkit/story'
 import { evo } from 'foldkit/struct'
 import { expect } from 'vitest'
 
@@ -1261,6 +1260,28 @@ describe('Combobox', () => {
           h,
         )
 
+    const emptyItemsView =
+      (
+        overrides: Omit<
+          Partial<ViewInputs<string>>,
+          'items' | 'itemToValue' | 'itemToDisplayText'
+        > = {},
+      ) =>
+      (model: Model, h: HtmlBuilder<Message>) =>
+        view(
+          model,
+          {
+            items: [],
+            itemToConfig: () => ({ content: null }),
+            itemToValue: item => item,
+            itemToDisplayText: item => item,
+            maybeSelectedValue: Option.none(),
+            restingInputValue: '',
+            ...overrides,
+          },
+          h,
+        )
+
     it('renders input with role="combobox" when closed', () => {
       Scene.scene(
         { update, view: sceneView() },
@@ -1454,6 +1475,10 @@ describe('Combobox', () => {
         Scene.given(openModel()),
         Scene.tap(({ html }) => {
           expect(Scene.find(html, 'input')).toHaveAttr('aria-expanded', 'true')
+          expect(Scene.find(html, 'input')).toHaveAttr(
+            'aria-controls',
+            'test-items',
+          )
         }),
         acknowledgeAnchor,
         acknowledgeBackdrop,
@@ -1466,8 +1491,199 @@ describe('Combobox', () => {
         Scene.given(closedModel()),
         Scene.tap(({ html }) => {
           expect(Scene.find(html, 'input')).toHaveAttr('aria-expanded', 'false')
+          expect(Scene.find(html, 'input')).not.toHaveAttr('aria-controls')
         }),
       )
+    })
+
+    it('keeps the modal backdrop available after filtering removes every item', () => {
+      const input = Scene.selector('#test-input')
+      const backdrop = Scene.selector('[key="test-backdrop"]')
+      const filteredItemsView = (model: Model, h: HtmlBuilder<Message>) =>
+        view(
+          model,
+          {
+            items: model.inputValue === 'zzz' ? [] : ['Apple', 'Banana'],
+            itemToConfig: () => ({ content: null }),
+            itemToValue: item => item,
+            itemToDisplayText: item => item,
+            maybeSelectedValue: Option.none(),
+            restingInputValue: '',
+          },
+          h,
+        )
+
+      Scene.scene(
+        { update, view: filteredItemsView },
+        Scene.given(init({ id: 'test', isModal: true })),
+        Scene.type(input, 'a'),
+        Scene.Command.resolveAllExact(
+          [LockScroll, Message.CompletedLockScroll()],
+          [InertOthers, Message.CompletedInertOthers()],
+        ),
+        acknowledgeAnchor,
+        acknowledgeBackdrop,
+        Scene.type(input, 'zzz'),
+        Scene.Mount.expectEnded(AnchorCombobox),
+        Scene.expect(input).toHaveAttr('aria-expanded', 'false'),
+        Scene.expect(input).not.toHaveAttr('aria-controls'),
+        Scene.expect(input).not.toHaveAttr('aria-activedescendant'),
+        Scene.expect(backdrop).toHaveHandler('click'),
+        Scene.keydown(input, 'ArrowDown'),
+        Scene.expectHandled(),
+        Scene.expect(input).not.toHaveAttr('aria-activedescendant'),
+        Scene.Command.expectNone(),
+        Scene.click(backdrop),
+        Scene.Command.resolveAllExact(
+          [FocusInput, Message.CompletedFocusInput()],
+          [UnlockScroll, Message.CompletedUnlockScroll()],
+          [RestoreInert, Message.CompletedRestoreInert()],
+        ),
+        Scene.Mount.expectEnded(PortalComboboxBackdrop),
+      )
+    })
+
+    it('keeps a modal empty combobox dismissible after input opens it', () => {
+      const input = Scene.selector('#test-input')
+      const backdrop = Scene.selector('[key="test-backdrop"]')
+
+      Scene.scene(
+        { update, view: emptyItemsView() },
+        Scene.given(init({ id: 'test', isModal: true })),
+        Scene.type(input, 'zzz'),
+        Scene.Command.resolveAllExact(
+          [LockScroll, Message.CompletedLockScroll()],
+          [InertOthers, Message.CompletedInertOthers()],
+        ),
+        Scene.expect(input).toHaveAttr('aria-expanded', 'false'),
+        Scene.expect(backdrop).toHaveHandler('click'),
+        acknowledgeBackdrop,
+        Scene.keydown(input, 'Escape'),
+        Scene.Command.resolveAllExact(
+          [FocusInput, Message.CompletedFocusInput()],
+          [UnlockScroll, Message.CompletedUnlockScroll()],
+          [RestoreInert, Message.CompletedRestoreInert()],
+        ),
+        Scene.Mount.expectEnded(PortalComboboxBackdrop),
+      )
+    })
+
+    it('keeps a modal empty combobox dismissible after focus opens it', () => {
+      const input = Scene.selector('#test-input')
+      const backdrop = Scene.selector('[key="test-backdrop"]')
+
+      Scene.scene(
+        { update, view: emptyItemsView({ openOnFocus: true }) },
+        Scene.given(init({ id: 'test', isModal: true })),
+        Scene.focus(input),
+        Scene.Command.resolveAllExact(
+          [LockScroll, Message.CompletedLockScroll()],
+          [InertOthers, Message.CompletedInertOthers()],
+        ),
+        Scene.expect(input).toHaveAttr('aria-expanded', 'false'),
+        Scene.expect(backdrop).toHaveHandler('click'),
+        acknowledgeBackdrop,
+        Scene.keydown(input, 'Escape'),
+        Scene.Command.resolveAllExact(
+          [FocusInput, Message.CompletedFocusInput()],
+          [UnlockScroll, Message.CompletedUnlockScroll()],
+          [RestoreInert, Message.CompletedRestoreInert()],
+        ),
+        Scene.Mount.expectEnded(PortalComboboxBackdrop),
+      )
+    })
+
+    it('keeps a modal empty combobox dismissible after its toggle opens it', () => {
+      const button = Scene.selector('#test-button')
+      const backdrop = Scene.selector('[key="test-backdrop"]')
+
+      Scene.scene(
+        {
+          update,
+          view: emptyItemsView({ buttonContent: toggleButtonContent }),
+        },
+        Scene.given(init({ id: 'test', isModal: true })),
+        acknowledgePreventBlur,
+        Scene.click(button),
+        Scene.Command.resolveAllExact(
+          [FocusInput, Message.CompletedFocusInput()],
+          [LockScroll, Message.CompletedLockScroll()],
+          [InertOthers, Message.CompletedInertOthers()],
+        ),
+        Scene.expect(button).toHaveAttr('aria-expanded', 'false'),
+        Scene.expect(backdrop).toHaveHandler('click'),
+        acknowledgeBackdrop,
+        Scene.keydown(Scene.selector('#test-input'), 'Escape'),
+        Scene.Command.resolveAllExact(
+          [FocusInput, Message.CompletedFocusInput()],
+          [UnlockScroll, Message.CompletedUnlockScroll()],
+          [RestoreInert, Message.CompletedRestoreInert()],
+        ),
+        Scene.Mount.expectEnded(PortalComboboxBackdrop),
+      )
+    })
+
+    it('keeps the empty-modal portal active while isolating and restoring the page', async () => {
+      const background = document.createElement('main')
+      const inputWrapper = document.createElement('div')
+      inputWrapper.id = 'modal-empty-input-wrapper'
+      const input = document.createElement('input')
+      input.id = 'modal-empty-input'
+      inputWrapper.appendChild(input)
+
+      const portalRoot = document.createElement('div')
+      portalRoot.id = 'modal-empty-portal-root'
+      const backdrop = document.createElement('div')
+      backdrop.id = 'modal-empty-backdrop'
+      portalRoot.appendChild(backdrop)
+      document.body.append(background, inputWrapper, portalRoot)
+
+      const openCombobox = update(
+        init({ id: 'modal-empty', isModal: true }),
+        Message.Opened({ maybeActiveItemIndex: Option.none() }),
+      )
+      let maybeClose = Option.none<ReturnType<typeof update>>()
+      backdrop.addEventListener('click', () => {
+        maybeClose = Option.some(
+          update(
+            openCombobox.model,
+            Message.Closed({ restingInputValue: '', isClearable: true }),
+          ),
+        )
+      })
+
+      try {
+        await Effect.runPromise(LockScroll().effect)
+        expect(document.documentElement.style.overflow).toBe('hidden')
+        await Effect.runPromise(InertOthers({ id: 'modal-empty' }).effect)
+
+        expect(inputWrapper.inert).toBe(false)
+        expect(portalRoot.inert).toBe(false)
+        expect(portalRoot.getAttribute('aria-hidden')).toBeNull()
+        expect(background.inert).toBe(true)
+        expect(background.getAttribute('aria-hidden')).toBe('true')
+        expect(document.documentElement.style.overflow).toBe('hidden')
+
+        backdrop.click()
+        const close = Option.getOrThrow(maybeClose)
+        await Effect.runPromise(
+          Effect.all(
+            Array.map(close.commands ?? [], command => command.effect),
+          ),
+        )
+
+        expect(close.model.isOpen).toBe(false)
+        expect(background.inert).toBe(false)
+        expect(background.getAttribute('aria-hidden')).toBeNull()
+        expect(document.documentElement.style.overflow).not.toBe('hidden')
+      } finally {
+        await Effect.runPromise(RestoreInert({ id: 'modal-empty' }).effect)
+        await Effect.runPromise(UnlockScroll().effect)
+        background.remove()
+        inputWrapper.remove()
+        portalRoot.remove()
+        document.documentElement.style.overflow = ''
+      }
     })
 
     it('wrapper has data-disabled when isDisabled is true', () => {

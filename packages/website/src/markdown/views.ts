@@ -1,4 +1,4 @@
-import { Match, Option } from 'effect'
+import { Array, Match, Option, pipe } from 'effect'
 import { type Attribute, Html, inertHtml as ih } from 'foldkit/html'
 
 import type { Alignment } from '@foldkit/markdown'
@@ -12,7 +12,7 @@ import {
   inlineCode,
   pageTitle,
 } from '../prose'
-import { parseHeadingId, stripHeadingIdMarker } from './slug'
+import { inlineToText, parseHeadingId, stripHeadingIdMarker } from './slug'
 import { type HeadingIds, headingId } from './tableOfContents'
 
 // VIEWS
@@ -46,6 +46,14 @@ const tableHeaderCellClassName =
   'px-4 py-3 text-left text-base font-semibold text-gray-900 dark:text-white border-r border-gray-200 dark:border-gray-800 last:border-r-0'
 const tableCellClassName =
   'px-4 py-3 text-base min-w-[12rem] text-gray-800 dark:text-gray-200 border-r border-gray-200 dark:border-gray-800 last:border-r-0'
+
+const tableLabel = (table: Markdown.Table): string =>
+  pipe(
+    table.headerRow.cells,
+    Array.map(cell => inlineToText(cell.content)),
+    Array.join(', '),
+    header => `Table: ${header}`,
+  )
 
 const alignmentAttributes = (
   alignment: Alignment,
@@ -190,9 +198,14 @@ export const docViews = (config: DocViewConfig): Partial<Markdown.Views> => {
         ...titleAttributes(maybeTitle),
       ]),
 
-    Table: (_table, headerRow, bodyRows) =>
+    Table: (table, headerRow, bodyRows) =>
       ih.div(
-        [ih.Class(tableWrapperClassName)],
+        [
+          ih.Class(tableWrapperClassName),
+          ih.Role('region'),
+          ih.AriaLabel(tableLabel(table)),
+          ih.Tabindex(0),
+        ],
         [
           ih.table(
             [ih.Class(tableClassName)],

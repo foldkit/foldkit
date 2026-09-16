@@ -72,6 +72,7 @@ describe('Disclosure controlled view', () => {
       { update, view: testView() },
       Scene.given({ isOpen: true }),
       Scene.expect(button).toHaveAttr('aria-expanded', 'true'),
+      Scene.expect(button).toHaveAttr('aria-controls', 'test-panel'),
       Scene.expect(button).toHaveAttr('data-open', ''),
     )
   })
@@ -81,6 +82,7 @@ describe('Disclosure controlled view', () => {
       { update, view: testView() },
       Scene.given({ isOpen: false }),
       Scene.expect(button).toHaveAttr('aria-expanded', 'false'),
+      Scene.expect(button).not.toHaveAttr('aria-controls'),
       Scene.click(button),
       Scene.expect(button).toHaveAttr('aria-expanded', 'true'),
     )

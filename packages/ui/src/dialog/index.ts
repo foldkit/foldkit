@@ -1,8 +1,10 @@
 import { Effect, Match, Option, Schema, pipe } from 'effect'
 import * as Command from 'foldkit/command'
+import { DEVTOOLS_HOST_ID } from 'foldkit/devtools-host'
 import * as Dom from 'foldkit/dom'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import * as Mount from 'foldkit/mount'
 import { evo } from 'foldkit/struct'
 import { defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
@@ -11,12 +13,7 @@ import * as Update from 'foldkit/update'
 // dependency: animation → html → runtime → devtools → dialog → animation.
 // The barrel (../animation) imports from html, which starts the cycle.
 import * as Animation from '../animation/schema.js'
-import {
-  defaultLeaveCommand as animationDefaultLeaveCommand,
-  hide as animationHide,
-  show as animationShow,
-  update as animationUpdate,
-} from '../animation/update.js'
+import * as AnimationUpdate from '../animation/update.js'
 import { idSelector } from '../internal/selectors.js'
 
 // MODEL
@@ -40,6 +37,8 @@ export const Message = defineMessageUnion({
   RequestedClose: {},
   SucceededShowDialog: {},
   FailedShowDialog: {},
+  SucceededAcquireResources: {},
+  FailedAcquireResources: {},
   CompletedCloseDialog: {},
   Unmounted: {},
   CompletedReleaseDialogResources: {},
@@ -50,6 +49,9 @@ export type RequestedOpen = typeof Message.RequestedOpen.Type
 export type RequestedClose = typeof Message.RequestedClose.Type
 export type SucceededShowDialog = typeof Message.SucceededShowDialog.Type
 export type FailedShowDialog = typeof Message.FailedShowDialog.Type
+export type SucceededAcquireResources =
+  typeof Message.SucceededAcquireResources.Type
+export type FailedAcquireResources = typeof Message.FailedAcquireResources.Type
 export type CompletedCloseDialog = typeof Message.CompletedCloseDialog.Type
 export type Unmounted = typeof Message.Unmounted.Type
 export type CompletedReleaseDialogResources =
@@ -82,7 +84,6 @@ export type OutMessage = typeof OutMessage.Type
  *  elements rather than constructing those ids yourself. */
 export type InitConfig = Readonly<{
   id: string
-  isOpen?: boolean
   isAnimated?: boolean
   /** CSS selector for the element that receives focus when the dialog opens.
    *  A selector-based override of the `initialFocus` RenderInfo marker, for the
@@ -92,14 +93,14 @@ export type InitConfig = Readonly<{
   focusSelector?: string
 }>
 
-/** Creates an initial dialog model from a config. Defaults to closed and non-animated. */
+/** Creates a closed dialog model from a config. Use `boot` when the Dialog
+ *  should open as the application starts. */
 export const init = (config: InitConfig): Model => ({
   id: config.id,
-  isOpen: config.isOpen ?? false,
+  isOpen: false,
   isAnimated: config.isAnimated ?? false,
   animation: Animation.init({
     id: `${config.id}-panel`,
-    ...(config.isOpen !== undefined ? { isShowing: config.isOpen } : {}),
   }),
   maybeFocusSelector: Option.fromNullishOr(config.focusSelector),
 })
@@ -118,31 +119,84 @@ export const initialFocusMarkerSelector = `[data-${initialFocusMarkerAttribute}]
 
 type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 
-/** Locks page scroll and opens the native dialog element through
- *  `Dom.showDialog`, which calls `show()` (not native `showModal()`) so other
- *  high-z-index overlays stay interactive. It layers the dialog with a high
- *  z-index and traps focus. For an unhandled Escape on the topmost Dialog, the
+const acquireDialogResources = (
+  id: string,
+  focusSelector: string,
+): Effect.Effect<boolean, Dom.ElementNotFound> =>
+  Effect.uninterruptibleMask(restore =>
+    restore(
+      Dom.showDialog(dialogSelector(id), {
+        focusSelector,
+        isModal: true,
+        allowedOutsideSelectors: [`#${DEVTOOLS_HOST_ID}`],
+      }),
+    ).pipe(
+      Effect.tap(isAcquired => (isAcquired ? Dom.lockScroll : Effect.void)),
+    ),
+  )
+
+const acquireDialogResourcesResult = (
+  id: string,
+  focusSelector: string,
+): Effect.Effect<SucceededShowDialog | FailedShowDialog> =>
+  acquireDialogResources(id, focusSelector).pipe(
+    Effect.as(Message.SucceededShowDialog()),
+    Effect.catch(() => Effect.succeed(Message.FailedShowDialog())),
+  )
+
+/** Opens the native dialog element through `Dom.showDialog`, then locks page
+ *  scroll when that call acquired the dialog resources. `Dom.showDialog`
+ *  makes the background inert while leaving DevTools available as a separate
+ *  developer overlay. It calls `show()` rather than `showModal()` so DevTools
+ *  can stay interactive, layers the dialog with a high z-index, and traps
+ *  focus. For an unhandled Escape on the topmost Dialog, the
  *  helper dispatches a `CustomEvent` named `cancel`; the Dialog view maps that
  *  signal to `RequestedClose` while suppressing native `cancel` events. The
  *  Dialog component supplies its own backdrop. If the dialog element is gone
- *  by the time the show runs, the lock is released and the Command reports
- *  `FailedShowDialog`. A closed dialog has no `OnUnmount`, so nothing else
- *  would release the lock. The update function then closes the Model. Without
- *  this close, the dialog would render open with no lock and no focus trap.
- *  The lock is also released if the Command is interrupted while it waits. */
+ *  by the time the show runs, the Command reports `FailedShowDialog` without
+ *  taking the scroll lock. The update function then closes the Model. The
+ *  acquisition becomes uninterruptible after the committed element is found,
+ *  so modal resources and the scroll lock cannot split. A concurrent
+ *  lifecycle acquisition reuses the resources already held by the id. */
 export const ShowDialog = Command.define('ShowDialog', {
   args: { id: Schema.String, focusSelector: Schema.String },
   messages: [Message.SucceededShowDialog, Message.FailedShowDialog],
   execute: ({ id, focusSelector }) =>
-    Dom.lockScroll.pipe(
-      Effect.andThen(() =>
-        Dom.showDialog(dialogSelector(id), { focusSelector }).pipe(
-          Effect.onError(() => Dom.unlockScroll),
-          Effect.as(Message.SucceededShowDialog()),
-          Effect.catch(() => Effect.succeed(Message.FailedShowDialog())),
-        ),
+    acquireDialogResourcesResult(id, focusSelector),
+})
+
+/** Reacquires an initially visible Dialog's framework resources when its
+ *  element mounts, including after development Model preservation restores an
+ *  open Dialog without replaying initialization Commands. A successful
+ *  acquisition also resumes a preserved animation transition from its current
+ *  phase. */
+export const AcquireResources = Mount.define('AcquireResources', {
+  args: { id: Schema.String, focusSelector: Schema.String },
+  messages: [Message.SucceededAcquireResources, Message.FailedAcquireResources],
+  execute: ({ element, id, focusSelector }) => {
+    if (!(element instanceof HTMLDialogElement) || element.id !== id) {
+      return Effect.succeed(Message.FailedAcquireResources())
+    }
+
+    const acquisition = acquireDialogResources(id, focusSelector).pipe(
+      Effect.map(isAcquired => ({
+        isAcquired,
+        message: Message.SucceededAcquireResources(),
+      })),
+      Effect.catch(() =>
+        Effect.succeed({
+          isAcquired: false,
+          message: Message.FailedAcquireResources(),
+        }),
       ),
-    ),
+    )
+
+    return Effect.acquireRelease(acquisition, ({ isAcquired }) =>
+      isAcquired
+        ? Dom.releaseDialogResources(id).pipe(Effect.ignore)
+        : Effect.void,
+    ).pipe(Effect.map(({ message }) => message))
+  },
 })
 
 /** Calls `close()` on the native dialog element and unlocks page scroll when
@@ -152,7 +206,7 @@ export const ShowDialog = Command.define('ShowDialog', {
  *  closes the dialog again. If the dialog element is gone by the time the
  *  close runs, the Command calls `Dom.releaseDialogResources` instead. That
  *  releases the scroll lock, focus trap, return focus, and stack entry if the
- *  dialog still holds them. */
+ *  dialog still holds them. The background is restored before return focus. */
 export const CloseDialog = Command.define('CloseDialog', {
   args: { id: Schema.String },
   messages: [Message.CompletedCloseDialog],
@@ -167,9 +221,9 @@ export const CloseDialog = Command.define('CloseDialog', {
 })
 
 /** Releases the framework hygiene the dialog holds while open (scroll lock,
- *  focus trap, return focus, stack entry) when the element unmounts without a
- *  purposeful close. Idempotent: a no-op if the dialog already released its
- *  resources through `CloseDialog`. */
+ *  focus trap, return focus, stack entry, background isolation) when the
+ *  element unmounts without a purposeful close. Calling it after
+ *  `CloseDialog` released those resources is a no-op. */
 export const ReleaseDialogResources = Command.define('ReleaseDialogResources', {
   args: { id: Schema.String },
   messages: [Message.CompletedReleaseDialogResources],
@@ -196,6 +250,51 @@ const resetToClosed = (model: Model): Model =>
 const wrapAnimationMessage = (message: Animation.Message): Message =>
   Message.GotAnimationMessage({ message })
 
+const resumeAnimationAfterAcquisition = (
+  model: Model,
+): Update.Return<Model, Message> =>
+  Match.value(model.animation.transitionState).pipe(
+    Match.withReturnType<Update.Return<Model, Message>>(),
+    Match.when('Idle', () => ({ model })),
+    Match.when('EnterStart', () => ({
+      model,
+      commands: [
+        Command.mapMessage(
+          AnimationUpdate.WaitForPaint(),
+          wrapAnimationMessage,
+        ),
+      ],
+    })),
+    Match.when('EnterAnimating', () => ({
+      model,
+      commands: [
+        Command.mapMessage(
+          AnimationUpdate.WaitForAnimationSettled({ id: model.animation.id }),
+          wrapAnimationMessage,
+        ),
+      ],
+    })),
+    Match.when('LeaveStart', () => ({
+      model,
+      commands: [
+        Command.mapMessage(
+          AnimationUpdate.WaitForPaint(),
+          wrapAnimationMessage,
+        ),
+      ],
+    })),
+    Match.when('LeaveAnimating', () => ({
+      model,
+      commands: [
+        Command.mapMessage(
+          AnimationUpdate.WaitForAnimationSettled({ id: model.animation.id }),
+          wrapAnimationMessage,
+        ),
+      ],
+    })),
+    Match.exhaustive,
+  )
+
 const foldAnimationOutMessage: (
   outMessage: Animation.OutMessage,
   context: Update.FoldContext<Animation.Message, Message>,
@@ -203,7 +302,9 @@ const foldAnimationOutMessage: (
   Animation.OutMessage.match<Update.Step<Model, Message>>(outMessage, {
     StartedLeaveAnimating: () => model => ({
       model,
-      commands: [liftCommand(animationDefaultLeaveCommand(model.animation))],
+      commands: [
+        liftCommand(AnimationUpdate.defaultLeaveCommand(model.animation)),
+      ],
     }),
     TransitionedOut: () => model => ({
       model,
@@ -212,7 +313,7 @@ const foldAnimationOutMessage: (
   })
 
 const foldAnimation = Update.foldChild({
-  update: animationUpdate,
+  update: AnimationUpdate.update,
   read: (model: Model) => Option.some(model.animation),
   write: (model, nextAnimation) =>
     evo(model, { animation: () => nextAnimation }),
@@ -221,7 +322,7 @@ const foldAnimation = Update.foldChild({
 })
 
 const foldAnimationShow = Update.foldChildStep({
-  update: animationShow,
+  update: AnimationUpdate.show,
   read: (model: Model) => Option.some(model.animation),
   write: (model, nextAnimation) =>
     evo(model, { animation: () => nextAnimation }),
@@ -229,7 +330,7 @@ const foldAnimationShow = Update.foldChildStep({
 })
 
 const foldAnimationHide = Update.foldChildStep({
-  update: animationHide,
+  update: AnimationUpdate.hide,
   read: (model: Model) => Option.some(model.animation),
   write: (model, nextAnimation) =>
     evo(model, { animation: () => nextAnimation }),
@@ -331,9 +432,32 @@ export const update = (model: Model, message: Message) =>
       }
     },
 
+    SucceededAcquireResources: () => {
+      if (model.isOpen || isLeaving(model)) {
+        return resumeAnimationAfterAcquisition(model)
+      } else {
+        return { model, commands: [CloseDialog({ id: model.id })] }
+      }
+    },
+
+    FailedAcquireResources: () => {
+      if (isOpenOrAnimating(model)) {
+        return { model: resetToClosed(model) }
+      } else {
+        return { model }
+      }
+    },
+
     CompletedCloseDialog: () => ({ model }),
     CompletedReleaseDialogResources: () => ({ model }),
   })
+
+/** Creates a Dialog and opens it through the normal update path. Use the
+ *  returned Model and Commands during application initialization so the
+ *  initially visible Dialog acquires modal isolation, scroll locking, focus
+ *  management, stack registration, and runtime-owned cleanup. */
+export const boot = (config: InitConfig): UpdateReturn =>
+  update(init(config), Message.RequestedOpen())
 
 /** Programmatically opens the dialog. */
 export const open = (model: Model): UpdateReturn =>
@@ -371,11 +495,13 @@ export const descriptionId = (model: Model): string =>
 /** Render-time payload published to the consumer's `toView`.
  *
  *  - `dialog`: attributes for the native `<dialog>` element. Carries
- *    the id, ARIA labelling, `open` prop, positioning style, a `cancel` handler
+ *    the id, ARIA labelling and modal state, `open` prop, positioning style, a `cancel` handler
  *    that prevents a file picker's native cancellation from closing the dialog
  *    while mapping `Dom.showDialog`'s Escape signal to `RequestedClose`,
- *    and an `OnUnmount` backstop that releases framework hygiene (scroll lock,
- *    focus trap, return focus) if the element is removed from the DOM while
+ *    an `OnMount` acquisition that restores modal resources for an initially
+ *    visible or development-preserved Dialog, and an `OnUnmount` backstop that
+ *    releases framework hygiene (scroll lock, focus trap, background
+ *    isolation, return focus) if the element is removed from the DOM while
  *    still open, such as navigating away from a route-keyed subtree.
  *    The consumer MUST render an `h.dialog(...)` element so the framework
  *    can open and close it, and so the unmount backstop can fire.
@@ -424,10 +550,10 @@ export type ViewInputs = Readonly<{
   hasDescription?: boolean
 }>
 
-/** Renders a headless dialog component backed by the native `<dialog>`
- *  element. `ShowDialog` opens it through `Dom.showDialog`, which uses `show()`
- *  (not native `showModal()`) with a high z-index, a focus trap, a
- *  component-supplied backdrop, and topmost-only Escape handling. */
+/** Renders a headless modal dialog backed by the native `<dialog>` element.
+ *  `ShowDialog` and the dialog's Mount open it through `Dom.showDialog`,
+ *  isolate the background, trap focus, and handle Escape on the topmost
+ *  dialog. The component supplies its own backdrop. */
 export const view = defineView<Model, Message, ViewInputs>(
   (model, viewInputs, h): Html => {
     const {
@@ -469,6 +595,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       h.Id(id),
       h.AriaLabelledBy(titleId(model)),
       ...describedByAttributes,
+      ...(isVisible ? [h.AriaModal(true)] : []),
       // NOTE: Chromium reports canceling a file picker as a native `cancel`
       // event observed by the containing dialog. Dom.showDialog uses a
       // CustomEvent for its unhandled-Escape signal, so the two are separable.
@@ -487,7 +614,19 @@ export const view = defineView<Model, Message, ViewInputs>(
           : {}),
       }),
       ...(isVisible
-        ? [h.DataAttribute('open', ''), h.OnUnmount(Message.Unmounted())]
+        ? [
+            h.DataAttribute('open', ''),
+            h.OnMount(
+              AcquireResources({
+                id,
+                focusSelector: Option.getOrElse(
+                  model.maybeFocusSelector,
+                  () => initialFocusMarkerSelector,
+                ),
+              }),
+            ),
+            h.OnUnmount(Message.Unmounted()),
+          ]
         : []),
     ]
 

@@ -606,7 +606,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       h.Id(`${id}-button`),
       h.Type('button'),
       h.AriaExpanded(isVisible),
-      h.AriaControls(`${id}-panel`),
+      ...(isVisible ? [h.AriaControls(`${id}-panel`)] : []),
       ...buttonLabelAttributes,
       ...(isDisabled
         ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]

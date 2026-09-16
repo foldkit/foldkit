@@ -116,6 +116,11 @@ Don't add inline or block comments to explain code. If code needs explanation, r
 - `// NOTE:` comments, with a high bar. Only for behavior that would mislead a careful reader (timing dependency, upstream bug workaround, browser quirk). Not for normal patterns, state machine shapes, framework idioms, or what a function does.
 - The first source comment in a bad or good documentation snippet, marked with ❌ or ✅ using the language's comment syntax.
 
+## Documentation Snippets
+
+- Never put executable or copyable source examples directly in website Markdown. Put each example in `packages/website/src/snippet/` and render it with `::Snippet` so it has one source file. Fenced blocks remain valid for diagrams and literal output that readers do not copy as source.
+- Changesets cannot render website islands, so fenced source examples with a language identifier are appropriate there.
+
 ## View Architecture
 
 - Key mapped list items by a stable Model identifier, never by array position. The same applies to entity keys: when one view function renders different entities at one position (a detail page across slugs), key by the entity id. These are the only keys to write; identity carries everything else.

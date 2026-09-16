@@ -118,6 +118,7 @@ export const Message = defineMessageUnion({
   },
   RequestedItemClick: { index: Schema.Number },
   SuppressedItemCommit: {},
+  SuppressedEmptyItemNavigation: {},
   CompletedLockScroll: {},
   CompletedUnlockScroll: {},
   CompletedInertOthers: {},
@@ -146,6 +147,8 @@ export type SelectedItem = typeof Message.SelectedItem.Type
 export type MovedPointerOverItem = typeof Message.MovedPointerOverItem.Type
 export type RequestedItemClick = typeof Message.RequestedItemClick.Type
 export type SuppressedItemCommit = typeof Message.SuppressedItemCommit.Type
+export type SuppressedEmptyItemNavigation =
+  typeof Message.SuppressedEmptyItemNavigation.Type
 export type CompletedLockScroll = typeof Message.CompletedLockScroll.Type
 export type CompletedUnlockScroll = typeof Message.CompletedUnlockScroll.Type
 export type CompletedInertOthers = typeof Message.CompletedInertOthers.Type
@@ -195,6 +198,7 @@ export const inputSelector = (id: string): string => idSelector(`${id}-input`)
 export const inputWrapperSelector = (id: string): string =>
   idSelector(`${id}-input-wrapper`)
 export const itemsSelector = (id: string): string => idSelector(`${id}-items`)
+const backdropSelector = (id: string): string => idSelector(`${id}-backdrop`)
 export const itemSelector = (id: string, index: number): string =>
   idSelector(`${id}-item-${index}`)
 export const itemId = (id: string, index: number): string =>
@@ -242,9 +246,11 @@ export const InertOthers = Command.define('InertOthers', {
   args: { id: Schema.String },
   messages: [Message.CompletedInertOthers],
   execute: ({ id }) =>
-    Dom.inertOthers(id, [inputWrapperSelector(id), itemsSelector(id)]).pipe(
-      Effect.as(Message.CompletedInertOthers()),
-    ),
+    Dom.inertOthers(id, [
+      inputWrapperSelector(id),
+      itemsSelector(id),
+      backdropSelector(id),
+    ]).pipe(Effect.as(Message.CompletedInertOthers())),
 })
 /** Removes the inert attribute from elements outside the combobox. */
 export const RestoreInert = Command.define('RestoreInert', {
@@ -471,6 +477,7 @@ export const makeUpdate = <Model extends BaseModel>(
       CompletedScrollIntoView: () => ({ model }),
       CompletedClickItem: () => ({ model }),
       SuppressedItemCommit: () => ({ model }),
+      SuppressedEmptyItemNavigation: () => ({ model }),
       CompletedAnchorCombobox: () => ({ model }),
       CompletedAttachComboboxPreventBlur: () => ({ model }),
       CompletedAttachComboboxSelectOnFocus: () => ({ model }),
@@ -923,6 +930,10 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
       const isLeaving =
         transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
       const isVisible = isOpen || isLeaving
+      const isItemsPanelVisible =
+        isVisible && Array.isReadonlyArrayNonEmpty(items)
+      const isBackdropVisible =
+        isItemsPanelVisible || (isVisible && model.isModal)
 
       const animationAttributes: ReadonlyArray<
         ReturnType<typeof h.DataAttribute>
@@ -992,11 +1003,19 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
         }
       }
 
+      const maybeValidActiveItemIndex = Option.flatMap(
+        maybeActiveItemIndex,
+        index => Option.as(Array.get(items, index), index),
+      )
+
       const resolveCommitMessage = (): Option.Option<Message> => {
         if (isReadOnly) {
-          return Option.as(maybeActiveItemIndex, Message.SuppressedItemCommit())
+          return Option.as(
+            maybeValidActiveItemIndex,
+            Message.SuppressedItemCommit(),
+          )
         } else {
-          return Option.map(maybeActiveItemIndex, index =>
+          return Option.map(maybeValidActiveItemIndex, index =>
             Message.RequestedItemClick({ index }),
           )
         }
@@ -1005,6 +1024,10 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
       const handleInputKeyDown = (key: string): Option.Option<Message> =>
         Match.value(key).pipe(
           Match.when('ArrowDown', () => {
+            if (Array.isReadonlyArrayEmpty(items)) {
+              return Option.some(Message.SuppressedEmptyItemNavigation())
+            }
+
             if (!isOpen) {
               return Option.some(
                 Message.Opened({
@@ -1022,6 +1045,10 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
             )
           }),
           Match.when('ArrowUp', () => {
+            if (Array.isReadonlyArrayEmpty(items)) {
+              return Option.some(Message.SuppressedEmptyItemNavigation())
+            }
+
             if (!isOpen) {
               return Option.some(
                 Message.Opened({
@@ -1056,6 +1083,11 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
             if (!isOpen) {
               return Option.none()
             }
+
+            if (Array.isReadonlyArrayEmpty(items)) {
+              return Option.some(Message.SuppressedEmptyItemNavigation())
+            }
+
             const targetIndex = resolveActiveIndex(key)
             return Option.some(
               Message.ActivatedItem({
@@ -1068,7 +1100,7 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
           Match.orElse(() => Option.none()),
         )
 
-      const maybeActiveDescendant = Option.match(maybeActiveItemIndex, {
+      const maybeActiveDescendant = Option.match(maybeValidActiveItemIndex, {
         onNone: () => [],
         onSome: index => [h.AriaActiveDescendant(itemId(id, index))],
       })
@@ -1080,14 +1112,14 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
       const resolvedInputAttributes = [
         h.Id(`${id}-input`),
         h.Role('combobox'),
-        h.AriaExpanded(isVisible),
-        h.AriaControls(`${id}-items`),
+        h.AriaExpanded(isItemsPanelVisible),
+        ...(isItemsPanelVisible ? [h.AriaControls(`${id}-items`)] : []),
         h.Attribute('aria-autocomplete', 'list'),
         h.Attribute('aria-haspopup', 'listbox'),
         ...inputLabelAttributes,
         h.Autocomplete('off'),
         h.Value(model.inputValue),
-        ...maybeActiveDescendant,
+        ...(isItemsPanelVisible ? maybeActiveDescendant : []),
         ...(inputPlaceholder ? [h.Placeholder(inputPlaceholder)] : []),
         ...(isDisabled
           ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
@@ -1296,6 +1328,7 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
       }
 
       const backdrop = h.keyed('div')(`${id}-backdrop`, [
+        h.Id(`${id}-backdrop`),
         h.OnMount(PortalComboboxBackdrop()),
         ...(isLeaving
           ? []
@@ -1326,14 +1359,11 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
             ]
           : renderedItems
 
-      const visibleContent = [
-        backdrop,
-        h.keyed('div')(
-          `${id}-items-container`,
-          itemsContainerAttributes,
-          scrollableItems,
-        ),
-      ]
+      const itemsPanel = h.keyed('div')(
+        `${id}-items-container`,
+        itemsContainerAttributes,
+        scrollableItems,
+      )
 
       const resolvedInputWrapperAttributes = [
         h.Id(`${id}-input-wrapper`),
@@ -1349,8 +1379,8 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
                 h.Id(`${id}-button`),
                 h.Type('button'),
                 h.Tabindex(-1),
-                h.AriaControls(`${id}-items`),
-                h.AriaExpanded(isVisible),
+                ...(isItemsPanelVisible ? [h.AriaControls(`${id}-items`)] : []),
+                h.AriaExpanded(isItemsPanelVisible),
                 h.Attribute('aria-haspopup', 'listbox'),
                 ...(isDisabled
                   ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
@@ -1399,9 +1429,8 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
           h.input(resolvedInputAttributes),
           ...toggleButton,
         ]),
-        ...(isVisible && Array.isReadonlyArrayNonEmpty(items)
-          ? visibleContent
-          : []),
+        ...(isBackdropVisible ? [backdrop] : []),
+        ...(isItemsPanelVisible ? [itemsPanel] : []),
         ...hiddenInputs,
       ])
     },

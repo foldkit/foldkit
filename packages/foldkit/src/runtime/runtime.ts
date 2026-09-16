@@ -12,6 +12,8 @@ import {
   pipe,
 } from 'effect'
 
+import { DialogRuntime } from '../dom/dialogRuntime.js'
+import { releaseDialogResources } from '../dom/dom.js'
 import {
   Document,
   type HtmlBuilder,
@@ -380,6 +382,7 @@ export const makeRuntime = <
     // the same signal. A commit in one embedded application must never wake a
     // `Render.afterCommit` awaiting inside another.
     const commitNotifier = createCommitNotifier()
+    const dialogIds = new Set<string>()
 
     return Effect.scoped(
       Effect.gen(function* () {
@@ -644,6 +647,14 @@ export const makeRuntime = <
           devToolsIntegration,
         })
 
+        yield* Effect.addFinalizer(() =>
+          Effect.forEach(
+            pipe(dialogIds, Array.fromIterable, Array.reverse),
+            releaseDialogResources,
+            { discard: true },
+          ),
+        )
+
         // NOTE: the fork is deferred one microtask so a Command's Effect
         // never begins on the dispatching stack. Commands are facts from
         // outside the update loop; their results always arrive
@@ -878,7 +889,17 @@ export const makeRuntime = <
         // or the document goes away.
         yield* Effect.never
       }),
-    ).pipe(Effect.provideService(RenderCommit, commitNotifier.service))
+    ).pipe(
+      Effect.provideService(RenderCommit, commitNotifier.service),
+      Effect.provideService(DialogRuntime, {
+        register: id => {
+          dialogIds.add(id)
+        },
+        unregister: id => {
+          dialogIds.delete(id)
+        },
+      }),
+    )
   }
 
   const start = (preservedModel?: unknown): Effect.Effect<void> =>

@@ -119,7 +119,7 @@ const columnHeaderClassName = 'text-center text-xs uppercase'
 const cellClassName = 'group flex items-center justify-center'
 
 const dayButtonClassName =
-  'h-9 w-9 rounded-full text-sm group-data-[today]:ring-1 group-data-[selected]:bg-accent-600 group-data-[selected]:text-white group-data-[outside-month]:text-gray-400 group-data-[disabled]:opacity-40'
+  'h-9 w-9 rounded-full text-sm group-data-[today]:ring-1 group-data-[selected]:bg-accent-600 group-data-[selected]:text-white group-data-[outside-month]:text-gray-600 group-data-[disabled]:opacity-40'
 
 const monthYearGridClassName = 'grid grid-cols-3 gap-1 outline-none'
 

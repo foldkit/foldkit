@@ -225,6 +225,10 @@ export const demo = (
           ),
         ),
         ghostView(model.dragAndDropDemoColumns, model.dragAndDropDemo),
+        h.div(
+          [h.Class('sr-only'), h.AriaLive('assertive')],
+          [model.dragAndDropDemoAnnouncement],
+        ),
       ],
     ),
   ]
