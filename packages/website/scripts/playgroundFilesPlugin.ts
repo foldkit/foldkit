@@ -99,6 +99,7 @@ type DependencySpec = Readonly<Record<string, string>>
 type PackageJson = Readonly<{
   dependencies?: DependencySpec
   devDependencies?: DependencySpec
+  overrides?: DependencySpec
   [key: string]: unknown
 }>
 
@@ -123,6 +124,13 @@ const rewriteWorkspaceSpec =
     }
     return versions[name] ?? specifier
   }
+
+// NOTE: Rolldown 1.2.9's generated loader rejects its WASI binding because
+// both export `__napiBindingTarget`. WebContainers must use the last compatible
+// release until Rolldown publishes a matching loader and binding pair.
+export const PLAYGROUND_DEPENDENCY_OVERRIDES: DependencySpec = {
+  rolldown: '1.2.6',
+}
 
 const versionForDeployment = (
   version: string,
@@ -170,6 +178,10 @@ const transformPackageJson = (
   const rewrite = rewriteWorkspaceSpec(versions)
   const transformed = {
     ...packageJson,
+    overrides: {
+      ...(packageJson.overrides ?? {}),
+      ...PLAYGROUND_DEPENDENCY_OVERRIDES,
+    },
     dependencies: rewriteDependencyMap(packageJson.dependencies, rewrite),
     devDependencies: rewriteDependencyMap(
       filterToRuntimeDevDependencies(packageJson.devDependencies),

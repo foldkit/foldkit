@@ -7,6 +7,7 @@ import { canaryVersion } from '../../../scripts/lib/package-version.mjs'
 import { EXAMPLE_FILE_EXTENSIONS, EXAMPLE_ROOT_FILES } from '../vite.config'
 import {
   INCLUDED_EXTENSIONS,
+  PLAYGROUND_DEPENDENCY_OVERRIDES,
   loadPlaygroundFiles,
   loadPlaygroundWorkspacePackageVersions,
 } from './playgroundFilesPlugin'
@@ -134,6 +135,21 @@ describe('server-rendered example build scripts', () => {
           expect(dependencies[name], `${slug}: ${name}`).toBe(version)
         }
       }
+    }
+  })
+
+  it('pins WebContainer dependency overrides', async () => {
+    const bySlug = await loadPlaygroundFiles()
+
+    for (const [slug, { files }] of Object.entries(bySlug)) {
+      const source = files['package.json']
+      if (source === undefined) {
+        throw new Error(`the ${slug} playground omits package.json`)
+      }
+      const manifest: Readonly<{
+        overrides?: Readonly<Record<string, string>>
+      }> = JSON.parse(source)
+      expect(manifest.overrides, slug).toEqual(PLAYGROUND_DEPENDENCY_OVERRIDES)
     }
   })
 

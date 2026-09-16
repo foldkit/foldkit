@@ -522,10 +522,6 @@ export const view = (
             viewInputs: {
               slug: exampleSlug,
               isNarrowViewport: model.isNarrowViewport,
-              isShowingChromeHint: Option.contains(
-                model.maybeIsChromium,
-                false,
-              ),
               renderCopyButton,
             },
             toParentMessage: message =>

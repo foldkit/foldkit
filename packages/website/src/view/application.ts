@@ -27,7 +27,6 @@ const homeView = (
         h,
       ),
       isNarrowViewport: model.isNarrowViewport,
-      maybeIsChromium: model.maybeIsChromium,
       maybeGitHubStarCount: model.maybeGitHubStarCount,
     },
     toParentMessage: message => Message.GotHomeMessage({ message }),
@@ -74,7 +73,9 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
             slotId: `playground-${playgroundModel.slug}`,
             model: playgroundModel,
             view: Playground.view,
-            viewInputs: { maybeIsChromium: model.maybeIsChromium },
+            viewInputs: {
+              maybeIsPlaygroundSupported: model.maybeIsPlaygroundSupported,
+            },
             toParentMessage: message =>
               Message.GotPlaygroundMessage({ message }),
           }),

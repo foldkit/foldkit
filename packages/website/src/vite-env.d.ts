@@ -126,12 +126,6 @@ declare module 'virtual:playground-types' {
   export default data
 }
 
-interface Navigator {
-  readonly userAgentData?: Readonly<{
-    brands?: ReadonlyArray<Readonly<{ brand: string }>>
-  }>
-}
-
 // `@foldkit/vite-plugin` compiles the deployment's build id in here, from its
 // `buildId` option or the `FOLDKIT_BUILD_ID` environment variable. The server
 // entry hands it to `renderToString` and the client entry to `Runtime.hydrate`,

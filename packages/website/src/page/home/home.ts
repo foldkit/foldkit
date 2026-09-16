@@ -98,19 +98,6 @@ const playgroundItemClassName =
 
 const playgroundBackdropClassName = 'fixed inset-0 z-10'
 
-const chromeRecommendedHint: Html = ih.p(
-  [ih.Class('text-xs text-gray-500 dark:text-gray-400')],
-  ['Requires a Chromium browser'],
-)
-
-const withChromeRecommendedHint = (menu: Html, isShowingHint: boolean): Html =>
-  isShowingHint
-    ? ih.div(
-        [ih.Class('flex flex-col items-start gap-1')],
-        [menu, chromeRecommendedHint],
-      )
-    : menu
-
 const playgroundItemContent = (meta: ExampleMeta): Html =>
   ih.div(
     [],
@@ -183,7 +170,6 @@ const playgroundMenuView = (
 type ViewInputs = Readonly<{
   renderCopyButton: CodeBlock.RenderCopyButton
   isNarrowViewport: boolean
-  maybeIsChromium: Option.Option<boolean>
   maybeGitHubStarCount: Option.Option<number>
 }>
 
@@ -201,13 +187,10 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
       h,
     ])
 
-    const playgroundMenu = withChromeRecommendedHint(
-      playgroundMenuView(
-        model.playgroundMenu,
-        examples.map(example => example.slug),
-        h,
-      ),
-      Option.contains(viewInputs.maybeIsChromium, false),
+    const playgroundMenu = playgroundMenuView(
+      model.playgroundMenu,
+      examples.map(example => example.slug),
+      h,
     )
 
     const buttonLabelFor = (tab: DemoTab.Tab): string =>

@@ -104,14 +104,13 @@ export const Flags = Schema.Struct({
 })
 type Flags = typeof Flags.Type
 
-const CHROMIUM_BRANDS = new Set(['Chromium', 'Google Chrome', 'Microsoft Edge'])
-const CHROMIUM_UA_PATTERN = /Chrome\/|Chromium\/|Edg\/|OPR\//
-
-const detectChromium = (): boolean =>
-  Option.match(Option.fromNullishOr(navigator.userAgentData?.brands), {
-    onNone: () => CHROMIUM_UA_PATTERN.test(navigator.userAgent),
-    onSome: brands => brands.some(({ brand }) => CHROMIUM_BRANDS.has(brand)),
-  })
+// NOTE: Playground navigation loads a fresh document with COOP/COEP headers.
+// Firefox can boot this standalone WebContainer embed, but its iframe preview
+// stays blank and opening the URL needs a project connection route Foldkit lacks.
+const detectPlaygroundSupport = (): boolean =>
+  window.crossOriginIsolated === true &&
+  typeof SharedArrayBuffer !== 'undefined' &&
+  !navigator.userAgent.includes('Firefox/')
 
 const loadBrowserEnvironment = Effect.gen(function* () {
   const themePreference: Option.Option<ThemePreference> = yield* Effect.gen(
@@ -154,7 +153,7 @@ const loadBrowserEnvironment = Effect.gen(function* () {
     () => window.matchMedia(NARROW_VIEWPORT_QUERY).matches,
   )
 
-  const isChromium = yield* Effect.sync(detectChromium)
+  const isPlaygroundSupported = yield* Effect.sync(detectPlaygroundSupport)
 
   const currentYear = yield* DateTime.now.pipe(
     Effect.map(DateTime.getPartUtc('year')),
@@ -167,7 +166,7 @@ const loadBrowserEnvironment = Effect.gen(function* () {
     maybeSidebarState,
     systemTheme,
     isNarrowViewport,
-    isChromium,
+    isPlaygroundSupported,
     currentYear,
     today,
   })
@@ -281,7 +280,7 @@ export const init: Runtime.RoutingApplicationInit<
       activeSection: Option.none(),
       maybeHome,
       isNarrowViewport: false,
-      maybeIsChromium: Option.none(),
+      maybeIsPlaygroundSupported: Option.none(),
       playground: pipe(
         initialRoute,
         Option.liftPredicate(isPlaygroundRoute),
@@ -750,7 +749,7 @@ export const update = (model: Model, message: Message) =>
       maybeSidebarState,
       systemTheme,
       isNarrowViewport,
-      isChromium,
+      isPlaygroundSupported,
       currentYear,
       today,
     }) => {
@@ -774,7 +773,7 @@ export const update = (model: Model, message: Message) =>
         model: evo(model, {
           currentYear: () => currentYear,
           isNarrowViewport: () => isNarrowViewport,
-          maybeIsChromium: () => Option.some(isChromium),
+          maybeIsPlaygroundSupported: () => Option.some(isPlaygroundSupported),
           sidebarGroups: () =>
             initialSidebarGroups(maybeSidebarState, maybeActiveSectionKey),
           maybeThemePreference: () => Option.some(themePreference),
@@ -1051,7 +1050,10 @@ export const subscriptions = Subscription.aggregate(
 const playgroundManagedResources = ManagedResource.lift(
   Playground.managedResources,
 )<Model, Message>({
-  toChildModel: model => model.playground,
+  toChildModel: model =>
+    Option.filter(model.playground, () =>
+      Option.contains(model.maybeIsPlaygroundSupported, true),
+    ),
   toParentMessage: message => Message.GotPlaygroundMessage({ message }),
 })
 

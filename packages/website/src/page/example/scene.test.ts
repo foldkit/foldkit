@@ -34,7 +34,6 @@ const renderedCopyButtonIds = (slug: string): ReadonlyArray<string> => {
       view: withViewInputs(view, {
         slug,
         isNarrowViewport: false,
-        isShowingChromeHint: false,
         renderCopyButton,
       })(),
     },
