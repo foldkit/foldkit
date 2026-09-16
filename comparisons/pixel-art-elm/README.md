@@ -29,6 +29,10 @@ Tests run with [elm-test](https://github.com/elm-explorations/test):
 npx elm-test
 ```
 
+## Formatting
+
+The Elm source uses the two-space indentation shown in [Elm's official examples](https://elm-lang.org/examples). `elm-format` follows a separate convention with four-space indentation.
+
 ## Where things live
 
 - `src/Main.elm`: Model, Msg, update, view, subscriptions, and ports.

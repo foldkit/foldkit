@@ -12,6 +12,8 @@ Elm is the source of this architecture, and its language provides guarantees Typ
 The Foldkit version is in the [examples gallery](/example-apps/pixel-art). The [Elm version source](https://github.com/foldkit/foldkit/tree/main/comparisons/pixel-art-elm) is an Elm 0.19 application with no npm dependencies.
 :::
 
+The Elm snippets and the checked-in app use the two-space indentation shown in [Elm’s official examples](https://elm-lang.org/examples). `elm-format` follows a separate convention with four-space indentation.
+
 ## The Architecture You Already Know {#same-architecture}
 
 Most concepts translate directly:
