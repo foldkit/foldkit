@@ -51,7 +51,7 @@ const loadersBySlug: Readonly<Record<string, SourceLoader | undefined>> = {
   ssr: () => import('virtual:example-sources/ssr'),
   'ui-showcase': () => import('virtual:example-sources/ui-showcase'),
   'personal-blog': () => import('virtual:example-sources/personal-blog'),
-  'cross-tab-tasks': () => import('virtual:example-sources/cross-tab-tasks'),
+  livestore: () => import('virtual:example-sources/livestore'),
 }
 
 export const loadSourcesForSlug = async (

@@ -204,6 +204,16 @@ If `pnpm typecheck`, `pnpm lint`, `pnpm build`, or the pre-push hook surfaces er
 
 A sandboxed `gh auth status` result is not evidence that the saved GitHub credential is invalid. The sandbox may block the GitHub API request and `gh` can report that failure as an invalid token. When GitHub authentication matters, rerun `gh auth status` with network access, requesting escalation when the environment requires it. Apply the same retry to an important `gh` command that fails with a likely sandbox or network error. Only ask the user to run `gh auth login` after the network-enabled check also fails.
 
+## Adding Example Apps
+
+New apps in `examples/` need a few explicit registrations. The workspace, website builds, and E2E planner discover the rest.
+
+- Create `examples/<slug>/` with a private workspace package name (usually `<slug>-example`), then add `dev:example:<slug>` to the root `package.json`.
+- Add the slug and its metadata to `packages/website/src/page/example/meta.ts`, and its source loader to `packages/website/src/page/example/sources.ts`. Those entries feed the example page, playground, and website build.
+- Add the private package to `.changeset/config.json`'s ignore list. Add a `knip.json` override only for entry points or dependencies the normal example rule does not cover.
+- Add `packages/examples-e2e/e2e/<slug>.spec.ts`. The default Playwright command runs Vite for the slug; add a special case in `packages/examples-e2e/playwright.config.ts` only when the app needs another command.
+- Check any special worker, dependency pin, or build requirements before adding CI configuration. The root README lists selected examples, not every app, so update it when the new example belongs in that introduction.
+
 ## Debugging Example Apps
 
 Apps in `examples/` ship with `@foldkit/devtools-mcp` wired up. When the Foldkit devtools MCP tools are available, reach for the `foldkit_*` tools before adding logs. See `packages/devtools-mcp/README.md` for setup.

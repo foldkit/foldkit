@@ -8,7 +8,7 @@ const addTask = async (page: PlaywrightPage, text: string): Promise<void> => {
   await expect(page.getByText(text)).toBeVisible()
 }
 
-test.describe('LiveStore cross-tab-tasks example', () => {
+test.describe('LiveStore example', () => {
   test('loads cleanly', async ({ page }) => {
     await Page.assertLoadedCleanly(page, {
       readyLocator: page.getByText('No tasks yet. Add one above!'),
@@ -47,7 +47,7 @@ test.describe('LiveStore cross-tab-tasks example', () => {
     await expect(page.getByText('Delete me')).toBeHidden()
   })
 
-  test('syncs a new task live to another tab', async ({ context }) => {
+  test('syncs task mutations live across tabs', async ({ context }) => {
     const firstTab = await context.newPage()
     await firstTab.goto('/')
 
@@ -57,5 +57,19 @@ test.describe('LiveStore cross-tab-tasks example', () => {
     await addTask(firstTab, 'Shared across tabs')
 
     await expect(secondTab.getByText('Shared across tabs')).toBeVisible()
+
+    await firstTab.getByRole('checkbox').click()
+    await expect(secondTab.getByRole('checkbox')).toBeChecked()
+
+    await secondTab.getByRole('button', { name: 'Clear 1 completed' }).click()
+    await expect(firstTab.getByText('Shared across tabs')).toBeHidden()
+
+    await addTask(secondTab, 'Delete across tabs')
+    await expect(firstTab.getByText('Delete across tabs')).toBeVisible()
+
+    await firstTab
+      .getByRole('button', { name: 'Delete Delete across tabs' })
+      .click()
+    await expect(secondTab.getByText('Delete across tabs')).toBeHidden()
   })
 })

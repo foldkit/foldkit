@@ -253,7 +253,7 @@ const headerView = (h: HtmlBuilder<Message>): Html =>
   h.div(
     [h.Class('mb-6 text-center')],
     [
-      h.h1([h.Class('text-3xl font-bold text-gray-800')], ['Cross-Tab Tasks']),
+      h.h1([h.Class('text-3xl font-bold text-gray-800')], ['LiveStore']),
       h.p(
         [h.Class('mt-2 text-sm text-gray-500')],
         [
@@ -560,5 +560,5 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
     ],
   )
 
-  return { title: 'Cross-Tab Tasks', body }
+  return { title: 'LiveStore', body }
 }

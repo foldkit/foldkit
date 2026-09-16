@@ -1,4 +1,4 @@
-# Cross-Tab Tasks
+# LiveStore
 
 A task list persisted locally with [LiveStore](https://livestore.dev) that stays reactive across browser tabs. Open the page in two tabs and edit in one. The other updates immediately.
 
@@ -25,5 +25,5 @@ This example configures no remote sync backend. It works offline and demonstrate
 ## Run it
 
 ```bash
-pnpm --filter cross-tab-tasks-example dev
+pnpm --filter livestore-example dev
 ```

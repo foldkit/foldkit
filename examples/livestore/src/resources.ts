@@ -22,7 +22,6 @@ export const resources: Layer.Layer<ItemsStore> = Layer.effect(
     adapter,
     schema,
     storeId: STORE_ID,
-    batchUpdates: runUpdates => runUpdates(),
     disableDevtools: true,
   }).pipe(provideOtel({})),
 ).pipe(Layer.orDie)

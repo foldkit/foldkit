@@ -1,4 +1,4 @@
-import { Schema } from 'effect'
+import { Array, Option, Schema } from 'effect'
 
 import { Events, State, makeSchema } from '@livestore/livestore'
 
@@ -44,16 +44,27 @@ export const events = {
   }),
 }
 
+const SQLiteCompletionRows = Schema.Array(
+  Schema.Struct({ completed: Schema.Literals([0, 1]) }),
+)
+
 const materializers = State.SQLite.materializers(events, {
   'v1.ItemAdded': item => tables.items.insert(item),
   'v1.ItemToggled': ({ id }, { query }) => {
-    const item = query(tables.items.where({ id }).first())
+    // NOTE: The pinned LiveStore snapshot's typed materializer query fails to decode SQLite rows in the leader worker.
+    const rawItems = query({
+      query: 'SELECT completed FROM items WHERE id = $id LIMIT 1',
+      bindValues: { id },
+    })
+    const completedItems =
+      Schema.decodeUnknownSync(SQLiteCompletionRows)(rawItems)
+    const maybeItem = Array.head(completedItems)
 
-    if (item === undefined) {
-      return []
-    }
-
-    return tables.items.update({ completed: !item.completed }).where({ id })
+    return Option.match(maybeItem, {
+      onNone: () => [],
+      onSome: item =>
+        tables.items.update({ completed: item.completed === 0 }).where({ id }),
+    })
   },
   'v1.ItemDeleted': ({ id }) => tables.items.delete().where({ id }),
   'v1.CompletedItemsCleared': () =>

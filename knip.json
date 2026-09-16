@@ -80,7 +80,7 @@
       "entry": [],
       "ignoreDependencies": ["@foldkit/devtools", "tailwindcss"]
     },
-    "examples/cross-tab-tasks": {
+    "examples/livestore": {
       "ignoreFiles": ["vite.config.playground.ts"],
       "ignoreDependencies": [
         "@foldkit/devtools",

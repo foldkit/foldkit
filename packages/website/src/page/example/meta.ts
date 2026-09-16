@@ -36,7 +36,7 @@ export const ExampleSlug = Schema.Literals([
   'ssr',
   'ui-showcase',
   'personal-blog',
-  'cross-tab-tasks',
+  'livestore',
 ])
 export type ExampleSlug = typeof ExampleSlug.Type
 
@@ -384,8 +384,8 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     livePreview: 'Spa',
   },
   {
-    slug: 'cross-tab-tasks',
-    title: 'Cross-Tab Tasks',
+    slug: 'livestore',
+    title: 'LiveStore',
     description:
       'A LiveStore-backed task list persisted in OPFS that stays reactive across browser tabs. Commands commit events, materializers project them into SQLite, and one Subscription feeds the live query into the Foldkit Model.',
     difficulty: 'Advanced',
