@@ -1,5 +1,7 @@
 // ❌ Bad: the parent imports and constructs an internal Settings Message.
 
+import { Update } from 'foldkit'
+
 import { Message as SettingsMessage } from './settings/message'
 
 const foldSettings = Update.foldChild({
@@ -9,7 +11,8 @@ const foldSettings = Update.foldChild({
   toParentMessage: message => Message.GotSettingsMessage({ message }),
 })
 
-const handlers = {
-  ClickedResetSettings: () =>
-    foldSettings(model, SettingsMessage.ChangedTheme({ theme: 'Light' })),
-}
+const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ClickedResetSettings: () =>
+      foldSettings(model, SettingsMessage.ChangedTheme({ theme: 'Light' })),
+  })

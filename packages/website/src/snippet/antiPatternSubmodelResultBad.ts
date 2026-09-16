@@ -1,13 +1,16 @@
 // ❌ Bad: manual copying drops the Commands returned with the child Model.
 
-const handlers = {
-  ClickedResetSettings: () => {
-    const settingsReset = Settings.setTheme(model.settings, 'Light')
+import type { Update } from 'foldkit'
 
-    return {
-      model: evo(model, {
-        settings: () => settingsReset.model,
-      }),
-    }
-  },
-}
+const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ClickedResetSettings: () => {
+      const settingsReset = Settings.setTheme(model.settings, 'Light')
+
+      return {
+        model: evo(model, {
+          settings: () => settingsReset.model,
+        }),
+      }
+    },
+  })

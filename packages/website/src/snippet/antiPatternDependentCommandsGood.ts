@@ -1,13 +1,16 @@
 // ✅ Good: update returns NavigateToDocuments after SaveDraft succeeds.
 
-const handlers = {
-  ClickedSave: () => ({
-    model,
-    commands: [SaveDraft()],
-  }),
+import type { Update } from 'foldkit'
 
-  SucceededSaveDraft: () => ({
-    model,
-    commands: [NavigateToDocuments()],
-  }),
-}
+const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ClickedSave: () => ({
+      model,
+      commands: [SaveDraft()],
+    }),
+
+    SucceededSaveDraft: () => ({
+      model,
+      commands: [NavigateToDocuments()],
+    }),
+  })
