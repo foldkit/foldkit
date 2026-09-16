@@ -24,7 +24,7 @@
   },
   "peerDependencies": {
     "effect": "4.0.0-rc.115",
-    "foldkit": ">=0.153.0"
+    "foldkit": ">=0.161.0"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",

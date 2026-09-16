@@ -15,6 +15,7 @@ import { defineMessageUnion } from '../message/index.js'
 import { evo } from '../struct/index.js'
 import {
   type Bridge,
+  type CommandRecord,
   type DevToolsStore,
   computeDiff,
   createDevToolsStore,
@@ -171,6 +172,15 @@ const run = <A>(effect: Effect.Effect<A>): A => Effect.runSync(effect)
 const getState = (store: DevToolsStore) =>
   run(SubscriptionRef.get(store.stateRef))
 
+const pendingCommand = (
+  id: number,
+  name: string,
+  args?: Record<string, unknown>,
+): CommandRecord =>
+  args === undefined
+    ? { id, name, maybeSubmodelPath: Option.none() }
+    : { id, name, args, maybeSubmodelPath: Option.none() }
+
 const makeStore = (
   overrides?: Partial<Bridge>,
   maxEntries?: number,
@@ -266,20 +276,101 @@ describe('DevToolsStore', () => {
           initialModel,
           { count: 1 },
           [
-            { name: 'FetchData', args: { id: 7 } },
-            { name: 'LockScroll' },
-            { name: 'FocusButton' },
+            pendingCommand(0, 'FetchData', { id: 7 }),
+            pendingCommand(1, 'LockScroll'),
+            pendingCommand(2, 'FocusButton'),
           ],
           true,
         ),
       )
 
-      const state = getState(store)
-      expect(state.entries[0]?.commands).toEqual([
-        { name: 'FetchData', args: { id: 7 } },
-        { name: 'LockScroll' },
-        { name: 'FocusButton' },
+      const entry = pipe(getState(store).entries, Array.head, Option.getOrThrow)
+      expect(entry.commands).toEqual([
+        pendingCommand(0, 'FetchData', { id: 7 }),
+        pendingCommand(1, 'LockScroll'),
+        pendingCommand(2, 'FocusButton'),
       ])
+    })
+
+    it('attributes only the resolved Command when names and args match', () => {
+      const { store } = makeStore()
+
+      run(
+        store.recordMessage(
+          clickedIncrement,
+          initialModel,
+          { count: 1 },
+          [
+            pendingCommand(3, 'FetchData', { id: 7 }),
+            pendingCommand(4, 'FetchData', { id: 7 }),
+          ],
+          true,
+        ),
+      )
+      run(store.recordResolvedCommand(4, ['GotEditorMessage']))
+
+      const entry = pipe(getState(store).entries, Array.head, Option.getOrThrow)
+      expect(entry.commands).toEqual([
+        pendingCommand(3, 'FetchData', { id: 7 }),
+        {
+          id: 4,
+          name: 'FetchData',
+          args: { id: 7 },
+          maybeSubmodelPath: Option.some(['GotEditorMessage']),
+        },
+      ])
+    })
+
+    it('attributes init Commands and distinguishes resolved top-level results', () => {
+      const { store } = makeStore()
+      run(
+        store.recordInit(initialModel, [
+          pendingCommand(5, 'FetchData'),
+          pendingCommand(6, 'LockScroll'),
+        ]),
+      )
+
+      run(store.recordResolvedCommand(5, ['GotPanelMessage']))
+      run(store.recordResolvedCommand(6, []))
+
+      expect(getState(store).initCommands).toEqual([
+        {
+          id: 5,
+          name: 'FetchData',
+          maybeSubmodelPath: Option.some(['GotPanelMessage']),
+        },
+        {
+          id: 6,
+          name: 'LockScroll',
+          maybeSubmodelPath: Option.some([]),
+        },
+      ])
+    })
+
+    it('leaves the store unchanged when a Command origin was evicted', () => {
+      const { store } = makeStore(undefined, 1, 1)
+      run(
+        store.recordMessage(
+          clickedIncrement,
+          initialModel,
+          { count: 1 },
+          [pendingCommand(7, 'FetchData')],
+          true,
+        ),
+      )
+      run(
+        store.recordMessage(
+          clickedIncrement,
+          { count: 1 },
+          { count: 2 },
+          [],
+          true,
+        ),
+      )
+
+      const before = getState(store)
+      run(store.recordResolvedCommand(7, ['GotChildMessage']))
+      expect(getState(store)).toBe(before)
     })
 
     it('stores message tags', () => {

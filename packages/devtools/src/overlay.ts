@@ -64,6 +64,7 @@ const SubmodelFilterListbox = Listbox.create<string>()
 const DisplayCommand = Schema.Struct({
   name: Schema.String,
   args: Schema.Option(Schema.Record(Schema.String, Schema.Unknown)),
+  maybeSubmodelPath: Schema.Option(Schema.Array(Schema.String)),
 })
 
 const DisplayMount = Schema.Struct({
@@ -257,11 +258,18 @@ const computeSubmodelTags = (
     Array.sort(Order.String),
   )
 
+const submodelSegmentLabel = (tag: string): string =>
+  pipe(tag, String.replace(/^Got/, ''), String.replace(/Message$/, ''))
+
+const formatSubmodelPath = (submodelPath: ReadonlyArray<string>): string =>
+  pipe(submodelPath, Array.map(submodelSegmentLabel), Array.join(' › '))
+
 const toDisplayCommand = (
   command: CommandRecord,
 ): typeof DisplayCommand.Type => ({
   name: command.name,
   args: Option.fromNullishOr(command.args),
+  maybeSubmodelPath: command.maybeSubmodelPath,
 })
 
 const toDisplayMount = (mount: MountRecord): typeof DisplayMount.Type => ({
@@ -1449,10 +1457,33 @@ const buildOverlayView = (
                 h.span([h.Class(indexClass)], [globalThis.String(index + 1)]),
                 h.div(
                   [h.Class('flex flex-col flex-1 min-w-0')],
-                  Array.map(
-                    flattenCommand(command, index, expandedPaths),
-                    renderFlatNode,
-                  ),
+                  [
+                    ...Option.match(command.maybeSubmodelPath, {
+                      onNone: () => [
+                        h.div(
+                          [h.Class('text-2xs text-dt-muted font-mono')],
+                          ['Destination unresolved'],
+                        ),
+                      ],
+                      onSome: submodelPath =>
+                        Array.isReadonlyArrayEmpty(submodelPath)
+                          ? []
+                          : [
+                              h.div(
+                                [
+                                  h.Class(
+                                    'text-2xs text-dt-muted font-mono truncate',
+                                  ),
+                                ],
+                                [formatSubmodelPath(submodelPath)],
+                              ),
+                            ],
+                    }),
+                    ...Array.map(
+                      flattenCommand(command, index, expandedPaths),
+                      renderFlatNode,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1757,9 +1788,6 @@ const buildOverlayView = (
       ['Clear history'],
     )
 
-  const submodelLabel = (tag: string): string =>
-    pipe(tag, String.replace(/^Got/, ''), String.replace(/Message$/, ''))
-
   const CHECK_ICON = 'M4.5 12.75l6 6 9-13.5'
 
   const checkIconView: Html = h.svg(
@@ -1782,7 +1810,7 @@ const buildOverlayView = (
   )
 
   const filterItemLabel = (item: string): string =>
-    String.isNonEmpty(item) ? submodelLabel(item) : 'All Messages'
+    String.isNonEmpty(item) ? submodelSegmentLabel(item) : 'All Messages'
 
   const ARROW_UP = 'M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18'
 
@@ -1817,7 +1845,7 @@ const buildOverlayView = (
   const submodelFilterView = (model: Model): Html => {
     const buttonLabel = Option.match(model.maybeSubmodelFilter, {
       onNone: () => 'All Messages',
-      onSome: submodelLabel,
+      onSome: submodelSegmentLabel,
     })
 
     return h.submodel({

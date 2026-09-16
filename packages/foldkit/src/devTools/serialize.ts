@@ -69,6 +69,7 @@ export const toSerializedCommand = (
 ): SerializedCommand => ({
   name: command.name,
   args: Option.fromNullishOr(command.args),
+  maybeSubmodelPath: command.maybeSubmodelPath,
 })
 
 /**

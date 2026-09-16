@@ -4,10 +4,11 @@ import { defineTaggedUnion } from '../schema/index.js'
 
 // SHARED
 
-/** A serialized Command produced during a Message dispatch (or `init`). `args` is `Some` when the Command's definition declared an args record, and carries the runtime values used to construct the Command instance. */
+/** A serialized Command produced during a Message dispatch (or `init`). `args` is `Some` when the Command declared an args record. `maybeSubmodelPath` is `None` until the result Message resolves, `Some([])` for a top-level result, and `Some(tags)` for a Submodel-routed result. */
 export const SerializedCommand = Schema.Struct({
   name: Schema.String,
   args: Schema.OptionFromNullOr(Schema.Record(Schema.String, Schema.Unknown)),
+  maybeSubmodelPath: Schema.OptionFromNullOr(Schema.Array(Schema.String)),
 })
 /** A serialized Command suitable for transmission over the WS protocol. */
 export type SerializedCommand = typeof SerializedCommand.Type

@@ -30,6 +30,7 @@ const makeStore = (
 ): DevToolsStore => ({
   recordInit: () => Effect.void,
   recordMessage: () => Effect.void,
+  recordResolvedCommand: () => Effect.void,
   updateLatestModel: () => Effect.void,
   attachRenderedMounts: () => Effect.void,
   getModelAtIndex: () => Effect.succeed({}),
