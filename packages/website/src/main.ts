@@ -215,8 +215,6 @@ export const init: Runtime.RoutingApplicationInit<
   const systemTheme: ResolvedTheme = 'Light'
   const resolvedTheme = systemTheme
 
-  const uiPagesInit = Ui.init(flags.today)
-  const comingFromReactInit = ComingFromReact.init()
   const initialRoute = urlToAppRoute(url)
   const maybeHome = pipe(
     initialRoute,
@@ -229,11 +227,6 @@ export const init: Runtime.RoutingApplicationInit<
     Option.liftPredicate(route => route._tag === 'ExampleDetail'),
     Option.map(({ exampleSlug }) => exampleSlug),
   )
-  const apiReferenceBoot = ApiReference.boot(flags.maybeApiData)
-  const exampleDetailBoot = Example.ExampleDetail.boot(
-    maybeInitialExampleSlug,
-    flags.maybeExampleSources,
-  )
   const searchInit = Search.init()
   const snippetCopyInit = SnippetCopy.init()
   const coreSubmodelPageInit = Core.SubmodelPage.init()
@@ -243,71 +236,85 @@ export const init: Runtime.RoutingApplicationInit<
     maybeInitialExampleSlug,
   )
 
-  const mappedUiPagesCommands = Command.mapMessages(
-    uiPagesInit.commands,
-    message => Message.GotUiPageMessage({ message }),
-  )
-
-  const mappedComingFromReactCommands = Command.mapMessages(
-    comingFromReactInit.commands,
-    message => Message.GotComingFromReactMessage({ message }),
-  )
-
-  const mappedApiReferenceCommands = Command.mapMessages(
-    apiReferenceBoot.commands,
-    message => Message.GotApiReferenceMessage({ message }),
-  )
-
-  const mappedExampleDetailCommands = Command.mapMessages(
-    exampleDetailBoot.commands,
-    message => Message.GotExampleDetailMessage({ message }),
-  )
-
   const analyticsCommands = isTelemetryEnabled(flags.deployment)
     ? [InjectAnalytics(), InjectSpeedInsights()]
     : []
 
-  return {
-    model: {
-      route: initialRoute,
-      url,
-      deployment: flags.deployment,
-      snippetCopy: snippetCopyInit.model,
-      maybeGitHubStarCount: Option.fromNullishOr(githubStarCount),
-      currentYear: flags.currentYear,
-      mobileMenuDialog: Dialog.init({ id: 'mobile-menu' }),
-      isMobileTableOfContentsOpen: false,
-      activeSection: Option.none(),
-      maybeHome,
-      isNarrowViewport: false,
-      maybeIsPlaygroundSupported: Option.none(),
-      playground: pipe(
-        initialRoute,
-        Option.liftPredicate(isPlaygroundRoute),
-        Option.map(({ exampleSlug }) => Playground.init(exampleSlug)),
+  const pageInits = Update.foldChildInits(
+    {
+      uiPages: Ui.init(flags.today),
+      comingFromReact: ComingFromReact.init(),
+      apiReference: ApiReference.boot(flags.maybeApiData),
+      exampleDetail: Example.ExampleDetail.boot(
+        maybeInitialExampleSlug,
+        flags.maybeExampleSources,
       ),
-      sidebarGroups: initialSidebarGroups(
-        Option.none(),
-        maybeInitialActiveSectionKey,
-      ),
-      coreSubmodelPage: coreSubmodelPageInit.model,
-      themeMenu: Menu.init({ id: 'theme-menu' }),
-      maybeThemePreference,
-      systemTheme,
-      resolvedTheme,
-      uiPages: uiPagesInit.model,
-      comingFromReact: comingFromReactInit.model,
-      apiReference: apiReferenceBoot.model,
-      exampleDetail: exampleDetailBoot.model,
-      search: searchInit.model,
     },
+    {
+      toParentModel: ({
+        uiPages,
+        comingFromReact,
+        apiReference,
+        exampleDetail,
+      }) => ({
+        route: initialRoute,
+        url,
+        deployment: flags.deployment,
+        snippetCopy: snippetCopyInit.model,
+        maybeGitHubStarCount: Option.fromNullishOr(githubStarCount),
+        currentYear: flags.currentYear,
+        mobileMenuDialog: Dialog.init({ id: 'mobile-menu' }),
+        isMobileTableOfContentsOpen: false,
+        activeSection: Option.none(),
+        maybeHome,
+        isNarrowViewport: false,
+        maybeIsPlaygroundSupported: Option.none(),
+        playground: pipe(
+          initialRoute,
+          Option.liftPredicate(isPlaygroundRoute),
+          Option.map(({ exampleSlug }) => Playground.init(exampleSlug)),
+        ),
+        sidebarGroups: initialSidebarGroups(
+          Option.none(),
+          maybeInitialActiveSectionKey,
+        ),
+        coreSubmodelPage: coreSubmodelPageInit.model,
+        themeMenu: Menu.init({ id: 'theme-menu' }),
+        maybeThemePreference,
+        systemTheme,
+        resolvedTheme,
+        uiPages,
+        comingFromReact,
+        apiReference,
+        exampleDetail,
+        search: searchInit.model,
+      }),
+      folds: {
+        uiPages: {
+          toParentMessage: message => Message.GotUiPageMessage({ message }),
+        },
+        comingFromReact: {
+          toParentMessage: message =>
+            Message.GotComingFromReactMessage({ message }),
+        },
+        apiReference: {
+          toParentMessage: message =>
+            Message.GotApiReferenceMessage({ message }),
+        },
+        exampleDetail: {
+          toParentMessage: message =>
+            Message.GotExampleDetailMessage({ message }),
+        },
+      },
+    },
+  )
+
+  return {
+    model: pageInits.model,
     commands: [
       LoadBrowserEnvironment(),
       ...analyticsCommands,
-      ...mappedUiPagesCommands,
-      ...mappedComingFromReactCommands,
-      ...mappedApiReferenceCommands,
-      ...mappedExampleDetailCommands,
+      ...(pageInits.commands ?? []),
       ScrollSidebarActiveLinkIntoView(),
       ...Option.match(url.hash, {
         onNone: () => [],

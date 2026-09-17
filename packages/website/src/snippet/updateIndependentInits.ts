@@ -1,13 +1,49 @@
-const homeInit = Home.init()
-const roomInit = Room.init(route)
+const foldSearchOutMessage = Search.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  PreparedResults:
+    ({ documentId }) =>
+    model => ({
+      model: evo(model, {
+        maybeSelectedDocumentId: () => Option.some(documentId),
+      }),
+    }),
+})
 
-return {
-  model: {
-    home: homeInit.model,
-    room: roomInit.model,
+const foldEditorOutMessage = Editor.OutMessage.match<
+  Update.Step<Model, Message>
+>({
+  OpenedDocument:
+    ({ documentId }) =>
+    model => ({
+      model: evo(model, {
+        maybeOpenedDocumentId: () => Option.some(documentId),
+      }),
+    }),
+})
+
+return Update.foldChildInits(
+  {
+    search: Search.boot(),
+    editor: Editor.boot(),
   },
-  commands: [
-    ...Command.mapMessages(homeInit.commands, toGotHomeMessage),
-    ...Command.mapMessages(roomInit.commands, toGotRoomMessage),
-  ],
-}
+  {
+    toParentModel: ({ search, editor }) =>
+      Model.make({
+        search,
+        editor,
+        maybeSelectedDocumentId: Option.none(),
+        maybeOpenedDocumentId: Option.none(),
+      }),
+    folds: {
+      search: {
+        toParentMessage: message => Message.GotSearchMessage({ message }),
+        foldOutMessage: foldSearchOutMessage,
+      },
+      editor: {
+        toParentMessage: message => Message.GotEditorMessage({ message }),
+        foldOutMessage: foldEditorOutMessage,
+      },
+    },
+  },
+)

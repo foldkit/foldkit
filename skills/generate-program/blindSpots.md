@@ -73,13 +73,13 @@ Create an `UpdateReturn` alias when another matcher, helper, or exported signatu
 
 Do not destructure or rename `model`, `commands`, or `outMessage` from an update-like result. Bind the whole result to an operation-named value and access its fields through that value. For example, pass `homeInit.commands` directly to `Command.mapMessages` instead of extracting or renaming it. Use `result.commands ?? []` only when the next operation requires a concrete array.
 
-Dot access does not prevent someone from ignoring `outMessage`; it keeps the operation and all of its returned fields visible together. When the result belongs to a child Submodel, manual unpacking is usually the deeper problem. Use `Update.foldChildInit` when an init or boot result enters a parent Model. Use `Update.foldChild` for a child update that receives input or `Update.foldChildStep` for a child helper that receives only its Model, so the child Model, lifted Commands, and OutMessage remain part of one fold.
+Dot access does not prevent someone from ignoring `outMessage`; it keeps the operation and all of its returned fields visible together. When the result belongs to a child Submodel, manual unpacking is usually the deeper problem. Use `Update.foldChildInit` for one init or boot result, or `Update.foldChildInits` when several child results enter one parent Model. Use `Update.foldChild` for a child update that receives input or `Update.foldChildStep` for a child helper that receives only its Model, so the child Model, lifted Commands, and OutMessage remain part of one fold.
 
 When the OutMessage is already known while constructing a new result, include it directly. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain return or when the value has the type `OutMessage | undefined`. Pipe an existing return into the helper, and pass a new result literal first. Flag local attachment helpers and conditional object spreads that duplicate it.
 
 A child fold needs `toParentOutMessage` only when at least one child OutMessage should continue to the current Submodel's parent. For partial forwarding, match every child variant and return `undefined` for the variants that stop here. Omit `toParentOutMessage` when every variant stops here. `foldOutMessage` still handles each variant locally, including variants that continue upward. Flag `toParentOutMessage: () => undefined`.
 
-When several operations update the same Model in sequence, use `Update.combine`. Do not apply it to independent init results whose Models are assembled as separate fields.
+When several operations update the same Model in sequence, use `Update.combine`. Use `Update.foldChildInits` when several child init or boot results enter that Model together.
 
 ### `functions-doing-two-things`
 

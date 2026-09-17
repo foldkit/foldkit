@@ -486,21 +486,16 @@ export const mapMessage: {
 /** Lifts every Command in a list through `f`, transforming the result
  *  Message type from `FromMessage` to `ToMessage`. When `commands` is
  *  `undefined`, it returns an empty array. `Update.foldChild`,
- *  `Update.foldChildStep`, and `Update.foldChildInit` handle this mapping for
- *  application Submodels. Reach for `mapMessages` in lower-level helpers or
- *  when assembling independent child init results:
+ *  `Update.foldChildStep`, `Update.foldChildInit`, and `Update.foldChildInits`
+ *  handle this mapping for application Submodels. Use `mapMessages` for a
+ *  standalone batch of Commands or when route-gated initialization includes
+ *  only the active child's Commands:
  *
  *  ```ts
- *  const homeInit = Home.init()
- *  const roomInit = Room.init()
- *
- *  return {
- *    model: { home: homeInit.model, room: roomInit.model },
- *    commands: [
- *      ...Command.mapMessages(homeInit.commands, toGotHomeMessage),
- *      ...Command.mapMessages(roomInit.commands, toGotRoomMessage),
- *    ],
- *  }
+ *  const commands = Command.mapMessages(
+ *    [Feed.RefreshSummary(), Feed.RefreshTimeline()],
+ *    toGotFeedMessage,
+ *  )
  *  ```
  *
  *  Fuses `f` into each Command's Effect and also records it on the Command's
