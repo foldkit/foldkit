@@ -1,6 +1,7 @@
 export {
   combine,
   foldChild,
+  foldChildInit,
   foldChildStep,
   refresh,
   withOutMessage,

@@ -767,10 +767,8 @@ export const update = (model: Model, message: Message) =>
         model.route._tag,
         maybeExampleSlug,
       )
-      const browserUiPagesInit = Ui.init(today)
-
-      return {
-        model: evo(model, {
+      const applyBrowserEnvironment: UpdateStep = stepModel => ({
+        model: evo(stepModel, {
           currentYear: () => currentYear,
           isNarrowViewport: () => isNarrowViewport,
           maybeIsPlaygroundSupported: () => Option.some(isPlaygroundSupported),
@@ -779,15 +777,19 @@ export const update = (model: Model, message: Message) =>
           maybeThemePreference: () => Option.some(themePreference),
           systemTheme: () => systemTheme,
           resolvedTheme: () => resolvedTheme,
-          uiPages: () => browserUiPagesInit.model,
         }),
-        commands: [
-          ApplyTheme({ theme: resolvedTheme }),
-          ...Command.mapMessages(browserUiPagesInit.commands, message =>
-            Message.GotUiPageMessage({ message }),
-          ),
-        ],
-      }
+        commands: [ApplyTheme({ theme: resolvedTheme })],
+      })
+
+      return Update.combine(model, [
+        applyBrowserEnvironment,
+        stepModel =>
+          Update.foldChildInit(Ui.init(today), {
+            toParentModel: uiPages =>
+              evo(stepModel, { uiPages: () => uiPages }),
+            toParentMessage: message => Message.GotUiPageMessage({ message }),
+          }),
+      ])
     },
 
     GotThemeMenuMessage: ({ message }) => foldThemeMenu(model, message),

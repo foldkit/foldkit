@@ -63,13 +63,10 @@ export const init: Runtime.RoutingApplicationInit<Model, Message> = (
     Match.orElse(() => AppRoute.People({ searchText: Option.none() })),
   )
 
-  const peopleInit = People.init(initialPeopleRoute)
-  return {
-    model: { route, peoplePage: peopleInit.model },
-    commands: Command.mapMessages(peopleInit.commands, childMessage =>
-      Message.GotPeopleMessage({ message: childMessage }),
-    ),
-  }
+  return Update.foldChildInit(People.init(initialPeopleRoute), {
+    toParentModel: peoplePage => ({ route, peoplePage }),
+    toParentMessage: message => Message.GotPeopleMessage({ message }),
+  })
 }
 
 // COMMAND

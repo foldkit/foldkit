@@ -676,44 +676,59 @@ const runChildFold = (
       onSome: childModel => {
         const childUpdate = childFold.update(childModel, input)
         const modelWithChild = childFold.write(model, childUpdate.model)
-        const mappedCommands = mapMessages(
-          childUpdate.commands,
-          childFold.toParentMessage,
+
+        return finalizeChildFold(
+          childUpdate,
+          modelWithChild,
+          childFold,
+          context,
         )
-
-        const update =
-          childFold.foldOutMessage === undefined ||
-          childUpdate.outMessage === undefined
-            ? { model: modelWithChild, commands: mappedCommands }
-            : appendOutMessageStep(
-                childFold.foldOutMessage,
-                childUpdate.outMessage,
-                context,
-                modelWithChild,
-                mappedCommands,
-              )
-
-        if (update.outMessage !== undefined) {
-          return update
-        }
-
-        if (
-          childFold.toParentOutMessage === undefined ||
-          childUpdate.outMessage === undefined
-        ) {
-          return update
-        }
-
-        const parentOutMessage = childFold.toParentOutMessage(
-          childUpdate.outMessage,
-        )
-
-        return parentOutMessage === undefined
-          ? update
-          : { ...update, outMessage: parentOutMessage }
       },
     }),
   )
+
+const finalizeChildFold = (
+  childReturn: AnyUpdateReturn,
+  modelWithChild: any,
+  childFold: Pick<
+    AnyChildFold,
+    'toParentMessage' | 'foldOutMessage' | 'toParentOutMessage'
+  >,
+  context: FoldContext<any, any>,
+): AnyUpdateReturn => {
+  const mappedCommands = mapMessages(
+    childReturn.commands,
+    childFold.toParentMessage,
+  )
+  const update =
+    childFold.foldOutMessage === undefined ||
+    childReturn.outMessage === undefined
+      ? { model: modelWithChild, commands: mappedCommands }
+      : appendOutMessageStep(
+          childFold.foldOutMessage,
+          childReturn.outMessage,
+          context,
+          modelWithChild,
+          mappedCommands,
+        )
+
+  if (update.outMessage !== undefined) {
+    return update
+  }
+
+  if (
+    childFold.toParentOutMessage === undefined ||
+    childReturn.outMessage === undefined
+  ) {
+    return update
+  }
+
+  const parentOutMessage = childFold.toParentOutMessage(childReturn.outMessage)
+
+  return parentOutMessage === undefined
+    ? update
+    : { ...update, outMessage: parentOutMessage }
+}
 
 /** {@link ChildFold} for an entry point that takes nothing but the child
  *  Model, such as `Dialog.close` or a Submodel's `informRouteChanged` that
@@ -1021,4 +1036,171 @@ const appendOutMessageStep = (
   const commands = [...mappedCommands, ...(outMessageFold.commands ?? [])]
 
   return { ...outMessageFold, commands }
+}
+
+/** Builds a parent Model from a child's init or boot result, lifts the child's
+ *  Commands through `toParentMessage`, and handles any child OutMessage.
+ *  Call it data-first with the completed child result and the parent adapters.
+ *
+ *  `toParentModel` constructs the complete parent Model before `foldOutMessage`
+ *  runs. The fold receives the same {@link FoldContext} as {@link foldChild},
+ *  and its Commands follow the mapped child Commands. The returned Message
+ *  and service requirements include both the child's mapped Commands and the
+ *  OutMessage Step's Commands.
+ *
+ *  For example, a parent can initialize a search Submodel that requests its
+ *  first query during boot:
+ *
+ *  ```ts
+ *  const foldSearchOutMessage = Search.OutMessage.match<Update.Step<Model, Message>>({
+ *    RequestedSearch: ({ query }) => model => ({
+ *      model: evo(model, { results: () => AsyncData.Loading() }),
+ *      commands: [FetchResults({ query })],
+ *    }),
+ *  })
+ *
+ *  const init = (): Update.Return<Model, Message> =>
+ *    Update.foldChildInit(Search.boot({ query: '' }), {
+ *      toParentModel: search => Model.make({ search, results: AsyncData.Idle() }),
+ *      toParentMessage: toGotSearchMessage,
+ *      foldOutMessage: foldSearchOutMessage,
+ *    })
+ *  ```
+ *
+ *  A child result that can emit an OutMessage requires `foldOutMessage` or
+ *  `toParentOutMessage`. A local fold returning {@link Step} produces a plain
+ *  {@link Return}; a fold returning {@link StepWithOutMessage} produces a
+ *  {@link ReturnWithOutMessage}. Add `toParentOutMessage` to forward child
+ *  OutMessages, optionally alongside local handling. A derived OutMessage
+ *  replaces the forwarded one. When the child emits nothing, neither adapter
+ *  runs and the result omits `outMessage`.
+ */
+export const foldChildInit: {
+  <
+    ParentModel,
+    ParentMessage,
+    ChildModel,
+    ChildMessage,
+    ChildOutMessage,
+    ParentOutMessage,
+    ChildRequirements = never,
+    OutMessageStepRequirements = ChildRequirements,
+    OutMessageStepMessage = ParentMessage,
+    DerivedParentOutMessage = ParentOutMessage,
+  >(
+    childInit: ReturnWithOutMessage<
+      ChildModel,
+      ChildMessage,
+      ChildOutMessage,
+      ChildRequirements
+    >,
+    childFold: Readonly<{
+      toParentModel: (childModel: ChildModel) => ParentModel
+      toParentMessage: (message: ChildMessage) => ParentMessage
+      toParentOutMessage: (
+        outMessage: ChildOutMessage,
+      ) => ParentOutMessage | undefined
+      foldOutMessage?: (
+        outMessage: ChildOutMessage,
+        context: FoldContext<ChildMessage, ParentMessage>,
+      ) => StepWithOutMessage<
+        ParentModel,
+        OutMessageStepMessage,
+        DerivedParentOutMessage,
+        OutMessageStepRequirements
+      >
+    }>,
+  ): ReturnWithOutMessage<
+    ParentModel,
+    ParentMessage | OutMessageStepMessage,
+    ParentOutMessage | DerivedParentOutMessage,
+    ChildRequirements | OutMessageStepRequirements
+  >
+  <
+    ParentModel,
+    ParentMessage,
+    ChildModel,
+    ChildMessage,
+    ChildOutMessage,
+    ChildRequirements = never,
+    OutMessageStepRequirements = ChildRequirements,
+    OutMessageStepMessage = ParentMessage,
+  >(
+    childInit: ReturnWithOutMessage<
+      ChildModel,
+      ChildMessage,
+      ChildOutMessage,
+      ChildRequirements
+    >,
+    childFold: Readonly<{
+      toParentModel: (childModel: ChildModel) => ParentModel
+      toParentMessage: (message: ChildMessage) => ParentMessage
+      foldOutMessage: (
+        outMessage: ChildOutMessage,
+        context: FoldContext<ChildMessage, ParentMessage>,
+      ) => Step<ParentModel, OutMessageStepMessage, OutMessageStepRequirements>
+    }>,
+  ): Return<
+    ParentModel,
+    ParentMessage | OutMessageStepMessage,
+    ChildRequirements | OutMessageStepRequirements
+  >
+  <
+    ParentModel,
+    ParentMessage,
+    ChildModel,
+    ChildMessage,
+    ChildOutMessage,
+    ParentOutMessage,
+    ChildRequirements = never,
+    OutMessageStepRequirements = ChildRequirements,
+    OutMessageStepMessage = ParentMessage,
+  >(
+    childInit: ReturnWithOutMessage<
+      ChildModel,
+      ChildMessage,
+      ChildOutMessage,
+      ChildRequirements
+    >,
+    childFold: Readonly<{
+      toParentModel: (childModel: ChildModel) => ParentModel
+      toParentMessage: (message: ChildMessage) => ParentMessage
+      toParentOutMessage?: never
+      foldOutMessage: (
+        outMessage: ChildOutMessage,
+        context: FoldContext<ChildMessage, ParentMessage>,
+      ) => StepWithOutMessage<
+        ParentModel,
+        OutMessageStepMessage,
+        ParentOutMessage,
+        OutMessageStepRequirements
+      >
+    }>,
+  ): ReturnWithOutMessage<
+    ParentModel,
+    ParentMessage | OutMessageStepMessage,
+    ParentOutMessage,
+    ChildRequirements | OutMessageStepRequirements
+  >
+  <ParentModel, ParentMessage, ChildModel, ChildMessage, R = never>(
+    childInit: Return<ChildModel, ChildMessage, R>,
+    childFold: Readonly<{
+      toParentModel: (childModel: ChildModel) => ParentModel
+      toParentMessage: (message: ChildMessage) => ParentMessage
+    }>,
+  ): Return<ParentModel, ParentMessage, R>
+} = (
+  childInit: AnyUpdateReturn,
+  childFold: Readonly<{
+    toParentModel: (childModel: any) => any
+  }> &
+    Pick<
+      AnyChildFold,
+      'toParentMessage' | 'foldOutMessage' | 'toParentOutMessage'
+    >,
+): any => {
+  const model = childFold.toParentModel(childInit.model)
+  const context = makeFoldContext(childFold.toParentMessage)
+
+  return finalizeChildFold(childInit, model, childFold, context)
 }

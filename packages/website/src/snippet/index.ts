@@ -308,6 +308,8 @@ export { default as submodelUpdateDelegationRaw } from './submodelUpdateDelegati
 export { default as submodelUpdateDelegationHighlighted } from './submodelUpdateDelegation.ts?highlighted'
 export { default as submodelFoldChildRaw } from './submodelFoldChild.ts?raw'
 export { default as submodelFoldChildHighlighted } from './submodelFoldChild.ts?highlighted'
+export { default as submodelFoldChildInitRaw } from './submodelFoldChildInit.ts?raw'
+export { default as submodelFoldChildInitHighlighted } from './submodelFoldChildInit.ts?highlighted'
 export { default as submodelFoldChildStepRaw } from './submodelFoldChildStep.ts?raw'
 export { default as submodelFoldChildStepHighlighted } from './submodelFoldChildStep.ts?highlighted'
 export { default as submodelChildViewRaw } from './submodelChildView.ts?raw'

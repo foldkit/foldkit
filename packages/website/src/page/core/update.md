@@ -32,11 +32,11 @@ An update, init, boot, or component helper that statically creates no Commands o
 
 ### Keeping Results Together
 
-Keep an update-like result attached to the operation that produced it. Name the value after the operation and use dot access:
+Fold a child `init` or `boot` result into the parent instead of unpacking its Model and Commands:
 
 ::Snippet{name="updateResultInit" label="composing an init result"}
 
-The same rule applies when a test consumes an update result:
+For another update-like result, keep it attached to the operation that produced it. Name the value after the operation and use dot access. The same rule applies when a test consumes an update result:
 
 ::Snippet{name="updateResultTest" label="testing an update result"}
 
@@ -56,7 +56,7 @@ This error often points to update results being composed by hand. When both oper
 
 ::Snippet{name="updateCombineOpenDialog" label="composing Update Steps"}
 
-Manual unpacking of a child result usually means the site should use `Update.foldChild` or `Update.foldChildStep`.
+Use `Update.foldChildInit` to keep a child `init` or `boot` result, its lifted Commands, and any OutMessage together. Use `Update.foldChild` for a child update that receives input, or `Update.foldChildStep` for a child helper that receives only its Model.
 
 Use `Update.combine` when two or more operations transform the same Model and a later Step should receive the Model produced by an earlier Step. Name that parameter `stepModel` when an inline Step needs it:
 
@@ -68,9 +68,25 @@ Do not wrap one Step in `Update.combine`; call that operation directly.
 
 ### Combining Independent Results
 
-Independent child inits are not a sequence because neither child updates the other child's Model. Initialize them separately and assemble the parent Model:
+When independent child inits return plain `Update.Return` results, initialize them separately and assemble the parent Model. Neither init consumes the Model produced by the other:
 
 ::Snippet{name="updateIndependentInits" label="combining independent init results"}
+
+### Initializing Children with OutMessages
+
+When several child init or boot results can emit OutMessages, construct the complete parent Model before handling those facts. Then use `Update.combine` to fold each result against the Model produced by the previous fold.
+
+For example, imagine Search and Editor Submodels whose boot functions both emit OutMessages. Reuse the standalone `foldSearchOutMessage` and `foldEditorOutMessage` handlers from the parent update. Both return `Update.Step<Model, Message>` and handle the child's facts locally:
+
+::Snippet{name="updateInitOutMessages" label="initializing multiple children with OutMessages"}
+
+Both folds receive a parent Model containing all initialized children. The Editor fold also receives any changes made by the Search fold.
+
+`toParentModel: () => stepModel` keeps that evolving Model. The child Models were already installed during parent assembly. Writing `editorBoot.model` into the parent again could overwrite a change the Search fold made to the Editor.
+
+A child that emits no OutMessage skips its OutMessage fold. The runtime forks Commands independently, so array order does not guarantee execution or completion order.
+
+This composition handles child OutMessages locally. `Update.combine` accepts plain Steps and rejects a Step that can emit a parent OutMessage. If initialization must report a fact to the parent's parent, decide what that fact represents after both local folds and attach it to the combined result with [`Update.withOutMessage`](#returning-an-outmessage). An update result carries at most one OutMessage; these folds do not automatically combine or choose between several parent OutMessages.
 
 ## Preventing Lost OutMessages
 

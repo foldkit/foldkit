@@ -485,19 +485,21 @@ export const mapMessage: {
 
 /** Lifts every Command in a list through `f`, transforming the result
  *  Message type from `FromMessage` to `ToMessage`. When `commands` is
- *  `undefined`, it returns an empty array. `Update.foldChild` handles
- *  this mapping for application Submodels. Reach for `mapMessages` in
- *  lower-level helpers or when mapping an optional update result directly:
+ *  `undefined`, it returns an empty array. `Update.foldChild`,
+ *  `Update.foldChildStep`, and `Update.foldChildInit` handle this mapping for
+ *  application Submodels. Reach for `mapMessages` in lower-level helpers or
+ *  when assembling independent child init results:
  *
  *  ```ts
  *  const homeInit = Home.init()
+ *  const roomInit = Room.init()
  *
  *  return {
- *    model: { home: homeInit.model },
- *    commands: Command.mapMessages(
- *      homeInit.commands,
- *      message => Message.GotHomeMessage({ message }),
- *    ),
+ *    model: { home: homeInit.model, room: roomInit.model },
+ *    commands: [
+ *      ...Command.mapMessages(homeInit.commands, toGotHomeMessage),
+ *      ...Command.mapMessages(roomInit.commands, toGotRoomMessage),
+ *    ],
  *  }
  *  ```
  *

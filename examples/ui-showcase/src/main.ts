@@ -197,17 +197,10 @@ export const init: Runtime.RoutingApplicationInit<Model, Message, Flags> = (
   flags: Flags,
   url: Url,
 ) => {
-  const uiInit_ = uiInit(flags.today)
-
-  return {
-    model: {
-      route: urlToAppRoute(url),
-      uiModel: uiInit_.model,
-    },
-    commands: Command.mapMessages(uiInit_.commands, message =>
-      Message.GotUiMessage({ message }),
-    ),
-  }
+  return Update.foldChildInit(uiInit(flags.today), {
+    toParentModel: uiModel => ({ route: urlToAppRoute(url), uiModel }),
+    toParentMessage: message => Message.GotUiMessage({ message }),
+  })
 }
 
 // UPDATE

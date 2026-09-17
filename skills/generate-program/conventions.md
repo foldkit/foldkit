@@ -349,20 +349,16 @@ Never mutate the model directly. **Never use spread syntax for updates.** `evo` 
 
 Update, init, boot, and component helper producers return `{ model }` when they statically create no Commands. When they compute a Commands collection, return it directly without checking whether it is empty. Never write the literal `commands: []`.
 
-Keep an update-shaped result together when composing it into another update. Name the result after the operation and use dot access:
+Fold a child `init` or `boot` result into the parent instead of unpacking its Model and Commands:
 
 ```ts
-const homeInit = Home.init()
-
-return {
-  model: { home: homeInit.model },
-  commands: Command.mapMessages(homeInit.commands, message =>
-    Message.GotHomeMessage({ message }),
-  ),
-}
+return Update.foldChildInit(Home.init(), {
+  toParentModel: home => ({ home }),
+  toParentMessage: message => Message.GotHomeMessage({ message }),
+})
 ```
 
-The same rule applies when a test consumes an update result:
+For another update-shaped result, keep it together when composing it into another update. Name the result after the operation and use dot access. The same rule applies when a test consumes an update result:
 
 ```ts
 const formSubmit = update(model, Message.SubmittedForm())
@@ -373,7 +369,7 @@ expect(formSubmit.commands ?? []).toHaveLength(1)
 
 When the operation name collides with the function, use a trailing underscore such as `init_`. Do not destructure or rename `model`, `commands`, or `outMessage` from update-like results. Dot access does not prevent someone from ignoring `outMessage`; it keeps the operation and all of its returned fields visible together. Name a child fold's `write` parameter after the next child Model, such as `nextSettings`. Pass optional Commands directly to APIs that accept them, including `Command.mapMessages`. Use `result.commands ?? []` only when the next operation requires a concrete array for spreading, concatenating, execution, or an assertion.
 
-Manual unpacking of a child result usually means the site should use `Update.foldChild` for child Messages or `Update.foldChildStep` for no-argument child entry points. Those helpers keep the child Model, lifted Commands, and OutMessage in one fold.
+Use `Update.foldChildInit` when a child `init` or `boot` result enters a parent Model. Use `Update.foldChild` for a child update that receives input or `Update.foldChildStep` for a no-argument child entry point. These helpers keep the child Model, lifted Commands, and OutMessage in one fold.
 
 Use `Update.combine` when a later Step should receive the Model produced by an earlier Step. It takes two or more Steps. Do not wrap one Step in `Update.combine`; call that operation directly. Name an inline Step parameter `stepModel` when combining several; it receives the Model from the preceding Step. Independent child inits need separate Model assembly because neither init consumes the Model produced by the other.
 
