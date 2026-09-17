@@ -94,6 +94,9 @@ describe('foldkitBuild', () => {
     const built = await import(pathToFileURL(resolve(server, 'fetch.js')).href)
     expect(typeof built.default.fetch).toBe('function')
     expect(typeof built.renderPage).toBe('function')
+    // The template is not a document, so the bundle does not hand it out
+    // either: a host that needs a document renders one through `fetch`.
+    expect(built).not.toHaveProperty('template')
   })
 
   // The browser build's `index.html` is the template, and a template published
@@ -117,16 +120,6 @@ describe('foldkitBuild', () => {
     )
     expect(response.status).toBe(200)
     expect(await response.text()).toContain('>/</main>')
-  })
-
-  // The template is not a document, so the server bundle does not hand it
-  // out either: a host that needs a document renders one through `fetch`.
-  it('keeps the template private to the handler', async () => {
-    const { server } = await buildFixture('template-private-bundle')
-
-    const { pathToFileURL } = await import('node:url')
-    const built = await import(pathToFileURL(resolve(server, 'fetch.js')).href)
-    expect(built).not.toHaveProperty('template')
   })
 
   it('serves the Request.url the platform constructed', async () => {
@@ -270,6 +263,8 @@ describe('foldkitBuild', () => {
     expect(manifest.serverEntry).toBe('fetch.js')
     expect(manifest.client).toContain('client')
     expect(manifest.server).toContain('server')
+    // Nothing says how to run the entry: every host wraps `fetch`.
+    expect('host' in manifest).toBe(false)
   })
 
   it('reports no generated paths when the build generates none', async () => {
@@ -281,8 +276,6 @@ describe('foldkitBuild', () => {
 
     expect(manifest.prerendered).toEqual([])
     expect(manifest.serverEntry).toBe('fetch.js')
-    // Nothing says how to run the entry: every host wraps `fetch`.
-    expect('host' in manifest).toBe(false)
   })
 
   // The manifest describes the deployment, and the browser build is the part of

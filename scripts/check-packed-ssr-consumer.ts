@@ -1509,6 +1509,11 @@ const main = async (): Promise<void> => {
         clientScript(same, servedDir),
         clientScript(await pageOf(currentEntry), currentDir),
       )
+      assertConsumer(
+        stale !== same,
+        'the served and current builds name the same module script, so the ' +
+          'stale-client pages below would not be testing anything.',
+      )
 
       // The same page, damaged in each of the ways a handoff can fail. The
       // build id still matches, so what refuses is the handoff itself.

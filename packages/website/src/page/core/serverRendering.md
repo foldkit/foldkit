@@ -234,7 +234,7 @@ A host that generates its pages itself runs its own loop over the same contract.
 
 ::Snippet{name="serverRenderingSsgFetchLoop" label="SSG render loop over the fetch handler"}
 
-A loop over a browser build alone, without `ssr.build`, as this website runs, renders each path with `renderPage` and injects the result into the template itself:
+A loop over a browser build alone, without `ssr.build`, as this website does, renders each path with `renderPage` and injects the result into the template itself:
 
 ::Snippet{name="serverRenderingSsgLoop" label="SSG render loop over a browser build"}
 

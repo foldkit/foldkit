@@ -334,7 +334,7 @@ const fetchModuleSource = (
     containerId === undefined ? 'undefined' : JSON.stringify(containerId)
   // NOTE: `export *` re-exports whatever the application entry actually names,
   // so a missing `prerenderPaths` is absent rather than a Vite undefined-import
-  // warning. The template is deliberately not exported: it is not a document.
+  // warning.
   return `${[
     `import { handleRequest } from 'foldkit/experimental/server'`,
     `import * as server from ${JSON.stringify(serverEntry)}`,
@@ -364,7 +364,7 @@ const templateForFetchModule = (
 ): string => {
   if (capturedTemplate === undefined) {
     throw new Error(
-      '[foldkit] the browser build has not emitted index.html, so the fetch handler has no template to render into. Build the "client" environment before "ssr", and give the client an HTML entry.',
+      `[foldkit] the browser build has not emitted ${TEMPLATE_FILE_NAME}, so the fetch handler has no template to render into. Build the "client" environment before "ssr", and give the client an HTML entry.`,
     )
   }
   return capturedTemplate
@@ -504,7 +504,7 @@ export const foldkitBuild = (
     const template = (): string => {
       if (state.template === undefined) {
         throw new Error(
-          '[foldkit] the browser build emitted no index.html to generate pages from. Prerendering needs an HTML entry.',
+          `[foldkit] the browser build emitted no ${TEMPLATE_FILE_NAME} to generate pages from. Prerendering needs an HTML entry.`,
         )
       }
       return state.template
@@ -546,14 +546,6 @@ export const foldkitBuild = (
       const template = templateForFetchModule(state.template)
       return fetchModuleSource(serverEntry, template, containerId)
     },
-    // Each environment records what it emitted before anything is written.
-    //
-    // The browser build's `index.html` is the template the handler renders
-    // into, not a page: published with the assets, a host serves its empty
-    // container at 200. It is captured and dropped from the bundle here. The
-    // server build's entry chunk name is all `finalize` needs, and the bundle
-    // already carries it.
-    //
     // NOTE: `order: 'post'` because Vite's own HTML plugin emits `index.html`
     // from a `generateBundle` of its own; post is guaranteed to run after it.
     generateBundle: {
