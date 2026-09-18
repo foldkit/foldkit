@@ -1,6 +1,6 @@
 import { Runtime } from 'foldkit'
 
-import { ChangedUrl, ClickedLink, Model, init, update, view } from './main'
+import { ChangedUrl, Model, init, update, view } from './main'
 
 const application = Runtime.makeApplication({
   Model,
@@ -9,7 +9,6 @@ const application = Runtime.makeApplication({
   view,
   container: document.getElementById('root'),
   routing: {
-    onUrlRequest: request => ClickedLink({ request }),
     onUrlChange: url => ChangedUrl({ url }),
   },
 })

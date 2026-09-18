@@ -452,7 +452,6 @@ const application = Runtime.makeApplication({
   view,
   container: document.getElementById('root'),
   routing: {
-    onUrlRequest: request => Message.ClickedLink({ request }),
     onUrlChange: url => Message.ChangedUrl({ url }),
   },
 })
@@ -486,7 +485,7 @@ With `makeApplication`, the `view` returns a `Document`. The runtime sets `docum
 
 `lang` and `dir` sync to the `<html>` element, so an app that switches language at runtime drives them from the Model. `dir` is `TextDirection` from `foldkit/html`, a Schema over `'Ltr' | 'Rtl' | 'Auto'` that you can drop straight into a Model `Schema.Struct`, and the runtime writes it as the lowercase attribute value. Both fields are optional and have no default: when a view omits one, the runtime does not touch that attribute, leaving whatever value it currently holds, so a view that never sets it leaves the served HTML in place.
 
-`onUrlRequest` fires when the user clicks a link. The Message receives a `UrlRequest` (a tagged union from the `Navigation` namespace) which you handle in update by matching on its `_tag`. `onUrlChange` fires when the browser URL changes (back/forward buttons); the handler updates the route from the new URL.
+`onUrlChange` fires whenever the URL changes: back/forward buttons, `pushUrl`/`replaceUrl`, and the link clicks the runtime handles itself (same-origin links are pushed to history; cross-origin links are left to the browser). The handler updates the route from the new URL, and it is the only place that should. The optional `onUrlRequest` intercepts a link click first; its Message receives a `UrlRequest` (a tagged union from the `Navigation` namespace) which update matches on its `_tag` to issue `pushUrl` or an external load Command. Add it only when a click needs a decision, such as an unsaved-changes prompt.
 
 For the canonical update-handler shapes (the exact `UrlRequest` tag names, how to dispatch `pushUrl` vs an external load Command, and how to derive the route from a `Url`), see `repos/foldkit/examples/routing/src/main.ts`.
 
