@@ -40,6 +40,8 @@ The starter examples apply to `spa` rendering. The `ssg` and `ssr` modes scaffol
 | `job-application`        | Multi-step form with async validation, file uploads, and per-step error indicators                     |
 | `weather`                | HTTP requests with async state handling                                                                |
 | `api-cache`              | Query caching in the Model with stale-while-revalidate, request deduplication, and interval refetching |
+| `api-cache-query`        | The API Cache app rewritten with Query.define                                                          |
+| `api-cache-http-api`     | The same Query app built from Effect HttpApi endpoints                                                 |
 | `charting`               | Live GitHub and npm telemetry rendered through an ECharts Mount adapter                                |
 | `routing`                | URL routing with parser combinators and route parameters                                               |
 | `upload`                 | Simulated file uploads with cancellable, restartable interruptible Commands                            |

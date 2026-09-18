@@ -23,6 +23,7 @@
         "src/experimental/machine/public.ts",
         "src/experimental/server/public.ts",
         "src/html/public.ts",
+        "src/query/public.ts",
         "src/devTools/public.ts",
         "src/devTools/host.ts",
         "src/runtime/modelPreservationPublic.ts",
