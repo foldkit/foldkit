@@ -1,5 +1,11 @@
 # foldkit
 
+## 0.162.0
+
+### Minor Changes
+
+- [#1406](https://github.com/foldkit/foldkit/pull/1406) [`01b0aab`](https://github.com/foldkit/foldkit/commit/01b0aab09684c7c47579529ef52bb4ba997871d8) Thanks [@devinjameson](https://github.com/devinjameson)! - Rename `Subscription.keyboardShortcuts` to `Subscription.keyBindings`, the `shortcut` field to `keys`, and the related public types to `KeySequence`, `KeyBinding`, and `KeyBindingsConfig`. Replace the old names when migrating.
+
 ## 0.161.0
 
 ### Minor Changes

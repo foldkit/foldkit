@@ -1,5 +1,12 @@
 # @foldkit/devtools
 
+## 0.162.0
+
+### Version Alignment
+
+Updated to keep this package aligned with the rest of this release.
+There are no package-specific changes in this release.
+
 ## 0.161.0
 
 ### Minor Changes
