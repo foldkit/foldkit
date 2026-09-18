@@ -1,5 +1,11 @@
 # @foldkit/devtools-mcp
 
+## 0.21.0
+
+### Minor Changes
+
+- [#683](https://github.com/foldkit/foldkit/pull/683) [`b58e602`](https://github.com/foldkit/foldkit/commit/b58e60279bccc6584985315645bfae664a7b90c5) Thanks [@devinjameson](https://github.com/devinjameson)! - The `foldkit_get_message` and `foldkit_get_init` descriptions now explain each Command's `maybeSubmodelPath`, distinguishing an unresolved destination from a resolved top-level or Submodel result. The Foldkit peer minimum is now 0.161.0 because earlier runtimes do not send this field.
+
 ## 0.20.0
 
 ### Minor Changes
