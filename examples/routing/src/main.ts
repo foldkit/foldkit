@@ -160,26 +160,26 @@ export const update = (model: Model, message: Message) =>
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(() => ({
-  shortcuts: Subscription.persistent(
-    Subscription.keyboardShortcuts<Message>({
+  keyBindings: Subscription.persistent(
+    Subscription.keyBindings<Message>({
       bindings: [
         {
-          shortcut: ['G', 'H'],
+          keys: ['G', 'H'],
           toMessage: () =>
             Message.EnteredNavigationShortcut({ shortcut: 'GH' }),
         },
         {
-          shortcut: ['G', 'P'],
+          keys: ['G', 'P'],
           toMessage: () =>
             Message.EnteredNavigationShortcut({ shortcut: 'GP' }),
         },
         {
-          shortcut: ['G', 'F'],
+          keys: ['G', 'F'],
           toMessage: () =>
             Message.EnteredNavigationShortcut({ shortcut: 'GF' }),
         },
         {
-          shortcut: ['G', 'N'],
+          keys: ['G', 'N'],
           toMessage: () =>
             Message.EnteredNavigationShortcut({ shortcut: 'GN' }),
         },

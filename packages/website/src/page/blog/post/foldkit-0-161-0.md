@@ -55,7 +55,7 @@ In 0.161.0, `Subscription.keyboardShortcuts` handles that work from a binding ta
 
 Shortcuts ignore editable elements, IME composition, and held-key repeats by default. Here, `whileTyping: 'Allow'` lets the search shortcut work inside a text field. Matched presses cancel their browser default before the listener returns unless a binding sets `preventDefault: false`. The update function still decides how the application responds to each Message.
 
-The [Subscriptions guide](/core/subscriptions#keyboard-shortcuts) covers the options, and the [routing example](/example-apps/routing) demonstrates sequence navigation.
+The [Subscriptions guide](/core/subscriptions#key-bindings) covers the options, and the [routing example](/example-apps/routing) demonstrates sequence navigation.
 
 Thank you to [@artile](https://github.com/artile) for proposing and contributing the shortcut helper, and to [@hdoro](https://github.com/hdoro) for helping shape its API, including conditional shortcuts and key sequences!
 
