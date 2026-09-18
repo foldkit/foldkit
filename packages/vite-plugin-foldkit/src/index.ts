@@ -167,6 +167,7 @@ const FORCE_INCLUDED_EFFECT_NAMESPACES: ReadonlyArray<string> = [
   'effect/HashMap',
   'effect/HashSet',
   'effect/Layer',
+  'effect/Latch',
   'effect/Logger',
   'effect/Match',
   'effect/Number',

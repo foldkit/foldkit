@@ -32,6 +32,7 @@ import {
   coreModelRouter,
   coreMountRouter,
   corePreserveScrollRouter,
+  coreQueryRouter,
   coreRenderRouter,
   coreResourcesRouter,
   coreRuntimeRouter,
@@ -281,6 +282,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'CoreHttp',
           href: coreHttpRouter(),
           label: 'Http',
+        },
+        {
+          _tag: 'CoreQuery',
+          href: coreQueryRouter(),
+          label: 'Query',
         },
         {
           _tag: 'FieldValidation',

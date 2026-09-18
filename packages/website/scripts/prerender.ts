@@ -100,6 +100,7 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   AppRoute.CoreRender(),
   AppRoute.CoreFile(),
   AppRoute.CoreHttp(),
+  AppRoute.CoreQuery(),
   AppRoute.CoreCanvas(),
   AppRoute.CoreRuntime(),
   AppRoute.CoreServerRendering(),
