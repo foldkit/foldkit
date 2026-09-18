@@ -18,20 +18,6 @@ Open the Dialog from a trigger by dispatching your own Message. Fold `Dialog.ope
 
 ::Snippet{name="uiDialogBasic" label="dialog example"}
 
-### Initially open
-
-`Dialog.init()` always creates a closed Dialog. An initially open Dialog previously used:
-
-::Snippet{name="uiDialogInitiallyOpenBefore" label="initially open Dialog before Dialog.boot"}
-
-Use `Dialog.boot()` instead. `boot()` returns the open Model together with the `ShowDialog` Command and `Opened` OutMessage produced by the normal update path.
-
-Pass the boot result to `Update.foldChildInit`. Its adapters construct the parent Model, map the child Commands into the parent Message type, and fold the OutMessage through the same `foldDialogOutMessage` used by the parent update. This ensures an `Opened` arm with parent behavior also runs during initialization; a parent with no behavior for that fact keeps an explicit no-op `Opened` arm.
-
-::Snippet{name="uiDialogInitiallyOpen" label="initially open Dialog with Dialog.boot"}
-
-The mapped `ShowDialog` Command acquires background isolation, scroll locking, focus trapping, stack registration, and runtime cleanup after the first render commits. The Dialog's Mount reacquires those resources when development Model preservation restores an open Dialog without replaying initialization Commands.
-
 ### Animated
 
 Pass `isAnimated: true` at init to coordinate animations. The component manages an Animation submodel internally. Apply transition classes using `data-closed` (e.g. `data-[closed]:opacity-0 data-[closed]:scale-95`).
@@ -69,6 +55,14 @@ When `isAnimated` is true, enter/leave animations flow through the [Animation](/
 | `data-transition` | Present during any animation phase. |
 | `data-enter`      | Present during the enter animation. |
 | `data-leave`      | Present during the leave animation. |
+
+## Starting with an Open Dialog
+
+Use `Dialog.boot()` when a Dialog should be open when the application starts. Pass its result to `Update.foldChildInit` so the parent incorporates the Dialog Model, maps its Commands to the parent Message type, and handles its `Opened` OutMessage.
+
+::Snippet{name="uiDialogInitiallyOpen" label="starting with an open Dialog"}
+
+See [Folding Update with Update.foldChild](/core/submodel#fold-child) for the general child-initialization pattern.
 
 ## Keyboard Interaction
 
