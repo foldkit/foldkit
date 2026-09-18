@@ -79,6 +79,10 @@
       "types": "./dist/port/public.d.ts",
       "import": "./dist/port/public.js"
     },
+    "./query": {
+      "types": "./dist/query/public.d.ts",
+      "import": "./dist/query/public.js"
+    },
     "./render": {
       "types": "./dist/render/public.d.ts",
       "import": "./dist/render/public.js"

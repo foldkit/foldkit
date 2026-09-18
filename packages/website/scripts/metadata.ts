@@ -224,6 +224,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Http',
     'Provide a Fetch-backed HttpClient to Commands while keeping browser requests CORS-simple by disabling trace header propagation unless it is required.',
   ),
+  CoreQuery: core(
+    'Query',
+    'Define a remote-data Submodel with Query.define. Fetch, watch, forget, and keyed slots live in one place. Fold child Messages with query.lift.',
+  ),
   CoreCanvas: core(
     'Canvas',
     'Declarative 2D rendering with a Schema-defined Shape AST and pointer events translated to canvas-local coordinates.',
