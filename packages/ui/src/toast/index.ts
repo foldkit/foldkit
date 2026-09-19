@@ -15,6 +15,7 @@ export type {
   MovedSwipePointer,
   ReleasedSwipePointer,
   CancelledSwipe,
+  PressedEscape,
   CompletedWaitForSwipeSettled,
   HoveredEntry,
   InitConfig,

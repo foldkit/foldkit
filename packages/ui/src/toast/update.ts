@@ -5,7 +5,6 @@ import {
   Match,
   Number,
   Option,
-  Result,
   Schema,
   Stream,
   pipe,
@@ -114,12 +113,6 @@ const clampSwipeClientX = (
     Match.exhaustive,
   )
 
-const isDragging = (swipeState: typeof SwipeState.Type): boolean =>
-  SwipeState.guards.Dragging(swipeState)
-
-const isSettling = (swipeState: typeof SwipeState.Type): boolean =>
-  SwipeState.guards.Settling(swipeState)
-
 const documentStylesWhileSwiping = Stream.callback<never>(() =>
   Effect.acquireRelease(
     Effect.sync(() => {
@@ -186,21 +179,18 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     )
   }
 
-  const activePointerIds = (model: Model): ReadonlyArray<number> =>
-    Array.filterMap(model.entries, entry =>
-      SwipeState.match<Result.Result<number, void>>(entry.swipeState, {
-        Idle: () => Result.failVoid,
-        Dragging: dragging => Result.succeed(dragging.pointerId),
-        Settling: () => Result.failVoid,
-        Dismissing: () => Result.failVoid,
-      }),
+  const isPointerActive = (model: Model, pointerId: number): boolean =>
+    Array.some(
+      model.entries,
+      entry =>
+        SwipeState.guards.Dragging(entry.swipeState) &&
+        entry.swipeState.pointerId === pointerId,
     )
 
-  const isPointerActive = (model: Model, pointerId: number): boolean =>
-    Array.contains(activePointerIds(model), pointerId)
-
   const isAnyDragging = (model: Model): boolean =>
-    Array.some(model.entries, entry => isDragging(entry.swipeState))
+    Array.some(model.entries, entry =>
+      SwipeState.guards.Dragging(entry.swipeState),
+    )
 
   const findDraggingEntry = (
     model: Model,
@@ -238,7 +228,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     if (
       isEntryLeaving(entry) ||
       entry.isHovered ||
-      isDragging(entry.swipeState)
+      SwipeState.guards.Dragging(entry.swipeState)
     ) {
       return []
     } else {
@@ -256,7 +246,10 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
    *  `Settling` at zero offset while consumer CSS animates the snap-back.
    *  The fresh swipe version means a re-press during the transition safely
    *  discards the stale settle completion. */
-  const settleSnapBack = (model: Model, entry: Entry): UpdateReturn => {
+  const settleSnapBack = (
+    model: Model,
+    entry: Entry,
+  ): Update.Return<Model, Message> => {
     const nextVersion = Number.increment(entry.swipeVersion)
     const nextEntry = evo(entry, {
       pendingDismissVersion: Number.increment,
@@ -527,7 +520,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           onSome: entry => {
             if (
               isEntryLeaving(entry) ||
-              isDragging(entry.swipeState) ||
+              SwipeState.guards.Dragging(entry.swipeState) ||
               isPointerActive(model, pointerId)
             ) {
               return { model }
@@ -635,6 +628,25 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
             ),
         }),
 
+      PressedEscape: () => {
+        const initial: Update.Return<Model, Message> = { model }
+
+        return Array.reduce(model.entries, initial, (result, entry) => {
+          if (SwipeState.guards.Dragging(entry.swipeState)) {
+            const swipeSettle = settleSnapBack(result.model, entry)
+            return {
+              model: swipeSettle.model,
+              commands: [
+                ...(result.commands ?? []),
+                ...(swipeSettle.commands ?? []),
+              ],
+            }
+          } else {
+            return result
+          }
+        })
+      },
+
       CompletedWaitForSwipeSettled: ({ entryId, version }) =>
         Option.match(
           Array.findFirst(model.entries, ({ id }) => id === entryId),
@@ -642,7 +654,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
             onNone: () => ({ model }),
             onSome: entry => {
               if (
-                isSettling(entry.swipeState) &&
+                SwipeState.guards.Settling(entry.swipeState) &&
                 entry.swipeVersion === version
               ) {
                 return {
@@ -676,7 +688,6 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const swipeDependencies = (model: Model) => ({
     isSwipeEnabled: Option.isSome(model.maybeSwipeConfig),
     isAnyDragging: isAnyDragging(model),
-    activePointerIds: activePointerIds(model),
   })
 
   const subscriptions = Subscription.make<Model, Message>()(entry => ({
@@ -729,34 +740,21 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       {
         isSwipeEnabled: Schema.Boolean,
         isAnyDragging: Schema.Boolean,
-        activePointerIds: Schema.Array(Schema.Number),
       },
       {
         modelToDependencies: swipeDependencies,
-        dependenciesToStream: ({
-          isSwipeEnabled,
-          isAnyDragging,
-          activePointerIds,
-        }) => {
-          const escapeKeydownStream = Subscription.fromEvent({
-            target: document,
-            type: 'keydown',
-            toMessage: event => event,
-          }).pipe(Stream.filter(({ key }) => key === 'Escape'))
-
-          const cancelActiveSwipes = Stream.flatMap(escapeKeydownStream, () =>
-            Stream.fromIterable(
-              Array.map(activePointerIds, pointerId =>
-                MessageSchema.CancelledSwipe({ pointerId }),
-              ),
-            ),
-          )
-
-          return Stream.when(
-            cancelActiveSwipes,
+        dependenciesToStream: ({ isSwipeEnabled, isAnyDragging }) =>
+          Stream.when(
+            Subscription.fromEventFilterMap({
+              target: document,
+              type: 'keydown',
+              toMessage: event =>
+                event.key === 'Escape'
+                  ? Option.some(MessageSchema.PressedEscape())
+                  : Option.none(),
+            }),
             Effect.sync(() => isSwipeEnabled && isAnyDragging),
-          )
-        },
+          ),
       },
     ),
   }))

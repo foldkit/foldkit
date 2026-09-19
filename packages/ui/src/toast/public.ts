@@ -19,6 +19,7 @@ export {
   type MovedSwipePointer,
   type ReleasedSwipePointer,
   type CancelledSwipe,
+  type PressedEscape,
   type CompletedWaitForSwipeSettled,
   WaitBeforeDismissal,
   WaitForSwipeSettled,

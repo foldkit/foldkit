@@ -135,6 +135,7 @@ export const Message = defineMessageUnion({
   MovedSwipePointer: { pointerId: Schema.Number, clientX: Schema.Number },
   ReleasedSwipePointer: { pointerId: Schema.Number, clientX: Schema.Number },
   CancelledSwipe: { pointerId: Schema.Number },
+  PressedEscape: {},
   CompletedWaitForSwipeSettled: {
     entryId: Schema.String,
     version: Schema.Number,
@@ -152,6 +153,7 @@ export type PressedEntryPointer = typeof Message.PressedEntryPointer.Type
 export type MovedSwipePointer = typeof Message.MovedSwipePointer.Type
 export type ReleasedSwipePointer = typeof Message.ReleasedSwipePointer.Type
 export type CancelledSwipe = typeof Message.CancelledSwipe.Type
+export type PressedEscape = typeof Message.PressedEscape.Type
 export type CompletedWaitForSwipeSettled =
   typeof Message.CompletedWaitForSwipeSettled.Type
 
@@ -179,6 +181,7 @@ export const makeMessage = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
     MovedSwipePointer: { pointerId: Schema.Number, clientX: Schema.Number },
     ReleasedSwipePointer: { pointerId: Schema.Number, clientX: Schema.Number },
     CancelledSwipe: { pointerId: Schema.Number },
+    PressedEscape: {},
     CompletedWaitForSwipeSettled: {
       entryId: Schema.String,
       version: Schema.Number,
