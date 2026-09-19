@@ -1,5 +1,5 @@
 import { Option } from 'effect'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { RadioGroup } from '@foldkit/ui'
 
@@ -120,7 +120,7 @@ export const loadingModel = Model.make({
   maybeSelectedDatumId: Option.none(),
 })
 
-export const readyModel = evo(loadingModel, {
+export const readyModel = modifyFields(loadingModel, {
   telemetry: () => TelemetryAsyncData.Success({ data: sampleTelemetry }),
   maybeChartHostId: () => Option.some('test-chart-host'),
 })

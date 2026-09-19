@@ -254,25 +254,33 @@ export const textDirectionToAttribute = (
   direction: TextDirection,
 ): 'ltr' | 'rtl' | 'auto' => textDirectionAttributes[direction]
 
-/** A view's complete output for the runtime: title, body, and optional document
- *  metadata. The runtime applies `title` to `document.title`, syncs `lang` and
- *  `dir` to the `<html>` element, syncs `canonical` to `<link rel="canonical">`
- *  (creating it if absent), syncs `ogUrl` to `<meta property="og:url">`
- *  (creating it if absent), and patches `body` into the application container.
+/** The complete output of a page-owning view. The runtime patches `body` into
+ *  the application container, writes `title` to `document.title`, and manages
+ *  the optional document metadata.
  *
- *  When `canonical` is omitted, it defaults to the current URL (origin +
- *  pathname + search). When `ogUrl` is omitted, it falls back to `canonical`.
+ *  Supplied `lang` and `dir` values are written to the `<html>` element. An
+ *  omitted value leaves the current attribute unchanged, including a value
+ *  from the served HTML or an earlier render. Drive both fields from the Model
+ *  when the application can switch languages at runtime.
  *
- *  `lang` and `dir` have no default. When either is omitted the runtime does not
- *  touch that attribute, leaving whatever value it currently holds, so a view
- *  that never sets it leaves the served HTML in place. Drive them from the Model
- *  when the app switches language at runtime. The served HTML still decides what
- *  a crawler sees on first paint, because the runtime can only sync after the
- *  first render.
+ *  `canonical` has no address-bar default. Derive it from the typed route in
+ *  the Model, where the application can decide which route and query values
+ *  identify the page. If the view never supplies it, the runtime leaves a
+ *  served `<link rel="canonical">` unchanged or keeps the document without one.
  *
- *  This is the return type of a `makeApplication` view, which owns the document. An
- *  app embedded at a node should use `makeElement` instead, whose view returns
- *  `Html` and never touches the `<head>` or the `<html>` element. */
+ *  Before the client first writes `canonical` or `ogUrl`, it records the value
+ *  already present on the corresponding element. A later omission restores
+ *  that value, or removes the element if the runtime created it. During
+ *  hydration, the recorded value may be metadata rendered for the initial
+ *  route. `ogUrl` can be supplied independently; when omitted alongside an
+ *  explicit `canonical`, it uses that canonical.
+ *
+ *  Server rendering returns only the canonical supplied by the view. It
+ *  returns `ogUrl` when supplied or falls back to an explicit canonical.
+ *
+ *  This is the return type of a `makeApplication` view. An application embedded
+ *  at a node should use `makeElement`; its view returns `Html` and never changes
+ *  the `<head>` or `<html>` element. */
 export type Document = Readonly<{
   title: string
   lang?: string

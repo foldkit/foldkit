@@ -2,13 +2,10 @@ import { Duration, Effect, Fiber, Schema, Stream } from 'effect'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
-import {
-  type KeyboardShortcutsConfig,
-  keyboardShortcuts,
-} from './keyboardShortcuts.js'
+import { type KeyBindingsConfig, keyBindings } from './keyBindings.js'
 
 const Message = defineMessageUnion({
-  PressedShortcut: { name: Schema.String },
+  PressedKeys: { name: Schema.String },
 })
 
 type Message = typeof Message.Type
@@ -26,8 +23,7 @@ const drain = <Message>(
     }),
   )
 
-const toMessage = (name: string) => (): Message =>
-  Message.PressedShortcut({ name })
+const toMessage = (name: string) => (): Message => Message.PressedKeys({ name })
 
 const press = (
   init: KeyboardEventInit,
@@ -43,9 +39,9 @@ const press = (
   return event
 }
 
-const start = async (config: KeyboardShortcutsConfig<Message>) => {
+const start = async (config: KeyBindingsConfig<Message>) => {
   const received: Array<Message> = []
-  const fiber = Effect.runFork(drain(keyboardShortcuts(config), received))
+  const fiber = Effect.runFork(drain(keyBindings(config), received))
   await tick()
   return { fiber, received }
 }
@@ -57,14 +53,14 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-describe('keyboardShortcuts', () => {
-  it('emits the Message for a matching one-press shortcut', async () => {
+describe('keyBindings', () => {
+  it('emits the Message for a matching one-press binding', async () => {
     const { fiber, received } = await start({
       bindings: [
         {
-          shortcut: '/',
+          keys: '/',
           toMessage: event =>
-            Message.PressedShortcut({ name: `Pressed${event.key}` }),
+            Message.PressedKeys({ name: `Pressed${event.key}` }),
         },
       ],
     })
@@ -74,7 +70,7 @@ describe('keyboardShortcuts', () => {
     await tick()
     await stop(fiber)
 
-    expect(received).toEqual([Message.PressedShortcut({ name: 'Pressed/' })])
+    expect(received).toEqual([Message.PressedKeys({ name: 'Pressed/' })])
     expect(matched.defaultPrevented).toBe(true)
     expect(unbound.defaultPrevented).toBe(false)
   })
@@ -84,7 +80,7 @@ describe('keyboardShortcuts', () => {
       modKey: 'Meta',
       bindings: [
         {
-          shortcut: 'Mod+K',
+          keys: 'Mod+K',
           toMessage: toMessage('PressedSearchShortcut'),
         },
       ],
@@ -98,7 +94,7 @@ describe('keyboardShortcuts', () => {
     await stop(fiber)
 
     expect(received).toEqual([
-      Message.PressedShortcut({ name: 'PressedSearchShortcut' }),
+      Message.PressedKeys({ name: 'PressedSearchShortcut' }),
     ])
   })
 
@@ -106,11 +102,11 @@ describe('keyboardShortcuts', () => {
     const { fiber, received } = await start({
       bindings: [
         {
-          shortcut: 'Control+Alt+Shift+Plus',
+          keys: 'Control+Alt+Shift+Plus',
           toMessage: toMessage('PressedModifiedPlus'),
         },
         {
-          shortcut: 'Space',
+          keys: 'Space',
           toMessage: toMessage('PressedSpace'),
         },
       ],
@@ -122,19 +118,19 @@ describe('keyboardShortcuts', () => {
     await stop(fiber)
 
     expect(received).toEqual([
-      Message.PressedShortcut({ name: 'PressedModifiedPlus' }),
-      Message.PressedShortcut({ name: 'PressedSpace' }),
+      Message.PressedKeys({ name: 'PressedModifiedPlus' }),
+      Message.PressedKeys({ name: 'PressedSpace' }),
     ])
   })
 
   it('rejects non-canonical modifier names', () => {
     for (const modifier of ['Ctrl', 'Cmd', 'Command', 'Option']) {
-      for (const shortcut of [`${modifier}+K`, modifier, `Shift+${modifier}`]) {
+      for (const keyPress of [`${modifier}+K`, modifier, `Shift+${modifier}`]) {
         expect(() =>
-          keyboardShortcuts<Message>({
+          keyBindings<Message>({
             bindings: [
               {
-                shortcut,
+                keys: keyPress,
                 toMessage: toMessage('PressedShortcut'),
               },
             ],
@@ -148,7 +144,7 @@ describe('keyboardShortcuts', () => {
     const { fiber, received } = await start({
       bindings: [
         {
-          shortcut: ['G', 'Shift+G', 'Control+Enter'],
+          keys: ['G', 'Shift+G', 'Control+Enter'],
           toMessage: toMessage('PressedSequence'),
         },
       ],
@@ -160,20 +156,18 @@ describe('keyboardShortcuts', () => {
     await tick()
     await stop(fiber)
 
-    expect(received).toEqual([
-      Message.PressedShortcut({ name: 'PressedSequence' }),
-    ])
+    expect(received).toEqual([Message.PressedKeys({ name: 'PressedSequence' })])
   })
 
   it('supports sequences that share a prefix', async () => {
     const { fiber, received } = await start({
       bindings: [
         {
-          shortcut: ['G', 'H'],
+          keys: ['G', 'H'],
           toMessage: toMessage('PressedHomeSequence'),
         },
         {
-          shortcut: ['G', 'P'],
+          keys: ['G', 'P'],
           toMessage: toMessage('PressedPeopleSequence'),
         },
       ],
@@ -187,8 +181,8 @@ describe('keyboardShortcuts', () => {
     await stop(fiber)
 
     expect(received).toEqual([
-      Message.PressedShortcut({ name: 'PressedHomeSequence' }),
-      Message.PressedShortcut({ name: 'PressedPeopleSequence' }),
+      Message.PressedKeys({ name: 'PressedHomeSequence' }),
+      Message.PressedKeys({ name: 'PressedPeopleSequence' }),
     ])
   })
 
@@ -197,11 +191,11 @@ describe('keyboardShortcuts', () => {
       modKey: 'Control',
       bindings: [
         {
-          shortcut: ['Mod+K', 'A'],
+          keys: ['Mod+K', 'A'],
           toMessage: toMessage('PressedModSequence'),
         },
         {
-          shortcut: ['Control+K', 'B'],
+          keys: ['Control+K', 'B'],
           toMessage: toMessage('PressedControlSequence'),
         },
       ],
@@ -215,8 +209,8 @@ describe('keyboardShortcuts', () => {
     await stop(fiber)
 
     expect(received).toEqual([
-      Message.PressedShortcut({ name: 'PressedModSequence' }),
-      Message.PressedShortcut({ name: 'PressedControlSequence' }),
+      Message.PressedKeys({ name: 'PressedModSequence' }),
+      Message.PressedKeys({ name: 'PressedControlSequence' }),
     ])
   })
 
@@ -224,11 +218,11 @@ describe('keyboardShortcuts', () => {
     const { fiber, received } = await start({
       bindings: [
         {
-          shortcut: ['G', 'H'],
+          keys: ['G', 'H'],
           toMessage: toMessage('PressedHomeSequence'),
         },
         {
-          shortcut: '/',
+          keys: '/',
           toMessage: toMessage('PressedPaletteShortcut'),
         },
       ],
@@ -240,7 +234,7 @@ describe('keyboardShortcuts', () => {
     await stop(fiber)
 
     expect(received).toEqual([
-      Message.PressedShortcut({ name: 'PressedPaletteShortcut' }),
+      Message.PressedKeys({ name: 'PressedPaletteShortcut' }),
     ])
   })
 
@@ -249,7 +243,7 @@ describe('keyboardShortcuts', () => {
       sequenceTimeout: Duration.millis(5),
       bindings: [
         {
-          shortcut: ['G', 'H'],
+          keys: ['G', 'H'],
           toMessage: toMessage('PressedHomeSequence'),
         },
       ],
@@ -268,11 +262,11 @@ describe('keyboardShortcuts', () => {
     const { fiber } = await start({
       bindings: [
         {
-          shortcut: ['G', 'H'],
+          keys: ['G', 'H'],
           toMessage: toMessage('PressedPreventedSequence'),
         },
         {
-          shortcut: ['N', 'P'],
+          keys: ['N', 'P'],
           preventDefault: false,
           toMessage: toMessage('PressedUnpreventedSequence'),
         },
@@ -291,7 +285,7 @@ describe('keyboardShortcuts', () => {
     expect(unpreventedSecond.defaultPrevented).toBe(false)
   })
 
-  it('suppresses shortcuts from editable composed paths by default', async () => {
+  it('suppresses bindings from editable composed paths by default', async () => {
     const input = document.createElement('input')
     const editor = document.createElement('div')
     const editorChild = document.createElement('span')
@@ -302,7 +296,7 @@ describe('keyboardShortcuts', () => {
     const { fiber, received } = await start({
       bindings: [
         {
-          shortcut: '/',
+          keys: '/',
           toMessage: toMessage('PressedPaletteShortcut'),
         },
       ],
@@ -316,14 +310,14 @@ describe('keyboardShortcuts', () => {
     expect(received).toEqual([])
   })
 
-  it('allows an opted-in shortcut from an editable element', async () => {
+  it('allows an opted-in binding from an editable element', async () => {
     const input = document.createElement('input')
     document.body.appendChild(input)
 
     const { fiber, received } = await start({
       bindings: [
         {
-          shortcut: 'Escape',
+          keys: 'Escape',
           whileTyping: 'Allow',
           toMessage: toMessage('PressedEscape'),
         },
@@ -334,9 +328,7 @@ describe('keyboardShortcuts', () => {
     await tick()
     await stop(fiber)
 
-    expect(received).toEqual([
-      Message.PressedShortcut({ name: 'PressedEscape' }),
-    ])
+    expect(received).toEqual([Message.PressedKeys({ name: 'PressedEscape' })])
   })
 
   it('keeps a sequence limited to bindings eligible on its first press', async () => {
@@ -346,12 +338,12 @@ describe('keyboardShortcuts', () => {
     const { fiber, received } = await start({
       bindings: [
         {
-          shortcut: ['G', 'H'],
+          keys: ['G', 'H'],
           whileTyping: 'Allow',
           toMessage: toMessage('PressedAllowedSequence'),
         },
         {
-          shortcut: ['G', 'P'],
+          keys: ['G', 'P'],
           toMessage: toMessage('PressedSuppressedSequence'),
         },
       ],
@@ -365,7 +357,7 @@ describe('keyboardShortcuts', () => {
     await stop(fiber)
 
     expect(received).toEqual([
-      Message.PressedShortcut({ name: 'PressedAllowedSequence' }),
+      Message.PressedKeys({ name: 'PressedAllowedSequence' }),
     ])
   })
 
@@ -377,11 +369,11 @@ describe('keyboardShortcuts', () => {
     const { fiber, received } = await start({
       bindings: [
         {
-          shortcut: '/',
+          keys: '/',
           toMessage: toMessage('PressedPaletteShortcut'),
         },
         {
-          shortcut: ['G', 'H'],
+          keys: ['G', 'H'],
           toMessage: toMessage('PressedHomeSequence'),
         },
       ],
@@ -401,7 +393,7 @@ describe('keyboardShortcuts', () => {
     const { fiber, received } = await start({
       bindings: [
         {
-          shortcut: ['G', 'H'],
+          keys: ['G', 'H'],
           toMessage: toMessage('PressedHomeSequence'),
         },
       ],
@@ -420,16 +412,16 @@ describe('keyboardShortcuts', () => {
     const { fiber, received } = await start({
       bindings: [
         {
-          shortcut: 'A',
+          keys: 'A',
           toMessage: toMessage('PressedIgnoredRepeat'),
         },
         {
-          shortcut: 'B',
+          keys: 'B',
           whenRepeated: 'Allow',
           toMessage: toMessage('PressedAllowedRepeat'),
         },
         {
-          shortcut: ['G', 'H'],
+          keys: ['G', 'H'],
           toMessage: toMessage('PressedSequence'),
         },
       ],
@@ -444,8 +436,8 @@ describe('keyboardShortcuts', () => {
     await stop(fiber)
 
     expect(received).toEqual([
-      Message.PressedShortcut({ name: 'PressedAllowedRepeat' }),
-      Message.PressedShortcut({ name: 'PressedSequence' }),
+      Message.PressedKeys({ name: 'PressedAllowedRepeat' }),
+      Message.PressedKeys({ name: 'PressedSequence' }),
     ])
   })
 
@@ -453,7 +445,7 @@ describe('keyboardShortcuts', () => {
     const { fiber, received } = await start({
       bindings: [
         {
-          shortcut: '/',
+          keys: '/',
           isEnabled: false,
           toMessage: toMessage('PressedDisabledShortcut'),
         },
@@ -471,12 +463,12 @@ describe('keyboardShortcuts', () => {
     const { fiber, received } = await start({
       bindings: [
         {
-          shortcut: 'Escape',
+          keys: 'Escape',
           isEnabled: false,
           toMessage: toMessage('PressedDisabledEscape'),
         },
         {
-          shortcut: 'Escape',
+          keys: 'Escape',
           isEnabled: true,
           toMessage: toMessage('PressedEnabledEscape'),
         },
@@ -488,7 +480,7 @@ describe('keyboardShortcuts', () => {
     await stop(fiber)
 
     expect(received).toEqual([
-      Message.PressedShortcut({ name: 'PressedEnabledEscape' }),
+      Message.PressedKeys({ name: 'PressedEnabledEscape' }),
     ])
   })
 
@@ -496,7 +488,7 @@ describe('keyboardShortcuts', () => {
     const { fiber, received } = await start({
       bindings: [
         {
-          shortcut: ['G', 'H'],
+          keys: ['G', 'H'],
           toMessage: toMessage('PressedHomeSequence'),
         },
       ],
@@ -512,10 +504,10 @@ describe('keyboardShortcuts', () => {
   })
 
   it('starts each Stream scope without a pending sequence', async () => {
-    const config: KeyboardShortcutsConfig<Message> = {
+    const config: KeyBindingsConfig<Message> = {
       bindings: [
         {
-          shortcut: ['G', 'H'],
+          keys: ['G', 'H'],
           toMessage: toMessage('PressedHomeSequence'),
         },
       ],
@@ -535,7 +527,7 @@ describe('keyboardShortcuts', () => {
 
     expect(firstScope.received).toEqual([])
     expect(secondScope.received).toEqual([
-      Message.PressedShortcut({ name: 'PressedHomeSequence' }),
+      Message.PressedKeys({ name: 'PressedHomeSequence' }),
     ])
   })
 
@@ -549,7 +541,7 @@ describe('keyboardShortcuts', () => {
       },
       bindings: [
         {
-          shortcut: '/',
+          keys: '/',
           toMessage: toMessage('PressedPaletteShortcut'),
         },
       ],
@@ -563,20 +555,20 @@ describe('keyboardShortcuts', () => {
     await tick()
 
     expect(received).toEqual([
-      Message.PressedShortcut({ name: 'PressedPaletteShortcut' }),
+      Message.PressedKeys({ name: 'PressedPaletteShortcut' }),
     ])
   })
 
   it('rejects malformed and ambiguous binding tables', () => {
     expect(() =>
-      keyboardShortcuts<Message>({
+      keyBindings<Message>({
         bindings: [
           {
-            shortcut: 'Control+K',
+            keys: 'Control+K',
             toMessage: toMessage('PressedFirst'),
           },
           {
-            shortcut: 'Control+K',
+            keys: 'Control+K',
             toMessage: toMessage('PressedSecond'),
           },
         ],
@@ -584,31 +576,31 @@ describe('keyboardShortcuts', () => {
     ).toThrowError(/duplicates/)
 
     expect(() =>
-      keyboardShortcuts<Message>({
+      keyBindings<Message>({
         modKey: 'Control',
         bindings: [
-          { shortcut: 'Mod+K', toMessage: toMessage('PressedFirst') },
-          { shortcut: 'Control+K', toMessage: toMessage('PressedSecond') },
+          { keys: 'Mod+K', toMessage: toMessage('PressedFirst') },
+          { keys: 'Control+K', toMessage: toMessage('PressedSecond') },
         ],
       }),
     ).toThrowError(/duplicates/)
 
     expect(() =>
-      keyboardShortcuts<Message>({
+      keyBindings<Message>({
         modKey: 'Control',
         bindings: [
-          { shortcut: 'Mod+K', toMessage: toMessage('PressedFirst') },
-          { shortcut: 'Meta+K', toMessage: toMessage('PressedSecond') },
+          { keys: 'Mod+K', toMessage: toMessage('PressedFirst') },
+          { keys: 'Meta+K', toMessage: toMessage('PressedSecond') },
         ],
       }),
     ).not.toThrow()
 
     expect(() =>
-      keyboardShortcuts<Message>({
+      keyBindings<Message>({
         bindings: [
-          { shortcut: 'G', toMessage: toMessage('PressedFirst') },
+          { keys: 'G', toMessage: toMessage('PressedFirst') },
           {
-            shortcut: ['G', 'H'],
+            keys: ['G', 'H'],
             toMessage: toMessage('PressedSecond'),
           },
         ],
@@ -616,14 +608,14 @@ describe('keyboardShortcuts', () => {
     ).toThrowError(/sequence prefix/)
 
     expect(() =>
-      keyboardShortcuts<Message>({
+      keyBindings<Message>({
         bindings: [
           {
-            shortcut: ['G', 'H'],
+            keys: ['G', 'H'],
             toMessage: toMessage('PressedFirst'),
           },
           {
-            shortcut: ['G', 'P'],
+            keys: ['G', 'P'],
             preventDefault: false,
             toMessage: toMessage('PressedSecond'),
           },
@@ -632,10 +624,10 @@ describe('keyboardShortcuts', () => {
     ).toThrowError(/same preventDefault/)
 
     expect(() =>
-      keyboardShortcuts<Message>({
+      keyBindings<Message>({
         bindings: [
           {
-            shortcut: 'Control++',
+            keys: 'Control++',
             toMessage: toMessage('PressedMalformed'),
           },
         ],
@@ -643,10 +635,10 @@ describe('keyboardShortcuts', () => {
     ).toThrowError(/use "Plus"/)
 
     expect(() =>
-      keyboardShortcuts<Message>({
+      keyBindings<Message>({
         bindings: [
           {
-            shortcut: 'CapsLock',
+            keys: 'CapsLock',
             toMessage: toMessage('PressedModifierKey'),
           },
         ],
@@ -654,7 +646,7 @@ describe('keyboardShortcuts', () => {
     ).toThrowError(/non-modifier/)
 
     expect(() =>
-      keyboardShortcuts<Message>({
+      keyBindings<Message>({
         sequenceTimeout: Duration.zero,
         bindings: [],
       }),

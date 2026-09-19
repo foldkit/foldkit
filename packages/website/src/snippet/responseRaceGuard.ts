@@ -2,7 +2,7 @@ import { Effect, Schema, pipe } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/unstable/http'
 import { AsyncData, Command, Http, type Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 const SearchResult = Schema.Struct({ id: Schema.String, title: Schema.String })
 
@@ -59,7 +59,7 @@ const Search = Command.define('Search', {
 const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     UpdatedQuery: ({ query }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         queryInput: () => query,
         searchResults: () => SearchResultsData.Loading(),
       }),
@@ -70,6 +70,8 @@ const update = (model: Model, message: Message) =>
       if (query !== model.queryInput) {
         return { model }
       }
-      return { model: evo(model, { searchResults: AsyncData.settle(result) }) }
+      return {
+        model: modifyFields(model, { searchResults: AsyncData.settle(result) }),
+      }
     },
   })

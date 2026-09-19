@@ -24,11 +24,11 @@ export type {
   TypedEventTarget,
 } from './fromEvent.js'
 
-export { keyboardShortcuts } from './keyboardShortcuts.js'
+export { keyBindings } from './keyBindings.js'
 
 export type {
-  KeyboardShortcut,
-  KeyboardShortcutBinding,
-  KeyboardShortcutsConfig,
+  KeyBinding,
+  KeyBindingsConfig,
+  KeySequence,
   WhileTyping,
-} from './keyboardShortcuts.js'
+} from './keyBindings.js'

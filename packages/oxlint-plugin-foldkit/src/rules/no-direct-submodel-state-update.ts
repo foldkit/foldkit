@@ -187,12 +187,15 @@ const directWriteField = (
     return undefined
   }
   const returned = expressionReturnedBy(callback)
-  if (!isCallExpression(returned) || !isEvoCall(returned, references)) {
+  if (
+    !isCallExpression(returned) ||
+    !isModifyFieldsCall(returned, references)
+  ) {
     return undefined
   }
-  const [evolvedModel, updates] = returned.arguments
+  const [updatedModel, updates] = returned.arguments
   if (
-    !isIdentifier(evolvedModel, modelParameter.name) ||
+    !isIdentifier(updatedModel, modelParameter.name) ||
     !isObjectExpression(updates)
   ) {
     return undefined
@@ -215,7 +218,7 @@ const directWriteField = (
   return undefined
 }
 
-const isEvoCall = (
+const isModifyFieldsCall = (
   node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {
@@ -228,17 +231,17 @@ const isEvoCall = (
         ]
         return (
           namespace === 'Struct' &&
-          helperName === 'evo' &&
+          helperName === 'modifyFields' &&
           extraMember === undefined
         )
-      }) || isIdentifier(node.callee, 'evo')
+      }) || isIdentifier(node.callee, 'modifyFields')
     )
   }
   return Option.exists(resolveFoldkitApiPath(references, node.callee), path => {
     const [namespace, helperName, extraMember] = path
     return (
       namespace === 'Struct' &&
-      helperName === 'evo' &&
+      helperName === 'modifyFields' &&
       extraMember === undefined
     )
   })
@@ -750,12 +753,12 @@ const foldEvidence = (
   }
 }
 
-const directChildEvoField = (
+const directChildModifyFieldsField = (
   node: ESTree.CallExpression,
   evidence: FoldEvidence,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): string | undefined => {
-  if (!isEvoCall(node, references)) {
+  if (!isModifyFieldsCall(node, references)) {
     return undefined
   }
   const [model, updates] = node.arguments
@@ -792,7 +795,7 @@ const directChildEvoField = (
     for (const nestedUpdate of expressionsReturnedBy(property.value)) {
       if (
         !isCallExpression(nestedUpdate) ||
-        !isEvoCall(nestedUpdate, references)
+        !isModifyFieldsCall(nestedUpdate, references)
       ) {
         continue
       }
@@ -805,7 +808,7 @@ const directChildEvoField = (
   return undefined
 }
 
-/** Flags parent-owned evo calls that directly update a child Submodel Model. */
+/** Flags parent-owned modifyFields calls that directly update a child Submodel Model. */
 export const noDirectSubmodelStateUpdate = Rule.define({
   name: 'no-direct-submodel-state-update',
   meta: Rule.meta({
@@ -846,7 +849,7 @@ export const noDirectSubmodelStateUpdate = Rule.define({
               ) {
                 return
               }
-              const fieldName = directChildEvoField(
+              const fieldName = directChildModifyFieldsField(
                 candidate,
                 evidence,
                 references,

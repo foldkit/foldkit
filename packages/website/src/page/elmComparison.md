@@ -59,11 +59,11 @@ The update functions have the same shape.
 
 ::Snippet{name="comparisonFoldkitUpdate" label="Foldkit update"}
 
-`case msg of` becomes `Message.match`. Elm record updates become `evo` transformations. `( model, Cmd.none )` becomes `{ model }`.
+`case msg of` becomes `Message.match`. Elm record updates become `modifyFields` transformations. `( model, Cmd.none )` becomes `{ model }`.
 
 Elm enforces exhaustive pattern matching as part of the language. Foldkit obtains the same compile-time failure at a match written with `Message.match`. That is the required Foldkit update style, but TypeScript itself does not prevent someone from writing a non-exhaustive alternative.
 
-Elm record updates and `evo` both preserve references to unchanged nested values. The rendering section shows how each application uses that reference stability.
+Elm record updates and `modifyFields` both preserve references to unchanged nested values. The rendering section shows how each application uses that reference stability.
 
 ## The Model: Custom Types vs Schema {#the-model}
 

@@ -13,7 +13,7 @@ import { type Update } from 'foldkit'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { type Reflect, defineView } from 'foldkit/submodel'
 import * as Subscription from 'foldkit/subscription'
 
@@ -214,7 +214,7 @@ export const update = (model: Model, message: Message) =>
         withUpdateReturn,
         Match.tag('Dragging', () => ({ model })),
         Match.orElse(() => ({
-          model: evo(model, {
+          model: modifyFields(model, {
             dragState: () => DragState.Dragging({ originValue }),
           }),
         })),
@@ -233,7 +233,7 @@ export const update = (model: Model, message: Message) =>
         Match.orElse(() => {
           const snapped = snapAndClamp(value, model.min, model.max, model.step)
           return withChangedValue(
-            evo(model, {
+            modifyFields(model, {
               dragState: () => DragState.Dragging({ originValue }),
             }),
             originValue,
@@ -258,7 +258,7 @@ export const update = (model: Model, message: Message) =>
       Match.value(model.dragState).pipe(
         withUpdateReturn,
         Match.tag('Dragging', () => ({
-          model: evo(model, { dragState: () => DragState.Idle() }),
+          model: modifyFields(model, { dragState: () => DragState.Idle() }),
         })),
         Match.orElse(() => ({ model })),
       ),
@@ -267,7 +267,7 @@ export const update = (model: Model, message: Message) =>
       Match.value(model.dragState).pipe(
         withUpdateReturn,
         Match.tag('Dragging', ({ originValue }) => ({
-          model: evo(model, { dragState: () => DragState.Idle() }),
+          model: modifyFields(model, { dragState: () => DragState.Idle() }),
           outMessage: OutMessage.ChangedValue({ value: originValue }),
         })),
         Match.orElse(() => ({ model })),
@@ -297,7 +297,7 @@ export const reflectRange: Reflect<
 > = Function.dual(
   2,
   (model: Model, range: Readonly<{ min: number; max: number }>): Model =>
-    evo(model, {
+    modifyFields(model, {
       min: () => range.min,
       max: () => range.max,
     }),

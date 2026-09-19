@@ -9,7 +9,7 @@ import {
   scene,
   text,
 } from 'foldkit/scene'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { Tabs } from '@foldkit/ui'
@@ -78,7 +78,7 @@ describe('view', () => {
   test('Previous on a later step returns to the prior step', () => {
     scene(
       { update, view },
-      given(evo(initialModel, { currentStep: () => 'Education' })),
+      given(modifyFields(initialModel, { currentStep: () => 'Education' })),
       expect(role('heading', { name: 'Education' })).toExist(),
       click(role('button', { name: '← Previous' })),
       expect(role('heading', { name: 'Work History' })).toExist(),
@@ -96,7 +96,7 @@ describe('view', () => {
   test('the Review step exposes a Submit button and hides Next', () => {
     scene(
       { update, view },
-      given(evo(initialModel, { currentStep: () => 'Review' })),
+      given(modifyFields(initialModel, { currentStep: () => 'Review' })),
       expect(role('button', { name: 'Submit Application' })).toExist(),
       expect(role('button', { name: 'Next →' })).toBeAbsent(),
     )
@@ -105,7 +105,7 @@ describe('view', () => {
   test('clicking Submit on an incomplete application shows a blocking notice', () => {
     scene(
       { update, view },
-      given(evo(initialModel, { currentStep: () => 'Review' })),
+      given(modifyFields(initialModel, { currentStep: () => 'Review' })),
       expect(role('button', { name: 'Submit Application' })).toBeEnabled(),
       expect(
         text(
@@ -125,9 +125,9 @@ describe('view', () => {
     scene(
       { update, view },
       given(
-        evo(completeModel, {
+        modifyFields(completeModel, {
           currentStep: () => 'Review',
-          personalInfo: evo({
+          personalInfo: modifyFields({
             email: () => Validating({ value: 'jane@example.com' }),
           }),
         }),
@@ -142,15 +142,15 @@ describe('view', () => {
     scene(
       { update, view },
       given(
-        evo(completeModel, {
+        modifyFields(completeModel, {
           currentStep: () => 'Review',
-          workHistory: evo({
+          workHistory: modifyFields({
             entries: () => [],
           }),
-          education: evo({
+          education: modifyFields({
             entries: () => [],
           }),
-          skills: evo({
+          skills: modifyFields({
             entries: () => [],
           }),
         }),
@@ -167,7 +167,7 @@ describe('view', () => {
     scene(
       { update, view },
       given(
-        evo(initialModel, {
+        modifyFields(initialModel, {
           currentStep: () => 'Review',
           submission: () => Submission.Submitting(),
         }),
@@ -180,7 +180,7 @@ describe('view', () => {
     scene(
       { update, view },
       given(
-        evo(initialModel, {
+        modifyFields(initialModel, {
           currentStep: () => 'Review',
           submission: () => Submission.SubmitSuccess(),
         }),
@@ -193,7 +193,7 @@ describe('view', () => {
     scene(
       { update, view },
       given(
-        evo(initialModel, {
+        modifyFields(initialModel, {
           currentStep: () => 'Review',
           submission: () => Submission.SubmitError({ error: 'Network down' }),
         }),

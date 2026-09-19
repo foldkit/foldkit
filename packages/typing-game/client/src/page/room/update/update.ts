@@ -1,7 +1,7 @@
 import { Array, Effect, Match, Number, Option, String, pipe } from 'effect'
 import { AsyncData, Command, type Update } from 'foldkit'
 import { pushUrl } from 'foldkit/navigation'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import * as Shared from '@typing-game/shared'
 
@@ -79,7 +79,7 @@ export const update = (model: Model, message: Message, context: Context) =>
       )
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           userGameText: () => userGameText,
           charsTyped: () => nextCharsTyped,
         }),
@@ -93,7 +93,7 @@ export const update = (model: Model, message: Message, context: Context) =>
     }),
 
     ChangedRoomPageUsername: ({ value }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         username: () => value,
       }),
     }),
@@ -118,7 +118,7 @@ export const update = (model: Model, message: Message, context: Context) =>
         () => FocusRoomPageUsernameInput(),
       )
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           maybeSession: () => maybeSession,
         }),
         commands: Array.fromOption(maybeFocus),
@@ -130,7 +130,7 @@ export const update = (model: Model, message: Message, context: Context) =>
         FocusRoomPageUsernameInput(),
       )
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           roomAsyncData: () => RoomAsyncData.Success({ data: room }),
         }),
         commands: Array.fromOption(maybeFocus),
@@ -138,7 +138,7 @@ export const update = (model: Model, message: Message, context: Context) =>
     },
 
     FailedFetchRoom: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         roomAsyncData: () => RoomAsyncData.Failure({ error: 'Room not found' }),
       }),
     }),
@@ -152,14 +152,14 @@ export const update = (model: Model, message: Message, context: Context) =>
       model.isRoomIdCopyIndicatorVisible
         ? { model }
         : {
-            model: evo(model, {
+            model: modifyFields(model, {
               isRoomIdCopyIndicatorVisible: () => true,
             }),
             commands: [WaitBeforeHidingRoomIdCopiedIndicator()],
           },
 
     CompletedWaitBeforeHidingRoomIdCopiedIndicator: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         isRoomIdCopyIndicatorVisible: () => false,
       }),
     }),
@@ -171,7 +171,7 @@ export const update = (model: Model, message: Message, context: Context) =>
       )
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           exitCountdownSecondsLeft: () => nextSecondsLeft,
         }),
         commands: Array.fromOption(maybeTick),
@@ -181,7 +181,7 @@ export const update = (model: Model, message: Message, context: Context) =>
     SucceededJoinRoom: ({ player }) => {
       const session = { roomId: context.roomId, player }
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           maybeSession: () => Option.some(session),
         }),
         commands: [SavePlayerSession({ session })],
@@ -240,7 +240,7 @@ const whenFinished = (
   )
 
 const leaveRoom = (model: Model): UpdateReturn => ({
-  model: evo(model, {
+  model: modifyFields(model, {
     maybeSession: () => Option.none(),
     roomAsyncData: () => RoomAsyncData.Loading(),
   }),

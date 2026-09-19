@@ -2,7 +2,7 @@
 
 import { Effect } from 'effect'
 import { Command, Dom, type Update } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 const FocusSearchInput = Command.define('FocusSearchInput', {
   messages: [Message.CompletedFocusSearchInput],
@@ -15,7 +15,7 @@ const FocusSearchInput = Command.define('FocusSearchInput', {
 const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedOpenDialog: () => ({
-      model: evo(model, { dialogState: () => 'Open' }),
+      model: modifyFields(model, { dialogState: () => 'Open' }),
       commands: [FocusSearchInput()],
     }),
     CompletedFocusSearchInput: () => ({ model }),

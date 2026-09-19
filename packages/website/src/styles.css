@@ -251,7 +251,7 @@ html.dark {
   }
 
   .link-accent {
-    @apply text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500;
+    @apply text-accent-700 dark:text-accent-500 underline decoration-accent-700/30 dark:decoration-accent-500/30 hover:decoration-accent-700 dark:hover:decoration-accent-500;
   }
 
   .code-surface {

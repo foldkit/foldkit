@@ -449,7 +449,7 @@ describe('Slider', () => {
       expect(after.max).toBe(200)
     })
 
-    it('supports the data-last form for point-free use in evo', () => {
+    it('supports the data-last form for point-free use in modifyFields', () => {
       const widen = reflectRange({ min: 0, max: 50 })
       const after = widen(defaultInit())
       expect(after.min).toBe(0)

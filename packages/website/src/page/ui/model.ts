@@ -128,6 +128,7 @@ export const Model = Schema.Struct({
   verticalTabsDemoTab: DemoTab,
   dragAndDropDemo: DragAndDrop.Model,
   dragAndDropDemoColumns: Schema.Array(DemoColumn),
+  dragAndDropDemoAnnouncement: Schema.String,
   fileDropBasicDemo: FileDrop.Model,
   fileDropBasicDemoFiles: Schema.Array(File.File),
   toastDemo: Toast.Model,

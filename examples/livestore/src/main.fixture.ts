@@ -1,6 +1,6 @@
 import { Option } from 'effect'
 import { AsyncData } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Item, Model } from './main'
 
@@ -37,7 +37,7 @@ export const mutationFailureModel = (
   items: ReadonlyArray<Item>,
   error: string,
 ): Model =>
-  evo(successModel(items), {
+  modifyFields(successModel(items), {
     maybeMutationError: () => Option.some(error),
   })
 

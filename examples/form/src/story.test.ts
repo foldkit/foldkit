@@ -1,6 +1,6 @@
 import { FieldValidation } from 'foldkit'
 import { Command, given, message, model, story } from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import {
@@ -12,7 +12,7 @@ import {
   update,
 } from './main'
 
-const validModel: Model = evo(initialModel, {
+const validModel: Model = modifyFields(initialModel, {
   name: () => FieldValidation.Valid({ value: 'Alice' }),
   email: () => FieldValidation.Valid({ value: 'alice@example.com' }),
 })
@@ -83,7 +83,7 @@ describe('update', () => {
     })
 
     test('a validation result for a superseded email value is ignored', () => {
-      const inFlightModel: Model = evo(initialModel, {
+      const inFlightModel: Model = modifyFields(initialModel, {
         email: () => FieldValidation.Validating({ value: 'alice@example.com' }),
       })
 
@@ -102,7 +102,7 @@ describe('update', () => {
     })
 
     test('a validation result for the current email value updates the field', () => {
-      const inFlightModel: Model = evo(initialModel, {
+      const inFlightModel: Model = modifyFields(initialModel, {
         email: () => FieldValidation.Validating({ value: 'taken@example.com' }),
       })
 

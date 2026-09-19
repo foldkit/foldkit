@@ -14,7 +14,7 @@ const badAliasRouting = () => GotChildMessage({ message: clickedSave() })
 const foldChildSave = Update.foldChildStep({
   update: Child.save,
   read: model => Option.some(model.child),
-  write: (model, nextChild) => evo(model, { child: () => nextChild }),
+  write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
   toParentMessage: message => GotChildMessage({ message }),
 })
 

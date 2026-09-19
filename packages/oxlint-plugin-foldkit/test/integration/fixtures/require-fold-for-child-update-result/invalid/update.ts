@@ -1,5 +1,5 @@
 import { Update } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { Option } from 'effect'
 import * as Child from './child'
 import * as Products from './products'
@@ -38,7 +38,7 @@ const foldSettings = Update.foldChild({
   update: Settings.update,
   read: (model: Model) => Option.some(model.settings),
   write: (model, nextSettings) =>
-    evo(model, { settings: () => nextSettings }),
+    modifyFields(model, { settings: () => nextSettings }),
   toParentMessage: (message: Settings.Message) =>
     GotSettingsMessage({ message }),
 })
@@ -46,7 +46,7 @@ const foldSettings = Update.foldChild({
 const foldChild = Update.foldChild({
   update: Child.update,
   read: (model: Model) => Option.some(model.child),
-  write: (model, nextChild) => evo(model, { child: () => nextChild }),
+  write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
   toParentMessage: (message: Child.Message) => GotChildMessage({ message }),
 })
 
@@ -54,7 +54,7 @@ const foldChildBlock = Update.foldChild({
   update: Child.update,
   read: (model: Model) => Option.some(model.childBlock),
   write: (model, nextChildBlock) =>
-    evo(model, { childBlock: () => nextChildBlock }),
+    modifyFields(model, { childBlock: () => nextChildBlock }),
   toParentMessage: (message: Child.Message) => GotChildMessage({ message }),
 })
 
@@ -62,7 +62,7 @@ const foldProducts = Update.foldChild({
   update: Products.update,
   read: (model: Model) => Option.some(model.productsPage),
   write: (model, nextProductsPage) =>
-    evo(model, { productsPage: () => nextProductsPage }),
+    modifyFields(model, { productsPage: () => nextProductsPage }),
   toParentMessage: (message: Products.Message) =>
     GotProductsMessage({ message }),
 })
@@ -73,7 +73,7 @@ const childBlockUpdate = Child.update(model.childBlock, message)
 const productsUpdate = Products.update(model.productsPage, message)
 
 export const update = () => ({
-  model: evo(model, {
+  model: modifyFields(model, {
     settings: () => settingsReset.model,
     child: () => childUpdate.model,
     childBlock: () => {

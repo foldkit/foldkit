@@ -11,7 +11,7 @@ import {
 import { Command, Runtime, Subscription, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Button } from '@foldkit/ui'
 
@@ -71,20 +71,20 @@ export const update = (model: Model, message: Message) =>
     }),
 
     CompletedDetermineStartTime: ({ startTime }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         isRunning: () => true,
         startTime: () => startTime,
       }),
     }),
 
     ClickedStop: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         isRunning: () => false,
       }),
     }),
 
     ClickedReset: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         elapsedMs: () => 0,
         isRunning: () => false,
         startTime: () => 0,
@@ -97,7 +97,7 @@ export const update = (model: Model, message: Message) =>
     }),
 
     CompletedDetermineTickTime: ({ elapsedMs }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         elapsedMs: () => elapsedMs,
       }),
     }),

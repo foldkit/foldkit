@@ -1,11 +1,9 @@
 import { Array, Option, Order, String, pipe } from 'effect'
 
-import { type AppRoute } from '../src/route'
+import { type AppRoute, SITE_URL } from '../src/route'
 import { type PageMetadata } from './metadata'
 
 // EXTRACTION
-
-const SITE_URL = 'https://foldkit.dev'
 
 const TEXT_NODE_TYPE = 3
 const ELEMENT_NODE_TYPE = 1

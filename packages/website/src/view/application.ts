@@ -7,6 +7,7 @@ import { Docs, Marketing } from '../layout'
 import { Message } from '../message'
 import { type Model } from '../model'
 import { Home, Newsletter, Playground } from '../page'
+import { routeToCanonicalUrl } from '../route'
 import { routeTitle } from '../routeTitle'
 import * as SnippetCopy from '../snippetCopy'
 import * as Blog from './blog'
@@ -86,6 +87,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
 
   return {
     title: routeTitle(model.route, model.apiReference.apiData),
+    canonical: routeToCanonicalUrl(model.route),
     body: Deployment.match(model.deployment, {
       Production: () => body,
       Canary: ({ commit }) => h.div([], [body, Shared.canaryBanner(commit)]),

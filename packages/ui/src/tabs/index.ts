@@ -4,7 +4,7 @@ import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 
 import { idSelector } from '../internal/selectors.js'
@@ -117,12 +117,14 @@ type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     SelectedTab: ({ index, value }) => ({
-      model: evo(model, { maybeFocusedIndex: () => Option.none() }),
+      model: modifyFields(model, { maybeFocusedIndex: () => Option.none() }),
       commands: [FocusTab({ id: model.id, index })],
       outMessage: OutMessage.Selected({ value, index }),
     }),
     FocusedTab: ({ index }) => ({
-      model: evo(model, { maybeFocusedIndex: () => Option.some(index) }),
+      model: modifyFields(model, {
+        maybeFocusedIndex: () => Option.some(index),
+      }),
       commands: [FocusTab({ id: model.id, index })],
     }),
     CompletedFocusTab: () => ({ model }),
@@ -159,6 +161,12 @@ export type RenderInfo<Value extends string = string> = Readonly<{
   activeIndex: number
 }>
 
+/** Describes whether a consumer renders only the active tab panel or keeps
+ *  every panel mounted and hides inactive ones. Tab-to-panel references follow
+ *  the rendered panel strategy. */
+export const PanelMount = Schema.Literals(['ActiveOnly', 'All'])
+export type PanelMount = typeof PanelMount.Type
+
 /** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
  *  Generic over `Value extends string` so consumers using
  *  `Tabs.create<MyUnion>()` receive `tab.value: MyUnion` in `toView`
@@ -167,7 +175,10 @@ export type RenderInfo<Value extends string = string> = Readonly<{
  *
  *  - `selectedValue`: the active tab, read straight from the parent Model.
  *    `aria-selected`, the `data-selected` marker, and which panel is active
- *    all derive from it. */
+ *    all derive from it.
+ *  - `panelMount`: defaults to `ActiveOnly`, where the consumer renders only
+ *    the active panel. Set `All` when the consumer keeps every panel mounted
+ *    and hides inactive ones, so every tab retains its panel relationship. */
 export type ViewInputs<Value extends string = string> = Readonly<{
   tabs: ReadonlyArray<Value>
   selectedValue: Value
@@ -175,6 +186,7 @@ export type ViewInputs<Value extends string = string> = Readonly<{
   toView: (render: RenderInfo<Value>) => Html
   isTabDisabled?: (value: Value, index: number) => boolean
   orientation?: Orientation
+  panelMount?: PanelMount
 }>
 
 const internalView = defineView<Model, Message, ViewInputs>(
@@ -187,6 +199,7 @@ const internalView = defineView<Model, Message, ViewInputs>(
       toView,
       isTabDisabled,
       orientation = 'Horizontal',
+      panelMount = 'ActiveOnly',
     } = viewInputs
 
     const activeIndex = pipe(
@@ -288,7 +301,9 @@ const internalView = defineView<Model, Message, ViewInputs>(
         h.Role('tab'),
         h.Type('button'),
         h.AriaSelected(isActive),
-        h.AriaControls(tabPanelId(id, index)),
+        ...(isActive || panelMount === 'All'
+          ? [h.AriaControls(tabPanelId(id, index))]
+          : []),
         h.Tabindex(isFocused ? 0 : -1),
         ...(isActive ? [h.DataAttribute('selected', '')] : []),
         ...(isTabDisabledNow

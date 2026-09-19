@@ -61,7 +61,7 @@ Then replace this file whole. Foldkit's conventions change with its APIs, and a 
 const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedIncrement: () => ({
-      model: evo(model, { count: count => count + 1 }),
+      model: modifyFields(model, { count: count => count + 1 }),
     }),
   })
 ```
@@ -76,7 +76,7 @@ Pass optional Commands directly to APIs that accept them: `Command.mapMessages(h
 
 Use `Update.Return<Model, Message>` when an update cannot emit an OutMessage. It prevents a result containing an OutMessage from entering code that would keep only its Model and Commands. A result with no `outMessage` can still be used where `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is expected. The missing field means that update emitted no OutMessage.
 
-Use `Update.foldChildInit` to keep a child `init` or `boot` result, its lifted Commands, and any OutMessage together. Use `Update.foldChild` for a child update that receives input, or `Update.foldChildStep` for a child helper that receives only its Model. Independent child inits still need separate Model assembly.
+Use `Update.foldChildInit` for one child `init` or `boot` result. Use `Update.foldChildInits` when several child results enter one parent Model. Both lift child Commands and handle child OutMessages. Use `Update.foldChild` for a child update that receives input, or `Update.foldChildStep` for a child helper that receives only its Model. Keep route-gated initialization or Model-only child construction separate when there is no shared set of child results to fold.
 
 Use `Update.combine` when a later Step should receive the Model produced by an earlier Step. It takes two or more Steps. Do not wrap one Step in `Update.combine`; call that operation directly. Name an inline Step parameter `stepModel`; it contains the Model produced by the preceding Step.
 
@@ -84,7 +84,9 @@ When the OutMessage is already known while constructing a new result, include it
 
 Add `toParentOutMessage` only when at least one child OutMessage should continue to the current Submodel's parent. For partial forwarding, match every child variant and return `undefined` for the variants that stop here. Omit `toParentOutMessage` when every variant stops here. `foldOutMessage` still handles each variant locally, including variants that continue upward. Never write `toParentOutMessage: () => undefined`.
 
-Use `evo()` from `foldkit/struct` for immutable model updates. Never spread or `Object.assign`.
+When a `foldChildInits` entry can derive or forward an OutMessage, add `resolveOutMessage` to construct one parent OutMessage from the named OutMessages after every local fold completes. Combine their information when both results matter; choosing one discards the other. The callback also receives the final Model. If that Model alone contains everything needed, use local folds and attach a parent OutMessage afterward with `Update.withOutMessage`.
+
+Use `modifyFields()` from `foldkit/struct` for immutable model updates. Never spread or `Object.assign`.
 
 ### View
 

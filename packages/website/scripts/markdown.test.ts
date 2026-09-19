@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { SITE_URL } from '../src/route'
 import {
   type LlmsFullEntry,
   type LlmsIndexEntry,
@@ -9,8 +10,6 @@ import {
   shouldExportMarkdown,
   urlPathToMarkdownPath,
 } from './markdown'
-
-const SITE_URL = 'https://foldkit.dev'
 
 const setBody = (html: string): void => {
   document.body.innerHTML = `<div data-pagefind-body>${html}</div>`

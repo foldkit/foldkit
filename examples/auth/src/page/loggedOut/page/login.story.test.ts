@@ -8,7 +8,7 @@ import {
   model,
   story,
 } from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import {
@@ -19,7 +19,7 @@ import {
   update,
 } from './login'
 
-const validModel = evo(initModel(), {
+const validModel = modifyFields(initModel(), {
   email: () => Valid({ value: 'alice@example.com' }),
   password: () => Valid({ value: 'password' }),
 })

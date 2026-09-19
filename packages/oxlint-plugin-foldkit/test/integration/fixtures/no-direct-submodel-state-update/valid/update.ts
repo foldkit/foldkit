@@ -1,6 +1,6 @@
 import { Option } from 'effect'
 import { Update } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 type SettingsModel = Readonly<{ theme: string }>
 type ParentModel = Readonly<{ settings: SettingsModel }>
@@ -12,7 +12,7 @@ const readSettings = (model: ParentModel) => Option.some(model.settings)
 const writeSettings = (
   model: ParentModel,
   nextSettings: SettingsModel,
-): ParentModel => evo(model, { settings: () => nextSettings })
+): ParentModel => modifyFields(model, { settings: () => nextSettings })
 
 const foldSettings = Update.foldChild({
   update: (settings: SettingsModel, _message: unknown) => ({ model: settings }),
@@ -26,7 +26,7 @@ const readOtherSettings = (model: OtherModel) => Option.some(model.settings)
 const writeOtherSettings = (
   model: OtherModel,
   nextSettings: SettingsModel,
-): OtherModel => evo(model, { settings: () => nextSettings })
+): OtherModel => modifyFields(model, { settings: () => nextSettings })
 
 const foldOtherSettings = Update.foldChild({
   update: (settings: SettingsModel, _message: unknown) => ({ model: settings }),
@@ -39,8 +39,8 @@ export const updateParent = (model: ParentModel, message: unknown) =>
   foldSettings(model, message)
 
 export const updateOther = (model: OtherModel) => ({
-  model: evo(model, {
-    settings: settings => evo(settings, { theme: () => 'Light' }),
+  model: modifyFields(model, {
+    settings: settings => modifyFields(settings, { theme: () => 'Light' }),
   }),
 })
 
@@ -58,8 +58,8 @@ export const updateParentWithOtherFold = (
   ])
 
   return {
-    model: evo(model, {
-      settings: settings => evo(settings, { theme: () => 'Light' }),
+    model: modifyFields(model, {
+      settings: settings => modifyFields(settings, { theme: () => 'Light' }),
     }),
     commands: update.commands,
   }

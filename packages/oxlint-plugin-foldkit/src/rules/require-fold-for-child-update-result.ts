@@ -45,21 +45,23 @@ const sameIdentifierName = (
   binding: Readonly<{ name: string }>,
 ): boolean => reference.name === binding.name
 
-const isFoldkitEvoCall = (
+const isFoldkitModifyFieldsCall = (
   node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {
   if (references !== undefined) {
     return Option.exists(resolveFoldkitApiPath(references, node.callee), path =>
-      sameNames(path, ['Struct', 'evo']),
+      sameNames(path, ['Struct', 'modifyFields']),
     )
   }
 
   return Option.exists(
     staticMemberPath(node.callee),
     path =>
-      (path.root.name === 'evo' && Array.isReadonlyArrayEmpty(path.members)) ||
-      (path.root.name === 'Struct' && sameNames(path.members, ['evo'])),
+      (path.root.name === 'modifyFields' &&
+        Array.isReadonlyArrayEmpty(path.members)) ||
+      (path.root.name === 'Struct' &&
+        sameNames(path.members, ['modifyFields'])),
   )
 }
 
@@ -187,7 +189,7 @@ const modelFieldNames = (
   return fieldNames
 }
 
-const evoFieldNames = (
+const modifyFieldsFieldNames = (
   functionNode: ESTree.ArrowFunctionExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): ReadonlySet<string> => {
@@ -198,14 +200,17 @@ const evoFieldNames = (
 
   const fieldNames = new Set<string>()
   walk(functionNode.body, node => {
-    if (!isCallExpression(node) || !isFoldkitEvoCall(node, references)) {
+    if (
+      !isCallExpression(node) ||
+      !isFoldkitModifyFieldsCall(node, references)
+    ) {
       return
     }
 
-    const [evoModel, updates] = node.arguments
+    const [modifyFieldsModel, updates] = node.arguments
     if (
-      !isIdentifier(evoModel) ||
-      !sameIdentifierName(evoModel, parentModel) ||
+      !isIdentifier(modifyFieldsModel) ||
+      !sameIdentifierName(modifyFieldsModel, parentModel) ||
       !isObjectExpression(updates)
     ) {
       return
@@ -312,7 +317,7 @@ const foldChildFieldsByNamespace = (
       } else if (Option.contains(staticPropertyName(property), 'write')) {
         const callback = callbackValue(property.value, callbacks)
         if (callback !== undefined) {
-          writeFields = evoFieldNames(callback, references)
+          writeFields = modifyFieldsFieldNames(callback, references)
         }
       }
     }
@@ -446,7 +451,7 @@ const manualChildResultMessage = (
   `The parent writes \`${resultName}.model\` into \`${childFieldName}\` after calling \`${helperLabel}\`. A child Return can include Commands or an OutMessage that this copy ignores. Use Update.foldChild or Update.foldChildStep.`
 
 /** Flags a parent that copies a namespaced child helper or update Return's Model
- *  into the matching evo field. It requires a matching Update.foldChild or
+ *  into the matching modifyFields field. It requires a matching Update.foldChild or
  *  Update.foldChildStep reference in the file, and leaves ordinary helpers,
  *  direct imports, aliases, init assembly, and Model-only reflect helpers alone. */
 export const requireFoldForChildUpdateResult = Rule.define({
@@ -526,7 +531,7 @@ export const requireFoldForChildUpdateResult = Rule.define({
       CallExpression: (node: ESTree.Node) => {
         if (
           !isCallExpression(node) ||
-          !isFoldkitEvoCall(node, references) ||
+          !isFoldkitModifyFieldsCall(node, references) ||
           isInsideFoldWrite(node, references)
         ) {
           return Effect.void

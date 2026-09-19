@@ -2,7 +2,7 @@ import { Effect, Schema } from 'effect'
 import { Command, type Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 const UserSchema = Schema.Struct({ id: Schema.String, name: Schema.String })
 
@@ -53,13 +53,13 @@ const FetchUser = Command.define('FetchUser', {
 const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedFetchUser: ({ userId }) => ({
-      model: evo(model, { user: () => UserState.Loading() }),
+      model: modifyFields(model, { user: () => UserState.Loading() }),
       commands: [FetchUser({ userId })],
     }),
     SucceededFetchUser: ({ data }) => ({
-      model: evo(model, { user: () => UserState.Success({ data }) }),
+      model: modifyFields(model, { user: () => UserState.Success({ data }) }),
     }),
     FailedFetchUser: ({ error }) => ({
-      model: evo(model, { user: () => UserState.Failure({ error }) }),
+      model: modifyFields(model, { user: () => UserState.Failure({ error }) }),
     }),
   })

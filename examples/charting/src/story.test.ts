@@ -1,5 +1,5 @@
 import { Command, given, message, model, story } from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { expect, test } from 'vitest'
 
 import { RadioGroup } from '@foldkit/ui'
@@ -103,7 +103,7 @@ test('a failed refresh preserves stale data in the stale state', () => {
   story(
     update,
     given(
-      evo(readyModel, {
+      modifyFields(readyModel, {
         telemetry: () =>
           TelemetryAsyncData.Refreshing({ data: sampleTelemetry }),
       }),

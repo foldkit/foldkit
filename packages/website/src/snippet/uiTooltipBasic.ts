@@ -5,7 +5,7 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Tooltip } from '@foldkit/ui'
 
@@ -51,7 +51,8 @@ const foldTooltipOutMessage = Tooltip.OutMessage.match<
 const foldTooltip = Update.foldChild({
   update: Tooltip.update,
   read: (model: Model) => Option.some(model.tooltip),
-  write: (model, nextTooltip) => evo(model, { tooltip: () => nextTooltip }),
+  write: (model, nextTooltip) =>
+    modifyFields(model, { tooltip: () => nextTooltip }),
   toParentMessage: message => Message.GotTooltipMessage({ message }),
   foldOutMessage: foldTooltipOutMessage,
 })

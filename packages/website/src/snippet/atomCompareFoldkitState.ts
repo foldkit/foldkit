@@ -26,12 +26,12 @@ type Message = typeof Message.Type
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     AddedTodo: () => ({
-      model: evo(model, { todos: Array.append(emptyTodo()) }),
+      model: modifyFields(model, { todos: Array.append(emptyTodo()) }),
     }),
     ClearedDoneTodos: () => ({
-      model: evo(model, { todos: Array.filter(todo => !todo.done) }),
+      model: modifyFields(model, { todos: Array.filter(todo => !todo.done) }),
     }),
     SelectedFilter: ({ filter }) => ({
-      model: evo(model, { filter: () => filter }),
+      model: modifyFields(model, { filter: () => filter }),
     }),
   })

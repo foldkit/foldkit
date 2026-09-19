@@ -16,7 +16,7 @@ import type { Document, Html } from 'foldkit/html'
 import { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import type { Map as MapInstance } from 'maplibre-gl'
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 
@@ -210,19 +210,19 @@ const findLocation = (
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     SucceededMountMap: ({ hostId }) => ({
-      model: evo(model, { maybeMapHostId: () => Option.some(hostId) }),
+      model: modifyFields(model, { maybeMapHostId: () => Option.some(hostId) }),
     }),
 
     FailedMountMap: ({ reason }) => ({
-      model: evo(model, { maybeMapError: () => Option.some(reason) }),
+      model: modifyFields(model, { maybeMapError: () => Option.some(reason) }),
     }),
 
     MovedMap: ({ bounds }) => ({
-      model: evo(model, { maybeBounds: () => Option.some(bounds) }),
+      model: modifyFields(model, { maybeBounds: () => Option.some(bounds) }),
     }),
 
     ClickedMarker: ({ locationId }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         maybeSelectedLocationId: () => Option.some(locationId),
       }),
     }),
@@ -231,7 +231,7 @@ export const update = (model: Model, message: Message) =>
       Option.match(findLocation(model, locationId), {
         onNone: () => ({ model }),
         onSome: ({ lng, lat }) => ({
-          model: evo(model, {
+          model: modifyFields(model, {
             maybeSelectedLocationId: () => Option.some(locationId),
           }),
           commands: [
@@ -246,25 +246,25 @@ export const update = (model: Model, message: Message) =>
       }),
 
     UpdatedSearchQuery: ({ value }) => ({
-      model: evo(model, { searchQuery: () => value }),
+      model: modifyFields(model, { searchQuery: () => value }),
     }),
 
     ClickedFindMe: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         geolocateState: () => GeolocateState.Locating(),
       }),
       commands: [LockBodyScroll(), Geolocate()],
     }),
 
     DismissedGeolocate: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         geolocateState: () => GeolocateState.Idle(),
       }),
       commands: [UnlockBodyScroll()],
     }),
 
     SucceededGeolocate: ({ lng, lat }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         maybeUserLocation: () => Option.some({ lng, lat }),
         geolocateState: () => GeolocateState.Idle(),
       }),
@@ -280,7 +280,7 @@ export const update = (model: Model, message: Message) =>
     }),
 
     FailedGeolocate: ({ reason }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         geolocateState: () => GeolocateState.Failed({ reason }),
       }),
     }),

@@ -2,7 +2,7 @@ import { Number, Schema } from 'effect'
 
 import type { Html } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
-import { evo } from '../../struct/index.js'
+import { modifyFields } from '../../struct/index.js'
 import { defineView } from '../../submodel/public.js'
 import type * as Update from '../../update/index.js'
 
@@ -28,7 +28,7 @@ export const initialModel = Model.make({ score: 0 })
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedIncrement: () => ({
-      model: evo(model, { score: Number.increment }),
+      model: modifyFields(model, { score: Number.increment }),
     }),
   })
 

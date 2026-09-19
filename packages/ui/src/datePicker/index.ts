@@ -3,7 +3,7 @@ import * as Calendar from 'foldkit/calendar'
 import type { CalendarDate } from 'foldkit/calendar'
 import type { ChildAttribute, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { type Reflect, defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
 
@@ -107,14 +107,14 @@ export const init = (config: InitConfig): Model => ({
 type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 
 const dropCalendarToDays: Update.Step<Model, Message> = model => ({
-  model: evo(model, { calendar: UiCalendar.dropToDays }),
+  model: modifyFields(model, { calendar: UiCalendar.dropToDays }),
 })
 
 const readPopover = (model: Model): Option.Option<Popover.Model> =>
   Option.some(model.popover)
 
 const writePopover = (model: Model, nextPopover: Popover.Model): Model =>
-  evo(model, { popover: () => nextPopover })
+  modifyFields(model, { popover: () => nextPopover })
 
 const toGotPopoverMessage = (message: Popover.Message): Message =>
   Message.GotPopoverMessage({ message })
@@ -166,7 +166,8 @@ const toDatePickerOutMessage = UiCalendar.OutMessage.match<OutMessage>({
 const foldCalendar = Update.foldChild({
   update: UiCalendar.update,
   read: (model: Model) => Option.some(model.calendar),
-  write: (model, nextCalendar) => evo(model, { calendar: () => nextCalendar }),
+  write: (model, nextCalendar) =>
+    modifyFields(model, { calendar: () => nextCalendar }),
   toParentMessage: message => Message.GotCalendarMessage({ message }),
   toParentOutMessage: toDatePickerOutMessage,
   foldOutMessage: foldCalendarOutMessage,
@@ -175,7 +176,8 @@ const foldCalendar = Update.foldChild({
 const foldCalendarSelectDate = Update.foldChild({
   update: UiCalendar.selectDate,
   read: (model: Model) => Option.some(model.calendar),
-  write: (model, nextCalendar) => evo(model, { calendar: () => nextCalendar }),
+  write: (model, nextCalendar) =>
+    modifyFields(model, { calendar: () => nextCalendar }),
   toParentMessage: message => Message.GotCalendarMessage({ message }),
   toParentOutMessage: toDatePickerOutMessage,
   foldOutMessage: foldCalendarOutMessage,
@@ -225,7 +227,7 @@ export const clear = (model: Model): UpdateReturn =>
 export const focusDate: Reflect<Model, CalendarDate> = Function.dual(
   2,
   (model: Model, date: CalendarDate): Model =>
-    evo(model, {
+    modifyFields(model, {
       calendar: () => UiCalendar.focusDate(model.calendar, date),
     }),
 )
@@ -244,7 +246,7 @@ export const reflectMinDate: Reflect<
 > = Function.dual(
   2,
   (model: Model, maybeMinDate: Option.Option<CalendarDate>): Model =>
-    evo(model, {
+    modifyFields(model, {
       calendar: () => UiCalendar.reflectMinDate(model.calendar, maybeMinDate),
     }),
 )
@@ -258,7 +260,7 @@ export const reflectMaxDate: Reflect<
 > = Function.dual(
   2,
   (model: Model, maybeMaxDate: Option.Option<CalendarDate>): Model =>
-    evo(model, {
+    modifyFields(model, {
       calendar: () => UiCalendar.reflectMaxDate(model.calendar, maybeMaxDate),
     }),
 )
@@ -272,7 +274,7 @@ export const reflectDisabledDates: Reflect<
 > = Function.dual(
   2,
   (model: Model, disabledDates: ReadonlyArray<CalendarDate>): Model =>
-    evo(model, {
+    modifyFields(model, {
       calendar: () =>
         UiCalendar.reflectDisabledDates(model.calendar, disabledDates),
     }),
@@ -290,7 +292,7 @@ export const reflectDisabledDaysOfWeek: Reflect<
     model: Model,
     disabledDaysOfWeek: ReadonlyArray<Calendar.DayOfWeek>,
   ): Model =>
-    evo(model, {
+    modifyFields(model, {
       calendar: () =>
         UiCalendar.reflectDisabledDaysOfWeek(
           model.calendar,

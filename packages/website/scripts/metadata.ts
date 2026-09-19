@@ -152,7 +152,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   BestPracticesImmutability: docs(
     'Immutability',
-    'Update Models immutably with evo, preserving references for unchanged branches and keeping state transitions predictable.',
+    'Update Models immutably with modifyFields, preserving references for unchanged branches and keeping state transitions predictable.',
     'Best Practices',
   ),
   ProjectOrganization: docs(
@@ -182,7 +182,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreUpdate: core(
     'Update',
-    'Handle every Message with a pure update function that returns the next Model and Commands. Use Match and evo to keep transitions exhaustive and immutable.',
+    'Handle every Message with a pure update function that returns the next Model and Commands. Use Match and modifyFields to keep transitions exhaustive and immutable.',
   ),
   CoreView: core(
     'View',

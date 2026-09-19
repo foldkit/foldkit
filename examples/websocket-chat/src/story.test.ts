@@ -1,6 +1,6 @@
 import { DateTime } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import {
@@ -19,7 +19,7 @@ const idleModel: Model = {
   messageInput: '',
 }
 
-const connectedModel: Model = evo(idleModel, {
+const connectedModel: Model = modifyFields(idleModel, {
   connection: () => ConnectionState.Connected(),
 })
 
@@ -42,7 +42,9 @@ describe('update', () => {
       story(
         update,
         given(
-          evo(idleModel, { connection: () => ConnectionState.Connecting() }),
+          modifyFields(idleModel, {
+            connection: () => ConnectionState.Connecting(),
+          }),
         ),
         message(Message.Connected()),
         model(model => {
@@ -55,7 +57,7 @@ describe('update', () => {
       story(
         update,
         given(
-          evo(connectedModel, {
+          modifyFields(connectedModel, {
             messages: () => [{ text: 'old', zoned: zonedNow, isSent: true }],
           }),
         ),
@@ -71,7 +73,9 @@ describe('update', () => {
       story(
         update,
         given(
-          evo(idleModel, { connection: () => ConnectionState.Connecting() }),
+          modifyFields(idleModel, {
+            connection: () => ConnectionState.Connecting(),
+          }),
         ),
         message(Message.FailedConnect({ error: 'Timeout' })),
         model(model => {
@@ -102,7 +106,7 @@ describe('update', () => {
     test('an empty input is ignored', () => {
       story(
         update,
-        given(evo(connectedModel, { messageInput: () => '' })),
+        given(modifyFields(connectedModel, { messageInput: () => '' })),
         message(Message.SubmittedMessage()),
         Command.expectNone(),
       )
@@ -111,7 +115,7 @@ describe('update', () => {
     test('whitespace-only input is ignored', () => {
       story(
         update,
-        given(evo(connectedModel, { messageInput: () => '   ' })),
+        given(modifyFields(connectedModel, { messageInput: () => '   ' })),
         message(Message.SubmittedMessage()),
         Command.expectNone(),
       )
@@ -120,7 +124,9 @@ describe('update', () => {
     test('connected client fires SendMessage and clears the input', () => {
       story(
         update,
-        given(evo(connectedModel, { messageInput: () => 'Hello there' })),
+        given(
+          modifyFields(connectedModel, { messageInput: () => 'Hello there' }),
+        ),
         message(Message.SubmittedMessage()),
         model(model => {
           expect(model.messageInput).toBe('')
@@ -150,7 +156,7 @@ describe('update', () => {
     test('disconnected client ignores SubmittedMessage', () => {
       story(
         update,
-        given(evo(idleModel, { messageInput: () => 'Hello' })),
+        given(modifyFields(idleModel, { messageInput: () => 'Hello' })),
         message(Message.SubmittedMessage()),
         Command.expectNone(),
         model(model => {

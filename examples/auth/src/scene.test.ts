@@ -8,7 +8,7 @@ import {
   submit,
   text,
 } from 'foldkit/scene'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { SaveSession } from './command'
@@ -26,7 +26,7 @@ import { view } from './view'
 
 const validModel = LoggedOut.Model({
   route: AppRoute.Login(),
-  loginModel: evo(initLoginModel(), {
+  loginModel: modifyFields(initLoginModel(), {
     email: () => Valid({ value: 'alice@example.com' }),
     password: () => Valid({ value: 'password' }),
   }),

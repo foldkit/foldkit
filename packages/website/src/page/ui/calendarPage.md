@@ -276,7 +276,7 @@ Use `SelectedDate` to update the parent-owned selection. Use `ChangedViewMonth` 
 
 ### Programmatic Helpers
 
-`selectDate` is a child entry point. Fold it into the parent with `Update.foldChild` because it takes a date as input. The Model-only helpers make silent state adjustments and can be used as point-free `evo` setters.
+`selectDate` is a child entry point. Fold it into the parent with `Update.foldChild` because it takes a date as input. The Model-only helpers make silent state adjustments and can be used as point-free `modifyFields` setters.
 
 | Name         | Type                                                                                            | Behavior                                                                                                                  |
 | ------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |

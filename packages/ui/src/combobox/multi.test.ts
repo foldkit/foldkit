@@ -2,7 +2,7 @@ import { Option } from 'effect'
 import { type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
 import * as Story from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
@@ -182,7 +182,7 @@ describe('Combobox.Multi', () => {
         Story.story(
           update,
           Story.given(
-            evo(init({ id: 'test' }), {
+            modifyFields(init({ id: 'test' }), {
               isOpen: () => true,
               inputValue: () => 'app',
             }),
@@ -217,7 +217,7 @@ describe('Combobox.Multi', () => {
       })
 
       it('is a no-op when already closed', () => {
-        const closedModel = evo(init({ id: 'test' }), {
+        const closedModel = modifyFields(init({ id: 'test' }), {
           inputValue: () => 'app',
         })
 
@@ -642,7 +642,9 @@ describe('Combobox.Multi', () => {
               selectedValues: ['Apple'],
             }),
           },
-          Scene.given(evo(openMultiModel(), { immediate: () => true })),
+          Scene.given(
+            modifyFields(openMultiModel(), { immediate: () => true }),
+          ),
           acknowledgeAnchor,
           acknowledgeBackdrop,
           Scene.keydown(input, 'ArrowDown'),
@@ -708,7 +710,7 @@ describe('Combobox.Multi', () => {
             view: sceneView({ isReadOnly: true, selectedValues: ['Apple'] }),
           },
           Scene.given(
-            evo(openMultiModel(), {
+            modifyFields(openMultiModel(), {
               nullable: () => true,
               inputValue: () => '',
             }),
@@ -729,7 +731,7 @@ describe('Combobox.Multi', () => {
             view: sceneView({ selectedValues: ['Apple'] }),
           },
           Scene.given(
-            evo(openMultiModel(), {
+            modifyFields(openMultiModel(), {
               nullable: () => true,
               inputValue: () => '',
             }),

@@ -19,7 +19,7 @@ import {
   childAttributes,
 } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { type Reflect, defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
 
@@ -170,7 +170,7 @@ export const selectDate = (model: Model, date: CalendarDate): UpdateReturn =>
 export const focusDate: Reflect<Model, CalendarDate> = Function.dual(
   2,
   (model: Model, date: CalendarDate): Model =>
-    evo(model, {
+    modifyFields(model, {
       maybeFocusedDate: () => Option.some(date),
       viewYear: () => date.year,
       viewMonth: () => date.month,
@@ -191,7 +191,7 @@ export const reflectMinDate: Reflect<
 > = Function.dual(
   2,
   (model: Model, maybeMinDate: Option.Option<CalendarDate>): Model =>
-    evo(model, { maybeMinDate: () => maybeMinDate }),
+    modifyFields(model, { maybeMinDate: () => maybeMinDate }),
 )
 
 /** Reflects the maximum selectable date onto the model. Pass `Option.none()`
@@ -202,7 +202,7 @@ export const reflectMaxDate: Reflect<
 > = Function.dual(
   2,
   (model: Model, maybeMaxDate: Option.Option<CalendarDate>): Model =>
-    evo(model, { maybeMaxDate: () => maybeMaxDate }),
+    modifyFields(model, { maybeMaxDate: () => maybeMaxDate }),
 )
 
 /** Reflects the list of individually-disabled dates onto the model. Pass an
@@ -213,7 +213,7 @@ export const reflectDisabledDates: Reflect<
 > = Function.dual(
   2,
   (model: Model, disabledDates: ReadonlyArray<CalendarDate>): Model =>
-    evo(model, { disabledDates: () => disabledDates }),
+    modifyFields(model, { disabledDates: () => disabledDates }),
 )
 
 /** Reflects the days of the week that are disabled (e.g. weekends) onto the
@@ -227,7 +227,8 @@ export const reflectDisabledDaysOfWeek: Reflect<
   (
     model: Model,
     disabledDaysOfWeek: ReadonlyArray<Calendar.DayOfWeek>,
-  ): Model => evo(model, { disabledDaysOfWeek: () => disabledDaysOfWeek }),
+  ): Model =>
+    modifyFields(model, { disabledDaysOfWeek: () => disabledDaysOfWeek }),
 )
 
 /** Returns the calendar to Days mode regardless of current depth. Useful for
@@ -246,7 +247,7 @@ export const dropToDays = (model: Model): Model => {
     onSome: date =>
       Math.min(date.day, Calendar.daysInMonth(model.viewYear, model.viewMonth)),
   })
-  return evo(model, {
+  return modifyFields(model, {
     viewMode: () => 'Days',
     maybeFocusedDate: () =>
       Option.some(Calendar.make(model.viewYear, model.viewMonth, focusedDay)),
@@ -359,7 +360,7 @@ const currentOrFallbackFocus = (model: Model): CalendarDate =>
  * the parent infers month transitions from the date itself rather than from
  * a separate `ChangedViewMonth` signal that would race with the selection. */
 const commitSelection = (model: Model, date: CalendarDate): UpdateReturn => ({
-  model: evo(model, {
+  model: modifyFields(model, {
     maybeFocusedDate: () => Option.some(date),
     viewYear: () => date.year,
     viewMonth: () => date.month,
@@ -380,7 +381,7 @@ const applyFocusMove = (
   const nextFocus = skipDisabled(model, clamped, direction, cap)
   const crossedMonth =
     nextFocus.year !== model.viewYear || nextFocus.month !== model.viewMonth
-  const nextModel = evo(model, {
+  const nextModel = modifyFields(model, {
     maybeFocusedDate: () => Option.some(nextFocus),
     viewYear: () => nextFocus.year,
     viewMonth: () => nextFocus.month,
@@ -428,7 +429,7 @@ const applyViewMonthChange = (
     return { model }
   }
   const nextFocus = moveFocusForViewChange(model, year, month, direction)
-  const nextModel = evo(model, {
+  const nextModel = modifyFields(model, {
     viewYear: () => year,
     viewMonth: () => month,
     maybeFocusedDate: () => Option.some(nextFocus),
@@ -488,7 +489,7 @@ const applyMonthsFocusShift = (
   const focused = currentOrFallbackFocus(model)
   const nextFocus = Calendar.addMonths(focused, monthShift)
   return {
-    model: evo(model, {
+    model: modifyFields(model, {
       maybeFocusedDate: () => Option.some(nextFocus),
       viewYear: () => nextFocus.year,
     }),
@@ -506,7 +507,7 @@ const applyYearsFocusShift = (
   const focused = currentOrFallbackFocus(model)
   const nextFocus = Calendar.addYears(focused, yearShift)
   return {
-    model: evo(model, {
+    model: modifyFields(model, {
       maybeFocusedDate: () => Option.some(nextFocus),
     }),
   }
@@ -587,11 +588,11 @@ export const update = (model: Model, message: Message) =>
       Match.value(model.viewMode).pipe(
         withUpdateReturn,
         Match.when('Days', () => ({
-          model: evo(model, { viewMode: () => 'Months' }),
+          model: modifyFields(model, { viewMode: () => 'Months' }),
           commands: [FocusGrid({ id: model.id })],
         })),
         Match.when('Months', () => ({
-          model: evo(model, { viewMode: () => 'Years' }),
+          model: modifyFields(model, { viewMode: () => 'Years' }),
           commands: [FocusGrid({ id: model.id })],
         })),
         Match.when('Years', () => ({ model })),
@@ -609,7 +610,9 @@ export const update = (model: Model, message: Message) =>
           jumpDirection(model, model.viewYear, month),
         )
         const monthSelection: Update.Return<Model, Message> = {
-          model: evo(viewMonthChange.model, { viewMode: () => 'Days' }),
+          model: modifyFields(viewMonthChange.model, {
+            viewMode: () => 'Days',
+          }),
           commands: [FocusGrid({ id: model.id })],
         }
 
@@ -631,7 +634,9 @@ export const update = (model: Model, message: Message) =>
           jumpDirection(model, year, model.viewMonth),
         )
         const yearSelection: Update.Return<Model, Message> = {
-          model: evo(yearViewMonthChange.model, { viewMode: () => 'Months' }),
+          model: modifyFields(yearViewMonthChange.model, {
+            viewMode: () => 'Months',
+          }),
           commands: [FocusGrid({ id: model.id })],
         }
 
@@ -645,12 +650,16 @@ export const update = (model: Model, message: Message) =>
     PagedYears: ({ direction }) =>
       applyYearsFocusShift(model, direction * YEARS_PAGE_SIZE),
 
-    FocusedGrid: () => ({ model: evo(model, { isGridFocused: () => true }) }),
+    FocusedGrid: () => ({
+      model: modifyFields(model, { isGridFocused: () => true }),
+    }),
 
-    BlurredGrid: () => ({ model: evo(model, { isGridFocused: () => false }) }),
+    BlurredGrid: () => ({
+      model: modifyFields(model, { isGridFocused: () => false }),
+    }),
 
     RefreshedToday: ({ today }) => ({
-      model: evo(model, { today: () => today }),
+      model: modifyFields(model, { today: () => today }),
     }),
 
     CompletedFocusGrid: () => ({ model }),

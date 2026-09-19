@@ -14,10 +14,10 @@ import {
   resolveFoldkitApiPath,
 } from '../guards.ts'
 
-const nestedEvoMessage = (fieldName: string): string =>
-  `The updater for field \`${fieldName}\` rebuilds the record with a spread, stepping outside the strict Model update path. Use a nested \`evo\` instead: \`${fieldName}: () => evo(model.${fieldName}, { ... })\`.`
+const nestedModifyFieldsMessage = (fieldName: string): string =>
+  `The updater for field \`${fieldName}\` rebuilds the record with a spread, stepping outside the strict Model update path. Use a nested \`modifyFields\` instead: \`${fieldName}: () => modifyFields(model.${fieldName}, { ... })\`.`
 
-const isEvoCall = (
+const isModifyFieldsCall = (
   node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {
@@ -29,7 +29,7 @@ const isEvoCall = (
 
         return (
           namespace === 'Struct' &&
-          methodName === 'evo' &&
+          methodName === 'modifyFields' &&
           extraMember === undefined
         )
       },
@@ -38,13 +38,13 @@ const isEvoCall = (
 
   const callee = node.callee
   if (callee.type === 'Identifier') {
-    return callee.name === 'evo'
+    return callee.name === 'modifyFields'
   }
   return (
     callee.type === 'MemberExpression' &&
     !callee.computed &&
     callee.property.type === 'Identifier' &&
-    callee.property.name === 'evo'
+    callee.property.name === 'modifyFields'
   )
 }
 
@@ -93,7 +93,7 @@ const spreadRebuiltFields = (
 ): ReadonlyArray<
   Readonly<{ fieldName: string; bodyObject: ESTree.ObjectExpression }>
 > => {
-  if (!isEvoCall(node, references)) return []
+  if (!isModifyFieldsCall(node, references)) return []
   const [, updates] = node.arguments
   if (updates === undefined || updates.type !== 'ObjectExpression') return []
   return updates.properties.flatMap(property => {
@@ -113,13 +113,13 @@ const spreadRebuiltFields = (
   })
 }
 
-/** Flags evo field updaters that rebuild a record with an object spread. Nested record updates go through a nested evo so every level of Model evolution stays on the strict update path. */
-export const noSpreadInEvo = Rule.define({
-  name: 'no-spread-in-evo',
+/** Flags modifyFields field updaters that rebuild a record with an object spread. Nested record updates go through a nested modifyFields so every level of Model evolution stays on the strict update path. */
+export const noSpreadInModifyFields = Rule.define({
+  name: 'no-spread-in-modify-fields',
   meta: Rule.meta({
     type: 'suggestion',
     description:
-      'Use a nested evo instead of spreading a record inside an evo field updater.',
+      'Use a nested modifyFields instead of spreading a record inside a modifyFields field updater.',
   }),
   create: function* () {
     const ctx = yield* RuleContext
@@ -135,7 +135,7 @@ export const noSpreadInEvo = Rule.define({
             ctx.report(
               Diagnostic.make({
                 node: bodyObject,
-                message: nestedEvoMessage(fieldName),
+                message: nestedModifyFieldsMessage(fieldName),
               }),
             ),
           { discard: true },

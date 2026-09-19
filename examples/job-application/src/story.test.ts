@@ -1,7 +1,7 @@
 import { Array, Option, pipe } from 'effect'
 import { Validating } from 'foldkit/fieldValidation'
 import { Command, given, message, model, story } from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import { FileDrop, Menu, Tabs } from '@foldkit/ui'
@@ -49,7 +49,7 @@ describe('update', () => {
     test('ClickedPrevious goes back to the previous step', () => {
       story(
         update,
-        given(evo(initialModel, { currentStep: () => 'Education' })),
+        given(modifyFields(initialModel, { currentStep: () => 'Education' })),
         message(Message.ClickedPrevious()),
         model(model => {
           expect(model.currentStep).toBe('WorkHistory')
@@ -71,7 +71,7 @@ describe('update', () => {
     test('ClickedNext on the last step stays put', () => {
       story(
         update,
-        given(evo(initialModel, { currentStep: () => 'Review' })),
+        given(modifyFields(initialModel, { currentStep: () => 'Review' })),
         message(Message.ClickedNext()),
         model(model => {
           expect(model.currentStep).toBe('Review')
@@ -250,7 +250,7 @@ describe('update', () => {
     test('ClickedSubmit on a complete application transitions to Submitting and fires command', () => {
       story(
         update,
-        given(evo(completeModel, { currentStep: () => 'Review' })),
+        given(modifyFields(completeModel, { currentStep: () => 'Review' })),
         message(Message.ClickedSubmit()),
         Command.expectExact(SubmitApplication),
         Command.resolve(
@@ -267,7 +267,7 @@ describe('update', () => {
     test('ClickedSubmit on an incomplete application reveals errors and does not submit', () => {
       story(
         update,
-        given(evo(initialModel, { currentStep: () => 'Review' })),
+        given(modifyFields(initialModel, { currentStep: () => 'Review' })),
         message(Message.ClickedSubmit()),
         Command.expectNone(),
         model(model => {
@@ -308,9 +308,9 @@ describe('update', () => {
       story(
         update,
         given(
-          evo(completeModel, {
+          modifyFields(completeModel, {
             currentStep: () => 'Review',
-            personalInfo: evo({
+            personalInfo: modifyFields({
               email: () => Validating({ value: 'jane@example.com' }),
             }),
           }),
@@ -328,7 +328,7 @@ describe('update', () => {
     test('ClickedSubmit preserves Valid fields rather than re-running validation', () => {
       story(
         update,
-        given(evo(completeModel, { currentStep: () => 'Review' })),
+        given(modifyFields(completeModel, { currentStep: () => 'Review' })),
         message(Message.ClickedSubmit()),
         Command.resolve(
           SubmitApplication,
@@ -345,7 +345,7 @@ describe('update', () => {
       story(
         update,
         given(
-          evo(initialModel, {
+          modifyFields(initialModel, {
             currentStep: () => 'Review',
             submission: () => Submission.Submitting(),
           }),
@@ -361,7 +361,7 @@ describe('update', () => {
       story(
         update,
         given(
-          evo(initialModel, {
+          modifyFields(initialModel, {
             currentStep: () => 'Review',
             submission: () => Submission.Submitting(),
           }),

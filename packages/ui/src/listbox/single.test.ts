@@ -1,8 +1,7 @@
 import { Option } from 'effect'
+import { Scene, Story } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
-import * as Scene from 'foldkit/scene'
-import * as Story from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
@@ -133,7 +132,7 @@ describe('Listbox', () => {
         Story.story(
           update,
           Story.given(
-            evo(init({ id: 'test' }), {
+            modifyFields(init({ id: 'test' }), {
               searchQuery: () => 'stale',
               searchVersion: () => 1,
             }),
@@ -182,7 +181,7 @@ describe('Listbox', () => {
         Story.story(
           update,
           Story.given(
-            evo(init({ id: 'test' }), {
+            modifyFields(init({ id: 'test' }), {
               maybeLastPointerPosition: () =>
                 Option.some({
                   screenX: 100,
@@ -1351,6 +1350,23 @@ describe('Listbox', () => {
         )
 
     describe('ARIA', () => {
+      it('only points at the items panel while it is rendered', () => {
+        Scene.scene(
+          { update, view: sceneView() },
+          Scene.given(closedModel()),
+          Scene.expect(Scene.selector('[key="test-button"]')).not.toHaveAttr(
+            'aria-controls',
+          ),
+          Scene.given(openModel()),
+          Scene.expect(Scene.selector('[key="test-button"]')).toHaveAttr(
+            'aria-controls',
+            'test-items',
+          ),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+        )
+      })
+
       it('button has aria-haspopup="listbox"', () => {
         Scene.scene(
           { update, view: sceneView() },
@@ -1967,7 +1983,9 @@ describe('Listbox', () => {
       })
 
       it('items container has aria-orientation="horizontal" when horizontal', () => {
-        const model = evo(openModel(), { orientation: () => 'Horizontal' })
+        const model = modifyFields(openModel(), {
+          orientation: () => 'Horizontal',
+        })
         Scene.scene(
           { update, view: sceneView() },
           Scene.given(model),

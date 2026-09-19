@@ -1,6 +1,6 @@
 import { Option } from 'effect'
 import { given, message, model, story } from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
@@ -126,7 +126,7 @@ describe('update', () => {
       story(
         update,
         given(
-          evo(baseModel, {
+          modifyFields(baseModel, {
             cart: () => [{ item: apple, quantity: 1 }],
           }),
         ),
@@ -141,7 +141,7 @@ describe('update', () => {
       story(
         update,
         given(
-          evo(baseModel, {
+          modifyFields(baseModel, {
             cart: () => [{ item: apple, quantity: 2 }],
           }),
         ),
@@ -156,7 +156,7 @@ describe('update', () => {
       story(
         update,
         given(
-          evo(baseModel, {
+          modifyFields(baseModel, {
             cart: () => [{ item: apple, quantity: 1 }],
           }),
         ),
@@ -171,7 +171,7 @@ describe('update', () => {
       story(
         update,
         given(
-          evo(baseModel, {
+          modifyFields(baseModel, {
             cart: () => [
               { item: apple, quantity: 2 },
               { item: banana, quantity: 1 },
@@ -190,7 +190,7 @@ describe('update', () => {
       story(
         update,
         given(
-          evo(baseModel, {
+          modifyFields(baseModel, {
             cart: () => [{ item: apple, quantity: 2 }],
           }),
         ),
@@ -222,7 +222,7 @@ describe('update', () => {
       story(
         update,
         given(
-          evo(baseModel, {
+          modifyFields(baseModel, {
             cart: () => [{ item: apple, quantity: 2 }],
             deliveryInstructions: () => 'Knock loudly',
           }),

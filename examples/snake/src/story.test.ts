@@ -1,5 +1,5 @@
 import { Command, given, message, model, story } from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import { Snake } from './domain'
@@ -17,7 +17,7 @@ const playingModel: Model = {
   highScore: 0,
 }
 
-const notStartedModel: Model = evo(playingModel, {
+const notStartedModel: Model = modifyFields(playingModel, {
   gameState: () => 'NotStarted',
 })
 
@@ -48,7 +48,7 @@ describe('update', () => {
     test('arrow keys are ignored while the game is paused', () => {
       story(
         update,
-        given(evo(playingModel, { gameState: () => 'Paused' })),
+        given(modifyFields(playingModel, { gameState: () => 'Paused' })),
         message(Message.PressedKey({ key: 'ArrowDown' })),
         model(model => {
           expect(model.nextDirection).toBe('Right')
@@ -83,7 +83,7 @@ describe('update', () => {
     test('SPACE on GameOver does nothing', () => {
       story(
         update,
-        given(evo(playingModel, { gameState: () => 'GameOver' })),
+        given(modifyFields(playingModel, { gameState: () => 'GameOver' })),
         message(Message.PressedKey({ key: ' ' })),
         model(model => {
           expect(model.gameState).toBe('GameOver')
@@ -96,7 +96,7 @@ describe('update', () => {
     test('R fires GenerateApplePosition and resets the snake', () => {
       story(
         update,
-        given(evo(playingModel, { points: () => 100 })),
+        given(modifyFields(playingModel, { points: () => 100 })),
         message(Message.PressedKey({ key: 'r' })),
         model(model => {
           expect(model.gameState).toBe('NotStarted')
@@ -139,7 +139,7 @@ describe('update', () => {
     })
 
     test('eating an apple grows the snake, adds points, and requests a new apple', () => {
-      const aboutToEatModel: Model = evo(playingModel, {
+      const aboutToEatModel: Model = modifyFields(playingModel, {
         apple: () => ({ x: 11, y: 10 }),
       })
       const lengthBefore = aboutToEatModel.snake.length

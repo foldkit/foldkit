@@ -1,7 +1,7 @@
 import { Number } from 'effect'
 import type { Update } from 'foldkit'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 const SearchState = defineTaggedUnion({
   Idle: {},
@@ -19,7 +19,7 @@ const update = (model: Model, message: Message) =>
           const nextGeneration = Number.increment(model.generation)
 
           return {
-            model: evo(model, {
+            model: modifyFields(model, {
               query: () => query,
               generation: () => nextGeneration,
               searchState: () => SearchState.Running(),
@@ -28,7 +28,7 @@ const update = (model: Model, message: Message) =>
           }
         },
         Running: () => ({
-          model: evo(model, {
+          model: modifyFields(model, {
             query: () => query,
             generation: Number.increment,
             searchState: () => SearchState.Cancelling(),
@@ -40,12 +40,12 @@ const update = (model: Model, message: Message) =>
           ],
         }),
         Cancelling: () => ({
-          model: evo(model, { query: () => query }),
+          model: modifyFields(model, { query: () => query }),
         }),
       }),
 
     CompletedCancelFetchSuggestions: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         searchState: () => SearchState.Running(),
       }),
       commands: [
@@ -62,7 +62,7 @@ const update = (model: Model, message: Message) =>
       }
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           searchState: () => SearchState.Idle(),
           suggestions: () => suggestions,
         }),
@@ -74,7 +74,7 @@ const update = (model: Model, message: Message) =>
       }
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           searchState: () => SearchState.Idle(),
         }),
       }

@@ -3,7 +3,7 @@
 import { Schema } from 'effect'
 import type { Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 const Message = defineMessageUnion({
   SucceededSearch: {
@@ -20,6 +20,6 @@ const update = (model: Model, message: Message) =>
         return { model }
       }
 
-      return { model: evo(model, { suggestions: () => suggestions }) }
+      return { model: modifyFields(model, { suggestions: () => suggestions }) }
     },
   })

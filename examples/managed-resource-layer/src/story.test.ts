@@ -1,6 +1,6 @@
 import { Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import { Compute, EngineState, Message, type Model, update } from './main'
@@ -33,7 +33,7 @@ describe('update', () => {
     test('StartedEngine marks the engine ready with its id', () => {
       story(
         update,
-        given(evo(offModel, { engine: () => EngineState.Booting() })),
+        given(modifyFields(offModel, { engine: () => EngineState.Booting() })),
         message(Message.StartedEngine({ engineId: 'engine-7' })),
         model(model => {
           expect(model.engine).toStrictEqual(
@@ -68,7 +68,7 @@ describe('update', () => {
     test('FailedStartEngine records the failure reason', () => {
       story(
         update,
-        given(evo(offModel, { engine: () => EngineState.Booting() })),
+        given(modifyFields(offModel, { engine: () => EngineState.Booting() })),
         message(Message.FailedStartEngine({ reason: 'boot timeout' })),
         model(model => {
           expect(model.engine).toStrictEqual(

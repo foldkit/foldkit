@@ -11,7 +11,7 @@ import {
   text,
   type,
 } from 'foldkit/scene'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import {
@@ -93,7 +93,7 @@ describe('view', () => {
     scene(
       { update, view },
       given(
-        evo(mountedModel, {
+        modifyFields(mountedModel, {
           geolocateState: () =>
             GeolocateState.Failed({
               reason: 'Permission denied',
@@ -112,7 +112,7 @@ describe('view', () => {
     scene(
       { update, view },
       given(
-        evo(initialModel, {
+        modifyFields(initialModel, {
           maybeMapError: () => Option.some('Network timeout'),
         }),
       ),
@@ -126,7 +126,7 @@ describe('view', () => {
     scene(
       { update, view },
       given(
-        evo(mountedModel, {
+        modifyFields(mountedModel, {
           maybeBounds: () =>
             Option.some({
               west: -180,

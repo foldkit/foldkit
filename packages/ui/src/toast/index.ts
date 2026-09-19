@@ -42,8 +42,6 @@ const positionToContainerStyle = (
     display: 'flex',
     gap: '8px',
     padding: '16px',
-    margin: '0',
-    listStyle: 'none',
     pointerEvents: 'none',
     zIndex: '2147483600',
   }
@@ -150,9 +148,9 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     entryClassName?: string
   }>
 
-  /** Renders a headless toast stack. The `<ol>` container is always present
+  /** Renders a headless toast stack. The `<div>` container is always present
    *  in the DOM so screen readers can observe its `aria-live` region from
-   *  page load. Each entry becomes an `<li>` keyed by its id, with
+   *  page load. Each entry becomes a `<div>` keyed by its id, with
    *  animation data attributes (`data-enter`, `data-leave`,
    *  `data-transition`, `data-closed`) and `data-variant` reflecting the
    *  entry's variant. */
@@ -219,12 +217,12 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           ]),
         }
 
-        return h.keyed('li')(entry.id, itemAttributes, [
+        return h.keyed('div')(entry.id, itemAttributes, [
           entryToView(entry, handlers),
         ])
       }
 
-      return h.keyed('ol')(
+      return h.keyed('div')(
         id,
         containerAttributes,
         entries.map(renderEntryItem),

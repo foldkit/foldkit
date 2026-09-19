@@ -1,6 +1,7 @@
-import { Option } from 'effect'
-import * as Story from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { Array, Option, pipe } from 'effect'
+import { Scene, Story } from 'foldkit'
+import type { HtmlBuilder } from 'foldkit/html'
+import { modifyFields } from 'foldkit/struct'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
@@ -8,7 +9,9 @@ import { describe, it } from '@effect/vitest'
 import {
   FocusTab,
   Message,
+  type Model,
   OutMessage,
+  create,
   findFirstEnabledIndex,
   init,
   keyToIndex,
@@ -23,7 +26,93 @@ const disabledAt =
   (index: number) =>
     indices.includes(index)
 
+const TestTabs = create<string>()
+
+const sceneView = (model: Model, h: HtmlBuilder<Message>) =>
+  TestTabs.view(
+    model,
+    {
+      tabs: ['First', 'Second'],
+      selectedValue: 'First',
+      ariaLabel: 'Test tabs',
+      toView: ({ tablist, tabs, activeIndex }) =>
+        h.div(
+          [],
+          [
+            h.div(
+              tablist,
+              Array.map(tabs, tab => h.button(tab.tab, [tab.value])),
+            ),
+            pipe(
+              tabs,
+              Array.get(activeIndex),
+              Option.match({
+                onNone: () => h.empty,
+                onSome: tab => h.div(tab.panel),
+              }),
+            ),
+          ],
+        ),
+    },
+    h,
+  )
+
+const allPanelsView = (model: Model, h: HtmlBuilder<Message>) =>
+  TestTabs.view(
+    model,
+    {
+      tabs: ['First', 'Second'],
+      selectedValue: 'First',
+      ariaLabel: 'Test tabs',
+      panelMount: 'All',
+      toView: ({ tablist, tabs }) =>
+        h.div(
+          [],
+          [
+            h.div(
+              tablist,
+              Array.map(tabs, tab => h.button(tab.tab, [tab.value])),
+            ),
+            ...Array.map(tabs, tab => h.div(tab.panel)),
+          ],
+        ),
+    },
+    h,
+  )
+
 describe('Tabs', () => {
+  describe('view', () => {
+    it('only gives the mounted panel relationship to the active tab', () => {
+      Scene.scene(
+        { update, view: sceneView },
+        Scene.given(init({ id: 'test' })),
+        Scene.expect(Scene.selector('#test-tab-0')).toHaveAttr(
+          'aria-controls',
+          'test-panel-0',
+        ),
+        Scene.expect(Scene.selector('#test-tab-1')).not.toHaveAttr(
+          'aria-controls',
+        ),
+      )
+    })
+
+    it('keeps every panel relationship when all panels remain mounted', () => {
+      Scene.scene(
+        { update, view: allPanelsView },
+        Scene.given(init({ id: 'test' })),
+        Scene.expect(Scene.selector('#test-tab-0')).toHaveAttr(
+          'aria-controls',
+          'test-panel-0',
+        ),
+        Scene.expect(Scene.selector('#test-tab-1')).toHaveAttr(
+          'aria-controls',
+          'test-panel-1',
+        ),
+        Scene.expect(Scene.selector('#test-panel-1')).toExist(),
+      )
+    })
+  })
+
   describe('init', () => {
     it('defaults to automatic activation with focus following the selection', () => {
       expect(init({ id: 'test' })).toStrictEqual({
@@ -62,7 +151,7 @@ describe('Tabs', () => {
       Story.story(
         update,
         Story.given(
-          evo(init({ id: 'test' }), {
+          modifyFields(init({ id: 'test' }), {
             maybeFocusedIndex: () => Option.some(1),
           }),
         ),
@@ -93,7 +182,7 @@ describe('Tabs', () => {
       Story.story(
         update,
         Story.given(
-          evo(init({ id: 'test', activationMode: 'Manual' }), {
+          modifyFields(init({ id: 'test', activationMode: 'Manual' }), {
             maybeFocusedIndex: () => Option.some(2),
           }),
         ),

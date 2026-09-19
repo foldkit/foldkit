@@ -9,7 +9,7 @@ const update = (model: Model, message: Message) =>
       const nextSearchGeneration = Number.increment(model.searchGeneration)
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           query: () => query,
           searchGeneration: () => nextSearchGeneration,
         }),

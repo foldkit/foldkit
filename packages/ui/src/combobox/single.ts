@@ -1,6 +1,6 @@
 import { Option, Schema } from 'effect'
 import { type Update } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 
 import {
@@ -42,13 +42,13 @@ export const update = makeUpdate<Model>({
   handleClose: (model, restingInputValue, isClearable) => {
     if (isClearable && model.nullable && model.inputValue === '') {
       return {
-        model: evo(closedBaseModel(model), { inputValue: () => '' }),
+        model: modifyFields(closedBaseModel(model), { inputValue: () => '' }),
         outMessage: OutMessage.ClearedSelection(),
       }
     }
 
     return {
-      model: evo(closedBaseModel(model), {
+      model: modifyFields(closedBaseModel(model), {
         inputValue: () => restingInputValue,
       }),
     }
@@ -58,7 +58,7 @@ export const update = makeUpdate<Model>({
     const nullableDeselect = model.nullable && wasSelected
 
     return context.closeWithFocus(
-      evo(closedBaseModel(model), {
+      modifyFields(closedBaseModel(model), {
         inputValue: () => (nullableDeselect ? '' : displayText),
       }),
       OutMessage.Selected({ value: item }),

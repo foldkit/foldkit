@@ -6,7 +6,7 @@ import { type Html, __htmlBuilder } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import * as Mount from '../mount/index.js'
 import * as Port from '../port/index.js'
-import { evo } from '../struct/index.js'
+import { modifyFields } from '../struct/index.js'
 import * as Subscription from '../subscription/subscription.js'
 import type * as Update from '../update/index.js'
 import { makeApplication } from './makeApplication.js'
@@ -43,11 +43,13 @@ const ReportCount = Command.define('ReportCount', {
 
 const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
-    ChangedStep: ({ step }) => ({ model: evo(model, { step: () => step }) }),
+    ChangedStep: ({ step }) => ({
+      model: modifyFields(model, { step: () => step }),
+    }),
     ClickedIncrement: () => {
       const count = model.count + model.step
       return {
-        model: evo(model, { count: () => count }),
+        model: modifyFields(model, { count: () => count }),
         commands: [ReportCount({ count })],
       }
     },

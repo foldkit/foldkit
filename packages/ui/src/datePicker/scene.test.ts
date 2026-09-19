@@ -162,6 +162,7 @@ describe('DatePicker', () => {
         Scene.expect(trigger).toExist(),
         Scene.expect(trigger).toHaveAttr('type', 'button'),
         Scene.expect(trigger).toHaveAttr('aria-expanded', 'false'),
+        Scene.expect(trigger).not.toHaveAttr('aria-controls'),
       )
     })
 
@@ -199,6 +200,10 @@ describe('DatePicker', () => {
         Scene.given(pickerOpen.model),
         Scene.expect(panel).toExist(),
         Scene.expect(grid).toExist(),
+        Scene.expect(trigger).toHaveAttr(
+          'aria-controls',
+          'picker-popover-panel',
+        ),
         acknowledgeAnchorPopover,
         acknowledgePopoverBackdrop,
       )

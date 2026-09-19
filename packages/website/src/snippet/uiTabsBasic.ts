@@ -5,7 +5,7 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Tabs } from '@foldkit/ui'
 
@@ -64,7 +64,7 @@ const foldTabsOutMessage = Tabs.OutMessage.match<
   // selection, or trigger a panel content fetch.
   Selected:
     ({ value }) =>
-    model => ({ model: evo(model, { activeFramework: () => value }) }),
+    model => ({ model: modifyFields(model, { activeFramework: () => value }) }),
 })
 
 // Update.foldChild wires the child into the parent: it runs
@@ -74,7 +74,7 @@ const foldTabsOutMessage = Tabs.OutMessage.match<
 const foldTabs = Update.foldChild({
   update: FrameworkTabs.update,
   read: (model: Model) => Option.some(model.tabs),
-  write: (model, nextTabs) => evo(model, { tabs: () => nextTabs }),
+  write: (model, nextTabs) => modifyFields(model, { tabs: () => nextTabs }),
   toParentMessage: message => Message.GotTabsMessage({ message }),
   foldOutMessage: foldTabsOutMessage,
 })

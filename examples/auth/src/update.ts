@@ -1,7 +1,7 @@
 import { Effect, Match, Option, Schema } from 'effect'
 import { Command, Update } from 'foldkit'
 import { UrlRequest, load, pushUrl, replaceUrl } from 'foldkit/navigation'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
 
 import { ClearSession, LogError, SaveSession } from './command'
@@ -125,7 +125,7 @@ export const update = (model: Model, message: Message) =>
             Match.value(route).pipe(
               withUpdateReturn,
               Match.tag('Home', 'Login', 'NotFound', route => ({
-                model: evo(loggedOutModel, { route: () => route }),
+                model: modifyFields(loggedOutModel, { route: () => route }),
               })),
               Match.orElse(() => ({ model, commands: [RedirectToLogin()] })),
             ),
@@ -134,7 +134,7 @@ export const update = (model: Model, message: Message) =>
             Match.value(route).pipe(
               withUpdateReturn,
               Match.tag('Dashboard', 'Settings', 'NotFound', route => ({
-                model: evo(loggedInModel, { route: () => route }),
+                model: modifyFields(loggedInModel, { route: () => route }),
               })),
               Match.orElse(() => ({
                 model,

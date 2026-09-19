@@ -5,7 +5,7 @@ import { describe, it } from '@effect/vitest'
 
 import * as Command from '../command/index.js'
 import { defineMessageUnion } from '../message/index.js'
-import { evo } from '../struct/index.js'
+import { modifyFields } from '../struct/index.js'
 import * as Story from '../test/story.js'
 import {
   type FoldContext,
@@ -140,7 +140,7 @@ describe('foldChildInit', () => {
       Step<ParentModel, ParentMessage>
     >({
       ReportedValue: () => model => ({
-        model: evo(model, { reportedValue: () => model.child.value }),
+        model: modifyFields(model, { reportedValue: () => model.child.value }),
       }),
       IgnoredValue: () => model => ({ model }),
     })
@@ -201,7 +201,7 @@ describe('foldChildInit', () => {
       Step<ParentModel, OutMessageStepMessage>
     >({
       ReportedValue: () => model => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           reportedValue: () => model.child.value,
         }),
         commands: [recordChildValue()],
@@ -356,7 +356,7 @@ describe('foldChildInit', () => {
       toParentModel,
       toParentMessage: toGotChildMessage,
       foldOutMessage: (_outMessage: ChildOutMessage) => model => ({
-        model: evo(model, { reportedValue: () => model.child.value }),
+        model: modifyFields(model, { reportedValue: () => model.child.value }),
         commands: [recordChildValue()],
       }),
       toParentOutMessage: () => ParentOutMessage.ForwardedValue(),

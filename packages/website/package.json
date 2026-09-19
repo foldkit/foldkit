@@ -38,6 +38,7 @@
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
     "@effect/platform-node": "4.0.0-rc.115",
     "@foldkit/api-reference-generator": "workspace:*",
     "@foldkit/vite-plugin": "workspace:*",

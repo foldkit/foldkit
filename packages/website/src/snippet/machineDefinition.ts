@@ -3,7 +3,7 @@ import { Machine } from 'foldkit/experimental'
 import { otherwise, to, when } from 'foldkit/experimental/machine'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 // MODEL
 
@@ -45,7 +45,7 @@ export const checkoutMachine = Machine.define({
     Cart: {
       on: {
         SelectedEdition: to('Cart', ({ state, message }) => ({
-          model: evo(state, {
+          model: modifyFields(state, {
             isShippingRequired: () => message.isShippingRequired,
           }),
         })),

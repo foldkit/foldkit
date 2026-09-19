@@ -2,7 +2,7 @@ import { Array, Option } from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import { maybePostCover } from '../src/page/blog/frontmatter'
-import { AppRoute } from '../src/route'
+import { AppRoute, routeToCanonicalUrl, routeToUrlPath } from '../src/route'
 import { blogPosts } from './blogPosts'
 import { ORGANIZATION_SCHEMA, injectMetaTags } from './og-image'
 
@@ -256,6 +256,33 @@ describe('injectMetaTags', () => {
       expect(docsHtml).not.toContain('"@type":"AboutPage"')
       expect(docsHtml).not.toContain('"@type":"WebPage"')
     })
+  })
+
+  describe('prerendered canonical metadata', () => {
+    const firstPost = Option.getOrThrowWith(
+      Array.head(blogPosts),
+      () => new Error('expected at least one blog post'),
+    )
+
+    it.each([AppRoute.Home(), AppRoute.BlogPost({ postSlug: firstPost.slug })])(
+      'writes canonical and og:url for %o',
+      route => {
+        const canonicalUrl = routeToCanonicalUrl(route)
+        const html = injectMetaTags(
+          baseHtml,
+          route,
+          routeToUrlPath(route),
+          resolveApiModuleName,
+        )
+
+        expect(html).toContain(
+          `<link rel="canonical" href="${canonicalUrl}" />`,
+        )
+        expect(html).toContain(
+          `<meta property="og:url" content="${canonicalUrl}" />`,
+        )
+      },
+    )
   })
 
   describe('the prerendered 404 page', () => {

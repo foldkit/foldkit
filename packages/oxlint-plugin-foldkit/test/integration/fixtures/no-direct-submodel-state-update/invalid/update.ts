@@ -1,6 +1,6 @@
 import { Option } from 'effect'
 import { Update } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 type SettingsModel = Readonly<{ theme: string }>
 type Model = Readonly<{ settings: SettingsModel; preferences: SettingsModel }>
@@ -8,7 +8,7 @@ type Model = Readonly<{ settings: SettingsModel; preferences: SettingsModel }>
 const readSettings = (model: Model) => Option.some(model.settings)
 
 const writeSettings = (model: Model, nextSettings: SettingsModel): Model =>
-  evo(model, { settings: () => nextSettings })
+  modifyFields(model, { settings: () => nextSettings })
 
 const foldSettings = Update.foldChild({
   update: (settings: SettingsModel, _message: unknown) => ({ model: settings }),
@@ -33,16 +33,16 @@ export const update = (model: Model, message: unknown) => {
 
       return {
         ...foldSettingsUpdate,
-        model: evo(stepModel, {
-          settings: settings => evo(settings, { theme: () => 'Light' }),
+        model: modifyFields(stepModel, {
+          settings: settings => modifyFields(settings, { theme: () => 'Light' }),
         }),
       }
     },
   ])
 
   return {
-    model: evo(model, {
-      preferences: preferences => evo(preferences, { theme: () => 'Light' }),
+    model: modifyFields(model, {
+      preferences: preferences => modifyFields(preferences, { theme: () => 'Light' }),
     }),
     commands: settingsUpdate.commands,
   }
@@ -53,8 +53,8 @@ export const updateNamedStep = (model: Model, message: unknown) => {
   const settingsUpdate = foldSettingsStep(model)
 
   return {
-    model: evo(model, {
-      settings: settings => evo(settings, { theme: () => 'Light' }),
+    model: modifyFields(model, {
+      settings: settings => modifyFields(settings, { theme: () => 'Light' }),
     }),
     commands: settingsUpdate.commands,
   }
@@ -64,8 +64,8 @@ export const updateFoldChildStep = (model: Model) => {
   const settingsUpdate = foldSettingsStep(model)
 
   return {
-    model: evo(model, {
-      settings: settings => evo(settings, { theme: () => 'Light' }),
+    model: modifyFields(model, {
+      settings: settings => modifyFields(settings, { theme: () => 'Light' }),
     }),
     commands: settingsUpdate.commands,
   }
@@ -78,8 +78,8 @@ export const updateCombineFoldChildStep = (model: Model) => {
   ])
 
   return {
-    model: evo(model, {
-      settings: settings => evo(settings, { theme: () => 'Light' }),
+    model: modifyFields(model, {
+      settings: settings => modifyFields(settings, { theme: () => 'Light' }),
     }),
     commands: settingsUpdate.commands,
   }
@@ -89,10 +89,10 @@ export const updateConditionally = (model: Model, message: unknown) => {
   const settingsUpdate = foldSettings(model, message)
 
   return {
-    model: evo(model, {
+    model: modifyFields(model, {
       settings: settings => {
         if (settings.theme === 'Dark') {
-          return evo(settings, { theme: () => 'Light' })
+          return modifyFields(settings, { theme: () => 'Light' })
         }
         return settings
       },

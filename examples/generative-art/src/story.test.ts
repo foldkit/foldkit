@@ -1,6 +1,6 @@
 import { Array, Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import { Slider } from '@foldkit/ui'
@@ -77,7 +77,7 @@ describe('update', () => {
     story(
       update,
       given(
-        evo(initialModel, {
+        modifyFields(initialModel, {
           particles: () => [
             makeParticle(0, 100, 100),
             makeParticle(1, 200, 200),
@@ -140,7 +140,7 @@ describe('update', () => {
     story(
       update,
       given(
-        evo(initialModel, {
+        modifyFields(initialModel, {
           particles: () => startingParticles,
           nextId: () => startingParticleCount,
         }),

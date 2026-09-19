@@ -1,5 +1,66 @@
 # @foldkit/ui
 
+## 0.162.0
+
+### Version Alignment
+
+Updated to keep this package aligned with the rest of this release.
+There are no package-specific changes in this release.
+
+## 0.161.0
+
+### Minor Changes
+
+- [#884](https://github.com/foldkit/foldkit/pull/884) [`10b9fda`](https://github.com/foldkit/foldkit/commit/10b9fda28a245f25ddad22ca7da8ad52c3dd754f) Thanks [@devinjameson](https://github.com/devinjameson)! - Drive calendar date formatting from the locale instead of hardcoding English
+
+  `Calendar.LocaleConfig` carried translated month and day names, but the formatters built their output with English word order, so a German locale rendered "Januar 15, 2026" rather than "15. Januar 2026". Ordering now lives in the config as data.
+
+  `LocaleConfig` gains `longFormat`, `shortFormat`, `ariaLabelFormat`, and `monthYearFormat`. A `DateFormat` is a non-empty ordered list of `Calendar.DatePart` values, so day-first and year-first locales render correctly without a code change. `MonthYearFormat` accepts only month, year, and literal parts. `Calendar.format` applies an arbitrary `DateFormat`, and the new `Calendar.formatMonthYear` renders the month-and-year shape used by calendar headings.
+
+  This is a breaking change to `LocaleConfig`. A locale built by spreading `defaultEnglishLocale` keeps working; one constructed field by field needs the four new fields.
+
+  In `@foldkit/ui`, the Calendar drew column header accessible names from a hardcoded English array, ignoring `locale.dayNames` entirely, and built its heading and month-cell labels by interpolating month name and year in English order. Both now go through the locale. The remaining date-dependent English copy is overridable through `ViewInputs`: `toDaysGridLabel`, `toWeekLabel`, `toMonthsGridLabel`, and `toYearsGridLabel`, each defaulting to the previous English text. DatePicker accepts the same Calendar label fields and forwards them to its embedded Calendar.
+
+- [#1397](https://github.com/foldkit/foldkit/pull/1397) [`4cb3546`](https://github.com/foldkit/foldkit/commit/4cb3546e35b7110576212af07238f222fbb6624e) Thanks [@devinjameson](https://github.com/devinjameson)! - Make modal Dialog backgrounds inert and hidden from assistive technology while keeping permitted overlays and Dialogs stacked above the modal available. Reconcile newly mounted portals and other late page content, coordinate stacked Dialogs, reacquire resources for an open Dialog restored by development Model preservation, and release Dialogs in topmost-first order when the owning runtime stops.
+
+  `Dialog.init()` now always creates a closed Dialog. Replace an initially open `Dialog.init()` call such as:
+
+  ```ts
+  const dialog = Dialog.init({ id: 'confirm', isOpen: true })
+  ```
+
+  with `Dialog.boot()`. Pass the boot result to `Update.foldChildInit`, construct the parent Model through `toParentModel`, map child Commands through `toParentMessage`, and handle the OutMessage through the same `foldDialogOutMessage` used by the parent update:
+
+  ```ts
+  return Update.foldChildInit(Dialog.boot({ id: 'confirm' }), {
+    toParentModel: dialog => ({ dialog }),
+    toParentMessage: toGotDialogMessage,
+    foldOutMessage: foldDialogOutMessage,
+  })
+  ```
+
+  This ensures an initially open Dialog acquires the same isolation, scroll lock, focus trap, stack registration, and cleanup as one opened later.
+
+  Because this Dialog resource path uses the updated `Dom.showDialog` contract, `@foldkit/ui` now requires `foldkit` 0.161.0 or newer.
+
+  Point UI controls at panels only while those panels are rendered, and keep an empty Combobox from exposing an invalid active descendant or expanded listbox. Keep the modal Combobox backdrop available for dismissal even when filtering leaves no list items. Render Toast containers and entries as neutral `<div>` elements so their live-region roles do not conflict with list semantics.
+
+  Export `DragAndDrop.DragState` so consumers can match drag phases through the tagged union API when deriving accessible announcements and other parent behavior.
+
+  Tabs defaults to active-only panel rendering when deciding which tabs receive `aria-controls`. Pass `panelMount: 'All'` when every tab panel remains mounted, including when inactive panels are hidden. DevTools opts into that strategy for its Inspector tabs.
+
+  Toast markup changes from `<ol>` and `<li>` to `<div>` elements. Update any element-selector CSS or DOM queries that target those Toast wrappers.
+
+  `Dom.showDialog` now resolves to `true` when it installs a Dialog's resources and `false` when that id already holds them. Callers that explicitly annotated its result as `void` must accept or ignore the boolean result.
+
+- [#1359](https://github.com/foldkit/foldkit/pull/1359) [`9a902b3`](https://github.com/foldkit/foldkit/commit/9a902b3c0dc06116b7fab68684334e66f774038f) Thanks [@filipfalcon](https://github.com/filipfalcon)! - Let `Disclosure`'s `animatePanel` keep a peek of the collapsed panel in view.
+
+  `animatePanel(content, { peek: '7.5em' })` holds the collapsed panel at that height and shows an inert visual preview of its content, so preview-style disclosures can use the same height transition an all-or-nothing panel gets. Every collapsed animated panel is now inert and hidden from assistive technology until it opens.
+
+### Patch Changes
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
 ## 0.160.0
 
 ### Minor Changes

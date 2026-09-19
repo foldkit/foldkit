@@ -1,6 +1,6 @@
 // domain/cart.ts
 import { Array, Option, Schema } from 'effect'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { CartItem, Item } from './item'
 
@@ -20,7 +20,7 @@ export const addItem =
       onSome: () =>
         Array.map(cart, cartItem =>
           cartItem.item.id === item.id
-            ? evo(cartItem, { quantity: quantity => quantity + 1 })
+            ? modifyFields(cartItem, { quantity: quantity => quantity + 1 })
             : cartItem,
         ),
     })

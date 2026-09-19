@@ -4,7 +4,7 @@
 import { Schema } from 'effect'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Disclosure } from '@foldkit/ui'
 
@@ -31,7 +31,9 @@ const Message = defineMessageUnion({
 // In the corresponding Message.match handler, store the value.
 // This is the moment to persist the open state, lazy-load panel content, or
 // log analytics.
-ToggledFaq: ({ isOpen }) => ({ model: evo(model, { isFaqOpen: () => isOpen }) })
+ToggledFaq: ({ isOpen }) => ({
+  model: modifyFields(model, { isFaqOpen: () => isOpen }),
+})
 
 // Inside your view function, render the disclosure with Disclosure.view.
 // Render the panel unconditionally and pass it through animatePanel: the

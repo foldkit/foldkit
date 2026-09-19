@@ -14,7 +14,7 @@ import * as Dom from 'foldkit/dom'
 import type { ChildAttribute, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Mount from 'foldkit/mount'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
 
@@ -192,7 +192,7 @@ export const init = (config: InitConfig): Model => ({
 // UPDATE
 
 const closedModel = (model: Model): Model =>
-  evo(model, {
+  modifyFields(model, {
     isOpen: () => false,
     maybeActiveItemIndex: () => Option.none(),
     searchQuery: () => '',
@@ -330,7 +330,7 @@ const foldAnimation = Update.foldChild({
   update: animationUpdate,
   read: (model: Model) => Option.some(model.animation),
   write: (model, nextAnimation) =>
-    evo(model, { animation: () => nextAnimation }),
+    modifyFields(model, { animation: () => nextAnimation }),
   toParentMessage: message => Message.GotAnimationMessage({ message }),
   foldOutMessage: foldAnimationOutMessage,
 })
@@ -339,7 +339,7 @@ const foldAnimationShow = Update.foldChildStep({
   update: animationShow,
   read: (model: Model) => Option.some(model.animation),
   write: (model, nextAnimation) =>
-    evo(model, { animation: () => nextAnimation }),
+    modifyFields(model, { animation: () => nextAnimation }),
   toParentMessage: message => Message.GotAnimationMessage({ message }),
 })
 
@@ -347,7 +347,7 @@ const foldAnimationHide = Update.foldChildStep({
   update: animationHide,
   read: (model: Model) => Option.some(model.animation),
   write: (model, nextAnimation) =>
-    evo(model, { animation: () => nextAnimation }),
+    modifyFields(model, { animation: () => nextAnimation }),
   toParentMessage: message => Message.GotAnimationMessage({ message }),
 })
 
@@ -387,13 +387,13 @@ export const update = (model: Model, message: Message) => {
         stepModel => ({ model: stepModel, commands: openCommands }),
         foldAnimationShow,
         stepModel => ({
-          model: evo(stepModel, { isOpen: () => true }),
+          model: modifyFields(stepModel, { isOpen: () => true }),
         }),
       ])
     }
 
     return {
-      model: evo(baseModel, { isOpen: () => true }),
+      model: modifyFields(baseModel, { isOpen: () => true }),
       commands: openCommands,
     }
   }
@@ -433,7 +433,7 @@ export const update = (model: Model, message: Message) => {
 
     Opened: ({ maybeActiveItemIndex }) =>
       openMenu(
-        evo(model, {
+        modifyFields(model, {
           maybeActiveItemIndex: () => maybeActiveItemIndex,
           activationTrigger: () =>
             Option.match(maybeActiveItemIndex, {
@@ -459,7 +459,7 @@ export const update = (model: Model, message: Message) => {
     },
 
     ActivatedItem: ({ index, activationTrigger }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         maybeActiveItemIndex: () => Option.some(index),
         activationTrigger: () => activationTrigger,
       }),
@@ -481,7 +481,7 @@ export const update = (model: Model, message: Message) => {
       }
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           maybeActiveItemIndex: () => Option.some(index),
           activationTrigger: () => 'Pointer',
           maybeLastPointerPosition: () => Option.some({ screenX, screenY }),
@@ -491,7 +491,11 @@ export const update = (model: Model, message: Message) => {
 
     DeactivatedItem: () =>
       model.activationTrigger === 'Pointer'
-        ? { model: evo(model, { maybeActiveItemIndex: () => Option.none() }) }
+        ? {
+            model: modifyFields(model, {
+              maybeActiveItemIndex: () => Option.none(),
+            }),
+          }
         : { model },
 
     SelectedItem: ({ index, item }) =>
@@ -510,7 +514,7 @@ export const update = (model: Model, message: Message) => {
       const nextSearchVersion = model.searchVersion + 1
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           searchQuery: () => nextSearchQuery,
           searchVersion: () => nextSearchVersion,
           maybeActiveItemIndex: () =>
@@ -525,7 +529,7 @@ export const update = (model: Model, message: Message) => {
         return { model }
       }
 
-      return { model: evo(model, { searchQuery: () => '' }) }
+      return { model: modifyFields(model, { searchQuery: () => '' }) }
     },
 
     GotAnimationMessage: ({ message: animationMessage }) =>
@@ -538,7 +542,7 @@ export const update = (model: Model, message: Message) => {
       screenY,
       timeStamp,
     }) => {
-      const withPointerType = evo(model, {
+      const withPointerType = modifyFields(model, {
         maybeLastButtonPointerType: () => Option.some(pointerType),
       })
 
@@ -550,7 +554,7 @@ export const update = (model: Model, message: Message) => {
         return Update.combine(withPointerType, [
           stepModel => closeMenu(stepModel, closeWithFocusCommands),
           stepModel => ({
-            model: evo(stepModel, {
+            model: modifyFields(stepModel, {
               maybeLastButtonPointerType: () => Option.some(pointerType),
             }),
           }),
@@ -558,7 +562,7 @@ export const update = (model: Model, message: Message) => {
       }
 
       return openMenu(
-        evo(withPointerType, {
+        modifyFields(withPointerType, {
           maybeActiveItemIndex: () => Option.none(),
           activationTrigger: () => 'Pointer',
           searchQuery: () => '',
@@ -611,7 +615,9 @@ export const update = (model: Model, message: Message) => {
     },
 
     IgnoredMouseClick: () => ({
-      model: evo(model, { maybeLastButtonPointerType: () => Option.none() }),
+      model: modifyFields(model, {
+        maybeLastButtonPointerType: () => Option.none(),
+      }),
     }),
   })
 }
@@ -983,7 +989,7 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       h.Type('button'),
       h.AriaHasPopup('menu'),
       h.AriaExpanded(isVisible),
-      h.AriaControls(`${id}-items`),
+      ...(isVisible ? [h.AriaControls(`${id}-items`)] : []),
       ...buttonLabelAttributes,
       ...(isButtonDisabled
         ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]

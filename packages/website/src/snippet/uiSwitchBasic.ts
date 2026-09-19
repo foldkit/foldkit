@@ -4,7 +4,7 @@
 import { Schema } from 'effect'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Switch } from '@foldkit/ui'
 
@@ -32,7 +32,7 @@ const Message = defineMessageUnion({
 // This is the moment to persist the preference, sync to a backend, or fire
 // analytics.
 ToggledNotifications: ({ isChecked }) => ({
-  model: evo(model, { notificationsEnabled: () => isChecked }),
+  model: modifyFields(model, { notificationsEnabled: () => isChecked }),
 })
 
 // Inside your view function, render the switch with Switch.view. It reads the

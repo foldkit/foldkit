@@ -3,7 +3,7 @@ import { Schema } from 'effect'
 import { CustomElement, Runtime, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import 'vanilla-colorful/hex-color-picker.js'
 
 import { Button, Input } from '@foldkit/ui'
@@ -47,13 +47,13 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     UpdatedContent: ({ value }) => ({
-      model: evo(model, { content: () => value }),
+      model: modifyFields(model, { content: () => value }),
     }),
     ChangedFillColor: ({ value }) => ({
-      model: evo(model, { fillColor: () => value }),
+      model: modifyFields(model, { fillColor: () => value }),
     }),
     ChangedBackgroundColor: ({ value }) => ({
-      model: evo(model, { backgroundColor: () => value }),
+      model: modifyFields(model, { backgroundColor: () => value }),
     }),
   })
 

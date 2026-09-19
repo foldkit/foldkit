@@ -2,22 +2,48 @@ import { Array } from 'effect'
 
 import { Document, textDirectionToAttribute } from '../html/index.js'
 
-const currentLocationUrl = (): string => {
-  const { origin, pathname, search } = window.location
-  return `${origin}${pathname}${search}`
+type OwnedElement =
+  | Readonly<{ _tag: 'Created'; element: HTMLElement }>
+  | Readonly<{
+      _tag: 'Found'
+      element: HTMLElement
+      servedValue: string | undefined
+    }>
+
+type HeadField = 'canonical' | 'ogUrl'
+
+type DocumentMetadataElements = Partial<Record<HeadField, OwnedElement>>
+
+type HeadElementDescriptor = Readonly<{
+  field: HeadField
+  tagName: 'link' | 'meta'
+  identityAttribute: string
+  identityValue: string
+  valueAttribute: string
+}>
+
+const CANONICAL_ELEMENT: HeadElementDescriptor = {
+  field: 'canonical',
+  tagName: 'link',
+  identityAttribute: 'rel',
+  identityValue: 'canonical',
+  valueAttribute: 'href',
 }
 
-type DocumentMetadataElements = {
-  canonical?: HTMLLinkElement
-  ogUrl?: HTMLMetaElement
+const OG_URL_ELEMENT: HeadElementDescriptor = {
+  field: 'ogUrl',
+  tagName: 'meta',
+  identityAttribute: 'property',
+  identityValue: 'og:url',
+  valueAttribute: 'content',
 }
 
 type ResolvedDocumentMetadata = Readonly<{
   title: string
   lang: string | undefined
   dirAttribute: string | undefined
-  canonicalUrl: string
-  ogUrl: string
+  canonical: string | undefined
+  ogUrl: string | undefined
 }>
 
 type DocumentMetadataInvalidation = { isInvalidated: boolean }
@@ -28,8 +54,6 @@ type DocumentMetadataState = {
   readonly invalidation: DocumentMetadataInvalidation
   observedHead: HTMLHeadElement
   lastApplied?: ResolvedDocumentMetadata
-  cachedLocationHref?: string
-  cachedLocationCanonical?: string
 }
 
 const documentMetadataStates = new WeakMap<
@@ -75,48 +99,87 @@ const getOrCreateDocumentMetadataState = (): DocumentMetadataState => {
   return metadataState
 }
 
-const findOrCreateDocumentMetadataElements = (
+const findOrCreateHeadElement = (
   metadataState: DocumentMetadataState,
-): Readonly<{
-  canonical: HTMLLinkElement
-  ogUrl: HTMLMetaElement
-}> => {
+  descriptor: HeadElementDescriptor,
+): HTMLElement => {
   const { elements } = metadataState
-
-  let canonical = elements.canonical
-  if (canonical === undefined || canonical.parentNode !== document.head) {
-    canonical =
-      document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]') ??
-      document.head.appendChild(document.createElement('link'))
-    elements.canonical = canonical
+  const owned = elements[descriptor.field]
+  if (owned !== undefined && owned.element.parentNode === document.head) {
+    return owned.element
   }
 
-  let ogUrl = elements.ogUrl
-  if (ogUrl === undefined || ogUrl.parentNode !== document.head) {
-    ogUrl =
-      document.head.querySelector<HTMLMetaElement>('meta[property="og:url"]') ??
-      document.head.appendChild(document.createElement('meta'))
-    elements.ogUrl = ogUrl
+  const found = document.head.querySelector<HTMLElement>(
+    `${descriptor.tagName}[${descriptor.identityAttribute}="${descriptor.identityValue}"]`,
+  )
+  if (found !== null) {
+    elements[descriptor.field] = {
+      _tag: 'Found',
+      element: found,
+      servedValue: found.getAttribute(descriptor.valueAttribute) ?? undefined,
+    }
+    return found
   }
 
-  return { canonical, ogUrl }
+  const created = document.head.appendChild(
+    document.createElement(descriptor.tagName),
+  )
+  elements[descriptor.field] = { _tag: 'Created', element: created }
+  return created
 }
 
-const readOrCacheCurrentLocationUrl = (
+const restoreOwnedElement = (
   metadataState: DocumentMetadataState,
-): string => {
-  const currentLocationHref = window.location.href
-  if (
-    metadataState.cachedLocationHref === currentLocationHref &&
-    metadataState.cachedLocationCanonical !== undefined
-  ) {
-    return metadataState.cachedLocationCanonical
+  descriptor: HeadElementDescriptor,
+): void => {
+  const owned = metadataState.elements[descriptor.field]
+
+  // NOTE: If another script removes a tracked element, an omitted field must
+  // not recreate the element just to restore its earlier value.
+  if (owned === undefined || owned.element.parentNode !== document.head) {
+    return
   }
 
-  const canonicalUrl = currentLocationUrl()
-  metadataState.cachedLocationHref = currentLocationHref
-  metadataState.cachedLocationCanonical = canonicalUrl
-  return canonicalUrl
+  if (owned._tag === 'Created') {
+    owned.element.remove()
+    return
+  }
+
+  const { valueAttribute } = descriptor
+
+  if (owned.servedValue === undefined) {
+    owned.element.removeAttribute(valueAttribute)
+    return
+  }
+
+  if (owned.element.getAttribute(valueAttribute) !== owned.servedValue) {
+    owned.element.setAttribute(valueAttribute, owned.servedValue)
+  }
+}
+
+const syncHeadElement = (
+  metadataState: DocumentMetadataState,
+  descriptor: HeadElementDescriptor,
+  value: string | undefined,
+): void => {
+  if (value === undefined) {
+    restoreOwnedElement(metadataState, descriptor)
+    delete metadataState.elements[descriptor.field]
+    return
+  }
+
+  const element = findOrCreateHeadElement(metadataState, descriptor)
+
+  if (
+    element.getAttribute(descriptor.identityAttribute) !==
+    descriptor.identityValue
+  ) {
+    element.setAttribute(descriptor.identityAttribute, descriptor.identityValue)
+  }
+
+  if (element.getAttribute(descriptor.valueAttribute) !== value) {
+    element.setAttribute(descriptor.valueAttribute, value)
+  }
 }
 
 const rebindDocumentMetadataObserverToCurrentHead = (
@@ -156,23 +219,8 @@ const reconcileDocumentMetadata = (
     documentElement.dir = nextMetadata.dirAttribute
   }
 
-  const metadataElements = findOrCreateDocumentMetadataElements(metadataState)
-
-  if (metadataElements.canonical.getAttribute('rel') !== 'canonical') {
-    metadataElements.canonical.setAttribute('rel', 'canonical')
-  }
-  if (
-    metadataElements.canonical.getAttribute('href') !==
-    nextMetadata.canonicalUrl
-  ) {
-    metadataElements.canonical.setAttribute('href', nextMetadata.canonicalUrl)
-  }
-  if (metadataElements.ogUrl.getAttribute('property') !== 'og:url') {
-    metadataElements.ogUrl.setAttribute('property', 'og:url')
-  }
-  if (metadataElements.ogUrl.getAttribute('content') !== nextMetadata.ogUrl) {
-    metadataElements.ogUrl.setAttribute('content', nextMetadata.ogUrl)
-  }
+  syncHeadElement(metadataState, CANONICAL_ELEMENT, nextMetadata.canonical)
+  syncHeadElement(metadataState, OG_URL_ELEMENT, nextMetadata.ogUrl)
 
   metadataState.lastApplied = nextMetadata
   metadataState.invalidation.isInvalidated = false
@@ -196,9 +244,7 @@ export const applyDocumentMetadata = (
     rebindDocumentMetadataObserverToCurrentHead(metadataState)
   }
 
-  const canonicalUrl =
-    nextDocument.canonical ?? readOrCacheCurrentLocationUrl(metadataState)
-  const ogUrl = nextDocument.ogUrl ?? canonicalUrl
+  const ogUrl = nextDocument.ogUrl ?? nextDocument.canonical
   const dirAttribute =
     nextDocument.dir === undefined
       ? undefined
@@ -217,7 +263,7 @@ export const applyDocumentMetadata = (
     lastApplied.title === nextDocument.title &&
     lastApplied.lang === nextDocument.lang &&
     lastApplied.dirAttribute === dirAttribute &&
-    lastApplied.canonicalUrl === canonicalUrl &&
+    lastApplied.canonical === nextDocument.canonical &&
     lastApplied.ogUrl === ogUrl
 
   if (isAppliedMetadataCurrent) {
@@ -228,7 +274,7 @@ export const applyDocumentMetadata = (
     title: nextDocument.title,
     lang: nextDocument.lang,
     dirAttribute,
-    canonicalUrl,
+    canonical: nextDocument.canonical,
     ogUrl,
   })
 }

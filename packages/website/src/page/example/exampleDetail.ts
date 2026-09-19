@@ -1,7 +1,7 @@
 import { Array, Effect, Option, Queue, Schema, Stream, pipe } from 'effect'
 import { AsyncData, Command, Mount, Submodel, Update } from 'foldkit'
 import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Disclosure, Tabs } from '@foldkit/ui'
 
@@ -143,14 +143,14 @@ export const update = (model: Model, message: Message) =>
     GotSourceFileTabsMessage: ({ message }) =>
       foldSourceFileTabs(model, message),
     ChangedExampleUrl: ({ url }) => ({
-      model: evo(model, { maybeExampleUrl: () => Option.some(url) }),
+      model: modifyFields(model, { maybeExampleUrl: () => Option.some(url) }),
     }),
     ToggledLivePreview: ({ isOpen }) => ({
-      model: evo(model, { isLivePreviewOpen: () => isOpen }),
+      model: modifyFields(model, { isLivePreviewOpen: () => isOpen }),
     }),
 
     RequestedExampleSources: ({ slug }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         sourceFileTabs: () => Tabs.init({ id: 'source-file-tabs' }),
         maybeActiveSourceFilePath: () => Option.none(),
         maybeExampleUrl: () => Option.none(),
@@ -160,7 +160,7 @@ export const update = (model: Model, message: Message) =>
     }),
 
     SucceededLoadExampleSources: ({ sources }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         maybeActiveSourceFilePath: () =>
           pipe(
             sources.files,
@@ -173,7 +173,7 @@ export const update = (model: Model, message: Message) =>
     }),
 
     FailedLoadExampleSources: ({ error }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         currentSources: () => CurrentSourcesAsyncData.Failure({ error }),
       }),
     }),
@@ -369,7 +369,7 @@ const foldSourceFileTabsOutMessage = Tabs.OutMessage.match<
   Selected:
     ({ value }) =>
     model => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         maybeActiveSourceFilePath: () => Option.some(value),
       }),
     }),
@@ -379,7 +379,7 @@ const foldSourceFileTabs = Update.foldChild({
   update: SourceFileTabs.update,
   read: (model: Model) => Option.some(model.sourceFileTabs),
   write: (model, nextSourceFileTabs) =>
-    evo(model, { sourceFileTabs: () => nextSourceFileTabs }),
+    modifyFields(model, { sourceFileTabs: () => nextSourceFileTabs }),
   toParentMessage: message => Message.GotSourceFileTabsMessage({ message }),
   foldOutMessage: foldSourceFileTabsOutMessage,
 })

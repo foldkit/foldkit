@@ -1,5 +1,383 @@
 # foldkit
 
+## 0.162.0
+
+### Minor Changes
+
+- [#1406](https://github.com/foldkit/foldkit/pull/1406) [`01b0aab`](https://github.com/foldkit/foldkit/commit/01b0aab09684c7c47579529ef52bb4ba997871d8) Thanks [@devinjameson](https://github.com/devinjameson)! - Rename `Subscription.keyboardShortcuts` to `Subscription.keyBindings`, the `shortcut` field to `keys`, and the related public types to `KeySequence`, `KeyBinding`, and `KeyBindingsConfig`. Replace the old names when migrating.
+
+## 0.161.0
+
+### Minor Changes
+
+- [#683](https://github.com/foldkit/foldkit/pull/683) [`b58e602`](https://github.com/foldkit/foldkit/commit/b58e60279bccc6584985315645bfae664a7b90c5) Thanks [@devinjameson](https://github.com/devinjameson)! - DevTools now attributes a Command to its destination Submodel from the actual resolved Message, without replaying Message mappers. Command history records and serialized Commands carry `maybeSubmodelPath`: `None` until resolution, `Some([])` for a top-level result, or `Some(tags)` for a Submodel result. Consumers constructing `CommandRecord` must add an invocation `id` and `maybeSubmodelPath`; consumers constructing a serialized Command must add `maybeSubmodelPath`.
+
+- [#1401](https://github.com/foldkit/foldkit/pull/1401) [`9a32438`](https://github.com/foldkit/foldkit/commit/9a324382d74c0f5f398c6427944e8baf2672e765) Thanks [@devinjameson](https://github.com/devinjameson)! - Add `Update.foldChildInit` and `Update.foldChildInits` to construct a parent Model from child init or boot results, map their Commands, and handle their OutMessages. Both APIs take the child results first. Existing initialization code remains valid; adopting these helpers is optional.
+
+  ### One child
+
+  For example, a Workspace Submodel contains a Search Submodel. Previously, the Workspace Submodel constructed its Model and mapped the Search Submodel's Commands separately:
+
+  ```ts
+  const searchInit = Search.init()
+
+  return {
+    model: Model.make({ search: searchInit.model }),
+    commands: Command.mapMessages(searchInit.commands, message =>
+      Message.GotSearchMessage({ message }),
+    ),
+  }
+  ```
+
+  Now, `foldChildInit` does both:
+
+  ```ts
+  return Update.foldChildInit(Search.init(), {
+    toParentModel: search => Model.make({ search }),
+    toParentMessage: message => Message.GotSearchMessage({ message }),
+  })
+  ```
+
+  If the Search Submodel emits an OutMessage, the Workspace Submodel must handle it. Supply `foldOutMessage` to update the Workspace Submodel's Model or return Commands in response. Supply `toParentOutMessage` to translate it into the Workspace Submodel's OutMessage type for its own parent. Both can be supplied when the event should be handled locally and reported upward.
+
+  ### Several children
+
+  For a Workspace Submodel containing Search and Editor Submodels, the previous initialization code assembled both Models and mapped both sets of Commands:
+
+  ```ts
+  const searchInit = Search.init()
+  const editorInit = Editor.init()
+
+  return {
+    model: Model.make({ search: searchInit.model, editor: editorInit.model }),
+    commands: [
+      ...Command.mapMessages(searchInit.commands, message =>
+        Message.GotSearchMessage({ message }),
+      ),
+      ...Command.mapMessages(editorInit.commands, message =>
+        Message.GotEditorMessage({ message }),
+      ),
+    ],
+  }
+  ```
+
+  Now, `foldChildInits` keeps the same wiring together:
+
+  ```ts
+  return Update.foldChildInits(
+    { search: Search.init(), editor: Editor.init() },
+    {
+      toParentModel: ({ search, editor }) => Model.make({ search, editor }),
+      folds: {
+        search: {
+          toParentMessage: message => Message.GotSearchMessage({ message }),
+        },
+        editor: {
+          toParentMessage: message => Message.GotEditorMessage({ message }),
+        },
+      },
+    },
+  )
+  ```
+
+  ### Handling child OutMessages locally
+
+  Each entry also accepts `foldOutMessage`. For example, a Workspace Submodel contains Search and Editor Submodels whose boot results can report `PreparedResults` and `OpenedDocument`. The Workspace Submodel handles both locally to record the selected and opened document IDs:
+
+  ```ts
+  const foldSearchOutMessage = Search.OutMessage.match<
+    Update.Step<Model, Message>
+  >({
+    PreparedResults:
+      ({ documentId }) =>
+      model => ({
+        model: evo(model, {
+          maybeSelectedDocumentId: () => Option.some(documentId),
+        }),
+      }),
+  })
+
+  const foldEditorOutMessage = Editor.OutMessage.match<
+    Update.Step<Model, Message>
+  >({
+    OpenedDocument:
+      ({ documentId }) =>
+      model => ({
+        model: evo(model, {
+          maybeOpenedDocumentId: () => Option.some(documentId),
+        }),
+      }),
+  })
+
+  return Update.foldChildInits(
+    {
+      search: Search.boot(),
+      editor: Editor.boot(),
+    },
+    {
+      toParentModel: ({ search, editor }) =>
+        Model.make({
+          search,
+          editor,
+          maybeSelectedDocumentId: Option.none(),
+          maybeOpenedDocumentId: Option.none(),
+        }),
+      folds: {
+        search: {
+          toParentMessage: message => Message.GotSearchMessage({ message }),
+          foldOutMessage: foldSearchOutMessage,
+        },
+        editor: {
+          toParentMessage: message => Message.GotEditorMessage({ message }),
+          foldOutMessage: foldEditorOutMessage,
+        },
+      },
+    },
+  )
+  ```
+
+  Foldkit constructs the complete parent Model once, then runs the handlers in the order of the named fields in `folds`. The Editor fold receives the Model produced by the Search fold, so it keeps `maybeSelectedDocumentId` when setting `maybeOpenedDocumentId`. A child that emits no OutMessage skips its handler. These folds handle the OutMessages locally, so no `resolveOutMessage` is needed. Commands run independently; a later child's Commands do not wait for an earlier child's Commands to finish.
+
+  ### Combining child OutMessages
+
+  For example, App contains a Workspace Submodel, which contains Search and Editor Submodels. The Search and Editor Submodels' boot functions can report that they restored a saved query or draft. App should receive one restoration notice containing both results.
+
+  The Workspace Submodel translates its children's OutMessages with `toParentOutMessage`. The same adapters can report an individual restoration during a later update. During boot, `resolveOutMessage` combines them into a single `RestoredWorkspace` OutMessage for App:
+
+  ```ts
+  const OutMessage = defineMessageUnion({
+    RestoredSearch: { query: Schema.String },
+    RestoredEditor: { documentId: Schema.String },
+    RestoredWorkspace: {
+      maybeQuery: Schema.Option(Schema.String),
+      maybeDocumentId: Schema.Option(Schema.String),
+    },
+  })
+
+  const toParentSearchOutMessage = Search.OutMessage.match({
+    RestoredQuery: ({ query }) => OutMessage.RestoredSearch({ query }),
+  })
+
+  const toParentEditorOutMessage = Editor.OutMessage.match({
+    RestoredDraft: ({ documentId }) =>
+      OutMessage.RestoredEditor({ documentId }),
+  })
+
+  return Update.foldChildInits(
+    {
+      search: Search.boot(),
+      editor: Editor.boot(),
+    },
+    {
+      toParentModel: ({ search, editor }) => Model.make({ search, editor }),
+      folds: {
+        search: {
+          toParentMessage: message => Message.GotSearchMessage({ message }),
+          toParentOutMessage: toParentSearchOutMessage,
+        },
+        editor: {
+          toParentMessage: message => Message.GotEditorMessage({ message }),
+          toParentOutMessage: toParentEditorOutMessage,
+        },
+      },
+      resolveOutMessage: ({ search, editor }) =>
+        OutMessage.RestoredWorkspace({
+          maybeQuery: pipe(
+            Option.fromNullishOr(search),
+            Option.map(outMessage =>
+              Match.value(outMessage).pipe(
+                Match.tagsExhaustive({
+                  RestoredSearch: ({ query }) => query,
+                }),
+              ),
+            ),
+          ),
+          maybeDocumentId: pipe(
+            Option.fromNullishOr(editor),
+            Option.map(outMessage =>
+              Match.value(outMessage).pipe(
+                Match.tagsExhaustive({
+                  RestoredEditor: ({ documentId }) => documentId,
+                }),
+              ),
+            ),
+          ),
+        }),
+    },
+  )
+  ```
+
+  When both children report a restoration, the OutMessage preserves both values. When only one does, the other field is `None`. When neither does, the resolver is skipped and the result has no `outMessage`.
+
+  The resolver receives the emitted OutMessages under their child keys and the final parent Model as a second argument. This preserves boot-time information that the current Model may not retain, such as whether an existing query was restored. If the Model already contains everything needed for the parent's OutMessage, handle the children locally and attach that OutMessage afterward with `Update.withOutMessage`.
+
+  Newly generated apps also include guidance for both initialization helpers in `FOLDKIT.md`.
+
+- [#623](https://github.com/foldkit/foldkit/pull/623) [`5059f48`](https://github.com/foldkit/foldkit/commit/5059f483f1be8fa15560bdfa3c0583bdcde4bc61) Thanks [@artile](https://github.com/artile)! - Add `Subscription.keyboardShortcuts`, a declarative Stream helper for mapping single key presses, modifier combinations, and ordered key sequences to Messages. It resolves `Mod` to the platform modifier, suppresses shortcuts from editable elements and IME composition by default, ignores held-key repeats, expires incomplete sequences, validates ambiguous binding tables, and calls `preventDefault` for matched presses unless a binding opts out. Bindings can be enabled from Subscription dependencies when their availability follows the Model.
+
+  For example:
+
+  ```ts
+  Subscription.keyboardShortcuts<Message>({
+    bindings: [
+      { shortcut: 'Mod+K', toMessage: () => Message.PressedSearchShortcut() },
+      {
+        shortcut: ['G', 'H'],
+        toMessage: () => Message.PressedHomeShortcut(),
+      },
+    ],
+  })
+  ```
+
+- [#884](https://github.com/foldkit/foldkit/pull/884) [`10b9fda`](https://github.com/foldkit/foldkit/commit/10b9fda28a245f25ddad22ca7da8ad52c3dd754f) Thanks [@devinjameson](https://github.com/devinjameson)! - Drive calendar date formatting from the locale instead of hardcoding English
+
+  `Calendar.LocaleConfig` carried translated month and day names, but the formatters built their output with English word order, so a German locale rendered "Januar 15, 2026" rather than "15. Januar 2026". Ordering now lives in the config as data.
+
+  `LocaleConfig` gains `longFormat`, `shortFormat`, `ariaLabelFormat`, and `monthYearFormat`. A `DateFormat` is a non-empty ordered list of `Calendar.DatePart` values, so day-first and year-first locales render correctly without a code change. `MonthYearFormat` accepts only month, year, and literal parts. `Calendar.format` applies an arbitrary `DateFormat`, and the new `Calendar.formatMonthYear` renders the month-and-year shape used by calendar headings.
+
+  This is a breaking change to `LocaleConfig`. A locale built by spreading `defaultEnglishLocale` keeps working; one constructed field by field needs the four new fields.
+
+  In `@foldkit/ui`, the Calendar drew column header accessible names from a hardcoded English array, ignoring `locale.dayNames` entirely, and built its heading and month-cell labels by interpolating month name and year in English order. Both now go through the locale. The remaining date-dependent English copy is overridable through `ViewInputs`: `toDaysGridLabel`, `toWeekLabel`, `toMonthsGridLabel`, and `toYearsGridLabel`, each defaulting to the previous English text. DatePicker accepts the same Calendar label fields and forwards them to its embedded Calendar.
+
+- [#1055](https://github.com/foldkit/foldkit/pull/1055) [`bb42870`](https://github.com/foldkit/foldkit/commit/bb4287038802343c07d53ebb5cedb064e9f05038) Thanks [@devinjameson](https://github.com/devinjameson)! - Infer Subscription and ManagedResource types from the values passed to their composition helpers.
+
+  `Subscription.aggregate` and `ManagedResource.aggregate` now accept records directly without Model, Message, or service type arguments. The result preserves each named entry and its exact dependency, Schema, service, and callback types.
+
+  Before:
+
+  ```ts
+  const subscriptions = Subscription.aggregate<Model, Message>()(
+    homeSubscriptions,
+    roomSubscriptions,
+  )
+
+  const managedResources = ManagedResource.aggregate<Model, Message>()(
+    cameraManagedResources,
+    socketManagedResources,
+  )
+  ```
+
+  After:
+
+  ```ts
+  const subscriptions = Subscription.aggregate(
+    homeSubscriptions,
+    roomSubscriptions,
+  )
+
+  const managedResources = ManagedResource.aggregate(
+    cameraManagedResources,
+    socketManagedResources,
+  )
+  ```
+
+  The curried form remains available when an explicit record contract is required. The first record with a Model dependency establishes the common Model. Later records are checked against it, while Message and Effect service requirements widen across the aggregate. A record containing only `Subscription.persistent` entries does not establish the Model. Directly inferred aggregates preserve literal keys instead of adding a string index signature; use the curried form or a `Subscriptions<Model, Message>` annotation when dynamic string indexing is part of the contract.
+
+  `Subscription.fromEvent`, `fromEventFilterMap`, and `fromEventFilterMapPreventDefault` now infer the event from `target` and `type`. DOM event names are checked against the target, and the mapper receives the corresponding event type.
+
+  Before:
+
+  ```ts
+  Subscription.fromEvent<KeyboardEvent, Message>({
+    target: window,
+    type: 'keydown',
+    toMessage: event => Message.PressedKey({ key: event.key }),
+  })
+  ```
+
+  After:
+
+  ```ts
+  Subscription.fromEvent({
+    target: window,
+    type: 'keydown',
+    toMessage: event => Message.PressedKey({ key: event.key }),
+  })
+  ```
+
+  **Breaking:** remove the Event and Message type arguments from all three event helpers. A custom `EventTarget` that dispatches typed events now declares its event map through `Subscription.TypedEventTarget`.
+
+  Before:
+
+  ```ts
+  const slowWarningTarget = new EventTarget()
+
+  const slowWarnings = Subscription.fromEvent<
+    CustomEvent<SlowWarningReport>,
+    Message
+  >({
+    target: slowWarningTarget,
+    type: 'foldkit:slow-warning',
+    toMessage: event => Message.ReceivedSlowWarning({ report: event.detail }),
+  })
+  ```
+
+  After:
+
+  ```ts
+  const slowWarningTarget: Subscription.TypedEventTarget<{
+    'foldkit:slow-warning': CustomEvent<SlowWarningReport>
+  }> = new EventTarget()
+
+  const slowWarnings = Subscription.fromEvent({
+    target: slowWarningTarget,
+    type: 'foldkit:slow-warning',
+    toMessage: event => Message.ReceivedSlowWarning({ report: event.detail }),
+  })
+  ```
+
+  On a native target, the annotation adds custom events while retaining native events and overrides a native event only when it declares the same name. Named config types now take Target, Type, and Message type parameters:
+
+  Before:
+
+  ```ts
+  type ShortcutConfig = Subscription.FromEventConfig<KeyboardEvent, Message>
+  ```
+
+  After:
+
+  ```ts
+  type ShortcutConfig = Subscription.FromEventConfig<Window, 'keydown', Message>
+  ```
+
+  Apply the same change to `FromEventFilterMapConfig` and `FromEventFilterMapPreventDefaultConfig`. The prevent-default config also rejects `options: { passive: true }` at compile time; its runtime guard remains for unchecked JavaScript inputs.
+
+- [#1397](https://github.com/foldkit/foldkit/pull/1397) [`4cb3546`](https://github.com/foldkit/foldkit/commit/4cb3546e35b7110576212af07238f222fbb6624e) Thanks [@devinjameson](https://github.com/devinjameson)! - Make modal Dialog backgrounds inert and hidden from assistive technology while keeping permitted overlays and Dialogs stacked above the modal available. Reconcile newly mounted portals and other late page content, coordinate stacked Dialogs, reacquire resources for an open Dialog restored by development Model preservation, and release Dialogs in topmost-first order when the owning runtime stops.
+
+  `Dialog.init()` now always creates a closed Dialog. Replace an initially open `Dialog.init()` call such as:
+
+  ```ts
+  const dialog = Dialog.init({ id: 'confirm', isOpen: true })
+  ```
+
+  with `Dialog.boot()`. Pass the boot result to `Update.foldChildInit`, construct the parent Model through `toParentModel`, map child Commands through `toParentMessage`, and handle the OutMessage through the same `foldDialogOutMessage` used by the parent update:
+
+  ```ts
+  return Update.foldChildInit(Dialog.boot({ id: 'confirm' }), {
+    toParentModel: dialog => ({ dialog }),
+    toParentMessage: toGotDialogMessage,
+    foldOutMessage: foldDialogOutMessage,
+  })
+  ```
+
+  This ensures an initially open Dialog acquires the same isolation, scroll lock, focus trap, stack registration, and cleanup as one opened later.
+
+  Because this Dialog resource path uses the updated `Dom.showDialog` contract, `@foldkit/ui` now requires `foldkit` 0.161.0 or newer.
+
+  Point UI controls at panels only while those panels are rendered, and keep an empty Combobox from exposing an invalid active descendant or expanded listbox. Keep the modal Combobox backdrop available for dismissal even when filtering leaves no list items. Render Toast containers and entries as neutral `<div>` elements so their live-region roles do not conflict with list semantics.
+
+  Export `DragAndDrop.DragState` so consumers can match drag phases through the tagged union API when deriving accessible announcements and other parent behavior.
+
+  Tabs defaults to active-only panel rendering when deciding which tabs receive `aria-controls`. Pass `panelMount: 'All'` when every tab panel remains mounted, including when inactive panels are hidden. DevTools opts into that strategy for its Inspector tabs.
+
+  Toast markup changes from `<ol>` and `<li>` to `<div>` elements. Update any element-selector CSS or DOM queries that target those Toast wrappers.
+
+  `Dom.showDialog` now resolves to `true` when it installs a Dialog's resources and `false` when that id already holds them. Callers that explicitly annotated its result as `void` must accept or ignore the boolean result.
+
+### Patch Changes
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
 ## 0.160.0
 
 ### Minor Changes

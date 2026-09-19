@@ -1,7 +1,7 @@
 import { Effect, Match, Option, Schema } from 'effect'
 import { Command, Update, Url } from 'foldkit'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import * as Shared from '@typing-game/shared'
 
@@ -39,7 +39,7 @@ const readHome = (model: Model): Option.Option<Home.Model.Model> =>
   Option.some(model.home)
 
 const writeHome = (model: Model, nextHome: Home.Model.Model): Model =>
-  evo(model, { home: () => nextHome })
+  modifyFields(model, { home: () => nextHome })
 
 const toGotHomeMessage = (message: Home.Message): Message =>
   Message.GotHomeMessage({ message })
@@ -48,7 +48,7 @@ const readRoom = (model: Model): Option.Option<Room.Model.Model> =>
   Option.some(model.room)
 
 const writeRoom = (model: Model, nextRoom: Room.Model.Model): Model =>
-  evo(model, { room: () => nextRoom })
+  modifyFields(model, { room: () => nextRoom })
 
 const toGotRoomMessage = (message: Room.Message): Message =>
   Message.GotRoomMessage({ message })
@@ -107,7 +107,7 @@ export const update = (model: Model, message: Message) =>
       }),
 
     ChangedUrl: ({ url }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         route: () => urlToAppRoute(url),
       }),
     }),

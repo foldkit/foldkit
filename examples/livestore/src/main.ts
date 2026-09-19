@@ -13,7 +13,7 @@ import {
 import { AsyncData, Command, Runtime, Subscription, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { BrowserCrypto } from '@effect/platform-browser'
 import { Button, Checkbox, Input } from '@foldkit/ui'
@@ -75,12 +75,12 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 type UpdateReturn = Update.Return<Model, Message, ItemsStore>
 
 const clearMutationError = (model: Model): Model =>
-  evo(model, {
+  modifyFields(model, {
     maybeMutationError: () => Option.none(),
   })
 
 const recordMutationError = (model: Model, error: string) => ({
-  model: evo(model, {
+  model: modifyFields(model, {
     maybeMutationError: () => Option.some(error),
   }),
 })
@@ -88,7 +88,7 @@ const recordMutationError = (model: Model, error: string) => ({
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     UpdatedNewItemText: ({ text }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         newItemText: () => text,
       }),
     }),
@@ -101,7 +101,7 @@ export const update = (model: Model, message: Message) =>
       }
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           newItemText: () => '',
           maybeMutationError: () => Option.none(),
         }),
@@ -110,7 +110,7 @@ export const update = (model: Model, message: Message) =>
     },
 
     SelectedFilter: ({ filter }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         filter: () => filter,
       }),
     }),
@@ -140,7 +140,7 @@ export const update = (model: Model, message: Message) =>
     FailedClearCompleted: ({ error }) => recordMutationError(model, error),
 
     ReceivedItems: ({ items }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         itemsAsyncData: () => ItemsAsyncData.Success({ data: items }),
       }),
     }),

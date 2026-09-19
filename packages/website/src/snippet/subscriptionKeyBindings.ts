@@ -21,26 +21,26 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  keyboardShortcuts: entry(
+  keyBindings: entry(
     { searchState: SearchState },
     {
       modelToDependencies: model => ({ searchState: model.searchState }),
       dependenciesToStream: ({ searchState }) =>
-        Subscription.keyboardShortcuts<Message>({
+        Subscription.keyBindings<Message>({
           bindings: [
             {
-              shortcut: 'Mod+K',
+              keys: 'Mod+K',
               whileTyping: 'Allow',
               toMessage: () => Message.PressedSearchShortcut(),
             },
             {
-              shortcut: 'Escape',
+              keys: 'Escape',
               isEnabled: searchState._tag === 'Open',
               whileTyping: 'Allow',
               toMessage: () => Message.PressedEscape(),
             },
             {
-              shortcut: ['G', 'H'],
+              keys: ['G', 'H'],
               toMessage: () => Message.PressedHomeShortcut(),
             },
           ],

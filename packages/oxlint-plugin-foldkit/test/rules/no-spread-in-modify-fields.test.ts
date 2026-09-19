@@ -1,7 +1,7 @@
 import * as Testing from 'effect-oxlint/testing'
 import { describe, expect, it } from 'vitest'
 
-import { noSpreadInEvo } from '../../src/rules/no-spread-in-evo.ts'
+import { noSpreadInModifyFields } from '../../src/rules/no-spread-in-modify-fields.ts'
 
 const property = (key: string, value: unknown) => ({
   type: 'Property',
@@ -34,15 +34,15 @@ const objectExpression = (properties: ReadonlyArray<unknown>) => ({
   properties,
 })
 
-const evoCall = (updates: unknown) =>
-  Testing.callExpr('evo', [Testing.id('model'), updates])
+const modifyFieldsCall = (updates: unknown) =>
+  Testing.callExpr('modifyFields', [Testing.id('model'), updates])
 
-describe('no-spread-in-evo', () => {
+describe('no-spread-in-modify-fields', () => {
   it('flags an expression-bodied updater that spreads the record', () => {
     const result = Testing.runRule(
-      noSpreadInEvo,
+      noSpreadInModifyFields,
       'CallExpression',
-      evoCall(
+      modifyFieldsCall(
         objectExpression([
           property(
             'f',
@@ -59,14 +59,14 @@ describe('no-spread-in-evo', () => {
 
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain('`f`')
-    expect(result[0]?.diagnostic.message).toContain('nested `evo`')
+    expect(result[0]?.diagnostic.message).toContain('nested `modifyFields`')
   })
 
   it('flags a block-bodied updater that returns a spread object', () => {
     const result = Testing.runRule(
-      noSpreadInEvo,
+      noSpreadInModifyFields,
       'CallExpression',
-      evoCall(
+      modifyFieldsCall(
         objectExpression([
           property(
             'f',
@@ -90,9 +90,9 @@ describe('no-spread-in-evo', () => {
 
   it('reports each offending field independently', () => {
     const result = Testing.runRule(
-      noSpreadInEvo,
+      noSpreadInModifyFields,
       'CallExpression',
-      evoCall(
+      modifyFieldsCall(
         objectExpression([
           property(
             'a',
@@ -117,9 +117,9 @@ describe('no-spread-in-evo', () => {
 
   it('flags a spread combined with only static keys', () => {
     const result = Testing.runRule(
-      noSpreadInEvo,
+      noSpreadInModifyFields,
       'CallExpression',
-      evoCall(
+      modifyFieldsCall(
         objectExpression([
           property(
             'f',
@@ -140,9 +140,9 @@ describe('no-spread-in-evo', () => {
 
   it('names non-identifier keys with a placeholder', () => {
     const result = Testing.runRule(
-      noSpreadInEvo,
+      noSpreadInModifyFields,
       'CallExpression',
-      evoCall(
+      modifyFieldsCall(
         objectExpression([
           literalKeyProperty(
             'my-field',
@@ -158,11 +158,11 @@ describe('no-spread-in-evo', () => {
     expect(result[0]?.diagnostic.message).toContain('<key>')
   })
 
-  it('flags a member-form Struct.evo call', () => {
+  it('flags a member-form Struct.modifyFields call', () => {
     const result = Testing.runRule(
-      noSpreadInEvo,
+      noSpreadInModifyFields,
       'CallExpression',
-      Testing.callOfMember('Struct', 'evo', [
+      Testing.callOfMember('Struct', 'modifyFields', [
         Testing.id('model'),
         objectExpression([
           property(
@@ -179,16 +179,16 @@ describe('no-spread-in-evo', () => {
     expect(result[0]?.diagnostic.message).toContain('`f`')
   })
 
-  it('allows a clean nested evo updater', () => {
+  it('allows a clean nested modifyFields updater', () => {
     const result = Testing.runRule(
-      noSpreadInEvo,
+      noSpreadInModifyFields,
       'CallExpression',
-      evoCall(
+      modifyFieldsCall(
         objectExpression([
           property(
             'f',
             Testing.arrowFn(
-              Testing.callExpr('evo', [
+              Testing.callExpr('modifyFields', [
                 Testing.memberExpr('model', 'f'),
                 objectExpression([property('x', Testing.numLiteral(1))]),
               ]),
@@ -203,9 +203,9 @@ describe('no-spread-in-evo', () => {
 
   it('allows object literals without a spread', () => {
     const result = Testing.runRule(
-      noSpreadInEvo,
+      noSpreadInModifyFields,
       'CallExpression',
-      evoCall(
+      modifyFieldsCall(
         objectExpression([
           property(
             'f',
@@ -222,9 +222,9 @@ describe('no-spread-in-evo', () => {
 
   it('allows a spread combined with a computed key', () => {
     const result = Testing.runRule(
-      noSpreadInEvo,
+      noSpreadInModifyFields,
       'CallExpression',
-      evoCall(
+      modifyFieldsCall(
         objectExpression([
           property(
             'expanded',
@@ -246,9 +246,9 @@ describe('no-spread-in-evo', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('ignores non-evo calls with the same shape', () => {
+  it('ignores non-modifyFields calls with the same shape', () => {
     const result = Testing.runRule(
-      noSpreadInEvo,
+      noSpreadInModifyFields,
       'CallExpression',
       Testing.callExpr('foo', [
         Testing.id('model'),
@@ -266,11 +266,11 @@ describe('no-spread-in-evo', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('ignores evo calls whose second argument is not an object literal', () => {
+  it('ignores modifyFields calls whose second argument is not an object literal', () => {
     const result = Testing.runRule(
-      noSpreadInEvo,
+      noSpreadInModifyFields,
       'CallExpression',
-      Testing.callExpr('evo', [Testing.id('model'), Testing.id('x')]),
+      Testing.callExpr('modifyFields', [Testing.id('model'), Testing.id('x')]),
     )
 
     expect(result).toHaveLength(0)
@@ -278,9 +278,9 @@ describe('no-spread-in-evo', () => {
 
   it('does not inspect function-expression updaters', () => {
     const result = Testing.runRule(
-      noSpreadInEvo,
+      noSpreadInModifyFields,
       'CallExpression',
-      evoCall(
+      modifyFieldsCall(
         objectExpression([
           property('f', {
             type: 'FunctionExpression',
@@ -300,9 +300,9 @@ describe('no-spread-in-evo', () => {
 
   it('inspects only the first top-level return statement', () => {
     const result = Testing.runRule(
-      noSpreadInEvo,
+      noSpreadInModifyFields,
       'CallExpression',
-      evoCall(
+      modifyFieldsCall(
         objectExpression([
           property(
             'f',

@@ -1,6 +1,6 @@
 import { Number, Option } from 'effect'
 import { Update } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Menu, Tabs } from '@foldkit/ui'
 
@@ -20,7 +20,7 @@ const selectDemoTab = (
   model: Model,
   tab: DemoTab.Tab,
 ): Update.Return<Model, Message> => ({
-  model: evo(model, { activeDemoTab: () => tab }),
+  model: modifyFields(model, { activeDemoTab: () => tab }),
 })
 
 const selectPlaygroundExample = (
@@ -44,7 +44,8 @@ const foldDemoTabsOutMessage = Tabs.OutMessage.match<
 const foldDemoTabs = Update.foldChild({
   update: DemoTab.DemoTabs.update,
   read: (model: Model) => Option.some(model.demoTabs),
-  write: (model, nextDemoTabs) => evo(model, { demoTabs: () => nextDemoTabs }),
+  write: (model, nextDemoTabs) =>
+    modifyFields(model, { demoTabs: () => nextDemoTabs }),
   toParentMessage: message => Message.GotDemoTabsMessage({ message }),
   foldOutMessage: foldDemoTabsOutMessage,
 })
@@ -65,7 +66,7 @@ const foldPlaygroundMenu = Update.foldChild({
   update: PlaygroundMenu.update,
   read: (model: Model) => Option.some(model.playgroundMenu),
   write: (model, nextPlaygroundMenu) =>
-    evo(model, { playgroundMenu: () => nextPlaygroundMenu }),
+    modifyFields(model, { playgroundMenu: () => nextPlaygroundMenu }),
   toParentMessage: message => Message.GotPlaygroundMenuMessage({ message }),
   foldOutMessage: foldPlaygroundMenuOutMessage,
 })
@@ -74,7 +75,7 @@ const foldAsyncCounterDemo = Update.foldChild({
   update: AsyncCounterDemo.update,
   read: (model: Model) => Option.some(model.asyncCounterDemo),
   write: (model, nextAsyncCounterDemo) =>
-    evo(model, { asyncCounterDemo: () => nextAsyncCounterDemo }),
+    modifyFields(model, { asyncCounterDemo: () => nextAsyncCounterDemo }),
   toParentMessage: message => Message.GotAsyncCounterDemoMessage({ message }),
 })
 
@@ -82,7 +83,7 @@ const foldNotePlayerDemo = Update.foldChild({
   update: NotePlayerDemo.update,
   read: (model: Model) => Option.some(model.notePlayerDemo),
   write: (model, nextNotePlayerDemo) =>
-    evo(model, { notePlayerDemo: () => nextNotePlayerDemo }),
+    modifyFields(model, { notePlayerDemo: () => nextNotePlayerDemo }),
   toParentMessage: message => Message.GotNotePlayerDemoMessage({ message }),
 })
 
@@ -96,7 +97,7 @@ type UpdateReturn = Update.ReturnWithOutMessage<
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     ToggledAiHeading: () => ({
-      model: evo(model, { aiHeadingToggleCount: Number.increment }),
+      model: modifyFields(model, { aiHeadingToggleCount: Number.increment }),
     }),
     GotDemoTabsMessage: ({ message }) => foldDemoTabs(model, message),
     GotPlaygroundMenuMessage: ({ message }) =>

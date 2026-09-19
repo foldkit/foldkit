@@ -1,6 +1,6 @@
 import { Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { expect, test } from 'vitest'
 
 import {
@@ -141,7 +141,7 @@ test('a successful geolocation result clears the locating state and flies the ma
   story(
     update,
     given(
-      evo(mountedModel, {
+      modifyFields(mountedModel, {
         geolocateState: () => GeolocateState.Locating(),
       }),
     ),
@@ -162,7 +162,7 @@ test('a failed geolocation result surfaces the reason in the geolocate state', (
   story(
     update,
     given(
-      evo(initialModel, {
+      modifyFields(initialModel, {
         geolocateState: () => GeolocateState.Locating(),
       }),
     ),
@@ -180,7 +180,7 @@ test('dismissing the geolocate overlay returns to idle', () => {
   story(
     update,
     given(
-      evo(initialModel, {
+      modifyFields(initialModel, {
         geolocateState: () => GeolocateState.Failed({ reason: 'Timed out' }),
       }),
     ),

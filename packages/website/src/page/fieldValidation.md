@@ -33,7 +33,7 @@ A `Rules` bundle is just data, so build it from model state via a plain function
 
 ## Applying Validation
 
-Call `validate(rules)(value)` to validate a value against a bundle of rules. It returns one of the four `Field` variants, failing fast at the first rule that fails. Use it in your update function with `evo` to set the field state.
+Call `validate(rules)(value)` to validate a value against a bundle of rules. It returns one of the four `Field` variants, failing fast at the first rule that fails. Use it in your update function with `modifyFields` to set the field state.
 
 ::Snippet{name="fieldValidationApply" label="validate example"}
 

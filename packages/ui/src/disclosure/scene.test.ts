@@ -3,7 +3,7 @@ import { type Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Scene from 'foldkit/scene'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { describe, it } from '@effect/vitest'
 
@@ -19,7 +19,9 @@ type Model = Readonly<{ isOpen: boolean }>
 
 const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
-    Toggled: ({ isOpen }) => ({ model: evo(model, { isOpen: () => isOpen }) }),
+    Toggled: ({ isOpen }) => ({
+      model: modifyFields(model, { isOpen: () => isOpen }),
+    }),
     ClickedPanelAction: () => ({ model }),
   })
 
@@ -72,6 +74,7 @@ describe('Disclosure controlled view', () => {
       { update, view: testView() },
       Scene.given({ isOpen: true }),
       Scene.expect(button).toHaveAttr('aria-expanded', 'true'),
+      Scene.expect(button).toHaveAttr('aria-controls', 'test-panel'),
       Scene.expect(button).toHaveAttr('data-open', ''),
     )
   })
@@ -81,6 +84,7 @@ describe('Disclosure controlled view', () => {
       { update, view: testView() },
       Scene.given({ isOpen: false }),
       Scene.expect(button).toHaveAttr('aria-expanded', 'false'),
+      Scene.expect(button).not.toHaveAttr('aria-controls'),
       Scene.click(button),
       Scene.expect(button).toHaveAttr('aria-expanded', 'true'),
     )

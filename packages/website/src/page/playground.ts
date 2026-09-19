@@ -18,7 +18,7 @@ import { Command, ManagedResource, Mount, Submodel, Update } from 'foldkit'
 import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import filesBySlug from 'virtual:playground-files'
 import playgroundTypes from 'virtual:playground-types'
 
@@ -559,7 +559,7 @@ export const update = (model: Model, message: Message) =>
     message,
     {
       BootedPlayground: ({ previewUrl }) => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           state: () =>
             PlaygroundState.Booted({
               preview: PlaygroundPreview.start(previewUrl),
@@ -570,18 +570,18 @@ export const update = (model: Model, message: Message) =>
         commands: [WaitForPlaygroundServerFailure(), ...flushDirtyPaths(model)],
       }),
       FailedBootPlayground: ({ reason }) => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           state: () => PlaygroundState.Failed({ reason }),
         }),
       }),
       ReleasedPlayground: () => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           state: state =>
             state._tag === 'Failed' ? state : PlaygroundState.Idle(),
         }),
       }),
       LoadedPlaygroundPreview: ({ previewUrl }) => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           state: state => markPreviewLoaded(state, previewUrl),
         }),
       }),
@@ -590,7 +590,7 @@ export const update = (model: Model, message: Message) =>
       EditedPlaygroundFile: ({ path, content }) => {
         const isBooted = model.state._tag === 'Booted'
         return {
-          model: evo(model, {
+          model: modifyFields(model, {
             files: Record.set(path, content),
             dirtyPaths: existing =>
               isBooted ? existing : appendDeduped(existing, path),
@@ -599,18 +599,20 @@ export const update = (model: Model, message: Message) =>
         }
       },
       FailedMountPlaygroundEditor: ({ reason }) => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           state: () => PlaygroundState.Failed({ reason }),
         }),
       }),
       ScheduledWritePlaygroundFile: () => ({
-        model: evo(model, { lastWriteError: () => Option.none() }),
+        model: modifyFields(model, { lastWriteError: () => Option.none() }),
       }),
       FailedWritePlaygroundFile: ({ reason }) => ({
-        model: evo(model, { lastWriteError: () => Option.some(reason) }),
+        model: modifyFields(model, {
+          lastWriteError: () => Option.some(reason),
+        }),
       }),
       CompletedWaitForPlaygroundServerFailure: ({ reason }) => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           state: () => PlaygroundState.Failed({ reason }),
         }),
       }),
@@ -861,14 +863,15 @@ const foldPlaygroundFileTabsOutMessage = Tabs.OutMessage.match<
   Selected:
     ({ value }) =>
     model => ({
-      model: evo(model, { activeFilePath: () => value }),
+      model: modifyFields(model, { activeFilePath: () => value }),
     }),
 })
 
 const foldPlaygroundFileTabs = Update.foldChild({
   update: PlaygroundFileTabs.update,
   read: (model: Model) => Option.some(model.fileTabs),
-  write: (model, nextFileTabs) => evo(model, { fileTabs: () => nextFileTabs }),
+  write: (model, nextFileTabs) =>
+    modifyFields(model, { fileTabs: () => nextFileTabs }),
   toParentMessage: message => Message.GotFileTabsMessage({ message }),
   foldOutMessage: foldPlaygroundFileTabsOutMessage,
 })

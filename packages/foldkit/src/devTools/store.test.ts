@@ -12,7 +12,7 @@ import {
 import { describe, expect, it, vi } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
-import { evo } from '../struct/index.js'
+import { modifyFields } from '../struct/index.js'
 import {
   type Bridge,
   type CommandRecord,
@@ -140,8 +140,10 @@ const counterReplay = (model: unknown, message: unknown): unknown => {
     Schema.decodeUnknownSync(CounterMessage),
     Match.value,
     Match.tagsExhaustive({
-      ClickedIncrement: () => evo(counterModel, { count: Number.increment }),
-      ClickedDecrement: () => evo(counterModel, { count: Number.decrement }),
+      ClickedIncrement: () =>
+        modifyFields(counterModel, { count: Number.increment }),
+      ClickedDecrement: () =>
+        modifyFields(counterModel, { count: Number.decrement }),
     }),
   )
 }

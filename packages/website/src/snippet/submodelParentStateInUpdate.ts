@@ -1,6 +1,6 @@
 import { Option } from 'effect'
 import { Update } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Message } from '../../message'
 import type { Model as AppModel } from '../../model'
@@ -21,7 +21,7 @@ export const update = (
     message,
     {
       ChangedTheme: ({ theme }) => ({
-        model: evo(model, { theme: () => theme }),
+        model: modifyFields(model, { theme: () => theme }),
         commands: [PersistSettings({ userId: context.currentUser.id, theme })],
       }),
       // ...other arms
@@ -36,7 +36,7 @@ const foldSettings = (currentUser: User) =>
       update(settings, message, { currentUser }),
     read: (model: AppModel) => Option.some(model.settings),
     write: (model, nextSettings) =>
-      evo(model, { settings: () => nextSettings }),
+      modifyFields(model, { settings: () => nextSettings }),
     toParentMessage: message => Message.GotSettingsMessage({ message }),
   })
 

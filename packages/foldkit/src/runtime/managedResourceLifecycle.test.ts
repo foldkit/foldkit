@@ -6,7 +6,7 @@ import { __htmlBuilder } from '../html/index.js'
 import * as ManagedResource from '../managedResource/index.js'
 import { make } from '../managedResource/managedResource.js'
 import { defineMessageUnion } from '../message/index.js'
-import { evo } from '../struct/index.js'
+import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
 import { makeElement } from './makeElement.js'
 
@@ -92,22 +92,26 @@ const ReadEngine = Command.define('ReadEngine', {
 const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message, EngineServiceId>>(message, {
     RequestedEngine: ({ id }) => ({
-      model: evo(model, { requested: () => Option.some(id) }),
+      model: modifyFields(model, { requested: () => Option.some(id) }),
     }),
     StoppedEngine: () => ({
-      model: evo(model, { requested: () => Option.none() }),
+      model: modifyFields(model, { requested: () => Option.none() }),
     }),
-    AcquiredEngine: () => ({ model: evo(model, { status: () => 'acquired' }) }),
-    ReleasedEngine: () => ({ model: evo(model, { status: () => 'released' }) }),
+    AcquiredEngine: () => ({
+      model: modifyFields(model, { status: () => 'acquired' }),
+    }),
+    ReleasedEngine: () => ({
+      model: modifyFields(model, { status: () => 'released' }),
+    }),
     FailedEngine: ({ error }) => ({
-      model: evo(model, { status: () => `failed:${error}` }),
+      model: modifyFields(model, { status: () => `failed:${error}` }),
     }),
     ClickedRead: () => ({ model, commands: [ReadEngine()] }),
     SucceededRead: ({ value }) => ({
-      model: evo(model, { readValue: () => value }),
+      model: modifyFields(model, { readValue: () => value }),
     }),
     FailedRead: () => ({
-      model: evo(model, { readValue: () => 'unavailable' }),
+      model: modifyFields(model, { readValue: () => 'unavailable' }),
     }),
   })
 

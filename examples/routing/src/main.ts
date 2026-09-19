@@ -3,7 +3,7 @@ import { Command, Runtime, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
 import {
@@ -105,7 +105,7 @@ const foldPeopleEntry = <Input>(
     update,
     read: model => Option.some(model.peoplePage),
     write: (model, nextPeoplePage) =>
-      evo(model, { peoplePage: () => nextPeoplePage }),
+      modifyFields(model, { peoplePage: () => nextPeoplePage }),
     toParentMessage: message => Message.GotPeopleMessage({ message }),
   })
 
@@ -115,7 +115,7 @@ const foldPeopleRouteChanged = foldPeopleEntry(People.informRouteChanged)
 
 const setRoute =
   (nextRoute: AppRoute): Update.Step<Model, Message> =>
-  model => ({ model: evo(model, { route: () => nextRoute }) })
+  model => ({ model: modifyFields(model, { route: () => nextRoute }) })
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
@@ -160,26 +160,26 @@ export const update = (model: Model, message: Message) =>
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(() => ({
-  shortcuts: Subscription.persistent(
-    Subscription.keyboardShortcuts<Message>({
+  keyBindings: Subscription.persistent(
+    Subscription.keyBindings<Message>({
       bindings: [
         {
-          shortcut: ['G', 'H'],
+          keys: ['G', 'H'],
           toMessage: () =>
             Message.EnteredNavigationShortcut({ shortcut: 'GH' }),
         },
         {
-          shortcut: ['G', 'P'],
+          keys: ['G', 'P'],
           toMessage: () =>
             Message.EnteredNavigationShortcut({ shortcut: 'GP' }),
         },
         {
-          shortcut: ['G', 'F'],
+          keys: ['G', 'F'],
           toMessage: () =>
             Message.EnteredNavigationShortcut({ shortcut: 'GF' }),
         },
         {
-          shortcut: ['G', 'N'],
+          keys: ['G', 'N'],
           toMessage: () =>
             Message.EnteredNavigationShortcut({ shortcut: 'GN' }),
         },

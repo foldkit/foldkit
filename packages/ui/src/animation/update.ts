@@ -3,7 +3,7 @@ import { type Update } from 'foldkit'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
 import * as Render from 'foldkit/render'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { idSelector } from '../internal/selectors.js'
 import {
@@ -58,7 +58,7 @@ export function update(model: Model, message: Message): UpdateReturn {
       }
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           isShowing: () => true,
           transitionState: () => 'EnterStart',
         }),
@@ -76,7 +76,7 @@ export function update(model: Model, message: Message): UpdateReturn {
       }
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           isShowing: () => false,
           transitionState: () => 'LeaveStart',
         }),
@@ -88,11 +88,15 @@ export function update(model: Model, message: Message): UpdateReturn {
       Match.value(model.transitionState).pipe(
         withUpdateReturn,
         Match.when('EnterStart', () => ({
-          model: evo(model, { transitionState: () => 'EnterAnimating' }),
+          model: modifyFields(model, {
+            transitionState: () => 'EnterAnimating',
+          }),
           commands: [WaitForAnimationSettled({ id: model.id })],
         })),
         Match.when('LeaveStart', () => ({
-          model: evo(model, { transitionState: () => 'LeaveAnimating' }),
+          model: modifyFields(model, {
+            transitionState: () => 'LeaveAnimating',
+          }),
           outMessage: OutMessage.StartedLeaveAnimating(),
         })),
         Match.orElse(() => ({ model })),
@@ -102,10 +106,10 @@ export function update(model: Model, message: Message): UpdateReturn {
       Match.value(model.transitionState).pipe(
         withUpdateReturn,
         Match.when('EnterAnimating', () => ({
-          model: evo(model, { transitionState: () => 'Idle' }),
+          model: modifyFields(model, { transitionState: () => 'Idle' }),
         })),
         Match.when('LeaveAnimating', () => ({
-          model: evo(model, { transitionState: () => 'Idle' }),
+          model: modifyFields(model, { transitionState: () => 'Idle' }),
           outMessage: OutMessage.TransitionedOut(),
         })),
         Match.orElse(() => ({ model })),

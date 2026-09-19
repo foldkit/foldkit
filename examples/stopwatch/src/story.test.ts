@@ -1,5 +1,5 @@
 import { Command, given, message, model, story } from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import {
@@ -27,7 +27,7 @@ describe('update', () => {
     test('ClickedStart fires DetermineStartTime with current elapsed time', () => {
       story(
         update,
-        given(evo(idleModel, { elapsedMs: () => 2000 })),
+        given(modifyFields(idleModel, { elapsedMs: () => 2000 })),
         message(Message.ClickedStart()),
         Command.expectHas(DetermineStartTime),
         model(model => {

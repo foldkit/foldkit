@@ -112,23 +112,23 @@ When a handled event should also cancel its default action, use `Subscription.fr
 
 For a listener attached to one rendered element, use [Mount](/core/mount) instead.
 
-## Keyboard Shortcuts
+## Key Bindings
 
-`Subscription.keyboardShortcuts` builds a global `keydown` Stream from a declarative binding table. Use a string for one press, such as `'Escape'` or `'Mod+K'`, and an array for an ordered sequence, such as `['G', 'H']`. Every step in a sequence uses the same grammar, including modifiers.
+`Subscription.keyBindings` builds a global `keydown` Stream from a declarative key-binding table. Use `keys` with a string for one press, such as `'Escape'` or `'Mod+K'`, and an array for an ordered sequence, such as `['G', 'H']`. Every step in a sequence uses the same grammar, including modifiers.
 
-::Snippet{name="subscriptionKeyboardShortcuts" label="keyboard shortcut subscription example"}
+::Snippet{name="subscriptionKeyBindings" label="key binding subscription example"}
 
 Modifier matching is exact: `'Mod+K'` does not also match Shift-Mod-K. `Mod` resolves to Meta on Apple platforms and Control elsewhere; `modKey` provides a deterministic override when needed. Matching uses the layout-aware `KeyboardEvent.key`, so include `Shift` and the resulting character for shifted punctuation. `Space` and `Plus` name keys that would otherwise be awkward in the `+`-separated syntax.
 
-By default, a binding calls `preventDefault()` and does not fire from an `input`, `textarea`, `select`, or contenteditable composed path. `whileTyping: 'Allow'` opts in shortcuts such as Escape that must work inside an editor. Events during IME composition and held-key repeats are ignored; a one-press binding can opt into repeats with `whenRepeated: 'Allow'`. An event that an element-level handler already canceled is also ignored, so local interactions take precedence over global shortcuts.
+By default, a binding calls `preventDefault()` and does not fire from an `input`, `textarea`, `select`, or contenteditable composed path. `whileTyping: 'Allow'` opts in bindings such as Escape that must work inside an editor. Events during IME composition and held-key repeats are ignored; a one-press binding can opt into repeats with `whenRepeated: 'Allow'`. An event that an element-level handler already canceled is also ignored, so local interactions take precedence over global bindings.
 
 ### Sequences
 
-Sequences may have any length and expire after one second unless `sequenceTimeout` overrides the duration. The helper rejects duplicate bindings, a one-press shortcut that is also a sequence prefix, and shared sequence prefixes with inconsistent `preventDefault` policies. A mismatched key clears the current sequence and is reconsidered as a fresh press.
+Sequences may have any length and expire after one second unless `sequenceTimeout` overrides the duration. The helper rejects duplicate bindings, a one-press binding that is also a sequence prefix, and shared sequence prefixes with inconsistent `preventDefault` policies. A mismatched key clears the current sequence and is reconsidered as a fresh press.
 
-### Model-Dependent Shortcuts
+### Model-Dependent Key Bindings
 
-The helper returns a Stream. Put a fixed table in `Subscription.persistent`, or construct it from an entry's dependency record when availability follows the Model that owns the entry. Derive `isEnabled` from those dependencies, as the example does for Escape. If a parent owns a condition for a lifted child, declare the shortcut table at that parent or put shortcuts with different parent-owned lifetimes in separate child entries so `Subscription.lift` can gate them individually. If the meaning of a key depends on the Model, dispatch a factual Message such as `PressedEscape` and make the decision in update; `toMessage` should not read application state.
+The helper returns a Stream. Put a fixed table in `Subscription.persistent`, or construct it from an entry's dependency record when availability follows the Model that owns the entry. Derive `isEnabled` from those dependencies, as the example does for Escape. If a parent owns a condition for a lifted child, declare the binding table at that parent or put bindings with different parent-owned lifetimes in separate child entries so `Subscription.lift` can gate them individually. If the meaning of a key depends on the Model, dispatch a factual Message such as `PressedEscape` and make the decision in update; `toMessage` should not read application state.
 
 ## Keep a Stream Alive Across Dependency Changes {#advanced}
 

@@ -8,7 +8,7 @@ const update = (model: Model, message: Message) =>
       const settingsReset = Settings.setTheme(model.settings, 'Light')
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           settings: () => settingsReset.model,
         }),
       }

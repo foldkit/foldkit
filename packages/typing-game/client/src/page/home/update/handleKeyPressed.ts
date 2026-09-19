@@ -1,6 +1,6 @@
 import { Array, Match, Number, Option, flow, pipe } from 'effect'
 import { type Update } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { RoomsClient } from '../../../rpc'
 import { CreateRoom, FocusRoomIdInput, FocusUsernameInput } from '../command'
@@ -40,7 +40,7 @@ const moveSelection =
     model: Model,
     { username, selectedAction }: typeof HomeStep.SelectAction.Type,
   ): UpdateReturn => ({
-    model: evo(model, {
+    model: modifyFields(model, {
       homeStep: () =>
         HomeStep.SelectAction({
           username,
@@ -79,7 +79,7 @@ const confirmSelection =
         commands: [CreateRoom({ username: selectAction.username })],
       })),
       Match.when('JoinRoom', () => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           homeStep: () =>
             HomeStep.EnterRoomId({
               username: selectAction.username,
@@ -89,7 +89,7 @@ const confirmSelection =
         commands: [FocusRoomIdInput()],
       })),
       Match.when('ChangeUsername', () => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           homeStep: () => HomeStep.EnterUsername({ username: '' }),
         }),
         commands: [FocusUsernameInput()],

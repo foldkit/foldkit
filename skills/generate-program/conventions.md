@@ -177,7 +177,7 @@ switch (message._tag) {
 Message.match<Update.Return<Model, Message>>(message, {
   ClickedSubmit: () => ({ model }),
   UpdatedEmail: ({ value }) => ({
-    model: evo(model, { email: () => value }),
+    model: modifyFields(model, { email: () => value }),
   }),
 })
 ```
@@ -302,48 +302,50 @@ Array.makeBy(count, index => ...)
 
 ## Model Updates
 
-Use `evo()` for immutable updates:
+Use `modifyFields()` for immutable updates:
 
 ```ts
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 // Update specific fields
-evo(model, {
+modifyFields(model, {
   email: () => value,
   maybeError: () => Option.none(),
 })
 
 // Nested update: replace the nested struct entirely
-evo(model, {
+modifyFields(model, {
   homeStep: () => SelectAction({ username, selectedAction: 'CreateRoom' }),
 })
 
 // Nested update: modify fields of the nested struct
-evo(model, {
-  newLinkForm: () => evo(model.newLinkForm, { title: () => value }),
+modifyFields(model, {
+  newLinkForm: () => modifyFields(model.newLinkForm, { title: () => value }),
 })
 ```
 
-When an `evo` setter only transforms the current value of that same field, pass
+When a `modifyFields` setter only transforms the current value of that same field, pass
 the transformer directly:
 
 ```ts
 // WRONG: re-reads the same field from the surrounding Model
-evo(model, { entries: () => Array.map(model.entries, Entry.revealErrors) })
-evo(model, { currentStep: () => toNextStep(model.currentStep) })
+modifyFields(model, {
+  entries: () => Array.map(model.entries, Entry.revealErrors),
+})
+modifyFields(model, { currentStep: () => toNextStep(model.currentStep) })
 
-// RIGHT: evo supplies the current field value to the setter
-evo(model, { entries: Array.map(Entry.revealErrors) })
-evo(model, { currentStep: toNextStep })
+// RIGHT: modifyFields supplies the current field value to the setter
+modifyFields(model, { entries: Array.map(Entry.revealErrors) })
+modifyFields(model, { currentStep: toNextStep })
 
 // RIGHT: replacement values still use thunks
-evo(model, { email: () => value })
-evo(model, { child: () => nextChild })
+modifyFields(model, { email: () => value })
+modifyFields(model, { child: () => nextChild })
 ```
 
 This applies to component reflect helpers too, which are dual: called data-last, `Slider.reflectRange({ min: minPrice, max: maxPrice })` returns a setter for the existing `Slider.Model` (mirroring URL-owned price bounds onto the slider), so use it directly in the `priceSlider` field instead of closing over `model.priceSlider`.
 
-Never mutate the model directly. **Never use spread syntax for updates.** `evo` is the canonical pattern. This applies to nested updates too: `evo(model, { newLinkForm: () => ({ ...model.newLinkForm, title: value }) })` is wrong. Use a nested `evo`: `evo(model, { newLinkForm: () => evo(model.newLinkForm, { title: () => value }) })`. The spread-inside-evo pattern is a common mistake. You're using `evo` at the outer level but bypassing it inside, which loses the invariant that all updates go through one codepath.
+Never mutate the model directly. **Never use spread syntax for updates.** `modifyFields` is the canonical pattern. This applies to nested updates too: `modifyFields(model, { newLinkForm: () => ({ ...model.newLinkForm, title: value }) })` is wrong. Use a nested `modifyFields`: `modifyFields(model, { newLinkForm: () => modifyFields(model.newLinkForm, { title: () => value }) })`. The spread-inside-modifyFields pattern is a common mistake. You're using `modifyFields` at the outer level but bypassing it inside, which loses the invariant that all updates go through one codepath.
 
 ## Update Results
 
@@ -369,11 +371,13 @@ expect(formSubmit.commands ?? []).toHaveLength(1)
 
 When the operation name collides with the function, use a trailing underscore such as `init_`. Do not destructure or rename `model`, `commands`, or `outMessage` from update-like results. Dot access does not prevent someone from ignoring `outMessage`; it keeps the operation and all of its returned fields visible together. Name a child fold's `write` parameter after the next child Model, such as `nextSettings`. Pass optional Commands directly to APIs that accept them, including `Command.mapMessages`. Use `result.commands ?? []` only when the next operation requires a concrete array for spreading, concatenating, execution, or an assertion.
 
-Use `Update.foldChildInit` when a child `init` or `boot` result enters a parent Model. Use `Update.foldChild` for a child update that receives input or `Update.foldChildStep` for a no-argument child entry point. These helpers keep the child Model, lifted Commands, and OutMessage in one fold.
+Use `Update.foldChildInit` when one child `init` or `boot` result enters a parent Model. Use `Update.foldChildInits` when several child results enter one parent Model. Use `Update.foldChild` for a child update that receives input or `Update.foldChildStep` for a no-argument child entry point. These helpers keep the child Model, lifted Commands, and OutMessage in one fold.
 
-Use `Update.combine` when a later Step should receive the Model produced by an earlier Step. It takes two or more Steps. Do not wrap one Step in `Update.combine`; call that operation directly. Name an inline Step parameter `stepModel` when combining several; it receives the Model from the preceding Step. Independent child inits need separate Model assembly because neither init consumes the Model produced by the other.
+Use `Update.combine` when a later Step should receive the Model produced by an earlier Step. It takes two or more Steps. Do not wrap one Step in `Update.combine`; call that operation directly. Name an inline Step parameter `stepModel` when combining several; it receives the Model from the preceding Step. Use `Update.foldChildInits` when several child init or boot results enter the same parent Model. Keep route-gated initialization or Model-only child construction separate when there is no shared set of child results to fold.
 
 When the OutMessage is already known while constructing a new result, include it directly: `{ model, commands, outMessage }`. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain return or when the value has the type `OutMessage | undefined`. Pipe an existing return into the helper: `pipe(dialogClose, Update.withOutMessage(outMessage))`. When constructing the plain return in the same expression, pass it first: `Update.withOutMessage({ model, commands }, outMessage)`. Add `toParentOutMessage` only when at least one child OutMessage should continue to the current Submodel's parent. For partial forwarding, match every child variant and return `undefined` for the variants that stop here. Omit `toParentOutMessage` when every variant stops here. `foldOutMessage` still handles each variant locally, including variants that continue upward. Never write `toParentOutMessage: () => undefined`.
+
+When an `Update.foldChildInits` entry can derive or forward an OutMessage, use `resolveOutMessage` to construct one parent OutMessage from the named OutMessages after every local fold completes. Combine their information when both results matter; choosing one discards the other. The callback also receives the final Model. If that Model alone contains everything needed, use local folds and attach a parent OutMessage afterward with `Update.withOutMessage`.
 
 ## Schema Constructors
 
@@ -575,7 +579,7 @@ import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineRouteUnion } from 'foldkit/route'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Button, Dialog, Input } from '@foldkit/ui'
 ```

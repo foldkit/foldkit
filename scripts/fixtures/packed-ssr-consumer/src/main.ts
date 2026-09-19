@@ -2,7 +2,7 @@ import { Schema } from 'effect'
 import { CustomElement, type Runtime, type Update } from 'foldkit'
 import { type Document, type HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 export const Model = Schema.Struct({
   count: Schema.Number,
@@ -26,10 +26,10 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedIncrement: () => ({
-      model: evo(model, { count: count => count + 1 }),
+      model: modifyFields(model, { count: count => count + 1 }),
     }),
     ClickedRelease: () => ({
-      model: evo(model, { formState: () => 'Released' }),
+      model: modifyFields(model, { formState: () => 'Released' }),
     }),
   })
 
