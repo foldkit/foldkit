@@ -1,6 +1,6 @@
 import { Effect, Schema } from 'effect'
 import { Command, Port } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { CompletedReportCount } from './message'
 import { ports } from './ports'
@@ -21,7 +21,7 @@ export const ReportCount = Command.define('ReportCount', {
 const handleAdvance = (model: Model): UpdateReturn => {
   const count = model.count + model.step
   return {
-    model: evo(model, { count: () => count }),
+    model: modifyFields(model, { count: () => count }),
     commands: [ReportCount({ count })],
   }
 }

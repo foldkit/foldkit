@@ -5,7 +5,7 @@ import { Option, Schema } from 'effect'
 import { Subscription, Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { VirtualList } from '@foldkit/ui'
 
@@ -41,7 +41,7 @@ const foldActivityList = Update.foldChild({
   update: VirtualList.update,
   read: (model: Model) => Option.some(model.activityList),
   write: (model, nextActivityList) =>
-    evo(model, { activityList: () => nextActivityList }),
+    modifyFields(model, { activityList: () => nextActivityList }),
   toParentMessage: message => Message.GotActivityListMessage({ message }),
 })
 
@@ -49,7 +49,7 @@ const foldActivityListScrollToIndex = Update.foldChild({
   update: VirtualList.scrollToIndex,
   read: (model: Model) => Option.some(model.activityList),
   write: (model, nextActivityList) =>
-    evo(model, { activityList: () => nextActivityList }),
+    modifyFields(model, { activityList: () => nextActivityList }),
   toParentMessage: message => Message.GotActivityListMessage({ message }),
 })
 

@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import { Scene, Story } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
@@ -164,7 +164,7 @@ describe('Menu', () => {
         Story.story(
           update,
           Story.given(
-            evo(init({ id: 'test' }), {
+            modifyFields(init({ id: 'test' }), {
               searchQuery: () => 'stale',
               searchVersion: () => 1,
             }),
@@ -213,7 +213,7 @@ describe('Menu', () => {
         Story.story(
           update,
           Story.given(
-            evo(init({ id: 'test' }), {
+            modifyFields(init({ id: 'test' }), {
               maybeLastPointerPosition: () =>
                 Option.some({
                   screenX: 100,

@@ -100,10 +100,12 @@ describe('collectHeadings', () => {
   })
 
   test('honors a trailing {#id} override that follows inline formatting', () => {
-    const document = parseMarkdown('## Use **evo** {#use-evo}')
+    const document = parseMarkdown(
+      '## Use **modifyFields** {#use-modifyFields}',
+    )
 
     expect(collectHeadings(document).tableOfContents).toEqual([
-      { level: 'h2', id: 'use-evo', text: 'Use evo' },
+      { level: 'h2', id: 'use-modifyFields', text: 'Use modifyFields' },
     ])
   })
 })

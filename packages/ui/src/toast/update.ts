@@ -1,6 +1,6 @@
 import { Array, Duration, Effect, Number, Option, Schema, pipe } from 'effect'
 import * as Command from 'foldkit/command'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
 
 import * as Animation from '../animation/schema.js'
@@ -82,12 +82,12 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     entryId: string,
     f: (entry: Entry) => Entry,
   ): Model =>
-    evo(model, {
+    modifyFields(model, {
       entries: Array.map(entry => (entry.id === entryId ? f(entry) : entry)),
     })
 
   const removeEntry = (model: Model, entryId: string): Model =>
-    evo(model, {
+    modifyFields(model, {
       entries: Array.filter(({ id }) => id !== entryId),
     })
 
@@ -132,7 +132,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     (entryId: string) =>
     (model: Model, nextAnimation: Entry['animation']): Model =>
       updateEntry(model, entryId, entry =>
-        evo(entry, { animation: () => nextAnimation }),
+        modifyFields(entry, { animation: () => nextAnimation }),
       )
 
   const toGotAnimationMessage =
@@ -249,7 +249,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       Added: ({ entry }) => {
         return Update.combine(model, [
           stepModel => ({
-            model: evo(stepModel, {
+            model: modifyFields(stepModel, {
               entries: entries => Array.append(entries, entry),
               nextEntryKey: Number.increment,
             }),
@@ -317,7 +317,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
       HoveredEntry: ({ entryId }) => ({
         model: updateEntry(model, entryId, entry =>
-          evo(entry, {
+          modifyFields(entry, {
             isHovered: () => true,
             pendingDismissVersion: Number.increment,
           }),
@@ -333,7 +333,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         return Option.match(maybeEntry, {
           onNone: (): UpdateReturn => ({ model }),
           onSome: entry => {
-            const nextEntry: Entry = evo(entry, {
+            const nextEntry: Entry = modifyFields(entry, {
               isHovered: () => false,
               pendingDismissVersion: Number.increment,
             })

@@ -301,7 +301,7 @@ const foldChildOutMessage = Child.OutMessage.match<
 const foldChild = Update.foldChild({
   update: Child.update,
   read: (model: ParentModel) => Option.some(model.child),
-  write: (model, nextChild) => evo(model, { child: () => nextChild }),
+  write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
   toParentMessage: message => ParentMessage.GotChildMessage({ message }),
   foldOutMessage: foldChildOutMessage,
 })

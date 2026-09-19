@@ -19,7 +19,7 @@ import {
   Update,
 } from 'foldkit'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 import { githubStarCount } from 'virtual:landing-data'
 
@@ -344,7 +344,7 @@ const foldThemeMenuOutMessage = Menu.OutMessage.match<
       const resolvedTheme = resolveTheme(preference, model.systemTheme)
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           maybeThemePreference: () => Option.some(preference),
           resolvedTheme: () => resolvedTheme,
         }),
@@ -360,7 +360,7 @@ const readThemeMenu = (model: Model): Option.Option<Menu.Model> =>
   Option.some(model.themeMenu)
 
 const writeThemeMenu = (model: Model, nextThemeMenu: Menu.Model): Model =>
-  evo(model, { themeMenu: () => nextThemeMenu })
+  modifyFields(model, { themeMenu: () => nextThemeMenu })
 
 const toGotThemeMenuMessage = (message: Menu.Message): Message =>
   Message.GotThemeMenuMessage({ message })
@@ -394,7 +394,8 @@ const readMobileMenuDialog = (model: Model): Option.Option<Dialog.Model> =>
 const writeMobileMenuDialog = (
   model: Model,
   nextMobileMenuDialog: Dialog.Model,
-): Model => evo(model, { mobileMenuDialog: () => nextMobileMenuDialog })
+): Model =>
+  modifyFields(model, { mobileMenuDialog: () => nextMobileMenuDialog })
 
 const toGotMobileMenuDialogMessage = (message: Dialog.Message): Message =>
   Message.GotMobileMenuDialogMessage({ message })
@@ -427,7 +428,7 @@ const foldSnippetCopy = Update.foldChild({
   update: SnippetCopy.update,
   read: (model: Model) => Option.some(model.snippetCopy),
   write: (model, nextSnippetCopy) =>
-    evo(model, { snippetCopy: () => nextSnippetCopy }),
+    modifyFields(model, { snippetCopy: () => nextSnippetCopy }),
   toParentMessage: message => Message.GotSnippetCopyMessage({ message }),
 })
 
@@ -435,14 +436,14 @@ const foldCoreSubmodelPage = Update.foldChild({
   update: Core.SubmodelPage.update,
   read: (model: Model) => Option.some(model.coreSubmodelPage),
   write: (model, nextCoreSubmodelPage) =>
-    evo(model, { coreSubmodelPage: () => nextCoreSubmodelPage }),
+    modifyFields(model, { coreSubmodelPage: () => nextCoreSubmodelPage }),
   toParentMessage: message => Message.GotCoreSubmodelPageMessage({ message }),
 })
 
 const readHome = (model: Model): Option.Option<Home.Model> => model.maybeHome
 
 const writeHome = (model: Model, nextHome: Home.Model): Model =>
-  evo(model, { maybeHome: () => Option.some(nextHome) })
+  modifyFields(model, { maybeHome: () => Option.some(nextHome) })
 
 const toGotHomeMessage = (message: Home.Message): Message =>
   Message.GotHomeMessage({ message })
@@ -475,10 +476,10 @@ const reconcileHomePresence =
           Option.some(Home.init().model),
         )
 
-        return { model: evo(model, { maybeHome: () => nextHome }) }
+        return { model: modifyFields(model, { maybeHome: () => nextHome }) }
       }),
       Match.orElse(() => ({
-        model: evo(model, { maybeHome: () => Option.none() }),
+        model: modifyFields(model, { maybeHome: () => Option.none() }),
       })),
     )
 
@@ -486,7 +487,7 @@ const foldComingFromReact = Update.foldChild({
   update: ComingFromReact.update,
   read: (model: Model) => Option.some(model.comingFromReact),
   write: (model, nextComingFromReact) =>
-    evo(model, { comingFromReact: () => nextComingFromReact }),
+    modifyFields(model, { comingFromReact: () => nextComingFromReact }),
   toParentMessage: message => Message.GotComingFromReactMessage({ message }),
 })
 
@@ -496,7 +497,7 @@ const readApiReference = (model: Model): Option.Option<ApiReference.Model> =>
 const writeApiReference = (
   model: Model,
   nextApiReference: ApiReference.Model,
-): Model => evo(model, { apiReference: () => nextApiReference })
+): Model => modifyFields(model, { apiReference: () => nextApiReference })
 
 const toGotApiReferenceMessage = (message: ApiReference.Message): Message =>
   Message.GotApiReferenceMessage({ message })
@@ -518,7 +519,8 @@ const foldApiReferenceRouteChanged = Update.foldChildStep({
 const foldUiPages = Update.foldChild({
   update: Ui.update,
   read: (model: Model) => Option.some(model.uiPages),
-  write: (model, nextUiPages) => evo(model, { uiPages: () => nextUiPages }),
+  write: (model, nextUiPages) =>
+    modifyFields(model, { uiPages: () => nextUiPages }),
   toParentMessage: message => Message.GotUiPageMessage({ message }),
 })
 
@@ -530,7 +532,7 @@ const readExampleDetail = (
 const writeExampleDetail = (
   model: Model,
   nextExampleDetail: Example.ExampleDetail.Model,
-): Model => evo(model, { exampleDetail: () => nextExampleDetail })
+): Model => modifyFields(model, { exampleDetail: () => nextExampleDetail })
 
 const toGotExampleDetailMessage = (
   message: Example.ExampleDetail.Message,
@@ -554,7 +556,7 @@ const readSearch = (model: Model): Option.Option<Search.Model> =>
   Option.some(model.search)
 
 const writeSearch = (model: Model, nextSearch: Search.Model): Model =>
-  evo(model, { search: () => nextSearch })
+  modifyFields(model, { search: () => nextSearch })
 
 const toGotSearchMessage = (message: Search.Message): Message =>
   Message.GotSearchMessage({ message })
@@ -584,7 +586,7 @@ const foldPlayground = Update.foldChild({
   update: Playground.update,
   read: (model: Model) => model.playground,
   write: (model, nextPlayground) =>
-    evo(model, { playground: () => Option.some(nextPlayground) }),
+    modifyFields(model, { playground: () => Option.some(nextPlayground) }),
   toParentMessage: message => Message.GotPlaygroundMessage({ message }),
 })
 
@@ -670,7 +672,7 @@ export const update = (model: Model, message: Message) =>
       )
 
       const writeRouteFields: UpdateStep = model => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           route: () => nextRoute,
           url: () => url,
           playground: () => nextPlaygroundRoute,
@@ -704,7 +706,9 @@ export const update = (model: Model, message: Message) =>
       model,
       commands: [
         CopyLink({
-          url: urlToString(evo(model.url, { hash: () => Option.some(hash) })),
+          url: urlToString(
+            modifyFields(model.url, { hash: () => Option.some(hash) }),
+          ),
         }),
       ],
     }),
@@ -731,24 +735,24 @@ export const update = (model: Model, message: Message) =>
       foldCoreSubmodelPage(model, message),
 
     ToggledMobileTableOfContents: ({ isOpen }) => ({
-      model: evo(model, { isMobileTableOfContentsOpen: () => isOpen }),
+      model: modifyFields(model, { isMobileTableOfContentsOpen: () => isOpen }),
     }),
 
     ClickedMobileTableOfContentsLink: ({ sectionId }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         isMobileTableOfContentsOpen: () => false,
         activeSection: () => Option.some(sectionId),
       }),
     }),
 
     ChangedActiveSection: ({ sectionId }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         activeSection: () => Option.some(sectionId),
       }),
     }),
 
     ChangedViewportWidth: ({ isNarrow }) => ({
-      model: evo(model, { isNarrowViewport: () => isNarrow }),
+      model: modifyFields(model, { isNarrowViewport: () => isNarrow }),
     }),
 
     CompletedLoadBrowserEnvironment: ({
@@ -775,7 +779,7 @@ export const update = (model: Model, message: Message) =>
         maybeExampleSlug,
       )
       const applyBrowserEnvironment: UpdateStep = stepModel => ({
-        model: evo(stepModel, {
+        model: modifyFields(stepModel, {
           currentYear: () => currentYear,
           isNarrowViewport: () => isNarrowViewport,
           maybeIsPlaygroundSupported: () => Option.some(isPlaygroundSupported),
@@ -793,7 +797,7 @@ export const update = (model: Model, message: Message) =>
         stepModel =>
           Update.foldChildInit(Ui.init(today), {
             toParentModel: uiPages =>
-              evo(stepModel, { uiPages: () => uiPages }),
+              modifyFields(stepModel, { uiPages: () => uiPages }),
             toParentMessage: message => Message.GotUiPageMessage({ message }),
           }),
       ])
@@ -810,7 +814,7 @@ export const update = (model: Model, message: Message) =>
       )
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           systemTheme: () => theme,
           resolvedTheme: () => resolvedTheme,
         }),
@@ -826,7 +830,7 @@ export const update = (model: Model, message: Message) =>
     GotUiPageMessage: ({ message }) => foldUiPages(model, message),
 
     ToggledSidebarGroup: ({ key, isOpen }) => {
-      const nextModel = evo(model, {
+      const nextModel = modifyFields(model, {
         sidebarGroups: Record.set(key, isOpen),
       })
       return { model: nextModel, commands: [saveSidebarState(nextModel)] }

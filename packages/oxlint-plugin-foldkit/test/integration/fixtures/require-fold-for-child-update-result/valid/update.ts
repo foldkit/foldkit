@@ -1,5 +1,5 @@
 import { Update } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { Option } from 'effect'
 import * as Child from './child'
 import * as Preferences from './preferences'
@@ -34,7 +34,7 @@ export const init = () => {
 const foldChild = Update.foldChild({
   update: Child.update,
   read: (model: Model) => Option.some(model.child),
-  write: (model, nextChild) => evo(model, { child: () => nextChild }),
+  write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
   toParentMessage: (message: Child.Message) => ({
     type: 'GotChildMessage',
     message,
@@ -45,7 +45,7 @@ const foldProducts = Update.foldChild({
   update: Products.update,
   read: (model: Model) => Option.some(model.productsPage),
   write: (model, nextProductsPage) =>
-    evo(model, { productsPage: () => nextProductsPage }),
+    modifyFields(model, { productsPage: () => nextProductsPage }),
   toParentMessage: (message: Products.Message) => ({
     type: 'GotChildMessage',
     message,
@@ -56,7 +56,7 @@ export const updateProducts = (model: Model, message: Products.Message) => {
   const productsUpdate = Products.update(model.products, message)
 
   return {
-    model: evo(model, {
+    model: modifyFields(model, {
       products: () => productsUpdate.model,
     }),
   }
@@ -69,7 +69,7 @@ export const keepChildWhenNestedCallbackReadsItsUpdate = (
   const childUpdate = Child.update(model.child, message)
 
   return {
-    model: evo(model, {
+    model: modifyFields(model, {
       child: () => {
         const readChildUpdateModel = () => childUpdate.model
 
@@ -83,7 +83,7 @@ export const keepChildWhenNestedCallbackReadsItsUpdate = (
 
 export const update = (model: Model, message: Message) =>
   foldChild(
-    evo(model, {
+    modifyFields(model, {
       slider: () => Slider.reflectRange({ min: 0, max: 100 }),
     }),
     message.message,
@@ -95,7 +95,7 @@ export const normalizePreferences = (model: Model) => {
   const preferencesNormalized = Preferences.normalize(model.preferences)
 
   return {
-    model: evo(model, {
+    model: modifyFields(model, {
       preferences: () => preferencesNormalized.model,
     }),
   }

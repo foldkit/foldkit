@@ -122,7 +122,7 @@ const COUNTER_DEMO_CODE_ID = 'virtual:counter-demo-code'
 const DEMO_IMPORTS = `import { Effect, Schema } from 'effect'
 import { Command, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'`
+import { modifyFields } from 'foldkit/struct'`
 
 const DEMO_CODE = `// MODEL
 
@@ -161,17 +161,17 @@ type UpdateReturn = Update.Return<Model, Message>
 const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     ClickedIncrement: () => ({
-      model: evo(model, { count: count => count + 1 }),
+      model: modifyFields(model, { count: count => count + 1 }),
     }),
     ChangedResetDuration: ({ seconds }) => ({
-      model: evo(model, { resetDuration: () => seconds }),
+      model: modifyFields(model, { resetDuration: () => seconds }),
     }),
     ClickedResetAfterDelay: () => ({
-      model: evo(model, { isResetting: () => true }),
+      model: modifyFields(model, { isResetting: () => true }),
       commands: [DelayReset({ seconds: model.resetDuration })],
     }),
     CompletedDelayReset: () => ({
-      model: evo(model, { count: () => 0, isResetting: () => false }),
+      model: modifyFields(model, { count: () => 0, isResetting: () => false }),
     }),
   })`
 
@@ -219,7 +219,7 @@ const NOTE_PLAYER_DEMO_IMPORTS = `import { Array, Context, Effect, Layer, Schema
 import { Command, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'`
+import { modifyFields } from 'foldkit/struct'`
 
 const NOTE_PLAYER_DEMO_CODE = `// MODEL
 
@@ -256,7 +256,7 @@ const playNoteAt = (
   model: Model,
   noteIndex: number,
 ): UpdateReturn => ({
-  model: evo(model, {
+  model: modifyFields(model, {
     playbackState: () => PlaybackState.Playing({ currentNoteIndex: noteIndex }),
   }),
   commands: [
@@ -279,7 +279,7 @@ const update = (model: Model, message: Message) =>
     ClickedPause: () =>
       PlaybackState.match<UpdateReturn>(model.playbackState, {
         Playing: ({ currentNoteIndex }) => ({
-          model: evo(model, {
+          model: modifyFields(model, {
             playbackState: () => PlaybackState.Paused({ currentNoteIndex }),
           }),
         }),
@@ -293,7 +293,7 @@ const update = (model: Model, message: Message) =>
       if (playbackState._tag !== 'Playing') {
         return { model }
       } else if (nextCurrentNoteIndex >= noteSequence.length) {
-        return { model: evo(model, { playbackState: () => PlaybackState.Idle() }) }
+        return { model: modifyFields(model, { playbackState: () => PlaybackState.Idle() }) }
       } else {
         return playNoteAt(model, nextCurrentNoteIndex)
       }

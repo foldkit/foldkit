@@ -2,7 +2,7 @@ import { Array, Match, Number, Option, Schema, Stream, pipe } from 'effect'
 import { Runtime, Subscription, type Update } from 'foldkit'
 import { type Document, type Html, HtmlBuilder, createLazy } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 const UPDATE_WORK_MS = 10
 const VIEW_WORK_MS = 24
@@ -160,30 +160,30 @@ export const update = (model: Model, message: Message) =>
       burnCpu(UPDATE_WORK_MS)
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           activeWorkload: () => 'Update',
         }),
       }
     },
     ClickedRunViewWork: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         activeWorkload: () => 'View',
       }),
     }),
     ClickedRunPatchWork: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         activeWorkload: () => 'Patch',
         patchRows: () => PATCH_ROW_COUNT,
         patchRun: Number.increment,
       }),
     }),
     ClickedRunSubscriptionDependenciesWork: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         activeWorkload: () => 'SubscriptionDependencies',
       }),
     }),
     ClickedClearWarnings: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         activeWorkload: () => 'Idle',
         warnings: () => [],
       }),
@@ -195,7 +195,7 @@ export const update = (model: Model, message: Message) =>
       }
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           activeWorkload: () => 'Idle',
           nextWarningId: Number.increment,
           warnings: prependWarning(warning),

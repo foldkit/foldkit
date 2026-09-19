@@ -1,5 +1,5 @@
 import { Option } from 'effect'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
@@ -82,7 +82,9 @@ describe('update: single operations', () => {
 
   test('flood fill (empty grid)', async ({ bench }) => {
     await bench('flood fill (empty grid)', () => {
-      const fillModel: Model = evo(initialModel, { tool: () => 'Fill' })
+      const fillModel: Model = modifyFields(initialModel, {
+        tool: () => 'Fill',
+      })
       dispatch(fillModel, Message.PressedCell({ x: 0, y: 0 }))
     }).run()
   })
@@ -135,7 +137,9 @@ describe('update: paint sequence (16x16 grid)', () => {
 
   test('paint 50 cells with mirror mode', async ({ bench }) => {
     await bench('paint 50 cells with mirror mode', () => {
-      let model: Model = evo(initialModel, { mirrorMode: () => 'Both' })
+      let model: Model = modifyFields(initialModel, {
+        mirrorMode: () => 'Both',
+      })
       for (let i = 0; i < 50; i++) {
         const x = (i * 7 + 3) % GRID_SIZE
         const y = (i * 11 + 5) % GRID_SIZE

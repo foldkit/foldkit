@@ -5,7 +5,7 @@ import * as Dom from 'foldkit/dom'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Mount from 'foldkit/mount'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
 
@@ -242,7 +242,7 @@ const isOpenOrAnimating = (model: Model): boolean =>
   model.isOpen || model.animation.transitionState !== 'Idle'
 
 const resetToClosed = (model: Model): Model =>
-  evo(model, {
+  modifyFields(model, {
     isOpen: () => false,
     animation: () => Animation.init({ id: `${model.id}-panel` }),
   })
@@ -316,7 +316,7 @@ const foldAnimation = Update.foldChild({
   update: AnimationUpdate.update,
   read: (model: Model) => Option.some(model.animation),
   write: (model, nextAnimation) =>
-    evo(model, { animation: () => nextAnimation }),
+    modifyFields(model, { animation: () => nextAnimation }),
   toParentMessage: wrapAnimationMessage,
   foldOutMessage: foldAnimationOutMessage,
 })
@@ -325,7 +325,7 @@ const foldAnimationShow = Update.foldChildStep({
   update: AnimationUpdate.show,
   read: (model: Model) => Option.some(model.animation),
   write: (model, nextAnimation) =>
-    evo(model, { animation: () => nextAnimation }),
+    modifyFields(model, { animation: () => nextAnimation }),
   toParentMessage: wrapAnimationMessage,
 })
 
@@ -333,7 +333,7 @@ const foldAnimationHide = Update.foldChildStep({
   update: AnimationUpdate.hide,
   read: (model: Model) => Option.some(model.animation),
   write: (model, nextAnimation) =>
-    evo(model, { animation: () => nextAnimation }),
+    modifyFields(model, { animation: () => nextAnimation }),
   toParentMessage: wrapAnimationMessage,
 })
 
@@ -358,10 +358,10 @@ export const update = (model: Model, message: Message) =>
             stepModel => ({ model: stepModel, commands }),
             foldAnimationShow,
             stepModel => ({
-              model: evo(stepModel, { isOpen: () => true }),
+              model: modifyFields(stepModel, { isOpen: () => true }),
             }),
           ])
-        : { model: evo(model, { isOpen: () => true }), commands }
+        : { model: modifyFields(model, { isOpen: () => true }), commands }
 
       return wasClosed
         ? pipe(dialogOpen, Update.withOutMessage(OutMessage.Opened()))
@@ -377,7 +377,7 @@ export const update = (model: Model, message: Message) =>
       if (model.isAnimated) {
         const dialogClose = Update.combine(model, [
           stepModel => ({
-            model: evo(stepModel, { isOpen: () => false }),
+            model: modifyFields(stepModel, { isOpen: () => false }),
           }),
           foldAnimationHide,
         ])
@@ -394,7 +394,7 @@ export const update = (model: Model, message: Message) =>
 
       const commands = Option.toArray(maybeClose)
       const dialogClose: Update.Return<Model, Message> = {
-        model: evo(model, { isOpen: () => false }),
+        model: modifyFields(model, { isOpen: () => false }),
         commands,
       }
       return wasOpen

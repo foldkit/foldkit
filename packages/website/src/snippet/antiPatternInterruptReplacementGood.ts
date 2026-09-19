@@ -10,7 +10,7 @@ const update = (model: Model, message: Message) =>
     UpdatedQuery: ({ query }) =>
       SearchState.match<UpdateReturn>(model.searchState, {
         Running: () => ({
-          model: evo(model, {
+          model: modifyFields(model, {
             query: () => query,
             searchGeneration: Number.increment,
             searchState: () => SearchState.Cancelling(),
@@ -22,12 +22,12 @@ const update = (model: Model, message: Message) =>
           ],
         }),
         Cancelling: () => ({
-          model: evo(model, { query: () => query }),
+          model: modifyFields(model, { query: () => query }),
         }),
       }),
 
     CompletedCancelFetchSuggestions: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         searchState: () => SearchState.Running(),
       }),
       commands: [

@@ -177,7 +177,7 @@ switch (message._tag) {
 Message.match<Update.Return<Model, Message>>(message, {
   ClickedSubmit: () => ({ model }),
   UpdatedEmail: ({ value }) => ({
-    model: evo(model, { email: () => value }),
+    model: modifyFields(model, { email: () => value }),
   }),
 })
 ```
@@ -302,48 +302,50 @@ Array.makeBy(count, index => ...)
 
 ## Model Updates
 
-Use `evo()` for immutable updates:
+Use `modifyFields()` for immutable updates:
 
 ```ts
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 // Update specific fields
-evo(model, {
+modifyFields(model, {
   email: () => value,
   maybeError: () => Option.none(),
 })
 
 // Nested update: replace the nested struct entirely
-evo(model, {
+modifyFields(model, {
   homeStep: () => SelectAction({ username, selectedAction: 'CreateRoom' }),
 })
 
 // Nested update: modify fields of the nested struct
-evo(model, {
-  newLinkForm: () => evo(model.newLinkForm, { title: () => value }),
+modifyFields(model, {
+  newLinkForm: () => modifyFields(model.newLinkForm, { title: () => value }),
 })
 ```
 
-When an `evo` setter only transforms the current value of that same field, pass
+When a `modifyFields` setter only transforms the current value of that same field, pass
 the transformer directly:
 
 ```ts
 // WRONG: re-reads the same field from the surrounding Model
-evo(model, { entries: () => Array.map(model.entries, Entry.revealErrors) })
-evo(model, { currentStep: () => toNextStep(model.currentStep) })
+modifyFields(model, {
+  entries: () => Array.map(model.entries, Entry.revealErrors),
+})
+modifyFields(model, { currentStep: () => toNextStep(model.currentStep) })
 
-// RIGHT: evo supplies the current field value to the setter
-evo(model, { entries: Array.map(Entry.revealErrors) })
-evo(model, { currentStep: toNextStep })
+// RIGHT: modifyFields supplies the current field value to the setter
+modifyFields(model, { entries: Array.map(Entry.revealErrors) })
+modifyFields(model, { currentStep: toNextStep })
 
 // RIGHT: replacement values still use thunks
-evo(model, { email: () => value })
-evo(model, { child: () => nextChild })
+modifyFields(model, { email: () => value })
+modifyFields(model, { child: () => nextChild })
 ```
 
 This applies to component reflect helpers too, which are dual: called data-last, `Slider.reflectRange({ min: minPrice, max: maxPrice })` returns a setter for the existing `Slider.Model` (mirroring URL-owned price bounds onto the slider), so use it directly in the `priceSlider` field instead of closing over `model.priceSlider`.
 
-Never mutate the model directly. **Never use spread syntax for updates.** `evo` is the canonical pattern. This applies to nested updates too: `evo(model, { newLinkForm: () => ({ ...model.newLinkForm, title: value }) })` is wrong. Use a nested `evo`: `evo(model, { newLinkForm: () => evo(model.newLinkForm, { title: () => value }) })`. The spread-inside-evo pattern is a common mistake. You're using `evo` at the outer level but bypassing it inside, which loses the invariant that all updates go through one codepath.
+Never mutate the model directly. **Never use spread syntax for updates.** `modifyFields` is the canonical pattern. This applies to nested updates too: `modifyFields(model, { newLinkForm: () => ({ ...model.newLinkForm, title: value }) })` is wrong. Use a nested `modifyFields`: `modifyFields(model, { newLinkForm: () => modifyFields(model.newLinkForm, { title: () => value }) })`. The spread-inside-modifyFields pattern is a common mistake. You're using `modifyFields` at the outer level but bypassing it inside, which loses the invariant that all updates go through one codepath.
 
 ## Update Results
 
@@ -577,7 +579,7 @@ import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineRouteUnion } from 'foldkit/route'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Button, Dialog, Input } from '@foldkit/ui'
 ```

@@ -15,7 +15,8 @@ export const setTheme = (model: Model, theme: Theme) =>
 const foldSettingsTheme = Update.foldChild({
   update: Settings.setTheme,
   read: (model: Model) => Option.some(model.settings),
-  write: (model, nextSettings) => evo(model, { settings: () => nextSettings }),
+  write: (model, nextSettings) =>
+    modifyFields(model, { settings: () => nextSettings }),
   toParentMessage: message => Message.GotSettingsMessage({ message }),
 })
 

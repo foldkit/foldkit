@@ -27,7 +27,7 @@ import { noNoopMessage } from './rules/no-noop-message.ts'
 import { noPreventDefaultInStreamOperator } from './rules/no-prevent-default-in-stream-operator.ts'
 import { noRawDomEventAttributes } from './rules/no-raw-dom-event-attributes.ts'
 import { noRouteQueryConstructorDefault } from './rules/no-route-query-constructor-default.ts'
-import { noSpreadInEvo } from './rules/no-spread-in-evo.ts'
+import { noSpreadInModifyFields } from './rules/no-spread-in-modify-fields.ts'
 import { noSwitchOnMessageTag } from './rules/no-switch-on-message-tag.ts'
 import { preferCallableMessageConstructor } from './rules/prefer-callable-message-constructor.ts'
 import { preferCommandMapmessage } from './rules/prefer-command-mapmessage.ts'
@@ -70,7 +70,7 @@ const basePlugin = Plugin.define({
     'no-prevent-default-in-stream-operator': noPreventDefaultInStreamOperator,
     'no-raw-dom-event-attributes': noRawDomEventAttributes,
     'no-route-query-constructor-default': noRouteQueryConstructorDefault,
-    'no-spread-in-evo': noSpreadInEvo,
+    'no-spread-in-modify-fields': noSpreadInModifyFields,
     'no-switch-on-message-tag': noSwitchOnMessageTag,
     'prefer-callable-message-constructor': preferCallableMessageConstructor,
     'prefer-command-mapmessage': preferCommandMapmessage,

@@ -2,7 +2,7 @@ import { Effect, Schema } from 'effect'
 import { Command, Runtime, type Update } from 'foldkit'
 import { type Document, type Html, type HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Button } from '@foldkit/ui'
 
@@ -43,14 +43,14 @@ export const update = (model: Model, message: Message) =>
     ClickedDecrement: () => {
       const nextCount = model.count - 1
       return {
-        model: evo(model, { count: () => nextCount }),
+        model: modifyFields(model, { count: () => nextCount }),
         commands: [PersistCount({ count: nextCount })],
       }
     },
     ClickedIncrement: () => {
       const nextCount = model.count + 1
       return {
-        model: evo(model, { count: () => nextCount }),
+        model: modifyFields(model, { count: () => nextCount }),
         commands: [PersistCount({ count: nextCount })],
       }
     },

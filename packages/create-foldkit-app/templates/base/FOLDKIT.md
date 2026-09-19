@@ -61,7 +61,7 @@ Then replace this file whole. Foldkit's conventions change with its APIs, and a 
 const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedIncrement: () => ({
-      model: evo(model, { count: count => count + 1 }),
+      model: modifyFields(model, { count: count => count + 1 }),
     }),
   })
 ```
@@ -86,7 +86,7 @@ Add `toParentOutMessage` only when at least one child OutMessage should continue
 
 When a `foldChildInits` entry can derive or forward an OutMessage, add `resolveOutMessage` to construct one parent OutMessage from the named OutMessages after every local fold completes. Combine their information when both results matter; choosing one discards the other. The callback also receives the final Model. If that Model alone contains everything needed, use local folds and attach a parent OutMessage afterward with `Update.withOutMessage`.
 
-Use `evo()` from `foldkit/struct` for immutable model updates. Never spread or `Object.assign`.
+Use `modifyFields()` from `foldkit/struct` for immutable model updates. Never spread or `Object.assign`.
 
 ### View
 

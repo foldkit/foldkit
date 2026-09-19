@@ -15,7 +15,7 @@ import * as Dom from 'foldkit/dom'
 import type { ChildAttribute, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Mount from 'foldkit/mount'
-import { makeConstrainedEvo } from 'foldkit/struct'
+import { makeModifyFieldsFor } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
 
@@ -202,10 +202,10 @@ export const itemId = (id: string, index: number): string =>
 
 // HELPERS
 
-const constrainedEvo = makeConstrainedEvo<BaseModel>()
+const modifyBaseFields = makeModifyFieldsFor<BaseModel>()
 
 export const closedModel = <Model extends BaseModel>(model: Model): Model =>
-  constrainedEvo(model, {
+  modifyBaseFields(model, {
     isOpen: () => false,
     maybeActiveItemIndex: () => Option.none(),
     searchQuery: () => '',
@@ -352,7 +352,7 @@ export const makeUpdate = <Model extends BaseModel>(
     update: animationUpdate,
     read: (model: Model) => Option.some(model.animation),
     write: (model, nextAnimation) =>
-      constrainedEvo(model, { animation: () => nextAnimation }),
+      modifyBaseFields(model, { animation: () => nextAnimation }),
     toParentMessage: message => Message.GotAnimationMessage({ message }),
     foldOutMessage: foldAnimationOutMessage,
   })
@@ -361,7 +361,7 @@ export const makeUpdate = <Model extends BaseModel>(
     update: animationShow,
     read: (model: Model) => Option.some(model.animation),
     write: (model, nextAnimation) =>
-      constrainedEvo(model, { animation: () => nextAnimation }),
+      modifyBaseFields(model, { animation: () => nextAnimation }),
     toParentMessage: message => Message.GotAnimationMessage({ message }),
   })
 
@@ -369,7 +369,7 @@ export const makeUpdate = <Model extends BaseModel>(
     update: animationHide,
     read: (model: Model) => Option.some(model.animation),
     write: (model, nextAnimation) =>
-      constrainedEvo(model, { animation: () => nextAnimation }),
+      modifyBaseFields(model, { animation: () => nextAnimation }),
     toParentMessage: message => Message.GotAnimationMessage({ message }),
   })
 
@@ -385,13 +385,13 @@ export const makeUpdate = <Model extends BaseModel>(
         }),
         foldAnimationShow,
         stepModel => ({
-          model: constrainedEvo(stepModel, { isOpen: () => true }),
+          model: modifyBaseFields(stepModel, { isOpen: () => true }),
         }),
       ])
     }
 
     return {
-      model: constrainedEvo(baseModel, { isOpen: () => true }),
+      model: modifyBaseFields(baseModel, { isOpen: () => true }),
       commands: openCommands,
     }
   }
@@ -459,7 +459,7 @@ export const makeUpdate = <Model extends BaseModel>(
       CompletedPortalListboxBackdrop: () => ({ model }),
       Opened: ({ maybeActiveItemIndex }) =>
         openListbox(
-          constrainedEvo(model, {
+          modifyBaseFields(model, {
             maybeActiveItemIndex: () => maybeActiveItemIndex,
             activationTrigger: () =>
               Option.match(maybeActiveItemIndex, {
@@ -486,7 +486,7 @@ export const makeUpdate = <Model extends BaseModel>(
       },
 
       ActivatedItem: ({ index, activationTrigger }) => ({
-        model: constrainedEvo(model, {
+        model: modifyBaseFields(model, {
           maybeActiveItemIndex: () => Option.some(index),
           activationTrigger: () => activationTrigger,
         }),
@@ -508,7 +508,7 @@ export const makeUpdate = <Model extends BaseModel>(
         }
 
         return {
-          model: constrainedEvo(model, {
+          model: modifyBaseFields(model, {
             maybeActiveItemIndex: () => Option.some(index),
             activationTrigger: () => 'Pointer' as const,
             maybeLastPointerPosition: () => Option.some({ screenX, screenY }),
@@ -519,7 +519,7 @@ export const makeUpdate = <Model extends BaseModel>(
       DeactivatedItem: () =>
         model.activationTrigger === 'Pointer'
           ? {
-              model: constrainedEvo(model, {
+              model: modifyBaseFields(model, {
                 maybeActiveItemIndex: () => Option.none(),
               }),
             }
@@ -549,7 +549,7 @@ export const makeUpdate = <Model extends BaseModel>(
         const nextSearchVersion = Number.increment(model.searchVersion)
 
         return {
-          model: constrainedEvo(model, {
+          model: modifyBaseFields(model, {
             searchQuery: () => nextSearchQuery,
             searchVersion: () => nextSearchVersion,
             maybeActiveItemIndex: () =>
@@ -564,14 +564,16 @@ export const makeUpdate = <Model extends BaseModel>(
           return { model }
         }
 
-        return { model: constrainedEvo(model, { searchQuery: () => '' }) }
+        return {
+          model: modifyBaseFields(model, { searchQuery: () => '' }),
+        }
       },
 
       GotAnimationMessage: ({ message: animationMessage }) =>
         foldAnimation(model, animationMessage),
 
       PressedPointerOnButton: ({ pointerType, button }) => {
-        const withPointerType = constrainedEvo(model, {
+        const withPointerType = modifyBaseFields(model, {
           maybeLastButtonPointerType: () => Option.some(pointerType),
         })
 
@@ -583,7 +585,7 @@ export const makeUpdate = <Model extends BaseModel>(
           return Update.combine(withPointerType, [
             stepModel => closeListbox(stepModel, closeWithFocusCommands),
             stepModel => ({
-              model: constrainedEvo(stepModel, {
+              model: modifyBaseFields(stepModel, {
                 maybeLastButtonPointerType: () => Option.some(pointerType),
               }),
             }),
@@ -591,7 +593,7 @@ export const makeUpdate = <Model extends BaseModel>(
         }
 
         return openListbox(
-          constrainedEvo(withPointerType, {
+          modifyBaseFields(withPointerType, {
             maybeActiveItemIndex: () => Option.none(),
             activationTrigger: () => 'Pointer' as const,
             searchQuery: () => '',
@@ -603,7 +605,7 @@ export const makeUpdate = <Model extends BaseModel>(
       },
 
       IgnoredMouseClick: () => ({
-        model: constrainedEvo(model, {
+        model: modifyBaseFields(model, {
           maybeLastButtonPointerType: () => Option.none(),
         }),
       }),

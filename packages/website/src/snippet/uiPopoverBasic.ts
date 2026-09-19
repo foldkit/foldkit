@@ -5,7 +5,7 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Popover } from '@foldkit/ui'
 
@@ -52,7 +52,8 @@ const foldPopoverOutMessage = Popover.OutMessage.match<
 const foldPopover = Update.foldChild({
   update: Popover.update,
   read: (model: Model) => Option.some(model.popover),
-  write: (model, nextPopover) => evo(model, { popover: () => nextPopover }),
+  write: (model, nextPopover) =>
+    modifyFields(model, { popover: () => nextPopover }),
   toParentMessage: message => Message.GotPopoverMessage({ message }),
   foldOutMessage: foldPopoverOutMessage,
 })

@@ -4,7 +4,7 @@ const foldSearchOutMessage = Search.OutMessage.match<
   PreparedResults:
     ({ documentId }) =>
     model => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         maybeSelectedDocumentId: () => Option.some(documentId),
       }),
     }),
@@ -16,7 +16,7 @@ const foldEditorOutMessage = Editor.OutMessage.match<
   OpenedDocument:
     ({ documentId }) =>
     model => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         maybeOpenedDocumentId: () => Option.some(documentId),
       }),
     }),

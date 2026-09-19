@@ -1,7 +1,7 @@
 import { Array, Effect, Option } from 'effect'
 import { Scene, Story } from 'foldkit'
 import { type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
@@ -144,7 +144,7 @@ describe('Combobox', () => {
         Story.story(
           update,
           Story.given(
-            evo(init({ id: 'test' }), {
+            modifyFields(init({ id: 'test' }), {
               maybeLastPointerPosition: () =>
                 Option.some({
                   screenX: 100,
@@ -194,7 +194,7 @@ describe('Combobox', () => {
         Story.story(
           update,
           Story.given(
-            evo(init({ id: 'test' }), {
+            modifyFields(init({ id: 'test' }), {
               isOpen: () => true,
               inputValue: () => 'app',
             }),
@@ -216,7 +216,7 @@ describe('Combobox', () => {
         Story.story(
           update,
           Story.given(
-            evo(init({ id: 'test' }), {
+            modifyFields(init({ id: 'test' }), {
               isOpen: () => true,
               nullable: () => true,
               inputValue: () => '',
@@ -249,7 +249,7 @@ describe('Combobox', () => {
       })
 
       it('is a no-op when already closed', () => {
-        const closedModel = evo(init({ id: 'test' }), {
+        const closedModel = modifyFields(init({ id: 'test' }), {
           inputValue: () => 'Apple',
         })
 
@@ -289,7 +289,7 @@ describe('Combobox', () => {
         Story.story(
           update,
           Story.given(
-            evo(init({ id: 'test' }), {
+            modifyFields(init({ id: 'test' }), {
               isOpen: () => true,
               inputValue: () => 'app',
             }),
@@ -310,7 +310,7 @@ describe('Combobox', () => {
         Story.story(
           update,
           Story.given(
-            evo(init({ id: 'test' }), {
+            modifyFields(init({ id: 'test' }), {
               isOpen: () => true,
               nullable: () => true,
               inputValue: () => '',
@@ -330,7 +330,7 @@ describe('Combobox', () => {
       })
 
       it('is a no-op when already closed', () => {
-        const closedModel = evo(init({ id: 'test' }), {
+        const closedModel = modifyFields(init({ id: 'test' }), {
           inputValue: () => 'Apple',
         })
 
@@ -631,7 +631,7 @@ describe('Combobox', () => {
         Story.story(
           update,
           Story.given(
-            evo(init({ id: 'test' }), {
+            modifyFields(init({ id: 'test' }), {
               isOpen: () => true,
               nullable: () => true,
               inputValue: () => 'Apple',
@@ -1355,7 +1355,7 @@ describe('Combobox', () => {
       Scene.scene(
         { update, view: sceneView() },
         Scene.given(
-          evo(openModel(), {
+          modifyFields(openModel(), {
             maybeActiveItemIndex: () => Option.some(1),
           }),
         ),
@@ -2130,7 +2130,7 @@ describe('Combobox', () => {
             update,
             view: readOnlyView(),
           },
-          Scene.given(evo(openModel(), { immediate: () => true })),
+          Scene.given(modifyFields(openModel(), { immediate: () => true })),
           acknowledgeAnchor,
           acknowledgeBackdrop,
           Scene.keydown(input, 'ArrowDown'),
@@ -2152,7 +2152,7 @@ describe('Combobox', () => {
               restingInputValue: 'Apple',
             }),
           },
-          Scene.given(evo(openModel(), { immediate: () => true })),
+          Scene.given(modifyFields(openModel(), { immediate: () => true })),
           acknowledgeAnchor,
           acknowledgeBackdrop,
           Scene.keydown(input, 'ArrowDown'),
@@ -2243,7 +2243,7 @@ describe('Combobox', () => {
             view: readOnlyView(),
           },
           Scene.given(
-            evo(openModel(), {
+            modifyFields(openModel(), {
               nullable: () => true,
               inputValue: () => 'Apple',
             }),
@@ -2264,7 +2264,10 @@ describe('Combobox', () => {
             view: readOnlyView(),
           },
           Scene.given(
-            evo(openModel(), { nullable: () => true, inputValue: () => '' }),
+            modifyFields(openModel(), {
+              nullable: () => true,
+              inputValue: () => '',
+            }),
           ),
           acknowledgeAnchor,
           acknowledgeBackdrop,
@@ -2282,7 +2285,10 @@ describe('Combobox', () => {
             view: readOnlyView(),
           },
           Scene.given(
-            evo(openModel(), { nullable: () => true, inputValue: () => '' }),
+            modifyFields(openModel(), {
+              nullable: () => true,
+              inputValue: () => '',
+            }),
           ),
           acknowledgeAnchor,
           acknowledgeBackdrop,
@@ -2302,7 +2308,10 @@ describe('Combobox', () => {
             }),
           },
           Scene.given(
-            evo(openModel(), { nullable: () => true, inputValue: () => '' }),
+            modifyFields(openModel(), {
+              nullable: () => true,
+              inputValue: () => '',
+            }),
           ),
           acknowledgeAnchor,
           acknowledgeBackdrop,
@@ -2320,7 +2329,7 @@ describe('Combobox', () => {
             view: readOnlyView(),
           },
           Scene.given(
-            evo(openModel(), {
+            modifyFields(openModel(), {
               maybeActiveItemIndex: () => Option.none(),
             }),
           ),

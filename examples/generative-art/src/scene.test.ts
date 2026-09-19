@@ -1,6 +1,6 @@
 import { Option } from 'effect'
 import { click, expect, given, label, role, scene, text } from 'foldkit/scene'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { Slider } from '@foldkit/ui'
@@ -55,7 +55,7 @@ const makeParticle = (id: number, x: number, y: number): Particle => ({
 })
 
 const modelWithParticles = (count: number): Model =>
-  evo(initialModel, {
+  modifyFields(initialModel, {
     particles: () =>
       Array.from({ length: count }, (_, index) =>
         makeParticle(index, 100 + index * 5, 100),

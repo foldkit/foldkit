@@ -1,10 +1,10 @@
 # Immutability
 
-## Updating the Model with evo {#immutable-updates}
+## Updating the Model with modifyFields {#immutable-updates}
 
-`update` returns a new Model instead of mutating the current one. Foldkit provides `evo` for these immutable field updates. It wraps Effect's `Struct.evolve` with stricter key checking, so removing or renaming a Model field produces errors at every stale update site.
+`update` returns a new Model instead of mutating the current one. Foldkit provides `modifyFields` for these immutable field updates. It wraps Effect's `Struct.evolve` with stricter key checking, so removing or renaming a Model field produces errors at every stale update site.
 
-::Snippet{name="evoExample" label="evo example"}
+::Snippet{name="modifyFieldsExample" label="modifyFields example"}
 
 Each property in the transform object receives that field's current value and returns its next value. Omitted properties remain unchanged.
 

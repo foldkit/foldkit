@@ -3,7 +3,7 @@ import { describe, it } from 'vitest'
 
 import { Document, __htmlBuilder, __requireDispatch } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
-import { evo } from '../struct/index.js'
+import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
 import { makeApplication } from './makeApplication.js'
 
@@ -75,7 +75,9 @@ const runOnce = async (messageCount: number): Promise<number> => {
 
   const update = (model: Model, message: Message) =>
     Message.match<UpdateReturn>(message, {
-      Increment: () => ({ model: evo(model, { count: Number.increment }) }),
+      Increment: () => ({
+        model: modifyFields(model, { count: Number.increment }),
+      }),
       Done: () => {
         resolveDone()
         return { model }

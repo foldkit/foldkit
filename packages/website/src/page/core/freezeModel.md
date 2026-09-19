@@ -20,4 +20,4 @@ Foldkit freezes values selectively:
 
 Messages are not frozen. The guardrail applies only to the Model.
 
-Already-frozen values are skipped. Because `evo` preserves unchanged branches by reference, each update freezes only the newly created plain objects and arrays.
+Already-frozen values are skipped. Because `modifyFields` preserves unchanged branches by reference, each update freezes only the newly created plain objects and arrays.

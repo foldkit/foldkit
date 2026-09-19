@@ -2,7 +2,7 @@ import { Array, Effect, Match, Number, Option, Schema, String } from 'effect'
 import { Command, Update } from 'foldkit'
 import * as Dom from 'foldkit/dom'
 import { pushUrl } from 'foldkit/navigation'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Dialog } from '@foldkit/ui'
 
@@ -94,7 +94,8 @@ const foldSearchDialogOutMessage = Dialog.OutMessage.match<
 const foldSearchDialog = Update.foldChild({
   update: Dialog.update,
   read: (model: Model) => Option.some(model.dialog),
-  write: (model, nextDialog) => evo(model, { dialog: () => nextDialog }),
+  write: (model, nextDialog) =>
+    modifyFields(model, { dialog: () => nextDialog }),
   toParentMessage: message => Message.GotSearchDialogMessage({ message }),
   foldOutMessage: foldSearchDialogOutMessage,
 })
@@ -102,7 +103,8 @@ const foldSearchDialog = Update.foldChild({
 const foldSearchDialogOpen: Update.Step<Model, Message> = Update.foldChildStep({
   update: Dialog.open,
   read: (model: Model) => Option.some(model.dialog),
-  write: (model, nextDialog) => evo(model, { dialog: () => nextDialog }),
+  write: (model, nextDialog) =>
+    modifyFields(model, { dialog: () => nextDialog }),
   toParentMessage: message => Message.GotSearchDialogMessage({ message }),
   foldOutMessage: foldSearchDialogOutMessage,
 })
@@ -110,7 +112,8 @@ const foldSearchDialogOpen: Update.Step<Model, Message> = Update.foldChildStep({
 const foldSearchDialogClose = Update.foldChildStep({
   update: Dialog.close,
   read: (model: Model) => Option.some(model.dialog),
-  write: (model, nextDialog) => evo(model, { dialog: () => nextDialog }),
+  write: (model, nextDialog) =>
+    modifyFields(model, { dialog: () => nextDialog }),
   toParentMessage: message => Message.GotSearchDialogMessage({ message }),
   foldOutMessage: foldSearchDialogOutMessage,
 })
@@ -133,7 +136,7 @@ export const update = (model: Model, message: Message) =>
 
       if (String.isEmpty(query)) {
         return {
-          model: evo(model, {
+          model: modifyFields(model, {
             query: () => '',
             searchState: () => SearchState.Idle(),
             activeResultIndex: () => -1,
@@ -144,7 +147,7 @@ export const update = (model: Model, message: Message) =>
       const previousResults = resultsFromState(model.searchState)
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           query: () => query,
           searchState: () => SearchState.Loading({ results: previousResults }),
           activeResultIndex: () => -1,
@@ -159,7 +162,7 @@ export const update = (model: Model, message: Message) =>
       }
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           searchState: () => SearchState.Ok({ results }),
           activeResultIndex: () => 0,
         }),
@@ -167,7 +170,7 @@ export const update = (model: Model, message: Message) =>
     },
 
     SelectedSearchResult: ({ url }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         query: () => '',
         searchState: () => SearchState.Idle(),
         activeResultIndex: () => -1,
@@ -181,7 +184,7 @@ export const update = (model: Model, message: Message) =>
         stepModel =>
           message._tag === 'CompletedCloseDialog'
             ? {
-                model: evo(stepModel, {
+                model: modifyFields(stepModel, {
                   query: () => '',
                   searchState: () => SearchState.Idle(),
                   activeResultIndex: () => -1,
@@ -191,7 +194,7 @@ export const update = (model: Model, message: Message) =>
       ]),
 
     ClearedSearchQuery: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         query: () => '',
         searchState: () => SearchState.Idle(),
         activeResultIndex: () => -1,
@@ -217,7 +220,7 @@ export const update = (model: Model, message: Message) =>
       )
 
       return {
-        model: evo(model, { activeResultIndex: () => nextIndex }),
+        model: modifyFields(model, { activeResultIndex: () => nextIndex }),
         commands: [ScrollToResult({ index: nextIndex })],
       }
     },

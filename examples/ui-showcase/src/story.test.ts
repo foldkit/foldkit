@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import { Calendar } from 'foldkit'
 import { Command, given, message, model, story } from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
@@ -98,8 +98,8 @@ describe('update', () => {
 
   describe('mobile menu', () => {
     test('navigating to a new URL closes the mobile menu dialog', () => {
-      const modelWithOpenMenu: Model = evo(initialModel, {
-        uiModel: evo({
+      const modelWithOpenMenu: Model = modifyFields(initialModel, {
+        uiModel: modifyFields({
           mobileMenuDialog: () =>
             Dialog.boot({
               id: 'mobile-menu',

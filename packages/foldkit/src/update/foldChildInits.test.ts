@@ -5,7 +5,7 @@ import { describe, it } from '@effect/vitest'
 
 import * as Command from '../command/index.js'
 import { defineMessageUnion } from '../message/index.js'
-import { evo } from '../struct/index.js'
+import { modifyFields } from '../struct/index.js'
 import * as Story from '../test/story.js'
 import {
   type FoldContext,
@@ -261,7 +261,7 @@ describe('foldChildInits', () => {
       StepWithOutMessage<AppModel, FoldMessage, ParentCandidate>
     >({
       RequestedSearchNavigation: () => model => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           editor: () => EditorModel.make({ draft: 'Search selected' }),
           events: events => [...events, 'Search'],
         }),
@@ -291,7 +291,7 @@ describe('foldChildInits', () => {
             foldOutMessage: (_outMessage: EditorOutMessage) => model => {
               expect(model.editor.draft).toBe('Search selected')
               return {
-                model: evo(model, {
+                model: modifyFields(model, {
                   events: events => [...events, 'Editor'],
                 }),
               }

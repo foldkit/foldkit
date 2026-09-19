@@ -41,9 +41,9 @@ The child’s Model becomes a field in the parent’s Model:
 
 ### Never Bypass the Child’s Update {#never-bypass-the-update}
 
-The parent stores the child Model, but the child still owns it. Do not use [evo](/best-practices/immutability#immutable-updates) to change fields inside that slice from the parent.
+The parent stores the child Model, but the child still owns it. Do not use [modifyFields](/best-practices/immutability#immutable-updates) to change fields inside that slice from the parent.
 
-::Snippet{name="submodelDirectEvoAntipattern" label="antipattern"}
+::Snippet{name="submodelDirectModifyFieldsAntipattern" label="antipattern"}
 
 For a parent-initiated change, export a helper from the child and fold that helper with `Update.foldChild`. The parent can call `Settings.setTheme` without importing the internal `ChangedTheme` constructor.
 
@@ -241,7 +241,7 @@ OutMessages move facts from child to parent. A `reflect*` helper handles the inb
 
 A `reflect*` helper returns the child Model directly. It does not return Commands or an OutMessage. The external value is already the source of truth, so emitting it back could create a write loop.
 
-Define reflect helpers with `Function.dual` so they work point-free in [evo](/best-practices/immutability#immutable-updates). Here the URL owns the price range, and the parent reflects that range onto a Slider.
+Define reflect helpers with `Function.dual` so they work point-free in [modifyFields](/best-practices/immutability#immutable-updates). Here the URL owns the price range, and the parent reflects that range onto a Slider.
 
 ::Snippet{name="submodelReflectExternalState" label="reflect handler"}
 

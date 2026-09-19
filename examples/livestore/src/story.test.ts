@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import { AsyncData } from 'foldkit'
 import { Command, given, message, model, story } from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import {
@@ -30,7 +30,9 @@ describe('update', () => {
     test('SubmittedNewItem requests AddItem and clears the input', () => {
       story(
         update,
-        given(evo(successModel([]), { newItemText: () => 'Buy milk' })),
+        given(
+          modifyFields(successModel([]), { newItemText: () => 'Buy milk' }),
+        ),
         message(Message.SubmittedNewItem()),
         Command.expectExact(AddItem({ text: 'Buy milk' })),
         Command.resolve(AddItem, Message.CompletedAddItem()),
@@ -43,7 +45,7 @@ describe('update', () => {
     test('SubmittedNewItem with whitespace-only text is ignored', () => {
       story(
         update,
-        given(evo(successModel([]), { newItemText: () => '   ' })),
+        given(modifyFields(successModel([]), { newItemText: () => '   ' })),
         message(Message.SubmittedNewItem()),
         Command.expectNone(),
       )
@@ -146,7 +148,7 @@ describe('update', () => {
       story(
         update,
         given(
-          evo(successModel([buyMilk]), {
+          modifyFields(successModel([buyMilk]), {
             maybeMutationError: () => Option.some('write blocked'),
           }),
         ),
@@ -164,7 +166,7 @@ describe('update', () => {
       story(
         update,
         given(
-          evo(successModel([buyMilk]), {
+          modifyFields(successModel([buyMilk]), {
             maybeMutationError: () => Option.some('write blocked'),
           }),
         ),
@@ -182,7 +184,7 @@ describe('update', () => {
       story(
         update,
         given(
-          evo(successModel([buyMilk]), {
+          modifyFields(successModel([buyMilk]), {
             maybeMutationError: () => Option.some('write blocked'),
           }),
         ),

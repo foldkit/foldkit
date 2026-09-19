@@ -4,7 +4,7 @@ import * as Dom from 'foldkit/dom'
 import type { ChildAttribute, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Mount from 'foldkit/mount'
-import { makeConstrainedEvo } from 'foldkit/struct'
+import { makeModifyFieldsFor } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
 
@@ -206,11 +206,11 @@ export const itemId = (id: string, index: number): string =>
 
 // HELPERS
 
-const constrainedEvo = makeConstrainedEvo<BaseModel>()
+const modifyBaseFields = makeModifyFieldsFor<BaseModel>()
 
 /** Resets only shared base fields to their closed state. Does not touch inputValue. That is variant-specific. */
 export const closedBaseModel = <Model extends BaseModel>(model: Model): Model =>
-  constrainedEvo(model, {
+  modifyBaseFields(model, {
     isOpen: () => false,
     maybeActiveItemIndex: () => Option.none(),
     activationTrigger: () => 'Keyboard' as const,
@@ -353,7 +353,7 @@ export const makeUpdate = <Model extends BaseModel>(
     update: animationUpdate,
     read: (model: Model) => Option.some(model.animation),
     write: (model, nextAnimation) =>
-      constrainedEvo(model, { animation: () => nextAnimation }),
+      modifyBaseFields(model, { animation: () => nextAnimation }),
     toParentMessage: message => Message.GotAnimationMessage({ message }),
     foldOutMessage: foldAnimationOutMessage,
   })
@@ -362,7 +362,7 @@ export const makeUpdate = <Model extends BaseModel>(
     update: animationShow,
     read: (model: Model) => Option.some(model.animation),
     write: (model, nextAnimation) =>
-      constrainedEvo(model, { animation: () => nextAnimation }),
+      modifyBaseFields(model, { animation: () => nextAnimation }),
     toParentMessage: message => Message.GotAnimationMessage({ message }),
   })
 
@@ -370,7 +370,7 @@ export const makeUpdate = <Model extends BaseModel>(
     update: animationHide,
     read: (model: Model) => Option.some(model.animation),
     write: (model, nextAnimation) =>
-      constrainedEvo(model, { animation: () => nextAnimation }),
+      modifyBaseFields(model, { animation: () => nextAnimation }),
     toParentMessage: message => Message.GotAnimationMessage({ message }),
   })
 
@@ -428,13 +428,13 @@ export const makeUpdate = <Model extends BaseModel>(
           }),
           foldAnimationShow,
           stepModel => ({
-            model: constrainedEvo(stepModel, { isOpen: () => true }),
+            model: modifyBaseFields(stepModel, { isOpen: () => true }),
           }),
         ])
       }
 
       return {
-        model: constrainedEvo(baseModel, { isOpen: () => true }),
+        model: modifyBaseFields(baseModel, { isOpen: () => true }),
         commands: Array.getSomes([maybeLockScroll, maybeInertOthers]),
       }
     }
@@ -484,7 +484,7 @@ export const makeUpdate = <Model extends BaseModel>(
       CompletedPortalComboboxBackdrop: () => ({ model }),
       Opened: ({ maybeActiveItemIndex }) =>
         openCombobox(
-          constrainedEvo(model, {
+          modifyBaseFields(model, {
             maybeActiveItemIndex: () => maybeActiveItemIndex,
             activationTrigger: () =>
               Option.match(maybeActiveItemIndex, {
@@ -523,7 +523,7 @@ export const makeUpdate = <Model extends BaseModel>(
         activationTrigger,
         maybeImmediateSelection,
       }) => {
-        const highlightedModel = constrainedEvo(model, {
+        const highlightedModel = modifyBaseFields(model, {
           maybeActiveItemIndex: () => Option.some(index),
           activationTrigger: () => activationTrigger,
         })
@@ -563,7 +563,7 @@ export const makeUpdate = <Model extends BaseModel>(
         }
 
         return {
-          model: constrainedEvo(model, {
+          model: modifyBaseFields(model, {
             maybeActiveItemIndex: () => Option.some(index),
             activationTrigger: () => 'Pointer' as const,
             maybeLastPointerPosition: () => Option.some({ screenX, screenY }),
@@ -574,7 +574,7 @@ export const makeUpdate = <Model extends BaseModel>(
       DeactivatedItem: () =>
         model.activationTrigger === 'Pointer'
           ? {
-              model: constrainedEvo(model, {
+              model: modifyBaseFields(model, {
                 maybeActiveItemIndex: () => Option.none(),
               }),
             }
@@ -593,7 +593,7 @@ export const makeUpdate = <Model extends BaseModel>(
       UpdatedInputValue: ({ value }) => {
         if (model.isOpen) {
           return {
-            model: constrainedEvo(model, {
+            model: modifyBaseFields(model, {
               inputValue: () => value,
               maybeActiveItemIndex: () => Option.some(0),
               activationTrigger: () => 'Keyboard' as const,
@@ -602,7 +602,7 @@ export const makeUpdate = <Model extends BaseModel>(
         }
 
         return openCombobox(
-          constrainedEvo(model, {
+          modifyBaseFields(model, {
             inputValue: () => value,
             maybeActiveItemIndex: () => Option.some(0),
             activationTrigger: () => 'Keyboard' as const,
@@ -622,7 +622,7 @@ export const makeUpdate = <Model extends BaseModel>(
         }
 
         return Update.combine(
-          constrainedEvo(model, {
+          modifyBaseFields(model, {
             maybeActiveItemIndex: () => Option.none(),
             activationTrigger: () => 'Pointer' as const,
             maybeLastPointerPosition: () => Option.none(),

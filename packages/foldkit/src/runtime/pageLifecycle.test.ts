@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { type Document, __htmlBuilder } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
-import { evo } from '../struct/index.js'
+import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
 import { makeApplication } from './makeApplication.js'
 import { run } from './start.js'
@@ -19,7 +19,7 @@ type Model = typeof Model.Type
 const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedIncrement: () => ({
-      model: evo(model, { count: Number.increment }),
+      model: modifyFields(model, { count: Number.increment }),
     }),
   })
 

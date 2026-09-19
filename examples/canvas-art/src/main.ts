@@ -2,7 +2,7 @@ import { Array, Effect, Number, Option, Random, Schema, pipe } from 'effect'
 import { Canvas, Command, Runtime, Subscription, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Button } from '@foldkit/ui'
 
@@ -113,7 +113,7 @@ const advanceBall =
     const maxY = CANVAS_HEIGHT - ball.radius
     const bouncedX = nextX < minX || nextX > maxX
     const bouncedY = nextY < minY || nextY > maxY
-    return evo(ball, {
+    return modifyFields(ball, {
       x: () => Math.max(minX, Math.min(maxX, nextX)),
       y: () => Math.max(minY, Math.min(maxY, nextY)),
       vx: vx => (bouncedX ? -vx : vx),
@@ -124,7 +124,7 @@ const advanceBall =
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     TickedFrame: ({ deltaTime }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         balls: Array.map(advanceBall(deltaTime / MS_PER_SECOND)),
       }),
     }),
@@ -135,7 +135,7 @@ export const update = (model: Model, message: Message) =>
     }),
 
     CompletedGenerateBall: ({ x, y, vx, vy, radius, color }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         balls: Array.append({
           id: model.nextId,
           x,
@@ -149,10 +149,10 @@ export const update = (model: Model, message: Message) =>
       }),
     }),
 
-    ClickedClear: () => ({ model: evo(model, { balls: () => [] }) }),
+    ClickedClear: () => ({ model: modifyFields(model, { balls: () => [] }) }),
 
     ClickedTogglePlay: () => ({
-      model: evo(model, { isRunning: running => !running }),
+      model: modifyFields(model, { isRunning: running => !running }),
     }),
   })
 

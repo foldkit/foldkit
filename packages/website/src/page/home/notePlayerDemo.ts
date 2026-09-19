@@ -21,7 +21,7 @@ import {
 import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import notePlayerDemoCodeHtml from 'virtual:note-player-demo-code'
 
 import { Button, Input, RadioGroup } from '@foldkit/ui'
@@ -198,7 +198,7 @@ const enterNoteCommandPhase = (
   noteSequence: ReadonlyArray<Note>,
   noteIndex: number,
 ): UpdateReturn => ({
-  model: evo(model, {
+  model: modifyFields(model, {
     playbackState: () =>
       PlaybackState.Playing({
         noteSequence,
@@ -222,7 +222,7 @@ const foldNoteDurationRadioGroupOutMessage = RadioGroup.OutMessage.match<
   Selected:
     ({ value }) =>
     model => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         noteDuration: () => value,
         messageLog: prependToLog(`Selected(${value})`),
       }),
@@ -233,7 +233,9 @@ const foldNoteDurationRadioGroup = Update.foldChild({
   update: NoteDurationRadioGroup.update,
   read: (model: Model) => Option.some(model.noteDurationRadioGroup),
   write: (model, nextNoteDurationRadioGroup) =>
-    evo(model, { noteDurationRadioGroup: () => nextNoteDurationRadioGroup }),
+    modifyFields(model, {
+      noteDurationRadioGroup: () => nextNoteDurationRadioGroup,
+    }),
   toParentMessage: message => Message.GotNoteDurationMessage({ message }),
   foldOutMessage: foldNoteDurationRadioGroupOutMessage,
 })
@@ -247,7 +249,7 @@ export const update = (model: Model, message: Message) =>
         : validateNoteInput(uppercased)
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           noteInput: () => fieldState,
           playbackState: () => PlaybackState.Idle(),
           highlightPhase: () => 'Idle',
@@ -266,7 +268,7 @@ export const update = (model: Model, message: Message) =>
 
           if (resumeIndex >= noteSequence.length) {
             return {
-              model: evo(model, {
+              model: modifyFields(model, {
                 playbackState: () => PlaybackState.Idle(),
                 highlightPhase: () => 'Idle',
                 messageLog: prependToLog('ClickedPlay'),
@@ -277,7 +279,7 @@ export const update = (model: Model, message: Message) =>
           const nextGeneration = model.generation + 1
 
           return {
-            model: evo(model, {
+            model: modifyFields(model, {
               playbackState: () =>
                 PlaybackState.Playing({
                   noteSequence,
@@ -303,7 +305,7 @@ export const update = (model: Model, message: Message) =>
           const nextGeneration = model.generation + 1
 
           return {
-            model: evo(model, {
+            model: modifyFields(model, {
               playbackState: () =>
                 PlaybackState.Playing({
                   noteSequence,
@@ -325,7 +327,7 @@ export const update = (model: Model, message: Message) =>
           const nextGeneration = model.generation + 1
 
           return {
-            model: evo(model, {
+            model: modifyFields(model, {
               playbackState: () =>
                 PlaybackState.Paused({
                   noteSequence,
@@ -342,7 +344,7 @@ export const update = (model: Model, message: Message) =>
       ),
 
     ClickedStop: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         playbackState: () => PlaybackState.Idle(),
         highlightPhase: () => 'Idle',
         messageLog: prependToLog('ClickedStop'),
@@ -360,7 +362,7 @@ export const update = (model: Model, message: Message) =>
       const nextGeneration = model.generation + 1
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           highlightPhase: () => 'NoteMessage',
           generation: () => nextGeneration,
           messageLog: prependToLog(`CompletedPlayNote(${noteIndex})`),
@@ -377,19 +379,21 @@ export const update = (model: Model, message: Message) =>
       return Match.value(model.highlightPhase).pipe(
         withUpdateReturn,
         Match.when('PlayMessage', () => ({
-          model: evo(model, { highlightPhase: () => 'PlayUpdate' }),
+          model: modifyFields(model, { highlightPhase: () => 'PlayUpdate' }),
           commands: [DelayAdvancePhase({ generation: generation })],
         })),
         Match.when('PauseMessage', () => ({
-          model: evo(model, { highlightPhase: () => 'Idle' }),
+          model: modifyFields(model, { highlightPhase: () => 'Idle' }),
         })),
         Match.when('PlayUpdate', () => ({
-          model: evo(model, { highlightPhase: () => 'PlayModel' }),
+          model: modifyFields(model, { highlightPhase: () => 'PlayModel' }),
           commands: [DelayAdvancePhase({ generation: generation })],
         })),
         Match.when('PlayModel', () => {
           if (model.playbackState._tag !== 'Playing') {
-            return { model: evo(model, { highlightPhase: () => 'Idle' }) }
+            return {
+              model: modifyFields(model, { highlightPhase: () => 'Idle' }),
+            }
           }
 
           const { noteSequence, currentNoteIndex } = model.playbackState
@@ -397,16 +401,18 @@ export const update = (model: Model, message: Message) =>
           return enterNoteCommandPhase(model, noteSequence, currentNoteIndex)
         }),
         Match.when('NoteMessage', () => ({
-          model: evo(model, { highlightPhase: () => 'NoteUpdate' }),
+          model: modifyFields(model, { highlightPhase: () => 'NoteUpdate' }),
           commands: [DelayAdvancePhase({ generation: generation })],
         })),
         Match.when('NoteUpdate', () => ({
-          model: evo(model, { highlightPhase: () => 'NoteModel' }),
+          model: modifyFields(model, { highlightPhase: () => 'NoteModel' }),
           commands: [DelayAdvancePhase({ generation: generation })],
         })),
         Match.when('NoteModel', () => {
           if (model.playbackState._tag !== 'Playing') {
-            return { model: evo(model, { highlightPhase: () => 'Idle' }) }
+            return {
+              model: modifyFields(model, { highlightPhase: () => 'Idle' }),
+            }
           }
 
           const { noteSequence, currentNoteIndex } = model.playbackState
@@ -414,7 +420,7 @@ export const update = (model: Model, message: Message) =>
 
           if (nextIndex >= noteSequence.length) {
             return {
-              model: evo(model, {
+              model: modifyFields(model, {
                 playbackState: () => PlaybackState.Idle(),
                 highlightPhase: () => 'Idle',
               }),
@@ -429,11 +435,11 @@ export const update = (model: Model, message: Message) =>
     },
 
     SucceededAcquireAudioContext: () => ({
-      model: evo(model, { audio: () => AudioState.Ready() }),
+      model: modifyFields(model, { audio: () => AudioState.Ready() }),
     }),
 
     FailedAcquireAudioContext: () => ({
-      model: evo(model, { audio: () => AudioState.Unavailable() }),
+      model: modifyFields(model, { audio: () => AudioState.Unavailable() }),
     }),
 
     ReleasedAudioContext: () => ({ model }),

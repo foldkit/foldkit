@@ -3,7 +3,7 @@ import { Runtime, type Update } from 'foldkit'
 import { Document, Html, type HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 // MODEL
 
@@ -86,7 +86,7 @@ type UpdateHandlers = {
 
 const updateHandlers: UpdateHandlers = {
   UpdatedNewTodo: (model, { text }) => ({
-    model: evo(model, {
+    model: modifyFields(model, {
       newTodoText: () => text,
     }),
   }),
@@ -97,7 +97,7 @@ const updateHandlers: UpdateHandlers = {
     }
     const editingId = model.editing.id
     return {
-      model: evo(model, {
+      model: modifyFields(model, {
         editing: () => EditingState.Editing({ id: editingId, text }),
       }),
     }
@@ -116,7 +116,7 @@ const updateHandlers: UpdateHandlers = {
     }
 
     return {
-      model: evo(model, {
+      model: modifyFields(model, {
         todos: () => [...model.todos, newTodo],
         newTodoText: () => '',
         nextTodoId: nextTodoId => nextTodoId + 1,
@@ -125,17 +125,17 @@ const updateHandlers: UpdateHandlers = {
   },
 
   DeletedTodo: (model, { id }) => ({
-    model: evo(model, {
+    model: modifyFields(model, {
       todos: () => Array.filter(model.todos, todo => todo.id !== id),
     }),
   }),
 
   ToggledTodo: (model, { id }) => ({
-    model: evo(model, {
+    model: modifyFields(model, {
       todos: () =>
         Array.map(model.todos, todo =>
           todo.id === id
-            ? evo(todo, { completed: completed => !completed })
+            ? modifyFields(todo, { completed: completed => !completed })
             : todo,
         ),
     }),
@@ -144,7 +144,7 @@ const updateHandlers: UpdateHandlers = {
   StartedEditing: (model, { id }) => {
     const maybeTodo = Array.findFirst(model.todos, todo => todo.id === id)
     return {
-      model: evo(model, {
+      model: modifyFields(model, {
         editing: () =>
           EditingState.Editing({
             id,
@@ -166,17 +166,19 @@ const updateHandlers: UpdateHandlers = {
     const text = String.trim(model.editing.text)
     if (String.isEmpty(text)) {
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           editing: () => EditingState.NotEditing(),
         }),
       }
     }
 
     return {
-      model: evo(model, {
+      model: modifyFields(model, {
         todos: () =>
           Array.map(model.todos, todo =>
-            todo.id === editingId ? evo(todo, { text: () => text }) : todo,
+            todo.id === editingId
+              ? modifyFields(todo, { text: () => text })
+              : todo,
           ),
         editing: () => EditingState.NotEditing(),
       }),
@@ -184,7 +186,7 @@ const updateHandlers: UpdateHandlers = {
   },
 
   CancelledEdit: model => ({
-    model: evo(model, {
+    model: modifyFields(model, {
       editing: () => EditingState.NotEditing(),
     }),
   }),
@@ -192,10 +194,10 @@ const updateHandlers: UpdateHandlers = {
   ToggledAll: model => {
     const allCompleted = Array.every(model.todos, todo => todo.completed)
     return {
-      model: evo(model, {
+      model: modifyFields(model, {
         todos: () =>
           Array.map(model.todos, todo =>
-            evo(todo, {
+            modifyFields(todo, {
               completed: () => !allCompleted,
             }),
           ),
@@ -204,13 +206,13 @@ const updateHandlers: UpdateHandlers = {
   },
 
   ClearedCompleted: model => ({
-    model: evo(model, {
+    model: modifyFields(model, {
       todos: () => Array.filter(model.todos, todo => !todo.completed),
     }),
   }),
 
   SelectedFilter: (model, { filter }) => ({
-    model: evo(model, {
+    model: modifyFields(model, {
       filter: () => filter,
     }),
   }),

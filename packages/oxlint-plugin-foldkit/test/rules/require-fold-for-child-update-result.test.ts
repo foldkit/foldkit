@@ -36,7 +36,7 @@ const readChild = (fieldName: string) =>
 
 const writeChild = (fieldName: string) =>
   Testing.arrowFn(
-    Testing.callExpr('evo', [
+    Testing.callExpr('modifyFields', [
       Testing.id('model'),
       objectExpression([
         property(fieldName, Testing.arrowFn(Testing.id('nextChild'))),
@@ -61,8 +61,8 @@ const foldChild = (
     ]),
   ])
 
-const evoCall = (fieldName: string, resultName: string) =>
-  Testing.callExpr('evo', [
+const modifyFieldsCall = (fieldName: string, resultName: string) =>
+  Testing.callExpr('modifyFields', [
     Testing.id('model'),
     objectExpression([
       property(
@@ -72,8 +72,11 @@ const evoCall = (fieldName: string, resultName: string) =>
     ]),
   ])
 
-const evoCallWithBlockReturn = (fieldName: string, resultName: string) =>
-  Testing.callExpr('evo', [
+const modifyFieldsCallWithBlockReturn = (
+  fieldName: string,
+  resultName: string,
+) =>
+  Testing.callExpr('modifyFields', [
     Testing.id('model'),
     objectExpression([
       property(
@@ -91,13 +94,13 @@ const resultFor = (
   namespace: string,
   fieldName: string,
   declaration: unknown,
-  evo: unknown,
+  modifyFields: unknown,
   programBody: ReadonlyArray<unknown> = [foldChild(namespace, fieldName)],
 ) =>
   Testing.runRuleMulti(requireFoldForChildUpdateResult, [
     ['Program', Testing.program(programBody)],
     ['VariableDeclarator', declaration],
-    ['CallExpression', evo],
+    ['CallExpression', modifyFields],
   ])
 
 describe('require-fold-for-child-update-result', () => {
@@ -109,7 +112,7 @@ describe('require-fold-for-child-update-result', () => {
         'settingsReset',
         childCall('Settings', 'setTheme', 'settings'),
       ),
-      evoCall('settings', 'settingsReset'),
+      modifyFieldsCall('settings', 'settingsReset'),
     )
 
     expect(result).toHaveLength(1)
@@ -123,7 +126,7 @@ describe('require-fold-for-child-update-result', () => {
       'Child',
       'child',
       childReturn('childUpdate', childCall('Child', 'update', 'child')),
-      evoCall('child', 'childUpdate'),
+      modifyFieldsCall('child', 'childUpdate'),
     )
 
     expect(result).toHaveLength(1)
@@ -135,7 +138,7 @@ describe('require-fold-for-child-update-result', () => {
       'Child',
       'child',
       childReturn('childUpdate', childCall('Child', 'update', 'child')),
-      evoCallWithBlockReturn('child', 'childUpdate'),
+      modifyFieldsCallWithBlockReturn('child', 'childUpdate'),
     )
 
     expect(result).toHaveLength(1)
@@ -147,7 +150,7 @@ describe('require-fold-for-child-update-result', () => {
       'Dialog',
       'dialog',
       childReturn('dialogClose', childCall('Dialog', 'close', 'dialog')),
-      evoCall('dialog', 'dialogClose'),
+      modifyFieldsCall('dialog', 'dialogClose'),
       [
         foldChild(
           'Dialog',
@@ -172,7 +175,7 @@ describe('require-fold-for-child-update-result', () => {
         'settingsReset',
         childCall('Settings', 'setTheme', 'settings'),
       ),
-      evoCall('theme', 'settingsReset'),
+      modifyFieldsCall('theme', 'settingsReset'),
     )
 
     expect(result).toHaveLength(0)
@@ -183,24 +186,24 @@ describe('require-fold-for-child-update-result', () => {
       'Settings',
       'settings',
       childReturn('settingsInit', Testing.callOfMember('Settings', 'init')),
-      evoCall('settings', 'settingsInit'),
+      modifyFieldsCall('settings', 'settingsInit'),
     )
 
     expect(result).toHaveLength(0)
   })
 
-  it('allows a Model-only reflect helper in an evo updater', () => {
+  it('allows a Model-only reflect helper in a modifyFields updater', () => {
     const reflectCall = Testing.callOfMember('Slider', 'reflectRange', [
       Testing.id('range'),
     ])
-    const evo = Testing.callExpr('evo', [
+    const modifyFields = Testing.callExpr('modifyFields', [
       Testing.id('model'),
       objectExpression([property('slider', Testing.arrowFn(reflectCall))]),
     ])
     const result = Testing.runRule(
       requireFoldForChildUpdateResult,
       'CallExpression',
-      evo,
+      modifyFields,
     )
 
     expect(result).toHaveLength(0)
@@ -214,14 +217,14 @@ describe('require-fold-for-child-update-result', () => {
     const result = Testing.runRuleMulti(requireFoldForChildUpdateResult, [
       ['Program', Testing.program([foldChild('Settings', 'settings')])],
       ['VariableDeclarator', declaration],
-      ['CallExpression', evoCall('settings', 'otherResult')],
+      ['CallExpression', modifyFieldsCall('settings', 'otherResult')],
     ])
 
     expect(result).toHaveLength(0)
   })
 
   it('ignores a child result returned only by a nested callback', () => {
-    const evo = Testing.callExpr('evo', [
+    const modifyFields = Testing.callExpr('modifyFields', [
       Testing.id('model'),
       objectExpression([
         property(
@@ -243,14 +246,14 @@ describe('require-fold-for-child-update-result', () => {
       'Child',
       'child',
       childReturn('childUpdate', childCall('Child', 'update', 'child')),
-      evo,
+      modifyFields,
     )
 
     expect(result).toHaveLength(0)
   })
 
   it('ignores a block-bodied updater with multiple direct returns', () => {
-    const evo = Testing.callExpr('evo', [
+    const modifyFields = Testing.callExpr('modifyFields', [
       Testing.id('model'),
       objectExpression([
         property(
@@ -268,7 +271,7 @@ describe('require-fold-for-child-update-result', () => {
       'Child',
       'child',
       childReturn('childUpdate', childCall('Child', 'update', 'child')),
-      evo,
+      modifyFields,
     )
 
     expect(result).toHaveLength(0)
@@ -282,7 +285,7 @@ describe('require-fold-for-child-update-result', () => {
         'productsUpdate',
         childCall('Products', 'update', 'productsPage'),
       ),
-      evoCall('productsPage', 'productsUpdate'),
+      modifyFieldsCall('productsPage', 'productsUpdate'),
     )
 
     expect(result).toHaveLength(1)
@@ -299,7 +302,7 @@ describe('require-fold-for-child-update-result', () => {
         'productsUpdate',
         childCall('Products', 'update', 'productsPage'),
       ),
-      evoCall('productsPage', 'productsUpdate'),
+      modifyFieldsCall('productsPage', 'productsUpdate'),
       [
         Testing.varDecl('const', 'readProducts', readProducts),
         Testing.varDecl('const', 'writeProducts', writeProducts),
@@ -323,7 +326,7 @@ describe('require-fold-for-child-update-result', () => {
         'productsUpdate',
         childCall('Products', 'update', 'products'),
       ),
-      evoCall('products', 'productsUpdate'),
+      modifyFieldsCall('products', 'productsUpdate'),
     )
 
     expect(result).toHaveLength(0)

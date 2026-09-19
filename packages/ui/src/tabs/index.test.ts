@@ -1,7 +1,7 @@
 import { Array, Option, pipe } from 'effect'
 import { Scene, Story } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
@@ -151,7 +151,7 @@ describe('Tabs', () => {
       Story.story(
         update,
         Story.given(
-          evo(init({ id: 'test' }), {
+          modifyFields(init({ id: 'test' }), {
             maybeFocusedIndex: () => Option.some(1),
           }),
         ),
@@ -182,7 +182,7 @@ describe('Tabs', () => {
       Story.story(
         update,
         Story.given(
-          evo(init({ id: 'test', activationMode: 'Manual' }), {
+          modifyFields(init({ id: 'test', activationMode: 'Manual' }), {
             maybeFocusedIndex: () => Option.some(2),
           }),
         ),

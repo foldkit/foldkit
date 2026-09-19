@@ -15,7 +15,7 @@ import * as Dom from 'foldkit/dom'
 import { type Attribute, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import * as Subscription from 'foldkit/subscription'
 import * as Update from 'foldkit/update'
 
@@ -312,7 +312,7 @@ const withUpdateReturn = Match.withReturnType<UpdateReturn>()
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     PressedDraggable: ({ itemId, containerId, index, screenX, screenY }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         dragState: () =>
           DragState.Pending({
             itemId,
@@ -336,7 +336,7 @@ export const update = (model: Model, message: Message) =>
           }
 
           return {
-            model: evo(model, {
+            model: modifyFields(model, {
               dragState: () =>
                 DragState.Dragging({
                   itemId: pending.itemId,
@@ -350,7 +350,7 @@ export const update = (model: Model, message: Message) =>
           }
         }),
         Match.tag('Dragging', dragging => ({
-          model: evo(model, {
+          model: modifyFields(model, {
             dragState: () =>
               DragState.Dragging({
                 ...dragging,
@@ -366,16 +366,16 @@ export const update = (model: Model, message: Message) =>
       Match.value(model.dragState).pipe(
         withUpdateReturn,
         Match.tag('Pending', () => ({
-          model: evo(model, { dragState: () => DragState.Idle() }),
+          model: modifyFields(model, { dragState: () => DragState.Idle() }),
         })),
         Match.tag('Dragging', dragging =>
           Option.match(dragging.maybeDropTarget, {
             onNone: () => ({
-              model: evo(model, { dragState: () => DragState.Idle() }),
+              model: modifyFields(model, { dragState: () => DragState.Idle() }),
               outMessage: OutMessage.Cancelled(),
             }),
             onSome: dropTarget => ({
-              model: evo(model, { dragState: () => DragState.Idle() }),
+              model: modifyFields(model, { dragState: () => DragState.Idle() }),
               outMessage: OutMessage.Reordered({
                 itemId: dragging.itemId,
                 fromContainerId: dragging.sourceContainerId,
@@ -401,7 +401,7 @@ export const update = (model: Model, message: Message) =>
       ).pipe(Option.map(() => OutMessage.Cancelled()))
 
       const dragCancellation: Update.Return<Model, Message> = {
-        model: evo(model, { dragState: () => DragState.Idle() }),
+        model: modifyFields(model, { dragState: () => DragState.Idle() }),
         commands: Option.toArray(maybeFocusCommand),
       }
       return pipe(
@@ -411,7 +411,7 @@ export const update = (model: Model, message: Message) =>
     },
 
     ActivatedKeyboardDrag: ({ itemId, containerId, index }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         dragState: () =>
           DragState.KeyboardDragging({
             itemId,
@@ -427,7 +427,7 @@ export const update = (model: Model, message: Message) =>
       Match.value(model.dragState).pipe(
         withUpdateReturn,
         Match.tag('KeyboardDragging', keyboardDragging => ({
-          model: evo(model, {
+          model: modifyFields(model, {
             dragState: () =>
               DragState.KeyboardDragging({
                 ...keyboardDragging,
@@ -444,7 +444,7 @@ export const update = (model: Model, message: Message) =>
       Match.value(model.dragState).pipe(
         withUpdateReturn,
         Match.tag('KeyboardDragging', keyboardDragging => ({
-          model: evo(model, { dragState: () => DragState.Idle() }),
+          model: modifyFields(model, { dragState: () => DragState.Idle() }),
           commands: [FocusItem({ itemId: keyboardDragging.itemId })],
           outMessage: OutMessage.Reordered({
             itemId: keyboardDragging.itemId,

@@ -3,7 +3,7 @@ import { type Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Scene from 'foldkit/scene'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { describe, it } from '@effect/vitest'
 
@@ -19,7 +19,7 @@ type Model = Readonly<{ isChecked: boolean }>
 const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     Toggled: ({ isChecked }) => ({
-      model: evo(model, { isChecked: () => isChecked }),
+      model: modifyFields(model, { isChecked: () => isChecked }),
     }),
   })
 

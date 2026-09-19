@@ -5,7 +5,7 @@ import { Effect, Match, Option, Schema } from 'effect'
 import { Calendar, Update } from 'foldkit'
 import type { ChildAttribute, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { DatePicker, Calendar as UiCalendar } from '@foldkit/ui'
 
@@ -67,11 +67,13 @@ const foldDatePickerOutMessage = DatePicker.OutMessage.match<
   SelectedDate:
     ({ date }) =>
     model => ({
-      model: evo(model, { maybeSelectedDate: () => Option.some(date) }),
+      model: modifyFields(model, {
+        maybeSelectedDate: () => Option.some(date),
+      }),
     }),
   // The user cleared the selection. Reset the parent's field.
   ClearedDate: () => model => ({
-    model: evo(model, { maybeSelectedDate: () => Option.none() }),
+    model: modifyFields(model, { maybeSelectedDate: () => Option.none() }),
   }),
   // The child has emitted `ChangedViewMonth`. In this arm the parent can
   // update its own state or dispatch its own Commands, for example
@@ -87,7 +89,7 @@ const foldDatePicker = Update.foldChild({
   update: DatePicker.update,
   read: (model: Model) => Option.some(model.datePickerDemo),
   write: (model, nextDatePickerDemo) =>
-    evo(model, { datePickerDemo: () => nextDatePickerDemo }),
+    modifyFields(model, { datePickerDemo: () => nextDatePickerDemo }),
   toParentMessage: message => Message.GotDatePickerMessage({ message }),
   foldOutMessage: foldDatePickerOutMessage,
 })

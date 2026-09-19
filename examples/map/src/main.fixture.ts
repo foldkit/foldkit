@@ -1,5 +1,5 @@
 import { Option } from 'effect'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Location, featuredLocations } from './locations'
 import { GeolocateState, type Model } from './main'
@@ -15,7 +15,7 @@ export const initialModel: Model = {
   geolocateState: GeolocateState.Idle(),
 }
 
-export const mountedModel: Model = evo(initialModel, {
+export const mountedModel: Model = modifyFields(initialModel, {
   maybeMapHostId: () => Option.some('map-host-1'),
 })
 

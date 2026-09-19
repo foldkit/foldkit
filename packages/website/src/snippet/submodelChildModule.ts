@@ -2,7 +2,7 @@
 import { Schema } from 'effect'
 import { type Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 // MODEL
 
@@ -33,12 +33,12 @@ export type Message = typeof Message.Type
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ChangedTheme: ({ theme }) => ({
-      model: evo(model, { theme: () => theme }),
+      model: modifyFields(model, { theme: () => theme }),
     }),
     ChangedFontSize: ({ fontSize }) => ({
-      model: evo(model, { fontSize: () => fontSize }),
+      model: modifyFields(model, { fontSize: () => fontSize }),
     }),
     ToggledNotifications: () => ({
-      model: evo(model, { notificationsEnabled: enabled => !enabled }),
+      model: modifyFields(model, { notificationsEnabled: enabled => !enabled }),
     }),
   })

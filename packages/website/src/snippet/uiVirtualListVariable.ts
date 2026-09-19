@@ -5,7 +5,7 @@
 import { Option } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { VirtualList } from '@foldkit/ui'
 
@@ -97,7 +97,7 @@ const foldActivityListScrollToIndexVariable = Update.foldChild({
     ),
   read: (model: Model) => Option.some(model.activityList),
   write: (model, nextActivityList) =>
-    evo(model, { activityList: () => nextActivityList }),
+    modifyFields(model, { activityList: () => nextActivityList }),
   toParentMessage: message => Message.GotActivityListMessage({ message }),
 })
 

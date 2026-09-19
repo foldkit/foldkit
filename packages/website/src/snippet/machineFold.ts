@@ -1,7 +1,7 @@
 import { Match, Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import { Machine } from 'foldkit/experimental'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { CheckoutState, Message, checkoutMachine } from './machineDefinition'
 
@@ -19,14 +19,15 @@ export const initialModel = Model.make({
 export const foldCheckout = Machine.fold({
   machine: checkoutMachine,
   read: (model: Model) => Option.some(model.checkout),
-  write: (model, nextCheckout) => evo(model, { checkout: () => nextCheckout }),
+  write: (model, nextCheckout) =>
+    modifyFields(model, { checkout: () => nextCheckout }),
 })
 
 export const update = (model: Model, message: Message) =>
   Match.value(message).pipe(
     Match.withReturnType<Update.Return<Model, Message>>(),
     Match.tag('ToggledHelp', ({ isOpen }) => ({
-      model: evo(model, { isHelpOpen: () => isOpen }),
+      model: modifyFields(model, { isHelpOpen: () => isOpen }),
     })),
     Match.tag(
       'SelectedEdition',

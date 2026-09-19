@@ -1,5 +1,5 @@
 import { HashMap, Option } from 'effect'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Tabs } from '@foldkit/ui'
 
@@ -44,14 +44,14 @@ export const loadingPostsModel: Model = {
   stats: StatsData.Idle(),
 }
 
-export const loadedPostsModel: Model = evo(loadingPostsModel, {
+export const loadedPostsModel: Model = modifyFields(loadingPostsModel, {
   posts: () =>
     PostsData.Success({
       data: { posts: fixturePosts, fetchedAt: FETCHED_AT },
     }),
 })
 
-export const cachedFirstPostModel: Model = evo(loadedPostsModel, {
+export const cachedFirstPostModel: Model = modifyFields(loadedPostsModel, {
   postDetailById: () =>
     HashMap.set(
       HashMap.empty(),
@@ -62,7 +62,7 @@ export const cachedFirstPostModel: Model = evo(loadedPostsModel, {
     ),
 })
 
-export const loadedStatsModel: Model = evo(loadedPostsModel, {
+export const loadedStatsModel: Model = modifyFields(loadedPostsModel, {
   activeTab: () => 'Stats',
   stats: () =>
     StatsData.Success({

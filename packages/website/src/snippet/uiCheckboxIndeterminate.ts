@@ -4,7 +4,7 @@
 import { Schema } from 'effect'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Checkbox } from '@foldkit/ui'
 
@@ -36,7 +36,7 @@ const Message = defineMessageUnion({
 // In the corresponding Message.match handler, toggling "Select All"
 // writes the same value to every child:
 ToggledSelectAll: ({ isChecked }) => ({
-  model: evo(model, {
+  model: modifyFields(model, {
     optionA: () => isChecked,
     optionB: () => isChecked,
   }),

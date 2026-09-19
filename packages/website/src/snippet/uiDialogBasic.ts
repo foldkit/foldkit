@@ -5,7 +5,7 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Dialog } from '@foldkit/ui'
 
@@ -43,7 +43,7 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
 
 const readDialog = (model: Model) => Option.some(model.dialog)
 const writeDialog = (model: Model, dialog: Dialog.Model): Model =>
-  evo(model, { dialog: () => dialog })
+  modifyFields(model, { dialog: () => dialog })
 const toGotDialogMessage = (message: Dialog.Message): Message =>
   Message.GotDialogMessage({ message })
 

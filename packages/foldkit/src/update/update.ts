@@ -27,7 +27,7 @@ export type Commands<Message, R = never> = ReadonlyArray<
  *    Message.match<Update.Return<Model, Message>>(message, {
  *      ClickedSave: () => ({ model, commands: [Save()] }),
  *      SucceededSave: ({ note }) => ({
- *        model: evo(model, { note: () => note }),
+ *        model: modifyFields(model, { note: () => note }),
  *      }),
  *    })
  *  ```
@@ -190,7 +190,7 @@ export type Refreshable<Model, Message, A, E, R = never> = Readonly<{
  *  const refreshAllNotes = refresh({
  *    read: model => Option.some(model.allNotes),
  *    revalidate: AsyncData.revalidate,
- *    write: (model, nextAllNotes) => evo(model, { allNotes: () => nextAllNotes }),
+ *    write: (model, nextAllNotes) => modifyFields(model, { allNotes: () => nextAllNotes }),
  *    load: LoadAllNotes(),
  *  })
  *  ``` */
@@ -493,7 +493,7 @@ export type FoldWithOutMessage<
  *  const foldSearch = Update.foldChild({
  *    update: Search.update,
  *    read: (model: Model) => Option.some(model.search),
- *    write: (model, nextSearch) => evo(model, { search: () => nextSearch }),
+ *    write: (model, nextSearch) => modifyFields(model, { search: () => nextSearch }),
  *    toParentMessage: message => GotSearchMessage({ message }),
  *  })
  *
@@ -1054,7 +1054,7 @@ const appendOutMessageStep = (
  *  ```ts
  *  const foldSearchOutMessage = Search.OutMessage.match<Update.Step<Model, Message>>({
  *    RequestedSearch: ({ query }) => model => ({
- *      model: evo(model, { results: () => AsyncData.Loading() }),
+ *      model: modifyFields(model, { results: () => AsyncData.Loading() }),
  *      commands: [FetchResults({ query })],
  *    }),
  *  })

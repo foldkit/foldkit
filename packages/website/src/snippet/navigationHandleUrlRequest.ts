@@ -2,7 +2,7 @@ import { Effect, Schema, pipe } from 'effect'
 import { Command, Navigation, Route, type Update, Url } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineRouteUnion, int, literal, slash } from 'foldkit/route'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 // ROUTE
 
@@ -77,7 +77,7 @@ const update = (model: Model, message: Message) =>
       }),
 
     ChangedUrl: ({ url }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         route: () => urlToAppRoute(url),
       }),
     }),

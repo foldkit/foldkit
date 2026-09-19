@@ -5,7 +5,7 @@ import { __htmlBuilder } from '../html/index.js'
 import * as ManagedResource from '../managedResource/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import * as Mount from '../mount/index.js'
-import { evo } from '../struct/index.js'
+import { modifyFields } from '../struct/index.js'
 import * as Subscription from '../subscription/subscription.js'
 import type * as Update from '../update/index.js'
 import { makeElement } from './makeElement.js'
@@ -67,15 +67,15 @@ const ActivateApplication = Mount.define('ActivateApplication', {
 const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ActivatedApplication: () => ({
-      model: evo(model, { activation: () => 'Active' }),
+      model: modifyFields(model, { activation: () => 'Active' }),
     }),
     AcquiredBootResource: () => ({
-      model: evo(model, { resourceStatus: () => 'Acquired' }),
+      model: modifyFields(model, { resourceStatus: () => 'Acquired' }),
     }),
     ReleasedBootResource: () => ({ model }),
     FailedBootResource: () => ({ model }),
     ReceivedBootPulse: () => ({
-      model: evo(model, { pulseStatus: () => 'Received' }),
+      model: modifyFields(model, { pulseStatus: () => 'Received' }),
     }),
   })
 

@@ -20,7 +20,7 @@ import {
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Button, Input } from '@foldkit/ui'
 
@@ -87,32 +87,32 @@ type UpdateReturn = Update.Return<Model, Message, ChatSocketService>
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     ClickedConnect: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         connection: () => ConnectionState.Connecting(),
       }),
     }),
 
     Connected: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         connection: () => ConnectionState.Connected(),
       }),
     }),
 
     Disconnected: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         connection: () => ConnectionState.Disconnected(),
         messages: () => [],
       }),
     }),
 
     FailedConnect: ({ error }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         connection: () => ConnectionState.Error({ error }),
       }),
     }),
 
     UpdatedMessageInput: ({ value }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         messageInput: () => value,
       }),
     }),
@@ -127,7 +127,7 @@ export const update = (model: Model, message: Message) =>
       return Match.value(model.connection).pipe(
         Match.withReturnType<UpdateReturn>(),
         Match.tag('Connected', () => ({
-          model: evo(model, {
+          model: modifyFields(model, {
             messageInput: () => '',
           }),
           commands: [SendMessage({ text: trimmedMessage })],
@@ -150,7 +150,7 @@ export const update = (model: Model, message: Message) =>
       const newMessage = ChatMessage.make({ text, zoned, isSent })
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           messages: messages => [...messages, newMessage],
         }),
       }

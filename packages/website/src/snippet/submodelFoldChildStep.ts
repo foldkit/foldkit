@@ -1,6 +1,6 @@
 import { Option } from 'effect'
 import { Update } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 const toParentDialogOutMessage = Dialog.OutMessage.match<
   OutMessage | undefined
@@ -12,7 +12,8 @@ const toParentDialogOutMessage = Dialog.OutMessage.match<
 const foldDialogClose = Update.foldChildStep({
   update: Dialog.close,
   read: (model: Model) => Option.some(model.dialog),
-  write: (model, nextDialog) => evo(model, { dialog: () => nextDialog }),
+  write: (model, nextDialog) =>
+    modifyFields(model, { dialog: () => nextDialog }),
   toParentMessage: message => Message.GotDialogMessage({ message }),
   toParentOutMessage: toParentDialogOutMessage,
 })

@@ -10,7 +10,7 @@ const foldEndDateOutMessage = DatePicker.OutMessage.match<
   SelectedDate:
     ({ date }) =>
     model => {
-      const nextModel = evo(model, {
+      const nextModel = modifyFields(model, {
         maybeEndDate: () => Option.some(date),
       })
 

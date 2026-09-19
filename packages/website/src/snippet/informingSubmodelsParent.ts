@@ -1,6 +1,6 @@
 import { Match, Option } from 'effect'
 import { Update } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { People } from './page'
 
@@ -8,7 +8,7 @@ const foldPeople = Update.foldChild({
   update: People.update,
   read: (model: Model) => Option.some(model.peoplePage),
   write: (model, nextPeoplePage) =>
-    evo(model, { peoplePage: () => nextPeoplePage }),
+    modifyFields(model, { peoplePage: () => nextPeoplePage }),
   toParentMessage: message => Message.GotPeopleMessage({ message }),
 })
 
@@ -16,13 +16,13 @@ const foldPeopleRouteChanged = Update.foldChild({
   update: People.informRouteChanged,
   read: (model: Model) => Option.some(model.peoplePage),
   write: (model, nextPeoplePage) =>
-    evo(model, { peoplePage: () => nextPeoplePage }),
+    modifyFields(model, { peoplePage: () => nextPeoplePage }),
   toParentMessage: message => Message.GotPeopleMessage({ message }),
 })
 
 const setRoute =
   (nextRoute: AppRoute): Update.Step<Model, Message> =>
-  model => ({ model: evo(model, { route: () => nextRoute }) })
+  model => ({ model: modifyFields(model, { route: () => nextRoute }) })
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {

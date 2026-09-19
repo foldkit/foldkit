@@ -1,5 +1,5 @@
 import { Command, given, message, model, story } from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import { Message, type Model, update } from './main'
@@ -96,7 +96,7 @@ describe('update', () => {
     story(
       update,
       given(
-        evo(initialModel, {
+        modifyFields(initialModel, {
           patchRows: () => 4000,
           warnings: () => [
             {

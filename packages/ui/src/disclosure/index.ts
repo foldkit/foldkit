@@ -90,7 +90,7 @@ export type ViewConfig<Message> = Readonly<{
  *
  *  // In update:
  *  ToggledDetails: ({ isOpen }) => ({
- *    model: evo(model, { isDetailsOpen: () => isOpen }),
+ *    model: modifyFields(model, { isDetailsOpen: () => isOpen }),
  *  }),
  *  ``` */
 export const view = <Message>(

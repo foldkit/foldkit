@@ -1,5 +1,5 @@
 import { click, expect, given, role, scene, text } from 'foldkit/scene'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { type Model, update, view } from './main'
@@ -34,7 +34,7 @@ describe('view', () => {
   })
 
   test('the ball count reflects spawned balls in the Model', () => {
-    const populatedModel: Model = evo(emptyModel, {
+    const populatedModel: Model = modifyFields(emptyModel, {
       balls: () => [
         { id: 0, x: 10, y: 20, vx: 1, vy: 1, radius: 8, color: '#ff2d55' },
         { id: 1, x: 30, y: 40, vx: -1, vy: 1, radius: 12, color: '#5ac8fa' },
@@ -51,7 +51,7 @@ describe('view', () => {
   })
 
   test('Clear empties the rendered ball count', () => {
-    const populatedModel: Model = evo(emptyModel, {
+    const populatedModel: Model = modifyFields(emptyModel, {
       balls: () => [
         { id: 0, x: 10, y: 20, vx: 1, vy: 1, radius: 8, color: '#ff2d55' },
       ],

@@ -782,7 +782,7 @@ const transitionFoldedMachine = (
  *   machine: uploadMachine,
  *   read: (model: Model) => Option.some(model.upload),
  *   write: (model, nextUpload) =>
- *     evo(model, { upload: () => nextUpload }),
+ *     modifyFields(model, { upload: () => nextUpload }),
  *   context: model => model.uploadQueues,
  * })
  *

@@ -12,7 +12,7 @@ import {
 import { Command, Runtime, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 // MODEL
 
@@ -115,7 +115,9 @@ export const CancelUploadFile = ({ uploadId }: UploadKey) =>
 
 const setStatusForId = (uploadId: number, status: UploadStatus) =>
   Array.map((upload: Upload) =>
-    upload.id === uploadId ? evo(upload, { status: () => status }) : upload,
+    upload.id === uploadId
+      ? modifyFields(upload, { status: () => status })
+      : upload,
   )
 
 type UpdateReturn = Update.Return<Model, Message>
@@ -131,7 +133,7 @@ export const update = (model: Model, message: Message) =>
         status: 'Uploading',
       })
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           uploadId: Number.increment,
           uploads: Array.append(startedUpload),
         }),
@@ -169,7 +171,7 @@ export const update = (model: Model, message: Message) =>
         Option.match({
           onNone: () => ({ model }),
           onSome: upload => ({
-            model: evo(model, {
+            model: modifyFields(model, {
               uploads: setStatusForId(uploadId, 'Uploading'),
             }),
             commands: [
@@ -180,13 +182,13 @@ export const update = (model: Model, message: Message) =>
       ),
 
     SucceededUploadFile: ({ uploadId }) => ({
-      model: evo(model, { uploads: setStatusForId(uploadId, 'Done') }),
+      model: modifyFields(model, { uploads: setStatusForId(uploadId, 'Done') }),
     }),
 
     CompletedCancelUploadFile: ({ uploadId, outcome }) =>
       Command.Interruptible.Outcome.match<UpdateReturn>(outcome, {
         Interrupted: () => ({
-          model: evo(model, {
+          model: modifyFields(model, {
             uploads: setStatusForId(uploadId, 'Cancelled'),
           }),
         }),

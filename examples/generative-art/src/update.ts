@@ -1,6 +1,6 @@
 import { Array, Number, Option, Result } from 'effect'
 import { Command, Update } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Slider } from '@foldkit/ui'
 
@@ -155,7 +155,7 @@ const advanceParticle =
         const appendedTrail = Array.append(particle.trail, nextPosition)
         const trimmedTrail = Array.takeRight(appendedTrail, TRAIL_LENGTH)
         return Result.succeed(
-          evo(particle, {
+          modifyFields(particle, {
             trail: () => trimmedTrail,
             ageMs: () => nextAgeMs,
           }),
@@ -216,7 +216,7 @@ const appendGeneratedParticle =
       initialSpeedScale: generatedParticle.initialSpeedScale,
     }
     return {
-      model: evo(model, {
+      model: modifyFields(model, {
         particles: Array.append(newParticle),
         nextId: Number.increment,
       }),
@@ -228,14 +228,14 @@ const foldFlowStrengthSliderOutMessage = Slider.OutMessage.match<
 >({
   ChangedValue:
     ({ value }) =>
-    model => ({ model: evo(model, { flowStrength: () => value }) }),
+    model => ({ model: modifyFields(model, { flowStrength: () => value }) }),
 })
 
 const foldFlowStrengthSlider = Update.foldChild({
   update: Slider.update,
   read: (model: Model) => Option.some(model.flowStrengthSlider),
   write: (model, nextFlowStrengthSlider) =>
-    evo(model, { flowStrengthSlider: () => nextFlowStrengthSlider }),
+    modifyFields(model, { flowStrengthSlider: () => nextFlowStrengthSlider }),
   toParentMessage: message => Message.GotFlowStrengthSliderMessage({ message }),
   foldOutMessage: foldFlowStrengthSliderOutMessage,
 })
@@ -245,14 +245,14 @@ const foldNoiseScaleSliderOutMessage = Slider.OutMessage.match<
 >({
   ChangedValue:
     ({ value }) =>
-    model => ({ model: evo(model, { noiseScale: () => value }) }),
+    model => ({ model: modifyFields(model, { noiseScale: () => value }) }),
 })
 
 const foldNoiseScaleSlider = Update.foldChild({
   update: Slider.update,
   read: (model: Model) => Option.some(model.noiseScaleSlider),
   write: (model, nextNoiseScaleSlider) =>
-    evo(model, { noiseScaleSlider: () => nextNoiseScaleSlider }),
+    modifyFields(model, { noiseScaleSlider: () => nextNoiseScaleSlider }),
   toParentMessage: message => Message.GotNoiseScaleSliderMessage({ message }),
   foldOutMessage: foldNoiseScaleSliderOutMessage,
 })
@@ -272,7 +272,7 @@ export const update = (model: Model, message: Message) =>
           model.maybeMousePosition,
         ),
       )
-      const nextModel = evo(model, {
+      const nextModel = modifyFields(model, {
         particles: () => advancedParticles,
         elapsedSeconds: () => nextElapsedSeconds,
       })
@@ -296,17 +296,17 @@ export const update = (model: Model, message: Message) =>
     }),
 
     MovedPointer: ({ x, y }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         maybeMousePosition: () => Option.some(Point.make({ x, y })),
       }),
     }),
 
     ClickedTogglePlay: () => ({
-      model: evo(model, { isRunning: running => !running }),
+      model: modifyFields(model, { isRunning: running => !running }),
     }),
 
     ClickedReset: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         particles: () => [],
         maybeMousePosition: () => Option.none(),
       }),

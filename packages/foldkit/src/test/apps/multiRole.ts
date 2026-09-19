@@ -2,7 +2,7 @@ import { Number, Schema } from 'effect'
 
 import type { Html, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
-import { evo } from '../../struct/index.js'
+import { modifyFields } from '../../struct/index.js'
 import type * as Update from '../../update/index.js'
 
 // MODEL
@@ -27,7 +27,7 @@ export const initialModel: Model = { clicks: 0 }
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedFallback: () => ({
-      model: evo(model, { clicks: Number.increment }),
+      model: modifyFields(model, { clicks: Number.increment }),
     }),
   })
 

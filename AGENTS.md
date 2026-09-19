@@ -102,9 +102,9 @@ Match the implementation style to the subsystem and the behavior being modeled. 
 - Prefer explicit `if`/`else` when both branches return. Early-return reads as "A is exceptional, B is the default"; reserve it for true guards.
 - Use `Readonly<{...}>` over per-property `readonly` for inline object types.
 - Constrain branch returns at the match boundary: the return-type generic on a union `match` or `matchOrElse` (`UrlRequest.match<UpdateReturn>(request, { ... })`), or `Match.withReturnType<...>()` (or `Match.withReturnType` when imported under its full module name) on an Effect `Match`. This includes tuple literals nested inside Effect or Option constructors. Never use `as const` inside branches to recover tuple or literal inference.
-- Don't add type annotations or `as const` to callbacks whose return type is constrained by the outer API (e.g. evo callbacks, `Option.match`, `Match.tagsExhaustive`). Let inference work.
-- Pass `evo` field transformers point-free when the update depends only on that field's current value: `entries: Array.map(toRow)`, `currentStep: toNextStep`, `priceSlider: Slider.reflectRange(range)`. Use `() => value` when replacing a field with a Message payload, a child update result, a Command result, or a value derived from another field.
-- Tests follow the same Model evolution convention as application code. Use `evo` when deriving a next Model from an existing Model. Object literals and spread remain valid when constructing fresh fixtures and non-Model values.
+- Don't add type annotations or `as const` to callbacks whose return type is constrained by the outer API (e.g. modifyFields callbacks, `Option.match`, `Match.tagsExhaustive`). Let inference work.
+- Pass `modifyFields` field transformers point-free when the update depends only on that field's current value: `entries: Array.map(toRow)`, `currentStep: toNextStep`, `priceSlider: Slider.reflectRange(range)`. Use `() => value` when replacing a field with a Message payload, a child update result, a Command result, or a value derived from another field.
+- Tests follow the same Model evolution convention as application code. Use `modifyFields` when deriving a next Model from an existing Model. Object literals and spread remain valid when constructing fresh fixtures and non-Model values.
 - `Effect.acquireRelease` registers the release only after the acquire body completes. Construct the resource inside the acquire Effect, never before it. Anything else leaks on interruption.
 
 ## Comments

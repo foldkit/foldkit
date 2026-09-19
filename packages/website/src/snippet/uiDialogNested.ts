@@ -5,7 +5,7 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Dialog } from '@foldkit/ui'
 
@@ -44,7 +44,7 @@ const foldConfirmDialogOutMessage = Dialog.OutMessage.match<
 
 const readConfirmDialog = (model: Model) => Option.some(model.confirmDialog)
 const writeConfirmDialog = (model: Model, confirmDialog: Dialog.Model): Model =>
-  evo(model, { confirmDialog: () => confirmDialog })
+  modifyFields(model, { confirmDialog: () => confirmDialog })
 const toGotConfirmDialogMessage = (message: Dialog.Message): Message =>
   Message.GotConfirmDialogMessage({ message })
 

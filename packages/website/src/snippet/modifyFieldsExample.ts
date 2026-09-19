@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 const Model = Schema.Struct({
   count: Schema.Number,
@@ -9,7 +9,7 @@ type Model = typeof Model.Type
 
 const model: Model = { count: 0, status: 'Idle' }
 
-const nextModel = evo(model, {
+const nextModel = modifyFields(model, {
   count: count => count + 1,
   status: () => 'Counting',
 })

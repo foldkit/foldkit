@@ -9,7 +9,7 @@ import {
   scene,
   text,
 } from 'foldkit/scene'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
@@ -53,7 +53,7 @@ const createTestModel = (): Model => ({
 })
 
 const createPaintedModel = (): Model =>
-  evo(createTestModel(), {
+  modifyFields(createTestModel(), {
     grid: () =>
       createEmptyGrid(4).map((row, y) =>
         row.map((cell, x) =>
@@ -186,7 +186,7 @@ describe('history panel', () => {
   })
 
   test('undo enables after painting and re-disables after undoing', () => {
-    const modelWithHistory: Model = evo(createTestModel(), {
+    const modelWithHistory: Model = modifyFields(createTestModel(), {
       grid: () =>
         createEmptyGrid(4).map((row, y) =>
           row.map((cell, x) =>
@@ -228,7 +228,7 @@ describe('grid size change', () => {
   })
 
   test('confirming grid size change closes dialog and saves canvas', () => {
-    const modelWithPendingResize: Model = evo(createTestModel(), {
+    const modelWithPendingResize: Model = modifyFields(createTestModel(), {
       maybePendingGridSize: () => Option.some(8),
       gridSizeConfirmDialog: () =>
         Dialog.boot({
@@ -254,7 +254,7 @@ describe('grid size change', () => {
   })
 
   test('cancelling grid size change keeps current size', () => {
-    const modelWithPendingResize: Model = evo(createTestModel(), {
+    const modelWithPendingResize: Model = modifyFields(createTestModel(), {
       maybePendingGridSize: () => Option.some(8),
       gridSizeConfirmDialog: () =>
         Dialog.boot({

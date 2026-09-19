@@ -3,7 +3,7 @@ import { Array, Duration, Effect, Match, Number, Schema, pipe } from 'effect'
 import { Command, Submodel, type Update } from 'foldkit'
 import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import demoCodeHtml from 'virtual:counter-demo-code'
 
 import { Button } from '@foldkit/ui'
@@ -98,7 +98,7 @@ const prependToLog =
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     ClickedDemoIncrement: () => {
-      const nextModel = evo(model, {
+      const nextModel = modifyFields(model, {
         count: Number.increment,
         phase: () => 'IncrementMessage',
         generation: Number.increment,
@@ -116,7 +116,7 @@ export const update = (model: Model, message: Message) =>
     },
 
     ChangedDemoResetDuration: ({ seconds }) => {
-      const nextModel = evo(model, {
+      const nextModel = modifyFields(model, {
         resetDuration: () => clampResetSeconds(seconds),
         phase: () => 'DurationMessage',
         generation: Number.increment,
@@ -136,7 +136,7 @@ export const update = (model: Model, message: Message) =>
     },
 
     ClickedDemoReset: () => {
-      const nextModel = evo(model, {
+      const nextModel = modifyFields(model, {
         isResetting: () => true,
         phase: () => 'ResetMessage',
         generation: Number.increment,
@@ -160,7 +160,7 @@ export const update = (model: Model, message: Message) =>
         return Match.value(model.phase).pipe(
           withUpdateReturn,
           Match.when('IncrementMessage', () => ({
-            model: evo(model, { phase: () => 'IncrementUpdate' }),
+            model: modifyFields(model, { phase: () => 'IncrementUpdate' }),
             commands: [
               DelayAdvancePhase({
                 generation,
@@ -169,7 +169,7 @@ export const update = (model: Model, message: Message) =>
             ],
           })),
           Match.when('IncrementUpdate', () => ({
-            model: evo(model, { phase: () => 'IncrementModel' }),
+            model: modifyFields(model, { phase: () => 'IncrementModel' }),
             commands: [
               DelayAdvancePhase({
                 generation,
@@ -178,10 +178,10 @@ export const update = (model: Model, message: Message) =>
             ],
           })),
           Match.when('IncrementModel', () => ({
-            model: evo(model, { phase: () => 'Idle' }),
+            model: modifyFields(model, { phase: () => 'Idle' }),
           })),
           Match.when('DurationMessage', () => ({
-            model: evo(model, { phase: () => 'DurationUpdate' }),
+            model: modifyFields(model, { phase: () => 'DurationUpdate' }),
             commands: [
               DelayAdvancePhase({
                 generation,
@@ -190,7 +190,7 @@ export const update = (model: Model, message: Message) =>
             ],
           })),
           Match.when('DurationUpdate', () => ({
-            model: evo(model, { phase: () => 'DurationModel' }),
+            model: modifyFields(model, { phase: () => 'DurationModel' }),
             commands: [
               DelayAdvancePhase({
                 generation,
@@ -199,10 +199,10 @@ export const update = (model: Model, message: Message) =>
             ],
           })),
           Match.when('DurationModel', () => ({
-            model: evo(model, { phase: () => 'Idle' }),
+            model: modifyFields(model, { phase: () => 'Idle' }),
           })),
           Match.when('ResetMessage', () => ({
-            model: evo(model, { phase: () => 'ResetUpdate' }),
+            model: modifyFields(model, { phase: () => 'ResetUpdate' }),
             commands: [
               DelayAdvancePhase({
                 generation,
@@ -211,7 +211,7 @@ export const update = (model: Model, message: Message) =>
             ],
           })),
           Match.when('ResetUpdate', () => ({
-            model: evo(model, { phase: () => 'ResetCommand' }),
+            model: modifyFields(model, { phase: () => 'ResetCommand' }),
             commands: [
               DelayAdvancePhase({
                 generation,
@@ -222,7 +222,7 @@ export const update = (model: Model, message: Message) =>
             ],
           })),
           Match.when('ResetCommand', () => ({
-            model: evo(model, { phase: () => 'ResetCommandMessage' }),
+            model: modifyFields(model, { phase: () => 'ResetCommandMessage' }),
             commands: [
               DelayAdvancePhase({
                 generation,
@@ -231,7 +231,7 @@ export const update = (model: Model, message: Message) =>
             ],
           })),
           Match.when('ResetCommandMessage', () => ({
-            model: evo(model, {
+            model: modifyFields(model, {
               phase: () => 'ResetCommandUpdate',
               messageLog: prependToLog('CompletedDelayReset'),
             }),
@@ -243,7 +243,7 @@ export const update = (model: Model, message: Message) =>
             ],
           })),
           Match.when('ResetCommandUpdate', () => ({
-            model: evo(model, {
+            model: modifyFields(model, {
               count: () => 0,
               isResetting: () => false,
               phase: () => 'ResetModel',
@@ -256,7 +256,7 @@ export const update = (model: Model, message: Message) =>
             ],
           })),
           Match.when('ResetModel', () => ({
-            model: evo(model, { phase: () => 'Idle' }),
+            model: modifyFields(model, { phase: () => 'Idle' }),
           })),
           Match.when('Idle', () => ({ model })),
           Match.exhaustive,

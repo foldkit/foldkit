@@ -1,7 +1,7 @@
 import { Option, Schema } from 'effect'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
 
 import * as Dialog from '../../dialog/index.js'
@@ -42,7 +42,8 @@ const foldDialogOutMessage = Dialog.OutMessage.match<
 const foldDialog = Update.foldChild({
   update: Dialog.update,
   read: (model: Model) => Option.some(model.dialog),
-  write: (model, nextDialog) => evo(model, { dialog: () => nextDialog }),
+  write: (model, nextDialog) =>
+    modifyFields(model, { dialog: () => nextDialog }),
   toParentMessage: message => Message.GotDialogMessage({ message }),
   foldOutMessage: foldDialogOutMessage,
 })
@@ -50,7 +51,7 @@ const foldDialog = Update.foldChild({
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedToggle: () => ({
-      model: evo(model, { isEnabled: isEnabled => !isEnabled }),
+      model: modifyFields(model, { isEnabled: isEnabled => !isEnabled }),
     }),
     ClickedSubmit: () => ({ model }),
     GotDialogMessage: ({ message: dialogMessage }) =>

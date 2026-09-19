@@ -19,7 +19,7 @@ Each helper caches the VNode returned by a view function. On a later live render
 
 Both the view function and the lazy slot must stay at module scope. Defining either inside view creates a new reference on every render, so the cache always misses.
 
-Arguments are compared by reference, not by value. This works with [evo](/best-practices/immutability#immutable-updates): an unchanged Model branch keeps its reference, so a lazy view receiving that branch can reuse its VNode.
+Arguments are compared by reference, not by value. This works with [modifyFields](/best-practices/immutability#immutable-updates): an unchanged Model branch keeps its reference, so a lazy view receiving that branch can reuse its VNode.
 
 ## createKeyedLazy {#create-keyed-lazy}
 

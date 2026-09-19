@@ -1,7 +1,7 @@
 import { Array, Option } from 'effect'
 import { Update } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Applicant } from './applicant'
 import { GotApplicantMessage, type Message } from './message'
@@ -39,10 +39,10 @@ const foldApplicant = (entryId: string) =>
         applicant => applicant.entry,
       ),
     write: (model, nextEntry) =>
-      evo(model, {
+      modifyFields(model, {
         applicants: Array.map(applicant =>
           applicant.id === entryId
-            ? evo(applicant, { entry: () => nextEntry })
+            ? modifyFields(applicant, { entry: () => nextEntry })
             : applicant,
         ),
       }),

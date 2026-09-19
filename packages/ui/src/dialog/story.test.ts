@@ -5,7 +5,7 @@ import * as Dom from 'foldkit/dom'
 import type { ChildAttribute, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import type * as Runtime from 'foldkit/runtime'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
 import { expect } from 'vitest'
 
@@ -56,12 +56,12 @@ const foldDialogOutMessage = OutMessage.match<
   Update.Step<ParentModel, ParentMessage>
 >({
   Opened: () => model => ({
-    model: evo(model, {
+    model: modifyFields(model, {
       dialogEvents: Array.append(DialogEvent.make('Opened')),
     }),
   }),
   Closed: () => model => ({
-    model: evo(model, {
+    model: modifyFields(model, {
       dialogEvents: Array.append(DialogEvent.make('Closed')),
     }),
   }),
@@ -480,11 +480,13 @@ describe('Dialog', () => {
       })
 
       it('resumes EnterAnimating after lifecycle acquisition', () => {
-        const enteringModel = evo(
+        const enteringModel = modifyFields(
           boot({ id: 'test', isAnimated: true }).model,
           {
             animation: animation =>
-              evo(animation, { transitionState: () => 'EnterAnimating' }),
+              modifyFields(animation, {
+                transitionState: () => 'EnterAnimating',
+              }),
           },
         )
 
@@ -529,14 +531,16 @@ describe('Dialog', () => {
       })
 
       it('resumes LeaveAnimating after lifecycle acquisition', () => {
-        const leavingModel = evo(
+        const leavingModel = modifyFields(
           update(
             boot({ id: 'test', isAnimated: true }).model,
             Message.RequestedClose(),
           ).model,
           {
             animation: animation =>
-              evo(animation, { transitionState: () => 'LeaveAnimating' }),
+              modifyFields(animation, {
+                transitionState: () => 'LeaveAnimating',
+              }),
           },
         )
 
@@ -559,13 +563,19 @@ describe('Dialog', () => {
       })
 
       it('ignores RequestedClose when already in LeaveStart', () => {
-        const leavingModel = evo(boot({ id: 'test', isAnimated: true }).model, {
-          isOpen: () => false,
-          animation: () =>
-            evo(Animation.init({ id: 'test-panel', isShowing: false }), {
-              transitionState: () => 'LeaveStart',
-            }),
-        })
+        const leavingModel = modifyFields(
+          boot({ id: 'test', isAnimated: true }).model,
+          {
+            isOpen: () => false,
+            animation: () =>
+              modifyFields(
+                Animation.init({ id: 'test-panel', isShowing: false }),
+                {
+                  transitionState: () => 'LeaveStart',
+                },
+              ),
+          },
+        )
         Story.story(
           update,
           Story.given(leavingModel),
@@ -578,13 +588,19 @@ describe('Dialog', () => {
       })
 
       it('dispatches no CloseDialog when the show succeeds during the leave animation', () => {
-        const leavingModel = evo(boot({ id: 'test', isAnimated: true }).model, {
-          isOpen: () => false,
-          animation: () =>
-            evo(Animation.init({ id: 'test-panel', isShowing: false }), {
-              transitionState: () => 'LeaveStart',
-            }),
-        })
+        const leavingModel = modifyFields(
+          boot({ id: 'test', isAnimated: true }).model,
+          {
+            isOpen: () => false,
+            animation: () =>
+              modifyFields(
+                Animation.init({ id: 'test-panel', isShowing: false }),
+                {
+                  transitionState: () => 'LeaveStart',
+                },
+              ),
+          },
+        )
         Story.story(
           update,
           Story.given(leavingModel),
@@ -597,13 +613,19 @@ describe('Dialog', () => {
       })
 
       it('ignores RequestedClose when already in LeaveAnimating', () => {
-        const leavingModel = evo(boot({ id: 'test', isAnimated: true }).model, {
-          isOpen: () => false,
-          animation: () =>
-            evo(Animation.init({ id: 'test-panel', isShowing: false }), {
-              transitionState: () => 'LeaveAnimating',
-            }),
-        })
+        const leavingModel = modifyFields(
+          boot({ id: 'test', isAnimated: true }).model,
+          {
+            isOpen: () => false,
+            animation: () =>
+              modifyFields(
+                Animation.init({ id: 'test-panel', isShowing: false }),
+                {
+                  transitionState: () => 'LeaveAnimating',
+                },
+              ),
+          },
+        )
         Story.story(
           update,
           Story.given(leavingModel),
@@ -634,13 +656,19 @@ describe('Dialog', () => {
       })
 
       it('resets an in-flight leave animation to Idle without emitting Closed', () => {
-        const leavingModel = evo(boot({ id: 'test', isAnimated: true }).model, {
-          isOpen: () => false,
-          animation: () =>
-            evo(Animation.init({ id: 'test-panel', isShowing: false }), {
-              transitionState: () => 'LeaveAnimating',
-            }),
-        })
+        const leavingModel = modifyFields(
+          boot({ id: 'test', isAnimated: true }).model,
+          {
+            isOpen: () => false,
+            animation: () =>
+              modifyFields(
+                Animation.init({ id: 'test-panel', isShowing: false }),
+                {
+                  transitionState: () => 'LeaveAnimating',
+                },
+              ),
+          },
+        )
         Story.story(
           update,
           Story.given(leavingModel),
@@ -699,13 +727,16 @@ describe('Dialog', () => {
       })
 
       it('resets a running enter animation to Idle', () => {
-        const enteringModel = evo(
+        const enteringModel = modifyFields(
           boot({ id: 'test', isAnimated: true }).model,
           {
             animation: () =>
-              evo(Animation.init({ id: 'test-panel', isShowing: true }), {
-                transitionState: () => 'EnterAnimating',
-              }),
+              modifyFields(
+                Animation.init({ id: 'test-panel', isShowing: true }),
+                {
+                  transitionState: () => 'EnterAnimating',
+                },
+              ),
           },
         )
         Story.story(
@@ -722,13 +753,19 @@ describe('Dialog', () => {
       })
 
       it('resets a running leave animation to Idle', () => {
-        const leavingModel = evo(boot({ id: 'test', isAnimated: true }).model, {
-          isOpen: () => false,
-          animation: () =>
-            evo(Animation.init({ id: 'test-panel', isShowing: false }), {
-              transitionState: () => 'LeaveAnimating',
-            }),
-        })
+        const leavingModel = modifyFields(
+          boot({ id: 'test', isAnimated: true }).model,
+          {
+            isOpen: () => false,
+            animation: () =>
+              modifyFields(
+                Animation.init({ id: 'test-panel', isShowing: false }),
+                {
+                  transitionState: () => 'LeaveAnimating',
+                },
+              ),
+          },
+        )
         Story.story(
           update,
           Story.given(leavingModel),
@@ -850,14 +887,17 @@ describe('Dialog', () => {
     })
 
     it('publishes type button while the leave animation runs', () => {
-      const leavingModel = evo(
+      const leavingModel = modifyFields(
         boot({ id: 'my-dialog', isAnimated: true }).model,
         {
           isOpen: () => false,
           animation: () =>
-            evo(Animation.init({ id: 'my-dialog-panel', isShowing: false }), {
-              transitionState: () => 'LeaveStart',
-            }),
+            modifyFields(
+              Animation.init({ id: 'my-dialog-panel', isShowing: false }),
+              {
+                transitionState: () => 'LeaveStart',
+              },
+            ),
         },
       )
       expect(

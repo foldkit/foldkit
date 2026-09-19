@@ -87,7 +87,7 @@ Orchestrators mixing "decide what to do" with "do it." Helpers whose `if` branch
 
 ### `manual-cache-orchestration`
 
-Handlers that hand-thread several cache writes and refetches after a mutation succeeds. `Update.combine(model, [step, step, ...])` sequences update steps over one Model, and `Update.refresh({ read, revalidate, write, load })` builds a step that reloads a cache only when it actually holds data. A `Succeeded*` handler doing this by hand with nested `evo` calls and conditional Command arrays should use them.
+Handlers that hand-thread several cache writes and refetches after a mutation succeeds. `Update.combine(model, [step, step, ...])` sequences update steps over one Model, and `Update.refresh({ read, revalidate, write, load })` builds a step that reloads a cache only when it actually holds data. A `Succeeded*` handler doing this by hand with nested `modifyFields` calls and conditional Command arrays should use them.
 
 ## Naming
 
@@ -117,9 +117,9 @@ Flag only when the schema is used purely locally with no consumer referencing it
 
 Mixing `items.map(f)` and `Array.map(items, f)` in the same file. Mixing `Option.match` and `Option.map(...).pipe(Option.getOrElse(...))` for similar code. One file, one idiom.
 
-### `stuttery-evo-setters`
+### `stuttery-modifyFields-setters`
 
-An `evo` setter that only transforms that same field should be point-free: `entries: Array.map(revealErrors)`, `count: Number.increment`, `priceSlider: Slider.reflectRange({ min: minPrice, max: maxPrice })`. Flag `entries: () => Array.map(model.entries, revealErrors)` and friends. Replacement values from Messages, child updates, Commands, or other Model fields still use `() => value`.
+A `modifyFields` setter that only transforms that same field should be point-free: `entries: Array.map(revealErrors)`, `count: Number.increment`, `priceSlider: Slider.reflectRange({ min: minPrice, max: maxPrice })`. Flag `entries: () => Array.map(model.entries, revealErrors)` and friends. Replacement values from Messages, child updates, Commands, or other Model fields still use `() => value`.
 
 ### `empty-object-constructors`
 

@@ -3,7 +3,7 @@ import { Command, Runtime, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
 import {
@@ -105,7 +105,7 @@ const foldPeopleEntry = <Input>(
     update,
     read: model => Option.some(model.peoplePage),
     write: (model, nextPeoplePage) =>
-      evo(model, { peoplePage: () => nextPeoplePage }),
+      modifyFields(model, { peoplePage: () => nextPeoplePage }),
     toParentMessage: message => Message.GotPeopleMessage({ message }),
   })
 
@@ -115,7 +115,7 @@ const foldPeopleRouteChanged = foldPeopleEntry(People.informRouteChanged)
 
 const setRoute =
   (nextRoute: AppRoute): Update.Step<Model, Message> =>
-  model => ({ model: evo(model, { route: () => nextRoute }) })
+  model => ({ model: modifyFields(model, { route: () => nextRoute }) })
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {

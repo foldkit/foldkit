@@ -1,7 +1,7 @@
 import { Effect, Fiber, Schema } from 'effect'
 import type { HtmlBuilder } from 'foldkit/html'
 import * as Runtime from 'foldkit/runtime'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { Message, Model, boot, update, view } from './index.js'
@@ -168,9 +168,9 @@ describe('Dialog runtime lifecycle', () => {
       boot({ id: dialogId, isAnimated: true }).model,
       Message.RequestedClose(),
     )
-    const leavingModel = evo(dialogClose.model, {
+    const leavingModel = modifyFields(dialogClose.model, {
       animation: animation =>
-        evo(animation, { transitionState: () => 'LeaveAnimating' }),
+        modifyFields(animation, { transitionState: () => 'LeaveAnimating' }),
     })
     const encodedLeavingModel = Schema.encodeUnknownSync(
       Schema.toCodecJson(Model),

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { TextDirection, __htmlBuilder } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
-import { evo } from '../struct/index.js'
+import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
 import { __setDevToolsOverlay } from './devToolsConfig.js'
 import { makeApplication } from './makeApplication.js'
@@ -51,10 +51,10 @@ const localeH = __htmlBuilder<LocaleMessage>()
 const localeUpdate = (model: LocaleModel, message: LocaleMessage) =>
   LocaleMessage.match<Update.Return<LocaleModel, LocaleMessage>>(message, {
     ClickedArabic: () => ({
-      model: evo(model, { lang: () => 'ar', dir: () => 'Rtl' }),
+      model: modifyFields(model, { lang: () => 'ar', dir: () => 'Rtl' }),
     }),
     ClickedRerender: () => ({
-      model: evo(model, { revision: Number.increment }),
+      model: modifyFields(model, { revision: Number.increment }),
     }),
   })
 

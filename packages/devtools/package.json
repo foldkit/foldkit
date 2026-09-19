@@ -25,7 +25,7 @@
     "@effect/platform-browser": "4.0.0-rc.115",
     "@foldkit/ui": "workspace:^0",
     "effect": "4.0.0-rc.115",
-    "foldkit": ">=0.161.0"
+    "foldkit": ">=0.163.0"
   },
   "dependencies": {
     "clsx": "^2.1.1"

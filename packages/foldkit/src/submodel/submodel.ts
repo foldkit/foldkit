@@ -9,13 +9,13 @@
  *
  *  Being dual, it reads two ways. Data-first sets the field and returns the
  *  model; data-last returns `(model) => model`, which slots point-free into
- *  an `evo` callback:
+ *  a `modifyFields` callback:
  *
  *  ```ts
  *  // data-first
  *  const next = Slider.reflectRange(model.priceSlider, rangeFromUrl)
- *  // data-last, point-free in evo
- *  evo(model, { priceSlider: Slider.reflectRange(rangeFromUrl) })
+ *  // data-last, point-free in modifyFields
+ *  modifyFields(model, { priceSlider: Slider.reflectRange(rangeFromUrl) })
  *  ```
  */
 export type Reflect<Model, Value> = {

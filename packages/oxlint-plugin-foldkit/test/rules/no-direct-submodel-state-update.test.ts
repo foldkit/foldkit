@@ -15,8 +15,8 @@ const objectExpression = (properties: ReadonlyArray<unknown>) => ({
   properties,
 })
 
-const evo = (model: string, updates: unknown) =>
-  Testing.callExpr('evo', [Testing.id(model), updates])
+const modifyFields = (model: string, updates: unknown) =>
+  Testing.callExpr('modifyFields', [Testing.id(model), updates])
 
 const foldChild = (read: unknown, write: unknown) =>
   Testing.callOfMember('Update', 'foldChild', [
@@ -36,7 +36,7 @@ const readSettings = Testing.arrowFn(
 )
 
 const writeSettings = Testing.arrowFn(
-  evo(
+  modifyFields(
     'model',
     objectExpression([
       property('settings', Testing.arrowFn(Testing.id('nextSettings'))),
@@ -46,13 +46,13 @@ const writeSettings = Testing.arrowFn(
 )
 
 const directSettingsUpdate = (model: string) =>
-  evo(
+  modifyFields(
     model,
     objectExpression([
       property(
         'settings',
         Testing.arrowFn(
-          evo(
+          modifyFields(
             'settings',
             objectExpression([
               property('theme', Testing.arrowFn(Testing.strLiteral('Light'))),
@@ -65,13 +65,13 @@ const directSettingsUpdate = (model: string) =>
   )
 
 const directPreferencesUpdate = (model: string) =>
-  evo(
+  modifyFields(
     model,
     objectExpression([
       property(
         'preferences',
         Testing.arrowFn(
-          evo(
+          modifyFields(
             'preferences',
             objectExpression([
               property('theme', Testing.arrowFn(Testing.strLiteral('Light'))),
@@ -182,7 +182,7 @@ const foldSettingsAppliedToOtherModelInsideCombine = () =>
   ])
 
 const conditionalSettingsUpdate = (model: string) =>
-  evo(
+  modifyFields(
     model,
     objectExpression([
       property(
@@ -199,7 +199,7 @@ const conditionalSettingsUpdate = (model: string) =>
                   body: [
                     {
                       type: 'ReturnStatement',
-                      argument: evo(
+                      argument: modifyFields(
                         'settings',
                         objectExpression([
                           property(
@@ -223,7 +223,7 @@ const conditionalSettingsUpdate = (model: string) =>
   )
 
 const deferredSettingsUpdate = (model: string) =>
-  evo(
+  modifyFields(
     model,
     objectExpression([
       property(
@@ -236,7 +236,7 @@ const deferredSettingsUpdate = (model: string) =>
                 'const',
                 'deferredUpdate',
                 Testing.arrowFn(
-                  evo(
+                  modifyFields(
                     'settings',
                     objectExpression([
                       property(
@@ -265,7 +265,7 @@ const runRule = (statements: ReadonlyArray<unknown>) =>
   )
 
 describe('no-direct-submodel-state-update', () => {
-  it('flags nested evo on a field wired as a child Submodel', () => {
+  it('flags nested modifyFields on a field wired as a child Submodel', () => {
     const result = runRule([
       foldSettings,
       foldSettingsDataFirst('model'),
@@ -279,7 +279,7 @@ describe('no-direct-submodel-state-update', () => {
     )
   })
 
-  it('allows a nested evo on an ordinary Model field', () => {
+  it('allows a nested modifyFields on an ordinary Model field', () => {
     const result = runRule([
       foldSettings,
       foldSettingsDataFirst('model'),
@@ -289,15 +289,15 @@ describe('no-direct-submodel-state-update', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('allows the evo in the fold write callback', () => {
-    const writeWithNestedEvo = Testing.arrowFn(
-      evo(
+  it('allows the modifyFields in the fold write callback', () => {
+    const writeWithNestedModifyFields = Testing.arrowFn(
+      modifyFields(
         'model',
         objectExpression([
           property(
             'settings',
             Testing.arrowFn(
-              evo(
+              modifyFields(
                 'settings',
                 objectExpression([
                   property(
@@ -317,7 +317,7 @@ describe('no-direct-submodel-state-update', () => {
       Testing.varDecl(
         'const',
         'foldSettings',
-        foldChild(readSettings, writeWithNestedEvo),
+        foldChild(readSettings, writeWithNestedModifyFields),
       ),
       foldSettingsDataFirst('model'),
     ])
@@ -329,7 +329,7 @@ describe('no-direct-submodel-state-update', () => {
     const result = runRule([
       foldSettings,
       foldSettingsDataFirst('model'),
-      evo(
+      modifyFields(
         'model',
         objectExpression([
           property(
@@ -351,7 +351,7 @@ describe('no-direct-submodel-state-update', () => {
 
   it('requires matching read and write field evidence', () => {
     const writeOtherField = Testing.arrowFn(
-      evo(
+      modifyFields(
         'model',
         objectExpression([
           property('other', Testing.arrowFn(Testing.id('nextSettings'))),
@@ -382,7 +382,7 @@ describe('no-direct-submodel-state-update', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('flags nested evo on the Model passed through a data-last fold', () => {
+  it('flags nested modifyFields on the Model passed through a data-last fold', () => {
     const result = runRule([
       foldSettings,
       foldSettingsDataLast('model'),
@@ -392,7 +392,7 @@ describe('no-direct-submodel-state-update', () => {
     expect(result).toHaveLength(1)
   })
 
-  it('flags nested evo on the Model passed through a combine Step', () => {
+  it('flags nested modifyFields on the Model passed through a combine Step', () => {
     const result = runRule([
       foldSettings,
       foldSettingsCombine('model'),
@@ -402,7 +402,7 @@ describe('no-direct-submodel-state-update', () => {
     expect(result).toHaveLength(1)
   })
 
-  it('flags nested evo on the Model applied to a data-last combine', () => {
+  it('flags nested modifyFields on the Model applied to a data-last combine', () => {
     const result = runRule([
       foldSettings,
       foldSettingsDataLastCombine('model'),
@@ -412,7 +412,7 @@ describe('no-direct-submodel-state-update', () => {
     expect(result).toHaveLength(1)
   })
 
-  it('flags nested evo on the Model applied to a returned combine Step', () => {
+  it('flags nested modifyFields on the Model applied to a returned combine Step', () => {
     const result = runRule([
       foldSettings,
       foldSettingsReturnedStep,
@@ -486,7 +486,7 @@ describe('no-direct-submodel-state-update', () => {
     expect(result).toHaveLength(1)
   })
 
-  it('ignores child evo expressions returned from nested callbacks', () => {
+  it('ignores child modifyFields expressions returned from nested callbacks', () => {
     const result = runRule([
       foldSettings,
       foldSettingsDataFirst('model'),
