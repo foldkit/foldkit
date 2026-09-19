@@ -28,7 +28,9 @@ export {
   Message,
   Variant,
   Position,
+  SwipeDirection,
   SwipeState,
+  DEFAULT_SWIPE_DIRECTION,
   DEFAULT_SWIPE_THRESHOLD,
   SWIPE_SETTLE_DURATION,
 } from './schema.js'
@@ -268,7 +270,7 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           h.DataAttribute('variant', entry.variant),
           h.Style({
             pointerEvents: 'auto',
-            ...(Option.isSome(model.maybeSwipeThreshold)
+            ...(Option.isSome(model.maybeSwipeConfig)
               ? { touchAction: 'pan-y' }
               : {}),
             ...(swipeOffset !== 0
@@ -280,7 +282,7 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           }),
           h.OnMouseEnter(toast.Message.HoveredEntry({ entryId: entry.id })),
           h.OnMouseLeave(toast.Message.LeftEntry({ entryId: entry.id })),
-          ...(Option.isSome(model.maybeSwipeThreshold)
+          ...(Option.isSome(model.maybeSwipeConfig)
             ? [h.OnPointerDown(handlePointerDown)]
             : []),
           ...animationAttributes,

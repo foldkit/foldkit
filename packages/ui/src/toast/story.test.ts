@@ -78,7 +78,7 @@ describe('Toast', () => {
         defaultDuration: Duration.seconds(4),
         entries: [],
         nextEntryKey: 0,
-        maybeSwipeThreshold: Option.none(),
+        maybeSwipeConfig: Option.none(),
       })
     })
 
@@ -93,17 +93,17 @@ describe('Toast', () => {
         defaultDuration: Duration.millis(1000),
         entries: [],
         nextEntryKey: 0,
-        maybeSwipeThreshold: Option.none(),
+        maybeSwipeConfig: Option.none(),
       })
     })
 
-    it('opts into swipe with the default threshold', () => {
+    it('opts into rightward swipe with the default threshold', () => {
       expect(Toast.init({ id: 'test', swipeToDismiss: {} })).toStrictEqual({
         id: 'test',
         defaultDuration: Duration.seconds(4),
         entries: [],
         nextEntryKey: 0,
-        maybeSwipeThreshold: Option.some(80),
+        maybeSwipeConfig: Option.some({ threshold: 80, direction: 'Right' }),
       })
     })
 
@@ -118,7 +118,19 @@ describe('Toast', () => {
         defaultDuration: Duration.seconds(4),
         entries: [],
         nextEntryKey: 0,
-        maybeSwipeThreshold: Option.some(120),
+        maybeSwipeConfig: Option.some({ threshold: 120, direction: 'Right' }),
+      })
+    })
+
+    it('accepts a leftward swipe direction', () => {
+      expect(
+        Toast.init({ id: 'test', swipeToDismiss: { direction: 'Left' } }),
+      ).toStrictEqual({
+        id: 'test',
+        defaultDuration: Duration.seconds(4),
+        entries: [],
+        nextEntryKey: 0,
+        maybeSwipeConfig: Option.some({ threshold: 80, direction: 'Left' }),
       })
     })
   })
@@ -1110,7 +1122,7 @@ describe('Toast', () => {
       )
     })
 
-    it('swipe beyond threshold in opposite direction also dismisses', () => {
+    it('does not move or dismiss leftward with the default direction', () => {
       const model = withEntries(swipeInit, [makeSettledEntry()])
       Story.story(
         Toast.update,
@@ -1128,6 +1140,77 @@ describe('Toast', () => {
             clientX: 50,
           }),
         ),
+        Story.model((next: Model) => {
+          expect(requireEntry(next, 0).swipeState).toStrictEqual(
+            SwipeState.Dragging({
+              pointerId: POINTER_ID,
+              startX: 200,
+              currentX: 200,
+            }),
+          )
+        }),
+        Story.message(
+          Message.ReleasedSwipePointer({
+            pointerId: POINTER_ID,
+            clientX: 50,
+          }),
+        ),
+        Story.model((next: Model) => {
+          const entry = requireEntry(next, 0)
+          expect(entry.swipeState).toStrictEqual(
+            SwipeState.Settling({ offsetX: 0 }),
+          )
+          expect(entry.animation.transitionState).toBe('Idle')
+        }),
+        Story.Command.resolveAll(
+          [
+            WaitForSwipeSettled,
+            Message.CompletedWaitForSwipeSettled({
+              entryId: firstEntryId,
+              version: RELEASED_SWIPE_VERSION,
+            }),
+          ],
+          [
+            WaitBeforeDismissal,
+            Message.CompletedWaitBeforeDismissal({
+              entryId: firstEntryId,
+              version: STALE_VERSION,
+            }),
+          ],
+        ),
+      )
+    })
+
+    it('swipes left when configured with the leftward direction', () => {
+      const model = withEntries(
+        Toast.init({ id: 'test', swipeToDismiss: { direction: 'Left' } }),
+        [makeSettledEntry()],
+      )
+      Story.story(
+        Toast.update,
+        Story.given(model),
+        Story.message(
+          Message.PressedEntryPointer({
+            entryId: firstEntryId,
+            pointerId: POINTER_ID,
+            clientX: 200,
+          }),
+        ),
+        Story.message(
+          Message.MovedSwipePointer({
+            pointerId: POINTER_ID,
+            clientX: 50,
+          }),
+        ),
+        Story.model((next: Model) => {
+          expect(requireEntry(next, 0).swipeState).toStrictEqual(
+            SwipeState.Dragging({
+              pointerId: POINTER_ID,
+              startX: 200,
+              currentX: 50,
+            }),
+          )
+        }),
         Story.message(
           Message.ReleasedSwipePointer({
             pointerId: POINTER_ID,

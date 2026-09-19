@@ -39,7 +39,10 @@ type Model = typeof Model.Type
 // or looser stack:
 const init = () => ({
   model: {
-    toast: Toast.init({ id: 'app-toast', swipeToDismiss: {} }),
+    toast: Toast.init({
+      id: 'app-toast',
+      swipeToDismiss: { threshold: 120 },
+    }),
     maybeLastDismissedBody: Option.none(),
     // ...your other fields
   },

@@ -28,10 +28,12 @@ import {
 import * as OptionExt from '../internal/optionExtensions.js'
 import {
   DEFAULT_DURATION,
+  DEFAULT_SWIPE_DIRECTION,
   DEFAULT_SWIPE_THRESHOLD,
   type InitConfig,
   SWIPE_SETTLE_DURATION,
   Message as StaticMessage,
+  type SwipeDirection,
   SwipeState,
   type Variant,
   makeEntry,
@@ -99,6 +101,18 @@ export const swipeOffset = (swipeState: typeof SwipeState.Type): number =>
     Dragging: dragging => dragging.currentX - dragging.startX,
     Settling: settling => settling.offsetX,
   })
+
+const clampSwipeClientX = (
+  startX: number,
+  clientX: number,
+  direction: SwipeDirection,
+): number => {
+  if (direction === 'Right') {
+    return Math.max(startX, clientX)
+  } else {
+    return Math.min(startX, clientX)
+  }
+}
 
 const isDragging = (swipeState: typeof SwipeState.Type): boolean =>
   SwipeState.match(swipeState, {
@@ -369,12 +383,15 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         : Duration.fromInputUnsafe(config.defaultDuration),
     entries: [],
     nextEntryKey: 0,
-    maybeSwipeThreshold:
+    maybeSwipeConfig:
       config.swipeToDismiss === undefined
         ? Option.none()
-        : Option.some(
-            config.swipeToDismiss.threshold ?? DEFAULT_SWIPE_THRESHOLD,
-          ),
+        : Option.some({
+            threshold:
+              config.swipeToDismiss.threshold ?? DEFAULT_SWIPE_THRESHOLD,
+            direction:
+              config.swipeToDismiss.direction ?? DEFAULT_SWIPE_DIRECTION,
+          }),
   })
 
   /** Processes a Toast Message and returns the next Model, optional Commands,
@@ -483,7 +500,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       },
 
       PressedEntryPointer: ({ entryId, pointerId, clientX }) => {
-        if (Option.isNone(model.maybeSwipeThreshold)) {
+        if (Option.isNone(model.maybeSwipeConfig)) {
           return { model }
         }
         const maybeEntry = Array.findFirst(
@@ -517,61 +534,75 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       },
 
       MovedSwipePointer: ({ pointerId, clientX }) =>
-        Option.match(findDraggingEntry(model, pointerId), {
-          onNone: (): UpdateReturn => ({ model }),
-          onSome: ({ entryId, startX }) => ({
-            model: updateEntry(model, entryId, entry =>
-              evo(entry, {
-                swipeState: () =>
-                  SwipeState.Dragging({
-                    pointerId,
-                    startX,
-                    currentX: clientX,
-                  }),
-              }),
-            ),
+        Option.match(
+          Option.all({
+            swipeConfig: model.maybeSwipeConfig,
+            draggingEntry: findDraggingEntry(model, pointerId),
           }),
-        }),
+          {
+            onNone: (): UpdateReturn => ({ model }),
+            onSome: ({ swipeConfig, draggingEntry: { entryId, startX } }) => ({
+              model: updateEntry(model, entryId, entry =>
+                modifyFields(entry, {
+                  swipeState: () =>
+                    SwipeState.Dragging({
+                      pointerId,
+                      startX,
+                      currentX: clampSwipeClientX(
+                        startX,
+                        clientX,
+                        swipeConfig.direction,
+                      ),
+                    }),
+                }),
+              ),
+            }),
+          },
+        ),
 
       ReleasedSwipePointer: ({ pointerId, clientX }) =>
-        Option.match(findDraggingEntry(model, pointerId), {
-          onNone: (): UpdateReturn => ({ model }),
-          onSome: ({ entryId, startX }) => {
-            const offset = clientX - startX
-            const threshold = Option.getOrElse(
-              model.maybeSwipeThreshold,
-              () => DEFAULT_SWIPE_THRESHOLD,
-            )
-            return Option.match(
-              Array.findFirst(model.entries, ({ id }) => id === entryId),
-              {
-                onNone: (): UpdateReturn => ({ model }),
-                onSome: entry => {
-                  if (Math.abs(offset) >= threshold) {
-                    const nextVersion = Number.increment(entry.swipeVersion)
-                    const nextEntry = evo(entry, {
-                      swipeState: () =>
-                        SwipeState.Settling({ offsetX: offset }),
-                      swipeVersion: () => nextVersion,
-                    })
-                    const settlingModel = updateEntry(
-                      model,
-                      entryId,
-                      () => nextEntry,
-                    )
-                    if (isEntryLeaving(entry)) {
-                      return { model: settlingModel }
+        Option.match(
+          Option.all({
+            swipeConfig: model.maybeSwipeConfig,
+            draggingEntry: findDraggingEntry(model, pointerId),
+          }),
+          {
+            onNone: (): UpdateReturn => ({ model }),
+            onSome: ({ swipeConfig, draggingEntry: { entryId, startX } }) => {
+              const offset =
+                clampSwipeClientX(startX, clientX, swipeConfig.direction) -
+                startX
+              return Option.match(
+                Array.findFirst(model.entries, ({ id }) => id === entryId),
+                {
+                  onNone: (): UpdateReturn => ({ model }),
+                  onSome: entry => {
+                    if (Math.abs(offset) >= swipeConfig.threshold) {
+                      const nextVersion = Number.increment(entry.swipeVersion)
+                      const nextEntry = modifyFields(entry, {
+                        swipeState: () =>
+                          SwipeState.Settling({ offsetX: offset }),
+                        swipeVersion: () => nextVersion,
+                      })
+                      const settlingModel = updateEntry(
+                        model,
+                        entryId,
+                        () => nextEntry,
+                      )
+                      if (isEntryLeaving(entry)) {
+                        return { model: settlingModel }
+                      } else {
+                        return foldEntryAnimationHide(entry)(settlingModel)
+                      }
                     } else {
-                      return foldEntryAnimationHide(entry)(settlingModel)
+                      return settleSnapBack(model, entry)
                     }
-                  } else {
-                    return settleSnapBack(model, entry)
-                  }
+                  },
                 },
-              },
-            )
+              )
+            },
           },
-        }),
+        ),
 
       CancelledSwipe: ({ pointerId }) =>
         Option.match(findDraggingEntry(model, pointerId), {
@@ -625,7 +656,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     update(model, MessageSchema.DismissedAll())
 
   const swipeDependencies = (model: Model) => ({
-    isSwipeEnabled: Option.isSome(model.maybeSwipeThreshold),
+    isSwipeEnabled: Option.isSome(model.maybeSwipeConfig),
     isAnyDragging: isAnyDragging(model),
     activePointerIds: activePointerIds(model),
   })

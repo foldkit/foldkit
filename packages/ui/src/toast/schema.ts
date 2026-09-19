@@ -29,6 +29,15 @@ export type Position = typeof Position.Type
 
 // SWIPE
 
+/** Direction in which a pointer can drag an entry to dismiss it. */
+export const SwipeDirection = Schema.Literals(['Left', 'Right'])
+export type SwipeDirection = typeof SwipeDirection.Type
+
+const SwipeConfig = Schema.Struct({
+  direction: SwipeDirection,
+  threshold: Schema.Number,
+})
+
 /** Per-entry swipe gesture state. `Dragging` retains the initiating
  *  `pointerId`, so move, release, and cancel Messages update only the entry
  *  that started the gesture and ignore unrelated touches. `Settling` is the
@@ -54,6 +63,9 @@ export type SwipeState = typeof SwipeState.Type
 
 /** Default distance in pixels a pointer must travel to dismiss a Toast. */
 export const DEFAULT_SWIPE_THRESHOLD = 80
+
+/** Default direction in which a pointer can dismiss a Toast. */
+export const DEFAULT_SWIPE_DIRECTION: SwipeDirection = 'Right'
 
 /** How long the view holds `data-swipe="settling"` after a cancelled
  *  swipe so consumer CSS can animate the snap-back. Match a custom
@@ -95,7 +107,7 @@ export const makeModel = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
     defaultDuration: Schema.DurationFromMillis,
     entries: Schema.Array(makeEntry(payloadSchema)),
     nextEntryKey: Schema.Number,
-    maybeSwipeThreshold: Schema.Option(Schema.Number),
+    maybeSwipeConfig: Schema.Option(SwipeConfig),
   })
 
 // MESSAGE
@@ -182,10 +194,11 @@ export const makeOutMessage = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
  *  `swipeToDismiss` from `InitConfig` to leave swipe disabled: the view
  *  attaches no pointer handler and the gesture Messages are no-ops, so a
  *  Toast without wired subscriptions can never get stuck mid-drag. Pass
- *  `{}` for the default threshold or `{ threshold }` to tune how far in
- *  pixels the pointer must travel before a release dismisses the entry. */
+ *  `{}` to swipe right by the default threshold, `{ threshold }` to tune how
+ *  far the pointer must travel, or `{ direction: 'Left' }` to swipe left. */
 export type SwipeToDismissConfig = Readonly<{
   threshold?: number
+  direction?: SwipeDirection
 }>
 
 /** Configuration for creating a toast container model. `defaultDuration` is

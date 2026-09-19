@@ -23,7 +23,8 @@ const variantClassName = (variant: Variant): string =>
     Match.exhaustive,
   )
 
-const entryClassName = 'w-80'
+const entryClassName =
+  'w-80 motion-safe:data-[swipe=settling]:transition-[translate] motion-safe:data-[swipe=settling]:duration-150 motion-safe:data-[swipe=settling]:ease-out'
 
 const renderToastEntry = (
   entry: Entry,
