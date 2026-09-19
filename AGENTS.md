@@ -120,6 +120,7 @@ Don't add inline or block comments to explain code. If code needs explanation, r
 
 - Never put executable or copyable source examples directly in website Markdown. Put each example in `packages/website/src/snippet/` and render it with `::Snippet` so it has one source file. Fenced blocks remain valid for diagrams and literal output that readers do not copy as source.
 - Changesets cannot render website islands, so fenced source examples with a language identifier are appropriate there.
+- Preserve published blog posts, release announcements, and their dedicated snippets as historical records. Do not update them to reflect later API changes; put current usage and migration guidance in active docs and changesets.
 
 ## View Architecture
 

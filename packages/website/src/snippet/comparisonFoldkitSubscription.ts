@@ -3,7 +3,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     Subscription.fromEventFilterMapPreventDefault({
       target: document,
       type: 'keydown',
-      toMessage: toUndoRedoMessage,
+      filterMapEvent: toUndoRedoMessage,
     }),
   ),
 
@@ -11,7 +11,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     Subscription.fromEventFilterMap({
       target: document,
       type: 'keydown',
-      toMessage: toToolMessage,
+      filterMapEvent: toToolMessage,
     }),
   ),
 

@@ -31,17 +31,17 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
             {
               keys: 'Mod+K',
               whileTyping: 'Allow',
-              toMessage: () => Message.PressedSearchShortcut(),
+              mapEvent: () => Message.PressedSearchShortcut(),
             },
             {
               keys: 'Escape',
               isEnabled: searchState._tag === 'Open',
               whileTyping: 'Allow',
-              toMessage: () => Message.PressedEscape(),
+              mapEvent: () => Message.PressedEscape(),
             },
             {
               keys: ['G', 'H'],
-              toMessage: () => Message.PressedHomeShortcut(),
+              mapEvent: () => Message.PressedHomeShortcut(),
             },
           ],
         }),

@@ -17,7 +17,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
           Subscription.fromEventFilterMapPreventDefault({
             target: document,
             type: 'keydown',
-            toMessage: event => {
+            filterMapEvent: event => {
               if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
                 return Option.some(Message.PressedSearchShortcut())
               }

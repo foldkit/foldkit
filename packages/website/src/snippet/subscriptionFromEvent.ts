@@ -28,7 +28,7 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
           Subscription.fromEvent({
             target: window,
             type: 'keydown',
-            toMessage: event => Message.PressedKey({ key: event.key }),
+            mapEvent: event => Message.PressedKey({ key: event.key }),
           }),
           Effect.sync(() => isListening),
         ),

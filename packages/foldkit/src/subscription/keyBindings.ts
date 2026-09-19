@@ -18,9 +18,9 @@ export type WhileTyping = 'Suppress' | 'Allow'
 /** A single key press or a sequence of two or more key presses. */
 export type KeySequence = string | Readonly<[string, string, ...Array<string>]>
 
-type BindingBase<Message> = Readonly<{
+type BindingBase<Output> = Readonly<{
   keys: KeySequence
-  toMessage: (event: KeyboardEvent) => Message
+  mapEvent: (event: KeyboardEvent) => Output
   isEnabled?: boolean
   whileTyping?: WhileTyping
   preventDefault?: boolean
@@ -33,7 +33,7 @@ type BindingBase<Message> = Readonly<{
  * An array describes a sequence of at least two presses, such as
  * `['G', 'H']` or `['G', 'Shift+G']`.
  */
-export type KeyBinding<Message> = BindingBase<Message> &
+export type KeyBinding<Output> = BindingBase<Output> &
   (
     | Readonly<{
         keys: string
@@ -48,8 +48,8 @@ export type KeyBinding<Message> = BindingBase<Message> &
 type ModKey = 'Control' | 'Meta'
 
 /** Configuration for the {@link keyBindings} Stream helper. */
-export type KeyBindingsConfig<Message> = Readonly<{
-  bindings: ReadonlyArray<KeyBinding<Message>>
+export type KeyBindingsConfig<Output> = Readonly<{
+  bindings: ReadonlyArray<KeyBinding<Output>>
   target?: EventTarget | (() => EventTarget)
   modKey?: ModKey
   sequenceTimeout?: Duration.Input
@@ -71,7 +71,7 @@ type ParsedPress = PressRequirements &
 
 type CompiledBinding<Message> = Readonly<{
   presses: Array.NonEmptyReadonlyArray<ParsedPress>
-  toMessage: (event: KeyboardEvent) => Message
+  mapEvent: (event: KeyboardEvent) => Message
   whileTyping: WhileTyping
   preventDefault: boolean
   whenRepeated: 'Ignore' | 'Allow'
@@ -297,7 +297,7 @@ const compileBinding = <Message>(
 
   return {
     presses,
-    toMessage: binding.toMessage,
+    mapEvent: binding.mapEvent,
     whileTyping: binding.whileTyping ?? 'Suppress',
     preventDefault: binding.preventDefault ?? true,
     whenRepeated: binding.whenRepeated ?? 'Ignore',
@@ -552,7 +552,7 @@ const emitBindingMessage = <Message>(
     event.preventDefault()
   }
 
-  context.emitMessage(binding.toMessage(event))
+  context.emitMessage(binding.mapEvent(event))
 }
 
 const isMatchingOnePressBinding =
@@ -769,7 +769,9 @@ const keyBindingStream = <Message>(
   })
 
 /**
- * Build a Stream that turns declarative key bindings into Messages.
+ * Build a Stream that maps declarative key bindings to values. The output is
+ * inferred from each binding's `mapEvent` callback; `Subscription.make`
+ * checks that the final Stream emits the application's Message type.
  *
  * A string describes one key press. Modifiers are joined with `+`:
  * `'Mod+K'`, `'Control+Shift+P'`, or `'Alt+ArrowDown'`. The supported modifiers
@@ -805,7 +807,7 @@ const keyBindingStream = <Message>(
  * or put bindings with different parent-owned lifetimes in separate child
  * entries so `Subscription.lift` can gate them individually. If the meaning
  * of a key depends on the Model, dispatch a factual key Message and decide
- * what it means in update instead of reading the Model from `toMessage`.
+ * what it means in update instead of reading the Model from `mapEvent`.
  *
  * @example
  * ```typescript
@@ -823,16 +825,16 @@ const keyBindingStream = <Message>(
  *               keys: 'Escape',
  *               isEnabled: isPaletteOpen,
  *               whileTyping: 'Allow',
- *               toMessage: () => Message.PressedEscape(),
+ *               mapEvent: () => Message.PressedEscape(),
  *             },
  *             {
  *               keys: 'Mod+K',
  *               whileTyping: 'Allow',
- *               toMessage: () => Message.PressedSearchShortcut(),
+ *               mapEvent: () => Message.PressedSearchShortcut(),
  *             },
  *             {
  *               keys: ['G', 'L'],
- *               toMessage: () => Message.PressedListShortcut(),
+ *               mapEvent: () => Message.PressedListShortcut(),
  *             },
  *           ],
  *         }),
@@ -841,6 +843,6 @@ const keyBindingStream = <Message>(
  * }))
  * ```
  */
-export const keyBindings = <Message>(
-  config: KeyBindingsConfig<Message>,
-): Stream.Stream<Message> => keyBindingStream(compileKeyBindingsConfig(config))
+export const keyBindings = <Output>(
+  config: KeyBindingsConfig<Output>,
+): Stream.Stream<Output> => keyBindingStream(compileKeyBindingsConfig(config))

@@ -7,5 +7,5 @@ export const capturedKeyDownStream = <Message>(
   Subscription.fromEventFilterMapPreventDefault({
     target: document,
     type: 'keydown',
-    toMessage: keyboardEvent => Option.some(toMessage(keyboardEvent.key)),
+    filterMapEvent: keyboardEvent => Option.some(toMessage(keyboardEvent.key)),
   })

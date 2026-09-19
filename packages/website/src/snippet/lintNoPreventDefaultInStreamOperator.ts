@@ -18,7 +18,7 @@ const keyboardBad = Stream.fromEventListener<KeyboardEvent>(
 const keyboardGood = Subscription.fromEventFilterMapPreventDefault({
   target: document,
   type: 'keydown',
-  toMessage: event =>
+  filterMapEvent: event =>
     event.key === 'Tab'
       ? Option.some(Message.PressedKey({ key: event.key }))
       : Option.none(),

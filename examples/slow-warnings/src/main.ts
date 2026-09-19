@@ -223,7 +223,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     Subscription.fromEventFilterMap({
       target: slowWarningTarget,
       type: SLOW_WARNING_EVENT,
-      toMessage: event =>
+      filterMapEvent: event =>
         pipe(
           event.detail,
           Schema.decodeUnknownOption(SlowWarningReport),

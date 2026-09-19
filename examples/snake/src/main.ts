@@ -255,7 +255,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     Subscription.fromEventFilterMapPreventDefault({
       target: document,
       type: 'keydown',
-      toMessage: keyboardEvent =>
+      filterMapEvent: keyboardEvent =>
         Option.some(Message.PressedKey({ key: keyboardEvent.key })),
     }),
   ),

@@ -131,10 +131,10 @@ type PreventDefaultEventListenerOptions = Omit<
  * `document`.
  *
  * `type` is constrained to the event names the target declares, and
- * `toMessage`'s parameter is the event those two resolve to. Annotating that
+ * `mapEvent`'s parameter is the event those two resolve to. Annotating that
  * parameter is checked against the resolved event rather than replacing it.
  *
- * `toMessage(event)` transforms each dispatched event into a Message. The
+ * `mapEvent(event)` transforms each dispatched event into a Stream value. The
  * mapper runs synchronously in the same call stack as the browser's event
  * dispatch, so calling `event.preventDefault()` inside it takes effect,
  * unless the listener is passive. Some browsers default wheel and touch
@@ -142,15 +142,18 @@ type PreventDefaultEventListenerOptions = Omit<
  * ignored. Pass `options: { passive: false }` explicitly when cancelling
  * those events, or reach for `fromEventFilterMapPreventDefault`, which does
  * so for you.
+ *
+ * The output type is inferred from the mapper; `Subscription.make` checks
+ * that the final Stream emits the application's Message type.
  */
 export type FromEventConfig<
   Target extends EventTarget,
   Type extends EventTypeOf<Target>,
-  Message,
+  Output,
 > = Readonly<{
   target: Target | (() => Target)
   type: Type
-  toMessage: (event: EventOf<Target, Type>) => Message
+  mapEvent: (event: EventOf<Target, Type>) => Output
   options?: AddEventListenerOptions
 }>
 
@@ -164,10 +167,10 @@ export type FromEventConfig<
  * `document`.
  *
  * `type` is constrained to the event names the target declares, and
- * `toMessage`'s parameter is the event those two resolve to. Annotating that
+ * `filterMapEvent`'s parameter is the event those two resolve to. Annotating that
  * parameter is checked against the resolved event rather than replacing it.
  *
- * `toMessage(event)` returns `Option.some(message)` to emit a Message for the
+ * `filterMapEvent(event)` returns `Option.some(value)` to emit a value for the
  * event, or `Option.none()` to ignore it. The mapper runs synchronously in the
  * same call stack as the browser's event dispatch, so calling
  * `event.preventDefault()` inside it takes effect, unless the listener is
@@ -175,22 +178,25 @@ export type FromEventConfig<
  * to passive, where `preventDefault()` is ignored. Pass
  * `options: { passive: false }` explicitly when cancelling those events, or
  * reach for `fromEventFilterMapPreventDefault`, which does so for you.
+ *
+ * The output type is inferred from the mapper; `Subscription.make` checks
+ * that the final Stream emits the application's Message type.
  */
 export type FromEventFilterMapConfig<
   Target extends EventTarget,
   Type extends EventTypeOf<Target>,
-  Message,
+  Output,
 > = Readonly<{
   target: Target | (() => Target)
   type: Type
-  toMessage: (event: EventOf<Target, Type>) => Option.Option<Message>
+  filterMapEvent: (event: EventOf<Target, Type>) => Option.Option<Output>
   options?: AddEventListenerOptions
 }>
 
-type ListenerConfig<EventType extends Event, Message> = Readonly<{
+type ListenerConfig<EventType extends Event, Output> = Readonly<{
   target: EventTarget | (() => EventTarget)
   type: string
-  toMessage: (event: EventType) => Option.Option<Message>
+  filterMapEvent: (event: EventType) => Option.Option<Output>
   options?: AddEventListenerOptions
 }>
 
@@ -198,19 +204,19 @@ const resolveTarget = (
   target: EventTarget | (() => EventTarget),
 ): EventTarget => (typeof target === 'function' ? target() : target)
 
-const listen = <EventType extends Event, Message>(
-  config: ListenerConfig<EventType, Message>,
-): Stream.Stream<Message> =>
-  Stream.callback<Message>(queue =>
+const listen = <EventType extends Event, Output>(
+  config: ListenerConfig<EventType, Output>,
+): Stream.Stream<Output> =>
+  Stream.callback<Output>(queue =>
     Effect.acquireRelease(
       Effect.sync(() => {
         const target = resolveTarget(config.target)
 
         const handleEvent = (event: Event): void => {
           /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-          const maybeMessage = config.toMessage(event as EventType)
-          if (Option.isSome(maybeMessage)) {
-            Queue.offerUnsafe(queue, maybeMessage.value)
+          const maybeOutput = config.filterMapEvent(event as EventType)
+          if (Option.isSome(maybeOutput)) {
+            Queue.offerUnsafe(queue, maybeOutput.value)
           }
         }
 
@@ -234,41 +240,43 @@ const listen = <EventType extends Event, Message>(
  * `document`.
  *
  * `type` is constrained to the event names the target declares, and
- * `toMessage`'s parameter is the event those two resolve to. Annotating that
+ * `filterMapEvent`'s parameter is the event those two resolve to. Annotating that
  * parameter is checked against the resolved event rather than replacing it.
  *
- * `toMessage(event)` returns `Option.some(message)` to mark the dispatch
+ * `filterMapEvent(event)` returns `Option.some(value)` to mark the dispatch
  * handled, or `Option.none()` to leave the default behavior intact. For a
  * handled dispatch the helper calls `event.preventDefault()` and queues the
- * Message before the listener returns; the mapper itself never calls
+ * value before the listener returns; the mapper itself never calls
  * `preventDefault()`.
  *
  * `options.passive` defaults to `false` so `preventDefault()` keeps working
  * for the events browsers would otherwise register as passive. The config
  * rejects `passive: true`; the runtime guard also throws for unchecked
  * JavaScript inputs.
+ *
+ * The output type is inferred from the mapper; `Subscription.make` checks
+ * that the final Stream emits the application's Message type.
  */
 export type FromEventFilterMapPreventDefaultConfig<
   Target extends EventTarget,
   Type extends EventTypeOf<Target>,
-  Message,
+  Output,
 > = Readonly<{
   target: Target | (() => Target)
   type: Type
-  toMessage: (event: EventOf<Target, Type>) => Option.Option<Message>
+  filterMapEvent: (event: EventOf<Target, Type>) => Option.Option<Output>
   options?: PreventDefaultEventListenerOptions
 }>
 
 /**
- * Build a Stream that emits a Message for the dispatches of a DOM event the
+ * Build a Stream that emits a value for the dispatches of a DOM event the
  * mapper chooses to keep, registering the listener when the Stream's scope
  * opens and removing it when the scope closes.
  *
- * This is the filtered variant of `fromEvent`. Its `toMessage` returns
- * `Option.some(message)` to emit and `Option.none()` to ignore the event, so a
+ * This is the filtered variant of `fromEvent`. Its `filterMapEvent` returns
+ * `Option.some(value)` to emit and `Option.none()` to ignore the event, so a
  * single listener can react to some dispatches while passing on the rest. A
- * mapper that never emits produces a `Stream<never>`, which composes wherever
- * a Message-producing Stream is expected.
+ * mapper that never emits produces a `Stream<never>`.
  *
  * Reach for this over a downstream `Stream.filterMap` whenever the decision to
  * keep an event is paired with `event.preventDefault()`. The mapper runs
@@ -296,7 +304,9 @@ export type FromEventFilterMapPreventDefaultConfig<
  * `Subscription.persistent` for a listener whose lifetime spans the whole
  * Subscriptions record, or plug it into a `Subscription.make` entry's
  * `dependenciesToStream` (typically behind `Stream.when`) to gate it on a
- * Model condition.
+ * Model condition. The mapper's output type is inferred (even a raw Event is
+ * accepted here); `Subscription.make` checks the final Stream against the
+ * application's Message type.
  *
  * @example
  * ```typescript
@@ -310,7 +320,7 @@ export type FromEventFilterMapPreventDefaultConfig<
  *           Subscription.fromEventFilterMap({
  *             target: window,
  *             type: 'keydown',
- *             toMessage: event =>
+ *             filterMapEvent: event =>
  *               event.key === 'Escape'
  *                 ? Option.some(Message.PressedEscape())
  *                 : Option.none(),
@@ -325,13 +335,13 @@ export type FromEventFilterMapPreventDefaultConfig<
 export const fromEventFilterMap = <
   Target extends EventTarget,
   Type extends EventTypeOf<Target>,
-  Message,
+  Output,
 >(
-  config: FromEventFilterMapConfig<Target, Type, Message>,
-): Stream.Stream<Message> => listen<EventOf<Target, Type>, Message>(config)
+  config: FromEventFilterMapConfig<Target, Type, Output>,
+): Stream.Stream<Output> => listen<EventOf<Target, Type>, Output>(config)
 
 /**
- * Build a Stream that emits a Message for every dispatch of a DOM event,
+ * Build a Stream that emits a value for every dispatch of a DOM event,
  * registering the listener when the Stream's scope opens and removing it when
  * the scope closes.
  *
@@ -351,10 +361,12 @@ export const fromEventFilterMap = <
  * `Subscription.persistent` for a listener whose lifetime spans the whole
  * Subscriptions record, or plug it into a `Subscription.make` entry's
  * `dependenciesToStream` (typically behind `Stream.when`) to gate it on a
- * Model condition.
+ * Model condition. The mapper's output type is inferred (even a raw Event is
+ * accepted here); `Subscription.make` checks the final Stream against the
+ * application's Message type.
  *
  * For a listener that reacts to only some events, reach for
- * `fromEventFilterMap`, whose mapper returns `Option<Message>`. For a
+ * `fromEventFilterMap`, whose mapper returns `Option<Output>`. For a
  * listener that also cancels the default action of the events it handles,
  * reach for `fromEventFilterMapPreventDefault`.
  *
@@ -370,7 +382,7 @@ export const fromEventFilterMap = <
  *           Subscription.fromEvent({
  *             target: window,
  *             type: 'keydown',
- *             toMessage: event => Message.PressedKey({ key: event.key }),
+ *             mapEvent: event => Message.PressedKey({ key: event.key }),
  *           }),
  *           Effect.sync(() => isListening),
  *         ),
@@ -382,25 +394,25 @@ export const fromEventFilterMap = <
 export const fromEvent = <
   Target extends EventTarget,
   Type extends EventTypeOf<Target>,
-  Message,
+  Output,
 >(
-  config: FromEventConfig<Target, Type, Message>,
-): Stream.Stream<Message> =>
-  listen<EventOf<Target, Type>, Message>({
+  config: FromEventConfig<Target, Type, Output>,
+): Stream.Stream<Output> =>
+  listen<EventOf<Target, Type>, Output>({
     ...config,
-    toMessage: event => Option.some(config.toMessage(event)),
+    filterMapEvent: event => Option.some(config.mapEvent(event)),
   })
 
 /**
- * Build a Stream that emits a Message for the dispatches of a DOM event the
+ * Build a Stream that emits a value for the dispatches of a DOM event the
  * mapper marks handled, calling `event.preventDefault()` on each of them,
  * registering the listener when the Stream's scope opens and removing it when
  * the scope closes.
  *
  * This is the cancelling variant of `fromEventFilterMap`, mirroring
- * `h.OnKeyDownPreventDefault` from `foldkit/html`. Its `toMessage` returns
- * `Option.some(message)` to mark a dispatch handled. The helper evaluates the
- * mapper, calls `event.preventDefault()`, and queues the Message before the
+ * `h.OnKeyDownPreventDefault` from `foldkit/html`. Its `filterMapEvent` returns
+ * `Option.some(value)` to mark a dispatch handled. The helper evaluates the
+ * mapper, calls `event.preventDefault()`, and queues the value before the
  * native listener returns. `Option.none()` leaves the default behavior intact.
  * The mapper never calls `preventDefault()` itself.
  *
@@ -425,7 +437,9 @@ export const fromEvent = <
  * `Subscription.persistent` for a listener whose lifetime spans the whole
  * Subscriptions record, or plug it into a `Subscription.make` entry's
  * `dependenciesToStream` (typically behind `Stream.when`) to gate it on a
- * Model condition.
+ * Model condition. The mapper's output type is inferred (even a raw Event is
+ * accepted here); `Subscription.make` checks the final Stream against the
+ * application's Message type.
  *
  * @example
  * ```typescript
@@ -439,7 +453,7 @@ export const fromEvent = <
  *           Subscription.fromEventFilterMapPreventDefault({
  *             target: window,
  *             type: 'wheel',
- *             toMessage: () => Option.some(Message.SuppressedWheelScroll()),
+ *             filterMapEvent: () => Option.some(Message.SuppressedWheelScroll()),
  *           }),
  *           Effect.sync(() => isModalOpen),
  *         ),
@@ -451,10 +465,10 @@ export const fromEvent = <
 export const fromEventFilterMapPreventDefault = <
   Target extends EventTarget,
   Type extends EventTypeOf<Target>,
-  Message,
+  Output,
 >(
-  config: FromEventFilterMapPreventDefaultConfig<Target, Type, Message>,
-): Stream.Stream<Message> => {
+  config: FromEventFilterMapPreventDefaultConfig<Target, Type, Output>,
+): Stream.Stream<Output> => {
   const options: AddEventListenerOptions | undefined = config.options
 
   if (options?.passive === true) {
@@ -474,12 +488,12 @@ export const fromEventFilterMapPreventDefault = <
   return fromEventFilterMap({
     ...config,
     options: { ...options, passive: false },
-    toMessage: event => {
-      const maybeMessage = config.toMessage(event)
-      if (Option.isSome(maybeMessage)) {
+    filterMapEvent: event => {
+      const maybeOutput = config.filterMapEvent(event)
+      if (Option.isSome(maybeOutput)) {
         event.preventDefault()
       }
-      return maybeMessage
+      return maybeOutput
     },
   })
 }

@@ -165,23 +165,19 @@ export const subscriptions = Subscription.make<Model, Message>()(() => ({
       bindings: [
         {
           keys: ['G', 'H'],
-          toMessage: () =>
-            Message.EnteredNavigationShortcut({ shortcut: 'GH' }),
+          mapEvent: () => Message.EnteredNavigationShortcut({ shortcut: 'GH' }),
         },
         {
           keys: ['G', 'P'],
-          toMessage: () =>
-            Message.EnteredNavigationShortcut({ shortcut: 'GP' }),
+          mapEvent: () => Message.EnteredNavigationShortcut({ shortcut: 'GP' }),
         },
         {
           keys: ['G', 'F'],
-          toMessage: () =>
-            Message.EnteredNavigationShortcut({ shortcut: 'GF' }),
+          mapEvent: () => Message.EnteredNavigationShortcut({ shortcut: 'GF' }),
         },
         {
           keys: ['G', 'N'],
-          toMessage: () =>
-            Message.EnteredNavigationShortcut({ shortcut: 'GN' }),
+          mapEvent: () => Message.EnteredNavigationShortcut({ shortcut: 'GN' }),
         },
       ],
     }),

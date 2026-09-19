@@ -33,7 +33,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
           Subscription.fromEvent({
             target: document,
             type: 'mouseup',
-            toMessage: () => ReleasedMouse(),
+            mapEvent: () => ReleasedMouse(),
           }),
           Effect.sync(() => isDrawing),
         ),

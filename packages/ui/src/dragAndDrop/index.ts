@@ -668,7 +668,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
           Subscription.fromEventFilterMapPreventDefault({
             target: document,
             type: 'keydown',
-            toMessage: event => {
+            filterMapEvent: event => {
               // NOTE: the draggable's OnKeyDownPreventDefault calls preventDefault on
               // the Space that activates keyboard drag. Skip it here so the same
               // keypress doesn't also confirm the drop in the same tick.

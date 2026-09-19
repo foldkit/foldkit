@@ -1,8 +1,9 @@
 import { Duration, Effect, Fiber, Schema, Stream } from 'effect'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
 import { type KeyBindingsConfig, keyBindings } from './keyBindings.js'
+import { make } from './subscription.js'
 
 const Message = defineMessageUnion({
   PressedKeys: { name: Schema.String },
@@ -54,12 +55,33 @@ afterEach(() => {
 })
 
 describe('keyBindings', () => {
+  it('infers its Stream output and checks the application Message at make', () => {
+    if (false) {
+      const rawEventStream = keyBindings({
+        bindings: [{ keys: 'Escape', mapEvent: event => event }],
+      })
+
+      expectTypeOf(rawEventStream).toEqualTypeOf<Stream.Stream<KeyboardEvent>>()
+
+      make<{ isActive: boolean }, Message>()(entry => ({
+        keyboard: entry(
+          { isActive: Schema.Boolean },
+          {
+            modelToDependencies: model => ({ isActive: model.isActive }),
+            // @ts-expect-error a raw KeyboardEvent is not an application Message
+            dependenciesToStream: () => rawEventStream,
+          },
+        ),
+      }))
+    }
+  })
+
   it('emits the Message for a matching one-press binding', async () => {
     const { fiber, received } = await start({
       bindings: [
         {
           keys: '/',
-          toMessage: event =>
+          mapEvent: event =>
             Message.PressedKeys({ name: `Pressed${event.key}` }),
         },
       ],
@@ -81,7 +103,7 @@ describe('keyBindings', () => {
       bindings: [
         {
           keys: 'Mod+K',
-          toMessage: toMessage('PressedSearchShortcut'),
+          mapEvent: toMessage('PressedSearchShortcut'),
         },
       ],
     })
@@ -103,11 +125,11 @@ describe('keyBindings', () => {
       bindings: [
         {
           keys: 'Control+Alt+Shift+Plus',
-          toMessage: toMessage('PressedModifiedPlus'),
+          mapEvent: toMessage('PressedModifiedPlus'),
         },
         {
           keys: 'Space',
-          toMessage: toMessage('PressedSpace'),
+          mapEvent: toMessage('PressedSpace'),
         },
       ],
     })
@@ -131,7 +153,7 @@ describe('keyBindings', () => {
             bindings: [
               {
                 keys: keyPress,
-                toMessage: toMessage('PressedShortcut'),
+                mapEvent: toMessage('PressedShortcut'),
               },
             ],
           }),
@@ -145,7 +167,7 @@ describe('keyBindings', () => {
       bindings: [
         {
           keys: ['G', 'Shift+G', 'Control+Enter'],
-          toMessage: toMessage('PressedSequence'),
+          mapEvent: toMessage('PressedSequence'),
         },
       ],
     })
@@ -164,11 +186,11 @@ describe('keyBindings', () => {
       bindings: [
         {
           keys: ['G', 'H'],
-          toMessage: toMessage('PressedHomeSequence'),
+          mapEvent: toMessage('PressedHomeSequence'),
         },
         {
           keys: ['G', 'P'],
-          toMessage: toMessage('PressedPeopleSequence'),
+          mapEvent: toMessage('PressedPeopleSequence'),
         },
       ],
     })
@@ -192,11 +214,11 @@ describe('keyBindings', () => {
       bindings: [
         {
           keys: ['Mod+K', 'A'],
-          toMessage: toMessage('PressedModSequence'),
+          mapEvent: toMessage('PressedModSequence'),
         },
         {
           keys: ['Control+K', 'B'],
-          toMessage: toMessage('PressedControlSequence'),
+          mapEvent: toMessage('PressedControlSequence'),
         },
       ],
     })
@@ -219,11 +241,11 @@ describe('keyBindings', () => {
       bindings: [
         {
           keys: ['G', 'H'],
-          toMessage: toMessage('PressedHomeSequence'),
+          mapEvent: toMessage('PressedHomeSequence'),
         },
         {
           keys: '/',
-          toMessage: toMessage('PressedPaletteShortcut'),
+          mapEvent: toMessage('PressedPaletteShortcut'),
         },
       ],
     })
@@ -244,7 +266,7 @@ describe('keyBindings', () => {
       bindings: [
         {
           keys: ['G', 'H'],
-          toMessage: toMessage('PressedHomeSequence'),
+          mapEvent: toMessage('PressedHomeSequence'),
         },
       ],
     })
@@ -263,12 +285,12 @@ describe('keyBindings', () => {
       bindings: [
         {
           keys: ['G', 'H'],
-          toMessage: toMessage('PressedPreventedSequence'),
+          mapEvent: toMessage('PressedPreventedSequence'),
         },
         {
           keys: ['N', 'P'],
           preventDefault: false,
-          toMessage: toMessage('PressedUnpreventedSequence'),
+          mapEvent: toMessage('PressedUnpreventedSequence'),
         },
       ],
     })
@@ -297,7 +319,7 @@ describe('keyBindings', () => {
       bindings: [
         {
           keys: '/',
-          toMessage: toMessage('PressedPaletteShortcut'),
+          mapEvent: toMessage('PressedPaletteShortcut'),
         },
       ],
     })
@@ -319,7 +341,7 @@ describe('keyBindings', () => {
         {
           keys: 'Escape',
           whileTyping: 'Allow',
-          toMessage: toMessage('PressedEscape'),
+          mapEvent: toMessage('PressedEscape'),
         },
       ],
     })
@@ -340,11 +362,11 @@ describe('keyBindings', () => {
         {
           keys: ['G', 'H'],
           whileTyping: 'Allow',
-          toMessage: toMessage('PressedAllowedSequence'),
+          mapEvent: toMessage('PressedAllowedSequence'),
         },
         {
           keys: ['G', 'P'],
-          toMessage: toMessage('PressedSuppressedSequence'),
+          mapEvent: toMessage('PressedSuppressedSequence'),
         },
       ],
     })
@@ -370,11 +392,11 @@ describe('keyBindings', () => {
       bindings: [
         {
           keys: '/',
-          toMessage: toMessage('PressedPaletteShortcut'),
+          mapEvent: toMessage('PressedPaletteShortcut'),
         },
         {
           keys: ['G', 'H'],
-          toMessage: toMessage('PressedHomeSequence'),
+          mapEvent: toMessage('PressedHomeSequence'),
         },
       ],
     })
@@ -394,7 +416,7 @@ describe('keyBindings', () => {
       bindings: [
         {
           keys: ['G', 'H'],
-          toMessage: toMessage('PressedHomeSequence'),
+          mapEvent: toMessage('PressedHomeSequence'),
         },
       ],
     })
@@ -413,16 +435,16 @@ describe('keyBindings', () => {
       bindings: [
         {
           keys: 'A',
-          toMessage: toMessage('PressedIgnoredRepeat'),
+          mapEvent: toMessage('PressedIgnoredRepeat'),
         },
         {
           keys: 'B',
           whenRepeated: 'Allow',
-          toMessage: toMessage('PressedAllowedRepeat'),
+          mapEvent: toMessage('PressedAllowedRepeat'),
         },
         {
           keys: ['G', 'H'],
-          toMessage: toMessage('PressedSequence'),
+          mapEvent: toMessage('PressedSequence'),
         },
       ],
     })
@@ -447,7 +469,7 @@ describe('keyBindings', () => {
         {
           keys: '/',
           isEnabled: false,
-          toMessage: toMessage('PressedDisabledShortcut'),
+          mapEvent: toMessage('PressedDisabledShortcut'),
         },
       ],
     })
@@ -465,12 +487,12 @@ describe('keyBindings', () => {
         {
           keys: 'Escape',
           isEnabled: false,
-          toMessage: toMessage('PressedDisabledEscape'),
+          mapEvent: toMessage('PressedDisabledEscape'),
         },
         {
           keys: 'Escape',
           isEnabled: true,
-          toMessage: toMessage('PressedEnabledEscape'),
+          mapEvent: toMessage('PressedEnabledEscape'),
         },
       ],
     })
@@ -489,7 +511,7 @@ describe('keyBindings', () => {
       bindings: [
         {
           keys: ['G', 'H'],
-          toMessage: toMessage('PressedHomeSequence'),
+          mapEvent: toMessage('PressedHomeSequence'),
         },
       ],
     })
@@ -508,7 +530,7 @@ describe('keyBindings', () => {
       bindings: [
         {
           keys: ['G', 'H'],
-          toMessage: toMessage('PressedHomeSequence'),
+          mapEvent: toMessage('PressedHomeSequence'),
         },
       ],
     }
@@ -542,7 +564,7 @@ describe('keyBindings', () => {
       bindings: [
         {
           keys: '/',
-          toMessage: toMessage('PressedPaletteShortcut'),
+          mapEvent: toMessage('PressedPaletteShortcut'),
         },
       ],
     })
@@ -565,11 +587,11 @@ describe('keyBindings', () => {
         bindings: [
           {
             keys: 'Control+K',
-            toMessage: toMessage('PressedFirst'),
+            mapEvent: toMessage('PressedFirst'),
           },
           {
             keys: 'Control+K',
-            toMessage: toMessage('PressedSecond'),
+            mapEvent: toMessage('PressedSecond'),
           },
         ],
       }),
@@ -579,8 +601,8 @@ describe('keyBindings', () => {
       keyBindings<Message>({
         modKey: 'Control',
         bindings: [
-          { keys: 'Mod+K', toMessage: toMessage('PressedFirst') },
-          { keys: 'Control+K', toMessage: toMessage('PressedSecond') },
+          { keys: 'Mod+K', mapEvent: toMessage('PressedFirst') },
+          { keys: 'Control+K', mapEvent: toMessage('PressedSecond') },
         ],
       }),
     ).toThrowError(/duplicates/)
@@ -589,8 +611,8 @@ describe('keyBindings', () => {
       keyBindings<Message>({
         modKey: 'Control',
         bindings: [
-          { keys: 'Mod+K', toMessage: toMessage('PressedFirst') },
-          { keys: 'Meta+K', toMessage: toMessage('PressedSecond') },
+          { keys: 'Mod+K', mapEvent: toMessage('PressedFirst') },
+          { keys: 'Meta+K', mapEvent: toMessage('PressedSecond') },
         ],
       }),
     ).not.toThrow()
@@ -598,10 +620,10 @@ describe('keyBindings', () => {
     expect(() =>
       keyBindings<Message>({
         bindings: [
-          { keys: 'G', toMessage: toMessage('PressedFirst') },
+          { keys: 'G', mapEvent: toMessage('PressedFirst') },
           {
             keys: ['G', 'H'],
-            toMessage: toMessage('PressedSecond'),
+            mapEvent: toMessage('PressedSecond'),
           },
         ],
       }),
@@ -612,12 +634,12 @@ describe('keyBindings', () => {
         bindings: [
           {
             keys: ['G', 'H'],
-            toMessage: toMessage('PressedFirst'),
+            mapEvent: toMessage('PressedFirst'),
           },
           {
             keys: ['G', 'P'],
             preventDefault: false,
-            toMessage: toMessage('PressedSecond'),
+            mapEvent: toMessage('PressedSecond'),
           },
         ],
       }),
@@ -628,7 +650,7 @@ describe('keyBindings', () => {
         bindings: [
           {
             keys: 'Control++',
-            toMessage: toMessage('PressedMalformed'),
+            mapEvent: toMessage('PressedMalformed'),
           },
         ],
       }),
@@ -639,7 +661,7 @@ describe('keyBindings', () => {
         bindings: [
           {
             keys: 'CapsLock',
-            toMessage: toMessage('PressedModifierKey'),
+            mapEvent: toMessage('PressedModifierKey'),
           },
         ],
       }),
