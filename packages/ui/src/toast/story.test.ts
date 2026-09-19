@@ -60,7 +60,7 @@ const swipeInit = Toast.init({ id: 'test', swipeToDismiss: {} })
 const firstEntryId = 'test-entry-0'
 
 const withEntries = (model: Model, entries: ReadonlyArray<Entry>): Model =>
-  evo(model, {
+  modifyFields(model, {
     entries: () => entries,
     nextEntryKey: () => entries.length,
   })

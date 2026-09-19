@@ -55,7 +55,7 @@ const toastDemoSubscriptions = Subscription.lift(Toast.subscriptions)<
   toParentMessage: message => UiMessage.GotToastDemoMessage({ message }),
 })
 
-export const subscriptions = Subscription.aggregate<UiModel, UiMessage>()(
+export const subscriptions = Subscription.aggregate(
   dragAndDropSubscriptions,
   sliderRatingSubscriptions,
   sliderVolumeSubscriptions,

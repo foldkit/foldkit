@@ -10,7 +10,7 @@ import {
   pipe,
 } from 'effect'
 import * as Command from 'foldkit/command'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import * as Subscription from 'foldkit/subscription'
 import * as Update from 'foldkit/update'
 
@@ -500,7 +500,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
             ) {
               return { model }
             } else {
-              const nextEntry = evo(entry, {
+              const nextEntry = modifyFields(entry, {
                 pendingDismissVersion: Number.increment,
                 swipeState: () =>
                   SwipeState.Dragging({
@@ -606,7 +606,9 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
               ) {
                 return {
                   model: updateEntry(model, entryId, current =>
-                    evo(current, { swipeState: () => SwipeState.Idle() }),
+                    modifyFields(current, {
+                      swipeState: () => SwipeState.Idle(),
+                    }),
                   ),
                 }
               } else {
@@ -649,7 +651,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           const pointerMoveStream = Subscription.fromEvent({
             target: document,
             type: 'pointermove',
-            toMessage: event =>
+            mapEvent: event =>
               MessageSchema.MovedSwipePointer({
                 pointerId: event.pointerId,
                 clientX: event.clientX,
@@ -658,7 +660,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           const pointerUpStream = Subscription.fromEvent({
             target: document,
             type: 'pointerup',
-            toMessage: event =>
+            mapEvent: event =>
               MessageSchema.ReleasedSwipePointer({
                 pointerId: event.pointerId,
                 clientX: event.clientX,
@@ -667,7 +669,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           const pointerCancelStream = Subscription.fromEvent({
             target: document,
             type: 'pointercancel',
-            toMessage: event =>
+            mapEvent: event =>
               MessageSchema.CancelledSwipe({ pointerId: event.pointerId }),
           })
           const pointerMessages = Stream.mergeAll<Message, never, never>(
@@ -695,7 +697,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
             Subscription.fromEventFilterMap({
               target: document,
               type: 'keydown',
-              toMessage: event =>
+              filterMapEvent: event =>
                 pipe(
                   Option.liftPredicate(event.key, key => key === 'Escape'),
                   Option.map(() => MessageSchema.PressedEscape()),

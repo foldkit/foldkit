@@ -68,13 +68,13 @@ const POINTER_ID = 0
 const SETTLING_SWIPE_VERSION = 2
 
 const withEntry = (overrides: Partial<Entry> = {}): Model =>
-  evo(Toast.init({ id: 'test', swipeToDismiss: {} }), {
+  modifyFields(Toast.init({ id: 'test', swipeToDismiss: {} }), {
     entries: () => [makeSettledEntry(overrides)],
     nextEntryKey: () => 1,
   })
 
 const withDisabledEntry = (overrides: Partial<Entry> = {}): Model =>
-  evo(Toast.init({ id: 'test' }), {
+  modifyFields(Toast.init({ id: 'test' }), {
     entries: () => [makeSettledEntry(overrides)],
     nextEntryKey: () => 1,
   })

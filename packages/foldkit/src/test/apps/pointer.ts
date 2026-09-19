@@ -37,7 +37,7 @@ export const initialModel: Model = {
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     PressedPointerDown: ({ pointerType, pointerId }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         pointerDownCount: Number.increment,
         lastPointerType: () => pointerType,
         maybeLastPointerId: () => Option.some(pointerId),
