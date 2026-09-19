@@ -1,5 +1,23 @@
 # create-foldkit-app
 
+## 0.35.2
+
+### Patch Changes
+
+- [#1388](https://github.com/foldkit/foldkit/pull/1388) [`01d0205`](https://github.com/foldkit/foldkit/commit/01d0205a4e2b3b0000c1e9f94c6d87d92be909dd) Thanks [@filipfalcon](https://github.com/filipfalcon)! - The SSR scaffold's Node host now explains why directory page requests reach the server's `fetch` handler. An `ssr.build` build no longer publishes the unrendered `index.html` template beside the browser assets.
+
+- [#1410](https://github.com/foldkit/foldkit/pull/1410) [`591649e`](https://github.com/foldkit/foldkit/commit/591649ea58a648ff777bfc4fce3952dc004f202c) Thanks [@devinjameson](https://github.com/devinjameson)! - Rename `evo` to `modifyFields`
+
+  Replace `evo` imports and calls with `modifyFields` from `foldkit/struct`. Replace `makeConstrainedEvo` with `makeModifyFieldsFor`. The same names are available through the `Struct` namespace from `foldkit`. Both helpers keep their existing behavior and type checking. The old names are removed.
+
+  Use `makeModifyFieldsFor<Base>()` to create a field modifier for generic helpers whose Model extends `Base`. It checks transformers against the base shape while preserving the full Model type.
+
+  `@foldkit/ui` and `@foldkit/devtools` use the renamed helpers and require Foldkit 0.163.0 or newer.
+
+  Rename the lint rule `foldkit/no-spread-in-evo` to `foldkit/no-spread-in-modify-fields`. Update explicit rule settings to the new name. The generated presets and the Submodel boundary rules recognize `modifyFields` calls.
+
+  New app templates, documentation, examples, and the shipped Foldkit app skills use `modifyFields`.
+
 ## 0.35.1
 
 ### Patch Changes
