@@ -108,6 +108,8 @@ Multiple browser tabs can be connected at once and each is addressable by its co
 | `FOLDKIT_DEVTOOLS_MCP_HOST`        | the relay's published host                         | Hostname of the Vite plugin relay.                                                                                                                         |
 | `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY` | `XDG_RUNTIME_DIR`, else the OS temporary directory | Where dev servers publish their relays. Set the same value for the Vite plugin when the two run in different sandboxes.                                    |
 
+Automatic discovery requires the Vite plugin to verify registry directory ownership. On Windows, use `devToolsMcpPort` in the Vite config and set `FOLDKIT_DEVTOOLS_MCP_PORT` to the same fixed port.
+
 ## Notes
 
 - The MCP bridge shares its lifecycle with Foldkit DevTools. If you set `devTools: false` in your program config, the bridge does not start and the Runtime is invisible to MCP. The default enables the bridge in dev.

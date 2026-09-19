@@ -1,6 +1,14 @@
-import { ConfigProvider, Effect, Option } from 'effect'
+import { ConfigProvider, Effect, FileSystem, Option } from 'effect'
 import type { RelayRecord } from 'foldkit/devtools-protocol'
-import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rename,
+  rm,
+  writeFile,
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -46,6 +54,51 @@ describe('discoverRelay', () => {
   const discover = (projectRoot: string) =>
     Effect.runPromise(
       discoverRelay(projectRoot).pipe(
+        Effect.provideService(
+          ConfigProvider.ConfigProvider,
+          ConfigProvider.fromEnv(),
+        ),
+        Effect.provide(NodeServices.layer),
+      ),
+    ).then(Option.getOrUndefined)
+
+  const discoverWithReplacementsDuringCleanup = (
+    projectRoot: string,
+    replacementBeforeMove: () => Promise<void>,
+    replacementAfterMove: () => Promise<void>,
+  ) =>
+    Effect.runPromise(
+      Effect.gen(function* () {
+        const fileSystem = yield* FileSystem.FileSystem
+        let didStartCleanup = false
+        const publishBeforeCleanup = () =>
+          Effect.promise(replacementBeforeMove).pipe(Effect.orDie)
+        const interceptingFileSystem: FileSystem.FileSystem = {
+          ...fileSystem,
+          rename: (oldPath, newPath) => {
+            if (didStartCleanup) {
+              return fileSystem.rename(oldPath, newPath)
+            }
+
+            didStartCleanup = true
+            return publishBeforeCleanup().pipe(
+              Effect.andThen(fileSystem.rename(oldPath, newPath)),
+              Effect.andThen(
+                Effect.promise(replacementAfterMove).pipe(Effect.orDie),
+              ),
+            )
+          },
+          remove: (path, options) =>
+            didStartCleanup
+              ? fileSystem.remove(path, options)
+              : publishBeforeCleanup().pipe(
+                  Effect.andThen(fileSystem.remove(path, options)),
+                ),
+        }
+        return yield* discoverRelay(projectRoot).pipe(
+          Effect.provideService(FileSystem.FileSystem, interceptingFileSystem),
+        )
+      }).pipe(
         Effect.provideService(
           ConfigProvider.ConfigProvider,
           ConfigProvider.fromEnv(),
@@ -137,6 +190,37 @@ describe('discoverRelay', () => {
 
     expect(await discover('/workspace')).toBeUndefined()
     expect(await readdir(registryDirectory)).toEqual([])
+  })
+
+  it('keeps the newest replacement published while stale cleanup is in progress', async () => {
+    const stale = record('/workspace/app', 4750, {
+      id: 'stale',
+      pid: DEAD_PID,
+    })
+    const firstReplacement = record('/workspace/app', 4751, {
+      id: 'first-replacement',
+    })
+    const newestReplacement = record('/workspace/app', 4752, {
+      id: 'newest-replacement',
+    })
+    const recordPath = join(registryDirectory, 'app.json')
+    const publishAtomically = async (value: RelayRecord) => {
+      const pendingPath = `${recordPath}.${value.id}.pending`
+      await writeFile(pendingPath, JSON.stringify(value), 'utf-8')
+      await rename(pendingPath, recordPath)
+    }
+    await publish('app', stale)
+
+    expect(
+      await discoverWithReplacementsDuringCleanup(
+        '/workspace',
+        () => publishAtomically(firstReplacement),
+        () => publishAtomically(newestReplacement),
+      ),
+    ).toBeUndefined()
+    expect(JSON.parse(await readFile(recordPath, 'utf-8'))).toEqual(
+      newestReplacement,
+    )
   })
 
   it('skips records it cannot read', async () => {

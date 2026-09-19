@@ -118,6 +118,7 @@ Where the relay listens, and who it admits:
 
 - The published address carries a random token, and the relay refuses a connection without it, so serving with `--host` opens the app to the network but not Model inspection or Message dispatch.
 - The plugin refuses to publish into a registry directory that belongs to another user or that other users can read, and says so on the console.
+- On platforms where directory ownership cannot be verified, including Windows, the plugin does not publish a registry record. Use a fixed `devToolsMcpPort` and set `FOLDKIT_DEVTOOLS_MCP_PORT` to the same value for MCP access.
 - In middleware mode, where there is no HTTP server to host it, and on an HTTPS dev server, whose self-signed certificate the MCP server could not verify, the relay takes a free loopback port instead.
 
 Pass `devToolsMcpPort` to keep a socket of its own on a fixed port, on every interface, for an MCP server that is told the port through `FOLDKIT_DEVTOOLS_MCP_PORT`:

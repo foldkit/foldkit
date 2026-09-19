@@ -17,4 +17,6 @@ The record a dev server publishes is `RelayRecord`, exported from `foldkit/devto
 
 The registry is read and written through Effect's platform services, so `@foldkit/vite-plugin` now depends on `@effect/platform-node`; nothing changes for an application, which installs it with the plugin.
 
+The plugin refuses to publish a registry record on platforms where it cannot verify directory ownership, including Windows. Use a fixed `devToolsMcpPort` and the matching `FOLDKIT_DEVTOOLS_MCP_PORT` there.
+
 `create-foldkit-app` scaffolds `vite.config.ts` without `devToolsMcpPort`, since the relay is found without one.

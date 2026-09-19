@@ -19,6 +19,7 @@ import { tmpdir } from 'node:os'
 
 const RUNTIME_DIRECTORY_VARIABLE = 'XDG_RUNTIME_DIR'
 const RECORD_FILE_EXTENSION = '.json'
+const RETIRING_RECORD_SUFFIX = '.retiring'
 
 /**
  * The services the registry is read through. `NodeServices.layer` from
@@ -80,13 +81,36 @@ const readLiveRecordFile = (
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem
     const maybeRecord = yield* readRecordFile(filePath)
-    const isStale = Option.exists(
-      maybeRecord,
-      record => !isProcessAlive(record.pid),
-    )
 
-    if (isStale) {
-      yield* fileSystem.remove(filePath, { force: true }).pipe(Effect.ignore)
+    if (Option.isSome(maybeRecord) && !isProcessAlive(maybeRecord.value.pid)) {
+      const retiringPath = `${filePath}.${encodeURIComponent(
+        maybeRecord.value.id,
+      )}${RETIRING_RECORD_SUFFIX}`
+      const wasMoved = yield* fileSystem.rename(filePath, retiringPath).pipe(
+        Effect.as(true),
+        Effect.orElseSucceed(() => false),
+      )
+      if (!wasMoved) {
+        return Option.none<RelayRecord>()
+      }
+
+      const maybeMoved = yield* readRecordFile(retiringPath)
+      const isOriginalRecord = Option.exists(
+        maybeMoved,
+        record => record.id === maybeRecord.value.id,
+      )
+
+      if (isOriginalRecord) {
+        yield* fileSystem
+          .remove(retiringPath, { force: true })
+          .pipe(Effect.ignore)
+      } else {
+        yield* fileSystem.link(retiringPath, filePath).pipe(Effect.ignore)
+        yield* fileSystem
+          .remove(retiringPath, { force: true })
+          .pipe(Effect.ignore)
+      }
+
       return Option.none<RelayRecord>()
     }
 

@@ -672,8 +672,9 @@ const attachRelayHandlers = (
   })
 }
 
-const requestUrl = (request: IncomingMessage): URL =>
-  new URL(request.url ?? '/', 'http://relay')
+const requestUrl = Option.liftThrowable(
+  (request: IncomingMessage) => new URL(request.url ?? '/', 'http://relay'),
+)
 
 const boundPort = (
   address: AddressInfo | string | null,
@@ -778,7 +779,13 @@ const hostRelayOnServer = (
       socket: Duplex,
       head: Buffer,
     ): void => {
-      const url = requestUrl(request)
+      const maybeUrl = requestUrl(request)
+      if (Option.isNone(maybeUrl)) {
+        socket.destroy()
+        return
+      }
+
+      const url = maybeUrl.value
       if (url.pathname !== RELAY_PATH) {
         return
       }

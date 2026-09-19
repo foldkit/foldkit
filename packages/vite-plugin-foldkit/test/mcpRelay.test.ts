@@ -839,10 +839,28 @@ describe('DevTools MCP relay discovery', () => {
       ).toEqual(Option.some('is owned by another user'))
       expect(
         relayRegistryDirectoryRefusal(ownedByAnother, Option.none()),
-      ).toEqual(Option.none())
+      ).toEqual(Option.some('has ownership that cannot be verified'))
     },
     TEST_TIMEOUT,
   )
+
+  it('refuses a registry directory when ownership cannot be verified', async () => {
+    const info = await Effect.runPromise(
+      Effect.gen(function* () {
+        const fileSystem = yield* FileSystem.FileSystem
+        return yield* fileSystem.stat(registryDirectory)
+      }).pipe(Effect.provide(NodeServices.layer)),
+    )
+    const privateMode = { ...info, mode: 0o700, uid: Option.none<number>() }
+    const sharedMode = { ...info, mode: 0o755, uid: Option.some(42) }
+
+    expect(relayRegistryDirectoryRefusal(privateMode, Option.some(42))).toEqual(
+      Option.some('has ownership that cannot be verified'),
+    )
+    expect(relayRegistryDirectoryRefusal(sharedMode, Option.none())).toEqual(
+      Option.some('has ownership that cannot be verified'),
+    )
+  })
 
   it.skipIf(Option.isNone(maybeNetworkAddress))(
     'publishes the network address the dev server is bound to',
@@ -882,6 +900,59 @@ describe('DevTools MCP relay discovery', () => {
 
       await runRegistry(retireRelayRecord(root, 'replacement'))
       expect(await publishedRecord(root)).toBeUndefined()
+    },
+    TEST_TIMEOUT,
+  )
+
+  it(
+    'does not restore a moved replacement over a newer relay record',
+    async () => {
+      const root = '/workspace/overlapping-restarts'
+      const original: RelayRecord = {
+        version: 1,
+        id: 'original',
+        root,
+        url: 'ws://localhost:9988',
+        pid: process.pid,
+        startedAt: 1,
+      }
+      const replacement: RelayRecord = {
+        ...original,
+        id: 'replacement',
+        startedAt: 2,
+      }
+      const newest: RelayRecord = { ...original, id: 'newest', startedAt: 3 }
+      await runRegistry(publishRelayRecord(original))
+
+      await runRegistry(
+        Effect.gen(function* () {
+          const fileSystem = yield* FileSystem.FileSystem
+          const interleavedFileSystem = {
+            ...fileSystem,
+            rename: (fromPath: string, toPath: string) =>
+              Effect.gen(function* () {
+                if (toPath.endsWith('.retiring')) {
+                  yield* Effect.promise(() =>
+                    runRegistry(publishRelayRecord(replacement)),
+                  )
+                  yield* fileSystem.rename(fromPath, toPath)
+                  yield* Effect.promise(() =>
+                    runRegistry(publishRelayRecord(newest)),
+                  )
+                } else {
+                  yield* fileSystem.rename(fromPath, toPath)
+                }
+              }),
+          }
+
+          yield* retireRelayRecord(root, original.id).pipe(
+            Effect.provideService(FileSystem.FileSystem, interleavedFileSystem),
+          )
+        }),
+      )
+
+      expect(await publishedRecord(root)).toEqual(newest)
+      expect(await readdir(registryDirectory)).toHaveLength(1)
     },
     TEST_TIMEOUT,
   )

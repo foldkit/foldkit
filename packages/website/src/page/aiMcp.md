@@ -68,6 +68,8 @@ The browser bridge runs alongside DevTools and subscribes to the DevTools store.
 
 The plugin publishes the relay's address to a per-user registry. The address carries a token the relay requires of every connection. The registry lives under `XDG_RUNTIME_DIR`, or the operating system's temporary directory, unless `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY` names another, and the plugin refuses to publish into a directory that other users can read.
 
+On Windows, directory ownership cannot be verified, so automatic discovery is unavailable. Set `devToolsMcpPort` in the Vite config and give the MCP server the same port through `FOLDKIT_DEVTOOLS_MCP_PORT`.
+
 The MCP server runs as a child process of the AI agent, looks up the relay of the dev server most recently started for the project it runs in, and exposes those requests as typed tools. `FOLDKIT_PROJECT_ROOT` names another project, and `FOLDKIT_DEVTOOLS_MCP_PORT` skips the lookup for a fixed port.
 
 More than one browser tab can connect at once. `foldkit_list_runtimes` returns each connection ID, and `runtime_id` selects one explicitly. When a tab closes, the relay removes it from the live Runtime list.

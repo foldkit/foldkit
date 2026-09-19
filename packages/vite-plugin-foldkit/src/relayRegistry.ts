@@ -96,23 +96,29 @@ const relayRecordPath = (
 /**
  * Why the current user must not publish into a directory: it belongs to
  * another user, or other users can read or write it. `None` when the
- * directory is private to the current user, and on a platform without POSIX
- * ownership, where `maybeCurrentUid` is `None`.
+ * directory is private to the current user.
  */
 export const relayRegistryDirectoryRefusal = (
   info: FileSystem.File.Info,
   maybeCurrentUid: Option.Option<number>,
 ): Option.Option<string> =>
-  Option.flatMap(maybeCurrentUid, currentUid => {
-    if (Option.exists(info.uid, uid => uid !== currentUid)) {
-      return Option.some('is owned by another user')
-    }
+  Option.match(maybeCurrentUid, {
+    onNone: () => Option.some('has ownership that cannot be verified'),
+    onSome: currentUid => {
+      if (Option.isNone(info.uid)) {
+        return Option.some('has ownership that cannot be verified')
+      }
 
-    if ((info.mode & PERMISSIONS_BEYOND_OWNER) !== 0) {
-      return Option.some('is readable or writable by other users')
-    }
+      if (info.uid.value !== currentUid) {
+        return Option.some('is owned by another user')
+      }
 
-    return Option.none()
+      if ((info.mode & PERMISSIONS_BEYOND_OWNER) !== 0) {
+        return Option.some('is readable or writable by other users')
+      }
+
+      return Option.none()
+    },
   })
 
 const maybeProcessUid = Option.map(
@@ -208,20 +214,21 @@ export const retireRelayRecord = (
       return
     }
 
-    // NOTE: In middleware mode a dev server restart publishes the
-    // replacement's record before the replaced server shuts down, and its
-    // rename can land between the read above and a remove. The record is
-    // moved aside and read again: whatever is read there is what is removed,
-    // and another relay's record goes back where it was.
-    yield* fileSystem.rename(recordPath, retiringPath).pipe(Effect.ignore)
+    // NOTE: A replacement may publish between the first read and rename. A
+    // hard link restores its record only if no newer record occupies the path.
+    const move = yield* fileSystem
+      .rename(recordPath, retiringPath)
+      .pipe(Effect.exit)
+    if (Exit.isFailure(move)) {
+      return
+    }
+
     const maybeMoved = yield* readRelayRecordAt(retiringPath)
     const isAnotherRelay = Option.exists(maybeMoved, record => record.id !== id)
 
     if (isAnotherRelay) {
-      yield* fileSystem.rename(retiringPath, recordPath).pipe(Effect.ignore)
-    } else {
-      yield* fileSystem
-        .remove(retiringPath, { force: true })
-        .pipe(Effect.ignore)
+      yield* fileSystem.link(retiringPath, recordPath).pipe(Effect.ignore)
     }
+
+    yield* fileSystem.remove(retiringPath, { force: true }).pipe(Effect.ignore)
   })
