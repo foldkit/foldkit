@@ -180,6 +180,28 @@ Export a helper from the child for transitions the parent is allowed to request.
 
 `Update.foldChild` and `Update.foldChildStep` write the returned child Model into the parent and lift the child's Commands. When the child can emit OutMessages, pass `foldOutMessage` so the parent handles every variant instead of accidentally omitting one. The [Submodel guide](/core/submodel) explains child Messages and OutMessages. [Informing Submodels](/patterns/informing-submodels) covers parent-owned facts that a child needs to hear about.
 
+## Fold Child Initialization Results Completely
+
+A child `init` or `boot` can return a Model, Commands, and an OutMessage. Here, `Settings.boot` applies a Message through `update` and returns all three:
+
+::Snippet{name="antiPatternChildInitSettings" label="Settings.boot emits RestoredTheme" class="mb-4"}
+
+Both parent examples below use this same Settings Submodel. Copying its Model and mapping its Commands by hand can silently drop the OutMessage:
+
+::Snippet{name="antiPatternChildInitBad" label="❌ Manual assembly loses an initialization OutMessage" class="mb-4"}
+
+`Update.foldChildInit` keeps the three parts together. Give it a `toParentModel` that installs the child Model and an exhaustive, named OutMessage fold. Keep separate parent-owned setup in its own Step rather than hiding it in `toParentModel`:
+
+::Snippet{name="antiPatternChildInitGood" label="✅ Fold the child result and compose parent-owned Steps"}
+
+The helper lifts the child's Commands, then runs the OutMessage fold against the completed parent Model. Its returned Command array puts lifted child Commands before Commands from the fold; the Runtime starts those Commands independently, so array order does not sequence their execution or completion. See [Folding Update](/core/submodel#fold-child) and [Composing Update Steps](/core/update#composing-update-steps).
+
+Assembling one complete parent Model from several independent child init results is valid. Use `Update.foldChildInits` to construct that Model once and handle each child's OutMessage against it. Each local fold receives the Model produced by the preceding fold, so later folds preserve earlier changes:
+
+::Snippet{name="updateIndependentInits" label="✅ Fold independent child initialization results together"}
+
+If any child fold can emit a parent OutMessage, `resolveOutMessage` must decide which single parent OutMessage, if any, to emit from those results. [Combining Child Initialization Results](/core/update#combining-independent-results) explains the local folds, and [Initializing Children with OutMessages](/core/update#initializing-children-with-outmessages) shows `resolveOutMessage`.
+
 ## Know What Linting Can Catch {#what-linting-can-catch}
 
 The [Foldkit linter](/tooling/oxlint-plugin) can recognize code shapes such as a module-level `let`, `Date.now()` inside update, a parent constructing a child Message, or a Mount whose `execute` function never uses its element. It also flags direct child Model edits and manual child Return copies when an in-file fold establishes the Submodel boundary. It cannot decide whether two domain states may coexist, whether an async result can become stale, or which part of an application should own a value without that boundary evidence. Those questions still require design review.
