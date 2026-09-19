@@ -43,7 +43,7 @@ const waitForNextTurn = (): Promise<void> =>
   new Promise(resolve => setTimeout(resolve, 0))
 
 describe('Toast Subscriptions', () => {
-  it('Escape emits one Message without reacting to other keys', async () => {
+  it('emits PressedEscape only for the Escape key', async () => {
     const model = withDraggingEntries([
       makeDraggingEntry('test-entry-0', POINTER_ID, 100),
       makeDraggingEntry('test-entry-1', OTHER_POINTER_ID, 200),

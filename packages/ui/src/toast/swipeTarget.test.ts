@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { isSwipeExcludedTarget } from './swipeTarget.js'
 
 describe('isSwipeExcludedTarget', () => {
-  it('ignores the close control and its descendants', () => {
+  it('excludes a button and its descendants', () => {
     const button = document.createElement('button')
     const icon = document.createElement('svg')
     button.appendChild(icon)
@@ -12,7 +12,7 @@ describe('isSwipeExcludedTarget', () => {
     expect(isSwipeExcludedTarget('touch', icon)).toBe(true)
   })
 
-  it('allows mouse text selection without disabling touch swipes', () => {
+  it('excludes text marked to ignore swipes for mouse but not touch', () => {
     const paragraph = document.createElement('p')
     paragraph.setAttribute('data-toast-swipe-ignore', '')
     const text = document.createElement('span')
@@ -25,7 +25,7 @@ describe('isSwipeExcludedTarget', () => {
     expect(isSwipeExcludedTarget('touch', text)).toBe(false)
   })
 
-  it('still allows a swipe on ordinary entry content', () => {
+  it('does not exclude ordinary entry content', () => {
     const card = document.createElement('div')
 
     expect(isSwipeExcludedTarget('mouse', card)).toBe(false)

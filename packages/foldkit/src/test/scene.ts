@@ -2140,9 +2140,8 @@ const simulatedPointerTarget = (root: VNode, target: VNode): Element => {
 /** Simulates a pointerdown event on the element matching the target.
  *  When the element has no pointerdown handler, the event bubbles up to
  *  the nearest ancestor with one, mirroring browser event propagation.
- *  The handler receives a detached DOM representation of the target and
- *  its ancestor chain as `event.target`, preserving tag and attributes for
- *  `closest()` checks.
+ *  The `OnPointerDown` callback receives a detached element representing
+ *  the target and its ancestors, so `closest()` checks work in Scene tests.
  *  Defaults to `pointerType: 'mouse'`, `button: 0`, `screenX/screenY: 0`,
  *  `clientX/clientY: 0`, and `pointerId: 0`. */
 export const pointerDown =

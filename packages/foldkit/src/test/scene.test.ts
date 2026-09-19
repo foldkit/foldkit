@@ -3979,7 +3979,7 @@ describe('scene with pointer events', () => {
     )
   })
 
-  test('pointerDown passes pointerId option', () => {
+  test('pointerDown passes a custom pointer ID to the handler', () => {
     Scene.scene(
       { update: pointerUpdate, view: pointerView },
       Scene.given(pointerInitialModel),

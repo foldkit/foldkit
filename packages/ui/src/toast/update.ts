@@ -53,10 +53,8 @@ export type ShowInput<A> = Readonly<{
   sticky?: boolean
 }>
 
-/** Schedules an auto-dismiss timer for an entry. The result Message carries a
- *  version so stale timers (from hover or manual dismiss) are discarded in
- *  the update function. Static. The Command definition doesn't depend on
- *  payload. */
+/** Waits for an entry's auto-dismiss duration, then emits a versioned
+ *  `CompletedWaitBeforeDismissal` Message so update can ignore stale timers. */
 export const WaitBeforeDismissal = Command.define('WaitBeforeDismissal', {
   args: {
     entryId: Schema.String,
@@ -73,9 +71,8 @@ export const WaitBeforeDismissal = Command.define('WaitBeforeDismissal', {
 
 const DEFAULT_VARIANT: Variant = 'Info'
 
-/** Holds the swipe timer that clears a cancelled gesture's settling state
- *  once consumer CSS has had time to animate the snap-back. Static. The
- *  Command definition doesn't depend on payload. */
+/** Waits for a short or cancelled swipe to animate back, then emits
+ *  `CompletedWaitForSwipeSettled` so update can clear `Settling`. */
 export const WaitForSwipeSettled = Command.define('WaitForSwipeSettled', {
   args: {
     entryId: Schema.String,

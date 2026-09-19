@@ -185,7 +185,7 @@ describe('Toast', () => {
       )
     })
 
-    it('attaches pointerdown handler for swipe', () => {
+    it('attaches a pointerdown handler when swipe is enabled', () => {
       Scene.scene(
         { update: Toast.update, view: sceneView() },
         Scene.given(withEntry()),
@@ -193,7 +193,7 @@ describe('Toast', () => {
       )
     })
 
-    it('does not start a mouse swipe on controls or selectable text', () => {
+    it('does not start a mouse swipe from controls or text marked to ignore swipes', () => {
       const view = (model: Model, h: HtmlBuilder<Message>) =>
         Toast.view(
           model,
@@ -229,7 +229,7 @@ describe('Toast', () => {
       )
     })
 
-    it('adds data-swipe=move and translate offset when dragging', () => {
+    it('renders drag translation separately from transform', () => {
       const model = withEntry({
         swipeState: SwipeState.Dragging({
           pointerId: POINTER_ID,
@@ -248,7 +248,7 @@ describe('Toast', () => {
       )
     })
 
-    it('does not add data-swipe when idle', () => {
+    it('omits data-swipe while idle', () => {
       Scene.scene(
         { update: Toast.update, view: sceneView() },
         Scene.given(withEntry()),
@@ -280,7 +280,7 @@ describe('Toast', () => {
       )
     })
 
-    it('keeps the released offset rendered while the leave runs', () => {
+    it('holds the release offset until the leave animation starts', () => {
       Scene.scene(
         { update: Toast.update, view: sceneView() },
         Scene.given(withEntry()),
@@ -316,7 +316,7 @@ describe('Toast', () => {
       )
     })
 
-    it('renders settling without an offset after a cancelled release', () => {
+    it('returns a short swipe to zero while settling', () => {
       Scene.scene(
         { update: Toast.update, view: sceneView() },
         Scene.given(withEntry()),

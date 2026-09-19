@@ -68,9 +68,8 @@ export const DEFAULT_SWIPE_THRESHOLD = 40
 /** Default direction in which a pointer can dismiss a Toast. */
 export const DEFAULT_SWIPE_DIRECTION: SwipeDirection = 'Right'
 
-/** How long the view holds `data-swipe="settling"` after a cancelled
- *  swipe so consumer CSS can animate the snap-back. Match a custom
- *  `transition` on `[data-swipe="settling"]` to this duration. */
+/** Time an entry remains in `Settling` after a short or cancelled swipe,
+ *  allowing consumer CSS to animate it back to rest. */
 export const SWIPE_SETTLE_DURATION = Duration.millis(150)
 
 // ENTRY
@@ -194,12 +193,10 @@ export const makeOutMessage = <A, I>(payloadSchema: Schema.Codec<A, I>) =>
 
 // INIT
 
-/** Opt-in configuration for the swipe-to-dismiss gesture. Omit
- *  `swipeToDismiss` from `InitConfig` to leave swipe disabled: the view
- *  attaches no pointer handler and the gesture Messages are no-ops, so a
- *  Toast without wired subscriptions can never get stuck mid-drag. Pass
- *  `{}` to swipe right by the default threshold, `{ threshold }` to tune how
- *  far the pointer must travel, or `{ direction: 'Left' }` to swipe left. */
+/** Opt-in configuration for swipe-to-dismiss. Without `swipeToDismiss`,
+ *  the view attaches no pointer handler and swipe Messages do nothing.
+ *  Pass `{}` for the default rightward swipe, `{ threshold }` to change
+ *  the distance, or `{ direction: 'Left' }` to swipe left. */
 export type SwipeToDismissConfig = Readonly<{
   threshold?: number
   direction?: SwipeDirection

@@ -576,7 +576,7 @@ describe('Toast', () => {
   })
 
   describe('swipe', () => {
-    it('PressedEntryPointer is a no-op when swipe is disabled', () => {
+    it('ignores pointer presses when swipe is disabled', () => {
       const model = withEntries(Toast.init({ id: 'test' }), [
         makeSettledEntry(),
       ])
@@ -599,7 +599,7 @@ describe('Toast', () => {
       )
     })
 
-    it('PressedEntryPointer starts dragging and bumps dismiss version', () => {
+    it('starts a drag and invalidates auto-dismiss on pointer press', () => {
       const model = withEntries(swipeInit, [makeSettledEntry()])
       Story.story(
         Toast.update,
@@ -625,7 +625,7 @@ describe('Toast', () => {
       )
     })
 
-    it('MovedSwipePointer tracks currentX while dragging', () => {
+    it('updates the active drag position on pointer movement', () => {
       const model = withEntries(swipeInit, [makeSettledEntry()])
       Story.story(
         Toast.update,
@@ -694,7 +694,7 @@ describe('Toast', () => {
       )
     })
 
-    it('ReleasedSwipePointer at threshold settles back and reschedules dismiss', () => {
+    it('settles back at the threshold and restarts auto-dismiss', () => {
       const model = withEntries(swipeInit, [makeSettledEntry()])
       Story.story(
         Toast.update,
@@ -753,7 +753,7 @@ describe('Toast', () => {
       )
     })
 
-    it('ReleasedSwipePointer just beyond threshold starts a swipe dismissal', () => {
+    it('dismisses when released just past the threshold', () => {
       const model = withEntries(swipeInit, [makeSettledEntry()])
       Story.story(
         Toast.update,
@@ -797,7 +797,7 @@ describe('Toast', () => {
       )
     })
 
-    it('CancelledSwipe settles back without dismissing', () => {
+    it('settles back when the pointer is cancelled', () => {
       const model = withEntries(swipeInit, [makeSettledEntry()])
       Story.story(
         Toast.update,
@@ -850,7 +850,7 @@ describe('Toast', () => {
       )
     })
 
-    it('PressedEscape settles every dragging entry and leaves idle entries alone', () => {
+    it('settles every active drag on Escape without changing idle entries', () => {
       const firstEntry = makeSettledEntry({
         maybeDuration: Option.none(),
         swipeState: SwipeState.Dragging({
@@ -907,7 +907,7 @@ describe('Toast', () => {
       )
     })
 
-    it('starts a second drag with a different pointerId while another entry is dragging', () => {
+    it('allows another entry to start dragging with a different pointer', () => {
       const dragging = SwipeState.Dragging({
         pointerId: POINTER_ID,
         startX: 100,
@@ -944,7 +944,7 @@ describe('Toast', () => {
       )
     })
 
-    it('ignores a second press that reuses an already-active pointerId on another entry', () => {
+    it('does not let one pointer drag two entries', () => {
       const dragging = SwipeState.Dragging({
         pointerId: POINTER_ID,
         startX: 100,
@@ -1150,7 +1150,7 @@ describe('Toast', () => {
       )
     })
 
-    it('ignores PressedEntryPointer for a leaving entry', () => {
+    it('does not start a drag on a leaving entry', () => {
       const leavingEntry = makeSettledEntry({
         animation: {
           id: firstEntryId,
@@ -1292,7 +1292,7 @@ describe('Toast', () => {
       )
     })
 
-    it('CompletedWaitForSwipeSettled ignores a stale completion while dragging', () => {
+    it('does not end a drag when an older settle timer completes', () => {
       const dragging = SwipeState.Dragging({
         pointerId: POINTER_ID,
         startX: 100,
@@ -1317,7 +1317,7 @@ describe('Toast', () => {
       )
     })
 
-    it('CompletedWaitForSwipeSettled ignores an unknown entry', () => {
+    it('ignores settle completion for an unknown entry', () => {
       const settling = SwipeState.Settling({ offsetX: 0 })
       const model = withEntries(swipeInit, [
         makeSettledEntry({ swipeState: settling }),
@@ -1338,7 +1338,7 @@ describe('Toast', () => {
       )
     })
 
-    it('PressedEntryPointer during settling starts a fresh drag', () => {
+    it('starts a new drag before the previous settle completes', () => {
       const model = withEntries(swipeInit, [
         makeSettledEntry({ swipeState: SwipeState.Settling({ offsetX: 0 }) }),
       ])
@@ -1381,7 +1381,7 @@ describe('Toast', () => {
       )
     })
 
-    it('CompletedWaitForSwipeSettled ignores a stale version', () => {
+    it('keeps settling when the completion version is stale', () => {
       const settling = SwipeState.Settling({ offsetX: 0 })
       const model = withEntries(swipeInit, [
         makeSettledEntry({ swipeState: settling, swipeVersion: 1 }),
@@ -1402,7 +1402,7 @@ describe('Toast', () => {
       )
     })
 
-    it('a stale settle timer cannot clear a later swipe dismissal', () => {
+    it('does not clear a later dismissal when an old settle timer completes', () => {
       // NOTE: Story resolves Commands before the next Message, so this test
       // starts from a later dismissal state and sends the stale completion.
       const entry = makeSettledEntry({

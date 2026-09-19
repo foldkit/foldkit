@@ -3855,9 +3855,9 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnPointerLeave'
     readonly f: (pointerType: string) => Option.Option<Message>
   }
-  /** Dispatches an optional Message for pointerdown. The final callback
-   *  argument is the event's originating target, allowing a parent gesture
-   *  handler to ignore presses on nested controls or selectable content. */
+  /** Dispatches an optional Message on pointerdown. The final callback
+   *  arguments identify the pointer and its originating target, so a parent
+   *  gesture handler can distinguish touches and ignore nested controls. */
   OnPointerDown: (
     toMaybeMessage: (
       pointerType: string,

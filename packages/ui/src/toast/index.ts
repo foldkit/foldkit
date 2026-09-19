@@ -113,11 +113,8 @@ const positionToContainerStyle = (
   )
 }
 
-/** Handlers passed to `entryToView`. Spread `dismiss` onto a close
- *  button's attribute array (typically inside `h.button([...dismiss])`)
- *  to let users dismiss the entry manually. The attribute carries the
- *  Toast's dismiss handler bound to this entry's id; it routes through
- *  the Toast boundary's wrap chain at click time. */
+/** Handlers passed to `entryToView`. Spread `dismiss` onto a close button's
+ *  attributes to dispatch `Dismissed` for this entry. */
 export type EntryHandlers = Readonly<{
   dismiss: ReadonlyArray<ChildAttribute>
 }>
@@ -133,16 +130,15 @@ const LEFT_MOUSE_BUTTON = 0
  *
  *  The payload is whatever content shape the consumer supplies via Schema.
  *  The component never reads it. It flows through to `entryToView`. The
- *  component itself owns lifecycle, a11y, and swipe fields (id, variant,
- *  animation, dismiss timer, hover state, and swipe state).
+ *  component owns the entry's lifecycle, accessibility role, dismiss timer,
+ *  hover state, and swipe state.
  *
  *  Consume the bound module's exports everywhere. `Toast.Model` in your app
  *  Model, `Toast.Message` in your parent Message union, `Toast.show` /
  *  `Toast.dismiss` in your update, `Toast.view` in your view. The top-level
- *  exports (`Variant`, `Position`, static message tags,
- *  `WaitBeforeDismissal`) are
- *  payload-independent and safe to reference when you need them without a
- *  bound module, but the typical path is through the factory return.
+ *  exports provide payload-independent Schemas, constants, and Commands.
+ *  Use the bound module for the payload-specific Model, Message, helpers,
+ *  and view.
  *
  *  @example
  *  ```ts

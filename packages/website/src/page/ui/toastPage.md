@@ -12,7 +12,7 @@ Check out how Toast is wired up in a [real Foldkit app](https://github.com/foldk
 
 ## Examples
 
-Click a variant to push a toast onto the stack. Hover a non-sticky toast to pause its auto-dismiss; move away and the timer restarts. Drag a toast right to swipe it away; release after more than 40px and it continues off-screen, otherwise it animates back. Press Escape while dragging to cancel.
+Click a variant to add a toast. Hover a non-sticky toast to pause its auto-dismiss; move away and the timer restarts. Drag a toast right to dismiss it. If you release after more than 40px, it continues off-screen; otherwise it animates back. Press Escape while dragging to cancel.
 
 ::Demo{name="demo"}
 
@@ -20,7 +20,7 @@ Click a variant to push a toast onto the stack. Hover a non-sticky toast to paus
 
 ## Styling
 
-Toast is headless. Its container has fixed positioning and a flex layout that stacks entries according to `position`. The component also sets pointer-event and swipe styles on each entry. Use `containerClassName`, `entryClassName`, and `entryToView` for your own styling; `data-variant` is available for per-variant CSS.
+Toast supplies layout and gesture styles but leaves the appearance to you. Its container has fixed positioning and a flex layout that stacks entries according to `position`. Use `containerClassName`, `entryClassName`, and `entryToView` for your styling; `data-variant` is available for per-variant CSS.
 
 Each entry’s enter and leave phases flow through [Animation](/ui/animation). Style the entry wrapper with CSS transitions or keyframe animations; each phase waits for those animations to finish.
 
@@ -46,7 +46,7 @@ Releasing at or below the threshold, or cancelling with Escape, returns the entr
 }
 ```
 
-The view also exposes the live offset as `--toast-swipe-move-x` for custom styling, such as fading in an action background behind the entry as it moves.
+While an entry is translated, the view exposes its drag or release offset as `--toast-swipe-move-x`. You can use it to style an action background behind the moving entry.
 
 | Attribute         | Condition                                                                                                                                                                                                                                                                                                                                       |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -70,7 +70,7 @@ Configuration object passed to `Toast.init()`.
 | Name              | Type                                                    | Default               | Description                                                                                                                                                                                                                        |
 | ----------------- | ------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `id`              | `string`                                                | —                     | Unique ID for the toast container.                                                                                                                                                                                                 |
-| `defaultDuration` | `Duration.Input`                                        | `Duration.seconds(4)` | Auto-dismiss duration applied to any show() call that does not provide its own duration or pass sticky: true. Accepts any Effect Duration input; a bare number is interpreted as milliseconds.                                     |
+| `defaultDuration` | `Duration.Input`                                        | `Duration.seconds(4)` | Auto-dismiss duration for a `Toast.show` call without its own `duration` or `sticky: true`. Accepts any Effect Duration input; a bare number means milliseconds.                                                                   |
 | `swipeToDismiss`  | `{ threshold?: number; direction?: 'Left' \| 'Right' }` | —                     | Opts the container into swipe-to-dismiss. Omit it to leave swipe disabled. Defaults to a rightward 40px threshold. Set `threshold` for the dismissal distance and `direction: 'Left'` for a leftward swipe. Applies per container. |
 
 ### ShowInput {#show-input}
@@ -79,7 +79,7 @@ Input shape for `Toast.show(model, input)`.
 
 | Name       | Type                                          | Default  | Description                                                                                                                                                                                                                 |
 | ---------- | --------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `payload`  | `A (your payload type)`                       | —        | Content for this entry, in whatever shape you supplied to Toast.make(). The component never reads it; it flows through to your entryToView callback.                                                                        |
+| `payload`  | `A (your payload type)`                       | —        | Content for this entry, in the shape you supplied to `Toast.make`. Toast passes it to your `entryToView` callback without reading it.                                                                                       |
 | `variant`  | `'Info' \| 'Success' \| 'Warning' \| 'Error'` | `'Info'` | Semantic category. Maps to data-variant for styling and to role=status (Info, Success) or role=alert (Warning, Error) for accessibility. The only content-adjacent field the component owns. Everything else is in payload. |
 | `duration` | `Duration.Input`                              | —        | Overrides the container's defaultDuration for this entry. No auto-dismiss timer is scheduled when `sticky: true`.                                                                                                           |
 | `sticky`   | `boolean`                                     | `false`  | When true, the entry does not auto-dismiss. It can still be closed with the close button, an enabled swipe, or `Toast.dismiss`.                                                                                             |
@@ -132,6 +132,6 @@ If you render the Toast Model without `Toast.view`, you own the entry markup, ac
 
 Messages emitted to the parent through the optional `outMessage` field. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
 
-| Name             | Type                   | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| ---------------- | ---------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DismissedToast` | `{ payload: Payload }` | —       | Emitted once an entry has finished its leave animation and is being removed from the Model. Carries the toast's payload typed as your `Payload` Schema. Fold it in the `foldOutMessage` of your Toast fold to lift the dismissal into domain state, for example to resolve a pending action or fire analytics. It fires only after `TransitionedOut`, so it represents the actual removal, not the initial dismiss request. |
+| Name             | Type                   | Default | Description                                                                                                                                                                                                                                                                    |
+| ---------------- | ---------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `DismissedToast` | `{ payload: Payload }` | —       | Emitted when an entry finishes its leave animation and is removed from the Model. It carries the payload from your `Payload` Schema. Handle it in `foldOutMessage` to update domain state or return an analytics Command. It reports removal, not the initial dismiss request. |
