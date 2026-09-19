@@ -1,5 +1,35 @@
 # foldkit
 
+## 0.163.0
+
+### Minor Changes
+
+- [#1387](https://github.com/foldkit/foldkit/pull/1387) [`67af362`](https://github.com/foldkit/foldkit/commit/67af362a488c7f5376a3b7a0e655351171411fd2) Thanks [@filipfalcon](https://github.com/filipfalcon)! - `Document.canonical` no longer defaults to `window.location`, and `Server.renderToString` no longer defaults it to `Request.url`. Only the application knows which route and query values identify a page. For example: `?page=2` may identify a different page, while `?utm_source=newsletter` usually does not.
+
+  Derive `canonical` from the typed route in the Model. If no render supplies it, the client leaves the served `<link rel="canonical">` unchanged or keeps the document without one. When the client first writes `canonical`, it records the existing `href`. A later omission restores that value, or removes the element if the runtime created it. On a hydrated page, the recorded value can be the initial route's server-rendered canonical.
+
+  `ogUrl` can be supplied independently. When it is omitted alongside an explicit `canonical`, it uses that canonical. Its client-side restore and removal behavior matches `canonical`.
+
+  Server rendering returns `canonical` only when the view supplies it. It returns `ogUrl` when the view supplies it or uses an explicit `canonical` as the fallback. Template injection leaves either tag unchanged when the corresponding field is absent.
+
+  **Migration:** applications that relied on the old default must return `canonical` from view. Build it from the route in the Model, as you would build `title`, rather than reading the address bar.
+
+- [#1410](https://github.com/foldkit/foldkit/pull/1410) [`591649e`](https://github.com/foldkit/foldkit/commit/591649ea58a648ff777bfc4fce3952dc004f202c) Thanks [@devinjameson](https://github.com/devinjameson)! - Rename `evo` to `modifyFields`
+
+  Replace `evo` imports and calls with `modifyFields` from `foldkit/struct`. Replace `makeConstrainedEvo` with `makeModifyFieldsFor`. The same names are available through the `Struct` namespace from `foldkit`. Both helpers keep their existing behavior and type checking. The old names are removed.
+
+  Use `makeModifyFieldsFor<Base>()` to create a field modifier for generic helpers whose Model extends `Base`. It checks transformers against the base shape while preserving the full Model type.
+
+  `@foldkit/ui` and `@foldkit/devtools` use the renamed helpers and require Foldkit 0.163.0 or newer.
+
+  Rename the lint rule `foldkit/no-spread-in-evo` to `foldkit/no-spread-in-modify-fields`. Update explicit rule settings to the new name. The generated presets and the Submodel boundary rules recognize `modifyFields` calls.
+
+  New app templates, documentation, examples, and the shipped Foldkit app skills use `modifyFields`.
+
+### Patch Changes
+
+- [#1408](https://github.com/foldkit/foldkit/pull/1408) [`00f6a30`](https://github.com/foldkit/foldkit/commit/00f6a30010e3aecc38975bddcee435e57f9c338e) Thanks [@devinjameson](https://github.com/devinjameson)! - Ensure Subscriptions and ManagedResources observe Model changes made by Messages buffered during boot.
+
 ## 0.162.0
 
 ### Minor Changes
