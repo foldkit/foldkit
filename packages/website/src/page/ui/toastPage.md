@@ -12,7 +12,7 @@ Check out how Toast is wired up in a [real Foldkit app](https://github.com/foldk
 
 ## Examples
 
-Click a variant to push a toast onto the stack. Hover a toast to pause its auto-dismiss; move away and the timer restarts. Drag a toast right to swipe it away; release after 120px to dismiss, otherwise it animates back. Press Escape while dragging to cancel.
+Click a variant to push a toast onto the stack. Hover a toast to pause its auto-dismiss; move away and the timer restarts. Drag a toast right to swipe it away; release after 120px and it continues off-screen, otherwise it animates back. Press Escape while dragging to cancel.
 
 ::Demo{name="demo"}
 
@@ -28,24 +28,28 @@ Each entry’s enter/leave animations flow through the [Animation](/ui/animation
 
 Swipe is pointer-driven and opt-in. Pass `swipeToDismiss` to `Toast.init` (`{}` for the default rightward 80px threshold, `{ threshold: 120 }` for a longer swipe as in this demo, or `{ direction: 'Left' }` for a leftward swipe); without it the view attaches no `pointerdown` handler and the gesture Messages are no-ops, so an existing Toast without wired subscriptions can never get stuck mid-drag. The direction is independent of the view's `position`, so set it explicitly for a left-anchored stack. With swipe enabled, `Toast.view` attaches `pointerdown` per entry and `Toast.subscriptions` drives `pointermove`, `pointerup`, and `pointercancel` plus `Escape` to cancel, locking `user-select` and cursor to `grabbing` while dragging. Wire the subscriptions at the app root with `Subscription.lift(Toast.subscriptions)`. See the snippet below and [Toast subscriptions in the demo app](https://github.com/foldkit/foldkit/blob/main/packages/website/src/page/ui/subscriptions.ts).
 
-While dragging the entry follows the pointer only in the configured direction, with opposite movement clamped to zero. The view sets `data-swipe="move"` and an inline `translate` property holding the offset. The offset lives on `translate` rather than `transform` on purpose: the two compose, so a leave animation that moves the entry with `transform` starts from the release position instead of fighting an inline style. Releasing after the configured distance holds the offset behind `data-swipe="settling"` while the leave animation runs, then emits `DismissedToast` on removal. A slide-out leave needs no swipe-specific CSS; it runs from wherever the pointer let go. Releasing below the threshold (or cancelling with `Escape`) settles back toward zero and reschedules the auto-dismiss timer. The component holds `data-swipe="settling"` for 150ms (`SWIPE_SETTLE_DURATION`) after a cancel so your CSS can animate the snap-back; transition the `translate` property on the settling state, as the demos do:
+While dragging the entry follows the pointer only in the configured direction, with opposite movement clamped to zero. The view sets `data-swipe="move"` and an inline `translate` property holding the offset. The offset lives on `translate` rather than `transform` on purpose: the two compose, so other leave effects can use `transform` without fighting the swipe. Releasing after the configured distance sets `data-swipe="end"`, holds the release offset until the leave phase begins, then targets `100vw` or `-100vw` to carry the entry off-screen before `DismissedToast` fires. Releasing below the threshold (or cancelling with `Escape`) settles back toward zero and reschedules the auto-dismiss timer. The component holds `data-swipe="settling"` for 150ms (`SWIPE_SETTLE_DURATION`) after a cancel so your CSS can animate the snap-back; transition the `translate` property for both phases, as the demos do:
 
 ```css
 .toast-entry[data-swipe='settling'] {
   transition: translate 150ms ease-out;
 }
+
+.toast-entry[data-swipe='end'] {
+  transition: translate 240ms ease-in;
+}
 ```
 
 The view also exposes the live offset as `--toast-swipe-move-x` for custom styling, such as fading in an action background behind the entry as it moves.
 
-| Attribute         | Condition                                                                                                                                                                                                                                                                                               |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-variant`    | Present on each entry, with the variant value (Info, Success, Warning, Error). Use for per-variant CSS.                                                                                                                                                                                                 |
-| `data-enter`      | Present on an entry while its enter animation runs.                                                                                                                                                                                                                                                     |
-| `data-leave`      | Present on an entry while its leave animation runs.                                                                                                                                                                                                                                                     |
-| `data-closed`     | Present on an entry at the closed extreme of its enter or leave animation. Pair with data-enter or data-leave to drive the starting and ending CSS states.                                                                                                                                              |
-| `data-transition` | Present on an entry while either animation runs.                                                                                                                                                                                                                                                        |
-| `data-swipe`      | `move` while an entry is being dragged, `settling` after release until the entry rests or its leave completes. The view positions the entry with the inline `translate` property (which composes with your `transform` animations) and exposes the offset as `--toast-swipe-move-x` for custom styling. |
+| Attribute         | Condition                                                                                                                                                                                                                                                                                                                                       |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-variant`    | Present on each entry, with the variant value (Info, Success, Warning, Error). Use for per-variant CSS.                                                                                                                                                                                                                                         |
+| `data-enter`      | Present on an entry while its enter animation runs.                                                                                                                                                                                                                                                                                             |
+| `data-leave`      | Present on an entry while its leave animation runs.                                                                                                                                                                                                                                                                                             |
+| `data-closed`     | Present on an entry at the closed extreme of its enter or leave animation. Pair with data-enter or data-leave to drive the starting and ending CSS states.                                                                                                                                                                                      |
+| `data-transition` | Present on an entry while either animation runs.                                                                                                                                                                                                                                                                                                |
+| `data-swipe`      | `move` while an entry is being dragged, `settling` while a short or cancelled swipe returns to rest, and `end` while a successful swipe exits. The view positions the entry with the inline `translate` property (which composes with your `transform` animations) and exposes the pointer offset as `--toast-swipe-move-x` for custom styling. |
 
 ## Accessibility
 
@@ -118,7 +122,7 @@ export const subscriptions = Subscription.lift(Toast.subscriptions)<
 
 Without the lift the view still renders `data-swipe="move"` for the initial `pointerdown`, but `pointermove` and `pointerup` never reach the update and the gesture cannot complete.
 
-For custom renderers (for example a [foldcn](https://github.com/elianiva/foldcn)-style stack that owns its own `<li>`), read the offset with `Toast.swipeOffset(entry.swipeState)` and apply `translate: <offset>px` yourself. Mirror the `data-swipe` phases: `move` while `entry.swipeState` is `Dragging`, `settling` while it is `Settling`.
+For custom renderers (for example a [foldcn](https://github.com/elianiva/foldcn)-style stack that owns its own `<li>`), read the pointer offset with `Toast.swipeOffset(entry.swipeState)` and apply `translate: <offset>px` yourself. Mirror the `data-swipe` phases: `move` while `entry.swipeState` is `Dragging`, `settling` while it is `Settling`, and `end` while it is `Dismissing`. For an `end` phase, retain the offset at `LeaveStart` and move toward `100vw` or `-100vw` at `LeaveAnimating`, according to the entry's swipe direction.
 
 ### OutMessage {#out-message}
 

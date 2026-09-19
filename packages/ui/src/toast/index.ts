@@ -177,11 +177,12 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
    *  animation data attributes (`data-enter`, `data-leave`,
    *  `data-transition`, `data-closed`) and `data-variant` reflecting the
    *  entry's variant. When swipe is enabled via `swipeToDismiss`, entries
-   *  also carry `data-swipe` (`move` while dragging, `settling` after
-   *  release) with an inline `translate` property holding the gesture
-   *  offset. The offset lives on `translate` rather than `transform` so it
-   *  composes with your `transform` animations instead of overriding
-   *  them. */
+   *  also carry `data-swipe` (`move` while dragging, `settling` while
+   *  returning to rest, and `end` while dismissing) with an inline
+   *  `translate` property. On a successful swipe, the entry moves from its
+   *  release offset to `100vw` or `-100vw` when leave animation begins.
+   *  The offset lives on `translate` rather than `transform` so it composes
+   *  with your `transform` animations instead of overriding them. */
   const view = defineView<ToastModel, ToastMessage, ViewInputs>(
     (model, viewInputs, h): Html => {
       const { id, entries } = model
@@ -229,12 +230,35 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
         const swipeOffset = toast.swipeOffset(entry.swipeState)
         const maybeSwipePhase = SwipeState.match<
-          Option.Option<'move' | 'settling'>
+          Option.Option<'move' | 'settling' | 'end'>
         >(entry.swipeState, {
           Idle: () => Option.none(),
           Dragging: () => Option.some('move'),
           Settling: () => Option.some('settling'),
+          Dismissing: () => Option.some('end'),
         })
+        const swipeExitTranslate = SwipeState.match<string | undefined>(
+          entry.swipeState,
+          {
+            Idle: () => undefined,
+            Dragging: () => undefined,
+            Settling: () => undefined,
+            Dismissing: ({ direction }) => {
+              if (transitionState !== 'LeaveAnimating') {
+                return undefined
+              }
+
+              return Match.value(direction).pipe(
+                Match.when('Right', () => '100vw'),
+                Match.when('Left', () => '-100vw'),
+                Match.exhaustive,
+              )
+            },
+          },
+        )
+        const swipeTranslate =
+          swipeExitTranslate ??
+          (swipeOffset !== 0 ? `${String(swipeOffset)}px` : undefined)
         const swipeAttributes = Option.match(maybeSwipePhase, {
           onNone: () => [],
           onSome: phase => [h.DataAttribute('swipe', phase)],
@@ -273,9 +297,9 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
             ...(Option.isSome(model.maybeSwipeConfig)
               ? { touchAction: 'pan-y' }
               : {}),
-            ...(swipeOffset !== 0
+            ...(swipeTranslate !== undefined
               ? {
-                  translate: `${String(swipeOffset)}px`,
+                  translate: swipeTranslate,
                   '--toast-swipe-move-x': `${String(swipeOffset)}px`,
                 }
               : {}),

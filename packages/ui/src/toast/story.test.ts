@@ -755,7 +755,7 @@ describe('Toast', () => {
       )
     })
 
-    it('ReleasedSwipePointer beyond threshold holds the offset until the leave completes', () => {
+    it('ReleasedSwipePointer beyond threshold starts a swipe dismissal', () => {
       const model = withEntries(swipeInit, [makeSettledEntry()])
       Story.story(
         Toast.update,
@@ -782,7 +782,7 @@ describe('Toast', () => {
         Story.model((next: Model) => {
           const entry = requireEntry(next, 0)
           expect(entry.swipeState).toStrictEqual(
-            SwipeState.Settling({ offsetX: 100 }),
+            SwipeState.Dismissing({ offsetX: 100, direction: 'Right' }),
           )
           expect(entry.animation.transitionState).toBe('LeaveStart')
         }),
@@ -1063,7 +1063,7 @@ describe('Toast', () => {
         Story.model((next: Model) => {
           const dismissed = requireEntry(next, 0)
           expect(dismissed.swipeState).toStrictEqual(
-            SwipeState.Settling({ offsetX: 100 }),
+            SwipeState.Dismissing({ offsetX: 100, direction: 'Right' }),
           )
           expect(dismissed.animation.transitionState).toBe('LeaveStart')
           expect(requireEntry(next, 1).swipeState).toStrictEqual(
@@ -1123,10 +1123,10 @@ describe('Toast', () => {
     })
 
     it('does not move or dismiss leftward with the default direction', () => {
-      const model = withEntries(swipeInit, [makeSettledEntry()])
+      const initialModel = withEntries(swipeInit, [makeSettledEntry()])
       Story.story(
         Toast.update,
-        Story.given(model),
+        Story.given(initialModel),
         Story.message(
           Message.PressedEntryPointer({
             entryId: firstEntryId,
@@ -1140,8 +1140,8 @@ describe('Toast', () => {
             clientX: 50,
           }),
         ),
-        Story.model((next: Model) => {
-          expect(requireEntry(next, 0).swipeState).toStrictEqual(
+        Story.model((model: Model) => {
+          expect(requireEntry(model, 0).swipeState).toStrictEqual(
             SwipeState.Dragging({
               pointerId: POINTER_ID,
               startX: 200,
@@ -1155,8 +1155,8 @@ describe('Toast', () => {
             clientX: 50,
           }),
         ),
-        Story.model((next: Model) => {
-          const entry = requireEntry(next, 0)
+        Story.model((model: Model) => {
+          const entry = requireEntry(model, 0)
           expect(entry.swipeState).toStrictEqual(
             SwipeState.Settling({ offsetX: 0 }),
           )
@@ -1182,13 +1182,13 @@ describe('Toast', () => {
     })
 
     it('swipes left when configured with the leftward direction', () => {
-      const model = withEntries(
+      const initialModel = withEntries(
         Toast.init({ id: 'test', swipeToDismiss: { direction: 'Left' } }),
         [makeSettledEntry()],
       )
       Story.story(
         Toast.update,
-        Story.given(model),
+        Story.given(initialModel),
         Story.message(
           Message.PressedEntryPointer({
             entryId: firstEntryId,
@@ -1202,8 +1202,8 @@ describe('Toast', () => {
             clientX: 50,
           }),
         ),
-        Story.model((next: Model) => {
-          expect(requireEntry(next, 0).swipeState).toStrictEqual(
+        Story.model((model: Model) => {
+          expect(requireEntry(model, 0).swipeState).toStrictEqual(
             SwipeState.Dragging({
               pointerId: POINTER_ID,
               startX: 200,
@@ -1217,10 +1217,10 @@ describe('Toast', () => {
             clientX: 50,
           }),
         ),
-        Story.model((next: Model) => {
-          const entry = requireEntry(next, 0)
+        Story.model((model: Model) => {
+          const entry = requireEntry(model, 0)
           expect(entry.swipeState).toStrictEqual(
-            SwipeState.Settling({ offsetX: -150 }),
+            SwipeState.Dismissing({ offsetX: -150, direction: 'Left' }),
           )
           expect(entry.animation.transitionState).toBe('LeaveStart')
         }),
@@ -1231,8 +1231,8 @@ describe('Toast', () => {
             Animation.Message.EndedAnimation(),
           ],
         ),
-        Story.model((next: Model) => {
-          expect(next.entries).toHaveLength(0)
+        Story.model((model: Model) => {
+          expect(model.entries).toHaveLength(0)
         }),
       )
     })
@@ -1347,16 +1347,19 @@ describe('Toast', () => {
       )
     })
 
-    it('a stale settle timer cannot clear a later dismiss settling', () => {
+    it('a stale settle timer cannot clear a later swipe dismissal', () => {
       // NOTE: Story resolves Commands before later Messages, so the stale
-      // completion is constructed directly against the later settling state.
+      // completion is constructed directly against the later dismissal state.
       const entry = makeSettledEntry({
         animation: {
           id: firstEntryId,
           isShowing: false,
           transitionState: 'LeaveAnimating',
         },
-        swipeState: SwipeState.Settling({ offsetX: 100 }),
+        swipeState: SwipeState.Dismissing({
+          offsetX: 100,
+          direction: 'Right',
+        }),
         swipeVersion: 4,
       })
       const model = withEntries(swipeInit, [entry])
@@ -1372,7 +1375,7 @@ describe('Toast', () => {
         Story.model((next: Model) => {
           const entry = requireEntry(next, 0)
           expect(entry.swipeState).toStrictEqual(
-            SwipeState.Settling({ offsetX: 100 }),
+            SwipeState.Dismissing({ offsetX: 100, direction: 'Right' }),
           )
           expect(entry.animation.transitionState).toBe('LeaveAnimating')
         }),

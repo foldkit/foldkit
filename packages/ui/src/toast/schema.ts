@@ -40,14 +40,11 @@ const SwipeConfig = Schema.Struct({
 
 /** Per-entry swipe gesture state. `Dragging` retains the initiating
  *  `pointerId`, so move, release, and cancel Messages update only the entry
- *  that started the gesture and ignore unrelated touches. `Settling` is the
- *  released-but-not-yet-resting phase: it retains the entry's final offset so
- *  the view keeps rendering it after the pointer is gone. A release past the
- *  threshold settles into the leave animation with the offset held; a release
- *  below the threshold (or a cancel) settles back toward zero while consumer
- *  CSS animates the snap-back behind `data-swipe="settling"`. The settle
- *  generation lives in the entry's `swipeVersion` so a stale settle timer
- *  cannot clear a later gesture. */
+ *  that started the gesture and ignore unrelated touches. `Settling` returns
+ *  a cancelled or short swipe to rest. `Dismissing` retains the release offset
+ *  and direction while the leave animation carries the entry off-screen. The
+ *  settle generation lives in the entry's `swipeVersion` so a stale settle
+ *  timer cannot clear a later gesture. */
 export const SwipeState = defineTaggedUnion({
   Idle: {},
   Dragging: {
@@ -57,6 +54,10 @@ export const SwipeState = defineTaggedUnion({
   },
   Settling: {
     offsetX: Schema.Number,
+  },
+  Dismissing: {
+    offsetX: Schema.Number,
+    direction: SwipeDirection,
   },
 })
 export type SwipeState = typeof SwipeState.Type

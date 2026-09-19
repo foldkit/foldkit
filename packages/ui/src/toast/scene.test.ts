@@ -265,16 +265,18 @@ describe('Toast', () => {
             clientX: 200,
           }),
         ),
-        Scene.expect(entryZero).toHaveAttr('data-swipe', 'settling'),
+        Scene.expect(entryZero).toHaveAttr('data-swipe', 'end'),
         Scene.expect(entryZero).toHaveStyle('translate', '100px'),
         Scene.expect(entryZero).not.toHaveStyle('transform'),
         Scene.expect(entryZero).toHaveAttr('data-leave', ''),
-        Scene.Command.resolveAll(
-          [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
-          [
-            Animation.WaitForAnimationSettled,
-            Animation.Message.EndedAnimation(),
-          ],
+        Scene.Command.resolve(
+          Animation.WaitForPaint,
+          Animation.Message.CompletedWaitForPaint(),
+        ),
+        Scene.expect(entryZero).toHaveStyle('translate', '100vw'),
+        Scene.Command.resolve(
+          Animation.WaitForAnimationSettled,
+          Animation.Message.EndedAnimation(),
         ),
         Scene.expect(entryZero).toBeAbsent(),
       )
@@ -316,6 +318,40 @@ describe('Toast', () => {
           }),
         ),
         Scene.expect(entryZero).toExist(),
+      )
+    })
+
+    it('continues a rightward dismissal off-screen after the leave starts', () => {
+      const entry = makeSettledEntry({
+        swipeState: SwipeState.Dismissing({ offsetX: 140, direction: 'Right' }),
+        animation: {
+          id: 'test-entry-0',
+          isShowing: false,
+          transitionState: 'LeaveAnimating',
+        },
+      })
+      Scene.scene(
+        { update: Toast.update, view: sceneView() },
+        Scene.given(withEntry(entry)),
+        Scene.expect(entryZero).toHaveAttr('data-swipe', 'end'),
+        Scene.expect(entryZero).toHaveStyle('translate', '100vw'),
+      )
+    })
+
+    it('continues a leftward dismissal off-screen after the leave starts', () => {
+      const entry = makeSettledEntry({
+        swipeState: SwipeState.Dismissing({ offsetX: -140, direction: 'Left' }),
+        animation: {
+          id: 'test-entry-0',
+          isShowing: false,
+          transitionState: 'LeaveAnimating',
+        },
+      })
+      Scene.scene(
+        { update: Toast.update, view: sceneView() },
+        Scene.given(withEntry(entry)),
+        Scene.expect(entryZero).toHaveAttr('data-swipe', 'end'),
+        Scene.expect(entryZero).toHaveStyle('translate', '-100vw'),
       )
     })
   })

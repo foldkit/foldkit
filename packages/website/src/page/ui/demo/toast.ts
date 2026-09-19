@@ -38,7 +38,7 @@ const variantClassName = (variant: Variant): string =>
   )
 
 const entryClassName =
-  'w-80 motion-safe:data-[swipe=settling]:transition-[translate] motion-safe:data-[swipe=settling]:duration-150 motion-safe:data-[swipe=settling]:ease-out'
+  'w-80 motion-safe:data-[swipe=settling]:transition-[translate] motion-safe:data-[swipe=settling]:duration-150 motion-safe:data-[swipe=settling]:ease-out motion-safe:data-[swipe=end]:transition-[translate] motion-safe:data-[swipe=end]:duration-[240ms] motion-safe:data-[swipe=end]:ease-in'
 
 const buttonClassName =
   'demo-neutral-button inline-flex items-center gap-1.5 text-sm'

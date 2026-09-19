@@ -93,32 +93,34 @@ export const WaitForSwipeSettled = Command.define('WaitForSwipeSettled', {
 })
 
 /** Horizontal offset in pixels for an entry's swipe state. `Dragging`
- *  reports the distance travelled from the press point; `Settling` reports
- *  the offset the release left behind; `Idle` reports zero. */
+ *  reports the distance travelled from the press point; `Dismissing` reports
+ *  the offset the release left behind; `Idle` and `Settling` report zero. */
 export const swipeOffset = (swipeState: typeof SwipeState.Type): number =>
   SwipeState.match(swipeState, {
     Idle: () => 0,
     Dragging: dragging => dragging.currentX - dragging.startX,
     Settling: settling => settling.offsetX,
+    Dismissing: dismissing => dismissing.offsetX,
   })
 
 const clampSwipeClientX = (
   startX: number,
   clientX: number,
   direction: SwipeDirection,
-): number => {
-  if (direction === 'Right') {
-    return Math.max(startX, clientX)
-  } else {
-    return Math.min(startX, clientX)
-  }
-}
+): number =>
+  Match.value(direction).pipe(
+    Match.withReturnType<number>(),
+    Match.when('Right', () => Math.max(startX, clientX)),
+    Match.when('Left', () => Math.min(startX, clientX)),
+    Match.exhaustive,
+  )
 
 const isDragging = (swipeState: typeof SwipeState.Type): boolean =>
   SwipeState.match(swipeState, {
     Idle: () => false,
     Dragging: () => true,
     Settling: () => false,
+    Dismissing: () => false,
   })
 
 const isSettling = (swipeState: typeof SwipeState.Type): boolean =>
@@ -126,6 +128,7 @@ const isSettling = (swipeState: typeof SwipeState.Type): boolean =>
     Idle: () => false,
     Dragging: () => false,
     Settling: () => true,
+    Dismissing: () => false,
   })
 
 /** Factory that binds Toast's runtime (update fn, helpers, commands) to a
@@ -177,6 +180,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         Idle: () => Result.failVoid,
         Dragging: dragging => Result.succeed(dragging.pointerId),
         Settling: () => Result.failVoid,
+        Dismissing: () => Result.failVoid,
       }),
     )
 
@@ -196,6 +200,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           Idle: () => false,
           Dragging: dragging => dragging.pointerId === pointerId,
           Settling: () => false,
+          Dismissing: () => false,
         }),
       ),
       Option.flatMap(entry =>
@@ -204,6 +209,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           Dragging: dragging =>
             Option.some({ entryId: entry.id, startX: dragging.startX }),
           Settling: () => Option.none(),
+          Dismissing: () => Option.none(),
         }),
       ),
     )
@@ -581,7 +587,10 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
                       const nextVersion = Number.increment(entry.swipeVersion)
                       const nextEntry = modifyFields(entry, {
                         swipeState: () =>
-                          SwipeState.Settling({ offsetX: offset }),
+                          SwipeState.Dismissing({
+                            offsetX: offset,
+                            direction: swipeConfig.direction,
+                          }),
                         swipeVersion: () => nextVersion,
                       })
                       const settlingModel = updateEntry(
