@@ -31,6 +31,7 @@ import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
 import type { HttpApiSecurity } from "./HttpApiSecurity.ts"
+import * as HttpApiPath from "./internal/path.ts"
 
 /**
  * OpenAPI annotation for overriding generated identifiers, including operation ids.
@@ -392,8 +393,17 @@ function makeOpenApi<Id extends string, Groups extends HttpApiGroup.Constraint>(
         responses: {}
       }
 
-      const path = endpoint.path.replace(/:(\w+)\??/g, "{$1}")
-      const method = endpoint.method.toLowerCase() as OpenAPISpecMethodName
+      const paramNames = HttpApiPath.getParamNames(endpoint.params)
+      const path = endpoint.path.replace(
+        /:(\w+)\??/g,
+        (match, key: string) => paramNames === undefined || paramNames.has(key) ? `{${key}}` : match
+      )
+      const method = endpoint.method.toLowerCase() as Lowercase<HttpMethod.HttpMethod>
+      const isQuery = method === "query"
+      const operationKey = isQuery ? "QUERY" : method
+      const operationPath = isQuery
+        ? ["paths", path, "x-oai-additionalOperations", operationKey]
+        : ["paths", path, operationKey]
 
       function processResponseBodies(bodies: ResponseBodies, defaultDescription: () => string) {
         for (const [status, { content, descriptions, headers, streamContent }] of bodies) {
@@ -415,7 +425,7 @@ function makeOpenApi<Id extends string, Groups extends HttpApiGroup.Constraint>(
                 pathOps.push({
                   _tag: "parameter",
                   ast: ps.type,
-                  path: ["paths", path, method, "responses", String(status), "headers", name, "schema"]
+                  path: [...operationPath, "responses", String(status), "headers", name, "schema"]
                 })
               }
             }
@@ -429,7 +439,7 @@ function makeOpenApi<Id extends string, Groups extends HttpApiGroup.Constraint>(
                 pathOps.push({
                   _tag: "schema",
                   ast: toEncodingAST(ast, encoding),
-                  path: ["paths", path, method, "responses", String(status), "content", contentType, "schema"]
+                  path: [...operationPath, "responses", String(status), "content", contentType, "schema"]
                 })
                 op.responses[status].content ??= {}
                 InternalRecord.assignProperty(op.responses[status].content, contentType, {
@@ -445,15 +455,13 @@ function makeOpenApi<Id extends string, Groups extends HttpApiGroup.Constraint>(
                 pathOps.push({
                   _tag: "schema",
                   ast: SchemaAST.getAST(stream.events),
-                  path: ["paths", path, method, "responses", String(status), "content", contentType, "schema"]
+                  path: [...operationPath, "responses", String(status), "content", contentType, "schema"]
                 })
                 pathOps.push({
                   _tag: "schema",
                   ast: SchemaAST.getAST(Schema.toCodecJson(Schema.Cause(stream.error, Schema.Defect()))),
                   path: [
-                    "paths",
-                    path,
-                    method,
+                    ...operationPath,
                     "responses",
                     String(status),
                     "content",
@@ -466,9 +474,7 @@ function makeOpenApi<Id extends string, Groups extends HttpApiGroup.Constraint>(
                   _tag: "schema",
                   ast: SchemaAST.getAST(stream.error),
                   path: [
-                    "paths",
-                    path,
-                    method,
+                    ...operationPath,
                     "responses",
                     String(status),
                     "content",
@@ -516,7 +522,7 @@ function makeOpenApi<Id extends string, Groups extends HttpApiGroup.Constraint>(
               pathOps.push({
                 _tag: "parameter",
                 ast: ps.type,
-                path: ["paths", path, method, "parameters", String(op.parameters.length - 1), "schema"]
+                path: [...operationPath, "parameters", String(op.parameters.length - 1), "schema"]
               })
             }
           }
@@ -589,7 +595,7 @@ function makeOpenApi<Id extends string, Groups extends HttpApiGroup.Constraint>(
             pathOps.push({
               _tag: "schema",
               ast: toEncodingAST(ast, encoding._tag),
-              path: ["paths", path, method, "requestBody", "content", contentType, "schema"]
+              path: [...operationPath, "requestBody", "content", contentType, "schema"]
             })
             InternalRecord.assignProperty(content, contentType, {
               schema: {}
@@ -628,9 +634,14 @@ function makeOpenApi<Id extends string, Groups extends HttpApiGroup.Constraint>(
       if (!Object.hasOwn(spec.paths, path)) {
         InternalRecord.assignProperty(spec.paths, path, {})
       }
-      spec.paths[path][method] = op
+      const getOperations = (): Partial<Record<OpenAPISpecMethodName | "QUERY", OpenAPISpecOperation>> => {
+        const pathItem = spec.paths[path]
+        return isQuery ? (pathItem["x-oai-additionalOperations"] ??= {}) : pathItem
+      }
+      getOperations()[operationKey] = op
       finalizeOperations.push(() => {
-        let op = spec.paths[path][method]!
+        const operations = getOperations()
+        let op = operations[operationKey]!
         processAnnotation(endpoint.annotations, Override, (override) => {
           // OpenAPI documents are JSON, so symbol keys are intentionally ignored.
           for (const [key, value] of Object.entries(override)) {
@@ -647,7 +658,7 @@ function makeOpenApi<Id extends string, Groups extends HttpApiGroup.Constraint>(
           }
           operationIds.add(operationId)
         }
-        spec.paths[path][method] = op
+        operations[operationKey] = op
       })
     }
   })
@@ -1075,6 +1086,7 @@ export type OpenAPISpecMethodName =
 /**
  * Generated OpenAPI path item mapping HTTP methods to operations for a single route path.
  * Parameters declared here are shared by every operation on the path.
+ * `QUERY` operations are emitted under `x-oai-additionalOperations`.
  *
  * @category models
  * @since 4.0.0
@@ -1085,6 +1097,7 @@ export type OpenAPISpecPathItem =
   }
   & {
     parameters?: Array<OpenAPISpecParameter>
+    "x-oai-additionalOperations"?: Partial<Record<HttpMethod.HttpMethod, OpenAPISpecOperation>>
   }
 
 /**

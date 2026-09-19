@@ -477,7 +477,7 @@ const HttpPlatformKey = Context.Service<
  * **Details**
  *
  * The effect requires `HttpPlatform`, can fail with a platform error, and supports
- * options for status, headers, offset, and byte range.
+ * options for status, headers, content type, offset, and byte range.
  *
  * @category constructors
  * @since 4.0.0
@@ -485,7 +485,7 @@ const HttpPlatformKey = Context.Service<
 export const file = (
   path: string,
   options?:
-    | (Options & {
+    | (Options.WithContentType & {
       readonly bytesToRead?: ByteSize.Input | undefined
       readonly chunkSize?: number | undefined
       readonly offset?: ByteSize.Input | undefined
@@ -500,7 +500,7 @@ export const file = (
  * **Details**
  *
  * The effect requires `HttpPlatform` and supports options for status, headers,
- * offset, and byte range.
+ * content type, offset, and byte range.
  *
  * @category constructors
  * @since 4.0.0
@@ -508,7 +508,7 @@ export const file = (
 export const fileWeb = (
   file: Body.HttpBody.FileLike,
   options?:
-    | (Options.WithContent & {
+    | (Options.WithContentType & {
       readonly bytesToRead?: number | undefined
       readonly chunkSize?: number | undefined
       readonly offset?: number | undefined
@@ -932,6 +932,21 @@ export const setBody: {
 )
 
 /**
+ * Replaces the body without updating headers. Use when content metadata is unchanged.
+ *
+ * @internal
+ */
+export const setBodyKeepHeaders = (self: HttpServerResponse, body: Body.HttpBody): HttpServerResponse => {
+  const response = Object.create(Proto) as Mutable<HttpServerResponse>
+  response.status = self.status
+  response.statusText = self.statusText
+  response.headers = self.headers
+  response.cookies = self.cookies
+  response.body = body
+  return response
+}
+
+/**
  * Sets the HTTP status code of an `HttpServerResponse`.
  *
  * **Details**
@@ -987,6 +1002,12 @@ export const omitsBody = (response: HttpServerResponse, withoutBody = false): bo
  * (for example, for HEAD responses). Omitted raw `ReadableStream` bodies are
  * cancelled without awaiting completion, and cancellation errors are ignored.
  *
+ * A raw `Response` body is returned as-is after the outer headers are merged
+ * into it: outer headers replace native ones, and cookies are appended. When
+ * its body is omitted, the bodyless `Response` keeps those merged headers and
+ * uses the outer status for 204, 205 and 304, or the raw `Response` status
+ * otherwise.
+ *
  * @category converting
  * @since 4.0.0
  */
@@ -1005,7 +1026,30 @@ export const toWeb = (
     }
   }
   const body = response.body
-  if (omitsBody(response, options?.withoutBody)) {
+  const outerOmitsBody = omitsBody(response)
+  const withoutBody = outerOmitsBody || options?.withoutBody === true
+  if (body._tag === "Raw" && body.body instanceof Response) {
+    const raw = body.body
+    for (const [key, value] of headers as any) {
+      if (key === "set-cookie") {
+        raw.headers.append(key, value)
+      } else {
+        raw.headers.set(key, value)
+      }
+    }
+    if (!withoutBody) {
+      return raw
+    }
+    // A bodyless outer status is what the caller chose to send; otherwise the
+    // body is only omitted for HEAD and the raw Response describes the resource.
+    const source = outerOmitsBody ? response : raw
+    return new Response(undefined, {
+      status: source.status,
+      statusText: source.statusText as string,
+      headers: raw.headers
+    })
+  }
+  if (withoutBody) {
     if (body._tag === "Raw" && isReadableStream(body.body)) {
       body.body.cancel().catch(constVoid)
     }
@@ -1031,12 +1075,6 @@ export const toWeb = (
       })
     }
     case "Raw": {
-      if (body.body instanceof Response) {
-        for (const [key, value] of headers as any) {
-          body.body.headers.set(key, value)
-        }
-        return body.body
-      }
       return new Response(body.body as any, {
         status: response.status,
         statusText: response.statusText!,
@@ -1214,7 +1252,7 @@ class ServerHttpClientResponse extends Inspectable.Class implements HttpClientRe
         const rawBody = body.body
         if (rawBody instanceof Response) {
           return Effect.tryPromise({
-            try: () => rawBody.arrayBuffer().then((buffer) => new Uint8Array(buffer)),
+            try: () => rawBody.clone().arrayBuffer().then((buffer) => new Uint8Array(buffer)),
             catch: (cause) => this.decodeError(cause)
           })
         }
