@@ -67,24 +67,24 @@ An interaction invokes the matched element's event handler. If the handler produ
 
 ::Snippet{name="sceneInteractions" label="interaction examples"}
 
-| Step                                   | Invokes                                                                                          |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `click(target)`                        | `OnClick` (runs target and ancestor handlers until propagation stops)                            |
-| `doubleClick(target)`                  | `OnDoubleClick` (bubbles to ancestors)                                                           |
-| `contextMenu(target)`                  | `OnContextMenu` (bubbles to ancestors)                                                           |
-| `pointerDown(target, options?)`        | `OnPointerDown` with optional `{ pointerType, button, screenX, screenY }` (bubbles to ancestors) |
-| `pointerUp(target, options?)`          | `OnPointerUp` with optional `{ pointerType, screenX, screenY }` (bubbles to ancestors)           |
-| `hover(target)`                        | `OnMouseEnter` (falls back to `OnMouseOver`)                                                     |
-| `focus(target)`                        | `OnFocus`                                                                                        |
-| `blur(target)`                         | `OnBlur`                                                                                         |
-| `focusEnter(target)`                   | `OnFocusEnter`                                                                                   |
-| `focusLeave(target)`                   | `OnFocusLeave`                                                                                   |
-| `type(target, text)`                   | `OnInput` with the given text                                                                    |
-| `typeContentEditable(target, text)`    | `OnInput` on a `Contenteditable` host, with the given rendered text                              |
-| `change(target, value)`                | `OnChange` with the given value, for `<select>` and similar                                      |
-| `beforeInput(target, inputType, data)` | `OnBeforeInput` or `OnBeforeInputPreventDefault`, with the given `inputType` and `Option` data   |
-| `keydown(target, key, modifiers?)`     | `OnKeyDown` or `OnKeyDownPreventDefault` with optional `{ shiftKey, ctrlKey, altKey, metaKey }`  |
-| `submit(target)`                       | `OnSubmit`                                                                                       |
+| Step                                   | Invokes                                                                                                                       |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `click(target)`                        | `OnClick` (runs target and ancestor handlers until propagation stops)                                                         |
+| `doubleClick(target)`                  | `OnDoubleClick` (bubbles to ancestors)                                                                                        |
+| `contextMenu(target)`                  | `OnContextMenu` (bubbles to ancestors)                                                                                        |
+| `pointerDown(target, options?)`        | `OnPointerDown` with optional `{ pointerType, button, screenX, screenY, clientX, clientY, pointerId }` (bubbles to ancestors) |
+| `pointerUp(target, options?)`          | `OnPointerUp` with optional `{ pointerType, screenX, screenY }` (bubbles to ancestors)                                        |
+| `hover(target)`                        | `OnMouseEnter` (falls back to `OnMouseOver`)                                                                                  |
+| `focus(target)`                        | `OnFocus`                                                                                                                     |
+| `blur(target)`                         | `OnBlur`                                                                                                                      |
+| `focusEnter(target)`                   | `OnFocusEnter`                                                                                                                |
+| `focusLeave(target)`                   | `OnFocusLeave`                                                                                                                |
+| `type(target, text)`                   | `OnInput` with the given text                                                                                                 |
+| `typeContentEditable(target, text)`    | `OnInput` on a `Contenteditable` host, with the given rendered text                                                           |
+| `change(target, value)`                | `OnChange` with the given value, for `<select>` and similar                                                                   |
+| `beforeInput(target, inputType, data)` | `OnBeforeInput` or `OnBeforeInputPreventDefault`, with the given `inputType` and `Option` data                                |
+| `keydown(target, key, modifiers?)`     | `OnKeyDown` or `OnKeyDownPreventDefault` with optional `{ shiftKey, ctrlKey, altKey, metaKey }`                               |
+| `submit(target)`                       | `OnSubmit`                                                                                                                    |
 
 Pass `Option.some(text)` to `beforeInput` for an edit that carries text and `Option.none()` for one that does not, such as a backward deletion.
 

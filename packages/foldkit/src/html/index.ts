@@ -620,6 +620,8 @@ export type Attribute<Message> = Data.TaggedEnum<{
       timeStamp: number,
       clientX: number,
       clientY: number,
+      pointerId: number,
+      target: EventTarget | null,
     ) => Option.Option<Message>
   }
   OnPointerUp: {
@@ -1716,6 +1718,8 @@ const attributeHandlers: AttributeHandlers = {
           event.timeStamp,
           event.clientX,
           event.clientY,
+          event.pointerId,
+          event.target,
         )
         if (Option.isSome(maybeMessage)) {
           ctx.dispatch(maybeMessage.value)
@@ -3851,6 +3855,9 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'OnPointerLeave'
     readonly f: (pointerType: string) => Option.Option<Message>
   }
+  /** Dispatches an optional Message on pointerdown. The final callback
+   *  arguments identify the pointer and its originating target, so a parent
+   *  gesture handler can distinguish touches and ignore nested controls. */
   OnPointerDown: (
     toMaybeMessage: (
       pointerType: string,
@@ -3860,6 +3867,8 @@ type HtmlAttributes<Message> = {
       timeStamp: number,
       clientX: number,
       clientY: number,
+      pointerId: number,
+      target: EventTarget | null,
     ) => Option.Option<Message>,
   ) => {
     readonly _tag: 'OnPointerDown'
@@ -3871,6 +3880,8 @@ type HtmlAttributes<Message> = {
       timeStamp: number,
       clientX: number,
       clientY: number,
+      pointerId: number,
+      target: EventTarget | null,
     ) => Option.Option<Message>
   }
   OnPointerUp: (
@@ -4971,6 +4982,8 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
       timeStamp: number,
       clientX: number,
       clientY: number,
+      pointerId: number,
+      target: EventTarget | null,
     ) => Option.Option<Message>,
   ) => OnPointerDown({ f: toMaybeMessage }),
   OnPointerUp: (

@@ -2,16 +2,16 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Option, Schema } from 'effect'
-import { Update } from 'foldkit'
+import { Subscription, Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 import { Toast as UiToast } from '@foldkit/ui'
 
-// Define the payload shape for your toast. The Toast component owns only
-// lifecycle + a11y fields (id, variant, transition, dismiss timer, hover
-// state). The payload is yours, whatever you can encode in a Schema:
+// Define the payload shape for your toast. Toast owns the entry lifecycle,
+// accessibility role, optional dismiss timer, hover state, and swipe state.
+// The payload is yours, whatever you can encode in a Schema:
 const ToastPayload = Schema.Struct({
   bodyText: Schema.String,
   maybeLink: Schema.Option(
@@ -34,10 +34,15 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// In your init function, initialize it:
+// In your init function, initialize it. Swipe is opt-in: omit
+// swipeToDismiss to leave it disabled, or pass {} for the default rightward
+// 40px gesture. Set threshold to customize the dismissal distance:
 const init = () => ({
   model: {
-    toast: Toast.init({ id: 'app-toast' }),
+    toast: Toast.init({
+      id: 'app-toast',
+      swipeToDismiss: {},
+    }),
     maybeLastDismissedBody: Option.none(),
     // ...your other fields
   },
@@ -101,10 +106,22 @@ ClickedSave: () =>
     },
   })
 
+// Wire pointer subscriptions once at the app root so swipe tracking
+// continues when the pointer leaves the entry. Without this lift the
+// view still sets data-swipe on pointerdown but never receives move/up.
+export const subscriptions = Subscription.lift(Toast.subscriptions)<
+  Model,
+  Message
+>({
+  toChildModel: model => model.toast,
+  toParentMessage: message => Message.GotToastMessage({ message }),
+})
+
 // In your view, embed Toast via h.submodel once at the app root. The
 // entryToView callback lays out each entry from its payload. The
-// component handles the <li> wrapper, hover-to-pause, and enter/leave
-// animations.
+// component handles the <div> wrapper, hover-to-pause, swipe-to-dismiss
+// (pointerdown + data-swipe="move"/"settling"/"end" +
+// translate/--toast-swipe-move-x), and enter/leave animations.
 const view = (h: HtmlBuilder<Message>) =>
   h.submodel({
     slotId: 'app-toast',
@@ -112,7 +129,7 @@ const view = (h: HtmlBuilder<Message>) =>
     view: Toast.view,
     viewInputs: {
       position: 'BottomRight',
-      entryClassName: 'w-80',
+      entryClassName: 'toast-entry w-80',
       entryToView: (entry, handlers) =>
         h.div(
           [
@@ -126,7 +143,12 @@ const view = (h: HtmlBuilder<Message>) =>
               [
                 h.p(
                   [h.Class('font-semibold text-sm')],
-                  [entry.payload.bodyText],
+                  [
+                    h.span(
+                      [h.DataAttribute('toast-swipe-ignore', '')],
+                      [entry.payload.bodyText],
+                    ),
+                  ],
                 ),
                 ...Option.match(entry.payload.maybeLink, {
                   onNone: () => [],

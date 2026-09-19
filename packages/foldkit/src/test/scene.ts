@@ -35,6 +35,7 @@ import type { Entry as ManagedResourceEntry } from '../managedResource/index.js'
 import { MountTracker } from '../mount/index.js'
 import type { MountDefinition } from '../mount/index.js'
 import { Dispatch } from '../runtime/dispatch.js'
+import { tagNameFromSelector } from '../tagName.js'
 import type { VNode } from '../vdom.js'
 import type {
   AnyCommand,
@@ -2098,6 +2099,7 @@ type PointerDownOptions = Readonly<{
   screenY?: number
   clientX?: number
   clientY?: number
+  pointerId?: number
 }>
 
 const DEFAULT_POINTER_DOWN_OPTIONS: Required<PointerDownOptions> = {
@@ -2107,12 +2109,41 @@ const DEFAULT_POINTER_DOWN_OPTIONS: Required<PointerDownOptions> = {
   screenY: 0,
   clientX: 0,
   clientY: 0,
+  pointerId: 0,
+}
+
+const simulatedPointerTarget = (root: VNode, target: VNode): Element => {
+  const createElement = (vnode: VNode): Element => {
+    const element = document.createElement(
+      tagNameFromSelector(vnode.sel ?? 'div'),
+    )
+
+    for (const [name, value] of Object.entries(vnode.data?.attrs ?? {})) {
+      element.setAttribute(name, globalThis.String(value))
+    }
+
+    return element
+  }
+
+  const targetElement = createElement(target)
+  let child = targetElement
+
+  for (const ancestor of pipe(root, ancestorsOf(target), Array.reverse)) {
+    const parent = createElement(ancestor)
+    parent.appendChild(child)
+    child = parent
+  }
+
+  return targetElement
 }
 
 /** Simulates a pointerdown event on the element matching the target.
  *  When the element has no pointerdown handler, the event bubbles up to
  *  the nearest ancestor with one, mirroring browser event propagation.
- *  Defaults to `pointerType: 'mouse'`, `button: 0`, and `screenX/screenY: 0`. */
+ *  The `OnPointerDown` callback receives a detached element representing
+ *  the target and its ancestors, so `closest()` checks work in Scene tests.
+ *  Defaults to `pointerType: 'mouse'`, `button: 0`, `screenX/screenY: 0`,
+ *  `clientX/clientY: 0`, and `pointerId: 0`. */
 export const pointerDown =
   (target: string | Locator, options?: PointerDownOptions) =>
   <Model, Message, OutMessage = undefined>(
@@ -2133,7 +2164,15 @@ export const pointerDown =
     }
 
     const { value: element } = maybeElement
-    const { pointerType, button, screenX, screenY, clientX, clientY } = {
+    const {
+      pointerType,
+      button,
+      screenX,
+      screenY,
+      clientX,
+      clientY,
+      pointerId,
+    } = {
       ...DEFAULT_POINTER_DOWN_OPTIONS,
       ...options,
     }
@@ -2146,6 +2185,8 @@ export const pointerDown =
         timeStamp: 0,
         clientX,
         clientY,
+        pointerId,
+        target: simulatedPointerTarget(internal.html, element),
       })
     }
 
