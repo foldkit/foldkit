@@ -1472,8 +1472,6 @@ const main = async (): Promise<void> => {
 
       const currentEntry = await loadServerEntry(currentDir)
 
-      // A document comes from a render, the way a host gets one: the browser
-      // build publishes no template, and the server bundle hands none out.
       const pageOf = async (entry: ServerEntry): Promise<string> => {
         const response = await entry.default.fetch(new Request(`${ORIGIN}/`))
         assertConsumer(
@@ -1483,8 +1481,6 @@ const main = async (): Promise<void> => {
         return response.text()
       }
 
-      // The module script that loads a deployment's client. Each build was
-      // given its own `--base`, so the two never name the same file.
       const clientScript = (page: string, buildDir: string): string => {
         const script = /<script type="module"[^>]*\ssrc="[^"]+"[^>]*><\/script>/
         const match = script.exec(page)?.[0]
@@ -1496,13 +1492,9 @@ const main = async (): Promise<void> => {
         return match
       }
 
-      // The page a visitor already had open: rendered and stamped by the
-      // deployment that served it, then met by the client bundle of the
-      // deployment now live. Only the module script is swapped for the live
-      // one; stylesheets and modulepreloads still name the served build. That
-      // is enough, because the build id handoff fails on the script, and it
-      // is less than a full page swap into the live template, which no longer
-      // exists as a file to swap into.
+      // NOTE: the stale page keeps the served build's stylesheets and
+      // modulepreloads. Swapping only its module script tests whether the
+      // current client refuses the served build id.
       const same = await pageOf(servedEntry)
       const csp = same
       const stale = same.replace(

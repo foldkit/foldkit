@@ -228,19 +228,21 @@ Generation is part of the build. `ssr.build.prerender` builds the browser bundle
 
 ::Snippet{name="serverRenderingBuildSsg" label="SSG build configuration"}
 
-The template those pages are rendered into comes from the browser build that produced it rather than from a file on disk. The build does not publish that template: the browser output carries no `index.html` of its own, the fetch handler carries the template, and `/` is a file there only when the build generated it. A template published beside the assets would be served as a page, an empty container at `/` and, on a host that falls back to `index.html` for a request matching no file, at every deep link, all at 200.
+An `ssr.build` build keeps the HTML template in the `fetch` handler instead of publishing it with the browser assets. The client output contains `index.html` only when `prerender` generates `/`. Publishing the unfilled template would let a static host serve an empty page at `/` with status 200. A host configured to fall back to `index.html` could serve that empty page at every missing deep link.
 
-A host that generates its pages itself runs its own loop over the same contract. A loop of your own over a build with `ssr.build` does not read a template at all: it calls the built handler's `fetch` with a `Request` for each path and writes the response body, the way a host would answer that request. The template stays inside the handler, so nothing the loop writes can become the template a later run reads.
+To generate more pages from an `ssr.build` output, call its `fetch` handler with a `Request` for each path. The handler fills the template before returning the response, so the loop never reads the template from disk. For example, this loop generates two routes whose server entry is known to return rendered HTML.
 
 ::Snippet{name="serverRenderingSsgFetchLoop" label="SSG render loop over the fetch handler"}
 
-A loop over a browser build alone, without `ssr.build`, as this website does, renders each path with `renderPage` and injects the result into the template itself:
+The `fetch` response does not say whether the entry returned `Rendered` or a complete `Responded` response. A 200 `Responded` result could carry headers that the loop would lose when it writes only the body. Use this loop only for routes whose entry is known to return rendered HTML, and check that your static host can reproduce any response metadata you need. Foldkit's built-in `prerender` can reject a `Responded` result before writing a file.
+
+This website does not set `ssr.build`, so its generation loop has no built `fetch` handler. It calls `renderPage` and injects each result into the browser build's template.
 
 ::Snippet{name="serverRenderingSsgLoop" label="SSG render loop over a browser build"}
 
-That loop has to keep the template safe itself. Keep a copy of the template outside the build output, and take the built `index.html` as the template only while it still holds the placeholder. The generated `/` replaces that built file, which is where the client build left the template, so a second run against one client build finds no `<div id="root"></div>` there and stops with `injectIntoTemplate found no exact <div id="root"></div> placeholder in the template`. The application's own `index.html` still has its placeholder and is never the file at fault. Reading the template before the loop is not enough on its own, because the loop that destroys it and the run that needs it are different runs.
+The browser-only loop must keep a copy of the built template outside `dist/client`. Generating `/` replaces `dist/client/index.html` with a rendered page. On a later run, use the saved copy if that file no longer contains `<div id="root"></div>`. Reading the file at the start of each run is not enough: after the first run, it is already a page, and `injectIntoTemplate` cannot find the placeholder.
 
-A static file is a body plus whatever headers the file host adds. It cannot carry a redirect, a 404, or per-response headers. Writing a `Responded` result to disk turns a redirect into an ordinary page at that URL. The build should fail on `Responded` and on any rendered status it cannot reproduce.
+A static HTML file cannot preserve a redirect, a 404, or per-response headers. This is why built-in `prerender` refuses `Responded`, non-200 statuses, and explicit headers rather than writing their bodies as ordinary pages.
 
 The [SSG example](https://github.com/foldkit/foldkit/tree/main/examples/ssg) is the minimal reference. This website is the production-scale reference. Its prerender host uses the same `renderPage(Request)` contract, seeds route content through universal Flags, and writes every route as hydratable static HTML.
 
@@ -248,9 +250,9 @@ The [SSG example](https://github.com/foldkit/foldkit/tree/main/examples/ssg) is 
 
 A deployed SSG build is a directory of static files. Any static host or CDN can serve it as is. The hydration handoff already lives in the HTML.
 
-A build that `@foldkit/vite-plugin` owns writes `foldkit.build.json` beside the server bundle, naming the two output directories, the server entry, and every path it generated. A host reads it to decide what its asset layer does with a request matching no file: generated paths are files, anything else reaches the server when there is one. Deriving that from the build is how a deployment target avoids asking for it a second time, in settings whose wrong values serve an empty page at 200.
+A build that `@foldkit/vite-plugin` owns writes `foldkit.build.json` beside the server bundle. It names the two output directories, the server entry, and every generated path. An SSR host can serve those files and send requests that match no file to the server. A static-only SSG host serves the generated files and leaves other paths as misses.
 
-A deployed SSR application needs a host with two jobs: serve the built client assets and call `fetch` for page requests. The build writes no fallback document for such a deployment, so a request that matches no file has to reach `fetch`; a host setting that answers those requests with a file of its own, such as a single-page-application mode, serves the wrong thing. On Node, use the [SSR example's `scripts/serve.ts`](https://github.com/foldkit/foldkit/tree/main/examples/ssr/scripts/serve.ts) as the reference. It serves static files first and falls through to `dist/server/fetch.js`.
+A deployed SSR application needs a host that serves the built client assets and calls `fetch` for page requests. The build writes no fallback document. Send requests that match no file to `fetch`; do not enable a single-page-application fallback that answers those requests with a file. The [SSR example's Node host](https://github.com/foldkit/foldkit/tree/main/examples/ssr/scripts/serve.ts) serves assets and sends page requests to `dist/server/fetch.js`.
 
 ### Which methods reach the entry
 

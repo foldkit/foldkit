@@ -97,8 +97,8 @@ const makeHandler = Effect.gen(function* () {
     () => `http://localhost:${globalThis.String(port)}`,
   )
   const app = yield* loadFetchHandler
-  // NOTE: `index` is unset so a directory request does not serve the raw
-  // client `index.html` template. Page requests go through `fetch` instead.
+  // NOTE: directory requests reach `fetch` even when a generated index file
+  // exists. This host serves assets as files and renders pages at request time.
   const staticFiles = yield* HttpStaticServer.make({
     root: CLIENT_DIR,
     index: undefined,

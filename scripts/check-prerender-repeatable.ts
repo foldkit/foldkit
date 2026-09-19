@@ -83,10 +83,8 @@ const readClientFiles = (): Readonly<Record<string, Buffer>> => {
   return files
 }
 
-// The browser build publishes no `index.html` of its own, so the file exists
-// only as the generated `/`. A missing file or one without a hydration stamp
-// means nothing was generated and the comparisons below would be comparing
-// untouched output with itself.
+// NOTE: without a generated `/`, two unchanged client outputs could compare
+// equal while this gate tested no prerendered page.
 const assertGenerated = (): void => {
   if (!existsSync(INDEX_PATH)) {
     return fail(

@@ -447,8 +447,6 @@ const collectExpectationDifferences = (
   }
 }
 
-// The build publishes no template, so the asset a page loads is read from a
-// page the host renders, the way a visitor's browser reads it.
 const builtAssetPath = async (origin: string): Promise<string> => {
   const page = await askRaw(origin, {
     name: 'rendered page',
