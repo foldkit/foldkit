@@ -9,14 +9,14 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0-rc.115",
+    "@effect/platform-browser": "4.0.0-rc.116",
     "@foldkit/ui": "workspace:*",
     "@livestore/adapter-web": "0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219",
     "@livestore/livestore": "0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219",
     "@livestore/peer-deps": "0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219",
     "@livestore/wa-sqlite": "0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219",
     "clsx": "^2.1.1",
-    "effect": "4.0.0-rc.115",
+    "effect": "4.0.0-rc.116",
     "foldkit": "workspace:*"
   },
   "devDependencies": {

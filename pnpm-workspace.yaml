@@ -11,11 +11,11 @@ allowBuilds:
   simple-git-hooks: true
 
 minimumReleaseAgeExclude:
-  - '@effect/platform-browser@4.0.0-rc.115'
-  - '@effect/platform-node-shared@4.0.0-rc.115'
-  - '@effect/platform-node@4.0.0-rc.115'
-  - '@effect/vitest@4.0.0-rc.115'
-  - effect@4.0.0-rc.115
+  - '@effect/platform-browser@4.0.0-rc.116'
+  - '@effect/platform-node-shared@4.0.0-rc.116'
+  - '@effect/platform-node@4.0.0-rc.116'
+  - '@effect/vitest@4.0.0-rc.116'
+  - effect@4.0.0-rc.116
   - '@livestore/adapter-web@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219'
   - '@livestore/common-cf@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219'
   - '@livestore/common@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219'
@@ -29,9 +29,9 @@ minimumReleaseAgeExclude:
 overrides:
   '@mapbox/jsonlint-lines-primitives': 2.0.2
   '@types/node': 26.4.0
-  effect: 4.0.0-rc.115
-  '@effect/platform-browser': 4.0.0-rc.115
-  '@effect/platform-node': 4.0.0-rc.115
-  '@effect/platform-node-shared': 4.0.0-rc.115
-  '@effect/vitest': 4.0.0-rc.115
+  effect: 4.0.0-rc.116
+  '@effect/platform-browser': 4.0.0-rc.116
+  '@effect/platform-node': 4.0.0-rc.116
+  '@effect/platform-node-shared': 4.0.0-rc.116
+  '@effect/vitest': 4.0.0-rc.116
   'monaco-editor>dompurify': 3.4.14

@@ -108,6 +108,7 @@ export default defineConfig({
       ),
       ...project("@effect/ai-anthropic", "packages/ai/anthropic"),
       ...project("@effect/ai-openai", "packages/ai/openai"),
+      ...project("@effect/ai-typesafe", "packages/ai/typesafe"),
       ...project("@effect/ai-openai-compat", "packages/ai/openai-compat"),
       ...project("@effect/ai-openrouter", "packages/ai/openrouter"),
       ...project("@effect/atom-react", "packages/atom/react", true, {
@@ -195,7 +196,14 @@ export default defineConfig({
       ...project("@effect/sql-pg", "packages/sql/pg"),
       ...project("@effect/sql-pglite", "packages/sql/pglite"),
       ...project("@effect/sql-sqlite-bun", "packages/sql/sqlite-bun"),
-      ...project("@effect/sql-sqlite-do", "packages/sql/sqlite-do"),
+      ...project(
+        "@effect/sql-sqlite-do",
+        "packages/sql/sqlite-do",
+        true,
+        {},
+        // Miniflare needs Node/Bun; keep the in-process client tests on Deno.
+        isDeno ? [...exclude, "test/Miniflare.test.ts"] : undefined
+      ),
       ...project("@effect/sql-sqlite-node", "packages/sql/sqlite-node", isNode),
       ...project("@effect/sql-sqlite-react-native", "packages/sql/sqlite-react-native"),
       ...project("@effect/sql-sqlite-wasm", "packages/sql/sqlite-wasm"),

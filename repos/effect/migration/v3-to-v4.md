@@ -2,9 +2,9 @@
 
 # v3 to v4 Migration Reference
 
-Base: `origin/v3` (`1af4232fea7bc613e1dc68db9bec7b1f596d9e68`)
+Base: `origin/v3` (`1ce1e62367e67a04e63bdf62ce2911cfee8c716c`)
 
-Head: `origin/main` (`91abe38c3797b1c290aedef3b01e8c96dd4fee79`)
+Head: `origin/main` (`9ad9891e24058065bcd445772e005f8ce4b3e42f`)
 
 This file is generated from the API diff and `migration/annotations/*.yaml`.
 
@@ -4164,6 +4164,12 @@ effect/unstable/rpc/Utils (barrel: effect/unstable/rpc)
 
 - `OpenAiTokenizer.make` -> `Tokenizer.make`: The provider-specific tokenizer module was removed; build and provide an effect/unstable/ai/Tokenizer service explicitly, using gpt-tokenizer if equivalent OpenAI counting is required.
 
+### `@effect/ai-openai/OpenAiTool`
+
+- `OpenAiTool.WebSearch` -> `OpenAiTool.WebSearch`: Results now include action alongside status. Only completed is successful; other statuses produce failure results. Inspect isFailure before treating a result as a successful search. Inspect each search source by its type: URL sources have url, while API sources have name and no url.
+
+- `OpenAiTool.WebSearchPreview` -> `OpenAiTool.WebSearchPreview`: Results now include action alongside status. Only completed is successful; other statuses produce failure results. Inspect isFailure before treating a result as a successful search. Inspect each search source by its type: URL sources have url, while API sources have name and no url.
+
 ### `@effect/ai-openrouter/Generated`
 
 - `Generated.ActivityItem` -> `Generated.ActivityItem`: Still generated in v4 from the current OpenRouter specification; re-check the schema's Type/Encoded shape because the generated definition changed.
@@ -4956,6 +4962,8 @@ effect/unstable/rpc/Utils (barrel: effect/unstable/rpc)
 
 ### `@effect/ai/McpServer`
 
+- `McpServer.McpServer` -> `McpServer.McpServer`: The service is now a Context.Service. initializedClients and notificationsMailbox are no longer exposed. Registration callbacks use McpSchema.McpRequestContext; McpServerClient is only supplied for initialized stateful requests. Prefer registerToolkit, registerResource, and registerPrompt over implementing the registry shape directly.
+
 - `McpServer.layer` -> `McpServer.layer`: Moved to effect/unstable/ai/McpServer. Pass a non-empty protocols array of adapters, such as [McpProtocol.v2025\_06\_18], imported with McpProtocol from effect/unstable/ai; it still runs over a caller-provided RpcServer.Protocol.
 
 - `McpServer.layerHttp` -> `McpServer.layerHttp`: Moved to effect/unstable/ai/McpServer and the unified HttpRouter. Pass a non-empty protocols array of adapters, such as [McpProtocol.v2025\_06\_18], imported with McpProtocol from effect/unstable/ai.
@@ -4964,7 +4972,19 @@ effect/unstable/rpc/Utils (barrel: effect/unstable/rpc)
 
 - `McpServer.layerStdio` -> `McpServer.layerStdio`: Moved to effect/unstable/ai/McpServer. Pass a non-empty protocols array of adapters, such as [McpProtocol.v2025\_06\_18], imported with McpProtocol from effect/unstable/ai.
 
+- `McpServer.prompt` -> `McpServer.prompt`: Moved to effect/unstable/ai/McpServer. The registration layer excludes McpSchema.McpRequestContext from prompt decoding and handler requirements instead of McpServerClient.
+
+- `McpServer.registerPrompt` -> `McpServer.registerPrompt`: Moved to effect/unstable/ai/McpServer. Prompt decoding and handler requirements now exclude McpSchema.McpRequestContext instead of McpServerClient; use the request context for protocol-neutral client metadata.
+
+- `McpServer.registerResource` -> `McpServer.registerResource`: Moved to effect/unstable/ai/McpServer. Resource and completion handler requirements now exclude McpSchema.McpRequestContext instead of McpServerClient; use the request context for protocol-neutral client metadata.
+
+- `McpServer.registerToolkit` -> `McpServer.registerToolkit`: Moved to effect/unstable/ai/McpServer. Handler requirements now exclude McpSchema.McpRequestContext instead of McpServerClient. Strict tools reject excess input properties; raw JSON Schema dynamic tools cannot use strict mode. Declared handler failures produce isError results, while parameter validation fails with InvalidParams.
+
+- `McpServer.resource` -> `McpServer.resource`: Moved to effect/unstable/ai/McpServer. The registration layer excludes McpSchema.McpRequestContext from resource and completion handler requirements instead of McpServerClient.
+
 - `McpServer.run` -> `McpServer.run`: Moved to effect/unstable/ai/McpServer. Pass a non-empty protocols array of adapters, such as [McpProtocol.v2025\_06\_18], imported with McpProtocol from effect/unstable/ai; it remains the Effect-level runner over RpcServer.Protocol.
+
+- `McpServer.toolkit` -> `McpServer.toolkit`: Moved to effect/unstable/ai/McpServer. The registration layer supplies McpSchema.McpRequestContext to handlers instead of excluding McpServerClient from requirements. Strict tools reject excess properties and require an Effect Schema rather than raw dynamic JSON Schema.
 
 ### `@effect/ai/Model`
 
@@ -5938,8 +5958,6 @@ effect/unstable/rpc/Utils (barrel: effect/unstable/rpc)
 
 - `EventLogRemote.Hello` -> `effect/unstable/eventlog/EventLogMessage#HelloResponse`: HelloResponse replaces Hello and includes the v4 authentication challenge; HelloRpc defines the endpoint.
 
-- `EventLogRemote.Ping`: TODO: needs guidance
-
 - `EventLogRemote.Pong` -> `none`: The event-log Pong model was removed; heartbeats belong to the generic RPC socket protocol.
 
 - `EventLogRemote.ProtocolRequest` -> `effect/unstable/eventlog/EventLogMessage#EventLogRemoteRpcs`: EventLogRemoteRpcs and generic RPC serialization replace the old protocol request union.
@@ -6071,6 +6089,8 @@ effect/unstable/rpc/Utils (barrel: effect/unstable/rpc)
 - `Reactivity.Reactivity.Service` -> `effect/unstable/reactivity/Reactivity#Reactivity`: The named namespace member was removed; use the branded Reactivity interface directly. Prefer Reactivity.make, or include [Reactivity.TypeId]: Reactivity.TypeId in a custom implementation.
 
 - `Reactivity.make` -> `effect/unstable/reactivity/Reactivity#make`: Import make from the v4 unstable Reactivity module.
+
+- `Reactivity.query`: TODO: needs guidance
 
 ### `@effect/experimental/RequestResolver`
 
@@ -6586,7 +6606,7 @@ effect/unstable/rpc/Utils (barrel: effect/unstable/rpc)
 
 - `FileSystem.Size` -> `ByteSize.ByteSize`: Use ByteSize.bytes or unit constructors for file sizes. Truncation lengths, buffer sizes, and read/write counts use number. File.seek takes and returns signed bigint positions; it can fail with PlatformError, including BadArgument when seeking before the start.
 
-- `FileSystem.SizeInput` -> `ByteSize.Input`: File-size and path-backed range inputs use ByteSize.Input. Truncation lengths, Web File ranges, and buffer sizes use number.
+- `FileSystem.SizeInput` -> `ByteSize.Input`: File-size and path-backed range inputs use ByteSize.Input. String inputs must be non-negative decimal integers without leading zeros, followed by a canonical unit symbol or lowercase unit name, with at most one separating space. Parse external strings or fractional quantities with ByteSize.fromString (Option) or ByteSize.fromStringUnsafe (throws), then pass the resulting ByteSize. Truncation lengths, Web File ranges, and buffer sizes use number.
 
 - `FileSystem.StreamOptions` -> `NonNullable<Parameters<FileSystem.FileSystem["stream"]>[1]>`: Stream options are inline; bufferSize was removed, bytesToRead and offset accept ByteSize inputs, and chunkSize uses number.
 
@@ -7914,9 +7934,9 @@ effect/unstable/rpc/Utils (barrel: effect/unstable/rpc)
 
 ### `@effect/sql-pg/PgClient`
 
-- `PgClient.PgClient` -> `@effect/sql-pg/PgClient#PgClient`: Retained; the service value is now a Context.Service.
+- `PgClient.PgClient` -> `@effect/sql-pg/PgClient#PgClient`: Retained; the service value is now a Context.Service. The listen method returns a scoped Effect acquiring a Queue.Dequeue\<PgConnection.Notification, SqlError\>; consume it with Queue operations or Stream.fromQueue and read each notification's payload. Connection failures after registration fail the queue with the original SqlError; scope closure interrupts consumers.
 
-- `PgClient.PgClientConfig` -> `@effect/sql-pg/PgClient#PgClientConfig / PgPoolConfig`: Use PgClientConfig for base settings and PgPoolConfig for make/layer; pool sizing, idle timeout, and connection TTL moved to PgPoolConfig.
+- `PgClient.PgClientConfig` -> `@effect/sql-pg/PgClient#PgClientConfig / PgPoolConfig`: Use PgClientConfig for base settings and PgPoolConfig for make/layer; pool sizing, idle timeout, and connection TTL moved to PgPoolConfig. The types option takes a PgTypes.Registry rather than node-pg custom types. Timestamp and timestamptz results (including array elements) are Date values with millisecond precision; infinity, -infinity, and out-of-range values become invalid Dates. Numeric readers can use getTime() or register numeric codecs. Date parameters bind as timestamptz; use PgTypes.timestamp(value) to preserve UTC fields when writing a timestamp column instead of applying the session TimeZone.
 
 - `PgClient.PgClientFromPoolOptions` -> `none`: The node-pg Pool wrapper options were removed with fromPool. Use PgClient.PgPoolConfig with PgClient.make or PgClient.layer.
 
@@ -8673,8 +8693,6 @@ effect/unstable/rpc/Utils (barrel: effect/unstable/rpc)
 - `Workflow.AnyTaggedRequestSchema` -> `none`: The TaggedRequest adapter constraint was removed. Define the workflow explicitly with Workflow.make and the request payload, success, error, and PrimaryKey schemas.
 
 - `Workflow.CaptureDefects` -> `effect/unstable/workflow/Workflow#CaptureDefects`: Moved into core Effect and changed from a Context.Tag subclass to a Context.Reference value with the same true default.
-
-- `Workflow.Complete`: TODO: needs guidance
 
 - `Workflow.Execution` -> `effect/unstable/workflow/Workflow#Execution`: Moved into core Effect; its workflow discriminator changed from name to \_tag.
 
@@ -15291,6 +15309,8 @@ Schema.toFormatter(schema)
 
 - `Secret.fromIterable` -> `Redacted.make(Array.from(iterable).join(""))`: Secret was removed; join the character iterable and wrap the resulting string in Redacted.
 
+- `Secret.fromString`: TODO: needs guidance
+
 - `Secret.isSecret` -> `Redacted.isRedacted`: Secret was removed in favor of Redacted.
 
 - `Secret.make` -> `Redacted.make(bytes.map((byte) => String.fromCharCode(byte)).join(""))`: Secret was removed; preserve the v3 byte-to-code-unit conversion explicitly, then wrap the string in Redacted.
@@ -15559,7 +15579,7 @@ Schema.toFormatter(schema)
 
 - `Stream.aggregateWithinEither` -> `Stream.aggregateWithin`: Either-emitting variant removed; v4 aggregateWithin(sink, schedule) emits only the sink outputs B (schedule outputs are no longer surfaced as Either.right).
 
-- `Stream.as` -> `Stream.map(() => value)`: Stream.as was removed; replace each element with a constant via Stream.map.
+- `Stream.as` -> `Stream.as`: Retained in v4 with the same signature; replaces every element with the provided constant value.
 
 - `Stream.async` -> `Stream.callback`: Stream.callback((queue) =\> Effect | void, { bufferSize?, strategy? }) replaces the Emit-based async; push with Queue.offer/offerAll, end with Queue.end, fail with Queue.fail.
 
@@ -15568,6 +15588,10 @@ Schema.toFormatter(schema)
 - `Stream.asyncPush` -> `Stream.callback`: Stream.callback's register effect can use Scope for acquire/release of the external subscription, replacing asyncPush; the Emit ops helpers become plain Queue operations.
 
 - `Stream.asyncScoped` -> `Stream.callback`: Stream.callback's register effect may use Scope (Scope is excluded from the resulting R), replacing asyncScoped; the Option\<E\> end signal becomes Queue.end.
+
+- `Stream.bind` -> `Stream.bind`: The input must be a record. Start from Stream.Do or use Stream.bindTo(name) to wrap a non-record element. The field name may now re-bind an existing key; the resulting record type is Simplify\<Omit\<A, N\> & Record\<N, B\>\>.
+
+- `Stream.bindEffect` -> `Stream.bindEffect`: The input must be a record. Start from Stream.Do or use Stream.bindTo(name) to wrap a non-record element. Existing keys may be re-bound, with the new value replacing the old field type. The callback still returns an Effect.
 
 #### `Stream.branchAfter`
 
@@ -15596,6 +15620,8 @@ Stream.unwrap(Effect.map(Stream.peel(self, Sink.take(n)), ([head, rest]) => f(he
 - `Stream.catchSome` -> `Stream.catchFilter`: Option-returning partial handler replaced by the Filter API: Stream.catchFilter(filter, f, orElse?) recovers matched errors, unmatched failures pass through (Stream.catchIf for refinement/predicate matching).
 
 - `Stream.catchSomeCause` -> `Stream.catchCauseFilter`: Option-returning cause handler replaced by Stream.catchCauseFilter(filter, f, orElse?) using a Filter on the Cause (Stream.catchCauseIf for refinements).
+
+- `Stream.catchTags` -> `Stream.catchTags`: Only keys present in the tagged error union are accepted; remove handlers for tags the stream cannot fail with. Untagged errors remain in the error channel.
 
 - `Stream.chunksWith` -> `Stream.flattenArray(f(Stream.chunks(self)))`: No dedicated combinator; expose chunk structure with Stream.chunks (Stream\<NonEmptyReadonlyArray\<A\>\>), transform, then re-flatten with Stream.flattenArray.
 
@@ -15671,6 +15697,10 @@ Stream.unwrap(Effect.map(Stream.peel(self, Sink.take(n)), ([head, rest]) => f(he
 
 - `Stream.interruptWhenDeferred` -> `Stream.interruptWhen(Deferred.await(deferred))`: Deferred-specialized variant removed; pass Deferred.await to Stream.interruptWhen (a Deferred failure surfaces as the stream's failure, as before).
 
+- `Stream.let` -> `Stream.let`: Retained in v4 and aligned with Effect.let: the field name may re-bind an existing key (the computed value replaces it) and the record type is Simplify\<Omit\<A, N\> & Record\<N, B\>\>.
+
+- `Stream.mapBoth` -> `Stream.mapBoth`: Rename the options onSuccess to onElement and onFailure to onError. The callbacks still transform emitted elements and typed errors respectively.
+
 - `Stream.mapChunks` -> `Stream.mapArray`: Chunk-\>Array rename; transforms each emitted chunk as a NonEmptyReadonlyArray.
 
 - `Stream.mapChunksEffect` -> `Stream.mapArrayEffect`: Chunk-\>Array rename of the effectful per-chunk transform.
@@ -15722,6 +15752,8 @@ Stream.mergeAll(Object.entries(streams).map(([_tag, s]) => Stream.map(s, (value)
 - `Stream.paginateChunkEffect` -> `Stream.paginate`: v4 Stream.paginate has exactly this shape; only Chunk becomes ReadonlyArray.
 
 - `Stream.paginateEffect` -> `Stream.paginate`: v4 Stream.paginate emits a batch per step; wrap the single value in an array: `(s) => Effect.map(step(s), ([a, next]) => [[a], next])`.
+
+- `Stream.partition` -> `Stream.partition`: Pass a Result-returning Filter instead of a boolean predicate or refinement; Filter.fromPredicate(predicate) adapts existing predicates. The tuple order is now [passes, fails], the reverse of v3 [excluded, satisfying]. Rename bufferSize to capacity (default 16; also accepts "unbounded"). Acquisition is scoped and does not fail with E; the returned streams carry E.
 
 - `Stream.partitionEither` -> `Stream.partitionEffect`: Either-based split replaced by Filter.FilterEffect: the function now returns Effect\<Result\<Pass, Fail\>\> (Result.succeed/Result.fail instead of Either.right/left). Returns Effect\<[passes, fails], never, R | Scope\> — note the tuple is [passes, fails], v3 was [left, right]; options are { capacity?, concurrency? }.
 
@@ -15793,6 +15825,8 @@ Effect.suspend(() => {
 
 - `Stream.runForEachWhileScoped` -> `Stream.runForEachWhile`: Scoped run variants are gone; v4 runForEachWhile (callback returns Effect\<boolean\>) manages the stream scope internally.
 
+- `Stream.runIntoPubSub` -> `Stream.runIntoPubSub`: Pass a PubSub of plain elements rather than Take wrappers. Both overloads return Effect\<void, E, R\>, so handle stream failures on the returned Effect instead of expecting them as PubSub messages. The optional shutdownOnEnd flag controls PubSub shutdown.
+
 - `Stream.runIntoPubSubScoped` -> `Stream.runIntoPubSub`: Scoped variant removed; v4 runIntoPubSub(pubsub, { shutdownOnEnd? }) publishes plain values (the Take wrapper is gone) and does not require Scope — fork the returned effect (Effect.forkIn/Effect.forkScoped) to reproduce the background scoped behavior.
 
 - `Stream.runIntoQueueElementsScoped` -> `Stream.runIntoQueue`: The per-element Exit\<A, Option\<E\>\> encoding is gone; v4 runIntoQueue targets a Queue\<A, E | Cause.Done\> — elements are offered plainly and failure/end are signalled through the queue's error/done channel. Fork with Effect.forkIn for scoped background running.
@@ -15800,6 +15834,10 @@ Effect.suspend(() => {
 - `Stream.runIntoQueueScoped` -> `Stream.runIntoQueue`: Scoped variant removed; v4 runIntoQueue offers plain values to a Queue\<A, E | Cause.Done\> (Take wrapper gone) and requires no Scope — fork the returned effect into a scope (Effect.forkIn) if needed.
 
 - `Stream.runScoped` -> `Stream.run`: Scoped variant removed; v4 Stream.run(sink) manages the stream's scope internally. For consumption tied to an enclosing Scope, use Stream.toPull and drive the Pull manually.
+
+- `Stream.scan` -> `Stream.scan`: Wrap the initial state in a thunk: Stream.scan(() =\> initial, step). The thunk is evaluated for each stream run; allocate mutable initial state inside it to avoid sharing state between runs.
+
+- `Stream.scanEffect` -> `Stream.scanEffect`: Wrap the initial state in a thunk: Stream.scanEffect(() =\> initial, step). It is evaluated for each stream run; the step still returns an Effect.
 
 - `Stream.scanReduce` -> `Stream.mapAccum`: Removed; emulate first-element-as-seed with `Stream.mapAccum(self, () => undefined as A | undefined, (acc, a) => { const next = acc === undefined ? a : f(acc, a); return [next, [next]] })`.
 

@@ -102,7 +102,7 @@
     "@foldkit/oxlint-plugin": "workspace:*",
     "@types/node": "^26.4.0",
     "@typescript/native": "npm:typescript@^7.0.2",
-    "effect": "4.0.0-rc.115",
+    "effect": "4.0.0-rc.116",
     "foldkit": "workspace:*",
     "knip": "^6.33.0",
     "madge": "^8.0.0",

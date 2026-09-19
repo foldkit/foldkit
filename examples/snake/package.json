@@ -9,8 +9,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0-rc.115",
-    "effect": "4.0.0-rc.115",
+    "@effect/platform-browser": "4.0.0-rc.116",
+    "effect": "4.0.0-rc.116",
     "foldkit": "workspace:*"
   },
   "devDependencies": {

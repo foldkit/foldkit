@@ -52,7 +52,7 @@ The generated project also includes `lint` and `format` scripts. Run them with y
 
 Skip this section if you used `create-foldkit-app`. Scaffolded projects already receive compatible package versions.
 
-Foldkit currently uses the Effect v4 release candidate and pins its peer dependencies to exact versions: `effect@4.0.0-rc.115` and `@effect/platform-browser@4.0.0-rc.115`. Stable Effect v3 does not satisfy those pins. Adding Foldkit to an Effect v3 project produces peer dependency conflicts. When Foldkit moves to a new release candidate, an existing project may need to upgrade Effect at the same time.
+Foldkit currently uses the Effect v4 release candidate and pins its peer dependencies to exact versions: `effect@4.0.0-rc.116` and `@effect/platform-browser@4.0.0-rc.116`. Stable Effect v3 does not satisfy those pins. Adding Foldkit to an Effect v3 project produces peer dependency conflicts. When Foldkit moves to a new release candidate, an existing project may need to upgrade Effect at the same time.
 
 Install Foldkit together with its pinned peer dependencies:
 

@@ -43,7 +43,7 @@ import type * as HttpClientError from "../http/HttpClientError.ts"
  * @since 4.0.0
  */
 export const HttpRequestDetails = Schema.Struct({
-  method: Schema.Literals(["GET", "POST", "PATCH", "PUT", "DELETE", "HEAD", "OPTIONS", "TRACE"]),
+  method: Schema.Literals(["GET", "POST", "PATCH", "PUT", "DELETE", "HEAD", "OPTIONS", "TRACE", "QUERY"]),
   url: Schema.String,
   urlParams: Schema.Array(Schema.Tuple([Schema.String, Schema.String])),
   hash: Schema.optional(Schema.String),
@@ -1700,7 +1700,7 @@ export const reasonFromHttpStatus = (params: {
   readonly status: number
   readonly body?: unknown
   readonly http?: typeof HttpContext.Type
-  readonly metadata?: typeof ProviderMetadata.Type
+  readonly metadata?: ProviderMetadata
   readonly description?: string | undefined
 }): AiErrorReason => {
   const { status, http, metadata, description } = params
