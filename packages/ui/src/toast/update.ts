@@ -31,7 +31,7 @@ import {
   DEFAULT_SWIPE_THRESHOLD,
   type InitConfig,
   SWIPE_SETTLE_DURATION,
-  Message as StaticMessage,
+  Message,
   type SwipeDirection,
   SwipeState,
   type Variant,
@@ -63,13 +63,12 @@ export const WaitBeforeDismissal = Command.define('WaitBeforeDismissal', {
     version: Schema.Number,
     duration: Schema.DurationFromMillis,
   },
-  messages: [StaticMessage.CompletedWaitBeforeDismissal],
+  messages: [Message.CompletedWaitBeforeDismissal],
   execute: ({ entryId, version, duration }) =>
-    Effect.sleep(duration).pipe(
-      Effect.as(
-        StaticMessage.CompletedWaitBeforeDismissal({ entryId, version }),
-      ),
-    ),
+    Effect.gen(function* () {
+      yield* Effect.sleep(duration)
+      return Message.CompletedWaitBeforeDismissal({ entryId, version })
+    }),
 })
 
 const DEFAULT_VARIANT: Variant = 'Info'
@@ -82,13 +81,12 @@ export const WaitForSwipeSettled = Command.define('WaitForSwipeSettled', {
     entryId: Schema.String,
     version: Schema.Number,
   },
-  messages: [StaticMessage.CompletedWaitForSwipeSettled],
+  messages: [Message.CompletedWaitForSwipeSettled],
   execute: ({ entryId, version }) =>
-    Effect.sleep(SWIPE_SETTLE_DURATION).pipe(
-      Effect.as(
-        StaticMessage.CompletedWaitForSwipeSettled({ entryId, version }),
-      ),
-    ),
+    Effect.gen(function* () {
+      yield* Effect.sleep(SWIPE_SETTLE_DURATION)
+      return Message.CompletedWaitForSwipeSettled({ entryId, version })
+    }),
 })
 
 /** Horizontal offset in pixels for an entry's swipe state. `Dragging`
