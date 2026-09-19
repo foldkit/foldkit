@@ -246,25 +246,24 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
    *  `Settling` at zero offset while consumer CSS animates the snap-back.
    *  The fresh swipe version means a re-press during the transition safely
    *  discards the stale settle completion. */
-  const settleSnapBack = (
-    model: Model,
-    entry: Entry,
-  ): Update.Return<Model, Message> => {
-    const nextVersion = Number.increment(entry.swipeVersion)
-    const nextEntry = evo(entry, {
-      pendingDismissVersion: Number.increment,
-      swipeState: () => SwipeState.Settling({ offsetX: 0 }),
-      swipeVersion: () => nextVersion,
-    })
-    const nextModel = updateEntry(model, entry.id, () => nextEntry)
-    return {
-      model: nextModel,
-      commands: [
-        WaitForSwipeSettled({ entryId: entry.id, version: nextVersion }),
-        ...rescheduleDismissCommands(nextEntry),
-      ],
+  const settleSnapBack =
+    (entry: Entry): Update.Step<Model, Message> =>
+    model => {
+      const nextVersion = Number.increment(entry.swipeVersion)
+      const nextEntry = modifyFields(entry, {
+        pendingDismissVersion: Number.increment,
+        swipeState: () => SwipeState.Settling({ offsetX: 0 }),
+        swipeVersion: () => nextVersion,
+      })
+      const nextModel = updateEntry(model, entry.id, () => nextEntry)
+      return {
+        model: nextModel,
+        commands: [
+          WaitForSwipeSettled({ entryId: entry.id, version: nextVersion }),
+          ...rescheduleDismissCommands(nextEntry),
+        ],
+      }
     }
-  }
 
   const readEntryAnimation =
     (entryId: string) =>
@@ -606,7 +605,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
                         return foldEntryAnimationHide(entry)(settlingModel)
                       }
                     } else {
-                      return settleSnapBack(model, entry)
+                      return settleSnapBack(entry)(model)
                     }
                   },
                 },
@@ -623,28 +622,17 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
               Array.findFirst(model.entries, ({ id }) => id === entryId),
               {
                 onNone: () => ({ model }),
-                onSome: entry => settleSnapBack(model, entry),
+                onSome: entry => settleSnapBack(entry)(model),
               },
             ),
         }),
 
       PressedEscape: () => {
-        const initial: Update.Return<Model, Message> = { model }
+        const draggingEntries = Array.filter(model.entries, entry =>
+          SwipeState.guards.Dragging(entry.swipeState),
+        )
 
-        return Array.reduce(model.entries, initial, (result, entry) => {
-          if (SwipeState.guards.Dragging(entry.swipeState)) {
-            const swipeSettle = settleSnapBack(result.model, entry)
-            return {
-              model: swipeSettle.model,
-              commands: [
-                ...(result.commands ?? []),
-                ...(swipeSettle.commands ?? []),
-              ],
-            }
-          } else {
-            return result
-          }
-        })
+        return Update.combine(model, Array.map(draggingEntries, settleSnapBack))
       },
 
       CompletedWaitForSwipeSettled: ({ entryId, version }) =>
@@ -749,9 +737,10 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
               target: document,
               type: 'keydown',
               toMessage: event =>
-                event.key === 'Escape'
-                  ? Option.some(MessageSchema.PressedEscape())
-                  : Option.none(),
+                pipe(
+                  Option.liftPredicate(event.key, key => key === 'Escape'),
+                  Option.map(() => MessageSchema.PressedEscape()),
+                ),
             }),
             Effect.sync(() => isSwipeEnabled && isAnyDragging),
           ),
