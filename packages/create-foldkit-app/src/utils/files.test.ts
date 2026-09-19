@@ -131,7 +131,9 @@ describe('rendering templates', () => {
   it('rendering overlays keep the base name placeholder, shared scripts, and compiler options', () => {
     const basePackageJson = readTemplatePackageJson('base/package.json')
     const baseTsconfig = readTemplateTsconfig('base/tsconfig.json')
-    const baseViteConfig = readTemplateFile('base/vite.config.ts')
+    expect(readTemplateFile('base/vite.config.ts')).not.toContain(
+      'devToolsMcpPort',
+    )
 
     for (const rendering of ['ssg', 'ssr']) {
       const packageJson = readTemplatePackageJson(
@@ -151,12 +153,9 @@ describe('rendering templates', () => {
         `rendering/${rendering}/tsconfig.json`,
       )
       expect(tsconfig.compilerOptions).toEqual(baseTsconfig.compilerOptions)
-
-      const viteConfig = readTemplateFile(
-        `rendering/${rendering}/vite.config.ts`,
-      )
-      expect(viteConfig).toContain('devToolsMcpPort: 9988')
-      expect(baseViteConfig).toContain('devToolsMcpPort: 9988')
+      expect(
+        readTemplateFile(`rendering/${rendering}/vite.config.ts`),
+      ).not.toContain('devToolsMcpPort')
     }
 
     expect(readTemplateTsconfig('rendering/ssg/tsconfig.json').include).toEqual(
