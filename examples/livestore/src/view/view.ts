@@ -1,10 +1,11 @@
 import { Option } from 'effect'
 import type { Document, Html, HtmlBuilder } from 'foldkit/html'
 
+import { Items } from '../domain'
 import { Message } from '../message'
 import type { Model } from '../model'
 import { footerView } from './footer'
-import { countItemsByCompletion, itemsView } from './items'
+import { itemsView } from './items'
 import { addItemErrorView, newItemFormView } from './newItem'
 
 const headerView = (h: HtmlBuilder<Message>): Html =>
@@ -22,7 +23,10 @@ const headerView = (h: HtmlBuilder<Message>): Html =>
   )
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const itemCounts = countItemsByCompletion(model.items)
+  const { activeItemCount, completedItemCount } = Items.determineCounts(
+    model.items,
+  )
+
   const body = h.div(
     [h.Class('min-h-screen bg-gray-100 py-8')],
     [
@@ -41,12 +45,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
               itemsView(model, h),
             ],
           ),
-          footerView(
-            model.filter,
-            itemCounts.activeCount,
-            itemCounts.completedCount,
-            h,
-          ),
+          footerView(model.filter, activeItemCount, completedItemCount, h),
         ],
       ),
     ],

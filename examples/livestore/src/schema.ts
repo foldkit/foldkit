@@ -2,16 +2,7 @@ import { Array, Option, Schema } from 'effect'
 
 import { Events, State, makeSchema } from '@livestore/livestore'
 
-export const Item = Schema.Struct({
-  id: Schema.String,
-  text: Schema.String,
-  isCompleted: Schema.Boolean,
-  createdAt: Schema.Number,
-})
-export type Item = typeof Item.Type
-
-export const Items = Schema.Array(Item)
-export type Items = typeof Items.Type
+import { Items } from './domain'
 
 const ItemAddedV1 = Schema.Struct({
   id: Schema.String,
@@ -39,7 +30,7 @@ export const events = {
   }),
   itemAddedV2: Events.synced({
     name: 'v2.ItemAdded',
-    schema: Item,
+    schema: Items.Item,
   }),
   itemToggled: Events.synced({
     name: 'v1.ItemToggled',

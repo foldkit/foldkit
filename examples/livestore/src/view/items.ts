@@ -1,12 +1,12 @@
 import clsx from 'clsx'
-import { Array, Match, pipe } from 'effect'
+import { Array, Match } from 'effect'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Button, Checkbox } from '@foldkit/ui'
 
+import { Items } from '../domain'
 import { Message } from '../message'
-import type { Filter, Model } from '../model'
-import type { Item, Items } from '../schema'
+import type { Model } from '../model'
 
 const checkboxBoxClassName = (isChecked: boolean): string =>
   clsx(
@@ -17,7 +17,7 @@ const checkboxBoxClassName = (isChecked: boolean): string =>
     },
   )
 
-const itemCheckboxView = (item: Item, h: HtmlBuilder<Message>): Html =>
+const itemCheckboxView = (item: Items.Item, h: HtmlBuilder<Message>): Html =>
   Checkbox.view(
     {
       id: `item-${item.id}`,
@@ -54,7 +54,10 @@ const itemCheckboxView = (item: Item, h: HtmlBuilder<Message>): Html =>
     h,
   )
 
-const deleteItemButtonView = (item: Item, h: HtmlBuilder<Message>): Html =>
+const deleteItemButtonView = (
+  item: Items.Item,
+  h: HtmlBuilder<Message>,
+): Html =>
   Button.view(
     {
       onClick: Message.ClickedDeleteItem({ id: item.id }),
@@ -73,26 +76,14 @@ const deleteItemButtonView = (item: Item, h: HtmlBuilder<Message>): Html =>
     h,
   )
 
-const itemView = (item: Item, h: HtmlBuilder<Message>): Html =>
+const itemView = (item: Items.Item, h: HtmlBuilder<Message>): Html =>
   h.keyed('li')(
     item.id,
     [h.Class('flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg group')],
     [itemCheckboxView(item, h), deleteItemButtonView(item, h)],
   )
 
-const filterItems = (items: Items, filter: Filter): Items =>
-  Match.value(filter).pipe(
-    Match.when('All', () => items),
-    Match.when('Active', () =>
-      Array.filter(items, ({ isCompleted }) => !isCompleted),
-    ),
-    Match.when('Completed', () =>
-      Array.filter(items, ({ isCompleted }) => isCompleted),
-    ),
-    Match.exhaustive,
-  )
-
-const emptyView = (filter: Filter, h: HtmlBuilder<Message>): Html =>
+const emptyView = (filter: Items.Filter, h: HtmlBuilder<Message>): Html =>
   h.div(
     [h.Class('text-center text-gray-500 py-8')],
     [
@@ -105,23 +96,8 @@ const emptyView = (filter: Filter, h: HtmlBuilder<Message>): Html =>
     ],
   )
 
-export const countItemsByCompletion = (
-  items: Items,
-): Readonly<{ activeCount: number; completedCount: number }> => {
-  const activeCount = pipe(
-    items,
-    Array.filter(({ isCompleted }) => !isCompleted),
-    Array.length,
-  )
-
-  return {
-    activeCount,
-    completedCount: Array.length(items) - activeCount,
-  }
-}
-
 export const itemsView = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const visibleItems = filterItems(model.items, model.filter)
+  const visibleItems = Items.filter(model.items, model.filter)
 
   return Array.match(visibleItems, {
     onEmpty: () => emptyView(model.filter, h),

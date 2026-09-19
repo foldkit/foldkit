@@ -1,9 +1,9 @@
 import { Effect, Option, Schema } from 'effect'
 import { Runtime } from 'foldkit'
 
+import { Items } from './domain'
 import { Message } from './message'
 import { Model } from './model'
-import { Items } from './schema'
 import {
   ItemsStore,
   type ItemsStoreRequirements,
@@ -11,7 +11,7 @@ import {
 } from './store'
 
 export const Flags = Schema.Struct({
-  items: Items,
+  items: Items.Items,
 })
 export type Flags = typeof Flags.Type
 

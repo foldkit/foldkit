@@ -1,31 +1,31 @@
 import { Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
+import { Items } from './domain'
 import { Model } from './model'
-import { Item } from './schema'
 
-export const buyMilk = Item.make({
+export const buyMilk = Items.Item.make({
   id: 'a',
   text: 'Buy milk',
   isCompleted: false,
   createdAt: 1000,
 })
 
-export const walkDog = Item.make({
+export const walkDog = Items.Item.make({
   id: 'b',
   text: 'Walk the dog',
   isCompleted: false,
   createdAt: 2000,
 })
 
-export const doneTask = Item.make({
+export const doneTask = Items.Item.make({
   id: 'c',
   text: 'Done task',
   isCompleted: true,
   createdAt: 3000,
 })
 
-export const modelWithItems = (items: ReadonlyArray<Item>) =>
+export const modelWithItems = (items: ReadonlyArray<Items.Item>) =>
   Model.make({
     items,
     maybeAddItemError: Option.none(),
@@ -34,7 +34,7 @@ export const modelWithItems = (items: ReadonlyArray<Item>) =>
   })
 
 export const addItemFailureModel = (
-  items: ReadonlyArray<Item>,
+  items: ReadonlyArray<Items.Item>,
   error: string,
 ) =>
   modifyFields(modelWithItems(items), {

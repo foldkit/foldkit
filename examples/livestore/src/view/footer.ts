@@ -3,12 +3,12 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
+import { Items } from '../domain'
 import { Message } from '../message'
-import type { Filter } from '../model'
 
 const filterButtonView = (
-  selectedFilter: Filter,
-  filter: Filter,
+  selectedFilter: Items.Filter,
+  filter: Items.Filter,
   h: HtmlBuilder<Message>,
 ): Html =>
   Button.view(
@@ -33,7 +33,10 @@ const filterButtonView = (
     h,
   )
 
-const filterControlsView = (filter: Filter, h: HtmlBuilder<Message>): Html =>
+const filterControlsView = (
+  filter: Items.Filter,
+  h: HtmlBuilder<Message>,
+): Html =>
   h.nav(
     [h.AriaLabel('Task filters'), h.Class('flex justify-center gap-2')],
     [
@@ -75,7 +78,7 @@ const clearCompletedButtonView = (
 }
 
 export const footerView = (
-  filter: Filter,
+  filter: Items.Filter,
   activeCount: number,
   completedCount: number,
   h: HtmlBuilder<Message>,

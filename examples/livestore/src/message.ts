@@ -1,14 +1,13 @@
 import { Schema } from 'effect'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Filter } from './model'
-import { Items } from './schema'
+import { Items } from './domain'
 
 export const Message = defineMessageUnion({
   UpdatedNewItemText: { text: Schema.String },
   SubmittedNewItem: {},
 
-  SelectedFilter: { filter: Filter },
+  SelectedFilter: { filter: Items.Filter },
 
   ToggledItem: { id: Schema.String },
   ClickedDeleteItem: { id: Schema.String },
@@ -21,6 +20,6 @@ export const Message = defineMessageUnion({
   CompletedDeleteItem: {},
   CompletedClearCompleted: {},
 
-  UpdatedItems: { items: Items },
+  UpdatedItems: { items: Items.Items },
 })
 export type Message = typeof Message.Type
