@@ -1,24 +1,46 @@
-import { Match, Schema } from 'effect'
+import { Match, Option, Schema } from 'effect'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { defineView } from 'foldkit/submodel'
 
-import { Message, Position, Variant } from './schema.js'
-import { WaitBeforeDismissal, makeRuntime } from './update.js'
+import { Position, SwipeState, Variant } from './schema.js'
+import { isSwipeExcludedTarget } from './swipeTarget.js'
+import { makeRuntime } from './update.js'
 
 export type {
   CompletedWaitBeforeDismissal,
   Dismissed,
   DismissedAll,
   GotAnimationMessage,
+  PressedEntryPointer,
+  MovedSwipePointer,
+  ReleasedSwipePointer,
+  CancelledSwipe,
+  CompletedWaitForSwipeSettled,
   HoveredEntry,
   InitConfig,
   LeftEntry,
+  SwipeToDismissConfig,
 } from './schema.js'
 export type { ShowInput } from './update.js'
 
 export * as test from './test.js'
 
-export { Message, Variant, Position, WaitBeforeDismissal }
+export {
+  Message,
+  Variant,
+  Position,
+  SwipeDirection,
+  SwipeState,
+  DEFAULT_SWIPE_DIRECTION,
+  DEFAULT_SWIPE_THRESHOLD,
+  SWIPE_SETTLE_DURATION,
+} from './schema.js'
+
+export {
+  WaitBeforeDismissal,
+  WaitForSwipeSettled,
+  swipeOffset,
+} from './update.js'
 
 // VIEW
 
@@ -101,6 +123,8 @@ export type EntryHandlers = Readonly<{
 
 const DEFAULT_ARIA_LABEL = 'Notifications'
 
+const LEFT_MOUSE_BUTTON = 0
+
 /** Factory that binds `Toast` to a user-provided payload schema. The
  *  returned module contains everything needed to wire a toast stack into an
  *  app: `Model`, `Message`, `Entry`, `Added`, `init`, `update`, `show` /
@@ -132,11 +156,11 @@ const DEFAULT_ARIA_LABEL = 'Notifications'
  *  ```
  */
 export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
-  const runtime = makeRuntime(payloadSchema)
-  type Entry = typeof runtime.Entry.Type
+  const toast = makeRuntime(payloadSchema)
+  type Entry = typeof toast.Entry.Type
 
-  type ToastModel = typeof runtime.Model.Type
-  type ToastMessage = typeof runtime.Message.Type
+  type ToastModel = typeof toast.Model.Type
+  type ToastMessage = typeof toast.Message.Type
 
   /** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs`
    *  field. */
@@ -153,7 +177,13 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
    *  page load. Each entry becomes a `<div>` keyed by its id, with
    *  animation data attributes (`data-enter`, `data-leave`,
    *  `data-transition`, `data-closed`) and `data-variant` reflecting the
-   *  entry's variant. */
+   *  entry's variant. When swipe is enabled via `swipeToDismiss`, entries
+   *  also carry `data-swipe` (`move` while dragging, `settling` while
+   *  returning to rest, and `end` while dismissing) with an inline
+   *  `translate` property. On a successful swipe, the entry moves from its
+   *  release offset to `100vw` or `-100vw` when leave animation begins.
+   *  The offset lives on `translate` rather than `transform` so it composes
+   *  with your `transform` animations instead of overriding them. */
   const view = defineView<ToastModel, ToastMessage, ViewInputs>(
     (model, viewInputs, h): Html => {
       const { id, entries } = model
@@ -199,21 +229,99 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           Match.orElse(() => []),
         )
 
+        const swipeOffset = toast.swipeOffset(entry.swipeState)
+        const maybeSwipePhase = SwipeState.match<
+          Option.Option<'move' | 'settling' | 'end'>
+        >(entry.swipeState, {
+          Idle: () => Option.none(),
+          Dragging: () => Option.some('move'),
+          Settling: () => Option.some('settling'),
+          Dismissing: () => Option.some('end'),
+        })
+        const swipeExitTranslate = SwipeState.match<string | undefined>(
+          entry.swipeState,
+          {
+            Idle: () => undefined,
+            Dragging: () => undefined,
+            Settling: () => undefined,
+            Dismissing: ({ direction }) => {
+              if (transitionState !== 'LeaveAnimating') {
+                return undefined
+              }
+
+              return Match.value(direction).pipe(
+                Match.when('Right', () => '100vw'),
+                Match.when('Left', () => '-100vw'),
+                Match.exhaustive,
+              )
+            },
+          },
+        )
+        const swipeTranslate =
+          swipeExitTranslate ??
+          (swipeOffset !== 0 ? `${String(swipeOffset)}px` : undefined)
+        const swipeAttributes = Option.match(maybeSwipePhase, {
+          onNone: () => [],
+          onSome: phase => [h.DataAttribute('swipe', phase)],
+        })
+
+        const handlePointerDown = (
+          pointerType: string,
+          button: number,
+          _screenX: number,
+          _screenY: number,
+          _timeStamp: number,
+          clientX: number,
+          _clientY: number,
+          pointerId: number,
+          target: EventTarget | null,
+        ): Option.Option<ToastMessage> => {
+          if (
+            (pointerType === 'mouse' && button !== LEFT_MOUSE_BUTTON) ||
+            isSwipeExcludedTarget(pointerType, target)
+          ) {
+            return Option.none()
+          } else {
+            return Option.some(
+              toast.Message.PressedEntryPointer({
+                entryId: entry.id,
+                pointerId,
+                clientX,
+              }),
+            )
+          }
+        }
+
         const itemAttributes = [
           h.Id(entry.id),
           h.Role(variantToRole(entry.variant)),
           h.AriaAtomic(true),
           h.DataAttribute('variant', entry.variant),
-          h.Style({ pointerEvents: 'auto' }),
-          h.OnMouseEnter(runtime.Message.HoveredEntry({ entryId: entry.id })),
-          h.OnMouseLeave(runtime.Message.LeftEntry({ entryId: entry.id })),
+          h.Style({
+            pointerEvents: 'auto',
+            ...(Option.isSome(model.maybeSwipeConfig)
+              ? { touchAction: 'pan-y' }
+              : {}),
+            ...(swipeTranslate !== undefined
+              ? {
+                  translate: swipeTranslate,
+                  '--toast-swipe-move-x': `${String(swipeOffset)}px`,
+                }
+              : {}),
+          }),
+          h.OnMouseEnter(toast.Message.HoveredEntry({ entryId: entry.id })),
+          h.OnMouseLeave(toast.Message.LeftEntry({ entryId: entry.id })),
+          ...(Option.isSome(model.maybeSwipeConfig)
+            ? [h.OnPointerDown(handlePointerDown)]
+            : []),
           ...animationAttributes,
+          ...swipeAttributes,
           ...(entryClassName ? [h.Class(entryClassName)] : []),
         ]
 
         const handlers: EntryHandlers = {
           dismiss: childAttributes([
-            h.OnClick(runtime.Message.Dismissed({ entryId: entry.id })),
+            h.OnClick(toast.Message.Dismissed({ entryId: entry.id })),
           ]),
         }
 
@@ -231,7 +339,7 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   )
 
   return {
-    ...runtime,
+    ...toast,
     view,
   } as const
 }
