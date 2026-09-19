@@ -10,7 +10,7 @@ import {
   Stream,
   String,
 } from 'effect'
-import { AsyncData, Command, Runtime, Subscription, type Update } from 'foldkit'
+import { AsyncData, Command, Runtime, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -20,8 +20,6 @@ import { Button, Checkbox, Input } from '@foldkit/ui'
 
 import { Item, Items, events, tables } from './schema'
 import { ItemsStore, commitItemEvent } from './store'
-
-export { Item }
 
 // MODEL
 
@@ -47,13 +45,13 @@ export const Message = defineMessageUnion({
   ClickedToggleItem: { id: Schema.String },
   ClickedDeleteItem: { id: Schema.String },
   ClickedClearCompleted: {},
-  CompletedAddItem: {},
+  SucceededAddItem: {},
   FailedAddItem: { error: Schema.String },
-  CompletedToggleItem: {},
+  SucceededToggleItem: {},
   FailedToggleItem: { error: Schema.String },
-  CompletedDeleteItem: {},
+  SucceededDeleteItem: {},
   FailedDeleteItem: { error: Schema.String },
-  CompletedClearCompleted: {},
+  SucceededClearCompleted: {},
   FailedClearCompleted: { error: Schema.String },
   ReceivedItems: { items: Items },
 })
@@ -74,16 +72,19 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 
 type UpdateReturn = Update.Return<Model, Message, ItemsStore>
 
-const clearMutationError = (model: Model): Model =>
-  modifyFields(model, {
-    maybeMutationError: () => Option.none(),
-  })
-
-const recordMutationError = (model: Model, error: string) => ({
+const clearMutationError: Update.Step<Model, Message> = model => ({
   model: modifyFields(model, {
-    maybeMutationError: () => Option.some(error),
+    maybeMutationError: () => Option.none(),
   }),
 })
+
+const recordMutationError =
+  (error: string): Update.Step<Model, Message> =>
+  model => ({
+    model: modifyFields(model, {
+      maybeMutationError: () => Option.some(error),
+    }),
+  })
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
@@ -100,13 +101,18 @@ export const update = (model: Model, message: Message) =>
         return { model }
       }
 
-      return {
-        model: modifyFields(model, {
-          newItemText: () => '',
-          maybeMutationError: () => Option.none(),
+      return Update.combine(model, [
+        stepModel => ({
+          model: modifyFields(stepModel, {
+            newItemText: () => '',
+          }),
         }),
-        commands: [AddItem({ text: trimmed })],
-      }
+        clearMutationError,
+        stepModel => ({
+          model: stepModel,
+          commands: [AddItem({ text: trimmed })],
+        }),
+      ])
     },
 
     SelectedFilter: ({ filter }) => ({
@@ -115,29 +121,41 @@ export const update = (model: Model, message: Message) =>
       }),
     }),
 
-    ClickedToggleItem: ({ id }) => ({
-      model: clearMutationError(model),
-      commands: [ToggleItem({ id })],
-    }),
+    ClickedToggleItem: ({ id }) =>
+      Update.combine(model, [
+        clearMutationError,
+        stepModel => ({
+          model: stepModel,
+          commands: [ToggleItem({ id })],
+        }),
+      ]),
 
-    ClickedDeleteItem: ({ id }) => ({
-      model: clearMutationError(model),
-      commands: [DeleteItem({ id })],
-    }),
+    ClickedDeleteItem: ({ id }) =>
+      Update.combine(model, [
+        clearMutationError,
+        stepModel => ({
+          model: stepModel,
+          commands: [DeleteItem({ id })],
+        }),
+      ]),
 
-    ClickedClearCompleted: () => ({
-      model: clearMutationError(model),
-      commands: [ClearCompleted()],
-    }),
+    ClickedClearCompleted: () =>
+      Update.combine(model, [
+        clearMutationError,
+        stepModel => ({
+          model: stepModel,
+          commands: [ClearCompleted()],
+        }),
+      ]),
 
-    CompletedAddItem: () => ({ model }),
-    FailedAddItem: ({ error }) => recordMutationError(model, error),
-    CompletedToggleItem: () => ({ model }),
-    FailedToggleItem: ({ error }) => recordMutationError(model, error),
-    CompletedDeleteItem: () => ({ model }),
-    FailedDeleteItem: ({ error }) => recordMutationError(model, error),
-    CompletedClearCompleted: () => ({ model }),
-    FailedClearCompleted: ({ error }) => recordMutationError(model, error),
+    SucceededAddItem: () => ({ model }),
+    FailedAddItem: ({ error }) => recordMutationError(error)(model),
+    SucceededToggleItem: () => ({ model }),
+    FailedToggleItem: ({ error }) => recordMutationError(error)(model),
+    SucceededDeleteItem: () => ({ model }),
+    FailedDeleteItem: ({ error }) => recordMutationError(error)(model),
+    SucceededClearCompleted: () => ({ model }),
+    FailedClearCompleted: ({ error }) => recordMutationError(error)(model),
 
     ReceivedItems: ({ items }) => ({
       model: modifyFields(model, {
@@ -153,7 +171,7 @@ const describeError = (error: unknown): string =>
 
 export const AddItem = Command.define('AddItem', {
   args: { text: Schema.String },
-  messages: [Message.CompletedAddItem, Message.FailedAddItem],
+  messages: [Message.SucceededAddItem, Message.FailedAddItem],
   execute: ({ text }) =>
     Effect.gen(function* () {
       const crypto = yield* Crypto.Crypto
@@ -163,7 +181,7 @@ export const AddItem = Command.define('AddItem', {
         events.itemAdded({ id, text, completed: false, createdAt }),
       )
 
-      return Message.CompletedAddItem()
+      return Message.SucceededAddItem()
     }).pipe(
       Effect.provide(BrowserCrypto.layer),
       Effect.catch(error =>
@@ -174,12 +192,12 @@ export const AddItem = Command.define('AddItem', {
 
 export const ToggleItem = Command.define('ToggleItem', {
   args: { id: Schema.String },
-  messages: [Message.CompletedToggleItem, Message.FailedToggleItem],
+  messages: [Message.SucceededToggleItem, Message.FailedToggleItem],
   execute: ({ id }) =>
     Effect.gen(function* () {
       yield* commitItemEvent(events.itemToggled({ id }))
 
-      return Message.CompletedToggleItem()
+      return Message.SucceededToggleItem()
     }).pipe(
       Effect.catch(error =>
         Effect.succeed(
@@ -191,12 +209,12 @@ export const ToggleItem = Command.define('ToggleItem', {
 
 export const DeleteItem = Command.define('DeleteItem', {
   args: { id: Schema.String },
-  messages: [Message.CompletedDeleteItem, Message.FailedDeleteItem],
+  messages: [Message.SucceededDeleteItem, Message.FailedDeleteItem],
   execute: ({ id }) =>
     Effect.gen(function* () {
       yield* commitItemEvent(events.itemDeleted({ id }))
 
-      return Message.CompletedDeleteItem()
+      return Message.SucceededDeleteItem()
     }).pipe(
       Effect.catch(error =>
         Effect.succeed(
@@ -207,11 +225,11 @@ export const DeleteItem = Command.define('DeleteItem', {
 })
 
 export const ClearCompleted = Command.define('ClearCompleted', {
-  messages: [Message.CompletedClearCompleted, Message.FailedClearCompleted],
+  messages: [Message.SucceededClearCompleted, Message.FailedClearCompleted],
   execute: Effect.gen(function* () {
     yield* commitItemEvent(events.completedItemsCleared({}))
 
-    return Message.CompletedClearCompleted()
+    return Message.SucceededClearCompleted()
   }).pipe(
     Effect.catch(error =>
       Effect.succeed(

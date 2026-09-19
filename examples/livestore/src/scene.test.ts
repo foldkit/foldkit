@@ -32,8 +32,8 @@ import {
   walkDog,
 } from './main.fixture'
 
-describe('view', () => {
-  test('loading state shows a status message', () => {
+describe('rendered task states', () => {
+  test('loading tasks shows a status message', () => {
     scene(
       { update, view },
       given(loadingModel),
@@ -41,7 +41,7 @@ describe('view', () => {
     )
   })
 
-  test('renders loaded tasks with active and completed counts', () => {
+  test('loaded tasks show their active and completed counts', () => {
     scene(
       { update, view },
       given(successModel([buyMilk, walkDog, doneTask])),
@@ -52,7 +52,7 @@ describe('view', () => {
     )
   })
 
-  test('empty loaded state shows a placeholder', () => {
+  test('an empty task list shows a placeholder', () => {
     scene(
       { update, view },
       given(successModel([])),
@@ -60,7 +60,7 @@ describe('view', () => {
     )
   })
 
-  test('error state shows the message', () => {
+  test('a task-loading failure shows its error', () => {
     scene(
       { update, view },
       given(failureModel),
@@ -69,7 +69,7 @@ describe('view', () => {
     )
   })
 
-  test('stale state keeps cached tasks visible under a banner', () => {
+  test('refreshing tasks remain visible beneath a status banner', () => {
     scene(
       { update, view },
       given(staleModel([buyMilk], 'Write blocked')),
@@ -78,7 +78,7 @@ describe('view', () => {
     )
   })
 
-  test('mutation failure shows an error without hiding loaded tasks', () => {
+  test('an update failure shows an error without hiding loaded tasks', () => {
     scene(
       { update, view },
       given(mutationFailureModel([buyMilk], 'Write blocked')),
@@ -89,46 +89,46 @@ describe('view', () => {
   })
 })
 
-describe('interactions', () => {
-  test('submitting the form requests AddItem and clears the input', () => {
+describe('task interactions', () => {
+  test('submitting a task clears the input and starts adding it', () => {
     scene(
       { update, view },
       given(successModel([])),
       type(label('New task'), 'Write docs'),
       submit(role('form')),
       Command.expectExact(AddItem({ text: 'Write docs' })),
-      Command.resolve(AddItem, Message.CompletedAddItem()),
+      Command.resolve(AddItem, Message.SucceededAddItem()),
       expect(label('New task')).toHaveValue(''),
     )
   })
 
-  test('clicking a checkbox requests ToggleItem', () => {
+  test('clicking a task checkbox starts toggling that task', () => {
     scene(
       { update, view },
       given(successModel([buyMilk])),
       click(label('Buy milk')),
       Command.expectExact(ToggleItem({ id: 'a' })),
-      Command.resolve(ToggleItem, Message.CompletedToggleItem()),
+      Command.resolve(ToggleItem, Message.SucceededToggleItem()),
     )
   })
 
-  test('clicking delete requests DeleteItem', () => {
+  test('clicking a task delete button starts deleting that task', () => {
     scene(
       { update, view },
       given(successModel([buyMilk])),
       click(role('button', { name: 'Delete Buy milk' })),
       Command.expectExact(DeleteItem({ id: 'a' })),
-      Command.resolve(DeleteItem, Message.CompletedDeleteItem()),
+      Command.resolve(DeleteItem, Message.SucceededDeleteItem()),
     )
   })
 
-  test('clear completed requests ClearCompleted', () => {
+  test('clearing completed tasks starts their removal', () => {
     scene(
       { update, view },
       given(successModel([buyMilk, doneTask])),
       click(role('button', { name: 'Clear 1 completed' })),
       Command.expectExact(ClearCompleted()),
-      Command.resolve(ClearCompleted, Message.CompletedClearCompleted()),
+      Command.resolve(ClearCompleted, Message.SucceededClearCompleted()),
     )
   })
 

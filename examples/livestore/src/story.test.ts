@@ -14,9 +14,9 @@ import {
 } from './main'
 import { buyMilk, doneTask, loadingModel, successModel } from './main.fixture'
 
-describe('update', () => {
-  describe('adding tasks', () => {
-    test('UpdatedNewItemText stores the input value', () => {
+describe('task state', () => {
+  describe('adding a task', () => {
+    test('editing the new task updates its draft text', () => {
       story(
         update,
         given(successModel([])),
@@ -27,7 +27,7 @@ describe('update', () => {
       )
     })
 
-    test('SubmittedNewItem requests AddItem and clears the input', () => {
+    test('submitting a task clears its draft and starts adding it', () => {
       story(
         update,
         given(
@@ -35,14 +35,14 @@ describe('update', () => {
         ),
         message(Message.SubmittedNewItem()),
         Command.expectExact(AddItem({ text: 'Buy milk' })),
-        Command.resolve(AddItem, Message.CompletedAddItem()),
+        Command.resolve(AddItem, Message.SucceededAddItem()),
         model(model => {
           expect(model.newItemText).toBe('')
         }),
       )
     })
 
-    test('SubmittedNewItem with whitespace-only text is ignored', () => {
+    test('submitting whitespace without a task is ignored', () => {
       story(
         update,
         given(modifyFields(successModel([]), { newItemText: () => '   ' })),
@@ -52,40 +52,40 @@ describe('update', () => {
     })
   })
 
-  describe('mutating tasks', () => {
-    test('ClickedToggleItem requests ToggleItem for that id', () => {
+  describe('changing tasks', () => {
+    test('toggling a task targets the selected task', () => {
       story(
         update,
         given(successModel([buyMilk])),
         message(Message.ClickedToggleItem({ id: 'a' })),
         Command.expectExact(ToggleItem({ id: 'a' })),
-        Command.resolve(ToggleItem, Message.CompletedToggleItem()),
+        Command.resolve(ToggleItem, Message.SucceededToggleItem()),
       )
     })
 
-    test('ClickedDeleteItem requests DeleteItem for that id', () => {
+    test('deleting a task targets the selected task', () => {
       story(
         update,
         given(successModel([buyMilk])),
         message(Message.ClickedDeleteItem({ id: 'a' })),
         Command.expectExact(DeleteItem({ id: 'a' })),
-        Command.resolve(DeleteItem, Message.CompletedDeleteItem()),
+        Command.resolve(DeleteItem, Message.SucceededDeleteItem()),
       )
     })
 
-    test('ClickedClearCompleted requests ClearCompleted', () => {
+    test('clearing completed tasks starts their removal', () => {
       story(
         update,
         given(successModel([buyMilk, doneTask])),
         message(Message.ClickedClearCompleted()),
         Command.expectExact(ClearCompleted()),
-        Command.resolve(ClearCompleted, Message.CompletedClearCompleted()),
+        Command.resolve(ClearCompleted, Message.SucceededClearCompleted()),
       )
     })
   })
 
-  describe('reactive projection', () => {
-    test('ReceivedItems projects LiveStore rows into the Model', () => {
+  describe('task snapshots', () => {
+    test('an incoming task snapshot replaces the loading state', () => {
       story(
         update,
         given(loadingModel),
@@ -102,11 +102,11 @@ describe('update', () => {
       )
     })
 
-    test('CompletedAddItem leaves the projection to the Subscription', () => {
+    test('an add confirmation preserves the current task snapshot', () => {
       story(
         update,
         given(successModel([buyMilk])),
-        message(Message.CompletedAddItem()),
+        message(Message.SucceededAddItem()),
         Command.expectNone(),
         model(model => {
           expect(model.itemsAsyncData._tag).toBe('Success')
@@ -116,7 +116,7 @@ describe('update', () => {
   })
 
   describe('errors', () => {
-    test('FailedAddItem records a mutation error without changing loaded items', () => {
+    test('an add failure preserves loaded tasks and reports the error', () => {
       story(
         update,
         given(successModel([buyMilk])),
@@ -130,7 +130,7 @@ describe('update', () => {
       )
     })
 
-    test('a mutation failure during loading does not claim the query failed', () => {
+    test('an update failure keeps the task list loading and reports separately', () => {
       story(
         update,
         given(loadingModel),
@@ -144,7 +144,7 @@ describe('update', () => {
       )
     })
 
-    test('ReceivedItems does not erase a mutation error', () => {
+    test('an incoming task snapshot preserves an update error', () => {
       story(
         update,
         given(
@@ -162,7 +162,7 @@ describe('update', () => {
       )
     })
 
-    test('a completed mutation does not erase a previous mutation error', () => {
+    test('a successful task update preserves a previous update error', () => {
       story(
         update,
         given(
@@ -170,7 +170,7 @@ describe('update', () => {
             maybeMutationError: () => Option.some('write blocked'),
           }),
         ),
-        message(Message.CompletedAddItem()),
+        message(Message.SucceededAddItem()),
         model(model => {
           expect(model.itemsAsyncData._tag).toBe('Success')
           expect(model.maybeMutationError).toStrictEqual(
@@ -180,7 +180,7 @@ describe('update', () => {
       )
     })
 
-    test('starting a new mutation clears the previous mutation error', () => {
+    test('starting a task update clears the previous update error', () => {
       story(
         update,
         given(
@@ -193,13 +193,13 @@ describe('update', () => {
         model(model => {
           expect(model.maybeMutationError).toStrictEqual(Option.none())
         }),
-        Command.resolve(ToggleItem, Message.CompletedToggleItem()),
+        Command.resolve(ToggleItem, Message.SucceededToggleItem()),
       )
     })
   })
 
   describe('filtering', () => {
-    test('SelectedFilter updates the filter without a Command', () => {
+    test('choosing a filter makes it active', () => {
       story(
         update,
         given(successModel([buyMilk, doneTask])),

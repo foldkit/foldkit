@@ -2,7 +2,8 @@ import { Option } from 'effect'
 import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { Item, Model } from './main'
+import { Model } from './main'
+import { Item } from './schema'
 
 export const buyMilk = Item.make({
   id: 'a',

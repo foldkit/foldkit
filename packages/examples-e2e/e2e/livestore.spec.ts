@@ -9,19 +9,19 @@ const addTask = async (page: PlaywrightPage, text: string): Promise<void> => {
 }
 
 test.describe('LiveStore example', () => {
-  test('loads cleanly', async ({ page }) => {
+  test('opens with an empty task list and no page errors', async ({ page }) => {
     await Page.assertLoadedCleanly(page, {
       readyLocator: page.getByText('No tasks yet. Add one above!'),
       waitUntil: 'load',
     })
   })
 
-  test('adds a task through the LiveStore round-trip', async ({ page }) => {
+  test('adds a task', async ({ page }) => {
     await page.goto('/')
     await addTask(page, 'Write Playwright tests')
   })
 
-  test('persists tasks across a reload', async ({ page }) => {
+  test('keeps added tasks after a reload', async ({ page }) => {
     await page.goto('/')
     await addTask(page, 'Survive a refresh')
 
@@ -29,7 +29,7 @@ test.describe('LiveStore example', () => {
     await expect(page.getByText('Survive a refresh')).toBeVisible()
   })
 
-  test('toggles a task complete', async ({ page }) => {
+  test('marks a task as completed', async ({ page }) => {
     await page.goto('/')
     await addTask(page, 'Toggle me')
 
@@ -39,7 +39,7 @@ test.describe('LiveStore example', () => {
     await expect(checkbox).toBeChecked()
   })
 
-  test('deletes a task', async ({ page }) => {
+  test('removes a deleted task', async ({ page }) => {
     await page.goto('/')
     await addTask(page, 'Delete me')
 
@@ -47,7 +47,7 @@ test.describe('LiveStore example', () => {
     await expect(page.getByText('Delete me')).toBeHidden()
   })
 
-  test('syncs task mutations live across tabs', async ({ context }) => {
+  test('reflects task changes across open tabs', async ({ context }) => {
     const firstTab = await context.newPage()
     await firstTab.goto('/')
 
