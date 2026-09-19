@@ -177,13 +177,14 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     )
   }
 
+  const isDraggingWithPointerId =
+    (pointerId: number) =>
+    (entry: Entry): boolean =>
+      SwipeState.guards.Dragging(entry.swipeState) &&
+      entry.swipeState.pointerId === pointerId
+
   const isPointerActive = (model: Model, pointerId: number): boolean =>
-    Array.some(
-      model.entries,
-      entry =>
-        SwipeState.guards.Dragging(entry.swipeState) &&
-        entry.swipeState.pointerId === pointerId,
-    )
+    Array.some(model.entries, isDraggingWithPointerId(pointerId))
 
   const isAnyDragging = (model: Model): boolean =>
     Array.some(model.entries, entry =>
@@ -193,72 +194,56 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const findDraggingEntry = (
     model: Model,
     pointerId: number,
-  ): Option.Option<Readonly<{ entryId: string; startX: number }>> =>
+  ): Option.Option<Readonly<{ entry: Entry; startX: number }>> =>
     pipe(
-      Array.findFirst(
-        model.entries,
-        entry =>
-          SwipeState.guards.Dragging(entry.swipeState) &&
-          entry.swipeState.pointerId === pointerId,
-      ),
+      Array.findFirst(model.entries, isDraggingWithPointerId(pointerId)),
       Option.flatMap(entry =>
         SwipeState.matchOrElse(
           entry.swipeState,
           {
             Dragging: dragging =>
-              Option.some({ entryId: entry.id, startX: dragging.startX }),
+              Option.some({ entry, startX: dragging.startX }),
           },
           () => Option.none(),
         ),
       ),
     )
 
-  const scheduleDismiss = (
-    entryId: string,
-    version: number,
-    duration: Duration.Duration,
-  ): Command.Command<Message> =>
-    WaitBeforeDismissal({ entryId, version, duration })
-
-  const rescheduleDismissCommands = (
+  const scheduleWaitBeforeDismissal = (
     entry: Entry,
-  ): ReadonlyArray<Command.Command<Message>> => {
+  ): Option.Option<Command.Command<Message>> => {
     if (
       isEntryLeaving(entry) ||
       entry.isHovered ||
       SwipeState.guards.Dragging(entry.swipeState)
     ) {
-      return []
+      return Option.none()
     } else {
-      return Option.match(entry.maybeDuration, {
-        onNone: () => [],
-        onSome: duration => [
-          scheduleDismiss(entry.id, entry.pendingDismissVersion, duration),
-        ],
-      })
+      return Option.map(entry.maybeDuration, duration =>
+        WaitBeforeDismissal({
+          entryId: entry.id,
+          version: entry.pendingDismissVersion,
+          duration,
+        }),
+      )
     }
   }
 
-  /** Returns a cancelled gesture to rest: bumps the dismiss version and the
-   *  entry's swipe version, reschedules the auto-dismiss timer, and holds
-   *  `Settling` at zero offset while consumer CSS animates the snap-back.
-   *  The fresh swipe version means a re-press during the transition safely
-   *  discards the stale settle completion. */
   const settleSnapBack =
     (entry: Entry): Update.Step<Model, Message> =>
     model => {
-      const nextVersion = Number.increment(entry.swipeVersion)
+      const nextSwipeVersion = Number.increment(entry.swipeVersion)
       const nextEntry = modifyFields(entry, {
         pendingDismissVersion: Number.increment,
         swipeState: () => SwipeState.Settling({ offsetX: 0 }),
-        swipeVersion: () => nextVersion,
+        swipeVersion: () => nextSwipeVersion,
       })
       const nextModel = updateEntry(model, entry.id, () => nextEntry)
       return {
         model: nextModel,
         commands: [
-          WaitForSwipeSettled({ entryId: entry.id, version: nextVersion }),
-          ...rescheduleDismissCommands(nextEntry),
+          WaitForSwipeSettled({ entryId: entry.id, version: nextSwipeVersion }),
+          ...Array.fromOption(scheduleWaitBeforeDismissal(nextEntry)),
         ],
       }
     }
@@ -283,16 +268,12 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     (message: AnimationMessage): Message =>
       MessageSchema.GotAnimationMessage({ entryId, message })
 
-  const toDismissedToastOutMessage: (
-    payload: A,
-  ) => (outMessage: AnimationOutMessage) => OutMessage | undefined = payload =>
-    Match.type<AnimationOutMessage>().pipe(
-      Match.withReturnType<OutMessage | undefined>(),
-      Match.tagsExhaustive({
+  const toDismissedToastOutMessage =
+    (payload: A) => (outMessage: AnimationOutMessage) =>
+      AnimationOutMessage.match<OutMessage | undefined>(outMessage, {
         StartedLeaveAnimating: () => undefined,
         TransitionedOut: () => OutMessageSchema.DismissedToast({ payload }),
-      }),
-    )
+      })
 
   const foldEntryAnimationOutMessage: (
     entryId: string,
@@ -415,12 +396,10 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           foldEntryAnimationShow(entry),
           stepModel => ({
             model: stepModel,
-            commands: Option.match(
+            commands: pipe(
               Array.findFirst(stepModel.entries, ({ id }) => id === entry.id),
-              {
-                onNone: () => [],
-                onSome: found => rescheduleDismissCommands(found),
-              },
+              Option.flatMap(scheduleWaitBeforeDismissal),
+              Array.fromOption,
             ),
           }),
         ])
@@ -498,7 +477,9 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
             const nextModel = updateEntry(model, entryId, () => nextEntry)
             return {
               model: nextModel,
-              commands: rescheduleDismissCommands(nextEntry),
+              commands: Array.fromOption(
+                scheduleWaitBeforeDismissal(nextEntry),
+              ),
             }
           },
         })
@@ -546,9 +527,9 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           }),
           {
             onNone: () => ({ model }),
-            onSome: ({ swipeConfig, draggingEntry: { entryId, startX } }) => ({
-              model: updateEntry(model, entryId, entry =>
-                modifyFields(entry, {
+            onSome: ({ swipeConfig, draggingEntry: { entry, startX } }) => ({
+              model: updateEntry(model, entry.id, currentEntry =>
+                modifyFields(currentEntry, {
                   swipeState: () =>
                     SwipeState.Dragging({
                       pointerId,
@@ -573,41 +554,31 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           }),
           {
             onNone: () => ({ model }),
-            onSome: ({ swipeConfig, draggingEntry: { entryId, startX } }) => {
+            onSome: ({ swipeConfig, draggingEntry: { entry, startX } }) => {
               const offset =
                 clampSwipeClientX(startX, clientX, swipeConfig.direction) -
                 startX
-              return Option.match(
-                Array.findFirst(model.entries, ({ id }) => id === entryId),
-                {
-                  onNone: () => ({ model }),
-                  onSome: entry => {
-                    if (Math.abs(offset) > swipeConfig.threshold) {
-                      const nextVersion = Number.increment(entry.swipeVersion)
-                      const nextEntry = modifyFields(entry, {
-                        swipeState: () =>
-                          SwipeState.Dismissing({
-                            offsetX: offset,
-                            direction: swipeConfig.direction,
-                          }),
-                        swipeVersion: () => nextVersion,
-                      })
-                      const settlingModel = updateEntry(
-                        model,
-                        entryId,
-                        () => nextEntry,
-                      )
-                      if (isEntryLeaving(entry)) {
-                        return { model: settlingModel }
-                      } else {
-                        return foldEntryAnimationHide(entry)(settlingModel)
-                      }
-                    } else {
-                      return settleSnapBack(entry)(model)
-                    }
-                  },
-                },
-              )
+              const isPastSwipeThreshold =
+                Math.abs(offset) > swipeConfig.threshold
+              if (!isPastSwipeThreshold) {
+                return settleSnapBack(entry)(model)
+              }
+
+              const nextSwipeVersion = Number.increment(entry.swipeVersion)
+              const nextEntry = modifyFields(entry, {
+                swipeState: () =>
+                  SwipeState.Dismissing({
+                    offsetX: offset,
+                    direction: swipeConfig.direction,
+                  }),
+                swipeVersion: () => nextSwipeVersion,
+              })
+              const nextModel = updateEntry(model, entry.id, () => nextEntry)
+              if (isEntryLeaving(entry)) {
+                return { model: nextModel }
+              } else {
+                return foldEntryAnimationHide(entry)(nextModel)
+              }
             },
           },
         ),
@@ -615,14 +586,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       CancelledSwipe: ({ pointerId }) =>
         Option.match(findDraggingEntry(model, pointerId), {
           onNone: () => ({ model }),
-          onSome: ({ entryId }) =>
-            Option.match(
-              Array.findFirst(model.entries, ({ id }) => id === entryId),
-              {
-                onNone: () => ({ model }),
-                onSome: entry => settleSnapBack(entry)(model),
-              },
-            ),
+          onSome: ({ entry }) => settleSnapBack(entry)(model),
         }),
 
       PressedEscape: () => {
