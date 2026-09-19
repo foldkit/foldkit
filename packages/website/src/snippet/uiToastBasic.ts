@@ -9,9 +9,9 @@ import { modifyFields } from 'foldkit/struct'
 
 import { Toast as UiToast } from '@foldkit/ui'
 
-// Define the payload shape for your toast. The Toast component owns only
-// lifecycle + a11y fields (id, variant, transition, dismiss timer, hover
-// state). The payload is yours, whatever you can encode in a Schema:
+// Define the payload shape for your toast. Toast owns the entry lifecycle,
+// accessibility role, optional dismiss timer, hover state, and swipe state.
+// The payload is yours, whatever you can encode in a Schema:
 const ToastPayload = Schema.Struct({
   bodyText: Schema.String,
   maybeLink: Schema.Option(
@@ -116,10 +116,6 @@ export const subscriptions = Subscription.lift(Toast.subscriptions)<
   toChildModel: model => model.toast,
   toParentMessage: message => Message.GotToastMessage({ message }),
 })
-
-// Custom renderers (for example a foldcn stack) can read the drag offset
-// directly and apply it themselves:
-// Toast.swipeOffset(entry.swipeState)
 
 // In your view, embed Toast via h.submodel once at the app root. The
 // entryToView callback lays out each entry from its payload. The

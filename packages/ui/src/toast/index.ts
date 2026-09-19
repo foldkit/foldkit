@@ -132,8 +132,8 @@ const LEFT_MOUSE_BUTTON = 0
  *
  *  The payload is whatever content shape the consumer supplies via Schema.
  *  The component never reads it. It flows through to `entryToView`. The
- *  component itself owns only lifecycle and a11y fields (id, variant,
- *  animation, dismiss timer, hover state).
+ *  component itself owns lifecycle, a11y, and swipe fields (id, variant,
+ *  animation, dismiss timer, hover state, and swipe state).
  *
  *  Consume the bound module's exports everywhere. `Toast.Model` in your app
  *  Model, `Toast.Message` in your parent Message union, `Toast.show` /

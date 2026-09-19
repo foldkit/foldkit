@@ -64,10 +64,8 @@ const container = Scene.selector('div[key="test"]')
 const entryZero = Scene.selector('div[key="test-entry-0"]')
 
 const STALE_VERSION = -1
-
 const POINTER_ID = 0
-
-const RELEASED_SWIPE_VERSION = 2
+const SETTLING_SWIPE_VERSION = 2
 
 const withEntry = (overrides: Partial<Entry> = {}): Model =>
   evo(Toast.init({ id: 'test', swipeToDismiss: {} }), {
@@ -232,7 +230,7 @@ describe('Toast', () => {
     })
 
     it('adds data-swipe=move and translate offset when dragging', () => {
-      const model: Model = withEntry({
+      const model = withEntry({
         swipeState: SwipeState.Dragging({
           pointerId: POINTER_ID,
           startX: 100,
@@ -342,7 +340,7 @@ describe('Toast', () => {
           WaitForSwipeSettled,
           Toast.Message.CompletedWaitForSwipeSettled({
             entryId: 'test-entry-0',
-            version: RELEASED_SWIPE_VERSION,
+            version: SETTLING_SWIPE_VERSION,
           }),
         ),
         Scene.expect(entryZero).not.toHaveAttr('data-swipe'),

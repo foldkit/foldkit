@@ -109,27 +109,39 @@ const clampSwipeClientX = (
   direction: SwipeDirection,
 ): number =>
   Match.value(direction).pipe(
-    Match.withReturnType<number>(),
     Match.when('Right', () => Math.max(startX, clientX)),
     Match.when('Left', () => Math.min(startX, clientX)),
     Match.exhaustive,
   )
 
 const isDragging = (swipeState: typeof SwipeState.Type): boolean =>
-  SwipeState.match(swipeState, {
-    Idle: () => false,
-    Dragging: () => true,
-    Settling: () => false,
-    Dismissing: () => false,
-  })
+  SwipeState.guards.Dragging(swipeState)
 
 const isSettling = (swipeState: typeof SwipeState.Type): boolean =>
-  SwipeState.match(swipeState, {
-    Idle: () => false,
-    Dragging: () => false,
-    Settling: () => true,
-    Dismissing: () => false,
-  })
+  SwipeState.guards.Settling(swipeState)
+
+const documentStylesWhileSwiping = Stream.callback<never>(() =>
+  Effect.acquireRelease(
+    Effect.sync(() => {
+      const styleElement = document.createElement('style')
+      styleElement.textContent = `
+        :root {
+          user-select: none !important;
+          -webkit-user-select: none !important;
+        }
+        * {
+          cursor: grabbing !important;
+        }
+      `
+      document.head.appendChild(styleElement)
+      return styleElement
+    }),
+    styleElement =>
+      Effect.sync(() => {
+        styleElement.remove()
+      }),
+  ).pipe(Effect.flatMap(() => Effect.never)),
+)
 
 /** Factory that binds Toast's runtime (update fn, helpers, commands) to a
  *  specific payload schema. Called by `make` in index.ts; inner helpers close
@@ -195,22 +207,21 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     pointerId: number,
   ): Option.Option<Readonly<{ entryId: string; startX: number }>> =>
     pipe(
-      Array.findFirst(model.entries, entry =>
-        SwipeState.match(entry.swipeState, {
-          Idle: () => false,
-          Dragging: dragging => dragging.pointerId === pointerId,
-          Settling: () => false,
-          Dismissing: () => false,
-        }),
+      Array.findFirst(
+        model.entries,
+        entry =>
+          SwipeState.guards.Dragging(entry.swipeState) &&
+          entry.swipeState.pointerId === pointerId,
       ),
       Option.flatMap(entry =>
-        SwipeState.match(entry.swipeState, {
-          Idle: () => Option.none(),
-          Dragging: dragging =>
-            Option.some({ entryId: entry.id, startX: dragging.startX }),
-          Settling: () => Option.none(),
-          Dismissing: () => Option.none(),
-        }),
+        SwipeState.matchOrElse(
+          entry.swipeState,
+          {
+            Dragging: dragging =>
+              Option.some({ entryId: entry.id, startX: dragging.startX }),
+          },
+          () => Option.none(),
+        ),
       ),
     )
 
@@ -351,7 +362,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     Option.match(
       Array.findFirst(model.entries, ({ id }) => id === entryId),
       {
-        onNone: (): UpdateReturn => ({ model }),
+        onNone: () => ({ model }),
         onSome: entry => foldEntryAnimation(entry)(model, animationMessage),
       },
     )
@@ -389,15 +400,13 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         : Duration.fromInputUnsafe(config.defaultDuration),
     entries: [],
     nextEntryKey: 0,
-    maybeSwipeConfig:
-      config.swipeToDismiss === undefined
-        ? Option.none()
-        : Option.some({
-            threshold:
-              config.swipeToDismiss.threshold ?? DEFAULT_SWIPE_THRESHOLD,
-            direction:
-              config.swipeToDismiss.direction ?? DEFAULT_SWIPE_DIRECTION,
-          }),
+    maybeSwipeConfig: pipe(
+      Option.fromNullishOr(config.swipeToDismiss),
+      Option.map(({ threshold, direction }) => ({
+        threshold: threshold ?? DEFAULT_SWIPE_THRESHOLD,
+        direction: direction ?? DEFAULT_SWIPE_DIRECTION,
+      })),
+    ),
   })
 
   /** Processes a Toast Message and returns the next Model, optional Commands,
@@ -434,7 +443,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         )
 
         return Option.match(maybeEntry, {
-          onNone: (): UpdateReturn => ({ model }),
+          onNone: () => ({ model }),
           onSome: entry => {
             if (isEntryLeaving(entry)) {
               return { model }
@@ -462,7 +471,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         )
 
         return Option.match(maybeEntry, {
-          onNone: (): UpdateReturn => ({ model }),
+          onNone: () => ({ model }),
           onSome: entry => {
             const isStale = version !== entry.pendingDismissVersion
             if (isStale || isEntryLeaving(entry)) {
@@ -490,7 +499,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         )
 
         return Option.match(maybeEntry, {
-          onNone: (): UpdateReturn => ({ model }),
+          onNone: () => ({ model }),
           onSome: entry => {
             const nextEntry: Entry = modifyFields(entry, {
               isHovered: () => false,
@@ -514,7 +523,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           ({ id }) => id === entryId,
         )
         return Option.match(maybeEntry, {
-          onNone: (): UpdateReturn => ({ model }),
+          onNone: () => ({ model }),
           onSome: entry => {
             if (
               isEntryLeaving(entry) ||
@@ -546,7 +555,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
             draggingEntry: findDraggingEntry(model, pointerId),
           }),
           {
-            onNone: (): UpdateReturn => ({ model }),
+            onNone: () => ({ model }),
             onSome: ({ swipeConfig, draggingEntry: { entryId, startX } }) => ({
               model: updateEntry(model, entryId, entry =>
                 modifyFields(entry, {
@@ -573,7 +582,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
             draggingEntry: findDraggingEntry(model, pointerId),
           }),
           {
-            onNone: (): UpdateReturn => ({ model }),
+            onNone: () => ({ model }),
             onSome: ({ swipeConfig, draggingEntry: { entryId, startX } }) => {
               const offset =
                 clampSwipeClientX(startX, clientX, swipeConfig.direction) -
@@ -581,7 +590,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
               return Option.match(
                 Array.findFirst(model.entries, ({ id }) => id === entryId),
                 {
-                  onNone: (): UpdateReturn => ({ model }),
+                  onNone: () => ({ model }),
                   onSome: entry => {
                     if (Math.abs(offset) > swipeConfig.threshold) {
                       const nextVersion = Number.increment(entry.swipeVersion)
@@ -615,12 +624,12 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
       CancelledSwipe: ({ pointerId }) =>
         Option.match(findDraggingEntry(model, pointerId), {
-          onNone: (): UpdateReturn => ({ model }),
+          onNone: () => ({ model }),
           onSome: ({ entryId }) =>
             Option.match(
               Array.findFirst(model.entries, ({ id }) => id === entryId),
               {
-                onNone: (): UpdateReturn => ({ model }),
+                onNone: () => ({ model }),
                 onSome: entry => settleSnapBack(model, entry),
               },
             ),
@@ -630,7 +639,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         Option.match(
           Array.findFirst(model.entries, ({ id }) => id === entryId),
           {
-            onNone: (): UpdateReturn => ({ model }),
+            onNone: () => ({ model }),
             onSome: entry => {
               if (
                 isSettling(entry.swipeState) &&
@@ -679,7 +688,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       {
         modelToDependencies: swipeDependencies,
         dependenciesToStream: ({ isSwipeEnabled, isAnyDragging }) => {
-          const moveStream = Subscription.fromEvent({
+          const pointerMoveStream = Subscription.fromEvent({
             target: document,
             type: 'pointermove',
             toMessage: event =>
@@ -688,7 +697,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
                 clientX: event.clientX,
               }),
           })
-          const upStream = Subscription.fromEvent({
+          const pointerUpStream = Subscription.fromEvent({
             target: document,
             type: 'pointerup',
             toMessage: event =>
@@ -697,46 +706,19 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
                 clientX: event.clientX,
               }),
           })
-          const cancelStream = Subscription.fromEvent({
+          const pointerCancelStream = Subscription.fromEvent({
             target: document,
             type: 'pointercancel',
             toMessage: event =>
               MessageSchema.CancelledSwipe({ pointerId: event.pointerId }),
           })
-          const pointerEvents = Stream.merge(
-            Stream.merge(moveStream, upStream),
-            cancelStream,
-          )
-
-          const documentSwipeStyles = Stream.callback<never>(() =>
-            Effect.acquireRelease(
-              Effect.sync(() => {
-                document.documentElement.style.setProperty(
-                  'user-select',
-                  'none',
-                )
-                document.documentElement.style.setProperty(
-                  '-webkit-user-select',
-                  'none',
-                )
-                const cursorStyle = document.createElement('style')
-                cursorStyle.textContent = '* { cursor: grabbing !important; }'
-                document.head.appendChild(cursorStyle)
-                return cursorStyle
-              }),
-              cursorStyle =>
-                Effect.sync(() => {
-                  document.documentElement.style.removeProperty('user-select')
-                  document.documentElement.style.removeProperty(
-                    '-webkit-user-select',
-                  )
-                  cursorStyle.remove()
-                }),
-            ).pipe(Effect.flatMap(() => Effect.never)),
+          const pointerMessages = Stream.mergeAll<Message, never, never>(
+            [pointerMoveStream, pointerUpStream, pointerCancelStream],
+            { concurrency: 'unbounded' },
           )
 
           return Stream.when(
-            Stream.merge(pointerEvents, documentSwipeStyles),
+            Stream.merge(pointerMessages, documentStylesWhileSwiping),
             Effect.sync(() => isSwipeEnabled && isAnyDragging),
           )
         },
@@ -755,25 +737,26 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           isSwipeEnabled,
           isAnyDragging,
           activePointerIds,
-        }) =>
-          Stream.when(
-            Stream.flatMap(
-              Subscription.fromEvent({
-                target: document,
-                type: 'keydown',
-                toMessage: event => event,
-              }),
-              event =>
-                event.key === 'Escape'
-                  ? Stream.fromIterable(
-                      Array.map(activePointerIds, pointerId =>
-                        MessageSchema.CancelledSwipe({ pointerId }),
-                      ),
-                    )
-                  : Stream.empty,
+        }) => {
+          const escapeKeydownStream = Subscription.fromEvent({
+            target: document,
+            type: 'keydown',
+            toMessage: event => event,
+          }).pipe(Stream.filter(({ key }) => key === 'Escape'))
+
+          const cancelActiveSwipes = Stream.flatMap(escapeKeydownStream, () =>
+            Stream.fromIterable(
+              Array.map(activePointerIds, pointerId =>
+                MessageSchema.CancelledSwipe({ pointerId }),
+              ),
             ),
+          )
+
+          return Stream.when(
+            cancelActiveSwipes,
             Effect.sync(() => isSwipeEnabled && isAnyDragging),
-          ),
+          )
+        },
       },
     ),
   }))

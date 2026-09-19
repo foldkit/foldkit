@@ -8,9 +8,9 @@ export const isSwipeExcludedTarget = (
   pointerType: string,
   target: EventTarget | null,
 ): boolean => {
-  const maybeElement = target instanceof Element ? target : null
-  const element =
-    maybeElement ?? (target instanceof Node ? target.parentElement : null)
+  const targetElement = target instanceof Element ? target : null
+  const parentElement = target instanceof Node ? target.parentElement : null
+  const element = targetElement ?? parentElement
 
   if (element === null) {
     return false

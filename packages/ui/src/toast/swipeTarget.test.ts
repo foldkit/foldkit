@@ -12,7 +12,7 @@ describe('isSwipeExcludedTarget', () => {
     expect(isSwipeExcludedTarget('touch', icon)).toBe(true)
   })
 
-  it('allows selecting marked text with a mouse while retaining touch swipes', () => {
+  it('allows mouse text selection without disabling touch swipes', () => {
     const paragraph = document.createElement('p')
     paragraph.setAttribute('data-toast-swipe-ignore', '')
     const text = document.createElement('span')
