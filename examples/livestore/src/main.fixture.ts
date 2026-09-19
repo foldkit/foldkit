@@ -1,5 +1,4 @@
 import { Option } from 'effect'
-import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { Model } from './main'
@@ -26,40 +25,18 @@ export const doneTask = Item.make({
   createdAt: 3000,
 })
 
-export const successModel = (items: ReadonlyArray<Item>): Model =>
+export const modelWithItems = (items: ReadonlyArray<Item>) =>
   Model.make({
-    itemsAsyncData: AsyncData.Success({ data: items }),
-    maybeMutationError: Option.none(),
+    items,
+    maybeAddItemError: Option.none(),
     newItemText: '',
     filter: 'All',
   })
 
-export const mutationFailureModel = (
+export const addItemFailureModel = (
   items: ReadonlyArray<Item>,
   error: string,
-): Model =>
-  modifyFields(successModel(items), {
-    maybeMutationError: () => Option.some(error),
-  })
-
-export const loadingModel: Model = Model.make({
-  itemsAsyncData: AsyncData.Loading(),
-  maybeMutationError: Option.none(),
-  newItemText: '',
-  filter: 'All',
-})
-
-export const failureModel: Model = Model.make({
-  itemsAsyncData: AsyncData.Failure({ error: 'LiveStore is unavailable' }),
-  maybeMutationError: Option.none(),
-  newItemText: '',
-  filter: 'All',
-})
-
-export const staleModel = (items: ReadonlyArray<Item>, error: string): Model =>
-  Model.make({
-    itemsAsyncData: AsyncData.Stale({ data: items, error }),
-    maybeMutationError: Option.none(),
-    newItemText: '',
-    filter: 'All',
+) =>
+  modifyFields(modelWithItems(items), {
+    maybeAddItemError: () => Option.some(error),
   })

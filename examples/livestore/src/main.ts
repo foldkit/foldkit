@@ -9,8 +9,9 @@ import {
   Schema,
   Stream,
   String,
+  pipe,
 } from 'effect'
-import { AsyncData, Command, Runtime, Subscription, Update } from 'foldkit'
+import { Command, Runtime, Subscription, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -18,19 +19,21 @@ import { modifyFields } from 'foldkit/struct'
 import { BrowserCrypto } from '@effect/platform-browser'
 import { Button, Checkbox, Input } from '@foldkit/ui'
 
-import { Item, Items, events, tables } from './schema'
-import { ItemsStore, commitItemEvent } from './store'
+import { Item, Items, events } from './schema'
+import {
+  ItemsStore,
+  type ItemsStoreRequirements,
+  orderedItemsQuery,
+} from './store'
 
 // MODEL
-
-const ItemsAsyncData = AsyncData.Schema(Items, Schema.String)
 
 const Filter = Schema.Literals(['All', 'Active', 'Completed'])
 type Filter = typeof Filter.Type
 
 export const Model = Schema.Struct({
-  itemsAsyncData: ItemsAsyncData.schema,
-  maybeMutationError: Schema.Option(Schema.String),
+  items: Items,
+  maybeAddItemError: Schema.Option(Schema.String),
   newItemText: Schema.String,
   filter: Filter,
 })
@@ -41,28 +44,44 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({
   UpdatedNewItemText: { text: Schema.String },
   SubmittedNewItem: {},
+
   SelectedFilter: { filter: Filter },
+
   ClickedToggleItem: { id: Schema.String },
   ClickedDeleteItem: { id: Schema.String },
   ClickedClearCompleted: {},
+
   SucceededAddItem: {},
   FailedAddItem: { error: Schema.String },
-  SucceededToggleItem: {},
-  FailedToggleItem: { error: Schema.String },
-  SucceededDeleteItem: {},
-  FailedDeleteItem: { error: Schema.String },
-  SucceededClearCompleted: {},
-  FailedClearCompleted: { error: Schema.String },
+
+  CompletedToggleItem: {},
+  CompletedDeleteItem: {},
+  CompletedClearCompleted: {},
+
   ReceivedItems: { items: Items },
 })
 export type Message = typeof Message.Type
 
+// FLAGS
+
+export const Flags = Schema.Struct({
+  items: Items,
+})
+export type Flags = typeof Flags.Type
+
+export const flags: Effect.Effect<Flags, never, ItemsStoreRequirements> =
+  Effect.gen(function* () {
+    const items = yield* ItemsStore.query(orderedItemsQuery)
+
+    return Flags.make({ items })
+  })
+
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
   model: {
-    itemsAsyncData: ItemsAsyncData.Loading(),
-    maybeMutationError: Option.none(),
+    items: flags.items,
+    maybeAddItemError: Option.none(),
     newItemText: '',
     filter: 'All',
   },
@@ -70,21 +89,7 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 
 // UPDATE
 
-type UpdateReturn = Update.Return<Model, Message, ItemsStore>
-
-const clearMutationError: Update.Step<Model, Message> = model => ({
-  model: modifyFields(model, {
-    maybeMutationError: () => Option.none(),
-  }),
-})
-
-const recordMutationError =
-  (error: string): Update.Step<Model, Message> =>
-  model => ({
-    model: modifyFields(model, {
-      maybeMutationError: () => Option.some(error),
-    }),
-  })
+type UpdateReturn = Update.Return<Model, Message, ItemsStoreRequirements>
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
@@ -101,18 +106,13 @@ export const update = (model: Model, message: Message) =>
         return { model }
       }
 
-      return Update.combine(model, [
-        stepModel => ({
-          model: modifyFields(stepModel, {
-            newItemText: () => '',
-          }),
+      return {
+        model: modifyFields(model, {
+          maybeAddItemError: () => Option.none(),
+          newItemText: () => '',
         }),
-        clearMutationError,
-        stepModel => ({
-          model: stepModel,
-          commands: [AddItem({ text: trimmed })],
-        }),
-      ])
+        commands: [AddItem({ text: trimmed })],
+      }
     },
 
     SelectedFilter: ({ filter }) => ({
@@ -121,45 +121,35 @@ export const update = (model: Model, message: Message) =>
       }),
     }),
 
-    ClickedToggleItem: ({ id }) =>
-      Update.combine(model, [
-        clearMutationError,
-        stepModel => ({
-          model: stepModel,
-          commands: [ToggleItem({ id })],
-        }),
-      ]),
+    ClickedToggleItem: ({ id }) => ({
+      model,
+      commands: [ToggleItem({ id })],
+    }),
 
-    ClickedDeleteItem: ({ id }) =>
-      Update.combine(model, [
-        clearMutationError,
-        stepModel => ({
-          model: stepModel,
-          commands: [DeleteItem({ id })],
-        }),
-      ]),
+    ClickedDeleteItem: ({ id }) => ({
+      model,
+      commands: [DeleteItem({ id })],
+    }),
 
-    ClickedClearCompleted: () =>
-      Update.combine(model, [
-        clearMutationError,
-        stepModel => ({
-          model: stepModel,
-          commands: [ClearCompleted()],
-        }),
-      ]),
+    ClickedClearCompleted: () => ({
+      model,
+      commands: [ClearCompleted()],
+    }),
 
     SucceededAddItem: () => ({ model }),
-    FailedAddItem: ({ error }) => recordMutationError(error)(model),
-    SucceededToggleItem: () => ({ model }),
-    FailedToggleItem: ({ error }) => recordMutationError(error)(model),
-    SucceededDeleteItem: () => ({ model }),
-    FailedDeleteItem: ({ error }) => recordMutationError(error)(model),
-    SucceededClearCompleted: () => ({ model }),
-    FailedClearCompleted: ({ error }) => recordMutationError(error)(model),
+    FailedAddItem: ({ error }) => ({
+      model: modifyFields(model, {
+        maybeAddItemError: () => Option.some(error),
+      }),
+    }),
+
+    CompletedToggleItem: () => ({ model }),
+    CompletedDeleteItem: () => ({ model }),
+    CompletedClearCompleted: () => ({ model }),
 
     ReceivedItems: ({ items }) => ({
       model: modifyFields(model, {
-        itemsAsyncData: () => ItemsAsyncData.Success({ data: items }),
+        items: () => items,
       }),
     }),
   })
@@ -177,7 +167,7 @@ export const AddItem = Command.define('AddItem', {
       const crypto = yield* Crypto.Crypto
       const id = yield* crypto.randomUUIDv4
       const createdAt = yield* Clock.currentTimeMillis
-      yield* commitItemEvent(
+      yield* ItemsStore.commit(
         events.itemAdded({ id, text, completed: false, createdAt }),
       )
 
@@ -192,70 +182,58 @@ export const AddItem = Command.define('AddItem', {
 
 export const ToggleItem = Command.define('ToggleItem', {
   args: { id: Schema.String },
-  messages: [Message.SucceededToggleItem, Message.FailedToggleItem],
+  messages: [Message.CompletedToggleItem],
   execute: ({ id }) =>
     Effect.gen(function* () {
-      yield* commitItemEvent(events.itemToggled({ id }))
+      yield* ItemsStore.commit(events.itemToggled({ id }))
 
-      return Message.SucceededToggleItem()
-    }).pipe(
-      Effect.catch(error =>
-        Effect.succeed(
-          Message.FailedToggleItem({ error: describeError(error) }),
-        ),
-      ),
-    ),
+      return Message.CompletedToggleItem()
+    }),
 })
 
 export const DeleteItem = Command.define('DeleteItem', {
   args: { id: Schema.String },
-  messages: [Message.SucceededDeleteItem, Message.FailedDeleteItem],
+  messages: [Message.CompletedDeleteItem],
   execute: ({ id }) =>
     Effect.gen(function* () {
-      yield* commitItemEvent(events.itemDeleted({ id }))
+      yield* ItemsStore.commit(events.itemDeleted({ id }))
 
-      return Message.SucceededDeleteItem()
-    }).pipe(
-      Effect.catch(error =>
-        Effect.succeed(
-          Message.FailedDeleteItem({ error: describeError(error) }),
-        ),
-      ),
-    ),
+      return Message.CompletedDeleteItem()
+    }),
 })
 
 export const ClearCompleted = Command.define('ClearCompleted', {
-  messages: [Message.SucceededClearCompleted, Message.FailedClearCompleted],
+  messages: [Message.CompletedClearCompleted],
   execute: Effect.gen(function* () {
-    yield* commitItemEvent(events.completedItemsCleared({}))
+    yield* ItemsStore.commit(events.completedItemsCleared({}))
 
-    return Message.SucceededClearCompleted()
-  }).pipe(
-    Effect.catch(error =>
-      Effect.succeed(
-        Message.FailedClearCompleted({ error: describeError(error) }),
-      ),
-    ),
-  ),
+    return Message.CompletedClearCompleted()
+  }),
 })
 
 // SUBSCRIPTION
 
-const streamItems: Stream.Stream<Message, never, ItemsStore> = Stream.unwrap(
+const receivedItemsMessageStream: Stream.Stream<
+  typeof Message.ReceivedItems.Type,
+  never,
+  ItemsStoreRequirements
+> = Stream.unwrap(
   Effect.gen(function* () {
-    const store = yield* ItemsStore
+    const { store } = yield* ItemsStore
 
     return store
-      .subscribeStream(tables.items.orderBy('createdAt', 'asc'))
+      .subscribeStream(orderedItemsQuery)
       .pipe(Stream.map(items => Message.ReceivedItems({ items })))
   }),
 )
 
-export const subscriptions = Subscription.make<Model, Message, ItemsStore>()(
-  _entry => ({
-    items: Subscription.persistent(streamItems),
-  }),
-)
+export const subscriptions = Subscription.make<
+  Model,
+  Message,
+  ItemsStoreRequirements
+>()(() => ({
+  items: Subscription.persistent(receivedItemsMessageStream),
+}))
 
 // VIEW
 
@@ -326,51 +304,16 @@ const newItemFormView = (newItemText: string, h: HtmlBuilder<Message>): Html =>
     ],
   )
 
-const loadingView = (h: HtmlBuilder<Message>): Html =>
-  h.div(
-    [h.Class('py-8 text-center text-gray-400'), h.Role('status')],
-    ['Loading LiveStore...'],
-  )
-
-const errorView = (error: string, h: HtmlBuilder<Message>): Html =>
-  h.div(
-    [
-      h.Class('bg-red-50 border border-red-200 rounded-lg p-4'),
-      h.Role('alert'),
-    ],
-    [
-      h.p(
-        [h.Class('text-red-800 font-semibold mb-1')],
-        ['Could not load tasks'],
-      ),
-      h.p([h.Class('text-red-600 text-sm')], [error]),
-    ],
-  )
-
-const mutationErrorView = (error: string, h: HtmlBuilder<Message>): Html =>
+const addItemErrorView = (error: string, h: HtmlBuilder<Message>): Html =>
   h.div(
     [
       h.Class('bg-red-50 border border-red-200 rounded-lg p-4 mb-4'),
       h.Role('alert'),
     ],
     [
-      h.p(
-        [h.Class('text-red-800 font-semibold mb-1')],
-        ['Could not update LiveStore'],
-      ),
+      h.p([h.Class('text-red-800 font-semibold mb-1')], ['Could not add task']),
       h.p([h.Class('text-red-600 text-sm')], [error]),
     ],
-  )
-
-const staleBannerView = (error: string, h: HtmlBuilder<Message>): Html =>
-  h.div(
-    [
-      h.Class(
-        'bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-sm text-amber-800',
-      ),
-      h.Role('alert'),
-    ],
-    [`Showing the last known tasks. The latest refresh failed: ${error}`],
   )
 
 const checkboxBoxClassName = (isChecked: boolean): string =>
@@ -526,22 +469,18 @@ const footerView = (
     ],
   )
 
-const loadedView = (
-  model: Model,
-  items: Items,
-  h: HtmlBuilder<Message>,
-): Html => {
-  const visibleItems = filterItems(items, model.filter)
-  const activeCount = Array.length(Array.filter(items, item => !item.completed))
-  const completedCount = Array.length(items) - activeCount
+const itemsView = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const visibleItems = filterItems(model.items, model.filter)
+  const activeCount = pipe(
+    model.items,
+    Array.filter(item => !item.completed),
+    Array.length,
+  )
+  const completedCount = Array.length(model.items) - activeCount
 
   return h.div(
     [],
     [
-      Option.match(AsyncData.getError(model.itemsAsyncData), {
-        onNone: () => h.empty,
-        onSome: error => staleBannerView(error, h),
-      }),
       Array.match(visibleItems, {
         onEmpty: () => emptyView(model.filter, h),
         onNonEmpty: visibleItems =>
@@ -564,15 +503,11 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         [
           headerView(h),
           newItemFormView(model.newItemText, h),
-          Option.match(model.maybeMutationError, {
+          Option.match(model.maybeAddItemError, {
             onNone: () => h.empty,
-            onSome: error => mutationErrorView(error, h),
+            onSome: error => addItemErrorView(error, h),
           }),
-          AsyncData.matchData(model.itemsAsyncData, {
-            onEmpty: () => loadingView(h),
-            onFailure: error => errorView(error, h),
-            onData: items => loadedView(model, items, h),
-          }),
+          itemsView(model, h),
         ],
       ),
     ],
