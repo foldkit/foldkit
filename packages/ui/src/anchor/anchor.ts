@@ -204,9 +204,27 @@ export const anchorSetup = (
   const root = element.getRootNode()
   const inShadow = root instanceof ShadowRoot
   const owner = inShadow ? root : document
+
+  if (!(element instanceof HTMLElement)) {
+    console.error(
+      '[@foldkit/ui] anchorSetup requires an HTML panel. The panel will not be positioned.',
+    )
+    return Function.constVoid
+  }
+
   const button = owner.getElementById(config.buttonId)
 
-  if (!(button instanceof HTMLElement) || !(element instanceof HTMLElement)) {
+  if (button === null) {
+    console.error(
+      `[@foldkit/ui] anchorSetup could not find a trigger with id "${config.buttonId}". The panel will not be positioned.`,
+    )
+    return Function.constVoid
+  }
+
+  if (!(button instanceof HTMLElement)) {
+    console.error(
+      `[@foldkit/ui] anchorSetup requires an HTML trigger with id "${config.buttonId}". The panel will not be positioned.`,
+    )
     return Function.constVoid
   }
 
