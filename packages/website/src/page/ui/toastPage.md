@@ -12,7 +12,7 @@ Check out how Toast is wired up in a [real Foldkit app](https://github.com/foldk
 
 ## Examples
 
-Click a variant to push a toast onto the stack. Hover a toast to pause its auto-dismiss; move away and the timer restarts. Drag a toast right to swipe it away; release after 120px and it continues off-screen, otherwise it animates back. Press Escape while dragging to cancel.
+Click a variant to push a toast onto the stack. Hover a toast to pause its auto-dismiss; move away and the timer restarts. Drag a toast right to swipe it away; release after more than 40px and it continues off-screen, otherwise it animates back. Press Escape while dragging to cancel.
 
 ::Demo{name="demo"}
 
@@ -26,7 +26,7 @@ Each entry’s enter/leave animations flow through the [Animation](/ui/animation
 
 ## Gestures
 
-Swipe is pointer-driven and opt-in. Pass `swipeToDismiss` to `Toast.init` (`{}` for the default rightward 80px threshold, `{ threshold: 120 }` for a longer swipe as in this demo, or `{ direction: 'Left' }` for a leftward swipe); without it the view attaches no `pointerdown` handler and the gesture Messages are no-ops, so an existing Toast without wired subscriptions can never get stuck mid-drag. The direction is independent of the view's `position`, so set it explicitly for a left-anchored stack. With swipe enabled, `Toast.view` attaches `pointerdown` per entry and `Toast.subscriptions` drives `pointermove`, `pointerup`, and `pointercancel` plus `Escape` to cancel, locking `user-select` and cursor to `grabbing` while dragging. Wire the subscriptions at the app root with `Subscription.lift(Toast.subscriptions)`. See the snippet below and [Toast subscriptions in the demo app](https://github.com/foldkit/foldkit/blob/main/packages/website/src/page/ui/subscriptions.ts).
+Swipe is pointer-driven and opt-in. Pass `swipeToDismiss` to `Toast.init` (`{}` for the default rightward 40px threshold, `{ threshold: 120 }` for a longer swipe, or `{ direction: 'Left' }` for a leftward swipe); without it the view attaches no `pointerdown` handler and the gesture Messages are no-ops, so an existing Toast without wired subscriptions can never get stuck mid-drag. The direction is independent of the view's `position`, so set it explicitly for a left-anchored stack. Dismissal depends on release distance, not velocity. With swipe enabled, `Toast.view` attaches `pointerdown` per entry and `Toast.subscriptions` drives `pointermove`, `pointerup`, and `pointercancel` plus `Escape` to cancel, locking `user-select` and cursor to `grabbing` while dragging. Wire the subscriptions at the app root with `Subscription.lift(Toast.subscriptions)`. See the snippet below and [Toast subscriptions in the demo app](https://github.com/foldkit/foldkit/blob/main/packages/website/src/page/ui/subscriptions.ts).
 
 Presses on buttons, links, form controls, and editable elements do not start a swipe, so a close button keeps its normal pointer behavior. To make text selectable with a mouse or pen, put `data-toast-swipe-ignore` on a span around the text, as the demo does. A touch can still start a swipe over that text. Other areas of the entry remain draggable.
 
@@ -67,7 +67,7 @@ Configuration object passed to `Toast.init()`.
 | ----------------- | ------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `id`              | `string`                                                | —                     | Unique ID for the toast container.                                                                                                                                                                                                 |
 | `defaultDuration` | `Duration.Input`                                        | `Duration.seconds(4)` | Auto-dismiss duration applied to any show() call that does not provide its own duration or pass sticky: true. Accepts any Effect Duration input; a bare number is interpreted as milliseconds.                                     |
-| `swipeToDismiss`  | `{ threshold?: number; direction?: 'Left' \| 'Right' }` | —                     | Opts the container into swipe-to-dismiss. Omit it to leave swipe disabled. Defaults to a rightward 80px threshold. Set `threshold` for the dismissal distance and `direction: 'Left'` for a leftward swipe. Applies per container. |
+| `swipeToDismiss`  | `{ threshold?: number; direction?: 'Left' \| 'Right' }` | —                     | Opts the container into swipe-to-dismiss. Omit it to leave swipe disabled. Defaults to a rightward 40px threshold. Set `threshold` for the dismissal distance and `direction: 'Left'` for a leftward swipe. Applies per container. |
 
 ### ShowInput {#show-input}
 

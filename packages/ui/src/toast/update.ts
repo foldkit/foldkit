@@ -583,7 +583,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
                 {
                   onNone: (): UpdateReturn => ({ model }),
                   onSome: entry => {
-                    if (Math.abs(offset) >= swipeConfig.threshold) {
+                    if (Math.abs(offset) > swipeConfig.threshold) {
                       const nextVersion = Number.increment(entry.swipeVersion)
                       const nextEntry = modifyFields(entry, {
                         swipeState: () =>

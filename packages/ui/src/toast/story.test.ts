@@ -103,7 +103,7 @@ describe('Toast', () => {
         defaultDuration: Duration.seconds(4),
         entries: [],
         nextEntryKey: 0,
-        maybeSwipeConfig: Option.some({ threshold: 80, direction: 'Right' }),
+        maybeSwipeConfig: Option.some({ threshold: 40, direction: 'Right' }),
       })
     })
 
@@ -130,7 +130,7 @@ describe('Toast', () => {
         defaultDuration: Duration.seconds(4),
         entries: [],
         nextEntryKey: 0,
-        maybeSwipeConfig: Option.some({ threshold: 80, direction: 'Left' }),
+        maybeSwipeConfig: Option.some({ threshold: 40, direction: 'Left' }),
       })
     })
   })
@@ -696,7 +696,7 @@ describe('Toast', () => {
       )
     })
 
-    it('ReleasedSwipePointer below threshold settles back and reschedules dismiss', () => {
+    it('ReleasedSwipePointer at threshold settles back and reschedules dismiss', () => {
       const model = withEntries(swipeInit, [makeSettledEntry()])
       Story.story(
         Toast.update,
@@ -711,13 +711,13 @@ describe('Toast', () => {
         Story.message(
           Message.MovedSwipePointer({
             pointerId: POINTER_ID,
-            clientX: 130,
+            clientX: 140,
           }),
         ),
         Story.message(
           Message.ReleasedSwipePointer({
             pointerId: POINTER_ID,
-            clientX: 130,
+            clientX: 140,
           }),
         ),
         Story.model((next: Model) => {
@@ -755,7 +755,7 @@ describe('Toast', () => {
       )
     })
 
-    it('ReleasedSwipePointer beyond threshold starts a swipe dismissal', () => {
+    it('ReleasedSwipePointer just beyond threshold starts a swipe dismissal', () => {
       const model = withEntries(swipeInit, [makeSettledEntry()])
       Story.story(
         Toast.update,
@@ -770,19 +770,19 @@ describe('Toast', () => {
         Story.message(
           Message.MovedSwipePointer({
             pointerId: POINTER_ID,
-            clientX: 200,
+            clientX: 141,
           }),
         ),
         Story.message(
           Message.ReleasedSwipePointer({
             pointerId: POINTER_ID,
-            clientX: 200,
+            clientX: 141,
           }),
         ),
         Story.model((next: Model) => {
           const entry = requireEntry(next, 0)
           expect(entry.swipeState).toStrictEqual(
-            SwipeState.Dismissing({ offsetX: 100, direction: 'Right' }),
+            SwipeState.Dismissing({ offsetX: 41, direction: 'Right' }),
           )
           expect(entry.animation.transitionState).toBe('LeaveStart')
         }),

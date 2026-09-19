@@ -35,13 +35,13 @@ const Model = Schema.Struct({
 type Model = typeof Model.Type
 
 // In your init function, initialize it. Swipe is opt-in: omit
-// swipeToDismiss to leave it disabled, or tune the threshold for a tighter
-// or looser stack:
+// swipeToDismiss to leave it disabled, or pass {} for the default rightward
+// 40px gesture. Set threshold to customize the dismissal distance:
 const init = () => ({
   model: {
     toast: Toast.init({
       id: 'app-toast',
-      swipeToDismiss: { threshold: 120 },
+      swipeToDismiss: {},
     }),
     maybeLastDismissedBody: Option.none(),
     // ...your other fields

@@ -63,7 +63,7 @@ export const SwipeState = defineTaggedUnion({
 export type SwipeState = typeof SwipeState.Type
 
 /** Default distance in pixels a pointer must travel to dismiss a Toast. */
-export const DEFAULT_SWIPE_THRESHOLD = 80
+export const DEFAULT_SWIPE_THRESHOLD = 40
 
 /** Default direction in which a pointer can dismiss a Toast. */
 export const DEFAULT_SWIPE_DIRECTION: SwipeDirection = 'Right'
