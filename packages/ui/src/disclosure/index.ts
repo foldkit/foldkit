@@ -40,7 +40,7 @@ export type DisclosureAttributes<Message> = Readonly<{
   animatePanel: (content: Html, options?: AnimatePanelOptions) => Html
 }>
 
-/** Options for {@link DisclosureAttributes.animatePanel}.
+/** Options for `DisclosureAttributes.animatePanel`.
  *
  *  - `peek`: a CSS height the collapsed panel keeps, such as `'7.5em'` for
  *    five lines at a 1.5 leading. The visible content is an inert preview;

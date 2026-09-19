@@ -12,22 +12,22 @@ import tailwindcss from '@tailwindcss/vite'
 import {
   counterDemoCodePlugin,
   notePlayerDemoCodePlugin,
-} from './scripts/demoCodePlugin'
-import { monacoWorkersPlugin } from './scripts/monacoWorkersPlugin'
-import { playgroundFilesPlugin } from './scripts/playgroundFilesPlugin'
-import { playgroundTypesPlugin } from './scripts/playgroundTypesPlugin'
-import { islandAttributes } from './src/markdown/islandAttributes'
+} from './scripts/demoCodePlugin.ts'
+import { monacoWorkersPlugin } from './scripts/monacoWorkersPlugin.ts'
+import { playgroundFilesPlugin } from './scripts/playgroundFilesPlugin.ts'
+import { playgroundTypesPlugin } from './scripts/playgroundTypesPlugin.ts'
+import { islandAttributes } from './src/markdown/islandAttributes.ts'
 import {
   ParsedApiReference,
   collectNamedSchemas,
   moduleNameToSlug,
   parseTypedocJson,
-} from './src/page/apiReference/domain'
+} from './src/page/apiReference/domain.ts'
 import {
   type NamedSchemas,
   typeDefFromChildren,
   typeToString,
-} from './src/page/apiReference/typeToString'
+} from './src/page/apiReference/typeToString.ts'
 import {
   Kind,
   type TypeDocCommentPart,
@@ -36,10 +36,10 @@ import {
   type TypeDocParam,
   type TypeDocSignature,
   type TypeDocTypeParam,
-} from './src/page/apiReference/typedoc'
-import { PostFrontmatter } from './src/page/blog/frontmatter'
-import { exampleSlugs } from './src/page/example/meta'
-import { shikiDarkTheme, shikiLightTheme } from './src/shikiTheme'
+} from './src/page/apiReference/typedoc.ts'
+import { PostFrontmatter } from './src/page/blog/frontmatter.ts'
+import { exampleSlugs } from './src/page/example/meta.ts'
+import { shikiDarkTheme, shikiLightTheme } from './src/shikiTheme.ts'
 
 const shikiThemes = {
   light: shikiLightTheme,
@@ -103,7 +103,7 @@ const RESOLVED_CSS_SNIPPETS_ID = '\0' + CSS_SNIPPETS_ID
  * invisible until restart while every `.ts` snippet hot-updates.
  */
 const cssSnippetsPlugin = (): Plugin => {
-  const snippetDirectory = resolve(__dirname, 'src/snippet')
+  const snippetDirectory = resolve(import.meta.dirname, 'src/snippet')
   const isCssSnippet = (filePath: string): boolean =>
     filePath.startsWith(snippetDirectory) && filePath.endsWith('.css')
 
@@ -174,7 +174,7 @@ const RESOLVED_PARSED_API_ID = '\0' + PARSED_API_ID
 // reference renders `Calendar` alongside `Ui/Calendar`. Type references render by name,
 // so the two projects' independent numeric ids never collide.
 const loadApiTypeDocJson = async (): Promise<TypeDocJson> => {
-  const generatedDir = resolve(__dirname, 'src/generated')
+  const generatedDir = resolve(import.meta.dirname, 'src/generated')
   const [coreRaw, uiRaw] = await Promise.all([
     readFile(join(generatedDir, 'api.json'), 'utf-8'),
     readFile(join(generatedDir, 'api-ui.json'), 'utf-8'),
@@ -578,7 +578,10 @@ const landingDataPlugin = (): Plugin => ({
     }
 
     const packageJson = JSON.parse(
-      await readFile(resolve(__dirname, '../foldkit/package.json'), 'utf-8'),
+      await readFile(
+        resolve(import.meta.dirname, '../foldkit/package.json'),
+        'utf-8',
+      ),
     )
 
     const githubStarCount = readBakedStarCount()
@@ -749,7 +752,10 @@ const highlightExampleSourcesPlugin = (): Plugin => ({
       return undefined
     }
 
-    const exampleDirectory = resolve(__dirname, `../../examples/${slug}`)
+    const exampleDirectory = resolve(
+      import.meta.dirname,
+      `../../examples/${slug}`,
+    )
     const collected = await Promise.all(
       EXAMPLE_SOURCE_ROOTS.map(root =>
         collectSourceFiles(join(exampleDirectory, root)),

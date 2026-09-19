@@ -199,7 +199,7 @@ const isFocusInsideCurrentTarget = (event: FocusEvent): boolean =>
   event.currentTarget.contains(event.relatedTarget)
 
 /** A virtual DOM element. Constructed synchronously by the element factories
- *  returned from {@link html}. The runtime patches a `VNode` (or `null` to
+ *  on {@link HtmlBuilder}. The runtime patches a `VNode` (or `null` to
  *  render nothing) into the application container. */
 export type Html = VNode | null
 export type Child = Html | string

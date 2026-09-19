@@ -1,7 +1,7 @@
 import { codeToHtml } from 'shiki'
 import type { Plugin } from 'vite'
 
-import { shikiDarkTheme, shikiLightTheme } from '../src/shikiTheme'
+import { shikiDarkTheme, shikiLightTheme } from '../src/shikiTheme.ts'
 
 const shikiThemes = {
   light: shikiLightTheme,

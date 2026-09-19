@@ -1322,7 +1322,7 @@ const acquireManagedResource =
 /** Declares that a ManagedResource's acquire failed, feeding the entry's
  *  `onAcquireError(error)` Message through update the way the runtime
  *  would. Requires the current Model to request the resource, the same as
- *  {@link acquireManagedResource}: the runtime only attempts acquisition
+ *  `ManagedResource.acquire`: the runtime only attempts acquisition
  *  while `modelToMaybeRequirements` returns Some. */
 const failAcquireManagedResource =
   <EntryModel, EntryMessage, Value>(
