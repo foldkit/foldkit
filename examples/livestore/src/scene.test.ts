@@ -12,15 +12,7 @@ import {
 } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import {
-  AddItem,
-  ClearCompleted,
-  DeleteItem,
-  Message,
-  ToggleItem,
-  update,
-  view,
-} from './main'
+import { AddItem, ClearCompleted, DeleteItem, ToggleItem } from './command'
 import {
   addItemFailureModel,
   buyMilk,
@@ -28,6 +20,9 @@ import {
   modelWithItems,
   walkDog,
 } from './main.fixture'
+import { Message } from './message'
+import { update } from './update'
+import { view } from './view'
 
 describe('rendered task states', () => {
   test('tasks show their active and completed counts', () => {
@@ -38,6 +33,9 @@ describe('rendered task states', () => {
       expect(text('Walk the dog')).toExist(),
       expect(text('Done task')).toExist(),
       expect(role('status')).toContainText('2 active, 1 completed'),
+      expect(role('banner')).toExist(),
+      expect(role('main')).toExist(),
+      expect(role('contentinfo')).toExist(),
     )
   })
 
@@ -107,10 +105,43 @@ describe('task interactions', () => {
     scene(
       { update, view },
       given(modelWithItems([buyMilk, doneTask])),
+      expect(role('button', { name: 'All', pressed: true })).toExist(),
+      expect(role('button', { name: 'Completed', pressed: false })).toExist(),
       click(role('button', { name: 'Completed' })),
       Command.expectNone(),
+      expect(role('button', { name: 'All', pressed: false })).toExist(),
+      expect(role('button', { name: 'Completed', pressed: true })).toExist(),
       expect(text('Done task')).toExist(),
       expect(text('Buy milk')).toBeAbsent(),
+    )
+  })
+
+  test('selecting the Active filter shows only active tasks', () => {
+    scene(
+      { update, view },
+      given(modelWithItems([buyMilk, doneTask])),
+      click(role('button', { name: 'Active' })),
+      Command.expectNone(),
+      expect(text('Buy milk')).toExist(),
+      expect(text('Done task')).toBeAbsent(),
+    )
+  })
+
+  test('an empty Active filter shows its placeholder', () => {
+    scene(
+      { update, view },
+      given(modelWithItems([doneTask])),
+      click(role('button', { name: 'Active' })),
+      expect(text('No active tasks')).toExist(),
+    )
+  })
+
+  test('an empty Completed filter shows its placeholder', () => {
+    scene(
+      { update, view },
+      given(modelWithItems([buyMilk])),
+      click(role('button', { name: 'Completed' })),
+      expect(text('No completed tasks')).toExist(),
     )
   })
 })

@@ -3,22 +3,16 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
-import {
-  AddItem,
-  ClearCompleted,
-  DeleteItem,
-  Flags,
-  Message,
-  ToggleItem,
-  init,
-  update,
-} from './main'
+import { AddItem, ClearCompleted, DeleteItem, ToggleItem } from './command'
+import { Flags, init } from './main'
 import {
   addItemFailureModel,
   buyMilk,
   doneTask,
   modelWithItems,
 } from './main.fixture'
+import { Message } from './message'
+import { update } from './update'
 
 describe('task state', () => {
   test('initializes with the provided task snapshot', () => {
@@ -100,7 +94,7 @@ describe('task state', () => {
       story(
         update,
         given(modelWithItems([buyMilk])),
-        message(Message.ClickedToggleItem({ id: 'a' })),
+        message(Message.ToggledItem({ id: 'a' })),
         Command.expectExact(ToggleItem({ id: 'a' })),
         Command.resolve(ToggleItem, Message.CompletedToggleItem()),
       )
@@ -132,7 +126,7 @@ describe('task state', () => {
       story(
         update,
         given(modelWithItems([buyMilk])),
-        message(Message.ReceivedItems({ items: [buyMilk, doneTask] })),
+        message(Message.UpdatedItems({ items: [buyMilk, doneTask] })),
         model(model => {
           expect(model.items).toStrictEqual([buyMilk, doneTask])
         }),

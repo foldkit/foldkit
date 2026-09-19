@@ -5,7 +5,7 @@ import { Events, State, makeSchema } from '@livestore/livestore'
 export const Item = Schema.Struct({
   id: Schema.String,
   text: Schema.String,
-  completed: Schema.Boolean,
+  isCompleted: Schema.Boolean,
   createdAt: Schema.Number,
 })
 export type Item = typeof Item.Type
@@ -13,21 +13,32 @@ export type Item = typeof Item.Type
 export const Items = Schema.Array(Item)
 export type Items = typeof Items.Type
 
+const ItemAddedV1 = Schema.Struct({
+  id: Schema.String,
+  text: Schema.String,
+  completed: Schema.Boolean,
+  createdAt: Schema.Number,
+})
+
 export const tables = {
   items: State.SQLite.table({
     name: 'items',
     columns: {
       id: State.SQLite.text({ primaryKey: true }),
       text: State.SQLite.text(),
-      completed: State.SQLite.boolean(),
+      isCompleted: State.SQLite.boolean(),
       createdAt: State.SQLite.integer(),
     },
   }),
 }
 
 export const events = {
-  itemAdded: Events.synced({
+  itemAddedV1: Events.synced({
     name: 'v1.ItemAdded',
+    schema: ItemAddedV1,
+  }),
+  itemAddedV2: Events.synced({
+    name: 'v2.ItemAdded',
     schema: Item,
   }),
   itemToggled: Events.synced({
@@ -45,15 +56,17 @@ export const events = {
 }
 
 const SQLiteCompletionRows = Schema.Array(
-  Schema.Struct({ completed: Schema.Literals([0, 1]) }),
+  Schema.Struct({ isCompleted: Schema.Literals([0, 1]) }),
 )
 
 const materializers = State.SQLite.materializers(events, {
-  'v1.ItemAdded': item => tables.items.insert(item),
+  'v1.ItemAdded': ({ id, text, completed, createdAt }) =>
+    tables.items.insert({ id, text, isCompleted: completed, createdAt }),
+  'v2.ItemAdded': item => tables.items.insert(item),
   'v1.ItemToggled': ({ id }, { query }) => {
     // NOTE: The pinned LiveStore snapshot's typed materializer query fails to decode SQLite rows in the leader worker.
     const rawItems = query({
-      query: 'SELECT completed FROM items WHERE id = $id LIMIT 1',
+      query: 'SELECT isCompleted FROM items WHERE id = $id LIMIT 1',
       bindValues: { id },
     })
     const completedItems =
@@ -63,12 +76,14 @@ const materializers = State.SQLite.materializers(events, {
     return Option.match(maybeItem, {
       onNone: () => [],
       onSome: item =>
-        tables.items.update({ completed: item.completed === 0 }).where({ id }),
+        tables.items
+          .update({ isCompleted: item.isCompleted === 0 })
+          .where({ id }),
     })
   },
   'v1.ItemDeleted': ({ id }) => tables.items.delete().where({ id }),
   'v1.CompletedItemsCleared': () =>
-    tables.items.delete().where({ completed: true }),
+    tables.items.delete().where({ isCompleted: true }),
 })
 
 const state = State.SQLite.makeState({ tables, materializers })
