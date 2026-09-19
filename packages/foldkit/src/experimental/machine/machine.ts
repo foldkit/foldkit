@@ -185,7 +185,7 @@ type GuardValueOf<GuardResult> = [GuardResult] extends [boolean]
  * The transition table: for each source state tag, the Messages it responds
  * to and the Edge (or ordered guard list) each Message fires. States absent
  * from the table, and Messages absent from a state's `on` record, are
- * ignored: {@link Machine.step} reports them as `Ignored` rather than
+ * ignored: `Machine.step` reports them as `Ignored` rather than
  * transitioning.
  *
  * @experimental Ships from `foldkit/experimental/machine`; expect breaking changes while the API settles.
@@ -549,8 +549,8 @@ export const otherwise = <
 /**
  * Declares that a Message is intentionally ignored when every preceding
  * {@link when} guard declines. Evaluation stops at this fallback, and
- * {@link Machine.step} reports `ExplicitlyIgnored`. Edges listed after it are
- * reported by {@link Machine.deadTransitions} as `ShadowedByIgnore`.
+ * `Machine.step` reports `ExplicitlyIgnored`. Edges listed after it are
+ * reported by `Machine.deadTransitions` as `ShadowedByIgnore`.
  *
  * @experimental Ships from `foldkit/experimental/machine`; expect breaking changes while the API settles.
  */

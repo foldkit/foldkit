@@ -15,7 +15,7 @@ export type DrainEntryInput = Readonly<{
 
 const DEFAULT_VERSION = 0
 
-/** Builds a {@link Story.Command.resolveAll} step that drains a single toast
+/** Builds a `Story.Command.resolveAll` step that drains a single toast
  *  entry's full animation and dismiss lifecycle. Resolving these Commands in
  *  order takes a freshly shown entry from its enter animation through
  *  auto-dismiss and its exit animation, ending with the entry removed from the

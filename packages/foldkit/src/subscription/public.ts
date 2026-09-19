@@ -1,6 +1,7 @@
 export { aggregate, lift, make, persistent } from './subscription.js'
 
 export type {
+  EntryGates,
   EntryWithoutKeepAlive,
   GatedDependencies,
   Subscription,
