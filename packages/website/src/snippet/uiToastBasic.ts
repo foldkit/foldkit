@@ -129,7 +129,7 @@ const view = (h: HtmlBuilder<Message>) =>
     view: Toast.view,
     viewInputs: {
       position: 'BottomRight',
-      entryClassName: 'w-80',
+      entryClassName: 'toast-entry w-80',
       entryToView: (entry, handlers) =>
         h.div(
           [
