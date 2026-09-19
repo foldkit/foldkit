@@ -35,6 +35,7 @@ import type { Entry as ManagedResourceEntry } from '../managedResource/index.js'
 import { MountTracker } from '../mount/index.js'
 import type { MountDefinition } from '../mount/index.js'
 import { Dispatch } from '../runtime/dispatch.js'
+import { tagNameFromSelector } from '../tagName.js'
 import type { VNode } from '../vdom.js'
 import type {
   AnyCommand,
@@ -2111,9 +2112,37 @@ const DEFAULT_POINTER_DOWN_OPTIONS: Required<PointerDownOptions> = {
   pointerId: 0,
 }
 
+const simulatedPointerTarget = (root: VNode, target: VNode): Element => {
+  const createElement = (vnode: VNode): Element => {
+    const element = document.createElement(
+      tagNameFromSelector(vnode.sel ?? 'div'),
+    )
+
+    for (const [name, value] of Object.entries(vnode.data?.attrs ?? {})) {
+      element.setAttribute(name, globalThis.String(value))
+    }
+
+    return element
+  }
+
+  const targetElement = createElement(target)
+  let child = targetElement
+
+  for (const ancestor of pipe(root, ancestorsOf(target), Array.reverse)) {
+    const parent = createElement(ancestor)
+    parent.appendChild(child)
+    child = parent
+  }
+
+  return targetElement
+}
+
 /** Simulates a pointerdown event on the element matching the target.
  *  When the element has no pointerdown handler, the event bubbles up to
  *  the nearest ancestor with one, mirroring browser event propagation.
+ *  The handler receives a detached DOM representation of the target and
+ *  its ancestor chain as `event.target`, preserving tag and attributes for
+ *  `closest()` checks.
  *  Defaults to `pointerType: 'mouse'`, `button: 0`, `screenX/screenY: 0`,
  *  `clientX/clientY: 0`, and `pointerId: 0`. */
 export const pointerDown =
@@ -2158,6 +2187,7 @@ export const pointerDown =
         clientX,
         clientY,
         pointerId,
+        target: simulatedPointerTarget(internal.html, element),
       })
     }
 

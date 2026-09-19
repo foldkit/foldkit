@@ -195,6 +195,42 @@ describe('Toast', () => {
       )
     })
 
+    it('does not start a mouse swipe on controls or selectable text', () => {
+      const view = (model: Model, h: HtmlBuilder<Message>) =>
+        Toast.view(
+          model,
+          {
+            position: 'BottomRight',
+            entryToView: () =>
+              ih.div(
+                [],
+                [
+                  ih.button([ih.AriaLabel('Close')], ['Close']),
+                  ih.span(
+                    [ih.DataAttribute('toast-swipe-ignore', '')],
+                    ['Selectable'],
+                  ),
+                  ih.div([ih.DataAttribute('swipe-area', '')], ['Drag']),
+                ],
+              ),
+          },
+          h,
+        )
+
+      Scene.scene(
+        { update: Toast.update, view },
+        Scene.given(withEntry()),
+        Scene.pointerDown(Scene.label('Close')),
+        Scene.expectIgnored(),
+        Scene.expect(entryZero).not.toHaveAttr('data-swipe'),
+        Scene.pointerDown(Scene.text('Selectable')),
+        Scene.expectIgnored(),
+        Scene.expect(entryZero).not.toHaveAttr('data-swipe'),
+        Scene.pointerDown(Scene.selector('[data-swipe-area]')),
+        Scene.expect(entryZero).toHaveAttr('data-swipe', 'move'),
+      )
+    })
+
     it('adds data-swipe=move and translate offset when dragging', () => {
       const model: Model = withEntry({
         swipeState: SwipeState.Dragging({

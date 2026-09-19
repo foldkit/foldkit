@@ -147,7 +147,12 @@ const view = (h: HtmlBuilder<Message>) =>
               [
                 h.p(
                   [h.Class('font-semibold text-sm')],
-                  [entry.payload.bodyText],
+                  [
+                    h.span(
+                      [h.DataAttribute('toast-swipe-ignore', '')],
+                      [entry.payload.bodyText],
+                    ),
+                  ],
                 ),
                 ...Option.match(entry.payload.maybeLink, {
                   onNone: () => [],

@@ -3,6 +3,7 @@ import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { defineView } from 'foldkit/submodel'
 
 import { Position, SwipeState, Variant } from './schema.js'
+import { isSwipeExcludedTarget } from './swipeTarget.js'
 import { makeRuntime } from './update.js'
 
 export type {
@@ -273,8 +274,12 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           clientX: number,
           _clientY: number,
           pointerId: number,
+          target: EventTarget | null,
         ): Option.Option<ToastMessage> => {
-          if (pointerType === 'mouse' && button !== LEFT_MOUSE_BUTTON) {
+          if (
+            (pointerType === 'mouse' && button !== LEFT_MOUSE_BUTTON) ||
+            isSwipeExcludedTarget(pointerType, target)
+          ) {
             return Option.none()
           } else {
             return Option.some(
