@@ -142,6 +142,13 @@ interface TypeDocQueryType<Self> {
   readonly queryType: Self
 }
 
+interface TypeDocNamedTupleMemberType<Self> {
+  readonly type: 'namedTupleMember'
+  readonly name: string
+  readonly isOptional: boolean
+  readonly element: Self
+}
+
 interface TypeDocTemplateLiteralType<Self> {
   readonly type: 'templateLiteral'
   readonly head: string
@@ -176,6 +183,7 @@ export type TypeDocType =
   | TypeDocConditionalType<TypeDocType>
   | TypeDocIndexedAccessType<TypeDocType>
   | TypeDocQueryType<TypeDocType>
+  | TypeDocNamedTupleMemberType<TypeDocType>
   | TypeDocTemplateLiteralType<TypeDocType>
   | TypeDocInferredType
   | TypeDocPredicateType
@@ -198,6 +206,7 @@ type TypeDocTypeEncoded =
   | TypeDocConditionalType<TypeDocTypeEncoded>
   | TypeDocIndexedAccessType<TypeDocTypeEncoded>
   | TypeDocQueryType<TypeDocTypeEncoded>
+  | TypeDocNamedTupleMemberType<TypeDocTypeEncoded>
   | TypeDocTemplateLiteralType<TypeDocTypeEncoded>
   | TypeDocInferredType
   | TypeDocPredicateType
@@ -235,6 +244,12 @@ export const TypeDocTypeSchema = Schema.suspend(() =>
     Schema.Struct({
       type: Schema.Literal('tuple'),
       elements: Schema.Array(TypeDocTypeSchema),
+    }),
+    Schema.Struct({
+      type: Schema.Literal('namedTupleMember'),
+      name: Schema.String,
+      isOptional: Schema.Boolean,
+      element: TypeDocTypeSchema,
     }),
     Schema.Struct({
       type: Schema.Literal('union'),
