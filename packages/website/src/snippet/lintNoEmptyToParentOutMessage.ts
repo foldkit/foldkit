@@ -1,6 +1,6 @@
 import { Option } from 'effect'
 import { Update } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import * as Settings from './settings'
 
@@ -8,7 +8,8 @@ import * as Settings from './settings'
 const badFoldSettings = Update.foldChild({
   update: Settings.setTheme,
   read: (model: Model) => Option.some(model.settings),
-  write: (model, nextSettings) => evo(model, { settings: () => nextSettings }),
+  write: (model, nextSettings) =>
+    modifyFields(model, { settings: () => nextSettings }),
   toParentMessage: message => Message.GotSettingsMessage({ message }),
   foldOutMessage: foldSettingsOutMessage,
   // This mapper directly returns undefined, so it forwards no OutMessage.
@@ -21,7 +22,8 @@ const badFoldSettings = Update.foldChild({
 const foldSettings = Update.foldChild({
   update: Settings.setTheme,
   read: (model: Model) => Option.some(model.settings),
-  write: (model, nextSettings) => evo(model, { settings: () => nextSettings }),
+  write: (model, nextSettings) =>
+    modifyFields(model, { settings: () => nextSettings }),
   toParentMessage: message => Message.GotSettingsMessage({ message }),
   foldOutMessage: foldSettingsOutMessage,
 })

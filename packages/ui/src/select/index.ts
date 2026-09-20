@@ -19,6 +19,7 @@ export type ViewConfig<Message> = Readonly<{
   isDisabled?: boolean
   isInvalid?: boolean
   isAutofocus?: boolean
+  hasDescription?: boolean
   name?: string
 }>
 
@@ -38,6 +39,7 @@ export const view = <Message>(
     isDisabled = false,
     isInvalid = false,
     isAutofocus = false,
+    hasDescription = false,
     name,
   } = config
 
@@ -62,9 +64,13 @@ export const view = <Message>(
 
   const nameAttributes = Predicate.isNotUndefined(name) ? [h.Name(name)] : []
 
+  const describedByAttributes = hasDescription
+    ? [h.AriaDescribedBy(descriptionId(id))]
+    : []
+
   const allSelectAttributes = [
     h.Id(id),
-    h.AriaDescribedBy(descriptionId(id)),
+    ...describedByAttributes,
     ...disabledAttributes,
     ...invalidAttributes,
     ...changeAttributes,

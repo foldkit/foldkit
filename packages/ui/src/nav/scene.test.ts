@@ -3,7 +3,7 @@ import { type Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Scene from 'foldkit/scene'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { describe, it } from '@effect/vitest'
 
@@ -26,7 +26,7 @@ type Message = typeof Message.Type
 const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedSection: ({ section }) => ({
-      model: evo(model, { current: () => section }),
+      model: modifyFields(model, { current: () => section }),
     }),
   })
 

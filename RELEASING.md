@@ -9,6 +9,23 @@ set exists. It also keeps a long-lived npm token out of GitHub Actions.
 
 ## Stable packages
 
+`pnpm version-packages` requires a clean working tree with committed changesets.
+The version planner compares shared build inputs with the latest published
+website package release. When those inputs changed, it adds a generated patch
+changeset for every website package before Changesets calculates the release.
+Changesets keeps any larger bump already requested by a contributor. The planner
+and publication check share the same input list and comparison. After versioning
+and dependency installation, the planner checks shared inputs again. If those
+steps introduced a shared change, it restores the original versioning files and
+recalculates the release with coordination patches.
+
+The generated `.changeset/generated-website-build-inputs.md` file is reserved for
+the planner and is consumed during versioning. Contributors write changesets
+that describe package changes and choose their bump types. The planner supplies
+the coordination changesets for shared tooling changes. Planning needs the
+complete release tag history and stops if the current package versions have not
+been finalized yet.
+
 1. Merge the Version Packages pull request.
 
 2. The Release workflow's stable job discovers every public package from the

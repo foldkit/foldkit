@@ -31,8 +31,7 @@ import {
   EffectAtomComparison,
   ElmComparison,
   FieldValidation,
-  GettingStarted,
-  Manifesto,
+  GetStarted,
   Patterns,
   Performance,
   Privacy,
@@ -46,6 +45,7 @@ import {
   ToolingLinting,
   TypingTerminal,
   Ui,
+  WhyFoldkit,
 } from '../page'
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
@@ -58,9 +58,9 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       modelToDependencies: model => {
         const currentPageTableOfContents = Match.value(model.route).pipe(
           Match.tags({
-            Manifesto: () => Manifesto.tableOfContents,
+            WhyFoldkit: () => WhyFoldkit.tableOfContents,
             Performance: () => Performance.tableOfContents,
-            GettingStarted: () => GettingStarted.tableOfContents,
+            GetStarted: () => GetStarted.tableOfContents,
             Roadmap: () => Roadmap.tableOfContents,
             ComingFromReact: () => ComingFromReact.tableOfContents,
             ComingFromTanStackQuery: () =>
@@ -122,6 +122,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             CoreSubmodel: () => Core.SubmodelPage.tableOfContents,
             CoreMachine: () => Core.Machine.tableOfContents,
             AsyncData: () => AsyncDataPage.tableOfContents,
+            PatternsAntiPatterns: () => Patterns.AntiPatterns.tableOfContents,
             PatternsInformingSubmodels: () =>
               Patterns.InformingSubmodels.tableOfContents,
             PatternsSubscriptionOrganization: () =>

@@ -1,7 +1,7 @@
-import { buildSync } from 'esbuild'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { build } from 'rolldown'
 import type { Plugin } from 'vite'
 
 // NOTE: Monaco's TypeScript service runs in a Web Worker. We can't use
@@ -9,7 +9,7 @@ import type { Plugin } from 'vite'
 // workers (`new Worker(url, { type: "module" })`), and a module worker
 // loaded by our COEP-credentialless `/playground/*` page gets blocked
 // (`blocked:COEP-framed-resource`). So we bundle each Monaco worker as
-// a classic IIFE script with esbuild, serve it in dev with the right
+// a classic IIFE script with Rolldown, serve it in dev with the right
 // headers, and emit it at the same path in prod so the shim baked into
 // `index.html` resolves there in both modes.
 const SCRIPT_DIRECTORY = dirname(fileURLToPath(import.meta.url))
@@ -50,7 +50,9 @@ const WORKERS: ReadonlyArray<WorkerEntry> = [
 ]
 
 const PUBLIC_PATH = '/monacoworkers'
-const CACHE_DIR = resolve(WEBSITE_ROOT, 'node_modules/.monaco-workers')
+// NOTE: the cache is keyed by bundler so bundles an earlier one left behind
+// are never served in place of a fresh build.
+const CACHE_DIR = resolve(WEBSITE_ROOT, 'node_modules/.monaco-workers/rolldown')
 
 const workerUrl = (filename: string): string => `${PUBLIC_PATH}/${filename}`
 
@@ -67,18 +69,32 @@ const labelToWorkerUrl: Readonly<Record<string, string>> = {
   razor: workerUrl('html.worker.bundle.js'),
 }
 
-const buildWorkerBundle = (worker: WorkerEntry): Uint8Array => {
+// NOTE: Rolldown builds asynchronously, so the existence check alone no longer
+// serializes cold-cache requests the way esbuild's blocking build did. Every
+// request for a bundle that is still building awaits the same in-flight build
+// instead of starting a second one that writes the same file.
+const inFlightBuilds = new Map<string, Promise<void>>()
+
+const buildWorkerBundle = async (worker: WorkerEntry): Promise<Uint8Array> => {
   const outfile = resolve(CACHE_DIR, worker.filename)
   if (!existsSync(outfile)) {
-    mkdirSync(CACHE_DIR, { recursive: true })
-    const entryPoint = resolve(WEBSITE_ROOT, 'node_modules', worker.entry)
-    buildSync({
-      entryPoints: [entryPoint],
-      bundle: true,
-      outfile,
-      format: 'iife',
-      target: 'es2022',
-    })
+    let inFlightBuild = inFlightBuilds.get(outfile)
+    if (inFlightBuild === undefined) {
+      mkdirSync(CACHE_DIR, { recursive: true })
+      const entryPoint = resolve(WEBSITE_ROOT, 'node_modules', worker.entry)
+      inFlightBuild = build({
+        input: entryPoint,
+        platform: 'browser',
+        transform: { target: 'es2022' },
+        output: { file: outfile, format: 'iife', codeSplitting: false },
+      })
+        .then(() => undefined)
+        .finally(() => {
+          inFlightBuilds.delete(outfile)
+        })
+      inFlightBuilds.set(outfile, inFlightBuild)
+    }
+    await inFlightBuild
   }
   return readFileSync(outfile)
 }
@@ -98,17 +114,18 @@ export const monacoWorkersPlugin = (): Plugin => ({
     for (const worker of WORKERS) {
       server.middlewares.use(
         `${PUBLIC_PATH}/${worker.filename}`,
-        (_request, response) => {
-          const contents = buildWorkerBundle(worker)
-          response.setHeader('Content-Type', 'text/javascript')
-          response.setHeader('Cross-Origin-Embedder-Policy', 'credentialless')
-          response.setHeader('Cross-Origin-Resource-Policy', 'same-origin')
-          response.end(contents)
+        (_request, response, next) => {
+          buildWorkerBundle(worker).then(contents => {
+            response.setHeader('Content-Type', 'text/javascript')
+            response.setHeader('Cross-Origin-Embedder-Policy', 'credentialless')
+            response.setHeader('Cross-Origin-Resource-Policy', 'same-origin')
+            response.end(contents)
+          }, next)
         },
       )
     }
   },
-  buildStart() {
+  async buildStart() {
     // NOTE: Only emit during a real build, not when the plugin is
     // loaded inside `vite dev`'s scan phase. `emitFile` outside of a
     // build is a no-op.
@@ -116,7 +133,7 @@ export const monacoWorkersPlugin = (): Plugin => ({
       return
     }
     for (const worker of WORKERS) {
-      const contents = buildWorkerBundle(worker)
+      const contents = await buildWorkerBundle(worker)
       this.emitFile({
         type: 'asset',
         fileName: `monacoworkers/${worker.filename}`,

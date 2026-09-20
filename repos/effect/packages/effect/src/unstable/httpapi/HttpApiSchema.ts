@@ -15,7 +15,7 @@ import * as Schema from "../../Schema.ts"
 import * as SchemaAST from "../../SchemaAST.ts"
 import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import * as Stream from "../../Stream.ts"
-import type * as Sse from "../encoding/Sse.ts"
+import * as Sse from "../encoding/Sse.ts"
 import { hasBody, type HttpMethod } from "../http/HttpMethod.ts"
 import * as HttpStatus from "../http/HttpStatus.ts"
 import type * as Multipart_ from "../http/Multipart.ts"
@@ -288,7 +288,7 @@ export interface StreamSse<
 export interface SseEventFromData<Data extends Schema.Constraint> extends
   Schema.ConstraintCodec<
     {
-      readonly id: string | undefined
+      readonly id?: string | undefined
       readonly event: string
       readonly data: Data["Type"]
     },
@@ -365,8 +365,7 @@ export const StreamSse: {
   readonly error?: Schema.Constraint | undefined
 }): StreamSse<Sse.EventCodec, Schema.Top, unknown> => {
   const events = options.events ?? (options.data === undefined ? undefined : Schema.Struct({
-    id: Schema.UndefinedOr(Schema.String),
-    event: Schema.String,
+    ...Sse.EventEncoded.fields,
     data: Schema.fromJsonString(options.data)
   }))
   if (events === undefined) {
@@ -502,6 +501,8 @@ export interface WithHeaders<S extends Schema.Top, H extends Schema.Top> extends
  * The Type of a `WithHeaders` schema: what handlers return and what the
  * client resolves to, constructed via {@link withHeaders}.
  *
+ * **Details**
+ *
  * `body` is the inner success value. For stream success schemas it is the
  * `Stream` itself, so headers are decided before the body starts streaming.
  *
@@ -523,8 +524,12 @@ const withHeadersValueSchema = Schema.declare(isWithHeadersValue)
 /**
  * Wraps a success schema with a response headers schema.
  *
+ * **Details**
+ *
  * Headers accept either a schema or a fields shorthand, mirroring the
  * request-side headers option.
+ *
+ * **Example** (Adding response headers to a success schema)
  *
  * ```ts import.meta.vitest
  * import { Schema } from "effect"
@@ -571,6 +576,8 @@ export function WithHeaders(
 /**
  * Constructs a `WithHeaders` response value from a body and headers.
  *
+ * **Details**
+ *
  * The returned value is branded so servers and clients can detect it exactly,
  * including in mixed success unions. The same shape is used on both sides: a
  * value received from a client can be returned from another handler unchanged.
@@ -592,6 +599,8 @@ export const withHeaders = <A, H>(options: {
 
 /**
  * Returns `true` when a schema is a `WithHeaders` response schema.
+ *
+ * **Example** (Detecting a response headers schema)
  *
  * ```ts import.meta.vitest
  * import { Schema } from "effect"
@@ -663,6 +672,8 @@ export interface encodeToWithHeaders<
  * defects on the client. Stream responses should use {@link WithHeaders},
  * which preserves the body stream's error channel in the generated client.
  *
+ * **Example** (Encoding an error with headers)
+ *
  * ```ts import.meta.vitest
  * import { Schema } from "effect"
  * import { HttpApiSchema } from "effect/unstable/httpapi"
@@ -723,8 +734,8 @@ export function encodeToWithHeaders<
       )
     ).annotate({
       "~httpApiWithHeaders": { body, headers, headersCodec: Schema.toEncoded(headers) },
-      ...(status !== undefined ? { httpApiStatus: status } : undefined),
-      ...(encoding !== undefined ? { "~httpApiEncoding": encoding } : undefined)
+      httpApiStatus: status,
+      "~httpApiEncoding": encoding
     })
   }
 }
@@ -982,11 +993,6 @@ export function getResponseEncodingSchema(schema: Schema.Constraint): ResponseEn
     return getResponseEncoding(schema.schema.ast)
   }
   return getResponseEncoding(schema.ast)
-}
-
-/** @internal */
-export function getStatusStream(self: StreamSchema): number {
-  return getStatusSuccess(self.ast)
 }
 
 /** @internal */

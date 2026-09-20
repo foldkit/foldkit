@@ -11,21 +11,14 @@ import {
   type,
   within,
 } from 'foldkit/scene'
+import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
-import {
-  Message,
-  Model,
-  SimulateAuthRequest,
-  initModel,
-  update,
-  view,
-} from './login'
+import { Message, SimulateAuthRequest, initModel, update, view } from './login'
 
-const validModel = Model.make({
-  ...initModel(),
-  email: Valid({ value: 'alice@example.com' }),
-  password: Valid({ value: 'password' }),
+const validModel = modifyFields(initModel(), {
+  email: () => Valid({ value: 'alice@example.com' }),
+  password: () => Valid({ value: 'password' }),
 })
 
 const heading = role('heading', { name: 'Sign In' })

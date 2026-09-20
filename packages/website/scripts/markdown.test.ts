@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { SITE_URL } from '../src/route'
 import {
   type LlmsFullEntry,
   type LlmsIndexEntry,
@@ -9,8 +10,6 @@ import {
   shouldExportMarkdown,
   urlPathToMarkdownPath,
 } from './markdown'
-
-const SITE_URL = 'https://foldkit.dev'
 
 const setBody = (html: string): void => {
   document.body.innerHTML = `<div data-pagefind-body>${html}</div>`
@@ -172,7 +171,7 @@ describe('shouldExportMarkdown', () => {
   })
 
   it('exports docs and api routes', () => {
-    expect(shouldExportMarkdown({ _tag: 'GettingStarted' })).toBe(true)
+    expect(shouldExportMarkdown({ _tag: 'GetStarted' })).toBe(true)
     expect(shouldExportMarkdown({ _tag: 'CoreModel' })).toBe(true)
     expect(
       shouldExportMarkdown({ _tag: 'ApiModule', moduleSlug: 'html' }),

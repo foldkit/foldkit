@@ -8,7 +8,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "effect": "4.0.0-rc.112",
+    "@effect/platform-browser": "4.0.0-rc.116",
+    "effect": "4.0.0-rc.116",
     "foldkit": "workspace:*"
   },
   "devDependencies": {

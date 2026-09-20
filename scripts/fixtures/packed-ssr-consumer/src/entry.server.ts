@@ -5,17 +5,12 @@ import { Flags, init, view } from './main'
 
 export const buildId = import.meta.env.FOLDKIT_BUILD_ID
 
-export const renderHtml = (template: string): Promise<string> =>
+export const renderPage = (): Promise<Server.EntryResult> =>
   Effect.runPromise(
     Server.renderToString(
       { Flags, init, view },
       { flags: { start: 0 }, buildId },
-    ).pipe(
-      Effect.map(rendered =>
-        Server.toResponse(template, Server.Rendered(rendered)),
-      ),
-      Effect.flatMap(response => Effect.promise(() => response.text())),
-    ),
+    ).pipe(Effect.map(rendered => Server.Rendered(rendered))),
   )
 
 export const renderWithoutBuildIdTag = (): Promise<string> =>

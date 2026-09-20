@@ -3,7 +3,7 @@ import { Array, Effect, Schema } from 'effect'
 import * as Command from '../../command/index.js'
 import type { Document, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
-import { evo } from '../../struct/index.js'
+import { modifyFields } from '../../struct/index.js'
 import type * as Update from '../../update/index.js'
 
 // MODEL
@@ -73,12 +73,12 @@ export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedReload: () => ({ model, commands: [ReloadSources()] }),
     CompletedReloadSources: ({ sources }) => ({
-      model: evo(model, { sources: () => sources }),
+      model: modifyFields(model, { sources: () => sources }),
     }),
     SelectedSource: () => ({ model }),
     SubmittedNewSourceId: ({ id }) => {
       const source = Source.make({ kind: 'Book', id })
-      return { model: evo(model, { sources: Array.append(source) }) }
+      return { model: modifyFields(model, { sources: Array.append(source) }) }
     },
   })
 

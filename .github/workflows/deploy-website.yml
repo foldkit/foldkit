@@ -26,6 +26,7 @@ on:
       - 'scripts/example-bridge.js'
       - 'scripts/plan-website-deploy.mjs'
       - 'scripts/lib/coherent-release.mjs'
+      - 'scripts/lib/website-package-inputs.mjs'
       - 'scripts/lib/workspace-packages.mjs'
       - 'scripts/restore-website-fonts.sh'
       - 'scripts/website-vercel-config.mjs'
@@ -82,6 +83,11 @@ jobs:
           result=$(node scripts/plan-website-deploy.mjs "${target}" "${PUBLISHED_COMMIT:+--allow-historical-target}")
           echo "${result}"
           deploy=${result#deploy=}
+
+          if [ -n "${PUBLISHED_COMMIT}" ] && [ "${deploy}" != 'true' ]; then
+            echo "the published website commit ${target} is not eligible for deployment" >&2
+            exit 1
+          fi
 
           echo "deploy=${deploy}" >> "${GITHUB_OUTPUT}"
           echo "target=${target}" >> "${GITHUB_OUTPUT}"

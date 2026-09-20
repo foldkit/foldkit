@@ -267,7 +267,15 @@ describe('no-impure-call-at-decision-time', () => {
         Testing.callOfMember('Math', 'random'),
         'Stream',
         'mapBoth',
-        'onSuccess',
+        'onElement',
+      ),
+    )
+    const streamErrorResult = run(
+      inInlineConfig(
+        Testing.callOfMember('Math', 'random'),
+        'Stream',
+        'mapBoth',
+        'onError',
       ),
     )
     const functionBodyResult = run(
@@ -276,6 +284,7 @@ describe('no-impure-call-at-decision-time', () => {
 
     expect(effectResult).toHaveLength(0)
     expect(streamResult).toHaveLength(0)
+    expect(streamErrorResult).toHaveLength(0)
     expect(functionBodyResult).toHaveLength(0)
   })
 

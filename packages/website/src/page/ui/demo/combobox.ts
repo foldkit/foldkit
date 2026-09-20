@@ -291,7 +291,7 @@ export const placementLockDemo = (
 const tagClassName =
   'inline-flex items-center gap-1 px-2 py-0.5 text-sm rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200'
 
-const emptyTagClassName = 'text-sm py-0.5 text-gray-400 dark:text-gray-500'
+const emptyTagClassName = 'text-sm py-0.5 text-gray-600 dark:text-gray-400'
 
 export const multiDemo = (
   comboboxMultiModel: Combobox.Multi.Model,

@@ -8,6 +8,7 @@ const view = (h: HtmlBuilder<Message>) =>
   Fieldset.view(
     {
       id: 'personal-info',
+      hasDescription: true,
       toView: attributes =>
         h.fieldset(
           [...attributes.fieldset, h.Class('rounded-lg border p-6')],

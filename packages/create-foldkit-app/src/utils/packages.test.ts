@@ -40,7 +40,7 @@ describe('buildUnresolvedDevDeps', () => {
   it('merges template tooling with the example, letting concrete example versions win over the release marker', () => {
     const result = buildUnresolvedDevDeps(
       {
-        prettier: '^3.8.4',
+        oxfmt: '^0.65.0',
         typescript: '^6.0.3',
         vite: '^8.0.16',
         '@foldkit/vite-plugin': 'workspace:*',
@@ -53,10 +53,9 @@ describe('buildUnresolvedDevDeps', () => {
       '@foldkit/vite-plugin': { _tag: 'Release' },
       '@foldkit/devtools-mcp': { _tag: 'Release' },
       '@foldkit/oxlint-plugin': { _tag: 'Release' },
-      '@trivago/prettier-plugin-sort-imports': { _tag: 'Release' },
       'happy-dom': { _tag: 'Release' },
+      oxfmt: { _tag: 'Keep', version: '^0.65.0' },
       oxlint: { _tag: 'Release' },
-      prettier: { _tag: 'Keep', version: '^3.8.4' },
       vitest: { _tag: 'Release' },
       typescript: { _tag: 'Keep', version: '^6.0.3' },
       vite: { _tag: 'Keep', version: '^8.0.16' },

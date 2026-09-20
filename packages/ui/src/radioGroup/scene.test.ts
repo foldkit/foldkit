@@ -2,7 +2,7 @@ import { Option } from 'effect'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Scene from 'foldkit/scene'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
 
 import { describe, it } from '@effect/vitest'
@@ -44,7 +44,9 @@ const foldRadioGroupOutMessage = RadioGroupOutMessage.match<
   Selected:
     ({ value }) =>
     model => ({
-      model: evo(model, { maybeSelectedValue: () => Option.some(value) }),
+      model: modifyFields(model, {
+        maybeSelectedValue: () => Option.some(value),
+      }),
     }),
 })
 
@@ -52,7 +54,7 @@ const foldRadioGroup = Update.foldChild({
   update: TestRadioGroup.update,
   read: (model: Model) => Option.some(model.radioGroup),
   write: (model, nextRadioGroup) =>
-    evo(model, { radioGroup: () => nextRadioGroup }),
+    modifyFields(model, { radioGroup: () => nextRadioGroup }),
   toParentMessage: message => Message.GotRadioGroupMessage({ message }),
   foldOutMessage: foldRadioGroupOutMessage,
 })
@@ -102,6 +104,35 @@ const group = Scene.role('radiogroup')
 const option = (index: number) => Scene.selector(`#${RADIO_ID}-option-${index}`)
 
 describe('RadioGroup', () => {
+  describe('descriptions', () => {
+    it('omits aria-describedby by default', () => {
+      Scene.scene(
+        { update, view: testView() },
+        Scene.given(nothingSelected),
+        Scene.expect(option(0)).not.toHaveAttr('aria-describedby'),
+        Scene.expect(option(1)).not.toHaveAttr('aria-describedby'),
+      )
+    })
+
+    it('references descriptions only for matching options', () => {
+      Scene.scene(
+        {
+          update,
+          view: testView({
+            hasOptionDescription: (_value, index) => index === 1,
+          }),
+        },
+        Scene.given(nothingSelected),
+        Scene.expect(option(0)).not.toHaveAttr('aria-describedby'),
+        Scene.expect(option(1)).toHaveAttr(
+          'aria-describedby',
+          `${RADIO_ID}-option-1-description`,
+        ),
+        Scene.expect(option(2)).not.toHaveAttr('aria-describedby'),
+      )
+    })
+  })
+
   describe('selection', () => {
     it('gives the first option a roving tabindex when nothing is selected', () => {
       Scene.scene(

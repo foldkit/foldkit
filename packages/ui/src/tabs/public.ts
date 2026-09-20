@@ -9,6 +9,7 @@ export {
   type FocusedTab,
   FocusTab,
   Orientation,
+  PanelMount,
 } from './index.js'
 
 export type {

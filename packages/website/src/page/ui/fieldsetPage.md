@@ -36,7 +36,7 @@ Fieldset is headless. Your `toView` callback controls all markup and styling.
 
 ## Accessibility
 
-The `legend` attribute group includes an id (accessible via `Fieldset.legendId(id)`) and the `description` group includes an id (accessible via `Fieldset.descriptionId(id)`) that the fieldset references through `aria-describedby`.
+The `legend` attribute group includes an id (accessible via `Fieldset.legendId(id)`) and the `description` group includes an id (accessible via `Fieldset.descriptionId(id)`). Set `hasDescription: true` when the description element is rendered so the fieldset references it through `aria-describedby`; leaving the option false prevents a dangling reference.
 
 ## API Reference
 
@@ -44,18 +44,19 @@ The `legend` attribute group includes an id (accessible via `Fieldset.legendId(i
 
 Configuration object passed to `Fieldset.view()`.
 
-| Name         | Type                                       | Default | Description                                                                                                            |
-| ------------ | ------------------------------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `id`         | `string`                                   | —       | Unique ID for the fieldset element. Used to generate linked IDs for legend and description.                            |
-| `toView`     | `(attributes: FieldsetAttributes) => Html` | —       | Callback that receives attribute groups for the fieldset, legend, and description elements.                            |
-| `isDisabled` | `boolean`                                  | `false` | Whether the fieldset is disabled. The native disabled attribute on `<fieldset>` propagates to all child form controls. |
+| Name             | Type                                       | Default | Description                                                                                                            |
+| ---------------- | ------------------------------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `id`             | `string`                                   | —       | Unique ID for the fieldset element. Used to generate linked IDs for legend and description.                            |
+| `toView`         | `(attributes: FieldsetAttributes) => Html` | —       | Callback that receives attribute groups for the fieldset, legend, and description elements.                            |
+| `isDisabled`     | `boolean`                                  | `false` | Whether the fieldset is disabled. The native disabled attribute on `<fieldset>` propagates to all child form controls. |
+| `hasDescription` | `boolean`                                  | `false` | Whether the fieldset renders a description. Adds `aria-describedby` when true.                                         |
 
 ### FieldsetAttributes {#fieldset-attributes}
 
 Attribute groups provided to the `toView` callback.
 
-| Name          | Type                                | Default | Description                                                                                                      |
-| ------------- | ----------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
-| `fieldset`    | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the `<fieldset>` element. Includes id, aria-describedby, and the disabled attribute when applicable. |
-| `legend`      | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the `<legend>` element. Includes an id for programmatic reference.                                   |
-| `description` | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto a description element. Includes an id that the fieldset references via aria-describedby.             |
+| Name          | Type                                | Default | Description                                                                                                               |
+| ------------- | ----------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `fieldset`    | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the `<fieldset>` element. Includes id, optional aria-describedby, and the disabled attribute when applicable. |
+| `legend`      | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the `<legend>` element. Includes an id for programmatic reference.                                            |
+| `description` | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto a description element. Includes the id referenced when `hasDescription` is true.                              |

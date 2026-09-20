@@ -14,6 +14,7 @@ export type ViewConfig<Message> = Readonly<{
   id: string
   toView: (attributes: FieldsetAttributes<Message>) => Html
   isDisabled?: boolean
+  hasDescription?: boolean
 }>
 
 /** Returns the legend element id, derived from the fieldset's base id. */
@@ -27,15 +28,19 @@ export const view = <Message>(
   config: ViewConfig<Message>,
   h: HtmlBuilder<Message>,
 ): Html => {
-  const { toView, id, isDisabled = false } = config
+  const { toView, id, isDisabled = false, hasDescription = false } = config
 
   const disabledAttributes = isDisabled
     ? [h.Disabled(true), h.DataAttribute('disabled', '')]
     : []
 
+  const describedByAttributes = hasDescription
+    ? [h.AriaDescribedBy(descriptionId(id))]
+    : []
+
   const allFieldsetAttributes = [
     h.Id(id),
-    h.AriaDescribedBy(descriptionId(id)),
+    ...describedByAttributes,
     ...disabledAttributes,
   ]
 

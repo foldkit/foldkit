@@ -51,17 +51,19 @@ export type FoldkitSsrOptions = Readonly<{
    * The value is public in rendered HTML, so it must not be a secret.
    */
   buildId?: string
+  /**
+   * Skip the stand-down warning when the `ssr` environment is not runnable.
+   * The aggregate plugin sets this when `ssr.build` is on, because production
+   * still needs `serverEntry` and the host is supposed to serve.
+   */
+  quietStandDown?: boolean
 }>
 
-// Whether an environment can evaluate modules in this process, which is what
-// loading the server entry needs. Vite's own `isRunnableDevEnvironment` is an
-// `instanceof` check against the `RunnableDevEnvironment` class of whichever
-// copy of Vite the caller imported — and a plugin supporting a range of majors
-// is not always imported by the copy that created the server, so that check
-// reports a perfectly runnable environment as not runnable. The lazily
-// constructed `runner` accessor is the shape every major agrees on, and `in`
-// reads the descriptor rather than invoking the getter, so probing costs
-// nothing.
+// NOTE: Vite's `isRunnableDevEnvironment` is an `instanceof` check against the
+// plugin's own copy of Vite, and the server may have been created by another
+// copy, so it can call a runnable environment not runnable. The lazy `runner`
+// getter is the shape every copy shares, and `in` reads its descriptor without
+// invoking it.
 const isRunnable = (environment: DevEnvironment): boolean =>
   'runner' in environment
 
@@ -477,7 +479,8 @@ type CorsResponseState = Readonly<{
 }>
 
 type ProxyConfiguration =
-  Readonly<Record<string, string | ProxyOptions>> | undefined
+  | Readonly<Record<string, string | ProxyOptions>>
+  | undefined
 
 const isProxyRequest = (
   nodeRequest: Connect.IncomingMessage,
@@ -807,13 +810,13 @@ export const foldkitSsr = (options: FoldkitSsrOptions): Plugin => {
       // bindings the deployed entry holds, while the deployment it is standing
       // in for renders in workerd.
       if (!isRunnable(server.environments.ssr)) {
-        server.config.logger.warn(
-          '[foldkit] the "ssr" environment is not runnable, so another plugin owns' +
-            ' server-side execution. Dev-time server rendering is off and page' +
-            ' requests fall through to that host, which renders through the same' +
-            ' server entry. Remove `ssr.serverEntry` from the foldkit plugin to' +
-            ' silence this.',
-        )
+        if (options.quietStandDown !== true) {
+          server.config.logger.warn(
+            '[foldkit] the "ssr" environment is not runnable, so another plugin owns' +
+              " server-side execution. Dev-time rendering through Foldkit's Vite" +
+              ' middleware is off; page requests go to that host.',
+          )
+        }
         return
       }
 

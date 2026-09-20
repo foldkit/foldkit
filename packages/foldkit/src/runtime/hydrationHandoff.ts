@@ -50,8 +50,8 @@ const hydrationForRoot = (
 // replace-parity case, where the server root took the placeholder's place and
 // `getElementById` no longer finds it, so the stamp is the only handle.
 // A runtime id names one application for the whole page: it pairs a root with
-// its Flags payload, and it keys the Model and scroll position hot reloading
-// preserves. Two roots sharing one are not two applications but one claimed
+// its Flags payload, and it keys the preserved Model and scroll position. Two
+// roots sharing one are not two applications but one claimed
 // twice, so whichever boots second would read the other's handoff and restore
 // the other's Model. `injectIntoTemplate` refuses to build such a page; this is
 // the check for a page assembled some other way.
@@ -70,8 +70,8 @@ const assertRuntimeIdsAreUnique = (
       throw new Error(
         '[foldkit] Found a server-rendered root with an empty ' +
           `\`${FOLDKIT_APP_ATTRIBUTE}\` stamp. A hydratable root must carry ` +
-          'a nonempty runtime id so the runtime can pair it with its Flags ' +
-          'payload and preserved HMR state.',
+          'a nonempty runtime id so the runtime can scope its Flags, Model, ' +
+          'and scroll preservation.',
       )
     }
     if (!root.ownerDocument.body?.contains(root)) {
@@ -88,8 +88,8 @@ const assertRuntimeIdsAreUnique = (
       throw new Error(
         `[foldkit] Found more than one server-rendered root stamped ` +
           `"${runtimeId}". A runtime id names one application for the whole ` +
-          'page: it pairs a root with its Flags payload and keys the Model and ' +
-          'scroll position hot reloading preserves, so two roots sharing one ' +
+          'page: it pairs a root with its Flags payload and keys the preserved ' +
+          'Model and scroll position, so two roots sharing one ' +
           "would take each other's state. Remove the duplicate root. Foldkit " +
           'hydrates one page-owning application per document.',
       )
@@ -392,8 +392,9 @@ export type ResolvedHydrationHandoff<Flags> = Readonly<{
  * another deployment, or a missing, duplicated, or undecodable Flags
  * payload contains the served page and stops startup. The build id is
  * compared before the payload text is read and before `init` runs, so
- * nothing acts on another deployment's data. An HMR-restored Model skips
- * adoption and gets a fresh patch against the stamped root.
+ * nothing acts on another deployment's data. A Model restored after a
+ * development reload skips adoption and gets a fresh patch against the
+ * stamped root.
  */
 export const resolveHydrationHandoff = <Flags, Resources>({
   bootMode,
@@ -402,7 +403,7 @@ export const resolveHydrationHandoff = <Flags, Resources>({
   configuredFlags,
   isFlagsRequired,
   FlagsCodec,
-  hmrModel,
+  preservedModel,
   container,
   buildId,
   provideResources,
@@ -413,7 +414,7 @@ export const resolveHydrationHandoff = <Flags, Resources>({
   configuredFlags: Option.Option<Effect.Effect<Flags, never, Resources>>
   isFlagsRequired: boolean
   FlagsCodec: Schema.Codec<Flags, any, unknown, unknown>
-  hmrModel: unknown
+  preservedModel: unknown
   container: HTMLElement
   buildId: string | undefined
   provideResources: <A>(
@@ -529,12 +530,12 @@ export const resolveHydrationHandoff = <Flags, Resources>({
       }
     }
 
-    // NOTE: an HMR-restored Model wins over DOM adoption because the
-    // server DOM reflects older code. The hydration handoff is still
-    // required, but the restored Model gets a fresh patch against its
+    // NOTE: a Model restored after a development reload wins over DOM adoption
+    // because the server DOM reflects older code. The hydration handoff is
+    // still required, but the restored Model gets a fresh patch against its
     // stamped root.
     const maybeHydrationRoot: Option.Option<HTMLElement> =
-      Predicate.isUndefined(hmrModel)
+      Predicate.isUndefined(preservedModel)
         ? Option.map(
             maybeRequestedHydration,
             requestedHydration => requestedHydration.root,

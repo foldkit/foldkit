@@ -5,7 +5,7 @@ import { Array, Option, Schema } from 'effect'
 import { File, Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { FileDrop } from '@foldkit/ui'
 
@@ -40,7 +40,7 @@ const foldFileDropOutMessage = FileDrop.OutMessage.match<
   ReceivedFiles:
     ({ files }) =>
     model => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         uploadedFiles: Array.appendAll(files),
       }),
     }),
@@ -55,7 +55,8 @@ const foldFileDropOutMessage = FileDrop.OutMessage.match<
 const foldFileDrop = Update.foldChild({
   update: FileDrop.update,
   read: (model: Model) => Option.some(model.uploader),
-  write: (model, nextUploader) => evo(model, { uploader: () => nextUploader }),
+  write: (model, nextUploader) =>
+    modifyFields(model, { uploader: () => nextUploader }),
   toParentMessage: message => Message.GotFileDropMessage({ message }),
   foldOutMessage: foldFileDropOutMessage,
 })

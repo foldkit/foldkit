@@ -4,7 +4,7 @@
 import { Schema } from 'effect'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Checkbox } from '@foldkit/ui'
 
@@ -32,7 +32,7 @@ const Message = defineMessageUnion({
 // This is the moment to fire analytics, validate a form, or push the value
 // to a backend.
 ToggledTerms: ({ isChecked }) => ({
-  model: evo(model, { acceptedTerms: () => isChecked }),
+  model: modifyFields(model, { acceptedTerms: () => isChecked }),
 })
 
 // Inside your view function, render the checkbox with Checkbox.view. It reads
@@ -42,6 +42,7 @@ const view = (model, h: HtmlBuilder<Message>) =>
     {
       id: 'accept-terms',
       isChecked: model.acceptedTerms,
+      hasDescription: true,
       onToggle: isChecked => Message.ToggledTerms({ isChecked }),
       toView: attributes =>
         h.div(

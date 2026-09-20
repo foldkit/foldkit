@@ -13,7 +13,7 @@ import {
 } from 'effect'
 import { dual } from 'effect/Function'
 
-import { evo } from '../struct/index.js'
+import { modifyFields } from '../struct/index.js'
 import type { VNode } from '../vdom.js'
 
 // SELECTOR PARSING
@@ -78,7 +78,7 @@ const tryParseId = (
     Option.map(({ consumed, group }) =>
       parseModifiers(
         input.slice(consumed.length),
-        evo(accumulator, {
+        modifyFields(accumulator, {
           id: () => Option.some(group),
         }),
       ),
@@ -95,7 +95,7 @@ const tryParseClass = (
     Option.map(({ consumed, group }) =>
       parseModifiers(
         input.slice(consumed.length),
-        evo(accumulator, {
+        modifyFields(accumulator, {
           classes: Array.append(group),
         }),
       ),
@@ -117,7 +117,7 @@ const tryParseAttribute = (
           const mode: MatchMode = match[2] === '^' ? 'StartsWith' : 'Exact'
           return parseModifiers(
             input.slice(match[0].length),
-            evo(accumulator, {
+            modifyFields(accumulator, {
               attributes: Array.append({
                 name,
                 value: Option.fromNullishOr(match[3]),
@@ -159,7 +159,7 @@ const parseCompoundSelector = (segment: string): SimpleSelector =>
       onSome: match =>
         parseModifiers(
           segment.slice(match[0].length),
-          evo(emptySelector, { tag: () => Array.get(match, 1) }),
+          modifyFields(emptySelector, { tag: () => Array.get(match, 1) }),
         ),
     }),
   )

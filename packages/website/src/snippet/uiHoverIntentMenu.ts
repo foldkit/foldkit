@@ -5,7 +5,7 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { HoverIntent } from '@foldkit/ui'
 
@@ -39,7 +39,7 @@ const readHoverMenu = (model: Model) => Option.some(model.hoverMenu)
 const writeHoverMenu = (
   model: Model,
   nextHoverMenu: HoverIntent.Model,
-): Model => evo(model, { hoverMenu: () => nextHoverMenu })
+): Model => modifyFields(model, { hoverMenu: () => nextHoverMenu })
 const toGotHoverMenuMessage = (message: HoverIntent.Message): Message =>
   Message.GotHoverMenuMessage({ message })
 

@@ -86,6 +86,7 @@ export const uiInit = (today: Calendar.CalendarDate): InitReturn => ({
     nestedDialogChildDemo: Dialog.init({ id: 'nested-dialog-child-demo' }),
     isDisclosureBasicDemoOpen: false,
     isDisclosureAnimatedDemoOpen: false,
+    isDisclosureCollapsedPreviewDemoOpen: false,
     dragAndDropDemo: DragAndDrop.init({ id: 'drag-and-drop-demo' }),
     dragAndDropDemoColumns: [
       {
@@ -166,7 +167,10 @@ export const uiInit = (today: Calendar.CalendarDate): InitReturn => ({
       id: 'vertical-tabs-demo',
     }),
     verticalTabsDemoTab: 'Foldkit',
-    toastDemo: Toast.init({ id: 'toast-demo' }),
+    toastDemo: Toast.init({
+      id: 'toast-demo',
+      swipeToDismiss: {},
+    }),
     tooltipBasicDemo: Tooltip.init({ id: 'tooltip-basic-demo' }),
     tooltipNoDelayDemo: Tooltip.init({
       id: 'tooltip-no-delay-demo',

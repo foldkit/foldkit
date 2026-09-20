@@ -1122,7 +1122,7 @@ export type ApplicationConfig<Model, Message> = Readonly<{
 
 // Shared by both render shapes. `runtimeId` names the application in the root
 // stamp and Flags payload; it defaults to `'app'` and must be non-empty. It
-// also keys the Model and scroll position hot reloading preserves. A document
+// also keys the preserved Model and scroll position. A document
 // may contain one hydratable root. Template injection and hydration refuse a
 // second root whether it carries the same id or a distinct one because runtime
 // ids do not divide ownership of document metadata and navigation listeners.
@@ -1163,8 +1163,9 @@ export type StaticRenderOptions = CommonRenderOptions &
 
 /** Options for {@link renderToString}. `runtimeId` names the application in the
  *  root stamp and Flags payload; it defaults to `'app'` and must be non-empty.
- *  A nondefault `runtimeId` changes the root, Flags, and HMR pairing. It does
- *  not permit a second hydratable application in one document.
+ *  A nondefault `runtimeId` changes the root stamp and the keys used for Flags,
+ *  Model, and scroll preservation. It does not permit a second hydratable
+ *  application in one document.
  *
  *  A hydratable render (the default) requires `buildId`. Pass
  *  `isHydratable: false` for static markup that nothing will hydrate, which
@@ -1289,25 +1290,6 @@ const parseUrl = (url: string): Effect.Effect<Url, InvalidUrl> =>
     onSome: Effect.succeed,
   })
 
-// The client defaults canonical to `origin + pathname + search` of the current
-// location, which drops the fragment and normalizes host case and default
-// ports. Building the server default with the WHATWG URL parser reproduces that
-// exact string, so the metadata a crawler reads before hydration matches what
-// the hydrated page computes.
-const normalizedRequestUrl = (
-  rawUrl: string | undefined,
-): string | undefined => {
-  if (rawUrl === undefined) {
-    return undefined
-  }
-  try {
-    const parsed = new URL(rawUrl)
-    return `${parsed.origin}${parsed.pathname}${parsed.search}`
-  } catch {
-    return undefined
-  }
-}
-
 const validateHydrationRoot = (
   body: Document['body'],
 ): Effect.Effect<void, InvalidHydrationRoot> => {
@@ -1344,12 +1326,15 @@ const validateHydrationRoot = (
  * reconstruct, so the served DOM and the client's first render agree by
  * construction even for codecs whose round trip is not the identity.
  *
- * When a routing view omits `Document.canonical`, the render defaults it (and
- * `ogUrl`) to the request URL, normalized the way the client computes the
- * current location but with the query string kept. Set `Document.canonical`
- * explicitly when the query string is not part of the page's identity, such as
- * tracking parameters or a session token, so a crawler does not index every
- * variant as its own canonical page.
+ * Canonical metadata has no request URL default. The result includes
+ * `canonical` only when the view supplies it. It includes `ogUrl` when the view
+ * supplies it, or uses an explicit canonical when `ogUrl` is omitted. When a
+ * field is absent from the result, `injectIntoTemplate` leaves the
+ * corresponding tag in the template unchanged.
+ *
+ * Derive the canonical URL from the typed route in the Model. `Request.url`
+ * gives routing applications the request to parse, but only the application
+ * knows which route and query values identify the page.
  *
  * @example
  * ```typescript
@@ -1494,16 +1479,7 @@ export function renderToString(
     const flagsPayload =
       flagsHandoff !== undefined ? flagsHandoff.payloadScript : ''
 
-    // Mirror the client's document-metadata defaults so the served HTML a
-    // crawler reads carries the same canonical and Open Graph URL the hydrated
-    // page computes: canonical falls back to the request URL, and ogUrl to the
-    // resolved canonical, the chain the runtime applies on the client. A
-    // non-routing render has no request URL, so it inherits only an explicitly
-    // set canonical.
-    const resolvedCanonical =
-      nextDocument.canonical ??
-      (hasRouting ? normalizedRequestUrl(options?.url) : undefined)
-    const resolvedOgUrl = nextDocument.ogUrl ?? resolvedCanonical
+    const resolvedOgUrl = nextDocument.ogUrl ?? nextDocument.canonical
 
     return {
       html: `${rootHtml}${flagsPayload}`,
@@ -1512,8 +1488,8 @@ export function renderToString(
       ...(nextDocument.dir !== undefined
         ? { dir: textDirectionToAttribute(nextDocument.dir) }
         : {}),
-      ...(resolvedCanonical !== undefined
-        ? { canonical: resolvedCanonical }
+      ...(nextDocument.canonical !== undefined
+        ? { canonical: nextDocument.canonical }
         : {}),
       ...(resolvedOgUrl !== undefined ? { ogUrl: resolvedOgUrl } : {}),
     }

@@ -312,6 +312,14 @@ const validateExistingRelease = (releasePackage, release) => {
 }
 
 export const finalizeGitHubReleases = async ({ packages, commit, github }) => {
+  for (const releasePackage of packages) {
+    if (releasePackage.notes.trim() === '') {
+      return fail(
+        `${releasePackage.tag} has empty release notes; add a changelog entry before finalizing`,
+      )
+    }
+  }
+
   const plan = []
 
   for (const releasePackage of packages) {

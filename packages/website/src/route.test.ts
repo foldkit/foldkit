@@ -4,7 +4,7 @@ import { describe, expect, test } from 'vitest'
 
 import * as Route from './route'
 
-const SITE = 'https://foldkit.dev'
+const SITE = Route.SITE_URL
 
 // Routers that take route data; excluded from the parameterless round-trip
 // below because calling them without it throws.
@@ -46,9 +46,31 @@ describe('route table', () => {
       expect(parsed._tag).toBe(expectedTag(name))
     },
   )
+})
 
-  test('builds the Why Foldkit page at its renamed URL', () => {
-    expect(Route.manifestoRouter()).toBe('/get-started/why-foldkit')
+describe('route canonical URLs', () => {
+  test.each(parameterlessRouters)(
+    '%s canonical round-trips through the route parser',
+    (name, path) => {
+      const canonical = Route.routeToCanonicalUrl(
+        Route.urlToAppRoute(Option.getOrThrow(urlFromString(`${SITE}${path}`))),
+      )
+      expect(canonical).toBe(`${SITE}${path}`)
+      expect(
+        Route.urlToAppRoute(Option.getOrThrow(urlFromString(canonical)))._tag,
+      ).toBe(expectedTag(name))
+    },
+  )
+
+  test('excludes query parameters from canonical URLs', () => {
+    const route = Route.urlToAppRoute(
+      Option.getOrThrow(
+        urlFromString(`${SITE}/blog/some-post?utm_source=newsletter`),
+      ),
+    )
+    expect(Route.routeToCanonicalUrl(route)).toBe(
+      'https://foldkit.dev/blog/some-post',
+    )
   })
 })
 
@@ -96,8 +118,8 @@ describe('section predicates', () => {
     }>
   > = [
     {
-      name: 'GettingStarted',
-      route: Route.AppRoute.GettingStarted(),
+      name: 'GetStarted',
+      route: Route.AppRoute.GetStarted(),
       isDocsSection: true,
       isBlog: false,
       isSearch: true,

@@ -14,7 +14,7 @@ import {
 import { describe, test } from 'vitest'
 
 import { FetchWeather, Message, WeatherAsyncData, update, view } from './main'
-import { weatherData, weatherModel } from './main.fixtures'
+import { weatherData, weatherModel } from './main.fixture'
 
 describe('view', () => {
   test('initial view shows empty form with Get Weather button', () => {

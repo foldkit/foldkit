@@ -26,6 +26,7 @@ export const basicDemo = (model: Model, h: HtmlBuilder<Message>) => {
       {
         id: CHECKBOX_BASIC_DEMO_ID,
         isChecked: model.isCheckboxBasicDemoChecked,
+        hasDescription: true,
         onToggle: isChecked => Message.ToggledCheckboxBasicDemo({ isChecked }),
         toView: attributes =>
           h.div(

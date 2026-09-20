@@ -22,7 +22,7 @@ export const modelStateField = (name: string, value: string): Html =>
 
 export const modelState = (fields: ReadonlyArray<Html>): Html =>
   ih.div(
-    [ih.Class('pt-3 border-t border-gray-300 dark:border-gray-800')],
+    [ih.Class('pt-3 border-t border-gray-200 dark:border-gray-800')],
     [
       sectionLabel('Model State'),
       ih.div(

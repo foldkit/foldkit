@@ -2,7 +2,7 @@ import { Duration, Effect, Schema, Stream } from 'effect'
 import { Subscription, type Update } from 'foldkit'
 import type { Document, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 const TICK_INTERVAL_MS = 1000
 
@@ -50,16 +50,18 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
 const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedIncrement: () => ({
-      model: evo(model, { count: count => count + model.step }),
+      model: modifyFields(model, { count: count => count + model.step }),
     }),
     ClickedToggleAutoCount: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         isAutoCounting: isAutoCounting => !isAutoCounting,
       }),
     }),
-    ChangedStep: ({ step }) => ({ model: evo(model, { step: () => step }) }),
+    ChangedStep: ({ step }) => ({
+      model: modifyFields(model, { step: () => step }),
+    }),
     Ticked: () => ({
-      model: evo(model, { count: count => count + model.step }),
+      model: modifyFields(model, { count: count => count + model.step }),
     }),
   })
 

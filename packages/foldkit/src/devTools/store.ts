@@ -12,7 +12,7 @@ import {
   pipe,
 } from 'effect'
 
-import { evo } from '../struct/index.js'
+import { modifyFields } from '../struct/index.js'
 
 export const INIT_INDEX = -1
 const DEFAULT_KEYFRAME_INTERVAL = 31
@@ -132,8 +132,10 @@ export const computeDiff = (
 // STORE
 
 export type CommandRecord = Readonly<{
+  id: number
   name: string
   args?: Record<string, unknown>
+  maybeSubmodelPath: Option.Option<ReadonlyArray<string>>
 }>
 
 export type MountRecord = Readonly<{
@@ -273,7 +275,7 @@ export const createDevToolsStore = (
         state.pausedAtIndex >= nextStartIndex ||
         state.pausedAtIndex === INIT_INDEX
 
-      return evo(state, {
+      return modifyFields(state, {
         entries: Array.drop(keyframeInterval),
         keyframes: HashMap.remove(state.startIndex),
         startIndex: () => nextStartIndex,
@@ -287,7 +289,7 @@ export const createDevToolsStore = (
       mountStarts: ReadonlyArray<MountRecord> = [],
     ) =>
       SubscriptionRef.update(stateRef, state =>
-        evo(state, {
+        modifyFields(state, {
           maybeInitModel: () => Option.some(model),
           initCommands: () => commands,
           initMountStarts: () => mountStarts,
@@ -313,7 +315,7 @@ export const createDevToolsStore = (
 
           const hasChangedFields = HashSet.size(diff.changedPaths) > 0
 
-          const nextState = evo(state, {
+          const nextState = modifyFields(state, {
             entries: Array.append({
               tag: message._tag,
               message,
@@ -341,6 +343,58 @@ export const createDevToolsStore = (
         }
       })
 
+    const recordResolvedCommand = (
+      id: number,
+      submodelPath: ReadonlyArray<string>,
+    ) =>
+      SubscriptionRef.update(stateRef, state => {
+        const updateCommands = (
+          commands: ReadonlyArray<CommandRecord>,
+        ): Option.Option<ReadonlyArray<CommandRecord>> =>
+          pipe(
+            commands,
+            Array.findFirstIndex(command => command.id === id),
+            Option.flatMap(index =>
+              Array.modify(commands, index, command =>
+                modifyFields(command, {
+                  maybeSubmodelPath: () => Option.some(submodelPath),
+                }),
+              ),
+            ),
+          )
+
+        const maybeInitCommands = updateCommands(state.initCommands)
+        if (Option.isSome(maybeInitCommands)) {
+          return modifyFields(state, {
+            initCommands: () => maybeInitCommands.value,
+          })
+        }
+
+        const maybeEntryIndex = Array.findFirstIndex(state.entries, entry =>
+          Array.some(entry.commands, command => command.id === id),
+        )
+        if (Option.isNone(maybeEntryIndex)) {
+          return state
+        }
+
+        const maybeEntries = Array.modify(
+          state.entries,
+          maybeEntryIndex.value,
+          entry =>
+            Option.match(updateCommands(entry.commands), {
+              onNone: () => entry,
+              onSome: nextCommands =>
+                modifyFields(entry, { commands: () => nextCommands }),
+            }),
+        )
+
+        return Option.match(maybeEntries, {
+          onNone: () => state,
+          onSome: nextEntries =>
+            modifyFields(state, { entries: () => nextEntries }),
+        })
+      })
+
     /** Attaches Mount lifecycle events from the most recent render to the
      *  history entry that triggered the render. Mount events fire during
      *  snabbdom's `patch`, but render frames are scheduled through
@@ -365,14 +419,14 @@ export const createDevToolsStore = (
 
         return Array.match(state.entries, {
           onEmpty: () =>
-            evo(state, {
+            modifyFields(state, {
               initMountStarts: Array.appendAll(mountStarts),
             }),
           onNonEmpty: entries =>
-            evo(state, {
+            modifyFields(state, {
               entries: () =>
                 Array.modifyLastNonEmpty(entries, last =>
-                  evo(last, {
+                  modifyFields(last, {
                     mountStarts: Array.appendAll(mountStarts),
                     mountEnds: Array.appendAll(mountEnds),
                   }),
@@ -431,14 +485,14 @@ export const createDevToolsStore = (
             return isTargetRetained
               ? [
                   false,
-                  evo(currentState, {
+                  modifyFields(currentState, {
                     isPaused: () => true,
                     pausedAtIndex: () => index,
                   }),
                 ]
               : [
                   true,
-                  evo(currentState, {
+                  modifyFields(currentState, {
                     isPaused: () => false,
                   }),
                 ]
@@ -452,7 +506,7 @@ export const createDevToolsStore = (
 
     const resume = Effect.gen(function* () {
       yield* SubscriptionRef.update(stateRef, state =>
-        evo(state, {
+        modifyFields(state, {
           isPaused: () => false,
         }),
       )
@@ -466,7 +520,7 @@ export const createDevToolsStore = (
       if (state.isPaused) {
         return state
       } else {
-        return evo(state, {
+        return modifyFields(state, {
           entries: () => [],
           startIndex: () => 0,
           pausedAtIndex: () => 0,
@@ -501,12 +555,13 @@ export const createDevToolsStore = (
     const updateLatestModel = (model: unknown) =>
       SubscriptionRef.update(
         stateRef,
-        evo({ maybeLatestModel: () => Option.some(model) }),
+        modifyFields({ maybeLatestModel: () => Option.some(model) }),
       )
 
     return {
       recordInit,
       recordMessage,
+      recordResolvedCommand,
       updateLatestModel,
       attachRenderedMounts,
       getModelAtIndex,
@@ -531,6 +586,10 @@ export type DevToolsStore = Readonly<{
     modelAfterUpdate: unknown,
     commands: ReadonlyArray<CommandRecord>,
     isModelChanged: boolean,
+  ) => Effect.Effect<void>
+  recordResolvedCommand: (
+    id: number,
+    submodelPath: ReadonlyArray<string>,
   ) => Effect.Effect<void>
   updateLatestModel: (model: unknown) => Effect.Effect<void>
   attachRenderedMounts: (

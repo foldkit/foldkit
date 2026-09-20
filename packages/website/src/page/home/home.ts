@@ -71,9 +71,9 @@ const lazyNotePlayerDemo = createLazy()
 
 const VIEWPORT_PADDING = 16
 
-// NOTE: mirrors the md+ CSS --header-height (4.5rem); the variable's
+// NOTE: mirrors the md+ CSS --header-height (4rem); the variable's
 // env(safe-area-inset-top) term is not readable from static config.
-const MD_HEADER_HEIGHT = 72
+const MD_HEADER_HEIGHT = 64
 
 const HEADER_CLEARANCE = MD_HEADER_HEIGHT + VIEWPORT_PADDING
 
@@ -97,19 +97,6 @@ const playgroundItemClassName =
   'block px-4 py-3 cursor-pointer border-b border-gray-100 dark:border-gray-800 last:border-b-0 hover:bg-gray-100 dark:hover:bg-gray-800/60 data-[active]:bg-gray-100 dark:data-[active]:bg-gray-800/60'
 
 const playgroundBackdropClassName = 'fixed inset-0 z-10'
-
-const chromeRecommendedHint: Html = ih.p(
-  [ih.Class('text-xs text-gray-500 dark:text-gray-400')],
-  ['Requires a Chromium browser'],
-)
-
-const withChromeRecommendedHint = (menu: Html, isShowingHint: boolean): Html =>
-  isShowingHint
-    ? ih.div(
-        [ih.Class('flex flex-col items-start gap-1')],
-        [menu, chromeRecommendedHint],
-      )
-    : menu
 
 const playgroundItemContent = (meta: ExampleMeta): Html =>
   ih.div(
@@ -183,7 +170,6 @@ const playgroundMenuView = (
 type ViewInputs = Readonly<{
   renderCopyButton: CodeBlock.RenderCopyButton
   isNarrowViewport: boolean
-  maybeIsChromium: Option.Option<boolean>
   maybeGitHubStarCount: Option.Option<number>
 }>
 
@@ -201,13 +187,10 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
       h,
     ])
 
-    const playgroundMenu = withChromeRecommendedHint(
-      playgroundMenuView(
-        model.playgroundMenu,
-        examples.map(example => example.slug),
-        h,
-      ),
-      Option.contains(viewInputs.maybeIsChromium, false),
+    const playgroundMenu = playgroundMenuView(
+      model.playgroundMenu,
+      examples.map(example => example.slug),
+      h,
     )
 
     const buttonLabelFor = (tab: DemoTab.Tab): string =>

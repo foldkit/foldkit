@@ -4,7 +4,7 @@ import { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { pushUrl } from 'foldkit/navigation'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Button, Input } from '@foldkit/ui'
 
@@ -149,7 +149,7 @@ export type UpdateReturn = Update.Return<Model, Message>
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     ChangedSearchInput: ({ value }) => ({
-      model: evo(model, { searchInput: () => value }),
+      model: modifyFields(model, { searchInput: () => value }),
     }),
 
     SubmittedSearch: () => ({
@@ -164,7 +164,7 @@ export const update = (model: Model, message: Message) =>
     ChangedRoute: ({ route }) => {
       const searchText = routeSearchText(route)
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           searchInput: () => searchText,
           searchHistory: searchHistory =>
             addSearchToHistory(searchHistory, searchText),
@@ -175,7 +175,7 @@ export const update = (model: Model, message: Message) =>
     },
 
     SucceededFetchPeople: ({ query, people: fetchedPeople }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         results: () => SearchResults.Loaded({ query, people: fetchedPeople }),
       }),
     }),
@@ -267,7 +267,7 @@ export const view = Submodel.defineView<Model, Message>((model, h): Html =>
                   value: model.searchInput,
                   placeholder: 'Search by name or role...',
                   onInput: value => Message.ChangedSearchInput({ value }),
-                  toView: ({ input, label, description }) =>
+                  toView: ({ input, label }) =>
                     h.div(
                       [h.Class('flex-1')],
                       [
@@ -282,7 +282,6 @@ export const view = Submodel.defineView<Model, Message>((model, h): Html =>
                             'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
                           ),
                         ]),
-                        h.span([...description]),
                       ],
                     ),
                 },

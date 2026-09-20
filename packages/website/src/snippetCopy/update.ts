@@ -1,6 +1,6 @@
 import { Effect, HashSet, Schema } from 'effect'
 import { Command, Update } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Message } from './message'
 import { type Model } from './model'
@@ -18,7 +18,7 @@ export const update = (model: Model, message: Message) =>
       HashSet.has(model.copiedSnippetIds, snippetId)
         ? { model }
         : {
-            model: evo(model, {
+            model: modifyFields(model, {
               copiedSnippetIds: HashSet.add(snippetId),
             }),
             commands: [WaitBeforeHidingCopiedIndicator({ snippetId })],
@@ -27,7 +27,7 @@ export const update = (model: Model, message: Message) =>
     FailedCopySnippet: () => ({ model }),
 
     CompletedWaitBeforeHidingCopiedIndicator: ({ snippetId }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         copiedSnippetIds: HashSet.remove(snippetId),
       }),
     }),

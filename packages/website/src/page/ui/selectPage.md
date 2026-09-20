@@ -2,7 +2,7 @@
 
 ## Overview
 
-A wrapper around the native `<select>` element with ARIA label/description linking and data-attribute hooks. Select is a stateless render helper: call it directly with a ViewConfig in your own view; no Model, update, or `h.submodel` wrapping. For a custom dropdown with keyboard navigation and custom rendering, use Listbox or Combobox instead.
+A wrapper around the native `<select>` element with ARIA label and optional-description linking plus data-attribute hooks. Select is a stateless render helper: call it directly with a ViewConfig in your own view; no Model, update, or `h.submodel` wrapping. For a custom dropdown with keyboard navigation and custom rendering, use Listbox or Combobox instead.
 
 :::Info{label="See it in an app"}
 Check out how Select is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/select.ts).
@@ -47,7 +47,7 @@ Select uses the native `<select>` element, so keyboard interaction is handled by
 
 ## Accessibility
 
-Select provides the same ARIA wiring as Input. The `label` group links via `for`, and the `description` group is referenced by `aria-describedby`. You can access the description ID directly with `Select.descriptionId(id)`.
+Select provides the same ARIA wiring as Input. The `label` group links via `for`, and the `description` group always includes an id. Set `hasDescription: true` when that element is rendered so the select references it through `aria-describedby`; leaving the option false prevents a dangling reference. You can access the description ID directly with `Select.descriptionId(id)`.
 
 ## API Reference
 
@@ -55,23 +55,24 @@ Select provides the same ARIA wiring as Input. The `label` group links via `for`
 
 Configuration object passed to `Select.view()`.
 
-| Name          | Type                                     | Default | Description                                                                                                 |
-| ------------- | ---------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
-| `id`          | `string`                                 | —       | Unique ID for the select element. Used to link the label and description via ARIA attributes.               |
-| `toView`      | `(attributes: SelectAttributes) => Html` | —       | Callback that receives attribute groups for the select, label, and description elements.                    |
-| `onChange`    | `(value: string) => Message`             | —       | Function that maps the selected value to a Message when the selection changes.                              |
-| `value`       | `string`                                 | —       | The currently selected value.                                                                               |
-| `isDisabled`  | `boolean`                                | `false` | Whether the select is disabled. Sets the native disabled attribute.                                         |
-| `isInvalid`   | `boolean`                                | `false` | Whether the select is in an invalid state. Sets aria-invalid and adds a data-invalid attribute for styling. |
-| `isAutofocus` | `boolean`                                | `false` | Whether the select receives focus when the page loads.                                                      |
-| `name`        | `string`                                 | —       | The form field name for native form submission.                                                             |
+| Name             | Type                                     | Default | Description                                                                                                 |
+| ---------------- | ---------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
+| `id`             | `string`                                 | —       | Unique ID for the select element. Used to link the label and description via ARIA attributes.               |
+| `toView`         | `(attributes: SelectAttributes) => Html` | —       | Callback that receives attribute groups for the select, label, and description elements.                    |
+| `onChange`       | `(value: string) => Message`             | —       | Function that maps the selected value to a Message when the selection changes.                              |
+| `value`          | `string`                                 | —       | The currently selected value.                                                                               |
+| `isDisabled`     | `boolean`                                | `false` | Whether the select is disabled. Sets the native disabled attribute.                                         |
+| `isInvalid`      | `boolean`                                | `false` | Whether the select is in an invalid state. Sets aria-invalid and adds a data-invalid attribute for styling. |
+| `isAutofocus`    | `boolean`                                | `false` | Whether the select receives focus when the page loads.                                                      |
+| `hasDescription` | `boolean`                                | `false` | Whether the select renders a description. Adds `aria-describedby` when true.                                |
+| `name`           | `string`                                 | —       | The form field name for native form submission.                                                             |
 
 ### SelectAttributes {#select-attributes}
 
 Attribute groups provided to the `toView` callback.
 
-| Name          | Type                                | Default | Description                                                                                        |
-| ------------- | ----------------------------------- | ------- | -------------------------------------------------------------------------------------------------- |
-| `select`      | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the `<select>` element. Includes id, value, ARIA attributes, and event handlers.       |
-| `label`       | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the `<label>` element. Includes a for attribute linking to the select id.              |
-| `description` | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto a description element. Includes an id that the select references via aria-describedby. |
+| Name          | Type                                | Default | Description                                                                                  |
+| ------------- | ----------------------------------- | ------- | -------------------------------------------------------------------------------------------- |
+| `select`      | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the `<select>` element. Includes id, value, ARIA attributes, and event handlers. |
+| `label`       | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the `<label>` element. Includes a for attribute linking to the select id.        |
+| `description` | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto a description element. Includes the id referenced when `hasDescription` is true. |

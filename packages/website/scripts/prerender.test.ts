@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { NodeServices } from '@effect/platform-node'
 
+import { routeToUrlPath } from '../src/route'
 import { SECTION_ORDER, shouldExportMarkdown } from './markdown'
 import { routeToMetadata } from './metadata'
 import {
@@ -16,7 +17,6 @@ import {
   enumerateRoutes,
   extractPostArticleHtml,
   readTemplateFrom,
-  routeToUrlPath,
   toFeedArticleHtml,
 } from './prerender'
 

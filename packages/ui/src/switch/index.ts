@@ -46,6 +46,7 @@ export type ViewConfig<Message> = Readonly<{
   toView: (attributes: SwitchAttributes<Message>) => Html
   isDisabled?: boolean
   isReadOnly?: boolean
+  hasDescription?: boolean
   name?: string
   value?: string
 }>
@@ -74,7 +75,7 @@ export const descriptionId = (id: string): string => `${id}-description`
  *
  *  // In update:
  *  ToggledNotifications: ({ isChecked }) => ({
- *    model: evo(model, { notificationsEnabled: () => isChecked }),
+ *    model: modifyFields(model, { notificationsEnabled: () => isChecked }),
  *  }),
  *  ``` */
 export const view = <Message>(
@@ -88,6 +89,7 @@ export const view = <Message>(
     toView,
     isDisabled = false,
     isReadOnly = false,
+    hasDescription = false,
     name,
     value: formValue = 'on',
   } = config
@@ -112,12 +114,16 @@ export const view = <Message>(
 
   const isInteractive = !isDisabled && !isReadOnly
 
+  const describedByAttributes = hasDescription
+    ? [h.AriaDescribedBy(descriptionId(id))]
+    : []
+
   const buttonAttributes = [
     h.Type('button'),
     h.Role('switch'),
     h.AriaChecked(isChecked),
     h.AriaLabelledBy(labelId(id)),
-    h.AriaDescribedBy(descriptionId(id)),
+    ...describedByAttributes,
     h.Tabindex(0),
     ...checkedAttributes,
     ...disabledAttributes,

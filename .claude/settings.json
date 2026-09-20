@@ -6,7 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash scripts/cloud-session-setup.sh"
+            "command": "if [ \"${CLAUDE_CODE_REMOTE:-}\" = true ]; then bash scripts/cloud-session-setup.sh; fi",
+            "timeout": 300
           }
         ]
       }

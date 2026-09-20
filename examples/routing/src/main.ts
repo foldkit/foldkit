@@ -1,9 +1,9 @@
 import { Array, Effect, Match, Option, Schema } from 'effect'
-import { Command, Runtime, Update } from 'foldkit'
+import { Command, Runtime, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
 import {
@@ -37,11 +37,15 @@ export type Model = typeof Model.Type
 
 // MESSAGE
 
+const NavigationShortcut = Schema.Literals(['GH', 'GP', 'GF', 'GN'])
+type NavigationShortcut = typeof NavigationShortcut.Type
+
 export const Message = defineMessageUnion({
   CompletedNavigateInternal: {},
   CompletedLoadExternal: {},
   ClickedLink: { request: UrlRequest },
   ChangedUrl: { url: Url },
+  EnteredNavigationShortcut: { shortcut: NavigationShortcut },
   GotPeopleMessage: { message: People.Message },
 })
 
@@ -59,18 +63,15 @@ export const init: Runtime.RoutingApplicationInit<Model, Message> = (
     Match.orElse(() => AppRoute.People({ searchText: Option.none() })),
   )
 
-  const peopleInit = People.init(initialPeopleRoute)
-  return {
-    model: { route, peoplePage: peopleInit.model },
-    commands: Command.mapMessages(peopleInit.commands, childMessage =>
-      Message.GotPeopleMessage({ message: childMessage }),
-    ),
-  }
+  return Update.foldChildInit(People.init(initialPeopleRoute), {
+    toParentModel: peoplePage => ({ route, peoplePage }),
+    toParentMessage: message => Message.GotPeopleMessage({ message }),
+  })
 }
 
 // COMMAND
 
-const NavigateInternal = Command.define('NavigateInternal', {
+export const NavigateInternal = Command.define('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   execute: ({ url }) =>
@@ -88,6 +89,15 @@ const LoadExternal = Command.define('LoadExternal', {
 
 type UpdateReturn = Update.Return<Model, Message>
 
+const navigationUrlByShortcut: Readonly<
+  Record<NavigationShortcut, () => string>
+> = {
+  GH: homeRouter,
+  GP: () => peopleRouter({ searchText: Option.none() }),
+  GF: filesIndexRouter,
+  GN: nestedRouter,
+}
+
 const foldPeopleEntry = <Input>(
   update: (peoplePage: People.Model, input: Input) => People.UpdateReturn,
 ): Update.Fold<Model, Message, Input> =>
@@ -95,7 +105,7 @@ const foldPeopleEntry = <Input>(
     update,
     read: model => Option.some(model.peoplePage),
     write: (model, nextPeoplePage) =>
-      evo(model, { peoplePage: () => nextPeoplePage }),
+      modifyFields(model, { peoplePage: () => nextPeoplePage }),
     toParentMessage: message => Message.GotPeopleMessage({ message }),
   })
 
@@ -105,7 +115,7 @@ const foldPeopleRouteChanged = foldPeopleEntry(People.informRouteChanged)
 
 const setRoute =
   (nextRoute: AppRoute): Update.Step<Model, Message> =>
-  model => ({ model: evo(model, { route: () => nextRoute }) })
+  model => ({ model: modifyFields(model, { route: () => nextRoute }) })
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
@@ -138,8 +148,41 @@ export const update = (model: Model, message: Message) =>
       return Update.combine(model, [setRoute(nextRoute), ...routeSteps])
     },
 
+    EnteredNavigationShortcut: ({ shortcut }) => {
+      const url = navigationUrlByShortcut[shortcut]()
+
+      return { model, commands: [NavigateInternal({ url })] }
+    },
+
     GotPeopleMessage: ({ message }) => foldPeople(model, message),
   })
+
+// SUBSCRIPTION
+
+export const subscriptions = Subscription.make<Model, Message>()(() => ({
+  keyBindings: Subscription.persistent(
+    Subscription.keyBindings<Message>({
+      bindings: [
+        {
+          keys: ['G', 'H'],
+          mapEvent: () => Message.EnteredNavigationShortcut({ shortcut: 'GH' }),
+        },
+        {
+          keys: ['G', 'P'],
+          mapEvent: () => Message.EnteredNavigationShortcut({ shortcut: 'GP' }),
+        },
+        {
+          keys: ['G', 'F'],
+          mapEvent: () => Message.EnteredNavigationShortcut({ shortcut: 'GF' }),
+        },
+        {
+          keys: ['G', 'N'],
+          mapEvent: () => Message.EnteredNavigationShortcut({ shortcut: 'GN' }),
+        },
+      ],
+    }),
+  ),
+}))
 
 // VIEW
 

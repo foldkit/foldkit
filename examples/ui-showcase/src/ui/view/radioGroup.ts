@@ -79,6 +79,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
             selectedValue: model.verticalRadioGroupDemoValue,
             options: plans,
             ariaLabel: 'Server plan',
+            hasOptionDescription: () => true,
             toView: ({ group, options }) =>
               h.div(
                 [...group, h.Class(verticalGroupClassName)],
@@ -142,6 +143,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
             options: plans,
             ariaLabel: 'Server plan',
             orientation: 'Horizontal',
+            hasOptionDescription: () => true,
             toView: ({ group, options }) =>
               h.div(
                 [...group, h.Class(horizontalGroupClassName)],

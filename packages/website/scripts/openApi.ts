@@ -2,13 +2,13 @@ import { writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
+import { SITE_URL } from '../src/route'
 import {
   API_BASE_PATH,
   DEPRECATION_NOTICE_DAYS,
   PROBLEMS,
   RATE_LIMIT_QUOTA,
   RATE_LIMIT_WINDOW_SECONDS,
-  SITE_URL,
 } from './contentApi'
 
 // DOCUMENT
@@ -260,7 +260,7 @@ export const openApiDocument = {
               'The page URL path without the leading slash, for example `core/model`. Every entry in listPages carries the ready-made absolute URL as apiUrl.',
             schema: {
               type: 'string',
-              examples: ['index', 'get-started/getting-started', 'core/model'],
+              examples: ['index', 'get-started', 'core/model'],
             },
           },
         ],
@@ -317,7 +317,7 @@ export const openApiDocument = {
       operationId: 'getPageMarkdown',
       summary: 'One documentation page as Markdown',
       description:
-        'The Markdown variant of a single documentation page. Pass the page URL path without the leading slash in the `path` query parameter, for example `get-started/getting-started` or `core/model`. Valid page paths are enumerated in /llms.txt, /api/v1/pages.json, and /sitemap.xml. The same document is available by appending `.md` to its HTML URL or by requesting the HTML URL with an Accept header containing text/markdown.',
+        'The Markdown variant of a single documentation page. Pass the page URL path without the leading slash in the `path` query parameter, for example `get-started` or `core/model`. Valid page paths are enumerated in /llms.txt, /api/v1/pages.json, and /sitemap.xml. The same document is available by appending `.md` to its HTML URL or by requesting the HTML URL with an Accept header containing text/markdown.',
       mediaType: 'text/markdown',
       schema: 'MarkdownDocument',
       parameters: [
@@ -329,7 +329,7 @@ export const openApiDocument = {
             'The page URL path without the leading slash, for example `core/model`. The homepage is `index`.',
           schema: {
             type: 'string',
-            examples: ['index', 'get-started/getting-started', 'core/model'],
+            examples: ['index', 'get-started', 'core/model'],
           },
         },
       ],

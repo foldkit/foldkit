@@ -1,8 +1,8 @@
-import { build } from 'esbuild'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { build } from 'rolldown'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { type LintDiagnostic, runOxlint } from './run-oxlint.ts'
@@ -121,11 +121,9 @@ const codesFor = (
 
 beforeAll(async () => {
   await build({
-    entryPoints: [join(pluginRoot, 'src', 'index.ts')],
-    bundle: true,
+    input: join(pluginRoot, 'src', 'index.ts'),
     platform: 'node',
-    format: 'esm',
-    outfile: bundlePath,
+    output: { file: bundlePath, format: 'esm' },
   })
 
   const { default: plugin } = await import(pathToFileURL(bundlePath).href)

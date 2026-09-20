@@ -100,7 +100,7 @@ The return type is `Update.Return<Model, Message>`:
 
 ::Snippet{name="comparisonFoldkitUpdate" label="Foldkit update"}
 
-`Message.match` requires a handler for every Message variant. `evo` preserves references for unchanged fields, which supports view memoization. A handler such as `ClickedUndo` returns the next Model and a `SaveCanvas` Command together.
+`Message.match` requires a handler for every Message variant. `modifyFields` preserves references for unchanged fields, which supports view memoization. A handler such as `ClickedUndo` returns the next Model and a `SaveCanvas` Command together.
 
 :::Info{label="What update answers"}
 For any parent Message, update shows the next parent Model and the Commands caused immediately by that Message. Subscriptions and Mounts have their own declarations because their lifetimes are not caused by a single update transition.
@@ -254,7 +254,7 @@ Foldkit memoizes view functions from arrays of Model-derived arguments:
 
 ::Snippet{name="comparisonFoldkitMemoization" label="Foldkit memoization"}
 
-`createLazy` and `createKeyedLazy` compare arguments element by element. `evo` preserves references for unchanged Model fields, so panels whose inputs remain referentially equal can reuse their previous virtual DOM.
+`createLazy` and `createKeyedLazy` compare arguments element by element. `modifyFields` preserves references for unchanged Model fields, so panels whose inputs remain referentially equal can reuse their previous virtual DOM.
 
 ### React memoization (closures at the boundary) {#react-memoization}
 

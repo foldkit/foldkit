@@ -10,6 +10,7 @@ const view = (h: HtmlBuilder<Message>) =>
     {
       id: 'personal-info-disabled',
       isDisabled: true,
+      hasDescription: true,
       toView: attributes =>
         h.fieldset(
           [...attributes.fieldset, h.Class('rounded-lg border p-6')],

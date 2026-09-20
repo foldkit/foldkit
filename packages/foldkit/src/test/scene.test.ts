@@ -1,6 +1,7 @@
-import { Option, pipe } from 'effect'
+import { Option, Schema, pipe } from 'effect'
 import { describe, expect, expectTypeOf, test } from 'vitest'
 
+import * as CustomElement from '../customElement/index.js'
 import {
   type HtmlBuilder,
   __htmlBuilder as attributeHtml,
@@ -9,6 +10,7 @@ import {
 import { defineMessageUnion } from '../message/index.js'
 import { h } from '../snabbdom/index.js'
 import type { VNode } from '../snabbdom/index.js'
+import { modifyFields } from '../struct/index.js'
 import { defineView } from '../submodel/public.js'
 import type * as Update from '../update/index.js'
 import {
@@ -32,6 +34,11 @@ import {
   viewWithoutHandler as colorPickerViewWithoutHandler,
   hexColorPicker,
 } from './apps/colorPicker.js'
+import {
+  initialModel as contentEditableInitialModel,
+  update as contentEditableUpdate,
+  view as contentEditableView,
+} from './apps/contentEditableEditor.js'
 import {
   initialModel as contextMenuInitialModel,
   update as contextMenuUpdate,
@@ -74,6 +81,10 @@ import {
   view as interactionsView,
 } from './apps/interactions.js'
 import { update as keyUpdate, view as keyView } from './apps/keypress.js'
+import {
+  update as keySelfUpdate,
+  view as keySelfView,
+} from './apps/keypressSelf.js'
 import {
   Authenticate,
   Message as LoginMessage,
@@ -1631,12 +1642,11 @@ describe('scene', () => {
   })
 
   test('clicking a disabled element throws a clear error', () => {
-    const submittingModel: Model = {
-      ...initialModel,
-      status: 'Submitting',
-      email: 'alice@example.com',
-      password: 'secret',
-    }
+    const submittingModel: Model = modifyFields(initialModel, {
+      status: () => 'Submitting',
+      email: () => 'alice@example.com',
+      password: () => 'secret',
+    })
 
     expect(() =>
       Scene.scene(
@@ -1664,11 +1674,10 @@ describe('scene', () => {
   })
 
   test('click dispatches the button Message', () => {
-    const loggedInModel: Model = {
-      ...initialModel,
-      status: 'LoggedIn',
-      username: 'alice',
-    }
+    const loggedInModel: Model = modifyFields(initialModel, {
+      status: () => 'LoggedIn',
+      username: () => 'alice',
+    })
 
     Scene.scene(
       { update, view },
@@ -1770,15 +1779,70 @@ describe('scene', () => {
       }),
     )
   })
+
+  test('typeContentEditable dispatches the rendered text through OnInput', () => {
+    Scene.scene(
+      { update: contentEditableUpdate, view: contentEditableView },
+      Scene.given(contentEditableInitialModel),
+      Scene.typeContentEditable(Scene.testId('editor'), 'Hello, world'),
+      Scene.expect(Scene.testId('editor')).toHaveText('Hello, world'),
+    )
+  })
+
+  test('typeContentEditable replaces the rendered text on the next input', () => {
+    Scene.scene(
+      { update: contentEditableUpdate, view: contentEditableView },
+      Scene.given(contentEditableInitialModel),
+      Scene.typeContentEditable(Scene.testId('editor'), 'first'),
+      Scene.typeContentEditable(Scene.testId('editor'), 'second'),
+      Scene.expect(Scene.testId('editor')).toHaveText('second'),
+    )
+  })
+
+  test('beforeInput lets update own contenteditable insertions', () => {
+    Scene.scene(
+      { update: contentEditableUpdate, view: contentEditableView },
+      Scene.given(contentEditableInitialModel),
+      Scene.beforeInput(Scene.testId('editor'), 'insertText', Option.some('A')),
+      Scene.beforeInput(Scene.testId('editor'), 'insertText', Option.some('B')),
+      Scene.expect(Scene.testId('editor')).toHaveText('AB'),
+    )
+  })
+
+  test('beforeInput records an unclaimed edit as ignored', () => {
+    Scene.scene(
+      { update: contentEditableUpdate, view: contentEditableView },
+      Scene.given(contentEditableInitialModel),
+      Scene.beforeInput(Scene.testId('editor'), 'insertText', Option.some('A')),
+      Scene.beforeInput(
+        Scene.testId('editor'),
+        'deleteContentBackward',
+        Option.none(),
+      ),
+      Scene.expectIgnored(),
+      Scene.expect(Scene.testId('editor')).toHaveText('A'),
+    )
+  })
+
+  test('keydown is self-targeted, so it reaches an OnKeyDownSelf handler', () => {
+    Scene.scene(
+      { update: keySelfUpdate, view: keySelfView },
+      Scene.given({ lastKey: '' }),
+      Scene.keydown(
+        Scene.role('application', { name: 'Self key press area' }),
+        'a',
+      ),
+      Scene.expect(Scene.label('Last key')).toHaveText('a'),
+    )
+  })
 })
 
 describe('scene with locators', () => {
   test('click accepts a Locator', () => {
-    const loggedInModel: Model = {
-      ...initialModel,
-      status: 'LoggedIn',
-      username: 'alice',
-    }
+    const loggedInModel: Model = modifyFields(initialModel, {
+      status: () => 'LoggedIn',
+      username: () => 'alice',
+    })
 
     Scene.scene(
       { update, view },
@@ -1949,11 +2013,10 @@ describe('scene with expect', () => {
   })
 
   test('toContainText checks substring', () => {
-    const loggedInModel: Model = {
-      ...initialModel,
-      status: 'LoggedIn',
-      username: 'alice',
-    }
+    const loggedInModel: Model = modifyFields(initialModel, {
+      status: () => 'LoggedIn',
+      username: () => 'alice',
+    })
 
     Scene.scene(
       { update, view },
@@ -2071,11 +2134,10 @@ describe('scene with expect', () => {
   })
 
   test('toBeEmpty passes for empty element', () => {
-    const loggedInModel: Model = {
-      ...initialModel,
-      status: 'LoggedIn',
-      username: 'alice',
-    }
+    const loggedInModel: Model = modifyFields(initialModel, {
+      status: () => 'LoggedIn',
+      username: () => 'alice',
+    })
     Scene.scene(
       { update, view: (_model, h) => view(loggedInModel, h) },
       Scene.given(loggedInModel),
@@ -2122,11 +2184,10 @@ describe('scene with expect', () => {
   })
 
   test('toHaveAccessibleName matches aria-label', () => {
-    const loggedInModel: Model = {
-      ...initialModel,
-      status: 'LoggedIn',
-      username: 'alice',
-    }
+    const loggedInModel: Model = modifyFields(initialModel, {
+      status: () => 'LoggedIn',
+      username: () => 'alice',
+    })
     Scene.scene(
       { update, view },
       Scene.given(loggedInModel),
@@ -2278,10 +2339,11 @@ describe('scene with file uploads', () => {
   test('changeFiles dispatches an empty array when no files are provided', () => {
     Scene.scene(
       { update: fileUploadUpdate, view: fileUploadView },
-      Scene.given({
-        ...fileUploadInitialModel,
-        receivedFiles: [resumePdf],
-      }),
+      Scene.given(
+        modifyFields(fileUploadInitialModel, {
+          receivedFiles: () => [resumePdf],
+        }),
+      ),
       Scene.changeFiles(Scene.label('resume'), []),
       Scene.expect(Scene.selector('[key="received-count"]')).toContainText(
         'count=0',
@@ -2372,12 +2434,11 @@ describe('scene with Command-based file upload flow', () => {
   const readingStatus = Scene.role('status')
   const errorAlert = Scene.role('alert')
 
-  const resumeSelectedModel: ResumeModel = {
-    ...resumeInitialModel,
-    maybeResume: Option.some(resumePdf),
-    maybePreviewDataUrl: Option.some(previewDataUrl),
-    readStatus: 'Idle',
-  }
+  const resumeSelectedModel: ResumeModel = modifyFields(resumeInitialModel, {
+    maybeResume: () => Option.some(resumePdf),
+    maybePreviewDataUrl: () => Option.some(previewDataUrl),
+    readStatus: () => 'Idle',
+  })
 
   test('happy path: click → resolve select → resolve preview → file visible', () => {
     Scene.scene(
@@ -2493,11 +2554,10 @@ describe('scene with Command-based file upload flow', () => {
 })
 
 describe('scene with expectAll', () => {
-  const loggedInModel: Model = {
-    ...initialModel,
-    status: 'LoggedIn',
-    username: 'alice',
-  }
+  const loggedInModel: Model = modifyFields(initialModel, {
+    status: () => 'LoggedIn',
+    username: () => 'alice',
+  })
 
   test('toHaveCount matches the number of elements', () => {
     Scene.scene(
@@ -2758,7 +2818,7 @@ describe('Scene.Subscription.emit', () => {
   })
 
   test('throws when unresolved Mounts are pending', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = modifyFields(mountInitialModel, { isOpen: () => true })
     expect(() =>
       Scene.scene(
         { update: mountUpdate, view: mountView },
@@ -2771,7 +2831,7 @@ describe('Scene.Subscription.emit', () => {
   })
 
   test('throws when unacknowledged unmounts are pending', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = modifyFields(mountInitialModel, { isOpen: () => true })
     expect(() =>
       Scene.scene(
         { update: mountUpdate, view: mountView },
@@ -2943,6 +3003,59 @@ describe('Scene.CustomElement.emit', () => {
       'color-changed',
       // @ts-expect-error detail must match the color-changed Schema
       { value: 5 },
+    )
+  })
+
+  test('accepts encoded detail and dispatches the decoded value', () => {
+    const transformedDetailElement = CustomElement.define({
+      tag: 'fk-transformed-detail',
+      properties: {},
+      events: { changed: Schema.NumberFromString },
+    })
+    const TransformedMessage = defineMessageUnion({
+      ChangedValue: { value: Schema.Number },
+    })
+    type TransformedMessage = typeof TransformedMessage.Type
+    const TransformedModel = Schema.Struct({ value: Schema.Number })
+    type TransformedModel = typeof TransformedModel.Type
+    const initialModel = TransformedModel.make({ value: 0 })
+    const update = (model: TransformedModel, message: TransformedMessage) =>
+      TransformedMessage.match<
+        Update.Return<TransformedModel, TransformedMessage>
+      >(message, {
+        ChangedValue: ({ value }) => ({
+          model: modifyFields(model, { value: () => value }),
+        }),
+      })
+    const view = (
+      model: TransformedModel,
+      h: HtmlBuilder<TransformedMessage>,
+    ) => {
+      const element = transformedDetailElement.withMessage(h)
+
+      return h.div(
+        [],
+        [
+          element([
+            element.OnChanged(value =>
+              TransformedMessage.ChangedValue({ value }),
+            ),
+          ]),
+          h.span([h.Role('status')], [globalThis.String(model.value)]),
+        ],
+      )
+    }
+
+    Scene.scene(
+      { update, view },
+      Scene.given(initialModel),
+      Scene.CustomElement.emit(
+        transformedDetailElement,
+        Scene.selector('fk-transformed-detail'),
+        'changed',
+        '5',
+      ),
+      Scene.expect(Scene.role('status')).toHaveText('5'),
     )
   })
 
@@ -3220,7 +3333,7 @@ describe('Scene OutMessage assertions', () => {
   test('preserves every OutMessage from Mount.resolveAll', () => {
     Scene.scene(
       { update: multipleMountOutMessagesUpdate, view: mountView },
-      Scene.given({ ...mountInitialModel, isOpen: true }),
+      Scene.given(modifyFields(mountInitialModel, { isOpen: () => true })),
       Scene.Mount.resolveAll(
         [FocusButton, MountPanelMessage.CompletedFocusButton()],
         [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 100 })],
@@ -3328,11 +3441,10 @@ describe('Scene.withViewInputs', () => {
 
 describe('scene with within', () => {
   test('within scopes a locator to a parent', () => {
-    const loggedInModel: Model = {
-      ...initialModel,
-      status: 'LoggedIn',
-      username: 'alice',
-    }
+    const loggedInModel: Model = modifyFields(initialModel, {
+      status: () => 'LoggedIn',
+      username: () => 'alice',
+    })
 
     Scene.scene(
       { update, view },
@@ -3377,11 +3489,10 @@ describe('scene with within', () => {
   })
 
   test('click works with within', () => {
-    const loggedInModel: Model = {
-      ...initialModel,
-      status: 'LoggedIn',
-      username: 'alice',
-    }
+    const loggedInModel: Model = modifyFields(initialModel, {
+      status: () => 'LoggedIn',
+      username: () => 'alice',
+    })
 
     Scene.scene(
       { update, view },
@@ -3415,11 +3526,10 @@ describe('scene with within', () => {
 })
 
 describe('scene with inside', () => {
-  const loggedInModel: Model = {
-    ...initialModel,
-    status: 'LoggedIn',
-    username: 'alice',
-  }
+  const loggedInModel: Model = modifyFields(initialModel, {
+    status: () => 'LoggedIn',
+    username: () => 'alice',
+  })
 
   test('inside scopes multiple assertion steps to a parent', () => {
     Scene.scene(
@@ -3869,6 +3979,15 @@ describe('scene with pointer events', () => {
     )
   })
 
+  test('pointerDown passes a custom pointer ID to the handler', () => {
+    Scene.scene(
+      { update: pointerUpdate, view: pointerView },
+      Scene.given(pointerInitialModel),
+      Scene.pointerDown(Scene.label('pointer target'), { pointerId: 42 }),
+      Scene.expect(Scene.label('last pointer id')).toHaveText('42'),
+    )
+  })
+
   test('pointerDown defaults to mouse', () => {
     Scene.scene(
       { update: pointerUpdate, view: pointerView },
@@ -3972,7 +4091,7 @@ describe('scene mounts', () => {
   })
 
   test('expectExactMounts fails when an unexpected mount is rendered', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = modifyFields(mountInitialModel, { isOpen: () => true })
     expect(() =>
       Scene.scene(
         { update: mountUpdate, view: mountView },
@@ -4007,7 +4126,7 @@ describe('scene mounts', () => {
   })
 
   test('resolveMount feeds the result Message through update', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = modifyFields(mountInitialModel, { isOpen: () => true })
     Scene.scene(
       { update: mountUpdate, view: mountView },
       Scene.given(openModel),
@@ -4037,7 +4156,7 @@ describe('scene mounts', () => {
   })
 
   test('resolveAllMounts resolves a batch in order', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = modifyFields(mountInitialModel, { isOpen: () => true })
     Scene.scene(
       { update: mountUpdate, view: mountView },
       Scene.given(openModel),
@@ -4052,7 +4171,7 @@ describe('scene mounts', () => {
   })
 
   test('resolved mounts that disappear between renders must be acknowledged with expectEnded', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = modifyFields(mountInitialModel, { isOpen: () => true })
     Scene.scene(
       { update: mountUpdate, view: mountView },
       Scene.given(openModel),
@@ -4069,7 +4188,7 @@ describe('scene mounts', () => {
   })
 
   test('an interaction with an unresolved mount throws a clear error', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = modifyFields(mountInitialModel, { isOpen: () => true })
     expect(() =>
       Scene.scene(
         { update: mountUpdate, view: mountView },
@@ -4089,7 +4208,7 @@ describe('scene mounts', () => {
   })
 
   test('a resolved mount stays resolved across re-renders', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = modifyFields(mountInitialModel, { isOpen: () => true })
     Scene.scene(
       { update: mountUpdate, view: mountView },
       Scene.given(openModel),
@@ -4203,14 +4322,14 @@ describe('scene mounts', () => {
   })
 
   test('a pending mount whose element disappears must be acknowledged with expectEnded', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = modifyFields(mountInitialModel, { isOpen: () => true })
 
     const closingUpdate = (
       model: typeof mountInitialModel,
       message: MountPanelMessage,
     ): Update.Return<typeof mountInitialModel, MountPanelMessage> =>
       message._tag === 'CompletedFocusButton'
-        ? { model: { ...model, isOpen: false } }
+        ? { model: modifyFields(model, { isOpen: () => false }) }
         : mountUpdate(model, message)
 
     Scene.scene(
@@ -4242,14 +4361,14 @@ describe('scene mounts', () => {
   })
 
   test('an unacknowledged unmount throws at end of scene', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = modifyFields(mountInitialModel, { isOpen: () => true })
 
     const closingUpdate = (
       model: typeof mountInitialModel,
       message: MountPanelMessage,
     ): Update.Return<typeof mountInitialModel, MountPanelMessage> =>
       message._tag === 'CompletedFocusButton'
-        ? { model: { ...model, isOpen: false } }
+        ? { model: modifyFields(model, { isOpen: () => false }) }
         : mountUpdate(model, message)
 
     expect(() => {
@@ -4262,7 +4381,7 @@ describe('scene mounts', () => {
   })
 
   test('a previously resolved mount whose element disappears must still be acknowledged', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = modifyFields(mountInitialModel, { isOpen: () => true })
     expect(() => {
       Scene.scene(
         { update: mountUpdate, view: mountView },
@@ -4288,7 +4407,7 @@ describe('scene mounts', () => {
   })
 
   test('an interaction throws when a previous unmount was not acknowledged', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = modifyFields(mountInitialModel, { isOpen: () => true })
     expect(() => {
       Scene.scene(
         { update: mountUpdate, view: mountView },
@@ -4305,7 +4424,7 @@ describe('scene mounts', () => {
   })
 
   test('a same-key mount that disappears and reappears starts fresh as pending', () => {
-    const openModel = { ...mountInitialModel, isOpen: true }
+    const openModel = modifyFields(mountInitialModel, { isOpen: () => true })
     Scene.scene(
       { update: mountUpdate, view: mountView },
       Scene.given(openModel),

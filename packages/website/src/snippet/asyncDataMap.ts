@@ -1,18 +1,18 @@
 import { Array, HashMap, Option } from 'effect'
 import { AsyncData } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 export const prependNewNote =
   (note: Note) =>
   (model: Model): Model =>
     Option.match(note.maybeNotebookId, {
       onNone: () =>
-        evo(model, {
+        modifyFields(model, {
           allNotes: allNotes =>
             AsyncData.map(allNotes, noteList => Array.prepend(noteList, note)),
         }),
       onSome: notebookId =>
-        evo(model, {
+        modifyFields(model, {
           notesByNotebook: notesByNotebook =>
             HashMap.modify(notesByNotebook, notebookId, notes =>
               AsyncData.map(notes, noteList => Array.prepend(noteList, note)),

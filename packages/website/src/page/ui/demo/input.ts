@@ -16,6 +16,7 @@ export const basicDemo = (model: Model, h: HtmlBuilder<Message>) => {
           {
             id: 'input-basic-demo',
             value: model.inputDemoValue,
+            hasDescription: true,
             onInput: value => Message.UpdatedInputDemoValue({ value }),
             placeholder: 'Enter your full name',
             toView: attributes =>
@@ -47,6 +48,7 @@ export const disabledDemo = (_model: Model, h: HtmlBuilder<Message>) => {
       {
         id: 'input-disabled-demo',
         isDisabled: true,
+        hasDescription: true,
         value: 'Ada Lovelace',
         toView: attributes =>
           h.div(

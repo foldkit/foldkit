@@ -92,7 +92,7 @@ describe('toSerializedEntry', () => {
   const baseEntry: HistoryEntry = {
     tag: 'ClickedButton',
     message: { _tag: 'ClickedButton', label: 'Submit' },
-    commands: [{ name: 'SubmitForm' }],
+    commands: [{ id: 0, name: 'SubmitForm', maybeSubmodelPath: Option.none() }],
     mountStarts: [],
     mountEnds: [],
     timestamp: 1700000000000,
@@ -108,7 +108,11 @@ describe('toSerializedEntry', () => {
     expect(result.index).toBe(7)
     expect(result.tag).toBe('ClickedButton')
     expect(result.commands).toEqual([
-      { name: 'SubmitForm', args: Option.none() },
+      {
+        name: 'SubmitForm',
+        args: Option.none(),
+        maybeSubmodelPath: Option.none(),
+      },
     ])
     expect(result.timestamp).toBe(1700000000000)
     expect(result.isModelChanged).toBe(true)
@@ -118,14 +122,31 @@ describe('toSerializedEntry', () => {
     const entryWithArgs: HistoryEntry = {
       ...baseEntry,
       commands: [
-        { name: 'FetchWeather', args: { zipCode: '90210' } },
-        { name: 'LockScroll' },
+        {
+          id: 1,
+          name: 'FetchWeather',
+          args: { zipCode: '90210' },
+          maybeSubmodelPath: Option.some(['GotForecastMessage']),
+        },
+        {
+          id: 2,
+          name: 'LockScroll',
+          maybeSubmodelPath: Option.some([]),
+        },
       ],
     }
     const result = toSerializedEntry(entryWithArgs, 0)
     expect(result.commands).toEqual([
-      { name: 'FetchWeather', args: Option.some({ zipCode: '90210' }) },
-      { name: 'LockScroll', args: Option.none() },
+      {
+        name: 'FetchWeather',
+        args: Option.some({ zipCode: '90210' }),
+        maybeSubmodelPath: Option.some(['GotForecastMessage']),
+      },
+      {
+        name: 'LockScroll',
+        args: Option.none(),
+        maybeSubmodelPath: Option.some([]),
+      },
     ])
   })
 

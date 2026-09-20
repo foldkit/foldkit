@@ -1,7 +1,7 @@
 import { Duration, Effect, Match, Number, Option, Schema } from 'effect'
 import * as Command from 'foldkit/command'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
 
@@ -90,7 +90,7 @@ const open = (model: Model): UpdateReturn => {
   }
 
   return {
-    model: evo(model, { isOpen: () => true }),
+    model: modifyFields(model, { isOpen: () => true }),
     outMessage: OutMessage.Opened(),
   }
 }
@@ -101,7 +101,7 @@ const finishClosing = (model: Model): UpdateReturn => {
   }
 
   return {
-    model: evo(model, { isOpen: () => false }),
+    model: modifyFields(model, { isOpen: () => false }),
     outMessage: OutMessage.Closed(),
   }
 }
@@ -109,7 +109,7 @@ const finishClosing = (model: Model): UpdateReturn => {
 const scheduleOpen = (model: Model): UpdateReturn => {
   const version = Number.increment(model.pendingOpenVersion)
   return {
-    model: evo(model, { pendingOpenVersion: () => version }),
+    model: modifyFields(model, { pendingOpenVersion: () => version }),
     commands: [WaitBeforeOpening({ delay: model.openDelay, version })],
   }
 }
@@ -120,13 +120,13 @@ const scheduleClose = (
 ): UpdateReturn => {
   const version = Number.increment(model.pendingCloseVersion)
   return {
-    model: evo(model, { pendingCloseVersion: () => version }),
+    model: modifyFields(model, { pendingCloseVersion: () => version }),
     commands: [WaitBeforeClosing({ delay, version })],
   }
 }
 
 const entered = (model: Model): UpdateReturn => {
-  const enteredModel = evo(model, {
+  const enteredModel = modifyFields(model, {
     pendingCloseVersion: Number.increment,
   })
 
@@ -138,7 +138,7 @@ const entered = (model: Model): UpdateReturn => {
 }
 
 const left = (model: Model): UpdateReturn => {
-  const leftModel = evo(model, {
+  const leftModel = modifyFields(model, {
     pendingOpenVersion: Number.increment,
   })
 
@@ -147,7 +147,7 @@ const left = (model: Model): UpdateReturn => {
   }
 
   if (leftModel.isDismissed) {
-    return { model: evo(leftModel, { isDismissed: () => false }) }
+    return { model: modifyFields(leftModel, { isDismissed: () => false }) }
   }
 
   if (!leftModel.isOpen) {
@@ -158,7 +158,7 @@ const left = (model: Model): UpdateReturn => {
 }
 
 const focused = (model: Model, focusLocation: FocusLocation): UpdateReturn => {
-  const focusedModel = evo(model, {
+  const focusedModel = modifyFields(model, {
     maybeFocusLocation: () => Option.some(focusLocation),
     pendingOpenVersion: Number.increment,
     pendingCloseVersion: Number.increment,
@@ -172,7 +172,7 @@ const focused = (model: Model, focusLocation: FocusLocation): UpdateReturn => {
 }
 
 const blurred = (model: Model): UpdateReturn => {
-  const blurredModel = evo(model, {
+  const blurredModel = modifyFields(model, {
     maybeFocusLocation: () => Option.none(),
     pendingOpenVersion: Number.increment,
   })
@@ -182,7 +182,7 @@ const blurred = (model: Model): UpdateReturn => {
   }
 
   if (blurredModel.isDismissed) {
-    return { model: evo(blurredModel, { isDismissed: () => false }) }
+    return { model: modifyFields(blurredModel, { isDismissed: () => false }) }
   }
 
   if (!blurredModel.isOpen) {
@@ -197,7 +197,7 @@ const dismiss = (model: Model, isTriggerFocused: boolean): UpdateReturn => {
     'Trigger',
     () => isTriggerFocused,
   )
-  const dismissedModel = evo(model, {
+  const dismissedModel = modifyFields(model, {
     isOpen: () => false,
     isPanelHovered: () => false,
     maybeFocusLocation: () => maybeFocusLocation,
@@ -227,10 +227,13 @@ export const close = (model: Model): UpdateReturn =>
 /** Processes a HoverIntent Message and returns the next Model, optional Commands, and an optional OutMessage. */
 export const update = (model: Model, message: Message): UpdateReturn =>
   Message.match<UpdateReturn>(message, {
-    EnteredTrigger: () => entered(evo(model, { isTriggerHovered: () => true })),
-    LeftTrigger: () => left(evo(model, { isTriggerHovered: () => false })),
-    EnteredPanel: () => entered(evo(model, { isPanelHovered: () => true })),
-    LeftPanel: () => left(evo(model, { isPanelHovered: () => false })),
+    EnteredTrigger: () =>
+      entered(modifyFields(model, { isTriggerHovered: () => true })),
+    LeftTrigger: () =>
+      left(modifyFields(model, { isTriggerHovered: () => false })),
+    EnteredPanel: () =>
+      entered(modifyFields(model, { isPanelHovered: () => true })),
+    LeftPanel: () => left(modifyFields(model, { isPanelHovered: () => false })),
     FocusedTrigger: () => focused(model, 'Trigger'),
     BlurredTrigger: () => blurred(model),
     FocusedPanel: () => focused(model, 'Panel'),

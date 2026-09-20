@@ -172,9 +172,14 @@ test.describe('ui-showcase example', () => {
       .click()
     await expect(page).toHaveURL(/\/dialog$/)
 
-    const settingsTitle = page
-      .locator('#nested-dialog-parent-demo')
-      .getByRole('heading', { name: 'Project settings', exact: true })
+    const settingsDialog = page.locator('#nested-dialog-parent-demo')
+    const settingsTitle = settingsDialog
+      .locator('h2')
+      .filter({ hasText: /^Project settings$/ })
+    const accessibleSettingsTitle = settingsDialog.getByRole('heading', {
+      name: 'Project settings',
+      exact: true,
+    })
     const deleteTitle = page
       .locator('#nested-dialog-child-demo')
       .getByRole('heading', { name: 'Delete project?', exact: true })
@@ -182,17 +187,21 @@ test.describe('ui-showcase example', () => {
     await page
       .getByRole('button', { name: 'Open project settings', exact: true })
       .click()
-    await expect(settingsTitle).toBeVisible()
+    await expect(accessibleSettingsTitle).toBeVisible()
 
     await page
       .getByRole('button', { name: 'Delete project', exact: true })
       .click()
     await expect(deleteTitle).toBeVisible()
     await expect(settingsTitle).toBeVisible()
+    await expect(settingsDialog).toHaveAttribute('inert', '')
+    await expect(settingsDialog).toHaveAttribute('aria-hidden', 'true')
 
     await page.keyboard.press('Escape')
     await expect(deleteTitle).toBeHidden()
-    await expect(settingsTitle).toBeVisible()
+    await expect(accessibleSettingsTitle).toBeVisible()
+    await expect(settingsDialog).not.toHaveAttribute('inert', '')
+    await expect(settingsDialog).not.toHaveAttribute('aria-hidden', 'true')
 
     await page.keyboard.press('Escape')
     await expect(settingsTitle).toBeHidden()

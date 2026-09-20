@@ -10,7 +10,8 @@ export type SidebarState = typeof SidebarState.Type
 export const SidebarStateJsonString = Schema.fromJsonString(SidebarState)
 
 export const GroupKey = Schema.Literals([
-  'getStarted',
+  'blog',
+  'introduction',
   'coreConcepts',
   'comparisons',
   'faq',

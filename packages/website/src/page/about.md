@@ -20,7 +20,7 @@ Releases go out through Changesets. Every user-visible change to a published pac
 
 ## Project Status
 
-Foldkit is pre-1.0. The architecture is settled and the core API is stable in practice, but minor releases can still change public surface. The [roadmap](/roadmap) lists the work that gates 1.0, which features are experimental today, and which architectural decisions will not change.
+Foldkit is pre-1.0. The architecture is settled and the core API is stable in practice, but minor releases can still change public surface. The [roadmap](/introduction/roadmap) lists the work that gates 1.0, which features are experimental today, and which architectural decisions will not change.
 
 ## This Site
 
@@ -30,6 +30,6 @@ The site is also built to be read by agents. Every page is available as Markdown
 
 ## Where to Go Next
 
-- [Getting Started](/get-started/getting-started) creates a project and walks through the generated structure.
-- [Why Foldkit](/get-started/why-foldkit) explains why Foldkit exists and the principles behind its design.
+- [Get Started](/get-started) creates a project and walks through the generated structure.
+- [Why Foldkit](/introduction/why-foldkit) explains why Foldkit exists and the principles behind its design.
 - [Contact](/contact) lists the ways to reach the project.

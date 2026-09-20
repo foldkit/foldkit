@@ -12,6 +12,8 @@ import {
   pipe,
 } from 'effect'
 
+import { DialogRuntime } from '../dom/dialogRuntime.js'
+import { releaseDialogResources } from '../dom/dom.js'
 import {
   Document,
   type HtmlBuilder,
@@ -32,11 +34,6 @@ import { deepFreeze } from './deepFreeze.js'
 import type { DevToolsConfig } from './devToolsConfig.js'
 import { makeDevToolsIntegration } from './devToolsIntegration.js'
 import { createDuplicateIdScanner } from './duplicateIdScanner.js'
-import { preserveModel } from './hmrModelBridge.js'
-import {
-  preserveScrollPosition,
-  restorePreservedScrollPosition,
-} from './hmrScroll.js'
 import {
   type HostConnector,
   type PortChannelsBundle,
@@ -50,10 +47,15 @@ import {
 } from './hydrationHandoff.js'
 import { forkManagedResourceFibers } from './managedResourceFibers.js'
 import { type MessageQueue, makeMessageQueue } from './messageQueue.js'
+import { preserveModel } from './modelPreservationBridge.js'
 import { makePreserveScheduler } from './preserveScheduler.js'
 import { type ResolvedViewTransition, makeRenderer } from './renderer.js'
 import { makeResourceProvider } from './resourceProvider.js'
 import { makeRuntimeStatus } from './runtimeStatus.js'
+import {
+  preserveScrollPosition,
+  restorePreservedScrollPosition,
+} from './scrollPreservation.js'
 import {
   type SlowConfig,
   type SlowUpdateContext,
@@ -120,8 +122,9 @@ export type RuntimeConfig<
    * instead of replacing it, and when the config declares Flags, `init` is
    * fed the Schema-decoded Flags payload the server embedded, so both sides
    * compute the same Model. Missing or undecodable handoff data is fatal.
-   * An HMR-restored Model gets a fresh replace boot against the stamped root
-   * because the restored code may no longer match the served DOM.
+   * A Model restored after a development reload gets a fresh replace boot
+   * against the stamped root because the restored code may no longer match the
+   * served DOM.
    */
   hydration?: HydrationConfig
   routing?: RoutingConfig<Message>
@@ -153,7 +156,7 @@ export type RuntimeConfig<
    * write site with a stack trace, rather than silently corrupting state or
    * breaking reference-equality change detection.
    *
-   * Defaults to `true`. Activates only when Vite HMR is available, so production
+   * Defaults to `true`. Activates only under Vite's dev server, so production
    * builds pay nothing. Pass `false` to disable.
    *
    * Scope: only the Model is frozen. Messages are short-lived and are not
@@ -161,13 +164,13 @@ export type RuntimeConfig<
    */
   freezeModel?: boolean
   /**
-   * Restores the window scroll position across Vite HMR reloads. Every edit
+   * Restores the window scroll position across Vite dev reloads. Every edit
    * triggers a full page reload, which resets scroll to the top; this captures
    * `window.scrollX`/`scrollY` just before the reload and reapplies it once the
    * restored view has rendered, so editing a page you've scrolled deep into
    * doesn't bounce you back to the top on every save.
    *
-   * Defaults to `true`. Activates only when Vite HMR is available and the
+   * Defaults to `true`. Activates only under Vite's dev server and the
    * runtime owns the document, so production builds and embedded `makeElement`
    * apps (which do not own the page's scroll) pay nothing. Pass `false` to
    * disable, for an app that drives its own scroll restoration.
@@ -222,10 +225,11 @@ export type RuntimeConfig<
 
 export type FlagsSchemaConfig<Flags> = Readonly<{
   // Flags decode synchronously, on hydration through `decodeUnknownSync` and
-  // across HMR through the sync Model/Flags codec, so the codec must require no
-  // decode or encode services. The `never` service parameters also make a full
-  // application config assignable to the experimental server render input, which
-  // needs the same guarantee to serialize Flags without an app context.
+  // across development reloads through the sync Model/Flags codec, so the codec
+  // must require no decode or encode services. The `never` service parameters
+  // also make a full application config assignable to the experimental server
+  // render input, which needs the same guarantee to serialize Flags without an
+  // app context.
   Flags: Schema.Codec<Flags, any, never, never>
 }>
 
@@ -244,7 +248,7 @@ export type MakeRuntimeReturn<
   Kind extends 'Application' | 'Element' = 'Application' | 'Element',
 > = Readonly<{
   runtimeId: string
-  start: (hmrModel?: unknown) => Effect.Effect<void>
+  start: (preservedModel?: unknown) => Effect.Effect<void>
   ports: P
   '~foldkit/RuntimeBoot'?: Readonly<{
     Flags: (flags: Flags) => Flags
@@ -256,7 +260,7 @@ export type MakeRuntimeReturn<
 type RuntimeInternals = {
   startWith: (
     maybeConnector: Option.Option<HostConnector>,
-    hmrModel?: unknown,
+    preservedModel?: unknown,
     bootMode?: BootMode,
     flags?: Effect.Effect<any, never, any>,
     buildId?: string,
@@ -368,7 +372,7 @@ export const makeRuntime = <
 
   const startWith = (
     maybeConnector: Option.Option<HostConnector>,
-    hmrModel?: unknown,
+    preservedModel?: unknown,
     bootMode: BootMode = 'Fresh',
     bootFlags?: Effect.Effect<Flags, never, Resources>,
     buildId?: string,
@@ -378,13 +382,14 @@ export const makeRuntime = <
     // the same signal. A commit in one embedded application must never wake a
     // `Render.afterCommit` awaiting inside another.
     const commitNotifier = createCommitNotifier()
+    const dialogIds = new Set<string>()
 
     return Effect.scoped(
       Effect.gen(function* () {
         if (runtimeId === '') {
           return yield* Effect.die(
             new Error(
-              '[foldkit] Runtime container must have an `id` for HMR model preservation. ' +
+              '[foldkit] Runtime container must have an `id` for Model preservation across reloads. ' +
                 'Set `container.id = "app"` (or any unique string) before passing it to makeApplication or makeElement. ' +
                 'On a server-rendered page the id comes from the `data-foldkit-app` root stamp instead.',
             ),
@@ -436,7 +441,7 @@ export const makeRuntime = <
             configuredFlags,
             isFlagsRequired,
             FlagsCodec,
-            hmrModel,
+            preservedModel,
             container,
             buildId,
             provideResources,
@@ -446,8 +451,8 @@ export const makeRuntime = <
           /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
           Model as Schema.Codec<Model>,
         )
-        const decodeHmrModel = Schema.decodeUnknownExit(ModelJsonCodec)
-        const encodeHmrModel = Schema.encodeUnknownSync(ModelJsonCodec)
+        const decodePreservedModel = Schema.decodeUnknownExit(ModelJsonCodec)
+        const encodePreservedModel = Schema.encodeUnknownSync(ModelJsonCodec)
 
         const currentUrl: Option.Option<Url> = Option.fromNullishOr(
           routingConfig,
@@ -459,7 +464,7 @@ export const makeRuntime = <
         // path would build the `resources` Layer only to discard what it
         // produced. Gating the resolution on the restore decision is what
         // stops a reload from reconnecting whatever the Layer holds. It has
-        // to stay ahead of the preserve-scheduler and HMR finalizers: a
+        // to stay ahead of the preserve-scheduler and preservation finalizers: a
         // Flags Effect that fails after those are registered tears down more
         // than it used to, and their release defects would bury its cause.
         const runInit: Effect.Effect<InitResult> = Effect.map(
@@ -467,8 +472,8 @@ export const makeRuntime = <
           flags => init(flags, Option.getOrUndefined(currentUrl)),
         )
 
-        const init_ = yield* hmrModel !== undefined
-          ? Exit.match(decodeHmrModel(hmrModel), {
+        const init_ = yield* preservedModel !== undefined
+          ? Exit.match(decodePreservedModel(preservedModel), {
               onFailure: () => runInit,
               onSuccess: restoredModel =>
                 Effect.succeed<InitResult>({ model: restoredModel }),
@@ -477,20 +482,20 @@ export const makeRuntime = <
         const initModelRaw = init_.model
         const initCommands = init_.commands ?? []
 
-        // NOTE: keep `encodeHmrModel` off the dispatch hot path. It walks
+        // NOTE: keep `encodePreservedModel` off the dispatch hot path. It walks
         // the entire Model graph (O(modelSize) per call) and blocks input
         // on large Models. The scheduler defers encoding to a quiet window
-        // and the `vite:beforeFullReload` flush covers the HMR boundary.
+        // and the `vite:beforeFullReload` flush covers the reload boundary.
         const PRESERVE_DEBOUNCE = Duration.millis(200)
         const preserveScheduler = yield* makePreserveScheduler<Model>(
           {
             onDebounce: model =>
               Effect.sync(() =>
-                preserveModel(runtimeId, encodeHmrModel(model), false),
+                preserveModel(runtimeId, encodePreservedModel(model), false),
               ),
             onFlush: model =>
               Effect.sync(() =>
-                preserveModel(runtimeId, encodeHmrModel(model), true),
+                preserveModel(runtimeId, encodePreservedModel(model), true),
               ),
           },
           PRESERVE_DEBOUNCE,
@@ -565,8 +570,27 @@ export const makeRuntime = <
           maybeFreezeModel,
           enqueueMessageEffect,
         })
-        const { installDevToolsStore, recordInit, recordMessage } =
-          devToolsIntegration
+        const {
+          isRecordingCommands,
+          installDevToolsStore,
+          recordInit,
+          recordMessage,
+          recordCommandResult,
+        } = devToolsIntegration
+
+        let nextCommandId = 0
+        const assignCommandIds = <
+          CommandType extends Readonly<{
+            name: string
+            args?: Record<string, unknown>
+          }>,
+        >(
+          commands: ReadonlyArray<CommandType>,
+        ) =>
+          Array.map(commands, command => ({
+            id: nextCommandId++,
+            command,
+          }))
 
         if (import.meta.hot) {
           yield* Effect.addFinalizer(() =>
@@ -623,6 +647,14 @@ export const makeRuntime = <
           devToolsIntegration,
         })
 
+        yield* Effect.addFinalizer(() =>
+          Effect.forEach(
+            pipe(dialogIds, Array.fromIterable, Array.reverse),
+            releaseDialogResources,
+            { discard: true },
+          ),
+        )
+
         // NOTE: the fork is deferred one microtask so a Command's Effect
         // never begins on the dispatching stack. Commands are facts from
         // outside the update loop; their results always arrive
@@ -643,6 +675,7 @@ export const makeRuntime = <
             Resources | ManagedResourceServices
           >,
           message: Option.Option<Message>,
+          id?: number,
         ): void => {
           queueMicrotask(() => {
             // NOTE: `isCrashed` as well as `isRuntimeDisposed`. A crash is
@@ -655,13 +688,25 @@ export const makeRuntime = <
             if (status.isRuntimeDisposed || status.isCrashed) {
               return
             }
+
+            const providedCommand = command.effect.pipe(
+              Effect.withSpan(command.name, {
+                attributes: command.args ?? {},
+              }),
+              provideAllResources,
+            )
+            const recordedCommand =
+              id !== undefined
+                ? providedCommand.pipe(
+                    Effect.tap(result =>
+                      Effect.sync(() => recordCommandResult(id, result)),
+                    ),
+                  )
+                : providedCommand
+
             Effect.runForkWith(runtimeContext)(
               Effect.forkIn(runtimeScope)(
-                command.effect.pipe(
-                  Effect.withSpan(command.name, {
-                    attributes: command.args ?? {},
-                  }),
-                  provideAllResources,
+                recordedCommand.pipe(
                   Effect.flatMap(enqueueMessageEffect),
                   Effect.catchCause(cause => crashWith(cause, message)),
                 ),
@@ -704,7 +749,24 @@ export const makeRuntime = <
             scheduleRenderFrame()
           }
 
-          if (!Array.isReadonlyArrayEmpty(commands)) {
+          if (isRecordingCommands) {
+            const commandInvocations = assignCommandIds(commands)
+
+            for (const { command, id } of commandInvocations) {
+              forkCommand(
+                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                command as AnyCommand<
+                  Message,
+                  never,
+                  Resources | ManagedResourceServices
+                >,
+                Option.some(message),
+                id,
+              )
+            }
+
+            recordMessage(message, currentModel, nextModel, commandInvocations)
+          } else {
             for (const command of commands) {
               forkCommand(
                 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -717,8 +779,6 @@ export const makeRuntime = <
               )
             }
           }
-
-          recordMessage(message, currentModel, nextModel, commands)
         }
 
         yield* installDevToolsStore(devToolsRenderBridge)
@@ -739,7 +799,12 @@ export const makeRuntime = <
           yield* restorePreservedScrollPosition(runtimeId)
         }
 
-        yield* recordInit(initModel, initCommands)
+        const initCommandInvocations = isRecordingCommands
+          ? assignCommandIds(initCommands)
+          : []
+        if (isRecordingCommands) {
+          yield* recordInit(initModel, initCommandInvocations)
+        }
 
         if (subscriptions) {
           yield* forkSubscriptionFibers({
@@ -788,16 +853,31 @@ export const makeRuntime = <
         // ManagedResources, ports) is attached. forkCommand also defers each
         // start by a microtask, so a fully synchronous init Command still
         // delivers its result asynchronously.
-        for (const command of initCommands) {
-          forkCommand(
-            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-            command as AnyCommand<
-              Message,
-              never,
-              Resources | ManagedResourceServices
-            >,
-            Option.none(),
-          )
+        if (isRecordingCommands) {
+          for (const { command, id } of initCommandInvocations) {
+            forkCommand(
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              command as AnyCommand<
+                Message,
+                never,
+                Resources | ManagedResourceServices
+              >,
+              Option.none(),
+              id,
+            )
+          }
+        } else {
+          for (const command of initCommands) {
+            forkCommand(
+              /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              command as AnyCommand<
+                Message,
+                never,
+                Resources | ManagedResourceServices
+              >,
+              Option.none(),
+            )
+          }
         }
 
         completeBoot()
@@ -809,11 +889,21 @@ export const makeRuntime = <
         // or the document goes away.
         yield* Effect.never
       }),
-    ).pipe(Effect.provideService(RenderCommit, commitNotifier.service))
+    ).pipe(
+      Effect.provideService(RenderCommit, commitNotifier.service),
+      Effect.provideService(DialogRuntime, {
+        register: id => {
+          dialogIds.add(id)
+        },
+        unregister: id => {
+          dialogIds.delete(id)
+        },
+      }),
+    )
   }
 
-  const start = (hmrModel?: unknown): Effect.Effect<void> =>
-    startWith(Option.none(), hmrModel, 'Fresh')
+  const start = (preservedModel?: unknown): Effect.Effect<void> =>
+    startWith(Option.none(), preservedModel, 'Fresh')
 
   const program: MakeRuntimeReturn<P, Flags, Resources, Kind> = {
     runtimeId,
@@ -821,8 +911,8 @@ export const makeRuntime = <
     ports,
   }
   runtimeInternals.set(program, {
-    startWith: (maybeConnector, hmrModel, bootMode, flags, buildId) =>
-      startWith(maybeConnector, hmrModel, bootMode, flags, buildId),
+    startWith: (maybeConnector, preservedModel, bootMode, flags, buildId) =>
+      startWith(maybeConnector, preservedModel, bootMode, flags, buildId),
     kind,
     isEmbedActive: false,
     maybeActiveFiber: Option.none(),

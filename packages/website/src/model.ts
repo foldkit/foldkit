@@ -30,7 +30,7 @@ export const Model = Schema.Struct({
   isMobileTableOfContentsOpen: Schema.Boolean,
   activeSection: Schema.Option(Schema.String),
   isNarrowViewport: Schema.Boolean,
-  maybeIsChromium: Schema.Option(Schema.Boolean),
+  maybeIsPlaygroundSupported: Schema.Option(Schema.Boolean),
   playground: Schema.Option(Playground.Model),
   sidebarGroups: SidebarGroups,
   coreSubmodelPage: Core.SubmodelPage.Model,

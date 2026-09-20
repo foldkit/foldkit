@@ -89,6 +89,10 @@ export declare namespace HttpClient {
       url: string | URL,
       options?: HttpClientRequest.Options.NoUrl
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
+    readonly query: (
+      url: string | URL,
+      options?: HttpClientRequest.Options.NoUrl
+    ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>
     readonly head: (
       url: string | URL,
       options?: HttpClientRequest.Options.NoUrl
@@ -178,6 +182,18 @@ export const get: (url: string | URL, options?: HttpClientRequest.Options.NoUrl 
   Error.HttpClientError,
   HttpClient
 > = accessor("get")
+
+/**
+ * Executes a `QUERY` request using the `HttpClient` service from the environment.
+ *
+ * @category accessors
+ * @since 4.0.0
+ */
+export const query: (url: string | URL, options?: HttpClientRequest.Options.NoUrl | undefined) => Effect.Effect<
+  HttpClientResponse.HttpClientResponse,
+  Error.HttpClientError,
+  HttpClient
+> = accessor("query")
 
 /**
  * Executes a `HEAD` request using the `HttpClient` service from the environment.
@@ -316,9 +332,9 @@ const catch_: {
   <E, E2, R2>(
     f: (e: E) => Effect.Effect<HttpClientResponse.HttpClientResponse, E2, R2>
   ): <R>(self: HttpClient.With<E, R>) => HttpClient.With<E2, R2 | R>
-  <E, R, A2, E2, R2>(
+  <E, R, E2, R2>(
     self: HttpClient.With<E, R>,
-    f: (e: E) => Effect.Effect<A2, E2, R2>
+    f: (e: E) => Effect.Effect<HttpClientResponse.HttpClientResponse, E2, R2>
   ): HttpClient.With<E2, R | R2>
 } = dual(
   2,
@@ -1548,36 +1564,43 @@ export const followRedirects: {
   makeWith(
     (request) => {
       const loop = (
-        request: HttpClientRequest.HttpClientRequest,
+        request: Effect.Effect<HttpClientRequest.HttpClientRequest, E, R>,
         redirects: number
       ): Effect.Effect<HttpClientResponse.HttpClientResponse, E, R> =>
-        Effect.flatMap(
-          self.postprocess(Effect.succeed(request)),
-          (response) => {
-            if (
-              response.status < 300 || response.status >= 400 || !response.headers.location ||
-              redirects >= (maxRedirects ?? 10)
-            ) {
-              return Effect.succeed(response)
+        Effect.suspend(() => {
+          let currentRequest: HttpClientRequest.HttpClientRequest | undefined
+          return Effect.flatMap(
+            self.postprocess(Effect.map(request, (request) => {
+              currentRequest = request
+              return request
+            })),
+            (response) => {
+              if (
+                response.status < 300 || response.status >= 400 || !response.headers.location ||
+                redirects >= (maxRedirects ?? 10)
+              ) {
+                return Effect.succeed(response)
+              }
+              const url = new URL(response.headers.location, response.request.url)
+              const request = currentRequest ?? response.request
+              let nextRequest = request
+              if (
+                ((response.status === 301 || response.status === 302) && request.method === "POST") ||
+                (response.status === 303 && request.method !== "GET" && request.method !== "HEAD")
+              ) {
+                nextRequest = HttpClientRequest.setMethod(nextRequest, "GET")
+                nextRequest = HttpClientRequest.setBody(nextRequest, HttpBody.empty)
+              }
+              if (url.origin !== new URL(response.request.url).origin) {
+                nextRequest = HttpClientRequest.removeHeader(nextRequest, "authorization")
+                nextRequest = HttpClientRequest.removeHeader(nextRequest, "proxy-authorization")
+                nextRequest = HttpClientRequest.removeHeader(nextRequest, "cookie")
+              }
+              return loop(Effect.succeed(HttpClientRequest.setUrl(nextRequest, url)), redirects + 1)
             }
-            const url = new URL(response.headers.location, response.request.url)
-            let nextRequest = request
-            if (
-              ((response.status === 301 || response.status === 302) && request.method === "POST") ||
-              (response.status === 303 && request.method !== "GET" && request.method !== "HEAD")
-            ) {
-              nextRequest = HttpClientRequest.setMethod(nextRequest, "GET")
-              nextRequest = HttpClientRequest.setBody(nextRequest, HttpBody.empty)
-            }
-            if (url.origin !== new URL(response.request.url).origin) {
-              nextRequest = HttpClientRequest.removeHeader(nextRequest, "authorization")
-              nextRequest = HttpClientRequest.removeHeader(nextRequest, "proxy-authorization")
-              nextRequest = HttpClientRequest.removeHeader(nextRequest, "cookie")
-            }
-            return loop(HttpClientRequest.setUrl(nextRequest, url), redirects + 1)
-          }
-        )
-      return Effect.flatMap(request, (request) => loop(request, 0))
+          )
+        })
+      return loop(request, 0)
     },
     self.preprocess
   ))
@@ -1612,7 +1635,7 @@ export const TracerHeaderFilter = Context.Reference<
  * @category services
  * @since 4.0.0
  */
-export const TracerPropagationEnabled = Context.Reference<boolean>("effect/HttpClient/TracerPropagationEnabled", {
+export const TracerPropagationEnabled = Context.Reference<boolean>("effect/http/HttpClient/TracerPropagationEnabled", {
   defaultValue: constTrue
 })
 
@@ -1712,6 +1735,10 @@ class InterruptibleResponse implements HttpClientResponse.HttpClientResponse, Pi
 
   get request() {
     return this.original.request
+  }
+
+  get url() {
+    return this.original.url
   }
 
   get status() {

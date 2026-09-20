@@ -3,7 +3,7 @@ import { type Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Scene from 'foldkit/scene'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { describe, it } from '@effect/vitest'
 
@@ -19,7 +19,7 @@ type Model = Readonly<{ isChecked: boolean }>
 const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     Toggled: ({ isChecked }) => ({
-      model: evo(model, { isChecked: () => isChecked }),
+      model: modifyFields(model, { isChecked: () => isChecked }),
     }),
   })
 
@@ -28,10 +28,12 @@ const testView =
     isDisabled = false,
     isReadOnly = false,
     isIndeterminate = false,
+    hasDescription = false,
   }: {
     isDisabled?: boolean
     isReadOnly?: boolean
     isIndeterminate?: boolean
+    hasDescription?: boolean
   } = {}) =>
   (model: Model, h: HtmlBuilder<Message>) =>
     view(
@@ -42,10 +44,15 @@ const testView =
         isDisabled,
         isReadOnly,
         isIndeterminate,
-        toView: ({ checkbox, label }) =>
+        hasDescription,
+        toView: ({ checkbox, label, description }) =>
           h.div(
             [],
-            [h.button([...checkbox]), h.span([...label], ['Accept terms'])],
+            [
+              h.button([...checkbox]),
+              h.span([...label], ['Accept terms']),
+              ...(hasDescription ? [h.p([...description], ['Hint'])] : []),
+            ],
           ),
       },
       h,
@@ -55,6 +62,22 @@ const checkbox = Scene.role('checkbox')
 const label = Scene.selector('#test-label')
 
 describe('Checkbox controlled view', () => {
+  it('omits aria-describedby by default', () => {
+    Scene.scene(
+      { update, view: testView() },
+      Scene.given({ isChecked: false }),
+      Scene.expect(checkbox).not.toHaveAttr('aria-describedby'),
+    )
+  })
+
+  it('references the description when opted in', () => {
+    Scene.scene(
+      { update, view: testView({ hasDescription: true }) },
+      Scene.given({ isChecked: false }),
+      Scene.expect(checkbox).toHaveAttr('aria-describedby', 'test-description'),
+    )
+  })
+
   it('reflects the checked state from the parent', () => {
     Scene.scene(
       { update, view: testView() },

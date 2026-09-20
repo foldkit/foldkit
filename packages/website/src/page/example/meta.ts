@@ -36,6 +36,7 @@ export const ExampleSlug = Schema.Literals([
   'ssr',
   'ui-showcase',
   'personal-blog',
+  'livestore',
 ])
 export type ExampleSlug = typeof ExampleSlug.Type
 
@@ -380,6 +381,16 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     difficulty: 'Advanced',
     tags: ['Markdown', 'Islands', 'Submodels', 'Routing'],
     hasRouting: true,
+    livePreview: 'Spa',
+  },
+  {
+    slug: 'livestore',
+    title: 'LiveStore',
+    description:
+      'A LiveStore-backed task list persisted in OPFS that stays reactive across browser tabs. Commands commit events, materializers project them into SQLite, and one Subscription feeds the live query into the Foldkit Model.',
+    difficulty: 'Advanced',
+    tags: ['Storage', 'Subscriptions', 'Commands', 'Third-Party Library'],
+    hasRouting: false,
     livePreview: 'Spa',
   },
 ]

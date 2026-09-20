@@ -15,7 +15,7 @@ import {
 import { type Attribute, Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Button, Input, Textarea } from '@foldkit/ui'
 
@@ -122,7 +122,7 @@ const isFormValid = (model: Model): boolean =>
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     UpdatedName: ({ value }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         name: () => validateName(value),
       }),
     }),
@@ -132,14 +132,14 @@ export const update = (model: Model, message: Message) =>
 
       if (validateEmailResult._tag === 'Valid') {
         return {
-          model: evo(model, {
+          model: modifyFields(model, {
             email: () => Validating({ value }),
           }),
           commands: [ValidateEmail({ email: value })],
         }
       } else {
         return {
-          model: evo(model, {
+          model: modifyFields(model, {
             email: () => validateEmailResult,
           }),
         }
@@ -149,7 +149,7 @@ export const update = (model: Model, message: Message) =>
     CompletedValidateEmail: ({ field }) => {
       if (field.value === model.email.value) {
         return {
-          model: evo(model, {
+          model: modifyFields(model, {
             email: () => field,
           }),
         }
@@ -159,7 +159,7 @@ export const update = (model: Model, message: Message) =>
     },
 
     UpdatedMessageText: ({ value }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         messageText: () => Valid({ value }),
       }),
     }),
@@ -174,7 +174,7 @@ export const update = (model: Model, message: Message) =>
       }
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           submission: () => Submission.Submitting(),
         }),
         commands: [
@@ -188,7 +188,7 @@ export const update = (model: Model, message: Message) =>
     },
 
     SucceededSubmitForm: ({ name }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         submission: () =>
           Submission.SubmitSuccess({
             confirmationText: `Welcome to the waitlist, ${name}! We'll be in touch soon.`,
@@ -197,7 +197,7 @@ export const update = (model: Model, message: Message) =>
     }),
 
     FailedSubmitForm: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         submission: () =>
           Submission.SubmitError({
             error:
@@ -299,6 +299,7 @@ const inputFieldView = (
       value: field.value,
       onInput: onUpdate,
       isInvalid: field._tag === 'Invalid',
+      hasDescription: field._tag === 'Validating' || field._tag === 'Invalid',
       type,
       toView: attributes =>
         h.div(
@@ -335,6 +336,7 @@ const textareaFieldView = (
       value: field.value,
       onInput: onUpdate,
       isInvalid: field._tag === 'Invalid',
+      hasDescription: field._tag === 'Validating' || field._tag === 'Invalid',
       toView: attributes =>
         h.div(
           [h.Class('mb-4')],

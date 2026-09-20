@@ -5,7 +5,7 @@ import { Link } from '../link'
 import { pageTitle, para } from '../prose'
 import {
   exampleDetailRouter,
-  gettingStartedRouter,
+  getStartedRouter,
   typingTerminalRouter,
 } from '../route'
 import { type ExampleMeta, examples as exampleMetas } from './example/meta'
@@ -115,8 +115,8 @@ export const view = (): Html =>
         ),
         '. Pick one that matches what you’re building, or start with Counter and work your way up. See ',
         ih.a(
-          [ih.Href(gettingStartedRouter()), ih.Class('link-accent')],
-          ['Getting Started'],
+          [ih.Href(getStartedRouter()), ih.Class('link-accent')],
+          ['Get Started'],
         ),
         ' to get up and running.',
       ),

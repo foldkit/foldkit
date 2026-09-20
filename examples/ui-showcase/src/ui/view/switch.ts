@@ -43,6 +43,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
               {
                 id: SWITCH_DEMO_ID,
                 isChecked: model.isSwitchDemoChecked,
+                hasDescription: true,
                 onToggle: isChecked =>
                   UiMessage.ToggledSwitchDemo({ isChecked }),
                 toView: attributes =>

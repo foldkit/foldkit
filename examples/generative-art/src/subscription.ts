@@ -28,7 +28,7 @@ const frameSubscription = Subscription.make<Model, Message>()(_entry => ({
   }),
 }))
 
-export const subscriptions = Subscription.aggregate<Model, Message>()(
+export const subscriptions = Subscription.aggregate(
   frameSubscription,
   flowStrengthSliderSubscriptions,
   noiseScaleSliderSubscriptions,

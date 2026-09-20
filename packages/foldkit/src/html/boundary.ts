@@ -29,7 +29,8 @@ type BoundaryWrapRollback = Readonly<{
 }>
 
 type BoundaryWrapTransactionEntry =
-  BoundaryWrapRegistration | BoundaryWrapRollback
+  | BoundaryWrapRegistration
+  | BoundaryWrapRollback
 
 type BoundaryWrapTransaction = Readonly<{
   parent: BoundaryWrapTransaction | undefined

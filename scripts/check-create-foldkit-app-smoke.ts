@@ -12,7 +12,7 @@ import {
 import { tmpdir } from 'node:os'
 import { join, relative, sep } from 'node:path'
 
-import { EXAMPLE_VALUES } from '../packages/create-foldkit-app/src/examples.js'
+import { EXAMPLE_VALUES } from '../packages/create-foldkit-app/src/examples.ts'
 
 const PACKAGE_DIR = 'packages/create-foldkit-app'
 const OXLINT_PLUGIN_DIR = 'packages/oxlint-plugin-foldkit'
@@ -27,7 +27,6 @@ const PNPM_WORKSPACE_POLICY_PATH = join(
   'pnpm-workspace.yaml',
 )
 const PNPM_WORKSPACE_POLICY = `allowBuilds:
-  esbuild: true
   msgpackr-extract: false
 `
 const pnpmExecutable = process.env['FOLDKIT_PNPM_EXECUTABLE'] ?? 'pnpm'
@@ -67,10 +66,15 @@ type TemplatePackageJson = {
   }
 }
 
-type PrettierConfig = {
-  readonly importOrder?: ReadonlyArray<string>
-  readonly importOrderSortSpecifiers?: boolean
-  readonly plugins?: ReadonlyArray<string>
+type OxfmtConfig = {
+  readonly sortImports?: {
+    readonly ignoreCase?: boolean
+    readonly customGroups?: ReadonlyArray<{
+      readonly groupName?: string
+      readonly elementNamePattern?: ReadonlyArray<string>
+    }>
+    readonly groups?: ReadonlyArray<string | ReadonlyArray<string>>
+  }
 }
 
 type PackOutput = ReadonlyArray<{
@@ -371,20 +375,32 @@ const assertTemplateTooling = (): void => {
     'template must not include eslint.config.mjs',
   )
 
-  const prettierConfig = readJson<PrettierConfig>(
-    join(TEMPLATE_DIR, '.prettierrc'),
+  assertSmoke(
+    !existsSync(join(TEMPLATE_DIR, '.prettierrc')) &&
+      !existsSync(join(TEMPLATE_DIR, '.prettierignore')),
+    'template must not include Prettier config files',
   )
+
+  const oxfmtConfig = readJson<OxfmtConfig>(join(TEMPLATE_DIR, '.oxfmtrc.json'))
   const keepsImportSorting =
-    prettierConfig.importOrder?.join('|') ===
-      '<THIRD_PARTY_MODULES>|^@|^[./]' &&
-    prettierConfig.importOrderSortSpecifiers === true &&
-    prettierConfig.plugins?.includes(
-      '@trivago/prettier-plugin-sort-imports',
-    ) === true
+    oxfmtConfig.sortImports?.ignoreCase === false &&
+    oxfmtConfig.sortImports.customGroups?.some(
+      group =>
+        group.groupName === 'scoped' &&
+        JSON.stringify(group.elementNamePattern) ===
+          JSON.stringify(['@*', '@*/**']),
+    ) === true &&
+    JSON.stringify(oxfmtConfig.sortImports.groups) ===
+      JSON.stringify([
+        ['builtin', 'external'],
+        'scoped',
+        ['parent', 'sibling', 'index'],
+        'unknown',
+      ])
 
   assertSmoke(
     keepsImportSorting,
-    'template must keep the Prettier import sorting setup',
+    'template must keep the Oxfmt import sorting setup',
   )
 }
 
@@ -400,7 +416,7 @@ const assertPnpmWorkspacePolicy = (): void => {
   )
   assertSmoke(
     readFileSync(PNPM_WORKSPACE_POLICY_PATH, 'utf-8') === PNPM_WORKSPACE_POLICY,
-    'pnpm package manager template must allow esbuild and deny msgpackr-extract builds through allowBuilds',
+    'pnpm package manager template must deny msgpackr-extract builds through allowBuilds',
   )
 }
 

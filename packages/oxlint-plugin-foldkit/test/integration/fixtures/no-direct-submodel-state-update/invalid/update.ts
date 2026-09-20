@@ -1,0 +1,102 @@
+import { Option } from 'effect'
+import { Update } from 'foldkit'
+import { modifyFields } from 'foldkit/struct'
+
+type SettingsModel = Readonly<{ theme: string }>
+type Model = Readonly<{ settings: SettingsModel; preferences: SettingsModel }>
+
+const readSettings = (model: Model) => Option.some(model.settings)
+
+const writeSettings = (model: Model, nextSettings: SettingsModel): Model =>
+  modifyFields(model, { settings: () => nextSettings })
+
+const foldSettings = Update.foldChild({
+  update: (settings: SettingsModel, _message: unknown) => ({ model: settings }),
+  read: readSettings,
+  write: writeSettings,
+  toParentMessage: message => message,
+})
+
+const foldSettingsStep = Update.foldChildStep({
+  update: (settings: SettingsModel) => ({ model: settings }),
+  read: readSettings,
+  write: writeSettings,
+  toParentMessage: message => message,
+})
+
+export const update = (model: Model, message: unknown) => {
+  const settingsUpdate = Update.combine(model, [
+    stepModel => {
+      const foldSettingsUpdate = Update.combine([foldSettings(message)])(
+        stepModel,
+      )
+
+      return {
+        ...foldSettingsUpdate,
+        model: modifyFields(stepModel, {
+          settings: settings => modifyFields(settings, { theme: () => 'Light' }),
+        }),
+      }
+    },
+  ])
+
+  return {
+    model: modifyFields(model, {
+      preferences: preferences => modifyFields(preferences, { theme: () => 'Light' }),
+    }),
+    commands: settingsUpdate.commands,
+  }
+}
+
+export const updateNamedStep = (model: Model, message: unknown) => {
+  const foldSettingsStep = Update.combine([foldSettings(message)])
+  const settingsUpdate = foldSettingsStep(model)
+
+  return {
+    model: modifyFields(model, {
+      settings: settings => modifyFields(settings, { theme: () => 'Light' }),
+    }),
+    commands: settingsUpdate.commands,
+  }
+}
+
+export const updateFoldChildStep = (model: Model) => {
+  const settingsUpdate = foldSettingsStep(model)
+
+  return {
+    model: modifyFields(model, {
+      settings: settings => modifyFields(settings, { theme: () => 'Light' }),
+    }),
+    commands: settingsUpdate.commands,
+  }
+}
+
+export const updateCombineFoldChildStep = (model: Model) => {
+  const settingsUpdate = Update.combine(model, [
+    foldSettingsStep,
+    stepModel => ({ model: stepModel }),
+  ])
+
+  return {
+    model: modifyFields(model, {
+      settings: settings => modifyFields(settings, { theme: () => 'Light' }),
+    }),
+    commands: settingsUpdate.commands,
+  }
+}
+
+export const updateConditionally = (model: Model, message: unknown) => {
+  const settingsUpdate = foldSettings(model, message)
+
+  return {
+    model: modifyFields(model, {
+      settings: settings => {
+        if (settings.theme === 'Dark') {
+          return modifyFields(settings, { theme: () => 'Light' })
+        }
+        return settings
+      },
+    }),
+    commands: settingsUpdate.commands,
+  }
+}

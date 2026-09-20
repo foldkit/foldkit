@@ -6,7 +6,7 @@ When Vite reloads the page after a file change, the browser normally returns to 
 
 Foldkit saves `window.scrollX` and `window.scrollY` just before the reload. After the restored view renders, it scrolls the window back to that position.
 
-Scroll preservation runs only when Vite HMR is active. Set `preserveScroll` to `false` when the application implements its own development scroll restoration.
+Scroll preservation runs only under Vite's dev server. Set `preserveScroll` to `false` when the application implements its own development scroll restoration.
 
 ## Window Scroll Only
 

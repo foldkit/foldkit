@@ -3,8 +3,14 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
-import { AppRoute, Message, Model, update } from './main'
+import { AppRoute, Message, Model, NavigateInternal, update } from './main'
 import { People } from './page'
+import {
+  filesIndexRouter,
+  homeRouter,
+  nestedRouter,
+  peopleRouter,
+} from './route'
 
 const peoplePageWith = (searchInput: string) =>
   People.Model.make({
@@ -47,6 +53,52 @@ const resolveFetch = (searchText: string) =>
   )
 
 describe('update', () => {
+  describe('EnteredNavigationShortcut', () => {
+    test('GH produces the Home navigation Command', () => {
+      story(
+        update,
+        given(home),
+        message(Message.EnteredNavigationShortcut({ shortcut: 'GH' })),
+        Command.expectHas(NavigateInternal({ url: homeRouter() })),
+        Command.resolve(NavigateInternal, Message.CompletedNavigateInternal()),
+      )
+    })
+
+    test('GP produces the People navigation Command', () => {
+      story(
+        update,
+        given(home),
+        message(Message.EnteredNavigationShortcut({ shortcut: 'GP' })),
+        Command.expectHas(
+          NavigateInternal({
+            url: peopleRouter({ searchText: Option.none() }),
+          }),
+        ),
+        Command.resolve(NavigateInternal, Message.CompletedNavigateInternal()),
+      )
+    })
+
+    test('GF produces the Files navigation Command', () => {
+      story(
+        update,
+        given(home),
+        message(Message.EnteredNavigationShortcut({ shortcut: 'GF' })),
+        Command.expectHas(NavigateInternal({ url: filesIndexRouter() })),
+        Command.resolve(NavigateInternal, Message.CompletedNavigateInternal()),
+      )
+    })
+
+    test('GN produces the Nested navigation Command', () => {
+      story(
+        update,
+        given(home),
+        message(Message.EnteredNavigationShortcut({ shortcut: 'GN' })),
+        Command.expectHas(NavigateInternal({ url: nestedRouter() })),
+        Command.resolve(NavigateInternal, Message.CompletedNavigateInternal()),
+      )
+    })
+  })
+
   describe('ChangedUrl', () => {
     test('navigating to /people parses to a People route', () => {
       story(

@@ -4,6 +4,7 @@
  * Run: pnpm --filter pixel-art-example exec vitest run src/comparison.bench.ts
  */
 import { Option } from 'effect'
+import { modifyFields } from 'foldkit/struct'
 import { test } from 'vitest'
 
 import { Dialog, Listbox } from '@foldkit/ui'
@@ -161,7 +162,7 @@ test('benchmark', () => {
     {
       name: 'Flood fill (16\u00d716)',
       foldkit: () => {
-        const m: Model = { ...foldkitModel, tool: 'Fill' as const }
+        const m: Model = modifyFields(foldkitModel, { tool: () => 'Fill' })
         update(m, Message.PressedCell({ x: 0, y: 0 }))
       },
       react: () => {

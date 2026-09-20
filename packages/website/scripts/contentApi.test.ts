@@ -167,20 +167,20 @@ const modelPage: ApiPageEntry = {
   markdown: '# Model\n\nThe Model holds state.',
 }
 
-const gettingStartedPage: ApiPageEntry = {
-  urlPath: '/get-started/getting-started',
+const getStartedPage: ApiPageEntry = {
+  urlPath: '/get-started',
   metadata: {
-    title: 'Getting Started',
+    title: 'Get Started',
     description: 'Create a project.',
     section: 'Docs',
   },
-  markdown: '# Getting Started',
+  markdown: '# Get Started',
 }
 
 const pageEntries: ReadonlyArray<ApiPageEntry> = [
   homePage,
   modelPage,
-  gettingStartedPage,
+  getStartedPage,
 ]
 
 // TESTS

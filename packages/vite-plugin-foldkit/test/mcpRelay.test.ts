@@ -11,7 +11,7 @@ const TEST_TIMEOUT = 20_000
 const POLL_TIMEOUT = 10_000
 // The runtime gives up on its boot-time model request after 500ms, and the
 // relay retries a contended bind for four seconds.
-const HMR_RESPONSE_BUDGET = 500
+const MODEL_PRESERVATION_RESPONSE_BUDGET = 500
 
 const findFreePort = () =>
   new Promise<number>((resolvePort, reject) => {
@@ -192,7 +192,7 @@ describe('DevTools MCP relay', () => {
   )
 
   it(
-    'serves HMR model requests while a contended bind is still retrying',
+    'serves Model-preservation requests while a contended bind is still retrying',
     async () => {
       const port = await findFreePort()
       const serverPort = await findFreePort()
@@ -204,8 +204,11 @@ describe('DevTools MCP relay', () => {
           requestPreservedModel(serverPort),
           new Promise((_, reject) =>
             setTimeout(
-              () => reject(new Error('HMR bridge did not answer in time')),
-              HMR_RESPONSE_BUDGET,
+              () =>
+                reject(
+                  new Error('Model-preservation bridge did not answer in time'),
+                ),
+              MODEL_PRESERVATION_RESPONSE_BUDGET,
             ),
           ),
         ]),
@@ -224,7 +227,9 @@ describe('DevTools MCP relay', () => {
       const startedAt = Date.now()
       await server.close()
 
-      expect(Date.now() - startedAt).toBeLessThan(HMR_RESPONSE_BUDGET)
+      expect(Date.now() - startedAt).toBeLessThan(
+        MODEL_PRESERVATION_RESPONSE_BUDGET,
+      )
     },
     TEST_TIMEOUT,
   )

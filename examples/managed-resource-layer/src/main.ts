@@ -12,7 +12,7 @@ import { Command, ManagedResource, Runtime, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { BrowserCrypto } from '@effect/platform-browser'
 import { Button } from '@foldkit/ui'
@@ -98,15 +98,15 @@ export const Compute = Command.define('Compute', {
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message, EngineService>>(message, {
     ClickedStartEngine: () => ({
-      model: evo(model, { engine: () => EngineState.Booting() }),
+      model: modifyFields(model, { engine: () => EngineState.Booting() }),
     }),
 
     ClickedStopEngine: () => ({
-      model: evo(model, { engine: () => EngineState.Off() }),
+      model: modifyFields(model, { engine: () => EngineState.Off() }),
     }),
 
     StartedEngine: ({ engineId }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         engine: () => EngineState.Ready({ engineId }),
       }),
     }),
@@ -114,19 +114,23 @@ export const update = (model: Model, message: Message) =>
     StoppedEngine: () => ({ model }),
 
     FailedStartEngine: ({ reason }) => ({
-      model: evo(model, { engine: () => EngineState.Failed({ reason }) }),
+      model: modifyFields(model, {
+        engine: () => EngineState.Failed({ reason }),
+      }),
     }),
 
     ClickedCompute: () => {
       const nextComputeCount = Number.increment(model.computeCount)
       return {
-        model: evo(model, { computeCount: () => nextComputeCount }),
+        model: modifyFields(model, { computeCount: () => nextComputeCount }),
         commands: [Compute({ value: nextComputeCount })],
       }
     },
 
     CompletedCompute: ({ result }) => ({
-      model: evo(model, { maybeSquareResult: () => Option.some(result) }),
+      model: modifyFields(model, {
+        maybeSquareResult: () => Option.some(result),
+      }),
     }),
 
     SkippedCompute: () => ({ model }),

@@ -11,8 +11,6 @@ import { type Slots } from './slots'
 import { type HeadingIds, collectHeadings } from './tableOfContents'
 import { docViews } from './views'
 
-// DOC PAGE
-
 const renderDocument = (
   document: Markdown.MarkdownDocument,
   pageId: string,

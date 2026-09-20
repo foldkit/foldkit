@@ -1,11 +1,9 @@
 import { Array, Option, Order, String, pipe } from 'effect'
 
-import { type AppRoute } from '../src/route'
+import { type AppRoute, SITE_URL } from '../src/route'
 import { type PageMetadata } from './metadata'
 
 // EXTRACTION
-
-const SITE_URL = 'https://foldkit.dev'
 
 const TEXT_NODE_TYPE = 3
 const ELEMENT_NODE_TYPE = 1
@@ -387,7 +385,7 @@ export const buildLlmsIndex = (
     ),
   )
 
-  const header = `# Foldkit\n\n> ${SITE_BLURB}\n\nThis index lists every page on the Foldkit documentation site with a short description. Every page is also available as Markdown by appending \`.md\` to its URL (e.g. ${SITE_URL}/get-started/getting-started.md). A single-file concatenation of every page is available at ${SITE_URL}/llms-full.txt.\n\n${WHEN_TO_USE}`
+  const header = `# Foldkit\n\n> ${SITE_BLURB}\n\nThis index lists every page on the Foldkit documentation site with a short description. Every page is also available as Markdown by appending \`.md\` to its URL (e.g. ${SITE_URL}/get-started.md). A single-file concatenation of every page is available at ${SITE_URL}/llms-full.txt.\n\n${WHEN_TO_USE}`
 
   return `${header}\n\n${DEVELOPER_RESOURCES_SECTION}\n\n${Array.join(sectionBlocks, '\n\n')}\n`
 }

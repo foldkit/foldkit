@@ -6,7 +6,7 @@
   },
   "include": [
     "src/**/*.ts",
-    "server/**/*.ts",
+    "scripts/**/*.ts",
     "vite.config.ts",
     "vitest.config.ts"
   ],

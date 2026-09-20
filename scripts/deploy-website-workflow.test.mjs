@@ -69,8 +69,8 @@ const DEPLOYED_FILES = new Set([
   'newsletter/index.html',
   'playground/index.html',
   'playground/counter/index.html',
-  'get-started/getting-started/index.html',
-  'get-started/getting-started.md',
+  'get-started/index.html',
+  'get-started.md',
   'llms.txt',
   'llms-full.txt',
   'sitemap.xml',
@@ -669,14 +669,14 @@ test('the old manifesto paths redirect to Why Foldkit', () => {
     const result = resolveRequest(productionConfig, pathname)
     assert.equal(result.kind, 'redirect', pathname)
     assert.equal(result.status, 308, pathname)
-    assert.equal(result.location, '/get-started/why-foldkit', pathname)
+    assert.equal(result.location, '/introduction/why-foldkit', pathname)
   }
 
   for (const pathname of ['/manifesto.md', '/get-started/manifesto.md']) {
     const result = resolveRequest(productionConfig, pathname)
     assert.equal(result.kind, 'redirect', pathname)
     assert.equal(result.status, 308, pathname)
-    assert.equal(result.location, '/get-started/why-foldkit.md', pathname)
+    assert.equal(result.location, '/introduction/why-foldkit.md', pathname)
   }
 })
 
@@ -736,13 +736,11 @@ test('the deploy workflow copies dotfiles like .well-known into the Vercel outpu
 
 test('only the canary deployment blocks search indexing', () => {
   assert.equal(
-    headersFor(productionConfig, '/get-started/getting-started')[
-      'X-Robots-Tag'
-    ],
+    headersFor(productionConfig, '/get-started')['X-Robots-Tag'],
     undefined,
   )
   assert.equal(
-    headersFor(canaryConfig, '/get-started/getting-started')['X-Robots-Tag'],
+    headersFor(canaryConfig, '/get-started')['X-Robots-Tag'],
     'noindex, nofollow',
   )
 })
@@ -820,6 +818,10 @@ test('stable finalization deploys the exact published website commit', () => {
   assert.match(
     productionWorkflow,
     /target: \$\{\{ needs\.authorize\.outputs\.target \}\}/,
+  )
+  assert.match(
+    productionWorkflow,
+    /if \[ -n "\$\{PUBLISHED_COMMIT\}" \] && \[ "\$\{deploy\}" != 'true' \]; then\n\s+echo "the published website commit \$\{target\} is not eligible for deployment" >&2\n\s+exit 1\n\s+fi/,
   )
 })
 

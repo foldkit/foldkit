@@ -1,4 +1,5 @@
 import { Command, given, message, model, story } from 'foldkit/story'
+import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import { GenerateBall, Message, type Model, update } from './main'
@@ -9,14 +10,13 @@ const emptyModel: Model = {
   isRunning: true,
 }
 
-const populatedModel: Model = {
-  ...emptyModel,
-  balls: [
+const populatedModel: Model = modifyFields(emptyModel, {
+  balls: () => [
     { id: 0, x: 100, y: 100, vx: 50, vy: 50, radius: 10, color: '#ff2d55' },
     { id: 1, x: 200, y: 200, vx: -50, vy: -50, radius: 15, color: '#5ac8fa' },
   ],
-  nextId: 2,
-}
+  nextId: () => 2,
+})
 
 describe('update', () => {
   describe('spawning balls', () => {
@@ -97,9 +97,8 @@ describe('update', () => {
     })
 
     test('bounces a ball off the canvas edges, flipping its velocity', () => {
-      const movingRightModel: Model = {
-        ...emptyModel,
-        balls: [
+      const movingRightModel: Model = modifyFields(emptyModel, {
+        balls: () => [
           {
             id: 0,
             x: 595,
@@ -110,8 +109,8 @@ describe('update', () => {
             color: '#fff',
           },
         ],
-        nextId: 1,
-      }
+        nextId: () => 1,
+      })
 
       story(
         update,

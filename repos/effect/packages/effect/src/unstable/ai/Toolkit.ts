@@ -9,7 +9,7 @@
  *
  * @since 4.0.0
  */
-import type * as Cause from "../../Cause.ts"
+import * as Cause from "../../Cause.ts"
 import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import * as Effectable from "../../Effectable.ts"
@@ -19,11 +19,13 @@ import * as InternalRecord from "../../internal/record.ts"
 import * as Layer from "../../Layer.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Queue from "../../Queue.ts"
+import * as Result from "../../Result.ts"
 import * as Schema from "../../Schema.ts"
+import type * as SchemaAST from "../../SchemaAST.ts"
 import type * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
 import * as AiError from "./AiError.ts"
-import type * as Tool from "./Tool.ts"
+import * as Tool from "./Tool.ts"
 
 const TypeId = "~effect/ai/Toolkit" as const
 
@@ -212,7 +214,11 @@ export interface WithHandler<in out Tools extends Record<string, Tool.Any>> {
     /**
      * The unique identifier of the tool call.
      */
-    toolCallId?: string
+    toolCallId?: string,
+    /**
+     * Schema parse options for tool parameters.
+     */
+    options?: SchemaAST.ParseOptions
   ) => Effect.Effect<
     Stream.Stream<
       Tool.HandlerResult<Tools[Name]>,
@@ -232,6 +238,56 @@ export interface WithHandler<in out Tools extends Record<string, Tool.Any>> {
  */
 export type WithHandlerTools<T> = T extends WithHandler<infer Tools> ? Tools : never
 
+/**
+ * Cause annotation identifying the phase of a typed `Toolkit.handle` failure.
+ *
+ * **Details**
+ *
+ * Typed failures raised by `Toolkit.handle` carry one of these origins:
+ *
+ * - `"parameters"`: the tool call arguments failed to decode
+ * - `"handler"`: the tool handler itself failed
+ * - `"result"`: the handler's output failed to validate or encode
+ *
+ * Unannotated causes default to `"result"`, allowing consumers to treat them
+ * as internal failures.
+ *
+ * Returned failures expose the same origin in `Tool.HandlerResult.failureOrigin`.
+ *
+ * **Example** (Reading a handler failure's origin)
+ *
+ * ```ts import.meta.vitest
+ * import { Cause, Context, Effect, Schema, Stream } from "effect"
+ * import { Tool, Toolkit } from "effect/unstable/ai"
+ *
+ * const toolkit = Toolkit.make(Tool.make("Lookup", {
+ *   failure: Schema.String,
+ *   failureMode: "error"
+ * }))
+ *
+ * const program = Effect.gen(function*() {
+ *   const handlers = yield* toolkit
+ *   yield* handlers.handle("Lookup", {}).pipe(Effect.flatMap(Stream.runDrain))
+ * }).pipe(
+ *   Effect.catchCause((cause) =>
+ *     Effect.succeed(Context.get(Cause.annotations(cause), Toolkit.FailureOrigin))
+ *   ),
+ *   Effect.provide(toolkit.toLayer({ Lookup: () => Effect.fail("Not found") }))
+ * )
+ *
+ * await Effect.runPromise(program) // => "handler"
+ * ```
+ *
+ * @category services
+ * @since 4.0.0
+ */
+export const FailureOrigin = Context.Reference<Tool.FailureOrigin>("effect/ai/Toolkit/FailureOrigin", {
+  defaultValue: () => "result"
+})
+
+const failureCause = <E>(error: E, origin: Tool.FailureOrigin): Cause.Cause<E> =>
+  Cause.annotate(Cause.fail(error), Context.make(FailureOrigin, origin))
+
 const Proto = {
   ...Effectable.Prototype({
     label: "Toolkit",
@@ -241,28 +297,27 @@ const Proto = {
       const schemasCache = new WeakMap<any, {
         readonly context: Context.Context<never>
         readonly handler: Tool.Handler<any>["handler"]
-        readonly decodeParameters: (u: unknown) => Effect.Effect<unknown, Schema.SchemaError>
-        readonly decodeResult: (u: unknown) => Effect.Effect<unknown, Schema.SchemaError>
-        readonly encodeResult: (u: unknown) => Effect.Effect<unknown, Schema.SchemaError>
+        readonly decodeParameters: (
+          u: unknown,
+          options?: SchemaAST.ParseOptions
+        ) => Effect.Effect<unknown, Schema.SchemaError>
+        readonly encodeResult: (u: unknown, isFailure: boolean) => Effect.Effect<unknown, Schema.SchemaError>
       }>()
 
       const getSchemas = (tool: Tool.Any) => {
         let schemas = schemasCache.get(tool)
         if (Predicate.isUndefined(schemas)) {
           const handler = services.mapUnsafe.get(tool.id)! as Tool.Handler<any>
-          const resultSchema = tool.failureMode === "return"
-            ? Schema.Union([tool.successSchema, tool.failureSchema, AiError.AiError])
-            : tool.successSchema
           const decodeParameters = Schema.isSchema(tool.parametersSchema)
             ? Schema.decodeUnknownEffect(tool.parametersSchema) as any
             : (u: unknown) => Effect.succeed(u)
-          const decodeResult = Schema.decodeUnknownEffect(resultSchema) as any
-          const encodeResult = Schema.encodeUnknownEffect(resultSchema) as any
+          const encodeSuccess = Schema.encodeUnknownEffect(tool.successSchema) as any
+          const encodeFailure = Schema.encodeUnknownEffect(Tool.failureResultSchema(tool)) as any
+          const encodeResult = (u: unknown, isFailure: boolean) => isFailure ? encodeFailure(u) : encodeSuccess(u)
           schemas = {
             context: handler.context,
             handler: handler.handler,
             decodeParameters,
-            decodeResult,
             encodeResult
           }
           schemasCache.set(tool, schemas)
@@ -270,7 +325,12 @@ const Proto = {
         return schemas
       }
 
-      const handle = Effect.fnUntraced(function*(name: string, params: unknown, toolCallId?: string) {
+      const handle = Effect.fnUntraced(function*(
+        name: string,
+        params: unknown,
+        toolCallId?: string,
+        options?: SchemaAST.ParseOptions
+      ) {
         const tool = Object.hasOwn(tools, name) ? tools[name] : undefined
 
         yield* Effect.annotateCurrentSpan({
@@ -278,7 +338,6 @@ const Proto = {
           parameters: params
         })
 
-        // If the tool is not found, return an error
         if (Predicate.isUndefined(tool)) {
           return yield* AiError.make({
             module: "Toolkit",
@@ -290,25 +349,48 @@ const Proto = {
           })
         }
 
-        // Fetch cached schemas / handlers for the tool
         const schemas = getSchemas(tool)
 
-        // Decode the tool call parameters which will be passed to the handler
-        const decodedParams = yield* schemas.decodeParameters(params).pipe(
-          Effect.mapError((cause) =>
-            AiError.make({
-              module: "Toolkit",
-              method: `${name}.handle`,
-              reason: new AiError.ToolParameterValidationError({
-                toolName: name,
-                toolParams: params,
-                description: cause.message
+        const encodeResult = (result: any, isFailure: boolean) =>
+          schemas.encodeResult(result, isFailure).pipe(
+            Effect.mapError((cause) =>
+              AiError.make({
+                module: "Toolkit",
+                method: `${name}.handle`,
+                reason: new AiError.ToolResultEncodingError({
+                  toolName: name,
+                  toolResult: result,
+                  description: cause.message
+                })
               })
-            })
+            )
           )
-        )
 
-        // Setup the handler context
+        const decodedParamsResult = yield* Effect.result(schemas.decodeParameters(params, options))
+        if (Result.isFailure(decodedParamsResult)) {
+          const error = AiError.make({
+            module: "Toolkit",
+            method: `${name}.handle`,
+            reason: new AiError.ToolParameterValidationError({
+              toolName: name,
+              description: decodedParamsResult.failure.message
+            })
+          })
+          if (tool.failureMode === "error") {
+            return yield* Effect.failCause(failureCause(error, "parameters"))
+          }
+          return Stream.fromEffect(
+            Effect.map(encodeResult(error, true), (encodedResult) => ({
+              result: error,
+              isFailure: true,
+              failureOrigin: "parameters" as const,
+              preliminary: false,
+              encodedResult
+            }))
+          ) satisfies Stream.Stream<Tool.HandlerResult<any>, any>
+        }
+        const decodedParams = decodedParamsResult.success
+
         const queue = yield* Queue.make<{
           readonly result: any
           readonly isFailure: boolean
@@ -334,23 +416,7 @@ const Proto = {
           Effect.forkChild
         )
 
-        const encodeResult = (result: any) =>
-          schemas.encodeResult(result).pipe(
-            Effect.mapError((cause) =>
-              AiError.make({
-                module: "Toolkit",
-                method: `${name}.handle`,
-                reason: new AiError.ToolResultEncodingError({
-                  toolName: name,
-                  toolResult: result,
-                  description: cause.message
-                })
-              })
-            )
-          )
-
         const normalizeError = (error: unknown) => {
-          // Schema errors indicate handler returned invalid data
           const normalizedError = Schema.isSchemaError(error)
             ? AiError.make({
               module: "Toolkit",
@@ -371,16 +437,15 @@ const Proto = {
         }
 
         return Stream.fromQueue(queue).pipe(
-          // If the tool handler failed, check the tool's failure mode to
-          // determine how the result should be returned to the end user
           Stream.catch((error) => {
             const normalizedError = normalizeError(error)
+            const failureOrigin: Tool.FailureOrigin = Schema.isSchemaError(error) ? "result" : "handler"
             return tool.failureMode === "error"
-              ? Stream.fail(normalizedError)
-              : Stream.succeed({ result: normalizedError, isFailure: true, preliminary: false })
+              ? Stream.failCause(failureCause(normalizedError, failureOrigin))
+              : Stream.succeed({ result: normalizedError, isFailure: true, failureOrigin, preliminary: false })
           }),
           Stream.mapEffect(Effect.fnUntraced(function*(output) {
-            const encodedResult = yield* encodeResult(output.result)
+            const encodedResult = yield* encodeResult(output.result, output.isFailure)
             return { ...output, encodedResult }
           })),
           Stream.onEnd(Fiber.interrupt(fiber))

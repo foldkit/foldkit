@@ -1,6 +1,7 @@
 import { Array, Option, pipe } from 'effect'
 import { Validating } from 'foldkit/fieldValidation'
 import { Command, given, message, model, story } from 'foldkit/story'
+import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import { FileDrop, Menu, Tabs } from '@foldkit/ui'
@@ -48,7 +49,7 @@ describe('update', () => {
     test('ClickedPrevious goes back to the previous step', () => {
       story(
         update,
-        given({ ...initialModel, currentStep: 'Education' }),
+        given(modifyFields(initialModel, { currentStep: () => 'Education' })),
         message(Message.ClickedPrevious()),
         model(model => {
           expect(model.currentStep).toBe('WorkHistory')
@@ -70,21 +71,10 @@ describe('update', () => {
     test('ClickedNext on the last step stays put', () => {
       story(
         update,
-        given({ ...initialModel, currentStep: 'Review' }),
+        given(modifyFields(initialModel, { currentStep: () => 'Review' })),
         message(Message.ClickedNext()),
         model(model => {
           expect(model.currentStep).toBe('Review')
-        }),
-      )
-    })
-
-    test('NavigatedToStep jumps directly to a step', () => {
-      story(
-        update,
-        givenInitial,
-        message(Message.NavigatedToStep({ step: 'Skills' })),
-        model(model => {
-          expect(model.currentStep).toBe('Skills')
         }),
       )
     })
@@ -260,7 +250,7 @@ describe('update', () => {
     test('ClickedSubmit on a complete application transitions to Submitting and fires command', () => {
       story(
         update,
-        given({ ...completeModel, currentStep: 'Review' }),
+        given(modifyFields(completeModel, { currentStep: () => 'Review' })),
         message(Message.ClickedSubmit()),
         Command.expectExact(SubmitApplication),
         Command.resolve(
@@ -277,7 +267,7 @@ describe('update', () => {
     test('ClickedSubmit on an incomplete application reveals errors and does not submit', () => {
       story(
         update,
-        given({ ...initialModel, currentStep: 'Review' }),
+        given(modifyFields(initialModel, { currentStep: () => 'Review' })),
         message(Message.ClickedSubmit()),
         Command.expectNone(),
         model(model => {
@@ -317,14 +307,14 @@ describe('update', () => {
     test('ClickedSubmit with pending validation does not submit', () => {
       story(
         update,
-        given({
-          ...completeModel,
-          currentStep: 'Review',
-          personalInfo: {
-            ...completeModel.personalInfo,
-            email: Validating({ value: 'jane@example.com' }),
-          },
-        }),
+        given(
+          modifyFields(completeModel, {
+            currentStep: () => 'Review',
+            personalInfo: modifyFields({
+              email: () => Validating({ value: 'jane@example.com' }),
+            }),
+          }),
+        ),
         message(Message.ClickedSubmit()),
         Command.expectNone(),
         model(model => {
@@ -338,7 +328,7 @@ describe('update', () => {
     test('ClickedSubmit preserves Valid fields rather than re-running validation', () => {
       story(
         update,
-        given({ ...completeModel, currentStep: 'Review' }),
+        given(modifyFields(completeModel, { currentStep: () => 'Review' })),
         message(Message.ClickedSubmit()),
         Command.resolve(
           SubmitApplication,
@@ -354,11 +344,12 @@ describe('update', () => {
     test('successful submission shows success', () => {
       story(
         update,
-        given({
-          ...initialModel,
-          currentStep: 'Review',
-          submission: Submission.Submitting(),
-        }),
+        given(
+          modifyFields(initialModel, {
+            currentStep: () => 'Review',
+            submission: () => Submission.Submitting(),
+          }),
+        ),
         message(Message.SucceededSubmitApplication()),
         model(model => {
           expect(model.submission._tag).toBe('SubmitSuccess')
@@ -369,11 +360,12 @@ describe('update', () => {
     test('failed submission shows error', () => {
       story(
         update,
-        given({
-          ...initialModel,
-          currentStep: 'Review',
-          submission: Submission.Submitting(),
-        }),
+        given(
+          modifyFields(initialModel, {
+            currentStep: () => 'Review',
+            submission: () => Submission.Submitting(),
+          }),
+        ),
         message(Message.FailedSubmitApplication({ error: 'Server down' })),
         model(model => {
           expect(model.submission._tag).toBe('SubmitError')

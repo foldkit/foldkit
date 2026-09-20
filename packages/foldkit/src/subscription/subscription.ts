@@ -1,4 +1,12 @@
-import { type Equivalence, Option, Record, Schema, Stream, pipe } from 'effect'
+import {
+  Array,
+  type Equivalence,
+  Option,
+  Record,
+  Schema,
+  Stream,
+  pipe,
+} from 'effect'
 
 type SubscriptionBrand = {
   readonly __subscription: never
@@ -186,32 +194,163 @@ export const make =
     return build(entryBuilder) as any
   }
 
+type AnySubscriptions = Readonly<
+  Record<string, Subscription<any, any, any, any>>
+>
+
+// NOTE: requiring one record keeps `aggregate()` unambiguously curried.
+type AnySubscriptionsList = readonly [
+  AnySubscriptions,
+  ...ReadonlyArray<AnySubscriptions>,
+]
+
+type EntriesOfRecord<SubscriptionsRecord> = SubscriptionsRecord extends unknown
+  ? SubscriptionsRecord[keyof SubscriptionsRecord]
+  : never
+
+type EntriesOf<Records extends AnySubscriptionsList> = EntriesOfRecord<
+  Records[number]
+>
+
+// NOTE: persistent entries use `unknown` because they belong to every Model
+// universe, so they must not collapse the inferred reference Model.
+type ModelOfEntry<AnyEntry> = [AnyEntry] extends [
+  Subscription<infer Model, any, any, any>,
+]
+  ? unknown extends Model
+    ? never
+    : Model
+  : never
+
+type MessageOfEntry<AnyEntry> =
+  AnyEntry extends Subscription<any, infer Message, any, any> ? Message : never
+
+type ServicesOfEntry<AnyEntry> =
+  AnyEntry extends Subscription<any, any, any, infer Services>
+    ? Services
+    : never
+
+type MessageOf<Records extends AnySubscriptionsList> = MessageOfEntry<
+  EntriesOf<Records>
+>
+
+type ServicesOf<Records extends AnySubscriptionsList> = ServicesOfEntry<
+  EntriesOf<Records>
+>
+
+// NOTE: anchoring compatibility to the first Model-reading record makes an
+// incompatible later record produce the error at its own argument position.
+type ReferenceModel<Records extends ReadonlyArray<AnySubscriptions>> =
+  Records extends readonly [
+    infer Head extends AnySubscriptions,
+    ...infer Rest extends ReadonlyArray<AnySubscriptions>,
+  ]
+    ? [ModelOfEntry<EntriesOfRecord<Head>>] extends [never]
+      ? ReferenceModel<Rest>
+      : ModelOfEntry<EntriesOfRecord<Head>>
+    : never
+
+type CompatibleSubscriptions<Records extends AnySubscriptionsList> = {
+  readonly [Index in keyof Records]: Records[Index] &
+    Subscriptions<
+      ReferenceModel<Records>,
+      MessageOf<Records>,
+      ServicesOf<Records>
+    >
+}
+
+type RuntimeKey<Key> = Key extends string
+  ? Key
+  : Key extends number
+    ? `${Key}`
+    : never
+
+type RuntimeEntries<RecordType> = {
+  readonly [Key in keyof RecordType as RuntimeKey<Key>]: RecordType[Key]
+}
+
+type MergeSubscriptions<Records extends ReadonlyArray<unknown>> =
+  Records extends readonly [infer Head, ...infer Rest]
+    ? RuntimeEntries<Head> &
+        (Rest extends ReadonlyArray<unknown> ? MergeSubscriptions<Rest> : {})
+    : {}
+
+const mergeSubscriptions = (
+  records: ReadonlyArray<AnySubscriptions>,
+): Record<string, Subscription<any, any, any, any>> => {
+  const result: Record<string, Subscription<any, any, any, any>> = {}
+  for (const record of records) {
+    for (const key of Object.keys(record)) {
+      if (Object.hasOwn(result, key)) {
+        throw new Error(
+          `Subscription.aggregate: duplicate key "${key}" across records`,
+        )
+      }
+      Object.defineProperty(result, key, {
+        configurable: true,
+        enumerable: true,
+        value: record[key],
+        writable: true,
+      })
+    }
+  }
+  return result
+}
+
 /**
  * Combines multiple Subscriptions records into one. Throws on duplicate
  * keys so a misconfigured aggregate fails loudly at startup rather than
  * silently overriding.
+ *
+ * Pass the records directly and the Model, Message, and Services are read
+ * off them. The Model of the first record with a Model dependency is the one
+ * every later record is checked against, so a record from another Model
+ * universe fails at its own argument position. Message and Services widen to
+ * the union across all records, which is what lets a record that needs an
+ * Effect service sit beside records that need none.
+ *
+ * The result keeps each record's keys and each entry's exact dependency type,
+ * schema, and `keepAliveEquivalence` variant, so a lifted entry's
+ * {@link GatedDependencies} survives aggregation.
+ *
+ * The curried form remains available for a record that has to be typed before
+ * its entries exist, such as a value annotated as
+ * `Subscriptions<Model, Message>` at a module boundary. It erases keys and
+ * per-entry dependency types, so reach for it only when the explicit contract
+ * is the point.
+ *
+ * @example
+ * ```ts
+ * const subscriptions = Subscription.aggregate(
+ *   homeSubscriptions,
+ *   roomSubscriptions,
+ * )
+ * ```
+ *
+ * @example Curried, when the record is typed before its entries exist:
+ * ```ts
+ * export const subscriptions: Subscription.Subscriptions<Model, Message> =
+ *   Subscription.aggregate<Model, Message>()(...records)
+ * ```
  */
-export const aggregate =
-  <Model, Message, Services = never>() =>
-  (
+export const aggregate: {
+  <Model, Message, Services = never>(): (
     ...records: ReadonlyArray<Subscriptions<Model, Message, Services>>
-  ): Subscriptions<Model, Message, Services> => {
-    const result: Record<
-      string,
-      Subscription<Model, Message, any, Services>
-    > = {}
-    for (const record of records) {
-      for (const key of Object.keys(record)) {
-        if (Object.hasOwn(result, key)) {
-          throw new Error(
-            `Subscription.aggregate: duplicate key "${key}" across records`,
-          )
-        }
-        result[key] = record[key]!
-      }
-    }
-    return result
-  }
+  ) => Subscriptions<Model, Message, Services>
+  <Records extends AnySubscriptionsList>(
+    ...records: CompatibleSubscriptions<Records>
+  ): MergeSubscriptions<Records>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+} = ((...records: ReadonlyArray<AnySubscriptions>) => {
+  return Array.match(records, {
+    onEmpty:
+      () =>
+      (...curriedRecords: ReadonlyArray<AnySubscriptions>) =>
+        mergeSubscriptions(curriedRecords),
+    onNonEmpty: mergeSubscriptions,
+  })
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+}) as any
 
 /**
  * Wraps a Stream as a Subscription entry whose lifecycle is independent of

@@ -5,6 +5,7 @@ import {
   type Reference,
   Rule,
   RuleContext,
+  type Variable,
 } from 'effect-oxlint'
 
 import {
@@ -13,8 +14,11 @@ import {
   isCallExpression,
   isIdentifier,
   isMemberExpression,
+  isVariableDeclaration,
+  isVariableDeclarator,
   resolveFoldkitApiPath,
   resolveImportedPath,
+  resolvedVariable,
   staticMemberPath,
 } from '../guards.ts'
 
@@ -296,6 +300,50 @@ const childNamespace = (
   return localRoot ?? 'Child'
 }
 
+const resolveImportedPathThroughConst = (
+  references: WeakMap<ESTree.Node, Reference>,
+  node: unknown,
+  visited: ReadonlySet<Variable> = new Set(),
+): Option.Option<ImportedPath> => {
+  const importedPath = resolveImportedPath(references, node)
+  if (Option.isSome(importedPath)) {
+    return importedPath
+  }
+
+  return Option.gen(function* () {
+    const path = yield* staticMemberPath(node)
+    const variable = yield* resolvedVariable(references, path.root)
+    if (visited.has(variable) || Array.length(variable.defs) !== 1) {
+      return yield* Option.none()
+    }
+
+    const [definition] = variable.defs
+    if (
+      definition === undefined ||
+      definition.type !== 'Variable' ||
+      !isVariableDeclarator(definition.node) ||
+      !isVariableDeclaration(definition.node.parent) ||
+      definition.node.parent.kind !== 'const' ||
+      !isIdentifier(definition.node.id)
+    ) {
+      return yield* Option.none()
+    }
+
+    const initializer = yield* Option.fromNullishOr(definition.node.init)
+    const resolved = yield* resolveImportedPathThroughConst(
+      references,
+      initializer,
+      new Set([...visited, variable]),
+    )
+
+    return {
+      source: resolved.source,
+      members: [...resolved.members, ...path.members],
+      localMembers: [path.root.name, ...path.members],
+    }
+  })
+}
+
 const childMessageConstruction = (
   callee: unknown,
   references: WeakMap<ESTree.Node, Reference> | undefined,
@@ -324,31 +372,34 @@ const childMessageConstruction = (
     })
   }
 
-  return Option.flatMap(resolveImportedPath(references, callee), path => {
-    const [messageNamespace, constructorName] = path.members.slice(-2)
-    if (
-      messageNamespace !== 'Message' ||
-      constructorName === undefined ||
-      constructorName === 'Message' ||
-      !pascalIdentifierPattern.test(constructorName) ||
-      isRootMessageModule(path.source)
-    ) {
-      return Option.none()
-    }
+  return Option.flatMap(
+    resolveImportedPathThroughConst(references, callee),
+    path => {
+      const [messageNamespace, constructorName] = path.members.slice(-2)
+      if (
+        messageNamespace !== 'Message' ||
+        constructorName === undefined ||
+        constructorName === 'Message' ||
+        !pascalIdentifierPattern.test(constructorName) ||
+        isRootMessageModule(path.source)
+      ) {
+        return Option.none()
+      }
 
-    return Option.some({
-      calleeLabel: `${childNamespace(path.source, path.members, path.localMembers)}.Message.${constructorName}`,
-      messagePath: {
-        source: path.source,
-        members: path.members.slice(0, -1),
-      },
-    })
-  })
+      return Option.some({
+        calleeLabel: `${childNamespace(path.source, path.members, path.localMembers)}.Message.${constructorName}`,
+        messagePath: {
+          source: path.source,
+          members: path.members.slice(0, -1),
+        },
+      })
+    },
+  )
 }
 
 /**
- * Flags direct construction of a child Submodel Message variant from outside
- * the child, such as Chat.Message.ClickedOpen(...).
+ * Flags construction of a child Submodel Message variant from outside the
+ * child, such as Chat.Message.ClickedOpen(...) or an immutable local alias.
  */
 export const noChildMessageConstructionInRoot = Rule.define({
   name: 'no-child-message-construction-in-root',

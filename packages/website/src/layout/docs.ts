@@ -32,8 +32,7 @@ import {
   Example,
   Examples,
   FieldValidation,
-  GettingStarted,
-  Manifesto,
+  GetStarted,
   NotFound,
   Patterns,
   Performance,
@@ -48,6 +47,7 @@ import {
   ToolingLinting,
   TypingTerminal,
   Ui,
+  WhyFoldkit,
 } from '../page'
 import * as Prose from '../prose'
 import { AppRoute, type DocsRoute, homeRouter } from '../route'
@@ -71,7 +71,7 @@ export const headerView = (model: Model, h: HtmlBuilder<Message>) =>
   h.header(
     [
       h.Class(
-        'fixed top-0 inset-x-0 z-50 h-[var(--header-height)] pt-[env(safe-area-inset-top,0px)] bg-cream dark:bg-gray-900 border-b border-gray-300 dark:border-gray-800 transform-gpu',
+        'fixed top-0 inset-x-0 z-50 h-[var(--header-height)] pt-[env(safe-area-inset-top,0px)] bg-cream dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 transform-gpu',
       ),
     ],
     [
@@ -83,7 +83,7 @@ export const headerView = (model: Model, h: HtmlBuilder<Message>) =>
         ],
         [
           h.div(
-            [h.Class('flex items-center gap-2')],
+            [h.Class('flex items-center gap-12')],
             [
               h.a(
                 [h.Href(homeRouter()), h.Class('flex items-center gap-2')],
@@ -98,52 +98,47 @@ export const headerView = (model: Model, h: HtmlBuilder<Message>) =>
                   Shared.betaTag,
                 ],
               ),
-            ],
-          ),
-          h.div(
-            [h.Class('flex items-center gap-3 md:gap-8')],
-            [
               HeaderNav.view(
                 model.route,
                 'hidden md:flex items-center gap-6',
                 h,
               ),
+            ],
+          ),
+          h.div(
+            [h.Class('flex items-center gap-1')],
+            [
               Search.triggerView('hidden md:flex', h),
+              Shared.headerGroupDivider('hidden md:block mx-3'),
+              h.div(
+                [h.Class('hidden md:flex items-center gap-3')],
+                [
+                  Shared.iconLink(
+                    Link.github,
+                    'GitHub',
+                    Icon.github('w-5 h-5'),
+                  ),
+                  Shared.iconLink(
+                    Link.discord,
+                    'Discord',
+                    Icon.discord('w-5 h-5'),
+                  ),
+                  Shared.iconLink(Link.xSocial, 'X', Icon.xSocial('w-5 h-5')),
+                  Shared.iconLink(Link.npm, 'npm', Icon.npm('w-6 h-6')),
+                ],
+              ),
+              Shared.headerGroupDivider('hidden md:block mx-3'),
+              Search.compactTriggerView('inline-flex md:hidden', h),
               ThemeSelector.view(
                 model.themeMenu,
                 model.maybeThemePreference,
                 h,
               ),
-              h.div(
-                [h.Class('hidden md:flex items-center gap-3 md:gap-4')],
-                [
-                  Shared.iconLink(
-                    Link.github,
-                    'GitHub',
-                    Icon.github('w-5 h-5 md:w-6 md:h-6'),
-                  ),
-                  Shared.iconLink(
-                    Link.discord,
-                    'Discord',
-                    Icon.discord('w-5 h-5 md:w-6 md:h-6'),
-                  ),
-                  Shared.iconLink(
-                    Link.xSocial,
-                    'X',
-                    Icon.xSocial('w-5 h-5 md:w-6 md:h-6'),
-                  ),
-                  Shared.iconLink(
-                    Link.npm,
-                    'npm',
-                    Icon.npm('w-6 h-6 md:w-8 md:h-8'),
-                  ),
-                ],
-              ),
-              Search.compactTriggerView('md:hidden', h),
+              Shared.headerGroupDivider('mx-2 md:hidden'),
               h.button(
                 [
                   h.Class(
-                    'md:hidden -mr-2 p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 cursor-pointer',
+                    'md:hidden -mr-2 inline-flex size-8 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400',
                   ),
                   h.AriaExpanded(model.mobileMenuDialog.isOpen),
                   h.AriaLabel('Toggle menu'),
@@ -167,7 +162,7 @@ export const footerView = (
   h.footer(
     [
       h.Class(
-        'px-6 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] md:px-8 xl:px-12 mt-6 border-t border-gray-300 dark:border-gray-800',
+        'px-6 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] md:px-8 xl:px-12 mt-6 border-t border-gray-200 dark:border-gray-800',
       ),
     ],
     [
@@ -182,7 +177,7 @@ export const footerView = (
       Shared.emailForm,
       h.hr([
         h.Class(
-          'my-6 -mx-6 md:-mx-8 xl:-mx-12 border-t border-gray-300 dark:border-gray-800',
+          'my-6 -mx-6 md:-mx-8 xl:-mx-12 border-t border-gray-200 dark:border-gray-800',
         ),
       ]),
       h.div(
@@ -269,7 +264,7 @@ const pageNavigationView = (tag: string, h: HtmlBuilder<Message>) => {
     [
       h.AriaLabel('Page navigation'),
       h.Class(
-        'flex items-stretch justify-between gap-4 mt-12 pt-6 border-t border-gray-300 dark:border-gray-800',
+        'flex items-stretch justify-between gap-4 mt-12 pt-6 border-t border-gray-200 dark:border-gray-800',
       ),
     ],
     [
@@ -290,7 +285,7 @@ const pageNavigationView = (tag: string, h: HtmlBuilder<Message>) => {
 export const searchWeight = (tag: string): string =>
   Match.value(tag).pipe(
     Match.when(String.startsWith('Core'), () => '10'),
-    Match.whenOr('GettingStarted', 'Manifesto', () => '8'),
+    Match.whenOr('GetStarted', 'WhyFoldkit', () => '8'),
     Match.whenOr(
       String.startsWith('Patterns'),
       String.startsWith('BestPractices'),
@@ -435,10 +430,10 @@ export const view = (
   ).pipe(
     Match.withReturnType<DocsPageView>(),
     Match.tagsExhaustive({
-      Manifesto: () =>
+      WhyFoldkit: () =>
         withTableOfContents(
-          Manifesto.view(renderHeadingLink),
-          Manifesto.tableOfContents,
+          WhyFoldkit.view(renderHeadingLink),
+          WhyFoldkit.tableOfContents,
         ),
       Roadmap: () =>
         withTableOfContents(
@@ -482,10 +477,10 @@ export const view = (
           lazyDocsContent(ElmComparison.view, [model.snippetCopy, h]),
           ElmComparison.tableOfContents,
         ),
-      GettingStarted: () =>
+      GetStarted: () =>
         withTableOfContents(
-          lazyDocsContent(GettingStarted.view, [model.snippetCopy, h]),
-          GettingStarted.tableOfContents,
+          lazyDocsContent(GetStarted.view, [model.snippetCopy, h]),
+          GetStarted.tableOfContents,
         ),
       RoutingAndNavigation: () =>
         withTableOfContents(
@@ -527,10 +522,6 @@ export const view = (
             viewInputs: {
               slug: exampleSlug,
               isNarrowViewport: model.isNarrowViewport,
-              isShowingChromeHint: Option.contains(
-                model.maybeIsChromium,
-                false,
-              ),
               renderCopyButton,
             },
             toParentMessage: message =>
@@ -757,6 +748,11 @@ export const view = (
         withTableOfContents(
           lazyDocsContent(AsyncDataPage.view, [model.snippetCopy, h]),
           AsyncDataPage.tableOfContents,
+        ),
+      PatternsAntiPatterns: () =>
+        withTableOfContents(
+          lazyDocsContent(Patterns.AntiPatterns.view, [model.snippetCopy, h]),
+          Patterns.AntiPatterns.tableOfContents,
         ),
       PatternsInformingSubmodels: () =>
         withTableOfContents(
@@ -1155,13 +1151,24 @@ export const view = (
   )
 
   return h.div(
-    [h.Class('flex flex-col min-h-screen')],
+    [
+      h.Class('flex flex-col min-h-screen'),
+      ...(Option.isSome(model.maybeIsPlaygroundSupported)
+        ? [h.DataAttribute('browser-environment-loaded', '')]
+        : []),
+    ],
     [
       Shared.skipNavLink,
       headerView(model, h),
       Search.dialogView(model, h),
       h.div(
-        [h.Class('docs-shell flex flex-1 pt-[var(--header-height)] md:pl-64')],
+        [
+          h.Class(
+            clsx('docs-shell flex flex-1 pt-[var(--header-height)] md:pl-64', {
+              'xl:pr-64': Option.isSome(currentPageTableOfContents),
+            }),
+          ),
+        ],
         [
           Sidebar.view(model, h),
           Sidebar.mobileView(model, h),

@@ -483,6 +483,7 @@ const cartView = (
               options: EDITIONS,
               ariaLabel: 'Choose an edition',
               orientation: 'Horizontal',
+              hasOptionDescription: () => true,
               toView: ({ group, options }) =>
                 h.div(
                   [...group, h.Class('grid gap-3 sm:grid-cols-2')],
@@ -722,6 +723,7 @@ const paymentView = (
             {
               id: 'saved-card',
               isChecked: state.isPaymentMethodSelected,
+              hasDescription: true,
               onToggle: isSelected =>
                 Message.ToggledPaymentMethod({ isSelected }),
               toView: attributes =>
@@ -1053,6 +1055,7 @@ const reviewView = (
         {
           id: 'accept-terms',
           isChecked: state.isTermsAccepted,
+          hasDescription: true,
           onToggle: isAccepted => Message.ToggledTermsAccepted({ isAccepted }),
           toView: attributes =>
             h.div(

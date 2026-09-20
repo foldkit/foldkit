@@ -12,9 +12,9 @@ import { Icon } from '../icon'
 import { Message, type ThemePreference } from '../message'
 
 const THEME_PREFERENCES: ReadonlyArray<ThemePreference> = [
+  'Dark',
   'Light',
   'System',
-  'Dark',
 ]
 
 const THEME_MENU_ANCHOR: Menu.AnchorConfig = {
@@ -22,8 +22,6 @@ const THEME_MENU_ANCHOR: Menu.AnchorConfig = {
   gap: 8,
   padding: 8,
 }
-
-const triggerIconClassName = 'w-6 h-6'
 
 export const ThemeMenu = Menu.create<ThemePreference>()
 
@@ -58,7 +56,7 @@ export const view = (
 
         return {
           className:
-            'w-full cursor-pointer rounded-md px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-100 data-[active]:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800 dark:data-[active]:bg-gray-800',
+            'w-full cursor-pointer rounded-md px-3 py-3 md:py-2 text-left text-sm text-gray-700 transition hover:bg-gray-100 data-[active]:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800 dark:data-[active]:bg-gray-800',
           content: ih.div(
             [ih.Class('flex w-full items-center gap-3')],
             [
@@ -76,15 +74,15 @@ export const view = (
           ),
         }
       },
-      buttonContent: preferenceIcon(activePreference, triggerIconClassName),
+      buttonContent: preferenceIcon(activePreference, 'w-5 h-5'),
       buttonAttributes: childAttributes([
         ih.Class(
-          'inline-flex size-10 cursor-pointer items-center justify-center rounded-md text-gray-700 transition hover:bg-gray-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:focus-visible:outline-accent-400',
+          'inline-flex size-8 cursor-pointer items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:focus-visible:outline-accent-400',
         ),
       ]),
       itemsAttributes: childAttributes([
         ih.Class(
-          'z-[70] min-w-40 rounded-lg border border-gray-200 bg-cream p-2 shadow-lg dark:border-gray-700 dark:bg-gray-900',
+          'z-[70] min-w-40 rounded-md border border-gray-200 bg-cream p-2 shadow-lg dark:border-gray-700 dark:bg-gray-900',
         ),
       ]),
       backdropAttributes: childAttributes([ih.Class('fixed inset-0 z-[60]')]),

@@ -1,5 +1,6 @@
 import { Array } from 'effect'
 import { Command, click, expect, given, role, scene, text } from 'foldkit/scene'
+import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import {
@@ -99,7 +100,7 @@ describe('async counter demo view', () => {
   test('the stepper stops at the low end of the allowed range', () => {
     scene(
       { update, view },
-      given({ ...init_.model, resetDuration: 1 }),
+      given(modifyFields(init_.model, { resetDuration: () => 1 })),
       expect(
         role('button', { name: 'Decrease reset delay', disabled: true }),
       ).toExist(),
@@ -116,7 +117,7 @@ describe('async counter demo view', () => {
   test('the stepper stops at the high end of the allowed range', () => {
     scene(
       { update, view },
-      given({ ...init_.model, resetDuration: 5 }),
+      given(modifyFields(init_.model, { resetDuration: () => 5 })),
       expect(
         role('button', { name: 'Increase reset delay', disabled: true }),
       ).toExist(),
@@ -133,7 +134,7 @@ describe('async counter demo view', () => {
   test('the delay is shown as text, not an editable field', () => {
     scene(
       { update, view },
-      given({ ...init_.model, resetDuration: 4 }),
+      given(modifyFields(init_.model, { resetDuration: () => 4 })),
       expect(role('spinbutton')).not.toExist(),
       expect(role('textbox')).not.toExist(),
       expect(role('group', { name: 'Reset Delay (seconds)' })).toExist(),

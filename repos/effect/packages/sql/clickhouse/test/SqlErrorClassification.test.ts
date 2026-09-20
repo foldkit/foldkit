@@ -16,7 +16,10 @@ const state: {
 
 vi.mock("@clickhouse/client", () => ({
   createClient: () => ({
-    exec: () => state.connectCause ? Promise.reject(state.connectCause) : Promise.resolve({}),
+    ping: () =>
+      state.connectCause
+        ? Promise.resolve({ success: false, error: state.connectCause })
+        : Promise.resolve({ success: true }),
     close: () => Promise.resolve(),
     query: () =>
       state.queryCause
@@ -56,7 +59,7 @@ const queryFailureReasonTag = (code: number) =>
     Effect.provide(Reactivity.layer)
   )
 
-describe("ClickhouseClient SqlError classification", () => {
+describe("ClickhouseClient SqlError classification", { concurrent: false }, () => {
   it.effect("maps representative native codes to reasons", () =>
     Effect.gen(function*() {
       const cases = [

@@ -12,6 +12,7 @@ export {
   SerializationError,
   acceptsHtml,
   classifyRequest,
+  handleRequest,
   injectIntoTemplate,
   isHostSettledMethod,
   renderToString,
@@ -23,6 +24,7 @@ export {
 } from './index.js'
 
 export type {
+  HandleRequestOptions,
   InjectIntoTemplateOptions,
   RequestClassification,
   ResponseOptions,

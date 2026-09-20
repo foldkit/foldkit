@@ -1,7 +1,7 @@
 import { Option } from 'effect'
+import { Scene, Story } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
-import * as Scene from 'foldkit/scene'
-import * as Story from 'foldkit/story'
+import { modifyFields } from 'foldkit/struct'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
@@ -9,6 +9,7 @@ import { describe, it } from '@effect/vitest'
 import * as Animation from '../animation/index.js'
 import type { Model, ViewInputs } from './index.js'
 import {
+  AnchorMenu,
   ClickItem,
   DelayClearSearch,
   DetectMovementOrAnimationEnd,
@@ -18,6 +19,7 @@ import {
   LockScroll,
   Message,
   OutMessage,
+  PortalMenuBackdrop,
   RestoreInert,
   ScrollIntoView,
   UnlockScroll,
@@ -84,6 +86,28 @@ const givenOpenAnimated = Story.steps(
 )
 
 describe('Menu', () => {
+  describe('view', () => {
+    it('only points at the items panel while it is rendered', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.given(init({ id: 'test' })),
+        Scene.expect(button).not.toHaveAttr('aria-controls'),
+        Scene.given(
+          update(
+            init({ id: 'test' }),
+            Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
+          ).model,
+        ),
+        Scene.expect(button).toHaveAttr('aria-controls', 'test-items'),
+        Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
+        Scene.Mount.resolve(
+          PortalMenuBackdrop,
+          Message.CompletedPortalMenuBackdrop(),
+        ),
+      )
+    })
+  })
+
   describe('init', () => {
     it('defaults to closed with no active item', () => {
       expect(init({ id: 'test' })).toStrictEqual({
@@ -139,11 +163,12 @@ describe('Menu', () => {
       it('resets search state on open', () => {
         Story.story(
           update,
-          Story.given({
-            ...init({ id: 'test' }),
-            searchQuery: 'stale',
-            searchVersion: 1,
-          }),
+          Story.given(
+            modifyFields(init({ id: 'test' }), {
+              searchQuery: () => 'stale',
+              searchVersion: () => 1,
+            }),
+          ),
           Story.message(
             Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
           ),
@@ -187,13 +212,15 @@ describe('Menu', () => {
       it('resets pointer position on open', () => {
         Story.story(
           update,
-          Story.given({
-            ...init({ id: 'test' }),
-            maybeLastPointerPosition: Option.some({
-              screenX: 100,
-              screenY: 200,
+          Story.given(
+            modifyFields(init({ id: 'test' }), {
+              maybeLastPointerPosition: () =>
+                Option.some({
+                  screenX: 100,
+                  screenY: 200,
+                }),
             }),
-          }),
+          ),
           Story.message(
             Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
           ),

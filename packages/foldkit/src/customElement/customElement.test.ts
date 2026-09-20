@@ -1,5 +1,5 @@
 import { Context, Effect, Schema } from 'effect'
-import { expect } from 'vitest'
+import { expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
@@ -156,6 +156,101 @@ describe('CustomElement.define', () => {
       Message.RatingChanged({ value: 5 }),
       Message.RatingCleared(),
     ])
+  })
+
+  it('decodes event detail against its declared Schema before invoking the callback', () => {
+    const rating = emojiRating.withMessage(__htmlBuilder<Message>())
+    const { dispatch, dispatched } = createCapturingDispatch()
+    const receivedDetails: Array<unknown> = []
+
+    const view = () =>
+      rating([
+        rating.OnChangeRating(detail => {
+          receivedDetails.push(detail)
+          return Message.RatingChanged({ value: detail.value })
+        }),
+      ])
+    const element = patchInto(renderView(view, dispatch))
+
+    element.dispatchEvent(
+      new CustomEvent('change-rating', {
+        detail: { value: 5, undeclared: true },
+      }),
+    )
+
+    expect(receivedDetails).toStrictEqual([{ value: 5 }])
+    expect(dispatched).toStrictEqual([Message.RatingChanged({ value: 5 })])
+  })
+
+  it('reports invalid event detail and dispatches no Message', () => {
+    const rating = emojiRating.withMessage(__htmlBuilder<Message>())
+    const { dispatch, dispatched } = createCapturingDispatch()
+    const reported: Array<unknown> = []
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation((...args) => {
+        reported.push(args.at(0))
+      })
+
+    try {
+      const view = () =>
+        rating([
+          rating.OnChangeRating(detail =>
+            Message.RatingChanged({ value: detail.value }),
+          ),
+        ])
+      const element = patchInto(renderView(view, dispatch))
+
+      element.dispatchEvent(
+        new CustomEvent('change-rating', { detail: { value: 'invalid' } }),
+      )
+
+      expect(dispatched).toStrictEqual([])
+      expect(reported).toHaveLength(1)
+      expect(String(reported.at(0))).toContain(
+        `CustomElement 'fk-emoji-rating' rejected the detail of a "change-rating" event`,
+      )
+    } finally {
+      consoleError.mockRestore()
+    }
+  })
+
+  it('decodes a payload-less event as an empty object', () => {
+    const rating = emojiRating.withMessage(__htmlBuilder<Message>())
+    const { dispatch, dispatched } = createCapturingDispatch()
+
+    const view = () =>
+      rating([rating.OnClearRating(() => Message.RatingCleared())])
+    const element = patchInto(renderView(view, dispatch))
+
+    element.dispatchEvent(new CustomEvent('clear-rating'))
+
+    expect(dispatched).toStrictEqual([Message.RatingCleared()])
+  })
+
+  it('preserves a null detail when the declared Schema accepts null', () => {
+    const nullableRating = CustomElement.define({
+      tag: 'fk-nullable-rating',
+      properties: {},
+      events: { cleared: Schema.Null },
+    })
+    const rating = nullableRating.withMessage(__htmlBuilder<Message>())
+    const { dispatch, dispatched } = createCapturingDispatch()
+    const receivedDetails: Array<unknown> = []
+
+    const view = () =>
+      rating([
+        rating.OnCleared(detail => {
+          receivedDetails.push(detail)
+          return Message.RatingCleared()
+        }),
+      ])
+    const element = patchInto(renderView(view, dispatch))
+
+    element.dispatchEvent(new CustomEvent('cleared'))
+
+    expect(receivedDetails).toStrictEqual([null])
+    expect(dispatched).toStrictEqual([Message.RatingCleared()])
   })
 
   it('preserves property updates across renders via the propsModule diff', () => {

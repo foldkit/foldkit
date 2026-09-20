@@ -56,6 +56,7 @@ export type ViewConfig<Message> = Readonly<{
   isDisabled?: boolean
   isReadOnly?: boolean
   isIndeterminate?: boolean
+  hasDescription?: boolean
   name?: string
   value?: string
 }>
@@ -84,7 +85,7 @@ export const descriptionId = (id: string): string => `${id}-description`
  *
  *  // In update:
  *  ToggledTerms: ({ isChecked }) => ({
- *    model: evo(model, { acceptedTerms: () => isChecked }),
+ *    model: modifyFields(model, { acceptedTerms: () => isChecked }),
  *  }),
  *  ``` */
 export const view = <Message>(
@@ -99,6 +100,7 @@ export const view = <Message>(
     isDisabled = false,
     isReadOnly = false,
     isIndeterminate = false,
+    hasDescription = false,
     name,
     value: formValue = 'on',
   } = config
@@ -131,12 +133,16 @@ export const view = <Message>(
 
   const isInteractive = !isDisabled && !isReadOnly
 
+  const describedByAttributes = hasDescription
+    ? [h.AriaDescribedBy(descriptionId(id))]
+    : []
+
   const checkboxAttributes = [
     h.Type('button'),
     h.Role('checkbox'),
     h.AriaChecked(isIndeterminate ? 'mixed' : isChecked),
     h.AriaLabelledBy(labelId(id)),
-    h.AriaDescribedBy(descriptionId(id)),
+    ...describedByAttributes,
     h.Tabindex(0),
     ...resolveStateAttributes(),
     ...disabledAttributes,

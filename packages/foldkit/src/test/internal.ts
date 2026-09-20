@@ -73,7 +73,8 @@ export type ResolvableCommandDefinition<Name extends string, ResultMessage> =
 /** A Definition or Command instance accepted by Story and Scene resolution
  * APIs. */
 export type ResolvableCommandMatcher =
-  ResolvableCommandDefinition<string, unknown> | AnyCommandInstance<unknown>
+  | ResolvableCommandDefinition<string, unknown>
+  | AnyCommandInstance<unknown>
 
 type ResultMessageForMatcher<Matcher extends ResolvableCommandMatcher> =
   Matcher extends ResolvableCommandDefinition<string, infer ResultMessage>

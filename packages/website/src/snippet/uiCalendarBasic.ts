@@ -5,7 +5,7 @@ import { Effect, Match, Option, Schema } from 'effect'
 import { Calendar, Update } from 'foldkit'
 import type { ChildAttribute, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Calendar as UiCalendar } from '@foldkit/ui'
 
@@ -65,7 +65,9 @@ const foldCalendarOutMessage = UiCalendar.OutMessage.match<
   SelectedDate:
     ({ date }) =>
     model => ({
-      model: evo(model, { maybeSelectedDate: () => Option.some(date) }),
+      model: modifyFields(model, {
+        maybeSelectedDate: () => Option.some(date),
+      }),
     }),
   // The child has emitted `ChangedViewMonth`. In this arm the parent can
   // update its own state or dispatch its own Commands, for example
@@ -81,7 +83,7 @@ const foldCalendar = Update.foldChild({
   update: UiCalendar.update,
   read: (model: Model) => Option.some(model.calendarDemo),
   write: (model, nextCalendarDemo) =>
-    evo(model, { calendarDemo: () => nextCalendarDemo }),
+    modifyFields(model, { calendarDemo: () => nextCalendarDemo }),
   toParentMessage: message => Message.GotCalendarMessage({ message }),
   foldOutMessage: foldCalendarOutMessage,
 })
@@ -112,7 +114,7 @@ const columnHeaderClassName = 'text-center text-xs uppercase'
 const cellClassName = 'group flex items-center justify-center'
 
 const dayButtonClassName =
-  'h-9 w-9 rounded-full text-sm group-data-[today]:ring-1 group-data-[selected]:bg-accent-600 group-data-[selected]:text-white group-data-[outside-month]:text-gray-400 group-data-[disabled]:opacity-40'
+  'h-9 w-9 rounded-full text-sm group-data-[today]:ring-1 group-data-[selected]:bg-accent-600 group-data-[selected]:text-white group-data-[outside-month]:text-gray-600 group-data-[disabled]:opacity-40'
 
 const monthYearGridClassName = 'grid grid-cols-3 gap-1 outline-none'
 

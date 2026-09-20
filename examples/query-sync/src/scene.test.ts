@@ -1,5 +1,6 @@
 import { Option } from 'effect'
 import { expect, given, placeholder, role, scene, text } from 'foldkit/scene'
+import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { Listbox } from '@foldkit/ui'
@@ -38,15 +39,17 @@ describe('view', () => {
   test('typing in the search input updates its rendered value', () => {
     scene(
       { update, view },
-      given({
-        ...browseModel,
-        route: AppRoute.Browse({
-          search: Option.some('Tyranno'),
-          sorting: Sorting.Unsorted(),
-          diet: Option.none(),
-          period: Option.none(),
+      given(
+        modifyFields(browseModel, {
+          route: () =>
+            AppRoute.Browse({
+              search: Option.some('Tyranno'),
+              sorting: Sorting.Unsorted(),
+              diet: Option.none(),
+              period: Option.none(),
+            }),
         }),
-      }),
+      ),
       expect(placeholder('Search by name…')).toHaveValue('Tyranno'),
     )
   })
@@ -54,15 +57,17 @@ describe('view', () => {
   test('a search with no matches shows the empty-state copy', () => {
     scene(
       { update, view },
-      given({
-        ...browseModel,
-        route: AppRoute.Browse({
-          search: Option.some('zzzNoMatch'),
-          sorting: Sorting.Unsorted(),
-          diet: Option.none(),
-          period: Option.none(),
+      given(
+        modifyFields(browseModel, {
+          route: () =>
+            AppRoute.Browse({
+              search: Option.some('zzzNoMatch'),
+              sorting: Sorting.Unsorted(),
+              diet: Option.none(),
+              period: Option.none(),
+            }),
         }),
-      }),
+      ),
       expect(text('No dinosaurs match your filters.')).toExist(),
     )
   })
@@ -70,10 +75,11 @@ describe('view', () => {
   test('NotFound shows a friendly 404 and a back link', () => {
     scene(
       { update, view },
-      given({
-        ...browseModel,
-        route: AppRoute.NotFound({ path: '/oops' }),
-      }),
+      given(
+        modifyFields(browseModel, {
+          route: () => AppRoute.NotFound({ path: '/oops' }),
+        }),
+      ),
       expect(role('heading', { name: '404 — Page Not Found' })).toExist(),
       expect(text('The path "/oops" was not found.')).toExist(),
       expect(role('link', { name: '← Back to Dinosaur Explorer' })).toExist(),

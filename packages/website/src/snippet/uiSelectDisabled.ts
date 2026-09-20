@@ -9,6 +9,7 @@ const view = (h: HtmlBuilder<Message>) =>
     {
       id: 'country-disabled',
       isDisabled: true,
+      hasDescription: true,
       value: 'us',
       toView: attributes =>
         h.div(

@@ -45,7 +45,7 @@ Checkbox is headless. Your `toView` callback controls all markup and styling. Us
 
 ## Accessibility
 
-The checkbox element receives `role="checkbox"` and `aria-checked` which is set to `"true"`, `"false"`, or `"mixed"` depending on the checked and indeterminate state. The label is linked via `aria-labelledby` and the description via `aria-describedby`.
+The checkbox element receives `role="checkbox"` and `aria-checked` which is set to `"true"`, `"false"`, or `"mixed"` depending on the checked and indeterminate state. The label is linked via `aria-labelledby`. Set `hasDescription: true` when a description is rendered to link it through `aria-describedby`; leaving the option false prevents a dangling reference.
 
 The `label` attribute group includes an id (accessible via `Checkbox.labelId(id)`) and the `description` group includes an id (accessible via `Checkbox.descriptionId(id)`), so a consumer can reference either element without re-declaring the naming convention.
 
@@ -74,6 +74,7 @@ Configuration object passed to `Checkbox.view()`.
 | `isDisabled`      | `boolean`                                  | `false` | Whether the checkbox is disabled.                                                                                                      |
 | `isReadOnly`      | `boolean`                                  | `false` | Whether the checkbox is readable but not toggleable. Carries `aria-readonly` rather than `aria-disabled`. Independent of `isDisabled`. |
 | `isIndeterminate` | `boolean`                                  | `false` | Whether to show the indeterminate (mixed) state. Useful for "select all" checkboxes where some but not all children are checked.       |
+| `hasDescription`  | `boolean`                                  | `false` | Whether the checkbox renders a description. Adds `aria-describedby` when true.                                                         |
 | `name`            | `string`                                   | —       | Form field name. When provided, a hidden input is included for native form submission.                                                 |
 | `value`           | `string`                                   | `'on'`  | Value sent in the form when checked.                                                                                                   |
 
@@ -85,5 +86,5 @@ Attribute groups provided to the `toView` callback.
 | ------------- | ----------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `checkbox`    | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the checkbox element (typically a `<button>`). Includes role, aria-checked, tabindex, click/keyboard handlers, and `type="button"` so a control inside a form does not submit it. |
 | `label`       | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the label element. Includes an id for aria-labelledby and a click handler that toggles the checkbox.                                                                              |
-| `description` | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto a description element. Includes an id referenced by aria-describedby on the checkbox.                                                                                             |
+| `description` | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto a description element. Includes the id referenced when `hasDescription` is true.                                                                                                  |
 | `hiddenInput` | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto a hidden `<input>` for form submission. Only needed when the name prop is set.                                                                                                    |

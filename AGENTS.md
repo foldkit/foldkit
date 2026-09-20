@@ -18,7 +18,8 @@ Read those when a rule needs context.
 - In prose, capitalize architecture types: Model, Message, Command, Subscription, Mount, ManagedResource, CustomElement, Submodel, OutMessage. Keep lowercase for plain functions: view, update, init.
 - Always use Schema types (not plain TypeScript types), full names like `Message` (not `Msg`), and `withReturnType` (not `as const` or type casting).
 - Foldkit is tightly coupled to Effect-TS. Do not suggest solutions outside the Effect ecosystem. Check existing features in `create-foldkit-app` before suggesting new ones.
-- Push back on any direction that violates Elm Architecture principles: unidirectional data flow, Messages as facts, Model as single source of truth, side effects confined to Commands. Flag the issue and propose the idiomatic Foldkit approach.
+- Push back on any direction that violates Elm Architecture principles: unidirectional data flow, Messages as facts, Model as single source of truth, side effects confined to Commands. Flag the issue and propose the Foldkit approach that preserves those principles.
+- Run TypeScript scripts with `node` directly, as in `node scripts/check-peer-floors.ts`. Every Node version in `engines` strips types, so the workspace has no `tsx`, `vite-node`, or other loader, and none may be added. Node resolves imports literally: write the extension the file has, and reach package code through its built entry rather than its source. A script whose module graph needs Vite's resolution, such as the website's `openapi` and `prerender`, is bundled with `vite build --ssr` first and the bundle runs under `node`. `erasableSyntaxOnly` in the base tsconfig keeps every source within what Node can strip.
 
 ## Exemplar Files
 
@@ -32,7 +33,7 @@ The principles below apply broadly. Calibrate to the right context: library desi
 ## Naming
 
 - Messages are verb-first, past-tense facts: `SubmittedUsernameForm`, `CreatedRoom`, `PressedKey`. Verb prefixes: `Clicked*`, `Updated*`, `Succeeded*`/`Failed*` (when failure is meaningful), `Completed*` (every other Command result), `Got*` (child Submodel results only).
-- Never name a Message `NoOp`. This is a rule about the name, not about the behavior: a Message whose update handler changes nothing is fine and often necessary, and it gets a descriptive name stating the fact like any other. For example: `IgnoredMouseClick`, `SuppressedSpaceScroll`. Reaching for a Message so an interaction stays visible to update is the idiomatic move, not something to design around. `Completed*` mirrors the Command name verb-first: `LockScroll` produces `CompletedLockScroll`.
+- Never name a Message `NoOp`. This is a rule about the name, not about the behavior: a Message whose update handler changes nothing is fine and often necessary, and it gets a descriptive name stating the fact like any other. For example: `IgnoredMouseClick`, `SuppressedSpaceScroll`. Dispatch the Message even when update leaves the Model unchanged. `Completed*` mirrors the Command name verb-first: `LockScroll` produces `CompletedLockScroll`.
 - A Command's result Message is named from the Command, not from the fact it reports, and that holds whether or not it carries a payload: `DetermineStartTime` produces `CompletedDetermineStartTime`, never `DeterminedStartTime`. The one exception is a Message with more than one cause, such as `EndedAnimation`, which both `WaitForAnimationSettled` and each component's `DetectMovementOrAnimationEnd` race produce. Name that for the fact.
 - Commands are verb-first imperatives: `FetchWeather`, `FocusButton`, `LockScroll`. Name the effect the Command's execute body performs, not the later Model transition caused when update handles its result. A timer that only waits before update starts a dismissal is `WaitBeforeDismissal`, not `DismissAfter`.
 - Mount Definitions are verb-first imperatives like Commands: `AnchorPopover`, `PortalPopoverBackdrop`, `SyncSidebarScroll`. Result Messages follow the standard Message convention.
@@ -76,7 +77,7 @@ The principles below apply broadly. Calibrate to the right context: library desi
 
 Match the implementation style to the subsystem and the behavior being modeled. Do not homogenize the repository around a preferred abstraction. Use pure transformations for deterministic data work; direct imperative code when DOM identity, lifecycle ordering, browser behavior, or host timing are observable; and Effect when interruption, resources, services, typed failure, or composition justify it. Preserve deliberate non-Effect code, and do not introduce or remove Effect solely for stylistic consistency. When styles mix, keep the boundary explicit and follow the surrounding module and exemplar code.
 
-- Use `Message.match<Update.Return<Model, Message>>` or a reused `UpdateReturn` alias for exhaustive Message matching. Match a `defineTaggedUnion` or `defineRouteUnion` value exhaustively through the union's own `match`, passing the return type as the first generic when the branches need constraining: `UrlRequest.match<UpdateReturn>(request, { ... })`. When the input structurally refines the Schema-backed union, pass that input type as the second generic so the handlers retain its narrower payloads. Factory unions ship a module-level `match` instead (`AsyncData.match`, `FieldValidation.match`); use it the same way, and always through the module namespace. A bare `match` import loses the union it belongs to at the call site. Use Effect `Match` for partial matching, fallbacks, one handler shared across multiple tags, values narrowed to a subset of a union's variants, and unions with no `match` at all, such as the hand-assembled `taggedStruct` unions of the markdown AST. For exhaustive Effect matches, prefer `Match.tagsExhaustive({ ... })` over `Match.tag(...)` chains. Never use `switch`.
+- Use `Message.match<Update.Return<Model, Message>>` or a reused `UpdateReturn` alias for exhaustive Message matching. Match a `defineTaggedUnion` or `defineRouteUnion` value exhaustively through the union's own `match`, passing the return type as the first generic when the branches need constraining: `UrlRequest.match<UpdateReturn>(request, { ... })`. Use that union's `matchOrElse` when selected variants need individual handlers and the rest share a fallback. When the input structurally refines the Schema-backed union, pass that input type as the second generic so the handlers retain its narrower payloads. Factory unions ship a module-level `match` instead (`AsyncData.match`, `FieldValidation.match`); use it the same way, and always through the module namespace. A bare `match` import loses the union it belongs to at the call site. Use Effect `Match` for partial Message matching, one handler shared across multiple tags, values narrowed to a subset of a union's variants, and unions with no matcher at all, such as the hand-assembled `taggedStruct` unions of the markdown AST. For exhaustive Effect matches, prefer `Match.tagsExhaustive({ ... })` over `Match.tag(...)` chains. Never use `switch`.
 - Use `pipe` when the value being transformed should remain the subject of clear left-to-right data flow. A single transformation is valid when that order carries meaning, as in `pipe(dialogClose, Update.withOutMessage(outMessage))`. Call the function directly when `pipe` only rearranges an ordinary call.
 - In multi-line `pipe` chains, put the data being piped on its own line.
 - Use Effect module functions over native methods in pipes (`Array.map`, `String.includes`, `String.indexOf`, etc.). Native methods are fine when calling directly on a named variable.
@@ -91,7 +92,7 @@ Match the implementation style to the subsystem and the behavior being modeled. 
   owning namespace at every call site: `Message.ClickedSubmit()` and
   `OutMessage.SucceededLogin({ user })`.
 - In a `defineMessageUnion()` case record, keep each payload object on one line
-  when it fits. Let Prettier wrap payloads that need more space.
+  when it fits. Let Oxfmt wrap payloads that need more space.
 - Capitalize Schema literal strings: `Schema.Literals(['Horizontal', 'Vertical'])`.
 - Capitalize namespace imports: `import * as Command from './command'`.
 - Use `const`. Only use `let` when mutation is truly unavoidable. Always brace control flow.
@@ -100,10 +101,10 @@ Match the implementation style to the subsystem and the behavior being modeled. 
 - Never use nested ternaries. Use `Match.value`, an `if`/`else` chain, or a named helper.
 - Prefer explicit `if`/`else` when both branches return. Early-return reads as "A is exceptional, B is the default"; reserve it for true guards.
 - Use `Readonly<{...}>` over per-property `readonly` for inline object types.
-- Constrain branch returns at the match boundary: the return-type generic on a union `match` (`UrlRequest.match<UpdateReturn>(request, { ... })`), or `Match.withReturnType<...>()` (or `Match.withReturnType` when imported under its full module name) on an Effect `Match`. This includes tuple literals nested inside Effect or Option constructors. Never use `as const` inside branches to recover tuple or literal inference.
-- Don't add type annotations or `as const` to callbacks whose return type is constrained by the outer API (e.g. evo callbacks, `Option.match`, `Match.tagsExhaustive`). Let inference work.
-- Pass `evo` field transformers point-free when the update depends only on that field's current value: `entries: Array.map(toRow)`, `currentStep: toNextStep`, `priceSlider: Slider.reflectRange(range)`. Use `() => value` when replacing a field with a Message payload, a child update result, a Command result, or a value derived from another field.
-- Tests follow the same Model evolution convention as application code. Use `evo` when deriving a next Model from an existing Model. Object literals and spread remain valid when constructing fresh fixtures and non-Model values.
+- Constrain branch returns at the match boundary: the return-type generic on a union `match` or `matchOrElse` (`UrlRequest.match<UpdateReturn>(request, { ... })`), or `Match.withReturnType<...>()` (or `Match.withReturnType` when imported under its full module name) on an Effect `Match`. This includes tuple literals nested inside Effect or Option constructors. Never use `as const` inside branches to recover tuple or literal inference.
+- Don't add type annotations or `as const` to callbacks whose return type is constrained by the outer API (e.g. modifyFields callbacks, `Option.match`, `Match.tagsExhaustive`). Let inference work.
+- Pass `modifyFields` field transformers point-free when the update depends only on that field's current value: `entries: Array.map(toRow)`, `currentStep: toNextStep`, `priceSlider: Slider.reflectRange(range)`. Use `() => value` when replacing a field with a Message payload, a child update result, a Command result, or a value derived from another field.
+- Tests follow the same Model evolution convention as application code. Use `modifyFields` when deriving a next Model from an existing Model. Object literals and spread remain valid when constructing fresh fixtures and non-Model values.
 - `Effect.acquireRelease` registers the release only after the acquire body completes. Construct the resource inside the acquire Effect, never before it. Anything else leaks on interruption.
 
 ## Comments
@@ -113,6 +114,13 @@ Don't add inline or block comments to explain code. If code needs explanation, r
 - Section headers: `// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// VIEW`, `// COMMAND`, and short descriptive headers for sections outside that set (`// SHARED STYLES`, `// TABLE OF CONTENTS`).
 - TSDoc (`/** ... */`) on all public exports of a published package (`packages/*`). An `export const` in `examples/` is module wiring so `entry.ts` and scene tests can import it, not public API, and takes a `// NOTE:` like any other explanatory comment.
 - `// NOTE:` comments, with a high bar. Only for behavior that would mislead a careful reader (timing dependency, upstream bug workaround, browser quirk). Not for normal patterns, state machine shapes, framework idioms, or what a function does.
+- The first source comment in a bad or good documentation snippet, marked with ❌ or ✅ using the language's comment syntax.
+
+## Documentation Snippets
+
+- Never put executable or copyable source examples directly in website Markdown. Put each example in `packages/website/src/snippet/` and render it with `::Snippet` so it has one source file. Fenced blocks remain valid for diagrams and literal output that readers do not copy as source.
+- Changesets cannot render website islands, so fenced source examples with a language identifier are appropriate there.
+- Preserve published blog posts, release announcements, and their dedicated snippets as historical records. Do not update them to reflect later API changes; put current usage and migration guidance in active docs and changesets.
 
 ## View Architecture
 
@@ -196,11 +204,21 @@ A gate you just wrote is not evidence until you have watched it fail. Break the 
 
 ## Workspace Setup Errors Are Not Pre-Existing
 
-If `pnpm typecheck`, `pnpm lint`, `pnpm build`, or the pre-push hook surfaces errors like `Cannot find module 'foldkit'`, `Cannot find module 'foldkit/html'`, or unexpected `Property X does not exist` against an Effect API, the workspace itself is out of sync. These are not pre-existing branch failures. Run `bash scripts/cloud-session-setup.sh` to reconcile. The SessionStart hook runs this automatically, so it's only relevant if dependencies drift mid-session.
+If `pnpm typecheck`, `pnpm lint`, `pnpm build`, or the pre-push hook surfaces errors like `Cannot find module 'foldkit'`, `Cannot find module 'foldkit/html'`, or unexpected `Property X does not exist` against an Effect API, the workspace itself is out of sync. These are not pre-existing branch failures. Run `bash scripts/cloud-session-setup.sh` to reconcile. The SessionStart hook runs this automatically in Claude Code cloud sessions. Locally it is a no-op, because the install and rebuild race with `pnpm dev:libs`.
 
 ## GitHub CLI Authentication
 
 A sandboxed `gh auth status` result is not evidence that the saved GitHub credential is invalid. The sandbox may block the GitHub API request and `gh` can report that failure as an invalid token. When GitHub authentication matters, rerun `gh auth status` with network access, requesting escalation when the environment requires it. Apply the same retry to an important `gh` command that fails with a likely sandbox or network error. Only ask the user to run `gh auth login` after the network-enabled check also fails.
+
+## Adding Example Apps
+
+New apps in `examples/` need a few explicit registrations. The workspace, website builds, and E2E planner discover the rest.
+
+- Create `examples/<slug>/` with a private workspace package name (usually `<slug>-example`), then add `dev:example:<slug>` to the root `package.json`.
+- Add the slug and its metadata to `packages/website/src/page/example/meta.ts`, and its source loader to `packages/website/src/page/example/sources.ts`. Those entries feed the example page, playground, and website build.
+- Add the private package to `.changeset/config.json`'s ignore list. Add a `knip.json` override only for entry points or dependencies the normal example rule does not cover.
+- Add `packages/examples-e2e/e2e/<slug>.spec.ts`. The default Playwright command runs Vite for the slug; add a special case in `packages/examples-e2e/playwright.config.ts` only when the app needs another command.
+- Check any special worker, dependency pin, or build requirements before adding CI configuration. The root README lists selected examples, not every app, so update it when the new example belongs in that introduction.
 
 ## Debugging Example Apps
 
@@ -217,15 +235,19 @@ No em dashes in prose. You compulsively reach for `—` as a substitute for a pe
 
 Never describe our own writing as honest ("an honest note", "an honest ledger", "honestly"). We are honest by default; labeling it reads as a tell and implies the rest is less honest. Delete the label and say the thing plainly. Applies everywhere: docs, page metadata, commit messages, conversation.
 
-Explain a thing the way you would say it out loud to another person. You write a clear explanation in conversation and then translate it into something worse for the docs: the mechanism described from inside itself, an abstraction where the conversation had an example, and the point buried at the end of a long sentence. The conversational version was the good one. Write that down instead. `.agents/writing-prose.md` has worked examples for these rules, all of them real.
+Explain a thing the way you would say it out loud to another person. You write a clear explanation in conversation and then translate it into something worse for the docs: the mechanism described from inside itself, an abstraction where the conversation had an example, and the point buried at the end of a long sentence. The conversational version was the good one. Write that down instead. `.agents/writing-prose.md` has worked examples for these rules, all of them real. Read it before writing or substantially revising public documentation.
 
 - Lead with the claim, not the machinery. A reader who stops after two sentences should still have the model.
+- Write for a reader who begins at the current heading. Introduce the scenario and its nouns before drawing a conclusion. Do not rely on context from an issue, pull request, or conversation.
 - Describe runtime behavior before type assignability. Say what an operation does before explaining which generic return type accepts its result.
+- Give architecture types accurate agency. A Message records a fact, update decides how the Model changes, and a Command describes work for the Runtime to perform. Do not write that a Message "requires", "runs", or "performs" work.
 - Say what happens to a person. Not "the comparison is off", which describes the system's internal state and leaves the reader to work out the consequence.
 - A failure should read as bad news. If your description of the broken case could be mistaken for reassurance, it will be.
+- State the behavior or consequence directly. Words such as "works", "fails", "correct", "idiomatic", and "the intended way" are verdicts, not explanations. If you use a verdict, immediately say what the code does or what the reader must do.
 - Name the thing you are pointing at. When a demonstrative ("that ordering", "this check") reaches back more than a sentence, repeat the noun.
 - Use the specific name when one exists. If the implementation names three attributes, the prose names them too.
 - One concrete example beats three abstract clauses.
+- Signal an example before presenting it. A reader should not have to infer that several claims illustrate a larger rule. If the examples need different setup, put them in their own sections instead of compressing them into one sentence.
 - Say when you are describing a scenario. "Imagine", "Say", or "Picture", rather than hanging a hypothetical off a colon.
 - Short sentences carry the turns. Pivot a paragraph on a short flat one.
 - Do not assert that something matters. "That is the whole point", "is what makes it worth anything" claim importance instead of delivering it.
@@ -237,6 +259,7 @@ Explain a thing the way you would say it out loud to another person. You write a
 - Headings are labels, not claims. You reach for a pithy parallel ("One model, two levels", "One application using both") because it sounds like insight, but a heading's job is navigation. Name the topic plainly. If it would work as a talk title, it is wrong for a sidebar.
 - Read each artifact the way a reader meets it: headings alone, callouts without the paragraph above them, bullets without their siblings. Prose that reads fine in place loses its antecedent in isolation, and that is where most surviving problems are.
 - Cut trailing appositives that restate rather than advance.
+- Give every code-focused anti-pattern section dedicated bad and good snippets. Mark the bad label with ❌ and the good label with ✅. When a snippet format supports comments, repeat the marker in its first source comment using that language's syntax. For a commentless format such as JSON, use the rendered label alone. If a shared snippet cannot explain its role in the current section, make a page-specific copy with the right example and label.
 
 The test is whether you would say the sentence to a colleague at a whiteboard. If you would not, it is jargon or hedging, and the version you would say is the one to write. That catches word choice too: "three rules govern the value" is stiffer than anything anyone says out loud, where it would be "three things have to be true". Idioms fail from the other side, since "has the most miles" reads fine and does not survive translation.
 

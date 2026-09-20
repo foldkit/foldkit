@@ -25,7 +25,7 @@
         "src/html/public.ts",
         "src/devTools/public.ts",
         "src/devTools/host.ts",
-        "src/runtime/hmrProtocolPublic.ts",
+        "src/runtime/modelPreservationPublic.ts",
         "src/scene/public.ts",
         "src/story/public.ts",
         "src/test/public.ts",
@@ -74,51 +74,39 @@
       "ignore": ["test/integration/fixtures/**"]
     },
     "examples/*": {
-      "ignoreDependencies": [
-        "@foldkit/devtools",
-        "@trivago/prettier-plugin-sort-imports",
-        "prettier",
-        "tailwindcss"
-      ]
+      "ignoreDependencies": ["@foldkit/devtools", "tailwindcss"]
     },
     "examples/charting": {
       "entry": [],
+      "ignoreDependencies": ["@foldkit/devtools", "tailwindcss"]
+    },
+    "examples/livestore": {
+      "ignoreFiles": ["vite.config.playground.ts"],
       "ignoreDependencies": [
         "@foldkit/devtools",
-        "@trivago/prettier-plugin-sort-imports",
-        "prettier",
+        "@livestore/peer-deps",
+        "@livestore/wa-sqlite",
         "tailwindcss"
       ]
     },
     "examples/ssr": {
-      "entry": ["server/main.ts", "src/entry.server.ts"],
+      "entry": ["src/entry.server.ts"],
       "ignoreFiles": ["vite.config.playground.ts"],
       "ignoreDependencies": [
+        "@effect/platform-node-shared",
         "@foldkit/devtools",
-        "@trivago/prettier-plugin-sort-imports",
-        "prettier",
         "tailwindcss"
       ]
     },
     "examples/ssg": {
       "entry": ["src/entry.server.ts"],
       "ignoreFiles": ["vite.config.playground.ts"],
-      "ignoreDependencies": [
-        "@foldkit/devtools",
-        "@trivago/prettier-plugin-sort-imports",
-        "prettier",
-        "tailwindcss"
-      ]
+      "ignoreDependencies": ["@foldkit/devtools", "tailwindcss"]
     },
     "examples/personal-blog": {
       "entry": ["src/**/*.test.ts", "src/vitest-*.ts"],
       "ignoreFiles": ["vite.config.playground.ts"],
-      "ignoreDependencies": [
-        "@foldkit/devtools",
-        "@trivago/prettier-plugin-sort-imports",
-        "prettier",
-        "tailwindcss"
-      ]
+      "ignoreDependencies": ["@foldkit/devtools", "tailwindcss"]
     },
     "comparisons/*": {
       "ignoreDependencies": ["tailwindcss"]
@@ -135,11 +123,6 @@
     }
   },
   "ignore": ["**/*.css", "packages/website/public/**"],
-  "ignoreDependencies": [
-    "@effect/platform-browser",
-    "@foldkit/oxlint-plugin",
-    "tailwindcss",
-    "madge"
-  ],
+  "ignoreDependencies": ["@foldkit/oxlint-plugin", "tailwindcss", "madge"],
   "ignoreBinaries": ["typecheck"]
 }

@@ -5,7 +5,7 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import { type HtmlBuilder, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Listbox } from '@foldkit/ui'
 
@@ -54,7 +54,7 @@ const foldListboxOutMessage = Listbox.OutMessage.match<
   Selected:
     ({ value }) =>
     model => ({
-      model: evo(model, { maybeCharacter: () => Option.some(value) }),
+      model: modifyFields(model, { maybeCharacter: () => Option.some(value) }),
     }),
 })
 
@@ -65,7 +65,8 @@ const foldListboxOutMessage = Listbox.OutMessage.match<
 const foldListbox = Update.foldChild({
   update: CharacterListbox.update,
   read: (model: Model) => Option.some(model.listbox),
-  write: (model, nextListbox) => evo(model, { listbox: () => nextListbox }),
+  write: (model, nextListbox) =>
+    modifyFields(model, { listbox: () => nextListbox }),
   toParentMessage: message => Message.GotListboxMessage({ message }),
   foldOutMessage: foldListboxOutMessage,
 })

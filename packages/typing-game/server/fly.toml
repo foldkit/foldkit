@@ -2,21 +2,21 @@ app = "foldkit-typing-game"
 primary_region = "sjc"
 
 [build]
-  dockerfile = "Dockerfile"
-  context = "../../.."
+dockerfile = "Dockerfile"
+context = "../../.."
 
 [env]
-  PORT = "3001"
-  NODE_ENV = "production"
+PORT = "3001"
+NODE_ENV = "production"
 
 [http_service]
-  internal_port = 3001
-  force_https = true
-  auto_stop_machines = false
-  auto_start_machines = true
-  min_machines_running = 1
+internal_port = 3001
+force_https = true
+auto_stop_machines = false
+auto_start_machines = true
+min_machines_running = 1
 
 [[vm]]
-  memory = '256mb'
-  cpu_kind = 'shared'
-  cpus = 1
+memory = '256mb'
+cpu_kind = 'shared'
+cpus = 1

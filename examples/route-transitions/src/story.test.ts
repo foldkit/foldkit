@@ -1,6 +1,6 @@
 import { Array, Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
@@ -81,7 +81,11 @@ describe('update', () => {
   test('re-entering the gallery while a catalog load is in flight does not fire another', () => {
     story(
       update,
-      given(evo(modelOn(AppRoute.Home()), { catalogStatus: () => 'Loading' })),
+      given(
+        modifyFields(modelOn(AppRoute.Home()), {
+          catalogStatus: () => 'Loading',
+        }),
+      ),
       message(
         Message.ChangedUrl({ url: urlOrThrow('http://localhost/gallery') }),
       ),
@@ -121,7 +125,7 @@ describe('update', () => {
     story(
       update,
       given(
-        evo(modelOn(AppRoute.Painting({ paintingId: 1 })), {
+        modifyFields(modelOn(AppRoute.Painting({ paintingId: 1 })), {
           paintingStatus: () => PaintingStatus.Ready({ paintingId: 1 }),
         }),
       ),
@@ -153,7 +157,7 @@ describe('update', () => {
     story(
       update,
       given(
-        evo(modelOn(AppRoute.Painting({ paintingId: 1 })), {
+        modifyFields(modelOn(AppRoute.Painting({ paintingId: 1 })), {
           paintingStatus: () => PaintingStatus.Ready({ paintingId: 1 }),
         }),
       ),
@@ -173,7 +177,7 @@ describe('update', () => {
     story(
       update,
       given(
-        evo(modelOn(AppRoute.Painting({ paintingId: 2 })), {
+        modifyFields(modelOn(AppRoute.Painting({ paintingId: 2 })), {
           paintingStatus: () => PaintingStatus.Loading({ paintingId: 2 }),
         }),
       ),
@@ -190,7 +194,7 @@ describe('update', () => {
     story(
       update,
       given(
-        evo(modelOn(AppRoute.Studio()), {
+        modifyFields(modelOn(AppRoute.Studio()), {
           studioDraft: () => 'half-finished thought',
         }),
       ),

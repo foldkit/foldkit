@@ -75,31 +75,31 @@ const sectionHeadingConfig = {
     textClassName:
       'font-heading font-book text-2xl md:text-3xl leading-snug tracking-tight text-gray-900 dark:text-white scroll-mt-6',
     wrapperClassName:
-      'group flex items-center gap-1 md:hover-capable:gap-0 mt-12 mb-4 [h1+&]:mt-8 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
+      'group flex items-center gap-1 md:hover-capable:gap-0 mt-16 mb-4 [h1+&]:mt-12 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
   },
   h3: {
     textClassName:
       'font-heading font-book text-xl md:text-2xl leading-snug tracking-tight text-gray-900 dark:text-white scroll-mt-6',
     wrapperClassName:
-      'group flex items-center gap-1 md:hover-capable:gap-0 mt-10 mb-3 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
+      'group flex items-center gap-1 md:hover-capable:gap-0 mt-12 mb-3 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
   },
   h4: {
     textClassName:
       'text-base font-mono font-normal text-gray-900 dark:text-white scroll-mt-6',
     wrapperClassName:
-      'group flex items-center gap-1 md:hover-capable:gap-0 mt-8 mb-3 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
+      'group flex items-center gap-1 md:hover-capable:gap-0 mt-10 mb-3 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
   },
   h5: {
     textClassName:
       'text-sm font-mono font-normal text-gray-900 dark:text-white scroll-mt-6',
     wrapperClassName:
-      'group flex items-center gap-1 md:hover-capable:gap-0 mt-6 mb-2 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
+      'group flex items-center gap-1 md:hover-capable:gap-0 mt-8 mb-2 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
   },
   h6: {
     textClassName:
       'text-sm font-mono font-normal text-gray-500 dark:text-gray-400 scroll-mt-6',
     wrapperClassName:
-      'group flex items-center gap-1 md:hover-capable:gap-0 mt-6 mb-2 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
+      'group flex items-center gap-1 md:hover-capable:gap-0 mt-8 mb-2 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
   },
 }
 
@@ -176,7 +176,7 @@ export const infoCallout = (
   ih.div(
     [
       ih.Class(
-        'border border-gray-300 dark:border-gray-700 bg-gray-200/40 dark:bg-gray-800/40 py-3.5 px-5 mb-6 rounded-lg',
+        'border border-gray-200 dark:border-gray-800 bg-gray-200/40 dark:bg-gray-800/40 py-3.5 px-5 mb-6 rounded-lg',
       ),
     ],
     [
@@ -235,7 +235,11 @@ const calloutBlocks = (
   }>,
 ): Html =>
   ih.div(
-    [ih.Class(`border ${config.borderClassName} py-3.5 px-5 mb-6 rounded-lg`)],
+    [
+      ih.Class(
+        `border ${config.borderClassName} py-3.5 px-5 mt-8 mb-6 rounded-lg`,
+      ),
+    ],
     [
       ih.p(
         [
@@ -266,7 +270,7 @@ export const infoCalloutBlocks = (
 ): Html =>
   calloutBlocks({
     borderClassName:
-      'border-gray-300 dark:border-gray-700 bg-gray-200/40 dark:bg-gray-800/40',
+      'border-gray-200 dark:border-gray-800 bg-gray-200/40 dark:bg-gray-800/40',
     labelClassName: 'text-gray-800 dark:text-gray-200',
     icon: Icon.informationCircle('w-5 h-5 shrink-0'),
     label,

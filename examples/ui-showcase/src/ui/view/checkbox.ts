@@ -38,6 +38,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
           {
             id: CHECKBOX_BASIC_DEMO_ID,
             isChecked: model.isCheckboxBasicDemoChecked,
+            hasDescription: true,
             onToggle: isChecked =>
               UiMessage.ToggledCheckboxBasicDemo({ isChecked }),
             toView: attributes =>

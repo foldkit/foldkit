@@ -8,6 +8,7 @@ const view = (model: Model, h: HtmlBuilder<Message>) =>
   Textarea.view(
     {
       id: 'bio',
+      hasDescription: true,
       value: model.bio, // your Model field
       onInput: value => UpdatedBio({ value }), // your Message
       placeholder: 'Tell us about yourself...',

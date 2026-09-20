@@ -31,6 +31,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
               {
                 id: 'textarea-basic-demo',
                 value: model.textareaDemoValue,
+                hasDescription: true,
                 onInput: value => UiMessage.UpdatedTextareaDemoValue({ value }),
                 placeholder: 'Tell us about yourself...',
                 rows: 4,
@@ -69,6 +70,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
           {
             id: 'textarea-disabled-demo',
             isDisabled: true,
+            hasDescription: true,
             value:
               "Mathematician and writer, known for work on Charles Babbage's Analytical Engine.",
             rows: 3,

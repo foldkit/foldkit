@@ -1,6 +1,6 @@
 # @foldkit/vite-plugin
 
-Vite plugin for Foldkit: view identity branding for the differ, plus hot module reloading with Model preservation.
+Vite plugin for Foldkit: view identity branding for the differ, plus state-preserving live reload.
 
 ## Installation
 
@@ -34,7 +34,7 @@ This plugin supplies that identity. At build time, in dev and production alike, 
 
 Foldkit core modules are never instrumented, and functions that never return vnodes are wrapped inertly. Builds without this plugin fall back to positional matching plus keys, where branch points need hand-written keys.
 
-## Hot module reloading
+## State-preserving live reload
 
 When you save a file during development, the plugin:
 
@@ -51,7 +51,7 @@ The plugin uses Vite's WebSocket connection to communicate between the dev serve
 - **On file change**: The browser sends the current Model to the Vite server for preservation.
 - **On reload**: The browser requests the preserved Model from the server and initializes the Foldkit Runtime with it.
 
-The Model survives hot reloads but clears on a manual browser refresh, so a refresh still resets the application.
+The Model survives development reloads but clears on a manual browser refresh, so a refresh still resets the application.
 
 ## Server rendering dev host
 

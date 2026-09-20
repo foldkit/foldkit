@@ -33,7 +33,7 @@ const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const subscriptions = Subscription.aggregate<Model, Message>()(
+export const subscriptions = Subscription.aggregate(
   settingsSubscriptions,
   localSubscriptions,
 )

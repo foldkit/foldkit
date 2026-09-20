@@ -73,7 +73,7 @@ describe('Popover', () => {
         { update, view: sceneView() },
         Scene.given(closedModel),
         Scene.expect(button).toHaveAttr('aria-expanded', 'false'),
-        Scene.expect(button).toHaveAttr('aria-controls', 'test-panel'),
+        Scene.expect(button).not.toHaveAttr('aria-controls'),
       )
     })
 
@@ -82,6 +82,7 @@ describe('Popover', () => {
         { update, view: sceneView() },
         Scene.given(openPopover.model),
         Scene.expect(button).toHaveAttr('aria-expanded', 'true'),
+        Scene.expect(button).toHaveAttr('aria-controls', 'test-panel'),
         acknowledgeAnchor,
         acknowledgeBackdrop,
       )

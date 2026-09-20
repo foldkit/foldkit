@@ -239,11 +239,15 @@ const writeConsumerProject = (
   const exampleManifest = readJson<Manifest>(
     join(REPO_ROOT, 'examples/ssr/package.json'),
   )
+  const platformBrowserVersion =
+    foldkitManifest.peerDependencies?.['@effect/platform-browser']
   const effectVersion = foldkitManifest.peerDependencies?.['effect']
   const viteVersion = exampleManifest.devDependencies?.['vite']
   assertConsumer(
-    effectVersion !== undefined && viteVersion !== undefined,
-    'could not read the effect and vite versions the consumer must install',
+    platformBrowserVersion !== undefined &&
+      effectVersion !== undefined &&
+      viteVersion !== undefined,
+    'could not read the platform-browser, effect, and vite versions the consumer must install',
   )
 
   writeFileSync(
@@ -256,6 +260,7 @@ const writeConsumerProject = (
         type: 'module',
         scripts: { build: 'vite build' },
         dependencies: {
+          '@effect/platform-browser': platformBrowserVersion,
           effect: effectVersion,
           foldkit: `file:${foldkitTarball}`,
         },
@@ -314,7 +319,7 @@ const importSpecifiers = (source: string): ReadonlyArray<string> =>
 const FOLDKIT_INTERNAL_MARKER = 'data-foldkit-build'
 
 const assertServerBundleExternalizesFoldkit = (buildDir: string): void => {
-  const bundle = readFileSync(join(buildDir, 'server/entry.server.js'), 'utf8')
+  const bundle = readFileSync(join(buildDir, 'server/fetch.js'), 'utf8')
   const foldkitImports = importSpecifiers(bundle).filter(
     specifier => specifier === 'foldkit' || specifier.startsWith('foldkit/'),
   )
@@ -424,14 +429,14 @@ const assertClientCarriesBuildId = (
 // THE SERVED PAGES
 
 type ServerEntry = Readonly<{
+  default: Readonly<{ fetch: (request: Request) => Promise<Response> }>
   buildId?: string
-  renderHtml: (template: string) => Promise<string>
   renderWithoutBuildIdTag: () => Promise<string>
 }>
 
 const loadServerEntry = async (buildDir: string): Promise<ServerEntry> => {
   const entry: ServerEntry = await import(
-    pathToFileURL(join(buildDir, 'server/entry.server.js')).href
+    pathToFileURL(join(buildDir, 'server/fetch.js')).href
   )
   return entry
 }
@@ -1465,16 +1470,42 @@ const main = async (): Promise<void> => {
           'define, so the entry must read it and pass it explicitly.',
       )
 
-      const templateOf = (buildDir: string): string =>
-        readFileSync(join(buildDir, 'client/index.html'), 'utf8')
+      const currentEntry = await loadServerEntry(currentDir)
 
-      // The page a visitor already had open: rendered and stamped by the
-      // deployment that served it, then met by the client bundle of the
-      // deployment now live. The template it is injected into is the live one,
-      // so its script tag loads the live client.
-      const same = await servedEntry.renderHtml(templateOf(servedDir))
+      const pageOf = async (entry: ServerEntry): Promise<string> => {
+        const response = await entry.default.fetch(new Request(`${ORIGIN}/`))
+        assertConsumer(
+          response.status === 200,
+          `the server bundle answered "/" with ${response.status}, not a page.`,
+        )
+        return response.text()
+      }
+
+      const clientScript = (page: string, buildDir: string): string => {
+        const script = /<script type="module"[^>]*\ssrc="[^"]+"[^>]*><\/script>/
+        const match = script.exec(page)?.[0]
+        assertConsumer(
+          match !== undefined,
+          `the page rendered by ${buildDir} carries no module script, so ` +
+            'there is no client to hand the page to.',
+        )
+        return match
+      }
+
+      // NOTE: the stale page keeps the served build's stylesheets and
+      // modulepreloads. Swapping only its module script tests whether the
+      // current client refuses the served build id.
+      const same = await pageOf(servedEntry)
       const csp = same
-      const stale = await servedEntry.renderHtml(templateOf(currentDir))
+      const stale = same.replace(
+        clientScript(same, servedDir),
+        clientScript(await pageOf(currentEntry), currentDir),
+      )
+      assertConsumer(
+        stale !== same,
+        'the served and current builds name the same module script, so the ' +
+          'stale-client pages below would not be testing anything.',
+      )
 
       // The same page, damaged in each of the ways a handoff can fail. The
       // build id still matches, so what refuses is the handoff itself.

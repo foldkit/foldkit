@@ -13,7 +13,7 @@
 <h3 align="center">The frontend framework for correctness.</h3>
 
 <p align="center">
-  <a href="https://foldkit.dev"><strong>Documentation</strong></a> · <a href="https://foldkit.dev/get-started/why-foldkit"><strong>Why Foldkit</strong></a> · <a href="https://foldkit.dev/example-apps"><strong>Examples</strong></a> · <a href="https://foldkit.dev/get-started/getting-started"><strong>Getting Started</strong></a> · <a href="https://discord.gg/kav8VNxqGm"><strong>Discord</strong></a>
+  <a href="https://foldkit.dev"><strong>Documentation</strong></a> · <a href="https://foldkit.dev/introduction/why-foldkit"><strong>Why Foldkit</strong></a> · <a href="https://foldkit.dev/example-apps"><strong>Examples</strong></a> · <a href="https://foldkit.dev/get-started"><strong>Get Started</strong></a> · <a href="https://discord.gg/kav8VNxqGm"><strong>Discord</strong></a>
 </p>
 
 ---
@@ -29,7 +29,7 @@ A Foldkit program can own the whole page or run as a widget inside an existing a
 
 ## Get Started
 
-`create-foldkit-app` scaffolds a complete setup with Tailwind, TypeScript, [Oxlint](https://foldkit.dev/tooling/oxlint-plugin), Prettier, and the Vite plugin for state-preserving HMR. Pick a rendering mode (browser-only SPA, static generation, or server rendering) and, for a SPA, the example to start from.
+`create-foldkit-app` scaffolds a complete setup with Tailwind, TypeScript, [Oxlint](https://foldkit.dev/tooling/oxlint-plugin), Oxfmt, and the Vite plugin for state-preserving live reload. Pick a rendering mode (browser-only SPA, static generation, or server rendering) and, for a SPA, the example to start from.
 
 ```bash
 npx create-foldkit-app@latest
@@ -45,7 +45,7 @@ import { Schema } from 'effect'
 import { Runtime, Update } from 'foldkit'
 import { Document, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 // MODEL
 
@@ -66,12 +66,12 @@ export type Message = typeof Message.Type
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedDecrement: () => ({
-      model: evo(model, { count: count => count - 1 }),
+      model: modifyFields(model, { count: count => count - 1 }),
     }),
     ClickedIncrement: () => ({
-      model: evo(model, { count: count => count + 1 }),
+      model: modifyFields(model, { count: count => count + 1 }),
     }),
-    ClickedReset: () => ({ model: evo(model, { count: () => 0 }) }),
+    ClickedReset: () => ({ model: modifyFields(model, { count: () => 0 }) }),
   })
 
 // INIT
@@ -137,7 +137,7 @@ Routing, server rendering, UI components, composition, and browser lifecycles al
 - **Story Testing**: Exercise the update function directly, resolving Commands inline. No mocks, no fake timers.
 - **Scene Testing**: Drive your real view the way a user does, with accessible locators. No browser required.
 - **Slow Warnings**: Development warnings when update, view, patch, or Subscription extraction exceeds its budget.
-- **HMR**: Vite plugin with state-preserving hot module replacement. Change your view, keep your state.
+- **Live Reload**: Vite plugin with state-preserving reloads. Save a file, the page reloads, and your Model is restored. Change your view, keep your state.
 
 ## AI-Assisted Development
 

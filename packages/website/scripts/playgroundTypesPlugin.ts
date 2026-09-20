@@ -5,7 +5,7 @@ import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Plugin } from 'vite'
 
-import { exampleSlugs } from '../src/page/example/meta'
+import { exampleSlugs } from '../src/page/example/meta.ts'
 
 const SCRIPT_DIRECTORY = resolve(fileURLToPath(import.meta.url), '..')
 const WEBSITE_ROOT = resolve(SCRIPT_DIRECTORY, '..')

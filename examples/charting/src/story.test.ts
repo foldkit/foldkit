@@ -1,4 +1,5 @@
 import { Command, given, message, model, story } from 'foldkit/story'
+import { modifyFields } from 'foldkit/struct'
 import { expect, test } from 'vitest'
 
 import { RadioGroup } from '@foldkit/ui'
@@ -10,7 +11,7 @@ import {
   chartModes,
   packageIds,
 } from './domain'
-import { loadingModel, readyModel, sampleTelemetry } from './main.fixtures'
+import { loadingModel, readyModel, sampleTelemetry } from './main.fixture'
 import { Message } from './message'
 import { TelemetryAsyncData } from './model'
 import { update } from './update'
@@ -101,10 +102,12 @@ test('refreshing with data keeps the old dashboard while fetching', () => {
 test('a failed refresh preserves stale data in the stale state', () => {
   story(
     update,
-    given({
-      ...readyModel,
-      telemetry: TelemetryAsyncData.Refreshing({ data: sampleTelemetry }),
-    }),
+    given(
+      modifyFields(readyModel, {
+        telemetry: () =>
+          TelemetryAsyncData.Refreshing({ data: sampleTelemetry }),
+      }),
+    ),
     message(Message.FailedFetchTelemetry({ error: 'rate limited' })),
     model(model => {
       expect(model.telemetry._tag).toBe('Stale')

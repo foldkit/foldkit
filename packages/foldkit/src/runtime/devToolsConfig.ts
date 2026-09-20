@@ -5,7 +5,10 @@ import { type Visibility, isVisible } from './visibility.js'
 
 /** Position of the DevTools badge and panel on screen. */
 export type DevToolsPosition =
-  'BottomRight' | 'BottomLeft' | 'TopRight' | 'TopLeft'
+  | 'BottomRight'
+  | 'BottomLeft'
+  | 'TopRight'
+  | 'TopLeft'
 
 /** Controls DevTools interaction mode.
  *
@@ -109,9 +112,9 @@ export type ResolvedDevToolsConfig = Readonly<{
 }>
 
 /** Resolves the DevTools config for this boot, or `Option.none()` when
- *  DevTools is disabled or hidden. `'Development'` visibility requires Vite
- *  HMR and a top-level window, so an app previewed inside an iframe does not
- *  stack a second panel over its host's. */
+ *  DevTools is disabled or hidden. `'Development'` visibility requires Vite's
+ *  dev server and a top-level window, so an app previewed inside an iframe does
+ *  not stack a second panel over its host's. */
 export const resolveDevToolsConfig = (
   devTools: DevToolsConfig | undefined,
 ): Option.Option<ResolvedDevToolsConfig> => {

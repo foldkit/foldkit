@@ -9,6 +9,7 @@ import * as Equal from "../../../Equal.ts"
 import * as Exit from "../../../Exit.ts"
 import * as Fiber from "../../../Fiber.ts"
 import { identity } from "../../../Function.ts"
+import { scopeAddFinalizerUnsafe, scopeRemoveFinalizerUnsafe } from "../../../internal/effect.ts"
 import * as Latch from "../../../Latch.ts"
 import * as Metric from "../../../Metric.ts"
 import * as Option from "../../../Option.ts"
@@ -36,8 +37,9 @@ import type { ShardId } from "../ShardId.ts"
 import type { Sharding } from "../Sharding.ts"
 import { ShardingConfig } from "../ShardingConfig.ts"
 import * as Snowflake from "../Snowflake.ts"
+import { CurrentActivationScope } from "./entityActivation.ts"
 import { EntityReaper } from "./entityReaper.ts"
-import { internalInterruptors } from "./interruptors.ts"
+import { acquireEntity, releaseEntity } from "./interruptors.ts"
 import { ResourceMap } from "./resourceMap.ts"
 import { ResourceRef } from "./resourceRef.ts"
 
@@ -90,6 +92,8 @@ export type EntityState = {
     sentReply: boolean
     lastSentChunk: Option.Option<Reply.Chunk<Rpc.Any>>
     sequence: number
+    /** Set when the request should not outlive its caller. */
+    callerScope?: Scope.Scope | undefined
   }>
   lastActiveCheck: number
   write: RpcServer.RpcServer<any>["write"]
@@ -168,6 +172,13 @@ export const make = Effect.fnUntraced(function*<
       force: Latch.makeUnsafe()
     }
 
+    yield* Scope.addFinalizer(
+      scope,
+      Effect.sync(() => {
+        releaseEntity(address)
+      })
+    )
+
     // on shutdown, reset the storage for the entity
     yield* Scope.addFinalizerExit(
       scope,
@@ -186,14 +197,15 @@ export const make = Effect.fnUntraced(function*<
     // swap the server without losing the active requests
     const writeRef = yield* ResourceRef.from(
       scope,
-      Effect.fnUntraced(function*(scope) {
+      Effect.fnUntraced(function*(handlerScope) {
         let isShuttingDown = false
 
         const handlerContext = context.pipe(
           Context.add(CurrentAddress, address),
           Context.add(CurrentRunnerAddress, options.runnerAddress),
           Context.add(KeepAliveLatch, keepAliveLatch),
-          Context.add(Scope.Scope, scope),
+          Context.add(CurrentActivationScope, scope),
+          Context.add(Scope.Scope, handlerScope),
           Context.add(CurrentLogAnnotations, {})
         )
 
@@ -252,11 +264,9 @@ export const make = Effect.fnUntraced(function*<
                           lastSentChunk: request.lastSentChunk
                         } as any) as any
                       },
-                      Context.get(request.rpc.annotations, WithTransaction)
-                        ? { onRequest: options.storage.withTransaction }
-                        : undefined
+                      requestWriteOptions(request)
                     ).pipe(
-                      Effect.forkIn(scope)
+                      Effect.forkIn(handlerScope)
                     )
                   }
                   activeRequests.delete(Snowflake.Snowflake(response.requestId))
@@ -320,12 +330,12 @@ export const make = Effect.fnUntraced(function*<
             }
           }
         }).pipe(
-          Scope.provide(scope),
+          Scope.provide(handlerScope),
           Effect.setContext(Context.merge(handlerContext, handlers))
         )
 
         yield* Scope.addFinalizer(
-          scope,
+          handlerScope,
           Effect.sync(() => {
             isShuttingDown = true
           })
@@ -335,7 +345,7 @@ export const make = Effect.fnUntraced(function*<
           for (const id of defectRequestIds) {
             const request = activeRequests.get(id)
             if (!request) continue
-            const { lastSentChunk, message, rpc } = request
+            const { lastSentChunk, message } = request
             yield* server.write(
               0,
               {
@@ -347,16 +357,15 @@ export const make = Effect.fnUntraced(function*<
                   lastSentChunk
                 } as any) as any
               },
-              Context.get(rpc.annotations, WithTransaction)
-                ? { onRequest: options.storage.withTransaction }
-                : undefined
+              requestWriteOptions(request)
             )
           }
           defectRequestIds.clear()
         }
 
         return server.write
-      })
+      }),
+      address
     )
 
     function onDefect(cause: Cause.Cause<never>): Effect.Effect<void> {
@@ -405,9 +414,9 @@ export const make = Effect.fnUntraced(function*<
     // If the termination timeout is reached, let the server clean itself up
     yield* Scope.addFinalizer(
       scope,
-      Effect.withFiber((fiber) => {
+      Effect.suspend(() => {
         activeServers.delete(address.entityId)
-        internalInterruptors.add(fiber.id)
+        acquireEntity(address)
         return Effect.raceFirst(
           state.write(0, { _tag: "Eof" }).pipe(
             Effect.andThen(endLatch.await),
@@ -509,6 +518,14 @@ export const make = Effect.fnUntraced(function*<
                 return Effect.fail(new MailboxFull({ address: message.envelope.address }))
               }
 
+              const callerScope = message.callerScope !== undefined &&
+                  !Context.get(message.annotations, Persisted) &&
+                  Context.get(message.annotations, ClusterSchema.Uninterruptible) === false
+                ? message.callerScope
+                : undefined
+              if (callerScope?.state._tag === "Closed") {
+                return Effect.void
+              }
               entry = {
                 rpc,
                 message,
@@ -520,9 +537,19 @@ export const make = Effect.fnUntraced(function*<
                 sequence: Option.match(message.lastSentReply, {
                   onNone: () => 0,
                   onSome: (reply) => reply._tag === "Chunk" ? reply.sequence + 1 : 0
-                })
+                }),
+                callerScope
               }
               server.activeRequests.set(message.envelope.requestId, entry)
+              if (callerScope !== undefined) {
+                // Register cleanup atomically with admission, including requests awaiting delivery.
+                scopeAddFinalizerUnsafe(callerScope, {}, () =>
+                  Effect.sync(() => {
+                    if (server.activeRequests.delete(message.envelope.requestId) && server.activeRequests.size === 0) {
+                      server.lastActiveCheck = clock.currentTimeMillisUnsafe()
+                    }
+                  }))
+              }
               return server.write(
                 0,
                 {
@@ -536,9 +563,7 @@ export const make = Effect.fnUntraced(function*<
                     )
                   })
                 },
-                Context.get(message.annotations, WithTransaction)
-                  ? { onRequest: options.storage.withTransaction }
-                  : undefined
+                requestWriteOptions(entry)
               )
             }
             case "IncomingEnvelope": {
@@ -569,6 +594,26 @@ export const make = Effect.fnUntraced(function*<
       CurrentLogAnnotations,
       {}
     )
+  }
+
+  // Bind each handler fiber, including replays, before its body runs.
+  const bindToCaller = (callerScope: Scope.Scope) => <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+    Effect.withFiber<A, E, R>((fiber) => {
+      if (callerScope.state._tag === "Closed") return Effect.interrupt
+      const key = {}
+      scopeAddFinalizerUnsafe(callerScope, key, () => Effect.sync(() => fiber.interruptUnsafe(fiber.id)))
+      return Effect.ensuring(effect, Effect.sync(() => scopeRemoveFinalizerUnsafe(callerScope, key)))
+    })
+
+  const requestWriteOptions = (
+    entry: { readonly message: Message.IncomingRequestLocal<any>; readonly callerScope?: Scope.Scope | undefined }
+  ): Parameters<EntityState["write"]>[2] => {
+    const onTransaction = Context.get(entry.message.annotations, WithTransaction)
+      ? options.storage.withTransaction
+      : undefined
+    const onCaller = entry.callerScope && bindToCaller(entry.callerScope)
+    if (!onCaller) return onTransaction && { onRequest: onTransaction }
+    return { onRequest: onTransaction ? (effect) => onCaller(onTransaction(effect)) : onCaller }
   }
 
   const decodeMessage = makeMessageDecode(entityRpcs)
@@ -640,9 +685,7 @@ export const make = Effect.fnUntraced(function*<
           },
           onSuccess: (decoded) => {
             if (decoded._tag === "IncomingEnvelope") {
-              return sendLocal(
-                new Message.IncomingEnvelope(decoded)
-              )
+              return sendLocal(decoded)
             }
             const request = message as Message.IncomingRequest<any>
             const rpc = entityRpcs.get(decoded.envelope.tag)!
@@ -654,6 +697,7 @@ export const make = Effect.fnUntraced(function*<
                 ),
                 envelope: decoded.envelope,
                 lastSentReply: decoded.lastSentReply,
+                callerScope: request.callerScope,
                 respond: (reply) =>
                   request.respond(
                     new Reply.ReplyWithContext({
@@ -702,10 +746,7 @@ const makeMessageDecode = <Rpcs extends Rpc.Any>(entityRpcs: Map<string, Rpcs>) 
       readonly _tag: "IncomingRequest"
       readonly envelope: Envelope.Request.Any
       readonly lastSentReply: Option.Option<Reply.Reply<Rpcs>>
-    } | {
-      readonly _tag: "IncomingEnvelope"
-      readonly envelope: Envelope.AckChunk | Envelope.Interrupt
-    },
+    } | Message.IncomingEnvelope,
     Schema.SchemaError,
     Rpc.ServicesServer<Rpcs>
   > => {

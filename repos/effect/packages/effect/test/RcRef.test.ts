@@ -1,5 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
+import * as Clock from "effect/Clock"
 import * as Deferred from "effect/Deferred"
+import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
@@ -58,6 +60,100 @@ describe("RcRef", () => {
 
       const exit = yield* RcRef.get(ref).pipe(Effect.scoped, Effect.exit)
       assert.isTrue(Exit.hasInterrupts(exit))
+    }))
+
+  it.effect("releasing an invalidated borrower preserves the replacement resource", () =>
+    Effect.gen(function*() {
+      let acquired = 0
+      const released: Array<number> = []
+      const owner = yield* Scope.make()
+      const scopeA = yield* Scope.make()
+      const scopeB = yield* Scope.make()
+      const scopeC = yield* Scope.make()
+      const ref = yield* RcRef.make({
+        acquire: Effect.acquireRelease(
+          Effect.sync(() => ++acquired),
+          (id) => Effect.sync(() => released.push(id))
+        )
+      }).pipe(Scope.provide(owner))
+
+      const first = yield* RcRef.get(ref).pipe(Scope.provide(scopeA))
+      yield* RcRef.invalidate(ref)
+      const replacement = yield* RcRef.get(ref).pipe(Scope.provide(scopeB))
+      yield* Scope.close(scopeA, Exit.void)
+      const next = yield* RcRef.get(ref).pipe(Scope.provide(scopeC))
+      yield* Scope.close(owner, Exit.void)
+      const releasedAtOwnerClose = [...released]
+      yield* Scope.close(scopeB, Exit.void)
+      yield* Scope.close(scopeC, Exit.void)
+
+      assert.deepStrictEqual(
+        { first, replacement, next, releasedAtOwnerClose, released },
+        { first: 1, replacement: 2, next: 2, releasedAtOwnerClose: [1, 2], released: [1, 2] }
+      )
+    }))
+
+  it.effect("releasing a borrower after owner shutdown does not reopen the reference", () =>
+    Effect.gen(function*() {
+      let acquired = 0
+      const owner = yield* Scope.make()
+      const borrower = yield* Scope.make()
+      const ref = yield* RcRef.make({
+        acquire: Effect.sync(() => ++acquired)
+      }).pipe(Scope.provide(owner))
+
+      yield* RcRef.get(ref).pipe(Scope.provide(borrower))
+      yield* Scope.close(owner, Exit.void)
+      yield* Scope.close(borrower, Exit.void)
+      const exit = yield* RcRef.get(ref).pipe(Effect.scoped, Effect.exit)
+
+      assert.isTrue(Exit.hasInterrupts(exit))
+      assert.strictEqual(acquired, 1)
+    }))
+
+  it.effect("acquisition completing after owner shutdown cannot reopen the reference", () =>
+    Effect.gen(function*() {
+      const owner = yield* Scope.make()
+      const borrower = yield* Scope.make()
+      const started = yield* Deferred.make<void>()
+      const finish = yield* Deferred.make<void>()
+      const released: Array<number> = []
+      const ref = yield* RcRef.make({
+        acquire: Effect.gen(function*() {
+          const value = yield* Effect.acquireRelease(
+            Effect.succeed(1),
+            (value) => Effect.sync(() => released.push(value))
+          )
+          yield* Deferred.succeed(started, undefined)
+          yield* Deferred.await(finish)
+          return value
+        })
+      }).pipe(Scope.provide(owner))
+      const pending = yield* RcRef.get(ref).pipe(
+        Scope.provide(borrower),
+        Effect.forkChild({ startImmediately: true })
+      )
+      yield* Deferred.await(started)
+      const queued = yield* RcRef.get(ref).pipe(
+        Scope.provide(borrower),
+        Effect.forkChild({ startImmediately: true })
+      )
+
+      yield* Scope.close(owner, Exit.void)
+      const before = yield* RcRef.get(ref).pipe(Effect.scoped, Effect.exit)
+      yield* Deferred.succeed(finish, undefined)
+      const pendingExit = yield* Fiber.await(pending)
+      const queuedExit = yield* Fiber.await(queued)
+      const after = yield* RcRef.get(ref).pipe(Effect.scoped, Effect.exit)
+      const releasedBeforeBorrowerClose = [...released]
+      yield* Scope.close(borrower, Exit.void)
+
+      assert.isTrue(Exit.hasInterrupts(before))
+      assert.isTrue(Exit.hasInterrupts(pendingExit))
+      assert.isTrue(Exit.hasInterrupts(queuedExit))
+      assert.isTrue(Exit.hasInterrupts(after))
+      assert.deepStrictEqual(releasedBeforeBorrowerClose, [1])
+      assert.deepStrictEqual(released, [1])
     }))
 
   it.effect("releases resources acquired before acquisition failure", () =>
@@ -189,5 +285,32 @@ describe("RcRef", () => {
 
       yield* TestClock.adjust("10 millis")
       assert.strictEqual(released, 2)
+    }))
+
+  it.effect("idleTimeToLive 0 releases resources after a zero-duration sleep", () =>
+    Effect.gen(function*() {
+      const clock = yield* Clock.Clock
+      const sleeps: Array<number> = []
+      let released = 0
+      const ref = yield* RcRef.make({
+        acquire: Effect.acquireRelease(
+          Effect.succeed("foo"),
+          () =>
+            Effect.sync(() => {
+              released++
+            })
+        ),
+        idleTimeToLive: 0
+      }).pipe(Effect.provideService(Clock.Clock, {
+        ...clock,
+        sleep: (duration) => {
+          sleeps.push(Duration.toMillis(duration))
+          return clock.sleep(duration)
+        }
+      }))
+
+      yield* Effect.scoped(RcRef.get(ref))
+      assert.deepStrictEqual(sleeps, [0])
+      assert.strictEqual(released, 1)
     }))
 })

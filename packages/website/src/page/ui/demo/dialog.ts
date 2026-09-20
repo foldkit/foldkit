@@ -198,6 +198,7 @@ export const view = (dialogModel: Dialog.Model, h: HtmlBuilder<Message>) => {
       model: dialogModel,
       view: Dialog.view,
       viewInputs: {
+        hasDescription: true,
         toView: ({
           dialog,
           backdrop,
@@ -246,6 +247,7 @@ export const overlayDialogDemo = (
       model: dialogModel,
       view: Dialog.view,
       viewInputs: {
+        hasDescription: true,
         toView: ({ dialog, backdrop, panel, title, description, isVisible }) =>
           h.dialog(
             [...dialog, h.Class(dialogClassName)],
@@ -286,6 +288,7 @@ export const nestedDialogDemo = (
       model: parentDialogModel,
       view: Dialog.view,
       viewInputs: {
+        hasDescription: true,
         toView: ({
           dialog,
           backdrop,
@@ -323,6 +326,7 @@ export const nestedDialogDemo = (
       model: childDialogModel,
       view: Dialog.view,
       viewInputs: {
+        hasDescription: true,
         toView: ({
           dialog,
           backdrop,
@@ -362,6 +366,7 @@ export const dialogAnimatedDemo = (
       model: dialogModel,
       view: Dialog.view,
       viewInputs: {
+        hasDescription: true,
         toView: ({
           dialog,
           backdrop,

@@ -5,7 +5,7 @@ import { Icon } from '../icon'
 import { Link } from '../link'
 import { Message } from '../message'
 import { type Model } from '../model'
-import { gettingStartedRouter, homeRouter } from '../route'
+import { getStartedRouter, homeRouter } from '../route'
 import { HeaderNav, Search, Sidebar, ThemeSelector } from '../view'
 
 const PagefindBody = ih.DataAttribute('pagefind-body', '')
@@ -18,28 +18,30 @@ const headerView = (model: Model, h: HtmlBuilder<Message>) =>
       ),
     ],
     [
-      h.a(
-        [h.Href(homeRouter()), h.Class('flex items-center gap-2')],
+      h.div(
+        [h.Class('flex items-center gap-8 md:gap-12')],
         [
-          h.img([
-            h.Src('/logo.svg'),
-            h.Alt('Foldkit'),
-            h.Width('801'),
-            h.Height('200'),
-            h.Class('h-6 md:h-8 w-auto dark:invert'),
-          ]),
-          Shared.betaTag,
+          h.a(
+            [h.Href(homeRouter()), h.Class('flex items-center gap-2')],
+            [
+              h.img([
+                h.Src('/logo.svg'),
+                h.Alt('Foldkit'),
+                h.Width('801'),
+                h.Height('200'),
+                h.Class('h-6 md:h-8 w-auto dark:invert'),
+              ]),
+              Shared.betaTag,
+            ],
+          ),
+          HeaderNav.view(model.route, 'hidden sm:flex items-center gap-6', h),
         ],
       ),
       h.div(
-        [h.Class('flex items-center gap-3')],
+        [h.Class('flex items-center gap-2')],
         [
-          HeaderNav.view(
-            model.route,
-            'hidden sm:flex items-center gap-6 mr-4',
-            h,
-          ),
           Search.triggerView('hidden lg:flex', h),
+          Search.compactTriggerView('hidden sm:inline-flex lg:hidden', h),
           h.div(
             [h.Class('hidden md:flex')],
             [
@@ -50,10 +52,10 @@ const headerView = (model: Model, h: HtmlBuilder<Message>) =>
               ),
             ],
           ),
-          Search.compactTriggerView('hidden sm:inline-flex lg:hidden', h),
+          Shared.headerGroupDivider('hidden sm:block mx-3'),
           h.a(
             [
-              h.Href(gettingStartedRouter()),
+              h.Href(getStartedRouter()),
               h.Class(
                 'button-accent inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm',
               ),
@@ -63,7 +65,7 @@ const headerView = (model: Model, h: HtmlBuilder<Message>) =>
           h.button(
             [
               h.Class(
-                'sm:hidden -mr-2 p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 cursor-pointer',
+                'sm:hidden -mr-2 inline-flex size-8 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400',
               ),
               h.AriaExpanded(model.mobileMenuDialog.isOpen),
               h.AriaLabel('Toggle menu'),
@@ -80,7 +82,7 @@ const footerView = (currentYear: number): Html =>
   ih.footer(
     [
       ih.Class(
-        'px-6 pt-8 pb-[calc(2rem+env(safe-area-inset-bottom,0px))] md:px-12 lg:px-20 border-t border-gray-300 dark:border-gray-800 text-sm text-gray-500 dark:text-gray-400',
+        'px-6 pt-8 pb-[calc(2rem+env(safe-area-inset-bottom,0px))] md:px-12 lg:px-20 border-t border-gray-200 dark:border-gray-800 text-sm text-gray-500 dark:text-gray-400',
       ),
     ],
     [

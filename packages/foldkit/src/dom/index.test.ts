@@ -3,7 +3,9 @@ import { expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
+import { DEVTOOLS_HOST_ID } from '../devTools/host.js'
 import { RenderCommit, createCommitNotifier } from '../render/commit.js'
+import { DialogRuntime } from './dialogRuntime.js'
 import {
   ElementNotFound,
   closeDialog,
@@ -468,6 +470,430 @@ describe('showDialog', () => {
     return event
   }
 
+  it.effect('isolates a modal in the same commit that opens it', () =>
+    Effect.gen(function* () {
+      const background = document.createElement('main')
+      makeDialog('solo')
+      document.body.appendChild(background)
+
+      const notifier = createCommitNotifier()
+      notifier.markCommitPending()
+      const requestFrame = vi.spyOn(window, 'requestAnimationFrame')
+
+      const opening = yield* Effect.forkChild(
+        showDialog('#solo', { isModal: true }).pipe(
+          Effect.provideService(RenderCommit, notifier.service),
+        ),
+        { startImmediately: true },
+      )
+
+      expect(background.inert).toBe(false)
+
+      notifier.notifyCommitted()
+      yield* Fiber.join(opening)
+
+      expect(background.inert).toBe(true)
+      expect(requestFrame).not.toHaveBeenCalled()
+
+      yield* closeDialog('#solo')
+      requestFrame.mockRestore()
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect('does not acquire the same dialog element twice', () =>
+    Effect.gen(function* () {
+      const dialog = makeDialog('solo')
+      const trigger = document.createElement('button')
+      document.body.prepend(trigger)
+      trigger.focus()
+
+      expect(yield* showDialog('#solo', { isModal: true })).toBe(true)
+      expect(yield* showDialog('#solo', { isModal: true })).toBe(false)
+
+      expect(yield* closeDialog('#solo')).toBe(true)
+      expect(yield* closeDialog('#solo')).toBe(false)
+      expect(document.activeElement).toBe(trigger)
+
+      dialog.remove()
+      trigger.remove()
+    }),
+  )
+
+  it.effect(
+    'isolates late body portals and allows a late developer overlay',
+    () =>
+      Effect.gen(function* () {
+        const background = document.createElement('main')
+        makeDialog('solo')
+        document.body.appendChild(background)
+
+        yield* showDialog('#solo', {
+          isModal: true,
+          allowedOutsideSelectors: [`#${DEVTOOLS_HOST_ID}`],
+        })
+
+        const setBackgroundAttribute = vi.spyOn(background, 'setAttribute')
+        const removeBackgroundAttribute = vi.spyOn(
+          background,
+          'removeAttribute',
+        )
+
+        const portalButton = document.createElement('button')
+        document.body.appendChild(portalButton)
+
+        yield* Effect.promise(() =>
+          vi.waitFor(() => {
+            expect(portalButton.inert).toBe(true)
+            expect(portalButton.getAttribute('aria-hidden')).toBe('true')
+          }),
+        )
+
+        expect(setBackgroundAttribute).not.toHaveBeenCalled()
+        expect(removeBackgroundAttribute).not.toHaveBeenCalled()
+
+        const devToolsHost = document.createElement('div')
+        devToolsHost.id = DEVTOOLS_HOST_ID
+        document.body.appendChild(devToolsHost)
+
+        yield* Effect.promise(() =>
+          vi.waitFor(() => {
+            expect(devToolsHost.inert).toBe(false)
+            expect(devToolsHost.hasAttribute('aria-hidden')).toBe(false)
+            expect(portalButton.inert).toBe(true)
+          }),
+        )
+
+        expect(setBackgroundAttribute).not.toHaveBeenCalled()
+        expect(removeBackgroundAttribute).not.toHaveBeenCalled()
+        setBackgroundAttribute.mockRestore()
+        removeBackgroundAttribute.mockRestore()
+
+        const disconnectObserver = vi.spyOn(
+          MutationObserver.prototype,
+          'disconnect',
+        )
+        const disconnectCount = disconnectObserver.mock.calls.length
+
+        yield* closeDialog('#solo')
+
+        expect(disconnectObserver.mock.calls.length).toBeGreaterThan(
+          disconnectCount,
+        )
+        disconnectObserver.mockRestore()
+
+        expect(background.inert).toBe(false)
+        expect(portalButton.inert).toBe(false)
+        expect(portalButton.hasAttribute('aria-hidden')).toBe(false)
+
+        const laterButton = document.createElement('button')
+        document.body.appendChild(laterButton)
+        yield* Effect.yieldNow
+        expect(laterButton.inert).toBe(false)
+
+        document.body.innerHTML = ''
+      }),
+  )
+
+  it.effect('isolates siblings appended within an allowed ancestor path', () =>
+    Effect.gen(function* () {
+      const appRoot = document.createElement('div')
+      const dialog = document.createElement('dialog')
+      dialog.id = 'solo'
+      dialog.appendChild(document.createElement('button'))
+      appRoot.appendChild(dialog)
+      document.body.appendChild(appRoot)
+
+      yield* showDialog('#solo', { isModal: true })
+
+      const lateSibling = document.createElement('button')
+      appRoot.appendChild(lateSibling)
+
+      yield* Effect.promise(() =>
+        vi.waitFor(() => {
+          expect(lateSibling.inert).toBe(true)
+          expect(lateSibling.getAttribute('aria-hidden')).toBe('true')
+        }),
+      )
+
+      yield* closeDialog('#solo')
+      expect(lateSibling.inert).toBe(false)
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect('reasserts isolation if background attributes are changed', () =>
+    Effect.gen(function* () {
+      const background = document.createElement('main')
+      background.setAttribute('aria-hidden', 'false')
+      makeDialog('solo')
+      document.body.appendChild(background)
+
+      yield* showDialog('#solo', { isModal: true })
+
+      const setBackgroundAttribute = vi.spyOn(background, 'setAttribute')
+      background.setAttribute('aria-hidden', 'false')
+      background.inert = false
+
+      yield* Effect.promise(() =>
+        vi.waitFor(() => {
+          expect(background.inert).toBe(true)
+          expect(background.getAttribute('aria-hidden')).toBe('true')
+        }),
+      )
+
+      expect(
+        setBackgroundAttribute.mock.calls.filter(
+          ([name]) => name === 'aria-hidden',
+        ),
+      ).toHaveLength(2)
+      setBackgroundAttribute.mockRestore()
+
+      yield* closeDialog('#solo')
+      expect(background.inert).toBe(false)
+      expect(background.getAttribute('aria-hidden')).toBe('false')
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect(
+    'restores background attributes changed while a modal is open',
+    () =>
+      Effect.gen(function* () {
+        const background = document.createElement('main')
+        background.setAttribute('aria-hidden', 'true')
+        background.inert = true
+        makeDialog('solo')
+        document.body.appendChild(background)
+
+        yield* showDialog('#solo', { isModal: true })
+
+        background.removeAttribute('aria-hidden')
+        background.inert = false
+
+        yield* Effect.promise(() =>
+          vi.waitFor(() => {
+            expect(background.inert).toBe(true)
+            expect(background.getAttribute('aria-hidden')).toBe('true')
+          }),
+        )
+
+        yield* closeDialog('#solo')
+
+        expect(background.inert).toBe(false)
+        expect(background.getAttribute('aria-hidden')).toBeNull()
+        document.body.innerHTML = ''
+      }),
+  )
+
+  it.effect(
+    'restores pending background attribute changes when a modal closes',
+    () =>
+      Effect.gen(function* () {
+        const background = document.createElement('main')
+        background.setAttribute('aria-hidden', 'true')
+        background.inert = true
+        makeDialog('solo')
+        document.body.appendChild(background)
+
+        yield* showDialog('#solo', { isModal: true })
+
+        background.removeAttribute('aria-hidden')
+        background.inert = false
+        yield* closeDialog('#solo')
+
+        expect(background.inert).toBe(false)
+        expect(background.getAttribute('aria-hidden')).toBeNull()
+        document.body.innerHTML = ''
+      }),
+  )
+
+  it.effect('preserves another inert lock when the modal closes', () =>
+    Effect.gen(function* () {
+      const background = document.createElement('main')
+      background.setAttribute('aria-hidden', 'false')
+      makeDialog('solo')
+      document.body.appendChild(background)
+
+      yield* inertOthers('other-lock', ['#solo'])
+      yield* showDialog('#solo', { isModal: true })
+      yield* closeDialog('#solo')
+
+      expect(background.inert).toBe(true)
+      expect(background.getAttribute('aria-hidden')).toBe('true')
+
+      yield* restoreInert('other-lock')
+      expect(background.inert).toBe(false)
+      expect(background.getAttribute('aria-hidden')).toBe('false')
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect(
+    'allows an overlay that appears inside an inert background branch',
+    () =>
+      Effect.gen(function* () {
+        const background = document.createElement('main')
+        const backgroundButton = document.createElement('button')
+        background.appendChild(backgroundButton)
+        makeDialog('solo')
+        document.body.appendChild(background)
+
+        yield* showDialog('#solo', {
+          isModal: true,
+          allowedOutsideSelectors: [`#${DEVTOOLS_HOST_ID}`],
+        })
+        expect(background.inert).toBe(true)
+
+        const devToolsHost = document.createElement('div')
+        background.appendChild(devToolsHost)
+        yield* Effect.yieldNow
+        expect(background.inert).toBe(true)
+        devToolsHost.id = DEVTOOLS_HOST_ID
+
+        yield* Effect.promise(() =>
+          vi.waitFor(() => {
+            expect(background.inert).toBe(false)
+            expect(backgroundButton.inert).toBe(true)
+            expect(devToolsHost.inert).toBe(false)
+          }),
+        )
+
+        yield* closeDialog('#solo')
+        expect(backgroundButton.inert).toBe(false)
+        document.body.innerHTML = ''
+      }),
+  )
+
+  it.effect('does not register a runtime owner when opening fails', () =>
+    Effect.gen(function* () {
+      const dialog = makeDialog('solo')
+      const registered = new Set<string>()
+      const show = vi.spyOn(dialog, 'show').mockImplementation(() => {
+        throw new Error('Dialog refused to open')
+      })
+
+      const opening = yield* Effect.exit(
+        showDialog('#solo', { isModal: true }).pipe(
+          Effect.provideService(DialogRuntime, {
+            register: id => {
+              registered.add(id)
+            },
+            unregister: id => {
+              registered.delete(id)
+            },
+          }),
+        ),
+      )
+
+      expect(opening._tag).toBe('Failure')
+      expect(registered.size).toBe(0)
+      expect(dialog.open).toBe(false)
+
+      show.mockRestore()
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect(
+    'isolates the topmost sibling modal and restores its parent on close',
+    () =>
+      Effect.gen(function* () {
+        const background = document.createElement('main')
+        const trigger = document.createElement('button')
+        background.appendChild(trigger)
+        background.setAttribute('aria-hidden', 'false')
+
+        const parent = makeDialog('parent')
+        const child = makeDialog('child')
+        const parentButton = parent.querySelector('button')
+        const childButton = child.querySelector('button')
+        const devToolsHost = document.createElement('div')
+        devToolsHost.id = DEVTOOLS_HOST_ID
+        document.body.append(background, devToolsHost)
+        trigger.focus()
+
+        yield* showDialog('#parent', {
+          isModal: true,
+          allowedOutsideSelectors: [`#${DEVTOOLS_HOST_ID}`],
+        })
+
+        expect(background.inert).toBe(true)
+        expect(child.inert).toBe(true)
+        expect(parent.inert).toBe(false)
+        expect(devToolsHost.inert).toBe(false)
+        expect(document.activeElement).toBe(parentButton)
+
+        yield* showDialog('#child', {
+          isModal: true,
+          allowedOutsideSelectors: [`#${DEVTOOLS_HOST_ID}`],
+        })
+
+        expect(parent.inert).toBe(true)
+        expect(child.inert).toBe(false)
+        expect(document.activeElement).toBe(childButton)
+
+        yield* closeDialog('#child')
+
+        expect(parent.inert).toBe(false)
+        expect(child.inert).toBe(true)
+        expect(document.activeElement).toBe(parentButton)
+
+        yield* closeDialog('#parent')
+
+        expect(background.inert).toBe(false)
+        expect(background.getAttribute('aria-hidden')).toBe('false')
+        expect(document.activeElement).toBe(trigger)
+
+        document.body.innerHTML = ''
+      }),
+  )
+
+  it.effect(
+    'releases a removed topmost modal before returning focus beneath it',
+    () =>
+      Effect.gen(function* () {
+        const background = document.createElement('main')
+        background.setAttribute('aria-hidden', 'false')
+        const originallyInert = document.createElement('aside')
+        originallyInert.inert = true
+
+        const parent = makeDialog('parent')
+        const child = makeDialog('child')
+        const parentButton = parent.querySelector('button')
+        document.body.append(background, originallyInert)
+
+        let wasParentInertOnReturnFocus: boolean | undefined
+        parentButton?.addEventListener('focus', () => {
+          wasParentInertOnReturnFocus = parent.inert
+        })
+
+        yield* lockScroll
+        yield* showDialog('#parent', { isModal: true })
+        yield* lockScroll
+        yield* showDialog('#child', { isModal: true })
+
+        child.remove()
+        expect(yield* releaseDialogResources('child')).toBe(true)
+
+        expect(parent.inert).toBe(false)
+        expect(background.inert).toBe(true)
+        expect(document.activeElement).toBe(parentButton)
+        expect(wasParentInertOnReturnFocus).toBe(false)
+        expect(document.documentElement.style.overflow).toBe('hidden')
+
+        expect(yield* closeDialog('#parent')).toBe(true)
+        yield* unlockScroll
+
+        expect(background.inert).toBe(false)
+        expect(background.getAttribute('aria-hidden')).toBe('false')
+        expect(originallyInert.inert).toBe(true)
+        expect(document.documentElement.style.overflow).not.toBe('hidden')
+
+        document.body.innerHTML = ''
+      }),
+  )
+
   it.effect(
     'falls back to the first focusable descendant when focusSelector misses',
     () =>
@@ -605,6 +1031,44 @@ describe('showDialog', () => {
     }),
   )
 
+  it.effect('allows a nonmodal dialog opened above a modal dialog', () =>
+    Effect.gen(function* () {
+      const background = document.createElement('main')
+      const trigger = document.createElement('button')
+      background.appendChild(trigger)
+      const parent = makeDialog('parent')
+      const child = makeDialog('child')
+      const parentButton = parent.querySelector('button')
+      const childButton = child.querySelector('button')
+      document.body.appendChild(background)
+      trigger.focus()
+
+      yield* showDialog('#parent', { isModal: true })
+      expect(child.inert).toBe(true)
+
+      yield* showDialog('#child')
+
+      expect(background.inert).toBe(true)
+      expect(parent.inert).toBe(false)
+      expect(child.inert).toBe(false)
+      expect(document.activeElement).toBe(childButton)
+
+      yield* closeDialog('#child')
+
+      expect(background.inert).toBe(true)
+      expect(parent.inert).toBe(false)
+      expect(child.inert).toBe(true)
+      expect(document.activeElement).toBe(parentButton)
+
+      yield* closeDialog('#parent')
+
+      expect(background.inert).toBe(false)
+      expect(child.inert).toBe(false)
+      expect(document.activeElement).toBe(trigger)
+      document.body.innerHTML = ''
+    }),
+  )
+
   it.effect(
     'closeDialog reports whether it released the hygiene showDialog installed',
     () =>
@@ -646,23 +1110,34 @@ describe('showDialog', () => {
       Effect.gen(function* () {
         makeDialog('parent')
         makeDialog('child')
-        const cancelled: Array<string> = []
-        document
-          .querySelector('#parent')
-          ?.addEventListener('cancel', () => cancelled.push('parent'))
-        document
-          .querySelector('#child')
-          ?.addEventListener('cancel', () => cancelled.push('child'))
+        const cancelled: Array<
+          Readonly<{ id: string; isCustomEvent: boolean }>
+        > = []
+        document.querySelector('#parent')?.addEventListener('cancel', event =>
+          cancelled.push({
+            id: 'parent',
+            isCustomEvent: event instanceof CustomEvent,
+          }),
+        )
+        document.querySelector('#child')?.addEventListener('cancel', event =>
+          cancelled.push({
+            id: 'child',
+            isCustomEvent: event instanceof CustomEvent,
+          }),
+        )
 
         yield* showDialog('#parent')
         yield* showDialog('#child')
 
         pressEscape()
-        expect(cancelled).toEqual(['child'])
+        expect(cancelled).toEqual([{ id: 'child', isCustomEvent: true }])
 
         yield* closeDialog('#child')
         pressEscape()
-        expect(cancelled).toEqual(['child', 'parent'])
+        expect(cancelled).toEqual([
+          { id: 'child', isCustomEvent: true },
+          { id: 'parent', isCustomEvent: true },
+        ])
 
         yield* closeDialog('#parent')
         document.body.innerHTML = ''
@@ -687,6 +1162,33 @@ describe('showDialog', () => {
       event.preventDefault()
       document.dispatchEvent(event)
 
+      expect(cancelled).toEqual([])
+
+      yield* closeDialog('#solo')
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect('does not close when a descendant consumes Escape', () =>
+    Effect.gen(function* () {
+      const dialog = makeDialog('solo')
+      const input = document.createElement('input')
+      const cancelled: Array<string> = []
+
+      input.addEventListener('keydown', event => event.preventDefault())
+      dialog.addEventListener('cancel', () => cancelled.push('solo'))
+      dialog.appendChild(input)
+
+      yield* showDialog('#solo')
+
+      const event = new KeyboardEvent('keydown', {
+        key: 'Escape',
+        bubbles: true,
+        cancelable: true,
+      })
+      input.dispatchEvent(event)
+
+      expect(event.defaultPrevented).toBe(true)
       expect(cancelled).toEqual([])
 
       yield* closeDialog('#solo')
@@ -746,6 +1248,96 @@ describe('showDialog', () => {
         expect(document.activeElement).toBe(parentButton)
 
         yield* closeDialog('#parent')
+        document.body.innerHTML = ''
+      }),
+  )
+
+  it.effect('restores focus to an empty dialog beneath a stacked dialog', () =>
+    Effect.gen(function* () {
+      const parent = document.createElement('dialog')
+      parent.id = 'parent'
+      document.body.appendChild(parent)
+      makeDialog('child')
+
+      yield* showDialog('#parent')
+      yield* showDialog('#child')
+      yield* closeDialog('#child')
+
+      expect(document.activeElement).toBe(parent)
+
+      yield* closeDialog('#parent')
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect('does not restore focus to an inert dialog beneath', () =>
+    Effect.gen(function* () {
+      const parent = document.createElement('dialog')
+      parent.id = 'parent'
+      document.body.appendChild(parent)
+      makeDialog('child')
+
+      yield* showDialog('#parent')
+      yield* showDialog('#child')
+
+      const focusParent = vi.spyOn(parent, 'focus')
+      parent.inert = true
+      yield* closeDialog('#child')
+
+      expect(focusParent).not.toHaveBeenCalled()
+
+      parent.inert = false
+      yield* closeDialog('#parent')
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect('does not restore focus to a closed dialog beneath', () =>
+    Effect.gen(function* () {
+      const parent = document.createElement('dialog')
+      parent.id = 'parent'
+      parent.tabIndex = 0
+      parent.style.display = 'block'
+      document.body.appendChild(parent)
+      makeDialog('child')
+
+      yield* showDialog('#parent')
+      yield* showDialog('#child')
+
+      parent.close()
+      const focusParent = vi.spyOn(parent, 'focus')
+      yield* closeDialog('#child')
+
+      expect(focusParent).not.toHaveBeenCalled()
+
+      yield* closeDialog('#parent')
+      document.body.innerHTML = ''
+    }),
+  )
+
+  it.effect(
+    'restores focus after a lower dialog closes before the topmost dialog',
+    () =>
+      Effect.gen(function* () {
+        const trigger = document.createElement('button')
+        document.body.appendChild(trigger)
+        const parent = makeDialog('parent')
+        const child = makeDialog('child')
+        const childButton = child.querySelector<HTMLButtonElement>('button')
+
+        trigger.focus()
+        yield* showDialog('#parent', { isModal: true })
+        yield* showDialog('#child', { isModal: true })
+
+        yield* closeDialog('#parent')
+
+        expect(parent.open).toBe(false)
+        expect(child.open).toBe(true)
+        expect(document.activeElement).toBe(childButton)
+
+        yield* closeDialog('#child')
+
+        expect(document.activeElement).toBe(trigger)
         document.body.innerHTML = ''
       }),
   )

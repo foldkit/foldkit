@@ -14,7 +14,7 @@ import {
 import { dual } from 'effect/Function'
 
 import { kebabToPascal } from '../customElement/index.js'
-import type { CustomElementSpec } from '../customElement/index.js'
+import type { CustomElementSpec, EventSchema } from '../customElement/index.js'
 import { serializedStylePropertyName } from '../domReflection.js'
 import type { File } from '../file/index.js'
 import type { FoldkitMountMarker } from '../html/index.js'
@@ -35,6 +35,7 @@ import type { Entry as ManagedResourceEntry } from '../managedResource/index.js'
 import { MountTracker } from '../mount/index.js'
 import type { MountDefinition } from '../mount/index.js'
 import { Dispatch } from '../runtime/dispatch.js'
+import { tagNameFromSelector } from '../tagName.js'
 import type { VNode } from '../vdom.js'
 import type {
   AnyCommand,
@@ -303,7 +304,8 @@ const collectRenderedSlots = (vnode: VNode): ReadonlyArray<PendingMount> => {
   const walk = (node: VNode): void => {
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const marker = node.data?.[FOLDKIT_MOUNT_KEY] as
-      FoldkitMountMarker | undefined
+      | FoldkitMountMarker
+      | undefined
     if (marker !== undefined) {
       const occurrence = counts.get(marker.name) ?? 0
       counts.set(marker.name, occurrence + 1)
@@ -557,13 +559,15 @@ const EVENT_NAMES: Record<string, string> = {
   submit: 'OnSubmit',
   input: 'OnInput',
   change: 'OnChange',
+  beforeinput: 'OnBeforeInput or OnBeforeInputPreventDefault',
   focus: 'OnFocus',
   blur: 'OnBlur',
   focusin: 'OnFocusEnter',
   focusout: 'OnFocusLeave',
   mouseenter: 'OnMouseEnter',
   mouseover: 'OnMouseOver',
-  keydown: 'OnKeyDown or OnKeyDownPreventDefault',
+  keydown:
+    'OnKeyDown, OnKeyDownPreventDefault, OnKeyDownSelf, or OnKeyDownSelfPreventDefault',
   pointerdown: 'OnPointerDown',
   pointerup: 'OnPointerUp',
 }
@@ -1319,7 +1323,7 @@ const acquireManagedResource =
 /** Declares that a ManagedResource's acquire failed, feeding the entry's
  *  `onAcquireError(error)` Message through update the way the runtime
  *  would. Requires the current Model to request the resource, the same as
- *  {@link acquireManagedResource}: the runtime only attempts acquisition
+ *  `ManagedResource.acquire`: the runtime only attempts acquisition
  *  while `modelToMaybeRequirements` returns Some. */
 const failAcquireManagedResource =
   <EntryModel, EntryMessage, Value>(
@@ -1380,18 +1384,19 @@ const releaseManagedResource =
 
 /** Dispatches a CustomEvent a rendered custom element declares, feeding the
  *  Message its `On*` event mapping produces through update. The event name
- *  and detail are typed by the spec's event Schemas. The element must be in
- *  the rendered tree with the event's attribute attached, so the test
- *  exercises the same mapping the browser event would. */
+ *  and detail are typed by the encoded side of the spec's event Schemas. The
+ *  runtime decodes the detail before invoking the event mapping. The element
+ *  must be in the rendered tree with the event's attribute attached, so the
+ *  test exercises the same mapping the browser event would. */
 const emitCustomElementEvent =
   <
-    Events extends Record<string, Schema.Top>,
+    Events extends Record<string, EventSchema>,
     Name extends keyof Events & string,
   >(
     spec: CustomElementSpec<string, Record<string, Schema.Top>, Events>,
     target: string | Locator,
     eventName: Name,
-    detail: Schema.Schema.Type<Events[Name]>,
+    detail: Schema.Codec.Encoded<Events[Name]>,
   ) =>
   <Model, Message, OutMessage = undefined>(
     simulation: SceneSimulation<Model, Message, OutMessage>,
@@ -1427,13 +1432,9 @@ const emitCustomElementEvent =
       )
     }
 
-    // NOTE: the OnCustomEvent handler only dispatches when the event is a
-    // real CustomEvent instance, so the synthetic event must be constructed
-    // with `new CustomEvent(...)`, never a plain object literal like the
-    // other interaction helpers use. A None capture means nothing was
-    // dispatched, and since the handler dispatches unconditionally for a
-    // genuine CustomEvent, that can only be the instanceof check failing
-    // (a CustomEvent realm mismatch in the test environment).
+    // NOTE: the OnCustomEvent handler only handles real CustomEvent instances,
+    // so the synthetic event must be constructed with `new CustomEvent(...)`,
+    // never a plain object literal like the other interaction helpers use.
     const maybeNext = maybeCaptureFromElement(
       simulation,
       element,
@@ -1450,7 +1451,7 @@ const emitCustomElementEvent =
         () =>
           new Error(
             `I dispatched "${eventName}" on the element matching ${description} but its handler produced no Message.\n\n` +
-              "The OnCustomEvent handler only dispatches for CustomEvent instances, so the synthetic event failed the runtime's instanceof check. This points to a CustomEvent realm mismatch in the test environment.",
+              'Its detail may have failed the declared Schema. Check the console for the decoding error.',
           ),
       ),
       Handled,
@@ -2098,6 +2099,7 @@ type PointerDownOptions = Readonly<{
   screenY?: number
   clientX?: number
   clientY?: number
+  pointerId?: number
 }>
 
 const DEFAULT_POINTER_DOWN_OPTIONS: Required<PointerDownOptions> = {
@@ -2107,12 +2109,41 @@ const DEFAULT_POINTER_DOWN_OPTIONS: Required<PointerDownOptions> = {
   screenY: 0,
   clientX: 0,
   clientY: 0,
+  pointerId: 0,
+}
+
+const simulatedPointerTarget = (root: VNode, target: VNode): Element => {
+  const createElement = (vnode: VNode): Element => {
+    const element = document.createElement(
+      tagNameFromSelector(vnode.sel ?? 'div'),
+    )
+
+    for (const [name, value] of Object.entries(vnode.data?.attrs ?? {})) {
+      element.setAttribute(name, globalThis.String(value))
+    }
+
+    return element
+  }
+
+  const targetElement = createElement(target)
+  let child = targetElement
+
+  for (const ancestor of pipe(root, ancestorsOf(target), Array.reverse)) {
+    const parent = createElement(ancestor)
+    parent.appendChild(child)
+    child = parent
+  }
+
+  return targetElement
 }
 
 /** Simulates a pointerdown event on the element matching the target.
  *  When the element has no pointerdown handler, the event bubbles up to
  *  the nearest ancestor with one, mirroring browser event propagation.
- *  Defaults to `pointerType: 'mouse'`, `button: 0`, and `screenX/screenY: 0`. */
+ *  The `OnPointerDown` callback receives a detached element representing
+ *  the target and its ancestors, so `closest()` checks work in Scene tests.
+ *  Defaults to `pointerType: 'mouse'`, `button: 0`, `screenX/screenY: 0`,
+ *  `clientX/clientY: 0`, and `pointerId: 0`. */
 export const pointerDown =
   (target: string | Locator, options?: PointerDownOptions) =>
   <Model, Message, OutMessage = undefined>(
@@ -2133,7 +2164,15 @@ export const pointerDown =
     }
 
     const { value: element } = maybeElement
-    const { pointerType, button, screenX, screenY, clientX, clientY } = {
+    const {
+      pointerType,
+      button,
+      screenX,
+      screenY,
+      clientX,
+      clientY,
+      pointerId,
+    } = {
       ...DEFAULT_POINTER_DOWN_OPTIONS,
       ...options,
     }
@@ -2146,6 +2185,8 @@ export const pointerDown =
         timeStamp: 0,
         clientX,
         clientY,
+        pointerId,
+        target: simulatedPointerTarget(internal.html, element),
       })
     }
 
@@ -2446,7 +2487,77 @@ const type_: {
       }),
 )
 
-/** Simulates a keydown event on the element matching the target.
+/** Simulates typing into a contenteditable host matching the target. A
+ *  contenteditable element has no `value`, so the `input` event reports the
+ *  host's rendered text. Use this to drive `OnInput` on a `Contenteditable`
+ *  element. Dual: `typeContentEditable(target, text)` or
+ *  `typeContentEditable(text)` for data-last piping. */
+export const typeContentEditable: {
+  (
+    target: string | Locator,
+    text: string,
+  ): <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ) => SceneSimulation<Model, Message, OutMessage>
+  (
+    text: string,
+  ): (
+    target: string | Locator,
+  ) => <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ) => SceneSimulation<Model, Message, OutMessage>
+} = dual(
+  2,
+  (target: string | Locator, text: string) =>
+    <Model, Message, OutMessage = undefined>(
+      simulation: SceneSimulation<Model, Message, OutMessage>,
+    ): SceneSimulation<Model, Message, OutMessage> =>
+      invokeAndCapture(simulation, target, 'input', handler => {
+        handler({ target: { innerText: text } })
+      }),
+)
+
+/** Simulates a `beforeinput` event on the element matching the target. Drives
+ *  `OnBeforeInput` and `OnBeforeInputPreventDefault`. Pass the edit's
+ *  `inputType` (e.g. `'insertText'`, `'deleteContentBackward'`) and its `data`
+ *  as an `Option` (the inserted text, or `None` for edits that carry none). Dual:
+ *  `beforeInput(target, inputType, data)` or `beforeInput(inputType, data)` for
+ *  data-last piping. */
+export const beforeInput: {
+  (
+    target: string | Locator,
+    inputType: string,
+    data: Option.Option<string>,
+  ): <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ) => SceneSimulation<Model, Message, OutMessage>
+  (
+    inputType: string,
+    data: Option.Option<string>,
+  ): (
+    target: string | Locator,
+  ) => <Model, Message, OutMessage = undefined>(
+    simulation: SceneSimulation<Model, Message, OutMessage>,
+  ) => SceneSimulation<Model, Message, OutMessage>
+} = dual(
+  3,
+  (target: string | Locator, inputType: string, data: Option.Option<string>) =>
+    <Model, Message, OutMessage = undefined>(
+      simulation: SceneSimulation<Model, Message, OutMessage>,
+    ): SceneSimulation<Model, Message, OutMessage> =>
+      invokeAndCapture(simulation, target, 'beforeinput', handler => {
+        handler({
+          inputType,
+          data: Option.getOrNull(data),
+          cancelable: true,
+          preventDefault: Function.constVoid,
+        })
+      }),
+)
+
+/** Simulates a keydown event on the element matching the target. The event is
+ *  self-targeted (`target === currentTarget`), so `OnKeyDownSelf` and
+ *  `OnKeyDownSelfPreventDefault` handlers fire.
  *  Dual: `keydown(target, key, modifiers?)` or `keydown(key, modifiers?)` for data-last piping. */
 export const keydown: {
   (
@@ -2488,10 +2599,13 @@ export const keydown: {
       simulation: SceneSimulation<Model, Message, OutMessage>,
     ): SceneSimulation<Model, Message, OutMessage> =>
       invokeAndCapture(simulation, target, 'keydown', handler => {
+        const node = {}
         handler({
           key,
           ...DEFAULT_KEYBOARD_MODIFIERS,
           ...modifiers,
+          target: node,
+          currentTarget: node,
           preventDefault: Function.constVoid,
         })
       }),

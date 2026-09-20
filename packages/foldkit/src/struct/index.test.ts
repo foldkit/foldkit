@@ -2,16 +2,19 @@ import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import { evo } from './index.js'
+import { modifyFields } from './index.js'
 
-describe('evo', () => {
+describe('modifyFields', () => {
   it('transforms specified fields', () => {
-    const result = evo({ count: 0, name: 'test' }, { count: n => n + 1 })
+    const result = modifyFields(
+      { count: 0, name: 'test' },
+      { count: n => n + 1 },
+    )
     expect(result).toStrictEqual({ count: 1, name: 'test' })
   })
 
   it('supports curried form', () => {
-    const inc = evo<
+    const inc = modifyFields<
       { count: number; name: string },
       { count: (a: number) => number }
     >({
@@ -22,18 +25,21 @@ describe('evo', () => {
   })
 
   it('preserves untransformed fields', () => {
-    const result = evo({ a: 1, b: 'hello', c: true }, { a: n => n * 2 })
+    const result = modifyFields(
+      { a: 1, b: 'hello', c: true },
+      { a: n => n * 2 },
+    )
     expect(result).toStrictEqual({ a: 2, b: 'hello', c: true })
   })
 
   it('handles empty transforms', () => {
     const obj = { x: 1, y: 2 }
-    const result = evo(obj, {})
+    const result = modifyFields(obj, {})
     expect(result).toStrictEqual({ x: 1, y: 2 })
   })
 
   it('rejects keys not present in the source object', () => {
     // @ts-expect-error - 'typo' is not a key of { count: number }
-    evo({ count: 0 }, { typo: (n: number) => n + 1 })
+    modifyFields({ count: 0 }, { typo: (n: number) => n + 1 })
   })
 })

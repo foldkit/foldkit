@@ -3,7 +3,6 @@ import { Subscription } from 'foldkit'
 import { Message } from './message'
 import { Model } from './model'
 import { Home, Room } from './page'
-import { RoomsClient } from './rpc'
 
 const homeSubscriptions = Subscription.lift(Home.subscriptions)<Model, Message>(
   {
@@ -20,8 +19,7 @@ const roomSubscriptions = Subscription.lift(Room.subscriptions)({
   when: { roomKeyboard: ({ route }) => route._tag === 'Room' },
 })
 
-export const subscriptions = Subscription.aggregate<
-  Model,
-  Message,
-  RoomsClient
->()(homeSubscriptions, roomSubscriptions)
+export const subscriptions = Subscription.aggregate(
+  homeSubscriptions,
+  roomSubscriptions,
+)

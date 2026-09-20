@@ -7,7 +7,7 @@
     "build": "vite build",
     "preview": "vite preview --outDir dist/client",
     "typecheck": "tsc --noEmit",
-    "format": "prettier -w .",
+    "format": "oxfmt",
     "test": "vitest run",
     "lint": "oxlint src"
   }

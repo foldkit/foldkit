@@ -1,6 +1,7 @@
 import { Calendar } from 'foldkit'
 import { Valid, Validating } from 'foldkit/fieldValidation'
 import { Command, given, message, model, story } from 'foldkit/story'
+import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import { Message, ValidateEmailAsync, init, update } from './personalInfo'
@@ -66,11 +67,12 @@ describe('personalInfo', () => {
   test('a stale email async result is discarded', () => {
     story(
       update,
-      given({
-        ...init(today),
-        email: Validating({ value: 'jane@example.com' }),
-        emailValidationId: 5,
-      }),
+      given(
+        modifyFields(init(today), {
+          email: () => Validating({ value: 'jane@example.com' }),
+          emailValidationId: () => 5,
+        }),
+      ),
       message(
         Message.CompletedValidateEmailAsync({
           validationId: 3,

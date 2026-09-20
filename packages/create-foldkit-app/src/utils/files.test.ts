@@ -94,11 +94,11 @@ describe('rendering templates', () => {
     )
   })
 
-  it('ssr overlays the base with a server entry, HTTP host, and start script', () => {
+  it('ssr overlays the base with a server entry, fetch handler, and start script', () => {
     expect(listTemplateFiles('rendering/ssr')).toEqual([
       'README.md',
       'package.json',
-      'server/main.ts',
+      'scripts/serve.ts',
       'src/cookie.ts',
       'src/entry.server.ts',
       'src/entry.ts',
@@ -111,20 +111,21 @@ describe('rendering templates', () => {
 
     const packageJson = readTemplatePackageJson('rendering/ssr/package.json')
     expect(packageJson.scripts['build']).toBe('vite build')
-    expect(packageJson.scripts['start']).toBe('node dist/server/main.js')
+    expect(packageJson.scripts['start']).toBe('node scripts/serve.ts')
 
     const ssrViteConfig = readTemplateFile('rendering/ssr/vite.config.ts')
     expect(ssrViteConfig).toContain("serverEntry: '/src/entry.server.ts'")
-    expect(ssrViteConfig).toContain("build: { entry: '/server/main.ts' }")
+    expect(ssrViteConfig).toContain('build: true')
     expect(readTemplateFile('rendering/ssr/src/entry.server.ts')).toContain(
       'flags: flagsForRequest(',
     )
     expect(readTemplateFile('rendering/ssr/src/entry.ts')).toContain(
       'Runtime.hydrate(application, { buildId: import.meta.env.FOLDKIT_BUILD_ID })',
     )
-    expect(readTemplateFile('rendering/ssr/server/main.ts')).toContain(
-      'HttpServer.serve(handler)',
-    )
+    const serve = readTemplateFile('rendering/ssr/scripts/serve.ts')
+    expect(serve).toContain('HttpStaticServer')
+    expect(serve).toContain('HttpServerResponse.fromWeb')
+    expect(serve).toContain('app.fetch')
   })
 
   it('rendering overlays keep the base name placeholder, shared scripts, and compiler options', () => {
@@ -162,7 +163,7 @@ describe('rendering templates', () => {
       ['src/**/*'],
     )
     expect(readTemplateTsconfig('rendering/ssr/tsconfig.json').include).toEqual(
-      ['src/**/*', 'server/**/*'],
+      ['src/**/*', 'scripts/**/*.ts'],
     )
   })
 

@@ -27,6 +27,7 @@ const nameInput = (value: string, h: HtmlBuilder<Message>): Html =>
     {
       id: 'fieldset-name-input',
       value,
+      hasDescription: true,
       onInput: inputValue =>
         Message.UpdatedFieldsetInputValue({ value: inputValue }),
       placeholder: 'Enter your full name',
@@ -51,6 +52,7 @@ const bioTextarea = (value: string, h: HtmlBuilder<Message>): Html =>
     {
       id: 'fieldset-bio-textarea',
       value,
+      hasDescription: true,
       onInput: textareaValue =>
         Message.UpdatedFieldsetTextareaValue({ value: textareaValue }),
       placeholder: 'Tell us about yourself...',
@@ -79,6 +81,7 @@ const termsCheckbox = (isChecked: boolean, h: HtmlBuilder<Message>): Html =>
     {
       id: FIELDSET_CHECKBOX_DEMO_ID,
       isChecked,
+      hasDescription: true,
       onToggle: nextIsChecked =>
         Message.ToggledFieldsetCheckboxDemo({ isChecked: nextIsChecked }),
       toView: attributes =>
@@ -183,6 +186,7 @@ export const basicDemo = (model: Model, h: HtmlBuilder<Message>) => {
     Fieldset.view(
       {
         id: 'fieldset-basic-demo',
+        hasDescription: true,
         toView: attributes =>
           h.fieldset(
             [...attributes.fieldset, h.Class(fieldsetClassName)],
@@ -217,6 +221,7 @@ export const disabledDemo = (_model: Model, h: HtmlBuilder<Message>) => {
       {
         id: 'fieldset-disabled-demo',
         isDisabled: true,
+        hasDescription: true,
         toView: attributes =>
           h.fieldset(
             [...attributes.fieldset, h.Class(fieldsetClassName)],

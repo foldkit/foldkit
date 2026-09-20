@@ -31,6 +31,7 @@ export const input = <ParentMessage>(
       value: config.field.value,
       onInput: config.onInput,
       isInvalid: config.field._tag === 'Invalid',
+      hasDescription: config.field._tag === 'Invalid',
       ...(config.type !== undefined && { type: config.type }),
       ...(config.placeholder !== undefined && {
         placeholder: config.placeholder,

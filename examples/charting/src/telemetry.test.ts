@@ -7,7 +7,7 @@ import {
   mockGitHubRepository,
   mockNpmDownloads,
   mockNpmPackument,
-} from './main.fixtures'
+} from './main.fixture'
 import { NpmApiLive } from './npmApi'
 import { fetchRawTelemetry, transformTelemetry } from './telemetry'
 

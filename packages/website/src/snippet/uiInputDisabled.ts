@@ -9,6 +9,7 @@ const view = (h: HtmlBuilder<Message>) =>
     {
       id: 'email-disabled',
       isDisabled: true,
+      hasDescription: true,
       value: 'ada@lovelace.dev',
       toView: attributes =>
         h.div(

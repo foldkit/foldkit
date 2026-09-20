@@ -106,7 +106,10 @@ export interface MountDefinitionWithArgs<
 /** A Mount definition created with `Mount.define` or `Mount.defineStream`.
  *  Union over the no-args and with-args shapes; consumers that only need
  *  name/identity can accept this. */
-export type MountDefinition<Name extends string = string, ResultMessage = any> =
+export type MountDefinition<
+  Name extends string = string,
+  ResultMessage = any,
+> =
   | MountDefinitionNoArgs<Name, ResultMessage>
   | MountDefinitionWithArgs<Name, any, ResultMessage>
 
@@ -316,8 +319,8 @@ const wrapEffectAsStream =
  * document events, library callbacks), not from Model state itself.
  * Translating Model changes into side effects is what `update` does on
  * every Message, via the Commands it returns. (Subscriptions do legitimately
- * touch the DOM in some contexts: calling `preventDefault` in an event
- * handler where going through `update` would arrive too late, or
+ * touch the DOM in some contexts: calling `preventDefault` in a non-passive
+ * event handler where going through `update` would arrive too late, or
  * maintaining DOM state for as long as a Model condition is true (like
  * applying `user-select: none` to the document while a drag is in progress
  * and undoing it when the drag ends).)

@@ -21,7 +21,7 @@ import {
   fixtureStats,
   loadedPostsModel,
   loadingPostsModel,
-} from './main.fixtures'
+} from './main.fixture'
 
 const resolveFocusTab = Command.resolve(
   Tabs.FocusTab,

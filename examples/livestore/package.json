@@ -1,0 +1,32 @@
+{
+  "name": "livestore-example",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@effect/platform-browser": "4.0.0-rc.116",
+    "@foldkit/ui": "workspace:*",
+    "@livestore/adapter-web": "0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219",
+    "@livestore/livestore": "0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219",
+    "@livestore/peer-deps": "0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219",
+    "@livestore/wa-sqlite": "0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219",
+    "clsx": "^2.1.1",
+    "effect": "4.0.0-rc.116",
+    "foldkit": "workspace:*"
+  },
+  "devDependencies": {
+    "@foldkit/devtools": "workspace:*",
+    "@foldkit/vite-plugin": "workspace:*",
+    "@tailwindcss/vite": "^4.3.3",
+    "happy-dom": "^20.11.13",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "vitest": "^5.0.0"
+  }
+}

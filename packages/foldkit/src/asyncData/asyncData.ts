@@ -53,7 +53,12 @@ export type Success<A> = Readonly<{ _tag: 'Success'; data: A }>
  *  (`match`) and channel-named where one handler covers multiple tags
  *  (`matchData`, `mapBoth`). */
 export type AsyncData<A, E> =
-  Idle | Loading | Refreshing<A> | Failure<E> | Stale<A, E> | Success<A>
+  | Idle
+  | Loading
+  | Refreshing<A>
+  | Failure<E>
+  | Stale<A, E>
+  | Success<A>
 
 /** Constructs the `Idle` state. A parameter-free callable Schema, so it can
  *  also serve as a Union member. */
@@ -754,7 +759,8 @@ const allRecord = (
  *  struct of all datas. */
 export const all: <
   const Inputs extends
-    Iterable<AsyncData<any, any>> | Record<string, AsyncData<any, any>>,
+    | Iterable<AsyncData<any, any>>
+    | Record<string, AsyncData<any, any>>,
 >(
   inputs: Inputs,
 ) => [Inputs] extends [ReadonlyArray<AsyncData<any, any>>]
@@ -823,7 +829,7 @@ export const all: <
  *
  *  // One update arm folds it in, whatever the previous state was:
  *  SettledLoadNotes: ({ result }) => ({
- *    model: evo(model, { notes: AsyncData.settle(result) }),
+ *    model: modifyFields(model, { notes: AsyncData.settle(result) }),
  *  })
  *  ```
  */

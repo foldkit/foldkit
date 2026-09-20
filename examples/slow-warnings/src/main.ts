@@ -2,7 +2,7 @@ import { Array, Match, Number, Option, Schema, Stream, pipe } from 'effect'
 import { Runtime, Subscription, type Update } from 'foldkit'
 import { type Document, type Html, HtmlBuilder, createLazy } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 const UPDATE_WORK_MS = 10
 const VIEW_WORK_MS = 24
@@ -61,7 +61,9 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-const slowWarningTarget = new EventTarget()
+const slowWarningTarget: Subscription.TypedEventTarget<{
+  [SLOW_WARNING_EVENT]: CustomEvent<SlowWarningReport>
+}> = new EventTarget()
 
 const burnCpu = (durationMs: number): number => {
   const stopAt = performance.now() + durationMs
@@ -158,30 +160,30 @@ export const update = (model: Model, message: Message) =>
       burnCpu(UPDATE_WORK_MS)
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           activeWorkload: () => 'Update',
         }),
       }
     },
     ClickedRunViewWork: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         activeWorkload: () => 'View',
       }),
     }),
     ClickedRunPatchWork: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         activeWorkload: () => 'Patch',
         patchRows: () => PATCH_ROW_COUNT,
         patchRun: Number.increment,
       }),
     }),
     ClickedRunSubscriptionDependenciesWork: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         activeWorkload: () => 'SubscriptionDependencies',
       }),
     }),
     ClickedClearWarnings: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         activeWorkload: () => 'Idle',
         warnings: () => [],
       }),
@@ -193,7 +195,7 @@ export const update = (model: Model, message: Message) =>
       }
 
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           activeWorkload: () => 'Idle',
           nextWarningId: Number.increment,
           warnings: prependWarning(warning),
@@ -218,13 +220,10 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   slowWarnings: Subscription.persistent(
-    Subscription.fromEventFilterMap<
-      CustomEvent,
-      typeof Message.RecordedSlowWarning.Type
-    >({
+    Subscription.fromEventFilterMap({
       target: slowWarningTarget,
       type: SLOW_WARNING_EVENT,
-      toMessage: event =>
+      filterMapEvent: event =>
         pipe(
           event.detail,
           Schema.decodeUnknownOption(SlowWarningReport),

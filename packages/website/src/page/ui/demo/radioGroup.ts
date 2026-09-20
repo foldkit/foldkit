@@ -71,6 +71,7 @@ export const verticalDemo = (model: Model, h: HtmlBuilder<Message>) => {
         selectedValue: model.verticalRadioGroupDemoValue,
         options: plans,
         ariaLabel: 'Server plan',
+        hasOptionDescription: () => true,
         toView: ({ group, options }) =>
           h.div(
             [...group, h.Class(verticalGroupClassName)],
@@ -148,6 +149,7 @@ export const horizontalDemo = (model: Model, h: HtmlBuilder<Message>) => {
         options: plans,
         ariaLabel: 'Server plan',
         orientation: 'Horizontal',
+        hasOptionDescription: () => true,
         toView: ({ group, options }) =>
           h.div(
             [...group, h.Class(horizontalGroupClassName)],

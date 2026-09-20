@@ -52,6 +52,7 @@ export const Message = defineMessageUnion({
   ClickedEditFilters: {},
   ClickedOpenProjectSettings: {},
   ToggledDisclosureDemo: { isOpen: Schema.Boolean },
+  ToggledDisclosureCollapsedPreviewDemo: { isOpen: Schema.Boolean },
   GotListboxDemoMessage: { message: Listbox.Message },
   GotListboxMultiDemoMessage: { message: Listbox.Message },
   GotListboxGroupedDemoMessage: { message: Listbox.Message },

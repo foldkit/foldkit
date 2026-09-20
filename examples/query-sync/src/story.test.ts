@@ -1,5 +1,6 @@
 import { Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
+import { modifyFields } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
@@ -102,15 +103,17 @@ describe('update', () => {
     test('clearing the search input fires a replacement', () => {
       story(
         update,
-        given({
-          ...browseModel,
-          route: AppRoute.Browse({
-            search: Option.some('foo'),
-            sorting: Sorting.Unsorted(),
-            diet: Option.none(),
-            period: Option.none(),
+        given(
+          modifyFields(browseModel, {
+            route: () =>
+              AppRoute.Browse({
+                search: Option.some('foo'),
+                sorting: Sorting.Unsorted(),
+                diet: Option.none(),
+                period: Option.none(),
+              }),
           }),
-        }),
+        ),
         message(Message.ChangedSearchInput({ value: '' })),
         Command.expectHas(ReplaceFilters),
         Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),

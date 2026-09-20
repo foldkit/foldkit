@@ -5,4 +5,5 @@ export type {
   CustomElementConfig,
   CustomElementSpec,
   ElementBuilder,
+  EventSchema,
 } from './index.js'

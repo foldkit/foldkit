@@ -48,6 +48,7 @@ const nameInput = (value: string, h: HtmlBuilder<UiMessage>): Html =>
     {
       id: 'fieldset-name-input',
       value,
+      hasDescription: true,
       onInput: inputValue =>
         UiMessage.UpdatedFieldsetInputValue({ value: inputValue }),
       placeholder: 'Enter your full name',
@@ -72,6 +73,7 @@ const bioTextarea = (value: string, h: HtmlBuilder<UiMessage>): Html =>
     {
       id: 'fieldset-bio-textarea',
       value,
+      hasDescription: true,
       onInput: textareaValue =>
         UiMessage.UpdatedFieldsetTextareaValue({ value: textareaValue }),
       placeholder: 'Tell us about yourself...',
@@ -97,6 +99,7 @@ const termsCheckbox = (isChecked: boolean, h: HtmlBuilder<UiMessage>): Html =>
     {
       id: FIELDSET_CHECKBOX_DEMO_ID,
       isChecked,
+      hasDescription: true,
       onToggle: nextIsChecked =>
         UiMessage.ToggledFieldsetCheckboxDemo({ isChecked: nextIsChecked }),
       toView: attributes =>
@@ -201,6 +204,7 @@ const basicDemo = (model: UiModel, h: HtmlBuilder<UiMessage>): Html =>
   Fieldset.view(
     {
       id: 'fieldset-basic-demo',
+      hasDescription: true,
       toView: attributes =>
         h.fieldset(
           [...attributes.fieldset, h.Class(fieldsetClassName)],
@@ -235,6 +239,7 @@ const disabledDemo = (h: HtmlBuilder<UiMessage>): Html =>
     {
       id: 'fieldset-disabled-demo',
       isDisabled: true,
+      hasDescription: true,
       toView: attributes =>
         h.fieldset(
           [...attributes.fieldset, h.Class(fieldsetClassName)],

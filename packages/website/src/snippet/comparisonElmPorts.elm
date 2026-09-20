@@ -17,8 +17,8 @@ port exportPngFailed : (String -> msg) -> Sub msg
 -- as a Msg through the subscription.
 
 
-        ClickedExport ->
-            ( model, requestExportPng (encodeExportRequest model) )
+    ClickedExport ->
+      ( model, requestExportPng (encodeExportRequest model) )
 
-        FailedExportPng error ->
-            ( { model | exportError = Just error }, Cmd.none )
+    FailedExportPng error ->
+      ( { model | exportError = Just error }, Cmd.none )

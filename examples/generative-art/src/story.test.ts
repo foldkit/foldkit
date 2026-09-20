@@ -1,5 +1,6 @@
 import { Array, Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
+import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import { Slider } from '@foldkit/ui'
@@ -75,11 +76,15 @@ describe('update', () => {
   test('ClickedReset clears particles and the mouse position', () => {
     story(
       update,
-      given({
-        ...initialModel,
-        particles: [makeParticle(0, 100, 100), makeParticle(1, 200, 200)],
-        maybeMousePosition: Option.some({ x: 300, y: 300 }),
-      }),
+      given(
+        modifyFields(initialModel, {
+          particles: () => [
+            makeParticle(0, 100, 100),
+            makeParticle(1, 200, 200),
+          ],
+          maybeMousePosition: () => Option.some({ x: 300, y: 300 }),
+        }),
+      ),
       message(Message.ClickedReset()),
       model(model => {
         expect(model.particles).toHaveLength(0)
@@ -134,11 +139,12 @@ describe('update', () => {
 
     story(
       update,
-      given({
-        ...initialModel,
-        particles: startingParticles,
-        nextId: startingParticleCount,
-      }),
+      given(
+        modifyFields(initialModel, {
+          particles: () => startingParticles,
+          nextId: () => startingParticleCount,
+        }),
+      ),
       message(Message.TickedFrame({ deltaTimeMs: 16 })),
       model(model => {
         expect(model.elapsedSeconds).toBeGreaterThan(0)

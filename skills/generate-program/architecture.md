@@ -175,7 +175,7 @@ const update = (model: Model, message: Message) =>
 
 Update, init, boot, and component helper producers return `{ model }` when they statically create no Commands. When they compute a Commands collection, they return it directly without checking whether it is empty. Never write the literal `commands: []`.
 
-Inline the return type when the matcher is its only use. Create an `UpdateReturn` alias when another matcher, helper, or exported signature reuses it. `Message.match<UpdateReturn>` constrains the whole update function, so do not repeat `: UpdateReturn` on its signature. When a domain union match inside a handler needs the same constraint, pass it as that union's `match` generic (`Submission.match<UpdateReturn>(submission, { ... })`). Use `Match.withReturnType<UpdateReturn>()` only on an Effect `Match` (a partial match, or a union without its own `match`).
+Inline the return type when the matcher is its only use. Create an `UpdateReturn` alias when another matcher, helper, or exported signature reuses it. `Message.match<UpdateReturn>` constrains the whole update function, so do not repeat `: UpdateReturn` on its signature. When a domain union match inside a handler needs the same constraint, pass it as that union's `match` or `matchOrElse` generic (`Submission.match<UpdateReturn>(submission, { ... })`). Use `Match.withReturnType<UpdateReturn>()` only on an Effect `Match` (a partial Message match, a shared multi-tag handler, or a union without its own matcher).
 
 Use `Update.Return<Model, Message>` for an update that cannot emit an OutMessage. It prevents a result containing an OutMessage from entering code that would keep only its Model and Commands. A result with no `outMessage` can still be used where `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is expected. The missing field means that update emitted no OutMessage. A hand-written plain-return type must preserve the `outMessage?: never` field.
 
@@ -183,9 +183,11 @@ When composing another update-shaped result, bind the whole result to a value na
 
 Pass optional Commands directly to APIs that accept them, such as `Command.mapMessages(homeInit.commands, toParentMessage)`. Use `result.commands ?? []` only when the next operation requires a concrete array for spreading, concatenating, execution, or an assertion.
 
-Use `Update.combine` when a later Step should receive the Model produced by an earlier Step. It takes two or more Steps. Do not wrap one Step in `Update.combine`; call that operation directly. Name an inline Step parameter `stepModel` when combining several; it receives the Model from the preceding Step. Manual unpacking of a child result usually means the site should use `Update.foldChild` or `Update.foldChildStep` instead. Independent child inits still need separate Model assembly because neither init consumes the Model produced by the other.
+Use `Update.combine` when a later Step should receive the Model produced by an earlier Step. It takes two or more Steps. Do not wrap one Step in `Update.combine`; call that operation directly. Name an inline Step parameter `stepModel` when combining several; it receives the Model from the preceding Step. Use `Update.foldChildInit` when one child `init` or `boot` result enters a parent Model, and `Update.foldChildInits` when several child results enter the same parent Model. Use `Update.foldChild` for a child update that receives input or `Update.foldChildStep` for a child helper that receives only its Model. Keep route-gated initialization or Model-only child construction separate when there is no shared set of child results to fold.
 
 When the OutMessage is already known while constructing a new result, include it directly: `{ model, commands, outMessage }`. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain return or when the value has the type `OutMessage | undefined`. Pipe an existing return into the helper: `pipe(dialogClose, Update.withOutMessage(outMessage))`. When constructing the plain return in the same expression, pass it first: `Update.withOutMessage({ model, commands }, outMessage)`. Add `toParentOutMessage` only when at least one child OutMessage should continue to the current Submodel's parent. For partial forwarding, match every child variant and return `undefined` for the variants that stop here. Omit `toParentOutMessage` when every variant stops here. `foldOutMessage` still handles each variant locally, including variants that continue upward. Never add `toParentOutMessage: () => undefined` only to change the fold's return type.
+
+When any `Update.foldChildInits` entry can derive or forward an OutMessage, provide `resolveOutMessage`. It receives the optional, named OutMessages and the final parent Model once after every local fold completes, then returns one parent OutMessage or `undefined`. Combine the information from both children when both results matter. For example, report one restoration summary containing both a saved query and a saved draft. Choosing one child's OutMessage discards the other and needs a reason in the application. If the final Model alone describes everything the parent should report, handle the children locally and attach an OutMessage afterward with `Update.withOutMessage`.
 
 The module also carries two combinators for handlers that fan out after a mutation succeeds:
 
@@ -209,7 +211,7 @@ SucceededUpdateNote: ({ note }) =>
 When the initial Model needs data from a side effect (current time, localStorage, browser APIs), use Flags, not module-level constants:
 
 ```ts
-// WRONG: module-level side effect (stale on HMR, non-deterministic, untestable)
+// WRONG: module-level side effect (non-deterministic and untestable)
 const now = Date.now()
 const init = () => ({ model: { createdAt: now } })
 
@@ -274,14 +276,15 @@ Child → Parent: the child returns a record with an optional `outMessage`
 ```ts
 // Child signals to parent
 const update = (model: Model, message: Message) =>
-  Message.match<
-    Update.ReturnWithOutMessage<Model, Message, OutMessage>
-  >(message, {
-    CreatedRoom: ({ roomId, player }) => ({
-      model,
-      outMessage: OutMessage.SucceededCreateRoom({ roomId, player }),
-    }),
-  })
+  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
+    message,
+    {
+      CreatedRoom: ({ roomId, player }) => ({
+        model,
+        outMessage: OutMessage.SucceededCreateRoom({ roomId, player }),
+      }),
+    },
+  )
 
 // Parent folds the child update and handles its OutMessage
 const foldChildOutMessage = Child.OutMessage.match<
@@ -298,7 +301,7 @@ const foldChildOutMessage = Child.OutMessage.match<
 const foldChild = Update.foldChild({
   update: Child.update,
   read: (model: ParentModel) => Option.some(model.child),
-  write: (model, nextChild) => evo(model, { child: () => nextChild }),
+  write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
   toParentMessage: message => ParentMessage.GotChildMessage({ message }),
   foldOutMessage: foldChildOutMessage,
 })
@@ -459,7 +462,7 @@ Runtime.run(application)
 
 ### Scoped to a Node (Embedded Widgets)
 
-`makeApplication` assumes it owns the page: its `view` returns a `Document` (`{ title, lang?, dir?, canonical?, ogUrl?, body }`) and the runtime writes `document.title`, the `lang` / `dir` attributes on `<html>`, and the canonical / og:url tags on every render. For a widget embedded on a page you do not control, that clobbers the host page's metadata.
+`makeApplication` assumes it owns the page. Its `view` returns a `Document` (`{ title, lang?, dir?, canonical?, ogUrl?, body }`), and the runtime manages `document.title`, the `lang` and `dir` attributes on `<html>`, `<link rel="canonical">`, and `<meta property="og:url">`. A widget embedded on a page does not own that metadata.
 
 Use `Runtime.makeElement` instead. Its `view` returns `Html` directly (no title to discard) and the runtime never touches the document `<head>` or the `<html>` element. Everything else (Model, init, update, Commands, Subscriptions, Flags, crash handling) is identical. Embedded apps don't own the URL bar, so `makeElement` has no `routing` config.
 
@@ -479,7 +482,13 @@ When the host application needs to control the embedded app (mount and unmount i
 
 ### Document Metadata
 
-With `makeApplication`, the `view` returns a `Document`. The runtime sets `document.title` from its `title` field after every render and syncs the canonical / og:url tags (`canonical` defaults to the current URL, and `ogUrl` defaults to `canonical`, so setting `canonical` alone moves both). With `makeElement`, there is no title or metadata management at all.
+With `makeApplication`, the `view` returns a `Document`. The runtime writes `title` to `document.title` after every render. It never derives `canonical` from the address bar. Build the canonical from the typed route in the Model, where the application can decide which route and query values identify the page.
+
+If no render supplies `canonical`, the runtime leaves a served `<link rel="canonical">` unchanged or keeps the document without one. Before the client first writes a canonical, it records the existing `href`. A later omission restores that value, or removes the element if the runtime created it. During hydration, the recorded value can be the initial route's server-rendered canonical, so omission means restore that baseline rather than remove every canonical.
+
+`ogUrl` can be supplied independently. An omitted `ogUrl` uses an explicit `canonical`, and its restore or removal behavior is the same. `Server.renderToString` returns only a canonical supplied by the view and gives `ogUrl` the explicit canonical when `ogUrl` is omitted. It does not derive either field from `Request.url`.
+
+With `makeElement`, the runtime does not manage the title or document metadata.
 
 `lang` and `dir` sync to the `<html>` element, so an app that switches language at runtime drives them from the Model. `dir` is `TextDirection` from `foldkit/html`, a Schema over `'Ltr' | 'Rtl' | 'Auto'` that you can drop straight into a Model `Schema.Struct`, and the runtime writes it as the lowercase attribute value. Both fields are optional and have no default: when a view omits one, the runtime does not touch that attribute, leaving whatever value it currently holds, so a view that never sets it leaves the served HTML in place.
 

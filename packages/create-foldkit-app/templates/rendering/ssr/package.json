@@ -5,10 +5,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "start": "node dist/server/main.js",
+    "start": "node scripts/serve.ts",
     "typecheck": "tsc --noEmit",
-    "format": "prettier -w .",
+    "format": "oxfmt",
     "test": "vitest run",
-    "lint": "oxlint src server"
+    "lint": "oxlint src scripts"
   }
 }

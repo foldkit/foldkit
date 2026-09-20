@@ -11,6 +11,7 @@ import {
   text,
   type,
 } from 'foldkit/scene'
+import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import {
@@ -24,7 +25,7 @@ import {
   update,
   view,
 } from './main'
-import { initialModel, mountedModel } from './main.fixtures'
+import { initialModel, mountedModel } from './main.fixture'
 
 const acknowledgeMapMount = Mount.resolve(
   MountMap,
@@ -91,12 +92,14 @@ describe('view', () => {
   test('the failed-geolocation overlay shows a Dismiss button that returns to idle', () => {
     scene(
       { update, view },
-      given({
-        ...mountedModel,
-        geolocateState: GeolocateState.Failed({
-          reason: 'Permission denied',
+      given(
+        modifyFields(mountedModel, {
+          geolocateState: () =>
+            GeolocateState.Failed({
+              reason: 'Permission denied',
+            }),
         }),
-      }),
+      ),
       acknowledgeMapMount,
       expect(role('button', { name: 'Dismiss' })).toExist(),
       click(role('button', { name: 'Dismiss' })),
@@ -108,10 +111,11 @@ describe('view', () => {
   test('a failed map mount renders the error banner', () => {
     scene(
       { update, view },
-      given({
-        ...initialModel,
-        maybeMapError: Option.some('Network timeout'),
-      }),
+      given(
+        modifyFields(initialModel, {
+          maybeMapError: () => Option.some('Network timeout'),
+        }),
+      ),
       expect(label('Map failed to load')).toExist(),
       expect(text('Network timeout')).toExist(),
       acknowledgeMapMount,
@@ -121,15 +125,17 @@ describe('view', () => {
   test('the bounds badge shows after the map reports its first move', () => {
     scene(
       { update, view },
-      given({
-        ...mountedModel,
-        maybeBounds: Option.some({
-          west: -180,
-          south: -85,
-          east: 180,
-          north: 85,
+      given(
+        modifyFields(mountedModel, {
+          maybeBounds: () =>
+            Option.some({
+              west: -180,
+              south: -85,
+              east: 180,
+              north: 85,
+            }),
         }),
-      }),
+      ),
       expect(text('N 85.00')).toExist(),
       expect(text('S -85.00')).toExist(),
       acknowledgeMapMount,

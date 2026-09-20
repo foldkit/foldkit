@@ -72,6 +72,75 @@ in that position."
 **After.** "Imagine the old page has an `<input name="email">` exactly where the
 new build puts an `<input name="ssn">`."
 
+## Introduce examples before listing them
+
+**Before.** "A Boolean can model an independent fact, an async result needs
+extra identity only when it can become stale, and a public Submodel helper is
+correct when it preserves the child's update boundary."
+
+This sentence packs three unrelated conclusions into one line. Each conclusion
+needs context: what the Boolean tracks, which async result could become stale,
+or which boundary a Submodel helper might cross. The conclusions are meant to
+support a larger claim, but without that setup they read as disconnected
+assertions. "Judge behavior, not syntax" has the same problem if the reader has
+not yet seen the syntax or the behaviors being compared.
+
+**After.** "Start with the states the application needs to represent. Say the
+Model tracks a network request. It needs to distinguish four cases: idle,
+loading, success, and failure. One Boolean cannot do that. Use a Boolean for an
+independent yes-or-no fact."
+
+The rewrite states the rule first, then puts the Boolean in a concrete
+situation. The async result and Submodel examples need different setup, so they
+belong in sections that introduce those situations.
+
+## Explain the result instead of announcing a verdict
+
+**Before.** "The name `NoOp` fails for a different reason: it hides the fact that
+caused the Message."
+
+"Fails", "different reason", and "the fact" all make the reader look elsewhere
+for the explanation. Similar verdicts include "works", "correct", "idiomatic",
+and "the intended way". None says what the application does.
+
+**After.** "DevTools history records only `NoOp`, so a reader cannot tell that a
+mouse click occurred."
+
+State the consequence first. A verdict can summarize an explanation the reader
+already understands, but it cannot replace one.
+
+## Give technical nouns accurate agency
+
+**Before.** "A Message requires one-shot work."
+
+A Message is a value that records a fact. It does not require or perform work.
+The update function decides how the application responds to the Message, and a
+Command describes work for the Runtime to perform.
+
+**After.** "Have update return a Command when the Runtime should perform
+one-time work in response to a Message."
+
+Check every sentence for its actor. The Model describes state. A Message records
+what happened. The update function returns the next Model and any Commands. The
+Runtime performs those Commands.
+
+## Show both sides in code
+
+When a section teaches an anti-pattern, prose alone makes the reader imagine
+both the broken and corrected code. Show both versions when code makes the
+difference concrete.
+
+Mark the bad example's rendered snippet label with ❌ and the good example's
+label with ✅. When the snippet's language supports comments, repeat the marker
+in its first source comment using that language's comment syntax. The source
+comment keeps the distinction visible when someone copies the snippet or reads
+its file outside the documentation page. For a commentless format such as JSON,
+use the rendered label alone.
+
+Do not reuse one snippet for different explanations. If a snippet is bad in one
+section, good in another, or needs a different explanation in its label, make
+page-specific copies so each example says exactly what it demonstrates.
+
 ## Say when you are describing a scenario
 
 A colon leaves the reader working out whether what follows is a definition, a

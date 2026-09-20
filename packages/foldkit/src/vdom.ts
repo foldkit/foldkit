@@ -127,11 +127,11 @@ export const dedupeMemoizedResult = (
 // NOTE: a fresh boot builds the whole tree so snabbdom fires every insert hook,
 // which is what runs Mounts. Patching `toVNode(container)` directly would let
 // snabbdom reuse a container whose existing DOM happens to match the new tree (a
-// fresh `run` over server-rendered DOM, or an HMR restore), leaving those hooks
-// unfired and Mounts unattached. Patching against a comment placed where the
-// container was is never `sameVnode` with an element, so `createElm` builds the
-// tree fresh and replaces the container, exactly as a boot into an empty
-// container does.
+// fresh `run` over server-rendered DOM, or a Model-preservation restore),
+// leaving those hooks unfired and Mounts unattached. Patching against a comment
+// placed where the container was is never `sameVnode` with an element, so
+// `createElm` builds the tree fresh and replaces the container, exactly as a
+// boot into an empty container does.
 const patchFreshInto = (
   container: HTMLElement,
   nextVNode: VNode,

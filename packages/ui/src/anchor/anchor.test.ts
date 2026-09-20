@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { portalToContainingRoot } from './index.js'
+import { anchorSetup, portalToContainingRoot } from './index.js'
 
 const PORTAL_ROOT_ID = 'foldkit-portal-root'
 
@@ -63,5 +63,64 @@ describe('portalToContainingRoot', () => {
 
     cleanup()
     expect(portalRoot?.contains(element)).toBe(false)
+  })
+})
+
+describe('anchorSetup invalid inputs', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    document.body.replaceChildren()
+  })
+
+  it('reports a missing trigger and leaves the panel hidden', () => {
+    const reportError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const panel = document.createElement('div')
+    panel.style.visibility = 'hidden'
+    document.body.appendChild(panel)
+
+    const cleanup = anchorSetup(panel, { buttonId: 'missing', anchor: {} })
+
+    expect(reportError).toHaveBeenCalledTimes(1)
+    expect(reportError).toHaveBeenCalledWith(
+      '[@foldkit/ui] anchorSetup could not find a trigger with id "missing". The panel will not be positioned.',
+    )
+    expect(panel.style.visibility).toBe('hidden')
+    expect(document.getElementById(PORTAL_ROOT_ID)).toBeNull()
+    expect(cleanup).not.toThrow()
+  })
+
+  it('reports a non-HTML trigger separately from a missing trigger', () => {
+    const reportError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const trigger = document.createElementNS(
+      'http://www.w3.org/2000/svg',
+      'svg',
+    )
+    trigger.id = 'trigger'
+    const panel = document.createElement('div')
+    document.body.append(trigger, panel)
+
+    const cleanup = anchorSetup(panel, { buttonId: 'trigger', anchor: {} })
+
+    expect(reportError).toHaveBeenCalledTimes(1)
+    expect(reportError).toHaveBeenCalledWith(
+      '[@foldkit/ui] anchorSetup requires an HTML trigger with id "trigger". The panel will not be positioned.',
+    )
+    expect(document.getElementById(PORTAL_ROOT_ID)).toBeNull()
+    expect(cleanup).not.toThrow()
+  })
+
+  it('reports a non-HTML panel separately from a missing trigger', () => {
+    const reportError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const panel = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    document.body.appendChild(panel)
+
+    const cleanup = anchorSetup(panel, { buttonId: 'missing', anchor: {} })
+
+    expect(reportError).toHaveBeenCalledTimes(1)
+    expect(reportError).toHaveBeenCalledWith(
+      '[@foldkit/ui] anchorSetup requires an HTML panel. The panel will not be positioned.',
+    )
+    expect(document.getElementById(PORTAL_ROOT_ID)).toBeNull()
+    expect(cleanup).not.toThrow()
   })
 })

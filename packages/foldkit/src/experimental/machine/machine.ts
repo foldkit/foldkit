@@ -185,7 +185,7 @@ type GuardValueOf<GuardResult> = [GuardResult] extends [boolean]
  * The transition table: for each source state tag, the Messages it responds
  * to and the Edge (or ordered guard list) each Message fires. States absent
  * from the table, and Messages absent from a state's `on` record, are
- * ignored: {@link Machine.step} reports them as `Ignored` rather than
+ * ignored: `Machine.step` reports them as `Ignored` rather than
  * transitioning.
  *
  * @experimental Ships from `foldkit/experimental/machine`; expect breaking changes while the API settles.
@@ -549,8 +549,8 @@ export const otherwise = <
 /**
  * Declares that a Message is intentionally ignored when every preceding
  * {@link when} guard declines. Evaluation stops at this fallback, and
- * {@link Machine.step} reports `ExplicitlyIgnored`. Edges listed after it are
- * reported by {@link Machine.deadTransitions} as `ShadowedByIgnore`.
+ * `Machine.step` reports `ExplicitlyIgnored`. Edges listed after it are
+ * reported by `Machine.deadTransitions` as `ShadowedByIgnore`.
  *
  * @experimental Ships from `foldkit/experimental/machine`; expect breaking changes while the API settles.
  */
@@ -584,7 +584,10 @@ export type Transitioned<
  * `ExplicitlyIgnored` means evaluation reached an {@link ignore} fallback.
  */
 export type IgnoredReason =
-  'OutOfAlphabet' | 'NotApplicable' | 'GuardsFellThrough' | 'ExplicitlyIgnored'
+  | 'OutOfAlphabet'
+  | 'NotApplicable'
+  | 'GuardsFellThrough'
+  | 'ExplicitlyIgnored'
 
 /**
  * A step that matched no Edge: the state is unchanged and the Message is
@@ -636,7 +639,9 @@ export type EdgeSummary<
  * {@link ignore} stops evaluation first.
  */
 export type DeadTransitionReason =
-  'UnreachableSource' | 'ShadowedByOtherwise' | 'ShadowedByIgnore'
+  | 'UnreachableSource'
+  | 'ShadowedByOtherwise'
+  | 'ShadowedByIgnore'
 
 /** An Edge that cannot fire in a walk of the declared Edge set, with the reason. */
 export type DeadTransition<
@@ -777,7 +782,7 @@ const transitionFoldedMachine = (
  *   machine: uploadMachine,
  *   read: (model: Model) => Option.some(model.upload),
  *   write: (model, nextUpload) =>
- *     evo(model, { upload: () => nextUpload }),
+ *     modifyFields(model, { upload: () => nextUpload }),
  *   context: model => model.uploadQueues,
  * })
  *
@@ -916,7 +921,8 @@ type IgnoredEdge = Readonly<{
 }>
 
 type EdgeSelection<State extends Tagged, Message extends Tagged, R> =
-  SelectedEdge<State, Message, R> | IgnoredEdge
+  | SelectedEdge<State, Message, R>
+  | IgnoredEdge
 
 type LooseTransition<State extends Tagged, Message extends Tagged, R> =
   | LooseEdge<State, Message, R>

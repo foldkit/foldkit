@@ -99,7 +99,8 @@ function updateProps(
   const elm = vnode.elm as any
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   let oldProps = (oldVnode.data as any)?.props as
-    Record<string, any> | undefined
+    | Record<string, any>
+    | undefined
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   let props = (vnode.data as any)?.props as Record<string, any> | undefined
   if (!oldProps && !props) {

@@ -1,6 +1,6 @@
 # create-foldkit-app
 
-Scaffolding CLI for new Foldkit applications. Creates a ready-to-run project with Vite, Tailwind CSS, TypeScript, [`@foldkit/vite-plugin`](https://www.npmjs.com/package/@foldkit/vite-plugin) for hot reloading with Model preservation, your choice of rendering mode, and a starter example for SPA scaffolds.
+Scaffolding CLI for new Foldkit applications. Creates a ready-to-run project with Vite, Tailwind CSS, TypeScript, [`@foldkit/vite-plugin`](https://www.npmjs.com/package/@foldkit/vite-plugin) for state-preserving live reload, your choice of rendering mode, and a starter example for SPA scaffolds.
 
 ## Usage
 
@@ -18,11 +18,11 @@ The CLI prompts you for a project name, rendering mode, starter example, and pac
 
 ## Rendering
 
-| Mode  | Description                                                                                                                                                                    |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `spa` | Render entirely in the browser. Starts from your choice of starter example below.                                                                                              |
-| `ssg` | Prerender routes to static HTML at build time, then hydrate in the browser. Scaffolds a small routed app with a server entry and a prerender script.                           |
-| `ssr` | Render each request on a Node server, then hydrate in the browser. Scaffolds a counter whose Flags come from the request, plus an Effect HttpServer host and a `start` script. |
+| Mode  | Description                                                                                                                                                                                  |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spa` | Render entirely in the browser. Starts from your choice of starter example below.                                                                                                            |
+| `ssg` | Prerender routes to static HTML at build time, then hydrate in the browser. Scaffolds a small routed app with a server entry. One `vite build` writes every route.                           |
+| `ssr` | Render each request, then hydrate in the browser. Scaffolds a counter whose Flags come from the request. One `vite build` emits a Web `fetch` handler; `start` runs `node scripts/serve.ts`. |
 
 The starter examples apply to `spa` rendering. The `ssg` and `ssr` modes scaffold their own starter apps.
 

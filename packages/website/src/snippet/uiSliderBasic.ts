@@ -5,7 +5,7 @@ import { Option, Schema } from 'effect'
 import { Subscription, Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Slider } from '@foldkit/ui'
 
@@ -49,7 +49,7 @@ const foldSliderOutMessage = Slider.OutMessage.match<
   // trigger a downstream Command.
   ChangedValue:
     ({ value }) =>
-    model => ({ model: evo(model, { ratingValue: () => value }) }),
+    model => ({ model: modifyFields(model, { ratingValue: () => value }) }),
 })
 
 // Update.foldChild wires the child into the parent: it runs Slider.update,
@@ -59,7 +59,7 @@ const foldSlider = Update.foldChild({
   update: Slider.update,
   read: (model: Model) => Option.some(model.ratingDemo),
   write: (model, nextRatingDemo) =>
-    evo(model, { ratingDemo: () => nextRatingDemo }),
+    modifyFields(model, { ratingDemo: () => nextRatingDemo }),
   toParentMessage: message => Message.GotSliderMessage({ message }),
   foldOutMessage: foldSliderOutMessage,
 })
@@ -78,7 +78,7 @@ const sliderSubscriptions = Subscription.lift({
   toParentMessage: message => Message.GotSliderMessage({ message }),
 })
 
-const subscriptions = Subscription.aggregate<Model, Message>()(
+const subscriptions = Subscription.aggregate(
   sliderSubscriptions,
   // ...your other subscription records
 )

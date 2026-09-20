@@ -9,6 +9,7 @@ const view = (h: HtmlBuilder<Message>) =>
   Select.view(
     {
       id: 'country',
+      hasDescription: true,
       value: model.country, // your Model field
       onChange: value => UpdatedCountry({ value }), // your Message
       toView: attributes =>

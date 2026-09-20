@@ -2,7 +2,7 @@ import { Array, Option, Schema, pipe } from 'effect'
 import { Runtime, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Button } from '@foldkit/ui'
 
@@ -46,9 +46,11 @@ const foldCounter = (id: string) =>
         Option.map(row => row.counter),
       ),
     write: (model, nextCounter) =>
-      evo(model, {
+      modifyFields(model, {
         rows: Array.map(row =>
-          row.id === id ? evo(row, { counter: () => nextCounter }) : row,
+          row.id === id
+            ? modifyFields(row, { counter: () => nextCounter })
+            : row,
         ),
       }),
     toParentMessage: message => Message.GotCounterMessage({ id, message }),
@@ -57,7 +59,7 @@ const foldCounter = (id: string) =>
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedAddRow: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         rows: Array.append({
           id: `counter-${model.nextRowId}`,
           counter: Counter.init,
@@ -66,7 +68,7 @@ export const update = (model: Model, message: Message) =>
       }),
     }),
     ClickedRemoveRow: ({ id }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         rows: Array.filter(row => row.id !== id),
       }),
     }),

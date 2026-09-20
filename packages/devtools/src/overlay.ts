@@ -45,7 +45,7 @@ import { defineMessageUnion } from 'foldkit/message'
 import { makeElement } from 'foldkit/runtime'
 import type { DevToolsMode, DevToolsPosition } from 'foldkit/runtime'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import * as Subscription from 'foldkit/subscription'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
@@ -64,6 +64,7 @@ const SubmodelFilterListbox = Listbox.create<string>()
 const DisplayCommand = Schema.Struct({
   name: Schema.String,
   args: Schema.Option(Schema.Record(Schema.String, Schema.Unknown)),
+  maybeSubmodelPath: Schema.Option(Schema.Array(Schema.String)),
 })
 
 const DisplayMount = Schema.Struct({
@@ -257,11 +258,18 @@ const computeSubmodelTags = (
     Array.sort(Order.String),
   )
 
+const submodelSegmentLabel = (tag: string): string =>
+  pipe(tag, String.replace(/^Got/, ''), String.replace(/Message$/, ''))
+
+const formatSubmodelPath = (submodelPath: ReadonlyArray<string>): string =>
+  pipe(submodelPath, Array.map(submodelSegmentLabel), Array.join(' › '))
+
 const toDisplayCommand = (
   command: CommandRecord,
 ): typeof DisplayCommand.Type => ({
   name: command.name,
   args: Option.fromNullishOr(command.args),
+  maybeSubmodelPath: command.maybeSubmodelPath,
 })
 
 const toDisplayMount = (mount: MountRecord): typeof DisplayMount.Type => ({
@@ -336,7 +344,7 @@ const foldInspectorTabsOutMessage = Tabs.OutMessage.match<
   Selected:
     ({ value }) =>
     model => ({
-      model: evo(model, { activeInspectorTab: () => value }),
+      model: modifyFields(model, { activeInspectorTab: () => value }),
     }),
 })
 
@@ -344,7 +352,7 @@ const foldInspectorTabs = Update.foldChild({
   update: InspectorTabs.update,
   read: (model: Model) => Option.some(model.inspectorTabs),
   write: (model, nextInspectorTabs) =>
-    evo(model, { inspectorTabs: () => nextInspectorTabs }),
+    modifyFields(model, { inspectorTabs: () => nextInspectorTabs }),
   toParentMessage: message => Message.GotInspectorTabsMessage({ message }),
   foldOutMessage: foldInspectorTabsOutMessage,
 })
@@ -356,7 +364,7 @@ const foldSubmodelFilterOutMessage = Listbox.OutMessage.match<
   Selected:
     ({ value }) =>
     model => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         maybeSubmodelFilter: () =>
           Option.liftPredicate(value, String.isNonEmpty),
       }),
@@ -367,7 +375,7 @@ const foldSubmodelFilter = Update.foldChild({
   update: SubmodelFilterListbox.update,
   read: (model: Model) => Option.some(model.submodelFilterListbox),
   write: (model, nextSubmodelFilterListbox) =>
-    evo(model, {
+    modifyFields(model, {
       submodelFilterListbox: () => nextSubmodelFilterListbox,
     }),
   toParentMessage: message => Message.GotSubmodelFilterMessage({ message }),
@@ -383,7 +391,7 @@ const foldScrubberSliderOutMessage = Slider.OutMessage.match<
   ChangedValue:
     ({ value }) =>
     model => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         scrubberValue: () => value,
         maybePendingScrubIndex: () =>
           Option.some(sliderValueToHostIndex(value, model.startIndex)),
@@ -395,7 +403,7 @@ const foldScrubberSlider = Update.foldChild({
   update: Slider.update,
   read: (model: Model) => Option.some(model.scrubberSlider),
   write: (model, nextScrubberSlider) =>
-    evo(model, { scrubberSlider: () => nextScrubberSlider }),
+    modifyFields(model, { scrubberSlider: () => nextScrubberSlider }),
   toParentMessage: message => Message.GotScrubberSliderMessage({ message }),
   foldOutMessage: foldScrubberSliderOutMessage,
 })
@@ -578,7 +586,7 @@ const makeUpdate = (
       ClickedToggle: () => {
         const nextIsOpen = !model.isOpen
         return {
-          model: evo(model, { isOpen: () => nextIsOpen }),
+          model: modifyFields(model, { isOpen: () => nextIsOpen }),
           commands: [
             ...Option.toArray(
               maybeToggleScrollLock(model.isMobile, nextIsOpen),
@@ -591,7 +599,7 @@ const makeUpdate = (
         }
       },
       ClickedSettingsToggle: () => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           screen: currentScreen =>
             Match.value(currentScreen).pipe(
               Match.withReturnType<Screen>(),
@@ -602,11 +610,11 @@ const makeUpdate = (
         }),
       }),
       ToggledFlatten: ({ isFlattened }) => ({
-        model: evo(model, { isFlattened: () => isFlattened }),
+        model: modifyFields(model, { isFlattened: () => isFlattened }),
         commands: [PersistDevToolsState({ isOpen: model.isOpen, isFlattened })],
       }),
       CrossedMobileBreakpoint: ({ isMobile }) => ({
-        model: evo(model, { isMobile: () => isMobile }),
+        model: modifyFields(model, { isMobile: () => isMobile }),
         commands: Option.toArray(maybeToggleScrollLock(model.isOpen, isMobile)),
       }),
       ClickedRow: ({ index }) =>
@@ -617,7 +625,7 @@ const makeUpdate = (
             commands: [jumpToAndInspect(index)],
           })),
           Match.when('Inspect', () => ({
-            model: evo(model, {
+            model: modifyFields(model, {
               selectedIndex: () => index,
               isFollowingLatest: () => false,
             }),
@@ -626,7 +634,7 @@ const makeUpdate = (
           Match.exhaustive,
         ),
       ClickedResume: () => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           isFollowingTop: () => true,
           expandedPaths: () => HashSet.empty<string>(),
           changedPaths: () => HashSet.empty<string>(),
@@ -635,7 +643,7 @@ const makeUpdate = (
         commands: [resume, inspectLatest, scrollToTop],
       }),
       ClickedClear: () => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           selectedIndex: () => INIT_INDEX,
           isFollowingLatest: () => true,
           isFollowingTop: () => true,
@@ -653,7 +661,7 @@ const makeUpdate = (
         })
 
         return {
-          model: evo(model, {
+          model: modifyFields(model, {
             selectedIndex: () => latestIndex,
             isFollowingLatest: () => true,
             isFollowingTop: () => true,
@@ -665,7 +673,7 @@ const makeUpdate = (
         }
       },
       ClickedScrollToTopPill: () => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           isFollowingTop: () => true,
         }),
         commands: [scrollToTop],
@@ -674,7 +682,7 @@ const makeUpdate = (
         const isAtTop = scrollTop <= SCROLL_FOLLOW_THRESHOLD_PX
         return isAtTop === model.isFollowingTop
           ? { model }
-          : { model: evo(model, { isFollowingTop: () => isAtTop }) }
+          : { model: modifyFields(model, { isFollowingTop: () => isAtTop }) }
       },
       ReceivedInspectedState: ({
         model: inspectedModel,
@@ -682,7 +690,7 @@ const makeUpdate = (
         changedPaths,
         affectedPaths,
       }) => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           maybeInspectedModel: () => Option.some(inspectedModel),
           maybeInspectedMessage: () => maybeMessage,
           changedPaths: () => changedPaths,
@@ -692,7 +700,7 @@ const makeUpdate = (
       GotInspectorTabsMessage: ({ message: tabsMessage }) =>
         foldInspectorTabs(model, tabsMessage),
       ToggledTreeNode: ({ path }) => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           expandedPaths: paths =>
             HashSet.has(paths, path)
               ? HashSet.remove(paths, path)
@@ -736,7 +744,7 @@ const makeUpdate = (
           : sliderMax
 
         return {
-          model: evo(model, {
+          model: modifyFields(model, {
             entries: () => entries,
             initCommands: () => initCommands,
             initMountStarts: () => initMountStarts,
@@ -775,7 +783,7 @@ const makeUpdate = (
         Option.match(model.maybePendingScrubIndex, {
           onNone: (): UpdateReturn => ({ model }),
           onSome: (hostIndex): UpdateReturn => ({
-            model: evo(model, {
+            model: modifyFields(model, {
               maybePendingScrubIndex: () => Option.none(),
             }),
             commands: [jumpToAndInspect(hostIndex)],
@@ -845,10 +853,7 @@ const makeOverlaySubscriptions = (store: DevToolsStore, shadow: ShadowRoot) => {
     ),
   }))
 
-  return Subscription.aggregate<Model, Message>()(
-    ownSubscriptions,
-    scrubberSubscriptions,
-  )
+  return Subscription.aggregate(ownSubscriptions, scrubberSubscriptions)
 }
 
 // VIEW
@@ -1452,10 +1457,40 @@ const buildOverlayView = (
                 h.span([h.Class(indexClass)], [globalThis.String(index + 1)]),
                 h.div(
                   [h.Class('flex flex-col flex-1 min-w-0')],
-                  Array.map(
-                    flattenCommand(command, index, expandedPaths),
-                    renderFlatNode,
-                  ),
+                  [
+                    ...Option.match(command.maybeSubmodelPath, {
+                      onNone: () => [
+                        h.div(
+                          [h.Class('text-2xs text-dt-muted font-mono')],
+                          [
+                            h.span([h.AriaHidden(true)], ['…']),
+                            h.span(
+                              [h.Class('sr-only')],
+                              ['Destination pending'],
+                            ),
+                          ],
+                        ),
+                      ],
+                      onSome: submodelPath =>
+                        Array.match(submodelPath, {
+                          onEmpty: () => [],
+                          onNonEmpty: submodelPath => [
+                            h.div(
+                              [
+                                h.Class(
+                                  'text-2xs text-dt-muted font-mono truncate',
+                                ),
+                              ],
+                              [formatSubmodelPath(submodelPath)],
+                            ),
+                          ],
+                        }),
+                    }),
+                    ...Array.map(
+                      flattenCommand(command, index, expandedPaths),
+                      renderFlatNode,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1642,6 +1677,7 @@ const buildOverlayView = (
             tabs: INSPECTOR_TABS,
             selectedValue: model.activeInspectorTab,
             ariaLabel: 'Inspector tabs',
+            panelMount: 'All',
             toView: ({ tablist, tabs, activeIndex }) =>
               h.div(
                 [h.Class('flex flex-col flex-1 min-h-0')],
@@ -1760,9 +1796,6 @@ const buildOverlayView = (
       ['Clear history'],
     )
 
-  const submodelLabel = (tag: string): string =>
-    pipe(tag, String.replace(/^Got/, ''), String.replace(/Message$/, ''))
-
   const CHECK_ICON = 'M4.5 12.75l6 6 9-13.5'
 
   const checkIconView: Html = h.svg(
@@ -1785,7 +1818,7 @@ const buildOverlayView = (
   )
 
   const filterItemLabel = (item: string): string =>
-    String.isNonEmpty(item) ? submodelLabel(item) : 'All Messages'
+    String.isNonEmpty(item) ? submodelSegmentLabel(item) : 'All Messages'
 
   const ARROW_UP = 'M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18'
 
@@ -1820,7 +1853,7 @@ const buildOverlayView = (
   const submodelFilterView = (model: Model): Html => {
     const buttonLabel = Option.match(model.maybeSubmodelFilter, {
       onNone: () => 'All Messages',
-      onSome: submodelLabel,
+      onSome: submodelSegmentLabel,
     })
 
     return h.submodel({
@@ -1880,6 +1913,7 @@ const buildOverlayView = (
       {
         id: FLATTEN_SWITCH_ID,
         isChecked: model.isFlattened,
+        hasDescription: true,
         onToggle: isFlattened => Message.ToggledFlatten({ isFlattened }),
         toView: attributes =>
           h.div(

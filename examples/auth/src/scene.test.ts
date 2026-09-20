@@ -8,6 +8,7 @@ import {
   submit,
   text,
 } from 'foldkit/scene'
+import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { SaveSession } from './command'
@@ -16,7 +17,6 @@ import { Message } from './message'
 import { LoggedOut } from './model'
 import {
   Message as LoginMessage,
-  Model as LoginModel,
   SimulateAuthRequest,
   initModel as initLoginModel,
 } from './page/loggedOut/page/login'
@@ -26,10 +26,9 @@ import { view } from './view'
 
 const validModel = LoggedOut.Model({
   route: AppRoute.Login(),
-  loginModel: LoginModel.make({
-    ...initLoginModel(),
-    email: Valid({ value: 'alice@example.com' }),
-    password: Valid({ value: 'password' }),
+  loginModel: modifyFields(initLoginModel(), {
+    email: () => Valid({ value: 'alice@example.com' }),
+    password: () => Valid({ value: 'password' }),
   }),
 })
 

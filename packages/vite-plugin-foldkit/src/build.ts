@@ -1,7 +1,7 @@
-import { Array, Schema } from 'effect'
+import { Schema } from 'effect'
 import type { RenderedApplication } from 'foldkit/experimental/server'
 import { mkdir, writeFile } from 'node:fs/promises'
-import nodePath, { basename, dirname, extname, resolve } from 'node:path'
+import nodePath, { dirname, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type {
   BuildEnvironment,
@@ -18,9 +18,10 @@ export type FoldkitPrerenderOptions = Readonly<{
    */
   paths?: ReadonlyArray<string>
   /**
-   * The origin the entry sees as `Request.url` while generating, such as
-   * `'https://app.example'`. It reaches canonical URLs and Open Graph URLs, so
-   * a deployment that publishes those should set the origin it publishes.
+   * The origin used for `Request.url` while generating, such as
+   * `'https://app.example'`. This option does not set canonical or Open Graph
+   * metadata. It affects those fields only when the server entry derives them
+   * from `Request.url`, in which case it should match the published origin.
    */
   origin?: string
   /**
@@ -33,20 +34,16 @@ export type FoldkitPrerenderOptions = Readonly<{
 
 /** How `vite build` builds a server entry and what it generates from it. */
 export type FoldkitBuildOptions = Readonly<{
-  /**
-   * The module the server build starts from. Defaults to the `serverEntry`
-   * itself, which is what a generated site wants. Point it at a host module
-   * when the deployment serves requests through one, such as an HTTP server or
-   * a Worker that imports the entry and calls `renderPage`.
-   *
-   * A build that also generates pages needs `renderPage` and, unless the paths
-   * are configured here, `prerenderPaths` on whichever module this names.
-   */
-  entry?: string
   /** Where the browser build is written. */
   clientOutDir?: string
   /** Where the server build is written. */
   serverOutDir?: string
+  /**
+   * The `id` of the empty container in `index.html` the fetch handler
+   * replaces. Defaults to `'root'`. The aggregate plugin copies
+   * `ssr.containerId` here.
+   */
+  containerId?: string
   /**
    * Generate static HTML for a set of URLs after both builds. `true` takes the
    * paths from the entry's `prerenderPaths` export.
@@ -54,16 +51,15 @@ export type FoldkitBuildOptions = Readonly<{
   prerender?: boolean | FoldkitPrerenderOptions
 }>
 
+/** Vite module id of the fetch handler Foldkit emits as the server entry. */
+export const FOLDKIT_FETCH_MODULE_ID = 'virtual:foldkit/fetch'
+
 /**
- * What the build produced, written beside the server bundle for whatever
- * deploys it.
+ * What an `ssr.build` build produced, written beside the server bundle.
  *
- * A host has to decide what the asset layer does with a request that matches no
- * file, and that answer follows from the build rather than from taste: an
- * application with generated pages and no others wants a miss to stay a miss,
- * one with a server wants a miss to reach it, and one with neither wants the
- * template. Reading it here is how a deployment target gets that right without
- * asking its user to configure it twice.
+ * An SSR host serves generated paths as files and sends requests without a
+ * matching file to the server entry. A static-only SSG host serves the files
+ * and leaves other paths as misses.
  */
 export const FoldkitBuildManifest = Schema.Struct({
   /**
@@ -87,19 +83,10 @@ export const FoldkitBuildManifest = Schema.Struct({
 })
 
 /**
- * What the build produced, written beside the server bundle for whatever
- * deploys it.
+ * The decoded shape of `foldkit.build.json`.
  *
- * A host has to decide what the asset layer does with a request that matches no
- * file, and that answer follows from the build rather than from taste: an
- * application with generated pages and no others wants a miss to stay a miss,
- * one with a server wants a miss to reach it, and one with neither wants the
- * template. Reading it here is how a deployment target gets that right without
- * asking its user to configure it twice.
- *
- * It is a file on disk that something else writes the next time it builds, so a
- * consumer decodes it with this Schema and fails closed rather than trusting
- * the shape it happens to find.
+ * A deployment host decodes the manifest before using it. The Schema rejects
+ * unknown versions rather than letting the host read missing fields.
  */
 export type FoldkitBuildManifest = typeof FoldkitBuildManifest.Type
 
@@ -130,14 +117,12 @@ export const manifestPath = (
 }
 
 const MANIFEST_FILE_NAME = 'foldkit.build.json'
+const TEMPLATE_FILE_NAME = 'index.html'
 const DEFAULT_CLIENT_OUT_DIR = 'dist/client'
 const DEFAULT_SERVER_OUT_DIR = 'dist/server'
 const DEFAULT_PRERENDER_ORIGIN = 'http://localhost'
-// The chunk is named after the module it builds, which is what
-// `vite build --ssr <file>` writes, so a host that starts `dist/server/main.js`
-// keeps starting the same file.
-const serverChunkName = (entry: string): string =>
-  basename(entry, extname(entry))
+const FETCH_CHUNK_NAME = 'fetch'
+const RESOLVED_FETCH_MODULE_ID = `\0${FOLDKIT_FETCH_MODULE_ID}`
 
 type RenderedResult = {
   readonly _tag: string
@@ -328,24 +313,68 @@ const captures = ((): Map<string, Captured> => {
   return fresh
 })()
 
+const fetchModuleSource = (
+  serverEntry: string,
+  template: string,
+  containerId: string | undefined,
+): string => {
+  const containerLiteral =
+    containerId === undefined ? 'undefined' : JSON.stringify(containerId)
+  // NOTE: `export *` re-exports whatever the application entry actually names,
+  // so a missing `prerenderPaths` is absent rather than a Vite undefined-import
+  // warning.
+  return `${[
+    `import { handleRequest } from 'foldkit/experimental/server'`,
+    `import * as server from ${JSON.stringify(serverEntry)}`,
+    `export * from ${JSON.stringify(serverEntry)}`,
+    `const template = ${JSON.stringify(template)}`,
+    `const containerId = ${containerLiteral}`,
+    `export default {`,
+    `  fetch(request) {`,
+    `    return handleRequest(request, {`,
+    `      renderPage: server.renderPage,`,
+    `      template,`,
+    `      containerId,`,
+    `    })`,
+    `  },`,
+    `}`,
+    ``,
+  ].join('\n')}`
+}
+
+// The template is what the browser build emitted in this same `vite build`,
+// never a file on disk: `dist/client/index.html` could only be the previous
+// build's shell with its old asset hashes, and the source `index.html` still
+// names `/src/entry.ts`. Either would bundle into a handler that serves a
+// page which cannot hydrate, from a build that reported success.
+const templateForFetchModule = (
+  capturedTemplate: string | undefined,
+): string => {
+  if (capturedTemplate === undefined) {
+    throw new Error(
+      `[foldkit] the browser build has not emitted ${TEMPLATE_FILE_NAME}, so the fetch handler has no template to render into. Build the "client" environment before "ssr", and give the client an HTML entry.`,
+    )
+  }
+  return capturedTemplate
+}
+
 /**
- * Builds the server entry alongside the browser build, and generates static
- * HTML from it, inside one `vite build`.
+ * Builds a Web `fetch` handler alongside the browser build, and generates
+ * static HTML from the server entry, inside one `vite build`.
  *
- * Vite drives both environments and every host plugin composes with them, so a
- * deployment target that runs `vite build` gets the whole application rather
- * than the browser half. The generated pages take their template from the
- * browser build's own output, so generating twice over one build produces the
- * same pages.
+ * Vite builds both environments, so a deployment target that runs `vite build`
+ * gets the browser and server bundles. The `fetch` handler and generated pages
+ * use the HTML emitted by the browser build, but the unrendered template is not
+ * published with the assets. The server bundle's default export is `{ fetch }`.
  */
 export const foldkitBuild = (
   serverEntry: string,
   options: FoldkitBuildOptions = {},
 ): Plugin => {
-  const entry = options.entry ?? serverEntry
   const clientOutDir = options.clientOutDir ?? DEFAULT_CLIENT_OUT_DIR
   const serverOutDir = options.serverOutDir ?? DEFAULT_SERVER_OUT_DIR
   const prerender = prerenderOptionsFrom(options.prerender ?? false)
+  const containerId = prerender?.containerId ?? options.containerId
 
   // Prerendering imports the server bundle and runs it in the build process,
   // with the build's own privileges. That module is the application's own code
@@ -435,7 +464,7 @@ export const foldkitBuild = (
   // describes is what lets the finalizing instance read what the others
   // emitted, and what lets finalization work whether this plugin orchestrates
   // the environments or a host does.
-  const key = [clientOutDir, serverOutDir, entry].join('\u0000')
+  const key = [clientOutDir, serverOutDir, serverEntry].join('\u0000')
   const captured = (root: string): Captured => {
     const existing = captures.get(`${root}\u0000${key}`)
     if (existing !== undefined) {
@@ -461,7 +490,7 @@ export const foldkitBuild = (
     const template = (): string => {
       if (state.template === undefined) {
         throw new Error(
-          '[foldkit] the browser build emitted no index.html to generate pages from. Prerendering needs an HTML entry.',
+          `[foldkit] the browser build emitted no ${TEMPLATE_FILE_NAME} to generate pages from. Prerendering needs an HTML entry.`,
         )
       }
       return state.template
@@ -485,26 +514,47 @@ export const foldkitBuild = (
   return {
     name: 'foldkit:build',
     apply: 'build',
-    // NOTE: `writeBundle` rather than `generateBundle`: Vite's own HTML plugin
-    // emits `index.html` from a `generateBundle` hook of its own, and hook
-    // order between plugins decides whether that asset exists yet. By
-    // `writeBundle` the bundle is whatever the environment actually produced.
-    writeBundle(_options, bundle) {
-      const state = captured(this.environment.config.root)
-      const outputs = Object.values(bundle)
-      if (this.environment.name === 'client') {
-        const html = Array.findFirst(
-          outputs,
-          file => file.type === 'asset' && file.fileName === 'index.html',
-        )
-        if (html._tag === 'Some' && html.value.type === 'asset') {
-          state.template = String(html.value.source)
-        }
+    api: {
+      serverEntry,
+      fetchModuleId: FOLDKIT_FETCH_MODULE_ID,
+    },
+    resolveId(id) {
+      if (id === FOLDKIT_FETCH_MODULE_ID) {
+        return RESOLVED_FETCH_MODULE_ID
+      }
+      return undefined
+    },
+    load(id) {
+      if (id !== RESOLVED_FETCH_MODULE_ID) {
         return
       }
-      if (this.environment.name === 'ssr') {
-        state.serverEntryFile = serverEntryFile(outputs, serverChunkName(entry))
-      }
+      const state = captured(this.environment.config.root)
+      const template = templateForFetchModule(state.template)
+      return fetchModuleSource(serverEntry, template, containerId)
+    },
+    // NOTE: `order: 'post'` because Vite's own HTML plugin emits `index.html`
+    // from a `generateBundle` of its own; post is guaranteed to run after it.
+    generateBundle: {
+      order: 'post',
+      handler(_options, bundle) {
+        const state = captured(this.environment.config.root)
+        if (this.environment.name === 'ssr') {
+          state.serverEntryFile = serverEntryFile(
+            Object.values(bundle),
+            FETCH_CHUNK_NAME,
+          )
+          return
+        }
+        if (this.environment.name !== 'client') {
+          return
+        }
+        const html = bundle[TEMPLATE_FILE_NAME]
+        if (html === undefined || html.type !== 'asset') {
+          return
+        }
+        state.template = String(html.source)
+        delete bundle[TEMPLATE_FILE_NAME]
+      },
     },
     config: userConfig => {
       const client: EnvironmentOptions = {
@@ -514,7 +564,9 @@ export const foldkitBuild = (
         build: {
           ssr: true,
           outDir: serverOutDir,
-          rollupOptions: { input: { [serverChunkName(entry)]: entry } },
+          rolldownOptions: {
+            input: { [FETCH_CHUNK_NAME]: FOLDKIT_FETCH_MODULE_ID },
+          },
         },
       }
 

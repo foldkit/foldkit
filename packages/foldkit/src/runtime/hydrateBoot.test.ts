@@ -186,6 +186,68 @@ describe('hydrating boot', () => {
     }
   })
 
+  it('restores initial server metadata when a hydrated view omits it', async () => {
+    const initialCanonical = 'https://example.com/initial'
+    const metadataView = (model: Model): Document => {
+      if (model.count === 5) {
+        return { ...view(model), canonical: initialCanonical }
+      } else {
+        return view(model)
+      }
+    }
+    const rendered = await Effect.runPromise(
+      renderToString(
+        { Flags, init, view: metadataView },
+        { flags: { start: 5 }, buildId: BUILD_ID },
+      ),
+    )
+    expect(rendered.canonical).toBe(initialCanonical)
+    expect(rendered.ogUrl).toBe(initialCanonical)
+    if (rendered.canonical === undefined || rendered.ogUrl === undefined) {
+      throw new Error('server metadata is missing')
+    }
+    document.body.innerHTML = rendered.html
+
+    const canonicalElement = document.head.appendChild(
+      document.createElement('link'),
+    )
+    canonicalElement.setAttribute('rel', 'canonical')
+    canonicalElement.setAttribute('href', rendered.canonical)
+    const ogUrlElement = document.head.appendChild(
+      document.createElement('meta'),
+    )
+    ogUrlElement.setAttribute('property', 'og:url')
+    ogUrlElement.setAttribute('content', rendered.ogUrl)
+
+    const application = makeApplication({
+      Model,
+      Flags,
+      init,
+      update,
+      view: metadataView,
+      container: nullContainer(),
+    })
+    const fiber = Effect.runFork(
+      __startProgram(application, undefined, 'Hydrate', undefined, BUILD_ID),
+    )
+
+    try {
+      await awaitBodyText('5')
+
+      document
+        .getElementById('bump')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+
+      await awaitBodyText('6')
+      expect(canonicalElement.getAttribute('href')).toBe(initialCanonical)
+      expect(ogUrlElement.getAttribute('content')).toBe(initialCanonical)
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+      canonicalElement.remove()
+      ogUrlElement.remove()
+    }
+  })
+
   it('round-trips non-JSON-native Schema values through the flags payload', async () => {
     const OptionalFlags = Schema.Struct({
       maybeStart: Schema.Option(Schema.Number),
@@ -242,7 +304,7 @@ describe('hydrating boot', () => {
     expect(document.getElementById('count')?.textContent).toBe('5')
   })
 
-  it('validates the flags payload before applying an HMR-restored Model', async () => {
+  it('validates the flags payload before applying a Model restored after a development reload', async () => {
     await renderServerPage({ start: 5 })
     const payloadScript = document.querySelector('script[data-foldkit-flags]')
     expect(payloadScript).not.toBeNull()
@@ -297,7 +359,7 @@ describe('hydrating boot', () => {
     expect(document.getElementById('count')?.textContent).toBe('5')
   })
 
-  it('prefers an HMR-restored Model over hydration', async () => {
+  it('prefers a Model restored after a development reload over hydration', async () => {
     await renderServerPage({ start: 5 })
     const serverCount = document.getElementById('count')
     const application = makeClientApplication()
@@ -710,7 +772,9 @@ describe('hydrating boot', () => {
       const servedRoot = document.querySelector('[data-foldkit-app]')
       const application = makeClientApplication()
       const runtimeLog = vi.spyOn(console, 'log').mockImplementation(() => {})
-      const hmrWarning = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const pluginWarning = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => {})
 
       try {
         expect(() =>
@@ -719,7 +783,7 @@ describe('hydrating boot', () => {
         await vi.waitFor(() => expectContained(servedRoot))
       } finally {
         runtimeLog.mockRestore()
-        hmrWarning.mockRestore()
+        pluginWarning.mockRestore()
       }
     },
   )
@@ -757,7 +821,7 @@ describe('hydrating boot', () => {
       container: nullContainer(),
     })
     const runtimeLog = vi.spyOn(console, 'log').mockImplementation(() => {})
-    const hmrWarning = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const pluginWarning = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
     try {
       hydrateUnchecked(application, [{ buildId: null }])
@@ -765,7 +829,7 @@ describe('hydrating boot', () => {
       expect(initAttempts).toEqual([])
     } finally {
       runtimeLog.mockRestore()
-      hmrWarning.mockRestore()
+      pluginWarning.mockRestore()
     }
   })
 

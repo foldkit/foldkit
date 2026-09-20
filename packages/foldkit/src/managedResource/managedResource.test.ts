@@ -1,7 +1,14 @@
 import { Effect, Option, Schema } from 'effect'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, expectTypeOf, it } from 'vitest'
 
-import { aggregate, lift, make, tag } from './managedResource.js'
+import {
+  type ServiceOf,
+  type ServicesOf,
+  aggregate,
+  lift,
+  make,
+  tag,
+} from './managedResource.js'
 
 // A child Submodel owns a session resource and mounts/unmounts.
 
@@ -127,9 +134,28 @@ describe('lift', () => {
   })
 })
 
+type IncompatibleModel = Readonly<{ unrelated: string }>
+
+const IncompatibleResource = tag<string>()('IncompatibleResource')
+
+const incompatibleModelManagedResources = make<
+  IncompatibleModel,
+  ParentMessage
+>()(entry => ({
+  incompatible: entry(Schema.Option(Schema.Null), {
+    resource: IncompatibleResource,
+    modelToMaybeRequirements: () => Option.some(null),
+    acquire: () => Effect.succeed('value'),
+    release: () => Effect.void,
+    onAcquired: pinged,
+    onReleased: pinged,
+    onAcquireError: pinged,
+  }),
+}))
+
 describe('aggregate', () => {
   it('combines records into one keyed by resource name', () => {
-    const combined = aggregate<ParentModel, ParentMessage>()(
+    const combined = aggregate(
       liftedManagedResources,
       parentLocalManagedResources,
     )
@@ -139,10 +165,114 @@ describe('aggregate', () => {
 
   it('throws on a duplicate key across records', () => {
     expect(() =>
+      aggregate(parentLocalManagedResources, parentLocalManagedResources),
+    ).toThrow('duplicate key "ping"')
+  })
+
+  it('still throws on a duplicate key through the curried form', () => {
+    expect(() =>
       aggregate<ParentModel, ParentMessage>()(
         parentLocalManagedResources,
         parentLocalManagedResources,
       ),
     ).toThrow('duplicate key "ping"')
   })
+
+  it('preserves __proto__ as an ordinary resource name', () => {
+    const prototypeResources = {
+      ['__proto__']: parentLocalManagedResources.ping,
+    }
+    const combined = aggregate(prototypeResources)
+
+    expect(Object.hasOwn(combined, '__proto__')).toBe(true)
+    expect(combined.__proto__).toBe(parentLocalManagedResources.ping)
+    expect(() => aggregate(prototypeResources, prototypeResources)).toThrow(
+      'duplicate key "__proto__"',
+    )
+  })
+
+  it('preserves a numeric resource name', () => {
+    const numericResources = { 0: parentLocalManagedResources.ping }
+    const combined = aggregate(numericResources)
+
+    expect(Object.keys(combined)).toStrictEqual(['0'])
+    expect(combined['0']).toBe(parentLocalManagedResources.ping)
+  })
+
+  // NOTE: `pnpm typecheck` is the assertion for the block below, not vitest.
+  if (false) {
+    type ApplicationModel = ParentModel & Readonly<{ name: string }>
+
+    const applicationManagedResources = make<ApplicationModel, ParentMessage>()(
+      entry => ({
+        applicationPing: entry(Schema.Option(Schema.Null), {
+          resource: PingResource,
+          modelToMaybeRequirements: () => Option.some(null),
+          acquire: () => Effect.succeed(1),
+          release: () => Effect.void,
+          onAcquired: pinged,
+          onReleased: pinged,
+          onAcquireError: pinged,
+        }),
+      }),
+    )
+
+    const numericResources = { 0: parentLocalManagedResources.ping }
+    const withNumericName = aggregate(numericResources)
+
+    expectTypeOf<keyof typeof withNumericName>().toEqualTypeOf<'0'>()
+
+    const combined = aggregate(
+      liftedManagedResources,
+      parentLocalManagedResources,
+    )
+
+    expectTypeOf<keyof typeof combined>().toEqualTypeOf<'session' | 'ping'>()
+
+    expectTypeOf<ServicesOf<typeof combined>>().toEqualTypeOf<
+      ServiceOf<typeof SessionResource> | ServiceOf<typeof PingResource>
+    >()
+
+    expectTypeOf(
+      combined.session.modelToMaybeRequirements,
+    ).parameters.toEqualTypeOf<[ParentModel]>()
+
+    expectTypeOf(
+      combined.session.modelToMaybeRequirements,
+    ).returns.toEqualTypeOf<Option.Option<Readonly<{ token: string }>>>()
+
+    expectTypeOf(combined.ping.release).parameters.toEqualTypeOf<[number]>()
+
+    expectTypeOf(
+      combined.session.onReleased,
+    ).returns.toEqualTypeOf<ParentMessage>()
+
+    expectTypeOf(combined.session.onAcquired).parameters.toEqualTypeOf<[]>()
+
+    const nested = aggregate(combined, parentLocalManagedResources)
+
+    expectTypeOf<keyof typeof nested>().toEqualTypeOf<'session' | 'ping'>()
+
+    const fullAndSlice = aggregate(
+      applicationManagedResources,
+      parentLocalManagedResources,
+    )
+    const nestedFullAndSlice = aggregate(fullAndSlice, liftedManagedResources)
+
+    expectTypeOf(
+      nestedFullAndSlice.applicationPing.modelToMaybeRequirements,
+    ).parameters.toEqualTypeOf<[ApplicationModel]>()
+
+    aggregate(
+      parentLocalManagedResources,
+      // @ts-expect-error incompatibleModelManagedResources uses another Model
+      incompatibleModelManagedResources,
+    )
+
+    aggregate<ParentModel, ParentMessage>()(
+      parentLocalManagedResources,
+      // @ts-expect-error the curried form rejects it the same way
+      incompatibleModelManagedResources,
+    )
+  }
 })

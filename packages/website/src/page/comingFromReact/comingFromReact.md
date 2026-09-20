@@ -136,5 +136,5 @@ When a test resolves Commands inline, both APIs stay synchronous and need no jsd
 :::
 
 :::Faq{id="faq-where-to-start" question="I’m sold. Where do I start?"}
-Start with [Getting Started](/get-started/getting-started), then read the [Counter Example](/core/counter-example) for a detailed walkthrough of Model, Messages, update, and view.
+Start with [Get Started](/get-started), then read the [Counter Example](/core/counter-example) for a detailed walkthrough of Model, Messages, update, and view.
 :::

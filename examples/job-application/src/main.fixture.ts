@@ -1,7 +1,7 @@
 import { Array } from 'effect'
 import { Calendar } from 'foldkit'
 import { Valid } from 'foldkit/fieldValidation'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Menu, Tabs } from '@foldkit/ui'
 
@@ -32,26 +32,26 @@ export const initialModel: Model = {
   isSubmitAttempted: false,
 }
 
-export const completeModel: Model = evo(initialModel, {
+export const completeModel: Model = modifyFields(initialModel, {
   personalInfo: personalInfo =>
-    evo(personalInfo, {
+    modifyFields(personalInfo, {
       firstName: () => Valid({ value: 'Jane' }),
       lastName: () => Valid({ value: 'Doe' }),
       email: () => Valid({ value: 'jane@example.com' }),
     }),
   workHistory: workHistory =>
-    evo(workHistory, {
+    modifyFields(workHistory, {
       entries: Array.map(entry =>
-        evo(entry, {
+        modifyFields(entry, {
           company: () => Valid({ value: 'Foldkit' }),
           title: () => Valid({ value: 'Engineer' }),
         }),
       ),
     }),
   education: education =>
-    evo(education, {
+    modifyFields(education, {
       entries: Array.map(entry =>
-        evo(entry, {
+        modifyFields(entry, {
           school: () => Valid({ value: 'MIT' }),
           degree: () => Valid({ value: 'BS' }),
           fieldOfStudy: () => Valid({ value: 'CS' }),
@@ -59,9 +59,9 @@ export const completeModel: Model = evo(initialModel, {
       ),
     }),
   skills: skills =>
-    evo(skills, {
+    modifyFields(skills, {
       entries: Array.map(entry =>
-        evo(entry, {
+        modifyFields(entry, {
           name: () => Valid({ value: 'TypeScript' }),
         }),
       ),

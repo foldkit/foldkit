@@ -135,7 +135,7 @@
               "type": "string",
               "examples": [
                 "index",
-                "get-started/getting-started",
+                "get-started",
                 "core/model"
               ]
             }
@@ -347,7 +347,7 @@
       "get": {
         "operationId": "getPageMarkdown",
         "summary": "One documentation page as Markdown",
-        "description": "The Markdown variant of a single documentation page. Pass the page URL path without the leading slash in the `path` query parameter, for example `get-started/getting-started` or `core/model`. Valid page paths are enumerated in /llms.txt, /api/v1/pages.json, and /sitemap.xml. The same document is available by appending `.md` to its HTML URL or by requesting the HTML URL with an Accept header containing text/markdown.",
+        "description": "The Markdown variant of a single documentation page. Pass the page URL path without the leading slash in the `path` query parameter, for example `get-started` or `core/model`. Valid page paths are enumerated in /llms.txt, /api/v1/pages.json, and /sitemap.xml. The same document is available by appending `.md` to its HTML URL or by requesting the HTML URL with an Accept header containing text/markdown.",
         "tags": [
           "Documents"
         ],
@@ -361,7 +361,7 @@
               "type": "string",
               "examples": [
                 "index",
-                "get-started/getting-started",
+                "get-started",
                 "core/model"
               ]
             }

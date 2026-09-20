@@ -45,6 +45,7 @@ import { EntityAddress } from "./EntityAddress.ts"
 import type { EntityId } from "./EntityId.ts"
 import { EntityType } from "./EntityType.ts"
 import * as Envelope from "./Envelope.ts"
+import { CurrentActivationScope } from "./internal/entityActivation.ts"
 import { hashString } from "./internal/hash.ts"
 import { ResourceMap } from "./internal/resourceMap.ts"
 import * as Message from "./Message.ts"
@@ -623,6 +624,7 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
       Rpc.ServicesClient<Rpcs> | Rpc.ServicesServer<Rpcs> | Rpc.Middleware<Rpcs> | LR
     >
     readonly concurrency: number | "unbounded"
+    readonly disableFatalDefects: boolean | undefined
     readonly build: Effect.Effect<Context.Context<Rpc.ToHandler<Rpcs>>>
   }>()
   const sharding = shardingTag.of({
@@ -632,6 +634,7 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
         entityMap.set(entity.type, {
           context: context as any,
           concurrency: options?.concurrency ?? 1,
+          disableFatalDefects: options?.disableFatalDefects,
           build: entity.protocol.toHandlers(handlers as any) as any
         })
         return Effect.void
@@ -653,6 +656,7 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
     const handlerContext = entityEntry.context.pipe(
       Context.add(CurrentRunnerAddress, runnerAddress),
       Context.add(CurrentAddress, address),
+      Context.add(CurrentActivationScope, scope),
       Context.add(Scope, scope)
     )
     const handlers = yield* entityEntry.build.pipe(
@@ -663,6 +667,7 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
     let client!: Effect.Success<ReturnType<typeof RpcClient.makeNoSerialization<Rpcs, never>>>
     const server = yield* RpcServer.makeNoSerialization(entity.protocol, {
       concurrency: entityEntry.concurrency,
+      disableFatalDefects: entityEntry.disableFatalDefects,
       onFromServer(response) {
         return client.write(response)
       }

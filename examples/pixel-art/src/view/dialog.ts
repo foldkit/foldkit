@@ -21,6 +21,7 @@ export const errorDialogView = (
     model: errorDialog,
     view: Dialog.view,
     viewInputs: {
+      hasDescription: true,
       toView: ({
         dialog,
         backdrop,
@@ -80,6 +81,7 @@ export const gridSizeConfirmDialogView = (
     model: gridSizeConfirmDialog,
     view: Dialog.view,
     viewInputs: {
+      hasDescription: true,
       toView: ({
         dialog,
         backdrop,

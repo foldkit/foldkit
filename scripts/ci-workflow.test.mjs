@@ -46,6 +46,13 @@ test('changeset status receives trusted pull request context', () => {
   )
 })
 
+test('trusted Version Packages pull requests verify their release commit inputs', () => {
+  assert.match(
+    workflow,
+    /- name: Verify Version Packages website release inputs\n\s+if: github\.event_name == 'pull_request' && github\.head_ref == 'changeset-release\/main' && github\.event\.pull_request\.head\.repo\.full_name == github\.repository\n\s+env:\n\s+RELEASE_COMMIT: \$\{\{ github\.event\.pull_request\.head\.sha \}\}\n\s+run: pnpm check:website-release-inputs "\$RELEASE_COMMIT"/,
+  )
+})
+
 test('the packed SSR consumer runs its critical browser matrix in CI', () => {
   assert.match(
     workflow,
@@ -53,7 +60,7 @@ test('the packed SSR consumer runs its critical browser matrix in CI', () => {
   )
   assert.equal(
     rootPackage.scripts['check:packed-ssr-consumer:ci'],
-    'tsx scripts/check-packed-ssr-consumer.ts --skip-build --critical-browser-matrix',
+    'node scripts/check-packed-ssr-consumer.ts --skip-build --critical-browser-matrix',
   )
 })
 
@@ -80,6 +87,31 @@ test('peer floor changes run the packed-manifest check before release', () => {
     ),
   )
   assert.match(releaseWorkflow, /^\s+- 'scripts\/check-peer-floors\.ts'$/m)
+})
+
+test('stable publication verifies website package inputs before upload', () => {
+  const stableJob = releaseWorkflow.slice(
+    releaseWorkflow.indexOf('  stable:'),
+    releaseWorkflow.indexOf('  canary:'),
+  )
+  const guardIndex = stableJob.indexOf(
+    'Verify website package inputs are versioned',
+  )
+  const uploadIndex = stableJob.indexOf(
+    '- name: Upload and verify stable packages',
+  )
+
+  assert.notEqual(guardIndex, -1)
+  assert.notEqual(uploadIndex, -1)
+  assert.ok(guardIndex < uploadIndex)
+  assert.match(
+    stableJob,
+    /- name: Checkout Repo\n\s+uses: actions\/checkout@v4\n\s+with:\n\s+fetch-depth: 0\n\s+fetch-tags: true/,
+  )
+  assert.match(
+    stableJob,
+    /- name: Verify website package inputs are versioned\n\s+run: pnpm check:website-release-inputs/,
+  )
 })
 
 test('browser-backed scaffold checks install Chromium exactly once', () => {

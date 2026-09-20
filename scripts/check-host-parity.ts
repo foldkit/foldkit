@@ -4,8 +4,8 @@ import { request } from 'node:http'
 import { resolve } from 'node:path'
 
 // The Vite dev host and the production example host answer the same requests.
-// They are different code (one is Vite middleware, the other an Effect
-// HttpServer) reading one test-only server entry, and they disagreed about HTTP
+// They are different code (one is Vite middleware, the other
+// `scripts/serve.ts`) reading one test-only server entry, and they disagreed about HTTP
 // methods: Vite forwarded a POST and its body to `renderPage` while the
 // production host answered 405 before the entry ran. A form action or a
 // `Server.Responded` reply therefore worked all through development and failed
@@ -20,7 +20,7 @@ const HOST_PARITY_CONFIG = resolve(
   process.cwd(),
   'scripts/fixtures/host-parity/vite.config.ts',
 )
-const SERVER_BUNDLE = resolve(EXAMPLE_DIR, 'dist/server/main.js')
+const SERVER_BUNDLE = resolve(EXAMPLE_DIR, 'dist/server/fetch.js')
 const HOST_PARITY_BUILD_ID = 'host-parity'
 const EXPECTED_ALLOW = 'GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS'
 const BUILT_PORT = 5332
@@ -447,23 +447,28 @@ const collectExpectationDifferences = (
   }
 }
 
-const builtAssetPath = (): string => {
-  const template = readFileSync(
-    resolve(EXAMPLE_DIR, 'dist/client/index.html'),
-    'utf8',
-  )
-  const source = /<script[^>]+src="([^"]+\.js)"/.exec(template)?.[1]
+const builtAssetPath = async (origin: string): Promise<string> => {
+  const page = await askRaw(origin, {
+    name: 'rendered page',
+    path: '/',
+    method: 'GET',
+    comparedHeaders: [],
+  })
+  if (page.status !== 200) {
+    fail(`the built host answered "/" with ${String(page.status)}, not a page`)
+  }
+  const source = /<script[^>]+src="([^"]+\.js)"/.exec(page.body)?.[1]
   if (source === undefined) {
-    throw new ParityError('the built template did not name a JavaScript asset')
+    throw new ParityError('the rendered page did not name a JavaScript asset')
   }
   if (!source.startsWith('/')) {
-    fail('the built template did not name an absolute-path JavaScript asset')
+    fail('the rendered page did not name an absolute-path JavaScript asset')
   }
   return source
 }
 
 const assertBuiltRequestTargets = async (origin: string): Promise<void> => {
-  const assetPath = builtAssetPath()
+  const assetPath = await builtAssetPath(origin)
   const originForm = await askRaw(origin, {
     name: 'origin-form asset',
     path: assetPath,
@@ -556,25 +561,12 @@ const assertNormalBundleHasNoParityMarkers = (): void => {
 }
 
 const buildHostParityFixture = (): void => {
-  runRequired('Building the host-parity client...', 'pnpm', [
-    'exec',
-    'vite',
-    'build',
-    '--outDir',
-    'dist/client',
-    '--emptyOutDir',
-  ])
-  runRequired('Building the host-parity server...', 'pnpm', [
+  runRequired('Building the host-parity app...', 'pnpm', [
     'exec',
     'vite',
     'build',
     '--config',
     HOST_PARITY_CONFIG,
-    '--ssr',
-    'server/main.ts',
-    '--outDir',
-    'dist/server',
-    '--emptyOutDir',
   ])
 
   const bundle = readServerBundle()
@@ -637,7 +629,7 @@ const assertPortIsFree = async (port: number): Promise<void> => {
 
 const assertNormalExampleHasNoParityResponses = async (): Promise<void> => {
   const origin = `http://localhost:${String(NORMAL_BUILT_PORT)}`
-  const host = startHost('node', ['dist/server/main.js'], NORMAL_BUILT_PORT)
+  const host = startHost('node', ['scripts/serve.ts'], NORMAL_BUILT_PORT)
   try {
     await waitForOrigin(origin)
     const echo = await ask(origin, {
@@ -764,7 +756,7 @@ const main = async (): Promise<void> => {
       variant.port,
     ),
   }))
-  const builtHost = startHost('node', ['dist/server/main.js'], BUILT_PORT)
+  const builtHost = startHost('node', ['scripts/serve.ts'], BUILT_PORT)
   const builtOrigin = `http://localhost:${BUILT_PORT}`
 
   try {

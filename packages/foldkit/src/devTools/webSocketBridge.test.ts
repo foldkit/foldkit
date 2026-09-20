@@ -12,7 +12,7 @@ import {
 import { describe, expect, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
-import { evo } from '../struct/index.js'
+import { modifyFields } from '../struct/index.js'
 import { EventFrame, MAX_DISPATCH_BATCH_SIZE, Request } from './protocol.js'
 import {
   type Bridge,
@@ -41,8 +41,8 @@ const clickedDecrement = CounterMessage.ClickedDecrement()
 
 const update = (model: CounterModel, message: CounterMessage): CounterModel =>
   CounterMessage.match<CounterModel>(message, {
-    ClickedIncrement: () => evo(model, { count: Number.increment }),
-    ClickedDecrement: () => evo(model, { count: Number.decrement }),
+    ClickedIncrement: () => modifyFields(model, { count: Number.increment }),
+    ClickedDecrement: () => modifyFields(model, { count: Number.decrement }),
   })
 
 const decodeCounterMessage = Schema.decodeUnknownSync(CounterMessage)

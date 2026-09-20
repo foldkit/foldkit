@@ -1,6 +1,6 @@
 import type { HtmlBuilder } from 'foldkit/html'
 
-import { tasksRouter } from '../route'
+import { tasksRouter } from './route'
 
 // ❌ Bad
 // A hardcoded path rots when the route changes and bypasses the Route module.

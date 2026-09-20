@@ -3,7 +3,7 @@ import { Boolean, Effect, Option, Schema } from 'effect'
 import type { Html, HtmlBuilder } from '../../html/index.js'
 import * as ManagedResource from '../../managedResource/index.js'
 import { defineMessageUnion } from '../../message/index.js'
-import { evo } from '../../struct/index.js'
+import { modifyFields } from '../../struct/index.js'
 import type * as Update from '../../update/index.js'
 
 // MODEL
@@ -71,16 +71,16 @@ export const initialModel = Model.make({
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedToggleFeed: () => ({
-      model: evo(model, { isFeedOpen: Boolean.not }),
+      model: modifyFields(model, { isFeedOpen: Boolean.not }),
     }),
     AcquiredFeedSocket: () => ({
-      model: evo(model, { status: () => 'Connected' }),
+      model: modifyFields(model, { status: () => 'Connected' }),
     }),
     ReleasedFeedSocket: () => ({
-      model: evo(model, { status: () => 'Disconnected' }),
+      model: modifyFields(model, { status: () => 'Disconnected' }),
     }),
     FailedAcquireFeedSocket: () => ({
-      model: evo(model, { status: () => 'Failed' }),
+      model: modifyFields(model, { status: () => 'Failed' }),
     }),
   })
 

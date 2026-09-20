@@ -13,7 +13,7 @@ import * as Dom from 'foldkit/dom'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Mount from 'foldkit/mount'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
 
@@ -122,7 +122,7 @@ export const init = (config: InitConfig): Model => ({
 // UPDATE
 
 const closedModel = (model: Model): Model =>
-  evo(model, {
+  modifyFields(model, {
     isOpen: () => false,
     maybeLastButtonPointerType: () => Option.none(),
   })
@@ -230,7 +230,7 @@ const foldAnimation = Update.foldChild({
   update: animationUpdate,
   read: (model: Model) => Option.some(model.animation),
   write: (model, nextAnimation) =>
-    evo(model, { animation: () => nextAnimation }),
+    modifyFields(model, { animation: () => nextAnimation }),
   toParentMessage: message => Message.GotAnimationMessage({ message }),
   foldOutMessage: foldAnimationOutMessage,
 })
@@ -239,7 +239,7 @@ const foldAnimationShow = Update.foldChildStep({
   update: animationShow,
   read: (model: Model) => Option.some(model.animation),
   write: (model, nextAnimation) =>
-    evo(model, { animation: () => nextAnimation }),
+    modifyFields(model, { animation: () => nextAnimation }),
   toParentMessage: message => Message.GotAnimationMessage({ message }),
 })
 
@@ -247,7 +247,7 @@ const foldAnimationHide = Update.foldChildStep({
   update: animationHide,
   read: (model: Model) => Option.some(model.animation),
   write: (model, nextAnimation) =>
-    evo(model, { animation: () => nextAnimation }),
+    modifyFields(model, { animation: () => nextAnimation }),
   toParentMessage: message => Message.GotAnimationMessage({ message }),
 })
 
@@ -286,7 +286,7 @@ export const update = (model: Model, message: Message) => {
         stepModel => ({ model: stepModel, commands: openCommands }),
         foldAnimationShow,
         stepModel => ({
-          model: evo(stepModel, { isOpen: () => true }),
+          model: modifyFields(stepModel, { isOpen: () => true }),
         }),
       ])
 
@@ -294,7 +294,7 @@ export const update = (model: Model, message: Message) => {
     }
 
     return {
-      model: evo(baseModel, { isOpen: () => true }),
+      model: modifyFields(baseModel, { isOpen: () => true }),
       commands: openCommands,
       outMessage: OutMessage.Opened(),
     }
@@ -349,7 +349,7 @@ export const update = (model: Model, message: Message) => {
     },
 
     PressedPointerOnButton: ({ pointerType, button }) => {
-      const withPointerType = evo(model, {
+      const withPointerType = modifyFields(model, {
         maybeLastButtonPointerType: () => Option.some(pointerType),
       })
 
@@ -361,7 +361,7 @@ export const update = (model: Model, message: Message) => {
         const popoverClose = Update.combine(withPointerType, [
           stepModel => closePopoverModel(stepModel, closeWithFocusCommands),
           stepModel => ({
-            model: evo(stepModel, {
+            model: modifyFields(stepModel, {
               maybeLastButtonPointerType: () => Option.some(pointerType),
             }),
           }),
@@ -383,7 +383,9 @@ export const update = (model: Model, message: Message) => {
     CompletedInertOthers: () => ({ model }),
     CompletedRestoreInert: () => ({ model }),
     IgnoredMouseClick: () => ({
-      model: evo(model, { maybeLastButtonPointerType: () => Option.none() }),
+      model: modifyFields(model, {
+        maybeLastButtonPointerType: () => Option.none(),
+      }),
     }),
     SuppressedSpaceScroll: () => ({ model }),
     CompletedAnchorPopover: () => ({ model }),
@@ -562,7 +564,9 @@ export const view = defineView<Model, Message, ViewInputs>(
       Option.some(Message.PressedPointerOnButton({ pointerType, button }))
 
     const handleButtonClick = ():
-      RequestedOpen | RequestedClose | IgnoredMouseClick => {
+      | RequestedOpen
+      | RequestedClose
+      | IgnoredMouseClick => {
       const isMouse = Option.exists(
         maybeLastButtonPointerType,
         type => type === 'mouse',
@@ -604,7 +608,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       h.Id(`${id}-button`),
       h.Type('button'),
       h.AriaExpanded(isVisible),
-      h.AriaControls(`${id}-panel`),
+      ...(isVisible ? [h.AriaControls(`${id}-panel`)] : []),
       ...buttonLabelAttributes,
       ...(isDisabled
         ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]

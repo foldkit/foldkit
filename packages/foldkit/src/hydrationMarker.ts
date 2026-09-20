@@ -1,7 +1,7 @@
 /** Attribute stamped on a hydratable server-rendered application root. Its
  *  nonempty value is the runtime id used to pair the root with its Flags
- *  payload and scope preserved HMR state. `makeApplication` locates the root;
- *  `Runtime.hydrate` adopts it. */
+ *  payload and scope Model and scroll preservation. `makeApplication` locates
+ *  the root; `Runtime.hydrate` adopts it. */
 export const FOLDKIT_APP_ATTRIBUTE = 'data-foldkit-app'
 
 /** Attribute on the JSON script tag carrying the Schema-encoded flags the

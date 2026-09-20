@@ -15,6 +15,4 @@ const roomSubscriptions = Subscription.lift(Room.subscriptions)({
   when: { roomKeyboard: ({ route }) => route._tag === 'Room' },
 })
 
-export const subscriptions = Subscription.aggregate<Model, Message>()(
-  roomSubscriptions,
-)
+export const subscriptions = Subscription.aggregate(roomSubscriptions)

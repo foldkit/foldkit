@@ -1,5 +1,5 @@
 import { type Update } from 'foldkit'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Message } from './message'
 import type { Model } from './model'
@@ -9,6 +9,6 @@ const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     OpenedDialog: () => {
       document.querySelector<HTMLInputElement>('#search-input')?.focus()
-      return { model: evo(model, { dialogState: () => 'Open' }) }
+      return { model: modifyFields(model, { dialogState: () => 'Open' }) }
     },
   })

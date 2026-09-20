@@ -41,6 +41,25 @@ export interface ClusterRunner {
   readonly state: () => "frozen" | "killed" | "running" | "stopped"
 }
 
+/** A raw TCP caller whose transport can close without a Sharding retry. */
+export const makeRawRunnerClient = Effect.fnUntraced(function*(runner: ClusterRunner) {
+  const serialization = yield* RpcSerialization.RpcSerialization.pipe(
+    Effect.provide(RpcSerialization.layerSchemaBinary())
+  )
+  const transport = yield* Effect.acquireRelease(Scope.make(), (scope) => Scope.close(scope, Exit.void))
+  const socket = yield* NodeSocket.makeNet({ host: runner.address.host, port: runner.address.port })
+  const protocol = yield* RpcClient.makeProtocolSocket().pipe(
+    Effect.provideService(Socket.Socket, socket),
+    Effect.provideService(RpcSerialization.RpcSerialization, serialization),
+    Scope.provide(transport)
+  )
+  const client = yield* RpcClient.make(Runners.Rpcs).pipe(
+    Effect.provideService(RpcClient.Protocol, protocol),
+    Scope.provide(transport)
+  )
+  return { client, codecFor: serialization.codecFor, disconnect: Scope.close(transport, Exit.void) }
+})
+
 export interface MessageCounts {
   readonly failed: number
   readonly replied: number
@@ -380,7 +399,7 @@ export const socketRunnerLayer = (
       ...config,
       runnerAddress: Option.some(address)
     })),
-    Layer.provide(RpcSerialization.layerMsgPack)
+    Layer.provide(RpcSerialization.layerSchemaBinary())
   )
 
 export type RunnerLayer = typeof socketRunnerLayer
@@ -392,7 +411,7 @@ const clientLayer = (
   SocketRunner.layerClientOnly.pipe(
     Layer.provide(clientProtocol),
     Layer.provide(ShardingConfig.layer(config)),
-    Layer.provide(RpcSerialization.layerMsgPack)
+    Layer.provide(RpcSerialization.layerSchemaBinary())
   )
 
 const parseReply = (payload: MessageRow["reply_payload"]): Record<string, unknown> | undefined => {
@@ -465,7 +484,7 @@ export const make = Effect.fnUntraced(function*(options: MakeOptions) {
       Layer.buildWithScope(scope)
     )
     const socketServer = Context.get(serverContext, SocketServer.SocketServer)
-    if (socketServer.address._tag !== "TcpAddress") {
+    if (socketServer.address._tag === "UnixPathAddress") {
       return yield* Effect.die("Expected a TCP socket server")
     }
     const address = RunnerAddress.make("127.0.0.1", socketServer.address.port)

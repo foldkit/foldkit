@@ -34,7 +34,7 @@ Switch is headless. Your `toView` callback controls all markup and styling. Use 
 
 ## Accessibility
 
-The switch button receives `role="switch"` and `aria-checked`. The label is linked via `aria-labelledby` and the description via `aria-describedby`. Clicking the label toggles the switch.
+The switch button receives `role="switch"` and `aria-checked`. The label is linked via `aria-labelledby`. Set `hasDescription: true` when a description is rendered to link it through `aria-describedby`; leaving the option false prevents a dangling reference. Clicking the label toggles the switch.
 
 The `label` attribute group includes an id (accessible via `Switch.labelId(id)`) and the `description` group includes an id (accessible via `Switch.descriptionId(id)`), so a consumer can reference either element without re-declaring the naming convention.
 
@@ -54,16 +54,17 @@ The two flags are independent. Setting both emits both sets of attributes, and e
 
 Configuration object passed to `Switch.view()`.
 
-| Name         | Type                                     | Default | Description                                                                                                                          |
-| ------------ | ---------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `id`         | `string`                                 | —       | Unique ID for the switch instance. Used to link the label and description via ARIA.                                                  |
-| `isChecked`  | `boolean`                                | —       | The current on/off state, read from your Model. `aria-checked` and the `data-checked` marker derive from it.                         |
-| `onToggle`   | `(isChecked: boolean) => Message`        | —       | Maps the new on/off state to a Message when the user toggles the switch. Store that value in update.                                 |
-| `toView`     | `(attributes: SwitchAttributes) => Html` | —       | Callback that receives attribute groups for the button, label, description, and hidden input elements.                               |
-| `isDisabled` | `boolean`                                | `false` | Whether the switch is disabled.                                                                                                      |
-| `isReadOnly` | `boolean`                                | `false` | Whether the switch is readable but not toggleable. Carries `aria-readonly` rather than `aria-disabled`. Independent of `isDisabled`. |
-| `name`       | `string`                                 | —       | Form field name. When provided, a hidden input is included for native form submission.                                               |
-| `value`      | `string`                                 | `'on'`  | Value sent in the form when checked.                                                                                                 |
+| Name             | Type                                     | Default | Description                                                                                                                          |
+| ---------------- | ---------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`             | `string`                                 | —       | Unique ID for the switch instance. Used to link the label and description via ARIA.                                                  |
+| `isChecked`      | `boolean`                                | —       | The current on/off state, read from your Model. `aria-checked` and the `data-checked` marker derive from it.                         |
+| `onToggle`       | `(isChecked: boolean) => Message`        | —       | Maps the new on/off state to a Message when the user toggles the switch. Store that value in update.                                 |
+| `toView`         | `(attributes: SwitchAttributes) => Html` | —       | Callback that receives attribute groups for the button, label, description, and hidden input elements.                               |
+| `isDisabled`     | `boolean`                                | `false` | Whether the switch is disabled.                                                                                                      |
+| `isReadOnly`     | `boolean`                                | `false` | Whether the switch is readable but not toggleable. Carries `aria-readonly` rather than `aria-disabled`. Independent of `isDisabled`. |
+| `hasDescription` | `boolean`                                | `false` | Whether the switch renders a description. Adds `aria-describedby` when true.                                                         |
+| `name`           | `string`                                 | —       | Form field name. When provided, a hidden input is included for native form submission.                                               |
+| `value`          | `string`                                 | `'on'`  | Value sent in the form when checked.                                                                                                 |
 
 ### SwitchAttributes {#switch-attributes}
 
@@ -73,5 +74,5 @@ Attribute groups provided to the `toView` callback.
 | ------------- | ----------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `button`      | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the switch button element. Includes role, aria-checked, tabindex, click/keyboard handlers, and `type="button"` so a switch inside a form does not submit it. |
 | `label`       | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto the label element. Includes an id for aria-labelledby and a click handler that toggles the switch.                                                           |
-| `description` | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto a description element. Includes an id referenced by aria-describedby on the switch.                                                                          |
+| `description` | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto a description element. Includes the id referenced when `hasDescription` is true.                                                                             |
 | `hiddenInput` | `ReadonlyArray<Attribute<Message>>` | —       | Spread onto a hidden `<input>` for form submission. Only needed when the name prop is set.                                                                               |

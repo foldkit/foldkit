@@ -1,4 +1,4 @@
-import { HashSet, Option, Record, pipe } from 'effect'
+import { HashSet, Option, pipe } from 'effect'
 import { Calendar } from 'foldkit'
 import { Command, given, message, model, story } from 'foldkit/story'
 import * as Url from 'foldkit/url'
@@ -38,11 +38,7 @@ const flags = {
 
 const initAt = (url: Url.Url): Model => init(flags, url).model
 
-const aiHeadingSubscription = pipe(
-  subscriptions,
-  Record.get('aiHeading'),
-  Option.getOrThrow,
-)
+const aiHeadingSubscription = subscriptions.aiHeading
 
 const expectHomePresent = (model: Model): void => {
   expect(Option.isSome(model.maybeHome)).toBe(true)

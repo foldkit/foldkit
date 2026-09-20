@@ -2,39 +2,17 @@ import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
+import {
+  packageBuildInputs,
+  SHARED_PACKAGE_INPUTS,
+  WEBSITE_PACKAGES,
+} from './lib/website-package-inputs.mjs'
+
 // NOTE: A direct website deployment is safe only when every package build input
 // the website uses still matches the tag for the exact version in its manifest.
 // Test-only files are excluded because they cannot change the website bundle.
 // Looking only at the current push is insufficient: a website-only follow-up
 // could otherwise deploy package work left unpublished by an earlier push.
-const PACKAGES = [
-  { directory: 'packages/foldkit', name: 'foldkit' },
-  { directory: 'packages/ui', name: '@foldkit/ui' },
-  { directory: 'packages/devtools', name: '@foldkit/devtools' },
-  { directory: 'packages/markdown', name: '@foldkit/markdown' },
-  {
-    directory: 'packages/vite-plugin-foldkit',
-    name: '@foldkit/vite-plugin',
-  },
-]
-const SHARED_PACKAGE_INPUTS = [
-  '.npmrc',
-  'package.json',
-  'pnpm-lock.yaml',
-  'pnpm-workspace.yaml',
-  'tsconfig.base.json',
-]
-
-const packageBuildInputs = directory => [
-  directory,
-  `:(exclude,glob)${directory}/**/*.test.*`,
-  `:(exclude,glob)${directory}/**/*.spec.*`,
-  `:(exclude,glob)${directory}/test/**`,
-  `:(exclude,glob)${directory}/**/__snapshots__/**`,
-  `:(exclude,glob)${directory}/vitest.config.*`,
-  `:(exclude,glob)${directory}/tsconfig.test.*`,
-]
-
 const TARGET = process.argv.at(2) ?? 'HEAD'
 const isHistoricalTargetAllowed =
   process.argv.at(3) === '--allow-historical-target'
@@ -72,7 +50,7 @@ if (
   blockers.push(`${TARGET} is older than origin/main`)
 }
 
-for (const packageEntry of PACKAGES) {
+for (const packageEntry of WEBSITE_PACKAGES) {
   const manifest = JSON.parse(
     readFileSync(join(packageEntry.directory, 'package.json'), 'utf8'),
   )

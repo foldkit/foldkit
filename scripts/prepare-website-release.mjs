@@ -1,0 +1,91 @@
+import { spawnSync } from 'node:child_process'
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+import {
+  sharedPackageInputsDiffer,
+  WEBSITE_PACKAGES,
+} from './lib/website-package-inputs.mjs'
+
+const CHANGESET_PATH = '.changeset/generated-website-build-inputs.md'
+const CHANGESET = [
+  '---',
+  ...WEBSITE_PACKAGES.map(pkg => `'${pkg.name}': patch`),
+  '---',
+  '',
+  "Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.",
+  '',
+].join('\n')
+
+const git = args =>
+  spawnSync('git', args, { cwd: process.cwd(), encoding: 'utf8' })
+
+export const prepareWebsiteRelease = ({
+  isCoordinationRequired = false,
+} = {}) => {
+  const changesetPath = resolve(CHANGESET_PATH)
+  const isExistingChangeset = existsSync(changesetPath)
+
+  if (
+    isExistingChangeset &&
+    readFileSync(changesetPath, 'utf8') !== CHANGESET
+  ) {
+    throw new Error(`${CHANGESET_PATH} already exists with different contents`)
+  }
+
+  const publishedTagCommits = WEBSITE_PACKAGES.map(pkg => {
+    const manifestPath = `${pkg.directory}/package.json`
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+
+    if (manifest.name !== pkg.name || typeof manifest.version !== 'string') {
+      throw new Error(`${manifestPath} does not describe ${pkg.name}`)
+    }
+
+    const tag = `${pkg.name}@${manifest.version}`
+    const result = git(['rev-parse', '--verify', `refs/tags/${tag}^{commit}`])
+
+    if (result.status !== 0) {
+      throw new Error(
+        `${tag} has no release tag. Fetch the release history and finish the current release before preparing another.`,
+      )
+    }
+
+    return result.stdout.trim()
+  })
+
+  const isCoordinated =
+    isCoordinationRequired ||
+    sharedPackageInputsDiffer({ git, publishedTagCommits })
+
+  if (isCoordinated) {
+    if (!isExistingChangeset) {
+      writeFileSync(changesetPath, CHANGESET, { flag: 'wx' })
+    }
+
+    console.log(
+      'Included website package patch bumps for changed shared build inputs.',
+    )
+  } else {
+    if (isExistingChangeset) {
+      unlinkSync(changesetPath)
+    }
+
+    console.log(
+      'Shared build inputs are already covered by the published website packages.',
+    )
+  }
+
+  return { isCoordinated, publishedTagCommits }
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  try {
+    prepareWebsiteRelease()
+  } catch (error) {
+    console.error(
+      `[website-release] ${error instanceof Error ? error.message : String(error)}`,
+    )
+    process.exitCode = 1
+  }
+}

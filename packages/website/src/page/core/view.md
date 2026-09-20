@@ -18,14 +18,14 @@ React functional components can hold local state and run effects through hooks, 
 
 A `makeApplication` view returns a `Document`, not bare HTML. The Document contains the body to patch into the application container and the document-level state that should track the Model.
 
-| Field       | Type                       | Required | What the runtime does with it                                                                  |
-| ----------- | -------------------------- | -------- | ---------------------------------------------------------------------------------------------- |
-| `title`     | `string`                   | Yes      | Writes it to `document.title`, so the browser tab tracks the current page.                     |
-| `body`      | `Html`                     | Yes      | Patches it into the application container.                                                     |
-| `lang`      | `string`                   | No       | Syncs it to `lang` on `<html>`. Omit it and the current value stands.                          |
-| `dir`       | `'Ltr' \| 'Rtl' \| 'Auto'` | No       | Syncs it to `dir` on `<html>`, lowercased. Omit it and the current value stands.               |
-| `canonical` | `string`                   | No       | Syncs it to `<link rel="canonical">`, creating the tag if absent. Defaults to the current URL. |
-| `ogUrl`     | `string`                   | No       | Syncs it to `<meta property="og:url">`, creating the tag if absent. Defaults to `canonical`.   |
+| Field       | Type                       | Required | What the runtime does with it                                                                                                                  |
+| ----------- | -------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`     | `string`                   | Yes      | Writes it to `document.title`, so the browser tab tracks the current page.                                                                     |
+| `body`      | `Html`                     | Yes      | Patches it into the application container.                                                                                                     |
+| `lang`      | `string`                   | No       | Writes it to `lang` on `<html>`. An omission leaves the current attribute unchanged.                                                           |
+| `dir`       | `'Ltr' \| 'Rtl' \| 'Auto'` | No       | Writes the lowercase value to `dir` on `<html>`. An omission leaves the current attribute unchanged.                                           |
+| `canonical` | `string`                   | No       | Writes it to `<link rel="canonical">`. An omission restores the value recorded before the first client write or removes a runtime-created tag. |
+| `ogUrl`     | `string`                   | No       | Writes it to `<meta property="og:url">`. An omission uses an explicit `canonical`; otherwise it follows the same restoration rule.             |
 
 Every field is a function of the Model, just like `body`. There is no imperative `setTitle` or separate head-management API. Return the values you want, and the runtime makes the document match after each render.
 
@@ -39,17 +39,25 @@ A `makeElement` view returns `Html` directly. An embedded app does not own the p
 
 `dir` accepts `'Ltr'`, `'Rtl'`, or `'Auto'`. The runtime writes the corresponding lowercase attribute value. `Auto` delegates to the browser's first-strong-character heuristic. If the Model stores direction rather than deriving it, use the `TextDirection` Schema exported by `foldkit/html`.
 
-Neither field has a default. If view omits one, the runtime leaves the existing attribute alone. An application that never sets `lang` therefore keeps the value from `index.html`.
+Neither field has a default. If the view omits one, the runtime leaves the current attribute unchanged. An application that never supplies `lang` keeps the value from `index.html`; an application that supplies it for one page and omits it for the next keeps the value from the earlier render. `canonical` and `ogUrl` use a different omission rule.
 
 The runtime can only synchronize these fields after the first render. Served HTML still determines what a crawler sees on first paint. If language is known per request, stamp `<html lang>` into the HTML shell and let the runtime keep it current after startup. Use the `Lang` attribute on an individual element when only one passage differs from the page language.
 
 ### Canonical and Share URLs
 
-`canonical` and `ogUrl` keep `<link rel="canonical">` and `<meta property="og:url">` current as the route changes. If both are omitted, they resolve to the current URL. If only `canonical` is set, `ogUrl` uses the same value.
+The application must decide its canonical URL. Foldkit does not derive `canonical` from the address bar on the client or from `Request.url` during server rendering. Only the application knows which values identify a page. For example: `?page=2` may identify a separate page, while `?utm_source=newsletter` usually does not. Derive the canonical from the typed route in the Model, just as the view derives `title` from the Model.
 
-Set them explicitly when the address bar does not identify the page you want indexed or shared. For example: later pages in a paginated list may point to the first page as canonical.
+::Snippet{name="documentCanonical" label="Derive a canonical URL from an AppRoute"}
 
-On a server render, the default is the full request URL, including its query string. Set `canonical` explicitly when a query parameter is not part of the page's identity, such as a tracking parameter or session token. Otherwise, a crawler can treat each query variant as a separate canonical page.
+An application that never supplies `canonical` leaves the served `<link rel="canonical">` unchanged, or keeps the document without one. When the client first writes a canonical, the runtime records the existing `href`. If a later render omits `canonical`, the runtime restores that recorded value. It removes the element instead when it created the element for the application.
+
+On hydration, the recorded value can be the canonical rendered for the initial route. Omitting `canonical` after a client-side navigation can therefore restore the initial route's value. Omission means restore the client's baseline, not declare that the current page has no canonical.
+
+`ogUrl` can be supplied independently. When the view supplies `canonical` but omits `ogUrl`, the Open Graph URL uses the canonical. When both fields are omitted, the runtime restores or removes `<meta property="og:url">` by the same rule.
+
+`Server.renderToString` returns `canonical` only when the view supplies it. It returns `ogUrl` when the view supplies it, or uses an explicit canonical as the fallback. Template injection leaves an existing canonical or Open Graph URL unchanged when that field is absent from the server result.
+
+A route may intentionally name another page as canonical. For example: later pages in a paginated list may point to the first page.
 
 ## Typed HTML Helpers
 
@@ -100,6 +108,8 @@ A handler can do more than return a one-line Message. The constraint is purity, 
 
 For `OnKeyDownPreventDefault`, returning `Some` claims the key. Foldkit suppresses the browser's default action and dispatches the Message. Returning `None` leaves the key to the browser.
 
+`OnKeyDownSelf` and `OnKeyDownSelfPreventDefault` handle only keydowns that target the host itself. Keydowns bubbling from descendants are ignored. Use them when a composite widget owns keyboard input for its host but embeds interactive children whose keys should remain independent. The prevent-default variant otherwise follows the same `Some` and `None` contract as `OnKeyDownPreventDefault`.
+
 Handlers never run Effects or decide consequences. The example classifies Enter with an active result as `SelectedResult`; update decides what selection changes. When a translator grows, extract it to a named pure function and pass that function to the attribute.
 
 ## Focus Regions
@@ -121,6 +131,10 @@ Most side effects can run after the browser event returns, through a Command, Su
 Two constraints account for most uses. `event.preventDefault()` must run before the browser commits its default action. On iOS Safari, `.focus()` must run during the gesture to open the on-screen keyboard.
 
 `OnClick` accepts `defaultAction`, `propagation`, and `focusSelector` controls. Foldkit applies them synchronously before dispatching the Message. `OnKeyDownPreventDefault` lets a translator decide whether to claim a key event. `OnPastePreventDefault` passes the clipboard's `text/plain` payload to its translator; `Some` suppresses the default insertion and dispatches the Message, while `None` leaves the paste alone. `OnCopyText` and `OnCutText` write Model-derived text to the clipboard and suppress the browser's default payload; the cut variant also dispatches a Message.
+
+`OnBeforeInputPreventDefault` is the editor-grade member for a `Contenteditable` host. Its translator receives the edit's `inputType` and its `data` as an `Option`. Returning `Some` suppresses the native edit and dispatches the Message, so update owns the document mutation before the DOM changes; `None` lets the edit proceed. A non-cancelable edit, including some IME composition input, proceeds without dispatching and can be reconciled through `OnInput`.
+
+`OnCancelPreventDefault` always suppresses a cancel event's default action. A native cancel event dispatches no Message. A `CustomEvent` dispatches the optional Message, so an application-owned cancel signal can use the same event name without treating native cancellation as a state change. Dialog uses this distinction to ignore the native cancel event observed when a file picker closes and map `Dom.showDialog`'s signal for an unhandled Escape to `RequestedClose`.
 
 ::Snippet{name="eventHandlerSideEffects" label="event handler side effects example"}
 

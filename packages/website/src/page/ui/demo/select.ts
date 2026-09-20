@@ -24,6 +24,7 @@ export const basicDemo = (model: Model, h: HtmlBuilder<Message>) => {
           {
             id: 'select-basic-demo',
             value: model.selectDemoValue,
+            hasDescription: true,
             onChange: value => Message.UpdatedSelectDemoValue({ value }),
             toView: attributes =>
               h.div(
@@ -71,6 +72,7 @@ export const disabledDemo = (_model: Model, h: HtmlBuilder<Message>) => {
       {
         id: 'select-disabled-demo',
         isDisabled: true,
+        hasDescription: true,
         value: 'us',
         toView: attributes =>
           h.div(

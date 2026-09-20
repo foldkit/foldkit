@@ -1,5 +1,154 @@
 # @foldkit/ui
 
+## 0.163.0
+
+### Minor Changes
+
+- [#1419](https://github.com/foldkit/foldkit/pull/1419) [`7aa1788`](https://github.com/foldkit/foldkit/commit/7aa1788213ff83e3a3c80bbc7192bdbe9907b495) Thanks [@devinjameson](https://github.com/devinjameson)! - Rename the mapper in `Subscription.fromEvent` from `toMessage` to `mapEvent`, the mappers in `Subscription.fromEventFilterMap` and `Subscription.fromEventFilterMapPreventDefault` to `filterMapEvent`, and each `Subscription.keyBindings` binding's mapper to `mapEvent`. Update those config fields when upgrading. These helpers remain generic Streams: their output is inferred from the callback, and `Subscription.make` checks the final application Message type.
+
+  `Subscription.animationFrame` keeps `toMessage` because it returns a Subscription entry; `Subscription.lift` keeps `toParentMessage` because it maps a child Message to a parent Message. `@foldkit/ui` adopts the new event mapper field and requires the matching Foldkit release.
+
+- [#1410](https://github.com/foldkit/foldkit/pull/1410) [`591649e`](https://github.com/foldkit/foldkit/commit/591649ea58a648ff777bfc4fce3952dc004f202c) Thanks [@devinjameson](https://github.com/devinjameson)! - Rename `evo` to `modifyFields`
+
+  Replace `evo` imports and calls with `modifyFields` from `foldkit/struct`. Replace `makeConstrainedEvo` with `makeModifyFieldsFor`. The same names are available through the `Struct` namespace from `foldkit`. Both helpers keep their existing behavior and type checking. The old names are removed.
+
+  Use `makeModifyFieldsFor<Base>()` to create a field modifier for generic helpers whose Model extends `Base`. It checks transformers against the base shape while preserving the full Model type.
+
+  `@foldkit/ui` and `@foldkit/devtools` use the renamed helpers and require Foldkit 0.163.0 or newer.
+
+  Rename the lint rule `foldkit/no-spread-in-evo` to `foldkit/no-spread-in-modify-fields`. Update explicit rule settings to the new name. The generated presets and the Submodel boundary rules recognize `modifyFields` calls.
+
+  New app templates, documentation, examples, and the shipped Foldkit app skills use `modifyFields`.
+
+- [#1295](https://github.com/foldkit/foldkit/pull/1295) [`fa51957`](https://github.com/foldkit/foldkit/commit/fa519573715c4ea1944c87c576dff240d18d9bcc) Thanks [@elianiva](https://github.com/elianiva)! - Add opt-in swipe-to-dismiss to `Toast`. Pass `swipeToDismiss` to `Toast.init` (`{}` for the default rightward 40px threshold, `{ threshold }` to tune the distance, or `{ direction: 'Left' }` for a leftward swipe); without it the view attaches no pointer handler and the swipe Messages are no-ops, so existing Toasts never enter a drag they cannot finish. Opposite-direction movement is clamped to zero. Each Entry owns its swipe state and settle version, allowing one Toast to settle or leave while another is dragged. A drag records its initiating `pointerId`, so unrelated touches cannot move, release, or cancel it. While dragging, entries follow the pointer through the `translate` property (which composes with `transform` leave animations) and `data-swipe="move"`. A release past the threshold holds the offset behind `data-swipe="end"`, then targets the viewport edge in the configured direction so consumer CSS can animate the exit before `DismissedToast` fires. A release at or below the threshold (or `Escape`) settles back behind `data-swipe="settling"` and resumes auto-dismiss when applicable. Wire `Toast.subscriptions` at the app root for pointer tracking, and read pointer offsets in a fully custom view with `Toast.swipeOffset(entry.swipeState)`.
+
+  Separate entries can now drag at once. Each entry tracks its own pointer, so two fingers can dismiss two toasts at once, while a press that reuses an already-active pointer id stays ignored and `Escape` cancels every active drag. Pointer presses on nested controls do not start swipes, and consumers can mark text with `data-toast-swipe-ignore` to preserve mouse and pen selection without disabling touch swipes over that text. The temporary grabbing styles leave existing inline text-selection styles untouched.
+
+  This changes the public Toast Model and Entry schemas and expands the Toast Message union. Consumers that construct state directly must add `maybeSwipeConfig: Option.none()` to disabled Models and add `swipeState: SwipeState.Idle()` plus `swipeVersion: 0` to Entries. An enabled Model uses `Option.some({ threshold, direction })` for its swipe config. Exhaustive Message handlers must also handle the new pointer, Escape, and settling Messages. Consumers that create state through `Toast.init` and `Toast.show` require no state migration.
+
+- [#1413](https://github.com/foldkit/foldkit/pull/1413) [`3b1d5ba`](https://github.com/foldkit/foldkit/commit/3b1d5ba8f2c5e9ee6ab4cb57ad5ce49744334314) Thanks [@devinjameson](https://github.com/devinjameson)! - Upgrade Effect and its platform and test packages to `4.0.0-rc.116`. Foldkit packages with exact Effect peer dependencies now require rc.116. Pin your application's `effect` and `@effect/platform-browser` dependencies to `4.0.0-rc.116` when upgrading Foldkit. New applications generated by `create-foldkit-app` also use rc.116. The Oxlint plugin recognizes the renamed `Stream.mapBoth` callbacks, `onElement` and `onError`.
+
+### Patch Changes
+
+- [#1412](https://github.com/foldkit/foldkit/pull/1412) [`a2ff67b`](https://github.com/foldkit/foldkit/commit/a2ff67b525fc0837497dc93b62db7a809121a75e) Thanks [@devinjameson](https://github.com/devinjameson)! - Fix Disclosure and Toast links in the generated UI API reference.
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
+- [#1416](https://github.com/foldkit/foldkit/pull/1416) [`a1fe8ab`](https://github.com/foldkit/foldkit/commit/a1fe8ab50a2a39b624fe7c6056c507f6bbe13803) Thanks [@devinjameson](https://github.com/devinjameson)! - Report missing or non-HTML Anchor triggers and panels instead of leaving anchored panels silently hidden.
+
+## 0.162.0
+
+### Version Alignment
+
+Updated to keep this package aligned with the rest of this release.
+There are no package-specific changes in this release.
+
+## 0.161.0
+
+### Minor Changes
+
+- [#884](https://github.com/foldkit/foldkit/pull/884) [`10b9fda`](https://github.com/foldkit/foldkit/commit/10b9fda28a245f25ddad22ca7da8ad52c3dd754f) Thanks [@devinjameson](https://github.com/devinjameson)! - Drive calendar date formatting from the locale instead of hardcoding English
+
+  `Calendar.LocaleConfig` carried translated month and day names, but the formatters built their output with English word order, so a German locale rendered "Januar 15, 2026" rather than "15. Januar 2026". Ordering now lives in the config as data.
+
+  `LocaleConfig` gains `longFormat`, `shortFormat`, `ariaLabelFormat`, and `monthYearFormat`. A `DateFormat` is a non-empty ordered list of `Calendar.DatePart` values, so day-first and year-first locales render correctly without a code change. `MonthYearFormat` accepts only month, year, and literal parts. `Calendar.format` applies an arbitrary `DateFormat`, and the new `Calendar.formatMonthYear` renders the month-and-year shape used by calendar headings.
+
+  This is a breaking change to `LocaleConfig`. A locale built by spreading `defaultEnglishLocale` keeps working; one constructed field by field needs the four new fields.
+
+  In `@foldkit/ui`, the Calendar drew column header accessible names from a hardcoded English array, ignoring `locale.dayNames` entirely, and built its heading and month-cell labels by interpolating month name and year in English order. Both now go through the locale. The remaining date-dependent English copy is overridable through `ViewInputs`: `toDaysGridLabel`, `toWeekLabel`, `toMonthsGridLabel`, and `toYearsGridLabel`, each defaulting to the previous English text. DatePicker accepts the same Calendar label fields and forwards them to its embedded Calendar.
+
+- [#1397](https://github.com/foldkit/foldkit/pull/1397) [`4cb3546`](https://github.com/foldkit/foldkit/commit/4cb3546e35b7110576212af07238f222fbb6624e) Thanks [@devinjameson](https://github.com/devinjameson)! - Make modal Dialog backgrounds inert and hidden from assistive technology while keeping permitted overlays and Dialogs stacked above the modal available. Reconcile newly mounted portals and other late page content, coordinate stacked Dialogs, reacquire resources for an open Dialog restored by development Model preservation, and release Dialogs in topmost-first order when the owning runtime stops.
+
+  `Dialog.init()` now always creates a closed Dialog. Replace an initially open `Dialog.init()` call such as:
+
+  ```ts
+  const dialog = Dialog.init({ id: 'confirm', isOpen: true })
+  ```
+
+  with `Dialog.boot()`. Pass the boot result to `Update.foldChildInit`, construct the parent Model through `toParentModel`, map child Commands through `toParentMessage`, and handle the OutMessage through the same `foldDialogOutMessage` used by the parent update:
+
+  ```ts
+  return Update.foldChildInit(Dialog.boot({ id: 'confirm' }), {
+    toParentModel: dialog => ({ dialog }),
+    toParentMessage: toGotDialogMessage,
+    foldOutMessage: foldDialogOutMessage,
+  })
+  ```
+
+  This ensures an initially open Dialog acquires the same isolation, scroll lock, focus trap, stack registration, and cleanup as one opened later.
+
+  Because this Dialog resource path uses the updated `Dom.showDialog` contract, `@foldkit/ui` now requires `foldkit` 0.161.0 or newer.
+
+  Point UI controls at panels only while those panels are rendered, and keep an empty Combobox from exposing an invalid active descendant or expanded listbox. Keep the modal Combobox backdrop available for dismissal even when filtering leaves no list items. Render Toast containers and entries as neutral `<div>` elements so their live-region roles do not conflict with list semantics.
+
+  Export `DragAndDrop.DragState` so consumers can match drag phases through the tagged union API when deriving accessible announcements and other parent behavior.
+
+  Tabs defaults to active-only panel rendering when deciding which tabs receive `aria-controls`. Pass `panelMount: 'All'` when every tab panel remains mounted, including when inactive panels are hidden. DevTools opts into that strategy for its Inspector tabs.
+
+  Toast markup changes from `<ol>` and `<li>` to `<div>` elements. Update any element-selector CSS or DOM queries that target those Toast wrappers.
+
+  `Dom.showDialog` now resolves to `true` when it installs a Dialog's resources and `false` when that id already holds them. Callers that explicitly annotated its result as `void` must accept or ignore the boolean result.
+
+- [#1359](https://github.com/foldkit/foldkit/pull/1359) [`9a902b3`](https://github.com/foldkit/foldkit/commit/9a902b3c0dc06116b7fab68684334e66f774038f) Thanks [@filipfalcon](https://github.com/filipfalcon)! - Let `Disclosure`'s `animatePanel` keep a peek of the collapsed panel in view.
+
+  `animatePanel(content, { peek: '7.5em' })` holds the collapsed panel at that height and shows an inert visual preview of its content, so preview-style disclosures can use the same height transition an all-or-nothing panel gets. Every collapsed animated panel is now inert and hidden from assistive technology until it opens.
+
+### Patch Changes
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
+## 0.160.0
+
+### Minor Changes
+
+- [#1040](https://github.com/foldkit/foldkit/pull/1040) [`c50a8a2`](https://github.com/foldkit/foldkit/commit/c50a8a225a71083c3456d1e2ca39ba97c87e78dd) Thanks [@devinjameson](https://github.com/devinjameson)! - Fixes DragAndDrop's keyboard-drag key handling. `preventDefault()` for Tab, Space, Enter, and the arrow keys ran inside a `Stream.mapEffect` stage, a turn after the browser's event dispatch, so during a keyboard drag Tab still moved focus and Space and the arrow keys still scrolled the page. The listener now uses `Subscription.fromEventFilterMapPreventDefault`, which cancels handled events inside the dispatch, and the Foldkit peer dependency now requires the release that provides the helper.
+
+- [#1383](https://github.com/foldkit/foldkit/pull/1383) [`b6d0a9b`](https://github.com/foldkit/foldkit/commit/b6d0a9bb32979c08c2ddfee9ffbf5c19d9f5594c) Thanks [@devinjameson](https://github.com/devinjameson)! - Bump Effect to `4.0.0-rc.115` (from `4.0.0-rc.112`). Foldkit's `effect` peer dependency now requires `4.0.0-rc.115`, and `@foldkit/devtools` pins its `@effect/platform-browser` peer dependency to the same version.
+
+  Pin your Effect packages to `4.0.0-rc.115` to match this release. While Effect v4 is in prerelease, use exact pins rather than ranges:
+
+  ```sh
+  pnpm add effect@4.0.0-rc.115 @effect/platform-browser@4.0.0-rc.115
+  pnpm add -D vitest@^5.0.0 @effect/vitest@4.0.0-rc.115
+  ```
+
+  `@effect/vitest@4.0.0-rc.115` requires Vitest 5. Upgrade `vitest` and any `@vitest/*` packages together.
+
+### Patch Changes
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
+## 0.159.0
+
+### Minor Changes
+
+- [#1377](https://github.com/foldkit/foldkit/pull/1377) [`2ff8b86`](https://github.com/foldkit/foldkit/commit/2ff8b867fde5914b4ad4729127efef15f3dec786) Thanks [@devinjameson](https://github.com/devinjameson)! - Gate `aria-describedby` on an explicit opt-in in Dialog, Input, Textarea, Select, Fieldset, Checkbox, Switch, and RadioGroup. These components previously emitted a reference on every render even when no description was rendered. Pass `hasDescription: true` when a component renders its description element; for RadioGroup, use `hasOptionDescription` to identify the described options.
+
+### Patch Changes
+
+- [#1377](https://github.com/foldkit/foldkit/pull/1377) [`2ff8b86`](https://github.com/foldkit/foldkit/commit/2ff8b867fde5914b4ad4729127efef15f3dec786) Thanks [@devinjameson](https://github.com/devinjameson)! - Keep `Dialog` open when a file picker inside it is canceled. The dialog now suppresses native `cancel` events and responds only to the distinct cancel signal that `Dom.showDialog` dispatches for an unhandled Escape on the topmost Dialog.
+
+  Add `h.OnCancelPreventDefault` for preventing a native `cancel` event without dispatching a Message, with an optional Message for a synthetic `CustomEvent` signal.
+
+- [#1377](https://github.com/foldkit/foldkit/pull/1377) [`2ff8b86`](https://github.com/foldkit/foldkit/commit/2ff8b867fde5914b4ad4729127efef15f3dec786) Thanks [@devinjameson](https://github.com/devinjameson)! - `Runtime.embed` now reports unhandled startup failures in the console, matching `Runtime.run` and `Runtime.hydrate`, while host disposal and other interrupt-only exits stay quiet. A failing Flags or resource Effect no longer leaves an embedded program blank without explaining why.
+
+## 0.158.2
+
+### Version Alignment
+
+Updated to keep this package aligned with the rest of this release.
+There are no package-specific changes in this release.
+
+## 0.158.1
+
+### Patch Changes
+
+- [#1347](https://github.com/foldkit/foldkit/pull/1347) [`9099339`](https://github.com/foldkit/foldkit/commit/90993394590df06ee4413cbbc766b740138f09f2) Thanks [@devinjameson](https://github.com/devinjameson)! - Keep an anchored panel in place when its button sits in a fixed header. Two things went wrong for a panel opened from a `position: fixed` header, for example a Menu, Listbox, or Popover. The website theme picker was the case that showed both.
+
+  Opening the panel scrolled the page. The reveal focused the freshly positioned panel with a plain `.focus()`, and on a page whose `scroll-padding-top` is larger than the panel's offset from the top of the viewport, the browser scrolled the document to push the panel below that padding. The reveal now focuses with `preventScroll: true`, since Floating UI has already placed the panel in view.
+
+  Scrolling with the panel open made it jump. The panel was positioned with Floating UI's absolute strategy in document coordinates, so every scroll moved it with the page until the scroll listener put it back under the button. A portaled panel whose button has a `position: fixed` ancestor is now positioned with the fixed strategy and stays under the button as the page scrolls.
+
 ## 0.158.0
 
 ## 0.157.0
@@ -1138,9 +1287,10 @@
 
   ```ts
   // before
-  const LockScroll = Command.define('LockScroll', CompletedLockScroll)(
-    Dom.lockScroll.pipe(Effect.as(CompletedLockScroll())),
-  )
+  const LockScroll = Command.define(
+    'LockScroll',
+    CompletedLockScroll,
+  )(Dom.lockScroll.pipe(Effect.as(CompletedLockScroll())))
 
   // after
   const LockScroll = Command.define('LockScroll', {

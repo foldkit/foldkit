@@ -22,6 +22,21 @@ const acknowledgePopoverBackdrop = Scene.Mount.resolve(
 
 const today = Calendar.make(2026, 4, 13)
 
+const germanCalendarViewLabels: UiCalendar.ViewLabels = {
+  previousMonthLabel: 'Vorheriger Monat',
+  nextMonthLabel: 'Nächster Monat',
+  previousYearsPageLabel: 'Vorherige 12 Jahre',
+  nextYearsPageLabel: 'Nächste 12 Jahre',
+  daysHeadingButtonLabel: 'Zur Monatsauswahl',
+  monthsHeadingButtonLabel: 'Zur Jahresauswahl',
+  toDaysGridLabel: monthYear => `Kalender, ${monthYear}`,
+  toWeekLabel: weekStart =>
+    `Woche ab ${Calendar.formatLong(weekStart, Calendar.defaultEnglishLocale)}`,
+  toMonthsGridLabel: year => `Monatsauswahl, ${year}`,
+  toYearsGridLabel: (startYear, endYear) =>
+    `Jahresauswahl, ${startYear}–${endYear}`,
+}
+
 const testToCalendarView = (attrs: UiCalendar.CalendarAttributes) =>
   Match.value(attrs).pipe(
     Match.tagsExhaustive({
@@ -147,6 +162,7 @@ describe('DatePicker', () => {
         Scene.expect(trigger).toExist(),
         Scene.expect(trigger).toHaveAttr('type', 'button'),
         Scene.expect(trigger).toHaveAttr('aria-expanded', 'false'),
+        Scene.expect(trigger).not.toHaveAttr('aria-controls'),
       )
     })
 
@@ -184,6 +200,62 @@ describe('DatePicker', () => {
         Scene.given(pickerOpen.model),
         Scene.expect(panel).toExist(),
         Scene.expect(grid).toExist(),
+        Scene.expect(trigger).toHaveAttr(
+          'aria-controls',
+          'picker-popover-panel',
+        ),
+        acknowledgeAnchorPopover,
+        acknowledgePopoverBackdrop,
+      )
+    })
+  })
+
+  describe('Calendar view labels', () => {
+    const pickerMonths = update(
+      pickerOpen.model,
+      Message.GotCalendarMessage({
+        message: UiCalendar.Message.ClickedHeading(),
+      }),
+    )
+    const pickerYears = update(
+      pickerMonths.model,
+      Message.GotCalendarMessage({
+        message: UiCalendar.Message.ClickedHeading(),
+      }),
+    )
+
+    it('forwards Days-mode labels to the embedded Calendar', () => {
+      Scene.scene(
+        { update, view: sceneView(germanCalendarViewLabels) },
+        Scene.given(pickerOpen.model),
+        Scene.expect(Scene.label('Vorheriger Monat')).toExist(),
+        Scene.expect(Scene.label('Nächster Monat')).toExist(),
+        Scene.expect(Scene.label('Zur Monatsauswahl')).toExist(),
+        Scene.expect(Scene.label('Kalender, April 2026')).toExist(),
+        Scene.expect(Scene.label('Woche ab March 29, 2026')).toExist(),
+        acknowledgeAnchorPopover,
+        acknowledgePopoverBackdrop,
+      )
+    })
+
+    it('forwards Months-mode labels to the embedded Calendar', () => {
+      Scene.scene(
+        { update, view: sceneView(germanCalendarViewLabels) },
+        Scene.given(pickerMonths.model),
+        Scene.expect(Scene.label('Zur Jahresauswahl')).toExist(),
+        Scene.expect(Scene.label('Monatsauswahl, 2026')).toExist(),
+        acknowledgeAnchorPopover,
+        acknowledgePopoverBackdrop,
+      )
+    })
+
+    it('forwards Years-mode labels to the embedded Calendar', () => {
+      Scene.scene(
+        { update, view: sceneView(germanCalendarViewLabels) },
+        Scene.given(pickerYears.model),
+        Scene.expect(Scene.label('Vorherige 12 Jahre')).toExist(),
+        Scene.expect(Scene.label('Nächste 12 Jahre')).toExist(),
+        Scene.expect(Scene.label('Jahresauswahl, 2016–2027')).toExist(),
         acknowledgeAnchorPopover,
         acknowledgePopoverBackdrop,
       )

@@ -89,7 +89,8 @@ type ResolvedSlowConfig<Model, Message> = Readonly<{
  * thresholds. Pass `false` to disable warnings entirely. Pass an object to
  * refine those defaults.
  *
- * - `show`: `'Development'` (default) enables warnings only when Vite HMR is active. `'Always'` enables them in every environment.
+ * - `show`: `'Development'` (default) enables warnings only under Vite's dev
+ *   server. `'Always'` enables them in every environment.
  * - `measuredPhases`: Phases to measure. Defaults to every slow warning phase.
  * - `thresholdOverrides`: Per-phase budget overrides. Omitted fields keep defaults; overrides for unmeasured phases are ignored.
  * - `onSlow`: Callback for every measured phase that exceeds its budget. Replaces Foldkit's default `console.warn`; Foldkit will not also warn for tags your callback ignores.

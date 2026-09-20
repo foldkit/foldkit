@@ -52,7 +52,7 @@ const searchInputView = (model: Model, h: HtmlBuilder<Message>): Html => {
   return h.div(
     [
       h.Class(
-        'flex items-center gap-3 px-4 py-3 border-b border-gray-300 dark:border-gray-700',
+        'flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-800',
       ),
     ],
     [

@@ -25,6 +25,10 @@
       "error",
       { "assertionStyle": "never" }
     ],
+    "sort-imports": [
+      "error",
+      { "ignoreDeclarationSort": true, "ignoreCase": false }
+    ],
     "foldkit/no-noop-message": "error",
     "foldkit/got-submodel-message-name": "error",
     "foldkit/got-prefix-requires-submodel-payload": "error",
@@ -35,7 +39,13 @@
     "foldkit/prefer-callable-message-constructor": "error",
     "foldkit/command-binding-matches-name": "error",
     "foldkit/no-module-level-mutable-state": "error",
-    "foldkit/prefer-effect-module-names": "error"
+    "foldkit/no-switch-on-message-tag": "error",
+    "foldkit/acquire-release-constructs-in-acquire-body": "error",
+    "foldkit/prefer-option-over-nullable-in-model": "error",
+    "foldkit/prefer-command-mapmessage": "error",
+    "foldkit/no-route-query-constructor-default": "error",
+    "foldkit/prefer-effect-module-names": "error",
+    "foldkit/no-prevent-default-in-stream-operator": "error"
   },
   "overrides": [
     {

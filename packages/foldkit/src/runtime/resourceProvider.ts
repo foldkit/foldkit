@@ -68,7 +68,8 @@ export const makeResourceProvider = <
 }: Readonly<{
   resources: Layer.Layer<Resources> | undefined
   managedResources:
-    ManagedResources<Model, Message, ManagedResourceServices> | undefined
+    | ManagedResources<Model, Message, ManagedResourceServices>
+    | undefined
   runtimeScope: Scope.Scope
   maybePortChannels: Option.Option<PortChannelsBundle>
 }>): Effect.Effect<

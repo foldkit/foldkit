@@ -55,7 +55,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     description: SITE_DESCRIPTION,
     section: '',
   },
-  Manifesto: docs(
+  WhyFoldkit: docs(
     'Why Foldkit',
     'Why Foldkit exists and the principles behind its design.',
     'Docs',
@@ -65,8 +65,8 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Foldkit’s rendering cost model, TodoMVC benchmark results, development-mode overhead, and the tools for measuring and memoizing expensive views.',
     'FAQ',
   ),
-  GettingStarted: docs(
-    'Getting Started',
+  GetStarted: docs(
+    'Get Started',
     'Create a Foldkit project from a starter, inspect the generated structure, or add Foldkit to an existing Vite application.',
     'Docs',
   ),
@@ -152,7 +152,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   BestPracticesImmutability: docs(
     'Immutability',
-    'Update Models immutably with evo, preserving references for unchanged branches and keeping state transitions predictable.',
+    'Update Models immutably with modifyFields, preserving references for unchanged branches and keeping state transitions predictable.',
     'Best Practices',
   ),
   ProjectOrganization: docs(
@@ -182,7 +182,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreUpdate: core(
     'Update',
-    'Handle every Message with a pure update function that returns the next Model and Commands. Use Match and evo to keep transitions exhaustive and immutable.',
+    'Handle every Message with a pure update function that returns the next Model and Commands. Use Match and modifyFields to keep transitions exhaustive and immutable.',
   ),
   CoreView: core(
     'View',
@@ -266,7 +266,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CorePreserveScroll: core(
     'Preserve Scroll',
-    'Restore window scroll position across Vite HMR reloads. Covers when restoration runs and its window-only scope.',
+    'Restore window scroll position across Vite dev reloads. Covers when restoration runs and its window-only scope.',
   ),
   CoreViewMemoization: core(
     'View Memoization',
@@ -287,6 +287,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   AsyncData: core(
     'Async Data',
     'A six-state value type for asynchronously loaded data in the Model: Idle, Loading, Refreshing, Failure, Stale, and Success, with stale-while-revalidate and keep-stale-on-failure built in.',
+  ),
+  PatternsAntiPatterns: pattern(
+    'Anti-patterns',
+    'Architectural warning signs in Foldkit apps, with idiomatic replacements for ambiguous state, leaky Submodel boundaries, misplaced side effects, stale async results, Command ordering, and live handles.',
   ),
   PatternsInformingSubmodels: pattern(
     'Informing Submodels',

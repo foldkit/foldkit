@@ -30,10 +30,10 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       modelToDependencies: model => ({ isDrawing: model.isDrawing }),
       dependenciesToStream: ({ isDrawing }) =>
         Stream.when(
-          Subscription.fromEvent<MouseEvent, Message>({
+          Subscription.fromEvent({
             target: document,
             type: 'mouseup',
-            toMessage: () => ReleasedMouse(),
+            mapEvent: () => ReleasedMouse(),
           }),
           Effect.sync(() => isDrawing),
         ),

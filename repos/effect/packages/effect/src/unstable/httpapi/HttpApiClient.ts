@@ -12,7 +12,7 @@
  */
 import * as Arr from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
-import type * as Context from "../../Context.ts"
+import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import { identity } from "../../Function.ts"
 import * as InternalRecord from "../../internal/record.ts"
@@ -29,7 +29,7 @@ import * as HttpBody from "../http/HttpBody.ts"
 import * as HttpClient from "../http/HttpClient.ts"
 import * as HttpClientError from "../http/HttpClientError.ts"
 import * as HttpClientRequest from "../http/HttpClientRequest.ts"
-import * as HttpClientResponse from "../http/HttpClientResponse.ts"
+import type * as HttpClientResponse from "../http/HttpClientResponse.ts"
 import * as HttpMethod from "../http/HttpMethod.ts"
 import * as UrlParams from "../http/UrlParams.ts"
 import * as HttpApi from "./HttpApi.ts"
@@ -38,6 +38,7 @@ import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import type * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
 import * as MediaType from "./internal/mediaType.ts"
+import * as HttpApiPath from "./internal/path.ts"
 
 /**
  * The type-safe client shape generated from HTTP API groups, with non-top-level
@@ -164,8 +165,9 @@ export declare namespace Client {
 
   /**
    * The typed function generated for an endpoint, accepting the endpoint request
-   * shape and returning an effect whose success, error, and service channels reflect
-   * the endpoint schemas, middleware, and selected response mode.
+   * shape, including optional per-call SSE decoding options. The returned effect's success,
+   * error, and service channels reflect the endpoint schemas, middleware, and
+   * selected response mode.
    *
    * @category models
    * @since 4.0.0
@@ -328,18 +330,15 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Con
         options.onGroup?.(onGroupOptions)
       },
       onEndpoint(onEndpointOptions) {
-        const { group, endpoint, errors, successes } = onEndpointOptions
-        const makeUrl = compilePath(endpoint.path)
-        const decodeMap: Record<
-          number | "orElse",
-          (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<unknown, unknown, unknown>
-        > = { orElse: statusOrElse }
-        const decodeResponse = HttpClientResponse.matchStatus(decodeMap)
+        const { group, endpoint, errors, successes, mergedAnnotations } = onEndpointOptions
+        const parseOptions = Context.getOrUndefined(mergedAnnotations, HttpApi.ParseOptions)
+        const makeUrl = compilePath(endpoint.path, endpoint.params)
+        const decodeMap: Record<number | "orElse", ResponseDecoder> = { orElse: statusOrElse }
         const errorAlternatives = new Map<number, Array<ResponseAlternative>>()
         for (const [status, schemas] of errors.entries()) {
           const grouped = groupSchemasByContentType(schemas)
           for (const [contentType, schemas] of grouped.entries()) {
-            addResponseAlternative(errorAlternatives, status, contentType, schemasToResponse(schemas))
+            addResponseAlternative(errorAlternatives, status, contentType, schemasToResponse(schemas, parseOptions))
           }
         }
         for (const [status, alternatives] of errorAlternatives.entries()) {
@@ -366,7 +365,7 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Con
         for (const [status, schemas] of successes.entries()) {
           const grouped = groupSchemasByContentType(schemas)
           for (const [contentType, schemas] of grouped.entries()) {
-            addResponseAlternative(successAlternatives, status, contentType, schemasToResponse(schemas))
+            addResponseAlternative(successAlternatives, status, contentType, schemasToResponse(schemas, parseOptions))
           }
         }
         for (const streamSuccess of getStreamSuccessSchemas(endpoint)) {
@@ -375,25 +374,26 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Con
             successAlternatives,
             HttpApiSchema.getStatusSuccessSchema(streamSuccess),
             streamSchema.contentType,
-            streamToResponse(streamSuccess)
+            streamToResponse(streamSuccess, parseOptions)
           )
         }
         for (const [status, alternatives] of successAlternatives.entries()) {
           decodeMap[status] = makeResponseDecoder(alternatives)
         }
 
-        // encoders
-        const encodeParams = UndefinedOr.map(endpoint.params, Schema.encodeUnknownEffect)
+        const encodeUnknownEffect = <S extends Schema.Constraint>(schema: S) =>
+          Schema.encodeUnknownEffect(schema, parseOptions)
+        const encodeParams = UndefinedOr.map(endpoint.params, encodeUnknownEffect)
 
         const payloadSchemas = HttpApiEndpoint.getPayloadSchemas(endpoint)
         const encodePayload = Arr.isArrayNonEmpty(payloadSchemas) ?
           HttpMethod.hasBody(endpoint.method)
-            ? Schema.encodeUnknownEffect(getEncodePayloadSchema(payloadSchemas, endpoint.method))
-            : Schema.encodeUnknownEffect(Schema.Union(payloadSchemas)) :
+            ? encodeUnknownEffect(getEncodePayloadSchema(payloadSchemas, endpoint.method))
+            : encodeUnknownEffect(Schema.Union(payloadSchemas)) :
           undefined
 
-        const encodeHeaders = UndefinedOr.map(endpoint.headers, Schema.encodeUnknownEffect)
-        const encodeQuery = UndefinedOr.map(endpoint.query, Schema.encodeUnknownEffect)
+        const encodeHeaders = UndefinedOr.map(endpoint.headers, encodeUnknownEffect)
+        const encodeQuery = UndefinedOr.map(endpoint.query, encodeUnknownEffect)
 
         const middlewareKeys = Array.from(onEndpointOptions.middleware, (tag) => `${tag.key}/Client`)
 
@@ -404,6 +404,7 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Con
             readonly payload: unknown
             readonly headers: Record<string, string> | undefined
             readonly responseMode?: HttpApiEndpoint.ClientResponseMode
+            readonly sseOptions?: Sse.DecodeOptions | undefined
           } | undefined
         ) {
           let httpRequest = HttpClientRequest.make(endpoint.method)(endpoint.path)
@@ -455,9 +456,10 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Con
             return response
           }
 
+          const decoded = (decodeMap[response.status] ?? decodeMap.orElse)(response, request?.sseOptions)
           const value = yield* (options.transformResponse === undefined
-            ? decodeResponse(response)
-            : options.transformResponse(decodeResponse(response)))
+            ? decoded
+            : options.transformResponse(decoded))
 
           return request?.responseMode === "decoded-and-response" ? [value, response] : value
         })
@@ -667,14 +669,15 @@ export const urlBuilder = <Api extends HttpApi.Constraint>(api: Api, options?: {
       if (group.topLevel) return
       InternalRecord.assignProperty(builder, group.identifier, {})
     },
-    onEndpoint({ group, endpoint }) {
-      const makeUrl = compilePath(endpoint.path)
+    onEndpoint({ group, endpoint, mergedAnnotations }) {
+      const parseOptions = Context.getOrUndefined(mergedAnnotations, HttpApi.ParseOptions)
+      const makeUrl = compilePath(endpoint.path, endpoint.params)
       const encodeParams = endpoint.params === undefined
         ? undefined
-        : Schema.encodeSync(endpoint.params as unknown as Schema.ConstraintEncoder<unknown>)
+        : Schema.encodeSync(endpoint.params as unknown as Schema.ConstraintEncoder<unknown>, parseOptions)
       const encodeQuery = endpoint.query === undefined
         ? undefined
-        : Schema.encodeSync(endpoint.query as unknown as Schema.ConstraintEncoder<unknown>)
+        : Schema.encodeSync(endpoint.query as unknown as Schema.ConstraintEncoder<unknown>, parseOptions)
 
       const endpointBuilder = (request?: {
         readonly params?: unknown
@@ -687,9 +690,20 @@ export const urlBuilder = <Api extends HttpApi.Constraint>(api: Api, options?: {
         const queryInput = request?.query === undefined
           ? undefined
           : (encodeQuery === undefined ? request.query : encodeQuery(request.query)) as UrlParams.Input
-        const query = queryInput === undefined ? "" : UrlParams.toString(UrlParams.fromInput(queryInput))
-        const url = query === "" ? path : `${path}?${query}`
-        return options?.baseUrl === undefined ? url : new URL(url, options.baseUrl.toString()).toString()
+        const urlParams = queryInput === undefined ? UrlParams.empty : UrlParams.fromInput(queryInput)
+        if (options?.baseUrl === undefined) {
+          const query = UrlParams.toString(urlParams)
+          return query === "" ? path : `${path}?${query}`
+        }
+        const url = new URL(
+          HttpClientRequest.prependUrl(HttpClientRequest.get(path), options.baseUrl.toString()).url
+        )
+        for (const [key, value] of urlParams.params) {
+          if (value !== undefined) {
+            url.searchParams.append(key, value)
+          }
+        }
+        return url.toString()
       }
       InternalRecord.assignProperty(
         group.topLevel ? builder : builder[group.identifier],
@@ -706,14 +720,16 @@ export const urlBuilder = <Api extends HttpApi.Constraint>(api: Api, options?: {
 
 const paramsRegExp = /(\/?):(\w+)(\?)?/g
 
-const compilePath = (path: string) => {
-  if (!paramsRegExp.test(path)) {
+const compilePath = (path: string, schema: Schema.Top | undefined) => {
+  if (schema === undefined || !path.includes(":")) {
     return (_: any) => path
   }
-  paramsRegExp.lastIndex = 0
+  const paramNames = HttpApiPath.getParamNames(schema)
   return (params: Record<string, string | undefined>) => {
-    paramsRegExp.lastIndex = 0
-    return path.replace(paramsRegExp, (_, slash: string, key: string, optional: string | undefined) => {
+    return path.replace(paramsRegExp, (match, slash: string, key: string, optional: string | undefined) => {
+      if (paramNames !== undefined && !paramNames.has(key)) {
+        return match
+      }
       const value = params[key]
       if (value === undefined) {
         if (optional !== undefined) {
@@ -726,14 +742,17 @@ const compilePath = (path: string) => {
   }
 }
 
-function schemasToResponse(schemas: readonly [Schema.Constraint, ...Array<Schema.Constraint>]) {
+function schemasToResponse(
+  schemas: readonly [Schema.Constraint, ...Array<Schema.Constraint>],
+  options: SchemaAST.ParseOptions | undefined
+) {
   const hasWithHeaders = schemas.some((schema) =>
     HttpApiSchema.isWithHeaders(schema) || HttpApiSchema.getWithHeadersAnnotation(schema.ast) !== undefined
   )
   const codec = hasWithHeaders
     ? Schema.Union(schemas.map(toCodecArrayBufferWithHeaders))
     : toCodecArrayBuffer(schemas)
-  const decode = Schema.decodeEffect(codec)
+  const decode = Schema.decodeEffect(codec, options)
   return (response: HttpClientResponse.HttpClientResponse) =>
     Effect.flatMap(
       response.arrayBuffer,
@@ -767,7 +786,10 @@ function toCodecArrayBufferWithHeaders(schema: Schema.Constraint): Schema.Top {
   )
 }
 
-type ResponseDecoder = (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<unknown, unknown, unknown>
+type ResponseDecoder = (
+  response: HttpClientResponse.HttpClientResponse,
+  sseOptions?: Sse.DecodeOptions
+) => Effect.Effect<unknown, unknown, unknown>
 
 interface ResponseAlternative {
   readonly contentType: string
@@ -794,12 +816,12 @@ function makeResponseDecoder(alternatives: ReadonlyArray<ResponseAlternative>): 
   if (alternatives.length === 1 && first !== undefined) {
     return first.decode
   }
-  return (response) => {
+  return (response, sseOptions) => {
     const contentType = MediaType.normalize(response.headers["content-type"] ?? "")
     const alternative = alternatives.find((alternative) => alternative.contentType === contentType)
     return alternative === undefined
       ? failUnsupportedContentType(response, contentType, alternatives)
-      : alternative.decode(response)
+      : alternative.decode(response, sseOptions)
   }
 }
 
@@ -862,50 +884,54 @@ function getStreamSuccessSchemas(endpoint: HttpApiEndpoint.Top): Array<StreamSuc
   return schemas
 }
 
-function streamToResponse(successSchema: StreamSuccessSchema) {
+function streamToResponse(successSchema: StreamSuccessSchema, options: SchemaAST.ParseOptions | undefined) {
   const isWithHeaders = isWithHeadersStreamSuccess(successSchema)
   const streamSchema = isWithHeaders ? successSchema.schema : successSchema
   const sse = HttpApiSchema.isStreamUint8Array(streamSchema)
     ? undefined
     : {
       declaration: streamSchema,
-      decoder: makeSseDecoder(streamSchema)
+      decoder: makeSseDecoder(streamSchema, options)
     }
-  const toStream = (response: HttpClientResponse.HttpClientResponse) =>
+  const toStream: ResponseDecoder = (response, sseOptions) =>
     Effect.map(Effect.context<never>(), (context) =>
       Stream.provideContext(
         sse === undefined ?
           response.stream :
-          decodeSseStream(response.stream, sse.declaration, sse.decoder),
+          decodeSseStream(response.stream, sse.declaration, sse.decoder(sseOptions)),
         context as Context.Context<unknown>
       ))
   if (!isWithHeaders) return toStream
 
-  const decodeHeaders = Schema.decodeUnknownEffect(successSchema.headers)
-  return (response: HttpClientResponse.HttpClientResponse) =>
+  const decodeHeaders = Schema.decodeUnknownEffect(successSchema.headers, options)
+  return (response: HttpClientResponse.HttpClientResponse, sseOptions?: Sse.DecodeOptions) =>
     Effect.flatMap(
       decodeHeaders(response.headers),
-      (headers) => Effect.map(toStream(response), (body) => HttpApiSchema.withHeaders({ body, headers }))
+      (headers) => Effect.map(toStream(response, sseOptions), (body) => HttpApiSchema.withHeaders({ body, headers }))
     )
 }
 
 function makeSseDecoder(
-  declaration: HttpApiSchema.StreamSse<Sse.EventCodec, Schema.Constraint, unknown>
+  declaration: HttpApiSchema.StreamSse<Sse.EventCodec, Schema.Constraint, unknown>,
+  parseOptions: SchemaAST.ParseOptions | undefined
 ) {
   const Event = Schema.Union([
     Schema.Struct({
+      id: Schema.optional(Schema.String),
       event: Schema.Literal(reservedStreamFailureEvent),
       data: Schema.fromJsonString(Schema.toCodecJson(Schema.Cause(declaration.error, Schema.Defect())))
     }),
     declaration.events
   ])
-  return Sse.decodeSchema(Event)
+  const defaultDecoder = Sse.decodeSchema(Event, undefined, parseOptions)
+  return (options?: Sse.DecodeOptions) =>
+    options === undefined ? defaultDecoder : Sse.decodeSchema(Event, options, parseOptions)
 }
 
 function decodeSseStream(
   stream: Stream.Stream<Uint8Array, HttpClientError.HttpClientError>,
   declaration: HttpApiSchema.StreamSse<Sse.EventCodec, Schema.Constraint, unknown>,
-  decoder: ReturnType<typeof makeSseDecoder>
+  decoder: ReturnType<ReturnType<typeof makeSseDecoder>>
 ): Stream.Stream<unknown, unknown, unknown> {
   const events = Stream.transformPull(
     stream.pipe(
@@ -1023,7 +1049,13 @@ function fromArrayBuffer(schema: Schema.Constraint): Schema.Top {
         : UnknownFromArrayBuffer
     }
     case "FormUrlEncoded":
-      return StringFromArrayBuffer.pipe(Schema.decodeTo(UrlParams.schemaRecord))
+      return StringFromArrayBuffer.pipe(Schema.decodeTo(
+        Schema.RecordFromUrlParams,
+        SchemaTransformation.transform({
+          decode: (text) => UrlParams.fromInput(new URLSearchParams(text)),
+          encode: UrlParams.toString
+        })
+      ))
     case "Uint8Array":
       return Uint8ArrayFromArrayBuffer
     case "Text":
@@ -1064,7 +1096,7 @@ function getEncodePayloadSchemaFromBody(
   const encoding = HttpApiSchema.getPayloadEncoding(ast, method)
   const out = $HttpBody.pipe(Schema.decodeTo(
     schema,
-    SchemaTransformation.transformOrFail<unknown, HttpBody.HttpBody>({
+    SchemaTransformation.transformEffect<unknown, HttpBody.HttpBody>({
       decode(input, options) {
         return Effect.fail(
           new SchemaIssue.Forbidden({ message: "Encode only schema" }, input, options)

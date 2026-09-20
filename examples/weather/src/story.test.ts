@@ -9,7 +9,7 @@ import {
   mockWeatherResponse,
   weatherData,
   weatherModel,
-} from './main.fixtures'
+} from './main.fixture'
 
 test('submitting the weather form fetches weather and shows result', () => {
   story(

@@ -18,7 +18,7 @@ import {
   effectAtomComparisonRouter,
   exampleDetailRouter,
   examplesRouter,
-  gettingStartedRouter,
+  getStartedRouter,
   routingAndNavigationRouter,
   testingRouter,
   typingTerminalRouter,
@@ -84,9 +84,9 @@ export const contentView = (
         h,
       ),
       glyph('{ }'),
-      demoSection(demoTabsView),
-      glyph('=>'),
       promiseSection(),
+      glyph('=>'),
+      demoSection(demoTabsView),
       glyph('|>', '-translate-y-1/4'),
       poweredBySection(),
       glyph('( )'),
@@ -191,7 +191,7 @@ const heroSection = (
           h.p(
             [
               h.Class(
-                'mt-6 text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-3xl leading-relaxed',
+                'mt-6 text-base md:text-lg font-light text-gray-500 dark:text-gray-400 max-w-3xl leading-relaxed',
               ),
             ],
             [
@@ -241,7 +241,7 @@ const poweredByItem = (text: string): Html =>
         [Icon.check('w-5 h-5')],
       ),
       ih.span(
-        [ih.Class('font-normal text-gray-600 dark:text-gray-300')],
+        [ih.Class('font-light text-gray-500 dark:text-gray-400')],
         [text],
       ),
     ],
@@ -272,7 +272,7 @@ const poweredBySection = (): Html =>
           ih.p(
             [
               ih.Class(
-                'mt-4 text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-6 max-w-3xl',
+                'mt-4 text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-6 max-w-3xl',
               ),
             ],
             [
@@ -283,7 +283,7 @@ const poweredBySection = (): Html =>
             [
               ih.Role('list'),
               ih.Class(
-                'flex flex-col gap-2 text-lg text-gray-600 dark:text-gray-300 list-none',
+                'flex flex-col gap-2 text-base md:text-lg font-light text-gray-500 dark:text-gray-400 list-none',
               ),
             ],
             [
@@ -339,7 +339,7 @@ const promiseSection = (): Html =>
           ih.p(
             [
               ih.Class(
-                'text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl',
+                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-10 max-w-3xl',
               ),
             ],
             [
@@ -391,7 +391,7 @@ const demoSection = (demoTabsView: Html): Html =>
           ih.p(
             [
               ih.Class(
-                'text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl',
+                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-10 max-w-3xl',
               ),
             ],
             [
@@ -470,7 +470,7 @@ const includedSection = (): Html =>
           ih.p(
             [
               ih.Class(
-                'text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl',
+                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-10 max-w-3xl',
               ),
             ],
             [
@@ -663,7 +663,7 @@ const examplesSection: Html = ih.section(
         ih.p(
           [
             ih.Class(
-              'text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl',
+              'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-10 max-w-3xl',
             ),
           ],
           [
@@ -718,7 +718,7 @@ const testingSection = (renderCopyButton: CodeBlock.RenderCopyButton): Html =>
           ih.p(
             [
               ih.Class(
-                'text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl',
+                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-10 max-w-3xl',
               ),
             ],
             [
@@ -782,7 +782,7 @@ const devToolsSection = (): Html =>
           ih.p(
             [
               ih.Class(
-                'text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-4 max-w-3xl',
+                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-4 max-w-3xl',
               ),
             ],
             [
@@ -792,7 +792,7 @@ const devToolsSection = (): Html =>
           ih.p(
             [
               ih.Class(
-                'text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-4 max-w-3xl',
+                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-4 max-w-3xl',
               ),
             ],
             [
@@ -802,7 +802,7 @@ const devToolsSection = (): Html =>
           ih.p(
             [
               ih.Class(
-                'text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl',
+                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-10 max-w-3xl',
               ),
             ],
             [
@@ -860,7 +860,7 @@ const fitSection = (): Html =>
           ih.p(
             [
               ih.Class(
-                'text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-4 max-w-3xl',
+                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-4 max-w-3xl',
               ),
             ],
             [
@@ -878,7 +878,7 @@ const fitSection = (): Html =>
           ih.p(
             [
               ih.Class(
-                'text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl',
+                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-10 max-w-3xl',
               ),
             ],
             [
@@ -1053,7 +1053,7 @@ const trustSection = (): Html =>
           ih.p(
             [
               ih.Class(
-                'text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl',
+                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-10 max-w-3xl',
               ),
             ],
             [
@@ -1225,7 +1225,7 @@ const aiSection = (aiHeadingToggleCount: number): Html =>
           ih.p(
             [
               ih.Class(
-                'text-lg text-gray-600 dark:text-gray-300 mb-4 max-w-2xl',
+                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 mb-4 max-w-2xl',
               ),
             ],
             [
@@ -1235,7 +1235,7 @@ const aiSection = (aiHeadingToggleCount: number): Html =>
           ih.p(
             [
               ih.Class(
-                'text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-2xl',
+                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 mb-8 max-w-2xl',
               ),
             ],
             [
@@ -1280,7 +1280,7 @@ const finalCtaSection = (
                   ih.p(
                     [
                       ih.Class(
-                        'text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-xl',
+                        'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 mb-8 max-w-xl',
                       ),
                     ],
                     [
@@ -1295,10 +1295,7 @@ const finalCtaSection = (
                     ],
                     [
                       ih.a(
-                        [
-                          ih.Href(gettingStartedRouter()),
-                          ih.Class('cta-primary'),
-                        ],
+                        [ih.Href(getStartedRouter()), ih.Class('cta-primary')],
                         ['Get started', Icon.arrowRight('w-5 h-5')],
                       ),
                       viewOnGitHubButton(maybeGitHubStarCount),

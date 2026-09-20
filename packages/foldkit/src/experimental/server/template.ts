@@ -750,8 +750,8 @@ export const injectIntoTemplate = (
   }
 
   // The runtime id names an application across the whole page: it pairs a root
-  // with its Flags payload, and it keys the Model and scroll position HMR
-  // preserves. Two roots sharing one is not a second application, it is the
+  // with its Flags payload, and it keys the preserved Model and scroll
+  // position. Two roots sharing one is not a second application, it is the
   // same application claimed twice, so the second injection is refused rather
   // than producing a page whose parts silently take each other's state. This
   // holds whether or not either application declares Flags.
@@ -771,8 +771,8 @@ export const injectIntoTemplate = (
         `[foldkit] injectIntoTemplate is placing an application stamped ` +
           `"${renderedRuntimeId}", but the page already holds a root with ` +
           'that id. A runtime id names one application for the whole page: it ' +
-          'pairs a root with its Flags payload and keys the Model and scroll ' +
-          'position hot reloading preserves, so two roots sharing one would ' +
+          'pairs a root with its Flags payload and keys the preserved Model ' +
+          'and scroll position, so two roots sharing one would ' +
           "take each other's state. Remove the duplicate root. Foldkit " +
           'supports one page-owning hydratable application per document.',
       )

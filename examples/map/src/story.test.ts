@@ -1,5 +1,6 @@
 import { Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
+import { modifyFields } from 'foldkit/struct'
 import { expect, test } from 'vitest'
 
 import {
@@ -11,7 +12,7 @@ import {
   UnlockBodyScroll,
   update,
 } from './main'
-import { eiffelTower, initialModel, mountedModel } from './main.fixtures'
+import { eiffelTower, initialModel, mountedModel } from './main.fixture'
 
 test('mounting the map records the host id in the Model', () => {
   story(
@@ -139,10 +140,11 @@ test('clicking find-me transitions to the locating state and emits Geolocate', (
 test('a successful geolocation result clears the locating state and flies the map', () => {
   story(
     update,
-    given({
-      ...mountedModel,
-      geolocateState: GeolocateState.Locating(),
-    }),
+    given(
+      modifyFields(mountedModel, {
+        geolocateState: () => GeolocateState.Locating(),
+      }),
+    ),
     message(Message.SucceededGeolocate({ lng: 2.35, lat: 48.85 })),
     model(model => {
       expect(model.geolocateState._tag).toBe('Idle')
@@ -159,10 +161,11 @@ test('a successful geolocation result clears the locating state and flies the ma
 test('a failed geolocation result surfaces the reason in the geolocate state', () => {
   story(
     update,
-    given({
-      ...initialModel,
-      geolocateState: GeolocateState.Locating(),
-    }),
+    given(
+      modifyFields(initialModel, {
+        geolocateState: () => GeolocateState.Locating(),
+      }),
+    ),
     message(Message.FailedGeolocate({ reason: 'Permission denied' })),
     model(model => {
       expect(model.geolocateState._tag).toBe('Failed')
@@ -176,10 +179,11 @@ test('a failed geolocation result surfaces the reason in the geolocate state', (
 test('dismissing the geolocate overlay returns to idle', () => {
   story(
     update,
-    given({
-      ...initialModel,
-      geolocateState: GeolocateState.Failed({ reason: 'Timed out' }),
-    }),
+    given(
+      modifyFields(initialModel, {
+        geolocateState: () => GeolocateState.Failed({ reason: 'Timed out' }),
+      }),
+    ),
     message(Message.DismissedGeolocate()),
     model(model => {
       expect(model.geolocateState._tag).toBe('Idle')

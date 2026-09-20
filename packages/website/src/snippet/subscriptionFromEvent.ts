@@ -25,10 +25,10 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
       modelToDependencies: model => ({ isListening: model.isListening }),
       dependenciesToStream: ({ isListening }) =>
         Stream.when(
-          Subscription.fromEvent<KeyboardEvent, Message>({
+          Subscription.fromEvent({
             target: window,
             type: 'keydown',
-            toMessage: event => Message.PressedKey({ key: event.key }),
+            mapEvent: event => Message.PressedKey({ key: event.key }),
           }),
           Effect.sync(() => isListening),
         ),

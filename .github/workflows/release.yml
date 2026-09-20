@@ -23,15 +23,20 @@ on:
       - 'scripts/build-examples.ts'
       - 'scripts/build-public-packages.mjs'
       - 'scripts/check-playground-ssg-build.ts'
+      - 'scripts/check-website-release-inputs.mjs'
+      - 'scripts/prepare-website-release.mjs'
+      - 'scripts/version-packages.mjs'
       - 'scripts/coherent-release.mjs'
       - 'scripts/finalize-github-release.mjs'
       - 'scripts/example-bridge.js'
       - 'scripts/lib/coherent-release.mjs'
       - 'scripts/lib/github-release.mjs'
       - 'scripts/lib/package-version.mjs'
+      - 'scripts/lib/website-package-inputs.mjs'
       - 'scripts/lib/workspace-packages.mjs'
       - 'scripts/reset-peer-deps.ts'
       - 'scripts/restore-website-fonts.sh'
+      - 'scripts/version-alignment-notes.mjs'
       - 'scripts/website-vercel-config.mjs'
       - '.npmrc'
       - 'tsconfig.base.json'
@@ -57,6 +62,9 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -97,6 +105,9 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -118,6 +129,9 @@ jobs:
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Verify website package inputs are versioned
+        run: pnpm check:website-release-inputs
 
       - name: Upload and verify stable packages
         run: pnpm release

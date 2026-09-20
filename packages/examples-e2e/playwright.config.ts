@@ -16,6 +16,10 @@ const webServerCommand = (slug: string): string => {
     return `pnpm -C ../../examples/ssr build && PORT=${PORT} pnpm -C ../../examples/ssr start`
   } else if (slug === 'ssg') {
     return `pnpm -C ../../examples/ssg build && pnpm -C ../../examples/ssg exec vite preview --outDir dist/client --port ${PORT} --strictPort`
+  } else if (slug === 'livestore') {
+    // NOTE: This browser gate runs the standalone Vite config that Launch
+    // Playground substitutes for the monorepo config.
+    return `pnpm -C ../../examples/livestore exec vite --config vite.config.playground.ts --port ${PORT} --strictPort`
   } else {
     return `pnpm -C ../../examples/${slug} exec vite --port ${PORT} --strictPort`
   }

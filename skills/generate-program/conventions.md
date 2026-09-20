@@ -92,7 +92,7 @@ SavedTodos
 
 The exception is a Message with more than one cause. When several Commands resolve to the same Message, or a Command synthesizes a Message that a Subscription also emits, name it for the fact instead: `EndedAnimation` is produced both by the `WaitForAnimationSettled` Command and by each component's `DetectMovementOrAnimationEnd` race, so no single Command owns the name.
 
-Keep each `defineMessageUnion()` case's payload object on one line when it fits. Let Prettier wrap payloads that need more space, so the declaration remains easy to scan as one variant per line.
+Keep each `defineMessageUnion()` case's payload object on one line when it fits. Let Oxfmt wrap payloads that need more space, so the declaration remains easy to scan as one variant per line.
 
 #### Succeeded/Failed pairing
 
@@ -177,12 +177,12 @@ switch (message._tag) {
 Message.match<Update.Return<Model, Message>>(message, {
   ClickedSubmit: () => ({ model }),
   UpdatedEmail: ({ value }) => ({
-    model: evo(model, { email: () => value }),
+    model: modifyFields(model, { email: () => value }),
   }),
 })
 ```
 
-Use Effect `Match` for non-Message tagged unions, partial matches with a fallback, or one handler shared by several tags.
+Use a `defineTaggedUnion` or `defineRouteUnion` namespace's `matchOrElse` for partial matches with a fallback. Use Effect `Match` for partial Message matches, one handler shared by several tags, or unions without their own matcher.
 
 ### Array module
 
@@ -302,67 +302,65 @@ Array.makeBy(count, index => ...)
 
 ## Model Updates
 
-Use `evo()` for immutable updates:
+Use `modifyFields()` for immutable updates:
 
 ```ts
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 // Update specific fields
-evo(model, {
+modifyFields(model, {
   email: () => value,
   maybeError: () => Option.none(),
 })
 
 // Nested update: replace the nested struct entirely
-evo(model, {
+modifyFields(model, {
   homeStep: () => SelectAction({ username, selectedAction: 'CreateRoom' }),
 })
 
 // Nested update: modify fields of the nested struct
-evo(model, {
-  newLinkForm: () => evo(model.newLinkForm, { title: () => value }),
+modifyFields(model, {
+  newLinkForm: () => modifyFields(model.newLinkForm, { title: () => value }),
 })
 ```
 
-When an `evo` setter only transforms the current value of that same field, pass
+When a `modifyFields` setter only transforms the current value of that same field, pass
 the transformer directly:
 
 ```ts
 // WRONG: re-reads the same field from the surrounding Model
-evo(model, { entries: () => Array.map(model.entries, Entry.revealErrors) })
-evo(model, { currentStep: () => toNextStep(model.currentStep) })
+modifyFields(model, {
+  entries: () => Array.map(model.entries, Entry.revealErrors),
+})
+modifyFields(model, { currentStep: () => toNextStep(model.currentStep) })
 
-// RIGHT: evo supplies the current field value to the setter
-evo(model, { entries: Array.map(Entry.revealErrors) })
-evo(model, { currentStep: toNextStep })
+// RIGHT: modifyFields supplies the current field value to the setter
+modifyFields(model, { entries: Array.map(Entry.revealErrors) })
+modifyFields(model, { currentStep: toNextStep })
 
 // RIGHT: replacement values still use thunks
-evo(model, { email: () => value })
-evo(model, { child: () => nextChild })
+modifyFields(model, { email: () => value })
+modifyFields(model, { child: () => nextChild })
 ```
 
 This applies to component reflect helpers too, which are dual: called data-last, `Slider.reflectRange({ min: minPrice, max: maxPrice })` returns a setter for the existing `Slider.Model` (mirroring URL-owned price bounds onto the slider), so use it directly in the `priceSlider` field instead of closing over `model.priceSlider`.
 
-Never mutate the model directly. **Never use spread syntax for updates.** `evo` is the canonical pattern. This applies to nested updates too: `evo(model, { newLinkForm: () => ({ ...model.newLinkForm, title: value }) })` is wrong. Use a nested `evo`: `evo(model, { newLinkForm: () => evo(model.newLinkForm, { title: () => value }) })`. The spread-inside-evo pattern is a common mistake. You're using `evo` at the outer level but bypassing it inside, which loses the invariant that all updates go through one codepath.
+Never mutate the model directly. **Never use spread syntax for updates.** `modifyFields` is the canonical pattern. This applies to nested updates too: `modifyFields(model, { newLinkForm: () => ({ ...model.newLinkForm, title: value }) })` is wrong. Use a nested `modifyFields`: `modifyFields(model, { newLinkForm: () => modifyFields(model.newLinkForm, { title: () => value }) })`. The spread-inside-modifyFields pattern is a common mistake. You're using `modifyFields` at the outer level but bypassing it inside, which loses the invariant that all updates go through one codepath.
 
 ## Update Results
 
 Update, init, boot, and component helper producers return `{ model }` when they statically create no Commands. When they compute a Commands collection, return it directly without checking whether it is empty. Never write the literal `commands: []`.
 
-Keep an update-shaped result together when composing it into another update. Name the result after the operation and use dot access:
+Fold a child `init` or `boot` result into the parent instead of unpacking its Model and Commands:
 
 ```ts
-const homeInit = Home.init()
-
-return {
-  model: { home: homeInit.model },
-  commands: Command.mapMessages(homeInit.commands, message =>
-    Message.GotHomeMessage({ message }),
-  ),
-}
+return Update.foldChildInit(Home.init(), {
+  toParentModel: home => ({ home }),
+  toParentMessage: message => Message.GotHomeMessage({ message }),
+})
 ```
 
-The same rule applies when a test consumes an update result:
+For another update-shaped result, keep it together when composing it into another update. Name the result after the operation and use dot access. The same rule applies when a test consumes an update result:
 
 ```ts
 const formSubmit = update(model, Message.SubmittedForm())
@@ -373,11 +371,13 @@ expect(formSubmit.commands ?? []).toHaveLength(1)
 
 When the operation name collides with the function, use a trailing underscore such as `init_`. Do not destructure or rename `model`, `commands`, or `outMessage` from update-like results. Dot access does not prevent someone from ignoring `outMessage`; it keeps the operation and all of its returned fields visible together. Name a child fold's `write` parameter after the next child Model, such as `nextSettings`. Pass optional Commands directly to APIs that accept them, including `Command.mapMessages`. Use `result.commands ?? []` only when the next operation requires a concrete array for spreading, concatenating, execution, or an assertion.
 
-Manual unpacking of a child result usually means the site should use `Update.foldChild` for child Messages or `Update.foldChildStep` for no-argument child entry points. Those helpers keep the child Model, lifted Commands, and OutMessage in one fold.
+Use `Update.foldChildInit` when one child `init` or `boot` result enters a parent Model. Use `Update.foldChildInits` when several child results enter one parent Model. Use `Update.foldChild` for a child update that receives input or `Update.foldChildStep` for a no-argument child entry point. These helpers keep the child Model, lifted Commands, and OutMessage in one fold.
 
-Use `Update.combine` when a later Step should receive the Model produced by an earlier Step. It takes two or more Steps. Do not wrap one Step in `Update.combine`; call that operation directly. Name an inline Step parameter `stepModel` when combining several; it receives the Model from the preceding Step. Independent child inits need separate Model assembly because neither init consumes the Model produced by the other.
+Use `Update.combine` when a later Step should receive the Model produced by an earlier Step. It takes two or more Steps. Do not wrap one Step in `Update.combine`; call that operation directly. Name an inline Step parameter `stepModel` when combining several; it receives the Model from the preceding Step. Use `Update.foldChildInits` when several child init or boot results enter the same parent Model. Keep route-gated initialization or Model-only child construction separate when there is no shared set of child results to fold.
 
 When the OutMessage is already known while constructing a new result, include it directly: `{ model, commands, outMessage }`. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain return or when the value has the type `OutMessage | undefined`. Pipe an existing return into the helper: `pipe(dialogClose, Update.withOutMessage(outMessage))`. When constructing the plain return in the same expression, pass it first: `Update.withOutMessage({ model, commands }, outMessage)`. Add `toParentOutMessage` only when at least one child OutMessage should continue to the current Submodel's parent. For partial forwarding, match every child variant and return `undefined` for the variants that stop here. Omit `toParentOutMessage` when every variant stops here. `foldOutMessage` still handles each variant locally, including variants that continue upward. Never write `toParentOutMessage: () => undefined`.
+
+When an `Update.foldChildInits` entry can derive or forward an OutMessage, use `resolveOutMessage` to construct one parent OutMessage from the named OutMessages after every local fold completes. Combine their information when both results matter; choosing one discards the other. The callback also receives the final Model. If that Model alone contains everything needed, use local folds and attach a parent OutMessage afterward with `Update.withOutMessage`.
 
 ## Schema Constructors
 
@@ -459,7 +459,9 @@ const Model = Schema.Struct({
 `defineTaggedUnion` names each variant once. It returns a Schema and a namespace:
 `FetchState.Ok({ data })` constructs a value, while
 `FetchState.match(model.fetchState, { ... })` handles every variant. Use
-`guards` and `isAnyOf` when only selected variants need checking.
+`FetchState.matchOrElse(model.fetchState, { ... }, fallback)` when selected
+variants need handlers and the rest share a fallback. Use `guards` and
+`isAnyOf` when only selected variants need checking.
 
 For **remote data**, don't write that union at all. `AsyncData` ships it, with two states hand-rolled versions always miss:
 
@@ -577,7 +579,7 @@ import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineRouteUnion } from 'foldkit/route'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { Button, Dialog, Input } from '@foldkit/ui'
 ```
@@ -618,7 +620,7 @@ Notes:
 - Module-by-module reminders, for example: `Calendar` for `Calendar.CalendarDate`, `Calendar.today.local`, `Calendar.make`, `Calendar.addDays` etc., paired with the `Calendar` or `DatePicker` component from `@foldkit/ui` (the component and the `foldkit` date module share the name `Calendar`; they are different things). `Dom` for DOM-side-effect helpers (`Dom.focus`, `Dom.scrollIntoView`, `Dom.showDialog`, `Dom.closeDialog`, `Dom.lockScroll`, `Dom.unlockScroll`, `Dom.waitForAnimationSettled`, etc.). `File` for file upload primitives paired with `FileDrop` from `@foldkit/ui`. `foldkit/fieldValidation` for form validation.
 - For time, randomness, or delays, use Effect's built-ins directly rather than reaching for a Foldkit module: `Clock.currentTimeMillis`, `Random.nextIntBetween`, `Effect.sleep(Duration.millis(...))`. For UUIDs, use the `Crypto.Crypto` service's `randomUUIDv4` Effect with a platform Crypto layer (`BrowserCrypto.layer` from `@effect/platform-browser`).
 - Import Effect modules by their PascalCase names. When an Effect module name collides with a JavaScript or TypeScript global, qualify the global through `globalThis`, such as `globalThis.String`, `globalThis.Array`, or `globalThis.Record`. When an existing local or public binding must retain the module name, give the Effect import an explicit `Effect` prefix, such as `Order as EffectOrder`.
-- `Message.match` is the exhaustive matcher on a union returned by `defineMessageUnion()`. `Match` is Effect's Match module for other tagged unions, partial matching, fallbacks, and handlers shared by several tags.
+- `Message.match` is the exhaustive matcher on a union returned by `defineMessageUnion()`. A `defineTaggedUnion` or `defineRouteUnion` namespace owns exhaustive `match` and partial `matchOrElse`. `Match` is Effect's Match module for partial Message matching, handlers shared by several tags, and unions without their own matcher.
 - **UI components live in a separate package.** Import them by name from `@foldkit/ui`: `import { Dialog, DatePicker, FileDrop, Toast, Tooltip } from '@foldkit/ui'`. Deep imports (`@foldkit/ui/dialog`) work too. There is no `Ui` export on the `foldkit` package, so `Ui.Dialog.view` does not resolve.
 - **`empty` and `keyed` are properties on `h`**, the builder every view receives as its last parameter. They are not top-level exports of `foldkit/html`, so they never belong in that import list. Same for `h.submodel`.
 - `AsyncData` for remote data state, `Update` for the update return type and the `combine` / `refresh` combinators, `Http` for the `layer` that provides `HttpClient` to a Command.

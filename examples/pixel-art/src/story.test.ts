@@ -1,5 +1,6 @@
 import { Equal, Option } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
+import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
@@ -253,10 +254,9 @@ describe('fill tool', () => {
     const gridWithBarrier = createEmptyGrid(4).map(row =>
       row.map((cell, x) => (x === 2 ? Option.some<PaletteIndex>(1) : cell)),
     )
-    const modelWithBarrier = {
-      ...emptyModel,
-      grid: gridWithBarrier,
-    }
+    const modelWithBarrier = modifyFields(emptyModel, {
+      grid: () => gridWithBarrier,
+    })
 
     story(
       update,
@@ -290,14 +290,14 @@ describe('grid size', () => {
   })
 
   test('painted canvas opens confirmation dialog', () => {
-    const paintedModel: Model = {
-      ...emptyModel,
-      grid: createEmptyGrid(4).map((row, y) =>
-        row.map((cell, x) =>
-          x === 0 && y === 0 ? Option.some<PaletteIndex>(0) : cell,
+    const paintedModel: Model = modifyFields(emptyModel, {
+      grid: () =>
+        createEmptyGrid(4).map((row, y) =>
+          row.map((cell, x) =>
+            x === 0 && y === 0 ? Option.some<PaletteIndex>(0) : cell,
+          ),
         ),
-      ),
-    }
+    })
 
     story(
       update,
@@ -313,15 +313,14 @@ describe('grid size', () => {
   })
 
   test('confirming grid size change resets canvas and history', () => {
-    const modelWithPending: Model = {
-      ...emptyModel,
-      maybePendingGridSize: Option.some(8),
-      gridSizeConfirmDialog: Dialog.init({
-        id: 'grid-size-confirm-dialog',
-        isOpen: true,
-      }),
-      undoStack: [createEmptyGrid(4)],
-    }
+    const modelWithPending: Model = modifyFields(emptyModel, {
+      maybePendingGridSize: () => Option.some(8),
+      gridSizeConfirmDialog: () =>
+        Dialog.boot({
+          id: 'grid-size-confirm-dialog',
+        }).model,
+      undoStack: () => [createEmptyGrid(4)],
+    })
 
     story(
       update,

@@ -6,7 +6,7 @@ import { type Html, __htmlBuilder } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import * as Mount from '../mount/index.js'
 import * as Port from '../port/index.js'
-import { evo } from '../struct/index.js'
+import { modifyFields } from '../struct/index.js'
 import * as Subscription from '../subscription/subscription.js'
 import type * as Update from '../update/index.js'
 import { makeApplication } from './makeApplication.js'
@@ -43,11 +43,13 @@ const ReportCount = Command.define('ReportCount', {
 
 const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
-    ChangedStep: ({ step }) => ({ model: evo(model, { step: () => step }) }),
+    ChangedStep: ({ step }) => ({
+      model: modifyFields(model, { step: () => step }),
+    }),
     ClickedIncrement: () => {
       const count = model.count + model.step
       return {
-        model: evo(model, { count: () => count }),
+        model: modifyFields(model, { count: () => count }),
         commands: [ReportCount({ count })],
       }
     },
@@ -60,6 +62,7 @@ let isTickStreamActive = false
 let isMountActive = false
 
 const TICK_INTERVAL_MS = 5
+const FLAGS_STARTUP_FAILURE = 'flags blew up on embed startup'
 
 const subscriptions = Subscription.make<Model, Message>()(_entry => ({
   hostStep: Port.subscription(ports.inbound.stepChanged, step =>
@@ -303,6 +306,44 @@ describe('embed', () => {
     }
   })
 
+  it('logs a flags failure Cause and leaves the container blank', async () => {
+    const Flags = Schema.Struct({ initialCount: Schema.Number })
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {})
+
+    const handle = embed(
+      makeElement({
+        Model,
+        Flags,
+        flags: Effect.sync((): { initialCount: number } => {
+          throw new Error(FLAGS_STARTUP_FAILURE)
+        }),
+        init: flags => ({ model: { count: flags.initialCount, step: 1 } }),
+        update,
+        view,
+        subscriptions,
+        ports,
+        container,
+      }),
+    )
+
+    try {
+      await vi.waitFor(() => {
+        expect(
+          [...consoleLogSpy.mock.calls, ...consoleErrorSpy.mock.calls]
+            .flat()
+            .map(String)
+            .join('\n'),
+        ).toContain(FLAGS_STARTUP_FAILURE)
+      })
+      expect(container.childNodes.length).toBe(0)
+    } finally {
+      handle.dispose()
+    }
+  })
+
   it('dispose stops Subscriptions, releases Mounts, removes the rendered DOM, and restores the container', async () => {
     const handle = embed(makeWidget())
 
@@ -319,6 +360,26 @@ describe('embed', () => {
     })
     expect(document.getElementById('app')).toBe(container)
     expect(container.childNodes.length).toBe(0)
+  })
+
+  it('does not log when dispose interrupts a live embed', async () => {
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {})
+    const handle = embed(makeWidget())
+
+    await awaitBodyText('count:0')
+    consoleLogSpy.mockClear()
+    consoleErrorSpy.mockClear()
+
+    handle.dispose()
+
+    await vi.waitFor(() => {
+      expect(isTickStreamActive).toBe(false)
+    })
+    expect(consoleLogSpy).not.toHaveBeenCalled()
+    expect(consoleErrorSpy).not.toHaveBeenCalled()
   })
 
   it('dispose is idempotent and silences the handle afterwards', async () => {

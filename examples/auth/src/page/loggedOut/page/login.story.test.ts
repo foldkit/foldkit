@@ -8,21 +8,20 @@ import {
   model,
   story,
 } from 'foldkit/story'
+import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import {
   Message,
-  Model,
   OutMessage,
   SimulateAuthRequest,
   initModel,
   update,
 } from './login'
 
-const validModel = Model.make({
-  ...initModel(),
-  email: Valid({ value: 'alice@example.com' }),
-  password: Valid({ value: 'password' }),
+const validModel = modifyFields(initModel(), {
+  email: () => Valid({ value: 'alice@example.com' }),
+  password: () => Valid({ value: 'password' }),
 })
 
 const aliceSession = { userId: '1', email: 'alice@example.com', name: 'alice' }

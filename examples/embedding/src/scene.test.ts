@@ -1,4 +1,5 @@
 import { Command, click, expect, given, role, scene, text } from 'foldkit/scene'
+import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import { Message, type Model, ReportCount, update, view } from './main'
@@ -19,7 +20,7 @@ describe('view', () => {
   test('clicking the advance button moves the count by the step', () => {
     scene(
       { update, view },
-      given({ ...initialModel, step: 4 }),
+      given(modifyFields(initialModel, { step: () => 4 })),
       click(role('button', { name: 'Advance by 4' })),
       Command.resolve(ReportCount, Message.CompletedReportCount()),
       expect(text('14')).toExist(),

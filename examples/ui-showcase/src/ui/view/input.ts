@@ -31,6 +31,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
               {
                 id: 'input-basic-demo',
                 value: model.inputDemoValue,
+                hasDescription: true,
                 onInput: value => UiMessage.UpdatedInputDemoValue({ value }),
                 placeholder: 'Enter your full name',
                 toView: attributes =>
@@ -65,6 +66,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
           {
             id: 'input-disabled-demo',
             isDisabled: true,
+            hasDescription: true,
             value: 'Ada Lovelace',
             toView: attributes =>
               h.div(

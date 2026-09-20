@@ -31,6 +31,7 @@ export const basicDemo = (
       {
         id: SWITCH_DEMO_ID,
         isChecked: isSwitchDemoChecked,
+        hasDescription: true,
         onToggle: isChecked => Message.ToggledSwitchDemo({ isChecked }),
         toView: attributes =>
           h.div(

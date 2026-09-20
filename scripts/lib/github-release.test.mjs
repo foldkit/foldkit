@@ -267,6 +267,19 @@ test('conflicting Release metadata stops before any mutation', async () => {
   assert.deepEqual(github.createdReleases, [])
 })
 
+test('empty release notes stop the complete plan before any mutation', async () => {
+  const pkg = releasePackage('foldkit', '2.0.0', '')
+  const github = new FakeGitHub()
+
+  await assert.rejects(
+    finalizeGitHubReleases({ packages: [pkg], commit: COMMIT, github }),
+    /foldkit@2.0.0 has empty release notes/,
+  )
+
+  assert.deepEqual(github.createdTags, [])
+  assert.deepEqual(github.createdReleases, [])
+})
+
 test('new tags and Releases target the exact published commit', async () => {
   const pkg = releasePackage('foldkit', '2.0.0')
   const github = new FakeGitHub()

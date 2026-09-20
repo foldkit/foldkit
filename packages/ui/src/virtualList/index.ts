@@ -18,7 +18,7 @@ import {
 } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 import * as Subscription from 'foldkit/subscription'
 
@@ -109,7 +109,7 @@ export const ApplyScroll = Command.define('ApplyScroll', {
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ScrolledContainer: ({ scrollTop }) => ({
-      model: evo(model, { scrollTop: () => scrollTop }),
+      model: modifyFields(model, { scrollTop: () => scrollTop }),
     }),
 
     MeasuredContainer: ({ containerHeight }) => {
@@ -119,7 +119,7 @@ export const update = (model: Model, message: Message) =>
       if (needsInitialApply) {
         const nextVersion = Number.increment(model.pendingScrollVersion)
         return {
-          model: evo(model, {
+          model: modifyFields(model, {
             measurement: () => Measurement.Measured({ containerHeight }),
             pendingScrollVersion: () => nextVersion,
             pendingScroll: () =>
@@ -138,7 +138,7 @@ export const update = (model: Model, message: Message) =>
         }
       } else {
         return {
-          model: evo(model, {
+          model: modifyFields(model, {
             measurement: () => Measurement.Measured({ containerHeight }),
           }),
         }
@@ -150,7 +150,9 @@ export const update = (model: Model, message: Message) =>
         return { model }
       } else {
         return {
-          model: evo(model, { pendingScroll: () => PendingScroll.Idle() }),
+          model: modifyFields(model, {
+            pendingScroll: () => PendingScroll.Idle(),
+          }),
         }
       }
     },
@@ -165,7 +167,7 @@ const buildScrollToIndex = (
 ): ScrollReturn => {
   const nextVersion = Number.increment(model.pendingScrollVersion)
   return {
-    model: evo(model, {
+    model: modifyFields(model, {
       pendingScrollVersion: () => nextVersion,
       pendingScroll: () =>
         PendingScroll.ScrollingToIndex({ index, version: nextVersion }),

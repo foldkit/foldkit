@@ -4,7 +4,7 @@ import * as Command from '../../command/index.js'
 import * as File from '../../file/index.js'
 import type { Html, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
-import { evo } from '../../struct/index.js'
+import { modifyFields } from '../../struct/index.js'
 import type * as Update from '../../update/index.js'
 
 // MODEL
@@ -68,7 +68,7 @@ export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ClickedChooseResume: () => ({ model, commands: [SelectResume()] }),
     CompletedSelectResume: ({ file }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         maybeResume: () => Option.some(file),
         maybePreviewDataUrl: () => Option.none(),
         readStatus: () => 'Reading',
@@ -77,16 +77,16 @@ export const update = (model: Model, message: Message) =>
     }),
     CancelledSelectResume: () => ({ model }),
     SucceededReadPreview: ({ dataUrl }) => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         maybePreviewDataUrl: () => Option.some(dataUrl),
         readStatus: () => 'Idle',
       }),
     }),
     FailedReadPreview: () => ({
-      model: evo(model, { readStatus: () => 'Failed' }),
+      model: modifyFields(model, { readStatus: () => 'Failed' }),
     }),
     ClickedRemoveResume: () => ({
-      model: evo(model, {
+      model: modifyFields(model, {
         maybeResume: () => Option.none(),
         maybePreviewDataUrl: () => Option.none(),
         readStatus: () => 'Idle',

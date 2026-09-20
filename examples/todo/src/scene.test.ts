@@ -10,6 +10,7 @@ import {
   text,
   type,
 } from 'foldkit/scene'
+import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import {
@@ -29,14 +30,13 @@ const emptyModel: Model = {
   editing: EditingState.NotEditing(),
 }
 
-const modelWithTodos: Model = {
-  ...emptyModel,
-  todos: [
+const modelWithTodos: Model = modifyFields(emptyModel, {
+  todos: () => [
     { id: 'abc', text: 'Buy milk', completed: false, createdAt: 1000 },
     { id: 'def', text: 'Walk the dog', completed: false, createdAt: 2000 },
     { id: 'ghi', text: 'Done task', completed: true, createdAt: 3000 },
   ],
-}
+})
 
 describe('view', () => {
   test('empty state shows heading and placeholder message', () => {
@@ -93,7 +93,7 @@ describe('view', () => {
 
   test('toggle a todo by clicking its checkbox', () => {
     const toggledTodos = modelWithTodos.todos.map(todo =>
-      todo.id === 'abc' ? { ...todo, completed: true } : todo,
+      todo.id === 'abc' ? modifyFields(todo, { completed: () => true }) : todo,
     )
 
     scene(
@@ -146,10 +146,9 @@ describe('view', () => {
   })
 
   test('mark all complete toggles all todos', () => {
-    const allCompletedTodos = modelWithTodos.todos.map(todo => ({
-      ...todo,
-      completed: true,
-    }))
+    const allCompletedTodos = modelWithTodos.todos.map(todo =>
+      modifyFields(todo, { completed: () => true }),
+    )
 
     scene(
       { update, view },

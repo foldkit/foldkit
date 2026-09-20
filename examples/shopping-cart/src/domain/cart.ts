@@ -1,5 +1,5 @@
 import { Array, Number, Option, Predicate, Schema, pipe } from 'effect'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { CartItem, Item } from './item'
 
@@ -26,7 +26,7 @@ export const addItem =
       onSome: () =>
         mapCartItem(
           item.id,
-          evo({
+          modifyFields({
             quantity: Number.increment,
           }),
         )(cart),
@@ -43,7 +43,7 @@ export const changeQuantity = (itemId: string, quantity: number) =>
     ? removeItem(itemId)
     : mapCartItem(
         itemId,
-        evo({
+        modifyFields({
           quantity: () => quantity,
         }),
       )
@@ -51,7 +51,7 @@ export const changeQuantity = (itemId: string, quantity: number) =>
 export const incrementQuantity = (itemId: string) =>
   mapCartItem(
     itemId,
-    evo({
+    modifyFields({
       quantity: Number.increment,
     }),
   )

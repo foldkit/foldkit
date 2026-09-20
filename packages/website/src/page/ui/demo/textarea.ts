@@ -16,6 +16,7 @@ export const basicDemo = (model: Model, h: HtmlBuilder<Message>) => {
           {
             id: 'textarea-basic-demo',
             value: model.textareaDemoValue,
+            hasDescription: true,
             onInput: value => Message.UpdatedTextareaDemoValue({ value }),
             placeholder: 'Tell us about yourself...',
             rows: 4,
@@ -51,6 +52,7 @@ export const disabledDemo = (_model: Model, h: HtmlBuilder<Message>) => {
       {
         id: 'textarea-disabled-demo',
         isDisabled: true,
+        hasDescription: true,
         value:
           'Mathematician and writer, known for work on Charles Babbage’s Analytical Engine.',
         rows: 3,

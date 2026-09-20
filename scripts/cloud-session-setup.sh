@@ -18,8 +18,18 @@
 # Reconciling node_modules to the lockfile, building the prerequisite packages,
 # and removing known stale leftovers eliminates all three classes of phantom
 # problem before the agent runs any checks.
+#
+# SessionStart in .claude/settings.json only invokes this when
+# CLAUDE_CODE_REMOTE=true. Grok and local Claude Code also fire SessionStart, and
+# the install plus dist rebuild races with `pnpm dev:libs`. Run the script
+# directly to reconcile a local workspace.
 
 set -euo pipefail
+
+if [[ -n "${GROK_HOOK_EVENT:-}" && "${CLAUDE_CODE_REMOTE:-}" != "true" ]]; then
+  echo "[setup] skipping SessionStart outside a Claude Code cloud session"
+  exit 0
+fi
 
 cd "$(git rev-parse --show-toplevel)"
 
@@ -67,13 +77,16 @@ is_dist_stale() {
   local dir="$1"
   [[ -d "$dir/dist" && -d "$dir/src" && -r "$dir/src" ]] || return 0
 
-  local oldest_built
-  oldest_built=$(find "$dir/dist" -type f -printf '%T@ %p\n' 2>/dev/null |
-    sort -n | head -1 | cut -d' ' -f2-)
+  local oldest_built="" file
+  while IFS= read -r -d '' file; do
+    if [[ -z "$oldest_built" || "$file" -ot "$oldest_built" ]]; then
+      oldest_built=$file
+    fi
+  done < <(find "$dir/dist" -type f -print0)
   [[ -n "$oldest_built" ]] || return 0
 
   local newer_source scan_status
-  newer_source=$(find "$dir/src" -type f -newer "$oldest_built" -print -quit 2>/dev/null)
+  newer_source=$(find "$dir/src" -type f -newer "$oldest_built" -print -quit)
   scan_status=$?
 
   [[ $scan_status -ne 0 || -n "$newer_source" ]]

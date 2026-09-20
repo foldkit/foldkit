@@ -9,7 +9,7 @@
     "test:e2e:ui": "playwright test --ui",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "format": "prettier -w ."
+    "format": "oxfmt"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -20,7 +20,6 @@
     "@typescript/native": "npm:typescript@^7.0.2",
     "eslint": "^10.9.1",
     "playwright": "^1.62.1",
-    "prettier": "^3.9.6",
     "typescript": "npm:@typescript/typescript6@^6.0.2"
   }
 }

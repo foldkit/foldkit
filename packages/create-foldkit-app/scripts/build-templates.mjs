@@ -23,11 +23,10 @@ const TOOL_DEPENDENCIES = [
   '@foldkit/vite-plugin',
   '@foldkit/devtools-mcp',
   '@foldkit/oxlint-plugin',
-  '@trivago/prettier-plugin-sort-imports',
   '@types/node',
   'happy-dom',
+  'oxfmt',
   'oxlint',
-  'prettier',
   'vitest',
 ]
 

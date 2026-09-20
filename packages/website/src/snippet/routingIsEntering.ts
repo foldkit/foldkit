@@ -1,6 +1,6 @@
 import { Command, Runtime } from 'foldkit'
 import { Transition } from 'foldkit/route'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { Url } from 'foldkit/url'
 
 // Entry-only Commands ask about the transition, not the route alone...
@@ -22,7 +22,7 @@ const init: Runtime.RoutingApplicationInit<Model, Message> = (url: Url) => {
 ChangedUrl: ({ url }) => {
   const nextRoute = urlToAppRoute(url)
   return {
-    model: evo(model, { route: () => nextRoute }),
+    model: modifyFields(model, { route: () => nextRoute }),
     commands: commandsForTransition(Transition.make(model.route, nextRoute)),
   }
 }

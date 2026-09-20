@@ -8,6 +8,7 @@ const view = (model: Model, h: HtmlBuilder<Message>) =>
   Input.view(
     {
       id: 'full-name',
+      hasDescription: true,
       value: model.name, // your Model field
       onInput: value => UpdatedName({ value }), // your Message
       placeholder: 'Enter your full name',

@@ -9,6 +9,7 @@ const view = (h: HtmlBuilder<Message>) =>
     {
       id: 'bio-disabled',
       isDisabled: true,
+      hasDescription: true,
       value: 'Known for work on the Analytical Engine.',
       rows: 3,
       toView: attributes =>

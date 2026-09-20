@@ -7,6 +7,7 @@ import { canaryVersion } from '../../../scripts/lib/package-version.mjs'
 import { EXAMPLE_FILE_EXTENSIONS, EXAMPLE_ROOT_FILES } from '../vite.config'
 import {
   INCLUDED_EXTENSIONS,
+  PLAYGROUND_DEPENDENCY_OVERRIDES,
   loadPlaygroundFiles,
   loadPlaygroundWorkspacePackageVersions,
 } from './playgroundFilesPlugin'
@@ -85,6 +86,31 @@ describe('server-rendered example build scripts', () => {
     expect(manifest.devDependencies).toHaveProperty('vite')
   })
 
+  it('uses the LiveStore Vite config in its playground', async () => {
+    const bySlug = await loadPlaygroundFiles()
+    const liveStoreEntry = Object.entries(bySlug).find(
+      ([slug]) => slug === 'livestore',
+    )
+    if (liveStoreEntry === undefined) {
+      throw new Error('the transformed playground files omit livestore')
+    }
+    const [, liveStore] = liveStoreEntry
+
+    const viteConfigFile = Object.entries(liveStore.files).find(
+      ([path]) => path === 'vite.config.ts',
+    )
+    if (viteConfigFile === undefined) {
+      throw new Error(
+        'the transformed livestore playground omits vite.config.ts',
+      )
+    }
+    const [, viteConfig] = viteConfigFile
+
+    expect(viteConfig).toBe(
+      exampleFile('livestore', 'vite.config.playground.ts'),
+    )
+  })
+
   it('pins every transformed workspace dependency to its exact version', async () => {
     const [bySlug, versions] = await Promise.all([
       loadPlaygroundFiles(),
@@ -109,6 +135,21 @@ describe('server-rendered example build scripts', () => {
           expect(dependencies[name], `${slug}: ${name}`).toBe(version)
         }
       }
+    }
+  })
+
+  it('pins WebContainer dependency overrides', async () => {
+    const bySlug = await loadPlaygroundFiles()
+
+    for (const [slug, { files }] of Object.entries(bySlug)) {
+      const source = files['package.json']
+      if (source === undefined) {
+        throw new Error(`the ${slug} playground omits package.json`)
+      }
+      const manifest: Readonly<{
+        overrides?: Readonly<Record<string, string>>
+      }> = JSON.parse(source)
+      expect(manifest.overrides, slug).toEqual(PLAYGROUND_DEPENDENCY_OVERRIDES)
     }
   })
 

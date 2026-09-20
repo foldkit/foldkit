@@ -26,7 +26,8 @@ export type ViewTransitionContext<Model, Message> = Readonly<{
  *  `{ types }` additionally tags the transition so CSS can scope animations
  *  via `:active-view-transition-type(...)`. */
 export type ViewTransitionDecision =
-  boolean | Readonly<{ types: ReadonlyArray<string> }>
+  | boolean
+  | Readonly<{ types: ReadonlyArray<string> }>
 
 /** Decides, per render, whether the DOM update should run inside a View
  *  Transition. The predicate is total over the Message union, so animation is

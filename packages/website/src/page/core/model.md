@@ -22,6 +22,8 @@ Use `defineTaggedUnion` when a Model field can have several named shapes. Declar
 
 `EditorMode` is the Schema stored in `Model` and the namespace used to construct values such as `EditorMode.Browsing()`. Its `match` method requires every variant to be handled. If you add another editor mode, TypeScript finds each match that needs a new branch.
 
+Use `EditorMode.matchOrElse` when selected variants need their own handlers and every remaining variant shares one fallback. The fallback is called only for variants not named in the case record; when the return type is inferred, its parameter narrows to those variants. Adding another editor mode includes it in that fallback.
+
 Use `EditorMode.guards.Editing` to check one variant and `EditorMode.isAnyOf(['Editing', 'Previewing'])` to check several.
 
 When another Schema accepts only some editor modes, build it with `EditorMode.subset(['Editing', 'Previewing'])`. `subset` includes only the tags you name. If you add another mode later, the smaller Schema will not accept it until you add its tag. There is no `omit`: an exclusion list would silently accept every mode added later.

@@ -67,7 +67,7 @@ Other changes:
 - `Machine.unreachableStates` and `Machine.deadTransitions` can now account for states entered through persistence or deep links.
 - Dialog now falls back to the first focusable element—or the dialog itself—when its requested focus target is missing or cannot receive focus.
 - DevTools overlay dependencies are now preloaded, so Vite does not reload on first use.
-- The former Manifesto page is now [Why Foldkit](/get-started/why-foldkit).
+- The former Manifesto page is now [Why Foldkit](/introduction/why-foldkit).
 
 Thank you to [@rjdellecese](https://github.com/rjdellecese) for proposing the Effect module naming convention and Mount view-state API, and to [@artile](https://github.com/artile) for reporting the Dialog focus issue. Thank you also to [@armancharan](https://github.com/armancharan) for adding `vitest.config.ts` typechecking across the repo and [@filipfalcon](https://github.com/filipfalcon) for the Vite preload fix!
 

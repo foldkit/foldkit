@@ -35,7 +35,7 @@ const localManagedResources = ManagedResource.make<Model, Message>()(entry => ({
   }),
 }))
 
-export const managedResources = ManagedResource.aggregate<Model, Message>()(
+export const managedResources = ManagedResource.aggregate(
   videoCallManagedResources,
   localManagedResources,
 )

@@ -34,6 +34,8 @@ When changesets are merged to main, a "Version Packages" pull request is automat
 3. Uploads and verifies the stable package set without moving `latest`
 4. Comments on the merged Version Packages pull request when that exact commit is ready to promote
 
+Write changesets for package-specific changes. When shared build inputs change, the release planner automatically adds patch bumps for every website package. Existing larger bumps take precedence.
+
 After the notification arrives, confirm that `npm whoami` and `gh auth status` both succeed. Check out the commit named in the notification with a clean working tree, install its dependencies, and run:
 
 ```bash

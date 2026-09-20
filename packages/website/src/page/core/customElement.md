@@ -26,7 +26,11 @@ The bound element builder is callable. Pass attributes, including generated prop
 
 Each property name becomes a PascalCase factory. For example: `value` becomes `Value`, and `isDisabled` becomes `IsDisabled`. The factory writes a JavaScript property on the live element through `propsModule`, not an HTML attribute. This allows values such as arrays and objects, and Foldkit only writes a property again when its value changes across renders. When primitive properties are removed, booleans reset to `false`, strings to `''`, and numbers to `0`.
 
-Each kebab-case event name becomes an `On{PascalCase}` factory. For example: `color-changed` becomes `OnColorChanged`. Its callback receives the typed `detail` from a `CustomEvent` and returns the Message Foldkit dispatches.
+Each kebab-case event name becomes an `On{PascalCase}` factory. For example: `color-changed` becomes `OnColorChanged`. Its callback receives the decoded `detail` from a `CustomEvent` and returns the Message Foldkit dispatches.
+
+Foldkit decodes each event's `detail` against its declared Schema before calling the event factory callback. Invalid details are reported to the console and produce no Message. Schema transformations run at this boundary, and undeclared fields are removed according to the Schema's decoding behavior.
+
+For an event with no payload, declare `Schema.Struct({})`. Browsers set `detail` to `null` when a `CustomEvent` is constructed without one. Foldkit first decodes that raw value so Schemas such as `Schema.Null` preserve their meaning; when the Schema rejects a nullish detail, Foldkit retries with an empty object so the payload-less struct decodes.
 
 :::Info{label="Validation runs at define time"}
 `CustomElement.define` validates the custom tag, property names, and event names when the binding is created. It also rejects generated factory-name collisions. For example: an `onClick` property and a `click` event would both produce `OnClick`, so the definition throws before the view can render it.

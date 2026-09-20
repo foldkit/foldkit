@@ -7,11 +7,11 @@ settings:
 overrides:
   '@mapbox/jsonlint-lines-primitives': 2.0.2
   '@types/node': 26.4.0
-  effect: 4.0.0-rc.112
-  '@effect/platform-browser': 4.0.0-rc.112
-  '@effect/platform-node': 4.0.0-rc.112
-  '@effect/platform-node-shared': 4.0.0-rc.112
-  '@effect/vitest': 4.0.0-rc.112
+  effect: 4.0.0-rc.116
+  '@effect/platform-browser': 4.0.0-rc.116
+  '@effect/platform-node': 4.0.0-rc.116
+  '@effect/platform-node-shared': 4.0.0-rc.116
+  '@effect/vitest': 4.0.0-rc.116
   monaco-editor>dompurify: 3.4.14
 
 importers:
@@ -27,9 +27,6 @@ importers:
       '@foldkit/oxlint-plugin':
         specifier: workspace:*
         version: link:packages/oxlint-plugin-foldkit
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
       '@types/node':
         specifier: 26.4.0
         version: 26.4.0
@@ -37,8 +34,8 @@ importers:
         specifier: npm:typescript@^7.0.2
         version: typescript@7.0.2
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:packages/foldkit
@@ -48,27 +45,24 @@ importers:
       madge:
         specifier: ^8.0.0
         version: 8.0.0(@typescript/typescript6@6.0.2)
+      oxfmt:
+        specifier: ^0.66.0
+        version: 0.66.0
       oxlint:
         specifier: ^1.80.0
         version: 1.80.0
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       semver:
         specifier: ^7.8.5
         version: 7.8.5
       simple-git-hooks:
         specifier: ^2.14.0
         version: 2.14.0
-      tsx:
-        specifier: ^4.23.12
-        version: 4.23.12
       typescript:
         specifier: npm:@typescript/typescript6@^6.0.2
         version: '@typescript/typescript6@6.0.2'
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
 
   comparisons/pixel-art-react:
     dependencies:
@@ -84,7 +78,7 @@ importers:
     devDependencies:
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       '@testing-library/dom':
         specifier: ^10.4.1
         version: 10.4.1
@@ -102,10 +96,10 @@ importers:
         version: 19.2.5(@types/react@19.2.18)
       '@vitejs/plugin-react':
         specifier: ^6.1.1
-        version: 6.1.1(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        version: 6.1.1(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       jsdom:
         specifier: ^30.0.1
-        version: 30.0.1
+        version: 30.0.1(@noble/hashes@2.4.0)
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -114,22 +108,22 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
         specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        version: 4.1.11(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/api-cache:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -142,16 +136,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -160,16 +148,16 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/auth:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -177,8 +165,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -191,16 +179,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -209,22 +191,22 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/canvas-art:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -237,16 +219,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -255,16 +231,16 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/charting:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -275,8 +251,8 @@ importers:
         specifier: ^6.1.0
         version: 6.1.0
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -289,16 +265,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -307,22 +277,22 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/counter:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -335,16 +305,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -353,22 +317,22 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/counters:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -381,16 +345,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -399,22 +357,22 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/crash-view:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -427,16 +385,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -445,22 +397,22 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/embedding:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -473,16 +425,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -491,16 +437,16 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/form:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -508,8 +454,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -522,16 +468,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -540,22 +480,22 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/generative-art:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -568,16 +508,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -586,22 +520,22 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/interrupting-commands:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -614,16 +548,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -632,16 +560,16 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/job-application:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -649,8 +577,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -663,16 +591,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -681,16 +603,16 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/kanban:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -698,8 +620,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -715,16 +637,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -733,22 +649,37 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
-  examples/managed-resource-layer:
+  examples/livestore:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@livestore/adapter-web':
+        specifier: 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219
+        version: 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)
+      '@livestore/livestore':
+        specifier: 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219
+        version: 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)
+      '@livestore/peer-deps':
+        specifier: 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219
+        version: 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@opentelemetry/semantic-conventions@1.43.0)(redis@6.2.1(@opentelemetry/api@1.9.0))(vitest@5.0.0)
+      '@livestore/wa-sqlite':
+        specifier: 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219
+        version: 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -761,16 +692,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -779,16 +704,56 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
+
+  examples/managed-resource-layer:
+    dependencies:
+      '@effect/platform-browser':
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
+      '@foldkit/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      effect:
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
+      foldkit:
+        specifier: workspace:*
+        version: link:../../packages/foldkit
+    devDependencies:
+      '@foldkit/devtools':
+        specifier: workspace:*
+        version: link:../../packages/devtools
+      '@foldkit/vite-plugin':
+        specifier: workspace:*
+        version: link:../../packages/vite-plugin-foldkit
+      '@tailwindcss/vite':
+        specifier: ^4.3.3
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
+      happy-dom:
+        specifier: ^20.11.13
+        version: 20.11.13
+      tailwindcss:
+        specifier: ^4.3.3
+        version: 4.3.3
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vite:
+        specifier: ^8.2.2
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
+      vitest:
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/map:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -796,8 +761,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -813,16 +778,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -831,16 +790,16 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/personal-blog:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/markdown':
         specifier: workspace:*
         version: link:../../packages/markdown
@@ -851,8 +810,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -865,16 +824,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -883,16 +836,16 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/pixel-art:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -900,8 +853,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -914,16 +867,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -932,16 +879,16 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/query-sync:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -949,8 +896,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -963,16 +910,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -981,19 +922,19 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/route-transitions:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1006,16 +947,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -1024,22 +959,22 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/routing:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1052,16 +987,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -1070,22 +999,22 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/shopping-cart:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1098,16 +1027,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -1116,19 +1039,19 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/slow-warnings:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1141,16 +1064,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -1159,19 +1076,19 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/snake:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1184,16 +1101,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -1202,19 +1113,19 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/ssg:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1227,13 +1138,7 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -1242,22 +1147,25 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
 
   examples/ssr:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@effect/platform-node':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0))
+      '@effect/platform-node-shared':
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1270,16 +1178,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -1288,16 +1190,16 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/state-machine:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -1305,8 +1207,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1319,16 +1221,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -1337,22 +1233,22 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/stopwatch:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1365,16 +1261,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -1383,16 +1273,16 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/todo:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -1400,8 +1290,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1414,16 +1304,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -1432,16 +1316,16 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/ui-showcase:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -1449,8 +1333,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1463,16 +1347,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -1481,19 +1359,19 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/view-transitions:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1506,16 +1384,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -1524,22 +1396,22 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/weather:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1552,16 +1424,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -1570,16 +1436,16 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/web-components:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -1590,8 +1456,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1607,16 +1473,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -1625,22 +1485,22 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   examples/websocket-chat:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1653,16 +1513,10 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -1671,10 +1525,10 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   internal/api-reference-generator:
     devDependencies:
@@ -1696,9 +1550,12 @@ importers:
 
   internal/lustre-benchmark:
     dependencies:
+      '@effect/platform-browser':
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1720,16 +1577,19 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
         specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        version: 4.1.11(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   internal/performance-harness:
     dependencies:
+      '@effect/platform-browser':
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../packages/foldkit
@@ -1739,7 +1599,7 @@ importers:
         version: link:../../packages/vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -1748,22 +1608,22 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
 
   packages/create-foldkit-app:
     dependencies:
       '@effect/platform-node':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0))
       '@effect/platform-node-shared':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       chalk:
         specifier: ^6.0.0
         version: 6.0.0
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       rimraf:
         specifier: ^6.1.3
         version: 6.1.3
@@ -1772,14 +1632,14 @@ importers:
         version: 7.0.2
     devDependencies:
       '@effect/vitest':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.11)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0)
       '@types/node':
         specifier: 26.4.0
         version: 26.4.0
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/devtools:
     dependencies:
@@ -1788,8 +1648,8 @@ importers:
         version: 2.1.1
     devDependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/ui':
         specifier: workspace:*
         version: link:../ui
@@ -1797,8 +1657,8 @@ importers:
         specifier: workspace:*
         version: link:../vite-plugin-foldkit
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../foldkit
@@ -1813,7 +1673,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        version: 4.1.11(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/devtools-mcp:
     dependencies:
@@ -1831,17 +1691,17 @@ importers:
         specifier: ^8.18.1
         version: 8.18.1
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
-      esbuild:
-        specifier: ^0.28.2
-        version: 0.28.2
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../foldkit
       rimraf:
         specifier: ^6.1.3
         version: 6.1.3
+      rolldown:
+        specifier: ^1.2.6
+        version: 1.2.6
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
@@ -1872,9 +1732,6 @@ importers:
       playwright:
         specifier: ^1.62.1
         version: 1.62.1
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       typescript:
         specifier: npm:@typescript/typescript6@^6.0.2
         version: '@typescript/typescript6@6.0.2'
@@ -1885,15 +1742,18 @@ importers:
         specifier: ^8.0.1
         version: 8.0.1
     devDependencies:
+      '@effect/platform-browser':
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@effect/vitest':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.11)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0)
       '@vitest/coverage-v8':
-        specifier: ^4.1.11
-        version: 4.1.11(vitest@4.1.11)
+        specifier: ^5.0.0
+        version: 5.0.0(vitest@5.0.0)
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
@@ -1904,8 +1764,8 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/markdown:
     dependencies:
@@ -1932,8 +1792,8 @@ importers:
         specifier: ^3.0.3
         version: 3.0.3
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../foldkit
@@ -1951,16 +1811,16 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
         specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        version: 4.1.11(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/oxlint-plugin-foldkit:
     dependencies:
       effect-oxlint:
         specifier: ^0.3.4
-        version: 0.3.4(effect@4.0.0-rc.112)
+        version: 0.3.4(effect@4.0.0-rc.116)
     devDependencies:
       '@types/node':
         specifier: 26.4.0
@@ -1969,26 +1829,26 @@ importers:
         specifier: npm:typescript@^7.0.2
         version: typescript@7.0.2
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
-      esbuild:
-        specifier: ^0.28.2
-        version: 0.28.2
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       rimraf:
         specifier: ^6.1.3
         version: 6.1.3
+      rolldown:
+        specifier: ^1.2.6
+        version: 1.2.6
       typescript:
         specifier: npm:@typescript/typescript6@^6.0.2
         version: '@typescript/typescript6@6.0.2'
       vitest:
         specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        version: 4.1.11(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/typing-game/client:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@typing-game/shared':
         specifier: workspace:*
         version: link:../shared
@@ -1996,8 +1856,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../../foldkit
@@ -2010,16 +1870,10 @@ importers:
         version: link:../../vite-plugin-foldkit
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -2028,29 +1882,26 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
         specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        version: 4.1.11(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/typing-game/server:
     dependencies:
       '@effect/platform-node':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0))
       '@typing-game/shared':
         specifier: workspace:*
         version: link:../shared
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
     devDependencies:
       '@types/node':
         specifier: 26.4.0
         version: 26.4.0
-      tsx:
-        specifier: ^4.23.12
-        version: 4.23.12
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
@@ -2058,8 +1909,8 @@ importers:
   packages/typing-game/shared:
     dependencies:
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
     devDependencies:
       typescript:
         specifier: ^7.0.2
@@ -2072,14 +1923,14 @@ importers:
         version: 1.8.0
     devDependencies:
       '@effect/vitest':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.11)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0)
       '@foldkit/vite-plugin':
         specifier: workspace:*
         version: link:../vite-plugin-foldkit
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../foldkit
@@ -2093,8 +1944,8 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
       vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        specifier: ^5.0.0
+        version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/vite-plugin-foldkit:
     dependencies:
@@ -2112,8 +1963,8 @@ importers:
         specifier: ^8.18.1
         version: 8.18.1
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../foldkit
@@ -2128,19 +1979,19 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
-      vite7:
-        specifier: npm:vite@^7.3.6
-        version: vite@7.3.6(@types/node@26.4.0)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
+      vite-host:
+        specifier: npm:vite@8.2.1
+        version: vite@8.2.1(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
         specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        version: 4.1.11(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   packages/website:
     dependencies:
       '@effect/platform-browser':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)
       '@foldkit/devtools':
         specifier: workspace:*
         version: link:../devtools
@@ -2163,8 +2014,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116
       foldkit:
         specifier: workspace:*
         version: link:../foldkit
@@ -2178,9 +2029,12 @@ importers:
         specifier: ^3.6.0
         version: 3.6.0
     devDependencies:
+      '@axe-core/playwright':
+        specifier: ^4.11.1
+        version: 4.13.0(playwright-core@1.62.1)
       '@effect/platform-node':
-        specifier: 4.0.0-rc.112
-        version: 4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1)
+        specifier: 4.0.0-rc.116
+        version: 4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0))
       '@foldkit/api-reference-generator':
         specifier: workspace:*
         version: link:../../internal/api-reference-generator
@@ -2195,13 +2049,7 @@ importers:
         version: 2.6.2
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
-      '@trivago/prettier-plugin-sort-imports':
-        specifier: ^6.0.2
-        version: 6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)
-      esbuild:
-        specifier: ^0.28.2
-        version: 0.28.2
+        version: 4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       happy-dom:
         specifier: ^20.11.13
         version: 20.11.13
@@ -2214,27 +2062,24 @@ importers:
       playwright:
         specifier: ^1.62.1
         version: 1.62.1
-      prettier:
-        specifier: ^3.9.6
-        version: 3.9.6
+      rolldown:
+        specifier: ^1.2.6
+        version: 1.2.6
       satori:
         specifier: ^0.33.4
         version: 0.33.4
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
-      tsx:
-        specifier: ^4.23.12
-        version: 4.23.12
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
       vite:
         specifier: ^8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+        version: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
         specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+        version: 4.1.11(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
 packages:
 
@@ -2249,16 +2094,13 @@ packages:
     resolution: {integrity: sha512-93Z1N+BQNXysodoicpOIyNh2drHfz/CTf9nnT0FEx72GJcIiwgydD7tGAr78j41LsYn3hlRn+LdGPuBLn1Bl8Q==}
     engines: {node: ^22.13.0 || >=24.0.0}
 
+  '@axe-core/playwright@4.13.0':
+    resolution: {integrity: sha512-6YLx+kxXu5GJceG4ozFg+33a2EMTdjYwWGloJ3sb9Kta5pp+ZNS53uxGVog5JetIY8s++P5UrtX+cri+u0VAVg==}
+    peerDependencies:
+      playwright-core: '>= 1.0.0'
+
   '@babel/code-frame@7.29.7':
     resolution: {integrity: sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/generator@7.29.8':
-    resolution: {integrity: sha512-gZbepsdh3WDtgZKWL+vTPh71LSBrm/Y4/QDZBVCcYfmeTEEuoOYwlSy+G1StfJg+/Zy550u/3TATbm7qDbbMtg==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/helper-globals@7.29.7':
-    resolution: {integrity: sha512-3nQVUAtvkKH9zahfWgw96Jc/uFOmjACE1kQz82E2lqWmHBgjzbNlsC22nuQTfahmWeQtTq5nQ/4Nnd2A1wj4zA==}
     engines: {node: '>=6.9.0'}
 
   '@babel/helper-string-parser@7.29.7':
@@ -2276,14 +2118,6 @@ packages:
 
   '@babel/runtime@7.29.7':
     resolution: {integrity: sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/template@7.29.7':
-    resolution: {integrity: sha512-puq+Gf35oI24FeN11LkoUQFqv9uwNeWpxXZi/Ji3rRIoKAzKnxRaZ+Gkj0vKS9ZCiTESfng1N9LyOyXvo+m+Gg==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/traverse@7.29.8':
-    resolution: {integrity: sha512-I5z7H3bf/41ktsNVLtpN0wAa336HkqIHQ5BuPLEhTkt1jVSyZpeNKIzTgEWmlxjdg81R0IgUCcaE+Ok3NvrfZg==}
     engines: {node: '>=6.9.0'}
 
   '@babel/types@7.29.8':
@@ -2375,6 +2209,9 @@ packages:
     resolution: {integrity: sha512-y7/yvZ2TPAnR9+jnc00klvNNLkJiXFFrQA/hlLCcxA9a2A4zQIOimyFQ9XfwYKiGD1fb5GY8vbKIIgO8d5Tb2A==}
     engines: {node: '>= 20.12.0'}
 
+  '@cloudflare/workers-types@4.20251118.0':
+    resolution: {integrity: sha512-O1BlPjaQlM5rsxf8rc8NwNrXduzXMCWZDsSelI1SEyt0zYuBYMzn0kNrrD2bXAtXeYCk6LrX98037AlVdGXBUw==}
+
   '@csstools/color-helpers@6.1.1':
     resolution: {integrity: sha512-gLNsunvwf3mCi5u5o46/Z/JcJMnhbHSaZ69rkgPzNM3J4s8hWwpPUQB6/tt0EDFyCiWzxANlx+2LJwpYj4zS1w==}
     engines: {node: '>=20.19.0'}
@@ -2423,29 +2260,66 @@ packages:
     resolution: {integrity: sha512-Xc3VhU02wqZ1HvHRJUwL09HkZSTvidqY5Ya0NXBSYOxAp+Ln9dcJr9fySI+CkONzP3PekQo9WdzCv0PGER/mOA==}
     engines: {node: '>=14.17.0'}
 
-  '@effect/platform-browser@4.0.0-rc.112':
-    resolution: {integrity: sha512-GSlqNDnjILz2EqOFPhVdMEHxlPq6SGb8+KOpNnLfRvVJjXRTMawEO+v1PCuwt2CHAqESbJAa2Nk+qcQvTrv4MQ==}
-    peerDependencies:
-      effect: 4.0.0-rc.112
-
-  '@effect/platform-node-shared@4.0.0-rc.112':
-    resolution: {integrity: sha512-ttjz0xKamFN7vL8pNDYVwddJLjZvqKePc05djlz2VcdaKbLsnYbtMnL1rbOfHgEnIUSHGh7FkjaN4DM1Ov81sQ==}
+  '@effect/opentelemetry@4.0.0-rc.113':
+    resolution: {integrity: sha512-3EzIDgWFFV8WiTDXROeyRhuO3Qq+84++ts+T45YUZHPpqY0thFCSY0pjGsxz5UNPPN/M3phYGV8E7qwRHAYR+g==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      effect: 4.0.0-rc.112
+      '@opentelemetry/api': '>=1.9.0 <2.0.0'
+      '@opentelemetry/api-logs': '>=0.203.0 <0.300.0'
+      '@opentelemetry/resources': '>=2.0.0 <3.0.0'
+      '@opentelemetry/sdk-logs': '>=0.203.0 <0.300.0'
+      '@opentelemetry/sdk-metrics': '>=2.0.0 <3.0.0'
+      '@opentelemetry/sdk-trace-base': '>=2.0.0 <3.0.0'
+      '@opentelemetry/sdk-trace-node': '>=2.0.0 <3.0.0'
+      '@opentelemetry/sdk-trace-web': '>=2.0.0 <3.0.0'
+      '@opentelemetry/semantic-conventions': '>=1.33.0 <2.0.0'
+      effect: 4.0.0-rc.116
+    peerDependenciesMeta:
+      '@opentelemetry/api':
+        optional: true
+      '@opentelemetry/api-logs':
+        optional: true
+      '@opentelemetry/resources':
+        optional: true
+      '@opentelemetry/sdk-logs':
+        optional: true
+      '@opentelemetry/sdk-metrics':
+        optional: true
+      '@opentelemetry/sdk-trace-base':
+        optional: true
+      '@opentelemetry/sdk-trace-node':
+        optional: true
+      '@opentelemetry/sdk-trace-web':
+        optional: true
 
-  '@effect/platform-node@4.0.0-rc.112':
-    resolution: {integrity: sha512-/BMAcdNGQQskLmI0Zoa95KfTZkr9HV9N4NSxaSrusG6GeW6Ulp9KvZ+Rlaiw8lnOt43CXjFLdfll5/k5rxL4hQ==}
+  '@effect/platform-browser@4.0.0-rc.116':
+    resolution: {integrity: sha512-ak23bBZcaMiItFwjdWqbp9KVFMR7b5R/w4iT+Dj/xwd0AiHx0GAe7uRkQ6cdhkSdW9aBnuN9paZTglG2Y8cTOA==}
+    peerDependencies:
+      effect: 4.0.0-rc.116
+
+  '@effect/platform-bun@4.0.0-rc.113':
+    resolution: {integrity: sha512-EOn8doDVaiizfTpdmtRS0SZLAAt19yyHFKg+aV8YXJreNDYqXQLEt+/ThiEOurDimApVYhn2NZW52OJrZlybQw==}
+    peerDependencies:
+      effect: 4.0.0-rc.116
+
+  '@effect/platform-node-shared@4.0.0-rc.116':
+    resolution: {integrity: sha512-4FB6UriGqArWFUaFqVchhfCRmmtOVzmD/k/bH6LErlKY8a9amt5dk6c3Arsi7AvUpChsdO+3jsG+P85HsxMkNA==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      effect: 4.0.0-rc.112
+      effect: 4.0.0-rc.116
+
+  '@effect/platform-node@4.0.0-rc.116':
+    resolution: {integrity: sha512-uA66Nh998OcChBVX83tQDkBDvQQcVaMXodP9gNGWVeIwWWquy7bzIkAq/fMZGKs/BVFhFQ0XCp3VIqYjnXu5ng==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      effect: 4.0.0-rc.116
       redis: '>=5.0.0 <7.0.0'
 
-  '@effect/vitest@4.0.0-rc.112':
-    resolution: {integrity: sha512-mEKh/FI64mt8JK1/v9mpOrJYdnp+UFZdRUBMEdZMiKz7klg6NPqVgg/oeAGH6wOOQc2iAPcfc2H9BbAv1KyzMQ==}
+  '@effect/vitest@4.0.0-rc.116':
+    resolution: {integrity: sha512-q42ue4hAa5AcPBwqi8rvMvR1Jstr+JjsyyxEBUoBk+WWm8otnqFxQ+XbWslW1QSwdg5+2Fdgd7z59IValt9Oiw==}
     peerDependencies:
-      effect: 4.0.0-rc.112
-      vitest: '>=4.1.0 <5.0.0'
+      effect: 4.0.0-rc.116
+      vitest: '>=5.0.0 <6.0.0'
 
   '@emnapi/core@1.11.2':
     resolution: {integrity: sha512-TC8MkTuZUtcTSiFeuC0ksCh9QIJ5+F21MvZ4Wn4ORfYaFJ/0dsiudv5tVkejgwZlwQ39jL9WWDe2lz8x0WglOA==}
@@ -2455,162 +2329,6 @@ packages:
 
   '@emnapi/wasi-threads@1.2.2':
     resolution: {integrity: sha512-c95qOXkHdydNKhscBTebqEC1CVAZpyqOfVfBzQ1qgzyl3gfeldUjIggDbIZgDKsHLgnsM+igH7TJ/eAasaVuMA==}
-
-  '@esbuild/aix-ppc64@0.28.2':
-    resolution: {integrity: sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ==}
-    engines: {node: '>=18'}
-    cpu: [ppc64]
-    os: [aix]
-
-  '@esbuild/android-arm64@0.28.2':
-    resolution: {integrity: sha512-5YfKeeI8qWfBZIX+u2xZC3Zlb3Os/gLS2sbEKM+I4ZOcsWmHS2WLysCcQZDAFRslDUU5Oiq44gf6PYN1vGwG5A==}
-    engines: {node: '>=18'}
-    cpu: [arm64]
-    os: [android]
-
-  '@esbuild/android-arm@0.28.2':
-    resolution: {integrity: sha512-kXXoiPVVGQcnIYGOeaovwOURpniDBpSq4A03qkQ+BMQqtGG6HYap3xne9C1O1yo4TR3qxlCX5IqqmX6fFo2Lqg==}
-    engines: {node: '>=18'}
-    cpu: [arm]
-    os: [android]
-
-  '@esbuild/android-x64@0.28.2':
-    resolution: {integrity: sha512-O387ite7SzUyCcy3JQX4P4bLtEA7bLLkx+esve5JHnyYfNTxcVpXZo9jhdB0lTKN44gztELTdU7nS8Nr16Fs1Q==}
-    engines: {node: '>=18'}
-    cpu: [x64]
-    os: [android]
-
-  '@esbuild/darwin-arm64@0.28.2':
-    resolution: {integrity: sha512-n4KqkOQrraxHJcgjM1RvwbigfQKIKJVpM7xp+KsxiyUSrRdIXnt73VhrPAx0fV44hgfmIVKjxMN9J1t5jySVkw==}
-    engines: {node: '>=18'}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@esbuild/darwin-x64@0.28.2':
-    resolution: {integrity: sha512-uq6suIWYP37qzGddBKPw5QEQPi6HiLGsO7UmkpfyaYNQ3D+rN6w6WfwH+nuqcGXWvawGwxOEroO4YGnFh95azw==}
-    engines: {node: '>=18'}
-    cpu: [x64]
-    os: [darwin]
-
-  '@esbuild/freebsd-arm64@0.28.2':
-    resolution: {integrity: sha512-n+I0BTSRIoy+d6RPKnEVwql5UwBJolytvY4mAOIEJorKlqgPII8ix6slVVrfZ5Tnj7glIZvloylbB/EJPMWEXw==}
-    engines: {node: '>=18'}
-    cpu: [arm64]
-    os: [freebsd]
-
-  '@esbuild/freebsd-x64@0.28.2':
-    resolution: {integrity: sha512-78XJTJkvPs0kz2w61301PJjXl4g7q3JqiYMZ/M/yVI73EHBrCRTgkhu9oqG7vPqq+a/yadEW8aD+agKlk5xrmg==}
-    engines: {node: '>=18'}
-    cpu: [x64]
-    os: [freebsd]
-
-  '@esbuild/linux-arm64@0.28.2':
-    resolution: {integrity: sha512-pW4AC0P3it8c7do9MVM4p51FzHzdM/TZrerurgRcHJ2WTa1VQ1CIq18xncfpBJw4ojkiZZrKW2yIBWBP92j6Ug==}
-    engines: {node: '>=18'}
-    cpu: [arm64]
-    os: [linux]
-
-  '@esbuild/linux-arm@0.28.2':
-    resolution: {integrity: sha512-XlDnu2q5yoqems+xay6wSAcg9DDD7K9RLKZEBOMZm3ckNpJBvOX20tSfby8KfrrhINDyv9V2YVZKY/SpoGJI8w==}
-    engines: {node: '>=18'}
-    cpu: [arm]
-    os: [linux]
-
-  '@esbuild/linux-ia32@0.28.2':
-    resolution: {integrity: sha512-CYbnj78HsIeA+DhgUKgFCfvNsTHFhMMrinUrMZpDXJXKN8T3XViTZ/+wtHeVxEWY8ewSzTFN+nRmSwO2tZaLUQ==}
-    engines: {node: '>=18'}
-    cpu: [ia32]
-    os: [linux]
-
-  '@esbuild/linux-loong64@0.28.2':
-    resolution: {integrity: sha512-buwkd8nsph4R+ajRvw0qM5Hja/TXQow3ptzWO2EbG/cqcIkHloRrdlBtQlshyYGTNFvfkfJ5tpPLVkY4DtsPfQ==}
-    engines: {node: '>=18'}
-    cpu: [loong64]
-    os: [linux]
-
-  '@esbuild/linux-mips64el@0.28.2':
-    resolution: {integrity: sha512-ZVykbDyk7519VwiNb9Lcj9m8XM6v5V9uKPvrEMkkEedVewf+0itkhahp4HDpgERXhwLRpWFypsGbG/J8s0QjJA==}
-    engines: {node: '>=18'}
-    cpu: [mips64el]
-    os: [linux]
-
-  '@esbuild/linux-ppc64@0.28.2':
-    resolution: {integrity: sha512-CAXl+Dtd9UUuJd8pKKdwh6MLm3MUMiqMPmhZ3tTSXPqfyQ3vDl6R5hZdZ/kYojK4ofXtdfSv1tFq8XzWx3heNQ==}
-    engines: {node: '>=18'}
-    cpu: [ppc64]
-    os: [linux]
-
-  '@esbuild/linux-riscv64@0.28.2':
-    resolution: {integrity: sha512-GeXCej4IQtU1B+QlDV8W/RRvbzI3O/Stss+/bCXv4lZls5WGRtu2a+3JkA3i4qIUlMXpcHebWpF8AkJhATowuA==}
-    engines: {node: '>=18'}
-    cpu: [riscv64]
-    os: [linux]
-
-  '@esbuild/linux-s390x@0.28.2':
-    resolution: {integrity: sha512-3H1weTYZPxt/WOhByszQZybS9w5lKzUn1FDMsgEChbHWQwHYQQRfBxgCcZvPhjHfKyJjIievvMmEUawJrdY9Dg==}
-    engines: {node: '>=18'}
-    cpu: [s390x]
-    os: [linux]
-
-  '@esbuild/linux-x64@0.28.2':
-    resolution: {integrity: sha512-4xTZr1FUmSoQW4XIWmit3tzQrUTZM+N3P0XV8xROKYF50XfI7xeO90+1bZvNwxIufQ9hDQVRJH5YhgPVF8A/HQ==}
-    engines: {node: '>=18'}
-    cpu: [x64]
-    os: [linux]
-
-  '@esbuild/netbsd-arm64@0.28.2':
-    resolution: {integrity: sha512-sSATRjPeDBg3pdgHoQfoYBob11Kk1FGa9lui5RIHZCoCkJa9QKlvl3/vKz2usCmYYjs7ymJR/2Nnsqe+Hjt5nw==}
-    engines: {node: '>=18'}
-    cpu: [arm64]
-    os: [netbsd]
-
-  '@esbuild/netbsd-x64@0.28.2':
-    resolution: {integrity: sha512-lqnzCV+mM0gIADaKihiCg6ifgfU2L3h5E33rNQBN1Y4MaVGnzryzmvvf7UHxprpQdE8hpqLolJ9Rl+SkIRDpyw==}
-    engines: {node: '>=18'}
-    cpu: [x64]
-    os: [netbsd]
-
-  '@esbuild/openbsd-arm64@0.28.2':
-    resolution: {integrity: sha512-AL2qJILH7lNjrDmCQDvdxMfAUIv8KMNZOvrwAQ8i8//ntL9FflhOyMJ8OZSMBb8/AWXe3/5v5S20y3zCoZWKoQ==}
-    engines: {node: '>=18'}
-    cpu: [arm64]
-    os: [openbsd]
-
-  '@esbuild/openbsd-x64@0.28.2':
-    resolution: {integrity: sha512-QtiuPytchRyC4rwUKhexJdQKvDuZ6hWloi3igqPQNUJCS1/v9EiO3UTOXR6A3FoMo4fnAKbWJdqaIwhOzh8qEw==}
-    engines: {node: '>=18'}
-    cpu: [x64]
-    os: [openbsd]
-
-  '@esbuild/openharmony-arm64@0.28.2':
-    resolution: {integrity: sha512-WkhYDmpTjLvGlScA1rwjRUmhl4k8oXR3cIbtqWmELgU/dFeHHlEllxDvdWcNJV9rbzCexB5vz8gtNewWLgCT7Q==}
-    engines: {node: '>=18'}
-    cpu: [arm64]
-    os: [openharmony]
-
-  '@esbuild/sunos-x64@0.28.2':
-    resolution: {integrity: sha512-GPMSkTOtMnv2U2F8gxe4Io6qmVs+YKyp832Etqqxr0hFngmXQ3rzwytelm3GIn7T4VviRUlf3sOgBOiTdvaf7g==}
-    engines: {node: '>=18'}
-    cpu: [x64]
-    os: [sunos]
-
-  '@esbuild/win32-arm64@0.28.2':
-    resolution: {integrity: sha512-PIhhEkE9uPBleRBrQEJpUn7MBnibZzbGzYWPmY3x+YoVg/95zbjB4CxPPOQ8l5tYYM4mMaCthF8/1DIfBQQyWQ==}
-    engines: {node: '>=18'}
-    cpu: [arm64]
-    os: [win32]
-
-  '@esbuild/win32-ia32@0.28.2':
-    resolution: {integrity: sha512-YmJbfTlvU7Sdn9BB+4PRES4oB6pxgS37MAONj+hBr/cpXS1aBPKXxNnDbu+QCWPj0o9dgyxeq79g6c5P8KeuYA==}
-    engines: {node: '>=18'}
-    cpu: [ia32]
-    os: [win32]
-
-  '@esbuild/win32-x64@0.28.2':
-    resolution: {integrity: sha512-5ebpxr3nWMzrL/rnUI755Jkuee0bHL/Gq0WTF9lvcpv73wAp5eu8MfBUgWK9bhWvZjj7yX8etf/8tI8Ney695g==}
-    engines: {node: '>=18'}
-    cpu: [x64]
-    os: [win32]
 
   '@eslint-community/eslint-utils@4.10.1':
     resolution: {integrity: sha512-cuadcxVFE8sDK6iWJbs8Sn0av2Nrh2QSGQhVlBW9AaAHqHwjWsZHT8LJ4hFGPh7ASBV2deFdM7H/DPjulmh8rg==}
@@ -2736,9 +2454,6 @@ packages:
     resolution: {integrity: sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw==}
     engines: {node: '>=6.0.0'}
 
-  '@jridgewell/sourcemap-codec@1.5.5':
-    resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
-
   '@jridgewell/sourcemap-codec@1.6.0':
     resolution: {integrity: sha512-T7jf+5zgsZHwNJ4lvQ7/aezbyk0nNX+zJVWpmHA7VYsEx7a7qr5Rg5IbtJFqkgze5Y2sruq1RUY8Q837Od7iFw==}
 
@@ -2755,6 +2470,110 @@ packages:
 
   '@lit/reactive-element@2.1.2':
     resolution: {integrity: sha512-pbCDiVMnne1lYUIaYNN5wrwQXDtHaYtg7YEFPeW+hws6U47WeFvISGUWekPGKWOP1ygrs0ef0o1VJMk1exos5A==}
+
+  '@livestore/adapter-web@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219':
+    resolution: {integrity: sha512-y9MP3XN4jE74agJeh0YuRiXk5pgEAWoR14gc9VyEXI9+oVKTnuj8X8VktPhIfn+wvkLHPuwlCdoaTwhvlD+KXw==}
+    peerDependencies:
+      '@effect/opentelemetry': ^4.0.0-rc.113
+      '@effect/platform-browser': 4.0.0-rc.116
+      '@effect/platform-bun': ^4.0.0-rc.113
+      '@effect/platform-node': 4.0.0-rc.116
+      '@effect/platform-node-shared': 4.0.0-rc.116
+      '@effect/vitest': 4.0.0-rc.116
+      '@opentelemetry/api': ^1.9.0
+      '@opentelemetry/resources': ^2.2.0
+      '@standard-schema/spec': ^1.1.0
+      effect: 4.0.0-rc.116
+
+  '@livestore/common-cf@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219':
+    resolution: {integrity: sha512-z6AQuM1nyIafzg60AxHqT+ZEJwvd41v4roLrZojF7iohELr1e65AR4e3SFrrHFiLLxK8SbrQIZodpl5CrZHFxw==}
+    peerDependencies:
+      '@effect/opentelemetry': ^4.0.0-rc.113
+      '@effect/platform-browser': 4.0.0-rc.116
+      '@effect/platform-bun': ^4.0.0-rc.113
+      '@effect/platform-node': 4.0.0-rc.116
+      '@effect/platform-node-shared': 4.0.0-rc.116
+      '@effect/vitest': 4.0.0-rc.116
+      '@opentelemetry/api': ^1.9.0
+      '@opentelemetry/resources': ^2.2.0
+      '@standard-schema/spec': ^1.1.0
+      effect: 4.0.0-rc.116
+
+  '@livestore/common@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219':
+    resolution: {integrity: sha512-Z+JvNOggKKs/R/Aakqd57+4D+lvYAtSYRgqTxbTPL3vy8yLN8tq5gQK68cfaxk3ZYEXKIla8E9iK95Nde3ERSA==}
+    peerDependencies:
+      '@effect/opentelemetry': ^4.0.0-rc.113
+      '@effect/platform-browser': 4.0.0-rc.116
+      '@effect/platform-bun': ^4.0.0-rc.113
+      '@effect/platform-node': 4.0.0-rc.116
+      '@effect/platform-node-shared': 4.0.0-rc.116
+      '@effect/vitest': 4.0.0-rc.116
+      '@opentelemetry/api': ^1.9.0
+      '@opentelemetry/resources': ^2.2.0
+      '@standard-schema/spec': ^1.1.0
+      effect: 4.0.0-rc.116
+
+  '@livestore/livestore@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219':
+    resolution: {integrity: sha512-+h5ux8UTHtxe2ibD+vHnj8KWWYyc/7coVKKEZMR7Xt3u6UXCTT6bVimx+DM8BnTAYMF/5NQGD5RGa7J2kcJeGg==}
+    peerDependencies:
+      '@effect/opentelemetry': ^4.0.0-rc.113
+      '@effect/platform-browser': 4.0.0-rc.116
+      '@effect/platform-bun': ^4.0.0-rc.113
+      '@effect/platform-node': 4.0.0-rc.116
+      '@effect/platform-node-shared': 4.0.0-rc.116
+      '@effect/vitest': 4.0.0-rc.116
+      '@opentelemetry/api': ^1.9.0
+      '@opentelemetry/resources': ^2.2.0
+      '@standard-schema/spec': ^1.1.0
+      effect: 4.0.0-rc.116
+
+  '@livestore/peer-deps@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219':
+    resolution: {integrity: sha512-OP2pbEjU5kVQzATKbrgMnCfCkkxx8PwpXqlx7RuZCR0ZoAxRSZNpDv9THVb29gcZtkof8R1dA5TGsRxBidbBhQ==}
+
+  '@livestore/sqlite-wasm@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219':
+    resolution: {integrity: sha512-WdldmW/vuizYpzfzS3jBFAK0Uv/VHKcQePUtDHQVw2WJJVe1l2PK/nmlxkzEMtq7KMikrHunB8jUZjW+JKgvfg==}
+    peerDependencies:
+      '@effect/opentelemetry': ^4.0.0-rc.113
+      '@effect/platform-browser': 4.0.0-rc.116
+      '@effect/platform-bun': ^4.0.0-rc.113
+      '@effect/platform-node': 4.0.0-rc.116
+      '@effect/platform-node-shared': 4.0.0-rc.116
+      '@effect/vitest': 4.0.0-rc.116
+      '@opentelemetry/api': ^1.9.0
+      '@opentelemetry/resources': ^2.2.0
+      '@standard-schema/spec': ^1.1.0
+      effect: 4.0.0-rc.116
+
+  '@livestore/utils@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219':
+    resolution: {integrity: sha512-HjfRc7VlfuJXsG//T4mqTZi6sxwydgeTdR3FMAhthPwfCxozInQI04WR9aPTKQXTGyq8h//dugkxi2fYafqGRg==}
+    peerDependencies:
+      '@effect/opentelemetry': ^4.0.0-rc.113
+      '@effect/platform-browser': 4.0.0-rc.116
+      '@effect/platform-bun': ^4.0.0-rc.113
+      '@effect/platform-node': 4.0.0-rc.116
+      '@effect/platform-node-shared': 4.0.0-rc.116
+      '@effect/vitest': 4.0.0-rc.116
+      '@opentelemetry/api': ^1.9.0
+      '@opentelemetry/resources': ^2.2.0
+      '@standard-schema/spec': ^1.1.0
+      effect: 4.0.0-rc.116
+
+  '@livestore/wa-sqlite@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219':
+    resolution: {integrity: sha512-tZwoEPuEQ0gQK+HpXZe9wXjYgZ2Q1iK81T3fZ5a5/yCBjNYnoPa77/BcXcve7d7gM2lrQaQpSMm+pG13SwAqmQ==}
+
+  '@livestore/webmesh@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219':
+    resolution: {integrity: sha512-hYx0hSaKH8gjJy1yWTPYb+qPjqIhO1SrsRsY7Y52xw/nRUyCA1u00zXW8LpAisC1BW8QAc6Q/fwuY/q9lo+8cg==}
+    peerDependencies:
+      '@effect/opentelemetry': ^4.0.0-rc.113
+      '@effect/platform-browser': 4.0.0-rc.116
+      '@effect/platform-bun': ^4.0.0-rc.113
+      '@effect/platform-node': 4.0.0-rc.116
+      '@effect/platform-node-shared': 4.0.0-rc.116
+      '@effect/vitest': 4.0.0-rc.116
+      '@opentelemetry/api': ^1.9.0
+      '@opentelemetry/resources': ^2.2.0
+      '@standard-schema/spec': ^1.1.0
+      effect: 4.0.0-rc.116
 
   '@manypkg/find-root@3.1.0':
     resolution: {integrity: sha512-BcSqCyKhBVZ5YkSzOiheMCV41kqAFptW6xGqYSTjkVTl9XQpr+pqHhwgGCOHQtjDCv7Is6EFyA14Sm5GVbVABA==}
@@ -2807,49 +2626,36 @@ packages:
       '@cfworker/json-schema':
         optional: true
 
-  '@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.4':
-    resolution: {integrity: sha512-LCkGo6JDfaBhgST7UpPWgNgLINpcpabaHfyz5OBx75nUYxBsaEPxjnyNjWpeb/xBup/682QnBfRBy2/LvPutZQ==}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@msgpackr-extract/msgpackr-extract-darwin-x64@3.0.4':
-    resolution: {integrity: sha512-zExlW9zUJKZH/tOtVMttwjKa4Xm/3KcNjnE3dPN92uCktwavMxpgCA3MoJK/DOnTWsQgo224OaST27/mPNAf+w==}
-    cpu: [x64]
-    os: [darwin]
-
-  '@msgpackr-extract/msgpackr-extract-linux-arm64@3.0.4':
-    resolution: {integrity: sha512-dgX0P/9wGPJeHFBG+ZmhgE6bmtMt7NP5CRBGyyktpopdk/mW4POnrpQsSLtKI1dwpc+pPLuXHDh6vvskyQE/sw==}
-    cpu: [arm64]
-    os: [linux]
-
-  '@msgpackr-extract/msgpackr-extract-linux-arm@3.0.4':
-    resolution: {integrity: sha512-Tg3yX65f5GbtXLkrYEHE5oibZG9epyYWas7FogTTEJeDEF9JlXJzKgXaNhT3UXlTOeA+AfZpYZYZ0uPj7Cfquw==}
-    cpu: [arm]
-    os: [linux]
-
-  '@msgpackr-extract/msgpackr-extract-linux-x64@3.0.4':
-    resolution: {integrity: sha512-8TNXMEjJc3QEy7R/x1INhgiU+XakDAFUzBhaz7+Rbrs8NH5UQeHQxxmzsSBJGyV6I1jW79undiQm8tOI+D+8FQ==}
-    cpu: [x64]
-    os: [linux]
-
-  '@msgpackr-extract/msgpackr-extract-win32-x64@3.0.4':
-    resolution: {integrity: sha512-CmCXPQrkbwExx3j946/PtHWHbYJiCRBRDl4BlkRQcJB/YOwQxJRTpoo7aTsortjgoJ1x7opzTSxn7C+ASSLVjQ==}
-    cpu: [x64]
-    os: [win32]
-
-  '@napi-rs/lzma-linux-x64-gnu@1.5.1':
-    resolution: {integrity: sha512-oTXEIha4SsuXdTA4Iyskj0kpdx2yVXdhd75c2v3xGrHFfVMsbhTPZU/nMPL4sWKo4pBHm3aucLaqGlF696dTyQ==}
-    engines: {node: ^22.20 || ^24.12 || >=25}
-    cpu: [x64]
-    os: [linux]
-    libc: [glibc]
-
   '@napi-rs/wasm-runtime@1.2.3':
     resolution: {integrity: sha512-UMduMbqO5s5zF2NkNacMT/yK5Y5QiKvWr2+50bzIIxFDwVJ2h49b+oyjaCGPhJxd2/gC2x39EHv/gHVuu36x2Q==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=23.5.0}
     peerDependencies:
       '@emnapi/core': ^1.7.1 || ^2.0.0-alpha.4
       '@emnapi/runtime': ^1.7.1 || ^2.0.0-alpha.4
+
+  '@noble/hashes@2.4.0':
+    resolution: {integrity: sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA==}
+    engines: {node: '>= 20.19.0'}
+
+  '@opentelemetry/api@1.9.0':
+    resolution: {integrity: sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg==}
+    engines: {node: '>=8.0.0'}
+
+  '@opentelemetry/core@2.2.0':
+    resolution: {integrity: sha512-FuabnnUm8LflnieVxs6eP7Z383hgQU4W1e3KJS6aOG3RxWxcHyBxH8fDMHNgu/gFx/M2jvTOW/4/PHhLz6bjWw==}
+    engines: {node: ^18.19.0 || >=20.6.0}
+    peerDependencies:
+      '@opentelemetry/api': '>=1.0.0 <1.10.0'
+
+  '@opentelemetry/resources@2.2.0':
+    resolution: {integrity: sha512-1pNQf/JazQTMA0BiO5NINUzH0cbLbbl7mntLa4aJNmCCXSj0q03T5ZXXL0zw4G55TjdL9Tz32cznGClf+8zr5A==}
+    engines: {node: ^18.19.0 || >=20.6.0}
+    peerDependencies:
+      '@opentelemetry/api': '>=1.3.0 <1.10.0'
+
+  '@opentelemetry/semantic-conventions@1.43.0':
+    resolution: {integrity: sha512-eSYWTm620tTk45EKSedaUL8MFYI8hW164hIXsgIHyxu3VobUB3fFCu5t0hQby6OoWRPsG1KkKUG2M5UadiLiVg==}
+    engines: {node: '>=14'}
 
   '@oxc-parser/binding-android-arm-eabi@0.147.0':
     resolution: {integrity: sha512-fOtoGvIoirkvxQVw9J1WJPxz571XPgLsPf9uhRD+PJteUnvrJHMDmK9pw2yZEGGyismtRoEsp+JcXUdF/JDMDw==}
@@ -3076,6 +2882,128 @@ packages:
 
   '@oxc-resolver/binding-win32-x64-msvc@11.24.2':
     resolution: {integrity: sha512-UqGPmo56KDfLlfXFAFIrNflHT8tFxWGEivWg3Zeyp4Uy2NlKN1FGPr6/BxcLGG3+kZ6Wp14g5Uj+n71boqZfiw==}
+    cpu: [x64]
+    os: [win32]
+
+  '@oxfmt/binding-android-arm-eabi@0.66.0':
+    resolution: {integrity: sha512-2Me9eoptv6ERdEuI2P8AOlYdHHraXebJaM6SC0kc2Dfb+mLrep2db+fedBPKaYn673h/vBgvP4tkOdAbaudX6w==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm]
+    os: [android]
+
+  '@oxfmt/binding-android-arm64@0.66.0':
+    resolution: {integrity: sha512-u7O+bSSF0HGsDKkQQxBqvLGVepu93RA+JKu+ONqvfh4sCnCEbj31wZj4iG5gk3XfRwrmYj0/8catkO2LcblQKQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [android]
+
+  '@oxfmt/binding-darwin-arm64@0.66.0':
+    resolution: {integrity: sha512-/ikyMIVjX/sdo7KtjxoEsSUosfPzveVhT9RWMx9yGqFDKFJ89JAEKuEeLBmurDjrkb4w8tOnAdSO3SBaplY3bw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@oxfmt/binding-darwin-x64@0.66.0':
+    resolution: {integrity: sha512-q5xUsKeFqawa9NXa6ZGXWimFV19m8MogKPdTaSVDAAk2EQKBmBZRDeluwcl1p8ty/OFc9s9888OKEh3xfPVH0g==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [x64]
+    os: [darwin]
+
+  '@oxfmt/binding-freebsd-x64@0.66.0':
+    resolution: {integrity: sha512-CR+x4VzMY0pRXLK/xFQ/RzsSFkP5t2Z2mef0QY6OP/rTRcMUoMLCOM62/3Fp/t0K+UDoBKxvMyeb6D0zPMjleA==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [x64]
+    os: [freebsd]
+
+  '@oxfmt/binding-linux-arm-gnueabihf@0.66.0':
+    resolution: {integrity: sha512-ZEYmO/LbH9tTQCADILHGZE4GeOXOAj2VzedHkASNwjmwlwtutJCLpCJbIs37wRGTFgWRoEcD72jpMX+IBJUGjQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm]
+    os: [linux]
+
+  '@oxfmt/binding-linux-arm-musleabihf@0.66.0':
+    resolution: {integrity: sha512-hNtR9/oU0CeTkq7JnRkmBQwqe17v2ZaAMLC4VcN7IIOWeRyWDk0knSPWS9iiLmtbZ2RRBBtsG01jQgkZmKCJeQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm]
+    os: [linux]
+
+  '@oxfmt/binding-linux-arm64-gnu@0.66.0':
+    resolution: {integrity: sha512-uwOVQ8i6I1LT/+eDzfsgrrcZp8Fn6NPVUPn8fF5gdFGekFf0PddF+LEuwsD0/pbNUcKZhDj2rQ5UpITh9gF4iQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  '@oxfmt/binding-linux-arm64-musl@0.66.0':
+    resolution: {integrity: sha512-tTkF2Dmx4nGAjmBlZb+UtTGqR/EK4ZrW9qBfzte07a9XWqzoGGKzpFFlyNDhQe+Uwql94+ReCTeNbhOXscw1Dg==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [linux]
+    libc: [musl]
+
+  '@oxfmt/binding-linux-ppc64-gnu@0.66.0':
+    resolution: {integrity: sha512-F3cKHUav4yXOHn6GFnwpBhSYsJOYKKf9eqO/9jlEuqPxNw9zb98E9ZFct79gcg8pibUGkbveEu9WDlmXJpDzKw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [ppc64]
+    os: [linux]
+    libc: [glibc]
+
+  '@oxfmt/binding-linux-riscv64-gnu@0.66.0':
+    resolution: {integrity: sha512-K5fDaNZfDyQMYA/3qL21bqyN0X9T15LLwwbFPt2aHc94+ZG7bh0vZEsy2y7NlRnjjHFSwN+Hzg6ldJtbOriH4Q==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [riscv64]
+    os: [linux]
+    libc: [glibc]
+
+  '@oxfmt/binding-linux-riscv64-musl@0.66.0':
+    resolution: {integrity: sha512-44Yc+I+qOmTElRcEhm5hUKIUJEQIOugymz4ua4tB0Wox7tGAfIbjzmXz/HDAtw1Ij6gmBwZlzh4hc9679RhWeA==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [riscv64]
+    os: [linux]
+    libc: [musl]
+
+  '@oxfmt/binding-linux-s390x-gnu@0.66.0':
+    resolution: {integrity: sha512-1e29Eg9hEj2kRBB19M0seIehPbbXHCk35GvImjDvb79rjjYjXCRmtbUNHJcgoktZAMIzXrTbxDBKmTc1V4bg3A==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [s390x]
+    os: [linux]
+    libc: [glibc]
+
+  '@oxfmt/binding-linux-x64-gnu@0.66.0':
+    resolution: {integrity: sha512-vODY1UQo10gngn0+D4xHKU84F1Twm1LqrzV4SqPXvmQKSd87paehvZ6jqA5wKs6XQrlWul9clYMDVHcoW9CPMA==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  '@oxfmt/binding-linux-x64-musl@0.66.0':
+    resolution: {integrity: sha512-YDzXx2JsT4+HL4MdkVrYjO55NS5lUKNm8rLC4ZPou8+seu0v0jhecSh+ufoO6+xEa8gccEezMlI2WHJi4ApUgw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+
+  '@oxfmt/binding-openharmony-arm64@0.66.0':
+    resolution: {integrity: sha512-mJjUYd8lj0+j4JkYyEM+5qKBf1Rnrpgjn/SVYKJhicVDqLz566ooa7Fs8zflPqt+dnZDV7X054rVIQX6ZcQNlQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [openharmony]
+
+  '@oxfmt/binding-win32-arm64-msvc@0.66.0':
+    resolution: {integrity: sha512-soV+0vESv7e5ntCHWC61x4gg8OSak6IHHnWsZmHrJFlvMj2AK+kmldErCNkVkrvc1Ts2/++rJXn+IuAb2WMXhw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [win32]
+
+  '@oxfmt/binding-win32-ia32-msvc@0.66.0':
+    resolution: {integrity: sha512-YCPi23uRIEYuIKTZohAkKbPFpujQ5QBuUM5iDv+UqbCmTPAkaFsxjsSuB8xlBpRT0G7eP/4HMF+cPDSqHtOD9A==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [ia32]
+    os: [win32]
+
+  '@oxfmt/binding-win32-x64-msvc@0.66.0':
+    resolution: {integrity: sha512-bwTQcv/JVRPkOqQtMF0X7vpvpncDQiBcXHxZ9S2hR12Hlo8bvBdUR5x5XnxzDZ3kM0qoZw1rv7KaD66Ly+pFWA==}
+    engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [win32]
 
@@ -3481,144 +3409,6 @@ packages:
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
 
-  '@rollup/rollup-android-arm-eabi@4.63.0':
-    resolution: {integrity: sha512-70TeIFezKKy65LgAVyQh+w94/gjWhvPWaLaGGeMEgVrPkQhuj/M5bAYYZzIFUj9Y69oHyTm5Um/R6gcLh4A8JA==}
-    cpu: [arm]
-    os: [android]
-
-  '@rollup/rollup-android-arm64@4.63.0':
-    resolution: {integrity: sha512-YC86tYIHK6M1IV+wbzO+Bxk8RCBr6ZyWYgWxUCzaZD8mc8rrFoIJDNzDrkHBYRc/wKdrsIXmm6/F7NzrAO+OrA==}
-    cpu: [arm64]
-    os: [android]
-
-  '@rollup/rollup-darwin-arm64@4.63.0':
-    resolution: {integrity: sha512-oI+ECtUcli0y0fi4xpW82GdPIXdTkI8G8DSjG2LRuw09fPAGykaWYH/hXxiKuTxiAjiPSTIIuYUqof5Z2hShWw==}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@rollup/rollup-darwin-x64@4.63.0':
-    resolution: {integrity: sha512-NwV+1s7TiKrMe4owHyKB/dTLD7ZJD0YEBEhIz+hvav1Cu1GReJjF+rsdNwjzENQeIAbE/CoNiaAc5Vz2h5DPAA==}
-    cpu: [x64]
-    os: [darwin]
-
-  '@rollup/rollup-freebsd-arm64@4.63.0':
-    resolution: {integrity: sha512-tWtHBTu5gOPK4u4Urtk4qAHW3zZ9rQAmbssO8gp7ELvGTGI3aCiq6NqyTQ0PCIg7KbHJF2UkGDDs77YZGxfjCA==}
-    cpu: [arm64]
-    os: [freebsd]
-
-  '@rollup/rollup-freebsd-x64@4.63.0':
-    resolution: {integrity: sha512-2qPoJiwTvtHQ27NnYvTnsgk8laXWYuVmNESG8WFZBcEPKLfZ3I27qBJarjVRQtwGeYyRfq5ZowHXih9lm2BItw==}
-    cpu: [x64]
-    os: [freebsd]
-
-  '@rollup/rollup-linux-arm-gnueabihf@4.63.0':
-    resolution: {integrity: sha512-FQwsTRvLNuHoTdICABJQfbPUSEueISGmnpT06tXTMpfprf5NiKLSXKA0A+w45wJnCmZAnzgqBwbt6ARFuyOi5w==}
-    cpu: [arm]
-    os: [linux]
-    libc: [glibc]
-
-  '@rollup/rollup-linux-arm-musleabihf@4.63.0':
-    resolution: {integrity: sha512-BBVTXziw8mY1a4ZbWME9tZyfzqXCDPqaC7Z3heQ29p5dkvXzwL0NwelO8zLa8c3RBKvl3YTuSnBgsBhYBtwjIw==}
-    cpu: [arm]
-    os: [linux]
-    libc: [musl]
-
-  '@rollup/rollup-linux-arm64-gnu@4.63.0':
-    resolution: {integrity: sha512-w2Iyy9+RqKwx3d9qWMKsJg0FfRBsY0/pXNv0mCQ3ueRvJI6+QAScfD4nrMlzFLs2HNVW6Ew+mtZfDl9b7Ew5/Q==}
-    cpu: [arm64]
-    os: [linux]
-    libc: [glibc]
-
-  '@rollup/rollup-linux-arm64-musl@4.63.0':
-    resolution: {integrity: sha512-YK++KtrFRHYE0P6/RtYEAy9t8F37znP+K03RrIuLPYOL6SVlObRumf/0OE4V/h63xL9DwkWbNssZfmA9hawuDA==}
-    cpu: [arm64]
-    os: [linux]
-    libc: [musl]
-
-  '@rollup/rollup-linux-loong64-gnu@4.63.0':
-    resolution: {integrity: sha512-aBfOG6fP7YkkPmTqPwufRJeFyz7WPpECv9XNbnsk9+vg7rxdih0lbtEel7jcRng4LZrrmU3FfitCFyEj4BWDWg==}
-    cpu: [loong64]
-    os: [linux]
-    libc: [glibc]
-
-  '@rollup/rollup-linux-loong64-musl@4.63.0':
-    resolution: {integrity: sha512-LGaHEOeHNAag9VuS1Crs5DFg4RrU9MPi2nVnNJk9DTePx/B6RRYKVmrIXt2h7YOJlwjaFJ6lwtFDliZxScTLrQ==}
-    cpu: [loong64]
-    os: [linux]
-    libc: [musl]
-
-  '@rollup/rollup-linux-ppc64-gnu@4.63.0':
-    resolution: {integrity: sha512-jClvk+J0FC3b7Udvegiw5/4hErbHtmsNsQgENnKXDWtNCJXsJYZH5WURvu7imDOO38xYml24eeh5x3A04ppwCw==}
-    cpu: [ppc64]
-    os: [linux]
-    libc: [glibc]
-
-  '@rollup/rollup-linux-ppc64-musl@4.63.0':
-    resolution: {integrity: sha512-0OJlaGK+8+B777Ql5okIpD7ua5Ro9+VB9Ve0OKa28OQJZ1RbuUBVNHK/e3pr4BROqsyPl1JrPO1ZxJseCNffcA==}
-    cpu: [ppc64]
-    os: [linux]
-    libc: [musl]
-
-  '@rollup/rollup-linux-riscv64-gnu@4.63.0':
-    resolution: {integrity: sha512-Ygsx+HoNH7afwi1bTIXbnTvVnsO+zurPLSYxybV1hHFVU72OWOCl6v05ql/z0hkpAPx+DK7Kn9Bi7MayCcjLTA==}
-    cpu: [riscv64]
-    os: [linux]
-    libc: [glibc]
-
-  '@rollup/rollup-linux-riscv64-musl@4.63.0':
-    resolution: {integrity: sha512-pDQxtMGb+OvG3fLwR2OkZlSd47hW+kWg4BYMG/++sR6RqorQccwPTDsxda5hPwiIeIErAnCF9ma3SAU06bdQtQ==}
-    cpu: [riscv64]
-    os: [linux]
-    libc: [musl]
-
-  '@rollup/rollup-linux-s390x-gnu@4.63.0':
-    resolution: {integrity: sha512-0BnUG9mS8I4SSHr3XsxVhuCMEiu+rX61xxZF5vujso4LaiAGFZFxvDjg6Xn6tLPNTUAfuCvQYas4LMQMVsKRSQ==}
-    cpu: [s390x]
-    os: [linux]
-    libc: [glibc]
-
-  '@rollup/rollup-linux-x64-gnu@4.63.0':
-    resolution: {integrity: sha512-Adu/VttB1dpPNW+FEacrZ+xVm9tFty84+RrFzsqlFaPxoJB+9XXyDGtp5dCOoBwGBIEVH0To7lExFXEx0BIF4A==}
-    cpu: [x64]
-    os: [linux]
-    libc: [glibc]
-
-  '@rollup/rollup-linux-x64-musl@4.63.0':
-    resolution: {integrity: sha512-NQ3bDvjUbFKmP23671xUlXtKmqVsUBd6M4PQCvbmNtOy06hnQIdKHy8oG/6S3R/S6He1JgPk6A5VT+prAJMYEw==}
-    cpu: [x64]
-    os: [linux]
-    libc: [musl]
-
-  '@rollup/rollup-openbsd-x64@4.63.0':
-    resolution: {integrity: sha512-u2eDAl4+0aFvA13GxlGBtTI3SS3sdgwgtV0HyjZ0QaQVCgNE+jqNGey+GtxWiq+wxr/UycAx/OnfJzApCFamvA==}
-    cpu: [x64]
-    os: [openbsd]
-
-  '@rollup/rollup-openharmony-arm64@4.63.0':
-    resolution: {integrity: sha512-XvRb5vfW3wAZQ+ZUG21AnHHDKtNcw99eigzEhjr//NZ3u7SoBaPP0seSc7FgP7p1epAEdAoZckMW9WY/+4w70w==}
-    cpu: [arm64]
-    os: [openharmony]
-
-  '@rollup/rollup-win32-arm64-msvc@4.63.0':
-    resolution: {integrity: sha512-iZPmniy4kNBf5yo2RezbkYNNK5HPbXE9+g+twnbqSng7dtLEJy1SKoxiE/ni4FDacjyuZpEeb9U054N4EoKHYw==}
-    cpu: [arm64]
-    os: [win32]
-
-  '@rollup/rollup-win32-ia32-msvc@4.63.0':
-    resolution: {integrity: sha512-mFBBd+LF37fnE8JnYUOH+imj0aPFPK30vpar4ehJkgnLj9sZn8ZxiRENmLtgIwxK7TC8klF6N57fxdNBwQoqOA==}
-    cpu: [ia32]
-    os: [win32]
-
-  '@rollup/rollup-win32-x64-gnu@4.63.0':
-    resolution: {integrity: sha512-ujeqEY3B+zbGn3Z4Q03cUBG/LGWnBJncVT36WER31LcOsQk9+1dmINKKtvmmfChUvRbK1G0R8OhMWFgHgaZtAw==}
-    cpu: [x64]
-    os: [win32]
-
-  '@rollup/rollup-win32-x64-msvc@4.63.0':
-    resolution: {integrity: sha512-hncn90N4sOky0L2LKE5oESKLbxCPeVo4eLA2LSMoDzM+879ml4WSr+Rr4DWknNIVVvS1Hirkc9hx02W6YxS8rQ==}
-    cpu: [x64]
-    os: [win32]
-
   '@shikijs/core@4.4.3':
     resolution: {integrity: sha512-QCR4q2ZO/ILJEuwiBMel4wdcTDb1JGwfjKTxPDF6x8ixOaluPrVqIn06C99AcRPhmYlBR56d/Fb+GN58GzExpg==}
     engines: {node: '>=20'}
@@ -3813,25 +3603,6 @@ packages:
       '@types/react':
         optional: true
       '@types/react-dom':
-        optional: true
-
-  '@trivago/prettier-plugin-sort-imports@6.0.2':
-    resolution: {integrity: sha512-3DgfkukFyC/sE/VuYjaUUWoFfuVjPK55vOFDsxD56XXynFMCZDYFogH2l/hDfOsQAm1myoU/1xByJ3tWqtulXA==}
-    engines: {node: '>= 20'}
-    peerDependencies:
-      '@vue/compiler-sfc': 3.x
-      prettier: 2.x - 3.x
-      prettier-plugin-ember-template-tag: '>= 2.0.0'
-      prettier-plugin-svelte: 3.x
-      svelte: 4.x || 5.x
-    peerDependenciesMeta:
-      '@vue/compiler-sfc':
-        optional: true
-      prettier-plugin-ember-template-tag:
-        optional: true
-      prettier-plugin-svelte:
-        optional: true
-      svelte:
         optional: true
 
   '@ts-graphviz/adapter@2.0.6':
@@ -4178,11 +3949,39 @@ packages:
       '@vitest/browser':
         optional: true
 
+  '@vitest/coverage-v8@5.0.0':
+    resolution: {integrity: sha512-toMg6PZGCIa/lQNCDoASrfb1ly4hsUKXFtFYC9kD4t78o5Y6LyNJU7AENt8eHPr3quYdxaxK7hj2mnbFfUk9NA==}
+    peerDependencies:
+      '@vitest/browser': 5.0.0
+      vitest: 5.0.0
+    peerDependenciesMeta:
+      '@vitest/browser':
+        optional: true
+
   '@vitest/expect@4.1.11':
     resolution: {integrity: sha512-VX2x5vNJXET47KAFzwERI+KRMtTTCSWTfSMKsW7JsUsXV4psq++e3DvZpuTDOpHcxytiDs6p2nhVb2tVDiiUYw==}
 
+  '@vitest/istanbul-lib-coverage@1.0.1':
+    resolution: {integrity: sha512-k3DJZ8LhMBK9NS4SclF1ASD3OgXEWDorbIcPTRDK0/Zae6fRvu+fJRxtFdLfHsa9Y24beCdPnoNZ4LviTNstfA==}
+    engines: {node: '>=22'}
+
+  '@vitest/istanbul-lib-report@1.0.1':
+    resolution: {integrity: sha512-1EOLRfsTMnyAr3+kEAsP4o9dhaDlGPpD7H5iLBBeq//YpNB1VIahkPhB+eRp9N2Dkfw8oySROjE3yf9XDeaIkQ==}
+    engines: {node: '>=22'}
+
   '@vitest/mocker@4.1.11':
     resolution: {integrity: sha512-2XJVD55d1o5AZous5CCGKS74g/riOj9odEt2bQpCVZeblHyHdnMeFl4jl0XjU21stf4mbjUkew2eXQZt65g5CQ==}
+    peerDependencies:
+      msw: ^2.4.9
+      vite: ^6.0.0 || ^7.0.0 || ^8.0.0
+    peerDependenciesMeta:
+      msw:
+        optional: true
+      vite:
+        optional: true
+
+  '@vitest/mocker@5.0.0':
+    resolution: {integrity: sha512-66PGTMIiVJP3t4a5yxU9qPtf7MdTBs8jmToMvy+HVflB3Yy13WJZTtPePdvU+wjRV02SKK5doLbSA6o9pwOmiA==}
     peerDependencies:
       msw: ^2.4.9
       vite: ^6.0.0 || ^7.0.0 || ^8.0.0
@@ -4203,6 +4002,9 @@ packages:
 
   '@vitest/spy@4.1.11':
     resolution: {integrity: sha512-apNa/prQy2qCeywhnixOHPRCgGNhvg7T4Dapfl1GahLp/R+uhBm5cPyFoNVyqsNd2h1nJxL6BqqdIjiABL60YA==}
+
+  '@vitest/spy@5.0.0':
+    resolution: {integrity: sha512-uy+luWBAPw9XfthoHi5AkfHUnuPYEESjl0p/r+meoBnU8bxg5GDQ3Ey8MjcJ6sqahkL4PFyrvfMJJBw7LbU06g==}
 
   '@vitest/utils@4.1.11':
     resolution: {integrity: sha512-zTCVGpyFsGWBhllOyKlTw/vnr6D9qxsfSDyfbyZmTyjHw5N/VuvzHpHoQjm2ZJzn4RJgx5w4r7V0er69CmLgPQ==}
@@ -4296,11 +4098,12 @@ packages:
   ast-v8-to-istanbul@1.0.5:
     resolution: {integrity: sha512-UPAgKJFSEGMWSDr3LX4tqnAb4f7KGT8O40Tyx8wbYmmZ/yn58lNCm8h3svs3eXgiGd5AXxz8NDOvXWvicq+rJA==}
 
+  axe-core@4.13.0:
+    resolution: {integrity: sha512-UzGt8zg7Ny8djbYMhxl2zuEevVa7r2gJjYY5Lwr1xM7+XU2nd6CkIWFTVcCIbAP63vSz71NaVyyuSk9lHKcy0A==}
+    engines: {node: '>=4'}
+
   bail@2.0.2:
     resolution: {integrity: sha512-0xO6mYd7JB2YesxDKplafRpsiOzPt9V02ddPCLbY1xYGPOX24NTyN50qnUxgCPcSoYMhKpAuBTjQoRZCAkUDRw==}
-
-  balanced-match@1.0.2:
-    resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
 
   balanced-match@4.0.4:
     resolution: {integrity: sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==}
@@ -4322,9 +4125,6 @@ packages:
   body-parser@2.3.0:
     resolution: {integrity: sha512-2cGmJupaNgg+QUwVLAucDuWuoMZ6EX9iHDRswZ5lsNYEmwPaRknMPCLZz07yTzVq/83p4o/wzbDZbBrTvGGTIw==}
     engines: {node: '>=18'}
-
-  brace-expansion@2.1.4:
-    resolution: {integrity: sha512-hGfVzPxthbf3+2yjg/RBs60cB0FhqBS/zvdV/4wn4/BmN0bNMMHPc4V/BbFieqf1TKAGGAHnY4eSjajCl0f2Xg==}
 
   brace-expansion@5.0.9:
     resolution: {integrity: sha512-ScQ4IuvIEF1TMlP7Zt+vjJ//9zlPb2SDcxWxM3bk8s6t6GGdJ7KO1dCcTidOPJKePW30LE/2cT7wCyPho9/Wxg==}
@@ -4607,10 +4407,10 @@ packages:
   effect-oxlint@0.3.4:
     resolution: {integrity: sha512-VaI72NhDI+OBk8rkWBxR3D+k8iQN5KX4caiTRtWR/KDlif4KdxmjPelQqflwwprxkGldEpLry9fQvvzlBWY6bA==}
     peerDependencies:
-      effect: 4.0.0-rc.112
+      effect: 4.0.0-rc.116
 
-  effect@4.0.0-rc.112:
-    resolution: {integrity: sha512-wXxwuh1Ywnv4cPRM3Wfa0vDwuOHnZ1TsTgHJkG9XgzND6inhBH9n1vBxhg3iIXOia/OrpmvVmd3lrD4vq6bF3A==}
+  effect@4.0.0-rc.116:
+    resolution: {integrity: sha512-nawqJHSjHV8XIBRZNZ+D7cLZpN3kkSjzy6aiT9ofKENsl7xAMFKEoDa0itN5JFl3GUQ1PIN1T1HNlva5+xyO/A==}
 
   emoji-regex-xs@2.0.1:
     resolution: {integrity: sha512-1QFuh8l7LqUcKe24LsPUNzjrzJQ7pgRwp1QMcZ5MX6mFplk2zQ08NVCM84++1cveaUUYtcCYHmeFEuNg16sU4g==}
@@ -4650,11 +4450,6 @@ packages:
   es-object-atoms@1.1.2:
     resolution: {integrity: sha512-HWcBoN6NileqtSydK2FqHbS/LoDd2pqrnQHLyJzBj4kOp/ky2MWMN694xOfkK8/SnUsW2DH7EfyVlydKCsm1Zw==}
     engines: {node: '>= 0.4'}
-
-  esbuild@0.28.2:
-    resolution: {integrity: sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA==}
-    engines: {node: '>=18'}
-    hasBin: true
 
   escape-html@1.0.3:
     resolution: {integrity: sha512-NiSupZ4OeuGwr68lGIeym/ksIZMJodUGOSCZ/FSnTxcrekbvqrgdUxlJOMpijaKZVjAJrWrGs/6Jy8OMuyj9ow==}
@@ -4753,10 +4548,6 @@ packages:
 
   extend@3.0.2:
     resolution: {integrity: sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==}
-
-  fast-check@4.9.0:
-    resolution: {integrity: sha512-7ms6T7SybUev/PQITciI0yLM2pOSFy5zpG8Ty7tQofcVaQUvrMXp6CBwqF6fThLCLOrfBtuHAtwq6Yu4XPCllg==}
-    engines: {node: '>=12.17.0'}
 
   fast-deep-equal@3.1.3:
     resolution: {integrity: sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==}
@@ -5064,9 +4855,6 @@ packages:
     resolution: {integrity: sha512-HGYWWS/ehqTV3xN10i23tkPkpH46MLCIMFNCaaKNavAXTF1RkqxawEPtnjnGZ6XKSInBKkiOA5BKS+aZiY3AvA==}
     engines: {node: '>=8'}
 
-  javascript-natural-sort@0.7.1:
-    resolution: {integrity: sha512-nO6jcEfZWQXDhOiBtG2KvKyEptz7RVbpGP4vTD2hLBdmNQSsCiicO2Ioinv6UI4y9ukqnBpy+XZ9H6uLNgJTlw==}
-
   jiti@2.7.0:
     resolution: {integrity: sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==}
     hasBin: true
@@ -5091,11 +4879,6 @@ packages:
     peerDependenciesMeta:
       canvas:
         optional: true
-
-  jsesc@3.1.0:
-    resolution: {integrity: sha512-/sM3dO2FOzXjKQhJuo0Q173wf2KOo8t4I8vHy6lF9poUp7bKT0/NHE8fPX23PwfhnykfqnC2xRxOnVw5XuGIaA==}
-    engines: {node: '>=6'}
-    hasBin: true
 
   json-buffer@3.0.1:
     resolution: {integrity: sha512-4bV5BfR2mqfQTJm+V5tPPdf+ZpuhiIvTuAB5g8kcrXOZpTT/QwwVRWBywX1ozr6lEuPdbHxwaJlm9G6mI2sfSQ==}
@@ -5307,9 +5090,6 @@ packages:
   locate-path@6.0.0:
     resolution: {integrity: sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw==}
     engines: {node: '>=10'}
-
-  lodash-es@4.18.1:
-    resolution: {integrity: sha512-J8xewKD/Gk22OZbhpOVSwcs60zhd95ESDwezOFuA3/099925PdHJ7OFHNTGtajL3AlZkykD32HykiMo+BIBI8A==}
 
   log-symbols@4.1.0:
     resolution: {integrity: sha512-8XPvpAA8uyhfteu8pIvQxpJZ7SYYdpUivZpGy6sFsBuKRY/7rQGavedeB8aK+Zkyq6upMFVL/9AW6vOYzfRyLg==}
@@ -5526,11 +5306,6 @@ packages:
     resolution: {integrity: sha512-Lbgzdk0h4juoQ9fCKXW4by0UJqj+nOOrI9MJ1sSj4nI8aI2eo1qmvQEie4VD1glsS250n15LsWsYtCugiStS5A==}
     engines: {node: '>=18'}
 
-  mime@4.1.0:
-    resolution: {integrity: sha512-X5ju04+cAzsojXKes0B/S4tcYtFAJ6tTMuSPBEn9CPGlrWr8Fiw7qYeLT0XyH80HSoAoqWCaz+MWKh22P7G1cw==}
-    engines: {node: '>=16'}
-    hasBin: true
-
   mimic-fn@2.1.0:
     resolution: {integrity: sha512-OqbOk5oEQeAZ8WXWydlu9HJjz9WVdEIvamMCcXmuqUYjTknH/sqsWvhQ3vgwKFRR1HpjvNBKQ37nbJgYzGqGcg==}
     engines: {node: '>=6'}
@@ -5542,10 +5317,6 @@ packages:
   minimatch@10.2.6:
     resolution: {integrity: sha512-vpLQEs+VLCr1nU0BXS07maYoFwlDAH0gngQuuttxIwutDFEMHq2blX+8vpgxDdK3J1PwjCJiep77OitTZ4Ll1A==}
     engines: {node: 18 || 20 || >=22}
-
-  minimatch@9.0.9:
-    resolution: {integrity: sha512-OBwBN9AL4dqmETlpS2zasx+vTeWclWzkblfZk7KTA5j3jeOONz/tRCnZomUyvNg83wL5Zv9Ss6HMJXAgL8R2Yg==}
-    engines: {node: '>=16 || 14 >=14.17'}
 
   minimist@1.2.8:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
@@ -5570,13 +5341,6 @@ packages:
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
 
-  msgpackr-extract@3.0.4:
-    resolution: {integrity: sha512-4kmO/MdyUIkLIvTPr8VHLil4AtoKIoniWPIEk5+CDy0xnWC84azhSFmuJ7PxZdsYtiP5kEeQsORAVIeMgxT+Hw==}
-    hasBin: true
-
-  msgpackr@2.0.6:
-    resolution: {integrity: sha512-plGul/tqjt9vqWFR9zyqyLZls6gb5KTLvnsRO2B9+TZ8tNiXiVI/CR8LiDWlAX4IUeVkQ9gsmzKA6voC2QOciw==}
-
   murmurhash-js@1.0.0:
     resolution: {integrity: sha512-TvmkNhkv8yct0SVBSy+o8wYzXjE4Zz3PCesbfs8HiCXXdcTuocApFv11UWlNFWKYsP2okqrhb7JNlSm9InBhIw==}
 
@@ -5585,16 +5349,17 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
+  nanoid@5.0.9:
+    resolution: {integrity: sha512-Aooyr6MXU6HpvvWXKoVoXwKMs/KyVakWwg7xQfv5/S/RIgJMy0Ifa45H9qqYy7pTCszrHzP21Uk4PZq2HpEM8Q==}
+    engines: {node: ^18 || >=20}
+    hasBin: true
+
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
 
   negotiator@1.1.0:
     resolution: {integrity: sha512-NMPBRMJgiQHjbd8phG3Vebdx4kZ1H121rbl5IkMqeOsahptB9BKo/d7oJ3zTXqTgagn2bWlNSXkh0QUGM31RYg==}
     engines: {node: '>=18'}
-
-  node-gyp-build-optional-packages@5.2.2:
-    resolution: {integrity: sha512-s+w+rBWnpTMwSFbaE0UXsRlg7hU4FjekKU4eyAih5T8nJuNZT1nNsskXpxmeqSK9UzkBl6UgRlnKc8hz8IEqOw==}
-    hasBin: true
 
   node-source-walk@7.0.2:
     resolution: {integrity: sha512-71kFFjYaSshDTA8/a2HiTYPLdASWjLJxUyJxGE+ffxU+KhxSBtM9kiLUX+R2yooFdSFKMFpi4n3PFtDy6qXv8A==}
@@ -5644,6 +5409,19 @@ packages:
   oxc-resolver@11.24.2:
     resolution: {integrity: sha512-FY91FiDBj7ls5MsFS9jN3tjz2o0/zsdSsymlakySaBwVJZorHhkWyICLZMKxlu1R9vYo+sd3z1jwb4J8x7bNDw==}
 
+  oxfmt@0.66.0:
+    resolution: {integrity: sha512-FfvqR8RFtV6JJpRrpkfqyVCQ7HDvZ/VriWFx7veftCgL1B5ZO9qNr+1rvPieycMQnNfVG0PWyJQiy7p0hq1I5w==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    hasBin: true
+    peerDependencies:
+      svelte: ^5.0.0
+      vite-plus: '*'
+    peerDependenciesMeta:
+      svelte:
+        optional: true
+      vite-plus:
+        optional: true
+
   oxlint@1.80.0:
     resolution: {integrity: sha512-5nTiSps4qdbCWLbxzuO00alHkEO2exR9YMN/ig6QXWrLsYSG0KaObOAM+l6oU2LcKPWoSAGYbkZIGEu1ViiWKA==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -5684,15 +5462,9 @@ packages:
   parse-entities@4.0.2:
     resolution: {integrity: sha512-GG2AQYWoLgL877gQIKeRPGO1xF9+eG1ujIb5soS5gPvLQ1y2o8FL90w2QWNdf9I361Mpp7726c+lj3U0qK1uGw==}
 
-  parse-imports-exports@0.2.4:
-    resolution: {integrity: sha512-4s6vd6dx1AotCx/RCI2m7t7GCh5bDRUtGNvRfHSP2wbBQdMi67pPe7mtzmgwcaQ8VKK/6IB7Glfyu3qdZJPybQ==}
-
   parse-ms@2.1.0:
     resolution: {integrity: sha512-kHt7kzLoS9VBZfUsiKjv43mr91ea+U05EyKkEtqp7vNbHxmaVuEqN7XxeEVnGrMtYOAxGrDElSi96K7EgO1zCA==}
     engines: {node: '>=6'}
-
-  parse-statements@1.0.11:
-    resolution: {integrity: sha512-HlsyYdMBnbPQ9Jr/VgJ1YF4scnldvJpJxCVx6KgqPL4dxppsWrJHCIIxQXMJrqGnsRkNPATbeMJ8Yxu7JMsYcA==}
 
   parse5@8.0.1:
     resolution: {integrity: sha512-z1e/HMG90obSGeidlli3hj7cbocou0/wa5HacvI3ASx34PecNjNQeaHNo5WIZpWofN9kgkqV1q5YvXe3F0FoPw==}
@@ -5776,10 +5548,9 @@ packages:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
 
-  prettier@3.9.6:
-    resolution: {integrity: sha512-OpN0zzVdiaiAhxpuuj5efpIS4sY9j7bY6uR5mnj5yPzGkdkjNKSJeUThPb60Jw29QuAZgA4o+/iB49kFiaBX6g==}
-    engines: {node: '>=14'}
-    hasBin: true
+  pretty-bytes@7.0.1:
+    resolution: {integrity: sha512-285/jRCYIbMGDciDdrw0KPNC4LKEEwz/bwErcYNxSJOi4CpGUuLpb9gQpg3XJP0XYj9ldSRluXxih4lX2YN8Xw==}
+    engines: {node: '>=20'}
 
   pretty-format@27.5.1:
     resolution: {integrity: sha512-Qb1gy5OrP5+zDf2Bvnzdl3jsTf1qXVMazbvCoKhtKqVs4/YK4ozX4gKQJJVyNe+cajNPn0KoC0MC3FUmaHWEmQ==}
@@ -5807,11 +5578,11 @@ packages:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
 
-  pure-rand@8.4.2:
-    resolution: {integrity: sha512-vvuOGgcuPJAirlHvuQw1TrOiw7ptaIXXmIbNuiNOY6lNGJJH49PQ1Kj4nd783nPdQhQdicgOjVI2yI/9BD6/Ng==}
-
   qr-creator@1.0.0:
     resolution: {integrity: sha512-C0cqfbS1P5hfqN4NhsYsUXePlk9BO+a45bAQ3xLYjBL3bOIFzoVEjs79Fado9u9BPBD3buHi3+vY+C8tHh4qMQ==}
+
+  qrcode-generator@2.0.4:
+    resolution: {integrity: sha512-mZSiP6RnbHl4xL2Ap5HfkjLnmxfKcPWpWe/c+5XxCuetEenqmNFf1FH/ftXPCtFG5/TDobjsjz6sSNL0Sr8Z9g==}
 
   qs@6.15.3:
     resolution: {integrity: sha512-O9gl3zCl5h5blw1KGUzQKhA5oUXSl8rwUIM5o0S3nCXMliSvy5Dzx7/DJcI+SwgICv+IneSZwhBh1oSyEHA71A==}
@@ -5934,11 +5705,6 @@ packages:
   rolldown@1.2.6:
     resolution: {integrity: sha512-vMM4q3aixf46GiF1Kok8jDPFsEpXgFWGjUHXNkNHNm+Y2adXAG2dbX91jkti3i0ZRsOlcmbuzAz1poObSHCmUA==}
     engines: {node: ^20.19.0 || >=22.12.0}
-    hasBin: true
-
-  rollup@4.63.0:
-    resolution: {integrity: sha512-T5vnZ2y4QqC3/4P+w2+JO+Q/OVdnPsv4XcSYJYMEn0R9/jjl5AgLwO9LAZMzP2lN71O6pypn91rB7lDstUkfrQ==}
-    engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
 
   router@2.2.0:
@@ -6124,6 +5890,10 @@ packages:
   tinybench@2.9.0:
     resolution: {integrity: sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==}
 
+  tinybench@6.1.4:
+    resolution: {integrity: sha512-9APumHG7r4yOk4X4WlkmE71aZcv1gvin1czO3OQ1U9iJcFA5Ja/ygyb0vPOVHTthFozUYs8CLoLUlM8grb2lTQ==}
+    engines: {node: '>=20.0.0'}
+
   tinyexec@1.3.0:
     resolution: {integrity: sha512-QKAl9m8gWWGHV8jZcPeym6j+XULi6tOf1mT83WYJ4Lk2ytW/uwAWkrP0uFsdoYMdueVJ0qs26wZ+23xeB4ibNQ==}
     engines: {node: '>=18'}
@@ -6131,6 +5901,10 @@ packages:
   tinyglobby@0.2.17:
     resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
     engines: {node: '>=12.0.0'}
+
+  tinypool@2.1.0:
+    resolution: {integrity: sha512-Pugqs6M0m7Lv1I7FtxN4aoyToKg1C4tu+/381vH35y8oENM/Ai7f7C4StcoK4/+BSw9ebcS8jRiVrORFKCALLw==}
+    engines: {node: ^20.0.0 || >=22.0.0}
 
   tinyqueue@3.0.0:
     resolution: {integrity: sha512-gRa9gwYU3ECmQYv3lslts5hxuIa90veaEcxDYuu3QGOIAEM2mOZkVHp48ANJuu1CURtRdHKUBY5Lm1tHV+sD4g==}
@@ -6184,11 +5958,6 @@ packages:
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
-  tsx@4.23.12:
-    resolution: {integrity: sha512-FDf4L4sYzKtzWYhU/Xm0AQFdTjdIxNo9ElTf2mxXM6k8YMHXzYUe4yODVaXP4V9uMFbVg8c0qyBccK2OOxb45Q==}
-    engines: {node: '>=18.0.0'}
-    hasBin: true
-
   type-check@0.4.0:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}
     engines: {node: '>= 0.8.0'}
@@ -6229,8 +5998,8 @@ packages:
   undici-types@8.3.0:
     resolution: {integrity: sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==}
 
-  undici@8.10.0:
-    resolution: {integrity: sha512-HvltHd7avK13QIw/oLe4qoOLyoVSoafqJ2jYOrtMRBkbYT31eiBQ8O0ehRKZiEZCMEyLFQNIADpgCWC5fALvYQ==}
+  undici@8.10.2:
+    resolution: {integrity: sha512-/y4/bH9YNU5hi9NIrpOuvGXFcxrj3CMrV+/AYpowAYTpHn8gX/XPFjNy766FPoYY0miQhdW977JFWKGNhBdwyQ==}
     engines: {node: '>=22.19.0'}
 
   unicode-trie@2.0.0:
@@ -6282,15 +6051,16 @@ packages:
   vfile@6.0.3:
     resolution: {integrity: sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q==}
 
-  vite@7.3.6:
-    resolution: {integrity: sha512-4XP60spRGjSZFf1qYH+dJIkK2znL3zQfl9KkOV9MkkRR/3Dls0dxaBsQPTloEc5BLXWPL9vsOxopxyKoMmDueg==}
+  vite@8.2.1:
+    resolution: {integrity: sha512-EU/eS7BH3XROHh2YnBefjM6DBKA6ZeMZEYQbj7NLWg5wHYlhB8B/Mayd5XsgWq+NFYccDOTemRpdETWR6Ka/lw==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
       '@types/node': 26.4.0
+      '@vitejs/devtools': ^0.4.0
+      esbuild: ^0.27.0 || ^0.28.0
       jiti: '>=1.21.0'
       less: ^4.0.0
-      lightningcss: ^1.21.0
       sass: ^1.70.0
       sass-embedded: ^1.70.0
       stylus: '>=0.54.8'
@@ -6301,11 +6071,13 @@ packages:
     peerDependenciesMeta:
       '@types/node':
         optional: true
+      '@vitejs/devtools':
+        optional: true
+      esbuild:
+        optional: true
       jiti:
         optional: true
       less:
-        optional: true
-      lightningcss:
         optional: true
       sass:
         optional: true
@@ -6382,6 +6154,47 @@ packages:
       happy-dom: '*'
       jsdom: '*'
       vite: ^6.0.0 || ^7.0.0 || ^8.0.0
+    peerDependenciesMeta:
+      '@edge-runtime/vm':
+        optional: true
+      '@opentelemetry/api':
+        optional: true
+      '@types/node':
+        optional: true
+      '@vitest/browser-playwright':
+        optional: true
+      '@vitest/browser-preview':
+        optional: true
+      '@vitest/browser-webdriverio':
+        optional: true
+      '@vitest/coverage-istanbul':
+        optional: true
+      '@vitest/coverage-v8':
+        optional: true
+      '@vitest/ui':
+        optional: true
+      happy-dom:
+        optional: true
+      jsdom:
+        optional: true
+
+  vitest@5.0.0:
+    resolution: {integrity: sha512-gpsMNoRhMjMktVxPtstOH4/PJuPyovVaMDr4oDilXaGH1EcqM2OE96SoHT2VIQ6fTGtTjqmHDrEu2X9RQiXf8Q==}
+    engines: {node: ^22.12.0 || ^24.0.0 || >=26.0.0}
+    hasBin: true
+    peerDependencies:
+      '@edge-runtime/vm': '*'
+      '@opentelemetry/api': ^1.9.0
+      '@types/node': 26.4.0
+      '@vitest/browser-playwright': 5.0.0
+      '@vitest/browser-preview': 5.0.0
+      '@vitest/browser-webdriverio': ^5.0.0-beta.5 || >=5.0.0
+      '@vitest/coverage-istanbul': 5.0.0
+      '@vitest/coverage-v8': 5.0.0
+      '@vitest/ui': 5.0.0
+      happy-dom: '*'
+      jsdom: '*'
+      vite: ^6.4.0 || ^7.0.0 || ^8.0.0
     peerDependenciesMeta:
       '@edge-runtime/vm':
         optional: true
@@ -6522,21 +6335,16 @@ snapshots:
       is-potential-custom-element-name: 1.0.1
       lru-cache: 11.5.2
 
+  '@axe-core/playwright@4.13.0(playwright-core@1.62.1)':
+    dependencies:
+      axe-core: 4.13.0
+      playwright-core: 1.62.1
+
   '@babel/code-frame@7.29.7':
     dependencies:
       '@babel/helper-validator-identifier': 7.29.7
       js-tokens: 4.0.0
       picocolors: 1.1.1
-
-  '@babel/generator@7.29.8':
-    dependencies:
-      '@babel/parser': 7.29.8
-      '@babel/types': 7.29.8
-      '@jridgewell/gen-mapping': 0.3.13
-      '@jridgewell/trace-mapping': 0.3.31
-      jsesc: 3.1.0
-
-  '@babel/helper-globals@7.29.7': {}
 
   '@babel/helper-string-parser@7.29.7': {}
 
@@ -6547,24 +6355,6 @@ snapshots:
       '@babel/types': 7.29.8
 
   '@babel/runtime@7.29.7': {}
-
-  '@babel/template@7.29.7':
-    dependencies:
-      '@babel/code-frame': 7.29.7
-      '@babel/parser': 7.29.8
-      '@babel/types': 7.29.8
-
-  '@babel/traverse@7.29.8':
-    dependencies:
-      '@babel/code-frame': 7.29.7
-      '@babel/generator': 7.29.8
-      '@babel/helper-globals': 7.29.7
-      '@babel/parser': 7.29.8
-      '@babel/template': 7.29.7
-      '@babel/types': 7.29.8
-      debug: 4.4.3
-    transitivePeerDependencies:
-      - supports-color
 
   '@babel/types@7.29.8':
     dependencies:
@@ -6702,6 +6492,8 @@ snapshots:
       fast-wrap-ansi: 0.2.2
       sisteransi: 1.0.5
 
+  '@cloudflare/workers-types@4.20251118.0': {}
+
   '@csstools/color-helpers@6.1.1': {}
 
   '@csstools/css-calc@3.3.0(@csstools/css-parser-algorithms@4.0.0(@csstools/css-tokenizer@4.0.0))(@csstools/css-tokenizer@4.0.0)':
@@ -6735,34 +6527,49 @@ snapshots:
 
   '@discoveryjs/json-ext@1.1.0': {}
 
-  '@effect/platform-browser@4.0.0-rc.112(effect@4.0.0-rc.112)':
+  '@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116)':
     dependencies:
-      effect: 4.0.0-rc.112
+      '@opentelemetry/semantic-conventions': 1.43.0
+      effect: 4.0.0-rc.116
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.0
+      '@opentelemetry/resources': 2.2.0(@opentelemetry/api@1.9.0)
 
-  '@effect/platform-node-shared@4.0.0-rc.112(effect@4.0.0-rc.112)':
+  '@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116)':
+    dependencies:
+      effect: 4.0.0-rc.116
+
+  '@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116)':
+    dependencies:
+      '@effect/platform-node-shared': 4.0.0-rc.116(effect@4.0.0-rc.116)
+      effect: 4.0.0-rc.116
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
+  '@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116)':
     dependencies:
       '@types/ws': 8.18.1
-      effect: 4.0.0-rc.112
+      effect: 4.0.0-rc.116
       ws: 8.21.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@effect/platform-node@4.0.0-rc.112(effect@4.0.0-rc.112)(redis@6.2.1)':
+  '@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0))':
     dependencies:
-      '@effect/platform-node-shared': 4.0.0-rc.112(effect@4.0.0-rc.112)
-      effect: 4.0.0-rc.112
-      mime: 4.1.0
-      redis: 6.2.1
-      undici: 8.10.0
+      '@effect/platform-node-shared': 4.0.0-rc.116(effect@4.0.0-rc.116)
+      effect: 4.0.0-rc.116
+      redis: 6.2.1(@opentelemetry/api@1.9.0)
+      undici: 8.10.2
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@effect/vitest@4.0.0-rc.112(effect@4.0.0-rc.112)(vitest@4.1.11)':
+  '@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0)':
     dependencies:
-      effect: 4.0.0-rc.112
-      vitest: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+      effect: 4.0.0-rc.116
+      vitest: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   '@emnapi/core@1.11.2':
     dependencies:
@@ -6778,84 +6585,6 @@ snapshots:
   '@emnapi/wasi-threads@1.2.2':
     dependencies:
       tslib: 2.8.1
-    optional: true
-
-  '@esbuild/aix-ppc64@0.28.2':
-    optional: true
-
-  '@esbuild/android-arm64@0.28.2':
-    optional: true
-
-  '@esbuild/android-arm@0.28.2':
-    optional: true
-
-  '@esbuild/android-x64@0.28.2':
-    optional: true
-
-  '@esbuild/darwin-arm64@0.28.2':
-    optional: true
-
-  '@esbuild/darwin-x64@0.28.2':
-    optional: true
-
-  '@esbuild/freebsd-arm64@0.28.2':
-    optional: true
-
-  '@esbuild/freebsd-x64@0.28.2':
-    optional: true
-
-  '@esbuild/linux-arm64@0.28.2':
-    optional: true
-
-  '@esbuild/linux-arm@0.28.2':
-    optional: true
-
-  '@esbuild/linux-ia32@0.28.2':
-    optional: true
-
-  '@esbuild/linux-loong64@0.28.2':
-    optional: true
-
-  '@esbuild/linux-mips64el@0.28.2':
-    optional: true
-
-  '@esbuild/linux-ppc64@0.28.2':
-    optional: true
-
-  '@esbuild/linux-riscv64@0.28.2':
-    optional: true
-
-  '@esbuild/linux-s390x@0.28.2':
-    optional: true
-
-  '@esbuild/linux-x64@0.28.2':
-    optional: true
-
-  '@esbuild/netbsd-arm64@0.28.2':
-    optional: true
-
-  '@esbuild/netbsd-x64@0.28.2':
-    optional: true
-
-  '@esbuild/openbsd-arm64@0.28.2':
-    optional: true
-
-  '@esbuild/openbsd-x64@0.28.2':
-    optional: true
-
-  '@esbuild/openharmony-arm64@0.28.2':
-    optional: true
-
-  '@esbuild/sunos-x64@0.28.2':
-    optional: true
-
-  '@esbuild/win32-arm64@0.28.2':
-    optional: true
-
-  '@esbuild/win32-ia32@0.28.2':
-    optional: true
-
-  '@esbuild/win32-x64@0.28.2':
     optional: true
 
   '@eslint-community/eslint-utils@4.10.1(eslint@10.9.1(jiti@2.7.0))':
@@ -6892,7 +6621,9 @@ snapshots:
       '@eslint/core': 1.2.1
       levn: 0.4.1
 
-  '@exodus/bytes@1.15.1': {}
+  '@exodus/bytes@1.15.1(@noble/hashes@2.4.0)':
+    optionalDependencies:
+      '@noble/hashes': 2.4.0
 
   '@floating-ui/core@1.8.0':
     dependencies:
@@ -6971,7 +6702,7 @@ snapshots:
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
-      '@jridgewell/sourcemap-codec': 1.5.5
+      '@jridgewell/sourcemap-codec': 1.6.0
       '@jridgewell/trace-mapping': 0.3.31
 
   '@jridgewell/remapping@2.3.5':
@@ -6981,14 +6712,12 @@ snapshots:
 
   '@jridgewell/resolve-uri@3.1.2': {}
 
-  '@jridgewell/sourcemap-codec@1.5.5': {}
-
   '@jridgewell/sourcemap-codec@1.6.0': {}
 
   '@jridgewell/trace-mapping@0.3.31':
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
-      '@jridgewell/sourcemap-codec': 1.5.5
+      '@jridgewell/sourcemap-codec': 1.6.0
 
   '@lit-labs/ssr-dom-shim@1.6.0': {}
 
@@ -6999,6 +6728,144 @@ snapshots:
   '@lit/reactive-element@2.1.2':
     dependencies:
       '@lit-labs/ssr-dom-shim': 1.6.0
+
+  '@livestore/adapter-web@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)':
+    dependencies:
+      '@effect/opentelemetry': 4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116)
+      '@effect/platform-browser': 4.0.0-rc.116(effect@4.0.0-rc.116)
+      '@effect/platform-bun': 4.0.0-rc.113(effect@4.0.0-rc.116)
+      '@effect/platform-node': 4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0))
+      '@effect/platform-node-shared': 4.0.0-rc.116(effect@4.0.0-rc.116)
+      '@effect/vitest': 4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0)
+      '@livestore/common': 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)
+      '@livestore/sqlite-wasm': 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)
+      '@livestore/utils': 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)
+      '@livestore/webmesh': 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)
+      '@opentelemetry/api': 1.9.0
+      '@opentelemetry/resources': 2.2.0(@opentelemetry/api@1.9.0)
+      '@standard-schema/spec': 1.1.0
+      effect: 4.0.0-rc.116
+
+  '@livestore/common-cf@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)':
+    dependencies:
+      '@cloudflare/workers-types': 4.20251118.0
+      '@effect/opentelemetry': 4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116)
+      '@effect/platform-browser': 4.0.0-rc.116(effect@4.0.0-rc.116)
+      '@effect/platform-bun': 4.0.0-rc.113(effect@4.0.0-rc.116)
+      '@effect/platform-node': 4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0))
+      '@effect/platform-node-shared': 4.0.0-rc.116(effect@4.0.0-rc.116)
+      '@effect/vitest': 4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0)
+      '@livestore/utils': 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)
+      '@opentelemetry/api': 1.9.0
+      '@opentelemetry/resources': 2.2.0(@opentelemetry/api@1.9.0)
+      '@standard-schema/spec': 1.1.0
+      effect: 4.0.0-rc.116
+
+  '@livestore/common@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)':
+    dependencies:
+      '@effect/opentelemetry': 4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116)
+      '@effect/platform-browser': 4.0.0-rc.116(effect@4.0.0-rc.116)
+      '@effect/platform-bun': 4.0.0-rc.113(effect@4.0.0-rc.116)
+      '@effect/platform-node': 4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0))
+      '@effect/platform-node-shared': 4.0.0-rc.116(effect@4.0.0-rc.116)
+      '@effect/vitest': 4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0)
+      '@livestore/utils': 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)
+      '@livestore/webmesh': 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)
+      '@noble/hashes': 2.4.0
+      '@opentelemetry/api': 1.9.0
+      '@opentelemetry/resources': 2.2.0(@opentelemetry/api@1.9.0)
+      '@standard-schema/spec': 1.1.0
+      effect: 4.0.0-rc.116
+
+  '@livestore/livestore@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)':
+    dependencies:
+      '@effect/opentelemetry': 4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116)
+      '@effect/platform-browser': 4.0.0-rc.116(effect@4.0.0-rc.116)
+      '@effect/platform-bun': 4.0.0-rc.113(effect@4.0.0-rc.116)
+      '@effect/platform-node': 4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0))
+      '@effect/platform-node-shared': 4.0.0-rc.116(effect@4.0.0-rc.116)
+      '@effect/vitest': 4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0)
+      '@livestore/common': 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)
+      '@livestore/utils': 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)
+      '@opentelemetry/api': 1.9.0
+      '@opentelemetry/resources': 2.2.0(@opentelemetry/api@1.9.0)
+      '@standard-schema/spec': 1.1.0
+      effect: 4.0.0-rc.116
+
+  '@livestore/peer-deps@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@opentelemetry/semantic-conventions@1.43.0)(redis@6.2.1(@opentelemetry/api@1.9.0))(vitest@5.0.0)':
+    dependencies:
+      '@effect/opentelemetry': 4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116)
+      '@effect/platform-browser': 4.0.0-rc.116(effect@4.0.0-rc.116)
+      '@effect/platform-bun': 4.0.0-rc.113(effect@4.0.0-rc.116)
+      '@effect/platform-node': 4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0))
+      '@effect/platform-node-shared': 4.0.0-rc.116(effect@4.0.0-rc.116)
+      '@effect/vitest': 4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0)
+      '@opentelemetry/api': 1.9.0
+      '@opentelemetry/resources': 2.2.0(@opentelemetry/api@1.9.0)
+      '@standard-schema/spec': 1.1.0
+      effect: 4.0.0-rc.116
+    transitivePeerDependencies:
+      - '@opentelemetry/api-logs'
+      - '@opentelemetry/sdk-logs'
+      - '@opentelemetry/sdk-metrics'
+      - '@opentelemetry/sdk-trace-base'
+      - '@opentelemetry/sdk-trace-node'
+      - '@opentelemetry/sdk-trace-web'
+      - '@opentelemetry/semantic-conventions'
+      - bufferutil
+      - redis
+      - utf-8-validate
+      - vitest
+
+  '@livestore/sqlite-wasm@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)':
+    dependencies:
+      '@cloudflare/workers-types': 4.20251118.0
+      '@effect/opentelemetry': 4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116)
+      '@effect/platform-browser': 4.0.0-rc.116(effect@4.0.0-rc.116)
+      '@effect/platform-bun': 4.0.0-rc.113(effect@4.0.0-rc.116)
+      '@effect/platform-node': 4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0))
+      '@effect/platform-node-shared': 4.0.0-rc.116(effect@4.0.0-rc.116)
+      '@effect/vitest': 4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0)
+      '@livestore/common': 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)
+      '@livestore/common-cf': 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)
+      '@livestore/utils': 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)
+      '@livestore/wa-sqlite': 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219
+      '@opentelemetry/api': 1.9.0
+      '@opentelemetry/resources': 2.2.0(@opentelemetry/api@1.9.0)
+      '@standard-schema/spec': 1.1.0
+      effect: 4.0.0-rc.116
+
+  '@livestore/utils@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)':
+    dependencies:
+      '@effect/opentelemetry': 4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116)
+      '@effect/platform-browser': 4.0.0-rc.116(effect@4.0.0-rc.116)
+      '@effect/platform-bun': 4.0.0-rc.113(effect@4.0.0-rc.116)
+      '@effect/platform-node': 4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0))
+      '@effect/platform-node-shared': 4.0.0-rc.116(effect@4.0.0-rc.116)
+      '@effect/vitest': 4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0)
+      '@opentelemetry/api': 1.9.0
+      '@opentelemetry/resources': 2.2.0(@opentelemetry/api@1.9.0)
+      '@standard-schema/spec': 1.1.0
+      effect: 4.0.0-rc.116
+      nanoid: 5.0.9
+      pretty-bytes: 7.0.1
+      qrcode-generator: 2.0.4
+
+  '@livestore/wa-sqlite@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219': {}
+
+  '@livestore/webmesh@0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)':
+    dependencies:
+      '@effect/opentelemetry': 4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116)
+      '@effect/platform-browser': 4.0.0-rc.116(effect@4.0.0-rc.116)
+      '@effect/platform-bun': 4.0.0-rc.113(effect@4.0.0-rc.116)
+      '@effect/platform-node': 4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0))
+      '@effect/platform-node-shared': 4.0.0-rc.116(effect@4.0.0-rc.116)
+      '@effect/vitest': 4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0)
+      '@livestore/utils': 0.0.0-snapshot-287936d11d3e6c7afbaacaf1ece14bf162120219(@effect/opentelemetry@4.0.0-rc.113(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.43.0)(effect@4.0.0-rc.116))(@effect/platform-browser@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-bun@4.0.0-rc.113(effect@4.0.0-rc.116))(@effect/platform-node-shared@4.0.0-rc.116(effect@4.0.0-rc.116))(@effect/platform-node@4.0.0-rc.116(effect@4.0.0-rc.116)(redis@6.2.1(@opentelemetry/api@1.9.0)))(@effect/vitest@4.0.0-rc.116(effect@4.0.0-rc.116)(vitest@5.0.0))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@standard-schema/spec@1.1.0)(effect@4.0.0-rc.116)
+      '@opentelemetry/api': 1.9.0
+      '@opentelemetry/resources': 2.2.0(@opentelemetry/api@1.9.0)
+      '@standard-schema/spec': 1.1.0
+      effect: 4.0.0-rc.116
 
   '@manypkg/find-root@3.1.0':
     dependencies:
@@ -7074,33 +6941,29 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.4':
-    optional: true
-
-  '@msgpackr-extract/msgpackr-extract-darwin-x64@3.0.4':
-    optional: true
-
-  '@msgpackr-extract/msgpackr-extract-linux-arm64@3.0.4':
-    optional: true
-
-  '@msgpackr-extract/msgpackr-extract-linux-arm@3.0.4':
-    optional: true
-
-  '@msgpackr-extract/msgpackr-extract-linux-x64@3.0.4':
-    optional: true
-
-  '@msgpackr-extract/msgpackr-extract-win32-x64@3.0.4':
-    optional: true
-
-  '@napi-rs/lzma-linux-x64-gnu@1.5.1':
-    optional: true
-
   '@napi-rs/wasm-runtime@1.2.3(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)':
     dependencies:
       '@emnapi/core': 1.11.2
       '@emnapi/runtime': 1.11.2
       '@tybys/wasm-util': 0.10.3
     optional: true
+
+  '@noble/hashes@2.4.0': {}
+
+  '@opentelemetry/api@1.9.0': {}
+
+  '@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0)':
+    dependencies:
+      '@opentelemetry/api': 1.9.0
+      '@opentelemetry/semantic-conventions': 1.43.0
+
+  '@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0)':
+    dependencies:
+      '@opentelemetry/api': 1.9.0
+      '@opentelemetry/core': 2.2.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/semantic-conventions': 1.43.0
+
+  '@opentelemetry/semantic-conventions@1.43.0': {}
 
   '@oxc-parser/binding-android-arm-eabi@0.147.0':
     optional: true
@@ -7222,6 +7085,63 @@ snapshots:
   '@oxc-resolver/binding-win32-x64-msvc@11.24.2':
     optional: true
 
+  '@oxfmt/binding-android-arm-eabi@0.66.0':
+    optional: true
+
+  '@oxfmt/binding-android-arm64@0.66.0':
+    optional: true
+
+  '@oxfmt/binding-darwin-arm64@0.66.0':
+    optional: true
+
+  '@oxfmt/binding-darwin-x64@0.66.0':
+    optional: true
+
+  '@oxfmt/binding-freebsd-x64@0.66.0':
+    optional: true
+
+  '@oxfmt/binding-linux-arm-gnueabihf@0.66.0':
+    optional: true
+
+  '@oxfmt/binding-linux-arm-musleabihf@0.66.0':
+    optional: true
+
+  '@oxfmt/binding-linux-arm64-gnu@0.66.0':
+    optional: true
+
+  '@oxfmt/binding-linux-arm64-musl@0.66.0':
+    optional: true
+
+  '@oxfmt/binding-linux-ppc64-gnu@0.66.0':
+    optional: true
+
+  '@oxfmt/binding-linux-riscv64-gnu@0.66.0':
+    optional: true
+
+  '@oxfmt/binding-linux-riscv64-musl@0.66.0':
+    optional: true
+
+  '@oxfmt/binding-linux-s390x-gnu@0.66.0':
+    optional: true
+
+  '@oxfmt/binding-linux-x64-gnu@0.66.0':
+    optional: true
+
+  '@oxfmt/binding-linux-x64-musl@0.66.0':
+    optional: true
+
+  '@oxfmt/binding-openharmony-arm64@0.66.0':
+    optional: true
+
+  '@oxfmt/binding-win32-arm64-msvc@0.66.0':
+    optional: true
+
+  '@oxfmt/binding-win32-ia32-msvc@0.66.0':
+    optional: true
+
+  '@oxfmt/binding-win32-x64-msvc@0.66.0':
+    optional: true
+
   '@oxlint/binding-android-arm-eabi@1.80.0':
     optional: true
 
@@ -7327,25 +7247,27 @@ snapshots:
     dependencies:
       react: 19.2.8
 
-  '@redis/bloom@6.2.1(@redis/client@6.2.1)':
+  '@redis/bloom@6.2.1(@redis/client@6.2.1(@opentelemetry/api@1.9.0))':
     dependencies:
-      '@redis/client': 6.2.1
+      '@redis/client': 6.2.1(@opentelemetry/api@1.9.0)
 
-  '@redis/client@6.2.1':
+  '@redis/client@6.2.1(@opentelemetry/api@1.9.0)':
     dependencies:
       cluster-key-slot: 1.1.2
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.0
 
-  '@redis/json@6.2.1(@redis/client@6.2.1)':
+  '@redis/json@6.2.1(@redis/client@6.2.1(@opentelemetry/api@1.9.0))':
     dependencies:
-      '@redis/client': 6.2.1
+      '@redis/client': 6.2.1(@opentelemetry/api@1.9.0)
 
-  '@redis/search@6.2.1(@redis/client@6.2.1)':
+  '@redis/search@6.2.1(@redis/client@6.2.1(@opentelemetry/api@1.9.0))':
     dependencies:
-      '@redis/client': 6.2.1
+      '@redis/client': 6.2.1(@opentelemetry/api@1.9.0)
 
-  '@redis/time-series@6.2.1(@redis/client@6.2.1)':
+  '@redis/time-series@6.2.1(@redis/client@6.2.1(@opentelemetry/api@1.9.0))':
     dependencies:
-      '@redis/client': 6.2.1
+      '@redis/client': 6.2.1(@opentelemetry/api@1.9.0)
 
   '@resvg/resvg-js-android-arm-eabi@2.6.2':
     optional: true
@@ -7444,81 +7366,6 @@ snapshots:
     optional: true
 
   '@rolldown/pluginutils@1.0.1': {}
-
-  '@rollup/rollup-android-arm-eabi@4.63.0':
-    optional: true
-
-  '@rollup/rollup-android-arm64@4.63.0':
-    optional: true
-
-  '@rollup/rollup-darwin-arm64@4.63.0':
-    optional: true
-
-  '@rollup/rollup-darwin-x64@4.63.0':
-    optional: true
-
-  '@rollup/rollup-freebsd-arm64@4.63.0':
-    optional: true
-
-  '@rollup/rollup-freebsd-x64@4.63.0':
-    optional: true
-
-  '@rollup/rollup-linux-arm-gnueabihf@4.63.0':
-    optional: true
-
-  '@rollup/rollup-linux-arm-musleabihf@4.63.0':
-    optional: true
-
-  '@rollup/rollup-linux-arm64-gnu@4.63.0':
-    optional: true
-
-  '@rollup/rollup-linux-arm64-musl@4.63.0':
-    optional: true
-
-  '@rollup/rollup-linux-loong64-gnu@4.63.0':
-    optional: true
-
-  '@rollup/rollup-linux-loong64-musl@4.63.0':
-    optional: true
-
-  '@rollup/rollup-linux-ppc64-gnu@4.63.0':
-    optional: true
-
-  '@rollup/rollup-linux-ppc64-musl@4.63.0':
-    optional: true
-
-  '@rollup/rollup-linux-riscv64-gnu@4.63.0':
-    optional: true
-
-  '@rollup/rollup-linux-riscv64-musl@4.63.0':
-    optional: true
-
-  '@rollup/rollup-linux-s390x-gnu@4.63.0':
-    optional: true
-
-  '@rollup/rollup-linux-x64-gnu@4.63.0':
-    optional: true
-
-  '@rollup/rollup-linux-x64-musl@4.63.0':
-    optional: true
-
-  '@rollup/rollup-openbsd-x64@4.63.0':
-    optional: true
-
-  '@rollup/rollup-openharmony-arm64@4.63.0':
-    optional: true
-
-  '@rollup/rollup-win32-arm64-msvc@4.63.0':
-    optional: true
-
-  '@rollup/rollup-win32-ia32-msvc@4.63.0':
-    optional: true
-
-  '@rollup/rollup-win32-x64-gnu@4.63.0':
-    optional: true
-
-  '@rollup/rollup-win32-x64-msvc@4.63.0':
-    optional: true
 
   '@shikijs/core@4.4.3':
     dependencies:
@@ -7668,12 +7515,12 @@ snapshots:
       '@tailwindcss/oxide-win32-arm64-msvc': 4.3.3
       '@tailwindcss/oxide-win32-x64-msvc': 4.3.3
 
-  '@tailwindcss/vite@4.3.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))':
+  '@tailwindcss/vite@4.3.3(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))':
     dependencies:
       '@tailwindcss/node': 4.3.3
       '@tailwindcss/oxide': 4.3.3
       tailwindcss: 4.3.3
-      vite: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+      vite: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
 
   '@tanstack/react-virtual@3.14.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
@@ -7704,7 +7551,7 @@ snapshots:
       picocolors: 1.1.1
       redent: 3.0.0
     optionalDependencies:
-      vitest: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+      vitest: 4.1.11(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   '@testing-library/react@16.3.3(@testing-library/dom@10.4.1)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
@@ -7715,22 +7562,6 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.18
       '@types/react-dom': 19.2.5(@types/react@19.2.18)
-
-  '@trivago/prettier-plugin-sort-imports@6.0.2(@vue/compiler-sfc@3.5.41)(prettier@3.9.6)':
-    dependencies:
-      '@babel/generator': 7.29.8
-      '@babel/parser': 7.29.8
-      '@babel/traverse': 7.29.8
-      '@babel/types': 7.29.8
-      javascript-natural-sort: 0.7.1
-      lodash-es: 4.18.1
-      minimatch: 9.0.9
-      parse-imports-exports: 0.2.4
-      prettier: 3.9.6
-    optionalDependencies:
-      '@vue/compiler-sfc': 3.5.41
-    transitivePeerDependencies:
-      - supports-color
 
   '@ts-graphviz/adapter@2.0.6':
     dependencies:
@@ -8000,10 +7831,10 @@ snapshots:
     optionalDependencies:
       react: 19.2.8
 
-  '@vitejs/plugin-react@6.1.1(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))':
+  '@vitejs/plugin-react@6.1.1(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))':
     dependencies:
       '@rolldown/pluginutils': 1.0.1
-      vite: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+      vite: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
 
   '@vitest/coverage-v8@4.1.11(vitest@4.1.11)':
     dependencies:
@@ -8017,7 +7848,20 @@ snapshots:
       obug: 2.1.4
       std-env: 4.2.0
       tinyrainbow: 3.1.1
-      vitest: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+      vitest: 4.1.11(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
+    optional: true
+
+  '@vitest/coverage-v8@5.0.0(vitest@5.0.0)':
+    dependencies:
+      '@bcoe/v8-coverage': 1.0.2
+      '@vitest/istanbul-lib-coverage': 1.0.1
+      '@vitest/istanbul-lib-report': 1.0.1
+      ast-v8-to-istanbul: 1.0.5
+      magicast: 0.5.4
+      obug: 2.1.4
+      std-env: 4.2.0
+      tinyrainbow: 3.1.1
+      vitest: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
 
   '@vitest/expect@4.1.11':
     dependencies:
@@ -8028,13 +7872,28 @@ snapshots:
       chai: 6.2.2
       tinyrainbow: 3.1.1
 
-  '@vitest/mocker@4.1.11(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))':
+  '@vitest/istanbul-lib-coverage@1.0.1': {}
+
+  '@vitest/istanbul-lib-report@1.0.1':
+    dependencies:
+      '@vitest/istanbul-lib-coverage': 1.0.1
+
+  '@vitest/mocker@4.1.11(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))':
     dependencies:
       '@vitest/spy': 4.1.11
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+      vite: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
+
+  '@vitest/mocker@5.0.0(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))':
+    dependencies:
+      '@jridgewell/trace-mapping': 0.3.31
+      '@vitest/spy': 5.0.0
+      estree-walker: 3.0.3
+      magic-string: 1.2.3
+    optionalDependencies:
+      vite: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
 
   '@vitest/pretty-format@4.1.11':
     dependencies:
@@ -8053,6 +7912,8 @@ snapshots:
       pathe: 2.0.3
 
   '@vitest/spy@4.1.11': {}
+
+  '@vitest/spy@5.0.0': {}
 
   '@vitest/utils@4.1.11':
     dependencies:
@@ -8157,9 +8018,9 @@ snapshots:
       estree-walker: 3.0.3
       js-tokens: 10.0.0
 
-  bail@2.0.2: {}
+  axe-core@4.13.0: {}
 
-  balanced-match@1.0.2: {}
+  bail@2.0.2: {}
 
   balanced-match@4.0.4: {}
 
@@ -8190,10 +8051,6 @@ snapshots:
       type-is: 2.1.0
     transitivePeerDependencies:
       - supports-color
-
-  brace-expansion@2.1.4:
-    dependencies:
-      balanced-match: 1.0.2
 
   brace-expansion@5.0.9:
     dependencies:
@@ -8319,10 +8176,10 @@ snapshots:
 
   csstype@3.2.3: {}
 
-  data-urls@7.0.0:
+  data-urls@7.0.0(@noble/hashes@2.4.0):
     dependencies:
       whatwg-mimetype: 5.0.0
-      whatwg-url: 16.0.1
+      whatwg-url: 16.0.1(@noble/hashes@2.4.0)
     transitivePeerDependencies:
       - '@noble/hashes'
 
@@ -8445,15 +8302,12 @@ snapshots:
 
   ee-first@1.1.1: {}
 
-  effect-oxlint@0.3.4(effect@4.0.0-rc.112):
+  effect-oxlint@0.3.4(effect@4.0.0-rc.116):
     dependencies:
       '@oxlint/plugins': 1.80.0
-      effect: 4.0.0-rc.112
+      effect: 4.0.0-rc.116
 
-  effect@4.0.0-rc.112:
-    dependencies:
-      fast-check: 4.9.0
-      msgpackr: 2.0.6
+  effect@4.0.0-rc.116: {}
 
   emoji-regex-xs@2.0.1: {}
 
@@ -8479,35 +8333,6 @@ snapshots:
   es-object-atoms@1.1.2:
     dependencies:
       es-errors: 1.3.0
-
-  esbuild@0.28.2:
-    optionalDependencies:
-      '@esbuild/aix-ppc64': 0.28.2
-      '@esbuild/android-arm': 0.28.2
-      '@esbuild/android-arm64': 0.28.2
-      '@esbuild/android-x64': 0.28.2
-      '@esbuild/darwin-arm64': 0.28.2
-      '@esbuild/darwin-x64': 0.28.2
-      '@esbuild/freebsd-arm64': 0.28.2
-      '@esbuild/freebsd-x64': 0.28.2
-      '@esbuild/linux-arm': 0.28.2
-      '@esbuild/linux-arm64': 0.28.2
-      '@esbuild/linux-ia32': 0.28.2
-      '@esbuild/linux-loong64': 0.28.2
-      '@esbuild/linux-mips64el': 0.28.2
-      '@esbuild/linux-ppc64': 0.28.2
-      '@esbuild/linux-riscv64': 0.28.2
-      '@esbuild/linux-s390x': 0.28.2
-      '@esbuild/linux-x64': 0.28.2
-      '@esbuild/netbsd-arm64': 0.28.2
-      '@esbuild/netbsd-x64': 0.28.2
-      '@esbuild/openbsd-arm64': 0.28.2
-      '@esbuild/openbsd-x64': 0.28.2
-      '@esbuild/openharmony-arm64': 0.28.2
-      '@esbuild/sunos-x64': 0.28.2
-      '@esbuild/win32-arm64': 0.28.2
-      '@esbuild/win32-ia32': 0.28.2
-      '@esbuild/win32-x64': 0.28.2
 
   escape-html@1.0.3: {}
 
@@ -8649,10 +8474,6 @@ snapshots:
       - supports-color
 
   extend@3.0.2: {}
-
-  fast-check@4.9.0:
-    dependencies:
-      pure-rand: 8.4.2
 
   fast-deep-equal@3.1.3: {}
 
@@ -8844,13 +8665,14 @@ snapshots:
 
   hono@4.13.5: {}
 
-  html-encoding-sniffer@6.0.0:
+  html-encoding-sniffer@6.0.0(@noble/hashes@2.4.0):
     dependencies:
-      '@exodus/bytes': 1.15.1
+      '@exodus/bytes': 1.15.1(@noble/hashes@2.4.0)
     transitivePeerDependencies:
       - '@noble/hashes'
 
-  html-escaper@2.0.2: {}
+  html-escaper@2.0.2:
+    optional: true
 
   html-void-elements@3.0.0: {}
 
@@ -8929,20 +8751,21 @@ snapshots:
 
   isexe@2.0.0: {}
 
-  istanbul-lib-coverage@3.2.2: {}
+  istanbul-lib-coverage@3.2.2:
+    optional: true
 
   istanbul-lib-report@3.0.1:
     dependencies:
       istanbul-lib-coverage: 3.2.2
       make-dir: 4.0.0
       supports-color: 7.2.0
+    optional: true
 
   istanbul-reports@3.2.0:
     dependencies:
       html-escaper: 2.0.2
       istanbul-lib-report: 3.0.1
-
-  javascript-natural-sort@0.7.1: {}
+    optional: true
 
   jiti@2.7.0: {}
 
@@ -8954,33 +8777,31 @@ snapshots:
 
   js-tokens@4.0.0: {}
 
-  jsdom@30.0.1:
+  jsdom@30.0.1(@noble/hashes@2.4.0):
     dependencies:
       '@asamuzakjp/css-color': 6.0.7
       '@asamuzakjp/dom-selector': 8.3.2
       '@bramus/specificity': 2.4.2
       '@csstools/css-syntax-patches-for-csstree': 1.1.9(css-tree@3.2.1)
-      '@exodus/bytes': 1.15.1
+      '@exodus/bytes': 1.15.1(@noble/hashes@2.4.0)
       css-tree: 3.2.1
-      data-urls: 7.0.0
+      data-urls: 7.0.0(@noble/hashes@2.4.0)
       decimal.js: 10.6.0
-      html-encoding-sniffer: 6.0.0
+      html-encoding-sniffer: 6.0.0(@noble/hashes@2.4.0)
       is-potential-custom-element-name: 1.0.1
       lru-cache: 11.5.2
       parse5: 8.0.1
       saxes: 6.0.0
       symbol-tree: 3.2.4
       tough-cookie: 6.0.2
-      undici: 8.10.0
+      undici: 8.10.2
       w3c-xmlserializer: 5.0.0
       webidl-conversions: 8.0.1
       whatwg-mimetype: 5.0.0
-      whatwg-url: 17.1.0
+      whatwg-url: 17.1.0(@noble/hashes@2.4.0)
       xml-name-validator: 5.0.0
     transitivePeerDependencies:
       - '@noble/hashes'
-
-  jsesc@3.1.0: {}
 
   json-buffer@3.0.1: {}
 
@@ -9157,8 +8978,6 @@ snapshots:
     dependencies:
       p-locate: 5.0.0
 
-  lodash-es@4.18.1: {}
-
   log-symbols@4.1.0:
     dependencies:
       chalk: 4.1.2
@@ -9197,7 +9016,7 @@ snapshots:
 
   magic-string@1.2.3:
     dependencies:
-      '@jridgewell/sourcemap-codec': 1.5.5
+      '@jridgewell/sourcemap-codec': 1.6.0
 
   magicast@0.5.4:
     dependencies:
@@ -9208,6 +9027,7 @@ snapshots:
   make-dir@4.0.0:
     dependencies:
       semver: 7.8.5
+    optional: true
 
   maplibre-gl@6.6.0:
     dependencies:
@@ -9605,8 +9425,6 @@ snapshots:
     dependencies:
       mime-db: 1.54.0
 
-  mime@4.1.0: {}
-
   mimic-fn@2.1.0: {}
 
   min-indent@1.0.1: {}
@@ -9614,10 +9432,6 @@ snapshots:
   minimatch@10.2.6:
     dependencies:
       brace-expansion: 5.0.9
-
-  minimatch@9.0.9:
-    dependencies:
-      brace-expansion: 2.1.4
 
   minimist@1.2.8: {}
 
@@ -9641,36 +9455,17 @@ snapshots:
 
   ms@2.1.3: {}
 
-  msgpackr-extract@3.0.4:
-    dependencies:
-      node-gyp-build-optional-packages: 5.2.2
-    optionalDependencies:
-      '@msgpackr-extract/msgpackr-extract-darwin-arm64': 3.0.4
-      '@msgpackr-extract/msgpackr-extract-darwin-x64': 3.0.4
-      '@msgpackr-extract/msgpackr-extract-linux-arm': 3.0.4
-      '@msgpackr-extract/msgpackr-extract-linux-arm64': 3.0.4
-      '@msgpackr-extract/msgpackr-extract-linux-x64': 3.0.4
-      '@msgpackr-extract/msgpackr-extract-win32-x64': 3.0.4
-    optional: true
-
-  msgpackr@2.0.6:
-    optionalDependencies:
-      msgpackr-extract: 3.0.4
-
   murmurhash-js@1.0.0: {}
 
   nanoid@3.3.18: {}
+
+  nanoid@5.0.9: {}
 
   natural-compare@1.4.0: {}
 
   negotiator@1.1.0:
     dependencies:
       content-type: 2.1.0
-
-  node-gyp-build-optional-packages@5.2.2:
-    dependencies:
-      detect-libc: 2.1.2
-    optional: true
 
   node-source-walk@7.0.2:
     dependencies:
@@ -9769,6 +9564,30 @@ snapshots:
       '@oxc-resolver/binding-win32-arm64-msvc': 11.24.2
       '@oxc-resolver/binding-win32-x64-msvc': 11.24.2
 
+  oxfmt@0.66.0:
+    dependencies:
+      tinypool: 2.1.0
+    optionalDependencies:
+      '@oxfmt/binding-android-arm-eabi': 0.66.0
+      '@oxfmt/binding-android-arm64': 0.66.0
+      '@oxfmt/binding-darwin-arm64': 0.66.0
+      '@oxfmt/binding-darwin-x64': 0.66.0
+      '@oxfmt/binding-freebsd-x64': 0.66.0
+      '@oxfmt/binding-linux-arm-gnueabihf': 0.66.0
+      '@oxfmt/binding-linux-arm-musleabihf': 0.66.0
+      '@oxfmt/binding-linux-arm64-gnu': 0.66.0
+      '@oxfmt/binding-linux-arm64-musl': 0.66.0
+      '@oxfmt/binding-linux-ppc64-gnu': 0.66.0
+      '@oxfmt/binding-linux-riscv64-gnu': 0.66.0
+      '@oxfmt/binding-linux-riscv64-musl': 0.66.0
+      '@oxfmt/binding-linux-s390x-gnu': 0.66.0
+      '@oxfmt/binding-linux-x64-gnu': 0.66.0
+      '@oxfmt/binding-linux-x64-musl': 0.66.0
+      '@oxfmt/binding-openharmony-arm64': 0.66.0
+      '@oxfmt/binding-win32-arm64-msvc': 0.66.0
+      '@oxfmt/binding-win32-ia32-msvc': 0.66.0
+      '@oxfmt/binding-win32-x64-msvc': 0.66.0
+
   oxlint@1.80.0:
     optionalDependencies:
       '@oxlint/binding-android-arm-eabi': 1.80.0
@@ -9830,13 +9649,7 @@ snapshots:
       is-decimal: 2.0.1
       is-hexadecimal: 2.0.1
 
-  parse-imports-exports@0.2.4:
-    dependencies:
-      parse-statements: 1.0.11
-
   parse-ms@2.1.0: {}
-
-  parse-statements@1.0.11: {}
 
   parse5@8.0.1:
     dependencies:
@@ -9918,7 +9731,7 @@ snapshots:
 
   prelude-ls@1.2.1: {}
 
-  prettier@3.9.6: {}
+  pretty-bytes@7.0.1: {}
 
   pretty-format@27.5.1:
     dependencies:
@@ -9943,9 +9756,9 @@ snapshots:
 
   punycode@2.3.1: {}
 
-  pure-rand@8.4.2: {}
-
   qr-creator@1.0.0: {}
+
+  qrcode-generator@2.0.4: {}
 
   qs@6.15.3:
     dependencies:
@@ -10016,13 +9829,13 @@ snapshots:
       indent-string: 4.0.0
       strip-indent: 3.0.0
 
-  redis@6.2.1:
+  redis@6.2.1(@opentelemetry/api@1.9.0):
     dependencies:
-      '@redis/bloom': 6.2.1(@redis/client@6.2.1)
-      '@redis/client': 6.2.1
-      '@redis/json': 6.2.1(@redis/client@6.2.1)
-      '@redis/search': 6.2.1(@redis/client@6.2.1)
-      '@redis/time-series': 6.2.1(@redis/client@6.2.1)
+      '@redis/bloom': 6.2.1(@redis/client@6.2.1(@opentelemetry/api@1.9.0))
+      '@redis/client': 6.2.1(@opentelemetry/api@1.9.0)
+      '@redis/json': 6.2.1(@redis/client@6.2.1(@opentelemetry/api@1.9.0))
+      '@redis/search': 6.2.1(@redis/client@6.2.1(@opentelemetry/api@1.9.0))
+      '@redis/time-series': 6.2.1(@redis/client@6.2.1(@opentelemetry/api@1.9.0))
     transitivePeerDependencies:
       - '@node-rs/xxhash'
       - '@opentelemetry/api'
@@ -10135,38 +9948,6 @@ snapshots:
       '@rolldown/binding-openharmony-arm64': 1.2.6
       '@rolldown/binding-win32-arm64-msvc': 1.2.6
       '@rolldown/binding-win32-x64-msvc': 1.2.6
-
-  rollup@4.63.0:
-    dependencies:
-      '@types/estree': 1.0.9
-    optionalDependencies:
-      '@napi-rs/lzma-linux-x64-gnu': 1.5.1
-      '@rollup/rollup-android-arm-eabi': 4.63.0
-      '@rollup/rollup-android-arm64': 4.63.0
-      '@rollup/rollup-darwin-arm64': 4.63.0
-      '@rollup/rollup-darwin-x64': 4.63.0
-      '@rollup/rollup-freebsd-arm64': 4.63.0
-      '@rollup/rollup-freebsd-x64': 4.63.0
-      '@rollup/rollup-linux-arm-gnueabihf': 4.63.0
-      '@rollup/rollup-linux-arm-musleabihf': 4.63.0
-      '@rollup/rollup-linux-arm64-gnu': 4.63.0
-      '@rollup/rollup-linux-arm64-musl': 4.63.0
-      '@rollup/rollup-linux-loong64-gnu': 4.63.0
-      '@rollup/rollup-linux-loong64-musl': 4.63.0
-      '@rollup/rollup-linux-ppc64-gnu': 4.63.0
-      '@rollup/rollup-linux-ppc64-musl': 4.63.0
-      '@rollup/rollup-linux-riscv64-gnu': 4.63.0
-      '@rollup/rollup-linux-riscv64-musl': 4.63.0
-      '@rollup/rollup-linux-s390x-gnu': 4.63.0
-      '@rollup/rollup-linux-x64-gnu': 4.63.0
-      '@rollup/rollup-linux-x64-musl': 4.63.0
-      '@rollup/rollup-openbsd-x64': 4.63.0
-      '@rollup/rollup-openharmony-arm64': 4.63.0
-      '@rollup/rollup-win32-arm64-msvc': 4.63.0
-      '@rollup/rollup-win32-ia32-msvc': 4.63.0
-      '@rollup/rollup-win32-x64-gnu': 4.63.0
-      '@rollup/rollup-win32-x64-msvc': 4.63.0
-      fsevents: 2.3.3
 
   router@2.2.0:
     dependencies:
@@ -10367,12 +10148,16 @@ snapshots:
 
   tinybench@2.9.0: {}
 
+  tinybench@6.1.4: {}
+
   tinyexec@1.3.0: {}
 
   tinyglobby@0.2.17:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.7)
       picomatch: 4.0.7
+
+  tinypool@2.1.0: {}
 
   tinyqueue@3.0.0: {}
 
@@ -10422,12 +10207,6 @@ snapshots:
   tslib@2.3.0: {}
 
   tslib@2.8.1: {}
-
-  tsx@4.23.12:
-    dependencies:
-      esbuild: 0.28.2
-    optionalDependencies:
-      fsevents: 2.3.3
 
   type-check@0.4.0:
     dependencies:
@@ -10481,7 +10260,7 @@ snapshots:
 
   undici-types@8.3.0: {}
 
-  undici@8.10.0: {}
+  undici@8.10.2: {}
 
   unicode-trie@2.0.0:
     dependencies:
@@ -10547,23 +10326,7 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vite@7.3.6(@types/node@26.4.0)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.12)(yaml@2.9.0):
-    dependencies:
-      esbuild: 0.28.2
-      fdir: 6.5.0(picomatch@4.0.7)
-      picomatch: 4.0.7
-      postcss: 8.5.26
-      rollup: 4.63.0
-      tinyglobby: 0.2.17
-    optionalDependencies:
-      '@types/node': 26.4.0
-      fsevents: 2.3.3
-      jiti: 2.7.0
-      lightningcss: 1.33.0
-      tsx: 4.23.12
-      yaml: 2.9.0
-
-  vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0):
+  vite@8.2.1(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.7
@@ -10572,16 +10335,27 @@ snapshots:
       tinyglobby: 0.2.17
     optionalDependencies:
       '@types/node': 26.4.0
-      esbuild: 0.28.2
       fsevents: 2.3.3
       jiti: 2.7.0
-      tsx: 4.23.12
       yaml: 2.9.0
 
-  vitest@4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)):
+  vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0):
+    dependencies:
+      lightningcss: 1.33.0
+      picomatch: 4.0.7
+      postcss: 8.5.26
+      rolldown: 1.2.6
+      tinyglobby: 0.2.17
+    optionalDependencies:
+      '@types/node': 26.4.0
+      fsevents: 2.3.3
+      jiti: 2.7.0
+      yaml: 2.9.0
+
+  vitest@4.1.11(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)):
     dependencies:
       '@vitest/expect': 4.1.11
-      '@vitest/mocker': 4.1.11(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+      '@vitest/mocker': 4.1.11(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
       '@vitest/pretty-format': 4.1.11
       '@vitest/runner': 4.1.11
       '@vitest/snapshot': 4.1.11
@@ -10598,13 +10372,39 @@ snapshots:
       tinyexec: 1.3.0
       tinyglobby: 0.2.17
       tinyrainbow: 3.1.1
-      vite: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+      vite: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
       why-is-node-running: 2.3.0
     optionalDependencies:
+      '@opentelemetry/api': 1.9.0
       '@types/node': 26.4.0
       '@vitest/coverage-v8': 4.1.11(vitest@4.1.11)
       happy-dom: 20.11.13
-      jsdom: 30.0.1
+      jsdom: 30.0.1(@noble/hashes@2.4.0)
+    transitivePeerDependencies:
+      - msw
+
+  vitest@5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.0)(happy-dom@20.11.13)(jsdom@30.0.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)):
+    dependencies:
+      '@types/chai': 5.2.3
+      '@vitest/mocker': 5.0.0(vite@8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0))
+      chai: 6.2.2
+      es-module-lexer: 2.3.2
+      expect-type: 1.4.0
+      magic-string: 1.2.3
+      obug: 2.1.4
+      picomatch: 4.0.7
+      std-env: 4.2.0
+      tinybench: 6.1.4
+      tinyexec: 1.3.0
+      tinyglobby: 0.2.17
+      vite: 8.2.2(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.0)
+      why-is-node-running: 2.3.0
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.0
+      '@types/node': 26.4.0
+      '@vitest/coverage-v8': 5.0.0(vitest@5.0.0)
+      happy-dom: 20.11.13
+      jsdom: 30.0.1(@noble/hashes@2.4.0)
     transitivePeerDependencies:
       - msw
 
@@ -10626,17 +10426,17 @@ snapshots:
 
   whatwg-mimetype@5.0.0: {}
 
-  whatwg-url@16.0.1:
+  whatwg-url@16.0.1(@noble/hashes@2.4.0):
     dependencies:
-      '@exodus/bytes': 1.15.1
+      '@exodus/bytes': 1.15.1(@noble/hashes@2.4.0)
       tr46: 6.0.0
       webidl-conversions: 8.0.1
     transitivePeerDependencies:
       - '@noble/hashes'
 
-  whatwg-url@17.1.0:
+  whatwg-url@17.1.0(@noble/hashes@2.4.0):
     dependencies:
-      '@exodus/bytes': 1.15.1
+      '@exodus/bytes': 1.15.1(@noble/hashes@2.4.0)
       tr46: 6.0.0
       webidl-conversions: 8.0.1
     transitivePeerDependencies:

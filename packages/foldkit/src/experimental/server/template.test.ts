@@ -801,7 +801,7 @@ describe('runtime id uniqueness', () => {
     // A runtime id names one application for the whole page. Injecting two
     // default renders produced a page whose roots both answered to "app", so
     // whichever booted second would read the other's Flags payload and restore
-    // the other's HMR Model and scroll position.
+    // the other's preserved Model and scroll position.
     const first = injectIntoTemplate(
       twoRootTemplate,
       rendered({
@@ -822,9 +822,9 @@ describe('runtime id uniqueness', () => {
   })
 
   it('refuses a duplicate id for applications that declare no Flags', () => {
-    // The pairing is only one of the things a runtime id decides. HMR Model
-    // preservation and scroll restoration key on it too, so two Flags-free
-    // applications sharing one still take each other's state.
+    // The root-to-Flags pairing is only one of the things a runtime id decides.
+    // Model preservation and scroll restoration key on it too, so two
+    // Flags-free applications sharing one still take each other's state.
     const first = injectIntoTemplate(
       twoRootTemplate,
       rendered({

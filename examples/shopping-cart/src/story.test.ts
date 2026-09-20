@@ -1,5 +1,6 @@
 import { Option } from 'effect'
 import { given, message, model, story } from 'foldkit/story'
+import { modifyFields } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
@@ -124,10 +125,11 @@ describe('update', () => {
     test('ClickedIncrementQuantity raises the quantity for an item', () => {
       story(
         update,
-        given({
-          ...baseModel,
-          cart: [{ item: apple, quantity: 1 }],
-        }),
+        given(
+          modifyFields(baseModel, {
+            cart: () => [{ item: apple, quantity: 1 }],
+          }),
+        ),
         message(Message.ClickedIncrementQuantity({ itemId: '1' })),
         model(model => {
           expect(model.cart[0]?.quantity).toBe(2)
@@ -138,10 +140,11 @@ describe('update', () => {
     test('ClickedDecrementQuantity lowers the quantity for an item', () => {
       story(
         update,
-        given({
-          ...baseModel,
-          cart: [{ item: apple, quantity: 2 }],
-        }),
+        given(
+          modifyFields(baseModel, {
+            cart: () => [{ item: apple, quantity: 2 }],
+          }),
+        ),
         message(Message.ClickedDecrementQuantity({ itemId: '1' })),
         model(model => {
           expect(model.cart[0]?.quantity).toBe(1)
@@ -152,10 +155,11 @@ describe('update', () => {
     test('ClickedDecrementQuantity removes the item when it reaches zero', () => {
       story(
         update,
-        given({
-          ...baseModel,
-          cart: [{ item: apple, quantity: 1 }],
-        }),
+        given(
+          modifyFields(baseModel, {
+            cart: () => [{ item: apple, quantity: 1 }],
+          }),
+        ),
         message(Message.ClickedDecrementQuantity({ itemId: '1' })),
         model(model => {
           expect(model.cart).toHaveLength(0)
@@ -166,13 +170,14 @@ describe('update', () => {
     test('ClickedRemoveCartItem drops the matching cart entry', () => {
       story(
         update,
-        given({
-          ...baseModel,
-          cart: [
-            { item: apple, quantity: 2 },
-            { item: banana, quantity: 1 },
-          ],
-        }),
+        given(
+          modifyFields(baseModel, {
+            cart: () => [
+              { item: apple, quantity: 2 },
+              { item: banana, quantity: 1 },
+            ],
+          }),
+        ),
         message(Message.ClickedRemoveCartItem({ itemId: '1' })),
         model(model => {
           expect(model.cart).toHaveLength(1)
@@ -184,10 +189,11 @@ describe('update', () => {
     test('ClickedClearCart empties the cart', () => {
       story(
         update,
-        given({
-          ...baseModel,
-          cart: [{ item: apple, quantity: 2 }],
-        }),
+        given(
+          modifyFields(baseModel, {
+            cart: () => [{ item: apple, quantity: 2 }],
+          }),
+        ),
         message(Message.ClickedClearCart()),
         model(model => {
           expect(model.cart).toHaveLength(0)
@@ -215,11 +221,12 @@ describe('update', () => {
     test('ClickedPlaceOrder sets orderPlaced, clears the cart, and resets instructions', () => {
       story(
         update,
-        given({
-          ...baseModel,
-          cart: [{ item: apple, quantity: 2 }],
-          deliveryInstructions: 'Knock loudly',
-        }),
+        given(
+          modifyFields(baseModel, {
+            cart: () => [{ item: apple, quantity: 2 }],
+            deliveryInstructions: () => 'Knock loudly',
+          }),
+        ),
         message(Message.ClickedPlaceOrder()),
         model(model => {
           expect(model.orderPlaced).toBe(true)

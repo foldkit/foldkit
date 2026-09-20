@@ -1,9 +1,9 @@
 import { Option, Schema, String } from 'effect'
 import { type Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
-import { PeopleRoute } from '../route'
+import { PeopleRoute } from './route'
 
 // MESSAGE
 
@@ -29,7 +29,7 @@ export type Message = typeof Message.Type
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ChangedSearchInput: ({ value }) => ({
-      model: evo(model, { searchInput: () => value }),
+      model: modifyFields(model, { searchInput: () => value }),
     }),
 
     SubmittedSearch: () => ({
@@ -47,7 +47,7 @@ export const update = (model: Model, message: Message) =>
     ChangedRoute: ({ route }) => {
       const searchText = Option.getOrElse(route.searchText, () => '')
       return {
-        model: evo(model, {
+        model: modifyFields(model, {
           searchInput: () => searchText,
           searchHistory: searchHistory =>
             addSearchToHistory(searchHistory, searchText),
@@ -58,7 +58,9 @@ export const update = (model: Model, message: Message) =>
     },
 
     SucceededFetchPeople: ({ query, people }) => ({
-      model: evo(model, { results: () => SearchLoaded({ query, people }) }),
+      model: modifyFields(model, {
+        results: () => SearchLoaded({ query, people }),
+      }),
     }),
   })
 

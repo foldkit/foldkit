@@ -76,10 +76,9 @@ const TEMPLATE_DEV_DEPENDENCIES = [
   '@foldkit/vite-plugin',
   '@foldkit/devtools-mcp',
   '@foldkit/oxlint-plugin',
-  '@trivago/prettier-plugin-sort-imports',
   'happy-dom',
+  'oxfmt',
   'oxlint',
-  'prettier',
   'vitest',
 ]
 
@@ -152,7 +151,7 @@ export const dependencyExample = (scaffold: Scaffold): string =>
 
 /**
  * The devDependencies a scaffold needs beyond the template tooling and the
- * example's own list. The server-rendered scaffolds ship Node build and host
+ * example's own list. The server-rendered scaffolds ship Node build
  * scripts, so they need `@types/node` to typecheck.
  */
 export const scaffoldDevDependencies = (

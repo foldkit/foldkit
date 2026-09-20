@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import type { Plugin } from 'vite'
 
 import { canaryVersion } from '../../../scripts/lib/package-version.mjs'
-import { exampleSlugs } from '../src/page/example/meta'
+import { exampleSlugs } from '../src/page/example/meta.ts'
 
 const SCRIPT_DIRECTORY = dirname(fileURLToPath(import.meta.url))
 const WEBSITE_ROOT = resolve(SCRIPT_DIRECTORY, '..')
@@ -57,26 +57,17 @@ const EXPECTED_SKIP_EXTENSIONS = new Set([
 ])
 const EXCLUDED_DIRECTORIES = new Set(['node_modules', 'dist'])
 
-// NOTE: The playground preserves the development dependencies its shipped
-// commands execute. Its Vite config always loads @tailwindcss/vite, and an SSG
-// build runs its prerender through tsx. Omitting either produces a manifest
-// whose own scripts cannot run in a clean WebContainer or disposable npm
-// project.
+// NOTE: The playground keeps only the development dependencies its shipped
+// commands execute: `vite`, the Foldkit plugins its Vite config loads, and
+// `@tailwindcss/vite`. Omitting one produces a manifest whose own scripts
+// cannot run in a clean WebContainer or disposable npm project.
 const PLAYGROUND_DEV_DEPENDENCIES = new Set([
   '@foldkit/devtools',
   '@foldkit/vite-plugin',
   '@tailwindcss/vite',
   'tailwindcss',
-  'tsx',
   'vite',
 ])
-
-// NOTE: vite 8 bundles rolldown, whose wasm binding crashes in the WebContainer
-// ("RangeError: Invalid atomic access index" out of @emnapi's atomics). Pin the
-// playground to vite 7 (esbuild + rollup), which the WebContainer runs. The
-// examples themselves stay on vite 8; this override only affects the in-browser
-// preview.
-const WEBCONTAINER_VITE_VERSION = '^7'
 
 const STANDALONE_VITE_CONFIG = `import { foldkit } from '@foldkit/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
@@ -108,6 +99,7 @@ type DependencySpec = Readonly<Record<string, string>>
 type PackageJson = Readonly<{
   dependencies?: DependencySpec
   devDependencies?: DependencySpec
+  overrides?: DependencySpec
   [key: string]: unknown
 }>
 
@@ -132,6 +124,13 @@ const rewriteWorkspaceSpec =
     }
     return versions[name] ?? specifier
   }
+
+// NOTE: Rolldown 1.2.9's generated loader rejects its WASI binding because
+// both export `__napiBindingTarget`. WebContainers must use the last compatible
+// release until Rolldown publishes a matching loader and binding pair.
+export const PLAYGROUND_DEPENDENCY_OVERRIDES: DependencySpec = {
+  rolldown: '1.2.6',
+}
 
 const versionForDeployment = (
   version: string,
@@ -171,13 +170,6 @@ const filterToRuntimeDevDependencies = (
   return entries.length === 0 ? undefined : Object.fromEntries(entries)
 }
 
-const pinWebContainerVite = (
-  devDependencies: DependencySpec | undefined,
-): DependencySpec | undefined =>
-  devDependencies !== undefined && 'vite' in devDependencies
-    ? { ...devDependencies, vite: WEBCONTAINER_VITE_VERSION }
-    : devDependencies
-
 const transformPackageJson = (
   raw: string,
   versions: Readonly<Record<string, string>>,
@@ -186,12 +178,14 @@ const transformPackageJson = (
   const rewrite = rewriteWorkspaceSpec(versions)
   const transformed = {
     ...packageJson,
+    overrides: {
+      ...(packageJson.overrides ?? {}),
+      ...PLAYGROUND_DEPENDENCY_OVERRIDES,
+    },
     dependencies: rewriteDependencyMap(packageJson.dependencies, rewrite),
-    devDependencies: pinWebContainerVite(
-      rewriteDependencyMap(
-        filterToRuntimeDevDependencies(packageJson.devDependencies),
-        rewrite,
-      ),
+    devDependencies: rewriteDependencyMap(
+      filterToRuntimeDevDependencies(packageJson.devDependencies),
+      rewrite,
     ),
   }
   return JSON.stringify(transformed, null, 2) + '\n'

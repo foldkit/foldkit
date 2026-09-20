@@ -69,8 +69,8 @@
   --font-mono: 'Paper Mono', ui-monospace, monospace;
   --font-weight-book: 350;
   --font-weight-code: 425;
-  --text-page-title: 2rem;
-  --text-page-title-wide: 2.5rem;
+  --text-page-title: 2.5rem;
+  --text-page-title-wide: 3rem;
   --text-inline-code: 0.9375em;
 }
 
@@ -90,7 +90,7 @@ html.dark {
 
 @media (min-width: theme(--breakpoint-md)) {
   :root {
-    --header-height: calc(4.5rem + env(safe-area-inset-top, 0px));
+    --header-height: calc(4rem + env(safe-area-inset-top, 0px));
   }
 }
 
@@ -121,7 +121,7 @@ html.dark {
   }
 
   strong {
-    font-weight: 600;
+    font-weight: 500;
   }
 
   :is(h1, h2, h3, h4).font-mono {
@@ -216,6 +216,10 @@ html.dark {
     left: max(0px, calc((100% - var(--docs-max-width)) / 2));
   }
 
+  .docs-toc {
+    right: max(0px, calc((100% - var(--docs-max-width)) / 2));
+  }
+
   .docs-content {
     @apply w-full min-w-0 mx-auto px-6 py-8 md:px-8 xl:px-12 2xl:py-12 font-book leading-7;
     max-width: var(--docs-content-width);
@@ -247,7 +251,7 @@ html.dark {
   }
 
   .link-accent {
-    @apply text-accent-600 dark:text-accent-500 underline decoration-accent-600/30 dark:decoration-accent-500/30 hover:decoration-accent-600 dark:hover:decoration-accent-500;
+    @apply text-accent-700 dark:text-accent-500 underline decoration-accent-700/30 dark:decoration-accent-500/30 hover:decoration-accent-700 dark:hover:decoration-accent-500;
   }
 
   .code-surface {
@@ -255,11 +259,11 @@ html.dark {
   }
 
   .docs-disclosure-button {
-    @apply w-full flex items-center justify-between px-4 py-3 text-left text-base font-normal cursor-pointer transition border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white hover:bg-gray-200/50 dark:hover:bg-gray-800 rounded-lg data-[open]:rounded-b-none select-none;
+    @apply w-full flex items-center justify-between px-4 py-3 text-left text-base font-normal cursor-pointer transition border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white hover:bg-gray-200/50 dark:hover:bg-gray-800 rounded-lg data-[open]:rounded-b-none select-none;
   }
 
   .docs-disclosure-panel {
-    @apply px-4 py-3 border-x border-b border-gray-300 dark:border-gray-700 rounded-b-lg text-gray-800 dark:text-gray-200;
+    @apply px-4 py-3 border-x border-b border-gray-200 dark:border-gray-800 rounded-b-lg text-gray-800 dark:text-gray-200;
   }
 
   .cta-primary,

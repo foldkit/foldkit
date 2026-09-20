@@ -12,6 +12,8 @@ Elm is the source of this architecture, and its language provides guarantees Typ
 The Foldkit version is in the [examples gallery](/example-apps/pixel-art). The [Elm version source](https://github.com/foldkit/foldkit/tree/main/comparisons/pixel-art-elm) is an Elm 0.19 application with no npm dependencies.
 :::
 
+The Elm snippets and the checked-in app use the two-space indentation shown in [Elm’s official examples](https://elm-lang.org/examples). `elm-format` follows a separate convention with four-space indentation.
+
 ## The Architecture You Already Know {#same-architecture}
 
 Most concepts translate directly:
@@ -57,11 +59,11 @@ The update functions have the same shape.
 
 ::Snippet{name="comparisonFoldkitUpdate" label="Foldkit update"}
 
-`case msg of` becomes `Message.match`. Elm record updates become `evo` transformations. `( model, Cmd.none )` becomes `{ model }`.
+`case msg of` becomes `Message.match`. Elm record updates become `modifyFields` transformations. `( model, Cmd.none )` becomes `{ model }`.
 
 Elm enforces exhaustive pattern matching as part of the language. Foldkit obtains the same compile-time failure at a match written with `Message.match`. That is the required Foldkit update style, but TypeScript itself does not prevent someone from writing a non-exhaustive alternative.
 
-Elm record updates and `evo` both preserve references to unchanged nested values. The rendering section shows how each application uses that reference stability.
+Elm record updates and `modifyFields` both preserve references to unchanged nested values. The rendering section shows how each application uses that reference stability.
 
 ## The Model: Custom Types vs Schema {#the-model}
 

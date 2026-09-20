@@ -197,6 +197,7 @@ const basicDemo = (
     model: dialogModel,
     view: Dialog.view,
     viewInputs: {
+      hasDescription: true,
       toView: ({
         dialog,
         backdrop,
@@ -231,6 +232,7 @@ const animatedDemo = (
     model: dialogModel,
     view: Dialog.view,
     viewInputs: {
+      hasDescription: true,
       toView: ({
         dialog,
         backdrop,
@@ -272,6 +274,7 @@ const overlayDemo = (
         model: dialogModel,
         view: Dialog.view,
         viewInputs: {
+          hasDescription: true,
           toView: ({
             dialog,
             backdrop,
@@ -323,6 +326,7 @@ const nestedDemo = (
         model: parentDialogModel,
         view: Dialog.view,
         viewInputs: {
+          hasDescription: true,
           toView: ({
             dialog,
             backdrop,
@@ -358,6 +362,7 @@ const nestedDemo = (
         model: childDialogModel,
         view: Dialog.view,
         viewInputs: {
+          hasDescription: true,
           toView: ({
             dialog,
             backdrop,

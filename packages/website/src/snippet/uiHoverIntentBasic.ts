@@ -5,7 +5,7 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 
 import { HoverIntent } from '@foldkit/ui'
 
@@ -41,7 +41,7 @@ const foldHoverIntent = Update.foldChild({
   update: HoverIntent.update,
   read: model => Option.some(model.hoverIntent),
   write: (model, nextHoverIntent) =>
-    evo(model, { hoverIntent: () => nextHoverIntent }),
+    modifyFields(model, { hoverIntent: () => nextHoverIntent }),
   toParentMessage: message => Message.GotHoverIntentMessage({ message }),
   foldOutMessage: foldHoverIntentOutMessage,
 })

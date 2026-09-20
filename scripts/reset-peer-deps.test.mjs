@@ -15,7 +15,7 @@ const FOLDKIT_FLOOR_MANIFESTS = [
 ]
 
 const runResetPeerDeps = () => {
-  const result = spawnSync('npx', ['tsx', 'scripts/reset-peer-deps.ts'], {
+  const result = spawnSync('node', ['scripts/reset-peer-deps.ts'], {
     cwd: REPO_ROOT,
     encoding: 'utf8',
   })

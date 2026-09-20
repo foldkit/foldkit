@@ -48,14 +48,14 @@ export const view = (
   h.aside(
     [
       h.Class(
-        'hidden xl:block sticky top-[var(--header-height)] w-64 h-[calc(100vh-var(--header-height))] shrink-0 overflow-y-auto border-l border-gray-300 dark:border-gray-800 px-4 pt-8 pb-4',
+        'docs-toc hidden xl:block fixed top-[var(--header-height)] bottom-0 z-30 w-64 overflow-y-auto overscroll-none bg-cream dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 px-4 pt-4 pb-4',
       ),
     ],
     [
       h.h3(
         [
           h.AriaHidden(true),
-          h.Class('text-sm font-medium text-gray-800 dark:text-gray-200 mb-4'),
+          h.Class('text-sm text-gray-800 dark:text-gray-200 mb-4'),
         ],
         ['On this page'],
       ),
@@ -113,14 +113,14 @@ export const mobileView = (
         Message.ToggledMobileTableOfContents({ isOpen: open }),
       ),
       h.Class(
-        'group xl:hidden fixed top-[var(--header-height)] left-0 right-0 md:left-64 z-40 bg-cream dark:bg-gray-900 border-b border-gray-300 dark:border-gray-800',
+        'group xl:hidden fixed top-[var(--header-height)] left-0 right-0 md:left-64 z-40 bg-cream dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800',
       ),
     ],
     [
       h.summary(
         [
           h.Class(
-            'flex items-center justify-between px-4 md:px-6 py-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden group-open:border-b group-open:border-gray-300 dark:group-open:border-gray-800',
+            'flex items-center justify-between px-4 md:px-6 py-3 cursor-pointer list-none [&::-webkit-details-marker]:hidden group-open:border-b group-open:border-gray-200 dark:group-open:border-gray-800',
           ),
         ],
         [
@@ -158,7 +158,7 @@ export const mobileView = (
         ],
         [
           h.ul(
-            [h.Class('text-sm divide-y divide-gray-300 dark:divide-gray-800')],
+            [h.Class('text-sm divide-y divide-gray-200 dark:divide-gray-800')],
             Array.map(entries, ({ level, id, text }) => {
               const isActive = Option.match(maybeActiveSectionId, {
                 onNone: () => false,

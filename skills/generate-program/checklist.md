@@ -7,7 +7,7 @@ Run through each category after generating an app. Fix any issues before present
 
 ## Gate commands (run ALL FOUR; fix everything they surface)
 
-- [ ] `format`: run FIRST; rewrites files so subsequent gates see the committed shape. The scaffold wires prettier.
+- [ ] `format`: run FIRST; rewrites files so subsequent gates see the committed shape. The scaffold wires Oxfmt.
 - [ ] `lint`: output clean. This is the substantive structural gate, not just a style pass: the scaffold wires oxlint **and** `@foldkit/oxlint-plugin`, whose 24 `foldkit/*` rules enforce keyed rows, route printing, `Got*` wrapping, Command naming, and more. Treat any `foldkit(...)` diagnostic as a blocker; that is how they are labelled in the output. It also catches the unused imports `tsc` does not.
 - [ ] `typecheck`: no errors. The scaffold wires `tsc --noEmit`.
 - [ ] `test`: all tests pass. The scaffold wires vitest.
@@ -18,7 +18,7 @@ run its script, not the tool named here.
 
 Invoke each through the package manager the project was scaffolded with (`npm run lint`, `pnpm run lint`, `yarn lint`, `bun run lint`). If a script is missing, run the project-local binary through that manager's exec (`pnpm exec oxlint src`, `npm exec --no-install oxlint src`, `yarn exec oxlint src`, `bun x --no-install oxlint src`). Avoid bare `npx`, which fetches from the registry when the binary isn't installed locally.
 
-"Typecheck clean and tests pass" is NOT sufficient. Generated code is rarely Prettier-exact out of the box, and frequently has unused imports (`Invalid`, `NotValidated`, `Valid` imported as values when only used as string-literal tag keys in `Match.tag(...)`) that only the linter catches. Skipping either means the user's first `git commit` produces a cascade of formatting/lint fixes they have to clean up.
+"Typecheck clean and tests pass" is NOT sufficient. Generated code rarely matches Oxfmt's output out of the box, and frequently has unused imports (`Invalid`, `NotValidated`, `Valid` imported as values when only used as string-literal tag keys in `Match.tag(...)`) that only the linter catches. Skipping either means the user's first `git commit` produces a cascade of formatting/lint fixes they have to clean up.
 
 ## Mechanical scans (run on every file before tsc)
 
@@ -37,7 +37,7 @@ looks like. Never read a quiet lint run as the rules being off.
 If the rules aren't active, turning them on is a bigger win than any scan below.
 
 Among others, the plugin enforces keyed mapped rows, hard-coded route strings,
-empty-object tagged calls, `Rel` on external links, spread inside `evo`, `Got*`
+empty-object tagged calls, `Rel` on external links, spread inside `modifyFields`, `Got*`
 wrapping of child output, PascalCase `Command.define` bindings, and no `NoOp`
 Messages. Don't re-implement a rule wholesale.
 
@@ -151,17 +151,17 @@ grep -rn "isArrayEmpty(model\.\|isArrayNonEmpty(model\." src/
 # than grepped. A hit whose enclosing call has no such spread is hand-rolled.
 grep -rnE "(^|[^.[:alnum:]_])(h\.)?(input|textarea|button)\(" src/
 
-# Spread inside evo. foldkit/no-spread-in-evo only inspects a Property whose
+# Spread inside modifyFields. foldkit/no-spread-in-modify-fields only inspects a Property whose
 # value is an arrow updater, and skips bodies with a computed key, so a spread in
-# the evo updates object itself is unflagged. Use a nested evo instead.
+# the modifyFields updates object itself is unflagged. Use a nested modifyFields instead.
 #
 # Don't window this with -A: an updates object runs past any fixed number of lines,
 # and piping the window through a second grep drops the file:line that would let you
-# find the hit again. Narrow to files that call evo, then print every spread in them
+# find the hit again. Narrow to files that call modifyFields, then print every spread in them
 # with its own location. Most hits are unrelated spreads (array literals, attribute
-# groups); read each one's enclosing call to see whether it sits in an evo updates
-# object. Few enough hits to eyeball, which listing every evo call site is not.
-grep -rl "evo(" src/ | xargs grep -Hn "\.\.\."
+# groups); read each one's enclosing call to see whether it sits in a modifyFields updates
+# object. Few enough hits to eyeball, which listing every modifyFields call site is not.
+grep -rl "modifyFields(" src/ | xargs grep -Hn "\.\.\."
 
 # Option ceremony: Array.findFirst(...)._tag === 'Some' should be Array.some(...)
 grep -rn "Array\.findFirst.*_tag" src/
@@ -181,7 +181,7 @@ grep -rn "pipe([a-zA-Z_]*,\s*$" src/ -A 1 | grep "Option\.match\|Array\.map\|Eff
 # ReadonlyArray), or String.isNonEmpty for strings
 grep -rn "\.length > 0\|\.length === 0\|\.length !== 0" src/
 
-# Stuttery evo setters: when a setter only transforms that same field, pass
+# Stuttery modifyFields setters: when a setter only transforms that same field, pass
 # the transformer directly. Look for `field: () => f(model.field)`,
 # `field: () => Array.map(model.field, f)`, or
 # `field: () => Reflect.helper(model.field, ...)`.
@@ -294,20 +294,20 @@ Foldkit ships these; reaching past them is a finding, not a style choice.
 - [ ] Update, init, boot, and component helper results are bound to values named after their operations and consumed with dot access, not destructured or renamed. Name collisions use a trailing underscore such as `init_`; child `write` parameters use `next<Field>`
 - [ ] Optional Commands pass directly to `Command.mapMessages`; `result.commands ?? []` appears only where an operation requires a concrete array
 - [ ] Dot access keeps the operation and all of its returned fields visible together but does not prevent someone from ignoring `outMessage`
-- [ ] Child results use `Update.foldChild` or `Update.foldChildStep` instead of manual unpacking
+- [ ] One child init or boot result entering a parent Model uses `Update.foldChildInit`; several child results entering one parent Model use `Update.foldChildInits`; a child update that receives input uses `Update.foldChild`; a child helper that receives only its Model uses `Update.foldChildStep`
 - [ ] An OutMessage that is already known is included directly in a new result. `Update.withOutMessage` is used for an existing plain return or a value with the type `OutMessage | undefined`: an existing return is piped into the helper, while a new result literal is passed first. No local equivalent helper or conditional spread duplicates it
 - [ ] Child folds include `toParentOutMessage` only when at least one child OutMessage should continue to the current Submodel's parent. Partial forwarding matches every child variant and returns `undefined` for variants that stop here. The property is omitted when every variant stops here, and no `toParentOutMessage: () => undefined` mapping appears
-- [ ] Two-or-more-step post-mutation handlers use `Update.combine(model, [...])` and `Update.refresh({ read, revalidate, write, load })` rather than hand-threaded `evo` chains and conditional Command arrays. One Step is not wrapped in `Update.combine`, and an inline Step parameter is named `stepModel`
-- [ ] Child Submodel results use `Update.foldChild` or `Update.foldChildStep`, which re-tag Commands through `toParentMessage`; direct `Command.mapMessages` is reserved for lower-level helpers and independent init results
+- [ ] Two-or-more-step post-mutation handlers use `Update.combine(model, [...])` and `Update.refresh({ read, revalidate, write, load })` rather than hand-threaded `modifyFields` chains and conditional Command arrays. One Step is not wrapped in `Update.combine`, and an inline Step parameter is named `stepModel`
+- [ ] `Update.foldChildInit`, `Update.foldChildInits`, `Update.foldChild`, or `Update.foldChildStep` re-tag child Submodel Commands through `toParentMessage` when applicable; direct `Command.mapMessages` is reserved for lower-level helpers and route-gated initialization
 - [ ] HTTP uses `HttpClient` / `HttpClientRequest` from `effect/unstable/http`, with `Effect.provide(effect, Http.layer)` to supply the client. Not `@effect/platform` (`@effect/platform-browser` is separate and is for `BrowserKeyValueStore` / `BrowserCrypto`)
 - [ ] UI components are imported from `@foldkit/ui` by name (`import { Dialog, Input } from '@foldkit/ui'`). There is no `Ui` namespace on `foldkit`
 
 ## Effect-TS patterns
 
 - [ ] `pipe()` keeps a meaningful transformed value as the subject of left-to-right data flow; ordinary single calls stay direct
-- [ ] `Message.match` for exhaustive Message matching; Effect `Match` for state unions, partial matches, fallbacks, and shared multi-tag handlers (no switch)
+- [ ] `Message.match` for exhaustive Message matching; a declared domain or Route union's `match` / `matchOrElse` for exhaustive / partial matching; Effect `Match` for partial Message matches, shared multi-tag handlers, and unions without their own matcher (no switch)
 - [ ] `Array.match({ onEmpty, onNonEmpty })` for branching on a Model array (not `.length === 0` / `.length > 0`, and not `Array.isArrayEmpty` / `Array.isArrayNonEmpty`, which take a mutable `Array<A>` and reject the `ReadonlyArray` that `Schema.Array(...)` decodes to)
-- [ ] `evo()` for Model updates (not spread)
+- [ ] `modifyFields()` for Model updates (not spread)
 - [ ] Callable constructors (not `as` casts or manual `_tag` objects)
 - [ ] Message and OutMessage constructors stay on their owning namespace; no constructor destructuring
 - [ ] No-field tagged structs called with NO argument: `Idle()`, `Work()`, `Message.ClickedSubmit()`. Never `Idle({})`, `Work({})`, `Message.ClickedSubmit({})`
@@ -464,7 +464,7 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 - [ ] `Option.liftPredicate(value, predicate)` instead of `condition ? Option.some(value) : Option.none()`. The predicate may be a constant `() => condition` when the check doesn't use the value.
 - [ ] A single-transformation `pipe` has a clear data-flow reading, such as `pipe(dialogClose, Update.withOutMessage(outMessage))`; a pipe that only rearranges ordinary function application is called directly
 - [ ] In multi-line pipes, data leads on its own line: `pipe(\n  data,\n  Array.map(f),\n  ...\n)`, not `pipe(data, Array.map(f), ...)`.
-- [ ] `evo` setters are point-free when they only transform that same field: `entries: Array.map(f)` not `entries: () => Array.map(model.entries, f)`, `count: Number.increment` not `count: () => Number.increment(model.count)`. Keep `() => value` for replacement values from Messages, child updates, Commands, or other Model fields.
+- [ ] `modifyFields` setters are point-free when they only transform that same field: `entries: Array.map(f)` not `entries: () => Array.map(model.entries, f)`, `count: Number.increment` not `count: () => Number.increment(model.count)`. Keep `() => value` for replacement values from Messages, child updates, Commands, or other Model fields.
 - [ ] Callback destructuring when accessing a single field: `({ id }) => id === cardId` not `card => card.id === cardId`.
 
 ## Domain organization [T5+]

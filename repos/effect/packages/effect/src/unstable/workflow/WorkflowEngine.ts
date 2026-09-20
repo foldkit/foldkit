@@ -256,6 +256,13 @@ export class WorkflowInstance extends Context.Service<
     interrupted: boolean
 
     /**
+     * Whether the current workflow run has been abandoned for replay. When
+     * `true`, callbacks registered with `Workflow.addFinalizer` are skipped as
+     * the owner-local scope closes.
+     */
+    abandoned: boolean
+
+    /**
      * When SuspendOnFailure is triggered, the cause of the failure is stored
      * here.
      */
@@ -281,6 +288,7 @@ export class WorkflowInstance extends Context.Service<
       scope,
       suspended: false,
       interrupted: false,
+      abandoned: false,
       cause: undefined,
       awaitedDeferreds: new Set(),
       activityState: {
@@ -292,29 +300,22 @@ export class WorkflowInstance extends Context.Service<
 }
 
 /**
- * In-process deferred state for live workflow executions.
+ * Tracks live workflow runs so deferred completions can wake them.
  *
  * @category models
  * @since 4.0.0
  */
 export interface DeferredState {
-  /** Returns a completion not yet durably readable. */
-  readonly pendingResult: (
-    executionId: string,
-    name: string
-  ) => Exit.Exit<unknown, unknown> | undefined
-
-  /** Tracks and provides a run, retaining pending results across suspension. */
+  /** Tracks and provides a run until it completes or suspends. */
   readonly trackRun: <A, E, R>(
     instance: WorkflowInstance["Service"],
     effect: Effect.Effect<A, E, R>
   ) => Effect.Effect<A, E, Exclude<R, WorkflowInstance>>
 
-  /** Records a completion, preempting a run parked on that deferred. */
+  /** Preempts a run parked on the completed deferred. */
   readonly deferredDone: (
     executionId: string,
-    name: string,
-    exit: Exit.Exit<unknown, unknown>
+    name: string
   ) => Effect.Effect<void>
 }
 
@@ -325,13 +326,11 @@ export interface DeferredState {
  * @since 4.0.0
  */
 export const makeDeferredState = (): DeferredState => {
-  const pending = new Map<string, Map<string, Exit.Exit<unknown, unknown>>>()
   const running = new Map<string, {
     readonly instance: WorkflowInstance["Service"]
     readonly fiber: Fiber.Fiber<unknown, unknown>
   }>()
   return {
-    pendingResult: (executionId, name) => pending.get(executionId)?.get(name),
     trackRun: (instance, effect) =>
       Effect.withFiber((fiber) => {
         const run = { instance, fiber: fiber as Fiber.Fiber<unknown, unknown> }
@@ -339,25 +338,15 @@ export const makeDeferredState = (): DeferredState => {
         return Effect.ensuring(
           Effect.provideService(effect, WorkflowInstance, instance),
           Effect.sync(() => {
-            if (!instance.suspended) {
-              pending.delete(instance.executionId)
-            }
-            if (running.get(instance.executionId) === run) {
-              running.delete(instance.executionId)
-            }
+            if (running.get(instance.executionId) !== run) return
+            running.delete(instance.executionId)
           })
         )
       }),
-    deferredDone: (executionId, name, exit) =>
+    deferredDone: (executionId, name) =>
       Effect.withFiber((current) => {
         const run = running.get(executionId)
         if (!run) return Effect.void
-        let entries = pending.get(executionId)
-        if (!entries) {
-          entries = new Map()
-          pending.set(executionId, entries)
-        }
-        entries.set(name, exit)
         if (
           run.fiber === current ||
           run.fiber.pollUnsafe() ||
@@ -365,8 +354,8 @@ export const makeDeferredState = (): DeferredState => {
         ) {
           return Effect.void
         }
-        // Suspended retains the pending result; the engine re-runs the
-        // interrupted run and the replay observes the completion.
+        // The engine stores the completion before waking this run. Replay
+        // observes it after the interrupted run reports suspension.
         run.instance.suspended = true
         return Fiber.interrupt(run.fiber)
       })
@@ -682,6 +671,7 @@ export const layerMemory: Layer.Layer<WorkflowEngine> = Layer.effect(WorkflowEng
       readonly parent: string | undefined
       instance: WorkflowInstance["Service"]
       interrupted: boolean
+      resumeRequested: boolean
       fiber: Fiber.Fiber<Workflow.Result<unknown, unknown>> | undefined
     }
     const executions = new Map<string, ExecutionState>()
@@ -700,6 +690,18 @@ export const layerMemory: Layer.Layer<WorkflowEngine> = Layer.effect(WorkflowEng
       if (exit && exit._tag === "Success" && exit.value._tag === "Complete") {
         return
       } else if (state.fiber && !exit) {
+        // A child can finish while the parent is still releasing its activity.
+        // Preserve the wake until that run has published its suspended result.
+        if (!state.resumeRequested) {
+          state.resumeRequested = true
+          yield* Fiber.await(state.fiber).pipe(
+            Effect.flatMap(() => {
+              state.resumeRequested = false
+              return resume(executionId)
+            }),
+            Effect.forkIn(scope)
+          )
+        }
         return
       }
 
@@ -757,6 +759,7 @@ export const layerMemory: Layer.Layer<WorkflowEngine> = Layer.effect(WorkflowEng
             execute: entry.execute,
             instance: WorkflowInstance.initial(workflow, options.executionId),
             interrupted: false,
+            resumeRequested: false,
             fiber: undefined,
             parent: options.parent?.executionId
           }
@@ -840,10 +843,16 @@ export const layerMemory: Layer.Layer<WorkflowEngine> = Layer.effect(WorkflowEng
           const id = `${options.executionId}/${options.deferredName}`
           if (deferredResults.has(id)) return Effect.void
           deferredResults.set(id, options.exit)
-          return Effect.andThen(
-            deferredState.deferredDone(options.executionId, options.deferredName, options.exit),
+          const wake = Effect.andThen(
+            deferredState.deferredDone(options.executionId, options.deferredName),
             resume(options.executionId)
           )
+          return Effect.flatMap(Effect.serviceOption(WorkflowInstance), (instance) =>
+            // A workflow finalizer cannot wait for its own run's cleanup.
+            // The engine scope owns the wake so cleanup still precedes replay.
+            Option.isSome(instance) && instance.value.executionId === options.executionId
+              ? wake.pipe(Effect.forkIn(scope), Effect.asVoid)
+              : wake)
         }),
       scheduleClock: (workflow, options) =>
         engine.deferredDone(options.clock.deferred, {

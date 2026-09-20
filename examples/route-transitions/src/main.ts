@@ -5,7 +5,7 @@ import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { Transition } from 'foldkit/route'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { evo } from 'foldkit/struct'
+import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
 import { type Painting, findPaintingWithIndex, paintings } from './data'
@@ -128,7 +128,7 @@ const nextSequenceNumber = (
 const logTransition =
   (transition: AppTransition): Step =>
   model => ({
-    model: evo(model, {
+    model: modifyFields(model, {
       transitionLog: transitionLog =>
         pipe(
           transitionLog,
@@ -148,7 +148,7 @@ const loadCatalogOnGalleryEntry =
     Transition.isEntering(transition, 'Gallery') &&
     model.catalogStatus !== 'Loading'
       ? {
-          model: evo(model, { catalogStatus: () => 'Loading' }),
+          model: modifyFields(model, { catalogStatus: () => 'Loading' }),
           commands: [LoadCatalog()],
         }
       : { model }
@@ -159,7 +159,7 @@ const loadPaintingOnEntry =
     Option.match(Transition.entered(transition, 'Painting'), {
       onNone: () => ({ model }),
       onSome: ({ paintingId }) => ({
-        model: evo(model, {
+        model: modifyFields(model, {
           paintingStatus: () => PaintingStatus.Loading({ paintingId }),
         }),
         commands: [LoadPainting({ paintingId })],
@@ -175,7 +175,7 @@ const reloadPaintingOnIdChange =
         previousRoute.paintingId === nextRoute.paintingId
           ? { model }
           : {
-              model: evo(model, {
+              model: modifyFields(model, {
                 paintingStatus: () =>
                   PaintingStatus.Loading({
                     paintingId: nextRoute.paintingId,
@@ -229,31 +229,31 @@ export const update = (model: Model, message: Message) =>
       const nextRoute = urlToAppRoute(url)
       const transition = Transition.make(model.route, nextRoute)
       return handleTransition(
-        evo(model, { route: () => nextRoute }),
+        modifyFields(model, { route: () => nextRoute }),
         transition,
       )
     },
 
     SucceededLoadCatalog: () => ({
-      model: evo(model, { catalogStatus: () => 'Ready' }),
+      model: modifyFields(model, { catalogStatus: () => 'Ready' }),
     }),
 
     SucceededLoadPainting: ({ paintingId }) =>
       model.paintingStatus._tag === 'Loading' &&
       model.paintingStatus.paintingId === paintingId
         ? {
-            model: evo(model, {
+            model: modifyFields(model, {
               paintingStatus: () => PaintingStatus.Ready({ paintingId }),
             }),
           }
         : { model },
 
     UpdatedStudioDraft: ({ value }) => ({
-      model: evo(model, { studioDraft: () => value }),
+      model: modifyFields(model, { studioDraft: () => value }),
     }),
 
     SucceededSaveDraft: ({ draft }) => ({
-      model: evo(model, { maybeSavedDraft: () => Option.some(draft) }),
+      model: modifyFields(model, { maybeSavedDraft: () => Option.some(draft) }),
     }),
   })
 

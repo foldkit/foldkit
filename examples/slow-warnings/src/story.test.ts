@@ -1,4 +1,5 @@
 import { Command, given, message, model, story } from 'foldkit/story'
+import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
 import { Message, type Model, update } from './main'
@@ -94,20 +95,21 @@ describe('update', () => {
   test('ClickedClearWarnings clears warnings without resetting the patch surface', () => {
     story(
       update,
-      given({
-        ...initialModel,
-        patchRows: 4000,
-        warnings: [
-          {
-            id: 1,
-            phase: 'Patch',
-            durationMs: 16,
-            thresholdMs: 8,
-            trigger: 'ClickedRunPatchWork',
-            details: 'Patch work exceeded the threshold.',
-          },
-        ],
-      }),
+      given(
+        modifyFields(initialModel, {
+          patchRows: () => 4000,
+          warnings: () => [
+            {
+              id: 1,
+              phase: 'Patch',
+              durationMs: 16,
+              thresholdMs: 8,
+              trigger: 'ClickedRunPatchWork',
+              details: 'Patch work exceeded the threshold.',
+            },
+          ],
+        }),
+      ),
       message(Message.ClickedClearWarnings()),
       model(model => {
         expect(model.warnings).toEqual([])
