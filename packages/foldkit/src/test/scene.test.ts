@@ -1125,6 +1125,151 @@ describe('expanded implicit role map', () => {
   })
 })
 
+describe('confirmed implicit role mappings', () => {
+  const cases = [
+    { tag: 'blockquote', role: 'blockquote', parent: 'div' },
+    { tag: 'address', role: 'group', parent: 'div' },
+    { tag: 'caption', role: 'caption', parent: 'table' },
+    { tag: 'code', role: 'code', parent: 'div' },
+    { tag: 'del', role: 'deletion', parent: 'div' },
+    { tag: 'dfn', role: 'term', parent: 'div' },
+    { tag: 'em', role: 'emphasis', parent: 'div' },
+    { tag: 'hgroup', role: 'group', parent: 'div' },
+    { tag: 'ins', role: 'insertion', parent: 'div' },
+    { tag: 'menu', role: 'list', parent: 'div' },
+    { tag: 'optgroup', role: 'group', parent: 'select' },
+    { tag: 's', role: 'deletion', parent: 'div' },
+    { tag: 'search', role: 'search', parent: 'div' },
+    { tag: 'strong', role: 'strong', parent: 'div' },
+    { tag: 'sub', role: 'subscript', parent: 'div' },
+    { tag: 'sup', role: 'superscript', parent: 'div' },
+    { tag: 'tbody', role: 'rowgroup', parent: 'table' },
+    { tag: 'tfoot', role: 'rowgroup', parent: 'table' },
+    { tag: 'thead', role: 'rowgroup', parent: 'table' },
+    { tag: 'time', role: 'time', parent: 'div' },
+  ]
+
+  const childrenByTag: Record<string, Array<VNode>> = {
+    hgroup: [h('h1', {}, ['Heading'])],
+    menu: [h('li', {}, ['Item'])],
+    optgroup: [h('option', {}, ['Choice'])],
+    tbody: [h('tr', {}, [h('td', {}, ['Body'])])],
+    tfoot: [h('tr', {}, [h('td', {}, ['Footer'])])],
+    thead: [h('tr', {}, [h('th', {}, ['Column'])])],
+  }
+
+  test.each(cases)('finds $tag by its $role role', ({ tag, role, parent }) => {
+    const element = h(
+      tag,
+      tag === 'optgroup' ? { attrs: { label: 'Choices' } } : {},
+      childrenByTag[tag] ?? ['Example'],
+    )
+    const tree = h(parent, {}, [element])
+
+    expect(Scene.role(role)(tree)).toEqual(Option.some(element))
+  })
+
+  test.each(cases)(
+    'finds all $tag elements by their $role role',
+    ({ tag, role, parent }) => {
+      const element = h(
+        tag,
+        tag === 'optgroup' ? { attrs: { label: 'Choices' } } : {},
+        childrenByTag[tag] ?? ['Example'],
+      )
+      const tree = h(parent, {}, [element])
+
+      expect(Scene.all.role(role)(tree)).toEqual([element])
+    },
+  )
+
+  test('returns native blockquotes in traversal order', () => {
+    const first = h('blockquote', {}, ['First'])
+    const second = h('blockquote', {}, ['Second'])
+    const tree = h('div', {}, [h('div', {}, [first]), second])
+
+    expect(Scene.role('blockquote')(tree)).toEqual(Option.some(first))
+    expect(Scene.all.role('blockquote')(tree)).toEqual([first, second])
+  })
+
+  test('finds a native blockquote within the target container', () => {
+    const outside = h('blockquote', {}, ['Outside'])
+    const inside = h('blockquote', {}, ['Inside'])
+    const tree = h('div', {}, [
+      h('div', {}, [outside]),
+      h('div', { attrs: { id: 'target' } }, [inside]),
+    ])
+    const locator = Scene.within(
+      Scene.selector('#target'),
+      Scene.role('blockquote'),
+    )
+
+    expect(locator(tree)).toEqual(Option.some(inside))
+  })
+
+  test('filters native blockquotes by accessible name', () => {
+    const first = h('blockquote', { attrs: { 'aria-label': 'First quote' } }, [
+      'First',
+    ])
+    const second = h(
+      'blockquote',
+      { attrs: { 'aria-label': 'Second quote' } },
+      ['Second'],
+    )
+    const tree = h('div', {}, [first, second])
+
+    expect(Scene.role('blockquote', { name: 'Second quote' })(tree)).toEqual(
+      Option.some(second),
+    )
+    expect(
+      Scene.all.role('blockquote', { name: 'Second quote' })(tree),
+    ).toEqual([second])
+  })
+
+  test('keeps an explicit role authoritative over the native role', () => {
+    const element = h('blockquote', { attrs: { role: 'note' } }, ['Example'])
+
+    expect(Scene.role('note')(element)).toEqual(Option.some(element))
+    expect(Scene.all.role('note')(element)).toEqual([element])
+    expect(Scene.role('blockquote')(element)).toEqual(Option.none())
+    expect(Scene.all.role('blockquote')(element)).toEqual([])
+  })
+
+  test('finds an explicit blockquote role on a div', () => {
+    const element = h('div', { attrs: { role: 'blockquote' } }, ['Example'])
+
+    expect(Scene.role('blockquote')(element)).toEqual(Option.some(element))
+    expect(Scene.all.role('blockquote')(element)).toEqual([element])
+  })
+
+  test.each([
+    { tag: 'dd', role: 'definition' },
+    { tag: 'dl', role: 'list' },
+    { tag: 'dt', role: 'term' },
+    { tag: 'figcaption', role: 'caption' },
+    { tag: 'mark', role: 'mark' },
+  ])('does not infer the draft-only $tag to $role mapping', ({ tag, role }) => {
+    const element = h(tag, {}, ['Example'])
+
+    expect(Scene.role(role)(element)).toEqual(Option.none())
+    expect(Scene.all.role(role)(element)).toEqual([])
+  })
+
+  test('still finds a native blockquote by selector', () => {
+    const element = h('blockquote', {}, ['Example'])
+    const tree = h('div', {}, [element])
+
+    expect(Scene.selector('blockquote')(tree)).toEqual(Option.some(element))
+  })
+
+  test('does not infer a blockquote role for a neutral element', () => {
+    const element = h('div', {}, ['Example'])
+
+    expect(Scene.role('blockquote')(element)).toEqual(Option.none())
+    expect(Scene.all.role('blockquote')(element)).toEqual([])
+  })
+})
+
 describe('implicit role edge cases', () => {
   test('img with non-empty alt has role img', () => {
     const tree = h('img', { attrs: { alt: 'Logo', src: '/logo.png' } })
