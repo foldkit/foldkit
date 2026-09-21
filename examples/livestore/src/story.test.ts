@@ -1,25 +1,31 @@
 import { Option } from 'effect'
-import { AsyncData } from 'foldkit'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
+import { AddItem, ClearCompleted, DeleteItem, ToggleItem } from './command'
+import { Flags, init } from './main'
 import {
-  AddItem,
-  ClearCompleted,
-  DeleteItem,
-  Message,
-  ToggleItem,
-  update,
-} from './main'
-import { buyMilk, doneTask, loadingModel, successModel } from './main.fixture'
+  addItemFailureModel,
+  buyMilk,
+  doneTask,
+  modelWithItems,
+} from './main.fixture'
+import { Message } from './message'
+import { update } from './update'
 
-describe('update', () => {
-  describe('adding tasks', () => {
-    test('UpdatedNewItemText stores the input value', () => {
+describe('task state', () => {
+  test('initializes with the provided task snapshot', () => {
+    const init_ = init(Flags.make({ items: [buyMilk, doneTask] }))
+
+    expect(init_.model.items).toStrictEqual([buyMilk, doneTask])
+  })
+
+  describe('adding a task', () => {
+    test('editing the new task updates its draft text', () => {
       story(
         update,
-        given(successModel([])),
+        given(modelWithItems([])),
         message(Message.UpdatedNewItemText({ text: 'Buy milk' })),
         model(model => {
           expect(model.newItemText).toBe('Buy milk')
@@ -27,56 +33,87 @@ describe('update', () => {
       )
     })
 
-    test('SubmittedNewItem requests AddItem and clears the input', () => {
+    test('submitting a task clears its draft and starts adding it', () => {
       story(
         update,
         given(
-          modifyFields(successModel([]), { newItemText: () => 'Buy milk' }),
+          modifyFields(modelWithItems([]), { newItemText: () => 'Buy milk' }),
         ),
         message(Message.SubmittedNewItem()),
         Command.expectExact(AddItem({ text: 'Buy milk' })),
-        Command.resolve(AddItem, Message.CompletedAddItem()),
+        Command.resolve(AddItem, Message.SucceededAddItem()),
         model(model => {
           expect(model.newItemText).toBe('')
         }),
       )
     })
 
-    test('SubmittedNewItem with whitespace-only text is ignored', () => {
+    test('submitting whitespace without a task is ignored', () => {
       story(
         update,
-        given(modifyFields(successModel([]), { newItemText: () => '   ' })),
+        given(modifyFields(modelWithItems([]), { newItemText: () => '   ' })),
         message(Message.SubmittedNewItem()),
         Command.expectNone(),
       )
     })
-  })
 
-  describe('mutating tasks', () => {
-    test('ClickedToggleItem requests ToggleItem for that id', () => {
+    test('an add failure reports the error', () => {
       story(
         update,
-        given(successModel([buyMilk])),
-        message(Message.ClickedToggleItem({ id: 'a' })),
+        given(modelWithItems([buyMilk])),
+        message(Message.FailedAddItem({ error: 'crypto unavailable' })),
+        model(model => {
+          expect(model.items).toStrictEqual([buyMilk])
+          expect(model.maybeAddItemError).toStrictEqual(
+            Option.some('crypto unavailable'),
+          )
+        }),
+      )
+    })
+
+    test('submitting another task clears the previous add error', () => {
+      story(
+        update,
+        given(
+          modifyFields(addItemFailureModel([], 'crypto unavailable'), {
+            newItemText: () => 'Try again',
+          }),
+        ),
+        message(Message.SubmittedNewItem()),
+        Command.expectExact(AddItem({ text: 'Try again' })),
+        model(model => {
+          expect(model.maybeAddItemError).toStrictEqual(Option.none())
+        }),
+        Command.resolve(AddItem, Message.SucceededAddItem()),
+      )
+    })
+  })
+
+  describe('changing tasks', () => {
+    test('toggling a task targets the selected task', () => {
+      story(
+        update,
+        given(modelWithItems([buyMilk])),
+        message(Message.ToggledItem({ id: 'a' })),
         Command.expectExact(ToggleItem({ id: 'a' })),
         Command.resolve(ToggleItem, Message.CompletedToggleItem()),
       )
     })
 
-    test('ClickedDeleteItem requests DeleteItem for that id', () => {
+    test('deleting a task targets the selected task', () => {
       story(
         update,
-        given(successModel([buyMilk])),
+        given(modelWithItems([buyMilk])),
         message(Message.ClickedDeleteItem({ id: 'a' })),
         Command.expectExact(DeleteItem({ id: 'a' })),
         Command.resolve(DeleteItem, Message.CompletedDeleteItem()),
       )
     })
 
-    test('ClickedClearCompleted requests ClearCompleted', () => {
+    test('clearing completed tasks starts their removal', () => {
       story(
         update,
-        given(successModel([buyMilk, doneTask])),
+        given(modelWithItems([buyMilk, doneTask])),
         message(Message.ClickedClearCompleted()),
         Command.expectExact(ClearCompleted()),
         Command.resolve(ClearCompleted, Message.CompletedClearCompleted()),
@@ -84,125 +121,36 @@ describe('update', () => {
     })
   })
 
-  describe('reactive projection', () => {
-    test('ReceivedItems projects LiveStore rows into the Model', () => {
+  describe('task snapshots', () => {
+    test('an incoming task snapshot replaces the current tasks', () => {
       story(
         update,
-        given(loadingModel),
-        message(Message.ReceivedItems({ items: [buyMilk, doneTask] })),
+        given(modelWithItems([buyMilk])),
+        message(Message.UpdatedItems({ items: [buyMilk, doneTask] })),
         model(model => {
-          expect(model.itemsAsyncData._tag).toBe('Success')
-          expect(
-            Option.map(
-              AsyncData.getData(model.itemsAsyncData),
-              items => items.length,
-            ),
-          ).toStrictEqual(Option.some(2))
+          expect(model.items).toStrictEqual([buyMilk, doneTask])
         }),
       )
     })
 
-    test('CompletedAddItem leaves the projection to the Subscription', () => {
+    test('an add confirmation preserves the current task snapshot', () => {
       story(
         update,
-        given(successModel([buyMilk])),
-        message(Message.CompletedAddItem()),
+        given(modelWithItems([buyMilk])),
+        message(Message.SucceededAddItem()),
         Command.expectNone(),
         model(model => {
-          expect(model.itemsAsyncData._tag).toBe('Success')
+          expect(model.items).toStrictEqual([buyMilk])
         }),
-      )
-    })
-  })
-
-  describe('errors', () => {
-    test('FailedAddItem records a mutation error without changing loaded items', () => {
-      story(
-        update,
-        given(successModel([buyMilk])),
-        message(Message.FailedAddItem({ error: 'write blocked' })),
-        model(model => {
-          expect(model.itemsAsyncData._tag).toBe('Success')
-          expect(model.maybeMutationError).toStrictEqual(
-            Option.some('write blocked'),
-          )
-        }),
-      )
-    })
-
-    test('a mutation failure during loading does not claim the query failed', () => {
-      story(
-        update,
-        given(loadingModel),
-        message(Message.FailedToggleItem({ error: 'write blocked' })),
-        model(model => {
-          expect(model.itemsAsyncData._tag).toBe('Loading')
-          expect(model.maybeMutationError).toStrictEqual(
-            Option.some('write blocked'),
-          )
-        }),
-      )
-    })
-
-    test('ReceivedItems does not erase a mutation error', () => {
-      story(
-        update,
-        given(
-          modifyFields(successModel([buyMilk]), {
-            maybeMutationError: () => Option.some('write blocked'),
-          }),
-        ),
-        message(Message.ReceivedItems({ items: [buyMilk] })),
-        model(model => {
-          expect(model.itemsAsyncData._tag).toBe('Success')
-          expect(model.maybeMutationError).toStrictEqual(
-            Option.some('write blocked'),
-          )
-        }),
-      )
-    })
-
-    test('a completed mutation does not erase a previous mutation error', () => {
-      story(
-        update,
-        given(
-          modifyFields(successModel([buyMilk]), {
-            maybeMutationError: () => Option.some('write blocked'),
-          }),
-        ),
-        message(Message.CompletedAddItem()),
-        model(model => {
-          expect(model.itemsAsyncData._tag).toBe('Success')
-          expect(model.maybeMutationError).toStrictEqual(
-            Option.some('write blocked'),
-          )
-        }),
-      )
-    })
-
-    test('starting a new mutation clears the previous mutation error', () => {
-      story(
-        update,
-        given(
-          modifyFields(successModel([buyMilk]), {
-            maybeMutationError: () => Option.some('write blocked'),
-          }),
-        ),
-        message(Message.ClickedToggleItem({ id: buyMilk.id })),
-        Command.expectExact(ToggleItem({ id: buyMilk.id })),
-        model(model => {
-          expect(model.maybeMutationError).toStrictEqual(Option.none())
-        }),
-        Command.resolve(ToggleItem, Message.CompletedToggleItem()),
       )
     })
   })
 
   describe('filtering', () => {
-    test('SelectedFilter updates the filter without a Command', () => {
+    test('choosing a filter makes it active', () => {
       story(
         update,
-        given(successModel([buyMilk, doneTask])),
+        given(modelWithItems([buyMilk, doneTask])),
         message(Message.SelectedFilter({ filter: 'Completed' })),
         Command.expectNone(),
         model(model => {

@@ -1,10 +1,20 @@
 import { Runtime } from 'foldkit'
 
-import { Message, Model, init, subscriptions, update, view } from './main'
+import {
+  Flags,
+  Message,
+  Model,
+  flags,
+  init,
+  subscriptions,
+  update,
+  view,
+} from './main'
 import { resources } from './resources'
 
 const application = Runtime.makeApplication({
   Model,
+  Flags,
   init,
   update,
   view,
@@ -16,4 +26,4 @@ const application = Runtime.makeApplication({
   },
 })
 
-Runtime.run(application)
+Runtime.run(application, { flags })

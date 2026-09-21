@@ -1,64 +1,42 @@
 import { Option } from 'effect'
-import { AsyncData } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { Item, Model } from './main'
+import { Items } from './domain'
+import { Model } from './model'
 
-export const buyMilk = Item.make({
+export const buyMilk = Items.Item.make({
   id: 'a',
   text: 'Buy milk',
-  completed: false,
+  isCompleted: false,
   createdAt: 1000,
 })
 
-export const walkDog = Item.make({
+export const walkDog = Items.Item.make({
   id: 'b',
   text: 'Walk the dog',
-  completed: false,
+  isCompleted: false,
   createdAt: 2000,
 })
 
-export const doneTask = Item.make({
+export const doneTask = Items.Item.make({
   id: 'c',
   text: 'Done task',
-  completed: true,
+  isCompleted: true,
   createdAt: 3000,
 })
 
-export const successModel = (items: ReadonlyArray<Item>): Model =>
+export const modelWithItems = (items: ReadonlyArray<Items.Item>) =>
   Model.make({
-    itemsAsyncData: AsyncData.Success({ data: items }),
-    maybeMutationError: Option.none(),
+    items,
+    maybeAddItemError: Option.none(),
     newItemText: '',
     filter: 'All',
   })
 
-export const mutationFailureModel = (
-  items: ReadonlyArray<Item>,
+export const addItemFailureModel = (
+  items: ReadonlyArray<Items.Item>,
   error: string,
-): Model =>
-  modifyFields(successModel(items), {
-    maybeMutationError: () => Option.some(error),
-  })
-
-export const loadingModel: Model = Model.make({
-  itemsAsyncData: AsyncData.Loading(),
-  maybeMutationError: Option.none(),
-  newItemText: '',
-  filter: 'All',
-})
-
-export const failureModel: Model = Model.make({
-  itemsAsyncData: AsyncData.Failure({ error: 'LiveStore is unavailable' }),
-  maybeMutationError: Option.none(),
-  newItemText: '',
-  filter: 'All',
-})
-
-export const staleModel = (items: ReadonlyArray<Item>, error: string): Model =>
-  Model.make({
-    itemsAsyncData: AsyncData.Stale({ data: items, error }),
-    maybeMutationError: Option.none(),
-    newItemText: '',
-    filter: 'All',
+) =>
+  modifyFields(modelWithItems(items), {
+    maybeAddItemError: () => Option.some(error),
   })

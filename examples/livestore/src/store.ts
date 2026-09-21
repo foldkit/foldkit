@@ -1,14 +1,10 @@
-import { Context, Effect } from 'effect'
+import { Store } from '@livestore/livestore/effect'
 
-import type { LiveStoreEvent, Store } from '@livestore/livestore'
+import { schema, tables } from './schema'
 
-import { schema } from './schema'
+const STORE_ID = 'foldkit-cross-tab-tasks'
 
-export class ItemsStore extends Context.Service<
-  ItemsStore,
-  Store<typeof schema>
->()('ItemsStore') {}
+export class ItemsStore extends Store.Tag(schema, STORE_ID) {}
+export type ItemsStoreRequirements = typeof ItemsStore.Id
 
-export const commitItemEvent = (
-  event: LiveStoreEvent.Input.ForSchema<typeof schema>,
-) => Effect.flatMap(ItemsStore, store => Effect.try(() => store.commit(event)))
+export const orderedItemsQuery = tables.items.orderBy('createdAt', 'asc')

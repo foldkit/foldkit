@@ -1,5 +1,41 @@
 # @foldkit/ui
 
+## 0.163.0
+
+### Minor Changes
+
+- [#1419](https://github.com/foldkit/foldkit/pull/1419) [`7aa1788`](https://github.com/foldkit/foldkit/commit/7aa1788213ff83e3a3c80bbc7192bdbe9907b495) Thanks [@devinjameson](https://github.com/devinjameson)! - Rename the mapper in `Subscription.fromEvent` from `toMessage` to `mapEvent`, the mappers in `Subscription.fromEventFilterMap` and `Subscription.fromEventFilterMapPreventDefault` to `filterMapEvent`, and each `Subscription.keyBindings` binding's mapper to `mapEvent`. Update those config fields when upgrading. These helpers remain generic Streams: their output is inferred from the callback, and `Subscription.make` checks the final application Message type.
+
+  `Subscription.animationFrame` keeps `toMessage` because it returns a Subscription entry; `Subscription.lift` keeps `toParentMessage` because it maps a child Message to a parent Message. `@foldkit/ui` adopts the new event mapper field and requires the matching Foldkit release.
+
+- [#1410](https://github.com/foldkit/foldkit/pull/1410) [`591649e`](https://github.com/foldkit/foldkit/commit/591649ea58a648ff777bfc4fce3952dc004f202c) Thanks [@devinjameson](https://github.com/devinjameson)! - Rename `evo` to `modifyFields`
+
+  Replace `evo` imports and calls with `modifyFields` from `foldkit/struct`. Replace `makeConstrainedEvo` with `makeModifyFieldsFor`. The same names are available through the `Struct` namespace from `foldkit`. Both helpers keep their existing behavior and type checking. The old names are removed.
+
+  Use `makeModifyFieldsFor<Base>()` to create a field modifier for generic helpers whose Model extends `Base`. It checks transformers against the base shape while preserving the full Model type.
+
+  `@foldkit/ui` and `@foldkit/devtools` use the renamed helpers and require Foldkit 0.163.0 or newer.
+
+  Rename the lint rule `foldkit/no-spread-in-evo` to `foldkit/no-spread-in-modify-fields`. Update explicit rule settings to the new name. The generated presets and the Submodel boundary rules recognize `modifyFields` calls.
+
+  New app templates, documentation, examples, and the shipped Foldkit app skills use `modifyFields`.
+
+- [#1295](https://github.com/foldkit/foldkit/pull/1295) [`fa51957`](https://github.com/foldkit/foldkit/commit/fa519573715c4ea1944c87c576dff240d18d9bcc) Thanks [@elianiva](https://github.com/elianiva)! - Add opt-in swipe-to-dismiss to `Toast`. Pass `swipeToDismiss` to `Toast.init` (`{}` for the default rightward 40px threshold, `{ threshold }` to tune the distance, or `{ direction: 'Left' }` for a leftward swipe); without it the view attaches no pointer handler and the swipe Messages are no-ops, so existing Toasts never enter a drag they cannot finish. Opposite-direction movement is clamped to zero. Each Entry owns its swipe state and settle version, allowing one Toast to settle or leave while another is dragged. A drag records its initiating `pointerId`, so unrelated touches cannot move, release, or cancel it. While dragging, entries follow the pointer through the `translate` property (which composes with `transform` leave animations) and `data-swipe="move"`. A release past the threshold holds the offset behind `data-swipe="end"`, then targets the viewport edge in the configured direction so consumer CSS can animate the exit before `DismissedToast` fires. A release at or below the threshold (or `Escape`) settles back behind `data-swipe="settling"` and resumes auto-dismiss when applicable. Wire `Toast.subscriptions` at the app root for pointer tracking, and read pointer offsets in a fully custom view with `Toast.swipeOffset(entry.swipeState)`.
+
+  Separate entries can now drag at once. Each entry tracks its own pointer, so two fingers can dismiss two toasts at once, while a press that reuses an already-active pointer id stays ignored and `Escape` cancels every active drag. Pointer presses on nested controls do not start swipes, and consumers can mark text with `data-toast-swipe-ignore` to preserve mouse and pen selection without disabling touch swipes over that text. The temporary grabbing styles leave existing inline text-selection styles untouched.
+
+  This changes the public Toast Model and Entry schemas and expands the Toast Message union. Consumers that construct state directly must add `maybeSwipeConfig: Option.none()` to disabled Models and add `swipeState: SwipeState.Idle()` plus `swipeVersion: 0` to Entries. An enabled Model uses `Option.some({ threshold, direction })` for its swipe config. Exhaustive Message handlers must also handle the new pointer, Escape, and settling Messages. Consumers that create state through `Toast.init` and `Toast.show` require no state migration.
+
+- [#1413](https://github.com/foldkit/foldkit/pull/1413) [`3b1d5ba`](https://github.com/foldkit/foldkit/commit/3b1d5ba8f2c5e9ee6ab4cb57ad5ce49744334314) Thanks [@devinjameson](https://github.com/devinjameson)! - Upgrade Effect and its platform and test packages to `4.0.0-rc.116`. Foldkit packages with exact Effect peer dependencies now require rc.116. Pin your application's `effect` and `@effect/platform-browser` dependencies to `4.0.0-rc.116` when upgrading Foldkit. New applications generated by `create-foldkit-app` also use rc.116. The Oxlint plugin recognizes the renamed `Stream.mapBoth` callbacks, `onElement` and `onError`.
+
+### Patch Changes
+
+- [#1412](https://github.com/foldkit/foldkit/pull/1412) [`a2ff67b`](https://github.com/foldkit/foldkit/commit/a2ff67b525fc0837497dc93b62db7a809121a75e) Thanks [@devinjameson](https://github.com/devinjameson)! - Fix Disclosure and Toast links in the generated UI API reference.
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
+- [#1416](https://github.com/foldkit/foldkit/pull/1416) [`a1fe8ab`](https://github.com/foldkit/foldkit/commit/a1fe8ab50a2a39b624fe7c6056c507f6bbe13803) Thanks [@devinjameson](https://github.com/devinjameson)! - Report missing or non-HTML Anchor triggers and panels instead of leaving anchored panels silently hidden.
+
 ## 0.162.0
 
 ### Version Alignment

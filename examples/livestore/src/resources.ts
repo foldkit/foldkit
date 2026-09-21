@@ -1,14 +1,11 @@
-import { Layer } from 'effect'
+import { Layer, pipe } from 'effect'
 
 import { makePersistedAdapter } from '@livestore/adapter-web'
 import LiveStoreSharedWorker from '@livestore/adapter-web/shared-worker?sharedworker'
-import { createStore, provideOtel } from '@livestore/livestore'
+import { provideOtel } from '@livestore/livestore'
 
 import LiveStoreWorker from './livestore.worker?worker'
-import { schema } from './schema'
-import { ItemsStore } from './store'
-
-const STORE_ID = 'foldkit-cross-tab-tasks'
+import { ItemsStore, type ItemsStoreRequirements } from './store'
 
 const adapter = makePersistedAdapter({
   storage: { type: 'opfs' },
@@ -16,12 +13,14 @@ const adapter = makePersistedAdapter({
   sharedWorker: LiveStoreSharedWorker,
 })
 
-export const resources: Layer.Layer<ItemsStore> = Layer.effect(
-  ItemsStore,
-  createStore({
+export const resources: Layer.Layer<ItemsStoreRequirements> = pipe(
+  ItemsStore.layer({
     adapter,
-    schema,
-    storeId: STORE_ID,
+    batchUpdates: runUpdates => runUpdates(),
     disableDevtools: true,
-  }).pipe(provideOtel({})),
-).pipe(Layer.orDie)
+  }),
+  Layer.build,
+  provideOtel({}),
+  Layer.effectContext,
+  Layer.orDie,
+)
