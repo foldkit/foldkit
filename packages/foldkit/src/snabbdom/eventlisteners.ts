@@ -58,6 +58,10 @@ function updateEventListeners(oldVnode: VNode, vnode?: VNode): void {
 
   // optimization for reused immutable handlers
   if (oldOn === on) {
+    if (on && oldListener && vnode) {
+      ;(vnode as any).listener = oldListener
+      oldListener.vnode = vnode
+    }
     return
   }
 
