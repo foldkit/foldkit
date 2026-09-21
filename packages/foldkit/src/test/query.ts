@@ -962,19 +962,40 @@ export const getAllByRole =
     )
   }
 
-/** Finds the most specific element matching the given text content.
- *  Skips text VNodes (sel undefined) — only returns actual DOM elements. */
-export const getByText =
-  (target: string, options?: Readonly<{ exact?: boolean }>) =>
-  (html: VNode): Option.Option<VNode> => {
-    const exact = options?.exact !== false
+const matchesText = (
+  target: string | RegExp,
+  options?: Readonly<{ exact?: boolean }>,
+): ((node: VNode) => boolean) => {
+  if (target instanceof RegExp) {
+    const pattern = new RegExp(target.source, target.flags)
 
-    const textMatches = (node: VNode): boolean => {
+    return node => {
+      pattern.lastIndex = 0
+
+      return pattern.test(textContent(node))
+    }
+  } else {
+    const isExact = options?.exact !== false
+
+    return node => {
       const nodeText = textContent(node)
-      return exact
+
+      return isExact
         ? nodeText === target || hasDirectTextNodeMatch(node, target)
         : String.includes(target)(nodeText)
     }
+  }
+}
+
+/** Finds the most specific element matching the given text content.
+ *  Strings match exactly by default, including individual direct text children;
+ *  `exact: false` matches a substring. Regexes test combined element text,
+ *  ignore `exact`, and start at index zero without changing the input regex.
+ *  Only returns elements, never text VNodes. */
+export const getByText =
+  (target: string | RegExp, options?: Readonly<{ exact?: boolean }>) =>
+  (html: VNode): Option.Option<VNode> => {
+    const textMatches = matchesText(target, options)
 
     return pipe(
       allNodesIn(html),
@@ -1106,19 +1127,19 @@ export const getByTestId =
       attributeEquals('data-testid', testIdValue),
     )
 
-/** Finds all elements matching the given text content.
- *  Includes nested ancestors — a `<div><p>hi</p></div>` with text "hi" yields both. */
+/** Finds all elements matching the given text content, including matching ancestors.
+ *  Strings match exactly by default, including individual direct text children;
+ *  `exact: false` matches a substring. Regexes test combined element text,
+ *  ignore `exact`, and start at index zero without changing the input regex. */
 export const getAllByText =
-  (target: string, options?: Readonly<{ exact?: boolean }>) =>
+  (target: string | RegExp, options?: Readonly<{ exact?: boolean }>) =>
   (html: VNode): ReadonlyArray<VNode> => {
-    const exact = options?.exact !== false
-    return Array.filter(allNodesIn(html), node => {
-      if (!isElement(node)) return false
-      const nodeText = textContent(node)
-      return exact
-        ? nodeText === target || hasDirectTextNodeMatch(node, target)
-        : String.includes(target)(nodeText)
-    })
+    const textMatches = matchesText(target, options)
+
+    return Array.filter(
+      allNodesIn(html),
+      node => isElement(node) && textMatches(node),
+    )
   }
 
 /** Finds all elements with the given placeholder attribute. */
@@ -1248,11 +1269,17 @@ export const testId = (testIdValue: string): Locator =>
 export const displayValue = (valueString: string): Locator =>
   makeLocator(getByDisplayValue(valueString), `display value "${valueString}"`)
 
-/** Creates a Locator that finds the most specific element matching the given text content. */
+const describeText = (target: string | RegExp): string =>
+  target instanceof RegExp ? `${target}` : `"${target}"`
+
+/** Creates a Locator for the most specific element matching text.
+ *  Strings match exactly unless `exact` is false. Regexes match combined text
+ *  independently of `exact`, always from index zero without changing the input regex. */
 export const text = (
-  target: string,
+  target: string | RegExp,
   options?: Readonly<{ exact?: boolean }>,
-): Locator => makeLocator(getByText(target, options), `text "${target}"`)
+): Locator =>
+  makeLocator(getByText(target, options), `text ${describeText(target)}`)
 
 /** Creates a Locator that wraps a CSS selector. Escape hatch for cases
  *  where no accessible attribute is available. */
@@ -1286,12 +1313,17 @@ export const allRole = (
   return makeLocatorAll(getAllByRole(roleValue, options), `all ${description}`)
 }
 
-/** Creates a LocatorAll that finds every element matching the text. */
+/** Creates a LocatorAll for every element matching text, including matching ancestors.
+ *  Strings match exactly unless `exact` is false. Regexes match combined text
+ *  independently of `exact`, always from index zero without changing the input regex. */
 export const allText = (
-  target: string,
+  target: string | RegExp,
   options?: Readonly<{ exact?: boolean }>,
 ): LocatorAll =>
-  makeLocatorAll(getAllByText(target, options), `all text "${target}"`)
+  makeLocatorAll(
+    getAllByText(target, options),
+    `all text ${describeText(target)}`,
+  )
 
 /** Creates a LocatorAll that finds every element with the given label. */
 export const allLabel = (labelValue: string): LocatorAll =>

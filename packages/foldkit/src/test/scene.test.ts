@@ -8,6 +8,7 @@ import {
   inertHtml,
 } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
+import * as PublicScene from '../scene/public.js'
 import { h } from '../snabbdom/index.js'
 import type { VNode } from '../snabbdom/index.js'
 import { modifyFields } from '../struct/index.js'
@@ -3632,6 +3633,184 @@ describe('scene with inside', () => {
         }),
       ),
     )
+  })
+})
+
+describe('regex text locators', () => {
+  test('finds dynamic text with a single locator', () => {
+    const button = h('button', {}, 'Save 3 items')
+    expect(Option.getOrThrow(Scene.text(/Save \d+ items/)(button))).toBe(button)
+  })
+
+  test('finds dynamic text with a multi-match locator', () => {
+    const button = h('button', {}, 'Save 3 items')
+    expect(Scene.all.text(/Save \d+ items/)(button)).toEqual([button])
+  })
+
+  test('respects anchors and case-insensitive flags', () => {
+    const button = h('button', {}, 'SAVE 3 items')
+    expect(Option.getOrThrow(Scene.text(/^save \d+ items$/i)(button))).toBe(
+      button,
+    )
+    expect(Scene.all.text(/^save \d+ items$/i)(button)).toEqual([button])
+    expect(Option.isNone(Scene.text(/^save$/i)(button))).toBe(true)
+    expect(Scene.all.text(/^save$/i)(button)).toEqual([])
+  })
+
+  test('keeps the most specific single match and all matching ancestors', () => {
+    const button = h('button', {}, 'Save 3 items')
+    const tree = h('div', {}, [button])
+    expect(Option.getOrThrow(Scene.text(/Save \d+ items/)(tree))).toBe(button)
+    expect(Scene.all.text(/Save \d+ items/)(tree)).toEqual([tree, button])
+  })
+
+  test('repeats global matches across siblings and resolutions', () => {
+    const firstButton = h('button', {}, 'Save')
+    const secondButton = h('button', {}, 'Save')
+    const tree = h('div', {}, [firstButton, secondButton])
+    const single = Scene.text(/^Save$/g)
+    const multiple = Scene.all.text(/^Save$/g)
+    expect(Option.getOrThrow(single(tree))).toBe(firstButton)
+    expect(multiple(tree)).toEqual([firstButton, secondButton])
+    expect(Option.getOrThrow(single(tree))).toBe(firstButton)
+    expect(multiple(tree)).toEqual([firstButton, secondButton])
+  })
+
+  test('preserves sticky matching and caller lastIndex', () => {
+    const firstButton = h('button', {}, 'Save')
+    const secondButton = h('button', {}, 'xSave')
+    const tree = h('div', {}, ['Controls: ', firstButton, secondButton])
+    const pattern = /Save/gy
+    pattern.lastIndex = 2
+    const single = Scene.text(pattern)
+    const multiple = Scene.all.text(pattern)
+    expect(Option.getOrThrow(single(tree))).toBe(firstButton)
+    expect(pattern.lastIndex).toBe(2)
+    expect(multiple(tree)).toEqual([firstButton])
+    expect(pattern.lastIndex).toBe(2)
+    expect(Option.getOrThrow(single(tree))).toBe(firstButton)
+    expect(multiple(tree)).toEqual([firstButton])
+    expect(pattern.lastIndex).toBe(2)
+  })
+
+  test.each([undefined, true, false])(
+    'matches combined inline text with exact=%s',
+    exact => {
+      const button = h('button', {}, ['Save ', h('strong', {}, '3'), ' items'])
+      const options = exact === undefined ? undefined : { exact }
+      expect(
+        Option.getOrThrow(Scene.text(/^Save 3 items$/, options)(button)),
+      ).toBe(button)
+      expect(Scene.all.text(/^Save 3 items$/, options)(button)).toEqual([
+        button,
+      ])
+    },
+  )
+
+  test('does not apply the direct text child fallback to regexes', () => {
+    const link = h('a', {}, ['Hello', h('span', {}, '→')])
+    expect(Option.getOrThrow(Scene.text(/Hello/)(link))).toBe(link)
+    expect(Scene.all.text(/Hello/)(link)).toEqual([link])
+    expect(Option.isNone(Scene.text(/^Hello$/)(link))).toBe(true)
+    expect(Scene.all.text(/^Hello$/)(link)).toEqual([])
+  })
+
+  test('describes regexes in locators and assertion failures', () => {
+    expect(Scene.text(/save/i).description).toBe('text /save/i')
+    expect(Scene.all.text(/save/i).description).toBe('all text /save/i')
+    expect(() =>
+      Scene.scene(
+        { update, view },
+        Scene.given(initialModel),
+        Scene.expect(Scene.text(/save/i)).toExist(),
+      ),
+    ).toThrow('text /save/i')
+  })
+
+  test('scopes regex text and uses it in a Scene assertion', () => {
+    const firstButton = h('button', {}, 'Save 3 items')
+    const secondButton = h('button', {}, 'Save 3 items')
+    const tree = h('div', {}, [
+      h('section', { attrs: { 'data-testid': 'first' } }, [firstButton]),
+      h('section', { attrs: { 'data-testid': 'second' } }, [secondButton]),
+    ])
+    expect(
+      Option.getOrThrow(
+        Scene.within(
+          Scene.testId('second'),
+          Scene.text(/Save \d+ items/),
+        )(tree),
+      ),
+    ).toBe(secondButton)
+    Scene.scene(
+      { update, view },
+      Scene.given(initialModel),
+      Scene.expect(Scene.text(/Sign in/)).toExist(),
+    )
+  })
+
+  test.each([true, false])(
+    'accepts regexes through public queries with exact=%s',
+    exact => {
+      const button = h('button', {}, 'Save')
+      const single = PublicScene.text(/Save/, { exact })
+      const multiple = PublicScene.all.text(/Save/, { exact })
+      expectTypeOf(single).toEqualTypeOf<PublicScene.Locator>()
+      expectTypeOf(multiple).toEqualTypeOf<PublicScene.LocatorAll>()
+      expect(Option.getOrThrow(single(button))).toBe(button)
+      expect(multiple(button)).toEqual([button])
+      expectTypeOf(
+        PublicScene.getByText(/Save/, { exact })(button),
+      ).toEqualTypeOf<Option.Option<VNode>>()
+      expectTypeOf(
+        PublicScene.getAllByText(/Save/, { exact })(button),
+      ).toEqualTypeOf<ReadonlyArray<VNode>>()
+      expect(
+        Option.getOrThrow(PublicScene.getByText(/Save/, { exact })(button)),
+      ).toBe(button)
+      expect(PublicScene.getAllByText(/Save/, { exact })(button)).toEqual([
+        button,
+      ])
+    },
+  )
+
+  test('preserves literal exact, substring and direct-child matching', () => {
+    const button = h('button', {}, 'Save 3 items')
+    expect(Scene.all.text('Save')(button)).toEqual([])
+    expect(Scene.all.text('Save', { exact: false })(button)).toEqual([button])
+    const link = h('a', {}, ['Hello', h('span', {}, '→')])
+    expect(Option.getOrThrow(Scene.text('Hello')(link))).toBe(link)
+    expect(Scene.all.text('Hello')(link)).toEqual([link])
+    expect(Scene.text('Hello').description).toBe('text "Hello"')
+    expect(Scene.all.text('Hello').description).toBe('all text "Hello"')
+  })
+
+  test('preserves whitespace and hidden descendant text for strings', () => {
+    const hidden = h('span', { attrs: { hidden: true } }, '  Save  ')
+    const tree = h('div', {}, [hidden])
+    expect(Option.getOrThrow(Scene.text('  Save  ')(tree))).toBe(hidden)
+    expect(Scene.all.text('  Save  ')(tree)).toEqual([tree, hidden])
+    expect(Option.isNone(Scene.text('Save')(tree))).toBe(true)
+  })
+
+  test('matches regexes against unnormalized hidden descendant text', () => {
+    const hidden = h('span', { attrs: { hidden: true } }, '  Save  ')
+    const tree = h('div', {}, [hidden])
+    expect(Option.getOrThrow(Scene.text(/^  Save  $/)(tree))).toBe(hidden)
+    expect(Scene.all.text(/^  Save  $/)(tree)).toEqual([tree, hidden])
+    expect(Option.isNone(Scene.text(/^Save$/)(tree))).toBe(true)
+  })
+
+  test('preserves empty string matching', () => {
+    const empty = h('div', {})
+    expect(Option.getOrThrow(Scene.text('')(empty))).toBe(empty)
+    expect(Scene.all.text('')(empty)).toEqual([empty])
+  })
+
+  test('matches empty element text with an empty regex', () => {
+    const empty = h('div', {})
+    expect(Option.getOrThrow(Scene.text(/(?:)/)(empty))).toBe(empty)
+    expect(Scene.all.text(/(?:)/)(empty)).toEqual([empty])
   })
 })
 
