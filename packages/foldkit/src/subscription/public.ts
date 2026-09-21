@@ -25,6 +25,10 @@ export type {
   TypedEventTarget,
 } from './fromEvent.js'
 
+export { fromMediaQuery } from './fromMediaQuery.js'
+
+export type { FromMediaQueryConfig } from './fromMediaQuery.js'
+
 export { keyBindings } from './keyBindings.js'
 
 export type {

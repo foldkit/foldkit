@@ -28,6 +28,7 @@ import { Dialog, Menu } from '@foldkit/ui'
 import { inject } from '@vercel/analytics'
 import * as SpeedInsights from '@vercel/speed-insights'
 
+import { DARK_COLOR_SCHEME_QUERY } from './colorScheme'
 import { Deployment, isTelemetryEnabled } from './deployment'
 import {
   DOCS_SIDEBAR_NAV_ID,
@@ -62,7 +63,6 @@ import {
 import * as SnippetCopy from './snippetCopy'
 import * as Subscriptions from './subscription'
 import { ThemeSelector } from './view'
-import { NARROW_VIEWPORT_QUERY } from './viewport'
 
 export type { Message } from './message'
 export { Model } from './model'
@@ -144,13 +144,7 @@ const loadBrowserEnvironment = Effect.gen(function* () {
   )
 
   const systemTheme: ResolvedTheme = yield* Effect.sync(() =>
-    window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'Dark'
-      : 'Light',
-  )
-
-  const isNarrowViewport = yield* Effect.sync(
-    () => window.matchMedia(NARROW_VIEWPORT_QUERY).matches,
+    window.matchMedia(DARK_COLOR_SCHEME_QUERY).matches ? 'Dark' : 'Light',
   )
 
   const isPlaygroundSupported = yield* Effect.sync(detectPlaygroundSupport)
@@ -165,7 +159,6 @@ const loadBrowserEnvironment = Effect.gen(function* () {
     maybeThemePreference: themePreference,
     maybeSidebarState,
     systemTheme,
-    isNarrowViewport,
     isPlaygroundSupported,
     currentYear,
     today,
@@ -759,7 +752,6 @@ export const update = (model: Model, message: Message) =>
       maybeThemePreference,
       maybeSidebarState,
       systemTheme,
-      isNarrowViewport,
       isPlaygroundSupported,
       currentYear,
       today,
@@ -781,7 +773,6 @@ export const update = (model: Model, message: Message) =>
       const applyBrowserEnvironment: UpdateStep = stepModel => ({
         model: modifyFields(stepModel, {
           currentYear: () => currentYear,
-          isNarrowViewport: () => isNarrowViewport,
           maybeIsPlaygroundSupported: () => Option.some(isPlaygroundSupported),
           sidebarGroups: () =>
             initialSidebarGroups(maybeSidebarState, maybeActiveSectionKey),

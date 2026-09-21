@@ -88,7 +88,7 @@ Use `Stream.tick` for discrete wall-clock steps that should occur every N millis
 
 ## DOM Events
 
-`Subscription.fromEvent` handles DOM events that are not tied to one element in the rendered tree, such as window shortcuts, media-query changes, or document visibility. It registers the listener when the Stream scope opens and removes it when the scope closes.
+`Subscription.fromEvent` handles DOM events that are not tied to one element in the rendered tree, such as window shortcuts or document visibility. `fromEvent` registers the listener when the Stream scope opens and removes it when the scope closes. For a media query, use `Subscription.fromMediaQuery` from the [Media Queries](#media-queries) section, which also supplies the initial value.
 
 The helper returns a Stream, not a complete entry. Its `mapEvent` callback can produce any output type, including a raw event; `Subscription.make<Model, Message>()` checks that the final Stream supplied to an entry emits the application's Message type. Wrap it in `Stream.when` inside an entry to gate it on the Model, or pass it to `Subscription.persistent` for a listener that lives with the whole Subscriptions record.
 
@@ -111,6 +111,16 @@ When only some events should produce a value, use `Subscription.fromEventFilterM
 When a handled event should also cancel its default action, use `Subscription.fromEventFilterMapPreventDefault`. Its `filterMapEvent` returns `Option.some(value)` to handle the event or `Option.none()` to leave its default behavior intact. The helper evaluates the mapper, calls `preventDefault()`, and queues the value before the native listener returns. Both filtered helpers infer their Stream output from `filterMapEvent`; `Subscription.make` checks the final Message type. The cancelling helper registers the listener with `passive: false` by default and does not accept `passive: true`, which would make cancellation ineffective.
 
 For a listener attached to one rendered element, use [Mount](/core/mount) instead.
+
+## Media Queries
+
+`Subscription.fromMediaQuery` emits the current answer to a media query when its scope opens and emits again each time the answer changes. The first Message carries the value in effect when the scope opens and every later Message carries a change, so an entry that only needs the value in the Model has no separate `window.matchMedia` read. An app that must act on the value before a gated entry opens, such as applying a theme at boot, still reads it there.
+
+The initial emission is what a `change` listener alone cannot give you. `change` fires only on transitions, so an app listening with `fromEvent` still has to read `matches` separately at boot, and an entry gated on the Model keeps the value it last saw when the gate closes. Say the color-scheme entry is active only while the user's preference is System. The user picks Dark, switches the operating system to a light theme, then picks System again. With a plain listener the entry restarts, no `change` arrives, and the app keeps using the stale value. With `fromMediaQuery` the restart re-reads the query and emits the current answer.
+
+::Snippet{name="subscriptionFromMediaQuery" label="reduced motion subscription example"}
+
+The helper returns a Stream, so it composes the same way `fromEvent` does: pass it to `Subscription.persistent` for a query the app follows for its whole lifetime, or put it behind `Stream.when` inside an entry to gate it on the Model. The query is resolved inside the acquire Effect, so building the Stream at module load or during server rendering touches no browser global. `prefers-reduced-motion` is the common case for an app that animates; `prefers-color-scheme` and viewport breakpoints such as `(max-width: 1023px)` follow the same shape.
 
 ## Key Bindings
 

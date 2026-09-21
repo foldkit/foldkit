@@ -456,6 +456,8 @@ export { default as subscriptionEquivalenceRaw } from './subscriptionEquivalence
 export { default as subscriptionEquivalenceHighlighted } from './subscriptionEquivalence.ts?highlighted'
 export { default as subscriptionFromEventRaw } from './subscriptionFromEvent.ts?raw'
 export { default as subscriptionFromEventHighlighted } from './subscriptionFromEvent.ts?highlighted'
+export { default as subscriptionFromMediaQueryRaw } from './subscriptionFromMediaQuery.ts?raw'
+export { default as subscriptionFromMediaQueryHighlighted } from './subscriptionFromMediaQuery.ts?highlighted'
 export { default as subscriptionKeyBindingsRaw } from './subscriptionKeyBindings.ts?raw'
 export { default as subscriptionKeyBindingsHighlighted } from './subscriptionKeyBindings.ts?highlighted'
 export { default as comparisonFoldkitModelRaw } from './comparisonFoldkitModel.ts?raw'

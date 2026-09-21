@@ -44,7 +44,6 @@ export const Message = defineMessageUnion({
     maybeThemePreference: Schema.Option(ThemePreference),
     maybeSidebarState: Schema.Option(SidebarState),
     systemTheme: ResolvedTheme,
-    isNarrowViewport: Schema.Boolean,
     isPlaygroundSupported: Schema.Boolean,
     currentYear: Schema.Number,
     today: Calendar.CalendarDate,
