@@ -71,14 +71,14 @@ describe('resolveRelayUrl', () => {
     )
   }
 
-  it('connects to a configured port without looking anything up', async () => {
+  it('uses a configured port instead of a published relay', async () => {
     await publish()
     expect(
       await resolve(settings({ maybeConfiguredPort: Option.some('4600') })),
     ).toBe('ws://localhost:4600')
   })
 
-  it('puts a configured host in front of a configured port', async () => {
+  it('uses a configured host with a configured port', async () => {
     expect(
       await resolve(
         settings({
@@ -89,19 +89,19 @@ describe('resolveRelayUrl', () => {
     ).toBe('ws://devbox:4600')
   })
 
-  it('uses the published address, token included', async () => {
+  it('uses a published relay address with its token', async () => {
     await publish()
     expect(await resolve(settings())).toBe(published.url)
   })
 
-  it('swaps only the hostname of a published address for a configured host', async () => {
+  it('replaces only a published relay hostname with a configured host', async () => {
     await publish()
     expect(
       await resolve(settings({ maybeConfiguredHost: Option.some('devbox') })),
     ).toBe('ws://devbox:5173/__foldkit/devtools-mcp?token=abc')
   })
 
-  it('falls back to the port earlier plugins used when nothing is published', async () => {
+  it('uses the legacy port when no relay is published', async () => {
     expect(await resolve(settings())).toBe('ws://localhost:9988')
   })
 })

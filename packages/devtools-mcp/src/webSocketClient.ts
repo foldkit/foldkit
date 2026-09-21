@@ -71,7 +71,7 @@ const reconnectSchedule = Schedule.exponential(INITIAL_RECONNECT_DELAY).pipe(
   ),
 )
 
-const withoutSearch = (url: string): string => {
+const relayUrlForLog = (url: string): string => {
   const parsed = new URL(url)
   parsed.search = ''
   return parsed.toString()
@@ -120,14 +120,8 @@ const waitForClose = (socket: WebSocket): Effect.Effect<void> =>
   })
 
 /**
- * Construct a WebSocket client that maintains its connection to the Foldkit
- * Vite plugin's DevTools relay in the background. The Effect succeeds
- * immediately with a client whose connection state evolves over time. The
- * relay's address is resolved afresh before every attempt, so a dev server
- * that starts later, or restarts on another port, is found by the same loop.
- * The initial connect is retried with exponential backoff; later disconnects
- * reconnect via the same loop. `sendRequest` fails with a clear "not
- * connected" error while no relay is reachable.
+ * Creates a client that resolves the relay URL before each connection attempt.
+ * This finds dev servers that start later or restart on another port.
  */
 export const connectWebSocketClient = <Services>(
   resolveUrl: Effect.Effect<string, never, Services>,
@@ -164,7 +158,7 @@ export const connectWebSocketClient = <Services>(
           Effect.map(socket => ({ socket, url })),
           Effect.tapError(error =>
             Console.error(
-              `[foldkit-devtools-mcp] connect attempt to ${withoutSearch(url)} failed: ${error.message}`,
+              `[foldkit-devtools-mcp] connect attempt to ${relayUrlForLog(url)} failed: ${error.message}`,
             ),
           ),
         ),
@@ -177,7 +171,7 @@ export const connectWebSocketClient = <Services>(
       function* () {
         const { socket, url } = yield* openWithBackoff
         yield* Console.error(
-          `[foldkit-devtools-mcp] connected to ${withoutSearch(url)}`,
+          `[foldkit-devtools-mcp] connected to ${relayUrlForLog(url)}`,
         )
         attachMessageHandler(socket)
         yield* Ref.set(currentSocketRef, Option.some(socket))

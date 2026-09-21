@@ -110,24 +110,23 @@ To include the overlay in production, list `@foldkit/devtools` in regular `depen
 
 ## DevTools MCP relay
 
-In development the plugin serves a WebSocket relay that exposes your running Foldkit app to AI agents via the [`@foldkit/devtools-mcp`](https://www.npmjs.com/package/@foldkit/devtools-mcp) MCP server. The MCP server connects to it and forwards typed `Request` and `Response` frames between AI agents and your Runtime.
+During development, the plugin starts a WebSocket relay for the [`@foldkit/devtools-mcp`](https://www.npmjs.com/package/@foldkit/devtools-mcp) server. Through the relay, an AI agent can inspect a running Foldkit app and dispatch Messages.
 
-By default the dev server serves the relay itself, at `/__foldkit/devtools-mcp`, and publishes its address to a per-user registry, where the MCP server finds the relay for the project it was started in. Nothing has to be configured, two projects never contend for a port, and `server.host` decides who can reach the relay the same way it decides who can reach the app. The registry lives under `XDG_RUNTIME_DIR`, or the operating system's temporary directory, unless `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY` names another.
+By default, the relay uses the dev server's listener at `/__foldkit/devtools-mcp`. The plugin publishes its address to a registry private to your user, and the MCP server finds it by project. You do not need to coordinate a port between them. The registry lives under `XDG_RUNTIME_DIR` when that is set, or under the operating system's temporary directory. `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY` selects another directory.
 
-Where the relay listens, and who it admits:
+The relay follows Vite's `server.host` setting. If you expose the dev server with `--host`, a client still needs the random token in the published address to inspect a Model or dispatch a Message. The plugin will not publish that token into a registry directory owned by another user or readable by other users. It reports the problem in the console.
 
-- The published address carries a random token, and the relay refuses a connection without it, so serving with `--host` opens the app to the network but not Model inspection or Message dispatch.
-- The plugin refuses to publish into a registry directory that belongs to another user or that other users can read, and says so on the console.
-- On platforms where directory ownership cannot be verified, including Windows, the plugin does not publish a registry record. Use a fixed `devToolsMcpPort` and set `FOLDKIT_DEVTOOLS_MCP_PORT` to the same value for MCP access.
-- In middleware mode, where there is no HTTP server to host it, and on an HTTPS dev server, whose self-signed certificate the MCP server could not verify, the relay takes a free loopback port instead.
+In middleware mode, the relay uses a free loopback port because there is no HTTP server to share. It also uses a free loopback port for HTTPS dev servers, whose self-signed certificates the MCP server cannot verify. The plugin publishes these addresses for discovery in the same way.
 
-Pass `devToolsMcpPort` to keep a socket of its own on a fixed port, on every interface, for an MCP server that is told the port through `FOLDKIT_DEVTOOLS_MCP_PORT`:
+To use a fixed port, set `devToolsMcpPort` in your Vite config:
 
 ```typescript
 plugins: [foldkit({ devToolsMcpPort: 9988 })]
 ```
 
-That socket carries no token, since an MCP server told a port cannot learn one. `devToolsMcpPort: false` starts no relay. The relay never starts under Vitest, which loads a config in `test` mode or with its own plugins, and it is not part of production builds.
+Set `FOLDKIT_DEVTOOLS_MCP_PORT` to the same value for the MCP server. A fixed port opens a separate socket on every interface and does not require a token. Use this setting on platforms where directory ownership cannot be verified, including Windows, because the plugin cannot publish a relay address there.
+
+`devToolsMcpPort: false` disables the relay. The relay does not start during Vitest runs or in production builds.
 
 See the [DevTools MCP documentation](https://foldkit.dev/ai/mcp) for setup, the available tools, and how dispatch validation works.
 

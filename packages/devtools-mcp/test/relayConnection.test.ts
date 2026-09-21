@@ -1,5 +1,5 @@
 import { ConfigProvider, Effect, Option, Schedule, pipe } from 'effect'
-import { Request } from 'foldkit/devtools-protocol'
+import { Request, type RelayRecord } from 'foldkit/devtools-protocol'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { createServer as createNetServer } from 'node:net'
 import { tmpdir } from 'node:os'
@@ -34,8 +34,13 @@ const findFreePort = () =>
     probe.on('error', reject)
     probe.listen(0, '127.0.0.1', () => {
       const address = probe.address()
-      const port =
-        address === null || typeof address === 'string' ? 0 : address.port
+      if (address === null || typeof address === 'string') {
+        probe.close()
+        reject(new Error('Could not determine a free port'))
+        return
+      }
+
+      const { port } = address
       probe.close(() => resolvePort(port))
     })
   })
@@ -85,31 +90,31 @@ describe('relay connection', () => {
             times: 60,
           }),
         )
-      const publishedToken = (differentFrom: string | undefined) =>
+      const tokenFromPublishedRelay = (
+        maybeRecord: Option.Option<RelayRecord>,
+        previousToken: string | undefined,
+      ) =>
+        pipe(
+          maybeRecord,
+          Option.flatMap(record =>
+            Option.fromNullishOr(new URL(record.url).searchParams.get('token')),
+          ),
+          Option.filter(token => token !== previousToken),
+        )
+      const waitForPublishedToken = (previousToken: string | undefined) =>
         discoverRelay(PACKAGE_ROOT).pipe(
           Effect.flatMap(maybeRecord =>
-            Option.match(
-              pipe(
-                maybeRecord,
-                Option.flatMap(record =>
-                  Option.fromNullishOr(
-                    new URL(record.url).searchParams.get('token'),
-                  ),
-                ),
-                Option.filter(token => token !== differentFrom),
-              ),
-              {
-                onNone: () => Effect.fail(new Error('no new relay published')),
-                onSome: token => Effect.succeed(token),
-              },
-            ),
+            Option.match(tokenFromPublishedRelay(maybeRecord, previousToken), {
+              onNone: () => Effect.fail(new Error('no new relay published')),
+              onSome: token => Effect.succeed(token),
+            }),
           ),
           Effect.retry({ schedule: Schedule.spaced('100 millis'), times: 100 }),
         )
 
       await Effect.runPromise(
         Effect.gen(function* () {
-          const before = yield* publishedToken(undefined)
+          const before = yield* waitForPublishedToken(undefined)
           const client = yield* connectWebSocketClient(
             resolveRelayUrl(settings),
           )
@@ -118,7 +123,7 @@ describe('relay connection', () => {
           expect(first._tag).toBe('ResponseRuntimes')
 
           yield* Effect.promise(() => server.restart())
-          const after = yield* publishedToken(before)
+          const after = yield* waitForPublishedToken(before)
           expect(after).not.toBe(before)
 
           const second = yield* listRuntimes(client)

@@ -26,7 +26,9 @@ Install the server as a development dependency when you want to avoid an `npx` l
 
 ::Snippet{name="aiMcpInstall" label="install the DevTools MCP server"}
 
-The Foldkit Vite plugin serves the WebSocket relay on the development server itself, at `/__foldkit/devtools-mcp`, and publishes its address for the MCP server to find. Set `devToolsMcpPort` in `vite.config.ts` only when the relay must listen on a fixed port of its own, and then give the MCP server the same value in `FOLDKIT_DEVTOOLS_MCP_PORT`:
+No Vite config change is needed. The Foldkit plugin serves the relay at `/__foldkit/devtools-mcp` on the dev server, and the MCP server finds it by project.
+
+If automatic discovery is unavailable, set a fixed `devToolsMcpPort` in `vite.config.ts` and give the MCP server the same value in `FOLDKIT_DEVTOOLS_MCP_PORT`. This is required on Windows:
 
 ::Snippet{name="aiMcpViteConfig" label="Vite config snippet for a fixed port"}
 
@@ -64,19 +66,17 @@ Every tool except `foldkit_list_runtimes` accepts an optional `runtime_id`. With
 
 ## Connection Flow
 
-The browser bridge runs alongside DevTools and subscribes to the DevTools store. The Vite plugin serves a WebSocket endpoint on the development server and relays requests between connected browser tabs and MCP clients. With `devToolsMcpPort` set, it opens a socket of its own on that port instead.
+The browser bridge runs alongside DevTools and subscribes to the DevTools store. The Vite plugin relays requests between browser tabs and MCP clients through a WebSocket endpoint on the dev server. The MCP server runs under your AI agent and finds the relay for the project it runs in. `FOLDKIT_PROJECT_ROOT` selects another project.
 
-The plugin publishes the relay's address to a per-user registry. The address carries a token the relay requires of every connection. The registry lives under `XDG_RUNTIME_DIR`, or the operating system's temporary directory, unless `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY` names another, and the plugin refuses to publish into a directory that other users can read.
+The plugin publishes the relay's address to a registry private to your user. The address includes a random token that every client must present before inspecting a Model or dispatching a Message. The plugin refuses to publish into a directory owned by another user or readable by other users. The registry lives under `XDG_RUNTIME_DIR` when set, or under the operating system's temporary directory. `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY` selects another directory.
 
-On Windows, directory ownership cannot be verified, so automatic discovery is unavailable. Set `devToolsMcpPort` in the Vite config and give the MCP server the same port through `FOLDKIT_DEVTOOLS_MCP_PORT`.
+On Windows, the plugin cannot verify registry directory ownership, so it cannot publish an address. Set `devToolsMcpPort` in the Vite config and pass the same port in `FOLDKIT_DEVTOOLS_MCP_PORT`. This opens a separate socket without a token. `FOLDKIT_DEVTOOLS_MCP_PORT` also skips discovery on other platforms.
 
-The MCP server runs as a child process of the AI agent, looks up the relay of the dev server most recently started for the project it runs in, and exposes those requests as typed tools. `FOLDKIT_PROJECT_ROOT` names another project, and `FOLDKIT_DEVTOOLS_MCP_PORT` skips the lookup for a fixed port.
+When several relays match the project, the MCP server chooses the most recently started one. If the dev server restarts, the MCP server looks it up again and reconnects with exponential backoff. The agent can also start before the dev server.
 
 More than one browser tab can connect at once. `foldkit_list_runtimes` returns each connection ID, and `runtime_id` selects one explicitly. When a tab closes, the relay removes it from the live Runtime list.
 
 Messages stay as Effect Schema values across the connection. Before dispatching, an agent can call `foldkit_get_message_schema` for the top-level variants and then inspect the payload shape of the variant it needs. The Runtime decodes the constructed value before it reaches update. A batch is fully decoded before its first Message is dispatched.
-
-If the development server restarts, the MCP process looks the relay up again and reconnects with exponential backoff. The agent does not need another restart, and neither does a development server started after the agent.
 
 ## Development and Production
 

@@ -1,4 +1,11 @@
-import { Array, ConfigProvider, Effect, FileSystem, Option } from 'effect'
+import {
+  Array,
+  ConfigProvider,
+  Effect,
+  FileSystem,
+  Option,
+  Predicate,
+} from 'effect'
 import type { RelayRecord } from 'foldkit/devtools-protocol'
 import { chmod, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
 import { connect, createServer as createNetServer } from 'node:net'
@@ -308,8 +315,8 @@ const withRuntimeDirectory = (runtimeDirectory: string) => {
   return join(runtimeDirectory, REGISTRY_DIRECTORY_NAME)
 }
 
-const loggedLines = (spy: { mock: { calls: Array<Array<unknown>> } }) =>
-  spy.mock.calls.map(call => call.map(String).join(' '))
+const joinedLogLines = (calls: ReadonlyArray<ReadonlyArray<unknown>>) =>
+  calls.map(call => call.map(String).join(' '))
 
 const maybeNetworkAddress = Array.findFirst(
   Object.values(networkInterfaces()).flatMap(addresses => addresses ?? []),
@@ -344,7 +351,7 @@ describe('DevTools MCP relay', () => {
       )
       if (
         plugin === undefined ||
-        typeof plugin.handleHotUpdate !== 'function'
+        !Predicate.isFunction(plugin.handleHotUpdate)
       ) {
         throw new Error(
           'expected the foldkit plugin with a handleHotUpdate hook',
@@ -774,11 +781,13 @@ describe('DevTools MCP relay discovery', () => {
       await startMiddlewareServer({})
 
       await expect
-        .poll(() => loggedLines(reported), { timeout: POLL_TIMEOUT })
+        .poll(() => joinedLogLines(reported.mock.calls), {
+          timeout: POLL_TIMEOUT,
+        })
         .toContainEqual(
           expect.stringContaining('is readable or writable by other users'),
         )
-      expect(loggedLines(logged)).toContainEqual(
+      expect(joinedLogLines(logged.mock.calls)).toContainEqual(
         expect.stringContaining('MCP relay listening at'),
       )
       expect(await readdir(registryDirectory)).toEqual([])
@@ -802,14 +811,16 @@ describe('DevTools MCP relay discovery', () => {
       await startMiddlewareServer({})
 
       await expect
-        .poll(() => loggedLines(reported), { timeout: POLL_TIMEOUT })
+        .poll(() => joinedLogLines(reported.mock.calls), {
+          timeout: POLL_TIMEOUT,
+        })
         .toContainEqual(
           expect.stringContaining('the registry could not be written'),
         )
-      expect(loggedLines(reported)).toContainEqual(
+      expect(joinedLogLines(reported.mock.calls)).toContainEqual(
         expect.stringContaining('FOLDKIT_DEVTOOLS_RELAY_DIRECTORY'),
       )
-      expect(loggedLines(logged)).toContainEqual(
+      expect(joinedLogLines(logged.mock.calls)).toContainEqual(
         expect.stringContaining('MCP relay listening at'),
       )
     },

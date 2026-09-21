@@ -2,12 +2,12 @@ import {
   Array,
   Config,
   Effect,
-  Exit,
   FileSystem,
   Option,
   Order,
   Path,
   Schema,
+  String,
   pipe,
 } from 'effect'
 import {
@@ -21,22 +21,12 @@ const RUNTIME_DIRECTORY_VARIABLE = 'XDG_RUNTIME_DIR'
 const RECORD_FILE_EXTENSION = '.json'
 const RETIRING_RECORD_SUFFIX = '.retiring'
 
-/**
- * The services the registry is read through. `NodeServices.layer` from
- * `@effect/platform-node` provides both.
- */
 export type RelayRegistryServices = FileSystem.FileSystem | Path.Path
 
-const decodeRelayRecord = Schema.decodeUnknownExit(
+const decodeRelayRecord = Schema.decodeUnknownOption(
   Schema.fromJsonString(RelayRecord),
 )
 
-/**
- * The directory holding one record per running relay, shared with the Vite
- * plugin: the directory named by `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY`;
- * otherwise `foldkit-devtools-relays` under `XDG_RUNTIME_DIR`; otherwise
- * under the operating system's temporary directory.
- */
 const relayRegistryDirectory: Effect.Effect<string, never, Path.Path> =
   Effect.gen(function* () {
     const path = yield* Path.Path
@@ -69,47 +59,48 @@ const readRecordFile = (
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem
     const raw = yield* fileSystem.readFileString(filePath)
-    return Exit.match(decodeRelayRecord(raw), {
-      onFailure: () => Option.none<RelayRecord>(),
-      onSuccess: Option.some,
-    })
+    return decodeRelayRecord(raw)
   }).pipe(Effect.orElseSucceed(() => Option.none<RelayRecord>()))
+
+const retireStaleRecord = (
+  filePath: string,
+  record: RelayRecord,
+): Effect.Effect<void, never, FileSystem.FileSystem> =>
+  Effect.gen(function* () {
+    const fileSystem = yield* FileSystem.FileSystem
+    const retiringPath = `${filePath}.${encodeURIComponent(record.id)}${RETIRING_RECORD_SUFFIX}`
+    const wasRecordMoved = yield* fileSystem
+      .rename(filePath, retiringPath)
+      .pipe(
+        Effect.as(true),
+        Effect.orElseSucceed(() => false),
+      )
+
+    if (!wasRecordMoved) {
+      return
+    }
+
+    const maybeRetiringRecord = yield* readRecordFile(retiringPath)
+    const isOriginalRecord = Option.exists(
+      maybeRetiringRecord,
+      retiringRecord => retiringRecord.id === record.id,
+    )
+
+    if (!isOriginalRecord) {
+      yield* fileSystem.link(retiringPath, filePath).pipe(Effect.ignore)
+    }
+
+    yield* fileSystem.remove(retiringPath, { force: true }).pipe(Effect.ignore)
+  })
 
 const readLiveRecordFile = (
   filePath: string,
 ): Effect.Effect<Option.Option<RelayRecord>, never, FileSystem.FileSystem> =>
   Effect.gen(function* () {
-    const fileSystem = yield* FileSystem.FileSystem
     const maybeRecord = yield* readRecordFile(filePath)
 
     if (Option.isSome(maybeRecord) && !isProcessAlive(maybeRecord.value.pid)) {
-      const retiringPath = `${filePath}.${encodeURIComponent(
-        maybeRecord.value.id,
-      )}${RETIRING_RECORD_SUFFIX}`
-      const wasMoved = yield* fileSystem.rename(filePath, retiringPath).pipe(
-        Effect.as(true),
-        Effect.orElseSucceed(() => false),
-      )
-      if (!wasMoved) {
-        return Option.none<RelayRecord>()
-      }
-
-      const maybeMoved = yield* readRecordFile(retiringPath)
-      const isOriginalRecord = Option.exists(
-        maybeMoved,
-        record => record.id === maybeRecord.value.id,
-      )
-
-      if (isOriginalRecord) {
-        yield* fileSystem
-          .remove(retiringPath, { force: true })
-          .pipe(Effect.ignore)
-      } else {
-        yield* fileSystem.link(retiringPath, filePath).pipe(Effect.ignore)
-        yield* fileSystem
-          .remove(retiringPath, { force: true })
-          .pipe(Effect.ignore)
-      }
+      yield* retireStaleRecord(filePath, maybeRecord.value)
 
       return Option.none<RelayRecord>()
     }
@@ -122,12 +113,6 @@ const newestFirst: Order.Order<RelayRecord> = Order.mapInput(
   record => record.startedAt,
 )
 
-/**
- * The relay of the dev server most recently started for a project: a record
- * whose root is the project root or a directory inside it, and whose process
- * is still alive. Records left behind by dev servers that died without
- * retiring them are removed on the way.
- */
 export const discoverRelay = (
   projectRoot: string,
 ): Effect.Effect<Option.Option<RelayRecord>, never, RelayRegistryServices> =>
@@ -136,8 +121,8 @@ export const discoverRelay = (
     const path = yield* Path.Path
     const directory = yield* relayRegistryDirectory
 
-    const isWithin = (candidate: string): boolean => {
-      const relativePath = path.relative(projectRoot, candidate)
+    const isWithinProjectRoot = (candidatePath: string): boolean => {
+      const relativePath = path.relative(projectRoot, candidatePath)
       return (
         relativePath === '' ||
         (relativePath !== '..' &&
@@ -149,17 +134,20 @@ export const discoverRelay = (
     const fileNames = yield* fileSystem
       .readDirectory(directory)
       .pipe(Effect.orElseSucceed((): ReadonlyArray<string> => []))
-    const recordFileNames = Array.filter(fileNames, fileName =>
-      fileName.endsWith(RECORD_FILE_EXTENSION),
+    const recordFileNames = Array.filter(
+      fileNames,
+      String.endsWith(RECORD_FILE_EXTENSION),
     )
-    const maybeRecords = yield* Effect.forEach(recordFileNames, fileName =>
-      readLiveRecordFile(path.join(directory, fileName)),
+    const maybeRecords = yield* Effect.forEach(
+      recordFileNames,
+      recordFileName =>
+        readLiveRecordFile(path.join(directory, recordFileName)),
     )
 
     return pipe(
       maybeRecords,
       Array.getSomes,
-      Array.filter(record => isWithin(record.root)),
+      Array.filter(record => isWithinProjectRoot(record.root)),
       Array.sort(newestFirst),
       Array.head,
     )

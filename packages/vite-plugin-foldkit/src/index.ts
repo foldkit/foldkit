@@ -83,23 +83,13 @@ export {
 /** Options for the `foldkit` Vite plugin. */
 export type FoldkitPluginOptions = Readonly<{
   /**
-   * The WebSocket relay that exposes DevTools to the Foldkit DevTools MCP
-   * server. When `undefined` (the default), the dev server serves the relay
-   * itself at `/__foldkit/devtools-mcp` and publishes its address for the MCP
-   * server to find, so no port has to be agreed on. In middleware mode, where
-   * there is no HTTP server to host it, and on an HTTPS dev server, whose
-   * self-signed certificate the MCP server could not verify, the relay takes a
-   * free loopback port instead.
+   * By default, the dev server hosts the DevTools MCP relay and publishes its
+   * address for the MCP server to find. Middleware and HTTPS servers use a
+   * separate loopback listener. Published addresses carry an access token.
    *
-   * The address is published under `XDG_RUNTIME_DIR`, or the operating
-   * system's temporary directory, unless `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY`
-   * names another. A directory other users can read is refused, and the relay
-   * then needs a configured port.
-   *
-   * A number binds a socket of its own on that port on every interface, for
-   * an MCP server that is told the port explicitly. `false` starts no relay.
-   * The relay never starts when Vite runs in `test` mode, which is how Vitest
-   * loads a config.
+   * A number starts an unauthenticated listener on that port on every
+   * interface; set `FOLDKIT_DEVTOOLS_MCP_PORT` in the MCP server to match.
+   * `false` disables the relay. Vitest never starts it.
    */
   devToolsMcpPort?: number | false
   /**
@@ -622,12 +612,9 @@ const registerViteWsHandlers = (
 
 // MCP RELAY
 
-// NOTE: Restarting a dev server briefly leaves two of them alive. Vite builds
-// the replacement, which binds its relay, before closing the server it
-// replaces, which still owns the port. The bind loses that race and has to
-// wait for the outgoing server to release the port, so it retries for four
-// seconds before reporting the port as taken. Only a configured port can
-// contend this way; the dev server's own port is handed over by Vite.
+// NOTE: Vite starts a replacement server before closing the old one. A
+// configured relay port can stay occupied during the overlap, so binding
+// retries for four seconds.
 const RELAY_BIND_RETRY_DELAY = Duration.millis(100)
 const RELAY_BIND_RETRY_COUNT = 40
 const RELAY_PATH = '/__foldkit/devtools-mcp'
@@ -672,14 +659,14 @@ const attachRelayHandlers = (
   })
 }
 
-const requestUrl = Option.liftThrowable(
+const parseRequestUrl = Option.liftThrowable(
   (request: IncomingMessage) => new URL(request.url ?? '/', 'http://relay'),
 )
 
 const boundPort = (
   address: AddressInfo | string | null,
 ): Option.Option<number> =>
-  address === null || typeof address === 'string'
+  address === null || Predicate.isString(address)
     ? Option.none()
     : Option.some(address.port)
 
@@ -692,7 +679,7 @@ const relayToken = Effect.gen(function* () {
   return Buffer.from(bytes).toString('hex')
 })
 
-const withoutSearch = (url: string): string => {
+const relayUrlForLog = (url: string): string => {
   const parsed = new URL(url)
   parsed.search = ''
   return parsed.toString()
@@ -779,7 +766,7 @@ const hostRelayOnServer = (
       socket: Duplex,
       head: Buffer,
     ): void => {
-      const maybeUrl = requestUrl(request)
+      const maybeUrl = parseRequestUrl(request)
       if (Option.isNone(maybeUrl)) {
         socket.destroy()
         return
@@ -789,28 +776,34 @@ const hostRelayOnServer = (
       if (url.pathname !== RELAY_PATH) {
         return
       }
+
       if (!requestPresentsToken(url, token)) {
         refuseUpgrade(socket)
         return
       }
+
       wss.handleUpgrade(request, socket, head, client => {
         wss.emit('connection', client, request)
       })
     }
+
     httpServer.on('upgrade', onUpgrade)
 
     const detach = (): void => {
       httpServer.off('upgrade', onUpgrade)
       httpServer.off('listening', onListening)
     }
+
     const onListening = (): void => {
       resume(Effect.sync(() => ({ id, wss, url: toUrl(httpServer), detach })))
     }
+
     if (httpServer.listening) {
       onListening()
     } else {
       httpServer.once('listening', onListening)
     }
+
     return Effect.sync(detach)
   })
 
@@ -819,18 +812,24 @@ const bindLoopbackHttpServer = Effect.callback<HttpServer, RelayBindFailed>(
     const httpServer = createHttpServer()
     const onBindFailed = (cause: Error) => {
       httpServer.close()
+
       resume(
         Effect.fail(new RelayBindFailed({ maybePort: Option.none(), cause })),
       )
     }
+
     httpServer.once('error', onBindFailed)
+
     httpServer.listen(0, RELAY_LOOPBACK_HOST, () => {
       httpServer.off('error', onBindFailed)
+
       httpServer.on('error', error => {
         console.error('[foldkit:devTools] MCP relay error', error)
       })
+
       resume(Effect.succeed(httpServer))
     })
+
     return Effect.sync(() => {
       httpServer.close()
     })
@@ -913,11 +912,9 @@ const reportRelayBindFailed = (
   if (Option.isSome(maybePort) && isPortInUse(cause)) {
     const port = maybePort.value
     return Console.error(
-      `\n[foldkit:devTools] Port ${port} is already in use, so the DevTools MCP relay could not start.\n` +
-        `[foldkit:devTools] This usually means another Foldkit project is already running and bound to this port.\n` +
-        `[foldkit:devTools] Until the port is freed, agents will not be able to connect to this app via the Foldkit DevTools MCP server.\n` +
-        `[foldkit:devTools] Stop the other project, or remove \`devToolsMcpPort\` from this project's vite config so the dev server serves the relay itself and the MCP server finds it on its own.\n` +
-        `[foldkit:devTools] If you keep a \`devToolsMcpPort\`, set \`FOLDKIT_DEVTOOLS_MCP_PORT\` to the same value for your MCP server.\n`,
+      `\n[foldkit:devTools] Port ${port} is in use; the MCP relay did not start.\n` +
+        `[foldkit:devTools] Stop the process using that port, or remove \`devToolsMcpPort\` from your Vite config to use automatic discovery.\n` +
+        `[foldkit:devTools] If you choose another fixed port, set \`FOLDKIT_DEVTOOLS_MCP_PORT\` to match.\n`,
     )
   } else {
     return Console.error(
@@ -928,7 +925,7 @@ const reportRelayBindFailed = (
 }
 
 const unpublishedRelayMessage = (reason: string): string =>
-  `[foldkit:devTools] Not publishing the MCP relay for discovery: ${reason}. Set FOLDKIT_DEVTOOLS_RELAY_DIRECTORY to a directory only you can read, or set devToolsMcpPort and FOLDKIT_DEVTOOLS_MCP_PORT so the MCP server reaches the relay without the registry.`
+  `[foldkit:devTools] Cannot publish the MCP relay address: ${reason}. Set matching devToolsMcpPort and FOLDKIT_DEVTOOLS_MCP_PORT values for MCP access, or set FOLDKIT_DEVTOOLS_RELAY_DIRECTORY to a private directory on a platform that verifies ownership.`
 
 const publishRelay = (root: string, relay: Relay) =>
   Effect.gen(function* () {
@@ -963,17 +960,14 @@ const startMcpRelay = (
   enqueue: (event: Event) => void,
 ) => {
   const root = server.config.root
-  // NOTE: An HTTPS dev server, which in development means a self-signed
-  // certificate, would publish a `wss:` address the MCP server cannot verify.
-  // The relay takes a loopback socket of its own there, as in middleware mode.
+  // NOTE: The MCP server cannot verify a development HTTPS certificate, so
+  // HTTPS uses a separate loopback listener.
   const maybeHttpServer = Option.filter(
     Option.fromNullishOr(server.httpServer),
     () => server.config.server.https === undefined,
   )
-  // NOTE: A configured port binds every interface and carries no token, as it
-  // always has: an MCP server told the port cannot learn one, and that socket
-  // is the documented unauthenticated mode. An assigned port binds loopback
-  // alone, and is only ever found through the registry on this machine.
+  // NOTE: A configured port keeps the previous unauthenticated behavior.
+  // An assigned port binds only to loopback and is found through the registry.
   const acquire: Effect.Effect<Relay, RelayBindFailed, Crypto.Crypto> =
     Effect.gen(function* () {
       const id = yield* relayId
@@ -998,7 +992,7 @@ const startMcpRelay = (
     acquire.pipe(
       Effect.tap(relay =>
         Console.log(
-          `[foldkit:devTools] MCP relay listening at ${withoutSearch(relay.url)}`,
+          `[foldkit:devTools] MCP relay listening at ${relayUrlForLog(relay.url)}`,
         ),
       ),
       Effect.tap(relay => publishRelay(root, relay)),
@@ -1025,12 +1019,8 @@ const startMcpRelay = (
   )
 }
 
-// NOTE: Vitest, and Vite+ on top of it, load a project's config in `test`
-// mode, and a test run has no browser tab for an agent to reach. A relay
-// there is a socket per run, and with a configured port it contends with
-// the project's own dev server and holds each run for the retry window. A
-// run given another mode on the command line still carries Vitest's own
-// plugins, which is the other sign of one.
+// NOTE: A Vitest run can override its mode, but still carries Vitest plugins.
+// Starting a relay there can contend with the project's dev server.
 const isTestRun = (server: ViteDevServer): boolean =>
   server.config.mode === 'test' ||
   server.config.plugins.some(
@@ -1114,12 +1104,8 @@ type MainRun = Readonly<{
 }>
 
 export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
-  // NOTE: One plugin instance can serve more than one dev server, and on
-  // restart Vite builds the replacement, running `configureServer` again,
-  // before closing the server being replaced. Each server gets a queue and a
-  // fiber of its own, keyed by resolved config, so an event raised for one
-  // server is never dispatched into the other's state while they overlap, and
-  // each server's shutdown stops its own fiber.
+  // NOTE: During a Vite restart, old and new servers overlap. Separate queues
+  // and fibers keep their events and shutdowns attached to the right server.
   const mainRuns = new WeakMap<ResolvedConfig, MainRun>()
 
   const stopMain = (config: ResolvedConfig) =>
@@ -1148,9 +1134,8 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
     }),
     configureServer: server => {
       const events = Effect.runSync(Queue.unbounded<Event>())
-      // NOTE: Effect's default ConfigProvider snapshots the environment on
-      // first use, which would hand a restarted server the values an earlier
-      // one started with. Each server reads the environment as it starts.
+      // NOTE: The default ConfigProvider snapshots the environment. Create a
+      // fresh one so a restarted server sees current values.
       const fiber = Effect.runFork(
         Effect.scoped(main(server, events, options)).pipe(
           Effect.provide(relayRegistryLayer),
@@ -1162,10 +1147,8 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
       )
       mainRuns.set(server.config, { events, fiber })
     },
-    // NOTE: Vite awaits `closeBundle` when the dev server closes, once per
-    // environment plugin container. Hanging shutdown off `server.httpServer`
-    // instead would never run in middleware mode, which is how Vitest and
-    // other embedders run Vite, and the relay would outlive the server.
+    // NOTE: Middleware mode has no HTTP server to close. Vite still calls
+    // `closeBundle`, so relay cleanup belongs here.
     closeBundle() {
       return Effect.runPromise(stopMain(this.environment.getTopLevelConfig()))
     },

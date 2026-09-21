@@ -20,8 +20,8 @@ import { discoverRelay } from '../src/relayRegistry.ts'
 const RELAY_DIRECTORY_VARIABLE = 'FOLDKIT_DEVTOOLS_RELAY_DIRECTORY'
 const RUNTIME_DIRECTORY_VARIABLE = 'XDG_RUNTIME_DIR'
 const REGISTRY_DIRECTORY_NAME = 'foldkit-devtools-relays'
-// NOTE: The largest pid Linux hands out is far below this, and macOS lower still,
-// so no live process can carry it.
+// NOTE: This exceeds every PID Linux or macOS can issue, so no live process can
+// carry it.
 const DEAD_PID = 2_147_483_647
 
 const record = (
@@ -71,8 +71,10 @@ describe('discoverRelay', () => {
       Effect.gen(function* () {
         const fileSystem = yield* FileSystem.FileSystem
         let didStartCleanup = false
+
         const publishBeforeCleanup = () =>
           Effect.promise(replacementBeforeMove).pipe(Effect.orDie)
+
         const interceptingFileSystem: FileSystem.FileSystem = {
           ...fileSystem,
           rename: (oldPath, newPath) => {
@@ -88,13 +90,17 @@ describe('discoverRelay', () => {
               ),
             )
           },
-          remove: (path, options) =>
-            didStartCleanup
-              ? fileSystem.remove(path, options)
-              : publishBeforeCleanup().pipe(
-                  Effect.andThen(fileSystem.remove(path, options)),
-                ),
+          remove: (path, options) => {
+            if (didStartCleanup) {
+              return fileSystem.remove(path, options)
+            }
+
+            return publishBeforeCleanup().pipe(
+              Effect.andThen(fileSystem.remove(path, options)),
+            )
+          },
         }
+
         return yield* discoverRelay(projectRoot).pipe(
           Effect.provideService(FileSystem.FileSystem, interceptingFileSystem),
         )
