@@ -90,6 +90,37 @@ export const FoldkitBuildManifest = Schema.Struct({
  */
 export type FoldkitBuildManifest = typeof FoldkitBuildManifest.Type
 
+/** Completed application build data for an in-process deployment integration. */
+export const FoldkitBuildMetadata = Schema.Struct({
+  /** Absolute resolved Vite application root. */
+  root: Schema.String,
+  /** Absolute resolved browser output directory. */
+  clientDirectory: Schema.String,
+  /** Absolute resolved server output directory. */
+  serverDirectory: Schema.String,
+  /** Absolute path to the emitted fetch handler. */
+  serverEntry: Schema.String,
+  /** Portable data also written to `foldkit.build.json`. */
+  manifest: FoldkitBuildManifest,
+})
+
+/** The serializable, frozen snapshot of a completed Foldkit build. */
+export type FoldkitBuildMetadata = typeof FoldkitBuildMetadata.Type
+
+/** The `foldkit:build` plugin's public integration API. */
+export type FoldkitBuildApi = Readonly<{
+  /** Configured application source entry. */
+  serverEntry: string
+  /** Virtual module used to bundle the fetch handler. */
+  fetchModuleId: typeof FOLDKIT_FETCH_MODULE_ID
+  /**
+   * Read after a successful `await builder.buildApp()`. Throws before Foldkit
+   * finalizes or after another client or server build starts. Later plugin failures
+   * still require callers to await the full build successfully.
+   */
+  getBuildMetadata: () => FoldkitBuildMetadata
+}>
+
 const MANIFEST_SCHEMA_VERSION = 1
 
 // Relative and POSIX so the manifest describes a layout rather than this
@@ -291,28 +322,6 @@ type Captured = {
   serverEntryFile?: string
 }
 
-// Keyed by Vite root plus the output layout, so concurrent builds of different
-// projects in one process never read each other's output.
-//
-// NOTE: the registry hangs off a global symbol rather than module scope. Vite
-// re-bundles a config file for each environment it resolves, and every bundle
-// is a fresh copy of this module with its own module scope, so what the client
-// build recorded would be invisible to the instance that finalizes. The symbol
-// is one registry for the process no matter how many copies of this module it
-// loads.
-const CAPTURES = Symbol.for('foldkit/vite-plugin:build-captures')
-
-const captures = ((): Map<string, Captured> => {
-  const registry = globalThis as unknown as Record<symbol, unknown>
-  const existing = registry[CAPTURES]
-  if (existing instanceof Map) {
-    return existing as Map<string, Captured>
-  }
-  const fresh = new Map<string, Captured>()
-  registry[CAPTURES] = fresh
-  return fresh
-})()
-
 const fetchModuleSource = (
   serverEntry: string,
   template: string,
@@ -370,7 +379,10 @@ const templateForFetchModule = (
 export const foldkitBuild = (
   serverEntry: string,
   options: FoldkitBuildOptions = {},
-): Plugin => {
+): Plugin<FoldkitBuildApi> => {
+  const state: Captured = {}
+  let metadata: FoldkitBuildMetadata | undefined
+
   const clientOutDir = options.clientOutDir ?? DEFAULT_CLIENT_OUT_DIR
   const serverOutDir = options.serverOutDir ?? DEFAULT_SERVER_OUT_DIR
   const prerender = prerenderOptionsFrom(options.prerender ?? false)
@@ -383,6 +395,7 @@ export const foldkitBuild = (
   const generatePages = async (
     builder: ViteBuilder,
     template: () => string,
+    clientDirectory: string,
     serverDirectory: string,
     entryFileName: string,
   ): Promise<ReadonlyArray<string>> => {
@@ -391,7 +404,6 @@ export const foldkitBuild = (
     }
 
     const origin = prerender.origin ?? DEFAULT_PRERENDER_ORIGIN
-    const clientDirectory = resolve(builder.config.root, clientOutDir)
 
     const entryFile = resolve(serverDirectory, entryFileName)
     const contained = resolve(serverDirectory)
@@ -436,48 +448,19 @@ export const foldkitBuild = (
     return paths
   }
 
-  const writeManifest = async (
-    builder: ViteBuilder,
-    serverDirectory: string,
-    entryFileName: string,
-    prerendered: ReadonlyArray<string>,
-  ): Promise<void> => {
-    const manifest = Schema.encodeSync(FoldkitBuildManifest)({
-      schemaVersion: MANIFEST_SCHEMA_VERSION,
-      client: manifestPath(builder.config.root, clientOutDir),
-      server: manifestPath(builder.config.root, serverOutDir),
-      serverEntry: entryFileName,
-      prerendered,
-    })
-    await writeFile(
-      resolve(serverDirectory, MANIFEST_FILE_NAME),
-      `${JSON.stringify(manifest, undefined, 2)}\n`,
-    )
-    builder.config.logger.info(`  wrote ${MANIFEST_FILE_NAME}`)
-  }
-
-  // What each environment emitted, recorded as it is emitted.
-  //
-  // Vite resolves the config once per environment unless `sharedConfigBuild` is
-  // on, so the plugin that finalizes is not necessarily the instance that saw a
-  // given environment build. Keying the record by the output layout it
-  // describes is what lets the finalizing instance read what the others
-  // emitted, and what lets finalization work whether this plugin orchestrates
-  // the environments or a host does.
-  const key = [clientOutDir, serverOutDir, serverEntry].join('\u0000')
-  const captured = (root: string): Captured => {
-    const existing = captures.get(`${root}\u0000${key}`)
-    if (existing !== undefined) {
-      return existing
-    }
-    const fresh: Captured = {}
-    captures.set(`${root}\u0000${key}`, fresh)
-    return fresh
-  }
-
   const finalize = async (builder: ViteBuilder): Promise<void> => {
-    const state = captured(builder.config.root)
-    const serverDirectory = resolve(builder.config.root, serverOutDir)
+    metadata = undefined
+
+    const client = environmentNamed(builder, 'client')
+    const server = environmentNamed(builder, 'ssr')
+    const clientDirectory = resolve(
+      client.config.root,
+      client.config.build.outDir,
+    )
+    const serverDirectory = resolve(
+      server.config.root,
+      server.config.build.outDir,
+    )
 
     if (state.serverEntryFile === undefined) {
       throw new Error(
@@ -499,24 +482,66 @@ export const foldkitBuild = (
     const prerendered = await generatePages(
       builder,
       template,
+      clientDirectory,
       serverDirectory,
       state.serverEntryFile,
     )
 
-    await writeManifest(
-      builder,
-      serverDirectory,
-      state.serverEntryFile,
-      prerendered,
+    const manifest = FoldkitBuildManifest.make({
+      schemaVersion: MANIFEST_SCHEMA_VERSION,
+      client: manifestPath(builder.config.root, clientDirectory),
+      server: manifestPath(builder.config.root, serverDirectory),
+      serverEntry: state.serverEntryFile,
+      prerendered: [...prerendered],
+    })
+
+    await writeFile(
+      resolve(serverDirectory, MANIFEST_FILE_NAME),
+      `${JSON.stringify(Schema.encodeSync(FoldkitBuildManifest)(manifest), undefined, 2)}\n`,
     )
+    builder.config.logger.info(`  wrote ${MANIFEST_FILE_NAME}`)
+
+    const completedMetadata = FoldkitBuildMetadata.make({
+      root: builder.config.root,
+      clientDirectory,
+      serverDirectory,
+      serverEntry: resolve(serverDirectory, state.serverEntryFile),
+      manifest,
+    })
+    Object.freeze(completedMetadata.manifest.prerendered)
+    Object.freeze(completedMetadata.manifest)
+    metadata = Object.freeze(completedMetadata)
   }
 
   return {
     name: 'foldkit:build',
     apply: 'build',
+    sharedDuringBuild: true,
     api: {
       serverEntry,
       fetchModuleId: FOLDKIT_FETCH_MODULE_ID,
+      getBuildMetadata: () => {
+        if (metadata === undefined) {
+          throw new Error(
+            '[foldkit] build metadata is not available. Read it after a successful builder.buildApp().',
+          )
+        }
+
+        return metadata
+      },
+    },
+    buildStart: {
+      order: 'pre',
+      handler() {
+        if (this.environment.name === 'client') {
+          delete state.template
+          delete state.serverEntryFile
+          metadata = undefined
+        } else if (this.environment.name === 'ssr') {
+          delete state.serverEntryFile
+          metadata = undefined
+        }
+      },
     },
     resolveId(id) {
       if (id === FOLDKIT_FETCH_MODULE_ID) {
@@ -528,7 +553,6 @@ export const foldkitBuild = (
       if (id !== RESOLVED_FETCH_MODULE_ID) {
         return
       }
-      const state = captured(this.environment.config.root)
       const template = templateForFetchModule(state.template)
       return fetchModuleSource(serverEntry, template, containerId)
     },
@@ -537,7 +561,6 @@ export const foldkitBuild = (
     generateBundle: {
       order: 'post',
       handler(_options, bundle) {
-        const state = captured(this.environment.config.root)
         if (this.environment.name === 'ssr') {
           state.serverEntryFile = serverEntryFile(
             Object.values(bundle),

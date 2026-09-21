@@ -1,11 +1,18 @@
 import { Schema } from 'effect'
 import { execFile } from 'node:child_process'
-import { readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { win32 } from 'node:path'
 import { promisify } from 'node:util'
-import { type Plugin, createBuilder } from 'vite'
-import { afterAll, describe, expect, it, onTestFinished } from 'vitest'
+import { type Plugin, type ViteBuilder, createBuilder } from 'vite'
+import {
+  afterAll,
+  describe,
+  expect,
+  expectTypeOf,
+  it,
+  onTestFinished,
+} from 'vitest'
 
 import {
   type FoldkitBuildOptions,
@@ -15,6 +22,7 @@ import {
 } from '../src/build.ts'
 import { foldkitBuildToken } from '../src/buildToken.ts'
 import { FoldkitBuildManifest } from '../src/index.ts'
+import * as Build from '../src/index.ts'
 
 const FIXTURE_ROOT = resolve(import.meta.dirname, 'fixtures/build')
 const SERVER_ENTRY = '/entry.server.ts'
@@ -666,4 +674,468 @@ it('generates into the container the build names', async () => {
   const generated = await readFile(resolve(client, 'index.html'), 'utf8')
   expect(generated).toContain('>/</main>')
   expect(generated).not.toContain('<div id="app-root"></div>')
+})
+
+// BUILD METADATA
+
+const METADATA_NOT_READY =
+  '[foldkit] build metadata is not available. Read it after a successful builder.buildApp().'
+
+const metadataApi = (builder: ViteBuilder): Build.FoldkitBuildApi => {
+  const api: Build.FoldkitBuildApi | undefined = builder.config.plugins.find(
+    plugin => plugin.name === 'foldkit:build',
+  )?.api
+
+  if (api === undefined) {
+    throw new Error('Missing Foldkit build plugin')
+  }
+
+  return api
+}
+
+const metadataFixture = async (
+  name: string,
+  options: FoldkitBuildOptions = { prerender: true },
+  before: ReadonlyArray<Plugin> = [],
+  after: ReadonlyArray<Plugin> = [],
+) => {
+  const directory = `dist-test/metadata-${name}`
+  onTestFinished(() =>
+    rm(resolve(FIXTURE_ROOT, directory), { recursive: true, force: true }),
+  )
+
+  const plugin = foldkitBuild(SERVER_ENTRY, {
+    clientOutDir: `${directory}/client`,
+    serverOutDir: `${directory}/server`,
+    ...options,
+  })
+  const builder = await createBuilder({
+    configFile: false,
+    root: FIXTURE_ROOT,
+    logLevel: 'silent',
+    plugins: [...before, foldkitBuildToken('test-build'), plugin, ...after],
+  })
+
+  return { builder, plugin, directory }
+}
+
+describe('completed build metadata', () => {
+  it('exposes completed metadata after collection without reading the manifest', async () => {
+    const collected: Array<string> = []
+    const fixture = await metadataFixture(
+      'collector',
+      { prerender: true },
+      [],
+      [
+        {
+          name: 'test:metadata-collector',
+          writeBundle(_, bundle) {
+            collected.push(...Object.keys(bundle))
+          },
+        },
+      ],
+    )
+    await fixture.builder.buildApp()
+
+    const metadata = metadataApi(fixture.builder).getBuildMetadata()
+    expect(metadata.manifest.prerendered).toEqual(['/', '/about'])
+    expect(metadata.serverEntry).toBe(
+      resolve(FIXTURE_ROOT, fixture.directory, 'server/fetch.js'),
+    )
+    expect(await filesUnder(metadata.clientDirectory)).toContain(
+      'about/index.html',
+    )
+    expect(await filesUnder(metadata.serverDirectory)).toContain('fetch.js')
+    expect(collected).toContain('fetch.js')
+    expect(collected).not.toContain('foldkit.build.json')
+    expect(collected).not.toContain('about/index.html')
+    expect(
+      Schema.decodeUnknownSync(Build.FoldkitBuildMetadata)(
+        JSON.parse(JSON.stringify(metadata)),
+      ),
+    ).toEqual(metadata)
+  })
+
+  it('refuses metadata before the first build', async () => {
+    const fixture = await metadataFixture('not-ready')
+    expect(() => metadataApi(fixture.builder).getBuildMetadata()).toThrow(
+      METADATA_NOT_READY,
+    )
+  })
+
+  for (const [name, options, expected] of [
+    ['disabled', { prerender: false }, []],
+    ['empty', { prerender: { paths: [] } }, []],
+    ['subset', { prerender: { paths: ['/about', '/'] } }, ['/about', '/']],
+  ] satisfies ReadonlyArray<
+    readonly [string, FoldkitBuildOptions, ReadonlyArray<string>]
+  >) {
+    it(`reports ${name} prerender paths`, async () => {
+      const fixture = await metadataFixture(name, options)
+      await fixture.builder.buildApp()
+      expect(
+        metadataApi(fixture.builder).getBuildMetadata().manifest.prerendered,
+      ).toEqual(expected)
+    })
+  }
+
+  for (const isAbsolute of [false, true]) {
+    it(`uses ${isAbsolute ? 'absolute' : 'relative'} resolved output directories`, async () => {
+      const name = isAbsolute ? 'absolute' : 'relative'
+      const directory = `dist-test/metadata-${name}`
+      const client = `${directory}/custom-client`
+      const server = `${directory}/custom-server`
+      const fixture = await metadataFixture(name, {
+        prerender: true,
+        clientOutDir: isAbsolute ? resolve(FIXTURE_ROOT, client) : client,
+        serverOutDir: isAbsolute ? resolve(FIXTURE_ROOT, server) : server,
+      })
+      await fixture.builder.buildApp()
+      const metadata = metadataApi(fixture.builder).getBuildMetadata()
+      expect(metadata.clientDirectory).toBe(resolve(FIXTURE_ROOT, client))
+      expect(metadata.serverDirectory).toBe(resolve(FIXTURE_ROOT, server))
+      expect(metadata.manifest.client).toBe(client)
+      expect(metadata.manifest.server).toBe(server)
+    })
+  }
+
+  it('uses host-overridden directories for metadata and generated files', async () => {
+    const directory = 'dist-test/metadata-overridden'
+    const client = `${directory}/host-client`
+    const server = `${directory}/host-server`
+    const fixture = await metadataFixture(
+      'overridden',
+      { prerender: true },
+      [],
+      [
+        {
+          name: 'test:override-output',
+          config: () => ({
+            environments: {
+              client: { build: { outDir: client } },
+              ssr: { build: { outDir: server } },
+            },
+          }),
+        },
+      ],
+    )
+    await fixture.builder.buildApp()
+    const metadata = metadataApi(fixture.builder).getBuildMetadata()
+    expect(metadata.clientDirectory).toBe(resolve(FIXTURE_ROOT, client))
+    expect(metadata.serverDirectory).toBe(resolve(FIXTURE_ROOT, server))
+    expect(metadata.manifest.client).toBe(client)
+    expect(metadata.manifest.server).toBe(server)
+    expect(await filesUnder(metadata.clientDirectory)).toContain(
+      'about/index.html',
+    )
+    expect(
+      JSON.parse(
+        await readFile(
+          resolve(metadata.serverDirectory, 'foldkit.build.json'),
+          'utf8',
+        ),
+      ),
+    ).toEqual(metadata.manifest)
+  })
+
+  it('reports the emitted nested hashed entry filename', async () => {
+    const fixture = await metadataFixture(
+      'hashed-entry',
+      { prerender: true },
+      [],
+      [
+        {
+          name: 'test:hashed-entry',
+          config: () => ({
+            environments: {
+              ssr: {
+                build: {
+                  rolldownOptions: {
+                    output: { entryFileNames: 'entries/[name]-[hash].js' },
+                  },
+                },
+              },
+            },
+          }),
+        },
+      ],
+    )
+    await fixture.builder.buildApp()
+    const metadata = metadataApi(fixture.builder).getBuildMetadata()
+    expect(metadata.manifest.serverEntry).toMatch(/^entries\/fetch-.+\.js$/)
+    expect(metadata.serverEntry).toBe(
+      resolve(metadata.serverDirectory, metadata.manifest.serverEntry),
+    )
+    expect(await filesUnder(metadata.serverDirectory)).toContain(
+      metadata.manifest.serverEntry,
+    )
+  })
+
+  for (const isHostFirst of [true, false]) {
+    it(`completes with the host ${isHostFirst ? 'before' : 'after'} Foldkit`, async () => {
+      const host: Plugin = {
+        name: 'test:metadata-host',
+        config: () => ({
+          builder: {
+            buildApp: async builder => {
+              for (const environment of Object.values(builder.environments)) {
+                await builder.build(environment)
+              }
+            },
+          },
+        }),
+      }
+      const fixture = await metadataFixture(
+        `host-${isHostFirst}`,
+        { prerender: true },
+        isHostFirst ? [host] : [],
+        isHostFirst ? [] : [host],
+      )
+      await fixture.builder.buildApp()
+      expect(
+        metadataApi(fixture.builder).getBuildMetadata().manifest.prerendered,
+      ).toEqual(['/', '/about'])
+    })
+  }
+
+  for (const sharedConfigBuild of [false, true]) {
+    it(`shares config-file captures with sharedConfigBuild=${sharedConfigBuild}`, async () => {
+      const directory = `dist-test/metadata-config-${sharedConfigBuild}`
+      onTestFinished(() =>
+        rm(resolve(CONFIG_ROOT, directory), { recursive: true, force: true }),
+      )
+      const builder = await createBuilder({
+        root: CONFIG_ROOT,
+        builder: { sharedConfigBuild },
+        plugins: [
+          {
+            name: 'test:metadata-config-output',
+            enforce: 'post',
+            config: () => ({
+              environments: {
+                client: { build: { outDir: `${directory}/client` } },
+                ssr: { build: { outDir: `${directory}/server` } },
+              },
+            }),
+          },
+        ],
+      })
+      const plugin = builder.config.plugins.find(
+        plugin => plugin.name === 'foldkit:build',
+      )
+      for (const environment of Object.values(builder.environments)) {
+        expect(
+          environment.plugins.find(plugin => plugin.name === 'foldkit:build'),
+        ).toBe(plugin)
+      }
+      await builder.buildApp()
+      expect(
+        metadataApi(builder).getBuildMetadata().manifest.prerendered,
+      ).toEqual(['/'])
+    })
+  }
+
+  it('invalidates completed metadata while rebuilding and replaces the snapshot', async () => {
+    const paths = ['/']
+    let isRebuilding = false
+    const observed: Array<string> = []
+    const fixture = await metadataFixture(
+      'rebuild',
+      { prerender: { paths } },
+      [],
+      [
+        {
+          name: 'test:observe-rebuild',
+          buildStart: {
+            order: 'post',
+            handler() {
+              if (isRebuilding) {
+                expect(() =>
+                  metadataApi(fixture.builder).getBuildMetadata(),
+                ).toThrow(METADATA_NOT_READY)
+                observed.push(this.environment.name)
+              }
+            },
+          },
+        },
+      ],
+    )
+    await fixture.builder.buildApp()
+    const previous = metadataApi(fixture.builder).getBuildMetadata()
+    paths.push('/about')
+    isRebuilding = true
+    await fixture.builder.buildApp()
+    expect(observed).toEqual(['client', 'ssr'])
+    expect(previous.manifest.prerendered).toEqual(['/'])
+    expect(
+      metadataApi(fixture.builder).getBuildMetadata().manifest.prerendered,
+    ).toEqual(['/', '/about'])
+  })
+
+  it('invalidates metadata when only the server rebuilds', async () => {
+    const fixture = await metadataFixture('server-rebuild')
+    await fixture.builder.buildApp()
+    const previous = metadataApi(fixture.builder).getBuildMetadata()
+    const server = fixture.builder.environments['ssr']
+
+    if (server === undefined) {
+      throw new Error('Missing ssr environment')
+    }
+
+    await fixture.builder.build(server)
+    expect(() => metadataApi(fixture.builder).getBuildMetadata()).toThrow(
+      METADATA_NOT_READY,
+    )
+    expect(previous.manifest.prerendered).toEqual(['/', '/about'])
+
+    await fixture.builder.buildApp()
+    expect(
+      metadataApi(fixture.builder).getBuildMetadata().manifest.prerendered,
+    ).toEqual(['/', '/about'])
+  })
+
+  for (const { failure, expected } of [
+    { failure: 'client', expected: /controlled client failure/ },
+    { failure: 'ssr', expected: /controlled ssr failure/ },
+    { failure: 'prerender', expected: /cannot write the complete Response/ },
+    { failure: 'manifest', expected: /EISDIR/ },
+  ]) {
+    it(`discards previous metadata after a ${failure} failure`, async () => {
+      let isFailing = false
+      const paths = ['/']
+      const fixture = await metadataFixture(
+        `failure-${failure}`,
+        { prerender: { paths } },
+        [],
+        [
+          {
+            name: 'test:metadata-failure',
+            generateBundle() {
+              if (isFailing && this.environment.name === failure) {
+                throw new Error(`controlled ${failure} failure`)
+              }
+            },
+            async writeBundle() {
+              if (
+                isFailing &&
+                failure === 'manifest' &&
+                this.environment.name === 'ssr'
+              ) {
+                const manifestFile = resolve(
+                  this.environment.config.root,
+                  this.environment.config.build.outDir,
+                  'foldkit.build.json',
+                )
+                await rm(manifestFile, { force: true })
+                await mkdir(manifestFile)
+              }
+            },
+          },
+        ],
+      )
+      await fixture.builder.buildApp()
+      expect(
+        metadataApi(fixture.builder).getBuildMetadata().manifest.prerendered,
+      ).toEqual(['/'])
+      isFailing = true
+      if (failure === 'prerender') {
+        paths.push('/redirect')
+      }
+      await expect(fixture.builder.buildApp()).rejects.toThrow(expected)
+      expect(() => metadataApi(fixture.builder).getBuildMetadata()).toThrow(
+        METADATA_NOT_READY,
+      )
+    })
+  }
+
+  it('isolates independent concurrent builders', async () => {
+    const first = await metadataFixture('concurrent-first', {
+      prerender: { paths: ['/'] },
+    })
+    const second = await metadataFixture('concurrent-second', {
+      prerender: { paths: ['/about'] },
+    })
+    await Promise.all([first.builder.buildApp(), second.builder.buildApp()])
+    const firstMetadata = metadataApi(first.builder).getBuildMetadata()
+    const secondMetadata = metadataApi(second.builder).getBuildMetadata()
+    expect(firstMetadata.manifest.prerendered).toEqual(['/'])
+    expect(secondMetadata.manifest.prerendered).toEqual(['/about'])
+    expect(firstMetadata.serverDirectory).not.toBe(
+      secondMetadata.serverDirectory,
+    )
+  })
+
+  it('cannot reuse captures from another plugin with the same output layout', async () => {
+    const first = await metadataFixture('isolated-captures')
+    await first.builder.buildApp()
+    const second = await metadataFixture(
+      'isolated-captures',
+      { prerender: true },
+      [
+        {
+          name: 'test:skip-client',
+          config: () => ({
+            builder: {
+              buildApp: async builder => {
+                const server = builder.environments['ssr']
+                if (server === undefined) {
+                  throw new Error('Missing ssr environment')
+                }
+                await builder.build(server)
+              },
+            },
+          }),
+        },
+      ],
+    )
+    await expect(second.builder.buildApp()).rejects.toThrow(
+      /has not emitted index\.html/,
+    )
+    expect(() => metadataApi(second.builder).getBuildMetadata()).toThrow(
+      METADATA_NOT_READY,
+    )
+  })
+
+  it('exports a typed Schema and plugin API', async () => {
+    const fixture = await metadataFixture('types')
+    expectTypeOf(fixture.plugin).toEqualTypeOf<Plugin<Build.FoldkitBuildApi>>()
+    expectTypeOf<
+      Build.FoldkitBuildApi['getBuildMetadata']
+    >().returns.toEqualTypeOf<Build.FoldkitBuildMetadata>()
+    await fixture.builder.buildApp()
+    const metadata = metadataApi(fixture.builder).getBuildMetadata()
+    expect(Schema.is(Build.FoldkitBuildMetadata)(metadata)).toBe(true)
+    expect(
+      Schema.is(Build.FoldkitBuildMetadata)({ ...metadata, serverEntry: 42 }),
+    ).toBe(false)
+  })
+
+  it('freezes the finalized snapshot and preserves manifest agreement', async () => {
+    const fixture = await metadataFixture('frozen')
+    await fixture.builder.buildApp()
+    const metadata = metadataApi(fixture.builder).getBuildMetadata()
+    expect(Object.isFrozen(metadata)).toBe(true)
+    expect(Object.isFrozen(metadata.manifest)).toBe(true)
+    expect(Object.isFrozen(metadata.manifest.prerendered)).toBe(true)
+    expect(
+      JSON.parse(
+        await readFile(
+          resolve(metadata.serverDirectory, 'foldkit.build.json'),
+          'utf8',
+        ),
+      ),
+    ).toEqual(metadata.manifest)
+    expect(metadata.root).toBe(FIXTURE_ROOT)
+  })
+
+  it('does not add a build API to client-only configurations', () => {
+    for (const plugins of [
+      Build.foldkit(),
+      Build.foldkit({ ssr: { serverEntry: SERVER_ENTRY, build: false } }),
+    ]) {
+      expect(
+        plugins.find(plugin => plugin.name === 'foldkit:build'),
+      ).toBeUndefined()
+    }
+  })
 })

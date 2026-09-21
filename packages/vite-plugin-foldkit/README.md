@@ -65,6 +65,52 @@ With this set, the dev server converts HTML page requests to Web `Request` value
 
 Vite retains ownership of configured proxy routes before Foldkit handles application requests. Vite's `server.cors` option applies to Vite-owned source modules, assets, and HMR. It does not add headers to application responses or answer their preflights. Preflight ownership follows `Access-Control-Request-Method`, so a preflight for an application `POST` reaches `renderPage` even when its path looks like an asset. An `OPTIONS` request without both `Origin` and `Access-Control-Request-Method` is not a preflight and also reaches `renderPage`. Define application CORS in `renderPage`, where development and the deployed host share one policy. Vite's `allowedHosts` check runs before proxy and application handling, including `OPTIONS` and methods the Web `Request` API cannot represent.
 
+## Completed build metadata
+
+Deployment tools that run Vite in process can read `foldkit:build` through Vite's standard plugin `api` field. Await the full application build before reading:
+
+```typescript
+import type { FoldkitBuildApi } from '@foldkit/vite-plugin'
+import { createBuilder } from 'vite'
+
+const builder = await createBuilder()
+await builder.buildApp()
+
+const plugin = builder.config.plugins.find(
+  plugin => plugin.name === 'foldkit:build',
+)
+
+if (plugin !== undefined) {
+  const api: FoldkitBuildApi | undefined = plugin.api
+
+  if (typeof api?.getBuildMetadata !== 'function') {
+    throw new Error('This Foldkit version does not expose build metadata')
+  }
+
+  const metadata = api.getBuildMetadata()
+  console.log(metadata.serverEntry)
+  console.log(metadata.manifest.prerendered)
+}
+```
+
+`FoldkitBuildApi` preserves `serverEntry` (the configured source entry) and `fetchModuleId` (the virtual fetch module). Its `getBuildMetadata()` method returns `FoldkitBuildMetadata`, exported as a Schema and inferred type:
+
+| Field             | Meaning                                                 |
+| ----------------- | ------------------------------------------------------- |
+| `root`            | Absolute resolved application root                      |
+| `clientDirectory` | Absolute resolved client output directory               |
+| `serverDirectory` | Absolute resolved server output directory               |
+| `serverEntry`     | Absolute path to the emitted fetch handler              |
+| `manifest`        | The version-1 data also written to `foldkit.build.json` |
+
+The snapshot, manifest, and prerendered route array are frozen. The data can be serialized to another process. The manifest keeps its portable relative POSIX paths; the outer path fields describe the local build machine. Output paths reflect the resolved Vite environments, including overrides made by a host plugin.
+
+A client-only build has no `foldkit:build` plugin. A present plugin without the accessor needs a Foldkit upgrade. The accessor throws before Foldkit finalizes, while another client or server build is running, or after its build fails. Always await `builder.buildApp()` successfully: another plugin can fail after Foldkit has finalized. An environment's `writeBundle` and another plugin's post-order `buildApp` hook do not establish this completion boundary.
+
+Create a fresh Foldkit plugin set for each independent builder. The build plugin uses Vite's `sharedDuringBuild` to share captures across its environments. Concurrent builders must not reuse the same plugin object. This API does not add watch-mode support.
+
+Prerendered pages and `foldkit.build.json` are finalized after the environment bundles. A separate deployment process that consumes an existing build can continue reading the disk manifest. An integration that runs the build in a child process can read the API there and transfer the serialized metadata in its child result.
+
 ## Build id
 
 The build id does not make hydration correct. It makes hydration refuse when it would otherwise be incorrect.

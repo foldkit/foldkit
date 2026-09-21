@@ -51,6 +51,8 @@ export { type BrandDistResult, brandDistDirectory } from './brandDist.js'
 export {
   FOLDKIT_FETCH_MODULE_ID,
   FoldkitBuildManifest,
+  FoldkitBuildMetadata,
+  type FoldkitBuildApi,
   type FoldkitBuildOptions,
   type FoldkitPrerenderOptions,
   foldkitBuild,
