@@ -252,3 +252,30 @@ export const EventFrame = Schema.Struct({
 })
 /** A wire frame carrying a runtime lifecycle event. */
 export type EventFrame = typeof EventFrame.Type
+
+// RELAY REGISTRY
+
+/** Increment when the relay record's wire format changes. */
+export const RELAY_RECORD_VERSION = 1
+
+/** Directory name under `XDG_RUNTIME_DIR` or the system temporary directory. */
+export const RELAY_REGISTRY_DIRECTORY_NAME = 'foldkit-devtools-relays'
+
+/** Environment variable that sets the relay registry directory. */
+export const RELAY_REGISTRY_DIRECTORY_VARIABLE =
+  'FOLDKIT_DEVTOOLS_RELAY_DIRECTORY'
+
+/**
+ * Record published while a Vite relay listens. `root` selects the project;
+ * `id` distinguishes a restarted relay from the one it replaced.
+ */
+export const RelayRecord = Schema.Struct({
+  version: Schema.Literal(RELAY_RECORD_VERSION),
+  id: Schema.String,
+  root: Schema.String,
+  url: Schema.String,
+  pid: Schema.Number,
+  startedAt: Schema.Number,
+})
+/** Decoded record for a running DevTools MCP relay. */
+export type RelayRecord = typeof RelayRecord.Type
