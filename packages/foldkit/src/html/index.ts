@@ -1984,7 +1984,7 @@ const attributeHandlers: AttributeHandlers = {
       dragenter: (event: Event) => {
         event.preventDefault()
         const zone = event.currentTarget
-        if (!(zone instanceof Element)) {
+        if (typeof Element === 'undefined' || !(zone instanceof Element)) {
           ctx.dispatch(message)
           return
         }
@@ -1998,7 +1998,7 @@ const attributeHandlers: AttributeHandlers = {
     updateDataOn(ctx, {
       dragleave: (event: Event) => {
         const zone = event.currentTarget
-        if (!(zone instanceof Element)) {
+        if (typeof Element === 'undefined' || !(zone instanceof Element)) {
           ctx.dispatch(message)
           return
         }
@@ -2030,7 +2030,7 @@ const attributeHandlers: AttributeHandlers = {
       drop: (event: Event) => {
         event.preventDefault()
         const zone = event.currentTarget
-        if (zone instanceof Element) {
+        if (typeof Element !== 'undefined' && zone instanceof Element) {
           clearDragZoneAfterDrop(zone)
         }
         ctx.dispatch(message)
@@ -2043,7 +2043,7 @@ const attributeHandlers: AttributeHandlers = {
         /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
         const dragEvent = event as DragEvent
         const zone = dragEvent.currentTarget
-        if (zone instanceof Element) {
+        if (typeof Element !== 'undefined' && zone instanceof Element) {
           clearDragZoneAfterDrop(zone)
         }
         const files: ReadonlyArray<File> = dragEvent.dataTransfer?.files
