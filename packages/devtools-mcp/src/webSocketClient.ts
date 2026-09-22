@@ -119,10 +119,6 @@ const waitForClose = (socket: WebSocket): Effect.Effect<void> =>
     }
   })
 
-/**
- * Creates a client that resolves the relay URL before each connection attempt.
- * This finds dev servers that start later or restart on another port.
- */
 export const connectWebSocketClient = <Services>(
   resolveUrl: Effect.Effect<string, never, Services>,
 ): Effect.Effect<WebSocketClient, never, Services> =>
