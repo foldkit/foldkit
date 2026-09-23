@@ -367,7 +367,8 @@ const matchesSimpleSelector =
 
 // IMPLICIT ROLES
 
-// NOTE: New fixed mappings follow the final Recommendation, not draft-only roles:
+// NOTE: This map follows the 11 August 2026 ARIA in HTML Recommendation.
+// It intentionally excludes mappings proposed only in working drafts:
 // https://www.w3.org/TR/2026/REC-html-aria-20260811/#docconformance
 const IMPLICIT_ROLE_MAP: Record<string, string> = {
   address: 'group',
