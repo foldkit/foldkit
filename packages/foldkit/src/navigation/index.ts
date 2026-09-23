@@ -1,19 +1,23 @@
 import { Effect } from 'effect'
 
+import { pushHistory, replaceHistory } from './history.js'
+
 export { UrlRequest } from './urlRequest.js'
 
-/** Pushes a new URL to browser history and triggers Foldkit's URL change handling. */
+/** Pushes a new URL to browser history and triggers Foldkit's URL change handling:
+ *  the new URL arrives as your `routing.onUrlChange` Message, the same way a
+ *  back/forward navigation does. Parse the route there rather than where the
+ *  push is issued. */
 export const pushUrl = (url: string): Effect.Effect<void> =>
   Effect.sync(() => {
-    window.history.pushState({}, '', url)
-    window.dispatchEvent(new CustomEvent('foldkit:urlchange'))
+    pushHistory(url)
   })
 
-/** Replaces the current URL in browser history and triggers Foldkit's URL change handling. */
+/** Replaces the current URL in browser history and triggers Foldkit's URL change
+ *  handling: the new URL arrives as your `routing.onUrlChange` Message. */
 export const replaceUrl = (url: string): Effect.Effect<void> =>
   Effect.sync(() => {
-    window.history.replaceState({}, '', url)
-    window.dispatchEvent(new CustomEvent('foldkit:urlchange'))
+    replaceHistory(url)
   })
 
 /** Navigates back in browser history. */

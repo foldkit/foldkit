@@ -1,12 +1,26 @@
 import { Option, String } from 'effect'
 
 import { OptionExt, StringExt } from '../effectExtensions/index.js'
+import { pushHistory } from '../navigation/history.js'
 import { UrlRequest } from '../navigation/urlRequest.js'
 import { Url } from '../url/index.js'
 
-/** Configuration for URL routing with handlers for URL requests and URL changes. */
+/** Configuration for URL routing: a handler for URL changes and, optionally,
+ *  one for URL requests.
+ *
+ *  `onUrlChange` turns the browser's new URL into a Message, whether it came
+ *  from back/forward, from `pushUrl`/`replaceUrl`, or from a link the runtime
+ *  handled itself. Parse the route there and nowhere else.
+ *
+ *  `onUrlRequest` intercepts a link click before any of that happens. Omitted,
+ *  the runtime handles the click. A same-origin link is pushed to history and
+ *  reported through `onUrlChange`. A link that only changes the fragment of
+ *  the current URL and a cross-origin link are left to the browser. Provide the
+ *  handler to decide per click (say, to confirm leaving a form with unsaved
+ *  edits), in which case update owns the navigation and issues `pushUrl` or
+ *  `load` itself. */
 export type RoutingConfig<Message> = Readonly<{
-  onUrlRequest: (request: UrlRequest) => Message
+  onUrlRequest?: (request: UrlRequest) => Message
   onUrlChange: (url: Url) => Message
 }>
 
@@ -78,21 +92,33 @@ export const addLinkClickListener = <Message>(
       return
     }
 
-    event.preventDefault()
-
     const linkUrl = new URL(href)
     const currentUrl = new URL(window.location.href)
+    const isSameOrigin = linkUrl.origin === currentUrl.origin
+    const isFragmentLink =
+      !String.isEmpty(linkUrl.hash) || linkUrl.href.endsWith('#')
+    const isSameDocument =
+      isSameOrigin &&
+      linkUrl.pathname === currentUrl.pathname &&
+      linkUrl.search === currentUrl.search &&
+      isFragmentLink
+    const { onUrlRequest } = routingConfig
 
-    if (linkUrl.origin !== currentUrl.origin) {
-      dispatch(routingConfig.onUrlRequest(UrlRequest.External({ href })))
-      return
+    if (onUrlRequest === undefined) {
+      if (isSameOrigin && !isSameDocument) {
+        event.preventDefault()
+        pushHistory(href)
+      }
+    } else {
+      event.preventDefault()
+      dispatch(
+        onUrlRequest(
+          isSameOrigin
+            ? UrlRequest.Internal({ url: urlToFoldkitUrl(linkUrl) })
+            : UrlRequest.External({ href }),
+        ),
+      )
     }
-
-    dispatch(
-      routingConfig.onUrlRequest(
-        UrlRequest.Internal({ url: urlToFoldkitUrl(linkUrl) }),
-      ),
-    )
   }
 
   document.addEventListener('click', onLinkClick)

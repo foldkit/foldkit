@@ -265,7 +265,7 @@ Messages:
   Clicks: ClickedSaveLink, ClickedDeleteLink
   Inputs: UpdatedLinkUrl, UpdatedLinkTitle, UpdatedLinkDescription, UpdatedLinkTagsInput, BlurredLinkUrl
   Commands: SubmittedNewLinkForm, SucceededSaveLinks, FailedSaveLinks
-  Routing: ClickedLink, ChangedUrl, CompletedNavigateInternal, CompletedLoadExternal
+  Routing: ChangedUrl
   Toggles: ToggledFavorite
 
 Routes:
@@ -596,10 +596,10 @@ For file uploads (resumes, images, attachments):
 
 ### Runtime Wiring
 
-- Use `Runtime.makeApplication` for apps that own the page. Add `routing: { onUrlRequest, onUrlChange }` for apps with URL routing. The `view` returns a `Document` (`{ title, lang?, dir?, canonical?, ogUrl?, body }`). Derive `canonical` from the typed route in the Model, never from the address bar. The runtime applies `title`, `lang`, and `dir`. For `canonical` and `ogUrl`, a later omission restores the value recorded before the first client write or removes an element the runtime created. An omitted `ogUrl` uses an explicit `canonical`
+- Use `Runtime.makeApplication` for apps that own the page. Add `routing: { onUrlChange }` for apps with URL routing; `onUrlRequest` is optional and only for apps that must decide per link click. The `view` returns a `Document` (`{ title, lang?, dir?, canonical?, ogUrl?, body }`). Derive `canonical` from the typed route in the Model, never from the address bar. The runtime applies `title`, `lang`, and `dir`. For `canonical` and `ogUrl`, a later omission restores the value recorded before the first client write or removes an element the runtime created. An omitted `ogUrl` uses an explicit `canonical`
 - Use `Runtime.makeElement` for a widget embedded on a page it does not own. The `view` returns `Html` and the runtime never touches the document `<head>` or the `<html>` element. No `routing` config
 - See the With and Without URL Routing section in [architecture.md](architecture.md) for the full pattern
-- Include `ClickedLink` and `ChangedUrl` Messages for programs with routing, with proper `UrlRequest.Internal` / `UrlRequest.External` handling in update
+- Include a `ChangedUrl` Message for programs with routing, and parse the route only there; add a `ClickedLink` Message with `UrlRequest.Internal` / `UrlRequest.External` handling in update only when `onUrlRequest` is configured
 - Always end with `Runtime.run(application)` for a page-owning app. When a host application controls the program's lifecycle, end with `Runtime.embed(element)` instead and hand the returned handle to the host; mirror `repos/foldkit/examples/embedding/src/host.ts` for the host side and its `main.ts` for the widget side
 - Name the variable holding a `makeApplication` result `application`, and the variable holding a `makeElement` result `element`
 
@@ -611,8 +611,8 @@ For file uploads (resumes, images, attachments):
 - Build each route as a Router: `const homeRouter = pipe(Route.root, Route.mapTo(AppRoute.Home))`. **Routers are callable**: `homeRouter()` returns `'/'`, `tagFilterRouter({ tag: 'foo' })` returns `'/tag/foo'`. This is the print side of the bidirectional parser.
 - **Never hand-construct paths with template strings.** `Href(homeRouter())` not `Href('/')`. `pushUrl(newLinkRouter())` not `pushUrl('/new')`. `Href(tagFilterRouter({ tag: tagName }))` not ``Href(`/tag/${encodeURIComponent(tagName)}`)``. The router handles encoding and keeps the URL shape in one place so a refactor changes one file, not every call site.
 - Render each route through its own view function; identity handles the switch, so route branches are never keyed. Key by entity id only when one shared view function renders different entities across route params (a detail page across slugs)
-- Use `pushUrl` from `foldkit/navigation` in Commands for programmatic navigation. In the `ClickedLink` handler's `Internal` case, use `urlToString(url)` from `foldkit/url`. Never reconstruct the URL from `url.pathname + search + hash` manually; that path drops the `?` prefix and hash silently.
-- In the `ClickedLink` handler, **don't pre-update `model.route`**. The runtime fires `ChangedUrl` after `pushUrl` resolves, which updates the route. Pre-updating creates a double-write.
+- Use `pushUrl` from `foldkit/navigation` in Commands for programmatic navigation. When `onUrlRequest` is configured, use `urlToString(url)` from `foldkit/url` in the `ClickedLink` handler's `Internal` case. Never reconstruct the URL from `url.pathname + search + hash` manually; that path drops the `?` prefix and hash silently.
+- When `onUrlRequest` is configured, **don't pre-update `model.route`** in the `ClickedLink` handler. The runtime fires `ChangedUrl` after `pushUrl` resolves, which updates the route. Pre-updating creates a double-write.
 
 ### Subscriptions (if real-time)
 

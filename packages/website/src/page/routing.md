@@ -134,11 +134,11 @@ Foldkit provides navigation Commands for programmatically changing the URL. Thes
 - `Navigation.load`: full page load (for external URLs)
 - `Navigation.openUrl`: opens an external URL in a new browsing context (tab or window), leaving the current page untouched
 
-When a link is clicked in your application, the `routing.onUrlRequest` handler receives either an Internal or External request. Handle Internal links with `pushUrl` and External links with `load`:
+When a link is clicked in your application, Foldkit handles it. A same-origin link is pushed to browser history and reported through `routing.onUrlChange`. A link that only changes the fragment of the current URL is left to the browser, which scrolls to the anchor and reports the new URL through `routing.onUrlChange` as a history change. A cross-origin link is left to the browser as well. Provide `routing.onUrlRequest` to decide per click instead, for example to confirm leaving a form with unsaved edits. It turns the click into a Message carrying either an Internal or External request, and update then owns the navigation. Handle Internal links with `pushUrl` and External links with `load`:
 
 ::Snippet{name="navigationHandleUrlRequest" label="URL request handling"}
 
-After `pushUrl` or `replaceUrl` changes the URL, Foldkit automatically calls your `routing.onUrlChange` handler with the new URL. This is where you parse the URL into a route and update your model.
+After `pushUrl` or `replaceUrl` changes the URL, Foldkit calls your `routing.onUrlChange` handler with the new URL, exactly as it does for the browser's back and forward buttons and for the links it handles itself. This is the one place to parse the URL into a route and update your model. An `onUrlRequest` handler leaves the route alone; the change it requests comes back through `onUrlChange`.
 
 ## Cold Loads and the Initial Route {#cold-loads}
 
