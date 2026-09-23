@@ -367,12 +367,22 @@ const matchesSimpleSelector =
 
 // IMPLICIT ROLES
 
+// NOTE: This map follows the 11 August 2026 ARIA in HTML Recommendation.
+// It intentionally excludes mappings proposed only in working drafts:
+// https://www.w3.org/TR/2026/REC-html-aria-20260811/#docconformance
 const IMPLICIT_ROLE_MAP: Record<string, string> = {
+  address: 'group',
   article: 'article',
   aside: 'complementary',
+  blockquote: 'blockquote',
   button: 'button',
+  caption: 'caption',
+  code: 'code',
+  del: 'deletion',
   details: 'group',
+  dfn: 'term',
   dialog: 'dialog',
+  em: 'emphasis',
   fieldset: 'group',
   figure: 'figure',
   form: 'form',
@@ -382,21 +392,34 @@ const IMPLICIT_ROLE_MAP: Record<string, string> = {
   h4: 'heading',
   h5: 'heading',
   h6: 'heading',
+  hgroup: 'group',
   hr: 'separator',
+  ins: 'insertion',
   li: 'listitem',
   main: 'main',
+  menu: 'list',
   meter: 'meter',
   nav: 'navigation',
   ol: 'list',
+  optgroup: 'group',
   option: 'option',
   output: 'status',
   p: 'paragraph',
   progress: 'progressbar',
+  s: 'deletion',
+  search: 'search',
   select: 'combobox',
+  strong: 'strong',
+  sub: 'subscript',
   summary: 'button',
+  sup: 'superscript',
   table: 'table',
+  tbody: 'rowgroup',
   td: 'cell',
   textarea: 'textbox',
+  tfoot: 'rowgroup',
+  thead: 'rowgroup',
+  time: 'time',
   tr: 'row',
   ul: 'list',
 }
@@ -868,6 +891,21 @@ const disabledMatches =
     return disabled === expected
   }
 
+const currentMatches =
+  (expected: boolean | 'page' | 'step' | 'location' | 'date' | 'time') =>
+  (vnode: VNode): boolean => {
+    const maybeCurrent = lookupStringAttribute('aria-current')(vnode)
+
+    if (expected === false) {
+      return Option.isNone(maybeCurrent) || maybeCurrent.value === 'false'
+    } else {
+      return Option.exists(
+        maybeCurrent,
+        value => value === globalThis.String(expected),
+      )
+    }
+  }
+
 type RoleOptions = Readonly<{
   name?: string | RegExp
   level?: number
@@ -876,6 +914,7 @@ type RoleOptions = Readonly<{
   pressed?: boolean | 'mixed'
   expanded?: boolean
   disabled?: boolean
+  current?: boolean | 'page' | 'step' | 'location' | 'date' | 'time'
 }>
 
 const roleOptionsMatch =
@@ -929,12 +968,18 @@ const roleOptionsMatch =
     ) {
       return false
     }
+    if (
+      options.current !== undefined &&
+      !currentMatches(options.current)(node)
+    ) {
+      return false
+    }
     return true
   }
 
 /** Finds the first element with the given ARIA role and optional matching options.
  *  Supports `name` (accessible name), `level` (heading level), `checked`,
- *  `selected`, `pressed`, `expanded`, and `disabled` state filters. */
+ *  `selected`, `pressed`, `expanded`, `disabled`, and `current` state filters. */
 export const getByRole =
   (role: string, options?: RoleOptions) =>
   (html: VNode): Option.Option<VNode> => {
@@ -962,19 +1007,41 @@ export const getAllByRole =
     )
   }
 
-/** Finds the most specific element matching the given text content.
- *  Skips text VNodes (sel undefined) — only returns actual DOM elements. */
-export const getByText =
-  (target: string, options?: Readonly<{ exact?: boolean }>) =>
-  (html: VNode): Option.Option<VNode> => {
-    const exact = options?.exact !== false
+const matchesText = (
+  target: string | RegExp,
+  options?: Readonly<{ exact?: boolean }>,
+): ((node: VNode) => boolean) => {
+  if (target instanceof RegExp) {
+    const pattern = new RegExp(target.source, target.flags)
 
-    const textMatches = (node: VNode): boolean => {
+    return node => {
+      pattern.lastIndex = 0
+
+      return pattern.test(textContent(node))
+    }
+  } else {
+    const isExact = options?.exact !== false
+
+    return node => {
       const nodeText = textContent(node)
-      return exact
+
+      return isExact
         ? nodeText === target || hasDirectTextNodeMatch(node, target)
         : String.includes(target)(nodeText)
     }
+  }
+}
+
+/** Finds the first element whose text matches `target`.
+ *  A string matches the element's full text or one direct text node. When
+ *  `exact` is false, it instead matches a substring of the full text. A `RegExp`
+ *  tests the full text from index zero without changing its `lastIndex`, and
+ *  `exact` has no effect. When an ancestor and descendant both match, the query
+ *  returns the descendant. Never returns text VNodes. */
+export const getByText =
+  (target: string | RegExp, options?: Readonly<{ exact?: boolean }>) =>
+  (html: VNode): Option.Option<VNode> => {
+    const textMatches = matchesText(target, options)
 
     return pipe(
       allNodesIn(html),
@@ -1106,19 +1173,18 @@ export const getByTestId =
       attributeEquals('data-testid', testIdValue),
     )
 
-/** Finds all elements matching the given text content.
- *  Includes nested ancestors — a `<div><p>hi</p></div>` with text "hi" yields both. */
+/** Finds every element whose text matches `target`.
+ *  Uses the same string and `RegExp` rules as `getByText`, but returns matching
+ *  ancestors and descendants in traversal order. Never returns text VNodes. */
 export const getAllByText =
-  (target: string, options?: Readonly<{ exact?: boolean }>) =>
+  (target: string | RegExp, options?: Readonly<{ exact?: boolean }>) =>
   (html: VNode): ReadonlyArray<VNode> => {
-    const exact = options?.exact !== false
-    return Array.filter(allNodesIn(html), node => {
-      if (!isElement(node)) return false
-      const nodeText = textContent(node)
-      return exact
-        ? nodeText === target || hasDirectTextNodeMatch(node, target)
-        : String.includes(target)(nodeText)
-    })
+    const textMatches = matchesText(target, options)
+
+    return Array.filter(
+      allNodesIn(html),
+      node => isElement(node) && textMatches(node),
+    )
   }
 
 /** Finds all elements with the given placeholder attribute. */
@@ -1208,11 +1274,15 @@ const describeRoleOptions = (options: RoleOptions): string => {
   if (options.pressed !== undefined) parts.push(`pressed=${options.pressed}`)
   if (options.expanded !== undefined) parts.push(`expanded=${options.expanded}`)
   if (options.disabled !== undefined) parts.push(`disabled=${options.disabled}`)
+  if (options.current !== undefined) parts.push(`current=${options.current}`)
   return Array.join(parts, ' ')
 }
 
 /** Creates a Locator that finds an element by ARIA role. Supports matching on
- *  `name`, `level`, `checked`, `selected`, `pressed`, `expanded`, and `disabled`. */
+ *  `name`, `level`, `checked`, `selected`, `pressed`, `expanded`, `disabled`, and
+ *  `current`. For `current`, `true` matches `aria-current="true"` only, `false`
+ *  matches a missing attribute or `aria-current="false"`, and a token such as
+ *  `'page'` matches itself. */
 export const role = (roleValue: string, options?: RoleOptions): Locator => {
   const optionsDescription = options ? describeRoleOptions(options) : ''
   const description = String.isEmpty(optionsDescription)
@@ -1248,11 +1318,15 @@ export const testId = (testIdValue: string): Locator =>
 export const displayValue = (valueString: string): Locator =>
   makeLocator(getByDisplayValue(valueString), `display value "${valueString}"`)
 
-/** Creates a Locator that finds the most specific element matching the given text content. */
+const describeText = (target: string | RegExp): string =>
+  target instanceof RegExp ? `${target}` : `"${target}"`
+
+/** Creates a Locator that finds the same element as `getByText`. */
 export const text = (
-  target: string,
+  target: string | RegExp,
   options?: Readonly<{ exact?: boolean }>,
-): Locator => makeLocator(getByText(target, options), `text "${target}"`)
+): Locator =>
+  makeLocator(getByText(target, options), `text ${describeText(target)}`)
 
 /** Creates a Locator that wraps a CSS selector. Escape hatch for cases
  *  where no accessible attribute is available. */
@@ -1286,12 +1360,15 @@ export const allRole = (
   return makeLocatorAll(getAllByRole(roleValue, options), `all ${description}`)
 }
 
-/** Creates a LocatorAll that finds every element matching the text. */
+/** Creates a LocatorAll that finds the same elements as `getAllByText`. */
 export const allText = (
-  target: string,
+  target: string | RegExp,
   options?: Readonly<{ exact?: boolean }>,
 ): LocatorAll =>
-  makeLocatorAll(getAllByText(target, options), `all text "${target}"`)
+  makeLocatorAll(
+    getAllByText(target, options),
+    `all text ${describeText(target)}`,
+  )
 
 /** Creates a LocatorAll that finds every element with the given label. */
 export const allLabel = (labelValue: string): LocatorAll =>

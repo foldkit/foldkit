@@ -7,7 +7,6 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
     foldkit({
-      devToolsMcpPort: 9988,
       ssr: {
         serverEntry: '/src/entry.server.ts',
         build: true,

@@ -296,9 +296,9 @@ describe('renderToString', () => {
       renderToStringWithOptions(configWithoutFlags)
       renderToStringWithOptions(configWithoutFlags, { buildId: 'build-one' })
       renderToStringWithOptions(configWithoutFlags, { isHydratable: false })
-      // @ts-expect-error static output has no deployment to name
       renderToStringWithOptions(configWithoutFlags, {
         isHydratable: false,
+        // @ts-expect-error static output has no deployment to name
         buildId: 'build-one',
       })
     }

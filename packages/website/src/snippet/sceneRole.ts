@@ -15,3 +15,4 @@ role('heading', { level: 2 })
 // Narrow by ARIA state
 role('checkbox', { checked: true })
 role('button', { pressed: true, disabled: false })
+role('link', { current: 'page' })

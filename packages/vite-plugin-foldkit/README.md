@@ -65,6 +65,52 @@ With this set, the dev server converts HTML page requests to Web `Request` value
 
 Vite retains ownership of configured proxy routes before Foldkit handles application requests. Vite's `server.cors` option applies to Vite-owned source modules, assets, and HMR. It does not add headers to application responses or answer their preflights. Preflight ownership follows `Access-Control-Request-Method`, so a preflight for an application `POST` reaches `renderPage` even when its path looks like an asset. An `OPTIONS` request without both `Origin` and `Access-Control-Request-Method` is not a preflight and also reaches `renderPage`. Define application CORS in `renderPage`, where development and the deployed host share one policy. Vite's `allowedHosts` check runs before proxy and application handling, including `OPTIONS` and methods the Web `Request` API cannot represent.
 
+## Completed build metadata
+
+Deployment tools that run Vite in process can read `foldkit:build` through Vite's standard plugin `api` field. Await the full application build before reading:
+
+```typescript
+import type { FoldkitBuildApi } from '@foldkit/vite-plugin'
+import { createBuilder } from 'vite'
+
+const builder = await createBuilder()
+await builder.buildApp()
+
+const plugin = builder.config.plugins.find(
+  plugin => plugin.name === 'foldkit:build',
+)
+
+if (plugin !== undefined) {
+  const api: FoldkitBuildApi | undefined = plugin.api
+
+  if (typeof api?.getBuildMetadata !== 'function') {
+    throw new Error('This Foldkit version does not expose build metadata')
+  }
+
+  const metadata = api.getBuildMetadata()
+  console.log(metadata.serverEntry)
+  console.log(metadata.manifest.prerendered)
+}
+```
+
+`FoldkitBuildApi` preserves `serverEntry` (the configured source entry) and `fetchModuleId` (the virtual fetch module). Its `getBuildMetadata()` method returns `FoldkitBuildMetadata`, exported as a Schema and inferred type:
+
+| Field             | Meaning                                                 |
+| ----------------- | ------------------------------------------------------- |
+| `root`            | Absolute resolved application root                      |
+| `clientDirectory` | Absolute resolved client output directory               |
+| `serverDirectory` | Absolute resolved server output directory               |
+| `serverEntry`     | Absolute path to the emitted fetch handler              |
+| `manifest`        | The version-1 data also written to `foldkit.build.json` |
+
+The snapshot, manifest, and prerendered route array are frozen. The data can be serialized to another process. The manifest keeps its portable relative POSIX paths; the outer path fields describe the local build machine. Output paths reflect the resolved Vite environments, including overrides made by a host plugin.
+
+A client-only build has no `foldkit:build` plugin. A present plugin without the accessor needs a Foldkit upgrade. The accessor throws before Foldkit finalizes, while another client or server build is running, or after its build fails. Always await `builder.buildApp()` successfully: another plugin can fail after Foldkit has finalized. An environment's `writeBundle` and another plugin's post-order `buildApp` hook do not establish this completion boundary.
+
+Create a fresh Foldkit plugin set for each independent builder. The build plugin uses Vite's `sharedDuringBuild` to share captures across its environments. Concurrent builders must not reuse the same plugin object. This API does not add watch-mode support.
+
+Prerendered pages and `foldkit.build.json` are finalized after the environment bundles. A separate deployment process that consumes an existing build can continue reading the disk manifest. An integration that runs the build in a child process can read the API there and transfer the serialized metadata in its child result.
+
 ## Build id
 
 The build id does not make hydration correct. It makes hydration refuse when it would otherwise be incorrect.
@@ -107,13 +153,23 @@ To include the overlay in production, list `@foldkit/devtools` in regular `depen
 
 ## DevTools MCP relay
 
-Pass `devToolsMcpPort` to enable the relay that exposes your running Foldkit app to AI agents via the [`@foldkit/devtools-mcp`](https://www.npmjs.com/package/@foldkit/devtools-mcp) MCP server:
+During development, the plugin starts a WebSocket relay for the [`@foldkit/devtools-mcp`](https://www.npmjs.com/package/@foldkit/devtools-mcp) server. Through the relay, an AI agent can inspect a running Foldkit app and dispatch Messages.
+
+By default, the relay uses the dev server's listener at `/__foldkit/devtools-mcp`. The plugin publishes its address to a registry private to your user, and the MCP server finds it by project. You do not need to coordinate a port between them. The registry lives under `XDG_RUNTIME_DIR` when that is set, or under the operating system's temporary directory. `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY` selects another directory.
+
+The relay follows Vite's `server.host` setting. If you expose the dev server with `--host`, a client still needs the random token in the published address to inspect a Model or dispatch a Message. The plugin will not publish that token into a registry directory owned by another user or readable by other users. It reports the problem in the console.
+
+In middleware mode, the relay uses a free loopback port because there is no HTTP server to share. It also uses a free loopback port for HTTPS dev servers, whose self-signed certificates the MCP server cannot verify. The plugin publishes these addresses for discovery in the same way.
+
+To use a fixed port, set `devToolsMcpPort` in your Vite config:
 
 ```typescript
 plugins: [foldkit({ devToolsMcpPort: 9988 })]
 ```
 
-When set, the plugin opens a separate WebSocket server on the given port. The MCP server connects to it and forwards typed `Request` and `Response` frames between AI agents and your Runtime. Without `devToolsMcpPort` (the default), the relay is not started and the plugin behaves exactly as before.
+Set `FOLDKIT_DEVTOOLS_MCP_PORT` to the same value for the MCP server. A fixed port opens a separate socket on every interface and does not require a token. Use this setting on platforms where directory ownership cannot be verified, including Windows, because the plugin cannot publish a relay address there.
+
+`devToolsMcpPort: false` disables the relay. The relay does not start during Vitest runs or in production builds.
 
 See the [DevTools MCP documentation](https://foldkit.dev/ai/mcp) for setup, the available tools, and how dispatch validation works.
 

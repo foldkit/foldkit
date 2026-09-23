@@ -256,6 +256,18 @@ A build that `@foldkit/vite-plugin` owns writes `foldkit.build.json` beside the 
 
 A deployed SSR application needs a host that serves the built client assets and calls `fetch` for page requests. The build writes no fallback document. Send requests that match no file to `fetch`; do not enable a single-page-application fallback that answers those requests with a file. The [SSR example's Node host](https://github.com/foldkit/foldkit/tree/main/examples/ssr/scripts/serve.ts) serves assets and sends page requests to `dist/server/fetch.js`.
 
+### Reading completed build metadata
+
+A deployment integration that runs Vite in process can read the `foldkit:build` plugin's `api` after `await builder.buildApp()` succeeds. Its `getBuildMetadata()` method returns a frozen, serializable `FoldkitBuildMetadata` snapshot with absolute `root`, `clientDirectory`, `serverDirectory`, and emitted `serverEntry` paths, plus the same `manifest` data written to disk. These paths follow the resolved Vite environments, including host overrides.
+
+:::Snippet{name="serverRenderingBuildMetadata" label="Read completed build metadata"}
+
+`@foldkit/vite-plugin` exports `FoldkitBuildMetadata` as a Schema and inferred type, and `FoldkitBuildApi` as the plugin API type. The API's existing `serverEntry` field names the source module; the metadata's `serverEntry` names the generated fetch handler. `manifest` retains the version-1 relative POSIX paths and successfully prerendered routes.
+
+A client-only build has no `foldkit:build` plugin. A present plugin without `getBuildMetadata` needs a Foldkit upgrade. Calling the accessor before finalization, during another environment build, or after a Foldkit build failure throws. Always await the full application build successfully, because later plugins can still fail after Foldkit finishes. Neither an environment's `writeBundle` nor an arbitrary post-order `buildApp` hook guarantees that prerendering has completed.
+
+Create a fresh plugin set for each independent builder. Foldkit uses Vite's `sharedDuringBuild` to share state across that builder's environments; do not reuse one plugin object across concurrent builders. This does not add watch-mode support. A tool running Vite in a child process can read and serialize this metadata in the child. A tool consuming an existing build can continue reading `foldkit.build.json`.
+
 ### Which methods reach the entry
 
 These rules apply to request-time SSR. An SSG deployment is a directory of files, so its static host owns method handling.

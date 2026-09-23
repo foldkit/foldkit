@@ -13,6 +13,8 @@ import {
 role('button', { name: 'Submit' })
 label('Email')
 text('Welcome back')
+text('Welcome', { exact: false })
+text(/^save \d+ items$/i)
 placeholder('Search...')
 altText('Company logo')
 title('Close dialog')

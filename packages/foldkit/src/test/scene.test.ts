@@ -8,6 +8,7 @@ import {
   inertHtml,
 } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
+import * as PublicScene from '../scene/public.js'
 import { h } from '../snabbdom/index.js'
 import type { VNode } from '../snabbdom/index.js'
 import { modifyFields } from '../struct/index.js'
@@ -713,6 +714,90 @@ describe('accessible locators', () => {
       })(locatorTree)
       expect(Option.isSome(result)).toBe(true)
     })
+
+    describe('current', () => {
+      const navigation = h('nav', [
+        h('a', { attrs: { href: '/work', 'aria-current': 'page' } }, ['Work']),
+        h('a', { attrs: { href: '/contact', 'aria-current': 'false' } }, [
+          'Contact',
+        ]),
+        h('a', { attrs: { href: '/about' } }, ['About']),
+        h('a', { attrs: { href: '/team', 'aria-current': 'true' } }, ['Team']),
+      ])
+
+      test('a token matches itself exactly', () => {
+        const result = getByRole('link', { current: 'page' })(navigation)
+        expect(Option.isSome(result)).toBe(true)
+        expect(textContent(Option.getOrThrow(result))).toBe('Work')
+        expect(
+          Option.isNone(getByRole('link', { current: 'step' })(navigation)),
+        ).toBe(true)
+      })
+
+      test('false matches an absent attribute and an explicit false alike', () => {
+        const links = getAllByRole('link', { current: false })(navigation)
+        const names = links.map(textContent)
+        expect(names).toEqual(['Contact', 'About'])
+      })
+
+      test('true matches only aria-current="true"', () => {
+        const links = getAllByRole('link', { current: true })(navigation)
+        const names = links.map(textContent)
+        expect(names).toEqual(['Team'])
+      })
+
+      test('true does not match a token', () => {
+        const page = h('nav', [
+          h('a', { attrs: { href: '/work', 'aria-current': 'page' } }, [
+            'Work',
+          ]),
+        ])
+        expect(Option.isNone(getByRole('link', { current: true })(page))).toBe(
+          true,
+        )
+      })
+
+      test('reads aria-current from props', () => {
+        const page = h('nav', [
+          h('a', { attrs: { href: '/about' } }, ['About']),
+          h('a', { props: { href: '/work', 'aria-current': 'page' } }, [
+            'Work',
+          ]),
+        ])
+        const result = getByRole('link', { current: 'page' })(page)
+        expect(Option.isSome(result)).toBe(true)
+        expect(textContent(Option.getOrThrow(result))).toBe('Work')
+      })
+
+      test('names the option in the locator description', () => {
+        expect(
+          Scene.role('link', { name: 'Work', current: 'page' }).description,
+        ).toBe('link "Work" current=page')
+      })
+
+      test('selects the current link through a Scene', () => {
+        Scene.scene(
+          {
+            update,
+            view: (_model, html) =>
+              html.nav(
+                [],
+                [
+                  html.a([html.Href('/about')], ['About']),
+                  html.a(
+                    [html.Href('/work'), html.AriaCurrent('page')],
+                    ['Work'],
+                  ),
+                ],
+              ),
+          },
+          Scene.given(initialModel),
+          Scene.expect(Scene.role('link', { current: 'page' })).toHaveText(
+            'Work',
+          ),
+        )
+      })
+    })
   })
 
   describe('getAllByRole', () => {
@@ -1122,6 +1207,151 @@ describe('expanded implicit role map', () => {
     const result = getByRole('rowheader')(tree)
     expect(Option.isSome(result)).toBe(true)
     expect(textContent(Option.getOrThrow(result))).toBe('Alice')
+  })
+})
+
+describe('confirmed implicit role mappings', () => {
+  const cases = [
+    { tag: 'blockquote', role: 'blockquote', parent: 'div' },
+    { tag: 'address', role: 'group', parent: 'div' },
+    { tag: 'caption', role: 'caption', parent: 'table' },
+    { tag: 'code', role: 'code', parent: 'div' },
+    { tag: 'del', role: 'deletion', parent: 'div' },
+    { tag: 'dfn', role: 'term', parent: 'div' },
+    { tag: 'em', role: 'emphasis', parent: 'div' },
+    { tag: 'hgroup', role: 'group', parent: 'div' },
+    { tag: 'ins', role: 'insertion', parent: 'div' },
+    { tag: 'menu', role: 'list', parent: 'div' },
+    { tag: 'optgroup', role: 'group', parent: 'select' },
+    { tag: 's', role: 'deletion', parent: 'div' },
+    { tag: 'search', role: 'search', parent: 'div' },
+    { tag: 'strong', role: 'strong', parent: 'div' },
+    { tag: 'sub', role: 'subscript', parent: 'div' },
+    { tag: 'sup', role: 'superscript', parent: 'div' },
+    { tag: 'tbody', role: 'rowgroup', parent: 'table' },
+    { tag: 'tfoot', role: 'rowgroup', parent: 'table' },
+    { tag: 'thead', role: 'rowgroup', parent: 'table' },
+    { tag: 'time', role: 'time', parent: 'div' },
+  ]
+
+  const childrenByTag: Record<string, Array<VNode>> = {
+    hgroup: [h('h1', {}, ['Heading'])],
+    menu: [h('li', {}, ['Item'])],
+    optgroup: [h('option', {}, ['Choice'])],
+    tbody: [h('tr', {}, [h('td', {}, ['Body'])])],
+    tfoot: [h('tr', {}, [h('td', {}, ['Footer'])])],
+    thead: [h('tr', {}, [h('th', {}, ['Column'])])],
+  }
+
+  test.each(cases)('finds $tag by its $role role', ({ tag, role, parent }) => {
+    const element = h(
+      tag,
+      tag === 'optgroup' ? { attrs: { label: 'Choices' } } : {},
+      childrenByTag[tag] ?? ['Example'],
+    )
+    const tree = h(parent, {}, [element])
+
+    expect(Scene.role(role)(tree)).toEqual(Option.some(element))
+  })
+
+  test.each(cases)(
+    'finds all $tag elements by their $role role',
+    ({ tag, role, parent }) => {
+      const element = h(
+        tag,
+        tag === 'optgroup' ? { attrs: { label: 'Choices' } } : {},
+        childrenByTag[tag] ?? ['Example'],
+      )
+      const tree = h(parent, {}, [element])
+
+      expect(Scene.all.role(role)(tree)).toEqual([element])
+    },
+  )
+
+  test('returns native blockquotes in traversal order', () => {
+    const first = h('blockquote', {}, ['First'])
+    const second = h('blockquote', {}, ['Second'])
+    const tree = h('div', {}, [h('div', {}, [first]), second])
+
+    expect(Scene.role('blockquote')(tree)).toEqual(Option.some(first))
+    expect(Scene.all.role('blockquote')(tree)).toEqual([first, second])
+  })
+
+  test('finds a native blockquote within the target container', () => {
+    const outside = h('blockquote', {}, ['Outside'])
+    const inside = h('blockquote', {}, ['Inside'])
+    const tree = h('div', {}, [
+      h('div', {}, [outside]),
+      h('div', { attrs: { id: 'target' } }, [inside]),
+    ])
+    const locator = Scene.within(
+      Scene.selector('#target'),
+      Scene.role('blockquote'),
+    )
+
+    expect(locator(tree)).toEqual(Option.some(inside))
+  })
+
+  test('filters native blockquotes by accessible name', () => {
+    const first = h('blockquote', { attrs: { 'aria-label': 'First quote' } }, [
+      'First',
+    ])
+    const second = h(
+      'blockquote',
+      { attrs: { 'aria-label': 'Second quote' } },
+      ['Second'],
+    )
+    const tree = h('div', {}, [first, second])
+
+    expect(Scene.role('blockquote', { name: 'Second quote' })(tree)).toEqual(
+      Option.some(second),
+    )
+    expect(
+      Scene.all.role('blockquote', { name: 'Second quote' })(tree),
+    ).toEqual([second])
+  })
+
+  test('keeps an explicit role authoritative over the native role', () => {
+    const element = h('blockquote', { attrs: { role: 'note' } }, ['Example'])
+
+    expect(Scene.role('note')(element)).toEqual(Option.some(element))
+    expect(Scene.all.role('note')(element)).toEqual([element])
+    expect(Scene.role('blockquote')(element)).toEqual(Option.none())
+    expect(Scene.all.role('blockquote')(element)).toEqual([])
+  })
+
+  test('finds an explicit blockquote role on a div', () => {
+    const element = h('div', { attrs: { role: 'blockquote' } }, ['Example'])
+
+    expect(Scene.role('blockquote')(element)).toEqual(Option.some(element))
+    expect(Scene.all.role('blockquote')(element)).toEqual([element])
+  })
+
+  test.each([
+    { tag: 'dd', role: 'definition' },
+    { tag: 'dl', role: 'list' },
+    { tag: 'dt', role: 'term' },
+    { tag: 'figcaption', role: 'caption' },
+    { tag: 'mark', role: 'mark' },
+  ])('does not infer the draft-only $tag to $role mapping', ({ tag, role }) => {
+    const element = h(tag, {}, ['Example'])
+
+    expect(Scene.role(role)(element)).toEqual(Option.none())
+    expect(Scene.all.role(role)(element)).toEqual([])
+  })
+
+  test('still finds a native blockquote by selector', () => {
+    const element = h('blockquote', {}, ['Example'])
+    const tree = h('div', {}, [element])
+
+    expect(Scene.selector('blockquote')(tree)).toEqual(Option.some(element))
+  })
+
+  test('does not infer a blockquote role for a neutral element', () => {
+    const element = h('div', {}, ['Example'])
+
+    expect(Scene.role('blockquote')(element)).toEqual(Option.none())
+    expect(Scene.all.role('blockquote')(element)).toEqual([])
   })
 })
 
@@ -3632,6 +3862,184 @@ describe('scene with inside', () => {
         }),
       ),
     )
+  })
+})
+
+describe('RegExp text locators', () => {
+  test('accepts a RegExp in a single locator', () => {
+    const button = h('button', {}, 'Save 3 items')
+    expect(Option.getOrThrow(Scene.text(/Save \d+ items/)(button))).toBe(button)
+  })
+
+  test('accepts a RegExp in a multi-match locator', () => {
+    const button = h('button', {}, 'Save 3 items')
+    expect(Scene.all.text(/Save \d+ items/)(button)).toEqual([button])
+  })
+
+  test('honors anchors and the case-insensitive flag', () => {
+    const button = h('button', {}, 'SAVE 3 items')
+    expect(Option.getOrThrow(Scene.text(/^save \d+ items$/i)(button))).toBe(
+      button,
+    )
+    expect(Scene.all.text(/^save \d+ items$/i)(button)).toEqual([button])
+    expect(Option.isNone(Scene.text(/^save$/i)(button))).toBe(true)
+    expect(Scene.all.text(/^save$/i)(button)).toEqual([])
+  })
+
+  test('returns the descendant from a single locator and both matches from a multi-match locator', () => {
+    const button = h('button', {}, 'Save 3 items')
+    const tree = h('div', {}, [button])
+    expect(Option.getOrThrow(Scene.text(/Save \d+ items/)(tree))).toBe(button)
+    expect(Scene.all.text(/Save \d+ items/)(tree)).toEqual([tree, button])
+  })
+
+  test('restarts a global RegExp for every element and query', () => {
+    const firstButton = h('button', {}, 'Save')
+    const secondButton = h('button', {}, 'Save')
+    const tree = h('div', {}, [firstButton, secondButton])
+    const single = Scene.text(/^Save$/g)
+    const multiple = Scene.all.text(/^Save$/g)
+    expect(Option.getOrThrow(single(tree))).toBe(firstButton)
+    expect(multiple(tree)).toEqual([firstButton, secondButton])
+    expect(Option.getOrThrow(single(tree))).toBe(firstButton)
+    expect(multiple(tree)).toEqual([firstButton, secondButton])
+  })
+
+  test("restarts a sticky RegExp without changing the caller's lastIndex", () => {
+    const firstButton = h('button', {}, 'Save')
+    const secondButton = h('button', {}, 'xSave')
+    const tree = h('div', {}, ['Controls: ', firstButton, secondButton])
+    const pattern = /Save/gy
+    pattern.lastIndex = 2
+    const single = Scene.text(pattern)
+    const multiple = Scene.all.text(pattern)
+    expect(Option.getOrThrow(single(tree))).toBe(firstButton)
+    expect(pattern.lastIndex).toBe(2)
+    expect(multiple(tree)).toEqual([firstButton])
+    expect(pattern.lastIndex).toBe(2)
+    expect(Option.getOrThrow(single(tree))).toBe(firstButton)
+    expect(multiple(tree)).toEqual([firstButton])
+    expect(pattern.lastIndex).toBe(2)
+  })
+
+  test.each([undefined, true, false])(
+    'matches all text regardless of exact=%s',
+    exact => {
+      const button = h('button', {}, ['Save ', h('strong', {}, '3'), ' items'])
+      const options = exact === undefined ? undefined : { exact }
+      expect(
+        Option.getOrThrow(Scene.text(/^Save 3 items$/, options)(button)),
+      ).toBe(button)
+      expect(Scene.all.text(/^Save 3 items$/, options)(button)).toEqual([
+        button,
+      ])
+    },
+  )
+
+  test("uses the element's full text for a RegExp", () => {
+    const link = h('a', {}, ['Hello', h('span', {}, '→')])
+    expect(Option.getOrThrow(Scene.text(/Hello/)(link))).toBe(link)
+    expect(Scene.all.text(/Hello/)(link)).toEqual([link])
+    expect(Option.isNone(Scene.text(/^Hello$/)(link))).toBe(true)
+    expect(Scene.all.text(/^Hello$/)(link)).toEqual([])
+  })
+
+  test('includes RegExp syntax in locator and assertion descriptions', () => {
+    expect(Scene.text(/save/i).description).toBe('text /save/i')
+    expect(Scene.all.text(/save/i).description).toBe('all text /save/i')
+    expect(() =>
+      Scene.scene(
+        { update, view },
+        Scene.given(initialModel),
+        Scene.expect(Scene.text(/save/i)).toExist(),
+      ),
+    ).toThrow('text /save/i')
+  })
+
+  test('uses RegExp locators in scopes and Scene assertions', () => {
+    const firstButton = h('button', {}, 'Save 3 items')
+    const secondButton = h('button', {}, 'Save 3 items')
+    const tree = h('div', {}, [
+      h('section', { attrs: { 'data-testid': 'first' } }, [firstButton]),
+      h('section', { attrs: { 'data-testid': 'second' } }, [secondButton]),
+    ])
+    expect(
+      Option.getOrThrow(
+        Scene.within(
+          Scene.testId('second'),
+          Scene.text(/Save \d+ items/),
+        )(tree),
+      ),
+    ).toBe(secondButton)
+    Scene.scene(
+      { update, view },
+      Scene.given(initialModel),
+      Scene.expect(Scene.text(/Sign in/)).toExist(),
+    )
+  })
+
+  test.each([true, false])(
+    'accepts RegExp targets through public queries with exact=%s',
+    exact => {
+      const button = h('button', {}, 'Save')
+      const single = PublicScene.text(/Save/, { exact })
+      const multiple = PublicScene.all.text(/Save/, { exact })
+      expectTypeOf(single).toEqualTypeOf<PublicScene.Locator>()
+      expectTypeOf(multiple).toEqualTypeOf<PublicScene.LocatorAll>()
+      expect(Option.getOrThrow(single(button))).toBe(button)
+      expect(multiple(button)).toEqual([button])
+      expectTypeOf(
+        PublicScene.getByText(/Save/, { exact })(button),
+      ).toEqualTypeOf<Option.Option<VNode>>()
+      expectTypeOf(
+        PublicScene.getAllByText(/Save/, { exact })(button),
+      ).toEqualTypeOf<ReadonlyArray<VNode>>()
+      expect(
+        Option.getOrThrow(PublicScene.getByText(/Save/, { exact })(button)),
+      ).toBe(button)
+      expect(PublicScene.getAllByText(/Save/, { exact })(button)).toEqual([
+        button,
+      ])
+    },
+  )
+
+  test('keeps existing string matching behavior', () => {
+    const button = h('button', {}, 'Save 3 items')
+    expect(Scene.all.text('Save')(button)).toEqual([])
+    expect(Scene.all.text('Save', { exact: false })(button)).toEqual([button])
+    const link = h('a', {}, ['Hello', h('span', {}, '→')])
+    expect(Option.getOrThrow(Scene.text('Hello')(link))).toBe(link)
+    expect(Scene.all.text('Hello')(link)).toEqual([link])
+    expect(Scene.text('Hello').description).toBe('text "Hello"')
+    expect(Scene.all.text('Hello').description).toBe('all text "Hello"')
+  })
+
+  test('does not normalize whitespace or exclude hidden text for strings', () => {
+    const hidden = h('span', { attrs: { hidden: true } }, '  Save  ')
+    const tree = h('div', {}, [hidden])
+    expect(Option.getOrThrow(Scene.text('  Save  ')(tree))).toBe(hidden)
+    expect(Scene.all.text('  Save  ')(tree)).toEqual([tree, hidden])
+    expect(Option.isNone(Scene.text('Save')(tree))).toBe(true)
+  })
+
+  test('does not normalize whitespace or exclude hidden text for a RegExp', () => {
+    const hidden = h('span', { attrs: { hidden: true } }, '  Save  ')
+    const tree = h('div', {}, [hidden])
+    expect(Option.getOrThrow(Scene.text(/^  Save  $/)(tree))).toBe(hidden)
+    expect(Scene.all.text(/^  Save  $/)(tree)).toEqual([tree, hidden])
+    expect(Option.isNone(Scene.text(/^Save$/)(tree))).toBe(true)
+  })
+
+  test('continues to match an empty string', () => {
+    const empty = h('div', {})
+    expect(Option.getOrThrow(Scene.text('')(empty))).toBe(empty)
+    expect(Scene.all.text('')(empty)).toEqual([empty])
+  })
+
+  test('matches empty element text with an empty RegExp', () => {
+    const empty = h('div', {})
+    expect(Option.getOrThrow(Scene.text(/(?:)/)(empty))).toBe(empty)
+    expect(Scene.all.text(/(?:)/)(empty)).toEqual([empty])
   })
 })
 

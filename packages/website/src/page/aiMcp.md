@@ -12,7 +12,7 @@ The same Runtime data also powers [DevTools](/core/devtools). DevTools presents 
 
 ### Projects Created with create-foldkit-app
 
-New projects already include `@foldkit/devtools-mcp`, a `.mcp.json` entry named `foldkit-devtools`, and a Vite relay on port `9988`. Start the development server, open the application in a browser tab, and open the project in your AI agent.
+New projects already include `@foldkit/devtools-mcp` and a `.mcp.json` entry named `foldkit-devtools`. Start the development server, open the application in a browser tab, and open the project in your AI agent.
 
 ### Existing Projects
 
@@ -26,9 +26,11 @@ Install the server as a development dependency when you want to avoid an `npx` l
 
 ::Snippet{name="aiMcpInstall" label="install the DevTools MCP server"}
 
-In `vite.config.ts`, set `devToolsMcpPort` so the Foldkit plugin opens the WebSocket relay:
+No Vite config change is needed. The Foldkit plugin serves the relay at `/__foldkit/devtools-mcp` on the dev server, and the MCP server finds it by project.
 
-::Snippet{name="aiMcpViteConfig" label="Vite config snippet"}
+If automatic discovery is unavailable, set a fixed `devToolsMcpPort` in `vite.config.ts` and give the MCP server the same value in `FOLDKIT_DEVTOOLS_MCP_PORT`. This is required on Windows:
+
+::Snippet{name="aiMcpViteConfig" label="Vite config snippet for a fixed port"}
 
 To let an agent dispatch Messages, pass the application's `Message` Schema to `Runtime.makeApplication`:
 
@@ -36,7 +38,7 @@ To let an agent dispatch Messages, pass the application's `Message` Schema to `R
 
 Inspection and replay tools work without the Schema. Dispatch tools reject every request until it is configured.
 
-Restart the development server after changing the Vite config, then restart the AI agent so it reads `.mcp.json`. The tools appear under the `foldkit-devtools` server.
+Restart the AI agent so it reads `.mcp.json`. The tools appear under the `foldkit-devtools` server.
 
 The application must be open in a browser tab. Its browser bridge connects the running Foldkit Runtime to the Vite relay. Closing the tab removes that Runtime from `foldkit_list_runtimes`.
 
@@ -64,13 +66,17 @@ Every tool except `foldkit_list_runtimes` accepts an optional `runtime_id`. With
 
 ## Connection Flow
 
-The browser bridge runs alongside DevTools and subscribes to the DevTools store. The Vite plugin opens a WebSocket server on `devToolsMcpPort` and relays requests between connected browser tabs and MCP clients. The MCP server runs as a child process of the AI agent and exposes those requests as typed tools.
+The browser bridge runs alongside DevTools and subscribes to the DevTools store. The Vite plugin relays requests between browser tabs and MCP clients through a WebSocket endpoint on the dev server. The MCP server runs under your AI agent and finds the relay for the project it runs in. `FOLDKIT_PROJECT_ROOT` selects another project.
+
+The plugin publishes the relay's address to a registry private to your user. The address includes a random token that every client must present before inspecting a Model or dispatching a Message. The plugin refuses to publish into a directory owned by another user or readable by other users. The registry lives under `XDG_RUNTIME_DIR` when set, or under the operating system's temporary directory. `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY` selects another directory.
+
+On Windows, the plugin cannot verify registry directory ownership, so it cannot publish an address. Set `devToolsMcpPort` in the Vite config and pass the same port in `FOLDKIT_DEVTOOLS_MCP_PORT`. This opens a separate socket without a token. `FOLDKIT_DEVTOOLS_MCP_PORT` also skips discovery on other platforms.
+
+When several relays match the project, the MCP server chooses the most recently started one. If the dev server restarts, the MCP server looks it up again and reconnects with exponential backoff. The agent can also start before the dev server.
 
 More than one browser tab can connect at once. `foldkit_list_runtimes` returns each connection ID, and `runtime_id` selects one explicitly. When a tab closes, the relay removes it from the live Runtime list.
 
 Messages stay as Effect Schema values across the connection. Before dispatching, an agent can call `foldkit_get_message_schema` for the top-level variants and then inspect the payload shape of the variant it needs. The Runtime decodes the constructed value before it reaches update. A batch is fully decoded before its first Message is dispatched.
-
-If the development server restarts, the MCP process reconnects to the relay with exponential backoff. The agent does not need another restart.
 
 ## Development and Production
 

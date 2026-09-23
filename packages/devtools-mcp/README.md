@@ -36,21 +36,7 @@ pnpm add -D @foldkit/devtools-mcp
 yarn add -D @foldkit/devtools-mcp
 ```
 
-Then make two edits to your project.
-
-In `vite.config.ts`, pass `devToolsMcpPort` to the Foldkit plugin so it opens the relay:
-
-```typescript
-import { defineConfig } from 'vite'
-
-import { foldkit } from '@foldkit/vite-plugin'
-
-export default defineConfig({
-  plugins: [foldkit({ devToolsMcpPort: 9988 })],
-})
-```
-
-In your `Runtime.makeApplication` call, pass your `Message` Schema. The Runtime decodes every dispatched payload against it, returning a clean error if the shape does not match before it reaches your update function:
+Pass your `Message` Schema to `Runtime.makeApplication` to let the agent dispatch Messages. The Runtime rejects a payload that does not match the Schema before it reaches update:
 
 ```typescript
 Runtime.makeApplication({
@@ -108,17 +94,25 @@ High-frequency flows (drag-paint, scroll, keystroke) can fill the history buffer
 Three components cooperate:
 
 - **Browser bridge** (in `foldkit`): runs alongside DevTools, subscribes to the DevTools store, and exchanges typed frames over Vite's HMR WebSocket.
-- **Vite plugin relay** (in `@foldkit/vite-plugin`): opens a separate WebSocket server on `devToolsMcpPort` and forwards traffic between browsers and MCP clients.
+- **Vite plugin relay** (in `@foldkit/vite-plugin`): serves a WebSocket endpoint on the dev server, publishes its address for discovery, and forwards traffic between browsers and MCP clients.
 - **MCP server** (this package): runs as a Node child process under your AI agent, connects to the plugin's relay over WebSocket, and exposes the typed tools over MCP's stdio transport.
 
 Multiple browser tabs can be connected at once and each is addressable by its connection id. Tabs that close (gracefully or not) are pruned from the live Runtime list automatically.
 
 ## Configuration
 
-| Environment variable        | Default     | Description                                                                              |
-| --------------------------- | ----------- | ---------------------------------------------------------------------------------------- |
-| `FOLDKIT_DEVTOOLS_MCP_HOST` | `localhost` | Hostname of the Vite plugin relay.                                                       |
-| `FOLDKIT_DEVTOOLS_MCP_PORT` | `9988`      | Port the Vite plugin relay listens on. Must match `devToolsMcpPort` in your Vite config. |
+The MCP server looks for a running dev server in its project directory. If several relays match, it uses the most recently started one. It discovers the relay again when the dev server restarts.
+
+| Environment variable               | What it changes                                                                                                                                                             |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FOLDKIT_PROJECT_ROOT`             | Project to search. Defaults to the working directory. A relay for that directory or one inside it can match.                                                                |
+| `FOLDKIT_DEVTOOLS_MCP_PORT`        | Skips discovery and connects to this port. Set it to the `devToolsMcpPort` in your Vite config. Without this setting, the server tries `9988` if discovery finds nothing.   |
+| `FOLDKIT_DEVTOOLS_MCP_HOST`        | Overrides the hostname of a discovered relay or configured port.                                                                                                            |
+| `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY` | Registry location. Defaults to a directory under `XDG_RUNTIME_DIR` when set, or under the OS temporary directory. Set it in both processes if they use different sandboxes. |
+
+A relay discovered through the registry requires the token in its published address. The plugin will not publish that token into a directory owned by another user or readable by other users. A configured `devToolsMcpPort` opens a separate socket on every interface without a token.
+
+On Windows, directory ownership cannot be verified, so automatic discovery is unavailable. Use `devToolsMcpPort` in the Vite config and set `FOLDKIT_DEVTOOLS_MCP_PORT` to the same port.
 
 ## Notes
 
