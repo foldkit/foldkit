@@ -245,6 +245,191 @@ describe('parseSelector', () => {
   test('throws on invalid selector', () => {
     expect(() => parseSelector('>>>')).toThrow('I could not parse the selector')
   })
+
+  test('throws on whitespace-only selector', () => {
+    expect(() => parseSelector('   ')).toThrow('I received an empty selector')
+  })
+
+  test('ignores leading, trailing, and repeated whitespace between compounds', () => {
+    expect(parseSelector('  form   button ')).toEqual(
+      parseSelector('form button'),
+    )
+  })
+
+  test('treats tabs and newlines between compounds as descendant combinators', () => {
+    expect(parseSelector('form\tbutton')).toEqual(parseSelector('form button'))
+    expect(parseSelector('form\n  button')).toEqual(
+      parseSelector('form button'),
+    )
+  })
+
+  test('parses a double-quoted attribute value containing whitespace', () => {
+    const selector = parseSelector('[aria-label="Open menu"]')
+    expect(selector).toHaveLength(1)
+    expect(selector[0]?.attributes).toEqual([
+      { name: 'aria-label', value: Option.some('Open menu'), mode: 'Exact' },
+    ])
+  })
+
+  test('parses a single-quoted attribute value', () => {
+    const selector = parseSelector("[aria-label='Open menu']")
+    expect(selector).toHaveLength(1)
+    expect(selector[0]?.attributes).toEqual([
+      { name: 'aria-label', value: Option.some('Open menu'), mode: 'Exact' },
+    ])
+  })
+
+  test('parses a :not() pseudo-class', () => {
+    const selector = parseSelector('path[d]:not([d=""])')
+    expect(selector).toHaveLength(1)
+    expect(selector[0]?.not).toHaveLength(1)
+    expect(selector[0]?.not[0]?.attributes).toEqual([
+      { name: 'd', value: Option.some(''), mode: 'Exact' },
+    ])
+  })
+
+  test.each([
+    'a:not(b, c)',
+    'a:not(b c)',
+    'a:not()',
+    'a:first-child',
+    'a:not(b',
+    'a[x="y',
+    'a:not(:not(b) .c)',
+  ])('throws on unsupported or malformed selector %s', selector => {
+    expect(() => parseSelector(selector)).toThrow(
+      /I could not parse the selector[\s\S]*:not\(<compound selector>\)/,
+    )
+  })
+
+  test('lists :not() among the supported selectors in the parse error', () => {
+    expect(() => parseSelector('a:first-child')).toThrow(':not(')
+  })
+})
+
+describe('selector grammar', () => {
+  const tree: VNode = h('header', {}, [
+    h('a', { attrs: { href: '/', 'aria-label': 'Home' } }, [
+      h('svg', {}, [h('path', { attrs: { d: 'M0 0' } })]),
+    ]),
+    h('a', { attrs: { href: '/x', 'aria-label': 'Open menu' } }, [
+      h('svg', {}, [h('path', { attrs: { d: '' } })]),
+    ]),
+  ])
+
+  const attrOfEach = (matches: ReadonlyArray<VNode>, name: string) =>
+    matches.map(match => attr(match, name))
+
+  test('excludes matches of a :not() attribute selector', () => {
+    const matches = findAll(tree, 'header a svg path[d]:not([d=""])')
+    expect(attrOfEach(matches, 'd')).toEqual([Option.some('M0 0')])
+  })
+
+  test('matches a double-quoted attribute value containing whitespace', () => {
+    const matches = findAll(tree, 'a[aria-label="Open menu"]')
+    expect(attrOfEach(matches, 'href')).toEqual([Option.some('/x')])
+  })
+
+  test('treats whitespace after a quoted value as a descendant combinator', () => {
+    const matches = findAll(tree, 'a[aria-label="Open menu"] path')
+    expect(attrOfEach(matches, 'd')).toEqual([Option.some('')])
+  })
+
+  test('matches a single-quoted attribute value', () => {
+    const matches = findAll(tree, "a[aria-label='Home']")
+    expect(attrOfEach(matches, 'href')).toEqual([Option.some('/')])
+  })
+
+  test('excludes an element whose attribute matches the :not() argument', () => {
+    const matches = findAll(tree, 'a:not([aria-label="Open menu"])')
+    expect(attrOfEach(matches, 'href')).toEqual([Option.some('/')])
+  })
+
+  test('matches :not() without a tag', () => {
+    const matches = findAll(tree, 'header :not(svg)')
+    expect(matches.map(match => match.sel)).toEqual(['a', 'path', 'a', 'path'])
+  })
+
+  test('accepts whitespace and compound selectors inside :not()', () => {
+    const paddedMatches = findAll(tree, 'path:not( [d=""] )')
+    expect(attrOfEach(paddedMatches, 'd')).toEqual([Option.some('M0 0')])
+
+    const compoundMatches = findAll(tree, 'path:not(path[d=""])')
+    expect(attrOfEach(compoundMatches, 'd')).toEqual([Option.some('M0 0')])
+  })
+
+  test('ignores parentheses inside a quoted value in a :not() argument', () => {
+    const buttonTree: VNode = h('div', {}, [
+      h('button', { attrs: { title: 'x)' } }),
+      h('button', { attrs: { title: '(y' } }),
+      h('button', { attrs: { title: 'z' } }),
+    ])
+    const matches = findAll(
+      buttonTree,
+      'button:not([title="x)"]):not([title="(y"])',
+    )
+    expect(attrOfEach(matches, 'title')).toEqual([Option.some('z')])
+  })
+
+  test('matches a nested :not()', () => {
+    const matches = findAll(tree, 'path:not(:not([d=""]))')
+    expect(attrOfEach(matches, 'd')).toEqual([Option.some('')])
+  })
+
+  test('applies every clause of a repeated :not()', () => {
+    expect(findAll(tree, 'a:not([href="/"]):not([href="/x"])')).toHaveLength(0)
+
+    const matches = findAll(tree, 'a:not([href="/x"]):not(.x)')
+    expect(attrOfEach(matches, 'href')).toEqual([Option.some('/')])
+  })
+
+  test('matches a starts-with value in single quotes containing whitespace', () => {
+    const matches = findAll(tree, "a[aria-label^='Open m']")
+    expect(attrOfEach(matches, 'href')).toEqual([Option.some('/x')])
+  })
+
+  test('treats a false attribute as absent inside :not()', () => {
+    const buttonTree: VNode = h('div', {}, [
+      h('button', { attrs: { title: 'enabled', disabled: false } }),
+      h('button', { attrs: { title: 'disabled', disabled: true } }),
+    ])
+    const matches = findAll(buttonTree, 'button:not([disabled])')
+    expect(attrOfEach(matches, 'title')).toEqual([Option.some('enabled')])
+  })
+
+  describe('quotes, parentheses, and whitespace', () => {
+    const quotedTree: VNode = h('div', {}, [
+      h('p', { attrs: { title: "it's" } }, [h('span', {}, ['apostrophe'])]),
+      h('p', { attrs: { title: 'say "hi"' } }, [h('span', {}, ['quotation'])]),
+      h('p', { attrs: { title: 'a (b' } }, [h('span', {}, ['parenthesis'])]),
+      h('p', { attrs: { title: 'x y' } }, [h('span', {}, ['space'])]),
+    ])
+
+    const textOfEach = (selector: string) =>
+      findAll(quotedTree, selector).map(textContent)
+
+    test('opens a quoted value with either quote character', () => {
+      expect(textOfEach(`p[title="x y"] span`)).toEqual(['space'])
+      expect(textOfEach(`p[title='x y'] span`)).toEqual(['space'])
+    })
+
+    test('closes a quoted value only with the quote character that opened it', () => {
+      expect(textOfEach(`p[title="it's"] span`)).toEqual(['apostrophe'])
+      expect(textOfEach(`p[title='say "hi"'] span`)).toEqual(['quotation'])
+    })
+
+    test('ignores parentheses inside a quoted value when splitting compounds', () => {
+      expect(textOfEach(`p[title="a (b"] span`)).toEqual(['parenthesis'])
+    })
+
+    test('ignores whitespace inside parentheses when splitting compounds', () => {
+      expect(textOfEach(`p:not( [title="x y"] ) span`)).toEqual([
+        'apostrophe',
+        'quotation',
+        'parenthesis',
+      ])
+    })
+  })
 })
 
 describe('query functions', () => {
@@ -2835,6 +3020,38 @@ describe('scene with expectAll', () => {
       { update, view },
       Scene.given(initialModel),
       Scene.expectAll(Scene.all.role('button')).not.toHaveCount(3),
+    )
+  })
+
+  test('selector locators accept :not() and quoted values with whitespace', () => {
+    Scene.scene(
+      {
+        update,
+        view: (_model, h) =>
+          h.header(
+            [],
+            [
+              h.a(
+                [h.Href('/'), h.AriaLabel('Home')],
+                [h.svg([], [h.path([h.D('M0 0')])])],
+              ),
+              h.a(
+                [h.Href('/x'), h.AriaLabel('Open menu')],
+                [h.svg([], [h.path([h.D('')])])],
+              ),
+            ],
+          ),
+      },
+      Scene.given(initialModel),
+      Scene.expect(
+        Scene.selector('header a svg path[d]:not([d=""])'),
+      ).toHaveAttr('d', 'M0 0'),
+      Scene.expectAll(
+        Scene.all.selector('header a svg path[d]:not([d=""])'),
+      ).toHaveCount(1),
+      Scene.expectAll(
+        Scene.all.selector('a[aria-label="Open menu"]'),
+      ).toHaveCount(1),
     )
   })
 

@@ -13,6 +13,7 @@ import {
 } from 'effect'
 import { dual } from 'effect/Function'
 
+import { StringExt } from '../effectExtensions/index.js'
 import { modifyFields } from '../struct/index.js'
 import type { VNode } from '../vdom.js'
 
@@ -31,17 +32,92 @@ type SimpleSelector = Readonly<{
   id: Option.Option<string>
   classes: ReadonlyArray<string>
   attributes: ReadonlyArray<AttributeMatcher>
+  not: ReadonlyArray<SimpleSelector>
 }>
 
 type Selector = ReadonlyArray<SimpleSelector>
 
 type MatchResult = Readonly<{ consumed: string; group: string }>
 
+type ScanState = Readonly<{
+  maybeQuote: Option.Option<string>
+  depth: number
+}>
+
 const ID_PATTERN = /^#([a-zA-Z0-9_-]+)/
 const CLASS_PATTERN = /^\.([a-zA-Z0-9_-]+)/
-const ATTRIBUTE_PATTERN = /^\[([a-zA-Z][a-zA-Z0-9_-]*)(?:(\^)?="([^"]*)")?\]/
+const ATTRIBUTE_PATTERN =
+  /^\[([a-zA-Z][a-zA-Z0-9_-]*)(?:(\^)?=(?:"([^"]*)"|'([^']*)'))?\]/
 const TAG_PATTERN = /^([a-zA-Z][a-zA-Z0-9-]*)/
-const WHITESPACE_PATTERN = /\s+/
+const WHITESPACE_PATTERN = /\s/
+const NOT_PREFIX = ':not('
+
+const SUPPORTED_SELECTORS =
+  'Supported selectors: tag, #id, .class, [attr], [attr="value"], ' +
+  '[attr^="prefix"] (values in double or single quotes, spaces allowed), ' +
+  ':not(<compound selector>), and descendant combinators (space).'
+
+const throwParseError = (input: string): never => {
+  throw new Error(
+    `I could not parse the selector at "${input}".\n\n${SUPPORTED_SELECTORS}`,
+  )
+}
+
+const topLevelScan: ScanState = { maybeQuote: Option.none(), depth: 0 }
+const notArgumentScan: ScanState = { maybeQuote: Option.none(), depth: 1 }
+
+const isWhitespace = (character: string): boolean =>
+  WHITESPACE_PATTERN.test(character)
+
+const isQuote = (character: string): boolean =>
+  character === '"' || character === "'"
+
+const isTopLevel = (state: ScanState): boolean =>
+  Option.isNone(state.maybeQuote) && state.depth === 0
+
+const advanceScan = (state: ScanState, character: string): ScanState =>
+  Option.match(state.maybeQuote, {
+    onSome: quote =>
+      character === quote
+        ? modifyFields(state, { maybeQuote: () => Option.none() })
+        : state,
+    onNone: () =>
+      Match.value(character).pipe(
+        Match.when(isQuote, quote =>
+          modifyFields(state, { maybeQuote: () => Option.some(quote) }),
+        ),
+        Match.when('(', () => modifyFields(state, { depth: Number.increment })),
+        Match.when(')', () => modifyFields(state, { depth: Number.decrement })),
+        Match.orElse(() => state),
+      ),
+  })
+
+const splitAtTopLevelWhitespace = (input: string): ReadonlyArray<string> =>
+  pipe(
+    String.split(input, ''),
+    Array.reduce(
+      { segments: Array.of(''), scan: topLevelScan },
+      ({ segments, scan }, character) => ({
+        segments:
+          isTopLevel(scan) && isWhitespace(character)
+            ? Array.append(segments, '')
+            : Array.modifyLastNonEmpty(
+                segments,
+                segment => segment + character,
+              ),
+        scan: advanceScan(scan, character),
+      }),
+    ),
+    ({ segments }) => Array.filter(segments, String.isNonEmpty),
+  )
+
+const findClosingParenthesis = (input: string): Option.Option<number> =>
+  pipe(
+    String.split(input, ''),
+    Array.scan(notArgumentScan, advanceScan),
+    Array.drop(1),
+    Array.findFirstIndex(isTopLevel),
+  )
 
 const matchGroup =
   (regex: RegExp) =>
@@ -66,6 +142,7 @@ const emptySelector: SimpleSelector = {
   id: Option.none(),
   classes: [],
   attributes: [],
+  not: [],
 }
 
 const tryParseId = (
@@ -120,12 +197,48 @@ const tryParseAttribute = (
             modifyFields(accumulator, {
               attributes: Array.append({
                 name,
-                value: Option.fromNullishOr(match[3]),
+                value: Option.fromNullishOr(match[3] ?? match[4]),
                 mode,
               }),
             }),
           )
         }),
+      ),
+    ),
+  )
+
+const parseNotArgument = (input: string, argument: string): SimpleSelector => {
+  if (String.isEmpty(argument)) {
+    return throwParseError(input)
+  }
+
+  return parseCompoundSelector(argument)
+}
+
+const tryParseNot = (
+  input: string,
+  accumulator: SimpleSelector,
+): Option.Option<SimpleSelector> =>
+  pipe(
+    input,
+    StringExt.stripPrefix(NOT_PREFIX),
+    Option.flatMap(argumentAndRest =>
+      pipe(
+        argumentAndRest,
+        findClosingParenthesis,
+        Option.map(closingIndex =>
+          parseModifiers(
+            argumentAndRest.slice(closingIndex + 1),
+            modifyFields(accumulator, {
+              not: Array.append(
+                parseNotArgument(
+                  input,
+                  String.trim(argumentAndRest.slice(0, closingIndex)),
+                ),
+              ),
+            }),
+          ),
+        ),
       ),
     ),
   )
@@ -140,13 +253,8 @@ const parseModifiers = (
     tryParseId(input, accumulator),
     Option.orElse(() => tryParseClass(input, accumulator)),
     Option.orElse(() => tryParseAttribute(input, accumulator)),
-    Option.getOrElse(() => {
-      throw new Error(
-        `I could not parse the selector at "${input}".\n\n` +
-          'Supported selectors: tag, #id, .class, [attr], [attr="value"], [attr^="prefix"], ' +
-          'and descendant combinators (space).',
-      )
-    }),
+    Option.orElse(() => tryParseNot(input, accumulator)),
+    Option.getOrElse(() => throwParseError(input)),
   )
 }
 
@@ -175,7 +283,7 @@ export const parseSelector = (input: string): Selector => {
 
   return pipe(
     trimmed,
-    String.split(WHITESPACE_PATTERN),
+    splitAtTopLevelWhitespace,
     Array.map(parseCompoundSelector),
   )
 }
@@ -363,7 +471,8 @@ const matchesSimpleSelector =
       selector.classes,
       className => vnode.data?.class?.[className] === true,
     ) &&
-    Array.every(selector.attributes, matchesAttribute(vnode))
+    Array.every(selector.attributes, matchesAttribute(vnode)) &&
+    !Array.some(selector.not, negated => matchesSimpleSelector(negated)(vnode))
 
 // IMPLICIT ROLES
 
@@ -1329,7 +1438,11 @@ export const text = (
   makeLocator(getByText(target, options), `text ${describeText(target)}`)
 
 /** Creates a Locator that wraps a CSS selector. Escape hatch for cases
- *  where no accessible attribute is available. */
+ *  where no accessible attribute is available. Supports tag, `#id`,
+ *  `.class`, `[attr]`, `[attr="value"]`, `[attr^="prefix"]`,
+ *  `:not(<compound selector>)`, and descendant combinators. Attribute
+ *  values may use double or single quotes and may contain spaces. Any
+ *  other syntax throws. */
 export const selector = (css: string): Locator =>
   makeLocator(flow(findAllImpl(css), Array.head), `"${css}"`)
 
@@ -1400,7 +1513,8 @@ export const allDisplayValue = (valueString: string): LocatorAll =>
     `all display value "${valueString}"`,
   )
 
-/** Creates a LocatorAll from a CSS selector — returns every match. */
+/** Creates a LocatorAll that returns every element matching a CSS
+ *  selector. Accepts the same syntax as `selector`. */
 export const allSelector = (css: string): LocatorAll =>
   makeLocatorAll(findAllImpl(css), `all "${css}"`)
 
