@@ -5,7 +5,9 @@ import { __overrideDuplicateKeyWarning, init } from './init.js'
 import {
   type Key,
   type VNode,
+  type VNodeData,
   VNodeDataMask,
+  vnode,
   vnodeDataMaskKey,
 } from './vnode.js'
 
@@ -571,5 +573,274 @@ describe('duplicate sibling key warning', () => {
     patchToFreshKeys(mounted)
 
     expect(warnSpy).not.toHaveBeenCalled()
+  })
+})
+
+describe('owned VNode recreated under a replaced ancestor', () => {
+  const patchWithFragments = init([], undefined, {
+    experimental: { fragments: true },
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  const makeShared = (sharedData: VNodeData = {}) => {
+    const inserted: Array<Node | undefined> = []
+    const prepatched: Array<VNode> = []
+    const destroyed: Array<Node | undefined> = []
+    const shared = h(
+      'section.shared',
+      {
+        ...sharedData,
+        hook: {
+          insert: insertedVnode => inserted.push(insertedVnode.elm),
+          prepatch: (_previousVnode, patchedVnode) =>
+            prepatched.push(patchedVnode),
+          destroy: destroyedVnode => destroyed.push(destroyedVnode.elm),
+        },
+      },
+      [h('p', {}, ['inner'])],
+    )
+    return { shared, inserted, prepatched, destroyed }
+  }
+
+  const mountInDocument = (
+    node: VNode,
+    patchNode: typeof patch = patch,
+  ): VNode => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    return patchNode(container, node)
+  }
+
+  const sharedSections = (): NodeListOf<Element> =>
+    document.querySelectorAll('section.shared')
+
+  const fragmentOf = (children: Array<VNode>): VNode =>
+    vnode(undefined, {}, children, undefined, undefined)
+
+  const expectOwnershipToReturn = (
+    patched: VNode,
+    buildTree: () => VNode,
+    shared: VNode,
+    patchNode: typeof patch = patch,
+  ): void => {
+    const liveSection = document.querySelector('section.shared')
+
+    patchNode(patched, buildTree())
+
+    expect(shared.elm).toBe(liveSection)
+    expect(sharedSections()).toHaveLength(1)
+  }
+
+  it('destroys the original element when a re-keyed root recreates an owned child', () => {
+    const { shared, inserted, destroyed } = makeShared()
+    const mounted = mountInDocument(h('div', { key: 'a' }, [shared]))
+    const originalElement = shared.elm
+
+    patch(mounted, h('div', { key: 'b' }, [shared]))
+
+    const liveSections = sharedSections()
+    expect(destroyed).toHaveLength(1)
+    expect(destroyed).toContain(originalElement)
+    expect(liveSections).toHaveLength(1)
+    expect(liveSections.item(0)).not.toBe(originalElement)
+    expect(inserted).toContain(liveSections.item(0))
+    expect(shared.elm).toBe(originalElement)
+  })
+
+  it('destroys the original element when a re-keyed sibling recreates an owned child', () => {
+    const { shared, destroyed } = makeShared()
+    const mounted = mountInDocument(
+      h('main', {}, [h('div', { key: 'a' }, [shared])]),
+    )
+    const originalElement = shared.elm
+
+    patch(mounted, h('main', {}, [h('div', { key: 'b' }, [shared])]))
+
+    expect(destroyed).toHaveLength(1)
+    expect(destroyed).toContain(originalElement)
+    expect(sharedSections()).toHaveLength(1)
+  })
+
+  it('keeps an owned child that moves into an earlier sibling parent', () => {
+    const { shared, destroyed } = makeShared()
+    const mounted = mountInDocument(
+      h('main', {}, [h('div.a', {}, []), h('div.b', {}, [shared])]),
+    )
+    const originalElement = shared.elm
+    const buildMoved = () =>
+      h('main', {}, [h('div.a', {}, [shared]), h('div.b', {}, [])])
+
+    const patched = patch(mounted, buildMoved())
+
+    expect(destroyed).toHaveLength(1)
+    expect(destroyed).toContain(originalElement)
+    expect(document.querySelector('div.a section.shared')).not.toBeNull()
+    expect(sharedSections()).toHaveLength(1)
+    expectOwnershipToReturn(patched, buildMoved, shared)
+  })
+
+  it('destroys the original element when an owned child replaces its unkeyed parent', () => {
+    const { shared, destroyed } = makeShared()
+    const mounted = mountInDocument(
+      h('main', {}, [h('div.wrapper', {}, [shared])]),
+    )
+    const originalElement = shared.elm
+    const buildUnwrapped = () => h('main', {}, [shared])
+
+    const patched = patch(mounted, buildUnwrapped())
+
+    expect(destroyed).toHaveLength(1)
+    expect(destroyed).toContain(originalElement)
+    expect(document.querySelector('main > section.shared')).not.toBeNull()
+    expect(sharedSections()).toHaveLength(1)
+    expectOwnershipToReturn(patched, buildUnwrapped, shared)
+  })
+
+  it('keeps an owned child that moves out of a kept keyed sibling to the end', () => {
+    const { shared, destroyed } = makeShared()
+    const mounted = mountInDocument(
+      h('main', {}, [
+        h('div', { key: 'a' }, []),
+        h('div', { key: 'b' }, [shared]),
+        h('div', { key: 'c' }, []),
+      ]),
+    )
+    const originalElement = shared.elm
+    const buildMoved = () => h('main', {}, [h('div', { key: 'b' }, []), shared])
+
+    const patched = patch(mounted, buildMoved())
+
+    expect(destroyed).toHaveLength(1)
+    expect(destroyed).toContain(originalElement)
+    expect(document.querySelector('main > section.shared')).not.toBeNull()
+    expect(sharedSections()).toHaveLength(1)
+    expectOwnershipToReturn(patched, buildMoved, shared)
+  })
+
+  it('destroys the original element when an owned child takes the key of a different element', () => {
+    const { shared, destroyed } = makeShared({ key: 's' })
+    const mounted = mountInDocument(
+      h('main', {}, [
+        h('div', { key: 'a' }, []),
+        h('div', { key: 's' }, [shared]),
+        h('div', { key: 'b' }, []),
+        h('div', { key: 'c' }, []),
+      ]),
+    )
+    const originalElement = shared.elm
+    const buildReplaced = () =>
+      h('main', {}, [
+        shared,
+        h('div', { key: 'b' }, []),
+        h('div', { key: 'a' }, []),
+      ])
+
+    const patched = patch(mounted, buildReplaced())
+
+    expect(destroyed).toHaveLength(1)
+    expect(destroyed).toContain(originalElement)
+    expect(document.querySelector('main > section.shared')).not.toBeNull()
+    expect(sharedSections()).toHaveLength(1)
+    expectOwnershipToReturn(patched, buildReplaced, shared)
+  })
+
+  it('returns the copy that owns the DOM when an owned child becomes the root', () => {
+    const { shared, destroyed } = makeShared()
+    const mounted = mountInDocument(h('div', { key: 'a' }, [shared]))
+    const originalElement = shared.elm
+    const rootPatchedVnodes: Array<VNode> = []
+
+    const patched = patch(mounted, shared, rootVnode =>
+      rootPatchedVnodes.push(rootVnode),
+    )
+
+    const liveSection = document.querySelector('section.shared')
+    expect(destroyed).toHaveLength(1)
+    expect(destroyed).toContain(originalElement)
+    expect(sharedSections()).toHaveLength(1)
+    expect(patched).not.toBe(shared)
+    expect(patched.elm).toBe(liveSection)
+    expect(rootPatchedVnodes).toHaveLength(1)
+    expect(rootPatchedVnodes).toContain(patched)
+    expectOwnershipToReturn(patched, () => shared, shared)
+  })
+
+  it('destroys the original element when an owned child is nested under a fresh wrapper', () => {
+    const { shared, destroyed } = makeShared()
+    const mounted = mountInDocument(
+      h('div', { key: 'a' }, [h('span', {}, [shared])]),
+    )
+    const originalElement = shared.elm
+
+    patch(mounted, h('div', { key: 'b' }, [h('span', {}, [shared])]))
+
+    expect(destroyed).toHaveLength(1)
+    expect(destroyed).toContain(originalElement)
+    expect(sharedSections()).toHaveLength(1)
+  })
+
+  it('destroys the original element when a fragment under a re-keyed parent recreates an owned child', () => {
+    const { shared, destroyed } = makeShared()
+    const mounted = mountInDocument(
+      h('div', { key: 'a' }, [fragmentOf([shared])]),
+      patchWithFragments,
+    )
+    const originalElement = shared.elm
+    const buildRekeyed = () => h('div', { key: 'b' }, [fragmentOf([shared])])
+
+    const patched = patchWithFragments(mounted, buildRekeyed())
+
+    expect(destroyed).toHaveLength(1)
+    expect(destroyed).toContain(originalElement)
+    expect(sharedSections()).toHaveLength(1)
+    expectOwnershipToReturn(patched, buildRekeyed, shared, patchWithFragments)
+  })
+
+  it('short-circuits an owned child reused at the same position', () => {
+    const { shared, inserted, prepatched, destroyed } = makeShared()
+    const mounted = mountInDocument(h('div', { key: 'a' }, [shared]))
+    const element = shared.elm
+
+    patch(mounted, h('div', { key: 'a' }, [shared]))
+
+    expect(prepatched).toHaveLength(0)
+    expect(inserted).toHaveLength(1)
+    expect(destroyed).toHaveLength(0)
+    expect(shared.elm).toBe(element)
+  })
+
+  it('returns DOM ownership to the original after one diff, then short-circuits', () => {
+    const { shared, inserted, prepatched, destroyed } = makeShared()
+    const mounted = mountInDocument(h('div', { key: 'a' }, [shared]))
+    const recreated = patch(mounted, h('div', { key: 'b' }, [shared]))
+    const liveSection = document.querySelector('section.shared')
+
+    const reclaimed = patch(recreated, h('div', { key: 'b' }, [shared]))
+
+    expect(prepatched).toHaveLength(1)
+    expect(prepatched).toContain(shared)
+    expect(shared.elm).toBe(liveSection)
+
+    patch(reclaimed, h('div', { key: 'b' }, [shared]))
+
+    expect(prepatched).toHaveLength(1)
+    expect(shared.elm).toBe(liveSection)
+    expect(sharedSections()).toHaveLength(1)
+    expect(inserted).toHaveLength(2)
+    expect(destroyed).toHaveLength(1)
+  })
+
+  it('creates a fresh tree from the VNode objects it was given', () => {
+    const freshChild = h('p', {}, ['fresh'])
+    const freshRoot = h('main', {}, [freshChild])
+
+    const mounted = mountInDocument(freshRoot)
+
+    expect(mounted).toBe(freshRoot)
+    expect(freshRoot.children).toContain(freshChild)
+    expect(freshChild.elm).toBe(elementOf(mounted).firstChild)
   })
 })
