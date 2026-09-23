@@ -56,6 +56,7 @@ export const AppRoute = defineRouteUnion({
   CoreRender: {},
   CoreFile: {},
   CoreHttp: {},
+  CoreQuery: {},
   CoreCanvas: {},
   CoreRuntime: {},
   CoreServerRendering: {},
@@ -158,6 +159,7 @@ export const DocsRoute = AppRoute.subset([
   'CoreRender',
   'CoreFile',
   'CoreHttp',
+  'CoreQuery',
   'CoreCanvas',
   'CoreRuntime',
   'CoreServerRendering',
@@ -395,6 +397,7 @@ export const coreDomRouter = core('dom', AppRoute.CoreDom)
 export const coreRenderRouter = core('render', AppRoute.CoreRender)
 export const coreFileRouter = core('file', AppRoute.CoreFile)
 export const coreHttpRouter = core('http', AppRoute.CoreHttp)
+export const coreQueryRouter = core('query', AppRoute.CoreQuery)
 export const coreCanvasRouter = core('canvas', AppRoute.CoreCanvas)
 export const coreRuntimeRouter = core('runtime', AppRoute.CoreRuntime)
 export const coreServerRenderingRouter = core(
@@ -535,6 +538,7 @@ const coreParser = oneOf(
   coreRenderRouter,
   coreFileRouter,
   coreHttpRouter,
+  coreQueryRouter,
   coreCanvasRouter,
   coreRuntimeRouter,
   coreServerRenderingRouter,
@@ -714,6 +718,7 @@ export const routeToUrlPath = (route: AppRoute): string =>
     CoreRender: () => coreRenderRouter(),
     CoreFile: () => coreFileRouter(),
     CoreHttp: () => coreHttpRouter(),
+    CoreQuery: () => coreQueryRouter(),
     CoreCanvas: () => coreCanvasRouter(),
     CoreRuntime: () => coreRuntimeRouter(),
     CoreServerRendering: () => coreServerRenderingRouter(),

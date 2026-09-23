@@ -23,6 +23,7 @@
     "stopwatch-example",
     "weather-example",
     "api-cache-example",
+    "api-cache-query-example",
     "routing-example",
     "route-transitions-example",
     "counter-example",

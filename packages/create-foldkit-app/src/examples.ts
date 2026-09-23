@@ -9,6 +9,7 @@ export const EXAMPLE_VALUES = [
   'job-application',
   'weather',
   'api-cache',
+  'api-cache-query',
   'charting',
   'routing',
   'route-transitions',
@@ -91,6 +92,12 @@ export const examples: ReadonlyArray<{
     title: 'api-cache',
     description:
       'Query caching in the Model with stale-while-revalidate, request deduplication, invalidation, and interval refetching',
+  },
+  {
+    value: 'api-cache-query',
+    title: 'api-cache-query',
+    description:
+      'The API Cache app rewritten with Query.define. Fetch and keyed slots live on the Query',
   },
   {
     value: 'charting',

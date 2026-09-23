@@ -141,4 +141,4 @@ The combine is all-or-nothing on data. Because the combined value needs every in
 
 An `AsyncData` field lives in one place: the [Model](/core/model), the single source of truth. Fetches are [Commands](/core/commands): run the fetch through `Effect.result`, carry the `Result` in the Message, and fold it in with `settle`. [Field Validation](/core/field-validation) is the sibling shipped module in the same tier, and the [API Reference](/api-reference/async-data) has the generated, exhaustive catalog of every name and its per-state behavior.
 
-[Coming from TanStack Query](/react/coming-from-tanstack-query) maps the six states onto query status and cached data, and the [api-cache example](/example-apps/api-cache) is a full app wiring a keyed cache, a generic refresher, and route-driven loading together on this type.
+[Coming from TanStack Query](/react/coming-from-tanstack-query) maps the six states onto query status and cached data. The [api-cache example](/example-apps/api-cache) wires a keyed cache by hand. [Query](/core/query) is the shipped Submodel for the same machine.

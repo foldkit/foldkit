@@ -3,6 +3,7 @@ import { type ESTree, type Reference } from 'effect-oxlint'
 
 import {
   isIdentifier,
+  isMemberExpression,
   isObjectExpression,
   isStringLiteral,
   resolveFoldkitApiPath,
@@ -113,7 +114,19 @@ export const hasMessagePayloadProperty = (
         (isStringLiteral(property.key) && property.key.value === 'message')),
   )
 
-const containsImportedMessageReference = (
+function isMessageMember(node: unknown): boolean {
+  if (!isMemberExpression(node)) {
+    return false
+  }
+
+  if (node.computed === true) {
+    return isStringLiteral(node.property) && node.property.value === 'Message'
+  }
+
+  return isIdentifier(node.property, 'Message')
+}
+
+const containsMessageReference = (
   node: unknown,
   references: WeakMap<ESTree.Node, Reference>,
   visited: WeakSet<object>,
@@ -123,6 +136,10 @@ const containsImportedMessageReference = (
   }
 
   visited.add(node)
+  if (isMessageMember(node)) {
+    return true
+  }
+
   if (
     Option.exists(resolveImportedPath(references, node), path => {
       const [messageName] = path.members.slice(-1)
@@ -138,9 +155,9 @@ const containsImportedMessageReference = (
       key !== 'parent' &&
       (Array.isArray(value)
         ? value.some(element =>
-            containsImportedMessageReference(element, references, visited),
+            containsMessageReference(element, references, visited),
           )
-        : containsImportedMessageReference(value, references, visited)),
+        : containsMessageReference(value, references, visited)),
   )
 }
 
@@ -163,10 +180,6 @@ export const hasSubmodelMessagePayload = (
       return false
     }
 
-    return containsImportedMessageReference(
-      property.value,
-      references,
-      new WeakSet(),
-    )
+    return containsMessageReference(property.value, references, new WeakSet())
   })
 }

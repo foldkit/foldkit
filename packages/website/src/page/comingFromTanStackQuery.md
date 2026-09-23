@@ -37,7 +37,7 @@ Here is the complete shape of a simple query. It uses one field, one Command, an
 
 Each behavior is visible in the transition that implements it. `revalidateOrLoad` returns `None` while the field is already `Loading` or `Refreshing`, so the same update path does not start another request. A successful value moves to `Refreshing` when revalidated, keeping the current list on screen. A cold field moves to `Loading`. When the Command finishes, `settle` folds its `Result` into the field and preserves previous data as `Stale` if a refresh fails.
 
-The [API Cache example](/example-apps/api-cache) adds a keyed cache, instant cache hits, invalidation, and background polling using the same primitives. It is the complete answer to what replaces the machinery around `useQuery`.
+The [API Cache example](/example-apps/api-cache) shows the same policy written by hand. [API Cache Query](/example-apps/api-cache-query) uses [Query](/core/query) so fetch and keyed slots live on the Submodel instead of in the parent update.
 
 ## Mapping Query Status
 
@@ -86,9 +86,11 @@ When a superseded request is expensive or the user can cancel it, define the Com
 
 There is no equivalent hook, and you do not assemble one. A query is an [AsyncData](/core/async-data) field in the [Model](/core/model) plus a [Command](/core/commands) returned from `update`. The runtime executes the Command and dispatches its result Message. `update` then folds the result into the field.
 
+When several resources share fetch and keyed slots, [Query.define](/core/query) is that Submodel. The parent still owns policy. The Query owns the remote-data machine.
+
 ### How do I cache responses? {#faq-caching}
 
-Keep them in the Model. Use one `AsyncData` field for one resource or an `Schema.HashMap` keyed by id for many resources. A cache hit is a field for which `AsyncData.hasData` is true. See the [API Cache example](/example-apps/api-cache).
+Keep them in the Model. Use one `AsyncData` field for one resource or an `Schema.HashMap` keyed by id for many resources. A cache hit is a field for which `AsyncData.hasData` is true. See the [API Cache example](/example-apps/api-cache) for the hand-rolled machine, or [Query](/core/query) when the Submodel should own fetch and keyed slots.
 
 ### How do I deduplicate identical requests? {#faq-dedup}
 
