@@ -226,7 +226,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreQuery: core(
     'Query',
-    'Define a remote-data Submodel with Query.define. Fetch, watch, forget, and keyed slots live in one place. Fold child Messages with query.lift.',
+    'Define a remote-data Submodel with Query.define. One Query owns one AsyncData field. A KeyedQuery owns keyed slots. Fold child Messages with query.lift.',
   ),
   CoreCanvas: core(
     'Canvas',

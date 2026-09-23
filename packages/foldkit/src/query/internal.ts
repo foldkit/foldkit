@@ -2,10 +2,6 @@ import { Effect, Match, Option, Predicate, Schema, pipe } from 'effect'
 
 import * as AsyncData from '../asyncData/index.js'
 import * as Command from '../command/index.js'
-import * as Interruptible from '../command/interruptible/index.js'
-import { defineMessageUnion } from '../message/index.js'
-import { defineTaggedUnion } from '../schema/index.js'
-import * as Subscription from '../subscription/subscription.js'
 import * as Update from '../update/index.js'
 
 export type Policy = 'loadIfMissing' | 'revalidate' | 'revalidateOrLoad'
@@ -22,30 +18,6 @@ export type FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage> =
     'read' | 'write' | 'toParentMessage'
   >
 
-export type ParentMessage<Message extends Schema.Top> = {
-  readonly message: Message
-}
-
-export type ParentMessageValue<ChildMessage> = {
-  readonly message: ChildMessage
-}
-
-type GotWrapper<ChildMessage, ParentMessage> = (
-  fields: ParentMessageValue<ChildMessage>,
-) => ParentMessage
-
-export type Lift<ParentModel, ParentMessage, ChildMessage, R> = {
-  (
-    model: ParentModel,
-    fields: ParentMessageValue<ChildMessage>,
-  ): Update.Return<ParentModel, ParentMessage, R>
-  (
-    model: ParentModel,
-  ): (
-    fields: ParentMessageValue<ChildMessage>,
-  ) => Update.Return<ParentModel, ParentMessage, R>
-}
-
 export type FieldOf<ParentModel, ChildModel> = Extract<
   {
     [K in keyof ParentModel]-?: ParentModel[K] extends ChildModel ? K : never
@@ -60,7 +32,7 @@ export type ParentKeyFoldConfig<
   ChildMessage,
 > = Readonly<{
   field: FieldOf<ParentModel, ChildModel>
-  parentMessage: GotWrapper<ChildMessage, ParentMessage>
+  toParentMessage: (message: ChildMessage) => ParentMessage
 }>
 
 export type LiftConfig<ParentModel, ParentMessage, ChildModel, ChildMessage> =
@@ -137,35 +109,8 @@ export function parentKeyToLens<
     write: function (model: ParentModel, nextChild: ChildModel) {
       return setField(model, config.field, nextChild)
     },
-    toParentMessage: function (childMessage: ChildMessage) {
-      return config.parentMessage({ message: childMessage })
-    },
+    toParentMessage: config.toParentMessage,
   }
-}
-
-export function asLift<ParentModel, ParentMessage, ChildMessage, R>(
-  fold: Update.Fold<ParentModel, ParentMessage, ChildMessage, R>,
-): Lift<ParentModel, ParentMessage, ChildMessage, R> {
-  function foldCall(
-    model: ParentModel,
-    fields: ParentMessageValue<ChildMessage>,
-  ): Update.Return<ParentModel, ParentMessage, R>
-  function foldCall(
-    model: ParentModel,
-  ): (
-    fields: ParentMessageValue<ChildMessage>,
-  ) => Update.Return<ParentModel, ParentMessage, R>
-  function foldCall(
-    model: ParentModel,
-    fields?: ParentMessageValue<ChildMessage>,
-  ) {
-    if (fields !== undefined) return fold(model, fields.message)
-
-    return (nextFields: ParentMessageValue<ChildMessage>) =>
-      fold(model, nextFields.message)
-  }
-
-  return foldCall
 }
 
 export const foldChildFromInform = <
@@ -184,20 +129,6 @@ export const foldChildFromInform = <
     ...lens,
   })
 
-// NOTE: Nested Command.Interruptible.Outcome in defineMessageUnion collapses
-// through tsup to `node_modules/foldkit/dist/schema` (and sometimes
-// `outcome?: any`). Tags match Outcome.
-export const FetchInterruptOutcome = defineMessageUnion({
-  Interrupted: {},
-  NotFound: {},
-})
-
-export const CancelIntent = defineTaggedUnion({
-  Replace: {},
-  Forget: {},
-})
-export type CancelIntent = typeof CancelIntent.Type
-
 type Transition = <A, E>(
   data: AsyncData.AsyncData<A, E>,
 ) => Option.Option<AsyncData.AsyncData<A, E>>
@@ -214,10 +145,6 @@ export type CacheStore<Model, Args, A, E, Message, R> = Readonly<{
   read: (model: Model, args: Args) => AsyncData.AsyncData<A, E>
   write: (model: Model, args: Args, data: AsyncData.AsyncData<A, E>) => Model
   load: (args: Args) => Command.Command<Message, never, R>
-  interrupt: (
-    args: Args,
-    intent: CancelIntent,
-  ) => Command.Command<Message, never, R>
 }>
 
 export const applyPolicy = <Model, Args, A, E, Message, R>(
@@ -232,36 +159,6 @@ export const applyPolicy = <Model, Args, A, E, Message, R>(
       model: store.write(model, args, nextData),
       commands: [store.load(args)],
     }),
-  })
-
-export function replaceSlot<Model, Args, A, E, Message, R>(
-  store: CacheStore<Model, Args, A, E, Message, R>,
-  model: Model,
-  args: Args,
-): Update.Return<Model, Message, R> {
-  if (!AsyncData.isPending(store.read(model, args)))
-    return applyPolicy(store, model, args, 'revalidateOrLoad')
-
-  return {
-    model,
-    commands: [store.interrupt(args, CancelIntent.Replace())],
-  }
-}
-
-export const completeCancel = <Model, Args, A, E, Message, R>(
-  store: CacheStore<Model, Args, A, E, Message, R>,
-  model: Model,
-  args: Args,
-  outcome: Interruptible.Outcome,
-  intent: CancelIntent,
-): Update.Return<Model, Message, R> =>
-  Interruptible.Outcome.match<Update.Return<Model, Message, R>>(outcome, {
-    Interrupted: () =>
-      CancelIntent.match<Update.Return<Model, Message, R>>(intent, {
-        Replace: () => ({ model, commands: [store.load(args)] }),
-        Forget: () => ({ model }),
-      }),
-    NotFound: () => ({ model }),
   })
 
 export const runExecute = <A, E, R>(
@@ -289,22 +186,10 @@ export namespace Lifted {
     ChildMessage,
     R = never,
   > = Readonly<{
-    fold: Lift<ParentModel, ParentMessage, ChildMessage, R>
+    fold: Update.Fold<ParentModel, ParentMessage, ChildMessage, R>
     revalidate: Update.Step<ParentModel, ParentMessage, R>
     revalidateOrLoad: Update.Step<ParentModel, ParentMessage, R>
     loadIfMissing: Update.Step<ParentModel, ParentMessage, R>
-    replace: Update.Step<ParentModel, ParentMessage, R>
-    watch: Update.Step<ParentModel, ParentMessage, R>
-    forget: Update.Step<ParentModel, ParentMessage, R>
-    watchSubscription: (
-      entry: Subscription.EntryBuilder<ParentModel, ParentMessage, R>,
-      modelToIsWatching: (model: ParentModel) => boolean,
-    ) => Subscription.EntryWithoutKeepAlive<
-      ParentModel,
-      ParentMessage,
-      { readonly isWatching: boolean },
-      R
-    >
   }>
 
   export type KeyedQuery<
@@ -314,21 +199,9 @@ export namespace Lifted {
     Args,
     R = never,
   > = Readonly<{
-    fold: Lift<ParentModel, ParentMessage, ChildMessage, R>
+    fold: Update.Fold<ParentModel, ParentMessage, ChildMessage, R>
     revalidate: Update.Fold<ParentModel, ParentMessage, Args, R>
     revalidateOrLoad: Update.Fold<ParentModel, ParentMessage, Args, R>
     loadIfMissing: Update.Fold<ParentModel, ParentMessage, Args, R>
-    replace: Update.Fold<ParentModel, ParentMessage, Args, R>
-    watch: Update.Fold<ParentModel, ParentMessage, ReadonlyArray<Args>, R>
-    forget: Update.Fold<ParentModel, ParentMessage, Args, R>
-    watchSubscription: (
-      entry: Subscription.EntryBuilder<ParentModel, ParentMessage, R>,
-      modelToArgs: (model: ParentModel) => ReadonlyArray<Args>,
-    ) => Subscription.EntryWithoutKeepAlive<
-      ParentModel,
-      ParentMessage,
-      { readonly args: ReadonlyArray<Args> },
-      R
-    >
   }>
 }

@@ -22,6 +22,7 @@ test.describe('api-cache-query example', () => {
     await expect(page.getByText('Cached')).toBeVisible()
 
     await firstPost.click()
+    await expect(page.getByText('Loading post...')).toHaveCount(0)
     await expect(page.getByText('Fetched at')).toBeVisible()
 
     await page.getByRole('button', { name: 'Back to posts' }).click()
