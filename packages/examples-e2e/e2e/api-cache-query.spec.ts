@@ -7,7 +7,9 @@ test.describe('api-cache-query example', () => {
     await Page.assertLoadedCleanly(page)
   })
 
-  test('fetches posts, caches details, and renders stats', async ({ page }) => {
+  test('fetches posts, forgets details on Back, and renders stats', async ({
+    page,
+  }) => {
     await page.goto('/')
 
     const firstPost = page.getByRole('button', {
@@ -19,10 +21,10 @@ test.describe('api-cache-query example', () => {
     await expect(page.getByText('Fetched at')).toBeVisible()
 
     await page.getByRole('button', { name: 'Back to posts' }).click()
-    await expect(page.getByText('Cached')).toBeVisible()
+    await expect(page.getByText('Cached')).toHaveCount(0)
 
     await firstPost.click()
-    await expect(page.getByText('Loading post…')).toHaveCount(0)
+    await expect(page.getByText('Loading post…')).toBeVisible()
     await expect(page.getByText('Fetched at')).toBeVisible()
 
     await page.getByRole('button', { name: 'Back to posts' }).click()
