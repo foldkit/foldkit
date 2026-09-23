@@ -14,4 +14,4 @@ const application = Runtime.makeApplication({
   },
 })
 
-Runtime.hydrate(application, { buildId: import.meta.env.FOLDKIT_BUILD_ID })
+Runtime.hydrate(application)

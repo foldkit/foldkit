@@ -18,6 +18,7 @@ import {
   type FoldkitBuildApi,
   FoldkitBuildManifest,
   FoldkitBuildMetadata,
+  foldkit,
 } from '../src/index.ts'
 
 const FIXTURE_ROOT = resolve(import.meta.dirname, 'fixtures/build')
@@ -66,7 +67,7 @@ const buildFixture = async (
     logLevel: 'silent',
     plugins: [
       ...extraPlugins,
-      foldkitBuildToken('test-build'),
+      ...foldkitBuildToken('test-build', false),
       foldkitBuild(SERVER_ENTRY, {
         ...options,
         clientOutDir: client,
@@ -610,14 +611,16 @@ describe('foldkitBuild orchestration', () => {
 })
 
 const CONFIG_ROOT = resolve(import.meta.dirname, 'fixtures/build-config')
+const NO_HYDRATION_ROOT = resolve(
+  import.meta.dirname,
+  'fixtures/build-no-hydration',
+)
 const VITE_BIN = resolve(import.meta.dirname, '../node_modules/.bin/vite')
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/
 
-// Vite evaluates a config file once per environment it builds, so a config that
-// answers with a fresh id each time compiles one id into the browser bundle and
-// another into the server bundle, and hydration then refuses every page of the
-// deployment that just shipped. Only a real `vite build` reproduces that: an
-// in-process builder evaluates the config once, whatever the environments do.
+// The exported config is the path applications run, so one CLI build proves
+// its client and server environments join the same identity session. The
+// programmatic case below separately proves that session ends with the build.
 describe('the build id across environments', () => {
   it('compiles one id into both bundles of a single build', async () => {
     onTestFinished(async () => {
@@ -651,6 +654,323 @@ describe('the build id across environments', () => {
 
     expect(inClient).toBeDefined()
     expect(inServer).toBe(inClient)
+  })
+
+  it('uses the environment override in both bundles and prerendered pages', async () => {
+    const buildId = 'environment-build-id'
+    onTestFinished(async () => {
+      await rm(resolve(CONFIG_ROOT, 'dist-test'), {
+        recursive: true,
+        force: true,
+      })
+    })
+
+    await promisify(execFile)(VITE_BIN, ['build'], {
+      cwd: CONFIG_ROOT,
+      env: { ...process.env, FOLDKIT_BUILD_ID: buildId },
+    })
+
+    const client = resolve(CONFIG_ROOT, 'dist-test/config/client')
+    const server = resolve(CONFIG_ROOT, 'dist-test/config/server')
+    const clientAssets = await readdir(resolve(client, 'assets'))
+    const clientBundle = await readFile(
+      resolve(
+        client,
+        'assets',
+        clientAssets.filter(file => file.endsWith('.js'))[0] ?? '',
+      ),
+      'utf8',
+    )
+    const serverBundle = await readFile(resolve(server, 'fetch.js'), 'utf8')
+    const page = await readFile(resolve(client, 'index.html'), 'utf8')
+
+    expect(clientBundle).toContain(buildId)
+    expect(serverBundle).toContain(buildId)
+    expect(page).toContain(`data-foldkit-build="${buildId}"`)
+  })
+
+  it.each(['before', 'after'])(
+    'shares one identity when a host orchestrator comes %s Foldkit',
+    async order => {
+      const outputRoot = `dist-test/host-${order}`
+      const clientOutDir = `${outputRoot}/client`
+      const serverOutDir = `${outputRoot}/server`
+      const hostOrchestrator: Plugin = {
+        name: `test:host-${order}`,
+        config: () => ({
+          builder: {
+            buildApp: async builder => {
+              const client = builder.environments['client']
+              const ssr = builder.environments['ssr']
+              if (client === undefined || ssr === undefined) {
+                throw new Error('expected client and ssr environments')
+              }
+
+              await builder.build(client)
+              await builder.build(ssr)
+            },
+          },
+        }),
+      }
+      const foldkitPlugins = foldkit({
+        ssr: {
+          serverEntry: '/entry.server.ts',
+          build: { clientOutDir, serverOutDir },
+        },
+      })
+      const plugins =
+        order === 'before'
+          ? [hostOrchestrator, foldkitPlugins]
+          : [foldkitPlugins, hostOrchestrator]
+      const builder = await createBuilder({
+        root: CONFIG_ROOT,
+        configFile: false,
+        logLevel: 'silent',
+        plugins,
+      })
+      onTestFinished(async () => {
+        await rm(resolve(CONFIG_ROOT, outputRoot), {
+          recursive: true,
+          force: true,
+        })
+      })
+
+      await builder.buildApp()
+
+      const clientAssets = await readdir(
+        resolve(CONFIG_ROOT, clientOutDir, 'assets'),
+      )
+      const clientBundle = await readFile(
+        resolve(
+          CONFIG_ROOT,
+          clientOutDir,
+          'assets',
+          clientAssets.filter(file => file.endsWith('.js'))[0] ?? '',
+        ),
+        'utf8',
+      )
+      const serverBundle = await readFile(
+        resolve(CONFIG_ROOT, serverOutDir, 'fetch.js'),
+        'utf8',
+      )
+      const inClient = UUID.exec(clientBundle)?.[0]
+      const inServer = UUID.exec(serverBundle)?.[0]
+
+      expect(inClient).toBeDefined()
+      expect(inServer).toBe(inClient)
+    },
+  )
+
+  it('allows a build whose server returns a response without hydrating', async () => {
+    const clientOutDir = 'dist-test/no-hydration/client'
+    const serverOutDir = 'dist-test/no-hydration/server'
+    const builder = await createBuilder({
+      root: NO_HYDRATION_ROOT,
+      configFile: false,
+      logLevel: 'silent',
+      plugins: [
+        foldkit({
+          ssr: {
+            serverEntry: '/entry.server.ts',
+            build: { clientOutDir, serverOutDir },
+          },
+        }),
+      ],
+    })
+    onTestFinished(async () => {
+      await rm(resolve(NO_HYDRATION_ROOT, 'dist-test'), {
+        recursive: true,
+        force: true,
+      })
+    })
+
+    await builder.buildApp()
+
+    const serverBundle = await readFile(
+      resolve(NO_HYDRATION_ROOT, serverOutDir, 'fetch.js'),
+      'utf8',
+    )
+    expect(serverBundle).not.toMatch(UUID)
+  })
+
+  it('generates a fresh coordinated id for a later build in one process', async () => {
+    const clientOutDir = 'dist-test/repeated/client'
+    const serverOutDir = 'dist-test/repeated/server'
+    onTestFinished(async () => {
+      await rm(resolve(CONFIG_ROOT, 'dist-test/repeated'), {
+        recursive: true,
+        force: true,
+      })
+    })
+
+    const buildOnce = async (): Promise<string> => {
+      const builder = await createBuilder({
+        root: CONFIG_ROOT,
+        configFile: false,
+        logLevel: 'silent',
+        plugins: [
+          foldkit({
+            ssr: {
+              serverEntry: '/entry.server.ts',
+              build: {
+                clientOutDir,
+                serverOutDir,
+                prerender: { paths: ['/'] },
+              },
+            },
+          }),
+        ],
+      })
+      await builder.buildApp()
+
+      const page = await readFile(
+        resolve(CONFIG_ROOT, clientOutDir, 'index.html'),
+        'utf8',
+      )
+      const buildId = UUID.exec(page)?.[0]
+      expect(buildId).toBeDefined()
+
+      const clientAssets = await readdir(
+        resolve(CONFIG_ROOT, clientOutDir, 'assets'),
+      )
+      const clientBundle = await readFile(
+        resolve(
+          CONFIG_ROOT,
+          clientOutDir,
+          'assets',
+          clientAssets.filter(file => file.endsWith('.js'))[0] ?? '',
+        ),
+        'utf8',
+      )
+      const serverBundle = await readFile(
+        resolve(CONFIG_ROOT, serverOutDir, 'fetch.js'),
+        'utf8',
+      )
+      expect(clientBundle).toContain(buildId)
+      expect(serverBundle).toContain(buildId)
+      return buildId ?? ''
+    }
+
+    const first = await buildOnce()
+    const second = await buildOnce()
+
+    expect(second).not.toBe(first)
+  })
+
+  it('isolates identities between concurrent coordinated builds', async () => {
+    const buildOnce = async (name: string): Promise<string> => {
+      const outputRoot = `dist-test/${name}`
+      const clientOutDir = `${outputRoot}/client`
+      const serverOutDir = `${outputRoot}/server`
+      const builder = await createBuilder({
+        root: CONFIG_ROOT,
+        cacheDir: `${outputRoot}/cache`,
+        configFile: false,
+        logLevel: 'silent',
+        plugins: [
+          foldkit({
+            ssr: {
+              serverEntry: '/entry.server.ts',
+              build: {
+                clientOutDir,
+                serverOutDir,
+                prerender: { paths: ['/'] },
+              },
+            },
+          }),
+        ],
+      })
+      await builder.buildApp()
+
+      const page = await readFile(
+        resolve(CONFIG_ROOT, clientOutDir, 'index.html'),
+        'utf8',
+      )
+      const buildId = UUID.exec(page)?.[0]
+      expect(buildId).toBeDefined()
+
+      const clientAssets = await readdir(
+        resolve(CONFIG_ROOT, clientOutDir, 'assets'),
+      )
+      const clientBundle = await readFile(
+        resolve(
+          CONFIG_ROOT,
+          clientOutDir,
+          'assets',
+          clientAssets.filter(file => file.endsWith('.js'))[0] ?? '',
+        ),
+        'utf8',
+      )
+      const serverBundle = await readFile(
+        resolve(CONFIG_ROOT, serverOutDir, 'fetch.js'),
+        'utf8',
+      )
+      expect(clientBundle).toContain(buildId)
+      expect(serverBundle).toContain(buildId)
+      return buildId ?? ''
+    }
+
+    onTestFinished(async () => {
+      await Promise.all([
+        rm(resolve(CONFIG_ROOT, 'dist-test/concurrent-a'), {
+          recursive: true,
+          force: true,
+        }),
+        rm(resolve(CONFIG_ROOT, 'dist-test/concurrent-b'), {
+          recursive: true,
+          force: true,
+        }),
+      ])
+    })
+
+    const [first, second] = await Promise.all([
+      buildOnce('concurrent-a'),
+      buildOnce('concurrent-b'),
+    ])
+
+    expect(second).not.toBe(first)
+  })
+
+  it('refuses a server artifact that explicitly externalizes Foldkit', async () => {
+    const externalizeFoldkit: Plugin = {
+      name: 'test:externalize-foldkit',
+      config: () => ({
+        environments: {
+          ssr: {
+            resolve: {
+              external: ['foldkit'],
+            },
+          },
+        },
+      }),
+    }
+    const builder = await createBuilder({
+      root: CONFIG_ROOT,
+      configFile: false,
+      logLevel: 'silent',
+      plugins: [
+        foldkit({
+          ssr: {
+            serverEntry: '/entry.server.ts',
+            build: {
+              clientOutDir: 'dist-test/external/client',
+              serverOutDir: 'dist-test/external/server',
+            },
+          },
+        }),
+        externalizeFoldkit,
+      ],
+    })
+    onTestFinished(async () => {
+      await rm(resolve(CONFIG_ROOT, 'dist-test/external'), {
+        recursive: true,
+        force: true,
+      })
+    })
+
+    await expect(builder.buildApp()).rejects.toThrow(
+      /Foldkit singleton package was externalized from the ssr artifact/,
+    )
   })
 })
 

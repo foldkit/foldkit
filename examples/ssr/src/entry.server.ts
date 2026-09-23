@@ -36,7 +36,6 @@ export const renderPage = (request: Request): Promise<Server.EntryResult> =>
         { Flags, init, view },
         {
           flags: flagsForRequest(request.headers.get('cookie') ?? ''),
-          buildId: import.meta.env.FOLDKIT_BUILD_ID,
         },
       )
 

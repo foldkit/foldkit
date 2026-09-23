@@ -621,7 +621,6 @@ describe('hydrating boot', () => {
       // @ts-expect-error a fresh boot of a Flags application requires a Flags Effect
       run(application)
       run(application, { flags: Effect.succeed({ start: 1 }) })
-      // @ts-expect-error hydration requires the client's build id
       hydrate(application)
       hydrate(application, {
         buildId: BUILD_ID,
@@ -649,7 +648,7 @@ describe('hydrating boot', () => {
     ).rejects.toThrow('no known deployment')
   })
 
-  it('refuses a hydration given no build id', async () => {
+  it('refuses a hydration with no build id', async () => {
     await renderServerPage({ start: 5 })
     const application = makeClientApplication()
 
@@ -657,7 +656,7 @@ describe('hydrating boot', () => {
       Effect.runPromise(
         __startProgram(application, undefined, 'Hydrate', undefined, undefined),
       ),
-    ).rejects.toThrow('was given no build id')
+    ).rejects.toThrow('has no build id')
   })
 
   it('refuses a hydration given an empty build id', async () => {
@@ -671,7 +670,7 @@ describe('hydrating boot', () => {
       Effect.runPromise(
         __startProgram(application, undefined, 'Hydrate', undefined, ''),
       ),
-    ).rejects.toThrow('was given no build id')
+    ).rejects.toThrow('has no build id')
   })
 
   it('refuses build skew before decoding the served Flags', async () => {
@@ -800,7 +799,7 @@ describe('hydrating boot', () => {
 
     await expect(
       Effect.runPromise(startHydrationUnchecked(application, buildId)),
-    ).rejects.toThrow('was given no build id')
+    ).rejects.toThrow('has no build id')
     expectContained(servedRoot)
   })
 

@@ -1,20 +1,11 @@
+import { Effect } from 'effect'
 import { Server } from 'foldkit/experimental'
 
-export const prerenderPaths = ['/', '/about']
+import { Flags, init, view } from './main'
 
-export const renderPage = async (
-  request: Request,
-): Promise<Server.EntryResult> => {
-  const url = new URL(request.url)
-
-  if (url.pathname === '/redirect') {
-    return Server.Responded(
-      Response.redirect(new URL('/', request.url).href, 307),
-    )
-  }
-
-  return Server.Rendered({
-    html: `<main data-foldkit-app="app" data-foldkit-build="${import.meta.env.FOLDKIT_BUILD_ID}">${url.pathname}</main>`,
-    title: `Fixture ${url.pathname}`,
-  })
-}
+export const renderPage = (): Promise<Server.EntryResult> =>
+  Effect.runPromise(
+    Server.renderToString({ Flags, init, view }, { flags: { start: 0 } }).pipe(
+      Effect.map(Server.Rendered),
+    ),
+  )

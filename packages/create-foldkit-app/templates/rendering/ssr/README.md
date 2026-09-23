@@ -44,23 +44,21 @@ puts in that position, carrying what the visitor typed into it.
 The comparison happens when a client boots against a page. A tab whose client
 is already running when a deployment lands is not rechecked.
 
-`vite.config.ts` takes care of this: it reads `FOLDKIT_BUILD_ID` and generates
-one when the variable is unset, storing it back so every later read of the
-config resolves the same id. Vite reads the config once per environment it
-builds, so a config that generated a fresh id each time would give the browser
-bundle and the server bundle different ids. Supply `FOLDKIT_BUILD_ID` when the
-build runs in separate jobs, or when you want the served id to name a
-deployment you can look up later:
+`@foldkit/vite-plugin` takes care of this. Each coordinated `vite build`
+generates one opaque id and compiles it into Foldkit in the browser and server
+artifacts. Supply `FOLDKIT_BUILD_ID` when those artifacts build in separate
+jobs, or when you want the served id to name a deployment you can look up
+later:
 
 ```bash
 FOLDKIT_BUILD_ID="$CI_DEPLOYMENT_ID" {{buildCommand}}
 ```
 
 The id is public HTML and must never contain a secret or be derived from one.
-The client and server halves of one deployment must share an id. By contrast,
-two deployments must never share one. Reusing an id produces no warning: the
-ids agree, so hydration proceeds. When in doubt, leave `FOLDKIT_BUILD_ID` unset
-and let the build generate one.
+The client and server halves of one deployment must share an id. Two
+deployments must never share one. Reusing an id produces no warning because the
+ids agree and hydration proceeds. Leave `FOLDKIT_BUILD_ID` unset when one
+`vite build` produces both artifacts.
 
 ## Learn More
 

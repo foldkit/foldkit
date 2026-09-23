@@ -291,21 +291,14 @@ describe('renderToString', () => {
     view,
   }
 
-  it('requires render options at the type boundary', () => {
-    // Hydration compares the id on the served root with the client's own to
-    // refuse a page from another deployment. A render that carries none has no
-    // such protection, and nothing here could invent one that both builds of a
-    // deployment would agree on. Since a render is hydratable by default, a
-    // call with no options could only ever fail, so the compiler rejects it
-    // rather than the Effect.
+  it('accepts the build identity compiled into the server artifact', () => {
     if (false) {
-      // @ts-expect-error a render must say which deployment it belongs to
       renderToStringWithOptions(configWithoutFlags)
       renderToStringWithOptions(configWithoutFlags, { buildId: 'build-one' })
       renderToStringWithOptions(configWithoutFlags, { isHydratable: false })
-      // @ts-expect-error static output has no deployment to name
       renderToStringWithOptions(configWithoutFlags, {
         isHydratable: false,
+        // @ts-expect-error static output has no deployment to name
         buildId: 'build-one',
       })
     }

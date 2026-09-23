@@ -137,7 +137,6 @@ export const renderPage = (request: Request): Promise<Server.EntryResult> =>
         {
           url: request.url,
           flags: requestFlags,
-          buildId: import.meta.env.FOLDKIT_BUILD_ID,
         },
       ).pipe(Effect.map(Server.Rendered)),
     )

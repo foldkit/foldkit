@@ -260,7 +260,7 @@ const application = Runtime.makeApplication({
 Runtime.run(application, { flags })
 ```
 
-Hydrated applications do not provide a browser Flags Effect. `Runtime.hydrate(application, { buildId: import.meta.env.FOLDKIT_BUILD_ID })` decodes the exact Schema-encoded Flags payload emitted by the server. The build id is required and names the deployment the client belongs to; hydration compares it against the id the server stamped on the root before it reads the handoff at all. Missing or invalid server handoff data, and a page from another deployment, are fatal boot errors.
+Hydrated applications do not provide a browser Flags Effect. `Runtime.hydrate(application)` decodes the exact Schema-encoded Flags payload emitted by the server. `@foldkit/vite-plugin` compiles the shared deployment identity into Foldkit for coordinated client and server builds; separately orchestrated builds pass the same explicit `buildId` override to each artifact. Hydration compares that identity against the id the server stamped on the root before it reads the handoff at all. Missing or invalid server handoff data, and a page from another deployment, are fatal boot errors.
 
 A service used only at startup is discharged inside `flags` with `Effect.provide`, the same way a Command discharges its own (`Effect.provide(BrowserKeyValueStore.layerLocalStorage)`). When the service is an app-wide singleton that Commands also use, leave the requirement in the flags type as `Effect<Flags, never, ApiClientService>` and let `resources` provide it. The runtime builds that Layer once and shares it with Flags, Commands, and Subscriptions. Never provide the same Layer to `flags` and pass it as `resources`: that builds it twice and hands the app two instances of whatever it holds.
 

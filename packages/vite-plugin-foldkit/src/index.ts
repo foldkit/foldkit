@@ -41,9 +41,7 @@ import {
   type IncomingMessage,
   createServer as createHttpServer,
 } from 'node:http'
-import { createRequire } from 'node:module'
 import type { AddressInfo } from 'node:net'
-import { resolve } from 'node:path'
 import type { Duplex } from 'node:stream'
 import type {
   HttpServer,
@@ -61,6 +59,7 @@ import * as NodePath from '@effect/platform-node/NodePath'
 import { type FoldkitBuildOptions, foldkitBuild } from './build.js'
 import { foldkitBuildToken } from './buildToken.js'
 import { devToolsOverlayPlugin } from './devToolsOverlay.js'
+import { resolveInstalledFoldkitPackages } from './foldkitPackages.js'
 import { publishRelayRecord, retireRelayRecord } from './relayRegistry.js'
 import { type FoldkitSsrOptions, foldkitSsr } from './ssr.js'
 import { foldkitViewIdentity } from './viewIdentity.js'
@@ -116,25 +115,21 @@ export type FoldkitPluginOptions = Readonly<{
       build?: boolean | FoldkitBuildOptions
     }>
   /**
-   * The deployment this build belongs to, compiled into application code as
-   * `import.meta.env.FOLDKIT_BUILD_ID` for the entries to pass to
-   * `renderToString` and `Runtime.hydrate`. Hydration compares it against the id
-   * the server stamped and refuses a page from another deployment rather than
-   * adopting it: startup stops and the page is contained, with the document's
-   * body marked `inert`.
+   * An explicit identity for the deployment this build belongs to. Foldkit
+   * normally generates an opaque identity when one Vite app build coordinates
+   * the client and server artifacts, then compiles it into the framework in
+   * both. Hydration compares that value against the id the server stamped and
+   * refuses a page from another deployment before adopting its DOM.
    *
-   * Defaults to the `FOLDKIT_BUILD_ID` environment variable. Use a value the
-   * deployment already has, such as a commit or a release tag, and give the
-   * client build and the server build the same one. It is published in the
-   * page, so it must not be a secret.
+   * Set this when the client and server are built separately, or when the id
+   * should name a deployment in another system. The `FOLDKIT_BUILD_ID`
+   * environment variable supplies the same override when this option is
+   * absent. Give every artifact the same value. It is published in the page,
+   * so it must not be a secret.
    *
-   * Whatever supplies it has to answer with the same value every time it is
-   * asked, because Vite reads a config file once per environment it builds. A
-   * config that computes a fresh value on each read — `randomUUID()`, a
-   * timestamp — gives the browser bundle and the server bundle different ids
-   * within one build, and every page of that deployment is then refused at
-   * hydration. Read it from the environment, or store a generated fallback
-   * back into the environment so later reads resolve the same id.
+   * Reusing an override across deployments makes stale pages appear current.
+   * Use a value that changes whenever the deployment's rendering inputs can
+   * change.
    */
   buildId?: string
 }>
@@ -191,40 +186,6 @@ const FORCE_INCLUDED_EFFECT_NAMESPACES: ReadonlyArray<string> = [
   'effect/SubscriptionRef',
   'effect/Types',
 ]
-
-// NOTE: a duplicate `foldkit` instance is its own hazard. If a bundler
-// resolves `foldkit` (or a foldkit-consuming package like `@foldkit/ui`) to
-// more than one copy, the copies get distinct Schema and tagged-message
-// identities (decode and tag matching fail across the boundary) and separate
-// module-level singleton state. `resolve.dedupe` (below) collapses every
-// installed Foldkit package to one resolved copy.
-const FOLDKIT_SINGLETON_PACKAGES: ReadonlyArray<string> = [
-  'foldkit',
-  '@foldkit/ui',
-  '@foldkit/devtools',
-]
-
-// NOTE: `@foldkit/ui` and `@foldkit/devtools` are optional, so dedupe only
-// the ones the consumer installed. An installed ESM package resolves to
-// ERR_PACKAGE_PATH_NOT_EXPORTED rather than succeeding, so a missing package
-// is signalled only by MODULE_NOT_FOUND.
-const resolveInstalledFoldkitPackages = (root: string): Array<string> => {
-  // NOTE: `root` (Vite's `config.root`) can be relative at config-hook time,
-  // and createRequire requires an absolute path; `resolve` normalizes it.
-  const requireFromRoot = createRequire(resolve(root, 'noop.js'))
-  return Array.filter(FOLDKIT_SINGLETON_PACKAGES, packageName => {
-    try {
-      requireFromRoot.resolve(packageName)
-      return true
-    } catch (error) {
-      return !(
-        error instanceof Error &&
-        Predicate.hasProperty(error, 'code') &&
-        error.code === 'MODULE_NOT_FOUND'
-      )
-    }
-  })
-}
 
 // EVENTS
 
@@ -1124,14 +1085,9 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
   const reloadPlugin: Plugin = {
     name: 'foldkit',
     apply: 'serve',
-    config: userConfig => ({
+    config: () => ({
       optimizeDeps: {
         include: [...FORCE_INCLUDED_EFFECT_NAMESPACES],
-      },
-      resolve: {
-        dedupe: resolveInstalledFoldkitPackages(
-          userConfig.root ?? process.cwd(),
-        ),
       },
     }),
     configureServer: server => {
@@ -1173,8 +1129,37 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
     },
   }
 
+  const resolutionPlugin: Plugin = {
+    name: 'foldkit:resolution',
+    config: userConfig => {
+      const singletonPackages = resolveInstalledFoldkitPackages(
+        userConfig.root ?? process.cwd(),
+      )
+
+      return {
+        optimizeDeps: {
+          exclude: ['foldkit'],
+        },
+        resolve: {
+          dedupe: singletonPackages,
+        },
+        ssr: {
+          noExternal: singletonPackages,
+        },
+        environments: {
+          ssr: {
+            resolve: {
+              noExternal: singletonPackages,
+            },
+          },
+        },
+      }
+    },
+  }
+
   const shared = [
-    foldkitBuildToken(options.buildId),
+    resolutionPlugin,
+    ...foldkitBuildToken(options.buildId),
     foldkitViewIdentity(),
     devToolsOverlayPlugin(),
     reloadPlugin,

@@ -11,12 +11,22 @@
 // DOM state on a stale page could otherwise be carried into a view that now
 // means something else.
 //
-// Both sides are given the id explicitly rather than reading it from a
-// compile-time constant inside this package. Vite externalizes an installed
-// dependency from a server build, where a define never reaches it, so a
-// framework-internal read is silently absent in exactly the production shape
-// that matters. Application code is always transformed, so the entries read
-// `import.meta.env.FOLDKIT_BUILD_ID` and pass what they find.
+// The Vite plugin replaces this call while compiling the client and server
+// artifacts. Leaving it as a function keeps direct Node use and builds without
+// the plugin fail-closed: the framework sees no identity and refuses hydratable
+// rendering or hydration instead of sharing a fallback across deployments.
+
+const foldkitBuildIdPlaceholder = (): string | undefined => undefined
+
+/** The build id compiled into this Foldkit artifact, when one was supplied.
+ * @internal */
+export const injectedBuildId = foldkitBuildIdPlaceholder()
+
+/** Uses an explicit build id when present and the compiled artifact id otherwise.
+ * @internal */
+export const buildIdOrInjected = (
+  buildId: string | undefined,
+): string | undefined => (buildId === undefined ? injectedBuildId : buildId)
 
 /** The attribute a hydratable render stamps the build id onto. */
 export const HYDRATION_BUILD_ATTRIBUTE = 'data-foldkit-build'

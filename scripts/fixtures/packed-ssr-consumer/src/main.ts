@@ -4,6 +4,8 @@ import { type Document, type HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
+import { Nav } from '@foldkit/ui'
+
 export const Model = Schema.Struct({
   count: Schema.Number,
   formState: Schema.Literals(['Controlled', 'Released']),
@@ -54,11 +56,19 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const observedIdElement = observedId.withMessage(h)
   const parserOwnedElement = parserOwned.withMessage(h)
   const parserChildElement = parserChild.withMessage(h)
+  const navigation = Nav.view({
+    items: [],
+    ariaLabel: 'Packed navigation',
+    toHref: () => '/',
+    isItemCurrent: () => false,
+    toView: ({ nav }) => h.nav([...nav]),
+  })
   return {
     title: `Count ${model.count}`,
     body: h.main(
       [h.Id('app-root')],
       [
+        navigation,
         h.h1(
           [h.Id('heading')],
           [serverOnlyPin === '' ? 'Packed consumer' : 'Packed consumer'],
