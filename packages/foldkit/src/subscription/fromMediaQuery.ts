@@ -49,7 +49,7 @@ export type FromMediaQueryConfig<Output> = Readonly<{
  *     Subscription.fromMediaQuery({
  *       query: '(prefers-reduced-motion: reduce)',
  *       mapMatches: isMatching =>
- *         Message.ChangedReducedMotion({ isReduced: isMatching }),
+ *         Message.ChangedReducedMotion({ isReducedMotion: isMatching }),
  *     }),
  *   ),
  * }))

@@ -12,7 +12,7 @@ const subscriptions = Subscription.make<Model, Message>()(_entry => ({
     Subscription.fromMediaQuery({
       query: '(prefers-reduced-motion: reduce)',
       mapMatches: isMatching =>
-        Message.ChangedReducedMotion({ isReduced: isMatching }),
+        Message.ChangedReducedMotion({ isReducedMotion: isMatching }),
     }),
   ),
 }))
