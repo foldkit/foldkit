@@ -158,6 +158,17 @@ export const applyTransition = <Model, Args, A, E, Message, R>(
     },
   })
 
+export const replaceEntry = <Model, Args, A, E, Message, R>(
+  store: QueryStore<Model, Args, A, E, Message, R>,
+  model: Model,
+  args: Args,
+): Update.Return<Model, Message, R> =>
+  applyTransition(store, model, args, data =>
+    AsyncData.isPending(data)
+      ? Option.some(data)
+      : AsyncData.revalidateOrLoad(data),
+  )
+
 export const runExecute = <A, E, R>(
   execute: Effect.Effect<A, E, R>,
 ): Effect.Effect<AsyncData.AsyncData<A, E>, never, R> =>
@@ -182,6 +193,7 @@ type LiftedQuery<ParentModel, ParentMessage, ChildMessage, R> = Readonly<{
   revalidate: Update.Step<ParentModel, ParentMessage, R>
   revalidateOrLoad: Update.Step<ParentModel, ParentMessage, R>
   loadIfMissing: Update.Step<ParentModel, ParentMessage, R>
+  replace: Update.Step<ParentModel, ParentMessage, R>
 }>
 
 type LiftedKeyedQuery<ParentModel, ParentMessage, ChildMessage, Args, R> =
@@ -191,4 +203,7 @@ type LiftedKeyedQuery<ParentModel, ParentMessage, ChildMessage, Args, R> =
     revalidate: Update.Fold<ParentModel, ParentMessage, Args, R>
     revalidateOrLoad: Update.Fold<ParentModel, ParentMessage, Args, R>
     loadIfMissing: Update.Fold<ParentModel, ParentMessage, Args, R>
+    replace: Update.Fold<ParentModel, ParentMessage, Args, R>
+    forget: Update.Fold<ParentModel, ParentMessage, Args>
+    retainOnly: Update.Fold<ParentModel, ParentMessage, ReadonlyArray<Args>>
   }>

@@ -3,6 +3,7 @@ import {
   Effect,
   Function,
   HashMap,
+  HashSet,
   Number,
   Option,
   Order,
@@ -30,6 +31,7 @@ import {
   isParentFieldConfig,
   liftChildFold,
   parentFieldToLens,
+  replaceEntry,
   runExecute,
 } from './internal.js'
 
@@ -240,6 +242,20 @@ export interface KeyedQuery<
     KeyedArgs<Fields>,
     R
   >
+  /** Starts a new Fetch for an entry even when one is pending, retaining available data. */
+  readonly replace: KeyedQuery<Name, A, AI, E, EI, Fields, R>['loadIfMissing']
+  /** Removes one entry while preserving request identity. */
+  readonly forget: Update.Fold<
+    KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
+    KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
+    KeyedArgs<Fields>
+  >
+  /** Removes entries outside the supplied keys without fetching or changing retained entries. */
+  readonly retainOnly: Update.Fold<
+    KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
+    KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
+    ReadonlyArray<KeyedArgs<Fields>>
+  >
   /** Lifts this KeyedQuery's update and loading operations into a parent Model. */
   readonly lift: LiftKeyedQuery<
     KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
@@ -347,6 +363,38 @@ export function defineKeyedQuery<
   const revalidateOrLoad = liftTransition(AsyncData.revalidateOrLoad)
   const loadIfMissing = liftTransition(AsyncData.loadIfMissing)
 
+  const replace: Update.Fold<Model, Message, Args, R> = Function.dual(
+    2,
+    (model: Model, args: Args): UpdateReturn =>
+      replaceEntry(store, model, args),
+  )
+  const forget: Update.Fold<Model, Message, Args> = Function.dual(
+    2,
+    (model: Model, args: Args): PureUpdateReturn => ({
+      model: modifyFields(model, { entries: HashMap.remove(argsToKey(args)) }),
+    }),
+  )
+  const retainOnly: Update.Fold<
+    Model,
+    Message,
+    ReadonlyArray<Args>
+  > = Function.dual(
+    2,
+    (model: Model, args: ReadonlyArray<Args>): PureUpdateReturn => {
+      const retainedKeys = HashSet.fromIterable(
+        Array.map(args, args => argsToKey(args)),
+      )
+
+      return {
+        model: modifyFields(model, {
+          entries: HashMap.filter((_entry, key) =>
+            HashSet.has(retainedKeys, key),
+          ),
+        }),
+      }
+    },
+  )
+
   const update = (model: Model, message: Message): PureUpdateReturn =>
     Message.match<PureUpdateReturn>(message, {
       CompletedFetch({ args, generation, result }) {
@@ -390,6 +438,9 @@ export function defineKeyedQuery<
     revalidate: liftChildFold(revalidate, lens),
     revalidateOrLoad: liftChildFold(revalidateOrLoad, lens),
     loadIfMissing: liftChildFold(loadIfMissing, lens),
+    replace: liftChildFold(replace, lens),
+    forget: liftChildFold(forget, lens),
+    retainOnly: liftChildFold(retainOnly, lens),
   })
 
   function lift<ParentModel, ParentMessage>(
@@ -422,6 +473,9 @@ export function defineKeyedQuery<
     revalidate,
     revalidateOrLoad,
     loadIfMissing,
+    replace,
+    forget,
+    retainOnly,
     lift,
     run,
   } satisfies KeyedQuery<Name, A, AI, E, EI, Fields, R>
