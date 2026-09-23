@@ -14,7 +14,6 @@ export const ExampleSlug = Schema.Literals([
   'weather',
   'api-cache',
   'api-cache-query',
-  'api-cache-http-api',
   'charting',
   'routing',
   'route-transitions',
@@ -149,19 +148,9 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     slug: 'api-cache-query',
     title: 'API Cache Query',
     description:
-      'The API Cache app rewritten with Query.define. Fetch, watch, forget, and keyed slots live on the Query. The parent folds Got* Messages.',
+      'The API Cache app rewritten with Query.define. Fetch and keyed slots live on the Query. The parent folds Got* Messages.',
     difficulty: 'Intermediate',
     tags: ['Query', 'Caching', 'Subscriptions', 'UI Components'],
-    hasRouting: false,
-    livePreview: 'Spa',
-  },
-  {
-    slug: 'api-cache-http-api',
-    title: 'API Cache HttpApi',
-    description:
-      'The same Query app, with Query.HttpApi.Service.query building each Submodel from an Effect HttpApi endpoint.',
-    difficulty: 'Advanced',
-    tags: ['Query', 'HttpApi', 'Caching', 'Subscriptions'],
     hasRouting: false,
     livePreview: 'Spa',
   },

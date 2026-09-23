@@ -25,8 +25,6 @@ const loadersBySlug: Readonly<Record<string, SourceLoader | undefined>> = {
   weather: () => import('virtual:example-sources/weather'),
   'api-cache': () => import('virtual:example-sources/api-cache'),
   'api-cache-query': () => import('virtual:example-sources/api-cache-query'),
-  'api-cache-http-api': () =>
-    import('virtual:example-sources/api-cache-http-api'),
   charting: () => import('virtual:example-sources/charting'),
   routing: () => import('virtual:example-sources/routing'),
   'route-transitions': () =>

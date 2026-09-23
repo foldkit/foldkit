@@ -100,9 +100,9 @@ export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   GotTabsMessage: { message: Tabs.Message },
-  GotPostsMessage: postsQuery.ParentMessage,
-  GotStatsMessage: statsQuery.ParentMessage,
-  GotPostDetailMessage: postDetailQuery.ParentMessage,
+  GotPostsMessage: { message: postsQuery.Message },
+  GotStatsMessage: { message: statsQuery.Message },
+  GotPostDetailMessage: { message: postDetailQuery.Message },
   ClickedPost: { postId: Schema.String },
   ClickedBackToPosts: {},
   ClickedInvalidatePosts: {},
@@ -119,17 +119,17 @@ type UpdateReturn = Update.Return<Model, Message>
 
 const postsChild = postsQuery.lift<Model, Message>({
   field: 'posts',
-  parentMessage: Message.GotPostsMessage,
+  toParentMessage: message => Message.GotPostsMessage({ message }),
 })
 
 const statsChild = statsQuery.lift<Model, Message>({
   field: 'stats',
-  parentMessage: Message.GotStatsMessage,
+  toParentMessage: message => Message.GotStatsMessage({ message }),
 })
 
 const postDetailChild = postDetailQuery.lift<Model, Message>({
   field: 'postDetailById',
-  parentMessage: Message.GotPostDetailMessage,
+  toParentMessage: message => Message.GotPostDetailMessage({ message }),
 })
 
 const activateTab = (model: Model, tab: Tab): UpdateReturn => {
@@ -164,9 +164,9 @@ const foldTabs = Update.foldChild({
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     GotTabsMessage: ({ message }) => foldTabs(model, message),
-    GotPostsMessage: postsChild.fold(model),
-    GotStatsMessage: statsChild.fold(model),
-    GotPostDetailMessage: postDetailChild.fold(model),
+    GotPostsMessage: ({ message }) => postsChild.fold(model, message),
+    GotStatsMessage: ({ message }) => statsChild.fold(model, message),
+    GotPostDetailMessage: ({ message }) => postDetailChild.fold(model, message),
     ClickedPost: ({ postId }) =>
       postDetailChild.loadIfMissing(
         modifyFields(model, {
@@ -213,12 +213,6 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
           Effect.sync(() => isObservingStats),
         ),
     },
-  ),
-  watchPostDetail: postDetailChild.watchSubscription(entry, model =>
-    Option.match(model.maybeSelectedPostId, {
-      onNone: () => [],
-      onSome: postId => [{ postId }],
-    }),
   ),
 }))
 
@@ -300,7 +294,7 @@ const headerView = (h: HtmlBuilder<Message>): Html =>
       h.p(
         [h.Class('text-slate-600')],
         [
-          'Query.define owns fetch, watch, forget, and keyed slots. The parent folds Got* Messages and user intent.',
+          'Query.define owns the fetch and the keyed slots. The parent folds Got* Messages and user intent.',
         ],
       ),
     ],
@@ -349,7 +343,7 @@ const postsListView = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.p(
         [h.Class('text-sm text-slate-500')],
         [
-          'Open a post, then go back. watchSubscription is the live key set. A dropped key forgets that slot, including an in-flight Fetch. Open the same post again to load it fresh.',
+          'Open a post, then go back. The detail stays in the Query. Opening it again reads that slot and does not fetch.',
         ],
       ),
       AsyncData.matchDataSplitEmpty(model.posts, {
@@ -504,7 +498,7 @@ const postDetailCard = (
       h.p(
         [h.Class('text-xs text-slate-400')],
         [
-          `Fetched at ${formatFetchedAt(fetchedAt)}. Leaving this screen forgets the slot and interrupts an in-flight Fetch for that key.`,
+          `Fetched at ${formatFetchedAt(fetchedAt)}. Leaving this screen keeps the slot.`,
         ],
       ),
     ],
