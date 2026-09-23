@@ -14,25 +14,27 @@ Locators find elements by role, label, visible text, and other user-facing prope
 
 ::Snippet{name="sceneLocators" label="locator examples"}
 
-| Locator                | Finds                                                                                           | Example                            |
-| ---------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------- |
-| `role(role, options?)` | Elements by ARIA role (explicit or implicit). Options narrow by accessible name and ARIA state. | `role('button', { name: 'Save' })` |
-| `label(text)`          | Form controls by their aria-label or associated \<label> text.                                  | `label('Email')`                   |
-| `placeholder(text)`    | Inputs by their placeholder attribute.                                                          | `placeholder('Search...')`         |
-| `text(text, options?)` | Elements by rendered text content, matched with a string or RegExp.                             | `text('Welcome back')`             |
-| `altText(text)`        | Images and similar elements by their alt attribute.                                             | `altText('Profile photo')`         |
-| `title(text)`          | Elements by their title attribute (tooltip text).                                               | `title('Delete')`                  |
-| `testId(id)`           | Elements by data-testid: the escape hatch for tests.                                            | `testId('cart-item-3')`            |
-| `displayValue(value)`  | Form controls by their current value.                                                           | `displayValue('US')`               |
-| `selector(css)`        | Elements by CSS selector. Use when no accessible query fits.                                    | `selector('.chart-legend')`        |
+| Locator                  | Finds                                                                                           | Example                            |
+| ------------------------ | ----------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `role(role, options?)`   | Elements by ARIA role (explicit or implicit). Options narrow by accessible name and ARIA state. | `role('button', { name: 'Save' })` |
+| `label(text)`            | Form controls by their aria-label or associated \<label> text.                                  | `label('Email')`                   |
+| `placeholder(text)`      | Inputs by their placeholder attribute.                                                          | `placeholder('Search...')`         |
+| `text(target, options?)` | Elements whose rendered text matches a string or `RegExp`.                                      | `text('Welcome back')`             |
+| `altText(text)`          | Images and similar elements by their alt attribute.                                             | `altText('Profile photo')`         |
+| `title(text)`            | Elements by their title attribute (tooltip text).                                               | `title('Delete')`                  |
+| `testId(id)`             | Elements by data-testid: the escape hatch for tests.                                            | `testId('cart-item-3')`            |
+| `displayValue(value)`    | Form controls by their current value.                                                           | `displayValue('US')`               |
+| `selector(css)`          | Elements by CSS selector. Use when no accessible query fits.                                    | `selector('.chart-legend')`        |
 
-### The text Locator
+### Text locators
 
-`text` accepts a string or a regular expression. Strings match exactly by default, including individual direct text children. Pass `{ exact: false }` to match a literal substring instead.
+`text` accepts a string or `RegExp`. By default, a string matches either the element's full text or one of its direct text nodes. Pass `{ exact: false }` to find the string anywhere in the element's full text.
 
-Regular expressions match the element's combined text, including text from nested elements. Anchors and flags control the match; `exact` has no effect on a regular expression. Text is not trimmed or normalized, and hidden descendants still contribute their text. Each match starts at index zero, including patterns with `g` or `y`, and leaves the supplied pattern's `lastIndex` unchanged.
+A `RegExp` always tests the element's full text, including text from nested elements. The `exact` option has no effect on a `RegExp`. Scene does not trim or normalize the text, and text from hidden descendants still counts.
 
-`text` returns the first most-specific matching element. `all.text` includes matching ancestors in traversal order as well as their matching descendants. Both return elements, never text nodes.
+Scene starts every regular expression match at index zero and leaves the expression's `lastIndex` unchanged. Global and sticky expressions therefore produce the same results every time a query runs.
+
+When an ancestor and one of its descendants both match, `text` returns the descendant. `all.text` returns both in traversal order. Neither query returns text VNodes.
 
 ### The role Locator
 

@@ -3636,18 +3636,18 @@ describe('scene with inside', () => {
   })
 })
 
-describe('regex text locators', () => {
-  test('finds dynamic text with a single locator', () => {
+describe('RegExp text locators', () => {
+  test('accepts a RegExp in a single locator', () => {
     const button = h('button', {}, 'Save 3 items')
     expect(Option.getOrThrow(Scene.text(/Save \d+ items/)(button))).toBe(button)
   })
 
-  test('finds dynamic text with a multi-match locator', () => {
+  test('accepts a RegExp in a multi-match locator', () => {
     const button = h('button', {}, 'Save 3 items')
     expect(Scene.all.text(/Save \d+ items/)(button)).toEqual([button])
   })
 
-  test('respects anchors and case-insensitive flags', () => {
+  test('honors anchors and the case-insensitive flag', () => {
     const button = h('button', {}, 'SAVE 3 items')
     expect(Option.getOrThrow(Scene.text(/^save \d+ items$/i)(button))).toBe(
       button,
@@ -3657,14 +3657,14 @@ describe('regex text locators', () => {
     expect(Scene.all.text(/^save$/i)(button)).toEqual([])
   })
 
-  test('keeps the most specific single match and all matching ancestors', () => {
+  test('returns the descendant from a single locator and both matches from a multi-match locator', () => {
     const button = h('button', {}, 'Save 3 items')
     const tree = h('div', {}, [button])
     expect(Option.getOrThrow(Scene.text(/Save \d+ items/)(tree))).toBe(button)
     expect(Scene.all.text(/Save \d+ items/)(tree)).toEqual([tree, button])
   })
 
-  test('repeats global matches across siblings and resolutions', () => {
+  test('restarts a global RegExp for every element and query', () => {
     const firstButton = h('button', {}, 'Save')
     const secondButton = h('button', {}, 'Save')
     const tree = h('div', {}, [firstButton, secondButton])
@@ -3676,7 +3676,7 @@ describe('regex text locators', () => {
     expect(multiple(tree)).toEqual([firstButton, secondButton])
   })
 
-  test('preserves sticky matching and caller lastIndex', () => {
+  test("restarts a sticky RegExp without changing the caller's lastIndex", () => {
     const firstButton = h('button', {}, 'Save')
     const secondButton = h('button', {}, 'xSave')
     const tree = h('div', {}, ['Controls: ', firstButton, secondButton])
@@ -3694,7 +3694,7 @@ describe('regex text locators', () => {
   })
 
   test.each([undefined, true, false])(
-    'matches combined inline text with exact=%s',
+    'matches all text regardless of exact=%s',
     exact => {
       const button = h('button', {}, ['Save ', h('strong', {}, '3'), ' items'])
       const options = exact === undefined ? undefined : { exact }
@@ -3707,7 +3707,7 @@ describe('regex text locators', () => {
     },
   )
 
-  test('does not apply the direct text child fallback to regexes', () => {
+  test("uses the element's full text for a RegExp", () => {
     const link = h('a', {}, ['Hello', h('span', {}, '→')])
     expect(Option.getOrThrow(Scene.text(/Hello/)(link))).toBe(link)
     expect(Scene.all.text(/Hello/)(link)).toEqual([link])
@@ -3715,7 +3715,7 @@ describe('regex text locators', () => {
     expect(Scene.all.text(/^Hello$/)(link)).toEqual([])
   })
 
-  test('describes regexes in locators and assertion failures', () => {
+  test('includes RegExp syntax in locator and assertion descriptions', () => {
     expect(Scene.text(/save/i).description).toBe('text /save/i')
     expect(Scene.all.text(/save/i).description).toBe('all text /save/i')
     expect(() =>
@@ -3727,7 +3727,7 @@ describe('regex text locators', () => {
     ).toThrow('text /save/i')
   })
 
-  test('scopes regex text and uses it in a Scene assertion', () => {
+  test('uses RegExp locators in scopes and Scene assertions', () => {
     const firstButton = h('button', {}, 'Save 3 items')
     const secondButton = h('button', {}, 'Save 3 items')
     const tree = h('div', {}, [
@@ -3750,7 +3750,7 @@ describe('regex text locators', () => {
   })
 
   test.each([true, false])(
-    'accepts regexes through public queries with exact=%s',
+    'accepts RegExp targets through public queries with exact=%s',
     exact => {
       const button = h('button', {}, 'Save')
       const single = PublicScene.text(/Save/, { exact })
@@ -3774,7 +3774,7 @@ describe('regex text locators', () => {
     },
   )
 
-  test('preserves literal exact, substring and direct-child matching', () => {
+  test('keeps existing string matching behavior', () => {
     const button = h('button', {}, 'Save 3 items')
     expect(Scene.all.text('Save')(button)).toEqual([])
     expect(Scene.all.text('Save', { exact: false })(button)).toEqual([button])
@@ -3785,7 +3785,7 @@ describe('regex text locators', () => {
     expect(Scene.all.text('Hello').description).toBe('all text "Hello"')
   })
 
-  test('preserves whitespace and hidden descendant text for strings', () => {
+  test('does not normalize whitespace or exclude hidden text for strings', () => {
     const hidden = h('span', { attrs: { hidden: true } }, '  Save  ')
     const tree = h('div', {}, [hidden])
     expect(Option.getOrThrow(Scene.text('  Save  ')(tree))).toBe(hidden)
@@ -3793,7 +3793,7 @@ describe('regex text locators', () => {
     expect(Option.isNone(Scene.text('Save')(tree))).toBe(true)
   })
 
-  test('matches regexes against unnormalized hidden descendant text', () => {
+  test('does not normalize whitespace or exclude hidden text for a RegExp', () => {
     const hidden = h('span', { attrs: { hidden: true } }, '  Save  ')
     const tree = h('div', {}, [hidden])
     expect(Option.getOrThrow(Scene.text(/^  Save  $/)(tree))).toBe(hidden)
@@ -3801,13 +3801,13 @@ describe('regex text locators', () => {
     expect(Option.isNone(Scene.text(/^Save$/)(tree))).toBe(true)
   })
 
-  test('preserves empty string matching', () => {
+  test('continues to match an empty string', () => {
     const empty = h('div', {})
     expect(Option.getOrThrow(Scene.text('')(empty))).toBe(empty)
     expect(Scene.all.text('')(empty)).toEqual([empty])
   })
 
-  test('matches empty element text with an empty regex', () => {
+  test('matches empty element text with an empty RegExp', () => {
     const empty = h('div', {})
     expect(Option.getOrThrow(Scene.text(/(?:)/)(empty))).toBe(empty)
     expect(Scene.all.text(/(?:)/)(empty)).toEqual([empty])

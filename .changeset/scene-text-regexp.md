@@ -2,8 +2,8 @@
 'foldkit': minor
 ---
 
-Accept regular expressions in `Scene.text`, `Scene.all.text`, `Scene.getByText`, and `Scene.getAllByText`. Tests can now locate dynamic text such as `Scene.text(/^save \d+ items$/i)` without supplying the full literal value.
+`Scene.text`, `Scene.all.text`, `Scene.getByText`, and `Scene.getAllByText` now accept regular expressions. For example, `Scene.text(/^save \d+ items$/i)` finds `Save 3 items` without hard-coding the number or capitalization.
 
-Patterns match combined element text, including nested content. Anchors and flags control matching; the `exact` option applies only to strings. Each candidate is tested from index zero, including global and sticky patterns, without changing the supplied regular expression's `lastIndex`.
+A regular expression tests an element's full text, including text from nested elements. Scene starts at index zero for each element and leaves the expression's `lastIndex` unchanged, so global and sticky expressions produce the same results when a query runs more than once. The `exact` option applies only to strings.
 
-Existing string matching stays the same. Single text queries still return the first most-specific matching element, while multi-match queries include matching ancestors in traversal order.
+String matching has not changed. When an ancestor and one of its descendants both match, a single text query returns the descendant. A multi-match query returns both in traversal order.
