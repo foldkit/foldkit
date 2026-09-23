@@ -5,7 +5,7 @@ import { defineMessageUnion } from 'foldkit/message'
 // MESSAGE
 
 const Message = defineMessageUnion({
-  ChangedReducedMotion: { isReduced: Schema.Boolean },
+  ChangedReducedMotion: { isReducedMotion: Schema.Boolean },
 })
 type Message = typeof Message.Type
 
@@ -23,7 +23,7 @@ const subscriptions = Subscription.make<Model, Message>()(_entry => ({
     Subscription.fromMediaQuery({
       query: '(prefers-reduced-motion: reduce)',
       mapMatches: isMatching =>
-        Message.ChangedReducedMotion({ isReduced: isMatching }),
+        Message.ChangedReducedMotion({ isReducedMotion: isMatching }),
     }),
   ),
 }))
