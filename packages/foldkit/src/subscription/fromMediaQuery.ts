@@ -1,20 +1,20 @@
 import { Effect, Queue, Stream } from 'effect'
 
 /**
- * Configuration for the `fromMediaQuery` Stream helper.
+ * Options for `fromMediaQuery`.
  *
- * `query` is any media query string `window.matchMedia` accepts, such as
- * `'(prefers-reduced-motion: reduce)'`, `'(prefers-color-scheme: dark)'`, or
- * a viewport breakpoint like `'(max-width: 1023px)'`. It is resolved inside
- * the acquire Effect, never before it, so building the Stream touches no
- * browser global.
+ * `query` accepts any media query string supported by `window.matchMedia`,
+ * such as `'(prefers-reduced-motion: reduce)'`,
+ * `'(prefers-color-scheme: dark)'`, or a viewport breakpoint like
+ * `'(max-width: 1023px)'`. `window.matchMedia` is called when the Stream
+ * starts, not when the Stream is created.
  *
- * `mapMatches(isMatching)` turns the query's current answer into a Stream
- * value. It runs once when the scope opens with the value at that moment,
- * then once per `change` event.
+ * `mapMatches` converts the Boolean `matches` result into each value the Stream
+ * emits.
  *
- * The output type is inferred from the mapper; `Subscription.make` checks
- * that the final Stream emits the application's Message type.
+ * The return type of `mapMatches` determines the Stream's output type.
+ * `Subscription.make` checks that output against the application's Message
+ * type.
  */
 export type FromMediaQueryConfig<Output> = Readonly<{
   query: string
@@ -22,31 +22,25 @@ export type FromMediaQueryConfig<Output> = Readonly<{
 }>
 
 /**
- * Build a Stream that answers a media query: it emits the current `matches`
- * value when the Stream's scope opens and emits again on every `change`,
- * registering the listener when the scope opens and removing it when the
- * scope closes.
+ * Creates a Stream from a CSS media query. When the Stream starts, it emits the
+ * current `matches` value through `mapMatches`. It emits again whenever that
+ * value changes. Stopping the Stream removes the listener.
  *
- * The initial emission is what sets this apart from listening to the
- * `MediaQueryList`'s `change` event with `fromEvent`. `change` fires only on
- * transitions, so a listener alone never learns the value in effect when it
- * starts, and an application ends up reading `matches` separately at boot.
- * This helper reads it for you. That read also happens every time the Stream
- * restarts, so an entry gated on the Model picks up whatever changed while
- * the gate was closed instead of keeping the value it last saw.
+ * The Stream reads the current value again each time it restarts. Suppose a
+ * color-scheme Subscription runs only while the theme preference is `System`.
+ * The user selects `Dark`, changes the operating system to a light theme, and
+ * then selects `System` again. A new `change` listener waits for the next
+ * change, so the Model still records a dark system theme. This helper emits the
+ * current light value as soon as the Stream restarts.
  *
- * `window.matchMedia(query)` is called inside the acquire Effect, so building
- * the Stream at module load or during server rendering touches no browser
- * global. The listener lifecycle uses `Effect.acquireRelease`, with
- * `addEventListener` inside the acquire body and `removeEventListener`
- * registered only after acquire completes, so the listener never leaks on
- * interruption.
+ * Creating the Stream does not access `window`; `window.matchMedia` is called
+ * only when the Stream starts. The Stream can therefore be created during
+ * server rendering as long as it runs only in the browser.
  *
- * This is a Stream, not a Subscription entry. Wrap it with
- * `Subscription.persistent` for a query the application follows for its
- * whole lifetime, or plug it into a `Subscription.make` entry's
- * `dependenciesToStream` behind `Stream.when` to gate it on a Model
- * condition.
+ * This helper returns a Stream, not a Subscription entry. Pass it to
+ * `Subscription.persistent` for a query the application always follows. To
+ * follow the query only in a particular Model state, use it with `Stream.when`
+ * inside a `Subscription.make` entry.
  *
  * @example
  * ```typescript

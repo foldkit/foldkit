@@ -85,7 +85,7 @@ afterEach(() => {
 })
 
 describe('fromMediaQuery', () => {
-  it('emits the current matches value when the scope opens', async () => {
+  it('emits the current value when the Stream starts', async () => {
     const harness = stubMatchMedia(REDUCED_MOTION_QUERY)
     harness.list.setMatches(true)
     const received: Array<string> = []
@@ -108,7 +108,7 @@ describe('fromMediaQuery', () => {
     expect(harness.matchMedia).toHaveBeenCalledWith(REDUCED_MOTION_QUERY)
   })
 
-  it('emits a value for every change after the initial one', async () => {
+  it('emits each change after the current value', async () => {
     const harness = stubMatchMedia(REDUCED_MOTION_QUERY)
     const received: Array<string> = []
 
@@ -131,7 +131,7 @@ describe('fromMediaQuery', () => {
     expect(received).toEqual(['full', 'reduced', 'full'])
   })
 
-  it('does not resolve the query until the scope opens', () => {
+  it('does not call matchMedia until the Stream starts', () => {
     const harness = stubMatchMedia(REDUCED_MOTION_QUERY)
 
     fromMediaQuery({
@@ -142,7 +142,7 @@ describe('fromMediaQuery', () => {
     expect(harness.matchMedia).not.toHaveBeenCalled()
   })
 
-  it('removes the change listener when the scope closes', async () => {
+  it('removes the change listener when the Stream stops', async () => {
     const harness = stubMatchMedia(REDUCED_MOTION_QUERY)
     const received: Array<string> = []
 
@@ -180,7 +180,7 @@ describe('fromMediaQuery', () => {
     expect(received).toEqual(['full'])
   })
 
-  it('re-reads the current value when a gated entry reopens', async () => {
+  it('reads the current value again when a gated entry restarts', async () => {
     const harness = stubMatchMedia(REDUCED_MOTION_QUERY)
     const received: Array<string> = []
 

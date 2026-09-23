@@ -88,7 +88,7 @@ Use `Stream.tick` for discrete wall-clock steps that should occur every N millis
 
 ## DOM Events
 
-`Subscription.fromEvent` handles DOM events that are not tied to one element in the rendered tree, such as window shortcuts or document visibility. `fromEvent` registers the listener when the Stream scope opens and removes it when the scope closes. For a media query, use `Subscription.fromMediaQuery` from the [Media Queries](#media-queries) section, which also supplies the initial value.
+`Subscription.fromEvent` handles DOM events that are not tied to one element in the rendered tree, such as window shortcuts or document visibility. It adds the listener when the Stream starts and removes it when the Stream stops. For a media query, use `Subscription.fromMediaQuery` from the [Media Queries](#media-queries) section. That helper also emits the query's current value.
 
 The helper returns a Stream, not a complete entry. Its `mapEvent` callback can produce any output type, including a raw event; `Subscription.make<Model, Message>()` checks that the final Stream supplied to an entry emits the application's Message type. Wrap it in `Stream.when` inside an entry to gate it on the Model, or pass it to `Subscription.persistent` for a listener that lives with the whole Subscriptions record.
 
@@ -114,13 +114,13 @@ For a listener attached to one rendered element, use [Mount](/core/mount) instea
 
 ## Media Queries
 
-`Subscription.fromMediaQuery` emits the current answer to a media query when its scope opens and emits again each time the answer changes. The first Message carries the value in effect when the scope opens and every later Message carries a change, so an entry that only needs the value in the Model has no separate `window.matchMedia` read. An app that must act on the value before a gated entry opens, such as applying a theme at boot, still reads it there.
+`Subscription.fromMediaQuery` creates a Stream from a CSS media query. When the Stream starts, it emits the query's current `matches` value through `mapMatches`. It emits again whenever the value changes. Handle those values as Messages in update to store the result in the Model. Most apps therefore do not need a separate `window.matchMedia` read at boot. An app that must use the value before its Subscriptions start, such as one that applies a theme before hydration, should still read it at boot.
 
-The initial emission is what a `change` listener alone cannot give you. `change` fires only on transitions, so an app listening with `fromEvent` still has to read `matches` separately at boot, and an entry gated on the Model keeps the value it last saw when the gate closes. Say the color-scheme entry is active only while the user's preference is System. The user picks Dark, switches the operating system to a light theme, then picks System again. With a plain listener the entry restarts, no `change` arrives, and the app keeps using the stale value. With `fromMediaQuery` the restart re-reads the query and emits the current answer.
+Reading the current value also prevents stale state when a gated entry restarts. Suppose a color-scheme Subscription runs only while the theme preference is `System`. The user selects `Dark`, changes the operating system to a light theme, and then selects `System` again. A new `change` listener waits for the next change, so the Model still records a dark system theme. `fromMediaQuery` reads the current light value as soon as the Stream restarts.
 
-::Snippet{name="subscriptionFromMediaQuery" label="reduced motion subscription example"}
+::Snippet{name="subscriptionFromMediaQuery" label="reduced motion media query example"}
 
-The helper returns a Stream, so it composes the same way `fromEvent` does: pass it to `Subscription.persistent` for a query the app follows for its whole lifetime, or put it behind `Stream.when` inside an entry to gate it on the Model. The query is resolved inside the acquire Effect, so building the Stream at module load or during server rendering touches no browser global. `prefers-reduced-motion` is the common case for an app that animates; `prefers-color-scheme` and viewport breakpoints such as `(max-width: 1023px)` follow the same shape.
+The helper returns a Stream. Pass it to `Subscription.persistent` for a query the app always follows. To follow the query only in a particular Model state, use it with `Stream.when` inside an entry. Creating the Stream does not access `window`; `window.matchMedia` is called only when the Stream starts. The same helper works for `prefers-reduced-motion`, `prefers-color-scheme`, and viewport breakpoints such as `(max-width: 1023px)`.
 
 ## Key Bindings
 
