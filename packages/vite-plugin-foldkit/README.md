@@ -73,34 +73,31 @@ Server-rendered HTML carries the deployment id, and the client bundle carries it
 
 Nothing moves, so no custom element reconnects and no frame reloads. The containment blocks native page interaction; it is not a script or global-event sandbox. A client already running in an open tab is not rechecked when a deployment lands because the comparison happens only when a client boots against a page.
 
-The plugin compiles the id into application code as `import.meta.env.FOLDKIT_BUILD_ID`, from its `buildId` option or from the `FOLDKIT_BUILD_ID` environment variable:
-
-```typescript
-plugins: [foldkit({ buildId: process.env.DEPLOYMENT_SHA })]
-```
-
-The entries pass it explicitly, because Vite externalizes an installed dependency from a server build, where a compile-time define never reaches the framework itself:
+When one Vite app build produces the client and server artifacts, the plugin generates an opaque id and compiles it into Foldkit in both. The entries need no build-id wiring:
 
 ```typescript
 // src/entry.server.ts
-Server.renderToString(config, {
-  flags,
-  buildId: import.meta.env.FOLDKIT_BUILD_ID,
-})
+Server.renderToString(config, { flags })
 
 // src/entry.ts
-Runtime.hydrate(application, { buildId: import.meta.env.FOLDKIT_BUILD_ID })
+Runtime.hydrate(application)
 ```
 
-Use a public value the deployment already has, such as a commit, release tag, or container digest. Three things have to be true:
+Use the `buildId` option or `FOLDKIT_BUILD_ID` as an explicit override when client and server build in separate jobs, or when the id should name a deployment in another system:
+
+```typescript
+plugins: [foldkit({ buildId: process.env.DEPLOYMENT_ID })]
+```
+
+Three things have to be true:
 
 - The id appears in the HTML every visitor receives, so it must never contain a secret.
 - Two deployments must never share an id.
-- The same value must reach the client and server builds, which run as separate commands.
+- Separate build jobs must receive the same explicit override.
 
-A hydratable render given no id fails with `MissingBuildId`. Only a build takes the id from the deployment. The dev server compiles a fixed one because one live source session supplies both transforms and has no deployment identity to derive.
+A hydratable render with neither a compiled nor explicit id fails with `MissingBuildId`. The dev server generates an opaque id for its own client and server transforms.
 
-The standalone `foldkitSsr({ serverEntry, buildId })` export compiles the same define for its server entry. When it runs in development without an explicit value, it uses the fixed development id too. The aggregate `foldkit({ buildId, ssr })` plugin passes its top-level value through automatically.
+The standalone `foldkitSsr({ serverEntry, buildId })` export retains explicit build-id support for separately orchestrated integrations. The aggregate `foldkit({ ssr })` plugin owns the automatic path.
 
 ## DevTools overlay
 

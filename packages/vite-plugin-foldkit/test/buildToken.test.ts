@@ -5,9 +5,11 @@ import { build as viteBuild } from 'vite'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { buildIdForCommand, resolveBuildId } from '../src/buildToken.ts'
+import { foldkit } from '../src/index.ts'
 import { foldkitSsr } from '../src/ssr.ts'
 
 const FIXTURE_ROOT = resolve(import.meta.dirname, 'fixtures/ssr')
+const BUILD_CONFIG_ROOT = resolve(import.meta.dirname, 'fixtures/build-config')
 const temporaryDirectories: Array<string> = []
 
 const readBuiltFiles = (directory: string): string => {
@@ -136,5 +138,46 @@ describe('standalone foldkitSsr builds', () => {
     expect(server).toContain(buildId)
     expect(client).not.toContain('development')
     expect(server).not.toContain('development')
+  })
+})
+
+describe('separately invoked aggregate builds', () => {
+  it('compiles the explicit override into Foldkit in both artifacts', async () => {
+    const outputRoot = mkdtempSync(join(tmpdir(), 'foldkit-explicit-token-'))
+    temporaryDirectories.push(outputRoot)
+    const buildId = 'separate-deployment'
+    const plugin = () =>
+      foldkit({
+        buildId,
+        ssr: { serverEntry: '/entry.server.ts' },
+      })
+    const clientOutput = join(outputRoot, 'client')
+    const serverOutput = join(outputRoot, 'server')
+
+    await viteBuild({
+      root: BUILD_CONFIG_ROOT,
+      configFile: false,
+      logLevel: 'silent',
+      plugins: [plugin()],
+      build: { emptyOutDir: true, outDir: clientOutput },
+    })
+    await viteBuild({
+      root: BUILD_CONFIG_ROOT,
+      configFile: false,
+      logLevel: 'silent',
+      plugins: [plugin()],
+      build: {
+        emptyOutDir: true,
+        outDir: serverOutput,
+        ssr: resolve(BUILD_CONFIG_ROOT, 'entry.server.ts'),
+      },
+    })
+
+    const client = readBuiltFiles(clientOutput)
+    const server = readBuiltFiles(serverOutput)
+    expect(client).toContain(buildId)
+    expect(server).toContain(buildId)
+    expect(client).not.toContain('foldkitBuildIdPlaceholder()')
+    expect(server).not.toContain('foldkitBuildIdPlaceholder()')
   })
 })

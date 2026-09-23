@@ -15,7 +15,6 @@ export const renderPage = (request: Request): Promise<Server.EntryResult> =>
         { Flags, init, view },
         {
           flags: flagsForRequest(request),
-          buildId: import.meta.env.FOLDKIT_BUILD_ID,
         },
       )
 

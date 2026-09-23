@@ -1,42 +1,43 @@
-import type { Plugin } from 'vite'
+import MagicString from 'magic-string'
+import { randomUUID } from 'node:crypto'
+import type { Plugin, ResolvedConfig, ViteBuilder } from 'vite'
+
+import { isFoldkitSingletonPackageSpecifier } from './foldkitPackages.js'
 
 // The build id names the deployment a page came from. The server stamps it on
 // the rendered root, the client carries it, and hydration refuses a page whose
 // id is not its own before it adopts any DOM.
 //
-// Per-view identities cannot answer that question. They move when the view they
-// name changes, but what a view renders also depends on the constants it
-// imports, the configuration it reads, the dependencies it calls, and the
-// arguments its caller passes. A component whose own source is untouched renders
-// something different when its caller changes, and its identity is the one that
-// wins on the element, so a stale page's `<input name="email">` can otherwise be
-// adopted for a new build's `<input name="ssn">`, carrying what a visitor typed
-// into a field that submits under a different name.
+// The aggregate plugin generates one opaque id when a Vite app build contains
+// both the client and ssr environments. The id lives on the ViteBuilder's
+// ResolvedConfig object, so concurrent builders cannot overwrite one another
+// and a later builder in the same process gets a fresh value. Separately
+// invoked builds have no shared session and must receive an explicit value.
 //
-// The id is supplied by the deployment rather than derived from the project.
-// Deriving it was tried and does not hold: a digest of the files under the Vite
-// root misses shared modules from elsewhere in a monorepo, untracked inputs, and
-// environment-derived configuration, so two deployments that render differently
-// can share an id; it moves when a build writes output the next build reads, so
-// one deployment can produce two ids; and hashing whatever files happen to sit
-// in the project turns a value published in HTML into an oracle for the secrets
-// among them. A value the deployment already has (a commit, a release tag, a
-// container digest) has none of those problems.
-//
-// This plugin only compiles the id into application code. Foldkit itself is an
-// ordinary dependency that Vite externalizes from a server build, where a
-// compile-time define never reaches it, so the id is handed to `renderToString`
-// and `Runtime.hydrate` explicitly rather than read from inside the framework.
-//
-// Development is compiled an id too. The dev SSR host renders through
-// `renderToString` like any other, and a hydratable render refuses to run
-// without one, so leaving development unnamed would fail every dev page
-// request.
+// Foldkit's own build-token module contains a placeholder call. This transform
+// replaces that call in both artifacts, which lets Runtime.hydrate and
+// renderToString consume the value without application forwarding. Installed
+// Foldkit must therefore participate in the server build; the aggregate plugin
+// configures that boundary and the post-build check refuses an artifact that
+// still imports Foldkit externally.
 
 const BUILD_ID_ENVIRONMENT_VARIABLE = 'FOLDKIT_BUILD_ID'
+const FRAMEWORK_BUILD_ID_PLACEHOLDER = 'foldkitBuildIdPlaceholder()'
 
-/** The build id this build was given, from the plugin option or
- *  `FOLDKIT_BUILD_ID`, or `undefined` when the deployment supplied neither.
+type BuildIdentitySession = {
+  readonly buildId: string | undefined
+  readonly externalizedEnvironments: Set<string>
+  readonly verifyFrameworkIdentity: boolean
+}
+
+const buildIdentitySessions = new WeakMap<
+  ResolvedConfig,
+  BuildIdentitySession
+>()
+const developmentBuildIds = new WeakMap<ResolvedConfig, string>()
+
+/** The build id explicitly supplied through plugin configuration or the
+ *  environment, or `undefined` when neither supplied a nonempty value.
  *
  * @internal Exported for tests.
  */
@@ -50,20 +51,7 @@ export const resolveBuildId = (configured?: string): string | undefined => {
     : undefined
 }
 
-// The id development serves. Development is the one place a constant is right:
-// one live source session supplies both the server and client transforms rather
-// than producing independently deployable artifacts. A value that moved would
-// only make the dev server disagree with the tab already open against it. A
-// hydratable render still requires an id, so development has to be given one
-// rather than left without.
-//
-// It is exactly wrong for a build, which is why a build with no id is refused
-// rather than defaulted: two deployments sharing an id is the case the id
-// exists to catch.
-const DEVELOPMENT_BUILD_ID = 'development'
-
-/** The value `import.meta.env.FOLDKIT_BUILD_ID` compiles to, or `undefined`
- *  when a build was given no id and must refuse to render a hydratable page.
+/** The id a standalone plugin compiles for one Vite command.
  *
  * @internal Exported for tests.
  */
@@ -75,30 +63,213 @@ export const buildIdForCommand = (
   if (resolved !== undefined) {
     return resolved
   }
-  return command === 'serve' ? DEVELOPMENT_BUILD_ID : undefined
+  return command === 'serve' ? 'development' : undefined
 }
 
-/**
- * Compiles the deployment's build id into application code as
- * `import.meta.env.FOLDKIT_BUILD_ID`, for the client entry and the server entry
- * to hand to `Runtime.hydrate` and `renderToString`.
+const hasCoordinatedArtifacts = (builder: ViteBuilder): boolean =>
+  builder.environments['client'] !== undefined &&
+  builder.environments['ssr'] !== undefined
+
+const beginBuildIdentity = (
+  builder: ViteBuilder,
+  configuredBuildId: string | undefined,
+  verifyFrameworkIdentity: boolean,
+): void => {
+  const isCoordinated = hasCoordinatedArtifacts(builder)
+  const buildId =
+    configuredBuildId ?? (isCoordinated ? randomUUID() : undefined)
+
+  const session: BuildIdentitySession = {
+    buildId,
+    externalizedEnvironments: new Set(),
+    verifyFrameworkIdentity,
+  }
+  buildIdentitySessions.set(builder.config, session)
+  for (const environment of Object.values(builder.environments)) {
+    buildIdentitySessions.set(environment.config, session)
+    buildIdentitySessions.set(environment.getTopLevelConfig(), session)
+  }
+}
+
+const buildIdForConfig = (
+  config: ResolvedConfig,
+  configuredBuildId: string | undefined,
+): string | undefined => {
+  if (config.command === 'build') {
+    return buildIdentitySessions.get(config)?.buildId ?? configuredBuildId
+  }
+
+  const existing = developmentBuildIds.get(config)
+  if (existing !== undefined) {
+    return existing
+  }
+
+  const fresh = configuredBuildId ?? randomUUID()
+  developmentBuildIds.set(config, fresh)
+  return fresh
+}
+
+const replaceAll = (
+  source: MagicString,
+  code: string,
+  search: string,
+  replacement: string,
+): boolean => {
+  let didReplace = false
+  let fromIndex = 0
+  while (fromIndex < code.length) {
+    const index = code.indexOf(search, fromIndex)
+    if (index === -1) {
+      return didReplace
+    }
+    source.overwrite(index, index + search.length, replacement)
+    didReplace = true
+    fromIndex = index + search.length
+  }
+  return didReplace
+}
+
+const isFoldkitBuildTokenModule = (id: string): boolean => {
+  const fileName = (id.split('?', 1)[0] ?? '').replaceAll('\\', '/')
+  return (
+    fileName.endsWith('/foldkit/src/buildToken.ts') ||
+    fileName.endsWith('/foldkit/dist/buildToken.js')
+  )
+}
+
+const hasExternalFoldkitSingletonImport = (
+  imports: ReadonlyArray<string>,
+  dynamicImports: ReadonlyArray<string>,
+): boolean =>
+  [...imports, ...dynamicImports].some(isFoldkitSingletonPackageSpecifier)
+
+const transformBuildIdentity = (
+  code: string,
+  id: string,
+  config: ResolvedConfig,
+  configuredBuildId: string | undefined,
+):
+  | Readonly<{
+      code: string
+      map: ReturnType<MagicString['generateMap']>
+    }>
+  | undefined => {
+  if (
+    !isFoldkitBuildTokenModule(id) ||
+    !code.includes(FRAMEWORK_BUILD_ID_PLACEHOLDER)
+  ) {
+    return undefined
+  }
+
+  const buildId = buildIdForConfig(config, configuredBuildId)
+  const replacement =
+    buildId === undefined ? 'undefined' : JSON.stringify(buildId)
+  const transformed = new MagicString(code)
+  const transformedFramework = replaceAll(
+    transformed,
+    code,
+    FRAMEWORK_BUILD_ID_PLACEHOLDER,
+    replacement,
+  )
+  if (!transformedFramework) {
+    return undefined
+  }
+
+  return {
+    code: transformed.toString(),
+    map: transformed.generateMap({ hires: 'boundary', source: id }),
+  }
+}
+
+const verifyBuildIdentity = (builder: ViteBuilder): void => {
+  const session = buildIdentitySessions.get(builder.config)
+  if (session === undefined || !session.verifyFrameworkIdentity) {
+    return
+  }
+
+  const externalized = [...session.externalizedEnvironments]
+  if (externalized.length === 0) {
+    return
+  }
+
+  throw new Error(
+    '[foldkit] A Foldkit singleton package was externalized from the ' +
+      `${externalized.join(' and ')} ` +
+      `${externalized.length === 1 ? 'artifact' : 'artifacts'}, so it can ` +
+      'load a framework copy whose hydration build identity was not compiled. ' +
+      'Remove Foldkit packages from explicit SSR or Rolldown externalization ' +
+      'settings and let @foldkit/vite-plugin bundle them.',
+  )
+}
+
+/** Compiles one build identity into application entries and Foldkit itself.
  *
- * A build takes the id from the `buildId` option or `FOLDKIT_BUILD_ID` and
- * compiles nothing when it was given neither, so a hydratable render fails with
- * `MissingBuildId` rather than serving a page hydration cannot place.
- * Development serves a fixed id instead because one live source session
- * supplies both transforms and has no deployment identity to derive.
+ * @internal
  */
-export const foldkitBuildToken = (buildId?: string): Plugin => ({
-  name: 'foldkit:build-token',
-  config: (_config, { command }) => {
-    const resolved = buildIdForCommand(command, buildId)
-    return resolved === undefined
-      ? {}
-      : {
-          define: {
-            'import.meta.env.FOLDKIT_BUILD_ID': JSON.stringify(resolved),
-          },
+export const foldkitBuildToken = (
+  buildId?: string,
+  verifyFrameworkIdentity = true,
+): Array<Plugin> => {
+  const configuredBuildId = resolveBuildId(buildId)
+
+  return [
+    {
+      name: 'foldkit:build-token',
+      enforce: 'pre',
+      sharedDuringBuild: true,
+      config: (_config, { command }) => {
+        const legacyBuildId =
+          configuredBuildId ?? (command === 'serve' ? 'development' : undefined)
+        return legacyBuildId === undefined
+          ? {}
+          : {
+              define: {
+                'import.meta.env.FOLDKIT_BUILD_ID':
+                  JSON.stringify(legacyBuildId),
+              },
+            }
+      },
+      buildApp: {
+        order: 'pre',
+        async handler(builder) {
+          beginBuildIdentity(
+            builder,
+            configuredBuildId,
+            verifyFrameworkIdentity,
+          )
+        },
+      },
+      transform(code, id) {
+        const config = this.environment.getTopLevelConfig()
+        return transformBuildIdentity(code, id, config, configuredBuildId)
+      },
+      generateBundle(_options, bundle) {
+        const isExternalized = Object.values(bundle).some(
+          output =>
+            output.type === 'chunk' &&
+            hasExternalFoldkitSingletonImport(
+              output.imports,
+              output.dynamicImports,
+            ),
+        )
+        if (!isExternalized) {
+          return
         }
-  },
-})
+
+        buildIdentitySessions
+          .get(this.environment.getTopLevelConfig())
+          ?.externalizedEnvironments.add(this.environment.name)
+      },
+    },
+    {
+      name: 'foldkit:verify-build-token',
+      sharedDuringBuild: true,
+      buildApp: {
+        order: 'post',
+        async handler(builder) {
+          verifyBuildIdentity(builder)
+        },
+      },
+    },
+  ]
+}

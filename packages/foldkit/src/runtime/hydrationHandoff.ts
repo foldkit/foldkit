@@ -127,12 +127,12 @@ export const buildSkew = (
 ): Error | undefined => {
   if (!Predicate.isString(buildId) || buildId === '') {
     return new Error(
-      '[foldkit] Runtime.hydrate was given no build id. Hydration compares ' +
+      '[foldkit] Runtime.hydrate has no build id. Hydration compares ' +
         'the id the server stamped on the root with this client’s own before ' +
         'it adopts any DOM, and without one a page from any deployment would ' +
-        'be adopted as this one. Pass ' +
-        '`buildId: import.meta.env.FOLDKIT_BUILD_ID`, the same value the ' +
-        'server entry passes to `renderToString`.',
+        'be adopted as this one. Build the client with @foldkit/vite-plugin, ' +
+        'or pass the same nonempty `buildId` explicitly to `Runtime.hydrate` ' +
+        'and `renderToString`.',
     )
   }
   const servedBuild = root.getAttribute(HYDRATION_BUILD_ATTRIBUTE)

@@ -1,5 +1,6 @@
 import { Schema } from 'effect'
 import type { RenderedApplication } from 'foldkit/experimental/server'
+import { randomUUID } from 'node:crypto'
 import { mkdir, writeFile } from 'node:fs/promises'
 import nodePath, { dirname, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -401,7 +402,9 @@ export const foldkitBuild = (
       )
     }
 
-    const entry: ServerEntryModule = await import(pathToFileURL(entryFile).href)
+    const entryUrl = pathToFileURL(entryFile)
+    entryUrl.searchParams.set('foldkit-build', randomUUID())
+    const entry: ServerEntryModule = await import(entryUrl.href)
     if (typeof entry.renderPage !== 'function') {
       throw new Error(
         `[foldkit] "${entryFileName}" exports no renderPage function, so there is nothing to generate pages with.`,

@@ -488,7 +488,7 @@ Every message must carry meaning. No `NoOp`.
 
 - Define a `Flags` Schema for data the initial Model needs from side effects
 - Define `flags` as an `Effect<Flags>` that computes the values (localStorage reads, current time, etc.)
-- Pass `flags` to `Runtime.run(application, { flags })` for a fresh browser boot. Hydrated applications call `Runtime.hydrate(application, { buildId: import.meta.env.FOLDKIT_BUILD_ID })` and use only the server-encoded Flags payload
+- Pass `flags` to `Runtime.run(application, { flags })` for a fresh browser boot. Hydrated applications call `Runtime.hydrate(application)` and use only the server-encoded Flags payload. `@foldkit/vite-plugin` compiles the shared deployment identity into Foldkit for coordinated client and server builds
 - Pass the result into init. Never perform side effects at module level or inside init directly
 - See the Flags section in [architecture.md](architecture.md) for the full pattern
 

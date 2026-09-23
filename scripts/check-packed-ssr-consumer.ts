@@ -16,32 +16,34 @@ import { pathToFileURL } from 'node:url'
 
 // A Foldkit application built outside this repository, from packed tarballs,
 // with no source alias and no workspace link. Everything about the build id
-// depends on that shape and cannot be observed inside the monorepo: an
-// installed Foldkit is externalized from the server bundle, where the plugin's
-// compile-time define never reaches it, while a source-aliased one is bundled
-// and every define lands. A check that runs against the workspace copy proves
-// nothing about the artifacts a consumer installs.
+// depends on that shape and cannot be observed inside the monorepo: the plugin
+// has to bring an installed Foldkit into the server artifact before it can
+// compile an identity into the framework. A source alias is bundled already and
+// would let the same assertions pass without proving the installed boundary.
 //
 // What this gate holds:
 //
-//   1. The server bundle really externalizes Foldkit.
-//   2. One deployment id reaches the client bundle and the served root alike.
-//   3. Hydration of a same-build page keeps the root and the input element, so
+//   1. The server artifact contains Foldkit and its installed UI package, with
+//      no bare import that would load a second framework instance at runtime.
+//   2. One generated deployment id reaches Foldkit in the client and server
+//      artifacts without application forwarding.
+//   3. An installed UI view that uses `childAttributes` renders against the
+//      bundled Foldkit runtime.
+//   4. Hydration of a same-build page keeps the root and the input element, so
 //      live DOM state the markup never carried survives.
-//   4. A parser-upgraded Custom Element with view-owned light DOM is replaced.
+//   5. A parser-upgraded Custom Element with view-owned light DOM is replaced.
 //      Disconnect-time mutations cannot survive on the old host, an ancestor,
 //      or an earlier adopted sibling.
-//   5. Hydration of a page from another deployment stops before it reads the
+//   6. Hydration of a page from another deployment stops before it reads the
 //      handoff, so no code from this build ever owns that page's DOM.
-//   6. A hydratable render with no build id fails with the typed error that
-//      names what to supply, rather than serving an unprotected page.
+//   7. An explicit empty build id overrides the compiled identity and fails
+//      with MissingBuildId rather than serving an unprotected page.
 
 const REPO_ROOT = process.cwd()
 const FOLDKIT_DIR = 'packages/foldkit'
 const PLUGIN_DIR = 'packages/vite-plugin-foldkit'
+const UI_DIR = 'packages/ui'
 
-const BUILD_ID_SERVED = 'deployment-alpha'
-const BUILD_ID_CURRENT = 'deployment-beta'
 const TYPED_VALUE = 'typed-before-hydration'
 const PORT = 5199
 const ORIGIN = `http://127.0.0.1:${PORT}`
@@ -232,6 +234,7 @@ const writeConsumerProject = (
   projectDir: string,
   foldkitTarball: string,
   pluginTarball: string,
+  uiTarball: string,
 ): void => {
   const foldkitManifest = readJson<Manifest>(
     join(REPO_ROOT, FOLDKIT_DIR, 'package.json'),
@@ -261,6 +264,7 @@ const writeConsumerProject = (
         scripts: { build: 'vite build' },
         dependencies: {
           '@effect/platform-browser': platformBrowserVersion,
+          '@foldkit/ui': `file:${uiTarball}`,
           effect: effectVersion,
           foldkit: `file:${foldkitTarball}`,
         },
@@ -309,36 +313,53 @@ const assertPackedTypesResolve = (projectDir: string): void => {
 // ASSERTIONS ON THE BUILT ARTIFACTS
 
 const IMPORT_SPECIFIER =
-  /(?:^|[\s;}])(?:import|export)[^'"]*?from\s*['"]([^'"]+)['"]/g
+  /^\s*(?:import\s+(?:[^'"\n]*?\sfrom\s*)?|export\s+[^'"\n]*?\sfrom\s*)['"]([^'"]+)['"]/gm
+
+const FOLDKIT_SINGLETON_PACKAGES: ReadonlyArray<string> = [
+  'foldkit',
+  '@foldkit/ui',
+  '@foldkit/devtools',
+]
 
 const importSpecifiers = (source: string): ReadonlyArray<string> =>
   [...source.matchAll(IMPORT_SPECIFIER)].map(match => match[1] ?? '')
+
+const isFoldkitSingletonPackageSpecifier = (specifier: string): boolean =>
+  FOLDKIT_SINGLETON_PACKAGES.some(
+    packageName =>
+      specifier === packageName || specifier.startsWith(`${packageName}/`),
+  )
 
 // A string that only exists inside Foldkit's own source. If the server bundle
 // inlined the framework rather than importing it, this travels with it.
 const FOLDKIT_INTERNAL_MARKER = 'data-foldkit-build'
 
-const assertServerBundleExternalizesFoldkit = (buildDir: string): void => {
+const assertServerBundleContainsFoldkitSingletons = (
+  buildDir: string,
+): void => {
   const bundle = readFileSync(join(buildDir, 'server/fetch.js'), 'utf8')
-  const foldkitImports = importSpecifiers(bundle).filter(
-    specifier => specifier === 'foldkit' || specifier.startsWith('foldkit/'),
+  const specifiers = importSpecifiers(bundle)
+  assertConsumer(
+    specifiers.includes('effect'),
+    'the server bundle import check found no external Effect import, so it ' +
+      'would not detect an external Foldkit import either.',
+  )
+  const externalSingletonImports = specifiers.filter(
+    isFoldkitSingletonPackageSpecifier,
   )
 
   assertConsumer(
-    foldkitImports.length > 0,
-    'the server bundle names no `foldkit` import, so Foldkit was bundled into ' +
-      'it rather than externalized. Every build-id assertion below would then ' +
-      'describe an inlined copy the plugin could transform, which is not what ' +
-      'an installed consumer runs.',
+    externalSingletonImports.length === 0,
+    'the server bundle still imports a Foldkit singleton package externally, ' +
+      'so it can load a second framework instance at runtime: ' +
+      [...new Set(externalSingletonImports)].join(', '),
   )
   assertConsumer(
-    !bundle.includes(FOLDKIT_INTERNAL_MARKER),
-    'the server bundle contains Foldkit internals, so it inlined the framework ' +
-      'despite naming an import for it.',
+    bundle.includes(FOLDKIT_INTERNAL_MARKER),
+    'the server bundle contains no Foldkit build marker, so the framework was ' +
+      'not bundled into the artifact that renders pages.',
   )
-  log(
-    `Server bundle imports Foldkit: ${[...new Set(foldkitImports)].join(', ')}`,
-  )
+  log('Server bundle contains Foldkit singletons and no bare imports')
 }
 
 const clientBundleSources = (buildDir: string): ReadonlyArray<string> => {
@@ -430,8 +451,7 @@ const assertClientCarriesBuildId = (
 
 type ServerEntry = Readonly<{
   default: Readonly<{ fetch: (request: Request) => Promise<Response> }>
-  buildId?: string
-  renderWithoutBuildIdTag: () => Promise<string>
+  renderWithEmptyBuildId: () => Promise<string>
 }>
 
 const loadServerEntry = async (buildDir: string): Promise<ServerEntry> => {
@@ -1388,9 +1408,17 @@ const main = async (): Promise<void> => {
   try {
     if (!isSkipBuild) {
       runRequired(
-        'Building foldkit and @foldkit/vite-plugin...',
+        'Building foldkit, @foldkit/ui, and @foldkit/vite-plugin...',
         'pnpm',
-        ['--filter', 'foldkit', '--filter', '@foldkit/vite-plugin', 'build'],
+        [
+          '--filter',
+          'foldkit',
+          '--filter',
+          '@foldkit/ui',
+          '--filter',
+          '@foldkit/vite-plugin',
+          'build',
+        ],
         { inherit: true },
       )
     }
@@ -1402,9 +1430,11 @@ const main = async (): Promise<void> => {
       PLUGIN_DIR,
     )
     tarballPaths.push(pluginTarball)
+    const uiTarball = packPackage('Packing @foldkit/ui...', UI_DIR)
+    tarballPaths.push(uiTarball)
 
     await withTempDir('foldkit-packed-ssr-', async projectDir => {
-      writeConsumerProject(projectDir, foldkitTarball, pluginTarball)
+      writeConsumerProject(projectDir, foldkitTarball, pluginTarball, uiTarball)
 
       // NOTE: the plugin's `foldkit` peer floor names the first release that
       // ships the server export, which the packed workspace copy only reaches
@@ -1429,47 +1459,36 @@ const main = async (): Promise<void> => {
       const currentDir = join(projectDir, 'build-current')
 
       runRequired(
-        `Building the deployment that served the page (${BUILD_ID_SERVED})...`,
+        'Building the deployment that served the page...',
         'npm',
         ['run', 'build', '--', '--base', '/served/'],
         {
           cwd: projectDir,
           env: {
-            FOLDKIT_BUILD_ID: BUILD_ID_SERVED,
             CONSUMER_OUT_ROOT: 'build-served',
           },
           inherit: true,
         },
       )
       runRequired(
-        `Building the deployment now live (${BUILD_ID_CURRENT})...`,
+        'Building the deployment now live...',
         'npm',
         ['run', 'build', '--', '--base', '/current/'],
         {
           cwd: projectDir,
           env: {
-            FOLDKIT_BUILD_ID: BUILD_ID_CURRENT,
             CONSUMER_OUT_ROOT: 'build-current',
           },
           inherit: true,
         },
       )
 
-      assertServerBundleExternalizesFoldkit(servedDir)
-      assertServerBundleExternalizesFoldkit(currentDir)
+      assertServerBundleContainsFoldkitSingletons(servedDir)
+      assertServerBundleContainsFoldkitSingletons(currentDir)
       assertPackedTypesResolve(projectDir)
       assertNoSourceOracle(servedDir)
-      assertClientCarriesBuildId(servedDir, BUILD_ID_SERVED, BUILD_ID_CURRENT)
-      assertClientCarriesBuildId(currentDir, BUILD_ID_CURRENT, BUILD_ID_SERVED)
 
       const servedEntry = await loadServerEntry(servedDir)
-      assertConsumer(
-        servedEntry.buildId === BUILD_ID_SERVED,
-        `the server bundle carries build id "${String(servedEntry.buildId)}", ` +
-          `not "${BUILD_ID_SERVED}". An externalized Foldkit never sees the ` +
-          'define, so the entry must read it and pass it explicitly.',
-      )
-
       const currentEntry = await loadServerEntry(currentDir)
 
       const pageOf = async (entry: ServerEntry): Promise<string> => {
@@ -1496,10 +1515,33 @@ const main = async (): Promise<void> => {
       // modulepreloads. Swapping only its module script tests whether the
       // current client refuses the served build id.
       const same = await pageOf(servedEntry)
+      const current = await pageOf(currentEntry)
+      assertConsumer(
+        same.includes('aria-label="Packed navigation"'),
+        'the installed @foldkit/ui navigation did not render on the server.',
+      )
+      log('Installed @foldkit/ui rendered against the bundled Foldkit runtime')
+      const buildIdFrom = (page: string, buildDir: string): string => {
+        const buildId = /data-foldkit-build="([^"]+)"/.exec(page)?.[1]
+        assertConsumer(
+          buildId !== undefined && buildId !== '',
+          `the page rendered by ${buildDir} carries no nonempty build id.`,
+        )
+        return buildId
+      }
+      const servedBuildId = buildIdFrom(same, servedDir)
+      const currentBuildId = buildIdFrom(current, currentDir)
+      assertConsumer(
+        servedBuildId !== currentBuildId,
+        'two production builds generated the same hydration build id.',
+      )
+      assertClientCarriesBuildId(servedDir, servedBuildId, currentBuildId)
+      assertClientCarriesBuildId(currentDir, currentBuildId, servedBuildId)
+
       const csp = same
       const stale = same.replace(
         clientScript(same, servedDir),
-        clientScript(await pageOf(currentEntry), currentDir),
+        clientScript(current, currentDir),
       )
       assertConsumer(
         stale !== same,
@@ -1587,19 +1629,19 @@ const main = async (): Promise<void> => {
 
       for (const [label, page] of Object.entries({ same, stale })) {
         assertConsumer(
-          page.includes(`data-foldkit-build="${BUILD_ID_SERVED}"`),
+          page.includes(`data-foldkit-build="${servedBuildId}"`),
           `the ${label} page does not carry the served build id on its root.`,
         )
       }
-      log(`Served root carries data-foldkit-build="${BUILD_ID_SERVED}"`)
+      log(`Served root carries data-foldkit-build="${servedBuildId}"`)
 
-      const missingBuildIdTag = await servedEntry.renderWithoutBuildIdTag()
+      const missingBuildIdTag = await servedEntry.renderWithEmptyBuildId()
       assertConsumer(
         missingBuildIdTag === 'MissingBuildId',
-        'a hydratable render with no build id produced ' +
+        'a hydratable render with an explicit empty build id produced ' +
           `"${missingBuildIdTag}" rather than the typed MissingBuildId failure.`,
       )
-      log('A hydratable render with no build id fails with MissingBuildId')
+      log('An explicit empty build id fails with MissingBuildId')
 
       const requestedPaths: Array<string> = []
       const server = await startServer(

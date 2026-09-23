@@ -17,7 +17,10 @@ import {
   parseFragment,
 } from 'parse5'
 
-import { HYDRATION_BUILD_ATTRIBUTE } from '../../buildToken.js'
+import {
+  HYDRATION_BUILD_ATTRIBUTE,
+  buildIdOrInjected,
+} from '../../buildToken.js'
 import {
   MATHML_NAMESPACE,
   SVG_NAMESPACE,
@@ -1050,14 +1053,13 @@ export class InvalidHydrationRoot extends Data.TaggedError(
   rootKind: 'Empty' | 'Text' | 'Comment'
 }> {}
 
-/** Failure of a hydratable render that was given no build id. Hydration
+/** Failure of a hydratable render that has no build id. Hydration
  * compares the id on the served root with the client's own to refuse a page
  * from another deployment, so a render that carries none has no such
- * protection. Supply one from a value the deployment already has, such as a
- * commit or a release tag, through `@foldkit/vite-plugin`'s `buildId` option or
- * the `FOLDKIT_BUILD_ID` environment variable, and pass
- * `import.meta.env.FOLDKIT_BUILD_ID` to `renderToString` and `Runtime.hydrate`.
- * A render that nothing will hydrate (`isHydratable: false`) needs none.
+ * protection. Build both artifacts together with `@foldkit/vite-plugin`, or
+ * supply the same nonempty `buildId` explicitly when client and server builds
+ * are orchestrated separately. A render that nothing will hydrate
+ * (`isHydratable: false`) needs none.
  *
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
@@ -1131,9 +1133,9 @@ type CommonRenderOptions = Readonly<{
   runtimeId?: string
 }>
 
-/** Render options for output a client will hydrate, which is the default. The
- *  build id is required here: hydration compares it against the client's own
- *  before adopting any DOM, and a page carrying none has no such protection.
+/** Render options for output a client will hydrate, which is the default.
+ *  Hydration compares the render's build id against the client's own before
+ *  adopting any DOM, and a page carrying none has no such protection.
  *
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
@@ -1142,12 +1144,13 @@ export type HydratableRenderOptions = CommonRenderOptions &
     isHydratable?: true
     /**
      * The deployment this render belongs to, stamped on the root so hydration
-     * can refuse a page from a different one before adopting its DOM. Pass
-     * `import.meta.env.FOLDKIT_BUILD_ID`, which `@foldkit/vite-plugin` fills
-     * from its `buildId` option or the `FOLDKIT_BUILD_ID` environment variable,
-     * and give the client entry the same value.
+     * can refuse a page from a different one before adopting its DOM. Foldkit
+     * normally reads the identity compiled into the server artifact by
+     * `@foldkit/vite-plugin`. This explicit option is for integrations that
+     * cannot compile the shared identity into the artifact. Give the client
+     * the same public value.
      */
-    buildId: string
+    buildId?: string
   }>
 
 /** Render options for static markup nothing will hydrate. No build id applies,
@@ -1167,9 +1170,11 @@ export type StaticRenderOptions = CommonRenderOptions &
  *  Model, and scroll preservation. It does not permit a second hydratable
  *  application in one document.
  *
- *  A hydratable render (the default) requires `buildId`. Pass
- *  `isHydratable: false` for static markup that nothing will hydrate, which
- *  takes no build id.
+ *  A hydratable render (the default) uses the build identity compiled by
+ *  `@foldkit/vite-plugin`. Pass `isHydratable: false` for static markup that
+ *  nothing will hydrate, which takes no build id. The explicit `buildId`
+ *  option supports integrations that cannot compile the shared identity into
+ *  their artifacts.
  *
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
@@ -1341,7 +1346,6 @@ const validateHydrationRoot = (
  * const renderedApplication = yield* Server.renderToString(config, {
  *   url: request.url,
  *   flags: { theme },
- *   buildId: import.meta.env.FOLDKIT_BUILD_ID,
  * })
  * ```
  *
@@ -1359,13 +1363,9 @@ export function renderToString<Model, Message, Flags>(
   config: ApplicationConfigWithFlags<Model, Message, Flags>,
   options: RenderFlagsOptions<Flags>,
 ): Effect.Effect<RenderedApplication, RenderError>
-// NOTE: `options` is required here as it is on every other overload. It was
-// optional, which let `renderToString(config)` typecheck while the Effect it
-// returned always failed: a render is hydratable by default and a hydratable
-// render has no id to stamp. Requiring the argument moves that to the compiler.
 export function renderToString<Model, Message>(
   config: ApplicationConfig<Model, Message>,
-  options: RenderOptions,
+  options?: RenderOptions,
 ): Effect.Effect<RenderedApplication, RenderError>
 export function renderToString(
   config: Readonly<{
@@ -1393,13 +1393,12 @@ export function renderToString(
     const FlagsCodec = config.Flags
     const isHydratable = options?.isHydratable ?? true
 
-    // A hydratable render must say which deployment it came from. Deriving it
-    // here is not possible: the render cannot see the sources, the
-    // configuration, or the dependencies that decide what the view produced, so
-    // an id it invented would either differ between the client and server
-    // builds of one deployment or be shared by two that render differently.
-    // Refusing is the only honest answer, and it names what to supply.
-    const configuredBuildId = options?.buildId
+    // A hydratable render must say which deployment it came from. The Vite
+    // plugin compiles that identity into Foldkit when it coordinates the client
+    // and server artifacts. Separately built artifacts must receive the same
+    // explicit value. With neither source, refusing keeps an unstamped page
+    // from being mistaken for this deployment.
+    const configuredBuildId = buildIdOrInjected(options?.buildId)
     const isConfiguredBuildId =
       Predicate.isString(configuredBuildId) &&
       !String.isEmpty(configuredBuildId)

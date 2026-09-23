@@ -4,19 +4,22 @@ import {
   request as nodeRequest,
 } from 'node:http'
 import { createServer as createNetServer } from 'node:net'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import {
   type CorsOptions,
   DevEnvironment,
   type Logger,
   type Plugin,
   type ResolvedConfig,
+  type ViteDevServer,
   createServer as createViteServer,
   isRunnableDevEnvironment,
 } from 'vite'
 import { createServer as createHostViteServer } from 'vite-host'
 import { describe, expect, it, onTestFinished } from 'vitest'
 
+import { foldkit } from '../src/index.ts'
 import { foldkitSsr } from '../src/ssr.ts'
 
 type RawResponse = Readonly<{
@@ -94,6 +97,14 @@ const collectingLogger = (warnings: Array<string>): Logger => ({
 })
 
 const FIXTURE_ROOT = resolve(import.meta.dirname, 'fixtures/ssr')
+const AUTOMATIC_IDENTITY_FIXTURE_ROOT = resolve(
+  import.meta.dirname,
+  'fixtures/build-config',
+)
+const FOLDKIT_BUILD_TOKEN_URL = `/@fs${resolve(
+  dirname(fileURLToPath(import.meta.resolve('foldkit'))),
+  'buildToken.js',
+)}`
 const findFreePort = () =>
   new Promise<number>((resolvePort, reject) => {
     const probe = createNetServer()
@@ -273,7 +284,64 @@ const startServer = async (
   return `http://127.0.0.1:${port}`
 }
 
+const startAutomaticIdentityServer = async (): Promise<
+  Readonly<{ origin: string; server: ViteDevServer }>
+> => {
+  const port = await findFreePort()
+  const server = await createViteServer({
+    root: AUTOMATIC_IDENTITY_FIXTURE_ROOT,
+    configFile: false,
+    logLevel: 'silent',
+    plugins: [
+      foldkit({
+        ssr: { serverEntry: '/entry.server.ts' },
+      }),
+    ],
+    server: {
+      host: '127.0.0.1',
+      port,
+      strictPort: true,
+    },
+  })
+  onTestFinished(() => server.close().catch(() => undefined))
+  await server.listen()
+  return { origin: `http://127.0.0.1:${port}`, server }
+}
+
+const automaticIdentityFrom = async (
+  running: Readonly<{ origin: string; server: ViteDevServer }>,
+): Promise<string> => {
+  const response = await fetch(`${running.origin}/`)
+  expect(response.status).toBe(200)
+  const html = await response.text()
+  const buildId = /data-foldkit-build="([^"]+)"/.exec(html)?.[1]
+  expect(buildId).toMatch(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+  )
+
+  const transformedClientToken =
+    await running.server.environments.client.transformRequest(
+      FOLDKIT_BUILD_TOKEN_URL,
+    )
+  expect(transformedClientToken?.code).toContain(JSON.stringify(buildId))
+  expect(transformedClientToken?.code).not.toContain(
+    'foldkitBuildIdPlaceholder()',
+  )
+
+  return buildId ?? ''
+}
+
 describe('foldkitSsr', () => {
+  it('compiles one fresh identity into Foldkit for each aggregate dev server', async () => {
+    const first = await startAutomaticIdentityServer()
+    const second = await startAutomaticIdentityServer()
+
+    const firstBuildId = await automaticIdentityFrom(first)
+    const secondBuildId = await automaticIdentityFrom(second)
+
+    expect(secondBuildId).not.toBe(firstBuildId)
+  })
+
   it('injects Rendered results and preserves their HTTP metadata', async () => {
     const origin = await startServer()
     const response = await fetch(`${origin}/rendered`, {
