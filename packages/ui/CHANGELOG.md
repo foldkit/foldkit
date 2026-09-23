@@ -1,5 +1,11 @@
 # @foldkit/ui
 
+## 0.164.0
+
+### Patch Changes
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
 ## 0.163.0
 
 ### Minor Changes
