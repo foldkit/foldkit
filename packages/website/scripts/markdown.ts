@@ -290,6 +290,7 @@ export const SECTION_ORDER: ReadonlyArray<string> = [
   'Docs',
   'Guides',
   'Core Concepts',
+  'DevTools',
   'Best Practices',
   'Patterns',
   'Tooling',

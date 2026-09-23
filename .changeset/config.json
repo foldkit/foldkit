@@ -53,6 +53,7 @@
     "view-transitions-example",
     "ssr-example",
     "ssg-example",
+    "re-render-outlines-example",
     "livestore-example"
   ]
 }

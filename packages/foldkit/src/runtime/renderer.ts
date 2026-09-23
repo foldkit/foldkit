@@ -1,6 +1,11 @@
 import { Cause, Context, Effect, Exit, Option, type Scope } from 'effect'
 
 import {
+  drainOutlines,
+  drainPatchOutlines,
+  shouldRecordOutline,
+} from '../html/boundary.js'
+import {
   type BoundaryRegistry,
   type Document,
   type HtmlBuilder,
@@ -12,9 +17,11 @@ import {
   __flushReplayUnmountsAfterPatchFailure as flushReplayUnmountsAfterPatchFailure,
   __setRuntime as setHtmlRuntime,
 } from '../html/index.js'
+import { DEVTOOLS_OVERLAY_RUNTIME_ID } from '../html/index.js'
 import { __hydrateVNode } from '../hydrate.js'
 import { FOLDKIT_APP_ATTRIBUTE } from '../hydrationMarker.js'
 import { MountRuntime, MountTracker } from '../mount/index.js'
+import { OUTLINE_CUSTOM_EVENT, type OutlineRect } from '../outline/public.js'
 import type { CommitNotifier } from '../render/commit.js'
 import {
   VNode,
@@ -110,6 +117,7 @@ export type Renderer<Model, Message> = Readonly<{
 export const makeRenderer = <Model, Message>({
   status,
   container,
+  runtimeId,
   view,
   htmlBuilder,
   manageDocument,
@@ -129,6 +137,7 @@ export const makeRenderer = <Model, Message>({
 }: Readonly<{
   status: RuntimeStatus
   container: HTMLElement
+  runtimeId: string
   view: (model: Model, h: HtmlBuilder<Message>) => Document
   htmlBuilder: HtmlBuilder<Message>
   manageDocument: boolean
@@ -228,6 +237,7 @@ export const makeRenderer = <Model, Message>({
       maybeCurrentVNode: Option.Option<VNode>,
       nextVNode: VNode | null,
       seen?: Set<object>,
+      registry?: BoundaryRegistry,
     ): VNode => {
       try {
         return __patchVNode(
@@ -238,6 +248,7 @@ export const makeRenderer = <Model, Message>({
           patchedVNode => {
             vnodeSlot.maybeCurrentVNode = Option.some(patchedVNode)
           },
+          registry,
         )
       } catch (error) {
         try {
@@ -456,6 +467,7 @@ export const makeRenderer = <Model, Message>({
             maybeCurrentVNode,
             nextVNode,
             boundaryRegistry.dedupeSeen,
+            boundaryRegistry,
           )
         },
       )
@@ -531,6 +543,121 @@ export const makeRenderer = <Model, Message>({
       mountRuntime,
     )
 
+    // NOTE: drains the outline entries recorded during the view and
+    // patch phases and publishes them as one batch on `window`, which
+    // the DevTools overlay listens for. Skipped for the overlay's own
+    // runtime so it never outlines itself.
+    const flushOutlines = (): void => {
+      const explicit = drainOutlines(boundaryRegistry)
+      const patched = drainPatchOutlines(boundaryRegistry)
+      const isOutlineEnabled =
+        shouldRecordOutline() && runtimeId !== DEVTOOLS_OVERLAY_RUNTIME_ID
+      if (!isOutlineEnabled) {
+        return
+      }
+      const getTag = (value: unknown): string | undefined => {
+        try {
+          if (typeof value !== 'object' || value === null) {
+            return undefined
+          }
+          if (!('_tag' in value)) {
+            return undefined
+          }
+          const tag = Reflect.get(value, '_tag')
+          return typeof tag === 'string' ? tag : undefined
+        } catch (error) {
+          void error
+          return undefined
+        }
+      }
+      const cause = Option.match(maybeLastDirtyMessage, {
+        onNone: () => undefined,
+        onSome: getTag,
+      })
+      const rects: Array<OutlineRect> = []
+      const all =
+        explicit.length !== 0
+          ? patched.length !== 0
+            ? [...explicit, ...patched]
+            : explicit
+          : patched
+      for (const entry of all) {
+        let elm: Element | null = null
+        const rawElm = entry.vnode.elm
+        if (rawElm instanceof Element) {
+          elm = rawElm
+        } else if (rawElm instanceof Text) {
+          elm = rawElm.parentElement
+        } else if (rawElm instanceof Node) {
+          const rawChildren = entry.vnode.children
+          const children: ReadonlyArray<unknown> = globalThis.Array.isArray(
+            rawChildren,
+          )
+            ? rawChildren
+            : []
+          for (const child of children) {
+            if (typeof child !== 'object' || child === null) {
+              continue
+            }
+            if (!('elm' in child)) {
+              continue
+            }
+            const childElm = Reflect.get(child, 'elm')
+            if (childElm instanceof Element) {
+              elm = childElm
+              break
+            }
+          }
+        }
+        if (!elm || !elm.isConnected) {
+          continue
+        }
+        const rect = elm.getBoundingClientRect()
+        if (rect.width === 0 && rect.height === 0) {
+          continue
+        }
+        const id = 'patchId' in entry ? entry.patchId : entry.boundaryId
+        rects.push({
+          id,
+          label: entry.label,
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height,
+          ...(cause !== undefined ? { cause } : {}),
+        })
+      }
+      if (rects.length === 0) {
+        const maybeRootElm = Option.flatMap(
+          vnodeSlot.maybeCurrentVNode,
+          vnode => {
+            const elm = vnode.elm
+            return elm instanceof Element
+              ? Option.some(elm)
+              : Option.none<Element>()
+          },
+        )
+        const rootElm = Option.getOrElse(maybeRootElm, () => container)
+        const rect = rootElm.getBoundingClientRect()
+        if (rect.width !== 0 || rect.height !== 0) {
+          rects.push({
+            id: `root:${runtimeId}`,
+            label: 'root',
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+            ...(cause !== undefined ? { cause } : {}),
+          })
+        }
+      }
+      if (rects.length > 0) {
+        window.dispatchEvent(
+          new CustomEvent(OUTLINE_CUSTOM_EVENT, { detail: rects }),
+        )
+      }
+    }
+
     // NOTE: the render, Mount drain, DevTools attribution, and
     // patch-time-buffer flush. Shared by the plain path (called directly)
     // and the View Transition path (called from the transition's update
@@ -565,6 +692,7 @@ export const makeRenderer = <Model, Message>({
         // Model still on screen, and before `drainPendingMessages` below,
         // whose handlers can advance the live Model again.
         lastRenderedModel = renderedModel
+        flushOutlines()
         // NOTE: resume clears the store's pause flag before this frame.
         // Publish Live only after the live DOM has been installed.
         setViewState('Live')
@@ -778,6 +906,11 @@ export const makeRenderer = <Model, Message>({
             return yield* Effect.failCause(replayRenderExit.cause)
           }
           drainMountEvents()
+          // NOTE: a replay render records outlines like a live one, but
+          // no frame follows to flush them. Drain here so replay entries
+          // never leak into the next live frame's batch.
+          drainOutlines(boundaryRegistry)
+          drainPatchOutlines(boundaryRegistry)
           // NOTE: a replay paints a past Model, so it owns the DOM on
           // screen until the next live frame. Leaving
           // `lastRenderedModel` on the pre-pause Model would hand the
