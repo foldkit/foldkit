@@ -15,6 +15,7 @@ import {
   applyTransition,
   isParentFieldConfig,
   parentFieldToLens,
+  replaceEntry,
   runExecute,
 } from './internal.js'
 
@@ -133,6 +134,8 @@ export interface Query<Name extends string, A, AI, E, EI, R = never> {
     QueryMessage<A, AI, E, EI>['Type'],
     R
   >
+  /** Starts a new Fetch even when one is pending, retaining available data. */
+  readonly replace: Query<Name, A, AI, E, EI, R>['loadIfMissing']
   /** Lifts this Query's update and loading operations into a parent Model. */
   readonly lift: LiftQuery<
     QueryModel<A, AI, E, EI>['Type'],
@@ -195,6 +198,9 @@ export function defineQuery<Name extends string, A, AI, E, EI, R>(
   const loadIfMissing = (model: Model): UpdateReturn =>
     applyTransition(store, model, undefined, AsyncData.loadIfMissing)
 
+  const replace = (model: Model): UpdateReturn =>
+    replaceEntry(store, model, undefined)
+
   const update = (model: Model, message: Message): PureUpdateReturn =>
     Message.match<PureUpdateReturn>(message, {
       CompletedFetch({ generation, result }) {
@@ -232,6 +238,7 @@ export function defineQuery<Name extends string, A, AI, E, EI, R>(
       update: loadIfMissing,
       ...lens,
     }),
+    replace: Update.foldChildStep({ update: replace, ...lens }),
   })
 
   function lift<ParentModel, ParentMessage>(
@@ -263,6 +270,7 @@ export function defineQuery<Name extends string, A, AI, E, EI, R>(
     revalidate,
     revalidateOrLoad,
     loadIfMissing,
+    replace,
     lift,
     run,
   } satisfies Query<Name, A, AI, E, EI, R>

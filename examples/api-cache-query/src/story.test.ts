@@ -207,7 +207,7 @@ test('retrying failed posts shows the loading state and refetches', () => {
   )
 })
 
-test('opening a post once reuses its retained data on later visits', () => {
+test('leaving a post forgets its entry and revisiting fetches it again', () => {
   story(
     update,
     given(loadedPostsModel),
@@ -227,12 +227,26 @@ test('opening a post once reuses its retained data on later visits', () => {
       }),
     ),
     message(Message.ClickedBackToPosts()),
-    message(Message.ClickedPost({ postId: 'first-post' })),
-    Command.expectNone(),
     model(model => {
-      expect(postAsyncDataTag(model, 'first-post')).toBe('Success')
+      expect(postAsyncDataTag(model, 'first-post')).toBe('Idle')
+    }),
+    message(Message.ClickedPost({ postId: 'first-post' })),
+    Command.expectHas(postQuery.Fetch),
+    model(model => {
+      expect(postAsyncDataTag(model, 'first-post')).toBe('Loading')
       expect(model.maybeSelectedPostId).toEqual(Option.some('first-post'))
     }),
+    Command.resolve(
+      postQuery.Fetch,
+      postQuery.Message.CompletedFetch({
+        args: { postId: 'first-post' },
+        generation: SECOND_REQUEST_GENERATION,
+        result: Result.succeed({
+          post: firstPostDetail,
+          fetchedAt: FETCHED_AT,
+        }),
+      }),
+    ),
   )
 })
 

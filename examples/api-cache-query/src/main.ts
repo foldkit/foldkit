@@ -162,15 +162,19 @@ export const update = (model: Model, message: Message) =>
     GotStatsMessage: ({ message }) => stats.fold(model, message),
     GotPostMessage: ({ message }) => postDetails.fold(model, message),
     ClickedPost: ({ postId }) =>
-      postDetails.loadIfMissing(
+      Update.combine(
         modifyFields(model, {
           maybeSelectedPostId: () => Option.some(postId),
         }),
-        { postId },
+        [
+          postDetails.retainOnly([{ postId }]),
+          postDetails.loadIfMissing({ postId }),
+        ],
       ),
-    ClickedBackToPosts: () => ({
-      model: modifyFields(model, { maybeSelectedPostId: () => Option.none() }),
-    }),
+    ClickedBackToPosts: () =>
+      postDetails.reset(
+        modifyFields(model, { maybeSelectedPostId: () => Option.none() }),
+      ),
     ClickedRefreshPosts: () => posts.revalidateOrLoad(model),
     ClickedRetryPosts: () => posts.revalidateOrLoad(model),
     ClickedRetryPost: ({ postId }) =>
@@ -354,7 +358,7 @@ const postsListView = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.p(
         [h.Class('text-sm text-slate-500')],
         [
-          'Open a post, then go back. The detail stays in the Query. Opening it again reads that entry and does not fetch.',
+          'Open a post, then go back. Returning to the list clears its detail entry. Opening it again fetches a fresh value.',
         ],
       ),
       AsyncData.matchData(postsAsyncData, {
@@ -502,7 +506,7 @@ const postCard = (
       h.p(
         [h.Class('text-xs text-slate-400')],
         [
-          `Fetched at ${formatFetchedAt(fetchedAt)}. Leaving this screen keeps the entry.`,
+          `Fetched at ${formatFetchedAt(fetchedAt)}. Leaving this screen forgets the entry.`,
         ],
       ),
     ],
