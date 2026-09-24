@@ -24,7 +24,7 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "effect": "4.0.0-rc.116",
+    "effect": "4.0.0-rc.117",
     "foldkit": ">=0.161.0"
   },
   "dependencies": {
@@ -32,11 +32,11 @@
     "ws": "^8.21.3"
   },
   "devDependencies": {
-    "@effect/platform-node": "4.0.0-rc.116",
+    "@effect/platform-node": "4.0.0-rc.117",
     "@foldkit/vite-plugin": "workspace:*",
     "@types/node": "^26.4.0",
     "@types/ws": "^8.18.1",
-    "effect": "4.0.0-rc.116",
+    "effect": "4.0.0-rc.117",
     "foldkit": "workspace:*",
     "rimraf": "^6.1.3",
     "rolldown": "^1.2.6",
