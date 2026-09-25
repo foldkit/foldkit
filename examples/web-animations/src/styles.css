@@ -1,0 +1,68 @@
+@import 'tailwindcss';
+
+:root {
+  font-family: system-ui, sans-serif;
+  color: #173c39;
+  background: #f5f4ee;
+}
+
+body {
+  margin: 0;
+}
+.demo {
+  max-width: 44rem;
+  margin: 5rem auto;
+  padding: 1.5rem;
+}
+h1 {
+  font-size: clamp(2rem, 6vw, 3rem);
+  line-height: 1.1;
+  margin: 1rem 0;
+  font-weight: 650;
+}
+h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+p {
+  margin: 1rem 0;
+  line-height: 1.6;
+}
+.eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+button {
+  background: #173c39;
+  color: white;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+}
+button:focus-visible {
+  outline: 3px solid #dd8038;
+  outline-offset: 3px;
+}
+.panel {
+  opacity: 1;
+  transform: translateY(0px);
+  background: #d5e8db;
+  border: 1px solid #a3bfb3;
+  border-radius: 1rem;
+  padding: 2rem;
+  min-height: 11rem;
+}
+.placeholder {
+  min-height: 11rem;
+}
+.note {
+  color: #526a65;
+  font-size: 0.875rem;
+}

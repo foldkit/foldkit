@@ -100,6 +100,22 @@ A Mount acquired by the live view keeps participating in the live application wh
 
 A Mount acquired by a historical render is different: its Messages cannot reach update, change the live Model, or enter history. If the resumed live view reuses that element and declares a Mount there, Foldkit releases the replay acquisition before starting the live action with the live render's args and dispatch. Cleanup finishes before the replacement setup begins, so the old integration cannot tear down the new handle. Within the live render owner, a surviving Mount follows the latest live Submodel `toParentMessage` wiring, matching event handlers without ever borrowing a historical render's wiring.
 
+## Native Web Animations
+
+Use the browser's [Web Animations API](https://www.w3.org/TR/web-animations-1/) when an animation belongs to a particular element. The [Web Animations example](/example-apps/web-animations) shows a panel entrance, reports completion through a Message, and cancels playback when the panel leaves the DOM.
+
+`element.animate()` accepts native keyframes and timing options. This example interpolates opacity from 0 to 1 and `translateY` from 16px to 0. Offsets place the keyframes at the start and end of a 1000ms animation, and `ease-out` controls its pacing. These values are presentation choices in the example. The panel's CSS supplies the final appearance, so the animation uses the browser's default fill instead of keeping an effect after completion.
+
+::Snippet{name="mountWebAnimation" label="A native animation owned by Mount"}
+
+Construct the Animation inside `Effect.acquireRelease` and cancel that same handle on release. The browser rejects an unfinished `finished` promise when playback is cancelled, so attach both promise handlers during acquisition. Converting its outcome to a Result handles rejection immediately, even if unmount interrupts the Effect before it waits for completion. Foldkit discards interrupted Mount results; an old panel cannot report completion or failure into a later panel's acquisition. The Animation and its promise remain outside the Model and Message payloads.
+
+The acquired animation pauses immediately, before waiting for asynchronous work. `viewStateChanges` starts or resumes unfinished playback only while the view is Live. Paused historical inspection suspends the visual animation; it does not reconstruct the exact visual pose of an old Model, and the live application continues running. Once playback completes, the listener ends and later Live events cannot restart it. An acquisition created by a historical render cannot change the live Model or Message history.
+
+This entrance belongs in Mount because it uses the inserted element and releases the Animation when that element leaves. An unrelated rerender keeps the same acquisition. Later DOM work caused by a Message belongs in a [Command](/core/commands); changing Mount args does not rerun an existing Mount. Creation and playback errors become `FailedAnimatePanel`, which update renders as a Failed status.
+
+The browser owns interpolation and playback timing. Arbitrary Model or Canvas interpolation and application policies for hidden frames are separate concerns from this element animation.
+
 ## Third-Party Libraries
 
 Mount is especially useful when a library owns a rendered subtree. Charts, code editors, map renderers, and force-directed graphs all need a real element to render into and a way to release their resources.

@@ -54,6 +54,7 @@
     "dev:example:counter": "pnpm --filter counter-example dev",
     "dev:example:counters": "pnpm --filter counters-example dev",
     "dev:example:stopwatch": "pnpm --filter stopwatch-example dev",
+    "dev:example:web-animations": "pnpm --filter web-animations-example dev",
     "dev:example:weather": "pnpm --filter weather-example dev",
     "dev:example:api-cache": "pnpm --filter api-cache-example dev",
     "dev:example:charting": "pnpm --filter charting-example dev",
