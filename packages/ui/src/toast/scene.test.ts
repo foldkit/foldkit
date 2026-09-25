@@ -24,10 +24,16 @@ type Message = typeof Toast.Message.Type
 type Model = typeof Toast.Model.Type
 type Entry = typeof Toast.Entry.Type
 
+const ENTER_TRANSITION_VERSION = 1
+const LEAVE_TRANSITION_VERSION = 2
+
 const makeSettledEntry = (overrides: Partial<Entry> = {}): Entry => ({
   id: 'test-entry-0',
   variant: 'Info',
-  animation: Animation.init({ id: 'test-entry-0', isShowing: true }),
+  animation: modifyFields(
+    Animation.init({ id: 'test-entry-0', isShowing: true }),
+    { transitionVersion: () => ENTER_TRANSITION_VERSION },
+  ),
   maybeDuration: Option.some(Duration.seconds(4)),
   pendingDismissVersion: 0,
   isHovered: false,
@@ -305,12 +311,16 @@ describe('Toast', () => {
         Scene.expect(entryZero).toHaveAttr('data-leave', ''),
         Scene.Command.resolve(
           Animation.WaitForPaint,
-          Animation.Message.CompletedWaitForPaint(),
+          Animation.Message.CompletedWaitForPaint({
+            version: LEAVE_TRANSITION_VERSION,
+          }),
         ),
         Scene.expect(entryZero).toHaveStyle('translate', '100vw'),
         Scene.Command.resolve(
           Animation.WaitForAnimationSettled,
-          Animation.Message.EndedAnimation(),
+          Animation.Message.EndedAnimation({
+            version: LEAVE_TRANSITION_VERSION,
+          }),
         ),
         Scene.expect(entryZero).toBeAbsent(),
       )
@@ -362,6 +372,7 @@ describe('Toast', () => {
           id: 'test-entry-0',
           isShowing: false,
           transitionState: 'LeaveAnimating',
+          transitionVersion: LEAVE_TRANSITION_VERSION,
         },
       })
       Scene.scene(
@@ -379,6 +390,7 @@ describe('Toast', () => {
           id: 'test-entry-0',
           isShowing: false,
           transitionState: 'LeaveAnimating',
+          transitionVersion: LEAVE_TRANSITION_VERSION,
         },
       })
       Scene.scene(
