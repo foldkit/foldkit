@@ -14,6 +14,8 @@ export type DrainEntryInput = Readonly<{
 }>
 
 const DEFAULT_VERSION = 0
+const ENTER_TRANSITION_VERSION = 1
+const LEAVE_TRANSITION_VERSION = 2
 
 /** Builds a `Story.Command.resolveAll` step that drains a single toast
  *  entry's full animation and dismiss lifecycle. Resolving these Commands in
@@ -31,6 +33,12 @@ const DEFAULT_VERSION = 0
  *    `CompletedWaitBeforeDismissal`
  *  - exit animation: `WaitForPaint` then `CompletedWaitForPaint`
  *  - exit settle: `WaitForAnimationSettled` then `EndedAnimation`
+ *
+ *  The enter steps match animation transition version `1`, which the entry's
+ *  `Showed` starts, and the exit steps match version `2`, which its `Hid`
+ *  starts. Each step matches only its own version, so the helper also drains
+ *  an entry whose enter the test has already resolved. These versions are
+ *  separate from the auto-dismiss timer `version`.
  *
  *  Each step resolves with the child's raw result Message. `resolveAll` replays
  *  the matched Command's own recorded wrapping, so a parent that embeds the
@@ -51,12 +59,34 @@ export const drainEntry = ({
   version = DEFAULT_VERSION,
 }: DrainEntryInput) =>
   Story.Command.resolveAll(
-    [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
-    [Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation()],
+    [
+      Animation.WaitForPaint({ version: ENTER_TRANSITION_VERSION }),
+      Animation.Message.CompletedWaitForPaint({
+        version: ENTER_TRANSITION_VERSION,
+      }),
+    ],
+    [
+      Animation.WaitForAnimationSettled({
+        id: entryId,
+        version: ENTER_TRANSITION_VERSION,
+      }),
+      Animation.Message.EndedAnimation({ version: ENTER_TRANSITION_VERSION }),
+    ],
     [
       WaitBeforeDismissal,
       Message.CompletedWaitBeforeDismissal({ entryId, version }),
     ],
-    [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
-    [Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation()],
+    [
+      Animation.WaitForPaint({ version: LEAVE_TRANSITION_VERSION }),
+      Animation.Message.CompletedWaitForPaint({
+        version: LEAVE_TRANSITION_VERSION,
+      }),
+    ],
+    [
+      Animation.WaitForAnimationSettled({
+        id: entryId,
+        version: LEAVE_TRANSITION_VERSION,
+      }),
+      Animation.Message.EndedAnimation({ version: LEAVE_TRANSITION_VERSION }),
+    ],
   )

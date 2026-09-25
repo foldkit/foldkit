@@ -11,6 +11,7 @@ import {
   InertOthers,
   LockScroll,
   Message,
+  type Model,
   OutMessage,
   RestoreInert,
   UnlockScroll,
@@ -18,9 +19,12 @@ import {
   update,
 } from './index.js'
 
-const animationEndMessage = Message.GotAnimationMessage({
-  message: Animation.Message.EndedAnimation(),
-})
+const animationEndMessage = (version: number) =>
+  Message.GotAnimationMessage({
+    message: Animation.Message.EndedAnimation({ version }),
+  })
+
+const STALE_VERSION = -1
 
 const givenClosed = Story.given(init({ id: 'test' }))
 
@@ -35,9 +39,18 @@ const givenOpenAnimated = Story.steps(
   givenClosedAnimated,
   Story.message(Message.RequestedOpen()),
   Story.Command.resolveAll(
-    [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
-    [Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation()],
+    [
+      Animation.WaitForPaint,
+      Animation.Message.CompletedWaitForPaint({ version: 1 }),
+    ],
+    [
+      Animation.WaitForAnimationSettled,
+      Animation.Message.EndedAnimation({ version: 1 }),
+    ],
   ),
+  Story.model((model: Model) => {
+    expect(model.animation.transitionState).toBe('Idle')
+  }),
 )
 
 describe('Popover', () => {
@@ -338,11 +351,11 @@ describe('Popover', () => {
             Story.Command.resolveAll(
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 1 }),
               ],
               [
                 Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
+                Animation.Message.EndedAnimation({ version: 1 }),
               ],
             ),
           )
@@ -355,14 +368,14 @@ describe('Popover', () => {
             Story.message(Message.RequestedOpen()),
             Story.Command.resolve(
               Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint(),
+              Animation.Message.CompletedWaitForPaint({ version: 1 }),
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('EnterAnimating')
             }),
             Story.Command.resolve(
               Animation.WaitForAnimationSettled,
-              Animation.Message.EndedAnimation(),
+              Animation.Message.EndedAnimation({ version: 1 }),
             ),
           )
         })
@@ -375,11 +388,11 @@ describe('Popover', () => {
             Story.Command.resolveAll(
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 1 }),
               ],
               [
                 Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
+                Animation.Message.EndedAnimation({ version: 1 }),
               ],
             ),
             Story.model(model => {
@@ -403,9 +416,9 @@ describe('Popover', () => {
               [FocusButton, Message.CompletedFocusButton()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 2 }),
               ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
           )
         })
@@ -436,9 +449,9 @@ describe('Popover', () => {
             Story.Command.resolveAll(
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 2 }),
               ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
           )
         })
@@ -450,15 +463,17 @@ describe('Popover', () => {
             Story.message(Message.RequestedClose()),
             Story.Command.resolve(
               Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint(),
+              Animation.Message.CompletedWaitForPaint({ version: 2 }),
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('LeaveAnimating')
             }),
-            Story.Command.expectHas(DetectMovementOrAnimationEnd),
+            Story.Command.expectHas(
+              DetectMovementOrAnimationEnd({ id: 'test', version: 2 }),
+            ),
             Story.Command.resolveAll(
               [FocusButton, Message.CompletedFocusButton()],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
           )
         })
@@ -472,9 +487,9 @@ describe('Popover', () => {
               [FocusButton, Message.CompletedFocusButton()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 2 }),
               ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
@@ -515,7 +530,9 @@ describe('Popover', () => {
             givenOpen,
             Story.message(
               Message.GotAnimationMessage({
-                message: Animation.Message.CompletedWaitForPaint(),
+                message: Animation.Message.CompletedWaitForPaint({
+                  version: 0,
+                }),
               }),
             ),
             Story.model(model => {
@@ -529,7 +546,7 @@ describe('Popover', () => {
           Story.story(
             update,
             givenOpen,
-            Story.message(animationEndMessage),
+            Story.message(animationEndMessage(0)),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
               expect(model.animation.transitionState).toBe('Idle')
@@ -547,13 +564,16 @@ describe('Popover', () => {
             Story.Command.resolveAll(
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 1 }),
               ],
               [
                 Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
+                Animation.Message.EndedAnimation({ version: STALE_VERSION }),
               ],
             ),
+            Story.model(model => {
+              expect(model.animation.transitionState).toBe('EnterAnimating')
+            }),
             Story.message(Message.RequestedClose()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
@@ -563,10 +583,13 @@ describe('Popover', () => {
               [FocusButton, Message.CompletedFocusButton()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 2 }),
               ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
+            Story.model(model => {
+              expect(model.animation.transitionState).toBe('Idle')
+            }),
           )
         })
       })

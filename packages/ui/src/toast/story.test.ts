@@ -26,11 +26,16 @@ const STALE_VERSION = -1
 const POINTER_ID = 1
 const OTHER_POINTER_ID = 2
 const SETTLING_SWIPE_VERSION = 2
+const ENTER_TRANSITION_VERSION = 1
+const LEAVE_TRANSITION_VERSION = 2
 
 const makeSettledEntry = (overrides: Partial<Entry> = {}): Entry => ({
   id: 'test-entry-0',
   variant: 'Info',
-  animation: Animation.init({ id: 'test-entry-0', isShowing: true }),
+  animation: modifyFields(
+    Animation.init({ id: 'test-entry-0', isShowing: true }),
+    { transitionVersion: () => ENTER_TRANSITION_VERSION },
+  ),
   maybeDuration: Option.some(Duration.seconds(4)),
   pendingDismissVersion: 0,
   isHovered: false,
@@ -237,10 +242,17 @@ describe('Toast', () => {
             )
           }),
           Story.Command.resolveAll(
-            [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
+            [
+              Animation.WaitForPaint,
+              Animation.Message.CompletedWaitForPaint({
+                version: LEAVE_TRANSITION_VERSION,
+              }),
+            ],
             [
               Animation.WaitForAnimationSettled,
-              Animation.Message.EndedAnimation(),
+              Animation.Message.EndedAnimation({
+                version: LEAVE_TRANSITION_VERSION,
+              }),
             ],
           ),
         )
@@ -399,10 +411,17 @@ describe('Toast', () => {
             )
           }),
           Story.Command.resolveAll(
-            [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
+            [
+              Animation.WaitForPaint,
+              Animation.Message.CompletedWaitForPaint({
+                version: LEAVE_TRANSITION_VERSION,
+              }),
+            ],
             [
               Animation.WaitForAnimationSettled,
-              Animation.Message.EndedAnimation(),
+              Animation.Message.EndedAnimation({
+                version: LEAVE_TRANSITION_VERSION,
+              }),
             ],
           ),
           Story.model((next: Model) => {
@@ -417,6 +436,7 @@ describe('Toast', () => {
             id: firstEntryId,
             isShowing: false,
             transitionState: 'LeaveAnimating',
+            transitionVersion: LEAVE_TRANSITION_VERSION,
           },
         })
         const model: Model = modifyFields(Toast.init({ id: 'test' }), {
@@ -440,6 +460,7 @@ describe('Toast', () => {
             id: firstEntryId,
             isShowing: false,
             transitionState: 'LeaveAnimating',
+            transitionVersion: LEAVE_TRANSITION_VERSION,
           },
         })
         const model: Model = modifyFields(Toast.init({ id: 'test' }), {
@@ -452,7 +473,9 @@ describe('Toast', () => {
           Story.message(
             Message.GotAnimationMessage({
               entryId: firstEntryId,
-              message: Animation.Message.EndedAnimation(),
+              message: Animation.Message.EndedAnimation({
+                version: LEAVE_TRANSITION_VERSION,
+              }),
             }),
           ),
           Story.expectOutMessage(
@@ -471,12 +494,14 @@ describe('Toast', () => {
           id: 'test-entry-0',
           animation: {
             ...Animation.init({ id: 'test-entry-0', isShowing: true }),
+            transitionVersion: ENTER_TRANSITION_VERSION,
           },
         })
         const entryTwo = makeSettledEntry({
           id: 'test-entry-1',
           animation: {
             ...Animation.init({ id: 'test-entry-1', isShowing: true }),
+            transitionVersion: ENTER_TRANSITION_VERSION,
           },
         })
         const model: Model = modifyFields(Toast.init({ id: 'test' }), {
@@ -496,15 +521,35 @@ describe('Toast', () => {
             )
           }),
           Story.Command.resolveAll(
-            [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
-            [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
             [
-              Animation.WaitForAnimationSettled({ id: 'test-entry-0' }),
-              Animation.Message.EndedAnimation(),
+              Animation.WaitForPaint,
+              Animation.Message.CompletedWaitForPaint({
+                version: LEAVE_TRANSITION_VERSION,
+              }),
             ],
             [
-              Animation.WaitForAnimationSettled({ id: 'test-entry-1' }),
-              Animation.Message.EndedAnimation(),
+              Animation.WaitForPaint,
+              Animation.Message.CompletedWaitForPaint({
+                version: LEAVE_TRANSITION_VERSION,
+              }),
+            ],
+            [
+              Animation.WaitForAnimationSettled({
+                id: 'test-entry-0',
+                version: LEAVE_TRANSITION_VERSION,
+              }),
+              Animation.Message.EndedAnimation({
+                version: LEAVE_TRANSITION_VERSION,
+              }),
+            ],
+            [
+              Animation.WaitForAnimationSettled({
+                id: 'test-entry-1',
+                version: LEAVE_TRANSITION_VERSION,
+              }),
+              Animation.Message.EndedAnimation({
+                version: LEAVE_TRANSITION_VERSION,
+              }),
             ],
           ),
           Story.model((next: Model) => {
@@ -525,10 +570,17 @@ describe('Toast', () => {
         givenEmpty,
         Story.message(Toast.Added({ entry })),
         Story.Command.resolveAll(
-          [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
+          [
+            Animation.WaitForPaint,
+            Animation.Message.CompletedWaitForPaint({
+              version: ENTER_TRANSITION_VERSION,
+            }),
+          ],
           [
             Animation.WaitForAnimationSettled,
-            Animation.Message.EndedAnimation(),
+            Animation.Message.EndedAnimation({
+              version: ENTER_TRANSITION_VERSION,
+            }),
           ],
         ),
         Story.model((next: Model) => {
@@ -547,10 +599,17 @@ describe('Toast', () => {
           )
         }),
         Story.Command.resolveAll(
-          [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
+          [
+            Animation.WaitForPaint,
+            Animation.Message.CompletedWaitForPaint({
+              version: LEAVE_TRANSITION_VERSION,
+            }),
+          ],
           [
             Animation.WaitForAnimationSettled,
-            Animation.Message.EndedAnimation(),
+            Animation.Message.EndedAnimation({
+              version: LEAVE_TRANSITION_VERSION,
+            }),
           ],
         ),
         Story.model((next: Model) => {
@@ -567,6 +626,43 @@ describe('Toast', () => {
         Toast.update,
         givenEmpty,
         Story.message(Toast.Added({ entry })),
+        toastTest.drainEntry({ entryId: firstEntryId }),
+        Story.model((next: Model) => {
+          expect(next.entries).toHaveLength(0)
+        }),
+      )
+    })
+
+    it('drains an entry whose enter is already resolved via test.drainEntry', () => {
+      const entry = makeFreshEntry({
+        maybeDuration: Option.some(Duration.millis(100)),
+      })
+      Story.story(
+        Toast.update,
+        givenEmpty,
+        Story.message(Toast.Added({ entry })),
+        Story.Command.resolveAll(
+          [
+            Animation.WaitForPaint,
+            Animation.Message.CompletedWaitForPaint({
+              version: ENTER_TRANSITION_VERSION,
+            }),
+          ],
+          [
+            Animation.WaitForAnimationSettled,
+            Animation.Message.EndedAnimation({
+              version: ENTER_TRANSITION_VERSION,
+            }),
+          ],
+        ),
+        Story.model((next: Model) => {
+          expect(
+            Array.map(
+              next.entries,
+              ({ animation }) => animation.transitionState,
+            ),
+          ).toStrictEqual(['Idle'])
+        }),
         toastTest.drainEntry({ entryId: firstEntryId }),
         Story.model((next: Model) => {
           expect(next.entries).toHaveLength(0)
@@ -785,10 +881,17 @@ describe('Toast', () => {
           expect(entry.animation.transitionState).toBe('LeaveStart')
         }),
         Story.Command.resolveAll(
-          [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
+          [
+            Animation.WaitForPaint,
+            Animation.Message.CompletedWaitForPaint({
+              version: LEAVE_TRANSITION_VERSION,
+            }),
+          ],
           [
             Animation.WaitForAnimationSettled,
-            Animation.Message.EndedAnimation(),
+            Animation.Message.EndedAnimation({
+              version: LEAVE_TRANSITION_VERSION,
+            }),
           ],
         ),
         Story.model((next: Model) => {
@@ -1130,10 +1233,17 @@ describe('Toast', () => {
           )
         }),
         Story.Command.resolveAll(
-          [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
+          [
+            Animation.WaitForPaint,
+            Animation.Message.CompletedWaitForPaint({
+              version: LEAVE_TRANSITION_VERSION,
+            }),
+          ],
           [
             Animation.WaitForAnimationSettled,
-            Animation.Message.EndedAnimation(),
+            Animation.Message.EndedAnimation({
+              version: LEAVE_TRANSITION_VERSION,
+            }),
           ],
         ),
         Story.model((next: Model) => {
@@ -1156,6 +1266,7 @@ describe('Toast', () => {
           id: firstEntryId,
           isShowing: false,
           transitionState: 'LeaveAnimating',
+          transitionVersion: LEAVE_TRANSITION_VERSION,
         },
       })
       const model = withEntries(swipeInit, [leavingEntry])
@@ -1280,10 +1391,17 @@ describe('Toast', () => {
           expect(entry.animation.transitionState).toBe('LeaveStart')
         }),
         Story.Command.resolveAll(
-          [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
+          [
+            Animation.WaitForPaint,
+            Animation.Message.CompletedWaitForPaint({
+              version: LEAVE_TRANSITION_VERSION,
+            }),
+          ],
           [
             Animation.WaitForAnimationSettled,
-            Animation.Message.EndedAnimation(),
+            Animation.Message.EndedAnimation({
+              version: LEAVE_TRANSITION_VERSION,
+            }),
           ],
         ),
         Story.model((model: Model) => {
@@ -1410,6 +1528,7 @@ describe('Toast', () => {
           id: firstEntryId,
           isShowing: false,
           transitionState: 'LeaveAnimating',
+          transitionVersion: LEAVE_TRANSITION_VERSION,
         },
         swipeState: SwipeState.Dismissing({
           offsetX: 100,
@@ -1463,10 +1582,17 @@ describe('Toast', () => {
           expect(entry.animation.transitionState).toBe('LeaveStart')
         }),
         Story.Command.resolveAll(
-          [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
+          [
+            Animation.WaitForPaint,
+            Animation.Message.CompletedWaitForPaint({
+              version: LEAVE_TRANSITION_VERSION,
+            }),
+          ],
           [
             Animation.WaitForAnimationSettled,
-            Animation.Message.EndedAnimation(),
+            Animation.Message.EndedAnimation({
+              version: LEAVE_TRANSITION_VERSION,
+            }),
           ],
         ),
         Story.model((next: Model) => {

@@ -42,9 +42,12 @@ const acknowledgePreventBlur = Scene.Mount.resolve(
   Message.CompletedAttachComboboxPreventBlur(),
 )
 
-const animationEndMessage = Message.GotAnimationMessage({
-  message: Animation.Message.EndedAnimation(),
-})
+const animationEndMessage = (version: number) =>
+  Message.GotAnimationMessage({
+    message: Animation.Message.EndedAnimation({ version }),
+  })
+
+const STALE_VERSION = -1
 
 const givenClosed = Story.given(init({ id: 'test' }))
 
@@ -59,9 +62,18 @@ const givenOpenAnimated = Story.steps(
   givenClosedAnimated,
   Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
   Story.Command.resolveAll(
-    [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
-    [Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation()],
+    [
+      Animation.WaitForPaint,
+      Animation.Message.CompletedWaitForPaint({ version: 1 }),
+    ],
+    [
+      Animation.WaitForAnimationSettled,
+      Animation.Message.EndedAnimation({ version: 1 }),
+    ],
   ),
+  Story.model((model: Model) => {
+    expect(model.animation.transitionState).toBe('Idle')
+  }),
 )
 
 describe('Combobox', () => {
@@ -802,11 +814,11 @@ describe('Combobox', () => {
             Story.Command.resolveAll(
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 1 }),
               ],
               [
                 Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
+                Animation.Message.EndedAnimation({ version: 1 }),
               ],
             ),
           )
@@ -821,14 +833,14 @@ describe('Combobox', () => {
             ),
             Story.Command.resolve(
               Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint(),
+              Animation.Message.CompletedWaitForPaint({ version: 1 }),
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('EnterAnimating')
             }),
             Story.Command.resolveAll([
               Animation.WaitForAnimationSettled,
-              Animation.Message.EndedAnimation(),
+              Animation.Message.EndedAnimation({ version: 1 }),
             ]),
           )
         })
@@ -843,11 +855,11 @@ describe('Combobox', () => {
             Story.Command.resolveAll(
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 1 }),
               ],
               [
                 Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
+                Animation.Message.EndedAnimation({ version: 1 }),
               ],
             ),
             Story.model(model => {
@@ -873,9 +885,9 @@ describe('Combobox', () => {
               [FocusInput, Message.CompletedFocusInput()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 2 }),
               ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
           )
         })
@@ -897,9 +909,9 @@ describe('Combobox', () => {
             Story.Command.resolveAll(
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 2 }),
               ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
           )
         })
@@ -923,9 +935,9 @@ describe('Combobox', () => {
               [FocusInput, Message.CompletedFocusInput()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 2 }),
               ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
           )
         })
@@ -939,15 +951,17 @@ describe('Combobox', () => {
             ),
             Story.Command.resolve(
               Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint(),
+              Animation.Message.CompletedWaitForPaint({ version: 2 }),
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('LeaveAnimating')
             }),
-            Story.Command.expectHas(DetectMovementOrAnimationEnd),
+            Story.Command.expectHas(
+              DetectMovementOrAnimationEnd({ id: 'test', version: 2 }),
+            ),
             Story.Command.resolveAll(
               [FocusInput, Message.CompletedFocusInput()],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
           )
         })
@@ -963,9 +977,9 @@ describe('Combobox', () => {
               [FocusInput, Message.CompletedFocusInput()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 2 }),
               ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
@@ -1010,7 +1024,9 @@ describe('Combobox', () => {
             givenOpen,
             Story.message(
               Message.GotAnimationMessage({
-                message: Animation.Message.CompletedWaitForPaint(),
+                message: Animation.Message.CompletedWaitForPaint({
+                  version: 0,
+                }),
               }),
             ),
             Story.model(model => {
@@ -1024,7 +1040,7 @@ describe('Combobox', () => {
           Story.story(
             update,
             givenOpen,
-            Story.message(animationEndMessage),
+            Story.message(animationEndMessage(0)),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
               expect(model.animation.transitionState).toBe('Idle')
@@ -1044,13 +1060,16 @@ describe('Combobox', () => {
             Story.Command.resolveAll(
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 1 }),
               ],
               [
                 Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
+                Animation.Message.EndedAnimation({ version: STALE_VERSION }),
               ],
             ),
+            Story.model(model => {
+              expect(model.animation.transitionState).toBe('EnterAnimating')
+            }),
             Story.message(
               Message.Closed({ restingInputValue: '', isClearable: true }),
             ),
@@ -1062,10 +1081,13 @@ describe('Combobox', () => {
               [FocusInput, Message.CompletedFocusInput()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 2 }),
               ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
+            Story.model(model => {
+              expect(model.animation.transitionState).toBe('Idle')
+            }),
           )
         })
       })

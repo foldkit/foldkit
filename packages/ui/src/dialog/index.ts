@@ -241,10 +241,16 @@ const isLeaving = (model: Model): boolean =>
 const isOpenOrAnimating = (model: Model): boolean =>
   model.isOpen || model.animation.transitionState !== 'Idle'
 
+const resetAnimationToClosed = (animation: Animation.Model): Animation.Model =>
+  modifyFields(animation, {
+    isShowing: () => false,
+    transitionState: () => 'Idle',
+  })
+
 const resetToClosed = (model: Model): Model =>
   modifyFields(model, {
     isOpen: () => false,
-    animation: () => Animation.init({ id: `${model.id}-panel` }),
+    animation: resetAnimationToClosed,
   })
 
 const wrapAnimationMessage = (message: Animation.Message): Message =>
@@ -260,7 +266,9 @@ const resumeAnimationAfterAcquisition = (
       model,
       commands: [
         Command.mapMessage(
-          AnimationUpdate.WaitForPaint(),
+          AnimationUpdate.WaitForPaint({
+            version: model.animation.transitionVersion,
+          }),
           wrapAnimationMessage,
         ),
       ],
@@ -269,7 +277,10 @@ const resumeAnimationAfterAcquisition = (
       model,
       commands: [
         Command.mapMessage(
-          AnimationUpdate.WaitForAnimationSettled({ id: model.animation.id }),
+          AnimationUpdate.WaitForAnimationSettled({
+            id: model.animation.id,
+            version: model.animation.transitionVersion,
+          }),
           wrapAnimationMessage,
         ),
       ],
@@ -278,7 +289,9 @@ const resumeAnimationAfterAcquisition = (
       model,
       commands: [
         Command.mapMessage(
-          AnimationUpdate.WaitForPaint(),
+          AnimationUpdate.WaitForPaint({
+            version: model.animation.transitionVersion,
+          }),
           wrapAnimationMessage,
         ),
       ],
@@ -287,7 +300,10 @@ const resumeAnimationAfterAcquisition = (
       model,
       commands: [
         Command.mapMessage(
-          AnimationUpdate.WaitForAnimationSettled({ id: model.animation.id }),
+          AnimationUpdate.WaitForAnimationSettled({
+            id: model.animation.id,
+            version: model.animation.transitionVersion,
+          }),
           wrapAnimationMessage,
         ),
       ],
