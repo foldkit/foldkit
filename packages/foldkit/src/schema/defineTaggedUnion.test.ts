@@ -57,6 +57,42 @@ describe('defineTaggedUnion', () => {
     )
   })
 
+  it('infers a union when handlers return different variants', () => {
+    const Phase = defineTaggedUnion({
+      Idle: {},
+      Ready: { id: Schema.String },
+    })
+    type Phase = typeof Phase.Type
+
+    const Kind = defineTaggedUnion({
+      Fresh: {},
+      Known: { id: Schema.String },
+    })
+
+    const toPhase = (kind: typeof Kind.Type) =>
+      Kind.match(kind, {
+        Fresh: () => Phase.Idle(),
+        Known: ({ id }) => Phase.Ready({ id }),
+      })
+
+    const toPhaseDataLast = Kind.match({
+      Fresh: () => Phase.Idle(),
+      Known: ({ id }) => Phase.Ready({ id }),
+    })
+
+    expectTypeOf(toPhase).toEqualTypeOf<(kind: typeof Kind.Type) => Phase>()
+    expectTypeOf(toPhaseDataLast).toEqualTypeOf<
+      (kind: typeof Kind.Type) => Phase
+    >()
+    expect(toPhase(Kind.Fresh())).toStrictEqual(Phase.Idle())
+    expect(toPhase(Kind.Known({ id: 'a' }))).toStrictEqual(
+      Phase.Ready({ id: 'a' }),
+    )
+    expect(toPhaseDataLast(Kind.Known({ id: 'b' }))).toStrictEqual(
+      Phase.Ready({ id: 'b' }),
+    )
+  })
+
   it('matches selected tags and narrows the fallback to the rest', () => {
     const describeSubmission = Submission.matchOrElse(
       {

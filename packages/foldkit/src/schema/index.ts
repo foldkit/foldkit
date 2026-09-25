@@ -234,6 +234,12 @@ type TaggedUnionMatchOrElseCases<
   ) => Output
 }
 
+type TaggedUnionMatchCaseReturns<Cases> = {
+  [Tag in keyof Cases]-?: Cases[Tag] extends (...args: never) => infer Output
+    ? Output
+    : never
+}[keyof Cases]
+
 type TaggedUnionMatchOrElseCaseReturns<Cases> = {
   [Tag in keyof Cases]-?: NonNullable<Cases[Tag]> extends (
     ...args: never
@@ -256,6 +262,13 @@ type TaggedUnionMatchOrElseHandledTags<
   keyof CasesByTag & string
 >
 
+type ValidateMatchCases<
+  CasesByTag extends Record<string, Schema.Struct.Fields>,
+  Cases,
+> = {
+  readonly [Tag in Exclude<keyof Cases, keyof CasesByTag & string>]: never
+}
+
 type ValidateMatchOrElseCases<
   CasesByTag extends Record<string, Schema.Struct.Fields>,
   Cases,
@@ -265,6 +278,24 @@ type ValidateMatchOrElseCases<
 
 type TaggedUnionMatch<CasesByTag extends Record<string, Schema.Struct.Fields>> =
   {
+    <
+      Input extends TaggedUnionType<CasesByTag>,
+      const Cases extends TaggedUnionMatchCases<CasesByTag, Input, unknown>,
+    >(
+      value: Input,
+      cases: Cases & ValidateMatchCases<CasesByTag, Cases>,
+    ): TaggedUnionMatchCaseReturns<Cases>
+    <
+      const Cases extends TaggedUnionMatchCases<
+        CasesByTag,
+        TaggedUnionType<CasesByTag>,
+        unknown
+      >,
+    >(
+      cases: Cases & ValidateMatchCases<CasesByTag, Cases>,
+    ): (
+      value: TaggedUnionType<CasesByTag>,
+    ) => TaggedUnionMatchCaseReturns<Cases>
     <
       Output,
       Input extends TaggedUnionType<CasesByTag> = TaggedUnionType<CasesByTag>,
@@ -392,9 +423,11 @@ interface RichUnionSchema<
 
 /** The Schema returned by `defineTaggedUnion`. It includes callable variant
  * constructors, exhaustive `match`, partial `matchOrElse`, `guards`,
- * `isAnyOf`, `subset`, and `members`. Pass a structurally refined union as a
- * matcher's optional second type argument to preserve narrower payload fields
- * in each handler. */
+ * `isAnyOf`, `subset`, and `members`. With no output type argument, `match`
+ * returns the union of the handler results. Pass an output type argument when
+ * every handler must return that type. Pass a structurally refined union as
+ * the optional second type argument to preserve narrower payload fields in
+ * each handler. */
 export type TaggedUnion<
   CasesByTag extends Record<string, Schema.Struct.Fields>,
 > = RichUnionSchema<CasesByTag> & {
@@ -405,7 +438,9 @@ export type TaggedUnion<
 }
 
 /** The Schema returned by `defineMessageUnion`. Each variant is a callable
- * property on the union, and `match` handles the union exhaustively. Pass a
+ * property on the union, and `match` handles the union exhaustively. With no
+ * output type argument, `match` returns the union of the handler results. Pass
+ * an output type argument when every handler must return that type. Pass a
  * structurally refined union as `match`'s optional second type argument to
  * preserve narrower payload fields in each handler. */
 export type MessageUnion<
