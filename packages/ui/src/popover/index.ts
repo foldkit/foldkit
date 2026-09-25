@@ -194,21 +194,21 @@ export const FocusButton = Command.define('FocusButton', {
 export const DetectMovementOrAnimationEnd = Command.define(
   'DetectMovementOrAnimationEnd',
   {
-    args: { id: Schema.String },
+    args: { id: Schema.String, version: Schema.Number },
     messages: [Message.GotAnimationMessage],
-    execute: ({ id }) =>
+    execute: ({ id, version }) =>
       Effect.raceFirst(
         Dom.detectElementMovement(buttonSelector(id)).pipe(
           Effect.as(
             Message.GotAnimationMessage({
-              message: Animation.Message.EndedAnimation(),
+              message: Animation.Message.EndedAnimation({ version }),
             }),
           ),
         ),
         Dom.waitForAnimationSettled(panelSelector(id)).pipe(
           Effect.as(
             Message.GotAnimationMessage({
-              message: Animation.Message.EndedAnimation(),
+              message: Animation.Message.EndedAnimation({ version }),
             }),
           ),
         ),
@@ -219,10 +219,12 @@ export const DetectMovementOrAnimationEnd = Command.define(
 const foldAnimationOutMessage = Animation.OutMessage.match<
   Update.Step<Model, Message>
 >({
-  StartedLeaveAnimating: () => model => ({
-    model,
-    commands: [DetectMovementOrAnimationEnd({ id: model.id })],
-  }),
+  StartedLeaveAnimating:
+    ({ version }) =>
+    model => ({
+      model,
+      commands: [DetectMovementOrAnimationEnd({ id: model.id, version })],
+    }),
   TransitionedOut: () => model => ({ model }),
 })
 

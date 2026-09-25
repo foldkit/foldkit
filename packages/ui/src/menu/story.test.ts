@@ -59,11 +59,14 @@ const acknowledgeFocusItems = Story.Command.resolve(
   Message.CompletedFocusItems(),
 )
 
-const animationEndMessage = Message.GotAnimationMessage({
-  message: Animation.Message.EndedAnimation(),
-})
+const animationEndMessage = (version: number) =>
+  Message.GotAnimationMessage({
+    message: Animation.Message.EndedAnimation({ version }),
+  })
 
 const STALE_CLEAR_SEARCH_VERSION = 9999
+
+const STALE_ANIMATION_VERSION = -1
 
 const givenClosed = Story.given(init({ id: 'test' }))
 
@@ -80,9 +83,18 @@ const givenOpenAnimated = Story.steps(
   Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
   acknowledgeFocusItems,
   Story.Command.resolveAll(
-    [Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint()],
-    [Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation()],
+    [
+      Animation.WaitForPaint,
+      Animation.Message.CompletedWaitForPaint({ version: 1 }),
+    ],
+    [
+      Animation.WaitForAnimationSettled,
+      Animation.Message.EndedAnimation({ version: 1 }),
+    ],
   ),
+  Story.model((model: Model) => {
+    expect(model.animation.transitionState).toBe('Idle')
+  }),
 )
 
 describe('Menu', () => {
@@ -1053,14 +1065,16 @@ describe('Menu', () => {
             Story.Command.resolveAll(
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 1 }),
               ],
               [
                 Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
+                Animation.Message.EndedAnimation({ version: 1 }),
               ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
+            Story.model(model => {
+              expect(model.animation.transitionState).toBe('Idle')
+            }),
           )
         })
 
@@ -1074,18 +1088,18 @@ describe('Menu', () => {
             acknowledgeFocusItems,
             Story.Command.resolve(
               Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint(),
+              Animation.Message.CompletedWaitForPaint({ version: 1 }),
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('EnterAnimating')
             }),
-            Story.Command.resolveAll(
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
-              ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+            Story.Command.resolve(
+              Animation.WaitForAnimationSettled,
+              Animation.Message.EndedAnimation({ version: 1 }),
             ),
+            Story.model(model => {
+              expect(model.animation.transitionState).toBe('Idle')
+            }),
           )
         })
 
@@ -1100,13 +1114,12 @@ describe('Menu', () => {
               [FocusItems, Message.CompletedFocusItems()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 1 }),
               ],
               [
                 Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
+                Animation.Message.EndedAnimation({ version: 1 }),
               ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
@@ -1143,14 +1156,13 @@ describe('Menu', () => {
               [FocusButton, Message.CompletedFocusButton()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 2 }),
               ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
-              ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
+            Story.model(model => {
+              expect(model.animation.transitionState).toBe('Idle')
+            }),
           )
         })
 
@@ -1166,14 +1178,13 @@ describe('Menu', () => {
             Story.Command.resolveAll(
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 2 }),
               ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
-              ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
+            Story.model(model => {
+              expect(model.animation.transitionState).toBe('Idle')
+            }),
           )
         })
 
@@ -1190,14 +1201,13 @@ describe('Menu', () => {
               [FocusButton, Message.CompletedFocusButton()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 2 }),
               ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
-              ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
+            Story.model(model => {
+              expect(model.animation.transitionState).toBe('Idle')
+            }),
           )
         })
 
@@ -1208,19 +1218,21 @@ describe('Menu', () => {
             Story.message(Message.Closed()),
             Story.Command.resolve(
               Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint(),
+              Animation.Message.CompletedWaitForPaint({ version: 2 }),
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('LeaveAnimating')
             }),
+            Story.Command.expectHas(
+              DetectMovementOrAnimationEnd({ id: 'test', version: 2 }),
+            ),
             Story.Command.resolveAll(
               [FocusButton, Message.CompletedFocusButton()],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
-              ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
+            Story.model(model => {
+              expect(model.animation.transitionState).toBe('Idle')
+            }),
           )
         })
 
@@ -1233,13 +1245,9 @@ describe('Menu', () => {
               [FocusButton, Message.CompletedFocusButton()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 2 }),
               ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
-              ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
             Story.model(model => {
               expect(model.animation.transitionState).toBe('Idle')
@@ -1283,7 +1291,9 @@ describe('Menu', () => {
             givenOpen,
             Story.message(
               Message.GotAnimationMessage({
-                message: Animation.Message.CompletedWaitForPaint(),
+                message: Animation.Message.CompletedWaitForPaint({
+                  version: 0,
+                }),
               }),
             ),
             Story.model(model => {
@@ -1297,7 +1307,7 @@ describe('Menu', () => {
           Story.story(
             update,
             givenOpen,
-            Story.message(animationEndMessage),
+            Story.message(animationEndMessage(0)),
             Story.model(model => {
               expect(model.isOpen).toBe(true)
               expect(model.animation.transitionState).toBe('Idle')
@@ -1314,18 +1324,16 @@ describe('Menu', () => {
             Story.message(
               Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
             ),
-            Story.Command.resolveAll(
-              [FocusItems, Message.CompletedFocusItems()],
-              [
-                Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
-              ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+            acknowledgeFocusItems,
+            Story.Command.resolve(
+              Animation.WaitForPaint,
+              Animation.Message.CompletedWaitForPaint({
+                version: STALE_ANIMATION_VERSION,
+              }),
             ),
+            Story.model(model => {
+              expect(model.animation.transitionState).toBe('EnterStart')
+            }),
             Story.message(Message.Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
@@ -1335,14 +1343,13 @@ describe('Menu', () => {
               [FocusButton, Message.CompletedFocusButton()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 2 }),
               ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
-              ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
+            Story.model(model => {
+              expect(model.animation.transitionState).toBe('Idle')
+            }),
           )
         })
 
@@ -1353,18 +1360,20 @@ describe('Menu', () => {
             Story.message(
               Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
             ),
-            Story.Command.resolveAll(
-              [FocusItems, Message.CompletedFocusItems()],
-              [
-                Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
-              ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
-              ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+            acknowledgeFocusItems,
+            Story.Command.resolve(
+              Animation.WaitForPaint,
+              Animation.Message.CompletedWaitForPaint({ version: 1 }),
             ),
+            Story.Command.resolve(
+              Animation.WaitForAnimationSettled,
+              Animation.Message.EndedAnimation({
+                version: STALE_ANIMATION_VERSION,
+              }),
+            ),
+            Story.model(model => {
+              expect(model.animation.transitionState).toBe('EnterAnimating')
+            }),
             Story.message(Message.Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
@@ -1374,14 +1383,13 @@ describe('Menu', () => {
               [FocusButton, Message.CompletedFocusButton()],
               [
                 Animation.WaitForPaint,
-                Animation.Message.CompletedWaitForPaint(),
+                Animation.Message.CompletedWaitForPaint({ version: 2 }),
               ],
-              [
-                Animation.WaitForAnimationSettled,
-                Animation.Message.EndedAnimation(),
-              ],
-              [DetectMovementOrAnimationEnd, animationEndMessage],
+              [DetectMovementOrAnimationEnd, animationEndMessage(2)],
             ),
+            Story.model(model => {
+              expect(model.animation.transitionState).toBe('Idle')
+            }),
           )
         })
       })
