@@ -16,6 +16,9 @@ import { createOverlay } from './overlay.js'
 const initialStoreState: StoreState = {
   entries: [],
   keyframes: HashMap.make([0, {}]),
+  gapCheckpoints: HashMap.empty(),
+  maybeReplayGapModel: Option.none(),
+  maybeLatestRecordedModel: Option.none(),
   maybeInitModel: Option.some({}),
   initCommands: [],
   initMountStarts: [],
@@ -93,6 +96,7 @@ describe('DevTools interaction blocker', () => {
             'BottomRight',
             'TimeTravel',
             Option.none(),
+            { configuredExcludedTags: new Set(), setUiExcludedTags: () => {} },
           )
           return yield* Effect.never
         }),

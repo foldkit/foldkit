@@ -64,6 +64,8 @@ Every tool except `foldkit_list_runtimes` accepts an optional `runtime_id`. With
 | `foldkit_dispatch_message`      | Dispatches one Message after decoding it against the configured Message Schema.                                                                                                                                                                                                 |
 | `foldkit_dispatch_messages`     | Validates and dispatches an ordered batch of 1 to 100 Messages. Validation is all-or-nothing, so one invalid payload rejects the batch before any Message is dispatched. The response returns predicted history indices, but other Messages can land between the batch entries. |
 
+Indexed reads keep the Model immediately after the recorded Message. Excluded Messages can change the Live Model without moving any history index. Use `foldkit_get_model` to read Live, including those excluded updates.
+
 ## Connection Flow
 
 The browser bridge runs alongside DevTools and subscribes to the DevTools store. The Vite plugin relays requests between browser tabs and MCP clients through a WebSocket endpoint on the dev server. The MCP server runs under your AI agent and finds the relay for the project it runs in. `FOLDKIT_PROJECT_ROOT` selects another project.

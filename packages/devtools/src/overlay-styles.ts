@@ -426,6 +426,24 @@ ul {
   gap: 20px;
   padding: 8px 12px;
 }
+.dt-recording-toggle {
+  margin-left: auto;
+  border: 1px solid var(--dt-border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+.dt-recording-toggle:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.dt-recording-toggle:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
 .dt-settings-row-text {
   display: flex;
   flex-direction: column;

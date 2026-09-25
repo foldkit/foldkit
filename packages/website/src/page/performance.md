@@ -64,7 +64,7 @@ The dev server runs several systems that production builds strip entirely:
 - The [Slow Warnings](/core/slow-warnings) can time update, subscriptions, view, and patch work against phase budgets.
 - Model preservation encodes the Model so state survives development reloads.
 
-All of it is gated behind `import.meta.hot` and eliminated from production bundles. The consequence: judge performance with a production build. An animation-heavy app dispatching Messages at 60Hz pays the dev-mode systems on every single update, so the dev server systematically understates how the deployed app performs. If DevTools is enabled, use `excludeFromHistory` to skip history recording for high-frequency Messages like frame ticks and pointer moves.
+All of it is gated behind `import.meta.hot` and eliminated from production bundles. The consequence: judge performance with a production build. An animation-heavy app dispatching Messages at 60Hz pays the dev-mode systems on every single update, so the dev server systematically understates how the deployed app performs. If DevTools is enabled, use `excludeFromHistory` or the overlay’s Settings screen to stop recording high-frequency Messages such as frame ticks and pointer moves. The Messages still update the app; skipping their history entries avoids per-Message diff work.
 
 ## The optimization toolkit
 

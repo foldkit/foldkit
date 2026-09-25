@@ -13,7 +13,7 @@ The panel lists every recorded Message, with the newest at the bottom. Select a 
 - `Commands` lists the Commands returned by update.
 - `Mounts` shows which Mounts started or ended during that render.
 
-The `Live` badge tells you whether the inspector shows the latest state or a past entry. In time-travel mode, selecting an earlier row installs a paused historical view. It does not pause the live application behind that view. Select `Resume` to patch the latest live view back into the DOM. `Clear` drops the recorded history without restarting the app.
+The `Live` badge means the host is showing its current Model. The inspector shows the Model at the selected recorded entry. In time-travel mode, selecting a row installs that historical view. It does not pause the live application behind that view. Select `Resume` to patch the latest live view back into the DOM. `Clear` drops the recorded history without restarting the app.
 
 :::Info{label="AI agent integration"}
 Foldkit also exposes DevTools to AI agents over the Model Context Protocol. See the [DevTools MCP](/ai/mcp) page for setup.
@@ -63,7 +63,9 @@ A list of Message `_tag` values that DevTools should not record. The Messages st
 
 Use this option when animation frames, pointer moves, scroll events, or another high-frequency source would flood the history.
 
-When the list contains at least one tag, DevTools stores a full Model snapshot for every recorded entry. That preserves changes made by excluded Messages when you travel to a recorded state. Excluded Messages also update the `Live` Model view, but they do not append a history entry or compute a diff.
+You can also stop or resume recording a tag in the overlay’s Settings screen. These choices are saved in this browser and applied before the app starts on reload. Tags listed in `excludeFromHistory` appear as configured by the application and cannot be resumed in the overlay. Changing a recording setting affects future Messages; it does not remove or restore earlier entries. The Submodel filter only changes which recorded rows are displayed.
+
+Excluded Messages continue to update the Live Model. Before the next recorded Message, DevTools saves a checkpoint so replay includes those changes. Each recorded index keeps the Model immediately after its Message, even when later excluded Messages change Live. The history inspector follows the latest recorded state; Resume restores the current Live view.
 
 ::Snippet{name="devtoolsExcludeFromHistory" label="Excluding high-frequency Messages from history"}
 
@@ -71,7 +73,7 @@ When the list contains at least one tag, DevTools stores a full Model snapshot f
 
 The maximum number of recorded Messages retained before DevTools evicts the oldest entry. The default is `100`, and values are clamped between `20` and `500`.
 
-Smaller values reduce work under high Message rates. Larger values provide more history. Memory use grows with `maxEntries` and Model size, especially when `excludeFromHistory` makes every recorded entry store a full Model snapshot.
+Smaller values reduce work under high Message rates. Larger values provide more history. Memory use grows with `maxEntries`, Model size, and the number of checkpoints needed after excluded updates.
 
 ::Snippet{name="devtoolsMaxEntries" label="Raising the DevTools history cap"}
 
@@ -81,6 +83,6 @@ The number of recorded Messages between full Model snapshots. The default is `31
 
 To reconstruct an entry, DevTools starts at the nearest earlier snapshot and replays update. A smaller interval stores more snapshots but shortens that replay. Set the interval to `1` when update is expensive and time-travel feels slow. Every entry then has its own snapshot, so no replay is needed.
 
-DevTools automatically uses `1` when `excludeFromHistory` is active because excluded Messages are not available for replay.
+Exclusions preserve the configured interval. DevTools adds checkpoints after excluded Model changes and replays from the nearest applicable snapshot or checkpoint. Clearing history starts replay from the current Live Model; the init row still shows the original init Model.
 
 ::Snippet{name="devtoolsKeyframeInterval" label="Snapshotting every entry for constant-time jumps"}
