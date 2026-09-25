@@ -10,6 +10,7 @@ import {
   pipe,
 } from 'effect'
 import { type Update } from 'foldkit'
+import * as Css from 'foldkit/css'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
@@ -466,9 +467,6 @@ const keyToDirection = (
     Match.option,
   )
 
-const percentString = (fraction: number): string =>
-  `${Math.round(fraction * 10000) / 100}%`
-
 /** Attribute groups the slider component provides to the consumer's `toView`
  *  callback. Each bundle carries the boundary's captured dispatch, so the
  *  consumer can spread it directly into element attributes without manual
@@ -601,7 +599,7 @@ export const view = defineView<Model, Message, ViewInputs>(
         left: '0',
         top: '0',
         bottom: '0',
-        width: percentString(fraction),
+        width: Css.percent(fraction * 100),
         'pointer-events': 'none',
       }),
       ...stateAttributes,
@@ -642,7 +640,7 @@ export const view = defineView<Model, Message, ViewInputs>(
       ...(isReadOnly ? [h.AriaReadonly(true)] : []),
       h.Style({
         position: 'absolute',
-        left: percentString(fraction),
+        left: Css.percent(fraction * 100),
         transform: 'translateX(-50%)',
         'touch-action': 'none',
       }),

@@ -31,6 +31,10 @@
       "types": "./dist/command/public.d.ts",
       "import": "./dist/command/public.js"
     },
+    "./css": {
+      "types": "./dist/css/public.d.ts",
+      "import": "./dist/css/public.js"
+    },
     "./customElement": {
       "types": "./dist/customElement/public.d.ts",
       "import": "./dist/customElement/public.js"

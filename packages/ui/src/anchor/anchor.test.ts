@@ -1,6 +1,20 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+/// <reference types="node" />
 
-import { anchorSetup, portalToContainingRoot } from './index.js'
+import {
+  type MockInstance,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
+
+import {
+  type SetupConfig,
+  anchorSetup,
+  portalToContainingRoot,
+} from './index.js'
 
 const PORTAL_ROOT_ID = 'foldkit-portal-root'
 
@@ -122,5 +136,101 @@ describe('anchorSetup invalid inputs', () => {
     )
     expect(document.getElementById(PORTAL_ROOT_ID)).toBeNull()
     expect(cleanup).not.toThrow()
+  })
+})
+
+describe('anchorSetup non-finite positioning input', () => {
+  const POSITIONING_FAILURE =
+    '[@foldkit/ui] anchorSetup could not position the panel. It keeps the visibility its caller rendered until positioning succeeds.'
+
+  const unhandledRejections: Array<unknown> = []
+  const anchorCleanups: Array<() => void> = []
+
+  const recordUnhandledRejection = (reason: unknown): void => {
+    unhandledRejections.push(reason)
+  }
+
+  beforeEach(() => {
+    process.on('unhandledRejection', recordUnhandledRejection)
+  })
+
+  afterEach(() => {
+    for (const cleanup of anchorCleanups.splice(0)) {
+      cleanup()
+    }
+
+    process.off('unhandledRejection', recordUnhandledRejection)
+    unhandledRejections.length = 0
+    vi.restoreAllMocks()
+    document.body.replaceChildren()
+  })
+
+  const mountHiddenPanel = (
+    config: Omit<SetupConfig, 'buttonId'>,
+  ): HTMLElement => {
+    const button = document.createElement('button')
+    button.id = 'trigger'
+    const panel = document.createElement('div')
+    panel.style.visibility = 'hidden'
+    const arrowElement = document.createElement('div')
+    arrowElement.id = 'arrow'
+    panel.append(arrowElement)
+    document.body.append(button, panel)
+
+    anchorCleanups.push(anchorSetup(panel, { buttonId: 'trigger', ...config }))
+
+    return panel
+  }
+
+  const waitForMacrotask = (): Promise<void> =>
+    new Promise(resolve => setTimeout(resolve, 0))
+
+  const expectPositioningFailureReportedOnce = async (
+    reportError: MockInstance<typeof console.error>,
+    panel: HTMLElement,
+  ): Promise<void> => {
+    await vi.waitFor(() => {
+      expect(reportError).toHaveBeenCalled()
+    })
+
+    window.dispatchEvent(new Event('resize'))
+    await waitForMacrotask()
+
+    expect(reportError).toHaveBeenCalledTimes(1)
+    expect(reportError).toHaveBeenCalledWith(
+      POSITIONING_FAILURE,
+      new Error(
+        '[foldkit] Css.px received NaN. CSS numeric values must be finite.',
+      ),
+    )
+    expect(panel.style.visibility).toBe('hidden')
+    expect(unhandledRejections).toEqual([])
+  }
+
+  it('reports an arrow offset that is not finite and keeps the panel hidden', async () => {
+    const reportError = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const panel = mountHiddenPanel({
+      anchor: { portal: false },
+      arrowId: 'arrow',
+      arrowPadding: Number.NaN,
+    })
+
+    await expectPositioningFailureReportedOnce(reportError, panel)
+    expect(panel.style.left).toBe('0px')
+    expect(panel.style.top).toBe('0px')
+    expect(panel.style.getPropertyValue('--arrow-x')).toBe('')
+  })
+
+  it('reports an available height that is not finite and keeps the panel hidden', async () => {
+    const reportError = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const panel = mountHiddenPanel({
+      anchor: { portal: false, padding: Number.NaN },
+    })
+
+    await expectPositioningFailureReportedOnce(reportError, panel)
+    expect(panel.style.getPropertyValue('--button-width')).toBe('0px')
+    expect(panel.style.maxHeight).toBe('')
   })
 })

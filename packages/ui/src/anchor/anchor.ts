@@ -1,4 +1,5 @@
 import { Array, Function, Option, Schema, String, pipe } from 'effect'
+import * as Css from 'foldkit/css'
 
 import {
   type Placement as FloatingPlacement,
@@ -164,7 +165,7 @@ const setOrResetLength = (
   if (value === undefined) {
     element.style.setProperty(property, 'initial')
   } else {
-    element.style.setProperty(property, `${value}px`)
+    element.style.setProperty(property, Css.px(value))
   }
 }
 
@@ -323,9 +324,9 @@ export const anchorSetup = (
 
             element.style.setProperty(
               '--button-width',
-              `${rects.reference.width}px`,
+              Css.px(rects.reference.width),
             )
-            element.style.maxHeight = `${Math.max(0, availableHeight)}px`
+            element.style.maxHeight = Css.px(Math.max(0, availableHeight))
 
             // NOTE: `overflow-y: auto` makes `overflow-x` compute to `auto`
             // too, so a scrolling panel clips on every side. An arrow sits
@@ -352,67 +353,67 @@ export const anchorSetup = (
     isPositioning = true
 
     tick
-      .then(
-        ({ x, y, placement: resolvedPlacement, middlewareData }) => {
-          hasWarnedFailure = false
+      .then(({ x, y, placement: resolvedPlacement, middlewareData }) => {
+        if (!isActive) {
+          return
+        }
 
-          if (!isActive) {
-            return
+        element.style.left = Css.px(x)
+        element.style.top = Css.px(y)
+
+        if (isPlacementLockEnabled) {
+          lockedPlacement = lockedPlacement ?? resolvedPlacement
+        }
+
+        element.setAttribute(
+          'data-placement',
+          toSide(lockedPlacement ?? resolvedPlacement),
+        )
+
+        if (Option.isSome(maybeArrowElement)) {
+          const { x: arrowX, y: arrowY } = middlewareData.arrow ?? {}
+          setOrResetLength(element, '--arrow-x', arrowX)
+          setOrResetLength(element, '--arrow-y', arrowY)
+        }
+
+        hasWarnedFailure = false
+
+        if (isFirstUpdate) {
+          isFirstUpdate = false
+          element.style.visibility = ''
+
+          if (config.focusAfterPosition ?? false) {
+            requestAnimationFrame(() => {
+              if (!isActive) {
+                return
+              }
+
+              const target = config.focusSelector
+                ? owner.querySelector(config.focusSelector)
+                : element
+              if (target instanceof HTMLElement) {
+                target.focus({ preventScroll: true })
+              }
+            })
           }
-
-          element.style.left = `${x}px`
-          element.style.top = `${y}px`
-
-          if (isPlacementLockEnabled) {
-            lockedPlacement = lockedPlacement ?? resolvedPlacement
-          }
-
-          element.setAttribute(
-            'data-placement',
-            toSide(lockedPlacement ?? resolvedPlacement),
+        }
+      })
+      // NOTE: `computePosition` awaits platform measurement and every
+      // middleware, so a throw in any of them rejects the tick. A throw while
+      // applying the resolved position, such as a coordinate that is not
+      // finite, lands here too. Reported once per run of consecutive failures,
+      // since `autoUpdate` would otherwise repeat a persistent failure on every
+      // scroll and resize, while a fresh failure after a recovery still gets
+      // its own report.
+      .catch((error: unknown) => {
+        if (!hasWarnedFailure) {
+          hasWarnedFailure = true
+          console.error(
+            '[@foldkit/ui] anchorSetup could not position the panel. It keeps the visibility its caller rendered until positioning succeeds.',
+            error,
           )
-
-          if (Option.isSome(maybeArrowElement)) {
-            const { x: arrowX, y: arrowY } = middlewareData.arrow ?? {}
-            setOrResetLength(element, '--arrow-x', arrowX)
-            setOrResetLength(element, '--arrow-y', arrowY)
-          }
-
-          if (isFirstUpdate) {
-            isFirstUpdate = false
-            element.style.visibility = ''
-
-            if (config.focusAfterPosition ?? false) {
-              requestAnimationFrame(() => {
-                if (!isActive) {
-                  return
-                }
-
-                const target = config.focusSelector
-                  ? owner.querySelector(config.focusSelector)
-                  : element
-                if (target instanceof HTMLElement) {
-                  target.focus({ preventScroll: true })
-                }
-              })
-            }
-          }
-        },
-        // NOTE: `computePosition` awaits platform measurement and every
-        // middleware, so a throw in any of them rejects the tick. Reported
-        // once per run of consecutive failures, since `autoUpdate` would
-        // otherwise repeat a persistent failure on every scroll and resize,
-        // while a fresh failure after a recovery still gets its own report.
-        (error: unknown) => {
-          if (!hasWarnedFailure) {
-            hasWarnedFailure = true
-            console.error(
-              '[@foldkit/ui] anchorSetup could not position the panel. It keeps the visibility its caller rendered until positioning succeeds.',
-              error,
-            )
-          }
-        },
-      )
+        }
+      })
       .finally(() => {
         isPositioning = false
 

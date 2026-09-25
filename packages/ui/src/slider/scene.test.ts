@@ -34,6 +34,7 @@ const defaultModel = init({
 
 const root = Scene.selector('[data-slider-id="test"]')
 const track = Scene.selector('[data-slider-track-id="test"]')
+const filledTrack = Scene.selector('[data-slider-track-id="test"] div')
 const thumb = Scene.role('slider')
 const hiddenInput = Scene.selector('[type="hidden"]')
 
@@ -65,6 +66,15 @@ describe('Slider', () => {
         Scene.expect(thumb).toHaveAttr('aria-valuemax', '10'),
         Scene.expect(thumb).toHaveAttr('aria-valuenow', '5'),
         Scene.expect(thumb).toHaveAttr('aria-orientation', 'horizontal'),
+      )
+    })
+
+    it('positions the filled track and thumb at the value fraction to four decimal places', () => {
+      Scene.scene(
+        { update, view: sceneView({ value: 1 }) },
+        Scene.given(init({ id: 'test', min: 0, max: 3, step: 1 })),
+        Scene.expect(filledTrack).toHaveStyle('width', '33.3333%'),
+        Scene.expect(thumb).toHaveStyle('left', '33.3333%'),
       )
     })
   })

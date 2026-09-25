@@ -43,6 +43,7 @@ import {
   coreViewMemoizationRouter,
   coreViewRouter,
   coreViewTransitionsRouter,
+  cssRouter,
   effectAtomComparisonRouter,
   elmComparisonRouter,
   exampleDetailRouter,
@@ -291,6 +292,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'AsyncData',
           href: asyncDataRouter(),
           label: 'Async Data',
+        },
+        {
+          _tag: 'Css',
+          href: cssRouter(),
+          label: 'CSS Values',
         },
         {
           _tag: 'CoreMachine',

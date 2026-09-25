@@ -128,7 +128,7 @@ Property, state, and accessibility matchers require the Locator to match an elem
 | `.toHaveAttr(name, value)`                  | Has the given attribute set to the given value                                                                                                     |
 | `.toHaveId(id)`                             | Has the given id                                                                                                                                   |
 | `.toHaveClass(name)`                        | Has the given CSS class                                                                                                                            |
-| `.toHaveStyle(name, value)`                 | Has the given inline style property                                                                                                                |
+| `.toHaveStyle(name, value)`                 | Has the given inline style property, with the value compared exactly (see [CSS Values](/core/css) for numeric values)                              |
 
 Accessible-name and accessible-description matching excludes hidden descendant content. A hidden node directly referenced by `aria-labelledby` or `aria-describedby` contributes its full subtree text.
 

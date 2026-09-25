@@ -248,6 +248,22 @@ describe('Toast', () => {
       )
     })
 
+    it('renders a fractional drag offset without floating-point noise', () => {
+      const model = withEntry({
+        swipeState: SwipeState.Dragging({
+          pointerId: POINTER_ID,
+          startX: 0,
+          currentX: 0.1 + 0.2,
+        }),
+      })
+      Scene.scene(
+        { update: Toast.update, view: sceneView() },
+        Scene.given(model),
+        Scene.expect(entryZero).toHaveStyle('translate', '0.3px'),
+        Scene.expect(entryZero).toHaveStyle('--toast-swipe-move-x', '0.3px'),
+      )
+    })
+
     it('omits data-swipe while idle', () => {
       Scene.scene(
         { update: Toast.update, view: sceneView() },

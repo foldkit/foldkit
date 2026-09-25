@@ -1,6 +1,7 @@
 import { Option, Schema, pipe } from 'effect'
 import { describe, expect, expectTypeOf, test } from 'vitest'
 
+import * as Css from '../css/index.js'
 import * as CustomElement from '../customElement/index.js'
 import {
   type HtmlBuilder,
@@ -2298,6 +2299,28 @@ describe('scene with expect', () => {
         '2',
       ),
       Scene.expect(Scene.selector('#styled')).toHaveStyle('--accent', 'blue'),
+    )
+  })
+
+  test('toHaveStyle matches a numeric value formatted with Css', () => {
+    const RowModel = Schema.Struct({ index: Schema.Number })
+    type RowModel = typeof RowModel.Type
+
+    Scene.scene(
+      {
+        update: (model: RowModel) => ({ model }),
+        view: (model: RowModel, h: HtmlBuilder<never>) =>
+          h.div([
+            h.Id('row'),
+            h.Style({ '--row-delay': Css.s(0.3 + model.index * 0.08) }),
+          ]),
+      },
+      Scene.given({ index: 2 }),
+      Scene.expect(Scene.selector('#row')).toHaveStyle('--row-delay', '0.46s'),
+      Scene.expect(Scene.selector('#row')).toHaveStyle(
+        '--row-delay',
+        Css.s(0.3 + 2 * 0.08),
+      ),
     )
   })
 

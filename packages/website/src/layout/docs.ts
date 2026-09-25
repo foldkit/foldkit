@@ -27,6 +27,7 @@ import {
   Contact,
   ContentApi,
   Core,
+  Css,
   EffectAtomComparison,
   ElmComparison,
   Example,
@@ -748,6 +749,11 @@ export const view = (
         withTableOfContents(
           lazyDocsContent(AsyncDataPage.view, [model.snippetCopy, h]),
           AsyncDataPage.tableOfContents,
+        ),
+      Css: () =>
+        withTableOfContents(
+          lazyDocsContent(Css.view, [model.snippetCopy, h]),
+          Css.tableOfContents,
         ),
       PatternsAntiPatterns: () =>
         withTableOfContents(
