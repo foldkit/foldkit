@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { anchorSetup, portalToContainingRoot } from './index.js'
+import { anchorSetup, portalBackdrop, portalToContainingRoot } from './index.js'
 
 const PORTAL_ROOT_ID = 'foldkit-portal-root'
+const DIALOG_PORTAL_ROOT_ATTRIBUTE = 'data-foldkit-portal-root'
 
 describe('portalToContainingRoot', () => {
   afterEach(() => {
@@ -53,6 +54,100 @@ describe('portalToContainingRoot', () => {
     expect(second.parentNode).toBe(portalRoot)
   })
 
+  it('portals an element inside a dialog into a portal root appended to that dialog', () => {
+    const dialog = document.createElement('dialog')
+    const panel = document.createElement('div')
+    const element = document.createElement('div')
+    panel.appendChild(element)
+    dialog.appendChild(panel)
+    document.body.appendChild(dialog)
+
+    portalToContainingRoot(element)
+
+    const dialogPortalRoot = element.parentElement
+    expect(dialogPortalRoot?.hasAttribute(DIALOG_PORTAL_ROOT_ATTRIBUTE)).toBe(
+      true,
+    )
+    expect(dialogPortalRoot?.parentElement).toBe(dialog)
+    expect(dialog.lastElementChild).toBe(dialogPortalRoot)
+    expect(document.getElementById(PORTAL_ROOT_ID)).toBeNull()
+  })
+
+  it('reuses one portal root per dialog without sharing it between dialogs', () => {
+    const firstDialog = document.createElement('dialog')
+    const secondDialog = document.createElement('dialog')
+    const first = document.createElement('div')
+    const second = document.createElement('div')
+    const third = document.createElement('div')
+    firstDialog.append(first, second)
+    secondDialog.append(third)
+    document.body.append(firstDialog, secondDialog)
+
+    portalToContainingRoot(first)
+    portalToContainingRoot(second)
+    portalToContainingRoot(third)
+
+    expect(
+      firstDialog.querySelectorAll(`[${DIALOG_PORTAL_ROOT_ATTRIBUTE}]`),
+    ).toHaveLength(1)
+    expect(second.parentElement).toBe(first.parentElement)
+    expect(third.parentElement?.parentElement).toBe(secondDialog)
+  })
+
+  it('portals an element inside a nested dialog into the innermost dialog', () => {
+    const outerDialog = document.createElement('dialog')
+    const innerDialog = document.createElement('dialog')
+    const element = document.createElement('div')
+    innerDialog.appendChild(element)
+    outerDialog.appendChild(innerDialog)
+    document.body.appendChild(outerDialog)
+
+    portalToContainingRoot(element)
+
+    expect(element.parentElement?.parentElement).toBe(innerDialog)
+  })
+
+  it('removes an emptied dialog portal root so a reopened dialog appends a fresh one after its content', () => {
+    const dialog = document.createElement('dialog')
+    const firstPanel = document.createElement('div')
+    const firstElement = document.createElement('div')
+    firstPanel.appendChild(firstElement)
+    dialog.appendChild(firstPanel)
+    document.body.appendChild(dialog)
+
+    const cleanup = portalToContainingRoot(firstElement)
+    cleanup()
+    firstPanel.remove()
+
+    expect(dialog.querySelector(`[${DIALOG_PORTAL_ROOT_ATTRIBUTE}]`)).toBeNull()
+
+    const secondPanel = document.createElement('div')
+    const secondElement = document.createElement('div')
+    secondPanel.appendChild(secondElement)
+    dialog.appendChild(secondPanel)
+
+    portalToContainingRoot(secondElement)
+
+    expect(dialog.lastElementChild).toBe(secondElement.parentElement)
+    expect(dialog.firstElementChild).toBe(secondPanel)
+  })
+
+  it('keeps a dialog portal root while another element is still portaled into it', () => {
+    const dialog = document.createElement('dialog')
+    const first = document.createElement('div')
+    const second = document.createElement('div')
+    dialog.append(first, second)
+    document.body.appendChild(dialog)
+
+    const cleanupFirst = portalToContainingRoot(first)
+    portalToContainingRoot(second)
+    const dialogPortalRoot = second.parentElement
+    cleanupFirst()
+
+    expect(dialogPortalRoot?.parentElement).toBe(dialog)
+    expect(second.parentElement).toBe(dialogPortalRoot)
+  })
+
   it('cleanup removes the portaled element from the portal root', () => {
     const element = document.createElement('div')
     document.body.appendChild(element)
@@ -63,6 +158,72 @@ describe('portalToContainingRoot', () => {
 
     cleanup()
     expect(portalRoot?.contains(element)).toBe(false)
+  })
+})
+
+describe('portalBackdrop', () => {
+  afterEach(() => {
+    document.getElementById(PORTAL_ROOT_ID)?.remove()
+    document.body.replaceChildren()
+  })
+
+  it('portals a backdrop outside a dialog into the portal root in document.body', () => {
+    const wrapper = document.createElement('div')
+    const backdrop = document.createElement('div')
+    wrapper.appendChild(backdrop)
+    document.body.appendChild(wrapper)
+
+    portalBackdrop(backdrop)
+
+    expect(backdrop.parentElement).toBe(document.getElementById(PORTAL_ROOT_ID))
+  })
+
+  it('moves a backdrop inside a dialog to directly before its wrapper', () => {
+    const dialog = document.createElement('dialog')
+    const panel = document.createElement('div')
+    const wrapper = document.createElement('div')
+    const trigger = document.createElement('button')
+    const backdrop = document.createElement('div')
+    wrapper.append(trigger, backdrop)
+    panel.appendChild(wrapper)
+    dialog.appendChild(panel)
+    document.body.appendChild(dialog)
+
+    portalBackdrop(backdrop)
+
+    expect(backdrop.parentElement).toBe(panel)
+    expect(backdrop.nextElementSibling).toBe(wrapper)
+    expect(dialog.querySelector(`[${DIALOG_PORTAL_ROOT_ATTRIBUTE}]`)).toBeNull()
+    expect(document.getElementById(PORTAL_ROOT_ID)).toBeNull()
+  })
+
+  it('portals a backdrop rendered directly in a dialog into the dialog portal root', () => {
+    const dialog = document.createElement('dialog')
+    const backdrop = document.createElement('div')
+    dialog.appendChild(backdrop)
+    document.body.appendChild(dialog)
+
+    portalBackdrop(backdrop)
+
+    expect(backdrop.parentElement?.parentElement).toBe(dialog)
+    expect(
+      backdrop.parentElement?.hasAttribute(DIALOG_PORTAL_ROOT_ATTRIBUTE),
+    ).toBe(true)
+  })
+
+  it('cleanup removes a backdrop moved inside a dialog', () => {
+    const dialog = document.createElement('dialog')
+    const wrapper = document.createElement('div')
+    const backdrop = document.createElement('div')
+    wrapper.appendChild(backdrop)
+    dialog.appendChild(wrapper)
+    document.body.appendChild(dialog)
+
+    const cleanup = portalBackdrop(backdrop)
+    cleanup()
+
+    expect(backdrop.isConnected).toBe(false)
+    expect(Array.from(dialog.children)).toEqual([wrapper])
   })
 })
 

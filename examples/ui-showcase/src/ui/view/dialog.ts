@@ -54,7 +54,6 @@ const OVERLAY_COMBOBOX_ANCHOR = {
   placement: 'bottom-start' as const,
   gap: 8,
   padding: 8,
-  portal: false,
 }
 
 // PANEL CONTENT
@@ -112,7 +111,7 @@ const editFiltersContent = (
   h.p(
     [...description, h.Class(descriptionClassName)],
     [
-      'With portal: false, the combobox panel stays inside the dialog instead of rendering behind it.',
+      'The combobox panel portals into the dialog, so it renders above the dialog content.',
     ],
   ),
   h.submodel({

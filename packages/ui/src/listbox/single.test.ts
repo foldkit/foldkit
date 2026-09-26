@@ -1368,6 +1368,19 @@ describe('Listbox', () => {
         )
       })
 
+      it('keeps the items panel out of the Tab order', () => {
+        Scene.scene(
+          { update, view: sceneView() },
+          Scene.given(openModel()),
+          Scene.expect(Scene.selector('#test-items')).toHaveAttr(
+            'tabIndex',
+            '-1',
+          ),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+        )
+      })
+
       it('button has aria-haspopup="listbox"', () => {
         Scene.scene(
           { update, view: sceneView() },

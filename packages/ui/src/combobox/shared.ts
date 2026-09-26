@@ -8,11 +8,7 @@ import { makeModifyFieldsFor } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
 
-import {
-  AnchorConfig,
-  anchorSetup,
-  portalToContainingRoot,
-} from '../anchor/index.js'
+import { AnchorConfig, anchorSetup, portalBackdrop } from '../anchor/index.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → combobox → animation.
 // The barrel (../animation) imports from html, which starts the cycle.
@@ -649,11 +645,11 @@ export const makeUpdate = <Model extends BaseModel>(
 
 /** The anchor-positioning Mount this Combobox renders on its items panel.
  *  The panel is always anchored to the input wrapper via Floating UI and
- *  portaled to the document body (opt out of portaling with
- *  `anchor.portal: false`), so it escapes ancestor stacking contexts and
- *  overflow clipping. The Mount also installs the `pointerdown`-cancelling
- *  capture listener that prevents input blur on item presses. Exposed so
- *  Scene tests can call
+ *  portaled to the document body, or into the enclosing `<dialog>` when
+ *  there is one (opt out of portaling with `anchor.portal: false`), so it
+ *  escapes ancestor stacking contexts and overflow clipping. The Mount also
+ *  installs the `pointerdown`-cancelling capture listener that prevents
+ *  input blur on item presses. Exposed so Scene tests can call
  *  `Scene.Mount.resolve(AnchorCombobox, CompletedAnchorCombobox())`. */
 export const AnchorCombobox = Mount.define('AnchorCombobox', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
@@ -751,7 +747,7 @@ export const PortalComboboxBackdrop = Mount.define('PortalComboboxBackdrop', {
   execute: ({ element }) =>
     Effect.gen(function* () {
       yield* Effect.acquireRelease(
-        Effect.sync(() => portalToContainingRoot(element)),
+        Effect.sync(() => portalBackdrop(element)),
         cleanup => Effect.sync(cleanup),
       )
       return Message.CompletedPortalComboboxBackdrop()
@@ -809,6 +805,8 @@ export type BaseViewInputsCommon<Item extends string> = Readonly<{
   itemsScrollAttributes?: ReadonlyArray<ChildAttribute>
   backdropClassName?: string
   backdropAttributes?: ReadonlyArray<ChildAttribute>
+  /** CSS class for the outer wrapper. Keep the wrapper positioned when the
+   *  Combobox renders a backdrop, so the input paints above it. */
   className?: string
   attributes?: ReadonlyArray<ChildAttribute>
   buttonContent?: Html

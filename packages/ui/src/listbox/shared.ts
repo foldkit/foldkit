@@ -19,11 +19,7 @@ import { makeModifyFieldsFor } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
 
-import {
-  AnchorConfig,
-  anchorSetup,
-  portalToContainingRoot,
-} from '../anchor/index.js'
+import { AnchorConfig, anchorSetup, portalBackdrop } from '../anchor/index.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → listbox → animation.
 // The barrel (../animation) imports from html, which starts the cycle.
@@ -619,8 +615,9 @@ export const makeUpdate = <Model extends BaseModel>(
 
 /** The anchor-positioning Mount this Listbox renders on its items panel.
  *  The panel is always anchored to the button via Floating UI and portaled
- *  to the document body (opt out of portaling with `anchor.portal: false`),
- *  so it escapes ancestor stacking contexts and overflow clipping.
+ *  to the document body, or into the enclosing `<dialog>` when there is one
+ *  (opt out of portaling with `anchor.portal: false`), so it escapes ancestor
+ *  stacking contexts and overflow clipping.
  *
  *  It also carries the open-focus for the anchored panel. An anchored panel
  *  renders `visibility: hidden` until Floating UI resolves its first position,
@@ -658,7 +655,7 @@ export const PortalListboxBackdrop = Mount.define('PortalListboxBackdrop', {
   execute: ({ element }) =>
     Effect.gen(function* () {
       yield* Effect.acquireRelease(
-        Effect.sync(() => portalToContainingRoot(element)),
+        Effect.sync(() => portalBackdrop(element)),
         cleanup => Effect.sync(cleanup),
       )
       return Message.CompletedPortalListboxBackdrop()
@@ -1080,7 +1077,7 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
           : []),
         h.AriaLabelledBy(`${id}-button`),
         ...maybeActiveDescendant,
-        h.Tabindex(0),
+        h.Tabindex(-1),
         ...anchorAttributes,
         ...animationAttributes,
         ...(isLeaving

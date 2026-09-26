@@ -28,7 +28,7 @@ Pass `isAnimated: true` at init to coordinate animations. The component manages 
 
 ### Field
 
-A field inside a dialog can open its own overlay, like a Combobox or DatePicker. By default that overlay portals its panel to the document body, where the dialog renders on top of it. Pass `anchor: { portal: false }` so the panel stays inside the dialog and remains visible.
+A field inside a dialog can open its own overlay, like a Combobox or DatePicker. The overlay portals its panel into the dialog, not to the document body. The panel renders above the dialog's content, a scrolling dialog panel does not clip it, and it stays interactive while the Dialog makes the rest of the page inert. The overlay needs no anchor configuration. Its wrapper needs `position: relative`, as it does outside a dialog. The overlay's click-outside backdrop goes directly before that wrapper, and a positioned wrapper keeps the trigger or input above the backdrop.
 
 ::Demo{name="overlay"}
 

@@ -26,11 +26,15 @@ Mount args are captured at mount, not refreshed across renders. A changed `ancho
 
 ## Portaling
 
-`anchorSetup` portals the panel itself. `AnchorConfig.portal` defaults to `true`, which relocates the element into a shared `foldkit-portal-root` div so it escapes any ancestor stacking context or `overflow: hidden`. Pass `portal: false` to leave the panel where it was rendered.
+`anchorSetup` portals the panel itself. `AnchorConfig.portal` defaults to `true`, which relocates the element into a portal root so it escapes any ancestor stacking context or `overflow: hidden`. Pass `portal: false` to leave the panel where it was rendered.
 
-`portalToContainingRoot` is the same relocation as a standalone function, for the elements `anchorSetup` does not touch. A modal backdrop is the usual case: Popover portals its backdrop through a second Mount for exactly this reason. Give it its own `Mount.define`, since [one element takes one Mount](/core/mount).
+`portalToContainingRoot` is the same relocation as a standalone function, for the elements `anchorSetup` does not touch. For a click-outside backdrop, use `portalBackdrop` instead, described below. Popover, Listbox, Menu, and Combobox each portal their backdrop through a second Mount. Give yours its own `Mount.define`, since [one element takes one Mount](/core/mount).
 
-The containing root is the shadow root when the app is mounted inside one, and `document.body` otherwise, so a portaled panel keeps that root's scoped styles. The portal root div is prepended rather than appended, which keeps component wrappers painting above a backdrop and leaves click-outside detection working.
+The portal root is a shared `foldkit-portal-root` div in the containing root. The containing root is the shadow root when the app is mounted inside one, and `document.body` otherwise, so a portaled panel keeps that root's scoped styles. The portal root div is prepended rather than appended, which keeps component wrappers painting above a backdrop and leaves click-outside detection working.
+
+An element inside a `<dialog>` is portaled into that dialog instead. Say a Listbox sits in a [Dialog](/ui/dialog). Portaled to `document.body`, its panel would be drawn behind the dialog, and the Dialog's modal isolation would make it inert. So the panel goes into a div marked `data-foldkit-portal-root`, appended as the dialog's last child. There it renders above the dialog's content and stays interactive. The div is removed once nothing is portaled into it.
+
+A backdrop inside a dialog does not go into that div. Appended after the dialog's content, it would cover the trigger too, and a click in a Combobox input would close the list instead of placing the cursor. `portalBackdrop` moves the backdrop to directly before the element it was rendered in, which is the positioned wrapper that holds the trigger. The backdrop then covers the rest of the dialog, and the wrapper stays above it. When you render a Popover backdrop yourself, put it inside that wrapper. Some CSS on an ancestor between the wrapper and the dialog confines the backdrop to that ancestor. This happens when the ancestor becomes the containing block for fixed-position elements, for example through `transform`, `scale`, `filter`, `backdrop-filter`, or `container-type`. A click outside that ancestor then misses the backdrop, so the overlay stays open. If the click also lands outside the dialog panel, it reaches the Dialog's own backdrop and closes the whole dialog.
 
 ## What Anchor Writes to Your Element {#managed-styles}
 
@@ -73,7 +77,7 @@ Static positioning options. Every field is optional. This is the same Schema the
 | `gap`               | `number`    | `0`              | Distance in pixels between the trigger and the panel, along the placement axis.                                                                                                     |
 | `offset`            | `number`    | `0`              | Shift in pixels along the cross axis, for nudging the panel sideways from its alignment.                                                                                            |
 | `padding`           | `Padding`   | `0`              | Minimum distance to the viewport edge, honored by shift, the height calculation, and flip while placement is unlocked. A number applies to all sides; an object sets them per side. |
-| `portal`            | `boolean`   | `true`           | Relocates the panel into the shared portal root so it escapes ancestor clipping and stacking contexts.                                                                              |
+| `portal`            | `boolean`   | `true`           | Relocates the panel into the portal root so it escapes ancestor clipping and stacking contexts. Inside a `<dialog>`, the portal root is inside that dialog.                         |
 | `isPlacementLocked` | `boolean`   | `false`          | Keeps the side the first positioning resolves, dropping flip from every later update. Use it when a panel that flips mid-interaction reads as a jump.                               |
 
 ### SetupConfig {#setup-config}
@@ -94,7 +98,13 @@ The second argument to `anchorSetup`.
 
 `(element: Element) => () => void`
 
-Relocates an element into the shared `foldkit-portal-root` div within its containing root and returns a cleanup that removes it. Use it for elements outside the anchored panel, since `anchorSetup` already portals the panel unless `portal: false` says otherwise.
+Relocates an element into the portal root and returns a cleanup that removes it. The portal root is inside the enclosing `<dialog>` when there is one, and the shared `foldkit-portal-root` div within the containing root otherwise. The cleanup also removes a dialog's portal root once it is empty. Use it for elements outside the anchored panel, since `anchorSetup` already portals the panel unless `portal: false` says otherwise. For a click-outside backdrop, use `portalBackdrop`.
+
+### portalBackdrop {#portal-backdrop}
+
+`(element: Element) => () => void`
+
+Relocates a click-outside backdrop and returns a cleanup that removes it. Outside a `<dialog>`, it does what `portalToContainingRoot` does. Inside one, it moves the backdrop to directly before the element it was rendered in, so the backdrop covers the dialog's content while the positioned wrapper that holds the trigger stays above it. A backdrop rendered directly in the dialog goes into the dialog's portal root. While the backdrop sits before the wrapper, it is a sibling of the wrapper, so sibling-based selectors such as `:first-child` or Tailwind's `divide-y` count it.
 
 ### Placement and Padding
 

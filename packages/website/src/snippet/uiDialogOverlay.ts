@@ -33,10 +33,11 @@ const Message = defineMessageUnion({
   GotComboboxMessage: { message: Combobox.Message },
 })
 
-// Render the overlay inside the dialog panel. The key is `portal: false` on
-// the overlay's anchor. By default the panel portals to the document body,
-// where the dialog's high stacking order hides it. With portal: false the
-// panel stays inside the dialog and renders above the panel content.
+// Render the overlay inside the dialog panel. Its panel portals into the
+// dialog, so it renders above the dialog content with no extra anchor config.
+// Give the panel `relative` so it paints above the Dialog backdrop, and the
+// Combobox wrapper `relative` so the input stays above the Combobox backdrop,
+// which goes directly before that wrapper.
 const view = (model: Model, h: HtmlBuilder<Message>) =>
   h.submodel({
     slotId: model.dialog.id,
@@ -52,7 +53,9 @@ const view = (model: Model, h: HtmlBuilder<Message>) =>
                 h.div(
                   [
                     ...panel,
-                    h.Class('rounded-lg p-6 max-w-md mx-auto shadow-xl'),
+                    h.Class(
+                      'relative rounded-lg p-6 max-w-md mx-auto shadow-xl',
+                    ),
                   ],
                   [
                     h.h2([...title], ['Edit filters']),
@@ -62,12 +65,13 @@ const view = (model: Model, h: HtmlBuilder<Message>) =>
                       view: CityCombobox.view,
                       viewInputs: {
                         // ...items, itemToConfig, itemToValue, etc.
+                        className: 'relative w-full',
                         maybeSelectedValue: model.maybeCity,
                         restingInputValue: Option.getOrElse(
                           model.maybeCity,
                           () => '',
                         ),
-                        anchor: { placement: 'bottom-start', portal: false },
+                        anchor: { placement: 'bottom-start' },
                       },
                       toParentMessage: message =>
                         Message.GotComboboxMessage({ message }),

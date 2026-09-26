@@ -68,6 +68,12 @@ const STALE_CLEAR_SEARCH_VERSION = 9999
 
 const STALE_ANIMATION_GENERATION = -1
 
+const openModel = (): Model =>
+  update(
+    init({ id: 'test' }),
+    Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
+  ).model
+
 const givenClosed = Story.given(init({ id: 'test' }))
 
 const givenOpen = Story.steps(
@@ -104,13 +110,24 @@ describe('Menu', () => {
         { update, view: sceneView() },
         Scene.given(init({ id: 'test' })),
         Scene.expect(button).not.toHaveAttr('aria-controls'),
-        Scene.given(
-          update(
-            init({ id: 'test' }),
-            Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
-          ).model,
-        ),
+        Scene.given(openModel()),
         Scene.expect(button).toHaveAttr('aria-controls', 'test-items'),
+        Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
+        Scene.Mount.resolve(
+          PortalMenuBackdrop,
+          Message.CompletedPortalMenuBackdrop(),
+        ),
+      )
+    })
+
+    it('keeps the items panel out of the Tab order', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.given(openModel()),
+        Scene.expect(Scene.selector('#test-items')).toHaveAttr(
+          'tabIndex',
+          '-1',
+        ),
         Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
         Scene.Mount.resolve(
           PortalMenuBackdrop,

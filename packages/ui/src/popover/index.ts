@@ -17,11 +17,7 @@ import { modifyFields } from 'foldkit/struct'
 import { defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
 
-import {
-  AnchorConfig,
-  anchorSetup,
-  portalToContainingRoot,
-} from '../anchor/index.js'
+import { AnchorConfig, anchorSetup, portalBackdrop } from '../anchor/index.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → popover → animation.
 // The barrel (../animation) imports from html, which starts the cycle.
@@ -442,7 +438,7 @@ export const PortalPopoverBackdrop = Mount.define('PortalPopoverBackdrop', {
   execute: ({ element }) =>
     Effect.gen(function* () {
       yield* Effect.acquireRelease(
-        Effect.sync(() => portalToContainingRoot(element)),
+        Effect.sync(() => portalBackdrop(element)),
         cleanup => Effect.sync(cleanup),
       )
       return Message.CompletedPortalPopoverBackdrop()
@@ -469,8 +465,10 @@ export const close = (model: Model): UpdateReturn =>
  *    anchor Mount that positions the panel via Floating UI, ARIA
  *    linkage to the button, and panel keydown/blur handlers.
  *  - `backdrop`: attribute bundle for the modal backdrop. Includes the
- *    portal Mount that moves the backdrop to document.body. The
- *    backdrop's OnClick closes the popover.
+ *    portal Mount that moves the backdrop to document.body. Inside a
+ *    `<dialog>`, it moves the backdrop to directly before the element it
+ *    is rendered in, so render it inside the positioned wrapper that holds
+ *    the button. The backdrop's OnClick closes the popover.
  *  - `arrow`: attribute bundle for an arrow element inside the panel.
  *    Carries the id the anchor Mount resolves and hides the element from
  *    assistive technology. Spread it onto your own element and place it
