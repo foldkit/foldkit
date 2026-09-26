@@ -3578,6 +3578,24 @@ describe('Scene OutMessage assertions', () => {
     )
   })
 
+  test('preserves every OutMessage from Mount.resolveAllExact', () => {
+    Scene.scene(
+      { update: multipleMountOutMessagesUpdate, view: mountView },
+      Scene.given(modifyFields(mountInitialModel, { isOpen: () => true })),
+      Scene.Mount.resolveAllExact(
+        [FocusButton, MountPanelMessage.CompletedFocusButton()],
+        [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 100 })],
+      ),
+      Scene.expectOutMessages(
+        InteractionOutMessage.RequestedFocus(),
+        InteractionOutMessage.RequestedMeasurement(),
+      ),
+      Scene.tap(({ outMessage }) => {
+        expect(outMessage).toBeUndefined()
+      }),
+    )
+  })
+
   test('a later update replaces every OutMessage from the previous step', () => {
     Scene.scene(
       { update: multipleOutMessagesUpdate, view: multipleOutMessagesView },
@@ -4575,6 +4593,169 @@ describe('scene mounts', () => {
       Scene.tap(({ html }) => {
         expect(textContent(html)).toContain('width: 100')
       }),
+    )
+  })
+
+  test('resolveAllMounts skips an entry that matches no pending mount', () => {
+    Scene.scene(
+      { update: mountUpdate, view: mountView },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolveAll(
+        [FocusButton, MountPanelMessage.CompletedFocusButton()],
+        [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 100 })],
+      ),
+      Scene.Mount.expectNone(),
+    )
+  })
+
+  test('resolveAllMounts resolves same-named mounts in order and skips surplus entries', () => {
+    const seen: Array<MountPanelMessage> = []
+    const recordingUpdate = (
+      model: MountPanelModel,
+      message: MountPanelMessage,
+    ): Update.Return<MountPanelModel, MountPanelMessage> => {
+      seen.push(message)
+      return mountUpdate(model, message)
+    }
+
+    Scene.scene(
+      { update: recordingUpdate, view: mountTwoPanelView },
+      Scene.given(mountInitialModel),
+      Scene.Mount.resolveAll(
+        [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 1 })],
+        [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 2 })],
+        [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 3 })],
+      ),
+      Scene.Mount.expectNone(),
+    )
+
+    expect(seen).toEqual([
+      MountPanelMessage.MeasuredPanel({ width: 1 }),
+      MountPanelMessage.MeasuredPanel({ width: 2 }),
+    ])
+  })
+
+  test('resolveAllMounts skips an Instance entry whose args match no pending mount', () => {
+    expect(() =>
+      Scene.scene(
+        {
+          update: mountUpdate,
+          view: (_model, h) => mountScrollListView(10, h),
+        },
+        Scene.given(mountInitialModel),
+        Scene.Mount.resolveAll([
+          ScrollList({ offset: 5 }),
+          MountPanelMessage.ScrolledTo({ offset: 5 }),
+        ]),
+      ),
+    ).toThrow(
+      /I found Mounts without resolvers:\n\n {4}ScrollList \{"offset":10\}/,
+    )
+  })
+
+  test('resolveAllMounts does not carry a skipped entry forward to a later mount', () => {
+    expect(() =>
+      Scene.scene(
+        { update: mountUpdate, view: mountView },
+        Scene.given(mountInitialModel),
+        Scene.Mount.resolveAll(
+          [FocusButton, MountPanelMessage.CompletedFocusButton()],
+          [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 100 })],
+        ),
+        Scene.click(Scene.role('button', { name: 'Open' })),
+        Scene.Mount.resolveAll(),
+      ),
+    ).toThrow(/I found Mounts without resolvers:\n\n {4}MeasurePanel/)
+  })
+
+  test('resolveAllExactMounts resolves every pending mount in order', () => {
+    const openModel = modifyFields(mountInitialModel, { isOpen: () => true })
+    Scene.scene(
+      { update: mountUpdate, view: mountView },
+      Scene.given(openModel),
+      Scene.Mount.resolveAllExact(
+        [FocusButton, MountPanelMessage.CompletedFocusButton()],
+        [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 100 })],
+      ),
+      Scene.tap(({ html }) => {
+        expect(textContent(html)).toContain('width: 100')
+      }),
+    )
+  })
+
+  test('resolveAllExactMounts rejects an entry that matches no pending mount', () => {
+    expect(() =>
+      Scene.scene(
+        { update: mountUpdate, view: mountView },
+        Scene.given(mountInitialModel),
+        Scene.Mount.resolveAllExact(
+          [FocusButton, MountPanelMessage.CompletedFocusButton()],
+          [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 100 })],
+        ),
+      ),
+    ).toThrow(
+      'Mount.resolveAllExact expected Mounts that were not pending:\n\n' +
+        '    MeasurePanel\n\n' +
+        'Pending Mounts after resolving matches:\n\n' +
+        '    (none)',
+    )
+  })
+
+  test('resolveAllExactMounts rejects a pending mount left unresolved', () => {
+    const openModel = modifyFields(mountInitialModel, { isOpen: () => true })
+    expect(() =>
+      Scene.scene(
+        { update: mountUpdate, view: mountView },
+        Scene.given(openModel),
+        Scene.Mount.resolveAllExact([
+          FocusButton,
+          MountPanelMessage.CompletedFocusButton(),
+        ]),
+        Scene.Mount.resolve(
+          MeasurePanel,
+          MountPanelMessage.MeasuredPanel({ width: 100 }),
+        ),
+      ),
+    ).toThrow(/I found Mounts without resolvers:\n\n {4}MeasurePanel/)
+  })
+
+  test('resolveAllExactMounts rejects a surplus entry for a same-named mount', () => {
+    expect(() =>
+      Scene.scene(
+        { update: mountUpdate, view: mountTwoPanelView },
+        Scene.given(mountInitialModel),
+        Scene.Mount.resolveAllExact(
+          [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 1 })],
+          [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 2 })],
+          [MeasurePanel, MountPanelMessage.MeasuredPanel({ width: 3 })],
+        ),
+      ),
+    ).toThrow(
+      'Mount.resolveAllExact expected Mounts that were not pending:\n\n' +
+        '    MeasurePanel\n\n' +
+        'Pending Mounts after resolving matches:\n\n' +
+        '    (none)',
+    )
+  })
+
+  test('resolveAllExactMounts lists the pending mounts left after an unmatched entry', () => {
+    expect(() =>
+      Scene.scene(
+        {
+          update: mountUpdate,
+          view: (_model, h) => mountScrollListView(10, h),
+        },
+        Scene.given(mountInitialModel),
+        Scene.Mount.resolveAllExact([
+          ScrollList({ offset: 5 }),
+          MountPanelMessage.ScrolledTo({ offset: 5 }),
+        ]),
+      ),
+    ).toThrow(
+      'Mount.resolveAllExact expected Mounts that were not pending:\n\n' +
+        '    ScrollList {"offset":5}\n\n' +
+        'Pending Mounts after resolving matches:\n\n' +
+        '    ScrollList {"offset":10}',
     )
   })
 
