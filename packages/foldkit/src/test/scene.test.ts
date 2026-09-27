@@ -1,4 +1,4 @@
-import { Option, Schema, pipe } from 'effect'
+import { Array, Option, Schema, pipe } from 'effect'
 import { describe, expect, expectTypeOf, test } from 'vitest'
 
 import * as CustomElement from '../customElement/index.js'
@@ -179,28 +179,33 @@ import * as Scene from './scene.js'
 // TEST
 
 describe('parseSelector', () => {
+  const requireSelectorAt = (
+    selectors: ReturnType<typeof parseSelector>,
+    index: number,
+  ) => pipe(selectors, Array.get(index), Option.getOrThrow)
+
   test('parses a tag selector', () => {
     const selector = parseSelector('button')
     expect(selector).toHaveLength(1)
-    expect(selector[0]?.tag).toEqual(Option.some('button'))
+    expect(requireSelectorAt(selector, 0).tag).toEqual(Option.some('button'))
   })
 
   test('parses an id selector', () => {
     const selector = parseSelector('#email')
     expect(selector).toHaveLength(1)
-    expect(selector[0]?.id).toEqual(Option.some('email'))
+    expect(requireSelectorAt(selector, 0).id).toEqual(Option.some('email'))
   })
 
   test('parses a class selector', () => {
     const selector = parseSelector('.primary')
     expect(selector).toHaveLength(1)
-    expect(selector[0]?.classes).toEqual(['primary'])
+    expect(requireSelectorAt(selector, 0).classes).toEqual(['primary'])
   })
 
   test('parses an attribute selector', () => {
     const selector = parseSelector('[role="tab"]')
     expect(selector).toHaveLength(1)
-    expect(selector[0]?.attributes).toEqual([
+    expect(requireSelectorAt(selector, 0).attributes).toEqual([
       { name: 'role', value: Option.some('tab'), mode: 'Exact' },
     ])
   })
@@ -208,7 +213,7 @@ describe('parseSelector', () => {
   test('parses a presence-only attribute selector', () => {
     const selector = parseSelector('[disabled]')
     expect(selector).toHaveLength(1)
-    expect(selector[0]?.attributes).toEqual([
+    expect(requireSelectorAt(selector, 0).attributes).toEqual([
       { name: 'disabled', value: Option.none(), mode: 'Exact' },
     ])
   })
@@ -216,9 +221,9 @@ describe('parseSelector', () => {
   test('parses a compound selector', () => {
     const selector = parseSelector('button.primary[type="submit"]')
     expect(selector).toHaveLength(1)
-    expect(selector[0]?.tag).toEqual(Option.some('button'))
-    expect(selector[0]?.classes).toEqual(['primary'])
-    expect(selector[0]?.attributes).toEqual([
+    expect(requireSelectorAt(selector, 0).tag).toEqual(Option.some('button'))
+    expect(requireSelectorAt(selector, 0).classes).toEqual(['primary'])
+    expect(requireSelectorAt(selector, 0).attributes).toEqual([
       { name: 'type', value: Option.some('submit'), mode: 'Exact' },
     ])
   })
@@ -226,14 +231,14 @@ describe('parseSelector', () => {
   test('parses a descendant selector', () => {
     const selector = parseSelector('form button')
     expect(selector).toHaveLength(2)
-    expect(selector[0]?.tag).toEqual(Option.some('form'))
-    expect(selector[1]?.tag).toEqual(Option.some('button'))
+    expect(requireSelectorAt(selector, 0).tag).toEqual(Option.some('form'))
+    expect(requireSelectorAt(selector, 1).tag).toEqual(Option.some('button'))
   })
 
   test('parses a starts-with attribute selector', () => {
     const selector = parseSelector('[key^="tab-"]')
     expect(selector).toHaveLength(1)
-    expect(selector[0]?.attributes).toEqual([
+    expect(requireSelectorAt(selector, 0).attributes).toEqual([
       { name: 'key', value: Option.some('tab-'), mode: 'StartsWith' },
     ])
   })
@@ -266,7 +271,7 @@ describe('parseSelector', () => {
   test('parses a double-quoted attribute value containing whitespace', () => {
     const selector = parseSelector('[aria-label="Open menu"]')
     expect(selector).toHaveLength(1)
-    expect(selector[0]?.attributes).toEqual([
+    expect(requireSelectorAt(selector, 0).attributes).toEqual([
       { name: 'aria-label', value: Option.some('Open menu'), mode: 'Exact' },
     ])
   })
@@ -274,7 +279,7 @@ describe('parseSelector', () => {
   test('parses a single-quoted attribute value', () => {
     const selector = parseSelector("[aria-label='Open menu']")
     expect(selector).toHaveLength(1)
-    expect(selector[0]?.attributes).toEqual([
+    expect(requireSelectorAt(selector, 0).attributes).toEqual([
       { name: 'aria-label', value: Option.some('Open menu'), mode: 'Exact' },
     ])
   })
@@ -282,8 +287,9 @@ describe('parseSelector', () => {
   test('parses a :not() pseudo-class', () => {
     const selector = parseSelector('path[d]:not([d=""])')
     expect(selector).toHaveLength(1)
-    expect(selector[0]?.not).toHaveLength(1)
-    expect(selector[0]?.not[0]?.attributes).toEqual([
+    const negatedSelectors = requireSelectorAt(selector, 0).negatedSelectors
+    expect(negatedSelectors).toHaveLength(1)
+    expect(requireSelectorAt(negatedSelectors, 0).attributes).toEqual([
       { name: 'd', value: Option.some(''), mode: 'Exact' },
     ])
   })
@@ -300,10 +306,6 @@ describe('parseSelector', () => {
     expect(() => parseSelector(selector)).toThrow(
       /I could not parse the selector[\s\S]*:not\(<compound selector>\)/,
     )
-  })
-
-  test('lists :not() among the supported selectors in the parse error', () => {
-    expect(() => parseSelector('a:first-child')).toThrow(':not(')
   })
 })
 
@@ -2973,6 +2975,20 @@ describe('scene with expectAll', () => {
     status: () => 'LoggedIn',
     username: () => 'alice',
   })
+  const selectorGrammarView = (_model: Model, h: HtmlBuilder<LoginMessage>) =>
+    h.header(
+      [],
+      [
+        h.a(
+          [h.Href('/'), h.AriaLabel('Home')],
+          [h.svg([], [h.path([h.D('M0 0')])])],
+        ),
+        h.a(
+          [h.Href('/x'), h.AriaLabel('Open menu')],
+          [h.svg([], [h.path([h.D('')])])],
+        ),
+      ],
+    )
 
   test('toHaveCount matches the number of elements', () => {
     Scene.scene(
@@ -3025,23 +3041,7 @@ describe('scene with expectAll', () => {
 
   test('selector locators accept :not() and quoted values with whitespace', () => {
     Scene.scene(
-      {
-        update,
-        view: (_model, h) =>
-          h.header(
-            [],
-            [
-              h.a(
-                [h.Href('/'), h.AriaLabel('Home')],
-                [h.svg([], [h.path([h.D('M0 0')])])],
-              ),
-              h.a(
-                [h.Href('/x'), h.AriaLabel('Open menu')],
-                [h.svg([], [h.path([h.D('')])])],
-              ),
-            ],
-          ),
-      },
+      { update, view: selectorGrammarView },
       Scene.given(initialModel),
       Scene.expect(
         Scene.selector('header a svg path[d]:not([d=""])'),

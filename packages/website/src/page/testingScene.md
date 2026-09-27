@@ -55,12 +55,12 @@ When an ancestor and one of its descendants both match, `text` returns the desce
 
 ### Selector locators
 
-`selector`, `all.selector`, and the CSS strings that interactions and assertions accept all match against the rendered view, not a browser DOM, so they understand a subset of CSS:
+`selector`, `all.selector`, and the selector strings accepted by interactions and assertions query the rendered view rather than a browser DOM. They support this CSS subset:
 
 - A tag name, `#id`, or `.class` matches an element with that tag, id, or class. Tag names are case-sensitive.
-- `[attr]`, `[attr="value"]`, and `[attr^="prefix"]` match attributes. Values may use double or single quotes and may contain spaces.
-- `:not(...)` excludes elements that match the selector inside it, such as `path[d]:not([d=""])`. The inner selector describes one element, so it cannot join parts with a space or list several selectors with a comma. `:not()` can be nested or repeated.
-- A space between two parts matches descendants, as in `header a`.
+- `[attr]`, `[attr="value"]`, and `[attr^="prefix"]` match attributes. Values may use double or single quotes and may contain whitespace.
+- `:not(...)` excludes elements matching one compound selector, such as `path[d]:not([d=""])`. Its argument cannot contain a descendant combinator or a selector list. `:not()` can be nested or repeated.
+- Whitespace between compound selectors matches descendants, as in `header a`.
 
 Anything else, such as `>`, `,`, or `:first-child`, throws an error that lists this syntax.
 

@@ -32,16 +32,16 @@ type SimpleSelector = Readonly<{
   id: Option.Option<string>
   classes: ReadonlyArray<string>
   attributes: ReadonlyArray<AttributeMatcher>
-  not: ReadonlyArray<SimpleSelector>
+  negatedSelectors: ReadonlyArray<SimpleSelector>
 }>
 
 type Selector = ReadonlyArray<SimpleSelector>
 
 type MatchResult = Readonly<{ consumed: string; group: string }>
 
-type ScanState = Readonly<{
+type SelectorScanState = Readonly<{
   maybeQuote: Option.Option<string>
-  depth: number
+  parenthesisDepth: number
 }>
 
 const ID_PATTERN = /^#([a-zA-Z0-9_-]+)/
@@ -49,13 +49,14 @@ const CLASS_PATTERN = /^\.([a-zA-Z0-9_-]+)/
 const ATTRIBUTE_PATTERN =
   /^\[([a-zA-Z][a-zA-Z0-9_-]*)(?:(\^)?=(?:"([^"]*)"|'([^']*)'))?\]/
 const TAG_PATTERN = /^([a-zA-Z][a-zA-Z0-9-]*)/
-const WHITESPACE_PATTERN = /\s/
+const WHITESPACE_CHARACTER_PATTERN = /\s/
+const WHITESPACE_RUN_PATTERN = /\s+/
 const NOT_PREFIX = ':not('
 
 const SUPPORTED_SELECTORS =
-  'Supported selectors: tag, #id, .class, [attr], [attr="value"], ' +
-  '[attr^="prefix"] (values in double or single quotes, spaces allowed), ' +
-  ':not(<compound selector>), and descendant combinators (space).'
+  'Supported selectors: tag name, #id, .class, [attr], [attr="value"], ' +
+  '[attr^="prefix"] (values in double or single quotes, whitespace allowed), ' +
+  ':not(<compound selector>), and descendant combinators (whitespace).'
 
 const throwParseError = (input: string): never => {
   throw new Error(
@@ -63,19 +64,28 @@ const throwParseError = (input: string): never => {
   )
 }
 
-const topLevelScan: ScanState = { maybeQuote: Option.none(), depth: 0 }
-const notArgumentScan: ScanState = { maybeQuote: Option.none(), depth: 1 }
+const initialTopLevelScanState: SelectorScanState = {
+  maybeQuote: Option.none(),
+  parenthesisDepth: 0,
+}
+const initialNotArgumentScanState: SelectorScanState = {
+  maybeQuote: Option.none(),
+  parenthesisDepth: 1,
+}
 
 const isWhitespace = (character: string): boolean =>
-  WHITESPACE_PATTERN.test(character)
+  WHITESPACE_CHARACTER_PATTERN.test(character)
 
 const isQuote = (character: string): boolean =>
   character === '"' || character === "'"
 
-const isTopLevel = (state: ScanState): boolean =>
-  Option.isNone(state.maybeQuote) && state.depth === 0
+const isTopLevel = (state: SelectorScanState): boolean =>
+  Option.isNone(state.maybeQuote) && state.parenthesisDepth === 0
 
-const advanceScan = (state: ScanState, character: string): ScanState =>
+const advanceScanState = (
+  state: SelectorScanState,
+  character: string,
+): SelectorScanState =>
   Option.match(state.maybeQuote, {
     onSome: quote =>
       character === quote
@@ -86,8 +96,12 @@ const advanceScan = (state: ScanState, character: string): ScanState =>
         Match.when(isQuote, quote =>
           modifyFields(state, { maybeQuote: () => Option.some(quote) }),
         ),
-        Match.when('(', () => modifyFields(state, { depth: Number.increment })),
-        Match.when(')', () => modifyFields(state, { depth: Number.decrement })),
+        Match.when('(', () =>
+          modifyFields(state, { parenthesisDepth: Number.increment }),
+        ),
+        Match.when(')', () =>
+          modifyFields(state, { parenthesisDepth: Number.decrement }),
+        ),
         Match.orElse(() => state),
       ),
   })
@@ -96,25 +110,25 @@ const splitAtTopLevelWhitespace = (input: string): ReadonlyArray<string> =>
   pipe(
     String.split(input, ''),
     Array.reduce(
-      { segments: Array.of(''), scan: topLevelScan },
-      ({ segments, scan }, character) => ({
+      { segments: Array.of(''), scanState: initialTopLevelScanState },
+      ({ segments, scanState }, character) => ({
         segments:
-          isTopLevel(scan) && isWhitespace(character)
+          isTopLevel(scanState) && isWhitespace(character)
             ? Array.append(segments, '')
             : Array.modifyLastNonEmpty(
                 segments,
                 segment => segment + character,
               ),
-        scan: advanceScan(scan, character),
+        scanState: advanceScanState(scanState, character),
       }),
     ),
     ({ segments }) => Array.filter(segments, String.isNonEmpty),
   )
 
-const findClosingParenthesis = (input: string): Option.Option<number> =>
+const findClosingParenthesisIndex = (input: string): Option.Option<number> =>
   pipe(
     String.split(input, ''),
-    Array.scan(notArgumentScan, advanceScan),
+    Array.scan(initialNotArgumentScanState, advanceScanState),
     Array.drop(1),
     Array.findFirstIndex(isTopLevel),
   )
@@ -125,16 +139,18 @@ const matchGroup =
     pipe(
       input,
       String.match(regex),
-      Option.flatMap(match =>
-        pipe(
+      Option.flatMap(match => {
+        const [consumed] = match
+
+        return pipe(
           match,
           Array.get(1),
           Option.map(group => ({
-            consumed: match[0],
+            consumed,
             group,
           })),
-        ),
-      ),
+        )
+      }),
     )
 
 const emptySelector: SimpleSelector = {
@@ -142,7 +158,7 @@ const emptySelector: SimpleSelector = {
   id: Option.none(),
   classes: [],
   attributes: [],
-  not: [],
+  negatedSelectors: [],
 }
 
 const tryParseId = (
@@ -186,25 +202,36 @@ const tryParseAttribute = (
   pipe(
     input,
     String.match(ATTRIBUTE_PATTERN),
-    Option.flatMap(match =>
-      pipe(
-        match,
-        Array.get(1),
-        Option.map(name => {
-          const mode: MatchMode = match[2] === '^' ? 'StartsWith' : 'Exact'
-          return parseModifiers(
-            input.slice(match[0].length),
-            modifyFields(accumulator, {
-              attributes: Array.append({
-                name,
-                value: Option.fromNullishOr(match[3] ?? match[4]),
-                mode,
-              }),
+    Option.flatMap(match => {
+      const [
+        consumed,
+        name,
+        startsWithOperator,
+        doubleQuotedValue,
+        singleQuotedValue,
+      ] = match
+      if (Predicate.isUndefined(name)) {
+        return Option.none()
+      }
+
+      const mode: MatchMode =
+        startsWithOperator === '^' ? 'StartsWith' : 'Exact'
+
+      return Option.some(
+        parseModifiers(
+          input.slice(consumed.length),
+          modifyFields(accumulator, {
+            attributes: Array.append({
+              name,
+              value: Option.fromNullishOr(
+                doubleQuotedValue ?? singleQuotedValue,
+              ),
+              mode,
             }),
-          )
-        }),
-      ),
-    ),
+          }),
+        ),
+      )
+    }),
   )
 
 const parseNotArgument = (input: string, argument: string): SimpleSelector => {
@@ -215,6 +242,22 @@ const parseNotArgument = (input: string, argument: string): SimpleSelector => {
   return parseCompoundSelector(argument)
 }
 
+const splitNotArgument = (
+  argumentAndRest: string,
+): Option.Option<Readonly<{ argument: string; remainingInput: string }>> =>
+  pipe(
+    argumentAndRest,
+    findClosingParenthesisIndex,
+    Option.map(closingIndex => ({
+      argument: pipe(
+        argumentAndRest,
+        String.slice(0, closingIndex),
+        String.trim,
+      ),
+      remainingInput: pipe(argumentAndRest, String.slice(closingIndex + 1)),
+    })),
+  )
+
 const tryParseNot = (
   input: string,
   accumulator: SimpleSelector,
@@ -222,32 +265,24 @@ const tryParseNot = (
   pipe(
     input,
     StringExt.stripPrefix(NOT_PREFIX),
-    Option.flatMap(argumentAndRest =>
-      pipe(
-        argumentAndRest,
-        findClosingParenthesis,
-        Option.map(closingIndex =>
-          parseModifiers(
-            argumentAndRest.slice(closingIndex + 1),
-            modifyFields(accumulator, {
-              not: Array.append(
-                parseNotArgument(
-                  input,
-                  String.trim(argumentAndRest.slice(0, closingIndex)),
-                ),
-              ),
-            }),
-          ),
-        ),
-      ),
-    ),
+    Option.flatMap(splitNotArgument),
+    Option.map(({ argument, remainingInput }) => {
+      const negatedSelector = parseNotArgument(input, argument)
+      const nextAccumulator = modifyFields(accumulator, {
+        negatedSelectors: Array.append(negatedSelector),
+      })
+
+      return parseModifiers(remainingInput, nextAccumulator)
+    }),
   )
 
 const parseModifiers = (
   input: string,
   accumulator: SimpleSelector,
 ): SimpleSelector => {
-  if (String.isEmpty(input)) return accumulator
+  if (String.isEmpty(input)) {
+    return accumulator
+  }
 
   return pipe(
     tryParseId(input, accumulator),
@@ -264,11 +299,14 @@ const parseCompoundSelector = (segment: string): SimpleSelector =>
     String.match(TAG_PATTERN),
     Option.match({
       onNone: () => parseModifiers(segment, emptySelector),
-      onSome: match =>
-        parseModifiers(
-          segment.slice(match[0].length),
+      onSome: match => {
+        const [consumed] = match
+
+        return parseModifiers(
+          segment.slice(consumed.length),
           modifyFields(emptySelector, { tag: () => Array.get(match, 1) }),
-        ),
+        )
+      },
     }),
   )
 
@@ -472,7 +510,9 @@ const matchesSimpleSelector =
       className => vnode.data?.class?.[className] === true,
     ) &&
     Array.every(selector.attributes, matchesAttribute(vnode)) &&
-    !Array.some(selector.not, negated => matchesSimpleSelector(negated)(vnode))
+    !Array.some(selector.negatedSelectors, negatedSelector =>
+      matchesSimpleSelector(negatedSelector)(vnode),
+    )
 
 // IMPLICIT ROLES
 
@@ -664,7 +704,10 @@ const resolveRoles =
       vnode,
       lookupStringAttribute('role'),
       Option.map(
-        flow(String.split(WHITESPACE_PATTERN), Array.filter(String.isNonEmpty)),
+        flow(
+          String.split(WHITESPACE_RUN_PATTERN),
+          Array.filter(String.isNonEmpty),
+        ),
       ),
       Option.getOrElse(() => Option.toArray(implicitRole(root)(vnode))),
     )
@@ -704,7 +747,7 @@ const nameFromLabelledBy =
       Option.map(labelledBy =>
         pipe(
           labelledBy,
-          String.split(WHITESPACE_PATTERN),
+          String.split(WHITESPACE_RUN_PATTERN),
           Array.filterMap(
             flow(
               findById(root),
@@ -826,7 +869,7 @@ export const accessibleDescription =
       Option.match({
         onNone: () => '',
         onSome: flow(
-          String.split(WHITESPACE_PATTERN),
+          String.split(WHITESPACE_RUN_PATTERN),
           Array.filterMap(
             flow(
               findById(root),
@@ -1437,12 +1480,12 @@ export const text = (
 ): Locator =>
   makeLocator(getByText(target, options), `text ${describeText(target)}`)
 
-/** Creates a Locator that wraps a CSS selector. Escape hatch for cases
- *  where no accessible attribute is available. Supports tag, `#id`,
+/** Creates a Locator from the supported CSS selector subset. Use this escape
+ *  hatch when no accessible Locator is available. Supports tag names, `#id`,
  *  `.class`, `[attr]`, `[attr="value"]`, `[attr^="prefix"]`,
- *  `:not(<compound selector>)`, and descendant combinators. Attribute
- *  values may use double or single quotes and may contain spaces. Any
- *  other syntax throws. */
+ *  `:not(<compound selector>)`, and descendant combinators. Attribute values
+ *  may use double or single quotes and may contain whitespace. Any other
+ *  syntax throws. */
 export const selector = (css: string): Locator =>
   makeLocator(flow(findAllImpl(css), Array.head), `"${css}"`)
 
