@@ -293,21 +293,21 @@ export const ClickItem = Command.define('ClickItem', {
 export const DetectMovementOrAnimationEnd = Command.define(
   'DetectMovementOrAnimationEnd',
   {
-    args: { id: Schema.String, version: Schema.Number },
+    args: { id: Schema.String, generation: Schema.Number },
     messages: [Message.GotAnimationMessage],
-    execute: ({ id, version }) =>
+    execute: ({ id, generation }) =>
       Effect.raceFirst(
         Dom.detectElementMovement(inputWrapperSelector(id)).pipe(
           Effect.as(
             Message.GotAnimationMessage({
-              message: Animation.Message.EndedAnimation({ version }),
+              message: Animation.Message.EndedAnimation({ generation }),
             }),
           ),
         ),
         Dom.waitForAnimationSettled(itemsSelector(id)).pipe(
           Effect.as(
             Message.GotAnimationMessage({
-              message: Animation.Message.EndedAnimation({ version }),
+              message: Animation.Message.EndedAnimation({ generation }),
             }),
           ),
         ),
@@ -343,10 +343,10 @@ export const makeUpdate = <Model extends BaseModel>(
     Update.Step<Model, Message>
   >({
     StartedLeaveAnimating:
-      ({ version }) =>
+      ({ generation }) =>
       model => ({
         model,
-        commands: [DetectMovementOrAnimationEnd({ id: model.id, version })],
+        commands: [DetectMovementOrAnimationEnd({ id: model.id, generation })],
       }),
     TransitionedOut: () => model => ({ model }),
   })

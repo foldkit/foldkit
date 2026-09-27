@@ -15,12 +15,13 @@ export type TransitionState = typeof TransitionState.Type
 
 // MODEL
 
-/** Schema for the animation component's state, tracking its unique ID, visibility intent, and lifecycle phase. `transitionVersion` increases each time `Showed` or `Hid` starts a new phase, so a paint or settle result from an earlier phase is recognized as stale and ignored. */
+/** Schema for Animation state, including the transition generation used to reject
+ *  stale Command results. */
 export const Model = Schema.Struct({
   id: Schema.String,
   isShowing: Schema.Boolean,
   transitionState: TransitionState,
-  transitionVersion: Schema.Number,
+  transitionGeneration: Schema.Number,
 })
 
 export type Model = typeof Model.Type
@@ -31,8 +32,8 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({
   Showed: {},
   Hid: {},
-  CompletedWaitForPaint: { version: Schema.Number },
-  EndedAnimation: { version: Schema.Number },
+  CompletedWaitForPaint: { generation: Schema.Number },
+  EndedAnimation: { generation: Schema.Number },
 })
 export type Message = typeof Message.Type
 
@@ -41,9 +42,9 @@ export type Hid = typeof Message.Hid.Type
 
 // OUT MESSAGE
 
-/** Union of the facts the animation component reports to its parent. `StartedLeaveAnimating` carries the version of the leave phase, which a custom leave Command passes back in `EndedAnimation`. */
+/** Union of the facts Animation reports to its parent. */
 export const OutMessage = defineMessageUnion({
-  StartedLeaveAnimating: { version: Schema.Number },
+  StartedLeaveAnimating: { generation: Schema.Number },
   TransitionedOut: {},
 })
 export type OutMessage = typeof OutMessage.Type
@@ -61,5 +62,5 @@ export const init = (config: InitConfig): Model => ({
   id: config.id,
   isShowing: config.isShowing ?? false,
   transitionState: 'Idle',
-  transitionVersion: 0,
+  transitionGeneration: 0,
 })

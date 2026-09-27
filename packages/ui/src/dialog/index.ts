@@ -267,7 +267,7 @@ const resumeAnimationAfterAcquisition = (
       commands: [
         Command.mapMessage(
           AnimationUpdate.WaitForPaint({
-            version: model.animation.transitionVersion,
+            generation: model.animation.transitionGeneration,
           }),
           wrapAnimationMessage,
         ),
@@ -279,7 +279,7 @@ const resumeAnimationAfterAcquisition = (
         Command.mapMessage(
           AnimationUpdate.WaitForAnimationSettled({
             id: model.animation.id,
-            version: model.animation.transitionVersion,
+            generation: model.animation.transitionGeneration,
           }),
           wrapAnimationMessage,
         ),
@@ -290,7 +290,7 @@ const resumeAnimationAfterAcquisition = (
       commands: [
         Command.mapMessage(
           AnimationUpdate.WaitForPaint({
-            version: model.animation.transitionVersion,
+            generation: model.animation.transitionGeneration,
           }),
           wrapAnimationMessage,
         ),
@@ -302,7 +302,7 @@ const resumeAnimationAfterAcquisition = (
         Command.mapMessage(
           AnimationUpdate.WaitForAnimationSettled({
             id: model.animation.id,
-            version: model.animation.transitionVersion,
+            generation: model.animation.transitionGeneration,
           }),
           wrapAnimationMessage,
         ),

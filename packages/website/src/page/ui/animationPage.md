@@ -64,9 +64,9 @@ The double-rAF timing (one frame to set the start state, another to trigger the 
 
 Say a user closes a panel while it is still sliding in. `hide` starts the leave, and the browser reverses the running transition. Reversing cancels the enter transition, so the Command waiting for the enter to settle resolves and returns `EndedAnimation` while Animation is already leaving.
 
-Animation ignores that late result. Each time `show` or `hide` starts a phase, Animation increases `transitionVersion` in its Model. Every paint and settle Command carries the version it started under, and update drops a result whose version is no longer current. The leave keeps running until its own Command reports. The same holds the other way round, when `show` interrupts a leave.
+Animation ignores that late result. Each time `show` or `hide` starts an enter or leave transition, Animation increases `transitionGeneration` in its Model. Every paint and settlement Command reports the transition generation that scheduled it, and update ignores a result whose generation is no longer current. The leave keeps running until its own settlement result arrives. The same holds when `show` interrupts a leave.
 
-`defaultLeaveCommand(model)` reads the version from the Model. A custom leave Command gets it from `StartedLeaveAnimating` and returns it in `EndedAnimation({ version })`:
+`defaultLeaveCommand(model)` reads the generation from the Model. A custom leave Command gets it from `StartedLeaveAnimating` and returns it in `EndedAnimation({ generation })`:
 
 ::Snippet{name="uiAnimationCustomLeave" label="custom leave Command"}
 
@@ -125,7 +125,7 @@ Configuration object passed to `Animation.view()`.
 
 Messages emitted to the parent through the optional `outMessage` field. Fold the OutMessage in the `foldOutMessage` of your [`Update.foldChild`](/core/submodel#fold-child) config.
 
-| Name                    | Type         | Default | Description                                                                                                                                                                                                                                                                                         |
-| ----------------------- | ------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `StartedLeaveAnimating` | `OutMessage` | —       | Emitted when the leave animation begins. Its `version` identifies the leave. Return Animation.defaultLeaveCommand(model) from the fold, lifted with the fold context's liftCommand, to detect animation settlement. A custom leave Command returns `EndedAnimation({ version })` with this version. |
-| `TransitionedOut`       | `OutMessage` | —       | Emitted when the leave animation finishes. Use this to unmount content or update your Model.                                                                                                                                                                                                        |
+| Name                    | Type         | Default | Description                                                                                                                                                                                                                                                                                                  |
+| ----------------------- | ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `StartedLeaveAnimating` | `OutMessage` | —       | Emitted when the leave animation begins. Its `generation` identifies the leave. Return Animation.defaultLeaveCommand(model) from the fold, lifted with the fold context's liftCommand, to detect animation settlement. A custom leave Command returns `EndedAnimation({ generation })` with this generation. |
+| `TransitionedOut`       | `OutMessage` | —       | Emitted when the leave animation finishes. Use this to unmount content or update your Model.                                                                                                                                                                                                                 |

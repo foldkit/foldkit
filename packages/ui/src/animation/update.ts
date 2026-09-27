@@ -21,24 +21,26 @@ const elementSelector = (id: string): string => idSelector(id)
 type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 const withUpdateReturn = Match.withReturnType<UpdateReturn>()
 
-/** Waits for paint via double-rAF before the enter/leave lifecycle advances. The result carries `version`, so a paint that completes after a later `Showed` or `Hid` is ignored. */
+/** Waits for paint via double-rAF, then reports the transition generation that
+ *  scheduled the wait. */
 export const WaitForPaint = Command.define('WaitForPaint', {
-  args: { version: Schema.Number },
+  args: { generation: Schema.Number },
   messages: [Message.CompletedWaitForPaint],
-  execute: ({ version }) =>
+  execute: ({ generation }) =>
     Render.afterPaint.pipe(
-      Effect.as(Message.CompletedWaitForPaint({ version })),
+      Effect.as(Message.CompletedWaitForPaint({ generation })),
     ),
 })
-/** Waits for all CSS animations on the element to settle. Covers both CSS transitions and CSS keyframe animations. The result carries `version`, so a settle from an earlier phase cannot end a later one. */
+/** Waits for all CSS transitions and keyframe animations on the element to
+ *  settle, then reports the transition generation that scheduled the wait. */
 export const WaitForAnimationSettled = Command.define(
   'WaitForAnimationSettled',
   {
-    args: { id: Schema.String, version: Schema.Number },
+    args: { id: Schema.String, generation: Schema.Number },
     messages: [Message.EndedAnimation],
-    execute: ({ id, version }) =>
+    execute: ({ id, generation }) =>
       Dom.waitForAnimationSettled(elementSelector(id)).pipe(
-        Effect.as(Message.EndedAnimation({ version })),
+        Effect.as(Message.EndedAnimation({ generation })),
       ),
   },
 )
@@ -46,30 +48,31 @@ export const WaitForAnimationSettled = Command.define(
 /** Processes an Animation Message and returns the next Model, optional
  *  Commands, and an optional OutMessage. `Showed` and `Hid` start a transition
  *  but cannot finish one, so direct calls with either Message return a plain
- *  update result. `CompletedWaitForPaint` and `EndedAnimation` whose `version`
- *  differs from the Model's `transitionVersion` belong to an earlier phase and
- *  leave the Model unchanged. */
+ *  update result. Results from an earlier transition generation leave the Model
+ *  unchanged. */
 export function update(
   model: Model,
   message: Showed | Hid,
 ): Update.Return<Model, Message>
 export function update(model: Model, message: Message): UpdateReturn
 export function update(model: Model, message: Message): UpdateReturn {
-  const nextTransitionVersion = Number.increment(model.transitionVersion)
-
   return Message.match<UpdateReturn>(message, {
     Showed: () => {
       if (model.isShowing) {
         return { model }
       }
 
+      const nextTransitionGeneration = Number.increment(
+        model.transitionGeneration,
+      )
+
       return {
         model: modifyFields(model, {
           isShowing: () => true,
           transitionState: () => 'EnterStart',
-          transitionVersion: () => nextTransitionVersion,
+          transitionGeneration: () => nextTransitionGeneration,
         }),
-        commands: [WaitForPaint({ version: nextTransitionVersion })],
+        commands: [WaitForPaint({ generation: nextTransitionGeneration })],
       }
     },
 
@@ -82,18 +85,22 @@ export function update(model: Model, message: Message): UpdateReturn {
         return { model }
       }
 
+      const nextTransitionGeneration = Number.increment(
+        model.transitionGeneration,
+      )
+
       return {
         model: modifyFields(model, {
           isShowing: () => false,
           transitionState: () => 'LeaveStart',
-          transitionVersion: () => nextTransitionVersion,
+          transitionGeneration: () => nextTransitionGeneration,
         }),
-        commands: [WaitForPaint({ version: nextTransitionVersion })],
+        commands: [WaitForPaint({ generation: nextTransitionGeneration })],
       }
     },
 
-    CompletedWaitForPaint: ({ version }) => {
-      if (version !== model.transitionVersion) {
+    CompletedWaitForPaint: ({ generation }) => {
+      if (generation !== model.transitionGeneration) {
         return { model }
       }
 
@@ -106,7 +113,7 @@ export function update(model: Model, message: Message): UpdateReturn {
           commands: [
             WaitForAnimationSettled({
               id: model.id,
-              version: model.transitionVersion,
+              generation: model.transitionGeneration,
             }),
           ],
         })),
@@ -115,15 +122,15 @@ export function update(model: Model, message: Message): UpdateReturn {
             transitionState: () => 'LeaveAnimating',
           }),
           outMessage: OutMessage.StartedLeaveAnimating({
-            version: model.transitionVersion,
+            generation: model.transitionGeneration,
           }),
         })),
         Match.orElse(() => ({ model })),
       )
     },
 
-    EndedAnimation: ({ version }) => {
-      if (version !== model.transitionVersion) {
+    EndedAnimation: ({ generation }) => {
+      if (generation !== model.transitionGeneration) {
         return { model }
       }
 
@@ -159,6 +166,11 @@ export const toggle = (model: Model): Update.Return<Model, Message> => {
   }
 }
 
-/** Creates the standard leave-phase command that waits for CSS animations on the element to settle. Use this when handling the `StartedLeaveAnimating` OutMessage for components that don't need custom leave behavior. It carries the Model's current `transitionVersion`, so call it with the Model that emitted `StartedLeaveAnimating`. */
+/** Creates the standard leave Command for the Model's current transition. Use
+ *  this when handling `StartedLeaveAnimating` unless the component needs its
+ *  own settlement strategy. */
 export const defaultLeaveCommand = (model: Model): Command.Command<Message> =>
-  WaitForAnimationSettled({ id: model.id, version: model.transitionVersion })
+  WaitForAnimationSettled({
+    id: model.id,
+    generation: model.transitionGeneration,
+  })

@@ -24,15 +24,15 @@ type Message = typeof Toast.Message.Type
 type Model = typeof Toast.Model.Type
 type Entry = typeof Toast.Entry.Type
 
-const ENTER_TRANSITION_VERSION = 1
-const LEAVE_TRANSITION_VERSION = 2
+const ENTER_TRANSITION_GENERATION = 1
+const LEAVE_TRANSITION_GENERATION = 2
 
 const makeSettledEntry = (overrides: Partial<Entry> = {}): Entry => ({
   id: 'test-entry-0',
   variant: 'Info',
   animation: modifyFields(
     Animation.init({ id: 'test-entry-0', isShowing: true }),
-    { transitionVersion: () => ENTER_TRANSITION_VERSION },
+    { transitionGeneration: () => ENTER_TRANSITION_GENERATION },
   ),
   maybeDuration: Option.some(Duration.seconds(4)),
   pendingDismissVersion: 0,
@@ -312,14 +312,14 @@ describe('Toast', () => {
         Scene.Command.resolve(
           Animation.WaitForPaint,
           Animation.Message.CompletedWaitForPaint({
-            version: LEAVE_TRANSITION_VERSION,
+            generation: LEAVE_TRANSITION_GENERATION,
           }),
         ),
         Scene.expect(entryZero).toHaveStyle('translate', '100vw'),
         Scene.Command.resolve(
           Animation.WaitForAnimationSettled,
           Animation.Message.EndedAnimation({
-            version: LEAVE_TRANSITION_VERSION,
+            generation: LEAVE_TRANSITION_GENERATION,
           }),
         ),
         Scene.expect(entryZero).toBeAbsent(),
@@ -372,7 +372,7 @@ describe('Toast', () => {
           id: 'test-entry-0',
           isShowing: false,
           transitionState: 'LeaveAnimating',
-          transitionVersion: LEAVE_TRANSITION_VERSION,
+          transitionGeneration: LEAVE_TRANSITION_GENERATION,
         },
       })
       Scene.scene(
@@ -390,7 +390,7 @@ describe('Toast', () => {
           id: 'test-entry-0',
           isShowing: false,
           transitionState: 'LeaveAnimating',
-          transitionVersion: LEAVE_TRANSITION_VERSION,
+          transitionGeneration: LEAVE_TRANSITION_GENERATION,
         },
       })
       Scene.scene(

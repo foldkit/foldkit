@@ -139,13 +139,13 @@ const renderGroup = (
         Scene.Command.resolve(
           Animation.WaitForPaint,
           Animation.Message.CompletedWaitForPaint({
-            version: model.animation.transitionVersion,
+            generation: model.animation.transitionGeneration,
           }),
         ),
         Scene.Command.resolve(
           Animation.WaitForAnimationSettled,
           Animation.Message.EndedAnimation({
-            version: model.animation.transitionVersion,
+            generation: model.animation.transitionGeneration,
           }),
         ),
         Scene.Command.resolve(CloseDialog, Message.CompletedCloseDialog()),
@@ -430,11 +430,11 @@ describe('Dialog', () => {
             [ShowDialog, Message.SucceededShowDialog()],
             [
               Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint({ version: 1 }),
+              Animation.Message.CompletedWaitForPaint({ generation: 1 }),
             ],
             [
               Animation.WaitForAnimationSettled,
-              Animation.Message.EndedAnimation({ version: 1 }),
+              Animation.Message.EndedAnimation({ generation: 1 }),
             ],
           ),
           Story.model(model => {
@@ -456,11 +456,11 @@ describe('Dialog', () => {
           Story.Command.resolveAll(
             [
               Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint({ version: 2 }),
+              Animation.Message.CompletedWaitForPaint({ generation: 2 }),
             ],
             [
               Animation.WaitForAnimationSettled,
-              Animation.Message.EndedAnimation({ version: 2 }),
+              Animation.Message.EndedAnimation({ generation: 2 }),
             ],
             [CloseDialog, Message.CompletedCloseDialog()],
           ),
@@ -475,15 +475,15 @@ describe('Dialog', () => {
           update,
           Story.given(boot({ id: 'test', isAnimated: true }).model),
           Story.message(Message.SucceededAcquireResources()),
-          Story.Command.expectHas(Animation.WaitForPaint({ version: 1 })),
+          Story.Command.expectHas(Animation.WaitForPaint({ generation: 1 })),
           Story.Command.resolveAll(
             [
               Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint({ version: 1 }),
+              Animation.Message.CompletedWaitForPaint({ generation: 1 }),
             ],
             [
               Animation.WaitForAnimationSettled,
-              Animation.Message.EndedAnimation({ version: 1 }),
+              Animation.Message.EndedAnimation({ generation: 1 }),
             ],
           ),
           Story.model(model => {
@@ -509,11 +509,14 @@ describe('Dialog', () => {
           Story.given(enteringModel),
           Story.message(Message.SucceededAcquireResources()),
           Story.Command.expectHas(
-            Animation.WaitForAnimationSettled({ id: 'test-panel', version: 1 }),
+            Animation.WaitForAnimationSettled({
+              id: 'test-panel',
+              generation: 1,
+            }),
           ),
           Story.Command.resolve(
             Animation.WaitForAnimationSettled,
-            Animation.Message.EndedAnimation({ version: 1 }),
+            Animation.Message.EndedAnimation({ generation: 1 }),
           ),
           Story.model(model => {
             expect(model.isOpen).toBe(true)
@@ -532,15 +535,15 @@ describe('Dialog', () => {
           update,
           Story.given(dialogClose.model),
           Story.message(Message.SucceededAcquireResources()),
-          Story.Command.expectHas(Animation.WaitForPaint({ version: 2 })),
+          Story.Command.expectHas(Animation.WaitForPaint({ generation: 2 })),
           Story.Command.resolveAll(
             [
               Animation.WaitForPaint,
-              Animation.Message.CompletedWaitForPaint({ version: 2 }),
+              Animation.Message.CompletedWaitForPaint({ generation: 2 }),
             ],
             [
               Animation.WaitForAnimationSettled,
-              Animation.Message.EndedAnimation({ version: 2 }),
+              Animation.Message.EndedAnimation({ generation: 2 }),
             ],
             [CloseDialog, Message.CompletedCloseDialog()],
           ),
@@ -570,12 +573,15 @@ describe('Dialog', () => {
           Story.given(leavingModel),
           Story.message(Message.SucceededAcquireResources()),
           Story.Command.expectHas(
-            Animation.WaitForAnimationSettled({ id: 'test-panel', version: 2 }),
+            Animation.WaitForAnimationSettled({
+              id: 'test-panel',
+              generation: 2,
+            }),
           ),
           Story.Command.resolveAll(
             [
               Animation.WaitForAnimationSettled,
-              Animation.Message.EndedAnimation({ version: 2 }),
+              Animation.Message.EndedAnimation({ generation: 2 }),
             ],
             [CloseDialog, Message.CompletedCloseDialog()],
           ),
@@ -689,7 +695,7 @@ describe('Dialog', () => {
                 Animation.init({ id: 'test-panel', isShowing: false }),
                 {
                   transitionState: () => 'LeaveAnimating',
-                  transitionVersion: () => 2,
+                  transitionGeneration: () => 2,
                 },
               ),
           },
@@ -702,7 +708,7 @@ describe('Dialog', () => {
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.animation.transitionState).toBe('Idle')
-            expect(model.animation.transitionVersion).toBe(2)
+            expect(model.animation.transitionGeneration).toBe(2)
           }),
           Story.Command.resolve(
             ReleaseDialogResources,
@@ -761,7 +767,7 @@ describe('Dialog', () => {
                 Animation.init({ id: 'test-panel', isShowing: true }),
                 {
                   transitionState: () => 'EnterAnimating',
-                  transitionVersion: () => 1,
+                  transitionGeneration: () => 1,
                 },
               ),
           },
@@ -774,7 +780,7 @@ describe('Dialog', () => {
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.animation.transitionState).toBe('Idle')
-            expect(model.animation.transitionVersion).toBe(1)
+            expect(model.animation.transitionGeneration).toBe(1)
           }),
           Story.Command.expectNone(),
         )
@@ -924,7 +930,7 @@ describe('Dialog', () => {
               Animation.init({ id: 'my-dialog-panel', isShowing: false }),
               {
                 transitionState: () => 'LeaveStart',
-                transitionVersion: () => 2,
+                transitionGeneration: () => 2,
               },
             ),
         },

@@ -26,15 +26,15 @@ const STALE_VERSION = -1
 const POINTER_ID = 1
 const OTHER_POINTER_ID = 2
 const SETTLING_SWIPE_VERSION = 2
-const ENTER_TRANSITION_VERSION = 1
-const LEAVE_TRANSITION_VERSION = 2
+const ENTER_TRANSITION_GENERATION = 1
+const LEAVE_TRANSITION_GENERATION = 2
 
 const makeSettledEntry = (overrides: Partial<Entry> = {}): Entry => ({
   id: 'test-entry-0',
   variant: 'Info',
   animation: modifyFields(
     Animation.init({ id: 'test-entry-0', isShowing: true }),
-    { transitionVersion: () => ENTER_TRANSITION_VERSION },
+    { transitionGeneration: () => ENTER_TRANSITION_GENERATION },
   ),
   maybeDuration: Option.some(Duration.seconds(4)),
   pendingDismissVersion: 0,
@@ -245,13 +245,13 @@ describe('Toast', () => {
             [
               Animation.WaitForPaint,
               Animation.Message.CompletedWaitForPaint({
-                version: LEAVE_TRANSITION_VERSION,
+                generation: LEAVE_TRANSITION_GENERATION,
               }),
             ],
             [
               Animation.WaitForAnimationSettled,
               Animation.Message.EndedAnimation({
-                version: LEAVE_TRANSITION_VERSION,
+                generation: LEAVE_TRANSITION_GENERATION,
               }),
             ],
           ),
@@ -414,13 +414,13 @@ describe('Toast', () => {
             [
               Animation.WaitForPaint,
               Animation.Message.CompletedWaitForPaint({
-                version: LEAVE_TRANSITION_VERSION,
+                generation: LEAVE_TRANSITION_GENERATION,
               }),
             ],
             [
               Animation.WaitForAnimationSettled,
               Animation.Message.EndedAnimation({
-                version: LEAVE_TRANSITION_VERSION,
+                generation: LEAVE_TRANSITION_GENERATION,
               }),
             ],
           ),
@@ -436,7 +436,7 @@ describe('Toast', () => {
             id: firstEntryId,
             isShowing: false,
             transitionState: 'LeaveAnimating',
-            transitionVersion: LEAVE_TRANSITION_VERSION,
+            transitionGeneration: LEAVE_TRANSITION_GENERATION,
           },
         })
         const model: Model = modifyFields(Toast.init({ id: 'test' }), {
@@ -460,7 +460,7 @@ describe('Toast', () => {
             id: firstEntryId,
             isShowing: false,
             transitionState: 'LeaveAnimating',
-            transitionVersion: LEAVE_TRANSITION_VERSION,
+            transitionGeneration: LEAVE_TRANSITION_GENERATION,
           },
         })
         const model: Model = modifyFields(Toast.init({ id: 'test' }), {
@@ -474,7 +474,7 @@ describe('Toast', () => {
             Message.GotAnimationMessage({
               entryId: firstEntryId,
               message: Animation.Message.EndedAnimation({
-                version: LEAVE_TRANSITION_VERSION,
+                generation: LEAVE_TRANSITION_GENERATION,
               }),
             }),
           ),
@@ -494,14 +494,14 @@ describe('Toast', () => {
           id: 'test-entry-0',
           animation: {
             ...Animation.init({ id: 'test-entry-0', isShowing: true }),
-            transitionVersion: ENTER_TRANSITION_VERSION,
+            transitionGeneration: ENTER_TRANSITION_GENERATION,
           },
         })
         const entryTwo = makeSettledEntry({
           id: 'test-entry-1',
           animation: {
             ...Animation.init({ id: 'test-entry-1', isShowing: true }),
-            transitionVersion: ENTER_TRANSITION_VERSION,
+            transitionGeneration: ENTER_TRANSITION_GENERATION,
           },
         })
         const model: Model = modifyFields(Toast.init({ id: 'test' }), {
@@ -524,31 +524,31 @@ describe('Toast', () => {
             [
               Animation.WaitForPaint,
               Animation.Message.CompletedWaitForPaint({
-                version: LEAVE_TRANSITION_VERSION,
+                generation: LEAVE_TRANSITION_GENERATION,
               }),
             ],
             [
               Animation.WaitForPaint,
               Animation.Message.CompletedWaitForPaint({
-                version: LEAVE_TRANSITION_VERSION,
+                generation: LEAVE_TRANSITION_GENERATION,
               }),
             ],
             [
               Animation.WaitForAnimationSettled({
                 id: 'test-entry-0',
-                version: LEAVE_TRANSITION_VERSION,
+                generation: LEAVE_TRANSITION_GENERATION,
               }),
               Animation.Message.EndedAnimation({
-                version: LEAVE_TRANSITION_VERSION,
+                generation: LEAVE_TRANSITION_GENERATION,
               }),
             ],
             [
               Animation.WaitForAnimationSettled({
                 id: 'test-entry-1',
-                version: LEAVE_TRANSITION_VERSION,
+                generation: LEAVE_TRANSITION_GENERATION,
               }),
               Animation.Message.EndedAnimation({
-                version: LEAVE_TRANSITION_VERSION,
+                generation: LEAVE_TRANSITION_GENERATION,
               }),
             ],
           ),
@@ -573,13 +573,13 @@ describe('Toast', () => {
           [
             Animation.WaitForPaint,
             Animation.Message.CompletedWaitForPaint({
-              version: ENTER_TRANSITION_VERSION,
+              generation: ENTER_TRANSITION_GENERATION,
             }),
           ],
           [
             Animation.WaitForAnimationSettled,
             Animation.Message.EndedAnimation({
-              version: ENTER_TRANSITION_VERSION,
+              generation: ENTER_TRANSITION_GENERATION,
             }),
           ],
         ),
@@ -602,13 +602,13 @@ describe('Toast', () => {
           [
             Animation.WaitForPaint,
             Animation.Message.CompletedWaitForPaint({
-              version: LEAVE_TRANSITION_VERSION,
+              generation: LEAVE_TRANSITION_GENERATION,
             }),
           ],
           [
             Animation.WaitForAnimationSettled,
             Animation.Message.EndedAnimation({
-              version: LEAVE_TRANSITION_VERSION,
+              generation: LEAVE_TRANSITION_GENERATION,
             }),
           ],
         ),
@@ -618,7 +618,7 @@ describe('Toast', () => {
       )
     })
 
-    it('drains the whole lifecycle in one step via test.drainEntry', () => {
+    it('test.drainEntry drains the whole lifecycle in one step', () => {
       const entry = makeFreshEntry({
         maybeDuration: Option.some(Duration.millis(100)),
       })
@@ -633,7 +633,7 @@ describe('Toast', () => {
       )
     })
 
-    it('drains an entry whose enter is already resolved via test.drainEntry', () => {
+    it('test.drainEntry drains an entry after its enter has settled', () => {
       const entry = makeFreshEntry({
         maybeDuration: Option.some(Duration.millis(100)),
       })
@@ -645,13 +645,13 @@ describe('Toast', () => {
           [
             Animation.WaitForPaint,
             Animation.Message.CompletedWaitForPaint({
-              version: ENTER_TRANSITION_VERSION,
+              generation: ENTER_TRANSITION_GENERATION,
             }),
           ],
           [
             Animation.WaitForAnimationSettled,
             Animation.Message.EndedAnimation({
-              version: ENTER_TRANSITION_VERSION,
+              generation: ENTER_TRANSITION_GENERATION,
             }),
           ],
         ),
@@ -884,13 +884,13 @@ describe('Toast', () => {
           [
             Animation.WaitForPaint,
             Animation.Message.CompletedWaitForPaint({
-              version: LEAVE_TRANSITION_VERSION,
+              generation: LEAVE_TRANSITION_GENERATION,
             }),
           ],
           [
             Animation.WaitForAnimationSettled,
             Animation.Message.EndedAnimation({
-              version: LEAVE_TRANSITION_VERSION,
+              generation: LEAVE_TRANSITION_GENERATION,
             }),
           ],
         ),
@@ -1236,13 +1236,13 @@ describe('Toast', () => {
           [
             Animation.WaitForPaint,
             Animation.Message.CompletedWaitForPaint({
-              version: LEAVE_TRANSITION_VERSION,
+              generation: LEAVE_TRANSITION_GENERATION,
             }),
           ],
           [
             Animation.WaitForAnimationSettled,
             Animation.Message.EndedAnimation({
-              version: LEAVE_TRANSITION_VERSION,
+              generation: LEAVE_TRANSITION_GENERATION,
             }),
           ],
         ),
@@ -1266,7 +1266,7 @@ describe('Toast', () => {
           id: firstEntryId,
           isShowing: false,
           transitionState: 'LeaveAnimating',
-          transitionVersion: LEAVE_TRANSITION_VERSION,
+          transitionGeneration: LEAVE_TRANSITION_GENERATION,
         },
       })
       const model = withEntries(swipeInit, [leavingEntry])
@@ -1394,13 +1394,13 @@ describe('Toast', () => {
           [
             Animation.WaitForPaint,
             Animation.Message.CompletedWaitForPaint({
-              version: LEAVE_TRANSITION_VERSION,
+              generation: LEAVE_TRANSITION_GENERATION,
             }),
           ],
           [
             Animation.WaitForAnimationSettled,
             Animation.Message.EndedAnimation({
-              version: LEAVE_TRANSITION_VERSION,
+              generation: LEAVE_TRANSITION_GENERATION,
             }),
           ],
         ),
@@ -1528,7 +1528,7 @@ describe('Toast', () => {
           id: firstEntryId,
           isShowing: false,
           transitionState: 'LeaveAnimating',
-          transitionVersion: LEAVE_TRANSITION_VERSION,
+          transitionGeneration: LEAVE_TRANSITION_GENERATION,
         },
         swipeState: SwipeState.Dismissing({
           offsetX: 100,
@@ -1585,13 +1585,13 @@ describe('Toast', () => {
           [
             Animation.WaitForPaint,
             Animation.Message.CompletedWaitForPaint({
-              version: LEAVE_TRANSITION_VERSION,
+              generation: LEAVE_TRANSITION_GENERATION,
             }),
           ],
           [
             Animation.WaitForAnimationSettled,
             Animation.Message.EndedAnimation({
-              version: LEAVE_TRANSITION_VERSION,
+              generation: LEAVE_TRANSITION_GENERATION,
             }),
           ],
         ),
