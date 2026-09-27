@@ -20,6 +20,8 @@ const webServerCommand = (slug: string): string => {
     // NOTE: This browser gate runs the standalone Vite config that Launch
     // Playground substitutes for the monorepo config.
     return `pnpm -C ../../examples/livestore exec vite --config vite.config.playground.ts --port ${PORT} --strictPort`
+  } else if (slug === 'tanstack-db-electric') {
+    return `pnpm -C ../../examples/tanstack-db-electric backend:clear && pnpm -C ../../examples/tanstack-db-electric backend:up && pnpm -C ../../examples/tanstack-db-electric migrate && pnpm -C ../../examples/tanstack-db-electric exec vite --port ${PORT} --strictPort`
   } else {
     return `pnpm -C ../../examples/${slug} exec vite --port ${PORT} --strictPort`
   }

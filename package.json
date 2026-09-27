@@ -83,6 +83,7 @@
     "dev:example:personal-blog": "pnpm --filter personal-blog-example dev",
     "dev:example:view-transitions": "pnpm --filter view-transitions-example dev",
     "dev:example:livestore": "pnpm --filter livestore-example dev",
+    "dev:example:tanstack-db-electric": "pnpm --filter tanstack-db-electric-example dev",
     "dev:example:ssg": "pnpm --filter ssg-example dev",
     "dev:example:ssr": "pnpm --filter ssr-example dev",
     "changeset": "changeset",

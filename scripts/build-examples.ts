@@ -171,13 +171,18 @@ const main = async (): Promise<void> => {
       livePreview: 'Spa' | 'Prerendered'
     } =>
       example.livePreview !== 'PlaygroundOnly' &&
+      example.livePreview !== 'LocalOnly' &&
       (only.size === 0 || only.has(example.slug)),
   )
   const skippedSlugs = examples
-    .filter(example => example.livePreview === 'PlaygroundOnly')
+    .filter(
+      example =>
+        example.livePreview === 'PlaygroundOnly' ||
+        example.livePreview === 'LocalOnly',
+    )
     .map(example => example.slug)
   if (skippedSlugs.length > 0) {
-    console.log(`Skipping playground-only examples: ${skippedSlugs.join(', ')}`)
+    console.log(`Skipping non-embedded examples: ${skippedSlugs.join(', ')}`)
   }
 
   const batchCount = Math.ceil(

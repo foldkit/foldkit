@@ -37,6 +37,8 @@ export const INCLUDED_EXTENSIONS: ReadonlySet<string> = new Set([
   '.html',
   '.json',
   '.md',
+  '.sql',
+  '.yaml',
   // No example ships one today, and an example is free to add one: a
   // playground that skipped it would offer a project whose files are not all
   // there.

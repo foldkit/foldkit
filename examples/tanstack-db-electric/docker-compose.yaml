@@ -1,0 +1,35 @@
+name: foldkit-tanstack-db-electric
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: electric
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - '127.0.0.1:54329:5432'
+    command:
+      - -c
+      - wal_level=logical
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d electric']
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  electric:
+    image: electricsql/electric:1.6.0
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/electric?sslmode=disable
+      ELECTRIC_INSECURE: true
+    ports:
+      - '127.0.0.1:30000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-data:

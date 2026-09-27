@@ -53,6 +53,7 @@
     "view-transitions-example",
     "ssr-example",
     "ssg-example",
-    "livestore-example"
+    "livestore-example",
+    "tanstack-db-electric-example"
   ]
 }

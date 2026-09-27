@@ -1,0 +1,36 @@
+{
+  "name": "tanstack-db-electric-example",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm backend:up && pnpm migrate && vite",
+    "backend:up": "docker compose up -d --wait",
+    "backend:down": "docker compose down",
+    "backend:clear": "docker compose down -v",
+    "migrate": "node scripts/migrate.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@effect/platform-browser": "4.0.0-rc.117",
+    "@effect/sql-pg": "4.0.0-rc.117",
+    "@electric-sql/client": "1.5.28",
+    "@foldkit/ui": "workspace:*",
+    "@tanstack/db": "0.9.2",
+    "@tanstack/electric-db-collection": "0.4.10",
+    "clsx": "^2.1.1",
+    "effect": "4.0.0-rc.117",
+    "foldkit": "workspace:*"
+  },
+  "devDependencies": {
+    "@foldkit/devtools": "workspace:*",
+    "@foldkit/vite-plugin": "workspace:*",
+    "@tailwindcss/vite": "^4.3.3",
+    "happy-dom": "^20.11.13",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "vitest": "^5.0.0"
+  }
+}

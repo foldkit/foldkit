@@ -641,6 +641,8 @@ export const EXAMPLE_FILE_EXTENSIONS: ReadonlySet<string> = new Set([
   '.css',
   '.md',
   '.mjs',
+  '.sql',
+  '.yaml',
 ])
 
 const langFromExtension = (filePath: string): string => {
@@ -657,6 +659,12 @@ const langFromExtension = (filePath: string): string => {
   if (extension === '.mjs') {
     return 'javascript'
   }
+  if (extension === '.sql') {
+    return 'sql'
+  }
+  if (extension === '.yaml') {
+    return 'yaml'
+  }
   return 'typescript'
 }
 
@@ -666,9 +674,12 @@ export const EXAMPLE_SOURCE_ROOTS: ReadonlyArray<string> = [
   'scripts',
 ]
 
-// The build command reads the config, which is where a generated project
-// computes its build id, so a reader of an example's source has to be shown it.
-export const EXAMPLE_ROOT_FILES: ReadonlyArray<string> = ['vite.config.ts']
+// These files define how an example runs locally, so a reader of the example's
+// source needs to see them alongside the application files.
+export const EXAMPLE_ROOT_FILES: ReadonlyArray<string> = [
+  'vite.config.ts',
+  'docker-compose.yaml',
+]
 
 const collectSourceFiles = async (
   directory: string,

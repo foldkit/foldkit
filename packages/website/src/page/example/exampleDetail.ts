@@ -1,4 +1,13 @@
-import { Array, Effect, Option, Queue, Schema, Stream, pipe } from 'effect'
+import {
+  Array,
+  Effect,
+  Match,
+  Option,
+  Queue,
+  Schema,
+  Stream,
+  pipe,
+} from 'effect'
 import { AsyncData, Command, Mount, Submodel, Update } from 'foldkit'
 import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
@@ -225,7 +234,9 @@ const headerView = (meta: ExampleMeta): Html =>
       ih.div(
         [ih.Class('flex flex-col items-start gap-3 mt-3')],
         [
-          launchPlaygroundLink(meta),
+          ...(meta.livePreview === 'LocalOnly'
+            ? []
+            : [launchPlaygroundLink(meta)]),
           ih.a(
             [
               ih.Href(exampleSourceHref(meta.slug)),
@@ -285,6 +296,19 @@ const playgroundOnlyNotice = (meta: ExampleMeta): Html =>
       `${meta.title} renders each page on a server at request time, so a ` +
         'static preview cannot demonstrate it. Launch the playground to see ' +
         'the server round-trip live, or run the example locally.',
+    ],
+  )
+
+const localOnlyNotice = (meta: ExampleMeta): Html =>
+  ih.div(
+    [
+      ih.Class(
+        'rounded-xl border border-gray-200 dark:border-gray-700/50 px-4 py-3 text-sm text-gray-700 dark:text-gray-300',
+      ),
+    ],
+    [
+      `${meta.title} needs local backend services that the browser playground ` +
+        'cannot run. Follow its README to run the complete example locally.',
     ],
   )
 
@@ -359,6 +383,27 @@ const livePreviewDisclosureView = (
         ),
     },
     h,
+  )
+
+const previewView = (
+  isLivePreviewOpen: boolean,
+  meta: ExampleMeta,
+  slug: string,
+  maybeExampleUrl: Option.Option<string>,
+  h: HtmlBuilder<Message>,
+): Html =>
+  Match.value(meta.livePreview).pipe(
+    Match.when('PlaygroundOnly', () => playgroundOnlyNotice(meta)),
+    Match.when('LocalOnly', () => localOnlyNotice(meta)),
+    Match.orElse(() =>
+      livePreviewDisclosureView(
+        isLivePreviewOpen,
+        meta,
+        slug,
+        maybeExampleUrl,
+        h,
+      ),
+    ),
   )
 
 const SourceFileTabs = Tabs.create()
@@ -578,15 +623,13 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           [],
           [
             headerView(meta),
-            meta.livePreview === 'PlaygroundOnly'
-              ? playgroundOnlyNotice(meta)
-              : livePreviewDisclosureView(
-                  model.isLivePreviewOpen,
-                  meta,
-                  slug,
-                  model.maybeExampleUrl,
-                  h,
-                ),
+            previewView(
+              model.isLivePreviewOpen,
+              meta,
+              slug,
+              model.maybeExampleUrl,
+              h,
+            ),
             h.div(
               [h.Class('mt-6')],
               [

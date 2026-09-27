@@ -37,10 +37,11 @@ export const ExampleSlug = Schema.Literals([
   'ui-showcase',
   'personal-blog',
   'livestore',
+  'tanstack-db-electric',
 ])
 export type ExampleSlug = typeof ExampleSlug.Type
 
-export type LivePreview = 'Spa' | 'Prerendered' | 'PlaygroundOnly'
+export type LivePreview = 'Spa' | 'Prerendered' | 'PlaygroundOnly' | 'LocalOnly'
 
 export type ExampleMeta = Readonly<{
   slug: ExampleSlug
@@ -392,6 +393,16 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     tags: ['Storage', 'Subscriptions', 'Commands', 'Third-Party Library'],
     hasRouting: false,
     livePreview: 'Spa',
+  },
+  {
+    slug: 'tanstack-db-electric',
+    title: 'TanStack DB + ElectricSQL',
+    description:
+      'The LiveStore task list with its data layer replaced by TanStack DB and ElectricSQL. Commands make optimistic collection mutations, a Subscription feeds live query results into the Model, and Postgres changes stay reactive across tabs.',
+    difficulty: 'Advanced',
+    tags: ['Storage', 'Subscriptions', 'Commands', 'Third-Party Library'],
+    hasRouting: false,
+    livePreview: 'LocalOnly',
   },
 ]
 
