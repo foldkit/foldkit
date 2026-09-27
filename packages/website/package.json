@@ -46,7 +46,7 @@
     "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/vite": "^4.3.3",
     "happy-dom": "^20.11.13",
-    "image-size": "^2.0.2",
+    "image-size": "^2.0.3",
     "pagefind": "^1.5.2",
     "playwright": "^1.62.1",
     "rolldown": "^1.2.6",
