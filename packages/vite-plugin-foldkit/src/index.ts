@@ -61,6 +61,10 @@ import { foldkitBuildToken } from './buildToken.js'
 import { devToolsOverlayPlugin } from './devToolsOverlay.js'
 import { resolveInstalledFoldkitPackages } from './foldkitPackages.js'
 import { publishRelayRecord, retireRelayRecord } from './relayRegistry.js'
+import {
+  type FoldkitSchemaCompilerOptions,
+  foldkitSchemaCompiler,
+} from './schemaCompiler.js'
 import { type FoldkitSsrOptions, foldkitSsr } from './ssr.js'
 import { foldkitViewIdentity } from './viewIdentity.js'
 
@@ -74,6 +78,12 @@ export {
   type FoldkitPrerenderOptions,
   foldkitBuild,
 } from './build.js'
+export {
+  FOLDKIT_SCHEMA_COMPILER_MODULE_ID,
+  type FoldkitSchemaCompilerOptions,
+  type SchemaCompilerOperation,
+  foldkitSchemaCompiler,
+} from './schemaCompiler.js'
 export { type FoldkitSsrOptions, foldkitSsr } from './ssr.js'
 export {
   type ViewIdentityTransformResult,
@@ -132,6 +142,14 @@ export type FoldkitPluginOptions = Readonly<{
    * change.
    */
   buildId?: string
+  /**
+   * Compile the Schemas exported by the listed modules into static parsers
+   * during `vite build`. The built client installs them before the entry
+   * runs, so `Schema.decode*` and the other prepared operations skip the
+   * interpreter for those Schemas. This uses Effect's unstable
+   * `SchemaAOTCompiler`. When this is absent, every Schema is interpreted.
+   */
+  schemaCompiler?: FoldkitSchemaCompilerOptions
 }>
 
 // NOTE: Vite's dep optimizer scans the consumer's source for `effect`
@@ -1163,6 +1181,9 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
     foldkitViewIdentity(),
     devToolsOverlayPlugin(),
     reloadPlugin,
+    ...(options.schemaCompiler === undefined
+      ? []
+      : foldkitSchemaCompiler(options.schemaCompiler)),
   ]
 
   if (options.ssr === undefined) {

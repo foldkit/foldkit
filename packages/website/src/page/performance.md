@@ -76,6 +76,45 @@ When something is slow, work through this list in order:
 - Cache expensive derived data on the Model when memoization cannot cover it. The view recomputes a derived value on every render whether or not its inputs changed; update can compute it once, in the branches that change those inputs. The price is a derived field every such branch must keep in sync, so reach for this after `createLazy`, not before.
 - Render long lists with [Virtual List](/ui/virtual-list) so only visible items mount.
 
+## Compiled Schema parsers
+
+Out of the box, every `Schema.decode*` call walks its Schema at runtime. Effect calls this the interpreter. It is fast enough for most apps, but an app that decodes large API responses or a steady stream of WebSocket frames spends measurable time in it.
+
+`@foldkit/vite-plugin` can compile those Schemas ahead of time instead. Keep the Schemas in their own modules and export them:
+
+::Snippet{name="performanceSchemaCompilerModule" label="Schema module example"}
+
+Then list those modules in the plugin options:
+
+::Snippet{name="performanceSchemaCompilerViteConfig" label="Vite config example"}
+
+During `vite build`, the plugin imports the listed modules in Node, passes every exported Schema to Effect's `SchemaAOTCompiler`, and adds the generated parsers to the client bundle. The built app installs them before your entry runs. After that, `Schema.decodeUnknownSync(TodosResponse)` uses the compiled parser for `TodosResponse` and for the `Todo` inside it. The code that decodes does not change.
+
+The gain shows up where your app decodes data itself. For example: HTTP responses in Commands, WebSocket and Port messages, Flags, and saved state. Foldkit does not decode the Model on every update in production, so listing only the Model changes little.
+
+These medians come from a production build in headless Chromium 153 on one desktop machine, and allocation from the same Schemas in Node 26:
+
+| Operation                                   | Interpreted | Compiled | Allocated per call |
+| ------------------------------------------- | ----------- | -------- | ------------------ |
+| Decode a 1,000-item API response            | 1.41 ms     | 0.14 ms  | 1.1 MB → 214 KB    |
+| Encode the same response                    | 1.37 ms     | 0.14 ms  | 1.1 MB → 212 KB    |
+| `Schema.is` on the same response            | 1.35 ms     | 0.09 ms  | 1.1 MB → 2 KB      |
+| Decode 1,000 WebSocket frames (5-way union) | 0.44 ms     | 0.11 ms  | 223 KB → 162 KB    |
+| Decode one small struct                     | 288 ns      | 60 ns    | 92 B → 82 B        |
+
+The price is bundle size. The compiler's runtime adds about 1.6 KB gzipped, and each compiled Schema adds its own generated code. The Kanban example, with three Schemas compiled for decoding and encoding, grows by 4.5 KB gzipped (4%). Each operation you add to `operations` generates more code, so list only the ones your app calls.
+
+Some limits to plan around:
+
+- The listed modules run in Node at build time, with your resolve settings but without your other Vite plugins. A module that renders the view, touches the DOM, or starts the Runtime cannot be listed. That is why the Schemas live in a module of their own.
+- A listed module must build the same Schemas in Node as in the browser. A Schema that branches on `import.meta.env.SSR` or `typeof window` is compiled from its Node definition and then decodes browser data against the wrong shape.
+- A Schema built at the call site, such as `Schema.fromJsonString(TodosResponse)`, is a new Schema. Its own step is interpreted, while the compiled `TodosResponse` inside it is still used. Export it too to compile the whole thing.
+- The listed modules load with the entry, ahead of the installation. A Schema that a lazily imported route would otherwise load later now ships in the initial bundle, and a `Schema.decode*` call that runs while those modules are first evaluated still interprets.
+- `operations` defaults to `['decode']`. Add `'encode'` for `Schema.encode*`, `'is'` for `Schema.is`, and `'make'` for Schema constructors.
+- The plugin installs the parsers through the page's HTML. A client build with no HTML entry warns and ships without them until its entry imports `virtual:foldkit/schema-compiler` first. TypeScript needs `declare module 'virtual:foldkit/schema-compiler' {}` in a declaration file for that import. On the dev server the import resolves to an empty module.
+- Only the production client bundle gets compiled parsers. The dev server and the server bundle keep interpreting.
+- The compiler is part of Effect's unstable API. Schema features it does not handle yet, such as most transformations, fall back to the interpreter, and its output can change between Effect releases.
+
 ## Bundle size and code splitting
 
 The package is ESM-only, marked side-effect-free, and exposed through subpath exports, so bundlers tree-shake everything an app does not import. A minimal counter app builds to about 270 KB raw and just under 90 KB gzipped, and that includes the Foldkit runtime, its vendored differ, and Effect itself. Effect is the largest share of the baseline, and it is not dead weight: it is the same library your application code uses for Commands, Schemas, and data manipulation.
