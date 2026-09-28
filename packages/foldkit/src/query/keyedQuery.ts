@@ -12,6 +12,7 @@ import {
 import * as AsyncData from '../asyncData/index.js'
 import * as Command from '../command/index.js'
 import { defineMessageUnion } from '../message/index.js'
+import { modifyFields } from '../struct/index.js'
 import * as Update from '../update/index.js'
 import {
   type CacheStore,
@@ -20,9 +21,10 @@ import {
   type LiftConfig,
   type LiftKeyedQuery,
   type ParentKeyFoldConfig,
+  type Policy,
   type SettledFetchOf,
   applyPolicy,
-  foldChildFromInform,
+  foldChildFromPolicy,
   isParentKeyFoldConfig,
   parentKeyToLens,
   runExecute,
@@ -71,9 +73,6 @@ const makeKeyedQueryMessage = <A, AI, E, EI, Fields extends SyncFields>(
   Args: Schema.Struct<Fields>,
 ) =>
   defineMessageUnion({
-    RequestedRevalidate: { args: Args },
-    RequestedRevalidateOrLoad: { args: Args },
-    RequestedLoadIfMissing: { args: Args },
     SettledFetch: { args: Args, result: Schema.Result(data, error) },
   })
 
@@ -85,19 +84,22 @@ export type KeyedQueryMessage<
   Fields extends SyncFields,
 > = ReturnType<typeof makeKeyedQueryMessage<A, AI, E, EI, Fields>>
 
+/** Schema for a KeyedQuery's retained slots. */
 export function makeKeyedQueryModel<A, AI, E, EI, Fields extends SyncFields>(
   data: Schema.Codec<A, AI>,
   error: Schema.Codec<E, EI>,
   Args: Schema.Struct<Fields>,
 ) {
   const states = AsyncData.Schema(data, error)
-  return Schema.HashMap(
-    Schema.String,
-    Schema.Struct({
-      args: Args,
-      data: states.schema,
-    }),
-  )
+  return Schema.Struct({
+    slots: Schema.HashMap(
+      Schema.String,
+      Schema.Struct({
+        args: Args,
+        data: states.schema,
+      }),
+    ),
+  })
 }
 
 export type KeyedQueryModel<
@@ -108,7 +110,7 @@ export type KeyedQueryModel<
   Fields extends SyncFields,
 > = ReturnType<typeof makeKeyedQueryModel<A, AI, E, EI, Fields>>
 
-/** KeyedQuery remote-data Submodel. `Model` is a `HashMap` of `{ args, data }` slots. */
+/** Keyed remote-data Submodel. Read a slot's `AsyncData` with `read`. */
 export interface KeyedQuery<
   Name extends string,
   A,
@@ -142,19 +144,19 @@ export interface KeyedQuery<
     KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
     R
   >
-  readonly informRevalidate: Update.Fold<
+  readonly revalidate: Update.Fold<
     KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
     KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
     KeyedArgs<Fields>,
     R
   >
-  readonly informRevalidateOrLoad: Update.Fold<
+  readonly revalidateOrLoad: Update.Fold<
     KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
     KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
     KeyedArgs<Fields>,
     R
   >
-  readonly informLoadIfMissing: Update.Fold<
+  readonly loadIfMissing: Update.Fold<
     KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
     KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
     KeyedArgs<Fields>,
@@ -232,24 +234,32 @@ export function defineKeyedQuery<
   const store: CacheStore<Model, Args, A, E, Message, R> = {
     read: (model, args) =>
       AsyncData.fromOptionOrIdle(
-        Option.map(HashMap.get(model, toKey(args)), slot => slot.data),
+        Option.map(HashMap.get(model.slots, toKey(args)), slot => slot.data),
       ),
     write: (model, args, data) =>
-      HashMap.set(model, toKey(args), { args, data }),
+      modifyFields(model, {
+        slots: HashMap.set(toKey(args), { args, data }),
+      }),
     load: args => Fetch(args),
   }
 
   const hasSlot = (model: Model, args: Args): boolean =>
-    HashMap.has(model, toKey(args))
+    HashMap.has(model.slots, toKey(args))
+
+  const init = (): Model => ({ slots: HashMap.empty() })
+  const read = (model: Model, args: Args): SlotState => store.read(model, args)
+
+  const policy = (name: Policy): Update.Fold<Model, Message, Args, R> =>
+    Function.dual(2, (model: Model, args: Args): UpdateReturn =>
+      applyPolicy(store, model, args, name),
+    )
+
+  const revalidate = policy('revalidate')
+  const revalidateOrLoad = policy('revalidateOrLoad')
+  const loadIfMissing = policy('loadIfMissing')
 
   const update = (model: Model, message: Message): UpdateReturn =>
     Message.match<UpdateReturn>(message, {
-      RequestedRevalidate: ({ args }) =>
-        applyPolicy(store, model, args, 'revalidate'),
-      RequestedRevalidateOrLoad: ({ args }) =>
-        applyPolicy(store, model, args, 'revalidateOrLoad'),
-      RequestedLoadIfMissing: ({ args }) =>
-        applyPolicy(store, model, args, 'loadIfMissing'),
       SettledFetch({ args, result }) {
         if (!hasSlot(model, args)) return { model }
 
@@ -263,33 +273,13 @@ export function defineKeyedQuery<
       },
     })
 
-  const inform = (
-    build: (args: Args) => Message,
-  ): Update.Fold<Model, Message, Args, R> =>
-    Function.dual(2, (model: Model, args: Args): UpdateReturn =>
-      update(model, build(args)),
-    )
-
-  const informRevalidate = inform(function (args) {
-    return { _tag: 'RequestedRevalidate', args }
-  })
-  const informRevalidateOrLoad = inform(function (args) {
-    return { _tag: 'RequestedRevalidateOrLoad', args }
-  })
-  const informLoadIfMissing = inform(function (args) {
-    return { _tag: 'RequestedLoadIfMissing', args }
-  })
-
-  const init = (): Model => HashMap.empty()
-  const read = (model: Model, args: Args): SlotState => store.read(model, args)
-
   const liftFromLens = <ParentModel, ParentMessage>(
     foldConfig: FoldLens<ParentModel, ParentMessage, Model, Message>,
   ) => ({
     fold: Update.foldChild({ update, ...foldConfig }),
-    revalidate: foldChildFromInform(informRevalidate, foldConfig),
-    revalidateOrLoad: foldChildFromInform(informRevalidateOrLoad, foldConfig),
-    loadIfMissing: foldChildFromInform(informLoadIfMissing, foldConfig),
+    revalidate: foldChildFromPolicy(revalidate, foldConfig),
+    revalidateOrLoad: foldChildFromPolicy(revalidateOrLoad, foldConfig),
+    loadIfMissing: foldChildFromPolicy(loadIfMissing, foldConfig),
   })
 
   function lift<ParentModel, ParentMessage>(
@@ -318,9 +308,9 @@ export function defineKeyedQuery<
     init,
     read,
     update,
-    informRevalidate,
-    informRevalidateOrLoad,
-    informLoadIfMissing,
+    revalidate,
+    revalidateOrLoad,
+    loadIfMissing,
     lift,
     run,
   } satisfies KeyedQuery<Name, A, AI, E, EI, Fields, R>

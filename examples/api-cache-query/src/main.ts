@@ -202,7 +202,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     {
       modelToDependencies: model => ({
         isObservingStats:
-          model.activeTab === 'Stats' && AsyncData.hasData(model.stats),
+          model.activeTab === 'Stats' &&
+          AsyncData.hasData(statsQuery.read(model.stats)),
       }),
       dependenciesToStream: ({ isObservingStats }) =>
         Stream.when(
@@ -313,7 +314,7 @@ const postsTabView = (model: Model, h: HtmlBuilder<Message>): Html =>
   })
 
 const postsListView = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const isPending = AsyncData.isPending(model.posts)
+  const isPending = AsyncData.isPending(postsQuery.read(model.posts))
 
   return h.div(
     [h.Class('flex flex-col gap-4')],
@@ -330,7 +331,7 @@ const postsListView = (model: Model, h: HtmlBuilder<Message>): Html => {
                 h.button(
                   [...attributes.button, h.Class(toolbarButtonClassName)],
                   [
-                    AsyncData.isRefreshing(model.posts)
+                    AsyncData.isRefreshing(postsQuery.read(model.posts))
                       ? 'Refreshing...'
                       : 'Invalidate',
                   ],
@@ -346,7 +347,7 @@ const postsListView = (model: Model, h: HtmlBuilder<Message>): Html => {
           'Open a post, then go back. The detail stays in the Query. Opening it again reads that slot and does not fetch.',
         ],
       ),
-      AsyncData.matchDataSplitEmpty(model.posts, {
+      AsyncData.matchDataSplitEmpty(postsQuery.read(model.posts), {
         onIdle: () => loadingPanel('Loading posts...', h),
         onLoading: () => loadingPanel('Loading posts...', h),
         onFailure: error => errorPanel(error, Message.ClickedRetryPosts(), h),
@@ -354,12 +355,15 @@ const postsListView = (model: Model, h: HtmlBuilder<Message>): Html => {
           h.div(
             [h.Class('flex flex-col gap-4')],
             [
-              ...Option.match(AsyncData.getError(model.posts), {
-                onNone: () => [],
-                onSome: error => [
-                  staleView(error, Message.ClickedRetryPosts(), h),
-                ],
-              }),
+              ...Option.match(
+                AsyncData.getError(postsQuery.read(model.posts)),
+                {
+                  onNone: () => [],
+                  onSome: error => [
+                    staleView(error, Message.ClickedRetryPosts(), h),
+                  ],
+                },
+              ),
               h.ul(
                 [h.Class('flex flex-col gap-2')],
                 postListItems(posts, model.postDetailById, h),
@@ -505,7 +509,7 @@ const postDetailCard = (
   )
 
 const statsTabView = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const isPending = AsyncData.isPending(model.stats)
+  const isPending = AsyncData.isPending(statsQuery.read(model.stats))
 
   return h.div(
     [h.Class('flex flex-col gap-4')],
@@ -534,7 +538,7 @@ const statsTabView = (model: Model, h: HtmlBuilder<Message>): Html => {
           'Stats refetch every 5 seconds while this tab is open. The old numbers stay on screen while the new ones load.',
         ],
       ),
-      AsyncData.matchDataSplitEmpty(model.stats, {
+      AsyncData.matchDataSplitEmpty(statsQuery.read(model.stats), {
         onIdle: () => loadingPanel('Loading stats...', h),
         onLoading: () => loadingPanel('Loading stats...', h),
         onFailure: error => errorPanel(error, Message.ClickedRetryStats(), h),
@@ -542,16 +546,19 @@ const statsTabView = (model: Model, h: HtmlBuilder<Message>): Html => {
           h.div(
             [h.Class('flex flex-col gap-4')],
             [
-              ...Option.match(AsyncData.getError(model.stats), {
-                onNone: () => [],
-                onSome: error => [
-                  staleView(error, Message.ClickedRetryStats(), h),
-                ],
-              }),
+              ...Option.match(
+                AsyncData.getError(statsQuery.read(model.stats)),
+                {
+                  onNone: () => [],
+                  onSome: error => [
+                    staleView(error, Message.ClickedRetryStats(), h),
+                  ],
+                },
+              ),
               statsCards(
                 stats,
                 fetchedAt,
-                AsyncData.isRefreshing(model.stats),
+                AsyncData.isRefreshing(statsQuery.read(model.stats)),
                 h,
               ),
             ],

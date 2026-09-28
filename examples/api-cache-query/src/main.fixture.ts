@@ -39,17 +39,18 @@ export const fixtureStats: Stats = {
 export const loadingPostsModel: Model = {
   tabs: Tabs.init({ id: TABS_ID }),
   activeTab: 'Posts',
-  posts: AsyncData.Loading(),
+  posts: { data: AsyncData.Loading() },
   postDetailById: postDetailQuery.init(),
   maybeSelectedPostId: Option.none(),
   stats: statsQuery.init(),
 }
 
 export const loadedPostsModel: Model = modifyFields(loadingPostsModel, {
-  posts: () =>
-    AsyncData.Success({
+  posts: () => ({
+    data: AsyncData.Success({
       data: { posts: fixturePosts, fetchedAt: FETCHED_AT },
     }),
+  }),
 })
 
 const encodeKey = Schema.Struct({
@@ -59,19 +60,21 @@ const encodeKey = Schema.Struct({
 const firstPostArgs = { postId: 'first-post' }
 
 export const cachedFirstPostModel: Model = modifyFields(loadedPostsModel, {
-  postDetailById: () =>
-    HashMap.set(postDetailQuery.init(), encodeKey(firstPostArgs), {
+  postDetailById: () => ({
+    slots: HashMap.set(postDetailQuery.init().slots, encodeKey(firstPostArgs), {
       args: firstPostArgs,
       data: AsyncData.Success({
         data: { detail: firstPostDetail, fetchedAt: FETCHED_AT },
       }),
     }),
+  }),
 })
 
 export const loadedStatsModel: Model = modifyFields(loadedPostsModel, {
   activeTab: () => 'Stats',
-  stats: () =>
-    AsyncData.Success({
+  stats: () => ({
+    data: AsyncData.Success({
       data: { stats: fixtureStats, fetchedAt: FETCHED_AT },
     }),
+  }),
 })
