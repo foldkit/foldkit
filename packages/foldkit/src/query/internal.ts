@@ -113,7 +113,7 @@ export function parentKeyToLens<
   }
 }
 
-export const foldChildFromInform = <
+export const foldChildFromPolicy = <
   ParentModel,
   ParentMessage,
   ChildModel,
@@ -121,11 +121,11 @@ export const foldChildFromInform = <
   Input,
   R,
 >(
-  inform: Update.Fold<ChildModel, ChildMessage, Input, R>,
+  policy: Update.Fold<ChildModel, ChildMessage, Input, R>,
   lens: FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage>,
 ): Update.Fold<ParentModel, ParentMessage, Input, R> =>
   Update.foldChild({
-    update: (childModel: ChildModel, input: Input) => inform(childModel, input),
+    update: (childModel: ChildModel, input: Input) => policy(childModel, input),
     ...lens,
   })
 

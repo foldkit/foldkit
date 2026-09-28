@@ -3,6 +3,7 @@ import { Effect, Schema, pipe } from 'effect'
 import * as AsyncData from '../asyncData/index.js'
 import * as Command from '../command/index.js'
 import { defineMessageUnion } from '../message/index.js'
+import { modifyFields } from '../struct/index.js'
 import * as Update from '../update/index.js'
 import {
   type CacheStore,
@@ -29,9 +30,6 @@ const makeQueryMessage = <A, AI, E, EI>(
   error: Schema.Codec<E, EI>,
 ) =>
   defineMessageUnion({
-    RequestedRevalidate: {},
-    RequestedRevalidateOrLoad: {},
-    RequestedLoadIfMissing: {},
     SettledFetch: { result: Schema.Result(data, error) },
   })
 
@@ -39,14 +37,17 @@ export type QueryMessage<A, AI, E, EI> = ReturnType<
   typeof makeQueryMessage<A, AI, E, EI>
 >
 
-export type QueryModel<A, AI, E, EI> = AsyncData.AsyncDataSchema<
-  A,
-  AI,
-  E,
-  EI
->['schema']
+/** Schema for a single Query's remote data. */
+export const makeQueryModel = <A, AI, E, EI>(
+  data: Schema.Codec<A, AI>,
+  error: Schema.Codec<E, EI>,
+) => Schema.Struct({ data: AsyncData.Schema(data, error).schema })
 
-/** Single-slot remote-data Submodel. `Model` is the `AsyncData` codec. */
+export type QueryModel<A, AI, E, EI> = ReturnType<
+  typeof makeQueryModel<A, AI, E, EI>
+>
+
+/** Single-slot remote-data Submodel. Read its `AsyncData` with `read`. */
 export interface Query<Name extends string, A, AI, E, EI, R = never> {
   readonly Model: QueryModel<A, AI, E, EI>
   readonly Message: QueryMessage<A, AI, E, EI>
@@ -54,38 +55,41 @@ export interface Query<Name extends string, A, AI, E, EI, R = never> {
     `Fetch${Name}`,
     Effect.Effect<SettledFetchOf<QueryMessage<A, AI, E, EI>>, never, R>
   >
-  readonly init: () => AsyncData.AsyncData<A, E>
+  readonly init: () => QueryModel<A, AI, E, EI>['Type']
+  readonly read: (
+    model: QueryModel<A, AI, E, EI>['Type'],
+  ) => AsyncData.AsyncData<A, E>
   readonly update: (
-    model: AsyncData.AsyncData<A, E>,
+    model: QueryModel<A, AI, E, EI>['Type'],
     message: QueryMessage<A, AI, E, EI>['Type'],
   ) => Update.Return<
-    AsyncData.AsyncData<A, E>,
+    QueryModel<A, AI, E, EI>['Type'],
     QueryMessage<A, AI, E, EI>['Type'],
     R
   >
-  readonly informRevalidate: (
-    model: AsyncData.AsyncData<A, E>,
+  readonly revalidate: (
+    model: QueryModel<A, AI, E, EI>['Type'],
   ) => Update.Return<
-    AsyncData.AsyncData<A, E>,
+    QueryModel<A, AI, E, EI>['Type'],
     QueryMessage<A, AI, E, EI>['Type'],
     R
   >
-  readonly informRevalidateOrLoad: (
-    model: AsyncData.AsyncData<A, E>,
+  readonly revalidateOrLoad: (
+    model: QueryModel<A, AI, E, EI>['Type'],
   ) => Update.Return<
-    AsyncData.AsyncData<A, E>,
+    QueryModel<A, AI, E, EI>['Type'],
     QueryMessage<A, AI, E, EI>['Type'],
     R
   >
-  readonly informLoadIfMissing: (
-    model: AsyncData.AsyncData<A, E>,
+  readonly loadIfMissing: (
+    model: QueryModel<A, AI, E, EI>['Type'],
   ) => Update.Return<
-    AsyncData.AsyncData<A, E>,
+    QueryModel<A, AI, E, EI>['Type'],
     QueryMessage<A, AI, E, EI>['Type'],
     R
   >
   readonly lift: LiftQuery<
-    AsyncData.AsyncData<A, E>,
+    QueryModel<A, AI, E, EI>['Type'],
     QueryMessage<A, AI, E, EI>['Type'],
     R
   >
@@ -103,7 +107,7 @@ export namespace Query {
 export function defineQuery<Name extends string, A, AI, E, EI, R>(
   config: QueryConfig<Name, A, AI, E, EI, R>,
 ): Query<Name, A, AI, E, EI, R> {
-  const states = AsyncData.Schema(config.data, config.error)
+  const Model = makeQueryModel(config.data, config.error)
   const Message = makeQueryMessage(config.data, config.error)
   type Message = QueryMessage<A, AI, E, EI>['Type']
 
@@ -116,62 +120,54 @@ export function defineQuery<Name extends string, A, AI, E, EI, R>(
     ),
   })
 
-  type Model = AsyncData.AsyncData<A, E>
-  type Args = undefined
+  type Model = typeof Model.Type
   type UpdateReturn = Update.Return<Model, Message, R>
 
-  const store: CacheStore<Model, Args, A, E, Message, R> = {
-    read: model => model,
-    write: (_model, _args, data) => data,
+  const store: CacheStore<Model, undefined, A, E, Message, R> = {
+    read: model => model.data,
+    write: (model, _args, data) => modifyFields(model, { data: () => data }),
     load: () => Fetch(),
   }
 
-  const hasSlot = (model: Model): boolean => !AsyncData.isIdle(model)
+  const init = (): Model => ({ data: AsyncData.Idle() })
+  const read = (model: Model): AsyncData.AsyncData<A, E> => model.data
+
+  const revalidate = (model: Model): UpdateReturn =>
+    applyPolicy(store, model, undefined, 'revalidate')
+  const revalidateOrLoad = (model: Model): UpdateReturn =>
+    applyPolicy(store, model, undefined, 'revalidateOrLoad')
+  const loadIfMissing = (model: Model): UpdateReturn =>
+    applyPolicy(store, model, undefined, 'loadIfMissing')
 
   const update = (model: Model, message: Message): UpdateReturn =>
     Message.match<UpdateReturn>(message, {
-      RequestedRevalidate: () =>
-        applyPolicy(store, model, undefined, 'revalidate'),
-      RequestedRevalidateOrLoad: () =>
-        applyPolicy(store, model, undefined, 'revalidateOrLoad'),
-      RequestedLoadIfMissing: () =>
-        applyPolicy(store, model, undefined, 'loadIfMissing'),
       SettledFetch({ result }) {
-        if (!hasSlot(model)) return { model }
+        if (AsyncData.isIdle(read(model))) return { model }
 
         return {
           model: store.write(
             model,
             undefined,
-            AsyncData.settle(store.read(model, undefined), result),
+            AsyncData.settle(read(model), result),
           ),
         }
       },
     })
-
-  const informRevalidate = (model: Model): UpdateReturn =>
-    update(model, Message.RequestedRevalidate())
-  const informRevalidateOrLoad = (model: Model): UpdateReturn =>
-    update(model, Message.RequestedRevalidateOrLoad())
-  const informLoadIfMissing = (model: Model): UpdateReturn =>
-    update(model, Message.RequestedLoadIfMissing())
-
-  const init = (): Model => AsyncData.Idle()
 
   const liftFromLens = <ParentModel, ParentMessage>(
     foldConfig: FoldLens<ParentModel, ParentMessage, Model, Message>,
   ) => ({
     fold: Update.foldChild({ update, ...foldConfig }),
     revalidate: Update.foldChildStep({
-      update: informRevalidate,
+      update: revalidate,
       ...foldConfig,
     }),
     revalidateOrLoad: Update.foldChildStep({
-      update: informRevalidateOrLoad,
+      update: revalidateOrLoad,
       ...foldConfig,
     }),
     loadIfMissing: Update.foldChildStep({
-      update: informLoadIfMissing,
+      update: loadIfMissing,
       ...foldConfig,
     }),
   })
@@ -195,14 +191,15 @@ export function defineQuery<Name extends string, A, AI, E, EI, R>(
   const run = runExecute(config.execute)
 
   return {
-    Model: states.schema,
+    Model,
     Message,
     Fetch,
     init,
+    read,
     update,
-    informRevalidate,
-    informRevalidateOrLoad,
-    informLoadIfMissing,
+    revalidate,
+    revalidateOrLoad,
+    loadIfMissing,
     lift,
     run,
   } satisfies Query<Name, A, AI, E, EI, R>

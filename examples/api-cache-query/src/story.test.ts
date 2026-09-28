@@ -56,7 +56,7 @@ test('first visit to the Stats tab fetches stats', () => {
     message(selectedStatsTab),
     model(model => {
       expect(model.activeTab).toBe('Stats')
-      expect(model.stats._tag).toBe('Loading')
+      expect(statsQuery.read(model.stats)._tag).toBe('Loading')
     }),
     resolveFocusTab,
     Command.resolve(
@@ -69,7 +69,7 @@ test('first visit to the Stats tab fetches stats', () => {
       }),
     ),
     model(model => {
-      expect(model.stats._tag).toBe('Success')
+      expect(statsQuery.read(model.stats)._tag).toBe('Success')
     }),
   )
 })
@@ -85,7 +85,7 @@ test('returning to a tab with cached data does not refetch', () => {
     resolveFocusTab,
     Command.expectNone(),
     model(model => {
-      expect(model.stats._tag).toBe('Success')
+      expect(statsQuery.read(model.stats)._tag).toBe('Success')
     }),
   )
 })
@@ -96,9 +96,10 @@ test('a revalidation tick keeps stale stats on screen while refetching', () => {
     given(loadedStatsModel),
     message(Message.TickedRevalidateStats()),
     model(model => {
-      expect(model.stats._tag).toBe('Refreshing')
-      if (model.stats._tag === 'Refreshing') {
-        expect(model.stats.data.stats).toEqual(fixtureStats)
+      const statsData = statsQuery.read(model.stats)
+      expect(statsData._tag).toBe('Refreshing')
+      if (statsData._tag === 'Refreshing') {
+        expect(statsData.data.stats).toEqual(fixtureStats)
       }
     }),
     Command.resolve(
@@ -111,9 +112,10 @@ test('a revalidation tick keeps stale stats on screen while refetching', () => {
       }),
     ),
     model(model => {
-      expect(model.stats._tag).toBe('Success')
-      if (model.stats._tag === 'Success') {
-        expect(model.stats.data.stats.activeUsers).toBe(99)
+      const statsData = statsQuery.read(model.stats)
+      expect(statsData._tag).toBe('Success')
+      if (statsData._tag === 'Success') {
+        expect(statsData.data.stats.activeUsers).toBe(99)
       }
     }),
   )
@@ -131,10 +133,11 @@ test('a failed refresh keeps the stale stats on screen with the error', () => {
       }),
     ),
     model(model => {
-      expect(model.stats._tag).toBe('Stale')
-      if (model.stats._tag === 'Stale') {
-        expect(model.stats.data.stats).toEqual(fixtureStats)
-        expect(model.stats.error).toBe('The server is down.')
+      const statsData = statsQuery.read(model.stats)
+      expect(statsData._tag).toBe('Stale')
+      if (statsData._tag === 'Stale') {
+        expect(statsData.data.stats).toEqual(fixtureStats)
+        expect(statsData.error).toBe('The server is down.')
       }
     }),
   )
@@ -143,7 +146,11 @@ test('a failed refresh keeps the stale stats on screen with the error', () => {
 test('refresh clicks during an in-flight fetch are deduplicated', () => {
   story(
     update,
-    given(modifyFields(loadedStatsModel, { stats: () => AsyncData.Loading() })),
+    given(
+      modifyFields(loadedStatsModel, {
+        stats: () => ({ data: AsyncData.Loading() }),
+      }),
+    ),
     message(Message.ClickedRefreshStats()),
     Command.expectNone(),
   )
@@ -154,10 +161,11 @@ test('a revalidation tick during a refresh is deduplicated', () => {
     update,
     given(
       modifyFields(loadedStatsModel, {
-        stats: () =>
-          AsyncData.Refreshing({
+        stats: () => ({
+          data: AsyncData.Refreshing({
             data: { stats: fixtureStats, fetchedAt: FETCHED_AT },
           }),
+        }),
       }),
     ),
     message(Message.TickedRevalidateStats()),
@@ -171,9 +179,10 @@ test('invalidating posts refetches while keeping the current list', () => {
     given(loadedPostsModel),
     message(Message.ClickedInvalidatePosts()),
     model(model => {
-      expect(model.posts._tag).toBe('Refreshing')
-      if (model.posts._tag === 'Refreshing') {
-        expect(model.posts.data.posts).toEqual(fixturePosts)
+      const postsData = postsQuery.read(model.posts)
+      expect(postsData._tag).toBe('Refreshing')
+      if (postsData._tag === 'Refreshing') {
+        expect(postsData.data.posts).toEqual(fixturePosts)
       }
     }),
     Command.resolve(
@@ -186,7 +195,7 @@ test('invalidating posts refetches while keeping the current list', () => {
       }),
     ),
     model(model => {
-      expect(model.posts._tag).toBe('Success')
+      expect(postsQuery.read(model.posts)._tag).toBe('Success')
     }),
   )
 })
@@ -196,12 +205,14 @@ test('retrying failed posts shows the loading state and refetches', () => {
     update,
     given(
       modifyFields(loadedPostsModel, {
-        posts: () => AsyncData.Failure({ error: 'The server is down.' }),
+        posts: () => ({
+          data: AsyncData.Failure({ error: 'The server is down.' }),
+        }),
       }),
     ),
     message(Message.ClickedRetryPosts()),
     model(model => {
-      expect(model.posts._tag).toBe('Loading')
+      expect(postsQuery.read(model.posts)._tag).toBe('Loading')
     }),
     Command.resolve(
       FetchPosts,
@@ -213,7 +224,7 @@ test('retrying failed posts shows the loading state and refetches', () => {
       }),
     ),
     model(model => {
-      expect(model.posts._tag).toBe('Success')
+      expect(postsQuery.read(model.posts)._tag).toBe('Success')
     }),
   )
 })
@@ -286,15 +297,16 @@ test('revisiting a post with a cached failure loads it again', () => {
     update,
     given(
       modifyFields(loadedPostsModel, {
-        postDetailById: () =>
-          HashMap.set(
-            postDetailQuery.init(),
+        postDetailById: () => ({
+          slots: HashMap.set(
+            postDetailQuery.init().slots,
             encodeKey({ postId: 'first-post' }),
             {
               args: { postId: 'first-post' },
               data: AsyncData.Failure({ error: 'The connection dropped.' }),
             },
           ),
+        }),
       }),
     ),
     message(Message.ClickedPost({ postId: 'first-post' })),

@@ -2,7 +2,7 @@
 
 ## Overview
 
-`Query.define` is a remote-data Submodel. One Query owns one [AsyncData](/core/async-data) field. A KeyedQuery owns a `HashMap` of `{ args, data }` slots.
+`Query.define` is a remote-data Submodel. A Query Model stores one [AsyncData](/core/async-data) value. A KeyedQuery Model stores a `HashMap` of `{ args, data }` slots. Use `read` to access the data in either Model.
 
 Fetch is a [Command](/core/commands). `loadIfMissing`, `revalidate`, and `revalidateOrLoad` start that Command from the Model. A fetched result stays for the life of the owning Model. Parents fold child Messages with `query.lift`.
 
@@ -10,7 +10,7 @@ See [API Cache Query](/example-apps/api-cache-query) for a full app.
 
 ## Define a Query
 
-Pass `name`, `data`, `error`, and `execute`. The Model is the `AsyncData` codec for those schemas. `init` is `Idle`.
+Pass `name`, `data`, `error`, and `execute`. The Model wraps the `AsyncData` codec for those schemas. `init` starts with `Idle` data. Read it with `query.read(model)`.
 
 ::Snippet{name="queryDefine" label="Query.define"}
 

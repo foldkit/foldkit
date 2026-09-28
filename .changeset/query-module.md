@@ -3,6 +3,6 @@
 'create-foldkit-app': patch
 ---
 
-Add `Query.define` as a remote-data Submodel. One Query owns one `AsyncData` field. A KeyedQuery owns a `HashMap` of `{ args, data }` slots. Fetch is a Command. `loadIfMissing`, `revalidate`, and `revalidateOrLoad` start that Command from the Model. A fetched result stays for the life of the owning Model. `query.lift` folds child Messages into the parent with `toParentMessage` and `Update.Fold`.
+Add `Query.define` as a remote-data Submodel. A Query Model wraps one `AsyncData` value, and a KeyedQuery Model wraps a `HashMap` of `{ args, data }` slots. Both expose their data through `read`. Fetch is a Command. `loadIfMissing`, `revalidate`, and `revalidateOrLoad` apply loading policies directly to the Model and return that Command when needed. A fetched result stays for the life of the owning Model. `query.lift` folds child Messages into the parent with `toParentMessage` and `Update.Fold`.
 
 Scaffold `api-cache-query` as the full app for this module.
