@@ -66,6 +66,14 @@ const routingConfig = {
   view,
 }
 
+const nestedInDivs = (leaf: Html, levels: number): Html => {
+  let node = leaf
+  for (let level = 0; level < levels; level += 1) {
+    node = h.div([], [node])
+  }
+  return node
+}
+
 describe('renderToString', () => {
   it.effect('renders a routing application with flags', () =>
     Effect.gen(function* () {
@@ -1692,5 +1700,141 @@ describe('renderToString', () => {
       h.noscript([h.InnerHTML('<p>Enable JavaScript to continue.</p>')]),
       '<p>Enable JavaScript to continue.</p></noscript>',
     ),
+  )
+})
+
+describe('renderToString render depth', () => {
+  const renderDocumentBody = (
+    body: Html,
+    options?: Readonly<{ isHydratable: false }>,
+  ) =>
+    renderToString(
+      {
+        init: (): InitReturn<null> => ({ model: null }),
+        view: () => ({ title: 'Deep', body }),
+      },
+      options,
+    )
+
+  const expectRenderFailureCause = (
+    body: Html,
+    cause: string,
+    options?: Readonly<{ isHydratable: false }>,
+  ) =>
+    Effect.gen(function* () {
+      const error = yield* Effect.flip(renderDocumentBody(body, options))
+
+      expect(error).toMatchObject({ _tag: 'SerializationError' })
+      expect(String(error.cause)).toContain(cause)
+    })
+
+  it.effect('renders a hydratable view nested exactly to the limit', () =>
+    Effect.gen(function* () {
+      const rendered = yield* renderDocumentBody(
+        nestedInDivs(h.span([], ['leaf']), 999),
+      )
+
+      expect(rendered.html).toContain('<span>leaf</span>')
+    }),
+  )
+
+  it.effect('renders a static view nested exactly to the limit', () =>
+    Effect.gen(function* () {
+      const rendered = yield* renderDocumentBody(
+        nestedInDivs(h.span([], ['leaf']), 999),
+        { isHydratable: false },
+      )
+
+      expect(rendered.html).toContain('<span>leaf</span>')
+    }),
+  )
+
+  it.effect('refuses a view nested one level past the limit', () =>
+    Effect.gen(function* () {
+      const body = nestedInDivs(h.span([], ['leaf']), 1000)
+
+      yield* expectRenderFailureCause(body, 'maximum render depth of 1000')
+      yield* expectRenderFailureCause(body, 'maximum render depth of 1000', {
+        isHydratable: false,
+      })
+    }),
+  )
+
+  it.effect('refuses a view nested far past the limit', () =>
+    Effect.gen(function* () {
+      for (const levels of [20_000, 100_000]) {
+        const body = nestedInDivs(h.span([], ['leaf']), levels)
+
+        yield* expectRenderFailureCause(body, 'maximum render depth of 1000')
+        yield* expectRenderFailureCause(body, 'maximum render depth of 1000', {
+          isHydratable: false,
+        })
+      }
+    }),
+  )
+
+  it.effect(
+    'refuses a controlled select whose subtree nests past the limit',
+    () =>
+      expectRenderFailureCause(
+        h.select(
+          [h.Value('b')],
+          [nestedInDivs(h.option([h.Value('a')], ['a']), 20_000)],
+        ),
+        'maximum render depth of 1000',
+      ),
+  )
+
+  it.effect(
+    'reports the depth limit before an earlier controlled-select error',
+    () =>
+      expectRenderFailureCause(
+        h.div(
+          [],
+          [
+            h.select([h.Value('missing')], [h.option([h.Value('a')], ['a'])]),
+            nestedInDivs(h.span([], ['leaf']), 1500),
+          ],
+        ),
+        'maximum render depth of 1000',
+      ),
+  )
+
+  it.effect('reports the first reserved attribute in document order', () =>
+    expectRenderFailureCause(
+      h.div(
+        [],
+        [
+          h.div([], [h.span([h.Attribute('data-foldkit-key', 'first')])]),
+          h.div([h.Attribute('data-foldkit-build', 'second')]),
+        ],
+      ),
+      'The view authored data-foldkit-key,',
+    ),
+  )
+
+  it.effect(
+    'reports a controlled-select error before a later invalid-tag error',
+    () => {
+      const invalidTag: VNode = {
+        sel: '1invalid',
+        data: {},
+        children: [],
+        elm: undefined,
+        text: undefined,
+        key: undefined,
+      }
+
+      return expectRenderFailureCause(
+        h.div(
+          [],
+          [
+            h.select([h.Value('missing')], [h.option([h.Value('a')], ['a'])]),
+            invalidTag,
+          ],
+        ),
+        'has the controlled value "missing" but no option carries it',
+      )
+    },
   )
 })

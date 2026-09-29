@@ -786,7 +786,7 @@ const hasScriptElement = (
         hasScriptElement(traversableContent(child))),
   )
 
-const assertViewDoesNotAuthorReservedContent = (node: VNode): void => {
+const assertNodeDoesNotAuthorReservedContent = (node: VNode): void => {
   const attrs = node.data?.attrs
   if (attrs !== undefined) {
     for (const name of Object.keys(attrs)) {
@@ -838,9 +838,25 @@ const assertViewDoesNotAuthorReservedContent = (node: VNode): void => {
       )
     }
   }
-  for (const child of node.children ?? []) {
-    if (typeof child !== 'string') {
-      assertViewDoesNotAuthorReservedContent(child)
+}
+
+const assertViewDoesNotAuthorReservedContent = (root: VNode): void => {
+  const pendingNodes: globalThis.Array<VNode> = [root]
+  for (
+    let node = pendingNodes.pop();
+    node !== undefined;
+    node = pendingNodes.pop()
+  ) {
+    assertNodeDoesNotAuthorReservedContent(node)
+
+    const children = node.children
+    if (children !== undefined) {
+      for (let index = children.length - 1; index >= 0; index--) {
+        const child = Array.getUnsafe(children, index)
+        if (typeof child !== 'string') {
+          pendingNodes.push(child)
+        }
+      }
     }
   }
 }
