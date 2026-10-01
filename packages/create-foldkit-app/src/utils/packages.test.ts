@@ -12,6 +12,7 @@ import {
   foldkitSubtreeRef,
   installCommand,
   scaffoldDevDependencies,
+  testRunnerScripts,
 } from './packages.js'
 
 describe('buildUnresolvedDeps', () => {
@@ -46,6 +47,7 @@ describe('buildUnresolvedDevDeps', () => {
         '@foldkit/vite-plugin': 'workspace:*',
       },
       [],
+      'vitest',
     )
 
     expect(result).toEqual({
@@ -63,10 +65,63 @@ describe('buildUnresolvedDevDeps', () => {
   })
 
   it('marks extra scaffold devDependencies for release-version resolution', () => {
-    const result = buildUnresolvedDevDeps({ tsx: '^4.22.4' }, ['@types/node'])
+    const result = buildUnresolvedDevDeps(
+      { tsx: '^4.22.4' },
+      ['@types/node'],
+      'vitest',
+    )
 
     expect(result['@types/node']).toEqual({ _tag: 'Release' })
     expect(result['tsx']).toEqual({ _tag: 'Keep', version: '^4.22.4' })
+  })
+
+  it('swaps Vitest tooling for the Bun runner tooling, even when the example lists Vitest', () => {
+    const result = buildUnresolvedDevDeps(
+      {
+        'happy-dom': '^20.14.5',
+        typescript: '^7.0.2',
+        vitest: '^5.0.2',
+      },
+      ['@types/node'],
+      'bun',
+    )
+
+    expect(result).toEqual({
+      '@foldkit/devtools': { _tag: 'Release' },
+      '@foldkit/vite-plugin': { _tag: 'Release' },
+      '@foldkit/devtools-mcp': { _tag: 'Release' },
+      '@foldkit/oxlint-plugin': { _tag: 'Release' },
+      '@happy-dom/global-registrator': { _tag: 'Release' },
+      '@types/bun': { _tag: 'Release' },
+      '@types/node': { _tag: 'Release' },
+      oxfmt: { _tag: 'Release' },
+      oxlint: { _tag: 'Release' },
+      typescript: { _tag: 'Keep', version: '^7.0.2' },
+    })
+  })
+})
+
+describe('testRunnerScripts', () => {
+  const scripts = {
+    dev: 'vite',
+    typecheck: 'tsc --noEmit',
+    test: 'vitest run',
+    lint: 'oxlint src',
+  }
+
+  it('keeps the template scripts for the vitest runner', () => {
+    expect(testRunnerScripts(scripts, 'vitest')).toEqual(scripts)
+  })
+
+  it('runs bun test for the bun runner, keeping every script in its place', () => {
+    const bunScripts = testRunnerScripts(scripts, 'bun')
+
+    expect(Object.entries(bunScripts)).toEqual([
+      ['dev', 'vite'],
+      ['typecheck', 'tsc --noEmit'],
+      ['test', 'bun test'],
+      ['lint', 'oxlint src'],
+    ])
   })
 })
 

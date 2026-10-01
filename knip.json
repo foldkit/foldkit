@@ -28,6 +28,7 @@
         "src/runtime/modelPreservationPublic.ts",
         "src/scene/public.ts",
         "src/story/public.ts",
+        "src/test/bun.ts",
         "src/test/public.ts",
         "src/test/apps/**/*.ts"
       ]

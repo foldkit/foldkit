@@ -207,3 +207,23 @@ export const examples: ReadonlyArray<{
     description: 'Every Foldkit UI component with routing and Submodels',
   },
 ]
+
+/**
+ * Starter examples whose sources need Vitest APIs that `bun:test` does not
+ * provide, so they cannot scaffold with the Bun test runner. Each entry names
+ * the source that needs Vitest.
+ */
+export const vitestOnlyExamples: ReadonlyArray<
+  Readonly<{ example: Example; reason: string }>
+> = [
+  {
+    example: 'map',
+    reason:
+      'src/mount.test.ts uses vi.hoisted, which bun:test does not provide',
+  },
+  {
+    example: 'pixel-art',
+    reason:
+      'src/main.bench.ts uses Vitest bench, which bun:test does not provide',
+  },
+]

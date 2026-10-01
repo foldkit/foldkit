@@ -38,3 +38,34 @@ Scene can also start at the root or at a child Submodel. `withViewInputs` adapts
 Choose the level by ownership. Test a Submodel's rendering, interactions, Commands, and OutMessages at the Submodel. Test parent folding, lifted Commands, route changes, and parent-computed ViewInputs at the root. Those behaviors cross the boundary and cannot be observed from the child.
 
 ::Snippet{name="sceneWeatherFlow" label="Scene example"}
+
+## Testing with Bun {#bun}
+
+Story and Scene tests also run under `bun test`. Bun needs two things that the Vitest config of a new project provides: a DOM for the tests that touch one, and Foldkit's Scene matchers on its `expect`.
+
+To start a new project that tests with Bun, pass `--test-runner bun` along with `--package-manager bun`:
+
+::Snippet{name="testingBunCreateProject" label="create a project that tests with Bun"}
+
+The project gets a `bunfig.toml`, a `src/bun-setup.ts`, and a `test` script that runs `bun test`. The `map` and `pixel-art` examples cannot be combined with this flag. The `map` tests use `vi.hoisted`, and `pixel-art` has Vitest `bench` benchmarks. `bun:test` provides neither.
+
+To switch an existing project, install happy-dom's global registrator and Bun's type declarations:
+
+::Snippet{name="testingBunInstall" label="install the Bun test dependencies"}
+
+Create a setup file that registers happy-dom and the Scene matchers:
+
+::Snippet{name="testingBunSetup" label="src/bun-setup.ts"}
+
+Then have Bun load it before every test file:
+
+::Snippet{name="testingBunConfig" label="bunfig.toml"}
+
+Keep the `url` option. Without it, happy-dom sets `location` to `about:blank`, and Effect's HttpClient resolves every request URL against `location`. A test that runs an HttpClient request then fails with an `InvalidUrl` error, even when the request URL is absolute.
+
+Delete `vitest.config.ts` and `src/vitest-setup.ts`, and change the `test` script to `bun test`. In test files, import `describe`, `test`, and `expect` from `bun:test` instead of `vitest`. Story and Scene steps stay the same. Importing `foldkit/test/bun` adds the Scene matcher types to `bun:test` and loads Bun's types from `@types/bun`, so `tsconfig.json` needs no `types` entry.
+
+Two things that work under Vitest do not work under `bun test`:
+
+- `vi.hoisted`. `bun:test` provides `vi.mock` as an alias of `mock.module`, but it has no `vi.hoisted`.
+- Vite plugins. `bun test` does not run them, so an import that only a Vite plugin can load fails. For example, a `.md` import that `@foldkit/markdown/vite` compiles.

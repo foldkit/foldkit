@@ -15,6 +15,7 @@ import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 import { type Scaffold } from '../rendering.js'
+import { type TestRunner } from '../testRunner.js'
 
 export type PackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun'
 
@@ -76,11 +77,17 @@ const TEMPLATE_DEV_DEPENDENCIES = [
   '@foldkit/vite-plugin',
   '@foldkit/devtools-mcp',
   '@foldkit/oxlint-plugin',
-  'happy-dom',
   'oxfmt',
   'oxlint',
-  'vitest',
 ]
+
+const TEST_RUNNER_DEV_DEPENDENCIES: Record<
+  TestRunner,
+  ReadonlyArray<string>
+> = {
+  vitest: ['happy-dom', 'vitest'],
+  bun: ['@happy-dom/global-registrator', '@types/bun'],
+}
 
 const SERVER_RENDERING_DEV_DEPENDENCIES = ['@types/node']
 
@@ -118,19 +125,37 @@ export const buildUnresolvedDeps = (
 
 /**
  * Build the devDependency map for a scaffolded project by merging the always-on
- * template tooling and any extra scaffold devDependencies with the example's
- * own `devDependencies`. A concrete version from the example wins over a
- * release marker for the same package.
+ * template tooling, the chosen test runner's tooling, and any extra scaffold
+ * devDependencies with the example's own `devDependencies`. The example's
+ * entries for another test runner's tooling are dropped. A concrete version
+ * from the example wins over a release marker for the same package.
  */
 export const buildUnresolvedDevDeps = (
   exampleDevDeps: Record<string, string>,
   extraDevDependencies: ReadonlyArray<string>,
+  testRunner: TestRunner,
 ): Record<string, UnresolvedSpec> => {
   const templateSpecs = Record.fromIterableWith(
-    [...TEMPLATE_DEV_DEPENDENCIES, ...extraDevDependencies],
+    [
+      ...TEMPLATE_DEV_DEPENDENCIES,
+      ...TEST_RUNNER_DEV_DEPENDENCIES[testRunner],
+      ...extraDevDependencies,
+    ],
     name => [name, Release()],
   )
-  const exampleSpecs = Record.map(exampleDevDeps, toUnresolvedSpec)
+  const otherTestRunnerDevDependencies = pipe(
+    TEST_RUNNER_DEV_DEPENDENCIES,
+    Record.remove(testRunner),
+    Record.values,
+    Array.flatten,
+  )
+  const exampleSpecs = pipe(
+    exampleDevDeps,
+    Record.filter(
+      (_, name) => !Array.contains(otherTestRunnerDevDependencies, name),
+    ),
+    Record.map(toUnresolvedSpec),
+  )
 
   return Record.union(templateSpecs, exampleSpecs, preferConcreteSpec)
 }
@@ -323,10 +348,26 @@ const readExamplePackageJson = (
       }),
   })
 
+/**
+ * The package.json scripts for the chosen test runner. The templates run
+ * tests with Vitest, so the vitest runner keeps them. The bun runner points
+ * the `test` script at `bun test` and keeps every script in its place.
+ */
+export const testRunnerScripts = (
+  scripts: Record<string, string>,
+  testRunner: TestRunner,
+): Record<string, string> =>
+  Match.value(testRunner).pipe(
+    Match.when('vitest', () => scripts),
+    Match.when('bun', () => Record.set(scripts, 'test', 'bun test')),
+    Match.exhaustive,
+  )
+
 const writeManifest = (
   projectPath: string,
   dependencies: Record<string, string>,
   devDependencies: Record<string, string>,
+  testRunner: TestRunner,
 ) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
@@ -340,6 +381,7 @@ const writeManifest = (
 
     const updated = {
       ...packageJson,
+      scripts: testRunnerScripts(packageJson.scripts, testRunner),
       dependencies,
       devDependencies,
     }
@@ -387,6 +429,7 @@ export const installDependencies = (
   projectPath: string,
   packageManager: PackageManager,
   scaffold: Scaffold,
+  testRunner: TestRunner,
   maybeDependencyManifestsDirectory: Option.Option<string>,
 ) =>
   Effect.gen(function* () {
@@ -406,6 +449,7 @@ export const installDependencies = (
       buildUnresolvedDevDeps(
         examplePackageJson.devDependencies,
         scaffoldDevDependencies(scaffold),
+        testRunner,
       ),
     )
 
@@ -413,6 +457,7 @@ export const installDependencies = (
       projectPath,
       sortDependencies(dependencies),
       sortDependencies(devDependencies),
+      testRunner,
     )
 
     yield* runCommand(packageManager, ['install'], projectPath)

@@ -3,6 +3,7 @@ import {
   Effect,
   FileSystem,
   Match,
+  Option,
   Path,
   PlatformError,
   Record,
@@ -12,6 +13,7 @@ import {
 import { fileURLToPath } from 'node:url'
 
 import { type Scaffold } from '../rendering.js'
+import { type TestRunner } from '../testRunner.js'
 import {
   type PackageManager,
   devCommand,
@@ -44,7 +46,7 @@ const getTemplateFiles = (templateDir: string) =>
 
     const readFiles = (
       dir: string,
-      relativeDir: string,
+      relativeSegments: ReadonlyArray<string>,
     ): Effect.Effect<
       ReadonlyArray<readonly [string, string]>,
       PlatformError.PlatformError
@@ -56,7 +58,8 @@ const getTemplateFiles = (templateDir: string) =>
           entry =>
             Effect.gen(function* () {
               const fullPath = path.join(dir, entry)
-              const relativePath = path.join(relativeDir, entry)
+              const entrySegments = [...relativeSegments, entry]
+              const relativePath = Array.join(entrySegments, '/')
               const stat = yield* fs.stat(fullPath)
 
               return yield* Match.value(stat.type).pipe(
@@ -67,7 +70,7 @@ const getTemplateFiles = (templateDir: string) =>
                   >
                 >(),
                 Match.when('Directory', () =>
-                  readFiles(fullPath, relativePath),
+                  readFiles(fullPath, entrySegments),
                 ),
                 Match.when('File', () =>
                   Effect.map(fs.readFileString(fullPath), content => [
@@ -83,7 +86,7 @@ const getTemplateFiles = (templateDir: string) =>
         return Array.flatten(nested)
       })
 
-    return Record.fromEntries(yield* readFiles(templateDir, ''))
+    return Record.fromEntries(yield* readFiles(templateDir, []))
   })
 
 const getBaseFiles = Effect.gen(function* () {
@@ -93,29 +96,103 @@ const getBaseFiles = Effect.gen(function* () {
   return yield* getTemplateFiles(path.join(templateRoot, 'base'))
 })
 
-const getPackageManagerFiles = (packageManager: PackageManager) =>
-  Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem
-    const path = yield* Path.Path
+const VITEST_ONLY_FILES = ['vitest.config.ts', 'src/vitest-setup.ts']
 
-    const templateRoot = yield* getTemplateRoot
-    const templateDir = path.join(
-      templateRoot,
-      'package-managers',
-      packageManager,
-    )
-    const isTemplateDirectoryPresent = yield* fs.exists(templateDir)
+const BUN_TEST_MODULE = 'bun:test'
+const VITEST_IMPORT = /^import [^']* from 'vitest'\n/m
+const IMPORT_STATEMENT = /^import [^']* from '([^']+)'\n/gm
+const IMPORT_GROUP_SEPARATOR = '\n\n'
 
-    if (isTemplateDirectoryPresent) {
-      return yield* getTemplateFiles(templateDir)
-    } else {
-      return {}
-    }
+// NOTE: The scaffold's Oxfmt config sorts imports by module within each
+// blank-line group, and `bun:test` sorts before the modules that precede
+// `vitest`. Replacing the module in place would leave a fresh Bun scaffold
+// failing `oxfmt --check`, so the import moves to its sorted position.
+const importBunTestInsteadOfVitest = (content: FileContent): FileContent =>
+  Option.match(Option.fromNullishOr(VITEST_IMPORT.exec(content)), {
+    onNone: () => content,
+    onSome: vitestImport => {
+      const [vitestStatement] = vitestImport
+      const vitestImportStart = vitestImport.index
+      const beforeVitestImport = content.slice(0, vitestImportStart)
+      const afterVitestImport = content.slice(
+        vitestImportStart + vitestStatement.length,
+      )
+      const bunTestImport = String.replace(
+        "from 'vitest'",
+        `from '${BUN_TEST_MODULE}'`,
+      )(vitestStatement)
+
+      const groupStart = pipe(
+        beforeVitestImport,
+        String.lastIndexOf(IMPORT_GROUP_SEPARATOR),
+        Option.match({
+          onNone: () => 0,
+          onSome: index => index + IMPORT_GROUP_SEPARATOR.length,
+        }),
+      )
+      const insertionIndex = pipe(
+        beforeVitestImport.slice(groupStart).matchAll(IMPORT_STATEMENT),
+        Array.fromIterable,
+        Array.findFirst(statement =>
+          pipe(
+            Array.get(statement, 1),
+            Option.exists(moduleSpecifier => moduleSpecifier > BUN_TEST_MODULE),
+          ),
+        ),
+        Option.match({
+          onNone: () => vitestImportStart,
+          onSome: statement => groupStart + statement.index,
+        }),
+      )
+
+      return importBunTestInsteadOfVitest(
+        beforeVitestImport.slice(0, insertionIndex) +
+          bunTestImport +
+          beforeVitestImport.slice(insertionIndex) +
+          afterVitestImport,
+      )
+    },
   })
+
+const rewriteVitestImports = (
+  content: FileContent,
+  filePath: FilePath,
+): FileContent => {
+  if (String.endsWith('.ts')(filePath)) {
+    return importBunTestInsteadOfVitest(content)
+  } else {
+    return content
+  }
+}
+
+/**
+ * Adapt a layer of scaffold files, keyed by project-relative path, to the
+ * chosen test runner. The vitest runner keeps the files as they are. The bun
+ * runner drops the Vitest config and setup file and points every TypeScript
+ * source that imports from `vitest` at `bun:test`.
+ */
+export const applyTestRunner = (
+  files: FileContentByPath,
+  testRunner: TestRunner,
+): FileContentByPath =>
+  Match.value(testRunner).pipe(
+    Match.when('vitest', () => files),
+    Match.when('bun', () =>
+      pipe(
+        files,
+        Record.filter(
+          (_, filePath) => !Array.contains(VITEST_ONLY_FILES, filePath),
+        ),
+        Record.map(rewriteVitestImports),
+      ),
+    ),
+    Match.exhaustive,
+  )
 
 const createFiles = (
   projectPath: string,
   files: FileContentByPath,
+  testRunner: TestRunner,
 ): Effect.Effect<
   void,
   PlatformError.PlatformError,
@@ -126,7 +203,7 @@ const createFiles = (
     const path = yield* Path.Path
 
     yield* pipe(
-      files,
+      applyTestRunner(files, testRunner),
       Record.toEntries,
       Effect.forEach(
         ([filePath, content]) =>
@@ -147,23 +224,33 @@ const createFiles = (
     )
   })
 
-const createBaseFiles = (projectPath: string) =>
+const createBaseFiles = (projectPath: string, testRunner: TestRunner) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
 
     yield* fs.makeDirectory(projectPath, { recursive: true })
 
     const baseFiles = yield* getBaseFiles
-    yield* createFiles(projectPath, baseFiles)
+    yield* createFiles(projectPath, baseFiles, testRunner)
   })
 
-const createPackageManagerFiles = (
+const createOptionalTemplateFiles = (
   projectPath: string,
-  packageManager: PackageManager,
+  testRunner: TestRunner,
+  ...templateSegments: ReadonlyArray<string>
 ) =>
   Effect.gen(function* () {
-    const packageManagerFiles = yield* getPackageManagerFiles(packageManager)
-    yield* createFiles(projectPath, packageManagerFiles)
+    const fs = yield* FileSystem.FileSystem
+    const path = yield* Path.Path
+
+    const templateRoot = yield* getTemplateRoot
+    const templateDir = path.join(templateRoot, ...templateSegments)
+    const isTemplateDirectoryPresent = yield* fs.exists(templateDir)
+
+    if (isTemplateDirectoryPresent) {
+      const files = yield* getTemplateFiles(templateDir)
+      yield* createFiles(projectPath, files, testRunner)
+    }
   })
 
 type OverlayDirectory = 'ssg' | 'ssr'
@@ -171,6 +258,7 @@ type OverlayDirectory = 'ssg' | 'ssr'
 const overlayRenderingFiles = (
   projectPath: string,
   directory: OverlayDirectory,
+  testRunner: TestRunner,
 ) =>
   Effect.gen(function* () {
     const path = yield* Path.Path
@@ -180,15 +268,19 @@ const overlayRenderingFiles = (
       path.join(templateRoot, 'rendering', directory),
     )
 
-    yield* createFiles(projectPath, renderingFiles)
+    yield* createFiles(projectPath, renderingFiles, testRunner)
   })
 
-const createRenderingFiles = (projectPath: string, scaffold: Scaffold) =>
+const createRenderingFiles = (
+  projectPath: string,
+  scaffold: Scaffold,
+  testRunner: TestRunner,
+) =>
   Match.value(scaffold).pipe(
     Match.tagsExhaustive({
       Spa: () => Effect.void,
-      Ssg: () => overlayRenderingFiles(projectPath, 'ssg'),
-      Ssr: () => overlayRenderingFiles(projectPath, 'ssr'),
+      Ssg: () => overlayRenderingFiles(projectPath, 'ssg', testRunner),
+      Ssr: () => overlayRenderingFiles(projectPath, 'ssr', testRunner),
     }),
   )
 
@@ -197,15 +289,28 @@ export const createProject = (
   projectPath: string,
   scaffold: Scaffold,
   packageManager: PackageManager,
+  testRunner: TestRunner,
 ) =>
   Effect.gen(function* () {
-    yield* createBaseFiles(projectPath)
-    yield* createRenderingFiles(projectPath, scaffold)
+    yield* createBaseFiles(projectPath, testRunner)
+    yield* createRenderingFiles(projectPath, scaffold, testRunner)
     yield* modifyBaseFiles(projectPath, name, packageManager)
-    yield* createPackageManagerFiles(projectPath, packageManager)
+    yield* createOptionalTemplateFiles(
+      projectPath,
+      testRunner,
+      'package-managers',
+      packageManager,
+    )
+    yield* createOptionalTemplateFiles(
+      projectPath,
+      testRunner,
+      'test-runners',
+      testRunner,
+    )
     yield* Match.value(scaffold).pipe(
       Match.tagsExhaustive({
-        Spa: ({ example }) => createExampleFiles(projectPath, example),
+        Spa: ({ example }) =>
+          createExampleFiles(projectPath, example, testRunner),
         Ssg: () => Effect.void,
         Ssr: () => Effect.void,
       }),
@@ -258,7 +363,11 @@ const modifyBaseFiles = (
     )
   })
 
-const createExampleFiles = (projectPath: string, example: string) =>
+const createExampleFiles = (
+  projectPath: string,
+  example: string,
+  testRunner: TestRunner,
+) =>
   Effect.gen(function* () {
     const path = yield* Path.Path
 
@@ -267,5 +376,9 @@ const createExampleFiles = (projectPath: string, example: string) =>
       path.join(templateRoot, 'examples', example, 'src'),
     )
 
-    yield* createFiles(path.join(projectPath, 'src'), files)
+    yield* createFiles(
+      projectPath,
+      Record.mapKeys(files, filePath => `src/${filePath}`),
+      testRunner,
+    )
   })

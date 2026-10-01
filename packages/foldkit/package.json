@@ -131,6 +131,10 @@
       "types": "./dist/test/public.d.ts",
       "import": "./dist/test/public.js"
     },
+    "./test/bun": {
+      "types": "./dist/test/bun.d.ts",
+      "import": "./dist/test/bun.js"
+    },
     "./test/vitest": {
       "types": "./dist/test/vitest.d.ts",
       "import": "./dist/test/vitest.js"
@@ -159,9 +163,9 @@
   ],
   "scripts": {
     "clean": "rimraf dist *.tsbuildinfo",
-    "build": "pnpm run clean && tsc -b tsconfig.build.json",
-    "watch": "tsc -b tsconfig.build.json --watch",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "pnpm run clean && tsc -b tsconfig.build.json tsconfig.build.bun.json",
+    "watch": "tsc -b tsconfig.build.json tsconfig.build.bun.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.bun.json --noEmit",
     "test": "vitest run --coverage"
   },
   "dependencies": {
@@ -174,6 +178,7 @@
   "devDependencies": {
     "@effect/platform-browser": "4.0.0-rc.117",
     "@effect/vitest": "4.0.0-rc.117",
+    "@types/bun": "^1.4.2",
     "@vitest/coverage-v8": "^5.0.2",
     "effect": "4.0.0-rc.117",
     "happy-dom": "^20.14.5",

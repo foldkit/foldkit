@@ -12,6 +12,7 @@ export default defineConfig({
         'src/**/*.test.ts',
         'src/**/*.d.ts',
         'src/test/apps/**',
+        'src/test/bun.ts',
         'src/test/vitest-setup.ts',
         'src/test/vitest.ts',
       ],

@@ -16,6 +16,18 @@ bun create foldkit-app
 
 The CLI prompts you for a project name, rendering mode, starter example, and package manager. Pass `--name`, `--rendering`, `--example`, and/or `--package-manager` to skip the matching prompts.
 
+## Test Runner
+
+Scaffolded projects run their tests with Vitest. To run them with Bun's test runner instead, pass `--test-runner bun` together with `--package-manager bun`:
+
+```bash
+bun create foldkit-app --package-manager bun --test-runner bun
+```
+
+The Bun scaffold has no `vitest.config.ts`. Its `bunfig.toml` preloads `src/bun-setup.ts`, which registers happy-dom globals and the Scene matchers, and `bun test` runs every test file. Tests import `describe`, `test`, and `expect` from `bun:test`.
+
+The `map` and `pixel-art` examples need Vitest, so they reject `--test-runner bun`. The `map` tests use `vi.hoisted`, and `pixel-art` has Vitest `bench` benchmarks. `bun:test` provides neither.
+
 ## Rendering
 
 | Mode  | Description                                                                                                                                                                                  |

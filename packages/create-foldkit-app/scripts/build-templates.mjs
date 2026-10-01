@@ -23,12 +23,17 @@ const TOOL_DEPENDENCIES = [
   '@foldkit/vite-plugin',
   '@foldkit/devtools-mcp',
   '@foldkit/oxlint-plugin',
+  '@happy-dom/global-registrator',
+  '@types/bun',
   '@types/node',
   'happy-dom',
   'oxfmt',
   'oxlint',
   'vitest',
 ]
+const LOCKSTEP_VERSION_SOURCES = {
+  '@happy-dom/global-registrator': 'happy-dom',
+}
 
 const fail = message => {
   throw new Error(message)
@@ -71,6 +76,7 @@ const baseReleaseManifest = () => {
 const dependencyCandidates = name => {
   const manifests = [
     resolve(REPO_ROOT, 'package.json'),
+    resolve(REPO_ROOT, 'packages/foldkit/package.json'),
     ...EXAMPLE_VALUES.map(example =>
       resolve(REPO_ROOT, 'examples', example, 'package.json'),
     ),
@@ -100,11 +106,12 @@ const dependencyVersions = releaseManifest =>
         return [name, packageVersion]
       }
 
-      const candidates = [...dependencyCandidates(name)]
+      const versionSource = LOCKSTEP_VERSION_SOURCES[name] ?? name
+      const candidates = [...dependencyCandidates(versionSource)]
 
       if (candidates.length !== 1) {
         return fail(
-          `expected one release-owned version for ${name}, found ${candidates.join(', ')}`,
+          `expected one release-owned version for ${versionSource}, found ${candidates.join(', ')}`,
         )
       }
 

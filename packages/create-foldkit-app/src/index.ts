@@ -8,6 +8,7 @@ import { NodeRuntime, NodeServices } from '@effect/platform-node'
 import { create as create_ } from './commands/create.js'
 import { EXAMPLE_VALUES } from './examples.js'
 import { RENDERING_VALUES } from './rendering.js'
+import { TEST_RUNNER_VALUES } from './testRunner.js'
 import { validateProjectName } from './validateName.js'
 
 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -62,6 +63,14 @@ const packageManager = Flag.Literals('package-manager', [
   Flag.optional,
 )
 
+const testRunner = Flag.Literals('test-runner', TEST_RUNNER_VALUES).pipe(
+  Flag.withAlias('t'),
+  Flag.withDescription(
+    'The test runner for the scaffolded tests: vitest (default) or bun, which requires the bun package manager',
+  ),
+  Flag.withDefault('vitest'),
+)
+
 const maybeDependencyManifestsDirectory = Option.fromNullishOr(
   process.env['CREATE_FOLDKIT_APP_DEPENDENCY_MANIFESTS_DIRECTORY'],
 )
@@ -73,6 +82,7 @@ const create = Command.make(
     rendering,
     example,
     packageManager,
+    testRunner,
   },
   input => create_({ ...input, maybeDependencyManifestsDirectory }),
 ).pipe(Command.withDescription('Create a new Foldkit application'))

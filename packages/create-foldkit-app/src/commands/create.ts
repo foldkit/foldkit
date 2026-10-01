@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process'
 
 import { type Example, examples } from '../examples.js'
 import { type Rendering, Scaffold, renderings } from '../rendering.js'
+import { type TestRunner, testRunnerConflict } from '../testRunner.js'
 import { createProject } from '../utils/files.js'
 import {
   type PackageManager,
@@ -19,6 +20,7 @@ type CreateInput = Readonly<{
   rendering: Option.Option<Rendering>
   example: Option.Option<Example>
   packageManager: Option.Option<PackageManager>
+  testRunner: TestRunner
   maybeDependencyManifestsDirectory: Option.Option<string>
 }>
 
@@ -99,6 +101,16 @@ const resolveInput = (input: CreateInput) =>
       onNone: () => promptForPackageManager,
       onSome: Effect.succeed,
     })
+
+    const maybeTestRunnerConflict = testRunnerConflict(
+      input.testRunner,
+      packageManager,
+      scaffold,
+    )
+    if (Option.isSome(maybeTestRunnerConflict)) {
+      return yield* Effect.fail(maybeTestRunnerConflict.value)
+    }
+
     return { name, scaffold, packageManager }
   })
 
@@ -136,12 +148,19 @@ const setupProject = (
   projectPath: string,
   scaffold: Scaffold,
   packageManager: PackageManager,
+  testRunner: TestRunner,
 ) =>
   Effect.gen(function* () {
     yield* Console.log(chalk.blue('🚀 Creating your Foldkit app...'))
     yield* Console.log('')
 
-    yield* createProject(name, projectPath, scaffold, packageManager)
+    yield* createProject(
+      name,
+      projectPath,
+      scaffold,
+      packageManager,
+      testRunner,
+    )
 
     yield* Console.log(chalk.green(`✅ Created project`))
     yield* Console.log('')
@@ -151,6 +170,7 @@ const installProjectDependencies = (
   projectPath: string,
   packageManager: PackageManager,
   scaffold: Scaffold,
+  testRunner: TestRunner,
   maybeDependencyManifestsDirectory: Option.Option<string>,
 ) =>
   Effect.gen(function* () {
@@ -162,6 +182,7 @@ const installProjectDependencies = (
       projectPath,
       packageManager,
       scaffold,
+      testRunner,
       maybeDependencyManifestsDirectory,
     )
 
@@ -247,11 +268,18 @@ export const create = (input: CreateInput) =>
 
     const subtreeRef = yield* readFoldkitSubtreeRef
 
-    yield* setupProject(name, projectPath, scaffold, packageManager)
+    yield* setupProject(
+      name,
+      projectPath,
+      scaffold,
+      packageManager,
+      input.testRunner,
+    )
     yield* installProjectDependencies(
       projectPath,
       packageManager,
       scaffold,
+      input.testRunner,
       input.maybeDependencyManifestsDirectory,
     )
     yield* displaySuccessMessage(name, packageManager, subtreeRef)
