@@ -15,7 +15,7 @@ Existing port settings still work. `devToolsMcpPort` opens a separate socket on 
 
 The plugin no longer starts a relay during Vitest runs. Previously, a test run using a fixed relay port could conflict with the project's dev server and wait through the four-second bind retry before continuing.
 
-`foldkit/devtools-protocol` now exports `RelayRecord`, `RELAY_RECORD_VERSION`, and the registry directory and environment variable names alongside the `Request` and `Response` frames. The plugin and MCP server use the same record definition. Because the plugin imports these exports at runtime, `@foldkit/vite-plugin` requires `foldkit` 0.163.0 or later. The plugin also depends on `@effect/platform-node` to read and write the registry.
+`foldkit/devtools-protocol` now exports `RelayRecord`, `RELAY_RECORD_VERSION`, and the registry directory and environment variable names alongside the `Request` and `Response` frames. The plugin and MCP server use the same record definition. Because the plugin imports these exports at runtime, `@foldkit/vite-plugin` requires `foldkit` 0.164.0 or later. The plugin also depends on `@effect/platform-node` to read and write the registry.
 
 The registry lives under `XDG_RUNTIME_DIR` when set and under the operating system's temporary directory otherwise. `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY` selects another directory. On platforms where the plugin cannot verify directory ownership, including Windows, automatic discovery is unavailable. Use `devToolsMcpPort` with the matching `FOLDKIT_DEVTOOLS_MCP_PORT` there.
 

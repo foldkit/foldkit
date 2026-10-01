@@ -1964,6 +1964,9 @@ importers:
       '@effect/platform-node':
         specifier: 4.0.0-rc.117
         version: 4.0.0-rc.117(effect@4.0.0-rc.117)(redis@6.2.1(@opentelemetry/api@1.9.0))
+      '@effect/platform-node-shared':
+        specifier: 4.0.0-rc.117
+        version: 4.0.0-rc.117(effect@4.0.0-rc.117)
       magic-string:
         specifier: ^1.4.2
         version: 1.4.2

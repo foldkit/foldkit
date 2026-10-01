@@ -39,7 +39,8 @@
       "entry": ["src/vite.ts"]
     },
     "packages/vite-plugin-foldkit": {
-      "ignoreFiles": ["test/fixtures/**"]
+      "ignoreFiles": ["test/fixtures/**"],
+      "ignoreDependencies": ["@effect/platform-node-shared"]
     },
     "packages/markdown": {
       "entry": ["src/index.ts", "src/vite/public.ts"]
