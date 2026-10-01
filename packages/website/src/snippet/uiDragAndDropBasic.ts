@@ -81,7 +81,7 @@ const dragAndDropSubscriptions = Subscription.lift({
   dragKeyboard: DragAndDrop.subscriptions.documentKeyboard,
   autoScroll: DragAndDrop.subscriptions.autoScroll,
 })<Model, Message>({
-  toChildModel: model => model.dragAndDrop,
+  read: model => Option.some(model.dragAndDrop),
   toParentMessage: message => Message.GotDragAndDropMessage({ message }),
 })
 

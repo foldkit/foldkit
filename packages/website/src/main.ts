@@ -1026,9 +1026,8 @@ export const LoadPlayground = Command.define('LoadPlayground', {
 
 const homeSubscriptions = Subscription.lift(Home.subscriptions)<Model, Message>(
   {
-    toChildModel: model => Option.getOrThrow(model.maybeHome),
+    read: model => model.maybeHome,
     toParentMessage: toGotHomeMessage,
-    when: model => Option.isSome(model.maybeHome),
   },
 )
 
@@ -1036,7 +1035,7 @@ const uiPagesSubscriptions = Subscription.lift(Ui.subscriptions)<
   Model,
   Message
 >({
-  toChildModel: model => model.uiPages,
+  read: model => Option.some(model.uiPages),
   toParentMessage: message => Message.GotUiPageMessage({ message }),
 })
 
@@ -1054,7 +1053,7 @@ export const subscriptions = Subscription.aggregate(
 const playgroundManagedResources = ManagedResource.lift(
   Playground.managedResources,
 )<Model, Message>({
-  toChildModel: model =>
+  read: model =>
     Option.filter(model.playground, () =>
       Option.contains(model.maybeIsPlaygroundSupported, true),
     ),
@@ -1065,7 +1064,7 @@ const homeManagedResources = ManagedResource.lift(Home.managedResources)<
   Model,
   Message
 >({
-  toChildModel: model => model.maybeHome,
+  read: model => model.maybeHome,
   toParentMessage: toGotHomeMessage,
 })
 

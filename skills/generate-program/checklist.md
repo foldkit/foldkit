@@ -518,7 +518,7 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 - [ ] Managed Resources use `ManagedResource.make<Model, Message>()(entry => ({ key: entry(requirementsSchema, config) }))`. The requirements schema is the positional first argument (usually `Schema.Option(...)`), not a field on `config`. No standalone `ManagedResourceDeps` struct.
 - [ ] `modelToMaybeRequirements` returns `Option.some(params)` to acquire and `Option.none()` to release. `acquire` fails into the error channel so `onAcquireError` fires instead of crashing; `release` never throws.
 - [ ] The service union is read with `ManagedResource.ServicesOf<typeof managedResources>`, not hand-maintained in parallel.
-- [ ] A child Submodel that owns a Managed Resource exposes its own `make` record in child terms; the parent composes it with `ManagedResource.lift(childRecord)<Parent, Parent>({ toChildModel, toParentMessage })` (where `toChildModel` returns `Option<ChildModel>`) and `ManagedResource.aggregate`. No hand-rolled parent factory threading `toChildModel`/`toParentMessage` into the child.
+- [ ] A child Submodel that owns a Managed Resource exposes its own `make` record in child terms; the parent composes it with `ManagedResource.lift(childRecord)<Parent, Parent>({ read, toParentMessage })` (where `read` returns `Option<ChildModel>`) and `ManagedResource.aggregate`. No hand-rolled parent factory threading `read`/`toParentMessage` into the child.
 
 ## Testing quality
 

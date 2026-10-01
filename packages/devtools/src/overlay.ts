@@ -807,7 +807,7 @@ const makeOverlaySubscriptions = (store: DevToolsStore, shadow: ShadowRoot) => {
     scrubberPointer: sliderSubscriptions.dragPointer,
     scrubberEscape: sliderSubscriptions.dragEscape,
   })<Model, Message>({
-    toChildModel: model => model.scrubberSlider,
+    read: model => Option.some(model.scrubberSlider),
     toParentMessage: message => Message.GotScrubberSliderMessage({ message }),
   })
 

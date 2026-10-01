@@ -10,7 +10,7 @@ import * as NotePlayerDemo from './notePlayerDemo'
 const notePlayerDemoManagedResources = ManagedResource.lift(
   NotePlayerDemo.managedResources,
 )<Model, Message>({
-  toChildModel: model => Option.some(model.notePlayerDemo),
+  read: model => Option.some(model.notePlayerDemo),
   toParentMessage: message => Message.GotNotePlayerDemoMessage({ message }),
 })
 

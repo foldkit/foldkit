@@ -333,12 +333,12 @@ type ChildMessageOf<Resources> =
  * context, applying a Model accessor and a Message wrapper uniformly to every
  * entry. Per-entry requirements schemas and resource services are preserved.
  *
- * Unlike `Subscription.lift`, `toChildModel` returns an `Option`: a managed
- * resource already speaks in `Option` (`modelToMaybeRequirements` returns
- * `Option.none()` to release), and a child Submodel that owns a managed
- * resource is itself something that mounts and unmounts. A missing child is
- * just another `None` and flows through the same acquire/release channel, so
- * each lifted entry's requirements must be `Schema.Option`-wrapped.
+ * `read` returns `Some(childModel)` while the child exists and `None` while
+ * it is absent.
+ * An absent child releases its resources without reading their requirements.
+ * Use `Option.some` for a child that is always present. Each child's
+ * requirements must be `Schema.Option`-wrapped so child absence and the
+ * child's own release condition follow the same acquire/release lifecycle.
  */
 export const lift =
   <
@@ -350,7 +350,7 @@ export const lift =
     resources: Resources,
   ) =>
   <ParentModel, ParentMessage>(config: {
-    readonly toChildModel: (
+    readonly read: (
       parentModel: ParentModel,
     ) => Option.Option<ChildModelOf<Resources>>
     readonly toParentMessage: (
@@ -381,7 +381,7 @@ export const lift =
       resource: resource.resource,
       modelToMaybeRequirements: (parentModel: ParentModel) =>
         Option.flatMap(
-          config.toChildModel(parentModel),
+          config.read(parentModel),
           resource.modelToMaybeRequirements,
         ),
       acquire: resource.acquire,

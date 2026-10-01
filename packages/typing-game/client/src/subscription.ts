@@ -1,3 +1,4 @@
+import { Option } from 'effect'
 import { Subscription } from 'foldkit'
 
 import { Message } from './message'
@@ -6,14 +7,14 @@ import { Home, Room } from './page'
 
 const homeSubscriptions = Subscription.lift(Home.subscriptions)<Model, Message>(
   {
-    toChildModel: model => model.home,
+    read: model => Option.some(model.home),
     toParentMessage: message => Message.GotHomeMessage({ message }),
     when: ({ route }) => route._tag === 'Home',
   },
 )
 
 const roomSubscriptions = Subscription.lift(Room.subscriptions)({
-  toChildModel: (model: Model) => model.room,
+  read: (model: Model) => Option.some(model.room),
   toParentMessage: (message: Room.Message): Message =>
     Message.GotRoomMessage({ message }),
   when: { roomKeyboard: ({ route }) => route._tag === 'Room' },

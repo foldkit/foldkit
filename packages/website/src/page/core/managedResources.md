@@ -43,7 +43,7 @@ The resource tag holds that bare value, so Commands read it through `.get` with 
 
 A child Submodel defines its Managed Resources in its own Model and Message terms, with no knowledge of its parent. `ManagedResource.lift` translates the child record through a Model accessor and a Message wrapper, matching the shape of update delegation and `Subscription.lift`. `ManagedResource.aggregate` combines root and lifted child records into the single record the runtime config expects. Duplicate keys throw at startup instead of silently replacing an entry.
 
-Unlike `Subscription.lift`, `toChildModel` returns an `Option`. A Managed Resource already uses `Option.none()` to mean “release”, so an optional child that is not mounted naturally follows the same path. Removing the child releases its handle.
+`read` returns an `Option` of the child Model. Returning `None` releases the child’s resources without reading their requirements. Returning `Some` lets the child determine which resources it needs. Wrap an always-present child in `Option.some`.
 
 ::Snippet{name="managedResourcesLift" label="Managed Resources composition example"}
 

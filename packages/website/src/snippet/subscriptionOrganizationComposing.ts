@@ -1,5 +1,5 @@
 // page/settings/subscription.ts
-import { Effect, Schema, Stream } from 'effect'
+import { Effect, Option, Schema, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 
 import {
@@ -14,7 +14,7 @@ const themeMenuSubscriptions = Subscription.lift(ThemeMenu.subscriptions)<
   Model,
   Message
 >({
-  toChildModel: model => model.themeMenu,
+  read: model => Option.some(model.themeMenu),
   toParentMessage: message => GotThemeMenuMessage({ message }),
 })
 

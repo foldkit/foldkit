@@ -72,7 +72,7 @@ const liftedManagedResources = lift(childManagedResources)<
   ParentModel,
   ParentMessage
 >({
-  toChildModel: model => model.maybeChild,
+  read: model => model.maybeChild,
   toParentMessage: gotChild,
 })
 
@@ -87,6 +87,21 @@ describe('make', () => {
 })
 
 describe('lift', () => {
+  it('keeps the optional reader and resource service types', () => {
+    const liftChild = lift(childManagedResources)<ParentModel, ParentMessage>
+    const resources = liftChild({
+      read: model => model.maybeChild,
+      toParentMessage: gotChild,
+    })
+
+    expectTypeOf<Parameters<typeof liftChild>>().toMatchTypeOf<
+      [Readonly<{ read: (model: ParentModel) => Option.Option<ChildModel> }>]
+    >()
+    expectTypeOf<ServicesOf<typeof resources>>().toEqualTypeOf<
+      ServiceOf<typeof SessionResource>
+    >()
+  })
+
   it('releases when the child is unmounted', () => {
     const maybeRequirements =
       liftedManagedResources.session.modelToMaybeRequirements({

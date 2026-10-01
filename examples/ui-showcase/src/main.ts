@@ -671,6 +671,6 @@ export const subscriptions = Subscription.lift(UiSubscriptions.subscriptions)<
   Model,
   Message
 >({
-  toChildModel: model => model.uiModel,
+  read: model => Option.some(model.uiModel),
   toParentMessage: message => Message.GotUiMessage({ message }),
 })

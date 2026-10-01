@@ -74,7 +74,7 @@ const sliderSubscriptions = Subscription.lift({
   sliderPointer: Slider.subscriptions.dragPointer,
   sliderEscape: Slider.subscriptions.dragEscape,
 })<Model, Message>({
-  toChildModel: model => model.ratingDemo,
+  read: model => Option.some(model.ratingDemo),
   toParentMessage: message => Message.GotSliderMessage({ message }),
 })
 

@@ -64,7 +64,7 @@ ClickedScrollActivityListToMiddle: () =>
 const activityListSubscriptions = Subscription.lift({
   activityListEvents: VirtualList.subscriptions.containerEvents,
 })<Model, Message>({
-  toChildModel: model => model.activityList,
+  read: model => Option.some(model.activityList),
   toParentMessage: message => Message.GotActivityListMessage({ message }),
 })
 

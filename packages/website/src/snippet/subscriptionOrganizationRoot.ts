@@ -1,5 +1,5 @@
 // subscription.ts
-import { Effect, Schema, Stream } from 'effect'
+import { Effect, Option, Schema, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 
 import { ChangedSystemTheme, GotSettingsMessage, type Message } from './message'
@@ -10,7 +10,7 @@ const settingsSubscriptions = Subscription.lift(Settings.subscriptions)<
   Model,
   Message
 >({
-  toChildModel: model => model.settings,
+  read: model => Option.some(model.settings),
   toParentMessage: message => GotSettingsMessage({ message }),
 })
 
