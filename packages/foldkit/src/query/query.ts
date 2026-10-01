@@ -7,11 +7,11 @@ import { modifyFields } from '../struct/index.js'
 import * as Update from '../update/index.js'
 import {
   type CacheStore,
+  type CompletedFetchOf,
   type FoldLens,
   type LiftConfig,
   type LiftQuery,
   type ParentKeyFoldConfig,
-  type SettledFetchOf,
   applyPolicy,
   isParentKeyFoldConfig,
   parentKeyToLens,
@@ -30,9 +30,10 @@ const makeQueryMessage = <A, AI, E, EI>(
   error: Schema.Codec<E, EI>,
 ) =>
   defineMessageUnion({
-    SettledFetch: { result: Schema.Result(data, error) },
+    CompletedFetch: { result: Schema.Result(data, error) },
   })
 
+/** Schema-backed Message union dispatched when a Query Fetch completes. */
 export type QueryMessage<A, AI, E, EI> = ReturnType<
   typeof makeQueryMessage<A, AI, E, EI>
 >
@@ -43,22 +44,29 @@ export const makeQueryModel = <A, AI, E, EI>(
   error: Schema.Codec<E, EI>,
 ) => Schema.Struct({ data: AsyncData.Schema(data, error).schema })
 
+/** Schema for a Query Model containing one remote-data value. */
 export type QueryModel<A, AI, E, EI> = ReturnType<
   typeof makeQueryModel<A, AI, E, EI>
 >
 
 /** Single-slot remote-data Submodel. Read its `AsyncData` with `read`. */
 export interface Query<Name extends string, A, AI, E, EI, R = never> {
+  /** Schema for this Query's Model. */
   readonly Model: QueryModel<A, AI, E, EI>
+  /** Schema-backed union of Messages handled by this Query. */
   readonly Message: QueryMessage<A, AI, E, EI>
+  /** Command that executes the configured fetch. */
   readonly Fetch: Command.CommandDefinitionNoArgs<
     `Fetch${Name}`,
-    Effect.Effect<SettledFetchOf<QueryMessage<A, AI, E, EI>>, never, R>
+    Effect.Effect<CompletedFetchOf<QueryMessage<A, AI, E, EI>>, never, R>
   >
+  /** Creates a Query Model whose data is `Idle`. */
   readonly init: () => QueryModel<A, AI, E, EI>['Type']
+  /** Reads the remote-data value from the Query Model. */
   readonly read: (
     model: QueryModel<A, AI, E, EI>['Type'],
   ) => AsyncData.AsyncData<A, E>
+  /** Folds a Fetch completion into the Query Model. */
   readonly update: (
     model: QueryModel<A, AI, E, EI>['Type'],
     message: QueryMessage<A, AI, E, EI>['Type'],
@@ -67,6 +75,7 @@ export interface Query<Name extends string, A, AI, E, EI, R = never> {
     QueryMessage<A, AI, E, EI>['Type'],
     R
   >
+  /** Refreshes loaded data and does nothing when no data is present. */
   readonly revalidate: (
     model: QueryModel<A, AI, E, EI>['Type'],
   ) => Update.Return<
@@ -74,6 +83,7 @@ export interface Query<Name extends string, A, AI, E, EI, R = never> {
     QueryMessage<A, AI, E, EI>['Type'],
     R
   >
+  /** Loads missing data or refreshes loaded data. */
   readonly revalidateOrLoad: (
     model: QueryModel<A, AI, E, EI>['Type'],
   ) => Update.Return<
@@ -81,6 +91,7 @@ export interface Query<Name extends string, A, AI, E, EI, R = never> {
     QueryMessage<A, AI, E, EI>['Type'],
     R
   >
+  /** Loads data only when the Query has no usable value. */
   readonly loadIfMissing: (
     model: QueryModel<A, AI, E, EI>['Type'],
   ) => Update.Return<
@@ -88,15 +99,18 @@ export interface Query<Name extends string, A, AI, E, EI, R = never> {
     QueryMessage<A, AI, E, EI>['Type'],
     R
   >
+  /** Lifts this Query's update and loading policies into a parent Model. */
   readonly lift: LiftQuery<
     QueryModel<A, AI, E, EI>['Type'],
     QueryMessage<A, AI, E, EI>['Type'],
     R
   >
+  /** Executes the configured fetch directly and returns settled AsyncData. */
   readonly run: Effect.Effect<AsyncData.AsyncData<A, E>, never, R>
 }
 
 export namespace Query {
+  /** Any non-keyed Query definition. */
   export type Any = {
     readonly Model: Schema.Top
     readonly Message: Schema.Top
@@ -112,11 +126,11 @@ export function defineQuery<Name extends string, A, AI, E, EI, R>(
   type Message = QueryMessage<A, AI, E, EI>['Type']
 
   const Fetch = Command.define(`Fetch${config.name}`, {
-    messages: [Message.SettledFetch],
+    messages: [Message.CompletedFetch],
     execute: pipe(
       config.execute,
       Effect.result,
-      Effect.map(result => Message.SettledFetch({ result })),
+      Effect.map(result => Message.CompletedFetch({ result })),
     ),
   })
 
@@ -141,7 +155,7 @@ export function defineQuery<Name extends string, A, AI, E, EI, R>(
 
   const update = (model: Model, message: Message): UpdateReturn =>
     Message.match<UpdateReturn>(message, {
-      SettledFetch({ result }) {
+      CompletedFetch({ result }) {
         if (AsyncData.isIdle(read(model))) return { model }
 
         return {

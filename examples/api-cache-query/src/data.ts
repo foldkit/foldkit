@@ -57,11 +57,11 @@ const articles: ReadonlyArray<Article> = [
     body: 'When queries are known statically, the field name is the key. Reach for a HashMap keyed by a domain identifier only when the entries are genuinely dynamic, like these post details.',
   },
   {
-    id: 'invalidation-is-a-message',
-    title: 'Invalidation Is a Message',
-    excerpt: 'Marking data stale is a fact, not a framework feature.',
+    id: 'refresh-is-a-message',
+    title: 'Refresh Is a Message',
+    excerpt: 'Requesting newer data is a fact, not hidden framework policy.',
     author: 'Jonas Weber',
-    body: 'Invalidation means the cached value can no longer be trusted. Dispatch a Message, move the entry to Refreshing, and return the fetch Command. The whole policy is visible in update.',
+    body: 'Dispatch a Message, move the entry to Refreshing, and return the fetch Command. The old value stays available while the request runs, and the whole policy remains visible in update.',
   },
   {
     id: FLAKY_POST_ID,

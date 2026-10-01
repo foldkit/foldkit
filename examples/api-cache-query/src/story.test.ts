@@ -34,7 +34,7 @@ const encodeKey = Schema.Unknown.pipe(
 const postDetailTag = (
   model: typeof loadedPostsModel,
   postId: string,
-): string => postDetailQuery.read(model.postDetailById, { postId })._tag
+): string => postDetailQuery.read(model.postDetails, { postId })._tag
 
 const selectedPostsTab = Message.GotTabsMessage({
   message: Tabs.Message.SelectedTab({ index: 0, value: 'Posts' }),
@@ -61,7 +61,7 @@ test('first visit to the Stats tab fetches stats', () => {
     resolveFocusTab,
     Command.resolve(
       FetchStats,
-      statsQuery.Message.SettledFetch({
+      statsQuery.Message.CompletedFetch({
         result: Result.succeed({
           stats: fixtureStats,
           fetchedAt: FETCHED_AT,
@@ -94,7 +94,7 @@ test('a revalidation tick keeps stale stats on screen while refetching', () => {
   story(
     update,
     given(loadedStatsModel),
-    message(Message.TickedRevalidateStats()),
+    message(Message.TickedStatsRefreshInterval()),
     model(model => {
       const statsData = statsQuery.read(model.stats)
       expect(statsData._tag).toBe('Refreshing')
@@ -104,7 +104,7 @@ test('a revalidation tick keeps stale stats on screen while refetching', () => {
     }),
     Command.resolve(
       FetchStats,
-      statsQuery.Message.SettledFetch({
+      statsQuery.Message.CompletedFetch({
         result: Result.succeed({
           stats: modifyFields(fixtureStats, { activeUsers: () => 99 }),
           fetchedAt: FETCHED_AT + 5000,
@@ -125,10 +125,10 @@ test('a failed refresh keeps the stale stats on screen with the error', () => {
   story(
     update,
     given(loadedStatsModel),
-    message(Message.TickedRevalidateStats()),
+    message(Message.TickedStatsRefreshInterval()),
     Command.resolve(
       FetchStats,
-      statsQuery.Message.SettledFetch({
+      statsQuery.Message.CompletedFetch({
         result: Result.fail('The server is down.'),
       }),
     ),
@@ -168,16 +168,16 @@ test('a revalidation tick during a refresh is deduplicated', () => {
         }),
       }),
     ),
-    message(Message.TickedRevalidateStats()),
+    message(Message.TickedStatsRefreshInterval()),
     Command.expectNone(),
   )
 })
 
-test('invalidating posts refetches while keeping the current list', () => {
+test('refreshing posts refetches while keeping the current list', () => {
   story(
     update,
     given(loadedPostsModel),
-    message(Message.ClickedInvalidatePosts()),
+    message(Message.ClickedRefreshPosts()),
     model(model => {
       const postsData = postsQuery.read(model.posts)
       expect(postsData._tag).toBe('Refreshing')
@@ -187,7 +187,7 @@ test('invalidating posts refetches while keeping the current list', () => {
     }),
     Command.resolve(
       FetchPosts,
-      postsQuery.Message.SettledFetch({
+      postsQuery.Message.CompletedFetch({
         result: Result.succeed({
           posts: fixturePosts,
           fetchedAt: FETCHED_AT + 1000,
@@ -216,7 +216,7 @@ test('retrying failed posts shows the loading state and refetches', () => {
     }),
     Command.resolve(
       FetchPosts,
-      postsQuery.Message.SettledFetch({
+      postsQuery.Message.CompletedFetch({
         result: Result.succeed({
           posts: fixturePosts,
           fetchedAt: FETCHED_AT,
@@ -239,7 +239,7 @@ test('opening a post fetches it once and serves revisits from the Model', () => 
     }),
     Command.resolve(
       FetchPostDetail,
-      postDetailQuery.Message.SettledFetch({
+      postDetailQuery.Message.CompletedFetch({
         args: { postId: 'first-post' },
         result: Result.succeed({
           detail: firstPostDetail,
@@ -264,7 +264,7 @@ test('a failed post detail fetch lands in Failure and retry refetches', () => {
     message(Message.ClickedPost({ postId: 'first-post' })),
     Command.resolve(
       FetchPostDetail,
-      postDetailQuery.Message.SettledFetch({
+      postDetailQuery.Message.CompletedFetch({
         args: { postId: 'first-post' },
         result: Result.fail('The connection dropped.'),
       }),
@@ -278,7 +278,7 @@ test('a failed post detail fetch lands in Failure and retry refetches', () => {
     }),
     Command.resolve(
       FetchPostDetail,
-      postDetailQuery.Message.SettledFetch({
+      postDetailQuery.Message.CompletedFetch({
         args: { postId: 'first-post' },
         result: Result.succeed({
           detail: firstPostDetail,
@@ -297,7 +297,7 @@ test('revisiting a post with a cached failure loads it again', () => {
     update,
     given(
       modifyFields(loadedPostsModel, {
-        postDetailById: () => ({
+        postDetails: () => ({
           slots: HashMap.set(
             postDetailQuery.init().slots,
             encodeKey({ postId: 'first-post' }),
@@ -316,7 +316,7 @@ test('revisiting a post with a cached failure loads it again', () => {
     }),
     Command.resolve(
       FetchPostDetail,
-      postDetailQuery.Message.SettledFetch({
+      postDetailQuery.Message.CompletedFetch({
         args: { postId: 'first-post' },
         result: Result.fail('The connection dropped.'),
       }),

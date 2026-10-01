@@ -170,16 +170,18 @@ export const runExecute = <A, E, R>(
     Effect.map(result => AsyncData.settle(AsyncData.Loading(), result)),
   )
 
-export type SettledFetchOf<Message extends Schema.Top> = Extract<
+export type CompletedFetchOf<Message extends Schema.Top> = Extract<
   Message['Type'],
-  { readonly _tag: 'SettledFetch' }
+  { readonly _tag: 'CompletedFetch' }
 >
 
 export type KeyedArgs<Fields extends Schema.Struct.Fields> = Schema.Schema.Type<
   Schema.Struct<Fields>
 >
 
+/** Parent-Model operations returned by `query.lift`. */
 export namespace Lifted {
+  /** A non-keyed Query lifted into a parent Model and Message. */
   export type Query<
     ParentModel,
     ParentMessage,
@@ -192,6 +194,7 @@ export namespace Lifted {
     loadIfMissing: Update.Step<ParentModel, ParentMessage, R>
   }>
 
+  /** A KeyedQuery lifted into a parent Model and Message. */
   export type KeyedQuery<
     ParentModel,
     ParentMessage,

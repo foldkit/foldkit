@@ -30,21 +30,21 @@ const STATS_REFETCH_INTERVAL = Duration.seconds(5)
 
 export const TABS_ID = 'api-cache-query-tabs'
 
-const FetchedPosts = Schema.Struct({
+const PostsSnapshot = Schema.Struct({
   posts: Schema.Array(Post),
   fetchedAt: Schema.Number,
 })
 
-const FetchedPostDetail = Schema.Struct({
+const PostDetailSnapshot = Schema.Struct({
   detail: PostDetail,
   fetchedAt: Schema.Number,
 })
 
-const FetchedStats = Schema.Struct({ stats: Stats, fetchedAt: Schema.Number })
+const StatsSnapshot = Schema.Struct({ stats: Stats, fetchedAt: Schema.Number })
 
 export const postsQuery = Query.define({
   name: 'Posts',
-  data: FetchedPosts,
+  data: PostsSnapshot,
   error: Schema.String,
   execute: Effect.gen(function* () {
     const list = yield* fetchPosts
@@ -55,7 +55,7 @@ export const postsQuery = Query.define({
 
 export const statsQuery = Query.define({
   name: 'Stats',
-  data: FetchedStats,
+  data: StatsSnapshot,
   error: Schema.String,
   execute: Effect.gen(function* () {
     const snapshot = yield* fetchStats
@@ -67,7 +67,7 @@ export const statsQuery = Query.define({
 export const postDetailQuery = Query.define({
   name: 'PostDetail',
   args: { postId: Schema.String },
-  data: FetchedPostDetail,
+  data: PostDetailSnapshot,
   error: Schema.String,
   execute: ({ postId }) =>
     Effect.gen(function* () {
@@ -92,7 +92,7 @@ export const Model = Schema.Struct({
   tabs: Tabs.Model,
   activeTab: Tab,
   posts: postsQuery.Model,
-  postDetailById: postDetailQuery.Model,
+  postDetails: postDetailQuery.Model,
   maybeSelectedPostId: Schema.Option(Schema.String),
   stats: statsQuery.Model,
 })
@@ -105,30 +105,30 @@ export const Message = defineMessageUnion({
   GotPostDetailMessage: { message: postDetailQuery.Message },
   ClickedPost: { postId: Schema.String },
   ClickedBackToPosts: {},
-  ClickedInvalidatePosts: {},
+  ClickedRefreshPosts: {},
   ClickedRetryPosts: {},
   ClickedRetryPostDetail: { postId: Schema.String },
   ClickedRefreshStats: {},
   ClickedRetryStats: {},
-  TickedRevalidateStats: {},
+  TickedStatsRefreshInterval: {},
 })
 
 export type Message = typeof Message.Type
 
 type UpdateReturn = Update.Return<Model, Message>
 
-const postsChild = postsQuery.lift<Model, Message>({
+const posts = postsQuery.lift<Model, Message>({
   field: 'posts',
   toParentMessage: message => Message.GotPostsMessage({ message }),
 })
 
-const statsChild = statsQuery.lift<Model, Message>({
+const stats = statsQuery.lift<Model, Message>({
   field: 'stats',
   toParentMessage: message => Message.GotStatsMessage({ message }),
 })
 
-const postDetailChild = postDetailQuery.lift<Model, Message>({
-  field: 'postDetailById',
+const postDetails = postDetailQuery.lift<Model, Message>({
+  field: 'postDetails',
   toParentMessage: message => Message.GotPostDetailMessage({ message }),
 })
 
@@ -137,8 +137,8 @@ const activateTab = (model: Model, tab: Tab): UpdateReturn => {
 
   return Match.value(tab).pipe(
     Match.withReturnType<UpdateReturn>(),
-    Match.when('Posts', () => postsChild.loadIfMissing(modelWithActiveTab)),
-    Match.when('Stats', () => statsChild.loadIfMissing(modelWithActiveTab)),
+    Match.when('Posts', () => posts.loadIfMissing(modelWithActiveTab)),
+    Match.when('Stats', () => stats.loadIfMissing(modelWithActiveTab)),
     Match.exhaustive,
   )
 }
@@ -164,11 +164,11 @@ const foldTabs = Update.foldChild({
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     GotTabsMessage: ({ message }) => foldTabs(model, message),
-    GotPostsMessage: ({ message }) => postsChild.fold(model, message),
-    GotStatsMessage: ({ message }) => statsChild.fold(model, message),
-    GotPostDetailMessage: ({ message }) => postDetailChild.fold(model, message),
+    GotPostsMessage: ({ message }) => posts.fold(model, message),
+    GotStatsMessage: ({ message }) => stats.fold(model, message),
+    GotPostDetailMessage: ({ message }) => postDetails.fold(model, message),
     ClickedPost: ({ postId }) =>
-      postDetailChild.loadIfMissing(
+      postDetails.loadIfMissing(
         modifyFields(model, {
           maybeSelectedPostId: () => Option.some(postId),
         }),
@@ -177,21 +177,21 @@ export const update = (model: Model, message: Message) =>
     ClickedBackToPosts: () => ({
       model: modifyFields(model, { maybeSelectedPostId: () => Option.none() }),
     }),
-    ClickedInvalidatePosts: () => postsChild.revalidateOrLoad(model),
-    ClickedRetryPosts: () => postsChild.revalidateOrLoad(model),
+    ClickedRefreshPosts: () => posts.revalidateOrLoad(model),
+    ClickedRetryPosts: () => posts.revalidateOrLoad(model),
     ClickedRetryPostDetail: ({ postId }) =>
-      postDetailChild.revalidateOrLoad(model, { postId }),
-    ClickedRefreshStats: () => statsChild.revalidateOrLoad(model),
-    ClickedRetryStats: () => statsChild.revalidateOrLoad(model),
-    TickedRevalidateStats: () => statsChild.revalidate(model),
+      postDetails.revalidateOrLoad(model, { postId }),
+    ClickedRefreshStats: () => stats.revalidateOrLoad(model),
+    ClickedRetryStats: () => stats.revalidateOrLoad(model),
+    TickedStatsRefreshInterval: () => stats.revalidate(model),
   })
 
 export const init: Runtime.ApplicationInit<Model, Message> = () =>
-  postsChild.revalidateOrLoad({
+  posts.revalidateOrLoad({
     tabs: Tabs.init({ id: TABS_ID }),
     activeTab: 'Posts',
     posts: postsQuery.init(),
-    postDetailById: postDetailQuery.init(),
+    postDetails: postDetailQuery.init(),
     maybeSelectedPostId: Option.none(),
     stats: statsQuery.init(),
   })
@@ -209,7 +209,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
         Stream.when(
           Stream.tick(STATS_REFETCH_INTERVAL).pipe(
             Stream.drop(1),
-            Stream.map(Message.TickedRevalidateStats),
+            Stream.map(Message.TickedStatsRefreshInterval),
           ),
           Effect.sync(() => isObservingStats),
         ),
@@ -325,7 +325,7 @@ const postsListView = (model: Model, h: HtmlBuilder<Message>): Html => {
           h.h2([h.Class('text-xl font-bold text-slate-800')], ['Posts']),
           Button.view(
             {
-              onClick: Message.ClickedInvalidatePosts(),
+              onClick: Message.ClickedRefreshPosts(),
               isDisabled: isPending,
               toView: attributes =>
                 h.button(
@@ -333,7 +333,7 @@ const postsListView = (model: Model, h: HtmlBuilder<Message>): Html => {
                   [
                     AsyncData.isRefreshing(postsQuery.read(model.posts))
                       ? 'Refreshing...'
-                      : 'Invalidate',
+                      : 'Refresh',
                   ],
                 ),
             },
@@ -366,7 +366,7 @@ const postsListView = (model: Model, h: HtmlBuilder<Message>): Html => {
               ),
               h.ul(
                 [h.Class('flex flex-col gap-2')],
-                postListItems(posts, model.postDetailById, h),
+                postListItems(posts, model.postDetails, h),
               ),
             ],
           ),
@@ -376,14 +376,13 @@ const postsListView = (model: Model, h: HtmlBuilder<Message>): Html => {
 }
 
 const isPostDetailCached = (
-  postDetailById: Model['postDetailById'],
+  postDetails: Model['postDetails'],
   postId: string,
-): boolean =>
-  AsyncData.hasData(postDetailQuery.read(postDetailById, { postId }))
+): boolean => AsyncData.hasData(postDetailQuery.read(postDetails, { postId }))
 
 const postListItems = (
   posts: ReadonlyArray<Post>,
-  postDetailById: Model['postDetailById'],
+  postDetails: Model['postDetails'],
   h: HtmlBuilder<Message>,
 ): ReadonlyArray<Html> =>
   Array.map(posts, post =>
@@ -416,7 +415,7 @@ const postListItems = (
                       ),
                     ],
                   ),
-                  isPostDetailCached(postDetailById, post.id)
+                  isPostDetailCached(postDetails, post.id)
                     ? h.span(
                         [
                           h.Class(
@@ -440,7 +439,7 @@ const postDetailView = (
   postId: string,
   h: HtmlBuilder<Message>,
 ): Html => {
-  const postDetailData = postDetailQuery.read(model.postDetailById, { postId })
+  const postDetailData = postDetailQuery.read(model.postDetails, { postId })
 
   return h.div(
     [h.Class('flex flex-col gap-4')],
