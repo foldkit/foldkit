@@ -51,7 +51,7 @@
   --color-gray-700: #3e3a4a;
   --color-gray-800: #2a2833;
   --color-gray-850: #232129;
-  --color-gray-900: #1e1c21;
+  --color-gray-900: #17151b;
   --color-gray-950: #13121a;
   --color-accent-50: #f4fae8;
   --color-accent-100: #e8f5d0;
@@ -79,13 +79,13 @@
   --mobile-toc-height: 2.75rem;
   --docs-max-width: 90rem;
   --docs-content-width: 58rem;
-  --code-foreground: #403d4a;
-  --code-background: var(--color-gray-100);
+  --code-foreground: #1f2328;
+  --code-background: #ffffff;
 }
 
 html.dark {
-  --code-foreground: #e0dee6;
-  --code-background: #1c1a20;
+  --code-foreground: #e6edf3;
+  --code-background: #0d1117;
 }
 
 @media (min-width: theme(--breakpoint-md)) {

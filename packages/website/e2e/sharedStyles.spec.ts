@@ -60,8 +60,8 @@ test('keeps shared styles aligned in light mode', async ({ page }) => {
   await assertSharedStyles(page, 'Light', {
     accentBackground: 'rgb(77, 122, 21)',
     accentForeground: 'rgb(255, 255, 255)',
-    codeBackground: 'rgb(238, 237, 242)',
-    codeForeground: 'rgb(64, 61, 74)',
+    codeBackground: 'rgb(255, 255, 255)',
+    codeForeground: 'rgb(31, 35, 40)',
   })
 })
 
@@ -69,7 +69,7 @@ test('keeps shared styles aligned in dark mode', async ({ page }) => {
   await assertSharedStyles(page, 'Dark', {
     accentBackground: 'rgb(130, 181, 54)',
     accentForeground: 'rgb(37, 59, 10)',
-    codeBackground: 'rgb(28, 26, 32)',
-    codeForeground: 'rgb(224, 222, 230)',
+    codeBackground: 'rgb(13, 17, 23)',
+    codeForeground: 'rgb(230, 237, 243)',
   })
 })

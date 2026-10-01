@@ -932,7 +932,7 @@ const ScrollMobileMenuActiveLinkIntoView = Command.define(
 // NOTE: mirrors --color-cream and --color-gray-900 in styles.css.
 // src/themeColor.test.ts fails when these drift.
 const LIGHT_THEME_COLOR = '#f8f7fb'
-const DARK_THEME_COLOR = '#1e1c21'
+const DARK_THEME_COLOR = '#17151b'
 
 const setThemeColorMeta = (color: string): void => {
   const themeColorMeta = document.querySelector('meta[name="theme-color"]')
