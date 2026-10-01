@@ -8,6 +8,7 @@ import {
   endLazyTracking,
   registerBoundaryWrapTransactionRollback,
   restoreBoundaryWrapsForLazyHit,
+  trackOutline,
 } from './boundary.js'
 import {
   type DispatchSync,
@@ -45,11 +46,17 @@ type CacheEntry = Readonly<{
   trackedBoundaries: ReadonlyMap<BoundaryId, TrackedBoundaryWrap>
 }>
 
+const lazyLabel = (fn: Function, maybeKey?: PropertyKey): string => {
+  const name = fn.name || 'anonymous'
+  return maybeKey === undefined ? name : `${name}:${String(maybeKey)}`
+}
+
 const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
   previousEntry: CacheEntry | undefined,
   fn: (...args: Args) => VNode | null,
   args: Args,
   onCache: (entry: CacheEntry | undefined) => void,
+  maybeKey?: PropertyKey,
 ): VNode | null => {
   const dispatch = requireDispatch()
   const mountDispatch = requireMountDispatch()
@@ -63,6 +70,10 @@ const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
   // future renderer that separates them from retaining stale handler or Mount
   // lifecycle closures. Custom renderers can also use one dispatcher for both
   // owners, so the owner remains a separate key member.
+  // Dispatch identity in the cache key also matters for the DevTools
+  // jumpTo path: a replay render installs `noOpDispatch`, and without
+  // this check a subsequent live render could return a vnode whose
+  // handlers still reference the noOp.
   if (
     Predicate.isNotUndefined(previousEntry) &&
     previousEntry.fn === fn &&
@@ -102,6 +113,10 @@ const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
     trackedBoundaries,
   })
   registerBoundaryWrapTransactionRollback(registry, previousEntry, onCache)
+  if (Predicate.isNotNull(deduped)) {
+    const lazyId = `lazy:${lazyLabel(fn, maybeKey)}`
+    trackOutline(registry, lazyId, lazyId, deduped)
+  }
   return deduped
 }
 
@@ -133,9 +148,15 @@ export const createLazy = (): (<Args extends ReadonlyArray<unknown>>(
     fn: (...args: Args) => VNode | null,
     args: Args,
   ): VNode | null =>
-    resolveOrCache(cached, fn, args, entry => {
-      cached = entry
-    })
+    resolveOrCache(
+      cached,
+      fn,
+      args,
+      entry => {
+        cached = entry
+      },
+      undefined,
+    )
 }
 
 /** Creates a keyed memoization map for one view function rendered under many
@@ -173,11 +194,17 @@ export const createKeyedLazy = (): (<Args extends ReadonlyArray<unknown>>(
     fn: (...args: Args) => VNode | null,
     args: Args,
   ): VNode | null =>
-    resolveOrCache(cache.get(key), fn, args, entry => {
-      if (entry === undefined) {
-        cache.delete(key)
-      } else {
-        cache.set(key, entry)
-      }
-    })
+    resolveOrCache(
+      cache.get(key),
+      fn,
+      args,
+      entry => {
+        if (entry === undefined) {
+          cache.delete(key)
+        } else {
+          cache.set(key, entry)
+        }
+      },
+      key,
+    )
 }

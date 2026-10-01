@@ -24,6 +24,7 @@ import * as Command from 'foldkit/command'
 import {
   type CommandRecord,
   DEVTOOLS_HOST_ID,
+  DEVTOOLS_OVERLAY_RUNTIME_ID,
   type DevToolsStore,
   GOT_MESSAGE_PATTERN,
   INIT_INDEX,
@@ -55,6 +56,7 @@ import * as Switch from '@foldkit/ui/switch'
 import * as Tabs from '@foldkit/ui/tabs'
 
 import * as OptionExt from './internal/optionExtensions.js'
+import { type OutlineService, makeOutlineService } from './outline/index.js'
 import { overlayStyles } from './overlay-styles.js'
 
 const SubmodelFilterListbox = Listbox.create<string>()
@@ -86,6 +88,7 @@ const DisplayEntry = Schema.Struct({
 const INSPECTOR_TABS_ID = 'dt-inspector'
 const SUBMODEL_FILTER_ID = 'dt-submodel-filter'
 const FLATTEN_SWITCH_ID = 'dt-flatten-switch'
+const OUTLINE_SWITCH_ID = 'dt-outline-switch'
 const SCRUBBER_SLIDER_ID = 'dt-scrubber'
 
 const InspectorTab = Schema.Literals(['Model', 'Message', 'Commands', 'Mounts'])
@@ -124,6 +127,8 @@ const Model = Schema.Struct({
   selectedIndex: Schema.Number,
   isFollowingLatest: Schema.Boolean,
   isFollowingTop: Schema.Boolean,
+  fps: Schema.Number,
+  isOutlinesEnabled: Schema.Boolean,
   maybeInspectedModel: Schema.Option(UnknownByReference),
   maybeInspectedMessage: Schema.Option(UnknownByReference),
   submodelTags: Schema.Array(Schema.String),
@@ -153,6 +158,7 @@ const Flags = Schema.Struct({
   isOpen: Schema.Boolean,
   isMobile: Schema.Boolean,
   isFlattened: Schema.Boolean,
+  isOutlinesEnabled: Schema.Boolean,
   entries: Schema.Array(DisplayEntry),
   initCommands: Schema.Array(DisplayCommand),
   initMountStarts: Schema.Array(DisplayMount),
@@ -166,10 +172,13 @@ const Flags = Schema.Struct({
 // NOTE: suspend for the same init-order reason as scrubberSlider above.
 
 const Message = defineMessageUnion({
+  TickedFps: { fps: Schema.Number },
   ClickedToggle: {},
   ClickedSettingsToggle: {},
   ToggledFlatten: { isFlattened: Schema.Boolean },
+  ToggledOutlines: { isOutlinesEnabled: Schema.Boolean },
   CompletedPersistDevToolsState: {},
+  CompletedSetOutlineEnabled: {},
   ClickedRow: { index: Schema.Number },
   ClickedResume: {},
   ClickedClear: {},
@@ -417,6 +426,11 @@ class ShadowRootService extends Context.Service<
   ShadowRoot
 >()('foldkit/DevToolsShadowRoot') {}
 
+class DevToolsOutlineService extends Context.Service<
+  DevToolsOutlineService,
+  OutlineService
+>()('foldkit/DevToolsOutline') {}
+
 export const LockScroll = Command.define('LockScroll', {
   messages: [Message.CompletedLockScroll],
   execute: lockScroll.pipe(Effect.as(Message.CompletedLockScroll())),
@@ -440,12 +454,16 @@ const DevToolsPersistedState = Schema.Struct({
   isFlattened: Schema.Boolean.pipe(
     Schema.withDecodingDefault(Effect.succeed(false)),
   ),
+  isOutlinesEnabled: Schema.Boolean.pipe(
+    Schema.withDecodingDefault(Effect.succeed(false)),
+  ),
 })
 type DevToolsPersistedState = typeof DevToolsPersistedState.Type
 const DevToolsPersistedStateJson = Schema.fromJsonString(DevToolsPersistedState)
 const DEFAULT_PERSISTED_STATE: DevToolsPersistedState = {
   isOpen: false,
   isFlattened: false,
+  isOutlinesEnabled: false,
 }
 
 const readPersistedState: Effect.Effect<DevToolsPersistedState> = Effect.gen(
@@ -462,14 +480,19 @@ const readPersistedState: Effect.Effect<DevToolsPersistedState> = Effect.gen(
 )
 
 export const PersistDevToolsState = Command.define('PersistDevToolsState', {
-  args: { isOpen: Schema.Boolean, isFlattened: Schema.Boolean },
+  args: {
+    isOpen: Schema.Boolean,
+    isFlattened: Schema.Boolean,
+    isOutlinesEnabled: Schema.Boolean,
+  },
   messages: [Message.CompletedPersistDevToolsState],
-  execute: ({ isOpen, isFlattened }) =>
+  execute: ({ isOpen, isFlattened, isOutlinesEnabled }) =>
     Effect.gen(function* () {
       const store = yield* KeyValueStore.KeyValueStore
       const json = yield* Schema.encodeEffect(DevToolsPersistedStateJson)({
         isOpen,
         isFlattened,
+        isOutlinesEnabled,
       })
       yield* store.set(DEVTOOLS_STORAGE_KEY, json)
       return Message.CompletedPersistDevToolsState()
@@ -558,23 +581,42 @@ export const ScrollToTop = Command.define('ScrollToTop', {
   }),
 })
 
+export const SetOutlineEnabled = Command.define('SetOutlineEnabled', {
+  args: { enabled: Schema.Boolean },
+  messages: [Message.CompletedSetOutlineEnabled],
+  execute: ({ enabled }) =>
+    Effect.gen(function* () {
+      const outline = yield* DevToolsOutlineService
+      outline.setEnabled(enabled)
+      return Message.CompletedSetOutlineEnabled()
+    }),
+})
+
 const makeUpdate = (
   store: DevToolsStore,
   shadow: ShadowRoot,
   mode: DevToolsMode,
+  outline: OutlineService,
 ) => {
   const provideContext = <A, E>(
-    effect: Effect.Effect<A, E, StoreService | ShadowRootService>,
+    effect: Effect.Effect<
+      A,
+      E,
+      StoreService | ShadowRootService | DevToolsOutlineService
+    >,
   ): Effect.Effect<A, E, never> =>
     effect.pipe(
       Effect.provideService(StoreService, store),
       Effect.provideService(ShadowRootService, shadow),
+      Effect.provideService(DevToolsOutlineService, outline),
     )
 
   const inspectLatest = Command.mapEffect(InspectLatest(), provideContext)
   const resume = Command.mapEffect(Resume(), provideContext)
   const clear = Command.mapEffect(Clear(), provideContext)
   const scrollToTop = Command.mapEffect(ScrollToTop(), provideContext)
+  const setOutlineEnabled = (enabled: boolean) =>
+    Command.mapEffect(SetOutlineEnabled({ enabled }), provideContext)
 
   const jumpToAndInspect = (index: number) =>
     Command.mapEffect(JumpToAndInspect({ index }), provideContext)
@@ -594,6 +636,7 @@ const makeUpdate = (
             PersistDevToolsState({
               isOpen: nextIsOpen,
               isFlattened: model.isFlattened,
+              isOutlinesEnabled: model.isOutlinesEnabled,
             }),
           ],
         }
@@ -611,7 +654,26 @@ const makeUpdate = (
       }),
       ToggledFlatten: ({ isFlattened }) => ({
         model: modifyFields(model, { isFlattened: () => isFlattened }),
-        commands: [PersistDevToolsState({ isOpen: model.isOpen, isFlattened })],
+        commands: [
+          PersistDevToolsState({
+            isOpen: model.isOpen,
+            isFlattened,
+            isOutlinesEnabled: model.isOutlinesEnabled,
+          }),
+        ],
+      }),
+      ToggledOutlines: ({ isOutlinesEnabled }) => ({
+        model: modifyFields(model, {
+          isOutlinesEnabled: () => isOutlinesEnabled,
+        }),
+        commands: [
+          setOutlineEnabled(isOutlinesEnabled),
+          PersistDevToolsState({
+            isOpen: model.isOpen,
+            isFlattened: model.isFlattened,
+            isOutlinesEnabled,
+          }),
+        ],
       }),
       CrossedMobileBreakpoint: ({ isMobile }) => ({
         model: modifyFields(model, { isMobile: () => isMobile }),
@@ -779,6 +841,9 @@ const makeUpdate = (
 
       GotScrubberSliderMessage: ({ message: sliderMessage }) =>
         foldScrubberSlider(model, sliderMessage),
+      TickedFps: ({ fps }) => ({
+        model: modifyFields(model, { fps: () => fps }),
+      }),
       TickedScrubFrame: () =>
         Option.match(model.maybePendingScrubIndex, {
           onNone: (): UpdateReturn => ({ model }),
@@ -792,6 +857,7 @@ const makeUpdate = (
       CompletedResume: () => ({ model }),
       CompletedClear: () => ({ model }),
       CompletedPersistDevToolsState: () => ({ model }),
+      CompletedSetOutlineEnabled: () => ({ model }),
       CompletedLockScroll: () => ({ model }),
       CompletedUnlockScroll: () => ({ model }),
       CompletedScrollToTop: () => ({ model }),
@@ -801,6 +867,37 @@ const makeUpdate = (
 // SUBSCRIPTION
 
 const makeOverlaySubscriptions = (store: DevToolsStore, shadow: ShadowRoot) => {
+  const fpsSubscription = Subscription.make<Model, Message>()(() => ({
+    fps: Subscription.persistent(
+      Stream.callback<Message>(queue =>
+        Effect.gen(function* () {
+          let frameCount = 0
+          let lastTime = performance.now()
+          let rafId = 0
+
+          const tick = (): void => {
+            frameCount += 1
+            const now = performance.now()
+            if (now - lastTime >= 1000) {
+              const fps = Math.round((frameCount * 1000) / (now - lastTime))
+              frameCount = 0
+              lastTime = now
+              Queue.offerUnsafe(queue, Message.TickedFps({ fps }))
+            }
+            rafId = requestAnimationFrame(tick)
+          }
+
+          rafId = requestAnimationFrame(tick)
+
+          yield* Effect.addFinalizer(() =>
+            Effect.sync(() => cancelAnimationFrame(rafId)),
+          )
+          yield* Effect.never
+        }),
+      ),
+    ),
+  }))
+
   const sliderSubscriptions = Slider.subscriptionsForRoot(() => shadow)
 
   const scrubberSubscriptions = Subscription.lift({
@@ -853,7 +950,11 @@ const makeOverlaySubscriptions = (store: DevToolsStore, shadow: ShadowRoot) => {
     ),
   }))
 
-  return Subscription.aggregate(ownSubscriptions, scrubberSubscriptions)
+  return Subscription.aggregate(
+    ownSubscriptions,
+    scrubberSubscriptions,
+    fpsSubscription,
+  )
 }
 
 // VIEW
@@ -1745,7 +1846,11 @@ const buildOverlayView = (
             model.isPaused ? 'dt-badge-paused' : 'dt-badge-accent',
           ),
         ),
-        h.Style({ width: '22px', height: '56px', fontSize: '10px' }),
+        h.Style({
+          width: '22px',
+          height: model.isOpen ? '56px' : '80px',
+          fontSize: '10px',
+        }),
         h.OnClick(Message.ClickedToggle()),
       ],
       [
@@ -1777,7 +1882,30 @@ const buildOverlayView = (
                   ),
                 ),
               ],
-              [h.span([], ['D']), h.span([], ['E']), h.span([], ['V'])],
+              [
+                h.span([], ['D']),
+                h.span([], ['E']),
+                h.span([], ['V']),
+                h.span(
+                  [
+                    h.Class('opacity-60'),
+                    h.Style({ fontSize: '8px', lineHeight: '1' }),
+                  ],
+                  ['·'],
+                ),
+                h.span(
+                  [
+                    h.Class('tabular-nums font-normal tracking-normal'),
+                    h.Style({
+                      fontSize: '9px',
+                      lineHeight: '1',
+                      fontVariantNumeric: 'tabular-nums',
+                      letterSpacing: '0',
+                    }),
+                  ],
+                  [globalThis.String(model.fps)],
+                ),
+              ],
             ),
       ],
     )
@@ -1908,6 +2036,43 @@ const buildOverlayView = (
 
   // SETTINGS
 
+  const outlineSwitchView = (model: Model): Html =>
+    Switch.view(
+      {
+        id: OUTLINE_SWITCH_ID,
+        isChecked: model.isOutlinesEnabled,
+        onToggle: isOutlinesEnabled =>
+          Message.ToggledOutlines({ isOutlinesEnabled }),
+        toView: attributes =>
+          h.div(
+            [h.Class('dt-settings-row')],
+            [
+              h.div(
+                [...attributes.button, h.Class('dt-switch')],
+                [h.span([h.Class('dt-switch-thumb')])],
+              ),
+              h.div(
+                [h.Class('dt-settings-row-text')],
+                [
+                  h.label(
+                    [...attributes.label, h.Class('dt-settings-row-label')],
+                    ['Highlight re-renders'],
+                  ),
+                  h.span(
+                    [
+                      ...attributes.description,
+                      h.Class('dt-settings-row-description'),
+                    ],
+                    ['Show fading outlines for re-rendered boundaries'],
+                  ),
+                ],
+              ),
+            ],
+          ),
+      },
+      h,
+    )
+
   const flattenSwitchView = (model: Model): Html =>
     Switch.view(
       {
@@ -1954,6 +2119,13 @@ const buildOverlayView = (
           [
             h.span([h.Class('dt-settings-section-title')], ['Message List']),
             flattenSwitchView(model),
+          ],
+        ),
+        h.div(
+          [h.Class('flex flex-col')],
+          [
+            h.span([h.Class('dt-settings-section-title')], ['Rendering']),
+            outlineSwitchView(model),
           ],
         ),
       ],
@@ -2021,10 +2193,27 @@ const buildOverlayView = (
       clearHistoryButton(),
     )
 
+    const fpsHeaderView: Html = h.span(
+      [
+        h.Class('text-2xs text-dt-muted font-mono tabular-nums shrink-0'),
+        h.Style({ fontVariantNumeric: 'tabular-nums' }),
+      ],
+      [`${model.fps}fps`],
+    )
+
+    const leftGroup: Html = h.div(
+      [h.Class('flex items-center gap-2 min-w-0')],
+      [
+        status,
+        h.span([h.Class('text-dt-muted text-2xs')], ['|']),
+        fpsHeaderView,
+      ],
+    )
+
     return h.header(
       [h.Class(headerClass)],
       [
-        status,
+        leftGroup,
         ...Option.toArray(maybeAction),
         ...Option.toArray(maybeClearHistoryButton),
       ],
@@ -2563,21 +2752,28 @@ export const createOverlay = (
           document.getElementById(VIEW_TRANSITION_STYLE_ID)?.remove()
         }),
     )
-    container.id = '__foldkit_devtools_overlay__'
+    container.id = DEVTOOLS_OVERLAY_RUNTIME_ID
+
+    const { isOutlinesEnabled: persistedIsOutlinesEnabled } =
+      yield* readPersistedState
+
+    const outline = yield* makeOutlineService(persistedIsOutlinesEnabled)
 
     const flags: Effect.Effect<typeof Flags.Type> = Effect.gen(function* () {
       const storeState = yield* SubscriptionRef.get(store.stateRef)
-      const { isOpen, isFlattened } = yield* readPersistedState
+      const { isOpen, isFlattened, isOutlinesEnabled } =
+        yield* readPersistedState
       return {
         isOpen,
         isMobile: window.matchMedia(MOBILE_BREAKPOINT_QUERY).matches,
         isFlattened,
+        isOutlinesEnabled,
         ...toDisplayState(storeState),
       }
     })
 
     const init = (flags: typeof Flags.Type): UpdateReturn => {
-      const { isFlattened, ...displayFlags } = flags
+      const { isFlattened, isOutlinesEnabled, ...displayFlags } = flags
       const sliderMax = flags.entries.length
       const initialSliderValue = flags.isPaused
         ? hostIndexToSliderValue(flags.pausedAtIndex, flags.startIndex)
@@ -2588,6 +2784,8 @@ export const createOverlay = (
           screen: 'Messages',
           ...displayFlags,
           isFlattened,
+          isOutlinesEnabled,
+          fps: 60,
           selectedIndex: INIT_INDEX,
           isFollowingLatest: true,
           isFollowingTop: true,
@@ -2626,7 +2824,7 @@ export const createOverlay = (
       Flags,
       flags,
       init,
-      update: makeUpdate(store, shadow, mode),
+      update: makeUpdate(store, shadow, mode, outline),
       view: makeView(position, mode, shadow, maybeBanner),
       container,
       subscriptions: makeOverlaySubscriptions(store, shadow),

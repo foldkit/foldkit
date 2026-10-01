@@ -3,6 +3,7 @@ import {
   htmlAttributeValue,
   serializedStylePropertyName,
 } from '../domReflection.js'
+import { markDirty } from './dirtyFlag.js'
 import type { Module } from './module.js'
 import { type VNode, type VNodeData, VNodeDataMask } from './vnode.js'
 
@@ -59,6 +60,7 @@ function createStyle(_oldVnode: VNode, vnode: VNode): void {
   for (const name of Object.keys(style)) {
     if (name !== 'delayed' && name !== 'destroy' && name !== 'remove') {
       setStyle(element.style, name, style[name])
+      markDirty()
     }
   }
   const delayed = Object.hasOwn(style, 'delayed') ? style.delayed : undefined
@@ -96,6 +98,7 @@ function updateStyle(oldVnode: VNode, vnode: VNode): void {
       !Object.hasOwn(style, name)
     ) {
       removeStyle((elm as HTMLElement).style, name)
+      markDirty()
     }
   }
   for (name of Object.keys(style)) {
@@ -109,6 +112,7 @@ function updateStyle(oldVnode: VNode, vnode: VNode): void {
         cur = style.delayed[name2]
         if (!oldHasDel || cur !== (oldStyle.delayed as any)[name2]) {
           setNextFrame((elm as HTMLElement).style, name2, cur)
+          markDirty()
         }
       }
     } else if (
@@ -117,6 +121,7 @@ function updateStyle(oldVnode: VNode, vnode: VNode): void {
       cur !== oldStyle[name]
     ) {
       setStyle((elm as HTMLElement).style, name, cur)
+      markDirty()
     }
   }
 }

@@ -549,6 +549,9 @@ ul {
 .tracking-wider {
   letter-spacing: 0.05em;
 }
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
 .leading-none {
   line-height: 1;
 }

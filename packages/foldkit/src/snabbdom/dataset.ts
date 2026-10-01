@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
+import { markDirty } from './dirtyFlag.js'
 import type { Module } from './module.js'
 import { type VNode, type VNodeData, VNodeDataMask } from './vnode.js'
 
@@ -23,11 +24,13 @@ function updateDataset(oldVnode: VNode, vnode: VNode): void {
       if (d) {
         if (key in d) {
           delete d[key]
+          markDirty()
         }
       } else {
         elm.removeAttribute(
           'data-' + key.replace(CAPS_REGEX, '-$&').toLowerCase(),
         )
+        markDirty()
       }
     }
   }
@@ -41,6 +44,7 @@ function updateDataset(oldVnode: VNode, vnode: VNode): void {
           dataset[key]!,
         )
       }
+      markDirty()
     }
   }
 }

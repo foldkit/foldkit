@@ -46,7 +46,7 @@ const application = Runtime.makeApplication({
 })
 ```
 
-See the [DevTools documentation](https://foldkit.dev/core/devtools) for the full configuration surface.
+See the [DevTools documentation](https://foldkit.dev/devtools) for the full configuration surface.
 
 ## License
 

@@ -55,7 +55,7 @@ Consider a lazy view when:
 - A long list usually changes only a few items.
 - Profiling shows that building or diffing a view is expensive.
 
-Do not add lazy views to every function. Small views and inputs that change on every render receive no useful cache hits. Confirm the repeated work with the [slow warnings](/core/slow-warnings) and a profiler first.
+Do not add lazy views to every function. Small views and inputs that change on every render receive no useful cache hits. Confirm the repeated work with the [slow warnings](/core/slow-warnings) and a profiler first. Use [Re-render Outlines](/devtools/re-render-outlines) to spot over-rendering before adding memoization.
 
 :::Info{label="How it works under the hood"}
 Foldkit's differ compares the old and new VNode by reference before diffing. When they are the same object, it skips attribute comparison, child reconciliation, and DOM updates.

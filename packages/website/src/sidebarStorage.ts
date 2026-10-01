@@ -21,6 +21,7 @@ export const GroupKey = Schema.Literals([
   'tooling',
   'foldkitUi',
   'ai',
+  'devtools',
   'examples',
   'apiReference',
 ])
