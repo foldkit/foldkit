@@ -849,7 +849,8 @@ const assertViewDoesNotAuthorReservedContent = (root: VNode): void => {
   ) {
     assertNodeDoesNotAuthorReservedContent(node)
 
-    const children = node.children
+    const { children } = node
+
     if (children !== undefined) {
       for (let index = children.length - 1; index >= 0; index--) {
         const child = Array.getUnsafe(children, index)

@@ -577,7 +577,9 @@ const assertWithinRenderDepth = (root: VNode): void => {
     entry !== undefined;
     entry = pendingEntries.pop()
   ) {
-    if (entry.depth > MAX_RENDER_DEPTH) {
+    const { depth, node } = entry
+
+    if (depth > MAX_RENDER_DEPTH) {
       throw new Error(
         `[foldkit] renderToString exceeded the maximum render depth of ${MAX_RENDER_DEPTH}. ` +
           'A view nesting elements this deeply, often from mapping untrusted ' +
@@ -586,14 +588,13 @@ const assertWithinRenderDepth = (root: VNode): void => {
       )
     }
 
-    const node = entry.node
     if (typeof node === 'string') {
       continue
     }
 
-    const children = node.children
+    const { children } = node
     if (children !== undefined) {
-      const childDepth = entry.depth + 1
+      const childDepth = depth + 1
       for (const child of children) {
         pendingEntries.push({ node: child, depth: childDepth })
       }
@@ -638,14 +639,16 @@ const scheduleContent = (
   node: VNode,
   closeElementStep: CloseElementStep,
 ): void => {
-  const children = node.children
+  const { childSelectValue } = closeElementStep
+  const { children } = node
+
   if (children !== undefined) {
     workStack.push(closeElementStep)
     for (let index = children.length - 1; index >= 0; index--) {
       workStack.push({
         _tag: 'VisitNode',
         node: Array.getUnsafe(children, index),
-        selectValue: closeElementStep.childSelectValue,
+        selectValue: childSelectValue,
       })
     }
   } else {
@@ -1042,10 +1045,11 @@ const closeElement = (
   output: globalThis.Array<string>,
   closeElementStep: CloseElementStep,
 ): void => {
-  const childSelectValue = closeElementStep.childSelectValue
+  const { childSelectValue, selectValue, tagName } = closeElementStep
+
   if (
     childSelectValue !== undefined &&
-    childSelectValue !== closeElementStep.selectValue &&
+    childSelectValue !== selectValue &&
     !childSelectValue.consumed &&
     !childSelectValue.allowsNoSelection
   ) {
@@ -1059,7 +1063,7 @@ const closeElement = (
     )
   }
 
-  output.push(`</${closeElementStep.tagName}>`)
+  output.push(`</${tagName}>`)
 }
 
 const visitNode = (
@@ -1133,13 +1137,15 @@ export const serializeHtml = (
   ]
   for (let step = workStack.pop(); step !== undefined; step = workStack.pop()) {
     if (step._tag === 'VisitNode') {
+      const { node, extraAttributes, selectValue } = step
+
       visitNode(
         output,
         context,
         workStack,
-        step.node,
-        step.extraAttributes,
-        step.selectValue,
+        node,
+        extraAttributes,
+        selectValue,
       )
     } else {
       closeElement(output, step)
