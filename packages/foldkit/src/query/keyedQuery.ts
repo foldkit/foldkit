@@ -16,13 +16,13 @@ import { modifyFields } from '../struct/index.js'
 import * as Update from '../update/index.js'
 import {
   type CacheStore,
+  type CompletedFetchOf,
   type FoldLens,
   type KeyedArgs,
   type LiftConfig,
   type LiftKeyedQuery,
   type ParentKeyFoldConfig,
   type Policy,
-  type SettledFetchOf,
   applyPolicy,
   foldChildFromPolicy,
   isParentKeyFoldConfig,
@@ -73,9 +73,10 @@ const makeKeyedQueryMessage = <A, AI, E, EI, Fields extends SyncFields>(
   Args: Schema.Struct<Fields>,
 ) =>
   defineMessageUnion({
-    SettledFetch: { args: Args, result: Schema.Result(data, error) },
+    CompletedFetch: { args: Args, result: Schema.Result(data, error) },
   })
 
+/** Schema-backed Message union dispatched when a keyed Fetch completes. */
 export type KeyedQueryMessage<
   A,
   AI,
@@ -102,6 +103,7 @@ export function makeKeyedQueryModel<A, AI, E, EI, Fields extends SyncFields>(
   })
 }
 
+/** Schema for a KeyedQuery Model containing retained remote-data slots. */
 export type KeyedQueryModel<
   A,
   AI,
@@ -120,22 +122,28 @@ export interface KeyedQuery<
   Fields extends SyncFields,
   R = never,
 > {
+  /** Schema for this KeyedQuery's Model. */
   readonly Model: KeyedQueryModel<A, AI, E, EI, Fields>
+  /** Schema-backed union of Messages handled by this KeyedQuery. */
   readonly Message: KeyedQueryMessage<A, AI, E, EI, Fields>
+  /** Command that executes the configured fetch for one set of arguments. */
   readonly Fetch: Command.CommandDefinitionWithArgs<
     `Fetch${Name}`,
     Fields,
     Effect.Effect<
-      SettledFetchOf<KeyedQueryMessage<A, AI, E, EI, Fields>>,
+      CompletedFetchOf<KeyedQueryMessage<A, AI, E, EI, Fields>>,
       never,
       R
     >
   >
+  /** Creates a KeyedQuery Model with no slots. */
   readonly init: () => KeyedQueryModel<A, AI, E, EI, Fields>['Type']
+  /** Reads one slot, returning `Idle` when that slot does not exist. */
   readonly read: (
     model: KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
     args: KeyedArgs<Fields>,
   ) => AsyncData.AsyncData<A, E>
+  /** Folds a keyed Fetch completion into the matching slot. */
   readonly update: (
     model: KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
     message: KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
@@ -144,36 +152,42 @@ export interface KeyedQuery<
     KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
     R
   >
+  /** Refreshes a loaded slot and does nothing when it has no data. */
   readonly revalidate: Update.Fold<
     KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
     KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
     KeyedArgs<Fields>,
     R
   >
+  /** Loads a missing slot or refreshes a loaded slot. */
   readonly revalidateOrLoad: Update.Fold<
     KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
     KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
     KeyedArgs<Fields>,
     R
   >
+  /** Loads a slot only when it has no usable value. */
   readonly loadIfMissing: Update.Fold<
     KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
     KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
     KeyedArgs<Fields>,
     R
   >
+  /** Lifts this KeyedQuery's update and policies into a parent Model. */
   readonly lift: LiftKeyedQuery<
     KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
     KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
     KeyedArgs<Fields>,
     R
   >
+  /** Executes one keyed fetch directly and returns settled AsyncData. */
   readonly run: (
     args: KeyedArgs<Fields>,
   ) => Effect.Effect<AsyncData.AsyncData<A, E>, never, R>
 }
 
 export namespace KeyedQuery {
+  /** Any keyed Query definition. */
   export type Any = {
     readonly Model: Schema.Top
     readonly Message: Schema.Top
@@ -211,15 +225,15 @@ export function defineKeyedQuery<
 
   const Fetch = Command.define(`Fetch${config.name}`, {
     args: config.args,
-    messages: [Message.SettledFetch],
+    messages: [Message.CompletedFetch],
     execute: (args: Args) =>
       pipe(
         config.execute(args),
         Effect.result,
-        Effect.map((result): typeof Message.SettledFetch.Type =>
-          // NOTE: SettledFetch's constructor input view rejects args that are already the decoded Type.
+        Effect.map((result): typeof Message.CompletedFetch.Type =>
+          // NOTE: CompletedFetch's constructor input view rejects args that are already the decoded Type.
           ({
-            _tag: 'SettledFetch',
+            _tag: 'CompletedFetch',
             args,
             result,
           }),
@@ -260,7 +274,7 @@ export function defineKeyedQuery<
 
   const update = (model: Model, message: Message): UpdateReturn =>
     Message.match<UpdateReturn>(message, {
-      SettledFetch({ args, result }) {
+      CompletedFetch({ args, result }) {
         if (!hasSlot(model, args)) return { model }
 
         return {

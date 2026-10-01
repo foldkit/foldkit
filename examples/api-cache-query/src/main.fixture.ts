@@ -40,7 +40,7 @@ export const loadingPostsModel: Model = {
   tabs: Tabs.init({ id: TABS_ID }),
   activeTab: 'Posts',
   posts: { data: AsyncData.Loading() },
-  postDetailById: postDetailQuery.init(),
+  postDetails: postDetailQuery.init(),
   maybeSelectedPostId: Option.none(),
   stats: statsQuery.init(),
 }
@@ -60,7 +60,7 @@ const encodeKey = Schema.Struct({
 const firstPostArgs = { postId: 'first-post' }
 
 export const cachedFirstPostModel: Model = modifyFields(loadedPostsModel, {
-  postDetailById: () => ({
+  postDetails: () => ({
     slots: HashMap.set(postDetailQuery.init().slots, encodeKey(firstPostArgs), {
       args: firstPostArgs,
       data: AsyncData.Success({

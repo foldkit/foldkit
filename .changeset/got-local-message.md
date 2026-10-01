@@ -2,4 +2,4 @@
 '@foldkit/oxlint-plugin': patch
 ---
 
-`foldkit/got-prefix-requires-submodel-payload` accepts a local `.Message` member as a Got\* child payload. `postsQuery.Message` from a Query defined in the same file is a child Message, as is an imported `Child.Message`.
+`foldkit/got-prefix-requires-submodel-payload` recognizes the `.Message` member of a local `Query.define` binding as a Got\* child payload. Arbitrary local objects with a property named `Message` remain invalid, while imported child Messages continue to work.

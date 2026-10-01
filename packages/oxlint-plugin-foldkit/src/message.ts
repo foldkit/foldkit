@@ -2,12 +2,15 @@ import { Option } from 'effect'
 import { type ESTree, type Reference } from 'effect-oxlint'
 
 import {
+  isCallExpression,
   isIdentifier,
-  isMemberExpression,
   isObjectExpression,
   isStringLiteral,
+  isVariableDeclarator,
   resolveFoldkitApiPath,
   resolveImportedPath,
+  resolvedVariable,
+  staticMemberPath,
   staticPropertyName,
 } from './guards.ts'
 
@@ -114,17 +117,43 @@ export const hasMessagePayloadProperty = (
         (isStringLiteral(property.key) && property.key.value === 'message')),
   )
 
-function isMessageMember(node: unknown): boolean {
-  if (!isMemberExpression(node)) {
-    return false
-  }
+const isLocalQueryMessageReference = (
+  node: unknown,
+  references: WeakMap<ESTree.Node, Reference>,
+): boolean =>
+  Option.exists(staticMemberPath(node), memberPath => {
+    const [memberName, extraMember] = memberPath.members
+    if (memberName !== 'Message' || extraMember !== undefined) {
+      return false
+    }
 
-  if (node.computed === true) {
-    return isStringLiteral(node.property) && node.property.value === 'Message'
-  }
+    return Option.exists(
+      resolvedVariable(references, memberPath.root),
+      variable =>
+        variable.defs.some(definition => {
+          if (
+            definition.type !== 'Variable' ||
+            !isVariableDeclarator(definition.node) ||
+            !isCallExpression(definition.node.init)
+          ) {
+            return false
+          }
 
-  return isIdentifier(node.property, 'Message')
-}
+          return Option.exists(
+            resolveFoldkitApiPath(references, definition.node.init.callee),
+            apiPath => {
+              const [namespace, helperName, extraHelperMember] = apiPath
+
+              return (
+                namespace === 'Query' &&
+                helperName === 'define' &&
+                extraHelperMember === undefined
+              )
+            },
+          )
+        }),
+    )
+  })
 
 const containsMessageReference = (
   node: unknown,
@@ -136,7 +165,7 @@ const containsMessageReference = (
   }
 
   visited.add(node)
-  if (isMessageMember(node)) {
+  if (isLocalQueryMessageReference(node, references)) {
     return true
   }
 

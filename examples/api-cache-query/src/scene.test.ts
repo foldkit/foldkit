@@ -36,12 +36,12 @@ const resolveFocusTab = Command.resolve(
 )
 
 describe('view', () => {
-  test('posts load into clickable rows with an Invalidate button', () => {
+  test('posts load into clickable rows with a Refresh button', () => {
     scene(
       { update, view },
       given(loadingPostsModel),
       expect(text('Loading posts...')).toExist(),
-      expect(role('button', { name: 'Invalidate' })).toExist(),
+      expect(role('button', { name: 'Refresh' })).toExist(),
       expect(role('tab', { name: 'Posts' })).toExist(),
       expect(role('tab', { name: 'Stats' })).toExist(),
     )
@@ -56,7 +56,7 @@ describe('view', () => {
       Command.expectExact(FetchPostDetail({ postId: 'first-post' })),
       Command.resolve(
         FetchPostDetail,
-        postDetailQuery.Message.SettledFetch({
+        postDetailQuery.Message.CompletedFetch({
           args: { postId: 'first-post' },
           result: Result.succeed({
             detail: firstPostDetail,
@@ -91,7 +91,7 @@ describe('view', () => {
       click(role('button', { name: /First Post/ })),
       Command.resolve(
         FetchPostDetail,
-        postDetailQuery.Message.SettledFetch({
+        postDetailQuery.Message.CompletedFetch({
           args: { postId: 'first-post' },
           result: Result.fail('The connection dropped.'),
         }),
@@ -111,7 +111,7 @@ describe('view', () => {
       Command.expectExact(FetchStats()),
       Command.resolve(
         FetchStats,
-        statsQuery.Message.SettledFetch({
+        statsQuery.Message.CompletedFetch({
           result: Result.succeed({
             stats: fixtureStats,
             fetchedAt: FETCHED_AT,

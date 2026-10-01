@@ -1,13 +1,14 @@
 const Message = defineMessageUnion({
-  GotPostsMessage: { message: PostsQuery.Message },
+  GotPostsMessage: { message: postsQuery.Message },
+  ClickedRefreshPosts: {},
 })
 
-const postsChild = postsQuery.lift<Model, Message>({
+const posts = postsQuery.lift<Model, Message>({
   field: 'posts',
   toParentMessage: message => Message.GotPostsMessage({ message }),
 })
 
 Message.match<Update.Return<Model, Message>>(message, {
-  GotPostsMessage: ({ message }) => postsChild.fold(model, message),
-  ClickedRefresh: () => postsChild.revalidateOrLoad(model),
+  GotPostsMessage: ({ message }) => posts.fold(model, message),
+  ClickedRefreshPosts: () => posts.revalidateOrLoad(model),
 })

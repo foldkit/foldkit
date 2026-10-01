@@ -174,7 +174,7 @@ describe('real-oxlint rule fixtures', () => {
     )
     expect(
       countDiagnostics('got-prefix-requires-submodel-payload', 'invalid'),
-    ).toBe(3)
+    ).toBe(4)
     expect(
       countDiagnostics('wrap-child-output-in-got-message', 'invalid'),
     ).toBe(2)

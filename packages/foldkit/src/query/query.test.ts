@@ -200,11 +200,11 @@ describe('Query.define policy routing', () => {
     ])
   })
 
-  it('SettledFetch on Idle leaves the Query Idle', () => {
+  it('CompletedFetch on Idle leaves the Query Idle', () => {
     const idle = notes.init()
     const settled = notes.update(
       idle,
-      notes.Message.SettledFetch({ result: Result.succeed(hello) }),
+      notes.Message.CompletedFetch({ result: Result.succeed(hello) }),
     )
     expect(settled).toEqual({ model: idle })
   })
@@ -212,7 +212,7 @@ describe('Query.define policy routing', () => {
   it('settle keeps last-good data when a refresh fails', () => {
     const success = notes.update(
       { data: AsyncData.Loading() },
-      notes.Message.SettledFetch({ result: Result.succeed(hello) }),
+      notes.Message.CompletedFetch({ result: Result.succeed(hello) }),
     )
     expect(notes.read(success.model)).toEqual(
       AsyncData.Success({ data: hello }),
@@ -225,7 +225,7 @@ describe('Query.define policy routing', () => {
 
     const stale = notes.update(
       refreshing.model,
-      notes.Message.SettledFetch({ result: Result.fail('boom') }),
+      notes.Message.CompletedFetch({ result: Result.fail('boom') }),
     )
     expect(notes.read(stale.model)).toEqual(
       AsyncData.Stale({ error: 'boom', data: hello }),
@@ -235,7 +235,7 @@ describe('Query.define policy routing', () => {
   it('a failed initial load becomes Failure', () => {
     const failed = notes.update(
       { data: AsyncData.Loading() },
-      notes.Message.SettledFetch({ result: Result.fail('boom') }),
+      notes.Message.CompletedFetch({ result: Result.fail('boom') }),
     )
     expect(notes.read(failed.model)).toEqual(
       AsyncData.Failure({ error: 'boom' }),
@@ -308,7 +308,7 @@ describe('Query.define KeyedQuery isolation', () => {
 
     const settled = noteById.update(
       bothPending.model,
-      noteById.Message.SettledFetch({
+      noteById.Message.CompletedFetch({
         args: { noteId: '1' },
         result: Result.succeed({ id: '1', body: 'hello' }),
       }),
@@ -322,11 +322,11 @@ describe('Query.define KeyedQuery isolation', () => {
     )
   })
 
-  it('SettledFetch for a missing key leaves the map unchanged', () => {
+  it('CompletedFetch for a missing key leaves the map unchanged', () => {
     const model = noteById.init()
     const settled = noteById.update(
       model,
-      noteById.Message.SettledFetch({
+      noteById.Message.CompletedFetch({
         args: { noteId: '1' },
         result: Result.succeed({ id: '1', body: 'hello' }),
       }),
@@ -344,13 +344,13 @@ describe('Query Models', () => {
     const notesLoad = notes.revalidateOrLoad(notes.init())
     const notesSettle = notes.update(
       notesLoad.model,
-      notes.Message.SettledFetch({ result: Result.succeed(hello) }),
+      notes.Message.CompletedFetch({ result: Result.succeed(hello) }),
     )
     const firstLoad = noteById.loadIfMissing(noteById.init(), { noteId: '1' })
     const secondLoad = noteById.loadIfMissing(firstLoad.model, { noteId: '2' })
     const firstSettle = noteById.update(
       secondLoad.model,
-      noteById.Message.SettledFetch({
+      noteById.Message.CompletedFetch({
         args: { noteId: '1' },
         result: Result.succeed({ id: '1', body: 'hello' }),
       }),
@@ -412,7 +412,7 @@ describe('Query.lift', () => {
       Story.Command.expectHas(notes.Fetch()),
       Story.Command.resolve(
         notes.Fetch(),
-        notes.Message.SettledFetch({ result: Result.succeed(hello) }),
+        notes.Message.CompletedFetch({ result: Result.succeed(hello) }),
       ),
       Story.model(function (model) {
         expect(notes.read(model.notes)).toEqual(
@@ -422,10 +422,10 @@ describe('Query.lift', () => {
     )
   })
 
-  it('fold applies SettledFetch through the child Message', () => {
+  it('fold applies CompletedFetch through the child Message', () => {
     const folded = notesChild.fold(
       { notes: { data: AsyncData.Loading() } },
-      notes.Message.SettledFetch({ result: Result.succeed(hello) }),
+      notes.Message.CompletedFetch({ result: Result.succeed(hello) }),
     )
     expect(notes.read(folded.model.notes)).toEqual(
       AsyncData.Success({ data: hello }),
@@ -462,14 +462,14 @@ describe('Query.lift KeyedQuery', () => {
     ])
   })
 
-  it('fold applies SettledFetch through the parent wrapper', () => {
+  it('fold applies CompletedFetch through the parent wrapper', () => {
     const pending = notesChild.loadIfMissing(
       { notes: noteById.init() },
       { noteId: '1' },
     )
     const folded = notesChild.fold(
       pending.model,
-      noteById.Message.SettledFetch({
+      noteById.Message.CompletedFetch({
         args: { noteId: '1' },
         result: Result.succeed({ id: '1', body: 'hello' }),
       }),
@@ -523,7 +523,7 @@ describe('Query.lift parent-key vs lens', () => {
       },
     })
     const parent = { notes: { data: AsyncData.Loading() } }
-    const message = notes.Message.SettledFetch({
+    const message = notes.Message.CompletedFetch({
       result: Result.succeed(hello),
     })
     const dataFirst = notesChild.fold(parent, message)
@@ -732,12 +732,12 @@ describe('Query.Query and Query.KeyedQuery types', () => {
     expectTypeOf(
       notesChild.fold(
         { notes: notes.init() },
-        notes.Message.SettledFetch({ result: Result.succeed(hello) }),
+        notes.Message.CompletedFetch({ result: Result.succeed(hello) }),
       ),
     ).toExtend<Update.Return<ParentModel, ParentMessage>>()
     expectTypeOf(
       notesChild.fold(
-        notes.Message.SettledFetch({ result: Result.succeed(hello) }),
+        notes.Message.CompletedFetch({ result: Result.succeed(hello) }),
       )({
         notes: notes.init(),
       }),

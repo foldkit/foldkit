@@ -20,7 +20,7 @@ Here is how common TanStack Query concepts map onto Foldkit:
 | `staleTime: Infinity`                                      | `AsyncData.loadIfMissing`, followed by explicit revalidation when the application requires it |
 | Request deduplication                                      | `AsyncData.revalidateOrLoad` yields `None` while that field has a request in flight           |
 | Out-of-order response handling                             | Request context in the result Message, checked against the current Model in `update`          |
-| `invalidateQueries`                                        | `AsyncData.revalidateOrLoad` plus the fetch Command, returned from `update`                   |
+| `invalidateQueries`                                        | No stored invalidation flag; dispatch a Message that applies `revalidateOrLoad` and refetches |
 | `useMutation`                                              | A Message and a Command, like any other effect                                                |
 | Retries                                                    | Effect’s `retry` and `Schedule`                                                               |
 | TanStack Query Devtools                                    | [Foldkit DevTools](/core/devtools), which inspects the Model and Message timeline             |
@@ -106,7 +106,9 @@ Use a [Subscription](/core/subscriptions) gated on a Model condition. On each ti
 
 ### How do I invalidate and refetch? {#faq-invalidate}
 
-Apply `AsyncData.revalidateOrLoad` to the field and return the fetch Command when it yields a transition. Data-holding states move to `Refreshing`; a cold or failed field moves to `Loading`. The narrower `revalidate` skips fields that hold no data, which is useful when a mutation affects caches that may never have loaded.
+Foldkit does not mark an `AsyncData` value as invalidated. When the application knows data needs to be replaced, dispatch a Message, apply `AsyncData.revalidateOrLoad`, and return the fetch Command when it yields a transition. Data-holding states move to `Refreshing`; a cold or failed field moves to `Loading`. The narrower `revalidate` skips fields that hold no data, which is useful when a mutation affects caches that may never have loaded.
+
+`Stale` is not an invalidation flag. It means a refresh failed and the previous data remains available. If freshness must exist independently of fetching and failure, represent it as separate Model state.
 
 ### What about mutations? {#faq-mutations}
 
