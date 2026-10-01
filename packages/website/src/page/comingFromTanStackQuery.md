@@ -37,7 +37,7 @@ Here is the complete shape of a simple query. It uses one field, one Command, an
 
 Each behavior is visible in the transition that implements it. `revalidateOrLoad` returns `None` while the field is already `Loading` or `Refreshing`, so the same update path does not start another request. A successful value moves to `Refreshing` when revalidated, keeping the current list on screen. A cold field moves to `Loading`. When the Command finishes, `settle` folds its `Result` into the field and preserves previous data as `Stale` if a refresh fails.
 
-The [API Cache example](/example-apps/api-cache) shows the same policy written by hand. [API Cache Query](/example-apps/api-cache-query) uses [Query](/core/query) so fetch and keyed slots live on the Submodel instead of in the parent update.
+The [API Cache example](/example-apps/api-cache) shows the same policy written by hand. [API Cache Query](/example-apps/api-cache-query) uses the experimental [Query](/core/query) module so fetch and keyed slots live on the Submodel instead of in the parent update.
 
 ## Mapping Query Status
 

@@ -142,12 +142,11 @@ const isLocalQueryMessageReference = (
           return Option.exists(
             resolveFoldkitApiPath(references, definition.node.init.callee),
             apiPath => {
-              const [namespace, helperName, extraHelperMember] = apiPath
+              const apiName = apiPath.join('.')
 
               return (
-                namespace === 'Query' &&
-                helperName === 'define' &&
-                extraHelperMember === undefined
+                apiName === 'Query.define' ||
+                apiName === 'Experimental.Query.define'
               )
             },
           )

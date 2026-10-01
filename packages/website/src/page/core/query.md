@@ -1,5 +1,9 @@
 # Query
 
+:::Warning{label="Experimental"}
+Query ships from `foldkit/experimental`. Its core fetch and cache model is usable today, but names, Model shape, and lifecycle APIs may change before the module moves into Foldkit's stable API.
+:::
+
 ## Overview
 
 `Query.define` is a remote-data Submodel. A Query Model stores one [AsyncData](/core/async-data) value. A KeyedQuery Model stores a `HashMap` of `{ args, data }` slots. Use `read` to access the data in either Model.
@@ -9,6 +13,8 @@ Fetch is a [Command](/core/commands). `loadIfMissing`, `revalidate`, and `revali
 See [API Cache Query](/example-apps/api-cache-query) for a full app.
 
 ## Define a Query
+
+Import the Query namespace from `foldkit/experimental`.
 
 Pass `name`, `data`, `error`, and `execute`. The Model wraps the `AsyncData` codec for those schemas. `init` starts with `Idle` data. Read it with `query.read(model)`.
 
@@ -48,4 +54,4 @@ A full `read` / `write` lens still infers the parent Model from `read`.
 
 ## Full API Surface
 
-The [Query API reference](/api-reference/query) lists `define`, `read`, `lift`, `run`, and the Query and KeyedQuery types.
+The [Query API reference](/api-reference/experimental-query) lists `define`, `read`, `lift`, `run`, and the Query and KeyedQuery types.

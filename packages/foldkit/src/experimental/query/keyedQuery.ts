@@ -9,11 +9,11 @@ import {
   pipe,
 } from 'effect'
 
-import * as AsyncData from '../asyncData/index.js'
-import * as Command from '../command/index.js'
-import { defineMessageUnion } from '../message/index.js'
-import { modifyFields } from '../struct/index.js'
-import * as Update from '../update/index.js'
+import * as AsyncData from '../../asyncData/index.js'
+import * as Command from '../../command/index.js'
+import { defineMessageUnion } from '../../message/index.js'
+import { modifyFields } from '../../struct/index.js'
+import * as Update from '../../update/index.js'
 import {
   type CacheStore,
   type CompletedFetchOf,
@@ -76,7 +76,11 @@ const makeKeyedQueryMessage = <A, AI, E, EI, Fields extends SyncFields>(
     CompletedFetch: { args: Args, result: Schema.Result(data, error) },
   })
 
-/** Schema-backed Message union dispatched when a keyed Fetch completes. */
+/**
+ * Schema-backed Message union dispatched when a keyed Fetch completes.
+ *
+ * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
+ */
 export type KeyedQueryMessage<
   A,
   AI,
@@ -103,7 +107,11 @@ export function makeKeyedQueryModel<A, AI, E, EI, Fields extends SyncFields>(
   })
 }
 
-/** Schema for a KeyedQuery Model containing retained remote-data slots. */
+/**
+ * Schema for a KeyedQuery Model containing retained remote-data slots.
+ *
+ * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
+ */
 export type KeyedQueryModel<
   A,
   AI,
@@ -112,7 +120,11 @@ export type KeyedQueryModel<
   Fields extends SyncFields,
 > = ReturnType<typeof makeKeyedQueryModel<A, AI, E, EI, Fields>>
 
-/** Keyed remote-data Submodel. Read a slot's `AsyncData` with `read`. */
+/**
+ * Keyed remote-data Submodel. Read a slot's `AsyncData` with `read`.
+ *
+ * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
+ */
 export interface KeyedQuery<
   Name extends string,
   A,
@@ -187,7 +199,11 @@ export interface KeyedQuery<
 }
 
 export namespace KeyedQuery {
-  /** Any keyed Query definition. */
+  /**
+   * Any keyed Query definition.
+   *
+   * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
+   */
   export type Any = {
     readonly Model: Schema.Top
     readonly Message: Schema.Top
