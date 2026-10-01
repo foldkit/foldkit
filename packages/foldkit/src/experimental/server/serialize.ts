@@ -1139,14 +1139,7 @@ export const serializeHtml = (
     if (step._tag === 'VisitNode') {
       const { node, extraAttributes, selectValue } = step
 
-      visitNode(
-        output,
-        context,
-        workStack,
-        node,
-        extraAttributes,
-        selectValue,
-      )
+      visitNode(output, context, workStack, node, extraAttributes, selectValue)
     } else {
       closeElement(output, step)
     }
