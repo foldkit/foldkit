@@ -19,7 +19,6 @@ import {
   Schema,
   Stream
 } from "effect"
-import { TestClock } from "effect/testing"
 import {
   ClusterError,
   ClusterMetrics,
@@ -41,10 +40,11 @@ import {
   Sharding,
   ShardingConfig,
   Snowflake
-} from "effect/unstable/cluster"
-import * as ActiveTeardown from "effect/unstable/cluster/internal/interruptors"
-import { Headers } from "effect/unstable/http"
-import { Rpc } from "effect/unstable/rpc"
+} from "effect/cluster"
+import * as ActiveTeardown from "effect/cluster/internal/interruptors"
+import { Headers } from "effect/http"
+import { Rpc, type RpcGroup } from "effect/rpc"
+import { TestClock } from "effect/testing"
 import {
   CallerId,
   ContextBleedEntity,
@@ -1591,6 +1591,50 @@ describe.concurrent("Sharding", () => {
         Effect.flip
       )
       assert(Cause.hasDies(cause))
+    }).pipe(Effect.provide(TestShardingWithoutStorage.pipe(
+      Layer.provide(MessageStorage.layerNoop)
+    ))))
+
+  it.effect("reprocesses a completed volatile request id without MessageStorage", () =>
+    Effect.gen(function*() {
+      yield* TestClock.adjust(1)
+      const sharding = yield* Sharding.Sharding
+      const state = yield* TestEntityState
+      const rpc = TestEntity.protocol.requests.get("GetUserVolatile") as Extract<
+        RpcGroup.Rpcs<typeof TestEntity.protocol>,
+        { readonly _tag: "GetUserVolatile" }
+      >
+      const entityId = EntityId.make("1")
+      const requestId = yield* sharding.getSnowflake
+      const send = Effect.gen(function*() {
+        const replied = yield* Deferred.make<void>()
+        yield* sharding.sendOutgoing(
+          new Message.OutgoingRequest({
+            envelope: Envelope.makeRequest<typeof rpc>({
+              requestId,
+              address: EntityAddress.make({
+                shardId: sharding.getShardId(entityId, "default"),
+                entityType: EntityType.make(TestEntity.type),
+                entityId
+              }),
+              tag: "GetUserVolatile",
+              payload: { id: 1 },
+              headers: Headers.empty
+            }),
+            annotations: rpc.annotations,
+            context: Context.empty() as Context.Context<unknown>,
+            rpc,
+            lastReceivedReply: Option.none(),
+            respond: () => Deferred.succeed(replied, void 0)
+          }),
+          false
+        )
+        yield* Deferred.await(replied)
+      })
+      yield* send
+      assert.strictEqual(Queue.sizeUnsafe(state.envelopes), 1)
+      yield* send
+      assert.strictEqual(Queue.sizeUnsafe(state.envelopes), 2)
     }).pipe(Effect.provide(TestShardingWithoutStorage.pipe(
       Layer.provide(MessageStorage.layerNoop)
     ))))

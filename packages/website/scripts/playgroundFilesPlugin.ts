@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import type { Plugin } from 'vite'
 
 import { canaryVersion } from '../../../scripts/lib/package-version.mjs'
-import { exampleSlugs } from '../src/page/example/meta.ts'
+import { runnableExampleSlugs } from '../src/page/example/meta.ts'
 
 const SCRIPT_DIRECTORY = dirname(fileURLToPath(import.meta.url))
 const WEBSITE_ROOT = resolve(SCRIPT_DIRECTORY, '..')
@@ -376,7 +376,7 @@ export const loadPlaygroundFiles = async (): Promise<
   const baseExclude = tsConfigBase.exclude ?? []
 
   const entries = await Promise.all(
-    exampleSlugs.map(async slug => {
+    runnableExampleSlugs.map(async slug => {
       const files = await buildExampleFileMap(
         slug,
         versions,

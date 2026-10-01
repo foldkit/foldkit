@@ -1,5 +1,5 @@
 import { Crypto, Effect, Schema } from 'effect'
-import { KeyValueStore } from 'effect/unstable/persistence'
+import { KeyValueStore } from 'effect/persistence'
 import { Command, Dom } from 'foldkit'
 
 import { BrowserCrypto, BrowserKeyValueStore } from '@effect/platform-browser'

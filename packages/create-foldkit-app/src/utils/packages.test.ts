@@ -17,8 +17,8 @@ import {
 describe('buildUnresolvedDeps', () => {
   it('keeps third-party versions and defers every workspace package to the CLI release manifest', () => {
     const result = buildUnresolvedDeps({
-      effect: '4.0.0-beta.106',
-      '@effect/platform-browser': '4.0.0-beta.106',
+      effect: '4.0.0',
+      '@effect/platform-browser': '4.0.0',
       foldkit: 'workspace:*',
       '@foldkit/ui': 'workspace:*',
       tailwindcss: '^4.3.1',
@@ -26,8 +26,8 @@ describe('buildUnresolvedDeps', () => {
     })
 
     expect(result).toEqual({
-      effect: { _tag: 'Keep', version: '4.0.0-beta.106' },
-      '@effect/platform-browser': { _tag: 'Keep', version: '4.0.0-beta.106' },
+      effect: { _tag: 'Keep', version: '4.0.0' },
+      '@effect/platform-browser': { _tag: 'Keep', version: '4.0.0' },
       foldkit: { _tag: 'Workspace' },
       '@foldkit/ui': { _tag: 'Workspace' },
       tailwindcss: { _tag: 'Keep', version: '^4.3.1' },
@@ -100,7 +100,7 @@ describe('foldkitSubtreeRef', () => {
         channel: 'stable',
         sourceCommit,
         packages: { foldkit: '0.156.0', '@foldkit/ui': '0.42.0' },
-        dependencies: { effect: '4.0.0-beta.106' },
+        dependencies: { effect: '4.0.0' },
       }),
     ).toBe('foldkit@0.156.0')
   })

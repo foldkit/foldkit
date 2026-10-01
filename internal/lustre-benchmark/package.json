@@ -15,8 +15,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0-rc.117",
-    "effect": "4.0.0-rc.117",
+    "@effect/platform-browser": "4.0.0",
+    "effect": "4.0.0",
     "foldkit": "workspace:*"
   },
   "devDependencies": {

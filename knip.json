@@ -81,15 +81,6 @@
       "entry": [],
       "ignoreDependencies": ["@foldkit/devtools", "tailwindcss"]
     },
-    "examples/livestore": {
-      "ignoreFiles": ["vite.config.playground.ts"],
-      "ignoreDependencies": [
-        "@foldkit/devtools",
-        "@livestore/peer-deps",
-        "@livestore/wa-sqlite",
-        "tailwindcss"
-      ]
-    },
     "examples/ssr": {
       "entry": ["src/entry.server.ts"],
       "ignoreFiles": ["vite.config.playground.ts"],

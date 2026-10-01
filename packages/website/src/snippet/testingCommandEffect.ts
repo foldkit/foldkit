@@ -1,5 +1,5 @@
 import { Effect, Layer, Match, String } from 'effect'
-import { HttpClient, HttpClientResponse } from 'effect/unstable/http'
+import { HttpClient, HttpClientResponse } from 'effect/http'
 import { expect, test } from 'vitest'
 
 test('fetchWeather returns SucceededFetchWeather on success', async () => {

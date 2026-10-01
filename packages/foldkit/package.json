@@ -168,14 +168,14 @@
     "parse5": "^8.0.1"
   },
   "peerDependencies": {
-    "@effect/platform-browser": "4.0.0-rc.117",
-    "effect": "4.0.0-rc.117"
+    "@effect/platform-browser": "4.0.0",
+    "effect": "4.0.0"
   },
   "devDependencies": {
-    "@effect/platform-browser": "4.0.0-rc.117",
-    "@effect/vitest": "4.0.0-rc.117",
+    "@effect/platform-browser": "4.0.0",
+    "@effect/vitest": "4.0.0",
     "@vitest/coverage-v8": "^5.0.2",
-    "effect": "4.0.0-rc.117",
+    "effect": "4.0.0",
     "happy-dom": "^20.14.5",
     "rimraf": "^6.1.3",
     "typescript": "^7.0.2",

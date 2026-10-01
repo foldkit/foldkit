@@ -5,7 +5,7 @@ import {
   HttpServerRequest,
   HttpServerResponse,
   HttpStaticServer,
-} from 'effect/unstable/http'
+} from 'effect/http'
 import { Server } from 'foldkit/experimental'
 import { createServer } from 'node:http'
 import { dirname, resolve } from 'node:path'

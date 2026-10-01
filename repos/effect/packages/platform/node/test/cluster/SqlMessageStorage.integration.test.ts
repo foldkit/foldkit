@@ -2,7 +2,6 @@ import { NodeCrypto, NodeFileSystem } from "@effect/platform-node"
 import { SqliteClient } from "@effect/sql-sqlite-node"
 import { assert, describe, expect, it } from "@effect/vitest"
 import { Effect, Fiber, FileSystem, Latch, Layer, Option } from "effect"
-import { TestClock } from "effect/testing"
 import {
   Entity,
   EntityAddress,
@@ -19,8 +18,9 @@ import {
   ShardingConfig,
   Snowflake,
   SqlMessageStorage
-} from "effect/unstable/cluster"
-import { SqlClient } from "effect/unstable/sql"
+} from "effect/cluster"
+import { SqlClient } from "effect/sql"
+import { TestClock } from "effect/testing"
 import { MysqlContainer } from "../fixtures/mysql2-utils.ts"
 import { PgContainer } from "../fixtures/pg-utils.ts"
 import {
@@ -125,6 +125,47 @@ describe("SqlMessageStorage", () => {
           expect(messages).toHaveLength(0)
           expect(yield* storage.repliesFor([streaming, completed])).toEqual(replies)
           expect(yield* sql`SELECT processed FROM cluster_messages ORDER BY rowid`).toEqual(processed)
+          yield* truncate
+        }))
+
+      it.effect("clearReplies requeues when the expected reply is current", () =>
+        Effect.gen(function*() {
+          yield* truncate
+          const storage = yield* MessageStorage.MessageStorage
+          const request = yield* makeRequest()
+          const reply = yield* makeReply(request)
+          yield* storage.saveRequest(request)
+          yield* storage.saveReply(reply)
+          yield* storage.clearReplies(request.envelope.requestId, { expectedReplyId: reply.reply.id })
+          expect(yield* storage.repliesFor([request])).toHaveLength(0)
+          expect(yield* storage.unprocessedMessages([request.envelope.address.shardId])).toHaveLength(1)
+        }))
+
+      it.effect("clearReplies with a stale expected reply preserves a newer completion and processed state", () =>
+        Effect.gen(function*() {
+          yield* truncate
+          const sql = yield* SqlClient.SqlClient
+          const storage = yield* MessageStorage.MessageStorage
+          const request = yield* makeRequest({ rpc: StreamRpc, payload: StreamRpc.payloadSchema.make({ id: 123 }) })
+          const oldReply = yield* makeChunkReply(request)
+          const completed = yield* makeReply(request)
+          yield* storage.saveRequest(request)
+          yield* storage.saveReply(oldReply)
+          yield* storage.saveReply(completed)
+          const before = yield* sql`SELECT processed, last_reply_id FROM cluster_messages WHERE id = ${
+            String(request.envelope.requestId)
+          }`.pipe(Effect.provideService(SqlClient.SafeIntegers, true))
+          yield* storage.clearReplies(request.envelope.requestId, { expectedReplyId: oldReply.reply.id })
+          expect((yield* storage.repliesFor([request])).map((r) => r.id)).toEqual([
+            oldReply.reply.id,
+            completed.reply.id
+          ])
+          expect(
+            yield* sql`SELECT processed, last_reply_id FROM cluster_messages WHERE id = ${
+              String(request.envelope.requestId)
+            }`.pipe(Effect.provideService(SqlClient.SafeIntegers, true))
+          ).toEqual(before)
+          expect(yield* storage.unprocessedMessages([request.envelope.address.shardId])).toHaveLength(0)
           yield* truncate
         }))
 

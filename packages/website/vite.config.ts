@@ -38,7 +38,7 @@ import {
   type TypeDocTypeParam,
 } from './src/page/apiReference/typedoc.ts'
 import { PostFrontmatter } from './src/page/blog/frontmatter.ts'
-import { exampleSlugs } from './src/page/example/meta.ts'
+import { exampleSlugs, runnableExampleSlugs } from './src/page/example/meta.ts'
 import { shikiDarkTheme, shikiLightTheme } from './src/shikiTheme.ts'
 
 const shikiThemes = {
@@ -856,7 +856,7 @@ const playgroundShellFallbackPlugin = (): Plugin => ({
       if (req.url) {
         const { pathname, search } = new URL(req.url, 'http://localhost')
         const isPrerenderedPlaygroundRoute = Array.some(
-          exampleSlugs,
+          runnableExampleSlugs,
           exampleSlug =>
             pathname === `/playground/${exampleSlug}` &&
             existsSync(

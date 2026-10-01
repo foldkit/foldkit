@@ -108,9 +108,12 @@ const peerFloors =
   fullWorkspaceChecks ||
   hasChanged({
     files: [
+      'packages/ui/package.json',
+      'packages/devtools/package.json',
+      'packages/devtools-mcp/package.json',
+      'packages/markdown/package.json',
       'packages/vite-plugin-foldkit/package.json',
       'scripts/check-peer-floors.ts',
-      'scripts/reset-peer-deps.ts',
     ],
     prefixes: ['.changeset/'],
   })

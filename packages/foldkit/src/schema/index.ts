@@ -155,8 +155,8 @@ const makeCallable = <Tag extends string, Fields extends Schema.Struct.Fields>(
     apply(_target, _thisArg, argumentsList) {
       return construct(argumentsList[0])
     },
-    get(_target, property, receiver) {
-      return Reflect.get(schema, property, receiver)
+    get(_target, property) {
+      return Reflect.get(schema, property)
     },
     has(_target, property) {
       return Reflect.has(schema, property)

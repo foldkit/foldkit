@@ -2,7 +2,7 @@
 
 ## Overview
 
-This page is for people who have already chosen Effect. In Effect 4, [Effect Atom](https://github.com/Effect-TS/effect/tree/main/packages/atom) provides reactive state primitives through `effect/unstable/reactivity`, with view bindings such as `@effect/atom-react`, `@effect/atom-solid`, and `@effect/atom-vue`. The host framework still owns rendering and components.
+This page is for people who have already chosen Effect. In Effect 4, [Effect Atom](https://github.com/Effect-TS/effect/tree/main/packages/atom) provides reactive state primitives through `effect/reactivity`, with view bindings such as `@effect/atom-react`, `@effect/atom-solid`, and `@effect/atom-vue`. The host framework still owns rendering and components.
 
 Foldkit owns the application runtime and view layer. It renders through a virtual DOM built on [Snabbdom](https://github.com/snabbdom/snabbdom), and it includes routing, UI components, DevTools, and Story and Scene testing. Its architecture has one Model, a Message union, and an update function. Side effects return to the runtime as Commands and other lifecycle primitives.
 

@@ -8,7 +8,7 @@ import {
   Schema,
   pipe,
 } from 'effect'
-import { KeyValueStore } from 'effect/unstable/persistence'
+import { KeyValueStore } from 'effect/persistence'
 import {
   Calendar,
   Command,

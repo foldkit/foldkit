@@ -18,7 +18,7 @@ import {
   SubscriptionRef,
   pipe,
 } from 'effect'
-import { KeyValueStore } from 'effect/unstable/persistence'
+import { KeyValueStore } from 'effect/persistence'
 import { Update } from 'foldkit'
 import * as Command from 'foldkit/command'
 import {

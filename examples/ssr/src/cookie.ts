@@ -1,5 +1,5 @@
 import { Number, Option, Record, pipe } from 'effect'
-import { Cookies } from 'effect/unstable/http'
+import { Cookies } from 'effect/http'
 
 export const COUNT_COOKIE = 'foldkit-ssr-count'
 

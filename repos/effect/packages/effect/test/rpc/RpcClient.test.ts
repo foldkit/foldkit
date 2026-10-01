@@ -1,15 +1,15 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Cause, Deferred, Effect, Exit, Fiber, Layer, Queue, Schedule, Schema, Stream } from "effect"
+import * as HttpClient from "effect/http/HttpClient"
+import * as HttpClientResponse from "effect/http/HttpClientResponse"
+import { Rpc, RpcClient, RpcGroup, RpcMessage, RpcSchema, RpcSerialization } from "effect/rpc"
+import { RpcClientError } from "effect/rpc/RpcClientError"
+import * as Socket from "effect/socket/Socket"
 import { TestClock } from "effect/testing"
-import * as HttpClient from "effect/unstable/http/HttpClient"
-import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
-import { Rpc, RpcClient, RpcGroup, RpcMessage, RpcSchema, RpcSerialization } from "effect/unstable/rpc"
-import { RpcClientError } from "effect/unstable/rpc/RpcClientError"
-import * as Socket from "effect/unstable/socket/Socket"
-import * as Worker from "effect/unstable/workers/Worker"
-import { WorkerError, WorkerReceiveError } from "effect/unstable/workers/WorkerError"
+import * as Worker from "effect/workers/Worker"
+import { WorkerError, WorkerReceiveError } from "effect/workers/WorkerError"
 import { vi } from "vitest"
-import type * as RpcClientErrorModule from "../../src/unstable/rpc/RpcClientError.ts"
+import type * as RpcClientErrorModule from "../../src/rpc/RpcClientError.ts"
 
 const TestGroup = RpcGroup.make(
   Rpc.make("Ping", { success: Schema.String }),
@@ -157,7 +157,7 @@ describe("RpcClient", () => {
   it("preserves RpcClientError failures from a reloaded module copy", async () => {
     vi.resetModules()
     const ForeignRpcClientError = await vi.importActual<typeof RpcClientErrorModule>(
-      "../../src/unstable/rpc/RpcClientError.ts"
+      "../../src/rpc/RpcClientError.ts"
     )
     const rpcClientError = new ForeignRpcClientError.RpcClientError({
       reason: new ForeignRpcClientError.RpcClientDefect({ message: "boom", cause: undefined })
@@ -255,6 +255,48 @@ describe("RpcClient", () => {
         assert.strictEqual(error.reason._tag, "SocketOpenError")
       }
       assert.isUndefined(streamFiber.pollUnsafe())
+    }))
+
+  it.effect("fails in-flight streams on a missed pong while retrying socket errors", () =>
+    Effect.gen(function*() {
+      const requestSent = yield* Deferred.make<void>()
+      let writes = 0
+      const write = () =>
+        Effect.sync(() => writes++).pipe(Effect.andThen(Deferred.succeed(requestSent, void 0)), Effect.asVoid)
+      const socket = Socket.make({
+        reader: Effect.succeed({
+          pull: Effect.never,
+          upgrade: Socket.SocketUpgradeError.unsupported
+        }),
+        writer: Effect.succeed({
+          write,
+          writeAll: write
+        })
+      })
+      const protocol = yield* RpcClient.makeProtocolSocket({
+        retryTransientErrors: true,
+        retryPolicy: Schedule.spaced("1 hour")
+      }).pipe(
+        Effect.provideService(Socket.Socket, socket),
+        Effect.provide(RpcSerialization.layerNdjson)
+      )
+      const client = yield* RpcClient.make(TestGroup).pipe(
+        Effect.provideService(RpcClient.Protocol, protocol)
+      )
+      const streamFiber = yield* client.Events().pipe(
+        Stream.runDrain,
+        Effect.timeout("11 seconds"),
+        Effect.flip,
+        Effect.forkChild
+      )
+
+      yield* Deferred.await(requestSent)
+      yield* TestClock.adjust("11 seconds")
+      const error = yield* Fiber.join(streamFiber)
+
+      assert.isAtLeast(writes, 2) // request and unanswered ping
+      assert.instanceOf(error, RpcClientError)
+      assert.strictEqual(error.reason._tag, "SocketReadError")
     }))
 
   it.effect("fails in-flight streams when transient retries are exhausted", () =>

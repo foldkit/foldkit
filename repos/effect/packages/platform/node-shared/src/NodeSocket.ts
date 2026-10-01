@@ -19,7 +19,7 @@ import * as Latch from "effect/Latch"
 import * as Layer from "effect/Layer"
 import * as Redacted from "effect/Redacted"
 import * as Scope from "effect/Scope"
-import * as Socket from "effect/unstable/socket/Socket"
+import * as Socket from "effect/socket/Socket"
 import { Buffer } from "node:buffer"
 import * as Net from "node:net"
 import type { Duplex } from "node:stream"
@@ -28,6 +28,7 @@ import * as Tls from "node:tls"
 const isDeno = "Deno" in globalThis
 
 /**
+ * @stability unstable
  * @category re-exports
  * @since 4.0.0
  */

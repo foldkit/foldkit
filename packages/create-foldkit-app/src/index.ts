@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { Effect, Option, Schema } from 'effect'
-import { Command, Flag } from 'effect/unstable/cli'
+import { Command, Flag } from 'effect/cli'
 import { createRequire } from 'node:module'
 
 import { NodeRuntime, NodeServices } from '@effect/platform-node'

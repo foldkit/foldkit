@@ -1,6 +1,6 @@
 import chalk from 'chalk'
 import { Console, Effect, FileSystem, Match, Option, Path, pipe } from 'effect'
-import { Prompt } from 'effect/unstable/cli'
+import { Prompt } from 'effect/cli'
 import { spawnSync } from 'node:child_process'
 
 import { type Example, examples } from '../examples.js'

@@ -1,5 +1,5 @@
 import { Cause, Effect } from 'effect'
-import { AsyncResult, Atom } from 'effect/unstable/reactivity'
+import { AsyncResult, Atom } from 'effect/reactivity'
 
 import { useAtomValue } from '@effect/atom-react'
 

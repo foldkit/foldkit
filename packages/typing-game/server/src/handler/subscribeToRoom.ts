@@ -11,7 +11,7 @@ import {
   SubscriptionRef,
   pipe,
 } from 'effect'
-import { Rpc } from 'effect/unstable/rpc'
+import { Rpc } from 'effect/rpc'
 
 import * as Shared from '@typing-game/shared'
 

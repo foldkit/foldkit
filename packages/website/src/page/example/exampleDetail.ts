@@ -117,6 +117,12 @@ export const init = (): UpdateReturn => ({
   },
 })
 
+const isSourceAvailable = (slug: string): boolean =>
+  Option.match(findBySlug(slug), {
+    onNone: () => true,
+    onSome: meta => meta.livePreview !== 'Unavailable',
+  })
+
 export const boot = (
   maybeInitialSlug: Option.Option<string>,
   maybeExampleSources: Option.Option<
@@ -129,7 +135,9 @@ export const boot = (
       Option.match(maybeInitialSlug, {
         onNone: () => init_,
         onSome: slug =>
-          update(init_.model, Message.RequestedExampleSources({ slug })),
+          isSourceAvailable(slug)
+            ? update(init_.model, Message.RequestedExampleSources({ slug }))
+            : init_,
       }),
     onSome: sources =>
       update(init_.model, Message.SucceededLoadExampleSources({ sources })),
@@ -180,7 +188,16 @@ export const update = (model: Model, message: Message) =>
   })
 
 export const informRouteChanged = (model: Model, slug: string) =>
-  update(model, Message.RequestedExampleSources({ slug }))
+  isSourceAvailable(slug)
+    ? update(model, Message.RequestedExampleSources({ slug }))
+    : {
+        model: modifyFields(model, {
+          sourceFileTabs: () => Tabs.init({ id: 'source-file-tabs' }),
+          maybeActiveSourceFilePath: () => Option.none(),
+          maybeExampleUrl: () => Option.none(),
+          currentSources: () => CurrentSourcesAsyncData.Idle(),
+        }),
+      }
 
 // VIEW
 
@@ -203,6 +220,21 @@ const launchPlaygroundLink = (meta: ExampleMeta): Html =>
     [Icon.bolt('w-4 h-4'), 'Launch Playground'],
   )
 
+const exampleActions = (meta: ExampleMeta): Html =>
+  ih.div(
+    [ih.Class('flex flex-col items-start gap-3 mt-3')],
+    [
+      launchPlaygroundLink(meta),
+      ih.a(
+        [
+          ih.Href(exampleSourceHref(meta.slug)),
+          ih.Class('link-accent text-sm'),
+        ],
+        ['View source on GitHub'],
+      ),
+    ],
+  )
+
 const headerView = (meta: ExampleMeta): Html =>
   ih.div(
     [ih.Class('mb-6')],
@@ -222,19 +254,7 @@ const headerView = (meta: ExampleMeta): Html =>
         [ih.Class('flex flex-wrap items-center gap-2 mt-3')],
         Array.map(meta.tags, text => featureTag(text)),
       ),
-      ih.div(
-        [ih.Class('flex flex-col items-start gap-3 mt-3')],
-        [
-          launchPlaygroundLink(meta),
-          ih.a(
-            [
-              ih.Href(exampleSourceHref(meta.slug)),
-              ih.Class('link-accent text-sm'),
-            ],
-            ['View source on GitHub'],
-          ),
-        ],
-      ),
+      ...(meta.livePreview === 'Unavailable' ? [] : [exampleActions(meta)]),
     ],
   )
 
@@ -552,6 +572,55 @@ const sourcesFailureView = (error: string): Html =>
     ],
   )
 
+const availableExampleContentView = (
+  model: Model,
+  meta: ExampleMeta,
+  slug: string,
+  isNarrowViewport: boolean,
+  renderCopyButton: CodeBlock.RenderCopyButton,
+  h: HtmlBuilder<Message>,
+): ReadonlyArray<Html> => [
+  meta.livePreview === 'PlaygroundOnly'
+    ? playgroundOnlyNotice(meta)
+    : livePreviewDisclosureView(
+        model.isLivePreviewOpen,
+        meta,
+        slug,
+        model.maybeExampleUrl,
+        h,
+      ),
+  h.div(
+    [h.Class('mt-6')],
+    [
+      AsyncData.matchData(model.currentSources, {
+        onEmpty: () => sourcesSkeletonView(),
+        onFailure: error => sourcesFailureView(error),
+        onData: sources =>
+          h.div(
+            [],
+            Array.match(sources.files, {
+              onEmpty: () => [],
+              onNonEmpty: files => [
+                sourceCodeView(
+                  slug,
+                  files,
+                  model.sourceFileTabs,
+                  Option.getOrElse(
+                    model.maybeActiveSourceFilePath,
+                    () => Array.headNonEmpty(files).path,
+                  ),
+                  isNarrowViewport,
+                  renderCopyButton,
+                  h,
+                ),
+              ],
+            }),
+          ),
+      }),
+    ],
+  ),
+]
+
 type ViewInputs = Readonly<{
   slug: string
   isNarrowViewport: boolean
@@ -578,45 +647,16 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           [],
           [
             headerView(meta),
-            meta.livePreview === 'PlaygroundOnly'
-              ? playgroundOnlyNotice(meta)
-              : livePreviewDisclosureView(
-                  model.isLivePreviewOpen,
+            ...(meta.livePreview === 'Unavailable'
+              ? []
+              : availableExampleContentView(
+                  model,
                   meta,
                   slug,
-                  model.maybeExampleUrl,
+                  isNarrowViewport,
+                  renderCopyButton,
                   h,
-                ),
-            h.div(
-              [h.Class('mt-6')],
-              [
-                AsyncData.matchData(model.currentSources, {
-                  onEmpty: () => sourcesSkeletonView(),
-                  onFailure: error => sourcesFailureView(error),
-                  onData: sources =>
-                    h.div(
-                      [],
-                      Array.match(sources.files, {
-                        onEmpty: () => [],
-                        onNonEmpty: files => [
-                          sourceCodeView(
-                            slug,
-                            files,
-                            model.sourceFileTabs,
-                            Option.getOrElse(
-                              model.maybeActiveSourceFilePath,
-                              () => Array.headNonEmpty(files).path,
-                            ),
-                            isNarrowViewport,
-                            renderCopyButton,
-                            h,
-                          ),
-                        ],
-                      }),
-                    ),
-                }),
-              ],
-            ),
+                )),
           ],
         ),
     }),

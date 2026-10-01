@@ -170,7 +170,8 @@ const main = async (): Promise<void> => {
     ): example is (typeof examples)[number] & {
       livePreview: 'Spa' | 'Prerendered'
     } =>
-      example.livePreview !== 'PlaygroundOnly' &&
+      (example.livePreview === 'Spa' ||
+        example.livePreview === 'Prerendered') &&
       (only.size === 0 || only.has(example.slug)),
   )
   const skippedSlugs = examples

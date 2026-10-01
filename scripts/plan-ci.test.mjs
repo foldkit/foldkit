@@ -143,9 +143,12 @@ test('browser-backed gate manifests select their consumers', () => {
 test('peer floor inputs select their packed-manifest gate', () => {
   for (const fileName of [
     '.changeset/plugin-peer-floor.md',
+    'packages/ui/package.json',
+    'packages/devtools/package.json',
+    'packages/devtools-mcp/package.json',
+    'packages/markdown/package.json',
     'packages/vite-plugin-foldkit/package.json',
     'scripts/check-peer-floors.ts',
-    'scripts/reset-peer-deps.ts',
   ]) {
     assert.equal(planCiForFile(fileName)['peer_floors'], 'true', fileName)
   }

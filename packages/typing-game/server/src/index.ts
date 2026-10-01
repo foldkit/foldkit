@@ -1,6 +1,6 @@
 import { Effect, Layer, pipe } from 'effect'
-import { HttpMiddleware, HttpRouter, HttpServer } from 'effect/unstable/http'
-import { RpcSerialization, RpcServer } from 'effect/unstable/rpc'
+import { HttpMiddleware, HttpRouter, HttpServer } from 'effect/http'
+import { RpcSerialization, RpcServer } from 'effect/rpc'
 import { createServer } from 'node:http'
 
 import { NodeHttpServer, NodeRuntime } from '@effect/platform-node'

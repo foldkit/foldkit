@@ -46,7 +46,7 @@ const loadApiData: Effect.Effect<ApiReference.ApiData> = Effect.map(
 const loadAllExampleSources: Effect.Effect<SourcesBySlug> = Effect.map(
   Effect.promise(() =>
     Promise.all(
-      Example.exampleSlugs.map(
+      Example.runnableExampleSlugs.map(
         async (slug): Promise<readonly [string, Example.ExampleSources]> => [
           slug,
           await Example.loadSourcesForSlug(slug),

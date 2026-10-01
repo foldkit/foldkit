@@ -43,6 +43,26 @@ describe('makeCallable', () => {
     )
   })
 
+  it('supports repeated construction through Schema helpers', () => {
+    const ChangedCount = taggedStruct('ChangedCount', {
+      count: Schema.Number.check(Schema.isGreaterThan(0)),
+    })
+
+    for (const count of [1, 2]) {
+      const input = { count }
+      const expected = { _tag: 'ChangedCount', count }
+
+      expect(ChangedCount.make(input)).toStrictEqual(expected)
+      expect(ChangedCount.makeOption(input)).toStrictEqual(
+        Option.some(expected),
+      )
+      expect(Effect.runSync(ChangedCount.makeEffect(input))).toStrictEqual(
+        expected,
+      )
+      expect(ChangedCount(input)).toStrictEqual(expected)
+    }
+  })
+
   it('matches make when the fields explicitly define _tag', () => {
     const input = { _tag: 'ExplicitTagField' }
     const made = Reflect.apply(ExplicitTagField.make, undefined, [input])

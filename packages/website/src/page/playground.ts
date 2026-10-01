@@ -92,6 +92,12 @@ const maybeFilesForSlug = (
     Option.map(entry => entry.files),
   )
 
+const isUnavailableExample = (maybeMeta: Option.Option<ExampleMeta>): boolean =>
+  Option.match(maybeMeta, {
+    onNone: () => false,
+    onSome: meta => meta.livePreview === 'Unavailable',
+  })
+
 const sortedPaths = (
   files: Readonly<Record<string, string>>,
 ): ReadonlyArray<string> => pipe(files, Record.keys, Array.sort(Order.String))
@@ -963,6 +969,15 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
       maybeMeta,
       maybeFiles,
     }).pipe(
+      Match.when(
+        ({ maybeMeta }) => isUnavailableExample(maybeMeta),
+        () =>
+          messageView(
+            'Playground unavailable',
+            'This example is paused while we update and verify LiveStore compatibility with Effect 4 stable.',
+            maybeMeta,
+          ),
+      ),
       Match.when(
         ({ maybeIsPlaygroundSupported }) =>
           Option.isNone(maybeIsPlaygroundSupported),

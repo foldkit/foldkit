@@ -1,5 +1,5 @@
 import { Array, Effect, HashMap, Match, Number, Option } from 'effect'
-import type { KeyValueStore } from 'effect/unstable/persistence/KeyValueStore'
+import type { KeyValueStore } from 'effect/persistence/KeyValueStore'
 import { expect, expectTypeOf } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
