@@ -72,6 +72,7 @@ export const AppRoute = defineRouteUnion({
   CoreSubmodel: {},
   CoreMachine: {},
   AsyncData: {},
+  Css: {},
   PatternsAntiPatterns: {},
   PatternsInformingSubmodels: {},
   PatternsSubscriptionOrganization: {},
@@ -176,6 +177,7 @@ export const DocsRoute = AppRoute.subset([
   'CoreSubmodel',
   'CoreMachine',
   'AsyncData',
+  'Css',
   'PatternsAntiPatterns',
   'PatternsInformingSubmodels',
   'PatternsSubscriptionOrganization',
@@ -436,6 +438,7 @@ export const coreEmbeddingRouter = core('embedding', AppRoute.CoreEmbedding)
 export const coreSubmodelRouter = core('submodel', AppRoute.CoreSubmodel)
 export const coreMachineRouter = core('machine', AppRoute.CoreMachine)
 export const asyncDataRouter = core('async-data', AppRoute.AsyncData)
+export const cssRouter = core('css', AppRoute.Css)
 
 export const patternsAntiPatternsRouter = patterns(
   'anti-patterns',
@@ -559,6 +562,7 @@ const coreParser = oneOf(
   routingAndNavigationRouter,
   fieldValidationRouter,
   asyncDataRouter,
+  cssRouter,
 )
 
 const patternsParser = oneOf(
@@ -736,6 +740,7 @@ export const routeToUrlPath = (route: AppRoute): string =>
     CoreSubmodel: () => coreSubmodelRouter(),
     CoreMachine: () => coreMachineRouter(),
     AsyncData: () => asyncDataRouter(),
+    Css: () => cssRouter(),
     PatternsAntiPatterns: () => patternsAntiPatternsRouter(),
     PatternsInformingSubmodels: () => patternsInformingSubmodelsRouter(),
     PatternsSubscriptionOrganization: () =>

@@ -73,6 +73,14 @@ describe('Meter view', () => {
     },
   )
 
+  it('writes the fill width to four decimal places', () => {
+    Scene.scene(
+      { update, view: testView({ value: 1, max: 3 }) },
+      Scene.given({}),
+      Scene.expect(fill).toHaveStyle('width', '33.3333%'),
+    )
+  })
+
   it('normalizes max to min when the configured range is inverted', () => {
     Scene.scene(
       { update, view: testView({ value: 5, min: 10, max: 0 }) },

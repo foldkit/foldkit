@@ -14,8 +14,8 @@ const FLOORS = [
     packageDir: 'packages/ui',
     packageName: '@foldkit/ui',
     dependency: 'foldkit',
-    minimum: '0.163.0',
-    safePackageVersion: '0.163.0',
+    minimum: '0.164.0',
+    safePackageVersion: '0.164.0',
   },
   {
     packageDir: 'packages/devtools',

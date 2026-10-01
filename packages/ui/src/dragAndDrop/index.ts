@@ -11,6 +11,7 @@ import {
   pipe,
 } from 'effect'
 import * as Command from 'foldkit/command'
+import * as Css from 'foldkit/css'
 import * as Dom from 'foldkit/dom'
 import { type Attribute, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -865,7 +866,7 @@ export const sortable = (itemId: string): ReadonlyArray<Attribute<never>> => [
 ]
 
 const ghostTransform = (clientX: number, clientY: number): string =>
-  `translate3d(${String(clientX)}px, ${String(clientY)}px, 0)`
+  `translate3d(${Css.px(clientX)}, ${Css.px(clientY)}, 0)`
 
 /** Returns positioning styles for the ghost element, or None when not dragging with a pointer. */
 export const ghostStyle = (

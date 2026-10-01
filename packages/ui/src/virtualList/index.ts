@@ -10,6 +10,7 @@ import {
 } from 'effect'
 import { type Update } from 'foldkit'
 import * as Command from 'foldkit/command'
+import * as Css from 'foldkit/css'
 import {
   type ChildAttribute,
   type Html,
@@ -593,12 +594,12 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
 
         const topSpacer = h.keyed('li')(`${model.id}-top-spacer`, [
           h.Role('presentation'),
-          h.Style({ height: `${topSpacerHeight}px` }),
+          h.Style({ height: Css.px(topSpacerHeight) }),
         ])
 
         const bottomSpacer = h.keyed('li')(`${model.id}-bottom-spacer`, [
           h.Role('presentation'),
-          h.Style({ height: `${bottomSpacerHeight}px` }),
+          h.Style({ height: Css.px(bottomSpacerHeight) }),
         ])
 
         const renderedRows = Array.map(visibleItems, (item, sliceIndex) => {
@@ -611,7 +612,7 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
               h.AriaSetsize(items.length),
               h.AriaPosinset(dataIndex + 1),
               h.Style({
-                height: `${rowHeightFor(item, dataIndex)}px`,
+                height: Css.px(rowHeightFor(item, dataIndex)),
                 display: 'grid',
               }),
             ],

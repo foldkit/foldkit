@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import * as Css from '../css/index.js'
 import { attributesModule } from './attributes.js'
 import { classModule } from './class.js'
 import { datasetModule } from './dataset.js'
@@ -375,5 +376,27 @@ describe('styleModule', () => {
     patch(mounted, h('x-style-owner', { style: { color: 'green' } }))
     expect(element.style.color).toBe('green')
     expect(element.style.backgroundColor).toBe('red')
+  })
+
+  it('skips the write when a stepped Css value renders the same string', () => {
+    const container = document.createElement('div')
+    const mounted = patch(
+      container,
+      h('div', { style: { '--x': Css.px(12.3401, { step: 0.5 }) } }),
+    )
+    const element = elementOf(mounted)
+    const setProperty = vi.spyOn(element.style, 'setProperty')
+
+    const patched = [12.3402, 12.3403, 12.3404].reduce(
+      (previous, value) =>
+        patch(
+          previous,
+          h('div', { style: { '--x': Css.px(value, { step: 0.5 }) } }),
+        ),
+      mounted,
+    )
+
+    expect(setProperty).not.toHaveBeenCalled()
+    expect(elementOf(patched).style.getPropertyValue('--x')).toBe('12.5px')
   })
 })

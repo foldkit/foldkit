@@ -220,6 +220,23 @@ describe('anchorSetup placement locking and position ticks', () => {
     expect(element.style.maxHeight).toBe('0px')
   })
 
+  it('writes fractional coordinates without floating-point noise', async () => {
+    computePositionMock.mockResolvedValue({
+      x: 10.123456,
+      y: 0.1 + 0.2,
+      placement: 'bottom-start',
+    })
+    const { element } = mountAnchor({
+      placement: 'bottom-start',
+      portal: false,
+    })
+
+    await vi.waitFor(() => {
+      expect(element.style.left).toBe('10.1235px')
+      expect(element.style.top).toBe('0.3px')
+    })
+  })
+
   it('writes the locked side to data-placement', async () => {
     computePositionMock
       .mockResolvedValueOnce({ x: 10, y: 20, placement: 'bottom-end' })

@@ -219,6 +219,16 @@ describe('VirtualList', () => {
       )
     })
 
+    it('renders a fractional row height without floating-point noise', () => {
+      Scene.scene(
+        { update, view: sceneView({ itemToRowHeightPx: () => 0.1 + 0.2 }) },
+        Scene.given(variableMeasuredModel),
+        Scene.expect(
+          Scene.selector('[data-virtual-list-item-index="0"]'),
+        ).toHaveStyle('height', '0.3px'),
+      )
+    })
+
     it('still picks the visible slice from cumulative heights', () => {
       Scene.scene(
         { update, view: sceneView({ itemToRowHeightPx }) },

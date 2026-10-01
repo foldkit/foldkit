@@ -288,6 +288,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Async Data',
     'A six-state value type for asynchronously loaded data in the Model: Idle, Loading, Refreshing, Failure, Stale, and Success, with stale-while-revalidate and keep-stale-on-failure built in.',
   ),
+  Css: core(
+    'CSS Values',
+    'Turn numbers into canonical CSS value strings with Css.px, Css.percent, Css.s, and the other unit functions. Covers the four-decimal format, rounding to a step to limit style writes, and asserting with toHaveStyle.',
+  ),
   PatternsAntiPatterns: pattern(
     'Anti-patterns',
     'Architectural warning signs in Foldkit apps, with idiomatic replacements for ambiguous state, leaky Submodel boundaries, misplaced side effects, stale async results, Command ordering, and live handles.',

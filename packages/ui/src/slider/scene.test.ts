@@ -68,6 +68,15 @@ describe('Slider', () => {
         Scene.expect(thumb).toHaveAttr('aria-orientation', 'horizontal'),
       )
     })
+
+    it('positions the filled track and thumb at the value fraction to four decimal places', () => {
+      Scene.scene(
+        { update, view: sceneView({ value: 1 }) },
+        Scene.given(init({ id: 'test', min: 0, max: 3, step: 1 })),
+        Scene.expect(filledTrack).toHaveStyle('width', '33.3333%'),
+        Scene.expect(thumb).toHaveStyle('left', '33.3333%'),
+      )
+    })
   })
 
   describe('thumb labeling', () => {
@@ -269,6 +278,57 @@ describe('Slider', () => {
         Scene.expect(filledTrack).toHaveStyle(
           'height',
           'calc((100% - 0.75rem) * 0.5 + 0.75rem / 2)',
+        ),
+      )
+    })
+
+    it('positions the filled track and thumb at the value fraction to four decimal places', () => {
+      Scene.scene(
+        { update, view: sceneView({ orientation: 'Vertical', value: 1 }) },
+        Scene.given(init({ id: 'test', min: 0, max: 3, step: 1 })),
+        Scene.expect(filledTrack).toHaveStyle('height', '33.3333%'),
+        Scene.expect(thumb).toHaveStyle('bottom', '33.3333%'),
+      )
+    })
+  })
+
+  describe('edge-aligned fraction', () => {
+    it('writes the horizontal fraction to four decimal places', () => {
+      Scene.scene(
+        {
+          update,
+          view: sceneView({ thumbAlignment: 'Edge', value: 1 }),
+        },
+        Scene.given(init({ id: 'test', min: 0, max: 3, step: 1 })),
+        Scene.expect(filledTrack).toHaveStyle(
+          'width',
+          'calc((100% - 0.75rem) * 0.3333 + 0.75rem / 2)',
+        ),
+        Scene.expect(thumb).toHaveStyle(
+          'left',
+          'calc((100% - 0.75rem) * 0.3333)',
+        ),
+      )
+    })
+
+    it('writes the vertical fraction to four decimal places', () => {
+      Scene.scene(
+        {
+          update,
+          view: sceneView({
+            orientation: 'Vertical',
+            thumbAlignment: 'Edge',
+            value: 1,
+          }),
+        },
+        Scene.given(init({ id: 'test', min: 0, max: 3, step: 1 })),
+        Scene.expect(filledTrack).toHaveStyle(
+          'height',
+          'calc((100% - 0.75rem) * 0.3333 + 0.75rem / 2)',
+        ),
+        Scene.expect(thumb).toHaveStyle(
+          'bottom',
+          'calc((100% - 0.75rem) * 0.3333)',
         ),
       )
     })

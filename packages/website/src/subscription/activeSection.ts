@@ -28,6 +28,7 @@ import {
   Contact,
   ContentApi,
   Core,
+  Css,
   EffectAtomComparison,
   ElmComparison,
   FieldValidation,
@@ -122,6 +123,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             CoreSubmodel: () => Core.SubmodelPage.tableOfContents,
             CoreMachine: () => Core.Machine.tableOfContents,
             AsyncData: () => AsyncDataPage.tableOfContents,
+            Css: () => Css.tableOfContents,
             PatternsAntiPatterns: () => Patterns.AntiPatterns.tableOfContents,
             PatternsInformingSubmodels: () =>
               Patterns.InformingSubmodels.tableOfContents,

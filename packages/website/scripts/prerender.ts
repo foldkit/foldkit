@@ -114,6 +114,7 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   AppRoute.CoreSubmodel(),
   AppRoute.CoreMachine(),
   AppRoute.AsyncData(),
+  AppRoute.Css(),
   AppRoute.PatternsAntiPatterns(),
   AppRoute.PatternsInformingSubmodels(),
   AppRoute.PatternsSubscriptionOrganization(),

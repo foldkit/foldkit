@@ -358,6 +358,20 @@ describe('DragAndDrop', () => {
         }),
       )
     })
+
+    it('writes fractional client coordinates without floating-point noise', () => {
+      Story.story(
+        update,
+        Story.given(defaultInit()),
+        Story.message(pressedDraggable),
+        Story.message(movedPointer({ clientX: 0.1 + 0.2, clientY: 10 })),
+        Story.model(model => {
+          expect(
+            Option.map(ghostStyle(model), style => style['transform']),
+          ).toStrictEqual(Option.some('translate3d(0.3px, 10px, 0)'))
+        }),
+      )
+    })
   })
 
   describe('isDragging', () => {

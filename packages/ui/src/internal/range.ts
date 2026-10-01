@@ -1,3 +1,5 @@
+import * as Css from 'foldkit/css'
+
 export const clamp = (value: number, min: number, max: number): number =>
   Math.min(Math.max(value, min), max)
 
@@ -19,4 +21,4 @@ export const fractionOfValue = (
 }
 
 export const percentageFromFraction = (fraction: number): string =>
-  `${Math.round(fraction * 10000) / 100}%`
+  Css.percent(fraction * 100)
