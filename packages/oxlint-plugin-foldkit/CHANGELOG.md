@@ -1,5 +1,11 @@
 # @foldkit/oxlint-plugin
 
+## 0.15.1
+
+### Patch Changes
+
+- [#1467](https://github.com/foldkit/foldkit/pull/1467) [`1a3dd68`](https://github.com/foldkit/foldkit/commit/1a3dd68616dcc00e8070f817f84510e69eeca24a) Thanks [@devinjameson](https://github.com/devinjameson)! - Upgrade compatible runtime, build, and test dependencies across the workspace.
+
 ## 0.15.0
 
 ### Minor Changes
