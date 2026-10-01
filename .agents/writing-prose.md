@@ -141,11 +141,18 @@ Do not reuse one snippet for different explanations. If a snippet is bad in one
 section, good in another, or needs a different explanation in its label, make
 page-specific copies so each example says exactly what it demonstrates.
 
-## Say when you are describing a scenario
+## State API behavior directly
 
-A colon leaves the reader working out whether what follows is a definition, a
-restatement, or a hypothetical. "Imagine", "Say", or "Picture" removes the
-ambiguity in one word.
+**Before.** "When a user signs out, the app removes the signed-in Submodel. Its
+Subscriptions should stop too."
+
+**After.** "Return `Some(child)` from `read` when the child is present, or `None`
+when it is absent. Foldkit stops the child's Subscriptions and skips its
+dependency functions while `read` returns `None`."
+
+State what the caller provides, what the function returns, and what Foldkit does.
+Do not lead with a hypothetical application or user story. Add an example only
+when it makes the stated behavior easier to understand.
 
 ## Do not assert that something matters
 

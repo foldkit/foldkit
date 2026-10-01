@@ -244,7 +244,8 @@ Never describe our own writing as honest ("an honest note", "an honest ledger", 
 Explain a thing the way you would say it out loud to another person. You write a clear explanation in conversation and then translate it into something worse for the docs: the mechanism described from inside itself, an abstraction where the conversation had an example, and the point buried at the end of a long sentence. The conversational version was the good one. Write that down instead. `.agents/writing-prose.md` has worked examples for these rules, all of them real. Read it before writing or substantially revising public documentation.
 
 - Lead with the claim, not the machinery. A reader who stops after two sentences should still have the model.
-- Write for a reader who begins at the current heading. Introduce the scenario and its nouns before drawing a conclusion. Do not rely on context from an issue, pull request, or conversation.
+- Explain API behavior directly: what the caller provides, what the function returns, and what Foldkit does. Do not lead with a hypothetical application or user story. State actual conditions precisely.
+- Write for a reader who begins at the current heading. Introduce the terms needed to understand the behavior. Do not rely on context from an issue, pull request, or conversation.
 - Describe runtime behavior before type assignability. Say what an operation does before explaining which generic return type accepts its result.
 - Give architecture types accurate agency. A Message records a fact, update decides how the Model changes, and a Command describes work for the Runtime to perform. Do not write that a Message "requires", "runs", or "performs" work.
 - Say what happens to a person. Not "the comparison is off", which describes the system's internal state and leaves the reader to work out the consequence.
@@ -252,9 +253,8 @@ Explain a thing the way you would say it out loud to another person. You write a
 - State the behavior or consequence directly. Words such as "works", "fails", "correct", "idiomatic", and "the intended way" are verdicts, not explanations. If you use a verdict, immediately say what the code does or what the reader must do.
 - Name the thing you are pointing at. When a demonstrative ("that ordering", "this check") reaches back more than a sentence, repeat the noun.
 - Use the specific name when one exists. If the implementation names three attributes, the prose names them too.
-- One concrete example beats three abstract clauses.
+- Use an example only when it makes the stated behavior easier to understand. Put the behavior first and keep the example short.
 - Signal an example before presenting it. A reader should not have to infer that several claims illustrate a larger rule. If the examples need different setup, put them in their own sections instead of compressing them into one sentence.
-- Say when you are describing a scenario. "Imagine", "Say", or "Picture", rather than hanging a hypothetical off a colon.
 - Short sentences carry the turns. Pivot a paragraph on a short flat one.
 - Do not assert that something matters. "That is the whole point", "is what makes it worth anything" claim importance instead of delivering it.
 - Do not make the same point twice in different words. When a vague claim sits beside a concrete one, the concrete one survives alone.
