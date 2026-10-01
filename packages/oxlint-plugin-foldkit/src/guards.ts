@@ -279,12 +279,13 @@ export const resolveImportedPath = (
 
 const foldkitNamespaceBySource: Readonly<Record<string, string>> = {
   'foldkit/command': 'Command',
+  'foldkit/experimental': 'Experimental',
+  'foldkit/experimental/query': 'Query',
   'foldkit/html': 'Html',
   'foldkit/managedResource': 'ManagedResource',
   'foldkit/message': 'Message',
   'foldkit/mount': 'Mount',
   'foldkit/navigation': 'Navigation',
-  'foldkit/query': 'Query',
   'foldkit/route': 'Route',
   'foldkit/runtime': 'Runtime',
   'foldkit/schema': 'Schema',

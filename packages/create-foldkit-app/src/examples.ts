@@ -97,7 +97,7 @@ export const examples: ReadonlyArray<{
     value: 'api-cache-query',
     title: 'api-cache-query',
     description:
-      'The API Cache app rewritten with Query.define. Fetch and keyed slots live on the Query',
+      'The API Cache app rewritten with experimental Query.define. Fetch and keyed slots live on the Query',
   },
   {
     value: 'charting',

@@ -1,10 +1,10 @@
 import { Effect, Schema, pipe } from 'effect'
 
-import * as AsyncData from '../asyncData/index.js'
-import * as Command from '../command/index.js'
-import { defineMessageUnion } from '../message/index.js'
-import { modifyFields } from '../struct/index.js'
-import * as Update from '../update/index.js'
+import * as AsyncData from '../../asyncData/index.js'
+import * as Command from '../../command/index.js'
+import { defineMessageUnion } from '../../message/index.js'
+import { modifyFields } from '../../struct/index.js'
+import * as Update from '../../update/index.js'
 import {
   type CacheStore,
   type CompletedFetchOf,
@@ -33,7 +33,11 @@ const makeQueryMessage = <A, AI, E, EI>(
     CompletedFetch: { result: Schema.Result(data, error) },
   })
 
-/** Schema-backed Message union dispatched when a Query Fetch completes. */
+/**
+ * Schema-backed Message union dispatched when a Query Fetch completes.
+ *
+ * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
+ */
 export type QueryMessage<A, AI, E, EI> = ReturnType<
   typeof makeQueryMessage<A, AI, E, EI>
 >
@@ -44,12 +48,20 @@ export const makeQueryModel = <A, AI, E, EI>(
   error: Schema.Codec<E, EI>,
 ) => Schema.Struct({ data: AsyncData.Schema(data, error).schema })
 
-/** Schema for a Query Model containing one remote-data value. */
+/**
+ * Schema for a Query Model containing one remote-data value.
+ *
+ * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
+ */
 export type QueryModel<A, AI, E, EI> = ReturnType<
   typeof makeQueryModel<A, AI, E, EI>
 >
 
-/** Single-slot remote-data Submodel. Read its `AsyncData` with `read`. */
+/**
+ * Single-slot remote-data Submodel. Read its `AsyncData` with `read`.
+ *
+ * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
+ */
 export interface Query<Name extends string, A, AI, E, EI, R = never> {
   /** Schema for this Query's Model. */
   readonly Model: QueryModel<A, AI, E, EI>
@@ -110,7 +122,11 @@ export interface Query<Name extends string, A, AI, E, EI, R = never> {
 }
 
 export namespace Query {
-  /** Any non-keyed Query definition. */
+  /**
+   * Any non-keyed Query definition.
+   *
+   * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
+   */
   export type Any = {
     readonly Model: Schema.Top
     readonly Message: Schema.Top

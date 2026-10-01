@@ -12,11 +12,11 @@ import { expect, expectTypeOf } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import * as AsyncData from '../asyncData/index.js'
-import { defineMessageUnion } from '../message/index.js'
-import { modifyFields } from '../struct/index.js'
-import * as Story from '../test/story.js'
-import type * as Update from '../update/index.js'
+import * as AsyncData from '../../asyncData/index.js'
+import { defineMessageUnion } from '../../message/index.js'
+import { modifyFields } from '../../struct/index.js'
+import * as Story from '../../test/story.js'
+import type * as Update from '../../update/index.js'
 import * as Query from './index.js'
 import type { SyncFields } from './keyedQuery.js'
 

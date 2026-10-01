@@ -1,8 +1,8 @@
 import { Effect, Match, Option, Predicate, Schema, pipe } from 'effect'
 
-import * as AsyncData from '../asyncData/index.js'
-import * as Command from '../command/index.js'
-import * as Update from '../update/index.js'
+import * as AsyncData from '../../asyncData/index.js'
+import * as Command from '../../command/index.js'
+import * as Update from '../../update/index.js'
 
 export type Policy = 'loadIfMissing' | 'revalidate' | 'revalidateOrLoad'
 
@@ -179,9 +179,17 @@ export type KeyedArgs<Fields extends Schema.Struct.Fields> = Schema.Schema.Type<
   Schema.Struct<Fields>
 >
 
-/** Parent-Model operations returned by `query.lift`. */
+/**
+ * Parent-Model operations returned by `query.lift`.
+ *
+ * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
+ */
 export namespace Lifted {
-  /** A non-keyed Query lifted into a parent Model and Message. */
+  /**
+   * A non-keyed Query lifted into a parent Model and Message.
+   *
+   * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
+   */
   export type Query<
     ParentModel,
     ParentMessage,
@@ -194,7 +202,11 @@ export namespace Lifted {
     loadIfMissing: Update.Step<ParentModel, ParentMessage, R>
   }>
 
-  /** A KeyedQuery lifted into a parent Model and Message. */
+  /**
+   * A KeyedQuery lifted into a parent Model and Message.
+   *
+   * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
+   */
   export type KeyedQuery<
     ParentModel,
     ParentMessage,

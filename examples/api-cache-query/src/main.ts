@@ -10,9 +10,9 @@ import {
   pipe,
 } from 'effect'
 import { AsyncData, Runtime, Subscription, Update } from 'foldkit'
+import { Query } from 'foldkit/experimental'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import * as Query from 'foldkit/query'
 import { modifyFields } from 'foldkit/struct'
 
 import { Button, Tabs } from '@foldkit/ui'

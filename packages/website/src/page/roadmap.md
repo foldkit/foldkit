@@ -24,7 +24,7 @@ When an application finds a missing primitive, an awkward API, or an unreasonabl
 
 ### Promoting Experimental Surfaces
 
-Server rendering and Machine are the two largest public surfaces still behind an experimental boundary. Server rendering needs more production use across different hosts. Machine needs to prove that it makes complicated state easier to understand. They will both graduate out of experimental before 1.0.
+Server rendering, Machine, and Query are the largest public surfaces still behind an experimental boundary. Server rendering needs more production use across different hosts. Machine needs to prove that it makes complicated state easier to understand. Query needs production use to settle its cache lifecycle and composition API. They will graduate out of experimental before 1.0.
 
 ### Foldkit UI
 
