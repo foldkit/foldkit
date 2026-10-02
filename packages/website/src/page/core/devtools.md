@@ -77,7 +77,7 @@ Smaller values reduce work under high Message rates. Larger values provide more 
 
 ### keyframeInterval {#keyframe-interval}
 
-The number of recorded Messages between full Model snapshots. The default is `31`, and the minimum is `1`.
+The number of recorded Messages between full Model snapshots. The default is `31`, and the minimum is `1`. DevTools caps the interval at half of `maxEntries`, so `maxEntries: 20` with the default interval snapshots every `10` Messages and an eviction keeps at least half of the history.
 
 To reconstruct an entry, DevTools starts at the nearest earlier snapshot and replays update. A smaller interval stores more snapshots but shortens that replay. Set the interval to `1` when update is expensive and time-travel feels slow. Every entry then has its own snapshot, so no replay is needed.
 

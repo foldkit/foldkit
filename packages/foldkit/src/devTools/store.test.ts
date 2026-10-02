@@ -511,11 +511,40 @@ describe('DevToolsStore', () => {
       recordIncrements(store, 55)
 
       const state = getState(store)
-      expect(state.startIndex).toBe(31)
-      expect(state.entries.length).toBe(24)
+      expect(state.startIndex).toBe(25)
+      expect(state.entries.length).toBe(30)
 
       const model = run(store.getModelAtIndex(40))
       expect(model).toEqual({ count: 41 })
+    })
+
+    it('keeps indices contiguous and readable when max entries is below the default keyframe interval', () => {
+      const { store } = makeStore(undefined, 20)
+
+      recordIncrements(store, 25)
+
+      const state = getState(store)
+      expect(state.startIndex).toBe(10)
+      expect(state.entries.length).toBe(15)
+
+      const retainedModels = pipe(
+        Array.range(10, 24),
+        Array.map(index => run(store.getModelAtIndex(index))),
+      )
+      expect(retainedModels).toEqual(
+        Array.map(Array.range(11, 25), count => ({ count })),
+      )
+    })
+
+    it('keeps indices contiguous and readable when the keyframe interval exceeds max entries', () => {
+      const { store } = makeStore(undefined, 20, 200)
+
+      recordIncrements(store, 45)
+
+      const state = getState(store)
+      expect(state.startIndex).toBe(30)
+      expect(state.entries.length).toBe(15)
+      expect(run(store.getModelAtIndex(42))).toEqual({ count: 43 })
     })
 
     it('auto-resumes when paused index is evicted', () => {
