@@ -18,6 +18,8 @@ Most helpers that resolve a live element wait until Foldkit has committed the la
 
 `Dom.showDialog` resolves to `true` when it installs the focus trap, return focus, stack entry, and optional modal isolation. It resolves to `false` when that Dialog id already holds those resources, so concurrent lifecycle recovery and application Commands do not acquire them twice.
 
+When the open `<dialog>` element leaves the document without a `Dom.closeDialog`, `Dom.showDialog` releases those resources itself, the same way `Dom.releaseDialogResources` does. No Message has to reach update for that release, so it also happens when the same update removes the Model that owns the dialog. The release includes one page scroll lock. Call `Dom.lockScroll` once for each `Dom.showDialog` that resolves to `true`, as the Dialog component does. Without that lock, the release takes a lock that another holder owns.
+
 Scrolling has two later-timing variants. `Dom.scrollIntoViewAfterPaint` waits until the target has been painted, which suits a route that just inserted a fragment target. `Dom.scrollIntoViewIfNotVisible` also waits through paint by default, but accepts `{ when: 'Commit' }` when the first visible frame should already be scrolled.
 
 Cleanup and global-state helpers run immediately because they do not need a newly rendered target. These include `Dom.closeDialog`, `Dom.releaseDialogResources`, `Dom.lockScroll`, `Dom.unlockScroll`, and `Dom.restoreInert`. `Dom.waitForAnimationSettled` has its own timing contract: it checks the target's active Web Animations on the next animation frame and waits for them to settle.
