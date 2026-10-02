@@ -278,6 +278,7 @@ export const resolveImportedPath = (
   })
 
 const foldkitNamespaceBySource: Readonly<Record<string, string>> = {
+  'foldkit/asyncData': 'AsyncData',
   'foldkit/command': 'Command',
   'foldkit/html': 'Html',
   'foldkit/managedResource': 'ManagedResource',
