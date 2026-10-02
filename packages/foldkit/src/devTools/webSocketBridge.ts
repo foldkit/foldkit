@@ -402,9 +402,23 @@ export const dispatchRequest = (
     RequestGetModel: ({ maybePath, expand }) =>
       Effect.gen(function* () {
         const state = yield* SubscriptionRef.get(store.stateRef)
-        const index = latestEntryIndex(state)
-        return yield* readModelResponse(store, index, maybePath, expand)
-      }),
+        const model = Option.getOrThrow(state.maybeLatestModel)
+        return presentResolution(
+          resolvePath(
+            toInspectableValue(model),
+            Option.getOrElse(maybePath, () => 'root'),
+          ),
+          expand,
+        )
+      }).pipe(
+        Effect.catchCause(cause =>
+          Effect.succeed(
+            Response.ResponseError({
+              reason: `Failed to read Live Model: ${Cause.pretty(cause)}`,
+            }),
+          ),
+        ),
+      ),
 
     RequestGetModelAt: ({ index, maybePath, expand }) =>
       Effect.gen(function* () {

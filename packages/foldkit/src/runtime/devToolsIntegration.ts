@@ -117,6 +117,7 @@ export const makeDevToolsIntegration = <Model, Message>({
   Effect.gen(function* () {
     const resolvedDevTools = resolveDevToolsConfig(devTools)
     const excludeFromHistoryTags = resolveExcludeFromHistoryTags(devTools)
+    let uiExcludedTags: ReadonlySet<string> = new Set()
     const devToolsMaxEntries = resolveDevToolsMaxEntries(devTools)
     const devToolsKeyframeInterval = resolveDevToolsKeyframeInterval(devTools)
 
@@ -201,16 +202,6 @@ export const makeDevToolsIntegration = <Model, Message>({
         onNone: () => Effect.void,
         onSome: ({ position, mode, maybeBanner, maybeOverlay }) =>
           Effect.gen(function* () {
-            // NOTE: when excludeFromHistory is active, the runtime drops
-            // excluded Messages from the recorded history. Replay walks the
-            // recorded entries forward from the nearest keyframe. With
-            // exclusion, the dropped Messages aren't in that walk, so any
-            // cumulative state they would have produced is missing from the
-            // replayed model. Setting keyframeInterval to 1 stores a full
-            // snapshot on every recorded entry, so time-travel becomes a
-            // direct lookup that reflects the real live state at the moment
-            // the entry was recorded.
-            const isExcludingMessages = excludeFromHistoryTags.size > 0
             const store = yield* createDevToolsStore(
               {
                 /* eslint-disable @typescript-eslint/consistent-type-assertions */
@@ -232,11 +223,6 @@ export const makeDevToolsIntegration = <Model, Message>({
                 ...(devToolsMaxEntries !== undefined && {
                   maxEntries: devToolsMaxEntries,
                 }),
-                // NOTE: exclusion forces keyframeInterval to 1 regardless of any
-                // configured value, since excluded Messages are never replayed
-                // and a denser interval would leave gaps in the replayed model.
-                // Spread last so it wins over `keyframeInterval` above.
-                ...(isExcludingMessages && { keyframeInterval: 1 }),
               },
             )
             devToolsStore = store
@@ -245,7 +231,13 @@ export const makeDevToolsIntegration = <Model, Message>({
             // first paint.
             yield* Option.match(maybeOverlay, {
               onNone: () => Effect.void,
-              onSome: overlay => overlay(store, position, mode, maybeBanner),
+              onSome: overlay =>
+                overlay(store, position, mode, maybeBanner, {
+                  configuredExcludedTags: excludeFromHistoryTags,
+                  setUiExcludedTags: tags => {
+                    uiExcludedTags = new Set(tags)
+                  },
+                }),
             })
 
             if (import.meta.hot) {
@@ -310,7 +302,7 @@ export const makeDevToolsIntegration = <Model, Message>({
         /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
         const tag = (message as { _tag: string })._tag
         const isModelChanged = currentModel !== nextModel
-        if (!excludeFromHistoryTags.has(tag)) {
+        if (!excludeFromHistoryTags.has(tag) && !uiExcludedTags.has(tag)) {
           Effect.runFork(
             store.recordMessage(
               /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */

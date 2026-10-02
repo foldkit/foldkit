@@ -1,6 +1,7 @@
 import {
   Array,
   Effect,
+  HashMap,
   HashSet,
   Match,
   Number,
@@ -418,7 +419,7 @@ describe('DevToolsStore', () => {
       })
     })
 
-    it('feeds the latest-model fast path on top of recorded entries', () => {
+    it('keeps the latest recorded Model separate from Live', () => {
       const { store } = makeStore()
 
       run(
@@ -434,7 +435,7 @@ describe('DevToolsStore', () => {
 
       const state = getState(store)
       const latestIndex = state.startIndex + state.entries.length - 1
-      expect(run(store.getModelAtIndex(latestIndex))).toEqual({ count: 99 })
+      expect(run(store.getModelAtIndex(latestIndex))).toEqual({ count: 1 })
     })
   })
 
@@ -1147,5 +1148,140 @@ describe('DevToolsStore', () => {
         { name: 'AnchorPopover', args: { buttonId: 'home' } },
       ])
     })
+  })
+})
+
+describe('history across excluded Messages', () => {
+  it('V5 fixes the latest recorded Model while Live advances', () => {
+    const { store } = makeStore(undefined, 20, 3)
+    run(
+      store.recordMessage(
+        clickedIncrement,
+        { count: 0 },
+        { count: 1 },
+        [],
+        true,
+      ),
+    )
+    run(store.updateLatestModel({ count: 5 }))
+    run(
+      store.recordMessage(
+        clickedIncrement,
+        { count: 5 },
+        { count: 6 },
+        [],
+        true,
+      ),
+    )
+    run(store.updateLatestModel({ count: 9 }))
+    expect(run(store.getModelAtIndex(0))).toEqual({ count: 1 })
+    expect(run(store.getModelAtIndex(1))).toEqual({ count: 6 })
+    expect(getState(store).maybeLatestModel).toEqual(Option.some({ count: 9 }))
+  })
+
+  it('V6 replays gaps without rewriting the preceding recorded state', () => {
+    const { store } = makeStore(undefined, 20, 3)
+    run(
+      store.recordMessage(
+        clickedIncrement,
+        { count: 0 },
+        { count: 1 },
+        [],
+        true,
+      ),
+    )
+    run(store.updateLatestModel({ count: 5 }))
+    run(
+      store.recordMessage(
+        clickedIncrement,
+        { count: 5 },
+        { count: 6 },
+        [],
+        true,
+      ),
+    )
+    run(
+      store.recordMessage(
+        clickedIncrement,
+        { count: 6 },
+        { count: 7 },
+        [],
+        true,
+      ),
+    )
+    expect(run(store.getModelAtIndex(0))).toEqual({ count: 1 })
+    expect(run(store.getModelAtIndex(1))).toEqual({ count: 6 })
+    expect(run(store.getModelAtIndex(2))).toEqual({ count: 7 })
+  })
+
+  it('V7 preserves Live as the replay baseline after Clear', () => {
+    const { store } = makeStore(undefined, 20, 3)
+    run(
+      store.recordMessage(
+        clickedIncrement,
+        { count: 0 },
+        { count: 1 },
+        [],
+        true,
+      ),
+    )
+    run(store.clear)
+    expect(getState(store).maybeLatestModel).toEqual(Option.some({ count: 1 }))
+    run(
+      store.recordMessage(
+        clickedIncrement,
+        { count: 1 },
+        { count: 2 },
+        [],
+        true,
+      ),
+    )
+    run(
+      store.recordMessage(
+        clickedIncrement,
+        { count: 2 },
+        { count: 3 },
+        [],
+        true,
+      ),
+    )
+    expect(run(store.getModelAtIndex(-1))).toEqual(initialModel)
+    expect(run(store.getModelAtIndex(0))).toEqual({ count: 2 })
+    expect(run(store.getModelAtIndex(1))).toEqual({ count: 3 })
+  })
+
+  it('V8 retains exact Models across gaps and segment eviction', () => {
+    const { store } = makeStore(undefined, 20, 3)
+    const expected = new Map<number, unknown>()
+    let liveModel = initialModel
+    for (const index of Array.range(0, 35)) {
+      if (index % 4 === 0 || index % 3 === 0) {
+        liveModel = modifyFields(liveModel, { count: count => count + 5 })
+        run(store.updateLatestModel(liveModel))
+      }
+
+      const nextModel = modifyFields(liveModel, { count: Number.increment })
+      run(store.recordMessage(clickedIncrement, liveModel, nextModel, [], true))
+      liveModel = nextModel
+      expected.set(index, nextModel)
+      const state = getState(store)
+      for (const retainedIndex of Array.range(
+        Math.max(0, state.startIndex - 1),
+        index,
+      )) {
+        expect(run(store.getModelAtIndex(retainedIndex))).toEqual(
+          expected.get(retainedIndex),
+        )
+      }
+    }
+
+    const state = getState(store)
+    expect(state.entries.length).toBeLessThanOrEqual(20)
+    expect(
+      Array.fromIterable(HashMap.keys(state.gapCheckpoints)).every(
+        index => index >= state.startIndex,
+      ),
+    ).toBe(true)
+    expect(run(store.getModelAtIndex(-1))).toEqual(initialModel)
   })
 })

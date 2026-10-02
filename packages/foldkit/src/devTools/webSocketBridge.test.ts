@@ -397,3 +397,34 @@ describe('startWebSocketBridge', () => {
     expect(sentEventTags).toEqual(['EventConnected', 'EventDisconnected'])
   })
 })
+
+it('V5 separates Live Model reads from fixed indexed history', () => {
+  const store = run(createDevToolsStore(makeBridge(), { keyframeInterval: 1 }))
+  run(store.recordInit(initialModel, []))
+  run(
+    store.recordMessage(clickedIncrement, initialModel, { count: 1 }, [], true),
+  )
+  run(store.updateLatestModel({ count: 9 }))
+  const call = (request: Request) =>
+    run(
+      dispatchRequest(
+        store,
+        () => Effect.void,
+        Option.none(),
+        Option.none(),
+        request,
+      ),
+    )
+  expect(
+    call(Request.RequestGetModel({ maybePath: Option.none(), expand: true })),
+  ).toMatchObject({ _tag: 'ResponseModel', value: { count: 9 } })
+  expect(
+    call(
+      Request.RequestGetModelAt({
+        index: 0,
+        maybePath: Option.none(),
+        expand: true,
+      }),
+    ),
+  ).toMatchObject({ _tag: 'ResponseModel', value: { count: 1 } })
+})

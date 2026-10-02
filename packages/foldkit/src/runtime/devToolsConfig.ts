@@ -26,6 +26,12 @@ export type DevToolsModeConfig =
   | DevToolsMode
   | Readonly<{ development: DevToolsMode; production: DevToolsMode }>
 
+/** Recording choices shared with the injected DevTools overlay. */
+export type DevToolsRecordingControls = Readonly<{
+  configuredExcludedTags: ReadonlySet<string>
+  setUiExcludedTags: (tags: ReadonlyArray<string>) => void
+}>
+
 /**
  * Factory that mounts the in-browser DevTools overlay against a recording
  * store. The runtime keeps the store and the WebSocket bridge (so external
@@ -41,6 +47,7 @@ export type DevToolsOverlay = (
   position: DevToolsPosition,
   mode: DevToolsMode,
   maybeBanner: Option.Option<string>,
+  recordingControls: DevToolsRecordingControls,
 ) => Effect.Effect<void, never, Scope.Scope>
 
 /**
@@ -52,9 +59,9 @@ export type DevToolsOverlay = (
  * - `position`: Where the badge and panel appear. Defaults to `'BottomRight'`.
  * - `mode`: `'TimeTravel'` (default) enables full time-travel debugging by installing a paused historical view while the live application continues. `'Inspect'` allows browsing state snapshots without replacing the live view. Pass `{ development, production }` to use different modes per environment. Useful when DevTools is shown in production (`show: 'Always'`) and you want `'TimeTravel'` only in local development.
  * - `banner`: Optional text shown as a banner at the top of the panel.
- * - `excludeFromHistory`: Message `_tag` values whose dispatches should not be recorded in DevTools history. The Messages still drive `update` and the runtime as usual; they just don't appear in the history panel and don't pay the per-Message diff cost. Use for high-frequency Messages (animation frames, pointer moves, scroll events) that would flood history without adding insight.
- * - `maxEntries`: Maximum number of recorded Messages retained in history before the oldest is evicted. Defaults to 100. Clamped to the range 20-500: smaller values keep the panel snappy under high message rates, larger values give you more scroll-back. Each retained entry stores a full Model snapshot, so memory cost scales linearly with both `maxEntries` and your Model size.
- * - `keyframeInterval`: Number of recorded Messages between full Model snapshots. Defaults to 31. Time-travel to an index replays `update` forward from the nearest earlier keyframe, so this is a memory/time tradeoff: smaller values store more snapshots (more memory) but make each jump cheaper, down to `1` where every jump is a constant-time snapshot lookup with no replay. Reach for a denser interval when the app has a heavy `update` and time-travel jumps feel sluggish. Clamped to a minimum of 1. Forced to 1 automatically when `excludeFromHistory` is active, since excluded Messages are never replayed.
+ * - `excludeFromHistory`: Message `_tag` values whose dispatches should not be recorded in DevTools history. The Messages still drive `update` and the runtime as usual; they just don't appear in the history panel and don't pay the per-Message diff cost. The overlay can also exclude tags; application-configured tags cannot be re-enabled there.
+ * - `maxEntries`: Maximum number of recorded Messages retained in history before the oldest is evicted. Defaults to 100. Clamped to the range 20-500: smaller values keep the panel snappy under high message rates, larger values give you more scroll-back. Memory use grows with retained entries, Model snapshots, and checkpoints after excluded updates.
+ * - `keyframeInterval`: Number of recorded Messages between full Model snapshots. Defaults to 31. Time-travel to an index replays `update` forward from the nearest earlier keyframe, so this is a memory/time tradeoff: smaller values store more snapshots (more memory) but make each jump cheaper, down to `1` where every jump is a constant-time snapshot lookup with no replay. Reach for a denser interval when the app has a heavy `update` and time-travel jumps feel sluggish. Clamped to a minimum of 1. Excluded Model changes add a separate checkpoint before the next recorded Message, preserving the configured interval.
  */
 export type DevToolsConfig =
   | false
