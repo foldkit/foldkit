@@ -19,6 +19,16 @@ The `Live` badge tells you whether the inspector shows the latest state or a pas
 Foldkit also exposes DevTools to AI agents over the Model Context Protocol. See the [DevTools MCP](/ai/mcp) page for setup.
 :::
 
+:::Warning{label="DevTools records application data"}
+DevTools records Models, Message payloads, Command arguments, and Mount arguments. A configured [DevTools MCP](/ai/mcp) server lets an agent read that data. Keep secrets out of browser state, use Effect `Redacted` for sensitive values the browser must temporarily hold, and disable the MCP relay or DevTools when the Runtime may contain data the agent should not receive.
+:::
+
+A browser may still need to hold a short-lived access token. Wrap it before it enters the Model, keep the `Redacted` value intact in any Message or Command arguments that carry it, and recover the raw value only where the Command constructs the authenticated request. The numbered comments trace the Model-to-request path through the example.
+
+::Snippet{name="devtoolsRedacted" label="Redacting a short-lived access token"}
+
+DevTools displays the value as `<redacted:access token>`. This prevents accidental inspection and serialization; it does not encrypt the token or hide it from someone who controls the browser.
+
 ## Development and Production
 
 DevTools are enabled by default in development. Recording and the MCP bridge live in the core runtime. The browser overlay ships separately in `@foldkit/devtools`. When that package is installed as a development dependency, `@foldkit/vite-plugin` mounts the overlay automatically during development. Production builds omit it without an application-level environment check.
@@ -62,6 +72,8 @@ The application’s `Message` Schema. Required only for AI agent integration: wh
 A list of Message `_tag` values that DevTools should not record. The Messages still run through update and change the application as usual. They do not appear in the history panel or incur the per-Message diff cost.
 
 Use this option when animation frames, pointer moves, scroll events, or another high-frequency source would flood the history.
+
+Do not use `excludeFromHistory` to hide sensitive data. The current Model and the Models at later recorded entries still include changes made by an excluded Message.
 
 When the list contains at least one tag, DevTools stores a full Model snapshot for every recorded entry. That preserves changes made by excluded Messages when you travel to a recorded state. Excluded Messages also update the `Live` Model view, but they do not append a history entry or compute a diff.
 

@@ -51,6 +51,14 @@ Restart your dev server, then restart your AI agent. The MCP server will appear 
 
 The browser bridge runs inside your app, so the MCP server only sees a Runtime while the app is open in a browser tab. Close the tab and the Runtime disappears from `foldkit_list_runtimes`.
 
+## Sensitive Runtime Data
+
+Treat this server as privileged access to the running application. A connected agent can read the current, initial, and retained historical Models; every retained Message payload; and the arguments passed to recorded Commands and Mounts. Anything returned by one of these tools enters the agent's context.
+
+Keep API keys, passwords, access and refresh tokens, authorization headers, session material, and private personal data out of those values. Long-lived secrets belong behind a server boundary, including in local demos. If the browser must temporarily carry a sensitive value, use Effect `Redacted` with a `Schema.Redacted` field configured with `disallowJsonEncode: true`. `Redacted` protects normal string, JSON, and inspection output; it does not encrypt the value or hide a browser-side credential from the person running the browser.
+
+`excludeFromHistory` is for noisy Messages, not sensitive ones. The resulting Model remains inspectable. Omitting `DevToolsConfig.Message` disables dispatch only; read and replay tools remain available. Set `devToolsMcpPort: false` in the Foldkit Vite plugin options to keep the in-browser DevTools without starting the MCP relay, or set `devTools: false` in the application config to disable recording and the browser bridge too.
+
 ## Tools
 
 Each tool accepts an optional `runtime_id`. When omitted, the most recently connected Runtime is used.
@@ -110,7 +118,7 @@ The MCP server looks for a running dev server in its project directory. If sever
 | `FOLDKIT_DEVTOOLS_MCP_HOST`        | Overrides the hostname of a discovered relay or configured port.                                                                                                            |
 | `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY` | Registry location. Defaults to a directory under `XDG_RUNTIME_DIR` when set, or under the OS temporary directory. Set it in both processes if they use different sandboxes. |
 
-A relay discovered through the registry requires the token in its published address. The plugin will not publish that token into a directory owned by another user or readable by other users. A configured `devToolsMcpPort` opens a separate socket on every interface without a token.
+A relay discovered through the registry requires the token in its published address. The plugin will not publish that token into a directory owned by another user or readable by other users. This token keeps unapproved clients from connecting; it does not hide runtime data from the agent that was given the MCP server. A configured `devToolsMcpPort` opens a separate socket on every interface without a token. Do not use a fixed port on a shared or untrusted network.
 
 On Windows, directory ownership cannot be verified, so automatic discovery is unavailable. Use `devToolsMcpPort` in the Vite config and set `FOLDKIT_DEVTOOLS_MCP_PORT` to the same port.
 

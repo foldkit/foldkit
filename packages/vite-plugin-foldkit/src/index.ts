@@ -171,6 +171,7 @@ const FORCE_INCLUDED_EFFECT_NAMESPACES: ReadonlyArray<string> = [
   'effect/PubSub',
   'effect/Queue',
   'effect/Record',
+  'effect/Redacted',
   'effect/Ref',
   'effect/Result',
   'effect/Runtime',

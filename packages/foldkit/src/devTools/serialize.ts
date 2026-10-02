@@ -1,4 +1,12 @@
-import { Array, Function, Match, Option, Predicate, Record } from 'effect'
+import {
+  Array,
+  Function,
+  Match,
+  Option,
+  Predicate,
+  Record,
+  Redacted,
+} from 'effect'
 
 import type {
   SerializedCommand,
@@ -12,6 +20,7 @@ const inspectableCache = new WeakMap<object, unknown>()
 
 const computeInspectableValue = (value: unknown): unknown =>
   Match.value(value).pipe(
+    Match.when(Redacted.isRedacted, globalThis.String),
     Match.when(Match.instanceOf(File), file => ({
       name: file.name,
       size: file.size,
@@ -30,7 +39,8 @@ const computeInspectableValue = (value: unknown): unknown =>
   )
 
 /**
- * Convert DOM-class instances (File, Blob, Date, URL) to plain-object
+ * Convert Effect `Redacted` values to their labeled placeholder strings and
+ * DOM-class instances (File, Blob, Date, URL) to plain-object
  * representations so the tree renderer's key-enumeration walk can see their
  * meaningful data, which otherwise lives on the prototype as getters and
  * is invisible to `Object.keys`. Recurses through arrays and records so
@@ -62,31 +72,40 @@ export const toInspectableValue = (value: unknown): unknown => {
 /**
  * Convert a runtime `CommandRecord` to its wire shape. Args are wrapped in an
  * `Option` so `None` cleanly distinguishes argless Commands from Commands that
- * happen to have an empty args record.
+ * happen to have an empty args record. Nested Effect `Redacted` values become
+ * their placeholder strings before transmission.
  */
 export const toSerializedCommand = (
   command: CommandRecord,
 ): SerializedCommand => ({
   name: command.name,
-  args: Option.fromNullishOr(command.args),
+  args: Option.map(
+    Option.fromNullishOr(command.args),
+    Record.map(toInspectableValue),
+  ),
   maybeSubmodelPath: command.maybeSubmodelPath,
 })
 
 /**
  * Convert a runtime `MountRecord` to its wire shape. Args are wrapped in an
  * `Option` so `None` cleanly distinguishes argless Mounts from Mounts that
- * happen to have an empty args record.
+ * happen to have an empty args record. Nested Effect `Redacted` values become
+ * their placeholder strings before transmission.
  */
 export const toSerializedMount = (mount: MountRecord): SerializedMount => ({
   name: mount.name,
-  args: Option.fromNullishOr(mount.args),
+  args: Option.map(
+    Option.fromNullishOr(mount.args),
+    Record.map(toInspectableValue),
+  ),
 })
 
 /**
  * Convert a `HistoryEntry` plus its absolute index into the wire-friendly
  * `SerializedEntry` shape. Flattens the diff's `HashSet` path collections to
  * plain string arrays for JSON transmission and runs the message body through
- * `toInspectableValue` so DOM-class instances become inspectable objects.
+ * `toInspectableValue` so Effect `Redacted` values become placeholders and
+ * DOM-class instances become inspectable objects.
  */
 export const toSerializedEntry = (
   entry: HistoryEntry,
