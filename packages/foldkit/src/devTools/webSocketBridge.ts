@@ -1,6 +1,7 @@
 import {
   Array,
   Cause,
+  Data,
   Effect,
   Exit,
   HashMap,
@@ -72,6 +73,16 @@ const RESPONSE_CHANNEL = 'foldkit:devTools:response'
 /** HMR channel the bridge announces connection lifecycle events on. */
 export const EVENT_CHANNEL = 'foldkit:devTools:event'
 
+/**
+ * The failure the bridge's `dispatch` returns when the runtime crashed or
+ * was disposed before update processed every Message, including when update
+ * threw on one of them. `processedCount` is how many of the Messages, from
+ * the first, update processed. The others have no history entries.
+ */
+export class RuntimeStopped extends Data.TaggedError('RuntimeStopped')<{
+  processedCount: number
+}> {}
+
 const generateConnectionId = (): string =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
 
@@ -102,9 +113,11 @@ const tryDeriveJsonSchemaDocument = (
  * this runtime from its connected set. A page that goes away for good takes
  * its socket with it, and the relay prunes on that close.
  *
- * `dispatch` delivers a Message to the runtime; the bridge
- * uses it to fulfill `RequestDispatchMessage` after decoding the payload
- * against a JSON-canonical derivation of `maybeMessageSchema` (via
+ * `dispatch` delivers Messages to the runtime in one step and completes
+ * once update has processed every one, or fails with `RuntimeStopped` when
+ * the runtime stopped first. The bridge uses it to fulfill
+ * `RequestDispatchMessage` and `RequestDispatchMessages` after decoding each
+ * payload against a JSON-canonical derivation of `maybeMessageSchema` (via
  * `Schema.toCodecJson`). The derivation reconstructs runtime values like
  * `Option`, `Date`, `Map`, and `Set` from their JSON-tagged shapes, so
  * application Message Schemas using stdlib types Just Work over dispatch
@@ -126,7 +139,9 @@ const tryDeriveJsonSchemaDocument = (
 export const startWebSocketBridge = (
   store: DevToolsStore,
   hot: Hot,
-  dispatch: (message: unknown) => Effect.Effect<void>,
+  dispatch: (
+    messages: ReadonlyArray<unknown>,
+  ) => Effect.Effect<void, RuntimeStopped>,
   maybeMessageSchema: Option.Option<Schema.Codec<any, any>>,
 ): Effect.Effect<void, never, Scope.Scope> =>
   Effect.gen(function* () {
@@ -383,6 +398,20 @@ const missingMessageSchemaResponse = Response.ResponseError({
     'Cannot dispatch: DevToolsConfig.Message not configured. Pass your Message Schema to enable dispatch.',
 })
 
+const runtimeStoppedResponse = Response.ResponseError({
+  reason:
+    'The runtime has crashed or been disposed, or update threw on the Message, so no history entry was recorded.',
+})
+
+const formatRuntimeStoppedInBatch = (
+  processedCount: number,
+  batchSize: number,
+  firstAcceptedIndex: number,
+): string =>
+  processedCount === 0
+    ? 'The runtime has crashed or been disposed, or update threw on the first Message, so update processed none of the Messages in the batch and no history entries were recorded.'
+    : `Update processed ${processedCount} of ${batchSize} Messages, predicted at history indices ${firstAcceptedIndex} to ${firstAcceptedIndex + processedCount - 1}, before the runtime stopped: update threw on the next Message, or the runtime crashed or was disposed. The other ${batchSize - processedCount} Messages have no history entries.`
+
 const formatInvalidMessageReason = (error: unknown, message: unknown): string =>
   `${error instanceof Error ? error.message : String(error)}\n\nReceived (typeof ${typeof message}): ${JSON.stringify(message)}`
 
@@ -393,7 +422,9 @@ const formatInvalidMessageReason = (error: unknown, message: unknown): string =>
  */
 export const dispatchRequest = (
   store: DevToolsStore,
-  dispatch: (message: unknown) => Effect.Effect<void>,
+  dispatch: (
+    messages: ReadonlyArray<unknown>,
+  ) => Effect.Effect<void, RuntimeStopped>,
   maybeDispatchSchema: Option.Option<Schema.Codec<any, any>>,
   maybeJsonSchemaDocument: Option.Option<unknown>,
   request: Request,
@@ -628,9 +659,12 @@ export const dispatchRequest = (
               yield* Schema.decodeUnknownEffect(dispatchSchema)(message)
             const stateBefore = yield* SubscriptionRef.get(store.stateRef)
             const acceptedAtIndex = nextEntryIndex(stateBefore)
-            yield* dispatch(decodedMessage)
+            yield* dispatch([decodedMessage])
             return Response.ResponseDispatched({ acceptedAtIndex })
           }).pipe(
+            Effect.catchTag('RuntimeStopped', () =>
+              Effect.succeed(runtimeStoppedResponse),
+            ),
             Effect.catch(error =>
               Effect.succeed(
                 Response.ResponseError({
@@ -668,7 +702,17 @@ export const dispatchRequest = (
             )
             const stateBefore = yield* SubscriptionRef.get(store.stateRef)
             const firstAcceptedIndex = nextEntryIndex(stateBefore)
-            yield* Effect.forEach(decodedMessages, dispatch)
+            yield* Effect.mapError(
+              dispatch(decodedMessages),
+              ({ processedCount }) =>
+                new Error(
+                  formatRuntimeStoppedInBatch(
+                    processedCount,
+                    decodedMessages.length,
+                    firstAcceptedIndex,
+                  ),
+                ),
+            )
             const acceptedAtIndices = Array.map(
               decodedMessages,
               (_decodedMessage, offset) => firstAcceptedIndex + offset,

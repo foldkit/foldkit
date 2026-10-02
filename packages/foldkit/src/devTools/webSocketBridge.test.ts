@@ -21,6 +21,7 @@ import {
 } from './store.js'
 import {
   EVENT_CHANNEL,
+  RuntimeStopped,
   dispatchRequest,
   startWebSocketBridge,
 } from './webSocketBridge.js'
@@ -66,8 +67,13 @@ const makeHarness = (
 
   const dispatched: Array<unknown> = []
   let liveModel = initialModel
+  let maybeRemainingDispatchCount = Option.none<number>()
 
-  const dispatch = (message: unknown) =>
+  const stopRuntimeAfter = (dispatchCount: number): void => {
+    maybeRemainingDispatchCount = Option.some(dispatchCount)
+  }
+
+  const processMessage = (message: unknown) =>
     Effect.gen(function* () {
       const counterMessage = decodeCounterMessage(message)
       dispatched.push(counterMessage)
@@ -82,8 +88,25 @@ const makeHarness = (
       )
     })
 
-  run(dispatch(clickedIncrement))
-  run(dispatch(clickedIncrement))
+  const dispatch = (messages: ReadonlyArray<unknown>) =>
+    Effect.forEach(
+      messages,
+      (message, processedCount) => {
+        if (Option.contains(maybeRemainingDispatchCount, 0)) {
+          return Effect.fail(new RuntimeStopped({ processedCount }))
+        }
+
+        maybeRemainingDispatchCount = Option.map(
+          maybeRemainingDispatchCount,
+          Number.decrement,
+        )
+        return processMessage(message)
+      },
+      { discard: true },
+    )
+
+  run(processMessage(clickedIncrement))
+  run(processMessage(clickedIncrement))
   dispatched.length = 0
 
   const maybeDispatchSchema = Option.map(maybeMessageSchema, Schema.toCodecJson)
@@ -113,7 +136,7 @@ const makeHarness = (
     })
   }
 
-  return { dispatched, callBridge, recordedTags, tagAt }
+  return { dispatched, callBridge, recordedTags, tagAt, stopRuntimeAfter }
 }
 
 describe('dispatchRequest', () => {
@@ -145,6 +168,27 @@ describe('dispatchRequest', () => {
       )
 
       expect(response._tag).toBe('ResponseError')
+      expect(dispatched).toEqual([])
+      expect(recordedTags()).toEqual(['ClickedIncrement', 'ClickedIncrement'])
+    })
+
+    it('answers with an error when the runtime dropped the Message', () => {
+      const { dispatched, callBridge, recordedTags, stopRuntimeAfter } =
+        makeHarness()
+      stopRuntimeAfter(0)
+
+      const response = callBridge(
+        Request.RequestDispatchMessage({
+          message: { _tag: 'ClickedIncrement' },
+        }),
+      )
+
+      if (response._tag !== 'ResponseError') {
+        throw new Error(`Expected Response.ResponseError, got ${response._tag}`)
+      }
+      expect(response.reason).toContain(
+        'or update threw on the Message, so no history entry was recorded',
+      )
       expect(dispatched).toEqual([])
       expect(recordedTags()).toEqual(['ClickedIncrement', 'ClickedIncrement'])
     })
@@ -231,6 +275,61 @@ describe('dispatchRequest', () => {
       )
       expect(dispatched).toEqual([])
       expect(recordedTags()).toEqual(['ClickedIncrement', 'ClickedIncrement'])
+    })
+
+    it('answers with an error when the runtime dropped the whole batch', () => {
+      const { dispatched, callBridge, recordedTags, stopRuntimeAfter } =
+        makeHarness()
+      stopRuntimeAfter(0)
+
+      const response = callBridge(
+        Request.RequestDispatchMessages({
+          messages: [
+            { _tag: 'ClickedIncrement' },
+            { _tag: 'ClickedDecrement' },
+          ],
+        }),
+      )
+
+      if (response._tag !== 'ResponseError') {
+        throw new Error(`Expected Response.ResponseError, got ${response._tag}`)
+      }
+      expect(response.reason).toContain(
+        'update processed none of the Messages in the batch',
+      )
+      expect(dispatched).toEqual([])
+      expect(recordedTags()).toEqual(['ClickedIncrement', 'ClickedIncrement'])
+    })
+
+    it('reports which Messages update processed when the runtime stops partway through a batch', () => {
+      const { dispatched, callBridge, recordedTags, stopRuntimeAfter } =
+        makeHarness()
+      stopRuntimeAfter(2)
+
+      const response = callBridge(
+        Request.RequestDispatchMessages({
+          messages: [
+            { _tag: 'ClickedIncrement' },
+            { _tag: 'ClickedDecrement' },
+            { _tag: 'ClickedIncrement' },
+            { _tag: 'ClickedIncrement' },
+          ],
+        }),
+      )
+
+      if (response._tag !== 'ResponseError') {
+        throw new Error(`Expected Response.ResponseError, got ${response._tag}`)
+      }
+      expect(response.reason).toContain(
+        'Update processed 2 of 4 Messages, predicted at history indices 2 to 3, before the runtime stopped',
+      )
+      expect(dispatched).toEqual([clickedIncrement, clickedDecrement])
+      expect(recordedTags()).toEqual([
+        'ClickedIncrement',
+        'ClickedIncrement',
+        'ClickedIncrement',
+        'ClickedDecrement',
+      ])
     })
 
     it('accepts an empty batch and dispatches nothing', () => {
