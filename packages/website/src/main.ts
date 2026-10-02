@@ -6,6 +6,7 @@ import {
   Option,
   Record,
   Schema,
+  String,
   pipe,
 } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
@@ -309,7 +310,7 @@ export const init: Runtime.RoutingApplicationInit<
       ...analyticsCommands,
       ...(pageInits.commands ?? []),
       ScrollSidebarActiveLinkIntoView(),
-      ...Option.match(url.hash, {
+      ...Option.match(Option.filter(url.hash, String.isNonEmpty), {
         onNone: () => [],
         onSome: hash => [ScrollToAnchor({ hash })],
       }),
@@ -678,7 +679,9 @@ export const update = (model: Model, message: Message) =>
         commands: [
           ...Option.match(url.hash, {
             onNone: () => Option.toArray(maybeScrollToTop),
-            onSome: hash => [ScrollToAnchor({ hash })],
+            onSome: hash => [
+              String.isEmpty(hash) ? ScrollToTop() : ScrollToAnchor({ hash }),
+            ],
           }),
           ...Option.toArray(maybeScrollSidebar),
         ],

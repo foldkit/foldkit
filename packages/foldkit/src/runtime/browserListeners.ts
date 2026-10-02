@@ -1,8 +1,7 @@
 import { Option, String } from 'effect'
 
-import { OptionExt, StringExt } from '../effectExtensions/index.js'
 import { UrlRequest } from '../navigation/urlRequest.js'
-import { Url } from '../url/index.js'
+import { Url, fromWhatwgUrl } from '../url/index.js'
 
 /** Configuration for URL routing with handlers for URL requests and URL changes. */
 export type RoutingConfig<Message> = Readonly<{
@@ -90,7 +89,7 @@ export const addLinkClickListener = <Message>(
 
     dispatch(
       routingConfig.onUrlRequest(
-        UrlRequest.Internal({ url: urlToFoldkitUrl(linkUrl) }),
+        UrlRequest.Internal({ url: fromWhatwgUrl(linkUrl) }),
       ),
     )
   }
@@ -115,17 +114,4 @@ const addProgrammaticNavigationListener = <Message>(
   }
 }
 
-const urlToFoldkitUrl = (url: URL): Url => {
-  const { protocol, hostname, port, pathname, search, hash } = url
-
-  return {
-    protocol,
-    host: hostname,
-    port: OptionExt.fromString(port),
-    pathname,
-    search: StringExt.stripPrefixNonEmpty('?')(search),
-    hash: StringExt.stripPrefixNonEmpty('#')(hash),
-  }
-}
-
-const locationToUrl = (): Url => urlToFoldkitUrl(new URL(window.location.href))
+const locationToUrl = (): Url => fromWhatwgUrl(new URL(window.location.href))
