@@ -32,14 +32,9 @@ When changesets are merged to main, a "Version Packages" pull request is automat
 1. Updates package versions
 2. Updates CHANGELOG.md files
 3. Uploads and verifies the stable package set without moving `latest`
-4. Comments on the merged Version Packages pull request when that exact commit is ready to promote
+4. Promotes the complete package set to `latest` through npm trusted publishing
+5. Verifies the promoted versions, creates matching Git tags and GitHub Releases, and deploys the production website from the release commit
 
 Write changesets for package-specific changes. When shared build inputs change, the release planner automatically adds patch bumps for every website package. Existing larger bumps take precedence.
 
-After the notification arrives, confirm that `npm whoami` and `gh auth status` both succeed. Check out the commit named in the notification with a clean working tree, install its dependencies, and run:
-
-```bash
-pnpm release:promote
-```
-
-Enter the npm OTP when prompted. Promotion moves the complete package set to `latest` and dispatches the finalization workflow. That workflow verifies the promoted versions, creates the matching Git tags and GitHub Releases, and deploys the production website from the published commit.
+Every public package's `release.yml` trusted publisher must have **Allow npm dist-tag** enabled alongside **Allow npm publish**. GitHub Actions publishes and promotes routine releases automatically using OIDC. If a release fails, rerun its failed GitHub Actions jobs. See [Releasing](../RELEASING.md) for authentication setup and recovery.

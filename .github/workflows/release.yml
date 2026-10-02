@@ -93,13 +93,14 @@ jobs:
           SKIP_SIMPLE_GIT_HOOKS: '1'
 
   stable:
-    name: Upload and verify stable packages
+    name: Upload, verify, and promote stable packages
     if: github.event_name == 'push' && needs.version.outputs.has_changesets == 'false'
     needs: version
+    outputs:
+      published_commit: ${{ steps.promote.outputs.published_commit }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write
       id-token: write
     steps:
       - name: Checkout Repo
@@ -122,91 +123,32 @@ jobs:
         run: |
           NPM_DIR="$(npm config get prefix)/lib/node_modules/npm"
           rm -rf "$NPM_DIR"
-          curl -sL https://registry.npmjs.org/npm/-/npm-11.12.1.tgz | tar xz -C "$(dirname "$NPM_DIR")"
+          curl -sL https://registry.npmjs.org/npm/-/npm-11.21.0.tgz | tar xz -C "$(dirname "$NPM_DIR")"
           mv "$(dirname "$NPM_DIR")/package" "$NPM_DIR"
           npm --version
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Identify the stable release commit
+        id: plan
+        run: node scripts/coherent-release.mjs plan-stable
+
       - name: Verify website package inputs are versioned
+        if: steps.plan.outputs.has_release == 'true'
         run: pnpm check:website-release-inputs
 
       - name: Upload and verify stable packages
+        if: steps.plan.outputs.has_release == 'true'
         run: pnpm release
         env:
           NPM_CONFIG_PROVENANCE: true
           SKIP_SIMPLE_GIT_HOOKS: '1'
 
-      - name: Notify the maintainer that promotion is ready
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const { owner, repo } = context.repo
-            const { data: pullRequests } =
-              await github.rest.repos.listPullRequestsAssociatedWithCommit({
-                owner,
-                repo,
-                commit_sha: context.sha,
-              })
-            const versionPullRequest = pullRequests.find(
-              pullRequest =>
-                pullRequest.head.ref === 'changeset-release/main' &&
-                typeof pullRequest.merged_at === 'string',
-            )
-
-            if (versionPullRequest === undefined) {
-              core.info(
-                'No merged Version Packages pull request is associated with this commit. Skipping the promotion notification.',
-              )
-              return
-            }
-
-            const marker =
-              `<!-- foldkit-release-promotion-ready:${context.sha} -->`
-            const body = [
-              marker,
-              `@devinjameson The stable packages for \`${context.sha}\` are uploaded and verified. They are ready to promote.`,
-              '',
-              'Confirm that `npm whoami` and `gh auth status` both succeed. Then, from a clean local checkout, run:',
-              '',
-              '```bash',
-              'git fetch origin main',
-              `git switch --detach ${context.sha}`,
-              'pnpm install --frozen-lockfile',
-              'pnpm release:promote',
-              '```',
-              '',
-              '`pnpm release:promote` prompts for your npm OTP, moves the complete package set to `latest`, and dispatches GitHub Release creation and the production website deployment.',
-            ].join('\n')
-            const comments = await github.paginate(
-              github.rest.issues.listComments,
-              {
-                owner,
-                repo,
-                issue_number: versionPullRequest.number,
-                per_page: 100,
-              },
-            )
-            const existingComment = comments.find(comment =>
-              comment.body?.includes(marker),
-            )
-
-            if (existingComment === undefined) {
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: versionPullRequest.number,
-                body,
-              })
-            } else {
-              await github.rest.issues.updateComment({
-                owner,
-                repo,
-                comment_id: existingComment.id,
-                body,
-              })
-            }
+      - name: Promote and verify the complete latest snapshot
+        id: promote
+        if: steps.plan.outputs.has_release == 'true'
+        run: pnpm release:promote
 
   canary:
     name: Upload and verify commit-addressed package canary
@@ -233,7 +175,7 @@ jobs:
         run: |
           NPM_DIR="$(npm config get prefix)/lib/node_modules/npm"
           rm -rf "$NPM_DIR"
-          curl -sL https://registry.npmjs.org/npm/-/npm-11.12.1.tgz | tar xz -C "$(dirname "$NPM_DIR")"
+          curl -sL https://registry.npmjs.org/npm/-/npm-11.21.0.tgz | tar xz -C "$(dirname "$NPM_DIR")"
           mv "$(dirname "$NPM_DIR")/package" "$NPM_DIR"
           npm --version
 
@@ -255,21 +197,28 @@ jobs:
 
   finalize:
     name: Finalize the promoted stable release
-    if: github.event_name == 'workflow_dispatch'
+    needs: stable
+    if: >-
+      !cancelled() &&
+      ((github.event_name == 'push' && needs.stable.result == 'success' && needs.stable.outputs.published_commit != '') ||
+       github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
+    env:
+      PUBLISHED_COMMIT: ${{ needs.stable.outputs.published_commit || inputs.published_commit }}
+    outputs:
+      published_commit: ${{ steps.verify.outputs.published_commit }}
     permissions:
       contents: write
     steps:
       - name: Checkout the promoted release
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.published_commit }}
+          ref: ${{ env.PUBLISHED_COMMIT }}
           fetch-depth: 0
           persist-credentials: false
 
       - name: Verify the promoted release commit
-        env:
-          PUBLISHED_COMMIT: ${{ inputs.published_commit }}
+        id: verify
         run: |
           if [[ ! "${PUBLISHED_COMMIT}" =~ ^[0-9a-f]{40}$ ]]; then
             echo "published_commit must be a full lowercase Git commit SHA" >&2
@@ -288,6 +237,8 @@ jobs:
             echo "the published commit ${resolved} is not on main" >&2
             exit 1
           fi
+
+          echo "published_commit=${resolved}" >> "${GITHUB_OUTPUT}"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -308,13 +259,12 @@ jobs:
         run: pnpm release:finalize-github
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          PUBLISHED_COMMIT: ${{ inputs.published_commit }}
 
   deploy-website:
     name: Deploy the promoted website
     needs: finalize
-    if: github.event_name == 'workflow_dispatch'
+    if: ${{ !cancelled() && needs.finalize.result == 'success' }}
     uses: ./.github/workflows/deploy-website.yml
     with:
-      published_commit: ${{ inputs.published_commit }}
+      published_commit: ${{ needs.finalize.outputs.published_commit }}
     secrets: inherit

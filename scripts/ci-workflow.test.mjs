@@ -110,7 +110,7 @@ test('stable publication verifies website package inputs before upload', () => {
   )
   assert.match(
     stableJob,
-    /- name: Verify website package inputs are versioned\n\s+run: pnpm check:website-release-inputs/,
+    /- name: Verify website package inputs are versioned\n\s+if: steps\.plan\.outputs\.has_release == 'true'\n\s+run: pnpm check:website-release-inputs/,
   )
 })
 

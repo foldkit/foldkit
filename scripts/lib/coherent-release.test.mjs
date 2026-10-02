@@ -8,10 +8,9 @@ import {
   assertPackagesAlreadyExist,
   canaryVersion,
   createNpmTagger,
-  dispatchReleaseFinalization,
   packagesForChannel,
   packagesToUpload,
-  promoteAndFinalizeCurrentWorkspace,
+  promoteStableRelease,
   promoteSnapshot,
   promptForNpmOtp,
   resolveReleaseCommit,
@@ -855,6 +854,52 @@ test('npm tag changes honor a supplied OTP without prompting', async () => {
   })
 })
 
+test('GitHub Actions tag changes use npm OIDC without an OTP', async () => {
+  let prompts = 0
+  let receivedEnvironment
+  const tagPackage = createNpmTagger({
+    env: {
+      ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'oidc-request-token',
+      ACTIONS_ID_TOKEN_REQUEST_URL:
+        'https://token.actions.githubusercontent.com',
+      GITHUB_ACTIONS: 'true',
+      NPM_CONFIG_OTP: 'inherited-otp',
+      npm_config_otp: 'lowercase-inherited-otp',
+      PATH: '/usr/bin',
+    },
+    promptForOtp: async () => {
+      prompts += 1
+
+      return 'unexpected'
+    },
+    run: (_command, _args, options) => {
+      receivedEnvironment = options.env
+    },
+  })
+
+  await tagPackage(packageFor('foldkit', '1.2.3'), 'latest')
+
+  assert.equal(prompts, 0)
+  assert.deepEqual(receivedEnvironment, {
+    ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'oidc-request-token',
+    ACTIONS_ID_TOKEN_REQUEST_URL: 'https://token.actions.githubusercontent.com',
+    GITHUB_ACTIONS: 'true',
+    PATH: '/usr/bin',
+  })
+})
+
+test('GitHub Actions tag changes require an OIDC token permission', () => {
+  assert.throws(
+    () =>
+      createNpmTagger({
+        env: { GITHUB_ACTIONS: 'true', PATH: '/usr/bin' },
+        promptForOtp: assert.fail,
+        run: assert.fail,
+      }),
+    /Add `id-token: write` to the promoting job permissions/,
+  )
+})
+
 test('interactive npm OTP input is not echoed', async () => {
   const input = new PassThrough()
   const output = new PassThrough()
@@ -999,51 +1044,10 @@ test('stable promotion validates the release commit on current main', () => {
   )
 })
 
-test('release finalization targets the exact published commit', () => {
-  const commit = '0123456789abcdef0123456789abcdef01234567'
-  const calls = []
-  const environment = {
-    NPM_CONFIG_OTP: 'uppercase-secret',
-    npm_config_otp: 'lowercase-secret',
-    PATH: '/usr/bin',
-  }
-
-  dispatchReleaseFinalization(
-    '/repo',
-    commit,
-    (command, args, options) => {
-      calls.push({ command, args, options })
-    },
-    environment,
-  )
-
-  assert.deepEqual(calls, [
-    {
-      command: 'gh',
-      args: [
-        'workflow',
-        'run',
-        'release.yml',
-        '-f',
-        `published_commit=${commit}`,
-      ],
-      options: {
-        cwd: '/repo',
-        inherit: true,
-        env: { PATH: '/usr/bin' },
-      },
-    },
-  ])
-  assert.throws(
-    () => dispatchReleaseFinalization('/repo', 'HEAD', assert.fail),
-    /requires a full lowercase Git commit/,
-  )
-})
-
-test('stable finalization starts only after verified promotion', async () => {
+test('stable promotion starts only after verified release commit', async () => {
   const commit = '0123456789abcdef0123456789abcdef01234567'
   const events = []
-  const result = await promoteAndFinalizeCurrentWorkspace({
+  const result = await promoteStableRelease({
     root: '/repo',
     resolveCommit: () => {
       events.push('resolved commit')
@@ -1058,23 +1062,23 @@ test('stable finalization starts only after verified promotion', async () => {
 
       return { promoted: ['foldkit'], alreadyPromoted: [] }
     },
-    dispatch: async publishedCommit => {
-      events.push(`dispatched ${publishedCommit}`)
-    },
   })
 
   assert.deepEqual(events, [
     'resolved commit',
     `verified ${commit}`,
     'verified promotion',
-    `dispatched ${commit}`,
   ])
-  assert.equal(result.publishedCommit, commit)
+  assert.deepEqual(result, {
+    publishedCommit: commit,
+    promoted: ['foldkit'],
+    alreadyPromoted: [],
+  })
 
   events.length = 0
 
   await assert.rejects(
-    promoteAndFinalizeCurrentWorkspace({
+    promoteStableRelease({
       root: '/repo',
       resolveCommit: () => commit,
       verifyCommit: () => {},
@@ -1082,9 +1086,6 @@ test('stable finalization starts only after verified promotion', async () => {
         events.push('failed promotion')
 
         throw new Error('registry verification failed')
-      },
-      dispatch: async () => {
-        events.push('unexpected dispatch')
       },
     }),
     /registry verification failed/,
@@ -1094,7 +1095,7 @@ test('stable finalization starts only after verified promotion', async () => {
   events.length = 0
 
   await assert.rejects(
-    promoteAndFinalizeCurrentWorkspace({
+    promoteStableRelease({
       root: '/repo',
       resolveCommit: () => commit,
       verifyCommit: () => {
@@ -1105,43 +1106,8 @@ test('stable finalization starts only after verified promotion', async () => {
       promote: async () => {
         events.push('unexpected promotion')
       },
-      dispatch: async () => {
-        events.push('unexpected dispatch')
-      },
     }),
     /commit did not version public packages/,
   )
   assert.deepEqual(events, ['rejected release commit'])
-})
-
-test('stable finalization can retry after a dispatch failure', async () => {
-  const commit = '0123456789abcdef0123456789abcdef01234567'
-  let promotions = 0
-  let dispatches = 0
-  const options = {
-    root: '/repo',
-    resolveCommit: () => commit,
-    verifyCommit: () => {},
-    promote: async () => {
-      promotions += 1
-
-      return { promoted: [], alreadyPromoted: ['foldkit'] }
-    },
-    dispatch: async () => {
-      dispatches += 1
-
-      if (dispatches === 1) {
-        throw new Error('GitHub dispatch failed')
-      }
-    },
-  }
-
-  await assert.rejects(
-    promoteAndFinalizeCurrentWorkspace(options),
-    /GitHub dispatch failed/,
-  )
-  await promoteAndFinalizeCurrentWorkspace(options)
-
-  assert.equal(promotions, 2)
-  assert.equal(dispatches, 2)
 })
