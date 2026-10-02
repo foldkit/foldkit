@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   CalendarDate,
@@ -194,6 +194,46 @@ describe('toDateLocal', () => {
   it('round-trips through fromDateLocal', () => {
     const original = make(2026, 4, 13)
     expect(fromDateLocal(toDateLocal(original))).toStrictEqual(original)
+  })
+
+  it('keeps a year from 0 to 99', () => {
+    const jsDate = toDateLocal(make(50, 3, 1))
+    expect(jsDate.getFullYear()).toBe(50)
+    expect(jsDate.getMonth()).toBe(2)
+    expect(jsDate.getDate()).toBe(1)
+    expect(jsDate.getHours()).toBe(0)
+    expect(jsDate.getMinutes()).toBe(0)
+    expect(jsDate.getSeconds()).toBe(0)
+    expect(jsDate.getMilliseconds()).toBe(0)
+  })
+
+  it('keeps the year at and just past the edges of the 0 to 99 range', () => {
+    expect(toDateLocal(make(0, 1, 1)).getFullYear()).toBe(0)
+    expect(toDateLocal(make(99, 12, 31)).getFullYear()).toBe(99)
+    expect(toDateLocal(make(100, 1, 1)).getFullYear()).toBe(100)
+  })
+
+  it('round-trips February 29 of year 0 through fromDateLocal', () => {
+    const original = make(0, 2, 29)
+    expect(fromDateLocal(toDateLocal(original))).toStrictEqual(original)
+  })
+
+  describe('on a date when daylight saving time starts late in the evening', () => {
+    beforeEach(() => {
+      vi.stubEnv('TZ', 'Atlantic/Azores')
+    })
+
+    afterEach(() => {
+      vi.unstubAllEnvs()
+    })
+
+    it('keeps the day and local midnight', () => {
+      const jsDate = toDateLocal(make(1916, 6, 17))
+      expect(jsDate.getFullYear()).toBe(1916)
+      expect(jsDate.getMonth()).toBe(5)
+      expect(jsDate.getDate()).toBe(17)
+      expect(jsDate.getHours()).toBe(0)
+    })
   })
 })
 
