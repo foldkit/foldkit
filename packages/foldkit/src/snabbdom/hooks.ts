@@ -8,6 +8,7 @@ export type PrePatchHook = (oldVNode: VNode, vNode: VNode) => any
 export type UpdateHook = (oldVNode: VNode, vNode: VNode) => any
 export type PostPatchHook = (oldVNode: VNode, vNode: VNode) => any
 export type DestroyHook = (vNode: VNode) => any
+export type PostDestroyHook = (vNode: VNode) => any
 export type RemoveHook = (vNode: VNode, removeCallback: () => void) => any
 export type PostHook = () => any
 
@@ -20,6 +21,7 @@ export interface Hooks {
   update?: UpdateHook
   postpatch?: PostPatchHook
   destroy?: DestroyHook
+  postdestroy?: PostDestroyHook
   remove?: RemoveHook
   post?: PostHook
 }
