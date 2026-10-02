@@ -126,6 +126,42 @@ const getOrCreatePortalRoot = (element: Element): HTMLElement =>
     onSome: getOrCreateDialogPortalRoot,
   })
 
+type ScrollOffsets = Readonly<{
+  element: Element
+  top: number
+  left: number
+}>
+
+const readScrollOffsets = (element: Element): ReadonlyArray<ScrollOffsets> =>
+  pipe(
+    [element, ...element.querySelectorAll('*')],
+    Array.filter(
+      ({ scrollTop, scrollLeft }) => scrollTop !== 0 || scrollLeft !== 0,
+    ),
+    Array.map(scrolled => ({
+      element: scrolled,
+      top: scrolled.scrollTop,
+      left: scrolled.scrollLeft,
+    })),
+  )
+
+// NOTE: a browser resets the scroll offsets of an element that moves in the
+// DOM, and of every element inside it. A Mount on an element inside a panel
+// runs before the Mount on the panel that moves it, because snabbdom calls
+// `insert` hooks for descendants first. Without the restore, a list that such
+// a Mount scrolled into place would be back at the top after the move.
+// `behavior: 'instant'` keeps an element with `scroll-behavior: smooth` from
+// animating back to its offset.
+const moveKeepingScrollOffsets = (element: Element, move: () => void): void => {
+  const scrollOffsets = readScrollOffsets(element)
+
+  move()
+
+  scrollOffsets.forEach(({ element: scrolled, top, left }) => {
+    scrolled.scrollTo({ top, left, behavior: 'instant' })
+  })
+}
+
 /** Relocates an element into a portal root and returns a cleanup function
  *  that removes it again. Inside a `<dialog>`, the portal root is a div
  *  appended to that dialog, so the element stays above the dialog's content
@@ -134,13 +170,16 @@ const getOrCreatePortalRoot = (element: Element): HTMLElement =>
  *  is the shared `foldkit-portal-root` div within the element's containing
  *  root: the shadow root when mounted inside one, otherwise `document.body`.
  *  Either way the element escapes the clipping and stacking contexts of the
- *  ancestors it leaves, and keeps its root's scoped styles. Use
+ *  ancestors it leaves, and keeps its root's scoped styles. The element and
+ *  the elements inside it keep their scroll offsets across the move. Use
  *  `portalBackdrop` for a click-outside backdrop. Designed to be called from
  *  inside an `OnMount` action: the consumer wraps the call in `Effect.sync`
  *  and stashes the returned cleanup in the `Mount` result. */
 export const portalToContainingRoot = (element: Element): (() => void) => {
   const portalRoot = getOrCreatePortalRoot(element)
-  portalRoot.appendChild(element)
+  moveKeepingScrollOffsets(element, () => {
+    portalRoot.appendChild(element)
+  })
 
   return () => {
     try {
@@ -202,7 +241,9 @@ export const portalBackdrop = (element: Element): (() => void) =>
       // The dialog portal root cannot give both: appended, the backdrop would
       // cover the trigger too, and prepended, the dialog panel would cover the
       // backdrop. `closest` and `parentElement` must be read before the move.
-      wrapper.before(element)
+      moveKeepingScrollOffsets(element, () => {
+        wrapper.before(element)
+      })
       return () => element.remove()
     },
   })
