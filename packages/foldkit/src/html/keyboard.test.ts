@@ -52,6 +52,9 @@ const fakeKeyboardEvent = (
       metaKey: false,
       target: origin === 'self' ? host : child,
       currentTarget: host,
+      get defaultPrevented() {
+        return isDefaultPrevented
+      },
       preventDefault: () => {
         isDefaultPrevented = true
       },
@@ -149,5 +152,93 @@ describe('keyboard self-scoped attributes', () => {
       expect(fake.isDefaultPrevented()).toBe(false)
       expect(dispatched).toEqual([])
     })
+  })
+})
+
+describe('keydowns an earlier handler already claimed', () => {
+  let dispatched: Array<unknown>
+
+  beforeEach(() => {
+    dispatched = []
+    setUpRuntime(dispatched)
+  })
+
+  afterEach(() => {
+    clearRuntime()
+  })
+
+  const claimedKeydown = (
+    origin: 'self' | 'descendant',
+  ): ReturnType<typeof fakeKeyboardEvent> => {
+    const h = __htmlBuilder<Message>()
+    const nested = h.div([
+      h.OnKeyDownPreventDefault(key =>
+        Option.some(Message.PressedKey({ key: `nested ${key}` })),
+      ),
+    ])
+    const fake = fakeKeyboardEvent('Escape', origin)
+    handlerOf(nested, 'keydown')(fake.event)
+
+    return fake
+  }
+
+  it('OnKeyDownPreventDefault leaves the keydown to the handler that claimed it', () => {
+    const h = __htmlBuilder<Message>()
+    const outer = h.div([
+      h.OnKeyDownPreventDefault(key =>
+        Option.some(Message.PressedKey({ key: `outer ${key}` })),
+      ),
+    ])
+
+    const fake = claimedKeydown('descendant')
+    handlerOf(outer, 'keydown')(fake.event)
+
+    expect(dispatched).toEqual([{ _tag: 'PressedKey', key: 'nested Escape' }])
+  })
+
+  it('OnKeyDownSelfPreventDefault leaves the keydown to the handler that claimed it', () => {
+    const h = __htmlBuilder<Message>()
+    const host = h.div([
+      h.OnKeyDownSelfPreventDefault(key =>
+        Option.some(Message.PressedKey({ key: `host ${key}` })),
+      ),
+    ])
+
+    const fake = claimedKeydown('self')
+    handlerOf(host, 'keydown')(fake.event)
+
+    expect(dispatched).toEqual([{ _tag: 'PressedKey', key: 'nested Escape' }])
+  })
+
+  it('OnKeyDownFocus leaves the keydown to the handler that claimed it', () => {
+    const h = __htmlBuilder<Message>()
+    const outer = h.div([
+      h.OnKeyDownFocus(key =>
+        Option.some({
+          focusSelector: '#missing',
+          message: Message.PressedKey({ key: `outer ${key}` }),
+        }),
+      ),
+    ])
+
+    const fake = claimedKeydown('descendant')
+    handlerOf(outer, 'keydown')(fake.event)
+
+    expect(dispatched).toEqual([{ _tag: 'PressedKey', key: 'nested Escape' }])
+  })
+
+  it('OnKeyDown still reports a keydown that another handler claimed', () => {
+    const h = __htmlBuilder<Message>()
+    const outer = h.div([
+      h.OnKeyDown(key => Message.PressedKey({ key: `outer ${key}` })),
+    ])
+
+    const fake = claimedKeydown('descendant')
+    handlerOf(outer, 'keydown')(fake.event)
+
+    expect(dispatched).toEqual([
+      { _tag: 'PressedKey', key: 'nested Escape' },
+      { _tag: 'PressedKey', key: 'outer Escape' },
+    ])
   })
 })
