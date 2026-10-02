@@ -1,4 +1,4 @@
-import { Deferred, Effect, Fiber, Ref } from 'effect'
+import { Deferred, Effect, Fiber, Option, Ref } from 'effect'
 import { TestClock } from 'effect/testing'
 import { describe, expect, test, vi } from 'vitest'
 
@@ -7,6 +7,7 @@ import type { WebContainerProcess } from '@webcontainer/api'
 import {
   PROCESS_OUTPUT_TAIL_CHARACTERS,
   captureProcessOutput,
+  failureFromError,
   installDependencies,
   startDevServer,
 } from './playgroundWebContainer'
@@ -29,6 +30,23 @@ const closedOutput = () =>
       controller.close()
     },
   })
+
+const failedInstall = (outputChunks: ReadonlyArray<string>) => {
+  const process = makeProcess(
+    Promise.resolve(1),
+    new ReadableStream<string>({
+      start(controller) {
+        outputChunks.forEach(chunk => controller.enqueue(chunk))
+        controller.close()
+      },
+    }),
+  )
+  const container = {
+    spawn: vi.fn(() => Promise.resolve(process)),
+  }
+
+  return Effect.runPromise(installDependencies(container).pipe(Effect.flip))
+}
 
 describe('Playground WebContainer processes', () => {
   test('keeps only the newest process output', async () => {
@@ -99,9 +117,54 @@ describe('Playground WebContainer processes', () => {
       installDependencies(container).pipe(Effect.flip),
     )
 
-    expect(error.message).toContain('npm install exited with code 1.')
-    expect(error.message).toContain('first line\ntrailing line')
+    expect(failureFromError(error)).toEqual({
+      reason: 'npm install exited with code 1.',
+      maybeProcessOutput: Option.some('first line\ntrailing line'),
+    })
     expect(kill).toHaveBeenCalledOnce()
+  })
+
+  test.each(['ERESOLVE', 'ETARGET'])(
+    'reports an install that fails with %s as out of sync with the release',
+    async errorCode => {
+      const error = await failedInstall([
+        '\u001B[1G\u001B[0K⠙\u001B[1G\u001B[0K⠹',
+        '\u001B[1G\u001B[0K\u001B[31mnpm error\u001B[0m ',
+        `code ${errorCode}\r\r\n`,
+        '\u001B]0;npm\u0007\u001B(Bnpm error detail\n',
+      ])
+
+      expect(failureFromError(error)).toEqual({
+        reason:
+          'The playground is temporarily out of sync with the latest Foldkit release. Try again later.',
+        maybeProcessOutput: Option.some(
+          `npm error code ${errorCode}\nnpm error detail`,
+        ),
+      })
+    },
+  )
+
+  test('reports the exit code when an install that warned about ERESOLVE fails for another reason', async () => {
+    const error = await failedInstall([
+      'npm warn ERESOLVE overriding peer dependency\n',
+      'npm error code E500\n',
+    ])
+
+    expect(failureFromError(error)).toEqual({
+      reason: 'npm install exited with code 1.',
+      maybeProcessOutput: Option.some(
+        'npm warn ERESOLVE overriding peer dependency\nnpm error code E500',
+      ),
+    })
+  })
+
+  test('reports no process output for a failure outside a process', () => {
+    expect(failureFromError(new Error('WebContainer failed to boot.'))).toEqual(
+      {
+        reason: 'WebContainer failed to boot.',
+        maybeProcessOutput: Option.none(),
+      },
+    )
   })
 
   test('kills a process delivered after its spawn deadline', async () => {
@@ -182,10 +245,10 @@ describe('Playground WebContainer processes', () => {
       Effect.scoped(startDevServer(container)).pipe(Effect.flip),
     )
 
-    expect(error.message).toContain(
-      'Failed to read npm run dev output. stream broke',
-    )
-    expect(error.message).toContain('output before failure')
+    expect(failureFromError(error)).toEqual({
+      reason: 'Failed to read npm run dev output. stream broke',
+      maybeProcessOutput: Option.some('output before failure'),
+    })
     expect(unsubscribe).toHaveBeenCalledOnce()
     expect(kill).toHaveBeenCalledOnce()
   })
@@ -271,8 +334,10 @@ describe('Playground WebContainer processes', () => {
       ),
     )
 
-    expect(error.message).toContain('npm run dev exited with code 2.')
-    expect(error.message).toContain('first line\ntrailing line')
+    expect(failureFromError(error)).toEqual({
+      reason: 'npm run dev exited with code 2.',
+      maybeProcessOutput: Option.some('first line\ntrailing line'),
+    })
   })
 
   test('drains trailing dev output when reading the exit status fails', async () => {
@@ -312,9 +377,9 @@ describe('Playground WebContainer processes', () => {
       ),
     )
 
-    expect(error.message).toContain(
-      'npm run dev exit status could not be read. exit broke',
-    )
-    expect(error.message).toContain('first line\ntrailing line')
+    expect(failureFromError(error)).toEqual({
+      reason: 'npm run dev exit status could not be read. exit broke',
+      maybeProcessOutput: Option.some('first line\ntrailing line'),
+    })
   })
 })

@@ -1,9 +1,11 @@
 import {
+  Data,
   Deferred,
   type Duration,
   Effect,
   Fiber,
   FiberMap,
+  Option,
   Ref,
   Result,
   Stream,
@@ -16,6 +18,8 @@ import type {
   WebContainer,
   WebContainerProcess,
 } from '@webcontainer/api'
+
+import * as PlaygroundFailure from './playgroundFailure'
 
 const LOAD_API_TIMEOUT = '90 seconds'
 const BOOT_TIMEOUT = '90 seconds'
@@ -74,15 +78,77 @@ export const appendProcessOutputTail = (
     String.takeRight(PROCESS_OUTPUT_TAIL_CHARACTERS),
   )
 
-const errorWithOutput = (message: string, output: string): Error =>
-  String.isEmpty(output)
-    ? new Error(message)
-    : new Error(`${message}\n${output}`)
+const ESCAPE = '\u001B'
+const BELL = '\u0007'
+const TERMINAL_CONTROL_SEQUENCE = new RegExp(
+  `${ESCAPE}(?:\\[[0-?]*[ -/]*[@-~]|\\][^${BELL}${ESCAPE}]*(?:${BELL}|${ESCAPE}\\\\)?|[ -/]*[0-~])`,
+  'g',
+)
+
+// NOTE: npm redraws its progress spinner in place by moving back to the start
+// of the line. A terminal shows only the text written after the last such
+// move, so the spinner frames written before it are dropped.
+const TEXT_BEFORE_LAST_LINE_START = new RegExp(
+  `^[\\s\\S]*(?:\\r|${ESCAPE}\\[1?G)`,
+)
+
+const TRAILING_CARRIAGE_RETURNS = /\r+$/
+
+const displayedProcessOutput = (output: string): string =>
+  output
+    .replaceAll('\r\n', '\n')
+    .split('\n')
+    .map(line =>
+      line
+        .replace(TRAILING_CARRIAGE_RETURNS, '')
+        .replace(TEXT_BEFORE_LAST_LINE_START, '')
+        .replace(TERMINAL_CONTROL_SEQUENCE, ''),
+    )
+    .join('\n')
+
+class ProcessError extends Data.TaggedError('ProcessError')<{
+  readonly message: string
+  readonly output: string
+}> {}
+
+export const failureFromError = (
+  error: unknown,
+): PlaygroundFailure.Failure => ({
+  reason: reasonFromError(error),
+  maybeProcessOutput:
+    error instanceof ProcessError
+      ? Option.liftPredicate(error.output.trim(), String.isNonEmpty)
+      : Option.none(),
+})
 
 const failWithOutput = (tail: Ref.Ref<string>, message: string) =>
   Ref.get(tail).pipe(
-    Effect.flatMap(output => Effect.fail(errorWithOutput(message, output))),
+    Effect.flatMap(output =>
+      Effect.fail(
+        new ProcessError({ message, output: displayedProcessOutput(output) }),
+      ),
+    ),
   )
+
+// NOTE: npm reports ERESOLVE when the published Foldkit packages do not accept
+// the dependency versions in the playground manifest, and ETARGET when the
+// manifest names a version that is not on npm. Both mean that this website and
+// the latest Foldkit release do not agree, and a later release corrects it.
+// npm also prints ERESOLVE as a warning during installs that go on to succeed,
+// so only the error code npm stops on counts.
+const OUT_OF_SYNC_INSTALL_ERROR =
+  /^npm (?:error|ERR!) code (?:ERESOLVE|ETARGET)\s*$/m
+
+const OUT_OF_SYNC_INSTALL_REASON =
+  'The playground is temporarily out of sync with the latest Foldkit release. Try again later.'
+
+const installFailureReason = (exitCode: number, output: string): string => {
+  if (OUT_OF_SYNC_INSTALL_ERROR.test(output)) {
+    return OUT_OF_SYNC_INSTALL_REASON
+  } else {
+    return `npm install exited with code ${exitCode}.`
+  }
+}
 
 const timeout = <A, E, R>(
   effect: Effect.Effect<A, E, R>,
@@ -280,10 +346,14 @@ export const installDependencies = (container: ProcessHost) =>
         }),
       )
       if (exitCode !== 0) {
-        return yield* failWithOutput(
-          output.tail,
-          `npm install exited with code ${exitCode}.`,
+        const installOutput = displayedProcessOutput(
+          yield* Ref.get(output.tail),
         )
+
+        return yield* new ProcessError({
+          message: installFailureReason(exitCode, installOutput),
+          output: installOutput,
+        })
       }
     }),
   )

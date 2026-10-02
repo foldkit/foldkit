@@ -27,10 +27,12 @@ import { Tabs } from '@foldkit/ui'
 import { Icon } from '../icon'
 import { exampleDetailRouter, examplesRouter } from '../route'
 import { type ExampleMeta, findBySlug } from './example/meta'
+import * as PlaygroundFailure from './playgroundFailure'
 import * as PlaygroundPreview from './playgroundPreview'
 import {
   type PlaygroundWebContainer,
   acquirePlaygroundWebContainer,
+  failureFromError,
   reasonFromError,
 } from './playgroundWebContainer'
 
@@ -40,7 +42,7 @@ const PlaygroundState = defineTaggedUnion({
   Idle: {},
   Booting: {},
   Booted: { preview: PlaygroundPreview.State },
-  Failed: { reason: Schema.String },
+  Failed: { failure: PlaygroundFailure.State },
 })
 type PlaygroundState = typeof PlaygroundState.Type
 
@@ -66,7 +68,7 @@ export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   BootedPlayground: { previewUrl: Schema.String },
-  FailedBootPlayground: { reason: Schema.String },
+  FailedBootPlayground: PlaygroundFailure.Failure.fields,
   ReleasedPlayground: {},
   LoadedPlaygroundPreview: { previewUrl: Schema.String },
   GotFileTabsMessage: { message: Tabs.Message },
@@ -75,7 +77,8 @@ export const Message = defineMessageUnion({
   FailedMountPlaygroundEditor: { reason: Schema.String },
   ScheduledWritePlaygroundFile: {},
   FailedWritePlaygroundFile: { reason: Schema.String },
-  CompletedWaitForPlaygroundServerFailure: { reason: Schema.String },
+  CompletedWaitForPlaygroundServerFailure: PlaygroundFailure.Failure.fields,
+  ToggledPlaygroundProcessOutput: { isOpen: Schema.Boolean },
 })
 export type Message = typeof Message.Type
 
@@ -160,7 +163,7 @@ export const managedResources = ManagedResource.make<Model, Message>()(
       onAcquired: ({ previewUrl }) => Message.BootedPlayground({ previewUrl }),
       onReleased: () => Message.ReleasedPlayground(),
       onAcquireError: error =>
-        Message.FailedBootPlayground({ reason: reasonFromError(error) }),
+        Message.FailedBootPlayground(failureFromError(error)),
     }),
   }),
 )
@@ -460,9 +463,9 @@ export const WaitForPlaygroundServerFailure = Command.define(
       return yield* Deferred.await(serverFailure).pipe(
         Effect.catch(error =>
           Effect.succeed(
-            Message.CompletedWaitForPlaygroundServerFailure({
-              reason: reasonFromError(error),
-            }),
+            Message.CompletedWaitForPlaygroundServerFailure(
+              failureFromError(error),
+            ),
           ),
         ),
       )
@@ -560,6 +563,21 @@ const markPreviewLoaded = (
     Match.orElse(() => state),
   )
 
+const setFailureProcessOutputOpen = (
+  state: PlaygroundState,
+  isOpen: boolean,
+): PlaygroundState =>
+  PlaygroundState.matchOrElse<PlaygroundState>(
+    state,
+    {
+      Failed: ({ failure }) =>
+        PlaygroundState.Failed({
+          failure: PlaygroundFailure.setProcessOutputOpen(failure, isOpen),
+        }),
+    },
+    () => state,
+  )
+
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message, WebContainerPlaygroundService>>(
     message,
@@ -575,9 +593,12 @@ export const update = (model: Model, message: Message) =>
         }),
         commands: [WaitForPlaygroundServerFailure(), ...flushDirtyPaths(model)],
       }),
-      FailedBootPlayground: ({ reason }) => ({
+      FailedBootPlayground: ({ reason, maybeProcessOutput }) => ({
         model: modifyFields(model, {
-          state: () => PlaygroundState.Failed({ reason }),
+          state: () =>
+            PlaygroundState.Failed({
+              failure: PlaygroundFailure.start({ reason, maybeProcessOutput }),
+            }),
         }),
       }),
       ReleasedPlayground: () => ({
@@ -606,7 +627,13 @@ export const update = (model: Model, message: Message) =>
       },
       FailedMountPlaygroundEditor: ({ reason }) => ({
         model: modifyFields(model, {
-          state: () => PlaygroundState.Failed({ reason }),
+          state: () =>
+            PlaygroundState.Failed({
+              failure: PlaygroundFailure.start({
+                reason,
+                maybeProcessOutput: Option.none(),
+              }),
+            }),
         }),
       }),
       ScheduledWritePlaygroundFile: () => ({
@@ -617,9 +644,20 @@ export const update = (model: Model, message: Message) =>
           lastWriteError: () => Option.some(reason),
         }),
       }),
-      CompletedWaitForPlaygroundServerFailure: ({ reason }) => ({
+      CompletedWaitForPlaygroundServerFailure: ({
+        reason,
+        maybeProcessOutput,
+      }) => ({
         model: modifyFields(model, {
-          state: () => PlaygroundState.Failed({ reason }),
+          state: () =>
+            PlaygroundState.Failed({
+              failure: PlaygroundFailure.start({ reason, maybeProcessOutput }),
+            }),
+        }),
+      }),
+      ToggledPlaygroundProcessOutput: ({ isOpen }) => ({
+        model: modifyFields(model, {
+          state: state => setFailureProcessOutputOpen(state, isOpen),
         }),
       }),
       SucceededMountPlaygroundEditor: () => ({ model }),
@@ -718,34 +756,6 @@ const bootingPanelView = (heading: string, body: string): Html =>
     ],
   )
 
-const failurePanelView = (reason: string): Html =>
-  ih.div(
-    [
-      ih.Class(
-        'flex-1 flex items-center justify-center px-6 py-20 text-center',
-      ),
-    ],
-    [
-      ih.div(
-        [ih.Class('max-w-sm flex flex-col items-center')],
-        [
-          ih.div(
-            [ih.Class('text-base font-semibold text-gray-900 mb-2')],
-            ['Playground failed to load'],
-          ),
-          ih.div(
-            [
-              ih.Class(
-                'w-full max-h-64 overflow-auto text-left text-sm text-gray-600 whitespace-pre-wrap break-words',
-              ),
-            ],
-            [reason],
-          ),
-        ],
-      ),
-    ],
-  )
-
 const editorPanelContent = (
   path: string,
   content: string,
@@ -799,7 +809,12 @@ const previewPaneView = (
                 ),
                 h,
               ),
-            Failed: ({ reason }) => failurePanelView(reason),
+            Failed: ({ failure }) =>
+              PlaygroundFailure.view(
+                failure,
+                isOpen => Message.ToggledPlaygroundProcessOutput({ isOpen }),
+                h,
+              ),
           }),
         ],
       ),
