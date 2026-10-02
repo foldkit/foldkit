@@ -23,6 +23,7 @@
     "check:changeset-unwrapped": "node scripts/check-changeset-unwrapped.ts",
     "check:circular-deps": "bash scripts/check-circular-deps.sh",
     "check:peer-floors": "node scripts/check-peer-floors.ts",
+    "check:engines": "node scripts/check-engines.mjs",
     "check:create-foldkit-app-smoke": "node scripts/check-create-foldkit-app-smoke.ts",
     "check:create-foldkit-app-smoke:ci": "node scripts/check-create-foldkit-app-smoke.ts --skip-build",
     "check:packed-ssr-consumer": "node scripts/check-packed-ssr-consumer.ts",

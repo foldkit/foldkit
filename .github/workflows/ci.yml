@@ -103,6 +103,9 @@ jobs:
         if: steps.scope.outputs.peer_floors == 'true'
         run: pnpm check:peer-floors
 
+      - name: Check Node engine ranges
+        run: pnpm check:engines
+
       - name: Check dead code
         run: pnpm check:dead-code
 

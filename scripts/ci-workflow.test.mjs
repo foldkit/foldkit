@@ -89,6 +89,14 @@ test('peer floor changes run the packed-manifest check before release', () => {
   assert.match(releaseWorkflow, /^\s+- 'scripts\/check-peer-floors\.ts'$/m)
 })
 
+test('every run checks the Node engine ranges of the published packages', () => {
+  assert.ok(
+    workflow.includes(
+      '      - name: Check Node engine ranges\n        run: pnpm check:engines\n',
+    ),
+  )
+})
+
 test('stable publication verifies website package inputs before upload', () => {
   const stableJob = releaseWorkflow.slice(
     releaseWorkflow.indexOf('  stable:'),
