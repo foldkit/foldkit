@@ -30,7 +30,7 @@ Mount args are captured at mount, not refreshed across renders. A changed `ancho
 
 `portalToContainingRoot` is the same relocation as a standalone function, for the elements `anchorSetup` does not touch. For a click-outside backdrop, use `portalBackdrop` instead, described below. Popover, Listbox, Menu, and Combobox each portal their backdrop through a second Mount. Give yours its own `Mount.define`, since [one element takes one Mount](/core/mount).
 
-The portal root is a shared `foldkit-portal-root` div in the containing root. The containing root is the shadow root when the app is mounted inside one, and `document.body` otherwise, so a portaled panel keeps that root's scoped styles. The portal root div is prepended rather than appended, which keeps component wrappers painting above a backdrop and leaves click-outside detection working.
+The portal root is a shared `foldkit-portal-root` div in the containing root. The containing root is the shadow root when the app is mounted inside one, and `document.body` otherwise, so a portaled panel keeps that root's scoped styles. The portal root div is prepended rather than appended, which keeps component wrappers painting above a backdrop and leaves click-outside detection working. The div is removed once nothing is portaled into it, so the next open creates a fresh root.
 
 An element inside a `<dialog>` is portaled into that dialog instead. Say a Listbox sits in a [Dialog](/ui/dialog). Portaled to `document.body`, its panel would be drawn behind the dialog, and the Dialog's modal isolation would make it inert. So the panel goes into a div marked `data-foldkit-portal-root`, appended as the dialog's last child. There it renders above the dialog's content and stays interactive. The div is removed once nothing is portaled into it.
 
@@ -98,7 +98,7 @@ The second argument to `anchorSetup`.
 
 `(element: Element) => () => void`
 
-Relocates an element into the portal root and returns a cleanup that removes it. The portal root is inside the enclosing `<dialog>` when there is one, and the shared `foldkit-portal-root` div within the containing root otherwise. The cleanup also removes a dialog's portal root once it is empty. Use it for elements outside the anchored panel, since `anchorSetup` already portals the panel unless `portal: false` says otherwise. For a click-outside backdrop, use `portalBackdrop`.
+Relocates an element into the portal root and returns a cleanup that removes it. The portal root is inside the enclosing `<dialog>` when there is one, and the shared `foldkit-portal-root` div within the containing root otherwise. The cleanup removes that root once it is empty, whether it belongs to a dialog or to the containing root. Use it for elements outside the anchored panel, since `anchorSetup` already portals the panel unless `portal: false` says otherwise. For a click-outside backdrop, use `portalBackdrop`.
 
 ### portalBackdrop {#portal-backdrop}
 
