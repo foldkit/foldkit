@@ -100,6 +100,11 @@ expect(role('button', { name: 'Submit' })).toBeDisabled()
 expect(role('button', { name: 'Submit' })).toBeEnabled()
 expect(role('checkbox')).toBeChecked()
 expect(label('Email')).toHaveAttr('type', 'email')
+expect(role('meter')).toHaveAttrs({
+  'aria-valuemin': '0',
+  'aria-valuemax': '100',
+  'aria-valuenow': '25',
+})
 expect(role('button')).toHaveClass('primary')
 expect(role('alert')).toHaveStyle('color', 'red')
 expect(role('button')).not.toBeDisabled()

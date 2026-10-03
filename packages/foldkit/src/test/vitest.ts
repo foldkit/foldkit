@@ -9,6 +9,7 @@ declare module 'vitest' {
     toContainText(expected: string | RegExp): this
     toHaveClass(expected: string): this
     toHaveAttr(name: string, value?: string): this
+    toHaveAttrs(expected: Readonly<Record<string, string>>): this
     toHaveStyle(name: string, value?: string): this
     toHaveHook(name: string): this
     toHaveHandler(name: string): this
