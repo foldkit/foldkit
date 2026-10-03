@@ -1,15 +1,16 @@
 import {
+  Array,
   Config,
-  Crypto,
   Data,
   Effect,
-  Exit,
   FileSystem,
   Option,
   Path,
   type PlatformError,
   Schema,
+  String,
 } from 'effect'
+import type { ChildProcessSpawner } from 'effect/process'
 import {
   RELAY_REGISTRY_DIRECTORY_NAME,
   RELAY_REGISTRY_DIRECTORY_VARIABLE,
@@ -17,19 +18,21 @@ import {
 } from 'foldkit/devtools-protocol'
 import { tmpdir } from 'node:os'
 
+import type { RelayRegistryTrust } from './relayRegistryTrust.js'
+
 const RUNTIME_DIRECTORY_VARIABLE = 'XDG_RUNTIME_DIR'
 const RECORD_FILE_EXTENSION = '.json'
 
 const REGISTRY_DIRECTORY_MODE = 0o700
 const RECORD_FILE_MODE = 0o600
-const PERMISSIONS_BEYOND_OWNER = 0o077
 const PENDING_RECORD_SUFFIX = '.pending'
 const RETIRING_RECORD_SUFFIX = '.retiring'
 
+export type RelayRegistryServices = FileSystem.FileSystem | Path.Path
+
 export type RelayPublisherServices =
-  | FileSystem.FileSystem
-  | Path.Path
-  | Crypto.Crypto
+  | RelayRegistryServices
+  | ChildProcessSpawner.ChildProcessSpawner
 
 export class RelayRegistryDirectoryRefused extends Data.TaggedError(
   'RelayRegistryDirectoryRefused',
@@ -62,78 +65,107 @@ const relayRegistryDirectory: Effect.Effect<string, never, Path.Path> =
     )
   }).pipe(Effect.orDie)
 
-const relayRecordPath = (
-  root: string,
-): Effect.Effect<string, never, RelayPublisherServices> =>
+const relayRecordPath = (id: string): Effect.Effect<string, never, Path.Path> =>
   Effect.gen(function* () {
     const path = yield* Path.Path
-    const crypto = yield* Crypto.Crypto
     const directory = yield* relayRegistryDirectory
-    const digest = yield* crypto
-      .digest('SHA-1', new TextEncoder().encode(root))
-      .pipe(Effect.orDie)
     return path.join(
       directory,
-      `${Buffer.from(digest).toString('hex')}${RECORD_FILE_EXTENSION}`,
+      `${encodeURIComponent(id)}${RECORD_FILE_EXTENSION}`,
     )
   })
 
-export const relayRegistryDirectoryRefusal = (
-  info: FileSystem.File.Info,
-  maybeCurrentUid: Option.Option<number>,
-): Option.Option<string> =>
-  Option.match(maybeCurrentUid, {
-    onNone: () => Option.some('has ownership that cannot be verified'),
-    onSome: currentUid => {
-      if (Option.isNone(info.uid)) {
-        return Option.some('has ownership that cannot be verified')
-      }
+const isProcessAlive = (pid: number): boolean => {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (error) {
+    return error instanceof Error && 'code' in error && error.code === 'EPERM'
+  }
+}
 
-      if (info.uid.value !== currentUid) {
-        return Option.some('is owned by another user')
-      }
-
-      if ((info.mode & PERMISSIONS_BEYOND_OWNER) !== 0) {
-        return Option.some('is readable or writable by other users')
-      }
-
-      return Option.none()
-    },
-  })
-
-const maybeProcessUid = Option.map(
-  Option.fromNullishOr(process.getuid),
-  getuid => getuid(),
-)
-
-const ensurePrivateRegistryDirectory = (
-  directory: string,
-): Effect.Effect<
-  void,
-  PlatformError.PlatformError | RelayRegistryDirectoryRefused,
-  FileSystem.FileSystem
-> =>
+const readRecordFile = (
+  filePath: string,
+): Effect.Effect<Option.Option<RelayRecord>, never, FileSystem.FileSystem> =>
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem
-    yield* fileSystem.makeDirectory(directory, {
-      recursive: true,
-      mode: REGISTRY_DIRECTORY_MODE,
-    })
+    const raw = yield* fileSystem.readFileString(filePath)
+    return decodeRelayRecord(raw)
+  }).pipe(Effect.orElseSucceed(() => Option.none<RelayRecord>()))
 
-    const info = yield* fileSystem.stat(directory)
-    const maybeRefusal = relayRegistryDirectoryRefusal(info, maybeProcessUid)
-    if (Option.isSome(maybeRefusal)) {
-      return yield* Effect.fail(
-        new RelayRegistryDirectoryRefused({
-          directory,
-          reason: maybeRefusal.value,
-        }),
+const recordFilePaths = (
+  directory: string,
+): Effect.Effect<ReadonlyArray<string>, never, RelayRegistryServices> =>
+  Effect.gen(function* () {
+    const fileSystem = yield* FileSystem.FileSystem
+    const path = yield* Path.Path
+    const fileNames = yield* fileSystem
+      .readDirectory(directory)
+      .pipe(Effect.orElseSucceed((): ReadonlyArray<string> => []))
+    return Array.map(
+      Array.filter(fileNames, String.endsWith(RECORD_FILE_EXTENSION)),
+      fileName => path.join(directory, fileName),
+    )
+  })
+
+// NOTE: A relay from an older plugin names its record by its root and can
+// republish that path between the rename and the read. A hard link restores
+// the republished record only if no newer record occupies the path.
+const retireStaleRecord = (
+  filePath: string,
+  record: RelayRecord,
+): Effect.Effect<void, never, FileSystem.FileSystem> =>
+  Effect.gen(function* () {
+    const fileSystem = yield* FileSystem.FileSystem
+    const retiringPath = `${filePath}.${encodeURIComponent(record.id)}${RETIRING_RECORD_SUFFIX}`
+    const wasRecordMoved = yield* fileSystem
+      .rename(filePath, retiringPath)
+      .pipe(
+        Effect.as(true),
+        Effect.orElseSucceed(() => false),
       )
+
+    if (!wasRecordMoved) {
+      return
     }
+
+    const maybeRetiringRecord = yield* readRecordFile(retiringPath)
+    const isOriginalRecord = Option.exists(
+      maybeRetiringRecord,
+      retiringRecord => retiringRecord.id === record.id,
+    )
+
+    if (!isOriginalRecord) {
+      yield* fileSystem.link(retiringPath, filePath).pipe(Effect.ignore)
+    }
+
+    yield* fileSystem.remove(retiringPath, { force: true }).pipe(Effect.ignore)
+  })
+
+const removeDeadRecords = (
+  directory: string,
+): Effect.Effect<void, never, RelayRegistryServices> =>
+  Effect.gen(function* () {
+    const filePaths = yield* recordFilePaths(directory)
+    yield* Effect.forEach(
+      filePaths,
+      filePath =>
+        Effect.gen(function* () {
+          const maybeRecord = yield* readRecordFile(filePath)
+          if (
+            Option.isSome(maybeRecord) &&
+            !isProcessAlive(maybeRecord.value.pid)
+          ) {
+            yield* retireStaleRecord(filePath, maybeRecord.value)
+          }
+        }),
+      { discard: true },
+    )
   })
 
 export const publishRelayRecord = (
   record: RelayRecord,
+  trust: RelayRegistryTrust,
 ): Effect.Effect<
   void,
   PlatformError.PlatformError | RelayRegistryDirectoryRefused,
@@ -142,65 +174,47 @@ export const publishRelayRecord = (
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem
     const directory = yield* relayRegistryDirectory
-    yield* ensurePrivateRegistryDirectory(directory)
+    yield* fileSystem.makeDirectory(directory, {
+      recursive: true,
+      mode: REGISTRY_DIRECTORY_MODE,
+    })
 
-    const recordPath = yield* relayRecordPath(record.root)
-    const pendingPath = `${recordPath}.${record.id}${PENDING_RECORD_SUFFIX}`
+    const maybeRefusal = yield* trust.refusal(directory)
+    if (Option.isSome(maybeRefusal)) {
+      return yield* Effect.fail(
+        new RelayRegistryDirectoryRefused({
+          directory,
+          reason: maybeRefusal.value,
+        }),
+      )
+    }
+
+    yield* removeDeadRecords(directory)
+
+    const recordPath = yield* relayRecordPath(record.id)
+    const pendingPath = `${recordPath}${PENDING_RECORD_SUFFIX}`
     yield* fileSystem.writeFileString(pendingPath, encodeRelayRecord(record), {
       mode: RECORD_FILE_MODE,
     })
     yield* fileSystem.rename(pendingPath, recordPath)
   })
 
-const readRelayRecordAt = (
-  recordPath: string,
-): Effect.Effect<Option.Option<RelayRecord>, never, FileSystem.FileSystem> =>
-  Effect.gen(function* () {
-    const fileSystem = yield* FileSystem.FileSystem
-    const raw = yield* fileSystem.readFileString(recordPath)
-    return decodeRelayRecord(raw)
-  }).pipe(Effect.orElseSucceed(() => Option.none<RelayRecord>()))
-
-export const readRelayRecord = (
-  root: string,
-): Effect.Effect<Option.Option<RelayRecord>, never, RelayPublisherServices> =>
-  Effect.flatMap(relayRecordPath(root), readRelayRecordAt)
+export const readRelayRecords: Effect.Effect<
+  ReadonlyArray<RelayRecord>,
+  never,
+  RelayRegistryServices
+> = Effect.gen(function* () {
+  const directory = yield* relayRegistryDirectory
+  const filePaths = yield* recordFilePaths(directory)
+  const maybeRecords = yield* Effect.forEach(filePaths, readRecordFile)
+  return Array.getSomes(maybeRecords)
+})
 
 export const retireRelayRecord = (
-  root: string,
   id: string,
-): Effect.Effect<void, never, RelayPublisherServices> =>
+): Effect.Effect<void, never, RelayRegistryServices> =>
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem
-    const recordPath = yield* relayRecordPath(root)
-    const retiringPath = `${recordPath}.${id}${RETIRING_RECORD_SUFFIX}`
-    const maybeRecord = yield* readRelayRecordAt(recordPath)
-    const isPublishedByRelay = Option.exists(
-      maybeRecord,
-      record => record.id === id,
-    )
-    if (!isPublishedByRelay) {
-      return
-    }
-
-    // NOTE: A replacement may publish between the first read and rename. A
-    // hard link restores its record only if no newer record occupies the path.
-    const renameResult = yield* fileSystem
-      .rename(recordPath, retiringPath)
-      .pipe(Effect.exit)
-    if (Exit.isFailure(renameResult)) {
-      return
-    }
-
-    const maybeRetiringRecord = yield* readRelayRecordAt(retiringPath)
-    const isReplacement = Option.exists(
-      maybeRetiringRecord,
-      record => record.id !== id,
-    )
-
-    if (isReplacement) {
-      yield* fileSystem.link(retiringPath, recordPath).pipe(Effect.ignore)
-    }
-
-    yield* fileSystem.remove(retiringPath, { force: true }).pipe(Effect.ignore)
+    const recordPath = yield* relayRecordPath(id)
+    yield* fileSystem.remove(recordPath, { force: true }).pipe(Effect.ignore)
   })

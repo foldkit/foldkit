@@ -1,6 +1,7 @@
-import { ConfigProvider, Effect, FileSystem, Option } from 'effect'
+import { ConfigProvider, Effect, FileSystem } from 'effect'
 import type { RelayRecord } from 'foldkit/devtools-protocol'
 import {
+  chmod,
   mkdir,
   mkdtemp,
   readFile,
@@ -10,16 +11,23 @@ import {
   writeFile,
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { join, win32 } from 'node:path'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as NodeServices from '@effect/platform-node/NodeServices'
 
-import { discoverRelay } from '../src/relayRegistry.ts'
+import {
+  type RelayRegistryReader,
+  discoverRelays,
+  isWithinRoot,
+  makeRelayRegistryReader,
+} from '../src/relayRegistry.ts'
 
 const RELAY_DIRECTORY_VARIABLE = 'FOLDKIT_DEVTOOLS_RELAY_DIRECTORY'
 const RUNTIME_DIRECTORY_VARIABLE = 'XDG_RUNTIME_DIR'
 const REGISTRY_DIRECTORY_NAME = 'foldkit-devtools-relays'
+const PRIVATE_DIRECTORY_MODE = 0o700
+const SHARED_DIRECTORY_MODE = 0o777
 // NOTE: This exceeds every PID Linux or macOS can issue, so no live process can
 // carry it.
 const DEAD_PID = 2_147_483_647
@@ -38,12 +46,18 @@ const record = (
   ...overrides,
 })
 
-describe('discoverRelay', () => {
+const urls = (records: ReadonlyArray<RelayRecord>) =>
+  records.map(({ url }) => url)
+
+describe('discoverRelays', () => {
   let registryDirectory = ''
   let previousRegistryDirectory: string | undefined
 
   const publish = async (name: string, value: RelayRecord) => {
-    await mkdir(registryDirectory, { recursive: true })
+    await mkdir(registryDirectory, {
+      recursive: true,
+      mode: PRIVATE_DIRECTORY_MODE,
+    })
     await writeFile(
       join(registryDirectory, `${name}.json`),
       JSON.stringify(value),
@@ -51,25 +65,43 @@ describe('discoverRelay', () => {
     )
   }
 
-  const discover = (projectRoot: string) =>
+  const runWithNode = <A, E>(
+    effect: Effect.Effect<A, E, NodeServices.NodeServices>,
+  ) =>
     Effect.runPromise(
-      discoverRelay(projectRoot).pipe(
+      effect.pipe(
         Effect.provideService(
           ConfigProvider.ConfigProvider,
           ConfigProvider.fromEnv(),
         ),
         Effect.provide(NodeServices.layer),
       ),
-    ).then(Option.getOrUndefined)
+    )
+
+  const discover = (projectRoot: string) =>
+    runWithNode(
+      Effect.flatMap(makeRelayRegistryReader, registryReader =>
+        discoverRelays(projectRoot, registryReader),
+      ),
+    )
+
+  const discoverWith = (
+    registryReader: RelayRegistryReader,
+    projectRoot: string,
+  ) => runWithNode(discoverRelays(projectRoot, registryReader))
+
+  const refusalLine = () =>
+    `[foldkit-devtools-mcp] ignoring the relay registry at ${registryDirectory}: it is readable or writable by other users`
 
   const discoverWithReplacementsDuringCleanup = (
     projectRoot: string,
     replacementBeforeMove: () => Promise<void>,
     replacementAfterMove: () => Promise<void>,
   ) =>
-    Effect.runPromise(
+    runWithNode(
       Effect.gen(function* () {
         const fileSystem = yield* FileSystem.FileSystem
+        const registryReader = yield* makeRelayRegistryReader
         let didStartCleanup = false
 
         const publishBeforeCleanup = () =>
@@ -101,17 +133,11 @@ describe('discoverRelay', () => {
           },
         }
 
-        return yield* discoverRelay(projectRoot).pipe(
+        return yield* discoverRelays(projectRoot, registryReader).pipe(
           Effect.provideService(FileSystem.FileSystem, interceptingFileSystem),
         )
-      }).pipe(
-        Effect.provideService(
-          ConfigProvider.ConfigProvider,
-          ConfigProvider.fromEnv(),
-        ),
-        Effect.provide(NodeServices.layer),
-      ),
-    ).then(Option.getOrUndefined)
+      }),
+    )
 
   beforeEach(async () => {
     previousRegistryDirectory = process.env[RELAY_DIRECTORY_VARIABLE]
@@ -121,6 +147,7 @@ describe('discoverRelay', () => {
   })
 
   afterEach(async () => {
+    vi.restoreAllMocks()
     if (previousRegistryDirectory === undefined) {
       delete process.env[RELAY_DIRECTORY_VARIABLE]
     } else {
@@ -135,6 +162,7 @@ describe('discoverRelay', () => {
     delete process.env[RELAY_DIRECTORY_VARIABLE]
     await mkdir(join(registryDirectory, REGISTRY_DIRECTORY_NAME), {
       recursive: true,
+      mode: PRIVATE_DIRECTORY_MODE,
     })
     await writeFile(
       join(registryDirectory, REGISTRY_DIRECTORY_NAME, 'app.json'),
@@ -143,9 +171,9 @@ describe('discoverRelay', () => {
     )
 
     try {
-      expect(await discover('/workspace/app')).toMatchObject({
-        url: record('/workspace/app', 4000).url,
-      })
+      expect(urls(await discover('/workspace/app'))).toStrictEqual([
+        record('/workspace/app', 4000).url,
+      ])
     } finally {
       if (previousRuntimeDirectory === undefined) {
         delete process.env[RUNTIME_DIRECTORY_VARIABLE]
@@ -156,45 +184,56 @@ describe('discoverRelay', () => {
   })
 
   it('finds nothing while no dev server has published a relay', async () => {
-    expect(await discover('/workspace/app')).toBeUndefined()
+    expect(await discover('/workspace/app')).toStrictEqual([])
   })
 
   it('finds the relay published for the project root itself', async () => {
     await publish('app', record('/workspace/app', 4100))
 
-    expect(await discover('/workspace/app')).toMatchObject({
-      url: record('/workspace/app', 4100).url,
-    })
+    expect(urls(await discover('/workspace/app'))).toStrictEqual([
+      record('/workspace/app', 4100).url,
+    ])
   })
 
   it('finds a relay published for a project inside the root', async () => {
     await publish('app', record('/workspace/apps/site', 4200))
 
-    expect(await discover('/workspace')).toMatchObject({
-      url: record('/workspace/apps/site', 4200).url,
-    })
+    expect(urls(await discover('/workspace'))).toStrictEqual([
+      record('/workspace/apps/site', 4200).url,
+    ])
   })
 
   it('ignores relays published outside the root', async () => {
     await publish('other', record('/elsewhere/app', 4300))
     await publish('sibling', record('/workspace-two/app', 4400))
 
-    expect(await discover('/workspace')).toBeUndefined()
+    expect(await discover('/workspace')).toStrictEqual([])
   })
 
-  it('prefers the dev server started most recently', async () => {
+  it('lists the dev server started most recently first', async () => {
     await publish('older', record('/workspace/a', 4500, { startedAt: 10 }))
     await publish('newer', record('/workspace/b', 4600, { startedAt: 20 }))
 
-    expect(await discover('/workspace')).toMatchObject({
-      url: record('/workspace/b', 4600).url,
-    })
+    expect(urls(await discover('/workspace'))).toStrictEqual([
+      record('/workspace/b', 4600).url,
+      record('/workspace/a', 4500).url,
+    ])
+  })
+
+  it('finds the nearest relay enclosing the project root', async () => {
+    await publish('workspace', record('/workspace', 4610, { id: 'outer' }))
+    await publish('app', record('/workspace/app', 4620, { id: 'inner' }))
+    await publish('sibling', record('/workspace/other', 4630, { id: 'other' }))
+
+    expect(urls(await discover('/workspace/app/src'))).toStrictEqual([
+      record('/workspace/app', 4620).url,
+    ])
   })
 
   it('drops and removes the record of a dev server that is gone', async () => {
     await publish('gone', record('/workspace/app', 4700, { pid: DEAD_PID }))
 
-    expect(await discover('/workspace')).toBeUndefined()
+    expect(await discover('/workspace')).toStrictEqual([])
     expect(await readdir(registryDirectory)).toEqual([])
   })
 
@@ -223,19 +262,79 @@ describe('discoverRelay', () => {
         () => publishAtomically(firstReplacement),
         () => publishAtomically(newestReplacement),
       ),
-    ).toBeUndefined()
+    ).toStrictEqual([])
     expect(JSON.parse(await readFile(recordPath, 'utf-8'))).toEqual(
       newestReplacement,
     )
   })
 
   it('skips records it cannot read', async () => {
-    await mkdir(registryDirectory, { recursive: true })
+    await mkdir(registryDirectory, {
+      recursive: true,
+      mode: PRIVATE_DIRECTORY_MODE,
+    })
     await writeFile(join(registryDirectory, 'broken.json'), '{', 'utf-8')
     await publish('app', record('/workspace/app', 4800))
 
-    expect(await discover('/workspace')).toMatchObject({
-      url: record('/workspace/app', 4800).url,
-    })
+    expect(urls(await discover('/workspace'))).toStrictEqual([
+      record('/workspace/app', 4800).url,
+    ])
+  })
+
+  it.skipIf(process.platform === 'win32')(
+    'reads no record from a registry directory that other users can write to',
+    async () => {
+      const reported = vi.spyOn(console, 'error').mockImplementation(() => {})
+      await publish('planted', record('/workspace/app', 4900))
+      await chmod(registryDirectory, SHARED_DIRECTORY_MODE)
+      const registryReader = await Effect.runPromise(makeRelayRegistryReader)
+
+      expect(
+        await discoverWith(registryReader, '/workspace/app'),
+      ).toStrictEqual([])
+      expect(
+        await discoverWith(registryReader, '/workspace/app'),
+      ).toStrictEqual([])
+
+      expect(reported.mock.calls.map(call => call.join(' '))).toStrictEqual([
+        refusalLine(),
+      ])
+    },
+  )
+
+  it.skipIf(process.platform === 'win32')(
+    'reports a refused registry directory once in each session',
+    async () => {
+      const reported = vi.spyOn(console, 'error').mockImplementation(() => {})
+      await publish('planted', record('/workspace/app', 4910))
+      await chmod(registryDirectory, SHARED_DIRECTORY_MODE)
+
+      expect(await discover('/workspace/app')).toStrictEqual([])
+      expect(await discover('/workspace/app')).toStrictEqual([])
+
+      expect(reported.mock.calls.map(call => call.join(' '))).toStrictEqual([
+        refusalLine(),
+        refusalLine(),
+      ])
+    },
+  )
+})
+
+describe('isWithinRoot', () => {
+  it('compares Windows roots without regard to separators or case', () => {
+    expect(isWithinRoot('C:\\Users\\x\\app', 'C:/Users/x/app', win32)).toBe(
+      true,
+    )
+    expect(isWithinRoot('C:/Users/x/app', 'C:\\Users\\x\\app', win32)).toBe(
+      true,
+    )
+    expect(isWithinRoot('c:\\users\\X\\app', 'C:/Users/x/app/src', win32)).toBe(
+      true,
+    )
+    expect(isWithinRoot('C:/Users/x/app/src', 'c:\\users\\X\\app', win32)).toBe(
+      false,
+    )
+    expect(isWithinRoot('C:\\Users\\x\\app', 'D:/other', win32)).toBe(false)
+    expect(isWithinRoot('D:/other', 'C:\\Users\\x\\app', win32)).toBe(false)
   })
 })

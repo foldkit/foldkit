@@ -61,11 +61,11 @@ Keep API keys, passwords, access and refresh tokens, authorization headers, sess
 
 ## Tools
 
-Each tool accepts an optional `runtime_id`. When omitted, the most recently connected Runtime is used.
+Each tool accepts an optional `runtime_id`. When omitted, the tool uses the most recently connected Runtime of the most recently started dev server.
 
 | Tool                            | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `foldkit_list_runtimes`         | Returns metadata for every connected browser tab. Agents call this first to discover which Runtime to target.                                                                                                                                                                                                                                                                                                                                                                                             |
+| `foldkit_list_runtimes`         | Returns metadata for every connected browser tab, with the `projectRoot` of the dev server it belongs to. Agents call this first to discover which Runtime to target.                                                                                                                                                                                                                                                                                                                                     |
 | `foldkit_get_model`             | Snapshots the current Model. Accepts an optional `path` to narrow to a subtree and `expand` to control summarization.                                                                                                                                                                                                                                                                                                                                                                                     |
 | `foldkit_get_model_at`          | Snapshots a historical Model after a given history entry. Pass `index: N - 1` to read the Model just before Message `N`. Same `path`/`expand` semantics as `foldkit_get_model`. Indices outside the readable range (older entries are evicted past the rolling buffer) are rejected with the valid bounds. For the initial Model (and the init Commands and Mounts), use `foldkit_get_init`.                                                                                                              |
 | `foldkit_get_init`              | Reads the recorded initial Model, the Commands returned from the application's `init` function, and the Mounts that fired during the first render. Each Command and Mount carries its declared args. Equivalent to selecting the synthetic "init" row in the DevTools panel.                                                                                                                                                                                                                              |
@@ -102,25 +102,27 @@ High-frequency flows (drag-paint, scroll, keystroke) can fill the history buffer
 Three components cooperate:
 
 - **Browser bridge** (in `foldkit`): runs alongside DevTools, subscribes to the DevTools store, and exchanges typed frames over Vite's HMR WebSocket.
-- **Vite plugin relay** (in `@foldkit/vite-plugin`): serves a WebSocket endpoint on the dev server, publishes its address for discovery, and forwards traffic between browsers and MCP clients.
+- **Vite plugin relay** (in `@foldkit/vite-plugin`): listens on a loopback port of its own for each dev server, publishes its address for discovery, and forwards traffic between browsers and MCP clients.
 - **MCP server** (this package): runs as a Node child process under your AI agent, connects to the plugin's relay over WebSocket, and exposes the typed tools over MCP's stdio transport.
 
 Multiple browser tabs can be connected at once and each is addressable by its connection id. Tabs that close (gracefully or not) are pruned from the live Runtime list automatically.
 
 ## Configuration
 
-The MCP server looks for a running dev server in its project directory. If several relays match, it uses the most recently started one. It discovers the relay again when the dev server restarts.
+The MCP server reaches every dev server whose root is its project directory or inside it, so one agent session at a workspace root sees every application in the workspace. When none matches, it reaches the nearest dev server whose root encloses the project directory, so a session started in `src/` or through a symlink finds its application. `foldkit_list_runtimes` lists the Runtimes of every dev server it reaches, oldest dev server first, each with the `projectRoot` of its dev server.
 
-| Environment variable               | What it changes                                                                                                                                                             |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `FOLDKIT_PROJECT_ROOT`             | Project to search. Defaults to the working directory. A relay for that directory or one inside it can match.                                                                |
-| `FOLDKIT_DEVTOOLS_MCP_PORT`        | Skips discovery and connects to this port. Set it to the `devToolsMcpPort` in your Vite config. Without this setting, the server tries `9988` if discovery finds nothing.   |
-| `FOLDKIT_DEVTOOLS_MCP_HOST`        | Overrides the hostname of a discovered relay or configured port.                                                                                                            |
-| `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY` | Registry location. Defaults to a directory under `XDG_RUNTIME_DIR` when set, or under the OS temporary directory. Set it in both processes if they use different sandboxes. |
+The server opens no connection until a tool is called. Each call looks up the registry again, so a dev server started or restarted after the agent is reached on the next call.
 
-A relay discovered through the registry requires the token in its published address. The plugin will not publish that token into a directory owned by another user or readable by other users. This token keeps unapproved clients from connecting; it does not hide runtime data from the agent that was given the MCP server. A configured `devToolsMcpPort` opens a separate socket on every interface without a token. Do not use a fixed port on a shared or untrusted network.
+| Environment variable               | What it changes                                                                                                                                                                     |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FOLDKIT_PROJECT_ROOT`             | Project to search. Defaults to the working directory.                                                                                                                               |
+| `FOLDKIT_DEVTOOLS_MCP_PORT`        | Skips discovery and connects to this port. Set it to the `devToolsMcpPort` in your Vite config. Without this setting or a host, the server tries `9988` if discovery finds nothing. |
+| `FOLDKIT_DEVTOOLS_MCP_HOST`        | Skips discovery and connects to this host, on `FOLDKIT_DEVTOOLS_MCP_PORT` or `9988`. Set it when a `devToolsMcpPort` relay runs on another host.                                    |
+| `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY` | Registry location. Defaults to a directory under `XDG_RUNTIME_DIR` when set, or under the OS temporary directory. Set it in both processes if they use different sandboxes.         |
 
-On Windows, directory ownership cannot be verified, so automatic discovery is unavailable. Use `devToolsMcpPort` in the Vite config and set `FOLDKIT_DEVTOOLS_MCP_PORT` to the same port.
+A relay discovered through the registry requires the token in its published address. The plugin will not publish that token into a directory owned by another user or readable by other users, and the MCP server ignores a registry directory that fails the same check. This token keeps unapproved clients from connecting; it does not hide runtime data from the agent that was given the MCP server. A configured `devToolsMcpPort` opens a separate socket on every interface without a token. Do not use a fixed port on a shared or untrusted network.
+
+On Windows, both packages read the registry directory's owner and access list with PowerShell's `Get-Acl` and use the directory only when it is private to the current user: owned by that user, SYSTEM, or Administrators, with no access granted to another account. If the check refuses the directory or cannot run, use `devToolsMcpPort` in the Vite config and set `FOLDKIT_DEVTOOLS_MCP_PORT` to the same port.
 
 ## Notes
 

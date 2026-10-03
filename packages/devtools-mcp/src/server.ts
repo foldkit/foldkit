@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Console, Effect, HashMap, Layer, Option } from 'effect'
 
+import * as NodeChildProcessSpawner from '@effect/platform-node/NodeChildProcessSpawner'
 import * as NodeFileSystem from '@effect/platform-node/NodeFileSystem'
 import * as NodePath from '@effect/platform-node/NodePath'
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
@@ -11,24 +12,32 @@ import {
 } from '@modelcontextprotocol/sdk/types.js'
 
 import { runInit } from './install.js'
-import { loadSettings, resolveRelayUrl } from './relayLocation.js'
+import { makeRelayClient } from './relayClient.js'
+import {
+  configuredRelayUrl,
+  loadSettings,
+  resolveRelayTargets,
+} from './relayLocation.js'
+import { makeRelayRegistryReader } from './relayRegistry.js'
 import { buildTools } from './tools.js'
-import { connectWebSocketClient } from './webSocketClient.js'
 
 const main = Effect.gen(function* () {
   const settings = yield* loadSettings
-  yield* Option.match(settings.maybeConfiguredPort, {
+  yield* Option.match(configuredRelayUrl(settings), {
     onNone: () =>
       Console.error(
-        `[foldkit-devtools-mcp] looking for a Foldkit dev server under ${settings.projectRoot}`,
+        `[foldkit-devtools-mcp] looking for Foldkit dev servers under ${settings.projectRoot}`,
       ),
-    onSome: port =>
+    onSome: url =>
       Console.error(
-        `[foldkit-devtools-mcp] connecting to the DevTools MCP relay on port ${port}`,
+        `[foldkit-devtools-mcp] connecting to the DevTools MCP relay at ${url}`,
       ),
   })
-  const wsClient = yield* connectWebSocketClient(resolveRelayUrl(settings))
-  const tools = buildTools(wsClient)
+  const registryReader = yield* makeRelayRegistryReader
+  const relayClient = yield* makeRelayClient(
+    resolveRelayTargets(settings, registryReader),
+  )
+  const tools = buildTools(relayClient)
   const toolsByName = HashMap.fromIterable(
     tools.map(tool => [tool.name, tool] as const),
   )
@@ -76,10 +85,10 @@ const main = Effect.gen(function* () {
 
   yield* Console.error('[foldkit-devtools-mcp] MCP server ready on stdio')
 
-  // NOTE: blocks until stdin closes (parent MCP host exited). Without this,
-  // the forked WebSocket connection-loop fiber keeps the Effect runtime alive
-  // forever. The subprocess outlives its parent and accumulates as a zombie
-  // across host restarts.
+  // NOTE: blocks until stdin closes (parent MCP host exited). The relay
+  // sockets opened on demand keep the event loop alive, so without this wait
+  // and the explicit exit below, the subprocess outlives its parent and
+  // accumulates as a zombie across host restarts.
   yield* Effect.callback<void>(resume => {
     const onClose = () => resume(Effect.void)
     process.stdin.on('end', onClose)
@@ -98,7 +107,12 @@ if (subcommand === 'init') {
 } else {
   Effect.runPromise(
     main.pipe(
-      Effect.provide(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)),
+      Effect.provide(
+        Layer.provideMerge(
+          NodeChildProcessSpawner.layer,
+          Layer.mergeAll(NodeFileSystem.layer, NodePath.layer),
+        ),
+      ),
     ),
   ).then(
     () => process.exit(0),
