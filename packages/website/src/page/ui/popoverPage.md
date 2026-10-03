@@ -79,7 +79,7 @@ Do not put `max-height: inherit` on the child. That copies the panel's full meas
 
 ## Keyboard Interaction
 
-By default, the panel receives `tabindex="0"` so it can receive focus. Tab navigates naturally through the panel content. Escape closes and returns focus to the button.
+By default, the panel receives `tabindex="0"` so it can receive focus. Tab navigates naturally through the panel content. Moving focus from the panel into a control inside it leaves the popover open. Escape closes and returns focus to the button.
 
 | Key             | Description                                                                   |
 | --------------- | ----------------------------------------------------------------------------- |
@@ -105,12 +105,12 @@ Spreading the `arrow` bundle supplies the arrow id in application markup. A Scen
 
 Configuration object passed to `Popover.init()`.
 
-| Name           | Type      | Default | Description                                                                                                                                                                             |
-| -------------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`           | `string`  | —       | Unique ID for the popover instance.                                                                                                                                                     |
-| `isAnimated`   | `boolean` | `false` | Enables animation coordination.                                                                                                                                                         |
-| `isModal`      | `boolean` | `false` | Locks page scroll and marks other elements inert when open.                                                                                                                             |
-| `contentFocus` | `boolean` | `false` | Hands focus ownership to the consumer. When true, the panel is not focusable and does not close on blur; the consumer must focus a descendant on open and decide on its own blur rules. |
+| Name           | Type      | Default | Description                                                                                                                                                                                              |
+| -------------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`           | `string`  | —       | Unique ID for the popover instance.                                                                                                                                                                      |
+| `isAnimated`   | `boolean` | `false` | Enables animation coordination.                                                                                                                                                                          |
+| `isModal`      | `boolean` | `false` | Locks page scroll and marks other elements inert when open.                                                                                                                                              |
+| `contentFocus` | `boolean` | `false` | Hands focus ownership to the consumer. When true, the panel is not focusable and does not close when focus leaves; the consumer must focus a descendant on open and decide on its own focus-leave rules. |
 
 ### ViewConfig {#view-config}
 
@@ -135,7 +135,7 @@ Payload delivered to the `toView` callback each render.
 | Name        | Type                            | Default | Description                                                                                                                                                                                                                                                                                                                        |
 | ----------- | ------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `button`    | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the trigger button. Includes the button id, `aria-expanded`, `aria-controls`, and pointer/keyboard handlers.                                                                                                                                                                                                           |
-| `panel`     | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the floating panel. Includes the anchor Mount that positions the panel via Floating UI, ARIA linkage to the button, and panel keydown/blur handlers.                                                                                                                                                                   |
+| `panel`     | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the floating panel. Includes the anchor Mount that positions the panel via Floating UI, ARIA linkage to the button, and panel keydown and focus-leave handlers.                                                                                                                                                        |
 | `backdrop`  | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the modal backdrop element. Includes the portal Mount that moves the backdrop to `document.body`. Inside a dialog, it moves the backdrop to directly before the element it is rendered in, so render it inside the positioned wrapper that holds the button. The backdrop's click handler dispatches `RequestedClose`. |
 | `arrow`     | `ReadonlyArray<ChildAttribute>` | —       | Spread onto your arrow element inside the panel. Carries the id the anchor Mount resolves and `aria-hidden`. Nothing renders until you add the element and the CSS above.                                                                                                                                                          |
 | `isVisible` | `boolean`                       | —       | Derived from `isOpen` and the Animation `transitionState`. Render the panel and backdrop only while this is true.                                                                                                                                                                                                                  |
