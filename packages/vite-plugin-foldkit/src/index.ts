@@ -144,6 +144,11 @@ export type FoldkitPluginOptions = Readonly<{
 // harmless; under-inclusion is the bug. Kept in sync with foldkit's
 // source by `scripts/check-effect-prebundle.ts` (runs in `pnpm check`).
 const FORCE_INCLUDED_EFFECT_NAMESPACES: ReadonlyArray<string> = [
+  // foldkit's dist imports the bare `'effect'` barrel. A consumer that only
+  // imports subpaths (`effect/Option`) never makes the scanner optimize the
+  // barrel, so foldkit would load raw `effect` beside the optimized copy: two
+  // Effect instances, and Schema rejects the other instance's Option.
+  'effect',
   'effect/Array',
   'effect/Boolean',
   'effect/Cause',
