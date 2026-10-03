@@ -5,5 +5,8 @@ export {
   forward,
   load,
   openUrl,
+  LoadType,
+  ScrollPosition,
+  UrlChangeType,
   UrlRequest,
 } from './index.js'

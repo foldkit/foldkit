@@ -46,6 +46,7 @@ import {
   HYDRATION_IDENTITY_ATTRIBUTE,
   HYDRATION_KEY_ATTRIBUTE,
 } from '../../hydrationMarkers.js'
+import { LoadType } from '../../navigation/loadType.js'
 import { hasTrustedInnerHtml } from '../../propertyProvenance.js'
 import type { VNode } from '../../snabbdom/vnode.js'
 import { tagNameFromSelector } from '../../tagName.js'
@@ -1106,7 +1107,11 @@ export type RoutingApplicationConfigWithFlags<Model, Message, Flags> =
   Readonly<{
     Flags: Schema.Codec<Flags, any, never, never>
     routing: unknown
-    init: (flags: Flags, url: Url) => InitReturn<Model, Message>
+    init: (
+      flags: Flags,
+      url: Url,
+      loadType: LoadType,
+    ) => InitReturn<Model, Message>
     view: (model: Model, h: HtmlBuilder<Message>) => Document
   }>
 
@@ -1116,7 +1121,7 @@ export type RoutingApplicationConfigWithFlags<Model, Message, Flags> =
  */
 export type RoutingApplicationConfig<Model, Message> = Readonly<{
   routing: unknown
-  init: (url: Url) => InitReturn<Model, Message>
+  init: (url: Url, loadType: LoadType) => InitReturn<Model, Message>
   view: (model: Model, h: HtmlBuilder<Message>) => Document
 }>
 
@@ -1335,10 +1340,12 @@ const validateHydrationRoot = (
  *
  * Resolves `init` for the request (with the given Flags and URL when the
  * config declares them), runs the pure `view` under a no-op dispatch frame,
- * and serializes the resulting `Document` body. For hydratable output, the
- * root element is stamped with {@link FOLDKIT_APP_ATTRIBUTE} and, when the
- * config declares `Flags`, the Schema-encoded Flags ride along in a JSON script
- * tag so a hydrating client boots from the same Model.
+ * and serializes the resulting `Document` body. A routing `init` receives
+ * `LoadType.Push()`, since a request has no history entry to report from.
+ * For hydratable output, the root element is stamped with
+ * {@link FOLDKIT_APP_ATTRIBUTE} and, when the config declares `Flags`, the
+ * Schema-encoded Flags ride along in a JSON script tag so a hydrating client
+ * boots from the same Model.
  *
  * Commands returned by `init` are not run: the rendered HTML is the
  * post-`init` state, and the client runs those Commands after hydration.
@@ -1438,10 +1445,10 @@ export function renderToString(
     const initReturn = ((): InitReturn<unknown, any> => {
       if (FlagsCodec !== undefined) {
         return hasRouting
-          ? config.init(flagsForInit, url)
+          ? config.init(flagsForInit, url, LoadType.Push())
           : config.init(flagsForInit)
       }
-      return hasRouting ? config.init(url) : config.init()
+      return hasRouting ? config.init(url, LoadType.Push()) : config.init()
     })()
     const nextDocument = runView(config.view, initReturn.model)
 

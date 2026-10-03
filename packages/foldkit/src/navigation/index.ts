@@ -1,19 +1,44 @@
 import { Effect } from 'effect'
 
+import {
+  currentEntryKey,
+  recordLeavingEntryAndCreateKey,
+} from './historyEntries.js'
+import { UrlChangeType } from './urlChangeType.js'
+
+export { LoadType } from './loadType.js'
+export { ScrollPosition } from './scrollPosition.js'
+export { UrlChangeType } from './urlChangeType.js'
 export { UrlRequest } from './urlRequest.js'
 
-/** Pushes a new URL to browser history and triggers Foldkit's URL change handling. */
+/** Pushes a new URL to browser history and triggers Foldkit's URL change
+ *  handling with `UrlChangeType.Push()`. Records the window scroll position of
+ *  the entry being left, and writes `{ foldkitEntryKey }` as the new entry's
+ *  history state, so a later Back or Forward can report where the reader was. */
 export const pushUrl = (url: string): Effect.Effect<void> =>
   Effect.sync(() => {
-    window.history.pushState({}, '', url)
-    window.dispatchEvent(new CustomEvent('foldkit:urlchange'))
+    window.history.pushState(
+      { foldkitEntryKey: recordLeavingEntryAndCreateKey() },
+      '',
+      url,
+    )
+    window.dispatchEvent(
+      new CustomEvent('foldkit:urlchange', { detail: UrlChangeType.Push() }),
+    )
   })
 
-/** Replaces the current URL in browser history and triggers Foldkit's URL change handling. */
+/** Replaces the current URL in browser history and triggers Foldkit's URL
+ *  change handling with `UrlChangeType.Replace()`. Writes
+ *  `{ foldkitEntryKey }` as the history state, keeping the current entry's
+ *  key. */
 export const replaceUrl = (url: string): Effect.Effect<void> =>
   Effect.sync(() => {
-    window.history.replaceState({}, '', url)
-    window.dispatchEvent(new CustomEvent('foldkit:urlchange'))
+    window.history.replaceState({ foldkitEntryKey: currentEntryKey() }, '', url)
+    window.dispatchEvent(
+      new CustomEvent('foldkit:urlchange', {
+        detail: UrlChangeType.Replace(),
+      }),
+    )
   })
 
 /** Navigates back in browser history. */

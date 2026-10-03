@@ -1,4 +1,5 @@
 import { Array, Option } from 'effect'
+import { LoadType } from 'foldkit/navigation'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { fromString } from 'foldkit/url'
@@ -34,7 +35,7 @@ const modelOn = (route: AppRoute): Model =>
 
 describe('init', () => {
   test('a cold load into the gallery logs the transition and loads the catalog', () => {
-    const init_ = init(urlOrThrow('http://localhost/gallery'))
+    const init_ = init(urlOrThrow('http://localhost/gallery'), LoadType.Push())
 
     expect(init_.model.route._tag).toBe('Gallery')
     expect(init_.model.catalogStatus).toBe('Loading')
@@ -48,7 +49,7 @@ describe('init', () => {
   })
 
   test('a cold load into the home route loads nothing', () => {
-    const homeInit = init(urlOrThrow('http://localhost/'))
+    const homeInit = init(urlOrThrow('http://localhost/'), LoadType.Push())
 
     expect(homeInit.model.route._tag).toBe('Home')
     expect(homeInit.model.catalogStatus).toBe('Idle')

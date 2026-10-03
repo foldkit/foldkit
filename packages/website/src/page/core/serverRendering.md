@@ -174,6 +174,18 @@ Browser-only facts do not belong in hydratable SSG Flags. For example: a theme s
 
 When a preference must affect the server HTML, make it request-visible, such as through a cookie, and use request-time SSR for that URL.
 
+A routing `init` receives two arguments that can differ between the server and the browser: the URL and the `LoadType`.
+
+The server renders from its own URL, not the reader's. A static build renders `http://localhost/about` for every reader of `/about`, and no server receives the hash. Keep the parts of the URL the server cannot know out of the first Model. For a static build, those are:
+
+- The origin.
+- The query, including route fields parsed from it, such as a search term.
+- The hash.
+
+Read them after hydration with a boot-time Command, like the other browser-only facts.
+
+The server has no history entry, so it passes `LoadType.Push()`, while the browser passes the real `LoadType`, such as `Reload` with the saved scroll position. Keep the Model the view renders independent of the `LoadType`, and act on it only through Commands. [Scroll Position](/core/routing-and-navigation#scroll-position) shows the pattern.
+
 ### The build id
 
 The build id does not make hydration correct. It makes hydration refuse when it would otherwise be incorrect.

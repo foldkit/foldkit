@@ -7,6 +7,7 @@ import { describe, it } from '@effect/vitest'
 import type { Document } from '../../html/index.js'
 import type { Html } from '../../html/index.js'
 import { __htmlBuilder, customElement } from '../../html/index.js'
+import { LoadType } from '../../navigation/loadType.js'
 import type { RoutingApplicationConfigWithFlags } from '../../runtime/index.js'
 import type * as Update from '../../update/index.js'
 import type { Url } from '../../url/index.js'
@@ -88,6 +89,36 @@ describe('renderToString', () => {
       expect(rendered.html).toContain('<h1>At /settings</h1>')
       expect(rendered.title).toBe('Page /settings')
       expect(rendered.canonical).toBe('https://example.com/settings')
+    }),
+  )
+
+  it.effect('passes a routing init the Push LoadType', () =>
+    Effect.gen(function* () {
+      const loadTypes: Array<LoadType> = []
+      const recordingInit = (
+        flags: Flags,
+        url: Url,
+        loadType: LoadType,
+      ): InitReturn<Model> => {
+        loadTypes.push(loadType)
+        return routingConfig.init(flags, url)
+      }
+
+      yield* renderToString(
+        { ...routingConfig, init: recordingInit },
+        { url: 'https://example.com/settings', flags: { theme: 'dark' } },
+      )
+      yield* renderToString(
+        {
+          routing: {},
+          init: (url: Url, loadType: LoadType) =>
+            recordingInit({ theme: 'light' }, url, loadType),
+          view,
+        },
+        { url: 'https://example.com/settings' },
+      )
+
+      expect(loadTypes).toEqual([LoadType.Push(), LoadType.Push()])
     }),
   )
 

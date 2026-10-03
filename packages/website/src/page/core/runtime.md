@@ -21,11 +21,11 @@ Without a `routing` config, the program doesn't manage the URL bar.
 
 ### With routing
 
-With a `routing` config, the program manages the URL bar. The init function receives the current URL and can use it to set the initial route.
+With a `routing` config, the program manages the URL bar. The init function receives the current URL and can use it to set the initial route. After the URL, it receives a `LoadType` that says whether the page was a new visit, a reload, or a return through Back or Forward.
 
 ::Snippet{name="runMakeApplicationRouting" label="makeApplication with routing example"}
 
-The `routing` config has two handlers. `onUrlRequest` turns a clicked link into a Message, giving update the choice between internal and external navigation. `onUrlChange` turns the new URL into a Message so update can store the corresponding route in the Model. See [Routing & Navigation](/core/routing-and-navigation) for the full walkthrough.
+The `routing` config has two handlers. `onUrlRequest` turns a clicked link into a Message, giving update the choice between internal and external navigation. `onUrlChange` turns the new URL into a Message so update can store the corresponding route in the Model. It also receives a `UrlChangeType` that says how the URL changed, so update can scroll to the top of a new page or restore the position on Back and Forward. See [Routing & Navigation](/core/routing-and-navigation) for the full walkthrough.
 
 The view returns a `Document` rather than bare HTML. A `Document` contains the body plus the document-level state that `makeApplication` reapplies on every render. The tab title, the `<html>` language and direction, and the canonical and og\:url tags therefore stay in sync with the Model. [The Document](/core/view#the-document) lists every field.
 

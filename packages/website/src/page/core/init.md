@@ -8,7 +8,7 @@ The counter starts at zero and has no startup work:
 
 ::Snippet{name="initSimple" label="init example"}
 
-A non-routing application or element calls `init` with no arguments. A routing application passes the current URL, so its first Model can reflect the route. When the application declares Flags, they become the first argument in either form.
+A non-routing application or element calls `init` with no arguments. A routing application passes the current URL, so its first Model can reflect the route. After the URL comes a `LoadType` that says how the reader arrived: a new visit, a reload, or Back or Forward. [Scroll Position](/core/routing-and-navigation#scroll-position) covers the `LoadType`. When the application declares Flags, they become the first argument in either form.
 
 ## Startup Data from Flags {#flags}
 

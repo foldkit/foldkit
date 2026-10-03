@@ -840,7 +840,7 @@ export const view = (
             viewInputs: {
               renderCopyButton,
               renderHeadingLink,
-              url: model.url,
+              navDemoSection: model.navDemoSection,
             },
             toParentMessage: toUiPageMessage,
           }),

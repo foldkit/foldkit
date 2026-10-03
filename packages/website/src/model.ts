@@ -1,5 +1,4 @@
 import { Schema } from 'effect'
-import { Url } from 'foldkit/url'
 
 import { Dialog, Menu } from '@foldkit/ui'
 
@@ -21,7 +20,7 @@ import * as SnippetCopy from './snippetCopy'
 
 export const Model = Schema.Struct({
   route: AppRoute,
-  url: Url,
+  navDemoSection: Ui.NavPage.NavDemoSection,
   deployment: Deployment,
   snippetCopy: SnippetCopy.Model,
   maybeGitHubStarCount: Schema.Option(Schema.Number),

@@ -1,8 +1,15 @@
-import { Effect, Schema, pipe } from 'effect'
-import { Command, Runtime, type Update } from 'foldkit'
+import { Effect, Equal, Match, Option, Schema, pipe } from 'effect'
+import { Command, Render, Runtime, type Update } from 'foldkit'
 import { type Document, type Html, type HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
+import {
+  type LoadType,
+  ScrollPosition,
+  UrlChangeType,
+  UrlRequest,
+  load,
+  pushUrl,
+} from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
@@ -21,17 +28,34 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({
   ClickedIncrement: {},
   ClickedLink: { request: UrlRequest },
-  ChangedUrl: { url: Url },
+  ChangedUrl: { url: Url, urlChangeType: UrlChangeType },
   CompletedNavigateInternal: {},
   CompletedLoadExternal: {},
+  CompletedDisableBrowserScrollRestoration: {},
+  CompletedScrollToTop: {},
+  CompletedRestoreScrollPosition: {},
 })
 
 export type Message = typeof Message.Type
 
 // INIT
 
-export const init: Runtime.RoutingApplicationInit<Model, Message> = url => ({
+export const init: Runtime.RoutingApplicationInit<Model, Message> = (
+  url: Url,
+  loadType: LoadType,
+) => ({
   model: { route: urlToAppRoute(url), count: 0 },
+  commands: [
+    DisableBrowserScrollRestoration(),
+    ...Match.value(loadType).pipe(
+      Match.withReturnType<ReadonlyArray<Command.Command<Message>>>(),
+      Match.tag('Push', () => []),
+      Match.tag('Reload', 'Traverse', ({ maybeSavedScrollPosition }) =>
+        restoreScrollPositionCommands(maybeSavedScrollPosition),
+      ),
+      Match.exhaustive,
+    ),
+  ],
 })
 
 // COMMAND
@@ -50,9 +74,62 @@ const LoadExternal = Command.define('LoadExternal', {
     load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
 })
 
+export const DisableBrowserScrollRestoration = Command.define(
+  'DisableBrowserScrollRestoration',
+  {
+    messages: [Message.CompletedDisableBrowserScrollRestoration],
+    execute: Effect.sync(() => {
+      window.history.scrollRestoration = 'manual'
+      return Message.CompletedDisableBrowserScrollRestoration()
+    }),
+  },
+)
+
+export const ScrollToTop = Command.define('ScrollToTop', {
+  messages: [Message.CompletedScrollToTop],
+  execute: Effect.sync(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' })
+    return Message.CompletedScrollToTop()
+  }),
+})
+
+export const RestoreScrollPosition = Command.define('RestoreScrollPosition', {
+  args: ScrollPosition.fields,
+  messages: [Message.CompletedRestoreScrollPosition],
+  execute: ({ x, y }) =>
+    Effect.gen(function* () {
+      yield* Render.afterCommit
+      window.scrollTo({ left: x, top: y, behavior: 'instant' })
+      return Message.CompletedRestoreScrollPosition()
+    }),
+})
+
+const restoreScrollPositionCommands = (
+  maybeSavedScrollPosition: Option.Option<ScrollPosition>,
+): ReadonlyArray<Command.Command<Message>> =>
+  Option.toArray(Option.map(maybeSavedScrollPosition, RestoreScrollPosition))
+
 // UPDATE
 
 type UpdateReturn = Update.Return<Model, Message>
+
+const scrollCommandsForUrlChange = (
+  currentRoute: AppRoute,
+  nextRoute: AppRoute,
+  urlChangeType: UrlChangeType,
+): ReadonlyArray<Command.Command<Message>> =>
+  UrlChangeType.match(urlChangeType, {
+    Push: () =>
+      Option.toArray(
+        Option.liftPredicate(
+          ScrollToTop(),
+          () => !Equal.equals(nextRoute, currentRoute),
+        ),
+      ),
+    Replace: () => [],
+    Traverse: ({ maybeSavedScrollPosition }) =>
+      restoreScrollPositionCommands(maybeSavedScrollPosition),
+  })
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
@@ -70,11 +147,23 @@ export const update = (model: Model, message: Message) =>
           commands: [LoadExternal({ href })],
         }),
       }),
-    ChangedUrl: ({ url }) => ({
-      model: modifyFields(model, { route: () => urlToAppRoute(url) }),
-    }),
+    ChangedUrl: ({ url, urlChangeType }) => {
+      const nextRoute = urlToAppRoute(url)
+
+      return {
+        model: modifyFields(model, { route: () => nextRoute }),
+        commands: scrollCommandsForUrlChange(
+          model.route,
+          nextRoute,
+          urlChangeType,
+        ),
+      }
+    },
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
+    CompletedDisableBrowserScrollRestoration: () => ({ model }),
+    CompletedScrollToTop: () => ({ model }),
+    CompletedRestoreScrollPosition: () => ({ model }),
   })
 
 // VIEW

@@ -1,6 +1,5 @@
 import { Submodel } from 'foldkit'
 import type { Html } from 'foldkit/html'
-import type { Url } from 'foldkit/url'
 
 import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
@@ -16,18 +15,23 @@ const { tableOfContents, view: renderPage } = slotDocPage<'basic'>(
 )
 
 export { tableOfContents }
+export {
+  NavDemoSection,
+  defaultNavDemoSection,
+  navDemoSectionFromUrl,
+} from './demo/nav'
 
 type ViewInputs = Readonly<{
   renderCopyButton: CodeBlock.RenderCopyButton
   renderHeadingLink: RenderHeadingLink
-  url: Url
+  navDemoSection: Nav.NavDemoSection
 }>
 
 export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (_model, { renderCopyButton, renderHeadingLink, url }, h): Html =>
+  (_model, { renderCopyButton, renderHeadingLink, navDemoSection }, h): Html =>
     renderPage({
       demos: {
-        basic: demoContainer(...Nav.basicDemo(url, h)),
+        basic: demoContainer(...Nav.basicDemo(navDemoSection, h)),
       },
       renderCopyButton,
       renderHeadingLink,
