@@ -1,5 +1,11 @@
 # @foldkit/devtools-mcp
 
+## 0.24.1
+
+### Patch Changes
+
+- [#1534](https://github.com/foldkit/foldkit/pull/1534) [`0ec94a1`](https://github.com/foldkit/foldkit/commit/0ec94a178c504827060a5e475200599193b0387e) Thanks [@devinjameson](https://github.com/devinjameson)! - Protect Effect `Redacted` values across DevTools Model, Message, Command, Mount, init, and diff responses, including the Vite prebundle needed by consumers. Document the DevTools MCP trust boundary, the controls that disable dispatch or relay access, and why `excludeFromHistory` does not hide sensitive Model data.
+
 ## 0.24.0
 
 ### Minor Changes
