@@ -61,21 +61,33 @@ const LocationAndHrefFromString = Schema.String.pipe(
   ),
 )
 
+const splitOnFirst = (
+  value: string,
+  separator: string,
+): readonly [string, Option.Option<string>] =>
+  Option.match(String.indexOf(separator)(value), {
+    onNone: () => [value, Option.none()],
+    onSome: separatorIndex => [
+      String.substring(0, separatorIndex)(value),
+      Option.some(String.substring(separatorIndex + separator.length)(value)),
+    ],
+  })
+
 const UrlFromLocationAndHref = LocationAndHref.pipe(
   Schema.decodeTo(
     Url,
     SchemaTransformation.transform({
       decode: ({ href, location }) => {
-        const [pathAndQuery, hashPart] = String.split(href, '#')
-        const [pathname, searchPart] = String.split(pathAndQuery, '?')
+        const [pathAndQuery, maybeHash] = splitOnFirst(href, '#')
+        const [pathname, maybeSearch] = splitOnFirst(pathAndQuery, '?')
 
         return {
           protocol: location.protocol,
           host: location.host,
           port: OptionExt.fromString(location.port),
           pathname: pathname || '/',
-          search: OptionExt.fromString(searchPart || ''),
-          hash: OptionExt.fromString(hashPart || ''),
+          search: Option.flatMap(maybeSearch, OptionExt.fromString),
+          hash: Option.flatMap(maybeHash, OptionExt.fromString),
         }
       },
       encode: url => {
