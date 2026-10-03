@@ -4,9 +4,12 @@ import { defineMessageUnion } from 'foldkit/message'
 
 import { ValidationMessage } from './validation'
 
+const weather = { Message: Schema.String }
+
 const Message = defineMessageUnion({
   GotWeather: { temperature: Schema.Number, },
   GotValidation: { message: ValidationMessage, },
+  GotWeatherMessage: { message: weather.Message },
 })
 
 const RootMessage = MessageApi.defineMessageUnion({
