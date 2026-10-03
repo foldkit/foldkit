@@ -59,7 +59,7 @@ import * as NodePath from '@effect/platform-node/NodePath'
 import { type FoldkitBuildOptions, foldkitBuild } from './build.js'
 import { foldkitBuildToken } from './buildToken.js'
 import { devToolsOverlayPlugin } from './devToolsOverlay.js'
-import { resolveInstalledFoldkitPackages } from './foldkitPackages.js'
+import { crawlFoldkitPackages } from './foldkitPackages.js'
 import { publishRelayRecord, retireRelayRecord } from './relayRegistry.js'
 import { type FoldkitSsrOptions, foldkitSsr } from './ssr.js'
 import { foldkitViewIdentity } from './viewIdentity.js'
@@ -1132,9 +1132,11 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
 
   const resolutionPlugin: Plugin = {
     name: 'foldkit:resolution',
-    config: userConfig => {
-      const singletonPackages = resolveInstalledFoldkitPackages(
+    config: async (userConfig, { command }) => {
+      const foldkitPackages = await crawlFoldkitPackages(
         userConfig.root ?? process.cwd(),
+        command === 'build',
+        userConfig,
       )
 
       return {
@@ -1142,15 +1144,15 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
           exclude: ['foldkit'],
         },
         resolve: {
-          dedupe: singletonPackages,
+          dedupe: foldkitPackages.dedupe,
         },
         ssr: {
-          noExternal: singletonPackages,
+          noExternal: foldkitPackages.ssrNoExternal,
         },
         environments: {
           ssr: {
             resolve: {
-              noExternal: singletonPackages,
+              noExternal: foldkitPackages.ssrNoExternal,
             },
           },
         },
