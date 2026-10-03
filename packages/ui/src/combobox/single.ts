@@ -74,7 +74,8 @@ export const update = makeUpdate<Model>({
 type UpdateReturn = ReturnType<typeof update>
 
 /** Programmatically opens the Combobox, updating the Model and returning
- *  focus and modal Commands. Use this in domain-event handlers. */
+ *  focus and modal Commands. When it is already open, returns the Model
+ *  unchanged with no Commands. Use this in domain-event handlers. */
 export const open = (model: Model): UpdateReturn =>
   update(model, Message.Opened({ maybeActiveItemIndex: Option.none() }))
 

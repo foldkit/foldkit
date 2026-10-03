@@ -480,8 +480,12 @@ export const makeUpdate = <Model extends BaseModel>(
       CompletedAttachComboboxPreventBlur: () => ({ model }),
       CompletedAttachComboboxSelectOnFocus: () => ({ model }),
       CompletedPortalComboboxBackdrop: () => ({ model }),
-      Opened: ({ maybeActiveItemIndex }) =>
-        openCombobox(
+      Opened: ({ maybeActiveItemIndex }) => {
+        if (model.isOpen) {
+          return { model }
+        }
+
+        return openCombobox(
           modifyBaseFields(model, {
             maybeActiveItemIndex: () => maybeActiveItemIndex,
             activationTrigger: () =>
@@ -491,7 +495,8 @@ export const makeUpdate = <Model extends BaseModel>(
               }),
             maybeLastPointerPosition: () => Option.none(),
           }),
-        ),
+        )
+      },
 
       // NOTE: A blur Message can arrive after selection has already closed the
       // Combobox. Ignore that stale Message so it cannot restore an old input
