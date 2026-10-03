@@ -134,16 +134,15 @@ export type FoldkitPluginOptions = Readonly<{
   buildId?: string
 }>
 
-// NOTE: Vite's dep optimizer scans the consumer's source for `effect`
-// imports and pre-bundles only those exports into a single `effect.js`
-// blob. It does not follow imports through workspace/node_modules
-// packages, so any `effect` namespace foldkit's compiled dist references
-// that the consumer does not mention by name is missing from the blob
-// and crashes at runtime in dev. The list below covers every top-level
-// namespace foldkit imports from bare `'effect'`. Over-inclusion is
-// harmless; under-inclusion is the bug. Kept in sync with foldkit's
-// source by `scripts/check-effect-prebundle.ts` (runs in `pnpm check`).
-const FORCE_INCLUDED_EFFECT_NAMESPACES: ReadonlyArray<string> = [
+// NOTE: Vite does not scan imports through `foldkit` because the plugin
+// excludes the package from optimization. A consumer can import only Effect
+// subpaths while Foldkit's compiled distribution imports the bare barrel, so
+// include both the barrel and every top-level namespace Foldkit imports. This
+// keeps them in one optimized dependency graph. Over-inclusion is harmless;
+// under-inclusion is the bug. `scripts/check-effect-prebundle.ts` keeps the
+// entries in sync with Foldkit's source and runs in `pnpm check`.
+const FORCE_INCLUDED_EFFECT_ENTRIES: ReadonlyArray<string> = [
+  'effect',
   'effect/Array',
   'effect/Boolean',
   'effect/Cause',
@@ -1088,7 +1087,7 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
     apply: 'serve',
     config: () => ({
       optimizeDeps: {
-        include: [...FORCE_INCLUDED_EFFECT_NAMESPACES],
+        include: [...FORCE_INCLUDED_EFFECT_ENTRIES],
       },
     }),
     configureServer: server => {
