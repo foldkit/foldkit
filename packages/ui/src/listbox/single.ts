@@ -3,6 +3,10 @@ import { type Update } from 'foldkit'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 
 import {
+  type ValueOutMessageMatch,
+  bindValueOutMessageMatch,
+} from '../internal/valueOutMessageMatch.js'
+import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewInputsCommon,
@@ -98,7 +102,8 @@ type BundleUpdateReturn<Value extends string> = Update.ReturnWithOutMessage<
 >
 
 /** The `view`, `update`, and programmatic helpers that `Listbox.create`
- *  returns, bound to one `Item` and `Value` pair. Name it to annotate a
+ *  returns, bound to one `Item` and `Value` pair. `OutMessage.match` folds a
+ *  `Selected` whose `value` is that same `Value`. Name it to annotate a
  *  value that holds a created bundle, such as a field on a config object
  *  or a function parameter that takes the bundle rather than calling
  *  `create` itself. */
@@ -111,6 +116,9 @@ export type Bundle<
   selectItem: (model: Model, item: Value) => BundleUpdateReturn<Value>
   open: (model: Model) => BundleUpdateReturn<Value>
   close: (model: Model) => BundleUpdateReturn<Value>
+  OutMessage: Readonly<{
+    match: ValueOutMessageMatch<OutMessage<Value>>
+  }>
 }>
 
 /** Pairs the single-select listbox's `view` and `update` (and programmatic
@@ -124,8 +132,8 @@ export type Bundle<
  *  // In view:
  *  h.submodel({ view: ColorListbox.view, ... })
  *
- *  // In the parent update, pass ColorListbox.update to Update.foldChild and
- *  // handle Listbox.OutMessage<Color> in foldOutMessage.
+ *  // In the parent update, fold Selected with ColorListbox.OutMessage.match
+ *  // so value is Color, and pass ColorListbox.update to Update.foldChild.
  *  ```
  *
  *  Two type params support object-typed items with an `itemToValue`
@@ -161,5 +169,8 @@ export const create = <
         Message.Opened({ maybeActiveItemIndex: Option.none() }),
       ),
     close: model => typedUpdate(model, Message.Closed()),
+    OutMessage: {
+      match: bindValueOutMessageMatch<OutMessage<Value>>(OutMessage.match),
+    },
   }
 }

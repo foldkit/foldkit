@@ -16,6 +16,8 @@ A Listbox over a literal-union `Plan` type:
 
 A call to `Listbox.create<Plan>()` returns an object whose entry points are all bound to `Plan`. Its `view` accepts `items: ReadonlyArray<Plan>`. Its `update` and `selectItem` helper can return a `Selected` OutMessage carrying a `Plan`. Declare the factory once at module scope and use the same bundle at every site that needs it.
 
+The bundle's `OutMessage.match` is bound to that same `Plan`. Fold `Selected` with it, and the handler receives `value: Plan`. `Listbox.OutMessage.match` still types `value` as `string`. Pass `Listbox.OutMessage<Plan>` as its second type argument when you match that union directly.
+
 There is no inbound reflect helper for the selection: the parent owns it outright and passes it in as `maybeSelectedValue` (`selectedValues` for multi-select), so there is nothing on the Listbox or Combobox to reflect onto. When an external value (a URL parameter, restored storage, a server push) changes the selection, the parent writes its own field. The `reflect*` family lives on the components with configuration the parent feeds in: `reflectMinDate`, `reflectMaxDate`, `reflectDisabledDates`, and `reflectDisabledDaysOfWeek` on Calendar and DatePicker, and `reflectRange` on Slider. See [Reflecting External State](/core/submodel#reflecting-external-state) for the concept.
 
 ## Naming What `create` Returns {#bundle-type}

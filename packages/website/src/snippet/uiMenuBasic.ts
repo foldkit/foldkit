@@ -42,9 +42,8 @@ const ActionMenu = Menu.create<Action>()
 // At module scope, fold the OutMessage into your own Model. `Selected` carries
 // the picked item directly (typed as `Action`). The arm returns an Update.Step
 // over the parent Model, which already has the next Menu Model written back:
-const foldMenuOutMessage = Menu.OutMessage.match<
-  Update.Step<Model, Message>,
-  Menu.OutMessage<Action>
+const foldMenuOutMessage = ActionMenu.OutMessage.match<
+  Update.Step<Model, Message>
 >({
   // The child has emitted `Selected`. In this arm the parent can update
   // its own state or dispatch its own Commands, for example transition a

@@ -18,7 +18,7 @@ Check out how RadioGroup is wired up in a [real Foldkit app](https://github.com/
 
 Declare the radio group once at module scope with `RadioGroup.create<Value>()` to lift the option type through `view` and `update` without casting. Read the current selection from your Model into `selectedValue`, pass the typed `options` array, and provide a `toView` callback that receives one `OptionInfo<Value>` per option (with attribute bundles for the option, label, and description).
 
-Pass the bundle's `update` to `Update.foldChild`, then store the value from the `Selected` OutMessage in `foldOutMessage`. Moving focus onto the newly selected option is the radio group's own concern. The fold maps the `FocusOption` Command into the parent Message type.
+Pass the bundle's `update` to `Update.foldChild`, and fold `Selected` with the bundle's `OutMessage.match` so the handler receives `value: Value`. Moving focus onto the newly selected option is the radio group's own concern. The fold maps the `FocusOption` Command into the parent Message type.
 
 ::Demo{name="vertical"}
 

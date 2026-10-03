@@ -3,6 +3,10 @@ import { type Update } from 'foldkit'
 import type { View as SubmodelView } from 'foldkit/submodel'
 
 import {
+  type ValueOutMessageMatch,
+  bindValueOutMessageMatch,
+} from '../internal/valueOutMessageMatch.js'
+import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewInputs,
@@ -77,6 +81,7 @@ type BundleUpdateReturn<Value extends string> = Update.ReturnWithOutMessage<
 
 /** The `view`, `update`, and programmatic helpers that
  *  `Listbox.Multi.create` returns, bound to one `Item` and `Value` pair.
+ *  `OutMessage.match` folds a `Selected` whose `value` is that same `Value`.
  *  Name it to annotate a value that holds a created bundle, such as a
  *  field on a config object or a function parameter that takes the bundle
  *  rather than calling `create` itself. */
@@ -89,13 +94,16 @@ export type Bundle<
   selectItem: (model: Model, item: Value) => BundleUpdateReturn<Value>
   open: (model: Model) => BundleUpdateReturn<Value>
   close: (model: Model) => BundleUpdateReturn<Value>
+  OutMessage: Readonly<{
+    match: ValueOutMessageMatch<OutMessage<Value>>
+  }>
 }>
 
 /** Pairs the multi-select listbox's `view` and `update` (and programmatic
  *  helpers) behind a single Item-typed entry point. Same shape as
- *  `Listbox.create`. Two type params support object-typed items via
- *  `itemToValue`: `Value` defaults to `Item` when `Item extends string`,
- *  else `string`. */
+ *  `Listbox.create`, including `OutMessage.match` bound to `Value`. Two
+ *  type params support object-typed items via `itemToValue`: `Value`
+ *  defaults to `Item` when `Item extends string`, else `string`. */
 export const create = <
   Item = string,
   Value extends string = Item extends string ? Item : string,
@@ -118,5 +126,8 @@ export const create = <
         Message.Opened({ maybeActiveItemIndex: Option.none() }),
       ),
     close: model => typedUpdate(model, Message.Closed()),
+    OutMessage: {
+      match: bindValueOutMessageMatch<OutMessage<Value>>(OutMessage.match),
+    },
   }
 }
