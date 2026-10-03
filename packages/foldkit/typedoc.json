@@ -80,6 +80,7 @@
     "ResolvableCommandMatcher",
     "ResultMessageForMatcher",
     "RichUnionSchema",
+    "RouteBiparser",
     "SceneManagedResourceEntry",
     "StrictKeys",
     "SubscriptionBrand",
