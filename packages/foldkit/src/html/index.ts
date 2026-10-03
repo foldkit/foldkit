@@ -25,6 +25,7 @@ import {
   reflectedAttributeName,
 } from '../domReflection.js'
 import type { File } from '../file/index.js'
+import { isImeCompositionKeydown } from '../imeComposition.js'
 import type { MountAction } from '../mount/index.js'
 import {
   MountRuntime,
@@ -161,6 +162,16 @@ const keyboardModifiers = (event: KeyboardEvent): KeyboardModifiers => ({
   altKey: event.altKey,
   metaKey: event.metaKey,
 })
+
+const skipImeCompositionKeydown =
+  (handle: (event: KeyboardEvent) => void) =>
+  (event: KeyboardEvent): void => {
+    if (isImeCompositionKeydown(event)) {
+      return
+    }
+
+    handle(event)
+  }
 
 const inputEventValue = (target: EventTarget | null): string => {
   if (
@@ -1742,30 +1753,31 @@ const attributeHandlers: AttributeHandlers = {
     }),
   OnKeyDown: ({ f: toMessage }, ctx: BuildContext) =>
     updateDataOn(ctx, {
-      keydown: (event: KeyboardEvent) =>
-        ctx.dispatch(toMessage(event.key, keyboardModifiers(event))),
+      keydown: skipImeCompositionKeydown(event => {
+        ctx.dispatch(toMessage(event.key, keyboardModifiers(event)))
+      }),
     }),
   OnKeyDownPreventDefault: ({ f: toMaybeMessage }, ctx: BuildContext) =>
     updateDataOn(ctx, {
-      keydown: (event: KeyboardEvent) => {
+      keydown: skipImeCompositionKeydown(event => {
         const maybeMessage = toMaybeMessage(event.key, keyboardModifiers(event))
         if (Option.isSome(maybeMessage)) {
           event.preventDefault()
           ctx.dispatch(maybeMessage.value)
         }
-      },
+      }),
     }),
   OnKeyDownSelf: ({ f: toMessage }, ctx: BuildContext) =>
     updateDataOn(ctx, {
-      keydown: (event: KeyboardEvent) => {
+      keydown: skipImeCompositionKeydown(event => {
         if (isEventTargetCurrentTarget(event)) {
           ctx.dispatch(toMessage(event.key, keyboardModifiers(event)))
         }
-      },
+      }),
     }),
   OnKeyDownSelfPreventDefault: ({ f: toMaybeMessage }, ctx: BuildContext) =>
     updateDataOn(ctx, {
-      keydown: (event: KeyboardEvent) => {
+      keydown: skipImeCompositionKeydown(event => {
         if (!isEventTargetCurrentTarget(event)) {
           return
         }
@@ -1775,11 +1787,11 @@ const attributeHandlers: AttributeHandlers = {
           event.preventDefault()
           ctx.dispatch(maybeMessage.value)
         }
-      },
+      }),
     }),
   OnKeyDownFocus: ({ f: toMaybeFocusAndMessage }, ctx: BuildContext) =>
     updateDataOn(ctx, {
-      keydown: (event: KeyboardEvent) => {
+      keydown: skipImeCompositionKeydown(event => {
         const maybeResult = toMaybeFocusAndMessage(
           event.key,
           keyboardModifiers(event),
@@ -1793,7 +1805,7 @@ const attributeHandlers: AttributeHandlers = {
           }
           ctx.dispatch(message)
         }
-      },
+      }),
     }),
   OnKeyUp: ({ f: toMessage }, ctx: BuildContext) =>
     updateDataOn(ctx, {

@@ -12,6 +12,8 @@ import {
   pipe,
 } from 'effect'
 
+import { isImeCompositionKeydown } from '../imeComposition.js'
+
 /** Whether a key binding may fire when its event comes from an editable element. */
 export type WhileTyping = 'Suppress' | 'Allow'
 
@@ -657,7 +659,7 @@ const handleKeyBindingEvent = <Message>(
     return
   }
 
-  if (event.defaultPrevented || event.isComposing) {
+  if (event.defaultPrevented || isImeCompositionKeydown(event)) {
     context.sequenceController.clearSequence()
     return
   }
@@ -788,9 +790,11 @@ const keyBindingStream = <Message>(
  * Bindings are suppressed by default when the event's composed path contains
  * an `input`, `textarea`, `select`, or contenteditable element. Set
  * `whileTyping` to `'Allow'` for a binding that must work there. Events emitted
- * during IME composition are always ignored. Repeated keydowns are ignored for
- * one-press bindings unless `whenRepeated` is `'Allow'`. An event another
- * handler already canceled is ignored and clears any sequence in progress.
+ * during IME composition are always ignored, including a keydown some browsers
+ * report with `keyCode` 229 and `isComposing` false. Repeated keydowns are
+ * ignored for one-press bindings unless `whenRepeated` is `'Allow'`. An event
+ * another handler already canceled is ignored and clears any sequence in
+ * progress.
  *
  * Matched key presses call `preventDefault()` before dispatching. For a
  * sequence, that policy applies to every matched press. Set `preventDefault`
