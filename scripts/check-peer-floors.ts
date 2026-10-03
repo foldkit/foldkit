@@ -21,8 +21,8 @@ const FLOORS = [
     packageDir: 'packages/devtools',
     packageName: '@foldkit/devtools',
     dependency: 'foldkit',
-    minimum: '0.165.0',
-    safePackageVersion: '0.165.0',
+    minimum: '0.166.0',
+    safePackageVersion: '0.166.0',
   },
   {
     packageDir: 'packages/devtools',

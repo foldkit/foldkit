@@ -1,6 +1,6 @@
 ---
 'foldkit': minor
-'@foldkit/devtools': patch
+'@foldkit/devtools': minor
 ---
 
 Require an `Option`-returning `read` in both `Subscription.lift` and `ManagedResource.lift`, matching `Update.foldChild`. A child can exist in only some parent states without a separate presence check and throwing extractor. Returning `None` stops its Subscriptions or releases its Managed Resources without reading child dependencies or requirements.
@@ -26,3 +26,5 @@ Subscription.lift(Home.subscriptions)<Model, Message>({
 ManagedResource readers already return `Option`, so only the field name changes. Subscription `when` predicates remain available for additional whole-record or per-entry conditions. A closed gate skips `read`; a missing child stops every entry, including entries omitted from a gate map.
 
 Every lifted Subscription now exposes `GatedDependencies<ChildDependencies>` with a `maybeDependencies` field, including lifts without `when` and entries omitted from per-entry gates. Update code that directly inspects lifted dependency records accordingly. Child definitions keep their existing dependency types, services, and `keepAliveEquivalence` behavior. Migrate the DevTools overlay to the new reader contract.
+
+DevTools now requires Foldkit 0.166.0 or newer because its overlay uses the new `read` field.
