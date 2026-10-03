@@ -27,6 +27,8 @@
     "check:create-foldkit-app-smoke:ci": "node scripts/check-create-foldkit-app-smoke.ts --skip-build",
     "check:packed-ssr-consumer": "node scripts/check-packed-ssr-consumer.ts",
     "check:packed-ssr-consumer:ci": "node scripts/check-packed-ssr-consumer.ts --skip-build --critical-browser-matrix",
+    "check:packed-devtools-consumer": "node scripts/check-packed-devtools-consumer.ts",
+    "check:packed-devtools-consumer:ci": "node scripts/check-packed-devtools-consumer.ts --skip-build",
     "check:scaffold-server-rendering": "node scripts/check-scaffold-server-rendering.ts",
     "check:scaffold-server-rendering:ci": "node scripts/check-scaffold-server-rendering.ts --skip-build",
     "check:host-parity": "node scripts/check-host-parity.ts",

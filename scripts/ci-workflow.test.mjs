@@ -89,6 +89,27 @@ test('peer floor changes run the packed-manifest check before release', () => {
   assert.match(releaseWorkflow, /^\s+- 'scripts\/check-peer-floors\.ts'$/m)
 })
 
+test('DevTools compatibility runs against its declared minimum', () => {
+  const reusableBuildIndex = workflow.indexOf(
+    '      - name: Build reusable packages',
+  )
+  const compatibilityCheckIndex = workflow.indexOf(
+    '      - name: Check DevTools against its minimum Foldkit',
+  )
+
+  assert.notEqual(reusableBuildIndex, -1)
+  assert.ok(compatibilityCheckIndex > reusableBuildIndex)
+  assert.ok(
+    workflow.includes(
+      "      - name: Check DevTools against its minimum Foldkit\n        if: steps.scope.outputs.packed_devtools_consumer == 'true'\n        run: pnpm check:packed-devtools-consumer:ci",
+    ),
+  )
+  assert.equal(
+    rootPackage.scripts['check:packed-devtools-consumer:ci'],
+    'node scripts/check-packed-devtools-consumer.ts --skip-build',
+  )
+})
+
 test('stable publication verifies website package inputs before upload', () => {
   const stableJob = releaseWorkflow.slice(
     releaseWorkflow.indexOf('  stable:'),

@@ -10,6 +10,7 @@
       ],
       "project": ["scripts/**"],
       "ignoreFiles": [
+        "scripts/fixtures/packed-devtools-consumer/**",
         "scripts/fixtures/packed-ssr-consumer/**",
         "scripts/lib/package-version.d.mts"
       ]

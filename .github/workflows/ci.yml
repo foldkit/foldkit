@@ -103,6 +103,10 @@ jobs:
         if: steps.scope.outputs.peer_floors == 'true'
         run: pnpm check:peer-floors
 
+      - name: Check DevTools against its minimum Foldkit
+        if: steps.scope.outputs.packed_devtools_consumer == 'true'
+        run: pnpm check:packed-devtools-consumer:ci
+
       - name: Check dead code
         run: pnpm check:dead-code
 
