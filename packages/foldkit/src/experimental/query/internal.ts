@@ -1,10 +1,8 @@
-import { Effect, Match, Option, Predicate, Schema, pipe } from 'effect'
+import { Effect, Option, Predicate, Schema, pipe } from 'effect'
 
 import * as AsyncData from '../../asyncData/index.js'
 import * as Command from '../../command/index.js'
 import * as Update from '../../update/index.js'
-
-export type Policy = 'loadIfMissing' | 'revalidate' | 'revalidateOrLoad'
 
 export type FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage> =
   Pick<
@@ -18,56 +16,56 @@ export type FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage> =
     'read' | 'write' | 'toParentMessage'
   >
 
-export type FieldOf<ParentModel, ChildModel> = Extract<
+export type ParentFieldOf<ParentModel, ChildModel> = Extract<
   {
     [K in keyof ParentModel]-?: ParentModel[K] extends ChildModel ? K : never
   }[keyof ParentModel],
   string
 >
 
-export type ParentKeyFoldConfig<
+export type ParentFieldConfig<
   ParentModel,
   ParentMessage,
   ChildModel,
   ChildMessage,
 > = Readonly<{
-  field: FieldOf<ParentModel, ChildModel>
+  parentField: ParentFieldOf<ParentModel, ChildModel>
   toParentMessage: (message: ChildMessage) => ParentMessage
 }>
 
 export type LiftConfig<ParentModel, ParentMessage, ChildModel, ChildMessage> =
-  | ParentKeyFoldConfig<ParentModel, ParentMessage, ChildModel, ChildMessage>
+  | ParentFieldConfig<ParentModel, ParentMessage, ChildModel, ChildMessage>
   | FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage>
 
 export type LiftQuery<ChildModel, ChildMessage, R> = {
   <ParentModel, ParentMessage>(
-    config: ParentKeyFoldConfig<
+    config: ParentFieldConfig<
       ParentModel,
       ParentMessage,
       ChildModel,
       ChildMessage
     >,
-  ): Lifted.Query<ParentModel, ParentMessage, ChildMessage, R>
+  ): LiftedQuery<ParentModel, ParentMessage, ChildMessage, R>
   <ParentModel, ParentMessage>(
     config: FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage>,
-  ): Lifted.Query<ParentModel, ParentMessage, ChildMessage, R>
+  ): LiftedQuery<ParentModel, ParentMessage, ChildMessage, R>
 }
 
 export type LiftKeyedQuery<ChildModel, ChildMessage, Args, R> = {
   <ParentModel, ParentMessage>(
-    config: ParentKeyFoldConfig<
+    config: ParentFieldConfig<
       ParentModel,
       ParentMessage,
       ChildModel,
       ChildMessage
     >,
-  ): Lifted.KeyedQuery<ParentModel, ParentMessage, ChildMessage, Args, R>
+  ): LiftedKeyedQuery<ParentModel, ParentMessage, ChildMessage, Args, R>
   <ParentModel, ParentMessage>(
     config: FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage>,
-  ): Lifted.KeyedQuery<ParentModel, ParentMessage, ChildMessage, Args, R>
+  ): LiftedKeyedQuery<ParentModel, ParentMessage, ChildMessage, Args, R>
 }
 
-export function isParentKeyFoldConfig<
+export const isParentFieldConfig = <
   ParentModel,
   ParentMessage,
   ChildModel,
@@ -76,44 +74,42 @@ export function isParentKeyFoldConfig<
   config: LiftConfig<ParentModel, ParentMessage, ChildModel, ChildMessage>,
 ): config is Extract<
   LiftConfig<ParentModel, ParentMessage, ChildModel, ChildMessage>,
-  { readonly field: string }
-> {
-  return Predicate.hasProperty(config, 'field')
-}
+  { readonly parentField: string }
+> => Predicate.hasProperty(config, 'parentField')
 
-function setField<O extends Record<K, V>, K extends string, V>(
-  model: O,
-  key: K,
-  value: V,
-): O {
-  return { ...model, [key]: value }
-}
+const setField = <
+  Field extends string,
+  Value,
+  Struct extends Record<Field, Value>,
+>(
+  model: Struct,
+  field: Field,
+  value: Value,
+): Struct => ({ ...model, [field]: value })
 
-export function parentKeyToLens<
-  ParentModel extends Record<FieldOf<ParentModel, ChildModel>, ChildModel>,
+export const parentFieldToLens = <
+  ParentModel extends Record<
+    ParentFieldOf<ParentModel, ChildModel>,
+    ChildModel
+  >,
   ParentMessage,
   ChildModel,
   ChildMessage,
 >(
-  config: ParentKeyFoldConfig<
+  config: ParentFieldConfig<
     ParentModel,
     ParentMessage,
     ChildModel,
     ChildMessage
   >,
-): FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage> {
-  return {
-    read: function (model: ParentModel) {
-      return Option.some(model[config.field])
-    },
-    write: function (model: ParentModel, nextChild: ChildModel) {
-      return setField(model, config.field, nextChild)
-    },
-    toParentMessage: config.toParentMessage,
-  }
-}
+): FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage> => ({
+  read: (model: ParentModel) => Option.some(model[config.parentField]),
+  write: (model: ParentModel, nextChild: ChildModel) =>
+    setField(model, config.parentField, nextChild),
+  toParentMessage: config.toParentMessage,
+})
 
-export const foldChildFromPolicy = <
+export const liftChildFold = <
   ParentModel,
   ParentMessage,
   ChildModel,
@@ -121,43 +117,36 @@ export const foldChildFromPolicy = <
   Input,
   R,
 >(
-  policy: Update.Fold<ChildModel, ChildMessage, Input, R>,
+  childFold: Update.Fold<ChildModel, ChildMessage, Input, R>,
   lens: FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage>,
 ): Update.Fold<ParentModel, ParentMessage, Input, R> =>
   Update.foldChild({
-    update: (childModel: ChildModel, input: Input) => policy(childModel, input),
+    update: (childModel: ChildModel, input: Input) =>
+      childFold(childModel, input),
     ...lens,
   })
 
-type Transition = <A, E>(
+export type AsyncDataTransition = <A, E>(
   data: AsyncData.AsyncData<A, E>,
 ) => Option.Option<AsyncData.AsyncData<A, E>>
 
-const transitionFor = (policy: Policy): Transition =>
-  Match.value(policy).pipe(
-    Match.when('loadIfMissing', () => AsyncData.loadIfMissing),
-    Match.when('revalidate', () => AsyncData.revalidate),
-    Match.when('revalidateOrLoad', () => AsyncData.revalidateOrLoad),
-    Match.exhaustive,
-  )
-
-export type CacheStore<Model, Args, A, E, Message, R> = Readonly<{
+export type QueryStore<Model, Args, A, E, Message, R> = Readonly<{
   read: (model: Model, args: Args) => AsyncData.AsyncData<A, E>
   write: (model: Model, args: Args, data: AsyncData.AsyncData<A, E>) => Model
-  load: (args: Args) => Command.Command<Message, never, R>
+  fetch: (args: Args) => Command.Command<Message, never, R>
 }>
 
-export const applyPolicy = <Model, Args, A, E, Message, R>(
-  store: CacheStore<Model, Args, A, E, Message, R>,
+export const applyTransition = <Model, Args, A, E, Message, R>(
+  store: QueryStore<Model, Args, A, E, Message, R>,
   model: Model,
   args: Args,
-  policy: Policy,
+  transition: AsyncDataTransition,
 ): Update.Return<Model, Message, R> =>
-  Option.match(transitionFor(policy)(store.read(model, args)), {
+  Option.match(transition(store.read(model, args)), {
     onNone: () => ({ model }),
     onSome: nextData => ({
       model: store.write(model, args, nextData),
-      commands: [store.load(args)],
+      commands: [store.fetch(args)],
     }),
   })
 
@@ -179,44 +168,17 @@ export type KeyedArgs<Fields extends Schema.Struct.Fields> = Schema.Schema.Type<
   Schema.Struct<Fields>
 >
 
-/**
- * Parent-Model operations returned by `query.lift`.
- *
- * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
- */
-export namespace Lifted {
-  /**
-   * A non-keyed Query lifted into a parent Model and Message.
-   *
-   * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
-   */
-  export type Query<
-    ParentModel,
-    ParentMessage,
-    ChildMessage,
-    R = never,
-  > = Readonly<{
-    fold: Update.Fold<ParentModel, ParentMessage, ChildMessage, R>
-    revalidate: Update.Step<ParentModel, ParentMessage, R>
-    revalidateOrLoad: Update.Step<ParentModel, ParentMessage, R>
-    loadIfMissing: Update.Step<ParentModel, ParentMessage, R>
-  }>
+type LiftedQuery<ParentModel, ParentMessage, ChildMessage, R> = Readonly<{
+  fold: Update.Fold<ParentModel, ParentMessage, ChildMessage, R>
+  revalidate: Update.Step<ParentModel, ParentMessage, R>
+  revalidateOrLoad: Update.Step<ParentModel, ParentMessage, R>
+  loadIfMissing: Update.Step<ParentModel, ParentMessage, R>
+}>
 
-  /**
-   * A KeyedQuery lifted into a parent Model and Message.
-   *
-   * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
-   */
-  export type KeyedQuery<
-    ParentModel,
-    ParentMessage,
-    ChildMessage,
-    Args,
-    R = never,
-  > = Readonly<{
+type LiftedKeyedQuery<ParentModel, ParentMessage, ChildMessage, Args, R> =
+  Readonly<{
     fold: Update.Fold<ParentModel, ParentMessage, ChildMessage, R>
     revalidate: Update.Fold<ParentModel, ParentMessage, Args, R>
     revalidateOrLoad: Update.Fold<ParentModel, ParentMessage, Args, R>
     loadIfMissing: Update.Fold<ParentModel, ParentMessage, Args, R>
   }>
-}

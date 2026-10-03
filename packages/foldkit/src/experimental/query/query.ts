@@ -6,15 +6,15 @@ import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
 import * as Update from '../../update/index.js'
 import {
-  type CacheStore,
   type CompletedFetchOf,
   type FoldLens,
   type LiftConfig,
   type LiftQuery,
-  type ParentKeyFoldConfig,
-  applyPolicy,
-  isParentKeyFoldConfig,
-  parentKeyToLens,
+  type ParentFieldConfig,
+  type QueryStore,
+  applyTransition,
+  isParentFieldConfig,
+  parentFieldToLens,
   runExecute,
 } from './internal.js'
 
@@ -42,14 +42,14 @@ export type QueryMessage<A, AI, E, EI> = ReturnType<
   typeof makeQueryMessage<A, AI, E, EI>
 >
 
-/** Schema for a single Query's remote data. */
+/** Builds the Model Schema for a Query. */
 export const makeQueryModel = <A, AI, E, EI>(
   data: Schema.Codec<A, AI>,
   error: Schema.Codec<E, EI>,
 ) => Schema.Struct({ data: AsyncData.Schema(data, error).schema })
 
 /**
- * Schema for a Query Model containing one remote-data value.
+ * Model Schema for a Query containing one `AsyncData` value.
  *
  * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
  */
@@ -58,7 +58,7 @@ export type QueryModel<A, AI, E, EI> = ReturnType<
 >
 
 /**
- * Single-slot remote-data Submodel. Read its `AsyncData` with `read`.
+ * Submodel for fetching and retaining one `AsyncData` value.
  *
  * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
  */
@@ -74,7 +74,7 @@ export interface Query<Name extends string, A, AI, E, EI, R = never> {
   >
   /** Creates a Query Model whose data is `Idle`. */
   readonly init: () => QueryModel<A, AI, E, EI>['Type']
-  /** Reads the remote-data value from the Query Model. */
+  /** Reads the `AsyncData` value from the Query Model. */
   readonly read: (
     model: QueryModel<A, AI, E, EI>['Type'],
   ) => AsyncData.AsyncData<A, E>
@@ -111,27 +111,14 @@ export interface Query<Name extends string, A, AI, E, EI, R = never> {
     QueryMessage<A, AI, E, EI>['Type'],
     R
   >
-  /** Lifts this Query's update and loading policies into a parent Model. */
+  /** Lifts this Query's update and loading operations into a parent Model. */
   readonly lift: LiftQuery<
     QueryModel<A, AI, E, EI>['Type'],
     QueryMessage<A, AI, E, EI>['Type'],
     R
   >
-  /** Executes the configured fetch directly and returns settled AsyncData. */
+  /** Executes the configured fetch directly and returns settled `AsyncData`. */
   readonly run: Effect.Effect<AsyncData.AsyncData<A, E>, never, R>
-}
-
-export namespace Query {
-  /**
-   * Any non-keyed Query definition.
-   *
-   * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
-   */
-  export type Any = {
-    readonly Model: Schema.Top
-    readonly Message: Schema.Top
-    readonly init: () => unknown
-  }
 }
 
 export function defineQuery<Name extends string, A, AI, E, EI, R>(
@@ -153,57 +140,57 @@ export function defineQuery<Name extends string, A, AI, E, EI, R>(
   type Model = typeof Model.Type
   type UpdateReturn = Update.Return<Model, Message, R>
 
-  const store: CacheStore<Model, undefined, A, E, Message, R> = {
+  const store: QueryStore<Model, undefined, A, E, Message, R> = {
     read: model => model.data,
     write: (model, _args, data) => modifyFields(model, { data: () => data }),
-    load: () => Fetch(),
+    fetch: () => Fetch(),
   }
 
-  const init = (): Model => ({ data: AsyncData.Idle() })
+  const init = (): Model => Model.make({ data: AsyncData.Idle() })
   const read = (model: Model): AsyncData.AsyncData<A, E> => model.data
 
   const revalidate = (model: Model): UpdateReturn =>
-    applyPolicy(store, model, undefined, 'revalidate')
+    applyTransition(store, model, undefined, AsyncData.revalidate)
   const revalidateOrLoad = (model: Model): UpdateReturn =>
-    applyPolicy(store, model, undefined, 'revalidateOrLoad')
+    applyTransition(store, model, undefined, AsyncData.revalidateOrLoad)
   const loadIfMissing = (model: Model): UpdateReturn =>
-    applyPolicy(store, model, undefined, 'loadIfMissing')
+    applyTransition(store, model, undefined, AsyncData.loadIfMissing)
 
   const update = (model: Model, message: Message): UpdateReturn =>
     Message.match<UpdateReturn>(message, {
       CompletedFetch({ result }) {
-        if (AsyncData.isIdle(read(model))) return { model }
+        const data = read(model)
+
+        if (!AsyncData.isPending(data)) {
+          return { model }
+        }
 
         return {
-          model: store.write(
-            model,
-            undefined,
-            AsyncData.settle(read(model), result),
-          ),
+          model: store.write(model, undefined, AsyncData.settle(data, result)),
         }
       },
     })
 
   const liftFromLens = <ParentModel, ParentMessage>(
-    foldConfig: FoldLens<ParentModel, ParentMessage, Model, Message>,
+    lens: FoldLens<ParentModel, ParentMessage, Model, Message>,
   ) => ({
-    fold: Update.foldChild({ update, ...foldConfig }),
+    fold: Update.foldChild({ update, ...lens }),
     revalidate: Update.foldChildStep({
       update: revalidate,
-      ...foldConfig,
+      ...lens,
     }),
     revalidateOrLoad: Update.foldChildStep({
       update: revalidateOrLoad,
-      ...foldConfig,
+      ...lens,
     }),
     loadIfMissing: Update.foldChildStep({
       update: loadIfMissing,
-      ...foldConfig,
+      ...lens,
     }),
   })
 
   function lift<ParentModel, ParentMessage>(
-    config: ParentKeyFoldConfig<ParentModel, ParentMessage, Model, Message>,
+    config: ParentFieldConfig<ParentModel, ParentMessage, Model, Message>,
   ): ReturnType<LiftQuery<Model, Message, R>>
   function lift<ParentModel, ParentMessage>(
     config: FoldLens<ParentModel, ParentMessage, Model, Message>,
@@ -211,8 +198,8 @@ export function defineQuery<Name extends string, A, AI, E, EI, R>(
   function lift<ParentModel, ParentMessage>(
     config: LiftConfig<ParentModel, ParentMessage, Model, Message>,
   ) {
-    if (isParentKeyFoldConfig(config)) {
-      return liftFromLens(parentKeyToLens(config))
+    if (isParentFieldConfig(config)) {
+      return liftFromLens(parentFieldToLens(config))
     }
 
     return liftFromLens(config)

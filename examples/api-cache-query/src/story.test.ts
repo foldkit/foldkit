@@ -1,40 +1,26 @@
-import { HashMap, Option, Result, Schema } from 'effect'
-import { AsyncData } from 'foldkit'
+import { Option, Result } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { expect, test } from 'vitest'
 
 import { Tabs } from '@foldkit/ui'
 
-import {
-  FetchPostDetail,
-  FetchPosts,
-  FetchStats,
-  Message,
-  postDetailQuery,
-  postsQuery,
-  statsQuery,
-  update,
-} from './main'
+import { Message, postQuery, postsQuery, statsQuery, update } from './main'
 import {
   FETCHED_AT,
+  failedFirstPostModel,
+  failedPostsModel,
   firstPostDetail,
   fixturePosts,
   fixtureStats,
   loadedPostsModel,
   loadedStatsModel,
+  loadingStatsModel,
+  refreshingStatsModel,
 } from './main.fixture'
 
-const encodeKey = Schema.Unknown.pipe(
-  Schema.toCodecJson,
-  Schema.fromJsonString,
-  Schema.encodeUnknownSync,
-)
-
-const postDetailTag = (
-  model: typeof loadedPostsModel,
-  postId: string,
-): string => postDetailQuery.read(model.postDetails, { postId })._tag
+const postDataTag = (model: typeof loadedPostsModel, postId: string): string =>
+  postQuery.read(model.postDetails, { postId })._tag
 
 const selectedPostsTab = Message.GotTabsMessage({
   message: Tabs.Message.SelectedTab({ index: 0, value: 'Posts' }),
@@ -60,7 +46,7 @@ test('first visit to the Stats tab fetches stats', () => {
     }),
     resolveFocusTab,
     Command.resolve(
-      FetchStats,
+      statsQuery.Fetch,
       statsQuery.Message.CompletedFetch({
         result: Result.succeed({
           stats: fixtureStats,
@@ -103,7 +89,7 @@ test('a revalidation tick keeps stale stats on screen while refetching', () => {
       }
     }),
     Command.resolve(
-      FetchStats,
+      statsQuery.Fetch,
       statsQuery.Message.CompletedFetch({
         result: Result.succeed({
           stats: modifyFields(fixtureStats, { activeUsers: () => 99 }),
@@ -127,7 +113,7 @@ test('a failed refresh keeps the stale stats on screen with the error', () => {
     given(loadedStatsModel),
     message(Message.TickedStatsRefreshInterval()),
     Command.resolve(
-      FetchStats,
+      statsQuery.Fetch,
       statsQuery.Message.CompletedFetch({
         result: Result.fail('The server is down.'),
       }),
@@ -146,11 +132,7 @@ test('a failed refresh keeps the stale stats on screen with the error', () => {
 test('refresh clicks during an in-flight fetch are deduplicated', () => {
   story(
     update,
-    given(
-      modifyFields(loadedStatsModel, {
-        stats: () => ({ data: AsyncData.Loading() }),
-      }),
-    ),
+    given(loadingStatsModel),
     message(Message.ClickedRefreshStats()),
     Command.expectNone(),
   )
@@ -159,15 +141,7 @@ test('refresh clicks during an in-flight fetch are deduplicated', () => {
 test('a revalidation tick during a refresh is deduplicated', () => {
   story(
     update,
-    given(
-      modifyFields(loadedStatsModel, {
-        stats: () => ({
-          data: AsyncData.Refreshing({
-            data: { stats: fixtureStats, fetchedAt: FETCHED_AT },
-          }),
-        }),
-      }),
-    ),
+    given(refreshingStatsModel),
     message(Message.TickedStatsRefreshInterval()),
     Command.expectNone(),
   )
@@ -186,7 +160,7 @@ test('refreshing posts refetches while keeping the current list', () => {
       }
     }),
     Command.resolve(
-      FetchPosts,
+      postsQuery.Fetch,
       postsQuery.Message.CompletedFetch({
         result: Result.succeed({
           posts: fixturePosts,
@@ -203,19 +177,13 @@ test('refreshing posts refetches while keeping the current list', () => {
 test('retrying failed posts shows the loading state and refetches', () => {
   story(
     update,
-    given(
-      modifyFields(loadedPostsModel, {
-        posts: () => ({
-          data: AsyncData.Failure({ error: 'The server is down.' }),
-        }),
-      }),
-    ),
+    given(failedPostsModel),
     message(Message.ClickedRetryPosts()),
     model(model => {
       expect(postsQuery.read(model.posts)._tag).toBe('Loading')
     }),
     Command.resolve(
-      FetchPosts,
+      postsQuery.Fetch,
       postsQuery.Message.CompletedFetch({
         result: Result.succeed({
           posts: fixturePosts,
@@ -229,20 +197,20 @@ test('retrying failed posts shows the loading state and refetches', () => {
   )
 })
 
-test('opening a post fetches it once and serves revisits from the Model', () => {
+test('opening a post once reuses its retained data on later visits', () => {
   story(
     update,
     given(loadedPostsModel),
     message(Message.ClickedPost({ postId: 'first-post' })),
     model(model => {
-      expect(postDetailTag(model, 'first-post')).toBe('Loading')
+      expect(postDataTag(model, 'first-post')).toBe('Loading')
     }),
     Command.resolve(
-      FetchPostDetail,
-      postDetailQuery.Message.CompletedFetch({
+      postQuery.Fetch,
+      postQuery.Message.CompletedFetch({
         args: { postId: 'first-post' },
         result: Result.succeed({
-          detail: firstPostDetail,
+          post: firstPostDetail,
           fetchedAt: FETCHED_AT,
         }),
       }),
@@ -251,43 +219,43 @@ test('opening a post fetches it once and serves revisits from the Model', () => 
     message(Message.ClickedPost({ postId: 'first-post' })),
     Command.expectNone(),
     model(model => {
-      expect(postDetailTag(model, 'first-post')).toBe('Success')
+      expect(postDataTag(model, 'first-post')).toBe('Success')
       expect(model.maybeSelectedPostId).toEqual(Option.some('first-post'))
     }),
   )
 })
 
-test('a failed post detail fetch lands in Failure and retry refetches', () => {
+test('a failed post fetch enters Failure and retry fetches it again', () => {
   story(
     update,
     given(loadedPostsModel),
     message(Message.ClickedPost({ postId: 'first-post' })),
     Command.resolve(
-      FetchPostDetail,
-      postDetailQuery.Message.CompletedFetch({
+      postQuery.Fetch,
+      postQuery.Message.CompletedFetch({
         args: { postId: 'first-post' },
         result: Result.fail('The connection dropped.'),
       }),
     ),
     model(model => {
-      expect(postDetailTag(model, 'first-post')).toBe('Failure')
+      expect(postDataTag(model, 'first-post')).toBe('Failure')
     }),
-    message(Message.ClickedRetryPostDetail({ postId: 'first-post' })),
+    message(Message.ClickedRetryPost({ postId: 'first-post' })),
     model(model => {
-      expect(postDetailTag(model, 'first-post')).toBe('Loading')
+      expect(postDataTag(model, 'first-post')).toBe('Loading')
     }),
     Command.resolve(
-      FetchPostDetail,
-      postDetailQuery.Message.CompletedFetch({
+      postQuery.Fetch,
+      postQuery.Message.CompletedFetch({
         args: { postId: 'first-post' },
         result: Result.succeed({
-          detail: firstPostDetail,
+          post: firstPostDetail,
           fetchedAt: FETCHED_AT,
         }),
       }),
     ),
     model(model => {
-      expect(postDetailTag(model, 'first-post')).toBe('Success')
+      expect(postDataTag(model, 'first-post')).toBe('Success')
     }),
   )
 })
@@ -295,34 +263,21 @@ test('a failed post detail fetch lands in Failure and retry refetches', () => {
 test('revisiting a post with a cached failure loads it again', () => {
   story(
     update,
-    given(
-      modifyFields(loadedPostsModel, {
-        postDetails: () => ({
-          slots: HashMap.set(
-            postDetailQuery.init().slots,
-            encodeKey({ postId: 'first-post' }),
-            {
-              args: { postId: 'first-post' },
-              data: AsyncData.Failure({ error: 'The connection dropped.' }),
-            },
-          ),
-        }),
-      }),
-    ),
+    given(failedFirstPostModel),
     message(Message.ClickedPost({ postId: 'first-post' })),
     model(model => {
-      expect(postDetailTag(model, 'first-post')).toBe('Loading')
+      expect(postDataTag(model, 'first-post')).toBe('Loading')
       expect(model.maybeSelectedPostId).toEqual(Option.some('first-post'))
     }),
     Command.resolve(
-      FetchPostDetail,
-      postDetailQuery.Message.CompletedFetch({
+      postQuery.Fetch,
+      postQuery.Message.CompletedFetch({
         args: { postId: 'first-post' },
         result: Result.fail('The connection dropped.'),
       }),
     ),
     model(model => {
-      expect(postDetailTag(model, 'first-post')).toBe('Failure')
+      expect(postDataTag(model, 'first-post')).toBe('Failure')
     }),
   )
 })
