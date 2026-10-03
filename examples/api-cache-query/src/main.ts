@@ -1,6 +1,7 @@
 import {
   Array,
   Clock,
+  DateTime,
   Duration,
   Effect,
   Match,
@@ -30,61 +31,55 @@ const STATS_REFETCH_INTERVAL = Duration.seconds(5)
 
 export const TABS_ID = 'api-cache-query-tabs'
 
-const PostsSnapshot = Schema.Struct({
+const PostsData = Schema.Struct({
   posts: Schema.Array(Post),
   fetchedAt: Schema.Number,
 })
 
-const PostDetailSnapshot = Schema.Struct({
-  detail: PostDetail,
+const PostData = Schema.Struct({
+  post: PostDetail,
   fetchedAt: Schema.Number,
 })
 
-const StatsSnapshot = Schema.Struct({ stats: Stats, fetchedAt: Schema.Number })
+const StatsData = Schema.Struct({ stats: Stats, fetchedAt: Schema.Number })
 
 export const postsQuery = Query.define({
   name: 'Posts',
-  data: PostsSnapshot,
+  data: PostsData,
   error: Schema.String,
   execute: Effect.gen(function* () {
-    const list = yield* fetchPosts
+    const posts = yield* fetchPosts
     const fetchedAt = yield* Clock.currentTimeMillis
-    return { posts: list, fetchedAt }
+    return { posts, fetchedAt }
   }),
 })
 
 export const statsQuery = Query.define({
   name: 'Stats',
-  data: StatsSnapshot,
+  data: StatsData,
   error: Schema.String,
   execute: Effect.gen(function* () {
-    const snapshot = yield* fetchStats
+    const stats = yield* fetchStats
     const fetchedAt = yield* Clock.currentTimeMillis
-    return { stats: snapshot, fetchedAt }
+    return { stats, fetchedAt }
   }),
 })
 
-export const postDetailQuery = Query.define({
-  name: 'PostDetail',
+export const postQuery = Query.define({
+  name: 'Post',
   args: { postId: Schema.String },
-  data: PostDetailSnapshot,
+  data: PostData,
   error: Schema.String,
   execute: ({ postId }) =>
     Effect.gen(function* () {
-      const detail = yield* fetchPostDetail(postId)
+      const post = yield* fetchPostDetail(postId)
       const fetchedAt = yield* Clock.currentTimeMillis
-      return { detail, fetchedAt }
+      return { post, fetchedAt }
     }),
 })
 
-export const FetchPosts = postsQuery.Fetch
-export const FetchPostDetail = postDetailQuery.Fetch
-export const FetchStats = statsQuery.Fetch
-
 const Tab = Schema.Literals(['Posts', 'Stats'])
 type Tab = typeof Tab.Type
-
-const tabValues: ReadonlyArray<Tab> = Tab.literals
 
 export const AppTabs = Tabs.create<Tab>()
 
@@ -92,7 +87,7 @@ export const Model = Schema.Struct({
   tabs: Tabs.Model,
   activeTab: Tab,
   posts: postsQuery.Model,
-  postDetails: postDetailQuery.Model,
+  postDetails: postQuery.Model,
   maybeSelectedPostId: Schema.Option(Schema.String),
   stats: statsQuery.Model,
 })
@@ -102,34 +97,33 @@ export const Message = defineMessageUnion({
   GotTabsMessage: { message: Tabs.Message },
   GotPostsMessage: { message: postsQuery.Message },
   GotStatsMessage: { message: statsQuery.Message },
-  GotPostDetailMessage: { message: postDetailQuery.Message },
+  GotPostMessage: { message: postQuery.Message },
   ClickedPost: { postId: Schema.String },
   ClickedBackToPosts: {},
   ClickedRefreshPosts: {},
   ClickedRetryPosts: {},
-  ClickedRetryPostDetail: { postId: Schema.String },
+  ClickedRetryPost: { postId: Schema.String },
   ClickedRefreshStats: {},
   ClickedRetryStats: {},
   TickedStatsRefreshInterval: {},
 })
-
 export type Message = typeof Message.Type
 
 type UpdateReturn = Update.Return<Model, Message>
 
 const posts = postsQuery.lift<Model, Message>({
-  field: 'posts',
+  parentField: 'posts',
   toParentMessage: message => Message.GotPostsMessage({ message }),
 })
 
 const stats = statsQuery.lift<Model, Message>({
-  field: 'stats',
+  parentField: 'stats',
   toParentMessage: message => Message.GotStatsMessage({ message }),
 })
 
-const postDetails = postDetailQuery.lift<Model, Message>({
-  field: 'postDetails',
-  toParentMessage: message => Message.GotPostDetailMessage({ message }),
+const postDetails = postQuery.lift<Model, Message>({
+  parentField: 'postDetails',
+  toParentMessage: message => Message.GotPostMessage({ message }),
 })
 
 const activateTab = (model: Model, tab: Tab): UpdateReturn => {
@@ -166,7 +160,7 @@ export const update = (model: Model, message: Message) =>
     GotTabsMessage: ({ message }) => foldTabs(model, message),
     GotPostsMessage: ({ message }) => posts.fold(model, message),
     GotStatsMessage: ({ message }) => stats.fold(model, message),
-    GotPostDetailMessage: ({ message }) => postDetails.fold(model, message),
+    GotPostMessage: ({ message }) => postDetails.fold(model, message),
     ClickedPost: ({ postId }) =>
       postDetails.loadIfMissing(
         modifyFields(model, {
@@ -179,7 +173,7 @@ export const update = (model: Model, message: Message) =>
     }),
     ClickedRefreshPosts: () => posts.revalidateOrLoad(model),
     ClickedRetryPosts: () => posts.revalidateOrLoad(model),
-    ClickedRetryPostDetail: ({ postId }) =>
+    ClickedRetryPost: ({ postId }) =>
       postDetails.revalidateOrLoad(model, { postId }),
     ClickedRefreshStats: () => stats.revalidateOrLoad(model),
     ClickedRetryStats: () => stats.revalidateOrLoad(model),
@@ -187,31 +181,33 @@ export const update = (model: Model, message: Message) =>
   })
 
 export const init: Runtime.ApplicationInit<Model, Message> = () =>
-  posts.revalidateOrLoad({
-    tabs: Tabs.init({ id: TABS_ID }),
-    activeTab: 'Posts',
-    posts: postsQuery.init(),
-    postDetails: postDetailQuery.init(),
-    maybeSelectedPostId: Option.none(),
-    stats: statsQuery.init(),
-  })
+  posts.revalidateOrLoad(
+    Model.make({
+      tabs: Tabs.init({ id: TABS_ID }),
+      activeTab: 'Posts',
+      posts: postsQuery.init(),
+      postDetails: postQuery.init(),
+      maybeSelectedPostId: Option.none(),
+      stats: statsQuery.init(),
+    }),
+  )
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   revalidateStats: entry(
-    { isObservingStats: Schema.Boolean },
+    { isStatsRefreshActive: Schema.Boolean },
     {
       modelToDependencies: model => ({
-        isObservingStats:
+        isStatsRefreshActive:
           model.activeTab === 'Stats' &&
           AsyncData.hasData(statsQuery.read(model.stats)),
       }),
-      dependenciesToStream: ({ isObservingStats }) =>
+      dependenciesToStream: ({ isStatsRefreshActive }) =>
         Stream.when(
           Stream.tick(STATS_REFETCH_INTERVAL).pipe(
             Stream.drop(1),
             Stream.map(Message.TickedStatsRefreshInterval),
           ),
-          Effect.sync(() => isObservingStats),
+          Effect.sync(() => isStatsRefreshActive),
         ),
     },
   ),
@@ -220,7 +216,13 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
 // VIEW
 
 const formatFetchedAt = (fetchedAt: number): string =>
-  new Date(fetchedAt).toLocaleTimeString()
+  DateTime.formatUtc(DateTime.makeUnsafe(fetchedAt), {
+    locale: 'en-US',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    timeZoneName: 'short',
+  })
 
 const tabButtonClassName =
   'px-4 py-2 rounded-lg bg-white text-slate-600 font-semibold hover:bg-slate-50 transition cursor-pointer data-[selected]:bg-indigo-600 data-[selected]:text-white data-[selected]:hover:bg-indigo-600'
@@ -242,42 +244,10 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
             model: model.tabs,
             view: AppTabs.view,
             viewInputs: {
-              tabs: tabValues,
+              tabs: Tab.literals,
               selectedValue: model.activeTab,
               ariaLabel: 'API cache sections',
-              toView: ({ tablist, tabs }) =>
-                h.div(
-                  [h.Class('flex flex-col gap-6')],
-                  [
-                    h.div(
-                      [...tablist, h.Class('flex gap-2')],
-                      Array.map(tabs, tabInfo =>
-                        h.keyed('button')(
-                          tabInfo.value,
-                          [...tabInfo.tab, h.Class(tabButtonClassName)],
-                          [tabInfo.value],
-                        ),
-                      ),
-                    ),
-                    ...pipe(
-                      tabs,
-                      Array.filter(tabInfo => tabInfo.isActive),
-                      Array.map(tabInfo =>
-                        h.keyed('div')(
-                          tabInfo.value,
-                          [...tabInfo.panel, h.Class('flex flex-col gap-4')],
-                          [
-                            Match.value(tabInfo.value).pipe(
-                              Match.when('Posts', () => postsTabView(model, h)),
-                              Match.when('Stats', () => statsTabView(model, h)),
-                              Match.exhaustive,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              toView: renderInfo => tabsView(model, renderInfo, h),
             },
             toParentMessage: message => Message.GotTabsMessage({ message }),
           }),
@@ -295,8 +265,46 @@ const headerView = (h: HtmlBuilder<Message>): Html =>
       h.p(
         [h.Class('text-slate-600')],
         [
-          'Query.define owns the fetch and the keyed slots. The parent folds Got* Messages and user intent.',
+          'Query.define owns each fetch and its retained data. The parent decides when each Query should load or refresh.',
         ],
+      ),
+    ],
+  )
+
+const tabsView = (
+  model: Model,
+  { tablist, tabs }: Tabs.RenderInfo<Tab>,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
+    [h.Class('flex flex-col gap-6')],
+    [
+      h.div(
+        [...tablist, h.Class('flex gap-2')],
+        Array.map(tabs, tabInfo =>
+          h.keyed('button')(
+            tabInfo.value,
+            [...tabInfo.tab, h.Class(tabButtonClassName)],
+            [tabInfo.value],
+          ),
+        ),
+      ),
+      ...pipe(
+        tabs,
+        Array.filter(tabInfo => tabInfo.isActive),
+        Array.map(tabInfo =>
+          h.keyed('div')(
+            tabInfo.value,
+            [...tabInfo.panel, h.Class('flex flex-col gap-4')],
+            [
+              Match.value(tabInfo.value).pipe(
+                Match.when('Posts', () => postsTabView(model, h)),
+                Match.when('Stats', () => statsTabView(model, h)),
+                Match.exhaustive,
+              ),
+            ],
+          ),
+        ),
       ),
     ],
   )
@@ -314,7 +322,8 @@ const postsTabView = (model: Model, h: HtmlBuilder<Message>): Html =>
   })
 
 const postsListView = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const isPending = AsyncData.isPending(postsQuery.read(model.posts))
+  const postsData = postsQuery.read(model.posts)
+  const isPending = AsyncData.isPending(postsData)
 
   return h.div(
     [h.Class('flex flex-col gap-4')],
@@ -331,8 +340,8 @@ const postsListView = (model: Model, h: HtmlBuilder<Message>): Html => {
                 h.button(
                   [...attributes.button, h.Class(toolbarButtonClassName)],
                   [
-                    AsyncData.isRefreshing(postsQuery.read(model.posts))
-                      ? 'Refreshing...'
+                    AsyncData.isRefreshing(postsData)
+                      ? 'Refreshing…'
                       : 'Refresh',
                   ],
                 ),
@@ -344,26 +353,22 @@ const postsListView = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.p(
         [h.Class('text-sm text-slate-500')],
         [
-          'Open a post, then go back. The detail stays in the Query. Opening it again reads that slot and does not fetch.',
+          'Open a post, then go back. The detail stays in the Query. Opening it again reads that entry and does not fetch.',
         ],
       ),
-      AsyncData.matchDataSplitEmpty(postsQuery.read(model.posts), {
-        onIdle: () => loadingPanel('Loading posts...', h),
-        onLoading: () => loadingPanel('Loading posts...', h),
+      AsyncData.matchData(postsData, {
+        onEmpty: () => loadingPanel('Loading posts…', h),
         onFailure: error => errorPanel(error, Message.ClickedRetryPosts(), h),
         onData: ({ posts }) =>
           h.div(
             [h.Class('flex flex-col gap-4')],
             [
-              ...Option.match(
-                AsyncData.getError(postsQuery.read(model.posts)),
-                {
-                  onNone: () => [],
-                  onSome: error => [
-                    staleView(error, Message.ClickedRetryPosts(), h),
-                  ],
-                },
-              ),
+              ...Option.match(AsyncData.getError(postsData), {
+                onNone: () => [],
+                onSome: error => [
+                  errorPanel(error, Message.ClickedRetryPosts(), h),
+                ],
+              }),
               h.ul(
                 [h.Class('flex flex-col gap-2')],
                 postListItems(posts, model.postDetails, h),
@@ -375,10 +380,10 @@ const postsListView = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-const isPostDetailCached = (
+const isPostCached = (
   postDetails: Model['postDetails'],
   postId: string,
-): boolean => AsyncData.hasData(postDetailQuery.read(postDetails, { postId }))
+): boolean => AsyncData.hasData(postQuery.read(postDetails, { postId }))
 
 const postListItems = (
   posts: ReadonlyArray<Post>,
@@ -415,7 +420,7 @@ const postListItems = (
                       ),
                     ],
                   ),
-                  isPostDetailCached(postDetails, post.id)
+                  isPostCached(postDetails, post.id)
                     ? h.span(
                         [
                           h.Class(
@@ -439,7 +444,7 @@ const postDetailView = (
   postId: string,
   h: HtmlBuilder<Message>,
 ): Html => {
-  const postDetailData = postDetailQuery.read(model.postDetails, { postId })
+  const postData = postQuery.read(model.postDetails, { postId })
 
   return h.div(
     [h.Class('flex flex-col gap-4')],
@@ -460,26 +465,21 @@ const postDetailView = (
         },
         h,
       ),
-      AsyncData.matchDataSplitEmpty(postDetailData, {
-        onIdle: () => loadingPanel('Loading post...', h),
-        onLoading: () => loadingPanel('Loading post...', h),
+      AsyncData.matchData(postData, {
+        onEmpty: () => loadingPanel('Loading post…', h),
         onFailure: error =>
-          errorPanel(error, Message.ClickedRetryPostDetail({ postId }), h),
-        onData: ({ detail, fetchedAt }) =>
+          errorPanel(error, Message.ClickedRetryPost({ postId }), h),
+        onData: ({ post, fetchedAt }) =>
           h.div(
             [h.Class('flex flex-col gap-4')],
             [
-              ...Option.match(AsyncData.getError(postDetailData), {
+              ...Option.match(AsyncData.getError(postData), {
                 onNone: () => [],
                 onSome: error => [
-                  staleView(
-                    error,
-                    Message.ClickedRetryPostDetail({ postId }),
-                    h,
-                  ),
+                  errorPanel(error, Message.ClickedRetryPost({ postId }), h),
                 ],
               }),
-              postDetailCard(detail, fetchedAt, h),
+              postCard(post, fetchedAt, h),
             ],
           ),
       }),
@@ -487,28 +487,29 @@ const postDetailView = (
   )
 }
 
-const postDetailCard = (
-  detail: PostDetail,
+const postCard = (
+  post: PostDetail,
   fetchedAt: number,
   h: HtmlBuilder<Message>,
 ): Html =>
   h.article(
     [h.Class('bg-white rounded-xl shadow p-6 flex flex-col gap-3')],
     [
-      h.h2([h.Class('text-2xl font-bold text-slate-900')], [detail.title]),
-      h.p([h.Class('text-sm text-slate-500')], [`By ${detail.author}`]),
-      h.p([h.Class('text-slate-700 leading-relaxed')], [detail.body]),
+      h.h2([h.Class('text-2xl font-bold text-slate-900')], [post.title]),
+      h.p([h.Class('text-sm text-slate-500')], [`By ${post.author}`]),
+      h.p([h.Class('text-slate-700 leading-relaxed')], [post.body]),
       h.p(
         [h.Class('text-xs text-slate-400')],
         [
-          `Fetched at ${formatFetchedAt(fetchedAt)}. Leaving this screen keeps the slot.`,
+          `Fetched at ${formatFetchedAt(fetchedAt)}. Leaving this screen keeps the entry.`,
         ],
       ),
     ],
   )
 
 const statsTabView = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const isPending = AsyncData.isPending(statsQuery.read(model.stats))
+  const statsData = statsQuery.read(model.stats)
+  const isPending = AsyncData.isPending(statsData)
 
   return h.div(
     [h.Class('flex flex-col gap-4')],
@@ -524,7 +525,7 @@ const statsTabView = (model: Model, h: HtmlBuilder<Message>): Html => {
               toView: attributes =>
                 h.button(
                   [...attributes.button, h.Class(toolbarButtonClassName)],
-                  [isPending ? 'Refreshing...' : 'Refresh'],
+                  [isPending ? 'Refreshing…' : 'Refresh'],
                 ),
             },
             h,
@@ -537,27 +538,23 @@ const statsTabView = (model: Model, h: HtmlBuilder<Message>): Html => {
           'Stats refetch every 5 seconds while this tab is open. The old numbers stay on screen while the new ones load.',
         ],
       ),
-      AsyncData.matchDataSplitEmpty(statsQuery.read(model.stats), {
-        onIdle: () => loadingPanel('Loading stats...', h),
-        onLoading: () => loadingPanel('Loading stats...', h),
+      AsyncData.matchData(statsData, {
+        onEmpty: () => loadingPanel('Loading stats…', h),
         onFailure: error => errorPanel(error, Message.ClickedRetryStats(), h),
         onData: ({ stats, fetchedAt }) =>
           h.div(
             [h.Class('flex flex-col gap-4')],
             [
-              ...Option.match(
-                AsyncData.getError(statsQuery.read(model.stats)),
-                {
-                  onNone: () => [],
-                  onSome: error => [
-                    staleView(error, Message.ClickedRetryStats(), h),
-                  ],
-                },
-              ),
+              ...Option.match(AsyncData.getError(statsData), {
+                onNone: () => [],
+                onSome: error => [
+                  errorPanel(error, Message.ClickedRetryStats(), h),
+                ],
+              }),
               statsCards(
                 stats,
                 fetchedAt,
-                AsyncData.isRefreshing(statsQuery.read(model.stats)),
+                AsyncData.isRefreshing(statsData),
                 h,
               ),
             ],
@@ -619,12 +616,6 @@ const loadingPanel = (text: string, h: HtmlBuilder<Message>): Html =>
     [h.Class('bg-white rounded-lg shadow p-6 text-center text-slate-500')],
     [text],
   )
-
-const staleView = (
-  error: string,
-  retryMessage: Message,
-  h: HtmlBuilder<Message>,
-): Html => errorPanel(error, retryMessage, h)
 
 const errorPanel = (
   error: string,

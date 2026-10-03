@@ -6,7 +6,7 @@ Query ships from `foldkit/experimental`. Its core fetch and cache model is usabl
 
 ## Overview
 
-`Query.define` is a remote-data Submodel. A Query Model stores one [AsyncData](/core/async-data) value. A KeyedQuery Model stores a `HashMap` of `{ args, data }` slots. Use `read` to access the data in either Model.
+`Query.define` creates a Submodel for fetched data. A Query retains one [AsyncData](/core/async-data) value. A KeyedQuery retains one entry for each argument key. Use `read` to access either kind without depending on its Model representation.
 
 Fetch is a [Command](/core/commands). `loadIfMissing`, `revalidate`, and `revalidateOrLoad` apply a loading policy to the Model and start that Command when the policy produces a transition. A fetched result stays for the life of the owning Model. Parents fold child Messages with `query.lift`.
 
@@ -16,11 +16,11 @@ See [API Cache Query](/example-apps/api-cache-query) for a full app.
 
 Import the Query namespace from `foldkit/experimental`.
 
-Pass `name`, `data`, `error`, and `execute`. The Model wraps the `AsyncData` codec for those schemas. `init` starts with `Idle` data. Read it with `query.read(model)`.
+Pass `name`, `data`, `error`, and `execute`. `execute` is the Effect that fetches the value, and `name` gives its Command a name such as `FetchPosts`. The generated Model Schema contains the `AsyncData` codec for `data` and `error`. `init` starts in `Idle`; read the current value with `query.read(model)`.
 
 ::Snippet{name="queryDefine" label="Query.define"}
 
-Add `args` for a KeyedQuery. Omit `toKey` to JSON-encode args. Read a slot with `query.read(model, args)`.
+Add `args` for a KeyedQuery. Each distinct key retains a separate `AsyncData` entry. By default, Query JSON-encodes the complete arguments as the key. Supply `toKey` when only part of the arguments identifies the fetched resource. Read an entry with `query.read(model, args)`.
 
 ::Snippet{name="queryKeyedDefine" label="KeyedQuery.define"}
 
@@ -40,17 +40,17 @@ Use `loadIfMissing` when revisiting loaded data should be a cache hit. Use `reva
 
 ## Lift into a parent
 
-`query.lift` returns the Query operations lifted into the parent Model and Message. Bind that value for the resource, such as `posts`. Pass `toParentMessage`, the same adapter `Update.foldChild` takes. A `Got*` handler calls `posts.fold(model, message)`. Policy Steps live on the same value, such as `posts.revalidateOrLoad(model)`.
+`query.lift` returns the Query operations lifted into the parent Model and Message. Bind that value for the resource, such as `posts`. When the Query Model is a direct field of the parent, pass that `parentField` with `toParentMessage`, the same Message adapter `Update.foldChild` takes. A `Got*` handler calls `posts.fold(model, message)`. Loading Steps live on the same value, such as `posts.revalidateOrLoad(model)`.
 
 `fold` is an `Update.Fold`. Data-first is `posts.fold(model, message)`. Data-last is `posts.fold(message)`, so it composes with `Update.combine`.
 
-A full `read` / `write` lens still infers the parent Model from `read`.
+Pass a full `read` / `write` lens instead when the Query Model is optional, nested, or otherwise needs custom access.
 
 ::Snippet{name="queryLift" label="query.lift"}
 
 ## Run outside of Foldkit
 
-`Query.run` on a Query is an Effect that runs `execute` and returns settled `AsyncData`. KeyedQuery `run(args)` does the same for one slot. Neither writes a Model.
+`Query.run` is an Effect that runs `execute` and returns settled `AsyncData`. KeyedQuery `run(args)` does the same for one entry. Neither writes a Model.
 
 ## Full API Surface
 

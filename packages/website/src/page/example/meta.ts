@@ -152,7 +152,7 @@ export const examples: ReadonlyArray<ExampleMeta> = [
     slug: 'api-cache-query',
     title: 'API Cache Query',
     description:
-      'The API Cache app rewritten with experimental Query.define. Fetch and keyed slots live on the Query. The parent folds Got* Messages.',
+      'The API Cache app rewritten with experimental Query.define. Fetching and retained entries live in Query Submodels. The parent folds Got* Messages.',
     difficulty: 'Intermediate',
     tags: [
       'Query',

@@ -22,7 +22,7 @@ test.describe('api-cache-query example', () => {
     await expect(page.getByText('Cached')).toBeVisible()
 
     await firstPost.click()
-    await expect(page.getByText('Loading post...')).toHaveCount(0)
+    await expect(page.getByText('Loading post…')).toHaveCount(0)
     await expect(page.getByText('Fetched at')).toBeVisible()
 
     await page.getByRole('button', { name: 'Back to posts' }).click()
@@ -31,17 +31,17 @@ test.describe('api-cache-query example', () => {
     await expect(page.getByText('Updated at')).toBeVisible()
   })
 
-  test('the flaky post fails on the first fetch and succeeds on retry', async ({
-    page,
-  }) => {
+  test('an unavailable post can be retried', async ({ page }) => {
     await page.goto('/')
 
-    await page
-      .getByRole('button', { name: 'This Post Fails Every Other Fetch' })
-      .click()
-    await expect(page.getByText('The connection dropped.')).toBeVisible()
+    await page.getByRole('button', { name: 'This Post Is Unavailable' }).click()
+    const unavailableMessage = page.getByText(
+      'This post is unavailable. You can try again.',
+    )
+    await expect(unavailableMessage).toBeVisible()
 
     await page.getByRole('button', { name: 'Retry' }).click()
-    await expect(page.getByText('You made it.')).toBeVisible()
+    await expect(page.getByText('Loading post…')).toBeVisible()
+    await expect(unavailableMessage).toBeVisible()
   })
 })

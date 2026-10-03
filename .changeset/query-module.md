@@ -3,6 +3,8 @@
 'create-foldkit-app': patch
 ---
 
-Add experimental `Query.define` as a remote-data Submodel, available from `foldkit/experimental` and `foldkit/experimental/query`. A Query Model wraps one `AsyncData` value, and a KeyedQuery Model wraps a `HashMap` of `{ args, data }` slots. Both expose their data through `read`. Fetch is a Command. `loadIfMissing`, `revalidate`, and `revalidateOrLoad` apply loading policies directly to the Model and return that Command when needed. A fetched result stays for the life of the owning Model. `query.lift` folds child Messages into the parent with `toParentMessage` and `Update.Fold`.
+Add experimental `Query` and `KeyedQuery` Submodels for fetched data that belongs in an application Model. Define the data and error Schemas together with the Effect that fetches the value, then embed the generated Model and Message in the parent. A Query holds one `AsyncData` value. A KeyedQuery holds one retained entry for each argument key, so revisiting data already loaded into the owning Model is a cache hit.
 
-Scaffold `api-cache-query` as the full app for this module.
+The parent still decides when work starts. `loadIfMissing` fetches only when no data is available, `revalidate` refreshes existing data, and `revalidateOrLoad` handles either state. `read` returns the current `AsyncData`, `run` fetches data outside a Foldkit application, and `lift({ parentField, toParentMessage })` connects the Query to its parent.
+
+Import Query from `foldkit/experimental` or `foldkit/experimental/query`. Create Foldkit App also includes `api-cache-query`, a complete example of list, detail, and interval-refreshed Queries.

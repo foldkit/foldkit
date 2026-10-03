@@ -22,9 +22,8 @@ export const Stats = Schema.Struct({
 })
 export type Stats = typeof Stats.Type
 
-export const FLAKY_POST_ID = 'flaky-connection'
-
 const SERVER_LATENCY = Duration.millis(700)
+const UNAVAILABLE_POST_ID = 'unavailable-post'
 
 type Article = Readonly<{
   id: string
@@ -63,18 +62,18 @@ const articles: ReadonlyArray<Article> = [
     author: 'Jonas Weber',
     body: 'Dispatch a Message, move the entry to Refreshing, and return the fetch Command. The old value stays available while the request runs, and the whole policy remains visible in update.',
   },
-  {
-    id: FLAKY_POST_ID,
-    title: 'This Post Fails Every Other Fetch',
-    excerpt: 'Open it to see the Failure state, then retry.',
-    author: 'Flaky McNetwork',
-    body: 'You made it. The fake server failed your first attempt on purpose and succeeded on the retry, which is exactly the round trip a Failure state plus a retry Message is for.',
-  },
 ]
 
-const posts = Array.map(articles, ({ id, title, excerpt }) =>
-  Post.make({ id, title, excerpt }),
-)
+const posts = [
+  ...Array.map(articles, ({ id, title, excerpt }) =>
+    Post.make({ id, title, excerpt }),
+  ),
+  Post.make({
+    id: UNAVAILABLE_POST_ID,
+    title: 'This Post Is Unavailable',
+    excerpt: 'Open it to see the Failure and Retry states.',
+  }),
+]
 
 const postDetails = Array.map(articles, ({ id, title, author, body }) =>
   PostDetail.make({ id, title, author, body }),
@@ -86,30 +85,17 @@ export const fetchPosts = Effect.gen(function* () {
   return posts
 })
 
-// NOTE: Module-level mutation simulates a flaky server so the Failure and
-// retry path is reachable from the UI. The Foldkit app itself never mutates.
-const flakyAttempts = { count: 0 }
-
 export const fetchPostDetail = (
   postId: string,
 ): Effect.Effect<PostDetail, string> =>
   Effect.gen(function* () {
     yield* Effect.sleep(SERVER_LATENCY)
 
-    if (postId === FLAKY_POST_ID) {
-      flakyAttempts.count += 1
-
-      if (flakyAttempts.count % 2 === 1) {
-        return yield* Effect.fail(
-          'The connection dropped. Retry to fetch this post again.',
-        )
-      }
-    }
-
     return yield* Option.match(
       Array.findFirst(postDetails, ({ id }) => id === postId),
       {
-        onNone: () => Effect.fail(`No post found with id ${postId}`),
+        onNone: () =>
+          Effect.fail('This post is unavailable. You can try again.'),
         onSome: Effect.succeed,
       },
     )

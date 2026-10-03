@@ -36,7 +36,9 @@ const isKeyedQueryConfig = (
 > => Predicate.hasProperty(config, 'args')
 
 /**
- * Defines a remote-data Submodel as {@link Query} or {@link KeyedQuery}.
+ * Defines a Submodel that fetches data and retains it in the application
+ * Model. Add `args` to define a {@link KeyedQuery}; omit them to define a
+ * {@link Query}.
  *
  * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
  */
@@ -58,7 +60,9 @@ export function define<Name extends string, A, AI, E, EI, R = never>(
   },
 ): Query<Name, A, AI, E, EI, R>
 export function define(config: DefineConfig): unknown {
-  if (isKeyedQueryConfig(config)) return defineKeyedQuery(config)
+  if (isKeyedQueryConfig(config)) {
+    return defineKeyedQuery(config)
+  }
 
   return defineQuery(config)
 }

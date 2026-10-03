@@ -15,18 +15,18 @@ import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
 import * as Update from '../../update/index.js'
 import {
-  type CacheStore,
+  type AsyncDataTransition,
   type CompletedFetchOf,
   type FoldLens,
   type KeyedArgs,
   type LiftConfig,
   type LiftKeyedQuery,
-  type ParentKeyFoldConfig,
-  type Policy,
-  applyPolicy,
-  foldChildFromPolicy,
-  isParentKeyFoldConfig,
-  parentKeyToLens,
+  type ParentFieldConfig,
+  type QueryStore,
+  applyTransition,
+  isParentFieldConfig,
+  liftChildFold,
+  parentFieldToLens,
   runExecute,
 } from './internal.js'
 
@@ -34,19 +34,8 @@ export type SyncFields = {
   readonly [x: PropertyKey]: Schema.Codec<unknown, unknown, never, never>
 }
 
-const isArgKeyFields = <Args extends object>(
-  keys: ReadonlyArray<string>,
-): keys is Array.NonEmptyReadonlyArray<keyof Args & string> =>
-  Array.isReadonlyArrayNonEmpty(keys)
-
-export const encodeKey = <S extends Schema.Codec<unknown, unknown>>(
-  schema: S,
-) =>
-  schema.pipe(
-    Schema.toCodecJson,
-    Schema.fromJsonString,
-    Schema.encodeUnknownSync,
-  )
+export const encodeKey = <A, I>(schema: Schema.Codec<A, I, never, never>) =>
+  Schema.encodeUnknownSync(Schema.fromJsonString(Schema.toCodecJson(schema)))
 
 export type KeyedQueryConfig<
   Name extends string,
@@ -77,7 +66,7 @@ const makeKeyedQueryMessage = <A, AI, E, EI, Fields extends SyncFields>(
   })
 
 /**
- * Schema-backed Message union dispatched when a keyed Fetch completes.
+ * Schema-backed Message union dispatched when a KeyedQuery fetch completes.
  *
  * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
  */
@@ -89,26 +78,27 @@ export type KeyedQueryMessage<
   Fields extends SyncFields,
 > = ReturnType<typeof makeKeyedQueryMessage<A, AI, E, EI, Fields>>
 
-/** Schema for a KeyedQuery's retained slots. */
-export function makeKeyedQueryModel<A, AI, E, EI, Fields extends SyncFields>(
+/** Builds the Model Schema for a KeyedQuery. */
+export const makeKeyedQueryModel = <A, AI, E, EI, Fields extends SyncFields>(
   data: Schema.Codec<A, AI>,
   error: Schema.Codec<E, EI>,
   Args: Schema.Struct<Fields>,
-) {
-  const states = AsyncData.Schema(data, error)
+) => {
+  const asyncData = AsyncData.Schema(data, error)
+
   return Schema.Struct({
-    slots: Schema.HashMap(
+    entries: Schema.HashMap(
       Schema.String,
       Schema.Struct({
         args: Args,
-        data: states.schema,
+        data: asyncData.schema,
       }),
     ),
   })
 }
 
 /**
- * Schema for a KeyedQuery Model containing retained remote-data slots.
+ * Model Schema for a KeyedQuery containing retained `AsyncData` entries.
  *
  * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
  */
@@ -121,7 +111,7 @@ export type KeyedQueryModel<
 > = ReturnType<typeof makeKeyedQueryModel<A, AI, E, EI, Fields>>
 
 /**
- * Keyed remote-data Submodel. Read a slot's `AsyncData` with `read`.
+ * Submodel for fetching and retaining `AsyncData` values by argument key.
  *
  * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
  */
@@ -148,14 +138,14 @@ export interface KeyedQuery<
       R
     >
   >
-  /** Creates a KeyedQuery Model with no slots. */
+  /** Creates a KeyedQuery Model with no entries. */
   readonly init: () => KeyedQueryModel<A, AI, E, EI, Fields>['Type']
-  /** Reads one slot, returning `Idle` when that slot does not exist. */
+  /** Reads one entry, returning `Idle` when that entry does not exist. */
   readonly read: (
     model: KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
     args: KeyedArgs<Fields>,
   ) => AsyncData.AsyncData<A, E>
-  /** Folds a keyed Fetch completion into the matching slot. */
+  /** Folds a keyed Fetch completion into the matching entry. */
   readonly update: (
     model: KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
     message: KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
@@ -164,51 +154,38 @@ export interface KeyedQuery<
     KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
     R
   >
-  /** Refreshes a loaded slot and does nothing when it has no data. */
+  /** Refreshes a loaded entry and does nothing when it has no data. */
   readonly revalidate: Update.Fold<
     KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
     KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
     KeyedArgs<Fields>,
     R
   >
-  /** Loads a missing slot or refreshes a loaded slot. */
+  /** Loads a missing entry or refreshes a loaded entry. */
   readonly revalidateOrLoad: Update.Fold<
     KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
     KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
     KeyedArgs<Fields>,
     R
   >
-  /** Loads a slot only when it has no usable value. */
+  /** Loads an entry only when it has no usable value. */
   readonly loadIfMissing: Update.Fold<
     KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
     KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
     KeyedArgs<Fields>,
     R
   >
-  /** Lifts this KeyedQuery's update and policies into a parent Model. */
+  /** Lifts this KeyedQuery's update and loading operations into a parent Model. */
   readonly lift: LiftKeyedQuery<
     KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
     KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
     KeyedArgs<Fields>,
     R
   >
-  /** Executes one keyed fetch directly and returns settled AsyncData. */
+  /** Executes one keyed fetch directly and returns settled `AsyncData`. */
   readonly run: (
     args: KeyedArgs<Fields>,
   ) => Effect.Effect<AsyncData.AsyncData<A, E>, never, R>
-}
-
-export namespace KeyedQuery {
-  /**
-   * Any keyed Query definition.
-   *
-   * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
-   */
-  export type Any = {
-    readonly Model: Schema.Top
-    readonly Message: Schema.Top
-    readonly init: () => unknown
-  }
 }
 
 export function defineKeyedQuery<
@@ -222,18 +199,17 @@ export function defineKeyedQuery<
 >(
   config: KeyedQueryConfig<Name, A, AI, E, EI, Fields, R>,
 ): KeyedQuery<Name, A, AI, E, EI, Fields, R> {
-  const states = AsyncData.Schema(config.data, config.error)
-  type SlotState = typeof states.schema.Type
+  const asyncData = AsyncData.Schema(config.data, config.error)
+  type EntryData = typeof asyncData.schema.Type
   const Args = Schema.Struct(config.args)
   type Args = typeof Args.Type
-  const keys = Record.keys(config.args)
-  if (!isArgKeyFields<Args>(keys)) {
+  if (Array.isArrayEmpty(Record.keys(config.args))) {
     throw new Error(
       `Query.define("${config.name}"): keyed args must include at least one field`,
     )
   }
 
-  const toKey = (args: Args): string =>
+  const argsToKey = (args: Args): string =>
     config.toKey !== undefined ? config.toKey(args) : encodeKey(Args)(args)
 
   const Message = makeKeyedQueryMessage(config.data, config.error, Args)
@@ -261,59 +237,61 @@ export function defineKeyedQuery<
   type Model = KeyedQueryModel<A, AI, E, EI, Fields>['Type']
   type UpdateReturn = Update.Return<Model, Message, R>
 
-  const store: CacheStore<Model, Args, A, E, Message, R> = {
+  const store: QueryStore<Model, Args, A, E, Message, R> = {
     read: (model, args) =>
       AsyncData.fromOptionOrIdle(
-        Option.map(HashMap.get(model.slots, toKey(args)), slot => slot.data),
+        Option.map(
+          HashMap.get(model.entries, argsToKey(args)),
+          entry => entry.data,
+        ),
       ),
     write: (model, args, data) =>
       modifyFields(model, {
-        slots: HashMap.set(toKey(args), { args, data }),
+        entries: HashMap.set(argsToKey(args), { args, data }),
       }),
-    load: args => Fetch(args),
+    fetch: args => Fetch(args),
   }
 
-  const hasSlot = (model: Model, args: Args): boolean =>
-    HashMap.has(model.slots, toKey(args))
+  const init = (): Model => Model.make({ entries: HashMap.empty() })
+  const read = (model: Model, args: Args): EntryData => store.read(model, args)
 
-  const init = (): Model => ({ slots: HashMap.empty() })
-  const read = (model: Model, args: Args): SlotState => store.read(model, args)
-
-  const policy = (name: Policy): Update.Fold<Model, Message, Args, R> =>
+  const liftTransition = (
+    transition: AsyncDataTransition,
+  ): Update.Fold<Model, Message, Args, R> =>
     Function.dual(2, (model: Model, args: Args): UpdateReturn =>
-      applyPolicy(store, model, args, name),
+      applyTransition(store, model, args, transition),
     )
 
-  const revalidate = policy('revalidate')
-  const revalidateOrLoad = policy('revalidateOrLoad')
-  const loadIfMissing = policy('loadIfMissing')
+  const revalidate = liftTransition(AsyncData.revalidate)
+  const revalidateOrLoad = liftTransition(AsyncData.revalidateOrLoad)
+  const loadIfMissing = liftTransition(AsyncData.loadIfMissing)
 
   const update = (model: Model, message: Message): UpdateReturn =>
     Message.match<UpdateReturn>(message, {
       CompletedFetch({ args, result }) {
-        if (!hasSlot(model, args)) return { model }
+        const data = store.read(model, args)
+
+        if (!AsyncData.isPending(data)) {
+          return { model }
+        }
 
         return {
-          model: store.write(
-            model,
-            args,
-            AsyncData.settle(store.read(model, args), result),
-          ),
+          model: store.write(model, args, AsyncData.settle(data, result)),
         }
       },
     })
 
   const liftFromLens = <ParentModel, ParentMessage>(
-    foldConfig: FoldLens<ParentModel, ParentMessage, Model, Message>,
+    lens: FoldLens<ParentModel, ParentMessage, Model, Message>,
   ) => ({
-    fold: Update.foldChild({ update, ...foldConfig }),
-    revalidate: foldChildFromPolicy(revalidate, foldConfig),
-    revalidateOrLoad: foldChildFromPolicy(revalidateOrLoad, foldConfig),
-    loadIfMissing: foldChildFromPolicy(loadIfMissing, foldConfig),
+    fold: Update.foldChild({ update, ...lens }),
+    revalidate: liftChildFold(revalidate, lens),
+    revalidateOrLoad: liftChildFold(revalidateOrLoad, lens),
+    loadIfMissing: liftChildFold(loadIfMissing, lens),
   })
 
   function lift<ParentModel, ParentMessage>(
-    config: ParentKeyFoldConfig<ParentModel, ParentMessage, Model, Message>,
+    config: ParentFieldConfig<ParentModel, ParentMessage, Model, Message>,
   ): ReturnType<LiftKeyedQuery<Model, Message, Args, R>>
   function lift<ParentModel, ParentMessage>(
     config: FoldLens<ParentModel, ParentMessage, Model, Message>,
@@ -321,14 +299,14 @@ export function defineKeyedQuery<
   function lift<ParentModel, ParentMessage>(
     config: LiftConfig<ParentModel, ParentMessage, Model, Message>,
   ) {
-    if (isParentKeyFoldConfig(config)) {
-      return liftFromLens(parentKeyToLens(config))
+    if (isParentFieldConfig(config)) {
+      return liftFromLens(parentFieldToLens(config))
     }
 
     return liftFromLens(config)
   }
 
-  const run = (args: Args): Effect.Effect<SlotState, never, R> =>
+  const run = (args: Args): Effect.Effect<EntryData, never, R> =>
     runExecute(config.execute(args))
 
   return {

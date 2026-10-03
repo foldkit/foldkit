@@ -13,14 +13,7 @@ import { describe, test } from 'vitest'
 
 import { Tabs } from '@foldkit/ui'
 
-import {
-  FetchPostDetail,
-  FetchStats,
-  postDetailQuery,
-  statsQuery,
-  update,
-  view,
-} from './main'
+import { postQuery, statsQuery, update, view } from './main'
 import {
   FETCHED_AT,
   cachedFirstPostModel,
@@ -36,11 +29,11 @@ const resolveFocusTab = Command.resolve(
 )
 
 describe('view', () => {
-  test('posts load into clickable rows with a Refresh button', () => {
+  test('the posts tab renders its loading state and navigation', () => {
     scene(
       { update, view },
       given(loadingPostsModel),
-      expect(text('Loading posts...')).toExist(),
+      expect(text('Loading posts…')).toExist(),
       expect(role('button', { name: 'Refresh' })).toExist(),
       expect(role('tab', { name: 'Posts' })).toExist(),
       expect(role('tab', { name: 'Stats' })).toExist(),
@@ -52,14 +45,14 @@ describe('view', () => {
       { update, view },
       given(loadedPostsModel),
       click(role('button', { name: /First Post/ })),
-      expect(text('Loading post...')).toExist(),
-      Command.expectExact(FetchPostDetail({ postId: 'first-post' })),
+      expect(text('Loading post…')).toExist(),
+      Command.expectExact(postQuery.Fetch({ postId: 'first-post' })),
       Command.resolve(
-        FetchPostDetail,
-        postDetailQuery.Message.CompletedFetch({
+        postQuery.Fetch,
+        postQuery.Message.CompletedFetch({
           args: { postId: 'first-post' },
           result: Result.succeed({
-            detail: firstPostDetail,
+            post: firstPostDetail,
             fetchedAt: FETCHED_AT,
           }),
         }),
@@ -73,7 +66,7 @@ describe('view', () => {
     )
   })
 
-  test('a cached post shows the Cached badge and revisits skip the fetch', () => {
+  test('opening a cached post skips the fetch', () => {
     scene(
       { update, view },
       given(cachedFirstPostModel),
@@ -84,14 +77,14 @@ describe('view', () => {
     )
   })
 
-  test('a failed detail fetch shows the error with a Retry button', () => {
+  test('a failed post fetch shows the error with a Retry button', () => {
     scene(
       { update, view },
       given(loadedPostsModel),
       click(role('button', { name: /First Post/ })),
       Command.resolve(
-        FetchPostDetail,
-        postDetailQuery.Message.CompletedFetch({
+        postQuery.Fetch,
+        postQuery.Message.CompletedFetch({
           args: { postId: 'first-post' },
           result: Result.fail('The connection dropped.'),
         }),
@@ -106,11 +99,11 @@ describe('view', () => {
       { update, view },
       given(loadedPostsModel),
       click(role('tab', { name: 'Stats' })),
-      expect(text('Loading stats...')).toExist(),
+      expect(text('Loading stats…')).toExist(),
       resolveFocusTab,
-      Command.expectExact(FetchStats()),
+      Command.expectExact(statsQuery.Fetch()),
       Command.resolve(
-        FetchStats,
+        statsQuery.Fetch,
         statsQuery.Message.CompletedFetch({
           result: Result.succeed({
             stats: fixtureStats,

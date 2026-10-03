@@ -1,19 +1,11 @@
 import { Effect, Schema } from 'effect'
 import { Query } from 'foldkit/experimental'
-import * as QueryModule from 'foldkit/experimental/query'
 import { defineMessageUnion } from 'foldkit/message'
 
 import * as Child from './child'
 
 const postsQuery = Query.define({
   name: 'Posts',
-  data: Schema.Array(Schema.String),
-  error: Schema.String,
-  execute: Effect.succeed([]),
-})
-
-const commentsQuery = QueryModule.define({
-  name: 'Comments',
   data: Schema.Array(Schema.String),
   error: Schema.String,
   execute: Effect.succeed([]),
@@ -26,5 +18,4 @@ const Message = defineMessageUnion({
   message: Child.Message,
   },
   GotPostsMessage: { message: postsQuery.Message },
-  GotCommentsMessage: { message: commentsQuery.Message },
 })

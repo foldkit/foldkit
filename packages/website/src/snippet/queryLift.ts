@@ -4,7 +4,7 @@ const Message = defineMessageUnion({
 })
 
 const posts = postsQuery.lift<Model, Message>({
-  field: 'posts',
+  parentField: 'posts',
   toParentMessage: message => Message.GotPostsMessage({ message }),
 })
 
