@@ -12,6 +12,7 @@ const MISSING_SHA_B = 'cafebabe'.repeat(5)
 const SCOPES = [
   'create_foldkit_smoke',
   'packed_ssr_consumer',
+  'packed_devtools_consumer',
   'scaffold_server_rendering',
   'host_parity',
   'dom_state_parity',
@@ -129,6 +130,57 @@ test('a website-only change leaves the packed consumer gate alone', () => {
     ],
     'false',
   )
+})
+
+test('DevTools and its minimum dependencies select the compatibility gate', () => {
+  for (const fileName of [
+    'packages/devtools/src/overlay.ts',
+    'packages/foldkit/src/subscription/subscription.ts',
+    'packages/ui/src/slider/slider.ts',
+    'packages/vite-plugin-foldkit/src/viewIdentity.ts',
+    'scripts/check-packed-devtools-consumer.ts',
+    'scripts/lib/changesets-release-plan.ts',
+    'scripts/lib/packed-consumer.ts',
+  ]) {
+    assert.equal(
+      planCiForFile(fileName)['packed_devtools_consumer'],
+      'true',
+      fileName,
+    )
+  }
+
+  assert.equal(
+    planCiForFile('packages/website/src/page/landing.ts')[
+      'packed_devtools_consumer'
+    ],
+    'false',
+  )
+
+  const sharedToolScopes = planCiForFile('scripts/lib/packed-consumer.ts')
+  assert.equal(sharedToolScopes['packed_devtools_consumer'], 'true')
+  assert.equal(sharedToolScopes['packed_ssr_consumer'], 'true')
+})
+
+test('a changeset selects the minimum dependency compatibility gate', () => {
+  assert.equal(
+    planCiForFile('.changeset/pending-devtools-minimum.md')[
+      'packed_devtools_consumer'
+    ],
+    'true',
+  )
+})
+
+test('a packed DevTools fixture change selects only its focused gate', () => {
+  const scopes = planCiForFile(
+    'scripts/fixtures/packed-devtools-consumer/smoke.spec.mjs',
+  )
+
+  assert.equal(scopes['packed_devtools_consumer'], 'true')
+  for (const scope of SCOPES.filter(
+    scope => scope !== 'packed_devtools_consumer',
+  )) {
+    assert.equal(scopes[scope], 'false', `${scope} should be false`)
+  }
 })
 
 test('browser-backed gate manifests select their consumers', () => {
