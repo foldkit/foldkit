@@ -30,6 +30,7 @@ export {
   type Searched,
   type PressedPointerOnButton,
   type ReleasedPointerOnItems,
+  type ClickedButton,
   type IgnoredMouseClick,
   type SuppressedSpaceScroll,
 } from './index.js'

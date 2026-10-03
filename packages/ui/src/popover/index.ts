@@ -62,6 +62,7 @@ export const Message = defineMessageUnion({
   CompletedUnlockScroll: {},
   CompletedInertOthers: {},
   CompletedRestoreInert: {},
+  ClickedButton: {},
   IgnoredMouseClick: {},
   SuppressedSpaceScroll: {},
   CompletedAnchorPopover: {},
@@ -73,6 +74,7 @@ export type RequestedOpen = typeof Message.RequestedOpen.Type
 export type RequestedClose = typeof Message.RequestedClose.Type
 export type BlurredPanel = typeof Message.BlurredPanel.Type
 export type PressedPointerOnButton = typeof Message.PressedPointerOnButton.Type
+export type ClickedButton = typeof Message.ClickedButton.Type
 export type IgnoredMouseClick = typeof Message.IgnoredMouseClick.Type
 export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
 
@@ -388,6 +390,23 @@ export const update = (model: Model, message: Message) => {
     SuppressedSpaceScroll: () => ({ model }),
     CompletedAnchorPopover: () => ({ model }),
     CompletedPortalPopoverBackdrop: () => ({ model }),
+    ClickedButton: () => {
+      if (
+        Option.exists(model.maybeLastButtonPointerType, Equal.equals('mouse'))
+      ) {
+        return {
+          model: modifyFields(model, {
+            maybeLastButtonPointerType: () => Option.none(),
+          }),
+        }
+      }
+
+      if (model.isOpen) {
+        return closePopover(model, closeWithFocusCommands)
+      }
+
+      return openPopover(model)
+    },
   })
 }
 
@@ -504,7 +523,6 @@ export const view = defineView<Model, Message, ViewInputs>(
       isOpen,
       contentFocus,
       animation: { transitionState },
-      maybeLastButtonPointerType,
     } = model
     const {
       anchor,
@@ -563,24 +581,6 @@ export const view = defineView<Model, Message, ViewInputs>(
     ): Option.Option<PressedPointerOnButton> =>
       Option.some(Message.PressedPointerOnButton({ pointerType, button }))
 
-    const handleButtonClick = ():
-      | RequestedOpen
-      | RequestedClose
-      | IgnoredMouseClick => {
-      const isMouse = Option.exists(
-        maybeLastButtonPointerType,
-        type => type === 'mouse',
-      )
-
-      if (isMouse) {
-        return Message.IgnoredMouseClick()
-      } else if (isOpen) {
-        return Message.RequestedClose()
-      } else {
-        return Message.RequestedOpen()
-      }
-    }
-
     const handleSpaceKeyUp = (
       key: string,
     ): Option.Option<SuppressedSpaceScroll> =>
@@ -616,7 +616,7 @@ export const view = defineView<Model, Message, ViewInputs>(
             h.OnPointerDown(handleButtonPointerDown),
             h.OnKeyDownPreventDefault(handleButtonKeyDown),
             h.OnKeyUpPreventDefault(handleSpaceKeyUp),
-            h.OnClick(handleButtonClick()),
+            h.OnClick(Message.ClickedButton()),
           ]),
       ...(isVisible
         ? [

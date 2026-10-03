@@ -30,6 +30,7 @@ export {
   type RequestedItemClick,
   type Searched,
   type PressedPointerOnButton,
+  type ClickedButton,
   type IgnoredMouseClick,
   type SuppressedSpaceScroll,
   type SuppressedItemCommit,
