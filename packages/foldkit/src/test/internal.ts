@@ -167,6 +167,17 @@ export const formatMountMatcher = (matcher: MountMatcher): string =>
     ? matcher.name
     : `${matcher.name}${formatArgs(matcher.args)}`
 
+/** Formats Mount matchers as an indented list, one per line, for display in
+ *  error messages. */
+export const formatMountMatcherList = (
+  matchers: ReadonlyArray<MountMatcher>,
+): string =>
+  pipe(
+    matchers,
+    Array.map(matcher => `    ${formatMountMatcher(matcher)}`),
+    Array.join('\n'),
+  )
+
 /**
  * Result shape used after Story and Scene replace executable Commands with
  * assertion metadata. Plain returns retain `outMessage?: never`, so code that
@@ -712,13 +723,8 @@ export const assertHasMounts = (
   )
 
   if (Array.isReadonlyArrayNonEmpty(missing)) {
-    const missingFormatted = pipe(
-      missing,
-      Array.map(matcher => `    ${formatMountMatcher(matcher)}`),
-      Array.join('\n'),
-    )
     throw new Error(
-      `Expected to find Mounts:\n\n${missingFormatted}\n\n` +
+      `Expected to find Mounts:\n\n${formatMountMatcherList(missing)}\n\n` +
         `But the pending Mounts are:\n\n${formatMountList(pendingMounts)}`,
     )
   }
@@ -757,13 +763,8 @@ export const assertExactMounts = (
     Array.isReadonlyArrayNonEmpty(unmatched) ||
     Array.isReadonlyArrayNonEmpty(leftover)
   ) {
-    const expected = pipe(
-      matchers,
-      Array.map(matcher => `    ${formatMountMatcher(matcher)}`),
-      Array.join('\n'),
-    )
     throw new Error(
-      `Expected exactly these Mounts:\n\n${expected}\n\n` +
+      `Expected exactly these Mounts:\n\n${formatMountMatcherList(matchers)}\n\n` +
         `But found:\n\n${formatMountList(pendingMounts)}`,
     )
   }
