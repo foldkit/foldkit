@@ -2,7 +2,6 @@ import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import {
   mkdirSync,
-  mkdtempSync,
   readFileSync,
   readdirSync,
   rmSync,
@@ -10,9 +9,16 @@ import {
 } from 'node:fs'
 import { type Server, createServer } from 'node:http'
 import { createRequire } from 'node:module'
-import { tmpdir } from 'node:os'
 import { dirname, extname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
+
+import {
+  assertConsumer,
+  fail,
+  makePackedConsumerTools,
+  messageFor,
+  readJson,
+} from './lib/packed-consumer.ts'
 
 // A Foldkit application built outside this repository, from packed tarballs,
 // with no source alias and no workspace link. Everything about the build id
@@ -54,95 +60,10 @@ const isCriticalBrowserMatrix = process.argv.includes(
   '--critical-browser-matrix',
 )
 
-class ConsumerCheckError extends Error {}
-
-const log = (message: string): void => {
-  console.log(`[packed-ssr] ${message}`)
-}
-
-const fail = (message: string): never => {
-  throw new ConsumerCheckError(message)
-}
-
-const assertConsumer: (
-  condition: boolean,
-  message: string,
-) => asserts condition = (
-  condition: boolean,
-  message: string,
-): asserts condition => {
-  if (!condition) {
-    fail(message)
-  }
-}
-
-type RunOptions = Readonly<{
-  cwd?: string
-  env?: Readonly<Record<string, string>>
-  inherit?: boolean
-  timeoutMs?: number
-}>
-
-type RunResult = Readonly<{
-  stdout: string
-  stderr: string
-  status: number | null
-}>
-
-const run = (
-  command: string,
-  args: ReadonlyArray<string>,
-  options: RunOptions = {},
-): RunResult => {
-  const result = spawnSync(command, [...args], {
-    cwd: options.cwd,
-    encoding: 'utf-8',
-    env: { ...process.env, ...options.env },
-    stdio: options.inherit ? 'inherit' : 'pipe',
-    timeout: options.timeoutMs ?? 300_000,
-  })
-
-  return {
-    stdout: typeof result.stdout === 'string' ? result.stdout : '',
-    stderr: typeof result.stderr === 'string' ? result.stderr : '',
-    status: result.status,
-  }
-}
-
-const runRequired = (
-  label: string,
-  command: string,
-  args: ReadonlyArray<string>,
-  options: RunOptions = {},
-): RunResult => {
-  log(label)
-  const result = run(command, args, options)
-  if (result.status !== 0) {
-    const output = `${result.stdout}${result.stderr}`.trim()
-    fail(`${label} failed${output === '' ? '' : `:\n${output}`}`)
-  }
-  return result
-}
-
-type PackOutput = ReadonlyArray<Readonly<{ filename?: string }>>
-
-const parseJson = <T>(raw: string): T => JSON.parse(raw)
-
-const readJson = <T>(path: string): T =>
-  parseJson<T>(readFileSync(path, 'utf8'))
-
-const packPackage = (label: string, packageDir: string): string => {
-  const result = runRequired(label, 'npm', ['pack', '--json'], {
-    cwd: join(REPO_ROOT, packageDir),
-  })
-  const filename = parseJson<PackOutput>(result.stdout)[0]?.filename
-  assertConsumer(
-    filename !== undefined,
-    `${label} did not return a tarball filename`,
-  )
-  log(`Packed ${filename}`)
-  return join(REPO_ROOT, packageDir, filename)
-}
+const { log, packPackage, runRequired, withTempDir } = makePackedConsumerTools({
+  repoRoot: REPO_ROOT,
+  logPrefix: 'packed-ssr',
+})
 
 // CONSUMER PROJECT FIXTURE
 
@@ -1389,20 +1310,6 @@ const runCriticalBrowserMatrix = async (
 
 // DRIVER
 
-const withTempDir = async (
-  prefix: string,
-  useTempDir: (tempDir: string) => Promise<void>,
-): Promise<void> => {
-  const tempDir = mkdtempSync(join(tmpdir(), prefix))
-  log(`Consumer project: ${tempDir}`)
-  try {
-    await useTempDir(tempDir)
-  } finally {
-    log('Cleaning up the consumer project...')
-    rmSync(tempDir, { recursive: true, force: true })
-  }
-}
-
 const main = async (): Promise<void> => {
   const tarballPaths: Array<string> = []
   try {
@@ -1776,16 +1683,6 @@ const main = async (): Promise<void> => {
   }
 
   log('PASS')
-}
-
-const messageFor = (error: unknown): string => {
-  if (error instanceof ConsumerCheckError) {
-    return error.message
-  }
-  if (error instanceof Error) {
-    return error.stack ?? error.message
-  }
-  return String(error)
 }
 
 main().catch((error: unknown) => {
