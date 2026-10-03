@@ -418,6 +418,7 @@ export const AnchorPopover = Mount.define('AnchorPopover', {
             buttonId,
             anchor,
             interceptTab: false,
+            disclosureTabOrder: true,
             focusAfterPosition: true,
             ...(focusSelector !== undefined && { focusSelector }),
             ...(arrowId !== undefined && { arrowId }),
