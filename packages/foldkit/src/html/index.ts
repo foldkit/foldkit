@@ -1270,6 +1270,11 @@ const classObjectFor = (value: string): Readonly<Record<string, true>> => {
   return classObject
 }
 
+const setClassData = (data: VNodeData, value: string): void => {
+  data.class = classObjectFor(value)
+  data[vnodeDataMaskKey] = (data[vnodeDataMaskKey] ?? 0) | VNodeDataMask.Class
+}
+
 // NOTE: navigation and resource URL attributes (href, src, action,
 // formaction) execute script when their scheme is `javascript:` or
 // `vbscript:`, so an untrusted value bound to them is an XSS sink. Browsers
@@ -1316,8 +1321,7 @@ type AttributeHandlers = {
 
 const attributeHandlers: AttributeHandlers = {
   Key: ({ value }, ctx: BuildContext) => setData(ctx, 'key', value),
-  Class: ({ value }, ctx: BuildContext) =>
-    setModuleData(ctx, 'class', classObjectFor(value), VNodeDataMask.Class),
+  Class: ({ value }, ctx: BuildContext) => setClassData(ctx.data, value),
   Id: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'id', value),
   Title: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'title', value),
   Lang: ({ value }, ctx: BuildContext) => setDataProp(ctx, 'lang', value),
@@ -2295,12 +2299,13 @@ const attributeHandlers: AttributeHandlers = {
 const applyAttribute = (
   attribute: Attribute<unknown>,
   ctx: BuildContext,
+  attributeTag: Attribute<unknown>['_tag'] = attribute._tag,
 ): void => {
   // NOTE: the mapped record type correlates each handler's attribute
   // parameter with its tag, which TypeScript cannot re-derive at this
   // widened call site.
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  const handler = attributeHandlers[attribute._tag] as (
+  const handler = attributeHandlers[attributeTag] as (
     attribute: Attribute<unknown>,
     ctx: BuildContext,
   ) => void
@@ -2436,6 +2441,8 @@ const attachControlledContentOwnershipHook = (data: VNodeData): void => {
   }
 }
 
+const EMPTY_BOUNDARY_MAPPERS: BuildContext['boundaryMappers'] = []
+
 const buildVNodeData = <Message>(
   attributes: ReadonlyArray<Attribute<Message> | ChildAttribute>,
 ): VNodeData => {
@@ -2447,20 +2454,20 @@ const buildVNodeData = <Message>(
   // NOTE: most attributes route through the current frame's dispatch.
   // ChildAttribute items carry a different dispatcher (captured by
   // `childAttributes` in a Submodel's own boundary), so they need their own
-  // BuildContext closed over that dispatch. The handler record itself is
-  // module-level and shared. The main ctx is built lazily. Static-only
-  // attribute arrays (Class, Id, etc. with no event handlers) skip
-  // `requireDispatch` entirely so Html can be constructed at module top
-  // level. The boundary ctx map is only allocated when a ChildAttribute is
-  // actually present.
+  // BuildContext closed over that dispatch. Capture the main frame before
+  // reading any ordinary attribute: a Class getter can change the active
+  // frame before a later event attribute needs its context. Class writes
+  // need no context record. The boundary ctx map is only allocated when a
+  // ChildAttribute is actually present.
   let mainCtx: BuildContext | undefined
+  let mainDispatch: DispatchSync | undefined
+  let mainUnmountResolver = fallbackUnmountResolver
+  let mainBoundaryMappers = EMPTY_BOUNDARY_MAPPERS
   let boundaryCtxByDispatch: Map<DispatchSync, BuildContext> | undefined
   let sharedPostpatchProps:
     | Array<Readonly<{ propName: string; value: unknown }>>
     | undefined
-  const getSharedPostpatchProps = (): Array<
-    Readonly<{ propName: string; value: unknown }>
-  > => (sharedPostpatchProps ??= [])
+  let getSharedPostpatchProps: BuildContext['getPostpatchProps'] | undefined
 
   for (const item of attributes) {
     if (isChildAttribute(item)) {
@@ -2473,7 +2480,8 @@ const buildVNodeData = <Message>(
       ) {
         ctx = {
           data,
-          getPostpatchProps: getSharedPostpatchProps,
+          getPostpatchProps: (getSharedPostpatchProps ??= () =>
+            (sharedPostpatchProps ??= [])),
           dispatch: item.dispatch,
           resolveUnmount: item.resolveUnmount,
           boundaryMappers: item.boundaryMappers,
@@ -2487,18 +2495,32 @@ const buildVNodeData = <Message>(
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       applyAttribute(item.attribute as Attribute<unknown>, ctx)
     } else {
-      if (mainCtx === undefined) {
-        mainCtx = {
-          data,
-          getPostpatchProps: getSharedPostpatchProps,
-          dispatch: currentDispatchOrFallback(),
-          resolveUnmount: currentUnmountResolverOrFallback(),
-          boundaryMappers: requireBoundaryMappers(),
-          getCapturedContext: capturedContextOrEmpty,
-        }
+      if (mainDispatch === undefined) {
+        mainDispatch = currentDispatchOrFallback()
+        mainUnmountResolver = currentUnmountResolverOrFallback()
+        mainBoundaryMappers = requireBoundaryMappers()
       }
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      applyAttribute(item as Attribute<unknown>, mainCtx)
+
+      const attributeTag = item._tag
+
+      if (attributeTag === 'Class') {
+        setClassData(data, item.value)
+      } else {
+        if (mainCtx === undefined) {
+          mainCtx = {
+            data,
+            getPostpatchProps: (getSharedPostpatchProps ??= () =>
+              (sharedPostpatchProps ??= [])),
+            dispatch: mainDispatch,
+            resolveUnmount: mainUnmountResolver,
+            boundaryMappers: mainBoundaryMappers,
+            getCapturedContext: capturedContextOrEmpty,
+          }
+        }
+
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        applyAttribute(item as Attribute<unknown>, mainCtx, attributeTag)
+      }
     }
   }
 
