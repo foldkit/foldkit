@@ -42,6 +42,7 @@ test.describe('api-cache-query example', () => {
 
     await page.getByRole('button', { name: 'Retry' }).click()
     await expect(page.getByText('Loading post…')).toBeVisible()
+    await expect(unavailableMessage).toBeHidden()
     await expect(unavailableMessage).toBeVisible()
   })
 })
