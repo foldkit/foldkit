@@ -1,4 +1,4 @@
-import { Array, Option, pipe } from 'effect'
+import { Array, Option, Record, pipe } from 'effect'
 import { execFile } from 'node:child_process'
 import {
   mkdir,
@@ -16,15 +16,17 @@ import { promisify } from 'node:util'
 import { type InlineConfig, build, resolveConfig } from 'vite'
 import { describe, expect, it, onTestFinished } from 'vitest'
 
+import { crawlFoldkitPackages } from '../src/foldkitPackages.ts'
 import { foldkit } from '../src/index.ts'
 
-type Files = Readonly<Record<string, string>>
+type Files = Readonly<globalThis.Record<string, string>>
 type DependencyFields = Readonly<
-  Record<string, Readonly<Record<string, string>>>
+  globalThis.Record<string, Readonly<globalThis.Record<string, string>>>
 >
 
 const PLUGIN_ROOT = resolve(import.meta.dirname, '..')
 const PLUGIN_SOURCE = resolve(PLUGIN_ROOT, 'src/index.ts')
+const CHILD_PROCESS_TEST_TIMEOUT_MS = 20_000
 
 const writeFiles = async (root: string, files: Files): Promise<void> => {
   for (const [path, content] of Object.entries(files)) {
@@ -113,8 +115,8 @@ const markdownPackage = (path: string): Files =>
   })
 
 const appPackage = (
-  dependencies: Readonly<Record<string, string>>,
-  devDependencies: Readonly<Record<string, string>> = {},
+  dependencies: Readonly<globalThis.Record<string, string>>,
+  devDependencies: Readonly<globalThis.Record<string, string>> = {},
 ): Files => ({
   'package.json': JSON.stringify({
     name: 'app',
@@ -154,6 +156,12 @@ const TRANSITIVE_ONLY_UI: Files = {
   ),
 }
 
+const TRANSITIVE_ONLY_UI_WITH_FOLDKIT: Files = {
+  ...TRANSITIVE_ONLY_UI,
+  ...appPackage({ foldkit: '*', 'ui-consumer': '*' }),
+  ...foldkitPackage('node_modules/foldkit', 'FOLDKIT'),
+}
+
 const DECLARED_MARKDOWN_PEER: Files = {
   ...appPackage({
     foldkit: '*',
@@ -172,18 +180,8 @@ const DECLARED_MARKDOWN_PEER: Files = {
 }
 
 const UNDECLARED_MARKDOWN_PEER: Files = {
+  ...DECLARED_MARKDOWN_PEER,
   ...appPackage({ foldkit: '*', 'md-consumer': '*' }),
-  ...entry('foldkit', 'md-consumer'),
-  ...foldkitPackage('node_modules/foldkit', 'ROOT_COPY'),
-  ...markdownPackage('node_modules/@foldkit/markdown'),
-  ...relayPackage(
-    'node_modules/md-consumer',
-    'md-consumer',
-    '@foldkit/markdown',
-    {
-      peerDependencies: { '@foldkit/markdown': '*' },
-    },
-  ),
 }
 
 // BUILDS
@@ -289,7 +287,13 @@ const ssrOutputWithAndWithout = async (
   )
   await writeFile(
     join(root, 'package.json'),
-    JSON.stringify({ ...packageJson, devDependencies: {} }),
+    JSON.stringify({
+      ...packageJson,
+      devDependencies: Record.filter(
+        packageJson.devDependencies,
+        (_version, name) => !Array.contains(removable, name),
+      ),
+    }),
   )
   const withoutPackages = await readSsrBuild(root)
 
@@ -619,13 +623,15 @@ describe('Foldkit packages in builds', () => {
       }),
     })
 
-    const config = await resolveConfig(pluginConfig(root), 'build')
-    const noExternal = config.environments['ssr']?.resolve.noExternal
+    const foldkitPackages = await crawlFoldkitPackages(root, true, {})
 
-    expect(noExternal).toEqual(
-      expect.arrayContaining(['ui-consumer', 'partly-malformed-dependent']),
-    )
-    expect(noExternal).not.toContain('malformed-dependent')
+    expect(foldkitPackages.ssrNoExternal).toEqual([
+      'foldkit',
+      '@foldkit/ui',
+      '@foldkit/devtools',
+      'partly-malformed-dependent',
+      'ui-consumer',
+    ])
   })
 })
 
@@ -647,51 +653,90 @@ describe('Foldkit packages in the dev server', () => {
 })
 
 describe('Foldkit package deduplication', () => {
-  const TRANSITIVE_ONLY_UI_WITH_FOLDKIT: Files = {
-    ...TRANSITIVE_ONLY_UI,
-    ...appPackage({ foldkit: '*', 'ui-consumer': '*' }),
-    ...foldkitPackage('node_modules/foldkit', 'FOLDKIT'),
-  }
+  it(
+    'ignores a singleton reachable only through NODE_PATH',
+    async () => {
+      const root = await makeRoot(TRANSITIVE_ONLY_UI_WITH_FOLDKIT)
 
-  it('ignores a singleton reachable only through NODE_PATH', async () => {
-    const root = await makeRoot(TRANSITIVE_ONLY_UI_WITH_FOLDKIT)
+      const dedupe = await resolveDedupeInChildProcess(
+        root,
+        join(root, 'node_modules/ui-consumer/node_modules'),
+      )
 
-    const dedupe = await resolveDedupeInChildProcess(
-      root,
-      join(root, 'node_modules/ui-consumer/node_modules'),
-    )
+      expect(dedupe).toEqual({ serve: ['foldkit'], build: ['foldkit'] })
+    },
+    CHILD_PROCESS_TEST_TIMEOUT_MS,
+  )
 
-    expect(dedupe).toEqual({ serve: ['foldkit'], build: ['foldkit'] })
-  })
+  it(
+    'lists only the singletons that resolve from the root',
+    async () => {
+      const root = await makeRoot(TRANSITIVE_ONLY_UI_WITH_FOLDKIT)
 
-  it('lists only the singletons that resolve from the root', async () => {
-    const root = await makeRoot(TRANSITIVE_ONLY_UI_WITH_FOLDKIT)
+      const dedupe = await resolveDedupeInChildProcess(root, undefined)
 
-    const dedupe = await resolveDedupeInChildProcess(root, undefined)
+      expect(dedupe).toEqual({ serve: ['foldkit'], build: ['foldkit'] })
+    },
+    CHILD_PROCESS_TEST_TIMEOUT_MS,
+  )
 
-    expect(dedupe).toEqual({ serve: ['foldkit'], build: ['foldkit'] })
-  })
+  it(
+    'lists a singleton installed at a workspace root above the app',
+    async () => {
+      const workspace = await makeRoot({
+        'package.json': JSON.stringify({
+          name: 'workspace',
+          private: true,
+          dependencies: { foldkit: '*' },
+        }),
+        ...foldkitPackage('node_modules/foldkit', 'FOLDKIT'),
+        'app/package.json': JSON.stringify({
+          name: 'app',
+          private: true,
+          type: 'module',
+        }),
+      })
 
-  it('lists a singleton installed at a workspace root above the app', async () => {
+      const dedupe = await resolveDedupeInChildProcess(
+        join(workspace, 'app'),
+        undefined,
+      )
+
+      expect(dedupe).toEqual({ serve: ['foldkit'], build: ['foldkit'] })
+    },
+    CHILD_PROCESS_TEST_TIMEOUT_MS,
+  )
+
+  it('follows a symlinked root under resolve.preserveSymlinks', async () => {
     const workspace = await makeRoot({
-      'package.json': JSON.stringify({
-        name: 'workspace',
-        private: true,
-        dependencies: { foldkit: '*' },
-      }),
-      ...foldkitPackage('node_modules/foldkit', 'FOLDKIT'),
-      'app/package.json': JSON.stringify({
-        name: 'app',
-        private: true,
-        type: 'module',
-      }),
+      ...foldkitPackage('outer/node_modules/foldkit', 'FOLDKIT'),
+      ...consumerPackage(
+        'outer/node_modules/foldkit-consumer',
+        'foldkit-consumer',
+        'foldkit',
+        { peerDependencies: { foldkit: '*' } },
+      ),
+      ...prefixPaths(
+        'real/app',
+        appPackage({ foldkit: '*', 'foldkit-consumer': '*' }),
+      ),
     })
+    const root = join(workspace, 'outer/app')
+    await symlink(join(workspace, 'real/app'), root, 'dir')
 
-    const dedupe = await resolveDedupeInChildProcess(
-      join(workspace, 'app'),
-      undefined,
+    const preserved = await resolveConfig(
+      { ...pluginConfig(root), resolve: { preserveSymlinks: true } },
+      'serve',
     )
+    const realpathed = await resolveConfig(pluginConfig(root), 'serve')
 
-    expect(dedupe).toEqual({ serve: ['foldkit'], build: ['foldkit'] })
+    expect(preserved.resolve.dedupe).toEqual(['foldkit'])
+    expect(preserved.environments['ssr']?.resolve.noExternal).toContain(
+      'foldkit-consumer',
+    )
+    expect(realpathed.resolve.dedupe).toEqual([])
+    expect(realpathed.environments['ssr']?.resolve.noExternal).not.toContain(
+      'foldkit-consumer',
+    )
   })
 })

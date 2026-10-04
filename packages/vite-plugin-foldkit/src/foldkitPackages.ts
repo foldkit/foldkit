@@ -37,19 +37,29 @@ const dependencyNames = (field: unknown): ReadonlyArray<string> =>
     Option.match({ onNone: () => [], onSome: Record.keys }),
   )
 
-const dependsOnFoldkit = (packageJson: Record<string, unknown>): boolean =>
+const dependsOnFoldkit = (
+  packageJson: globalThis.Record<string, unknown>,
+): boolean =>
   pipe(
     [packageJson['dependencies'], packageJson['peerDependencies']],
     Array.flatMap(dependencyNames),
     Array.some(isFoldkitPackageName),
   )
 
-const toCrawlRoot = (root: string): string => {
+const toCrawlRoot = (root: string, isPreservingSymlinks: boolean): string => {
   const absoluteRoot = resolve(root)
 
-  // NOTE: vitefu realpaths each dependency's package.json and compares it with
-  // workspaceRoot. An unresolved root that runs through a symlink would stop
-  // private workspace packages from being recognized.
+  // NOTE: The crawl and the dedupe lookup must start from the root Vite
+  // resolves from: the path as given under resolve.preserveSymlinks, and its
+  // realpath otherwise. Any other root makes them walk a different directory
+  // chain than Vite's resolver. Without preserveSymlinks, the realpath also
+  // matters to vitefu, which realpaths each dependency's package.json and
+  // compares it with workspaceRoot. An unresolved root that runs through a
+  // symlink would stop private workspace packages from being recognized.
+  if (isPreservingSymlinks) {
+    return absoluteRoot
+  }
+
   try {
     return realpathSync(absoluteRoot)
   } catch {
@@ -69,7 +79,10 @@ export const crawlFoldkitPackages = async (
 ): Promise<
   Readonly<{ dedupe: Array<string>; ssrNoExternal: Array<string> }>
 > => {
-  const crawlRoot = toCrawlRoot(root)
+  const crawlRoot = toCrawlRoot(
+    root,
+    viteUserConfig.resolve?.preserveSymlinks ?? false,
+  )
 
   const crawl = await crawlFrameworkPkgs({
     root: crawlRoot,

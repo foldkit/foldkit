@@ -73,7 +73,7 @@ Each module graph must load one Foldkit copy. The plugin configures Vite for tha
 - Server builds and the dev server's server render bundle those three packages, plus every installed package whose `dependencies` or `peerDependencies` include `foldkit` or an `@foldkit/*` package, such as `@foldkit/markdown`. In the dev server, these `ssr.noExternal` packages run through Vite's module runner instead of Node's own import. An explicit `ssr.external` entry still keeps a package external.
 - The plugin finds these packages by crawling from the application's `package.json`. It follows the application's `dependencies` and `devDependencies`, then the `dependencies` of each package it bundles, plus the `devDependencies` of a bundled package that is a private workspace package.
 
-Two kinds of package stay external: a peer the application does not declare, and a package reached only through a package that does not depend on Foldkit. Such a package loads a second Foldkit copy from `node_modules` at runtime. Declare it in the application's `package.json`, or add it to `ssr.noExternal`:
+A package the crawl does not reach stays external. For example: a peer the application does not declare, or a package reached only through a package that does not depend on Foldkit. Such a package loads a second Foldkit copy from `node_modules` at runtime. Declare it in the application's `package.json`, or add it to `ssr.noExternal`:
 
 ```typescript
 export default defineConfig({
@@ -81,6 +81,8 @@ export default defineConfig({
   ssr: { noExternal: ['foldkit-component-library'] },
 })
 ```
+
+Vitest copies SSR `noExternal` into `server.deps.inline`. A Vitest config that includes `foldkit()` therefore also inlines the crawled packages in tests.
 
 ## Completed build metadata
 
