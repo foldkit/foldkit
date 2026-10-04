@@ -22,8 +22,10 @@ import {
 const FIRST_REQUEST_GENERATION = 1
 const SECOND_REQUEST_GENERATION = 2
 
-const postDataTag = (model: typeof loadedPostsModel, postId: string): string =>
-  postQuery.read(model.postDetails, { postId })._tag
+const postAsyncDataTag = (
+  model: typeof loadedPostsModel,
+  postId: string,
+): string => postQuery.read(model.postDetails, { postId })._tag
 
 const selectedPostsTab = Message.GotTabsMessage({
   message: Tabs.Message.SelectedTab({ index: 0, value: 'Posts' }),
@@ -86,10 +88,10 @@ test('a revalidation tick keeps stale stats on screen while refetching', () => {
     given(loadedStatsModel),
     message(Message.TickedStatsRefreshInterval()),
     model(model => {
-      const statsData = statsQuery.read(model.stats)
-      expect(statsData._tag).toBe('Refreshing')
-      if (statsData._tag === 'Refreshing') {
-        expect(statsData.data.stats).toEqual(fixtureStats)
+      const statsAsyncData = statsQuery.read(model.stats)
+      expect(statsAsyncData._tag).toBe('Refreshing')
+      if (statsAsyncData._tag === 'Refreshing') {
+        expect(statsAsyncData.data.stats).toEqual(fixtureStats)
       }
     }),
     Command.resolve(
@@ -103,10 +105,10 @@ test('a revalidation tick keeps stale stats on screen while refetching', () => {
       }),
     ),
     model(model => {
-      const statsData = statsQuery.read(model.stats)
-      expect(statsData._tag).toBe('Success')
-      if (statsData._tag === 'Success') {
-        expect(statsData.data.stats.activeUsers).toBe(99)
+      const statsAsyncData = statsQuery.read(model.stats)
+      expect(statsAsyncData._tag).toBe('Success')
+      if (statsAsyncData._tag === 'Success') {
+        expect(statsAsyncData.data.stats.activeUsers).toBe(99)
       }
     }),
   )
@@ -125,11 +127,11 @@ test('a failed refresh keeps the stale stats on screen with the error', () => {
       }),
     ),
     model(model => {
-      const statsData = statsQuery.read(model.stats)
-      expect(statsData._tag).toBe('Stale')
-      if (statsData._tag === 'Stale') {
-        expect(statsData.data.stats).toEqual(fixtureStats)
-        expect(statsData.error).toBe('The server is down.')
+      const statsAsyncData = statsQuery.read(model.stats)
+      expect(statsAsyncData._tag).toBe('Stale')
+      if (statsAsyncData._tag === 'Stale') {
+        expect(statsAsyncData.data.stats).toEqual(fixtureStats)
+        expect(statsAsyncData.error).toBe('The server is down.')
       }
     }),
   )
@@ -159,10 +161,10 @@ test('refreshing posts refetches while keeping the current list', () => {
     given(loadedPostsModel),
     message(Message.ClickedRefreshPosts()),
     model(model => {
-      const postsData = postsQuery.read(model.posts)
-      expect(postsData._tag).toBe('Refreshing')
-      if (postsData._tag === 'Refreshing') {
-        expect(postsData.data.posts).toEqual(fixturePosts)
+      const postsAsyncData = postsQuery.read(model.posts)
+      expect(postsAsyncData._tag).toBe('Refreshing')
+      if (postsAsyncData._tag === 'Refreshing') {
+        expect(postsAsyncData.data.posts).toEqual(fixturePosts)
       }
     }),
     Command.resolve(
@@ -211,7 +213,7 @@ test('opening a post once reuses its retained data on later visits', () => {
     given(loadedPostsModel),
     message(Message.ClickedPost({ postId: 'first-post' })),
     model(model => {
-      expect(postDataTag(model, 'first-post')).toBe('Loading')
+      expect(postAsyncDataTag(model, 'first-post')).toBe('Loading')
     }),
     Command.resolve(
       postQuery.Fetch,
@@ -228,7 +230,7 @@ test('opening a post once reuses its retained data on later visits', () => {
     message(Message.ClickedPost({ postId: 'first-post' })),
     Command.expectNone(),
     model(model => {
-      expect(postDataTag(model, 'first-post')).toBe('Success')
+      expect(postAsyncDataTag(model, 'first-post')).toBe('Success')
       expect(model.maybeSelectedPostId).toEqual(Option.some('first-post'))
     }),
   )
@@ -248,11 +250,11 @@ test('a failed post fetch enters Failure and retry fetches it again', () => {
       }),
     ),
     model(model => {
-      expect(postDataTag(model, 'first-post')).toBe('Failure')
+      expect(postAsyncDataTag(model, 'first-post')).toBe('Failure')
     }),
     message(Message.ClickedRetryPost({ postId: 'first-post' })),
     model(model => {
-      expect(postDataTag(model, 'first-post')).toBe('Loading')
+      expect(postAsyncDataTag(model, 'first-post')).toBe('Loading')
     }),
     Command.resolve(
       postQuery.Fetch,
@@ -266,7 +268,7 @@ test('a failed post fetch enters Failure and retry fetches it again', () => {
       }),
     ),
     model(model => {
-      expect(postDataTag(model, 'first-post')).toBe('Success')
+      expect(postAsyncDataTag(model, 'first-post')).toBe('Success')
     }),
   )
 })
@@ -277,7 +279,7 @@ test('revisiting a post with a cached failure loads it again', () => {
     given(failedFirstPostModel),
     message(Message.ClickedPost({ postId: 'first-post' })),
     model(model => {
-      expect(postDataTag(model, 'first-post')).toBe('Loading')
+      expect(postAsyncDataTag(model, 'first-post')).toBe('Loading')
       expect(model.maybeSelectedPostId).toEqual(Option.some('first-post'))
     }),
     Command.resolve(
@@ -289,7 +291,7 @@ test('revisiting a post with a cached failure loads it again', () => {
       }),
     ),
     model(model => {
-      expect(postDataTag(model, 'first-post')).toBe('Failure')
+      expect(postAsyncDataTag(model, 'first-post')).toBe('Failure')
     }),
   )
 })

@@ -6,7 +6,9 @@
 
 Server data in a Model is never just data or nothing. Between “we have it” and “we do not” sit “we asked and are waiting”, “the ask failed”, “we have last week’s copy and are refetching”, and “the refetch failed but we kept the copy”. A boolean `isLoading` next to a nullable `data` field cannot tell those apart, and every screen that renders the field ends up re-deriving the distinction from a tangle of flags.
 
-`AsyncData<A, E>` makes the distinction the type. The idea is the pattern Elm calls RemoteData, generalized. It is a first-class value like `Option` or `Result`: an ADT plus a namespace of free functions over it. You embed one Schema in your Model, and every read, transform, and transition goes through named combinators that already know the state machine. The module is the noun. It is not a data-fetching engine and not a cache. The keyed cache, the refresher, and route-driven loading stay application patterns.
+`AsyncData<A, E>` makes the distinction the type. The idea is the pattern Elm calls RemoteData, generalized. It is a first-class value like `Option` or `Result`: an ADT plus a namespace of free functions over it. You embed one Schema in your Model, and every read, transform, and transition goes through named combinators that already know the state machine. The module is the noun. It is not a data-fetching engine or cache.
+
+Use `AsyncData` directly when the request belongs to an application-specific transition and the application should own its Messages, Commands, and `AsyncData` Model field. The experimental [Query](/core/query) Submodel packages the fetch Command, completion Message, stale-response protection, and retained `AsyncData` state when the result is one resource or a collection keyed by arguments.
 
 Throughout this page, the running example is a Notes app: a `Note` belongs to an optional `Notebook`, and the Model holds several `AsyncData` fields for the notebook list, the cross-notebook feed, and the per-entity caches.
 
@@ -141,4 +143,4 @@ The combine is all-or-nothing on data. Because the combined value needs every in
 
 An `AsyncData` field lives in one place: the [Model](/core/model), the single source of truth. Fetches are [Commands](/core/commands): run the fetch through `Effect.result`, carry the `Result` in the Message, and fold it in with `settle`. [Field Validation](/core/field-validation) is the sibling shipped module in the same tier, and the [API Reference](/api-reference/async-data) has the generated, exhaustive catalog of every name and its per-state behavior.
 
-[Coming from TanStack Query](/react/coming-from-tanstack-query) maps the six states onto query status and cached data. The [api-cache example](/example-apps/api-cache) wires a keyed cache by hand. The experimental [Query](/core/query) Submodel packages the same machine.
+[Coming from TanStack Query](/react/coming-from-tanstack-query) maps the six states onto query status and cached data. The [API Cache example](/example-apps/api-cache) wires a keyed cache by hand; [API Cache Query](/example-apps/api-cache-query) builds the corresponding application with Query.

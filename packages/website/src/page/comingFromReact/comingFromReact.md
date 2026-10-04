@@ -88,7 +88,7 @@ The Model-View-Update pattern will feel familiar. The Model resembles the store,
 ## FAQ
 
 :::Faq{id="faq-reusable-components" question="How do I make reusable “components”?"}
-Write view functions that take the Model data they need and return Html. They do not own hidden state or lifecycle. A feature that needs its own state machine can be a [Submodel](/core/submodel), with its own Model, Message union, update, and view.
+Write view functions that take the Model data they need and return Html. They do not own hidden state or lifecycle. A feature that needs its own state machine can be a [Submodel](/core/submodel), with its own Model, Message union, and update. It can also own a view when rendering belongs inside that boundary.
 :::
 
 :::Faq{id="faq-multiple-instances" question="How do I create multiple components with their own state?"}

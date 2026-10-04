@@ -2,7 +2,7 @@
 
 ## When to Create a Submodel {#overview}
 
-Use a Submodel when part of the application owns a state machine, not merely a section of markup. A Submodel has its own Model, Message, update, view, and Commands. Its parent stores the child Model, routes child Messages, and decides what to do with facts that cross the boundary.
+Use a Submodel when part of the application owns a state machine, not merely a section of markup. A Submodel has its own Model, Message union, and update function. It may also own Commands, Subscriptions, OutMessages, or a view. Its parent stores the child Model, routes child Messages, and decides what to do with facts that cross the boundary.
 
 Two needs commonly create that boundary:
 
@@ -12,7 +12,7 @@ Two needs commonly create that boundary:
 Both use the same contract. Internal state stays behind the boundary, and values crossing it have named roles. A `Listbox` can report that an item was selected without exposing its highlight index or focus bookkeeping. A feature Submodel can [read shared parent state](#reading-parent-state) and [surface domain facts](#surfacing-facts) without taking ownership of the whole application.
 
 :::Info{label='The word "boundary"'}
-Each `h.submodel` call creates a runtime boundary identified by `slotId`. When the child dispatches a Message, `toParentMessage` wraps it in the parent's Message type. Nested Submodels repeat that process at every level until the Message reaches the root update.
+Every Submodel has a state and update boundary: the parent stores its Model and folds its Messages without changing the child Model directly. When a Submodel owns a view, each `h.submodel` call also creates a runtime view boundary identified by `slotId`. [Query](/core/query) is a viewless Submodel, so it has the state and update boundary without an `h.submodel` call or `slotId`.
 :::
 
 :::Info{label="The restaurant analogy"}
@@ -99,7 +99,7 @@ Use `Update.foldChildInits` when several children initialize together. Its `toPa
 
 ### Wiring the View with h.submodel {#wiring-the-view}
 
-Define the child view with `Submodel.defineView<Model, Message>`. It receives the child Model and a builder for child Messages.
+A viewless Submodel needs no runtime view wiring. Its parent can render values the child exposes through public accessors, such as Query's `read`. When a Submodel owns rendering, define its view with `Submodel.defineView<Model, Message>`. It receives the child Model and a builder for child Messages.
 
 `defineView` brands the function with its child Model and Message types. The parent can then embed it without repeating those types, and handlers inside the child accept only child Messages.
 

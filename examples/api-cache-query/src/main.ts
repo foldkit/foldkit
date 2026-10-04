@@ -180,17 +180,18 @@ export const update = (model: Model, message: Message) =>
     TickedStatsRefreshInterval: () => stats.revalidate(model),
   })
 
-export const init: Runtime.ApplicationInit<Model, Message> = () =>
-  posts.revalidateOrLoad(
-    Model.make({
-      tabs: Tabs.init({ id: TABS_ID }),
-      activeTab: 'Posts',
-      posts: postsQuery.init(),
-      postDetails: postQuery.init(),
-      maybeSelectedPostId: Option.none(),
-      stats: statsQuery.init(),
-    }),
-  )
+export const init: Runtime.ApplicationInit<Model, Message> = () => {
+  const model = Model.make({
+    tabs: Tabs.init({ id: TABS_ID }),
+    activeTab: 'Posts',
+    posts: postsQuery.init(),
+    postDetails: postQuery.init(),
+    maybeSelectedPostId: Option.none(),
+    stats: statsQuery.init(),
+  })
+
+  return posts.revalidateOrLoad(model)
+}
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   revalidateStats: entry(
@@ -322,8 +323,8 @@ const postsTabView = (model: Model, h: HtmlBuilder<Message>): Html =>
   })
 
 const postsListView = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const postsData = postsQuery.read(model.posts)
-  const isPending = AsyncData.isPending(postsData)
+  const postsAsyncData = postsQuery.read(model.posts)
+  const isPending = AsyncData.isPending(postsAsyncData)
 
   return h.div(
     [h.Class('flex flex-col gap-4')],
@@ -340,7 +341,7 @@ const postsListView = (model: Model, h: HtmlBuilder<Message>): Html => {
                 h.button(
                   [...attributes.button, h.Class(toolbarButtonClassName)],
                   [
-                    AsyncData.isRefreshing(postsData)
+                    AsyncData.isRefreshing(postsAsyncData)
                       ? 'Refreshing…'
                       : 'Refresh',
                   ],
@@ -356,14 +357,14 @@ const postsListView = (model: Model, h: HtmlBuilder<Message>): Html => {
           'Open a post, then go back. The detail stays in the Query. Opening it again reads that entry and does not fetch.',
         ],
       ),
-      AsyncData.matchData(postsData, {
+      AsyncData.matchData(postsAsyncData, {
         onEmpty: () => loadingPanel('Loading posts…', h),
         onFailure: error => errorPanel(error, Message.ClickedRetryPosts(), h),
         onData: ({ posts }) =>
           h.div(
             [h.Class('flex flex-col gap-4')],
             [
-              ...Option.match(AsyncData.getError(postsData), {
+              ...Option.match(AsyncData.getError(postsAsyncData), {
                 onNone: () => [],
                 onSome: error => [
                   errorPanel(error, Message.ClickedRetryPosts(), h),
@@ -444,7 +445,7 @@ const postDetailView = (
   postId: string,
   h: HtmlBuilder<Message>,
 ): Html => {
-  const postData = postQuery.read(model.postDetails, { postId })
+  const postAsyncData = postQuery.read(model.postDetails, { postId })
 
   return h.div(
     [h.Class('flex flex-col gap-4')],
@@ -465,7 +466,7 @@ const postDetailView = (
         },
         h,
       ),
-      AsyncData.matchData(postData, {
+      AsyncData.matchData(postAsyncData, {
         onEmpty: () => loadingPanel('Loading post…', h),
         onFailure: error =>
           errorPanel(error, Message.ClickedRetryPost({ postId }), h),
@@ -473,7 +474,7 @@ const postDetailView = (
           h.div(
             [h.Class('flex flex-col gap-4')],
             [
-              ...Option.match(AsyncData.getError(postData), {
+              ...Option.match(AsyncData.getError(postAsyncData), {
                 onNone: () => [],
                 onSome: error => [
                   errorPanel(error, Message.ClickedRetryPost({ postId }), h),
@@ -508,8 +509,8 @@ const postCard = (
   )
 
 const statsTabView = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const statsData = statsQuery.read(model.stats)
-  const isPending = AsyncData.isPending(statsData)
+  const statsAsyncData = statsQuery.read(model.stats)
+  const isPending = AsyncData.isPending(statsAsyncData)
 
   return h.div(
     [h.Class('flex flex-col gap-4')],
@@ -538,14 +539,14 @@ const statsTabView = (model: Model, h: HtmlBuilder<Message>): Html => {
           'Stats refetch every 5 seconds while this tab is open. The old numbers stay on screen while the new ones load.',
         ],
       ),
-      AsyncData.matchData(statsData, {
+      AsyncData.matchData(statsAsyncData, {
         onEmpty: () => loadingPanel('Loading stats…', h),
         onFailure: error => errorPanel(error, Message.ClickedRetryStats(), h),
         onData: ({ stats, fetchedAt }) =>
           h.div(
             [h.Class('flex flex-col gap-4')],
             [
-              ...Option.match(AsyncData.getError(statsData), {
+              ...Option.match(AsyncData.getError(statsAsyncData), {
                 onNone: () => [],
                 onSome: error => [
                   errorPanel(error, Message.ClickedRetryStats(), h),
@@ -554,7 +555,7 @@ const statsTabView = (model: Model, h: HtmlBuilder<Message>): Html => {
               statsCards(
                 stats,
                 fetchedAt,
-                AsyncData.isRefreshing(statsData),
+                AsyncData.isRefreshing(statsAsyncData),
                 h,
               ),
             ],

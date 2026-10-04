@@ -221,7 +221,7 @@ html.dark {
   }
 
   .docs-content {
-    @apply w-full min-w-0 mx-auto px-6 py-8 md:px-8 xl:px-12 2xl:py-12 font-book leading-7;
+    @apply w-full min-w-0 mx-auto px-6 py-8 md:px-8 xl:px-12 2xl:py-12 font-book leading-7 md:leading-[1.875rem];
     max-width: var(--docs-content-width);
   }
 
