@@ -19,6 +19,7 @@ Read those when a rule needs context.
 - Always use Schema types (not plain TypeScript types), full names like `Message` (not `Msg`), and `withReturnType` (not `as const` or type casting).
 - Foldkit is tightly coupled to Effect-TS. Do not suggest solutions outside the Effect ecosystem. Check existing features in `create-foldkit-app` before suggesting new ones.
 - Push back on any direction that violates Elm Architecture principles: unidirectional data flow, Messages as facts, Model as single source of truth, side effects confined to Commands. Flag the issue and propose the Foldkit approach that preserves those principles.
+- Add convenience APIs when they hide behavior that is genuinely difficult, error-prone, or repetitive. Do not add a second path merely to shorten clear Foldkit code, especially when it makes an update decision implicit.
 - Run TypeScript scripts with `node` directly, as in `node scripts/check-peer-floors.ts`. Every Node version in `engines` strips types, so the workspace has no `tsx`, `vite-node`, or other loader, and none may be added. Node resolves imports literally: write the extension the file has, and reach package code through its built entry rather than its source. A script whose module graph needs Vite's resolution, such as the website's `openapi` and `prerender`, is bundled with `vite build --ssr` first and the bundle runs under `node`. `erasableSyntaxOnly` in the base tsconfig keeps every source within what Node can strip.
 
 ## Exemplar Files
@@ -61,6 +62,7 @@ The principles below apply broadly. Calibrate to the right context: library desi
 - Export `type PersonRoute = typeof AppRoute.Person.Type` beside `AppRoute` only when a module needs that variant's type.
 - Use `Option` for model fields that represent absence. Not `''` or `0` as the "none" state. Form inputs that start as `''` are actual values, not absent.
 - Use `Option` at boundaries where the value will be matched or chained (`Option.match`, `Option.map`, `Option.flatMap`). Simple presence checks don't need it. Don't wrap in `Option` just to check `isSome`.
+- When repeated entities can interact concurrently, keep transient interaction state on each entity. Carry the originating identity, such as `pointerId`, in every Message that continues or completes that interaction. Use container-level state only when exclusivity is intentional.
 - Errors in Commands become Messages via `Effect.catch(() => Effect.succeed(ErrorMessage(...)))`. Side effects should never crash the app.
 - Fold a Submodel OutMessage by matching on its tag. Always name the variant, even when the union has one variant, in app code, docs, snippets, and examples alike. Never destructure the OutMessage payload without naming the variant.
 - Update, init, boot, and component helper producers return `{ model }` when they statically create no Commands. When they compute a Commands collection, return it directly without checking whether it is empty. Never write the literal `commands: []`; `foldkit/no-empty-commands-array` enforces this producer convention.
@@ -97,6 +99,7 @@ Match the implementation style to the subsystem and the behavior being modeled. 
 - Capitalize Schema literal strings: `Schema.Literals(['Horizontal', 'Vertical'])`.
 - Capitalize namespace imports: `import * as Command from './command'`.
 - Use `const`. Only use `let` when mutation is truly unavoidable. Always brace control flow.
+- For ordinary records, destructure same-named fields instead of creating one-for-one aliases such as `const node = entry.node`. Preserve the owning object where another convention requires its identity, including update-like results and union namespaces.
 - Use blank lines to show the phases of non-trivial control flow, and prefer a blank line when uncertain. Separate setup, a value read from the guard that consumes it, independent guards or validation cases, writes, and the final return. In a loop, give each skip, failure, or mutation condition its own visual paragraph. Keep statements together only when they form one operation or one explicit `if`/`else` chain.
 - Extract magic numbers to named constants.
 - Never use nested ternaries. Use `Match.value`, an `if`/`else` chain, or a named helper.
@@ -125,6 +128,7 @@ Don't add inline or block comments to explain code. If code needs explanation, r
 
 ## View Architecture
 
+- An opt-in UI feature must be behaviorally inert when disabled. It must not install event handling, Subscriptions, styles, or interaction constraints that change the consumer's existing browser behavior.
 - Key mapped list items by a stable Model identifier, never by array position. The same applies to entity keys: when one view function renders different entities at one position (a detail page across slugs), key by the entity id. These are the only keys to write; identity carries everything else.
 - Never key branches. Branch identity comes from view functions via the build. When switching a same-tag inline ternary must reset DOM state, extract the arms into named view functions.
 - Always build with `@foldkit/vite-plugin`. Without it, branch identity falls back to positional-plus-key semantics and every branch point needs hand-written keys.
