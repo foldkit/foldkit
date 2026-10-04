@@ -329,15 +329,17 @@ const FOLDKIT_SINGLETON_PACKAGES: ReadonlyArray<string> = [
 const importSpecifiers = (source: string): ReadonlyArray<string> =>
   [...source.matchAll(IMPORT_SPECIFIER)].map(match => match[1] ?? '')
 
+const isPackageSpecifier =
+  (packageName: string) =>
+  (specifier: string): boolean =>
+    specifier === packageName || specifier.startsWith(`${packageName}/`)
+
 const isFoldkitSingletonPackageSpecifier = (specifier: string): boolean =>
-  FOLDKIT_SINGLETON_PACKAGES.some(
-    packageName =>
-      specifier === packageName || specifier.startsWith(`${packageName}/`),
+  FOLDKIT_SINGLETON_PACKAGES.some(packageName =>
+    isPackageSpecifier(packageName)(specifier),
   )
 
-const isMarkdownPackageSpecifier = (specifier: string): boolean =>
-  specifier === '@foldkit/markdown' ||
-  specifier.startsWith('@foldkit/markdown/')
+const isMarkdownPackageSpecifier = isPackageSpecifier('@foldkit/markdown')
 
 // A string that only exists inside Foldkit's own source. If the server bundle
 // inlined the framework rather than importing it, this travels with it.
