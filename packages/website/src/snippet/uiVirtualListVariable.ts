@@ -1,7 +1,6 @@
 // Pseudocode walkthrough for variable-height rows. Builds on the basic
-// example: same Model, init, Message, update, subscription wiring. The
-// difference is in the view and in how `scrollToIndexVariable` is folded. Fit the
-// excerpts into your own definitions.
+// example: same Model, init, Message, and update wiring. The difference is in
+// the view. Fit the excerpts into your own definitions.
 import { Option } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
@@ -10,9 +9,8 @@ import { modifyFields } from 'foldkit/struct'
 import { VirtualList } from '@foldkit/ui'
 
 // Model and init are unchanged from the basic example. Pass any
-// `rowHeightPx` to `init`; it remains the uniform default for the
-// `scrollToIndex` initial-apply path on the first measurement, and the
-// fallback for any item the variable callback doesn't cover:
+// `rowHeightPx` to `init`; fixed and known-variable views still use their
+// respective exact heights:
 const init = () => ({
   model: {
     activityList: VirtualList.init({
@@ -78,23 +76,10 @@ const view = (h: HtmlBuilder<Message>) =>
     toParentMessage: message => GotActivityListMessage({ message }),
   })
 
-// Programmatic scrolling for variable-height lists uses
-// `scrollToIndexVariable`, which walks the heights to compute the target
-// `scrollTop`. Pass the same `items` and `itemToRowHeightPx` you pass to
-// `view` so the math agrees:
-const itemToRowHeightPx = (activity, index) => (activity.hasSummary ? 104 : 56)
-
-const foldActivityListScrollToIndexVariable = Update.foldChild({
-  update: (
-    activityList: VirtualList.Model,
-    input: Readonly<{ activities: ReadonlyArray<Activity>; index: number }>,
-  ) =>
-    VirtualList.scrollToIndexVariable(
-      activityList,
-      input.activities,
-      itemToRowHeightPx,
-      input.index,
-    ),
+// Programmatic scrolling is sizing-mode independent. The next view resolves
+// the logical index and the Command aligns the live rendered row:
+const foldActivityListScrollToIndex = Update.foldChild({
+  update: VirtualList.scrollToIndex,
   read: (model: Model) => Option.some(model.activityList),
   write: (model, nextActivityList) =>
     modifyFields(model, { activityList: () => nextActivityList }),
@@ -103,11 +88,4 @@ const foldActivityListScrollToIndexVariable = Update.foldChild({
 
 // In the corresponding Message.match handler:
 ClickedScrollActivityListToMiddle: () =>
-  foldActivityListScrollToIndexVariable(model, {
-    activities: model.activities,
-    index: 500,
-  })
-
-// `scrollToIndex` (uniform) and `scrollToIndexVariable` (variable) are
-// independent: pick the one that matches how `view` is rendering. Mixing
-// them produces inconsistent scroll targets.
+  foldActivityListScrollToIndex(model, 500)

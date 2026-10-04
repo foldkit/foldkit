@@ -1,4 +1,4 @@
-import { Option } from 'effect'
+import { Array, Option } from 'effect'
 import { Calendar, type Update } from 'foldkit'
 
 import {
@@ -22,9 +22,26 @@ import {
 
 import { Toast } from './demo/toastModule'
 import type { Message } from './message'
-import type { Model } from './model'
+import type { Model, VirtualListChatMessage } from './model'
 
 export type InitReturn = Update.Return<Model, Message>
+
+const chatBodies = [
+  'Can you review the latest build?',
+  'Yep — the navigation fix looks good.',
+  'I also checked the keyboard flow and the focus order is stable.',
+  'Perfect. I’ll queue the release once CI finishes.',
+]
+
+const initialVirtualListChatMessages: ReadonlyArray<VirtualListChatMessage> =
+  Array.makeBy(24, index => ({
+    id: index,
+    body: Option.getOrElse(
+      Array.get(chatBodies, index % chatBodies.length),
+      () => 'Message',
+    ),
+    isExpanded: index % 7 === 0,
+  }))
 
 export const init = (today: Calendar.CalendarDate): InitReturn => ({
   model: {
@@ -166,6 +183,14 @@ export const init = (today: Calendar.CalendarDate): InitReturn => ({
       id: 'virtual-list-variable-demo',
       rowHeightPx: 56,
     }),
+    virtualListChatDemo: VirtualList.init({
+      id: 'virtual-list-chat-demo',
+      rowHeightPx: 64,
+      initialScroll: { target: VirtualList.ScrollTarget.End() },
+      followEnd: { thresholdPx: 8 },
+    }),
+    virtualListChatMessages: initialVirtualListChatMessages,
+    virtualListChatNextId: initialVirtualListChatMessages.length,
     dragAndDropDemoColumns: [
       {
         id: 'backlog',

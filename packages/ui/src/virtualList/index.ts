@@ -1,10 +1,12 @@
 import {
   Array,
   Effect,
+  HashSet,
   Match,
   Number,
   Option,
   Queue,
+  Record,
   Schema,
   Stream,
   pipe,
@@ -18,6 +20,8 @@ import {
   childAttributes,
 } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import * as Mount from 'foldkit/mount'
+import * as Render from 'foldkit/render'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
@@ -34,15 +38,10 @@ import * as Subscription from 'foldkit/subscription'
  */
 const Measurement = defineTaggedUnion({
   Unmeasured: {},
-  Measured: { containerHeight: Schema.Number },
-})
-
-/** State of a programmatic scroll initiated by a scrolling helper. */
-const PendingScroll = defineTaggedUnion({
-  Idle: {},
-  ScrollingToIndex: { index: Schema.Number, version: Schema.Number },
-  ScrollingToKey: { key: Schema.String, version: Schema.Number },
-  ScrollingToOffset: { offset: Schema.Number, version: Schema.Number },
+  Measured: {
+    containerWidth: Schema.Number,
+    containerHeight: Schema.Number,
+  },
 })
 
 /** Alignment of a row within the viewport after a programmatic scroll. */
@@ -55,13 +54,56 @@ export const ScrollAlignment = Schema.Literals([
 
 export type ScrollAlignment = typeof ScrollAlignment.Type
 
-const ScrollDestination = defineTaggedUnion({
+/** Logical destination for initial and programmatic scrolling. */
+export const ScrollTarget = defineTaggedUnion({
+  Index: { index: Schema.Number },
+  Key: { key: Schema.String },
   Offset: { offset: Schema.Number },
+  End: {},
+})
+
+export type ScrollTarget = typeof ScrollTarget.Type
+
+const ViewportAnchor = defineTaggedUnion({
+  Offset: { scrollTop: Schema.Number },
   Row: {
-    startOffset: Schema.Number,
-    endOffset: Schema.Number,
+    key: Schema.String,
+    index: Schema.Number,
+    viewportOffset: Schema.Number,
+  },
+  End: {},
+})
+
+const ObservedAnchor = defineTaggedUnion({
+  None: {},
+  Row: {
+    key: Schema.String,
+    index: Schema.Number,
+    viewportOffset: Schema.Number,
+  },
+})
+
+const ScrollRequest = defineTaggedUnion({
+  Target: {
+    target: ScrollTarget,
     alignment: ScrollAlignment,
   },
+  Anchor: { anchor: ViewportAnchor },
+})
+
+const PendingScroll = defineTaggedUnion({
+  Idle: {},
+  Pending: { request: ScrollRequest, version: Schema.Number },
+})
+
+const InitialScroll = defineTaggedUnion({
+  Applied: {},
+  Pending: { target: ScrollTarget, alignment: ScrollAlignment },
+})
+
+const EndBehavior = defineTaggedUnion({
+  PreserveAnchor: {},
+  Follow: { thresholdPx: Schema.Number },
 })
 
 /** Schema for the virtual list's state. Tracks scroll position, container
@@ -71,6 +113,11 @@ export const Model = Schema.Struct({
   rowHeightPx: Schema.Number,
   scrollTop: Schema.Number,
   measurement: Measurement,
+  viewportAnchor: ViewportAnchor,
+  measuredRowHeights: Schema.Record(Schema.String, Schema.Number),
+  layoutVersion: Schema.Number,
+  initialScroll: InitialScroll,
+  endBehavior: EndBehavior,
   pendingScroll: PendingScroll,
   pendingScrollVersion: Schema.Number,
 })
@@ -83,7 +130,33 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({
   ScrolledContainer: { scrollTop: Schema.Number },
   MeasuredContainer: { containerHeight: Schema.Number },
-  CompletedApplyScroll: { version: Schema.Number },
+  ObservedContainerScroll: {
+    scrollTop: Schema.Number,
+    scrollHeight: Schema.Number,
+    containerHeight: Schema.Number,
+    anchor: ObservedAnchor,
+  },
+  ResizedContainer: {
+    containerWidth: Schema.Number,
+    containerHeight: Schema.Number,
+  },
+  MeasuredRows: {
+    measurements: Schema.Array(
+      Schema.Struct({
+        key: Schema.String,
+        height: Schema.Number,
+        layoutVersion: Schema.Number,
+      }),
+    ),
+  },
+  CompletedApplyScroll: {
+    version: Schema.Number,
+    scrollTop: Schema.Number,
+    scrollHeight: Schema.Number,
+    containerHeight: Schema.Number,
+    anchor: ObservedAnchor,
+  },
+  SkippedApplyScroll: { version: Schema.Number },
 })
 
 export type ScrolledContainer = typeof Message.ScrolledContainer.Type
@@ -98,19 +171,56 @@ export type InitConfig = Readonly<{
   id: string
   rowHeightPx: number
   initialScrollTop?: number
+  initialScroll?: Readonly<{
+    target: ScrollTarget
+    alignment?: ScrollAlignment
+  }>
+  followEnd?: Readonly<{
+    thresholdPx?: number
+  }>
 }>
 
 /** Creates an initial virtual list model from a config. The container starts
  *  in `Unmeasured` state. The first `ResizeObserver` entry transitions it to
  *  `Measured`. */
-export const init = (config: InitConfig): Model => ({
-  id: config.id,
-  rowHeightPx: config.rowHeightPx,
-  scrollTop: config.initialScrollTop ?? 0,
-  measurement: Measurement.Unmeasured(),
-  pendingScroll: PendingScroll.Idle(),
-  pendingScrollVersion: 0,
-})
+export const init = (config: InitConfig): Model => {
+  const initialScroll = (() => {
+    if (config.initialScroll !== undefined) {
+      return InitialScroll.Pending({
+        target: config.initialScroll.target,
+        alignment: config.initialScroll.alignment ?? 'Start',
+      })
+    }
+    if (config.initialScrollTop !== undefined) {
+      return InitialScroll.Pending({
+        target: ScrollTarget.Offset({ offset: config.initialScrollTop }),
+        alignment: 'Start',
+      })
+    }
+    return InitialScroll.Applied()
+  })()
+
+  return {
+    id: config.id,
+    rowHeightPx: config.rowHeightPx,
+    scrollTop: config.initialScrollTop ?? 0,
+    measurement: Measurement.Unmeasured(),
+    viewportAnchor: ViewportAnchor.Offset({
+      scrollTop: config.initialScrollTop ?? 0,
+    }),
+    measuredRowHeights: Record.empty(),
+    layoutVersion: 0,
+    initialScroll,
+    endBehavior:
+      config.followEnd === undefined
+        ? EndBehavior.PreserveAnchor()
+        : EndBehavior.Follow({
+            thresholdPx: config.followEnd.thresholdPx ?? 1,
+          }),
+    pendingScroll: PendingScroll.Idle(),
+    pendingScrollVersion: 0,
+  }
+}
 
 // UPDATE
 
@@ -168,280 +278,550 @@ const scrollTopForRow = (
   return Math.max(0, targetScrollTop)
 }
 
+const renderedRows = (element: HTMLElement): ReadonlyArray<HTMLElement> =>
+  pipe(
+    element.querySelectorAll('[data-virtual-list-item-key]'),
+    Array.fromIterable,
+    Array.filter((row): row is HTMLElement => row instanceof HTMLElement),
+  )
+
+const rowIndex = (element: HTMLElement): Option.Option<number> =>
+  pipe(
+    element.getAttribute('data-virtual-list-item-index'),
+    Option.fromNullishOr,
+    Option.flatMap(Number.parse),
+  )
+
+const observedAnchor = (element: HTMLElement): typeof ObservedAnchor.Type => {
+  const containerRect = element.getBoundingClientRect()
+  const maybeRow = pipe(
+    renderedRows(element),
+    Array.findFirst(
+      row => row.getBoundingClientRect().bottom > containerRect.top,
+    ),
+  )
+
+  if (Option.isNone(maybeRow)) {
+    return ObservedAnchor.None()
+  }
+
+  const key = maybeRow.value.getAttribute('data-virtual-list-item-key')
+  const maybeIndex = rowIndex(maybeRow.value)
+  if (key === null || Option.isNone(maybeIndex)) {
+    return ObservedAnchor.None()
+  }
+
+  return ObservedAnchor.Row({
+    key,
+    index: maybeIndex.value,
+    viewportOffset:
+      maybeRow.value.getBoundingClientRect().top - containerRect.top,
+  })
+}
+
+const maxScrollTop = (element: HTMLElement): number =>
+  Math.max(0, element.scrollHeight - element.clientHeight)
+
+const clampScrollTop = (element: HTMLElement, scrollTop: number): number =>
+  Math.max(0, Math.min(scrollTop, maxScrollTop(element)))
+
+const rowForIndex = (
+  element: HTMLElement,
+  index: number,
+): Option.Option<HTMLElement> => {
+  const rows = renderedRows(element)
+  const maybeExact = pipe(
+    rows,
+    Array.findFirst(row =>
+      pipe(
+        rowIndex(row),
+        Option.exists(rowIndex => rowIndex === index),
+      ),
+    ),
+  )
+
+  if (Option.isSome(maybeExact)) {
+    return maybeExact
+  }
+
+  const maybeFirst = Array.head(rows)
+  const maybeLast = Array.last(rows)
+  if (Option.isSome(maybeFirst)) {
+    const maybeFirstIndex = rowIndex(maybeFirst.value)
+    if (Option.isSome(maybeFirstIndex) && index < maybeFirstIndex.value) {
+      return maybeFirst
+    }
+  }
+  if (Option.isSome(maybeLast)) {
+    const maybeLastIndex = rowIndex(maybeLast.value)
+    if (Option.isSome(maybeLastIndex) && index > maybeLastIndex.value) {
+      return maybeLast
+    }
+  }
+
+  return Option.none()
+}
+
+const rowForKey = (
+  element: HTMLElement,
+  key: string,
+): Option.Option<HTMLElement> =>
+  pipe(
+    renderedRows(element),
+    Array.findFirst(
+      row => row.getAttribute('data-virtual-list-item-key') === key,
+    ),
+  )
+
+const rowOffsets = (container: HTMLElement, row: HTMLElement): RowOffsets => {
+  const containerRect = container.getBoundingClientRect()
+  const rowRect = row.getBoundingClientRect()
+  const startOffset = container.scrollTop + rowRect.top - containerRect.top
+  return { startOffset, endOffset: startOffset + rowRect.height }
+}
+
+const rowForTarget = (
+  element: HTMLElement,
+  target: typeof ScrollTarget.Index.Type | typeof ScrollTarget.Key.Type,
+): Option.Option<HTMLElement> =>
+  ScrollTarget.matchOrElse(
+    target,
+    {
+      Index: ({ index }) => rowForIndex(element, index),
+      Key: ({ key }) => rowForKey(element, key),
+    },
+    () => Option.none(),
+  )
+
+const scrollTopForTarget = (
+  element: HTMLElement,
+  target: ScrollTarget,
+  alignment: ScrollAlignment,
+): Option.Option<number> =>
+  ScrollTarget.match<Option.Option<number>>(target, {
+    Index: indexTarget =>
+      pipe(
+        rowForTarget(element, indexTarget),
+        Option.map(row => {
+          const offsets = rowOffsets(element, row)
+          return scrollTopForRow(
+            element.scrollTop,
+            element.clientHeight,
+            offsets.startOffset,
+            offsets.endOffset,
+            alignment,
+          )
+        }),
+      ),
+    Key: keyTarget =>
+      pipe(
+        rowForTarget(element, keyTarget),
+        Option.map(row => {
+          const offsets = rowOffsets(element, row)
+          return scrollTopForRow(
+            element.scrollTop,
+            element.clientHeight,
+            offsets.startOffset,
+            offsets.endOffset,
+            alignment,
+          )
+        }),
+      ),
+    Offset: ({ offset }) => Option.some(offset),
+    End: () => Option.some(maxScrollTop(element)),
+  })
+
+const rowForAnchor = (
+  element: HTMLElement,
+  anchor: typeof ViewportAnchor.Row.Type,
+): Option.Option<HTMLElement> =>
+  pipe(
+    rowForKey(element, anchor.key),
+    Option.orElse(() => rowForIndex(element, anchor.index)),
+  )
+
+const scrollTopForAnchor = (
+  element: HTMLElement,
+  anchor: typeof ViewportAnchor.Type,
+): Option.Option<number> =>
+  ViewportAnchor.match<Option.Option<number>>(anchor, {
+    Offset: ({ scrollTop }) => Option.some(scrollTop),
+    Row: rowAnchor =>
+      pipe(
+        rowForAnchor(element, rowAnchor),
+        Option.map(row =>
+          Math.max(
+            0,
+            rowOffsets(element, row).startOffset - rowAnchor.viewportOffset,
+          ),
+        ),
+      ),
+    End: () => Option.some(maxScrollTop(element)),
+  })
+
+const scrollTopForRequest = (
+  element: HTMLElement,
+  request: typeof ScrollRequest.Type,
+): Option.Option<number> =>
+  ScrollRequest.match<Option.Option<number>>(request, {
+    Target: ({ target, alignment }) =>
+      scrollTopForTarget(element, target, alignment),
+    Anchor: ({ anchor }) => scrollTopForAnchor(element, anchor),
+  })
+
 export const ApplyScroll = Command.define('ApplyScroll', {
   args: {
     id: Schema.String,
-    destination: ScrollDestination,
+    request: ScrollRequest,
     version: Schema.Number,
   },
-  messages: [Message.CompletedApplyScroll],
-  execute: ({ id, destination, version }) =>
-    Effect.sync(() => {
+  messages: [Message.CompletedApplyScroll, Message.SkippedApplyScroll],
+  execute: ({ id, request, version }) =>
+    Effect.gen(function* () {
+      yield* Render.afterCommit
+
       const element = document.getElementById(id)
-      if (element !== null) {
-        element.scrollTop = ScrollDestination.match<number>(destination, {
-          Offset: ({ offset }) => Math.max(0, offset),
-          Row: ({ startOffset, endOffset, alignment }) =>
-            scrollTopForRow(
-              element.scrollTop,
-              element.clientHeight,
-              startOffset,
-              endOffset,
-              alignment,
-            ),
-        })
+      if (!(element instanceof HTMLElement)) {
+        return Message.SkippedApplyScroll({ version })
       }
-      return Message.CompletedApplyScroll({ version })
+
+      const maybeActiveVersion = pipe(
+        element.getAttribute('data-virtual-list-scroll-version'),
+        Option.fromNullishOr,
+        Option.flatMap(Number.parse),
+      )
+      if (
+        Option.isNone(maybeActiveVersion) ||
+        maybeActiveVersion.value !== version
+      ) {
+        return Message.SkippedApplyScroll({ version })
+      }
+
+      const maybeScrollTop = scrollTopForRequest(element, request)
+      if (Option.isNone(maybeScrollTop)) {
+        return Message.SkippedApplyScroll({ version })
+      }
+
+      element.scrollTop = clampScrollTop(element, maybeScrollTop.value)
+      return Message.CompletedApplyScroll({
+        version,
+        scrollTop: element.scrollTop,
+        scrollHeight: element.scrollHeight,
+        containerHeight: element.clientHeight,
+        anchor: observedAnchor(element),
+      })
     }),
 })
 
-/** Processes a VirtualList Message and returns the next Model and optional Commands. */
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
-    ScrolledContainer: ({ scrollTop }) => ({
-      model: modifyFields(model, { scrollTop: () => scrollTop }),
-    }),
-
-    MeasuredContainer: ({ containerHeight }) => {
-      const wasUnmeasured = model.measurement._tag === 'Unmeasured'
-      const needsInitialApply = wasUnmeasured && model.scrollTop !== 0
-
-      if (needsInitialApply) {
-        const nextVersion = Number.increment(model.pendingScrollVersion)
-        return {
-          model: modifyFields(model, {
-            measurement: () => Measurement.Measured({ containerHeight }),
-            pendingScrollVersion: () => nextVersion,
-            pendingScroll: () =>
-              PendingScroll.ScrollingToIndex({
-                index: Math.floor(model.scrollTop / model.rowHeightPx),
-                version: nextVersion,
-              }),
-          }),
-          commands: [
-            ApplyScroll({
-              id: model.id,
-              destination: ScrollDestination.Offset({
-                offset: model.scrollTop,
-              }),
-              version: nextVersion,
-            }),
-          ],
-        }
-      } else {
-        return {
-          model: modifyFields(model, {
-            measurement: () => Measurement.Measured({ containerHeight }),
-          }),
-        }
-      }
-    },
-
-    CompletedApplyScroll: ({ version }) => {
-      if (version !== model.pendingScrollVersion) {
-        return { model }
-      } else {
-        return {
-          model: modifyFields(model, {
-            pendingScroll: () => PendingScroll.Idle(),
-          }),
-        }
-      }
-    },
-  })
-
 type ScrollReturn = Update.Return<Model, Message>
-
-type ActivePendingScroll =
-  | typeof PendingScroll.ScrollingToIndex.Type
-  | typeof PendingScroll.ScrollingToKey.Type
-  | typeof PendingScroll.ScrollingToOffset.Type
 
 /** Options shared by row-targeted programmatic scrolling helpers. */
 export type ScrollToOptions = Readonly<{
   alignment?: ScrollAlignment
 }>
 
-const buildScroll = (
+const buildScrollRequest = (
   model: Model,
-  destination: typeof ScrollDestination.Type,
-  toPendingScroll: (version: number) => ActivePendingScroll,
+  request: typeof ScrollRequest.Type,
 ): ScrollReturn => {
   const nextVersion = Number.increment(model.pendingScrollVersion)
   return {
     model: modifyFields(model, {
       pendingScrollVersion: () => nextVersion,
-      pendingScroll: () => toPendingScroll(nextVersion),
+      pendingScroll: () =>
+        PendingScroll.Pending({ request, version: nextVersion }),
     }),
     commands: [
       ApplyScroll({
         id: model.id,
-        destination,
+        request,
         version: nextVersion,
       }),
     ],
   }
 }
 
+const currentScrollRequest = (model: Model): typeof ScrollRequest.Type =>
+  PendingScroll.match<typeof ScrollRequest.Type>(model.pendingScroll, {
+    Idle: () => ScrollRequest.Anchor({ anchor: model.viewportAnchor }),
+    Pending: ({ request }) => request,
+  })
+
+const reconcileLayout = (model: Model): ScrollReturn =>
+  buildScrollRequest(model, currentScrollRequest(model))
+
+const anchorFromSnapshot = (
+  model: Model,
+  scrollTop: number,
+  scrollHeight: number,
+  containerHeight: number,
+  anchor: typeof ObservedAnchor.Type,
+): typeof ViewportAnchor.Type => {
+  const distanceFromEnd = Math.max(
+    0,
+    scrollHeight - containerHeight - scrollTop,
+  )
+  const isFollowingEnd = EndBehavior.match<boolean>(model.endBehavior, {
+    PreserveAnchor: () => false,
+    Follow: ({ thresholdPx }) => distanceFromEnd <= thresholdPx,
+  })
+
+  if (isFollowingEnd) {
+    return ViewportAnchor.End()
+  }
+
+  return ObservedAnchor.match<typeof ViewportAnchor.Type>(anchor, {
+    None: () => ViewportAnchor.Offset({ scrollTop }),
+    Row: ({ key, index, viewportOffset }) =>
+      ViewportAnchor.Row({ key, index, viewportOffset }),
+  })
+}
+
+const applyScrollSnapshot = (
+  model: Model,
+  snapshot: Readonly<{
+    scrollTop: number
+    scrollHeight: number
+    containerHeight: number
+    anchor: typeof ObservedAnchor.Type
+  }>,
+): Model =>
+  modifyFields(model, {
+    scrollTop: () => snapshot.scrollTop,
+    viewportAnchor: () =>
+      anchorFromSnapshot(
+        model,
+        snapshot.scrollTop,
+        snapshot.scrollHeight,
+        snapshot.containerHeight,
+        snapshot.anchor,
+      ),
+  })
+
+const measureContainer = (
+  model: Model,
+  containerWidth: number,
+  containerHeight: number,
+): ScrollReturn => {
+  const wasUnmeasured = model.measurement._tag === 'Unmeasured'
+  const didWidthChange = Measurement.match<boolean>(model.measurement, {
+    Unmeasured: () => false,
+    Measured: measurement => measurement.containerWidth !== containerWidth,
+  })
+  const measuredModel = modifyFields(model, {
+    measurement: () =>
+      Measurement.Measured({ containerWidth, containerHeight }),
+    measuredRowHeights: measuredRowHeights =>
+      didWidthChange ? Record.empty() : measuredRowHeights,
+    layoutVersion: layoutVersion =>
+      didWidthChange ? Number.increment(layoutVersion) : layoutVersion,
+  })
+
+  if (wasUnmeasured && model.initialScroll._tag === 'Pending') {
+    const initialModel = modifyFields(measuredModel, {
+      initialScroll: () => InitialScroll.Applied(),
+    })
+    return buildScrollRequest(
+      initialModel,
+      ScrollRequest.Target({
+        target: model.initialScroll.target,
+        alignment: model.initialScroll.alignment,
+      }),
+    )
+  }
+
+  if (wasUnmeasured) {
+    return { model: measuredModel }
+  }
+
+  return reconcileLayout(measuredModel)
+}
+
+const hasChangedMeasurement = (
+  model: Model,
+  measurement: Readonly<{
+    key: string
+    height: number
+    layoutVersion: number
+  }>,
+): boolean => {
+  if (measurement.layoutVersion !== model.layoutVersion) {
+    return false
+  }
+
+  return pipe(
+    model.measuredRowHeights,
+    Record.get(measurement.key),
+    Option.match({
+      onNone: () => true,
+      onSome: height => height !== measurement.height,
+    }),
+  )
+}
+
+const applyRowMeasurements = (
+  model: Model,
+  measurements: ReadonlyArray<{
+    key: string
+    height: number
+    layoutVersion: number
+  }>,
+): ScrollReturn => {
+  const changedMeasurements = pipe(
+    measurements,
+    Array.filter(measurement => hasChangedMeasurement(model, measurement)),
+  )
+  if (Array.isArrayEmpty(changedMeasurements)) {
+    return { model }
+  }
+
+  const measuredRowHeights = pipe(
+    changedMeasurements,
+    Array.reduce(model.measuredRowHeights, (heights, measurement) =>
+      Record.set(heights, measurement.key, measurement.height),
+    ),
+  )
+  return reconcileLayout(
+    modifyFields(model, {
+      measuredRowHeights: () => measuredRowHeights,
+    }),
+  )
+}
+
+/** Processes a VirtualList Message and returns the next Model and optional Commands. */
+export const update = (model: Model, message: Message) =>
+  Message.match<Update.Return<Model, Message>>(message, {
+    ScrolledContainer: ({ scrollTop }) => ({
+      model: modifyFields(model, {
+        scrollTop: () => scrollTop,
+        viewportAnchor: () => ViewportAnchor.Offset({ scrollTop }),
+      }),
+    }),
+
+    MeasuredContainer: ({ containerHeight }) => {
+      const containerWidth = Measurement.match<number>(model.measurement, {
+        Unmeasured: () => 0,
+        Measured: ({ containerWidth }) => containerWidth,
+      })
+      return measureContainer(model, containerWidth, containerHeight)
+    },
+
+    ObservedContainerScroll: snapshot => {
+      const nextVersion = PendingScroll.match<number>(model.pendingScroll, {
+        Idle: () => model.pendingScrollVersion,
+        Pending: () => Number.increment(model.pendingScrollVersion),
+      })
+      return {
+        model: modifyFields(applyScrollSnapshot(model, snapshot), {
+          pendingScroll: () => PendingScroll.Idle(),
+          pendingScrollVersion: () => nextVersion,
+        }),
+      }
+    },
+
+    ResizedContainer: ({ containerWidth, containerHeight }) =>
+      measureContainer(model, containerWidth, containerHeight),
+
+    MeasuredRows: ({ measurements }) =>
+      applyRowMeasurements(model, measurements),
+
+    CompletedApplyScroll: ({ version, ...snapshot }) => {
+      if (version !== model.pendingScrollVersion) {
+        return { model }
+      }
+
+      const scrolledModel = applyScrollSnapshot(model, snapshot)
+      return {
+        model: modifyFields(scrolledModel, {
+          pendingScroll: () => PendingScroll.Idle(),
+        }),
+      }
+    },
+
+    SkippedApplyScroll: ({ version }) => {
+      if (version !== model.pendingScrollVersion) {
+        return { model }
+      }
+
+      return {
+        model: modifyFields(model, {
+          pendingScroll: () => PendingScroll.Idle(),
+        }),
+      }
+    },
+  })
+
 type RowOffsets = Readonly<{
   startOffset: number
   endOffset: number
 }>
 
-const uniformRowOffsets = (model: Model, index: number): RowOffsets => {
-  const startOffset = Math.max(0, index) * model.rowHeightPx
-  return {
-    startOffset,
-    endOffset: startOffset + model.rowHeightPx,
-  }
-}
-
-const variableRowOffsets = <Item>(
-  items: ReadonlyArray<Item>,
-  itemToRowHeightPx: (item: Item, index: number) => number,
-  index: number,
-): RowOffsets => {
-  const cumulativeOffsets = prefixSum(items, itemToRowHeightPx)
-  const totalHeight = lastOrZero(cumulativeOffsets)
-  const clampedIndex = Math.max(0, index)
-  return {
-    startOffset: pipe(
-      cumulativeOffsets,
-      Array.get(clampedIndex),
-      Option.getOrElse(() => totalHeight),
-    ),
-    endOffset: pipe(
-      cumulativeOffsets,
-      Array.get(clampedIndex + 1),
-      Option.getOrElse(() => totalHeight),
-    ),
-  }
-}
-
-const scrollToRow = (
+/** Programmatically scrolls to a logical target. */
+export const scrollTo = (
   model: Model,
-  rowOffsets: RowOffsets,
-  alignment: ScrollAlignment,
-  toPendingScroll: (version: number) => ActivePendingScroll,
+  target: ScrollTarget,
+  options: ScrollToOptions = {},
 ): ScrollReturn =>
-  buildScroll(
+  buildScrollRequest(
     model,
-    ScrollDestination.Row({ ...rowOffsets, alignment }),
-    toPendingScroll,
+    ScrollRequest.Target({
+      target,
+      alignment: options.alignment ?? 'Start',
+    }),
   )
 
 /** Programmatically scrolls the container so the row at `index` is visible.
- *  Returns the next Model and a Command that mutates `element.scrollTop`. The
- *  natural scroll event then flows back through `ScrolledContainer` and the
- *  component re-renders the new visible slice.
- *
- *  `options.alignment` controls where the row lands in the viewport. `Start`
- *  is the default; `Nearest` leaves a fully visible row in place and otherwise
- *  scrolls the closest edge into view.
- *
- *  Uses version-based cancellation: each call increments
- *  `pendingScrollVersion` so a stale `CompletedApplyScroll` (e.g. from a
- *  previous in-flight scroll) is ignored when its version no longer matches.
- *
- *  Should be called after the container has rendered. If the container is not
- *  yet in the DOM the Command silently no-ops (the Model still transitions
- *  through `ScrollingToIndex` → `Idle` via the version-matched completion).
- *
- *  Assumes uniform row heights. For variable-height rows, use
- *  `scrollToIndexVariable`. */
+ *  The next view resolves the logical index with its current sizing mode, and
+ *  the Command aligns the live rendered row. */
 export const scrollToIndex = (
   model: Model,
   index: number,
   options: ScrollToOptions = {},
-): ScrollReturn =>
-  scrollToRow(
-    model,
-    uniformRowOffsets(model, index),
-    options.alignment ?? 'Start',
-    version => PendingScroll.ScrollingToIndex({ index, version }),
-  )
+): ScrollReturn => scrollTo(model, ScrollTarget.Index({ index }), options)
 
-/** Variable-height counterpart of `scrollToIndex`. Walks the heights of items
- *  before `index` to compute the target `scrollTop`. Use this when rendering
- *  the list with `itemToRowHeightPx`; use `scrollToIndex` for uniform heights.
- *  Accepts the same alignment options as `scrollToIndex`.
- *
- *  Out-of-range indices clamp to the corresponding edge: negative or zero
- *  scrolls to the top, indices past the end scroll past the last row.
- *
- *  Note: when restoring `initialScrollTop` on the first measurement of a
- *  variable-height list, the runtime falls back to uniform-height math (using
- *  `model.rowHeightPx`) because items aren't reachable from the `update`
- *  function. Consumers who need an accurate initial scroll on a
- *  variable-height list should call `scrollToIndexVariable` after the first
- *  `MeasuredContainer` arrives. */
+/** Compatibility alias for `scrollToIndex`. The view now owns all fixed,
+ *  known-variable, and measured-height offset resolution. */
 export const scrollToIndexVariable = <Item>(
   model: Model,
-  items: ReadonlyArray<Item>,
-  itemToRowHeightPx: (item: Item, index: number) => number,
+  _items: ReadonlyArray<Item>,
+  _itemToRowHeightPx: (item: Item, index: number) => number,
   index: number,
   options: ScrollToOptions = {},
-): ScrollReturn =>
-  scrollToRow(
-    model,
-    variableRowOffsets(items, itemToRowHeightPx, index),
-    options.alignment ?? 'Start',
-    version => PendingScroll.ScrollingToIndex({ index, version }),
-  )
-
-/** Configuration for scrolling to the row identified by `key`. */
-export type ScrollToKeyConfig<Item> = Readonly<{
-  items: ReadonlyArray<Item>
-  itemToKey: (item: Item, index: number) => string
-  key: string
-  itemToRowHeightPx?: (item: Item, index: number) => number
-  alignment?: ScrollAlignment
-}>
+): ScrollReturn => scrollToIndex(model, index, options)
 
 /** Programmatically scrolls to the row whose `itemToKey` result matches
- *  `key`. Uses `model.rowHeightPx` unless `itemToRowHeightPx` is provided.
- *  Returns the unchanged Model with no Commands when the key is absent. */
-export const scrollToKey = <Item>(
+ *  `key`. The next view resolves the key against its current items. */
+export const scrollToKey = (
   model: Model,
-  config: ScrollToKeyConfig<Item>,
-): ScrollReturn => {
-  const {
-    items,
-    itemToKey,
-    key,
-    itemToRowHeightPx,
-    alignment = 'Start',
-  } = config
-  const maybeIndex = pipe(
-    items,
-    Array.findFirstIndex((item, index) => itemToKey(item, index) === key),
-  )
-
-  return Option.match(maybeIndex, {
-    onNone: () => ({ model }),
-    onSome: index => {
-      const rowOffsets =
-        itemToRowHeightPx === undefined
-          ? uniformRowOffsets(model, index)
-          : variableRowOffsets(items, itemToRowHeightPx, index)
-
-      return scrollToRow(model, rowOffsets, alignment, version =>
-        PendingScroll.ScrollingToKey({ key, version }),
-      )
-    },
-  })
-}
+  key: string,
+  options: ScrollToOptions = {},
+): ScrollReturn => scrollTo(model, ScrollTarget.Key({ key }), options)
 
 /** Programmatically scrolls to an exact pixel offset from the start of the
  *  list. Negative offsets clamp to zero. */
-export const scrollToOffset = (model: Model, offset: number): ScrollReturn => {
-  const targetOffset = Math.max(0, offset)
-  return buildScroll(
-    model,
-    ScrollDestination.Offset({ offset: targetOffset }),
-    version =>
-      PendingScroll.ScrollingToOffset({ offset: targetOffset, version }),
-  )
+export const scrollToOffset = (model: Model, offset: number): ScrollReturn =>
+  scrollTo(model, ScrollTarget.Offset({ offset }))
+
+/** Programmatically scrolls to the end of the list. */
+export const scrollToEnd = (model: Model): ScrollReturn =>
+  scrollTo(model, ScrollTarget.End())
+
+/** Notifies VirtualList that its parent-owned items changed. The next view
+ *  resolves the stored stable-key anchor against the new items, and the
+ *  Command restores that anchor after the DOM patch. */
+export const informItemsChanged = (
+  model: Model,
+  itemKeys: ReadonlyArray<string>,
+): ScrollReturn => {
+  const currentKeys = HashSet.fromIterable(itemKeys)
+  const nextModel = modifyFields(model, {
+    measuredRowHeights: measuredRowHeights =>
+      Record.filter(measuredRowHeights, (_, key) =>
+        HashSet.has(currentKeys, key),
+      ),
+    layoutVersion: Number.increment,
+  })
+  return reconcileLayout(nextModel)
 }
 
 // HELPERS
@@ -576,139 +956,409 @@ export const visibleWindowVariable = <Item>(
     },
   })
 
-// SUBSCRIPTION
+/** Alignment of content when its total height is shorter than the viewport. */
+export const ContentAlignment = Schema.Literals(['Start', 'End'])
 
-const containerElement = (id: string): Option.Option<HTMLElement> =>
-  Option.fromNullishOr(document.getElementById(id))
+export type ContentAlignment = typeof ContentAlignment.Type
 
-type ContainerObserverState = {
-  scrollListener: (() => void) | null
-  resizeObserver: ResizeObserver | null
-  observedElement: HTMLElement | null
-  pendingFrame: number | null
+/** Configuration for rows whose rendered height must be measured. */
+export type DynamicRowHeights<Item> = Readonly<{
+  itemToEstimatedRowHeightPx?: (item: Item, index: number) => number
+}>
+
+type ListLayout = Readonly<{
+  cumulativeOffsets: ReadonlyArray<number>
+  totalHeight: number
+  leadingInset: number
+  containerHeight: number
+  maxScrollTop: number
+}>
+
+const measuredRowHeight = (model: Model, key: string): Option.Option<number> =>
+  Record.get(model.measuredRowHeights, key)
+
+const listLayout = <Item>(
+  model: Model,
+  items: ReadonlyArray<Item>,
+  itemToKey: (item: Item, index: number) => string,
+  itemToRowHeightPx: ((item: Item, index: number) => number) | undefined,
+  dynamicRowHeights: DynamicRowHeights<Item> | undefined,
+  contentAlignment: ContentAlignment,
+): ListLayout => {
+  const rowHeightFor = (item: Item, index: number): number => {
+    if (dynamicRowHeights !== undefined) {
+      const key = itemToKey(item, index)
+      return pipe(
+        measuredRowHeight(model, key),
+        Option.getOrElse(
+          () =>
+            dynamicRowHeights.itemToEstimatedRowHeightPx?.(item, index) ??
+            model.rowHeightPx,
+        ),
+      )
+    }
+    if (itemToRowHeightPx !== undefined) {
+      return itemToRowHeightPx(item, index)
+    }
+    return model.rowHeightPx
+  }
+
+  const cumulativeOffsets = prefixSum(items, rowHeightFor)
+  const totalHeight = lastOrZero(cumulativeOffsets)
+  const containerHeight = Measurement.match<number>(model.measurement, {
+    Unmeasured: () => 0,
+    Measured: ({ containerHeight }) => containerHeight,
+  })
+  const leadingInset =
+    contentAlignment === 'End' ? Math.max(0, containerHeight - totalHeight) : 0
+  return {
+    cumulativeOffsets,
+    totalHeight,
+    leadingInset,
+    containerHeight,
+    maxScrollTop: Math.max(0, leadingInset + totalHeight - containerHeight),
+  }
 }
 
-/** Subscriptions that track the container's scroll position and size.
- *
- *  - **scroll**: listens for `scroll` events on the container element and
- *    emits `ScrolledContainer` with the new `scrollTop`.
- *  - **resize**: observes the container with `ResizeObserver` and emits
- *    `MeasuredContainer` with the new height.
- *
- *  A `MutationObserver` watches the document for the container element
- *  appearing and disappearing, so the listeners attach the moment the
- *  element is inserted into the DOM and clean up when it is removed. This
- *  makes the subscription robust across SPA route changes: navigating to a
- *  page that mounts the list, away, and back all reattach correctly without
- *  the consumer having to teach the framework about navigation. */
+const offsetAt = (layout: ListLayout, index: number): number =>
+  pipe(
+    layout.cumulativeOffsets,
+    Array.get(index),
+    Option.getOrElse(() => layout.totalHeight),
+  )
+
+const rowOffsetsForIndex = (
+  layout: ListLayout,
+  itemCount: number,
+  index: number,
+): Option.Option<RowOffsets> => {
+  if (itemCount === 0) {
+    return Option.none()
+  }
+
+  const clampedIndex = Math.max(0, Math.min(index, itemCount - 1))
+  return Option.some({
+    startOffset: layout.leadingInset + offsetAt(layout, clampedIndex),
+    endOffset: layout.leadingInset + offsetAt(layout, clampedIndex + 1),
+  })
+}
+
+const indexForKey = <Item>(
+  items: ReadonlyArray<Item>,
+  itemToKey: (item: Item, index: number) => string,
+  key: string,
+): Option.Option<number> =>
+  pipe(
+    items,
+    Array.findFirstIndex((item, index) => itemToKey(item, index) === key),
+  )
+
+const clampLayoutScrollTop = (layout: ListLayout, scrollTop: number): number =>
+  Math.max(0, Math.min(scrollTop, layout.maxScrollTop))
+
+const alignedLayoutScrollTop = (
+  model: Model,
+  layout: ListLayout,
+  offsets: RowOffsets,
+  alignment: ScrollAlignment,
+): number =>
+  clampLayoutScrollTop(
+    layout,
+    scrollTopForRow(
+      model.scrollTop,
+      layout.containerHeight,
+      offsets.startOffset,
+      offsets.endOffset,
+      alignment,
+    ),
+  )
+
+const scrollTopForLayoutTarget = <Item>(
+  model: Model,
+  layout: ListLayout,
+  items: ReadonlyArray<Item>,
+  itemToKey: (item: Item, index: number) => string,
+  target: ScrollTarget,
+  alignment: ScrollAlignment,
+): Option.Option<number> =>
+  ScrollTarget.match<Option.Option<number>>(target, {
+    Index: ({ index }) =>
+      pipe(
+        rowOffsetsForIndex(layout, items.length, index),
+        Option.map(offsets =>
+          alignedLayoutScrollTop(model, layout, offsets, alignment),
+        ),
+      ),
+    Key: ({ key }) =>
+      pipe(
+        indexForKey(items, itemToKey, key),
+        Option.flatMap(index =>
+          rowOffsetsForIndex(layout, items.length, index),
+        ),
+        Option.map(offsets =>
+          alignedLayoutScrollTop(model, layout, offsets, alignment),
+        ),
+      ),
+    Offset: ({ offset }) => Option.some(clampLayoutScrollTop(layout, offset)),
+    End: () => Option.some(layout.maxScrollTop),
+  })
+
+const scrollTopForLayoutAnchor = <Item>(
+  layout: ListLayout,
+  items: ReadonlyArray<Item>,
+  itemToKey: (item: Item, index: number) => string,
+  anchor: typeof ViewportAnchor.Type,
+): number =>
+  ViewportAnchor.match<number>(anchor, {
+    Offset: ({ scrollTop }) => clampLayoutScrollTop(layout, scrollTop),
+    Row: ({ key, index, viewportOffset }) => {
+      const anchorIndex = pipe(
+        indexForKey(items, itemToKey, key),
+        Option.getOrElse(() => index),
+      )
+      const maybeOffsets = rowOffsetsForIndex(layout, items.length, anchorIndex)
+      return pipe(
+        maybeOffsets,
+        Option.match({
+          onNone: () => 0,
+          onSome: offsets =>
+            clampLayoutScrollTop(layout, offsets.startOffset - viewportOffset),
+        }),
+      )
+    },
+    End: () => layout.maxScrollTop,
+  })
+
+const scrollTopForView = <Item>(
+  model: Model,
+  layout: ListLayout,
+  items: ReadonlyArray<Item>,
+  itemToKey: (item: Item, index: number) => string,
+): number =>
+  PendingScroll.match<number>(model.pendingScroll, {
+    Idle: () => clampLayoutScrollTop(layout, model.scrollTop),
+    Pending: ({ request }) =>
+      ScrollRequest.match<number>(request, {
+        Target: ({ target, alignment }) =>
+          pipe(
+            scrollTopForLayoutTarget(
+              model,
+              layout,
+              items,
+              itemToKey,
+              target,
+              alignment,
+            ),
+            Option.getOrElse(() =>
+              clampLayoutScrollTop(layout, model.scrollTop),
+            ),
+          ),
+        Anchor: ({ anchor }) =>
+          scrollTopForLayoutAnchor(layout, items, itemToKey, anchor),
+      }),
+  })
+
+const visibleWindowForLayout = (
+  layout: ListLayout,
+  scrollTop: number,
+  itemCount: number,
+  overscan: number,
+): VisibleWindow => {
+  const contentScrollTop = Math.max(0, scrollTop - layout.leadingInset)
+  const contentViewportEnd = Math.max(
+    0,
+    scrollTop + layout.containerHeight - layout.leadingInset,
+  )
+  const firstVisibleIndex = pipe(
+    layout.cumulativeOffsets,
+    Array.findFirstIndex(Number.isGreaterThan(contentScrollTop)),
+    Option.match({
+      onNone: () => itemCount,
+      onSome: index => Math.max(0, index - 1),
+    }),
+  )
+  const lastVisibleIndex = pipe(
+    layout.cumulativeOffsets,
+    Array.findFirstIndex(Number.isGreaterThanOrEqualTo(contentViewportEnd)),
+    Option.getOrElse(() => itemCount),
+  )
+  const startIndex = clampIndex(firstVisibleIndex - overscan, itemCount)
+  const endIndex = clampIndex(lastVisibleIndex + overscan, itemCount)
+  return {
+    startIndex,
+    endIndex,
+    topSpacerHeight: layout.leadingInset + offsetAt(layout, startIndex),
+    bottomSpacerHeight: layout.totalHeight - offsetAt(layout, endIndex),
+  }
+}
+
+// ELEMENT LIFECYCLE
+
+const rowMeasurement = (
+  entry: ResizeObserverEntry,
+): Option.Option<{
+  key: string
+  height: number
+  layoutVersion: number
+}> => {
+  if (!(entry.target instanceof HTMLElement)) {
+    return Option.none()
+  }
+
+  const key = entry.target.getAttribute('data-virtual-list-item-key')
+  const layoutVersion = pipe(
+    entry.target.getAttribute('data-virtual-list-layout-version'),
+    Option.fromNullishOr,
+    Option.flatMap(Number.parse),
+  )
+  if (key === null || Option.isNone(layoutVersion)) {
+    return Option.none()
+  }
+
+  return Option.some({
+    key,
+    height: entry.target.getBoundingClientRect().height,
+    layoutVersion: layoutVersion.value,
+  })
+}
+
+type ObserveVirtualListMessage =
+  | typeof Message.ObservedContainerScroll.Type
+  | typeof Message.ResizedContainer.Type
+  | typeof Message.MeasuredRows.Type
+
+/** Container-owned Mount that tracks scrolling, container resizing, and
+ *  rendered row measurements for dynamic-height lists. */
+export const ObserveVirtualList = Mount.defineStream('ObserveVirtualList', {
+  messages: [
+    Message.ObservedContainerScroll,
+    Message.ResizedContainer,
+    Message.MeasuredRows,
+  ],
+  execute: ({ element }) =>
+    Stream.callback<ObserveVirtualListMessage>(queue =>
+      Effect.acquireRelease(
+        Effect.sync(() => {
+          if (!(element instanceof HTMLElement)) {
+            return () => undefined
+          }
+
+          const emitContainerMeasurement = () =>
+            Queue.offerUnsafe(
+              queue,
+              Message.ResizedContainer({
+                containerWidth: element.clientWidth,
+                containerHeight: element.clientHeight,
+              }),
+            )
+
+          emitContainerMeasurement()
+
+          const scrollListener = () =>
+            Queue.offerUnsafe(
+              queue,
+              Message.ObservedContainerScroll({
+                scrollTop: element.scrollTop,
+                scrollHeight: element.scrollHeight,
+                containerHeight: element.clientHeight,
+                anchor: observedAnchor(element),
+              }),
+            )
+          element.addEventListener('scroll', scrollListener, { passive: true })
+
+          const containerResizeObserver = new ResizeObserver(entries => {
+            const lastEntry = Array.last(entries)
+            if (Option.isSome(lastEntry)) {
+              Queue.offerUnsafe(
+                queue,
+                Message.ResizedContainer({
+                  containerWidth: lastEntry.value.contentRect.width,
+                  containerHeight: lastEntry.value.contentRect.height,
+                }),
+              )
+            }
+          })
+          containerResizeObserver.observe(element)
+
+          const observedRows = new Map<HTMLElement, string>()
+          const rowResizeObserver = new ResizeObserver(entries => {
+            const measurements = pipe(
+              entries,
+              Array.flatMap(entry =>
+                pipe(
+                  rowMeasurement(entry),
+                  Option.match({
+                    onNone: () => [],
+                    onSome: measurement => [measurement],
+                  }),
+                ),
+              ),
+            )
+            if (Array.isArrayNonEmpty(measurements)) {
+              Queue.offerUnsafe(queue, Message.MeasuredRows({ measurements }))
+            }
+          })
+
+          const reconcileRows = () => {
+            if (element.childElementCount === 0) {
+              emitContainerMeasurement()
+            }
+
+            for (const row of observedRows.keys()) {
+              if (!element.contains(row)) {
+                rowResizeObserver.unobserve(row)
+                observedRows.delete(row)
+              }
+            }
+
+            const rows = pipe(
+              element.querySelectorAll('[data-virtual-list-measure="true"]'),
+              Array.fromIterable,
+              Array.filter(
+                (row): row is HTMLElement => row instanceof HTMLElement,
+              ),
+            )
+            for (const row of rows) {
+              const layoutVersion =
+                row.getAttribute('data-virtual-list-layout-version') ?? ''
+              if (observedRows.get(row) !== layoutVersion) {
+                rowResizeObserver.unobserve(row)
+                observedRows.set(row, layoutVersion)
+                rowResizeObserver.observe(row)
+              }
+            }
+          }
+
+          const mutationObserver = new MutationObserver(reconcileRows)
+          mutationObserver.observe(element, {
+            attributes: true,
+            attributeFilter: ['data-virtual-list-layout-version'],
+            childList: true,
+            subtree: true,
+          })
+          reconcileRows()
+
+          return () => {
+            mutationObserver.disconnect()
+            rowResizeObserver.disconnect()
+            containerResizeObserver.disconnect()
+            element.removeEventListener('scroll', scrollListener)
+          }
+        }),
+        cleanup => Effect.sync(cleanup),
+      ).pipe(Effect.flatMap(() => Effect.never)),
+    ),
+})
+
+/** @deprecated VirtualList now owns its element lifecycle through
+ *  `ObserveVirtualList`; existing subscription wiring may remain while apps
+ *  migrate. */
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   containerEvents: entry(
     { id: Schema.String },
     {
       modelToDependencies: model => ({ id: model.id }),
-      dependenciesToStream: ({ id }) =>
-        Stream.callback<Message>(queue =>
-          Effect.acquireRelease(
-            Effect.sync(() => {
-              const state: ContainerObserverState = {
-                scrollListener: null,
-                resizeObserver: null,
-                observedElement: null,
-                pendingFrame: null,
-              }
-
-              const detach = () => {
-                if (state.resizeObserver !== null) {
-                  state.resizeObserver.disconnect()
-                  state.resizeObserver = null
-                }
-                if (
-                  state.observedElement !== null &&
-                  state.scrollListener !== null
-                ) {
-                  state.observedElement.removeEventListener(
-                    'scroll',
-                    state.scrollListener,
-                  )
-                }
-                state.observedElement = null
-                state.scrollListener = null
-              }
-
-              const attach = (element: HTMLElement) => {
-                const listener = () =>
-                  Queue.offerUnsafe(
-                    queue,
-                    Message.ScrolledContainer({ scrollTop: element.scrollTop }),
-                  )
-                element.addEventListener('scroll', listener, { passive: true })
-                state.scrollListener = listener
-                state.observedElement = element
-
-                state.resizeObserver = new ResizeObserver(entries => {
-                  const lastEntry = Array.last(entries)
-                  if (Option.isSome(lastEntry)) {
-                    Queue.offerUnsafe(
-                      queue,
-                      Message.MeasuredContainer({
-                        containerHeight: lastEntry.value.contentRect.height,
-                      }),
-                    )
-                  }
-                })
-                state.resizeObserver.observe(element)
-              }
-
-              const reconcile = () => {
-                const maybeElement = containerElement(id)
-                if (Option.isNone(maybeElement)) {
-                  if (state.observedElement !== null) {
-                    detach()
-                  }
-                  return
-                }
-                if (state.observedElement === maybeElement.value) {
-                  return
-                }
-                detach()
-                attach(maybeElement.value)
-              }
-
-              reconcile()
-
-              // NOTE: observes the entire document subtree because the container
-              // can be inserted/removed by any parent the consumer chooses (route
-              // changes, conditional renders, modal mounts), and the framework
-              // has no way to know that hierarchy in advance. Reconcile is gated
-              // by rAF and short-circuits when the cached observedElement is
-              // still in the DOM, so per-mutation cost stays low even with
-              // subtree: true.
-              const mutationObserver = new MutationObserver(() => {
-                if (state.pendingFrame !== null) {
-                  return
-                }
-                state.pendingFrame = requestAnimationFrame(() => {
-                  state.pendingFrame = null
-                  reconcile()
-                })
-              })
-              mutationObserver.observe(document.body, {
-                childList: true,
-                subtree: true,
-              })
-
-              return { state, detach, mutationObserver }
-            }),
-            ({ state, detach, mutationObserver }) =>
-              Effect.sync(() => {
-                mutationObserver.disconnect()
-                if (state.pendingFrame !== null) {
-                  cancelAnimationFrame(state.pendingFrame)
-                }
-                detach()
-              }),
-          ).pipe(Effect.flatMap(() => Effect.never)),
-        ),
+      dependenciesToStream: () => Stream.never,
     },
   ),
 }))
@@ -719,21 +1369,32 @@ const DEFAULT_OVERSCAN = 5
 
 /** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
  *
- *  VirtualList does not surface event handlers in the view. All input
- *  (scroll events and resize observations) flows through the
- *  `containerEvents` Subscription. The consumer wraps that
- *  Subscription's stream into their parent Message in their own
- *  `subscriptions` definition. */
-export type ViewInputs<Item> = Readonly<{
+ *  VirtualList owns scroll and resize observation through a Mount on its
+ *  container. Dynamic rows are measured by the same lifecycle owner. */
+type BaseViewInputs<Item> = Readonly<{
   items: ReadonlyArray<Item>
   itemToKey: (item: Item, index: number) => string
   itemToView: (item: Item, index: number) => Html
-  itemToRowHeightPx?: (item: Item, index: number) => number
   overscan?: number
   rowElement?: Exclude<TagName, 'textarea'>
   containerClassName?: string
   containerAttributes?: ReadonlyArray<ChildAttribute>
+  contentAlignment?: ContentAlignment
 }>
+
+/** Mutually exclusive configuration for fixed, exact variable, or measured
+ *  dynamic row heights. */
+export type RowHeightInputs<Item> =
+  | Readonly<{
+      itemToRowHeightPx?: undefined
+      dynamicRowHeights?: DynamicRowHeights<Item>
+    }>
+  | Readonly<{
+      itemToRowHeightPx: (item: Item, index: number) => number
+      dynamicRowHeights?: never
+    }>
+
+export type ViewInputs<Item> = BaseViewInputs<Item> & RowHeightInputs<Item>
 
 /** Renders a virtualized list. Only items inside the viewport (plus an
  *  overscan buffer) are mounted; spacer elements above and below the
@@ -756,18 +1417,26 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
       itemToKey,
       itemToView,
       itemToRowHeightPx,
+      dynamicRowHeights,
       overscan = DEFAULT_OVERSCAN,
       rowElement = 'li',
       containerClassName,
       containerAttributes = [],
+      contentAlignment = 'Start',
     } = viewInputs
 
     const baseContainerAttributes = [
       h.Id(model.id),
       h.Role('list'),
       h.DataAttribute('virtual-list-id', model.id),
+      h.DataAttribute(
+        'virtual-list-scroll-version',
+        String(model.pendingScrollVersion),
+      ),
+      h.OnMount(ObserveVirtualList()),
       h.Style({
         overflow: 'auto',
+        'overflow-anchor': 'none',
         'list-style': 'none',
         margin: '0',
         padding: '0',
@@ -785,15 +1454,29 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
     const renderContainer = (children: ReadonlyArray<Html>): Html =>
       h.keyed('ul')(model.id, allContainerAttributes, children)
 
-    const maybeWindow =
-      itemToRowHeightPx !== undefined
-        ? visibleWindowVariable(model, items, itemToRowHeightPx, overscan)
-        : visibleWindow(model, items.length, overscan)
-
-    const rowHeightFor = (item: unknown, dataIndex: number): number =>
-      itemToRowHeightPx !== undefined
-        ? itemToRowHeightPx(item, dataIndex)
-        : model.rowHeightPx
+    const layout = listLayout(
+      model,
+      items,
+      itemToKey,
+      itemToRowHeightPx,
+      dynamicRowHeights,
+      contentAlignment,
+    )
+    const maybeWindow = Measurement.match<Option.Option<VisibleWindow>>(
+      model.measurement,
+      {
+        Unmeasured: () => Option.none(),
+        Measured: () =>
+          Option.some(
+            visibleWindowForLayout(
+              layout,
+              scrollTopForView(model, layout, items, itemToKey),
+              items.length,
+              overscan,
+            ),
+          ),
+      },
+    )
 
     return Option.match(maybeWindow, {
       onNone: () => renderContainer([]),
@@ -818,17 +1501,34 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
 
         const renderedRows = Array.map(visibleItems, (item, sliceIndex) => {
           const dataIndex = startIndex + sliceIndex
+          const key = itemToKey(item, dataIndex)
+          const rowHeight =
+            offsetAt(layout, dataIndex + 1) - offsetAt(layout, dataIndex)
+          const rowSizingAttributes =
+            dynamicRowHeights === undefined
+              ? [
+                  h.Style({
+                    height: `${rowHeight}px`,
+                    display: 'grid',
+                  }),
+                ]
+              : [
+                  h.DataAttribute('virtual-list-measure', 'true'),
+                  h.Style({ display: 'grid' }),
+                ]
           return h.keyed(rowElement)(
-            itemToKey(item, dataIndex),
+            key,
             [
               h.Role('listitem'),
+              h.DataAttribute('virtual-list-item-key', key),
               h.DataAttribute('virtual-list-item-index', String(dataIndex)),
+              h.DataAttribute(
+                'virtual-list-layout-version',
+                String(model.layoutVersion),
+              ),
               h.AriaSetsize(items.length),
               h.AriaPosinset(dataIndex + 1),
-              h.Style({
-                height: `${rowHeightFor(item, dataIndex)}px`,
-                display: 'grid',
-              }),
+              ...rowSizingAttributes,
             ],
             [itemToView(item, dataIndex)],
           )

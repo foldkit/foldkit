@@ -96,6 +96,9 @@ test('makes scrollable tables and virtual-list demos reachable by keyboard', asy
   await expect(
     page.getByRole('list', { name: 'Variable-height activity events' }),
   ).toHaveAttribute('tabindex', '0')
+  await expect(
+    page.getByRole('list', { name: 'End-anchored chat messages' }),
+  ).toHaveAttribute('tabindex', '0')
 })
 
 test('marks an opened dialog modal and restores its background after close', async ({

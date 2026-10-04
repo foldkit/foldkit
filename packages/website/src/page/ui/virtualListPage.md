@@ -2,7 +2,9 @@
 
 ## Overview
 
-A virtualization component for large lists. Only items inside the viewport plus an overscan buffer are mounted. Spacer divs above and below the visible slice keep the scrollbar physically correct. The demo below manages ten thousand items; only the rows currently visible exist in the DOM.
+A virtualization component for large lists. Only items inside the viewport plus an overscan buffer are mounted. Spacer rows above and below the visible slice keep the scrollbar physically correct.
+
+VirtualList supports fixed, known-variable, and measured row heights. Logical scroll targets can address an index, stable item key, pixel offset, or the end. End following and stable-key anchoring cover chat, logs, and reverse infinite feeds without reversing DOM order or browser scroll coordinates.
 
 :::Info{label="See it in an app"}
 Check out how VirtualList is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/virtualList.ts).
@@ -10,100 +12,107 @@ Check out how VirtualList is wired up in a [real Foldkit app](https://github.com
 
 ## Example
 
-Items live in your Model, not the component, and pass through `ViewConfig.items` on each render. The parent owns the data and can swap, filter, sort, or paginate freely without sending Messages to the list. Each item must be keyed via `itemToKey` so the VDOM matches rows by data identity, not by position, when the visible slice shifts.
+Items live in your Model and pass through `ViewConfig.items` on each render. Each item must have a stable `itemToKey`; VirtualList uses that identity for VDOM reconciliation, key-based scrolling, measurement caching, and viewport anchoring.
 
 ### Basic
 
-Every row uses the same height, configured at init through `rowHeightPx`. The component divides scroll math by that constant. Prefer this path when row heights are stable.
+Every row uses the same height, configured through `rowHeightPx`. Prefer this path when row heights are stable.
 
 ::Demo{name="fixed"}
 
 ::Snippet{name="uiVirtualListBasic" label="virtual list example"}
 
-### Variable row heights
+### Known variable heights
 
-Pass an `itemToRowHeightPx` callback on `ViewConfig` and rows take the height the callback returns for each item. The component walks the items at render time to compute cumulative offsets for the visible slice and the spacers. Use this for tables with wrapping cells, taller detail rows, or any list where heights differ.
-
-Programmatic scrolling for variable-height lists uses `scrollToIndexVariable`, which walks the heights to compute the target `scrollTop`. Pass the same `items` and `itemToRowHeightPx` you pass to `view` so the math agrees.
+Pass `itemToRowHeightPx` when the application already knows each row's exact height. VirtualList computes cumulative offsets for the visible slice and spacers.
 
 ::Demo{name="variable"}
 
 ::Snippet{name="uiVirtualListVariable" label="variable-height virtual list example"}
 
+### End-anchored dynamic heights
+
+For chat, logs, and reverse infinite feeds, combine an initial `End` target, `followEnd`, `contentAlignment: 'End'`, and `dynamicRowHeights`. Rows remain in logical DOM order with ordinary nonnegative `scrollTop` coordinates.
+
+Dynamic mode treats `rowHeightPx` as the default estimate. Rendered rows are measured with `ResizeObserver`; when estimates change, VirtualList corrects the scroll position around the stored stable-key anchor. Call `informItemsChanged` in the same parent update that appends, prepends, removes, or reorders items. Appends follow the end only while the user remains within the configured threshold. Once they scroll away, their visible anchor is preserved instead.
+
+::Demo{name="chat"}
+
+::Snippet{name="uiVirtualListChat" label="end-anchored dynamic-height list"}
+
 ## Programmatic scrolling
 
-Use `scrollToIndex` for uniform rows and `scrollToIndexVariable` when `view` receives `itemToRowHeightPx`. Both helpers accept an optional alignment: `Start` (the default), `Center`, `End`, or `Nearest`. `Nearest` leaves an already visible row in place and otherwise scrolls only far enough to reveal its closest edge.
+`scrollToIndex`, `scrollToKey`, `scrollToOffset`, and `scrollToEnd` all create logical scroll requests. The next view selects the target window, then the Command aligns the live rendered row or applies the live maximum offset.
 
-Use `scrollToKey` when the caller has a stable item key rather than an index. Pass the same `items`, `itemToKey`, and optional `itemToRowHeightPx` used by the view so the lookup and offset calculation agree. If the key is absent, the helper returns the unchanged Model without a Command.
+Index and key helpers accept `Start`, `Center`, `End`, or `Nearest` alignment. `Nearest` leaves a fully visible row in place and otherwise reveals its closest edge. Missing keys produce no movement. Negative and oversized offsets clamp to the live scroll range.
 
-Use `scrollToOffset` for an exact pixel offset from the start of the list. Negative offsets clamp to zero.
+`scrollToIndexVariable` remains as a compatibility alias. New code can use `scrollToIndex` for every sizing mode because the view now owns offset resolution.
 
-## Subscriptions
+## Lifecycle
 
-VirtualList exposes a single subscription, `containerEvents`, that listens for `scroll` events on the container and observes its size with `ResizeObserver`. Wire it into your app's subscriptions alongside the rest of the framework subscriptions.
+VirtualList renders an `ObserveVirtualList` Mount on its scroll container. The Mount owns the scroll listener, container `ResizeObserver`, dynamic-row `ResizeObserver`, and descendant observation. Apps no longer need to wire a VirtualList Subscription. The deprecated `subscriptions.containerEvents` entry remains as a no-op so existing aggregate subscription records can migrate without a coordinated break.
 
 ## Styling
 
-The container needs a constrained height for virtualization to work. Without it, the container grows to fit children and never scrolls. Pass `className` or `attributes` on `ViewConfig` to apply the height through your styling system. The component sets only `overflow: auto` inline; the rest is yours.
+The container needs a constrained height. Without it, the container grows to fit children and never scrolls. Use `containerClassName` or `containerAttributes` to apply that height.
 
-VirtualList exposes two data attributes for styling and test selectors: `data-virtual-list-id` on the scrollable container and `data-virtual-list-item-index` on each rendered row.
+`contentAlignment: 'End'` adds a leading inset when all rows are shorter than the viewport, so an underfilled chat sits against the bottom. VirtualList disables native CSS scroll anchoring because its stable-key correction owns that behavior.
 
-| Attribute                      | Condition                                                                                                                                                   |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-virtual-list-id`         | Present on the scrollable container. Carries the id from InitConfig so subscriptions and tests can find the right element.                                  |
-| `data-virtual-list-item-index` | Present on each rendered row wrapper. Carries the data index of the item being rendered (0-based) so tests and consumer styling can address a specific row. |
+| Attribute                          | Condition                                                                            |
+| ---------------------------------- | ------------------------------------------------------------------------------------ |
+| `data-virtual-list-id`             | Present on the scrollable container and carries the `InitConfig.id`.                 |
+| `data-virtual-list-item-key`       | Present on each rendered row and carries its stable key.                             |
+| `data-virtual-list-item-index`     | Present on each rendered row and carries its zero-based logical index.               |
+| `data-virtual-list-measure`        | Present on rows rendered with `dynamicRowHeights`.                                   |
+| `data-virtual-list-layout-version` | Identifies the item layout generation so stale measurement callbacks can be ignored. |
 
 ## Accessibility
 
-The container is rendered as `<ul>` and each row as `<li>`. The top and bottom spacer `<li>` elements carry `role="presentation"` so they do not contribute to the list. Each rendered row carries `aria-setsize` (total item count) and `aria-posinset` (1-based logical position), so screen readers announce "row 5,234 of 10,000" rather than the much smaller count of mounted rows. No consumer wiring required.
+The container is a `<ul>` and each row defaults to `<li>`. Spacer rows carry `role="presentation"`. Rendered rows carry `aria-setsize` and `aria-posinset`, so assistive technology receives the logical position and full list size even though only a window is mounted.
+
+End anchoring never uses `flex-direction: column-reverse`; visual, DOM, keyboard, and assistive-technology order remain the same.
 
 ## API Reference
 
 ### InitConfig {#init-config}
 
-Configuration object passed to `VirtualList.init()`.
-
-| Name               | Type     | Default | Description                                                                                                                                                           |
-| ------------------ | -------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`               | `string` | —       | Unique ID for the virtual list instance. Applied to the scrollable container and used by the subscription to attach scroll and resize listeners.                      |
-| `rowHeightPx`      | `number` | —       | Height in pixels of every row. All rows share this height; the value drives spacer math, slice math, and the inline height on row wrappers.                           |
-| `initialScrollTop` | `number` | `0`     | Initial scroll position in pixels. When non-zero, the first MeasuredContainer message issues an apply-scroll Command so the DOM and model agree from the first frame. |
+| Name               | Type                                                    | Default | Description                                                                                                   |
+| ------------------ | ------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------- |
+| `id`               | `string`                                                | —       | Unique ID applied to the scroll container and used by scroll Commands.                                        |
+| `rowHeightPx`      | `number`                                                | —       | Fixed row height, or the fallback estimate in dynamic mode.                                                   |
+| `initialScroll`    | `{ target: ScrollTarget; alignment?: ScrollAlignment }` | —       | Logical initial position applied after the first container measurement.                                       |
+| `initialScrollTop` | `number`                                                | `0`     | Compatibility alias for an initial pixel-offset target. `initialScroll` takes precedence when both are given. |
+| `followEnd`        | `{ thresholdPx?: number }`                              | —       | Keeps an End anchor while the viewport remains within the threshold. The default threshold is `1`.            |
 
 ### ViewConfig {#view-config}
 
-Configuration object passed to `VirtualList.view()`.
+| Name                  | Type                                                       | Default   | Description                                                                                                     |
+| --------------------- | ---------------------------------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------- |
+| `items`               | `ReadonlyArray<Item>`                                      | —         | Full parent-owned item array.                                                                                   |
+| `itemToKey`           | `(item: Item, index: number) => string`                    | —         | Stable identity used by rendering, key targets, measurement, and anchoring.                                     |
+| `itemToView`          | `(item: Item, index: number) => Html`                      | —         | Renders one row's content.                                                                                      |
+| `itemToRowHeightPx`   | `(item: Item, index: number) => number`                    | —         | Exact known height for each row.                                                                                |
+| `dynamicRowHeights`   | `{ itemToEstimatedRowHeightPx?: (item, index) => number }` | —         | Measures rendered rows. Per-item estimates fall back to `rowHeightPx`. Do not combine with `itemToRowHeightPx`. |
+| `contentAlignment`    | `'Start' \| 'End'`                                         | `'Start'` | Aligns an underfilled list within the viewport.                                                                 |
+| `overscan`            | `number`                                                   | `5`       | Rows mounted before and after the visible window.                                                               |
+| `rowElement`          | `Exclude<TagName, 'textarea'>`                             | `'li'`    | Element used for row wrappers.                                                                                  |
+| `containerClassName`  | `string`                                                   | —         | CSS class for the scroll container.                                                                             |
+| `containerAttributes` | `ReadonlyArray<ChildAttribute>`                            | —         | Additional container attributes.                                                                                |
 
-| Name                  | Type                                         | Default | Description                                                                                                                                                                                                                                                                                                |
-| --------------------- | -------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `model`               | `VirtualList.Model`                          | —       | The virtual list state from your parent Model.                                                                                                                                                                                                                                                             |
-| `items`               | `ReadonlyArray<Item>`                        | —       | The full item array. Items live in your Model, not the component's; pass them fresh on each render. Swap, filter, sort, or paginate freely without sending Messages to the list.                                                                                                                           |
-| `itemToKey`           | `(item: Item, index: number) => string`      | —       | Returns a stable identifier for an item. Used to key rendered rows so the VDOM matches by data identity rather than by position when the visible slice shifts.                                                                                                                                             |
-| `itemToView`          | `(item: Item, index: number) => Html`        | —       | Renders one row's contents. The framework wraps your output in a row-height grid container; use flex or grid with align-items: center inside to vertically center your content.                                                                                                                            |
-| `itemToRowHeightPx`   | `(item: Item, index: number) => number`      | —       | Optional. When provided, the list renders with variable-height rows: each row wrapper takes the height returned for its item, and slice and spacer math walks the items to compute cumulative offsets. When absent, every row uses model.rowHeightPx. Prefer the uniform path when row heights are stable. |
-| `overscan`            | `number`                                     | `5`     | Number of rows mounted above and below the visible viewport. Higher values can make fast scrolling smoother at the cost of mounting more DOM. Choose a value that suits the row mount cost.                                                                                                                |
-| `rowElement`          | `Exclude<TagName, 'textarea'>`               | `'li'`  | HTML tag for each row wrapper. Textarea is excluded because each row wrapper renders a child. Defaults to li (since the container is rendered as ul). Override only when you also wrap the list in something whose children aren't expected to be li.                                                      |
-| `containerClassName`  | `string \| undefined`                        | —       | CSS class applied to the scrollable container. The container needs a constrained height (e.g. h-96) for virtualization to work.                                                                                                                                                                            |
-| `containerAttributes` | `ReadonlyArray<ChildAttribute> \| undefined` | —       | Additional attributes spread onto the scrollable container. Pass extra Style({...}) entries for CSS like overscroll-behavior or scroll-margin, data attributes, or any other ChildAttribute.                                                                                                               |
+### ScrollTarget {#scroll-target}
+
+| Variant  | Description                                                     |
+| -------- | --------------------------------------------------------------- |
+| `Index`  | Targets a logical item index, clamped to the nearest list edge. |
+| `Key`    | Targets the item with a matching stable key.                    |
+| `Offset` | Targets a pixel offset from the logical start of the list.      |
+| `End`    | Targets the live maximum scroll offset.                         |
 
 ### ScrollAlignment {#scroll-alignment}
 
-Alignment accepted by row-targeted programmatic scrolling helpers.
-
-| Value     | Behavior                                                                                  |
-| --------- | ----------------------------------------------------------------------------------------- |
-| `Start`   | Places the row at the start of the viewport. This is the default.                         |
-| `Center`  | Centers the row in the viewport.                                                          |
-| `End`     | Places the row at the end of the viewport.                                                |
-| `Nearest` | Keeps a fully visible row in place; otherwise scrolls its closest edge into the viewport. |
-
-### ScrollToKeyConfig {#scroll-to-key-config}
-
-Configuration passed to `VirtualList.scrollToKey()`.
-
-| Name                | Type                                    | Default | Description                                                                          |
-| ------------------- | --------------------------------------- | ------- | ------------------------------------------------------------------------------------ |
-| `items`             | `ReadonlyArray<Item>`                   | —       | The same items passed to the view.                                                   |
-| `itemToKey`         | `(item: Item, index: number) => string` | —       | Returns the stable key used to locate the target row.                                |
-| `key`               | `string`                                | —       | Key of the row to reveal. An absent key produces no Command.                         |
-| `itemToRowHeightPx` | `(item: Item, index: number) => number` | —       | Optional variable-height callback. Omit it to use the Model's uniform `rowHeightPx`. |
-| `alignment`         | `ScrollAlignment`                       | `Start` | Where the target row should land in the viewport.                                    |
+| Value     | Behavior                                                                |
+| --------- | ----------------------------------------------------------------------- |
+| `Start`   | Places the row at the start of the viewport. This is the default.       |
+| `Center`  | Centers the row in the viewport.                                        |
+| `End`     | Places the row at the end of the viewport.                              |
+| `Nearest` | Keeps a fully visible row in place; otherwise reveals its closest edge. |

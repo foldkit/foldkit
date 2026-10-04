@@ -90,5 +90,9 @@ export const Message = defineMessageUnion({
   ClickedVirtualListScrollToMiddle: {},
   GotVirtualListVariableDemoMessage: { message: VirtualList.Message },
   ClickedVirtualListVariableScrollToMiddle: {},
+  GotVirtualListChatDemoMessage: { message: VirtualList.Message },
+  ClickedVirtualListChatPrepend: {},
+  ClickedVirtualListChatAppend: {},
+  ClickedVirtualListChatToggleMessage: { messageId: Schema.Number },
 })
 export type Message = typeof Message.Type

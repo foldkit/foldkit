@@ -1,6 +1,9 @@
 export {
   init,
   update,
+  informItemsChanged,
+  scrollTo,
+  scrollToEnd,
   scrollToIndex,
   scrollToIndexVariable,
   scrollToKey,
@@ -11,14 +14,17 @@ export {
   visibleWindowVariable,
   Model,
   Message,
+  ContentAlignment,
   ScrollAlignment,
+  ScrollTarget,
   type ScrolledContainer,
   type MeasuredContainer,
 } from './index.js'
 
 export type {
+  DynamicRowHeights,
   InitConfig,
-  ScrollToKeyConfig,
+  RowHeightInputs,
   ScrollToOptions,
   ViewInputs,
   VisibleWindow,

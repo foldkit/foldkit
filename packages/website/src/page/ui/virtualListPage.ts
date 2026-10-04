@@ -9,10 +9,9 @@ import type { Message } from './message'
 import type { Model } from './model'
 import raw from './virtualListPage.md'
 
-const { tableOfContents, view: renderPage } = slotDocPage<'fixed' | 'variable'>(
-  raw,
-  'ui/virtual-list',
-)
+const { tableOfContents, view: renderPage } = slotDocPage<
+  'fixed' | 'variable' | 'chat'
+>(raw, 'ui/virtual-list')
 
 export { tableOfContents }
 
@@ -29,6 +28,14 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         variable: h.div(
           [],
           VirtualList.virtualListVariableDemo(model.virtualListVariableDemo, h),
+        ),
+        chat: h.div(
+          [],
+          VirtualList.virtualListChatDemo(
+            model.virtualListChatDemo,
+            model.virtualListChatMessages,
+            h,
+          ),
         ),
       },
       renderCopyButton,

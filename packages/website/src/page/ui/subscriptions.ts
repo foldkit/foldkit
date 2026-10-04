@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import { Subscription } from 'foldkit'
 
-import { DragAndDrop, Slider, VirtualList } from '@foldkit/ui'
+import { DragAndDrop, Slider } from '@foldkit/ui'
 
 import { Toast } from './demo/toastModule'
 import { Message } from './message'
@@ -33,21 +33,6 @@ const sliderVolumeSubscriptions = Subscription.lift({
   toParentMessage: message => Message.GotSliderVolumeDemoMessage({ message }),
 })
 
-const virtualListDemoSubscriptions = Subscription.lift({
-  virtualListContainerEvents: VirtualList.subscriptions.containerEvents,
-})<Model, Message>({
-  read: model => Option.some(model.virtualListDemo),
-  toParentMessage: message => Message.GotVirtualListDemoMessage({ message }),
-})
-
-const virtualListVariableDemoSubscriptions = Subscription.lift({
-  virtualListVariableContainerEvents: VirtualList.subscriptions.containerEvents,
-})<Model, Message>({
-  read: model => Option.some(model.virtualListVariableDemo),
-  toParentMessage: message =>
-    Message.GotVirtualListVariableDemoMessage({ message }),
-})
-
 const toastDemoSubscriptions = Subscription.lift(Toast.subscriptions)<
   Model,
   Message
@@ -60,7 +45,5 @@ export const subscriptions = Subscription.aggregate(
   dragAndDropSubscriptions,
   sliderRatingSubscriptions,
   sliderVolumeSubscriptions,
-  virtualListDemoSubscriptions,
-  virtualListVariableDemoSubscriptions,
   toastDemoSubscriptions,
 )

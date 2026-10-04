@@ -8,7 +8,10 @@ import {
   Message,
   type Model,
   type ScrollAlignment,
+  ScrollTarget,
+  informItemsChanged,
   init,
+  scrollToEnd,
   scrollToIndex,
   scrollToIndexVariable,
   scrollToKey,
@@ -34,11 +37,53 @@ const executeScroll = async (
   scrollReturn: ScrollReturn,
   currentScrollTop: number,
   containerHeight: number,
+  rows: ReadonlyArray<
+    Readonly<{ index: number; key: string; start: number; height: number }>
+  > = [],
+  scrollHeight = 1000,
+  activeScrollVersion = scrollReturn.model.pendingScrollVersion,
 ): Promise<number> => {
   const element = document.createElement('div')
   element.id = 'test'
   element.scrollTop = currentScrollTop
+  element.setAttribute(
+    'data-virtual-list-scroll-version',
+    String(activeScrollVersion),
+  )
   Object.defineProperty(element, 'clientHeight', { value: containerHeight })
+  Object.defineProperty(element, 'scrollHeight', { value: scrollHeight })
+  Object.defineProperty(element, 'getBoundingClientRect', {
+    value: () => ({
+      top: 0,
+      bottom: containerHeight,
+      height: containerHeight,
+      left: 0,
+      right: 0,
+      width: 100,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    }),
+  })
+  for (const row of rows) {
+    const rowElement = document.createElement('div')
+    rowElement.setAttribute('data-virtual-list-item-index', String(row.index))
+    rowElement.setAttribute('data-virtual-list-item-key', row.key)
+    Object.defineProperty(rowElement, 'getBoundingClientRect', {
+      value: () => ({
+        top: row.start - element.scrollTop,
+        bottom: row.start + row.height - element.scrollTop,
+        height: row.height,
+        left: 0,
+        right: 0,
+        width: 100,
+        x: 0,
+        y: row.start - element.scrollTop,
+        toJSON: () => ({}),
+      }),
+    })
+    element.append(rowElement)
+  }
   document.body.append(element)
 
   try {
@@ -54,6 +99,15 @@ const executeScroll = async (
   }
 }
 
+const completedApplyScroll = (version: number) =>
+  Message.CompletedApplyScroll({
+    version,
+    scrollTop: 0,
+    scrollHeight: 1000,
+    containerHeight: 300,
+    anchor: { _tag: 'None' },
+  })
+
 describe('VirtualList', () => {
   describe('init', () => {
     it('starts in the Unmeasured state with scrollTop 0 and pendingScroll Idle', () => {
@@ -64,15 +118,32 @@ describe('VirtualList', () => {
       expect(model.measurement._tag).toBe('Unmeasured')
       expect(model.pendingScroll._tag).toBe('Idle')
       expect(model.pendingScrollVersion).toBe(0)
+      expect(model.measuredRowHeights).toStrictEqual({})
     })
 
-    it('honors initialScrollTop when provided', () => {
+    it('keeps initialScrollTop as an offset target for compatibility', () => {
       const model = init({
         id: 'test',
         rowHeightPx: 30,
         initialScrollTop: 600,
       })
       expect(model.scrollTop).toBe(600)
+      expect(model.initialScroll._tag).toBe('Pending')
+    })
+
+    it('accepts a logical initial End target and follow-end threshold', () => {
+      const model = init({
+        id: 'test',
+        rowHeightPx: 30,
+        initialScroll: { target: ScrollTarget.End() },
+        followEnd: { thresholdPx: 8 },
+      })
+
+      expect(model.initialScroll._tag).toBe('Pending')
+      expect(model.endBehavior).toStrictEqual({
+        _tag: 'Follow',
+        thresholdPx: 8,
+      })
     })
   })
 
@@ -86,6 +157,84 @@ describe('VirtualList', () => {
           expect(model.scrollTop).toBe(450)
         }),
       )
+    })
+
+    it('tracks End while follow-end is within its threshold and a Row after the user scrolls away', () => {
+      const model = init({
+        id: 'test',
+        rowHeightPx: 30,
+        followEnd: { thresholdPx: 5 },
+      })
+      const atEnd = update(
+        model,
+        Message.ObservedContainerScroll({
+          scrollTop: 700,
+          scrollHeight: 1000,
+          containerHeight: 300,
+          anchor: {
+            _tag: 'Row',
+            key: 'last',
+            index: 99,
+            viewportOffset: 270,
+          },
+        }),
+      )
+      expect(atEnd.model.viewportAnchor._tag).toBe('End')
+
+      const away = update(
+        atEnd.model,
+        Message.ObservedContainerScroll({
+          scrollTop: 600,
+          scrollHeight: 1000,
+          containerHeight: 300,
+          anchor: {
+            _tag: 'Row',
+            key: 'row-20',
+            index: 20,
+            viewportOffset: -4,
+          },
+        }),
+      )
+      expect(away.model.viewportAnchor).toStrictEqual({
+        _tag: 'Row',
+        key: 'row-20',
+        index: 20,
+        viewportOffset: -4,
+      })
+    })
+
+    it('replaces an in-flight request with the live user scroll anchor', () => {
+      const requested = scrollToEnd(defaultInit())
+      const scrolled = update(
+        requested.model,
+        Message.ObservedContainerScroll({
+          scrollTop: 600,
+          scrollHeight: 1000,
+          containerHeight: 300,
+          anchor: {
+            _tag: 'Row',
+            key: 'row-20',
+            index: 20,
+            viewportOffset: -4,
+          },
+        }),
+      )
+
+      expect(scrolled.model.pendingScroll._tag).toBe('Idle')
+      expect(scrolled.model.pendingScrollVersion).toBe(2)
+      const changed = informItemsChanged(scrolled.model, ['row-20'])
+      expect(changed.model.pendingScroll._tag).toBe('Pending')
+      if (changed.model.pendingScroll._tag === 'Pending') {
+        expect(changed.model.pendingScroll.request).toStrictEqual({
+          _tag: 'Anchor',
+          anchor: {
+            _tag: 'Row',
+            key: 'row-20',
+            index: 20,
+            viewportOffset: -4,
+          },
+        })
+      }
     })
   })
 
@@ -110,6 +259,7 @@ describe('VirtualList', () => {
         Story.given(defaultInit()),
         Story.message(Message.MeasuredContainer({ containerHeight: 600 })),
         Story.message(Message.MeasuredContainer({ containerHeight: 720 })),
+        Story.Command.resolve(ApplyScroll, completedApplyScroll(1)),
         Story.model(model => {
           if (model.measurement._tag === 'Measured') {
             expect(model.measurement.containerHeight).toBe(720)
@@ -136,33 +286,56 @@ describe('VirtualList', () => {
         Story.message(Message.MeasuredContainer({ containerHeight: 300 })),
         Story.Command.expectHas(ApplyScroll),
         Story.model(model => {
-          expect(model.pendingScroll._tag).toBe('ScrollingToIndex')
-          if (model.pendingScroll._tag === 'ScrollingToIndex') {
-            expect(model.pendingScroll.index).toBe(20)
+          expect(model.pendingScroll._tag).toBe('Pending')
+          if (model.pendingScroll._tag === 'Pending') {
+            expect(model.pendingScroll.request).toStrictEqual({
+              _tag: 'Target',
+              target: { _tag: 'Offset', offset: 600 },
+              alignment: 'Start',
+            })
           }
           expect(model.pendingScrollVersion).toBe(1)
         }),
-        Story.Command.resolve(
-          ApplyScroll,
-          Message.CompletedApplyScroll({ version: 1 }),
-        ),
+        Story.Command.resolve(ApplyScroll, completedApplyScroll(1)),
       )
     })
 
-    it('issues no Command on subsequent MeasuredContainer once already Measured (resize-only path)', () => {
+    it('reconciles the stored viewport anchor after a later resize', () => {
       Story.story(
         update,
-        Story.given(
-          init({ id: 'test', rowHeightPx: 30, initialScrollTop: 600 }),
-        ),
+        Story.given(defaultInit()),
         Story.message(Message.MeasuredContainer({ containerHeight: 300 })),
-        Story.Command.resolve(
-          ApplyScroll,
-          Message.CompletedApplyScroll({ version: 1 }),
-        ),
         Story.message(Message.MeasuredContainer({ containerHeight: 320 })),
-        Story.Command.expectNone(),
+        Story.Command.expectHas(ApplyScroll),
+        Story.Command.resolve(ApplyScroll, completedApplyScroll(1)),
       )
+    })
+
+    it('invalidates cached row measurements when the container width changes', () => {
+      const measured = update(
+        defaultInit(),
+        Message.ResizedContainer({
+          containerWidth: 320,
+          containerHeight: 300,
+        }),
+      )
+      const withRowMeasurement = update(
+        measured.model,
+        Message.MeasuredRows({
+          measurements: [{ key: 'row-1', height: 72, layoutVersion: 0 }],
+        }),
+      )
+      const resized = update(
+        withRowMeasurement.model,
+        Message.ResizedContainer({
+          containerWidth: 480,
+          containerHeight: 300,
+        }),
+      )
+
+      expect(resized.model.measuredRowHeights).toStrictEqual({})
+      expect(resized.model.layoutVersion).toBe(1)
+      expect(resized.commands ?? []).toHaveLength(1)
     })
   })
 
@@ -170,13 +343,11 @@ describe('VirtualList', () => {
     it('clears pendingScroll when the version matches', () => {
       const baseModel = defaultInit()
       const indexScroll = scrollToIndex(baseModel, 50)
-      expect(indexScroll.model.pendingScroll._tag).toBe('ScrollingToIndex')
+      expect(indexScroll.model.pendingScroll._tag).toBe('Pending')
 
       const completion = update(
         indexScroll.model,
-        Message.CompletedApplyScroll({
-          version: indexScroll.model.pendingScrollVersion,
-        }),
+        completedApplyScroll(indexScroll.model.pendingScrollVersion),
       )
       expect(completion.model.pendingScroll._tag).toBe('Idle')
     })
@@ -188,10 +359,10 @@ describe('VirtualList', () => {
 
       const staleCompletion = update(
         secondScroll.model,
-        Message.CompletedApplyScroll({ version: 1 }),
+        completedApplyScroll(1),
       )
-      expect(staleCompletion.model.pendingScroll._tag).toBe('ScrollingToIndex')
-      if (staleCompletion.model.pendingScroll._tag === 'ScrollingToIndex') {
+      expect(staleCompletion.model.pendingScroll._tag).toBe('Pending')
+      if (staleCompletion.model.pendingScroll._tag === 'Pending') {
         expect(staleCompletion.model.pendingScroll.version).toBe(2)
       }
     })
@@ -201,9 +372,13 @@ describe('VirtualList', () => {
     it('bumps the version and stores the target index in pendingScroll', () => {
       const indexScroll = scrollToIndex(defaultInit(), 42)
       expect(indexScroll.model.pendingScrollVersion).toBe(1)
-      expect(indexScroll.model.pendingScroll._tag).toBe('ScrollingToIndex')
-      if (indexScroll.model.pendingScroll._tag === 'ScrollingToIndex') {
-        expect(indexScroll.model.pendingScroll.index).toBe(42)
+      expect(indexScroll.model.pendingScroll._tag).toBe('Pending')
+      if (indexScroll.model.pendingScroll._tag === 'Pending') {
+        expect(indexScroll.model.pendingScroll.request).toStrictEqual({
+          _tag: 'Target',
+          target: { _tag: 'Index', index: 42 },
+          alignment: 'Start',
+        })
         expect(indexScroll.model.pendingScroll.version).toBe(1)
       }
       expect(indexScroll.commands ?? []).toHaveLength(1)
@@ -216,6 +391,21 @@ describe('VirtualList', () => {
       expect(firstScroll.model.pendingScrollVersion).toBe(1)
       expect(secondScroll.model.pendingScrollVersion).toBe(2)
       expect(thirdScroll.model.pendingScrollVersion).toBe(3)
+    })
+
+    it('skips a stale request after a newer view has committed', async () => {
+      const firstScroll = scrollToIndex(defaultInit(), 5)
+      const secondScroll = scrollToIndex(firstScroll.model, 6)
+      const scrollTop = await executeScroll(
+        firstScroll,
+        30,
+        90,
+        [{ index: 5, key: 'row-5', start: 150, height: 30 }],
+        1000,
+        secondScroll.model.pendingScrollVersion,
+      )
+
+      expect(scrollTop).toBe(30)
     })
 
     const alignmentCases: ReadonlyArray<
@@ -235,7 +425,12 @@ describe('VirtualList', () => {
       'aligns the row to $alignment',
       async ({ alignment, currentScrollTop, expectedScrollTop }) => {
         const indexScroll = scrollToIndex(defaultInit(), 5, { alignment })
-        const scrollTop = await executeScroll(indexScroll, currentScrollTop, 90)
+        const scrollTop = await executeScroll(
+          indexScroll,
+          currentScrollTop,
+          90,
+          [{ index: 5, key: 'row-5', start: 150, height: 30 }],
+        )
 
         expect(scrollTop).toBe(expectedScrollTop)
       },
@@ -246,11 +441,13 @@ describe('VirtualList', () => {
         scrollToIndex(defaultInit(), 5, { alignment: 'Nearest' }),
         0,
         90,
+        [{ index: 5, key: 'row-5', start: 150, height: 30 }],
       )
       const aboveViewport = await executeScroll(
         scrollToIndex(defaultInit(), 5, { alignment: 'Nearest' }),
         160,
         90,
+        [{ index: 5, key: 'row-5', start: 150, height: 30 }],
       )
 
       expect(belowViewport).toBe(90)
@@ -261,84 +458,140 @@ describe('VirtualList', () => {
       const indexScroll = scrollToIndex(defaultInit(), 0, {
         alignment: 'Center',
       })
-      const scrollTop = await executeScroll(indexScroll, 300, 90)
+      const scrollTop = await executeScroll(indexScroll, 300, 90, [
+        { index: 0, key: 'row-0', start: 0, height: 30 },
+      ])
 
       expect(scrollTop).toBe(0)
     })
   })
 
   describe('scrollToKey', () => {
-    type Row = Readonly<{ id: string; height: number }>
-    const rows: ReadonlyArray<Row> = [
-      { id: 'first', height: 10 },
-      { id: 'second', height: 20 },
-      { id: 'third', height: 30 },
-    ]
-    const itemToKey = (row: Row): string => row.id
-    const itemToRowHeightPx = (row: Row): number => row.height
-
     it('scrolls to the row whose key matches', async () => {
-      const keyScroll = scrollToKey(defaultInit(), {
-        items: rows,
-        itemToKey,
-        key: 'second',
-      })
-      const scrollTop = await executeScroll(keyScroll, 0, 30)
+      const keyScroll = scrollToKey(defaultInit(), 'second')
+      const scrollTop = await executeScroll(keyScroll, 0, 30, [
+        { index: 1, key: 'second', start: 30, height: 20 },
+      ])
 
-      expect(keyScroll.model.pendingScroll._tag).toBe('ScrollingToKey')
-      if (keyScroll.model.pendingScroll._tag === 'ScrollingToKey') {
-        expect(keyScroll.model.pendingScroll.key).toBe('second')
+      expect(keyScroll.model.pendingScroll._tag).toBe('Pending')
+      if (keyScroll.model.pendingScroll._tag === 'Pending') {
+        expect(keyScroll.model.pendingScroll.request).toStrictEqual({
+          _tag: 'Target',
+          target: { _tag: 'Key', key: 'second' },
+          alignment: 'Start',
+        })
       }
       expect(scrollTop).toBe(30)
     })
 
-    it('uses variable row heights and alignment when provided', async () => {
-      const keyScroll = scrollToKey(defaultInit(), {
-        items: rows,
-        itemToKey,
-        itemToRowHeightPx,
-        key: 'third',
+    it('aligns from the live rendered row height', async () => {
+      const keyScroll = scrollToKey(defaultInit(), 'third', {
         alignment: 'Center',
       })
-      const scrollTop = await executeScroll(keyScroll, 0, 50)
+      const scrollTop = await executeScroll(keyScroll, 0, 50, [
+        { index: 2, key: 'third', start: 30, height: 30 },
+      ])
 
       expect(scrollTop).toBe(20)
     })
 
-    it('returns the unchanged Model with no Command when the key is absent', () => {
-      const model = defaultInit()
-      const keyScroll = scrollToKey(model, {
-        items: rows,
-        itemToKey,
-        key: 'missing',
-      })
+    it('leaves scrollTop unchanged when the rendered key is absent', async () => {
+      const keyScroll = scrollToKey(defaultInit(), 'missing')
+      const scrollTop = await executeScroll(keyScroll, 40, 50)
 
-      expect(keyScroll.model).toBe(model)
-      expect(keyScroll.commands).toBeUndefined()
+      expect(scrollTop).toBe(40)
     })
   })
 
   describe('scrollToOffset', () => {
     it('scrolls to the requested pixel offset', async () => {
       const offsetScroll = scrollToOffset(defaultInit(), 275)
-      const scrollTop = await executeScroll(offsetScroll, 0, 90)
+      const scrollTop = await executeScroll(offsetScroll, 0, 90, [], 500)
 
-      expect(offsetScroll.model.pendingScroll._tag).toBe('ScrollingToOffset')
-      if (offsetScroll.model.pendingScroll._tag === 'ScrollingToOffset') {
-        expect(offsetScroll.model.pendingScroll.offset).toBe(275)
+      expect(offsetScroll.model.pendingScroll._tag).toBe('Pending')
+      if (offsetScroll.model.pendingScroll._tag === 'Pending') {
+        expect(offsetScroll.model.pendingScroll.request).toStrictEqual({
+          _tag: 'Target',
+          target: { _tag: 'Offset', offset: 275 },
+          alignment: 'Start',
+        })
       }
       expect(scrollTop).toBe(275)
     })
 
     it('clamps a negative pixel offset to zero', async () => {
       const offsetScroll = scrollToOffset(defaultInit(), -10)
-      const scrollTop = await executeScroll(offsetScroll, 200, 90)
+      const scrollTop = await executeScroll(offsetScroll, 200, 90, [], 500)
 
-      expect(offsetScroll.model.pendingScroll._tag).toBe('ScrollingToOffset')
-      if (offsetScroll.model.pendingScroll._tag === 'ScrollingToOffset') {
-        expect(offsetScroll.model.pendingScroll.offset).toBe(0)
-      }
       expect(scrollTop).toBe(0)
+    })
+
+    it('clamps a pixel offset to the live maximum', async () => {
+      const scrollTop = await executeScroll(
+        scrollToOffset(defaultInit(), 900),
+        0,
+        90,
+        [],
+        500,
+      )
+
+      expect(scrollTop).toBe(410)
+    })
+  })
+
+  describe('scrollToEnd', () => {
+    it('uses the live scrollHeight and container height', async () => {
+      const scrollTop = await executeScroll(
+        scrollToEnd(defaultInit()),
+        0,
+        90,
+        [],
+        500,
+      )
+
+      expect(scrollTop).toBe(410)
+    })
+  })
+
+  describe('informItemsChanged', () => {
+    it('bumps the layout version and reconciles the stored anchor', () => {
+      const itemChange = informItemsChanged(defaultInit(), ['first', 'second'])
+
+      expect(itemChange.model.layoutVersion).toBe(1)
+      expect(itemChange.model.pendingScroll._tag).toBe('Pending')
+      if (itemChange.model.pendingScroll._tag === 'Pending') {
+        expect(itemChange.model.pendingScroll.request._tag).toBe('Anchor')
+      }
+      expect(itemChange.commands ?? []).toHaveLength(1)
+    })
+  })
+
+  describe('MeasuredRows', () => {
+    it('stores measurements from the current layout and reconciles the anchor', () => {
+      const measurement = update(
+        defaultInit(),
+        Message.MeasuredRows({
+          measurements: [{ key: 'row-1', height: 72, layoutVersion: 0 }],
+        }),
+      )
+
+      expect(measurement.model.measuredRowHeights).toStrictEqual({
+        'row-1': 72,
+      })
+      expect(measurement.commands ?? []).toHaveLength(1)
+    })
+
+    it('ignores stale measurements from a previous items layout', () => {
+      const model = informItemsChanged(defaultInit(), []).model
+      const measurement = update(
+        model,
+        Message.MeasuredRows({
+          measurements: [{ key: 'stale', height: 72, layoutVersion: 0 }],
+        }),
+      )
+
+      expect(measurement.model.measuredRowHeights).toStrictEqual({})
+      expect(measurement.commands).toBeUndefined()
     })
   })
 
@@ -535,11 +788,13 @@ describe('VirtualList', () => {
         2,
       )
       expect(variableIndexScroll.model.pendingScrollVersion).toBe(1)
-      expect(variableIndexScroll.model.pendingScroll._tag).toBe(
-        'ScrollingToIndex',
-      )
-      if (variableIndexScroll.model.pendingScroll._tag === 'ScrollingToIndex') {
-        expect(variableIndexScroll.model.pendingScroll.index).toBe(2)
+      expect(variableIndexScroll.model.pendingScroll._tag).toBe('Pending')
+      if (variableIndexScroll.model.pendingScroll._tag === 'Pending') {
+        expect(variableIndexScroll.model.pendingScroll.request).toStrictEqual({
+          _tag: 'Target',
+          target: { _tag: 'Index', index: 2 },
+          alignment: 'Start',
+        })
         expect(variableIndexScroll.model.pendingScroll.version).toBe(1)
       }
       expect(variableIndexScroll.commands ?? []).toHaveLength(1)
@@ -580,7 +835,9 @@ describe('VirtualList', () => {
         2,
         { alignment: 'Center' },
       )
-      const scrollTop = await executeScroll(variableIndexScroll, 0, 50)
+      const scrollTop = await executeScroll(variableIndexScroll, 0, 50, [
+        { index: 2, key: 'row-2', start: 30, height: 30 },
+      ])
 
       expect(scrollTop).toBe(20)
     })

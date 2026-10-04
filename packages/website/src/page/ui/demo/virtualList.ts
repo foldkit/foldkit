@@ -4,6 +4,7 @@ import { type HtmlBuilder, childAttributes } from 'foldkit/html'
 import { VirtualList } from '@foldkit/ui'
 
 import { Message } from '../message'
+import type { VirtualListChatMessage } from '../model'
 
 // SAMPLE DATA
 
@@ -369,3 +370,102 @@ export const virtualListVariableDemo = (
     ),
   ]
 }
+
+// CHAT DEMO
+
+const chatMessageClassName =
+  'm-2 grid w-[calc(100%-1rem)] cursor-pointer gap-1 rounded-xl bg-gray-100 px-3 py-2 text-left text-sm text-gray-800 dark:bg-gray-800 dark:text-gray-100'
+
+const chatMessageDetailClassName =
+  'text-xs leading-relaxed text-gray-600 dark:text-gray-400'
+
+export const virtualListChatDemo = (
+  model: VirtualList.Model,
+  messages: ReadonlyArray<VirtualListChatMessage>,
+  h: HtmlBuilder<Message>,
+) => [
+  h.div(
+    [h.Class('flex w-full flex-col gap-4')],
+    [
+      h.div(
+        [h.Class('flex flex-wrap items-center justify-between gap-2')],
+        [
+          h.span(
+            [h.Class('text-sm text-gray-600 dark:text-gray-400')],
+            [
+              'Starts at the end, follows new messages, and preserves the visible message when older rows are prepended.',
+            ],
+          ),
+          h.div(
+            [h.Class('flex gap-2')],
+            [
+              h.button(
+                [
+                  h.Class(buttonClassName),
+                  h.DataAttribute('virtual-list-chat-prepend', 'true'),
+                  h.OnClick(Message.ClickedVirtualListChatPrepend()),
+                ],
+                ['Load older'],
+              ),
+              h.button(
+                [
+                  h.Class(buttonClassName),
+                  h.DataAttribute('virtual-list-chat-append', 'true'),
+                  h.OnClick(Message.ClickedVirtualListChatAppend()),
+                ],
+                ['Add message'],
+              ),
+            ],
+          ),
+        ],
+      ),
+      h.submodel({
+        slotId: model.id,
+        model,
+        view: VirtualList.view<VirtualListChatMessage>(),
+        viewInputs: {
+          items: messages,
+          itemToKey: message => globalThis.String(message.id),
+          itemToView: message =>
+            h.button(
+              [
+                h.Class(chatMessageClassName),
+                h.DataAttribute(
+                  'virtual-list-chat-message-id',
+                  globalThis.String(message.id),
+                ),
+                h.OnClick(
+                  Message.ClickedVirtualListChatToggleMessage({
+                    messageId: message.id,
+                  }),
+                ),
+              ],
+              [
+                h.span([], [message.body]),
+                ...(message.isExpanded
+                  ? [
+                      h.span(
+                        [h.Class(chatMessageDetailClassName)],
+                        [
+                          'This extra detail changes the rendered row height after the list has already positioned the viewport. The measured-height correction keeps the current anchor stable.',
+                        ],
+                      ),
+                    ]
+                  : []),
+              ],
+            ),
+          dynamicRowHeights: {},
+          contentAlignment: 'End',
+          containerClassName:
+            'h-80 w-full rounded-lg bg-white dark:bg-gray-900 ring-1 ring-gray-200 dark:ring-gray-800 overscroll-none',
+          containerAttributes: childAttributes([
+            h.AriaLabel('End-anchored chat messages'),
+            h.Tabindex(0),
+          ]),
+        },
+        toParentMessage: message =>
+          Message.GotVirtualListChatDemoMessage({ message }),
+      }),
+    ],
+  ),
+]

@@ -62,6 +62,14 @@ export const DemoColumn = Schema.Struct({
   cards: Schema.Array(DemoCard),
 })
 
+export const VirtualListChatMessage = Schema.Struct({
+  id: Schema.Number,
+  body: Schema.String,
+  isExpanded: Schema.Boolean,
+})
+
+export type VirtualListChatMessage = typeof VirtualListChatMessage.Type
+
 export const Model = Schema.Struct({
   buttonClickCount: Schema.Number,
   inputDemoValue: Schema.String,
@@ -139,5 +147,8 @@ export const Model = Schema.Struct({
   animationDemo: Animation.Model,
   virtualListDemo: VirtualList.Model,
   virtualListVariableDemo: VirtualList.Model,
+  virtualListChatDemo: VirtualList.Model,
+  virtualListChatMessages: Schema.Array(VirtualListChatMessage),
+  virtualListChatNextId: Schema.Number,
 })
 export type Model = typeof Model.Type
