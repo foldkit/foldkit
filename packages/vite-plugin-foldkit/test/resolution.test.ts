@@ -1,4 +1,4 @@
-import { Array, Option, Record, pipe } from 'effect'
+import { Array, Option, Record, Schema, pipe } from 'effect'
 import { execFile } from 'node:child_process'
 import {
   mkdir,
@@ -50,12 +50,7 @@ const makeRoot = async (files: Files): Promise<string> => {
 }
 
 const prefixPaths = (directory: string, files: Files): Files =>
-  Object.fromEntries(
-    Object.entries(files).map(([path, content]) => [
-      `${directory}/${path}`,
-      content,
-    ]),
-  )
+  Record.mapKeys(files, path => `${directory}/${path}`)
 
 // FIXTURE PACKAGES
 
@@ -272,6 +267,17 @@ const resolveDedupeInChildProcess = async (
   return JSON.parse(result.stdout)
 }
 
+const AppManifest = Schema.StructWithRest(
+  Schema.Struct({
+    devDependencies: Schema.Record(Schema.String, Schema.String),
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)],
+)
+
+const decodeAppManifest = Schema.decodeUnknownSync(
+  Schema.fromJsonString(AppManifest),
+)
+
 const ssrOutputWithAndWithout = async (
   files: Files,
   removable: ReadonlyArray<string>,
@@ -282,15 +288,16 @@ const ssrOutputWithAndWithout = async (
   for (const name of removable) {
     await rm(join(root, 'node_modules', name), { recursive: true })
   }
-  const packageJson = JSON.parse(
+
+  const manifest = decodeAppManifest(
     await readFile(join(root, 'package.json'), 'utf8'),
   )
   await writeFile(
     join(root, 'package.json'),
     JSON.stringify({
-      ...packageJson,
+      ...manifest,
       devDependencies: Record.filter(
-        packageJson.devDependencies,
+        manifest.devDependencies,
         (_version, name) => !Array.contains(removable, name),
       ),
     }),
@@ -475,12 +482,14 @@ describe('Foldkit packages in builds', () => {
       }),
       ...prefixPaths('app', entry('@foldkit/ui', 'ui-lib')),
     })
+
     await mkdir(join(workspace, 'app/node_modules'), { recursive: true })
     await symlink(
       join(workspace, 'packages/ui-lib'),
       join(workspace, 'app/node_modules/ui-lib'),
       'dir',
     )
+
     const linkParent = await makeTemporaryDirectory()
     const linkedWorkspace = join(linkParent, 'workspace')
     await symlink(workspace, linkedWorkspace, 'dir')
@@ -721,6 +730,7 @@ describe('Foldkit package deduplication', () => {
         appPackage({ foldkit: '*', 'foldkit-consumer': '*' }),
       ),
     })
+
     const root = join(workspace, 'outer/app')
     await symlink(join(workspace, 'real/app'), root, 'dir')
 

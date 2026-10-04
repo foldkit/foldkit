@@ -343,9 +343,7 @@ const isMarkdownPackageSpecifier = (specifier: string): boolean =>
 // inlined the framework rather than importing it, this travels with it.
 const FOLDKIT_INTERNAL_MARKER = 'data-foldkit-build'
 
-const assertServerBundleContainsFoldkitSingletons = (
-  buildDir: string,
-): void => {
+const assertServerBundleContainsFoldkitPackages = (buildDir: string): void => {
   const bundle = readFileSync(join(buildDir, 'server/fetch.js'), 'utf8')
   const specifiers = importSpecifiers(bundle)
   assertConsumer(
@@ -376,7 +374,9 @@ const assertServerBundleContainsFoldkitSingletons = (
       'imports load a second framework instance at runtime: ' +
       [...new Set(externalMarkdownImports)].join(', '),
   )
-  log('Server bundle contains Foldkit singletons and no bare imports')
+  log(
+    'Server bundle contains Foldkit singletons and @foldkit/markdown, with no bare imports',
+  )
 }
 
 const clientBundleSources = (buildDir: string): ReadonlyArray<string> => {
@@ -1513,8 +1513,8 @@ const main = async (): Promise<void> => {
         },
       )
 
-      assertServerBundleContainsFoldkitSingletons(servedDir)
-      assertServerBundleContainsFoldkitSingletons(currentDir)
+      assertServerBundleContainsFoldkitPackages(servedDir)
+      assertServerBundleContainsFoldkitPackages(currentDir)
       assertPackedTypesResolve(projectDir)
       assertNoSourceOracle(servedDir)
 
