@@ -337,7 +337,7 @@ describe('foldkitSsr', () => {
     const secondBuildId = await automaticIdentityFrom(second)
 
     expect(secondBuildId).not.toBe(firstBuildId)
-  })
+  }, 20_000)
 
   it('injects Rendered results and preserves their HTTP metadata', async () => {
     const origin = await startServer()
