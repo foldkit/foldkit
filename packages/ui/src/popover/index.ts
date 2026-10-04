@@ -17,7 +17,8 @@ import { modifyFields } from 'foldkit/struct'
 import { defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
 
-import { AnchorConfig, anchorSetup, portalBackdrop } from '../anchor/index.js'
+import { portalBackdrop } from '../anchor/portal.js'
+import { AnchorConfig } from '../anchor/schema.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → popover → animation.
 // The barrel (../animation) imports from html, which starts the cycle.
@@ -413,16 +414,19 @@ export const AnchorPopover = Mount.define('AnchorPopover', {
   }) =>
     Effect.gen(function* () {
       yield* Effect.acquireRelease(
-        Effect.sync(() =>
-          anchorSetup(element, {
-            buttonId,
-            anchor,
-            interceptTab: false,
-            focusAfterPosition: true,
-            ...(focusSelector !== undefined && { focusSelector }),
-            ...(arrowId !== undefined && { arrowId }),
-            ...(arrowPadding !== undefined && { arrowPadding }),
-          }),
+        Effect.tryPromise(() => import('../anchor/anchor.js')).pipe(
+          Effect.orDie,
+          Effect.map(({ anchorSetup }) =>
+            anchorSetup(element, {
+              buttonId,
+              anchor,
+              interceptTab: false,
+              focusAfterPosition: true,
+              ...(focusSelector !== undefined && { focusSelector }),
+              ...(arrowId !== undefined && { arrowId }),
+              ...(arrowPadding !== undefined && { arrowPadding }),
+            }),
+          ),
         ),
         cleanup => Effect.sync(cleanup),
       )

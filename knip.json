@@ -103,6 +103,9 @@
     "comparisons/*": {
       "ignoreDependencies": ["tailwindcss"]
     },
+    "internal/bundle-size": {
+      "entry": ["src/*.ts"]
+    },
     "internal/lustre-benchmark": {
       "entry": ["src/main.ts", "src/entry.optimised.ts", "bench/*.mjs"]
     },

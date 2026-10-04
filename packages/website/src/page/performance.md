@@ -78,7 +78,29 @@ When something is slow, work through this list in order:
 
 ## Bundle size and code splitting
 
-The package is ESM-only, marked side-effect-free, and exposed through subpath exports, so bundlers tree-shake everything an app does not import. A minimal counter app builds to about 270 KB raw and just under 90 KB gzipped, and that includes the Foldkit runtime, its vendored differ, and Effect itself. Effect is the largest share of the baseline, and it is not dead weight: it is the same library your application code uses for Commands, Schemas, and data manipulation.
+The counter fixture ships 94.9 KB of initial JavaScript after gzip. Adding the Popover API raises that to 101.5 KB and defers 8.0 KB until its positioning Mount runs. These are consumer bundle measurements, not standalone package sizes.
+
+Both `foldkit` and `@foldkit/ui` are ESM-only, marked side-effect-free, and exposed through subpath exports. A [consumer bundle-size harness](https://github.com/foldkit/foldkit/tree/main/internal/bundle-size) builds against their compiled package exports with Vite, the Foldkit plugin, Oxc minification, and an ES2022 target. It records raw, gzip, and Brotli sizes for emitted browser files and checks that unrelated modules stay out of small applications.
+
+The fixtures have no CSS. The table separates initial from deferred JavaScript; each UI row starts with the same minimal Foldkit counter:
+
+### Measurements
+
+| Consumer                  | Initial raw | Initial gzip | Initial Brotli | Deferred gzip |
+| ------------------------- | ----------: | -----------: | -------------: | ------------: |
+| Effect Schema decode only |     67.5 KB |      22.1 KB |        20.1 KB |             — |
+| Foldkit counter           |    290.9 KB |      94.9 KB |        83.1 KB |             — |
+| Counter + Button          |    291.2 KB |      95.3 KB |        83.3 KB |             — |
+| Counter + Dialog API      |    310.7 KB |      99.8 KB |        87.4 KB |             — |
+| Counter + Popover API     |    316.0 KB |     101.5 KB |        88.8 KB |        8.0 KB |
+| Counter + Combobox API    |    349.2 KB |     111.7 KB |        97.5 KB |             — |
+| Counter + DatePicker API  |    349.1 KB |     109.8 KB |        95.6 KB |        8.0 KB |
+
+### Interpretation
+
+The Button row is a working app. The other UI rows retain each component's public runtime API in that app, which shows its loading cost without treating any one consumer's integration code as part of the component. Their differences are not additive. The [baseline and methodology](https://github.com/foldkit/foldkit/tree/main/internal/bundle-size) are versioned with the source. Foldkit's base includes the runtime, renderer, and Effect. Popover and DatePicker defer Floating UI until a Popover positioning Mount runs. This trades a smaller initial download for a first-open chunk request. The root and subpath Button imports produce the same raw size in this build, while the root Popover import is within 0.5 KB gzip of its subpath import.
+
+A separate lazy Popover probe keeps the entire UI API out of the initial chunk: it measures 99.5 KB gzip initially and 13.8 KB gzip deferred. This consumer-level split is independent of the component's own deferred positioning code. The dynamic-import loader adds some initial bytes, so these numbers describe loading tradeoffs rather than smaller total bundles.
 
 What splits today:
 
