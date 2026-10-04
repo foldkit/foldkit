@@ -24,10 +24,9 @@ Start with architecture and correctness. Then audit the entire diff for API desi
 
 - Search for the whole defect class after finding one instance.
 - Read test names, fixture names, comments, TSDoc, changeset text, and user-facing copy as prose.
-- Keep optional behavior inert when disabled.
-- Model concurrent interaction state at the entity that owns it and preserve the originating event identity.
-- Test behavior at the abstraction that owns it. Do not put direct Subscription lifecycle tests in a Scene or Story suite merely because the component also has those suites.
-- For UI changes, inspect both the website and UI showcase when they expose the component. Exercise native interaction, disabled behavior, concurrent input, animation boundaries, text selection, and content whose width changes at runtime when relevant.
+- Apply the repository conventions relevant to the changed subsystem. Do not turn concerns from an unrelated component into review requirements.
+- Put tests in the suite owned by the behavior or abstraction under test.
+- For UI changes, inspect both the website and UI showcase when they expose the component. Exercise the browser behavior changed by the diff, including opt-out or disabled behavior and representative dynamic states when relevant.
 
 Do not expand a focused contribution into a repository-wide migration or a new testing framework. Open a follow-up issue for worthwhile adjacent work.
 
