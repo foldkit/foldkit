@@ -222,6 +222,64 @@ describe('HtmlBuilder runtime guarantees', () => {
     expect(omitted).toEqual(explicit)
   })
 
+  it('normalizes frozen reused children without changing their order or shape', () => {
+    const child = inertHtml.span([], ['nested'])
+    const children = Object.freeze([
+      'before',
+      inertHtml.empty,
+      child,
+      '',
+      'after',
+    ])
+
+    const firstParent = inertHtml.div([], children)
+    const secondParent = inertHtml.div([], children)
+
+    expect(children).toEqual(['before', null, child, '', 'after'])
+    expect(firstParent?.children).not.toBe(children)
+    expect(firstParent?.children).toEqual([
+      {
+        sel: undefined,
+        data: undefined,
+        children: undefined,
+        text: 'before',
+        elm: undefined,
+        key: undefined,
+      },
+      child,
+      {
+        sel: undefined,
+        data: undefined,
+        children: undefined,
+        text: '',
+        elm: undefined,
+        key: undefined,
+      },
+      {
+        sel: undefined,
+        data: undefined,
+        children: undefined,
+        text: 'after',
+        elm: undefined,
+        key: undefined,
+      },
+    ])
+    expect(secondParent?.children).toEqual(firstParent?.children)
+    expect(secondParent?.children).not.toBe(firstParent?.children)
+    expect(firstParent?.children).toContain(child)
+    expect(secondParent?.children).toContain(child)
+  })
+
+  it('does not propagate a rejected content owner namespace into its child', () => {
+    const child = inertHtml.circle([])
+
+    expect(() =>
+      inertHtml.svg([inertHtml.InnerHTML('<circle />')], [child]),
+    ).toThrow('was given both h.InnerHTML and children')
+
+    expect(child?.data?.ns).toBeUndefined()
+  })
+
   it('hands out one process-wide builder object across Message instantiations', () => {
     const parentBuilder: unknown = __htmlBuilder<ParentMessage>()
     const childBuilder: unknown = __htmlBuilder<ChildMessage>()

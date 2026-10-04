@@ -116,4 +116,85 @@ describe('controlled select on a fresh render', () => {
       container.remove()
     }
   })
+
+  it('restores keyed output and select defaults when controlled content releases to InnerHTML', () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    try {
+      const controlledView = buildView(() =>
+        builder.form(
+          [],
+          [
+            builder.keyed('output')('released-output', [
+              builder.Id('released-output'),
+              builder.Value('controlled'),
+            ]),
+            builder.keyed('select')(
+              'released-select',
+              [builder.Id('released-select'), builder.Value('b')],
+              [
+                builder.option([builder.Value('a')], ['A']),
+                builder.option([builder.Value('b')], ['B']),
+              ],
+            ),
+          ],
+        ),
+      )
+      let mounted = __patchVNode(Option.none(), controlledView, container)
+      const controlledOutput =
+        document.querySelector<HTMLOutputElement>('#released-output')
+      const controlledSelect =
+        document.querySelector<HTMLSelectElement>('#released-select')
+
+      const releasedView = buildView(() =>
+        builder.form(
+          [],
+          [
+            builder.keyed('output')('released-output', [
+              builder.Id('released-output'),
+              builder.InnerHTML(
+                '<span id="output-child">output default</span>',
+              ),
+            ]),
+            builder.keyed('select')('released-select', [
+              builder.Id('released-select'),
+              builder.InnerHTML(
+                '<option value="a" selected>A</option><option value="b">B</option>',
+              ),
+            ]),
+          ],
+        ),
+      )
+      mounted = __patchVNode(Option.some(mounted), releasedView, container)
+      const releasedOutput =
+        document.querySelector<HTMLOutputElement>('#released-output')
+      const releasedSelect =
+        document.querySelector<HTMLSelectElement>('#released-select')
+
+      expect(releasedOutput).toBe(controlledOutput)
+      expect(releasedOutput?.querySelector('#output-child')?.textContent).toBe(
+        'output default',
+      )
+      expect(releasedOutput?.value).toBe('output default')
+      expect(releasedOutput?.defaultValue).toBe('output default')
+      expect(releasedSelect).toBe(controlledSelect)
+      expect({
+        isSelectedAttributePresent: releasedSelect
+          ?.querySelector('option')
+          ?.hasAttribute('selected'),
+        innerHtml: releasedSelect?.innerHTML,
+        optionCount: releasedSelect?.options.length,
+        value: releasedSelect?.value,
+      }).toEqual({
+        isSelectedAttributePresent: true,
+        innerHtml:
+          '<option value="a" selected="">A</option><option value="b">B</option>',
+        optionCount: 2,
+        value: 'a',
+      })
+    } finally {
+      container.remove()
+    }
+  })
 })

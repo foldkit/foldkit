@@ -147,6 +147,36 @@ export function addMathmlNS(
   propagateMathmlNamespace(data, children, sel)
 }
 
+const finalizeVNode = (
+  sel: string,
+  data: VNodeData,
+  children: Array<VNode | string> | undefined,
+  text: string | undefined,
+): VNode => {
+  if (
+    sel.startsWith('svg') &&
+    (sel.length === 3 || sel[3] === '.' || sel[3] === '#')
+  ) {
+    addNS(data, children, sel)
+  } else if (
+    sel.startsWith('math') &&
+    (sel.length === 4 || sel[4] === '.' || sel[4] === '#')
+  ) {
+    addMathmlNS(data, children, sel)
+  }
+  return vnode(sel, data, children, text, undefined)
+}
+
+/** Constructs a VNode from an owned child array whose text is already normalized.
+ *
+ * @internal
+ */
+export const __hWithNormalizedChildren = (
+  sel: string,
+  data: VNodeData,
+  children: Array<VNode>,
+): VNode => finalizeVNode(sel, data, children, undefined)
+
 export function h(sel: string): VNode
 export function h(sel: string, data: VNodeData | null): VNode
 export function h(sel: string, children: VNodeChildren): VNode
@@ -194,16 +224,5 @@ export function h(sel: any, b?: any, c?: any): VNode {
         )
     }
   }
-  if (
-    sel.startsWith('svg') &&
-    (sel.length === 3 || sel[3] === '.' || sel[3] === '#')
-  ) {
-    addNS(data, children, sel)
-  } else if (
-    sel.startsWith('math') &&
-    (sel.length === 4 || sel[4] === '.' || sel[4] === '#')
-  ) {
-    addMathmlNS(data, children, sel)
-  }
-  return vnode(sel, data, children, text, undefined)
+  return finalizeVNode(sel, data, children, text)
 }
