@@ -374,6 +374,19 @@ const HTML_PROPERTY_ELEMENTS: Readonly<Record<string, ReadonlySet<string>>> = {
 }
 
 /** Whether assigning a typed property can be represented by parsed HTML for
+ * an already-lowercase target element name.
+ *
+ * @internal
+ */
+export const isHtmlPropertyRepresentableForLowerTag = (
+  lowerTagName: string,
+  propertyName: string,
+): boolean =>
+  GLOBAL_ATTRIBUTE_PROPERTIES.has(propertyName) ||
+  (Object.hasOwn(HTML_PROPERTY_ELEMENTS, propertyName) &&
+    HTML_PROPERTY_ELEMENTS[propertyName]?.has(lowerTagName) === true)
+
+/** Whether assigning a typed property can be represented by parsed HTML for
  * the target element.
  *
  * @internal

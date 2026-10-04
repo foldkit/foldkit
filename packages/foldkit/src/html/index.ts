@@ -21,6 +21,7 @@ import {
   assertStyleIsRepresentable,
   htmlAttributeValue,
   isHtmlPropertyRepresentable,
+  isHtmlPropertyRepresentableForLowerTag,
   normalizedStyleProperties,
   reflectedAttributeName,
 } from '../domReflection.js'
@@ -44,13 +45,15 @@ import {
   markTrustedInnerHtml,
   unmarkClientOnlyProperty,
 } from '../propertyProvenance.js'
+import { __hWithNormalizedChildren } from '../snabbdom/h.js'
 import {
   type On,
   type VNodeData,
   VNodeDataMask,
-  h,
   vnodeDataMaskKey,
 } from '../snabbdom/index.js'
+import * as SnabbdomIs from '../snabbdom/is.js'
+import { vnode } from '../snabbdom/vnode.js'
 import { tagNameFromSelector } from '../tagName.js'
 import { VNode } from '../vdom.js'
 import { type ChildAttribute, isChildAttribute } from './childAttribute.js'
@@ -2510,17 +2513,20 @@ const buildVNodeData = <Message>(
 }
 
 // NOTE: one fresh mutable array per element in a single pass: `h.empty`
-// children (null) are dropped, and snabbdom's `h` converts primitive
-// children to text vnodes in place, so the caller's array must never be
-// handed over directly.
-const copyChildrenDroppingEmpty = (
+// children (null) are dropped, and primitives take the same text-VNode path
+// generic snabbdom `h` uses, so the caller's array is never mutated.
+const normalizeChildrenDroppingEmpty = (
   children: ReadonlyArray<Child>,
-): Array<VNode | string> => {
-  const next: Array<VNode | string> = []
+): Array<VNode> => {
+  const next: Array<VNode> = []
   for (let index = 0; index < children.length; index++) {
     const child = children[index]
     if (child !== null && child !== undefined) {
-      next.push(child)
+      if (SnabbdomIs.primitive(child)) {
+        next.push(vnode(undefined, undefined, undefined, child, undefined))
+      } else {
+        next.push(child)
+      }
     }
   }
   return next
@@ -2554,6 +2560,16 @@ const VOID_CONTENT_ELEMENTS: ReadonlySet<string> = new Set([
   'wbr',
 ])
 
+type BuiltInElementMetadata = Readonly<{
+  lowerTagName: string
+  isInput: boolean
+  isValueWithChildrenForbidden: boolean
+  isControlledContentElement: boolean
+  isVoidContentElement: boolean
+  doubleIdlProperties: ReadonlySet<string> | undefined
+  longIdlProperties: ReadonlySet<string> | undefined
+}>
+
 // One owner per element's content. Both `h.InnerHTML` and a client-only
 // `innerHTML` property hand the element an opaque subtree. A view that also
 // declares children or a controlled value gives the differ child vnodes for
@@ -2566,10 +2582,14 @@ const assertSingleContentOwner = (
   tagName: string,
   data: VNodeData,
   children: ReadonlyArray<Child>,
+  metadata: BuiltInElementMetadata | undefined,
 ): void => {
-  const lowerTagName = tagName.toLowerCase()
+  const lowerTagName = metadata?.lowerTagName ?? tagName.toLowerCase()
+  const isValueWithChildrenForbidden =
+    metadata?.isValueWithChildrenForbidden ??
+    (lowerTagName === 'textarea' || lowerTagName === 'output')
   if (
-    (lowerTagName === 'textarea' || lowerTagName === 'output') &&
+    isValueWithChildrenForbidden &&
     data.props?.['value'] !== undefined &&
     children.length > 0
   ) {
@@ -2603,7 +2623,8 @@ const assertSingleContentOwner = (
     )
   }
   if (
-    CONTROLLED_CONTENT_ELEMENTS.has(lowerTagName) &&
+    (metadata?.isControlledContentElement ??
+      CONTROLLED_CONTENT_ELEMENTS.has(lowerTagName)) &&
     data.props?.['value'] !== undefined
   ) {
     throw new Error(
@@ -2612,7 +2633,10 @@ const assertSingleContentOwner = (
         'disagree once the client reasserts the value. Keep one of them.',
     )
   }
-  if (VOID_CONTENT_ELEMENTS.has(lowerTagName)) {
+  if (
+    metadata?.isVoidContentElement ??
+    VOID_CONTENT_ELEMENTS.has(lowerTagName)
+  ) {
     throw new Error(
       `[foldkit] <${lowerTagName}> cannot hold content, so ${innerHtmlOwner} ` +
         'on it ' +
@@ -2669,6 +2693,22 @@ const DOUBLE_IDL_PROPERTIES: Readonly<Record<string, ReadonlySet<string>>> = {
 
 const LONG_IDL_PROPERTIES: Readonly<Record<string, ReadonlySet<string>>> = {
   li: new Set(['value']),
+}
+
+const createBuiltInElementMetadata = (
+  tagName: TagName,
+): BuiltInElementMetadata => {
+  const lowerTagName = tagName.toLowerCase()
+  return {
+    lowerTagName,
+    isInput: lowerTagName === 'input',
+    isValueWithChildrenForbidden:
+      lowerTagName === 'textarea' || lowerTagName === 'output',
+    isControlledContentElement: CONTROLLED_CONTENT_ELEMENTS.has(lowerTagName),
+    isVoidContentElement: VOID_CONTENT_ELEMENTS.has(lowerTagName),
+    doubleIdlProperties: DOUBLE_IDL_PROPERTIES[lowerTagName],
+    longIdlProperties: LONG_IDL_PROPERTIES[lowerTagName],
+  }
 }
 
 const assertDoubleIdlValue = (
@@ -2728,14 +2768,22 @@ const effectiveInputType = (data: VNodeData): string | undefined => {
 const assertElementStateIsRepresentable = (
   tagName: string,
   data: VNodeData,
+  metadata: BuiltInElementMetadata | undefined,
 ): void => {
   const props = data.props
   if (props === undefined) {
     return
   }
-  const lowerTagName = tagName.toLowerCase()
-  const doubleIdl = DOUBLE_IDL_PROPERTIES[lowerTagName]
-  const longIdl = LONG_IDL_PROPERTIES[lowerTagName]
+  const lowerTagName = metadata?.lowerTagName ?? tagName.toLowerCase()
+  const doubleIdl =
+    metadata === undefined
+      ? DOUBLE_IDL_PROPERTIES[lowerTagName]
+      : metadata.doubleIdlProperties
+  const longIdl =
+    metadata === undefined
+      ? LONG_IDL_PROPERTIES[lowerTagName]
+      : metadata.longIdlProperties
+  const isInput = metadata?.isInput ?? lowerTagName === 'input'
 
   for (const propName of Object.keys(props)) {
     const value = props[propName]
@@ -2748,7 +2796,7 @@ const assertElementStateIsRepresentable = (
     if (longIdl?.has(propName) === true) {
       assertLongIdlValue(lowerTagName, propName, value)
     }
-    if (lowerTagName === 'input' && propName === 'size' && value === 0) {
+    if (isInput && propName === 'size' && value === 0) {
       throw new Error(
         numericPropertyRefusal(propName, value) +
           `Use an integer from 1 to ${String(SIGNED_LONG_MAXIMUM)} on an input.`,
@@ -2778,7 +2826,7 @@ const assertElementStateIsRepresentable = (
     }
   }
 
-  if (lowerTagName === 'input' && effectiveInputType(data) === 'file') {
+  if (isInput && effectiveInputType(data) === 'file') {
     const value = props['value']
     if (typeof value === 'string' && value !== '') {
       throw new Error(
@@ -2800,6 +2848,7 @@ const assertElementStateIsRepresentable = (
 const markUnreflectedHtmlPropertiesClientOnly = (
   tagName: string,
   data: VNodeData,
+  metadata: BuiltInElementMetadata | undefined,
 ): void => {
   const props = data.props
   if (props === undefined) {
@@ -2808,7 +2857,12 @@ const markUnreflectedHtmlPropertiesClientOnly = (
   for (const propName of Object.keys(props)) {
     if (
       reflectedAttributeName(propName) !== undefined &&
-      !isHtmlPropertyRepresentable(tagName, propName)
+      !(metadata === undefined
+        ? isHtmlPropertyRepresentable(tagName, propName)
+        : isHtmlPropertyRepresentableForLowerTag(
+            metadata.lowerTagName,
+            propName,
+          ))
     ) {
       markClientOnlyProperty(props, propName)
     }
@@ -2865,41 +2919,61 @@ const buildElement = (
   tagName: string,
   data: VNodeData,
   children: ReadonlyArray<Child>,
+  metadata: BuiltInElementMetadata | undefined,
 ): Html => {
-  const copiedChildren = copyChildrenDroppingEmpty(children)
-  markUnreflectedHtmlPropertiesClientOnly(tagName, data)
-  assertSingleContentOwner(tagName, data, copiedChildren)
+  const normalizedChildren = normalizeChildrenDroppingEmpty(children)
+  markUnreflectedHtmlPropertiesClientOnly(tagName, data, metadata)
+  assertSingleContentOwner(tagName, data, normalizedChildren, metadata)
   assertSingleStyleOwner(data)
   if (data.style !== undefined) {
     assertStyleIsRepresentable(data.style)
   }
-  assertElementStateIsRepresentable(tagName, data)
-  if (
-    tagName.toLowerCase() === 'select' ||
-    tagName.toLowerCase() === 'textarea' ||
-    tagName.toLowerCase() === 'output'
-  ) {
+  assertElementStateIsRepresentable(tagName, data, metadata)
+  const isControlledContentOwnershipHookNeeded =
+    metadata?.isControlledContentElement ??
+    (tagName.toLowerCase() === 'select' ||
+      tagName.toLowerCase() === 'textarea' ||
+      tagName.toLowerCase() === 'output')
+  if (isControlledContentOwnershipHookNeeded) {
     attachControlledContentOwnershipHook(data)
   }
-  const built = h(tagName, data, copiedChildren)
+  const built = __hWithNormalizedChildren(tagName, data, normalizedChildren)
   assertForeignPropertiesAreRepresentable(built)
   return built
 }
 
 const createElement = <Message>(
   tagName: string,
+  metadata: BuiltInElementMetadata | undefined,
   attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
   children: ReadonlyArray<Child> = [],
-): Html => buildElement(tagName, buildVNodeData(attributes), children)
+): Html => buildElement(tagName, buildVNodeData(attributes), children, metadata)
+
+const builtInElementMetadataByTagName = new Map<
+  TagName,
+  BuiltInElementMetadata
+>()
+
+const registerBuiltInElement = (tagName: TagName): BuiltInElementMetadata => {
+  const registered = builtInElementMetadataByTagName.get(tagName)
+  if (registered !== undefined) {
+    return registered
+  }
+
+  const metadata = createBuiltInElementMetadata(tagName)
+  builtInElementMetadataByTagName.set(tagName, metadata)
+  return metadata
+}
 
 const element =
   <Message>() =>
-  (tagName: TagName) =>
-  (
-    attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
-    children: ReadonlyArray<Child> = [],
-  ): Html =>
-    createElement(tagName, attributes, children)
+  (tagName: TagName) => {
+    const metadata = registerBuiltInElement(tagName)
+    return (
+      attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
+      children: ReadonlyArray<Child> = [],
+    ): Html => createElement(tagName, metadata, attributes, children)
+  }
 
 export const customElement =
   <Message>() =>
@@ -2908,25 +2982,30 @@ export const customElement =
     attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
     children: ReadonlyArray<Child> = [],
   ): Html =>
-    createElement(tagName, attributes, children)
+    createElement(tagName, undefined, attributes, children)
 
 const voidElement =
   <Message>() =>
-  (tagName: TagName) =>
-  (attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = []): Html =>
-    createElement(tagName, attributes, [])
+  (tagName: TagName) => {
+    const metadata = registerBuiltInElement(tagName)
+    return (
+      attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
+    ): Html => createElement(tagName, metadata, attributes, [])
+  }
 
 const keyed =
   <Message>(): KeyedFunction<Message> =>
-  (tagName: TagName) =>
-  (
-    key: PropertyKey,
-    attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
-    children: ReadonlyArray<Child> = [],
-  ): Html => {
-    const data = buildVNodeData(attributes)
-    data.key = key
-    return buildElement(tagName, data, children)
+  (tagName: TagName) => {
+    const metadata = builtInElementMetadataByTagName.get(tagName)
+    return (
+      key: PropertyKey,
+      attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
+      children: ReadonlyArray<Child> = [],
+    ): Html => {
+      const data = buildVNodeData(attributes)
+      data.key = key
+      return buildElement(tagName, data, children, metadata)
+    }
   }
 
 type ElementFunction<Message> = (
