@@ -46,25 +46,26 @@ const dependsOnFoldkit = (
     Array.some(isFoldkitPackageName),
   )
 
+const toRealPath = (path: string): string => {
+  try {
+    return realpathSync(path)
+  } catch {
+    return path
+  }
+}
+
 const toCrawlRoot = (root: string, isPreservingSymlinks: boolean): string => {
   const absoluteRoot = resolve(root)
 
   // NOTE: The crawl and the dedupe lookup must start from the root Vite
   // resolves from: the path as given under resolve.preserveSymlinks, and its
   // realpath otherwise. Any other root makes them walk a different directory
-  // chain than Vite's resolver. Without preserveSymlinks, the realpath also
-  // matters to vitefu, which realpaths each dependency's package.json and
-  // compares it with workspaceRoot. An unresolved root that runs through a
-  // symlink would stop private workspace packages from being recognized.
+  // chain than Vite's resolver.
   if (isPreservingSymlinks) {
     return absoluteRoot
   }
 
-  try {
-    return realpathSync(absoluteRoot)
-  } catch {
-    return absoluteRoot
-  }
+  return toRealPath(absoluteRoot)
 }
 
 /** Finds the installed packages an application's server render must bundle
@@ -84,9 +85,14 @@ export const crawlFoldkitPackages = async (
     viteUserConfig.resolve?.preserveSymlinks ?? false,
   )
 
+  // NOTE: vitefu realpaths each dependency's package.json before comparing it
+  // with workspaceRoot, including when Vite preserves symlinks. The workspace
+  // boundary must use the same form so private workspace packages are found.
+  const workspaceRoot = toRealPath(searchForWorkspaceRoot(crawlRoot))
+
   const crawl = await crawlFrameworkPkgs({
     root: crawlRoot,
-    workspaceRoot: searchForWorkspaceRoot(crawlRoot),
+    workspaceRoot,
     isBuild,
     viteUserConfig,
     isSemiFrameworkPkgByJson: dependsOnFoldkit,

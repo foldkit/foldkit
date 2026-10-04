@@ -450,7 +450,7 @@ describe('Foldkit packages in builds', () => {
     expect(output.viaConsumer).toBe(output.instance)
   })
 
-  it('crawls the devDependencies of a private workspace package through a symlinked root', async () => {
+  it('crawls private workspace devDependencies through a symlinked root with or without preserveSymlinks', async () => {
     const workspace = await makeRoot({
       'package.json': JSON.stringify({
         name: 'workspace',
@@ -494,8 +494,13 @@ describe('Foldkit packages in builds', () => {
     const linkedWorkspace = join(linkParent, 'workspace')
     await symlink(workspace, linkedWorkspace, 'dir')
 
-    const output = await loadBuild(join(linkedWorkspace, 'app'), 'Ssr')
+    const root = join(linkedWorkspace, 'app')
+    const preservedFoldkitPackages = await crawlFoldkitPackages(root, true, {
+      resolve: { preserveSymlinks: true },
+    })
+    const output = await loadBuild(root, 'Ssr')
 
+    expect(preservedFoldkitPackages.ssrNoExternal).toContain('ui-consumer')
     expect(output.viaConsumer).toBe(output.instance)
   })
 
