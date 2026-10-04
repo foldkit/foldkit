@@ -50,6 +50,7 @@ export const loadingPostsModel = Model.make({
 const loadedPostsQueryModel = postsQuery.update(
   loadingPostsQueryModel,
   postsQuery.Message.CompletedFetch({
+    generation: loadingPostsQueryModel.generation,
     result: Result.succeed({ posts: fixturePosts, fetchedAt: FETCHED_AT }),
   }),
 ).model
@@ -61,6 +62,7 @@ export const loadedPostsModel = modifyFields(loadingPostsModel, {
 const failedPostsQueryModel = postsQuery.update(
   loadingPostsQueryModel,
   postsQuery.Message.CompletedFetch({
+    generation: loadingPostsQueryModel.generation,
     result: Result.fail('The server is down.'),
   }),
 ).model
@@ -78,6 +80,7 @@ const loadedFirstPostQueryModel = postQuery.update(
   loadingFirstPostQueryModel,
   postQuery.Message.CompletedFetch({
     args: firstPostArgs,
+    generation: loadingFirstPostQueryModel.generation,
     result: Result.succeed({
       post: firstPostDetail,
       fetchedAt: FETCHED_AT,
@@ -93,6 +96,7 @@ const failedFirstPostQueryModel = postQuery.update(
   loadingFirstPostQueryModel,
   postQuery.Message.CompletedFetch({
     args: firstPostArgs,
+    generation: loadingFirstPostQueryModel.generation,
     result: Result.fail('The connection dropped.'),
   }),
 ).model
@@ -113,6 +117,7 @@ export const loadingStatsModel = modifyFields(loadedPostsModel, {
 const loadedStatsQueryModel = statsQuery.update(
   loadingStatsQueryModel,
   statsQuery.Message.CompletedFetch({
+    generation: loadingStatsQueryModel.generation,
     result: Result.succeed({ stats: fixtureStats, fetchedAt: FETCHED_AT }),
   }),
 ).model

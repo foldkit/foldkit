@@ -20,7 +20,7 @@ Pass `name`, `data`, `error`, and `execute`. `execute` is the Effect that fetche
 
 ::Snippet{name="queryDefine" label="Query.define"}
 
-Add `args` for a KeyedQuery. Each distinct key retains a separate `AsyncData` entry. By default, Query JSON-encodes the complete arguments as the key. Supply `toKey` when only part of the arguments identifies the fetched resource. Read an entry with `query.read(model, args)`.
+Add `args` for a KeyedQuery. Each distinct key retains a separate `AsyncData` entry. By default, Query Schema-encodes the complete arguments as JSON, recursively sorts object property names, and preserves array order. Supply `toKey` when the resource has a different identity, such as when only part of the arguments identifies it. Read an entry with `query.read(model, args)`.
 
 ::Snippet{name="queryKeyedDefine" label="KeyedQuery.define"}
 
@@ -38,9 +38,19 @@ Each policy deduplicates an existing request: `Loading` and `Refreshing` return 
 
 Use `loadIfMissing` when revisiting loaded data should be a cache hit. Use `revalidate` for background work that applies only to loaded data. Use `revalidateOrLoad` when the same entry point must handle both a cold Model and an existing value, such as application initialization or a Retry button.
 
+Each fetch records a request generation in the Query Model. A completion changes the Model only when it belongs to the request that is still pending. This prevents an older response from overwriting a request started later as long as Query lifecycle operations preserve that request history.
+
+Use `query.reset(model)` to return a Query to `Idle` while preserving that request identity. KeyedQuery `reset` clears every retained entry. `init()` is only for constructing the initial parent Model. Never replace a live Query with a new `init()` Model: both Models can allocate the same generation, allowing a completion from the earlier Model to settle the newer one.
+
+`query.Fetch` identifies the generated Command in Story and Scene tests. Start fetches through `loadIfMissing`, `revalidate`, or `revalidateOrLoad`; calling `Fetch` directly would skip the matching Model transition and request generation.
+
+:::Warning{label="Development reloads"}
+During a Vite development reload, Foldkit restores the Model but cannot restart Commands that were running in the previous runtime. A Query restored in `Loading` or `Refreshing` can therefore remain pending until a full browser reload starts the application again. This limitation applies to any Model state backed by an in-flight Command.
+:::
+
 ## Lift into a parent
 
-`query.lift` returns the Query operations lifted into the parent Model and Message. Bind that value for the resource, such as `posts`. When the Query Model is a direct field of the parent, pass that `parentField` with `toParentMessage`, the same Message adapter `Update.foldChild` takes. A `Got*` handler calls `posts.fold(model, message)`. Loading Steps live on the same value, such as `posts.revalidateOrLoad(model)`.
+`query.lift` returns the Query operations lifted into the parent Model and Message. Bind that value for the resource, such as `posts`. When the Query Model is a direct field of the parent, pass that `parentField` with `toParentMessage`, the same Message adapter `Update.foldChild` takes. A `Got*` handler calls `posts.fold(model, message)`. Loading and reset Steps live on the same value, such as `posts.revalidateOrLoad(model)` and `posts.reset(model)`.
 
 `fold` is an `Update.Fold`. Data-first is `posts.fold(model, message)`. Data-last is `posts.fold(message)`, so it composes with `Update.combine`.
 
@@ -54,4 +64,4 @@ Pass a full `read` / `write` lens instead when the Query Model is optional, nest
 
 ## Full API Surface
 
-The [Query API reference](/api-reference/experimental-query) lists `define`, `read`, `lift`, `run`, and the Query and KeyedQuery types.
+The [Query API reference](/api-reference/experimental-query) lists `define`, `read`, `reset`, `lift`, `run`, and the Query and KeyedQuery types.

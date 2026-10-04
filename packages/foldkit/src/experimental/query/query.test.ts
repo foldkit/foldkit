@@ -23,12 +23,6 @@ import type { SyncFields } from './keyedQuery.js'
 const Note = Schema.Struct({ id: Schema.String, body: Schema.String })
 type Note = typeof Note.Type
 
-const entryKey = Schema.Unknown.pipe(
-  Schema.toCodecJson,
-  Schema.fromJsonString,
-  Schema.encodeUnknownSync,
-)
-
 const notes = Query.define({
   name: 'Notes',
   data: Schema.Array(Note),
@@ -89,6 +83,7 @@ const loadedNoteById = (noteId: string) => {
     loading.model,
     noteById.Message.CompletedFetch({
       args,
+      generation: loading.model.generation,
       result: Result.succeed({ id: noteId, body: 'hello' }),
     }),
   ).model
@@ -156,51 +151,69 @@ describe('Query loading policies', () => {
     const started = notes.revalidateOrLoad(notes.init())
     expect(notes.read(started.model)).toEqual(AsyncData.Loading())
     expect(started.commands?.map(commandShape)).toEqual([
-      commandShape(notes.Fetch()),
+      commandShape(notes.Fetch({ generation: started.model.generation })),
     ])
 
     const ignoredLoading = notes.revalidateOrLoad(started.model)
     expect(ignoredLoading.model).toBe(started.model)
     expect(ignoredLoading.commands).toBeUndefined()
 
-    const refreshing = { data: AsyncData.Refreshing({ data: hello }) }
+    const refreshing = notes.Model.make({
+      data: AsyncData.Refreshing({ data: hello }),
+      generation: 1,
+    })
     const ignoredRefreshing = notes.revalidateOrLoad(refreshing)
     expect(ignoredRefreshing.model).toBe(refreshing)
     expect(ignoredRefreshing.commands).toBeUndefined()
   })
 
   it('revalidate refreshes settled data-bearing states', () => {
-    const success = { data: AsyncData.Success({ data: hello }) }
+    const success = notes.Model.make({
+      data: AsyncData.Success({ data: hello }),
+      generation: 0,
+    })
     const fromSuccess = notes.revalidate(success)
     expect(notes.read(fromSuccess.model)).toEqual(
       AsyncData.Refreshing({ data: hello }),
     )
     expect(fromSuccess.commands?.map(commandShape)).toEqual([
-      commandShape(notes.Fetch()),
+      commandShape(notes.Fetch({ generation: fromSuccess.model.generation })),
     ])
 
-    const stale = { data: AsyncData.Stale({ error: 'boom', data: hello }) }
+    const stale = notes.Model.make({
+      data: AsyncData.Stale({ error: 'boom', data: hello }),
+      generation: 0,
+    })
     const fromStale = notes.revalidate(stale)
     expect(notes.read(fromStale.model)).toEqual(
       AsyncData.Refreshing({ data: hello }),
     )
     expect(fromStale.commands?.map(commandShape)).toEqual([
-      commandShape(notes.Fetch()),
+      commandShape(notes.Fetch({ generation: fromStale.model.generation })),
     ])
 
     const idle = notes.init()
     expect(notes.revalidate(idle)).toEqual({ model: idle })
-    const failure = { data: AsyncData.Failure({ error: 'boom' }) }
+    const failure = notes.Model.make({
+      data: AsyncData.Failure({ error: 'boom' }),
+      generation: 0,
+    })
     expect(notes.revalidate(failure)).toEqual({ model: failure })
   })
 
   it('loadIfMissing starts only states without data', () => {
-    const loaded = { data: AsyncData.Success({ data: hello }) }
+    const loaded = notes.Model.make({
+      data: AsyncData.Success({ data: hello }),
+      generation: 0,
+    })
     const successHit = notes.loadIfMissing(loaded)
     expect(successHit.model).toBe(loaded)
     expect(successHit.commands).toBeUndefined()
 
-    const stale = { data: AsyncData.Stale({ error: 'boom', data: hello }) }
+    const stale = notes.Model.make({
+      data: AsyncData.Stale({ error: 'boom', data: hello }),
+      generation: 0,
+    })
     const staleHit = notes.loadIfMissing(stale)
     expect(staleHit.model).toBe(stale)
     expect(staleHit.commands).toBeUndefined()
@@ -208,15 +221,18 @@ describe('Query loading policies', () => {
     const fromIdle = notes.loadIfMissing(notes.init())
     expect(notes.read(fromIdle.model)).toEqual(AsyncData.Loading())
     expect(fromIdle.commands?.map(commandShape)).toEqual([
-      commandShape(notes.Fetch()),
+      commandShape(notes.Fetch({ generation: fromIdle.model.generation })),
     ])
 
-    const fromFailure = notes.loadIfMissing({
-      data: AsyncData.Failure({ error: 'boom' }),
-    })
+    const fromFailure = notes.loadIfMissing(
+      notes.Model.make({
+        data: AsyncData.Failure({ error: 'boom' }),
+        generation: 0,
+      }),
+    )
     expect(notes.read(fromFailure.model)).toEqual(AsyncData.Loading())
     expect(fromFailure.commands?.map(commandShape)).toEqual([
-      commandShape(notes.Fetch()),
+      commandShape(notes.Fetch({ generation: fromFailure.model.generation })),
     ])
   })
 
@@ -224,14 +240,21 @@ describe('Query loading policies', () => {
     const idle = notes.init()
     const fromIdle = notes.update(
       idle,
-      notes.Message.CompletedFetch({ result: Result.succeed(hello) }),
+      notes.Message.CompletedFetch({
+        generation: idle.generation,
+        result: Result.succeed(hello),
+      }),
     )
     expect(fromIdle).toEqual({ model: idle })
 
-    const success = { data: AsyncData.Success({ data: hello }) }
+    const success = notes.Model.make({
+      data: AsyncData.Success({ data: hello }),
+      generation: 1,
+    })
     const fromSuccess = notes.update(
       success,
       notes.Message.CompletedFetch({
+        generation: success.generation,
         result: Result.succeed([{ id: '2', body: 'newer' }]),
       }),
     )
@@ -239,9 +262,13 @@ describe('Query loading policies', () => {
   })
 
   it('a failed refresh keeps the previous data', () => {
+    const loading = notes.revalidateOrLoad(notes.init())
     const success = notes.update(
-      { data: AsyncData.Loading() },
-      notes.Message.CompletedFetch({ result: Result.succeed(hello) }),
+      loading.model,
+      notes.Message.CompletedFetch({
+        generation: loading.model.generation,
+        result: Result.succeed(hello),
+      }),
     )
     expect(notes.read(success.model)).toEqual(
       AsyncData.Success({ data: hello }),
@@ -254,7 +281,10 @@ describe('Query loading policies', () => {
 
     const stale = notes.update(
       refreshing.model,
-      notes.Message.CompletedFetch({ result: Result.fail('boom') }),
+      notes.Message.CompletedFetch({
+        generation: refreshing.model.generation,
+        result: Result.fail('boom'),
+      }),
     )
     expect(notes.read(stale.model)).toEqual(
       AsyncData.Stale({ error: 'boom', data: hello }),
@@ -262,12 +292,45 @@ describe('Query loading policies', () => {
   })
 
   it('a failed first load enters Failure', () => {
+    const loading = notes.loadIfMissing(notes.init())
     const failed = notes.update(
-      { data: AsyncData.Loading() },
-      notes.Message.CompletedFetch({ result: Result.fail('boom') }),
+      loading.model,
+      notes.Message.CompletedFetch({
+        generation: loading.model.generation,
+        result: Result.fail('boom'),
+      }),
     )
     expect(notes.read(failed.model)).toEqual(
       AsyncData.Failure({ error: 'boom' }),
+    )
+  })
+
+  it('reset ignores an earlier completion after a new fetch starts', () => {
+    const firstLoad = notes.loadIfMissing(notes.init())
+    const reset = notes.reset(firstLoad.model)
+    const secondLoad = notes.loadIfMissing(reset.model)
+
+    expect(notes.read(reset.model)).toEqual(AsyncData.Idle())
+    expect(secondLoad.model.generation).toBe(2)
+
+    const staleCompletion = notes.update(
+      secondLoad.model,
+      notes.Message.CompletedFetch({
+        generation: firstLoad.model.generation,
+        result: Result.succeed([{ id: 'old', body: 'stale' }]),
+      }),
+    )
+    expect(staleCompletion.model).toBe(secondLoad.model)
+
+    const currentCompletion = notes.update(
+      staleCompletion.model,
+      notes.Message.CompletedFetch({
+        generation: secondLoad.model.generation,
+        result: Result.succeed(hello),
+      }),
+    )
+    expect(notes.read(currentCompletion.model)).toEqual(
+      AsyncData.Success({ data: hello }),
     )
   })
 })
@@ -281,7 +344,12 @@ describe('KeyedQuery loading and completion', () => {
       AsyncData.Loading(),
     )
     expect(missing.commands?.map(commandShape)).toEqual([
-      commandShape(noteById.Fetch({ noteId: '1' })),
+      commandShape(
+        noteById.Fetch({
+          args: { noteId: '1' },
+          generation: missing.model.generation,
+        }),
+      ),
     ])
 
     const loaded = loadedNoteById('1')
@@ -308,7 +376,12 @@ describe('KeyedQuery loading and completion', () => {
       AsyncData.Refreshing({ data: { id: '1', body: 'hello' } }),
     )
     expect(refreshed.commands?.map(commandShape)).toEqual([
-      commandShape(noteById.Fetch({ noteId: '1' })),
+      commandShape(
+        noteById.Fetch({
+          args: { noteId: '1' },
+          generation: refreshed.model.generation,
+        }),
+      ),
     ])
   })
 
@@ -320,13 +393,19 @@ describe('KeyedQuery loading and completion', () => {
       noteId: '2',
     })
     expect(bothPending.commands?.map(commandShape)).toEqual([
-      commandShape(noteById.Fetch({ noteId: '2' })),
+      commandShape(
+        noteById.Fetch({
+          args: { noteId: '2' },
+          generation: bothPending.model.generation,
+        }),
+      ),
     ])
 
     const settled = noteById.update(
       bothPending.model,
       noteById.Message.CompletedFetch({
         args: { noteId: '1' },
+        generation: pendingOne.model.generation,
         result: Result.succeed({ id: '1', body: 'hello' }),
       }),
     )
@@ -345,6 +424,7 @@ describe('KeyedQuery loading and completion', () => {
       empty,
       noteById.Message.CompletedFetch({
         args: { noteId: '1' },
+        generation: empty.generation,
         result: Result.succeed({ id: '1', body: 'hello' }),
       }),
     )
@@ -355,10 +435,43 @@ describe('KeyedQuery loading and completion', () => {
       loaded,
       noteById.Message.CompletedFetch({
         args: { noteId: '1' },
+        generation: loaded.generation,
         result: Result.succeed({ id: '1', body: 'newer' }),
       }),
     )
     expect(loadedEntry).toEqual({ model: loaded })
+  })
+
+  it('reset ignores an earlier completion after the same key restarts', () => {
+    const args = { noteId: '1' }
+    const firstLoad = noteById.loadIfMissing(noteById.init(), args)
+    const reset = noteById.reset(firstLoad.model)
+    const secondLoad = noteById.loadIfMissing(reset.model, args)
+
+    expect(noteById.read(reset.model, args)).toEqual(AsyncData.Idle())
+    expect(secondLoad.model.generation).toBe(2)
+
+    const staleCompletion = noteById.update(
+      secondLoad.model,
+      noteById.Message.CompletedFetch({
+        args,
+        generation: firstLoad.model.generation,
+        result: Result.succeed({ id: '1', body: 'stale' }),
+      }),
+    )
+    expect(staleCompletion.model).toBe(secondLoad.model)
+
+    const currentCompletion = noteById.update(
+      staleCompletion.model,
+      noteById.Message.CompletedFetch({
+        args,
+        generation: secondLoad.model.generation,
+        result: Result.succeed({ id: '1', body: 'hello' }),
+      }),
+    )
+    expect(noteById.read(currentCompletion.model, args)).toEqual(
+      AsyncData.Success({ data: { id: '1', body: 'hello' } }),
+    )
   })
 })
 
@@ -371,7 +484,10 @@ describe('Query Model encoding', () => {
     const notesLoad = notes.revalidateOrLoad(notes.init())
     const notesSettle = notes.update(
       notesLoad.model,
-      notes.Message.CompletedFetch({ result: Result.succeed(hello) }),
+      notes.Message.CompletedFetch({
+        generation: notesLoad.model.generation,
+        result: Result.succeed(hello),
+      }),
     )
     const firstLoad = noteById.loadIfMissing(noteById.init(), { noteId: '1' })
     const secondLoad = noteById.loadIfMissing(firstLoad.model, { noteId: '2' })
@@ -379,6 +495,7 @@ describe('Query Model encoding', () => {
       secondLoad.model,
       noteById.Message.CompletedFetch({
         args: { noteId: '1' },
+        generation: firstLoad.model.generation,
         result: Result.succeed({ id: '1', body: 'hello' }),
       }),
     )
@@ -430,10 +547,13 @@ describe('Query.lift', () => {
       update,
       Story.given({ notes: notes.init() }),
       Story.message(Message.ClickedLoad()),
-      Story.Command.expectHas(notes.Fetch()),
+      Story.Command.expectHas(notes.Fetch({ generation: 1 })),
       Story.Command.resolve(
-        notes.Fetch(),
-        notes.Message.CompletedFetch({ result: Result.succeed(hello) }),
+        notes.Fetch({ generation: 1 }),
+        notes.Message.CompletedFetch({
+          generation: 1,
+          result: Result.succeed(hello),
+        }),
       ),
       Story.model(model => {
         expect(notes.read(model.notes)).toEqual(
@@ -445,8 +565,16 @@ describe('Query.lift', () => {
 
   it('fold handles the child completion Message', () => {
     const folded = notesChild.fold(
-      { notes: { data: AsyncData.Loading() } },
-      notes.Message.CompletedFetch({ result: Result.succeed(hello) }),
+      {
+        notes: notes.Model.make({
+          data: AsyncData.Loading(),
+          generation: 1,
+        }),
+      },
+      notes.Message.CompletedFetch({
+        generation: 1,
+        result: Result.succeed(hello),
+      }),
     )
     expect(notes.read(folded.model.notes)).toEqual(
       AsyncData.Success({ data: hello }),
@@ -477,7 +605,12 @@ describe('KeyedQuery.lift', () => {
       AsyncData.Loading(),
     )
     expect(started.commands?.map(commandShape)).toEqual([
-      commandShape(noteById.Fetch({ noteId: '1' })),
+      commandShape(
+        noteById.Fetch({
+          args: { noteId: '1' },
+          generation: started.model.notes.generation,
+        }),
+      ),
     ])
   })
 
@@ -490,6 +623,7 @@ describe('KeyedQuery.lift', () => {
       pending.model,
       noteById.Message.CompletedFetch({
         args: { noteId: '1' },
+        generation: pending.model.notes.generation,
         result: Result.succeed({ id: '1', body: 'hello' }),
       }),
     )
@@ -532,8 +666,14 @@ describe('Query.lift parent field and lens forms', () => {
       parentField: 'notes',
       toParentMessage: message => Message.GotNotesMessage({ message }),
     })
-    const parent = { notes: { data: AsyncData.Loading() } }
+    const parent = {
+      notes: notes.Model.make({
+        data: AsyncData.Loading(),
+        generation: 1,
+      }),
+    }
     const message = notes.Message.CompletedFetch({
+      generation: 1,
       result: Result.succeed(hello),
     })
     const dataFirst = notesChild.fold(parent, message)
@@ -546,7 +686,7 @@ describe('Query.lift parent field and lens forms', () => {
 })
 
 describe('KeyedQuery keys', () => {
-  it('JSON-encodes the full args when toKey is omitted', () => {
+  it('uses the full args when toKey is omitted', () => {
     const started = noteByIdAndLocale.loadIfMissing(noteByIdAndLocale.init(), {
       noteId: '1',
       locale: 'en',
@@ -555,15 +695,8 @@ describe('KeyedQuery keys', () => {
       noteByIdAndLocale.read(started.model, { noteId: '1', locale: 'en' }),
     ).toEqual(AsyncData.Loading())
     expect(
-      HashMap.has(
-        started.model.entries,
-        entryKey({ noteId: '1', locale: 'en' }),
-      ),
-    ).toBe(true)
-    expect(HashMap.has(started.model.entries, entryKey({ noteId: '1' }))).toBe(
-      false,
-    )
-    expect(HashMap.has(started.model.entries, '1:en')).toBe(false)
+      noteByIdAndLocale.read(started.model, { noteId: '1', locale: 'fr' }),
+    ).toEqual(AsyncData.Idle())
   })
 
   it('a custom toKey shares one entry across extra args', () => {
@@ -597,6 +730,75 @@ describe('KeyedQuery keys', () => {
       preview: false,
     })
     expect(HashMap.size(second.model.entries)).toBe(2)
+  })
+
+  it('canonicalizes nested record key order', () => {
+    const notesByFilter = Query.define({
+      name: 'NotesByFilter',
+      data: Schema.Array(Note),
+      error: Schema.String,
+      args: {
+        filter: Schema.Record(Schema.String, Schema.String),
+      },
+      execute: () => Effect.succeed(hello),
+    })
+    const firstArgs = {
+      filter: { status: 'open', owner: 'devin' },
+    }
+    const sameArgs = {
+      filter: { owner: 'devin', status: 'open' },
+    }
+    const firstLoad = notesByFilter.loadIfMissing(
+      notesByFilter.init(),
+      firstArgs,
+    )
+    const cacheHit = notesByFilter.loadIfMissing(firstLoad.model, sameArgs)
+
+    expect(cacheHit.model).toBe(firstLoad.model)
+    expect(cacheHit.commands).toBeUndefined()
+  })
+
+  it('retains Schema.Struct field identity', () => {
+    const notesByFilter = Query.define({
+      name: 'NotesByStructuredFilter',
+      data: Schema.Array(Note),
+      error: Schema.String,
+      args: {
+        filter: Schema.Struct({
+          owner: Schema.String,
+          status: Schema.String,
+        }),
+      },
+      execute: () => Effect.succeed(hello),
+    })
+    const firstLoad = notesByFilter.loadIfMissing(notesByFilter.init(), {
+      filter: { status: 'open', owner: 'devin' },
+    })
+    const cacheHit = notesByFilter.loadIfMissing(firstLoad.model, {
+      filter: { owner: 'devin', status: 'open' },
+    })
+
+    expect(cacheHit.model).toBe(firstLoad.model)
+    expect(cacheHit.commands).toBeUndefined()
+  })
+
+  it('keeps array order significant', () => {
+    const notesByIds = Query.define({
+      name: 'NotesByIds',
+      data: Schema.Array(Note),
+      error: Schema.String,
+      args: { ids: Schema.Array(Schema.String) },
+      execute: () => Effect.succeed(hello),
+    })
+    const firstLoad = notesByIds.loadIfMissing(notesByIds.init(), {
+      ids: ['1', '2'],
+    })
+    const secondLoad = notesByIds.loadIfMissing(firstLoad.model, {
+      ids: ['2', '1'],
+    })
+
+    expect(secondLoad.commands).toBeDefined()
+    expect(HashMap.size(secondLoad.model.entries)).toBe(2)
   })
 })
 
@@ -646,6 +848,8 @@ describe('Query execute requirements', () => {
       return [{ id: '1', body: service.body }]
     }),
   })
+  type ServedModel = (typeof served.Model)['Type']
+  type ServedMessage = (typeof served.Message)['Type']
 
   it('run requires the execute services', () => {
     expectTypeOf(served.run).toEqualTypeOf<
@@ -654,6 +858,39 @@ describe('Query execute requirements', () => {
         never,
         NoteService
       >
+    >()
+  })
+
+  it('only fetch-starting operations require the execute services', () => {
+    expectTypeOf(served.update).returns.toEqualTypeOf<
+      Update.Return<ServedModel, ServedMessage>
+    >()
+    expectTypeOf(served.reset).returns.toEqualTypeOf<
+      Update.Return<ServedModel, ServedMessage>
+    >()
+    expectTypeOf(served.loadIfMissing).returns.toEqualTypeOf<
+      Update.Return<ServedModel, ServedMessage, NoteService>
+    >()
+
+    const ParentModel = Schema.Struct({ notes: served.Model })
+    type ParentModel = typeof ParentModel.Type
+    const ParentMessage = defineMessageUnion({
+      GotNotesMessage: { message: served.Message },
+    })
+    type ParentMessage = typeof ParentMessage.Type
+    const servedNotes = served.lift<ParentModel, ParentMessage>({
+      parentField: 'notes',
+      toParentMessage: message => ParentMessage.GotNotesMessage({ message }),
+    })
+
+    expectTypeOf(servedNotes.fold).toEqualTypeOf<
+      Update.Fold<ParentModel, ParentMessage, ServedMessage>
+    >()
+    expectTypeOf(servedNotes.reset).toEqualTypeOf<
+      Update.Step<ParentModel, ParentMessage>
+    >()
+    expectTypeOf(servedNotes.loadIfMissing).toEqualTypeOf<
+      Update.Step<ParentModel, ParentMessage, NoteService>
     >()
   })
 
@@ -692,12 +929,18 @@ describe('Query types', () => {
       >
     >()
     expectTypeOf(noteByIdPreview.Fetch).parameter(0).toEqualTypeOf<{
-      readonly noteId: string
-      readonly preview: boolean
+      readonly args: {
+        readonly noteId: string
+        readonly preview: boolean
+      }
+      readonly generation: number
     }>()
     expectTypeOf(noteByIdAndLocale.Fetch).parameter(0).toEqualTypeOf<{
-      readonly noteId: string
-      readonly locale: string
+      readonly args: {
+        readonly noteId: string
+        readonly locale: string
+      }
+      readonly generation: number
     }>()
     expectTypeOf(noteById.loadIfMissing).toEqualTypeOf<
       Update.Fold<
@@ -730,12 +973,18 @@ describe('Query types', () => {
     expectTypeOf(
       notesChild.fold(
         { notes: notes.init() },
-        notes.Message.CompletedFetch({ result: Result.succeed(hello) }),
+        notes.Message.CompletedFetch({
+          generation: 0,
+          result: Result.succeed(hello),
+        }),
       ),
     ).toExtend<Update.Return<ParentModel, ParentMessage>>()
     expectTypeOf(
       notesChild.fold(
-        notes.Message.CompletedFetch({ result: Result.succeed(hello) }),
+        notes.Message.CompletedFetch({
+          generation: 0,
+          result: Result.succeed(hello),
+        }),
       )({
         notes: notes.init(),
       }),

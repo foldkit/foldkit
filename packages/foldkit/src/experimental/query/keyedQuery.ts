@@ -3,7 +3,10 @@ import {
   Effect,
   Function,
   HashMap,
+  Number,
   Option,
+  Order,
+  Predicate,
   Record,
   Schema,
   pipe,
@@ -34,8 +37,47 @@ export type SyncFields = {
   readonly [x: PropertyKey]: Schema.Codec<unknown, unknown, never, never>
 }
 
-export const encodeKey = <A, I>(schema: Schema.Codec<A, I, never, never>) =>
-  Schema.encodeUnknownSync(Schema.fromJsonString(Schema.toCodecJson(schema)))
+const canonicalizeJsonEntry = ([key, value]: readonly [
+  string,
+  Schema.Json,
+]): readonly [string, Schema.Json] => [key, canonicalizeJson(value)]
+
+const jsonEntryOrder = Order.mapInput(
+  Order.String,
+  ([key]: readonly [string, Schema.Json]) => key,
+)
+
+const isJsonObject = (value: Schema.Json): value is Schema.JsonObject =>
+  Predicate.isObject(value) && !globalThis.Array.isArray(value)
+
+const canonicalizeJson = (value: Schema.Json): Schema.Json => {
+  if (globalThis.Array.isArray(value)) {
+    return Array.map(value, canonicalizeJson)
+  }
+
+  if (isJsonObject(value)) {
+    return pipe(
+      value,
+      Record.toEntries,
+      Array.sort(jsonEntryOrder),
+      Array.map(canonicalizeJsonEntry),
+      Record.fromEntries,
+    )
+  }
+
+  return value
+}
+
+const encodeJsonString = Schema.encodeUnknownSync(
+  Schema.fromJsonString(Schema.Json),
+)
+
+const encodeKey = <A, I>(schema: Schema.Codec<A, I, never, never>) => {
+  const encodeJson = Schema.encodeUnknownSync(Schema.toCodecJson(schema))
+
+  return (value: A): string =>
+    encodeJsonString(canonicalizeJson(encodeJson(value)))
+}
 
 export type KeyedQueryConfig<
   Name extends string,
@@ -62,7 +104,11 @@ const makeKeyedQueryMessage = <A, AI, E, EI, Fields extends SyncFields>(
   Args: Schema.Struct<Fields>,
 ) =>
   defineMessageUnion({
-    CompletedFetch: { args: Args, result: Schema.Result(data, error) },
+    CompletedFetch: {
+      args: Args,
+      generation: Schema.Number,
+      result: Schema.Result(data, error),
+    },
   })
 
 /**
@@ -87,11 +133,13 @@ export const makeKeyedQueryModel = <A, AI, E, EI, Fields extends SyncFields>(
   const asyncData = AsyncData.Schema(data, error)
 
   return Schema.Struct({
+    generation: Schema.Number,
     entries: Schema.HashMap(
       Schema.String,
       Schema.Struct({
         args: Args,
         data: asyncData.schema,
+        generation: Schema.Number,
       }),
     ),
   })
@@ -128,18 +176,36 @@ export interface KeyedQuery<
   readonly Model: KeyedQueryModel<A, AI, E, EI, Fields>
   /** Schema-backed union of Messages handled by this KeyedQuery. */
   readonly Message: KeyedQueryMessage<A, AI, E, EI, Fields>
-  /** Command that executes the configured fetch for one set of arguments. */
+  /**
+   * Command definition for matching this KeyedQuery's pending fetch in Story
+   * and Scene tests. Start fetches through a loading operation so the Model
+   * and request generation advance together; do not call this directly.
+   */
   readonly Fetch: Command.CommandDefinitionWithArgs<
     `Fetch${Name}`,
-    Fields,
+    {
+      readonly args: Schema.Struct<Fields>
+      readonly generation: typeof Schema.Number
+    },
     Effect.Effect<
       CompletedFetchOf<KeyedQueryMessage<A, AI, E, EI, Fields>>,
       never,
       R
     >
   >
-  /** Creates a KeyedQuery Model with no entries. */
+  /**
+   * Creates a KeyedQuery Model for initial parent Model construction. Never
+   * replace a live KeyedQuery with `init()`: it can reuse an in-flight request
+   * generation. Use `reset` instead.
+   */
   readonly init: () => KeyedQueryModel<A, AI, E, EI, Fields>['Type']
+  /** Clears every entry while preserving request identity. */
+  readonly reset: (
+    model: KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
+  ) => Update.Return<
+    KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
+    KeyedQueryMessage<A, AI, E, EI, Fields>['Type']
+  >
   /** Reads one entry, returning `Idle` when that entry does not exist. */
   readonly read: (
     model: KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
@@ -151,8 +217,7 @@ export interface KeyedQuery<
     message: KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
   ) => Update.Return<
     KeyedQueryModel<A, AI, E, EI, Fields>['Type'],
-    KeyedQueryMessage<A, AI, E, EI, Fields>['Type'],
-    R
+    KeyedQueryMessage<A, AI, E, EI, Fields>['Type']
   >
   /** Refreshes a loaded entry and does nothing when it has no data. */
   readonly revalidate: Update.Fold<
@@ -209,16 +274,15 @@ export function defineKeyedQuery<
     )
   }
 
-  const argsToKey = (args: Args): string =>
-    config.toKey !== undefined ? config.toKey(args) : encodeKey(Args)(args)
+  const argsToKey = config.toKey ?? encodeKey(Args)
 
   const Message = makeKeyedQueryMessage(config.data, config.error, Args)
   type Message = KeyedQueryMessage<A, AI, E, EI, Fields>['Type']
 
   const Fetch = Command.define(`Fetch${config.name}`, {
-    args: config.args,
+    args: { args: Args, generation: Schema.Number },
     messages: [Message.CompletedFetch],
-    execute: (args: Args) =>
+    execute: ({ args, generation }) =>
       pipe(
         config.execute(args),
         Effect.result,
@@ -227,6 +291,7 @@ export function defineKeyedQuery<
           ({
             _tag: 'CompletedFetch',
             args,
+            generation,
             result,
           }),
         ),
@@ -236,6 +301,7 @@ export function defineKeyedQuery<
   const Model = makeKeyedQueryModel(config.data, config.error, Args)
   type Model = KeyedQueryModel<A, AI, E, EI, Fields>['Type']
   type UpdateReturn = Update.Return<Model, Message, R>
+  type PureUpdateReturn = Update.Return<Model, Message>
 
   const store: QueryStore<Model, Args, A, E, Message, R> = {
     read: (model, args) =>
@@ -245,14 +311,29 @@ export function defineKeyedQuery<
           entry => entry.data,
         ),
       ),
-    write: (model, args, data) =>
-      modifyFields(model, {
-        entries: HashMap.set(argsToKey(args), { args, data }),
-      }),
-    fetch: args => Fetch(args),
+    start: (model, args, data) => {
+      const nextGeneration = Number.increment(model.generation)
+
+      return {
+        model: modifyFields(model, {
+          entries: HashMap.set(argsToKey(args), {
+            args,
+            data,
+            generation: nextGeneration,
+          }),
+          generation: () => nextGeneration,
+        }),
+        generation: nextGeneration,
+      }
+    },
+    fetch: (args, generation) => Fetch({ args, generation }),
   }
 
-  const init = (): Model => Model.make({ entries: HashMap.empty() })
+  const init = (): Model =>
+    Model.make({ entries: HashMap.empty(), generation: 0 })
+  const reset = (model: Model): PureUpdateReturn => ({
+    model: modifyFields(model, { entries: () => HashMap.empty() }),
+  })
   const read = (model: Model, args: Args): EntryData => store.read(model, args)
 
   const liftTransition = (
@@ -266,17 +347,34 @@ export function defineKeyedQuery<
   const revalidateOrLoad = liftTransition(AsyncData.revalidateOrLoad)
   const loadIfMissing = liftTransition(AsyncData.loadIfMissing)
 
-  const update = (model: Model, message: Message): UpdateReturn =>
-    Message.match<UpdateReturn>(message, {
-      CompletedFetch({ args, result }) {
-        const data = store.read(model, args)
+  const update = (model: Model, message: Message): PureUpdateReturn =>
+    Message.match<PureUpdateReturn>(message, {
+      CompletedFetch({ args, generation, result }) {
+        const key = argsToKey(args)
+        const maybeEntry = HashMap.get(model.entries, key)
 
-        if (!AsyncData.isPending(data)) {
+        if (Option.isNone(maybeEntry)) {
+          return { model }
+        }
+
+        const entry = maybeEntry.value
+
+        if (
+          !AsyncData.isPending(entry.data) ||
+          generation !== entry.generation
+        ) {
           return { model }
         }
 
         return {
-          model: store.write(model, args, AsyncData.settle(data, result)),
+          model: modifyFields(model, {
+            entries: HashMap.set(
+              key,
+              modifyFields(entry, {
+                data: () => AsyncData.settle(entry.data, result),
+              }),
+            ),
+          }),
         }
       },
     })
@@ -285,6 +383,10 @@ export function defineKeyedQuery<
     lens: FoldLens<ParentModel, ParentMessage, Model, Message>,
   ) => ({
     fold: Update.foldChild({ update, ...lens }),
+    reset: Update.foldChildStep({
+      update: reset,
+      ...lens,
+    }),
     revalidate: liftChildFold(revalidate, lens),
     revalidateOrLoad: liftChildFold(revalidateOrLoad, lens),
     loadIfMissing: liftChildFold(loadIfMissing, lens),
@@ -314,6 +416,7 @@ export function defineKeyedQuery<
     Message,
     Fetch,
     init,
+    reset,
     read,
     update,
     revalidate,

@@ -19,6 +19,9 @@ import {
   refreshingStatsModel,
 } from './main.fixture'
 
+const FIRST_REQUEST_GENERATION = 1
+const SECOND_REQUEST_GENERATION = 2
+
 const postDataTag = (model: typeof loadedPostsModel, postId: string): string =>
   postQuery.read(model.postDetails, { postId })._tag
 
@@ -48,6 +51,7 @@ test('first visit to the Stats tab fetches stats', () => {
     Command.resolve(
       statsQuery.Fetch,
       statsQuery.Message.CompletedFetch({
+        generation: FIRST_REQUEST_GENERATION,
         result: Result.succeed({
           stats: fixtureStats,
           fetchedAt: FETCHED_AT,
@@ -91,6 +95,7 @@ test('a revalidation tick keeps stale stats on screen while refetching', () => {
     Command.resolve(
       statsQuery.Fetch,
       statsQuery.Message.CompletedFetch({
+        generation: SECOND_REQUEST_GENERATION,
         result: Result.succeed({
           stats: modifyFields(fixtureStats, { activeUsers: () => 99 }),
           fetchedAt: FETCHED_AT + 5000,
@@ -115,6 +120,7 @@ test('a failed refresh keeps the stale stats on screen with the error', () => {
     Command.resolve(
       statsQuery.Fetch,
       statsQuery.Message.CompletedFetch({
+        generation: SECOND_REQUEST_GENERATION,
         result: Result.fail('The server is down.'),
       }),
     ),
@@ -162,6 +168,7 @@ test('refreshing posts refetches while keeping the current list', () => {
     Command.resolve(
       postsQuery.Fetch,
       postsQuery.Message.CompletedFetch({
+        generation: SECOND_REQUEST_GENERATION,
         result: Result.succeed({
           posts: fixturePosts,
           fetchedAt: FETCHED_AT + 1000,
@@ -185,6 +192,7 @@ test('retrying failed posts shows the loading state and refetches', () => {
     Command.resolve(
       postsQuery.Fetch,
       postsQuery.Message.CompletedFetch({
+        generation: SECOND_REQUEST_GENERATION,
         result: Result.succeed({
           posts: fixturePosts,
           fetchedAt: FETCHED_AT,
@@ -209,6 +217,7 @@ test('opening a post once reuses its retained data on later visits', () => {
       postQuery.Fetch,
       postQuery.Message.CompletedFetch({
         args: { postId: 'first-post' },
+        generation: FIRST_REQUEST_GENERATION,
         result: Result.succeed({
           post: firstPostDetail,
           fetchedAt: FETCHED_AT,
@@ -234,6 +243,7 @@ test('a failed post fetch enters Failure and retry fetches it again', () => {
       postQuery.Fetch,
       postQuery.Message.CompletedFetch({
         args: { postId: 'first-post' },
+        generation: FIRST_REQUEST_GENERATION,
         result: Result.fail('The connection dropped.'),
       }),
     ),
@@ -248,6 +258,7 @@ test('a failed post fetch enters Failure and retry fetches it again', () => {
       postQuery.Fetch,
       postQuery.Message.CompletedFetch({
         args: { postId: 'first-post' },
+        generation: SECOND_REQUEST_GENERATION,
         result: Result.succeed({
           post: firstPostDetail,
           fetchedAt: FETCHED_AT,
@@ -273,6 +284,7 @@ test('revisiting a post with a cached failure loads it again', () => {
       postQuery.Fetch,
       postQuery.Message.CompletedFetch({
         args: { postId: 'first-post' },
+        generation: SECOND_REQUEST_GENERATION,
         result: Result.fail('The connection dropped.'),
       }),
     ),

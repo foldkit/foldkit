@@ -1,4 +1,4 @@
-import { Effect, Schema, pipe } from 'effect'
+import { Effect, Number, Schema, pipe } from 'effect'
 
 import * as AsyncData from '../../asyncData/index.js'
 import * as Command from '../../command/index.js'
@@ -30,7 +30,10 @@ const makeQueryMessage = <A, AI, E, EI>(
   error: Schema.Codec<E, EI>,
 ) =>
   defineMessageUnion({
-    CompletedFetch: { result: Schema.Result(data, error) },
+    CompletedFetch: {
+      generation: Schema.Number,
+      result: Schema.Result(data, error),
+    },
   })
 
 /**
@@ -46,7 +49,11 @@ export type QueryMessage<A, AI, E, EI> = ReturnType<
 export const makeQueryModel = <A, AI, E, EI>(
   data: Schema.Codec<A, AI>,
   error: Schema.Codec<E, EI>,
-) => Schema.Struct({ data: AsyncData.Schema(data, error).schema })
+) =>
+  Schema.Struct({
+    data: AsyncData.Schema(data, error).schema,
+    generation: Schema.Number,
+  })
 
 /**
  * Model Schema for a Query containing one `AsyncData` value.
@@ -67,13 +74,29 @@ export interface Query<Name extends string, A, AI, E, EI, R = never> {
   readonly Model: QueryModel<A, AI, E, EI>
   /** Schema-backed union of Messages handled by this Query. */
   readonly Message: QueryMessage<A, AI, E, EI>
-  /** Command that executes the configured fetch. */
-  readonly Fetch: Command.CommandDefinitionNoArgs<
+  /**
+   * Command definition for matching this Query's pending fetch in Story and
+   * Scene tests. Start fetches through a loading operation so the Model and
+   * request generation advance together; do not call this directly.
+   */
+  readonly Fetch: Command.CommandDefinitionWithArgs<
     `Fetch${Name}`,
+    { readonly generation: typeof Schema.Number },
     Effect.Effect<CompletedFetchOf<QueryMessage<A, AI, E, EI>>, never, R>
   >
-  /** Creates a Query Model whose data is `Idle`. */
+  /**
+   * Creates a Query Model for initial parent Model construction. Never replace
+   * a live Query with `init()`: it can reuse an in-flight request generation.
+   * Use `reset` instead.
+   */
   readonly init: () => QueryModel<A, AI, E, EI>['Type']
+  /** Clears the Query while preserving its request identity. */
+  readonly reset: (
+    model: QueryModel<A, AI, E, EI>['Type'],
+  ) => Update.Return<
+    QueryModel<A, AI, E, EI>['Type'],
+    QueryMessage<A, AI, E, EI>['Type']
+  >
   /** Reads the `AsyncData` value from the Query Model. */
   readonly read: (
     model: QueryModel<A, AI, E, EI>['Type'],
@@ -84,8 +107,7 @@ export interface Query<Name extends string, A, AI, E, EI, R = never> {
     message: QueryMessage<A, AI, E, EI>['Type'],
   ) => Update.Return<
     QueryModel<A, AI, E, EI>['Type'],
-    QueryMessage<A, AI, E, EI>['Type'],
-    R
+    QueryMessage<A, AI, E, EI>['Type']
   >
   /** Refreshes loaded data and does nothing when no data is present. */
   readonly revalidate: (
@@ -129,24 +151,41 @@ export function defineQuery<Name extends string, A, AI, E, EI, R>(
   type Message = QueryMessage<A, AI, E, EI>['Type']
 
   const Fetch = Command.define(`Fetch${config.name}`, {
+    args: { generation: Schema.Number },
     messages: [Message.CompletedFetch],
-    execute: pipe(
-      config.execute,
-      Effect.result,
-      Effect.map(result => Message.CompletedFetch({ result })),
-    ),
+    execute: ({ generation }) =>
+      pipe(
+        config.execute,
+        Effect.result,
+        Effect.map(result => Message.CompletedFetch({ generation, result })),
+      ),
   })
 
   type Model = typeof Model.Type
   type UpdateReturn = Update.Return<Model, Message, R>
+  type PureUpdateReturn = Update.Return<Model, Message>
 
   const store: QueryStore<Model, undefined, A, E, Message, R> = {
     read: model => model.data,
-    write: (model, _args, data) => modifyFields(model, { data: () => data }),
-    fetch: () => Fetch(),
+    start: (model, _args, data) => {
+      const nextGeneration = Number.increment(model.generation)
+
+      return {
+        model: modifyFields(model, {
+          data: () => data,
+          generation: () => nextGeneration,
+        }),
+        generation: nextGeneration,
+      }
+    },
+    fetch: (_args, generation) => Fetch({ generation }),
   }
 
-  const init = (): Model => Model.make({ data: AsyncData.Idle() })
+  const init = (): Model =>
+    Model.make({ data: AsyncData.Idle(), generation: 0 })
+  const reset = (model: Model): PureUpdateReturn => ({
+    model: modifyFields(model, { data: () => AsyncData.Idle() }),
+  })
   const read = (model: Model): AsyncData.AsyncData<A, E> => model.data
 
   const revalidate = (model: Model): UpdateReturn =>
@@ -156,17 +195,19 @@ export function defineQuery<Name extends string, A, AI, E, EI, R>(
   const loadIfMissing = (model: Model): UpdateReturn =>
     applyTransition(store, model, undefined, AsyncData.loadIfMissing)
 
-  const update = (model: Model, message: Message): UpdateReturn =>
-    Message.match<UpdateReturn>(message, {
-      CompletedFetch({ result }) {
+  const update = (model: Model, message: Message): PureUpdateReturn =>
+    Message.match<PureUpdateReturn>(message, {
+      CompletedFetch({ generation, result }) {
         const data = read(model)
 
-        if (!AsyncData.isPending(data)) {
+        if (!AsyncData.isPending(data) || generation !== model.generation) {
           return { model }
         }
 
         return {
-          model: store.write(model, undefined, AsyncData.settle(data, result)),
+          model: modifyFields(model, {
+            data: () => AsyncData.settle(data, result),
+          }),
         }
       },
     })
@@ -175,6 +216,10 @@ export function defineQuery<Name extends string, A, AI, E, EI, R>(
     lens: FoldLens<ParentModel, ParentMessage, Model, Message>,
   ) => ({
     fold: Update.foldChild({ update, ...lens }),
+    reset: Update.foldChildStep({
+      update: reset,
+      ...lens,
+    }),
     revalidate: Update.foldChildStep({
       update: revalidate,
       ...lens,
@@ -212,6 +257,7 @@ export function defineQuery<Name extends string, A, AI, E, EI, R>(
     Message,
     Fetch,
     init,
+    reset,
     read,
     update,
     revalidate,

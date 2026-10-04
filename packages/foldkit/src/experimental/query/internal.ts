@@ -132,8 +132,12 @@ export type AsyncDataTransition = <A, E>(
 
 export type QueryStore<Model, Args, A, E, Message, R> = Readonly<{
   read: (model: Model, args: Args) => AsyncData.AsyncData<A, E>
-  write: (model: Model, args: Args, data: AsyncData.AsyncData<A, E>) => Model
-  fetch: (args: Args) => Command.Command<Message, never, R>
+  start: (
+    model: Model,
+    args: Args,
+    data: AsyncData.AsyncData<A, E>,
+  ) => Readonly<{ model: Model; generation: number }>
+  fetch: (args: Args, generation: number) => Command.Command<Message, never, R>
 }>
 
 export const applyTransition = <Model, Args, A, E, Message, R>(
@@ -144,10 +148,14 @@ export const applyTransition = <Model, Args, A, E, Message, R>(
 ): Update.Return<Model, Message, R> =>
   Option.match(transition(store.read(model, args)), {
     onNone: () => ({ model }),
-    onSome: nextData => ({
-      model: store.write(model, args, nextData),
-      commands: [store.fetch(args)],
-    }),
+    onSome: nextData => {
+      const queryStart = store.start(model, args, nextData)
+
+      return {
+        model: queryStart.model,
+        commands: [store.fetch(args, queryStart.generation)],
+      }
+    },
   })
 
 export const runExecute = <A, E, R>(
@@ -169,7 +177,8 @@ export type KeyedArgs<Fields extends Schema.Struct.Fields> = Schema.Schema.Type<
 >
 
 type LiftedQuery<ParentModel, ParentMessage, ChildMessage, R> = Readonly<{
-  fold: Update.Fold<ParentModel, ParentMessage, ChildMessage, R>
+  fold: Update.Fold<ParentModel, ParentMessage, ChildMessage>
+  reset: Update.Step<ParentModel, ParentMessage>
   revalidate: Update.Step<ParentModel, ParentMessage, R>
   revalidateOrLoad: Update.Step<ParentModel, ParentMessage, R>
   loadIfMissing: Update.Step<ParentModel, ParentMessage, R>
@@ -177,7 +186,8 @@ type LiftedQuery<ParentModel, ParentMessage, ChildMessage, R> = Readonly<{
 
 type LiftedKeyedQuery<ParentModel, ParentMessage, ChildMessage, Args, R> =
   Readonly<{
-    fold: Update.Fold<ParentModel, ParentMessage, ChildMessage, R>
+    fold: Update.Fold<ParentModel, ParentMessage, ChildMessage>
+    reset: Update.Step<ParentModel, ParentMessage>
     revalidate: Update.Fold<ParentModel, ParentMessage, Args, R>
     revalidateOrLoad: Update.Fold<ParentModel, ParentMessage, Args, R>
     loadIfMissing: Update.Fold<ParentModel, ParentMessage, Args, R>

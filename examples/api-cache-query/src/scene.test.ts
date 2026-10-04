@@ -23,6 +23,8 @@ import {
   loadingPostsModel,
 } from './main.fixture'
 
+const FIRST_REQUEST_GENERATION = 1
+
 const resolveFocusTab = Command.resolve(
   Tabs.FocusTab,
   Tabs.Message.CompletedFocusTab(),
@@ -46,11 +48,12 @@ describe('view', () => {
       given(loadedPostsModel),
       click(role('button', { name: /First Post/ })),
       expect(text('Loading post…')).toExist(),
-      Command.expectExact(postQuery.Fetch({ postId: 'first-post' })),
+      Command.expectExact(postQuery.Fetch),
       Command.resolve(
         postQuery.Fetch,
         postQuery.Message.CompletedFetch({
           args: { postId: 'first-post' },
+          generation: FIRST_REQUEST_GENERATION,
           result: Result.succeed({
             post: firstPostDetail,
             fetchedAt: FETCHED_AT,
@@ -86,6 +89,7 @@ describe('view', () => {
         postQuery.Fetch,
         postQuery.Message.CompletedFetch({
           args: { postId: 'first-post' },
+          generation: FIRST_REQUEST_GENERATION,
           result: Result.fail('The connection dropped.'),
         }),
       ),
@@ -101,10 +105,11 @@ describe('view', () => {
       click(role('tab', { name: 'Stats' })),
       expect(text('Loading stats…')).toExist(),
       resolveFocusTab,
-      Command.expectExact(statsQuery.Fetch()),
+      Command.expectExact(statsQuery.Fetch),
       Command.resolve(
         statsQuery.Fetch,
         statsQuery.Message.CompletedFetch({
+          generation: FIRST_REQUEST_GENERATION,
           result: Result.succeed({
             stats: fixtureStats,
             fetchedAt: FETCHED_AT,
