@@ -1,6 +1,7 @@
 import {
   Array,
   Effect,
+  Match,
   Number,
   Option,
   Queue,
@@ -36,10 +37,31 @@ const Measurement = defineTaggedUnion({
   Measured: { containerHeight: Schema.Number },
 })
 
-/** State of a programmatic scroll initiated by `scrollToIndex`. */
+/** State of a programmatic scroll initiated by a scrolling helper. */
 const PendingScroll = defineTaggedUnion({
   Idle: {},
   ScrollingToIndex: { index: Schema.Number, version: Schema.Number },
+  ScrollingToKey: { key: Schema.String, version: Schema.Number },
+  ScrollingToOffset: { offset: Schema.Number, version: Schema.Number },
+})
+
+/** Alignment of a row within the viewport after a programmatic scroll. */
+export const ScrollAlignment = Schema.Literals([
+  'Start',
+  'Center',
+  'End',
+  'Nearest',
+])
+
+export type ScrollAlignment = typeof ScrollAlignment.Type
+
+const ScrollDestination = defineTaggedUnion({
+  Offset: { offset: Schema.Number },
+  Row: {
+    startOffset: Schema.Number,
+    endOffset: Schema.Number,
+    alignment: ScrollAlignment,
+  },
 })
 
 /** Schema for the virtual list's state. Tracks scroll position, container
@@ -92,14 +114,82 @@ export const init = (config: InitConfig): Model => ({
 
 // UPDATE
 
+const scrollTopForNearestAlignment = (
+  currentScrollTop: number,
+  containerHeight: number,
+  startOffset: number,
+  endOffset: number,
+): number => {
+  const viewportEnd = currentScrollTop + containerHeight
+  const rowSpansViewport =
+    startOffset < currentScrollTop && endOffset > viewportEnd
+
+  if (rowSpansViewport) {
+    return currentScrollTop
+  }
+
+  if (startOffset < currentScrollTop) {
+    return startOffset
+  }
+
+  if (endOffset > viewportEnd) {
+    return endOffset - containerHeight
+  }
+
+  return currentScrollTop
+}
+
+const scrollTopForRow = (
+  currentScrollTop: number,
+  containerHeight: number,
+  startOffset: number,
+  endOffset: number,
+  alignment: ScrollAlignment,
+): number => {
+  const targetScrollTop = Match.value(alignment).pipe(
+    Match.withReturnType<number>(),
+    Match.when('Start', () => startOffset),
+    Match.when(
+      'Center',
+      () => startOffset + (endOffset - startOffset - containerHeight) / 2,
+    ),
+    Match.when('End', () => endOffset - containerHeight),
+    Match.when('Nearest', () =>
+      scrollTopForNearestAlignment(
+        currentScrollTop,
+        containerHeight,
+        startOffset,
+        endOffset,
+      ),
+    ),
+    Match.exhaustive,
+  )
+
+  return Math.max(0, targetScrollTop)
+}
+
 export const ApplyScroll = Command.define('ApplyScroll', {
-  args: { id: Schema.String, scrollTop: Schema.Number, version: Schema.Number },
+  args: {
+    id: Schema.String,
+    destination: ScrollDestination,
+    version: Schema.Number,
+  },
   messages: [Message.CompletedApplyScroll],
-  execute: ({ id, scrollTop, version }) =>
+  execute: ({ id, destination, version }) =>
     Effect.sync(() => {
       const element = document.getElementById(id)
       if (element !== null) {
-        element.scrollTop = scrollTop
+        element.scrollTop = ScrollDestination.match<number>(destination, {
+          Offset: ({ offset }) => Math.max(0, offset),
+          Row: ({ startOffset, endOffset, alignment }) =>
+            scrollTopForRow(
+              element.scrollTop,
+              element.clientHeight,
+              startOffset,
+              endOffset,
+              alignment,
+            ),
+        })
       }
       return Message.CompletedApplyScroll({ version })
     }),
@@ -131,7 +221,9 @@ export const update = (model: Model, message: Message) =>
           commands: [
             ApplyScroll({
               id: model.id,
-              scrollTop: model.scrollTop,
+              destination: ScrollDestination.Offset({
+                offset: model.scrollTop,
+              }),
               version: nextVersion,
             }),
           ],
@@ -160,32 +252,92 @@ export const update = (model: Model, message: Message) =>
 
 type ScrollReturn = Update.Return<Model, Message>
 
-const buildScrollToIndex = (
+type ActivePendingScroll =
+  | typeof PendingScroll.ScrollingToIndex.Type
+  | typeof PendingScroll.ScrollingToKey.Type
+  | typeof PendingScroll.ScrollingToOffset.Type
+
+/** Options shared by row-targeted programmatic scrolling helpers. */
+export type ScrollToOptions = Readonly<{
+  alignment?: ScrollAlignment
+}>
+
+const buildScroll = (
   model: Model,
-  index: number,
-  targetScrollTop: number,
+  destination: typeof ScrollDestination.Type,
+  toPendingScroll: (version: number) => ActivePendingScroll,
 ): ScrollReturn => {
   const nextVersion = Number.increment(model.pendingScrollVersion)
   return {
     model: modifyFields(model, {
       pendingScrollVersion: () => nextVersion,
-      pendingScroll: () =>
-        PendingScroll.ScrollingToIndex({ index, version: nextVersion }),
+      pendingScroll: () => toPendingScroll(nextVersion),
     }),
     commands: [
       ApplyScroll({
         id: model.id,
-        scrollTop: targetScrollTop,
+        destination,
         version: nextVersion,
       }),
     ],
   }
 }
 
+type RowOffsets = Readonly<{
+  startOffset: number
+  endOffset: number
+}>
+
+const uniformRowOffsets = (model: Model, index: number): RowOffsets => {
+  const startOffset = Math.max(0, index) * model.rowHeightPx
+  return {
+    startOffset,
+    endOffset: startOffset + model.rowHeightPx,
+  }
+}
+
+const variableRowOffsets = <Item>(
+  items: ReadonlyArray<Item>,
+  itemToRowHeightPx: (item: Item, index: number) => number,
+  index: number,
+): RowOffsets => {
+  const cumulativeOffsets = prefixSum(items, itemToRowHeightPx)
+  const totalHeight = lastOrZero(cumulativeOffsets)
+  const clampedIndex = Math.max(0, index)
+  return {
+    startOffset: pipe(
+      cumulativeOffsets,
+      Array.get(clampedIndex),
+      Option.getOrElse(() => totalHeight),
+    ),
+    endOffset: pipe(
+      cumulativeOffsets,
+      Array.get(clampedIndex + 1),
+      Option.getOrElse(() => totalHeight),
+    ),
+  }
+}
+
+const scrollToRow = (
+  model: Model,
+  rowOffsets: RowOffsets,
+  alignment: ScrollAlignment,
+  toPendingScroll: (version: number) => ActivePendingScroll,
+): ScrollReturn =>
+  buildScroll(
+    model,
+    ScrollDestination.Row({ ...rowOffsets, alignment }),
+    toPendingScroll,
+  )
+
 /** Programmatically scrolls the container so the row at `index` is visible.
  *  Returns the next Model and a Command that mutates `element.scrollTop`. The
  *  natural scroll event then flows back through `ScrolledContainer` and the
  *  component re-renders the new visible slice.
+ *
+ *  `options.alignment` controls where the row lands in the viewport. `Start`
+ *  is the default; `Nearest` leaves a fully visible row in place and otherwise
+ *  scrolls the closest edge into view.
  *
  *  Uses version-based cancellation: each call increments
  *  `pendingScrollVersion` so a stale `CompletedApplyScroll` (e.g. from a
@@ -195,15 +347,24 @@ const buildScrollToIndex = (
  *  yet in the DOM the Command silently no-ops (the Model still transitions
  *  through `ScrollingToIndex` → `Idle` via the version-matched completion).
  *
- *  Assumes uniform row heights: target scroll position is computed as
- *  `index * model.rowHeightPx`. For variable-height rows, use
+ *  Assumes uniform row heights. For variable-height rows, use
  *  `scrollToIndexVariable`. */
-export const scrollToIndex = (model: Model, index: number): ScrollReturn =>
-  buildScrollToIndex(model, index, index * model.rowHeightPx)
+export const scrollToIndex = (
+  model: Model,
+  index: number,
+  options: ScrollToOptions = {},
+): ScrollReturn =>
+  scrollToRow(
+    model,
+    uniformRowOffsets(model, index),
+    options.alignment ?? 'Start',
+    version => PendingScroll.ScrollingToIndex({ index, version }),
+  )
 
 /** Variable-height counterpart of `scrollToIndex`. Walks the heights of items
  *  before `index` to compute the target `scrollTop`. Use this when rendering
  *  the list with `itemToRowHeightPx`; use `scrollToIndex` for uniform heights.
+ *  Accepts the same alignment options as `scrollToIndex`.
  *
  *  Out-of-range indices clamp to the corresponding edge: negative or zero
  *  scrolls to the top, indices past the end scroll past the last row.
@@ -219,14 +380,68 @@ export const scrollToIndexVariable = <Item>(
   items: ReadonlyArray<Item>,
   itemToRowHeightPx: (item: Item, index: number) => number,
   index: number,
-): ScrollReturn => {
-  const cumulativeOffsets = prefixSum(items, itemToRowHeightPx)
-  const targetScrollTop = pipe(
-    cumulativeOffsets,
-    Array.get(Math.max(0, index)),
-    Option.getOrElse(() => lastOrZero(cumulativeOffsets)),
+  options: ScrollToOptions = {},
+): ScrollReturn =>
+  scrollToRow(
+    model,
+    variableRowOffsets(items, itemToRowHeightPx, index),
+    options.alignment ?? 'Start',
+    version => PendingScroll.ScrollingToIndex({ index, version }),
   )
-  return buildScrollToIndex(model, index, targetScrollTop)
+
+/** Configuration for scrolling to the row identified by `key`. */
+export type ScrollToKeyConfig<Item> = Readonly<{
+  items: ReadonlyArray<Item>
+  itemToKey: (item: Item, index: number) => string
+  key: string
+  itemToRowHeightPx?: (item: Item, index: number) => number
+  alignment?: ScrollAlignment
+}>
+
+/** Programmatically scrolls to the row whose `itemToKey` result matches
+ *  `key`. Uses `model.rowHeightPx` unless `itemToRowHeightPx` is provided.
+ *  Returns the unchanged Model with no Commands when the key is absent. */
+export const scrollToKey = <Item>(
+  model: Model,
+  config: ScrollToKeyConfig<Item>,
+): ScrollReturn => {
+  const {
+    items,
+    itemToKey,
+    key,
+    itemToRowHeightPx,
+    alignment = 'Start',
+  } = config
+  const maybeIndex = pipe(
+    items,
+    Array.findFirstIndex((item, index) => itemToKey(item, index) === key),
+  )
+
+  return Option.match(maybeIndex, {
+    onNone: () => ({ model }),
+    onSome: index => {
+      const rowOffsets =
+        itemToRowHeightPx === undefined
+          ? uniformRowOffsets(model, index)
+          : variableRowOffsets(items, itemToRowHeightPx, index)
+
+      return scrollToRow(model, rowOffsets, alignment, version =>
+        PendingScroll.ScrollingToKey({ key, version }),
+      )
+    },
+  })
+}
+
+/** Programmatically scrolls to an exact pixel offset from the start of the
+ *  list. Negative offsets clamp to zero. */
+export const scrollToOffset = (model: Model, offset: number): ScrollReturn => {
+  const targetOffset = Math.max(0, offset)
+  return buildScroll(
+    model,
+    ScrollDestination.Offset({ offset: targetOffset }),
+    version =>
+      PendingScroll.ScrollingToOffset({ offset: targetOffset, version }),
+  )
 }
 
 // HELPERS

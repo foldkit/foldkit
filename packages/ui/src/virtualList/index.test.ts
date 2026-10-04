@@ -1,4 +1,4 @@
-import { Array, Option } from 'effect'
+import { Array, Effect, Option, pipe } from 'effect'
 import * as Story from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, it } from 'vitest'
@@ -7,9 +7,12 @@ import {
   ApplyScroll,
   Message,
   type Model,
+  type ScrollAlignment,
   init,
   scrollToIndex,
   scrollToIndexVariable,
+  scrollToKey,
+  scrollToOffset,
   update,
   visibleWindow,
   visibleWindowVariable,
@@ -23,6 +26,32 @@ const measuredInit = (containerHeight: number): Model => {
     Message.MeasuredContainer({ containerHeight }),
   )
   return measurement.model
+}
+
+type ScrollReturn = ReturnType<typeof scrollToIndex>
+
+const executeScroll = async (
+  scrollReturn: ScrollReturn,
+  currentScrollTop: number,
+  containerHeight: number,
+): Promise<number> => {
+  const element = document.createElement('div')
+  element.id = 'test'
+  element.scrollTop = currentScrollTop
+  Object.defineProperty(element, 'clientHeight', { value: containerHeight })
+  document.body.append(element)
+
+  try {
+    const maybeCommand = pipe(scrollReturn.commands ?? [], Array.head)
+    if (Option.isNone(maybeCommand)) {
+      throw new Error('Expected one scroll Command')
+    }
+
+    await Effect.runPromise(maybeCommand.value.effect)
+    return element.scrollTop
+  } finally {
+    element.remove()
+  }
 }
 
 describe('VirtualList', () => {
@@ -187,6 +216,129 @@ describe('VirtualList', () => {
       expect(firstScroll.model.pendingScrollVersion).toBe(1)
       expect(secondScroll.model.pendingScrollVersion).toBe(2)
       expect(thirdScroll.model.pendingScrollVersion).toBe(3)
+    })
+
+    const alignmentCases: ReadonlyArray<
+      Readonly<{
+        alignment: ScrollAlignment
+        currentScrollTop: number
+        expectedScrollTop: number
+      }>
+    > = [
+      { alignment: 'Start', currentScrollTop: 0, expectedScrollTop: 150 },
+      { alignment: 'Center', currentScrollTop: 0, expectedScrollTop: 120 },
+      { alignment: 'End', currentScrollTop: 0, expectedScrollTop: 90 },
+      { alignment: 'Nearest', currentScrollTop: 100, expectedScrollTop: 100 },
+    ]
+
+    it.each(alignmentCases)(
+      'aligns the row to $alignment',
+      async ({ alignment, currentScrollTop, expectedScrollTop }) => {
+        const indexScroll = scrollToIndex(defaultInit(), 5, { alignment })
+        const scrollTop = await executeScroll(indexScroll, currentScrollTop, 90)
+
+        expect(scrollTop).toBe(expectedScrollTop)
+      },
+    )
+
+    it('uses the nearest edge when the row is outside the viewport', async () => {
+      const belowViewport = await executeScroll(
+        scrollToIndex(defaultInit(), 5, { alignment: 'Nearest' }),
+        0,
+        90,
+      )
+      const aboveViewport = await executeScroll(
+        scrollToIndex(defaultInit(), 5, { alignment: 'Nearest' }),
+        160,
+        90,
+      )
+
+      expect(belowViewport).toBe(90)
+      expect(aboveViewport).toBe(150)
+    })
+
+    it('clamps aligned scroll positions at the start of the list', async () => {
+      const indexScroll = scrollToIndex(defaultInit(), 0, {
+        alignment: 'Center',
+      })
+      const scrollTop = await executeScroll(indexScroll, 300, 90)
+
+      expect(scrollTop).toBe(0)
+    })
+  })
+
+  describe('scrollToKey', () => {
+    type Row = Readonly<{ id: string; height: number }>
+    const rows: ReadonlyArray<Row> = [
+      { id: 'first', height: 10 },
+      { id: 'second', height: 20 },
+      { id: 'third', height: 30 },
+    ]
+    const itemToKey = (row: Row): string => row.id
+    const itemToRowHeightPx = (row: Row): number => row.height
+
+    it('scrolls to the row whose key matches', async () => {
+      const keyScroll = scrollToKey(defaultInit(), {
+        items: rows,
+        itemToKey,
+        key: 'second',
+      })
+      const scrollTop = await executeScroll(keyScroll, 0, 30)
+
+      expect(keyScroll.model.pendingScroll._tag).toBe('ScrollingToKey')
+      if (keyScroll.model.pendingScroll._tag === 'ScrollingToKey') {
+        expect(keyScroll.model.pendingScroll.key).toBe('second')
+      }
+      expect(scrollTop).toBe(30)
+    })
+
+    it('uses variable row heights and alignment when provided', async () => {
+      const keyScroll = scrollToKey(defaultInit(), {
+        items: rows,
+        itemToKey,
+        itemToRowHeightPx,
+        key: 'third',
+        alignment: 'Center',
+      })
+      const scrollTop = await executeScroll(keyScroll, 0, 50)
+
+      expect(scrollTop).toBe(20)
+    })
+
+    it('returns the unchanged Model with no Command when the key is absent', () => {
+      const model = defaultInit()
+      const keyScroll = scrollToKey(model, {
+        items: rows,
+        itemToKey,
+        key: 'missing',
+      })
+
+      expect(keyScroll.model).toBe(model)
+      expect(keyScroll.commands).toBeUndefined()
+    })
+  })
+
+  describe('scrollToOffset', () => {
+    it('scrolls to the requested pixel offset', async () => {
+      const offsetScroll = scrollToOffset(defaultInit(), 275)
+      const scrollTop = await executeScroll(offsetScroll, 0, 90)
+
+      expect(offsetScroll.model.pendingScroll._tag).toBe('ScrollingToOffset')
+      if (offsetScroll.model.pendingScroll._tag === 'ScrollingToOffset') {
+        expect(offsetScroll.model.pendingScroll.offset).toBe(275)
+      }
+      expect(scrollTop).toBe(275)
+    })
+
+    it('clamps a negative pixel offset to zero', async () => {
+      const offsetScroll = scrollToOffset(defaultInit(), -10)
+      const scrollTop = await executeScroll(offsetScroll, 200, 90)
+
+      expect(offsetScroll.model.pendingScroll._tag).toBe('ScrollingToOffset')
+      if (offsetScroll.model.pendingScroll._tag === 'ScrollingToOffset') {
+        expect(offsetScroll.model.pendingScroll.offset).toBe(0)
+      }
+      expect(scrollTop).toBe(0)
     })
   })
 
@@ -418,6 +570,19 @@ describe('VirtualList', () => {
         3,
       )
       expect(variableIndexScroll.commands ?? []).toHaveLength(1)
+    })
+
+    it('aligns from cumulative row offsets', async () => {
+      const variableIndexScroll = scrollToIndexVariable(
+        defaultInit(),
+        rows,
+        heightOf,
+        2,
+        { alignment: 'Center' },
+      )
+      const scrollTop = await executeScroll(variableIndexScroll, 0, 50)
+
+      expect(scrollTop).toBe(20)
     })
   })
 
