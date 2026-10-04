@@ -695,7 +695,7 @@ export const view = (
         ),
       CoreQuery: () =>
         withTableOfContents(
-          lazyDocsContent(Core.CoreQuery.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.CoreQuery.view, docContentArgs),
           Core.CoreQuery.tableOfContents,
         ),
       CoreCanvas: () =>
