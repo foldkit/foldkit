@@ -4,10 +4,12 @@ import {
   type BoundaryRegistry,
   type Document,
   type HtmlBuilder,
+  __abandonRender as abandonHtmlRender,
   __beginRender as beginHtmlRender,
   __beginReplayRender as beginReplayHtmlRender,
   __clearRuntime as clearHtmlRuntime,
   __createBoundaryRegistry as createHtmlBoundaryRegistry,
+  __endRender as endHtmlRender,
   __endReplayRender as endReplayHtmlRender,
   __flushReplayUnmountsAfterPatchFailure as flushReplayUnmountsAfterPatchFailure,
   __setRuntime as setHtmlRuntime,
@@ -400,9 +402,16 @@ export const makeRenderer = <Model, Message>({
             renderMode,
           )
 
+          let didFinishRender = false
           try {
-            return view(model, htmlBuilder)
+            const document = view(model, htmlBuilder)
+            endHtmlRender()
+            didFinishRender = true
+            return document
           } finally {
+            if (!didFinishRender) {
+              abandonHtmlRender()
+            }
             clearHtmlRuntime()
           }
         },

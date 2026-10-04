@@ -9,8 +9,10 @@ import { h } from '../snabbdom/index.js'
 import { type VNode, dedupeSharedVNodes, memoizedVNodes } from '../vdom.js'
 import {
   type BoundaryRegistry,
+  abandonRender,
   beginRender,
   createBoundaryRegistry,
+  endRender,
 } from './boundary.js'
 import { createKeyedLazy, createLazy } from './lazy.js'
 import {
@@ -462,6 +464,128 @@ describe('createKeyedLazy', () => {
     const second = lazy('a', viewFn, [true])
 
     expect(second).not.toBe(first)
+  })
+
+  it('keeps a key the latest render did not call', () => {
+    let callCount = 0
+    const viewFn = (label: string) => {
+      callCount++
+      return h('div', {}, [label])
+    }
+
+    const registry = createBoundaryRegistry()
+    const lazy = createKeyedLazy()
+
+    beginRender(registry)
+    lazy('a', viewFn, ['hello'])
+    lazy('b', viewFn, ['world'])
+    endRender()
+
+    beginRender(registry)
+    lazy('a', viewFn, ['hello'])
+    endRender()
+    lazy('b', viewFn, ['world'])
+
+    expect(callCount).toBe(2)
+  })
+
+  it('drops a key the latest render did not call when eviction is AbsentFromRender', () => {
+    let callCount = 0
+    const viewFn = (label: string) => {
+      callCount++
+      return h('div', {}, [label])
+    }
+
+    const registry = createBoundaryRegistry()
+    const lazy = createKeyedLazy({ evict: 'AbsentFromRender' })
+
+    beginRender(registry)
+    const first = lazy('a', viewFn, ['hello'])
+    const kept = lazy('b', viewFn, ['world'])
+    endRender()
+
+    beginRender(registry)
+    expect(lazy('b', viewFn, ['world'])).toBe(kept)
+    endRender()
+
+    beginRender(registry)
+    const again = lazy('a', viewFn, ['hello'])
+    endRender()
+
+    expect(again).not.toBe(first)
+    expect(callCount).toBe(3)
+  })
+
+  it('releases the DOM element stored on a VNode when its key is dropped', () => {
+    const viewFn = (label: string) => h('div', {}, [label])
+    const registry = createBoundaryRegistry()
+    const lazy = createKeyedLazy({ evict: 'AbsentFromRender' })
+
+    beginRender(registry)
+    const first = lazy('a', viewFn, ['hello'])
+    first!.elm = document.createElement('div')
+    endRender()
+
+    beginRender(registry)
+    lazy('b', viewFn, ['world'])
+    endRender()
+
+    beginRender(registry)
+    const again = lazy('a', viewFn, ['hello'])
+    endRender()
+
+    expect(again).not.toBe(first)
+    expect(again?.elm).toBeUndefined()
+  })
+
+  it('drops every key when a later render never calls the lazy', () => {
+    let callCount = 0
+    const viewFn = (label: string) => {
+      callCount++
+      return h('div', {}, [label])
+    }
+
+    const registry = createBoundaryRegistry()
+    const lazy = createKeyedLazy({ evict: 'AbsentFromRender' })
+
+    beginRender(registry)
+    lazy('a', viewFn, ['hello'])
+    endRender()
+
+    beginRender(registry)
+    endRender()
+
+    beginRender(registry)
+    lazy('a', viewFn, ['hello'])
+    endRender()
+
+    expect(callCount).toBe(2)
+  })
+
+  it('keeps unvisited keys when the render is abandoned', () => {
+    let callCount = 0
+    const viewFn = (label: string) => {
+      callCount++
+      return h('div', {}, [label])
+    }
+
+    const registry = createBoundaryRegistry()
+    const lazy = createKeyedLazy({ evict: 'AbsentFromRender' })
+
+    beginRender(registry)
+    lazy('a', viewFn, ['hello'])
+    lazy('b', viewFn, ['world'])
+    endRender()
+
+    beginRender(registry)
+    lazy('a', viewFn, ['hello'])
+    abandonRender()
+
+    beginRender(registry)
+    lazy('b', viewFn, ['world'])
+    endRender()
+
+    expect(callCount).toBe(2)
   })
 
   it('recomputes when dispatch changes between renders', () => {

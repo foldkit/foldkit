@@ -752,12 +752,58 @@ export const resolveMountBoundaryDispatch = (
   return dispatch
 }
 
+type KeyedLazyRenderEvictor = Readonly<{
+  beginRender: () => void
+  finishRender: () => void
+  abandonRender: () => void
+}>
+
+const keyedLazyRenderEvictors: Array<KeyedLazyRenderEvictor> = []
+
+/** @internal Registers a keyed lazy that drops keys absent from a render. */
+export const registerKeyedLazyRenderEvictor = (
+  evictor: KeyedLazyRenderEvictor,
+): void => {
+  keyedLazyRenderEvictors.push(evictor)
+}
+
+const notifyKeyedLazyRenderEvictors = (
+  notify: (evictor: KeyedLazyRenderEvictor) => void,
+): void => {
+  for (const evictor of keyedLazyRenderEvictors) {
+    notify(evictor)
+  }
+}
+
 /** Called at the start of each top-level render. Clears the
  *  per-render duplicate-slotId tracking map so siblings inside the
  *  same parent boundary can be re-validated. Does not touch the wrap
  *  or dispatcher tables. Those persist across renders and are evicted
- *  by VNode destroy hooks instead. */
+ *  by VNode destroy hooks instead. Also starts a new pass for keyed
+ *  lazies that drop keys absent from the render. */
 export const beginRender = (registry: BoundaryRegistry): void => {
   registry.seenThisRender.clear()
   registry.dedupeSeen.clear()
+  notifyKeyedLazyRenderEvictors(evictor => {
+    evictor.beginRender()
+  })
+}
+
+/** Drops keyed-lazy keys the render that just finished did not call.
+ *  Pair with {@link beginRender} after `view` returns. A render that
+ *  throws uses {@link abandonRender} instead, so a partial pass does
+ *  not discard keys it had not reached yet. */
+export const endRender = (): void => {
+  notifyKeyedLazyRenderEvictors(evictor => {
+    evictor.finishRender()
+  })
+}
+
+/** Forgets which keyed-lazy keys the current pass called, and keeps
+ *  every cache entry. Call this when `view` throws before
+ *  {@link endRender}. */
+export const abandonRender = (): void => {
+  notifyKeyedLazyRenderEvictors(evictor => {
+    evictor.abandonRender()
+  })
 }

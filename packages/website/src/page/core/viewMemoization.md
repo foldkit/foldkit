@@ -43,8 +43,10 @@ Use the same stable Model identifier for memoization and [DOM identity](/best-pr
 
 Keys can also identify fixed call sites. If one view function renders in two places, give those positions distinct keys instead of maintaining two `createLazy` slots.
 
-:::Info{label="Keys are never evicted"}
-`createKeyedLazy` keeps every key it has seen for the lifetime of the page. Use it with a bounded set, such as an entity registry, route table, or fixed set of call sites. A search query or paged cursor can produce unbounded keys and grow the cache without limit.
+:::Info{label="Keys and eviction"}
+`createKeyedLazy()` keeps every key for the lifetime of the page. Use it with a bounded set, such as an entity registry, a route table, or a fixed set of call sites. A search query or a paged cursor can produce unbounded keys.
+
+Pass `{ evict: 'AbsentFromRender' }` when the keys are the rows on screen, as in a virtual list. That variant drops keys the latest render did not call. A cached entry holds the VNode, and the VNode holds the DOM element, so a key left in the map keeps that element alive after it has left the document.
 :::
 
 ## When to Use Lazy Views {#when-to-use-lazy}

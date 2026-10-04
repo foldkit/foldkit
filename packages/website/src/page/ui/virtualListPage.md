@@ -30,6 +30,12 @@ Programmatic scrolling for variable-height lists uses `scrollToIndexVariable`, w
 
 ::Snippet{name="uiVirtualListVariable" label="variable-height virtual list example"}
 
+## Memoizing rows
+
+`itemToKey` is the row's DOM identity. Use that same id when memoizing the row view with `createKeyedLazy`, and pass `{ evict: 'AbsentFromRender' }`.
+
+`createKeyedLazy()` keeps every key until the page closes. In a virtual list those keys are every row that has been on screen. Each cached entry holds the row's VNode, and that VNode holds the row's DOM element, so those rows stay in memory after they scroll out of the window. `{ evict: 'AbsentFromRender' }` drops keys the latest render did not call. Rows still in the window keep their cache hits. Rows that scrolled out are released when that render finishes.
+
 ## Subscriptions
 
 VirtualList exposes a single subscription, `containerEvents`, that listens for `scroll` events on the container and observes its size with `ResizeObserver`. Wire it into your app's subscriptions alongside the rest of the framework subscriptions.
