@@ -14,6 +14,7 @@ import { Blog, NotFound } from '../page'
 import * as Prose from '../prose'
 import { type BlogPostRoute, type BlogRoute, homeRouter } from '../route'
 import * as SnippetCopy from '../snippetCopy'
+import * as SnippetDisclosure from '../snippetDisclosure'
 import * as Search from './search'
 import * as Sidebar from './sidebar'
 
@@ -23,17 +24,27 @@ const PagefindIgnore = ih.DataAttribute('pagefind-ignore', '')
 const postView = (
   post: Blog.BlogPost,
   snippetCopy: SnippetCopy.Model,
+  snippetDisclosure: SnippetDisclosure.Model,
   h: HtmlBuilder<Message>,
-): Html =>
-  Blog.BlogPostPage.view(
+): Html => {
+  const renderCopyButton = SnippetCopy.renderer(
+    snippetCopy,
+    message => Message.GotSnippetCopyMessage({ message }),
+    h,
+  )
+
+  return Blog.BlogPostPage.view(
     post,
-    SnippetCopy.renderer(
-      snippetCopy,
-      message => Message.GotSnippetCopyMessage({ message }),
+    renderCopyButton,
+    SnippetDisclosure.renderer(
+      snippetDisclosure,
+      message => Message.GotSnippetDisclosureMessage({ message }),
+      renderCopyButton,
       h,
     ),
     Prose.renderHeadingLink(hash => Message.ClickedCopyLink({ hash }), h),
   )
+}
 
 const lazyPostView = createKeyedLazy()
 
@@ -52,7 +63,12 @@ export const view = (
         Option.match(Blog.findPostBySlug(postSlug), {
           onNone: () => NotFound.view(postSlug, homeRouter()),
           onSome: post =>
-            lazyPostView(post.slug, postView, [post, model.snippetCopy, h]),
+            lazyPostView(post.slug, postView, [
+              post,
+              model.snippetCopy,
+              model.snippetDisclosure,
+              h,
+            ]),
         }),
     }),
   )

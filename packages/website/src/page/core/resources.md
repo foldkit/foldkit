@@ -10,7 +10,7 @@ Resources are the kitchen equipment that stays available all night. Every dish c
 
 Define a service with [Context.Service](https://effect.website/docs/requirements-management/services/), then pass its Layer through the runtime’s `resources` config. The runtime builds that Layer once, the first time it is needed: during startup when a fresh Flags Effect resolves or Subscriptions begin, otherwise when the first Command runs. It shares the built services for the runtime’s lifetime and releases them at teardown. Commands access a service by yielding its tag.
 
-::Snippet{name="resources" label="resources example"}
+::Snippet{name="resources" label="Shared API client service"}
 
 Commands declare their resource requirements in the type signature via the third type parameter of `Command`. This makes dependencies explicit and type-checked. If a Command requires a service that isn’t provided via `resources`, you’ll get a compile error.
 
@@ -31,7 +31,7 @@ Common cases follow directly from that distinction:
 - **`KeyValueStore` stays per Command.** The backing store is often part of the operation: one Command may use localStorage while another uses sessionStorage. A runtime-wide Layer could bind only one implementation of the tag.
 - **An RPC client belongs in `resources`.** Construction does real work, every Command should reuse the same client, and broken configuration should produce one visible failure rather than isolated failures across every server operation.
 
-::Snippet{name="resourcesPerCommandHttp" label="per-Command HTTP example"}
+::Snippet{name="resourcesPerCommandHttp" label="Per-Command HTTP"}
 
 An HTTP client can still graduate. When an app grows many HTTP Commands, or shares a derived `HttpApiClient` across modules, provide `Http.layer` once via `resources` instead. The moment you find yourself writing a `withClient` helper to cut the repetition is the signal. Providing at the edge also helps tests: the Command’s Effect keeps `HttpClient` in its requirements, so an Effect-level test can provide a mock with `Layer.succeed(HttpClient.HttpClient, mockClient)` directly. A per-Command provide needs a separately exported raw Effect to test the same way.
 
@@ -55,6 +55,6 @@ Provide a service used only by Flags with `Effect.provide` inside the Flags Effe
 
 The `resources` field takes a single `Layer`, but Effect layers compose. Use `Layer.mergeAll` to combine multiple service layers into one.
 
-::Snippet{name="resourcesMultiple" label="multiple resources example"}
+::Snippet{name="resourcesMultiple" label="Multiple resources"}
 
 Resources live for the entire runtime. When a camera stream, `WebSocket`, or other handle should exist only while the Model is in a particular state, use [Managed Resources](/core/managed-resources) instead.

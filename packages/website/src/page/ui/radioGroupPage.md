@@ -22,7 +22,7 @@ Pass the bundle's `update` to `Update.foldChild`, then store the value from the 
 
 ::Demo{name="vertical"}
 
-::Snippet{name="uiRadioGroupBasic" label="radio group example"}
+::Snippet{name="uiRadioGroupBasic" label="Radio group"}
 
 ### Horizontal
 

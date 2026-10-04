@@ -32,7 +32,7 @@ const demoRegion = (demoLabels: DemoLabels, name: string, demo: Html): Html =>
  * `Demo` drops in a live, interactive demo the page has pre-built and keyed by
  * name; `Faq` hands its rendered children to the page's collapsible shell. The
  * page's slots live in the app Model, so the views close over `slots`; the copy
- * state rides inside the slots' `renderCopyButton`.
+ * state rides inside the slots' renderers.
  *
  * A `::Snippet` name with no matching file under `src/snippet` renders nothing,
  * which the snippet registration test is there to catch. The views stay pure, so
@@ -52,11 +52,10 @@ export const docIslands = (
             `${pageId}-snippet-${name}-${occurrenceIndex}`,
             ih.div([ih.Class('text-sm'), ih.InnerHTML(snippet.highlighted)]),
             snippet.raw,
-            label === undefined
-              ? 'Copy snippet to clipboard'
-              : `Copy ${label} to clipboard`,
-            slots.renderCopyButton,
+            `Copy ${label} to clipboard`,
+            slots.renderSnippet,
             className ?? 'mb-6',
+            label,
           ),
       }),
 

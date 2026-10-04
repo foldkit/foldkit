@@ -33,7 +33,7 @@ There is no separate query cache. The Model is the cache. A single resource live
 
 Here is the complete shape of a simple query. It uses one field, one Command, and two `update` arms:
 
-::Snippet{name="useQueryTranslation" label="useQuery translation"}
+::Snippet{name="useQueryTranslation" label="Translating useQuery"}
 
 Each behavior is visible in the transition that implements it. `revalidateOrLoad` returns `None` while the field is already `Loading` or `Refreshing`, so the same update path does not start another request. A successful value moves to `Refreshing` when revalidated, keeping the current list on screen. A cold field moves to `Loading`. When the Command finishes, `settle` folds its `Result` into the field and preserves previous data as `Stale` if a refresh fails.
 
@@ -68,7 +68,7 @@ Imagine a search starts a request for A, then starts a request for B before A re
 
 Foldkit does not automatically cancel or order independent Commands. Thread the query through the Command into its result Message, then compare it with the current Model before accepting the result:
 
-::Snippet{name="responseRaceGuard" label="response race guard"}
+::Snippet{name="responseRaceGuard" label="Response race guard"}
 
 The late response for A sees that its `query` no longer matches `queryInput`, so `update` leaves the Model unchanged. The comparison uses the context the application already cares about. The same pattern works for a search request launched after every keystroke: accept the result only if it still belongs to the current query.
 

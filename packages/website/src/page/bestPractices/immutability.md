@@ -4,7 +4,7 @@
 
 `update` returns a new Model instead of mutating the current one. Foldkit provides `modifyFields` for these immutable field updates. It wraps Effect's `Struct.evolve` with stricter key checking, so removing or renaming a Model field produces errors at every stale update site.
 
-::Snippet{name="modifyFieldsExample" label="modifyFields example"}
+::Snippet{name="modifyFieldsExample" label="Using modifyFields"}
 
 Each property in the transform object receives that field's current value and returns its next value. Omitted properties remain unchanged.
 

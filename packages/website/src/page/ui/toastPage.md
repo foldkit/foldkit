@@ -16,7 +16,7 @@ Click a variant to add a toast. Hover a non-sticky toast to pause its auto-dismi
 
 ::Demo{name="demo"}
 
-::Snippet{name="uiToastBasic" label="toast example"}
+::Snippet{name="uiToastBasic" label="Toast"}
 
 ## Styling
 
@@ -36,7 +36,7 @@ While dragging, the entry follows the pointer only in the configured direction; 
 
 Releasing at or below the threshold, or cancelling with Escape, returns the entry to zero offset and resumes auto-dismiss when applicable. Toast holds `data-swipe="settling"` for 150ms (`SWIPE_SETTLE_DURATION`) after either case. Add a `translate` transition for the snap-back and exit, as the demos do:
 
-::Snippet{name="uiToastSwipeStyles" label="swipe transition styles"}
+::Snippet{name="uiToastSwipeStyles" label="Swipe transition styles"}
 
 While an entry is translated, the view exposes its drag or release offset as `--toast-swipe-move-x`. You can use it to style an action background behind the moving entry.
 

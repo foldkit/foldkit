@@ -94,7 +94,7 @@ Write view functions that take the Model data they need and return Html. They do
 :::Faq{id="faq-multiple-instances" question="How do I create multiple components with their own state?"}
 Represent each instance in the Model. Use separate fields for a fixed number of instances or a collection keyed by a stable Model identifier for a dynamic number:
 
-::Snippet{name="multipleInstances" label="Model example" class="mb-4"}
+::Snippet{name="multipleInstances" label="Modeling multiple Submodel instances" class="mb-4"}
 
 Each `Accordion.Model` is a Submodel. The parent delegates a child Message to the matching instance and writes the child Model back. See the [Shopping Cart example](/example-apps/shopping-cart) for a larger composition.
 :::

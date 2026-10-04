@@ -258,6 +258,10 @@ html.dark {
     @apply bg-[var(--code-background)] text-[var(--code-foreground)];
   }
 
+  .snippet-code-content pre {
+    @apply rounded-none border-0;
+  }
+
   .docs-disclosure-button {
     @apply w-full flex items-center justify-between px-4 py-3 text-left text-base font-normal cursor-pointer transition border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white hover:bg-gray-200/50 dark:hover:bg-gray-800 rounded-lg data-[open]:rounded-b-none select-none;
   }
@@ -649,6 +653,10 @@ html.dark {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  [data-snippet-disclosure-layout] > :first-child {
+    transition: none !important;
+  }
+
   .solari-character {
     transition: none;
   }

@@ -22,7 +22,7 @@ Update copies the route query into the input, records it in recent searches, and
 
 `informRouteChanged` is the public entry point. It calls `update(model, ChangedRoute({ route }))`, keeping the Message constructor private.
 
-::Snippet{name="informingSubmodelsChild" label="child code"}
+::Snippet{name="informingSubmodelsChild" label="Child informRouteChanged helper"}
 
 :::Warning{label="Not an OutMessage"}
 `ChangedRoute` moves from parent to child through an `inform*` helper. An [OutMessage](/core/submodel#surfacing-facts) moves a fact from child to parent.
@@ -32,7 +32,7 @@ Update copies the route query into the input, records it in recent searches, and
 
 The root defines one fold for regular People Messages and another for `informRouteChanged`. Both folds use the same `read`, `write`, and `toParentMessage` boundary. The `ChangedUrl` handler stores the next Route, then composes the relevant child step with `Update.combine`.
 
-::Snippet{name="informingSubmodelsParent" label="parent code"}
+::Snippet{name="informingSubmodelsParent" label="Parent route fold"}
 
 :::Info{label="Multiple Submodels"}
 When several page Submodels react to routing, match the next Route and return the `informRouteChanged` step for the page that owns that Route.

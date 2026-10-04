@@ -19,6 +19,27 @@ const expectNoAccessibilityViolations = async (page: Page) => {
   expect(results.violations).toEqual([])
 }
 
+const expectFullyVisible = async (locator: Locator) => {
+  await expect
+    .poll(() =>
+      locator.evaluate(element => {
+        const box = element.getBoundingClientRect()
+        const elementAtCenter = document.elementFromPoint(
+          box.left + box.width / 2,
+          box.top + box.height / 2,
+        )
+
+        return (
+          box.top >= 0 &&
+          box.bottom <= window.innerHeight &&
+          elementAtCenter !== null &&
+          element.contains(elementAtCenter)
+        )
+      }),
+    )
+    .toBe(true)
+}
+
 const waitForClientRuntime = async (page: Page) => {
   await expect(page.locator('[data-foldkit-build]')).toHaveCount(0)
   await expect(page.locator('[data-browser-environment-loaded]')).toHaveCount(1)
@@ -52,6 +73,95 @@ test('keeps representative UI demos free of automated accessibility violations',
     page.getByRole('dialog', { name: 'Confirm Action' }),
   ).toBeVisible()
   await expectNoAccessibilityViolations(page)
+})
+
+test('keeps code snippets accessible while collapsed and expanded', async ({
+  page,
+}) => {
+  for (const colorScheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme })
+    await page.goto('/core/model')
+    await waitForClientRuntime(page)
+
+    const figure = page.getByRole('figure', { name: 'Model state union' })
+    const toggle = figure.getByRole('button', { name: /^(Show|Hide) code$/ })
+    const panel = figure.locator('[id$="-panel"]')
+    const panelVisibilityWrapper = panel.locator('..')
+    const shortFigure = page.getByRole('figure', {
+      name: 'Counter Model',
+      exact: true,
+    })
+
+    await expect(figure).toHaveCount(1)
+    await expect(shortFigure).toHaveCount(1)
+    await expect(
+      shortFigure.getByRole('button', { name: /^(Show|Hide) code$/ }),
+    ).toHaveCount(0)
+    await expect(
+      shortFigure.getByRole('button', {
+        name: 'Copy Counter Model to clipboard',
+      }),
+    ).toBeVisible()
+    await expect(
+      figure.getByRole('button', {
+        name: 'Copy Model state union to clipboard',
+      }),
+    ).toHaveAttribute('type', 'button')
+    await expect(toggle).toHaveAccessibleName('Show code')
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    await expect(panelVisibilityWrapper).toHaveAttribute('inert', '')
+    await expect(panelVisibilityWrapper).toHaveAttribute('aria-hidden', 'true')
+    await expectNoAccessibilityViolations(page)
+
+    await toggle.focus()
+    const scrollYBeforeExpand = await page.evaluate(() => window.scrollY)
+    await toggle.press('Enter')
+    await expect(toggle).toHaveAccessibleName('Hide code')
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    await expect(toggle).toHaveAttribute(
+      'aria-controls',
+      await panel.evaluate(element => element.id),
+    )
+    await expect(panelVisibilityWrapper).not.toHaveAttribute('inert', '')
+    await expect(panelVisibilityWrapper).not.toHaveAttribute(
+      'aria-hidden',
+      'true',
+    )
+    await expect(toggle).toBeFocused()
+    await expectFullyVisible(toggle)
+    await expect(toggle.locator('..')).toHaveCSS('position', 'sticky')
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY))
+      .toBe(scrollYBeforeExpand)
+    await expectNoAccessibilityViolations(page)
+
+    await toggle.press('Space')
+    await expect(toggle).toHaveAccessibleName('Show code')
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    await expect(toggle).toBeFocused()
+    await expectFullyVisible(toggle)
+  }
+})
+
+test('removes snippet disclosure motion when reduced motion is requested', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/core/model')
+  await waitForClientRuntime(page)
+
+  const layout = page.locator('[data-snippet-disclosure-layout]').first()
+  await expect
+    .poll(() =>
+      layout.evaluate(element => {
+        const animationContainer = element.firstElementChild
+
+        return animationContainer instanceof HTMLElement
+          ? getComputedStyle(animationContainer).transitionDuration
+          : undefined
+      }),
+    )
+    .toBe('0s')
 })
 
 test('announces keyboard drag state and the committed reorder', async ({

@@ -14,7 +14,7 @@ The module is also exported from the root barrel, as `import { Anchor } from '@f
 
 `anchorSetup` is a plain DOM function. It takes the element and a config, and returns a cleanup. An element exists in the rendered tree and `execute` uses that element to do DOM work, so [Mount](/core/mount) is the primitive that owns it. `Mount.define` covers the one-shot acquire-with-cleanup shape.
 
-::Snippet{name="uiAnchorBasic" label="anchored panel"}
+::Snippet{name="uiAnchorBasic" label="Anchored panel"}
 
 Two details decide whether the panel behaves:
 

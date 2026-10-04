@@ -30,23 +30,23 @@ New projects already include `@foldkit/devtools-mcp` and a `.mcp.json` entry nam
 
 Run the init command in the project root:
 
-::Snippet{name="aiMcpInit" label="initialize the DevTools MCP server"}
+::Snippet{name="aiMcpInit" label="Initialize the DevTools MCP server"}
 
 The command creates `.mcp.json`, or updates only the `foldkit-devtools` entry when the file already exists. Other configured MCP servers remain unchanged.
 
 Install the server as a development dependency when you want to avoid an `npx` lookup each time the agent starts:
 
-::Snippet{name="aiMcpInstall" label="install the DevTools MCP server"}
+::Snippet{name="aiMcpInstall" label="Install the DevTools MCP server"}
 
 No Vite config change is needed. The Foldkit plugin serves the relay at `/__foldkit/devtools-mcp` on the dev server, and the MCP server finds it by project.
 
 If automatic discovery is unavailable, set a fixed `devToolsMcpPort` in `vite.config.ts` and give the MCP server the same value in `FOLDKIT_DEVTOOLS_MCP_PORT`. This is required on Windows:
 
-::Snippet{name="aiMcpViteConfig" label="Vite config snippet for a fixed port"}
+::Snippet{name="aiMcpViteConfig" label="Vite configuration for a fixed port"}
 
 To let an agent dispatch Messages, pass the application's `Message` Schema to `Runtime.makeApplication`:
 
-::Snippet{name="aiMcpApplicationConfig" label="application config snippet"}
+::Snippet{name="aiMcpApplicationConfig" label="Application configuration"}
 
 Inspection and replay tools work without the Schema. Dispatch tools reject every request until it is configured.
 

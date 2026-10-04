@@ -20,7 +20,7 @@ The snippet below shows a minimal sortable list with all four integration pieces
 
 ::Demo{name="demo"}
 
-::Snippet{name="uiDragAndDropBasic" label="drag and drop example"}
+::Snippet{name="uiDragAndDropBasic" label="Drag and drop"}
 
 ## Styling
 

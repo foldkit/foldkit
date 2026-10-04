@@ -24,7 +24,7 @@ Declare the tabs component once at module scope with `Tabs.create<Value>()` to l
 
 ::Demo{name="horizontal"}
 
-::Snippet{name="uiTabsBasic" label="tabs example"}
+::Snippet{name="uiTabsBasic" label="Tabs"}
 
 ### Vertical
 
@@ -32,7 +32,7 @@ Pass `orientation: 'Vertical'` to switch to up/down arrow navigation.
 
 ::Demo{name="vertical"}
 
-::Snippet{name="uiTabsVertical" label="vertical tabs example"}
+::Snippet{name="uiTabsVertical" label="Vertical tabs"}
 
 ## Styling
 

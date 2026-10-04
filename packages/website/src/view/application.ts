@@ -10,6 +10,7 @@ import { Home, Newsletter, Playground } from '../page'
 import { routeToCanonicalUrl } from '../route'
 import { routeTitle } from '../routeTitle'
 import * as SnippetCopy from '../snippetCopy'
+import * as SnippetDisclosure from '../snippetDisclosure'
 import * as Blog from './blog'
 
 const homeView = (
@@ -17,14 +18,21 @@ const homeView = (
   homeModel: Home.Model,
   h: HtmlBuilder<Message>,
 ) => {
+  const renderCopyButton = SnippetCopy.renderer(
+    model.snippetCopy,
+    message => Message.GotSnippetCopyMessage({ message }),
+    h,
+  )
   const content = h.submodel({
     slotId: 'home',
     model: homeModel,
     view: Home.view,
     viewInputs: {
-      renderCopyButton: SnippetCopy.renderer(
-        model.snippetCopy,
-        message => Message.GotSnippetCopyMessage({ message }),
+      renderCopyButton,
+      renderSnippet: SnippetDisclosure.renderer(
+        model.snippetDisclosure,
+        message => Message.GotSnippetDisclosureMessage({ message }),
+        renderCopyButton,
         h,
       ),
       isNarrowViewport: model.isNarrowViewport,

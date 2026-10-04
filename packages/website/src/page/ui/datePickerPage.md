@@ -22,7 +22,7 @@ A date picker constrained to a one-year window around today via `minDate` and `m
 
 ::Demo{name="basic"}
 
-::Snippet{name="uiDatePickerBasic" label="date picker example"}
+::Snippet{name="uiDatePickerBasic" label="Date picker"}
 
 ## Styling
 

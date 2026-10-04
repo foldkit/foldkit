@@ -20,7 +20,7 @@ Provide `Http.layer` at the edge of the Command's Effect with `Effect.provide`. 
 
 The Command remains responsible for status checks, response decoding, and converting failures into declared Messages.
 
-::Snippet{name="counterHttpCommand" label="HTTP Command example"}
+::Snippet{name="counterHttpCommand" label="HTTP Command"}
 
 ## Customizing the Client
 

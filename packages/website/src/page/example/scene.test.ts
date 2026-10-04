@@ -21,9 +21,9 @@ const { model } = update(
   Message.SucceededLoadExampleSources({ sources }),
 )
 
-const renderedCopyButtonIds = (slug: string): ReadonlyArray<string> => {
+const renderedSnippetIds = (slug: string): ReadonlyArray<string> => {
   const ids: Array<string> = []
-  const renderCopyButton: CodeBlock.RenderCopyButton = config => {
+  const renderSnippet: CodeBlock.RenderSnippet = config => {
     ids.push(config.id)
     return ih.empty
   }
@@ -34,7 +34,7 @@ const renderedCopyButtonIds = (slug: string): ReadonlyArray<string> => {
       view: withViewInputs(view, {
         slug,
         isNarrowViewport: false,
-        renderCopyButton,
+        renderSnippet,
       })(),
     },
     given(model),
@@ -44,8 +44,8 @@ const renderedCopyButtonIds = (slug: string): ReadonlyArray<string> => {
 }
 
 describe('example detail', () => {
-  test('source copy controls include the example slug in their identity', () => {
-    expect(renderedCopyButtonIds('ssr')).toEqual([
+  test('source code controls include the example slug in their identity', () => {
+    expect(renderedSnippetIds('ssr')).toEqual([
       'example-ssr-source-src/main.ts',
     ])
   })

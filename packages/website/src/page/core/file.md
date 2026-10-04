@@ -12,7 +12,7 @@ The `File` module brings browser file APIs into the Foldkit architecture. It ope
 
 `File.readAsText`, `File.readAsDataUrl`, and `File.readAsArrayBuffer` wrap `FileReader` as interruptible Effects. They fail with `FileReadError` when the browser reports an error or returns an unexpected result type. Catch that error inside the Command and convert it into a declared failure Message.
 
-::Snippet{name="fileMetadataAndRead" label="file metadata and read example"}
+::Snippet{name="fileMetadataAndRead" label="File metadata and read"}
 
 ## Selecting Files
 
@@ -22,7 +22,7 @@ The `accept` list filters the picker UI; it does not validate the selected file.
 
 Cancellation is a normal result, not an Effect failure. `File.select` returns `Option.some(file)` after a selection and `Option.none()` after cancellation. `File.selectMultiple` returns all selected files, or an empty array after cancellation. Map either result into domain-specific Messages in the Command.
 
-::Snippet{name="fileSelect" label="file select example"}
+::Snippet{name="fileSelect" label="Selecting files with Commands"}
 
 ## Components
 
@@ -30,7 +30,7 @@ Use [FileDrop](/ui/file-drop) for a headless drop zone with a hidden `<input typ
 
 FileDrop emits a `ReceivedFiles` OutMessage with a guaranteed non-empty file list. It emits `RejectedNonFiles` when a drop or change contains no files. Fold both variants in the parent update. When FileDrop does not fit the interaction, build directly with the `OnFileChange` and `OnDropFiles` attributes from `foldkit/html`.
 
-::Snippet{name="uiFileDropBasic" label="FileDrop example"}
+::Snippet{name="uiFileDropBasic" label="Integrating FileDrop"}
 
 ## Testing
 
@@ -38,7 +38,7 @@ Scene provides `changeFiles` for file inputs and `dropFiles` for drop zones. Eac
 
 For a button-triggered `File.select` Command, click the button and resolve the Command with the result the picker would have produced. `Command.resolveAll` covers flows where selection immediately starts another Command, such as reading a preview.
 
-::Snippet{name="fileSceneTest" label="file scene test example"}
+::Snippet{name="fileSceneTest" label="File scene test"}
 
 ## Full API Surface
 

@@ -14,7 +14,7 @@ Embedded apps are usually built with `makeElement`: the view returns `Html` and 
 
 Ports are declared with `Port.inbound` and `Port.outbound`, grouped in a record, and registered on the program config. The record keys name the ports on the handle:
 
-::Snippet{name="embeddingPorts" label="port declaration example"}
+::Snippet{name="embeddingPorts" label="Port declaration"}
 
 ## Three Communication Directions {#three-directions}
 
@@ -28,7 +28,7 @@ Data the app needs once, at startup, enters through `Flags`, exactly as in a pag
 
 Data the host pushes while the app runs arrives on an inbound Port, which the app consumes as a Subscription source. `Port.subscription` wraps every value into a Message, so host input drives `update` the same way any other external event does:
 
-::Snippet{name="embeddingInboundSubscription" label="inbound Subscription example"}
+::Snippet{name="embeddingInboundSubscription" label="Inbound Subscription"}
 
 For a Model-gated entry, build one from `Port.stream` inside `Subscription.make`. Values sent while no Stream for the Port is running are dropped, with one exception: values sent before the first Stream attaches are buffered and delivered to it in order, so sends issued right after `embed` are not lost during startup.
 
@@ -36,7 +36,7 @@ For a Model-gated entry, build one from `Port.stream` inside `Subscription.make`
 
 Values the app announces to the host leave through an outbound Port, written from a Command. `Port.emit` is an Effect that encodes the value and delivers it to every subscribed host listener; it composes into the app’s own Commands like any other Effect:
 
-::Snippet{name="embeddingOutboundCommand" label="outbound Command example"}
+::Snippet{name="embeddingOutboundCommand" label="Outbound Command"}
 
 When the program runs without an embed handle (started with `Runtime.run`), emitting is a no-op, so the same app works embedded and standalone.
 
@@ -44,7 +44,7 @@ When the program runs without an embed handle (started with `Runtime.run`), emit
 
 `Runtime.embed(program)` starts the runtime and returns an `EmbedHandle`. The handle has one entry per declared Port under `ports` (inbound Ports get `send`, outbound Ports get `subscribe`), plus `dispose`:
 
-::Snippet{name="embeddingHost" label="host wiring example"}
+::Snippet{name="embeddingHost" label="Host wiring"}
 
 `dispose` ties the runtime to the host’s unmount. It interrupts the runtime and runs all cleanup: Subscriptions, Mounts, and ManagedResources release, in-flight Commands stop, the rendered DOM is removed, and the container element is restored empty in its place, ready for a fresh `embed`. It is idempotent, and sends on a disposed handle are no-ops, so a host that unmounts and remounts in quick succession stays correct. A program can be embedded once at a time; after `dispose`, the same program and container can be embedded again.
 
@@ -58,4 +58,4 @@ An invalid inbound value never reaches the app. `send` returns an `Exit` carryin
 
 The handle is framework-agnostic, and its lifecycle maps directly onto effect hooks. In React, `embed` on effect setup and `dispose` on cleanup is the whole integration:
 
-::Snippet{name="embeddingReactHost" label="React host example"}
+::Snippet{name="embeddingReactHost" label="React host"}

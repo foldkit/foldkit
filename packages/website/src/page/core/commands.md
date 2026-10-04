@@ -12,7 +12,7 @@ React event handlers often perform work directly by calling `fetch()`, starting 
 
 The counter has returned an empty Commands array so far. A delayed reset puts that second return value to work:
 
-::Snippet{name="counterCommands" label="commands example"}
+::Snippet{name="counterCommands" label="Delayed-reset Command"}
 
 ## Anatomy of a Command
 
@@ -32,7 +32,7 @@ Command names are verb-first imperatives such as `FetchWeather`, `FocusItems`, a
 
 Because Commands are data and update is pure, a test can simulate the update loop without running any Effects. Dispatch a Message, inspect the returned Command, resolve it with a result Message, and assert on the final Model.
 
-::Snippet{name="counterCommandsTest" label="test example"}
+::Snippet{name="counterCommandsTest" label="Delayed-reset Story test"}
 
 The story starts at count 5, dispatches `ClickedResetAfterDelay`, and checks for `DelayReset`. It then resolves that Command with `CompletedDelayReset` and verifies the count is 0. Every transition remains visible.
 
@@ -42,7 +42,7 @@ Use `message` to dispatch Messages, `Command.resolve` to supply results, and `mo
 
 The same structure applies to network work. This version asks an API for the next count instead of incrementing locally:
 
-::Snippet{name="counterHttpCommand" label="HTTP command example"}
+::Snippet{name="counterHttpCommand" label="HTTP Command"}
 
 `FetchCount` obtains `HttpClient` from the Effect context, executes the request, and decodes the response with Schema. Success produces `SucceededFetchCount`. `Effect.catch` converts failures into `FailedFetchCount`, so a failed request becomes another fact for update to handle instead of crashing the application.
 
@@ -56,7 +56,7 @@ The Effect error channel records whether a Command can fail. Once every failure 
 
 Many Commands need an input that changes from one dispatch to the next. For example: a weather lookup needs a zip code, a focus call needs an element id, and a delay may need a duration. Declare those values in `args`. The Command Definition then accepts a typed record, and `execute` receives that record when the runtime starts the work.
 
-::Snippet{name="commandWithArgs" label="command with args example"}
+::Snippet{name="commandWithArgs" label="Command with args"}
 
 Args appear beside the Command name in DevTools. Story and Scene tests can also match the exact dispatch with `Command.expectExact(FetchWeather({ zipCode: '90210' }))`.
 
@@ -73,13 +73,13 @@ Commands normally run to completion. Sometimes the user cancels an upload or new
 
 Foldkit prefixes a derived key with the Command name, so definitions with distinct names occupy distinct namespaces. A Command without declared args has no values from which to derive a key, so `interrupt: true` is its only form.
 
-::Snippet{name="commandInterruptible" label="interruptible command example"}
+::Snippet{name="commandInterruptible" label="Interruptible Command"}
 
 ### Choosing an Interruption Key
 
 Key the work by the Model identity a user can cancel. For example, an upload row uses `uploadId`, while a document editor might use `documentId`. Do not key an upload by the file name: two rows may upload the same file and still need separate Cancel buttons.
 
-::Snippet{name="commandInterruptKey" label="interruption key example"}
+::Snippet{name="commandInterruptKey" label="Interruption key"}
 
 `keyFields` also controls the args accepted by `UploadFile.Interrupt`, so the cancellation site only needs `{ uploadId }`, not the original `file`.
 
@@ -89,7 +89,7 @@ The Command name prefixes every key. Keep interruptible Command names unique acr
 
 `Definition.Interrupt` builds an ordinary Command. With `interrupt: true`, pass only the function that turns the outcome into a Message. With an args-derived key, pass the key args first:
 
-::Snippet{name="commandInterruptConstructor" label="Interrupt constructor example"}
+::Snippet{name="commandInterruptConstructor" label="Interrupt constructor"}
 
 The result is `Interrupted` when at least one invocation stopped. Its normal result Message will never dispatch, so the cancellation handler owns the next Model state. `NotFound` means no invocation held the key; the work had already finished or never started.
 
@@ -99,7 +99,7 @@ Several invocations can hold one key. The key is only an address, and dispatchin
 
 Wait for cancellation to finish before starting the replacement. Commands returned together run concurrently, so `[FetchSuggestions.Interrupt(...), FetchSuggestions(...)]` races the old request against the new one.
 
-::Snippet{name="commandInterruptReplacement" label="replacement sequencing example"}
+::Snippet{name="commandInterruptReplacement" label="Replacement sequencing"}
 
 The first `UpdatedQuery` received while a request runs increments `generation`, enters `Cancelling`, and returns one Interrupt. Incrementing the generation makes the old request's result stale before cancellation begins. More query changes replace `model.query` without dispatching another Interrupt. When cancellation completes, the handler reads the latest query and starts one replacement with the current generation.
 
@@ -109,7 +109,7 @@ The result Message does not carry the outcome because `Interrupted` and `NotFoun
 
 Use a different result Message when cancellation records a different fact. Clicking Cancel and selecting a replacement file mean different things, even though both interrupt `UploadFile`:
 
-::Snippet{name="commandInterruptCauses" label="cancellation cause example"}
+::Snippet{name="commandInterruptCauses" label="Cancellation cause"}
 
 Do not add a second behavior tag to one result Message. The Message records why cancellation completed; update chooses the follow-up. Data needed for that decision, such as `uploadId` or the newly selected file, belongs in the payload.
 

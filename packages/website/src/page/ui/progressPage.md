@@ -16,7 +16,7 @@ Pass `value` when the amount completed is known. Spread `attributes.label` onto 
 
 ::Demo{name="basic"}
 
-::Snippet{name="uiProgressBasic" label="progress example"}
+::Snippet{name="uiProgressBasic" label="Progress"}
 
 ### Indeterminate
 
@@ -24,7 +24,7 @@ Omit `value` when progress cannot yet be quantified. The progressbar then omits 
 
 ::Demo{name="indeterminate"}
 
-::Snippet{name="uiProgressIndeterminate" label="indeterminate progress example"}
+::Snippet{name="uiProgressIndeterminate" label="Indeterminate progress"}
 
 ## Styling
 

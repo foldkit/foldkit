@@ -15,7 +15,7 @@ Each helper caches the VNode returned by a view function. On a later live render
 
 `createLazy` creates one memoization slot. Declare it at module scope, then use it to wrap an expensive subtree rendered at one position.
 
-::Snippet{name="createLazy" label="createLazy example"}
+::Snippet{name="createLazy" label="Using createLazy"}
 
 Both the view function and the lazy slot must stay at module scope. Defining either inside view creates a new reference on every render, so the cache always misses.
 
@@ -25,7 +25,7 @@ Arguments are compared by reference, not by value. This works with [modifyFields
 
 `createKeyedLazy` stores an independent memoization slot for every key. Use it when one view function renders several positions, such as rows in a list.
 
-::Snippet{name="createKeyedLazy" label="createKeyedLazy example"}
+::Snippet{name="createKeyedLazy" label="Using createKeyedLazy"}
 
 When one item changes, its slot misses while unchanged items return their cached VNodes. The parent view still traverses the list, but it does not rebuild or diff each unchanged item subtree.
 

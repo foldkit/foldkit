@@ -12,7 +12,7 @@ Each helper exposes its failure type in the Effect channel. `Dom.focus` returns 
 
 Wrap the helper in a Command and map its success or failure into one of that Command's declared Messages.
 
-::Snippet{name="domFocus" label="Dom.focus example"}
+::Snippet{name="domFocus" label="Focusing an input from a Command"}
 
 Most helpers that resolve a live element wait until Foldkit has committed the latest render before querying the DOM. This lets update return a Command for an element that the same Message just brought into the view. You do not need to add `Render.afterCommit` before `Dom.focus`, `Dom.showDialog`, `Dom.clickElement`, `Dom.scrollIntoView`, or `Dom.advanceFocus`.
 

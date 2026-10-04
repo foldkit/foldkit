@@ -23,11 +23,11 @@ The recommended `@foldkit/oxlint-plugin` preset gained two rules.
 
 `foldkit/no-impure-call-at-decision-time` reports time and randomness calls made while update is deciding which Commands to return, instead of when those Commands execute.
 
-::Snippet{name="release0157ImpureCallBefore" label="reading the clock while building a Command"}
+::Snippet{name="release0157ImpureCallBefore" label="Reading the clock while building a Command"}
 
 Move the read into the Command's Effect and return the value in its result Message:
 
-::Snippet{name="release0157ImpureCallAfter" label="reading the clock when the Command executes"}
+::Snippet{name="release0157ImpureCallAfter" label="Reading the clock when the Command executes"}
 
 `foldkit/prefer-effect-module-names` reports abbreviated and trailing-underscore Effect import aliases, and auto-fixes aliases when it can identify the exported module name.
 
@@ -37,11 +37,11 @@ Across the preset, rules now recognize aliases for Foldkit, `@foldkit/ui`, Effec
 
 The preset already reported parent code that constructs a child Message. In 0.157.0, the rule also catches that code when the child import is aliased. For example, a parent should not decide that opening a Dialog means dispatching its `RequestedOpen` Message:
 
-::Snippet{name="release0157ChildMessageBefore" label="a parent constructing a Dialog Message"}
+::Snippet{name="release0157ChildMessageBefore" label="A parent constructing a Dialog Message"}
 
 Dialog exposes `open`, so the parent can fold that operation without reaching into the child's Messages. Parents should drive child behavior through update functions exposed by the child:
 
-::Snippet{name="release0157ChildMessageAfter" label="folding a child-owned update function"}
+::Snippet{name="release0157ChildMessageAfter" label="Folding a child-owned update function"}
 
 This lets the parent call a child-owned update function without depending on the child's internal Messages. `Update.foldChildStep` still handles the child Model, Commands, and OutMessages. Animation in `@foldkit/ui` now exposes `show`, `hide`, and `toggle` update functions for the same reason.
 
@@ -51,11 +51,11 @@ Foldkit union matchers now accept a structurally refined union as their optional
 
 Before:
 
-::Snippet{name="release0157UnionMatchBefore" label="refined OutMessage fold before 0.157.0"}
+::Snippet{name="release0157UnionMatchBefore" label="Refined OutMessage fold before 0.157.0"}
 
 After:
 
-::Snippet{name="release0157UnionMatchAfter" label="refined OutMessage fold in 0.157.0"}
+::Snippet{name="release0157UnionMatchAfter" label="Refined OutMessage fold in 0.157.0"}
 
 The new form is shorter, remains exhaustive, and keeps `value` typed as `Plan` in the `Selected` handler.
 

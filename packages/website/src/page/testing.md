@@ -27,7 +27,7 @@ The names stay accurate whether update and view live together or in separate fil
 
 Story can test a root update or a child update in isolation. The update function is the contract at either level.
 
-::Snippet{name="counterCommandsTest" label="Story example"}
+::Snippet{name="counterCommandsTest" label="Delayed-reset Story test"}
 
 ## Scene
 
@@ -37,4 +37,4 @@ Scene can also start at the root or at a child Submodel. `withViewInputs` adapts
 
 Choose the level by ownership. Test a Submodel's rendering, interactions, Commands, and OutMessages at the Submodel. Test parent folding, lifted Commands, route changes, and parent-computed ViewInputs at the root. Those behaviors cross the boundary and cannot be observed from the child.
 
-::Snippet{name="sceneWeatherFlow" label="Scene example"}
+::Snippet{name="sceneWeatherFlow" label="Weather search Scene test"}

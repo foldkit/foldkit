@@ -16,7 +16,7 @@ The checkbox element is typically a `<button>`. Spread `attributes.checkbox` ont
 
 ::Demo{name="basic"}
 
-::Snippet{name="uiCheckboxBasic" label="basic checkbox example"}
+::Snippet{name="uiCheckboxBasic" label="Basic checkbox"}
 
 ### Indeterminate
 
@@ -24,7 +24,7 @@ Pass `isIndeterminate: true` to show a mixed state. This is typically computed f
 
 ::Demo{name="indeterminate"}
 
-::Snippet{name="uiCheckboxIndeterminate" label="indeterminate checkbox example"}
+::Snippet{name="uiCheckboxIndeterminate" label="Indeterminate checkbox"}
 
 ## Styling
 

@@ -5,17 +5,27 @@ import { type HtmlBuilder, createKeyedLazy } from 'foldkit/html'
 const postView = (
   post: Post,
   snippetCopy: SnippetCopy.Model,
+  snippetDisclosure: SnippetDisclosure.Model,
   h: HtmlBuilder<Message>,
-) =>
-  BlogPostPage.view(
+) => {
+  const renderCopyButton = SnippetCopy.renderer(
+    snippetCopy,
+    message => Message.GotSnippetCopyMessage({ message }),
+    h,
+  )
+
+  return BlogPostPage.view(
     post,
-    SnippetCopy.renderer(
-      snippetCopy,
-      message => Message.GotSnippetCopyMessage({ message }),
+    renderCopyButton,
+    SnippetDisclosure.renderer(
+      snippetDisclosure,
+      message => Message.GotSnippetDisclosureMessage({ message }),
+      renderCopyButton,
       h,
     ),
     Prose.renderHeadingLink(hash => Message.ClickedCopyLink({ hash }), h),
   )
+}
 
 // One slot per post, keyed by the same slug the route already uses to give
 // the post its DOM identity.
@@ -26,5 +36,7 @@ const lazyPostView = createKeyedLazy()
 const view = (
   post: Post,
   snippetCopy: SnippetCopy.Model,
+  snippetDisclosure: SnippetDisclosure.Model,
   h: HtmlBuilder<Message>,
-) => lazyPostView(post.slug, postView, [post, snippetCopy, h])
+) =>
+  lazyPostView(post.slug, postView, [post, snippetCopy, snippetDisclosure, h])

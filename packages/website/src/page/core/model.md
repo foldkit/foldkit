@@ -8,7 +8,7 @@ In the [restaurant analogy](/core/architecture#the-restaurant-analogy), this is 
 
 The counter defines its Model with [Effect Schema](https://effect.website/docs/schema/introduction/):
 
-::Snippet{name="counterModel" label="model example"}
+::Snippet{name="counterModel" label="Counter Model"}
 
 `Schema.Struct` creates the runtime Schema. `typeof Model.Type` derives the TypeScript type from that same definition, so the runtime and compiler agree on the Model’s shape.
 
@@ -18,7 +18,7 @@ That runtime value matters because TypeScript types disappear after compilation.
 
 Use `defineTaggedUnion` when a Model field can have several named shapes. Declare every variant together, then construct and match values through the union:
 
-::Snippet{name="modelTaggedUnion" label="Model state union example"}
+::Snippet{name="modelTaggedUnion" label="Model state union"}
 
 `EditorMode` is the Schema stored in `Model` and the namespace used to construct values such as `EditorMode.Browsing()`. Its `match` method requires every variant to be handled. If you add another editor mode, TypeScript finds each match that needs a new branch.
 
@@ -32,7 +32,7 @@ Use `taggedStruct` only when the variants cannot be declared together. Recursive
 
 The counter starts with one field. When automatic counting becomes part of the application state, the Model grows to record it:
 
-::Snippet{name="counterModelPreview" label="expanded model example"}
+::Snippet{name="counterModelPreview" label="Expanded counter Model"}
 
 :::Info{label="Model the application, not the screen"}
 Store facts the application needs to remember. Values used only to render one frame can usually be derived in view instead of becoming another Model field.

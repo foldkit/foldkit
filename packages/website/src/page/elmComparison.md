@@ -39,7 +39,7 @@ The Elm application has 21 `Msg` variants:
 
 The current Foldkit application has 25 parent Messages:
 
-::Snippet{name="comparisonFoldkitMessage" label="Foldkit messages"}
+::Snippet{name="comparisonFoldkitMessage" label="Foldkit Messages"}
 
 The count differs because the component and effect boundaries differ. Foldkit has `SucceededExportPng` and `CompletedSaveCanvas` for Command completion, plus six `Got*Message` wrappers for two Dialogs, one Listbox, and three RadioGroups. The Elm version hand-rolls those controls and represents their application-facing events with four direct Msgs: `ToggledThemePicker`, `SelectedPaletteTheme`, `DismissedErrorDialog`, and `DismissedGridSizeDialog`.
 
@@ -71,7 +71,7 @@ Elm record updates and `modifyFields` both preserve references to unchanged nest
 
 The Elm Model uses custom types and `Maybe`:
 
-::Snippet{name="comparisonElmModel" label="Elm model"}
+::Snippet{name="comparisonElmModel" label="Elm Model"}
 
 This hand-rolled UI stores Dialog visibility through the presence of `exportError` and `pendingGridSize`. The theme picker uses a separate `isThemePickerOpen` field.
 
@@ -79,7 +79,7 @@ This hand-rolled UI stores Dialog visibility through the presence of `exportErro
 
 The Foldkit Model uses Effect Schema, `Option`, and child Models for its stateful Foldkit UI controls:
 
-::Snippet{name="comparisonFoldkitModel" label="Foldkit model"}
+::Snippet{name="comparisonFoldkitModel" label="Foldkit Model"}
 
 A Schema exists at runtime as well as in TypeScript. Foldkit can use it to validate flags and persisted values, encode selected data, and describe Models to framework tooling. The child component Models expose interaction state that the Elm application implements directly in its parent Model and views.
 
@@ -97,7 +97,7 @@ The Elm side declares outgoing and incoming ports:
 
 The JavaScript side subscribes to them in `index.html`:
 
-::Snippet{name="comparisonElmPortsJs" label="port JavaScript"}
+::Snippet{name="comparisonElmPortsJs" label="Port JavaScript"}
 
 The port declaration gives Elm a typed interface. The JavaScript subscriber remains outside the Elm compiler, so a renamed payload field or a missing `send` call is not checked against the Elm source. A JavaScript exception can still affect the host page; the boundary protects Elm code from directly calling arbitrary JavaScript, not the entire page from JavaScript failures.
 
@@ -107,7 +107,7 @@ The export failure needs an incoming port so JavaScript can send `FailedExportPn
 
 Foldkit runs in the JavaScript ecosystem, so its Commands can use browser APIs and JavaScript libraries directly:
 
-::Snippet{name="comparisonFoldkitCommand" label="Foldkit commands"}
+::Snippet{name="comparisonFoldkitCommand" label="Foldkit Commands"}
 
 Each Command declares its arguments and result Messages. Its Effect can use typed failures and recovery operators before returning a Message to update. The application still needs to choose meaningful error behavior. Here `ExportPng` reports failure, while `SaveCanvas` intentionally converts storage failure into the same completion Message as success.
 
@@ -141,11 +141,11 @@ Both frameworks derive external event streams from Model state. The mouse-releas
 
 ### Elm subscriptions
 
-::Snippet{name="comparisonElmSubscriptions" label="Elm subscriptions"}
+::Snippet{name="comparisonElmSubscriptions" label="Elm Subscriptions"}
 
 ### Foldkit Subscriptions
 
-::Snippet{name="comparisonFoldkitSubscription" label="Foldkit subscriptions"}
+::Snippet{name="comparisonFoldkitSubscription" label="Foldkit Subscriptions"}
 
 Elm’s `Sub.batch` and Foldkit’s Subscription registry both describe the active set after each state transition. The runtime handles setup and teardown.
 

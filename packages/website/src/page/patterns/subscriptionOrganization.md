@@ -68,19 +68,19 @@ The next three snippets trace one record from a leaf, through a composing Submod
 
 A leaf declares its entries with `Subscription.make`.
 
-::Snippet{name="subscriptionOrganizationChild" label="leaf Submodel Subscription file"}
+::Snippet{name="subscriptionOrganizationChild" label="Leaf Submodel Subscription file"}
 
 ### The Composing Submodel {#composing-submodel}
 
 A composing Submodel lifts child records, declares any local entries, and aggregates the results. Each lift supplies a `read` that returns an `Option` of the child Model. An always-present child is wrapped in `Option.some`.
 
-::Snippet{name="subscriptionOrganizationComposing" label="composing Submodel Subscription file"}
+::Snippet{name="subscriptionOrganizationComposing" label="Composing Submodel Subscription file"}
 
 ### The Root {#root}
 
 The root uses the same shape. Its lifts target the root Model and Message.
 
-::Snippet{name="subscriptionOrganizationRoot" label="root Subscription file"}
+::Snippet{name="subscriptionOrganizationRoot" label="Root Subscription file"}
 
 ## Optional Children
 
@@ -94,13 +94,13 @@ A child can express conditions from its own Model in its dependencies and Stream
 
 Put a parent-owned condition in `when` on the lift. The predicate receives the parent Model. The gated entries run only while it returns `true` and `read` returns a child. A closed gate skips `read` and the child’s dependency functions.
 
-::Snippet{name="subscriptionOrganizationGate" label="route-gated lift"}
+::Snippet{name="subscriptionOrganizationGate" label="Route-gated lift"}
 
 Closing a gate tears down the Stream. Foldkit also stops calling the child's `modelToDependencies` until the gate reopens, so hidden child changes do not restart it.
 
 `when` accepts either one predicate for the whole record or a map of predicates by entry name. An omitted entry has no additional activity condition, but still stops when `read` returns `None`. For example: a Room page can keep its WebSocket alive across navigation while gating its keyboard listener to the active Room Route.
 
-::Snippet{name="subscriptionOrganizationEntryGate" label="per-entry gated lift"}
+::Snippet{name="subscriptionOrganizationEntryGate" label="Per-entry gated lift"}
 
 The parent owns `when`. The child keeps its child-owned conditions in its own Subscription definition.
 

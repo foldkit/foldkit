@@ -22,7 +22,7 @@ Pass `itemToValue` and `itemToDisplayText` to control how items map to values an
 
 ::Demo{name="single-select"}
 
-::Snippet{name="uiComboboxBasic" label="combobox example"}
+::Snippet{name="uiComboboxBasic" label="Combobox"}
 
 ### Nullable
 
@@ -52,7 +52,7 @@ Use `Combobox.Multi` for multi-selection. The dropdown stays open on selection a
 
 ::Demo{name="multi"}
 
-::Snippet{name="uiComboboxMulti" label="multi-select combobox example"}
+::Snippet{name="uiComboboxMulti" label="Multi-select combobox"}
 
 ## Read-Only
 

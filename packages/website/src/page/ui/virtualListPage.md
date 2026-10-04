@@ -18,7 +18,7 @@ Every row uses the same height, configured at init through `rowHeightPx`. The co
 
 ::Demo{name="fixed"}
 
-::Snippet{name="uiVirtualListBasic" label="virtual list example"}
+::Snippet{name="uiVirtualListBasic" label="Virtual list"}
 
 ### Variable row heights
 
@@ -28,7 +28,7 @@ Programmatic scrolling for variable-height lists uses `scrollToIndexVariable`, w
 
 ::Demo{name="variable"}
 
-::Snippet{name="uiVirtualListVariable" label="variable-height virtual list example"}
+::Snippet{name="uiVirtualListVariable" label="Variable-height virtual list"}
 
 ## Subscriptions
 

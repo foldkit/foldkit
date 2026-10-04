@@ -65,11 +65,11 @@ Deriving the Model type from its Schema matters even when the application does n
 
 Calling `fetch` inside view starts another request whenever Foldkit renders that view. Reading `Date.now()` or `Math.random()` inside init or update lets the same inputs produce a different Model. Writing to the DOM or browser storage inside update repeats that write when DevTools replays the Message.
 
-::Snippet{name="antiPatternEffectInUpdateBad" label="❌ update performs a DOM effect" class="mb-4"}
+::Snippet{name="antiPatternEffectInUpdateBad" label="❌ DOM effect inside update" class="mb-4"}
 
 Keep init, update, and view deterministic. The `ClickedOpenDialog` handler should set `dialogState` to `Open` and return a `FocusSearchInput` Command.
 
-::Snippet{name="antiPatternEffectInUpdateGood" label="✅ update returns a Command"}
+::Snippet{name="antiPatternEffectInUpdateGood" label="✅ Command returned from update"}
 
 `Effect`, `Stream`, and `Layer` values describe work; constructing one should not perform that work. Supply the lazy description to the boundary that controls its lifetime, and let the Runtime execute it.
 
@@ -144,7 +144,7 @@ Suppose saving a draft must finish before the application leaves the editor. Whe
 
 Have update return only `SaveDraft`. When `SucceededSaveDraft` reaches update, return `NavigateToDocuments`.
 
-::Snippet{name="antiPatternDependentCommandsGood" label="✅ update returns NavigateToDocuments after SaveDraft succeeds"}
+::Snippet{name="antiPatternDependentCommandsGood" label="✅ NavigateToDocuments returned after SaveDraft succeeds"}
 
 Return Commands together only when they can run independently. Otherwise, when the first result Message reaches update, have update return the next Command. If no distinct result Message or update decision belongs between two operations, sequence them inside one Command.
 
@@ -156,7 +156,7 @@ Suppose `FetchSuggestions` is interruptible and a new search should replace the 
 
 On the first query change, move the search from `Running` to `Cancelling`, increment its generation, and return only the Interrupt. Further query changes while `Cancelling` update the stored query without dispatching another Interrupt. When `CompletedCancelFetchSuggestions` reaches update, return one `FetchSuggestions` Command with the latest query and generation from the Model.
 
-::Snippet{name="antiPatternInterruptReplacementGood" label="✅ update returns FetchSuggestions after interruption"}
+::Snippet{name="antiPatternInterruptReplacementGood" label="✅ FetchSuggestions returned after interruption"}
 
 The old `FetchSuggestions` Command may finish just before the Interrupt runs, leaving `SucceededFetchSuggestions` already queued. Incrementing the generation before interruption makes that completion stale. The result handler must still compare the result's generation with the current Model before accepting it. See [Include Enough Context in Command Result Messages](#reject-stale-async-results) and [Sequencing Replacement Work](/core/commands#sequencing-replacement-work) for both parts of the protocol.
 

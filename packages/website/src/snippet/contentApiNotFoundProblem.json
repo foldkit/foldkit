@@ -1,0 +1,12 @@
+{
+  "type": "https://foldkit.dev/api#not-found",
+  "title": "Not Found",
+  "status": 404,
+  "detail": "Nothing exists at this path on foldkit.dev.",
+  "code": "not_found",
+  "hints": ["..."],
+  "links": {
+    "api": "https://foldkit.dev/api/v1",
+    "openapi": "https://foldkit.dev/openapi.json"
+  }
+}

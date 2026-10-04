@@ -4,11 +4,13 @@ import { describe, expect, test } from 'vitest'
 import { type Slots, renderFaqSection, resolveDemo } from './slots'
 
 const stubRenderCopyButton = () => ih.empty
+const stubRenderSnippet = () => ih.empty
 const stubRenderHeadingLink = () => ih.empty
 
 const slotsWithoutShell: Slots<never> = {
   demos: {},
   renderCopyButton: stubRenderCopyButton,
+  renderSnippet: stubRenderSnippet,
   renderHeadingLink: stubRenderHeadingLink,
 }
 
@@ -18,6 +20,7 @@ describe('resolveDemo', () => {
     const slots: Slots<'registered'> = {
       demos: { registered: demo },
       renderCopyButton: stubRenderCopyButton,
+      renderSnippet: stubRenderSnippet,
       renderHeadingLink: stubRenderHeadingLink,
     }
 
@@ -42,6 +45,7 @@ describe('renderFaqSection', () => {
     const slots: Slots<never> = {
       demos: {},
       renderCopyButton: stubRenderCopyButton,
+      renderSnippet: stubRenderSnippet,
       renderHeadingLink: stubRenderHeadingLink,
       renderFaq: (id, question, content) => {
         received.push({ id, question, content })

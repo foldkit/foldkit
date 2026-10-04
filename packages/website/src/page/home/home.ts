@@ -169,6 +169,7 @@ const playgroundMenuView = (
 
 type ViewInputs = Readonly<{
   renderCopyButton: CodeBlock.RenderCopyButton
+  renderSnippet: CodeBlock.RenderSnippet
   isNarrowViewport: boolean
   maybeGitHubStarCount: Option.Option<number>
 }>
@@ -245,6 +246,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
 
     const content = contentView(
       viewInputs.renderCopyButton,
+      viewInputs.renderSnippet,
       demoTabsView,
       Shared.emailSignupContent,
       playgroundMenu,

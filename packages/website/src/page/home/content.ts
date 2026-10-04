@@ -67,6 +67,7 @@ const glyph = (symbol: string, offsetY?: string): Html =>
 
 export const contentView = (
   renderCopyButton: CodeBlock.RenderCopyButton,
+  renderSnippet: CodeBlock.RenderSnippet,
   demoTabsView: Html,
   emailSignupView: Html,
   playgroundMenuView: Html,
@@ -98,7 +99,7 @@ export const contentView = (
       glyph('*'),
       examplesSection,
       glyph('::'),
-      testingSection(renderCopyButton),
+      testingSection(renderSnippet),
       glyph('??'),
       devToolsSection(),
       glyph('~~'),
@@ -694,7 +695,7 @@ const examplesSection: Html = ih.section(
 
 // TESTING
 
-const testingSection = (renderCopyButton: CodeBlock.RenderCopyButton): Html =>
+const testingSection = (renderSnippet: CodeBlock.RenderSnippet): Html =>
   ih.section(
     [ih.Id('testing'), ih.Class('landing-section')],
     [
@@ -736,9 +737,10 @@ const testingSection = (renderCopyButton: CodeBlock.RenderCopyButton): Html =>
               ih.InnerHTML(Snippet.landingStoryTestHighlighted),
             ]),
             Snippet.landingStoryTestRaw,
-            'Copy Story test example to clipboard',
-            renderCopyButton,
+            'Copy Story test to clipboard',
+            renderSnippet,
             'mt-8',
+            'Story test',
           ),
           CodeBlock.highlightedView(
             'home-scene-test',
@@ -747,9 +749,10 @@ const testingSection = (renderCopyButton: CodeBlock.RenderCopyButton): Html =>
               ih.InnerHTML(Snippet.landingSceneTestHighlighted),
             ]),
             Snippet.landingSceneTestRaw,
-            'Copy Scene test example to clipboard',
-            renderCopyButton,
+            'Copy Scene test to clipboard',
+            renderSnippet,
             'mt-8',
+            'Scene test',
           ),
         ],
       ),

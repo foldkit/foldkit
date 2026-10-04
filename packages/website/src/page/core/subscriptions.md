@@ -57,7 +57,7 @@ When work must be synchronous with an event, it has to run inside the listener c
 
 Commands describe one-shot work that produces one result. Subscriptions describe ongoing work. In the counter, a Subscription emits `Ticked` once per second while `isAutoCounting` is `true` and stops when it becomes `false`.
 
-::Snippet{name="counterAutoCount" label="subscription example"}
+::Snippet{name="counterAutoCount" label="Auto-counting Subscription"}
 
 `Subscription.make<Model, Message>()` receives a function that builds a named record of entries. Each call to `entry` takes two arguments:
 
@@ -70,7 +70,7 @@ When `isAutoCounting` changes to `true`, the new Stream starts ticking. When it 
 
 Defining `subscriptions` is only half of the setup. Pass the record to `makeApplication` or no streams start. The field is optional, so omitting it still produces a valid application without Subscription behavior.
 
-::Snippet{name="counterEntryWithSubscriptions" label="subscription wiring"}
+::Snippet{name="counterEntryWithSubscriptions" label="Subscription wiring"}
 
 The [websocket-chat example](/example-apps/websocket-chat) shows a more involved event stream. [Typing Terminal](https://typingterminal.com) and its [source](https://github.com/foldkit/foldkit/tree/main/packages/typing-game) show Subscriptions inside a complete application.
 
@@ -80,7 +80,7 @@ The [websocket-chat example](/example-apps/websocket-chat) shows a more involved
 
 The helper returns a complete entry with `{ isActive: boolean }` dependencies. Its `toMessage` maps frame deltas to the entry's Message type; unlike the free-standing event Streams below, it is already an entry shape. Place it directly in the record passed to `Subscription.make`:
 
-::Snippet{name="subscriptionAnimationFrame" label="animation frame example"}
+::Snippet{name="subscriptionAnimationFrame" label="Animation frame"}
 
 Use the delta to make motion independent of refresh rate. Convert the milliseconds to seconds before multiplying a per-second velocity, so the simulation behaves consistently at 60Hz, 120Hz, and after a background tab regains focus.
 
@@ -92,17 +92,13 @@ Use `Stream.tick` for discrete wall-clock steps that should occur every N millis
 
 The helper returns a Stream, not a complete entry. Its `mapEvent` callback can produce any output type, including a raw event; `Subscription.make<Model, Message>()` checks that the final Stream supplied to an entry emits the application's Message type. Wrap it in `Stream.when` inside an entry to gate it on the Model, or pass it to `Subscription.persistent` for a listener that lives with the whole Subscriptions record.
 
-::Snippet{name="subscriptionFromEvent" label="DOM event subscription example"}
+::Snippet{name="subscriptionFromEvent" label="DOM event Subscription"}
 
 The `mapEvent` mapper runs synchronously in the same call stack as the browser event, so it may call `event.preventDefault()` unless the listener is passive. Some browsers default wheel and touch listeners on global targets to passive, where cancellation is ignored. Pass `options: { passive: false }` when cancelling those events. Pass `target` as a thunk if it may not exist until the scope opens; pass always-present globals such as `window` and `document` directly.
 
 The target, the event name, and the event your mapper receives are one fact rather than three. `type` is constrained to the events the target declares, so a misspelled name is a compile error rather than a listener that never fires, and `event` follows from both: `window` plus `'keydown'` gives you a `KeyboardEvent` with no type argument to write. A target with no declared event map, such as a bare `EventTarget`, accepts any name and reports `Event`. Annotate one with `Subscription.TypedEventTarget` to have its own events resolved the same way, `CustomEvent` detail included:
 
-```ts
-const slowWarningTarget: Subscription.TypedEventTarget<{
-  'foldkit:slow-warning': CustomEvent<SlowWarningReport>
-}> = new EventTarget()
-```
+::Snippet{name="subscriptionTypedEventTarget" label="Typed custom EventTarget"}
 
 Annotating a native target adds its declared events without losing the native ones. If a declared event uses the same name as a native event, the declared type takes precedence.
 
@@ -118,7 +114,7 @@ For a listener attached to one rendered element, use [Mount](/core/mount) instea
 
 Reading the current value also prevents stale state when a gated entry restarts. Suppose a color-scheme Subscription runs only while the theme preference is `System`. The user selects `Dark`, changes the operating system to a light theme, and then selects `System` again. A new `change` listener waits for the next change, so the Model still records a dark system theme. `fromMediaQuery` reads the current light value as soon as the Stream restarts.
 
-::Snippet{name="subscriptionFromMediaQuery" label="reduced motion media query example"}
+::Snippet{name="subscriptionFromMediaQuery" label="Reduced motion media query"}
 
 The helper returns a Stream. Pass it to `Subscription.persistent` for a query the app always follows. To follow the query only in a particular Model state, use it with `Stream.when` inside an entry. Creating the Stream does not access `window`; `window.matchMedia` is called only when the Stream starts. The same helper works for `prefers-reduced-motion`, `prefers-color-scheme`, and viewport breakpoints such as `(max-width: 1023px)`.
 
@@ -126,7 +122,7 @@ The helper returns a Stream. Pass it to `Subscription.persistent` for a query th
 
 `Subscription.keyBindings` builds a global `keydown` Stream from a declarative key-binding table. Use `keys` with a string for one press, such as `'Escape'` or `'Mod+K'`, and an array for an ordered sequence, such as `['G', 'H']`. Every step in a sequence uses the same grammar, including modifiers.
 
-::Snippet{name="subscriptionKeyBindings" label="key binding subscription example"}
+::Snippet{name="subscriptionKeyBindings" label="Key binding Subscription"}
 
 Modifier matching is exact: `'Mod+K'` does not also match Shift-Mod-K. `Mod` resolves to Meta on Apple platforms and Control elsewhere; `modKey` provides a deterministic override when needed. Matching uses the layout-aware `KeyboardEvent.key`, so include `Shift` and the resulting character for shifted punctuation. `Space` and `Plus` name keys that would otherwise be awkward in the `+`-separated syntax.
 
@@ -146,7 +142,7 @@ The default structural comparison restarts an entry whenever any dependency chan
 
 Auto-scroll during drag and drop is one example. `isDragging` should start and stop the animation loop. `clientY` changes with every pointer movement, but restarting the loop for every pixel would destroy and recreate it continuously.
 
-::Snippet{name="subscriptionEquivalence" label="advanced subscription example"}
+::Snippet{name="subscriptionEquivalence" label="Auto-scroll with live dependencies"}
 
 ### Custom Equivalence
 

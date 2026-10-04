@@ -10,7 +10,7 @@ The default crash view shows the error message and a reload button. To replace i
 - `model` is the Model at the time of the crash.
 - `message` is the Message being processed, wrapped in `Option`. It is `None` when the initial render crashes.
 
-::Snippet{name="crashViewCustom" label="Custom crash view example"}
+::Snippet{name="crashViewCustom" label="Custom crash view"}
 
 The builder is `HtmlBuilder<never>` because Foldkit can no longer dispatch Messages. Event helpers such as `h.OnClick` therefore fail to compile instead of creating handlers that cannot run.
 
@@ -26,7 +26,7 @@ If the custom crash view throws, Foldkit renders the default crash screen with b
 
 Use `crash.report` to send the failure to Sentry or another reporting service. It receives the same `CrashContext` as `crash.view`.
 
-::Snippet{name="crashReport" label="Crash reporting example"}
+::Snippet{name="crashReport" label="Crash reporting"}
 
 Foldkit calls `crash.report` synchronously and does not await work it starts. If the reporter must flush a buffer or make a request, start that work inside the callback.
 

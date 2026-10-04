@@ -20,7 +20,7 @@ Pair `view` and `update` behind `Menu.create<Item>()` at module scope. The facto
 
 ::Demo{name="basic"}
 
-::Snippet{name="uiMenuBasic" label="menu example"}
+::Snippet{name="uiMenuBasic" label="Menu"}
 
 ### Animated
 
@@ -28,7 +28,7 @@ Pass `isAnimated: true` at init for animation coordination.
 
 ::Demo{name="animated"}
 
-::Snippet{name="uiMenuAnimated" label="animated menu example"}
+::Snippet{name="uiMenuAnimated" label="Animated menu"}
 
 ## Styling
 

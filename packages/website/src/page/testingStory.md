@@ -29,7 +29,7 @@ Story does not render the view, so the OnMount lifecycle is not observable from 
 
 Here’s a test for the delayed reset from the [Commands](/core/commands) page. Clicking reset starts a one-second delay. When the delay completes, the count returns to zero.
 
-::Snippet{name="counterCommandsTest" label="simple test example"}
+::Snippet{name="counterCommandsTest" label="Delayed-reset Story test"}
 
 Read it from top to bottom. The Model starts at 5. `ClickedResetAfterDelay()` returns `DelayReset`. The test resolves that Command with `CompletedDelayReset()`, which update handles by setting the count to 0.
 
@@ -37,7 +37,7 @@ Read it from top to bottom. The Model starts at 5. `ClickedResetAfterDelay()` re
 
 Keep each Command result next to the Message that caused it. `Command.resolve`, `Command.resolveAll`, and `Command.resolveAllExact` let a longer test stay chronological:
 
-::Snippet{name="testingWeatherFlow" label="multi-step test example"}
+::Snippet{name="testingWeatherFlow" label="Multi-step test"}
 
 The test does not run an HTTP request. It declares that `FetchWeather` succeeded, feeds the resulting Message through update, and checks the Model that the view will render.
 
@@ -59,7 +59,7 @@ Use `resolveAllExact` when the resolver list is also a claim about which Command
 
 Use `steps` when several stories share the same setup or Message sequence. The group preserves the Model, Message, and OutMessage constraints of every step inside it, so the update passed to `story` still rejects a group built for a different program.
 
-::Snippet{name="testingReusableSteps" label="reusable Story steps"}
+::Snippet{name="testingReusableSteps" label="Reusable Story steps"}
 
 A group can contain any step accepted by `story`, including `given`, `message`, Model assertions, Command steps, OutMessage assertions, and another `steps` group. `story` runs the group in declaration order at the position where it appears.
 
@@ -71,6 +71,6 @@ Story tests the state machine. It does not run the Effect inside a Command.
 
 To test that a Command’s Effect works correctly (for example, that an HTTP request parses the response right), test it separately with `Effect.provide` and a mock service layer:
 
-::Snippet{name="testingCommandEffect" label="Command Effect test example"}
+::Snippet{name="testingCommandEffect" label="Command Effect test"}
 
 The two tests cover different contracts. Story checks which Command update returns and what update does with its result Message. The Effect test checks the work the Command executes.

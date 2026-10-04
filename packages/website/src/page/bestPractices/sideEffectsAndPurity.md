@@ -40,17 +40,17 @@ For example:
 
 View reads the Model and any declared ViewInputs, then returns `Document` or `Html`. It does not fetch, schedule timers, subscribe, or read live DOM state. Event attributes construct Messages for the Runtime to dispatch.
 
-::Snippet{name="viewPureBad" label="bad view example" class="mb-4"}
+::Snippet{name="viewPureBad" label="❌ Side effects inside view" class="mb-4"}
 
-::Snippet{name="viewPureGood" label="good view example"}
+::Snippet{name="viewPureGood" label="✅ Pure view"}
 
 ### Update is Pure
 
 Update reads the current Model and one Message. It returns a new Model plus descriptions of any work that should follow. It does not mutate the Model, touch the DOM, or execute a Command.
 
-::Snippet{name="updatePureBad" label="bad update example" class="mb-4"}
+::Snippet{name="updatePureBad" label="❌ DOM effect inside update" class="mb-4"}
 
-::Snippet{name="updatePureGood" label="good update example"}
+::Snippet{name="updatePureGood" label="✅ Command returned from update"}
 
 The [Testing](/testing) guide shows how Story drives update and resolves Commands without a DOM, while Scene exercises the effect boundaries exposed by a rendered view.
 
@@ -60,11 +60,11 @@ Randomness, clocks, storage, and browser APIs produce values that are not alread
 
 This version generates a different position each time update receives the same inputs:
 
-::Snippet{name="pureUpdateBad" label="bad example"}
+::Snippet{name="pureUpdateBad" label="❌ Randomness inside update"}
 
 The pure version returns `GenerateApplePosition`. Its Effect generates the coordinates and sends them back in `CompletedGenerateApplePosition`:
 
-::Snippet{name="pureUpdateGood" label="good example"}
+::Snippet{name="pureUpdateGood" label="✅ Randomness inside a Command"}
 
 `RequestedApple` now returns the same Model and Command every time. Only the result handler writes the generated position into the Model.
 

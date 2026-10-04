@@ -16,7 +16,7 @@ The `toView` callback receives attribute groups for the label, description, and 
 
 ::Demo{name="basic"}
 
-::Snippet{name="uiTextareaBasic" label="basic textarea example"}
+::Snippet{name="uiTextareaBasic" label="Basic textarea"}
 
 ### Disabled
 
@@ -24,7 +24,7 @@ Set `isDisabled: true` to disable the textarea. Like Input, this sets the native
 
 ::Demo{name="disabled"}
 
-::Snippet{name="uiTextareaDisabled" label="disabled textarea example"}
+::Snippet{name="uiTextareaDisabled" label="Disabled textarea"}
 
 ## Styling
 

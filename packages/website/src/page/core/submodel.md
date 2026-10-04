@@ -27,7 +27,7 @@ If a section only renders parent state and owns no Messages or update logic, mak
 
 A child Submodel does not know which parent embeds it. This Settings Submodel owns its state and handles its Messages without importing the root Model or Message.
 
-::Snippet{name="submodelChildModule" label="Submodel"}
+::Snippet{name="submodelChildModule" label="Settings Submodel"}
 
 ## Embedding the Submodel {#embedding}
 
@@ -37,17 +37,17 @@ The parent has three jobs: embed the child’s Model, wrap its Messages, and del
 
 The child’s Model becomes a field in the parent’s Model:
 
-::Snippet{name="submodelParentModel" label="parent model"}
+::Snippet{name="submodelParentModel" label="Parent Model"}
 
 ### Never Bypass the Child’s Update {#never-bypass-the-update}
 
 The parent stores the child Model, but the child still owns it. Do not use [modifyFields](/best-practices/immutability#immutable-updates) to change fields inside that slice from the parent.
 
-::Snippet{name="submodelDirectModifyFieldsAntipattern" label="antipattern"}
+::Snippet{name="submodelDirectModifyFieldsAntipattern" label="❌ Resetting child state directly"}
 
 For a parent-initiated change, export a helper from the child and fold that helper with `Update.foldChild`. The parent can call `Settings.setTheme` without importing the internal `ChangedTheme` constructor.
 
-::Snippet{name="submodelDelegateViaHelper" label="helper delegation"}
+::Snippet{name="submodelDelegateViaHelper" label="✅ Resetting child state through update"}
 
 Stateful Foldkit UI components expose the same kind of entry point. For example: `Popover.close` and a Listbox instance's `selectItem` helper run the component's update without exposing its internal Message constructors.
 
@@ -63,7 +63,7 @@ Bypassing update creates three problems:
 
 Every Message eventually reaches the root update. Each parent therefore declares a wrapper Message for the child Message type. Name it with the `Got*Message` convention, such as `GotSettingsMessage`.
 
-::Snippet{name="submodelWrapperMessage" label="wrapper message"}
+::Snippet{name="submodelWrapperMessage" label="Wrapper Message"}
 
 :::Warning{label="DevTools expects this naming convention"}
 The Foldkit DevTools use the `Got*Message` pattern to power the Submodel filter, which lets you scope DevTools Messages to a chosen Submodel. If your wrapper Messages don’t follow this naming convention, they won’t appear in the list of filterable Submodel Messages.
@@ -81,7 +81,7 @@ A wrapper carries routing information only. It holds the child `message` and, fo
 
 The resulting fold reads the child, runs its update, writes it back, and lifts its Commands through `toParentMessage`.
 
-::Snippet{name="submodelFoldChild" label="foldChild"}
+::Snippet{name="submodelFoldChild" label="Using foldChild"}
 
 `read` returns an `Option` because a routed page or keyed child may no longer exist when its Message arrives. `None` makes the fold a no-op. An always-present child returns `Option.some(model.settings)`.
 
@@ -89,11 +89,11 @@ The fold is dual. `foldSettings(model, message)` runs it immediately. `foldSetti
 
 Use `Update.foldChildStep` for an entry point that takes only the child Model, such as `Dialog.close`. It accepts the same fields and returns an `Update.Step<ParentModel, ParentMessage>`. Add `toParentOutMessage` when at least one child OutMessage should continue to the current Submodel's parent. The fold then returns an `Update.StepWithOutMessage<ParentModel, ParentMessage, ParentOutMessage>`.
 
-::Snippet{name="submodelFoldChildStep" label="foldChildStep with OutMessage forwarding"}
+::Snippet{name="submodelFoldChildStep" label="Using foldChildStep with OutMessage forwarding"}
 
 Use `Update.foldChildInit` when one child `init` or `boot` result needs to enter a parent Model. It is data-first because initialization has no reusable data-last Step. Provide `toParentModel` instead of `read` and `write`; Foldkit lifts child Commands and gives `foldOutMessage` the completed parent Model. Say `Settings.boot` receives a saved theme from flags and emits `RestoredTheme`. The parent returns a Command to apply that theme after constructing its Model.
 
-::Snippet{name="submodelFoldChildInit" label="foldChildInit"}
+::Snippet{name="submodelFoldChildInit" label="Using foldChildInit"}
 
 Use `Update.foldChildInits` when several children initialize together. Its `toParentModel` receives every child Model before their OutMessage folds run. See [Initializing Children with OutMessages](/core/update#initializing-children-with-outmessages) for an example that combines both children's restoration results into one parent OutMessage.
 
@@ -103,7 +103,7 @@ Define the child view with `Submodel.defineView<Model, Message>`. It receives th
 
 `defineView` brands the function with its child Model and Message types. The parent can then embed it without repeating those types, and handlers inside the child accept only child Messages.
 
-::Snippet{name="submodelChildView" label="child view"}
+::Snippet{name="submodelChildView" label="Child view"}
 
 The parent passes four required fields to `h.submodel`:
 
@@ -112,7 +112,7 @@ The parent passes four required fields to `h.submodel`:
 - `view` supplies the branded child view.
 - `toParentMessage` wraps a child Message for the parent.
 
-::Snippet{name="submodelParentView" label="parent view"}
+::Snippet{name="submodelParentView" label="Parent view"}
 
 Any parent with the required Model and wrapper can embed the same `Settings.view`.
 
@@ -122,11 +122,11 @@ Use `ViewInputs` for parent-owned data the child needs only while rendering. A L
 
 Pass `ViewInputs` as the third type parameter to `defineView`. The view then receives `(model, viewInputs, h)`.
 
-::Snippet{name="submodelChildViewInputs" label="child view with view inputs"}
+::Snippet{name="submodelChildViewInputs" label="Child view with view inputs"}
 
 The parent supplies `viewInputs` at the embed site.
 
-::Snippet{name="submodelParentViewInputs" label="parent view with view inputs"}
+::Snippet{name="submodelParentViewInputs" label="Parent view with view inputs"}
 
 Keep state in the child Model and per-render configuration in `viewInputs`. The child changes its Model through update. The parent rebuilds `viewInputs` on each render.
 
@@ -150,7 +150,7 @@ A parent can hold a fixed or dynamic number of child instances.
 
 For a fixed set, give each child its own Model field and `slotId`. For a dynamic set, store the children in an array. Use the same stable identifier for the row key, `slotId`, and wrapper Message.
 
-::Snippet{name="submodelMultipleInstances" label="multiple instances snippet" class="mb-4"}
+::Snippet{name="submodelMultipleInstances" label="Multiple instances" class="mb-4"}
 
 `foldApplicant(entryId)` reads and writes only the matching child. When the child no longer exists, `read` returns `None` and a late Message becomes a no-op. The [job-application example](/example-apps/job-application) uses this shape for repeated education and work-history entries.
 
@@ -177,13 +177,13 @@ The parent remains the single source of truth in both cases.
 
 Pass parent state through `viewInputs` when the child needs it for rendering. The parent supplies the current value on every render.
 
-::Snippet{name="submodelParentStateInView" label="snippet" class="mb-4"}
+::Snippet{name="submodelParentStateInView" label="Parent state through viewInputs" class="mb-4"}
 
 ### Providing Parent State to a Child Submodel’s update {#parent-state-in-update}
 
 Add a third `context` argument when child update needs the current parent value while processing a Message. Close over that value when constructing the fold.
 
-::Snippet{name="submodelParentStateInUpdate" label="snippet" class="mb-4"}
+::Snippet{name="submodelParentStateInUpdate" label="Parent context in child update" class="mb-4"}
 
 The update stays pure because the context is an explicit input. Constructing `foldSettings(model.currentUser)` for each dispatch gives the child the current user without storing a second copy.
 
@@ -205,7 +205,7 @@ Define OutMessages beside the child Message. Name them as past-tense facts: `Suc
 
 The child update returns its Model, optional Commands, and an optional OutMessage. Most branches omit `outMessage`. A branch includes it only when it has a fact to surface.
 
-::Snippet{name="outMessageChildUpdate" label="child update"}
+::Snippet{name="outMessageChildUpdate" label="Child update"}
 
 `SubmittedLoginForm` starts authentication but has no result to report. `SucceededAuthenticate` emits `SucceededLogin({ sessionId })` after the Command completes.
 
@@ -215,7 +215,7 @@ Handle the OutMessage through `foldOutMessage` on [Update.foldChild](#fold-child
 
 Do not unpack a child update, helper, init, or boot result by hand. Destructuring `model` and `commands` can leave its `outMessage` behind without a type error. Dot access can still ignore an OutMessage, but an operation-named value keeps all three returned fields visible together. Use `Update.foldChild`, `Update.foldChildStep`, `Update.foldChildInit`, or `Update.foldChildInits` so the child Model, lifted Commands, and OutMessage remain part of one fold.
 
-::Snippet{name="outMessageFoldChild" label="foldChild with foldOutMessage"}
+::Snippet{name="outMessageFoldChild" label="Using foldChild with foldOutMessage"}
 
 The fold appends the Step's Commands after the child's lifted Commands. If the Step returns a child Command, use `liftCommand` or `liftCommands` from `Update.FoldContext`. The lifter wraps the Command's result Message with the same `toParentMessage` used by the child fold.
 
@@ -223,7 +223,7 @@ When a `foldChildInits` entry needs that context, annotate both parameters, such
 
 In this example, only the parent knows the redirect Route for `Login.SendMagicLink`. The child emits `RequestedMagicLink`, and the parent fills in the Route while keeping the Command result inside the Login boundary.
 
-::Snippet{name="outMessageFoldContext" label="foldOutMessage with FoldContext"}
+::Snippet{name="outMessageFoldContext" label="Using foldOutMessage with FoldContext"}
 
 [Update.foldChildStep](#fold-child) supplies the same fold context for no-argument child entry points. It also accepts `toParentOutMessage` when the current Submodel forwards a child OutMessage to its parent.
 
@@ -243,7 +243,7 @@ A `reflect*` helper returns the child Model directly. It does not return Command
 
 Define reflect helpers with `Function.dual` so they work point-free in [modifyFields](/best-practices/immutability#immutable-updates). Here the URL owns the price range, and the parent reflects that range onto a Slider.
 
-::Snippet{name="submodelReflectExternalState" label="reflect handler"}
+::Snippet{name="submodelReflectExternalState" label="Reflecting URL price bounds into a Slider"}
 
 Only the owner calls a child's `reflect*` helper. User interactions still go through the child update and may emit OutMessages.
 
@@ -266,7 +266,7 @@ The child view normally builds child handlers. A slot callback normally builds p
 
 A shared helper may belong to a sibling Submodel or the parent itself. For example: documentation pages render a shared SnippetCopy Submodel and heading links owned by the application shell. Let the parent build those renderers and pass them through top-level `viewInputs` callbacks.
 
-::Snippet{name="submodelSharedRenderers" label="shared renderers"}
+::Snippet{name="submodelSharedRenderers" label="Shared renderers"}
 
 The callbacks run in the parent's boundary. The heading link reaches the parent update directly, while each snippet button establishes its own child boundary and produces `GotSnippetCopyMessage` for the parent to fold.
 
@@ -290,11 +290,11 @@ Without the child dispatcher, the parent-built button would send raw `OpenedMenu
 
 The child publishes branded attribute groups with the state the slot needs.
 
-::Snippet{name="submodelChildAttributesPublish" label="snippet" class="mb-4"}
+::Snippet{name="submodelChildAttributesPublish" label="Publishing child attributes" class="mb-4"}
 
 The parent consumes that slot data without reading the child Model.
 
-::Snippet{name="submodelChildAttributesConsume" label="snippet" class="mb-4"}
+::Snippet{name="submodelChildAttributesConsume" label="Rendering child attributes" class="mb-4"}
 
 The child `OnClick` uses the carried dispatcher. Parent attributes such as `h.Class` behave normally.
 

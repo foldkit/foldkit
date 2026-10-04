@@ -8,7 +8,7 @@ Before you begin, install Node.js 22.22.2 or newer and make sure the package man
 
 Run the scaffolder:
 
-::Snippet{name="getStartedCreateProject" label="create a Foldkit project"}
+::Snippet{name="getStartedCreateProject" label="Create a Foldkit project"}
 
 The CLI asks for a project name, a rendering mode, and a package manager. If you choose a browser-only SPA, it also asks which [example](/example-apps) you want to start from. The other rendering modes create their own starter applications:
 
@@ -18,7 +18,7 @@ The CLI asks for a project name, a rendering mode, and a package manager. If you
 
 The scaffolder creates the project and installs its dependencies. Move into the new directory, then start the development server with the package manager you selected:
 
-::Snippet{name="getStartedChangeDirectory" label="enter the project directory"}
+::Snippet{name="getStartedChangeDirectory" label="Enter the project directory"}
 
 - pnpm: `pnpm dev`
 - npm: `npm run dev`
@@ -56,7 +56,7 @@ Foldkit uses Effect 4 stable and pins its peer dependencies to exact versions: `
 
 Install Foldkit together with its pinned peer dependencies:
 
-::Snippet{name="getStartedInstallFoldkit" label="install Foldkit and Effect"}
+::Snippet{name="getStartedInstallFoldkit" label="Install Foldkit and Effect"}
 
 ## Where to Go Next
 

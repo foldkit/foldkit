@@ -18,7 +18,7 @@ Foldkit defines the typed binding, but the browser still needs the element's cla
 
 Inside a view, call `.withMessage(h)` on the spec. The view builder acts as a type witness that binds event handlers to the current Message universe. The runtime builder is reusable after that binding.
 
-::Snippet{name="customElementDefine" label="CustomElement.define example"}
+::Snippet{name="customElementDefine" label="Defining typed custom element bindings"}
 
 The bound element builder is callable. Pass attributes, including generated property and event factories, as the first argument and children as the second. Either argument can be omitted when it is not needed. Schema keeps both directions typed: a property factory accepts its declared value, while an event factory receives its declared `detail` and returns a Message.
 

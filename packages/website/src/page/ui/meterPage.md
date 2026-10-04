@@ -16,7 +16,7 @@ Pass the current `value` and render the provided attribute groups. Spread `attri
 
 ::Demo{name="basic"}
 
-::Snippet{name="uiMeterBasic" label="meter example"}
+::Snippet{name="uiMeterBasic" label="Meter"}
 
 ### Thresholds
 

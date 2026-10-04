@@ -120,6 +120,8 @@ Don't add inline or block comments to explain code. If code needs explanation, r
 ## Documentation Snippets
 
 - Never put executable or copyable source examples directly in website Markdown. Put each example in `packages/website/src/snippet/` and render it with `::Snippet` so it has one source file. Fenced blocks remain valid for diagrams and literal output that readers do not copy as source.
+- Give every snippet a concise, specific title. Use sentence case without ending punctuation. Start with a capitalized natural-language word; when an API identifier has lowercase spelling, rewrite the phrase to preserve that spelling instead of capitalizing it.
+- Name the construct or behavior the snippet demonstrates. Do not append redundant words such as “example,” “examples,” “code,” or “snippet.” Keep comparison titles parallel, and preserve Foldkit architecture type capitalization.
 - Changesets cannot render website islands, so fenced source examples with a language identifier are appropriate there.
 - Preserve published blog posts, release announcements, and their dedicated snippets as historical records. Do not update them to reflect later API changes; put current usage and migration guidance in active docs and changesets.
 

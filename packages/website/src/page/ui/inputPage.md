@@ -16,7 +16,7 @@ Pass an `id`, an `onInput` handler, and a `toView` callback. The callback receiv
 
 ::Demo{name="basic"}
 
-::Snippet{name="uiInputBasic" label="basic input example"}
+::Snippet{name="uiInputBasic" label="Basic input"}
 
 ### Disabled
 
@@ -24,7 +24,7 @@ Set `isDisabled: true` to disable the input. Unlike Button, Input uses the nativ
 
 ::Demo{name="disabled"}
 
-::Snippet{name="uiInputDisabled" label="disabled input example"}
+::Snippet{name="uiInputDisabled" label="Disabled input"}
 
 ## Styling
 

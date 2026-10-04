@@ -52,6 +52,7 @@ import {
 import * as Prose from '../prose'
 import { AppRoute, type DocsRoute, homeRouter } from '../route'
 import * as SnippetCopy from '../snippetCopy'
+import * as SnippetDisclosure from '../snippetDisclosure'
 import { type TableOfContentsEntry } from '../tableOfContentsEntry'
 import {
   HeaderNav,
@@ -365,6 +366,7 @@ const renderApiReference = (
 
 type DocPageView = (
   renderCopyButton: CodeBlock.RenderCopyButton,
+  renderSnippet: CodeBlock.RenderSnippet,
   renderHeadingLink: Prose.RenderHeadingLink,
 ) => Html
 
@@ -373,16 +375,26 @@ type ProseDocPageView = (renderHeadingLink: Prose.RenderHeadingLink) => Html
 const renderDocContent = (
   pageView: DocPageView,
   snippetCopy: SnippetCopy.Model,
+  snippetDisclosure: SnippetDisclosure.Model,
   h: HtmlBuilder<Message>,
-): Html =>
-  pageView(
-    SnippetCopy.renderer(
-      snippetCopy,
-      message => Message.GotSnippetCopyMessage({ message }),
+): Html => {
+  const renderCopyButton = SnippetCopy.renderer(
+    snippetCopy,
+    message => Message.GotSnippetCopyMessage({ message }),
+    h,
+  )
+
+  return pageView(
+    renderCopyButton,
+    SnippetDisclosure.renderer(
+      snippetDisclosure,
+      message => Message.GotSnippetDisclosureMessage({ message }),
+      renderCopyButton,
       h,
     ),
     Prose.renderHeadingLink(hash => Message.ClickedCopyLink({ hash }), h),
   )
+}
 
 const renderProseContent = (
   pageView: ProseDocPageView,
@@ -395,10 +407,14 @@ const renderProseContent = (
 const memoizedDocContent = createLazy()
 const memoizedProseContent = createLazy()
 
-const lazyDocsContent = (
-  view: DocPageView,
-  args: readonly [SnippetCopy.Model, HtmlBuilder<Message>],
-): Html => memoizedDocContent(renderDocContent, [view, ...args])
+type DocContentArgs = readonly [
+  SnippetCopy.Model,
+  SnippetDisclosure.Model,
+  HtmlBuilder<Message>,
+]
+
+const lazyDocsContent = (view: DocPageView, args: DocContentArgs): Html =>
+  memoizedDocContent(renderDocContent, [view, ...args])
 
 const lazyProseContent = (
   view: ProseDocPageView,
@@ -420,10 +436,21 @@ export const view = (
     message => Message.GotSnippetCopyMessage({ message }),
     h,
   )
+  const renderSnippet = SnippetDisclosure.renderer(
+    model.snippetDisclosure,
+    message => Message.GotSnippetDisclosureMessage({ message }),
+    renderCopyButton,
+    h,
+  )
   const renderHeadingLink = Prose.renderHeadingLink(
     hash => Message.ClickedCopyLink({ hash }),
     h,
   )
+  const docContentArgs: DocContentArgs = [
+    model.snippetCopy,
+    model.snippetDisclosure,
+    h,
+  ]
 
   const { content, tableOfContents: currentPageTableOfContents } = Match.value(
     docsRoute,
@@ -451,7 +478,7 @@ export const view = (
             slotId: 'coming-from-react',
             model: model.comingFromReact,
             view: ComingFromReact.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: message =>
               Message.GotComingFromReactMessage({ message }),
           }),
@@ -459,52 +486,52 @@ export const view = (
         ),
       ComingFromTanStackQuery: () =>
         withTableOfContents(
-          lazyDocsContent(ComingFromTanStackQuery.view, [model.snippetCopy, h]),
+          lazyDocsContent(ComingFromTanStackQuery.view, docContentArgs),
           ComingFromTanStackQuery.tableOfContents,
         ),
       ReactComparison: () =>
         withTableOfContents(
-          lazyDocsContent(ReactComparison.view, [model.snippetCopy, h]),
+          lazyDocsContent(ReactComparison.view, docContentArgs),
           ReactComparison.tableOfContents,
         ),
       EffectAtomComparison: () =>
         withTableOfContents(
-          lazyDocsContent(EffectAtomComparison.view, [model.snippetCopy, h]),
+          lazyDocsContent(EffectAtomComparison.view, docContentArgs),
           EffectAtomComparison.tableOfContents,
         ),
       ElmComparison: () =>
         withTableOfContents(
-          lazyDocsContent(ElmComparison.view, [model.snippetCopy, h]),
+          lazyDocsContent(ElmComparison.view, docContentArgs),
           ElmComparison.tableOfContents,
         ),
       GetStarted: () =>
         withTableOfContents(
-          lazyDocsContent(GetStarted.view, [model.snippetCopy, h]),
+          lazyDocsContent(GetStarted.view, docContentArgs),
           GetStarted.tableOfContents,
         ),
       RoutingAndNavigation: () =>
         withTableOfContents(
-          lazyDocsContent(Routing.view, [model.snippetCopy, h]),
+          lazyDocsContent(Routing.view, docContentArgs),
           Routing.tableOfContents,
         ),
       FieldValidation: () =>
         withTableOfContents(
-          lazyDocsContent(FieldValidation.view, [model.snippetCopy, h]),
+          lazyDocsContent(FieldValidation.view, docContentArgs),
           FieldValidation.tableOfContents,
         ),
       Testing: () =>
         withTableOfContents(
-          lazyDocsContent(Testing.view, [model.snippetCopy, h]),
+          lazyDocsContent(Testing.view, docContentArgs),
           Testing.tableOfContents,
         ),
       TestingStory: () =>
         withTableOfContents(
-          lazyDocsContent(TestingStory.view, [model.snippetCopy, h]),
+          lazyDocsContent(TestingStory.view, docContentArgs),
           TestingStory.tableOfContents,
         ),
       TestingScene: () =>
         withTableOfContents(
-          lazyDocsContent(TestingScene.view, [model.snippetCopy, h]),
+          lazyDocsContent(TestingScene.view, docContentArgs),
           TestingScene.tableOfContents,
         ),
       Examples: () => withoutTableOfContents(Examples.view()),
@@ -522,7 +549,7 @@ export const view = (
             viewInputs: {
               slug: exampleSlug,
               isNarrowViewport: model.isNarrowViewport,
-              renderCopyButton,
+              renderSnippet,
             },
             toParentMessage: message =>
               Message.GotExampleDetailMessage({ message }),
@@ -530,10 +557,10 @@ export const view = (
         ),
       BestPracticesSideEffects: () =>
         withTableOfContents(
-          lazyDocsContent(BestPractices.SideEffectsAndPurity.view, [
-            model.snippetCopy,
-            h,
-          ]),
+          lazyDocsContent(
+            BestPractices.SideEffectsAndPurity.view,
+            docContentArgs,
+          ),
           BestPractices.SideEffectsAndPurity.tableOfContents,
         ),
       BestPracticesMessages: () =>
@@ -543,25 +570,22 @@ export const view = (
         ),
       BestPracticesKeying: () =>
         withTableOfContents(
-          lazyDocsContent(BestPractices.Keying.view, [model.snippetCopy, h]),
+          lazyDocsContent(BestPractices.Keying.view, docContentArgs),
           BestPractices.Keying.tableOfContents,
         ),
       BestPracticesImmutability: () =>
         withTableOfContents(
-          lazyDocsContent(BestPractices.Immutability.view, [
-            model.snippetCopy,
-            h,
-          ]),
+          lazyDocsContent(BestPractices.Immutability.view, docContentArgs),
           BestPractices.Immutability.tableOfContents,
         ),
       ProjectOrganization: () =>
         withTableOfContents(
-          lazyDocsContent(ProjectOrganization.view, [model.snippetCopy, h]),
+          lazyDocsContent(ProjectOrganization.view, docContentArgs),
           ProjectOrganization.tableOfContents,
         ),
       ToolingLinting: () =>
         withTableOfContents(
-          lazyDocsContent(ToolingLinting.view, [model.snippetCopy, h]),
+          lazyDocsContent(ToolingLinting.view, docContentArgs),
           ToolingLinting.tableOfContents,
         ),
       ApiModule: ({ moduleSlug }) =>
@@ -601,120 +625,117 @@ export const view = (
         ),
       CoreCounterExample: () =>
         withTableOfContents(
-          lazyDocsContent(Core.CounterExample.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.CounterExample.view, docContentArgs),
           Core.CounterExample.tableOfContents,
         ),
       CoreModel: () =>
         withTableOfContents(
-          lazyDocsContent(Core.CoreModel.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.CoreModel.view, docContentArgs),
           Core.CoreModel.tableOfContents,
         ),
       CoreMessages: () =>
         withTableOfContents(
-          lazyDocsContent(Core.Messages.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.Messages.view, docContentArgs),
           Core.Messages.tableOfContents,
         ),
       CoreUpdate: () =>
         withTableOfContents(
-          lazyDocsContent(Core.CoreUpdate.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.CoreUpdate.view, docContentArgs),
           Core.CoreUpdate.tableOfContents,
         ),
       CoreView: () =>
         withTableOfContents(
-          lazyDocsContent(Core.CoreView.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.CoreView.view, docContentArgs),
           Core.CoreView.tableOfContents,
         ),
       CoreCommands: () =>
         withTableOfContents(
-          lazyDocsContent(Core.Commands.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.Commands.view, docContentArgs),
           Core.Commands.tableOfContents,
         ),
       CoreMount: () =>
         withTableOfContents(
-          lazyDocsContent(Core.Mount.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.Mount.view, docContentArgs),
           Core.Mount.tableOfContents,
         ),
       CoreCustomElement: () =>
         withTableOfContents(
-          lazyDocsContent(Core.CustomElement.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.CustomElement.view, docContentArgs),
           Core.CustomElement.tableOfContents,
         ),
       CoreSubscriptions: () =>
         withTableOfContents(
-          lazyDocsContent(Core.Subscriptions.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.Subscriptions.view, docContentArgs),
           Core.Subscriptions.tableOfContents,
         ),
       CoreInitAndFlags: () =>
         withTableOfContents(
-          lazyDocsContent(Core.InitAndFlags.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.InitAndFlags.view, docContentArgs),
           Core.InitAndFlags.tableOfContents,
         ),
       CoreDom: () =>
         withTableOfContents(
-          lazyDocsContent(Core.CoreDom.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.CoreDom.view, docContentArgs),
           Core.CoreDom.tableOfContents,
         ),
       CoreRender: () =>
         withTableOfContents(
-          lazyDocsContent(Core.CoreRender.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.CoreRender.view, docContentArgs),
           Core.CoreRender.tableOfContents,
         ),
       CoreFile: () =>
         withTableOfContents(
-          lazyDocsContent(Core.CoreFile.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.CoreFile.view, docContentArgs),
           Core.CoreFile.tableOfContents,
         ),
       CoreHttp: () =>
         withTableOfContents(
-          lazyDocsContent(Core.CoreHttp.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.CoreHttp.view, docContentArgs),
           Core.CoreHttp.tableOfContents,
         ),
       CoreCanvas: () =>
         withTableOfContents(
-          lazyDocsContent(Core.CoreCanvas.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.CoreCanvas.view, docContentArgs),
           Core.CoreCanvas.tableOfContents,
         ),
       CoreRuntime: () =>
         withTableOfContents(
-          lazyDocsContent(Core.Runtime.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.Runtime.view, docContentArgs),
           Core.Runtime.tableOfContents,
         ),
       CoreServerRendering: () =>
         withTableOfContents(
-          lazyDocsContent(Core.CoreServerRendering.view, [
-            model.snippetCopy,
-            h,
-          ]),
+          lazyDocsContent(Core.CoreServerRendering.view, docContentArgs),
           Core.CoreServerRendering.tableOfContents,
         ),
       CoreResources: () =>
         withTableOfContents(
-          lazyDocsContent(Core.Resources.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.Resources.view, docContentArgs),
           Core.Resources.tableOfContents,
         ),
       CoreManagedResources: () =>
         withTableOfContents(
-          lazyDocsContent(Core.ManagedResources.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.ManagedResources.view, docContentArgs),
           Core.ManagedResources.tableOfContents,
         ),
       CoreDevTools: () =>
         withTableOfContents(
-          lazyDocsContent(Core.DevTools.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.DevTools.view, docContentArgs),
           Core.DevTools.tableOfContents,
         ),
       CoreCrashView: () =>
         withTableOfContents(
-          lazyDocsContent(Core.CrashView.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.CrashView.view, docContentArgs),
           Core.CrashView.tableOfContents,
         ),
       CoreViewTransitions: () =>
         withTableOfContents(
-          lazyDocsContent(Core.ViewTransitions.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.ViewTransitions.view, docContentArgs),
           Core.ViewTransitions.tableOfContents,
         ),
       CoreSlowWarnings: () =>
         withTableOfContents(
-          lazyDocsContent(Core.Slow.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.Slow.view, docContentArgs),
           Core.Slow.tableOfContents,
         ),
       CoreFreezeModel: () =>
@@ -733,7 +754,7 @@ export const view = (
             slotId: 'core-submodel-page',
             model: model.coreSubmodelPage,
             view: Core.SubmodelPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: message =>
               Message.GotCoreSubmodelPageMessage({ message }),
           }),
@@ -741,61 +762,55 @@ export const view = (
         ),
       CoreMachine: () =>
         withTableOfContents(
-          lazyDocsContent(Core.Machine.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.Machine.view, docContentArgs),
           Core.Machine.tableOfContents,
         ),
       AsyncData: () =>
         withTableOfContents(
-          lazyDocsContent(AsyncDataPage.view, [model.snippetCopy, h]),
+          lazyDocsContent(AsyncDataPage.view, docContentArgs),
           AsyncDataPage.tableOfContents,
         ),
       PatternsAntiPatterns: () =>
         withTableOfContents(
-          lazyDocsContent(Patterns.AntiPatterns.view, [model.snippetCopy, h]),
+          lazyDocsContent(Patterns.AntiPatterns.view, docContentArgs),
           Patterns.AntiPatterns.tableOfContents,
         ),
       PatternsInformingSubmodels: () =>
         withTableOfContents(
-          lazyDocsContent(Patterns.InformingSubmodels.view, [
-            model.snippetCopy,
-            h,
-          ]),
+          lazyDocsContent(Patterns.InformingSubmodels.view, docContentArgs),
           Patterns.InformingSubmodels.tableOfContents,
         ),
       PatternsSubscriptionOrganization: () =>
         withTableOfContents(
-          lazyDocsContent(Patterns.SubscriptionOrganization.view, [
-            model.snippetCopy,
-            h,
-          ]),
+          lazyDocsContent(
+            Patterns.SubscriptionOrganization.view,
+            docContentArgs,
+          ),
           Patterns.SubscriptionOrganization.tableOfContents,
         ),
       CoreViewMemoization: () =>
         withTableOfContents(
-          lazyDocsContent(Core.ViewMemoization.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.ViewMemoization.view, docContentArgs),
           Core.ViewMemoization.tableOfContents,
         ),
       CoreEmbedding: () =>
         withTableOfContents(
-          lazyDocsContent(Core.Embedding.view, [model.snippetCopy, h]),
+          lazyDocsContent(Core.Embedding.view, docContentArgs),
           Core.Embedding.tableOfContents,
         ),
       UiOverview: () =>
         withTableOfContents(
-          lazyDocsContent(Ui.OverviewPage.view, [model.snippetCopy, h]),
+          lazyDocsContent(Ui.OverviewPage.view, docContentArgs),
           Ui.OverviewPage.tableOfContents,
         ),
       UiSelectionSubmodels: () =>
         withTableOfContents(
-          lazyDocsContent(Ui.SelectionSubmodelsPage.view, [
-            model.snippetCopy,
-            h,
-          ]),
+          lazyDocsContent(Ui.SelectionSubmodelsPage.view, docContentArgs),
           Ui.SelectionSubmodelsPage.tableOfContents,
         ),
       UiAnchor: () =>
         withTableOfContents(
-          lazyDocsContent(Ui.AnchorPage.view, [model.snippetCopy, h]),
+          lazyDocsContent(Ui.AnchorPage.view, docContentArgs),
           Ui.AnchorPage.tableOfContents,
         ),
       UiHoverIntent: () =>
@@ -804,7 +819,7 @@ export const view = (
             slotId: 'ui-HoverIntent',
             model: model.uiPages,
             view: Ui.HoverIntentPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.HoverIntentPage.tableOfContents,
@@ -815,7 +830,7 @@ export const view = (
             slotId: 'ui-Button',
             model: model.uiPages,
             view: Ui.ButtonPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.ButtonPage.tableOfContents,
@@ -826,7 +841,7 @@ export const view = (
             slotId: 'ui-Tabs',
             model: model.uiPages,
             view: Ui.TabsPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.TabsPage.tableOfContents,
@@ -839,6 +854,7 @@ export const view = (
             view: Ui.NavPage.view,
             viewInputs: {
               renderCopyButton,
+              renderSnippet,
               renderHeadingLink,
               url: model.url,
             },
@@ -852,7 +868,7 @@ export const view = (
             slotId: 'ui-Disclosure',
             model: model.uiPages,
             view: Ui.DisclosurePage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.DisclosurePage.tableOfContents,
@@ -863,7 +879,7 @@ export const view = (
             slotId: 'ui-Dialog',
             model: model.uiPages,
             view: Ui.DialogPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.DialogPage.tableOfContents,
@@ -874,7 +890,7 @@ export const view = (
             slotId: 'ui-Menu',
             model: model.uiPages,
             view: Ui.MenuPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.MenuPage.tableOfContents,
@@ -885,7 +901,7 @@ export const view = (
             slotId: 'ui-Popover',
             model: model.uiPages,
             view: Ui.PopoverPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.PopoverPage.tableOfContents,
@@ -896,7 +912,7 @@ export const view = (
             slotId: 'ui-Tooltip',
             model: model.uiPages,
             view: Ui.TooltipPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.TooltipPage.tableOfContents,
@@ -907,7 +923,7 @@ export const view = (
             slotId: 'ui-Toast',
             model: model.uiPages,
             view: Ui.ToastPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.ToastPage.tableOfContents,
@@ -918,7 +934,7 @@ export const view = (
             slotId: 'ui-Listbox',
             model: model.uiPages,
             view: Ui.ListboxPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.ListboxPage.tableOfContents,
@@ -929,7 +945,7 @@ export const view = (
             slotId: 'ui-RadioGroup',
             model: model.uiPages,
             view: Ui.RadioGroupPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.RadioGroupPage.tableOfContents,
@@ -940,7 +956,7 @@ export const view = (
             slotId: 'ui-Slider',
             model: model.uiPages,
             view: Ui.SliderPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.SliderPage.tableOfContents,
@@ -951,7 +967,7 @@ export const view = (
             slotId: 'ui-Meter',
             model: model.uiPages,
             view: Ui.MeterPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.MeterPage.tableOfContents,
@@ -962,7 +978,7 @@ export const view = (
             slotId: 'ui-Progress',
             model: model.uiPages,
             view: Ui.ProgressPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.ProgressPage.tableOfContents,
@@ -973,7 +989,7 @@ export const view = (
             slotId: 'ui-Switch',
             model: model.uiPages,
             view: Ui.SwitchPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.SwitchPage.tableOfContents,
@@ -984,7 +1000,7 @@ export const view = (
             slotId: 'ui-Calendar',
             model: model.uiPages,
             view: Ui.CalendarPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.CalendarPage.tableOfContents,
@@ -995,7 +1011,7 @@ export const view = (
             slotId: 'ui-DatePicker',
             model: model.uiPages,
             view: Ui.DatePickerPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.DatePickerPage.tableOfContents,
@@ -1006,7 +1022,7 @@ export const view = (
             slotId: 'ui-Checkbox',
             model: model.uiPages,
             view: Ui.CheckboxPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.CheckboxPage.tableOfContents,
@@ -1017,7 +1033,7 @@ export const view = (
             slotId: 'ui-Combobox',
             model: model.uiPages,
             view: Ui.ComboboxPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.ComboboxPage.tableOfContents,
@@ -1028,7 +1044,7 @@ export const view = (
             slotId: 'ui-Input',
             model: model.uiPages,
             view: Ui.InputPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.InputPage.tableOfContents,
@@ -1039,7 +1055,7 @@ export const view = (
             slotId: 'ui-Textarea',
             model: model.uiPages,
             view: Ui.TextareaPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.TextareaPage.tableOfContents,
@@ -1050,7 +1066,7 @@ export const view = (
             slotId: 'ui-Fieldset',
             model: model.uiPages,
             view: Ui.FieldsetPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.FieldsetPage.tableOfContents,
@@ -1061,7 +1077,7 @@ export const view = (
             slotId: 'ui-Select',
             model: model.uiPages,
             view: Ui.SelectPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.SelectPage.tableOfContents,
@@ -1072,7 +1088,7 @@ export const view = (
             slotId: 'ui-DragAndDrop',
             model: model.uiPages,
             view: Ui.DragAndDropPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.DragAndDropPage.tableOfContents,
@@ -1083,7 +1099,7 @@ export const view = (
             slotId: 'ui-FileDrop',
             model: model.uiPages,
             view: Ui.FileDropPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.FileDropPage.tableOfContents,
@@ -1094,7 +1110,7 @@ export const view = (
             slotId: 'ui-Animation',
             model: model.uiPages,
             view: Ui.AnimationPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.AnimationPage.tableOfContents,
@@ -1105,29 +1121,29 @@ export const view = (
             slotId: 'ui-VirtualList',
             model: model.uiPages,
             view: Ui.VirtualListPage.view,
-            viewInputs: { renderCopyButton, renderHeadingLink },
+            viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
             toParentMessage: toUiPageMessage,
           }),
           Ui.VirtualListPage.tableOfContents,
         ),
       AiOverview: () =>
         withTableOfContents(
-          lazyDocsContent(AiOverview.view, [model.snippetCopy, h]),
+          lazyDocsContent(AiOverview.view, docContentArgs),
           AiOverview.tableOfContents,
         ),
       AiSkills: () =>
         withTableOfContents(
-          lazyDocsContent(AiSkills.view, [model.snippetCopy, h]),
+          lazyDocsContent(AiSkills.view, docContentArgs),
           AiSkills.tableOfContents,
         ),
       AiMcp: () =>
         withTableOfContents(
-          lazyDocsContent(AiMcp.view, [model.snippetCopy, h]),
+          lazyDocsContent(AiMcp.view, docContentArgs),
           AiMcp.tableOfContents,
         ),
       ContentApi: () =>
         withTableOfContents(
-          lazyDocsContent(ContentApi.view, [model.snippetCopy, h]),
+          lazyDocsContent(ContentApi.view, docContentArgs),
           ContentApi.tableOfContents,
         ),
       About: () =>
