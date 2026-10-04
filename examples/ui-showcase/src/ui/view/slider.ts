@@ -42,11 +42,80 @@ const volumeFormatted = (value: number): string => `${Math.round(value * 100)}%`
 
 export const view = Submodel.defineView<UiModel, UiMessage>(
   (model, h): Html => {
+    const horizontalSliderView = (attributes: Slider.SliderAttributes): Html =>
+      h.div(
+        [h.Class(horizontalRowClassName)],
+        [
+          h.div(
+            [h.Class(horizontalHeaderClassName)],
+            [
+              h.label(
+                [...attributes.label, h.Class(labelClassName)],
+                ['Rating'],
+              ),
+              h.span(
+                [h.Class(valueClassName)],
+                [ratingFormatted(model.sliderRatingValue)],
+              ),
+            ],
+          ),
+          h.div(
+            [...attributes.root, h.Class(horizontalRootClassName)],
+            [
+              h.div(
+                [...attributes.track, h.Class(horizontalTrackClassName)],
+                [
+                  h.div([
+                    ...attributes.filledTrack,
+                    h.Class(horizontalFilledTrackClassName),
+                  ]),
+                ],
+              ),
+              h.div([...attributes.thumb, h.Class(thumbClassName)]),
+            ],
+          ),
+        ],
+      )
+
+    const verticalSliderView = (attributes: Slider.SliderAttributes): Html =>
+      h.div(
+        [h.Class(verticalRowClassName)],
+        [
+          h.div(
+            [h.Class(verticalHeaderClassName)],
+            [
+              h.label(
+                [...attributes.label, h.Class(labelClassName)],
+                ['Volume'],
+              ),
+              h.span(
+                [h.Class(valueClassName)],
+                [volumeFormatted(model.sliderVolumeValue)],
+              ),
+            ],
+          ),
+          h.div(
+            [...attributes.root, h.Class(verticalRootClassName)],
+            [
+              h.div(
+                [...attributes.track, h.Class(verticalTrackClassName)],
+                [
+                  h.div([
+                    ...attributes.filledTrack,
+                    h.Class(verticalFilledTrackClassName),
+                  ]),
+                ],
+              ),
+              h.div([...attributes.thumb, h.Class(thumbClassName)]),
+            ],
+          ),
+        ],
+      )
+
     return h.div(
       [],
       [
         h.h2([h.Class('text-2xl font-bold text-gray-900 mb-6')], ['Slider']),
-
         h.h3(
           [h.Class('text-lg font-semibold text-gray-900 mt-8 mb-4')],
           ['Horizontal'],
@@ -58,43 +127,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
           viewInputs: {
             value: model.sliderRatingValue,
             formatValue: value => `${value} of 10`,
-            toView: attributes =>
-              h.div(
-                [h.Class(horizontalRowClassName)],
-                [
-                  h.div(
-                    [h.Class(horizontalHeaderClassName)],
-                    [
-                      h.label(
-                        [...attributes.label, h.Class(labelClassName)],
-                        ['Rating'],
-                      ),
-                      h.span(
-                        [h.Class(valueClassName)],
-                        [ratingFormatted(model.sliderRatingValue)],
-                      ),
-                    ],
-                  ),
-                  h.div(
-                    [...attributes.root, h.Class(horizontalRootClassName)],
-                    [
-                      h.div(
-                        [
-                          ...attributes.track,
-                          h.Class(horizontalTrackClassName),
-                        ],
-                        [
-                          h.div([
-                            ...attributes.filledTrack,
-                            h.Class(horizontalFilledTrackClassName),
-                          ]),
-                        ],
-                      ),
-                      h.div([...attributes.thumb, h.Class(thumbClassName)]),
-                    ],
-                  ),
-                ],
-              ),
+            toView: horizontalSliderView,
           },
           toParentMessage: message =>
             UiMessage.GotSliderRatingDemoMessage({ message }),
@@ -114,40 +147,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
             thumbAlignment: 'Edge',
             thumbSize: '1.25rem',
             formatValue: value => `${Math.round(value * 100)} percent`,
-            toView: attributes =>
-              h.div(
-                [h.Class(verticalRowClassName)],
-                [
-                  h.div(
-                    [h.Class(verticalHeaderClassName)],
-                    [
-                      h.label(
-                        [...attributes.label, h.Class(labelClassName)],
-                        ['Volume'],
-                      ),
-                      h.span(
-                        [h.Class(valueClassName)],
-                        [volumeFormatted(model.sliderVolumeValue)],
-                      ),
-                    ],
-                  ),
-                  h.div(
-                    [...attributes.root, h.Class(verticalRootClassName)],
-                    [
-                      h.div(
-                        [...attributes.track, h.Class(verticalTrackClassName)],
-                        [
-                          h.div([
-                            ...attributes.filledTrack,
-                            h.Class(verticalFilledTrackClassName),
-                          ]),
-                        ],
-                      ),
-                      h.div([...attributes.thumb, h.Class(thumbClassName)]),
-                    ],
-                  ),
-                ],
-              ),
+            toView: verticalSliderView,
           },
           toParentMessage: message =>
             UiMessage.GotSliderVolumeDemoMessage({ message }),

@@ -83,8 +83,31 @@ GotPlanRadioGroupMessage: ({ message }) => foldPlanRadioGroup(model, message)
 
 // Inside your view function, embed the radio group via h.submodel and pass
 // the parent-owned selection as selectedValue:
-const view = (model: Model, h: HtmlBuilder<Message>) =>
-  h.submodel({
+const view = (model: Model, h: HtmlBuilder<Message>) => {
+  const radioGroupView = ({ group, options }: RadioGroup.RenderInfo<Plan>) =>
+    h.div(
+      [...group, h.Class('flex flex-col gap-3')],
+      options.map(option => {
+        const plan = option.value
+        return h.div(
+          [
+            ...option.option,
+            h.Class(
+              'rounded-lg border p-4 cursor-pointer data-[checked]:border-blue-600',
+            ),
+          ],
+          [
+            h.span([...option.label, h.Class('text-sm font-medium')], [plan]),
+            h.p(
+              [...option.description, h.Class('text-sm text-gray-500')],
+              [descriptions[plan]],
+            ),
+          ],
+        )
+      }),
+    )
+
+  return h.submodel({
     slotId: model.planRadioGroup.id,
     model: model.planRadioGroup,
     view: PlanRadioGroup.view,
@@ -93,31 +116,8 @@ const view = (model: Model, h: HtmlBuilder<Message>) =>
       selectedValue: model.maybePlan,
       ariaLabel: 'Server plan',
       hasOptionDescription: () => true,
-      toView: ({ group, options }) =>
-        h.div(
-          [...group, h.Class('flex flex-col gap-3')],
-          options.map(option => {
-            const plan = option.value
-            return h.div(
-              [
-                ...option.option,
-                h.Class(
-                  'rounded-lg border p-4 cursor-pointer data-[checked]:border-blue-600',
-                ),
-              ],
-              [
-                h.span(
-                  [...option.label, h.Class('text-sm font-medium')],
-                  [plan],
-                ),
-                h.p(
-                  [...option.description, h.Class('text-sm text-gray-500')],
-                  [descriptions[plan]],
-                ),
-              ],
-            )
-          }),
-        ),
+      toView: radioGroupView,
     },
     toParentMessage: message => Message.GotPlanRadioGroupMessage({ message }),
   })
+}

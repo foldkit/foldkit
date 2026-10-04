@@ -37,36 +37,39 @@ ToggledTerms: ({ isChecked }) => ({
 
 // Inside your view function, render the checkbox with Checkbox.view. It reads
 // the checked state from your Model and calls onToggle with the new state.
-const view = (model, h: HtmlBuilder<Message>) =>
-  Checkbox.view(
+const view = (model, h: HtmlBuilder<Message>) => {
+  const checkboxView = (attributes: Checkbox.CheckboxAttributes<Message>) =>
+    h.div(
+      [h.Class('flex flex-col gap-1')],
+      [
+        h.div(
+          [h.Class('flex items-center gap-2')],
+          [
+            h.button(
+              [...attributes.checkbox, h.Class('h-5 w-5 rounded border')],
+              model.acceptedTerms ? ['✓'] : [],
+            ),
+            h.label(
+              [...attributes.label, h.Class('text-sm')],
+              ['Accept terms and conditions'],
+            ),
+          ],
+        ),
+        h.p(
+          [...attributes.description, h.Class('text-sm text-gray-500')],
+          ['You agree to our Terms of Service.'],
+        ),
+      ],
+    )
+
+  return Checkbox.view(
     {
       id: 'accept-terms',
       isChecked: model.acceptedTerms,
       hasDescription: true,
       onToggle: isChecked => Message.ToggledTerms({ isChecked }),
-      toView: attributes =>
-        h.div(
-          [h.Class('flex flex-col gap-1')],
-          [
-            h.div(
-              [h.Class('flex items-center gap-2')],
-              [
-                h.button(
-                  [...attributes.checkbox, h.Class('h-5 w-5 rounded border')],
-                  model.acceptedTerms ? ['✓'] : [],
-                ),
-                h.label(
-                  [...attributes.label, h.Class('text-sm')],
-                  ['Accept terms and conditions'],
-                ),
-              ],
-            ),
-            h.p(
-              [...attributes.description, h.Class('text-sm text-gray-500')],
-              ['You agree to our Terms of Service.'],
-            ),
-          ],
-        ),
+      toView: checkboxView,
     },
     h,
   )
+}

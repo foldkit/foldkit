@@ -68,28 +68,31 @@ GotFileDropMessage: ({ message }) => foldFileDrop(model, message)
 // Spread `root` onto a <label> so clicking opens the picker, and spread
 // `input` onto a hidden <input type="file"> nested inside. Style the
 // drag-over state via `data-drag-over`.
-const view = (model: Model, h: HtmlBuilder<Message>) =>
-  h.submodel({
+const view = (model: Model, h: HtmlBuilder<Message>) => {
+  const fileDropView = (attributes: FileDrop.FileDropAttributes) =>
+    h.label(
+      [
+        ...attributes.root,
+        h.Class(
+          'flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-gray-300 p-8 text-center hover:border-accent-400 data-[drag-over]:border-accent-500 data-[drag-over]:bg-accent-50',
+        ),
+      ],
+      [
+        h.p([], ['Drop files or click to browse']),
+        h.span([h.Class('text-sm text-gray-500')], ['PDF, DOC, or DOCX']),
+        h.input(attributes.input),
+      ],
+    )
+
+  return h.submodel({
     slotId: 'uploader',
     model: model.uploader,
     view: FileDrop.view,
     viewInputs: {
       multiple: true,
       accept: ['application/pdf', '.doc', '.docx'],
-      toView: attributes =>
-        h.label(
-          [
-            ...attributes.root,
-            h.Class(
-              'flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-gray-300 p-8 text-center hover:border-accent-400 data-[drag-over]:border-accent-500 data-[drag-over]:bg-accent-50',
-            ),
-          ],
-          [
-            h.p([], ['Drop files or click to browse']),
-            h.span([h.Class('text-sm text-gray-500')], ['PDF, DOC, or DOCX']),
-            h.input(attributes.input),
-          ],
-        ),
+      toView: fileDropView,
     },
     toParentMessage: message => Message.GotFileDropMessage({ message }),
   })
+}

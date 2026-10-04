@@ -65,41 +65,41 @@ GotTooltipMessage: ({ message }) => foldTooltip(model, message)
 // an accessible name with `ariaLabel`. (Point `ariaLabelledBy` at a visible
 // label element instead when one exists.) The attribute is only emitted when
 // provided, so the trigger never carries a dangling `aria-labelledby`.
-const view = (h: HtmlBuilder<Message>) =>
-  h.submodel({
+const view = (h: HtmlBuilder<Message>) => {
+  const tooltipView = ({ trigger, panel, isVisible }: Tooltip.RenderInfo) =>
+    h.div(
+      [h.Class('relative inline-block')],
+      [
+        h.button(
+          [...trigger, h.Class('rounded-lg border px-3 py-2 cursor-pointer')],
+          // Icon-only content; `ariaLabel` above supplies the name.
+          [h.span([h.AriaHidden(true)], ['💾'])],
+        ),
+        ...(isVisible
+          ? [
+              h.div(
+                [
+                  ...panel,
+                  h.Class(
+                    'rounded-md bg-gray-900 px-3 py-1.5 text-sm text-white shadow-lg',
+                  ),
+                ],
+                [h.span([], ['Save your changes (⌘S)'])],
+              ),
+            ]
+          : []),
+      ],
+    )
+
+  return h.submodel({
     slotId: 'save-button',
     model: model.tooltip,
     view: Tooltip.view,
     viewInputs: {
       ariaLabel: 'Save',
       anchor: { placement: 'top', gap: 6, padding: 8 },
-      toView: ({ trigger, panel, isVisible }) =>
-        h.div(
-          [h.Class('relative inline-block')],
-          [
-            h.button(
-              [
-                ...trigger,
-                h.Class('rounded-lg border px-3 py-2 cursor-pointer'),
-              ],
-              // Icon-only content; `ariaLabel` above supplies the name.
-              [h.span([h.AriaHidden(true)], ['💾'])],
-            ),
-            ...(isVisible
-              ? [
-                  h.div(
-                    [
-                      ...panel,
-                      h.Class(
-                        'rounded-md bg-gray-900 px-3 py-1.5 text-sm text-white shadow-lg',
-                      ),
-                    ],
-                    [h.span([], ['Save your changes (⌘S)'])],
-                  ),
-                ]
-              : []),
-          ],
-        ),
+      toView: tooltipView,
     },
     toParentMessage: message => Message.GotTooltipMessage({ message }),
   })
+}

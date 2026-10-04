@@ -38,49 +38,56 @@ const Message = defineMessageUnion({
 // Give the panel `relative` so it paints above the Dialog backdrop, and the
 // Combobox wrapper `relative` so the input stays above the Combobox backdrop,
 // which goes directly before that wrapper.
-const view = (model: Model, h: HtmlBuilder<Message>) =>
-  h.submodel({
+const view = (model: Model, h: HtmlBuilder<Message>) => {
+  const dialogView = ({
+    dialog,
+    backdrop,
+    panel,
+    title,
+    isVisible,
+  }: Dialog.RenderInfo) =>
+    h.dialog(
+      [...dialog],
+      isVisible
+        ? [
+            h.div([...backdrop, h.Class('fixed inset-0 bg-black/50')]),
+            h.div(
+              [
+                ...panel,
+                h.Class('relative rounded-lg p-6 max-w-md mx-auto shadow-xl'),
+              ],
+              [
+                h.h2([...title], ['Edit filters']),
+                h.submodel({
+                  slotId: model.combobox.id,
+                  model: model.combobox,
+                  view: CityCombobox.view,
+                  viewInputs: {
+                    // ...items, itemToConfig, itemToValue, etc.
+                    className: 'relative w-full',
+                    maybeSelectedValue: model.maybeCity,
+                    restingInputValue: Option.getOrElse(
+                      model.maybeCity,
+                      () => '',
+                    ),
+                    anchor: { placement: 'bottom-start' },
+                  },
+                  toParentMessage: message =>
+                    Message.GotComboboxMessage({ message }),
+                }),
+              ],
+            ),
+          ]
+        : [],
+    )
+
+  return h.submodel({
     slotId: model.dialog.id,
     model: model.dialog,
     view: Dialog.view,
     viewInputs: {
-      toView: ({ dialog, backdrop, panel, title, isVisible }) =>
-        h.dialog(
-          [...dialog],
-          isVisible
-            ? [
-                h.div([...backdrop, h.Class('fixed inset-0 bg-black/50')]),
-                h.div(
-                  [
-                    ...panel,
-                    h.Class(
-                      'relative rounded-lg p-6 max-w-md mx-auto shadow-xl',
-                    ),
-                  ],
-                  [
-                    h.h2([...title], ['Edit filters']),
-                    h.submodel({
-                      slotId: model.combobox.id,
-                      model: model.combobox,
-                      view: CityCombobox.view,
-                      viewInputs: {
-                        // ...items, itemToConfig, itemToValue, etc.
-                        className: 'relative w-full',
-                        maybeSelectedValue: model.maybeCity,
-                        restingInputValue: Option.getOrElse(
-                          model.maybeCity,
-                          () => '',
-                        ),
-                        anchor: { placement: 'bottom-start' },
-                      },
-                      toParentMessage: message =>
-                        Message.GotComboboxMessage({ message }),
-                    }),
-                  ],
-                ),
-              ]
-            : [],
-        ),
+      toView: dialogView,
     },
     toParentMessage: message => Message.GotDialogMessage({ message }),
   })
+}

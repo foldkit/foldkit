@@ -70,6 +70,43 @@ GotPopoverMessage: ({ message }) => foldPopover(model, message)
 const view = (h: HtmlBuilder<Message>) => {
   const labelId = 'info-label'
 
+  const popoverView = ({
+    button,
+    panel,
+    backdrop,
+    isVisible,
+  }: Popover.RenderInfo) =>
+    h.div(
+      [h.Class('relative inline-block')],
+      [
+        h.label(
+          [h.Id(labelId), h.For(Popover.buttonId('info'))],
+          ['Solutions'],
+        ),
+        h.button(
+          [...button, h.Class('rounded-lg border px-3 py-2 cursor-pointer')],
+          [h.span([], ['Solutions'])],
+        ),
+        ...(isVisible
+          ? [
+              h.div([...backdrop, h.Class('fixed inset-0')]),
+              h.div(
+                [...panel, h.Class('rounded-lg border shadow-lg p-4 w-80')],
+                [
+                  h.h3([h.Class('font-medium')], ['Analytics']),
+                  h.p(
+                    [h.Class('text-sm text-gray-500')],
+                    [
+                      'Get a better understanding of where your traffic is coming from.',
+                    ],
+                  ),
+                ],
+              ),
+            ]
+          : []),
+      ],
+    )
+
   return h.submodel({
     slotId: 'info',
     model: model.popover,
@@ -77,40 +114,7 @@ const view = (h: HtmlBuilder<Message>) => {
     viewInputs: {
       ariaLabelledBy: labelId,
       anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
-      toView: ({ button, panel, backdrop, isVisible }) =>
-        h.div(
-          [h.Class('relative inline-block')],
-          [
-            h.label(
-              [h.Id(labelId), h.For(Popover.buttonId('info'))],
-              ['Solutions'],
-            ),
-            h.button(
-              [
-                ...button,
-                h.Class('rounded-lg border px-3 py-2 cursor-pointer'),
-              ],
-              [h.span([], ['Solutions'])],
-            ),
-            ...(isVisible
-              ? [
-                  h.div([...backdrop, h.Class('fixed inset-0')]),
-                  h.div(
-                    [...panel, h.Class('rounded-lg border shadow-lg p-4 w-80')],
-                    [
-                      h.h3([h.Class('font-medium')], ['Analytics']),
-                      h.p(
-                        [h.Class('text-sm text-gray-500')],
-                        [
-                          'Get a better understanding of where your traffic is coming from.',
-                        ],
-                      ),
-                    ],
-                  ),
-                ]
-              : []),
-          ],
-        ),
+      toView: popoverView,
     },
     toParentMessage: message => Message.GotPopoverMessage({ message }),
   })

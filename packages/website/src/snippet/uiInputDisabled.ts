@@ -4,33 +4,36 @@ import type { HtmlBuilder } from 'foldkit/html'
 
 import { Input } from '@foldkit/ui'
 
-const view = (h: HtmlBuilder<Message>) =>
-  Input.view(
+const view = (h: HtmlBuilder<Message>) => {
+  const inputView = (attributes: Input.InputAttributes<Message>) =>
+    h.div(
+      [h.Class('flex flex-col gap-1.5')],
+      [
+        h.label(
+          [...attributes.label, h.Class('text-sm font-medium')],
+          ['Email'],
+        ),
+        h.input([
+          ...attributes.input,
+          h.Class(
+            'w-full rounded-lg border px-3 py-2 data-[disabled]:opacity-50',
+          ),
+        ]),
+        h.span(
+          [...attributes.description, h.Class('text-sm text-gray-500')],
+          ['Contact your admin to update.'],
+        ),
+      ],
+    )
+
+  return Input.view(
     {
       id: 'email-disabled',
       isDisabled: true,
       hasDescription: true,
       value: 'ada@lovelace.dev',
-      toView: attributes =>
-        h.div(
-          [h.Class('flex flex-col gap-1.5')],
-          [
-            h.label(
-              [...attributes.label, h.Class('text-sm font-medium')],
-              ['Email'],
-            ),
-            h.input([
-              ...attributes.input,
-              h.Class(
-                'w-full rounded-lg border px-3 py-2 data-[disabled]:opacity-50',
-              ),
-            ]),
-            h.span(
-              [...attributes.description, h.Class('text-sm text-gray-500')],
-              ['Contact your admin to update.'],
-            ),
-          ],
-        ),
+      toView: inputView,
     },
     h,
   )
+}

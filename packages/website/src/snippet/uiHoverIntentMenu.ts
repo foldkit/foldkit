@@ -67,59 +67,66 @@ ClickedHoverMenuItem: () => foldHoverMenuClose(model)
 const triggerId = 'actions-trigger'
 const panelId = 'actions-panel'
 
-const view = (h: HtmlBuilder<Message>) =>
-  h.submodel({
+const view = (h: HtmlBuilder<Message>) => {
+  const hoverMenuView = ({
+    trigger,
+    panel,
+    isVisible,
+  }: HoverIntent.RenderInfo) =>
+    h.div(
+      [h.Class('relative')],
+      [
+        h.button(
+          [
+            ...trigger,
+            h.Type('button'),
+            h.Id(triggerId),
+            h.AriaControls(panelId),
+            h.AriaExpanded(isVisible),
+          ],
+          ['Actions'],
+        ),
+        ...(isVisible
+          ? [
+              h.div(
+                [...panel, h.Id(panelId)],
+                [
+                  h.button(
+                    [
+                      h.Type('button'),
+                      h.OnClick(Message.ClickedHoverMenuItem()),
+                    ],
+                    ['Edit'],
+                  ),
+                  h.button(
+                    [
+                      h.Type('button'),
+                      h.OnClick(Message.ClickedHoverMenuItem()),
+                    ],
+                    ['Duplicate'],
+                  ),
+                  h.button(
+                    [
+                      h.Type('button'),
+                      h.OnClick(Message.ClickedHoverMenuItem()),
+                    ],
+                    ['Archive'],
+                  ),
+                ],
+              ),
+            ]
+          : []),
+      ],
+    )
+
+  return h.submodel({
     slotId: 'hover-menu',
     model: model.hoverMenu,
     view: HoverIntent.view,
     viewInputs: {
       focusTriggerSelector: `#${triggerId}`,
-      toView: ({ trigger, panel, isVisible }) =>
-        h.div(
-          [h.Class('relative')],
-          [
-            h.button(
-              [
-                ...trigger,
-                h.Type('button'),
-                h.Id(triggerId),
-                h.AriaControls(panelId),
-                h.AriaExpanded(isVisible),
-              ],
-              ['Actions'],
-            ),
-            ...(isVisible
-              ? [
-                  h.div(
-                    [...panel, h.Id(panelId)],
-                    [
-                      h.button(
-                        [
-                          h.Type('button'),
-                          h.OnClick(Message.ClickedHoverMenuItem()),
-                        ],
-                        ['Edit'],
-                      ),
-                      h.button(
-                        [
-                          h.Type('button'),
-                          h.OnClick(Message.ClickedHoverMenuItem()),
-                        ],
-                        ['Duplicate'],
-                      ),
-                      h.button(
-                        [
-                          h.Type('button'),
-                          h.OnClick(Message.ClickedHoverMenuItem()),
-                        ],
-                        ['Archive'],
-                      ),
-                    ],
-                  ),
-                ]
-              : []),
-          ],
-        ),
+      toView: hoverMenuView,
     },
     toParentMessage: toGotHoverMenuMessage,
   })
+}

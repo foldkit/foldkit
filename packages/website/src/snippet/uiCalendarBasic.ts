@@ -267,21 +267,24 @@ const yearsView = (
 // receives a discriminated `CalendarAttributes` whose variant matches the
 // calendar's current `viewMode`, so the match hands each grid to its own view
 // function:
-const view = (model: Model, h: HtmlBuilder<Message>) =>
-  h.submodel({
+const view = (model: Model, h: HtmlBuilder<Message>) => {
+  const calendarView = Match.type<UiCalendar.CalendarAttributes>().pipe(
+    Match.tagsExhaustive({
+      Days: days => daysView(days, h),
+      Months: months => monthsView(months, h),
+      Years: years => yearsView(years, h),
+    }),
+  )
+
+  return h.submodel({
     slotId: model.calendarDemo.id,
     model: model.calendarDemo,
     view: UiCalendar.view,
     viewInputs: {
       // The parent-owned selection. The selected-day marker derives from it.
       maybeSelectedDate: model.maybeSelectedDate,
-      toView: Match.type<UiCalendar.CalendarAttributes>().pipe(
-        Match.tagsExhaustive({
-          Days: days => daysView(days, h),
-          Months: months => monthsView(months, h),
-          Years: years => yearsView(years, h),
-        }),
-      ),
+      toView: calendarView,
     },
     toParentMessage: message => Message.GotCalendarMessage({ message }),
   })
+}

@@ -52,74 +52,69 @@ GotDialogMessage: ({ message }) => foldDialog(model, message)
 
 // Inside your view function, use data-[closed] for enter/leave transitions and
 // spread the `closeButton` bundle onto your dismiss buttons:
-const view = (model: Model, h: HtmlBuilder<Message>) =>
-  h.submodel({
+const view = (model: Model, h: HtmlBuilder<Message>) => {
+  const dialogView = ({
+    dialog,
+    backdrop,
+    panel,
+    title,
+    description,
+    closeButton,
+    isVisible,
+  }: Dialog.RenderInfo) =>
+    h.dialog(
+      [
+        ...dialog,
+        h.Class('bg-transparent p-0 open:flex items-center justify-center'),
+      ],
+      isVisible
+        ? [
+            h.div([
+              ...backdrop,
+              h.Class(
+                'fixed inset-0 bg-black/50 transition duration-150 ease-out data-[closed]:opacity-0',
+              ),
+            ]),
+            h.div(
+              [
+                ...panel,
+                h.Class(
+                  'rounded-lg p-6 max-w-md mx-auto shadow-xl transition duration-150 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
+                ),
+              ],
+              [
+                h.h2([...title], ['Confirm Action']),
+                h.p([...description], ['Are you sure you want to proceed?']),
+                h.div(
+                  [h.Class('flex gap-2 justify-end mt-4')],
+                  [
+                    h.button(
+                      [...closeButton, h.Class('px-4 py-2 rounded-lg border')],
+                      ['Cancel'],
+                    ),
+                    h.button(
+                      [
+                        ...closeButton,
+                        h.Class('px-4 py-2 rounded-lg bg-blue-600 text-white'),
+                      ],
+                      ['Confirm'],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ]
+        : [],
+    )
+
+  return h.submodel({
     slotId: model.dialog.id,
     model: model.dialog,
     view: Dialog.view,
     viewInputs: {
       hasDescription: true,
-      toView: ({
-        dialog,
-        backdrop,
-        panel,
-        title,
-        description,
-        closeButton,
-        isVisible,
-      }) =>
-        h.dialog(
-          [
-            ...dialog,
-            h.Class('bg-transparent p-0 open:flex items-center justify-center'),
-          ],
-          isVisible
-            ? [
-                h.div([
-                  ...backdrop,
-                  h.Class(
-                    'fixed inset-0 bg-black/50 transition duration-150 ease-out data-[closed]:opacity-0',
-                  ),
-                ]),
-                h.div(
-                  [
-                    ...panel,
-                    h.Class(
-                      'rounded-lg p-6 max-w-md mx-auto shadow-xl transition duration-150 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
-                    ),
-                  ],
-                  [
-                    h.h2([...title], ['Confirm Action']),
-                    h.p(
-                      [...description],
-                      ['Are you sure you want to proceed?'],
-                    ),
-                    h.div(
-                      [h.Class('flex gap-2 justify-end mt-4')],
-                      [
-                        h.button(
-                          [
-                            ...closeButton,
-                            h.Class('px-4 py-2 rounded-lg border'),
-                          ],
-                          ['Cancel'],
-                        ),
-                        h.button(
-                          [
-                            ...closeButton,
-                            h.Class(
-                              'px-4 py-2 rounded-lg bg-blue-600 text-white',
-                            ),
-                          ],
-                          ['Confirm'],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ]
-            : [],
-        ),
+      toView: dialogView,
     },
     toParentMessage: message => Message.GotDialogMessage({ message }),
   })
+}

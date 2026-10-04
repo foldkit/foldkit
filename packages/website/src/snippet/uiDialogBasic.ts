@@ -69,8 +69,37 @@ GotDialogMessage: ({ message }) => foldDialog(model, message)
 
 // In your view, open from a trigger with the fact, and dismiss from a Cancel
 // button by spreading the `closeButton` bundle, no parent message needed:
-const view = (h: HtmlBuilder<Message>) =>
-  h.div(
+const view = (h: HtmlBuilder<Message>) => {
+  const dialogView = ({
+    dialog,
+    backdrop,
+    panel,
+    title,
+    description,
+    closeButton,
+    isVisible,
+  }: Dialog.RenderInfo) =>
+    h.dialog(
+      [...dialog],
+      isVisible
+        ? [
+            h.div([...backdrop, h.Class('fixed inset-0 bg-black/50')]),
+            h.div(
+              [...panel, h.Class('rounded-lg p-6 max-w-md mx-auto shadow-xl')],
+              [
+                h.h2([...title], ['Confirm Action']),
+                h.p([...description], ['Are you sure you want to proceed?']),
+                h.button(
+                  [...closeButton, h.Class('px-4 py-2 rounded-lg border')],
+                  ['Cancel'],
+                ),
+              ],
+            ),
+          ]
+        : [],
+    )
+
+  return h.div(
     [],
     [
       h.button([h.OnClick(Message.ClickedOpenDialog())], ['Open Dialog']),
@@ -80,45 +109,10 @@ const view = (h: HtmlBuilder<Message>) =>
         view: Dialog.view,
         viewInputs: {
           hasDescription: true,
-          toView: ({
-            dialog,
-            backdrop,
-            panel,
-            title,
-            description,
-            closeButton,
-            isVisible,
-          }) =>
-            h.dialog(
-              [...dialog],
-              isVisible
-                ? [
-                    h.div([...backdrop, h.Class('fixed inset-0 bg-black/50')]),
-                    h.div(
-                      [
-                        ...panel,
-                        h.Class('rounded-lg p-6 max-w-md mx-auto shadow-xl'),
-                      ],
-                      [
-                        h.h2([...title], ['Confirm Action']),
-                        h.p(
-                          [...description],
-                          ['Are you sure you want to proceed?'],
-                        ),
-                        h.button(
-                          [
-                            ...closeButton,
-                            h.Class('px-4 py-2 rounded-lg border'),
-                          ],
-                          ['Cancel'],
-                        ),
-                      ],
-                    ),
-                  ]
-                : [],
-            ),
+          toView: dialogView,
         },
         toParentMessage: message => Message.GotDialogMessage({ message }),
       }),
     ],
   )
+}
