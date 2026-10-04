@@ -32,10 +32,10 @@ const decodeDependencyRecord = Schema.decodeUnknownOption(
 )
 
 const dependencyNames = (field: unknown): ReadonlyArray<string> =>
-  pipe(
-    decodeDependencyRecord(field),
-    Option.match({ onNone: () => [], onSome: Record.keys }),
-  )
+  Option.match(decodeDependencyRecord(field), {
+    onNone: () => [],
+    onSome: Record.keys,
+  })
 
 const dependsOnFoldkit = (
   packageJson: globalThis.Record<string, unknown>,
