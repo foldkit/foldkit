@@ -83,18 +83,17 @@
       "ignoreDependencies": ["@foldkit/devtools", "tailwindcss"]
     },
     "examples/ssr": {
-      "entry": ["src/entry.server.ts"],
+      "entry": ["src/entry.ts", "src/entry.server.ts"],
       "ignoreFiles": ["vite.config.playground.ts"],
       "ignoreDependencies": [
         "@effect/platform-node-shared",
-        "@foldkit/devtools",
-        "tailwindcss"
+        "@foldkit/devtools"
       ]
     },
     "examples/ssg": {
-      "entry": ["src/entry.server.ts"],
+      "entry": ["src/entry.ts", "src/entry.server.ts"],
       "ignoreFiles": ["vite.config.playground.ts"],
-      "ignoreDependencies": ["@foldkit/devtools", "tailwindcss"]
+      "ignoreDependencies": ["@foldkit/devtools"]
     },
     "examples/personal-blog": {
       "entry": ["src/**/*.test.ts", "src/vitest-*.ts"],

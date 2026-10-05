@@ -65,6 +65,34 @@ With this set, the dev server converts HTML page requests to Web `Request` value
 
 Vite retains ownership of configured proxy routes before Foldkit handles application requests. Vite's `server.cors` option applies to Vite-owned source modules, assets, and HMR. It does not add headers to application responses or answer their preflights. Preflight ownership follows `Access-Control-Request-Method`, so a preflight for an application `POST` reaches `renderPage` even when its path looks like an asset. An `OPTIONS` request without both `Origin` and `Access-Control-Request-Method` is not a preflight and also reaches `renderPage`. Define application CORS in `renderPage`, where development and the deployed host share one policy. Vite's `allowedHosts` check runs before proxy and application handling, including `OPTIONS` and methods the Web `Request` API cannot represent.
 
+## Server-rendered documents
+
+With `ssr.build`, the client input is a script and the server entry produces the complete HTML document. Configure the script beside the server entry:
+
+```typescript
+foldkit({
+  ssr: {
+    clientEntry: '/src/entry.ts',
+    serverEntry: '/src/entry.server.ts',
+    build: true,
+  },
+})
+```
+
+Import CSS from the client script. Export `renderDocument` alongside `renderPage` in the server entry:
+
+```typescript
+export const renderDocument = Server.renderDocument
+```
+
+`Server.renderDocument(application, assets, options)` assembles the document with the application's title, language, direction, canonical URL, and Open Graph URL. `assets` contains the emitted `entryScript`, ordered `stylesheets`, and `modulePreloads`. The plugin collects static imports and their CSS, leaves lazy imports to Vite's runtime, and supplies the same assets to request-time rendering and prerendering. The default document includes UTF-8 and viewport metadata. Wrap the helper to set a default `lang` or add trusted author-owned `head` markup, such as a favicon. Never interpolate unescaped request data into `head`.
+
+The client build starts from a script rather than HTML. `index.html` appears in the client output only when prerendering generates `/`. The build refuses an existing root document copied from `publicDir`, emitted by another plugin, or left by an earlier build when `emptyOutDir` is disabled. Remove the source `index.html` when migrating an SSR build, move its stylesheet links into client imports, and move document tags into `renderDocument`. Build-time `transformIndexHtml` hooks do not run with a script input. Development still transforms the rendered document through Vite for HMR and dev HTML hooks. `containerId` belongs only to a template-based custom host and cannot be combined with `clientEntry`.
+
+Use a root-relative `clientEntry`, such as `/src/entry.ts`, and an absolute-path or full-URL Vite `base`. Relative bases (`''` and `'./'`) are rejected because their asset URLs would resolve differently on nested routes. `modulePreload` configuration and absolute `experimental.renderBuiltUrl` results apply to the generated document; relative and runtime `renderBuiltUrl` results are rejected.
+
+The standalone build plugin takes `foldkitBuild(serverEntry, { clientEntry, ...options })`. A custom build pipeline can keep the template-based dev host by omitting `clientEntry` and `ssr.build`. The lower-level `injectIntoTemplate`, `toResponse`, and `handleRequest(request, { template, renderPage })` APIs remain available for hosts that own an HTML template.
+
 ## Foldkit package resolution
 
 Each module graph must load one Foldkit copy. The plugin configures Vite for that:

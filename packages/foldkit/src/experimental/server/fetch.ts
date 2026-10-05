@@ -1,3 +1,5 @@
+import { Predicate } from 'effect'
+
 import { type EntryResult, toResponse } from './entry.js'
 import {
   HOST_METHOD_ANSWERS,
@@ -8,6 +10,7 @@ import {
   varyWith,
   varyWithAccept,
 } from './host.js'
+import type { RenderedApplication } from './server.js'
 import type { InjectIntoTemplateOptions } from './template.js'
 
 /** How {@link handleRequest} renders a page request.
@@ -20,16 +23,22 @@ export type HandleRequestOptions = Readonly<{
    * result out.
    */
   renderPage: (request: Request) => Promise<EntryResult>
-  /**
-   * The unfilled HTML shell. Rendered markup is placed into its container.
-   */
-  template: string
-  /**
-   * The `id` of the empty container in {@link template} the rendered
-   * markup replaces. Defaults to `'root'`.
-   */
-  containerId?: string
-}>
+}> &
+  (
+    | Readonly<{
+        /** Produces the complete HTML document for a rendered application. */
+        renderDocument: (application: RenderedApplication) => string
+        template?: never
+        containerId?: never
+      }>
+    | Readonly<{
+        /** The unfilled HTML shell owned by a custom host. */
+        template: string
+        /** The empty container replaced by the application. Defaults to `'root'`. */
+        containerId?: string
+        renderDocument?: never
+      }>
+  )
 
 const withNegotiatedVary = (response: Response): Response => {
   const headers = new Headers(response.headers)
@@ -58,6 +67,22 @@ const injectOptions = (
   containerId: string | undefined,
 ): InjectIntoTemplateOptions | undefined =>
   containerId === undefined ? undefined : { containerId }
+
+const documentFrom = (
+  options: HandleRequestOptions,
+): string | ((application: RenderedApplication) => string) => {
+  const { renderDocument, template } = options
+
+  if (Predicate.isFunction(renderDocument) && template === undefined) {
+    return renderDocument
+  } else if (Predicate.isString(template) && renderDocument === undefined) {
+    return template
+  } else {
+    throw new Error(
+      '[foldkit] handleRequest requires exactly one document source: a renderDocument function or an HTML template string.',
+    )
+  }
+}
 
 /**
  * Answers one request as a Web `fetch` handler: refuse methods the
@@ -114,9 +139,10 @@ export const handleRequest = async (
     }
   }
 
+  const document = documentFrom(options)
   const result = await options.renderPage(request)
   const rendered = toResponse(
-    options.template,
+    document,
     result,
     injectOptions(options.containerId),
   )

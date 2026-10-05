@@ -1,5 +1,6 @@
 import { Match } from 'effect'
 
+import type { DocumentRenderer } from './document.js'
 import type { RenderedApplication } from './server.js'
 import {
   type InjectIntoTemplateOptions,
@@ -15,8 +16,7 @@ export type ResponseOptions = Readonly<{
   headers?: HeadersInit
 }>
 
-/** A server entry result whose application markup still needs to be placed in
- * the host's HTML template.
+/** A server entry result whose application markup still needs a document.
  *
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
@@ -86,15 +86,24 @@ export type EntryModule = Readonly<{
   renderPage: (request: Request) => Promise<EntryResult>
 }>
 
-/** Turns a server entry result into the Web `Response` a host sends. Rendered
- * applications are injected into the supplied template and default to status
- * 200 with a UTF-8 HTML content type. Complete responses pass through
- * unchanged.
+/** The server entry shape used when the application renders the complete HTML document.
+ *
+ * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
+ */
+export type DocumentEntryModule = EntryModule &
+  Readonly<{
+    renderDocument: DocumentRenderer
+  }>
+
+/** Turns a server entry result into the Web `Response` a host sends. Supply a
+ * document renderer, or an HTML template for a host that owns one. Rendered
+ * applications default to status 200 with a UTF-8 HTML content type. Complete
+ * responses pass through unchanged without calling the document renderer.
  *
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */
 export const toResponse = (
-  template: string,
+  document: string | ((application: RenderedApplication) => string),
   result: EntryResult,
   options?: InjectIntoTemplateOptions,
 ): Response =>
@@ -108,7 +117,9 @@ export const toResponse = (
         }
 
         return new Response(
-          injectIntoTemplate(template, rendered.application, options),
+          typeof document === 'function'
+            ? document(rendered.application)
+            : injectIntoTemplate(document, rendered.application, options),
           {
             status: rendered.status ?? 200,
             headers,
