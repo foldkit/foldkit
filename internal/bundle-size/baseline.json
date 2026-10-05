@@ -56,9 +56,9 @@
     "counter": {
       "initial": {
         "js": {
-          "raw": 262983,
-          "gzip": 85704,
-          "brotli": 75349
+          "raw": 250262,
+          "gzip": 81277,
+          "brotli": 71885
         },
         "css": {
           "raw": 0,
@@ -82,9 +82,9 @@
     "hydrated-counter": {
       "initial": {
         "js": {
-          "raw": 275052,
-          "gzip": 89742,
-          "brotli": 78664
+          "raw": 262332,
+          "gzip": 85323,
+          "brotli": 75169
         },
         "css": {
           "raw": 0,
@@ -108,9 +108,9 @@
     "recording-counter": {
       "initial": {
         "js": {
-          "raw": 279905,
-          "gzip": 91254,
-          "brotli": 80138
+          "raw": 267186,
+          "gzip": 86874,
+          "brotli": 76624
         },
         "css": {
           "raw": 0,
@@ -134,9 +134,9 @@
     "button-root": {
       "initial": {
         "js": {
-          "raw": 263344,
-          "gzip": 86034,
-          "brotli": 75465
+          "raw": 250623,
+          "gzip": 81649,
+          "brotli": 72009
         },
         "css": {
           "raw": 0,
@@ -160,9 +160,9 @@
     "button-deep": {
       "initial": {
         "js": {
-          "raw": 263344,
-          "gzip": 85884,
-          "brotli": 75521
+          "raw": 250623,
+          "gzip": 81459,
+          "brotli": 72087
         },
         "css": {
           "raw": 0,
@@ -186,9 +186,9 @@
     "dialog": {
       "initial": {
         "js": {
-          "raw": 283090,
-          "gzip": 90731,
-          "brotli": 79662
+          "raw": 270375,
+          "gzip": 86408,
+          "brotli": 76201
         },
         "css": {
           "raw": 0,
@@ -212,9 +212,9 @@
     "popover": {
       "initial": {
         "js": {
-          "raw": 307054,
-          "gzip": 99213,
-          "brotli": 87194
+          "raw": 294339,
+          "gzip": 94963,
+          "brotli": 83751
         },
         "css": {
           "raw": 0,
@@ -238,9 +238,9 @@
     "popover-root": {
       "initial": {
         "js": {
-          "raw": 307058,
-          "gzip": 99499,
-          "brotli": 87265
+          "raw": 294345,
+          "gzip": 95233,
+          "brotli": 83839
         },
         "css": {
           "raw": 0,
@@ -264,9 +264,9 @@
     "lazy-popover": {
       "initial": {
         "js": {
-          "raw": 268632,
-          "gzip": 87682,
-          "brotli": 77050
+          "raw": 255914,
+          "gzip": 83267,
+          "brotli": 73552
         },
         "css": {
           "raw": 0,
@@ -278,7 +278,7 @@
         "js": {
           "raw": 40972,
           "gzip": 12987,
-          "brotli": 11707
+          "brotli": 11740
         },
         "css": {
           "raw": 0,
@@ -290,9 +290,9 @@
     "combobox": {
       "initial": {
         "js": {
-          "raw": 321747,
-          "gzip": 102589,
-          "brotli": 89956
+          "raw": 309042,
+          "gzip": 98184,
+          "brotli": 86504
         },
         "css": {
           "raw": 0,
@@ -316,9 +316,9 @@
     "date-picker": {
       "initial": {
         "js": {
-          "raw": 340404,
-          "gzip": 107776,
-          "brotli": 94070
+          "raw": 327696,
+          "gzip": 103431,
+          "brotli": 90571
         },
         "css": {
           "raw": 0,
@@ -342,9 +342,9 @@
     "typing-game": {
       "initial": {
         "js": {
-          "raw": 375720,
-          "gzip": 117098,
-          "brotli": 102337
+          "raw": 362934,
+          "gzip": 112626,
+          "brotli": 98647
         },
         "css": {
           "raw": 9927,
