@@ -1,5 +1,25 @@
 # @foldkit/vite-plugin
 
+## 0.26.1
+
+### Patch Changes
+
+- [#1564](https://github.com/foldkit/foldkit/pull/1564) [`f493083`](https://github.com/foldkit/foldkit/commit/f493083550289a9cacdb6ab55fdea2cd22d4ccbc) Thanks [@filipfalcon](https://github.com/filipfalcon)! - Bundle installed packages that depend on Foldkit into server builds and the dev server's server render. Since the plugin started bundling `foldkit`, `@foldkit/ui`, and `@foldkit/devtools` into the server artifact, every other installed package that imports Foldkit, such as `@foldkit/markdown` or a component library built on Foldkit, stayed external. Node then loaded a second Foldkit copy from `node_modules` through that package, beside the copy inside the bundle, even when only one copy was installed. A render that sees two Foldkit copies fails.
+
+  Server builds and the dev server's server render now also bundle every installed package whose `dependencies` or `peerDependencies` include `foldkit` or an `@foldkit/*` package. In the dev server, these `ssr.noExternal` packages run through Vite's module runner instead of Node's own import. The plugin finds them by crawling from the application's `package.json`: it follows the application's `dependencies` and `devDependencies`, then the `dependencies` of each package it bundles, plus the `devDependencies` of a bundled package that is a private workspace package. An explicit `ssr.external` entry still keeps a package external. A package the crawl does not reach stays external. For example: a peer the application does not declare, or a package reached only through a package that does not depend on Foldkit. Declare such a package in the application's `package.json`, or add it to `ssr.noExternal`.
+
+  `resolve.dedupe` now lists `foldkit`, `@foldkit/ui`, and `@foldkit/devtools` only when Vite can resolve them from the application root. Before, a package that Node found only through `NODE_PATH`, which pnpm's `.bin` shims set, could join the list even though Vite's resolver cannot find it there. `NODE_PATH` no longer affects the list. The crawl and this lookup start from the root Vite resolves from: its real path, or the path as given when `resolve.preserveSymlinks` is set.
+
+  Vitest copies SSR `noExternal` into `server.deps.inline`. A Vitest config that includes `foldkit()` therefore now also inlines the crawled packages in tests.
+
+  `@foldkit/vite-plugin` now depends on `vitefu`, which performs this `package.json` crawl.
+
+- [#1534](https://github.com/foldkit/foldkit/pull/1534) [`0ec94a1`](https://github.com/foldkit/foldkit/commit/0ec94a178c504827060a5e475200599193b0387e) Thanks [@devinjameson](https://github.com/devinjameson)! - Protect Effect `Redacted` values across DevTools Model, Message, Command, Mount, init, and diff responses, including the Vite prebundle needed by consumers. Document the DevTools MCP trust boundary, the controls that disable dispatch or relay access, and why `excludeFromHistory` does not hide sensitive Model data.
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
+- [#1566](https://github.com/foldkit/foldkit/pull/1566) [`4825937`](https://github.com/foldkit/foldkit/commit/482593707a08de3e6f13dd9b32140ebf1b8345be) Thanks [@birbprophet](https://github.com/birbprophet)! - Pre-bundle the bare `effect` barrel in dev. The `foldkit` distribution imports `effect`, so a consumer that imports only Effect subpaths (`effect/Option`, `effect/Schema`) loaded two Effect instances: route query encoding rejected the app's `Option` ("Query parameter encoding failed: Expected string") and views crashed with "Cannot convert a Symbol value to a string".
+
 ## 0.26.0
 
 ### Minor Changes

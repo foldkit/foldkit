@@ -1,5 +1,15 @@
 # @foldkit/oxlint-plugin
 
+## 0.15.2
+
+### Patch Changes
+
+- [#1425](https://github.com/foldkit/foldkit/pull/1425) [`9d701af`](https://github.com/foldkit/foldkit/commit/9d701af6a75161962a9600422743d7531c0e4828) Thanks [@rodygosset](https://github.com/rodygosset)! - `foldkit/got-prefix-requires-submodel-payload` now recognizes the Message Schema of a Query defined beside its parent Message union. Previously, `GotPostsMessage: { message: postsQuery.Message }` was reported even when `postsQuery` came from `Query.define`.
+
+  Unrelated local objects that happen to expose a `.Message` property still do not count as Submodels, so the rule continues to reject misleading `Got*` Messages.
+
+- [#1569](https://github.com/foldkit/foldkit/pull/1569) [`a7b74ae`](https://github.com/foldkit/foldkit/commit/a7b74aec40de4d8d6adf77836dbe8ce2e82f7cc9) Thanks [@birbprophet](https://github.com/birbprophet)! - Accept `effect-oxlint` 0.4 alongside 0.3. Projects that also use `@mpsuesser/oxlint-plugin-effect` 0.6, which depends on `effect-oxlint` 0.4.0, now install a single copy instead of two.
+
 ## 0.15.1
 
 ### Patch Changes
