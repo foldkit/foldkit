@@ -13,6 +13,7 @@ import {
 } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { __setDevToolsOverlay } from '../devTools/host.js'
 import type { DevToolsStore } from '../devTools/store.js'
 import { INIT_INDEX, latestEntryIndex } from '../devTools/store.js'
 import {
@@ -27,7 +28,6 @@ import * as Mount from '../mount/index.js'
 import { modifyFields } from '../struct/index.js'
 import * as Subscription from '../subscription/subscription.js'
 import type * as Update from '../update/index.js'
-import { __setDevToolsOverlay } from './devToolsConfig.js'
 import { makeApplication } from './makeApplication.js'
 import { makeElement } from './makeElement.js'
 

@@ -89,6 +89,19 @@ test('peer floor changes run the packed-manifest check before release', () => {
   assert.match(releaseWorkflow, /^\s+- 'scripts\/check-peer-floors\.ts'$/m)
 })
 
+test('consumer bundle-size reports follow the reusable package build', () => {
+  const buildIndex = workflow.indexOf('- name: Build reusable packages')
+  const checkIndex = workflow.indexOf('- name: Check consumer bundle sizes')
+
+  assert.ok(buildIndex >= 0 && checkIndex > buildIndex)
+  assert.ok(
+    workflow.includes(
+      "      - name: Check consumer bundle sizes\n        if: steps.scope.outputs.bundle_size == 'true'\n        run: pnpm check:bundle-size",
+    ),
+  )
+  assert.ok(workflow.includes('path: internal/bundle-size/dist/report.json'))
+})
+
 test('stable publication verifies website package inputs before upload', () => {
   const stableJob = releaseWorkflow.slice(
     releaseWorkflow.indexOf('  stable:'),

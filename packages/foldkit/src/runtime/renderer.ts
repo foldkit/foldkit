@@ -12,7 +12,6 @@ import {
   __flushReplayUnmountsAfterPatchFailure as flushReplayUnmountsAfterPatchFailure,
   __setRuntime as setHtmlRuntime,
 } from '../html/index.js'
-import { __hydrateVNode } from '../hydrate.js'
 import { FOLDKIT_APP_ATTRIBUTE } from '../hydrationMarker.js'
 import { MountRuntime, MountTracker } from '../mount/index.js'
 import type { CommitNotifier } from '../render/commit.js'
@@ -95,6 +94,14 @@ export type Renderer<Model, Message> = Readonly<{
   devToolsRenderBridge: DevToolsRenderBridge
 }>
 
+/** Hydration's first-patch DOM adoption function. */
+export type AdoptVNode = (
+  hydrationRoot: Element,
+  nextVNode: VNode | null,
+  seen: Set<object> | undefined,
+  buildId: string,
+) => VNode
+
 /**
  * Builds the render side of one runtime: the current vnode and, when
  * hydrating, the server-rendered root the first render adopts, the crash
@@ -117,6 +124,7 @@ export const makeRenderer = <Model, Message>({
   buildId,
   initModel,
   maybeHydrationRoot,
+  adoptVNode,
   maybeSlowView,
   maybeSlowPatch,
   duplicateIdScanner,
@@ -136,6 +144,7 @@ export const makeRenderer = <Model, Message>({
   buildId: string | undefined
   initModel: Model
   maybeHydrationRoot: Option.Option<HTMLElement>
+  adoptVNode: AdoptVNode | undefined
   maybeSlowView: Option.Option<
     ResolvedSlowPhaseConfig<SlowViewContext<Model, Message>>
   >
@@ -445,7 +454,10 @@ export const makeRenderer = <Model, Message>({
             // value that matches nothing. Boot already refused a
             // hydration without an id, so this stands in only for a
             // caller that reached here another way.
-            return __hydrateVNode(
+            if (adoptVNode === undefined) {
+              throw new Error('[foldkit] Hydration requires DOM adoption.')
+            }
+            return adoptVNode(
               hydrationRoot,
               nextVNode,
               boundaryRegistry.dedupeSeen,

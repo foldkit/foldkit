@@ -1,0 +1,369 @@
+{
+  "schemaVersion": 1,
+  "fixtures": {
+    "empty": {
+      "initial": {
+        "js": {
+          "raw": 46,
+          "gzip": 66,
+          "brotli": 29
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      },
+      "lazy": {
+        "js": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      }
+    },
+    "effect": {
+      "initial": {
+        "js": {
+          "raw": 67511,
+          "gzip": 22057,
+          "brotli": 20101
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      },
+      "lazy": {
+        "js": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      }
+    },
+    "counter": {
+      "initial": {
+        "js": {
+          "raw": 262983,
+          "gzip": 85704,
+          "brotli": 75349
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      },
+      "lazy": {
+        "js": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      }
+    },
+    "hydrated-counter": {
+      "initial": {
+        "js": {
+          "raw": 275052,
+          "gzip": 89742,
+          "brotli": 78664
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      },
+      "lazy": {
+        "js": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      }
+    },
+    "recording-counter": {
+      "initial": {
+        "js": {
+          "raw": 279905,
+          "gzip": 91254,
+          "brotli": 80138
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      },
+      "lazy": {
+        "js": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      }
+    },
+    "button-root": {
+      "initial": {
+        "js": {
+          "raw": 263344,
+          "gzip": 86034,
+          "brotli": 75465
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      },
+      "lazy": {
+        "js": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      }
+    },
+    "button-deep": {
+      "initial": {
+        "js": {
+          "raw": 263344,
+          "gzip": 85884,
+          "brotli": 75521
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      },
+      "lazy": {
+        "js": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      }
+    },
+    "dialog": {
+      "initial": {
+        "js": {
+          "raw": 283090,
+          "gzip": 90731,
+          "brotli": 79662
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      },
+      "lazy": {
+        "js": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      }
+    },
+    "popover": {
+      "initial": {
+        "js": {
+          "raw": 307054,
+          "gzip": 99213,
+          "brotli": 87194
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      },
+      "lazy": {
+        "js": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      }
+    },
+    "popover-root": {
+      "initial": {
+        "js": {
+          "raw": 307058,
+          "gzip": 99499,
+          "brotli": 87265
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      },
+      "lazy": {
+        "js": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      }
+    },
+    "lazy-popover": {
+      "initial": {
+        "js": {
+          "raw": 268632,
+          "gzip": 87682,
+          "brotli": 77050
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      },
+      "lazy": {
+        "js": {
+          "raw": 40972,
+          "gzip": 12987,
+          "brotli": 11707
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      }
+    },
+    "combobox": {
+      "initial": {
+        "js": {
+          "raw": 321747,
+          "gzip": 102589,
+          "brotli": 89956
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      },
+      "lazy": {
+        "js": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      }
+    },
+    "date-picker": {
+      "initial": {
+        "js": {
+          "raw": 340404,
+          "gzip": 107776,
+          "brotli": 94070
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      },
+      "lazy": {
+        "js": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      }
+    },
+    "typing-game": {
+      "initial": {
+        "js": {
+          "raw": 375720,
+          "gzip": 117098,
+          "brotli": 102337
+        },
+        "css": {
+          "raw": 9927,
+          "gzip": 2904,
+          "brotli": 2523
+        }
+      },
+      "lazy": {
+        "js": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "css": {
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        }
+      }
+    }
+  }
+}

@@ -247,6 +247,42 @@ describe('DevTools overlay injection', () => {
     ).toBeUndefined()
   })
 
+  it('registers recording through the existing host export without an overlay', async () => {
+    const root = makeRoot()
+    installFoldkit(root)
+
+    expect(runConfigHook(root, 'serve')).toEqual({
+      optimizeDeps: { include: ['foldkit/devtools-host'] },
+    })
+
+    const plugin = devToolsOverlayPlugin()
+    const config = await resolveConfig(
+      { root, configFile: false, logLevel: 'silent' },
+      'serve',
+    )
+    if (
+      typeof plugin.configResolved !== 'function' ||
+      typeof plugin.transformIndexHtml !== 'object'
+    ) {
+      throw new Error('DevTools overlay plugin hooks changed shape')
+    }
+
+    await plugin.configResolved.call(PLUGIN_CONTEXT, config)
+    const transformed = plugin.transformIndexHtml.handler.call(
+      PLUGIN_CONTEXT,
+      HTML,
+      { path: '/index.html', filename: join(root, 'index.html') },
+    )
+
+    expect(transformed).toEqual([
+      expect.objectContaining({
+        children:
+          "import { __setDevToolsOverlay } from 'foldkit/devtools-host'; __setDevToolsOverlay(undefined)",
+        injectTo: 'head-prepend',
+      }),
+    ])
+  })
+
   it('serves a development dependency', () => {
     const root = makeRoot({ section: 'devDependencies' })
 

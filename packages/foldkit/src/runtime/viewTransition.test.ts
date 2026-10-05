@@ -2,13 +2,13 @@ import { Effect, Fiber, Option, PubSub, Queue, Schema, Stream } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Command from '../command/index.js'
+import { __setDevToolsOverlay } from '../devTools/host.js'
 import { type DevToolsStore, INIT_INDEX } from '../devTools/store.js'
 import { __htmlBuilder } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { afterCommit } from '../render/render.js'
 import * as Subscription from '../subscription/subscription.js'
 import type * as Update from '../update/index.js'
-import { __setDevToolsOverlay } from './devToolsConfig.js'
 import { makeElement } from './makeElement.js'
 import {
   __decideViewTransition,

@@ -11,11 +11,11 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Command from '../command/index.js'
+import { __setDevToolsOverlay } from '../devTools/host.js'
 import type { DevToolsStore } from '../devTools/store.js'
 import { __htmlBuilder } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import type * as Update from '../update/index.js'
-import { __setDevToolsOverlay } from './devToolsConfig.js'
 import { makeElement } from './makeElement.js'
 
 // CHILD

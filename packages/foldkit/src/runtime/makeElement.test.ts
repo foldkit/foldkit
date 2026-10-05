@@ -1,11 +1,11 @@
 import { Effect, Fiber, Number, Schema } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { __setDevToolsOverlay } from '../devTools/host.js'
 import { TextDirection, __htmlBuilder } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
-import { __setDevToolsOverlay } from './devToolsConfig.js'
 import { makeApplication } from './makeApplication.js'
 import { makeElement } from './makeElement.js'
 

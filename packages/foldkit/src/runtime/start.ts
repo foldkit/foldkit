@@ -3,6 +3,7 @@ import { Cause, Effect, Fiber, Option, Predicate, Runtime, pipe } from 'effect'
 import { BrowserRuntime } from '@effect/platform-browser'
 
 import { buildIdOrInjected } from '../buildToken.js'
+import { __hydrateVNode } from '../hydrate.js'
 import type { Ports } from '../port/index.js'
 import { provideBrowserScheduler } from './browserScheduler.js'
 import {
@@ -11,7 +12,9 @@ import {
   makeHostConnector,
 } from './hostConnector.js'
 import type { BootMode } from './hydrationHandoff.js'
+import { resolveHydrationHandoff } from './hydrationHandoff.js'
 import { resolvePreservedModel } from './modelPreservationBridge.js'
+import type { AdoptVNode } from './renderer.js'
 import { type MakeRuntimeReturn, runtimeInternals } from './runtime.js'
 
 /** Client-only startup input for an application that declares Flags. Pass it
@@ -36,6 +39,25 @@ export const __startProgram = (
   bootMode: BootMode,
   flags?: Effect.Effect<unknown, never, any>,
   buildId?: string,
+): Effect.Effect<void> =>
+  startProgramEffect(
+    program,
+    preservedModel,
+    bootMode,
+    flags,
+    buildId,
+    bootMode === 'Hydrate' ? __hydrateVNode : undefined,
+    bootMode === 'Hydrate' ? resolveHydrationHandoff : undefined,
+  )
+
+const startProgramEffect = (
+  program: RuntimeProgram,
+  preservedModel: unknown,
+  bootMode: BootMode,
+  flags?: Effect.Effect<unknown, never, any>,
+  buildId?: string,
+  adoptVNode?: AdoptVNode,
+  resolveHandoff?: typeof resolveHydrationHandoff,
 ): Effect.Effect<void> => {
   const internals = runtimeInternals.get(program)
   if (Predicate.isUndefined(internals)) {
@@ -62,6 +84,8 @@ export const __startProgram = (
     bootMode,
     flags,
     buildId,
+    adoptVNode,
+    resolveHandoff,
   )
 }
 
@@ -88,6 +112,8 @@ const startProgram = (
   bootMode: BootMode,
   flags?: Effect.Effect<unknown, never, any>,
   buildId?: string,
+  adoptVNode?: AdoptVNode,
+  resolveHandoff?: typeof resolveHydrationHandoff,
 ): void => {
   BrowserRuntime.runMain(
     withUnhandledCauseReporting(
@@ -95,7 +121,15 @@ const startProgram = (
         Effect.flatMap(
           resolvePreservedModel(program.runtimeId),
           preservedModel =>
-            __startProgram(program, preservedModel, bootMode, flags, buildId),
+            startProgramEffect(
+              program,
+              preservedModel,
+              bootMode,
+              flags,
+              buildId,
+              adoptVNode,
+              resolveHandoff,
+            ),
         ),
       ),
     ),
@@ -180,6 +214,8 @@ export const hydrate = <P extends Ports | undefined, Flags, Resources>(
     'Hydrate',
     undefined,
     buildIdOrInjected(options?.buildId),
+    __hydrateVNode,
+    resolveHydrationHandoff,
   )
 }
 

@@ -90,6 +90,18 @@ jobs:
       - name: Build reusable packages
         run: pnpm build:packages && pnpm --filter @typing-game/shared build
 
+      - name: Check consumer bundle sizes
+        if: steps.scope.outputs.bundle_size == 'true'
+        run: pnpm check:bundle-size
+
+      - name: Upload bundle-size report
+        if: always() && steps.scope.outputs.bundle_size == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-size-report
+          path: internal/bundle-size/dist/report.json
+          if-no-files-found: ignore
+
       # The prerender step writes the generated `/` over the same `index.html`
       # the client build left its template in, so running it twice against one
       # client build is the case that regressed. Nothing else here builds once
