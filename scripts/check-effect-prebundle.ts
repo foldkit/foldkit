@@ -4,7 +4,7 @@ import * as ts from 'typescript'
 
 const FOLDKIT_SRC = 'packages/foldkit/src'
 const PLUGIN_FILE = 'packages/vite-plugin-foldkit/src/index.ts'
-const LIST_NAME = 'FORCE_INCLUDED_EFFECT_NAMESPACES'
+const LIST_NAME = 'FORCE_INCLUDED_EFFECT_ENTRIES'
 
 const collectTsFiles = (dir: string): ReadonlyArray<string> => {
   const out: Array<string> = []
@@ -58,26 +58,34 @@ const extractEffectNamespacesFromSource = (
   return namespaces
 }
 
-const extractListFromPlugin = (source: string): ReadonlySet<string> => {
+type PluginEffectIncludes = Readonly<{
+  isBareEffectIncluded: boolean
+  namespaces: ReadonlySet<string>
+}>
+
+const extractListFromPlugin = (source: string): PluginEffectIncludes => {
   const pattern = new RegExp(`${LIST_NAME}[^=]*=\\s*\\[([\\s\\S]*?)\\]`, 'm')
   const match = source.match(pattern)
   if (!match) {
     throw new Error(`Could not find ${LIST_NAME} in ${PLUGIN_FILE}`)
   }
 
-  const items = new Set<string>()
+  const namespaces = new Set<string>()
+  let isBareEffectIncluded = false
   const listSource = match[1]
   if (listSource === undefined) {
     throw new Error(`Could not read ${LIST_NAME} entries in ${PLUGIN_FILE}`)
   }
 
-  for (const m of listSource.matchAll(/'effect\/(\w+)'/g)) {
-    const namespace = m[1]
-    if (namespace !== undefined) {
-      items.add(namespace)
+  for (const match of listSource.matchAll(/'effect(?:\/(\w+))?'/g)) {
+    const namespace = match[1]
+    if (namespace === undefined) {
+      isBareEffectIncluded = true
+    } else {
+      namespaces.add(namespace)
     }
   }
-  return items
+  return { isBareEffectIncluded, namespaces }
 }
 
 const foldkitNamespaces = (() => {
@@ -91,12 +99,22 @@ const foldkitNamespaces = (() => {
   return all
 })()
 
-const pluginNamespaces = extractListFromPlugin(
-  readFileSync(PLUGIN_FILE, 'utf-8'),
-)
+const pluginIncludes = extractListFromPlugin(readFileSync(PLUGIN_FILE, 'utf-8'))
+
+if (!pluginIncludes.isBareEffectIncluded) {
+  console.error(`ERROR: ${LIST_NAME} in ${PLUGIN_FILE} must include 'effect'.`)
+  console.error('')
+  console.error(
+    `Foldkit's distribution imports the bare barrel, so omitting it can load`,
+  )
+  console.error(
+    `raw Effect beside optimized subpaths and create two Effect instances.`,
+  )
+  process.exit(1)
+}
 
 const missing = [...foldkitNamespaces]
-  .filter(name => !pluginNamespaces.has(name))
+  .filter(name => !pluginIncludes.namespaces.has(name))
   .sort()
 
 if (missing.length > 0) {
@@ -123,5 +141,5 @@ if (missing.length > 0) {
 }
 
 console.log(
-  `OK: ${foldkitNamespaces.size} effect namespaces verified in plugin list.`,
+  `OK: bare effect and ${foldkitNamespaces.size} namespaces verified in plugin list.`,
 )

@@ -20,7 +20,7 @@ Here is how common TanStack Query concepts map onto Foldkit:
 | `staleTime: Infinity`                                      | `AsyncData.loadIfMissing`, followed by explicit revalidation when the application requires it |
 | Request deduplication                                      | `AsyncData.revalidateOrLoad` yields `None` while that field has a request in flight           |
 | Out-of-order response handling                             | Request context in the result Message, checked against the current Model in `update`          |
-| `invalidateQueries`                                        | `AsyncData.revalidateOrLoad` plus the fetch Command, returned from `update`                   |
+| `invalidateQueries`                                        | No stored invalidation flag; dispatch a Message that applies `revalidateOrLoad` and refetches |
 | `useMutation`                                              | A Message and a Command, like any other effect                                                |
 | Retries                                                    | Effect’s `retry` and `Schedule`                                                               |
 | TanStack Query Devtools                                    | [Foldkit DevTools](/core/devtools), which inspects the Model and Message timeline             |
@@ -33,11 +33,11 @@ There is no separate query cache. The Model is the cache. A single resource live
 
 Here is the complete shape of a simple query. It uses one field, one Command, and two `update` arms:
 
-::Snippet{name="useQueryTranslation" label="useQuery translation"}
+::Snippet{name="useQueryTranslation" label="Translating useQuery"}
 
 Each behavior is visible in the transition that implements it. `revalidateOrLoad` returns `None` while the field is already `Loading` or `Refreshing`, so the same update path does not start another request. A successful value moves to `Refreshing` when revalidated, keeping the current list on screen. A cold field moves to `Loading`. When the Command finishes, `settle` folds its `Result` into the field and preserves previous data as `Stale` if a refresh fails.
 
-The [API Cache example](/example-apps/api-cache) adds a keyed cache, instant cache hits, invalidation, and background polling using the same primitives. It is the complete answer to what replaces the machinery around `useQuery`.
+The [API Cache example](/example-apps/api-cache) shows the same policy written by hand. [API Cache Query](/example-apps/api-cache-query) uses the experimental [Query](/core/query) module so fetching and retained entries live in the Submodel instead of the parent update.
 
 ## Mapping Query Status
 
@@ -68,7 +68,7 @@ Imagine a search starts a request for A, then starts a request for B before A re
 
 Foldkit does not automatically cancel or order independent Commands. Thread the query through the Command into its result Message, then compare it with the current Model before accepting the result:
 
-::Snippet{name="responseRaceGuard" label="response race guard"}
+::Snippet{name="responseRaceGuard" label="Response race guard"}
 
 The late response for A sees that its `query` no longer matches `queryInput`, so `update` leaves the Model unchanged. The comparison uses the context the application already cares about. The same pattern works for a search request launched after every keystroke: accept the result only if it still belongs to the current query.
 
@@ -86,9 +86,11 @@ When a superseded request is expensive or the user can cancel it, define the Com
 
 There is no equivalent hook, and you do not assemble one. A query is an [AsyncData](/core/async-data) field in the [Model](/core/model) plus a [Command](/core/commands) returned from `update`. The runtime executes the Command and dispatches its result Message. `update` then folds the result into the field.
 
+When several resources share fetching and retained entries, [Query.define](/core/query) is that Submodel. The parent still owns policy. The Query owns the `AsyncData` transitions.
+
 ### How do I cache responses? {#faq-caching}
 
-Keep them in the Model. Use one `AsyncData` field for one resource or an `Schema.HashMap` keyed by id for many resources. A cache hit is a field for which `AsyncData.hasData` is true. See the [API Cache example](/example-apps/api-cache).
+Keep them in the Model. Use one `AsyncData` field for one resource or a `Schema.HashMap` keyed by id for many resources. A cache hit is a field for which `AsyncData.hasData` is true. See the [API Cache example](/example-apps/api-cache) for the hand-rolled machine, or [Query](/core/query) when the Submodel should own fetching and retained entries.
 
 ### How do I deduplicate identical requests? {#faq-dedup}
 
@@ -104,7 +106,9 @@ Use a [Subscription](/core/subscriptions) gated on a Model condition. On each ti
 
 ### How do I invalidate and refetch? {#faq-invalidate}
 
-Apply `AsyncData.revalidateOrLoad` to the field and return the fetch Command when it yields a transition. Data-holding states move to `Refreshing`; a cold or failed field moves to `Loading`. The narrower `revalidate` skips fields that hold no data, which is useful when a mutation affects caches that may never have loaded.
+Foldkit does not mark an `AsyncData` value as invalidated. When the application knows data needs to be replaced, dispatch a Message, apply `AsyncData.revalidateOrLoad`, and return the fetch Command when it yields a transition. Data-holding states move to `Refreshing`; a cold or failed field moves to `Loading`. The narrower `revalidate` skips fields that hold no data, which is useful when a mutation affects caches that may never have loaded.
+
+`Stale` is not an invalidation flag. It means a refresh failed and the previous data remains available. If freshness must exist independently of fetching and failure, represent it as separate Model state.
 
 ### What about mutations? {#faq-mutations}
 

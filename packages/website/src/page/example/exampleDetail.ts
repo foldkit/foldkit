@@ -421,10 +421,10 @@ const sourceCodeView = (
   tabsModel: Tabs.Model,
   activeSourceFilePath: string,
   isNarrowViewport: boolean,
-  renderCopyButton: CodeBlock.RenderCopyButton,
+  renderSnippet: CodeBlock.RenderSnippet,
   h: HtmlBuilder<Message>,
 ): Html => {
-  const highlightedView = CodeBlock.highlightedViewFor(renderCopyButton)
+  const highlightedView = CodeBlock.highlightedViewFor(renderSnippet)
 
   const filePaths = Array.map(files, file => file.path)
 
@@ -577,7 +577,7 @@ const availableExampleContentView = (
   meta: ExampleMeta,
   slug: string,
   isNarrowViewport: boolean,
-  renderCopyButton: CodeBlock.RenderCopyButton,
+  renderSnippet: CodeBlock.RenderSnippet,
   h: HtmlBuilder<Message>,
 ): ReadonlyArray<Html> => [
   meta.livePreview === 'PlaygroundOnly'
@@ -610,7 +610,7 @@ const availableExampleContentView = (
                     () => Array.headNonEmpty(files).path,
                   ),
                   isNarrowViewport,
-                  renderCopyButton,
+                  renderSnippet,
                   h,
                 ),
               ],
@@ -624,21 +624,20 @@ const availableExampleContentView = (
 type ViewInputs = Readonly<{
   slug: string
   isNarrowViewport: boolean
-  renderCopyButton: CodeBlock.RenderCopyButton
+  renderSnippet: CodeBlock.RenderSnippet
 }>
 
 /**
  * Renders one example app: its header, the live preview, and the source files
  * behind a Tabs Submodel.
  *
- * The page is dispatched through `h.submodel`, so it takes `renderCopyButton`
- * from its parent rather than building the SnippetCopy boundary itself. The
- * renderer runs in the parent's boundary, so the nested Submodel's Message is
- * wrapped for the parent instead of being rejected by this page's
- * `toParentMessage`.
+ * The page is dispatched through `h.submodel`, so it takes the snippet renderer
+ * from its parent rather than building the interactive boundaries itself. The
+ * renderer runs in the parent's boundary, so its Messages are wrapped for the
+ * parent instead of being rejected by this page's `toParentMessage`.
  */
 export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, { slug, isNarrowViewport, renderCopyButton }, h): Html =>
+  (model, { slug, isNarrowViewport, renderSnippet }, h): Html =>
     Option.match(findBySlug(slug), {
       onNone: () => h.div([], ['Example not found']),
       onSome: meta =>
@@ -654,7 +653,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
                   meta,
                   slug,
                   isNarrowViewport,
-                  renderCopyButton,
+                  renderSnippet,
                   h,
                 )),
           ],

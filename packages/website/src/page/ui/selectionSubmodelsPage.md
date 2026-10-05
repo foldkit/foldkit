@@ -10,7 +10,7 @@ Each exposes a `create<Item>()` factory that pairs the view and update behind a 
 
 A Listbox over a literal-union `Plan` type:
 
-::Snippet{name="uiListboxBasic" label="typed Listbox"}
+::Snippet{name="uiListboxBasic" label="Typed Listbox"}
 
 ## The `create<Item>()` Factory {#create-factory}
 

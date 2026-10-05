@@ -6,7 +6,9 @@
 
 Server data in a Model is never just data or nothing. Between “we have it” and “we do not” sit “we asked and are waiting”, “the ask failed”, “we have last week’s copy and are refetching”, and “the refetch failed but we kept the copy”. A boolean `isLoading` next to a nullable `data` field cannot tell those apart, and every screen that renders the field ends up re-deriving the distinction from a tangle of flags.
 
-`AsyncData<A, E>` makes the distinction the type. The idea is the pattern Elm calls RemoteData, generalized. It is a first-class value like `Option` or `Result`: an ADT plus a namespace of free functions over it. You embed one Schema in your Model, and every read, transform, and transition goes through named combinators that already know the state machine. The module is the noun. It is not a data-fetching engine and not a cache. The keyed cache, the refresher, and route-driven loading stay application patterns.
+`AsyncData<A, E>` makes the distinction the type. The idea is the pattern Elm calls RemoteData, generalized. It is a first-class value like `Option` or `Result`: an ADT plus a namespace of free functions over it. You embed one Schema in your Model, and every read, transform, and transition goes through named combinators that already know the state machine. The module is the noun. It is not a data-fetching engine or cache.
+
+Use `AsyncData` directly when the request belongs to an application-specific transition and the application should own its Messages, Commands, and `AsyncData` Model field. The experimental [Query](/core/query) Submodel packages the fetch Command, completion Message, stale-response protection, and retained `AsyncData` state when the result is one resource or a collection keyed by arguments.
 
 Throughout this page, the running example is a Notes app: a `Note` belongs to an optional `Notebook`, and the Model holds several `AsyncData` fields for the notebook list, the cross-notebook feed, and the per-entity caches.
 
@@ -25,7 +27,7 @@ The type has one axis for data presence and one for request status, and the six 
 
 The public type is value-first `AsyncData<A, E>`, matching `Result<A, E>` and `Exit<A, E>`.
 
-::Snippet{name="asyncDataType" label="type definition code"}
+::Snippet{name="asyncDataType" label="AsyncData type"}
 
 Three classifications recur across the API, and every combinator is derived from them:
 
@@ -51,7 +53,7 @@ Because both are type-level states, “show stale data while revalidating” and
 
 `AsyncData.Schema(dataSchema, errorSchema)` returns the codec you embed in a Model, plus constructors constrained to those data and error types. The returned `.schema` is the six-state Union codec.
 
-::Snippet{name="asyncDataSchema" label="Schema builder code"}
+::Snippet{name="asyncDataSchema" label="Schema builder"}
 
 :::Info{label="Error types"}
 The error Schema is simplified to `string` here; a real app usually gives each field a domain error Schema, for example a union of a tagged `NotFound` and `string`.
@@ -61,7 +63,7 @@ A single field embeds `.schema` directly. A keyed cache embeds it as the value S
 
 To construct a value, use the namespace constructors (generic in `A`/`E`) or the factory-returned ones (tightened to the Model’s `A`/`E`). They build identical runtime values.
 
-::Snippet{name="asyncDataConstructors" label="constructors code"}
+::Snippet{name="asyncDataConstructors" label="AsyncData constructors"}
 
 ## Working With the Value
 
@@ -69,19 +71,19 @@ The API is a namespace of free, curried-dual functions over `AsyncData<A, E>` va
 
 The fundamental way to read a value is `match`. It dispatches on the tag and passes the unwrapped payload to each of six required handlers. Handler keys are tag-named here because each handler covers exactly one tag. The one asymmetry is `onStale`, which receives the whole `{ error, data }` object, because only `Stale` carries two fields.
 
-::Snippet{name="asyncDataMatch" label="match code"}
+::Snippet{name="asyncDataMatch" label="Matching every state"}
 
 Most views do not need six arms. `matchData` collapses the six states into the three channels a view usually renders: `onData` spans `Success`, `Refreshing`, and `Stale`; `onFailure` receives the `Failure` error; and `onEmpty` covers `Idle` and `Loading` together. Routing `Stale` through `onData` is the point of keeping its data. `matchDataSplitEmpty` is the same collapse with the two cold states split into `onIdle` and `onLoading`, for views that render them differently. Reach for `match` when the stale error or the `Refreshing` signal matters.
 
-::Snippet{name="asyncDataMatchData" label="matchData code"}
+::Snippet{name="asyncDataMatchData" label="Using matchData"}
 
 `AsyncData.map` transforms every data-bearing state and preserves its tag, so a pure transform does not erase the `Refreshing` or `Stale` signal. `Stale` maps only its `data` and keeps its `error`. This is how a mutation can edit cached data in place without erasing its request state.
 
-::Snippet{name="asyncDataMap" label="map code"}
+::Snippet{name="asyncDataMap" label="Transforming successful data"}
 
 `getData` returns `Option<A>`, `Some` for the three data-bearing states (`Success`, `Refreshing`, `Stale`) and `None` otherwise. `hasData` is the boolean form, and `getError` / `hasError` are the error-channel twins, spanning `Failure` and `Stale`. Reaching through a cache entry to a field is the common shape.
 
-::Snippet{name="asyncDataGetData" label="getData code"}
+::Snippet{name="asyncDataGetData" label="Using getData"}
 
 :::Info{label="Stale is not pending"}
 `isPending` is true for `Loading` and `Refreshing` only, not `Stale`. It answers “is a request in flight”, so it drives a spinner regardless of whether data is held. `Stale` does not mean merely outdated data in this union. It is specifically the state a failed refresh leaves behind, which is why it always carries the error.
@@ -95,15 +97,15 @@ Two transitions drive route-entry loading, and both send `Success` and `Stale` f
 
 `AsyncData.revalidateOrLoad` is the route-entry decision. It returns `Option<AsyncData>`: cold no-data states (`Idle`, `Failure`) start `Loading`, already-pending states (`Loading`, `Refreshing`) yield `None` so the app does not restart an in-flight fetch, and both loaded states (`Success`, `Stale`) revalidate to `Refreshing`. `None` means “no transition needed”.
 
-::Snippet{name="asyncDataRevalidateOrLoad" label="revalidateOrLoad code"}
+::Snippet{name="asyncDataRevalidateOrLoad" label="Using revalidateOrLoad"}
 
 `AsyncData.revalidate` is the narrower transition for reloading what is already loaded, typically after a mutation. It revalidates `Success` and `Stale` to `Refreshing` and yields `None` for everything else, so it never cold-starts a `Loading`, and a cache that holds nothing is left alone.
 
-::Snippet{name="asyncDataRevalidate" label="revalidate code"}
+::Snippet{name="asyncDataRevalidate" label="Using revalidate"}
 
 `AsyncData.loadIfMissing` is the first-visit load: the cold no-data states (`Idle`, `Failure`) start `Loading`, and every other state yields `None`, so loaded data is kept without revalidation and a request in flight is not restarted. It is the load-only counterpart of `revalidateOrLoad`, the state-machine form of “fetch on first visit, keep the cache afterwards”.
 
-::Snippet{name="asyncDataLoadIfMissing" label="loadIfMissing code"}
+::Snippet{name="asyncDataLoadIfMissing" label="Using loadIfMissing"}
 
 These three functions are the building blocks of route-driven loading: deciding per cache, on every route change, whether to load, revalidate, or leave the state alone.
 
@@ -115,11 +117,11 @@ On success, it yields `Success`. On failure, it checks the previous state: if it
 
 There are two valid styles for bringing a fetch back into `update`, and neither is strictly better. The first names each outcome as its own Message, and the Command dispatches whichever happened:
 
-::Snippet{name="asyncDataSettlePair" label="handler pair code"}
+::Snippet{name="asyncDataSettlePair" label="Separate success and failure handlers"}
 
 The second folds both outcomes through one Message. The Command wraps the fetch in `Effect.result`, so success and failure both arrive as a settled `Result`, and dispatches a single `Settled*` Message carrying it. In `update`, `settle` folds that `Result` into the previous state, and a failed refresh keeps the list instead of blanking it:
 
-::Snippet{name="asyncDataSettle" label="settle code"}
+::Snippet{name="asyncDataSettle" label="Settling either outcome"}
 
 Pick by what the outcomes mean. When success and failure drive genuinely different flows (navigate on success, open a dialog on failure), the named pair keeps each flow in its own arm. When the fetch lands in a cache field, the settled style is one arm instead of two and keeps stale data on error for free.
 
@@ -131,7 +133,7 @@ If you deliberately want a failed refresh to drop the previous data, write that 
 
 A screen that needs several resources at once combines them with one precedence rule using `zipWith` (two values plus a combining function) or `all` (an iterable or a record). The record form of `all` is the multi-resource screen: it combines a record of fields into one value whose data is a struct of every field’s data. The combined value is itself an `AsyncData`.
 
-::Snippet{name="asyncDataAll" label="all code"}
+::Snippet{name="asyncDataAll" label="Combining several values"}
 
 The precedence, most to least dominant, is `Failure > Loading > Idle > Stale > Refreshing > Success`. Reading it is a two-tier rule. If any input is a no-data state, the result is the highest-ranked such state with no combination, and the leftmost `Failure`’s error wins. Otherwise every input has data, so the data is combined and the result tag is the highest-ranked data state present: any `Stale` makes the whole result `Stale`, else any `Refreshing` makes it `Refreshing`, else it is `Success`. That is the payoff: the whole screen shows combined stale data while any part revalidates, and carries it forward even after a failed refresh.
 
@@ -141,4 +143,4 @@ The combine is all-or-nothing on data. Because the combined value needs every in
 
 An `AsyncData` field lives in one place: the [Model](/core/model), the single source of truth. Fetches are [Commands](/core/commands): run the fetch through `Effect.result`, carry the `Result` in the Message, and fold it in with `settle`. [Field Validation](/core/field-validation) is the sibling shipped module in the same tier, and the [API Reference](/api-reference/async-data) has the generated, exhaustive catalog of every name and its per-state behavior.
 
-[Coming from TanStack Query](/react/coming-from-tanstack-query) maps the six states onto query status and cached data, and the [api-cache example](/example-apps/api-cache) is a full app wiring a keyed cache, a generic refresher, and route-driven loading together on this type.
+[Coming from TanStack Query](/react/coming-from-tanstack-query) maps the six states onto query status and cached data. The [API Cache example](/example-apps/api-cache) wires a keyed cache by hand; [API Cache Query](/example-apps/api-cache-query) builds the corresponding application with Query.

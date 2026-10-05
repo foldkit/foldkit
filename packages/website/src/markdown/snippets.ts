@@ -12,7 +12,7 @@ export type Snippet = Readonly<{ raw: string; highlighted: string }>
 type SnippetEntry = readonly [string, Snippet]
 
 const rawByPath = import.meta.glob<string>(
-  '../snippet/*.{ts,tsx,elm,json,html,sh}',
+  '../snippet/*.{ts,tsx,elm,json,html,sh,txt}',
   {
     query: '?raw',
     import: 'default',
@@ -21,14 +21,14 @@ const rawByPath = import.meta.glob<string>(
 )
 
 const highlightedByPath = import.meta.glob<string>(
-  '../snippet/*.{ts,tsx,elm,json,html,sh}',
+  '../snippet/*.{ts,tsx,elm,json,html,sh,txt}',
   { query: '?highlighted', import: 'default', eager: true },
 )
 
 const snippetName = (path: string): Option.Option<string> =>
   pipe(
     Array.last(String.split(path, '/')),
-    Option.map(String.replace(/\.(?:ts|tsx|elm|json|html|sh)$/, '')),
+    Option.map(String.replace(/\.(?:ts|tsx|elm|json|html|sh|txt)$/, '')),
   )
 
 // NOTE: CSS snippets arrive through a virtual module rather than the glob

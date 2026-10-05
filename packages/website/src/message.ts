@@ -18,6 +18,7 @@ import {
 import * as Search from './search'
 import { GroupKey, SidebarState } from './sidebarStorage'
 import * as SnippetCopy from './snippetCopy'
+import * as SnippetDisclosure from './snippetDisclosure'
 
 // THEME
 
@@ -67,6 +68,7 @@ export const Message = defineMessageUnion({
   ChangedViewportWidth: { isNarrow: Schema.Boolean },
   GotHomeMessage: { message: Home.Message },
   GotSnippetCopyMessage: { message: SnippetCopy.Message },
+  GotSnippetDisclosureMessage: { message: SnippetDisclosure.Message },
   GotCoreSubmodelPageMessage: { message: Core.SubmodelPage.Message },
   GotPlaygroundMessage: { message: Playground.Message },
   GotComingFromReactMessage: { message: ComingFromReact.Message },

@@ -105,6 +105,7 @@ const FOLDKIT_BUILD_TOKEN_URL = `/@fs${resolve(
   dirname(fileURLToPath(import.meta.resolve('foldkit'))),
   'buildToken.js',
 )}`
+const AGGREGATE_DEV_SERVER_TEST_TIMEOUT_MS = 20_000
 const findFreePort = () =>
   new Promise<number>((resolvePort, reject) => {
     const probe = createNetServer()
@@ -329,15 +330,19 @@ const automaticIdentityFrom = async (
 }
 
 describe('foldkitSsr', () => {
-  it('compiles one fresh identity into Foldkit for each aggregate dev server', async () => {
-    const first = await startAutomaticIdentityServer()
-    const second = await startAutomaticIdentityServer()
+  it(
+    'compiles one fresh identity into Foldkit for each aggregate dev server',
+    async () => {
+      const first = await startAutomaticIdentityServer()
+      const second = await startAutomaticIdentityServer()
 
-    const firstBuildId = await automaticIdentityFrom(first)
-    const secondBuildId = await automaticIdentityFrom(second)
+      const firstBuildId = await automaticIdentityFrom(first)
+      const secondBuildId = await automaticIdentityFrom(second)
 
-    expect(secondBuildId).not.toBe(firstBuildId)
-  })
+      expect(secondBuildId).not.toBe(firstBuildId)
+    },
+    AGGREGATE_DEV_SERVER_TEST_TIMEOUT_MS,
+  )
 
   it('injects Rendered results and preserves their HTTP metadata', async () => {
     const origin = await startServer()

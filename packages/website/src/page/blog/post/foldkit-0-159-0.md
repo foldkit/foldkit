@@ -16,7 +16,7 @@ In 0.155.0, Foldkit moved the browser build, server build, and prerendering into
 
 `@foldkit/vite-plugin` 0.21.0 now builds a Web `fetch` handler. The same server module can run on Node or Workers:
 
-::Snippet{name="release0159ViteBuild" label="server build configuration"}
+::Snippet{name="release0159ViteBuild" label="Server build configuration"}
 
 Run `vite build` and the server output is `dist/server/fetch.js`, with a default export shaped as `{ fetch }`. A Node host serves the built client assets and passes page requests to that handler. A Worker can default-export the same module.
 

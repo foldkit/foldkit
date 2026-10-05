@@ -50,13 +50,21 @@ For SSG, the build script takes the host's place. It writes the response to a fi
 
 A server entry connects the application to its host. It exports a `renderPage` function that accepts a Web `Request` and returns a `Promise<EntryResult>`:
 
-::Snippet{name="serverRenderingServerEntry" label="server entry example"}
+::Snippet{name="serverRenderingServerEntry" label="Server entry"}
 
 The outer `Promise` keeps `renderPage` callable from Vite, build scripts, serverless functions, and the emitted `fetch` handler. Those hosts do not need to provide the application's Effect requirements. The entry uses Effect internally; the host sees only the `Promise`.
 
 The entry is application code. Keep it in `src/` (`src/entry.server.ts` in the examples), not in the host's directory. It imports the application's `init`, `view`, and `Flags`, so the server build must compile it with those application imports.
 
 The client and server are separate module graphs. Within each graph, the view and the Foldkit runtime that calls it must resolve to one `foldkit` module instance. The HTML builder tracks a render in module-level state. If one render uses two Foldkit copies, the view writes to one copy while the runtime reads the other. The render fails instead of producing the wrong page. Duplicate monorepo installs and aliases that split one graph are common causes.
+
+In server builds and in the dev server's server render, `@foldkit/vite-plugin` bundles `foldkit`, `@foldkit/ui`, and `@foldkit/devtools`, plus every installed package whose `dependencies` or `peerDependencies` include `foldkit` or an `@foldkit/*` package, such as `@foldkit/markdown`. Those packages then run against the one Foldkit copy inside the server bundle. In the dev server, these `ssr.noExternal` packages run through Vite's module runner instead of Node's own import. The plugin finds them by crawling from the application's `package.json`. The crawl follows:
+
+- The application's `dependencies` and `devDependencies`.
+- The `dependencies` of each package it bundles.
+- The `devDependencies` of a bundled package that is a private workspace package.
+
+A package the crawl does not reach stays external. For example: a peer the application does not declare, or a package reached only through a package that does not depend on Foldkit. Such a package loads a second Foldkit copy from `node_modules` at runtime. Declare it in the application's `package.json`, or add it to `ssr.noExternal`.
 
 A delivery host runs the built `fetch` handler. It does not import the application and render it directly. One `vite build` emits `dist/server/fetch.js` whose default export is `{ fetch }`. The [SSR example](/example-apps/ssr) starts that module with `node scripts/serve.ts`. A Worker can default-export the same module.
 
@@ -66,7 +74,7 @@ The `container`, `update`, `subscriptions`, and `managedResources` fields do not
 
 For a routing application, pass the request URL so `init` receives the same value it receives from `window.location` in the browser:
 
-::Snippet{name="serverRenderingRenderToStringUrl" label="renderToString with url example"}
+::Snippet{name="serverRenderingRenderToStringUrl" label="Using renderToString with a URL"}
 
 `request.url` is the public URL. The Vite dev host preserves its configured `base` prefix and the browser's query string when middleware routes the request.
 
@@ -136,7 +144,7 @@ A hydratable render carries these markers:
 
 Conceptually, the handoff appears next to the rendered root:
 
-::Snippet{name="serverRenderingHydrationHandoff" label="hydration handoff markup"}
+::Snippet{name="serverRenderingHydrationHandoff" label="Hydration handoff markup"}
 
 The script type makes the payload data rather than executable JavaScript. Foldkit escapes values that could close the script element. Hydration then parses and Schema-decodes the text. Flags are public HTML, not a place for secrets.
 
@@ -144,11 +152,11 @@ The script type makes the payload data rather than executable JavaScript. Foldki
 
 The client opts into the handoff in its entry (`src/entry.ts` in the examples):
 
-::Snippet{name="serverRenderingHydrate" label="Runtime.hydrate example"}
+::Snippet{name="serverRenderingHydrate" label="Hydrating the application"}
 
 `Runtime.run` always builds the DOM from scratch. An application with Flags supplies its client-only Flags Effect at that boundary:
 
-::Snippet{name="serverRenderingRunWithFlags" label="Runtime.run with flags example"}
+::Snippet{name="serverRenderingRunWithFlags" label="Runtime.run with flags"}
 
 `Runtime.hydrate` accepts no client Flags producer. It reads the serialized Flags, calls the same `init`, and adopts matching server DOM nodes. Element identity, focus, scroll position, and media state survive while listeners and Mounts attach.
 
@@ -210,7 +218,7 @@ View identity also ships in the client bundle. Adding a source hash would expose
 
 In development, enable the Vite host in `vite.config.ts`:
 
-::Snippet{name="serverRenderingViteSsr" label="Vite SSR config example"}
+::Snippet{name="serverRenderingViteSsr" label="Vite SSR configuration"}
 
 Vite continues to serve the client entry, HMR, and assets. Requests that reach Foldkit become Web `Request` values and pass to `renderPage`. The returned Web `Response` provides the status, headers, and body.
 
@@ -300,7 +308,7 @@ Request-time rendering depends on its Flags. A route with universal Flags can us
 
 Cloudflare Workers, Deno, and Bun already use Web `Request` and `Response`, so they can run the emitted handler without an adapter:
 
-::Snippet{name="serverRenderingWorkersHost" label="Workers host example"}
+::Snippet{name="serverRenderingWorkersHost" label="Workers host"}
 
 The platform serves the built client assets, and the handler covers page requests. The handler trusts `Request.url` as the platform constructed it. Only a Node adapter sees a raw request target, and `scripts/serve.ts` resolves that target against its configured origin and refuses an off-origin one before calling `fetch`. The same built `fetch.js` module runs unchanged on each runtime.
 

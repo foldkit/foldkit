@@ -1,0 +1,2 @@
+RateLimit-Policy: "default";q=600;w=60
+RateLimit: "default";r=600;t=60

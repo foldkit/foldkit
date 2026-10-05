@@ -10,6 +10,18 @@ export type RenderCopyButton = (
     text: string
     ariaLabel: string
     positionClass: string
+    variant: 'Header' | 'Overlay'
+  }>,
+) => Html
+
+export type RenderSnippet = (
+  config: Readonly<{
+    id: string
+    title?: string
+    content: Html
+    rawCode: string
+    copyAriaLabel: string
+    className?: string
   }>,
 ) => Html
 
@@ -62,6 +74,7 @@ export const view = (
         text: code,
         ariaLabel,
         positionClass: copyButtonPositionClass,
+        variant: 'Overlay',
       }),
     ],
   )
@@ -71,42 +84,41 @@ export const highlightedView = (
   id: string,
   content: Html,
   rawCode: string,
-  ariaLabel: string,
-  renderCopyButton: RenderCopyButton,
+  copyAriaLabel: string,
+  renderSnippet: RenderSnippet,
   className?: string,
+  title?: string,
 ) =>
-  ih.div(
-    [PagefindIgnore, ih.Class(clsx('relative min-w-0 mt-6', className))],
-    [
-      content,
-      renderCopyButton({
-        id,
-        text: rawCode,
-        ariaLabel,
-        positionClass: DEFAULT_COPY_BUTTON_POSITION_CLASS,
-      }),
-    ],
-  )
+  renderSnippet({
+    id,
+    ...(title === undefined ? {} : { title }),
+    content,
+    rawCode,
+    copyAriaLabel,
+    ...(className === undefined ? {} : { className }),
+  })
 
 /**
- * `highlightedView` bound to a page-supplied copy-button renderer, for a
- * page rendered inside a Submodel. Bind once at the top of the view and the
- * call sites below it are unchanged.
+ * `highlightedView` bound to a page-supplied snippet renderer, for a page
+ * rendered inside a Submodel. Bind once at the top of the view and the call
+ * sites below it are unchanged.
  */
 export const highlightedViewFor =
-  (renderCopyButton: RenderCopyButton) =>
+  (renderSnippet: RenderSnippet) =>
   (
     id: string,
     content: Html,
     rawCode: string,
     ariaLabel: string,
     className?: string,
+    title?: string,
   ): Html =>
     highlightedView(
       id,
       content,
       rawCode,
       ariaLabel,
-      renderCopyButton,
+      renderSnippet,
       className,
+      title,
     )

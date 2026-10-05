@@ -268,6 +268,114 @@ without the paragraph above them. Check bullets without their siblings. "One
 application using both" survived several passes of sentence-level review and
 failed the moment anyone read the heading by itself.
 
+## Meet the reader before introducing the API
+
+**Before.** "`Query.define` creates a Submodel for fetched data. A Query retains
+one `AsyncData` value. A KeyedQuery retains one entry for each argument key."
+
+The opening names the API and its generated state before the reader knows what
+problem Query solves. It is accurate, but it makes a new reader reverse-engineer
+the reason for the abstraction.
+
+**After.** "Fetching data in a Foldkit application usually takes the same
+pieces: an `AsyncData` value in the Model, a Command that performs the request,
+a Message carrying the result, and update branches that begin and settle the
+request. Think of Query as that standard request loop packaged around an
+`AsyncData` value."
+
+Start from the pattern the reader already recognizes. Give the abstraction a
+short mental model, then introduce its API. A conceptual page should have an
+Overview for this job instead of turning its first section into a list of names.
+
+## Separate ownership from execution
+
+**Before.** "The loading helpers start work according to the current state."
+
+That sentence makes a pure update operation sound imperative. It also leaves
+the parent and Runtime out of the explanation.
+
+**After.** "The parent calls a loading operation in response to one of its
+Messages. The operation returns the next Model and, when a request is needed, a
+fetch Command. The Runtime performs that Command after it receives the update
+result."
+
+Name each actor and give it only the agency it has. The parent decides when and
+why. The operation returns data. The Runtime performs the effect.
+
+## Use heading hierarchy to reveal the page
+
+**Before.** A guide presented `Define a Query`, `Connect the Query to Its
+Parent`, `Read and Render the Value`, `Load and Refresh`, `Choose When to Load`,
+and `Reset a Query` as six consecutive `##` headings.
+
+Every heading looked equally important, so the table of contents exposed no
+path through the guide.
+
+**After.** `Connect the Query to Its Parent` and `Read and Render Query Data`
+became `###` subsections of `## Define a Query`. `Choose When the Parent Loads
+or Refreshes` and `Reset a Query` became `###` subsections of `## Load and
+Refresh Query Data`.
+
+Use heading levels to encode the relationships a reader should see while
+skimming. Then read each heading beside its first sentence. Renaming "What the
+Parent Decides" to "The Parent Controls Loading and Refreshing" required the
+paragraph to begin with that same responsibility, not the old "decides when and
+why to consider" framing.
+
+## State a category once
+
+**Before.** "A viewless Query exposes its retained value through `read`."
+
+Every Query is viewless, so the adjective sounds like a subtype. It makes the
+reader wonder whether a viewed Query also exists.
+
+**After.** Establish the category once: "Query is a viewless Submodel." At the
+use site, state the operation directly: "Use `read` to access the Query's
+retained `AsyncData` value."
+
+An architectural trait can be important without becoming a repeated qualifier.
+State it where it explains the mental model, then write later sections against
+the established category.
+
+## Explain a boundary through its public interface
+
+**Before.** "The parent reads the child state and renders it."
+
+That sentence makes a supported read sound like the parent owns the child's
+representation. It does not say whether the parent calls an accessor or reaches
+into fields the child owns.
+
+**After.** "The parent passes the Query Model to `Query.read`. The child-owned
+accessor returns the public `AsyncData` value, which the parent renders without
+inspecting the Query Model's fields."
+
+A state boundary does not forbid every value from crossing it. It determines
+who owns the representation and transitions. Name the accessor when it preserves
+that boundary, and name the fields when code bypasses it.
+
+## Make a large snippet point to its lesson
+
+A short snippet should explain itself through names and structure. A larger
+wiring example can contain several equally plausible places to look. Use sparse
+comments to point at the architectural handoff, such as the line that lifts a
+child Message or returns the initial Command. Do not narrate syntax the reader
+can already see.
+
+Keep the important operation visible. If `execute: fetchPosts` is the concept
+being introduced, define `fetchPosts` in the snippet or inline its Effect. If an
+init example teaches the transition from initial Model to loading Model, name
+the Model first and then pass it to the loading operation. Nesting both phases in
+one expression saves lines and hides the lesson.
+
+## Link the complete application early
+
+When a complete example application exists, a reader should not need to reach
+the bottom of the guide to discover it. Put a callout near the top and say what
+the application demonstrates. "See API Cache Query for a full app" is too terse.
+"API Cache Query shows a Query loaded during init, a KeyedQuery loaded by id,
+Subscription-driven refreshes, and Story and Scene tests" tells the reader why
+to follow the link.
+
 ## The test
 
 Would you say this sentence to a colleague at a whiteboard? If not, it is jargon

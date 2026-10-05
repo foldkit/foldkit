@@ -18,7 +18,7 @@ Pass `anchor` to position the panel relative to the button. The panel can hold a
 
 ::Demo{name="basic"}
 
-::Snippet{name="uiPopoverBasic" label="popover example"}
+::Snippet{name="uiPopoverBasic" label="Popover"}
 
 ### Arrow
 
@@ -26,7 +26,7 @@ Popover does not draw an arrow. It positions one. Spread the `arrow` bundle onto
 
 ::Demo{name="arrow"}
 
-::Snippet{name="uiPopoverArrow" label="popover arrow example"}
+::Snippet{name="uiPopoverArrow" label="Popover arrow"}
 
 ### Animated
 
@@ -40,7 +40,7 @@ Use a separate Popover Model for each level. For a parent panel that opens onto 
 
 ::Demo{name="nested"}
 
-::Snippet{name="uiPopoverNested" label="nested popovers example"}
+::Snippet{name="uiPopoverNested" label="Nested popovers"}
 
 ## Styling
 
@@ -59,7 +59,7 @@ When `isAnimated` is true, enter/leave animations flow through the [Animation](/
 
 `toView` receives an `arrow` bundle carrying the element's id. Popover does not draw the arrow. Spread the bundle onto your own element, a direct child of the panel, and place it with the custom properties Anchor publishes:
 
-::Snippet{name="uiPopoverArrowStyles" label="popover arrow styles"}
+::Snippet{name="uiPopoverArrowStyles" label="Popover arrow styles"}
 
 `--arrow-x` and `--arrow-y` position the arrow along the panel edge. Anchor sets one of them for each placement, while the matching `data-placement` rule pins the arrow to the correct side.
 
@@ -71,7 +71,7 @@ The square SVG keeps its measurements stable when the placement flips. Its fill 
 
 An arrow sits outside the panel, so scrolling the panel itself would clip it. Anchor leaves the panel unclipped when an arrow resolves and still writes its `max-height`. If the content can outgrow that height, make the panel a flex column and scroll an inner container:
 
-::Snippet{name="uiPopoverScrollablePanel" label="scrollable popover panel styles"}
+::Snippet{name="uiPopoverScrollablePanel" label="Scrollable popover panel styles"}
 
 `min-height: 0` lets the child shrink below its content height so it can scroll. `box-sizing: border-box` keeps the panel's padding and border within the height Anchor measured.
 

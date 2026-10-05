@@ -28,7 +28,7 @@ Fold `Animation.show` with `Update.foldChildStep` to start the enter animation a
 
 ::Demo{name="animation"}
 
-::Snippet{name="uiAnimationBasic" label="animation example"}
+::Snippet{name="uiAnimationBasic" label="Animation"}
 
 ## Lifecycle
 
@@ -68,7 +68,7 @@ Animation ignores that late result. Each time `show` or `hide` starts an enter o
 
 `defaultLeaveCommand(model)` reads the generation from the Model. A custom leave Command gets it from `StartedLeaveAnimating` and returns it in `EndedAnimation({ generation })`:
 
-::Snippet{name="uiAnimationCustomLeave" label="custom leave Command"}
+::Snippet{name="uiAnimationCustomLeave" label="Custom leave Command"}
 
 ## Styling
 

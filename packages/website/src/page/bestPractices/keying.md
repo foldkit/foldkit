@@ -12,7 +12,7 @@ A Foldkit view function plays the role a component type plays during reconciliat
 
 The syntax that selects a view function does not matter. `if`/`else`, ternaries, and Effect `Match` all use the identity of the function that produced the subtree:
 
-::Snippet{name="keyingBranchingViews" label="branching views example"}
+::Snippet{name="keyingBranchingViews" label="Branching views"}
 
 `editorView` and `summaryView` have different identities, so switching replaces the subtree even when both return the same root tag. Inline same-tag elements inside one surrounding function share that function's identity and patch in place. If switching an inline branch must reset DOM state, extract its arms into named view functions.
 
@@ -22,13 +22,13 @@ The syntax that selects a view function does not matter. `if`/`else`, ternaries,
 
 Mapped rows all come from the same function, so view identity cannot distinguish them. Key each item's root by a stable Model identifier, never by its array position:
 
-::Snippet{name="keyingListItems" label="list items keying example"}
+::Snippet{name="keyingListItems" label="List items keying"}
 
 ### One Position, Different Entities
 
 A detail page may render every article through `articlePageView`. The function identity stays the same when navigation selects another article, so key the root by the article id or slug:
 
-::Snippet{name="keyingDetailPage" label="detail page keying example"}
+::Snippet{name="keyingDetailPage" label="Detail page keying"}
 
 The key makes the old article and the new article different entities. Local DOM state cannot carry from one into the other.
 
@@ -36,7 +36,7 @@ The key makes the old article and the new article different entities. Local DOM 
 
 Key by what an entity is, never by what it currently shows. A key derived from displayed data changes whenever the content changes. Each edit then tears down the node and discards focus, text selection, and other element-owned state:
 
-::Snippet{name="keyingIdentityNotData" label="identity keying example"}
+::Snippet{name="keyingIdentityNotData" label="Identity keying"}
 
 :::Warning{label="Always build with the plugin"}
 Identity is stamped by `@foldkit/vite-plugin`, which `create-foldkit-app` includes by default. Do not build a Foldkit app without it.

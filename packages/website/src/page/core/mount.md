@@ -44,7 +44,7 @@ View-function identity and stable keys keep that lifecycle attached to the right
 
 Portal-to-body is a small example. When an overlay enters the DOM, its Mount moves the live element to `document.body` so it can escape clipping ancestors. When the element unmounts, the paired release removes it.
 
-::Snippet{name="mountPortalToBody" label="portal-to-body example"}
+::Snippet{name="mountPortalToBody" label="Portal-to-body"}
 
 :::Info{label="Two rules for Mount work"}
 First, `execute` must use the live element. If it does not read or write that element, a Message or Model condition is probably the real cause. Second, the work must be safe to repeat whenever that element is inserted again. DOM measurement, paired DOM manipulation, observers, and element-owned library instances fit these rules.
@@ -106,7 +106,7 @@ Mount is especially useful when a library owns a rendered subtree. Charts, code 
 
 Construct the handle in an acquire Effect, return the Mount's result Message, and register teardown with `Effect.acquireRelease`. The Effect can finish after emitting its Message because Foldkit keeps its scope open until the element unmounts.
 
-::Snippet{name="mountThirdPartyChart" label="OnMount example"}
+::Snippet{name="mountThirdPartyChart" label="Chart Mount with cleanup"}
 
 :::Warning{label="Construct the handle inside the acquire body"}
 `Effect.acquireRelease` registers the release only after its acquire Effect succeeds. Constructing a chart, map, or other stateful handle before that Effect can leak the handle if interruption happens before registration. Make construction the acquire Effect's success value. For example: use `Effect.sync(() => new Thing(...))`, or put an asynchronous import and construction in the same Effect pipeline. Whatever the release needs must be produced by the acquire Effect.

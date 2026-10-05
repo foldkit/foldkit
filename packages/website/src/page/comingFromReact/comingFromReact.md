@@ -88,13 +88,13 @@ The Model-View-Update pattern will feel familiar. The Model resembles the store,
 ## FAQ
 
 :::Faq{id="faq-reusable-components" question="How do I make reusable “components”?"}
-Write view functions that take the Model data they need and return Html. They do not own hidden state or lifecycle. A feature that needs its own state machine can be a [Submodel](/core/submodel), with its own Model, Message union, update, and view.
+Write view functions that take the Model data they need and return Html. They do not own hidden state or lifecycle. A feature that needs its own state machine can be a [Submodel](/core/submodel), with its own Model, Message union, and update. It can also own a view when rendering belongs inside that boundary.
 :::
 
 :::Faq{id="faq-multiple-instances" question="How do I create multiple components with their own state?"}
 Represent each instance in the Model. Use separate fields for a fixed number of instances or a collection keyed by a stable Model identifier for a dynamic number:
 
-::Snippet{name="multipleInstances" label="Model example" class="mb-4"}
+::Snippet{name="multipleInstances" label="Modeling multiple Submodel instances" class="mb-4"}
 
 Each `Accordion.Model` is a Submodel. The parent delegates a child Message to the matching instance and writes the child Model back. See the [Shopping Cart example](/example-apps/shopping-cart) for a larger composition.
 :::

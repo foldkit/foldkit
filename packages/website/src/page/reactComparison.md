@@ -22,7 +22,7 @@ Start with the input domain for application state. Both versions define a discri
 
 The Foldkit application currently has 25 parent Messages:
 
-::Snippet{name="comparisonFoldkitMessage" label="Foldkit messages"}
+::Snippet{name="comparisonFoldkitMessage" label="Foldkit Messages"}
 
 This union is the complete input type for the parent update function. User events, Command results, and child Submodel Messages all enter through it. A `Got*Message` variant marks a child boundary; the child’s own Message union provides the detailed input domain one level down.
 
@@ -76,7 +76,7 @@ The two versions draw their application-state boundary differently.
 
 The Foldkit Model describes application state with Effect Schema and uses `Option` for absent values. It also contains the Models for two Dialogs, one Listbox, and three RadioGroups:
 
-::Snippet{name="comparisonFoldkitModel" label="Foldkit model"}
+::Snippet{name="comparisonFoldkitModel" label="Foldkit Model"}
 
 Those child Models expose transient interaction state such as whether a Listbox is open, its highlighted item, and its transition phase. The parent still owns selected values such as `paletteThemeIndex`; it passes the selected value into the child view and folds the child’s `Selected` OutMessage into parent state.
 
@@ -124,7 +124,7 @@ Commands make event-driven side effects inspectable before they run. The pixel e
 
 Both Commands are named definitions with Schema-checked arguments and declared result Messages:
 
-::Snippet{name="comparisonFoldkitCommand" label="Foldkit command"}
+::Snippet{name="comparisonFoldkitCommand" label="Foldkit Commands"}
 
 Update returns a Command value. The Runtime executes its Effect and dispatches the resulting Message. Foldkit DevTools can associate the Command with the Message and Model transition that produced it, and Story or Scene tests can inspect or resolve the same value.
 
@@ -218,7 +218,7 @@ Both applications listen for keyboard shortcuts and mouse release. The mouse-rel
 
 The Subscription declares that lifetime from Model dependencies:
 
-::Snippet{name="comparisonFoldkitSubscription" label="Foldkit subscription"}
+::Snippet{name="comparisonFoldkitSubscription" label="Foldkit Subscriptions"}
 
 The keyboard stream is persistent. The mouse-release stream is active only when `isDrawing` is true. The Runtime compares Subscription dependencies after each update and scopes each Stream accordingly.
 

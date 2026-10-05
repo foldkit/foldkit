@@ -50,6 +50,7 @@ const packedSsrConsumer =
     ],
     prefixes: [
       'packages/foldkit/',
+      'packages/markdown/',
       'packages/vite-plugin-foldkit/',
       'scripts/fixtures/packed-ssr-consumer/',
     ],

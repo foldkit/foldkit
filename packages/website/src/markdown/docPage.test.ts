@@ -149,13 +149,17 @@ describe('Demo island', () => {
 describe('copy control identity', () => {
   test('uses structural occurrence indices for code blocks and snippets', () => {
     const document = parseMarkdown(
-      '```ts\nconst first = 1\n```\n\n::Snippet{name="sceneLocators"}\n\n```ts\nconst second = 2\n```\n\n::Snippet{name="sceneLocators"}',
+      '```ts\nconst first = 1\n```\n\n::Snippet{name="sceneLocators" label="Scene locators"}\n\n```ts\nconst second = 2\n```\n\n::Snippet{name="sceneLocators" label="Scene locators"}',
       { islands: islandAttributes },
     )
     const { idByHeading } = collectHeadings(document)
     const demoLabels = collectDemoLabels(document, idByHeading)
     const ids: Array<string> = []
     const renderCopyButton: CodeBlock.RenderCopyButton = config => {
+      ids.push(config.id)
+      return ih.empty
+    }
+    const renderSnippet: CodeBlock.RenderSnippet = config => {
       ids.push(config.id)
       return ih.empty
     }
@@ -169,7 +173,7 @@ describe('copy control identity', () => {
         renderHeadingLink,
       }),
       islands: docIslands(
-        { demos: {}, renderCopyButton, renderHeadingLink },
+        { demos: {}, renderCopyButton, renderSnippet, renderHeadingLink },
         demoLabels,
         'copy-identities',
       ),
@@ -284,14 +288,54 @@ describe('demo island registration', () => {
 // only the file paths, which keeps the `?highlighted` modules out of the test's
 // import graph.
 const SNIPPET_ISLAND_PATTERN = /::Snippet\{[^}]*name="([^"]+)"/g
+const SNIPPET_TITLE_PATTERN = /::Snippet\{[^}]*label="([^"]+)"/g
 
-const SNIPPET_EXTENSION_PATTERN = /\.(?:ts|tsx|elm|json|css|html|sh)$/
+const SNIPPET_EXTENSION_PATTERN = /\.(?:ts|tsx|elm|json|css|html|sh|txt)$/
+const REDUNDANT_SNIPPET_TITLE_SUFFIX_PATTERN =
+  /\s(?:example|examples|code|snippet)$/i
+const SNIPPET_TITLE_START_PATTERN = /^(?:[A-Z]|[❌✅] [A-Z])/u
+const SNIPPET_TITLE_ENDING_PUNCTUATION_PATTERN = /[.!?:;]$/
+const LOWERCASE_ARCHITECTURE_TYPE_PATTERN =
+  /\b(?:model|models|message|messages|command|commands|subscription|subscriptions|mount|mounts|submodel|submodels|outmessage|outmessages)\b/
+const UNSPECIFIC_SNIPPET_TITLES = [
+  'Bad',
+  'Code',
+  'Example',
+  'Good',
+  'Snippet',
+  'Test',
+]
+
+const snippetTitlePages = Array.map(
+  Object.entries(markdownSources),
+  ([markdownPath, source]) => ({
+    markdownPath,
+    titles: capturedNames(globalThis.String(source), SNIPPET_TITLE_PATTERN),
+  }),
+)
+
+describe('snippet title conventions', () => {
+  test.each(
+    Array.flatMap(snippetTitlePages, ({ markdownPath, titles }) =>
+      Array.map(titles, title => ({ markdownPath, title })),
+    ),
+  )('$markdownPath: $title follows the title rules', ({ title }) => {
+    expect(title).toMatch(SNIPPET_TITLE_START_PATTERN)
+    expect(title).not.toMatch(REDUNDANT_SNIPPET_TITLE_SUFFIX_PATTERN)
+    expect(title).not.toMatch(SNIPPET_TITLE_ENDING_PUNCTUATION_PATTERN)
+    expect(Array.contains(UNSPECIFIC_SNIPPET_TITLES, title)).toBe(false)
+
+    if (!title.startsWith('Rule: foldkit/')) {
+      expect(title).not.toMatch(LOWERCASE_ARCHITECTURE_TYPE_PATTERN)
+    }
+  })
+})
 
 describe('snippet island registration', () => {
   const snippetFileNames = new Set(
     Array.filterMap(
       Object.keys(
-        import.meta.glob('../snippet/*.{ts,tsx,elm,json,css,html,sh}'),
+        import.meta.glob('../snippet/*.{ts,tsx,elm,json,css,html,sh,txt}'),
       ),
       path =>
         Result.fromOption(
@@ -330,6 +374,51 @@ describe('snippet island registration', () => {
       const missing = names.filter(name => !snippetFileNames.has(name))
 
       expect(missing, `${markdownPath} references missing snippets`).toEqual([])
+    },
+  )
+})
+
+const SOURCE_CODE_FENCE_LANGUAGES = new Set([
+  'bash',
+  'css',
+  'elm',
+  'html',
+  'js',
+  'jsx',
+  'sh',
+  'ts',
+  'tsx',
+])
+
+const fencedSourceCodeLanguages = (source: string): ReadonlyArray<string> =>
+  Array.filterMap(parseMarkdown(source, markdownOptions).blocks, block =>
+    Match.value(block).pipe(
+      Match.withReturnType<Result.Result<string, void>>(),
+      Match.tag('CodeBlock', ({ maybeLanguage }) =>
+        Option.match(maybeLanguage, {
+          onNone: () => Result.failVoid,
+          onSome: language =>
+            SOURCE_CODE_FENCE_LANGUAGES.has(language)
+              ? Result.succeed(language)
+              : Result.failVoid,
+        }),
+      ),
+      Match.orElse(() => Result.failVoid),
+    ),
+  )
+
+describe('documentation code fences', () => {
+  test('identifies fenced source while allowing literal output', () => {
+    expect(fencedSourceCodeLanguages('```ts\nconst count = 0\n```')).toEqual([
+      'ts',
+    ])
+    expect(fencedSourceCodeLanguages('```text\ncount: 0\n```')).toEqual([])
+  })
+
+  test.each(Object.entries(markdownSources))(
+    '%s routes fenced source examples through ::Snippet',
+    (_markdownPath, source) => {
+      expect(fencedSourceCodeLanguages(globalThis.String(source))).toEqual([])
     },
   )
 })

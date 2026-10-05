@@ -18,12 +18,14 @@ import { AppRoute } from './route'
 import * as Search from './search'
 import { SidebarGroups } from './sidebarStorage'
 import * as SnippetCopy from './snippetCopy'
+import * as SnippetDisclosure from './snippetDisclosure'
 
 export const Model = Schema.Struct({
   route: AppRoute,
   url: Url,
   deployment: Deployment,
   snippetCopy: SnippetCopy.Model,
+  snippetDisclosure: SnippetDisclosure.Model,
   maybeGitHubStarCount: Schema.Option(Schema.Number),
   currentYear: Schema.Number,
   mobileMenuDialog: Dialog.Model,

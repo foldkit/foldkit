@@ -20,7 +20,7 @@ For continuous animation, pair `Canvas.view` with [`Subscription.animationFrame`
 
 `Canvas.view` accepts `onPointerDown`, `onPointerMove`, and `onPointerUp` callbacks. Each receives a `Point` translated into the internal coordinate space set by `width` and `height`, regardless of the canvas's CSS size. Passing the current view builder as the second argument binds the callbacks to that view's Message type.
 
-::Snippet{name="canvasBasic" label="Canvas example"}
+::Snippet{name="canvasBasic" label="Canvas scene with animation and pointer input"}
 
 ## Full API Surface
 

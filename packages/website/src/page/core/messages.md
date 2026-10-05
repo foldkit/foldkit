@@ -8,7 +8,7 @@ A Message records something that happened in the application. It does not prescr
 
 The counter has three Messages:
 
-::Snippet{name="counterMessages" label="Message union example"}
+::Snippet{name="counterMessages" label="Message union"}
 
 Messages use verb-first, past-tense names such as `ClickedIncrement`, not `Increment` or `ADD_COUNT`. Prefixes make their causes easy to scan. `Clicked*` records clicks, and `Updated*` records input changes. Command results use `Succeeded*` or `Failed*` when the distinction matters, and `Completed*` otherwise. `Got*` is reserved for results lifted from a child [Submodel](/core/submodel).
 

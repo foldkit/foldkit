@@ -122,6 +122,13 @@ test('a foldkit change selects the packed consumer externalization gate', () => 
   )
 })
 
+test('a markdown change selects the packed consumer gate', () => {
+  assert.equal(
+    planCiForFile('packages/markdown/src/index.ts')['packed_ssr_consumer'],
+    'true',
+  )
+})
+
 test('a website-only change leaves the packed consumer gate alone', () => {
   assert.equal(
     planCiForFile('packages/website/src/page/landing.ts')[

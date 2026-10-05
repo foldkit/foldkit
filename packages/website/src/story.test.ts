@@ -21,6 +21,7 @@ import { type Model } from './model'
 import { Home } from './page'
 import * as Search from './search'
 import * as SnippetCopy from './snippetCopy'
+import * as SnippetDisclosure from './snippetDisclosure'
 
 const parseUrl = (value: string): Url.Url =>
   pipe(Url.fromString(value), Option.getOrThrow)
@@ -225,6 +226,28 @@ describe('application', () => {
           snippetId,
         }),
       ),
+    )
+  })
+
+  test('the parent owns each snippet disclosure state', () => {
+    const snippetId = 'root-story-snippet'
+
+    story(
+      update,
+      given(initAt(homeUrl)),
+      message(
+        Message.GotSnippetDisclosureMessage({
+          message: SnippetDisclosure.Message.ToggledSnippet({
+            snippetId,
+            isOpen: true,
+          }),
+        }),
+      ),
+      model(model => {
+        expect(
+          HashSet.has(model.snippetDisclosure.openSnippetIds, snippetId),
+        ).toBe(true)
+      }),
     )
   })
 })

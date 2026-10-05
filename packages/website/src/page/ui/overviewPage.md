@@ -8,7 +8,7 @@ Foldkit UI is a set of headless, accessible UI components. You provide markup an
 
 `@foldkit/ui` is a separate package from `foldkit`. Projects scaffolded by `create-foldkit-app` from an example that uses UI components already include it. Its peer dependencies are `foldkit` and `effect`, which every Foldkit project already has. Add it to any other project with:
 
-::Snippet{name="uiOverviewInstall" label="install Foldkit UI"}
+::Snippet{name="uiOverviewInstall" label="Install Foldkit UI"}
 
 ## Component Categories
 

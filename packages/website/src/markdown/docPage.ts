@@ -36,6 +36,7 @@ export type DocPage = Readonly<{
   tableOfContents: ReadonlyArray<TableOfContentsEntry>
   view: (
     renderCopyButton: CodeBlock.RenderCopyButton,
+    renderSnippet: CodeBlock.RenderSnippet,
     renderHeadingLink: RenderHeadingLink,
   ) => Html
 }>
@@ -61,8 +62,8 @@ export type SlotDocPage<DemoName extends string> = Readonly<{
  * `slotDocPage<'counter' | 'clock'>(raw, pageId)`. The page's dispatch site then
  * builds each one from Model state and passes them in by name, so the markdown
  * owns the prose and the app keeps owning the islands' Model. The slots also
- * carry the copy-button and heading-link renderers, built by whichever ancestor
- * holds the app's builder.
+ * carry the code and heading-link renderers, built by whichever ancestor holds
+ * the app's builder.
  */
 export const slotDocPage = <DemoName extends string = never>(
   raw: unknown,
@@ -91,10 +92,11 @@ export const docPage = (raw: unknown, pageId: string): DocPage => {
 
   return {
     tableOfContents,
-    view: (renderCopyButton, renderHeadingLink) =>
+    view: (renderCopyButton, renderSnippet, renderHeadingLink) =>
       view({
         demos: {},
         renderCopyButton,
+        renderSnippet,
         renderHeadingLink,
       }),
   }
@@ -109,6 +111,11 @@ export const proseDocPage = (raw: unknown, pageId: string): ProseDocPage => {
 
   return {
     tableOfContents,
-    view: renderHeadingLink => view(() => ih.empty, renderHeadingLink),
+    view: renderHeadingLink =>
+      view(
+        () => ih.empty,
+        () => ih.empty,
+        renderHeadingLink,
+      ),
   }
 }

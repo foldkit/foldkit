@@ -153,6 +153,46 @@ importers:
         specifier: ^5.0.2
         version: 5.0.2(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.2)(happy-dom@20.14.5)(jsdom@30.1.1(@noble/hashes@2.4.0))(vite@8.3.1(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.1))
 
+  examples/api-cache-query:
+    dependencies:
+      '@effect/platform-browser':
+        specifier: 4.0.0
+        version: 4.0.0(effect@4.0.0)
+      '@foldkit/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      effect:
+        specifier: 4.0.0
+        version: 4.0.0
+      foldkit:
+        specifier: workspace:*
+        version: link:../../packages/foldkit
+    devDependencies:
+      '@foldkit/devtools':
+        specifier: workspace:*
+        version: link:../../packages/devtools
+      '@foldkit/vite-plugin':
+        specifier: workspace:*
+        version: link:../../packages/vite-plugin-foldkit
+      '@tailwindcss/vite':
+        specifier: ^4.3.3
+        version: 4.3.3(vite@8.3.1(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.1))
+      happy-dom:
+        specifier: ^20.14.5
+        version: 20.14.5
+      tailwindcss:
+        specifier: ^4.3.3
+        version: 4.3.3
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vite:
+        specifier: ^8.3.1
+        version: 8.3.1(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.1)
+      vitest:
+        specifier: ^5.0.2
+        version: 5.0.2(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@5.0.2)(happy-dom@20.14.5)(jsdom@30.1.1(@noble/hashes@2.4.0))(vite@8.3.1(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.1))
+
   examples/auth:
     dependencies:
       '@effect/platform-browser':
@@ -1776,7 +1816,7 @@ importers:
   packages/oxlint-plugin-foldkit:
     dependencies:
       effect-oxlint:
-        specifier: ^0.3.4
+        specifier: ^0.3.4 || ^0.4.0
         version: 0.3.4(effect@4.0.0)
     devDependencies:
       '@types/node':
@@ -1915,6 +1955,9 @@ importers:
       magic-string:
         specifier: ^1.4.2
         version: 1.4.2
+      vitefu:
+        specifier: ^1.1.3
+        version: 1.1.3(vite@8.3.1(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.1))
       ws:
         specifier: ^8.21.3
         version: 8.21.3
@@ -5954,6 +5997,14 @@ packages:
       tsx:
         optional: true
       yaml:
+        optional: true
+
+  vitefu@1.1.3:
+    resolution: {integrity: sha512-ub4okH7Z5KLjb6hDyjqrGXqWtWvoYdU3IGm/NorpgHncKoLTCfRIbvlhBm7r0YstIaQRYlp4yEbFqDcKSzXSSg==}
+    peerDependencies:
+      vite: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
+    peerDependenciesMeta:
+      vite:
         optional: true
 
   vitest@4.1.11:
@@ -10050,6 +10101,10 @@ snapshots:
       fsevents: 2.3.3
       jiti: 2.7.0
       yaml: 2.9.1
+
+  vitefu@1.1.3(vite@8.3.1(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.1)):
+    optionalDependencies:
+      vite: 8.3.1(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.1)
 
   vitest@4.1.11(@opentelemetry/api@1.9.0)(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(happy-dom@20.14.5)(jsdom@30.1.1(@noble/hashes@2.4.0))(vite@8.3.1(@types/node@26.4.0)(jiti@2.7.0)(yaml@2.9.1)):
     dependencies:

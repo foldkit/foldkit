@@ -17,12 +17,13 @@ const MAP_MESSAGES_DISCLOSURE_ID = 'submodel-map-messages-disclosure'
 
 export type ViewInputs = Readonly<{
   renderCopyButton: CodeBlock.RenderCopyButton
+  renderSnippet: CodeBlock.RenderSnippet
   renderHeadingLink: RenderHeadingLink
 }>
 
 const mapMessagesUnderHoodDemo = (
   model: Model,
-  renderCopyButton: CodeBlock.RenderCopyButton,
+  renderSnippet: CodeBlock.RenderSnippet,
   h: HtmlBuilder<Message>,
 ): Html =>
   Disclosure.view(
@@ -67,9 +68,10 @@ const mapMessagesUnderHoodDemo = (
                             ),
                           ]),
                           Snippet.commandMapMessagesUnderHoodRaw,
-                          'Copy snippet to clipboard',
-                          renderCopyButton,
+                          'Copy Command.mapMessages chain to clipboard',
+                          renderSnippet,
                           'mb-4',
+                          'Command.mapMessages chain',
                         ),
                       ],
                     ),
@@ -111,11 +113,12 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
       demos: {
         'map-messages-under-hood': mapMessagesUnderHoodDemo(
           model,
-          viewInputs.renderCopyButton,
+          viewInputs.renderSnippet,
           h,
         ),
       },
       renderCopyButton: viewInputs.renderCopyButton,
+      renderSnippet: viewInputs.renderSnippet,
       renderHeadingLink: viewInputs.renderHeadingLink,
     }),
 )

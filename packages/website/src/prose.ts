@@ -128,7 +128,7 @@ export const headingWithContent = (
 }
 
 export const para = (...content: ReadonlyArray<string | Html>): Html =>
-  ih.p([ih.Class('mb-5 leading-7')], content)
+  ih.p([ih.Class('mb-5 leading-7 md:leading-[1.875rem]')], content)
 
 export const subPara = (...content: ReadonlyArray<string | Html>): Html =>
   ih.p(
@@ -188,7 +188,14 @@ export const infoCallout = (
         ],
         [Icon.informationCircle('w-5 h-5 shrink-0'), ih.span([], [label])],
       ),
-      ih.p([ih.Class('text-gray-700 dark:text-gray-300 leading-7')], content),
+      ih.p(
+        [
+          ih.Class(
+            'text-gray-700 dark:text-gray-300 leading-7 md:leading-[1.875rem]',
+          ),
+        ],
+        content,
+      ),
     ],
   )
 
@@ -221,7 +228,14 @@ export const warningCallout = (
         ],
         [Icon.exclamationTriangle('w-5 h-5 shrink-0'), ih.span([], [label])],
       ),
-      ih.p([ih.Class('text-gray-700 dark:text-gray-300 leading-7')], content),
+      ih.p(
+        [
+          ih.Class(
+            'text-gray-700 dark:text-gray-300 leading-7 md:leading-[1.875rem]',
+          ),
+        ],
+        content,
+      ),
     ],
   )
 
@@ -252,7 +266,7 @@ const calloutBlocks = (
       ih.div(
         [
           ih.Class(
-            'text-gray-700 dark:text-gray-300 [&>p]:leading-7 [&>p:last-child]:mb-0',
+            'text-gray-700 dark:text-gray-300 [&>p]:leading-7 md:[&>p]:leading-[1.875rem] [&>p:last-child]:mb-0',
           ),
         ],
         config.blocks,

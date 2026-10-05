@@ -65,6 +65,25 @@ With this set, the dev server converts HTML page requests to Web `Request` value
 
 Vite retains ownership of configured proxy routes before Foldkit handles application requests. Vite's `server.cors` option applies to Vite-owned source modules, assets, and HMR. It does not add headers to application responses or answer their preflights. Preflight ownership follows `Access-Control-Request-Method`, so a preflight for an application `POST` reaches `renderPage` even when its path looks like an asset. An `OPTIONS` request without both `Origin` and `Access-Control-Request-Method` is not a preflight and also reaches `renderPage`. Define application CORS in `renderPage`, where development and the deployed host share one policy. Vite's `allowedHosts` check runs before proxy and application handling, including `OPTIONS` and methods the Web `Request` API cannot represent.
 
+## Foldkit package resolution
+
+Each module graph must load one Foldkit copy. The plugin configures Vite for that:
+
+- `resolve.dedupe` lists `foldkit`, `@foldkit/ui`, and `@foldkit/devtools`, each only when it resolves from the application root.
+- Server builds and the dev server's server render bundle those three packages, plus every installed package whose `dependencies` or `peerDependencies` include `foldkit` or an `@foldkit/*` package, such as `@foldkit/markdown`. In the dev server, these `ssr.noExternal` packages run through Vite's module runner instead of Node's own import. An explicit `ssr.external` entry still keeps a package external.
+- The plugin finds these packages by crawling from the application's `package.json`. It follows the application's `dependencies` and `devDependencies`, then the `dependencies` of each package it bundles, plus the `devDependencies` of a bundled package that is a private workspace package.
+
+A package the crawl does not reach stays external. For example: a peer the application does not declare, or a package reached only through a package that does not depend on Foldkit. Such a package loads a second Foldkit copy from `node_modules` at runtime. Declare it in the application's `package.json`, or add it to `ssr.noExternal`:
+
+```typescript
+export default defineConfig({
+  plugins: [foldkit()],
+  ssr: { noExternal: ['foldkit-component-library'] },
+})
+```
+
+Vitest copies SSR `noExternal` into `server.deps.inline`. A Vitest config that includes `foldkit()` therefore also inlines the crawled packages in tests.
+
 ## Completed build metadata
 
 Deployment tools that run Vite in process can read `foldkit:build` through Vite's standard plugin `api` field. Await the full application build before reading:

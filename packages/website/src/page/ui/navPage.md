@@ -20,7 +20,7 @@ Nav is stateless. There is no `Nav.Model` and no `Nav.update`: the current item 
 
 ::Demo{name="basic"}
 
-::Snippet{name="uiNavBasic" label="nav example"}
+::Snippet{name="uiNavBasic" label="Nav"}
 
 ## Styling
 

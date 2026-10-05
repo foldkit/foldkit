@@ -8,7 +8,7 @@ Event attributes complete the loop. They produce Messages for the runtime to dis
 
 In the [restaurant analogy](/core/architecture#the-restaurant-analogy), view is the meal on the table. The Model records the current facts; view presents them.
 
-::Snippet{name="counterView" label="view example"}
+::Snippet{name="counterView" label="Using view"}
 
 :::Info{label="No hook rules"}
 React functional components can hold local state and run effects through hooks, which introduces ordering rules. A Foldkit view has neither hooks nor local state. It is a function from Model to Html.
@@ -35,7 +35,7 @@ A `makeElement` view returns `Html` directly. An embedded app does not own the p
 
 `lang` and `dir` sync to the `<html>` element. Drive them from the Model when the application can switch languages at runtime, just as `title` tracks the current page.
 
-::Snippet{name="documentLanguage" label="Localized document example"}
+::Snippet{name="documentLanguage" label="Localized document"}
 
 `dir` accepts `'Ltr'`, `'Rtl'`, or `'Auto'`. The runtime writes the corresponding lowercase attribute value. `Auto` delegates to the browser's first-strong-character heuristic. If the Model stores direction rather than deriving it, use the `TextDirection` Schema exported by `foldkit/html`.
 
@@ -63,7 +63,7 @@ A route may intentionally name another page as canonical. For example: later pag
 
 Every view receives `h`, an `HtmlBuilder` typed to the application's Message union. Elements, attributes, and handlers all come from this builder:
 
-::Snippet{name="htmlHelpers" label="HTML helpers example"}
+::Snippet{name="htmlHelpers" label="HTML helpers"}
 
 The Message type follows the builder. If `h.OnClick` receives a Message outside the application union, TypeScript rejects it. The root runtime supplies its builder, and `Submodel.defineView` supplies one for each child view.
 
@@ -94,7 +94,7 @@ Only ever pass content you control to these. A value built from user input, a UR
 
 Event attributes return Messages instead of mutating state. Pass a Message directly for a simple event, or use a function that translates event data into a Message:
 
-::Snippet{name="eventHandling" label="event handling example"}
+::Snippet{name="eventHandling" label="Event handling"}
 
 `h.OnClick` takes a Message. `h.OnInput` takes a function because the input value becomes part of the Message. Both remain declarative: view reports what happened, and update decides what follows.
 
@@ -104,7 +104,7 @@ Clicks allow the browser default and bubble to ancestors unless you say otherwis
 
 A handler can do more than return a one-line Message. The constraint is purity, not size. It may branch on event data, read Model-derived state from view scope, and return `Option<Message>` when only some events should dispatch:
 
-::Snippet{name="eventHandlingComplex" label="complex handler example"}
+::Snippet{name="eventHandlingComplex" label="Complex handler"}
 
 For `OnKeyDownPreventDefault`, returning `Some` claims the key. Foldkit suppresses the browser's default action and dispatches the Message. Returning `None` leaves the key to the browser.
 
@@ -118,7 +118,7 @@ Use `OnFocusEnter` and `OnFocusLeave` when several elements share one focus stat
 
 Imagine a text editor and its formatting toolbar. Focusing the editor dispatches `EnteredEditorRegion`. Moving from the editor into a toolbar button dispatches nothing, so the toolbar stays visible. Moving from either one to an element outside the region dispatches `LeftEditorRegion`.
 
-::Snippet{name="eventHandlingFocusBoundary" label="Focus region example"}
+::Snippet{name="eventHandlingFocusBoundary" label="Focus region"}
 
 The attributes use the bubbling `focusin` and `focusout` events, so the common ancestor does not need a `tabindex`. Foldkit reads the related target and performs the containment check inside its own event handler. View code receives no DOM event or element.
 
@@ -136,7 +136,7 @@ Two constraints account for most uses. `event.preventDefault()` must run before 
 
 `OnCancelPreventDefault` always suppresses a cancel event's default action. A native cancel event dispatches no Message. A `CustomEvent` dispatches the optional Message, so an application-owned cancel signal can use the same event name without treating native cancellation as a state change. Dialog uses this distinction to ignore the native cancel event observed when a file picker closes and map `Dom.showDialog`'s signal for an unhandled Escape to `RequestedClose`.
 
-::Snippet{name="eventHandlerSideEffects" label="event handler side effects example"}
+::Snippet{name="eventHandlerSideEffects" label="Event handler side effects"}
 
 The iOS keyboard case has one extra constraint: the target must already exist when the user taps. An input inside a closed dialog does not. Keep an always-present, visually hidden text input as a keyboard warmup and pass its selector as `focusSelector` to `OnClick`. The same attribute dispatches the Message that opens the dialog. Update can then return a `Dom.focus` Command to move focus to the real input after it mounts, while iOS keeps the keyboard open.
 

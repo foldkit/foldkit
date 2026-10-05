@@ -14,7 +14,7 @@ The switch renders as a `<button>` with `role="switch"`. The typical visual is a
 
 ::Demo{name="basic"}
 
-::Snippet{name="uiSwitchBasic" label="switch example"}
+::Snippet{name="uiSwitchBasic" label="Switch"}
 
 ## Styling
 

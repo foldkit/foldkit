@@ -12,13 +12,9 @@ Each skill is a directory with a `SKILL.md` file. The file tells an agent when t
 
 Add the Foldkit marketplace, then install the plugin:
 
-```text
-/plugin marketplace add foldkit/foldkit
-```
+::Snippet{name="aiSkillsAddMarketplace" label="Add the Foldkit marketplace"}
 
-```text
-/plugin install foldkit-skills@foldkit
-```
+::Snippet{name="aiSkillsInstallPlugin" label="Install the Foldkit skills plugin"}
 
 ### Codex
 
@@ -42,10 +38,7 @@ OpenCode reads the `SKILL.md` frontmatter directly and ignores `agents/openai.ya
 
 ### foldkit
 
-```text
-Claude Code: /foldkit-skills:foldkit
-Codex: $foldkit
-```
+::Snippet{name="aiSkillsFoldkitInvocations" label="Foldkit skill invocations"}
 
 Loads the architectural framing for work in a Foldkit codebase. It directs the agent to the vendored source and examples, treats the Elm Architecture as a constraint, distinguishes stateful Submodels from stateless UI helpers, and checks the Foldkit and Effect stack before introducing another library.
 
@@ -53,18 +46,12 @@ Hosts that support implicit skill invocation can select it when the project or p
 
 ### generate-program
 
-```text
-Claude Code: /foldkit-skills:generate-program
-Codex: $generate-program
-```
+::Snippet{name="aiSkillsGenerateProgramInvocations" label="Generate-program skill invocations"}
 
 Builds an idiomatic Foldkit application from a natural-language description. The workflow clarifies domain behavior, studies matching examples, chooses the application structure and Foldkit UI components, verifies current APIs, writes tests, and runs the project's formatting, lint, typecheck, build, and browser checks.
 
 ### audit-program
 
-```text
-Claude Code: /foldkit-skills:audit-program
-Codex: $audit-program
-```
+::Snippet{name="aiSkillsAuditProgramInvocations" label="Audit-program skill invocations"}
 
 Audits an existing Foldkit application against the architecture and conventions. It reports findings under `BLOCKERS`, `QUALITY`, and `NICE-TO-HAVE`, then gives a verdict. The audit remains read-only until the user reviews the report and explicitly approves individual fixes or a batch.

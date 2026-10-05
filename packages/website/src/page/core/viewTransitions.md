@@ -10,7 +10,7 @@ The API expects the DOM update to happen inside `document.startViewTransition(ca
 
 Pass a predicate. Before each render it decides whether that render should animate. It is a total function over your Message union, so animation is opted into one Message at a time. Returning `true` only for `ChangedUrl` animates navigation and leaves every other Message, whatever your application has, rendering plainly:
 
-::Snippet{name="viewTransitionRouteChanges" label="viewTransition on makeApplication"}
+::Snippet{name="viewTransitionRouteChanges" label="Using viewTransition on makeApplication"}
 
 Return `false` for a plain render, exactly as cheap as before. Return `true` to wrap the render in a transition. With no extra CSS, the browser cross-fades the whole page.
 

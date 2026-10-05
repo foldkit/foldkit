@@ -22,7 +22,7 @@ Pass an `itemToConfig` callback that maps each item to its content. The context 
 
 ::Demo{name="basic"}
 
-::Snippet{name="uiListboxBasic" label="listbox example"}
+::Snippet{name="uiListboxBasic" label="Listbox"}
 
 ### Multi-select
 
@@ -30,7 +30,7 @@ Use `Listbox.Multi` for multi-selection. The dropdown stays open on selection an
 
 ::Demo{name="multi-select"}
 
-::Snippet{name="uiListboxMulti" label="multi-select listbox example"}
+::Snippet{name="uiListboxMulti" label="Multi-select listbox"}
 
 ### Grouped
 
@@ -38,7 +38,7 @@ Pass `itemGroupKey` to group contiguous items by key, and `groupToHeading` to re
 
 ::Demo{name="grouped"}
 
-::Snippet{name="uiListboxGrouped" label="grouped listbox example"}
+::Snippet{name="uiListboxGrouped" label="Grouped listbox"}
 
 ## Read-Only
 

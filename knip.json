@@ -21,6 +21,7 @@
         "src/brand/public.ts",
         "src/experimental/public.ts",
         "src/experimental/machine/public.ts",
+        "src/experimental/query/public.ts",
         "src/experimental/server/public.ts",
         "src/html/public.ts",
         "src/devTools/public.ts",

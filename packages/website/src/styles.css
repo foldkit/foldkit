@@ -221,7 +221,7 @@ html.dark {
   }
 
   .docs-content {
-    @apply w-full min-w-0 mx-auto px-6 py-8 md:px-8 xl:px-12 2xl:py-12 font-book leading-7;
+    @apply w-full min-w-0 mx-auto px-6 py-8 md:px-8 xl:px-12 2xl:py-12 font-book leading-7 md:leading-[1.875rem];
     max-width: var(--docs-content-width);
   }
 
@@ -256,6 +256,10 @@ html.dark {
 
   .code-surface {
     @apply bg-[var(--code-background)] text-[var(--code-foreground)];
+  }
+
+  .snippet-code-content pre {
+    @apply rounded-none border-0;
   }
 
   .docs-disclosure-button {
@@ -649,6 +653,10 @@ html.dark {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  [data-snippet-disclosure-layout] > :first-child {
+    transition: none !important;
+  }
+
   .solari-character {
     transition: none;
   }

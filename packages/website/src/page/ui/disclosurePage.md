@@ -16,7 +16,7 @@ Provide a `toView` callback that receives the `button` and `panel` attribute bun
 
 ::Demo{name="basic"}
 
-::Snippet{name="uiDisclosureBasic" label="disclosure example"}
+::Snippet{name="uiDisclosureBasic" label="Disclosure"}
 
 The example renders the panel unconditionally and passes it through `animatePanel`, which wraps the content in a CSS-grid container that transitions its height, keeping the panel mounted while collapsed so there is something to animate. To skip the animation, render the panel only while `isOpen`.
 
@@ -26,7 +26,7 @@ A collapsed preview keeps some of its panel visually on screen while closed. Pas
 
 ::Demo{name="collapsedPreview"}
 
-::Snippet{name="uiDisclosureCollapsedPreview" label="collapsed preview example"}
+::Snippet{name="uiDisclosureCollapsedPreview" label="Collapsed preview"}
 
 The preview is visual only. While the disclosure is closed, `animatePanel` marks the whole panel inert and hides it from assistive technology. Links, buttons, and other controls inside the panel cannot receive focus or interaction until it opens. Keep controls that must remain available, such as a code block's copy button, outside the panel.
 

@@ -84,7 +84,7 @@ const titleAttributes = (
 export const docViews = (config: DocViewConfig): Partial<Markdown.Views> => {
   return {
     Paragraph: (_paragraph, content) =>
-      ih.p([ih.Class('mb-5 leading-7')], content),
+      ih.p([ih.Class('mb-5 leading-7 md:leading-[1.875rem]')], content),
 
     Link: (link, content) =>
       ih.a(

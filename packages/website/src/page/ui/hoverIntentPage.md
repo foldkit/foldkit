@@ -14,7 +14,7 @@ Hover over or focus the “More information” trigger, then move the pointer in
 
 ::Demo{name="hover-card"}
 
-::Snippet{name="uiHoverIntentBasic" label="hover card example"}
+::Snippet{name="uiHoverIntentBasic" label="Hover card"}
 
 ### Hover Menu
 
@@ -22,7 +22,7 @@ Hover over or focus the “Actions” trigger, then move the pointer into the me
 
 ::Demo{name="hover-menu"}
 
-::Snippet{name="uiHoverIntentMenu" label="hover menu example"}
+::Snippet{name="uiHoverIntentMenu" label="Hover menu"}
 
 Spread `trigger` onto the trigger element and `panel` onto the panel element. Each bundle supplies the hover, focus, and Escape handlers for that element. The `h.submodel` boundary routes the resulting child Messages back to the parent.
 

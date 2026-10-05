@@ -1,3 +1,4 @@
+// ✅ Reset the child through its own update.
 // CHILD
 
 import { Message as ChildMessage } from './message'

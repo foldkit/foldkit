@@ -18,7 +18,7 @@ Horizontal is the default orientation. The thumb's center sits on the value poin
 
 ::Demo{name="horizontal"}
 
-::Snippet{name="uiSliderBasic" label="slider example"}
+::Snippet{name="uiSliderBasic" label="Slider"}
 
 ### Vertical
 

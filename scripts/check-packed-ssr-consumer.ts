@@ -23,12 +23,13 @@ import { pathToFileURL } from 'node:url'
 //
 // What this gate holds:
 //
-//   1. The server artifact contains Foldkit and its installed UI package, with
-//      no bare import that would load a second framework instance at runtime.
+//   1. The server artifact contains Foldkit, its installed UI package, and the
+//      installed `@foldkit/markdown`, with no bare import that would load a
+//      second framework instance at runtime.
 //   2. One generated deployment id reaches Foldkit in the client and server
 //      artifacts without application forwarding.
-//   3. An installed UI view that uses `childAttributes` renders against the
-//      bundled Foldkit runtime.
+//   3. An installed UI view that uses `childAttributes` and an installed
+//      markdown view render against the bundled Foldkit runtime.
 //   4. Hydration of a same-build page keeps the root and the input element, so
 //      live DOM state the markup never carried survives.
 //   5. A parser-upgraded Custom Element with view-owned light DOM is replaced.
@@ -43,8 +44,10 @@ const REPO_ROOT = process.cwd()
 const FOLDKIT_DIR = 'packages/foldkit'
 const PLUGIN_DIR = 'packages/vite-plugin-foldkit'
 const UI_DIR = 'packages/ui'
+const MARKDOWN_DIR = 'packages/markdown'
 
 const TYPED_VALUE = 'typed-before-hydration'
+const PACKED_MARKDOWN_TEXT = 'Packed markdown paragraph'
 const PORT = 5199
 const ORIGIN = `http://127.0.0.1:${PORT}`
 const DOM_COMMIT_TIMEOUT_MS = 10_000
@@ -172,7 +175,7 @@ const CONSUMER_FIXTURES: ReadonlyArray<ConsumerFixture> = [
   },
   {
     path: 'src/main.ts',
-    values: { SERVER_ONLY_PIN },
+    values: { SERVER_ONLY_PIN, PACKED_MARKDOWN_TEXT },
   },
   { path: 'vite.config.ts' },
   { path: 'scripts/entrypoints.mjs' },
@@ -235,6 +238,7 @@ const writeConsumerProject = (
   foldkitTarball: string,
   pluginTarball: string,
   uiTarball: string,
+  markdownTarball: string,
 ): void => {
   const foldkitManifest = readJson<Manifest>(
     join(REPO_ROOT, FOLDKIT_DIR, 'package.json'),
@@ -264,6 +268,7 @@ const writeConsumerProject = (
         scripts: { build: 'vite build' },
         dependencies: {
           '@effect/platform-browser': platformBrowserVersion,
+          '@foldkit/markdown': `file:${markdownTarball}`,
           '@foldkit/ui': `file:${uiTarball}`,
           effect: effectVersion,
           foldkit: `file:${foldkitTarball}`,
@@ -324,19 +329,23 @@ const FOLDKIT_SINGLETON_PACKAGES: ReadonlyArray<string> = [
 const importSpecifiers = (source: string): ReadonlyArray<string> =>
   [...source.matchAll(IMPORT_SPECIFIER)].map(match => match[1] ?? '')
 
+const isPackageSpecifier =
+  (packageName: string) =>
+  (specifier: string): boolean =>
+    specifier === packageName || specifier.startsWith(`${packageName}/`)
+
 const isFoldkitSingletonPackageSpecifier = (specifier: string): boolean =>
-  FOLDKIT_SINGLETON_PACKAGES.some(
-    packageName =>
-      specifier === packageName || specifier.startsWith(`${packageName}/`),
+  FOLDKIT_SINGLETON_PACKAGES.some(packageName =>
+    isPackageSpecifier(packageName)(specifier),
   )
+
+const isMarkdownPackageSpecifier = isPackageSpecifier('@foldkit/markdown')
 
 // A string that only exists inside Foldkit's own source. If the server bundle
 // inlined the framework rather than importing it, this travels with it.
 const FOLDKIT_INTERNAL_MARKER = 'data-foldkit-build'
 
-const assertServerBundleContainsFoldkitSingletons = (
-  buildDir: string,
-): void => {
+const assertServerBundleContainsFoldkitPackages = (buildDir: string): void => {
   const bundle = readFileSync(join(buildDir, 'server/fetch.js'), 'utf8')
   const specifiers = importSpecifiers(bundle)
   assertConsumer(
@@ -359,7 +368,17 @@ const assertServerBundleContainsFoldkitSingletons = (
     'the server bundle contains no Foldkit build marker, so the framework was ' +
       'not bundled into the artifact that renders pages.',
   )
-  log('Server bundle contains Foldkit singletons and no bare imports')
+  const externalMarkdownImports = specifiers.filter(isMarkdownPackageSpecifier)
+
+  assertConsumer(
+    externalMarkdownImports.length === 0,
+    'the server bundle imports @foldkit/markdown externally, so its Foldkit ' +
+      'imports load a second framework instance at runtime: ' +
+      [...new Set(externalMarkdownImports)].join(', '),
+  )
+  log(
+    'Server bundle contains Foldkit singletons and @foldkit/markdown, with no bare imports',
+  )
 }
 
 const clientBundleSources = (buildDir: string): ReadonlyArray<string> => {
@@ -1408,13 +1427,15 @@ const main = async (): Promise<void> => {
   try {
     if (!isSkipBuild) {
       runRequired(
-        'Building foldkit, @foldkit/ui, and @foldkit/vite-plugin...',
+        'Building foldkit, @foldkit/ui, @foldkit/markdown, and @foldkit/vite-plugin...',
         'pnpm',
         [
           '--filter',
           'foldkit',
           '--filter',
           '@foldkit/ui',
+          '--filter',
+          '@foldkit/markdown',
           '--filter',
           '@foldkit/vite-plugin',
           'build',
@@ -1432,9 +1453,20 @@ const main = async (): Promise<void> => {
     tarballPaths.push(pluginTarball)
     const uiTarball = packPackage('Packing @foldkit/ui...', UI_DIR)
     tarballPaths.push(uiTarball)
+    const markdownTarball = packPackage(
+      'Packing @foldkit/markdown...',
+      MARKDOWN_DIR,
+    )
+    tarballPaths.push(markdownTarball)
 
     await withTempDir('foldkit-packed-ssr-', async projectDir => {
-      writeConsumerProject(projectDir, foldkitTarball, pluginTarball, uiTarball)
+      writeConsumerProject(
+        projectDir,
+        foldkitTarball,
+        pluginTarball,
+        uiTarball,
+        markdownTarball,
+      )
 
       // NOTE: the plugin's `foldkit` peer floor names the first release that
       // ships the server export, which the packed workspace copy only reaches
@@ -1483,8 +1515,8 @@ const main = async (): Promise<void> => {
         },
       )
 
-      assertServerBundleContainsFoldkitSingletons(servedDir)
-      assertServerBundleContainsFoldkitSingletons(currentDir)
+      assertServerBundleContainsFoldkitPackages(servedDir)
+      assertServerBundleContainsFoldkitPackages(currentDir)
       assertPackedTypesResolve(projectDir)
       assertNoSourceOracle(servedDir)
 
@@ -1521,6 +1553,13 @@ const main = async (): Promise<void> => {
         'the installed @foldkit/ui navigation did not render on the server.',
       )
       log('Installed @foldkit/ui rendered against the bundled Foldkit runtime')
+      assertConsumer(
+        same.includes(PACKED_MARKDOWN_TEXT),
+        'the installed @foldkit/markdown paragraph did not render on the server.',
+      )
+      log(
+        'Installed @foldkit/markdown rendered against the bundled Foldkit runtime',
+      )
       const buildIdFrom = (page: string, buildDir: string): string => {
         const buildId = /data-foldkit-build="([^"]+)"/.exec(page)?.[1]
         assertConsumer(

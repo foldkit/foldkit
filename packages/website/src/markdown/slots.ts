@@ -37,6 +37,7 @@ export type Slots<DemoName extends string> = Readonly<{
    * dispatching through its actual owner rather than the page's boundary.
    */
   renderCopyButton: CodeBlock.RenderCopyButton
+  renderSnippet: CodeBlock.RenderSnippet
   renderHeadingLink: RenderHeadingLink
 }>
 

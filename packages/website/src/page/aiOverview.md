@@ -14,7 +14,7 @@ Architecture is only half of the context. APIs and conventions change, so the ag
 
 Vendor the Foldkit repository into your project as a git subtree, pinned to the release you have installed:
 
-::Snippet{name="aiOverviewAddSubtree" label="vendor the Foldkit repository"}
+::Snippet{name="aiOverviewAddSubtree" label="Vendor the Foldkit repository"}
 
 Each stable release publishes a `foldkit@<version>` git tag, and the command reads the installed version from `node_modules`, so the vendored copy describes the APIs your app compiles against. Vendoring `main` instead can hand an agent examples and docs from a release you have not installed. A canary install has no tag; its version names its source commit (`0.156.0-canary.<commit>`), and the full hash of that commit is the ref to pin instead. GitHub expands the short hash at `https://github.com/foldkit/foldkit/commit/<commit>`.
 
@@ -24,7 +24,7 @@ Unlike a submodule, a subtree is committed with your repository. Teammates, CI r
 
 The subtree does not move on its own. After upgrading your Foldkit packages, re-pin it to the release you now have:
 
-::Snippet{name="aiOverviewRefreshSubtree" label="refresh the Foldkit repository"}
+::Snippet{name="aiOverviewRefreshSubtree" label="Refresh the Foldkit repository"}
 
 ## Keeping FOLDKIT.md Current
 

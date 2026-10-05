@@ -41,6 +41,7 @@ const coverImageView = (cover: PostCover): Html =>
 export const view = (
   post: BlogPost,
   renderCopyButton: CodeBlock.RenderCopyButton,
+  renderSnippet: CodeBlock.RenderSnippet,
   renderHeadingLink: Prose.RenderHeadingLink,
 ): Html =>
   ih.article(
@@ -63,6 +64,7 @@ export const view = (
       ),
       docPage(post.document, post.slug).view(
         renderCopyButton,
+        renderSnippet,
         renderHeadingLink,
       ),
     ],

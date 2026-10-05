@@ -16,7 +16,7 @@ Hover or tab into the trigger to reveal the tooltip. Hover waits for `showDelay`
 
 ::Demo{name="demo"}
 
-::Snippet{name="uiTooltipBasic" label="tooltip example"}
+::Snippet{name="uiTooltipBasic" label="Tooltip"}
 
 ## Styling
 

@@ -12,7 +12,7 @@ Import the steps you need from `foldkit/scene`. Use named imports when the file 
 
 Locators find elements by role, label, visible text, and other user-facing properties. A `Locator` resolves to one match. Interactions and assertions also accept a raw CSS selector when no accessible query fits.
 
-::Snippet{name="sceneLocators" label="locator examples"}
+::Snippet{name="sceneLocators" label="Locator API"}
 
 | Locator                  | Finds                                                                                           | Example                            |
 | ------------------------ | ----------------------------------------------------------------------------------------------- | ---------------------------------- |
@@ -40,7 +40,7 @@ When an ancestor and one of its descendants both match, `text` returns the desce
 
 `role` is the usual starting point. Its optional second argument narrows the match by accessible name or ARIA state.
 
-::Snippet{name="sceneRole" label="role examples"}
+::Snippet{name="sceneRole" label="Role locators"}
 
 | Option     | Type                                                            | Matches                                                                                                                                             |
 | ---------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -68,13 +68,13 @@ Anything else, such as `>`, `,`, or `:first-child`, throws an error that lists t
 
 `within(parent, child)` scopes a single locator to a parent element. `inside(parent, ...steps)` scopes a whole block of steps. Every assertion or interaction inside the block resolves within the parent’s subtree. Use `within` for one-off scoped queries; use `inside` when several steps share the same scope. Nested `inside` calls compose.
 
-::Snippet{name="sceneScoping" label="scoping examples"}
+::Snippet{name="sceneScoping" label="Scoped locators"}
 
 ### Multi-Match
 
 For lists and repeated elements, the `all.*` factories return every match. Pick one with `first`, `last`, or `nth(index)`, or narrow the set with `filter`.
 
-::Snippet{name="sceneMultiMatch" label="multi-match examples"}
+::Snippet{name="sceneMultiMatch" label="Multiple matches"}
 
 | Filter option | Keeps matches where                                            |
 | ------------- | -------------------------------------------------------------- |
@@ -87,7 +87,7 @@ For lists and repeated elements, the `all.*` factories return every match. Pick 
 
 An interaction invokes the matched element's event handler. If the handler produces a Message, Scene feeds it through update and renders the next view.
 
-::Snippet{name="sceneInteractions" label="interaction examples"}
+::Snippet{name="sceneInteractions" label="Interactions"}
 
 | Step                                   | Invokes                                                                                                                       |
 | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
@@ -120,7 +120,7 @@ Pass `Option.some(text)` to `beforeInput` for an edit that carries text and `Opt
 
 Property, state, and accessibility matchers require the Locator to match an element, including their `.not` variants. Use `.toBeAbsent()` or `.not.toExist()` when the intended assertion is that no element matches.
 
-::Snippet{name="sceneAssertions" label="assertion examples"}
+::Snippet{name="sceneAssertions" label="Assertions"}
 
 | Matcher                                     | Asserts that the element                                                                                                                           |
 | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -171,7 +171,7 @@ When update returns Commands, Scene keeps them pending until the test supplies t
 - Interactions throw if there are unresolved Commands when they try to dispatch a Message.
 - `scene` throws at the end if any Command remains unresolved.
 
-::Snippet{name="sceneCommandAssertions" label="command assertions example"}
+::Snippet{name="sceneCommandAssertions" label="Command assertions"}
 
 | Step                                                 | Effect                                                                                                                                                                                                                                       |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -198,7 +198,7 @@ This applies to Mounts declared inside `@foldkit/ui` components too. Popovers, d
 - Interactions throw if there are unresolved mounts or unacknowledged unmounts when they try to dispatch a Message. Same contract as Commands.
 - `scene` throws at the end if any mount remains unresolved.
 
-::Snippet{name="sceneMountAssertions" label="mount assertions example"}
+::Snippet{name="sceneMountAssertions" label="Mount assertions"}
 
 | Step                                          | Effect                                                                                                                                                                                                                            |
 | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -215,7 +215,7 @@ UI components export their Mount definitions (`Popover.AnchorPopover`, `Listbox.
 
 A Subscription Message has no element to interact with. `Subscription.emit(message)` feeds a timer tick, WebSocket frame, global listener result, or other Subscription output through update and renders the next view.
 
-::Snippet{name="sceneSubscriptionEmit" label="Subscription emit example"}
+::Snippet{name="sceneSubscriptionEmit" label="Emitting a Subscription value"}
 
 Use it only when the Message's cause lives outside the rendered tree. If the Message comes from a button, click the button. That interaction verifies the handler wiring that `emit` would skip. `emit` throws while Commands, Mounts, or unacknowledged unmounts are pending.
 
@@ -229,7 +229,7 @@ These steps dispatch immediately and leave nothing pending. They are optional be
 
 Pass `acquire` exactly the arguments that `onAcquired` accepts. If `onAcquired` reads the acquired value, the test supplies it. If the hook ignores the value, the test supplies nothing.
 
-::Snippet{name="sceneManagedResourceSteps" label="ManagedResource steps example"}
+::Snippet{name="sceneManagedResourceSteps" label="ManagedResource steps"}
 
 | Step                                        | Effect                                                                              |
 | ------------------------------------------- | ----------------------------------------------------------------------------------- |
@@ -245,13 +245,13 @@ A [CustomElement](/core/custom-element) maps declared CustomEvents to Messages t
 
 The target must be in the rendered tree with that event handler attached. A missing element or handler throws.
 
-::Snippet{name="sceneCustomElementEmit" label="CustomElement emit example"}
+::Snippet{name="sceneCustomElementEmit" label="Emitting from a CustomElement"}
 
 ## OutMessages
 
 When the update under test can return an OutMessage, Scene tracks every OutMessage produced by the latest update-producing step. `expectOutMessage(expected)` asserts that the step emitted exactly one. `expectOutMessages(first, second, ...rest)` asserts several in runtime order. `expectNoOutMessage()` asserts that it emitted none.
 
-::Snippet{name="sceneOutMessageAssertions" label="OutMessage assertions example"}
+::Snippet{name="sceneOutMessageAssertions" label="OutMessage assertions"}
 
 A single interaction can drive several updates. A click may invoke a target handler, ancestor handlers, and then a form's submit handler. Scene collects their OutMessages in that same order.
 
@@ -261,7 +261,7 @@ Scene replaces the tracked sequence after every step that drives update. A step 
 
 A Submodel with ViewInputs has a `(model, viewInputs, h)` view. Scene expects `(model, h)`. `withViewInputs(view, defaults)` adapts the view once and returns a factory for Scene views.
 
-::Snippet{name="sceneWithViewInputs" label="withViewInputs example"}
+::Snippet{name="sceneWithViewInputs" label="Using withViewInputs"}
 
 Each test can override any ViewInputs field except `toView`, so values vary while the renderer stays fixed. See `packages/ui/src/slider/scene.test.ts` for a complete example.
 
@@ -269,7 +269,7 @@ Each test can override any ViewInputs field except `toView`, so values vary whil
 
 Here’s a Scene test for a weather app. The user types a zip code, requests the weather, sees the loading state, and then sees the forecast.
 
-::Snippet{name="sceneWeatherFlow" label="Scene weather example"}
+::Snippet{name="sceneWeatherFlow" label="Weather search Scene test"}
 
 The interactions use a label, a role, and a placeholder. The Command result stays beside the interaction that produced it.
 
