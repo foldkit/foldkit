@@ -20,7 +20,7 @@ Every row uses the same height, configured through `rowHeightPx`. Prefer this pa
 
 ::Demo{name="fixed"}
 
-::Snippet{name="uiVirtualListBasic" label="virtual list example"}
+::Snippet{name="uiVirtualListBasic" label="Fixed-height VirtualList"}
 
 ### Known variable heights
 
@@ -28,7 +28,7 @@ Pass `itemToRowHeightPx` when the application already knows each row's exact hei
 
 ::Demo{name="variable"}
 
-::Snippet{name="uiVirtualListVariable" label="variable-height virtual list example"}
+::Snippet{name="uiVirtualListVariable" label="Known variable-height VirtualList"}
 
 ### End-anchored dynamic heights
 
@@ -40,7 +40,7 @@ An initial index, key, offset, or end target remains pending if the list mounts 
 
 ::Demo{name="chat"}
 
-::Snippet{name="uiVirtualListChat" label="end-anchored dynamic-height list"}
+::Snippet{name="uiVirtualListChat" label="End-anchored dynamic-height VirtualList"}
 
 ## Programmatic scrolling
 
