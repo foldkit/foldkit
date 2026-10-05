@@ -147,4 +147,24 @@ describe('handleRequest', () => {
     expect(response.status).toBe(200)
     expect(await response.text()).toBe('')
   })
+
+  it('cancels a streamed response body for HEAD', async () => {
+    let isCanceled = false
+    const body = new ReadableStream({
+      cancel() {
+        isCanceled = true
+      },
+    })
+    const response = await handleRequest(
+      new Request(`${ORIGIN}/`, { method: 'HEAD' }),
+      {
+        renderPage: async () => Responded(new Response(body)),
+        template: TEMPLATE,
+      },
+    )
+
+    expect(response.status).toBe(200)
+    expect(await response.text()).toBe('')
+    expect(isCanceled).toBe(true)
+  })
 })

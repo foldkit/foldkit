@@ -1,5 +1,12 @@
 import { Config, Effect, Fiber, Option } from 'effect'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises'
 import { createServer, request } from 'node:http'
 import { createConnection } from 'node:net'
 import { tmpdir } from 'node:os'
@@ -11,6 +18,8 @@ import { serve } from '../src/index.ts'
 type BuildFixture = Readonly<{
   abortStartedPath: string
   abortedPath: string
+  canceledPath: string
+  clientDirectory: string
   manifestPath: string
   rootDirectory: string
 }>
@@ -99,6 +108,7 @@ const createFixture = async (
   const viteRootDirectory = join(rootDirectory, 'application')
   const abortStartedPath = join(rootDirectory, 'abort-started')
   const abortedPath = join(rootDirectory, 'aborted')
+  const canceledPath = join(rootDirectory, 'canceled')
   const clientDirectory = join(viteRootDirectory, 'generated', 'browser')
   const serverDirectory = isServerOutsideRoot
     ? join(rootDirectory, 'runtime')
@@ -153,6 +163,31 @@ export default {
         ),
       )
     }
+    if (new URL(request.url).pathname === '/head-stream') {
+      return Promise.resolve(new Response(new ReadableStream({
+        cancel() {
+          return writeFile(${JSON.stringify(abortedPath)}, 'canceled')
+        },
+      })))
+    }
+    if (new URL(request.url).pathname === '/cancel-stream') {
+      return Promise.resolve(new Response(new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('STREAM-CHUNK'))
+        },
+        cancel() {
+          return writeFile(${JSON.stringify(canceledPath)}, 'canceled')
+        },
+      })))
+    }
+    if (new URL(request.url).pathname === '/cookies') {
+      return Promise.resolve(new Response('cookies', {
+        headers: [
+          ['set-cookie', 'sid=app; Path=/app; HttpOnly'],
+          ['set-cookie', 'sid=gone; Path=/; Max-Age=0; HttpOnly'],
+        ],
+      }))
+    }
     return Promise.resolve(new Response(new URL(request.url).toString(), {
       headers: { 'set-cookie': 'visitor=foldkit' },
     }))
@@ -175,6 +210,8 @@ export default {
   return {
     abortStartedPath,
     abortedPath,
+    canceledPath,
+    clientDirectory,
     manifestPath,
     rootDirectory: viteRootDirectory,
   }
@@ -189,6 +226,106 @@ afterEach(async () => {
 })
 
 describe('serve', () => {
+  it('serves only files whose real paths remain within the client directory', async () => {
+    const fixture = await createFixture()
+    const outsideFile = join(fixture.rootDirectory, 'outside-secret.txt')
+    await writeFile(outsideFile, 'OUTSIDE-SECRET')
+    await symlink(outsideFile, join(fixture.clientDirectory, 'leak.txt'))
+    await symlink(
+      join(fixture.clientDirectory, 'asset.txt'),
+      join(fixture.clientDirectory, 'internal.txt'),
+    )
+    const port = await getAvailablePort()
+    const fiber = Effect.runFork(
+      serve({
+        port: Config.succeed(port),
+        origin: Config.succeed(Option.none()),
+        manifestPath: fixture.manifestPath,
+      }),
+    )
+
+    try {
+      const leaked = await waitForResponse(
+        `http://localhost:${String(port)}/leak.txt`,
+      )
+      expect(await leaked.text()).toBe(
+        `http://localhost:${String(port)}/leak.txt`,
+      )
+
+      const ranged = await fetch(`http://localhost:${String(port)}/leak.txt`, {
+        headers: { range: 'bytes=100-' },
+      })
+      expect(ranged.headers.has('content-range')).toBe(false)
+      expect(await ranged.text()).toBe(
+        `http://localhost:${String(port)}/leak.txt`,
+      )
+
+      const internal = await waitForResponse(
+        `http://localhost:${String(port)}/internal.txt`,
+      )
+      expect(await internal.text()).toBe('static asset')
+
+      const internalRange = await fetch(
+        `http://localhost:${String(port)}/internal.txt`,
+        { headers: { range: 'bytes=0-5' } },
+      )
+      expect(internalRange.status).toBe(206)
+      expect(await internalRange.text()).toBe('static')
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('preserves same-name cookies with different paths', async () => {
+    const fixture = await createFixture()
+    const port = await getAvailablePort()
+    const fiber = Effect.runFork(
+      serve({
+        port: Config.succeed(port),
+        origin: Config.succeed(Option.none()),
+        manifestPath: fixture.manifestPath,
+      }),
+    )
+
+    try {
+      const response = await waitForResponse(
+        `http://localhost:${String(port)}/cookies`,
+      )
+      expect(response.headers.getSetCookie()).toEqual([
+        'sid=app; Path=/app; HttpOnly',
+        'sid=gone; Path=/; Max-Age=0; HttpOnly',
+      ])
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('cancels a streamed Fetch body for HEAD', async () => {
+    const fixture = await createFixture()
+    const port = await getAvailablePort()
+    const fiber = Effect.runFork(
+      serve({
+        port: Config.succeed(port),
+        origin: Config.succeed(Option.none()),
+        manifestPath: fixture.manifestPath,
+      }),
+    )
+
+    try {
+      await waitForResponse(`http://localhost:${String(port)}/asset.txt`)
+
+      const response = await fetch(
+        `http://localhost:${String(port)}/head-stream`,
+        { method: 'HEAD' },
+      )
+      expect(response.status).toBe(200)
+      expect(await response.text()).toBe('')
+      await expect(waitForFile(fixture.abortedPath)).resolves.toBe('canceled')
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
   it('reads a versioned manifest to serve custom output paths and the fetch handler', async () => {
     const fixture = await createFixture()
     const port = await getAvailablePort()
@@ -411,6 +548,45 @@ describe('serve', () => {
       )
       await receivedResponse
       await expect(waitForFile(fixture.abortedPath)).resolves.toBe('aborted')
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('cancels the Fetch response body when a client disconnects during a stream', async () => {
+    const fixture = await createFixture()
+    const port = await getAvailablePort()
+    const fiber = Effect.runFork(
+      serve({
+        port: Config.succeed(port),
+        origin: Config.succeed(Option.none()),
+        manifestPath: fixture.manifestPath,
+      }),
+    )
+    try {
+      await waitForResponse(`http://localhost:${String(port)}/asset.txt`)
+
+      const client = createConnection({ host: 'localhost', port })
+      client.on('error', () => undefined)
+      const receivedBody = new Promise<void>(resolveData => {
+        let received = ''
+        client.on('data', chunk => {
+          received += chunk.toString()
+          if (received.includes('STREAM-CHUNK')) {
+            client.destroy()
+            resolveData()
+          }
+        })
+      })
+      client.on('connect', () => {
+        client.write(
+          'GET /cancel-stream HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n',
+        )
+      })
+
+      await receivedBody
+      await expect(waitForFile(fixture.canceledPath)).resolves.toBe('canceled')
+      client.destroy()
     } finally {
       await Effect.runPromise(Fiber.interrupt(fiber))
     }

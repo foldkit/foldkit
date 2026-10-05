@@ -1,5 +1,16 @@
-import { Config, Effect, Layer, Match, Option, Predicate, Schema } from 'effect'
 import {
+  Config,
+  Effect,
+  FileSystem,
+  Layer,
+  Match,
+  Option,
+  PlatformError,
+  Predicate,
+  Schema,
+} from 'effect'
+import {
+  HttpPlatform,
   HttpServer,
   HttpServerError,
   HttpServerRequest,
@@ -9,12 +20,15 @@ import {
 import { Server } from 'foldkit/experimental'
 import { readFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
-import { dirname, posix, relative, resolve } from 'node:path'
+import { dirname, isAbsolute, posix, relative, resolve, sep } from 'node:path'
+import { Readable } from 'node:stream'
+import { ReadableStream } from 'node:stream/web'
 import { pathToFileURL } from 'node:url'
 
 import {
   NodeHttpPlatform,
   NodeHttpServer,
+  NodeHttpServerRequest,
   NodeServices,
 } from '@effect/platform-node'
 
@@ -210,7 +224,94 @@ const fetchResponse = (
     const response = yield* Effect.promise(() =>
       app.fetch(new Request(requestUrl, webRequest)),
     )
-    return HttpServerResponse.fromWeb(response)
+    const headers = new Headers(response.headers)
+    const setCookieHeaders = headers.getSetCookie()
+    headers.delete('set-cookie')
+
+    if (setCookieHeaders.length > 0) {
+      NodeHttpServerRequest.toServerResponse(request).setHeader(
+        'set-cookie',
+        setCookieHeaders,
+      )
+    }
+
+    const responseOptions = {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    }
+    if (response.body === null) {
+      return HttpServerResponse.empty(responseOptions)
+    }
+
+    const webReader = response.body.getReader()
+    const nodeBody = Readable.fromWeb(
+      new ReadableStream<Uint8Array>({
+        async pull(controller) {
+          const chunk = await webReader.read()
+          if (chunk.done) {
+            controller.close()
+          } else {
+            controller.enqueue(chunk.value)
+          }
+        },
+        cancel: reason => webReader.cancel(reason),
+      }),
+    )
+    const nodeResponse = NodeHttpServerRequest.toServerResponse(request)
+    const destroyBody = () => nodeBody.destroy()
+    nodeResponse.once('close', destroyBody)
+    nodeBody.once('close', () => nodeResponse.off('close', destroyBody))
+    if (signal.aborted) {
+      nodeBody.destroy()
+    }
+
+    return HttpServerResponse.raw(nodeBody, responseOptions)
+  })
+
+const confinedStaticFiles = (clientDirectory: string) =>
+  Effect.gen(function* () {
+    const fileSystem = yield* FileSystem.FileSystem
+    const httpPlatform = yield* HttpPlatform.HttpPlatform
+    const root = yield* fileSystem.realPath(clientDirectory)
+
+    const confinedRealPath = (path: string) =>
+      Effect.flatMap(fileSystem.realPath(path), canonicalPath => {
+        const fromRoot = relative(root, canonicalPath)
+        const isContained =
+          fromRoot === '' ||
+          (fromRoot !== '..' &&
+            !fromRoot.startsWith(`..${sep}`) &&
+            !isAbsolute(fromRoot))
+        if (isContained) {
+          return Effect.succeed(canonicalPath)
+        }
+        return Effect.fail(
+          PlatformError.systemError({
+            _tag: 'NotFound',
+            module: 'FileSystem',
+            method: 'realPath',
+            pathOrDescriptor: path,
+          }),
+        )
+      })
+
+    const confinedFileSystem = FileSystem.FileSystem.of({
+      ...fileSystem,
+      stat: path => Effect.flatMap(confinedRealPath(path), fileSystem.stat),
+    })
+    const confinedPlatform = HttpPlatform.HttpPlatform.of({
+      ...httpPlatform,
+      fileResponse: (path, options) =>
+        Effect.flatMap(confinedRealPath(path), canonicalPath =>
+          httpPlatform.fileResponse(canonicalPath, options),
+        ),
+    })
+
+    return yield* HttpStaticServer.make({ root, index: undefined }).pipe(
+      Effect.provideService(FileSystem.FileSystem, confinedFileSystem),
+      Effect.provideService(HttpPlatform.HttpPlatform, confinedPlatform),
+    )
   })
 
 const makeHandler = (options: ServeOptions) =>
@@ -227,10 +328,7 @@ const makeHandler = (options: ServeOptions) =>
     const paths = yield* readBuildPaths(manifestPath, options.rootDirectory)
     const app = yield* loadFetchHandler(paths.fetchHandlerPath)
     const basePath = basePathFrom(options.basePath)
-    const staticFiles = yield* HttpStaticServer.make({
-      root: paths.clientDirectory,
-      index: undefined,
-    })
+    const staticFiles = yield* confinedStaticFiles(paths.clientDirectory)
 
     return HttpServerRequest.HttpServerRequest.use(request => {
       const requestUrl = Server.resolveRequestUrl(request.url, origin)

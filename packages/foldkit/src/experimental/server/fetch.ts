@@ -148,6 +148,7 @@ export const handleRequest = async (
   )
   let response = rendered
   if (method === 'HEAD') {
+    await rendered.body?.cancel()
     response = emptyResponse(rendered.status, rendered.headers)
   }
   if (negotiated) {
