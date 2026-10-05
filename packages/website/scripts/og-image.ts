@@ -97,9 +97,6 @@ const logo = (): SatoriNode => ({
   },
 })
 
-const ogSectionLabel = (section: string): string =>
-  section === 'Core Concepts' ? 'Core' : section
-
 const ogTemplate = (metadata: PageMetadata): SatoriNode =>
   el(
     'div',
@@ -177,7 +174,7 @@ const ogTemplate = (metadata: PageMetadata): SatoriNode =>
                         textTransform: 'uppercase',
                         letterSpacing: '0.12em',
                       },
-                      ogSectionLabel(metadata.section),
+                      metadata.section,
                     ),
                   ]
                 : []),

@@ -33,7 +33,7 @@ const docs = (
 })
 
 const core = (title: string, description: string): PageMetadata =>
-  docs(title, description, 'Core Concepts')
+  docs(title, description, 'Core')
 
 const ui = (title: string, description: string): PageMetadata =>
   docs(title, description, 'Foldkit UI')
