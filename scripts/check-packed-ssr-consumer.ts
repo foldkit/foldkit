@@ -177,8 +177,10 @@ const CONSUMER_FIXTURES: ReadonlyArray<ConsumerFixture> = [
   { path: 'scripts/entrypoints.mjs' },
   { path: 'src/entry.ts' },
   { path: 'src/entry.server.ts' },
+  { path: 'src/document.ts' },
+  { path: 'src/head-script.js' },
   {
-    path: 'src/document.ts',
+    path: 'src/probe-script.js',
     values: { TYPED_VALUE },
   },
   { path: 'src/vite-env.d.ts' },
