@@ -9,7 +9,7 @@
     "prepare": "test -z \"$CI\" && simple-git-hooks || true",
     "build": "pnpm -r --if-present build",
     "build:packages": "node scripts/build-public-packages.mjs",
-    "check": "pnpm -F foldkit -F @foldkit/vite-plugin -F @typing-game/shared build && pnpm typecheck:scripts && pnpm -r typecheck && pnpm lint && pnpm check:dead-code && pnpm check:effect-prebundle",
+    "check": "pnpm -F foldkit -F @foldkit/node -F @foldkit/vite-plugin -F @typing-game/shared build && pnpm typecheck:scripts && pnpm -r typecheck && pnpm lint && pnpm check:dead-code && pnpm check:effect-prebundle",
     "lint": "pnpm --filter @foldkit/oxlint-plugin build && pnpm lint:ci",
     "lint:ci": "oxlint --disable-nested-config && pnpm lint:applications",
     "lint:applications": "oxlint --config .oxlintrc.app.json --disable-nested-config examples packages/website/src packages/typing-game/client/src",

@@ -85,10 +85,7 @@
     "examples/ssr": {
       "entry": ["src/entry.ts", "src/entry.server.ts"],
       "ignoreFiles": ["vite.config.playground.ts"],
-      "ignoreDependencies": [
-        "@effect/platform-node-shared",
-        "@foldkit/devtools"
-      ]
+      "ignoreDependencies": ["@foldkit/devtools"]
     },
     "examples/ssg": {
       "entry": ["src/entry.ts", "src/entry.server.ts"],

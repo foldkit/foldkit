@@ -3,10 +3,9 @@ import { readFileSync } from 'node:fs'
 import { request } from 'node:http'
 import { resolve } from 'node:path'
 
-// The Vite dev host and the production example host answer the same requests.
-// They are different code (one is Vite middleware, the other
-// `scripts/serve.ts`) reading one test-only server entry, and they disagreed about HTTP
-// methods: Vite forwarded a POST and its body to `renderPage` while the
+// The Vite dev host and the production Node adapter answer the same requests.
+// They are different code reading one test-only server entry, and they
+// disagreed about HTTP methods: Vite forwarded a POST and its body to `renderPage` while the
 // production host answered 405 before the entry ran. A form action or a
 // `Server.Responded` reply therefore worked all through development and failed
 // only once deployed.
@@ -729,6 +728,11 @@ const main = async (): Promise<void> => {
   await assertPortIsFree(NORMAL_BUILT_PORT)
 
   if (!isSkipBuild) {
+    runRequired('Building the Node adapter...', 'pnpm', [
+      '--filter',
+      '@foldkit/node',
+      'build',
+    ])
     runRequired('Building the example...', 'pnpm', ['build'])
   }
   assertNormalBundleHasNoParityMarkers()

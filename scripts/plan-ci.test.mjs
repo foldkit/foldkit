@@ -150,6 +150,7 @@ test('browser-backed gate manifests select their consumers', () => {
 test('peer floor inputs select their packed-manifest gate', () => {
   for (const fileName of [
     '.changeset/plugin-peer-floor.md',
+    'packages/node/package.json',
     'packages/ui/package.json',
     'packages/devtools/package.json',
     'packages/devtools-mcp/package.json',
@@ -188,6 +189,7 @@ test('a scaffold or framework change selects the generated-app build gate', () =
     'packages/devtools/src/index.ts',
     'packages/devtools-mcp/src/index.ts',
     'packages/foldkit/src/experimental/server/server.ts',
+    'packages/node/src/node.ts',
     'packages/oxlint-plugin-foldkit/src/index.ts',
     'packages/ui/src/button/index.ts',
     'packages/vite-plugin-foldkit/src/buildToken.ts',
@@ -209,6 +211,7 @@ test('an ssr host or framework change selects the host parity gate', () => {
     'packages/vite-plugin-foldkit/src/ssr.ts',
     'packages/foldkit/src/experimental/server/host.ts',
     'packages/foldkit/src/experimental/server/fetch.ts',
+    'packages/node/src/node.ts',
   ]) {
     assert.equal(planCiForFile(file)['host_parity'], 'true', file)
   }

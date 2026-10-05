@@ -1,0 +1,418 @@
+import { Config, Effect, Fiber, Option } from 'effect'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { createServer, request } from 'node:http'
+import { createConnection } from 'node:net'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterEach, describe, expect, it } from 'vitest'
+
+import { serve } from '../src/index.ts'
+
+type BuildFixture = Readonly<{
+  abortStartedPath: string
+  abortedPath: string
+  manifestPath: string
+  rootDirectory: string
+}>
+
+const fixtureDirectories: Array<string> = []
+
+const getAvailablePort = (): Promise<number> =>
+  new Promise((resolvePort, reject) => {
+    const server = createServer()
+    server.once('error', reject)
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address()
+      if (address === null || typeof address === 'string') {
+        reject(new Error('Node did not allocate a TCP port'))
+        return
+      }
+      server.close(error => {
+        if (error === undefined) {
+          resolvePort(address.port)
+        } else {
+          reject(error)
+        }
+      })
+    })
+  })
+
+const waitForResponse = async (url: string): Promise<Response> => {
+  let lastError: unknown = undefined
+  for (let attempt = 0; attempt < 40; attempt++) {
+    try {
+      return await fetch(url, { signal: AbortSignal.timeout(100) })
+    } catch (error) {
+      lastError = error
+      await new Promise(resolveWait => setTimeout(resolveWait, 25))
+    }
+  }
+  throw lastError
+}
+
+const waitForFile = async (path: string): Promise<string> => {
+  let lastError: unknown = undefined
+  for (let attempt = 0; attempt < 40; attempt++) {
+    try {
+      return await readFile(path, 'utf8')
+    } catch (error) {
+      lastError = error
+      await new Promise(resolveWait => setTimeout(resolveWait, 25))
+    }
+  }
+  throw lastError
+}
+
+const requestTarget = (
+  port: number,
+  path: string,
+): Promise<Readonly<{ status: number; body: string }>> =>
+  new Promise((resolveResponse, reject) => {
+    const client = request(
+      {
+        hostname: 'localhost',
+        port,
+        path,
+      },
+      response => {
+        let body = ''
+        response.setEncoding('utf8')
+        response.on('data', chunk => {
+          body += chunk
+        })
+        response.on('end', () => {
+          resolveResponse({ status: response.statusCode ?? 0, body })
+        })
+      },
+    )
+    client.on('error', reject)
+    client.end()
+  })
+
+const createFixture = async (
+  schemaVersion = 1,
+  isServerOutsideRoot = false,
+): Promise<BuildFixture> => {
+  const rootDirectory = await mkdtemp(join(tmpdir(), 'foldkit-node-'))
+  fixtureDirectories.push(rootDirectory)
+
+  const viteRootDirectory = join(rootDirectory, 'application')
+  const abortStartedPath = join(rootDirectory, 'abort-started')
+  const abortedPath = join(rootDirectory, 'aborted')
+  const clientDirectory = join(viteRootDirectory, 'generated', 'browser')
+  const serverDirectory = isServerOutsideRoot
+    ? join(rootDirectory, 'runtime')
+    : join(viteRootDirectory, 'generated', 'runtime')
+  await mkdir(clientDirectory, { recursive: true })
+  await mkdir(serverDirectory, { recursive: true })
+  await writeFile(join(clientDirectory, 'asset.txt'), 'static asset')
+  await writeFile(join(clientDirectory, 'index.html'), 'static index')
+  await writeFile(
+    join(serverDirectory, 'handler.mjs'),
+    `import { writeFile } from 'node:fs/promises'
+
+export default {
+  fetch(request) {
+    if (new URL(request.url).pathname === '/abort-pending') {
+      const aborted = new Promise(resolveAbort => {
+        request.signal.addEventListener(
+          'abort',
+          () => {
+            void writeFile(${JSON.stringify(abortedPath)}, 'aborted').then(
+              resolveAbort,
+            )
+          },
+          { once: true },
+        )
+      })
+      return writeFile(${JSON.stringify(abortStartedPath)}, 'started')
+        .then(() => aborted)
+        .then(() => new Response('aborted'))
+    }
+    if (new URL(request.url).pathname === '/abort-stream') {
+      return writeFile(${JSON.stringify(abortStartedPath)}, 'started').then(() =>
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              const interval = setInterval(
+                () => controller.enqueue(new Uint8Array([120])),
+                10,
+              )
+              request.signal.addEventListener(
+                'abort',
+                () => {
+                  clearInterval(interval)
+                  void writeFile(${JSON.stringify(abortedPath)}, 'aborted').then(
+                    () => undefined,
+                  )
+                },
+                { once: true },
+              )
+            },
+          }),
+        ),
+      )
+    }
+    return Promise.resolve(new Response(new URL(request.url).toString(), {
+      headers: { 'set-cookie': 'visitor=foldkit' },
+    }))
+  },
+}
+`,
+  )
+  const manifestPath = join(serverDirectory, 'foldkit.build.json')
+  await writeFile(
+    manifestPath,
+    `${JSON.stringify({
+      schemaVersion,
+      client: 'generated/browser',
+      server: isServerOutsideRoot ? '../runtime' : 'generated/runtime',
+      serverEntry: 'handler.mjs',
+      prerendered: [],
+    })}\n`,
+  )
+
+  return {
+    abortStartedPath,
+    abortedPath,
+    manifestPath,
+    rootDirectory: viteRootDirectory,
+  }
+}
+
+afterEach(async () => {
+  await Promise.all(
+    fixtureDirectories
+      .splice(0)
+      .map(directory => rm(directory, { recursive: true, force: true })),
+  )
+})
+
+describe('serve', () => {
+  it('reads a versioned manifest to serve custom output paths and the fetch handler', async () => {
+    const fixture = await createFixture()
+    const port = await getAvailablePort()
+    const fiber = Effect.runFork(
+      serve({
+        port: Config.succeed(port),
+        origin: Config.succeed(Option.some('https://public.example')),
+        manifestPath: fixture.manifestPath,
+      }),
+    )
+
+    try {
+      const asset = await waitForResponse(
+        `http://localhost:${String(port)}/asset.txt`,
+      )
+      expect(await asset.text()).toBe('static asset')
+
+      const page = await waitForResponse(
+        `http://localhost:${String(port)}/index.html`,
+      )
+      expect(await page.text()).toBe('https://public.example/index.html')
+      expect(page.headers.get('set-cookie')).toContain('visitor=foldkit')
+
+      const refused = await requestTarget(port, '//elsewhere.example/asset.txt')
+      expect(refused).toEqual({ status: 400, body: '' })
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('rejects a manifest version the adapter does not understand', async () => {
+    const fixture = await createFixture(2)
+    const port = await getAvailablePort()
+
+    await expect(
+      Effect.runPromise(
+        serve({
+          port: Config.succeed(port),
+          origin: Config.succeed(Option.none()),
+          manifestPath: fixture.manifestPath,
+        }),
+      ),
+    ).rejects.toThrow()
+  })
+
+  it('requires rootDirectory when the server output is outside the Vite root', async () => {
+    const fixture = await createFixture(1, true)
+    const port = await getAvailablePort()
+
+    await expect(
+      Effect.runPromise(
+        serve({
+          port: Config.succeed(port),
+          origin: Config.succeed(Option.none()),
+          manifestPath: fixture.manifestPath,
+        }),
+      ),
+    ).rejects.toThrow(/rootDirectory/)
+  })
+
+  it('rejects rootDirectory when it does not describe the manifest server output', async () => {
+    const fixture = await createFixture(1, true)
+    const port = await getAvailablePort()
+
+    await expect(
+      Effect.runPromise(
+        serve({
+          port: Config.succeed(port),
+          origin: Config.succeed(Option.none()),
+          manifestPath: fixture.manifestPath,
+          rootDirectory: join(fixture.rootDirectory, 'other'),
+        }),
+      ),
+    ).rejects.toThrow(/rootDirectory resolves/)
+  })
+
+  it('serves a moved deployment with server output outside the Vite root', async () => {
+    const fixture = await createFixture(1, true)
+    const port = await getAvailablePort()
+    const fiber = Effect.runFork(
+      serve({
+        port: Config.succeed(port),
+        origin: Config.succeed(Option.none()),
+        manifestPath: fixture.manifestPath,
+        rootDirectory: fixture.rootDirectory,
+      }),
+    )
+
+    try {
+      const asset = await waitForResponse(
+        `http://localhost:${String(port)}/asset.txt`,
+      )
+      expect(await asset.text()).toBe('static asset')
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('serves client files only through the configured Vite base path', async () => {
+    const fixture = await createFixture()
+    const port = await getAvailablePort()
+    const fiber = Effect.runFork(
+      serve({
+        port: Config.succeed(port),
+        origin: Config.succeed(Option.some('https://public.example')),
+        manifestPath: fixture.manifestPath,
+        basePath: '/app/',
+      }),
+    )
+
+    try {
+      const asset = await waitForResponse(
+        `http://localhost:${String(port)}/app/asset.txt`,
+      )
+      expect(await asset.text()).toBe('static asset')
+
+      const outsideBasePath = await waitForResponse(
+        `http://localhost:${String(port)}/asset.txt`,
+      )
+      expect(await outsideBasePath.text()).toBe(
+        'https://public.example/asset.txt',
+      )
+
+      const index = await waitForResponse(
+        `http://localhost:${String(port)}/app/index.html`,
+      )
+      expect(await index.text()).toBe('https://public.example/app/index.html')
+
+      const encodedIndex = await waitForResponse(
+        `http://localhost:${String(port)}/app/%69ndex.html`,
+      )
+      expect(await encodedIndex.text()).toBe(
+        'https://public.example/app/%69ndex.html',
+      )
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  for (const basePath of ['app/', '//localhost/app/', '/\\localhost/app/']) {
+    it(`rejects ${basePath} as a Vite base path`, async () => {
+      const fixture = await createFixture()
+      const port = await getAvailablePort()
+
+      await expect(
+        Effect.runPromise(
+          serve({
+            port: Config.succeed(port),
+            origin: Config.succeed(Option.none()),
+            manifestPath: fixture.manifestPath,
+            basePath,
+          }),
+        ),
+      ).rejects.toThrow(/basePath/)
+    })
+  }
+
+  it('aborts the Fetch Request when a client disconnects before it responds', async () => {
+    const fixture = await createFixture()
+    const port = await getAvailablePort()
+    const fiber = Effect.runFork(
+      serve({
+        port: Config.succeed(port),
+        origin: Config.succeed(Option.none()),
+        manifestPath: fixture.manifestPath,
+      }),
+    )
+
+    try {
+      await waitForResponse(`http://localhost:${String(port)}/asset.txt`)
+
+      const client = createConnection({ host: 'localhost', port })
+      client.on('error', () => undefined)
+      client.on('connect', () => {
+        client.write(
+          'GET /abort-pending HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n',
+        )
+      })
+
+      await expect(waitForFile(fixture.abortStartedPath)).resolves.toBe(
+        'started',
+      )
+      client.destroy()
+      await expect(waitForFile(fixture.abortedPath)).resolves.toBe('aborted')
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('aborts the Fetch Request when a client disconnects during a stream', async () => {
+    const fixture = await createFixture()
+    const port = await getAvailablePort()
+    const fiber = Effect.runFork(
+      serve({
+        port: Config.succeed(port),
+        origin: Config.succeed(Option.none()),
+        manifestPath: fixture.manifestPath,
+      }),
+    )
+
+    try {
+      await waitForResponse(`http://localhost:${String(port)}/asset.txt`)
+
+      const client = createConnection({ host: 'localhost', port })
+      client.on('error', () => undefined)
+      const receivedResponse = new Promise<void>(resolveData => {
+        client.once('data', () => {
+          client.destroy()
+          resolveData()
+        })
+      })
+      client.on('connect', () => {
+        client.write(
+          'GET /abort-stream HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n',
+        )
+      })
+
+      await expect(waitForFile(fixture.abortStartedPath)).resolves.toBe(
+        'started',
+      )
+      await receivedResponse
+      await expect(waitForFile(fixture.abortedPath)).resolves.toBe('aborted')
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+})

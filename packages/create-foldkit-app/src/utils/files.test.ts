@@ -122,10 +122,6 @@ describe('rendering templates', () => {
     expect(readTemplateFile('rendering/ssr/src/entry.ts')).toContain(
       'Runtime.hydrate(application)',
     )
-    const serve = readTemplateFile('rendering/ssr/scripts/serve.ts')
-    expect(serve).toContain('HttpStaticServer')
-    expect(serve).toContain('HttpServerResponse.fromWeb')
-    expect(serve).toContain('app.fetch')
   })
 
   it('rendering overlays keep the base name placeholder, shared scripts, and compiler options', () => {

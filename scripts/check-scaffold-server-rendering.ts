@@ -41,6 +41,7 @@ type ScaffoldPackage = Readonly<{
 
 const SCAFFOLD_PACKAGES: ReadonlyArray<ScaffoldPackage> = [
   { directory: 'packages/foldkit', name: 'foldkit' },
+  { directory: 'packages/node', name: '@foldkit/node' },
   { directory: 'packages/ui', name: '@foldkit/ui' },
   { directory: 'packages/devtools', name: '@foldkit/devtools' },
   {

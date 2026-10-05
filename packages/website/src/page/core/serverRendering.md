@@ -256,6 +256,22 @@ The [SSR example](https://github.com/foldkit/foldkit/tree/main/examples/ssr) sta
 
 ::Snippet{name="serverRenderingBuildSsr" label="SSR build configuration"}
 
+`@foldkit/node` is the standard Node host. It reads `foldkit.build.json` to
+find the client assets and Fetch handler, serves static files for `GET` and
+`HEAD`, then sends the remaining requests to the handler. `port` selects the
+listening port. `origin` is the public origin that Node uses to turn each raw
+request target into a Web `Request` URL.
+
+::Snippet{name="serverRenderingNodeHost" label="Start the Node adapter"}
+
+When the server output is outside the Vite root, pass `rootDirectory` to the
+adapter. The manifest's output paths remain portable because they are relative
+to that root; the adapter refuses an outside-root server path without it.
+
+Set `basePath` to the same root-relative `base` used by Vite, such as `/app/`.
+The adapter serves static files only through that path and preserves it when it
+calls the Fetch handler.
+
 :::Warning{label="Caching personalized responses"}
 When Flags depend on the request, such as a cookie, authorization header, or locale, the rendered HTML belongs to that visitor. Set `cache-control` and `vary` so a shared cache cannot serve it to someone else. The SSR example uses `private, no-store` and `vary: cookie` because its initial count comes from a cookie.
 :::
@@ -296,7 +312,20 @@ A deployed SSG build is a directory of static files. Any static host or CDN can 
 
 A build that `@foldkit/vite-plugin` owns writes `foldkit.build.json` beside the server bundle. It names the two output directories, the server entry, and every generated path. An SSR host can serve those files and send requests that match no file to the server. A static-only SSG host serves the generated files and leaves other paths as misses.
 
-A deployed SSR application needs a host that serves the built client assets and calls `fetch` for page requests. The build writes no fallback document. Send requests that match no file to `fetch`; do not enable a single-page-application fallback that answers those requests with a file. The [SSR example's Node host](https://github.com/foldkit/foldkit/tree/main/examples/ssr/scripts/serve.ts) serves assets and sends page requests to `dist/server/fetch.js`.
+A deployed SSR application needs a host that serves the built client assets and calls `fetch` for page requests. The build writes no fallback document. Send requests that match no file to `fetch`; do not enable a single-page-application fallback that answers those requests with a file. `@foldkit/node` provides that policy for Node and derives the output directories from `foldkit.build.json`.
+
+### Custom hosts
+
+Use a custom host when the deployment needs routing or delivery behavior that
+`@foldkit/node` does not own. The adapter does not choose a `Cache-Control`
+policy or application 404 behavior. A custom Node host can make those choices around the same Fetch
+handler. It must still validate a raw request target against its configured
+origin before static-file lookup, serve static files only for `GET` and `HEAD`,
+and send the Vite-base `index.html` path, such as `/app/index.html` for
+`/app/`, to the Fetch handler instead of a generated file. Static lookup must
+also stay under that base path, so an unprefixed application request reaches
+the Fetch handler. The [adapter source](https://github.com/foldkit/foldkit/tree/main/packages/node/src/node.ts)
+is a reference for that boundary.
 
 ### Reading completed build metadata
 
