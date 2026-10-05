@@ -12,7 +12,11 @@ const collectTsFiles = (dir: string): ReadonlyArray<string> => {
     const full = join(dir, entry)
     if (statSync(full).isDirectory()) {
       out.push(...collectTsFiles(full))
-    } else if (entry.endsWith('.ts') && !entry.endsWith('.d.ts')) {
+    } else if (
+      entry.endsWith('.ts') &&
+      !entry.endsWith('.d.ts') &&
+      !entry.endsWith('.test.ts')
+    ) {
       out.push(full)
     }
   }
