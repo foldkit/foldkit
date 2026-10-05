@@ -136,7 +136,7 @@ const heroProjectLink = (
     [
       ih.Href(href),
       ih.Class(
-        'inline-flex items-center gap-1.5 rounded-sm text-sm font-normal text-gray-600 dark:text-gray-300 transition-colors hover:text-gray-900 dark:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-950',
+        'inline-flex items-center gap-1.5 rounded-sm text-sm font-normal text-gray-700 dark:text-gray-300 transition-colors hover:text-gray-900 dark:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-950',
       ),
     ],
     [icon, ih.span([], [label]), ...trailingContent],
@@ -177,26 +177,25 @@ const heroSection = (
           h.h1(
             [
               h.Class(
-                'font-heading text-5xl md:text-6xl lg:text-7xl font-light text-gray-900 dark:text-white tracking-tight leading-[1.1] text-balance',
+                'font-sans text-5xl md:text-6xl lg:text-[4rem] font-normal text-gray-900 dark:text-white tracking-tight leading-[1.1] text-balance',
               ),
             ],
             [
-              'The frontend framework for ',
+              'Build faster. ',
               h.span(
-                [h.Class('text-accent-600 dark:text-accent-500')],
-                ['correctness'],
+                [h.Class('block text-accent-700 dark:text-accent-500')],
+                ['Understand what ships.'],
               ),
-              '.',
             ],
           ),
           h.p(
             [
               h.Class(
-                'mt-6 text-base md:text-lg font-light text-gray-500 dark:text-gray-400 max-w-3xl leading-relaxed',
+                'mt-6 text-base md:text-lg font-book text-gray-700 dark:text-gray-300 max-w-3xl leading-relaxed',
               ),
             ],
             [
-              'Bring Effect’s explicitness to your frontend. Foldkit gives your entire application one architecture with an idiomatic place for every behavior.',
+              'Foldkit is a TypeScript frontend framework built on Effect. It makes state and side effects explicit, so your team and AI agents can build features, trace behavior, and test changes.',
             ],
           ),
           h.div(
@@ -238,13 +237,10 @@ const poweredByItem = (text: string): Html =>
     [ih.Class('flex items-start gap-3')],
     [
       ih.div(
-        [ih.Class('shrink-0 mt-0.5 text-accent-600 dark:text-accent-500')],
+        [ih.Class('shrink-0 mt-0.5 text-accent-700 dark:text-accent-500')],
         [Icon.check('w-5 h-5')],
       ),
-      ih.span(
-        [ih.Class('font-light text-gray-500 dark:text-gray-400')],
-        [text],
-      ),
+      ih.span([ih.Class('font-book text-gray-700 dark:text-gray-300')], [text]),
     ],
   )
 
@@ -258,22 +254,19 @@ const poweredBySection = (): Html =>
           ih.h2(
             [
               ih.Class(
-                'font-heading font-book text-3xl md:text-4xl text-gray-900 dark:text-white text-balance',
+                'font-sans font-medium text-3xl md:text-4xl text-gray-900 dark:text-white text-balance',
               ),
             ],
             [
               'Built on ',
-              ih.a(
-                [ih.Href(Link.effect), ih.Class('link-accent font-normal')],
-                ['Effect'],
-              ),
+              ih.a([ih.Href(Link.effect), ih.Class('link-accent')], ['Effect']),
               '. Inside and out.',
             ],
           ),
           ih.p(
             [
               ih.Class(
-                'mt-4 text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-6 max-w-3xl',
+                'mt-4 text-base md:text-lg font-book text-gray-700 dark:text-gray-300 leading-relaxed mb-6 max-w-3xl',
               ),
             ],
             [
@@ -284,7 +277,7 @@ const poweredBySection = (): Html =>
             [
               ih.Role('list'),
               ih.Class(
-                'flex flex-col gap-2 text-base md:text-lg font-light text-gray-500 dark:text-gray-400 list-none',
+                'flex flex-col gap-2 text-base md:text-lg font-book text-gray-700 dark:text-gray-300 list-none',
               ),
             ],
             [
@@ -306,17 +299,21 @@ const pillarCard = (icon: Html, title: string, description: string): Html =>
   ih.div(
     [ih.Class('landing-card')],
     [
-      ih.div([ih.Class('mb-3 text-accent-600 dark:text-accent-500')], [icon]),
+      ih.div([ih.Class('mb-3 text-accent-700 dark:text-accent-500')], [icon]),
       ih.h3(
         [
           ih.Class(
-            'font-heading font-book text-xl text-gray-900 dark:text-white mb-2',
+            'font-sans font-medium text-xl text-gray-900 dark:text-white mb-2',
           ),
         ],
         [title],
       ),
       ih.p(
-        [ih.Class('text-gray-600 dark:text-gray-300 leading-relaxed')],
+        [
+          ih.Class(
+            'font-book text-gray-700 dark:text-gray-300 leading-relaxed',
+          ),
+        ],
         [description],
       ),
     ],
@@ -332,7 +329,7 @@ const promiseSection = (): Html =>
           ih.h2(
             [
               ih.Class(
-                'font-heading font-book text-3xl md:text-4xl text-gray-900 dark:text-white mb-3 text-balance',
+                'font-sans font-medium text-3xl md:text-4xl text-gray-900 dark:text-white mb-3 text-balance',
               ),
             ],
             ['Declare behavior. Ship. Repeat.'],
@@ -340,7 +337,7 @@ const promiseSection = (): Html =>
           ih.p(
             [
               ih.Class(
-                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-10 max-w-3xl',
+                'text-base md:text-lg font-book text-gray-700 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl',
               ),
             ],
             [
@@ -384,7 +381,7 @@ const demoSection = (demoTabsView: Html): Html =>
           ih.h2(
             [
               ih.Class(
-                'font-heading font-book text-3xl md:text-4xl text-gray-900 dark:text-white mb-3 text-balance',
+                'font-sans font-medium text-3xl md:text-4xl text-gray-900 dark:text-white mb-3 text-balance',
               ),
             ],
             ['See it work.'],
@@ -392,7 +389,7 @@ const demoSection = (demoTabsView: Html): Html =>
           ih.p(
             [
               ih.Class(
-                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-10 max-w-3xl',
+                'text-base md:text-lg font-book text-gray-700 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl',
               ),
             ],
             [
@@ -416,11 +413,11 @@ const includedFeature = (
   ih.div(
     [ih.Class('landing-card')],
     [
-      ih.div([ih.Class('mb-3 text-accent-600 dark:text-accent-500')], [icon]),
+      ih.div([ih.Class('mb-3 text-accent-700 dark:text-accent-500')], [icon]),
       ih.h3(
         [
           ih.Class(
-            'font-heading font-book text-xl text-gray-900 dark:text-white mb-2',
+            'font-sans font-medium text-xl text-gray-900 dark:text-white mb-2',
           ),
         ],
         [title],
@@ -429,7 +426,7 @@ const includedFeature = (
         [
           ih.Class(
             clsx(
-              'text-gray-600 dark:text-gray-300 leading-relaxed',
+              'font-book text-gray-700 dark:text-gray-300 leading-relaxed',
               link && 'mb-3',
             ),
           ),
@@ -463,7 +460,7 @@ const includedSection = (): Html =>
           ih.h2(
             [
               ih.Class(
-                'font-heading font-book text-3xl md:text-4xl text-gray-900 dark:text-white mb-3 text-balance',
+                'font-sans font-medium text-3xl md:text-4xl text-gray-900 dark:text-white mb-3 text-balance',
               ),
             ],
             ['Batteries included.'],
@@ -471,7 +468,7 @@ const includedSection = (): Html =>
           ih.p(
             [
               ih.Class(
-                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-10 max-w-3xl',
+                'text-base md:text-lg font-book text-gray-700 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl',
               ),
             ],
             [
@@ -496,7 +493,7 @@ const includedSection = (): Html =>
                 Icon.server('w-6 h-6'),
                 'Server Rendering',
                 [
-                  'One rendering pipeline: generate static HTML during the build, or render each request on a server. The same init, view, and Model run on both sides, and the browser hydrates the served HTML in place.',
+                  'Generate static HTML at build time or render each request. Both paths use the same init, view, and Model, then hydrate the HTML in the browser.',
                 ],
                 {
                   href: coreServerRenderingRouter(),
@@ -518,7 +515,7 @@ const includedSection = (): Html =>
                 Icon.squareStack('w-6 h-6'),
                 'Submodels',
                 [
-                  'A self-contained Model, Messages, update, and view, embedded inside a larger program. Children surface domain facts as typed OutMessages and parents handle them in update. Every stateful Foldkit UI component ships as a Submodel.',
+                  'A Submodel embeds its own Model, Messages, update, and view in a larger program. It sends domain facts to its parent as typed OutMessages. Every stateful Foldkit UI component is a Submodel.',
                 ],
                 {
                   href: coreSubmodelRouter(),
@@ -529,7 +526,7 @@ const includedSection = (): Html =>
                 Icon.signal('w-6 h-6'),
                 'Browser Lifecycles',
                 [
-                  'Subscriptions open scoped event streams while a Model condition holds. Managed Resources acquire stateful handles like WebSockets and AudioContext. The runtime closes both when the Model no longer needs them.',
+                  'Subscriptions stream events while a Model condition holds. ManagedResources hold handles such as WebSockets and AudioContext. Foldkit closes both when the Model no longer needs them.',
                 ],
                 {
                   href: coreManagedResourcesRouter(),
@@ -656,7 +653,7 @@ const examplesSection: Html = ih.section(
         ih.h2(
           [
             ih.Class(
-              'font-heading font-book text-3xl md:text-4xl text-gray-900 dark:text-white mb-3 text-balance',
+              'font-sans font-medium text-3xl md:text-4xl text-gray-900 dark:text-white mb-3 text-balance',
             ),
           ],
           ['Example applications.'],
@@ -664,7 +661,7 @@ const examplesSection: Html = ih.section(
         ih.p(
           [
             ih.Class(
-              'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-10 max-w-3xl',
+              'text-base md:text-lg font-book text-gray-700 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl',
             ),
           ],
           [
@@ -705,13 +702,13 @@ const testingSection = (renderSnippet: CodeBlock.RenderSnippet): Html =>
           ih.h2(
             [
               ih.Class(
-                'font-heading font-book text-3xl md:text-4xl text-gray-900 dark:text-white mb-3 text-balance',
+                'font-sans font-medium text-3xl md:text-4xl text-gray-900 dark:text-white mb-3 text-balance',
               ),
             ],
             [
               'Tests that read like ',
               ih.span(
-                [ih.Class('text-accent-600 dark:text-accent-500')],
+                [ih.Class('text-accent-700 dark:text-accent-500')],
                 ['stories and scenes.'],
               ),
             ],
@@ -719,7 +716,7 @@ const testingSection = (renderSnippet: CodeBlock.RenderSnippet): Html =>
           ih.p(
             [
               ih.Class(
-                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-10 max-w-3xl',
+                'text-base md:text-lg font-book text-gray-700 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl',
               ),
             ],
             [
@@ -771,13 +768,13 @@ const devToolsSection = (): Html =>
           ih.h2(
             [
               ih.Class(
-                'font-heading font-book text-3xl md:text-4xl text-gray-900 dark:text-white mb-3 text-balance',
+                'font-sans font-medium text-3xl md:text-4xl text-gray-900 dark:text-white mb-3 text-balance',
               ),
             ],
             [
               'Watch your program ',
               ih.span(
-                [ih.Class('text-accent-600 dark:text-accent-500')],
+                [ih.Class('text-accent-700 dark:text-accent-500')],
                 ['think.'],
               ),
             ],
@@ -785,17 +782,17 @@ const devToolsSection = (): Html =>
           ih.p(
             [
               ih.Class(
-                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-4 max-w-3xl',
+                'text-base md:text-lg font-book text-gray-700 dark:text-gray-300 leading-relaxed mb-4 max-w-3xl',
               ),
             ],
             [
-              'When every state change flows through Messages and one Model, DevTools can show the full history of the program. Every Message is logged. Every Model state is inspectable. Select any row to see what changed, then rewind the UI to that state.',
+              'DevTools logs every Message and lets you inspect each Model state. Select a Message to see what changed, or rewind the UI to that state.',
             ],
           ),
           ih.p(
             [
               ih.Class(
-                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-4 max-w-3xl',
+                'text-base md:text-lg font-book text-gray-700 dark:text-gray-300 leading-relaxed mb-4 max-w-3xl',
               ),
             ],
             [
@@ -805,7 +802,7 @@ const devToolsSection = (): Html =>
           ih.p(
             [
               ih.Class(
-                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-10 max-w-3xl',
+                'text-base md:text-lg font-book text-gray-700 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl',
               ),
             ],
             [
@@ -855,7 +852,7 @@ const fitSection = (): Html =>
           ih.h2(
             [
               ih.Class(
-                'font-heading font-book text-3xl md:text-4xl text-gray-900 dark:text-white mb-3 text-balance',
+                'font-sans font-medium text-3xl md:text-4xl text-gray-900 dark:text-white mb-3 text-balance',
               ),
             ],
             ['Architectural fit.'],
@@ -863,7 +860,7 @@ const fitSection = (): Html =>
           ih.p(
             [
               ih.Class(
-                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-4 max-w-3xl',
+                'text-base md:text-lg font-book text-gray-700 dark:text-gray-300 leading-relaxed mb-4 max-w-3xl',
               ),
             ],
             [
@@ -871,7 +868,7 @@ const fitSection = (): Html =>
               ih.a(
                 [
                   ih.Href(Link.elmArchitecture),
-                  ih.Class('link-accent font-normal'),
+                  ih.Class('link-accent font-book'),
                 ],
                 ['The Elm Architecture'],
               ),
@@ -881,7 +878,7 @@ const fitSection = (): Html =>
           ih.p(
             [
               ih.Class(
-                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-10 max-w-3xl',
+                'text-base md:text-lg font-book text-gray-700 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl',
               ),
             ],
             [
@@ -897,7 +894,7 @@ const fitSection = (): Html =>
                   ih.h3(
                     [
                       ih.Class(
-                        'font-heading font-book text-2xl text-gray-900 dark:text-white mb-6 text-balance',
+                        'font-sans font-medium text-2xl text-gray-900 dark:text-white mb-6 text-balance',
                       ),
                     ],
                     ['A strong fit'],
@@ -927,7 +924,7 @@ const fitSection = (): Html =>
                   ih.h3(
                     [
                       ih.Class(
-                        'font-heading font-book text-2xl text-gray-900 dark:text-white mb-6 text-balance',
+                        'font-sans font-medium text-2xl text-gray-900 dark:text-white mb-6 text-balance',
                       ),
                     ],
                     ['Think twice when'],
@@ -937,7 +934,7 @@ const fitSection = (): Html =>
                     [
                       audienceNotItem(
                         'Large existing React codebases',
-                        'Foldkit isn’t an incremental adoption. It’s a different architecture, and migrating means a rewrite. The middle path is embedding: Runtime.embed runs a Foldkit widget inside an existing app.',
+                        'Moving the whole app to Foldkit means a rewrite. Runtime.embed lets you add a Foldkit widget to the existing app.',
                       ),
                       audienceNotItem(
                         'Projects that need the React ecosystem',
@@ -945,7 +942,7 @@ const fitSection = (): Html =>
                       ),
                       audienceNotItem(
                         'Sites that are mostly static content',
-                        'A site that is mostly prose with a sprinkle of interactivity is better served by a content-first tool like Astro. Foldkit renders on the server too, but it is built for applications.',
+                        'Content-first tools like Astro suit sites that are mostly prose. Foldkit can render on the server, but is built for applications.',
                       ),
                     ],
                   ),
@@ -985,7 +982,7 @@ const audienceForItem = (title: string, description: string): Html =>
     [ih.Class('mb-5 flex gap-3')],
     [
       ih.div(
-        [ih.Class('shrink-0 mt-0.5 text-accent-600 dark:text-accent-400')],
+        [ih.Class('shrink-0 mt-0.5 text-accent-700 dark:text-accent-400')],
         [Icon.check('w-5 h-5')],
       ),
       ih.div(
@@ -1000,7 +997,11 @@ const audienceForItem = (title: string, description: string): Html =>
             [title],
           ),
           ih.p(
-            [ih.Class('text-gray-600 dark:text-gray-300 leading-relaxed')],
+            [
+              ih.Class(
+                'font-book text-gray-700 dark:text-gray-300 leading-relaxed',
+              ),
+            ],
             [description],
           ),
         ],
@@ -1013,7 +1014,7 @@ const audienceNotItem = (title: string, description: string): Html =>
     [ih.Class('mb-5 flex gap-3')],
     [
       ih.div(
-        [ih.Class('shrink-0 mt-0.5 text-gray-400 dark:text-gray-500')],
+        [ih.Class('shrink-0 mt-0.5 text-gray-500 dark:text-gray-500')],
         [Icon.close('w-5 h-5')],
       ),
       ih.div(
@@ -1028,7 +1029,11 @@ const audienceNotItem = (title: string, description: string): Html =>
             [title],
           ),
           ih.p(
-            [ih.Class('text-gray-600 dark:text-gray-300 leading-relaxed')],
+            [
+              ih.Class(
+                'font-book text-gray-700 dark:text-gray-300 leading-relaxed',
+              ),
+            ],
             [description],
           ),
         ],
@@ -1048,7 +1053,7 @@ const trustSection = (): Html =>
           ih.h2(
             [
               ih.Class(
-                'font-heading font-book text-3xl md:text-4xl text-gray-900 dark:text-white mb-3 text-balance',
+                'font-sans font-medium text-3xl md:text-4xl text-gray-900 dark:text-white mb-3 text-balance',
               ),
             ],
             ['Project status.'],
@@ -1056,7 +1061,7 @@ const trustSection = (): Html =>
           ih.p(
             [
               ih.Class(
-                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 leading-relaxed mb-10 max-w-3xl',
+                'text-base md:text-lg font-book text-gray-700 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl',
               ),
             ],
             [
@@ -1095,7 +1100,7 @@ const trustItem = (label: string, value: string): Html =>
       ih.p(
         [
           ih.Class(
-            'text-xs font-normal text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1',
+            'text-xs font-normal text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1',
           ),
         ],
         [label],
@@ -1118,7 +1123,7 @@ const trustItemWithLink = (
       ih.p(
         [
           ih.Class(
-            'text-xs font-normal text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1',
+            'text-xs font-normal text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1',
           ),
         ],
         [label],
@@ -1228,7 +1233,7 @@ const aiSection = (aiHeadingToggleCount: number): Html =>
           ih.p(
             [
               ih.Class(
-                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 mb-4 max-w-2xl',
+                'text-base md:text-lg font-book text-gray-700 dark:text-gray-300 mb-4 max-w-2xl',
               ),
             ],
             [
@@ -1238,7 +1243,7 @@ const aiSection = (aiHeadingToggleCount: number): Html =>
           ih.p(
             [
               ih.Class(
-                'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 mb-8 max-w-2xl',
+                'text-base md:text-lg font-book text-gray-700 dark:text-gray-300 mb-8 max-w-2xl',
               ),
             ],
             [
@@ -1275,7 +1280,7 @@ const finalCtaSection = (
                   ih.h2(
                     [
                       ih.Class(
-                        'font-heading font-book text-3xl md:text-4xl text-gray-900 dark:text-white mb-4 text-balance',
+                        'font-sans font-medium text-3xl md:text-4xl text-gray-900 dark:text-white mb-4 text-balance',
                       ),
                     ],
                     ['Start building.'],
@@ -1283,7 +1288,7 @@ const finalCtaSection = (
                   ih.p(
                     [
                       ih.Class(
-                        'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 mb-8 max-w-xl',
+                        'text-base md:text-lg font-book text-gray-700 dark:text-gray-300 mb-8 max-w-xl',
                       ),
                     ],
                     [

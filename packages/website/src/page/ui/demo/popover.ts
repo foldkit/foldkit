@@ -58,7 +58,7 @@ const panelContent = (): Html =>
         ['Analytics'],
       ),
       ih.p(
-        [ih.Class('text-sm text-gray-600 dark:text-gray-400')],
+        [ih.Class('text-sm text-gray-700 dark:text-gray-400')],
         ['Get a better understanding of where your traffic is coming from.'],
       ),
     ],
@@ -224,7 +224,7 @@ const nestedChildPopover = (
                         ['Permissions'],
                       ),
                       h.p(
-                        [h.Class('text-sm text-gray-600 dark:text-gray-400')],
+                        [h.Class('text-sm text-gray-700 dark:text-gray-400')],
                         [
                           'Review who can change billing, members, and integrations.',
                         ],
@@ -286,7 +286,7 @@ export const nestedDemo = (
                                     h.p(
                                       [
                                         h.Class(
-                                          'text-sm text-gray-600 dark:text-gray-400',
+                                          'text-sm text-gray-700 dark:text-gray-400',
                                         ),
                                       ],
                                       [

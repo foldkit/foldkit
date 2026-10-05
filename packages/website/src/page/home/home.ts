@@ -30,7 +30,7 @@ const PlaygroundMenu = Menu.create<ExampleSlug>()
 // DEMO TABS
 
 const demoTabButtonClassName =
-  'px-3 py-2 text-sm font-normal cursor-pointer transition border border-gray-300 dark:border-gray-800 bg-cream dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-t-lg lg:rounded-t-none lg:rounded-l-lg lg:border-r-0 mb-[-1px] lg:mb-0 lg:mr-[-1px] data-[selected]:relative data-[selected]:z-10 data-[selected]:bg-cream data-[selected]:dark:bg-gray-900 data-[selected]:text-gray-900 data-[selected]:dark:text-white data-[selected]:border-b-0 lg:data-[selected]:border-b lg:data-[selected]:border-r-0'
+  'px-3 py-2 text-sm font-normal cursor-pointer transition border border-gray-300 dark:border-gray-800 bg-cream dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-t-lg lg:rounded-t-none lg:rounded-l-lg lg:border-r-0 mb-[-1px] lg:mb-0 lg:mr-[-1px] data-[selected]:relative data-[selected]:z-10 data-[selected]:bg-cream data-[selected]:dark:bg-gray-900 data-[selected]:text-gray-900 data-[selected]:dark:text-white data-[selected]:border-b-0 lg:data-[selected]:border-b lg:data-[selected]:border-r-0'
 
 const demoTabPanelClassName =
   'flex-1 min-w-0 p-4 bg-cream dark:bg-gray-900 rounded-b-lg rounded-tr-lg lg:rounded-bl-lg lg:rounded-r-lg lg:rounded-tl-none border border-gray-300 dark:border-gray-800'
@@ -109,7 +109,7 @@ const playgroundItemContent = (meta: ExampleMeta): Html =>
       ih.p(
         [
           ih.Class(
-            'text-xs text-gray-600 dark:text-gray-400 leading-snug line-clamp-2',
+            'text-xs text-gray-700 dark:text-gray-400 leading-snug line-clamp-2',
           ),
         ],
         [meta.description],
@@ -140,7 +140,7 @@ const playgroundMenuView = (
       itemGroupKey: () => 'examples',
       groupToHeading: () => ({
         className:
-          'px-4 pt-3 pb-2 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800 leading-snug',
+          'px-4 pt-3 pb-2 text-xs text-gray-600 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800 leading-snug',
         content: h.span(
           [],
           [

@@ -64,7 +64,7 @@ export const view = (
               ih.span([ih.Class('flex-1')], [preference]),
               Icon.check(
                 isSelected
-                  ? 'w-4 h-4 shrink-0 text-accent-600 dark:text-accent-400'
+                  ? 'w-4 h-4 shrink-0 text-accent-700 dark:text-accent-400'
                   : 'invisible w-4 h-4 shrink-0',
               ),
               ...(isSelected
@@ -77,7 +77,7 @@ export const view = (
       buttonContent: preferenceIcon(activePreference, 'w-5 h-5'),
       buttonAttributes: childAttributes([
         ih.Class(
-          'inline-flex size-8 cursor-pointer items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:focus-visible:outline-accent-400',
+          'inline-flex size-8 cursor-pointer items-center justify-center rounded-md text-gray-600 transition hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:focus-visible:outline-accent-400',
         ),
       ]),
       itemsAttributes: childAttributes([

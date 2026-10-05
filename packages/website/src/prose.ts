@@ -33,7 +33,7 @@ const headingLinkButton = <Message>(
     [
       h.Href(`#${id}`),
       h.Class(
-        'px-0.5 py-1 rounded transition-opacity text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 focus-visible:text-gray-800 dark:focus-visible:text-gray-200 focus-visible:opacity-100 cursor-pointer hover-capable:opacity-0 hover-capable:group-hover:opacity-100',
+        'px-0.5 py-1 rounded transition-opacity text-gray-500 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 focus-visible:text-gray-800 dark:focus-visible:text-gray-200 focus-visible:opacity-100 cursor-pointer hover-capable:opacity-0 hover-capable:group-hover:opacity-100',
       ),
       h.AriaLabel(`Copy link to ${text}`),
       h.OnClick(toMessage(id)),
@@ -60,7 +60,7 @@ export const pageTitle = (id: string, text: string, className?: string): Html =>
     [
       ih.Class(
         mergeClassNames(
-          'font-heading font-book text-page-title md:text-page-title-wide leading-tight tracking-tight text-gray-900 dark:text-white mb-6',
+          'font-sans font-medium text-page-title md:text-page-title-wide leading-tight tracking-tight text-gray-900 dark:text-white mb-6',
           className,
         ),
       ),
@@ -73,13 +73,13 @@ export const pageTitle = (id: string, text: string, className?: string): Html =>
 const sectionHeadingConfig = {
   h2: {
     textClassName:
-      'font-heading font-book text-2xl md:text-3xl leading-snug tracking-tight text-gray-900 dark:text-white scroll-mt-6',
+      'font-sans font-medium text-2xl md:text-3xl leading-snug tracking-tight text-gray-900 dark:text-white scroll-mt-6',
     wrapperClassName:
       'group flex items-center gap-1 md:hover-capable:gap-0 mt-16 mb-4 [h1+&]:mt-12 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
   },
   h3: {
     textClassName:
-      'font-heading font-book text-xl md:text-2xl leading-snug tracking-tight text-gray-900 dark:text-white scroll-mt-6',
+      'font-sans font-medium text-xl md:text-2xl leading-snug tracking-tight text-gray-900 dark:text-white scroll-mt-6',
     wrapperClassName:
       'group flex items-center gap-1 md:hover-capable:gap-0 mt-12 mb-3 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
   },
@@ -97,7 +97,7 @@ const sectionHeadingConfig = {
   },
   h6: {
     textClassName:
-      'text-sm font-mono font-normal text-gray-500 dark:text-gray-400 scroll-mt-6',
+      'text-sm font-mono font-normal text-gray-600 dark:text-gray-400 scroll-mt-6',
     wrapperClassName:
       'group flex items-center gap-1 md:hover-capable:gap-0 mt-8 mb-2 md:hover-capable:flex-row-reverse md:hover-capable:justify-end md:hover-capable:-ml-[1.5rem]',
   },
@@ -191,7 +191,7 @@ export const infoCallout = (
       ih.p(
         [
           ih.Class(
-            'text-gray-700 dark:text-gray-300 leading-7 md:leading-[1.875rem]',
+            'text-docs-prose dark:text-gray-300 leading-7 md:leading-[1.875rem]',
           ),
         ],
         content,
@@ -231,7 +231,7 @@ export const warningCallout = (
       ih.p(
         [
           ih.Class(
-            'text-gray-700 dark:text-gray-300 leading-7 md:leading-[1.875rem]',
+            'text-docs-prose dark:text-gray-300 leading-7 md:leading-[1.875rem]',
           ),
         ],
         content,
@@ -266,7 +266,7 @@ const calloutBlocks = (
       ih.div(
         [
           ih.Class(
-            'text-gray-700 dark:text-gray-300 [&>p]:leading-7 md:[&>p]:leading-[1.875rem] [&>p:last-child]:mb-0',
+            'text-docs-prose dark:text-gray-300 [&>p]:leading-7 md:[&>p]:leading-[1.875rem] [&>p:last-child]:mb-0',
           ),
         ],
         config.blocks,

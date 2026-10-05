@@ -633,7 +633,7 @@ const FILE_TAB_BUTTON_BASE_CLASS =
 
 const fileTabButtonClassName = clsx(
   FILE_TAB_BUTTON_BASE_CLASS,
-  'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800',
+  'text-gray-700 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800',
   'data-[selected]:bg-gray-200 data-[selected]:dark:bg-gray-800 data-[selected]:text-gray-900 data-[selected]:dark:text-gray-100 hover:cursor-pointer',
 )
 
@@ -678,7 +678,7 @@ const messageView = (
             [heading],
           ),
           ih.div(
-            [ih.Class('text-sm text-gray-600 dark:text-gray-400 mb-6')],
+            [ih.Class('text-sm text-gray-700 dark:text-gray-400 mb-6')],
             [body],
           ),
           backToExampleButton(maybeMeta),
@@ -712,7 +712,7 @@ const bootingPanelView = (heading: string, body: string): Html =>
             [ih.Class('text-base font-semibold text-gray-900 mb-2')],
             [heading],
           ),
-          ih.div([ih.Class('text-sm text-gray-600')], [body]),
+          ih.div([ih.Class('text-sm text-gray-700')], [body]),
         ],
       ),
     ],
@@ -736,7 +736,7 @@ const failurePanelView = (reason: string): Html =>
           ih.div(
             [
               ih.Class(
-                'w-full max-h-64 overflow-auto text-left text-sm text-gray-600 whitespace-pre-wrap break-words',
+                'w-full max-h-64 overflow-auto text-left text-sm text-gray-700 whitespace-pre-wrap break-words',
               ),
             ],
             [reason],
@@ -841,7 +841,7 @@ const tooNarrowMessageView = (): Html =>
             ['Use a wider screen'],
           ),
           ih.div(
-            [ih.Class('text-sm text-gray-600 dark:text-gray-400')],
+            [ih.Class('text-sm text-gray-700 dark:text-gray-400')],
             ['The live editor and preview need more horizontal space.'],
           ),
         ],

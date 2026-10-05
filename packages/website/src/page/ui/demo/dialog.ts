@@ -30,7 +30,7 @@ const confirmPanelClassName =
 
 const titleClassName = 'text-lg font-normal text-gray-900 dark:text-white mb-2'
 
-const descriptionClassName = 'text-gray-600 dark:text-gray-300 mb-4'
+const descriptionClassName = 'text-gray-700 dark:text-gray-300 mb-4'
 
 const dialogClassName =
   'bg-transparent p-0 open:flex items-center justify-center'

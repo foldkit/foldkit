@@ -15,7 +15,7 @@ const backToBlogLink: Html = ih.a(
   [
     ih.Href(blogRouter()),
     ih.Class(
-      'inline-block mb-6 text-sm font-medium text-accent-600 dark:text-accent-400 hover:underline',
+      'inline-block mb-6 text-sm font-medium text-accent-700 dark:text-accent-400 hover:underline',
     ),
   ],
   ['← Blog'],
@@ -57,7 +57,7 @@ export const view = (
         [
           Prose.pageTitle(post.slug, post.frontmatter.title, 'mb-3'),
           ih.p(
-            [ih.Class('text-gray-500 dark:text-gray-400')],
+            [ih.Class('text-gray-600 dark:text-gray-400')],
             [`${formatPostDate(post.frontmatter.date)} · ${BLOG_AUTHOR}`],
           ),
         ],

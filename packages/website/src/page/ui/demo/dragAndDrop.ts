@@ -153,7 +153,7 @@ const renderColumn = (
       h.div(
         [
           h.Class(
-            'text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1',
+            'text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1',
           ),
         ],
         [column.label],

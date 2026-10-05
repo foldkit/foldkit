@@ -135,13 +135,13 @@ const actorClassName = 'font-semibold text-gray-900 dark:text-white'
 const targetClassName = 'font-mono text-gray-900 dark:text-gray-100'
 
 const timeAgoClassName =
-  'text-right text-xs text-gray-500 dark:text-gray-400 tabular-nums'
+  'text-right text-xs text-gray-600 dark:text-gray-400 tabular-nums'
 
 const buttonClassName =
   'button-accent rounded cursor-pointer px-3 py-1.5 text-sm shadow-sm'
 
 const headerClassName =
-  'flex items-end justify-between text-sm text-gray-600 dark:text-gray-400'
+  'flex items-end justify-between text-sm text-gray-700 dark:text-gray-400'
 
 export const view = (model: VirtualList.Model, h: HtmlBuilder<Message>) => {
   return [
@@ -267,10 +267,10 @@ const variableSummaryTitleClassName =
   'mt-0.5 text-xs font-semibold text-gray-700 dark:text-gray-200'
 
 const variableSummaryBodyClassName =
-  'mt-0.5 text-xs text-gray-500 dark:text-gray-400 leading-tight line-clamp-1'
+  'mt-0.5 text-xs text-gray-600 dark:text-gray-400 leading-tight line-clamp-1'
 
 const variableArtifactClassName =
-  'mt-1 inline-flex w-fit rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 font-mono text-[10px] text-gray-600 dark:text-gray-300'
+  'mt-1 inline-flex w-fit rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 font-mono text-[10px] text-gray-700 dark:text-gray-300'
 
 export const virtualListVariableDemo = (
   model: VirtualList.Model,

@@ -27,7 +27,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         return h.span(
           [
             h.Class(
-              'relative top-px whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-300',
+              'relative top-px whitespace-nowrap text-xs font-medium text-gray-700 dark:text-gray-300',
             ),
           ],
           ['Copied'],
@@ -49,7 +49,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
       [isCopied ? 'Copied to clipboard' : ''],
     )
     const buttonClassName = clsx(
-      'cursor-pointer text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white',
+      'cursor-pointer text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white',
       viewInputs.variant === 'Header'
         ? 'flex size-10 items-center justify-center transition-colors focus-visible:rounded focus-visible:outline-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400'
         : 'rounded border border-gray-300 bg-[var(--code-background)] p-2 transition hover:border-gray-400 hover:bg-gray-200 dark:border-gray-700/50 dark:hover:border-gray-500 dark:hover:bg-gray-700/30',

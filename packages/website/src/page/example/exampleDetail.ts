@@ -205,7 +205,7 @@ const featureTag = (text: string): Html =>
   ih.div(
     [
       ih.Class(
-        'text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300',
+        'text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
       ),
     ],
     [text],
@@ -243,7 +243,7 @@ const headerView = (meta: ExampleMeta): Html =>
         [
           ih.Href(examplesRouter()),
           ih.Class(
-            'inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-4',
+            'inline-flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-4',
           ),
         ],
         [Icon.chevronLeft('w-4 h-4'), 'All Examples'],
@@ -288,7 +288,7 @@ const disclosureChevron = (isOpen: boolean): Html =>
   ih.span(
     [
       ih.Class(
-        `transition-transform text-gray-400 dark:text-gray-500 ${isOpen ? 'rotate-180' : ''}`,
+        `transition-transform text-gray-500 dark:text-gray-500 ${isOpen ? 'rotate-180' : ''}`,
       ),
     ],
     [Icon.chevronDown('w-4 h-4')],
@@ -358,7 +358,7 @@ const livePreviewDisclosureView = (
                         h.div(
                           [
                             h.Class(
-                              'flex-1 text-xs font-mono text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 rounded px-3 py-1 text-center truncate',
+                              'flex-1 text-xs font-mono text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-900 rounded px-3 py-1 text-center truncate',
                             ),
                           ],
                           [urlBarContent(meta, maybeExampleUrl)],
@@ -413,7 +413,7 @@ const TAB_BUTTON_ACTIVE =
 
 const TAB_BUTTON_INACTIVE =
   TAB_BUTTON_BASE +
-  ' text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-gray-800/50'
+  ' text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-gray-800/50'
 
 const sourceCodeView = (
   exampleSlug: string,
@@ -568,7 +568,7 @@ const sourcesFailureView = (error: string): Html =>
         ],
         ['Failed to load example sources'],
       ),
-      ih.div([ih.Class('text-sm text-gray-600 dark:text-gray-400')], [error]),
+      ih.div([ih.Class('text-sm text-gray-700 dark:text-gray-400')], [error]),
     ],
   )
 

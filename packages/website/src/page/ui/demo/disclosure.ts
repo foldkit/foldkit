@@ -22,7 +22,7 @@ export const basicDemo = (
     h.span(
       [
         h.Class(
-          clsx('text-gray-600 dark:text-gray-300', { 'rotate-180': isOpen }),
+          clsx('text-gray-700 dark:text-gray-300', { 'rotate-180': isOpen }),
         ),
       ],
       [Icon.chevronDown('w-4 h-4')],

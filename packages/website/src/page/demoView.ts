@@ -4,7 +4,7 @@ export const sectionLabel = (label: string): Html =>
   ih.p(
     [
       ih.Class(
-        'text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2',
+        'text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-2',
       ),
     ],
     [label],
@@ -15,7 +15,7 @@ export const modelStateField = (name: string, value: string): Html =>
     [],
     [
       ih.span([ih.Class('text-accent-700 dark:text-accent-400')], [name]),
-      ih.span([ih.Class('text-gray-400 dark:text-gray-500')], [': ']),
+      ih.span([ih.Class('text-gray-500 dark:text-gray-500')], [': ']),
       ih.span([ih.Class('text-amber-800 dark:text-amber-300')], [value]),
     ],
   )
@@ -116,7 +116,7 @@ export const shell = (codePanel: Html, appPanel: Html): Html =>
       ih.p(
         [
           ih.Class(
-            'text-sm text-gray-500 dark:text-gray-500 text-center text-balance lg:hidden',
+            'text-sm text-gray-600 dark:text-gray-500 text-center text-balance lg:hidden',
           ),
           ih.AriaHidden(true),
         ],

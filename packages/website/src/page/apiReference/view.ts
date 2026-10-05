@@ -41,7 +41,7 @@ const sourceLink = (
       ih.a(
         [
           ih.Class(
-            'text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
+            'text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300',
           ),
           ih.AriaLabel(`View source for ${name}`),
           ih.Href(url),
@@ -121,7 +121,7 @@ const allParameterDescriptions = (
                 [parameter.name],
               ),
               ih.span(
-                [ih.Class('text-gray-500 dark:text-gray-400')],
+                [ih.Class('text-gray-600 dark:text-gray-400')],
                 [`: ${description}`],
               ),
             ],
@@ -149,7 +149,7 @@ const chevron = (isOpen: boolean): Html =>
   ih.span(
     [
       ih.Class(
-        clsx('text-gray-500 dark:text-gray-400', {
+        clsx('text-gray-600 dark:text-gray-400', {
           'rotate-180': isOpen,
         }),
       ),
@@ -158,7 +158,7 @@ const chevron = (isOpen: boolean): Html =>
   )
 
 const disclosureButtonClassName =
-  'w-full flex items-center justify-between px-3 py-2 text-left text-base cursor-pointer transition border border-gray-200 dark:border-gray-700/50 text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-800 rounded-lg data-[open]:rounded-b-none select-none'
+  'w-full flex items-center justify-between px-3 py-2 text-left text-base cursor-pointer transition border border-gray-200 dark:border-gray-700/50 text-gray-700 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-800 rounded-lg data-[open]:rounded-b-none select-none'
 
 const disclosurePanelClassName = 'rounded-b-lg overflow-x-auto'
 
@@ -255,7 +255,7 @@ const parameterDescriptions = (
                 [parameter.name],
               ),
               ih.span(
-                [ih.Class('text-gray-500 dark:text-gray-400')],
+                [ih.Class('text-gray-600 dark:text-gray-400')],
                 [`: ${description}`],
               ),
             ],
@@ -280,7 +280,7 @@ const parameterDescriptions = (
   )
 
 const punctuation = (text: string): Html =>
-  ih.span([ih.Class('text-gray-500')], [text])
+  ih.span([ih.Class('text-gray-600')], [text])
 
 const parameterView = (parameter: ApiParameter): ReadonlyArray<Html> => [
   ...(parameter.isRest ? [punctuation('...')] : []),
@@ -319,7 +319,7 @@ const returnTypeView = (returnType: string): Html =>
     [ih.Class('whitespace-pre-wrap')],
     [
       punctuation('→ '),
-      ih.span([ih.Class('text-accent-600 dark:text-accent-400')], [returnType]),
+      ih.span([ih.Class('text-accent-700 dark:text-accent-400')], [returnType]),
     ],
   )
 
@@ -330,7 +330,7 @@ const descriptionCommentFallback = (
     onNone: () => [],
     onSome: description => [
       ih.div(
-        [ih.Class('text-gray-500 dark:text-gray-400 mb-3 whitespace-pre-wrap')],
+        [ih.Class('text-gray-600 dark:text-gray-400 mb-3 whitespace-pre-wrap')],
         [`/** ${description} */`],
       ),
     ],
@@ -345,7 +345,7 @@ const signatureChildrenFallback = (signature: {
     onEmpty: () => [],
     onNonEmpty: typeParameters => [
       ih.div(
-        [ih.Class('text-gray-500 mb-2')],
+        [ih.Class('text-gray-600 mb-2')],
         [`<${Array.join(typeParameters, ', ')}>`],
       ),
     ],
@@ -737,6 +737,6 @@ export const failureView = (error: string): Html =>
         ],
         ['Failed to load API reference'],
       ),
-      ih.div([ih.Class('text-sm text-gray-600 dark:text-gray-400')], [error]),
+      ih.div([ih.Class('text-sm text-gray-700 dark:text-gray-400')], [error]),
     ],
   )

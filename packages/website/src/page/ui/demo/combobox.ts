@@ -31,7 +31,7 @@ const CITIES: ReadonlyArray<City> = [
 const inputClassName = 'demo-field-input pr-10'
 
 const buttonClassName =
-  'absolute inset-y-0 right-0 flex items-center px-4 cursor-pointer text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors'
+  'absolute inset-y-0 right-0 flex items-center px-4 cursor-pointer text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors'
 
 const itemsClassName = 'demo-popup-surface w-(--button-width) overflow-hidden'
 
@@ -291,7 +291,7 @@ export const placementLockDemo = (
 const tagClassName =
   'inline-flex items-center gap-1 px-2 py-0.5 text-sm rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200'
 
-const emptyTagClassName = 'text-sm py-0.5 text-gray-600 dark:text-gray-400'
+const emptyTagClassName = 'text-sm py-0.5 text-gray-700 dark:text-gray-400'
 
 export const multiDemo = (
   comboboxMultiModel: Combobox.Multi.Model,

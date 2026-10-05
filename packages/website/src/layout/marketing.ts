@@ -65,7 +65,7 @@ const headerView = (model: Model, h: HtmlBuilder<Message>) =>
           h.button(
             [
               h.Class(
-                'sm:hidden -mr-2 inline-flex size-8 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400',
+                'sm:hidden -mr-2 inline-flex size-8 items-center justify-center rounded-md text-gray-700 transition hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400',
               ),
               h.AriaExpanded(model.mobileMenuDialog.isOpen),
               h.AriaLabel('Toggle menu'),
@@ -82,7 +82,7 @@ const footerView = (currentYear: number): Html =>
   ih.footer(
     [
       ih.Class(
-        'px-6 pt-8 pb-[calc(2rem+env(safe-area-inset-bottom,0px))] md:px-12 lg:px-20 border-t border-gray-200 dark:border-gray-800 text-sm text-gray-500 dark:text-gray-400',
+        'px-6 pt-8 pb-[calc(2rem+env(safe-area-inset-bottom,0px))] md:px-12 lg:px-20 border-t border-gray-200 dark:border-gray-800 text-sm text-gray-700 dark:text-gray-300',
       ),
     ],
     [

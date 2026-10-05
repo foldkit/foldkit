@@ -189,7 +189,6 @@ test('website canaries deploy only after their package snapshot is verified', ()
     'scripts/build-examples.ts',
     'scripts/check-playground-ssg-build.ts',
     'scripts/example-bridge.js',
-    'scripts/restore-website-fonts.sh',
     'scripts/website-vercel-config.mjs',
     'tsconfig.base.json',
     '.github/workflows/deploy-website-build.yml',

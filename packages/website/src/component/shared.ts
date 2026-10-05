@@ -49,7 +49,7 @@ export const iconLink = (link: string, ariaLabel: string, icon: Html): Html =>
     [
       ih.Href(link),
       ih.Class(
-        'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition',
+        'text-gray-700 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition',
       ),
       ih.AriaLabel(ariaLabel),
     ],
@@ -132,7 +132,7 @@ export const emailForm: Html = ih.form(
           ih.AriaLabel('Email address'),
           ih.Placeholder('you@example.com'),
           ih.Class(
-            'w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-800 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500 dark:focus:ring-accent-400',
+            'w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-800 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500 dark:focus:ring-accent-400',
           ),
         ]),
       ],
@@ -150,7 +150,7 @@ export const emailForm: Html = ih.form(
 // SITE LINKS
 
 const siteLinkClassName =
-  'underline decoration-gray-400/40 dark:decoration-gray-500/40 hover:text-gray-700 dark:hover:text-gray-200 hover:decoration-gray-500 dark:hover:decoration-gray-300'
+  'underline decoration-gray-400/40 dark:decoration-gray-500/40 hover:text-gray-800 dark:hover:text-gray-200 hover:decoration-gray-500 dark:hover:decoration-gray-300'
 
 const siteLink = (href: string, label: string): Html =>
   ih.a([ih.Href(href), ih.Class(siteLinkClassName)], [label])
@@ -174,7 +174,7 @@ export const emailSignupContent: Html = ih.div(
     ih.h2(
       [
         ih.Class(
-          'font-heading font-book text-3xl md:text-4xl text-gray-900 dark:text-white mb-4 text-balance',
+          'font-sans font-medium text-3xl md:text-4xl text-gray-900 dark:text-white mb-4 text-balance',
         ),
       ],
       ['Stay in the update loop.'],
@@ -182,7 +182,7 @@ export const emailSignupContent: Html = ih.div(
     ih.p(
       [
         ih.Class(
-          'text-base md:text-lg font-light text-gray-500 dark:text-gray-400 mb-8 max-w-xl',
+          'text-base md:text-lg font-book text-gray-700 dark:text-gray-400 mb-8 max-w-xl',
         ),
       ],
       ['New releases, patterns, and the occasional deep dive.'],

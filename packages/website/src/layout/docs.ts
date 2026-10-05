@@ -139,7 +139,7 @@ export const headerView = (model: Model, h: HtmlBuilder<Message>) =>
               h.button(
                 [
                   h.Class(
-                    'md:hidden -mr-2 inline-flex size-8 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400',
+                    'md:hidden -mr-2 inline-flex size-8 items-center justify-center rounded-md text-gray-600 transition hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400',
                   ),
                   h.AriaExpanded(model.mobileMenuDialog.isOpen),
                   h.AriaLabel('Toggle menu'),
@@ -172,7 +172,7 @@ export const footerView = (
         ['Stay in the update loop.'],
       ),
       h.p(
-        [h.Class('text-sm text-gray-600 dark:text-gray-300 mb-4')],
+        [h.Class('text-sm text-gray-700 dark:text-gray-300 mb-4')],
         ['New releases, patterns, and the occasional deep dive.'],
       ),
       Shared.emailForm,
@@ -182,7 +182,7 @@ export const footerView = (
         ),
       ]),
       h.div(
-        [h.Class('text-sm text-gray-500 dark:text-gray-400')],
+        [h.Class('text-sm text-gray-600 dark:text-gray-400')],
         [
           h.p(
             [],
@@ -230,7 +230,7 @@ const neighborLink = (
       h.span(
         [
           h.Class(
-            'text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider',
+            'text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider',
           ),
         ],
         [config.direction],
@@ -238,7 +238,7 @@ const neighborLink = (
       h.span(
         [
           h.Class(
-            'text-sm font-medium text-accent-600 dark:text-accent-400 group-hover:underline',
+            'text-sm font-medium text-accent-700 dark:text-accent-400 group-hover:underline',
           ),
         ],
         config.direction === 'Previous'

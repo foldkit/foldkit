@@ -36,7 +36,7 @@ export const basicDemo = (h: HtmlBuilder<Message>) => {
                     ['Health'],
                   ),
                   h.span(
-                    [h.Class('tabular-nums text-gray-600 dark:text-gray-400')],
+                    [h.Class('tabular-nums text-gray-700 dark:text-gray-400')],
                     ['75 / 100'],
                   ),
                 ],
@@ -80,7 +80,7 @@ export const thresholdsDemo = (h: HtmlBuilder<Message>) => {
                     ['Storage'],
                   ),
                   h.span(
-                    [h.Class('tabular-nums text-gray-600 dark:text-gray-400')],
+                    [h.Class('tabular-nums text-gray-700 dark:text-gray-400')],
                     ['82%'],
                   ),
                 ],
@@ -90,7 +90,7 @@ export const thresholdsDemo = (h: HtmlBuilder<Message>) => {
                 [h.div([...attributes.fill, h.Class(fillClassName)])],
               ),
               h.span(
-                [h.Class('text-xs text-gray-500 dark:text-gray-400')],
+                [h.Class('text-xs text-gray-600 dark:text-gray-400')],
                 ['low 30, high 80, optimum 20 as data attributes'],
               ),
             ],

@@ -28,8 +28,8 @@ const tableOfContentsEntryView = (
           h.OnClick(Message.ChangedActiveSection({ sectionId: entry.id })),
           h.Class(
             clsx('transition block wrap-anywhere', {
-              'text-accent-600 dark:text-accent-400 underline': isActive,
-              'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white':
+              'text-accent-700 dark:text-accent-400 underline': isActive,
+              'text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white':
                 !isActive,
             }),
           ),
@@ -130,7 +130,7 @@ export const mobileView = (
               h.span(
                 [
                   h.Class(
-                    'text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider shrink-0',
+                    'text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider shrink-0',
                   ),
                 ],
                 ['On this page'],
@@ -144,7 +144,7 @@ export const mobileView = (
           h.span(
             [
               h.Class(
-                'text-gray-500 dark:text-gray-400 shrink-0 ml-2 transition-transform group-open:rotate-180',
+                'text-gray-600 dark:text-gray-400 shrink-0 ml-2 transition-transform group-open:rotate-180',
               ),
             ],
             [Icon.chevronDown('w-4 h-4')],
@@ -183,8 +183,8 @@ export const mobileView = (
                           {
                             'pl-8 md:pl-10': level === 'h3',
                             'pl-12 md:pl-14': level === 'h4',
-                            'text-accent-600 dark:text-accent-400': isActive,
-                            'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white':
+                            'text-accent-700 dark:text-accent-400': isActive,
+                            'text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white':
                               !isActive,
                           },
                         ),
@@ -195,7 +195,7 @@ export const mobileView = (
                       text,
                       isActive
                         ? Icon.check(
-                            'w-4 h-4 text-accent-600 dark:text-accent-400',
+                            'w-4 h-4 text-accent-700 dark:text-accent-400',
                           )
                         : h.empty,
                     ],

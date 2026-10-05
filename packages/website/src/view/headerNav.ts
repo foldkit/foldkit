@@ -32,7 +32,7 @@ const sectionToHref = (section: HeaderSection): string =>
   )
 
 const linkClassName =
-  'text-sm font-normal text-gray-500 dark:text-gray-400 transition hover:text-gray-700 dark:hover:text-gray-300 data-[current]:font-medium data-[current]:text-accent-700 data-[current]:dark:text-accent-400 data-[current]:hover:text-accent-700 data-[current]:dark:hover:text-accent-400'
+  'text-sm font-normal text-gray-700 dark:text-gray-300 transition hover:text-gray-900 dark:hover:text-gray-200 data-[current]:font-medium data-[current]:text-accent-700 data-[current]:dark:text-accent-400 data-[current]:hover:text-accent-700 data-[current]:dark:hover:text-accent-400'
 
 export const view = (
   route: AppRoute,
