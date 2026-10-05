@@ -386,6 +386,37 @@ export type ResolvedHydrationHandoff<Flags> = Readonly<{
   resolveFlags: Effect.Effect<Flags>
 }>
 
+/** Resolves Flags supplied to a fresh client boot. */
+export const resolveFreshFlags = <Flags, Resources>({
+  bootFlags,
+  configuredFlags,
+  isFlagsRequired,
+  provideResources,
+}: Readonly<{
+  bootFlags: Effect.Effect<Flags, never, Resources> | undefined
+  configuredFlags: Option.Option<Effect.Effect<Flags, never, Resources>>
+  isFlagsRequired: boolean
+  provideResources: <A>(
+    effect: Effect.Effect<A, never, Resources>,
+  ) => Effect.Effect<A>
+}>): Effect.Effect<Flags> =>
+  Option.match(
+    Option.orElse(Option.fromNullishOr(bootFlags), () => configuredFlags),
+    {
+      onNone: () =>
+        isFlagsRequired
+          ? Effect.die(
+              new Error(
+                '[foldkit] This application declares Flags. Pass its ' +
+                  'Flags Effect to Runtime.run or Runtime.embed.',
+              ),
+            )
+          : /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+            Effect.succeed(undefined as Flags),
+      onSome: provideResources,
+    },
+  )
+
 /**
  * Decides whether this boot adopts the server-rendered root and where its
  * Flags come from. A hydrating boot with no stamped root, a root served by
@@ -422,27 +453,12 @@ export const resolveHydrationHandoff = <Flags, Resources>({
   ) => Effect.Effect<A>
 }>): Effect.Effect<ResolvedHydrationHandoff<Flags>> =>
   Effect.gen(function* () {
-    const maybeResolveFreshFlags = Option.orElse(
-      Option.fromNullishOr(bootFlags),
-      () => configuredFlags,
-    )
-
-    const resolveFreshFlags: Effect.Effect<Flags> = Option.match(
-      maybeResolveFreshFlags,
-      {
-        onNone: () =>
-          isFlagsRequired
-            ? Effect.die(
-                new Error(
-                  '[foldkit] This application declares Flags. Pass its ' +
-                    'Flags Effect to Runtime.run or Runtime.embed.',
-                ),
-              )
-            : /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-              Effect.succeed(undefined as Flags),
-        onSome: provideResources,
-      },
-    )
+    const freshFlags = resolveFreshFlags({
+      bootFlags,
+      configuredFlags,
+      isFlagsRequired,
+      provideResources,
+    })
 
     // Every hydration refusal that knows which root it was going to adopt
     // contains that root first. The build id is one reason to refuse; a
@@ -581,7 +597,7 @@ export const resolveHydrationHandoff = <Flags, Resources>({
     const resolveFlags: Effect.Effect<Flags> = Option.match(
       maybeHydrationFlags,
       {
-        onNone: () => resolveFreshFlags,
+        onNone: () => freshFlags,
         onSome: Effect.succeed,
       },
     )

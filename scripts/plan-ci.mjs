@@ -118,6 +118,19 @@ const peerFloors =
     ],
     prefixes: ['.changeset/'],
   })
+const bundleSize =
+  fullWorkspaceChecks ||
+  hasChanged({
+    files: ['packages/website/src/page/performance.md'],
+    prefixes: [
+      'internal/bundle-size/',
+      'packages/foldkit/',
+      'packages/ui/',
+      'packages/typing-game/client/',
+      'packages/typing-game/shared/',
+      'packages/vite-plugin-foldkit/',
+    ],
+  })
 const typingGame =
   fullWorkspaceChecks ||
   hasChanged({
@@ -176,6 +189,7 @@ process.stdout.write(`host_parity=${hostParity}\n`)
 process.stdout.write(`dom_state_parity=${domStateParity}\n`)
 process.stdout.write(`prerender_repeatable=${prerenderRepeatable}\n`)
 process.stdout.write(`peer_floors=${peerFloors}\n`)
+process.stdout.write(`bundle_size=${bundleSize}\n`)
 process.stdout.write(`typing_game=${typingGame}\n`)
 process.stdout.write(`website=${website}\n`)
 process.stdout.write(`full_workspace_checks=${fullWorkspaceChecks}\n`)

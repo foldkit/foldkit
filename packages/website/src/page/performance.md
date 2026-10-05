@@ -78,7 +78,24 @@ When something is slow, work through this list in order:
 
 ## Bundle size and code splitting
 
-The package is ESM-only, marked side-effect-free, and exposed through subpath exports, so bundlers tree-shake everything an app does not import. A minimal counter app builds to about 270 KB raw and just under 90 KB gzipped, and that includes the Foldkit runtime, its vendored differ, and Effect itself. Effect is the largest share of the baseline, and it is not dead weight: it is the same library your application code uses for Commands, Schemas, and data manipulation.
+The package is ESM-only, marked side-effect-free, and exposed through subpath exports. A production build can still retain code behind an optional runtime capability when the runtime selects that capability dynamically. The measurements below show what the current builds actually ship, including Effect and the Foldkit runtime.
+
+### Measurements
+
+| Consumer                  | Initial raw | Initial gzip | Initial Brotli | Deferred gzip |
+| ------------------------- | ----------: | -----------: | -------------: | ------------: |
+| Effect Schema decode only |     67.5 KB |      22.1 KB |        20.1 KB |             — |
+| Foldkit counter           |    263.0 KB |      85.7 KB |        75.3 KB |             — |
+| Counter + Button          |    263.3 KB |      86.0 KB |        75.5 KB |             — |
+| Counter + Dialog API      |    283.1 KB |      90.7 KB |        79.7 KB |             — |
+| Counter + Popover API     |    307.1 KB |      99.2 KB |        87.2 KB |             — |
+| Counter + Combobox API    |    321.7 KB |     102.6 KB |        90.0 KB |             — |
+| Counter + DatePicker API  |    340.4 KB |     107.8 KB |        94.1 KB |             — |
+| Typing Game app           |    375.7 KB |     117.1 KB |       102.3 KB |             — |
+
+### Interpretation
+
+The small fixtures use Vite 8, Oxc minification, an ES2022 target, and `@foldkit/vite-plugin` against the compiled package exports. The Typing Game row builds the real client with its own Vite configuration and includes its application code. Values count emitted JavaScript; the Typing Game build also emits CSS, which the [bundle-size profiler](https://github.com/foldkit/foldkit/tree/main/internal/bundle-size) reports separately. Raw, gzip, and Brotli are byte counts of the emitted files, not package download sizes. A deferred chunk is downloaded only after the application imports it. These rows are comparisons under one build setup, not additive prices for individual components.
 
 What splits today:
 

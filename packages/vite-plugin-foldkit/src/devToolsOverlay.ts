@@ -173,21 +173,26 @@ export const shouldInjectDevToolsOverlay = (
 /** Creates the Vite plugin that registers the appropriate DevTools overlay. */
 export const devToolsOverlayPlugin = (): Plugin => {
   let isInjectionEnabled = false
+  let isDevelopment = false
 
   return {
     name: 'foldkit:devtools-overlay',
     config: (userConfig, environment) => {
       const root = userConfig.root ?? process.cwd()
-      if (
-        environment.command !== 'serve' ||
-        !shouldInjectDevToolsOverlay(environment.command, root)
-      ) {
+      if (environment.command !== 'serve') {
         return undefined
       }
 
-      const include = DEV_TOOLS_OVERLAY_IMPORTS.filter(({ packageName }) =>
-        isPackageResolvedIntoNodeModules(root, packageName),
-      ).map(({ specifier }) => specifier)
+      const imports = shouldInjectDevToolsOverlay(environment.command, root)
+        ? DEV_TOOLS_OVERLAY_IMPORTS
+        : DEV_TOOLS_OVERLAY_IMPORTS.filter(
+            ({ specifier }) => specifier === DEV_TOOLS_HOST_IMPORT_SPECIFIER,
+          )
+      const include = imports
+        .filter(({ packageName }) =>
+          isPackageResolvedIntoNodeModules(root, packageName),
+        )
+        .map(({ specifier }) => specifier)
 
       return Array.match(include, {
         onEmpty: () => undefined,
@@ -195,6 +200,7 @@ export const devToolsOverlayPlugin = (): Plugin => {
       })
     },
     configResolved: config => {
+      isDevelopment = config.command === 'serve'
       isInjectionEnabled = shouldInjectDevToolsOverlay(
         config.command,
         config.root,
@@ -217,7 +223,7 @@ export const devToolsOverlayPlugin = (): Plugin => {
     transformIndexHtml: {
       order: 'pre',
       handler: () => {
-        if (!isInjectionEnabled) {
+        if (!isInjectionEnabled && !isDevelopment) {
           return
         }
 
@@ -227,7 +233,9 @@ export const devToolsOverlayPlugin = (): Plugin => {
             attrs: {
               type: 'module',
             },
-            children: `import '${DEV_TOOLS_OVERLAY_MODULE_ID}'`,
+            children: isInjectionEnabled
+              ? `import '${DEV_TOOLS_OVERLAY_MODULE_ID}'`
+              : `import { __setDevToolsOverlay } from '${DEV_TOOLS_HOST_IMPORT_SPECIFIER}'; __setDevToolsOverlay(undefined)`,
             injectTo: 'head-prepend',
           },
         ]

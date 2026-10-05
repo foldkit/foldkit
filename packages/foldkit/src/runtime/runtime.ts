@@ -32,7 +32,7 @@ import {
 import type { CrashConfig } from './crashUI.js'
 import { deepFreeze } from './deepFreeze.js'
 import type { DevToolsConfig } from './devToolsConfig.js'
-import { makeDevToolsIntegration } from './devToolsIntegration.js'
+import { makeDevToolsIntegration } from './devToolsRegistry.js'
 import { createDuplicateIdScanner } from './duplicateIdScanner.js'
 import {
   type HostConnector,
@@ -43,13 +43,18 @@ import {
 import {
   type BootMode,
   type HydrationConfig,
-  resolveHydrationHandoff,
+  resolveFreshFlags,
+  type resolveHydrationHandoff,
 } from './hydrationHandoff.js'
 import { forkManagedResourceFibers } from './managedResourceFibers.js'
 import { type MessageQueue, makeMessageQueue } from './messageQueue.js'
 import { preserveModel } from './modelPreservationBridge.js'
 import { makePreserveScheduler } from './preserveScheduler.js'
-import { type ResolvedViewTransition, makeRenderer } from './renderer.js'
+import {
+  type AdoptVNode,
+  type ResolvedViewTransition,
+  makeRenderer,
+} from './renderer.js'
 import { makeResourceProvider } from './resourceProvider.js'
 import { makeRuntimeStatus } from './runtimeStatus.js'
 import {
@@ -264,6 +269,8 @@ type RuntimeInternals = {
     bootMode?: BootMode,
     flags?: Effect.Effect<any, never, any>,
     buildId?: string,
+    adoptVNode?: AdoptVNode,
+    resolveHandoff?: typeof resolveHydrationHandoff,
   ) => Effect.Effect<void>
   kind: 'Application' | 'Element'
   isEmbedActive: boolean
@@ -376,6 +383,8 @@ export const makeRuntime = <
     bootMode: BootMode = 'Fresh',
     bootFlags?: Effect.Effect<Flags, never, Resources>,
     buildId?: string,
+    adoptVNode?: AdoptVNode,
+    resolveHandoff?: typeof resolveHydrationHandoff,
   ): Effect.Effect<void> => {
     // NOTE: one notifier per runtime, provided across the whole runtime
     // Effect so Commands, Subscriptions, and Mount-forked Effects all resolve
@@ -433,19 +442,30 @@ export const makeRuntime = <
             maybePortChannels,
           })
 
-        const { maybeHydrationRoot, resolveFlags } =
-          yield* resolveHydrationHandoff({
-            bootMode,
-            hydration,
-            bootFlags,
-            configuredFlags,
-            isFlagsRequired,
-            FlagsCodec,
-            preservedModel,
-            container,
-            buildId,
-            provideResources,
-          })
+        const handoff =
+          resolveHandoff === undefined
+            ? {
+                maybeHydrationRoot: Option.none<HTMLElement>(),
+                resolveFlags: resolveFreshFlags({
+                  bootFlags,
+                  configuredFlags,
+                  isFlagsRequired,
+                  provideResources,
+                }),
+              }
+            : yield* resolveHandoff({
+                bootMode,
+                hydration,
+                bootFlags,
+                configuredFlags,
+                isFlagsRequired,
+                FlagsCodec,
+                preservedModel,
+                container,
+                buildId,
+                provideResources,
+              })
+        const { maybeHydrationRoot, resolveFlags } = handoff
 
         const ModelJsonCodec = Schema.toCodecJson(
           /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -636,6 +656,7 @@ export const makeRuntime = <
           buildId,
           initModel,
           maybeHydrationRoot,
+          adoptVNode,
           maybeSlowView,
           maybeSlowPatch,
           duplicateIdScanner,
@@ -911,8 +932,24 @@ export const makeRuntime = <
     ports,
   }
   runtimeInternals.set(program, {
-    startWith: (maybeConnector, preservedModel, bootMode, flags, buildId) =>
-      startWith(maybeConnector, preservedModel, bootMode, flags, buildId),
+    startWith: (
+      maybeConnector,
+      preservedModel,
+      bootMode,
+      flags,
+      buildId,
+      adoptVNode,
+      resolveHandoff,
+    ) =>
+      startWith(
+        maybeConnector,
+        preservedModel,
+        bootMode,
+        flags,
+        buildId,
+        adoptVNode,
+        resolveHandoff,
+      ),
     kind,
     isEmbedActive: false,
     maybeActiveFiber: Option.none(),

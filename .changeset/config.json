@@ -45,6 +45,7 @@
     "managed-resource-layer-example",
     "pixel-art-react-comparison",
     "@foldkit/performance-harness",
+    "@foldkit/bundle-size",
     "@foldkit/examples-e2e",
     "@foldkit/lustre-benchmark",
     "charting-example",

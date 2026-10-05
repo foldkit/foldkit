@@ -17,6 +17,7 @@ const SCOPES = [
   'dom_state_parity',
   'prerender_repeatable',
   'peer_floors',
+  'bundle_size',
   'typing_game',
   'website',
   'full_workspace_checks',
@@ -67,7 +68,28 @@ test('a foldkit change reaches the website and the typing game', () => {
   assert.equal(scopes['website'], 'true')
   assert.equal(scopes['typing_game'], 'true')
   assert.equal(scopes['workspace_packages'], 'true')
+  assert.equal(scopes['bundle_size'], 'true')
   assert.equal(scopes['full_workspace_checks'], 'false')
+})
+
+test('bundle inputs select the bundle-size check', () => {
+  for (const fileName of [
+    'internal/bundle-size/src/counter.ts',
+    'packages/foldkit/src/runtime/runtime.ts',
+    'packages/ui/src/button/index.ts',
+    'packages/typing-game/client/src/entry.ts',
+    'packages/typing-game/shared/src/index.ts',
+    'packages/vite-plugin-foldkit/src/index.ts',
+    'packages/website/src/page/performance.md',
+    'pnpm-lock.yaml',
+  ]) {
+    assert.equal(planCiForFile(fileName)['bundle_size'], 'true', fileName)
+  }
+
+  assert.equal(
+    planCiForFile('packages/website/src/page/landing.ts')['bundle_size'],
+    'false',
+  )
 })
 
 test('a markdown change reaches the website', () => {
