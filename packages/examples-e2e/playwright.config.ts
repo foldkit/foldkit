@@ -16,6 +16,8 @@ const webServerCommand = (slug: string): string => {
     return `pnpm -C ../../examples/ssr build && PORT=${PORT} pnpm -C ../../examples/ssr start`
   } else if (slug === 'ssg') {
     return `pnpm -C ../../examples/ssg build && pnpm -C ../../examples/ssg exec vite preview --outDir dist/client --port ${PORT} --strictPort`
+  } else if (slug === 'routing') {
+    return `pnpm -C ../../examples/routing exec vite build && pnpm -C ../../examples/routing exec vite preview --host 127.0.0.1 --port ${PORT} --strictPort`
   } else {
     return `pnpm -C ../../examples/${slug} exec vite --port ${PORT} --strictPort`
   }

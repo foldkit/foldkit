@@ -46,3 +46,41 @@ Flags still resolve before init, but their wiring follows the ownership boundary
 The returned handle is the whole boundary. The host never reads the Model or dispatches Messages directly. Disposing the handle stops the runtime and its lifecycle work, removes the rendered DOM, and restores the empty container so it can be embedded again.
 
 The [Embedding](/core/embedding) guide has the full walkthrough.
+
+## Lazy composition
+
+Use `lazyComposition` to load a second root implementation after the Runtime has booted. The Runtime owns the loaded functions. The Model and readiness Messages contain only `CompositionIdentity`: a build id, an implementation key, and a request id.
+
+Each implementation supplies the same typed `update`, `view`, and optional `subscriptions` as the root. It can fold Submodels and OutMessages normally. The root `resources` Layer and `managedResources` declarations stay fixed, so Commands and Subscriptions from every implementation share the same services and runtime scope. An implementation cannot add service tags at activation.
+
+Root configuration `subscriptions` remain active in the runtime scope across implementation changes. Put application-wide phone, media, and navigation streams there. A loaded implementation's `subscriptions` belong only to that accepted route identity and stop when the accepted identity changes. The root record and the loaded record are separate scopes; neither replaces the other. Each keeps the normal dependency-equivalence behavior within its own lifetime.
+
+Keep persistent shell nodes in one shared view function called by the root and each loaded implementation. Vite's view identity transform then gives the shell the same identity across activation, preserving its DOM, focus, and uncontrolled inputs. Different route view functions still carry different identities and replace their route subtrees normally. The Runtime does not override view identity to disguise a route change.
+
+::Snippet{name="runtimeLazyComposition" label="Loading an implementation inside one Runtime"}
+
+Declare a finite `keys` list and one `buildId`. `requested(model)` identifies the work to load; `accepted(model)` identifies the implementation to use. The Runtime runs `load` as an Effect and publishes `onLoaded` or `onFailed`. Import rejection belongs in the Effect's string error channel. Unexpected defects retain the normal crash behavior. No retry runs automatically. Root update retries by creating a new request id.
+
+Loading consumes only services declared by the fixed root `resources` Layer. Loaded Commands and route Subscriptions may also consume the fixed ManagedResource services. The lazy configuration cannot infer additional service requirements to bypass those declarations. A failed root Layer remains fatal during loading, even when the loader does not itself read a service; it does not publish readiness against an unavailable app context.
+
+When the root update is resource-free and only lazy code consumes a service, inference may keep the root resource type at `never`. Declare that existing constructor type parameter explicitly: `makeApplication<Model, Message, AppServices>` or `makeElement<Model, Message, AppServices>` for a configuration without Flags. The `resources` Layer must still provide `AppServices`; the annotation does not install services. With Flags, the constructor parameters begin `Model, Message, Flags, AppServices`.
+
+`isLifecycleMessage` identifies Messages that must go through the root update even when a loaded implementation is active. Include navigation, loaded, failed, and return-to-root Messages. Root update accepts readiness only when the entire identity matches its current request. A late response from an earlier visit cannot activate a later visit to the same key.
+
+Successful implementations are cached for the Runtime lifetime, bounded by `keys`. Going from A to B to A reuses A's code, but the new accepted request identity stops the prior route Subscriptions and starts the next route record. Root Subscriptions remain alive. Subscription dependency changes retain the usual equivalence and cleanup behavior. The Runtime rejects an unknown key, a different build, or an accepted identity whose implementation has not loaded. It does not silently render the root in place of missing code.
+
+DevTools replay resolves the implementation from each historical Model, not the current route. A restored Model's accepted implementation loads before the first render. If loading that restored identity fails, startup fails rather than painting another implementation. All retained implementations disappear when the Runtime is disposed. Development reloads create a new cache and load restored identity again, so each implementation must use the normal Vite view-identity transform and the application's build id must change when its contract changes.
+
+A restored accepted implementation that cannot load fails the startup Effect with the loader's reason. This happens before the renderer exists, so it does not paint a crash view or emit `onFailed` into a running update loop. There is no automatic reload or retry. `start` callers can handle the failed Effect; a later fresh boot runs `init` and can request another identity normally. Ordinary post-boot loading failures still produce `onFailed` Messages and remain recoverable through root update.
+
+### Server rendering boundary
+
+This activation channel is for client-rendered apps. `Runtime.hydrate` rejects `lazyComposition` before adopting the server DOM. The experimental server renderer does not run the loading channel. SSR and SSG apps must statically resolve their implementation before rendering and use the ordinary configuration; the lazy configuration is not a replacement for a server-side composition API.
+
+The routing example includes an executable smoke page at `/lazy.html`. Open Home, click **Open reports**, increment the loaded route, and return Home. The Reports module is a dynamic import, while Foldkit and Effect remain shared by one Runtime.
+
+## API Reference
+
+- `CompositionIdentity`: Schema and type for `{ buildId, key, requestId }`.
+- `Composition<Model, Message, Services, View>`: typed root implementation. `View` defaults to `Document`; an element uses `Html`.
+- `LazyCompositionConfig<Model, Message, Resources, Services, View>`: finite implementation loading and Model identity selection configuration. `load` returns an Effect with string failures; readiness and failure callbacks produce Messages.
