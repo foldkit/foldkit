@@ -85,13 +85,13 @@ The package is ESM-only, marked side-effect-free, and exposed through subpath ex
 | Consumer                  | Initial raw | Initial gzip | Initial Brotli | Deferred gzip |
 | ------------------------- | ----------: | -----------: | -------------: | ------------: |
 | Effect Schema decode only |     67.5 KB |      22.1 KB |        20.1 KB |             — |
-| Foldkit counter           |    263.0 KB |      85.7 KB |        75.3 KB |             — |
-| Counter + Button          |    263.3 KB |      86.0 KB |        75.5 KB |             — |
-| Counter + Dialog API      |    283.1 KB |      90.7 KB |        79.7 KB |             — |
-| Counter + Popover API     |    307.1 KB |      99.2 KB |        87.2 KB |             — |
-| Counter + Combobox API    |    321.7 KB |     102.6 KB |        90.0 KB |             — |
-| Counter + DatePicker API  |    340.4 KB |     107.8 KB |        94.1 KB |             — |
-| Typing Game app           |    375.7 KB |     117.1 KB |       102.3 KB |             — |
+| Foldkit counter           |    250.3 KB |      81.3 KB |        71.9 KB |             — |
+| Counter + Button          |    250.6 KB |      81.6 KB |        72.0 KB |             — |
+| Counter + Dialog API      |    270.4 KB |      86.4 KB |        76.2 KB |             — |
+| Counter + Popover API     |    294.3 KB |      95.0 KB |        83.8 KB |             — |
+| Counter + Combobox API    |    309.0 KB |      98.2 KB |        86.5 KB |             — |
+| Counter + DatePicker API  |    327.7 KB |     103.4 KB |        90.6 KB |             — |
+| Typing Game app           |    362.9 KB |     112.6 KB |        98.6 KB |             — |
 
 ### Interpretation
 
