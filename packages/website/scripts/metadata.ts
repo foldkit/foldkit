@@ -226,7 +226,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreQuery: core(
     'Query',
-    'Define an experimental remote-data Submodel with Query.define. Query Models retain AsyncData values behind a read API, and query.lift folds their Messages and loading policies into a parent.',
+    'Fetch, cache, and refresh remote data with reusable Submodels and less boilerplate.',
   ),
   CoreCanvas: core(
     'Canvas',
