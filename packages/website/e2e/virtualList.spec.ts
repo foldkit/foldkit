@@ -119,3 +119,101 @@ test('keeps end-anchored dynamic lists stable across append, prepend, and row gr
   await page.locator('[data-virtual-list-chat-append]').click()
   await expect.poll(() => distanceFromEnd(container)).toBeLessThanOrEqual(1)
 })
+
+test('loads older messages when scrolling near the start and preserves the visible row', async ({
+  page,
+}) => {
+  await page.goto('/ui/virtual-list')
+  await waitForClientRuntime(page)
+
+  const container = page.getByRole('list', {
+    name: 'End-anchored chat messages',
+  })
+  await expect.poll(() => distanceFromEnd(container)).toBeLessThanOrEqual(1)
+  const initialScrollHeight = await container.evaluate(
+    element => element.scrollHeight,
+  )
+
+  await container.evaluate(element => {
+    element.scrollTop = 120
+    element.dispatchEvent(new Event('scroll'))
+  })
+  await expect(
+    container.locator('[data-virtual-list-item-key="0"]'),
+  ).toHaveCount(1)
+
+  const startAnchor = await container.evaluate(element => {
+    element.scrollTop = 40
+    const row = element.querySelector<HTMLElement>(
+      '[data-virtual-list-item-key="0"]',
+    )
+    if (row === null) {
+      throw new Error('Expected the first row to be rendered')
+    }
+    const top =
+      row.getBoundingClientRect().top - element.getBoundingClientRect().top
+    element.dispatchEvent(new Event('scroll'))
+    return { key: '0', top, index: 0 }
+  })
+
+  await expect
+    .poll(() => container.evaluate(element => element.scrollHeight))
+    .toBeGreaterThan(initialScrollHeight + 200)
+  await expectAnchorTop(container, startAnchor)
+})
+
+test('loads older messages after jumping directly from the end to the start', async ({
+  page,
+}) => {
+  await page.goto('/ui/virtual-list')
+  await waitForClientRuntime(page)
+
+  const container = page.getByRole('list', {
+    name: 'End-anchored chat messages',
+  })
+  await expect.poll(() => distanceFromEnd(container)).toBeLessThanOrEqual(1)
+
+  await container.evaluate(element => {
+    element.scrollTop = 0
+    element.dispatchEvent(new Event('scroll'))
+  })
+
+  await expect(
+    container.locator('[data-virtual-list-item-key="-8"]'),
+  ).toHaveCount(1)
+  await expect
+    .poll(() => container.evaluate(element => element.scrollTop))
+    .toBeLessThanOrEqual(1)
+})
+
+test('keeps a distant key centered while correcting a low row-height estimate', async ({
+  page,
+}) => {
+  await page.goto('/ui/virtual-list')
+  await waitForClientRuntime(page)
+
+  const container = page.getByRole('list', {
+    name: 'End-anchored chat messages',
+  })
+  await expect.poll(() => distanceFromEnd(container)).toBeLessThanOrEqual(1)
+  await page.locator('[data-virtual-list-chat-scroll-to-message]').click()
+
+  await expect
+    .poll(() =>
+      container.evaluate(element => {
+        const row = element.querySelector<HTMLElement>(
+          '[data-virtual-list-item-key="7"]',
+        )
+        if (row === null) {
+          return Number.POSITIVE_INFINITY
+        }
+        const containerRect = element.getBoundingClientRect()
+        const rowRect = row.getBoundingClientRect()
+        return Math.abs(
+          (rowRect.top + rowRect.bottom) / 2 -
+            (containerRect.top + containerRect.bottom) / 2,
+        )
+      }),
+    )
+    .toBeLessThanOrEqual(1)
+})

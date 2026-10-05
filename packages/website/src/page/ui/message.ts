@@ -92,6 +92,7 @@ export const Message = defineMessageUnion({
   ClickedVirtualListVariableScrollToMiddle: {},
   GotVirtualListChatDemoMessage: { message: VirtualList.Message },
   ClickedVirtualListChatPrepend: {},
+  ClickedVirtualListChatScrollToMessage: {},
   ClickedVirtualListChatAppend: {},
   ClickedVirtualListChatToggleMessage: { messageId: Schema.Number },
 })

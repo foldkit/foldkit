@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   ApplyScroll,
+  ApplyScrollOutcome,
   Message,
   type Model,
   type ScrollAlignment,
@@ -102,10 +103,12 @@ const executeScroll = async (
 const completedApplyScroll = (version: number) =>
   Message.CompletedApplyScroll({
     version,
-    scrollTop: 0,
-    scrollHeight: 1000,
-    containerHeight: 300,
-    anchor: { _tag: 'None' },
+    outcome: ApplyScrollOutcome.Applied({
+      scrollTop: 0,
+      scrollHeight: 1000,
+      containerHeight: 300,
+      anchor: { _tag: 'None' },
+    }),
   })
 
 describe('VirtualList', () => {
@@ -143,6 +146,122 @@ describe('VirtualList', () => {
       expect(model.endBehavior).toStrictEqual({
         _tag: 'Follow',
         thresholdPx: 8,
+      })
+    })
+
+    it('keeps an initial End target until rows arrive after an empty mount', () => {
+      const initialModel = init({
+        id: 'test',
+        rowHeightPx: 30,
+        initialScroll: { target: ScrollTarget.End() },
+      })
+      const measured = update(
+        initialModel,
+        Message.MeasuredContainer({ containerHeight: 90 }),
+      )
+      const emptyScroll = update(
+        measured.model,
+        completedApplyScroll(measured.model.pendingScrollVersion),
+      )
+
+      expect(emptyScroll.model.initialScroll._tag).toBe('Pending')
+
+      const arrived = informItemsChanged(emptyScroll.model, ['first', 'last'])
+      expect(arrived.model.pendingScroll).toMatchObject({
+        _tag: 'Pending',
+        request: { _tag: 'Target', target: { _tag: 'End' } },
+      })
+
+      const positioned = update(
+        arrived.model,
+        Message.CompletedApplyScroll({
+          version: arrived.model.pendingScrollVersion,
+          outcome: ApplyScrollOutcome.Applied({
+            scrollTop: 30,
+            scrollHeight: 120,
+            containerHeight: 90,
+            anchor: {
+              _tag: 'Row',
+              key: 'first',
+              index: 0,
+              viewportOffset: -30,
+            },
+          }),
+        }),
+      )
+      expect(positioned.model.initialScroll._tag).toBe('Applied')
+    })
+
+    it('retries an initial key target after its key arrives', () => {
+      const initialModel = init({
+        id: 'test',
+        rowHeightPx: 30,
+        initialScroll: { target: ScrollTarget.Key({ key: 'wanted' }) },
+      })
+      const measured = update(
+        initialModel,
+        Message.MeasuredContainer({ containerHeight: 90 }),
+      )
+      const missing = update(
+        measured.model,
+        Message.CompletedApplyScroll({
+          version: measured.model.pendingScrollVersion,
+          outcome: ApplyScrollOutcome.Skipped(),
+        }),
+      )
+
+      expect(missing.model.initialScroll._tag).toBe('Pending')
+
+      const arrived = informItemsChanged(missing.model, ['wanted'])
+      expect(arrived.model.pendingScroll).toMatchObject({
+        _tag: 'Pending',
+        request: {
+          _tag: 'Target',
+          target: { _tag: 'Key', key: 'wanted' },
+        },
+      })
+    })
+
+    it('lets an explicit scroll supersede a deferred initial target', () => {
+      const initialModel = init({
+        id: 'test',
+        rowHeightPx: 30,
+        initialScroll: { target: ScrollTarget.Key({ key: 'wanted' }) },
+      })
+      const explicitScroll = scrollToEnd(initialModel)
+
+      expect(explicitScroll.model.initialScroll._tag).toBe('Applied')
+      expect(explicitScroll.model.pendingScroll).toMatchObject({
+        _tag: 'Pending',
+        request: { _tag: 'Target', target: { _tag: 'End' } },
+      })
+    })
+
+    it('lets a user scroll supersede an initial target even before a row is visible', () => {
+      const initialModel = init({
+        id: 'test',
+        rowHeightPx: 30,
+        initialScroll: { target: ScrollTarget.End() },
+      })
+      const measured = update(
+        initialModel,
+        Message.MeasuredContainer({ containerHeight: 90 }),
+      )
+      const scrolled = update(
+        measured.model,
+        Message.ObservedContainerScroll({
+          scrollTop: 0,
+          scrollHeight: 1000,
+          containerHeight: 90,
+          anchor: { _tag: 'None' },
+        }),
+      )
+
+      expect(scrolled.model.initialScroll._tag).toBe('Applied')
+      expect(scrolled.model.pendingScroll._tag).toBe('Idle')
+      expect(scrolled.model.viewportAnchor).toStrictEqual({
+        _tag: 'Offset',
+        scrollTop: 0,
       })
     })
   })

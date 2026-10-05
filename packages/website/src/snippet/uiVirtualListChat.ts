@@ -37,6 +37,8 @@ const foldMessageListItemsChanged = Update.foldChild({
   toParentMessage: message => Message.GotMessageListMessage({ message }),
 })
 
+GotMessageListMessage: ({ message }) => foldMessageList(model, message)
+
 ReceivedMessage: ({ message }) => {
   const nextMessages = Array.append(model.messages, message)
   const nextModel = modifyFields(model, {
@@ -60,10 +62,9 @@ const view = (model: Model, h: HtmlBuilder<Message>) =>
       itemToKey: message => String(message.id),
       itemToView: message =>
         h.div([h.Class('rounded-xl px-3 py-2')], [message.body]),
-      dynamicRowHeights: {
-        itemToEstimatedRowHeightPx: message =>
-          message.body.length > 120 ? 96 : 64,
-      },
+      dynamicRowHeights: true,
+      itemToEstimatedRowHeightPx: message =>
+        message.body.length > 120 ? 96 : 64,
       contentAlignment: 'End',
       containerClassName: 'h-96 overflow-auto',
     },

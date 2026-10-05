@@ -35,9 +35,8 @@ type SceneViewOverrides = Readonly<{
   containerClassName?: string
   contentAlignment?: 'Start' | 'End'
   itemToRowHeightPx?: (item: DemoItem, index: number) => number
-  dynamicRowHeights?: Readonly<{
-    itemToEstimatedRowHeightPx?: (item: DemoItem, index: number) => number
-  }>
+  dynamicRowHeights?: true
+  itemToEstimatedRowHeightPx?: (item: DemoItem, index: number) => number
 }>
 
 const sceneView =
@@ -69,6 +68,11 @@ const sceneView =
       return render({
         ...baseViewInputs,
         dynamicRowHeights: overrides.dynamicRowHeights,
+        ...(overrides.itemToEstimatedRowHeightPx === undefined
+          ? {}
+          : {
+              itemToEstimatedRowHeightPx: overrides.itemToEstimatedRowHeightPx,
+            }),
       })
     }
 
@@ -321,7 +325,7 @@ describe('VirtualList', () => {
 
     it('marks dynamic rows for rendered-height observation', () => {
       Scene.scene(
-        { update, view: sceneView({ dynamicRowHeights: {} }) },
+        { update, view: sceneView({ dynamicRowHeights: true }) },
         Scene.given(measuredModel),
         Scene.expect(
           Scene.selector('[data-virtual-list-item-index="0"]'),

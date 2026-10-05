@@ -22,7 +22,6 @@ export {
 } from './index.js'
 
 export type {
-  DynamicRowHeights,
   InitConfig,
   RowHeightInputs,
   ScrollToOptions,

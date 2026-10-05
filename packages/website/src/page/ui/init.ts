@@ -22,7 +22,11 @@ import {
 
 import { Toast } from './demo/toastModule'
 import type { Message } from './message'
-import type { Model, VirtualListChatMessage } from './model'
+import {
+  type Model,
+  type VirtualListChatMessage,
+  VirtualListChatStartProximity,
+} from './model'
 
 export type InitReturn = Update.Return<Model, Message>
 
@@ -191,6 +195,7 @@ export const init = (today: Calendar.CalendarDate): InitReturn => ({
     }),
     virtualListChatMessages: initialVirtualListChatMessages,
     virtualListChatNextId: initialVirtualListChatMessages.length,
+    virtualListChatStartProximity: VirtualListChatStartProximity.Away(),
     dragAndDropDemoColumns: [
       {
         id: 'backlog',

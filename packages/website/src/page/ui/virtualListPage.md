@@ -36,6 +36,8 @@ For chat, logs, and reverse infinite feeds, combine an initial `End` target, `fo
 
 Dynamic mode treats `rowHeightPx` as the default estimate. Rendered rows are measured with `ResizeObserver`; when estimates change, VirtualList corrects the scroll position around the stored stable-key anchor. Call `informItemsChanged` in the same parent update that appends, prepends, removes, or reorders items. Appends follow the end only while the user remains within the configured threshold. Once they scroll away, their visible anchor is preserved instead.
 
+An initial index, key, offset, or end target remains pending if the list mounts before its items arrive. Notify VirtualList when the parent loads the items; it applies the target once a row can be rendered. An explicit later `scrollTo` request supersedes the initial target. The chat demo also uses the VirtualList scroll Message to add older rows when the viewport nears the start. In an app that fetches history, the parent owns the request Command; VirtualList keeps the visible keyed row in place when the data arrives.
+
 ::Demo{name="chat"}
 
 ::Snippet{name="uiVirtualListChat" label="end-anchored dynamic-height list"}
@@ -86,18 +88,19 @@ End anchoring never uses `flex-direction: column-reverse`; visual, DOM, keyboard
 
 ### ViewConfig {#view-config}
 
-| Name                  | Type                                                       | Default   | Description                                                                                                     |
-| --------------------- | ---------------------------------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------- |
-| `items`               | `ReadonlyArray<Item>`                                      | —         | Full parent-owned item array.                                                                                   |
-| `itemToKey`           | `(item: Item, index: number) => string`                    | —         | Stable identity used by rendering, key targets, measurement, and anchoring.                                     |
-| `itemToView`          | `(item: Item, index: number) => Html`                      | —         | Renders one row's content.                                                                                      |
-| `itemToRowHeightPx`   | `(item: Item, index: number) => number`                    | —         | Exact known height for each row.                                                                                |
-| `dynamicRowHeights`   | `{ itemToEstimatedRowHeightPx?: (item, index) => number }` | —         | Measures rendered rows. Per-item estimates fall back to `rowHeightPx`. Do not combine with `itemToRowHeightPx`. |
-| `contentAlignment`    | `'Start' \| 'End'`                                         | `'Start'` | Aligns an underfilled list within the viewport.                                                                 |
-| `overscan`            | `number`                                                   | `5`       | Rows mounted before and after the visible window.                                                               |
-| `rowElement`          | `Exclude<TagName, 'textarea'>`                             | `'li'`    | Element used for row wrappers.                                                                                  |
-| `containerClassName`  | `string`                                                   | —         | CSS class for the scroll container.                                                                             |
-| `containerAttributes` | `ReadonlyArray<ChildAttribute>`                            | —         | Additional container attributes.                                                                                |
+| Name                         | Type                                    | Default   | Description                                                                 |
+| ---------------------------- | --------------------------------------- | --------- | --------------------------------------------------------------------------- |
+| `items`                      | `ReadonlyArray<Item>`                   | —         | Full parent-owned item array.                                               |
+| `itemToKey`                  | `(item: Item, index: number) => string` | —         | Stable identity used by rendering, key targets, measurement, and anchoring. |
+| `itemToView`                 | `(item: Item, index: number) => Html`   | —         | Renders one row's content.                                                  |
+| `itemToRowHeightPx`          | `(item: Item, index: number) => number` | —         | Exact known height for each row.                                            |
+| `dynamicRowHeights`          | `true`                                  | —         | Measures rendered rows. Do not combine with `itemToRowHeightPx`.            |
+| `itemToEstimatedRowHeightPx` | `(item: Item, index: number) => number` | —         | Optional per-item estimate in dynamic mode; falls back to `rowHeightPx`.    |
+| `contentAlignment`           | `'Start' \| 'End'`                      | `'Start'` | Aligns an underfilled list within the viewport.                             |
+| `overscan`                   | `number`                                | `5`       | Rows mounted before and after the visible window.                           |
+| `rowElement`                 | `Exclude<TagName, 'textarea'>`          | `'li'`    | Element used for row wrappers.                                              |
+| `containerClassName`         | `string`                                | —         | CSS class for the scroll container.                                         |
+| `containerAttributes`        | `ReadonlyArray<ChildAttribute>`         | —         | Additional container attributes.                                            |
 
 ### ScrollTarget {#scroll-target}
 

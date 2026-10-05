@@ -393,7 +393,7 @@ export const virtualListChatDemo = (
           h.span(
             [h.Class('text-sm text-gray-600 dark:text-gray-400')],
             [
-              'Starts at the end, follows new messages, and preserves the visible message when older rows are prepended.',
+              'Starts at the end, loads older messages near the top, and preserves the visible message as rows change height.',
             ],
           ),
           h.div(
@@ -414,6 +414,17 @@ export const virtualListChatDemo = (
                   h.OnClick(Message.ClickedVirtualListChatAppend()),
                 ],
                 ['Add message'],
+              ),
+              h.button(
+                [
+                  h.Class(buttonClassName),
+                  h.DataAttribute(
+                    'virtual-list-chat-scroll-to-message',
+                    'true',
+                  ),
+                  h.OnClick(Message.ClickedVirtualListChatScrollToMessage()),
+                ],
+                ['Jump to message 7'],
               ),
             ],
           ),
@@ -454,7 +465,8 @@ export const virtualListChatDemo = (
                   : []),
               ],
             ),
-          dynamicRowHeights: {},
+          dynamicRowHeights: true,
+          itemToEstimatedRowHeightPx: message => (message.isExpanded ? 24 : 64),
           contentAlignment: 'End',
           containerClassName:
             'h-80 w-full rounded-lg bg-white dark:bg-gray-900 ring-1 ring-gray-200 dark:ring-gray-800 overscroll-none',
