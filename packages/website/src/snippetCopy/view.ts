@@ -27,7 +27,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         return h.span(
           [
             h.Class(
-              'relative top-px whitespace-nowrap text-xs font-medium text-gray-700 dark:text-gray-300',
+              'pointer-events-none absolute top-1/2 right-full z-10 mr-1 -translate-y-1/2 whitespace-nowrap rounded-md border border-gray-300 bg-[var(--code-background)] px-2 py-1 text-xs font-medium text-gray-700 shadow-sm dark:border-gray-600 dark:text-gray-200',
             ),
           ],
           ['Copied'],
