@@ -76,7 +76,7 @@ export const contentView = (
   h: HtmlBuilder<Message>,
 ): Html => {
   return h.div(
-    [h.Class('isolate overflow-x-hidden')],
+    [h.Class('isolate overflow-x-clip')],
     [
       heroSection(
         renderCopyButton,
