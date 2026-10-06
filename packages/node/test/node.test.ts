@@ -1,5 +1,6 @@
 import { Config, Effect, Fiber, Option } from 'effect'
 import {
+  copyFile,
   mkdir,
   mkdtemp,
   readFile,
@@ -25,6 +26,7 @@ type BuildFixture = Readonly<{
 }>
 
 const fixtureDirectories: Array<string> = []
+const handlerFixtureUrl = new URL('./fixture/handler.mjs', import.meta.url)
 
 const getAvailablePort = (): Promise<number> =>
   new Promise((resolvePort, reject) => {
@@ -117,83 +119,10 @@ const createFixture = async (
   await mkdir(serverDirectory, { recursive: true })
   await writeFile(join(clientDirectory, 'asset.txt'), 'static asset')
   await writeFile(join(clientDirectory, 'index.html'), 'static index')
+  await copyFile(handlerFixtureUrl, join(serverDirectory, 'handler.mjs'))
   await writeFile(
-    join(serverDirectory, 'handler.mjs'),
-    `import { writeFile } from 'node:fs/promises'
-
-export default {
-  fetch(request) {
-    if (new URL(request.url).pathname === '/abort-pending') {
-      const aborted = new Promise(resolveAbort => {
-        request.signal.addEventListener(
-          'abort',
-          () => {
-            void writeFile(${JSON.stringify(abortedPath)}, 'aborted').then(
-              resolveAbort,
-            )
-          },
-          { once: true },
-        )
-      })
-      return writeFile(${JSON.stringify(abortStartedPath)}, 'started')
-        .then(() => aborted)
-        .then(() => new Response('aborted'))
-    }
-    if (new URL(request.url).pathname === '/abort-stream') {
-      return writeFile(${JSON.stringify(abortStartedPath)}, 'started').then(() =>
-        new Response(
-          new ReadableStream({
-            start(controller) {
-              const interval = setInterval(
-                () => controller.enqueue(new Uint8Array([120])),
-                10,
-              )
-              request.signal.addEventListener(
-                'abort',
-                () => {
-                  clearInterval(interval)
-                  void writeFile(${JSON.stringify(abortedPath)}, 'aborted').then(
-                    () => undefined,
-                  )
-                },
-                { once: true },
-              )
-            },
-          }),
-        ),
-      )
-    }
-    if (new URL(request.url).pathname === '/head-stream') {
-      return Promise.resolve(new Response(new ReadableStream({
-        cancel() {
-          return writeFile(${JSON.stringify(abortedPath)}, 'canceled')
-        },
-      })))
-    }
-    if (new URL(request.url).pathname === '/cancel-stream') {
-      return Promise.resolve(new Response(new ReadableStream({
-        start(controller) {
-          controller.enqueue(new TextEncoder().encode('STREAM-CHUNK'))
-        },
-        cancel() {
-          return writeFile(${JSON.stringify(canceledPath)}, 'canceled')
-        },
-      })))
-    }
-    if (new URL(request.url).pathname === '/cookies') {
-      return Promise.resolve(new Response('cookies', {
-        headers: [
-          ['set-cookie', 'sid=app; Path=/app; HttpOnly'],
-          ['set-cookie', 'sid=gone; Path=/; Max-Age=0; HttpOnly'],
-        ],
-      }))
-    }
-    return Promise.resolve(new Response(new URL(request.url).toString(), {
-      headers: { 'set-cookie': 'visitor=foldkit' },
-    }))
-  },
-}
-`,
+    join(serverDirectory, 'handler.config.json'),
+    `${JSON.stringify({ abortStartedPath, abortedPath, canceledPath })}\n`,
   )
   const manifestPath = join(serverDirectory, 'foldkit.build.json')
   await writeFile(
