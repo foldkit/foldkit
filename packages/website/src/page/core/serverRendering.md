@@ -256,21 +256,13 @@ The [SSR example](https://github.com/foldkit/foldkit/tree/main/examples/ssr) sta
 
 ::Snippet{name="serverRenderingBuildSsr" label="SSR build configuration"}
 
-`@foldkit/node` is the standard Node host. It reads `foldkit.build.json` to
-find the client assets and Fetch handler, serves static files for `GET` and
-`HEAD`, then sends the remaining requests to the handler. `port` selects the
-listening port. `origin` is the public origin that Node uses to turn each raw
-request target into a Web `Request` URL.
+`@foldkit/node` is the standard Node host. It reads `foldkit.build.json` to find the client assets and Fetch handler, serves static files for `GET` and `HEAD`, then sends the remaining requests to the handler. `port` selects the listening port. `origin` is the public origin that Node uses to turn each raw request target into a Web `Request` URL.
 
 ::Snippet{name="serverRenderingNodeHost" label="Start the Node adapter"}
 
-When the server output is outside the Vite root, pass `rootDirectory` to the
-adapter. The manifest's output paths remain portable because they are relative
-to that root; the adapter refuses an outside-root server path without it.
+The manifest records output paths relative to the Vite root. When the server output is outside that root, pass `rootDirectory` so the adapter can resolve both output directories; it refuses an outside-root server path without it.
 
-Set `basePath` to the same root-relative `base` used by Vite, such as `/app/`.
-The adapter serves static files only through that path and preserves it when it
-calls the Fetch handler.
+Set `basePath` to the same root-relative `base` used by Vite, such as `/app/`. The adapter serves static files only through that path and preserves it when it calls the Fetch handler.
 
 :::Warning{label="Caching personalized responses"}
 When Flags depend on the request, such as a cookie, authorization header, or locale, the rendered HTML belongs to that visitor. Set `cache-control` and `vary` so a shared cache cannot serve it to someone else. The SSR example uses `private, no-store` and `vary: cookie` because its initial count comes from a cookie.
@@ -316,16 +308,9 @@ A deployed SSR application needs a host that serves the built client assets and 
 
 ### Custom hosts
 
-Use a custom host when the deployment needs routing or delivery behavior that
-`@foldkit/node` does not own. The adapter does not choose a `Cache-Control`
-policy or application 404 behavior. A custom Node host can make those choices around the same Fetch
-handler. It must still validate a raw request target against its configured
-origin before static-file lookup, serve static files only for `GET` and `HEAD`,
-and send the Vite-base `index.html` path, such as `/app/index.html` for
-`/app/`, to the Fetch handler instead of a generated file. Static lookup must
-also stay under that base path, so an unprefixed application request reaches
-the Fetch handler. The [adapter source](https://github.com/foldkit/foldkit/tree/main/packages/node/src/node.ts)
-is a reference for that boundary.
+Use a custom host when the deployment needs routing or delivery behavior that `@foldkit/node` does not own. The adapter does not choose a `Cache-Control` policy or application 404 behavior. A custom Node host can make those choices around the same Fetch handler.
+
+A custom host must validate a raw request target against its configured origin before static-file lookup, serve static files only for `GET` and `HEAD`, and send the Vite-base `index.html` path, such as `/app/index.html` for `/app/`, to the Fetch handler instead of a generated file. Static lookup must also stay under that base path, so an unprefixed application request reaches the Fetch handler. The [adapter source](https://github.com/foldkit/foldkit/tree/main/packages/node/src/node.ts) is a reference for that boundary.
 
 ### Reading completed build metadata
 
