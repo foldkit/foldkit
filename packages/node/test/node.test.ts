@@ -25,6 +25,11 @@ type BuildFixture = Readonly<{
   rootDirectory: string
 }>
 
+type BuildFixtureOptions = Readonly<{
+  schemaVersion?: number
+  isServerOutsideRoot?: boolean
+}>
+
 const fixtureDirectories: Array<string> = []
 const handlerFixtureUrl = new URL('./fixture/handler.mjs', import.meta.url)
 
@@ -119,10 +124,10 @@ const expectTypedStartupFailure = async (
   }
 }
 
-const createFixture = async (
+const createFixture = async ({
   schemaVersion = 1,
   isServerOutsideRoot = false,
-): Promise<BuildFixture> => {
+}: BuildFixtureOptions = {}): Promise<BuildFixture> => {
   const rootDirectory = await mkdtemp(join(tmpdir(), 'foldkit-node-'))
   fixtureDirectories.push(rootDirectory)
 
@@ -334,7 +339,7 @@ describe('serve', () => {
   }
 
   it('rejects a manifest version the adapter does not understand', async () => {
-    const fixture = await createFixture(2)
+    const fixture = await createFixture({ schemaVersion: 2 })
     const port = await getAvailablePort()
 
     await expectTypedStartupFailure(
@@ -348,7 +353,7 @@ describe('serve', () => {
   })
 
   it('requires rootDirectory when the server output is outside the Vite root', async () => {
-    const fixture = await createFixture(1, true)
+    const fixture = await createFixture({ isServerOutsideRoot: true })
     const port = await getAvailablePort()
 
     await expectTypedStartupFailure(
@@ -362,7 +367,7 @@ describe('serve', () => {
   })
 
   it('rejects rootDirectory when it does not describe the manifest server output', async () => {
-    const fixture = await createFixture(1, true)
+    const fixture = await createFixture({ isServerOutsideRoot: true })
     const port = await getAvailablePort()
 
     await expectTypedStartupFailure(
@@ -377,7 +382,7 @@ describe('serve', () => {
   })
 
   it('serves a moved deployment with server output outside the Vite root', async () => {
-    const fixture = await createFixture(1, true)
+    const fixture = await createFixture({ isServerOutsideRoot: true })
     const port = await getAvailablePort()
     const fiber = Effect.runFork(
       serve({

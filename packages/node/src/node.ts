@@ -272,12 +272,10 @@ const fetchResponse = (
     const headers = new Headers(response.headers)
     const setCookieHeaders = headers.getSetCookie()
     headers.delete('set-cookie')
+    const nodeResponse = NodeHttpServerRequest.toServerResponse(request)
 
     if (setCookieHeaders.length > 0) {
-      NodeHttpServerRequest.toServerResponse(request).setHeader(
-        'set-cookie',
-        setCookieHeaders,
-      )
+      nodeResponse.setHeader('set-cookie', setCookieHeaders)
     }
 
     const responseOptions = {
@@ -303,7 +301,6 @@ const fetchResponse = (
         cancel: reason => webReader.cancel(reason),
       }),
     )
-    const nodeResponse = NodeHttpServerRequest.toServerResponse(request)
     const destroyBody = () => nodeBody.destroy()
     nodeResponse.once('close', destroyBody)
     nodeBody.once('close', () => nodeResponse.off('close', destroyBody))
