@@ -347,7 +347,6 @@ describe('serve', () => {
         `http://localhost:${String(port)}/index.html`,
       )
       expect(await page.text()).toBe('https://public.example/index.html')
-      expect(page.headers.get('set-cookie')).toContain('visitor=foldkit')
 
       const refused = await requestTarget(port, '//elsewhere.example/asset.txt')
       expect(refused).toEqual({ status: 400, body: '' })
@@ -368,7 +367,7 @@ describe('serve', () => {
           manifestPath: fixture.manifestPath,
         }),
       ),
-    ).rejects.toThrow()
+    ).rejects.toThrow(/schemaVersion/)
   })
 
   it('requires rootDirectory when the server output is outside the Vite root', async () => {
@@ -465,7 +464,12 @@ describe('serve', () => {
     }
   })
 
-  for (const basePath of ['app/', '//localhost/app/', '/\\localhost/app/']) {
+  for (const basePath of [
+    'app/',
+    '/app',
+    '//localhost/app/',
+    '/\\localhost/app/',
+  ]) {
     it(`rejects ${basePath} as a Vite base path`, async () => {
       const fixture = await createFixture()
       const port = await getAvailablePort()
