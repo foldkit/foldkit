@@ -383,7 +383,7 @@ const receivedChatMessageClassName =
   'rounded-bl-md bg-white text-gray-800 ring-1 ring-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:ring-gray-700 dark:hover:bg-gray-800/80'
 
 const sentChatMessageClassName =
-  'rounded-br-md bg-accent-100 text-gray-900 ring-1 ring-accent-200 hover:bg-accent-100/70 dark:bg-accent-900/40 dark:text-gray-100 dark:ring-accent-800 dark:hover:bg-accent-900/50'
+  'rounded-br-md bg-accent-100 text-gray-900 ring-1 ring-accent-200 hover:bg-accent-200/45 dark:bg-accent-900/40 dark:text-gray-100 dark:ring-accent-800 dark:hover:bg-accent-900/50'
 
 const chatMessageDetailClassName =
   'text-xs leading-relaxed text-gray-600 dark:text-gray-400'
