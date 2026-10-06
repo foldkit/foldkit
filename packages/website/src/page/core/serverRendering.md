@@ -113,9 +113,9 @@ The `head` option accepts HTML. Escape request-derived values before interpolati
 
 ### Custom HTML templates
 
-A custom host can continue using `injectIntoTemplate` to place the rendered application into an HTML template. The template must contain exactly one `<div id="root"></div>` placeholder with no other attributes or whitespace inside it, and its head must contain exactly one `<title>`. Pass `containerId` when the placeholder uses another id. A missing or duplicate placeholder or title produces an error that names the problem.
+For a host that owns an HTML template, `injectIntoTemplate` places the rendered application in its placeholder. The template must contain exactly one `<div id="root"></div>` placeholder with no other attributes or whitespace inside it, and its head must contain exactly one `<title>`. Pass `containerId` when the placeholder uses another id. A missing or duplicate placeholder or title produces an error that names the problem.
 
-The injector also writes the language, text direction, canonical URL, and Open Graph URL into corresponding shell elements. Keep the template-based Vite dev host by omitting `clientEntry` and `ssr.build` when a separate build pipeline owns that template.
+The injector also writes the language, text direction, canonical URL, and Open Graph URL into corresponding shell elements. For a Vite development host whose template comes from another build pipeline, omit `clientEntry` and `ssr.build`.
 
 ### Protocol validation
 
@@ -243,10 +243,12 @@ A development reload does not exercise hydration. Foldkit restores the Model but
 In production, the host is built alongside the client. Set `ssr.build` and
 `ssr.clientEntry` in the plugin and `vite build` produces both. The server
 bundle is a Web `fetch` handler: Node and Workers both run it. Static files
-stay the platform's job. The build no longer runs Vite's `transformIndexHtml`;
-put document tags in `renderDocument` and import CSS from `clientEntry`. The
-[SSR example](https://github.com/foldkit/foldkit/tree/main/examples/ssr) starts
-that handler on Node:
+stay the platform's job. Build-time Vite `transformIndexHtml` hooks do not run
+for this script-input build. Put document tags in `renderDocument` and import
+CSS from `clientEntry`.
+
+The [SSR example](https://github.com/foldkit/foldkit/tree/main/examples/ssr)
+starts that handler on Node:
 
 ::Snippet{name="serverRenderingBuildSsr" label="SSR build configuration"}
 

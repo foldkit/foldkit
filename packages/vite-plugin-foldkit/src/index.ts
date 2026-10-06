@@ -122,7 +122,7 @@ export type FoldkitPluginOptions = Readonly<{
           build?: boolean | Omit<FoldkitBuildOptions, 'clientEntry'>
         }>
       | Readonly<{
-          /** Keep a custom template-based development and build pipeline. */
+          /** Use a custom template-based development and build pipeline. */
           clientEntry?: never
           containerId?: string
           build?: false
