@@ -11,7 +11,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { type Update } from 'foldkit'
+import { Update } from 'foldkit'
 import * as Command from 'foldkit/command'
 import {
   type ChildAttribute,
@@ -616,30 +616,40 @@ const measureContainer = (
     Unmeasured: () => false,
     Measured: measurement => measurement.containerWidth !== containerWidth,
   })
-  const measuredModel = modifyFields(model, {
-    measurement: () =>
-      Measurement.Measured({ containerWidth, containerHeight }),
-    measuredRowHeights: measuredRowHeights =>
-      didWidthChange ? Record.empty() : measuredRowHeights,
-    layoutVersion: layoutVersion =>
-      didWidthChange ? Number.increment(layoutVersion) : layoutVersion,
+  const recordContainerMeasurement: Update.Step<
+    Model,
+    Message
+  > = stepModel => ({
+    model: modifyFields(stepModel, {
+      measurement: () =>
+        Measurement.Measured({ containerWidth, containerHeight }),
+      measuredRowHeights: measuredRowHeights =>
+        didWidthChange ? Record.empty() : measuredRowHeights,
+      layoutVersion: layoutVersion =>
+        didWidthChange ? Number.increment(layoutVersion) : layoutVersion,
+    }),
   })
 
-  if (model.initialScroll._tag === 'Pending') {
-    return buildScrollRequest(
-      measuredModel,
-      ScrollRequest.Target({
-        target: model.initialScroll.target,
-        alignment: model.initialScroll.alignment,
-      }),
-    )
+  const { initialScroll } = model
+  if (initialScroll._tag === 'Pending') {
+    return Update.combine(model, [
+      recordContainerMeasurement,
+      stepModel =>
+        buildScrollRequest(
+          stepModel,
+          ScrollRequest.Target({
+            target: initialScroll.target,
+            alignment: initialScroll.alignment,
+          }),
+        ),
+    ])
   }
 
   if (wasUnmeasured) {
-    return { model: measuredModel }
+    return recordContainerMeasurement(model)
   }
 
-  return reconcileLayout(measuredModel)
+  return Update.combine(model, [recordContainerMeasurement, reconcileLayout])
 }
 
 const hasChangedMeasurement = (
@@ -685,11 +695,14 @@ const applyRowMeasurements = (
     (heights, measurement) =>
       Record.set(heights, measurement.key, measurement.height),
   )
-  return reconcileLayout(
-    modifyFields(model, {
-      measuredRowHeights: () => measuredRowHeights,
+  return Update.combine(model, [
+    stepModel => ({
+      model: modifyFields(stepModel, {
+        measuredRowHeights: () => measuredRowHeights,
+      }),
     }),
-  )
+    reconcileLayout,
+  ])
 }
 
 /** Processes a VirtualList Message and returns the next Model and optional Commands. */
@@ -771,13 +784,21 @@ export const scrollTo = (
   target: ScrollTarget,
   options: ScrollToOptions = {},
 ): ScrollReturn =>
-  buildScrollRequest(
-    modifyFields(model, { initialScroll: () => InitialScroll.Applied() }),
-    ScrollRequest.Target({
-      target,
-      alignment: options.alignment ?? 'Start',
+  Update.combine(model, [
+    stepModel => ({
+      model: modifyFields(stepModel, {
+        initialScroll: () => InitialScroll.Applied(),
+      }),
     }),
-  )
+    stepModel =>
+      buildScrollRequest(
+        stepModel,
+        ScrollRequest.Target({
+          target,
+          alignment: options.alignment ?? 'Start',
+        }),
+      ),
+  ])
 
 /** Programmatically scrolls the container so the row at `index` is visible.
  *  The next view resolves the logical index with its current sizing mode, and
@@ -823,13 +844,17 @@ export const informItemsChanged = (
   itemKeys: ReadonlyArray<string>,
 ): ScrollReturn => {
   const currentKeys = HashSet.fromIterable(itemKeys)
-  const nextModel = modifyFields(model, {
-    measuredRowHeights: Record.filter((_, key) =>
-      HashSet.has(currentKeys, key),
-    ),
-    layoutVersion: Number.increment,
-  })
-  return reconcileLayout(nextModel)
+  return Update.combine(model, [
+    stepModel => ({
+      model: modifyFields(stepModel, {
+        measuredRowHeights: Record.filter((_, key) =>
+          HashSet.has(currentKeys, key),
+        ),
+        layoutVersion: Number.increment,
+      }),
+    }),
+    reconcileLayout,
+  ])
 }
 
 // HELPERS
