@@ -6,7 +6,10 @@ const paths = JSON.parse(
 
 export default {
   fetch(request) {
-    if (new URL(request.url).pathname === '/abort-pending') {
+    const requestUrl = new URL(request.url)
+    const { pathname } = requestUrl
+
+    if (pathname === '/abort-pending') {
       const aborted = new Promise(resolveAbort => {
         request.signal.addEventListener(
           'abort',
@@ -20,7 +23,7 @@ export default {
         .then(() => aborted)
         .then(() => new Response('aborted'))
     }
-    if (new URL(request.url).pathname === '/abort-stream') {
+    if (pathname === '/abort-stream') {
       return writeFile(paths.abortStartedPath, 'started').then(
         () =>
           new Response(
@@ -45,7 +48,7 @@ export default {
           ),
       )
     }
-    if (new URL(request.url).pathname === '/head-stream') {
+    if (pathname === '/head-stream') {
       return Promise.resolve(
         new Response(
           new ReadableStream({
@@ -56,7 +59,7 @@ export default {
         ),
       )
     }
-    if (new URL(request.url).pathname === '/cancel-stream') {
+    if (pathname === '/cancel-stream') {
       return Promise.resolve(
         new Response(
           new ReadableStream({
@@ -70,7 +73,7 @@ export default {
         ),
       )
     }
-    if (new URL(request.url).pathname === '/cookies') {
+    if (pathname === '/cookies') {
       return Promise.resolve(
         new Response('cookies', {
           headers: [
@@ -81,7 +84,7 @@ export default {
       )
     }
     return Promise.resolve(
-      new Response(new URL(request.url).toString(), {
+      new Response(requestUrl.toString(), {
         headers: { 'set-cookie': 'visitor=foldkit' },
       }),
     )
