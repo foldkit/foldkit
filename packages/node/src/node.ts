@@ -25,12 +25,7 @@ import { Readable } from 'node:stream'
 import { ReadableStream } from 'node:stream/web'
 import { pathToFileURL } from 'node:url'
 
-import {
-  NodeHttpPlatform,
-  NodeHttpServer,
-  NodeHttpServerRequest,
-  NodeServices,
-} from '@effect/platform-node'
+import { NodeHttpServer, NodeHttpServerRequest } from '@effect/platform-node'
 
 const DEFAULT_MANIFEST_PATH = 'dist/server/foldkit.build.json'
 const INVALID_ORIGIN_MESSAGE =
@@ -356,9 +351,8 @@ const confinedStaticFiles = (clientDirectory: string) =>
     )
   })
 
-const makeHandler = (options: ServeOptions) =>
+const makeHandler = (options: ServeOptions, port: number) =>
   Effect.gen(function* () {
-    const port = yield* options.port
     const origin = yield* originFrom(
       Option.getOrElse(
         yield* options.origin,
@@ -370,8 +364,8 @@ const makeHandler = (options: ServeOptions) =>
       options.manifestPath ?? DEFAULT_MANIFEST_PATH,
     )
     const paths = yield* readBuildPaths(manifestPath, options.rootDirectory)
-    const app = yield* loadFetchHandler(paths.fetchHandlerPath)
     const basePath = yield* basePathFrom(options.basePath)
+    const app = yield* loadFetchHandler(paths.fetchHandlerPath)
     const staticFiles = yield* confinedStaticFiles(paths.clientDirectory)
 
     return HttpServerRequest.HttpServerRequest.use(request => {
@@ -417,16 +411,14 @@ const makeHandler = (options: ServeOptions) =>
     }).pipe(Effect.interruptible)
   })
 
-const serverLayer = (options: ServeOptions) =>
+const serverLayer = (options: ServeOptions, port: number) =>
   Layer.unwrap(
-    Effect.map(makeHandler(options), handler => HttpServer.serve(handler)),
+    Effect.map(makeHandler(options, port), handler =>
+      HttpServer.serve(handler),
+    ),
   ).pipe(
     HttpServer.withLogAddress,
-    Layer.provide(
-      NodeHttpServer.layerConfig(createServer, { port: options.port }),
-    ),
-    Layer.provide(NodeHttpPlatform.layer),
-    Layer.provide(NodeServices.layer),
+    Layer.provide(NodeHttpServer.layer(createServer, { port })),
   )
 
 /**
@@ -437,4 +429,4 @@ const serverLayer = (options: ServeOptions) =>
  * Web Fetch handler. Interrupting the returned Effect closes the HTTP server.
  */
 export const serve = (options: ServeOptions) =>
-  Layer.launch(serverLayer(options))
+  Effect.flatMap(options.port, port => Layer.launch(serverLayer(options, port)))

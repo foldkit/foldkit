@@ -11,7 +11,7 @@ import {
 import { createServer, request } from 'node:http'
 import { createConnection } from 'node:net'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { type ServeOptions, serve } from '../src/index.ts'
@@ -32,6 +32,10 @@ type BuildFixtureOptions = Readonly<{
 
 const fixtureDirectories: Array<string> = []
 const handlerFixtureUrl = new URL('./fixture/handler.mjs', import.meta.url)
+const importMarkerFixtureUrl = new URL(
+  './fixture/import-marker.mjs',
+  import.meta.url,
+)
 
 const getAvailablePort = (): Promise<number> =>
   new Promise((resolvePort, reject) => {
@@ -179,6 +183,37 @@ afterEach(async () => {
 })
 
 describe('serve', () => {
+  it('uses one resolved port for listening and the default origin', async () => {
+    const fixture = await createFixture()
+    const port = await getAvailablePort()
+    let resolutions = 0
+    const changingPort = Config.succeed(port).pipe(
+      Config.map(value => {
+        resolutions += 1
+        return value + resolutions - 1
+      }),
+    )
+    const fiber = Effect.runFork(
+      serve({
+        port: changingPort,
+        origin: Config.succeed(Option.none()),
+        manifestPath: fixture.manifestPath,
+      }),
+    )
+
+    try {
+      const response = await waitForResponse(
+        `http://localhost:${String(port)}/index.html`,
+      )
+      expect(await response.text()).toBe(
+        `http://localhost:${String(port)}/index.html`,
+      )
+      expect(resolutions).toBe(1)
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
   it('serves only files whose real paths remain within the client directory', async () => {
     const fixture = await createFixture()
     const outsideFile = join(fixture.rootDirectory, 'outside-secret.txt')
@@ -466,6 +501,27 @@ describe('serve', () => {
       )
     })
   }
+
+  it('does not import the application handler for an invalid base path', async () => {
+    const fixture = await createFixture()
+    const serverDirectory = dirname(fixture.manifestPath)
+    const markerPath = join(serverDirectory, 'imported.marker')
+    await copyFile(importMarkerFixtureUrl, join(serverDirectory, 'handler.mjs'))
+    const port = await getAvailablePort()
+
+    await expectTypedStartupFailure(
+      {
+        port: Config.succeed(port),
+        origin: Config.succeed(Option.none()),
+        manifestPath: fixture.manifestPath,
+        basePath: '/app',
+      },
+      /^basePath must be a root-relative path ending with `\/`$/,
+    )
+    await expect(readFile(markerPath, 'utf8')).rejects.toMatchObject({
+      code: 'ENOENT',
+    })
+  })
 
   it('aborts the Fetch Request when a client disconnects before it responds', async () => {
     const fixture = await createFixture()
