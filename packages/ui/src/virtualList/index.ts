@@ -187,25 +187,31 @@ export type InitConfig = Readonly<{
   }>
 }>
 
+const initialScrollFromConfig = (
+  config: InitConfig,
+): typeof InitialScroll.Type => {
+  if (config.initialScroll !== undefined) {
+    return InitialScroll.Pending({
+      target: config.initialScroll.target,
+      alignment: config.initialScroll.alignment ?? 'Start',
+    })
+  }
+
+  if (config.initialScrollTop !== undefined) {
+    return InitialScroll.Pending({
+      target: ScrollTarget.Offset({ offset: config.initialScrollTop }),
+      alignment: 'Start',
+    })
+  }
+
+  return InitialScroll.Applied()
+}
+
 /** Creates an initial virtual list model from a config. The container starts
  *  in `Unmeasured` state. The first `ResizeObserver` entry transitions it to
  *  `Measured`. */
 export const init = (config: InitConfig): Model => {
-  const initialScroll = (() => {
-    if (config.initialScroll !== undefined) {
-      return InitialScroll.Pending({
-        target: config.initialScroll.target,
-        alignment: config.initialScroll.alignment ?? 'Start',
-      })
-    }
-    if (config.initialScrollTop !== undefined) {
-      return InitialScroll.Pending({
-        target: ScrollTarget.Offset({ offset: config.initialScrollTop }),
-        alignment: 'Start',
-      })
-    }
-    return InitialScroll.Applied()
-  })()
+  const initialScroll = initialScrollFromConfig(config)
 
   return {
     id: config.id,
@@ -301,15 +307,12 @@ const rowIndex = (element: HTMLElement): Option.Option<number> =>
 
 const observedAnchor = (element: HTMLElement): typeof ObservedAnchor.Type => {
   const containerRect = element.getBoundingClientRect()
-  const maybeRow = pipe(
-    renderedRows(element),
-    Array.findFirst(row => {
-      const rowRect = row.getBoundingClientRect()
-      return (
-        rowRect.bottom > containerRect.top && rowRect.top < containerRect.bottom
-      )
-    }),
-  )
+  const maybeRow = Array.findFirst(renderedRows(element), row => {
+    const rowRect = row.getBoundingClientRect()
+    return (
+      rowRect.bottom > containerRect.top && rowRect.top < containerRect.bottom
+    )
+  })
 
   if (Option.isNone(maybeRow)) {
     return ObservedAnchor.None()
@@ -340,14 +343,8 @@ const rowForIndex = (
   index: number,
 ): Option.Option<HTMLElement> => {
   const rows = renderedRows(element)
-  const maybeExact = pipe(
-    rows,
-    Array.findFirst(row =>
-      pipe(
-        rowIndex(row),
-        Option.exists(rowIndex => rowIndex === index),
-      ),
-    ),
+  const maybeExact = Array.findFirst(rows, row =>
+    Option.exists(rowIndex(row), rowIndex => rowIndex === index),
   )
 
   if (Option.isSome(maybeExact)) {
@@ -376,11 +373,9 @@ const rowForKey = (
   element: HTMLElement,
   key: string,
 ): Option.Option<HTMLElement> =>
-  pipe(
+  Array.findFirst(
     renderedRows(element),
-    Array.findFirst(
-      row => row.getAttribute('data-virtual-list-item-key') === key,
-    ),
+    row => row.getAttribute('data-virtual-list-item-key') === key,
   )
 
 const rowOffsets = (container: HTMLElement, row: HTMLElement): RowOffsets => {
@@ -403,6 +398,22 @@ const rowForTarget = (
     () => Option.none(),
   )
 
+const scrollTopForRowTarget = (
+  element: HTMLElement,
+  target: typeof ScrollTarget.Index.Type | typeof ScrollTarget.Key.Type,
+  alignment: ScrollAlignment,
+): Option.Option<number> =>
+  Option.map(rowForTarget(element, target), row => {
+    const offsets = rowOffsets(element, row)
+    return scrollTopForRow(
+      element.scrollTop,
+      element.clientHeight,
+      offsets.startOffset,
+      offsets.endOffset,
+      alignment,
+    )
+  })
+
 const scrollTopForTarget = (
   element: HTMLElement,
   target: ScrollTarget,
@@ -410,33 +421,8 @@ const scrollTopForTarget = (
 ): Option.Option<number> =>
   ScrollTarget.match<Option.Option<number>>(target, {
     Index: indexTarget =>
-      pipe(
-        rowForTarget(element, indexTarget),
-        Option.map(row => {
-          const offsets = rowOffsets(element, row)
-          return scrollTopForRow(
-            element.scrollTop,
-            element.clientHeight,
-            offsets.startOffset,
-            offsets.endOffset,
-            alignment,
-          )
-        }),
-      ),
-    Key: keyTarget =>
-      pipe(
-        rowForTarget(element, keyTarget),
-        Option.map(row => {
-          const offsets = rowOffsets(element, row)
-          return scrollTopForRow(
-            element.scrollTop,
-            element.clientHeight,
-            offsets.startOffset,
-            offsets.endOffset,
-            alignment,
-          )
-        }),
-      ),
+      scrollTopForRowTarget(element, indexTarget, alignment),
+    Key: keyTarget => scrollTopForRowTarget(element, keyTarget, alignment),
     Offset: ({ offset }) => Option.some(offset),
     End: () => Option.some(maxScrollTop(element)),
   })
@@ -445,9 +431,8 @@ const rowForAnchor = (
   element: HTMLElement,
   anchor: typeof ViewportAnchor.Row.Type,
 ): Option.Option<HTMLElement> =>
-  pipe(
-    rowForKey(element, anchor.key),
-    Option.orElse(() => rowForIndex(element, anchor.index)),
+  Option.orElse(rowForKey(element, anchor.key), () =>
+    rowForIndex(element, anchor.index),
   )
 
 const scrollTopForAnchor = (
@@ -457,13 +442,10 @@ const scrollTopForAnchor = (
   ViewportAnchor.match<Option.Option<number>>(anchor, {
     Offset: ({ scrollTop }) => Option.some(scrollTop),
     Row: rowAnchor =>
-      pipe(
-        rowForAnchor(element, rowAnchor),
-        Option.map(row =>
-          Math.max(
-            0,
-            rowOffsets(element, row).startOffset - rowAnchor.viewportOffset,
-          ),
+      Option.map(rowForAnchor(element, rowAnchor), row =>
+        Math.max(
+          0,
+          rowOffsets(element, row).startOffset - rowAnchor.viewportOffset,
         ),
       ),
     End: () => Option.some(maxScrollTop(element)),
@@ -690,19 +672,18 @@ const applyRowMeasurements = (
     layoutVersion: number
   }>,
 ): ScrollReturn => {
-  const changedMeasurements = pipe(
-    measurements,
-    Array.filter(measurement => hasChangedMeasurement(model, measurement)),
+  const changedMeasurements = Array.filter(measurements, measurement =>
+    hasChangedMeasurement(model, measurement),
   )
   if (Array.isArrayEmpty(changedMeasurements)) {
     return { model }
   }
 
-  const measuredRowHeights = pipe(
+  const measuredRowHeights = Array.reduce(
     changedMeasurements,
-    Array.reduce(model.measuredRowHeights, (heights, measurement) =>
+    model.measuredRowHeights,
+    (heights, measurement) =>
       Record.set(heights, measurement.key, measurement.height),
-    ),
   )
   return reconcileLayout(
     modifyFields(model, {
@@ -730,15 +711,18 @@ export const update = (model: Model, message: Message) =>
     },
 
     ObservedContainerScroll: snapshot => {
-      const nextVersion = PendingScroll.match<number>(model.pendingScroll, {
-        Idle: () => model.pendingScrollVersion,
-        Pending: () => Number.increment(model.pendingScrollVersion),
-      })
+      const nextPendingScrollVersion = PendingScroll.match<number>(
+        model.pendingScroll,
+        {
+          Idle: () => model.pendingScrollVersion,
+          Pending: () => Number.increment(model.pendingScrollVersion),
+        },
+      )
       return {
         model: modifyFields(applyScrollSnapshot(model, snapshot), {
           initialScroll: () => InitialScroll.Applied(),
           pendingScroll: () => PendingScroll.Idle(),
-          pendingScrollVersion: () => nextVersion,
+          pendingScrollVersion: () => nextPendingScrollVersion,
         }),
       }
     },
@@ -840,10 +824,9 @@ export const informItemsChanged = (
 ): ScrollReturn => {
   const currentKeys = HashSet.fromIterable(itemKeys)
   const nextModel = modifyFields(model, {
-    measuredRowHeights: measuredRowHeights =>
-      Record.filter(measuredRowHeights, (_, key) =>
-        HashSet.has(currentKeys, key),
-      ),
+    measuredRowHeights: Record.filter((_, key) =>
+      HashSet.has(currentKeys, key),
+    ),
     layoutVersion: Number.increment,
   })
   return reconcileLayout(nextModel)
@@ -1012,11 +995,9 @@ const listLayout = <Item>(
   const rowHeightFor = (item: Item, index: number): number => {
     if (dynamicRowHeights !== undefined) {
       const key = itemToKey(item, index)
-      return pipe(
+      return Option.getOrElse(
         measuredRowHeight(model, key),
-        Option.getOrElse(
-          () => itemToEstimatedRowHeightPx?.(item, index) ?? model.rowHeightPx,
-        ),
+        () => itemToEstimatedRowHeightPx?.(item, index) ?? model.rowHeightPx,
       )
     }
     if (itemToRowHeightPx !== undefined) {
@@ -1081,10 +1062,7 @@ const indexForKey = <Item>(
   itemToKey: (item: Item, index: number) => string,
   key: string,
 ): Option.Option<number> =>
-  pipe(
-    items,
-    Array.findFirstIndex((item, index) => itemToKey(item, index) === key),
-  )
+  Array.findFirstIndex(items, (item, index) => itemToKey(item, index) === key)
 
 const clampLayoutScrollTop = (layout: ListLayout, scrollTop: number): number =>
   Math.max(0, Math.min(scrollTop, layout.maxScrollTop))
@@ -1116,11 +1094,8 @@ const scrollTopForLayoutTarget = <Item>(
 ): Option.Option<number> =>
   ScrollTarget.match<Option.Option<number>>(target, {
     Index: ({ index }) =>
-      pipe(
-        rowOffsetsForIndex(layout, items.length, index),
-        Option.map(offsets =>
-          alignedLayoutScrollTop(model, layout, offsets, alignment),
-        ),
+      Option.map(rowOffsetsForIndex(layout, items.length, index), offsets =>
+        alignedLayoutScrollTop(model, layout, offsets, alignment),
       ),
     Key: ({ key }) =>
       pipe(
@@ -1145,19 +1120,16 @@ const scrollTopForLayoutAnchor = <Item>(
   ViewportAnchor.match<number>(anchor, {
     Offset: ({ scrollTop }) => clampLayoutScrollTop(layout, scrollTop),
     Row: ({ key, index, viewportOffset }) => {
-      const anchorIndex = pipe(
+      const anchorIndex = Option.getOrElse(
         indexForKey(items, itemToKey, key),
-        Option.getOrElse(() => index),
+        () => index,
       )
       const maybeOffsets = rowOffsetsForIndex(layout, items.length, anchorIndex)
-      return pipe(
-        maybeOffsets,
-        Option.match({
-          onNone: () => 0,
-          onSome: offsets =>
-            clampLayoutScrollTop(layout, offsets.startOffset - viewportOffset),
-        }),
-      )
+      return Option.match(maybeOffsets, {
+        onNone: () => 0,
+        onSome: offsets =>
+          clampLayoutScrollTop(layout, offsets.startOffset - viewportOffset),
+      })
     },
     End: () => layout.maxScrollTop,
   })
@@ -1173,7 +1145,7 @@ const scrollTopForView = <Item>(
     Pending: ({ request }) =>
       ScrollRequest.match<number>(request, {
         Target: ({ target, alignment }) =>
-          pipe(
+          Option.getOrElse(
             scrollTopForLayoutTarget(
               model,
               layout,
@@ -1182,9 +1154,7 @@ const scrollTopForView = <Item>(
               target,
               alignment,
             ),
-            Option.getOrElse(() =>
-              clampLayoutScrollTop(layout, model.scrollTop),
-            ),
+            () => clampLayoutScrollTop(layout, model.scrollTop),
           ),
         Anchor: ({ anchor }) =>
           scrollTopForLayoutAnchor(layout, items, itemToKey, anchor),
@@ -1323,17 +1293,11 @@ export const ObserveVirtualList = Mount.defineStream('ObserveVirtualList', {
 
           const observedRows = new Map<HTMLElement, string>()
           const rowResizeObserver = new ResizeObserver(entries => {
-            const measurements = pipe(
-              entries,
-              Array.flatMap(entry =>
-                pipe(
-                  rowMeasurement(entry),
-                  Option.match({
-                    onNone: () => [],
-                    onSome: measurement => [measurement],
-                  }),
-                ),
-              ),
+            const measurements = Array.flatMap(entries, entry =>
+              Option.match(rowMeasurement(entry), {
+                onNone: () => [],
+                onSome: measurement => [measurement],
+              }),
             )
             if (Array.isArrayNonEmpty(measurements)) {
               Queue.offerUnsafe(queue, Message.MeasuredRows({ measurements }))

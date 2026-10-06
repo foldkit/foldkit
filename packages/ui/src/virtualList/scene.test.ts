@@ -7,6 +7,7 @@ import {
   Message,
   type Model,
   ObserveVirtualList,
+  type RowHeightInputs,
   ScrollTarget,
   type ViewInputs,
   init,
@@ -34,10 +35,8 @@ const ROW_HEIGHT = 30
 type SceneViewOverrides = Readonly<{
   containerClassName?: string
   contentAlignment?: 'Start' | 'End'
-  itemToRowHeightPx?: (item: DemoItem, index: number) => number
-  dynamicRowHeights?: true
-  itemToEstimatedRowHeightPx?: (item: DemoItem, index: number) => number
-}>
+}> &
+  RowHeightInputs<DemoItem>
 
 const sceneView =
   (overrides: SceneViewOverrides = {}) =>

@@ -1141,6 +1141,27 @@ const prependVirtualListChatMessages = (model: Model) => {
   return updateVirtualListChatMessages(model, nextMessages)
 }
 
+const handleVirtualListChatContainerScroll =
+  (scrollTop: number): Update.Step<Model, Message> =>
+  stepModel => {
+    const isNearStart = scrollTop <= VIRTUAL_LIST_CHAT_START_THRESHOLD_PX
+    const nextVirtualListChatStartProximity = isNearStart
+      ? VirtualListChatStartProximity.Near()
+      : VirtualListChatStartProximity.Away()
+    const nextModel = modifyFields(stepModel, {
+      virtualListChatStartProximity: () => nextVirtualListChatStartProximity,
+    })
+
+    if (
+      !isNearStart ||
+      stepModel.virtualListChatStartProximity._tag === 'Near'
+    ) {
+      return { model: nextModel }
+    }
+
+    return prependVirtualListChatMessages(nextModel)
+  }
+
 // UPDATE
 
 const foldVerticalRadioGroupDemoOutMessage = RadioGroup.OutMessage.match<
@@ -1454,26 +1475,7 @@ export const update = (model: Model, message: Message) =>
         Match.tag('ObservedContainerScroll', ({ scrollTop }) =>
           Update.combine(model, [
             foldVirtualListChatDemo(message),
-            stepModel => {
-              const isNearStart =
-                scrollTop <= VIRTUAL_LIST_CHAT_START_THRESHOLD_PX
-              const nextVirtualListChatStartProximity = isNearStart
-                ? VirtualListChatStartProximity.Near()
-                : VirtualListChatStartProximity.Away()
-              const nextModel = modifyFields(stepModel, {
-                virtualListChatStartProximity: () =>
-                  nextVirtualListChatStartProximity,
-              })
-
-              if (
-                !isNearStart ||
-                stepModel.virtualListChatStartProximity._tag === 'Near'
-              ) {
-                return { model: nextModel }
-              }
-
-              return prependVirtualListChatMessages(nextModel)
-            },
+            handleVirtualListChatContainerScroll(scrollTop),
           ]),
         ),
         Match.orElse(() => foldVirtualListChatDemo(model, message)),

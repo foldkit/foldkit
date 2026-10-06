@@ -379,6 +379,41 @@ const chatMessageClassName =
 const chatMessageDetailClassName =
   'text-xs leading-relaxed text-gray-600 dark:text-gray-400'
 
+const COLLAPSED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX = 48
+const EXPANDED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX = 80
+
+const chatMessageView = (
+  message: VirtualListChatMessage,
+  h: HtmlBuilder<Message>,
+) =>
+  h.button(
+    [
+      h.Class(chatMessageClassName),
+      h.DataAttribute(
+        'virtual-list-chat-message-id',
+        globalThis.String(message.id),
+      ),
+      h.OnClick(
+        Message.ClickedVirtualListChatToggleMessage({
+          messageId: message.id,
+        }),
+      ),
+    ],
+    [
+      h.span([], [message.body]),
+      ...(message.isExpanded
+        ? [
+            h.span(
+              [h.Class(chatMessageDetailClassName)],
+              [
+                'This extra detail changes the rendered row height after the list has already positioned the viewport. The measured-height correction keeps the current anchor stable.',
+              ],
+            ),
+          ]
+        : []),
+    ],
+  )
+
 export const virtualListChatDemo = (
   model: VirtualList.Model,
   messages: ReadonlyArray<VirtualListChatMessage>,
@@ -437,36 +472,12 @@ export const virtualListChatDemo = (
         viewInputs: {
           items: messages,
           itemToKey: message => globalThis.String(message.id),
-          itemToView: message =>
-            h.button(
-              [
-                h.Class(chatMessageClassName),
-                h.DataAttribute(
-                  'virtual-list-chat-message-id',
-                  globalThis.String(message.id),
-                ),
-                h.OnClick(
-                  Message.ClickedVirtualListChatToggleMessage({
-                    messageId: message.id,
-                  }),
-                ),
-              ],
-              [
-                h.span([], [message.body]),
-                ...(message.isExpanded
-                  ? [
-                      h.span(
-                        [h.Class(chatMessageDetailClassName)],
-                        [
-                          'This extra detail changes the rendered row height after the list has already positioned the viewport. The measured-height correction keeps the current anchor stable.',
-                        ],
-                      ),
-                    ]
-                  : []),
-              ],
-            ),
+          itemToView: message => chatMessageView(message, h),
           dynamicRowHeights: true,
-          itemToEstimatedRowHeightPx: message => (message.isExpanded ? 24 : 64),
+          itemToEstimatedRowHeightPx: message =>
+            message.isExpanded
+              ? EXPANDED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX
+              : COLLAPSED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX,
           contentAlignment: 'End',
           containerClassName:
             'h-80 w-full rounded-lg bg-white dark:bg-gray-900 ring-1 ring-gray-200 dark:ring-gray-800 overscroll-none',

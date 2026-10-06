@@ -37,8 +37,10 @@ const chatBodies = [
   'Perfect. I’ll queue the release once CI finishes.',
 ]
 
+const INITIAL_VIRTUAL_LIST_CHAT_MESSAGE_COUNT = 24
+
 const initialVirtualListChatMessages: ReadonlyArray<VirtualListChatMessage> =
-  Array.makeBy(24, index => ({
+  Array.makeBy(INITIAL_VIRTUAL_LIST_CHAT_MESSAGE_COUNT, index => ({
     id: index,
     body: Option.getOrElse(
       Array.get(chatBodies, index % chatBodies.length),
