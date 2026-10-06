@@ -1,7 +1,6 @@
 import { Array, Deferred, Effect, Option, Stream, pipe } from 'effect'
 import * as Mount from 'foldkit/mount'
 import * as Story from 'foldkit/story'
-import { modifyFields } from 'foldkit/struct'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -19,19 +18,9 @@ import {
   scrollToKey,
   scrollToOffset,
   update,
-  visibleWindow,
-  visibleWindowVariable,
 } from './index.js'
 
 const defaultInit = (): Model => init({ id: 'test', rowHeightPx: 30 })
-
-const measuredInit = (containerHeight: number): Model => {
-  const measurement = update(
-    defaultInit(),
-    Message.ResizedContainer({ containerWidth: 320, containerHeight }),
-  )
-  return measurement.model
-}
 
 type ScrollReturn = ReturnType<typeof scrollToIndex>
 
@@ -43,6 +32,7 @@ const createScrollElement = (
   >,
   scrollHeight: number,
   activeScrollVersion: number,
+  borderTop = 0,
 ): HTMLElement => {
   const element = document.createElement('div')
   element.id = 'test'
@@ -52,12 +42,13 @@ const createScrollElement = (
     String(activeScrollVersion),
   )
   Object.defineProperty(element, 'clientHeight', { value: containerHeight })
+  Object.defineProperty(element, 'clientTop', { value: borderTop })
   Object.defineProperty(element, 'scrollHeight', { value: scrollHeight })
   Object.defineProperty(element, 'getBoundingClientRect', {
     value: () => ({
       top: 0,
-      bottom: containerHeight,
-      height: containerHeight,
+      bottom: containerHeight + borderTop,
+      height: containerHeight + borderTop,
       left: 0,
       right: 0,
       width: 100,
@@ -72,14 +63,14 @@ const createScrollElement = (
     rowElement.setAttribute('data-virtual-list-item-key', row.key)
     Object.defineProperty(rowElement, 'getBoundingClientRect', {
       value: () => ({
-        top: row.start - element.scrollTop,
-        bottom: row.start + row.height - element.scrollTop,
+        top: borderTop + row.start - element.scrollTop,
+        bottom: borderTop + row.start + row.height - element.scrollTop,
         height: row.height,
         left: 0,
         right: 0,
         width: 100,
         x: 0,
-        y: row.start - element.scrollTop,
+        y: borderTop + row.start - element.scrollTop,
         toJSON: () => ({}),
       }),
     })
@@ -668,6 +659,25 @@ describe('VirtualList', () => {
       expect(scrollTop).toBe(0)
     })
 
+    it('aligns a row to the scrollport inside a bordered container', async () => {
+      const indexScroll = scrollToIndex(defaultInit(), 5)
+      const element = createScrollElement(
+        0,
+        90,
+        [{ index: 5, key: 'row-5', start: 150, height: 30 }],
+        1000,
+        indexScroll.model.pendingScrollVersion,
+        8,
+      )
+      document.body.append(element)
+
+      try {
+        expect(await runMountedScroll(indexScroll, element)).toBe(150)
+      } finally {
+        element.remove()
+      }
+    })
+
     it('aligns a variable-height row from its rendered offset', async () => {
       const indexScroll = scrollToIndex(defaultInit(), 2, {
         alignment: 'Center',
@@ -677,6 +687,41 @@ describe('VirtualList', () => {
       ])
 
       expect(scrollTop).toBe(20)
+    })
+
+    it('targets its own row when a row contains another VirtualList', async () => {
+      const indexScroll = scrollToIndex(defaultInit(), 1)
+      const element = createScrollElement(
+        0,
+        90,
+        [
+          { index: 0, key: 'outer-0', start: 0, height: 100 },
+          { index: 1, key: 'outer-1', start: 200, height: 30 },
+        ],
+        500,
+        indexScroll.model.pendingScrollVersion,
+      )
+      const outerRow = element.firstElementChild
+      if (!(outerRow instanceof HTMLElement)) {
+        throw new Error('Expected an outer row')
+      }
+
+      const innerList = document.createElement('ul')
+      const innerRow = document.createElement('li')
+      innerRow.setAttribute('data-virtual-list-item-index', '1')
+      innerRow.setAttribute('data-virtual-list-item-key', 'inner-1')
+      Object.defineProperty(innerRow, 'getBoundingClientRect', {
+        value: () => ({ top: 50, bottom: 80, height: 30 }),
+      })
+      innerList.append(innerRow)
+      outerRow.append(innerList)
+      document.body.append(element)
+
+      try {
+        expect(await runMountedScroll(indexScroll, element)).toBe(200)
+      } finally {
+        element.remove()
+      }
     })
   })
 
@@ -759,6 +804,121 @@ describe('VirtualList', () => {
       }
     })
 
+    it('does not route a scroll to another shadow root with the same id', async () => {
+      const offsetScroll = scrollToOffset(defaultInit(), 275)
+      const firstHost = document.createElement('div')
+      const secondHost = document.createElement('div')
+      const firstElement = createScrollElement(
+        0,
+        90,
+        [],
+        500,
+        offsetScroll.model.pendingScrollVersion,
+      )
+      const secondElement = createScrollElement(
+        0,
+        90,
+        [],
+        500,
+        offsetScroll.model.pendingScrollVersion,
+      )
+      firstHost.attachShadow({ mode: 'open' }).append(firstElement)
+      secondHost.attachShadow({ mode: 'open' }).append(secondElement)
+      document.body.append(firstHost, secondHost)
+
+      try {
+        const outcome = await Effect.runPromise(
+          Effect.scoped(
+            Effect.gen(function* () {
+              const firstMounted = yield* Deferred.make<void>()
+              const secondMounted = yield* Deferred.make<void>()
+              yield* ObserveVirtualList({ id: offsetScroll.model.id })
+                .f(firstElement, Mount.liveViewStateChanges)
+                .pipe(
+                  Stream.runForEach(() =>
+                    Deferred.succeed(firstMounted, undefined),
+                  ),
+                  Effect.forkScoped,
+                )
+              yield* ObserveVirtualList({ id: offsetScroll.model.id })
+                .f(secondElement, Mount.liveViewStateChanges)
+                .pipe(
+                  Stream.runForEach(() =>
+                    Deferred.succeed(secondMounted, undefined),
+                  ),
+                  Effect.forkScoped,
+                )
+              yield* Deferred.await(firstMounted)
+              yield* Deferred.await(secondMounted)
+
+              const maybeCommand = pipe(offsetScroll.commands ?? [], Array.head)
+              if (Option.isNone(maybeCommand)) {
+                throw new Error('Expected one scroll Command')
+              }
+
+              return yield* maybeCommand.value.effect
+            }),
+          ),
+        )
+
+        if (outcome._tag !== 'CompletedApplyScroll') {
+          throw new Error('Expected a scroll Command result')
+        }
+        expect(outcome.outcome._tag).toBe('Skipped')
+        expect(firstElement.scrollTop).toBe(0)
+        expect(secondElement.scrollTop).toBe(0)
+      } finally {
+        firstHost.remove()
+        secondHost.remove()
+      }
+    })
+
+    it('does not scroll a container while its Mount is paused', async () => {
+      const offsetScroll = scrollToOffset(defaultInit(), 275)
+      const element = createScrollElement(
+        0,
+        90,
+        [],
+        500,
+        offsetScroll.model.pendingScrollVersion,
+      )
+      document.body.append(element)
+
+      try {
+        const outcome = await Effect.runPromise(
+          Effect.scoped(
+            Effect.gen(function* () {
+              const started = yield* Deferred.make<void>()
+              yield* ObserveVirtualList({ id: offsetScroll.model.id })
+                .f(element, Stream.make('Paused'))
+                .pipe(
+                  Stream.onStart(Deferred.succeed(started, undefined)),
+                  Stream.runDrain,
+                  Effect.forkScoped,
+                )
+              yield* Deferred.await(started)
+              yield* Effect.yieldNow
+
+              const maybeCommand = pipe(offsetScroll.commands ?? [], Array.head)
+              if (Option.isNone(maybeCommand)) {
+                throw new Error('Expected one scroll Command')
+              }
+
+              return yield* maybeCommand.value.effect
+            }),
+          ),
+        )
+
+        if (outcome._tag !== 'CompletedApplyScroll') {
+          throw new Error('Expected a scroll Command result')
+        }
+        expect(outcome.outcome._tag).toBe('Skipped')
+        expect(element.scrollTop).toBe(0)
+      } finally {
+        element.remove()
+      }
+    })
+
     it('clamps a negative pixel offset to zero', async () => {
       const offsetScroll = scrollToOffset(defaultInit(), -10)
       const scrollTop = await executeScroll(offsetScroll, 200, 90, [], 500)
@@ -832,208 +992,6 @@ describe('VirtualList', () => {
 
       expect(measurement.model.measuredRowHeights).toStrictEqual({})
       expect(measurement.commands).toBeUndefined()
-    })
-  })
-
-  describe('visibleWindow', () => {
-    it('returns None while the container has not been measured', () => {
-      const result = visibleWindow(defaultInit(), 100, 0)
-      expect(Option.isNone(result)).toBe(true)
-    })
-
-    it('computes the slice from scrollTop, containerHeight, and rowHeightPx', () => {
-      const model: Model = modifyFields(measuredInit(300), {
-        scrollTop: () => 0,
-      })
-      const result = visibleWindow(model, 1000, 0)
-
-      expect(Option.isSome(result)).toBe(true)
-      if (Option.isSome(result)) {
-        expect(result.value.startIndex).toBe(0)
-        expect(result.value.endIndex).toBe(10)
-        expect(result.value.topSpacerHeight).toBe(0)
-        expect(result.value.bottomSpacerHeight).toBe(990 * 30)
-      }
-    })
-
-    it('shifts the slice as scrollTop advances', () => {
-      const model: Model = modifyFields(measuredInit(300), {
-        scrollTop: () => 600,
-      })
-      const result = visibleWindow(model, 1000, 0)
-
-      if (Option.isSome(result)) {
-        expect(result.value.startIndex).toBe(20)
-        expect(result.value.endIndex).toBe(30)
-        expect(result.value.topSpacerHeight).toBe(20 * 30)
-        expect(result.value.bottomSpacerHeight).toBe(970 * 30)
-      }
-    })
-
-    it('expands the slice by the overscan buffer on each side', () => {
-      const model: Model = modifyFields(measuredInit(300), {
-        scrollTop: () => 600,
-      })
-      const result = visibleWindow(model, 1000, 5)
-
-      if (Option.isSome(result)) {
-        expect(result.value.startIndex).toBe(15)
-        expect(result.value.endIndex).toBe(35)
-      }
-    })
-
-    it('clamps startIndex to 0 when overscan crosses the top edge', () => {
-      const model: Model = modifyFields(measuredInit(300), {
-        scrollTop: () => 30,
-      })
-      const result = visibleWindow(model, 1000, 5)
-
-      if (Option.isSome(result)) {
-        expect(result.value.startIndex).toBe(0)
-        expect(result.value.topSpacerHeight).toBe(0)
-      }
-    })
-
-    it('clamps endIndex to itemCount when overscan crosses the bottom edge', () => {
-      const model: Model = modifyFields(measuredInit(300), {
-        scrollTop: () => 0,
-      })
-      const result = visibleWindow(model, 8, 5)
-
-      if (Option.isSome(result)) {
-        expect(result.value.endIndex).toBe(8)
-        expect(result.value.bottomSpacerHeight).toBe(0)
-      }
-    })
-
-    it('produces an empty slice when itemCount is 0', () => {
-      const model: Model = modifyFields(measuredInit(300), {
-        scrollTop: () => 0,
-      })
-      const result = visibleWindow(model, 0, 5)
-
-      if (Option.isSome(result)) {
-        expect(result.value.startIndex).toBe(0)
-        expect(result.value.endIndex).toBe(0)
-        expect(result.value.topSpacerHeight).toBe(0)
-        expect(result.value.bottomSpacerHeight).toBe(0)
-      }
-    })
-  })
-
-  describe('visibleWindowVariable', () => {
-    type Row = Readonly<{ height: number }>
-    const rows: ReadonlyArray<Row> = [
-      { height: 10 },
-      { height: 20 },
-      { height: 30 },
-      { height: 40 },
-      { height: 50 },
-    ]
-    const heightOf = (row: Row): number => row.height
-    const totalHeight = 150
-
-    it('returns None while the container has not been measured', () => {
-      const result = visibleWindowVariable(defaultInit(), rows, heightOf, 0)
-      expect(Option.isNone(result)).toBe(true)
-    })
-
-    it('computes the slice from cumulative heights at scrollTop 0', () => {
-      const model: Model = modifyFields(measuredInit(60), {
-        scrollTop: () => 0,
-      })
-      const result = visibleWindowVariable(model, rows, heightOf, 0)
-
-      expect(Option.isSome(result)).toBe(true)
-      if (Option.isSome(result)) {
-        expect(result.value.startIndex).toBe(0)
-        expect(result.value.endIndex).toBe(3)
-        expect(result.value.topSpacerHeight).toBe(0)
-        expect(result.value.bottomSpacerHeight).toBe(totalHeight - 60)
-      }
-    })
-
-    it('shifts the slice into rows whose offsets straddle scrollTop', () => {
-      const model: Model = modifyFields(measuredInit(60), {
-        scrollTop: () => 25,
-      })
-      const result = visibleWindowVariable(model, rows, heightOf, 0)
-
-      if (Option.isSome(result)) {
-        expect(result.value.startIndex).toBe(1)
-        expect(result.value.endIndex).toBe(4)
-        expect(result.value.topSpacerHeight).toBe(10)
-        expect(result.value.bottomSpacerHeight).toBe(totalHeight - 100)
-      }
-    })
-
-    it('expands the slice by overscan and recomputes spacers from cumulative heights', () => {
-      const model: Model = modifyFields(measuredInit(60), {
-        scrollTop: () => 25,
-      })
-      const result = visibleWindowVariable(model, rows, heightOf, 1)
-
-      if (Option.isSome(result)) {
-        expect(result.value.startIndex).toBe(0)
-        expect(result.value.endIndex).toBe(5)
-        expect(result.value.topSpacerHeight).toBe(0)
-        expect(result.value.bottomSpacerHeight).toBe(0)
-      }
-    })
-
-    it('clamps the slice to itemCount when scrollTop exceeds total content height', () => {
-      const model: Model = modifyFields(measuredInit(60), {
-        scrollTop: () => 1000,
-      })
-      const result = visibleWindowVariable(model, rows, heightOf, 0)
-
-      if (Option.isSome(result)) {
-        expect(result.value.startIndex).toBe(rows.length)
-        expect(result.value.endIndex).toBe(rows.length)
-        expect(result.value.topSpacerHeight).toBe(totalHeight)
-        expect(result.value.bottomSpacerHeight).toBe(0)
-      }
-    })
-
-    it('produces an empty slice when items is empty', () => {
-      const model: Model = modifyFields(measuredInit(60), {
-        scrollTop: () => 0,
-      })
-      const result = visibleWindowVariable(model, [], heightOf, 0)
-
-      if (Option.isSome(result)) {
-        expect(result.value.startIndex).toBe(0)
-        expect(result.value.endIndex).toBe(0)
-        expect(result.value.topSpacerHeight).toBe(0)
-        expect(result.value.bottomSpacerHeight).toBe(0)
-      }
-    })
-  })
-
-  describe('uniform-vs-variable agreement', () => {
-    type Row = Readonly<{ height: number }>
-    const rows: ReadonlyArray<Row> = Array.makeBy(50, () => ({ height: 30 }))
-    const constantHeight = (): number => 30
-
-    it('visibleWindow and visibleWindowVariable produce the same slice for uniform-height inputs', () => {
-      const model: Model = modifyFields(measuredInit(300), {
-        scrollTop: () => 600,
-      })
-      const uniform = visibleWindow(model, rows.length, 5)
-      const variable = visibleWindowVariable(model, rows, constantHeight, 5)
-
-      expect(Option.isSome(uniform)).toBe(true)
-      expect(Option.isSome(variable)).toBe(true)
-      if (Option.isSome(uniform) && Option.isSome(variable)) {
-        expect(variable.value.startIndex).toBe(uniform.value.startIndex)
-        expect(variable.value.endIndex).toBe(uniform.value.endIndex)
-        expect(variable.value.topSpacerHeight).toBe(
-          uniform.value.topSpacerHeight,
-        )
-        expect(variable.value.bottomSpacerHeight).toBe(
-          uniform.value.bottomSpacerHeight,
-        )
-      }
     })
   })
 })

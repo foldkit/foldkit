@@ -8,8 +8,6 @@ export {
   scrollToKey,
   scrollToOffset,
   view,
-  visibleWindow,
-  visibleWindowVariable,
   Model,
   Message,
   ContentAlignment,
@@ -22,5 +20,4 @@ export type {
   RowHeightInputs,
   ScrollToOptions,
   ViewInputs,
-  VisibleWindow,
 } from './index.js'

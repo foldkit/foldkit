@@ -30,10 +30,9 @@ import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 
 /** Measurement state of the virtual list's scrollable container.
  *
- * Before the container's `ResizeObserver` fires for the first time we don't
- * know its height and cannot compute a visible slice. The view must handle
- * `Unmeasured` explicitly, typically by rendering a placeholder until the
- * first measurement arrives.
+ * Before the Mount reports the container's dimensions we cannot compute a
+ * visible slice. The view handles `Unmeasured` by rendering an empty
+ * container until the first measurement arrives.
  */
 const Measurement = defineTaggedUnion({
   Unmeasured: {},
@@ -202,8 +201,7 @@ const initialScrollFromConfig = (
 }
 
 /** Creates an initial virtual list model from a config. The container starts
- *  in `Unmeasured` state. The first `ResizeObserver` entry transitions it to
- *  `Measured`. */
+ *  in `Unmeasured` state until its Mount reports the first measurement. */
 export const init = (config: InitConfig): Model => {
   const initialScroll = initialScrollFromConfig(config)
 
@@ -287,9 +285,13 @@ const scrollTopForRow = (
 
 const renderedRows = (element: HTMLElement): ReadonlyArray<HTMLElement> =>
   pipe(
-    element.querySelectorAll('[data-virtual-list-item-key]'),
+    element.children,
     Array.fromIterable,
-    Array.filter((row): row is HTMLElement => row instanceof HTMLElement),
+    Array.filter(
+      (row): row is HTMLElement =>
+        row instanceof HTMLElement &&
+        row.hasAttribute('data-virtual-list-item-key'),
+    ),
   )
 
 const rowIndex = (element: HTMLElement): Option.Option<number> =>
@@ -301,11 +303,11 @@ const rowIndex = (element: HTMLElement): Option.Option<number> =>
 
 const observedAnchor = (element: HTMLElement): typeof ObservedAnchor.Type => {
   const containerRect = element.getBoundingClientRect()
+  const viewportTop = containerRect.top + element.clientTop
+  const viewportBottom = viewportTop + element.clientHeight
   const maybeRow = Array.findFirst(renderedRows(element), row => {
     const rowRect = row.getBoundingClientRect()
-    return (
-      rowRect.bottom > containerRect.top && rowRect.top < containerRect.bottom
-    )
+    return rowRect.bottom > viewportTop && rowRect.top < viewportBottom
   })
 
   if (Option.isNone(maybeRow)) {
@@ -321,8 +323,7 @@ const observedAnchor = (element: HTMLElement): typeof ObservedAnchor.Type => {
   return ObservedAnchor.Row({
     key,
     index: maybeIndex.value,
-    viewportOffset:
-      maybeRow.value.getBoundingClientRect().top - containerRect.top,
+    viewportOffset: maybeRow.value.getBoundingClientRect().top - viewportTop,
   })
 }
 
@@ -373,9 +374,10 @@ const rowForKey = (
   )
 
 const rowOffsets = (container: HTMLElement, row: HTMLElement): RowOffsets => {
-  const containerRect = container.getBoundingClientRect()
+  const viewportTop =
+    container.getBoundingClientRect().top + container.clientTop
   const rowRect = row.getBoundingClientRect()
-  const startOffset = container.scrollTop + rowRect.top - containerRect.top
+  const startOffset = container.scrollTop + rowRect.top - viewportTop
   return { startOffset, endOffset: startOffset + rowRect.height }
 }
 
@@ -455,7 +457,7 @@ const scrollTopForRequest = (
     Anchor: ({ anchor }) => scrollTopForAnchor(element, anchor),
   })
 
-const mountedContainers = new Map<string, HTMLElement>()
+const mountedContainers = new Map<string, Set<HTMLElement>>()
 
 export const ApplyScroll = Command.define('ApplyScroll', {
   args: {
@@ -468,13 +470,23 @@ export const ApplyScroll = Command.define('ApplyScroll', {
     Effect.gen(function* () {
       yield* Render.afterCommit
 
-      const element = mountedContainers.get(id)
-      if (element === undefined) {
+      const containers = mountedContainers.get(id)
+      if (containers === undefined || containers.size !== 1) {
         return Message.CompletedApplyScroll({
           version,
           outcome: ApplyScrollOutcome.Skipped(),
         })
       }
+
+      const maybeElement = pipe(containers, Array.fromIterable, Array.head)
+      if (Option.isNone(maybeElement)) {
+        return Message.CompletedApplyScroll({
+          version,
+          outcome: ApplyScrollOutcome.Skipped(),
+        })
+      }
+
+      const element = maybeElement.value
 
       const maybeActiveVersion = pipe(
         element.getAttribute('data-virtual-list-scroll-version'),
@@ -833,7 +845,7 @@ export const informItemsChanged = (
 /** Slice of the data array that the view should render, plus the spacer
  *  heights that keep the scrollbar physically correct. The first row in the
  *  slice corresponds to data index `startIndex`. */
-export type VisibleWindow = Readonly<{
+type VisibleWindow = Readonly<{
   startIndex: number
   endIndex: number
   topSpacerHeight: number
@@ -857,108 +869,6 @@ const lastOrZero = (values: ReadonlyArray<number>): number =>
     Array.last,
     Option.getOrElse(() => 0),
   )
-
-/** Computes the visible slice of a data array given the current scroll
- *  position, container height, row height, and an overscan buffer.
- *
- *  Assumes uniform row heights via `model.rowHeightPx`. For variable-height
- *  rows, use `visibleWindowVariable`.
- *
- *  Returns `Option.none()` when the container has not yet been measured;
- *  callers should render a placeholder (or `Html.empty`) and wait for the
- *  first `ResizedContainer` message. */
-export const visibleWindow = (
-  model: Model,
-  itemCount: number,
-  overscan: number,
-): Option.Option<VisibleWindow> =>
-  Measurement.match<Option.Option<VisibleWindow>>(model.measurement, {
-    Unmeasured: () => Option.none(),
-    Measured: ({ containerHeight }) => {
-      const firstVisibleIndex = Math.floor(model.scrollTop / model.rowHeightPx)
-      const lastVisibleIndex = Math.ceil(
-        (model.scrollTop + containerHeight) / model.rowHeightPx,
-      )
-
-      const startIndex = clampIndex(firstVisibleIndex - overscan, itemCount)
-      const endIndex = clampIndex(lastVisibleIndex + overscan, itemCount)
-
-      const topSpacerHeight = startIndex * model.rowHeightPx
-      const bottomSpacerHeight = (itemCount - endIndex) * model.rowHeightPx
-
-      return Option.some({
-        startIndex,
-        endIndex,
-        topSpacerHeight,
-        bottomSpacerHeight,
-      })
-    },
-  })
-
-/** Variable-height counterpart of `visibleWindow`. Walks the heights of every
- *  item to build a prefix-sum array, then locates the visible slice with two
- *  linear searches.
- *
- *  Cost is O(N) per call, walking the whole `items` array once to build the
- *  prefix sums. For lists in the 10k-item range, this comfortably fits inside
- *  a 60Hz scroll budget. Larger lists or hotter scroll paths can layer a
- *  prefix-sum cache invalidated when items change; that lives behind the same
- *  return shape so consumers don't have to know.
- *
- *  Returns `Option.none()` when the container has not yet been measured. */
-export const visibleWindowVariable = <Item>(
-  model: Model,
-  items: ReadonlyArray<Item>,
-  itemToRowHeightPx: (item: Item, index: number) => number,
-  overscan: number,
-): Option.Option<VisibleWindow> =>
-  Measurement.match<Option.Option<VisibleWindow>>(model.measurement, {
-    Unmeasured: () => Option.none(),
-    Measured: ({ containerHeight }) => {
-      const itemCount = items.length
-      const cumulativeOffsets = prefixSum(items, itemToRowHeightPx)
-      const totalHeight = lastOrZero(cumulativeOffsets)
-
-      const firstVisibleIndex = pipe(
-        cumulativeOffsets,
-        Array.findFirstIndex(Number.isGreaterThan(model.scrollTop)),
-        Option.match({
-          onNone: () => itemCount,
-          onSome: index => Math.max(0, index - 1),
-        }),
-      )
-
-      const lastVisibleIndex = pipe(
-        cumulativeOffsets,
-        Array.findFirstIndex(
-          Number.isGreaterThanOrEqualTo(model.scrollTop + containerHeight),
-        ),
-        Option.getOrElse(() => itemCount),
-      )
-
-      const startIndex = clampIndex(firstVisibleIndex - overscan, itemCount)
-      const endIndex = clampIndex(lastVisibleIndex + overscan, itemCount)
-
-      const topSpacerHeight = pipe(
-        cumulativeOffsets,
-        Array.get(startIndex),
-        Option.getOrElse(() => 0),
-      )
-      const offsetAtEnd = pipe(
-        cumulativeOffsets,
-        Array.get(endIndex),
-        Option.getOrElse(() => totalHeight),
-      )
-      const bottomSpacerHeight = totalHeight - offsetAtEnd
-
-      return Option.some({
-        startIndex,
-        endIndex,
-        topSpacerHeight,
-        bottomSpacerHeight,
-      })
-    },
-  })
 
 /** Alignment of content when its total height is shorter than the viewport. */
 export const ContentAlignment = Schema.Literals(['Start', 'End'])
@@ -1234,6 +1144,129 @@ type ObserveVirtualListMessage =
   | typeof Message.ResizedContainer.Type
   | typeof Message.MeasuredRows.Type
 
+const observeVirtualList = (
+  element: Element,
+  id: string,
+): Stream.Stream<ObserveVirtualListMessage> =>
+  Stream.callback<ObserveVirtualListMessage>(queue =>
+    Effect.acquireRelease(
+      Effect.sync(() => {
+        if (!(element instanceof HTMLElement)) {
+          return () => undefined
+        }
+
+        const emitContainerMeasurement = () =>
+          Queue.offerUnsafe(
+            queue,
+            Message.ResizedContainer({
+              containerWidth: element.clientWidth,
+              containerHeight: element.clientHeight,
+            }),
+          )
+
+        emitContainerMeasurement()
+
+        const scrollListener = () =>
+          Queue.offerUnsafe(
+            queue,
+            Message.ObservedContainerScroll({
+              scrollTop: element.scrollTop,
+              scrollHeight: element.scrollHeight,
+              containerHeight: element.clientHeight,
+              anchor: observedAnchor(element),
+            }),
+          )
+        element.addEventListener('scroll', scrollListener, { passive: true })
+
+        const containerResizeObserver = new ResizeObserver(entries => {
+          const lastEntry = Array.last(entries)
+          if (Option.isSome(lastEntry)) {
+            Queue.offerUnsafe(
+              queue,
+              Message.ResizedContainer({
+                containerWidth: lastEntry.value.contentRect.width,
+                containerHeight: lastEntry.value.contentRect.height,
+              }),
+            )
+          }
+        })
+        containerResizeObserver.observe(element)
+
+        const observedRows = new Map<HTMLElement, string>()
+        const rowResizeObserver = new ResizeObserver(entries => {
+          const measurements = Array.flatMap(entries, entry =>
+            Option.match(rowMeasurement(entry), {
+              onNone: () => [],
+              onSome: measurement => [measurement],
+            }),
+          )
+          if (Array.isArrayNonEmpty(measurements)) {
+            Queue.offerUnsafe(queue, Message.MeasuredRows({ measurements }))
+          }
+        })
+
+        const reconcileRows = () => {
+          if (element.childElementCount === 0) {
+            emitContainerMeasurement()
+          }
+
+          const rows = Array.filter(
+            renderedRows(element),
+            row => row.getAttribute('data-virtual-list-measure') === 'true',
+          )
+          const measurableRows = new Set(rows)
+          for (const row of observedRows.keys()) {
+            if (!measurableRows.has(row)) {
+              rowResizeObserver.unobserve(row)
+              observedRows.delete(row)
+            }
+          }
+
+          for (const row of rows) {
+            const layoutVersion =
+              row.getAttribute('data-virtual-list-layout-version') ?? ''
+            if (observedRows.get(row) !== layoutVersion) {
+              rowResizeObserver.unobserve(row)
+              observedRows.set(row, layoutVersion)
+              rowResizeObserver.observe(row)
+            }
+          }
+        }
+
+        const mutationObserver = new MutationObserver(reconcileRows)
+        mutationObserver.observe(element, {
+          attributes: true,
+          attributeFilter: [
+            'data-virtual-list-layout-version',
+            'data-virtual-list-measure',
+          ],
+          childList: true,
+          subtree: true,
+        })
+        reconcileRows()
+
+        const containers = mountedContainers.get(id) ?? new Set<HTMLElement>()
+        containers.add(element)
+        mountedContainers.set(id, containers)
+
+        return () => {
+          const containers = mountedContainers.get(id)
+          if (containers !== undefined) {
+            containers.delete(element)
+            if (containers.size === 0) {
+              mountedContainers.delete(id)
+            }
+          }
+          mutationObserver.disconnect()
+          rowResizeObserver.disconnect()
+          containerResizeObserver.disconnect()
+          element.removeEventListener('scroll', scrollListener)
+        }
+      }),
+      cleanup => Effect.sync(cleanup),
+    ).pipe(Effect.flatMap(() => Effect.never)),
+  )
+
 /** Container-owned Mount that tracks scrolling, container resizing, and
  *  rendered row measurements for dynamic-height lists. */
 export const ObserveVirtualList = Mount.defineStream('ObserveVirtualList', {
@@ -1243,121 +1276,11 @@ export const ObserveVirtualList = Mount.defineStream('ObserveVirtualList', {
     Message.ResizedContainer,
     Message.MeasuredRows,
   ],
-  execute: ({ element, id }) =>
-    Stream.callback<ObserveVirtualListMessage>(queue =>
-      Effect.acquireRelease(
-        Effect.sync(() => {
-          if (!(element instanceof HTMLElement)) {
-            return () => undefined
-          }
-
-          const emitContainerMeasurement = () =>
-            Queue.offerUnsafe(
-              queue,
-              Message.ResizedContainer({
-                containerWidth: element.clientWidth,
-                containerHeight: element.clientHeight,
-              }),
-            )
-
-          emitContainerMeasurement()
-
-          const scrollListener = () =>
-            Queue.offerUnsafe(
-              queue,
-              Message.ObservedContainerScroll({
-                scrollTop: element.scrollTop,
-                scrollHeight: element.scrollHeight,
-                containerHeight: element.clientHeight,
-                anchor: observedAnchor(element),
-              }),
-            )
-          element.addEventListener('scroll', scrollListener, { passive: true })
-
-          const containerResizeObserver = new ResizeObserver(entries => {
-            const lastEntry = Array.last(entries)
-            if (Option.isSome(lastEntry)) {
-              Queue.offerUnsafe(
-                queue,
-                Message.ResizedContainer({
-                  containerWidth: lastEntry.value.contentRect.width,
-                  containerHeight: lastEntry.value.contentRect.height,
-                }),
-              )
-            }
-          })
-          containerResizeObserver.observe(element)
-
-          const observedRows = new Map<HTMLElement, string>()
-          const rowResizeObserver = new ResizeObserver(entries => {
-            const measurements = Array.flatMap(entries, entry =>
-              Option.match(rowMeasurement(entry), {
-                onNone: () => [],
-                onSome: measurement => [measurement],
-              }),
-            )
-            if (Array.isArrayNonEmpty(measurements)) {
-              Queue.offerUnsafe(queue, Message.MeasuredRows({ measurements }))
-            }
-          })
-
-          const reconcileRows = () => {
-            if (element.childElementCount === 0) {
-              emitContainerMeasurement()
-            }
-
-            const rows = pipe(
-              element.querySelectorAll('[data-virtual-list-measure="true"]'),
-              Array.fromIterable,
-              Array.filter(
-                (row): row is HTMLElement => row instanceof HTMLElement,
-              ),
-            )
-            const measurableRows = new Set(rows)
-            for (const row of observedRows.keys()) {
-              if (!measurableRows.has(row)) {
-                rowResizeObserver.unobserve(row)
-                observedRows.delete(row)
-              }
-            }
-
-            for (const row of rows) {
-              const layoutVersion =
-                row.getAttribute('data-virtual-list-layout-version') ?? ''
-              if (observedRows.get(row) !== layoutVersion) {
-                rowResizeObserver.unobserve(row)
-                observedRows.set(row, layoutVersion)
-                rowResizeObserver.observe(row)
-              }
-            }
-          }
-
-          const mutationObserver = new MutationObserver(reconcileRows)
-          mutationObserver.observe(element, {
-            attributes: true,
-            attributeFilter: [
-              'data-virtual-list-layout-version',
-              'data-virtual-list-measure',
-            ],
-            childList: true,
-            subtree: true,
-          })
-          reconcileRows()
-
-          mountedContainers.set(id, element)
-
-          return () => {
-            if (mountedContainers.get(id) === element) {
-              mountedContainers.delete(id)
-            }
-            mutationObserver.disconnect()
-            rowResizeObserver.disconnect()
-            containerResizeObserver.disconnect()
-            element.removeEventListener('scroll', scrollListener)
-          }
-        }),
-        cleanup => Effect.sync(cleanup),
-      ).pipe(Effect.flatMap(() => Effect.never)),
+  execute: ({ element, id, viewStateChanges }) =>
+    viewStateChanges.pipe(
+      Stream.switchMap(viewState =>
+        viewState === 'Live' ? observeVirtualList(element, id) : Stream.never,
+      ),
     ),
 })
 
@@ -1520,6 +1443,10 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
                 ]
               : [
                   h.DataAttribute('virtual-list-measure', 'true'),
+                  h.DataAttribute(
+                    'virtual-list-layout-version',
+                    String(model.layoutVersion),
+                  ),
                   h.Style({ display: 'grid' }),
                 ]
           return h.keyed(rowElement)(
@@ -1528,10 +1455,6 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
               h.Role('listitem'),
               h.DataAttribute('virtual-list-item-key', key),
               h.DataAttribute('virtual-list-item-index', String(dataIndex)),
-              h.DataAttribute(
-                'virtual-list-layout-version',
-                String(model.layoutVersion),
-              ),
               h.AriaSetsize(items.length),
               h.AriaPosinset(dataIndex + 1),
               ...rowSizingAttributes,

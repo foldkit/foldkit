@@ -50,13 +50,15 @@ Index and key helpers accept `Start`, `Center`, `End`, or `Nearest` alignment. `
 
 Use `scrollToIndex` for every sizing mode; the view resolves each row's offset from its current height inputs. Replace old `scrollToIndexVariable(model, items, itemToRowHeightPx, index, options)` calls with `scrollToIndex(model, index, options)`.
 
+Remove calls to `visibleWindow` and `visibleWindowVariable`. Those helpers no longer describe the rendered slice once a logical target, measured height, or anchor is active. Render through `VirtualList.view`, which owns the current layout and visible window.
+
 ## Lifecycle
 
 VirtualList renders an `ObserveVirtualList` Mount on its scroll container. The Mount owns the scroll listener, container `ResizeObserver`, dynamic-row `ResizeObserver`, and descendant observation. Delete `VirtualList.subscriptions.containerEvents` from existing Subscription wiring. VirtualList no longer exports `subscriptions`, so TypeScript will identify any remaining callers.
 
-The Mount also supplies the live container to scroll Commands, so programmatic scrolling works when VirtualList is rendered inside a shadow root.
+The Mount also supplies the live container to scroll Commands, so programmatic scrolling works when VirtualList is rendered inside a shadow root. Give every mounted VirtualList a distinct `id`, including lists in separate shadow roots; a scroll Command skips if multiple mounted lists share an `id`. Observation pauses while DevTools displays a historical view.
 
-The Mount emits `ObservedContainerScroll` with the scroll position, container dimensions, and visible row anchor, and `ResizedContainer` with both dimensions. Replace manual `ScrolledContainer` and `MeasuredContainer` Messages with these variants, and update exhaustive Message matches.
+The Mount emits `ObservedContainerScroll` with the scroll position, scroll height, container height, and visible row anchor, and `ResizedContainer` with both container dimensions. Delete manual `ScrolledContainer` and `MeasuredContainer` dispatches; the Mount supplies those observations. Update exhaustive Message matches for the new variants.
 
 ## Styling
 
@@ -66,12 +68,12 @@ The scrollable container keeps its configured `id`. Use that for selectors inste
 
 `contentAlignment: 'End'` adds a leading inset when all rows are shorter than the viewport, so an underfilled chat sits against the bottom. VirtualList disables native CSS scroll anchoring because its stable-key correction owns that behavior.
 
-| Attribute                          | Condition                                                                            |
-| ---------------------------------- | ------------------------------------------------------------------------------------ |
-| `data-virtual-list-item-key`       | Present on each rendered row and carries its stable key.                             |
-| `data-virtual-list-item-index`     | Present on each rendered row and carries its zero-based logical index.               |
-| `data-virtual-list-measure`        | Present on rows rendered with `dynamicRowHeights`.                                   |
-| `data-virtual-list-layout-version` | Identifies the item layout generation so stale measurement callbacks can be ignored. |
+| Attribute                          | Condition                                                                           |
+| ---------------------------------- | ----------------------------------------------------------------------------------- |
+| `data-virtual-list-item-key`       | Present on each rendered row and carries its stable key.                            |
+| `data-virtual-list-item-index`     | Present on each rendered row and carries its zero-based logical index.              |
+| `data-virtual-list-measure`        | Present on rows rendered with `dynamicRowHeights`.                                  |
+| `data-virtual-list-layout-version` | Present on dynamically measured rows so stale measurement callbacks can be ignored. |
 
 ## Accessibility
 
@@ -83,13 +85,13 @@ End anchoring never uses `flex-direction: column-reverse`; visual, DOM, keyboard
 
 ### InitConfig {#init-config}
 
-| Name               | Type                                                    | Default | Description                                                                                                   |
-| ------------------ | ------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------- |
-| `id`               | `string`                                                | —       | Unique ID applied to the scroll container and used by scroll Commands.                                        |
-| `rowHeightPx`      | `number`                                                | —       | Fixed row height, or the fallback estimate in dynamic mode.                                                   |
-| `initialScroll`    | `{ target: ScrollTarget; alignment?: ScrollAlignment }` | —       | Logical initial position applied after the first container measurement.                                       |
-| `initialScrollTop` | `number`                                                | `0`     | Compatibility alias for an initial pixel-offset target. `initialScroll` takes precedence when both are given. |
-| `followEnd`        | `{ thresholdPx?: number }`                              | —       | Keeps an End anchor while the viewport remains within the threshold. The default threshold is `1`.            |
+| Name               | Type                                                    | Default | Description                                                                                                                              |
+| ------------------ | ------------------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`               | `string`                                                | —       | ID applied to the scroll container and used by scroll Commands; unique across all mounted VirtualLists, including separate shadow roots. |
+| `rowHeightPx`      | `number`                                                | —       | Fixed row height, or the fallback estimate in dynamic mode.                                                                              |
+| `initialScroll`    | `{ target: ScrollTarget; alignment?: ScrollAlignment }` | —       | Logical initial position applied after the first container measurement.                                                                  |
+| `initialScrollTop` | `number`                                                | `0`     | Compatibility alias for an initial pixel-offset target. `initialScroll` takes precedence when both are given.                            |
+| `followEnd`        | `{ thresholdPx?: number }`                              | —       | Keeps an End anchor while the viewport remains within the threshold. The default threshold is `1`.                                       |
 
 ### ViewConfig {#view-config}
 
