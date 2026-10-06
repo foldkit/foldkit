@@ -161,7 +161,7 @@ If the app uses UI components, **always read the ui-showcase example first** to 
 - `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/message.ts`: how component Messages are structured
 - `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/model.ts`: how component Models are composed
 - `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/update.ts`: how component updates are delegated
-- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/subscriptions.ts`: which components need Subscriptions lifted into the parent (`DragAndDrop`, `Slider`, `VirtualList`)
+- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/subscriptions.ts`: which components need Subscriptions lifted into the parent (`DragAndDrop`, `Slider`)
 - `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/toast.ts`: read when using `Toast`. It's unique in that it's parameterized on a payload schema via `Toast.make(PayloadSchema)`, returning a typed module you import from
 
 Directory names under `examples/ui-showcase/src/` have moved before. List the directory rather than trusting these paths blind.

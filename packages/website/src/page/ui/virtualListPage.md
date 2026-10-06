@@ -52,7 +52,7 @@ Index and key helpers accept `Start`, `Center`, `End`, or `Nearest` alignment. `
 
 ## Lifecycle
 
-VirtualList renders an `ObserveVirtualList` Mount on its scroll container. The Mount owns the scroll listener, container `ResizeObserver`, dynamic-row `ResizeObserver`, and descendant observation. Apps no longer need to wire a VirtualList Subscription. The deprecated `subscriptions.containerEvents` entry remains as a no-op so existing aggregate subscription records can migrate without a coordinated break.
+VirtualList renders an `ObserveVirtualList` Mount on its scroll container. The Mount owns the scroll listener, container `ResizeObserver`, dynamic-row `ResizeObserver`, and descendant observation. Delete `VirtualList.subscriptions.containerEvents` from existing Subscription wiring. VirtualList no longer exports `subscriptions`, so TypeScript will identify any remaining callers.
 
 ## Styling
 

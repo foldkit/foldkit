@@ -9,7 +9,6 @@ export {
   scrollToKey,
   scrollToOffset,
   view,
-  subscriptions,
   visibleWindow,
   visibleWindowVariable,
   Model,

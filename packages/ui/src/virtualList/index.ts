@@ -25,7 +25,6 @@ import * as Render from 'foldkit/render'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
-import * as Subscription from 'foldkit/subscription'
 
 // MODEL
 
@@ -1383,19 +1382,6 @@ export const ObserveVirtualList = Mount.defineStream('ObserveVirtualList', {
       ).pipe(Effect.flatMap(() => Effect.never)),
     ),
 })
-
-/** @deprecated VirtualList now owns its element lifecycle through
- *  `ObserveVirtualList`; existing subscription wiring may remain while apps
- *  migrate. */
-export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  containerEvents: entry(
-    { id: Schema.String },
-    {
-      modelToDependencies: model => ({ id: model.id }),
-      dependenciesToStream: () => Stream.never,
-    },
-  ),
-}))
 
 // VIEW
 
