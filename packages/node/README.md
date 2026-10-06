@@ -30,6 +30,8 @@ NodeRuntime.runMain(Node.serve({ port, origin }))
 `origin` is the public URL of the deployment. When it is `None`, the adapter
 uses `http://localhost:<port>`. Set it behind a proxy or TLS terminator so the
 server entry receives the public `Request.url`.
+The supplied value must be an HTTP or HTTPS origin without credentials, a path,
+query, or fragment. Invalid values fail during startup.
 
 The adapter serves matching client files only for `GET` and `HEAD`. It sends
 the Vite-base `index.html` path, such as `/app/index.html` for `/app/`, and

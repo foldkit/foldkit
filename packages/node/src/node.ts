@@ -33,6 +33,9 @@ import {
 } from '@effect/platform-node'
 
 const DEFAULT_MANIFEST_PATH = 'dist/server/foldkit.build.json'
+const INVALID_ORIGIN_MESSAGE =
+  'origin must be an HTTP or HTTPS origin without credentials, path, query, or fragment'
+const ORIGIN_SYNTAX = /^https?:\/\/[^/?#\\\s@]+\/?$/i
 
 const FoldkitBuildManifest = Schema.Struct({
   schemaVersion: Schema.Literals([1]),
@@ -59,7 +62,9 @@ export type ServeOptions = Readonly<{
   port: Config.Config<number>
   /**
    * The origin Config for requests that reach the Fetch handler. Use `None`
-   * to derive `http://localhost:<port>` from the resolved port.
+   * to derive `http://localhost:<port>` from the resolved port. A supplied
+   * origin must use HTTP or HTTPS and have no credentials, path, query, or
+   * fragment.
    */
   origin: Config.Config<Option.Option<string>>
   /**
@@ -99,6 +104,32 @@ const hostSettledResponse = () =>
     'allow',
     Server.HOST_METHOD_ANSWERS.allow,
   )
+
+const originFrom = (origin: string) => {
+  if (!ORIGIN_SYNTAX.test(origin)) {
+    return Effect.fail(new Error(INVALID_ORIGIN_MESSAGE))
+  }
+
+  return Effect.try({
+    try: () => new URL(origin),
+    catch: () => new Error(INVALID_ORIGIN_MESSAGE),
+  }).pipe(
+    Effect.flatMap(url => {
+      if (
+        (url.protocol !== 'http:' && url.protocol !== 'https:') ||
+        url.username !== '' ||
+        url.password !== '' ||
+        url.pathname !== '/' ||
+        url.search !== '' ||
+        url.hash !== ''
+      ) {
+        return Effect.fail(new Error(INVALID_ORIGIN_MESSAGE))
+      }
+
+      return Effect.succeed(url.origin)
+    }),
+  )
+}
 
 const basePathFrom = (basePath: string | undefined) => {
   const resolvedBasePath = basePath ?? '/'
@@ -233,6 +264,8 @@ const fetchResponse = (
   Effect.gen(function* () {
     const signal = yield* Effect.abortSignal
     const webRequest = yield* HttpServerRequest.toWeb(request, { signal })
+    // NOTE: A rejected Fetch handler promise is an unhandled application
+    // defect. Expected application failures should be returned as Responses.
     const response = yield* Effect.promise(() =>
       app.fetch(new Request(requestUrl, webRequest)),
     )
@@ -329,9 +362,11 @@ const confinedStaticFiles = (clientDirectory: string) =>
 const makeHandler = (options: ServeOptions) =>
   Effect.gen(function* () {
     const port = yield* options.port
-    const origin = Option.getOrElse(
-      yield* options.origin,
-      () => `http://localhost:${globalThis.String(port)}`,
+    const origin = yield* originFrom(
+      Option.getOrElse(
+        yield* options.origin,
+        () => `http://localhost:${globalThis.String(port)}`,
+      ),
     )
     const manifestPath = resolve(
       process.cwd(),

@@ -280,7 +280,7 @@ describe('serve', () => {
     const fiber = Effect.runFork(
       serve({
         port: Config.succeed(port),
-        origin: Config.succeed(Option.some('https://public.example')),
+        origin: Config.succeed(Option.some('HTTPS://PUBLIC.EXAMPLE:443/')),
         manifestPath: fixture.manifestPath,
       }),
     )
@@ -302,6 +302,36 @@ describe('serve', () => {
       await Effect.runPromise(Fiber.interrupt(fiber))
     }
   })
+
+  for (const origin of [
+    'not an origin',
+    'https://[invalid/',
+    'ftp://public.example',
+    'https://public.example/app',
+    'https://user:pass@public.example',
+    'https://public.example?mode=debug',
+    'https://public.example#section',
+    'https:public.example',
+    'https://public.example/app/..',
+    'https://public.example?',
+    'https://public.example#',
+    'https://@public.example',
+    ' https://public.example ',
+  ]) {
+    it(`rejects ${origin} as a public origin at startup`, async () => {
+      const fixture = await createFixture()
+      const port = await getAvailablePort()
+
+      await expectTypedStartupFailure(
+        {
+          port: Config.succeed(port),
+          origin: Config.succeed(Option.some(origin)),
+          manifestPath: fixture.manifestPath,
+        },
+        /^origin must be an HTTP or HTTPS origin without credentials, path, query, or fragment$/,
+      )
+    })
+  }
 
   it('rejects a manifest version the adapter does not understand', async () => {
     const fixture = await createFixture(2)
