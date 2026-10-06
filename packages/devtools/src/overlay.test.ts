@@ -180,8 +180,7 @@ describe('DevTools payload copy', () => {
       inspectedModel,
       maybeInspectedMessage: Option.some(inspectedMessage),
     })
-    const firstWrite = Deferred.makeUnsafe<void>()
-    const writeText = vi.fn(() => Effect.runPromise(Deferred.await(firstWrite)))
+    const writeText = vi.fn(() => Promise.resolve())
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: { writeText },
@@ -222,14 +221,6 @@ describe('DevTools payload copy', () => {
         )
         return button
       })
-      const removeClickListener =
-        tabIndex === 2 && rowIndex === 0 && button !== null
-          ? vi.spyOn(button, 'removeEventListener')
-          : undefined
-      const addClickListener =
-        tabIndex === 2 && rowIndex === 0 && button !== null
-          ? vi.spyOn(button, 'addEventListener')
-          : undefined
       button?.click()
 
       await vi.waitFor(() => {
@@ -239,94 +230,6 @@ describe('DevTools payload copy', () => {
           JSON.stringify(payload, null, 2),
         )
       })
-
-      if (tabIndex === 0) {
-        const pendingButton = overlayShadow().querySelector<HTMLButtonElement>(
-          '#dt-inspector-panel-0 .dt-copy-button',
-        )
-        expect(pendingButton?.getAttribute('aria-label')).toBe(
-          'Copying Model payload as JSON',
-        )
-        expect(pendingButton?.getAttribute('aria-disabled')).toBe('true')
-        pendingButton?.click()
-        Effect.runSync(Deferred.succeed(firstWrite, undefined))
-
-        await vi.waitFor(() => {
-          const currentButton =
-            overlayShadow().querySelector<HTMLButtonElement>(
-              '#dt-inspector-panel-0 .dt-copy-button',
-            )
-          expect(currentButton?.getAttribute('aria-label')).toBe(
-            'Copied Model payload as JSON',
-          )
-          expect(writeText).toHaveBeenCalledTimes(1)
-        })
-      }
-
-      if (tabIndex === 2 && rowIndex === 0) {
-        await vi.waitFor(() => {
-          const buttons = overlayShadow().querySelectorAll<HTMLButtonElement>(
-            '#dt-inspector-panel-2 .dt-copy-button',
-          )
-          expect(buttons.item(0)?.getAttribute('aria-label')).toBe(
-            'Copied Command 1 (SaveProfile) payload as JSON',
-          )
-          expect(buttons.item(0)?.getAttribute('aria-disabled')).toBe('true')
-          expect(
-            buttons.item(0)?.nextElementSibling?.getAttribute('role'),
-          ).toBe('status')
-          expect(buttons.item(0)?.nextElementSibling?.textContent).toBe(
-            'Copied to clipboard',
-          )
-          expect(
-            buttons.item(0)?.querySelector('path')?.getAttribute('d'),
-          ).toBe('M4.5 12.75l6 6 9-13.5')
-          expect(buttons.item(1)?.getAttribute('aria-label')).toBe(
-            'Copy Command 2 (RefreshProfile) payload as JSON',
-          )
-        })
-        expect(removeClickListener).toHaveBeenCalledWith(
-          'click',
-          expect.any(Function),
-          false,
-        )
-        expect(addClickListener).not.toHaveBeenCalledWith(
-          'click',
-          expect.any(Function),
-          false,
-        )
-
-        overlayShadow()
-          .querySelector<HTMLButtonElement>(
-            '#dt-inspector-panel-2 .dt-copy-button',
-          )
-          ?.click()
-
-        await vi.waitFor(
-          () => {
-            const button = overlayShadow().querySelector<HTMLButtonElement>(
-              '#dt-inspector-panel-2 .dt-copy-button',
-            )
-            expect(button?.getAttribute('aria-label')).toBe(
-              'Copy Command 1 (SaveProfile) payload as JSON',
-            )
-            expect(button?.getAttribute('aria-disabled')).toBe('false')
-            expect(button?.nextElementSibling?.textContent).toBe('')
-            expect(button?.querySelector('path')?.getAttribute('d')).toBe(
-              'M8 8h10a2 2 0 012 2v8a2 2 0 01-2 2h-8a2 2 0 01-2-2V8Zm8 0V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2',
-            )
-          },
-          { timeout: 2000 },
-        )
-        expect(writeText).toHaveBeenCalledTimes(callNumber)
-        expect(addClickListener).toHaveBeenCalledWith(
-          'click',
-          expect.any(Function),
-          false,
-        )
-        removeClickListener?.mockRestore()
-        addClickListener?.mockRestore()
-      }
     }
 
     try {
@@ -366,6 +269,103 @@ describe('DevTools payload copy', () => {
         6,
         'Ended Mount 1 (ReleaseProfile) payload',
       )
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(overlayFiber))
+    }
+  })
+
+  it('removes the click handler while copying and showing confirmation', async () => {
+    const inspectedModel = { count: 1 }
+    const storeState: StoreState = {
+      ...initialStoreState,
+      maybeLatestModel: Option.some(inspectedModel),
+    }
+    const stateRef = await Effect.runPromise(SubscriptionRef.make(storeState))
+    const store = makeStore(stateRef, { inspectedModel })
+    const firstWrite = Deferred.makeUnsafe<void>()
+    const writeText = vi.fn(() => Effect.runPromise(Deferred.await(firstWrite)))
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    })
+    localStorage.setItem('foldkit-devtools', JSON.stringify({ isOpen: true }))
+
+    const overlayFiber = startOverlay(store)
+
+    try {
+      const button = await vi.waitFor(() => {
+        const button = overlayShadow().querySelector<HTMLButtonElement>(
+          '#dt-inspector-panel-0 .dt-copy-button',
+        )
+        if (button === null) {
+          throw new Error('Expected the Model copy button to exist')
+        }
+        return button
+      })
+      const removeClickListener = vi.spyOn(button, 'removeEventListener')
+      const addClickListener = vi.spyOn(button, 'addEventListener')
+      const copyIconPath = button.querySelector('path')?.getAttribute('d')
+      button.click()
+
+      await vi.waitFor(() => {
+        expect(writeText).toHaveBeenCalledOnce()
+        expect(button.getAttribute('aria-label')).toBe(
+          'Copying Model payload as JSON',
+        )
+        expect(button.getAttribute('aria-disabled')).toBe('true')
+        expect(removeClickListener).toHaveBeenCalledWith(
+          'click',
+          expect.any(Function),
+          false,
+        )
+      })
+      button.click()
+      expect(writeText).toHaveBeenCalledOnce()
+
+      Effect.runSync(Deferred.succeed(firstWrite, undefined))
+
+      await vi.waitFor(() => {
+        expect(button.getAttribute('aria-label')).toBe(
+          'Copied Model payload as JSON',
+        )
+        expect(button.getAttribute('aria-disabled')).toBe('true')
+        expect(button.nextElementSibling?.getAttribute('role')).toBe('status')
+        expect(button.nextElementSibling?.textContent).toBe(
+          'Copied to clipboard',
+        )
+        expect(button.classList.contains('dt-copy-success')).toBe(true)
+        expect(button.querySelector('path')?.getAttribute('d')).not.toBe(
+          copyIconPath,
+        )
+      })
+      expect(addClickListener).not.toHaveBeenCalledWith(
+        'click',
+        expect.any(Function),
+        false,
+      )
+      button.click()
+      expect(writeText).toHaveBeenCalledOnce()
+
+      await vi.waitFor(
+        () => {
+          expect(button.getAttribute('aria-label')).toBe(
+            'Copy Model payload as JSON',
+          )
+          expect(button.getAttribute('aria-disabled')).toBe('false')
+          expect(button.nextElementSibling?.textContent).toBe('')
+          expect(button.querySelector('path')?.getAttribute('d')).toBe(
+            copyIconPath,
+          )
+          expect(addClickListener).toHaveBeenCalledWith(
+            'click',
+            expect.any(Function),
+            false,
+          )
+        },
+        { timeout: 2000 },
+      )
+      removeClickListener.mockRestore()
+      addClickListener.mockRestore()
     } finally {
       await Effect.runPromise(Fiber.interrupt(overlayFiber))
     }
