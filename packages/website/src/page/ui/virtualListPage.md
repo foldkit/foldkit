@@ -48,7 +48,7 @@ An initial index, key, offset, or end target remains pending if the list mounts 
 
 Index and key helpers accept `Start`, `Center`, `End`, or `Nearest` alignment. `Nearest` leaves a fully visible row in place and otherwise reveals its closest edge. Missing keys produce no movement. Negative and oversized offsets clamp to the live scroll range.
 
-`scrollToIndexVariable` remains as a compatibility alias. New code can use `scrollToIndex` for every sizing mode because the view now owns offset resolution.
+Use `scrollToIndex` for every sizing mode; the view resolves each row's offset from its current height inputs. Replace old `scrollToIndexVariable(model, items, itemToRowHeightPx, index, options)` calls with `scrollToIndex(model, index, options)`.
 
 ## Lifecycle
 
@@ -58,11 +58,12 @@ VirtualList renders an `ObserveVirtualList` Mount on its scroll container. The M
 
 The container needs a constrained height. Without it, the container grows to fit children and never scrolls. Use `containerClassName` or `containerAttributes` to apply that height.
 
+The scrollable container keeps its configured `id`. Use that for selectors instead of the removed `data-virtual-list-id` attribute.
+
 `contentAlignment: 'End'` adds a leading inset when all rows are shorter than the viewport, so an underfilled chat sits against the bottom. VirtualList disables native CSS scroll anchoring because its stable-key correction owns that behavior.
 
 | Attribute                          | Condition                                                                            |
 | ---------------------------------- | ------------------------------------------------------------------------------------ |
-| `data-virtual-list-id`             | Present on the scrollable container and carries the `InitConfig.id`.                 |
 | `data-virtual-list-item-key`       | Present on each rendered row and carries its stable key.                             |
 | `data-virtual-list-item-index`     | Present on each rendered row and carries its zero-based logical index.               |
 | `data-virtual-list-measure`        | Present on rows rendered with `dynamicRowHeights`.                                   |

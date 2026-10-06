@@ -5,7 +5,6 @@ export {
   scrollTo,
   scrollToEnd,
   scrollToIndex,
-  scrollToIndexVariable,
   scrollToKey,
   scrollToOffset,
   view,

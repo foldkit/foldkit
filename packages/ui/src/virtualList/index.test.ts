@@ -14,7 +14,6 @@ import {
   init,
   scrollToEnd,
   scrollToIndex,
-  scrollToIndexVariable,
   scrollToKey,
   scrollToOffset,
   update,
@@ -583,6 +582,17 @@ describe('VirtualList', () => {
 
       expect(scrollTop).toBe(0)
     })
+
+    it('aligns a variable-height row from its rendered offset', async () => {
+      const indexScroll = scrollToIndex(defaultInit(), 2, {
+        alignment: 'Center',
+      })
+      const scrollTop = await executeScroll(indexScroll, 0, 50, [
+        { index: 2, key: 'row-2', start: 30, height: 30 },
+      ])
+
+      expect(scrollTop).toBe(20)
+    })
   })
 
   describe('scrollToKey', () => {
@@ -886,79 +896,6 @@ describe('VirtualList', () => {
         expect(result.value.topSpacerHeight).toBe(0)
         expect(result.value.bottomSpacerHeight).toBe(0)
       }
-    })
-  })
-
-  describe('scrollToIndexVariable', () => {
-    type Row = Readonly<{ height: number }>
-    const rows: ReadonlyArray<Row> = [
-      { height: 10 },
-      { height: 20 },
-      { height: 30 },
-      { height: 40 },
-    ]
-    const heightOf = (row: Row): number => row.height
-
-    it('bumps the version and stores the target index in pendingScroll', () => {
-      const variableIndexScroll = scrollToIndexVariable(
-        defaultInit(),
-        rows,
-        heightOf,
-        2,
-      )
-      expect(variableIndexScroll.model.pendingScrollVersion).toBe(1)
-      expect(variableIndexScroll.model.pendingScroll._tag).toBe('Pending')
-      if (variableIndexScroll.model.pendingScroll._tag === 'Pending') {
-        expect(variableIndexScroll.model.pendingScroll.request).toStrictEqual({
-          _tag: 'Target',
-          target: { _tag: 'Index', index: 2 },
-          alignment: 'Start',
-        })
-        expect(variableIndexScroll.model.pendingScroll.version).toBe(1)
-      }
-      expect(variableIndexScroll.commands ?? []).toHaveLength(1)
-    })
-
-    it('increments the version monotonically across calls', () => {
-      const firstScroll = scrollToIndexVariable(
-        defaultInit(),
-        rows,
-        heightOf,
-        1,
-      )
-      const secondScroll = scrollToIndexVariable(
-        firstScroll.model,
-        rows,
-        heightOf,
-        2,
-      )
-      expect(firstScroll.model.pendingScrollVersion).toBe(1)
-      expect(secondScroll.model.pendingScrollVersion).toBe(2)
-    })
-
-    it('emits an ApplyScroll Command per call', () => {
-      const variableIndexScroll = scrollToIndexVariable(
-        defaultInit(),
-        rows,
-        heightOf,
-        3,
-      )
-      expect(variableIndexScroll.commands ?? []).toHaveLength(1)
-    })
-
-    it('aligns from cumulative row offsets', async () => {
-      const variableIndexScroll = scrollToIndexVariable(
-        defaultInit(),
-        rows,
-        heightOf,
-        2,
-        { alignment: 'Center' },
-      )
-      const scrollTop = await executeScroll(variableIndexScroll, 0, 50, [
-        { index: 2, key: 'row-2', start: 30, height: 30 },
-      ])
-
-      expect(scrollTop).toBe(20)
     })
   })
 

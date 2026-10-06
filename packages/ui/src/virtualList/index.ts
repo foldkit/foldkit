@@ -808,16 +808,6 @@ export const scrollToIndex = (
   options: ScrollToOptions = {},
 ): ScrollReturn => scrollTo(model, ScrollTarget.Index({ index }), options)
 
-/** Compatibility alias for `scrollToIndex`. The view now owns all fixed,
- *  known-variable, and measured-height offset resolution. */
-export const scrollToIndexVariable = <Item>(
-  model: Model,
-  _items: ReadonlyArray<Item>,
-  _itemToRowHeightPx: (item: Item, index: number) => number,
-  index: number,
-  options: ScrollToOptions = {},
-): ScrollReturn => scrollToIndex(model, index, options)
-
 /** Programmatically scrolls to the row whose `itemToKey` result matches
  *  `key`. The next view resolves the key against its current items. */
 export const scrollToKey = (
@@ -1456,7 +1446,6 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
     const baseContainerAttributes = [
       h.Id(model.id),
       h.Role('list'),
-      h.DataAttribute('virtual-list-id', model.id),
       h.DataAttribute(
         'virtual-list-scroll-version',
         String(model.pendingScrollVersion),
