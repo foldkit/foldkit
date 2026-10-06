@@ -59,26 +59,28 @@ const view = (model, h: HtmlBuilder<Message>) => {
     }
   }
 
+  const selectAllView = (attributes: Checkbox.CheckboxAttributes<Message>) =>
+    h.div(
+      [h.Class('flex items-center gap-2')],
+      [
+        h.button(
+          [...attributes.checkbox, h.Class('h-5 w-5 rounded border')],
+          resolveSelectAllMark(),
+        ),
+        h.label(
+          [...attributes.label, h.Class('text-sm')],
+          ['All notifications'],
+        ),
+      ],
+    )
+
   return Checkbox.view(
     {
       id: 'select-all',
       isChecked: isAllChecked,
       isIndeterminate,
       onToggle: isChecked => Message.ToggledSelectAll({ isChecked }),
-      toView: attributes =>
-        h.div(
-          [h.Class('flex items-center gap-2')],
-          [
-            h.button(
-              [...attributes.checkbox, h.Class('h-5 w-5 rounded border')],
-              resolveSelectAllMark(),
-            ),
-            h.label(
-              [...attributes.label, h.Class('text-sm')],
-              ['All notifications'],
-            ),
-          ],
-        ),
+      toView: selectAllView,
     },
     h,
   )

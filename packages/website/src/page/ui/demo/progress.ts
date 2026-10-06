@@ -36,7 +36,7 @@ export const basicDemo = (h: HtmlBuilder<Message>) => {
                     ['Upload'],
                   ),
                   h.span(
-                    [h.Class('tabular-nums text-gray-600 dark:text-gray-400')],
+                    [h.Class('tabular-nums text-gray-700 dark:text-gray-400')],
                     ['42%'],
                   ),
                 ],

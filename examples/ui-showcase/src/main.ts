@@ -385,8 +385,8 @@ const mobileNavLinkClassName = (isActive: boolean): string =>
       : 'text-gray-700 hover:bg-gray-200',
   )
 
-const sidebarView = (currentRoute: AppRoute, h: HtmlBuilder<Message>): Html =>
-  componentNav(currentRoute, ({ nav, items }) =>
+const sidebarView = (currentRoute: AppRoute, h: HtmlBuilder<Message>): Html => {
+  const sidebarNavView = ({ nav, items }: Nav.RenderInfo): Html =>
     h.nav(
       [
         ...nav,
@@ -412,15 +412,28 @@ const sidebarView = (currentRoute: AppRoute, h: HtmlBuilder<Message>): Html =>
         ),
         navListView(items, navLinkClassName, h),
       ],
-    ),
-  )
+    )
+
+  return componentNav(currentRoute, sidebarNavView)
+}
 
 const mobileMenuContent = (
   currentRoute: AppRoute,
   closeButton: Dialog.RenderInfo['closeButton'],
   h: HtmlBuilder<UiMessage>,
-): Html =>
-  h.div(
+): Html => {
+  const mobileNavView = ({ nav, items }: Nav.RenderInfo): Html =>
+    h.nav(
+      [
+        ...nav,
+        h.Class('flex-1 overflow-y-auto min-h-0 p-4'),
+        h.Tabindex(-1),
+        h.Autofocus(true),
+      ],
+      [navListView(items, mobileNavLinkClassName, h)],
+    )
+
+  return h.div(
     [h.Class('flex flex-col h-full')],
     [
       h.div(
@@ -460,19 +473,10 @@ const mobileMenuContent = (
           ),
         ],
       ),
-      componentNav(currentRoute, ({ nav, items }) =>
-        h.nav(
-          [
-            ...nav,
-            h.Class('flex-1 overflow-y-auto min-h-0 p-4'),
-            h.Tabindex(-1),
-            h.Autofocus(true),
-          ],
-          [navListView(items, mobileNavLinkClassName, h)],
-        ),
-      ),
+      componentNav(currentRoute, mobileNavView),
     ],
   )
+}
 
 const mobileHeaderView = (model: Model, h: HtmlBuilder<Message>): Html =>
   h.header(
@@ -522,33 +526,41 @@ const mobileMenuDialogView = Submodel.defineView<
   UiModel,
   UiMessage,
   MobileMenuViewInputs
->((model, { currentRoute }, h): Html =>
-  h.submodel({
+>((model, { currentRoute }, h): Html => {
+  const mobileMenuDialogContent = ({
+    dialog,
+    backdrop,
+    panel,
+    closeButton,
+    isVisible,
+  }: Dialog.RenderInfo): Html =>
+    h.dialog(
+      [...dialog, h.Class('md:hidden')],
+      isVisible
+        ? [
+            h.div([...backdrop, h.Class('fixed inset-0 z-[59]')]),
+            h.div(
+              [
+                ...panel,
+                h.Class('fixed inset-0 z-[60] bg-white flex flex-col'),
+              ],
+              [mobileMenuContent(currentRoute, closeButton, h)],
+            ),
+          ]
+        : [],
+    )
+
+  return h.submodel({
     slotId: model.mobileMenuDialog.id,
     model: model.mobileMenuDialog,
     view: Dialog.view,
     viewInputs: {
-      toView: ({ dialog, backdrop, panel, closeButton, isVisible }) =>
-        h.dialog(
-          [...dialog, h.Class('md:hidden')],
-          isVisible
-            ? [
-                h.div([...backdrop, h.Class('fixed inset-0 z-[59]')]),
-                h.div(
-                  [
-                    ...panel,
-                    h.Class('fixed inset-0 z-[60] bg-white flex flex-col'),
-                  ],
-                  [mobileMenuContent(currentRoute, closeButton, h)],
-                ),
-              ]
-            : [],
-        ),
+      toView: mobileMenuDialogContent,
     },
     toParentMessage: message =>
       UiMessage.GotMobileMenuDialogMessage({ message }),
-  }),
-)
+  })
+})
 
 const mobileMenuView = (model: Model, h: HtmlBuilder<Message>): Html =>
   h.submodel({

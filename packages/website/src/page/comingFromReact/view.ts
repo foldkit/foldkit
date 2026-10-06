@@ -18,7 +18,7 @@ const chevron = (isOpen: boolean): Html =>
   ih.span(
     [
       ih.Class(
-        `text-gray-600 dark:text-gray-300 transition-transform ${isOpen ? 'rotate-180' : ''}`,
+        `text-gray-700 dark:text-gray-300 transition-transform ${isOpen ? 'rotate-180' : ''}`,
       ),
     ],
     [Icon.chevronDown('w-4 h-4')],

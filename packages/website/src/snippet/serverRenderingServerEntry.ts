@@ -4,6 +4,8 @@ import { Server } from 'foldkit/experimental'
 import { readCountCookie } from './cookie'
 import { Flags, init, view } from './main'
 
+export const renderDocument = Server.renderDocument
+
 const flagsForRequest = (request: Request): Flags => ({
   initialCount: readCountCookie(request.headers.get('cookie') ?? ''),
 })

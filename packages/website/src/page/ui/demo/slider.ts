@@ -19,7 +19,7 @@ const verticalHeaderClassName =
 const labelClassName = 'font-medium cursor-pointer select-none'
 
 const valueClassName =
-  'tabular-nums text-gray-600 dark:text-gray-400 data-[disabled]:opacity-50'
+  'tabular-nums text-gray-700 dark:text-gray-400 data-[disabled]:opacity-50'
 
 const horizontalRootClassName =
   'relative h-6 w-full flex items-center select-none touch-none data-[disabled]:opacity-50'

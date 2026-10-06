@@ -1,5 +1,49 @@
 # foldkit
 
+## 0.166.0
+
+### Minor Changes
+
+- [#1518](https://github.com/foldkit/foldkit/pull/1518) [`26e27fd`](https://github.com/foldkit/foldkit/commit/26e27fd937f971f20db9ad93ac38f0e3c4741aee) Thanks [@devinjameson](https://github.com/devinjameson)! - Require an `Option`-returning `read` in both `Subscription.lift` and `ManagedResource.lift`, matching `Update.foldChild`. A child can exist in only some parent states without a separate presence check and throwing extractor. Returning `None` stops its Subscriptions or releases its Managed Resources without reading child dependencies or requirements.
+
+  This is a breaking change. Rename `toChildModel` to `read` in both lift APIs. For Subscriptions, wrap an always-present child in `Option.some`:
+
+  ```ts
+  Subscription.lift(Settings.subscriptions)<Model, Message>({
+    read: model => Option.some(model.settings),
+    toParentMessage: message => Message.GotSettingsMessage({ message }),
+  })
+  ```
+
+  For an optional child, return its `Option` directly and remove any `when` used only to check that child's presence:
+
+  ```ts
+  Subscription.lift(Home.subscriptions)<Model, Message>({
+    read: model => model.maybeHome,
+    toParentMessage: message => Message.GotHomeMessage({ message }),
+  })
+  ```
+
+  ManagedResource readers already return `Option`, so only the field name changes. Subscription `when` predicates remain available for additional whole-record or per-entry conditions. A closed gate skips `read`; a missing child stops every entry, including entries omitted from a gate map.
+
+  Every lifted Subscription now exposes `GatedDependencies<ChildDependencies>` with a `maybeDependencies` field, including lifts without `when` and entries omitted from per-entry gates. Update code that directly inspects lifted dependency records accordingly. Child definitions keep their existing dependency types, services, and `keepAliveEquivalence` behavior. Migrate the DevTools overlay to the new reader contract.
+
+  DevTools now requires Foldkit 0.166.0 or newer because its overlay uses the new `read` field.
+
+- [#1425](https://github.com/foldkit/foldkit/pull/1425) [`9d701af`](https://github.com/foldkit/foldkit/commit/9d701af6a75161962a9600422743d7531c0e4828) Thanks [@rodygosset](https://github.com/rodygosset)! - Add experimental `Query` and `KeyedQuery` Submodels for fetched data that belongs in an application Model. Define the data and error Schemas together with the Effect that fetches the value, then embed the generated Model and Message in the parent. A Query holds one `AsyncData` value. A KeyedQuery holds one retained entry for each argument key, so revisiting data already loaded into the owning Model is a cache hit.
+
+  The parent still decides when work starts. `loadIfMissing` fetches only when no data is available, `revalidate` refreshes existing data, and `revalidateOrLoad` handles either state. Query tracks request generations, and `reset` preserves that history, so a late completion cannot settle work started after the reset. KeyedQuery's default key encoding canonicalizes object property order recursively. `read` returns the current `AsyncData`, `run` fetches data outside a Foldkit application, and `lift({ parentField, toParentMessage })` connects the Query to its parent.
+
+  Import Query from `foldkit/experimental` or `foldkit/experimental/query`. Create Foldkit App also includes `api-cache-query`, a complete example of list, detail, and interval-refreshed Queries.
+
+### Patch Changes
+
+- [#1534](https://github.com/foldkit/foldkit/pull/1534) [`0ec94a1`](https://github.com/foldkit/foldkit/commit/0ec94a178c504827060a5e475200599193b0387e) Thanks [@devinjameson](https://github.com/devinjameson)! - Protect Effect `Redacted` values across DevTools Model, Message, Command, Mount, init, and diff responses, including the Vite prebundle needed by consumers. Document the DevTools MCP trust boundary, the controls that disable dispatch or relay access, and why `excludeFromHistory` does not hide sensitive Model data.
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
+- [#1583](https://github.com/foldkit/foldkit/pull/1583) [`37221d3`](https://github.com/foldkit/foldkit/commit/37221d3d84ae5cc797cb55c9d0b70746a804f441) Thanks [@devinjameson](https://github.com/devinjameson)! - Update the README tagline to “Build faster. Understand what ships.”
+
 ## 0.165.0
 
 ### Minor Changes

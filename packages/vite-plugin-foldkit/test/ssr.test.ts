@@ -230,6 +230,8 @@ const nonRunnableSsrPlugin: Plugin = {
 
 const startServer = async (
   options: Readonly<{
+    root?: string
+    clientEntry?: string
     base?: string
     origin?: string
     allowedHosts?: true | ReadonlyArray<string>
@@ -247,7 +249,7 @@ const startServer = async (
   const createServer =
     options.hostVite === true ? createHostServer : createViteServer
   const server = await createServer({
-    root: FIXTURE_ROOT,
+    root: options.root ?? FIXTURE_ROOT,
     ...(options.base === undefined ? {} : { base: options.base }),
     configFile: false,
     logLevel: 'silent',
@@ -262,6 +264,9 @@ const startServer = async (
         : [seedVaryPlugin(options.seedVary)]),
       foldkitSsr({
         serverEntry: '/entry.server.ts',
+        ...(options.clientEntry === undefined
+          ? {}
+          : { clientEntry: options.clientEntry }),
         ...(options.origin === undefined ? {} : { origin: options.origin }),
         ...(options.buildId === undefined ? {} : { buildId: options.buildId }),
         ...(options.quietStandDown === undefined
@@ -295,7 +300,10 @@ const startAutomaticIdentityServer = async (): Promise<
     logLevel: 'silent',
     plugins: [
       foldkit({
-        ssr: { serverEntry: '/entry.server.ts' },
+        ssr: {
+          serverEntry: '/entry.server.ts',
+          clientEntry: '/entry.client.ts',
+        },
       }),
     ],
     server: {
@@ -308,6 +316,50 @@ const startAutomaticIdentityServer = async (): Promise<
   await server.listen()
   return { origin: `http://127.0.0.1:${port}`, server }
 }
+
+describe('code-rendered documents in development', () => {
+  it('serves nested pages with a source entry, custom document, and HMR without an HTML input', async () => {
+    const origin = await startServer({
+      root: resolve(import.meta.dirname, 'fixtures/build-assets'),
+      clientEntry: '/entry.client.ts',
+      base: '/app/',
+      buildId: 'document-dev',
+    })
+    const response = await fetch(`${origin}/app/deep/page?filter=yes`)
+    const html = await response.text()
+    expect(response.status).toBe(200)
+    expect(html).toContain('>/app/deep/page</main>')
+    expect(html).toContain('name="document-owner" content="server-entry"')
+    expect(html).toContain('src="/app/entry.client.ts"')
+    expect(html).toContain('/app/@vite/client')
+    expect((await fetch(`${origin}/app/entry.client.ts`)).status).toBe(200)
+
+    const head = await fetch(`${origin}/app/deep/page`, { method: 'HEAD' })
+    expect(head.status).toBe(200)
+    expect(await head.text()).toBe('')
+  })
+
+  it('reports a missing document renderer when a script entry is configured', async () => {
+    const origin = await startServer({ clientEntry: '/entry.client.ts' })
+    const response = await fetch(`${origin}/`)
+    expect(response.status).toBe(500)
+    expect(await response.text()).toContain('must export renderDocument')
+  })
+
+  it('rejects a client entry that is not root-relative', async () => {
+    await expect(
+      startServer({ clientEntry: 'entry.client.ts' }),
+    ).rejects.toThrow(/clientEntry must be a root-relative browser script URL/)
+  })
+
+  for (const base of ['', './']) {
+    it(`refuses relative base ${JSON.stringify(base)} in document mode`, async () => {
+      await expect(
+        startServer({ clientEntry: '/entry.client.ts', base }),
+      ).rejects.toThrow(/require an absolute URL or root-relative base/)
+    })
+  }
+})
 
 const automaticIdentityFrom = async (
   running: Readonly<{ origin: string; server: ViteDevServer }>,

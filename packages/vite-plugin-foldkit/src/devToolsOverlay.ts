@@ -1,31 +1,14 @@
-import { Array, Option, Record, Schema } from 'effect'
+import { Option, Record, Schema } from 'effect'
 import { existsSync, readFileSync, realpathSync } from 'node:fs'
 import { dirname, join, resolve, sep } from 'node:path'
 import type { Plugin } from 'vite'
 
 const DEV_TOOLS_PACKAGE_NAME = '@foldkit/devtools'
-const FOLDKIT_PACKAGE_NAME = 'foldkit'
 const DEV_TOOLS_VITE_EXPORT = './vite'
 const DEV_TOOLS_OVERLAY_MODULE_ID = 'virtual:foldkit-devtools-overlay'
 const RESOLVED_DEV_TOOLS_OVERLAY_MODULE_ID = `\0${DEV_TOOLS_OVERLAY_MODULE_ID}`
 const DEV_TOOLS_VITE_IMPORT_SPECIFIER = `${DEV_TOOLS_PACKAGE_NAME}${DEV_TOOLS_VITE_EXPORT.slice(1)}`
 const DEV_TOOLS_HOST_IMPORT_SPECIFIER = 'foldkit/devtools-host'
-// NOTE: Vite's dependency scan cannot discover this virtual module's imports.
-// Declaring registry-installed imports before the first request avoids a
-// mid-session reoptimization and page reload.
-const DEV_TOOLS_OVERLAY_IMPORTS: ReadonlyArray<{
-  specifier: string
-  packageName: string
-}> = [
-  {
-    specifier: DEV_TOOLS_VITE_IMPORT_SPECIFIER,
-    packageName: DEV_TOOLS_PACKAGE_NAME,
-  },
-  {
-    specifier: DEV_TOOLS_HOST_IMPORT_SPECIFIER,
-    packageName: FOLDKIT_PACKAGE_NAME,
-  },
-]
 const DEV_TOOLS_OVERLAY_MODULE_SOURCE = `
 import { overlay } from '${DEV_TOOLS_VITE_IMPORT_SPECIFIER}'
 import { __setDevToolsOverlay } from '${DEV_TOOLS_HOST_IMPORT_SPECIFIER}'
@@ -129,8 +112,7 @@ const resolvePackageDirectory = Option.liftThrowable(
 // NOTE: Vite serves linked packages from source rather than pre-bundling them.
 // A registry-installed package has a real path under `node_modules`, while a
 // workspace link resolves to its source checkout; force-including a link would
-// cache its current source and hide edits. Each owner is checked independently
-// because one package may be linked while the other is installed.
+// cache its current source and hide edits.
 const isPackageResolvedIntoNodeModules = (
   root: string,
   packageName: string,
@@ -185,14 +167,18 @@ export const devToolsOverlayPlugin = (): Plugin => {
         return undefined
       }
 
-      const include = DEV_TOOLS_OVERLAY_IMPORTS.filter(({ packageName }) =>
-        isPackageResolvedIntoNodeModules(root, packageName),
-      ).map(({ specifier }) => specifier)
-
-      return Array.match(include, {
-        onEmpty: () => undefined,
-        onNonEmpty: () => ({ optimizeDeps: { include } }),
-      })
+      // NOTE: Vite's dependency scan cannot discover the virtual module's
+      // imports, so a registry-installed `@foldkit/devtools/vite` is declared
+      // before the first request to avoid a mid-session reoptimization and page
+      // reload. `foldkit/devtools-host` is deliberately not declared. The plugin
+      // excludes `foldkit` and serves it from source. Vite resolves a
+      // force-included specifier to its pre-bundle before consulting `exclude`.
+      // That would give the overlay its own copy of the DevTools config.
+      if (isPackageResolvedIntoNodeModules(root, DEV_TOOLS_PACKAGE_NAME)) {
+        return { optimizeDeps: { include: [DEV_TOOLS_VITE_IMPORT_SPECIFIER] } }
+      } else {
+        return undefined
+      }
     },
     configResolved: config => {
       isInjectionEnabled = shouldInjectDevToolsOverlay(

@@ -15,6 +15,36 @@ const descriptionClassName = 'text-sm text-gray-500'
 
 export const view = Submodel.defineView<UiModel, UiMessage>(
   (model, h): Html => {
+    const basicInputView = (
+      attributes: Input.InputAttributes<UiMessage>,
+    ): Html =>
+      h.div(
+        [h.Class('flex flex-col gap-1.5 w-full')],
+        [
+          h.label([...attributes.label, h.Class(labelClassName)], ['Name']),
+          h.input([...attributes.input, h.Class(inputClassName)]),
+          h.span(
+            [...attributes.description, h.Class(descriptionClassName)],
+            ['As it appears on your government-issued ID.'],
+          ),
+        ],
+      )
+
+    const disabledInputView = (
+      attributes: Input.InputAttributes<UiMessage>,
+    ): Html =>
+      h.div(
+        [h.Class('flex flex-col gap-1.5 max-w-sm')],
+        [
+          h.label([...attributes.label, h.Class(labelClassName)], ['Name']),
+          h.input([...attributes.input, h.Class(inputClassName)]),
+          h.span(
+            [...attributes.description, h.Class(descriptionClassName)],
+            ['This input is disabled.'],
+          ),
+        ],
+      )
+
     return h.div(
       [],
       [
@@ -34,24 +64,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                 hasDescription: true,
                 onInput: value => UiMessage.UpdatedInputDemoValue({ value }),
                 placeholder: 'Enter your full name',
-                toView: attributes =>
-                  h.div(
-                    [h.Class('flex flex-col gap-1.5 w-full')],
-                    [
-                      h.label(
-                        [...attributes.label, h.Class(labelClassName)],
-                        ['Name'],
-                      ),
-                      h.input([...attributes.input, h.Class(inputClassName)]),
-                      h.span(
-                        [
-                          ...attributes.description,
-                          h.Class(descriptionClassName),
-                        ],
-                        ['As it appears on your government-issued ID.'],
-                      ),
-                    ],
-                  ),
+                toView: basicInputView,
               },
               h,
             ),
@@ -68,21 +81,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
             isDisabled: true,
             hasDescription: true,
             value: 'Ada Lovelace',
-            toView: attributes =>
-              h.div(
-                [h.Class('flex flex-col gap-1.5 max-w-sm')],
-                [
-                  h.label(
-                    [...attributes.label, h.Class(labelClassName)],
-                    ['Name'],
-                  ),
-                  h.input([...attributes.input, h.Class(inputClassName)]),
-                  h.span(
-                    [...attributes.description, h.Class(descriptionClassName)],
-                    ['This input is disabled.'],
-                  ),
-                ],
-              ),
+            toView: disabledInputView,
           },
           h,
         ),

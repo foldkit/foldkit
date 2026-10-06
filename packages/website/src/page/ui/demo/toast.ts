@@ -134,13 +134,13 @@ export const demo = (
     ...Option.match(maybeLastDismissedTitle, {
       onNone: () => [
         h.p(
-          [h.Class('text-sm text-gray-500 dark:text-gray-500 mt-3')],
+          [h.Class('text-sm text-gray-600 dark:text-gray-500 mt-3')],
           ['No toasts dismissed yet'],
         ),
       ],
       onSome: title => [
         h.p(
-          [h.Class('text-sm text-gray-600 dark:text-gray-400 mt-3')],
+          [h.Class('text-sm text-gray-700 dark:text-gray-400 mt-3')],
           [
             `Last dismissed: "${title}" (lifted from DismissedToast OutMessage)`,
           ],

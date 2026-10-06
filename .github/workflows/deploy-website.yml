@@ -28,7 +28,6 @@ on:
       - 'scripts/lib/coherent-release.mjs'
       - 'scripts/lib/website-package-inputs.mjs'
       - 'scripts/lib/workspace-packages.mjs'
-      - 'scripts/restore-website-fonts.sh'
       - 'scripts/website-vercel-config.mjs'
       - '.npmrc'
       - 'package.json'
@@ -104,5 +103,3 @@ jobs:
       vercel_token: ${{ secrets.VERCEL_TOKEN }}
       vercel_org_id: ${{ secrets.VERCEL_ORG_ID }}
       vercel_project_id: ${{ secrets.VERCEL_WEBSITE_PROJECT_ID }}
-      website_book_font: ${{ secrets.ABC_FAVORIT_BOOK_WOFF2_BASE64 }}
-      website_light_font: ${{ secrets.ABC_FAVORIT_LIGHT_WOFF2_BASE64 }}

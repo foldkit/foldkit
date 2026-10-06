@@ -2,6 +2,8 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import * as ts from 'typescript'
 
+import { readForcedEffectEntries } from '../packages/vite-plugin-foldkit/test/forcedEffectEntries.ts'
+
 const FOLDKIT_SRC = 'packages/foldkit/src'
 const PLUGIN_FILE = 'packages/vite-plugin-foldkit/src/index.ts'
 const LIST_NAME = 'FORCE_INCLUDED_EFFECT_ENTRIES'
@@ -63,28 +65,20 @@ type PluginEffectIncludes = Readonly<{
   namespaces: ReadonlySet<string>
 }>
 
-const extractListFromPlugin = (source: string): PluginEffectIncludes => {
-  const pattern = new RegExp(`${LIST_NAME}[^=]*=\\s*\\[([\\s\\S]*?)\\]`, 'm')
-  const match = source.match(pattern)
-  if (!match) {
-    throw new Error(`Could not find ${LIST_NAME} in ${PLUGIN_FILE}`)
-  }
-
+const toPluginEffectIncludes = (
+  entries: ReadonlyArray<string>,
+): PluginEffectIncludes => {
   const namespaces = new Set<string>()
   let isBareEffectIncluded = false
-  const listSource = match[1]
-  if (listSource === undefined) {
-    throw new Error(`Could not read ${LIST_NAME} entries in ${PLUGIN_FILE}`)
-  }
 
-  for (const match of listSource.matchAll(/'effect(?:\/(\w+))?'/g)) {
-    const namespace = match[1]
-    if (namespace === undefined) {
+  for (const entry of entries) {
+    if (entry === 'effect') {
       isBareEffectIncluded = true
-    } else {
-      namespaces.add(namespace)
+    } else if (entry.startsWith('effect/')) {
+      namespaces.add(entry.slice('effect/'.length))
     }
   }
+
   return { isBareEffectIncluded, namespaces }
 }
 
@@ -99,7 +93,7 @@ const foldkitNamespaces = (() => {
   return all
 })()
 
-const pluginIncludes = extractListFromPlugin(readFileSync(PLUGIN_FILE, 'utf-8'))
+const pluginIncludes = toPluginEffectIncludes(readForcedEffectEntries())
 
 if (!pluginIncludes.isBareEffectIncluded) {
   console.error(`ERROR: ${LIST_NAME} in ${PLUGIN_FILE} must include 'effect'.`)

@@ -289,7 +289,7 @@ export type LlmsIndexEntry = Readonly<{
 export const SECTION_ORDER: ReadonlyArray<string> = [
   'Docs',
   'Guides',
-  'Core Concepts',
+  'Core',
   'Best Practices',
   'Patterns',
   'Tooling',

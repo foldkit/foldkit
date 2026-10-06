@@ -65,24 +65,53 @@ With this set, the dev server converts HTML page requests to Web `Request` value
 
 Vite retains ownership of configured proxy routes before Foldkit handles application requests. Vite's `server.cors` option applies to Vite-owned source modules, assets, and HMR. It does not add headers to application responses or answer their preflights. Preflight ownership follows `Access-Control-Request-Method`, so a preflight for an application `POST` reaches `renderPage` even when its path looks like an asset. An `OPTIONS` request without both `Origin` and `Access-Control-Request-Method` is not a preflight and also reaches `renderPage`. Define application CORS in `renderPage`, where development and the deployed host share one policy. Vite's `allowedHosts` check runs before proxy and application handling, including `OPTIONS` and methods the Web `Request` API cannot represent.
 
+## Server-rendered documents
+
+With `ssr.build`, the client input is a script and the server entry produces the complete HTML document. Configure the script beside the server entry:
+
+```typescript
+foldkit({
+  ssr: {
+    clientEntry: '/src/entry.ts',
+    serverEntry: '/src/entry.server.ts',
+    build: true,
+  },
+})
+```
+
+Import CSS from the client script. Export `renderDocument` alongside `renderPage` in the server entry:
+
+```typescript
+export const renderDocument = Server.renderDocument
+```
+
+`Server.renderDocument(application, assets, options)` assembles the document with the application's title, language, direction, canonical URL, and Open Graph URL. `assets` contains the emitted `entryScript`, ordered `stylesheets`, and `modulePreloads`. The plugin collects static imports and their CSS, leaves lazy imports to Vite's runtime, and supplies the same assets to request-time rendering and prerendering. The default document includes UTF-8 and viewport metadata. Wrap the helper to set a default `lang` or add trusted author-owned `head` markup, such as a favicon. Never interpolate unescaped request data into `head`.
+
+The client build starts from a script rather than HTML. `index.html` appears in the client output only when prerendering generates `/`. The build refuses an existing root document copied from `publicDir`, emitted by another plugin, or left by an earlier build when `emptyOutDir` is disabled. Remove the source `index.html` when migrating an SSR build, move its stylesheet links into client imports, and move document tags into `renderDocument`. Build-time `transformIndexHtml` hooks do not run with a script input. In development, Vite transforms the rendered document for HMR and dev HTML hooks. `containerId` belongs only to a template-based custom host and cannot be combined with `clientEntry`.
+
+Use a root-relative `clientEntry`, such as `/src/entry.ts`, and an absolute-path or full-URL Vite `base`. Relative bases (`''` and `'./'`) are rejected because their asset URLs would resolve differently on nested routes. `modulePreload` configuration and absolute `experimental.renderBuiltUrl` results apply to the generated document; relative and runtime `renderBuiltUrl` results are rejected.
+
+The standalone build plugin takes `foldkitBuild(serverEntry, { clientEntry, ...options })`. Omitting `clientEntry` and `ssr.build` selects the template-based development host for a custom build pipeline. Hosts that own an HTML template can use the lower-level `injectIntoTemplate`, `toResponse`, and `handleRequest(request, { template, renderPage })` APIs.
+
 ## Foldkit package resolution
 
 Each module graph must load one Foldkit copy. The plugin configures Vite for that:
 
 - `resolve.dedupe` lists `foldkit`, `@foldkit/ui`, and `@foldkit/devtools`, each only when it resolves from the application root.
-- Server builds and the dev server's server render bundle those three packages, plus every installed package whose `dependencies` or `peerDependencies` include `foldkit` or an `@foldkit/*` package, such as `@foldkit/markdown`. In the dev server, these `ssr.noExternal` packages run through Vite's module runner instead of Node's own import. An explicit `ssr.external` entry still keeps a package external.
+- In server builds and in every server environment of the dev server, the plugin bundles those three packages, plus every installed package whose `dependencies` or `peerDependencies` include `foldkit` or an `@foldkit/*` package, such as `@foldkit/markdown`. The plugin lists them in `resolve.noExternal`, which Vite applies to every environment, and in `ssr.noExternal`. In a Node server environment of the dev server, these packages run through Vite's module runner instead of Node's own import. An explicit `ssr.external` or `resolve.external` entry still keeps a package external.
 - The plugin finds these packages by crawling from the application's `package.json`. It follows the application's `dependencies` and `devDependencies`, then the `dependencies` of each package it bundles, plus the `devDependencies` of a bundled package that is a private workspace package.
+- The plugin excludes `foldkit` from dependency pre-bundling in every environment, so the build id transform runs on it. It also pre-bundles the Effect entries Foldkit imports in every environment whose optimizer is enabled, for example a Cloudflare Worker environment, so Foldkit and the application share one Effect instance. Applications need no `optimizeDeps` settings for Foldkit.
 
-A package the crawl does not reach stays external. For example: a peer the application does not declare, or a package reached only through a package that does not depend on Foldkit. Such a package loads a second Foldkit copy from `node_modules` at runtime. Declare it in the application's `package.json`, or add it to `ssr.noExternal`:
+A package the crawl does not reach stays external. For example: a peer the application does not declare, or a package reached only through a package that does not depend on Foldkit. Such a package loads a second Foldkit copy from `node_modules` at runtime. Declare it in the application's `package.json`, or add it to `resolve.noExternal`, which Vite applies to every environment:
 
 ```typescript
 export default defineConfig({
   plugins: [foldkit()],
-  ssr: { noExternal: ['foldkit-component-library'] },
+  resolve: { noExternal: ['foldkit-component-library'] },
 })
 ```
 
-Vitest copies SSR `noExternal` into `server.deps.inline`. A Vitest config that includes `foldkit()` therefore also inlines the crawled packages in tests.
+Vitest copies each environment's `resolve.noExternal` into `server.deps.inline`. A Vitest config that includes `foldkit()` therefore also inlines the crawled packages in tests.
 
 ## Completed build metadata
 

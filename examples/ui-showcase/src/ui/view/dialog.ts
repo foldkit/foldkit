@@ -187,84 +187,101 @@ const deleteProjectContent = (
 
 // DEMOS
 
+const dialogWithPanel = (
+  { dialog, backdrop, panel, isVisible }: Dialog.RenderInfo,
+  backdropClassName: string,
+  panelClassNameValue: string,
+  content: () => ReadonlyArray<Html>,
+  h: HtmlBuilder<UiMessage>,
+): Html =>
+  h.dialog(
+    [...dialog, h.Class(dialogClassName)],
+    isVisible
+      ? [
+          h.div([...backdrop, h.Class(backdropClassName)]),
+          h.div([...panel, h.Class(panelClassNameValue)], content()),
+        ]
+      : [],
+  )
+
 const basicDemo = (
   dialogModel: Dialog.Model,
   h: HtmlBuilder<UiMessage>,
-): Html =>
-  h.submodel({
+): Html => {
+  const basicDialogView = (render: Dialog.RenderInfo): Html =>
+    dialogWithPanel(
+      render,
+      backdropClassName,
+      panelClassName,
+      () => [
+        confirmContent(render.closeButton, render.title, render.description, h),
+      ],
+      h,
+    )
+
+  return h.submodel({
     slotId: dialogModel.id,
     model: dialogModel,
     view: Dialog.view,
     viewInputs: {
       hasDescription: true,
-      toView: ({
-        dialog,
-        backdrop,
-        panel,
-        closeButton,
-        title,
-        description,
-        isVisible,
-      }) =>
-        h.dialog(
-          [...dialog, h.Class(dialogClassName)],
-          isVisible
-            ? [
-                h.div([...backdrop, h.Class(backdropClassName)]),
-                h.div(
-                  [...panel, h.Class(panelClassName)],
-                  [confirmContent(closeButton, title, description, h)],
-                ),
-              ]
-            : [],
-        ),
+      toView: basicDialogView,
     },
     toParentMessage: message => UiMessage.GotDialogDemoMessage({ message }),
   })
+}
 
 const animatedDemo = (
   dialogModel: Dialog.Model,
   h: HtmlBuilder<UiMessage>,
-): Html =>
-  h.submodel({
+): Html => {
+  const animatedDialogView = (render: Dialog.RenderInfo): Html =>
+    dialogWithPanel(
+      render,
+      animatedBackdropClassName,
+      animatedPanelClassName,
+      () => [
+        confirmContent(render.closeButton, render.title, render.description, h),
+      ],
+      h,
+    )
+
+  return h.submodel({
     slotId: dialogModel.id,
     model: dialogModel,
     view: Dialog.view,
     viewInputs: {
       hasDescription: true,
-      toView: ({
-        dialog,
-        backdrop,
-        panel,
-        closeButton,
-        title,
-        description,
-        isVisible,
-      }) =>
-        h.dialog(
-          [...dialog, h.Class(dialogClassName)],
-          isVisible
-            ? [
-                h.div([...backdrop, h.Class(animatedBackdropClassName)]),
-                h.div(
-                  [...panel, h.Class(animatedPanelClassName)],
-                  [confirmContent(closeButton, title, description, h)],
-                ),
-              ]
-            : [],
-        ),
+      toView: animatedDialogView,
     },
     toParentMessage: message =>
       UiMessage.GotDialogAnimatedDemoMessage({ message }),
   })
+}
 
 const overlayDemo = (
   dialogModel: Dialog.Model,
   comboboxModel: Combobox.Model,
   maybeSelectedCity: Option.Option<City>,
   h: HtmlBuilder<UiMessage>,
-): Html =>
-  h.div(
+): Html => {
+  const overlayDialogView = (render: Dialog.RenderInfo): Html =>
+    dialogWithPanel(
+      render,
+      backdropClassName,
+      panelClassName,
+      () =>
+        editFiltersContent(
+          render.title,
+          render.description,
+          comboboxModel,
+          maybeSelectedCity,
+          h,
+        ),
+      h,
+    )
+
+  return h.div(
     [],
     [
       trigger('Edit filters', UiMessage.ClickedEditFilters(), h),
@@ -274,45 +291,51 @@ const overlayDemo = (
         view: Dialog.view,
         viewInputs: {
           hasDescription: true,
-          toView: ({
-            dialog,
-            backdrop,
-            panel,
-            title,
-            description,
-            isVisible,
-          }) =>
-            h.dialog(
-              [...dialog, h.Class(dialogClassName)],
-              isVisible
-                ? [
-                    h.div([...backdrop, h.Class(backdropClassName)]),
-                    h.div(
-                      [...panel, h.Class(panelClassName)],
-                      editFiltersContent(
-                        title,
-                        description,
-                        comboboxModel,
-                        maybeSelectedCity,
-                        h,
-                      ),
-                    ),
-                  ]
-                : [],
-            ),
+          toView: overlayDialogView,
         },
         toParentMessage: message =>
           UiMessage.GotOverlayDialogDemoMessage({ message }),
       }),
     ],
   )
+}
 
 const nestedDemo = (
   parentDialogModel: Dialog.Model,
   childDialogModel: Dialog.Model,
   h: HtmlBuilder<UiMessage>,
-): Html =>
-  h.div(
+): Html => {
+  const settingsDialogView = (render: Dialog.RenderInfo): Html =>
+    dialogWithPanel(
+      render,
+      backdropClassName,
+      settingsPanelClassName,
+      () =>
+        projectSettingsContent(
+          render.closeButton,
+          render.title,
+          render.description,
+          h,
+        ),
+      h,
+    )
+
+  const deleteProjectDialogView = (render: Dialog.RenderInfo): Html =>
+    dialogWithPanel(
+      render,
+      backdropClassName,
+      confirmPanelClassName,
+      () =>
+        deleteProjectContent(
+          render.closeButton,
+          render.title,
+          render.description,
+          h,
+        ),
+      h,
+    )
+
+  return h.div(
     [],
     [
       trigger(
@@ -326,32 +349,7 @@ const nestedDemo = (
         view: Dialog.view,
         viewInputs: {
           hasDescription: true,
-          toView: ({
-            dialog,
-            backdrop,
-            panel,
-            closeButton,
-            title,
-            description,
-            isVisible,
-          }) =>
-            h.dialog(
-              [...dialog, h.Class(dialogClassName)],
-              isVisible
-                ? [
-                    h.div([...backdrop, h.Class(backdropClassName)]),
-                    h.div(
-                      [...panel, h.Class(settingsPanelClassName)],
-                      projectSettingsContent(
-                        closeButton,
-                        title,
-                        description,
-                        h,
-                      ),
-                    ),
-                  ]
-                : [],
-            ),
+          toView: settingsDialogView,
         },
         toParentMessage: message =>
           UiMessage.GotNestedDialogParentDemoMessage({ message }),
@@ -362,33 +360,14 @@ const nestedDemo = (
         view: Dialog.view,
         viewInputs: {
           hasDescription: true,
-          toView: ({
-            dialog,
-            backdrop,
-            panel,
-            closeButton,
-            title,
-            description,
-            isVisible,
-          }) =>
-            h.dialog(
-              [...dialog, h.Class(dialogClassName)],
-              isVisible
-                ? [
-                    h.div([...backdrop, h.Class(backdropClassName)]),
-                    h.div(
-                      [...panel, h.Class(confirmPanelClassName)],
-                      deleteProjectContent(closeButton, title, description, h),
-                    ),
-                  ]
-                : [],
-            ),
+          toView: deleteProjectDialogView,
         },
         toParentMessage: message =>
           UiMessage.GotNestedDialogChildDemoMessage({ message }),
       }),
     ],
   )
+}
 
 // VIEW
 

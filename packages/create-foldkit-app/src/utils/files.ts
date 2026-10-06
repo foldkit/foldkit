@@ -173,6 +173,7 @@ const overlayRenderingFiles = (
   directory: OverlayDirectory,
 ) =>
   Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
 
     const templateRoot = yield* getTemplateRoot
@@ -181,6 +182,7 @@ const overlayRenderingFiles = (
     )
 
     yield* createFiles(projectPath, renderingFiles)
+    yield* fs.remove(path.join(projectPath, 'index.html'))
   })
 
 const createRenderingFiles = (projectPath: string, scaffold: Scaffold) =>

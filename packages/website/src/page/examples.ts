@@ -31,7 +31,7 @@ const exampleRow = (example: ExampleMeta): Html =>
         ],
       ),
       ih.td(
-        [ih.Class('py-2.5 text-gray-600 dark:text-gray-400')],
+        [ih.Class('py-2.5 text-gray-700 dark:text-gray-400')],
         [example.description],
       ),
     ],
@@ -51,7 +51,7 @@ const typingTerminalRow = (): Html =>
         ],
       ),
       ih.td(
-        [ih.Class('py-2.5 text-gray-600 dark:text-gray-400')],
+        [ih.Class('py-2.5 text-gray-700 dark:text-gray-400')],
         [
           ih.div(
             [],

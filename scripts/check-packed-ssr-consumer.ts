@@ -170,10 +170,6 @@ type ConsumerFixture = Readonly<{
 
 const CONSUMER_FIXTURES: ReadonlyArray<ConsumerFixture> = [
   {
-    path: 'index.html',
-    values: { TYPED_VALUE },
-  },
-  {
     path: 'src/main.ts',
     values: { SERVER_ONLY_PIN, PACKED_MARKDOWN_TEXT },
   },
@@ -181,6 +177,12 @@ const CONSUMER_FIXTURES: ReadonlyArray<ConsumerFixture> = [
   { path: 'scripts/entrypoints.mjs' },
   { path: 'src/entry.ts' },
   { path: 'src/entry.server.ts' },
+  { path: 'src/document.ts' },
+  { path: 'src/head-script.js' },
+  {
+    path: 'src/probe-script.js',
+    values: { TYPED_VALUE },
+  },
   { path: 'src/vite-env.d.ts' },
   { path: 'src/packed-types.ts' },
   { path: 'src/inferred-program.ts' },

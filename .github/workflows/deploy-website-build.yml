@@ -22,10 +22,6 @@ on:
         required: true
       vercel_project_id:
         required: true
-      website_book_font:
-        required: true
-      website_light_font:
-        required: true
 
 permissions:
   contents: read
@@ -73,12 +69,6 @@ jobs:
 
       - name: Build examples
         run: pnpm build:examples
-
-      - name: Restore licensed website fonts
-        run: bash scripts/restore-website-fonts.sh
-        env:
-          ABC_FAVORIT_BOOK_WOFF2_BASE64: ${{ secrets.website_book_font }}
-          ABC_FAVORIT_LIGHT_WOFF2_BASE64: ${{ secrets.website_light_font }}
 
       - name: Resolve GitHub star count
         id: github-stars

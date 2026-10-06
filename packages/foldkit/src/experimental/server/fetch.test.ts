@@ -34,6 +34,49 @@ describe('handleRequest', () => {
     expect(await response.text()).toContain('>/about</main>')
   })
 
+  it('renders a page request through a document renderer', async () => {
+    const applications: Array<
+      Awaited<ReturnType<typeof renderPage>>['application']
+    > = []
+    const response = await handleRequest(new Request(`${ORIGIN}/document`), {
+      renderPage,
+      renderDocument: application => {
+        applications.push(application)
+        return `<!doctype html><title>${application.title}</title>${application.html}`
+      },
+    })
+
+    expect(applications).toHaveLength(1)
+    expect(await response.text()).toContain('>/document</main>')
+  })
+
+  it('requires exactly one document source before calling the entry', async () => {
+    const calls: Array<string> = []
+    const trackedRenderPage = async (request: Request) => {
+      calls.push(request.url)
+      return renderPage(request)
+    }
+    const request = new Request(`${ORIGIN}/invalid-document-source`)
+
+    await expect(
+      Reflect.apply(handleRequest, undefined, [
+        request,
+        {
+          renderPage: trackedRenderPage,
+          renderDocument: () => '<!doctype html>',
+          template: TEMPLATE,
+        },
+      ]),
+    ).rejects.toThrow(/requires exactly one document source/)
+    await expect(
+      Reflect.apply(handleRequest, undefined, [
+        request,
+        { renderPage: trackedRenderPage },
+      ]),
+    ).rejects.toThrow(/requires exactly one document source/)
+    expect(calls).toEqual([])
+  })
+
   it('refuses TRACE instead of forwarding it to the entry', async () => {
     const request = new Request(ORIGIN)
     Object.defineProperty(request, 'method', { value: 'TRACE' })

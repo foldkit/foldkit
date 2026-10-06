@@ -5,20 +5,6 @@
 }
 
 @font-face {
-  font-family: 'ABC Favorit';
-  src: url('/fonts/ABCFavorit-Light.woff2') format('woff2');
-  font-weight: 300;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'ABC Favorit';
-  src: url('/fonts/ABCFavorit-Book.woff2') format('woff2');
-  font-weight: 350;
-  font-display: swap;
-}
-
-@font-face {
   font-family: 'Inter';
   src: url('/fonts/Inter-Variable.woff2') format('woff2');
   font-weight: 100 900;
@@ -53,6 +39,7 @@
   --color-gray-850: #232129;
   --color-gray-900: #17151b;
   --color-gray-950: #13121a;
+  --color-docs-prose: #484454;
   --color-accent-50: #f4fae8;
   --color-accent-100: #e8f5d0;
   --color-accent-200: #c8e494;
@@ -65,7 +52,6 @@
   --color-accent-900: #253b0a;
   --color-accent-950: #152205;
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-heading: 'ABC Favorit', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'Paper Mono', ui-monospace, monospace;
   --font-weight-book: 350;
   --font-weight-code: 425;
@@ -137,7 +123,7 @@ html.dark {
   }
 
   .list-disc li::marker {
-    @apply font-mono font-normal text-accent-500 dark:text-accent-400 text-sm;
+    @apply font-mono font-normal text-accent-600 dark:text-accent-400 text-sm;
   }
 
   .list-decimal {
@@ -145,7 +131,7 @@ html.dark {
   }
 
   .list-decimal li::marker {
-    @apply text-gray-500 dark:text-gray-400;
+    @apply text-gray-600 dark:text-gray-400;
   }
 
   pre {
@@ -221,7 +207,7 @@ html.dark {
   }
 
   .docs-content {
-    @apply w-full min-w-0 mx-auto px-6 py-8 md:px-8 xl:px-12 2xl:py-12 font-book leading-7 md:leading-[1.875rem];
+    @apply w-full min-w-0 mx-auto px-6 py-8 md:px-8 xl:px-12 2xl:py-12 font-normal leading-7 md:leading-[1.875rem] text-docs-prose dark:text-gray-200;
     max-width: var(--docs-content-width);
   }
 
@@ -305,13 +291,13 @@ html.dark {
   }
 
   .demo-description {
-    @apply text-sm text-gray-500 dark:text-gray-400;
+    @apply text-sm text-gray-600 dark:text-gray-400;
   }
 
   .demo-field-input,
   .demo-field-textarea,
   .demo-field-select {
-    @apply block w-full rounded-lg border border-gray-300 bg-white px-3 text-base text-gray-900 transition-colors placeholder:text-gray-400 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:border-accent-400 dark:focus:ring-accent-400 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50;
+    @apply block w-full rounded-lg border border-gray-300 bg-white px-3 text-base text-gray-900 transition-colors placeholder:text-gray-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:border-accent-400 dark:focus:ring-accent-400 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50;
   }
 
   .demo-field-input,
@@ -340,7 +326,7 @@ html.dark {
   }
 
   .demo-option-heading {
-    @apply px-3 pt-3 pb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500;
+    @apply px-3 pt-3 pb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-500;
   }
 
   .demo-checkbox {

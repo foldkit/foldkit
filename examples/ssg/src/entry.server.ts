@@ -3,6 +3,8 @@ import { Server } from 'foldkit/experimental'
 
 import { init, view } from './main'
 
+export const renderDocument = Server.renderDocument
+
 export const prerenderPaths: ReadonlyArray<string> = ['/', '/about']
 
 export const renderPage = (request: Request): Promise<Server.EntryResult> =>

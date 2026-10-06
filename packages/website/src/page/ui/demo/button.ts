@@ -29,7 +29,7 @@ export const basicDemo = (model: Model, h: HtmlBuilder<Message>) => {
           h,
         ),
         h.span(
-          [h.Class('text-sm text-gray-600 dark:text-gray-400')],
+          [h.Class('text-sm text-gray-700 dark:text-gray-400')],
           [
             `Clicked ${model.buttonClickCount} time${model.buttonClickCount === 1 ? '' : 's'}`,
           ],

@@ -43,7 +43,7 @@ const mapMessagesUnderHoodDemo = (
                   [
                     h.Class(
                       clsx(
-                        'text-gray-600 dark:text-gray-300 transition-transform',
+                        'text-gray-700 dark:text-gray-300 transition-transform',
                         { 'rotate-180': model.isMapMessagesUnderHoodOpen },
                       ),
                     ),

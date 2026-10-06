@@ -1008,7 +1008,7 @@ export { FOLDKIT_APP_ATTRIBUTE, FOLDKIT_FLAGS_ATTRIBUTE }
 const DEFAULT_RUNTIME_ID = 'app'
 
 /** The server render of one request: the body markup and the `Document` head
- *  fields for the host to place into its HTML template. Hydratable output
+ *  fields for the document renderer or a custom host's template. Hydratable output
  *  contains a stamped root and, when the application declares Flags, its
  *  payload script. Static output carries no handoff markers.
  *

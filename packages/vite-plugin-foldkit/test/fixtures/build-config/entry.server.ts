@@ -1,6 +1,8 @@
 import { Effect } from 'effect'
 import { Server } from 'foldkit/experimental'
 
+export const renderDocument = Server.renderDocument
+
 import { Flags, init, view } from './main'
 
 export const renderPage = (): Promise<Server.EntryResult> =>

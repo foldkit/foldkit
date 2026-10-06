@@ -34,7 +34,6 @@ on:
       - 'scripts/lib/package-version.mjs'
       - 'scripts/lib/website-package-inputs.mjs'
       - 'scripts/lib/workspace-packages.mjs'
-      - 'scripts/restore-website-fonts.sh'
       - 'scripts/version-alignment-notes.mjs'
       - 'scripts/website-vercel-config.mjs'
       - '.npmrc'

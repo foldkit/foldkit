@@ -5,6 +5,7 @@ import {
   mkdtemp,
   readFile,
   readdir,
+  realpath,
   rm,
   symlink,
   writeFile,
@@ -13,11 +14,24 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { promisify } from 'node:util'
-import { type InlineConfig, build, resolveConfig } from 'vite'
+import {
+  type EnvironmentOptions,
+  type InlineConfig,
+  type Plugin,
+  type ResolvedConfig,
+  type RunnableDevEnvironment,
+  type ViteDevServer,
+  build,
+  createRunnableDevEnvironment,
+  createServer,
+  isRunnableDevEnvironment,
+  resolveConfig,
+} from 'vite'
 import { describe, expect, it, onTestFinished } from 'vitest'
 
 import { crawlFoldkitPackages } from '../src/foldkitPackages.ts'
 import { foldkit } from '../src/index.ts'
+import { readForcedEffectEntries } from './forcedEffectEntries.ts'
 
 type Files = Readonly<globalThis.Record<string, string>>
 type DependencyFields = Readonly<
@@ -179,6 +193,44 @@ const UNDECLARED_MARKDOWN_PEER: Files = {
   ...appPackage({ foldkit: '*', 'md-consumer': '*' }),
 }
 
+const UI_PEER: Files = {
+  ...appPackage({ foldkit: '*', '@foldkit/ui': '*', 'ui-peer': '*' }),
+  ...foldkitPackage('node_modules/foldkit', 'FOLDKIT'),
+  ...uiPackage('node_modules/@foldkit/ui', 'ROOT_COPY'),
+  ...consumerPackage('node_modules/ui-peer', 'ui-peer', '@foldkit/ui', {
+    peerDependencies: { '@foldkit/ui': '*' },
+  }),
+}
+
+const SERVER_ENTRY = 'entry.server.js'
+
+const SERVER_RENDER_PACKAGES: Files = {
+  ...appPackage({ foldkit: '*', effect: '*' }),
+  'node_modules/effect/package.json': JSON.stringify({
+    name: 'effect',
+    version: '1.0.0',
+    type: 'module',
+    main: './index.js',
+  }),
+  'node_modules/effect/index.js': "export * as Schema from './Schema.js'\n",
+  'node_modules/effect/Schema.js': 'export const instance = {}\n',
+  'node_modules/foldkit/package.json': JSON.stringify({
+    name: 'foldkit',
+    version: '1.0.0',
+    type: 'module',
+    exports: {
+      '.': './index.js',
+      './build-token': './dist/buildToken.js',
+    },
+  }),
+  'node_modules/foldkit/index.js':
+    "import { Schema } from 'effect'\n\nexport { injectedBuildId } from './dist/buildToken.js'\nexport const effectSchema = Schema.instance\n",
+  'node_modules/foldkit/dist/buildToken.js':
+    'const foldkitBuildIdPlaceholder = () => undefined\n\nexport const injectedBuildId = foldkitBuildIdPlaceholder()\n',
+  [SERVER_ENTRY]:
+    "export { injectedBuildId } from 'foldkit/build-token'\nexport { effectSchema as foldkitEffectSchema } from 'foldkit'\nexport { instance as applicationEffectSchema } from 'effect/Schema'\n",
+}
+
 // BUILDS
 
 const pluginConfig = (root: string): InlineConfig => ({
@@ -232,6 +284,153 @@ const loadBuild = async (
 
 const readSsrBuild = async (root: string): Promise<string> =>
   readFile(await buildFixture(root, 'Ssr'), 'utf8')
+
+// DEV SERVER
+
+const WORKER_OPTIMIZE_DEPS = {
+  noDiscovery: false,
+  entries: [SERVER_ENTRY],
+}
+
+const runnableServerEnvironment = (
+  options: EnvironmentOptions,
+): EnvironmentOptions => ({
+  consumer: 'server',
+  dev: {
+    createEnvironment: (name, config) =>
+      createRunnableDevEnvironment(name, config),
+  },
+  ...options,
+})
+
+const FORCED_EFFECT_ENTRIES = new Set(readForcedEffectEntries())
+
+const resolvedEnvironment = (
+  config: ResolvedConfig,
+  environmentName: string,
+): ResolvedConfig['environments'][string] => {
+  const environment = config.environments[environmentName]
+  if (environment === undefined) {
+    throw new Error(`No ${environmentName} environment`)
+  }
+
+  return environment
+}
+
+const isEffectEntry = (entry: string): boolean =>
+  entry === 'effect' || entry.startsWith('effect/')
+
+const effectEntries = (
+  config: ResolvedConfig,
+  environmentName: string,
+): ReadonlySet<string> =>
+  new Set(
+    Array.filter(
+      resolvedEnvironment(config, environmentName).optimizeDeps.include ?? [],
+      isEffectEntry,
+    ),
+  )
+
+const ServerEntry = Schema.Struct({
+  injectedBuildId: Schema.Unknown,
+  foldkitEffectSchema: Schema.Unknown,
+  applicationEffectSchema: Schema.Unknown,
+})
+
+const decodeServerEntry = Schema.decodeUnknownSync(ServerEntry)
+
+const ConsumerEntry = Schema.Struct({
+  viaConsumer: Schema.Struct({ copy: Schema.String }),
+})
+
+const decodeConsumerEntry = Schema.decodeUnknownSync(ConsumerEntry)
+
+const startDevServer = async (
+  files: Files,
+  config: InlineConfig,
+): Promise<Readonly<{ root: string; server: ViteDevServer }>> => {
+  const root = await realpath(await makeRoot(files))
+  const server = await createServer({
+    root,
+    configFile: false,
+    logLevel: 'silent',
+    server: { middlewareMode: true, hmr: false, ws: false },
+    plugins: foldkit({ devToolsMcpPort: false }),
+    ...config,
+  })
+  onTestFinished(() => server.close())
+
+  return { root, server }
+}
+
+const runnableEnvironment = (
+  server: ViteDevServer,
+  environmentName: string,
+): RunnableDevEnvironment => {
+  const environment = server.environments[environmentName]
+  if (environment === undefined || !isRunnableDevEnvironment(environment)) {
+    throw new Error(`No runnable ${environmentName} environment`)
+  }
+
+  return environment
+}
+
+const renderServerEntry = async (
+  environmentName: string,
+  environments: NonNullable<InlineConfig['environments']>,
+): Promise<
+  Readonly<{
+    serverEntry: typeof ServerEntry.Type
+    clientBuildTokenCode: string | undefined
+    environment: RunnableDevEnvironment
+  }>
+> => {
+  const { root, server } = await startDevServer(SERVER_RENDER_PACKAGES, {
+    environments,
+  })
+  const environment = runnableEnvironment(server, environmentName)
+
+  const serverEntry = decodeServerEntry(
+    await environment.runner.import(`/${SERVER_ENTRY}`),
+  )
+  const clientBuildTokenTransform =
+    await server.environments.client.transformRequest(
+      join(root, 'node_modules/foldkit/dist/buildToken.js'),
+    )
+
+  return {
+    serverEntry,
+    clientBuildTokenCode: clientBuildTokenTransform?.code,
+    environment,
+  }
+}
+
+const readOptimizedDependencies = async (
+  environment: RunnableDevEnvironment,
+): Promise<ReadonlyArray<string>> => {
+  const { depsOptimizer } = environment
+  if (depsOptimizer === undefined) {
+    throw new Error(`No dependency optimizer in ${environment.name}`)
+  }
+
+  await depsOptimizer.scanProcessing
+
+  return [
+    ...Record.keys(depsOptimizer.metadata.optimized),
+    ...Record.keys(depsOptimizer.metadata.discovered),
+  ]
+}
+
+const expectClientBuildId = (
+  rendered: Awaited<ReturnType<typeof renderServerEntry>>,
+): void => {
+  const { injectedBuildId } = rendered.serverEntry
+
+  expect(typeof injectedBuildId).toBe('string')
+  expect(rendered.clientBuildTokenCode).toContain(
+    `injectedBuildId = ${JSON.stringify(injectedBuildId)}`,
+  )
+}
 
 // NOTE: pnpm's `.bin` shims set NODE_PATH for the whole process, and Node's
 // own resolver reads it at startup. A child process is the only way to pin
@@ -450,6 +649,16 @@ describe('Foldkit packages in builds', () => {
     expect(output.viaConsumer).toBe(output.instance)
   })
 
+  it('shares one copy in an SSR build when the undeclared peer is in resolve.noExternal', async () => {
+    const root = await makeRoot(UNDECLARED_MARKDOWN_PEER)
+
+    const output = await loadBuild(root, 'Ssr', {
+      resolve: { noExternal: ['@foldkit/markdown'] },
+    })
+
+    expect(output.viaConsumer).toBe(output.instance)
+  })
+
   it('crawls private workspace devDependencies through a symlinked root with or without preserveSymlinks', async () => {
     const workspace = await makeRoot({
       'package.json': JSON.stringify({
@@ -500,7 +709,7 @@ describe('Foldkit packages in builds', () => {
     })
     const output = await loadBuild(root, 'Ssr')
 
-    expect(preservedFoldkitPackages.ssrNoExternal).toContain('ui-consumer')
+    expect(preservedFoldkitPackages.noExternal).toContain('ui-consumer')
     expect(output.viaConsumer).toBe(output.instance)
   })
 
@@ -639,7 +848,7 @@ describe('Foldkit packages in builds', () => {
 
     const foldkitPackages = await crawlFoldkitPackages(root, true, {})
 
-    expect(foldkitPackages.ssrNoExternal).toEqual([
+    expect(foldkitPackages.noExternal).toEqual([
       'foldkit',
       '@foldkit/ui',
       '@foldkit/devtools',
@@ -663,6 +872,235 @@ describe('Foldkit packages in the dev server', () => {
     expect(serveNoExternal).toEqual(
       buildConfig.environments['ssr']?.resolve.noExternal,
     )
+  })
+})
+
+describe('Foldkit packages in every environment', () => {
+  it('keeps the client excluding foldkit and pre-bundling the forced Effect entries', async () => {
+    const root = await makeRoot(UI_PEER)
+
+    const defaultClient = await resolveConfig(pluginConfig(root), 'serve')
+    const clientWithoutDiscovery = await resolveConfig(
+      {
+        ...pluginConfig(root),
+        environments: { client: { optimizeDeps: { noDiscovery: true } } },
+      },
+      'serve',
+    )
+
+    expect(FORCED_EFFECT_ENTRIES).toContain('effect')
+    for (const config of [defaultClient, clientWithoutDiscovery]) {
+      expect(
+        resolvedEnvironment(config, 'client').optimizeDeps.exclude,
+      ).toContain('foldkit')
+      expect(effectEntries(config, 'client')).toEqual(FORCED_EFFECT_ENTRIES)
+    }
+  })
+
+  it('excludes foldkit and forces the Effect entries into a client environment under another name', async () => {
+    const root = await makeRoot(UI_PEER)
+
+    const config = await resolveConfig(
+      {
+        ...pluginConfig(root),
+        environments: { browser_preview: { consumer: 'client' } },
+      },
+      'serve',
+    )
+
+    expect(
+      resolvedEnvironment(config, 'browser_preview').optimizeDeps.exclude,
+    ).toContain('foldkit')
+    expect(effectEntries(config, 'browser_preview')).toEqual(
+      FORCED_EFFECT_ENTRIES,
+    )
+  })
+
+  it('leaves the optimizer of the default SSR environment disabled', async () => {
+    const root = await makeRoot(UI_PEER)
+
+    const config = await resolveConfig(pluginConfig(root), 'serve')
+
+    expect(
+      resolvedEnvironment(config, 'ssr').optimizeDeps.include ?? [],
+    ).toEqual([])
+  })
+
+  it('excludes foldkit and forces the Effect entries into an SSR environment with discovery', async () => {
+    const root = await makeRoot(UI_PEER)
+
+    const config = await resolveConfig(
+      {
+        ...pluginConfig(root),
+        environments: { ssr: { optimizeDeps: { noDiscovery: false } } },
+      },
+      'serve',
+    )
+
+    expect(resolvedEnvironment(config, 'ssr').optimizeDeps.exclude).toContain(
+      'foldkit',
+    )
+    expect(effectEntries(config, 'ssr')).toEqual(FORCED_EFFECT_ENTRIES)
+  })
+
+  it('adds the forced Effect entries to an SSR environment that includes its own', async () => {
+    const root = await makeRoot(UI_PEER)
+
+    const config = await resolveConfig(
+      {
+        ...pluginConfig(root),
+        environments: {
+          ssr: {
+            optimizeDeps: { noDiscovery: true, include: ['effect/Schema'] },
+          },
+        },
+      },
+      'serve',
+    )
+
+    expect(resolvedEnvironment(config, 'ssr').optimizeDeps.include).toContain(
+      'effect/Schema',
+    )
+    expect(effectEntries(config, 'ssr')).toEqual(FORCED_EFFECT_ENTRIES)
+  })
+
+  it('excludes foldkit and forces the Effect entries into a named server environment with discovery', async () => {
+    const root = await makeRoot(UI_PEER)
+
+    const config = await resolveConfig(
+      {
+        ...pluginConfig(root),
+        environments: {
+          my_worker: {
+            consumer: 'server',
+            optimizeDeps: { noDiscovery: false },
+          },
+        },
+      },
+      'serve',
+    )
+
+    expect(
+      resolvedEnvironment(config, 'my_worker').optimizeDeps.exclude,
+    ).toContain('foldkit')
+    expect(effectEntries(config, 'my_worker')).toEqual(FORCED_EFFECT_ENTRIES)
+  })
+
+  it('forces the Effect entries into a server environment whose discovery a later plugin turns on', async () => {
+    const root = await makeRoot(UI_PEER)
+    const enableDiscoveryPlugin: Plugin = {
+      name: 'enable-discovery',
+      configEnvironment: name =>
+        name === 'my_worker'
+          ? { optimizeDeps: { noDiscovery: false } }
+          : undefined,
+    }
+
+    const config = await resolveConfig(
+      {
+        ...pluginConfig(root),
+        plugins: [foldkit(), enableDiscoveryPlugin],
+        environments: { my_worker: { consumer: 'server' } },
+      },
+      'serve',
+    )
+
+    expect(effectEntries(config, 'my_worker')).toEqual(FORCED_EFFECT_ENTRIES)
+  })
+
+  it('bundles the crawled packages into a named server environment', async () => {
+    const root = await makeRoot(UI_PEER)
+    const environments: InlineConfig['environments'] = {
+      server_renderer: { consumer: 'server' },
+    }
+    const commands: ReadonlyArray<'serve' | 'build'> = ['serve', 'build']
+
+    for (const command of commands) {
+      const config = await resolveConfig(
+        { ...pluginConfig(root), environments },
+        command,
+      )
+      const noExternal = resolvedEnvironment(config, 'server_renderer').resolve
+        .noExternal
+
+      expect(noExternal).toEqual(
+        expect.arrayContaining([
+          'foldkit',
+          '@foldkit/ui',
+          '@foldkit/devtools',
+          'ui-peer',
+        ]),
+      )
+      expect(new Set([noExternal].flat())).toEqual(
+        new Set([resolvedEnvironment(config, 'ssr').resolve.noExternal].flat()),
+      )
+    }
+  })
+
+  it('keeps a crawled package in top-level resolve.external external in a named server environment', async () => {
+    const { server } = await startDevServer(NESTED_UI_CONSUMER, {
+      resolve: { external: ['ui-consumer'] },
+      environments: { server_renderer: runnableServerEnvironment({}) },
+    })
+    const environment = runnableEnvironment(server, 'server_renderer')
+
+    const output = decodeConsumerEntry(
+      await environment.runner.import('/entry.js'),
+    )
+
+    expect(output.viaConsumer.copy).toBe('NESTED_COPY')
+  })
+
+  it('renders with the client build id in an SSR environment with discovery', async () => {
+    const rendered = await renderServerEntry('ssr', {
+      ssr: { optimizeDeps: WORKER_OPTIMIZE_DEPS },
+    })
+    const optimizedDependencies = await readOptimizedDependencies(
+      rendered.environment,
+    )
+
+    expectClientBuildId(rendered)
+    expect(optimizedDependencies).toContain('effect')
+    expect(optimizedDependencies).not.toContain('foldkit')
+    expect(optimizedDependencies).not.toContain('foldkit/build-token')
+  })
+
+  it('shares one Effect instance between Foldkit and an application that imports Effect subpaths and keeps excluding foldkit', async () => {
+    const rendered = await renderServerEntry('ssr', {
+      ssr: {
+        resolve: { noExternal: true },
+        optimizeDeps: { ...WORKER_OPTIMIZE_DEPS, exclude: ['foldkit'] },
+      },
+    })
+
+    expect(rendered.serverEntry.foldkitEffectSchema).toBe(
+      rendered.serverEntry.applicationEffectSchema,
+    )
+  })
+
+  it('renders with the client build id in a named server environment with discovery', async () => {
+    const rendered = await renderServerEntry('my_worker', {
+      my_worker: runnableServerEnvironment({
+        resolve: { noExternal: true },
+        optimizeDeps: WORKER_OPTIMIZE_DEPS,
+      }),
+    })
+    const optimizedDependencies = await readOptimizedDependencies(
+      rendered.environment,
+    )
+
+    expectClientBuildId(rendered)
+    expect(optimizedDependencies).toContain('effect')
+    expect(optimizedDependencies).not.toContain('foldkit')
+    expect(optimizedDependencies).not.toContain('foldkit/build-token')
+  })
+
+  it('renders with the client build id in a named server environment that sets no noExternal', async () => {
+    const rendered = await renderServerEntry('server_renderer', {
+      server_renderer: runnableServerEnvironment({}),
+    })
+
+    expectClientBuildId(rendered)
   })
 })
 

@@ -44,6 +44,7 @@ import {
 import type { AddressInfo } from 'node:net'
 import type { Duplex } from 'node:stream'
 import type {
+  EnvironmentOptions,
   HttpServer,
   Plugin,
   ResolvedConfig,
@@ -101,19 +102,33 @@ export type FoldkitPluginOptions = Readonly<{
    * `ssr.serverEntry`. When `undefined` (the default), the dev server
    * serves the client entry only.
    */
-  ssr?: Omit<FoldkitSsrOptions, 'buildId' | 'quietStandDown'> &
-    Readonly<{
-      /**
-       * Build a Web `fetch` handler alongside the browser build, and generate
-       * static HTML from the server entry, inside this project's own
-       * `vite build`. The handler is the server bundle: Node and Workers
-       * both run it. `true` builds it with the default output directories
-       * and generates nothing.
-       *
-       * When this is absent, `vite build` builds the browser bundle only.
-       */
-      build?: boolean | FoldkitBuildOptions
-    }>
+  ssr?: Omit<
+    FoldkitSsrOptions,
+    'buildId' | 'quietStandDown' | 'clientEntry' | 'containerId'
+  > &
+    (
+      | Readonly<{
+          /** Root-relative browser script for the server entry's code-rendered document. */
+          clientEntry: string
+          containerId?: never
+          /**
+           * Build a Web `fetch` handler alongside the browser build, and generate
+           * static HTML from the server entry, inside this project's own
+           * `vite build`. The handler is the server bundle: Node and Workers
+           * both run it. `true` builds it with the default output directories
+           * and generates nothing.
+           *
+           * When this is absent, `vite build` builds the browser bundle only.
+           */
+          build?: boolean | Omit<FoldkitBuildOptions, 'clientEntry'>
+        }>
+      | Readonly<{
+          /** Use a custom template-based development and build pipeline. */
+          clientEntry?: never
+          containerId?: string
+          build?: false
+        }>
+    )
   /**
    * An explicit identity for the deployment this build belongs to. Foldkit
    * normally generates an opaque identity when one Vite app build coordinates
@@ -135,12 +150,12 @@ export type FoldkitPluginOptions = Readonly<{
 }>
 
 // NOTE: Vite does not scan imports through `foldkit` because the plugin
-// excludes the package from optimization. A consumer can import only Effect
-// subpaths while Foldkit's compiled distribution imports the bare barrel, so
-// include both the barrel and every top-level namespace Foldkit imports. This
-// keeps them in one optimized dependency graph. Over-inclusion is harmless;
-// under-inclusion is the bug. `scripts/check-effect-prebundle.ts` keeps the
-// entries in sync with Foldkit's source and runs in `pnpm check`.
+// excludes the package from optimization in every environment. A consumer can
+// import only Effect subpaths while Foldkit's compiled distribution imports the
+// bare barrel, so include both the barrel and every top-level namespace Foldkit
+// imports. This keeps them in one optimized dependency graph. Over-inclusion is
+// harmless; under-inclusion is the bug. `scripts/check-effect-prebundle.ts`
+// keeps the entries in sync with Foldkit's source and runs in `pnpm check`.
 const FORCE_INCLUDED_EFFECT_ENTRIES: ReadonlyArray<string> = [
   'effect',
   'effect/Array',
@@ -186,6 +201,25 @@ const FORCE_INCLUDED_EFFECT_ENTRIES: ReadonlyArray<string> = [
   'effect/SubscriptionRef',
   'effect/Types',
 ]
+
+// NOTE: Adding includes to an environment whose optimizer is otherwise disabled
+// turns on Vite's explicit optimizer, which would pre-bundle Effect in Vite's
+// default Node `ssr` environment.
+const shouldForceEffectEntries = (
+  name: string,
+  config: EnvironmentOptions,
+): boolean => {
+  const consumer = config.consumer ?? (name === 'client' ? 'client' : 'server')
+  const isClientEnvironment = consumer === 'client'
+  const isDiscoveryEnabled = config.optimizeDeps?.noDiscovery === false
+  const isExplicitOptimizationEnabled = Array.isArrayNonEmpty(
+    config.optimizeDeps?.include ?? [],
+  )
+
+  return (
+    isClientEnvironment || isDiscoveryEnabled || isExplicitOptimizationEnabled
+  )
+}
 
 // EVENTS
 
@@ -1030,31 +1064,6 @@ const main = (
  * an array; Vite flattens nested plugin arrays, so `plugins: [foldkit()]`
  * keeps working.
  */
-// The container is named once, on `ssr`, and reaches both the dev host and the
-// build from there. A `build.prerender` that names its own wins, so a project
-// that needs them to differ still can.
-const withContainerId = (
-  build: FoldkitBuildOptions | true,
-  containerId: string | undefined,
-): FoldkitBuildOptions => {
-  const options: FoldkitBuildOptions = build === true ? {} : build
-  if (containerId === undefined) {
-    return options
-  }
-  const withContainer: FoldkitBuildOptions = { ...options, containerId }
-  if (options.prerender === undefined) {
-    return withContainer
-  }
-  const prerender = options.prerender === true ? {} : options.prerender
-  if (prerender === false) {
-    return withContainer
-  }
-  return {
-    ...withContainer,
-    prerender: { containerId, ...prerender },
-  }
-}
-
 const relayRegistryLayer = Layer.mergeAll(
   NodeFileSystem.layer,
   NodePath.layer,
@@ -1085,11 +1094,16 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
   const reloadPlugin: Plugin = {
     name: 'foldkit',
     apply: 'serve',
-    config: () => ({
-      optimizeDeps: {
-        include: [...FORCE_INCLUDED_EFFECT_ENTRIES],
-      },
-    }),
+    // NOTE: The `post` order runs this hook after every default-order
+    // `configEnvironment` hook, so the predicate sees discovery or includes
+    // that another plugin turns on there.
+    configEnvironment: {
+      order: 'post',
+      handler: (name, config) =>
+        shouldForceEffectEntries(name, config)
+          ? { optimizeDeps: { include: [...FORCE_INCLUDED_EFFECT_ENTRIES] } }
+          : undefined,
+    },
     configureServer: server => {
       const events = Effect.runSync(Queue.unbounded<Event>())
       // NOTE: The default ConfigProvider snapshots the environment. Create a
@@ -1139,24 +1153,27 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
       )
 
       return {
-        optimizeDeps: {
-          exclude: ['foldkit'],
-        },
         resolve: {
           dedupe: foldkitPackages.dedupe,
+          noExternal: foldkitPackages.noExternal,
         },
         ssr: {
-          noExternal: foldkitPackages.ssrNoExternal,
+          noExternal: foldkitPackages.noExternal,
         },
         environments: {
           ssr: {
             resolve: {
-              noExternal: foldkitPackages.ssrNoExternal,
+              noExternal: foldkitPackages.noExternal,
             },
           },
         },
       }
     },
+    configEnvironment: () => ({
+      optimizeDeps: {
+        exclude: ['foldkit'],
+      },
+    }),
   }
 
   const shared = [
@@ -1172,6 +1189,11 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
   }
 
   const { build, ...ssr } = options.ssr
+  if (ssr.clientEntry !== undefined && ssr.containerId !== undefined) {
+    throw new Error(
+      '[foldkit] containerId belongs to an HTML template. A clientEntry build takes its complete document from renderDocument instead.',
+    )
+  }
   const servePages = foldkitSsr({
     ...ssr,
     ...(options.buildId === undefined ? {} : { buildId: options.buildId }),
@@ -1182,9 +1204,18 @@ export const foldkit = (options: FoldkitPluginOptions = {}): Array<Plugin> => {
     return [...shared, servePages]
   }
 
+  if (ssr.clientEntry === undefined) {
+    throw new Error(
+      '[foldkit] ssr.build requires ssr.clientEntry to name the browser script and the server entry to export renderDocument.',
+    )
+  }
+
   return [
     ...shared,
     servePages,
-    foldkitBuild(ssr.serverEntry, withContainerId(build, ssr.containerId)),
+    foldkitBuild(ssr.serverEntry, {
+      ...(build === true ? {} : build),
+      clientEntry: ssr.clientEntry,
+    }),
   ]
 }

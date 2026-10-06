@@ -1,3 +1,4 @@
+import { Array } from 'effect'
 import {
   mkdirSync,
   mkdtempSync,
@@ -7,7 +8,7 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
-import { createServer, resolveConfig } from 'vite'
+import { type DepOptimizationOptions, createServer, resolveConfig } from 'vite'
 import { describe, expect, it, onTestFinished } from 'vitest'
 
 import {
@@ -150,6 +151,9 @@ const runConfigHook = (root: string, command: 'serve' | 'build') => {
   )
 }
 
+const isFoldkitPackageSpecifier = (specifier: string): boolean =>
+  specifier === 'foldkit' || specifier.startsWith('foldkit/')
+
 // NOTE: the counter's own config supplies the workspace aliases that resolve
 // `@foldkit/devtools/vite` to source, and those aliases are what a synthetic
 // config would miss while every example is broken. Its plugins are rebuilt
@@ -189,18 +193,18 @@ describe('DevTools overlay injection', () => {
     expect(transformedOverlay?.code).toContain('devtools/src/vite')
   })
 
-  it('declares the overlay imports to the dep optimizer during development', () => {
+  it('declares the DevTools Vite entry to the dependency optimizer during development', () => {
     const root = makeRoot({ section: 'devDependencies' })
     installFoldkit(root)
 
     expect(runConfigHook(root, 'serve')).toEqual({
       optimizeDeps: {
-        include: ['@foldkit/devtools/vite', 'foldkit/devtools-host'],
+        include: ['@foldkit/devtools/vite'],
       },
     })
   })
 
-  it('declares only the DevTools import when foldkit is linked', () => {
+  it('declares the DevTools Vite entry when Foldkit is linked', () => {
     const root = makeRoot({ section: 'devDependencies' })
     linkPackage(root, 'foldkit')
 
@@ -211,19 +215,15 @@ describe('DevTools overlay injection', () => {
     })
   })
 
-  it('declares only the host import when DevTools is linked', () => {
+  it('declares no optimizer entry when DevTools is linked', () => {
     const root = makeRoot()
     linkPackage(root, '@foldkit/devtools', DEV_TOOLS_VITE_EXPORTS)
     installFoldkit(root)
 
-    expect(runConfigHook(root, 'serve')).toEqual({
-      optimizeDeps: {
-        include: ['foldkit/devtools-host'],
-      },
-    })
+    expect(runConfigHook(root, 'serve')).toBeUndefined()
   })
 
-  it('declares nothing to the dep optimizer when both packages are linked', () => {
+  it('declares no optimizer entry when both packages are linked', () => {
     const root = makeRoot()
     linkPackage(root, '@foldkit/devtools', DEV_TOOLS_VITE_EXPORTS)
     linkPackage(root, 'foldkit')
@@ -231,7 +231,7 @@ describe('DevTools overlay injection', () => {
     expect(runConfigHook(root, 'serve')).toBeUndefined()
   })
 
-  it('declares nothing to the dep optimizer when the overlay is not served', () => {
+  it('declares no optimizer entry when the overlay is not served', () => {
     expect(runConfigHook(makeRoot(), 'serve')).toBeUndefined()
     expect(
       runConfigHook(
@@ -245,6 +245,32 @@ describe('DevTools overlay injection', () => {
     expect(
       runConfigHook(makeRoot({ section: 'dependencies' }), 'build'),
     ).toBeUndefined()
+  })
+
+  it('keeps Foldkit out of the dependency optimizer for a registry install', async () => {
+    const root = makeRoot({ section: 'devDependencies' })
+    installFoldkit(root)
+
+    const config = await resolveConfig(
+      { root, configFile: false, logLevel: 'silent', plugins: [foldkit()] },
+      'serve',
+    )
+    const optimizerOptions: ReadonlyArray<DepOptimizationOptions> = [
+      config.optimizeDeps,
+      ...Array.map(
+        Object.values(config.environments),
+        environment => environment.optimizeDeps,
+      ),
+    ]
+    const clientOptimizerOptions = config.environments['client']?.optimizeDeps
+    const includedFoldkitSpecifiers = Array.flatMap(
+      optimizerOptions,
+      ({ include = [] }) => Array.filter(include, isFoldkitPackageSpecifier),
+    )
+
+    expect(clientOptimizerOptions?.exclude).toContain('foldkit')
+    expect(clientOptimizerOptions?.include).toContain('@foldkit/devtools/vite')
+    expect(includedFoldkitSpecifiers).toEqual([])
   })
 
   it('serves a development dependency', () => {

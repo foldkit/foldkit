@@ -24,6 +24,12 @@ export type FoldkitSsrOptions = Readonly<{
    */
   serverEntry: string
   /**
+   * Root-relative browser script entry for a code-rendered document. The server entry must
+   * also export `renderDocument(application, assets)`. When absent, the dev
+   * host uses `index.html` for a custom template-based build pipeline.
+   */
+  clientEntry?: string
+  /**
    * The `id` of the empty container element in `index.html` the rendered
    * markup replaces. Defaults to `'root'`.
    */
@@ -270,20 +276,6 @@ const renderRequest = (
     const { pathname, search } = new URL(requestUrl)
     const route = `${pathname}${search}`
 
-    const rawTemplate = yield* Effect.promise(() =>
-      readFile(resolve(server.config.root, 'index.html'), 'utf-8'),
-    )
-
-    // NOTE: the first argument tells Vite where the HTML lives, and Vite
-    // resolves the template's relative URLs (such as a `./src/entry.ts`
-    // script) against it. The template always lives at the site root, so
-    // that argument must stay `/index.html` no matter which route is being
-    // rendered. The third argument, named `originalUrl` in Vite's signature,
-    // carries the route actually being requested.
-    const template = yield* Effect.promise(() =>
-      server.transformIndexHtml('/index.html', rawTemplate, route),
-    )
-
     const loadedModule = yield* Effect.promise(() =>
       server.ssrLoadModule(options.serverEntry),
     )
@@ -298,6 +290,45 @@ const renderRequest = (
 
     const result = yield* Effect.promise(() =>
       loadedModule.renderPage(toWebRequest(requestUrl, nodeRequest)),
+    )
+
+    if (result._tag === 'Responded') {
+      return result.response
+    }
+
+    if (options.clientEntry !== undefined) {
+      if (
+        !('renderDocument' in loadedModule) ||
+        !Predicate.isFunction(loadedModule.renderDocument)
+      ) {
+        return yield* Effect.die(
+          new Error(
+            `[foldkit] '${options.serverEntry}' must export renderDocument(application, assets) when clientEntry is configured.`,
+          ),
+        )
+      }
+
+      const assets = Server.DocumentAssets.make({
+        entryScript: options.clientEntry,
+        stylesheets: [],
+        modulePreloads: [],
+      })
+      const document = loadedModule.renderDocument(result.application, assets)
+      const transformed = yield* Effect.promise(() =>
+        server.transformIndexHtml(pathname, document, route),
+      )
+
+      return Server.toResponse(() => transformed, result)
+    }
+
+    const rawTemplate = yield* Effect.promise(() =>
+      readFile(resolve(server.config.root, 'index.html'), 'utf-8'),
+    )
+
+    // NOTE: Vite resolves template-relative URLs against the first argument;
+    // the template-based host's index lives at the root for nested page requests.
+    const template = yield* Effect.promise(() =>
+      server.transformIndexHtml('/index.html', rawTemplate, route),
     )
 
     return Server.toResponse(
@@ -778,9 +809,50 @@ const renderMiddleware =
  * responses. Server entry edits take effect without a restart.
  */
 export const foldkitSsr = (options: FoldkitSsrOptions): Plugin => {
+  let isDevelopmentHost = false
+
   return {
     name: 'foldkit-ssr',
-    config: (_config, { command, isPreview }) => {
+    configResolved(config) {
+      if (!isDevelopmentHost || options.clientEntry === undefined) {
+        return
+      }
+
+      if (
+        !options.clientEntry.startsWith('/') ||
+        options.clientEntry.startsWith('//') ||
+        /\.html(?:[?#]|$)/.test(options.clientEntry)
+      ) {
+        throw new Error(
+          '[foldkit] clientEntry must be a root-relative browser script URL, such as "/src/entry.ts".',
+        )
+      }
+
+      if (options.containerId !== undefined) {
+        throw new Error(
+          '[foldkit] containerId is only used by the template-based dev host. A code-rendered document owns its application placement.',
+        )
+      }
+
+      if (config.base === '' || config.base === './') {
+        throw new Error(
+          '[foldkit] code-rendered documents require an absolute URL or root-relative base so browser assets resolve consistently on nested routes.',
+        )
+      }
+    },
+    config: (config, { command, isPreview }) => {
+      isDevelopmentHost = command === 'serve' && isPreview !== true
+
+      if (
+        isDevelopmentHost &&
+        options.clientEntry !== undefined &&
+        (config.base === '' || config.base === './')
+      ) {
+        throw new Error(
+          '[foldkit] code-rendered documents require an absolute URL or root-relative base so browser assets resolve consistently on nested routes.',
+        )
+      }
+
       const buildId = buildIdForCommand(command, options.buildId)
       return {
         // NOTE: `vite preview` also resolves with command 'serve', but it

@@ -55,7 +55,7 @@ const hoverCard = (
                 h.p(
                   [
                     h.Class(
-                      'mt-1 text-sm leading-5 text-gray-600 dark:text-gray-400',
+                      'mt-1 text-sm leading-5 text-gray-700 dark:text-gray-400',
                     ),
                   ],
                   ['A short description can provide useful context.'],

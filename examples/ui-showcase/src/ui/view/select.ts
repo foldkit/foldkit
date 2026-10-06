@@ -21,6 +21,67 @@ const descriptionClassName = 'text-sm text-gray-500'
 
 export const view = Submodel.defineView<UiModel, UiMessage>(
   (model, h): Html => {
+    const countryOptions = (): ReadonlyArray<Html> => [
+      h.option([h.Value('us')], ['United States']),
+      h.option([h.Value('ca')], ['Canada']),
+      h.option([h.Value('gb')], ['United Kingdom']),
+      h.option([h.Value('au')], ['Australia']),
+    ]
+
+    const basicSelectView = (
+      attributes: Select.SelectAttributes<UiMessage>,
+    ): Html =>
+      h.div(
+        [h.Class('flex flex-col gap-1.5 w-full')],
+        [
+          h.label([...attributes.label, h.Class(labelClassName)], ['Country']),
+          h.div(
+            [h.Class(selectWrapperClassName)],
+            [
+              h.select(
+                [...attributes.select, h.Class(selectClassName)],
+                countryOptions(),
+              ),
+              h.span(
+                [h.Class(chevronClassName)],
+                [Icon.chevronDown('w-4 h-4')],
+              ),
+            ],
+          ),
+          h.span(
+            [...attributes.description, h.Class(descriptionClassName)],
+            ['Where you currently reside.'],
+          ),
+        ],
+      )
+
+    const disabledSelectView = (
+      attributes: Select.SelectAttributes<UiMessage>,
+    ): Html =>
+      h.div(
+        [h.Class('flex flex-col gap-1.5 max-w-sm')],
+        [
+          h.label([...attributes.label, h.Class(labelClassName)], ['Country']),
+          h.div(
+            [h.Class(selectWrapperClassName)],
+            [
+              h.select(
+                [...attributes.select, h.Class(selectClassName)],
+                countryOptions(),
+              ),
+              h.span(
+                [h.Class(chevronClassName)],
+                [Icon.chevronDown('w-4 h-4')],
+              ),
+            ],
+          ),
+          h.span(
+            [...attributes.description, h.Class(descriptionClassName)],
+            ['This select is disabled.'],
+          ),
+        ],
+      )
+
     return h.div(
       [],
       [
@@ -39,41 +100,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
                 value: model.selectDemoValue,
                 hasDescription: true,
                 onChange: value => UiMessage.UpdatedSelectDemoValue({ value }),
-                toView: attributes =>
-                  h.div(
-                    [h.Class('flex flex-col gap-1.5 w-full')],
-                    [
-                      h.label(
-                        [...attributes.label, h.Class(labelClassName)],
-                        ['Country'],
-                      ),
-                      h.div(
-                        [h.Class(selectWrapperClassName)],
-                        [
-                          h.select(
-                            [...attributes.select, h.Class(selectClassName)],
-                            [
-                              h.option([h.Value('us')], ['United States']),
-                              h.option([h.Value('ca')], ['Canada']),
-                              h.option([h.Value('gb')], ['United Kingdom']),
-                              h.option([h.Value('au')], ['Australia']),
-                            ],
-                          ),
-                          h.span(
-                            [h.Class(chevronClassName)],
-                            [Icon.chevronDown('w-4 h-4')],
-                          ),
-                        ],
-                      ),
-                      h.span(
-                        [
-                          ...attributes.description,
-                          h.Class(descriptionClassName),
-                        ],
-                        ['Where you currently reside.'],
-                      ),
-                    ],
-                  ),
+                toView: basicSelectView,
               },
               h,
             ),
@@ -90,38 +117,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
             isDisabled: true,
             hasDescription: true,
             value: 'us',
-            toView: attributes =>
-              h.div(
-                [h.Class('flex flex-col gap-1.5 max-w-sm')],
-                [
-                  h.label(
-                    [...attributes.label, h.Class(labelClassName)],
-                    ['Country'],
-                  ),
-                  h.div(
-                    [h.Class(selectWrapperClassName)],
-                    [
-                      h.select(
-                        [...attributes.select, h.Class(selectClassName)],
-                        [
-                          h.option([h.Value('us')], ['United States']),
-                          h.option([h.Value('ca')], ['Canada']),
-                          h.option([h.Value('gb')], ['United Kingdom']),
-                          h.option([h.Value('au')], ['Australia']),
-                        ],
-                      ),
-                      h.span(
-                        [h.Class(chevronClassName)],
-                        [Icon.chevronDown('w-4 h-4')],
-                      ),
-                    ],
-                  ),
-                  h.span(
-                    [...attributes.description, h.Class(descriptionClassName)],
-                    ['This select is disabled.'],
-                  ),
-                ],
-              ),
+            toView: disabledSelectView,
           },
           h,
         ),

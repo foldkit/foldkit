@@ -16,7 +16,7 @@ const triggerClassName =
 
 const triggerContentClassName = 'flex w-full items-center justify-between gap-4'
 
-const placeholderClassName = 'text-gray-500 dark:text-gray-400'
+const placeholderClassName = 'text-gray-600 dark:text-gray-400'
 
 const panelClassName =
   'demo-popup-surface rounded-xl bg-white p-4 dark:border-gray-800 dark:bg-gray-950'

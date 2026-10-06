@@ -8,6 +8,7 @@ export default defineConfig({
     foldkit({
       ssr: {
         serverEntry: '/entry.server.ts',
+        clientEntry: '/entry.client.ts',
         build: {
           clientOutDir: 'dist-test/config/client',
           serverOutDir: 'dist-test/config/server',

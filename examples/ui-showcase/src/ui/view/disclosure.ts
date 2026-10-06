@@ -68,6 +68,131 @@ const subheading = (text: string, h: HtmlBuilder<UiMessage>): Html => {
 
 export const view = Submodel.defineView<UiModel, UiMessage>(
   (model, h): Html => {
+    const basicDisclosureView = (
+      attributes: Disclosure.DisclosureAttributes<UiMessage>,
+    ): Html =>
+      h.div(
+        [],
+        [
+          h.button(
+            [
+              ...attributes.button,
+              h.Class(
+                'w-full flex items-center justify-between px-4 py-3 text-left text-base font-normal cursor-pointer transition border border-gray-300 text-gray-900 hover:bg-gray-200/50 rounded-lg data-[open]:rounded-b-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 select-none',
+              ),
+            ],
+            [buttonContent(model.isDisclosureBasicDemoOpen, h)],
+          ),
+          model.isDisclosureBasicDemoOpen
+            ? h.div(
+                [
+                  ...attributes.panel,
+                  h.Class(
+                    'px-4 py-3 border-x border-b border-gray-300 rounded-b-lg text-gray-800',
+                  ),
+                ],
+                [panelText(h)],
+              )
+            : h.empty,
+        ],
+      )
+
+    const animatedDisclosureView = (
+      attributes: Disclosure.DisclosureAttributes<UiMessage>,
+    ): Html =>
+      h.div(
+        [h.Class('border border-gray-300 rounded-lg overflow-hidden')],
+        [
+          h.button(
+            [
+              ...attributes.button,
+              h.Class(
+                'w-full flex items-center justify-between px-4 py-3 text-left text-base font-normal cursor-pointer transition text-gray-900 hover:bg-gray-200/50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-600 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 select-none',
+              ),
+            ],
+            [buttonContent(model.isDisclosureAnimatedDemoOpen, h)],
+          ),
+          attributes.animatePanel(
+            h.div(
+              [
+                ...attributes.panel,
+                h.Class('px-4 py-3 border-t border-gray-300 text-gray-800'),
+              ],
+              [panelText(h)],
+            ),
+          ),
+        ],
+      )
+
+    const collapsedPreviewView = ({
+      button,
+      panel,
+      animatePanel,
+    }: Disclosure.DisclosureAttributes<UiMessage>): Html =>
+      h.article(
+        [
+          h.Class(
+            'relative overflow-hidden rounded-lg border border-gray-300 bg-white',
+          ),
+        ],
+        [
+          h.h4(
+            [h.Class('px-4 py-3 text-base font-normal text-gray-900')],
+            ['Why the Elm Architecture scales'],
+          ),
+          h.div(
+            [h.Class('relative')],
+            [
+              animatePanel(
+                h.div(
+                  [
+                    ...panel,
+                    h.Class(
+                      clsx(
+                        'border-t border-gray-300 px-4 pt-3',
+                        model.isDisclosureCollapsedPreviewDemoOpen
+                          ? 'pb-20'
+                          : 'pb-3',
+                      ),
+                    ),
+                  ],
+                  [collapsedPreviewPanel(h)],
+                ),
+                { peek: COLLAPSED_PREVIEW_HEIGHT },
+              ),
+              ...(model.isDisclosureCollapsedPreviewDemoOpen
+                ? []
+                : [
+                    h.div([
+                      h.AriaHidden(true),
+                      h.Class(
+                        'pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white to-transparent',
+                      ),
+                    ]),
+                  ]),
+            ],
+          ),
+          h.div(
+            [h.Class('absolute inset-x-0 bottom-2.5 flex justify-center px-4')],
+            [
+              h.button(
+                [
+                  ...button,
+                  h.Class(
+                    'cursor-pointer whitespace-nowrap rounded-full border border-gray-300 bg-white px-5 py-2 text-sm font-medium text-gray-900 shadow-sm transition hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 select-none',
+                  ),
+                ],
+                [
+                  model.isDisclosureCollapsedPreviewDemoOpen
+                    ? 'Show less'
+                    : 'Read more',
+                ],
+              ),
+            ],
+          ),
+        ],
+      )
+
     return h.div(
       [],
       [
@@ -90,32 +215,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
             isOpen: model.isDisclosureBasicDemoOpen,
             onToggle: isOpen =>
               UiMessage.ToggledDisclosureBasicDemo({ isOpen }),
-            toView: attributes =>
-              h.div(
-                [],
-                [
-                  h.button(
-                    [
-                      ...attributes.button,
-                      h.Class(
-                        'w-full flex items-center justify-between px-4 py-3 text-left text-base font-normal cursor-pointer transition border border-gray-300 text-gray-900 hover:bg-gray-200/50 rounded-lg data-[open]:rounded-b-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 select-none',
-                      ),
-                    ],
-                    [buttonContent(model.isDisclosureBasicDemoOpen, h)],
-                  ),
-                  model.isDisclosureBasicDemoOpen
-                    ? h.div(
-                        [
-                          ...attributes.panel,
-                          h.Class(
-                            'px-4 py-3 border-x border-b border-gray-300 rounded-b-lg text-gray-800',
-                          ),
-                        ],
-                        [panelText(h)],
-                      )
-                    : h.empty,
-                ],
-              ),
+            toView: basicDisclosureView,
           },
           h,
         ),
@@ -134,32 +234,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
             isOpen: model.isDisclosureAnimatedDemoOpen,
             onToggle: isOpen =>
               UiMessage.ToggledDisclosureAnimatedDemo({ isOpen }),
-            toView: attributes =>
-              h.div(
-                [h.Class('border border-gray-300 rounded-lg overflow-hidden')],
-                [
-                  h.button(
-                    [
-                      ...attributes.button,
-                      h.Class(
-                        'w-full flex items-center justify-between px-4 py-3 text-left text-base font-normal cursor-pointer transition text-gray-900 hover:bg-gray-200/50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-600 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 select-none',
-                      ),
-                    ],
-                    [buttonContent(model.isDisclosureAnimatedDemoOpen, h)],
-                  ),
-                  attributes.animatePanel(
-                    h.div(
-                      [
-                        ...attributes.panel,
-                        h.Class(
-                          'px-4 py-3 border-t border-gray-300 text-gray-800',
-                        ),
-                      ],
-                      [panelText(h)],
-                    ),
-                  ),
-                ],
-              ),
+            toView: animatedDisclosureView,
           },
           h,
         ),
@@ -175,74 +250,7 @@ export const view = Submodel.defineView<UiModel, UiMessage>(
             isOpen: model.isDisclosureCollapsedPreviewDemoOpen,
             onToggle: isOpen =>
               UiMessage.ToggledDisclosureCollapsedPreviewDemo({ isOpen }),
-            toView: ({ button, panel, animatePanel }) =>
-              h.article(
-                [
-                  h.Class(
-                    'relative overflow-hidden rounded-lg border border-gray-300 bg-white',
-                  ),
-                ],
-                [
-                  h.h4(
-                    [h.Class('px-4 py-3 text-base font-normal text-gray-900')],
-                    ['Why the Elm Architecture scales'],
-                  ),
-                  h.div(
-                    [h.Class('relative')],
-                    [
-                      animatePanel(
-                        h.div(
-                          [
-                            ...panel,
-                            h.Class(
-                              clsx(
-                                'border-t border-gray-300 px-4 pt-3',
-                                model.isDisclosureCollapsedPreviewDemoOpen
-                                  ? 'pb-20'
-                                  : 'pb-3',
-                              ),
-                            ),
-                          ],
-                          [collapsedPreviewPanel(h)],
-                        ),
-                        { peek: COLLAPSED_PREVIEW_HEIGHT },
-                      ),
-                      ...(model.isDisclosureCollapsedPreviewDemoOpen
-                        ? []
-                        : [
-                            h.div([
-                              h.AriaHidden(true),
-                              h.Class(
-                                'pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white to-transparent',
-                              ),
-                            ]),
-                          ]),
-                    ],
-                  ),
-                  h.div(
-                    [
-                      h.Class(
-                        'absolute inset-x-0 bottom-2.5 flex justify-center px-4',
-                      ),
-                    ],
-                    [
-                      h.button(
-                        [
-                          ...button,
-                          h.Class(
-                            'cursor-pointer whitespace-nowrap rounded-full border border-gray-300 bg-white px-5 py-2 text-sm font-medium text-gray-900 shadow-sm transition hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 select-none',
-                          ),
-                        ],
-                        [
-                          model.isDisclosureCollapsedPreviewDemoOpen
-                            ? 'Show less'
-                            : 'Read more',
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            toView: collapsedPreviewView,
           },
           h,
         ),

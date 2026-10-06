@@ -1,8 +1,10 @@
 import { Schema } from 'effect'
+import { Window } from 'happy-dom'
 import { execFile } from 'node:child_process'
-import { readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { win32 } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { promisify } from 'node:util'
 import { type Plugin, type ViteBuilder, createBuilder } from 'vite'
 import { afterAll, describe, expect, it, onTestFinished } from 'vitest'
@@ -43,7 +45,11 @@ const filesUnder = async (
 // and so one case never reads what another wrote.
 const buildFixture = async (
   name: string,
-  options: Omit<FoldkitBuildOptions, 'clientOutDir' | 'serverOutDir'> & {
+  options: Omit<
+    FoldkitBuildOptions,
+    'clientEntry' | 'clientOutDir' | 'serverOutDir'
+  > & {
+    clientEntry?: string
     clientOutDir?: string
   } = {},
   extraPlugins: ReadonlyArray<Plugin> = [],
@@ -69,6 +75,7 @@ const buildFixture = async (
       ...extraPlugins,
       ...foldkitBuildToken('test-build', false),
       foldkitBuild(SERVER_ENTRY, {
+        clientEntry: '/entry.client.ts',
         ...options,
         clientOutDir: client,
         serverOutDir: server,
@@ -88,6 +95,358 @@ afterAll(async () => {
   await rm(resolve(FIXTURE_ROOT, 'dist-test'), { recursive: true, force: true })
 })
 
+const ASSETS_ROOT = resolve(import.meta.dirname, 'fixtures/build-assets')
+const splitBrowserChunks: Plugin = {
+  name: 'test:split-browser-chunks',
+  config: () => ({
+    environments: {
+      client: {
+        build: {
+          rolldownOptions: {
+            output: {
+              codeSplitting: {
+                groups: [
+                  { name: 'leaf', test: /leaf\.(ts|css)$/, minSize: 0 },
+                  { name: 'shared', test: /shared\.(ts|css)$/, minSize: 0 },
+                ],
+              },
+            },
+          },
+        },
+      },
+    },
+  }),
+}
+
+describe('code-rendered documents', () => {
+  it('refuses a stale root document when the output directory is preserved', async () => {
+    const clientDirectory = resolve(
+      FIXTURE_ROOT,
+      'dist-test/stale-index/client',
+    )
+    await mkdir(clientDirectory, { recursive: true })
+    await writeFile(
+      resolve(clientDirectory, 'index.html'),
+      '<title>Old build</title>',
+    )
+
+    await expect(
+      buildFixture('stale-index', {}, [
+        {
+          name: 'test:preserve-output',
+          config: () => ({ build: { emptyOutDir: false } }),
+        },
+      ]),
+    ).rejects.toThrow(/index.html.*before prerendering/)
+  })
+
+  it('refuses a root document copied from the public directory', async () => {
+    await expect(
+      buildFixture('public-index', {}, [
+        {
+          name: 'test:public-index',
+          config: () => ({
+            publicDir: resolve(
+              import.meta.dirname,
+              'fixtures/build-public-index',
+            ),
+          }),
+        },
+      ]),
+    ).rejects.toThrow(/index.html.*before prerendering/)
+  })
+
+  it('refuses a root document emitted by another plugin', async () => {
+    await expect(
+      buildFixture('emitted-index', {}, [], undefined, [
+        {
+          name: 'test:emitted-index',
+          generateBundle: {
+            order: 'post',
+            handler() {
+              if (this.environment.name === 'client') {
+                this.emitFile({
+                  type: 'asset',
+                  fileName: 'index.html',
+                  source: '<!doctype html><title>Unrendered</title>',
+                })
+              }
+            },
+          },
+        },
+      ]),
+    ).rejects.toThrow(/index.html.*before prerendering/)
+  })
+
+  it('refuses an HTML input added to an SSR browser build', async () => {
+    await expect(
+      buildFixture('html-input', {}, [], undefined, [
+        {
+          name: 'test:html-input',
+          config: () => ({
+            environments: {
+              client: {
+                build: {
+                  rolldownOptions: { input: { document: '/index.html' } },
+                },
+              },
+            },
+          }),
+        },
+      ]),
+    ).rejects.toThrow(/ssr.build owns the browser script input/)
+  })
+
+  it('requires a document renderer export when building the server entry', async () => {
+    await expect(
+      buildFixture(
+        'missing-document',
+        {},
+        [],
+        resolve(import.meta.dirname, 'fixtures/ssr'),
+      ),
+    ).rejects.toThrow(/renderDocument/)
+  })
+
+  it('rejects an HTML client entry for a code-rendered document', async () => {
+    await expect(
+      buildFixture('html-client-entry', { clientEntry: '/index.html' }),
+    ).rejects.toThrow(/clientEntry to name a browser script/)
+  })
+
+  it('uses the server document and static asset graph for fetch and prerender', async () => {
+    const { client, server } = await buildFixture(
+      'assets',
+      { prerender: true },
+      [
+        splitBrowserChunks,
+        { name: 'test:base', config: () => ({ base: '/app/' }) },
+      ],
+      ASSETS_ROOT,
+    )
+    const built = await import(pathToFileURL(resolve(server, 'fetch.js')).href)
+    const response: Response = await built.default.fetch(
+      new Request('http://localhost/about'),
+    )
+    const document = await response.text()
+    expect(document).toBe(
+      await readFile(resolve(client, 'about/index.html'), 'utf8'),
+    )
+
+    const window = new Window()
+    window.document.write(document)
+    expect(window.document.documentElement.lang).toBe('fr')
+    expect(
+      window.document
+        .querySelector('meta[name="document-owner"]')
+        ?.getAttribute('content'),
+    ).toBe('server-entry')
+    const stylesheets = [
+      ...window.document.querySelectorAll('link[rel="stylesheet"]'),
+    ].map(link => link.getAttribute('href'))
+    const preloads = [
+      ...window.document.querySelectorAll('link[rel="modulepreload"]'),
+    ].map(link => link.getAttribute('href'))
+    expect(stylesheets).toEqual([
+      expect.stringMatching(/^\/app\/assets\/leaf-.+\.css$/),
+      expect.stringMatching(/^\/app\/assets\/shared-.+\.css$/),
+      expect.stringMatching(/^\/app\/assets\/app-.+\.css$/),
+    ])
+    expect(preloads).toEqual([
+      expect.stringMatching(/^\/app\/assets\/leaf-.+\.js$/),
+      expect.stringMatching(/^\/app\/assets\/shared-.+\.js$/),
+    ])
+    const script = window.document
+      .querySelector('script[type="module"]')
+      ?.getAttribute('src')
+    expect(script).toMatch(/^\/app\/assets\/app-.+\.js$/)
+    for (const url of [...stylesheets, ...preloads, script]) {
+      expect(url).toBeTruthy()
+      expect(
+        await readFile(resolve(client, url?.replace('/app/', '') ?? '')),
+      ).not.toHaveLength(0)
+    }
+    expect(
+      (await filesUnder(client)).some(file => /lazy-.+\.css$/.test(file)),
+    ).toBe(true)
+    expect(document).not.toContain('lazy-')
+  })
+
+  it('includes only bundled CSS when CSS splitting is disabled', async () => {
+    const { client } = await buildFixture(
+      'consolidated',
+      { prerender: true },
+      [
+        {
+          name: 'test:consolidated-css',
+          config: () => ({ build: { cssCodeSplit: false } }),
+          generateBundle() {
+            if (this.environment.name === 'client') {
+              this.emitFile({
+                type: 'asset',
+                fileName: 'alternate-theme.css',
+                source: 'body { color: red }',
+              })
+            }
+          },
+        },
+      ],
+      ASSETS_ROOT,
+    )
+    const html = await readFile(resolve(client, 'index.html'), 'utf8')
+    const window = new Window()
+    window.document.write(html)
+    expect(
+      window.document.querySelectorAll('link[rel="stylesheet"]'),
+    ).toHaveLength(1)
+    const href = window.document
+      .querySelector('link[rel="stylesheet"]')
+      ?.getAttribute('href')
+    const css = await readFile(resolve(client, href?.slice(1) ?? ''), 'utf8')
+    expect(css).toContain('color:')
+    expect(await readFile(resolve(client, 'alternate-theme.css'), 'utf8')).toBe(
+      'body { color: red }',
+    )
+  })
+
+  it('honors disabled module preloads', async () => {
+    const { client } = await buildFixture(
+      'no-preloads',
+      { prerender: true },
+      [
+        splitBrowserChunks,
+        {
+          name: 'test:no-preloads',
+          config: () => ({ build: { modulePreload: false } }),
+        },
+      ],
+      ASSETS_ROOT,
+    )
+    const html = await readFile(resolve(client, 'index.html'), 'utf8')
+    expect(html).not.toContain('rel="modulepreload"')
+    expect(html).toContain('rel="stylesheet"')
+  })
+
+  it('honors preload filtering and CDN asset URLs', async () => {
+    const { client } = await buildFixture(
+      'cdn',
+      { prerender: true },
+      [
+        splitBrowserChunks,
+        {
+          name: 'test:cdn-assets',
+          config: () => ({
+            build: {
+              modulePreload: {
+                resolveDependencies: (_file, dependencies) =>
+                  dependencies.filter(file => file.includes('leaf-')),
+              },
+            },
+            experimental: {
+              renderBuiltUrl: file => `https://cdn.example/${file}`,
+            },
+          }),
+        },
+      ],
+      ASSETS_ROOT,
+    )
+    const window = new Window()
+    window.document.write(await readFile(resolve(client, 'index.html'), 'utf8'))
+    const preloads = [
+      ...window.document.querySelectorAll('link[rel="modulepreload"]'),
+    ]
+    expect(preloads).toHaveLength(1)
+    expect(preloads.at(0)?.getAttribute('href')).toMatch(
+      /^https:\/\/cdn.example\/assets\/leaf-/,
+    )
+    expect(
+      window.document
+        .querySelector('script[type="module"]')
+        ?.getAttribute('src'),
+    ).toMatch(/^https:\/\/cdn.example\/assets\/app-/)
+  })
+
+  it('preserves external preload URLs while customizing built asset URLs', async () => {
+    const externalPreloads = [
+      'https://cdn.example/vendor.js?version=1&mode=fast',
+      '//cdn.example/shared.js',
+    ]
+    const { client } = await buildFixture(
+      'external-preloads',
+      { prerender: true },
+      [
+        splitBrowserChunks,
+        {
+          name: 'test:external-preloads',
+          config: () => ({
+            base: '/app/',
+            build: {
+              modulePreload: {
+                resolveDependencies: (_file, dependencies, context) =>
+                  context.hostType === 'html' ? externalPreloads : dependencies,
+              },
+            },
+            experimental: {
+              renderBuiltUrl: file => `https://assets.example/${file}`,
+            },
+          }),
+        },
+      ],
+      ASSETS_ROOT,
+    )
+    const window = new Window()
+    window.document.write(await readFile(resolve(client, 'index.html'), 'utf8'))
+
+    expect(
+      [...window.document.querySelectorAll('link[rel="modulepreload"]')].map(
+        link => link.getAttribute('href'),
+      ),
+    ).toEqual(externalPreloads)
+  })
+
+  it('rejects relative string asset URLs from renderBuiltUrl', async () => {
+    await expect(
+      buildFixture('relative-asset-url', {}, [
+        {
+          name: 'test:relative-asset-url',
+          config: () => ({
+            experimental: {
+              renderBuiltUrl: (_file, context) =>
+                context.hostType === 'html' ? 'assets/app.js' : undefined,
+            },
+          }),
+        },
+      ]),
+    ).rejects.toThrow(/renderBuiltUrl must return an absolute URL/)
+  })
+
+  it('rejects relative result objects from renderBuiltUrl', async () => {
+    await expect(
+      buildFixture('relative-asset-result', {}, [
+        {
+          name: 'test:relative-asset-result',
+          config: () => ({
+            experimental: {
+              renderBuiltUrl: (_file, context) =>
+                context.hostType === 'html' ? { relative: true } : undefined,
+            },
+          }),
+        },
+      ]),
+    ).rejects.toThrow(/cannot use runtime or relative renderBuiltUrl results/)
+  })
+
+  for (const base of ['', './']) {
+    it(`refuses the relative base ${JSON.stringify(base)}`, async () => {
+      await expect(
+        buildFixture('relative-base', {}, [
+          { name: 'test:relative-base', config: () => ({ base }) },
+        ]),
+      ).rejects.toThrow(/requires an absolute URL or root-relative base/)
+    })
+  }
+})
+
 describe('foldkitBuild', () => {
   it('builds the browser bundle and the server bundle in one build', async () => {
     const { client, server } = await buildFixture('both')
@@ -99,11 +458,11 @@ describe('foldkitBuild', () => {
     const built = await import(pathToFileURL(resolve(server, 'fetch.js')).href)
     expect(typeof built.default.fetch).toBe('function')
     expect(typeof built.renderPage).toBe('function')
-    expect(built).not.toHaveProperty('template')
+    expect(typeof built.renderDocument).toBe('function')
   })
 
-  it('keeps the template out of the browser build', async () => {
-    const { client, server } = await buildFixture('template-private', {
+  it('publishes only generated pages beside browser assets', async () => {
+    const { client, server } = await buildFixture('generated-pages', {
       prerender: { paths: ['/about'] },
     })
 
@@ -131,13 +490,6 @@ describe('foldkitBuild', () => {
     expect(await response.text()).toContain('>/about</main>')
   })
 
-  it('bakes the browser build template, not the source HTML', async () => {
-    const { server } = await buildFixture('fetch-template')
-    const bundle = await readFile(resolve(server, 'fetch.js'), 'utf8')
-    expect(bundle).not.toContain('./entry.client.ts')
-    expect(bundle).toContain('assets/')
-  })
-
   it('generates a page for every path the entry lists', async () => {
     const { client } = await buildFixture('generated', { prerender: true })
 
@@ -150,7 +502,7 @@ describe('foldkitBuild', () => {
     expect(about).toContain('<title>Fixture /about</title>')
   })
 
-  it('generates the root path over the template it renders into', async () => {
+  it('generates a complete document for the root path', async () => {
     const { client } = await buildFixture('root', { prerender: true })
 
     const index = await readFile(resolve(client, 'index.html'), 'utf8')
@@ -167,40 +519,6 @@ describe('foldkitBuild', () => {
     expect(
       await readFile(resolve(second.client, 'index.html'), 'utf8'),
     ).toEqual(await readFile(resolve(first.client, 'index.html'), 'utf8'))
-  })
-
-  // NOTE: a later hook writes a different template to disk. Generation must
-  // use the template captured from Vite's bundle, not the disk file.
-  it('uses the captured template even when the disk index differs', async () => {
-    const clientDir = 'dist-test/disk-template/client'
-    const corruptClientIndex: Plugin = {
-      name: 'test:corrupt-client-index',
-      // NOTE: the marker is a meta element rather than the title, which
-      // injection rewrites from the render's own Document. A corrupted title
-      // is gone from the page it produced, so a test that watched the title
-      // would pass against a build that read the file.
-      async writeBundle() {
-        await writeFile(
-          resolve(FIXTURE_ROOT, clientDir, 'index.html'),
-          '<!doctype html><html><head><title>Fixture</title><meta name="came-from-disk" content="yes" /></head><body><div id="root"></div></body></html>',
-        )
-      },
-    }
-
-    const { client } = await buildFixture(
-      'disk-template',
-      { prerender: true },
-      [corruptClientIndex],
-    )
-
-    const [index, about] = await Promise.all([
-      readFile(resolve(client, 'index.html'), 'utf8'),
-      readFile(resolve(client, 'about/index.html'), 'utf8'),
-    ])
-
-    expect(index).not.toContain('came-from-disk')
-    expect(about).not.toContain('came-from-disk')
-    expect(about).toContain('>/about</main>')
   })
 
   it('generates only the configured paths when the build names them', async () => {
@@ -474,30 +792,6 @@ describe('foldkitBuild orchestration', () => {
     expect(await filesUnder(server)).toContain('foldkit.build.json')
   })
 
-  // The server bundle renders into the browser build's `index.html`, so a
-  // client that emits no HTML entry leaves the fetch handler with nothing to
-  // render into. That is a failed build, not one to stay quiet about.
-  it('refuses to build the fetch handler without an HTML entry', async () => {
-    const jsOnlyClient: Plugin = {
-      name: 'test:js-only-client',
-      config: () => ({
-        environments: {
-          client: {
-            build: { rolldownOptions: { input: { app: '/entry.client.ts' } } },
-          },
-        },
-      }),
-    }
-
-    await expect(buildFixture('js-client', {}, [jsOnlyClient])).rejects.toThrow(
-      /has not emitted index\.html/,
-    )
-  })
-
-  // A host that builds `ssr` before `client` asks for the template before the
-  // browser build has produced it. Reading `dist/client/index.html` from disk
-  // would hand the handler the previous build's shell with its old asset
-  // hashes, and the build would report success. The build fails instead.
   it('refuses to build the fetch handler before the browser build', async () => {
     const ssrFirst: Plugin = {
       name: 'test:ssr-first',
@@ -520,7 +814,7 @@ describe('foldkitBuild orchestration', () => {
     }
 
     await expect(buildFixture('ssr-first', {}, [ssrFirst])).rejects.toThrow(
-      /has not emitted index\.html/,
+      /has not emitted its script entry/,
     )
   })
 
@@ -712,6 +1006,7 @@ describe('the build id across environments', () => {
       const foldkitPlugins = foldkit({
         ssr: {
           serverEntry: '/entry.server.ts',
+          clientEntry: '/entry.client.ts',
           build: { clientOutDir, serverOutDir },
         },
       })
@@ -769,6 +1064,7 @@ describe('the build id across environments', () => {
         foldkit({
           ssr: {
             serverEntry: '/entry.server.ts',
+            clientEntry: '/entry.client.ts',
             build: { clientOutDir, serverOutDir },
           },
         }),
@@ -803,6 +1099,7 @@ describe('the build id across environments', () => {
           foldkit({
             ssr: {
               serverEntry: '/entry.server.ts',
+              clientEntry: '/entry.client.ts',
               build: {
                 clientOutDir,
                 serverOutDir,
@@ -862,6 +1159,7 @@ describe('the build id across environments', () => {
           foldkit({
             ssr: {
               serverEntry: '/entry.server.ts',
+              clientEntry: '/entry.client.ts',
               build: {
                 clientOutDir,
                 serverOutDir,
@@ -943,6 +1241,7 @@ describe('the build id across environments', () => {
         foldkit({
           ssr: {
             serverEntry: '/entry.server.ts',
+            clientEntry: '/entry.client.ts',
             build: {
               clientOutDir: 'dist-test/external/client',
               serverOutDir: 'dist-test/external/server',
@@ -965,24 +1264,6 @@ describe('the build id across environments', () => {
   })
 })
 
-const CONTAINER_ROOT = resolve(import.meta.dirname, 'fixtures/build-container')
-
-// A project names its container once and both the dev host and the build have
-// to use that name. Injection defaulting to its own `root` fails the build on
-// an id the project no longer uses.
-it('generates into the container the build names', async () => {
-  const { client } = await buildFixture(
-    'container',
-    { prerender: { paths: ['/'], containerId: 'app-root' } },
-    [],
-    CONTAINER_ROOT,
-  )
-
-  const generated = await readFile(resolve(client, 'index.html'), 'utf8')
-  expect(generated).toContain('>/</main>')
-  expect(generated).not.toContain('<div id="app-root"></div>')
-})
-
 // BUILD METADATA
 
 const METADATA_NOT_READY =
@@ -1002,7 +1283,7 @@ const metadataApi = (builder: ViteBuilder): FoldkitBuildApi => {
 
 const metadataFixture = async (
   name: string,
-  options: FoldkitBuildOptions = { prerender: true },
+  options: Omit<FoldkitBuildOptions, 'clientEntry'> = { prerender: true },
   pluginsBeforeFoldkit: ReadonlyArray<Plugin> = [],
   pluginsAfterFoldkit: ReadonlyArray<Plugin> = [],
 ) => {
@@ -1019,6 +1300,7 @@ const metadataFixture = async (
       ...pluginsBeforeFoldkit,
       foldkitBuildToken('test-build'),
       foldkitBuild(SERVER_ENTRY, {
+        clientEntry: '/entry.client.ts',
         clientOutDir: `${directory}/client`,
         serverOutDir: `${directory}/server`,
         ...options,
@@ -1244,6 +1526,22 @@ describe('completed build metadata', () => {
     ).toEqual(['/', '/about'])
   })
 
+  it('refuses a retained root document when a rebuild stops prerendering it', async () => {
+    const paths = ['/']
+    const fixture = await metadataFixture('removed-root', {
+      prerender: { paths },
+    })
+    await fixture.builder.buildApp()
+    paths.splice(0)
+
+    await expect(fixture.builder.buildApp()).rejects.toThrow(
+      /this build did not prerender "\/"/,
+    )
+    expect(() => metadataApi(fixture.builder).getBuildMetadata()).toThrow(
+      METADATA_NOT_READY,
+    )
+  })
+
   it('discards completed metadata when a rebuild fails', async () => {
     let isFailing = false
     const fixture = await metadataFixture(
@@ -1299,7 +1597,7 @@ describe('completed build metadata', () => {
       ],
     )
     await expect(second.builder.buildApp()).rejects.toThrow(
-      /has not emitted index\.html/,
+      /has not emitted its script entry/,
     )
     expect(() => metadataApi(second.builder).getBuildMetadata()).toThrow(
       METADATA_NOT_READY,

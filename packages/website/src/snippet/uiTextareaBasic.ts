@@ -4,8 +4,24 @@ import type { HtmlBuilder } from 'foldkit/html'
 
 import { Textarea } from '@foldkit/ui'
 
-const view = (model: Model, h: HtmlBuilder<Message>) =>
-  Textarea.view(
+const view = (model: Model, h: HtmlBuilder<Message>) => {
+  const textareaView = (attributes: Textarea.TextareaAttributes<Message>) =>
+    h.div(
+      [h.Class('flex flex-col gap-1.5')],
+      [
+        h.label([...attributes.label, h.Class('text-sm font-medium')], ['Bio']),
+        h.textarea([
+          ...attributes.textarea,
+          h.Class('w-full rounded-lg border border-gray-300 px-3 py-2'),
+        ]),
+        h.span(
+          [...attributes.description, h.Class('text-sm text-gray-500')],
+          ['A brief introduction about yourself.'],
+        ),
+      ],
+    )
+
+  return Textarea.view(
     {
       id: 'bio',
       hasDescription: true,
@@ -13,24 +29,8 @@ const view = (model: Model, h: HtmlBuilder<Message>) =>
       onInput: value => UpdatedBio({ value }), // your Message
       placeholder: 'Tell us about yourself...',
       rows: 4,
-      toView: attributes =>
-        h.div(
-          [h.Class('flex flex-col gap-1.5')],
-          [
-            h.label(
-              [...attributes.label, h.Class('text-sm font-medium')],
-              ['Bio'],
-            ),
-            h.textarea([
-              ...attributes.textarea,
-              h.Class('w-full rounded-lg border border-gray-300 px-3 py-2'),
-            ]),
-            h.span(
-              [...attributes.description, h.Class('text-sm text-gray-500')],
-              ['A brief introduction about yourself.'],
-            ),
-          ],
-        ),
+      toView: textareaView,
     },
     h,
   )
+}

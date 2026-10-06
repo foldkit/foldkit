@@ -1,5 +1,11 @@
 # @foldkit/markdown
 
+## 0.14.1
+
+### Patch Changes
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
 ## 0.14.0
 
 ### Minor Changes

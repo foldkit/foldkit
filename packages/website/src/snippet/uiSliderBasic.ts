@@ -86,59 +86,59 @@ const subscriptions = Subscription.aggregate(
 // Inside your view function, render the slider. You control every element's
 // markup and classes through the `toView` callback. The `attributes` groups
 // provide ARIA, pointer, and keyboard wiring:
-const view = (model: Model, h: HtmlBuilder<Message>) =>
-  h.submodel({
+const view = (model: Model, h: HtmlBuilder<Message>) => {
+  const sliderView = (attributes: Slider.SliderAttributes) =>
+    h.div(
+      [h.Class('flex flex-col gap-2 w-full max-w-sm')],
+      [
+        h.div(
+          [h.Class('flex items-center justify-between text-sm')],
+          [
+            h.label([...attributes.label, h.Class('font-medium')], ['Rating']),
+            h.span(
+              [h.Class('tabular-nums text-gray-600')],
+              [`${String(model.ratingValue)} / 10`],
+            ),
+          ],
+        ),
+        h.div(
+          [
+            ...attributes.root,
+            h.Class('relative h-6 w-full flex items-center'),
+          ],
+          [
+            h.div(
+              [
+                ...attributes.track,
+                h.Class('h-1.5 w-full rounded-full bg-gray-200'),
+              ],
+              [
+                h.div([
+                  ...attributes.filledTrack,
+                  h.Class('h-full rounded-full bg-blue-600'),
+                ]),
+              ],
+            ),
+            h.div([
+              ...attributes.thumb,
+              h.Class(
+                'h-5 w-5 rounded-full bg-white border-2 border-blue-600 shadow cursor-grab focus-visible:ring-2 focus-visible:ring-blue-600 data-[dragging]:cursor-grabbing',
+              ),
+            ]),
+          ],
+        ),
+      ],
+    )
+
+  return h.submodel({
     slotId: 'rating',
     model: model.ratingDemo,
     view: Slider.view,
     viewInputs: {
       value: model.ratingValue,
       formatValue: value => `${String(value)} of 10`,
-      toView: attributes =>
-        h.div(
-          [h.Class('flex flex-col gap-2 w-full max-w-sm')],
-          [
-            h.div(
-              [h.Class('flex items-center justify-between text-sm')],
-              [
-                h.label(
-                  [...attributes.label, h.Class('font-medium')],
-                  ['Rating'],
-                ),
-                h.span(
-                  [h.Class('tabular-nums text-gray-600')],
-                  [`${String(model.ratingValue)} / 10`],
-                ),
-              ],
-            ),
-            h.div(
-              [
-                ...attributes.root,
-                h.Class('relative h-6 w-full flex items-center'),
-              ],
-              [
-                h.div(
-                  [
-                    ...attributes.track,
-                    h.Class('h-1.5 w-full rounded-full bg-gray-200'),
-                  ],
-                  [
-                    h.div([
-                      ...attributes.filledTrack,
-                      h.Class('h-full rounded-full bg-blue-600'),
-                    ]),
-                  ],
-                ),
-                h.div([
-                  ...attributes.thumb,
-                  h.Class(
-                    'h-5 w-5 rounded-full bg-white border-2 border-blue-600 shadow cursor-grab focus-visible:ring-2 focus-visible:ring-blue-600 data-[dragging]:cursor-grabbing',
-                  ),
-                ]),
-              ],
-            ),
-          ],
-        ),
+      toView: sliderView,
     },
     toParentMessage: message => Message.GotSliderMessage({ message }),
   })
+}

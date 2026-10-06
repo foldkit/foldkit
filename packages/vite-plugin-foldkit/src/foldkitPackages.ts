@@ -77,9 +77,7 @@ export const crawlFoldkitPackages = async (
   root: string,
   isBuild: boolean,
   viteUserConfig: UserConfig,
-): Promise<
-  Readonly<{ dedupe: Array<string>; ssrNoExternal: Array<string> }>
-> => {
+): Promise<Readonly<{ dedupe: Array<string>; noExternal: Array<string> }>> => {
   const crawlRoot = toCrawlRoot(
     root,
     viteUserConfig.resolve?.preserveSymlinks ?? false,
@@ -98,7 +96,7 @@ export const crawlFoldkitPackages = async (
     isSemiFrameworkPkgByJson: dependsOnFoldkit,
   })
 
-  const ssrNoExternal = Array.dedupe([
+  const noExternal = Array.dedupe([
     ...FOLDKIT_SINGLETON_PACKAGES,
     ...crawl.ssr.noExternal,
   ])
@@ -114,5 +112,5 @@ export const crawlFoldkitPackages = async (
   )
   const dedupe = Array.getSomes(maybeResolvableSingletons)
 
-  return { dedupe, ssrNoExternal }
+  return { dedupe, noExternal }
 }

@@ -549,7 +549,7 @@ const durationButtonClass = (
 ): string =>
   clsx('flex-1 px-3 py-1.5 text-sm font-normal transition text-center', {
     'bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900': isSelected,
-    'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 cursor-pointer':
+    'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 cursor-pointer':
       !isSelected && !isDisabled,
     'text-gray-300 dark:text-gray-600 cursor-not-allowed':
       !isSelected && isDisabled,
@@ -632,7 +632,7 @@ const noteInputView = (
               [
                 ...attributes.label,
                 h.For('note-input'),
-                h.Class('text-xs text-gray-500 dark:text-gray-400'),
+                h.Class('text-xs text-gray-600 dark:text-gray-400'),
               ],
               ['Note Sequence'],
             ),
@@ -650,17 +650,17 @@ const noteInputView = (
             FieldValidation.match(model.noteInput, {
               onNotValidated: () =>
                 h.p(
-                  [h.Class('text-xs text-gray-400 dark:text-gray-500')],
+                  [h.Class('text-xs text-gray-500 dark:text-gray-500')],
                   [`${MIN_NOTES}–${MAX_NOTES} notes, A through G`],
                 ),
               onValidating: () =>
                 h.p(
-                  [h.Class('text-xs text-gray-400 dark:text-gray-500')],
+                  [h.Class('text-xs text-gray-500 dark:text-gray-500')],
                   [''],
                 ),
               onValid: value =>
                 h.p(
-                  [h.Class('text-xs text-gray-500 dark:text-gray-400')],
+                  [h.Class('text-xs text-gray-600 dark:text-gray-400')],
                   [`${parseNotes(value).length} notes`],
                 ),
               onInvalid: ({ errors }) =>
@@ -686,7 +686,7 @@ const durationSelectorView = (
     [h.Class('flex flex-col gap-1.5')],
     [
       h.label(
-        [h.Class('text-xs text-gray-500 dark:text-gray-400')],
+        [h.Class('text-xs text-gray-600 dark:text-gray-400')],
         ['Note Length'],
       ),
       h.submodel({
@@ -770,7 +770,7 @@ const playbackControlView = (
                             'flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-normal transition',
                             {
                               'button-accent cursor-pointer': canPlay,
-                              'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed':
+                              'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-500 cursor-not-allowed':
                                 !canPlay,
                             },
                           ),
@@ -796,7 +796,7 @@ const playbackControlView = (
                         {
                           'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-pointer':
                             isActive,
-                          'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed':
+                          'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-500 cursor-not-allowed':
                             !isActive,
                         },
                       ),
@@ -888,7 +888,7 @@ const noteVisualizerView = (model: Model, notes: ReadonlyArray<Note>): Html => {
               {
                 'bg-accent-600 dark:bg-accent-500 text-white dark:text-accent-900':
                   isCurrentNote,
-                'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300':
+                'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300':
                   !isCurrentNote,
               },
             ),
@@ -929,7 +929,7 @@ const phaseLabel = (phase: NoteHighlightPhase): string =>
 
 const phaseColorClass = (phase: NoteHighlightPhase): string =>
   Match.value(phase).pipe(
-    Match.when('Idle', () => 'text-gray-500 dark:text-gray-400'),
+    Match.when('Idle', () => 'text-gray-600 dark:text-gray-400'),
     Match.whenOr(
       'PlayMessage',
       'PauseMessage',
@@ -944,7 +944,7 @@ const phaseColorClass = (phase: NoteHighlightPhase): string =>
     Match.whenOr(
       'PlayModel',
       'NoteModel',
-      () => 'text-accent-600 dark:text-accent-400',
+      () => 'text-accent-700 dark:text-accent-400',
     ),
     Match.when('NoteCommand', () => 'text-violet-600 dark:text-violet-400'),
     Match.exhaustive,
