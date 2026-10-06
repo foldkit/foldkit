@@ -100,26 +100,32 @@ const hostSettledResponse = () =>
     Server.HOST_METHOD_ANSWERS.allow,
   )
 
-const basePathFrom = (basePath: string | undefined): string => {
+const basePathFrom = (basePath: string | undefined) => {
   const resolvedBasePath = basePath ?? '/'
-  let url: URL
-  try {
-    url = new URL(resolvedBasePath, 'http://localhost')
-  } catch {
-    throw new Error('basePath must be a root-relative path ending with `/`')
-  }
-  if (
-    !resolvedBasePath.startsWith('/') ||
-    resolvedBasePath.startsWith('//') ||
-    resolvedBasePath.includes('\\') ||
-    !resolvedBasePath.endsWith('/') ||
-    url.origin !== 'http://localhost' ||
-    url.search !== '' ||
-    url.hash !== ''
-  ) {
-    throw new Error('basePath must be a root-relative path ending with `/`')
-  }
-  return url.pathname
+
+  return Effect.try({
+    try: () => new URL(resolvedBasePath, 'http://localhost'),
+    catch: () =>
+      new Error('basePath must be a root-relative path ending with `/`'),
+  }).pipe(
+    Effect.flatMap(url => {
+      if (
+        !resolvedBasePath.startsWith('/') ||
+        resolvedBasePath.startsWith('//') ||
+        resolvedBasePath.includes('\\') ||
+        !resolvedBasePath.endsWith('/') ||
+        url.origin !== 'http://localhost' ||
+        url.search !== '' ||
+        url.hash !== ''
+      ) {
+        return Effect.fail(
+          new Error('basePath must be a root-relative path ending with `/`'),
+        )
+      }
+
+      return Effect.succeed(url.pathname)
+    }),
+  )
 }
 
 const staticPathFor = (
@@ -146,7 +152,7 @@ const buildPaths = (
   manifestPath: string,
   manifest: FoldkitBuildManifest,
   rootDirectory: string | undefined,
-): BuildPaths => {
+) => {
   const serverDirectory = dirname(manifestPath)
   const normalizedServerDirectory = posix.normalize(manifest.server)
   if (
@@ -154,8 +160,10 @@ const buildPaths = (
     (normalizedServerDirectory === '..' ||
       normalizedServerDirectory.startsWith('../'))
   ) {
-    throw new Error(
-      'foldkit.build.json describes a server directory outside the Vite root. Pass rootDirectory so @foldkit/node can locate the client output.',
+    return Effect.fail(
+      new Error(
+        'foldkit.build.json describes a server directory outside the Vite root. Pass rootDirectory so @foldkit/node can locate the client output.',
+      ),
     )
   }
   const resolvedRootDirectory =
@@ -167,15 +175,17 @@ const buildPaths = (
     manifest.server,
   )
   if (expectedServerDirectory !== serverDirectory) {
-    throw new Error(
-      `rootDirectory resolves ${manifest.server} to ${expectedServerDirectory}, but the manifest is at ${serverDirectory}`,
+    return Effect.fail(
+      new Error(
+        `rootDirectory resolves ${manifest.server} to ${expectedServerDirectory}, but the manifest is at ${serverDirectory}`,
+      ),
     )
   }
 
-  return {
+  return Effect.succeed<BuildPaths>({
     clientDirectory: resolve(resolvedRootDirectory, manifest.client),
     fetchHandlerPath: resolve(serverDirectory, manifest.serverEntry),
-  }
+  })
 }
 
 const readBuildPaths = (
@@ -190,7 +200,9 @@ const readBuildPaths = (
       }),
   }).pipe(
     Effect.flatMap(decodeManifest),
-    Effect.map(manifest => buildPaths(manifestPath, manifest, rootDirectory)),
+    Effect.flatMap(manifest =>
+      buildPaths(manifestPath, manifest, rootDirectory),
+    ),
   )
 
 const loadFetchHandler = (fetchHandlerPath: string) =>
@@ -327,7 +339,7 @@ const makeHandler = (options: ServeOptions) =>
     )
     const paths = yield* readBuildPaths(manifestPath, options.rootDirectory)
     const app = yield* loadFetchHandler(paths.fetchHandlerPath)
-    const basePath = basePathFrom(options.basePath)
+    const basePath = yield* basePathFrom(options.basePath)
     const staticFiles = yield* confinedStaticFiles(paths.clientDirectory)
 
     return HttpServerRequest.HttpServerRequest.use(request => {

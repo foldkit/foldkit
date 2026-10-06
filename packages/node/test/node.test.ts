@@ -1,4 +1,4 @@
-import { Config, Effect, Fiber, Option } from 'effect'
+import { Config, Effect, Exit, Fiber, Option } from 'effect'
 import {
   copyFile,
   mkdir,
@@ -14,7 +14,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { serve } from '../src/index.ts'
+import { type ServeOptions, serve } from '../src/index.ts'
 
 type BuildFixture = Readonly<{
   abortStartedPath: string
@@ -99,6 +99,25 @@ const requestTarget = (
     client.on('error', reject)
     client.end()
   })
+
+const expectTypedStartupFailure = async (
+  options: ServeOptions,
+  expectedMessage: RegExp,
+) => {
+  const exit = await Effect.runPromiseExit(serve(options))
+  expect(Exit.isFailure(exit)).toBe(true)
+
+  if (Exit.isFailure(exit)) {
+    expect(exit.cause.reasons).toEqual([
+      expect.objectContaining({
+        _tag: 'Fail',
+        error: expect.objectContaining({
+          message: expect.stringMatching(expectedMessage),
+        }),
+      }),
+    ])
+  }
+}
 
 const createFixture = async (
   schemaVersion = 1,
@@ -288,46 +307,43 @@ describe('serve', () => {
     const fixture = await createFixture(2)
     const port = await getAvailablePort()
 
-    await expect(
-      Effect.runPromise(
-        serve({
-          port: Config.succeed(port),
-          origin: Config.succeed(Option.none()),
-          manifestPath: fixture.manifestPath,
-        }),
-      ),
-    ).rejects.toThrow(/schemaVersion/)
+    await expectTypedStartupFailure(
+      {
+        port: Config.succeed(port),
+        origin: Config.succeed(Option.none()),
+        manifestPath: fixture.manifestPath,
+      },
+      /schemaVersion/,
+    )
   })
 
   it('requires rootDirectory when the server output is outside the Vite root', async () => {
     const fixture = await createFixture(1, true)
     const port = await getAvailablePort()
 
-    await expect(
-      Effect.runPromise(
-        serve({
-          port: Config.succeed(port),
-          origin: Config.succeed(Option.none()),
-          manifestPath: fixture.manifestPath,
-        }),
-      ),
-    ).rejects.toThrow(/rootDirectory/)
+    await expectTypedStartupFailure(
+      {
+        port: Config.succeed(port),
+        origin: Config.succeed(Option.none()),
+        manifestPath: fixture.manifestPath,
+      },
+      /^foldkit\.build\.json describes a server directory outside the Vite root\. Pass rootDirectory so @foldkit\/node can locate the client output\.$/,
+    )
   })
 
   it('rejects rootDirectory when it does not describe the manifest server output', async () => {
     const fixture = await createFixture(1, true)
     const port = await getAvailablePort()
 
-    await expect(
-      Effect.runPromise(
-        serve({
-          port: Config.succeed(port),
-          origin: Config.succeed(Option.none()),
-          manifestPath: fixture.manifestPath,
-          rootDirectory: join(fixture.rootDirectory, 'other'),
-        }),
-      ),
-    ).rejects.toThrow(/rootDirectory resolves/)
+    await expectTypedStartupFailure(
+      {
+        port: Config.succeed(port),
+        origin: Config.succeed(Option.none()),
+        manifestPath: fixture.manifestPath,
+        rootDirectory: join(fixture.rootDirectory, 'other'),
+      },
+      /^rootDirectory resolves \.\.\/runtime to .+, but the manifest is at .+$/,
+    )
   })
 
   it('serves a moved deployment with server output outside the Vite root', async () => {
@@ -397,22 +413,22 @@ describe('serve', () => {
     'app/',
     '/app',
     '//localhost/app/',
+    '//[invalid/',
     '/\\localhost/app/',
   ]) {
     it(`rejects ${basePath} as a Vite base path`, async () => {
       const fixture = await createFixture()
       const port = await getAvailablePort()
 
-      await expect(
-        Effect.runPromise(
-          serve({
-            port: Config.succeed(port),
-            origin: Config.succeed(Option.none()),
-            manifestPath: fixture.manifestPath,
-            basePath,
-          }),
-        ),
-      ).rejects.toThrow(/basePath/)
+      await expectTypedStartupFailure(
+        {
+          port: Config.succeed(port),
+          origin: Config.succeed(Option.none()),
+          manifestPath: fixture.manifestPath,
+          basePath,
+        },
+        /^basePath must be a root-relative path ending with `\/`$/,
+      )
     })
   }
 
