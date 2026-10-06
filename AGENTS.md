@@ -154,6 +154,8 @@ Don't add inline or block comments to explain code. If code needs explanation, r
 ## Session Echoes
 
 - Do not leave session echoes in code, tests, comments, documentation, or names. A session echo records the path taken during the current change instead of a durable contract: assertions that abandoned identifiers or implementations are absent, notes about discarded attempts, or references to debugging and review conversation.
+- Before committing or updating a PR, read the added and revised prose in the full diff, including READMEs, website docs, changesets, TSDoc, comments, test names, and the PR description. Each claim should make sense to a reader who has not seen the issue or this session. State the current behavior, supported use case, user-visible failure, or required migration directly.
+- Treat words such as "still", "continue", "keep", "remain", "legacy", and "no longer" as prompts to check for a session echo, not as forbidden words. Rewrite continuity claims into the current contract when the previous behavior is irrelevant. Changesets and migration guides may describe before and after behavior when users need that distinction to upgrade.
 - Regression tests must exercise a durable contract or reproduce a user-visible failure through supported inputs and outputs. When replacing an implementation, delete obsolete structural assertions instead of inverting them to assert that the old implementation is gone.
 
 ## Choosing Lifecycle Primitives
