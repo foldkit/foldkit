@@ -326,7 +326,7 @@ const renderRequest = (
     )
 
     // NOTE: Vite resolves template-relative URLs against the first argument;
-    // the legacy template lives at the root even for a nested page request.
+    // the template-based host's index lives at the root for nested page requests.
     const template = yield* Effect.promise(() =>
       server.transformIndexHtml('/index.html', rawTemplate, route),
     )

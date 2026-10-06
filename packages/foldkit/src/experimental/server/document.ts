@@ -45,8 +45,8 @@ export type DocumentOptions = Readonly<{
  * the title, language, direction, canonical URL, and Open Graph URL. Additional
  * head markup belongs to the server entry through {@link DocumentOptions}.
  *
- * The rendered application's hydration markers and Flags payload are preserved,
- * and the finished document receives the same parser checks as template injection.
+ * The rendered application's hydration markers and Flags payload are preserved.
+ * Ambiguous application roots or handoff markers are rejected.
  *
  * @experimental Ships from `foldkit/experimental/server`; expect breaking changes while the API settles.
  */

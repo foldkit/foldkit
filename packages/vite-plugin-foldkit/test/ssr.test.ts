@@ -346,6 +346,12 @@ describe('code-rendered documents in development', () => {
     expect(await response.text()).toContain('must export renderDocument')
   })
 
+  it('rejects a client entry that is not root-relative', async () => {
+    await expect(
+      startServer({ clientEntry: 'entry.client.ts' }),
+    ).rejects.toThrow(/clientEntry must be a root-relative browser script URL/)
+  })
+
   for (const base of ['', './']) {
     it(`refuses relative base ${JSON.stringify(base)} in document mode`, async () => {
       await expect(

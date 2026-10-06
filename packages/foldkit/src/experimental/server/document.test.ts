@@ -78,7 +78,7 @@ describe('renderDocument', () => {
     )
   })
 
-  it('keeps template injection parser protection around the rendered application', () => {
+  it('rejects application markup with ambiguous roots or handoff markers', () => {
     expect(() =>
       renderDocument(
         {

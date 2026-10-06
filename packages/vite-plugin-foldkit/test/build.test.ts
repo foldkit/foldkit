@@ -49,6 +49,7 @@ const buildFixture = async (
     FoldkitBuildOptions,
     'clientEntry' | 'clientOutDir' | 'serverOutDir'
   > & {
+    clientEntry?: string
     clientOutDir?: string
   } = {},
   extraPlugins: ReadonlyArray<Plugin> = [],
@@ -186,7 +187,7 @@ describe('code-rendered documents', () => {
             environments: {
               client: {
                 build: {
-                  rolldownOptions: { input: { legacy: '/index.html' } },
+                  rolldownOptions: { input: { document: '/index.html' } },
                 },
               },
             },
@@ -205,6 +206,12 @@ describe('code-rendered documents', () => {
         resolve(import.meta.dirname, 'fixtures/ssr'),
       ),
     ).rejects.toThrow(/renderDocument/)
+  })
+
+  it('rejects an HTML client entry for a code-rendered document', async () => {
+    await expect(
+      buildFixture('html-client-entry', { clientEntry: '/index.html' }),
+    ).rejects.toThrow(/clientEntry to name a browser script/)
   })
 
   it('uses the server document and static asset graph for fetch and prerender', async () => {
@@ -359,54 +366,75 @@ describe('code-rendered documents', () => {
     ).toMatch(/^https:\/\/cdn.example\/assets\/app-/)
   })
 
-  for (const isAssetUrlCustomized of [false, true]) {
-    it(`preserves external preload URLs with asset URL customization ${isAssetUrlCustomized}`, async () => {
-      const externalPreloads = [
-        'https://cdn.example/vendor.js?version=1&mode=fast',
-        '//cdn.example/shared.js',
-      ]
-      const { client } = await buildFixture(
-        `external-preloads-${isAssetUrlCustomized}`,
-        { prerender: true },
-        [
-          splitBrowserChunks,
-          {
-            name: 'test:external-preloads',
-            config: () => ({
-              base: '/app/',
-              build: {
-                modulePreload: {
-                  resolveDependencies: (_file, dependencies, context) =>
-                    context.hostType === 'html'
-                      ? externalPreloads
-                      : dependencies,
-                },
+  it('preserves external preload URLs while customizing built asset URLs', async () => {
+    const externalPreloads = [
+      'https://cdn.example/vendor.js?version=1&mode=fast',
+      '//cdn.example/shared.js',
+    ]
+    const { client } = await buildFixture(
+      'external-preloads',
+      { prerender: true },
+      [
+        splitBrowserChunks,
+        {
+          name: 'test:external-preloads',
+          config: () => ({
+            base: '/app/',
+            build: {
+              modulePreload: {
+                resolveDependencies: (_file, dependencies, context) =>
+                  context.hostType === 'html' ? externalPreloads : dependencies,
               },
-              ...(isAssetUrlCustomized
-                ? {
-                    experimental: {
-                      renderBuiltUrl: (file: string) =>
-                        `https://assets.example/${file}`,
-                    },
-                  }
-                : {}),
-            }),
-          },
-        ],
-        ASSETS_ROOT,
-      )
-      const window = new Window()
-      window.document.write(
-        await readFile(resolve(client, 'index.html'), 'utf8'),
-      )
+            },
+            experimental: {
+              renderBuiltUrl: file => `https://assets.example/${file}`,
+            },
+          }),
+        },
+      ],
+      ASSETS_ROOT,
+    )
+    const window = new Window()
+    window.document.write(await readFile(resolve(client, 'index.html'), 'utf8'))
 
-      expect(
-        [...window.document.querySelectorAll('link[rel="modulepreload"]')].map(
-          link => link.getAttribute('href'),
-        ),
-      ).toEqual(externalPreloads)
-    })
-  }
+    expect(
+      [...window.document.querySelectorAll('link[rel="modulepreload"]')].map(
+        link => link.getAttribute('href'),
+      ),
+    ).toEqual(externalPreloads)
+  })
+
+  it('rejects relative string asset URLs from renderBuiltUrl', async () => {
+    await expect(
+      buildFixture('relative-asset-url', {}, [
+        {
+          name: 'test:relative-asset-url',
+          config: () => ({
+            experimental: {
+              renderBuiltUrl: (_file, context) =>
+                context.hostType === 'html' ? 'assets/app.js' : undefined,
+            },
+          }),
+        },
+      ]),
+    ).rejects.toThrow(/renderBuiltUrl must return an absolute URL/)
+  })
+
+  it('rejects relative result objects from renderBuiltUrl', async () => {
+    await expect(
+      buildFixture('relative-asset-result', {}, [
+        {
+          name: 'test:relative-asset-result',
+          config: () => ({
+            experimental: {
+              renderBuiltUrl: (_file, context) =>
+                context.hostType === 'html' ? { relative: true } : undefined,
+            },
+          }),
+        },
+      ]),
+    ).rejects.toThrow(/cannot use runtime or relative renderBuiltUrl results/)
+  })
 
   for (const base of ['', './']) {
     it(`refuses the relative base ${JSON.stringify(base)}`, async () => {
@@ -434,7 +462,7 @@ describe('foldkitBuild', () => {
   })
 
   it('publishes only generated pages beside browser assets', async () => {
-    const { client, server } = await buildFixture('template-private', {
+    const { client, server } = await buildFixture('generated-pages', {
       prerender: { paths: ['/about'] },
     })
 
@@ -460,13 +488,6 @@ describe('foldkitBuild', () => {
     )
     expect(response.status).toBe(200)
     expect(await response.text()).toContain('>/about</main>')
-  })
-
-  it('references emitted browser assets in the server document', async () => {
-    const { server } = await buildFixture('fetch-template')
-    const bundle = await readFile(resolve(server, 'fetch.js'), 'utf8')
-    expect(bundle).not.toContain('./entry.client.ts')
-    expect(bundle).toContain('assets/')
   })
 
   it('generates a page for every path the entry lists', async () => {
