@@ -3,7 +3,7 @@ import type { Html } from 'foldkit/html'
 
 import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
-import type { RenderHeadingLink } from '../../prose'
+import { type RenderHeadingLink, demoContainer } from '../../prose'
 import * as VirtualList from './demo/virtualList'
 import type { Message } from './message'
 import type { Model } from './model'
@@ -25,14 +25,15 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
   (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
     renderPage({
       demos: {
-        fixed: h.div([], VirtualList.view(model.virtualListDemo, h)),
-        variable: h.div(
-          [],
-          VirtualList.virtualListVariableDemo(model.virtualListVariableDemo, h),
+        fixed: demoContainer(...VirtualList.view(model.virtualListDemo, h)),
+        variable: demoContainer(
+          ...VirtualList.virtualListVariableDemo(
+            model.virtualListVariableDemo,
+            h,
+          ),
         ),
-        chat: h.div(
-          [],
-          VirtualList.virtualListChatDemo(
+        chat: demoContainer(
+          ...VirtualList.virtualListChatDemo(
             model.virtualListChatDemo,
             model.virtualListChatMessages,
             h,

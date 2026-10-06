@@ -93,7 +93,7 @@ test('keeps end-anchored dynamic lists stable across append, prepend, and row gr
   await expectAnchorTop(container, prependAnchor)
 
   const appendAnchor = await visibleAnchor(container)
-  await page.locator('[data-virtual-list-chat-append]').click()
+  await page.getByRole('button', { name: 'Add message' }).click()
   await expectAnchorTop(container, appendAnchor)
 
   const growthAnchor = await visibleAnchor(container)
@@ -116,7 +116,7 @@ test('keeps end-anchored dynamic lists stable across append, prepend, and row gr
     element.dispatchEvent(new Event('scroll'))
   })
   await expect.poll(() => distanceFromEnd(container)).toBeLessThanOrEqual(1)
-  await page.locator('[data-virtual-list-chat-append]').click()
+  await page.getByRole('button', { name: 'Add message' }).click()
   await expect.poll(() => distanceFromEnd(container)).toBeLessThanOrEqual(1)
 })
 

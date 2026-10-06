@@ -1141,7 +1141,7 @@ const prependVirtualListChatMessages = (model: Model) => {
   return updateVirtualListChatMessages(model, nextMessages)
 }
 
-const handleVirtualListChatContainerScroll =
+const prependVirtualListChatMessagesOnStartThresholdEntry =
   (scrollTop: number): Update.Step<Model, Message> =>
   stepModel => {
     const isNearStart = scrollTop <= VIRTUAL_LIST_CHAT_START_THRESHOLD_PX
@@ -1475,7 +1475,7 @@ export const update = (model: Model, message: Message) =>
         Match.tag('ObservedContainerScroll', ({ scrollTop }) =>
           Update.combine(model, [
             foldVirtualListChatDemo(message),
-            handleVirtualListChatContainerScroll(scrollTop),
+            prependVirtualListChatMessagesOnStartThresholdEntry(scrollTop),
           ]),
         ),
         Match.orElse(() => foldVirtualListChatDemo(model, message)),

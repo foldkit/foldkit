@@ -203,7 +203,7 @@ export const demoContainer = (...content: ReadonlyArray<Html>): Html =>
   ih.div(
     [
       ih.Class(
-        'rounded-xl border border-gray-200 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/20 p-8 mb-6 flex flex-col items-center',
+        'rounded-xl border border-gray-200 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-800/20 p-4 sm:p-8 mb-6 flex flex-col items-center',
       ),
     ],
     content,
