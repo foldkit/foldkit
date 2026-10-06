@@ -1,4 +1,5 @@
-import { Array, Effect, Option, pipe } from 'effect'
+import { Array, Deferred, Effect, Option, Stream, pipe } from 'effect'
+import * as Mount from 'foldkit/mount'
 import * as Story from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, it } from 'vitest'
@@ -8,6 +9,7 @@ import {
   ApplyScrollOutcome,
   Message,
   type Model,
+  ObserveVirtualList,
   type ScrollAlignment,
   ScrollTarget,
   informItemsChanged,
@@ -26,23 +28,22 @@ const defaultInit = (): Model => init({ id: 'test', rowHeightPx: 30 })
 const measuredInit = (containerHeight: number): Model => {
   const measurement = update(
     defaultInit(),
-    Message.MeasuredContainer({ containerHeight }),
+    Message.ResizedContainer({ containerWidth: 320, containerHeight }),
   )
   return measurement.model
 }
 
 type ScrollReturn = ReturnType<typeof scrollToIndex>
 
-const executeScroll = async (
-  scrollReturn: ScrollReturn,
+const createScrollElement = (
   currentScrollTop: number,
   containerHeight: number,
   rows: ReadonlyArray<
     Readonly<{ index: number; key: string; start: number; height: number }>
-  > = [],
-  scrollHeight = 1000,
-  activeScrollVersion = scrollReturn.model.pendingScrollVersion,
-): Promise<number> => {
+  >,
+  scrollHeight: number,
+  activeScrollVersion: number,
+): HTMLElement => {
   const element = document.createElement('div')
   element.id = 'test'
   element.scrollTop = currentScrollTop
@@ -84,16 +85,58 @@ const executeScroll = async (
     })
     element.append(rowElement)
   }
+
+  return element
+}
+
+const runMountedScroll = (
+  scrollReturn: ScrollReturn,
+  element: HTMLElement,
+): Promise<number> =>
+  Effect.runPromise(
+    Effect.scoped(
+      Effect.gen(function* () {
+        const maybeCommand = pipe(scrollReturn.commands ?? [], Array.head)
+        if (Option.isNone(maybeCommand)) {
+          throw new Error('Expected one scroll Command')
+        }
+
+        const mounted = yield* Deferred.make<void>()
+        yield* ObserveVirtualList({ id: scrollReturn.model.id })
+          .f(element, Mount.liveViewStateChanges)
+          .pipe(
+            Stream.runForEach(() => Deferred.succeed(mounted, undefined)),
+            Effect.forkScoped,
+          )
+        yield* Deferred.await(mounted)
+        yield* maybeCommand.value.effect
+
+        return element.scrollTop
+      }),
+    ),
+  )
+
+const executeScroll = async (
+  scrollReturn: ScrollReturn,
+  currentScrollTop: number,
+  containerHeight: number,
+  rows: ReadonlyArray<
+    Readonly<{ index: number; key: string; start: number; height: number }>
+  > = [],
+  scrollHeight = 1000,
+  activeScrollVersion = scrollReturn.model.pendingScrollVersion,
+): Promise<number> => {
+  const element = createScrollElement(
+    currentScrollTop,
+    containerHeight,
+    rows,
+    scrollHeight,
+    activeScrollVersion,
+  )
   document.body.append(element)
 
   try {
-    const maybeCommand = pipe(scrollReturn.commands ?? [], Array.head)
-    if (Option.isNone(maybeCommand)) {
-      throw new Error('Expected one scroll Command')
-    }
-
-    await Effect.runPromise(maybeCommand.value.effect)
-    return element.scrollTop
+    return await runMountedScroll(scrollReturn, element)
   } finally {
     element.remove()
   }
@@ -156,7 +199,7 @@ describe('VirtualList', () => {
       })
       const measured = update(
         initialModel,
-        Message.MeasuredContainer({ containerHeight: 90 }),
+        Message.ResizedContainer({ containerWidth: 320, containerHeight: 90 }),
       )
       const emptyScroll = update(
         measured.model,
@@ -199,7 +242,7 @@ describe('VirtualList', () => {
       })
       const measured = update(
         initialModel,
-        Message.MeasuredContainer({ containerHeight: 90 }),
+        Message.ResizedContainer({ containerWidth: 320, containerHeight: 90 }),
       )
       const missing = update(
         measured.model,
@@ -244,7 +287,7 @@ describe('VirtualList', () => {
       })
       const measured = update(
         initialModel,
-        Message.MeasuredContainer({ containerHeight: 90 }),
+        Message.ResizedContainer({ containerWidth: 320, containerHeight: 90 }),
       )
       const scrolled = update(
         measured.model,
@@ -265,12 +308,19 @@ describe('VirtualList', () => {
     })
   })
 
-  describe('ScrolledContainer', () => {
+  describe('ObservedContainerScroll', () => {
     it('writes the new scrollTop into the model', () => {
       Story.story(
         update,
         Story.given(defaultInit()),
-        Story.message(Message.ScrolledContainer({ scrollTop: 450 })),
+        Story.message(
+          Message.ObservedContainerScroll({
+            scrollTop: 450,
+            scrollHeight: 1000,
+            containerHeight: 300,
+            anchor: { _tag: 'None' },
+          }),
+        ),
         Story.model(model => {
           expect(model.scrollTop).toBe(450)
         }),
@@ -356,12 +406,17 @@ describe('VirtualList', () => {
     })
   })
 
-  describe('MeasuredContainer', () => {
+  describe('ResizedContainer', () => {
     it('transitions Unmeasured to Measured with the reported height', () => {
       Story.story(
         update,
         Story.given(defaultInit()),
-        Story.message(Message.MeasuredContainer({ containerHeight: 600 })),
+        Story.message(
+          Message.ResizedContainer({
+            containerWidth: 320,
+            containerHeight: 600,
+          }),
+        ),
         Story.model(model => {
           expect(model.measurement._tag).toBe('Measured')
           if (model.measurement._tag === 'Measured') {
@@ -375,8 +430,18 @@ describe('VirtualList', () => {
       Story.story(
         update,
         Story.given(defaultInit()),
-        Story.message(Message.MeasuredContainer({ containerHeight: 600 })),
-        Story.message(Message.MeasuredContainer({ containerHeight: 720 })),
+        Story.message(
+          Message.ResizedContainer({
+            containerWidth: 320,
+            containerHeight: 600,
+          }),
+        ),
+        Story.message(
+          Message.ResizedContainer({
+            containerWidth: 320,
+            containerHeight: 720,
+          }),
+        ),
         Story.Command.resolve(ApplyScroll, completedApplyScroll(1)),
         Story.model(model => {
           if (model.measurement._tag === 'Measured') {
@@ -390,7 +455,12 @@ describe('VirtualList', () => {
       Story.story(
         update,
         Story.given(defaultInit()),
-        Story.message(Message.MeasuredContainer({ containerHeight: 600 })),
+        Story.message(
+          Message.ResizedContainer({
+            containerWidth: 320,
+            containerHeight: 600,
+          }),
+        ),
         Story.Command.expectNone(),
       )
     })
@@ -401,7 +471,12 @@ describe('VirtualList', () => {
         Story.given(
           init({ id: 'test', rowHeightPx: 30, initialScrollTop: 600 }),
         ),
-        Story.message(Message.MeasuredContainer({ containerHeight: 300 })),
+        Story.message(
+          Message.ResizedContainer({
+            containerWidth: 320,
+            containerHeight: 300,
+          }),
+        ),
         Story.Command.expectHas(ApplyScroll),
         Story.model(model => {
           expect(model.pendingScroll._tag).toBe('Pending')
@@ -422,8 +497,18 @@ describe('VirtualList', () => {
       Story.story(
         update,
         Story.given(defaultInit()),
-        Story.message(Message.MeasuredContainer({ containerHeight: 300 })),
-        Story.message(Message.MeasuredContainer({ containerHeight: 320 })),
+        Story.message(
+          Message.ResizedContainer({
+            containerWidth: 320,
+            containerHeight: 300,
+          }),
+        ),
+        Story.message(
+          Message.ResizedContainer({
+            containerWidth: 320,
+            containerHeight: 320,
+          }),
+        ),
         Story.Command.expectHas(ApplyScroll),
         Story.Command.resolve(ApplyScroll, completedApplyScroll(1)),
       )
@@ -646,6 +731,32 @@ describe('VirtualList', () => {
         })
       }
       expect(scrollTop).toBe(275)
+    })
+
+    it('scrolls a mounted container inside a shadow root', async () => {
+      const host = document.createElement('div')
+      const shadowRoot = host.attachShadow({ mode: 'open' })
+      const offsetScroll = scrollToOffset(defaultInit(), 275)
+      const element = createScrollElement(
+        0,
+        90,
+        [],
+        500,
+        offsetScroll.model.pendingScrollVersion,
+      )
+      shadowRoot.append(element)
+      document.body.append(host)
+
+      try {
+        expect(document.getElementById('test')).toBeNull()
+        expect(shadowRoot.getElementById('test')).toBe(element)
+
+        const scrollTop = await runMountedScroll(offsetScroll, element)
+
+        expect(scrollTop).toBe(275)
+      } finally {
+        host.remove()
+      }
     })
 
     it('clamps a negative pixel offset to zero', async () => {

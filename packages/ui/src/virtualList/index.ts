@@ -138,8 +138,6 @@ export type Model = typeof Model.Type
 
 /** Union of all messages the virtual list component can produce. */
 export const Message = defineMessageUnion({
-  ScrolledContainer: { scrollTop: Schema.Number },
-  MeasuredContainer: { containerHeight: Schema.Number },
   ObservedContainerScroll: {
     scrollTop: Schema.Number,
     scrollHeight: Schema.Number,
@@ -164,9 +162,6 @@ export const Message = defineMessageUnion({
     outcome: ApplyScrollOutcome,
   },
 })
-
-export type ScrolledContainer = typeof Message.ScrolledContainer.Type
-export type MeasuredContainer = typeof Message.MeasuredContainer.Type
 
 export type Message = typeof Message.Type
 
@@ -460,6 +455,8 @@ const scrollTopForRequest = (
     Anchor: ({ anchor }) => scrollTopForAnchor(element, anchor),
   })
 
+const mountedContainers = new Map<string, HTMLElement>()
+
 export const ApplyScroll = Command.define('ApplyScroll', {
   args: {
     id: Schema.String,
@@ -471,8 +468,8 @@ export const ApplyScroll = Command.define('ApplyScroll', {
     Effect.gen(function* () {
       yield* Render.afterCommit
 
-      const element = document.getElementById(id)
-      if (!(element instanceof HTMLElement)) {
+      const element = mountedContainers.get(id)
+      if (element === undefined) {
         return Message.CompletedApplyScroll({
           version,
           outcome: ApplyScrollOutcome.Skipped(),
@@ -707,21 +704,6 @@ const applyRowMeasurements = (
 /** Processes a VirtualList Message and returns the next Model and optional Commands. */
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
-    ScrolledContainer: ({ scrollTop }) => ({
-      model: modifyFields(model, {
-        scrollTop: () => scrollTop,
-        viewportAnchor: () => ViewportAnchor.Offset({ scrollTop }),
-      }),
-    }),
-
-    MeasuredContainer: ({ containerHeight }) => {
-      const containerWidth = Measurement.match<number>(model.measurement, {
-        Unmeasured: () => 0,
-        Measured: ({ containerWidth }) => containerWidth,
-      })
-      return measureContainer(model, containerWidth, containerHeight)
-    },
-
     ObservedContainerScroll: snapshot => {
       const nextPendingScrollVersion = PendingScroll.match<number>(
         model.pendingScroll,
@@ -884,7 +866,7 @@ const lastOrZero = (values: ReadonlyArray<number>): number =>
  *
  *  Returns `Option.none()` when the container has not yet been measured;
  *  callers should render a placeholder (or `Html.empty`) and wait for the
- *  first `MeasuredContainer` message. */
+ *  first `ResizedContainer` message. */
 export const visibleWindow = (
   model: Model,
   itemCount: number,
@@ -1255,12 +1237,13 @@ type ObserveVirtualListMessage =
 /** Container-owned Mount that tracks scrolling, container resizing, and
  *  rendered row measurements for dynamic-height lists. */
 export const ObserveVirtualList = Mount.defineStream('ObserveVirtualList', {
+  args: { id: Schema.String },
   messages: [
     Message.ObservedContainerScroll,
     Message.ResizedContainer,
     Message.MeasuredRows,
   ],
-  execute: ({ element }) =>
+  execute: ({ element, id }) =>
     Stream.callback<ObserveVirtualListMessage>(queue =>
       Effect.acquireRelease(
         Effect.sync(() => {
@@ -1361,7 +1344,12 @@ export const ObserveVirtualList = Mount.defineStream('ObserveVirtualList', {
           })
           reconcileRows()
 
+          mountedContainers.set(id, element)
+
           return () => {
+            if (mountedContainers.get(id) === element) {
+              mountedContainers.delete(id)
+            }
             mutationObserver.disconnect()
             rowResizeObserver.disconnect()
             containerResizeObserver.disconnect()
@@ -1450,7 +1438,7 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
         'virtual-list-scroll-version',
         String(model.pendingScrollVersion),
       ),
-      h.OnMount(ObserveVirtualList()),
+      h.OnMount(ObserveVirtualList({ id: model.id })),
       h.Style({
         overflow: 'auto',
         'overflow-anchor': 'none',

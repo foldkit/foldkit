@@ -15,8 +15,6 @@ export {
   ContentAlignment,
   ScrollAlignment,
   ScrollTarget,
-  type ScrolledContainer,
-  type MeasuredContainer,
 } from './index.js'
 
 export type {

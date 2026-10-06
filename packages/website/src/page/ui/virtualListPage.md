@@ -54,6 +54,10 @@ Use `scrollToIndex` for every sizing mode; the view resolves each row's offset f
 
 VirtualList renders an `ObserveVirtualList` Mount on its scroll container. The Mount owns the scroll listener, container `ResizeObserver`, dynamic-row `ResizeObserver`, and descendant observation. Delete `VirtualList.subscriptions.containerEvents` from existing Subscription wiring. VirtualList no longer exports `subscriptions`, so TypeScript will identify any remaining callers.
 
+The Mount also supplies the live container to scroll Commands, so programmatic scrolling works when VirtualList is rendered inside a shadow root.
+
+The Mount emits `ObservedContainerScroll` with the scroll position, container dimensions, and visible row anchor, and `ResizedContainer` with both dimensions. Replace manual `ScrolledContainer` and `MeasuredContainer` Messages with these variants, and update exhaustive Message matches.
+
 ## Styling
 
 The container needs a constrained height. Without it, the container grows to fit children and never scrolls. Use `containerClassName` or `containerAttributes` to apply that height.

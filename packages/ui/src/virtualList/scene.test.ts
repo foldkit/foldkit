@@ -83,7 +83,7 @@ const unmeasuredModel = init({ id: 'test', rowHeightPx: ROW_HEIGHT })
 const measuredModel = (() => {
   const measurement = update(
     unmeasuredModel,
-    Message.MeasuredContainer({ containerHeight: 90 }),
+    Message.ResizedContainer({ containerWidth: 320, containerHeight: 90 }),
   )
   return measurement.model
 })()
@@ -92,7 +92,7 @@ const container = Scene.selector('ul#test')
 const rows = Scene.all.selector('li[data-virtual-list-item-index]')
 const topSpacer = Scene.first(Scene.all.selector('li[role="presentation"]'))
 const acknowledgeObserver = Scene.Mount.resolve(
-  ObserveVirtualList(),
+  ObserveVirtualList({ id: 'test' }),
   Message.MeasuredRows({ measurements: [] }),
 )
 
@@ -206,7 +206,12 @@ describe('VirtualList', () => {
     it('sets aria-posinset using the logical (data) index, not the slice index, when scrolled', () => {
       const scrolledUpdate = update(
         measuredModel,
-        Message.ScrolledContainer({ scrollTop: 90 }),
+        Message.ObservedContainerScroll({
+          scrollTop: 90,
+          scrollHeight: 300,
+          containerHeight: 90,
+          anchor: { _tag: 'None' },
+        }),
       )
       Scene.scene(
         { update, view: sceneView() },
@@ -246,7 +251,7 @@ describe('VirtualList', () => {
     const variableMeasuredModel = (() => {
       const measuredUpdate = update(
         unmeasuredModel,
-        Message.MeasuredContainer({ containerHeight: 90 }),
+        Message.ResizedContainer({ containerWidth: 320, containerHeight: 90 }),
       )
       return measuredUpdate.model
     })()
@@ -283,7 +288,7 @@ describe('VirtualList', () => {
           rowHeightPx: ROW_HEIGHT,
           initialScroll: { target: ScrollTarget.End() },
         }),
-        Message.MeasuredContainer({ containerHeight: 90 }),
+        Message.ResizedContainer({ containerWidth: 320, containerHeight: 90 }),
       )
 
       Scene.scene(
