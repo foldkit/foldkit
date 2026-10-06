@@ -67,6 +67,43 @@ const directlyReturnsUndefined = (
   )
 }
 
+const directlyReturnedMapper = (
+  mapper: ESTree.ArrowFunctionExpression | ESTree.Function,
+): ESTree.ArrowFunctionExpression | ESTree.Function | undefined => {
+  if (mapper.body === null) {
+    return undefined
+  }
+  if (mapper.body.type !== 'BlockStatement') {
+    return isMapperFunction(mapper.body) ? mapper.body : undefined
+  }
+
+  const [firstStatement, secondStatement] = mapper.body.body
+  if (
+    firstStatement?.type !== 'ReturnStatement' ||
+    secondStatement !== undefined ||
+    !isMapperFunction(firstStatement.argument)
+  ) {
+    return undefined
+  }
+
+  return firstStatement.argument
+}
+
+const forwardsNothing = (
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+  mapper: ESTree.ArrowFunctionExpression | ESTree.Function,
+): boolean => {
+  if (directlyReturnsUndefined(references, mapper)) {
+    return true
+  }
+
+  const returnedMapper = directlyReturnedMapper(mapper)
+  return (
+    returnedMapper !== undefined &&
+    directlyReturnsUndefined(references, returnedMapper)
+  )
+}
+
 const isEmptyMapperProperty = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
   property: ESTree.ObjectProperty,
@@ -77,7 +114,7 @@ const isEmptyMapperProperty = (
     TO_PARENT_OUT_MESSAGE_PROPERTY,
   ) &&
   isMapperFunction(property.value) &&
-  directlyReturnsUndefined(references, property.value)
+  forwardsNothing(references, property.value)
 
 const removalRange = (
   sourceText: string,
@@ -108,20 +145,21 @@ const removalRange = (
 }
 
 const emptyMapperMessage =
-  'Omit toParentOutMessage. This mapper directly returns undefined, so it forwards nothing to the parent.'
+  'Omit toParentOutMessage. Its inline mapper returns undefined for every child OutMessage, so it forwards nothing to the parent.'
 
 /**
  * Flags an inline `toParentOutMessage` mapper that directly returns
- * `undefined`. That mapper forwards nothing to the parent, so the property
- * should be omitted. This syntax-only rule does not inspect async functions,
- * generators, getters, setters, or mappers referenced by name.
+ * `undefined`, including the mapper returned by a keyed mapper factory. That
+ * mapper forwards nothing to the parent, so the property should be omitted.
+ * This syntax-only rule does not inspect async functions, generators, getters,
+ * setters, or mappers referenced by name.
  */
 export const noEmptyToParentOutMessage = Rule.define({
   name: 'no-empty-to-parent-out-message',
   meta: Rule.meta({
     type: 'suggestion',
     description:
-      'Omit an inline toParentOutMessage mapper that directly returns undefined.',
+      'Omit an inline toParentOutMessage mapper that returns undefined for every child OutMessage.',
     fixable: 'code',
   }),
   create: function* () {

@@ -8,6 +8,10 @@ export const forwardingMapper = {
   update,
   toParentOutMessage: () => parentOutMessage,
 }
+export const keyedForwardingMapper = {
+  update,
+  toParentOutMessage: (_key: string) => () => parentOutMessage,
+}
 
 export const shadowedUndefined = (undefined: unknown) => ({
   update,

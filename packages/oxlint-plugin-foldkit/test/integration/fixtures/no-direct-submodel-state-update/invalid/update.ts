@@ -3,7 +3,11 @@ import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 type SettingsModel = Readonly<{ theme: string }>
-type Model = Readonly<{ settings: SettingsModel; preferences: SettingsModel }>
+type Model = Readonly<{
+  settings: SettingsModel
+  keyedSettings: SettingsModel
+  preferences: SettingsModel
+}>
 
 const readSettings = (model: Model) => Option.some(model.settings)
 
@@ -22,6 +26,14 @@ const foldSettingsStep = Update.foldChildStep({
   read: readSettings,
   write: writeSettings,
   toParentMessage: message => message,
+})
+
+const foldKeyedSettings = Update.foldChildAt({
+  update: (settings: SettingsModel, _message: unknown) => ({ model: settings }),
+  readAt: (model: Model, _key: string) => Option.some(model.keyedSettings),
+  writeAt: (model, _key, nextSettings) =>
+    modifyFields(model, { keyedSettings: () => nextSettings }),
+  toParentMessage: (_key, message) => message,
 })
 
 export const update = (model: Model, message: unknown) => {
@@ -98,5 +110,21 @@ export const updateConditionally = (model: Model, message: unknown) => {
       },
     }),
     commands: settingsUpdate.commands,
+  }
+}
+
+export const updateKeyedSettings = (
+  model: Model,
+  key: string,
+  message: unknown,
+) => {
+  const keyedSettingsUpdate = foldKeyedSettings(model, key, message)
+
+  return {
+    model: modifyFields(model, {
+      keyedSettings: keyedSettings =>
+        modifyFields(keyedSettings, { theme: () => 'Light' }),
+    }),
+    commands: keyedSettingsUpdate.commands,
   }
 }

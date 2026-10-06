@@ -25,7 +25,7 @@ import {
 const pascalIdentifierPattern = /^[A-Z][A-Za-z0-9]*$/
 
 const childMessageConstructionMessage = (calleeLabel: string): string =>
-  `Do not construct the child Message \`${calleeLabel}(...)\` from a parent. Expose a child update capability that applies this fact, then invoke it with Update.foldChild or Update.foldChildStep. Child-owned views, Commands, and Subscriptions may construct their own Messages.`
+  `Do not construct the child Message \`${calleeLabel}(...)\` from a parent. Expose a child update capability that applies this fact, then invoke it with Update.foldChild, Update.foldChildAt, or Update.foldChildStep. Child-owned views, Commands, and Subscriptions may construct their own Messages.`
 
 type ImportedMessagePath = Pick<ImportedPath, 'source' | 'members'>
 

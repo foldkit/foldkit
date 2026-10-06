@@ -292,6 +292,7 @@ const foldkitNamespaceBySource: Readonly<Record<string, string>> = {
   'foldkit/struct': 'Struct',
   'foldkit/submodel': 'Submodel',
   'foldkit/subscription': 'Subscription',
+  'foldkit/update': 'Update',
 }
 
 export const resolveFoldkitApiPath = (

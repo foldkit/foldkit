@@ -234,7 +234,7 @@ Flags turning off the freezeModel or slow dev guardrails. Fix the mutation or sl
 
 ### foldkit/no-empty-to-parent-out-message {#no-empty-to-parent-out-message}
 
-Flags an inline `toParentOutMessage` mapper that directly returns `undefined`. That mapper forwards nothing to the parent, so omit the property.
+Flags an inline `toParentOutMessage` mapper that always returns `undefined`, including a keyed factory whose returned mapper does so. That mapper forwards nothing to the parent, so omit the property.
 
 Partial forwarding is valid. Match every child OutMessage variant. Return a parent OutMessage for each variant you want to forward, and return `undefined` for each variant that stops at this Submodel.
 

@@ -71,6 +71,7 @@ const isFoldCall = (
 ): boolean => {
   const isFoldPath = (path: ReadonlyArray<string>): boolean =>
     sameNames(path, ['Update', 'foldChild']) ||
+    sameNames(path, ['Update', 'foldChildAt']) ||
     sameNames(path, ['Update', 'foldChildStep'])
 
   if (references !== undefined) {
@@ -94,7 +95,10 @@ const isInsideFoldWrite = (
   while (ancestor !== null && ancestor !== undefined) {
     if (
       isObjectProperty(ancestor) &&
-      Option.contains(staticPropertyName(ancestor), 'write') &&
+      Option.exists(
+        staticPropertyName(ancestor),
+        propertyName => propertyName === 'write' || propertyName === 'writeAt',
+      ) &&
       isObjectExpression(ancestor.parent) &&
       isCallExpression(ancestor.parent.parent) &&
       isFoldCall(ancestor.parent.parent, references)
@@ -192,8 +196,11 @@ const modelFieldNames = (
 const modifyFieldsFieldNames = (
   functionNode: ESTree.ArrowFunctionExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  nextChildParameterIndex = 1,
 ): ReadonlySet<string> => {
-  const [parentModel, nextChild] = functionNode.params
+  const [parentModel, secondParameter, thirdParameter] = functionNode.params
+  const nextChild =
+    nextChildParameterIndex === 2 ? thirdParameter : secondParameter
   if (!isIdentifier(parentModel) || !isIdentifier(nextChild)) {
     return new Set()
   }
@@ -309,15 +316,30 @@ const foldChildFieldsByNamespace = (
             namespace = path.root.name
           }),
         )
-      } else if (Option.contains(staticPropertyName(property), 'read')) {
+      } else if (
+        Option.exists(
+          staticPropertyName(property),
+          propertyName => propertyName === 'read' || propertyName === 'readAt',
+        )
+      ) {
         const callback = callbackValue(property.value, callbacks)
         if (callback !== undefined) {
           readFields = modelFieldNames(callback)
         }
-      } else if (Option.contains(staticPropertyName(property), 'write')) {
+      } else if (
+        Option.exists(
+          staticPropertyName(property),
+          propertyName =>
+            propertyName === 'write' || propertyName === 'writeAt',
+        )
+      ) {
         const callback = callbackValue(property.value, callbacks)
         if (callback !== undefined) {
-          writeFields = modifyFieldsFieldNames(callback, references)
+          writeFields = modifyFieldsFieldNames(
+            callback,
+            references,
+            Option.contains(staticPropertyName(property), 'writeAt') ? 2 : 1,
+          )
         }
       }
     }
@@ -448,12 +470,13 @@ const manualChildResultMessage = (
   helperLabel: string,
   resultName: string,
 ): string =>
-  `The parent writes \`${resultName}.model\` into \`${childFieldName}\` after calling \`${helperLabel}\`. A child Return can include Commands or an OutMessage that this copy ignores. Use Update.foldChild or Update.foldChildStep.`
+  `The parent writes \`${resultName}.model\` into \`${childFieldName}\` after calling \`${helperLabel}\`. A child Return can include Commands or an OutMessage that this copy ignores. Use Update.foldChild, Update.foldChildAt, or Update.foldChildStep.`
 
 /** Flags a parent that copies a namespaced child helper or update Return's Model
- *  into the matching modifyFields field. It requires a matching Update.foldChild or
- *  Update.foldChildStep reference in the file, and leaves ordinary helpers,
- *  direct imports, aliases, init assembly, and Model-only reflect helpers alone. */
+ *  into the matching modifyFields field. It requires a matching
+ *  Update.foldChild, Update.foldChildAt, or Update.foldChildStep reference in
+ *  the file, and leaves ordinary helpers, direct imports, aliases, init
+ *  assembly, keyed collection writes, and Model-only reflect helpers alone. */
 export const requireFoldForChildUpdateResult = Rule.define({
   name: 'require-fold-for-child-update-result',
   meta: Rule.meta({

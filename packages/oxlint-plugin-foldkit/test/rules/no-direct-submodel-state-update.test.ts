@@ -28,6 +28,14 @@ const foldChildStep = (read: unknown, write: unknown) =>
     objectExpression([property('read', read), property('write', write)]),
   ])
 
+const foldChildAt = (readAt: unknown, writeAt: unknown) =>
+  Testing.callOfMember('Update', 'foldChildAt', [
+    objectExpression([
+      property('readAt', readAt),
+      property('writeAt', writeAt),
+    ]),
+  ])
+
 const readSettings = Testing.arrowFn(
   Testing.callOfMember('Option', 'some', [
     Testing.memberExpr('model', 'settings'),
@@ -43,6 +51,23 @@ const writeSettings = Testing.arrowFn(
     ]),
   ),
   [Testing.id('model'), Testing.id('nextSettings')],
+)
+
+const readSettingsAt = Testing.arrowFn(
+  Testing.callOfMember('Option', 'some', [
+    Testing.memberExpr('model', 'settings'),
+  ]),
+  [Testing.id('model'), Testing.id('key')],
+)
+
+const writeSettingsAt = Testing.arrowFn(
+  modifyFields(
+    'model',
+    objectExpression([
+      property('settings', Testing.arrowFn(Testing.id('nextSettings'))),
+    ]),
+  ),
+  [Testing.id('model'), Testing.id('key'), Testing.id('nextSettings')],
 )
 
 const directSettingsUpdate = (model: string) =>
@@ -95,12 +120,72 @@ const foldSettingsStep = Testing.varDecl(
   foldChildStep(readSettings, writeSettings),
 )
 
+const foldSettingsAt = Testing.varDecl(
+  'const',
+  'foldSettingsAt',
+  foldChildAt(readSettingsAt, writeSettingsAt),
+)
+
 const foldSettingsDataFirst = (model: string) =>
   Testing.callExpr('foldSettings', [Testing.id(model), Testing.id('message')])
 
 const foldSettingsDataLast = (model: string) => ({
   type: 'CallExpression',
   callee: Testing.callExpr('foldSettings', [Testing.id('message')]),
+  arguments: [Testing.id(model)],
+})
+
+const foldSettingsAtDataFirst = (model: string) =>
+  Testing.callExpr('foldSettingsAt', [
+    Testing.id(model),
+    Testing.id('key'),
+    Testing.id('message'),
+  ])
+
+const foldSettingsAtDataLast = (model: string) => ({
+  type: 'CallExpression',
+  callee: Testing.callExpr('foldSettingsAt', [
+    Testing.id('key'),
+    Testing.id('message'),
+  ]),
+  arguments: [Testing.id(model)],
+})
+
+const identityStep = () =>
+  Testing.arrowFn(
+    objectExpression([property('model', Testing.id('stepModel'))]),
+    [Testing.id('stepModel')],
+  )
+
+const foldSettingsAtCombine = (model: string) =>
+  Testing.callOfMember('Update', 'combine', [
+    Testing.id(model),
+    {
+      type: 'ArrayExpression',
+      elements: [
+        Testing.callExpr('foldSettingsAt', [
+          Testing.id('key'),
+          Testing.id('message'),
+        ]),
+        identityStep(),
+      ],
+    },
+  ])
+
+const foldSettingsAtDataLastCombine = (model: string) => ({
+  type: 'CallExpression',
+  callee: Testing.callOfMember('Update', 'combine', [
+    {
+      type: 'ArrayExpression',
+      elements: [
+        Testing.callExpr('foldSettingsAt', [
+          Testing.id('key'),
+          Testing.id('message'),
+        ]),
+        identityStep(),
+      ],
+    },
+  ]),
   arguments: [Testing.id(model)],
 })
 
@@ -277,6 +362,110 @@ describe('no-direct-submodel-state-update', () => {
     expect(result[0]?.diagnostic.message).toContain(
       'child-owned update capability',
     )
+    expect(result[0]?.diagnostic.message).toContain('Update.foldChildAt')
+  })
+
+  it('flags a direct-field child wired through a data-first keyed fold', () => {
+    const result = runRule([
+      foldSettingsAt,
+      foldSettingsAtDataFirst('model'),
+      directSettingsUpdate('model'),
+    ])
+
+    expect(result).toHaveLength(1)
+  })
+
+  it('flags a direct-field child wired through a data-last keyed fold', () => {
+    const result = runRule([
+      foldSettingsAt,
+      foldSettingsAtDataLast('model'),
+      directSettingsUpdate('model'),
+    ])
+
+    expect(result).toHaveLength(1)
+  })
+
+  it('flags a direct-field keyed fold in data-first combine', () => {
+    const result = runRule([
+      foldSettingsAt,
+      foldSettingsAtCombine('model'),
+      directSettingsUpdate('model'),
+    ])
+
+    expect(result).toHaveLength(1)
+  })
+
+  it('flags a direct-field keyed fold in data-last combine', () => {
+    const result = runRule([
+      foldSettingsAt,
+      foldSettingsAtDataLastCombine('model'),
+      directSettingsUpdate('model'),
+    ])
+
+    expect(result).toHaveLength(1)
+  })
+
+  it('does not treat a keyed collection write as a direct child field', () => {
+    const readEntryAt = Testing.arrowFn(
+      Testing.callOfMember('HashMap', 'get', [
+        Testing.memberExpr('model', 'entries'),
+        Testing.id('key'),
+      ]),
+      [Testing.id('model'), Testing.id('key')],
+    )
+    const writeEntryAt = Testing.arrowFn(
+      modifyFields(
+        'model',
+        objectExpression([
+          property(
+            'entries',
+            Testing.arrowFn(
+              Testing.callOfMember('HashMap', 'set', [
+                Testing.id('entries'),
+                Testing.id('key'),
+                Testing.id('nextEntry'),
+              ]),
+              [Testing.id('entries')],
+            ),
+          ),
+        ]),
+      ),
+      [Testing.id('model'), Testing.id('key'), Testing.id('nextEntry')],
+    )
+    const result = runRule([
+      Testing.varDecl(
+        'const',
+        'foldEntry',
+        foldChildAt(readEntryAt, writeEntryAt),
+      ),
+      Testing.callExpr('foldEntry', [
+        Testing.id('model'),
+        Testing.id('key'),
+        Testing.id('message'),
+      ]),
+      modifyFields(
+        'model',
+        objectExpression([
+          property(
+            'entries',
+            Testing.arrowFn(
+              modifyFields(
+                'entries',
+                objectExpression([
+                  property(
+                    'selection',
+                    Testing.arrowFn(Testing.id('selection')),
+                  ),
+                ]),
+              ),
+              [Testing.id('entries')],
+            ),
+          ),
+        ]),
+      ),
+    ])
+
+    expect(result).toHaveLength(0)
   })
 
   it('allows a nested modifyFields on an ordinary Model field', () => {

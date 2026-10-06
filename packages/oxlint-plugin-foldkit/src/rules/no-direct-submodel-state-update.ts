@@ -22,7 +22,7 @@ import {
 } from '../guards.ts'
 
 const directSubmodelStateUpdateMessage = (fieldName: string): string =>
-  `Do not update the Submodel field \`${fieldName}\` directly from its parent. Expose a child-owned update capability, then apply it with Update.foldChild or Update.foldChildStep.`
+  `Do not update the Submodel field \`${fieldName}\` directly from its parent. Expose a child-owned update capability, then apply it with Update.foldChild, Update.foldChildAt, or Update.foldChildStep.`
 
 const isNode = (value: unknown): value is ESTree.Node =>
   typeof value === 'object' &&
@@ -181,8 +181,11 @@ const propertyValue = (
 const directWriteField = (
   callback: ESTree.ArrowFunctionExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  nextChildParameterIndex = 1,
 ): string | undefined => {
-  const [modelParameter, nextChildParameter] = callback.params
+  const [modelParameter, secondParameter, thirdParameter] = callback.params
+  const nextChildParameter =
+    nextChildParameterIndex === 2 ? thirdParameter : secondParameter
   if (!isIdentifier(modelParameter) || !isIdentifier(nextChildParameter)) {
     return undefined
   }
@@ -247,7 +250,7 @@ const isModifyFieldsCall = (
   })
 }
 
-type FoldKind = 'Fold' | 'Step'
+type FoldKind = 'Fold' | 'Keyed' | 'Step'
 
 const foldKind = (
   node: ESTree.CallExpression,
@@ -256,6 +259,9 @@ const foldKind = (
   const foldKindForName = (helperName: string): FoldKind | undefined => {
     if (helperName === 'foldChild') {
       return 'Fold'
+    }
+    if (helperName === 'foldChildAt') {
+      return 'Keyed'
     }
     if (helperName === 'foldChildStep') {
       return 'Step'
@@ -416,12 +422,14 @@ const foldDefinitions = (
       if (!isObjectExpression(configuration)) {
         continue
       }
+      const readPropertyName = kind === 'Keyed' ? 'readAt' : 'read'
+      const writePropertyName = kind === 'Keyed' ? 'writeAt' : 'write'
       const read = callbackValue(
-        propertyValue(configuration, 'read'),
+        propertyValue(configuration, readPropertyName),
         callbacks,
       )
       const write = callbackValue(
-        propertyValue(configuration, 'write'),
+        propertyValue(configuration, writePropertyName),
         callbacks,
       )
       if (read === undefined || write === undefined) {
@@ -430,7 +438,11 @@ const foldDefinitions = (
 
       writeCallbacks.add(write)
       const readField = directReadField(read)
-      const writeField = directWriteField(write, references)
+      const writeField = directWriteField(
+        write,
+        references,
+        kind === 'Keyed' ? 2 : 1,
+      )
       if (readField === undefined || readField !== writeField) {
         continue
       }
@@ -510,7 +522,7 @@ const childFieldsForCombine = (
     }
 
     const definition = foldDefinitionFor(step.callee, definitions, references)
-    if (definition?.kind === 'Fold') {
+    if (definition?.kind === 'Fold' || definition?.kind === 'Keyed') {
       childFields.add(definition.childField)
     }
   }
@@ -721,15 +733,18 @@ const foldEvidence = (
     const dataLastDefinition = isCallExpression(node.callee)
       ? foldDefinitionFor(node.callee.callee, definitions, references)
       : undefined
-    if (
-      directDefinition === undefined &&
-      (dataLastDefinition === undefined || dataLastDefinition.kind !== 'Fold')
-    ) {
+    if (directDefinition === undefined && dataLastDefinition === undefined) {
       return
     }
 
-    const [firstArgument, secondArgument] = node.arguments
+    const [firstArgument, secondArgument, thirdArgument] = node.arguments
     if (directDefinition?.kind === 'Fold' && secondArgument === undefined) {
+      return
+    }
+    if (directDefinition?.kind === 'Keyed' && thirdArgument === undefined) {
+      return
+    }
+    if (dataLastDefinition?.kind === 'Step') {
       return
     }
     const definition = directDefinition ?? dataLastDefinition

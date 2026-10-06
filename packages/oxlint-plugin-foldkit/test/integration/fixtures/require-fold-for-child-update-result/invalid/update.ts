@@ -8,6 +8,7 @@ import * as Settings from './settings'
 type Model = Readonly<{
   child: Child.Model
   childBlock: Child.Model
+  keyedChild: Child.Model
   productsPage: Products.Model
   settings: Settings.Model
 }>
@@ -58,6 +59,15 @@ const foldChildBlock = Update.foldChild({
   toParentMessage: (message: Child.Message) => GotChildMessage({ message }),
 })
 
+const foldKeyedChild = Update.foldChildAt({
+  update: Child.update,
+  readAt: (model: Model, _key: string) => Option.some(model.keyedChild),
+  writeAt: (model, _key, nextChild) =>
+    modifyFields(model, { keyedChild: () => nextChild }),
+  toParentMessage: (_key, message: Child.Message) =>
+    GotChildMessage({ message }),
+})
+
 const foldProducts = Update.foldChild({
   update: Products.update,
   read: (model: Model) => Option.some(model.productsPage),
@@ -70,6 +80,7 @@ const foldProducts = Update.foldChild({
 const settingsReset = Settings.setTheme(model.settings, 'Light')
 const childUpdate = Child.update(model.child, message)
 const childBlockUpdate = Child.update(model.childBlock, message)
+const keyedChildUpdate = Child.update(model.keyedChild, message)
 const productsUpdate = Products.update(model.productsPage, message)
 
 export const update = () => ({
@@ -79,8 +90,15 @@ export const update = () => ({
     childBlock: () => {
       return childBlockUpdate.model
     },
+    keyedChild: () => keyedChildUpdate.model,
     productsPage: () => productsUpdate.model,
   }),
 })
 
-export const folds = { foldSettings, foldChild, foldChildBlock, foldProducts }
+export const folds = {
+  foldSettings,
+  foldChild,
+  foldChildBlock,
+  foldKeyedChild,
+  foldProducts,
+}

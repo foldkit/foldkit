@@ -45,6 +45,25 @@ const writeChild = (fieldName: string) =>
     [Testing.id('model'), Testing.id('nextChild')],
   )
 
+const readChildAt = (fieldName: string) =>
+  Testing.arrowFn(
+    Testing.callOfMember('Option', 'some', [
+      Testing.memberExpr('model', fieldName),
+    ]),
+    [Testing.id('model'), Testing.id('key')],
+  )
+
+const writeChildAt = (fieldName: string) =>
+  Testing.arrowFn(
+    Testing.callExpr('modifyFields', [
+      Testing.id('model'),
+      objectExpression([
+        property(fieldName, Testing.arrowFn(Testing.id('nextChild'))),
+      ]),
+    ]),
+    [Testing.id('model'), Testing.id('key'), Testing.id('nextChild')],
+  )
+
 const foldChild = (
   namespace: string,
   fieldName: string,
@@ -52,14 +71,18 @@ const foldChild = (
   write: unknown = writeChild(fieldName),
   helperName = 'update',
   foldName = 'foldChild',
-) =>
-  Testing.callOfMember('Update', foldName, [
+) => {
+  const readPropertyName = foldName === 'foldChildAt' ? 'readAt' : 'read'
+  const writePropertyName = foldName === 'foldChildAt' ? 'writeAt' : 'write'
+
+  return Testing.callOfMember('Update', foldName, [
     objectExpression([
       property('update', Testing.memberExpr(namespace, helperName)),
-      property('read', read),
-      property('write', write),
+      property(readPropertyName, read),
+      property(writePropertyName, write),
     ]),
   ])
+}
 
 const modifyFieldsCall = (fieldName: string, resultName: string) =>
   Testing.callExpr('modifyFields', [
@@ -119,6 +142,78 @@ describe('require-fold-for-child-update-result', () => {
     expect(result[0]?.diagnostic.message).toContain('settingsReset.model')
     expect(result[0]?.diagnostic.message).toContain('Settings.setTheme')
     expect(result[0]?.diagnostic.message).toContain('Update.foldChild')
+    expect(result[0]?.diagnostic.message).toContain('Update.foldChildAt')
+  })
+
+  it('flags a direct-field child result established by foldChildAt', () => {
+    const result = resultFor(
+      'Settings',
+      'settings',
+      childReturn(
+        'settingsReset',
+        childCall('Settings', 'setTheme', 'settings'),
+      ),
+      modifyFieldsCall('settings', 'settingsReset'),
+      [
+        foldChild(
+          'Settings',
+          'settings',
+          readChildAt('settings'),
+          writeChildAt('settings'),
+          'update',
+          'foldChildAt',
+        ),
+      ],
+    )
+
+    expect(result).toHaveLength(1)
+  })
+
+  it('does not treat a keyed collection write as a direct child field', () => {
+    const readEntryAt = Testing.arrowFn(
+      Testing.callOfMember('HashMap', 'get', [
+        Testing.memberExpr('model', 'entries'),
+        Testing.id('key'),
+      ]),
+      [Testing.id('model'), Testing.id('key')],
+    )
+    const writeEntryAt = Testing.arrowFn(
+      Testing.callExpr('modifyFields', [
+        Testing.id('model'),
+        objectExpression([
+          property(
+            'entries',
+            Testing.arrowFn(
+              Testing.callOfMember('HashMap', 'set', [
+                Testing.id('entries'),
+                Testing.id('key'),
+                Testing.id('nextEntry'),
+              ]),
+              [Testing.id('entries')],
+            ),
+          ),
+        ]),
+      ]),
+      [Testing.id('model'), Testing.id('key'), Testing.id('nextEntry')],
+    )
+    const result = resultFor(
+      'Entry',
+      'entries',
+      childReturn('entryUpdate', childCall('Entry', 'update', 'entries')),
+      modifyFieldsCall('entries', 'entryUpdate'),
+      [
+        foldChild(
+          'Entry',
+          'entries',
+          readEntryAt,
+          writeEntryAt,
+          'update',
+          'foldChildAt',
+        ),
+      ],
+    )
+
+    expect(result).toHaveLength(0)
   })
 
   it('flags a direct child update result copied into the child field', () => {

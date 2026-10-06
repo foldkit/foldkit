@@ -137,7 +137,7 @@ describe('real-oxlint rule fixtures', () => {
 
   it('traces direct and named data-last combine Steps', () => {
     expect(countDiagnostics('no-direct-submodel-state-update', 'invalid')).toBe(
-      5,
+      8,
     )
   })
 
@@ -209,7 +209,20 @@ describe('real-oxlint rule fixtures', () => {
   it('derives child fields from the fold read and write functions', () => {
     expect(
       countDiagnostics('require-fold-for-child-update-result', 'invalid'),
-    ).toBe(4)
+    ).toBe(7)
+  })
+
+  it('resolves namespace and aliased Update subpath imports', () => {
+    for (const rule of [
+      'no-direct-submodel-state-update',
+      'require-fold-for-child-update-result',
+    ]) {
+      const diagnostics = diagnosticsFor(rule, 'invalid').filter(diagnostic =>
+        diagnostic.filename.endsWith('subpath-update.ts'),
+      )
+
+      expect(diagnostics).toHaveLength(2)
+    }
   })
 
   it('fixes only structurally safe empty commands properties', async () => {
