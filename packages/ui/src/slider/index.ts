@@ -10,6 +10,7 @@ import {
   pipe,
 } from 'effect'
 import { type Update } from 'foldkit'
+import * as Css from 'foldkit/css'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
@@ -586,7 +587,7 @@ const filledTrackStyle = (
       bottom: '0',
       left: '0',
       right: '0',
-      height: `calc((100% - ${thumbSize}) * ${fraction} + ${thumbSize} / 2)`,
+      height: `calc((100% - ${thumbSize}) * ${Css.number(fraction)} + ${thumbSize} / 2)`,
       width: '100%',
       'pointer-events': 'none',
     })),
@@ -603,7 +604,7 @@ const filledTrackStyle = (
       left: '0',
       top: '0',
       bottom: '0',
-      width: `calc((100% - ${thumbSize}) * ${fraction} + ${thumbSize} / 2)`,
+      width: `calc((100% - ${thumbSize}) * ${Css.number(fraction)} + ${thumbSize} / 2)`,
       'pointer-events': 'none',
     })),
     Match.exhaustive,
@@ -626,7 +627,7 @@ const thumbStyle = (
     })),
     Match.when({ orientation: 'Vertical', thumbAlignment: 'Edge' }, () => ({
       position: 'absolute',
-      bottom: `calc((100% - ${thumbSize}) * ${fraction})`,
+      bottom: `calc((100% - ${thumbSize}) * ${Css.number(fraction)})`,
       left: '50%',
       transform: 'translateX(-50%)',
       'touch-action': 'none',
@@ -639,7 +640,7 @@ const thumbStyle = (
     })),
     Match.when({ orientation: 'Horizontal', thumbAlignment: 'Edge' }, () => ({
       position: 'absolute',
-      left: `calc((100% - ${thumbSize}) * ${fraction})`,
+      left: `calc((100% - ${thumbSize}) * ${Css.number(fraction)})`,
       'touch-action': 'none',
     })),
     Match.exhaustive,

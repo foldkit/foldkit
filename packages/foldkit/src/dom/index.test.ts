@@ -220,6 +220,37 @@ describe('lockScroll', () => {
       expect(document.documentElement.style.overflow).toBe('')
     }),
   )
+
+  it.effect('leaves padding-right unchanged when there is no scrollbar', () =>
+    Effect.gen(function* () {
+      vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(
+        window.innerWidth,
+      )
+      document.documentElement.style.paddingRight = '4px'
+
+      yield* lockScroll
+      expect(document.documentElement.style.paddingRight).toBe('4px')
+
+      yield* unlockScroll
+      document.documentElement.style.paddingRight = ''
+      vi.restoreAllMocks()
+    }),
+  )
+
+  it.effect('pads the document element by the scrollbar width in px', () =>
+    Effect.gen(function* () {
+      vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(
+        window.innerWidth - 15,
+      )
+
+      yield* lockScroll
+      expect(document.documentElement.style.paddingRight).toBe('15px')
+
+      yield* unlockScroll
+      expect(document.documentElement.style.paddingRight).toBe('')
+      vi.restoreAllMocks()
+    }),
+  )
 })
 
 describe('unlockScroll', () => {

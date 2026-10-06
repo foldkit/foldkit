@@ -1,6 +1,7 @@
 import { Array } from 'effect'
 import { inertHtml as ih } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
+import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
@@ -66,6 +67,15 @@ describe('Slider', () => {
         Scene.expect(thumb).toHaveAttr('aria-valuemax', '10'),
         Scene.expect(thumb).toHaveAttr('aria-valuenow', '5'),
         Scene.expect(thumb).toHaveAttr('aria-orientation', 'horizontal'),
+      )
+    })
+
+    it('positions the filled track and thumb at the value fraction to four decimal places', () => {
+      Scene.scene(
+        { update, view: sceneView({ value: 1 }) },
+        Scene.given(init({ id: 'test', min: 0, max: 3, step: 1 })),
+        Scene.expect(filledTrack).toHaveStyle('width', '33.3333%'),
+        Scene.expect(thumb).toHaveStyle('left', '33.3333%'),
       )
     })
   })
@@ -271,6 +281,84 @@ describe('Slider', () => {
           'calc((100% - 0.75rem) * 0.5 + 0.75rem / 2)',
         ),
       )
+    })
+
+    it('positions the filled track and thumb at the value fraction to four decimal places', () => {
+      Scene.scene(
+        { update, view: sceneView({ orientation: 'Vertical', value: 1 }) },
+        Scene.given(init({ id: 'test', min: 0, max: 3, step: 1 })),
+        Scene.expect(filledTrack).toHaveStyle('height', '33.3333%'),
+        Scene.expect(thumb).toHaveStyle('bottom', '33.3333%'),
+      )
+    })
+  })
+
+  describe('edge-aligned fraction', () => {
+    it('writes the horizontal fraction to four decimal places', () => {
+      Scene.scene(
+        {
+          update,
+          view: sceneView({ thumbAlignment: 'Edge', value: 1 }),
+        },
+        Scene.given(init({ id: 'test', min: 0, max: 3, step: 1 })),
+        Scene.expect(filledTrack).toHaveStyle(
+          'width',
+          'calc((100% - 0.75rem) * 0.3333 + 0.75rem / 2)',
+        ),
+        Scene.expect(thumb).toHaveStyle(
+          'left',
+          'calc((100% - 0.75rem) * 0.3333)',
+        ),
+      )
+    })
+
+    it('writes the vertical fraction to four decimal places', () => {
+      Scene.scene(
+        {
+          update,
+          view: sceneView({
+            orientation: 'Vertical',
+            thumbAlignment: 'Edge',
+            value: 1,
+          }),
+        },
+        Scene.given(init({ id: 'test', min: 0, max: 3, step: 1 })),
+        Scene.expect(filledTrack).toHaveStyle(
+          'height',
+          'calc((100% - 0.75rem) * 0.3333 + 0.75rem / 2)',
+        ),
+        Scene.expect(thumb).toHaveStyle(
+          'bottom',
+          'calc((100% - 0.75rem) * 0.3333)',
+        ),
+      )
+    })
+  })
+
+  describe('non-finite input', () => {
+    it.each([
+      { field: 'value', value: Number.NaN, min: 0, max: 10 },
+      { field: 'min', value: 5, min: Number.NaN, max: 10 },
+      { field: 'max', value: 5, min: 0, max: Number.NaN },
+    ])('throws when $field is NaN', ({ value, min, max }) => {
+      expect(() =>
+        Scene.scene(
+          { update, view: sceneView({ value }) },
+          Scene.given(init({ id: 'test', min, max, step: 1 })),
+        ),
+      ).toThrow('[foldkit] Css.percent received NaN.')
+    })
+
+    it('throws when an edge-aligned value is NaN', () => {
+      expect(() =>
+        Scene.scene(
+          {
+            update,
+            view: sceneView({ thumbAlignment: 'Edge', value: Number.NaN }),
+          },
+          Scene.given(defaultModel),
+        ),
+      ).toThrow('[foldkit] Css.number received NaN.')
     })
   })
 

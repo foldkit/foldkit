@@ -1,5 +1,7 @@
 import { Effect, Number } from 'effect'
 
+import * as Css from '../css/index.js'
+
 const scrollLockState = {
   count: 0,
   overflow: '',
@@ -70,7 +72,7 @@ export const lockScroll: Effect.Effect<void> = Effect.sync(() => {
 
     style.overflow = 'hidden'
     style.paddingRight =
-      scrollbarWidth > 0 ? `${scrollbarWidth}px` : style.paddingRight
+      scrollbarWidth > 0 ? Css.px(scrollbarWidth) : style.paddingRight
 
     if (isIOS()) {
       document.addEventListener('touchmove', handleTouchMove, {

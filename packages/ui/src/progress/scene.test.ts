@@ -92,6 +92,24 @@ describe('Progress view', () => {
     },
   )
 
+  it('writes the indicator width to four decimal places', () => {
+    Scene.scene(
+      { update, view: testView({ value: 1, max: 3 }) },
+      Scene.given({}),
+      Scene.expect(indicator).toHaveStyle('width', '33.3333%'),
+    )
+  })
+
+  it.each([
+    { field: 'value', config: { value: Number.NaN } },
+    { field: 'min', config: { min: Number.NaN } },
+    { field: 'max', config: { max: Number.NaN } },
+  ])('throws when a determinate $field is NaN', ({ config }) => {
+    expect(() =>
+      Scene.scene({ update, view: testView(config) }, Scene.given({})),
+    ).toThrow('[foldkit] Css.percent received NaN.')
+  })
+
   it('normalizes max to min when the configured range is inverted', () => {
     Scene.scene(
       { update, view: testView({ value: 5, min: 10, max: 0 }) },

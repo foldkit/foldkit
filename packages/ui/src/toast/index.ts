@@ -1,4 +1,5 @@
 import { Match, Option, Schema } from 'effect'
+import * as Css from 'foldkit/css'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { defineView } from 'foldkit/submodel'
 
@@ -256,7 +257,7 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         )
         const swipeTranslate =
           swipeExitTranslate ??
-          (swipeOffset !== 0 ? `${String(swipeOffset)}px` : undefined)
+          (swipeOffset !== 0 ? Css.px(swipeOffset) : undefined)
         const swipeAttributes = Option.match(maybeSwipePhase, {
           onNone: () => [],
           onSome: phase => [h.DataAttribute('swipe', phase)],
@@ -302,7 +303,7 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
             ...(swipeTranslate !== undefined
               ? {
                   translate: swipeTranslate,
-                  '--toast-swipe-move-x': `${String(swipeOffset)}px`,
+                  '--toast-swipe-move-x': Css.px(swipeOffset),
                 }
               : {}),
           }),

@@ -2,6 +2,7 @@ import { type Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Scene from 'foldkit/scene'
+import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
@@ -72,6 +73,24 @@ describe('Meter view', () => {
       )
     },
   )
+
+  it('writes the fill width to four decimal places', () => {
+    Scene.scene(
+      { update, view: testView({ value: 1, max: 3 }) },
+      Scene.given({}),
+      Scene.expect(fill).toHaveStyle('width', '33.3333%'),
+    )
+  })
+
+  it.each([
+    { field: 'value', config: { value: Number.NaN } },
+    { field: 'min', config: { min: Number.NaN } },
+    { field: 'max', config: { max: Number.NaN } },
+  ])('throws when $field is NaN', ({ config }) => {
+    expect(() =>
+      Scene.scene({ update, view: testView(config) }, Scene.given({})),
+    ).toThrow('[foldkit] Css.percent received NaN.')
+  })
 
   it('normalizes max to min when the configured range is inverted', () => {
     Scene.scene(

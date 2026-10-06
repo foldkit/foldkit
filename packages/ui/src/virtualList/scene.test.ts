@@ -1,5 +1,6 @@
 import type { HtmlBuilder } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
+import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
@@ -185,6 +186,20 @@ describe('VirtualList', () => {
       )
     })
 
+    it('throws when rowHeightPx is 0', () => {
+      const measurement = update(
+        init({ id: 'test', rowHeightPx: 0 }),
+        Message.MeasuredContainer({ containerHeight: 90 }),
+      )
+
+      expect(() =>
+        Scene.scene(
+          { update, view: sceneView() },
+          Scene.given(measurement.model),
+        ),
+      ).toThrow('[foldkit] Css.px received NaN.')
+    })
+
     it('marks the spacer li elements with role=presentation so they do not break the list semantics', () => {
       Scene.scene(
         { update, view: sceneView() },
@@ -218,6 +233,33 @@ describe('VirtualList', () => {
         ).toHaveStyle('height', '20px'),
       )
     })
+
+    it('renders a fractional row height without floating-point noise', () => {
+      Scene.scene(
+        { update, view: sceneView({ itemToRowHeightPx: () => 0.1 + 0.2 }) },
+        Scene.given(variableMeasuredModel),
+        Scene.expect(
+          Scene.selector('[data-virtual-list-item-index="0"]'),
+        ).toHaveStyle('height', '0.3px'),
+      )
+    })
+
+    it.each([{ height: Number.NaN }, { height: Number.POSITIVE_INFINITY }])(
+      'throws when itemToRowHeightPx returns $height for an item',
+      ({ height }) => {
+        expect(() =>
+          Scene.scene(
+            {
+              update,
+              view: sceneView({
+                itemToRowHeightPx: item => (item.id === 1 ? height : 20),
+              }),
+            },
+            Scene.given(variableMeasuredModel),
+          ),
+        ).toThrow('[foldkit] Css.px received NaN.')
+      },
+    )
 
     it('still picks the visible slice from cumulative heights', () => {
       Scene.scene(

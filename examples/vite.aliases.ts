@@ -15,6 +15,7 @@ export const foldkitAliases = (dirname: string) => ({
     dirname,
     '../../packages/foldkit/src/command',
   ),
+  'foldkit/css': path.resolve(dirname, '../../packages/foldkit/src/css/public'),
   'foldkit/customElement': path.resolve(
     dirname,
     '../../packages/foldkit/src/customElement',
