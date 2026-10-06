@@ -10,4 +10,4 @@ Render SSR and SSG documents from server-entry code. An `ssr.build` browser buil
 
 An SSR build refuses an `index.html` already in the browser output before prerendering, including files copied from `publicDir`, emitted by another plugin, or left by an earlier build with `emptyOutDir` disabled. Remove those root documents so only a generated page can occupy `/`.
 
-Custom template-based hosts can continue using `injectIntoTemplate`, `toResponse`, and `handleRequest` with a template. The template-based Vite dev host remains available when `clientEntry` and `ssr.build` are omitted. Separate client-only builds and previews retain Vite's relative-base behavior. New SSR and SSG scaffolds use code-rendered documents and CSS imports.
+Custom template-based hosts can use `injectIntoTemplate`, `toResponse`, and `handleRequest` with a template. The template-based Vite dev host is available when `clientEntry` and `ssr.build` are omitted. Separate client-only builds and previews support Vite's relative-base behavior. SSR and SSG scaffolds use code-rendered documents and CSS imports.

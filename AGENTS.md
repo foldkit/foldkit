@@ -151,6 +151,10 @@ Don't add inline or block comments to explain code. If code needs explanation, r
 - When one file tests both a story and a scene, import the namespaces instead (`import { Scene, Story } from 'foldkit'`) so `Story.given` and `Scene.given` stay distinguishable. `packages/ui/` and `packages/foldkit/` keep the namespace form throughout, since their tests routinely mix both.
 - The step that sets the initial Model is `given`, not `with`. `with` is a reserved word and cannot be a named import binding.
 
+## Test Fixtures
+
+- Keep complete executable programs used by tests in source fixture files, not template strings embedded in test code. Supply per-test paths and values through data files or explicit inputs. Inline source strings are appropriate when the source text itself is what the test checks.
+
 ## Session Echoes
 
 - Do not leave session echoes in code, tests, comments, documentation, or names. A session echo records the path taken during the current change instead of a durable contract: assertions that abandoned identifiers or implementations are absent, notes about discarded attempts, or references to debugging and review conversation.
