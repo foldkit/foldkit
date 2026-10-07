@@ -64,6 +64,41 @@ noun instead.
 The implementation names three attributes. Vagueness here is usually a failure to
 go and look them up.
 
+Once the prose establishes a precise technical noun, keep using it. Technical
+writing does not benefit from synonym variation when the replacement changes
+the architecture the reader sees.
+
+**Before.** "The job-application example stores applicant entries in an array,
+each with its own child Model."
+
+**After.** "The job-application example stores Applicant Submodels in an array."
+
+The sentence explains the architecture, so it needs the architecture's name.
+"Child Model" narrows the claim to stored state and loses the fact that each
+entry is updated as a Submodel.
+
+## Attach modifiers to the right thing
+
+**Before.** "`Update.foldChildAt` folds one keyed Submodel."
+
+**After.** "`Update.foldChildAt` folds one Submodel selected by key."
+
+The key belongs to the parent's selection operation. It is not an intrinsic
+property of the Submodel. A compressed modifier can move ownership or identity
+to the wrong noun even when every word sounds technical. Expand the modifier
+until the relationship is explicit.
+
+## Name the condition, not a story about it
+
+**Before.** "The fold ignores late child Messages."
+
+**After.** "When `readAt` returns `None` for the key, the fold leaves the parent
+Model unchanged."
+
+The behavior depends on whether the lookup finds a Submodel. It does not depend
+on when the Message arrives. Timing, ordering, and causal language belong only
+when they change the result.
+
 ## One concrete example beats three abstract clauses
 
 **Before.** "An input the old page meant one way is reused for whatever now sits
