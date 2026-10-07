@@ -44,6 +44,9 @@ const makeState = (
 ): StoreState => ({
   entries,
   keyframes: HashMap.empty(),
+  gapCheckpoints: HashMap.empty(),
+  replayGap: 'Idle',
+  maybeLatestRecordedModel: Option.none(),
   maybeInitModel,
   initCommands: [],
   initMountStarts: [],

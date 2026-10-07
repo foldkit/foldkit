@@ -7,6 +7,7 @@ import {
   Option,
   Predicate,
   Record,
+  Schema,
   String,
   SubscriptionRef,
   pipe,
@@ -17,6 +18,9 @@ import { modifyFields } from '../struct/index.js'
 export const INIT_INDEX = -1
 const DEFAULT_KEYFRAME_INTERVAL = 31
 const DEFAULT_MAX_ENTRIES = 100
+
+const ReplayGap = Schema.Literals(['Idle', 'Pending'])
+type ReplayGap = typeof ReplayGap.Type
 
 // DIFF
 
@@ -157,6 +161,9 @@ export type HistoryEntry = Readonly<{
 export type StoreState = Readonly<{
   entries: ReadonlyArray<HistoryEntry>
   keyframes: HashMap.HashMap<number, unknown>
+  gapCheckpoints: HashMap.HashMap<number, unknown>
+  replayGap: ReplayGap
+  maybeLatestRecordedModel: Option.Option<unknown>
   maybeInitModel: Option.Option<unknown>
   initCommands: ReadonlyArray<CommandRecord>
   initMountStarts: ReadonlyArray<MountRecord>
@@ -175,6 +182,9 @@ export type Bridge = Readonly<{
 const emptyState: StoreState = {
   entries: [],
   keyframes: HashMap.empty(),
+  gapCheckpoints: HashMap.empty(),
+  replayGap: 'Idle',
+  maybeLatestRecordedModel: Option.none(),
   maybeInitModel: Option.none(),
   initCommands: [],
   initMountStarts: [],
@@ -206,7 +216,7 @@ export const nextEntryIndex = (state: StoreState): number =>
  * Options for `createDevToolsStore`.
  *
  * - `maxEntries`: Maximum number of history entries to retain before evicting the oldest segment. Defaults to 100.
- * - `keyframeInterval`: Number of recorded entries between full model snapshots. Smaller values use more memory but make time-travel a constant-time lookup instead of a replay. Set to `1` to snapshot every entry, which keeps time-travel correct under exclusion-from-history (since excluded Messages are never replayed). Defaults to 31.
+ * - `keyframeInterval`: Number of recorded entries between full model snapshots. Smaller values use more memory but make time-travel a constant-time lookup instead of a replay. Set to `1` to snapshot every entry without replay. Excluded Model changes add separate replay checkpoints before the next recorded entry. Defaults to 31.
  */
 export type CreateDevToolsStoreOptions = Readonly<{
   maxEntries?: number
@@ -243,20 +253,25 @@ export const createDevToolsStore = (
         ? segmentStart
         : state.startIndex
 
+      const checkpoint = HashMap.reduce(
+        state.gapCheckpoints,
+        {
+          index: keyframeIndex,
+          model: Option.getOrThrow(HashMap.get(state.keyframes, keyframeIndex)),
+        },
+        (latest, model, checkpointIndex) =>
+          checkpointIndex >= latest.index && checkpointIndex <= index
+            ? { index: checkpointIndex, model }
+            : latest,
+      )
+
       return pipe(
-        state.keyframes,
-        HashMap.get(keyframeIndex),
-        Option.map(keyframeModel =>
-          pipe(
-            state.entries,
-            Array.drop(keyframeIndex - state.startIndex),
-            Array.take(index - keyframeIndex + 1),
-            Array.reduce(keyframeModel, (model, entry) =>
-              bridge.replay(model, entry.message),
-            ),
-          ),
+        state.entries,
+        Array.drop(checkpoint.index - state.startIndex),
+        Array.take(index - checkpoint.index + 1),
+        Array.reduce(checkpoint.model, (model, entry) =>
+          bridge.replay(model, entry.message),
         ),
-        Option.getOrThrow,
       )
     }
 
@@ -278,6 +293,9 @@ export const createDevToolsStore = (
       return modifyFields(state, {
         entries: Array.drop(keyframeInterval),
         keyframes: HashMap.remove(state.startIndex),
+        gapCheckpoints: HashMap.filter(
+          (_model, index) => index >= nextStartIndex,
+        ),
         startIndex: () => nextStartIndex,
         isPaused: isPaused => isPaused && isPausedAtRetainedIndex,
       })
@@ -327,6 +345,12 @@ export const createDevToolsStore = (
               diff,
             }),
             keyframes: addKeyframeIfNeeded(absoluteIndex + 1, modelAfterUpdate),
+            gapCheckpoints: checkpoints =>
+              state.replayGap === 'Pending'
+                ? HashMap.set(checkpoints, absoluteIndex, modelBeforeUpdate)
+                : checkpoints,
+            replayGap: () => 'Idle',
+            maybeLatestRecordedModel: () => Option.some(modelAfterUpdate),
             maybeLatestModel: () => Option.some(modelAfterUpdate),
           })
 
@@ -435,14 +459,13 @@ export const createDevToolsStore = (
         })
       })
 
-    // NOTE: maybeLatestModel must be stamped atomically with the entries
-    // append in recordMessage. The follow-latest fast-path below depends on
-    // that invariant.
+    // NOTE: the latest recorded Model is stamped atomically with its entry.
+    // Excluded updates change Live without moving any historical index.
     const resolveModel = (state: StoreState, index: number): unknown =>
       Match.value(index).pipe(
         Match.when(INIT_INDEX, () => Option.getOrThrow(state.maybeInitModel)),
         Match.when(latestEntryIndex(state), () =>
-          Option.getOrThrow(state.maybeLatestModel),
+          Option.getOrThrow(state.maybeLatestRecordedModel),
         ),
         Match.orElse(() => replayToIndex(state, index)),
       )
@@ -525,11 +548,13 @@ export const createDevToolsStore = (
           startIndex: () => 0,
           pausedAtIndex: () => 0,
           keyframes: () =>
-            Option.match(state.maybeInitModel, {
+            Option.match(state.maybeLatestModel, {
               onNone: () => HashMap.empty(),
               onSome: model => HashMap.make([0, model]),
             }),
-          maybeLatestModel: () => state.maybeInitModel,
+          gapCheckpoints: () => HashMap.empty(),
+          replayGap: () => 'Idle',
+          maybeLatestRecordedModel: () => Option.none(),
         })
       }
     })
@@ -555,7 +580,10 @@ export const createDevToolsStore = (
     const updateLatestModel = (model: unknown) =>
       SubscriptionRef.update(
         stateRef,
-        modifyFields({ maybeLatestModel: () => Option.some(model) }),
+        modifyFields({
+          maybeLatestModel: () => Option.some(model),
+          replayGap: () => 'Pending',
+        }),
       )
 
     return {

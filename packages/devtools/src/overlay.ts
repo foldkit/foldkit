@@ -25,6 +25,7 @@ import * as Command from 'foldkit/command'
 import {
   type CommandRecord,
   DEVTOOLS_HOST_ID,
+  type DevToolsRecordingControls,
   type DevToolsStore,
   GOT_MESSAGE_PATTERN,
   INIT_INDEX,
@@ -135,6 +136,8 @@ const Model = Schema.Struct({
   submodelTags: Schema.Array(Schema.String),
   maybeSubmodelFilter: Schema.Option(Schema.String),
   isFlattened: Schema.Boolean,
+  excludedTags: Schema.Array(Schema.String),
+  configuredExcludedTags: Schema.Array(Schema.String),
   submodelFilterListbox: Listbox.Model,
   expandedPaths: Schema.HashSet(Schema.String),
   changedPaths: Schema.HashSet(Schema.String),
@@ -161,6 +164,8 @@ const Flags = Schema.Struct({
   isOpen: Schema.Boolean,
   isMobile: Schema.Boolean,
   isFlattened: Schema.Boolean,
+  excludedTags: Schema.Array(Schema.String),
+  configuredExcludedTags: Schema.Array(Schema.String),
   entries: Schema.Array(DisplayEntry),
   initCommands: Schema.Array(DisplayCommand),
   initMountStarts: Schema.Array(DisplayMount),
@@ -177,6 +182,8 @@ const Message = defineMessageUnion({
   ClickedToggle: {},
   ClickedSettingsToggle: {},
   ToggledFlatten: { isFlattened: Schema.Boolean },
+  ClickedRecordingToggle: { tag: Schema.String },
+  CompletedSetRecordingExclusions: {},
   CompletedPersistDevToolsState: {},
   ClickedRow: { index: Schema.Number },
   ClickedResume: {},
@@ -457,6 +464,11 @@ const foldScrubberSlider = Update.foldChild({
   foldOutMessage: foldScrubberSliderOutMessage,
 })
 
+class RecordingControlsService extends Context.Service<
+  RecordingControlsService,
+  DevToolsRecordingControls
+>()('DevToolsRecordingControls') {}
+
 class StoreService extends Context.Service<StoreService, DevToolsStore>()(
   'foldkit/DevToolsStore',
 ) {}
@@ -483,6 +495,9 @@ const maybeLockScroll = (isOpen: boolean, isMobile: boolean) =>
   OptionExt.when(isOpen && isMobile, LockScroll())
 
 const DevToolsPersistedState = Schema.Struct({
+  excludedTags: Schema.Array(Schema.String).pipe(
+    Schema.withDecodingDefault(Effect.succeed([])),
+  ),
   isOpen: Schema.Boolean.pipe(
     Schema.withDecodingDefault(Effect.succeed(false)),
   ),
@@ -493,6 +508,7 @@ const DevToolsPersistedState = Schema.Struct({
 type DevToolsPersistedState = typeof DevToolsPersistedState.Type
 const DevToolsPersistedStateJson = Schema.fromJsonString(DevToolsPersistedState)
 const DEFAULT_PERSISTED_STATE: DevToolsPersistedState = {
+  excludedTags: [],
   isOpen: false,
   isFlattened: false,
 }
@@ -511,14 +527,19 @@ const readPersistedState: Effect.Effect<DevToolsPersistedState> = Effect.gen(
 )
 
 export const PersistDevToolsState = Command.define('PersistDevToolsState', {
-  args: { isOpen: Schema.Boolean, isFlattened: Schema.Boolean },
+  args: {
+    isOpen: Schema.Boolean,
+    isFlattened: Schema.Boolean,
+    excludedTags: Schema.Array(Schema.String),
+  },
   messages: [Message.CompletedPersistDevToolsState],
-  execute: ({ isOpen, isFlattened }) =>
+  execute: ({ isOpen, isFlattened, excludedTags }) =>
     Effect.gen(function* () {
       const store = yield* KeyValueStore.KeyValueStore
       const json = yield* Schema.encodeEffect(DevToolsPersistedStateJson)({
         isOpen,
         isFlattened,
+        excludedTags,
       })
       yield* store.set(DEVTOOLS_STORAGE_KEY, json)
       return Message.CompletedPersistDevToolsState()
@@ -528,6 +549,18 @@ export const PersistDevToolsState = Command.define('PersistDevToolsState', {
       ),
       Effect.provide(BrowserKeyValueStore.layerLocalStorage),
     ),
+})
+
+/** Applies the overlay's tag exclusions to the host runtime. */
+export const SetRecordingExclusions = Command.define('SetRecordingExclusions', {
+  args: { excludedTags: Schema.Array(Schema.String) },
+  messages: [Message.CompletedSetRecordingExclusions],
+  execute: ({ excludedTags }) =>
+    Effect.gen(function* () {
+      const controls = yield* RecordingControlsService
+      controls.setUiExcludedTags(excludedTags)
+      return Message.CompletedSetRecordingExclusions()
+    }),
 })
 
 const buildInspectionFromModel = (index: number, model: unknown) =>
@@ -657,12 +690,18 @@ const makeUpdate = (
   store: DevToolsStore,
   shadow: ShadowRoot,
   mode: DevToolsMode,
+  recordingControls: DevToolsRecordingControls,
 ) => {
   const provideContext = <A, E>(
-    effect: Effect.Effect<A, E, StoreService | ShadowRootService>,
+    effect: Effect.Effect<
+      A,
+      E,
+      StoreService | ShadowRootService | RecordingControlsService
+    >,
   ): Effect.Effect<A, E, never> =>
     effect.pipe(
       Effect.provideService(StoreService, store),
+      Effect.provideService(RecordingControlsService, recordingControls),
       Effect.provideService(ShadowRootService, shadow),
     )
 
@@ -689,6 +728,7 @@ const makeUpdate = (
             PersistDevToolsState({
               isOpen: nextIsOpen,
               isFlattened: model.isFlattened,
+              excludedTags: model.excludedTags,
             }),
           ],
         }
@@ -706,8 +746,39 @@ const makeUpdate = (
       }),
       ToggledFlatten: ({ isFlattened }) => ({
         model: modifyFields(model, { isFlattened: () => isFlattened }),
-        commands: [PersistDevToolsState({ isOpen: model.isOpen, isFlattened })],
+        commands: [
+          PersistDevToolsState({
+            isOpen: model.isOpen,
+            isFlattened,
+            excludedTags: model.excludedTags,
+          }),
+        ],
       }),
+      ClickedRecordingToggle: ({ tag }) => {
+        if (Array.contains(model.configuredExcludedTags, tag)) {
+          return { model }
+        }
+
+        const nextExcludedTags = Array.contains(model.excludedTags, tag)
+          ? Array.filter(model.excludedTags, excludedTag => excludedTag !== tag)
+          : Array.append(model.excludedTags, tag)
+
+        return {
+          model: modifyFields(model, { excludedTags: () => nextExcludedTags }),
+          commands: [
+            Command.mapEffect(
+              SetRecordingExclusions({ excludedTags: nextExcludedTags }),
+              provideContext,
+            ),
+            PersistDevToolsState({
+              isOpen: model.isOpen,
+              isFlattened: model.isFlattened,
+              excludedTags: nextExcludedTags,
+            }),
+          ],
+        }
+      },
+      CompletedSetRecordingExclusions: () => ({ model }),
       CrossedMobileBreakpoint: ({ isMobile }) => ({
         model: modifyFields(model, { isMobile: () => isMobile }),
         commands: Option.toArray(maybeToggleScrollLock(model.isOpen, isMobile)),
@@ -2248,6 +2319,61 @@ const buildOverlayView = (
       h,
     )
 
+  const recordingSettingsView = (model: Model): Html => {
+    const tags = pipe(
+      [
+        ...Array.map(model.entries, entry => entry.tag),
+        ...model.excludedTags,
+        ...model.configuredExcludedTags,
+      ],
+      Array.dedupe,
+      Array.sort(Order.String),
+    )
+
+    return h.div(
+      [h.Class('flex flex-col')],
+      [
+        h.span([h.Class('dt-settings-section-title')], ['Recording']),
+        ...Array.map(tags, tag => {
+          const isConfigured = Array.contains(model.configuredExcludedTags, tag)
+          const isExcluded =
+            isConfigured || Array.contains(model.excludedTags, tag)
+          const action = isExcluded ? 'Resume recording' : 'Stop recording'
+
+          return h.keyed('div')(
+            tag,
+            [h.Class('dt-settings-row')],
+            [
+              h.div(
+                [h.Class('dt-settings-row-text')],
+                [
+                  h.span([h.Class('dt-settings-row-label')], [tag]),
+                  ...(isConfigured
+                    ? [
+                        h.span(
+                          [h.Class('dt-settings-row-description')],
+                          ['Configured by application'],
+                        ),
+                      ]
+                    : []),
+                ],
+              ),
+              h.button(
+                [
+                  h.Class('dt-recording-toggle'),
+                  h.AriaLabel(`${action} ${tag}`),
+                  h.Disabled(isConfigured),
+                  h.OnClick(Message.ClickedRecordingToggle({ tag })),
+                ],
+                [action],
+              ),
+            ],
+          )
+        }),
+      ],
+    )
+  }
+
   const settingsScreenView = (model: Model): Html =>
     h.div(
       [h.Class('flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-none')],
@@ -2259,6 +2385,7 @@ const buildOverlayView = (
             flattenSwitchView(model),
           ],
         ),
+        recordingSettingsView(model),
       ],
     )
 
@@ -2312,7 +2439,7 @@ const buildOverlayView = (
               h.Class(actionButtonClass),
               h.OnClick(Message.ClickedFollowLatest()),
             ],
-            ['Follow Latest →'],
+            ['Follow Latest Recorded →'],
           ),
         ),
       })),
@@ -2856,8 +2983,13 @@ export const createOverlay = (
   position: DevToolsPosition,
   mode: DevToolsMode,
   maybeBanner: Option.Option<string>,
+  recordingControls: DevToolsRecordingControls,
 ) =>
   Effect.gen(function* () {
+    const persistedState = yield* readPersistedState
+    const excludedTags = Array.dedupe(persistedState.excludedTags)
+    recordingControls.setUiExcludedTags(excludedTags)
+
     const { container, shadow } = yield* Effect.acquireRelease(
       Effect.sync(() => createShadowContainer()),
       createdShadowContainer =>
@@ -2870,11 +3002,15 @@ export const createOverlay = (
 
     const flags: Effect.Effect<typeof Flags.Type> = Effect.gen(function* () {
       const storeState = yield* SubscriptionRef.get(store.stateRef)
-      const { isOpen, isFlattened } = yield* readPersistedState
+      const { isOpen, isFlattened } = persistedState
       return {
         isOpen,
         isMobile: window.matchMedia(MOBILE_BREAKPOINT_QUERY).matches,
         isFlattened,
+        excludedTags,
+        configuredExcludedTags: Array.fromIterable(
+          recordingControls.configuredExcludedTags,
+        ),
         ...toDisplayState(storeState),
       }
     })
@@ -2931,7 +3067,7 @@ export const createOverlay = (
       Flags,
       flags,
       init,
-      update: makeUpdate(store, shadow, mode),
+      update: makeUpdate(store, shadow, mode, recordingControls),
       view: makeView(position, mode, shadow, maybeBanner),
       container,
       subscriptions: makeOverlaySubscriptions(store, shadow),

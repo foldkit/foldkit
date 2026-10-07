@@ -17,6 +17,9 @@ import { CopyPayloadToClipboard, createOverlay } from './overlay.js'
 const initialStoreState: StoreState = {
   entries: [],
   keyframes: HashMap.make([0, {}]),
+  gapCheckpoints: HashMap.empty(),
+  replayGap: 'Idle',
+  maybeLatestRecordedModel: Option.none(),
   maybeInitModel: Option.some({}),
   initCommands: [],
   initMountStarts: [],
@@ -77,7 +80,16 @@ const startOverlay = (store: DevToolsStore) =>
   Effect.runFork(
     Effect.scoped(
       Effect.gen(function* () {
-        yield* createOverlay(store, 'BottomRight', 'TimeTravel', Option.none())
+        yield* createOverlay(
+          store,
+          'BottomRight',
+          'TimeTravel',
+          Option.none(),
+          {
+            configuredExcludedTags: new Set(),
+            setUiExcludedTags: () => {},
+          },
+        )
         return yield* Effect.never
       }),
     ),
