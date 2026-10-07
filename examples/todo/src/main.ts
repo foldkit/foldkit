@@ -289,10 +289,8 @@ export const SaveTodos = Command.define('SaveTodos', {
   execute: ({ todos }) =>
     Effect.gen(function* () {
       const store = yield* KeyValueStore.KeyValueStore
-      yield* store.set(
-        TODOS_STORAGE_KEY,
-        Schema.encodeSync(TodosJsonString)(todos),
-      )
+      const encodedTodos = yield* Schema.encodeEffect(TodosJsonString)(todos)
+      yield* store.set(TODOS_STORAGE_KEY, encodedTodos)
       return Message.SucceededSaveTodos({ todos })
     }).pipe(
       Effect.catch(() => Effect.succeed(Message.FailedSaveTodos())),

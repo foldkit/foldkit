@@ -259,9 +259,9 @@ const handleIncomingMessage = (
   raw: RawData,
   pendingResponsesRef: Ref.Ref<PendingResponses>,
 ): Effect.Effect<void> => {
-  const decoded = Schema.decodeUnknownExit(
-    Schema.fromJsonString(ResponseFrame),
-  )(raw.toString())
+  const decoded = Schema.decodeExit(Schema.fromJsonString(ResponseFrame))(
+    raw.toString(),
+  )
   return Exit.match(decoded, {
     onFailure: error =>
       Effect.sync(() =>

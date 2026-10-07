@@ -283,6 +283,10 @@ const encodeResponseFrameJson = Schema.encodeUnknownSync(
   Schema.fromJsonString(ResponseFrame),
 )
 
+class WebSocketSendFailed extends Data.TaggedError('WebSocketSendFailed')<
+  Readonly<{ cause: unknown }>
+> {}
+
 // HANDLERS
 
 const handlePreserveModelReceived = (state: State, payload: unknown) =>
@@ -321,11 +325,19 @@ const handleRequestModelReceived = (
       Effect.gen(function* () {
         const current = yield* Ref.get(state.preservedModels)
         const sendRestore = (model: unknown) =>
-          Effect.sync(() =>
-            server.ws.send(
-              'foldkit:restore-model',
-              Schema.encodeUnknownSync(RestoreModelMessage)(
-                RestoreModelMessage.make({ id, model }),
+          Effect.gen(function* () {
+            const frame = RestoreModelMessage.make({ id, model })
+            const encoded =
+              yield* Schema.encodeEffect(RestoreModelMessage)(frame)
+            yield* Effect.try({
+              try: () => server.ws.send('foldkit:restore-model', encoded),
+              catch: cause => new WebSocketSendFailed({ cause }),
+            })
+          }).pipe(
+            Effect.catch(error =>
+              Console.warn(
+                '[foldkit:preserve] failed to send restore-model payload',
+                error,
               ),
             ),
           )
@@ -488,23 +500,20 @@ const handleMcpRequestReceived = (
   client: WebSocket,
   raw: string,
 ) =>
-  Exit.match(
-    Schema.decodeUnknownExit(Schema.fromJsonString(RequestFrame))(raw),
-    {
-      onFailure: error =>
-        Console.warn(
-          '[foldkit:devTools] failed to decode MCP request frame',
-          error,
+  Exit.match(Schema.decodeExit(Schema.fromJsonString(RequestFrame))(raw), {
+    onFailure: error =>
+      Console.warn(
+        '[foldkit:devTools] failed to decode MCP request frame',
+        error,
+      ),
+    onSuccess: frame =>
+      Match.value(frame.request).pipe(
+        Match.tag('RequestListRuntimes', () =>
+          replyListRuntimes(state, client, frame.id),
         ),
-      onSuccess: frame =>
-        Match.value(frame.request).pipe(
-          Match.tag('RequestListRuntimes', () =>
-            replyListRuntimes(state, client, frame.id),
-          ),
-          Match.orElse(() => forwardRequestToBrowsers(server, frame)),
-        ),
-    },
-  )
+        Match.orElse(() => forwardRequestToBrowsers(server, frame)),
+      ),
+  })
 
 const replyListRuntimes = (
   state: State,
@@ -532,10 +541,15 @@ const forwardRequestToBrowsers = (
   server: ViteDevServer,
   frame: typeof RequestFrame.Type,
 ) =>
-  Effect.sync(() =>
-    server.ws.send(
-      'foldkit:devTools:request',
-      Schema.encodeUnknownSync(RequestFrame)(frame),
+  Effect.gen(function* () {
+    const encoded = yield* Schema.encodeEffect(RequestFrame)(frame)
+    yield* Effect.try({
+      try: () => server.ws.send('foldkit:devTools:request', encoded),
+      catch: cause => new WebSocketSendFailed({ cause }),
+    })
+  }).pipe(
+    Effect.catch(error =>
+      Console.warn('[foldkit:devTools] failed to send request frame', error),
     ),
   )
 

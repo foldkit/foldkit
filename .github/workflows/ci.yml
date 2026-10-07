@@ -95,15 +95,15 @@ jobs:
           RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
         run: pnpm check:website-release-inputs "$RELEASE_COMMIT"
 
-      - name: Lint
-        run: pnpm --filter @foldkit/oxlint-plugin build && pnpm lint:ci
-
-      # Knip loads Vite configs through published package exports, and
-      # repository scripts import Foldkit through public subpaths. A clean
-      # runner has no dist files until these packages build, so this step must
-      # precede both checks and cannot be change-scoped.
+      # Effect lint resolves workspace package declarations, Knip loads Vite
+      # configs through published package exports, and repository scripts import
+      # Foldkit through public subpaths. A clean runner needs these packages
+      # built before those checks, so this step cannot be change-scoped.
       - name: Build reusable packages
         run: pnpm build:packages && pnpm --filter @typing-game/shared build
+
+      - name: Lint
+        run: pnpm lint:ci
 
       # The prerender step writes the generated `/` over the same `index.html`
       # the client build left its template in, so running it twice against one

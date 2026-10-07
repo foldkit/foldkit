@@ -113,7 +113,7 @@ export const isCalendarDate: (value: unknown) => value is CalendarDate =
  * ```
  */
 export const make = (year: number, month: number, day: number): CalendarDate =>
-  Schema.decodeUnknownSync(CalendarDate)({ year, month, day })
+  Schema.decodeSync(CalendarDate)({ year, month, day })
 
 /**
  * Constructs a `CalendarDate` without Schema validation. Only for inputs the
