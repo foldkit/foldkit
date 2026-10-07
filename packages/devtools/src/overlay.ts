@@ -20,6 +20,7 @@ import {
 } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 import { Update } from 'foldkit'
+import * as Browser from 'foldkit/browser'
 import * as Command from 'foldkit/command'
 import {
   type CommandRecord,
@@ -35,7 +36,6 @@ import {
   toInspectableValue,
 } from 'foldkit/devtools-host'
 import { lockScroll, unlockScroll } from 'foldkit/dom'
-import * as Dom from 'foldkit/dom'
 import {
   type Html,
   type HtmlBuilder,
@@ -979,7 +979,7 @@ const makeOverlaySubscriptions = (store: DevToolsStore, shadow: ShadowRoot) => {
       ),
     ),
     mobileBreakpoint: Subscription.fromStream(
-      Dom.fromMediaQuery({
+      Browser.streamFromMediaQuery({
         query: MOBILE_BREAKPOINT_QUERY,
         mapMatches: isMobile => Message.ObservedMobileBreakpoint({ isMobile }),
       }),

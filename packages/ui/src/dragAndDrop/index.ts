@@ -10,6 +10,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
+import * as Browser from 'foldkit/browser'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
 import { type Attribute, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
@@ -639,7 +640,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       }),
       dependenciesToStream: ({ dragActivity }) =>
         Stream.when(
-          Dom.fromEventFilterMapPreventDefault({
+          Browser.streamFromEventFilterMapPreventDefault({
             target: document,
             type: 'keydown',
             filterMapEvent: event => {

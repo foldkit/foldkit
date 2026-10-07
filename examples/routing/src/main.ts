@@ -1,5 +1,5 @@
 import { Array, Effect, Match, Option, Schema } from 'effect'
-import { Command, Dom, Runtime, Subscription, Update } from 'foldkit'
+import { Browser, Command, Runtime, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
@@ -161,7 +161,7 @@ export const update = (model: Model, message: Message) =>
 
 export const subscriptions = Subscription.make<Model, Message>()(() => ({
   keyBindings: Subscription.fromStream(
-    Dom.keyBindings<Message>({
+    Browser.streamFromKeyBindings<Message>({
       bindings: [
         {
           keys: ['G', 'H'],

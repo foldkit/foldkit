@@ -3,7 +3,7 @@ import { Effect, Option, Queue, Stream } from 'effect'
 declare const EventMapMarker: unique symbol
 
 /**
- * An `EventTarget` that declares the events it dispatches, so the `fromEvent`
+ * An `EventTarget` that declares the events it dispatches, so the `streamFromEvent`
  * helpers can resolve an event name to its event type the way they do for
  * `window`, `document`, and the DOM interfaces lib.dom declares event maps
  * for.
@@ -17,7 +17,7 @@ declare const EventMapMarker: unique symbol
  *
  * @example
  * ```ts
- * const slowWarningTarget: Dom.TypedEventTarget<{
+ * const slowWarningTarget: Browser.TypedEventTarget<{
  *   'foldkit:slow-warning': CustomEvent<SlowWarningReport>
  * }> = new EventTarget()
  * ```
@@ -122,7 +122,7 @@ type PreventDefaultEventListenerOptions = Omit<
   Readonly<{ passive?: false }>
 
 /**
- * Configuration for the `fromEvent` Stream helper.
+ * Configuration for the `streamFromEvent` Stream helper.
  *
  * `target` is read inside the acquire Effect, never before it, so the
  * resolved `EventTarget` is captured at the moment the Stream's scope
@@ -140,13 +140,13 @@ type PreventDefaultEventListenerOptions = Omit<
  * unless the listener is passive. Some browsers default wheel and touch
  * listeners on global targets to passive, where `preventDefault()` is
  * ignored. Pass `options: { passive: false }` explicitly when cancelling
- * those events, or reach for `fromEventFilterMapPreventDefault`, which does
+ * those events, or reach for `streamFromEventFilterMapPreventDefault`, which does
  * so for you.
  *
  * The output type is inferred from the mapper; `Subscription.make` checks
  * that the final Stream emits the application's Message type.
  */
-export type FromEventConfig<
+export type StreamFromEventConfig<
   Target extends EventTarget,
   Type extends EventTypeOf<Target>,
   Output,
@@ -158,7 +158,7 @@ export type FromEventConfig<
 }>
 
 /**
- * Configuration for the `fromEventFilterMap` Stream helper.
+ * Configuration for the `streamFromEventFilterMap` Stream helper.
  *
  * `target` is read inside the acquire Effect, never before it, so the
  * resolved `EventTarget` is captured at the moment the Stream's scope
@@ -177,12 +177,12 @@ export type FromEventConfig<
  * passive. Some browsers default wheel and touch listeners on global targets
  * to passive, where `preventDefault()` is ignored. Pass
  * `options: { passive: false }` explicitly when cancelling those events, or
- * reach for `fromEventFilterMapPreventDefault`, which does so for you.
+ * reach for `streamFromEventFilterMapPreventDefault`, which does so for you.
  *
  * The output type is inferred from the mapper; `Subscription.make` checks
  * that the final Stream emits the application's Message type.
  */
-export type FromEventFilterMapConfig<
+export type StreamFromEventFilterMapConfig<
   Target extends EventTarget,
   Type extends EventTypeOf<Target>,
   Output,
@@ -231,7 +231,7 @@ const listen = <EventType extends Event, Output>(
   )
 
 /**
- * Configuration for the `fromEventFilterMapPreventDefault` Stream helper.
+ * Configuration for the `streamFromEventFilterMapPreventDefault` Stream helper.
  *
  * `target` is read inside the acquire Effect, never before it, so the
  * resolved `EventTarget` is captured at the moment the Stream's scope
@@ -257,7 +257,7 @@ const listen = <EventType extends Event, Output>(
  * The output type is inferred from the mapper; `Subscription.make` checks
  * that the final Stream emits the application's Message type.
  */
-export type FromEventFilterMapPreventDefaultConfig<
+export type StreamFromEventFilterMapPreventDefaultConfig<
   Target extends EventTarget,
   Type extends EventTypeOf<Target>,
   Output,
@@ -273,7 +273,7 @@ export type FromEventFilterMapPreventDefaultConfig<
  * mapper chooses to keep, registering the listener when the Stream's scope
  * opens and removing it when the scope closes.
  *
- * This is the filtered variant of `fromEvent`. Its `filterMapEvent` returns
+ * This is the filtered variant of `streamFromEvent`. Its `filterMapEvent` returns
  * `Option.some(value)` to emit and `Option.none()` to ignore the event, so a
  * single listener can react to some dispatches while passing on the rest. A
  * mapper that never emits produces a `Stream<never>`.
@@ -286,7 +286,7 @@ export type FromEventFilterMapPreventDefaultConfig<
  * which ignores `preventDefault()`. Some browsers default wheel and touch
  * listeners on global targets to passive. Pass
  * `options: { passive: false }` explicitly when cancelling those events, or
- * reach for `fromEventFilterMapPreventDefault`, which does so for you.
+ * reach for `streamFromEventFilterMapPreventDefault`, which does so for you.
  *
  * The target, the event name, and the event the mapper receives are one fact:
  * `type` is constrained to the names the target declares, and the mapper's
@@ -317,7 +317,7 @@ export type FromEventFilterMapPreventDefaultConfig<
  *       modelToDependencies: model => ({ isListening: model.isListening }),
  *       dependenciesToStream: ({ isListening }) =>
  *         Stream.when(
- *           Dom.fromEventFilterMap({
+ *           Browser.streamFromEventFilterMap({
  *             target: window,
  *             type: 'keydown',
  *             filterMapEvent: event =>
@@ -332,12 +332,12 @@ export type FromEventFilterMapPreventDefaultConfig<
  * }))
  * ```
  */
-export const fromEventFilterMap = <
+export const streamFromEventFilterMap = <
   Target extends EventTarget,
   Type extends EventTypeOf<Target>,
   Output,
 >(
-  config: FromEventFilterMapConfig<Target, Type, Output>,
+  config: StreamFromEventFilterMapConfig<Target, Type, Output>,
 ): Stream.Stream<Output> => listen<EventOf<Target, Type>, Output>(config)
 
 /**
@@ -366,9 +366,9 @@ export const fromEventFilterMap = <
  * application's Message type.
  *
  * For a listener that reacts to only some events, reach for
- * `fromEventFilterMap`, whose mapper returns `Option<Output>`. For a
+ * `streamFromEventFilterMap`, whose mapper returns `Option<Output>`. For a
  * listener that also cancels the default action of the events it handles,
- * reach for `fromEventFilterMapPreventDefault`.
+ * reach for `streamFromEventFilterMapPreventDefault`.
  *
  * @example
  * ```typescript
@@ -379,7 +379,7 @@ export const fromEventFilterMap = <
  *       modelToDependencies: model => ({ isListening: model.isListening }),
  *       dependenciesToStream: ({ isListening }) =>
  *         Stream.when(
- *           Dom.fromEvent({
+ *           Browser.streamFromEvent({
  *             target: window,
  *             type: 'keydown',
  *             mapEvent: event => Message.PressedKey({ key: event.key }),
@@ -391,12 +391,12 @@ export const fromEventFilterMap = <
  * }))
  * ```
  */
-export const fromEvent = <
+export const streamFromEvent = <
   Target extends EventTarget,
   Type extends EventTypeOf<Target>,
   Output,
 >(
-  config: FromEventConfig<Target, Type, Output>,
+  config: StreamFromEventConfig<Target, Type, Output>,
 ): Stream.Stream<Output> =>
   listen<EventOf<Target, Type>, Output>({
     ...config,
@@ -409,7 +409,7 @@ export const fromEvent = <
  * registering the listener when the Stream's scope opens and removing it when
  * the scope closes.
  *
- * This is the cancelling variant of `fromEventFilterMap`, mirroring
+ * This is the cancelling variant of `streamFromEventFilterMap`, mirroring
  * `h.OnKeyDownPreventDefault` from `foldkit/html`. Its `filterMapEvent` returns
  * `Option.some(value)` to mark a dispatch handled. The helper evaluates the
  * mapper, calls `event.preventDefault()`, and queues the value before the
@@ -450,7 +450,7 @@ export const fromEvent = <
  *       modelToDependencies: model => ({ isModalOpen: model.isModalOpen }),
  *       dependenciesToStream: ({ isModalOpen }) =>
  *         Stream.when(
- *           Dom.fromEventFilterMapPreventDefault({
+ *           Browser.streamFromEventFilterMapPreventDefault({
  *             target: window,
  *             type: 'wheel',
  *             filterMapEvent: () => Option.some(Message.SuppressedWheelScroll()),
@@ -462,30 +462,30 @@ export const fromEvent = <
  * }))
  * ```
  */
-export const fromEventFilterMapPreventDefault = <
+export const streamFromEventFilterMapPreventDefault = <
   Target extends EventTarget,
   Type extends EventTypeOf<Target>,
   Output,
 >(
-  config: FromEventFilterMapPreventDefaultConfig<Target, Type, Output>,
+  config: StreamFromEventFilterMapPreventDefaultConfig<Target, Type, Output>,
 ): Stream.Stream<Output> => {
   const options: AddEventListenerOptions | undefined = config.options
 
   if (options?.passive === true) {
     throw new Error(
-      `Foldkit: \`Dom.fromEventFilterMapPreventDefault\` was passed ` +
+      `Foldkit: \`Browser.streamFromEventFilterMapPreventDefault\` was passed ` +
         `\`options: { passive: true }\` for a "${config.type}" listener. ` +
         `The helper exists to call \`event.preventDefault()\` on every ` +
         `dispatch the mapper marks handled, and a passive listener promises ` +
         `the browser the exact opposite: \`preventDefault()\` inside it is ` +
         `ignored and logs a console warning. Drop the \`passive\` option ` +
         `(the helper registers the listener with \`passive: false\` for ` +
-        `you), or use \`Dom.fromEventFilterMap\` for a listener ` +
+        `you), or use \`Browser.streamFromEventFilterMap\` for a listener ` +
         `that only observes.`,
     )
   }
 
-  return fromEventFilterMap({
+  return streamFromEventFilterMap({
     ...config,
     options: { ...options, passive: false },
     filterMapEvent: event => {

@@ -1,6 +1,6 @@
 // page/settings/subscription.ts
 import { Effect, Option, Schema, Stream } from 'effect'
-import { Dom, Subscription } from 'foldkit'
+import { Browser, Subscription } from 'foldkit'
 
 import {
   GotThemeMenuMessage,
@@ -27,7 +27,7 @@ const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
       }),
       dependenciesToStream: ({ hasUnsavedChanges }) =>
         Stream.when(
-          Dom.fromEventFilterMapPreventDefault({
+          Browser.streamFromEventFilterMapPreventDefault({
             target: window,
             type: 'beforeunload',
             filterMapEvent: event => {

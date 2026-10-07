@@ -3,12 +3,12 @@ import { describe, expect, expectTypeOf, it } from 'vitest'
 
 import { make } from '../subscription/subscription.js'
 import {
-  type FromEventConfig,
+  type StreamFromEventConfig,
   type TypedEventTarget,
-  fromEvent,
-  fromEventFilterMap,
-  fromEventFilterMapPreventDefault,
-} from './fromEvent.js'
+  streamFromEvent,
+  streamFromEventFilterMap,
+  streamFromEventFilterMapPreventDefault,
+} from './streamFromEvent.js'
 
 type PingEvents = Readonly<{ ping: CustomEvent<string> }>
 
@@ -26,14 +26,14 @@ const drain = <Message>(
     }),
   )
 
-describe('fromEvent', () => {
+describe('streamFromEvent', () => {
   it('emits a Message for every dispatched event', async () => {
     const target = makePingTarget()
     const received: Array<string> = []
 
     const fiber = Effect.runFork(
       drain(
-        fromEvent({
+        streamFromEvent({
           target,
           type: 'ping',
           mapEvent: event => event.detail,
@@ -57,7 +57,7 @@ describe('fromEvent', () => {
 
     const fiber = Effect.runFork(
       drain(
-        fromEvent({
+        streamFromEvent({
           target,
           type: 'ping',
           mapEvent: event => event.detail,
@@ -84,7 +84,7 @@ describe('fromEvent', () => {
 
     const fiber = Effect.runFork(
       drain(
-        fromEvent({
+        streamFromEvent({
           target: () => {
             isResolved = true
             return target
@@ -111,7 +111,7 @@ describe('fromEvent', () => {
 
     const fiber = Effect.runFork(
       drain(
-        fromEvent({
+        streamFromEvent({
           target,
           type: 'ping',
           mapEvent: event => event.detail,
@@ -131,14 +131,14 @@ describe('fromEvent', () => {
   })
 })
 
-describe('fromEventFilterMap', () => {
+describe('streamFromEventFilterMap', () => {
   it('emits only for events the mapper keeps and skips the rest', async () => {
     const target = makePingTarget()
     const received: Array<string> = []
 
     const fiber = Effect.runFork(
       drain(
-        fromEventFilterMap({
+        streamFromEventFilterMap({
           target,
           type: 'ping',
           filterMapEvent: event =>
@@ -164,7 +164,7 @@ describe('fromEventFilterMap', () => {
 
     const fiber = Effect.runFork(
       drain(
-        fromEventFilterMap({
+        streamFromEventFilterMap({
           target,
           type: 'ping',
           filterMapEvent: event => Option.some(event.detail),
@@ -190,7 +190,7 @@ describe('fromEventFilterMap', () => {
 
     const fiber = Effect.runFork(
       drain(
-        fromEventFilterMap({
+        streamFromEventFilterMap({
           target,
           type: 'ping',
           filterMapEvent: event => {
@@ -213,7 +213,7 @@ describe('fromEventFilterMap', () => {
   })
 })
 
-describe('fromEventFilterMapPreventDefault', () => {
+describe('streamFromEventFilterMapPreventDefault', () => {
   const makeRecordingTarget = (): Readonly<{
     target: TypedEventTarget<PingEvents>
     recordedOptions: Array<AddEventListenerOptions | boolean | undefined>
@@ -241,7 +241,7 @@ describe('fromEventFilterMapPreventDefault', () => {
 
     const fiber = Effect.runFork(
       drain(
-        fromEventFilterMapPreventDefault({
+        streamFromEventFilterMapPreventDefault({
           target,
           type: 'ping',
           filterMapEvent: event => Option.some(event.detail),
@@ -269,7 +269,7 @@ describe('fromEventFilterMapPreventDefault', () => {
 
     const fiber = Effect.runFork(
       drain(
-        fromEventFilterMapPreventDefault({
+        streamFromEventFilterMapPreventDefault({
           target,
           type: 'ping',
           filterMapEvent: () => Option.none(),
@@ -293,7 +293,7 @@ describe('fromEventFilterMapPreventDefault', () => {
 
     const fiber = Effect.runFork(
       drain(
-        fromEventFilterMapPreventDefault({
+        streamFromEventFilterMapPreventDefault({
           target,
           type: 'ping',
           filterMapEvent: event => Option.some(event.detail),
@@ -313,7 +313,7 @@ describe('fromEventFilterMapPreventDefault', () => {
 
     const fiber = Effect.runFork(
       drain(
-        fromEventFilterMapPreventDefault({
+        streamFromEventFilterMapPreventDefault({
           target,
           type: 'ping',
           filterMapEvent: event => Option.some(event.detail),
@@ -331,7 +331,7 @@ describe('fromEventFilterMapPreventDefault', () => {
 
   it('throws when the config passes passive true explicitly', () => {
     expect(() =>
-      fromEventFilterMapPreventDefault({
+      streamFromEventFilterMapPreventDefault({
         target: new EventTarget(),
         type: 'wheel',
         filterMapEvent: () => Option.none(),
@@ -357,7 +357,7 @@ declare const windowOrButton: Window | HTMLButtonElement
 
 describe('event type inference', () => {
   it('resolves the event from the target and the event name', () => {
-    const stream = fromEvent({
+    const stream = streamFromEvent({
       target: document,
       type: 'keydown',
       mapEvent: event => pressed(event.key),
@@ -368,7 +368,7 @@ describe('event type inference', () => {
     // NOTE: `pnpm typecheck` is the assertion for the block below, not vitest.
     // The suppression directives in it are the negative cases.
     if (false) {
-      const rawEventStream = fromEvent({
+      const rawEventStream = streamFromEvent({
         target: document,
         type: 'keydown',
         mapEvent: event => event,
@@ -377,7 +377,7 @@ describe('event type inference', () => {
       expectTypeOf(rawEventStream).toEqualTypeOf<Stream.Stream<KeyboardEvent>>()
 
       expectTypeOf(
-        fromEventFilterMap({
+        streamFromEventFilterMap({
           target: document,
           type: 'keydown',
           filterMapEvent: event => Option.some(event),
@@ -385,7 +385,7 @@ describe('event type inference', () => {
       ).toEqualTypeOf<Stream.Stream<KeyboardEvent>>()
 
       expectTypeOf(
-        fromEventFilterMapPreventDefault({
+        streamFromEventFilterMapPreventDefault({
           target: document,
           type: 'keydown',
           filterMapEvent: event => Option.some(event),
@@ -404,112 +404,112 @@ describe('event type inference', () => {
       }))
 
       expectTypeOf(
-        fromEvent({
+        streamFromEvent({
           target: document,
           type: 'keydown',
           mapEvent: event => pressed(event.key),
         }),
       ).toEqualTypeOf<Stream.Stream<InferenceMessage>>()
 
-      fromEvent({
+      streamFromEvent({
         target: window,
         type: 'wheel',
         mapEvent: event => pressed(String(event.deltaY)),
       })
 
-      fromEvent({
+      streamFromEvent({
         target: () => document,
         type: 'touchmove',
         mapEvent: event => pressed(String(event.touches.length)),
       })
 
-      fromEvent({
+      streamFromEvent({
         target: window.matchMedia('(prefers-color-scheme: dark)'),
         type: 'change',
         mapEvent: event => pressed(String(event.matches)),
       })
 
-      fromEvent({
+      streamFromEvent({
         target: button,
         type: 'click',
         mapEvent: event => pressed(String(event.clientX)),
       })
 
-      fromEvent({
+      streamFromEvent({
         target: svg,
         type: 'pointerdown',
         mapEvent: event => pressed(String(event.pointerId)),
       })
 
-      fromEvent({
+      streamFromEvent({
         target: new XMLHttpRequest(),
         type: 'progress',
         mapEvent: event => pressed(String(event.loaded)),
       })
 
-      fromEvent({
+      streamFromEvent({
         target: new Worker(''),
         type: 'message',
         mapEvent: event => pressed(String(event.data)),
       })
 
-      fromEvent({
+      streamFromEvent({
         target: indexedDB.open('foldkit'),
         type: 'upgradeneeded',
         mapEvent: event => pressed(String(event.oldVersion)),
       })
 
-      fromEvent({
+      streamFromEvent({
         target: document,
         type: 'DOMContentLoaded',
         mapEvent: event => pressed(event.type),
       })
 
-      fromEvent({
+      streamFromEvent({
         target: body,
         type: 'hashchange',
         mapEvent: event => pressed(event.newURL),
       })
 
-      fromEvent({
+      streamFromEvent({
         target: chart,
         type: 'chart:zoomed',
         mapEvent: event => pressed(String(event.detail)),
       })
 
-      fromEvent({
+      streamFromEvent({
         target: chart,
         type: 'click',
         mapEvent: event => pressed(String(event.clientX)),
       })
 
-      fromEvent({
+      streamFromEvent({
         target: overriddenClickChart,
         type: 'click',
         mapEvent: event => pressed(String(event.detail)),
       })
 
-      fromEvent({
+      streamFromEvent({
         target: windowOrButton,
         type: 'click',
         mapEvent: event => pressed(String(event.clientX)),
       })
 
-      fromEvent({
+      streamFromEvent({
         target: windowOrButton,
         // @ts-expect-error 'hashchange' is not dispatched by every member
         type: 'hashchange',
         mapEvent: () => pressed(''),
       })
 
-      fromEvent({
+      streamFromEvent({
         target: new EventTarget(),
         type: 'anything-at-all',
         mapEvent: event => pressed(event.type),
       })
 
       expectTypeOf(
-        fromEventFilterMap({
+        streamFromEventFilterMap({
           target: makePingTarget(),
           type: 'ping',
           filterMapEvent: event => Option.some(pressed(event.detail)),
@@ -517,14 +517,14 @@ describe('event type inference', () => {
       ).toEqualTypeOf<Stream.Stream<InferenceMessage>>()
 
       expectTypeOf(
-        fromEventFilterMapPreventDefault({
+        streamFromEventFilterMapPreventDefault({
           target: makePingTarget(),
           type: 'ping',
           filterMapEvent: event => Option.some(pressed(event.detail)),
         }),
       ).toEqualTypeOf<Stream.Stream<InferenceMessage>>()
 
-      const neverStream = fromEventFilterMap({
+      const neverStream = streamFromEventFilterMap({
         target: window,
         type: 'keydown',
         filterMapEvent: () => Option.none(),
@@ -535,7 +535,7 @@ describe('event type inference', () => {
       expectTypeOf(
         Stream.merge(
           neverStream,
-          fromEvent({
+          streamFromEvent({
             target: document,
             type: 'keydown',
             mapEvent: event => pressed(event.key),
@@ -543,56 +543,58 @@ describe('event type inference', () => {
         ),
       ).toEqualTypeOf<Stream.Stream<InferenceMessage>>()
 
-      fromEvent({
+      streamFromEvent({
         target: window,
         type: 'keydown',
         // @ts-expect-error 'keydown' resolves to a KeyboardEvent
         mapEvent: (event: MouseEvent) => pressed(String(event.clientX)),
       })
 
-      fromEvent({
+      streamFromEvent({
         target: window,
         type: 'keydown',
         mapEvent: (event: Event) => pressed(event.type),
       })
 
-      fromEvent({
+      streamFromEvent({
         target: document,
         // @ts-expect-error 'keydwn' is not an event Document dispatches
         type: 'keydwn',
         mapEvent: () => pressed(''),
       })
 
-      fromEvent({
+      streamFromEvent({
         target: button,
         // @ts-expect-error 'hashchange' is a Window event, not an HTMLElement one
         type: 'hashchange',
         mapEvent: () => pressed(''),
       })
 
-      fromEvent({
+      streamFromEvent({
         target: window,
         type: 'wheel',
         // @ts-expect-error a WheelEvent has no `key`
         mapEvent: event => pressed(event.key),
       })
 
-      fromEventFilterMap({
+      streamFromEventFilterMap({
         target: makePingTarget(),
         // @ts-expect-error the target declares only 'ping'
         type: 'pong',
         filterMapEvent: () => Option.none(),
       })
 
-      fromEventFilterMap({
+      streamFromEventFilterMap({
         target: makePingTarget(),
         type: 'ping',
         // @ts-expect-error the declared detail is a string
         filterMapEvent: event => Option.some(pressed(event.detail.key)),
       })
 
-      // @ts-expect-error config aliases constrain event names too
-      expectTypeOf<FromEventConfig<Document, 'keydwn', InferenceMessage>>()
+      expectTypeOf<
+        // @ts-expect-error config aliases constrain event names too
+        StreamFromEventConfig<Document, 'keydwn', InferenceMessage>
+      >()
 
       // @ts-expect-error every declared event-map value must be an Event
       expectTypeOf<TypedEventTarget<{ ping: string }>>()

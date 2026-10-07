@@ -1,9 +1,9 @@
 import { Option } from 'effect'
-import { Dom } from 'foldkit'
+import { Browser } from 'foldkit'
 
 import { Message } from './message'
 
-export const searchShortcut = Dom.fromEventFilterMap({
+export const searchShortcut = Browser.streamFromEventFilterMap({
   target: window,
   type: 'keydown',
   filterMapEvent: event => {

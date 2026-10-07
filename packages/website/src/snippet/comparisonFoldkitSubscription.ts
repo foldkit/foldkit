@@ -1,6 +1,6 @@
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   undoRedoKeys: Subscription.fromStream(
-    Dom.fromEventFilterMapPreventDefault({
+    Browser.streamFromEventFilterMapPreventDefault({
       target: document,
       type: 'keydown',
       filterMapEvent: toUndoRedoMessage,
@@ -8,7 +8,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 
   toolKeys: Subscription.fromStream(
-    Dom.fromEventFilterMap({
+    Browser.streamFromEventFilterMap({
       target: document,
       type: 'keydown',
       filterMapEvent: toToolMessage,

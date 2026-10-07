@@ -1,5 +1,5 @@
 import { Effect, Option, Stream } from 'effect'
-import { Dom } from 'foldkit'
+import { Browser } from 'foldkit'
 
 // ❌ Bad: fromEventListener queues the event and returns before mapEffect runs.
 const keyboardBad = Stream.fromEventListener<KeyboardEvent>(
@@ -15,7 +15,7 @@ const keyboardBad = Stream.fromEventListener<KeyboardEvent>(
 )
 
 // ✅ Good: Some marks Tab handled, so Foldkit cancels it inside the listener.
-const keyboardGood = Dom.fromEventFilterMapPreventDefault({
+const keyboardGood = Browser.streamFromEventFilterMapPreventDefault({
   target: document,
   type: 'keydown',
   filterMapEvent: event =>

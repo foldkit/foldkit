@@ -33,19 +33,7 @@ const chartClickToDatumId = (event: unknown): Option.Option<string> =>
     Option.map(({ id }) => id),
   )
 
-const initialViewState = (
-  viewStateChanges: Stream.Stream<Mount.ViewState>,
-): Effect.Effect<Mount.ViewState> =>
-  viewStateChanges.pipe(
-    Stream.runHead,
-    Effect.map(Option.getOrElse(() => Mount.ViewState.make('Live'))),
-  )
-
-const mountChart = (
-  element: Element,
-  hostId: string,
-  viewStateChanges: Stream.Stream<Mount.ViewState>,
-) =>
+const mountChart = (element: Element, hostId: string) =>
   Stream.callback<MountChartMessage>(queue =>
     Effect.gen(function* () {
       if (!(element instanceof HTMLElement)) {
@@ -67,39 +55,15 @@ const mountChart = (
       )
       setChart(hostId, chart)
 
-      let viewState = yield* initialViewState(viewStateChanges)
-
       yield* Effect.acquireRelease(
         Effect.try({
           try: () => {
             const resizeObserver = new ResizeObserver(() => chart.resize())
             const onWindowResize = () => chart.resize()
-            try {
-              resizeObserver.observe(element)
-              window.addEventListener('resize', onWindowResize)
-              return { resizeObserver, onWindowResize }
-            } catch (error) {
-              resizeObserver.disconnect()
-              window.removeEventListener('resize', onWindowResize)
-              throw error
-            }
-          },
-          catch: toError,
-        }),
-        ({ resizeObserver, onWindowResize }) =>
-          Effect.sync(() => {
-            resizeObserver.disconnect()
-            window.removeEventListener('resize', onWindowResize)
-          }),
-      )
-
-      yield* Effect.acquireRelease(
-        Effect.try({
-          try: () => {
             const onClick = (event: unknown) => {
               const maybeDatumId = chartClickToDatumId(event)
 
-              if (viewState === 'Live' && Option.isSome(maybeDatumId)) {
+              if (Option.isSome(maybeDatumId)) {
                 Queue.offerUnsafe(
                   queue,
                   Message.ClickedChartDatum({ datumId: maybeDatumId.value }),
@@ -108,25 +72,25 @@ const mountChart = (
             }
 
             try {
+              resizeObserver.observe(element)
+              window.addEventListener('resize', onWindowResize)
               chart.on('click', onClick)
-              return onClick
+              return { resizeObserver, onWindowResize, onClick }
             } catch (error) {
               chart.off('click', onClick)
+              window.removeEventListener('resize', onWindowResize)
+              resizeObserver.disconnect()
               throw error
             }
           },
           catch: toError,
         }),
-        onClick => Effect.sync(() => chart.off('click', onClick)),
-      )
-
-      yield* viewStateChanges.pipe(
-        Stream.runForEach(nextViewState =>
+        ({ resizeObserver, onWindowResize, onClick }) =>
           Effect.sync(() => {
-            viewState = nextViewState
+            chart.off('click', onClick)
+            window.removeEventListener('resize', onWindowResize)
+            resizeObserver.disconnect()
           }),
-        ),
-        Effect.forkScoped,
       )
 
       Queue.offerUnsafe(queue, Message.SucceededMountChart({ hostId }))
@@ -150,8 +114,7 @@ export const MountChart = Mount.defineStream('MountChart', {
     Message.FailedMountChart,
     Message.ClickedChartDatum,
   ],
-  execute: ({ element, hostId, viewStateChanges }) =>
-    mountChart(element, hostId, viewStateChanges),
+  execute: ({ element, hostId }) => mountChart(element, hostId),
 })
 
 export const chartPanelView = (

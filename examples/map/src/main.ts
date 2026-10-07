@@ -315,53 +315,10 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 
 // MAP MOUNT
 
-type MountedMap = Readonly<{
-  map: MapInstance
-  markerElements: ReadonlyArray<HTMLButtonElement>
-}>
+const toMountError = (error: unknown): Error =>
+  error instanceof Error ? error : new Error(`Failed to mount map: ${error}`)
 
-const initialViewState = (
-  viewStateChanges: Stream.Stream<Mount.ViewState>,
-): Effect.Effect<Mount.ViewState> =>
-  viewStateChanges.pipe(
-    Stream.runHead,
-    Effect.map(Option.getOrElse(() => Mount.ViewState.make('Live'))),
-  )
-
-const applyMapViewState = (
-  { map, markerElements }: MountedMap,
-  viewState: Mount.ViewState,
-): Effect.Effect<void> =>
-  Effect.sync(() => {
-    const isLive = viewState === 'Live'
-    const pointerInteractions = [
-      map.boxZoom,
-      map.doubleClickZoom,
-      map.dragPan,
-      map.dragRotate,
-      map.scrollZoom,
-      map.touchPitch,
-      map.touchZoomRotate,
-    ]
-
-    if (isLive) {
-      map.keyboard.enable()
-      Array.forEach(pointerInteractions, interaction => interaction.enable())
-    } else {
-      map.keyboard.disable()
-      Array.forEach(pointerInteractions, interaction => interaction.disable())
-    }
-
-    Array.forEach(markerElements, markerElement => {
-      markerElement.disabled = !isLive
-    })
-  })
-
-const mountMap = (
-  element: Element,
-  hostId: string,
-  viewStateChanges: Stream.Stream<Mount.ViewState>,
-) =>
+const mountMap = (element: Element, hostId: string) =>
   Stream.callback<MountMapMessage>(queue =>
     Effect.gen(function* () {
       if (!(element instanceof HTMLElement)) {
@@ -377,109 +334,92 @@ const mountMap = (
       const mapResource = yield* Effect.acquireRelease(
         Effect.gen(function* () {
           const maplibre = yield* Effect.tryPromise(() => import('maplibre-gl'))
-          maplibre.setWorkerUrl(maplibreWorkerUrl)
-          const map = new maplibre.Map({
-            container: element,
-            style: 'https://demotiles.maplibre.org/style.json',
-            center: [0, 20],
-            zoom: INITIAL_MAP_ZOOM,
+          const map = yield* Effect.try({
+            try: () => {
+              maplibre.setWorkerUrl(maplibreWorkerUrl)
+              return new maplibre.Map({
+                container: element,
+                style: 'https://demotiles.maplibre.org/style.json',
+                center: [0, 20],
+                zoom: INITIAL_MAP_ZOOM,
+              })
+            },
+            catch: toMountError,
           })
           return { map, maplibre }
         }),
         ({ map }) => Effect.sync(() => removeMap(hostId, map)),
       )
+      const { map, maplibre } = mapResource
 
-      const markerElements = Array.map(
-        featuredLocations,
-        ({ id, lng, lat }) => {
-          const markerElement = document.createElement('button')
-          markerElement.setAttribute('data-location-id', id)
-          markerElement.setAttribute('aria-label', `Marker: ${id}`)
-          markerElement.className = markerStyle
-          new mapResource.maplibre.Marker({ element: markerElement })
-            .setLngLat([lng, lat])
-            .addTo(mapResource.map)
-          return markerElement
-        },
-      )
-      const mountedMap = { map: mapResource.map, markerElements }
-      setMap(hostId, mountedMap.map)
-
-      let viewState = yield* initialViewState(viewStateChanges)
-      yield* applyMapViewState(mountedMap, viewState)
+      yield* Effect.try({
+        try: () =>
+          Array.forEach(featuredLocations, ({ id, lng, lat }) => {
+            const markerElement = document.createElement('button')
+            markerElement.setAttribute('data-location-id', id)
+            markerElement.setAttribute('aria-label', `Marker: ${id}`)
+            markerElement.className = markerStyle
+            new maplibre.Marker({ element: markerElement })
+              .setLngLat([lng, lat])
+              .addTo(map)
+          }),
+        catch: toMountError,
+      })
+      setMap(hostId, map)
 
       yield* Effect.acquireRelease(
-        Effect.sync(() => {
-          const onMoveEnd = () => {
-            if (viewState === 'Live') {
+        Effect.try({
+          try: () => {
+            const container = map.getContainer()
+            const onMoveEnd = () => {
               Queue.offerUnsafe(
                 queue,
-                Message.MovedMap({ bounds: boundsFromMap(mountedMap.map) }),
+                Message.MovedMap({ bounds: boundsFromMap(map) }),
               )
             }
-          }
+            const onContainerClick = (event: MouseEvent) => {
+              const target = event.target
+              if (!(target instanceof Element)) {
+                return
+              }
+              const marker = target.closest('[data-location-id]')
+              if (!(marker instanceof HTMLElement)) {
+                return
+              }
+              const locationId = marker.dataset['locationId']
+              if (locationId !== undefined) {
+                Queue.offerUnsafe(queue, Message.ClickedMarker({ locationId }))
+              }
+            }
 
-          const onContainerClick = (event: MouseEvent) => {
-            if (viewState !== 'Live') {
-              return
+            try {
+              map.on('moveend', onMoveEnd)
+              container.addEventListener('click', onContainerClick)
+              return { container, onMoveEnd, onContainerClick }
+            } catch (error) {
+              map.off('moveend', onMoveEnd)
+              container.removeEventListener('click', onContainerClick)
+              throw error
             }
-            const target = event.target
-            if (!(target instanceof Element)) {
-              return
-            }
-            const marker = target.closest('[data-location-id]')
-            if (!(marker instanceof HTMLElement)) {
-              return
-            }
-            const locationId = marker.dataset['locationId']
-            if (locationId !== undefined) {
-              Queue.offerUnsafe(queue, Message.ClickedMarker({ locationId }))
-            }
-          }
-
-          mountedMap.map.on('moveend', onMoveEnd)
-          mountedMap.map
-            .getContainer()
-            .addEventListener('click', onContainerClick)
-          return { onMoveEnd, onContainerClick }
+          },
+          catch: toMountError,
         }),
-        ({ onMoveEnd, onContainerClick }) =>
+        ({ container, onMoveEnd, onContainerClick }) =>
           Effect.sync(() => {
-            mountedMap.map.off('moveend', onMoveEnd)
-            mountedMap.map
-              .getContainer()
-              .removeEventListener('click', onContainerClick)
+            map.off('moveend', onMoveEnd)
+            container.removeEventListener('click', onContainerClick)
           }),
       )
 
-      yield* viewStateChanges.pipe(
-        Stream.runForEach(nextViewState => {
-          if (nextViewState === viewState) {
-            return Effect.void
-          }
-
-          viewState = nextViewState
-          return applyMapViewState(mountedMap, nextViewState)
-        }),
-        Effect.forkScoped,
-      )
-
       Queue.offerUnsafe(queue, Message.SucceededMountMap({ hostId }))
-      if (viewState === 'Live') {
-        Queue.offerUnsafe(
-          queue,
-          Message.MovedMap({ bounds: boundsFromMap(mountedMap.map) }),
-        )
-      }
+      Queue.offerUnsafe(queue, Message.MovedMap({ bounds: boundsFromMap(map) }))
       return yield* Effect.never
     }).pipe(
       Effect.catch(error =>
         Effect.sync(() =>
           Queue.offerUnsafe(
             queue,
-            Message.FailedMountMap({
-              reason: error instanceof Error ? error.message : `${error}`,
-            }),
+            Message.FailedMountMap({ reason: toMountError(error).message }),
           ),
         ),
       ),
@@ -494,8 +434,7 @@ export const MountMap = Mount.defineStream('MountMap', {
     Message.MovedMap,
     Message.ClickedMarker,
   ],
-  execute: ({ element, hostId, viewStateChanges }) =>
-    mountMap(element, hostId, viewStateChanges),
+  execute: ({ element, hostId }) => mountMap(element, hostId),
 })
 
 const boundsFromMap = (map: MapInstance): Bounds => {

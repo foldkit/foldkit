@@ -3,7 +3,10 @@ import { afterEach, describe, expect, expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
 import { make } from '../subscription/subscription.js'
-import { type KeyBindingsConfig, keyBindings } from './keyBindings.js'
+import {
+  type StreamFromKeyBindingsConfig,
+  streamFromKeyBindings,
+} from './streamFromKeyBindings.js'
 
 const Message = defineMessageUnion({
   PressedKeys: { name: Schema.String },
@@ -69,9 +72,9 @@ const pressInWindow = (
   return event
 }
 
-const start = async (config: KeyBindingsConfig<Message>) => {
+const start = async (config: StreamFromKeyBindingsConfig<Message>) => {
   const received: Array<Message> = []
-  const fiber = Effect.runFork(drain(keyBindings(config), received))
+  const fiber = Effect.runFork(drain(streamFromKeyBindings(config), received))
   await tick()
   return { fiber, received }
 }
@@ -83,10 +86,10 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-describe('keyBindings', () => {
+describe('streamFromKeyBindings', () => {
   it('infers its Stream output and checks the application Message at make', () => {
     if (false) {
-      const rawEventStream = keyBindings({
+      const rawEventStream = streamFromKeyBindings({
         bindings: [{ keys: 'Escape', mapEvent: event => event }],
       })
 
@@ -178,7 +181,7 @@ describe('keyBindings', () => {
     for (const modifier of ['Ctrl', 'Cmd', 'Command', 'Option']) {
       for (const keyPress of [`${modifier}+K`, modifier, `Shift+${modifier}`]) {
         expect(() =>
-          keyBindings<Message>({
+          streamFromKeyBindings<Message>({
             bindings: [
               {
                 keys: keyPress,
@@ -555,7 +558,7 @@ describe('keyBindings', () => {
   })
 
   it('starts each Stream scope without a pending sequence', async () => {
-    const config: KeyBindingsConfig<Message> = {
+    const config: StreamFromKeyBindingsConfig<Message> = {
       bindings: [
         {
           keys: ['G', 'H'],
@@ -607,6 +610,82 @@ describe('keyBindings', () => {
 
     expect(received).toEqual([
       Message.PressedKeys({ name: 'PressedPaletteShortcut' }),
+    ])
+  })
+
+  it('ignores a partial owner document without event listeners', async () => {
+    const target = new EventTarget()
+    Object.defineProperty(target, 'ownerDocument', {
+      value: {
+        createElement: document.createElement.bind(document),
+        defaultView: window,
+        documentElement: document.documentElement,
+      },
+    })
+
+    const { fiber, received } = await start({
+      target,
+      bindings: [
+        {
+          keys: ['G', 'H'],
+          mapEvent: toMessage('PressedHomeSequence'),
+        },
+      ],
+    })
+
+    press({ key: 'g' }, target)
+    document.dispatchEvent(new Event('visibilitychange'))
+    press({ key: 'h' }, target)
+    press({ key: 'g' }, target)
+    press({ key: 'h' }, target)
+    await tick()
+    await stop(fiber)
+
+    expect(received).toEqual([
+      Message.PressedKeys({ name: 'PressedHomeSequence' }),
+    ])
+  })
+
+  it('does not use a partial Window to resolve Mod', async () => {
+    const target = new EventTarget()
+    const isParentApple = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
+    const parentModKey = isParentApple ? 'Meta' : 'Control'
+    const otherModKey = isParentApple ? 'Control' : 'Meta'
+    Object.defineProperty(target, 'navigator', {
+      value: { userAgent: isParentApple ? 'Windows' : 'Macintosh' },
+    })
+
+    const { fiber, received } = await start({
+      target,
+      bindings: [
+        { keys: 'Mod+K', mapEvent: toMessage('PressedParentMod') },
+        {
+          keys: `${otherModKey}+K`,
+          mapEvent: toMessage('PressedOtherMod'),
+        },
+      ],
+    })
+
+    press(
+      {
+        key: 'k',
+        ...(parentModKey === 'Meta' ? { metaKey: true } : { ctrlKey: true }),
+      },
+      target,
+    )
+    press(
+      {
+        key: 'k',
+        ...(otherModKey === 'Meta' ? { metaKey: true } : { ctrlKey: true }),
+      },
+      target,
+    )
+    await tick()
+    await stop(fiber)
+
+    expect(received).toEqual([
+      Message.PressedKeys({ name: 'PressedParentMod' }),
+      Message.PressedKeys({ name: 'PressedOtherMod' }),
     ])
   })
 
@@ -695,7 +774,7 @@ describe('keyBindings', () => {
     })
 
     expect(() =>
-      keyBindings<Message>({
+      streamFromKeyBindings<Message>({
         target: iframeWindow,
         bindings: [
           { keys: 'Mod+K', mapEvent: toMessage('PressedImplicitMod') },
@@ -748,7 +827,7 @@ describe('keyBindings', () => {
 
   it('rejects malformed and ambiguous binding tables', () => {
     expect(() =>
-      keyBindings<Message>({
+      streamFromKeyBindings<Message>({
         bindings: [
           {
             keys: 'Control+K',
@@ -763,7 +842,7 @@ describe('keyBindings', () => {
     ).toThrowError(/duplicates/)
 
     expect(() =>
-      keyBindings<Message>({
+      streamFromKeyBindings<Message>({
         modKey: 'Control',
         bindings: [
           { keys: 'Mod+K', mapEvent: toMessage('PressedFirst') },
@@ -773,7 +852,7 @@ describe('keyBindings', () => {
     ).toThrowError(/duplicates/)
 
     expect(() =>
-      keyBindings<Message>({
+      streamFromKeyBindings<Message>({
         modKey: 'Control',
         bindings: [
           { keys: 'Mod+K', mapEvent: toMessage('PressedFirst') },
@@ -783,7 +862,7 @@ describe('keyBindings', () => {
     ).not.toThrow()
 
     expect(() =>
-      keyBindings<Message>({
+      streamFromKeyBindings<Message>({
         bindings: [
           { keys: 'G', mapEvent: toMessage('PressedFirst') },
           {
@@ -795,7 +874,7 @@ describe('keyBindings', () => {
     ).toThrowError(/sequence prefix/)
 
     expect(() =>
-      keyBindings<Message>({
+      streamFromKeyBindings<Message>({
         bindings: [
           {
             keys: ['G', 'H'],
@@ -811,7 +890,7 @@ describe('keyBindings', () => {
     ).toThrowError(/same preventDefault/)
 
     expect(() =>
-      keyBindings<Message>({
+      streamFromKeyBindings<Message>({
         bindings: [
           {
             keys: 'Control++',
@@ -822,7 +901,7 @@ describe('keyBindings', () => {
     ).toThrowError(/use "Plus"/)
 
     expect(() =>
-      keyBindings<Message>({
+      streamFromKeyBindings<Message>({
         bindings: [
           {
             keys: 'CapsLock',
@@ -833,7 +912,7 @@ describe('keyBindings', () => {
     ).toThrowError(/non-modifier/)
 
     expect(() =>
-      keyBindings<Message>({
+      streamFromKeyBindings<Message>({
         sequenceTimeout: Duration.zero,
         bindings: [],
       }),

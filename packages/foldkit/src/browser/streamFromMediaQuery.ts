@@ -1,7 +1,7 @@
 import { Effect, Queue, Stream } from 'effect'
 
 /**
- * Options for `fromMediaQuery`.
+ * Options for `streamFromMediaQuery`.
  *
  * `query` accepts any media query string supported by `window.matchMedia`,
  * such as `'(prefers-reduced-motion: reduce)'`,
@@ -16,7 +16,7 @@ import { Effect, Queue, Stream } from 'effect'
  * `Subscription.make` checks that output against the application's Message
  * type.
  */
-export type FromMediaQueryConfig<Output> = Readonly<{
+export type StreamFromMediaQueryConfig<Output> = Readonly<{
   query: string
   mapMatches: (isMatching: boolean) => Output
 }>
@@ -46,7 +46,7 @@ export type FromMediaQueryConfig<Output> = Readonly<{
  * ```typescript
  * const subscriptions = Subscription.make<Model, Message>()(_entry => ({
  *   reducedMotion: Subscription.fromStream(
- *     Dom.fromMediaQuery({
+ *     Browser.streamFromMediaQuery({
  *       query: '(prefers-reduced-motion: reduce)',
  *       mapMatches: isMatching =>
  *         Message.ChangedReducedMotion({ isReducedMotion: isMatching }),
@@ -55,8 +55,8 @@ export type FromMediaQueryConfig<Output> = Readonly<{
  * }))
  * ```
  */
-export const fromMediaQuery = <Output>(
-  config: FromMediaQueryConfig<Output>,
+export const streamFromMediaQuery = <Output>(
+  config: StreamFromMediaQueryConfig<Output>,
 ): Stream.Stream<Output> =>
   Stream.callback<Output>(queue =>
     Effect.acquireRelease(

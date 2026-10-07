@@ -1,4 +1,5 @@
 export * as AsyncData from './asyncData/public.js'
+export * as Browser from './browser/public.js'
 export * as Calendar from './calendar/public.js'
 export * as Canvas from './canvas/public.js'
 export * as Command from './command/public.js'

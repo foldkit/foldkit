@@ -10,7 +10,7 @@ import {
 } from 'vitest'
 
 import { make } from '../subscription/subscription.js'
-import { fromMediaQuery } from './fromMediaQuery.js'
+import { streamFromMediaQuery } from './streamFromMediaQuery.js'
 
 class FakeMediaQueryList extends EventTarget {
   matches = false
@@ -84,7 +84,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('fromMediaQuery', () => {
+describe('streamFromMediaQuery', () => {
   it('emits the current value when the Stream starts', async () => {
     const harness = stubMatchMedia(REDUCED_MOTION_QUERY)
     harness.list.setMatches(true)
@@ -92,7 +92,7 @@ describe('fromMediaQuery', () => {
 
     const fiber = Effect.runFork(
       drain(
-        fromMediaQuery({
+        streamFromMediaQuery({
           query: REDUCED_MOTION_QUERY,
           mapMatches: describeMatches,
         }),
@@ -114,7 +114,7 @@ describe('fromMediaQuery', () => {
 
     const fiber = Effect.runFork(
       drain(
-        fromMediaQuery({
+        streamFromMediaQuery({
           query: REDUCED_MOTION_QUERY,
           mapMatches: describeMatches,
         }),
@@ -134,7 +134,7 @@ describe('fromMediaQuery', () => {
   it('does not call matchMedia until the Stream starts', () => {
     const harness = stubMatchMedia(REDUCED_MOTION_QUERY)
 
-    fromMediaQuery({
+    streamFromMediaQuery({
       query: REDUCED_MOTION_QUERY,
       mapMatches: describeMatches,
     })
@@ -148,7 +148,7 @@ describe('fromMediaQuery', () => {
 
     const fiber = Effect.runFork(
       drain(
-        fromMediaQuery({
+        streamFromMediaQuery({
           query: REDUCED_MOTION_QUERY,
           mapMatches: describeMatches,
         }),
@@ -195,7 +195,7 @@ describe('fromMediaQuery', () => {
           }),
           dependenciesToStream: ({ isFollowingSystem }) =>
             Stream.when(
-              fromMediaQuery({
+              streamFromMediaQuery({
                 query: REDUCED_MOTION_QUERY,
                 mapMatches: describeMatches,
               }),

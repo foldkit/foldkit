@@ -27,7 +27,7 @@ type BindingBase<Output> = Readonly<{
 }>
 
 /**
- * One entry in a {@link keyBindings} binding table.
+ * One entry in a {@link streamFromKeyBindings} binding table.
  *
  * A string describes one key press, such as `'/'`, `'Escape'`, or `'Mod+K'`.
  * An array describes a sequence of at least two presses, such as
@@ -47,8 +47,8 @@ export type KeyBinding<Output> = BindingBase<Output> &
 
 type ModKey = 'Control' | 'Meta'
 
-/** Configuration for the {@link keyBindings} Stream helper. */
-export type KeyBindingsConfig<Output> = Readonly<{
+/** Configuration for the {@link streamFromKeyBindings} Stream helper. */
+export type StreamFromKeyBindingsConfig<Output> = Readonly<{
   bindings: ReadonlyArray<KeyBinding<Output>>
   target?: EventTarget | (() => EventTarget)
   modKey?: ModKey
@@ -105,7 +105,7 @@ type KeyBindingHandler = Readonly<{
   handleEvent: (event: Event) => void
 }>
 
-type CompiledKeyBindingsConfig<Message> = Readonly<{
+type CompiledStreamFromKeyBindingsConfig<Message> = Readonly<{
   bindings: ReadonlyArray<CompiledBinding<Message>>
   modKey: ModKey | undefined
   sequenceTimeout: number
@@ -115,10 +115,24 @@ type CompiledKeyBindingsConfig<Message> = Readonly<{
 type AcquiredKeyBindingListener = Readonly<{
   clearSequence: () => void
   handleEvent: (event: Event) => void
-  ownerDocument: Document
-  ownerWindow: Window
+  ownerDocument: KeyBindingDocument
+  ownerWindow: KeyBindingWindow
   target: EventTarget
 }>
+
+type ListenerOwner = Readonly<{
+  addEventListener: EventTarget['addEventListener']
+  removeEventListener: EventTarget['removeEventListener']
+}>
+
+type KeyBindingWindow = ListenerOwner &
+  Readonly<{
+    document: ListenerOwner & Readonly<{ defaultView: unknown }>
+    navigator: Readonly<{ userAgent: string }>
+  }>
+
+type KeyBindingDocument = ListenerOwner &
+  Readonly<{ defaultView: KeyBindingWindow | null }>
 
 const DEFAULT_SEQUENCE_TIMEOUT = Duration.seconds(1)
 const APPLE_PLATFORM_PATTERN = /Mac|iPhone|iPad|iPod/
@@ -522,9 +536,9 @@ const resolveValidationModKey = (
   )
 }
 
-const compileKeyBindingsConfig = <Message>(
-  config: KeyBindingsConfig<Message>,
-): CompiledKeyBindingsConfig<Message> => {
+const compileStreamFromKeyBindingsConfig = <Message>(
+  config: StreamFromKeyBindingsConfig<Message>,
+): CompiledStreamFromKeyBindingsConfig<Message> => {
   const bindings = compileEnabledBindings(config.bindings)
   const sequenceTimeout = Duration.toMillis(
     config.sequenceTimeout ?? DEFAULT_SEQUENCE_TIMEOUT,
@@ -739,36 +753,43 @@ const makeKeyBindingHandler = <Message>(
   }
 }
 
-const isWindow = (value: unknown): value is Window =>
+const hasEventListeners = (value: unknown): value is ListenerOwner =>
   Predicate.hasProperty(value, 'addEventListener') &&
   Predicate.isFunction(value.addEventListener) &&
   Predicate.hasProperty(value, 'removeEventListener') &&
-  Predicate.isFunction(value.removeEventListener) &&
+  Predicate.isFunction(value.removeEventListener)
+
+const hasDocumentCapabilities = (
+  value: unknown,
+): value is ListenerOwner & Readonly<{ defaultView: unknown }> =>
+  hasEventListeners(value) && Predicate.hasProperty(value, 'defaultView')
+
+const isKeyBindingWindow = (value: unknown): value is KeyBindingWindow =>
+  hasEventListeners(value) &&
+  Predicate.hasProperty(value, 'document') &&
+  hasDocumentCapabilities(value.document) &&
   Predicate.hasProperty(value, 'navigator') &&
   Predicate.hasProperty(value.navigator, 'userAgent') &&
   Predicate.isString(value.navigator.userAgent)
 
-const isDocument = (value: unknown): value is Document =>
-  Predicate.hasProperty(value, 'createElement') &&
-  Predicate.isFunction(value.createElement) &&
-  Predicate.hasProperty(value, 'defaultView') &&
-  (value.defaultView === null || isWindow(value.defaultView)) &&
-  Predicate.hasProperty(value, 'documentElement')
+const isKeyBindingDocument = (value: unknown): value is KeyBindingDocument =>
+  hasDocumentCapabilities(value) &&
+  (value.defaultView === null || isKeyBindingWindow(value.defaultView))
 
 const resolveKnownOwnerWindow = (
   target: EventTarget,
-): Option.Option<Window> => {
-  if (isWindow(target)) {
+): Option.Option<KeyBindingWindow> => {
+  if (isKeyBindingWindow(target)) {
     return Option.some(target)
   }
 
-  if (isDocument(target)) {
+  if (isKeyBindingDocument(target)) {
     return Option.fromNullishOr(target.defaultView)
   }
 
   if (
     Predicate.hasProperty(target, 'ownerDocument') &&
-    isDocument(target.ownerDocument)
+    isKeyBindingDocument(target.ownerDocument)
   ) {
     return Option.fromNullishOr(target.ownerDocument.defaultView)
   }
@@ -776,21 +797,21 @@ const resolveKnownOwnerWindow = (
   return Option.none()
 }
 
-const resolveOwnerDocument = (target: EventTarget): Document => {
-  if (isDocument(target)) {
+const resolveOwnerDocument = (target: EventTarget): KeyBindingDocument => {
+  if (isKeyBindingDocument(target)) {
     return target
   }
 
   if (
     Predicate.hasProperty(target, 'ownerDocument') &&
-    isDocument(target.ownerDocument)
+    isKeyBindingDocument(target.ownerDocument)
   ) {
     return target.ownerDocument
   }
 
   if (
     Predicate.hasProperty(target, 'document') &&
-    isDocument(target.document)
+    isKeyBindingDocument(target.document)
   ) {
     return target.document
   }
@@ -799,7 +820,7 @@ const resolveOwnerDocument = (target: EventTarget): Document => {
 }
 
 const acquireKeyBindingListener = <Message>(
-  config: CompiledKeyBindingsConfig<Message>,
+  config: CompiledStreamFromKeyBindingsConfig<Message>,
   emitMessage: (message: Message) => void,
 ): AcquiredKeyBindingListener => {
   const target = resolveTarget(config.target)
@@ -840,7 +861,7 @@ const releaseKeyBindingListener = (
 }
 
 const keyBindingStream = <Message>(
-  config: CompiledKeyBindingsConfig<Message>,
+  config: CompiledStreamFromKeyBindingsConfig<Message>,
 ): Stream.Stream<Message> =>
   Stream.callback<Message>(queue => {
     const emitMessage = (message: Message): void => {
@@ -904,7 +925,7 @@ const keyBindingStream = <Message>(
  *         isPaletteOpen: model.paletteState._tag === 'Open',
  *       }),
  *       dependenciesToStream: ({ isPaletteOpen }) =>
- *         Dom.keyBindings<Message>({
+ *         Browser.streamFromKeyBindings<Message>({
  *           bindings: [
  *             {
  *               keys: 'Escape',
@@ -928,6 +949,7 @@ const keyBindingStream = <Message>(
  * }))
  * ```
  */
-export const keyBindings = <Output>(
-  config: KeyBindingsConfig<Output>,
-): Stream.Stream<Output> => keyBindingStream(compileKeyBindingsConfig(config))
+export const streamFromKeyBindings = <Output>(
+  config: StreamFromKeyBindingsConfig<Output>,
+): Stream.Stream<Output> =>
+  keyBindingStream(compileStreamFromKeyBindingsConfig(config))
