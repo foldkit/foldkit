@@ -809,18 +809,17 @@ const restoreManifests = originals => {
   }
 }
 
-const writePackageJsons = packages => {
-  const originals = new Map()
-
+const writePackageJsons = (packages, originals) => {
   for (const pkg of packages) {
-    originals.set(pkg.manifestPath, readFileSync(pkg.manifestPath, 'utf8'))
+    if (!originals.has(pkg.manifestPath)) {
+      originals.set(pkg.manifestPath, readFileSync(pkg.manifestPath, 'utf8'))
+    }
+
     writeFileSync(
       pkg.manifestPath,
       `${JSON.stringify(pkg.packageJson, null, 2)}\n`,
     )
   }
-
-  return originals
 }
 
 export const runCoherentUpload = async ({
@@ -874,9 +873,15 @@ export const runCoherentUpload = async ({
 
   try {
     if (channel === 'canary') {
-      for (const [path, content] of writePackageJsons(packingPackages)) {
-        originals.set(path, content)
-      }
+      const canaryBuildPackages = discoveredPublicPackages.map(pkg => ({
+        ...pkg,
+        packageJson: {
+          ...pkg.packageJson,
+          version: canaryVersion(pkg.packageJson.version, commit),
+        },
+      }))
+
+      writePackageJsons(canaryBuildPackages, originals)
     }
 
     const releaseManifestPath = join(stagingDirectory, 'release.json')
@@ -889,11 +894,7 @@ export const runCoherentUpload = async ({
 
     build(Array.isArrayEmpty(packagesToPack) ? [] : releasePackages, env)
 
-    if (channel === 'stable') {
-      for (const [path, content] of writePackageJsons(packingPackages)) {
-        originals.set(path, content)
-      }
-    }
+    writePackageJsons(packingPackages, originals)
 
     const artifacts = packagesToPack.map(pkg =>
       pack(pkg, stagingDirectory, env),

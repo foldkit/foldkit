@@ -598,16 +598,25 @@ test('stable and canary manifests pack identically across workspace orders', () 
   }
 })
 
-test('coherent upload stages resolved manifests at the packing boundary', async () => {
+test('coherent upload builds workspace manifests and packs resolved manifests', async () => {
   const commit = '0123456789abcdef0123456789abcdef01234567'
   const sourcePackages = [
     packageFor('@fixture/core-a', '1.2.3'),
     packageFor('@fixture/core-b', '2.3.4'),
     packageFor('@fixture/consumer', '3.4.5', {
+      dependencies: {
+        '@fixture/core-a': 'workspace:*',
+        'external-dependency': '^4.5.6',
+      },
+      optionalDependencies: {
+        '@fixture/core-b': 'workspace:^',
+      },
+      peerDependencies: {
+        '@fixture/core-a': 'workspace:^',
+      },
       devDependencies: {
         '@fixture/core-b': 'workspace:*',
         effect: '4.0.0',
-        '@fixture/core-a': 'workspace:^',
       },
     }),
   ]
@@ -627,8 +636,50 @@ test('coherent upload stages resolved manifests at the packing boundary', async 
         packageOrder,
       )
       const registry = new FakeRegistry(workspacePackages)
-      let buildDependencies
-      let packedDependencies
+      const consumer = workspacePackages.find(
+        pkg => pkg.packageJson.name === '@fixture/consumer',
+      )
+
+      assert.ok(consumer)
+      const originalManifests = new Map()
+
+      for (const pkg of workspacePackages) {
+        const originalManifest = `${readFileSync(pkg.manifestPath, 'utf8')}\n`
+
+        originalManifests.set(pkg.manifestPath, originalManifest)
+        writeFileSync(pkg.manifestPath, originalManifest)
+      }
+
+      const expectedConsumerVersion =
+        channel === 'canary'
+          ? canaryVersion(consumer.packageJson.version, commit)
+          : consumer.packageJson.version
+      const coreAVersion =
+        channel === 'canary' ? canaryVersion('1.2.3', commit) : '1.2.3'
+      const coreBVersion =
+        channel === 'canary' ? canaryVersion('2.3.4', commit) : '2.3.4'
+      const expectedPackedManifest = {
+        ...consumer.packageJson,
+        version: expectedConsumerVersion,
+        dependencies: {
+          ...consumer.packageJson.dependencies,
+          '@fixture/core-a': coreAVersion,
+        },
+        optionalDependencies: {
+          ...consumer.packageJson.optionalDependencies,
+          '@fixture/core-b':
+            channel === 'canary' ? coreBVersion : `^${coreBVersion}`,
+        },
+        peerDependencies: {
+          ...consumer.packageJson.peerDependencies,
+          '@fixture/core-a':
+            channel === 'canary' ? coreAVersion : `^${coreAVersion}`,
+        },
+        devDependencies: {
+          ...consumer.packageJson.devDependencies,
+          '@fixture/core-b': coreBVersion,
+        },
+      }
 
       await runCoherentUpload({
         root,
@@ -638,22 +689,20 @@ test('coherent upload stages resolved manifests at the packing boundary', async 
         tags: new Set(),
         workspacePackages,
         build: () => {
-          const consumer = workspacePackages.find(
-            pkg => pkg.packageJson.name === '@fixture/consumer',
-          )
-
-          assert.ok(consumer)
           const packageJson = JSON.parse(
             readFileSync(consumer.manifestPath, 'utf8'),
           )
 
-          buildDependencies = Object.entries(packageJson.devDependencies)
+          assert.deepEqual(packageJson, {
+            ...consumer.packageJson,
+            version: expectedConsumerVersion,
+          })
         },
         pack: pkg => {
           const packageJson = JSON.parse(readFileSync(pkg.manifestPath, 'utf8'))
 
           if (packageJson.name === '@fixture/consumer') {
-            packedDependencies = Object.entries(packageJson.devDependencies)
+            assert.deepEqual(packageJson, expectedPackedManifest)
           }
 
           return {
@@ -668,42 +717,72 @@ test('coherent upload stages resolved manifests at the packing boundary', async 
         log: () => {},
       })
 
-      const coreAVersion =
-        channel === 'canary' ? '1.2.3-canary.0123456789ab' : '^1.2.3'
-      const coreBVersion =
-        channel === 'canary' ? '2.3.4-canary.0123456789ab' : '2.3.4'
-      const expectedPackedDependencies = [
-        ['@fixture/core-b', coreBVersion],
-        ['effect', '4.0.0'],
-        ['@fixture/core-a', coreAVersion],
-      ]
+      for (const [manifestPath, originalManifest] of originalManifests) {
+        assert.equal(readFileSync(manifestPath, 'utf8'), originalManifest)
+      }
+    }
+  } finally {
+    rmSync(testDirectory, { recursive: true, force: true })
+  }
+})
 
-      assert.deepEqual(
-        buildDependencies,
-        channel === 'stable'
-          ? [
-              ['@fixture/core-b', 'workspace:*'],
-              ['effect', '4.0.0'],
-              ['@fixture/core-a', 'workspace:^'],
-            ]
-          : expectedPackedDependencies,
-      )
-      assert.deepEqual(packedDependencies, expectedPackedDependencies)
+test('coherent upload restores original manifests after build and pack failures', async () => {
+  const commit = '0123456789abcdef0123456789abcdef01234567'
+  const sourcePackages = [
+    packageFor('@fixture/core', '1.2.3'),
+    packageFor('@fixture/consumer', '3.4.5', {
+      dependencies: { '@fixture/core': 'workspace:*' },
+    }),
+  ]
+  const testDirectory = mkdtempSync(join(tmpdir(), 'foldkit-upload-restore-'))
 
-      const consumer = workspacePackages.find(
-        pkg => pkg.packageJson.name === '@fixture/consumer',
-      )
+  try {
+    for (const channel of ['stable', 'canary']) {
+      for (const failedStage of ['build', 'pack']) {
+        const root = join(testDirectory, channel, failedStage)
+        const workspacePackages = writePackingWorkspace(root, sourcePackages, [
+          '@fixture/core',
+          '@fixture/consumer',
+        ])
+        const originalManifests = new Map()
 
-      assert.ok(consumer)
-      const restoredPackageJson = JSON.parse(
-        readFileSync(consumer.manifestPath, 'utf8'),
-      )
+        for (const pkg of workspacePackages) {
+          const originalManifest = `${readFileSync(pkg.manifestPath, 'utf8')}\n`
 
-      assert.deepEqual(Object.entries(restoredPackageJson.devDependencies), [
-        ['@fixture/core-b', 'workspace:*'],
-        ['effect', '4.0.0'],
-        ['@fixture/core-a', 'workspace:^'],
-      ])
+          originalManifests.set(pkg.manifestPath, originalManifest)
+          writeFileSync(pkg.manifestPath, originalManifest)
+        }
+
+        await assert.rejects(
+          runCoherentUpload({
+            root,
+            channel,
+            commit,
+            registry: new FakeRegistry(workspacePackages),
+            tags: new Set(),
+            workspacePackages,
+            build: () => {
+              if (failedStage === 'build') {
+                throw new Error('simulated build failure')
+              }
+            },
+            pack: () => {
+              if (failedStage === 'pack') {
+                throw new Error('simulated pack failure')
+              }
+
+              assert.fail('pack should not run after a build failure')
+            },
+            publish: assert.fail,
+            log: () => {},
+          }),
+          new RegExp(`simulated ${failedStage} failure`),
+        )
+
+        for (const [manifestPath, originalManifest] of originalManifests) {
+          assert.equal(readFileSync(manifestPath, 'utf8'), originalManifest)
+        }
+      }
     }
   } finally {
     rmSync(testDirectory, { recursive: true, force: true })
