@@ -47,12 +47,30 @@ const packedSsrConsumer =
       'examples/ssr/package.json',
       'packages/examples-e2e/package.json',
       'scripts/check-packed-ssr-consumer.ts',
+      'scripts/lib/packed-consumer.ts',
     ],
     prefixes: [
       'packages/foldkit/',
       'packages/markdown/',
       'packages/vite-plugin-foldkit/',
       'scripts/fixtures/packed-ssr-consumer/',
+    ],
+  })
+const packedDevtoolsConsumer =
+  fullWorkspaceChecks ||
+  hasChanged({
+    files: [
+      'scripts/check-packed-devtools-consumer.ts',
+      'scripts/lib/changesets-release-plan.ts',
+      'scripts/lib/packed-consumer.ts',
+    ],
+    prefixes: [
+      '.changeset/',
+      'packages/devtools/',
+      'packages/foldkit/',
+      'packages/ui/',
+      'packages/vite-plugin-foldkit/',
+      'scripts/fixtures/packed-devtools-consumer/',
     ],
   })
 const hostParity =
@@ -174,6 +192,7 @@ const workspacePackages = hasChanged({
 
 process.stdout.write(`create_foldkit_smoke=${createFoldkitSmoke}\n`)
 process.stdout.write(`packed_ssr_consumer=${packedSsrConsumer}\n`)
+process.stdout.write(`packed_devtools_consumer=${packedDevtoolsConsumer}\n`)
 process.stdout.write(`scaffold_server_rendering=${scaffoldServerRendering}\n`)
 process.stdout.write(`host_parity=${hostParity}\n`)
 process.stdout.write(`dom_state_parity=${domStateParity}\n`)
