@@ -301,7 +301,7 @@ export type StreamFromEventFilterMapPreventDefaultConfig<
  * listener never leaks on interruption.
  *
  * This is a Stream, not a Subscription entry. Wrap it with
- * `Subscription.persistent` for a listener with no local Model dependencies,
+ * `Subscription.persistentEntry` for a listener with no local Model dependencies,
  * or plug it into a `Subscription.make` entry's
  * `dependenciesToStream` (typically behind `Stream.when`) to gate it on a
  * Model condition. The mapper's output type is inferred (even a raw Event is
@@ -358,7 +358,7 @@ export const streamFromEventFilterMap = <
  * listener never leaks on interruption.
  *
  * This is a Stream, not a Subscription entry. Wrap it with
- * `Subscription.persistent` for a listener with no local Model dependencies,
+ * `Subscription.persistentEntry` for a listener with no local Model dependencies,
  * or plug it into a `Subscription.make` entry's
  * `dependenciesToStream` (typically behind `Stream.when`) to gate it on a
  * Model condition. The mapper's output type is inferred (even a raw Event is
@@ -434,7 +434,7 @@ export const streamFromEvent = <
  * listener never leaks on interruption.
  *
  * This is a Stream, not a Subscription entry. Wrap it with
- * `Subscription.persistent` for a listener with no local Model dependencies,
+ * `Subscription.persistentEntry` for a listener with no local Model dependencies,
  * or plug it into a `Subscription.make` entry's
  * `dependenciesToStream` (typically behind `Stream.when`) to gate it on a
  * Model condition. The mapper's output type is inferred (even a raw Event is

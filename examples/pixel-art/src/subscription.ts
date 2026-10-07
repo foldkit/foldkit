@@ -39,7 +39,7 @@ const toToolMessage = (event: KeyboardEvent): Option.Option<Message> => {
 }
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  undoRedoKeys: Subscription.persistent(
+  undoRedoKeys: Subscription.persistentEntry(
     Dom.streamFromEventFilterMapPreventDefault({
       target: document,
       type: 'keydown',
@@ -47,7 +47,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     }),
   ),
 
-  toolKeys: Subscription.persistent(
+  toolKeys: Subscription.persistentEntry(
     Dom.streamFromEventFilterMap({
       target: document,
       type: 'keydown',

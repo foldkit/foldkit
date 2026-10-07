@@ -160,7 +160,7 @@ export const update = (model: Model, message: Message) =>
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(() => ({
-  keyBindings: Subscription.persistent(
+  keyBindings: Subscription.persistentEntry(
     Dom.streamFromKeyBindings<Message>({
       bindings: [
         {

@@ -252,7 +252,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     },
   ),
 
-  keyboard: Subscription.persistent(
+  keyboard: Subscription.persistentEntry(
     Dom.streamFromEventFilterMapPreventDefault({
       target: document,
       type: 'keydown',

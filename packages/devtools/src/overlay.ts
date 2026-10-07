@@ -969,16 +969,16 @@ const makeOverlaySubscriptions = (store: DevToolsStore, shadow: ShadowRoot) => {
   })
 
   const ownSubscriptions = Subscription.make<Model, Message>()(_entry => ({
-    scrubFrame: Subscription.animationFrame<Model, Message>({
+    scrubFrame: Subscription.animationFrameEntry<Model, Message>({
       isActive: model => Option.isSome(model.maybePendingScrubIndex),
       toMessage: () => Message.TickedScrubFrame(),
     }),
-    storeUpdates: Subscription.persistent(
+    storeUpdates: Subscription.persistentEntry(
       SubscriptionRef.changes(store.stateRef).pipe(
         Stream.map(state => Message.ReceivedStoreUpdate(toDisplayState(state))),
       ),
     ),
-    mobileBreakpoint: Subscription.persistent(
+    mobileBreakpoint: Subscription.persistentEntry(
       Dom.streamFromMediaQuery({
         query: MOBILE_BREAKPOINT_QUERY,
         mapMatches: isMobile => Message.ObservedMobileBreakpoint({ isMobile }),

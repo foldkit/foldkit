@@ -11,7 +11,7 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 const subscriptions = Subscription.make<Model, Message>()(_entry => ({
-  heartbeat: Subscription.persistent(
+  heartbeat: Subscription.persistentEntry(
     Stream.tick(Duration.seconds(30)).pipe(
       Stream.drop(1),
       Stream.map(Message.TickedHeartbeat),

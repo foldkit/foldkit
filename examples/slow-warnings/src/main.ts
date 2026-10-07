@@ -219,7 +219,7 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  slowWarnings: Subscription.persistent(
+  slowWarnings: Subscription.persistentEntry(
     Dom.streamFromEventFilterMap({
       target: slowWarningTarget,
       type: SLOW_WARNING_EVENT,

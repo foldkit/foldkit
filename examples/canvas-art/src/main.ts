@@ -159,7 +159,7 @@ export const update = (model: Model, message: Message) =>
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(_entry => ({
-  frame: Subscription.animationFrame({
+  frame: Subscription.animationFrameEntry({
     isActive: model => model.isRunning,
     toMessage: deltaTime => Message.TickedFrame({ deltaTime }),
   }),

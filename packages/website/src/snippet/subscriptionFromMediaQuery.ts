@@ -19,7 +19,7 @@ type Model = typeof Model.Type
 // SUBSCRIPTION
 
 const subscriptions = Subscription.make<Model, Message>()(_entry => ({
-  reducedMotion: Subscription.persistent(
+  reducedMotion: Subscription.persistentEntry(
     Dom.streamFromMediaQuery({
       query: '(prefers-reduced-motion: reduce)',
       mapMatches: isMatching =>

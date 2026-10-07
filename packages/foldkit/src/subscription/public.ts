@@ -1,4 +1,4 @@
-export { aggregate, lift, make, persistent } from './subscription.js'
+export { aggregate, lift, make, persistentEntry } from './subscription.js'
 
 export type {
   EntryGates,
@@ -8,6 +8,6 @@ export type {
   Subscriptions,
 } from './subscription.js'
 
-export { animationFrame } from './animationFrame.js'
+export { animationFrameEntry } from './animationFrame.js'
 
 export type { AnimationFrameConfig } from './animationFrame.js'

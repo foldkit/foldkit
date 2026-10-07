@@ -65,10 +65,10 @@ const TICK_INTERVAL_MS = 5
 const FLAGS_STARTUP_FAILURE = 'flags blew up on embed startup'
 
 const subscriptions = Subscription.make<Model, Message>()(_entry => ({
-  hostStep: Port.subscription(ports.inbound.stepChanged, step =>
+  hostStep: Port.subscriptionEntry(ports.inbound.stepChanged, step =>
     Message.ChangedStep({ step }),
   ),
-  tick: Subscription.persistent(
+  tick: Subscription.persistentEntry(
     Stream.callback<Message>(queue =>
       Effect.acquireRelease(
         Effect.sync(() => {

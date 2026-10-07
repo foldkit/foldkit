@@ -908,7 +908,7 @@ const keyBindingStream = <Message>(
  * are rejected when the Stream is created.
  *
  * This helper returns a Stream, not a complete Subscription entry. Use
- * `Subscription.persistent` for a fixed table. When availability depends on
+ * `Subscription.persistentEntry` for a fixed table. When availability depends on
  * the Model that owns the entry, build it inside `dependenciesToStream` and
  * derive each binding's `isEnabled` from the dependency record. A dependency
  * change opens a new Stream scope and resets any sequence in progress. If a

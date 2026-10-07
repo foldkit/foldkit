@@ -79,10 +79,10 @@ export const update = (model: Model, message: Message) =>
 const TICK_INTERVAL = Duration.seconds(1)
 
 export const subscriptions = Subscription.make<Model, Message>()(_entry => ({
-  tick: Subscription.persistent(
+  tick: Subscription.persistentEntry(
     Stream.tick(TICK_INTERVAL).pipe(Stream.drop(1), Stream.map(Message.Ticked)),
   ),
-  hostStep: Port.subscription(ports.inbound.stepChanged, step =>
+  hostStep: Port.subscriptionEntry(ports.inbound.stepChanged, step =>
     Message.ChangedStep({ step }),
   ),
 }))

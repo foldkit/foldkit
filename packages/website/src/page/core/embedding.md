@@ -26,7 +26,7 @@ Data the app needs once, at startup, enters through `Flags`, exactly as in a pag
 
 ### Inbound Ports: a Subscription {#inbound-ports}
 
-Data the host pushes while the app runs arrives on an inbound Port, which the app consumes as a Subscription source. `Port.subscription` wraps every value into a Message, so host input drives `update` the same way any other external event does:
+Data the host pushes while the app runs arrives on an inbound Port, which the app consumes as a Subscription source. `Port.subscriptionEntry` wraps every value into a Message, so host input drives `update` the same way any other external event does:
 
 ::Snippet{name="embeddingInboundSubscription" label="Inbound Subscription"}
 

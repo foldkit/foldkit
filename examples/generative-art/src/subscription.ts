@@ -23,7 +23,7 @@ const noiseScaleSliderSubscriptions = Subscription.lift({
 })
 
 const frameSubscription = Subscription.make<Model, Message>()(_entry => ({
-  frame: Subscription.animationFrame({
+  frame: Subscription.animationFrameEntry({
     isActive: model => model.isRunning,
     toMessage: deltaTimeMs => Message.TickedFrame({ deltaTimeMs }),
   }),

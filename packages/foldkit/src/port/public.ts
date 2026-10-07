@@ -5,7 +5,7 @@ export {
   inbound,
   outbound,
   stream,
-  subscription,
+  subscriptionEntry,
 } from './index.js'
 
 export type { Inbound, Outbound, Ports } from './index.js'

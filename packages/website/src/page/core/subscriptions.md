@@ -74,7 +74,7 @@ The [websocket-chat example](/example-apps/websocket-chat) shows a more involved
 
 ## Animation Frames
 
-`Subscription.animationFrame` is a ready-made entry for work tied to the browser's paint clock. It emits a Message on each `requestAnimationFrame` tick while its `isActive` function returns `true`, and supplies the inter-frame delta in milliseconds.
+`Subscription.animationFrameEntry` is a ready-made entry for work tied to the browser's paint clock. It emits a Message on each `requestAnimationFrame` tick while its `isActive` function returns `true`, and supplies the inter-frame delta in milliseconds.
 
 The helper returns a complete entry with `{ isActive: boolean }` dependencies. Its `toMessage` maps frame deltas to the entry's Message type. Place it directly in the record passed to `Subscription.make`:
 
@@ -82,11 +82,11 @@ The helper returns a complete entry with `{ isActive: boolean }` dependencies. I
 
 Use the delta to make motion independent of refresh rate. Convert the milliseconds to seconds before multiplying a per-second velocity, so the simulation behaves consistently at 60Hz, 120Hz, and after a background tab regains focus.
 
-Use `Stream.tick` for discrete wall-clock steps that should occur every N milliseconds. It emits once when its scope opens, so add `Stream.drop(1)` when the first step should wait for the interval to elapse. `Subscription.animationFrame` follows the display; `Stream.tick` follows elapsed time. The [canvas-art example](/example-apps/canvas-art) uses animation frames for per-frame physics, while the [snake example](/example-apps/snake) uses `Stream.tick` for game cadence.
+Use `Stream.tick` for discrete wall-clock steps that should occur every N milliseconds. It emits once when its scope opens, so add `Stream.drop(1)` when the first step should wait for the interval to elapse. `Subscription.animationFrameEntry` follows the display; `Stream.tick` follows elapsed time. The [canvas-art example](/example-apps/canvas-art) uses animation frames for per-frame physics, while the [snake example](/example-apps/snake) uses `Stream.tick` for game cadence.
 
 ## Streams Without Local Model Dependencies
 
-`Subscription.persistent` wraps a Stream in an entry with no dependencies on its own Model. Local Model changes leave the Stream running. A parent can still gate the entry when lifting it.
+`Subscription.persistentEntry` wraps a Stream in an entry with no dependencies on its own Model. Local Model changes leave the Stream running. A parent can still gate the entry when lifting it.
 
 ::Snippet{name="subscriptionPersistent" label="Heartbeat without Model dependencies"}
 
