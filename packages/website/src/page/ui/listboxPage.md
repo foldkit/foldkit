@@ -73,7 +73,7 @@ To make the items panel match the trigger button width, set `width: var(--button
 
 ## Keyboard Interaction
 
-Listbox uses typeahead search: typing printable characters jumps to the first matching item. Characters accumulate for 350ms before the search resets.
+Listbox uses typeahead search: typing printable characters jumps to the first matching item. Characters accumulate for 350ms before the search resets. A character pressed with Control, Meta, or Alt is a shortcut, not a search: Listbox ignores it and leaves the event uncancelled, so your key bindings and the browser's shortcuts receive it.
 
 | Key                | Description                                                                                                                              |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
@@ -83,7 +83,7 @@ Listbox uses typeahead search: typing printable characters jumps to the first ma
 | `Home`             | Moves to the first enabled item.                                                                                                         |
 | `End`              | Moves to the last enabled item.                                                                                                          |
 | `Escape`           | Closes the dropdown and returns focus to the button.                                                                                     |
-| `Type a character` | Typeahead search: jumps to the first matching item. Accumulates characters for 350ms.                                                    |
+| `Type a character` | Typeahead search: jumps to the first matching item. Accumulates characters for 350ms. Ignored with Control, Meta, or Alt held.           |
 
 `Space` reaches the commit path only when no search query is pending; with one in flight it types into the query instead. Opening, closing, navigation, and typeahead are unaffected by `isReadOnly`. See [Read-Only](#read-only).
 
