@@ -14,8 +14,7 @@ const postView = (
     h,
   )
 
-  return BlogPostPage.view(
-    post,
+  const content = docPage(post.document, post.slug).view(
     renderCopyButton,
     SnippetDisclosure.renderer(
       snippetDisclosure,
@@ -25,6 +24,8 @@ const postView = (
     ),
     Prose.renderHeadingLink(hash => Message.ClickedCopyLink({ hash }), h),
   )
+
+  return BlogPostPage.view(post, content)
 }
 
 // One slot per post, keyed by the same slug the route already uses to give

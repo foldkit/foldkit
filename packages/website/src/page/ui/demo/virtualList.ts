@@ -461,7 +461,7 @@ export const virtualListChatDemo = (
               ),
               h.span(
                 [h.Class('text-xs text-gray-500 dark:text-gray-400')],
-                [`${messages.length} messages · Expand a message`],
+                [`${messages.length} messages · Click to expand a message`],
               ),
             ],
           ),

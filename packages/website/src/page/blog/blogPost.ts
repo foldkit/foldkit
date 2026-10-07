@@ -1,8 +1,6 @@
 import { Option } from 'effect'
 import { type Html, inertHtml as ih } from 'foldkit/html'
 
-import { type CodeBlock } from '../../component'
-import { docPage } from '../../markdown'
 import * as Prose from '../../prose'
 import { blogRouter } from '../../route'
 import { type PostCover, maybePostCover } from './frontmatter'
@@ -38,12 +36,7 @@ const coverImageView = (cover: PostCover): Html =>
     ],
   )
 
-export const view = (
-  post: BlogPost,
-  renderCopyButton: CodeBlock.RenderCopyButton,
-  renderSnippet: CodeBlock.RenderSnippet,
-  renderHeadingLink: Prose.RenderHeadingLink,
-): Html =>
+export const view = (post: BlogPost, content: Html): Html =>
   ih.article(
     [],
     [
@@ -62,10 +55,6 @@ export const view = (
           ),
         ],
       ),
-      docPage(post.document, post.slug).view(
-        renderCopyButton,
-        renderSnippet,
-        renderHeadingLink,
-      ),
+      content,
     ],
   )

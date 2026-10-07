@@ -8,9 +8,11 @@ import {
 
 import { Shared } from '../component'
 import { Docs } from '../layout'
+import { docPage } from '../markdown'
 import { Message } from '../message'
 import { type Model } from '../model'
-import { Blog, NotFound } from '../page'
+import { Blog, NotFound, Ui } from '../page'
+import * as Release0167 from '../page/blog/post/foldkit-0-167-0'
 import * as Prose from '../prose'
 import { type BlogPostRoute, type BlogRoute, homeRouter } from '../route'
 import * as SnippetCopy from '../snippetCopy'
@@ -25,6 +27,7 @@ const postView = (
   post: Blog.BlogPost,
   snippetCopy: SnippetCopy.Model,
   snippetDisclosure: SnippetDisclosure.Model,
+  uiPages: Ui.Model,
   h: HtmlBuilder<Message>,
 ): Html => {
   const renderCopyButton = SnippetCopy.renderer(
@@ -33,17 +36,33 @@ const postView = (
     h,
   )
 
-  return Blog.BlogPostPage.view(
-    post,
+  const renderSnippet = SnippetDisclosure.renderer(
+    snippetDisclosure,
+    message => Message.GotSnippetDisclosureMessage({ message }),
     renderCopyButton,
-    SnippetDisclosure.renderer(
-      snippetDisclosure,
-      message => Message.GotSnippetDisclosureMessage({ message }),
-      renderCopyButton,
-      h,
-    ),
-    Prose.renderHeadingLink(hash => Message.ClickedCopyLink({ hash }), h),
+    h,
   )
+  const renderHeadingLink = Prose.renderHeadingLink(
+    hash => Message.ClickedCopyLink({ hash }),
+    h,
+  )
+
+  const content =
+    post.slug === 'foldkit-0-167-0'
+      ? h.submodel({
+          slotId: 'blog-release-0167',
+          model: uiPages,
+          view: Release0167.view,
+          viewInputs: { renderCopyButton, renderSnippet, renderHeadingLink },
+          toParentMessage: message => Message.GotUiPageMessage({ message }),
+        })
+      : docPage(post.document, post.slug).view(
+          renderCopyButton,
+          renderSnippet,
+          renderHeadingLink,
+        )
+
+  return Blog.BlogPostPage.view(post, content)
 }
 
 const lazyPostView = createKeyedLazy()
@@ -67,6 +86,7 @@ export const view = (
               post,
               model.snippetCopy,
               model.snippetDisclosure,
+              model.uiPages,
               h,
             ]),
         }),
