@@ -1,6 +1,6 @@
 ---
 title: Foldkit 0.167.0
-description: Code-rendered SSR documents, a Node host adapter, VirtualList scrolling improvements, and a helper for updating Submodels in collections.
+description: SSR without an HTML template, a Node host adapter, VirtualList improvements for chat and feeds, Submodel updates by key, and browser Stream helpers moved to Dom.
 date: 2026-10-07
 coverImage: /blog/foldkit-0-167-0/cover.png
 coverImageAlt: Rows of the number 167 in light gray, stretched to different widths and heights on a coral background.
@@ -8,17 +8,17 @@ coverImageWidth: 3600
 coverImageHeight: 2400
 ---
 
-Foldkit 0.167.0 brings code-rendered SSR documents, a Node host adapter, and more control over VirtualList scrolling. It also adds a helper for updating Submodels in collections and improves DevTools and Vite integrations.
+Foldkit 0.167.0 lets your server entry render the whole HTML page and adds a Node host adapter. It also improves VirtualList for chat and feeds, adds `Update.foldChildAt` for updating one Submodel selected by key, and moves existing browser Stream helpers into `Dom`.
 
 ## Server rendering and the Node adapter
 
-SSR and SSG builds now render the whole HTML document from the server entry. `Server.renderDocument` supplies the application metadata and hydration markers, and you can wrap it to add custom head markup or set the document's language. Request-time rendering and prerendering use the same document renderer.
+SSR and SSG builds now render the whole HTML page from the server entry, replacing the separate `index.html` template. That includes the `<html>`, `<head>`, and `<body>` elements. `Server.renderDocument` supplies the default document, which you can customize with extra head content or a default language. Request-time rendering and prerendering use the same renderer.
 
 The new `@foldkit/node` package hosts a built application on Node, serving its static assets and forwarding application requests to its Fetch handler. New SSR projects from `create-foldkit-app` use the adapter.
 
 The [server rendering guide](/core/server-rendering) covers document rendering, the Node adapter, and custom hosts. The [SSR example](/example-apps/ssr) shows the complete setup.
 
-Thank you to [@filipfalcon](https://github.com/filipfalcon) for proposing [code-rendered documents](https://github.com/foldkit/foldkit/issues/1390) and the [Node adapter](https://github.com/foldkit/foldkit/issues/1353)!
+Thank you to [@filipfalcon](https://github.com/filipfalcon) for proposing [rendering the whole HTML page from the server entry](https://github.com/foldkit/foldkit/issues/1390) and the [Node adapter](https://github.com/foldkit/foldkit/issues/1353)!
 
 ## VirtualList for chat and feeds
 
@@ -43,6 +43,18 @@ This replaces a common pattern where each call to `foldChild` closes over an ent
 The Oxlint plugin also recognizes direct-field boundaries declared through `foldChildAt` and catches empty curried `toParentOutMessage` mappers.
 
 Thank you to [@armancharan](https://github.com/armancharan) for [contributing the helper](https://github.com/foldkit/foldkit/pull/1599)!
+
+## Browser Streams in Dom
+
+Browser event, media query, and key-binding Stream helpers move from `Subscription` to the [Dom module](/core/dom). For example, `Subscription.fromEvent` becomes `Dom.streamFromEvent`, making its role as an Effect Stream constructor explicit.
+
+Subscription entry helpers are also renamed to describe what they return:
+
+| Before                        | After                              |
+| ----------------------------- | ---------------------------------- |
+| `Subscription.persistent`     | `Subscription.persistentEntry`     |
+| `Subscription.animationFrame` | `Subscription.animationFrameEntry` |
+| `Port.subscription`           | `Port.subscriptionEntry`           |
 
 ## More in this release
 
