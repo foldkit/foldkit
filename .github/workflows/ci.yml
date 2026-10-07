@@ -224,6 +224,10 @@ jobs:
         if: steps.scope.outputs.website == 'true'
         run: pnpm --filter website build
 
+      - name: Install Playwright browsers
+        if: steps.scope.outputs.website == 'true'
+        run: pnpm --filter website exec playwright install --with-deps chromium
+
       - name: Prerender website agent surface
         if: steps.scope.outputs.website == 'true'
         run: pnpm --filter website prerender
@@ -260,10 +264,6 @@ jobs:
       - name: Test website
         if: steps.scope.outputs.website == 'true' && steps.scope.outputs.full_workspace_checks == 'false'
         run: pnpm --filter website test
-
-      - name: Install Playwright browsers
-        if: steps.scope.outputs.website == 'true'
-        run: pnpm --filter website exec playwright install --with-deps chromium
 
       - name: E2E smoke test
         if: steps.scope.outputs.website == 'true'
