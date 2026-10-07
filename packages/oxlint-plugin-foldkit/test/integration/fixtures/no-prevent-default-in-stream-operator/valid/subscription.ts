@@ -1,9 +1,9 @@
 import { Option } from 'effect'
-import { Browser } from 'foldkit'
+import { Dom } from 'foldkit'
 
 import { Message } from './message'
 
-export const keyboard = Browser.streamFromEventFilterMapPreventDefault({
+export const keyboard = Dom.streamFromEventFilterMapPreventDefault({
   target: document,
   type: 'keydown',
   filterMapEvent: keyboardEvent =>

@@ -202,7 +202,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreSubscriptions: core(
     'Subscriptions',
-    'Run ongoing Streams whose lifetime follows Model-derived dependencies. Covers restart behavior, timers, browser events, live dependency reads, and Submodel lifting.',
+    'Run ongoing Streams whose lifetime follows Model-derived dependencies. Covers restart behavior, timers, animation frames, live dependency reads, and Submodel lifting.',
   ),
   CoreInitAndFlags: core(
     'Init & Flags',
@@ -210,7 +210,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreDom: core(
     'Dom',
-    'Use Effects for common DOM work such as focus, dialog control, scrolling, scroll locks, and inert isolation.',
+    'Use Effects for one-time DOM work and composable Streams for events, media queries, and key bindings.',
   ),
   CoreRender: core(
     'Render',

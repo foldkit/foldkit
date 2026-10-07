@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { Browser, Subscription } from 'foldkit'
+import { Dom, Subscription } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 // MESSAGE
@@ -19,8 +19,8 @@ type Model = typeof Model.Type
 // SUBSCRIPTION
 
 const subscriptions = Subscription.make<Model, Message>()(_entry => ({
-  reducedMotion: Subscription.fromStream(
-    Browser.streamFromMediaQuery({
+  reducedMotion: Subscription.persistent(
+    Dom.streamFromMediaQuery({
       query: '(prefers-reduced-motion: reduce)',
       mapMatches: isMatching =>
         Message.ChangedReducedMotion({ isReducedMotion: isMatching }),

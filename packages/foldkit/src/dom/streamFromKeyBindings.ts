@@ -908,7 +908,7 @@ const keyBindingStream = <Message>(
  * are rejected when the Stream is created.
  *
  * This helper returns a Stream, not a complete Subscription entry. Use
- * `Subscription.fromStream` for a fixed table. When availability depends on
+ * `Subscription.persistent` for a fixed table. When availability depends on
  * the Model that owns the entry, build it inside `dependenciesToStream` and
  * derive each binding's `isEnabled` from the dependency record. A dependency
  * change opens a new Stream scope and resets any sequence in progress. If a
@@ -928,7 +928,7 @@ const keyBindingStream = <Message>(
  *         isPaletteOpen: model.paletteState._tag === 'Open',
  *       }),
  *       dependenciesToStream: ({ isPaletteOpen }) =>
- *         Browser.streamFromKeyBindings<Message>({
+ *         Dom.streamFromKeyBindings<Message>({
  *           bindings: [
  *             {
  *               keys: 'Escape',

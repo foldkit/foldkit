@@ -21,7 +21,7 @@ describe('no-prevent-default-in-stream-operator', () => {
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain('Stream.mapEffect')
     expect(result[0]?.diagnostic.message).toContain(
-      'Browser.streamFromEventFilterMapPreventDefault',
+      'Dom.streamFromEventFilterMapPreventDefault',
     )
   })
 

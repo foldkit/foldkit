@@ -1,4 +1,4 @@
-export { aggregate, fromStream, lift, make } from './subscription.js'
+export { aggregate, lift, make, persistent } from './subscription.js'
 
 export type {
   EntryGates,

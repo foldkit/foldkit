@@ -1,14 +1,14 @@
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  undoRedoKeys: Subscription.fromStream(
-    Browser.streamFromEventFilterMapPreventDefault({
+  undoRedoKeys: Subscription.persistent(
+    Dom.streamFromEventFilterMapPreventDefault({
       target: document,
       type: 'keydown',
       filterMapEvent: toUndoRedoMessage,
     }),
   ),
 
-  toolKeys: Subscription.fromStream(
-    Browser.streamFromEventFilterMap({
+  toolKeys: Subscription.persistent(
+    Dom.streamFromEventFilterMap({
       target: document,
       type: 'keydown',
       filterMapEvent: toToolMessage,

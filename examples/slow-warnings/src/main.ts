@@ -1,5 +1,5 @@
 import { Array, Match, Number, Option, Schema, Stream, pipe } from 'effect'
-import { Browser, Runtime, Subscription, type Update } from 'foldkit'
+import { Dom, Runtime, Subscription, type Update } from 'foldkit'
 import { type Document, type Html, HtmlBuilder, createLazy } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -61,7 +61,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-const slowWarningTarget: Browser.TypedEventTarget<{
+const slowWarningTarget: Dom.TypedEventTarget<{
   [SLOW_WARNING_EVENT]: CustomEvent<SlowWarningReport>
 }> = new EventTarget()
 
@@ -219,8 +219,8 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  slowWarnings: Subscription.fromStream(
-    Browser.streamFromEventFilterMap({
+  slowWarnings: Subscription.persistent(
+    Dom.streamFromEventFilterMap({
       target: slowWarningTarget,
       type: SLOW_WARNING_EVENT,
       filterMapEvent: event =>

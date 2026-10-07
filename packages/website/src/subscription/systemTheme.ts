@@ -1,5 +1,5 @@
 import { Effect, Option, Schema, Stream } from 'effect'
-import { Browser, Subscription } from 'foldkit'
+import { Dom, Subscription } from 'foldkit'
 
 import { DARK_COLOR_SCHEME_QUERY } from '../colorScheme'
 import { Message } from '../message'
@@ -17,7 +17,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       }),
       dependenciesToStream: ({ isSystemPreference }) =>
         Stream.when(
-          Browser.streamFromMediaQuery({
+          Dom.streamFromMediaQuery({
             query: DARK_COLOR_SCHEME_QUERY,
             mapMatches: isDark =>
               Message.ChangedSystemTheme({ theme: isDark ? 'Dark' : 'Light' }),

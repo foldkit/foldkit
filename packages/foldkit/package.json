@@ -19,10 +19,6 @@
       "types": "./dist/brand/public.d.ts",
       "import": "./dist/brand/public.js"
     },
-    "./browser": {
-      "types": "./dist/browser/public.d.ts",
-      "import": "./dist/browser/public.js"
-    },
     "./calendar": {
       "types": "./dist/calendar/public.d.ts",
       "import": "./dist/calendar/public.js"

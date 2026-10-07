@@ -1,6 +1,6 @@
 import { Context, Effect, Option, Queue, Schema, Stream } from 'effect'
 
-import { fromStream } from '../subscription/subscription.js'
+import { persistent } from '../subscription/subscription.js'
 
 /** Type-level brand for inbound Port values. */
 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -220,7 +220,7 @@ export const stream = <Value, Encoded>(
 export const subscription = <Value, Encoded, Message>(
   port: Inbound<Value, Encoded>,
   toMessage: (value: Value) => Message,
-) => fromStream(Stream.map(stream(port), toMessage))
+) => persistent(Stream.map(stream(port), toMessage))
 
 /**
  * Emits a value on an outbound Port. The value is encoded against the Port's

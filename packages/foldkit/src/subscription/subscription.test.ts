@@ -14,9 +14,9 @@ import {
   type GatedDependencies,
   type Subscriptions,
   aggregate,
-  fromStream,
   lift,
   make,
+  persistent,
 } from './subscription.js'
 
 type ChildModel = Readonly<{
@@ -749,7 +749,7 @@ describe('aggregate', () => {
   }))
 
   const viewportSubscriptions = make<ThemeModel, ViewportMessage>()(() => ({
-    viewportWidth: fromStream(
+    viewportWidth: persistent(
       Stream.succeed<ViewportMessage>({ _tag: 'ResizedViewport', width: 0 }),
     ),
   }))

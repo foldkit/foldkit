@@ -162,7 +162,7 @@ describe('Mount view-state awareness', () => {
       PubSub.unbounded<Message>(),
     )
     const subscriptions = Subscription.make<Model, Message>()(() => ({
-      testMessages: Subscription.fromStream(
+      testMessages: Subscription.persistent(
         Stream.fromPubSub(subscriptionMessages),
       ),
     }))
@@ -365,7 +365,7 @@ describe('Mount view-state awareness', () => {
       PubSub.unbounded<Message>(),
     )
     const subscriptions = Subscription.make<Model, Message>()(() => ({
-      testMessages: Subscription.fromStream(
+      testMessages: Subscription.persistent(
         Stream.fromPubSub(subscriptionMessages),
       ),
     }))
@@ -478,7 +478,7 @@ describe('Mount view-state awareness', () => {
       PubSub.unbounded<Message>(),
     )
     const subscriptions = Subscription.make<Model, Message>()(() => ({
-      testMessages: Subscription.fromStream(
+      testMessages: Subscription.persistent(
         Stream.fromPubSub(subscriptionMessages),
       ),
     }))
@@ -654,7 +654,7 @@ describe('Mount view-state awareness', () => {
       PubSub.unbounded<Message>({ replay: 1 }),
     )
     const subscriptions = Subscription.make<Model, Message>()(() => ({
-      testMessages: Subscription.fromStream(
+      testMessages: Subscription.persistent(
         Stream.fromPubSub(subscriptionMessages),
       ),
     }))
@@ -776,7 +776,7 @@ describe('Mount view-state awareness', () => {
     )
     const replaySetup = await Effect.runPromise(Queue.unbounded<void>())
     const subscriptions = Subscription.make<Model, Message>()(() => ({
-      testMessages: Subscription.fromStream(
+      testMessages: Subscription.persistent(
         Stream.fromPubSub(subscriptionMessages),
       ),
     }))
@@ -882,7 +882,7 @@ describe('Mount view-state awareness', () => {
       PubSub.unbounded<Message>(),
     )
     const subscriptions = Subscription.make<Model, Message>()(() => ({
-      testMessages: Subscription.fromStream(
+      testMessages: Subscription.persistent(
         Stream.fromPubSub(subscriptionMessages),
       ),
     }))
@@ -1036,7 +1036,7 @@ describe('Mount view-state awareness', () => {
       PubSub.unbounded<Message>({ replay: 1 }),
     )
     const subscriptions = Subscription.make<Model, Message>()(() => ({
-      testMessages: Subscription.fromStream(
+      testMessages: Subscription.persistent(
         Stream.fromPubSub(subscriptionMessages),
       ),
     }))
@@ -1964,7 +1964,7 @@ describe('Mount view-state awareness', () => {
       )
       let isSubscriptionReady = false
       const subscriptions = Subscription.make<Model, Message>()(() => ({
-        testMessages: Subscription.fromStream(
+        testMessages: Subscription.persistent(
           Stream.fromEffect(
             Effect.sync(() => {
               isSubscriptionReady = true
@@ -2086,7 +2086,7 @@ describe('Mount view-state awareness', () => {
       PubSub.unbounded<Message>(),
     )
     const subscriptions = Subscription.make<Model, Message>()(() => ({
-      testMessages: Subscription.fromStream(
+      testMessages: Subscription.persistent(
         Stream.fromPubSub(subscriptionMessages),
       ),
     }))

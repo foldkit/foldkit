@@ -147,7 +147,7 @@ const referencedFunction = (
 }
 
 const diagnosticMessage = (operatorName: string): string =>
-  `\`preventDefault()\` inside a \`Stream.${operatorName}\` callback does not reliably run inside the browser's event dispatch. For a DOM-event Stream, the default action may already have happened by the time the callback runs. Cancel the event inside the listener with \`Browser.streamFromEventFilterMapPreventDefault\`, which calls \`preventDefault()\` for every handled event before the native listener returns. If this callback does not handle a DOM event, suppress this rule with a disable comment.`
+  `\`preventDefault()\` inside a \`Stream.${operatorName}\` callback does not reliably run inside the browser's event dispatch. For a DOM-event Stream, the default action may already have happened by the time the callback runs. Cancel the event inside the listener with \`Dom.streamFromEventFilterMapPreventDefault\`, which calls \`preventDefault()\` for every handled event before the native listener returns. If this callback does not handle a DOM event, suppress this rule with a disable comment.`
 
 /**
  * Flags `event.preventDefault()` inside callbacks passed to Stream operators
@@ -156,7 +156,7 @@ const diagnosticMessage = (operatorName: string): string =>
  * `Stream.tap`).
  * Those callbacks do not reliably run inside the browser's event dispatch.
  * For a DOM-event Stream, cancellation belongs inside the native listener,
- * which is where `Browser.streamFromEventFilterMapPreventDefault` runs its
+ * which is where `Dom.streamFromEventFilterMapPreventDefault` runs its
  * mapper.
  */
 export const noPreventDefaultInStreamOperator = Rule.define({

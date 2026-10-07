@@ -1,5 +1,5 @@
 import { Effect, Schema, Stream } from 'effect'
-import { Browser, Command, Subscription } from 'foldkit'
+import { Command, Dom, Subscription } from 'foldkit'
 
 import { Api } from './api'
 
@@ -30,7 +30,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       modelToDependencies: model => ({ isDrawing: model.isDrawing }),
       dependenciesToStream: ({ isDrawing }) =>
         Stream.when(
-          Browser.streamFromEvent({
+          Dom.streamFromEvent({
             target: document,
             type: 'mouseup',
             mapEvent: () => ReleasedMouse(),

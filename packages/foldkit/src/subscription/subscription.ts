@@ -18,7 +18,7 @@ type DependenciesSchema<Dependencies> = Schema.Schema<Dependencies> & {
 }
 
 /**
- * The entry shape produced by helpers like `Subscription.fromStream` and
+ * The entry shape produced by helpers like `Subscription.persistent` and
  * `Port.subscription` before branding. Pass values of this shape into
  * `Subscription.make` as entry values.
  */
@@ -50,7 +50,7 @@ type Entry<Model, Message, Dependencies, Services = never> =
  * `Subscription.lift`, or `Subscription.aggregate`. The brand field is
  * `never`, so application code cannot manually construct a `Subscription`
  * value: it must go through one of those constructors (or a helper like
- * `Subscription.fromStream` that returns an entry shape, then through
+ * `Subscription.persistent` that returns an entry shape, then through
  * `make`).
  *
  * Two variants by `keepAliveEquivalence` presence:
@@ -363,7 +363,7 @@ export const aggregate: {
  * Returns an entry shape, not a branded Subscription. Pass it into `make`
  * as an entry value.
  */
-export const fromStream = <Message, Services = never>(
+export const persistent = <Message, Services = never>(
   stream: Stream.Stream<Message, never, Services>,
 ): EntryWithoutKeepAlive<
   unknown,

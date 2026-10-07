@@ -20,7 +20,6 @@ import {
 } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 import { Update } from 'foldkit'
-import * as Browser from 'foldkit/browser'
 import * as Command from 'foldkit/command'
 import {
   type CommandRecord,
@@ -35,6 +34,7 @@ import {
   latestEntryIndex,
   toInspectableValue,
 } from 'foldkit/devtools-host'
+import * as Dom from 'foldkit/dom'
 import { lockScroll, unlockScroll } from 'foldkit/dom'
 import {
   type Html,
@@ -973,13 +973,13 @@ const makeOverlaySubscriptions = (store: DevToolsStore, shadow: ShadowRoot) => {
       isActive: model => Option.isSome(model.maybePendingScrubIndex),
       toMessage: () => Message.TickedScrubFrame(),
     }),
-    storeUpdates: Subscription.fromStream(
+    storeUpdates: Subscription.persistent(
       SubscriptionRef.changes(store.stateRef).pipe(
         Stream.map(state => Message.ReceivedStoreUpdate(toDisplayState(state))),
       ),
     ),
-    mobileBreakpoint: Subscription.fromStream(
-      Browser.streamFromMediaQuery({
+    mobileBreakpoint: Subscription.persistent(
+      Dom.streamFromMediaQuery({
         query: MOBILE_BREAKPOINT_QUERY,
         mapMatches: isMobile => Message.ObservedMobileBreakpoint({ isMobile }),
       }),

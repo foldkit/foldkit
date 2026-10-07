@@ -1,5 +1,5 @@
 import { Effect, Schema, Stream } from 'effect'
-import { Browser, Subscription } from 'foldkit'
+import { Dom, Subscription } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 // MESSAGE
@@ -25,7 +25,7 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
       modelToDependencies: model => ({ isListening: model.isListening }),
       dependenciesToStream: ({ isListening }) =>
         Stream.when(
-          Browser.streamFromEvent({
+          Dom.streamFromEvent({
             target: window,
             type: 'keydown',
             mapEvent: event => Message.PressedKey({ key: event.key }),

@@ -187,7 +187,7 @@ describe('resources', () => {
   it('renders the crash view when the Layer fails to build for a Subscription', async () => {
     const subscriptions = Subscription.make<Model, Message, ResourceService>()(
       _entry => ({
-        resourceValue: Subscription.fromStream(
+        resourceValue: Subscription.persistent(
           Stream.fromEffect(
             Effect.gen(function* () {
               const { value } = yield* ResourceService

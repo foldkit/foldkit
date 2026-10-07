@@ -68,7 +68,7 @@ const subscriptions = Subscription.make<Model, Message>()(_entry => ({
   hostStep: Port.subscription(ports.inbound.stepChanged, step =>
     Message.ChangedStep({ step }),
   ),
-  tick: Subscription.fromStream(
+  tick: Subscription.persistent(
     Stream.callback<Message>(queue =>
       Effect.acquireRelease(
         Effect.sync(() => {

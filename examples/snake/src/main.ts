@@ -8,7 +8,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { Browser, Command, Runtime, Subscription, type Update } from 'foldkit'
+import { Command, Dom, Runtime, Subscription, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -252,8 +252,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     },
   ),
 
-  keyboard: Subscription.fromStream(
-    Browser.streamFromEventFilterMapPreventDefault({
+  keyboard: Subscription.persistent(
+    Dom.streamFromEventFilterMapPreventDefault({
       target: document,
       type: 'keydown',
       filterMapEvent: keyboardEvent =>

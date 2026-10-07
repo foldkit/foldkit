@@ -17,7 +17,7 @@ declare const EventMapMarker: unique symbol
  *
  * @example
  * ```ts
- * const slowWarningTarget: Browser.TypedEventTarget<{
+ * const slowWarningTarget: Dom.TypedEventTarget<{
  *   'foldkit:slow-warning': CustomEvent<SlowWarningReport>
  * }> = new EventTarget()
  * ```
@@ -301,7 +301,7 @@ export type StreamFromEventFilterMapPreventDefaultConfig<
  * listener never leaks on interruption.
  *
  * This is a Stream, not a Subscription entry. Wrap it with
- * `Subscription.fromStream` for a listener with no local Model dependencies,
+ * `Subscription.persistent` for a listener with no local Model dependencies,
  * or plug it into a `Subscription.make` entry's
  * `dependenciesToStream` (typically behind `Stream.when`) to gate it on a
  * Model condition. The mapper's output type is inferred (even a raw Event is
@@ -317,7 +317,7 @@ export type StreamFromEventFilterMapPreventDefaultConfig<
  *       modelToDependencies: model => ({ isListening: model.isListening }),
  *       dependenciesToStream: ({ isListening }) =>
  *         Stream.when(
- *           Browser.streamFromEventFilterMap({
+ *           Dom.streamFromEventFilterMap({
  *             target: window,
  *             type: 'keydown',
  *             filterMapEvent: event =>
@@ -358,7 +358,7 @@ export const streamFromEventFilterMap = <
  * listener never leaks on interruption.
  *
  * This is a Stream, not a Subscription entry. Wrap it with
- * `Subscription.fromStream` for a listener with no local Model dependencies,
+ * `Subscription.persistent` for a listener with no local Model dependencies,
  * or plug it into a `Subscription.make` entry's
  * `dependenciesToStream` (typically behind `Stream.when`) to gate it on a
  * Model condition. The mapper's output type is inferred (even a raw Event is
@@ -379,7 +379,7 @@ export const streamFromEventFilterMap = <
  *       modelToDependencies: model => ({ isListening: model.isListening }),
  *       dependenciesToStream: ({ isListening }) =>
  *         Stream.when(
- *           Browser.streamFromEvent({
+ *           Dom.streamFromEvent({
  *             target: window,
  *             type: 'keydown',
  *             mapEvent: event => Message.PressedKey({ key: event.key }),
@@ -434,7 +434,7 @@ export const streamFromEvent = <
  * listener never leaks on interruption.
  *
  * This is a Stream, not a Subscription entry. Wrap it with
- * `Subscription.fromStream` for a listener with no local Model dependencies,
+ * `Subscription.persistent` for a listener with no local Model dependencies,
  * or plug it into a `Subscription.make` entry's
  * `dependenciesToStream` (typically behind `Stream.when`) to gate it on a
  * Model condition. The mapper's output type is inferred (even a raw Event is
@@ -450,7 +450,7 @@ export const streamFromEvent = <
  *       modelToDependencies: model => ({ isModalOpen: model.isModalOpen }),
  *       dependenciesToStream: ({ isModalOpen }) =>
  *         Stream.when(
- *           Browser.streamFromEventFilterMapPreventDefault({
+ *           Dom.streamFromEventFilterMapPreventDefault({
  *             target: window,
  *             type: 'wheel',
  *             filterMapEvent: () => Option.some(Message.SuppressedWheelScroll()),
@@ -473,14 +473,14 @@ export const streamFromEventFilterMapPreventDefault = <
 
   if (options?.passive === true) {
     throw new Error(
-      `Foldkit: \`Browser.streamFromEventFilterMapPreventDefault\` was passed ` +
+      `Foldkit: \`Dom.streamFromEventFilterMapPreventDefault\` was passed ` +
         `\`options: { passive: true }\` for a "${config.type}" listener. ` +
         `The helper exists to call \`event.preventDefault()\` on every ` +
         `dispatch the mapper marks handled, and a passive listener promises ` +
         `the browser the exact opposite: \`preventDefault()\` inside it is ` +
         `ignored and logs a console warning. Drop the \`passive\` option ` +
         `(the helper registers the listener with \`passive: false\` for ` +
-        `you), or use \`Browser.streamFromEventFilterMap\` for a listener ` +
+        `you), or use \`Dom.streamFromEventFilterMap\` for a listener ` +
         `that only observes.`,
     )
   }

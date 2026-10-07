@@ -495,7 +495,7 @@ describe('makeElement with viewTransition', () => {
     )
     let isSubscriptionReady = false
     const subscriptions = Subscription.make<Model, Message>()(() => ({
-      testMessages: Subscription.fromStream(
+      testMessages: Subscription.persistent(
         Stream.fromEffect(
           Effect.sync(() => {
             isSubscriptionReady = true
