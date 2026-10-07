@@ -25,7 +25,7 @@ React, Vue, Svelte, and Solid solve rendering and leave the architecture to you.
 Foldkit uses [The Elm Architecture](https://guide.elm-lang.org/architecture/). Application state does not live in component instances or hook lifecycles. The Model is the single source of truth, and every transition stays visible in update. That discipline is a real commitment. Foldkit works best when the team wants one architecture across the application and is ready to build on Effect throughout. [Coming from React?](https://foldkit.dev/react/coming-from-react)
 
 > [!NOTE]
-> Foldkit is in beta and under active development. The core API is stable, but breaking changes may occur in minor releases. See the [changelog](./packages/foldkit/CHANGELOG.md).
+> Foldkit is pre-1.0 and under active development. The architecture is settled and the core API is stable in practice, but breaking changes may occur in minor releases. See the [roadmap](https://foldkit.dev/introduction/roadmap).
 
 ## Get Started
 

@@ -1065,7 +1065,7 @@ const trustSection = (): Html =>
               ),
             ],
             [
-              'Foldkit is in beta and under active development. The links below show the current version and what is ready to use today.',
+              'Foldkit is pre-1.0 and under active development. The links below show the current version and what is ready to use today.',
             ],
           ),
           ih.ul(

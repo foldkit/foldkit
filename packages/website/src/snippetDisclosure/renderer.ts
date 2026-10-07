@@ -81,6 +81,7 @@ export const renderer =
     const shell = hasTitle ? h.figure : h.div
     const shellAttributes = [
       h.DataAttribute('pagefind-ignore', ''),
+      ...(hasTitle ? [h.DataAttribute('llm-label', title)] : []),
       ...(hasTitle ? [h.AriaLabelledBy(titleId)] : []),
       h.Class(
         clsx(

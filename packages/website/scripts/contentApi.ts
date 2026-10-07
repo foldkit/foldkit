@@ -145,6 +145,7 @@ const toExampleSummary = (example: ExampleMeta) => ({
   description: example.description,
   difficulty: example.difficulty,
   tags: example.tags,
+  status: example.livePreview === 'Unavailable' ? 'Paused' : 'Available',
   url: `${SITE_URL}/example-apps/${example.slug}`,
   markdownUrl: `${SITE_URL}/example-apps/${example.slug}.md`,
   playgroundUrl: `${SITE_URL}/playground/${example.slug}`,
@@ -236,7 +237,7 @@ export const buildServiceIndex = (
         name: 'Deprecation',
         specification: 'https://www.rfc-editor.org/rfc/rfc9745',
         format: 'structured-field-date',
-        example: 'Deprecation: @1780272000',
+        example: 'Deprecation: @1735689600',
         meaning:
           'When this version became deprecated, as seconds since the Unix epoch behind an @ sign.',
       },

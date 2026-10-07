@@ -1,4 +1,4 @@
-import { Array, Option, Record, Result, String, pipe } from 'effect'
+import { Array, Match, Option, Record, Result, String, pipe } from 'effect'
 import cssSnippets from 'virtual:css-snippets'
 
 // SNIPPETS
@@ -7,7 +7,11 @@ import cssSnippets from 'virtual:css-snippets'
  * One compiled snippet: `raw` is the verbatim source for the copy button,
  * `highlighted` is the build-time Shiki HTML rendered through `h.InnerHTML`.
  */
-export type Snippet = Readonly<{ raw: string; highlighted: string }>
+export type Snippet = Readonly<{
+  raw: string
+  highlighted: string
+  language: string
+}>
 
 type SnippetEntry = readonly [string, Snippet]
 
@@ -31,6 +35,18 @@ const snippetName = (path: string): Option.Option<string> =>
     Option.map(String.replace(/\.(?:ts|tsx|elm|json|html|sh|txt)$/, '')),
   )
 
+const snippetLanguage = (path: string): string =>
+  Match.value(path).pipe(
+    Match.when(String.endsWith('.tsx'), () => 'tsx'),
+    Match.when(String.endsWith('.ts'), () => 'typescript'),
+    Match.when(String.endsWith('.elm'), () => 'elm'),
+    Match.when(String.endsWith('.json'), () => 'json'),
+    Match.when(String.endsWith('.html'), () => 'html'),
+    Match.when(String.endsWith('.sh'), () => 'bash'),
+    Match.when(String.endsWith('.txt'), () => 'text'),
+    Match.orElse(() => 'text'),
+  )
+
 // NOTE: CSS snippets arrive through a virtual module rather than the glob
 // above. Vite claims every `.css` id for its own pipeline regardless of the
 // query, so a `?highlighted` CSS file gets parsed as stylesheet source and
@@ -43,7 +59,7 @@ const registry: globalThis.Record<string, Snippet> = pipe(
       Option.all([snippetName(path), Record.get(highlightedByPath, path)]),
       Option.map(([name, highlighted]): SnippetEntry => [
         name,
-        { raw, highlighted },
+        { raw, highlighted, language: snippetLanguage(path) },
       ]),
       Result.fromOption(() => undefined),
     ),

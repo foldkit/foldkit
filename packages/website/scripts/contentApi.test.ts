@@ -266,6 +266,18 @@ describe('collection documents', () => {
     expectMatchesSchema('ExamplesIndex', document)
   })
 
+  it('identifies paused examples', () => {
+    const document = buildExamplesIndex(examples, GENERATED)
+
+    expect(document).toEqual(
+      expect.objectContaining({
+        examples: expect.arrayContaining([
+          expect.objectContaining({ slug: 'livestore', status: 'Paused' }),
+        ]),
+      }),
+    )
+  })
+
   it('list every blog post against the published schema', () => {
     const document = buildBlogIndex(blogPosts, GENERATED)
 

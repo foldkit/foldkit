@@ -14,6 +14,16 @@ export const exampleAppCount = exampleMetas.length + 1
 
 const nameClassName = 'link-accent font-medium'
 
+const pausedLabel = (): Html =>
+  ih.span(
+    [
+      ih.Class(
+        'ml-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900/50 dark:text-amber-200',
+      ),
+    ],
+    ['Paused'],
+  )
+
 const exampleRow = (example: ExampleMeta): Html =>
   ih.tr(
     [ih.Class('border-b border-gray-200 dark:border-gray-700/50')],
@@ -26,7 +36,10 @@ const exampleRow = (example: ExampleMeta): Html =>
               ih.Href(exampleDetailRouter({ exampleSlug: example.slug })),
               ih.Class(nameClassName),
             ],
-            [example.title],
+            [
+              example.title,
+              ...(example.livePreview === 'Unavailable' ? [pausedLabel()] : []),
+            ],
           ),
         ],
       ),

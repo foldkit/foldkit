@@ -224,6 +224,10 @@ jobs:
         if: steps.scope.outputs.website == 'true'
         run: pnpm --filter website build
 
+      - name: Prerender website agent surface
+        if: steps.scope.outputs.website == 'true'
+        run: pnpm --filter website prerender
+
       - name: Build typing game client
         if: steps.scope.outputs.typing_game == 'true'
         run: pnpm --filter @typing-game/client build

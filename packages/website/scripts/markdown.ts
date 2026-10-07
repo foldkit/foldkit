@@ -126,6 +126,17 @@ export const extractMarkdownFromRenderedDocument = (
     return `${labelPrefix}\`\`\`${language}\n${text}\n\`\`\``
   }
 
+  const extractCaptionedCodeBlock = (element: Element): string => {
+    const label = element.getAttribute('data-llm-label') ?? ''
+    const codeElement = element.querySelector('pre')
+    if (label.length === 0 || codeElement === null) {
+      throw new Error(
+        `Captioned code block "${label}" rendered without a label or source.`,
+      )
+    }
+    return extractCodeBlock(element)
+  }
+
   const indentBlock = (text: string, indent: string): string =>
     text
       .split('\n')
@@ -173,6 +184,10 @@ export const extractMarkdownFromRenderedDocument = (
         continue
       }
       if (isSkippedElement(node)) {
+        continue
+      }
+      if (node.hasAttribute('data-llm-label')) {
+        parts.push(extractCaptionedCodeBlock(node))
         continue
       }
       const tag = node.tagName.toLowerCase()
@@ -253,9 +268,35 @@ export const extractMarkdownFromRenderedDocument = (
     return parts.join('\n\n')
   }
 
-  return extractBlocks(root)
+  const markdown = extractBlocks(root)
     .replace(/\n{3,}/g, '\n\n')
     .trim()
+
+  const captionCounts = new Map<string, number>()
+  for (const figure of root.querySelectorAll('figure')) {
+    const caption = figure.querySelector('figcaption')
+    const codeBlock = figure.querySelector('pre')
+    if (caption === null || codeBlock === null) {
+      continue
+    }
+    const label = collapseWhitespace(caption.textContent ?? '').trim()
+    if (label.length === 0) {
+      continue
+    }
+    captionCounts.set(label, (captionCounts.get(label) ?? 0) + 1)
+  }
+
+  for (const [label, expectedCount] of captionCounts) {
+    const marker = `**${label}**\n\n\`\`\``
+    const exportedCount = markdown.split(marker).length - 1
+    if (exportedCount < expectedCount) {
+      throw new Error(
+        `Captioned code block "${label}" was not followed by a fenced source block in exported Markdown.`,
+      )
+    }
+  }
+
+  return markdown
 }
 
 // PATHS
