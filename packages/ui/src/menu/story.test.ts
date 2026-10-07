@@ -1,4 +1,4 @@
-import { Option } from 'effect'
+import { Array, Option } from 'effect'
 import { Scene, Story } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
@@ -10,8 +10,10 @@ import * as Animation from '../animation/index.js'
 import type { Model, ViewInputs } from './index.js'
 import {
   AnchorMenu,
+  AnchorSubmenu,
   ClickItem,
   DelayClearSearch,
+  DelayOpenSubmenu,
   DetectMovementOrAnimationEnd,
   FocusButton,
   FocusItems,
@@ -20,14 +22,17 @@ import {
   Message,
   OutMessage,
   PortalMenuBackdrop,
+  PortalSubmenuLayer,
   RestoreInert,
   ScrollIntoView,
+  ScrollPathItemIntoView,
   UnlockScroll,
   buttonId,
   create,
   groupContiguous,
   init,
   resolveTypeaheadMatch,
+  submenu,
   update,
 } from './index.js'
 
@@ -53,6 +58,34 @@ const sceneView =
     )
 
 const button = Scene.selector('#test-button')
+
+const nestedSceneView = (model: Model, h: HtmlBuilder<Message>) =>
+  TestMenu.view(
+    model,
+    {
+      items: [
+        submenu<string>({
+          id: 'current-export',
+          label: 'Export',
+          items: ['ExportPdf'],
+        }),
+      ],
+      itemToConfig: item => ({ content: h.span([], [item]) }),
+      buttonContent: h.span([], ['Actions']),
+    },
+    h,
+  )
+
+const emptyNestedSceneView = (model: Model, h: HtmlBuilder<Message>) =>
+  TestMenu.view(
+    model,
+    {
+      items: [submenu<string>({ id: 'empty', label: 'Empty', items: [] })],
+      itemToConfig: item => ({ content: h.span([], [item]) }),
+      buttonContent: h.span([], ['Actions']),
+    },
+    h,
+  )
 
 const acknowledgeFocusItems = Story.Command.resolve(
   FocusItems,
@@ -104,7 +137,41 @@ const givenOpenAnimated = Story.steps(
 )
 
 describe('Menu', () => {
+  it('constructs a Selected OutMessage without nested paths', () => {
+    expect(OutMessage.Selected({ value: 'Edit', index: 0 })).toStrictEqual({
+      _tag: 'Selected',
+      value: 'Edit',
+      index: 0,
+    })
+  })
+
   describe('view', () => {
+    it('does not render a stale branch after its stable submenu id changes', () => {
+      const staleOpenModel = update(
+        openModel(),
+        Message.OpenedSubmenu({
+          indexPath: [0],
+          submenuPath: ['removed-export'],
+          maybeActiveItemIndex: Option.some(0),
+        }),
+      ).model
+
+      Scene.scene(
+        { update, view: nestedSceneView },
+        Scene.given(staleOpenModel),
+        Scene.expect(Scene.selector('#test-submenu-0')).not.toExist(),
+        Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
+        Scene.Mount.resolve(
+          PortalMenuBackdrop,
+          Message.CompletedPortalMenuBackdrop(),
+        ),
+        Scene.Mount.resolve(
+          PortalSubmenuLayer,
+          Message.CompletedPortalSubmenuLayer(),
+        ),
+      )
+    })
+
     it('only points at the items panel while it is rendered', () => {
       Scene.scene(
         { update, view: sceneView() },
@@ -135,6 +202,301 @@ describe('Menu', () => {
         ),
       )
     })
+
+    it('leaves modified printable shortcuts to the browser in a flat menu', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.given(openModel()),
+        Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
+        Scene.Mount.resolve(
+          PortalMenuBackdrop,
+          Message.CompletedPortalMenuBackdrop(),
+        ),
+        Scene.keydown(Scene.selector('#test-items'), 'D', { ctrlKey: true }),
+        Scene.expectIgnored(),
+        Scene.expect(Scene.selector('#test-item-0')).toHaveAttr('data-active'),
+        Scene.expect(Scene.selector('#test-item-2')).not.toHaveAttr(
+          'data-active',
+        ),
+      )
+    })
+
+    it('labels a submenu trigger from its declared label', () => {
+      Scene.scene(
+        { update, view: nestedSceneView },
+        Scene.given(openModel()),
+        Scene.expect(Scene.selector('#test-items-item-0')).toHaveAttr(
+          'aria-label',
+          'Export',
+        ),
+        Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
+        Scene.Mount.resolve(
+          PortalMenuBackdrop,
+          Message.CompletedPortalMenuBackdrop(),
+        ),
+        Scene.Mount.resolve(
+          PortalSubmenuLayer,
+          Message.CompletedPortalSubmenuLayer(),
+        ),
+      )
+    })
+
+    it('omits an active descendant when an open child has no items', () => {
+      const emptyChildOpen = update(
+        openModel(),
+        Message.OpenedSubmenu({
+          indexPath: [0],
+          submenuPath: ['empty'],
+          maybeActiveItemIndex: Option.some(2),
+        }),
+      ).model
+
+      Scene.scene(
+        { update, view: emptyNestedSceneView },
+        Scene.given(emptyChildOpen),
+        Scene.expect(Scene.selector('#test-items')).not.toHaveAttr(
+          'aria-activedescendant',
+        ),
+        Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
+        Scene.Mount.resolve(
+          PortalMenuBackdrop,
+          Message.CompletedPortalMenuBackdrop(),
+        ),
+        Scene.Mount.resolve(
+          PortalSubmenuLayer,
+          Message.CompletedPortalSubmenuLayer(),
+        ),
+        Scene.Mount.resolve(AnchorSubmenu, Message.CompletedAnchorSubmenu()),
+      )
+    })
+
+    it('keeps duplicate leaf actions distinct around a submenu', () => {
+      const view = (model: Model, h: HtmlBuilder<Message>) =>
+        TestMenu.view(
+          model,
+          {
+            items: [
+              'Delete',
+              submenu<string>({
+                id: 'move',
+                label: 'Move',
+                items: ['Archive'],
+              }),
+              'Delete',
+            ],
+            itemToConfig: item => ({ content: h.span([], [item]) }),
+            buttonContent: h.span([], ['Actions']),
+          },
+          h,
+        )
+
+      Scene.scene(
+        { update, view },
+        Scene.given(openModel()),
+        Scene.expect(Scene.selector('#test-items-item-0')).toHaveText('Delete'),
+        Scene.expect(Scene.selector('#test-items-item-2')).toHaveText('Delete'),
+        Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
+        Scene.Mount.resolve(
+          PortalMenuBackdrop,
+          Message.CompletedPortalMenuBackdrop(),
+        ),
+        Scene.Mount.resolve(
+          PortalSubmenuLayer,
+          Message.CompletedPortalSubmenuLayer(),
+        ),
+        Scene.keydown(Scene.selector('#test-items'), 'End'),
+        Scene.Command.resolve(
+          ScrollPathItemIntoView,
+          Message.CompletedScrollPathItemIntoView(),
+        ),
+        Scene.expect(Scene.selector('#test-items-item-0')).not.toHaveAttr(
+          'data-active',
+        ),
+        Scene.expect(Scene.selector('#test-items-item-2')).toHaveAttr(
+          'data-active',
+        ),
+      )
+    })
+
+    it('only sends leaf group keys to the heading callback', () => {
+      const view = (model: Model, h: HtmlBuilder<Message>) =>
+        TestMenu.view(
+          model,
+          {
+            items: [
+              'Edit',
+              submenu<string>({
+                id: 'move',
+                label: 'Move',
+                items: ['Archive'],
+              }),
+              'Delete',
+            ],
+            itemToConfig: item => ({ content: h.span([], [item]) }),
+            itemGroupKey: () => 'actions',
+            groupToHeading: key => {
+              expect(key).toBe('actions')
+              return { content: h.span([], ['Actions group']) }
+            },
+            buttonContent: h.span([], ['Actions']),
+          },
+          h,
+        )
+
+      Scene.scene(
+        { update, view },
+        Scene.given(openModel()),
+        Scene.expect(Scene.selector('#test-items-item-1')).toHaveAttr(
+          'aria-label',
+          'Move',
+        ),
+        Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
+        Scene.Mount.resolve(
+          PortalMenuBackdrop,
+          Message.CompletedPortalMenuBackdrop(),
+        ),
+        Scene.Mount.resolve(
+          PortalSubmenuLayer,
+          Message.CompletedPortalSubmenuLayer(),
+        ),
+      )
+    })
+
+    it('does not activate an item in an empty child level', () => {
+      const emptyChildOpen = update(
+        openModel(),
+        Message.OpenedSubmenu({
+          indexPath: [0],
+          submenuPath: ['empty'],
+          maybeActiveItemIndex: Option.none(),
+        }),
+      ).model
+
+      Scene.scene(
+        { update, view: emptyNestedSceneView },
+        Scene.given(emptyChildOpen),
+        Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
+        Scene.Mount.resolve(
+          PortalMenuBackdrop,
+          Message.CompletedPortalMenuBackdrop(),
+        ),
+        Scene.Mount.resolve(
+          PortalSubmenuLayer,
+          Message.CompletedPortalSubmenuLayer(),
+        ),
+        Scene.Mount.resolve(AnchorSubmenu, Message.CompletedAnchorSubmenu()),
+        Scene.keydown(Scene.selector('#test-items'), 'ArrowDown'),
+        Scene.expectIgnored(),
+        Scene.expect(Scene.selector('#test-items')).not.toHaveAttr(
+          'aria-activedescendant',
+        ),
+      )
+    })
+
+    it('does not activate disabled entries in a child level', () => {
+      const view = (model: Model, h: HtmlBuilder<Message>) =>
+        TestMenu.view(
+          model,
+          {
+            items: [
+              submenu<string>({
+                id: 'unavailable',
+                label: 'Unavailable',
+                items: [
+                  'Export',
+                  submenu<string>({
+                    id: 'share',
+                    label: 'Share',
+                    items: ['CopyLink'],
+                    isDisabled: true,
+                  }),
+                ],
+              }),
+            ],
+            itemToConfig: item => ({ content: h.span([], [item]) }),
+            isItemDisabled: () => true,
+            buttonContent: h.span([], ['Actions']),
+          },
+          h,
+        )
+      const childOpen = update(
+        openModel(),
+        Message.OpenedSubmenu({
+          indexPath: [0],
+          submenuPath: ['unavailable'],
+          maybeActiveItemIndex: Option.none(),
+        }),
+      ).model
+
+      Scene.scene(
+        { update, view },
+        Scene.given(childOpen),
+        Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
+        Scene.Mount.resolve(
+          PortalMenuBackdrop,
+          Message.CompletedPortalMenuBackdrop(),
+        ),
+        Scene.Mount.resolve(
+          PortalSubmenuLayer,
+          Message.CompletedPortalSubmenuLayer(),
+        ),
+        Scene.Mount.resolve(AnchorSubmenu, Message.CompletedAnchorSubmenu()),
+        Scene.keydown(Scene.selector('#test-items'), 'ArrowDown'),
+        Scene.expectIgnored(),
+        Scene.expect(Scene.selector('#test-items')).not.toHaveAttr(
+          'aria-activedescendant',
+        ),
+      )
+    })
+
+    it('starts ArrowDown at the first item after a pointer open', () => {
+      const view = (model: Model, h: HtmlBuilder<Message>) =>
+        TestMenu.view(
+          model,
+          {
+            items: [
+              'Rename',
+              submenu<string>({
+                id: 'organize',
+                label: 'Organize',
+                items: ['Archive'],
+              }),
+            ],
+            itemToConfig: item => ({ content: h.span([], [item]) }),
+            buttonContent: h.span([], ['Actions']),
+          },
+          h,
+        )
+      const pointerOpen = update(
+        init({ id: 'test' }),
+        Message.Opened({ maybeActiveItemIndex: Option.none() }),
+      ).model
+
+      Scene.scene(
+        { update, view },
+        Scene.given(pointerOpen),
+        Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
+        Scene.Mount.resolve(
+          PortalMenuBackdrop,
+          Message.CompletedPortalMenuBackdrop(),
+        ),
+        Scene.Mount.resolve(
+          PortalSubmenuLayer,
+          Message.CompletedPortalSubmenuLayer(),
+        ),
+        Scene.keydown(Scene.selector('#test-items'), 'ArrowDown'),
+        Scene.Command.resolve(
+          ScrollPathItemIntoView,
+          Message.CompletedScrollPathItemIntoView(),
+        ),
+        Scene.expect(Scene.selector('#test-items-item-0')).toHaveAttr(
+          'data-active',
+        ),
+        Scene.expect(Scene.selector('#test-items-item-1')).not.toHaveAttr(
+          'data-active',
+        ),
+      )
+    })
   })
 
   describe('init', () => {
@@ -152,6 +514,13 @@ describe('Menu', () => {
         maybeLastPointerPosition: Option.none(),
         maybeLastButtonPointerType: Option.none(),
         maybePointerOrigin: Option.none(),
+        openSubmenuIndexPath: [],
+        openSubmenuPath: [],
+        submenuLevels: [],
+        pathSearchVersion: 0,
+        maybePendingSubmenuIndexPath: Option.none(),
+        maybePendingSubmenuCloseDepth: Option.none(),
+        submenuRequestVersion: 0,
       })
     })
 
@@ -173,6 +542,313 @@ describe('Menu', () => {
   })
 
   describe('update', () => {
+    describe('nested submenus', () => {
+      it('opens child levels with independent active and typeahead state', () => {
+        const root = openModel()
+        const child = update(
+          root,
+          Message.OpenedSubmenu({
+            indexPath: [1],
+            submenuPath: ['export'],
+            maybeActiveItemIndex: Option.some(2),
+          }),
+        ).model
+        const searched = update(
+          child,
+          Message.SearchedPath({
+            depth: 1,
+            key: 'e',
+            maybeTargetIndex: Option.some(3),
+          }),
+        ).model
+
+        expect(searched.openSubmenuIndexPath).toStrictEqual([1])
+        expect(searched.openSubmenuPath).toStrictEqual(['export'])
+        expect(searched.maybeActiveItemIndex).toStrictEqual(Option.some(1))
+        expect(searched.searchQuery).toBe('')
+        expect(searched.submenuLevels).toStrictEqual([
+          {
+            maybeActiveItemIndex: Option.some(3),
+            searchQuery: 'e',
+            searchVersion: 1,
+          },
+        ])
+      })
+
+      it('closes one child level while preserving its parent cursor', () => {
+        const root = openModel()
+        const child = update(
+          root,
+          Message.OpenedSubmenu({
+            indexPath: [1],
+            submenuPath: ['export'],
+            maybeActiveItemIndex: Option.some(2),
+          }),
+        ).model
+        const grandchild = update(
+          child,
+          Message.OpenedSubmenu({
+            indexPath: [1, 2],
+            submenuPath: ['export', 'document'],
+            maybeActiveItemIndex: Option.some(0),
+          }),
+        ).model
+        const result = update(grandchild, Message.ClosedSubmenu({ depth: 2 }))
+
+        expect(result.model.openSubmenuIndexPath).toStrictEqual([1])
+        expect(result.model.submenuLevels).toHaveLength(1)
+        expect(
+          Option.map(
+            Array.head(result.model.submenuLevels),
+            level => level.maybeActiveItemIndex,
+          ),
+        ).toStrictEqual(Option.some(Option.some(2)))
+      })
+
+      it('replaces an open sibling in one update', () => {
+        const firstSibling = update(
+          openModel(),
+          Message.OpenedSubmenu({
+            indexPath: [2],
+            submenuPath: ['organize'],
+            maybeActiveItemIndex: Option.some(0),
+          }),
+        ).model
+        const siblingSwitch = update(
+          firstSibling,
+          Message.OpenedSubmenu({
+            indexPath: [3],
+            submenuPath: ['move'],
+            maybeActiveItemIndex: Option.some(0),
+          }),
+        )
+
+        expect(siblingSwitch.model.openSubmenuIndexPath).toStrictEqual([3])
+        expect(siblingSwitch.model.openSubmenuPath).toStrictEqual(['move'])
+        expect(siblingSwitch.model.maybePendingSubmenuIndexPath).toStrictEqual(
+          Option.none(),
+        )
+        expect(siblingSwitch.commands).toBeUndefined()
+      })
+
+      it('ignores a stale delayed sibling open', () => {
+        Story.story(
+          update,
+          givenOpen,
+          Story.message(
+            Message.RequestedSubmenuOpen({
+              indexPath: [1],
+              submenuPath: ['export'],
+              maybeActiveItemIndex: Option.some(0),
+            }),
+          ),
+          Story.Command.resolve(
+            DelayOpenSubmenu,
+            Message.CompletedDelayOpenSubmenu({
+              version: 0,
+              indexPath: [1],
+              submenuPath: ['export'],
+              maybeActiveItemIndex: Option.some(0),
+            }),
+          ),
+          Story.model(model => {
+            expect(model.openSubmenuIndexPath).toStrictEqual([])
+          }),
+        )
+      })
+
+      it('cancels a pending submenu open when a leaf becomes active', () => {
+        const requested = update(
+          openModel(),
+          Message.RequestedSubmenuOpen({
+            indexPath: [1],
+            submenuPath: ['export'],
+            maybeActiveItemIndex: Option.some(0),
+          }),
+        )
+        const activatedLeaf = update(
+          requested.model,
+          Message.ActivatedPathItem({
+            indexPath: [2],
+            activationTrigger: 'Pointer',
+          }),
+        )
+        const delayed = update(
+          activatedLeaf.model,
+          Message.CompletedDelayOpenSubmenu({
+            version: requested.model.submenuRequestVersion,
+            indexPath: [1],
+            submenuPath: ['export'],
+            maybeActiveItemIndex: Option.some(0),
+          }),
+        )
+
+        expect(activatedLeaf.model.maybePendingSubmenuIndexPath).toStrictEqual(
+          Option.none(),
+        )
+        expect(delayed.model.openSubmenuIndexPath).toStrictEqual([])
+      })
+
+      it('does not let an old child search timer clear a sibling query', () => {
+        const firstChild = update(
+          openModel(),
+          Message.OpenedSubmenu({
+            indexPath: [0],
+            submenuPath: ['first'],
+            maybeActiveItemIndex: Option.some(0),
+          }),
+        ).model
+        const firstSearch = update(
+          firstChild,
+          Message.SearchedPath({
+            depth: 1,
+            key: 'a',
+            maybeTargetIndex: Option.some(0),
+          }),
+        ).model
+        const switchingSibling = update(
+          firstSearch,
+          Message.OpenedSubmenu({
+            indexPath: [1],
+            submenuPath: ['second'],
+            maybeActiveItemIndex: Option.some(0),
+          }),
+        )
+        const sibling = switchingSibling.model
+        const siblingSearch = update(
+          sibling,
+          Message.SearchedPath({
+            depth: 1,
+            key: 'b',
+            maybeTargetIndex: Option.some(0),
+          }),
+        ).model
+        const oldTimer = update(
+          siblingSearch,
+          Message.CompletedDelayClearPathSearch({ depth: 1, version: 1 }),
+        )
+
+        expect(
+          Option.map(
+            Array.head(oldTimer.model.submenuLevels),
+            level => level.searchQuery,
+          ),
+        ).toStrictEqual(Option.some('b'))
+      })
+
+      it('keeps a submenu open when its pointer gap close is cancelled', () => {
+        const nestedOpen = update(
+          openModel(),
+          Message.OpenedSubmenu({
+            indexPath: [1],
+            submenuPath: ['export'],
+            maybeActiveItemIndex: Option.some(0),
+          }),
+        ).model
+
+        const requestedClose = update(
+          nestedOpen,
+          Message.RequestedSubmenuClose({ depth: 1 }),
+        )
+        const cancelledClose = update(
+          requestedClose.model,
+          Message.CancelledSubmenuClose(),
+        )
+        const delayedClose = update(
+          cancelledClose.model,
+          Message.CompletedDelayCloseSubmenu({
+            depth: 1,
+            version: requestedClose.model.submenuRequestVersion,
+          }),
+        )
+
+        expect(delayedClose.model.openSubmenuIndexPath).toStrictEqual([1])
+        expect(delayedClose.model.openSubmenuPath).toStrictEqual(['export'])
+      })
+
+      it('does not invalidate an open request when no close is pending', () => {
+        const model = openModel()
+        const result = update(model, Message.CancelledSubmenuClose())
+
+        expect(result.model).toBe(model)
+        expect(result.model.submenuRequestVersion).toBe(
+          model.submenuRequestVersion,
+        )
+      })
+
+      it('selects a leaf with value and index paths and closes the tree', () => {
+        const nestedOpen = update(
+          openModel(),
+          Message.OpenedSubmenu({
+            indexPath: [1],
+            submenuPath: ['export'],
+            maybeActiveItemIndex: Option.some(2),
+          }),
+        ).model
+
+        Story.story(
+          update,
+          Story.given(nestedOpen),
+          Story.message(
+            Message.SelectedPathItem({
+              index: 2,
+              item: 'ExportPdf',
+              path: ['export', 'ExportPdf'],
+              indexPath: [1, 2],
+            }),
+          ),
+          Story.expectOutMessage(
+            OutMessage.Selected({
+              value: 'ExportPdf',
+              index: 2,
+              path: ['export', 'ExportPdf'],
+              indexPath: [1, 2],
+            }),
+          ),
+          Story.Command.resolve(FocusButton, Message.CompletedFocusButton()),
+          Story.model(model => {
+            expect(model.isOpen).toBe(false)
+            expect(model.openSubmenuIndexPath).toStrictEqual([])
+          }),
+        )
+      })
+
+      it('selects a dragged leaf after a sustained pointer gesture', () => {
+        const pressed = update(
+          init({ id: 'test' }),
+          Message.PressedPointerOnButton({
+            pointerType: 'mouse',
+            button: 0,
+            screenX: 10,
+            screenY: 10,
+            timeStamp: 100,
+          }),
+        ).model
+
+        const result = update(
+          pressed,
+          Message.ReleasedPointerOnPathItem({
+            screenX: 30,
+            screenY: 30,
+            timeStamp: 400,
+            index: 1,
+            item: 'Share',
+            path: ['organize', 'Share'],
+            indexPath: [0, 1],
+          }),
+        )
+
+        expect(result.outMessage).toStrictEqual(
+          OutMessage.Selected({
+            value: 'Share',
+            index: 1,
+            path: ['organize', 'Share'],
+            indexPath: [0, 1],
+          }),
+        )
+      })
+    })
+
     describe('Opened', () => {
       it('opens the menu with the given active item', () => {
         Story.story(
@@ -820,7 +1496,12 @@ describe('Menu', () => {
           givenClosed,
           Story.message(Message.SelectedItem({ index: 2, item: 'item-2' })),
           Story.expectOutMessage(
-            OutMessage.Selected({ value: 'item-2', index: 2 }),
+            OutMessage.Selected({
+              value: 'item-2',
+              index: 2,
+              path: ['item-2'],
+              indexPath: [2],
+            }),
           ),
           Story.Command.expectNone(),
           Story.model(model => {
@@ -1421,21 +2102,23 @@ describe('Menu', () => {
       Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
       Story.Command.resolveAll(
         [LockScroll, Message.CompletedLockScroll()],
-        [InertOthers, Message.CompletedInertOthers()],
         [FocusItems, Message.CompletedFocusItems()],
       ),
+      Story.message(Message.CompletedAnchorMenu()),
+      Story.Command.resolve(InertOthers, Message.CompletedInertOthers()),
     )
 
-    it('emits lockScroll and inertOthers commands on Opened when isModal is true', () => {
+    it('locks on open and inerts after the root panel is portaled', () => {
       Story.story(
         update,
         givenClosedModal,
         Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
         Story.Command.resolveAll(
           [LockScroll, Message.CompletedLockScroll()],
-          [InertOthers, Message.CompletedInertOthers()],
           [FocusItems, Message.CompletedFocusItems()],
         ),
+        Story.message(Message.CompletedAnchorMenu()),
+        Story.Command.resolve(InertOthers, Message.CompletedInertOthers()),
         Story.model(model => {
           expect(model.isOpen).toBe(true)
         }),
@@ -1455,6 +2138,26 @@ describe('Menu', () => {
         Story.model(model => {
           expect(model.isOpen).toBe(false)
         }),
+      )
+    })
+
+    it('does not inert after a modal closes before its root panel mounts', () => {
+      Story.story(
+        update,
+        givenClosedModal,
+        Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
+        Story.Command.resolveAll(
+          [LockScroll, Message.CompletedLockScroll()],
+          [FocusItems, Message.CompletedFocusItems()],
+        ),
+        Story.message(Message.Closed()),
+        Story.Command.resolveAll(
+          [FocusButton, Message.CompletedFocusButton()],
+          [UnlockScroll, Message.CompletedUnlockScroll()],
+          [RestoreInert, Message.CompletedRestoreInert()],
+        ),
+        Story.message(Message.CompletedAnchorMenu()),
+        Story.Command.expectNone(),
       )
     })
 

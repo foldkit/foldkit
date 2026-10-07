@@ -24,7 +24,12 @@ import {
 
 import { CityCombobox, CityMultiCombobox } from './demo/combobox'
 import { CharacterListbox, ItemListbox, ItemMultiListbox } from './demo/listbox'
-import { DemoMenu, type MenuItem } from './demo/menu'
+import {
+  DemoMenu,
+  type MenuItem,
+  type SubmenuDemoItem,
+  SubmenuDemoMenu,
+} from './demo/menu'
 import { PlanRadioGroup } from './demo/radioGroup'
 import { DemoTabs } from './demo/tabs'
 import { Toast } from './demo/toastModule'
@@ -659,6 +664,30 @@ const foldMenuAnimatedDemo = Update.foldChild({
     modifyFields(model, { menuAnimatedDemo: () => nextMenuAnimatedDemo }),
   toParentMessage: message => Message.GotMenuAnimatedDemoMessage({ message }),
   foldOutMessage: foldMenuOutMessage,
+})
+
+const foldMenuSubmenuDemoOutMessage = Menu.OutMessage.match<
+  Update.Step<Model, Message>,
+  Menu.OutMessage<SubmenuDemoItem>
+>({
+  Selected: ({ value, path }) => {
+    const nextMenuSubmenuDemoSelection = Option.some(path?.join(' / ') ?? value)
+
+    return model => ({
+      model: modifyFields(model, {
+        maybeMenuSubmenuDemoSelection: () => nextMenuSubmenuDemoSelection,
+      }),
+    })
+  },
+})
+
+const foldMenuSubmenuDemo = Update.foldChild({
+  update: SubmenuDemoMenu.update,
+  read: (model: Model) => Option.some(model.menuSubmenuDemo),
+  write: (model, nextMenuSubmenuDemo) =>
+    modifyFields(model, { menuSubmenuDemo: () => nextMenuSubmenuDemo }),
+  toParentMessage: message => Message.GotMenuSubmenuDemoMessage({ message }),
+  foldOutMessage: foldMenuSubmenuDemoOutMessage,
 })
 
 const foldPopoverBasicDemo = Update.foldChild({
@@ -1342,6 +1371,9 @@ export const update = (model: Model, message: Message) =>
 
     GotMenuAnimatedDemoMessage: ({ message }) =>
       foldMenuAnimatedDemo(model, message),
+
+    GotMenuSubmenuDemoMessage: ({ message }) =>
+      foldMenuSubmenuDemo(model, message),
 
     GotPopoverBasicDemoMessage: ({ message }) =>
       foldPopoverBasicDemo(model, message),

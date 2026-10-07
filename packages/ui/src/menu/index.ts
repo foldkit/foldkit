@@ -11,14 +11,20 @@ import {
 } from 'effect'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
-import type { ChildAttribute, Html } from 'foldkit/html'
+import type { ChildAttribute, Html, KeyboardModifiers } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 import * as Update from 'foldkit/update'
 
-import { AnchorConfig, anchorSetup, portalBackdrop } from '../anchor/index.js'
+import {
+  AnchorConfig,
+  anchorSetup,
+  anchorSetupWithoutRelocation,
+  portalBackdrop,
+  portalToContainingRoot,
+} from '../anchor/index.js'
 // NOTE: Animation imports are split across schema + update to avoid a circular
 // dependency: animation → html → runtime → devtools → menu → animation.
 // The barrel (../animation) imports from html, which starts the cycle.
@@ -50,6 +56,12 @@ const PointerOrigin = Schema.Struct({
   timeStamp: Schema.Number,
 })
 
+const MenuLevel = Schema.Struct({
+  maybeActiveItemIndex: Schema.Option(Schema.Number),
+  searchQuery: Schema.String,
+  searchVersion: Schema.Number,
+})
+
 /** Schema for the menu component's state, tracking open/closed status, active item, activation trigger, and typeahead search. */
 export const Model = Schema.Struct({
   id: Schema.String,
@@ -66,6 +78,13 @@ export const Model = Schema.Struct({
   ),
   maybeLastButtonPointerType: Schema.Option(Schema.String),
   maybePointerOrigin: Schema.Option(PointerOrigin),
+  openSubmenuIndexPath: Schema.Array(Schema.Number),
+  openSubmenuPath: Schema.Array(Schema.String),
+  submenuLevels: Schema.Array(MenuLevel),
+  pathSearchVersion: Schema.Number,
+  maybePendingSubmenuIndexPath: Schema.Option(Schema.Array(Schema.Number)),
+  maybePendingSubmenuCloseDepth: Schema.Option(Schema.Number),
+  submenuRequestVersion: Schema.Number,
 })
 
 export type Model = typeof Model.Type
@@ -86,6 +105,10 @@ export const Message = defineMessageUnion({
     maybeTargetIndex: Schema.Option(Schema.Number),
   },
   CompletedDelayClearSearch: { version: Schema.Number },
+  CompletedDelayClearPathSearch: {
+    depth: Schema.Number,
+    version: Schema.Number,
+  },
   MovedPointerOverItem: {
     index: Schema.Number,
     screenX: Schema.Number,
@@ -102,7 +125,9 @@ export const Message = defineMessageUnion({
   IgnoredMouseClick: {},
   SuppressedSpaceScroll: {},
   CompletedAnchorMenu: {},
+  CompletedAnchorSubmenu: {},
   CompletedPortalMenuBackdrop: {},
+  CompletedPortalSubmenuLayer: {},
   GotAnimationMessage: { message: Animation.Message },
   PressedPointerOnButton: {
     pointerType: Schema.String,
@@ -116,6 +141,52 @@ export const Message = defineMessageUnion({
     screenY: Schema.Number,
     timeStamp: Schema.Number,
   },
+  ReleasedPointerOnPathItem: {
+    screenX: Schema.Number,
+    screenY: Schema.Number,
+    timeStamp: Schema.Number,
+    index: Schema.Number,
+    item: Schema.String,
+    path: Schema.Array(Schema.String),
+    indexPath: Schema.Array(Schema.Number),
+  },
+  ClickedButton: {},
+  ActivatedPathItem: {
+    indexPath: Schema.Array(Schema.Number),
+    activationTrigger: ActivationTrigger,
+  },
+  OpenedSubmenu: {
+    indexPath: Schema.Array(Schema.Number),
+    submenuPath: Schema.Array(Schema.String),
+    maybeActiveItemIndex: Schema.Option(Schema.Number),
+  },
+  RequestedSubmenuOpen: {
+    indexPath: Schema.Array(Schema.Number),
+    submenuPath: Schema.Array(Schema.String),
+    maybeActiveItemIndex: Schema.Option(Schema.Number),
+  },
+  CompletedDelayOpenSubmenu: {
+    version: Schema.Number,
+    indexPath: Schema.Array(Schema.Number),
+    submenuPath: Schema.Array(Schema.String),
+    maybeActiveItemIndex: Schema.Option(Schema.Number),
+  },
+  RequestedSubmenuClose: { depth: Schema.Number },
+  CancelledSubmenuClose: {},
+  CompletedDelayCloseSubmenu: { depth: Schema.Number, version: Schema.Number },
+  ClosedSubmenu: { depth: Schema.Number },
+  SelectedPathItem: {
+    index: Schema.Number,
+    item: Schema.String,
+    path: Schema.Array(Schema.String),
+    indexPath: Schema.Array(Schema.Number),
+  },
+  SearchedPath: {
+    depth: Schema.Number,
+    key: Schema.String,
+    maybeTargetIndex: Schema.Option(Schema.Number),
+  },
+  CompletedScrollPathItemIntoView: {},
 })
 
 export type Message = typeof Message.Type
@@ -125,13 +196,20 @@ export type Message = typeof Message.Type
 /** Union of OutMessages the menu component can produce. The parent's
  *  `Update.foldChild` config handles them through `foldOutMessage`. */
 export const OutMessage = defineMessageUnion({
-  Selected: { value: Schema.String, index: Schema.Number },
+  Selected: {
+    value: Schema.String,
+    index: Schema.Number,
+    path: Schema.optional(Schema.Array(Schema.String)),
+    indexPath: Schema.optional(Schema.Array(Schema.Number)),
+  },
 })
 
 export type Selected<Value extends string = string> = Readonly<{
   readonly _tag: 'Selected'
   readonly value: Value
   readonly index: number
+  readonly path?: ReadonlyArray<string>
+  readonly indexPath?: ReadonlyArray<number>
 }>
 
 /** Generic over `Value extends string` so consumers using the typed
@@ -158,6 +236,9 @@ export type ReleasedPointerOnItems = typeof Message.ReleasedPointerOnItems.Type
 // INIT
 
 const SEARCH_DEBOUNCE_MILLISECONDS = 350
+const SUBMENU_OPEN_DELAY_MILLISECONDS = 200
+const SUBMENU_CLOSE_GRACE_MILLISECONDS = 300
+const SUBMENU_OVERLAP_PIXELS = 8
 const LEFT_MOUSE_BUTTON = 0
 const POINTER_HOLD_THRESHOLD_MILLISECONDS = 200
 const POINTER_MOVEMENT_THRESHOLD_PIXELS = 5
@@ -183,6 +264,13 @@ export const init = (config: InitConfig): Model => ({
   maybeLastPointerPosition: Option.none(),
   maybeLastButtonPointerType: Option.none(),
   maybePointerOrigin: Option.none(),
+  openSubmenuIndexPath: [],
+  openSubmenuPath: [],
+  submenuLevels: [],
+  pathSearchVersion: 0,
+  maybePendingSubmenuIndexPath: Option.none(),
+  maybePendingSubmenuCloseDepth: Option.none(),
+  submenuRequestVersion: 0,
 })
 
 // UPDATE
@@ -196,6 +284,12 @@ const closedModel = (model: Model): Model =>
     maybeLastPointerPosition: () => Option.none(),
     maybeLastButtonPointerType: () => Option.none(),
     maybePointerOrigin: () => Option.none(),
+    openSubmenuIndexPath: () => [],
+    openSubmenuPath: () => [],
+    submenuLevels: () => [],
+    maybePendingSubmenuIndexPath: () => Option.none(),
+    maybePendingSubmenuCloseDepth: () => Option.none(),
+    submenuRequestVersion: () => model.submenuRequestVersion + 1,
   })
 
 /** Returns the bare DOM id of the menu trigger button, derived from the
@@ -206,10 +300,101 @@ export const buttonId = (id: string): string => `${id}-button`
 
 const buttonSelector = (id: string): string => idSelector(`${id}-button`)
 const itemsSelector = (id: string): string => idSelector(`${id}-items`)
+const submenuLayerSelector = (id: string): string =>
+  idSelector(`${id}-submenu-layer`)
 const itemSelector = (id: string, index: number): string =>
   idSelector(`${id}-item-${index}`)
 
-type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
+const pathSuffix = (indexPath: ReadonlyArray<number>): string =>
+  pipe(indexPath, Array.map(globalThis.String), Array.join('-'))
+
+const menuLevelId = (
+  id: string,
+  parentIndexPath: ReadonlyArray<number>,
+): string =>
+  Array.isReadonlyArrayEmpty(parentIndexPath)
+    ? `${id}-items`
+    : `${id}-submenu-${pathSuffix(parentIndexPath)}`
+
+const pathItemId = (id: string, indexPath: ReadonlyArray<number>): string =>
+  `${menuLevelId(id, Array.dropRight(indexPath, 1))}-item-${Option.getOrElse(
+    Array.last(indexPath),
+    () => 0,
+  )}`
+
+const stablePathKey = (parts: ReadonlyArray<string>): string =>
+  pipe(parts, Array.map(encodeURIComponent), Array.join('/'))
+
+const menuLevelKey = (id: string, submenuIds: ReadonlyArray<string>): string =>
+  `${id}-level-${stablePathKey(submenuIds)}`
+
+const menuEntryKey = (
+  id: string,
+  submenuIds: ReadonlyArray<string>,
+  entry: Entry<string>,
+  precedingEntries: ReadonlyArray<Entry<string>>,
+): string =>
+  `${menuLevelKey(id, submenuIds)}-${
+    isSubmenu(entry)
+      ? `submenu-${stablePathKey([entry.id])}`
+      : `item-${stablePathKey([
+          entry,
+          globalThis.String(
+            Array.filter(precedingEntries, sibling => sibling === entry).length,
+          ),
+        ])}`
+  }`
+
+type UpdateReturn = Update.ReturnWithOutMessage<
+  Model,
+  Message,
+  typeof OutMessage.Type
+>
+
+type MenuLevel = typeof MenuLevel.Type
+
+const emptyMenuLevel = (
+  maybeActiveItemIndex: Option.Option<number> = Option.none(),
+): MenuLevel => ({
+  maybeActiveItemIndex,
+  searchQuery: '',
+  searchVersion: 0,
+})
+
+const levelAtDepth = (model: Model, depth: number): MenuLevel => {
+  if (depth === 0) {
+    return {
+      maybeActiveItemIndex: model.maybeActiveItemIndex,
+      searchQuery: model.searchQuery,
+      searchVersion: model.searchVersion,
+    }
+  }
+
+  return Option.getOrElse(Array.get(model.submenuLevels, depth - 1), () =>
+    emptyMenuLevel(),
+  )
+}
+
+const updateLevelAtDepth = (
+  model: Model,
+  depth: number,
+  updateLevel: (level: MenuLevel) => MenuLevel,
+): Model => {
+  if (depth === 0) {
+    const nextLevel = updateLevel(levelAtDepth(model, 0))
+    return modifyFields(model, {
+      maybeActiveItemIndex: () => nextLevel.maybeActiveItemIndex,
+      searchQuery: () => nextLevel.searchQuery,
+      searchVersion: () => nextLevel.searchVersion,
+    })
+  }
+
+  return modifyFields(model, {
+    submenuLevels: Array.map((level, index) =>
+      index === depth - 1 ? updateLevel(level) : level,
+    ),
+  })
+}
 
 /** Prevents page scrolling while the menu is open. */
 export const LockScroll = Command.define('LockScroll', {
@@ -226,9 +411,11 @@ export const InertOthers = Command.define('InertOthers', {
   args: { id: Schema.String },
   messages: [Message.CompletedInertOthers],
   execute: ({ id }) =>
-    Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]).pipe(
-      Effect.as(Message.CompletedInertOthers()),
-    ),
+    Dom.inertOthers(id, [
+      buttonSelector(id),
+      itemsSelector(id),
+      submenuLayerSelector(id),
+    ]).pipe(Effect.as(Message.CompletedInertOthers())),
 })
 /** Removes the inert attribute from elements outside the menu. */
 export const RestoreInert = Command.define('RestoreInert', {
@@ -277,6 +464,16 @@ export const ClickItem = Command.define('ClickItem', {
       Effect.as(Message.CompletedClickItem()),
     ),
 })
+/** Scrolls an active item in a nested menu level into view. */
+export const ScrollPathItemIntoView = Command.define('ScrollPathItemIntoView', {
+  args: { id: Schema.String, indexPath: Schema.Array(Schema.Number) },
+  messages: [Message.CompletedScrollPathItemIntoView],
+  execute: ({ id, indexPath }) =>
+    Dom.scrollIntoView(idSelector(pathItemId(id, indexPath))).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedScrollPathItemIntoView()),
+    ),
+})
 /** Waits for the typeahead search debounce period before clearing the query. */
 export const DelayClearSearch = Command.define('DelayClearSearch', {
   args: { version: Schema.Number },
@@ -284,6 +481,45 @@ export const DelayClearSearch = Command.define('DelayClearSearch', {
   execute: ({ version }) =>
     Effect.sleep(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
       Effect.as(Message.CompletedDelayClearSearch({ version })),
+    ),
+})
+/** Waits before clearing typeahead at one nested menu level. */
+export const DelayClearPathSearch = Command.define('DelayClearPathSearch', {
+  args: { depth: Schema.Number, version: Schema.Number },
+  messages: [Message.CompletedDelayClearPathSearch],
+  execute: ({ depth, version }) =>
+    Effect.sleep(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
+      Effect.as(Message.CompletedDelayClearPathSearch({ depth, version })),
+    ),
+})
+/** Waits briefly before opening a submenu reached by pointer movement. */
+export const DelayOpenSubmenu = Command.define('DelayOpenSubmenu', {
+  args: {
+    version: Schema.Number,
+    indexPath: Schema.Array(Schema.Number),
+    submenuPath: Schema.Array(Schema.String),
+    maybeActiveItemIndex: Schema.Option(Schema.Number),
+  },
+  messages: [Message.CompletedDelayOpenSubmenu],
+  execute: ({ version, indexPath, submenuPath, maybeActiveItemIndex }) =>
+    Effect.sleep(SUBMENU_OPEN_DELAY_MILLISECONDS).pipe(
+      Effect.as(
+        Message.CompletedDelayOpenSubmenu({
+          version,
+          indexPath,
+          submenuPath,
+          maybeActiveItemIndex,
+        }),
+      ),
+    ),
+})
+/** Keeps a submenu open briefly while the pointer crosses to its panel. */
+export const DelayCloseSubmenu = Command.define('DelayCloseSubmenu', {
+  args: { depth: Schema.Number, version: Schema.Number },
+  messages: [Message.CompletedDelayCloseSubmenu],
+  execute: ({ depth, version }) =>
+    Effect.sleep(SUBMENU_CLOSE_GRACE_MILLISECONDS).pipe(
+      Effect.as(Message.CompletedDelayCloseSubmenu({ depth, version })),
     ),
 })
 /** Detects whether the menu button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation submodel that leave is complete. */
@@ -351,15 +587,10 @@ const foldAnimationHide = Update.foldChildStep({
 
 /** Processes a Menu Message and returns the next Model, optional Commands, and
  *  an optional OutMessage. */
-export const update = (model: Model, message: Message) => {
+export const update = (model: Model, message: Message): UpdateReturn => {
   const maybeLockScroll = OptionExt.when(model.isModal, LockScroll())
 
   const maybeUnlockScroll = OptionExt.when(model.isModal, UnlockScroll())
-
-  const maybeInertOthers = OptionExt.when(
-    model.isModal,
-    InertOthers({ id: model.id }),
-  )
 
   const maybeRestoreInert = OptionExt.when(
     model.isModal,
@@ -367,7 +598,7 @@ export const update = (model: Model, message: Message) => {
   )
 
   const openCommands: ReadonlyArray<Command.Command<Message>> = [
-    ...Array.getSomes([maybeLockScroll, maybeInertOthers]),
+    ...Array.getSomes([maybeLockScroll]),
     FocusItems({ id: model.id }),
   ]
 
@@ -380,6 +611,10 @@ export const update = (model: Model, message: Message) => {
     Array.getSomes([maybeUnlockScroll, maybeRestoreInert])
 
   const openMenu = (baseModel: Model): Update.Return<Model, Message> => {
+    if (model.isOpen) {
+      return { model: baseModel }
+    }
+
     if (model.isAnimated) {
       return Update.combine(baseModel, [
         stepModel => ({ model: stepModel, commands: openCommands }),
@@ -425,12 +660,264 @@ export const update = (model: Model, message: Message) => {
     CompletedRestoreInert: () => ({ model }),
     CompletedScrollIntoView: () => ({ model }),
     CompletedClickItem: () => ({ model }),
+    CompletedScrollPathItemIntoView: () => ({ model }),
     SuppressedSpaceScroll: () => ({ model }),
-    CompletedAnchorMenu: () => ({ model }),
+    CompletedAnchorMenu: () =>
+      model.isOpen && model.isModal
+        ? { model, commands: [InertOthers({ id: model.id })] }
+        : { model },
+    CompletedAnchorSubmenu: () => ({ model }),
     CompletedPortalMenuBackdrop: () => ({ model }),
+    CompletedPortalSubmenuLayer: () => ({ model }),
 
-    Opened: ({ maybeActiveItemIndex }) =>
-      openMenu(
+    ActivatedPathItem: ({ indexPath, activationTrigger }) => {
+      const maybeIndex = Array.last(indexPath)
+      if (Option.isNone(maybeIndex)) {
+        return { model }
+      }
+
+      const depth = indexPath.length - 1
+      const maybeOpenIndex = Array.get(model.openSubmenuIndexPath, depth)
+      const shouldCloseChild =
+        activationTrigger === 'Pointer' &&
+        Option.exists(
+          maybeOpenIndex,
+          openIndex => openIndex !== maybeIndex.value,
+        )
+      const hasPendingOpen = Option.isSome(model.maybePendingSubmenuIndexPath)
+      const baseModel =
+        shouldCloseChild || hasPendingOpen
+          ? modifyFields(model, {
+              openSubmenuIndexPath: () =>
+                shouldCloseChild
+                  ? Array.take(model.openSubmenuIndexPath, depth)
+                  : model.openSubmenuIndexPath,
+              openSubmenuPath: () =>
+                shouldCloseChild
+                  ? Array.take(model.openSubmenuPath, depth)
+                  : model.openSubmenuPath,
+              submenuLevels: () =>
+                shouldCloseChild
+                  ? Array.take(model.submenuLevels, depth)
+                  : model.submenuLevels,
+              maybePendingSubmenuIndexPath: () => Option.none(),
+              maybePendingSubmenuCloseDepth: () => Option.none(),
+              submenuRequestVersion: () => model.submenuRequestVersion + 1,
+            })
+          : model
+      return {
+        model: modifyFields(
+          updateLevelAtDepth(baseModel, depth, level => ({
+            ...level,
+            maybeActiveItemIndex: Option.some(maybeIndex.value),
+          })),
+          { activationTrigger: () => activationTrigger },
+        ),
+        commands:
+          activationTrigger === 'Keyboard'
+            ? [ScrollPathItemIntoView({ id: model.id, indexPath })]
+            : [],
+      }
+    },
+
+    OpenedSubmenu: ({ indexPath, submenuPath, maybeActiveItemIndex }) => {
+      const maybeTriggerIndex = Array.last(indexPath)
+      const parentDepth = indexPath.length - 1
+      const withActiveTrigger = Option.match(maybeTriggerIndex, {
+        onNone: () => model,
+        onSome: triggerIndex =>
+          updateLevelAtDepth(model, parentDepth, level => ({
+            ...level,
+            maybeActiveItemIndex: Option.some(triggerIndex),
+          })),
+      })
+      return {
+        model: modifyFields(withActiveTrigger, {
+          openSubmenuIndexPath: () => indexPath,
+          openSubmenuPath: () => submenuPath,
+          submenuLevels: () => [
+            ...Array.take(model.submenuLevels, indexPath.length - 1),
+            emptyMenuLevel(maybeActiveItemIndex),
+          ],
+          maybePendingSubmenuIndexPath: () => Option.none(),
+          maybePendingSubmenuCloseDepth: () => Option.none(),
+          submenuRequestVersion: () => model.submenuRequestVersion + 1,
+        }),
+      }
+    },
+
+    RequestedSubmenuOpen: ({
+      indexPath,
+      submenuPath,
+      maybeActiveItemIndex,
+    }) => {
+      const nextVersion = model.submenuRequestVersion + 1
+      const maybeTriggerIndex = Array.last(indexPath)
+      const parentDepth = indexPath.length - 1
+      const withActiveTrigger = Option.match(maybeTriggerIndex, {
+        onNone: () => model,
+        onSome: triggerIndex =>
+          updateLevelAtDepth(model, parentDepth, level => ({
+            ...level,
+            maybeActiveItemIndex: Option.some(triggerIndex),
+          })),
+      })
+      return {
+        model: modifyFields(withActiveTrigger, {
+          maybePendingSubmenuIndexPath: () => Option.some(indexPath),
+          maybePendingSubmenuCloseDepth: () => Option.none(),
+          submenuRequestVersion: () => nextVersion,
+        }),
+        commands: [
+          DelayOpenSubmenu({
+            version: nextVersion,
+            indexPath,
+            submenuPath,
+            maybeActiveItemIndex,
+          }),
+        ],
+      }
+    },
+
+    CompletedDelayOpenSubmenu: ({
+      version,
+      indexPath,
+      submenuPath,
+      maybeActiveItemIndex,
+    }) => {
+      const isPending = Option.exists(
+        model.maybePendingSubmenuIndexPath,
+        Equal.equals(indexPath),
+      )
+      if (version !== model.submenuRequestVersion || !isPending) {
+        return { model }
+      }
+
+      return update(
+        model,
+        Message.OpenedSubmenu({
+          indexPath,
+          submenuPath,
+          maybeActiveItemIndex,
+        }),
+      )
+    },
+
+    RequestedSubmenuClose: ({ depth }) => {
+      if (model.openSubmenuIndexPath.length < depth) {
+        if (Option.isNone(model.maybePendingSubmenuIndexPath)) {
+          return { model }
+        }
+
+        return {
+          model: modifyFields(model, {
+            maybePendingSubmenuIndexPath: () => Option.none(),
+            submenuRequestVersion: version => version + 1,
+          }),
+        }
+      }
+
+      const nextVersion = model.submenuRequestVersion + 1
+      return {
+        model: modifyFields(model, {
+          maybePendingSubmenuIndexPath: () => Option.none(),
+          maybePendingSubmenuCloseDepth: () => Option.some(depth),
+          submenuRequestVersion: () => nextVersion,
+        }),
+        commands: [DelayCloseSubmenu({ depth, version: nextVersion })],
+      }
+    },
+
+    CancelledSubmenuClose: () => {
+      if (Option.isNone(model.maybePendingSubmenuCloseDepth)) {
+        return { model }
+      }
+
+      return {
+        model: modifyFields(model, {
+          maybePendingSubmenuCloseDepth: () => Option.none(),
+          submenuRequestVersion: () => model.submenuRequestVersion + 1,
+        }),
+      }
+    },
+
+    CompletedDelayCloseSubmenu: ({ depth, version }) => {
+      const isPending = Option.contains(
+        model.maybePendingSubmenuCloseDepth,
+        depth,
+      )
+      if (version !== model.submenuRequestVersion || !isPending) {
+        return { model }
+      }
+
+      return update(model, Message.ClosedSubmenu({ depth }))
+    },
+
+    ClosedSubmenu: ({ depth }) => {
+      if (depth <= 0) {
+        return closeMenu(model, closeWithFocusCommands)
+      }
+
+      const nextOpenPath = Array.take(model.openSubmenuIndexPath, depth - 1)
+      return {
+        model: modifyFields(model, {
+          openSubmenuIndexPath: () => nextOpenPath,
+          openSubmenuPath: () => Array.take(model.openSubmenuPath, depth - 1),
+          submenuLevels: () => Array.take(model.submenuLevels, depth - 1),
+          maybePendingSubmenuIndexPath: () => Option.none(),
+          maybePendingSubmenuCloseDepth: () => Option.none(),
+          submenuRequestVersion: () => model.submenuRequestVersion + 1,
+        }),
+      }
+    },
+
+    SelectedPathItem: ({ index, item, path, indexPath }) =>
+      pipe(
+        closeMenu(model, closeWithFocusCommands),
+        Update.withOutMessage(
+          OutMessage.Selected({ value: item, index, path, indexPath }),
+        ),
+      ),
+
+    SearchedPath: ({ depth, key, maybeTargetIndex }) => {
+      const nextSearchVersion = model.pathSearchVersion + 1
+      return {
+        model: modifyFields(
+          updateLevelAtDepth(model, depth, currentLevel => ({
+            ...currentLevel,
+            searchQuery: currentLevel.searchQuery + key,
+            searchVersion: nextSearchVersion,
+            maybeActiveItemIndex: Option.orElse(
+              maybeTargetIndex,
+              () => currentLevel.maybeActiveItemIndex,
+            ),
+          })),
+          { pathSearchVersion: () => nextSearchVersion },
+        ),
+        commands: [DelayClearPathSearch({ depth, version: nextSearchVersion })],
+      }
+    },
+
+    CompletedDelayClearPathSearch: ({ depth, version }) => {
+      const level = levelAtDepth(model, depth)
+      if (version !== level.searchVersion) {
+        return { model }
+      }
+
+      return {
+        model: updateLevelAtDepth(model, depth, currentLevel => ({
+          ...currentLevel,
+          searchQuery: '',
+        })),
+      }
+    },
+
+    Opened: ({ maybeActiveItemIndex }) => {
+      if (model.isOpen) {
+        return { model }
+      }
+
+      return openMenu(
         modifyFields(model, {
           maybeActiveItemIndex: () => maybeActiveItemIndex,
           activationTrigger: () =>
@@ -441,8 +928,15 @@ export const update = (model: Model, message: Message) => {
           searchQuery: () => '',
           searchVersion: () => 0,
           maybeLastPointerPosition: () => Option.none(),
+          openSubmenuIndexPath: () => [],
+          openSubmenuPath: () => [],
+          submenuLevels: () => [],
+          maybePendingSubmenuIndexPath: () => Option.none(),
+          maybePendingSubmenuCloseDepth: () => Option.none(),
+          submenuRequestVersion: () => model.submenuRequestVersion + 1,
         }),
-      ),
+      )
+    },
 
     Closed: () => closeMenu(model, closeWithFocusCommands),
 
@@ -499,7 +993,14 @@ export const update = (model: Model, message: Message) => {
     SelectedItem: ({ index, item }) =>
       pipe(
         closeMenu(model, closeWithFocusCommands),
-        Update.withOutMessage(OutMessage.Selected({ value: item, index })),
+        Update.withOutMessage(
+          OutMessage.Selected({
+            value: item,
+            index,
+            path: [item],
+            indexPath: [index],
+          }),
+        ),
       ),
 
     RequestedItemClick: ({ index }) => ({
@@ -572,6 +1073,29 @@ export const update = (model: Model, message: Message) => {
       )
     },
 
+    ClickedButton: () => {
+      const isMouse = Option.exists(
+        model.maybeLastButtonPointerType,
+        Equal.equals('mouse'),
+      )
+
+      if (isMouse) {
+        return update(model, Message.IgnoredMouseClick())
+      } else if (model.isOpen) {
+        return closeMenu(model, closeWithFocusCommands)
+      } else {
+        return openMenu(
+          modifyFields(model, {
+            maybeActiveItemIndex: () => Option.none(),
+            activationTrigger: () => 'Pointer',
+            searchQuery: () => '',
+            searchVersion: () => 0,
+            maybeLastPointerPosition: () => Option.none(),
+          }),
+        )
+      }
+    },
+
     ReleasedPointerOnItems: ({ screenX, screenY, timeStamp }) => {
       const hasNoOrigin = Option.isNone(model.maybePointerOrigin)
 
@@ -610,6 +1134,40 @@ export const update = (model: Model, message: Message) => {
           }),
         ],
       }
+    },
+
+    ReleasedPointerOnPathItem: ({
+      screenX,
+      screenY,
+      timeStamp,
+      index,
+      item,
+      path,
+      indexPath,
+    }) => {
+      const hasNoOrigin = Option.isNone(model.maybePointerOrigin)
+      const isMovementBelowThreshold = Option.exists(
+        model.maybePointerOrigin,
+        origin =>
+          Math.abs(screenX - origin.screenX) <
+            POINTER_MOVEMENT_THRESHOLD_PIXELS &&
+          Math.abs(screenY - origin.screenY) <
+            POINTER_MOVEMENT_THRESHOLD_PIXELS,
+      )
+      const isHoldTimeBelowThreshold = Option.exists(
+        model.maybePointerOrigin,
+        origin =>
+          timeStamp - origin.timeStamp < POINTER_HOLD_THRESHOLD_MILLISECONDS,
+      )
+
+      if (hasNoOrigin || isMovementBelowThreshold || isHoldTimeBelowThreshold) {
+        return { model }
+      }
+
+      return update(
+        model,
+        Message.SelectedPathItem({ index, item, path, indexPath }),
+      )
     },
 
     IgnoredMouseClick: () => ({
@@ -654,6 +1212,44 @@ export const AnchorMenu = Mount.define('AnchorMenu', {
     }),
 })
 
+/** Positions a child menu panel against its parent menu item. */
+export const AnchorSubmenu = Mount.define('AnchorSubmenu', {
+  args: { itemId: Schema.String, anchor: AnchorConfig },
+  messages: [Message.CompletedAnchorSubmenu],
+  execute: ({ element, itemId, anchor }) =>
+    Effect.gen(function* () {
+      yield* Effect.acquireRelease(
+        Effect.sync(() =>
+          anchorSetupWithoutRelocation(element, {
+            buttonId: itemId,
+            anchor,
+            interceptTab: false,
+            shiftCrossAxis: true,
+          }),
+        ),
+        cleanup => Effect.sync(cleanup),
+      )
+      return Message.CompletedAnchorSubmenu()
+    }),
+})
+
+/** Owns relocation of the stable child-panel layer when portal mode is
+ * enabled. Keyed sibling panels reconcile within that layer. */
+export const PortalSubmenuLayer = Mount.define('PortalSubmenuLayer', {
+  args: { isPortal: Schema.Boolean },
+  messages: [Message.CompletedPortalSubmenuLayer],
+  execute: ({ element, isPortal }) =>
+    Effect.gen(function* () {
+      yield* Effect.acquireRelease(
+        Effect.sync(() =>
+          isPortal ? portalToContainingRoot(element) : undefined,
+        ),
+        cleanup => Effect.sync(() => cleanup?.()),
+      )
+      return Message.CompletedPortalSubmenuLayer()
+    }),
+})
+
 /** The backdrop-portaling Mount this Menu renders. Exposed so Scene tests can
  *  call `Scene.Mount.resolve(PortalMenuBackdrop, Message.CompletedPortalMenuBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
@@ -687,7 +1283,16 @@ export const selectItem = (
   model: Model,
   item: string,
   index: number,
-): UpdateReturn => update(model, Message.SelectedItem({ index, item }))
+): UpdateReturn =>
+  update(
+    model,
+    Message.SelectedPathItem({
+      index,
+      item,
+      path: [item],
+      indexPath: [index],
+    }),
+  )
 
 // VIEW
 
@@ -703,16 +1308,12 @@ export type GroupHeading = Readonly<{
   className?: string
 }>
 
-/** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
- *
- *  The Menu emits an `OutMessage.Selected({ value, index })` OutMessage on commit.
- *  The menu has already closed by the time this fires. Handle it in the
- *  `foldOutMessage` of the Menu's `Update.foldChild` config. */
-export type ViewInputs<Item extends string> = Readonly<{
+type LegacyViewInputs<Item extends string> = Readonly<{
   items: ReadonlyArray<Item>
   itemToConfig: (
     item: Item,
     context: Readonly<{ isActive: boolean; isDisabled: boolean }>,
+    index: number,
   ) => ItemConfig
   isItemDisabled?: (item: Item, index: number) => boolean
   itemToSearchText?: (item: Item, index: number) => string
@@ -739,6 +1340,86 @@ export type ViewInputs<Item extends string> = Readonly<{
   ariaLabelledBy?: string
 }>
 
+/** A nested Menu entry. Its stable `id` identifies the submenu in selection
+ * paths and DOM ownership; `label` supplies its default typeahead text and
+ * accessible name. */
+export type Submenu<Item extends string> = Readonly<{
+  _tag: 'Submenu'
+  id: string
+  label: string
+  items: ReadonlyArray<Entry<Item>>
+  isDisabled?: boolean
+}>
+
+/** A Menu level contains leaf action values or nested Submenus. */
+export type Entry<Item extends string> = Item | Submenu<Item>
+
+/** Creates a nested Menu entry without requiring a literal assertion. */
+export const submenu = <Item extends string>(
+  config: Omit<Submenu<Item>, '_tag'>,
+): Submenu<Item> => ({ _tag: 'Submenu', ...config })
+
+/** Identity and interaction state supplied while rendering one Menu entry. */
+export type EntryContext<Item extends string> = Readonly<{
+  isActive: boolean
+  isDisabled: boolean
+  path: ReadonlyArray<string>
+  indexPath: ReadonlyArray<number>
+  isSubmenuOpen: boolean
+  entry: Entry<Item>
+}>
+
+/** Per-render inputs passed to `view` through `h.submodel`. A selection
+ * closes the Menu tree and emits `OutMessage.Selected` with the leaf value,
+ * level index, and full paths. Handle it in `Update.foldChild`'s
+ * `foldOutMessage`. */
+export type ViewInputs<Item extends string> = Readonly<{
+  items: ReadonlyArray<Entry<Item>>
+  itemToConfig: (item: Item, context: EntryContext<Item>) => ItemConfig
+  submenuToConfig?: (
+    submenu: Submenu<Item>,
+    context: EntryContext<Item>,
+  ) => ItemConfig
+  isItemDisabled?: (
+    item: Item,
+    index: number,
+    context: Readonly<{
+      path: ReadonlyArray<string>
+      indexPath: ReadonlyArray<number>
+    }>,
+  ) => boolean
+  itemToSearchText?: (
+    item: Item,
+    index: number,
+    context: Readonly<{
+      path: ReadonlyArray<string>
+      indexPath: ReadonlyArray<number>
+    }>,
+  ) => string
+  isButtonDisabled?: boolean
+  buttonContent: Html
+  buttonClassName?: string
+  buttonAttributes?: ReadonlyArray<ChildAttribute>
+  itemsClassName?: string
+  itemsAttributes?: ReadonlyArray<ChildAttribute>
+  itemsScrollClassName?: string
+  itemsScrollAttributes?: ReadonlyArray<ChildAttribute>
+  backdropClassName?: string
+  backdropAttributes?: ReadonlyArray<ChildAttribute>
+  className?: string
+  attributes?: ReadonlyArray<ChildAttribute>
+  itemGroupKey?: (item: Item, index: number) => string
+  groupToHeading?: (groupKey: string) => GroupHeading | undefined
+  groupClassName?: string
+  groupAttributes?: ReadonlyArray<ChildAttribute>
+  separatorClassName?: string
+  separatorAttributes?: ReadonlyArray<ChildAttribute>
+  anchor?: AnchorConfig
+  submenuAnchor?: AnchorConfig
+  ariaLabel?: string
+  ariaLabelledBy?: string
+}>
+
 export { groupContiguous, resolveTypeaheadMatch }
 
 const itemId = (id: string, index: number): string => `${id}-item-${index}`
@@ -754,9 +1435,9 @@ type ViewForItem<Item extends string> = SubmodelView<
 
 const internalView = <Item extends string>() =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  menuViewImpl as unknown as ViewForItem<Item>
+  nestedMenuViewImpl as unknown as ViewForItem<Item>
 
-const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
+const flatMenuViewImpl = defineView<Model, Message, LegacyViewInputs<string>>(
   (model, viewInputs, h) => {
     const {
       id,
@@ -764,7 +1445,6 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       animation: { transitionState },
       maybeActiveItemIndex,
       searchQuery,
-      maybeLastButtonPointerType,
     } = model
 
     const {
@@ -796,7 +1476,12 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
     } = viewInputs
 
     const dispatchSelectedItem = (item: string, index: number) =>
-      Message.SelectedItem({ index, item })
+      Message.SelectedPathItem({
+        index,
+        item,
+        path: [item],
+        indexPath: [index],
+      })
 
     const isLeaving =
       transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
@@ -846,9 +1531,16 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       isDisabled,
     )(items.length - 1, -1)
 
-    const handleButtonKeyDown = (key: string): Option.Option<Message> => {
+    const handleButtonKeyDown = (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ): Option.Option<Message> => {
       if (isOpen) {
-        return handleItemsKeyDown(key)
+        return handleItemsKeyDown(key, modifiers)
+      }
+
+      if (modifiers.ctrlKey || modifiers.altKey || modifiers.metaKey) {
+        return Option.none()
       }
 
       return Match.value(key).pipe(
@@ -887,21 +1579,6 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
         }),
       )
 
-    const handleButtonClick = (): Message => {
-      const isMouse = Option.exists(
-        maybeLastButtonPointerType,
-        type => type === 'mouse',
-      )
-
-      if (isMouse) {
-        return Message.IgnoredMouseClick()
-      } else if (isOpen) {
-        return Message.Closed()
-      } else {
-        return Message.Opened({ maybeActiveItemIndex: Option.none() })
-      }
-    }
-
     const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
       OptionExt.when(key === ' ', Message.SuppressedSpaceScroll())
 
@@ -926,8 +1603,15 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       return Option.some(Message.Searched({ key, maybeTargetIndex }))
     }
 
-    const handleItemsKeyDown = (key: string): Option.Option<Message> =>
-      Match.value(key).pipe(
+    const handleItemsKeyDown = (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ): Option.Option<Message> => {
+      if (modifiers.ctrlKey || modifiers.altKey || modifiers.metaKey) {
+        return Option.none()
+      }
+
+      return Match.value(key).pipe(
         Match.when('Escape', () => Option.some(Message.Closed())),
         Match.when('Enter', () =>
           Option.map(maybeActiveItemIndex, index =>
@@ -959,6 +1643,7 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
         Match.when(isPrintableKey, () => searchForKey(key)),
         Match.orElse(() => Option.none()),
       )
+    }
 
     const handleItemsPointerUp = (
       screenX: number,
@@ -996,7 +1681,7 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
             h.OnPointerDown(handleButtonPointerDown),
             h.OnKeyDownPreventDefault(handleButtonKeyDown),
             h.OnKeyUpPreventDefault(handleSpaceKeyUp),
-            h.OnClick(handleButtonClick()),
+            h.OnClick(Message.ClickedButton()),
           ]),
       ...(isVisible
         ? [
@@ -1044,10 +1729,14 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
         activeIndex => activeIndex === index,
       )
       const isDisabledItem = isDisabled(index)
-      const itemConfig = itemToConfig(item, {
-        isActive: isActiveItem,
-        isDisabled: isDisabledItem,
-      })
+      const itemConfig = itemToConfig(
+        item,
+        {
+          isActive: isActiveItem,
+          isDisabled: isDisabledItem,
+        },
+        index,
+      )
 
       const isInteractive = !isDisabledItem && !isLeaving
 
@@ -1205,6 +1894,887 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       ]),
       ...(isVisible ? visibleContent : []),
     ])
+  },
+)
+
+const isSubmenu = <Item extends string>(
+  entry: Entry<Item>,
+): entry is Submenu<Item> => !Predicate.isString(entry)
+
+const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
+  (model, viewInputs, h) => {
+    if (Array.every(viewInputs.items, Predicate.isString)) {
+      const {
+        submenuToConfig: _submenuToConfig,
+        submenuAnchor: _submenuAnchor,
+        isItemDisabled: flatIsItemDisabled,
+        itemToSearchText: flatItemToSearchText,
+        ...flatViewInputs
+      } = viewInputs
+
+      return flatMenuViewImpl(
+        model,
+        {
+          ...flatViewInputs,
+          items: viewInputs.items,
+          itemToConfig: (item, context, index) =>
+            viewInputs.itemToConfig(item, {
+              ...context,
+              path: [item],
+              indexPath: [index],
+              isSubmenuOpen: false,
+              entry: item,
+            }),
+          ...(flatIsItemDisabled
+            ? {
+                isItemDisabled: (item: string, index: number) =>
+                  flatIsItemDisabled(item, index, {
+                    path: [item],
+                    indexPath: [index],
+                  }),
+              }
+            : {}),
+          ...(flatItemToSearchText
+            ? {
+                itemToSearchText: (item: string, index: number) =>
+                  flatItemToSearchText(item, index, {
+                    path: [item],
+                    indexPath: [index],
+                  }),
+              }
+            : {}),
+        },
+        h,
+      )
+    }
+
+    const {
+      id,
+      isOpen,
+      animation: { transitionState },
+      openSubmenuIndexPath: storedOpenSubmenuIndexPath,
+    } = model
+    const {
+      items,
+      itemToConfig,
+      submenuToConfig,
+      isItemDisabled,
+      itemToSearchText = item => item,
+      isButtonDisabled,
+      buttonContent,
+      buttonClassName,
+      buttonAttributes = [],
+      itemsClassName,
+      itemsAttributes = [],
+      itemsScrollClassName,
+      itemsScrollAttributes = [],
+      backdropClassName,
+      backdropAttributes = [],
+      className,
+      attributes = [],
+      itemGroupKey,
+      groupToHeading,
+      groupClassName,
+      groupAttributes = [],
+      separatorClassName,
+      separatorAttributes = [],
+      anchor = {},
+      submenuAnchor = {},
+      ariaLabel,
+      ariaLabelledBy,
+    } = viewInputs
+    const isLeaving =
+      transitionState === 'LeaveStart' || transitionState === 'LeaveAnimating'
+    const isVisible = isOpen || isLeaving
+    const animationAttributes: ReadonlyArray<
+      ReturnType<typeof h.DataAttribute>
+    > = Match.value(transitionState).pipe(
+      Match.when('EnterStart', () => [
+        h.DataAttribute('closed', ''),
+        h.DataAttribute('enter', ''),
+        h.DataAttribute('transition', ''),
+      ]),
+      Match.when('EnterAnimating', () => [
+        h.DataAttribute('enter', ''),
+        h.DataAttribute('transition', ''),
+      ]),
+      Match.when('LeaveStart', () => [
+        h.DataAttribute('leave', ''),
+        h.DataAttribute('transition', ''),
+      ]),
+      Match.when('LeaveAnimating', () => [
+        h.DataAttribute('closed', ''),
+        h.DataAttribute('leave', ''),
+        h.DataAttribute('transition', ''),
+      ]),
+      Match.orElse(() => []),
+    )
+
+    const entriesAndIdsAtPath = (
+      indexPath: ReadonlyArray<number>,
+    ): Readonly<{
+      entries: ReadonlyArray<Entry<string>>
+      ids: ReadonlyArray<string>
+    }> => {
+      const rootEntriesAndIds: Readonly<{
+        entries: ReadonlyArray<Entry<string>>
+        ids: ReadonlyArray<string>
+        depth: number
+      }> = { entries: items, ids: [], depth: 0 }
+
+      const resolved = Array.reduce(
+        indexPath,
+        rootEntriesAndIds,
+        (state, parentIndex) =>
+          pipe(
+            Array.get(state.entries, parentIndex),
+            Option.filter(isSubmenu),
+            Option.filter(entry =>
+              Option.contains(
+                Array.get(model.openSubmenuPath, state.depth),
+                entry.id,
+              ),
+            ),
+            Option.match({
+              onNone: () => ({
+                entries: [],
+                ids: state.ids,
+                depth: state.depth + 1,
+              }),
+              onSome: entry => ({
+                entries: entry.items,
+                ids: [...state.ids, entry.id],
+                depth: state.depth + 1,
+              }),
+            }),
+          ),
+      )
+
+      return { entries: resolved.entries, ids: resolved.ids }
+    }
+
+    const entryIsDisabled = (
+      entry: Entry<string>,
+      index: number,
+      path: ReadonlyArray<string>,
+      indexPath: ReadonlyArray<number>,
+    ): boolean => {
+      if (isSubmenu(entry)) {
+        return entry.isDisabled ?? false
+      }
+      return isItemDisabled?.(entry, index, { path, indexPath }) ?? false
+    }
+
+    const childFirstEnabledIndex = (
+      submenuEntry: Submenu<string>,
+      path: ReadonlyArray<string>,
+      indexPath: ReadonlyArray<number>,
+    ): Option.Option<number> => {
+      if (Array.isReadonlyArrayEmpty(submenuEntry.items)) {
+        return Option.none()
+      }
+
+      const isChildDisabled = (childIndex: number): boolean =>
+        pipe(
+          Array.get(submenuEntry.items, childIndex),
+          Option.exists(child =>
+            entryIsDisabled(
+              child,
+              childIndex,
+              [...path, isSubmenu(child) ? child.id : child],
+              [...indexPath, childIndex],
+            ),
+          ),
+        )
+      const firstIndex = findFirstEnabledIndex(
+        submenuEntry.items.length,
+        0,
+        isChildDisabled,
+      )(0, 1)
+
+      return isChildDisabled(firstIndex)
+        ? Option.none()
+        : Option.some(firstIndex)
+    }
+
+    const current = entriesAndIdsAtPath(storedOpenSubmenuIndexPath)
+    const activeDepth = current.ids.length
+    const openSubmenuIndexPath = Array.take(
+      storedOpenSubmenuIndexPath,
+      activeDepth,
+    )
+    const currentLevel = levelAtDepth(model, activeDepth)
+    const currentIsDisabled = (index: number): boolean =>
+      pipe(
+        Array.get(current.entries, index),
+        Option.exists(entry =>
+          entryIsDisabled(
+            entry,
+            index,
+            [...current.ids, isSubmenu(entry) ? entry.id : entry],
+            [...openSubmenuIndexPath, index],
+          ),
+        ),
+      )
+    const resolveActiveIndex = (key: string): number => {
+      if (Option.isNone(currentLevel.maybeActiveItemIndex)) {
+        const find = findFirstEnabledIndex(
+          current.entries.length,
+          0,
+          currentIsDisabled,
+        )
+        if (key === 'ArrowDown') {
+          return find(0, 1)
+        }
+        if (key === 'ArrowUp') {
+          return find(current.entries.length - 1, -1)
+        }
+      }
+
+      return keyToIndex(
+        'ArrowDown',
+        'ArrowUp',
+        current.entries.length,
+        Option.getOrElse(currentLevel.maybeActiveItemIndex, () => 0),
+        currentIsDisabled,
+      )(key)
+    }
+    const resolveEnabledIndex = (key: string): Option.Option<number> => {
+      const index = resolveActiveIndex(key)
+      return pipe(
+        Array.get(current.entries, index),
+        Option.filter(() => !currentIsDisabled(index)),
+        Option.map(() => index),
+      )
+    }
+
+    const searchForKey = (key: string): Option.Option<Message> => {
+      const nextQuery = currentLevel.searchQuery + key
+      const maybeTargetIndex = resolveTypeaheadMatch(
+        current.entries,
+        nextQuery,
+        currentLevel.maybeActiveItemIndex,
+        currentIsDisabled,
+        (entry, index) => {
+          if (isSubmenu(entry)) {
+            return entry.label
+          }
+          return itemToSearchText(entry, index, {
+            path: [...current.ids, entry],
+            indexPath: [...openSubmenuIndexPath, index],
+          })
+        },
+        String.isNonEmpty(currentLevel.searchQuery),
+      )
+      return Option.some(
+        Message.SearchedPath({ depth: activeDepth, key, maybeTargetIndex }),
+      )
+    }
+
+    const openActiveSubmenu = (): Option.Option<Message> =>
+      pipe(
+        currentLevel.maybeActiveItemIndex,
+        Option.flatMap(index =>
+          pipe(
+            Array.get(current.entries, index),
+            Option.filter(isSubmenu),
+            Option.filter(entry => !entry.isDisabled),
+            Option.map(entry =>
+              Message.OpenedSubmenu({
+                indexPath: [...openSubmenuIndexPath, index],
+                submenuPath: [...current.ids, entry.id],
+                maybeActiveItemIndex: childFirstEnabledIndex(
+                  entry,
+                  [...current.ids, entry.id],
+                  [...openSubmenuIndexPath, index],
+                ),
+              }),
+            ),
+          ),
+        ),
+      )
+
+    const activateCurrentEntry = (): Option.Option<Message> =>
+      pipe(
+        currentLevel.maybeActiveItemIndex,
+        Option.filter(index => !currentIsDisabled(index)),
+        Option.flatMap(index =>
+          pipe(
+            Array.get(current.entries, index),
+            Option.map(entry => {
+              const indexPath = [...openSubmenuIndexPath, index]
+              if (isSubmenu(entry)) {
+                return Message.OpenedSubmenu({
+                  indexPath,
+                  submenuPath: [...current.ids, entry.id],
+                  maybeActiveItemIndex: childFirstEnabledIndex(
+                    entry,
+                    [...current.ids, entry.id],
+                    indexPath,
+                  ),
+                })
+              }
+
+              return Message.SelectedPathItem({
+                index,
+                item: entry,
+                path: [...current.ids, entry],
+                indexPath,
+              })
+            }),
+          ),
+        ),
+      )
+
+    const handleItemsKeyDown = (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ): Option.Option<Message> => {
+      if (modifiers.ctrlKey || modifiers.altKey || modifiers.metaKey) {
+        return Option.none()
+      }
+      return Match.value(key).pipe(
+        Match.when('Escape', () =>
+          Option.some(
+            activeDepth === 0
+              ? Message.Closed()
+              : Message.ClosedSubmenu({ depth: activeDepth }),
+          ),
+        ),
+        Match.when('ArrowLeft', () =>
+          activeDepth === 0
+            ? Option.none()
+            : Option.some(Message.ClosedSubmenu({ depth: activeDepth })),
+        ),
+        Match.when('ArrowRight', openActiveSubmenu),
+        Match.when('Enter', activateCurrentEntry),
+        Match.when(' ', () =>
+          String.isNonEmpty(currentLevel.searchQuery)
+            ? searchForKey(' ')
+            : activateCurrentEntry(),
+        ),
+        Match.whenOr(
+          'ArrowDown',
+          'ArrowUp',
+          'Home',
+          'End',
+          'PageUp',
+          'PageDown',
+          () =>
+            Option.map(resolveEnabledIndex(key), index =>
+              Message.ActivatedPathItem({
+                indexPath: [...openSubmenuIndexPath, index],
+                activationTrigger: 'Keyboard',
+              }),
+            ),
+        ),
+        Match.when(isPrintableKey, () => searchForKey(key)),
+        Match.orElse(() => Option.none()),
+      )
+    }
+
+    const rootIsDisabled = (index: number): boolean =>
+      pipe(
+        Array.get(items, index),
+        Option.exists(entry =>
+          entryIsDisabled(
+            entry,
+            index,
+            [isSubmenu(entry) ? entry.id : entry],
+            [index],
+          ),
+        ),
+      )
+    const firstEnabledRootIndex = (): Option.Option<number> => {
+      if (Array.isReadonlyArrayEmpty(items)) {
+        return Option.none()
+      }
+
+      const firstIndex = findFirstEnabledIndex(
+        items.length,
+        0,
+        rootIsDisabled,
+      )(0, 1)
+      return rootIsDisabled(firstIndex)
+        ? Option.none()
+        : Option.some(firstIndex)
+    }
+    const lastEnabledRootIndex = (): Option.Option<number> => {
+      if (Array.isReadonlyArrayEmpty(items)) {
+        return Option.none()
+      }
+
+      const lastIndex = findFirstEnabledIndex(
+        items.length,
+        0,
+        rootIsDisabled,
+      )(items.length - 1, -1)
+      return rootIsDisabled(lastIndex) ? Option.none() : Option.some(lastIndex)
+    }
+    const handleButtonKeyDown = (
+      key: string,
+      modifiers: KeyboardModifiers,
+    ): Option.Option<Message> => {
+      if (isOpen) {
+        return handleItemsKeyDown(key, modifiers)
+      }
+      if (modifiers.ctrlKey || modifiers.altKey || modifiers.metaKey) {
+        return Option.none()
+      }
+      return Match.value(key).pipe(
+        Match.whenOr('Enter', ' ', 'ArrowDown', () =>
+          Option.some(
+            Message.Opened({
+              maybeActiveItemIndex: firstEnabledRootIndex(),
+            }),
+          ),
+        ),
+        Match.when('ArrowUp', () =>
+          Option.some(
+            Message.Opened({
+              maybeActiveItemIndex: lastEnabledRootIndex(),
+            }),
+          ),
+        ),
+        Match.orElse(() => Option.none()),
+      )
+    }
+
+    const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
+      OptionExt.when(key === ' ', Message.SuppressedSpaceScroll())
+
+    const renderLevel = (
+      levelEntries: ReadonlyArray<Entry<string>>,
+      parentIndexPath: ReadonlyArray<number>,
+      submenuIds: ReadonlyArray<string>,
+      depth: number,
+    ): Readonly<{ panel: Html; descendantPanels: ReadonlyArray<Html> }> => {
+      const level = levelAtDepth(model, depth)
+      const panelId = menuLevelId(id, parentIndexPath)
+      const isRoot = depth === 0
+      const handleItemsPointerUp = (
+        screenX: number,
+        screenY: number,
+        pointerType: string,
+        timeStamp: number,
+      ): Option.Option<Message> => {
+        if (pointerType !== 'mouse') {
+          return Option.none()
+        }
+
+        return pipe(
+          level.maybeActiveItemIndex,
+          Option.flatMap(index =>
+            pipe(
+              Array.get(levelEntries, index),
+              Option.filter(Predicate.isString),
+              Option.filter(
+                item =>
+                  !entryIsDisabled(
+                    item,
+                    index,
+                    [...submenuIds, item],
+                    [...parentIndexPath, index],
+                  ),
+              ),
+              Option.map(item =>
+                Message.ReleasedPointerOnPathItem({
+                  screenX,
+                  screenY,
+                  timeStamp,
+                  index,
+                  item,
+                  path: [...submenuIds, item],
+                  indexPath: [...parentIndexPath, index],
+                }),
+              ),
+            ),
+          ),
+        )
+      }
+      const levelItems = Array.map(levelEntries, (entry, index) => {
+        const indexPath = [...parentIndexPath, index]
+        const path = [...submenuIds, isSubmenu(entry) ? entry.id : entry]
+        const entryKey = menuEntryKey(
+          id,
+          submenuIds,
+          entry,
+          Array.take(levelEntries, index),
+        )
+        const maybeGroupKey =
+          isSubmenu(entry) || !itemGroupKey
+            ? Option.none()
+            : Option.some(itemGroupKey(entry, index))
+        const isActive = Option.exists(
+          level.maybeActiveItemIndex,
+          Equal.equals(index),
+        )
+        const isDisabled = entryIsDisabled(entry, index, path, indexPath)
+        const isOpenSubmenu =
+          isSubmenu(entry) &&
+          openSubmenuIndexPath.length > depth &&
+          Equal.equals(indexPath, Array.take(openSubmenuIndexPath, depth + 1))
+        const context: EntryContext<string> = {
+          isActive,
+          isDisabled,
+          path,
+          indexPath,
+          isSubmenuOpen: isOpenSubmenu,
+          entry,
+        }
+        const config = isSubmenu(entry)
+          ? (submenuToConfig?.(entry, context) ?? {
+              content: h.span([], [entry.label]),
+            })
+          : itemToConfig(entry, context)
+        const clickMessage = isSubmenu(entry)
+          ? Message.OpenedSubmenu({
+              indexPath,
+              submenuPath: path,
+              maybeActiveItemIndex: childFirstEnabledIndex(
+                entry,
+                path,
+                indexPath,
+              ),
+            })
+          : Message.SelectedPathItem({
+              index,
+              item: entry,
+              path,
+              indexPath,
+            })
+
+        const rendered = h.keyed('div')(
+          entryKey,
+          [
+            h.Id(pathItemId(id, indexPath)),
+            h.Role('menuitem'),
+            ...(isSubmenu(entry)
+              ? [
+                  h.AriaLabel(entry.label),
+                  h.AriaHasPopup('menu'),
+                  h.AriaExpanded(isOpenSubmenu),
+                  h.AriaControls(menuLevelId(id, indexPath)),
+                  ...(isOpenSubmenu
+                    ? [h.AriaOwns(menuLevelId(id, indexPath))]
+                    : []),
+                ]
+              : []),
+            ...(isActive ? [h.DataAttribute('active', '')] : []),
+            ...(isDisabled
+              ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
+              : []),
+            ...(!isDisabled && !isLeaving
+              ? [
+                  h.OnClick(clickMessage),
+                  h.OnPointerMove((_screenX, _screenY, pointerType) => {
+                    if (pointerType === 'touch') {
+                      return Option.none()
+                    }
+                    if (isActive && isOpenSubmenu) {
+                      return Option.some(Message.CancelledSubmenuClose())
+                    }
+                    if (isActive) {
+                      return Option.none()
+                    }
+                    if (isSubmenu(entry)) {
+                      return Option.some(
+                        Message.RequestedSubmenuOpen({
+                          indexPath,
+                          submenuPath: path,
+                          maybeActiveItemIndex: childFirstEnabledIndex(
+                            entry,
+                            path,
+                            indexPath,
+                          ),
+                        }),
+                      )
+                    }
+                    return Option.some(
+                      Message.ActivatedPathItem({
+                        indexPath,
+                        activationTrigger: 'Pointer',
+                      }),
+                    )
+                  }),
+                  ...(isSubmenu(entry)
+                    ? [
+                        h.OnPointerLeave(pointerType =>
+                          OptionExt.when(
+                            pointerType !== 'touch',
+                            Message.RequestedSubmenuClose({ depth: depth + 1 }),
+                          ),
+                        ),
+                      ]
+                    : []),
+                ]
+              : []),
+            ...(config.className ? [h.Class(config.className)] : []),
+          ],
+          [config.content],
+        )
+        return { entry, entryKey, maybeGroupKey, rendered }
+      })
+      const renderGroupedItems = (): ReadonlyArray<Html> => {
+        if (!itemGroupKey) {
+          return Array.map(levelItems, ({ rendered }) => rendered)
+        }
+
+        const segments = groupContiguous(
+          levelItems,
+          ({ entry, maybeGroupKey }) =>
+            isSubmenu(entry)
+              ? `submenu-${stablePathKey([entry.id])}`
+              : `leaf-${stablePathKey([Option.getOrThrow(maybeGroupKey)])}`,
+        )
+
+        return Array.flatMap(segments, (segment, segmentIndex) => {
+          const firstItem = Option.getOrThrow(Array.head(segment.items))
+          const maybeHeading = pipe(
+            firstItem.maybeGroupKey,
+            Option.flatMap(key => Option.fromNullishOr(groupToHeading?.(key))),
+          )
+          const groupId = `${panelId}-group-${segment.key}-${firstItem.entryKey}`
+          const headingId = `${groupId}-heading`
+          const heading = Option.match(maybeHeading, {
+            onNone: () => [],
+            onSome: config => [
+              h.keyed('div')(
+                headingId,
+                [
+                  h.Id(headingId),
+                  h.Role('presentation'),
+                  ...(config.className ? [h.Class(config.className)] : []),
+                ],
+                [config.content],
+              ),
+            ],
+          })
+          const group = h.keyed('div')(
+            groupId,
+            [
+              h.Role('group'),
+              ...(Option.isSome(maybeHeading)
+                ? [h.AriaLabelledBy(headingId)]
+                : []),
+              ...(groupClassName ? [h.Class(groupClassName)] : []),
+              ...groupAttributes,
+            ],
+            [
+              ...heading,
+              ...Array.map(segment.items, ({ rendered }) => rendered),
+            ],
+          )
+          const separator =
+            segmentIndex > 0 &&
+            (separatorClassName ||
+              Array.isReadonlyArrayNonEmpty(separatorAttributes))
+              ? [
+                  h.keyed('div')(`${panelId}-separator-${segmentIndex}`, [
+                    h.Role('separator'),
+                    ...(separatorClassName
+                      ? [h.Class(separatorClassName)]
+                      : []),
+                    ...separatorAttributes,
+                  ]),
+                ]
+              : []
+          return [...separator, group]
+        })
+      }
+      const renderedItems = renderGroupedItems()
+      const scrollableItems =
+        itemsScrollClassName ||
+        Array.isReadonlyArrayNonEmpty(itemsScrollAttributes)
+          ? [
+              h.div(
+                [
+                  ...(itemsScrollClassName
+                    ? [h.Class(itemsScrollClassName)]
+                    : []),
+                  ...itemsScrollAttributes,
+                ],
+                renderedItems,
+              ),
+            ]
+          : renderedItems
+      const maybeActiveDescendant = isRoot
+        ? Option.match(
+            pipe(
+              currentLevel.maybeActiveItemIndex,
+              Option.filter(index =>
+                Option.isSome(Array.get(current.entries, index)),
+              ),
+            ),
+            {
+              onNone: () => [],
+              onSome: index => [
+                h.AriaActiveDescendant(
+                  pathItemId(id, [...openSubmenuIndexPath, index]),
+                ),
+              ],
+            },
+          )
+        : []
+      const panel = h.keyed('div')(
+        menuLevelKey(id, submenuIds),
+        [
+          h.Id(panelId),
+          h.Role('menu'),
+          ...(isRoot
+            ? [h.AriaLabelledBy(`${id}-button`)]
+            : [h.AriaLabelledBy(pathItemId(id, parentIndexPath))]),
+          ...maybeActiveDescendant,
+          ...(isRoot ? [h.Tabindex(-1)] : []),
+          ...(isRoot ? animationAttributes : []),
+          h.Style({ position: 'absolute', margin: '0', visibility: 'hidden' }),
+          h.OnMount(
+            isRoot
+              ? AnchorMenu({ buttonId: `${id}-button`, anchor })
+              : AnchorSubmenu({
+                  itemId: pathItemId(id, parentIndexPath),
+                  anchor: {
+                    placement: 'right-start',
+                    gap: -SUBMENU_OVERLAP_PIXELS,
+                    ...submenuAnchor,
+                  },
+                }),
+          ),
+          ...(isRoot && !isLeaving
+            ? [
+                h.OnKeyDownPreventDefault(handleItemsKeyDown),
+                h.OnKeyUpPreventDefault(handleSpaceKeyUp),
+                h.OnPointerUp(handleItemsPointerUp),
+                h.OnBlur(Message.BlurredItems()),
+              ]
+            : []),
+          ...(!isRoot && !isLeaving
+            ? [h.OnPointerUp(handleItemsPointerUp)]
+            : []),
+          ...(!isRoot
+            ? [
+                h.OnPointerMove((_screenX, _screenY, pointerType) =>
+                  OptionExt.when(
+                    pointerType !== 'touch',
+                    Message.CancelledSubmenuClose(),
+                  ),
+                ),
+              ]
+            : []),
+          ...(!isRoot
+            ? [
+                h.OnPointerLeave(pointerType =>
+                  OptionExt.when(
+                    pointerType !== 'touch',
+                    Message.RequestedSubmenuClose({ depth }),
+                  ),
+                ),
+              ]
+            : []),
+          ...(itemsClassName ? [h.Class(itemsClassName)] : []),
+          ...itemsAttributes,
+        ],
+        scrollableItems,
+      )
+      const maybeChildIndex = Array.get(openSubmenuIndexPath, depth)
+      const descendantPanels = pipe(
+        maybeChildIndex,
+        Option.flatMap(index => Array.get(levelEntries, index)),
+        Option.filter(isSubmenu),
+        Option.filter(entry =>
+          Option.contains(Array.get(model.openSubmenuPath, depth), entry.id),
+        ),
+        Option.match({
+          onNone: () => [],
+          onSome: entry => {
+            const childLevel = renderLevel(
+              entry.items,
+              [...parentIndexPath, Option.getOrElse(maybeChildIndex, () => 0)],
+              [...submenuIds, entry.id],
+              depth + 1,
+            )
+            return [childLevel.panel, ...childLevel.descendantPanels]
+          },
+        }),
+      )
+      return { panel, descendantPanels }
+    }
+
+    const buttonLabelAttributes = (() => {
+      if (Predicate.isNotUndefined(ariaLabel)) {
+        return [h.AriaLabel(ariaLabel)]
+      } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
+        return [h.AriaLabelledBy(ariaLabelledBy)]
+      } else {
+        return []
+      }
+    })()
+    const resolvedButtonAttributes = [
+      h.Id(`${id}-button`),
+      h.Type('button'),
+      h.AriaHasPopup('menu'),
+      h.AriaExpanded(isVisible),
+      ...(isVisible ? [h.AriaControls(`${id}-items`)] : []),
+      ...buttonLabelAttributes,
+      ...(isButtonDisabled
+        ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
+        : [
+            h.OnPointerDown(
+              (pointerType, button, screenX, screenY, timeStamp) =>
+                Option.some(
+                  Message.PressedPointerOnButton({
+                    pointerType,
+                    button,
+                    screenX,
+                    screenY,
+                    timeStamp,
+                  }),
+                ),
+            ),
+            h.OnKeyDownPreventDefault(handleButtonKeyDown),
+            h.OnKeyUpPreventDefault(handleSpaceKeyUp),
+            h.OnClick(Message.ClickedButton()),
+          ]),
+      ...(isVisible
+        ? [
+            h.DataAttribute('open', ''),
+            h.Style({ position: 'relative', zIndex: '1' }),
+          ]
+        : []),
+      ...(buttonClassName ? [h.Class(buttonClassName)] : []),
+      ...buttonAttributes,
+    ]
+    const backdrop = h.keyed('div')(`${id}-backdrop`, [
+      h.OnMount(PortalMenuBackdrop()),
+      ...(isLeaving ? [] : [h.OnClick(Message.Closed())]),
+      ...(backdropClassName ? [h.Class(backdropClassName)] : []),
+      ...backdropAttributes,
+    ])
+    const rootLevel = renderLevel(items, [], [], 0)
+    const submenuLayer = h.keyed('div')(
+      `${id}-submenu-layer`,
+      [
+        h.Id(`${id}-submenu-layer`),
+        h.OnMount(
+          PortalSubmenuLayer({ isPortal: submenuAnchor.portal ?? true }),
+        ),
+      ],
+      rootLevel.descendantPanels,
+    )
+
+    return h.div(
+      [
+        ...(className ? [h.Class(className)] : []),
+        ...attributes,
+        ...(isVisible ? [h.DataAttribute('open', '')] : []),
+      ],
+      [
+        h.keyed('button')(`${id}-button`, resolvedButtonAttributes, [
+          buttonContent,
+        ]),
+        ...(isVisible ? [backdrop, rootLevel.panel, submenuLayer] : []),
+      ],
+    )
   },
 )
 

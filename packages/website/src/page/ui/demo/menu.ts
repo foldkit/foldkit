@@ -1,4 +1,4 @@
-import { Match } from 'effect'
+import { Match, Option } from 'effect'
 import {
   Html,
   type HtmlBuilder,
@@ -18,6 +18,8 @@ const triggerClassName = 'demo-neutral-button inline-flex items-center gap-1.5'
 
 const basicItemsClassName = 'demo-popup-surface w-48 overflow-hidden'
 
+const submenuItemsClassName = `${basicItemsClassName} dark:shadow-[0_10px_28px_rgba(0,0,0,0.5)]`
+
 const animatedItemsClassName = `${basicItemsClassName} transition duration-200 ease-out data-[closed]:scale-95 data-[closed]:opacity-0`
 
 const itemClassName = 'demo-option'
@@ -33,6 +35,20 @@ const ICON_SIZE = 'w-4 h-4'
 export type MenuItem = 'Edit' | 'Duplicate' | 'Archive' | 'Move' | 'Delete'
 
 export const DemoMenu = Menu.create<MenuItem>()
+
+export type SubmenuDemoItem =
+  | 'Rename'
+  | 'Duplicate'
+  | 'Inbox'
+  | 'Archive'
+  | 'Email'
+  | 'Copy link'
+  | 'Roadmap'
+  | 'Notes'
+  | 'Download'
+  | 'Delete'
+
+export const SubmenuDemoMenu = Menu.create<SubmenuDemoItem>()
 
 const MENU_ITEMS: ReadonlyArray<MenuItem> = [
   'Edit',
@@ -162,3 +178,88 @@ export const animatedDemo = (
     ),
   ]
 }
+
+const SUBMENU_ITEMS: ReadonlyArray<Menu.Entry<SubmenuDemoItem>> = [
+  'Rename',
+  'Duplicate',
+  Menu.submenu<SubmenuDemoItem>({
+    id: 'organize',
+    label: 'Organize',
+    items: [
+      'Inbox',
+      'Archive',
+      Menu.submenu<SubmenuDemoItem>({
+        id: 'share',
+        label: 'Share',
+        items: ['Email', 'Copy link'],
+      }),
+    ],
+  }),
+  Menu.submenu<SubmenuDemoItem>({
+    id: 'move',
+    label: 'Move',
+    items: ['Roadmap', 'Notes'],
+  }),
+  Menu.submenu<SubmenuDemoItem>({
+    id: 'export',
+    label: 'Export',
+    items: ['Download'],
+    isDisabled: true,
+  }),
+  'Delete',
+]
+
+export const submenuDemo = (
+  menuModel: Menu.Model,
+  maybeSelection: Option.Option<string>,
+  h: HtmlBuilder<Message>,
+) => [
+  h.div(
+    [h.Class('demo-field')],
+    [
+      h.label(
+        [h.For(Menu.buttonId(menuModel.id)), h.Class('demo-label')],
+        ['Document actions'],
+      ),
+      h.submodel({
+        slotId: menuModel.id,
+        model: menuModel,
+        view: SubmenuDemoMenu.view,
+        viewInputs: {
+          items: SUBMENU_ITEMS,
+          buttonContent: ih.div(
+            [ih.Class('flex items-center gap-4')],
+            [ih.span([], ['Actions']), Icon.chevronDown('w-4 h-4')],
+          ),
+          buttonClassName: triggerClassName,
+          itemsClassName: submenuItemsClassName,
+          backdropClassName,
+          className: wrapperClassName,
+          itemToConfig: item => ({
+            className: itemClassName,
+            content: ih.span([], [item]),
+          }),
+          submenuToConfig: submenu => ({
+            className: itemClassName,
+            content: ih.div(
+              [ih.Class('flex items-center justify-between gap-4')],
+              [ih.span([], [submenu.label]), Icon.chevronRight(ICON_SIZE)],
+            ),
+          }),
+          anchor: MENU_ANCHOR,
+        },
+        toParentMessage: message =>
+          Message.GotMenuSubmenuDemoMessage({ message }),
+      }),
+      h.p(
+        [h.Class('demo-description')],
+        [
+          Option.match(maybeSelection, {
+            onNone: () => 'Choose an action.',
+            onSome: selection => `Selected: ${selection}`,
+          }),
+        ],
+      ),
+    ],
+  ),
+]
