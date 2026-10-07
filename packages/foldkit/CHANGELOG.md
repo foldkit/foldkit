@@ -1,5 +1,116 @@
 # foldkit
 
+## 0.167.0
+
+### Minor Changes
+
+- [#1616](https://github.com/foldkit/foldkit/pull/1616) [`5f7e247`](https://github.com/foldkit/foldkit/commit/5f7e2470d7037b97f768a5cc478e2a0d920e5b28) Thanks [@devinjameson](https://github.com/devinjameson)! - Move browser event, media query, and key-binding Stream helpers and their types from `Subscription` to `Dom` ([#1621](https://github.com/foldkit/foldkit/pull/1621)). Update imports from `foldkit/subscription` to `foldkit/dom`, or use `Dom` from `foldkit`, for these helpers:
+
+  | Before                                          | After                                        |
+  | ----------------------------------------------- | -------------------------------------------- |
+  | `Subscription.fromEvent`                        | `Dom.streamFromEvent`                        |
+  | `Subscription.fromEventFilterMap`               | `Dom.streamFromEventFilterMap`               |
+  | `Subscription.fromEventFilterMapPreventDefault` | `Dom.streamFromEventFilterMapPreventDefault` |
+  | `Subscription.fromMediaQuery`                   | `Dom.streamFromMediaQuery`                   |
+  | `Subscription.keyBindings`                      | `Dom.streamFromKeyBindings`                  |
+
+  Update explicit config type references as well:
+
+  | Before                                                | After                                              |
+  | ----------------------------------------------------- | -------------------------------------------------- |
+  | `Subscription.FromEventConfig`                        | `Dom.StreamFromEventConfig`                        |
+  | `Subscription.FromEventFilterMapConfig`               | `Dom.StreamFromEventFilterMapConfig`               |
+  | `Subscription.FromEventFilterMapPreventDefaultConfig` | `Dom.StreamFromEventFilterMapPreventDefaultConfig` |
+  | `Subscription.FromMediaQueryConfig`                   | `Dom.StreamFromMediaQueryConfig`                   |
+  | `Subscription.KeyBindingsConfig`                      | `Dom.StreamFromKeyBindingsConfig`                  |
+
+  `TypedEventTarget`, `KeyBinding`, `KeySequence`, and `WhileTyping` move from `Subscription` to `Dom` with their names unchanged. The helpers accept the same arguments and return Effect Streams. Use `Subscription.persistentEntry` for a Stream with no dependencies on its Model, or pass a Stream to a Model-driven Subscription entry or a Mount.
+
+- [#1599](https://github.com/foldkit/foldkit/pull/1599) [`a7ca632`](https://github.com/foldkit/foldkit/commit/a7ca632fc2d1c8c0b32796a39e3b6f0795628895) Thanks [@armancharan](https://github.com/armancharan)! - `Update.foldChildAt` folds one Submodel selected by key. It leaves the parent Model unchanged when `readAt` returns `None` for that key. For child OutMessages, `foldOutMessage` takes the key and returns a matcher whose handlers produce parent Steps. `toParentOutMessage` takes the key and returns a matcher that can forward a child OutMessage.
+
+  The example below stores Applicant Submodels in an array. Each Submodel has a stable entry ID that `foldChildAt` uses as its key.
+
+  **Before (`foldChild`):** Create a fold that closes over each entry's key.
+
+  ```ts
+  const foldApplicant = (entryId: string) =>
+    Update.foldChild({
+      update: Applicant.update,
+      read: (model: Model) =>
+        Option.map(
+          Array.findFirst(
+            model.applicants,
+            applicant => applicant.id === entryId,
+          ),
+          applicant => applicant.entry,
+        ),
+      write: (model, nextEntry) =>
+        modifyFields(model, {
+          applicants: Array.map(applicant =>
+            applicant.id === entryId
+              ? modifyFields(applicant, { entry: () => nextEntry })
+              : applicant,
+          ),
+        }),
+      toParentMessage: message =>
+        Message.GotApplicantMessage({ entryId, message }),
+    })
+
+  const update = (model: Model, message: Message) =>
+    Message.match<Update.Return<Model, Message>>(message, {
+      GotApplicantMessage: ({ entryId, message }) =>
+        foldApplicant(entryId)(model, message),
+    })
+  ```
+
+  **After (`foldChildAt`):** Define one fold and pass the entry key to it. The fold supplies that key to `readAt`, `writeAt`, and `toParentMessage`.
+
+  ```ts
+  const foldApplicant = Update.foldChildAt({
+    update: Applicant.update,
+    readAt: (model: Model, entryId: string) =>
+      Option.map(
+        Array.findFirst(
+          model.applicants,
+          applicant => applicant.id === entryId,
+        ),
+        applicant => applicant.entry,
+      ),
+    writeAt: (model, entryId, nextEntry) =>
+      modifyFields(model, {
+        applicants: Array.map(applicant =>
+          applicant.id === entryId
+            ? modifyFields(applicant, { entry: () => nextEntry })
+            : applicant,
+        ),
+      }),
+    toParentMessage: (entryId, message) =>
+      Message.GotApplicantMessage({ entryId, message }),
+  })
+
+  const update = (model: Model, message: Message) =>
+    Message.match<Update.Return<Model, Message>>(message, {
+      GotApplicantMessage: ({ entryId, message }) =>
+        foldApplicant(model, entryId, message),
+    })
+  ```
+
+- [#1584](https://github.com/foldkit/foldkit/pull/1584) [`fe2701c`](https://github.com/foldkit/foldkit/commit/fe2701c2fa4bb4370f59548006bcee5cc009575e) Thanks [@devinjameson](https://github.com/devinjameson)! - Render SSR and SSG documents from server-entry code. An `ssr.build` browser build now starts from a script and never emits an unrendered HTML template. The server entry's `renderDocument` receives the rendered application and the browser build's script, stylesheet, and module-preload URLs. Request-time rendering and prerendering use the same document renderer. `Server.renderDocument` supplies a complete document with application metadata, hydration markers, and unambiguous handoff structure.
+
+  **Migration:** add `ssr.clientEntry: '/src/entry.ts'`, import stylesheets from that client entry, and export `renderDocument = Server.renderDocument` from the server entry. Remove the source `index.html` and move additional document tags into a wrapper around `Server.renderDocument(application, assets, { head })`. `head` accepts trusted author-owned HTML, so escape any request-derived values before interpolating them. Remove `containerId` from SSR build and prerender options. Standalone `foldkitBuild` calls must pass `clientEntry` in their options. Build-time `transformIndexHtml` hooks no longer run; dev hooks still transform the rendered document. Use an absolute-path or full-URL Vite `base`; relative bases and relative or runtime `renderBuiltUrl` results are rejected. Upgrade Foldkit to 0.167.0 or newer alongside @foldkit/vite-plugin 0.27.0. The plugin requires the document-rendering APIs introduced in Foldkit 0.167.0.
+
+  An SSR build refuses an `index.html` already in the browser output before prerendering, including files copied from `publicDir`, emitted by another plugin, or left by an earlier build with `emptyOutDir` disabled. Remove those root documents so only a generated page can occupy `/`.
+
+  Custom template-based hosts can use `injectIntoTemplate`, `toResponse`, and `handleRequest` with a template. The template-based Vite dev host is available when `clientEntry` and `ssr.build` are omitted. Separate client-only builds and previews support Vite's relative-base behavior. SSR and SSG scaffolds use code-rendered documents and CSS imports.
+
+- [#1622](https://github.com/foldkit/foldkit/pull/1622) [`8f88659`](https://github.com/foldkit/foldkit/commit/8f886595a02977c92612eb3833c85978ae3e7fa7) Thanks [@devinjameson](https://github.com/devinjameson)! - Rename the entry factories to match what they return. Replace `Subscription.persistent` with `Subscription.persistentEntry`, `Subscription.animationFrame` with `Subscription.animationFrameEntry`, and `Port.subscription` with `Port.subscriptionEntry`. Pass the returned entries to `Subscription.make` to construct a Subscriptions record.
+
+### Patch Changes
+
+- [#1586](https://github.com/foldkit/foldkit/pull/1586) [`2eb97fb`](https://github.com/foldkit/foldkit/commit/2eb97fb142a16b7a2ede2c49d50c49aa474c7d3a) Thanks [@devinjameson](https://github.com/devinjameson)! - Cancel streamed Web Response bodies when a server-rendered HEAD request omits the body, so application resources are released.
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
 ## 0.166.0
 
 ### Minor Changes

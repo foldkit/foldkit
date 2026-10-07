@@ -1,5 +1,17 @@
 # @foldkit/devtools
 
+## 0.167.0
+
+### Minor Changes
+
+- [#543](https://github.com/foldkit/foldkit/pull/543) [`f863187`](https://github.com/foldkit/foldkit/commit/f86318781a4ba5ea8ff051871d93f013d64dc2f5) Thanks [@devinjameson](https://github.com/devinjameson)! - Add copy-to-clipboard buttons for Model, Message, Command, and Mount payloads in the DevTools overlay. Each button copies fully expanded, formatted JSON regardless of the inspector tree's expanded state, then briefly shows a check mark. Repeat clicks are ignored while the clipboard write is pending or the check mark is shown. The buttons use the website's snippet copy icon. Long Command and Mount arguments wrap within the inspector.
+
+- [#1616](https://github.com/foldkit/foldkit/pull/1616) [`5f7e247`](https://github.com/foldkit/foldkit/commit/5f7e2470d7037b97f768a5cc478e2a0d920e5b28) Thanks [@devinjameson](https://github.com/devinjameson)! - Require Foldkit and UI 0.167.0 for the relocated `Dom` Stream helpers. Observe the current mobile breakpoint when the overlay starts and avoid applying duplicate store and breakpoint updates.
+
+### Patch Changes
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
 ## 0.166.0
 
 ### Minor Changes

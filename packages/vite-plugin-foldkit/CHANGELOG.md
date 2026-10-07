@@ -1,5 +1,33 @@
 # @foldkit/vite-plugin
 
+## 0.27.0
+
+### Minor Changes
+
+- [#1584](https://github.com/foldkit/foldkit/pull/1584) [`fe2701c`](https://github.com/foldkit/foldkit/commit/fe2701c2fa4bb4370f59548006bcee5cc009575e) Thanks [@devinjameson](https://github.com/devinjameson)! - Render SSR and SSG documents from server-entry code. An `ssr.build` browser build now starts from a script and never emits an unrendered HTML template. The server entry's `renderDocument` receives the rendered application and the browser build's script, stylesheet, and module-preload URLs. Request-time rendering and prerendering use the same document renderer. `Server.renderDocument` supplies a complete document with application metadata, hydration markers, and unambiguous handoff structure.
+
+  **Migration:** add `ssr.clientEntry: '/src/entry.ts'`, import stylesheets from that client entry, and export `renderDocument = Server.renderDocument` from the server entry. Remove the source `index.html` and move additional document tags into a wrapper around `Server.renderDocument(application, assets, { head })`. `head` accepts trusted author-owned HTML, so escape any request-derived values before interpolating them. Remove `containerId` from SSR build and prerender options. Standalone `foldkitBuild` calls must pass `clientEntry` in their options. Build-time `transformIndexHtml` hooks no longer run; dev hooks still transform the rendered document. Use an absolute-path or full-URL Vite `base`; relative bases and relative or runtime `renderBuiltUrl` results are rejected. Upgrade Foldkit to 0.167.0 or newer alongside @foldkit/vite-plugin 0.27.0. The plugin requires the document-rendering APIs introduced in Foldkit 0.167.0.
+
+  An SSR build refuses an `index.html` already in the browser output before prerendering, including files copied from `publicDir`, emitted by another plugin, or left by an earlier build with `emptyOutDir` disabled. Remove those root documents so only a generated page can occupy `/`.
+
+  Custom template-based hosts can use `injectIntoTemplate`, `toResponse`, and `handleRequest` with a template. The template-based Vite dev host is available when `clientEntry` and `ssr.build` are omitted. Separate client-only builds and previews support Vite's relative-base behavior. SSR and SSG scaffolds use code-rendered documents and CSS imports.
+
+### Patch Changes
+
+- [#1593](https://github.com/foldkit/foldkit/pull/1593) [`6bd9ee8`](https://github.com/foldkit/foldkit/commit/6bd9ee8e728c6ddeb5838a2d2dbbde8ccd94d26d) Thanks [@filipfalcon](https://github.com/filipfalcon)! - Mount the DevTools overlay in development when Foldkit is installed from the registry. Since 0.25.0, the overlay never appeared in that setup. The plugin pre-bundled `foldkit/devtools-host` while serving `foldkit` itself from source, so the overlay registered with a separate copy of the DevTools config that the runtime never reads.
+
+  The plugin no longer declares `foldkit/devtools-host` to the dependency optimizer, so it is served from source with the rest of `foldkit`. It still declares `@foldkit/devtools/vite` when `@foldkit/devtools` is installed from the registry. Applications that added `foldkit/devtools-host` to their own `optimizeDeps.include` as a workaround should remove it. See [#1592](https://github.com/foldkit/foldkit/issues/1592).
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
+- [#1591](https://github.com/foldkit/foldkit/pull/1591) [`085b787`](https://github.com/foldkit/foldkit/commit/085b787da0a5d1cefd99267d9a99459466ce89f2) Thanks [@filipfalcon](https://github.com/filipfalcon)! - Apply Foldkit's dependency optimizer and bundling rules in every Vite environment. Before, the plugin excluded `foldkit` from pre-bundling and pre-bundled the Effect entries Foldkit imports only in the client environment, and bundled the Foldkit packages only in the `ssr` environment. A server environment whose optimizer runs dependency discovery, such as every Cloudflare Worker environment whether it is named `ssr` or after the Worker, pre-bundled `foldkit` without the build id transform, so every hydratable render failed with `MissingBuildId`. Applications worked around it with `optimizeDeps.exclude: ['foldkit']`. With that workaround, an application that imports Effect through subpaths still loaded one Effect instance for Foldkit and another for itself. A server environment under another name that did not bundle Foldkit failed with `MissingBuildId` as well.
+
+  The plugin now excludes `foldkit` from pre-bundling in every environment, pre-bundles the Effect entries Foldkit imports in every environment whose optimizer is enabled, and bundles the crawled Foldkit packages in every environment through `resolve.noExternal`. Every server environment of the dev server now renders with the same build id as the client and with one Effect instance.
+
+  The client environment behaves as before, and so do client and `ssr` builds. Vite's default Node `ssr` environment also behaves as before: its optimizer stays disabled, so Effect still loads from the installed package. A build of a server environment under another name now bundles the Foldkit packages. Before, it externalized them, and the build failed the Foldkit singleton externalization check.
+
+  Applications can remove `optimizeDeps.exclude: ['foldkit']` from their Vite config. An application that added a package the crawl misses to `ssr.noExternal` should move it to `resolve.noExternal`. `ssr.noExternal` reaches only the `ssr` environment, so in a server environment under another name that package still loads a second Foldkit copy.
+
 ## 0.26.1
 
 ### Patch Changes

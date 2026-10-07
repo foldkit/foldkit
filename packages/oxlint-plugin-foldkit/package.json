@@ -1,6 +1,6 @@
 {
   "name": "@foldkit/oxlint-plugin",
-  "version": "0.15.2",
+  "version": "0.15.3",
   "description": "Oxlint rules for Foldkit applications",
   "type": "module",
   "main": "./dist/index.js",
