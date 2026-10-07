@@ -67,14 +67,11 @@ export const renderer =
           h.figcaption(
             [
               h.Class(
-                'flex items-center gap-2 border-b border-gray-200 bg-[var(--code-background)] py-2 pr-2 pl-4 text-sm font-medium text-gray-700 dark:border-gray-700/50 dark:text-gray-300',
+                'flex items-center gap-2 border-b border-gray-200 bg-[var(--code-background)] py-1 pr-2 pl-4 text-sm font-medium text-gray-700 dark:border-gray-700/50 dark:text-gray-300',
               ),
             ],
             [
-              h.span(
-                [h.Id(titleId), h.Class('relative top-px min-w-0 flex-1')],
-                [title],
-              ),
+              h.span([h.Id(titleId), h.Class('min-w-0 flex-1 py-1')], [title]),
               copyButton,
             ],
           ),

@@ -51,7 +51,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
     const buttonClassName = clsx(
       'cursor-pointer text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white',
       viewInputs.variant === 'Header'
-        ? 'flex size-10 items-center justify-center transition-colors focus-visible:rounded focus-visible:outline-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400'
+        ? 'flex size-8 items-center justify-center transition-colors focus-visible:rounded focus-visible:outline-2 focus-visible:outline-accent-600 dark:focus-visible:outline-accent-400'
         : 'rounded border border-gray-300 bg-[var(--code-background)] p-2 transition hover:border-gray-400 hover:bg-gray-200 dark:border-gray-700/50 dark:hover:border-gray-500 dark:hover:bg-gray-700/30',
     )
     const wrapperClassName = clsx(
