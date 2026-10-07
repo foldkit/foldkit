@@ -202,7 +202,11 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   CoreSubscriptions: core(
     'Subscriptions',
-    'Run ongoing Streams whose lifetime follows Model-derived dependencies. Covers restart behavior, timers, browser events, live dependency reads, and Submodel lifting.',
+    'Run ongoing Streams whose lifetime follows Model-derived dependencies. Covers restart behavior, timers, animation frames, live dependency reads, and Submodel lifting.',
+  ),
+  CoreBrowser: core(
+    'Browser',
+    'Build composable Streams from browser events, typed targets, media queries, and key bindings, then give their lifetime to a Subscription or Mount.',
   ),
   CoreInitAndFlags: core(
     'Init & Flags',

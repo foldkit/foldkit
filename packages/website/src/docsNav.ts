@@ -14,6 +14,7 @@ import {
   comingFromTanStackQueryRouter,
   contentApiRouter,
   coreArchitectureRouter,
+  coreBrowserRouter,
   coreCanvasRouter,
   coreCommandsRouter,
   coreCounterExampleRouter,
@@ -212,6 +213,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'CoreSubscriptions',
           href: coreSubscriptionsRouter(),
           label: 'Subscriptions',
+        },
+        {
+          _tag: 'CoreBrowser',
+          href: coreBrowserRouter(),
+          label: 'Browser',
         },
         {
           _tag: 'CoreInitAndFlags',

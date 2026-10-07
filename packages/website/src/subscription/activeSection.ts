@@ -103,6 +103,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             CoreMount: () => Core.Mount.tableOfContents,
             CoreCustomElement: () => Core.CustomElement.tableOfContents,
             CoreSubscriptions: () => Core.Subscriptions.tableOfContents,
+            CoreBrowser: () => Core.Browser.tableOfContents,
             CoreInitAndFlags: () => Core.InitAndFlags.tableOfContents,
             CoreDom: () => Core.CoreDom.tableOfContents,
             CoreRender: () => Core.CoreRender.tableOfContents,

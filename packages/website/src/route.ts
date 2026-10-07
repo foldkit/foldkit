@@ -51,6 +51,7 @@ export const AppRoute = defineRouteUnion({
   CoreMount: {},
   CoreCustomElement: {},
   CoreSubscriptions: {},
+  CoreBrowser: {},
   CoreInitAndFlags: {},
   CoreDom: {},
   CoreRender: {},
@@ -156,6 +157,7 @@ export const DocsRoute = AppRoute.subset([
   'CoreMount',
   'CoreCustomElement',
   'CoreSubscriptions',
+  'CoreBrowser',
   'CoreInitAndFlags',
   'CoreDom',
   'CoreRender',
@@ -393,6 +395,7 @@ export const coreSubscriptionsRouter = core(
   'subscriptions',
   AppRoute.CoreSubscriptions,
 )
+export const coreBrowserRouter = core('browser', AppRoute.CoreBrowser)
 export const coreInitAndFlagsRouter = core(
   'init-and-flags',
   AppRoute.CoreInitAndFlags,
@@ -539,6 +542,7 @@ const coreParser = oneOf(
   coreMountRouter,
   coreCustomElementRouter,
   coreSubscriptionsRouter,
+  coreBrowserRouter,
   coreInitAndFlagsRouter,
   coreDomRouter,
   coreRenderRouter,
@@ -721,6 +725,7 @@ export const routeToUrlPath = (route: AppRoute): string =>
     CoreMount: () => coreMountRouter(),
     CoreCustomElement: () => coreCustomElementRouter(),
     CoreSubscriptions: () => coreSubscriptionsRouter(),
+    CoreBrowser: () => coreBrowserRouter(),
     CoreInitAndFlags: () => coreInitAndFlagsRouter(),
     CoreDom: () => coreDomRouter(),
     CoreRender: () => coreRenderRouter(),

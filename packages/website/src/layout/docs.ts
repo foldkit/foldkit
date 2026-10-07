@@ -668,6 +668,11 @@ export const view = (
           lazyDocsContent(Core.Subscriptions.view, docContentArgs),
           Core.Subscriptions.tableOfContents,
         ),
+      CoreBrowser: () =>
+        withTableOfContents(
+          lazyDocsContent(Core.Browser.view, docContentArgs),
+          Core.Browser.tableOfContents,
+        ),
       CoreInitAndFlags: () =>
         withTableOfContents(
           lazyDocsContent(Core.InitAndFlags.view, docContentArgs),

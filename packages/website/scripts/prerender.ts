@@ -99,6 +99,7 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   AppRoute.CoreMount(),
   AppRoute.CoreCustomElement(),
   AppRoute.CoreSubscriptions(),
+  AppRoute.CoreBrowser(),
   AppRoute.CoreInitAndFlags(),
   AppRoute.CoreDom(),
   AppRoute.CoreRender(),
