@@ -112,6 +112,8 @@ const internalDependencyFields = [
   'peerDependencies',
 ]
 
+const packedDependencyFields = [...internalDependencyFields, 'devDependencies']
+
 export const canaryPackageJsons = (packages, commit) => {
   const versions = new Map(
     packages.map(pkg => [
@@ -124,7 +126,7 @@ export const canaryPackageJsons = (packages, commit) => {
     const packageJson = structuredClone(pkg.packageJson)
     packageJson.version = versions.get(packageJson.name)
 
-    for (const field of internalDependencyFields) {
+    for (const field of packedDependencyFields) {
       const dependencies = packageJson[field]
 
       if (typeof dependencies !== 'object' || dependencies === null) {
@@ -414,6 +416,35 @@ const expectedPackedInternalSpec = (plannedSpec, version) => {
   return fail(`cannot verify unsupported workspace dependency ${plannedSpec}`)
 }
 
+export const packageJsonsForPacking = packages => {
+  const versions = expectedVersions(packages)
+
+  return packages.map(pkg => {
+    const packageJson = structuredClone(pkg.packageJson)
+
+    for (const field of packedDependencyFields) {
+      const dependencies = packageJson[field]
+
+      if (typeof dependencies !== 'object' || dependencies === null) {
+        continue
+      }
+
+      for (const name of Object.keys(dependencies)) {
+        const version = versions.get(name)
+
+        if (version !== undefined) {
+          dependencies[name] = expectedPackedInternalSpec(
+            dependencies[name],
+            version,
+          )
+        }
+      }
+    }
+
+    return { ...pkg, packageJson }
+  })
+}
+
 const validateInternalDependencies = (
   metadata,
   versions,
@@ -592,7 +623,7 @@ export const assertArtifactsMatchPackages = ({
       )
     }
 
-    for (const field of internalDependencyFields) {
+    for (const field of packedDependencyFields) {
       const plannedDependencies = plannedPackageJson[field]
       const packedDependencies = artifact.packageJson[field]
 
@@ -800,8 +831,12 @@ export const runCoherentUpload = async ({
   tags,
   publish,
   log = console.log,
+  workspacePackages: suppliedWorkspacePackages,
+  build = buildPackages,
+  pack = packPackage,
 }) => {
-  const workspacePackages = readWorkspacePackages(root)
+  const workspacePackages =
+    suppliedWorkspacePackages ?? readWorkspacePackages(root)
   const workspacePackageNames = new Set(
     workspacePackages.map(pkg => pkg.packageJson.name),
   )
@@ -811,6 +846,7 @@ export const runCoherentUpload = async ({
     channel,
     commit,
   )
+  const packingPackages = packageJsonsForPacking(releasePackages)
 
   assertCompleteReleaseSet(discoveredPublicPackages, releasePackages)
 
@@ -838,7 +874,7 @@ export const runCoherentUpload = async ({
 
   try {
     if (channel === 'canary') {
-      for (const [path, content] of writePackageJsons(releasePackages)) {
+      for (const [path, content] of writePackageJsons(packingPackages)) {
         originals.set(path, content)
       }
     }
@@ -851,13 +887,16 @@ export const runCoherentUpload = async ({
       FOLDKIT_RELEASE_MANIFEST: releaseManifestPath,
     }
 
-    buildPackages(
-      Array.isArrayEmpty(packagesToPack) ? [] : releasePackages,
-      env,
-    )
+    build(Array.isArrayEmpty(packagesToPack) ? [] : releasePackages, env)
+
+    if (channel === 'stable') {
+      for (const [path, content] of writePackageJsons(packingPackages)) {
+        originals.set(path, content)
+      }
+    }
 
     const artifacts = packagesToPack.map(pkg =>
-      packPackage(pkg, stagingDirectory, env),
+      pack(pkg, stagingDirectory, env),
     )
     const temporaryTag = uploadTag(channel, commit)
 

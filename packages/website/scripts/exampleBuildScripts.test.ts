@@ -82,10 +82,17 @@ describe('server-rendered example build scripts', () => {
       const manifest: Readonly<{
         dependencies?: Readonly<Record<string, string>>
         devDependencies?: Readonly<Record<string, string>>
+        optionalDependencies?: Readonly<Record<string, string>>
+        peerDependencies?: Readonly<Record<string, string>>
       }> = JSON.parse(source)
       const dependencies = {
         ...(manifest.dependencies ?? {}),
         ...(manifest.devDependencies ?? {}),
+        ...(manifest.optionalDependencies ?? {}),
+        ...(manifest.peerDependencies ?? {}),
+      }
+      for (const [name, specifier] of Object.entries(dependencies)) {
+        expect(specifier, `${slug}: ${name}`).not.toMatch(/^workspace:/)
       }
       for (const [name, version] of Object.entries(versions)) {
         if (dependencies[name] !== undefined) {
@@ -129,10 +136,18 @@ describe('server-rendered example build scripts', () => {
         const manifest: Readonly<{
           dependencies?: Readonly<Record<string, string>>
           devDependencies?: Readonly<Record<string, string>>
+          optionalDependencies?: Readonly<Record<string, string>>
+          peerDependencies?: Readonly<Record<string, string>>
         }> = JSON.parse(source)
         const dependencies = {
           ...(manifest.dependencies ?? {}),
           ...(manifest.devDependencies ?? {}),
+          ...(manifest.optionalDependencies ?? {}),
+          ...(manifest.peerDependencies ?? {}),
+        }
+
+        for (const [name, specifier] of Object.entries(dependencies)) {
+          expect(specifier, `${slug}: ${name}`).not.toMatch(/^workspace:/)
         }
 
         for (const [name, stableVersion] of Object.entries(stableVersions)) {

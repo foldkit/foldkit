@@ -83,7 +83,7 @@ test('Changesets only versions packages and cannot parse publisher output', () =
 
   assert.match(
     versionJob,
-    /permissions:\n\s+contents: write\n\s+pull-requests: write/,
+    /permissions:\n\s+actions: write\n\s+contents: write\n\s+pull-requests: write/,
   )
   assert.doesNotMatch(versionJob, /id-token: write/)
   assert.doesNotMatch(versionJob, /run: pnpm release/)
@@ -100,6 +100,10 @@ test('Changesets only versions packages and cannot parse publisher output', () =
       .split('\n')
       .filter(line => line.includes('SKIP_SIMPLE_GIT_HOOKS')),
     ["          SKIP_SIMPLE_GIT_HOOKS: '1'"],
+  )
+  assert.match(
+    versionJob,
+    /- name: Start Version Packages required checks\n\s+if: steps\.changesets\.outputs\['has-changesets'\] == 'true'\n\s+env:\n\s+GH_TOKEN: \$\{\{ github\.token \}\}\n\s+run: \|\n\s+gh workflow run ci\.yml --ref changeset-release\/main\n\s+gh workflow run examples-e2e\.yml --ref changeset-release\/main/,
   )
 
   assert.match(

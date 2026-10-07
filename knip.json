@@ -11,7 +11,8 @@
       "project": ["scripts/**"],
       "ignoreFiles": [
         "scripts/fixtures/packed-ssr-consumer/**",
-        "scripts/lib/package-version.d.mts"
+        "scripts/lib/package-version.d.mts",
+        "scripts/lib/workspace-packages.d.mts"
       ]
     },
     "packages/foldkit": {

@@ -41,9 +41,16 @@ const playgroundFrame = async (page: Page, slug: string) => {
   await capturePlaygroundFrame(page)
   await page.goto(`/playground/${slug}`, { waitUntil: 'domcontentloaded' })
   const frameElement = page.locator('iframe[title="Foldkit Playground"]')
-  await expect(frameElement).toBeAttached({
+  const startupFailure = page.getByText('Playground failed to load', {
+    exact: true,
+  })
+  await expect(frameElement.or(startupFailure)).toBeAttached({
     timeout: PLAYGROUND_BOOT_TIMEOUT_MILLISECONDS,
   })
+
+  if (await startupFailure.isVisible()) {
+    throw new Error(await startupFailure.locator('..').innerText())
+  }
 
   const frame = page.frameLocator('iframe[title="Foldkit Playground"]')
   await expect(frameElement).toBeVisible({

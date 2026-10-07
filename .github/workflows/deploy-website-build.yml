@@ -187,7 +187,16 @@ jobs:
           fi
 
       - name: Smoke the deployed SSR and SSG playgrounds
+        id: playground-smoke
         run: pnpm --filter website exec playwright test
+
+      - name: Upload playground failure diagnostics
+        if: failure() && steps.playground-smoke.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playground-failure-${{ inputs.channel }}-${{ github.run_attempt }}
+          path: packages/website/test-results/
+          retention-days: 7
 
       - name: Promote the canary deployment
         if: inputs.channel == 'canary'

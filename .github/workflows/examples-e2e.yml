@@ -7,6 +7,7 @@ on:
   merge_group:
     types:
       - checks_requested
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -25,11 +26,23 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Resolve change range
+        id: range
+        env:
+          EVENT_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+        run: |
+          base_sha="$EVENT_BASE_SHA"
+          if [ -z "$base_sha" ]; then
+            base_sha="$(git rev-parse "origin/${{ github.event.repository.default_branch }}")"
+          fi
+
+          echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
+
       - name: Plan affected examples
         id: plan
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
+          BASE_SHA: ${{ steps.range.outputs.base_sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
         run: node scripts/plan-examples-e2e.mjs "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_OUTPUT"
 
   examples-e2e:

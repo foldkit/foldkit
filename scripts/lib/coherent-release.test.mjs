@@ -1,4 +1,13 @@
 import assert from 'node:assert/strict'
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { PassThrough } from 'node:stream'
 import { test } from 'node:test'
 
@@ -8,12 +17,15 @@ import {
   assertPackagesAlreadyExist,
   canaryVersion,
   createNpmTagger,
+  packPackage,
+  packageJsonsForPacking,
   packagesForChannel,
   packagesToUpload,
   promoteStableRelease,
   promoteSnapshot,
   promptForNpmOtp,
   resolveReleaseCommit,
+  runCoherentUpload,
   uploadArtifacts,
   uploadPlannedArtifacts,
   uploadTag,
@@ -32,6 +44,34 @@ const artifactFor = (name, version) => ({
   version,
   integrity: `sha512-${name}-${version}`,
 })
+
+const writePackingWorkspace = (root, packages, packageOrder) => {
+  mkdirSync(root, { recursive: true })
+  writeFileSync(
+    join(root, 'package.json'),
+    `${JSON.stringify({ name: 'packing-workspace', private: true }, null, 2)}\n`,
+  )
+  writeFileSync(
+    join(root, 'pnpm-workspace.yaml'),
+    'packages:\n  - packages/*\n',
+  )
+
+  const packagesByName = new Map(
+    packages.map(pkg => [pkg.packageJson.name, pkg]),
+  )
+
+  for (const name of packageOrder) {
+    const pkg = packagesByName.get(name)
+    const dir = join(root, 'packages', name.replace('@fixture/', ''))
+    const manifestPath = join(dir, 'package.json')
+
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(manifestPath, `${JSON.stringify(pkg.packageJson, null, 2)}\n`)
+    packagesByName.set(name, { ...pkg, dir, manifestPath })
+  }
+
+  return packageOrder.map(name => packagesByName.get(name))
+}
 
 class FakeRegistry {
   constructor(packages) {
@@ -417,10 +457,12 @@ test('canary versions and internal references are commit-addressed', () => {
     'canary',
     commit,
   )
+  const ui = packages.find(pkg => pkg.packageJson.name === '@foldkit/ui')
 
+  assert.ok(ui)
   assert.equal(canaryVersion('1.2.3', commit), '1.2.3-canary.0123456789ab')
   assert.equal(
-    packages[1].packageJson.peerDependencies.foldkit,
+    ui.packageJson.peerDependencies.foldkit,
     '1.2.3-canary.0123456789ab',
   )
   assert.equal(
@@ -436,6 +478,236 @@ test('canary versions and internal references are commit-addressed', () => {
     }),
     packages,
   )
+})
+
+test('canary manifests resolve internal devDependencies before packing', () => {
+  const commit = '0123456789abcdef0123456789abcdef01234567'
+  const packages = packagesForChannel(
+    [
+      packageFor('foldkit', '1.2.3'),
+      packageFor('@foldkit/ui', '1.2.3', {
+        devDependencies: {
+          foldkit: 'workspace:*',
+          effect: '4.0.0',
+        },
+      }),
+    ],
+    'canary',
+    commit,
+  )
+  const ui = packages.find(pkg => pkg.packageJson.name === '@foldkit/ui')
+
+  assert.ok(ui)
+  assert.deepEqual(Object.entries(ui.packageJson.devDependencies), [
+    ['foldkit', '1.2.3-canary.0123456789ab'],
+    ['effect', '4.0.0'],
+  ])
+})
+
+test('packing manifests resolve workspace dependencies without reordering', () => {
+  const packages = packageJsonsForPacking([
+    packageFor('foldkit', '1.2.3'),
+    packageFor('@foldkit/ui', '1.2.3', {
+      peerDependencies: { foldkit: 'workspace:^' },
+      devDependencies: {
+        foldkit: 'workspace:*',
+        effect: '4.0.0',
+      },
+    }),
+  ])
+  const ui = packages.find(pkg => pkg.packageJson.name === '@foldkit/ui')
+
+  assert.ok(ui)
+  assert.deepEqual(ui.packageJson.peerDependencies, {
+    foldkit: '^1.2.3',
+  })
+  assert.deepEqual(Object.entries(ui.packageJson.devDependencies), [
+    ['foldkit', '1.2.3'],
+    ['effect', '4.0.0'],
+  ])
+})
+
+test('stable and canary manifests pack identically across workspace orders', () => {
+  const commit = '0123456789abcdef0123456789abcdef01234567'
+  const sourcePackages = [
+    packageFor('@fixture/core-a', '1.2.3'),
+    packageFor('@fixture/core-b', '2.3.4'),
+    packageFor('@fixture/consumer', '3.4.5', {
+      devDependencies: {
+        '@fixture/core-b': 'workspace:*',
+        effect: '4.0.0',
+        '@fixture/core-a': 'workspace:^',
+      },
+    }),
+  ]
+  const firstOrder = ['@fixture/consumer', '@fixture/core-a', '@fixture/core-b']
+  const secondOrder = [
+    '@fixture/core-b',
+    '@fixture/core-a',
+    '@fixture/consumer',
+  ]
+  const testDirectory = mkdtempSync(join(tmpdir(), 'foldkit-pack-order-'))
+
+  try {
+    for (const channel of ['stable', 'canary']) {
+      const releasePackages = packagesForChannel(
+        sourcePackages,
+        channel,
+        commit,
+      )
+      const packingPackages = packageJsonsForPacking(releasePackages)
+      const firstWorkspace = writePackingWorkspace(
+        join(testDirectory, `${channel}-first`),
+        packingPackages,
+        firstOrder,
+      )
+      const secondWorkspace = writePackingWorkspace(
+        join(testDirectory, `${channel}-second`),
+        packingPackages,
+        secondOrder,
+      )
+      const firstOutput = join(testDirectory, `${channel}-first-output`)
+      const secondOutput = join(testDirectory, `${channel}-second-output`)
+
+      mkdirSync(firstOutput)
+      mkdirSync(secondOutput)
+
+      const firstConsumer = firstWorkspace.find(
+        pkg => pkg.packageJson.name === '@fixture/consumer',
+      )
+      const secondConsumer = secondWorkspace.find(
+        pkg => pkg.packageJson.name === '@fixture/consumer',
+      )
+      const plannedConsumer = releasePackages.find(
+        pkg => pkg.packageJson.name === '@fixture/consumer',
+      )
+      const firstArtifact = packPackage(firstConsumer, firstOutput)
+      const secondArtifact = packPackage(secondConsumer, secondOutput)
+
+      assert.equal(firstArtifact.integrity, secondArtifact.integrity)
+      assert.doesNotThrow(() =>
+        assertArtifactsMatchPackages({
+          artifacts: [firstArtifact],
+          packages: [plannedConsumer],
+          releasePackages,
+        }),
+      )
+    }
+  } finally {
+    rmSync(testDirectory, { recursive: true, force: true })
+  }
+})
+
+test('coherent upload stages resolved manifests at the packing boundary', async () => {
+  const commit = '0123456789abcdef0123456789abcdef01234567'
+  const sourcePackages = [
+    packageFor('@fixture/core-a', '1.2.3'),
+    packageFor('@fixture/core-b', '2.3.4'),
+    packageFor('@fixture/consumer', '3.4.5', {
+      devDependencies: {
+        '@fixture/core-b': 'workspace:*',
+        effect: '4.0.0',
+        '@fixture/core-a': 'workspace:^',
+      },
+    }),
+  ]
+  const packageOrder = [
+    '@fixture/consumer',
+    '@fixture/core-a',
+    '@fixture/core-b',
+  ]
+  const testDirectory = mkdtempSync(join(tmpdir(), 'foldkit-upload-stage-'))
+
+  try {
+    for (const channel of ['stable', 'canary']) {
+      const root = join(testDirectory, channel)
+      const workspacePackages = writePackingWorkspace(
+        root,
+        sourcePackages,
+        packageOrder,
+      )
+      const registry = new FakeRegistry(workspacePackages)
+      let buildDependencies
+      let packedDependencies
+
+      await runCoherentUpload({
+        root,
+        channel,
+        commit,
+        registry,
+        tags: new Set(),
+        workspacePackages,
+        build: () => {
+          const consumer = workspacePackages.find(
+            pkg => pkg.packageJson.name === '@fixture/consumer',
+          )
+
+          assert.ok(consumer)
+          const packageJson = JSON.parse(
+            readFileSync(consumer.manifestPath, 'utf8'),
+          )
+
+          buildDependencies = Object.entries(packageJson.devDependencies)
+        },
+        pack: pkg => {
+          const packageJson = JSON.parse(readFileSync(pkg.manifestPath, 'utf8'))
+
+          if (packageJson.name === '@fixture/consumer') {
+            packedDependencies = Object.entries(packageJson.devDependencies)
+          }
+
+          return {
+            ...artifactFor(packageJson.name, packageJson.version),
+            path: pkg.manifestPath,
+            packageJson,
+          }
+        },
+        publish: async artifact => {
+          registry.add(artifact, artifact.packageJson)
+        },
+        log: () => {},
+      })
+
+      const coreAVersion =
+        channel === 'canary' ? '1.2.3-canary.0123456789ab' : '^1.2.3'
+      const coreBVersion =
+        channel === 'canary' ? '2.3.4-canary.0123456789ab' : '2.3.4'
+      const expectedPackedDependencies = [
+        ['@fixture/core-b', coreBVersion],
+        ['effect', '4.0.0'],
+        ['@fixture/core-a', coreAVersion],
+      ]
+
+      assert.deepEqual(
+        buildDependencies,
+        channel === 'stable'
+          ? [
+              ['@fixture/core-b', 'workspace:*'],
+              ['effect', '4.0.0'],
+              ['@fixture/core-a', 'workspace:^'],
+            ]
+          : expectedPackedDependencies,
+      )
+      assert.deepEqual(packedDependencies, expectedPackedDependencies)
+
+      const consumer = workspacePackages.find(
+        pkg => pkg.packageJson.name === '@fixture/consumer',
+      )
+
+      assert.ok(consumer)
+      const restoredPackageJson = JSON.parse(
+        readFileSync(consumer.manifestPath, 'utf8'),
+      )
+
+      assert.deepEqual(Object.entries(restoredPackageJson.devDependencies), [
+        ['@fixture/core-b', 'workspace:*'],
+        ['effect', '4.0.0'],
+        ['@fixture/core-a', 'workspace:^'],
+      ])
+    }
+  } finally {
+    rmSync(testDirectory, { recursive: true, force: true })
+  }
 })
 
 test('stable upload output does not use Changesets reserved tag protocol', () => {

@@ -34,7 +34,12 @@ test('required workflows check pull requests and merge groups', () => {
     )
     assert.match(
       requiredWorkflow,
-      /HEAD_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.event\.merge_group\.head_sha \}\}/,
+      /HEAD_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.event\.merge_group\.head_sha \|\| github\.sha \}\}/,
+    )
+    assert.match(requiredWorkflow, /workflow_dispatch:/)
+    assert.match(
+      requiredWorkflow,
+      /- name: Resolve change range\n\s+id: range\n\s+env:\n\s+EVENT_BASE_SHA: \$\{\{ github\.event\.pull_request\.base\.sha \|\| github\.event\.merge_group\.base_sha \}\}[\s\S]*?git rev-parse "origin\/\$\{\{ github\.event\.repository\.default_branch \}\}"[\s\S]*?echo "base_sha=\$base_sha" >> "\$GITHUB_OUTPUT"/,
     )
   }
 })
@@ -49,7 +54,7 @@ test('changeset status receives trusted pull request context', () => {
 test('trusted Version Packages pull requests verify their release commit inputs', () => {
   assert.match(
     workflow,
-    /- name: Verify Version Packages website release inputs\n\s+if: github\.event_name == 'pull_request' && github\.head_ref == 'changeset-release\/main' && github\.event\.pull_request\.head\.repo\.full_name == github\.repository\n\s+env:\n\s+RELEASE_COMMIT: \$\{\{ github\.event\.pull_request\.head\.sha \}\}\n\s+run: pnpm check:website-release-inputs "\$RELEASE_COMMIT"/,
+    /- name: Verify Version Packages website release inputs\n\s+if: >-\n\s+\(github\.event_name == 'pull_request' && github\.head_ref == 'changeset-release\/main' && github\.event\.pull_request\.head\.repo\.full_name == github\.repository\) \|\|\n\s+\(github\.event_name == 'workflow_dispatch' && github\.ref == 'refs\/heads\/changeset-release\/main'\)\n\s+env:\n\s+RELEASE_COMMIT: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}\n\s+run: pnpm check:website-release-inputs "\$RELEASE_COMMIT"/,
   )
 })
 
