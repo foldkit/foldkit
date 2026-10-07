@@ -412,12 +412,25 @@ const isSequence = <Message>(binding: CompiledBinding<Message>): boolean =>
 const isModifierEvent = (event: KeyboardEvent): boolean =>
   Array.contains(MODIFIER_KEYS, normalizeKey(event.key))
 
+const hasStringProperty = <Key extends string>(
+  value: unknown,
+  key: Key,
+): value is Readonly<Record<Key, string>> =>
+  Predicate.hasProperty(value, key) && Predicate.isString(value[key])
+
+const hasBooleanProperty = <Key extends string>(
+  value: unknown,
+  key: Key,
+): value is Readonly<Record<Key, boolean>> =>
+  Predicate.hasProperty(value, key) && Predicate.isBoolean(value[key])
+
+const hasFunctionProperty = (value: unknown, key: string): boolean =>
+  Predicate.hasProperty(value, key) && Predicate.isFunction(value[key])
+
 const isEditableTarget = (target: EventTarget): boolean => {
   if (
-    !Predicate.hasProperty(target, 'tagName') ||
-    !Predicate.isString(target.tagName) ||
-    !Predicate.hasProperty(target, 'isContentEditable') ||
-    !Predicate.isBoolean(target.isContentEditable)
+    !hasStringProperty(target, 'tagName') ||
+    !hasBooleanProperty(target, 'isContentEditable')
   ) {
     return false
   }
@@ -435,20 +448,13 @@ const isFromEditable = (event: KeyboardEvent): boolean =>
   Array.some(event.composedPath(), isEditableTarget)
 
 const isKeyboardEvent = (event: Event): event is KeyboardEvent =>
-  Predicate.hasProperty(event, 'key') &&
-  Predicate.isString(event.key) &&
-  Predicate.hasProperty(event, 'altKey') &&
-  Predicate.isBoolean(event.altKey) &&
-  Predicate.hasProperty(event, 'ctrlKey') &&
-  Predicate.isBoolean(event.ctrlKey) &&
-  Predicate.hasProperty(event, 'metaKey') &&
-  Predicate.isBoolean(event.metaKey) &&
-  Predicate.hasProperty(event, 'shiftKey') &&
-  Predicate.isBoolean(event.shiftKey) &&
-  Predicate.hasProperty(event, 'repeat') &&
-  Predicate.isBoolean(event.repeat) &&
-  Predicate.hasProperty(event, 'isComposing') &&
-  Predicate.isBoolean(event.isComposing)
+  hasStringProperty(event, 'key') &&
+  hasBooleanProperty(event, 'altKey') &&
+  hasBooleanProperty(event, 'ctrlKey') &&
+  hasBooleanProperty(event, 'metaKey') &&
+  hasBooleanProperty(event, 'shiftKey') &&
+  hasBooleanProperty(event, 'repeat') &&
+  hasBooleanProperty(event, 'isComposing')
 
 const isAllowedWhileTyping = <Message>(
   binding: CompiledBinding<Message>,
@@ -754,10 +760,8 @@ const makeKeyBindingHandler = <Message>(
 }
 
 const hasEventListeners = (value: unknown): value is ListenerOwner =>
-  Predicate.hasProperty(value, 'addEventListener') &&
-  Predicate.isFunction(value.addEventListener) &&
-  Predicate.hasProperty(value, 'removeEventListener') &&
-  Predicate.isFunction(value.removeEventListener)
+  hasFunctionProperty(value, 'addEventListener') &&
+  hasFunctionProperty(value, 'removeEventListener')
 
 const hasDocumentCapabilities = (
   value: unknown,
@@ -769,8 +773,7 @@ const isKeyBindingWindow = (value: unknown): value is KeyBindingWindow =>
   Predicate.hasProperty(value, 'document') &&
   hasDocumentCapabilities(value.document) &&
   Predicate.hasProperty(value, 'navigator') &&
-  Predicate.hasProperty(value.navigator, 'userAgent') &&
-  Predicate.isString(value.navigator.userAgent)
+  hasStringProperty(value.navigator, 'userAgent')
 
 const isKeyBindingDocument = (value: unknown): value is KeyBindingDocument =>
   hasDocumentCapabilities(value) &&

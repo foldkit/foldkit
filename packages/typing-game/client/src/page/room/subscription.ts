@@ -1,4 +1,4 @@
-import { Cause, Effect, Option, Schedule, Schema, Stream } from 'effect'
+import { Cause, Effect, Option, Schema, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 
 import { capturedKeyDownStream } from '../../keyboard'
@@ -31,7 +31,6 @@ export const subscriptions = Subscription.make<Model, Message, RoomsClient>()(
                   Stream.map(({ room, maybePlayerProgress }) =>
                     Message.UpdatedRoom({ room, maybePlayerProgress }),
                   ),
-                  Stream.retry(Schedule.spaced('1 second')),
                   Stream.catchCause(cause =>
                     Stream.make(
                       Message.FailedStreamRoom({

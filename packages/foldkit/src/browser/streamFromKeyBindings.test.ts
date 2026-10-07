@@ -43,6 +43,8 @@ const press = (
   return event
 }
 
+// NOTE: iframe events need constructors from their own Window, whose type does
+// not declare those constructors.
 type WindowWithEventConstructors = Window &
   Readonly<{
     Event: typeof Event

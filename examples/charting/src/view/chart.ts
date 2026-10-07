@@ -18,19 +18,62 @@ type MountChartMessage =
   | typeof Message.FailedMountChart.Type
   | typeof Message.ClickedChartDatum.Type
 
-const toError = (error: unknown): Error =>
+const toChartMountError = (error: unknown): Error =>
   error instanceof Error ? error : new Error(`Failed to mount chart: ${error}`)
 
-const ChartClickPayload = Schema.Struct({
+const ChartClickEvent = Schema.Struct({
   data: Schema.OptionFromOptional(Schema.Struct({ id: Schema.String })),
 })
 
-const chartClickToDatumId = (event: unknown): Option.Option<string> =>
+const datumIdFromChartClickEvent = (event: unknown): Option.Option<string> =>
   pipe(
     event,
-    Schema.decodeUnknownOption(ChartClickPayload),
+    Schema.decodeUnknownOption(ChartClickEvent),
     Option.flatMap(({ data }) => data),
     Option.map(({ id }) => id),
+  )
+
+const observeChartResizeAndClickEvents = (
+  element: HTMLElement,
+  chart: ReturnType<typeof echarts.init>,
+  queue: Queue.Enqueue<MountChartMessage>,
+) =>
+  Effect.acquireRelease(
+    Effect.try({
+      try: () => {
+        const resizeObserver = new ResizeObserver(() => chart.resize())
+        const onWindowResize = () => chart.resize()
+        const onClick = (event: unknown) => {
+          const maybeDatumId = datumIdFromChartClickEvent(event)
+
+          if (Option.isSome(maybeDatumId)) {
+            Queue.offerUnsafe(
+              queue,
+              Message.ClickedChartDatum({ datumId: maybeDatumId.value }),
+            )
+          }
+        }
+
+        try {
+          resizeObserver.observe(element)
+          window.addEventListener('resize', onWindowResize)
+          chart.on('click', onClick)
+          return { resizeObserver, onWindowResize, onClick }
+        } catch (error) {
+          chart.off('click', onClick)
+          window.removeEventListener('resize', onWindowResize)
+          resizeObserver.disconnect()
+          throw error
+        }
+      },
+      catch: toChartMountError,
+    }),
+    ({ resizeObserver, onWindowResize, onClick }) =>
+      Effect.sync(() => {
+        chart.off('click', onClick)
+        window.removeEventListener('resize', onWindowResize)
+        resizeObserver.disconnect()
+      }),
   )
 
 const mountChart = (element: Element, hostId: string) =>
@@ -49,49 +92,13 @@ const mountChart = (element: Element, hostId: string) =>
       const chart = yield* Effect.acquireRelease(
         Effect.try({
           try: () => echarts.init(element, undefined, { renderer: 'canvas' }),
-          catch: toError,
+          catch: toChartMountError,
         }),
         chart => Effect.sync(() => removeChart(hostId, chart)),
       )
       setChart(hostId, chart)
 
-      yield* Effect.acquireRelease(
-        Effect.try({
-          try: () => {
-            const resizeObserver = new ResizeObserver(() => chart.resize())
-            const onWindowResize = () => chart.resize()
-            const onClick = (event: unknown) => {
-              const maybeDatumId = chartClickToDatumId(event)
-
-              if (Option.isSome(maybeDatumId)) {
-                Queue.offerUnsafe(
-                  queue,
-                  Message.ClickedChartDatum({ datumId: maybeDatumId.value }),
-                )
-              }
-            }
-
-            try {
-              resizeObserver.observe(element)
-              window.addEventListener('resize', onWindowResize)
-              chart.on('click', onClick)
-              return { resizeObserver, onWindowResize, onClick }
-            } catch (error) {
-              chart.off('click', onClick)
-              window.removeEventListener('resize', onWindowResize)
-              resizeObserver.disconnect()
-              throw error
-            }
-          },
-          catch: toError,
-        }),
-        ({ resizeObserver, onWindowResize, onClick }) =>
-          Effect.sync(() => {
-            chart.off('click', onClick)
-            window.removeEventListener('resize', onWindowResize)
-            resizeObserver.disconnect()
-          }),
-      )
+      yield* observeChartResizeAndClickEvents(element, chart, queue)
 
       Queue.offerUnsafe(queue, Message.SucceededMountChart({ hostId }))
       return yield* Effect.never

@@ -38,7 +38,7 @@ describe('update', () => {
       )
     })
 
-    test('Connected moves into Connected', () => {
+    test('ConnectedChatSocket moves into Connected', () => {
       story(
         update,
         given(
@@ -46,14 +46,14 @@ describe('update', () => {
             connection: () => ConnectionState.Connecting(),
           }),
         ),
-        message(Message.Connected()),
+        message(Message.ConnectedChatSocket()),
         model(model => {
           expect(model.connection._tag).toBe('Connected')
         }),
       )
     })
 
-    test('Disconnected returns to Disconnected and clears messages', () => {
+    test('DisconnectedChatSocket returns to Disconnected and clears messages', () => {
       story(
         update,
         given(
@@ -61,7 +61,7 @@ describe('update', () => {
             messages: () => [{ text: 'old', zoned: zonedNow, isSent: true }],
           }),
         ),
-        message(Message.Disconnected()),
+        message(Message.DisconnectedChatSocket()),
         model(model => {
           expect(model.connection._tag).toBe('Disconnected')
           expect(model.messages).toHaveLength(0)
@@ -69,7 +69,7 @@ describe('update', () => {
       )
     })
 
-    test('FailedConnect captures the error message', () => {
+    test('FailedConnectChatSocket captures the error message', () => {
       story(
         update,
         given(
@@ -77,7 +77,7 @@ describe('update', () => {
             connection: () => ConnectionState.Connecting(),
           }),
         ),
-        message(Message.FailedConnect({ error: 'Timeout' })),
+        message(Message.FailedConnectChatSocket({ error: 'Timeout' })),
         model(model => {
           if (model.connection._tag === 'Error') {
             expect(model.connection.error).toBe('Timeout')
@@ -92,11 +92,24 @@ describe('update', () => {
       story(
         update,
         given(connectedModel),
-        message(Message.FailedConnect({ error: 'Connection error' })),
+        message(Message.FailedChatSocket({ error: 'Connection error' })),
         message(Message.ReleasedChatSocket()),
         model(model => {
           expect(model.connection).toEqual(
             ConnectionState.Error({ error: 'Connection error' }),
+          )
+        }),
+      )
+    })
+
+    test('FailedSendMessage reports an unavailable socket', () => {
+      story(
+        update,
+        given(connectedModel),
+        message(Message.FailedSendMessage({ error: 'Socket unavailable' })),
+        model(model => {
+          expect(model.connection).toEqual(
+            ConnectionState.Error({ error: 'Socket unavailable' }),
           )
         }),
       )

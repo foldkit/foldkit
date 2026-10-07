@@ -86,7 +86,7 @@ Use the delta to make motion independent of refresh rate. Convert the millisecon
 
 Use `Stream.tick` for discrete wall-clock steps that should occur every N milliseconds. It emits once when its scope opens, so add `Stream.drop(1)` when the first step should wait for the interval to elapse. `Subscription.animationFrame` follows the display; `Stream.tick` follows elapsed time. The [canvas-art example](/example-apps/canvas-art) uses animation frames for per-frame physics, while the [snake example](/example-apps/snake) uses `Stream.tick` for game cadence.
 
-## Browser Event Streams {#dom-events}
+## Browser Event Streams
 
 `Browser.streamFromEvent` turns an `EventTarget` into a Stream. Window shortcuts and document visibility are common Subscription sources. The helper adds the listener when the Stream starts and removes it when the Stream stops. For a media query, use `Browser.streamFromMediaQuery` from the [Media Queries](#media-queries) section. That helper also emits the query's current value.
 

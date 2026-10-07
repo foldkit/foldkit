@@ -315,8 +315,74 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 
 // MAP MOUNT
 
-const toMountError = (error: unknown): Error =>
+const toMapMountError = (error: unknown): Error =>
   error instanceof Error ? error : new Error(`Failed to mount map: ${error}`)
+
+const addLocationMarkers = (
+  map: MapInstance,
+  maplibre: typeof import('maplibre-gl'),
+) =>
+  Effect.try({
+    try: () =>
+      Array.forEach(featuredLocations, ({ id, lng, lat }) => {
+        const markerElement = document.createElement('button')
+        markerElement.setAttribute('data-location-id', id)
+        markerElement.setAttribute('aria-label', `Marker: ${id}`)
+        markerElement.className = markerStyle
+        new maplibre.Marker({ element: markerElement })
+          .setLngLat([lng, lat])
+          .addTo(map)
+      }),
+    catch: toMapMountError,
+  })
+
+const listenToMapMovesAndMarkerClicks = (
+  map: MapInstance,
+  queue: Queue.Enqueue<MountMapMessage>,
+) =>
+  Effect.acquireRelease(
+    Effect.try({
+      try: () => {
+        const container = map.getContainer()
+        const onMoveEnd = () => {
+          Queue.offerUnsafe(
+            queue,
+            Message.MovedMap({ bounds: boundsFromMap(map) }),
+          )
+        }
+        const onContainerClick = (event: MouseEvent) => {
+          const target = event.target
+          if (!(target instanceof Element)) {
+            return
+          }
+          const marker = target.closest('[data-location-id]')
+          if (!(marker instanceof HTMLElement)) {
+            return
+          }
+          const locationId = marker.dataset['locationId']
+          if (locationId !== undefined) {
+            Queue.offerUnsafe(queue, Message.ClickedMarker({ locationId }))
+          }
+        }
+
+        try {
+          map.on('moveend', onMoveEnd)
+          container.addEventListener('click', onContainerClick)
+          return { container, onMoveEnd, onContainerClick }
+        } catch (error) {
+          map.off('moveend', onMoveEnd)
+          container.removeEventListener('click', onContainerClick)
+          throw error
+        }
+      },
+      catch: toMapMountError,
+    }),
+    ({ container, onMoveEnd, onContainerClick }) =>
+      Effect.sync(() => {
+        map.off('moveend', onMoveEnd)
+        container.removeEventListener('click', onContainerClick)
+      }),
+  )
 
 const mountMap = (element: Element, hostId: string) =>
   Stream.callback<MountMapMessage>(queue =>
@@ -344,7 +410,7 @@ const mountMap = (element: Element, hostId: string) =>
                 zoom: INITIAL_MAP_ZOOM,
               })
             },
-            catch: toMountError,
+            catch: toMapMountError,
           })
           return { map, maplibre }
         }),
@@ -352,64 +418,10 @@ const mountMap = (element: Element, hostId: string) =>
       )
       const { map, maplibre } = mapResource
 
-      yield* Effect.try({
-        try: () =>
-          Array.forEach(featuredLocations, ({ id, lng, lat }) => {
-            const markerElement = document.createElement('button')
-            markerElement.setAttribute('data-location-id', id)
-            markerElement.setAttribute('aria-label', `Marker: ${id}`)
-            markerElement.className = markerStyle
-            new maplibre.Marker({ element: markerElement })
-              .setLngLat([lng, lat])
-              .addTo(map)
-          }),
-        catch: toMountError,
-      })
+      yield* addLocationMarkers(map, maplibre)
       setMap(hostId, map)
 
-      yield* Effect.acquireRelease(
-        Effect.try({
-          try: () => {
-            const container = map.getContainer()
-            const onMoveEnd = () => {
-              Queue.offerUnsafe(
-                queue,
-                Message.MovedMap({ bounds: boundsFromMap(map) }),
-              )
-            }
-            const onContainerClick = (event: MouseEvent) => {
-              const target = event.target
-              if (!(target instanceof Element)) {
-                return
-              }
-              const marker = target.closest('[data-location-id]')
-              if (!(marker instanceof HTMLElement)) {
-                return
-              }
-              const locationId = marker.dataset['locationId']
-              if (locationId !== undefined) {
-                Queue.offerUnsafe(queue, Message.ClickedMarker({ locationId }))
-              }
-            }
-
-            try {
-              map.on('moveend', onMoveEnd)
-              container.addEventListener('click', onContainerClick)
-              return { container, onMoveEnd, onContainerClick }
-            } catch (error) {
-              map.off('moveend', onMoveEnd)
-              container.removeEventListener('click', onContainerClick)
-              throw error
-            }
-          },
-          catch: toMountError,
-        }),
-        ({ container, onMoveEnd, onContainerClick }) =>
-          Effect.sync(() => {
-            map.off('moveend', onMoveEnd)
-            container.removeEventListener('click', onContainerClick)
-          }),
-      )
+      yield* listenToMapMovesAndMarkerClicks(map, queue)
 
       Queue.offerUnsafe(queue, Message.SucceededMountMap({ hostId }))
       Queue.offerUnsafe(queue, Message.MovedMap({ bounds: boundsFromMap(map) }))
@@ -419,7 +431,7 @@ const mountMap = (element: Element, hostId: string) =>
         Effect.sync(() =>
           Queue.offerUnsafe(
             queue,
-            Message.FailedMountMap({ reason: toMountError(error).message }),
+            Message.FailedMountMap({ reason: toMapMountError(error).message }),
           ),
         ),
       ),

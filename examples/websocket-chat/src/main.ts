@@ -64,10 +64,12 @@ export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ClickedConnect: {},
-  Connected: {},
-  Disconnected: {},
+  ConnectedChatSocket: {},
+  DisconnectedChatSocket: {},
   ReleasedChatSocket: {},
-  FailedConnect: { error: Schema.String },
+  FailedConnectChatSocket: { error: Schema.String },
+  FailedChatSocket: { error: Schema.String },
+  FailedSendMessage: { error: Schema.String },
   UpdatedMessageInput: { value: Schema.String },
   SubmittedMessage: {},
   SucceededSendMessage: { text: Schema.String },
@@ -93,13 +95,13 @@ export const update = (model: Model, message: Message) =>
       }),
     }),
 
-    Connected: () => ({
+    ConnectedChatSocket: () => ({
       model: modifyFields(model, {
         connection: () => ConnectionState.Connected(),
       }),
     }),
 
-    Disconnected: () => ({
+    DisconnectedChatSocket: () => ({
       model: modifyFields(model, {
         connection: () => ConnectionState.Disconnected(),
         messages: () => [],
@@ -108,7 +110,19 @@ export const update = (model: Model, message: Message) =>
 
     ReleasedChatSocket: () => ({ model }),
 
-    FailedConnect: ({ error }) => ({
+    FailedConnectChatSocket: ({ error }) => ({
+      model: modifyFields(model, {
+        connection: () => ConnectionState.Error({ error }),
+      }),
+    }),
+
+    FailedChatSocket: ({ error }) => ({
+      model: modifyFields(model, {
+        connection: () => ConnectionState.Error({ error }),
+      }),
+    }),
+
+    FailedSendMessage: ({ error }) => ({
       model: modifyFields(model, {
         connection: () => ConnectionState.Error({ error }),
       }),
@@ -199,17 +213,26 @@ export const TimestampReceivedMessage = Command.define(
 
 export const SendMessage = Command.define('SendMessage', {
   args: { text: Schema.String },
-  messages: [Message.SucceededSendMessage, Message.FailedConnect],
+  messages: [Message.SucceededSendMessage, Message.FailedSendMessage],
   execute: ({ text }) =>
     ChatSocket.get.pipe(
       Effect.flatMap(socket =>
-        Effect.sync(() => {
-          socket.send(text)
-          return Message.SucceededSendMessage({ text })
+        Effect.try({
+          try: () => {
+            socket.send(text)
+            return Message.SucceededSendMessage({ text })
+          },
+          catch: error =>
+            error instanceof Error ? error.message : 'Failed to send message',
         }),
       ),
       Effect.catchTag('ResourceNotAvailable', () =>
-        Effect.succeed(Message.FailedConnect({ error: 'Socket unavailable' })),
+        Effect.succeed(
+          Message.FailedSendMessage({ error: 'Socket unavailable' }),
+        ),
+      ),
+      Effect.catch(error =>
+        Effect.succeed(Message.FailedSendMessage({ error })),
       ),
     ),
 })
@@ -257,10 +280,10 @@ export const managedResources = ManagedResource.make<Model, Message>()(
         Effect.sync(() => {
           socket.close()
         }),
-      onAcquired: () => Message.Connected(),
+      onAcquired: () => Message.ConnectedChatSocket(),
       onReleased: () => Message.ReleasedChatSocket(),
       onAcquireError: error =>
-        Message.FailedConnect({
+        Message.FailedConnectChatSocket({
           error: error instanceof Error ? error.message : 'Unknown error',
         }),
     }),
@@ -272,8 +295,8 @@ export const managedResources = ManagedResource.make<Model, Message>()(
 const streamChatSocketMessages = (socket: WebSocket) =>
   Stream.callback<
     | typeof Message.ReceivedMessage.Type
-    | typeof Message.Disconnected.Type
-    | typeof Message.FailedConnect.Type
+    | typeof Message.DisconnectedChatSocket.Type
+    | typeof Message.FailedChatSocket.Type
   >(queue =>
     Effect.acquireRelease(
       Effect.sync(() => {
@@ -284,13 +307,13 @@ const streamChatSocketMessages = (socket: WebSocket) =>
           )
         }
         const handleClose = () => {
-          Queue.offerUnsafe(queue, Message.Disconnected())
+          Queue.offerUnsafe(queue, Message.DisconnectedChatSocket())
           Queue.endUnsafe(queue)
         }
         const handleError = () => {
           Queue.offerUnsafe(
             queue,
-            Message.FailedConnect({ error: 'Connection error' }),
+            Message.FailedChatSocket({ error: 'Connection error' }),
           )
           Queue.endUnsafe(queue)
         }

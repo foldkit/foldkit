@@ -65,7 +65,7 @@ To reliably stop a key press from scrolling the page, cancel its default action 
 
 0.160.0 added `Subscription.fromEventFilterMapPreventDefault`. When its `toMessage` callback returns `Option.some(message)`, the helper cancels the browser's default action and queues the Message before the listener returns. The Stream processes the Message after the event listener returns. Returning `Option.none()` leaves the default action alone. DragAndDrop now uses this helper so Tab does not move focus and Space and arrow keys do not scroll the page during a keyboard drag.
 
-The [DOM events guide](/core/subscriptions#dom-events) covers event filtering and default cancellation.
+The [DOM events guide](/core/subscriptions#browser-event-streams) covers event filtering and default cancellation.
 
 ## Initializing Submodels
 

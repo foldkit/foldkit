@@ -608,7 +608,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
         )
 
         return Stream.when(
-          Stream.merge(pointerEvents, documentDragStyles()),
+          Stream.merge(pointerEvents, documentDragStyles),
           Effect.sync(() => dragActivity === 'Active'),
         )
       },
