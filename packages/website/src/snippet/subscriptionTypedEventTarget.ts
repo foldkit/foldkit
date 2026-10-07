@@ -1,3 +1,3 @@
-const slowWarningTarget: Subscription.TypedEventTarget<{
+const slowWarningTarget: Dom.TypedEventTarget<{
   'foldkit:slow-warning': CustomEvent<SlowWarningReport>
 }> = new EventTarget()

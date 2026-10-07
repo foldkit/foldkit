@@ -5,7 +5,12 @@ export {
   closeDialog,
   detectElementMovement,
   focus,
+  fromEvent,
+  fromEventFilterMap,
+  fromEventFilterMapPreventDefault,
+  fromMediaQuery,
   inertOthers,
+  keyBindings,
   lockScroll,
   releaseDialogResources,
   restoreInert,
@@ -16,4 +21,15 @@ export {
   unlockScroll,
   waitForAnimationSettled,
 } from './index.js'
-export type { FocusDirection } from './index.js'
+export type {
+  FocusDirection,
+  FromEventConfig,
+  FromEventFilterMapConfig,
+  FromEventFilterMapPreventDefaultConfig,
+  FromMediaQueryConfig,
+  KeyBinding,
+  KeyBindingsConfig,
+  KeySequence,
+  TypedEventTarget,
+  WhileTyping,
+} from './index.js'

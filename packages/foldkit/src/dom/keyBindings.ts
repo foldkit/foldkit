@@ -399,7 +399,12 @@ const isModifierEvent = (event: KeyboardEvent): boolean =>
   Array.contains(MODIFIER_KEYS, normalizeKey(event.key))
 
 const isEditableTarget = (target: EventTarget): boolean => {
-  if (!(target instanceof HTMLElement)) {
+  if (
+    !Predicate.hasProperty(target, 'tagName') ||
+    !Predicate.isString(target.tagName) ||
+    !Predicate.hasProperty(target, 'isContentEditable') ||
+    !Predicate.isBoolean(target.isContentEditable)
+  ) {
     return false
   }
 
@@ -415,17 +420,36 @@ const isEditableTarget = (target: EventTarget): boolean => {
 const isFromEditable = (event: KeyboardEvent): boolean =>
   Array.some(event.composedPath(), isEditableTarget)
 
+const isKeyboardEvent = (event: Event): event is KeyboardEvent =>
+  Predicate.hasProperty(event, 'key') &&
+  Predicate.isString(event.key) &&
+  Predicate.hasProperty(event, 'altKey') &&
+  Predicate.isBoolean(event.altKey) &&
+  Predicate.hasProperty(event, 'ctrlKey') &&
+  Predicate.isBoolean(event.ctrlKey) &&
+  Predicate.hasProperty(event, 'metaKey') &&
+  Predicate.isBoolean(event.metaKey) &&
+  Predicate.hasProperty(event, 'shiftKey') &&
+  Predicate.isBoolean(event.shiftKey) &&
+  Predicate.hasProperty(event, 'repeat') &&
+  Predicate.isBoolean(event.repeat) &&
+  Predicate.hasProperty(event, 'isComposing') &&
+  Predicate.isBoolean(event.isComposing)
+
 const isAllowedWhileTyping = <Message>(
   binding: CompiledBinding<Message>,
   isEditable: boolean,
 ): boolean => !isEditable || binding.whileTyping === 'Allow'
 
-const resolveModKey = (configuredModKey: ModKey | undefined): ModKey => {
+const resolveModKey = (
+  configuredModKey: ModKey | undefined,
+  userAgent: string,
+): ModKey => {
   if (configuredModKey !== undefined) {
     return configuredModKey
   }
 
-  return APPLE_PLATFORM_PATTERN.test(navigator.userAgent) ? 'Meta' : 'Control'
+  return APPLE_PLATFORM_PATTERN.test(userAgent) ? 'Meta' : 'Control'
 }
 
 const pressMatches = (
@@ -475,16 +499,27 @@ const resolveTarget = (
 
 const resolveValidationModKey = (
   configuredModKey: ModKey | undefined,
+  target: EventTarget | (() => EventTarget) | undefined,
 ): Option.Option<ModKey> => {
   if (configuredModKey !== undefined) {
     return Option.some(configuredModKey)
   }
 
-  if (typeof navigator === 'undefined') {
+  if (target === undefined) {
+    if (typeof navigator === 'undefined') {
+      return Option.none()
+    }
+
+    return Option.some(resolveModKey(undefined, navigator.userAgent))
+  }
+
+  if (Predicate.isFunction(target)) {
     return Option.none()
   }
 
-  return Option.some(resolveModKey(undefined))
+  return Option.map(resolveKnownOwnerWindow(target), ownerWindow =>
+    resolveModKey(undefined, ownerWindow.navigator.userAgent),
+  )
 }
 
 const compileKeyBindingsConfig = <Message>(
@@ -499,7 +534,10 @@ const compileKeyBindingsConfig = <Message>(
     throw new Error('sequenceTimeout must be a finite duration above zero')
   }
 
-  const maybeValidationModKey = resolveValidationModKey(config.modKey)
+  const maybeValidationModKey = resolveValidationModKey(
+    config.modKey,
+    config.target,
+  )
   if (Option.isSome(maybeValidationModKey)) {
     validateBindings(bindings, maybeValidationModKey.value)
   }
@@ -653,7 +691,7 @@ const handleKeyBindingEvent = <Message>(
   context: KeyBindingHandlerContext<Message>,
   event: Event,
 ): void => {
-  if (!(event instanceof KeyboardEvent)) {
+  if (!isKeyboardEvent(event)) {
     return
   }
 
@@ -701,13 +739,60 @@ const makeKeyBindingHandler = <Message>(
   }
 }
 
+const isWindow = (value: unknown): value is Window =>
+  Predicate.hasProperty(value, 'addEventListener') &&
+  Predicate.isFunction(value.addEventListener) &&
+  Predicate.hasProperty(value, 'removeEventListener') &&
+  Predicate.isFunction(value.removeEventListener) &&
+  Predicate.hasProperty(value, 'navigator') &&
+  Predicate.hasProperty(value.navigator, 'userAgent') &&
+  Predicate.isString(value.navigator.userAgent)
+
+const isDocument = (value: unknown): value is Document =>
+  Predicate.hasProperty(value, 'createElement') &&
+  Predicate.isFunction(value.createElement) &&
+  Predicate.hasProperty(value, 'defaultView') &&
+  (value.defaultView === null || isWindow(value.defaultView)) &&
+  Predicate.hasProperty(value, 'documentElement')
+
+const resolveKnownOwnerWindow = (
+  target: EventTarget,
+): Option.Option<Window> => {
+  if (isWindow(target)) {
+    return Option.some(target)
+  }
+
+  if (isDocument(target)) {
+    return Option.fromNullishOr(target.defaultView)
+  }
+
+  if (
+    Predicate.hasProperty(target, 'ownerDocument') &&
+    isDocument(target.ownerDocument)
+  ) {
+    return Option.fromNullishOr(target.ownerDocument.defaultView)
+  }
+
+  return Option.none()
+}
+
 const resolveOwnerDocument = (target: EventTarget): Document => {
-  if (target instanceof Document) {
+  if (isDocument(target)) {
     return target
   }
 
-  if (target instanceof Node && target.ownerDocument !== null) {
+  if (
+    Predicate.hasProperty(target, 'ownerDocument') &&
+    isDocument(target.ownerDocument)
+  ) {
     return target.ownerDocument
+  }
+
+  if (
+    Predicate.hasProperty(target, 'document') &&
+    isDocument(target.document)
+  ) {
+    return target.document
   }
 
   return document
@@ -718,7 +803,9 @@ const acquireKeyBindingListener = <Message>(
   emitMessage: (message: Message) => void,
 ): AcquiredKeyBindingListener => {
   const target = resolveTarget(config.target)
-  const modKey = resolveModKey(config.modKey)
+  const ownerDocument = resolveOwnerDocument(target)
+  const ownerWindow = ownerDocument.defaultView ?? window
+  const modKey = resolveModKey(config.modKey, ownerWindow.navigator.userAgent)
   validateBindings(config.bindings, modKey)
 
   const handler = makeKeyBindingHandler({
@@ -727,8 +814,6 @@ const acquireKeyBindingListener = <Message>(
     modKey,
     sequenceTimeout: config.sequenceTimeout,
   })
-  const ownerDocument = resolveOwnerDocument(target)
-  const ownerWindow = ownerDocument.defaultView ?? window
 
   target.addEventListener('keydown', handler.handleEvent)
   ownerWindow.addEventListener('blur', handler.clearSequence)
@@ -799,7 +884,7 @@ const keyBindingStream = <Message>(
  * are rejected when the Stream is created.
  *
  * This helper returns a Stream, not a complete Subscription entry. Use
- * `Subscription.persistent` for a fixed table. When availability depends on
+ * `Subscription.fromStream` for a fixed table. When availability depends on
  * the Model that owns the entry, build it inside `dependenciesToStream` and
  * derive each binding's `isEnabled` from the dependency record. A dependency
  * change opens a new Stream scope and resets any sequence in progress. If a
@@ -819,7 +904,7 @@ const keyBindingStream = <Message>(
  *         isPaletteOpen: model.paletteState._tag === 'Open',
  *       }),
  *       dependenciesToStream: ({ isPaletteOpen }) =>
- *         Subscription.keyBindings<Message>({
+ *         Dom.keyBindings<Message>({
  *           bindings: [
  *             {
  *               keys: 'Escape',

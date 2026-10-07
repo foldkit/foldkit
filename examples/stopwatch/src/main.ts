@@ -123,6 +123,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       dependenciesToStream: ({ isRunning }) =>
         Stream.when(
           Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
+            Stream.drop(1),
             Stream.map(Message.Ticked),
           ),
           Effect.sync(() => isRunning),

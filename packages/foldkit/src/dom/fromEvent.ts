@@ -17,7 +17,7 @@ declare const EventMapMarker: unique symbol
  *
  * @example
  * ```ts
- * const slowWarningTarget: Subscription.TypedEventTarget<{
+ * const slowWarningTarget: Dom.TypedEventTarget<{
  *   'foldkit:slow-warning': CustomEvent<SlowWarningReport>
  * }> = new EventTarget()
  * ```
@@ -125,7 +125,7 @@ type PreventDefaultEventListenerOptions = Omit<
  * Configuration for the `fromEvent` Stream helper.
  *
  * `target` is read inside the acquire Effect, never before it, so the
- * resolved `EventTarget` is captured at the moment the Subscription's scope
+ * resolved `EventTarget` is captured at the moment the Stream's scope
  * opens. Pass a thunk when the target may not exist until the scope opens, or
  * pass the `EventTarget` directly for always-present globals like `window` or
  * `document`.
@@ -161,7 +161,7 @@ export type FromEventConfig<
  * Configuration for the `fromEventFilterMap` Stream helper.
  *
  * `target` is read inside the acquire Effect, never before it, so the
- * resolved `EventTarget` is captured at the moment the Subscription's scope
+ * resolved `EventTarget` is captured at the moment the Stream's scope
  * opens. Pass a thunk when the target may not exist until the scope opens, or
  * pass the `EventTarget` directly for always-present globals like `window` or
  * `document`.
@@ -234,7 +234,7 @@ const listen = <EventType extends Event, Output>(
  * Configuration for the `fromEventFilterMapPreventDefault` Stream helper.
  *
  * `target` is read inside the acquire Effect, never before it, so the
- * resolved `EventTarget` is captured at the moment the Subscription's scope
+ * resolved `EventTarget` is captured at the moment the Stream's scope
  * opens. Pass a thunk when the target may not exist until the scope opens, or
  * pass the `EventTarget` directly for always-present globals like `window` or
  * `document`.
@@ -301,8 +301,8 @@ export type FromEventFilterMapPreventDefaultConfig<
  * listener never leaks on interruption.
  *
  * This is a Stream, not a Subscription entry. Wrap it with
- * `Subscription.persistent` for a listener whose lifetime spans the whole
- * Subscriptions record, or plug it into a `Subscription.make` entry's
+ * `Subscription.fromStream` for a listener with no local Model dependencies,
+ * or plug it into a `Subscription.make` entry's
  * `dependenciesToStream` (typically behind `Stream.when`) to gate it on a
  * Model condition. The mapper's output type is inferred (even a raw Event is
  * accepted here); `Subscription.make` checks the final Stream against the
@@ -317,7 +317,7 @@ export type FromEventFilterMapPreventDefaultConfig<
  *       modelToDependencies: model => ({ isListening: model.isListening }),
  *       dependenciesToStream: ({ isListening }) =>
  *         Stream.when(
- *           Subscription.fromEventFilterMap({
+ *           Dom.fromEventFilterMap({
  *             target: window,
  *             type: 'keydown',
  *             filterMapEvent: event =>
@@ -358,8 +358,8 @@ export const fromEventFilterMap = <
  * listener never leaks on interruption.
  *
  * This is a Stream, not a Subscription entry. Wrap it with
- * `Subscription.persistent` for a listener whose lifetime spans the whole
- * Subscriptions record, or plug it into a `Subscription.make` entry's
+ * `Subscription.fromStream` for a listener with no local Model dependencies,
+ * or plug it into a `Subscription.make` entry's
  * `dependenciesToStream` (typically behind `Stream.when`) to gate it on a
  * Model condition. The mapper's output type is inferred (even a raw Event is
  * accepted here); `Subscription.make` checks the final Stream against the
@@ -379,7 +379,7 @@ export const fromEventFilterMap = <
  *       modelToDependencies: model => ({ isListening: model.isListening }),
  *       dependenciesToStream: ({ isListening }) =>
  *         Stream.when(
- *           Subscription.fromEvent({
+ *           Dom.fromEvent({
  *             target: window,
  *             type: 'keydown',
  *             mapEvent: event => Message.PressedKey({ key: event.key }),
@@ -434,8 +434,8 @@ export const fromEvent = <
  * listener never leaks on interruption.
  *
  * This is a Stream, not a Subscription entry. Wrap it with
- * `Subscription.persistent` for a listener whose lifetime spans the whole
- * Subscriptions record, or plug it into a `Subscription.make` entry's
+ * `Subscription.fromStream` for a listener with no local Model dependencies,
+ * or plug it into a `Subscription.make` entry's
  * `dependenciesToStream` (typically behind `Stream.when`) to gate it on a
  * Model condition. The mapper's output type is inferred (even a raw Event is
  * accepted here); `Subscription.make` checks the final Stream against the
@@ -450,7 +450,7 @@ export const fromEvent = <
  *       modelToDependencies: model => ({ isModalOpen: model.isModalOpen }),
  *       dependenciesToStream: ({ isModalOpen }) =>
  *         Stream.when(
- *           Subscription.fromEventFilterMapPreventDefault({
+ *           Dom.fromEventFilterMapPreventDefault({
  *             target: window,
  *             type: 'wheel',
  *             filterMapEvent: () => Option.some(Message.SuppressedWheelScroll()),
@@ -473,14 +473,14 @@ export const fromEventFilterMapPreventDefault = <
 
   if (options?.passive === true) {
     throw new Error(
-      `Foldkit: \`Subscription.fromEventFilterMapPreventDefault\` was passed ` +
+      `Foldkit: \`Dom.fromEventFilterMapPreventDefault\` was passed ` +
         `\`options: { passive: true }\` for a "${config.type}" listener. ` +
         `The helper exists to call \`event.preventDefault()\` on every ` +
         `dispatch the mapper marks handled, and a passive listener promises ` +
         `the browser the exact opposite: \`preventDefault()\` inside it is ` +
         `ignored and logs a console warning. Drop the \`passive\` option ` +
         `(the helper registers the listener with \`passive: false\` for ` +
-        `you), or use \`Subscription.fromEventFilterMap\` for a listener ` +
+        `you), or use \`Dom.fromEventFilterMap\` for a listener ` +
         `that only observes.`,
     )
   }

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `Dom` module packages common imperative browser operations as Effects for use inside your own [Commands](/core/commands). It covers focus, scrolling, programmatic clicks, dialogs, page scroll locks, inert isolation, element movement, and animation settling.
+The `Dom` module provides browser operations as Effects and browser event sources as Streams. Its Effects cover focus, scrolling, programmatic clicks, dialogs, page scroll locks, inert isolation, element movement, and animation settling.
 
 Use a Dom helper when a Message should cause a one-time DOM operation. For example: opening a dialog can return a Command that focuses its first input. The operation stays outside view, and its result still comes back through update as a Message.
 
@@ -40,6 +40,10 @@ Helpers that require one matching element fail with `ElementNotFound` when the s
 - `Dom.advanceFocus`
 
 Catch a meaningful failure with `Effect.catch` and turn it into a Message. Use `Effect.ignore` only when a missing target is expected and does not matter, such as a stale focus Command after navigation.
+
+## Browser Streams
+
+`Dom.fromEvent`, `Dom.fromEventFilterMap`, `Dom.fromEventFilterMapPreventDefault`, `Dom.fromMediaQuery`, and `Dom.keyBindings` create Streams from browser events. They install listeners when the Stream starts and remove them when its scope closes. Compose them with other Stream operators, then use [Subscriptions](/core/subscriptions) to tie them to the Model or [Mount](/core/mount) when the listener belongs to a rendered element.
 
 ## Full API Surface
 

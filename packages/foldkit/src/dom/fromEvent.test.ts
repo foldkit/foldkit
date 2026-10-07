@@ -1,6 +1,7 @@
 import { Effect, Fiber, Option, Schema, Stream } from 'effect'
 import { describe, expect, expectTypeOf, it } from 'vitest'
 
+import { make } from '../subscription/subscription.js'
 import {
   type FromEventConfig,
   type TypedEventTarget,
@@ -8,7 +9,6 @@ import {
   fromEventFilterMap,
   fromEventFilterMapPreventDefault,
 } from './fromEvent.js'
-import { make } from './subscription.js'
 
 type PingEvents = Readonly<{ ping: CustomEvent<string> }>
 

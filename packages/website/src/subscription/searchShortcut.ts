@@ -1,5 +1,5 @@
 import { Effect, Option, Schema, Stream } from 'effect'
-import { Subscription } from 'foldkit'
+import { Dom, Subscription } from 'foldkit'
 
 import { Message } from '../message'
 import type { Model } from '../model'
@@ -14,7 +14,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       }),
       dependenciesToStream: ({ isSearchAvailable }) =>
         Stream.when(
-          Subscription.fromEventFilterMapPreventDefault({
+          Dom.fromEventFilterMapPreventDefault({
             target: document,
             type: 'keydown',
             filterMapEvent: event => {

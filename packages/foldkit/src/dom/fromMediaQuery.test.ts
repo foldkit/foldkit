@@ -9,8 +9,8 @@ import {
   vi,
 } from 'vitest'
 
+import { make } from '../subscription/subscription.js'
 import { fromMediaQuery } from './fromMediaQuery.js'
-import { make } from './subscription.js'
 
 class FakeMediaQueryList extends EventTarget {
   matches = false

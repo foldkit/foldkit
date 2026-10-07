@@ -1,4 +1,4 @@
-export { aggregate, lift, make, persistent } from './subscription.js'
+export { aggregate, fromStream, lift, make } from './subscription.js'
 
 export type {
   EntryGates,
@@ -11,29 +11,3 @@ export type {
 export { animationFrame } from './animationFrame.js'
 
 export type { AnimationFrameConfig } from './animationFrame.js'
-
-export {
-  fromEvent,
-  fromEventFilterMap,
-  fromEventFilterMapPreventDefault,
-} from './fromEvent.js'
-
-export type {
-  FromEventConfig,
-  FromEventFilterMapConfig,
-  FromEventFilterMapPreventDefaultConfig,
-  TypedEventTarget,
-} from './fromEvent.js'
-
-export { fromMediaQuery } from './fromMediaQuery.js'
-
-export type { FromMediaQueryConfig } from './fromMediaQuery.js'
-
-export { keyBindings } from './keyBindings.js'
-
-export type {
-  KeyBinding,
-  KeyBindingsConfig,
-  KeySequence,
-  WhileTyping,
-} from './keyBindings.js'

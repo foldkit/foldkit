@@ -10,6 +10,7 @@ import {
   pipe,
 } from 'effect'
 import * as Command from 'foldkit/command'
+import * as Dom from 'foldkit/dom'
 import { modifyFields } from 'foldkit/struct'
 import * as Subscription from 'foldkit/subscription'
 import * as Update from 'foldkit/update'
@@ -648,7 +649,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       {
         modelToDependencies: swipeDependencies,
         dependenciesToStream: ({ isSwipeEnabled, isAnyDragging }) => {
-          const pointerMoveStream = Subscription.fromEvent({
+          const pointerMoveStream = Dom.fromEvent({
             target: document,
             type: 'pointermove',
             mapEvent: event =>
@@ -657,7 +658,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
                 clientX: event.clientX,
               }),
           })
-          const pointerUpStream = Subscription.fromEvent({
+          const pointerUpStream = Dom.fromEvent({
             target: document,
             type: 'pointerup',
             mapEvent: event =>
@@ -666,7 +667,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
                 clientX: event.clientX,
               }),
           })
-          const pointerCancelStream = Subscription.fromEvent({
+          const pointerCancelStream = Dom.fromEvent({
             target: document,
             type: 'pointercancel',
             mapEvent: event =>
@@ -694,7 +695,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         modelToDependencies: swipeDependencies,
         dependenciesToStream: ({ isSwipeEnabled, isAnyDragging }) =>
           Stream.when(
-            Subscription.fromEventFilterMap({
+            Dom.fromEventFilterMap({
               target: document,
               type: 'keydown',
               filterMapEvent: event =>

@@ -1,5 +1,5 @@
 import { Effect, Match, Option, Schema, Stream } from 'effect'
-import { Subscription } from 'foldkit'
+import { Dom, Subscription } from 'foldkit'
 
 import { Message } from './message'
 import type { Model } from './model'
@@ -39,16 +39,16 @@ const toToolMessage = (event: KeyboardEvent): Option.Option<Message> => {
 }
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  undoRedoKeys: Subscription.persistent(
-    Subscription.fromEventFilterMapPreventDefault({
+  undoRedoKeys: Subscription.fromStream(
+    Dom.fromEventFilterMapPreventDefault({
       target: document,
       type: 'keydown',
       filterMapEvent: toUndoRedoMessage,
     }),
   ),
 
-  toolKeys: Subscription.persistent(
-    Subscription.fromEventFilterMap({
+  toolKeys: Subscription.fromStream(
+    Dom.fromEventFilterMap({
       target: document,
       type: 'keydown',
       filterMapEvent: toToolMessage,

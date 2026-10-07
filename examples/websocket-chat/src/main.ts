@@ -66,6 +66,7 @@ export const Message = defineMessageUnion({
   ClickedConnect: {},
   Connected: {},
   Disconnected: {},
+  ReleasedChatSocket: {},
   FailedConnect: { error: Schema.String },
   UpdatedMessageInput: { value: Schema.String },
   SubmittedMessage: {},
@@ -104,6 +105,8 @@ export const update = (model: Model, message: Message) =>
         messages: () => [],
       }),
     }),
+
+    ReleasedChatSocket: () => ({ model }),
 
     FailedConnect: ({ error }) => ({
       model: modifyFields(model, {
@@ -255,7 +258,7 @@ export const managedResources = ManagedResource.make<Model, Message>()(
           socket.close()
         }),
       onAcquired: () => Message.Connected(),
-      onReleased: () => Message.Disconnected(),
+      onReleased: () => Message.ReleasedChatSocket(),
       onAcquireError: error =>
         Message.FailedConnect({
           error: error instanceof Error ? error.message : 'Unknown error',

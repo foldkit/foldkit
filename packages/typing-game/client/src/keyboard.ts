@@ -1,10 +1,10 @@
 import { Option, Stream } from 'effect'
-import { Subscription } from 'foldkit'
+import { Dom } from 'foldkit'
 
 export const capturedKeyDownStream = <Message>(
   toMessage: (key: string) => Message,
 ): Stream.Stream<Message> =>
-  Subscription.fromEventFilterMapPreventDefault({
+  Dom.fromEventFilterMapPreventDefault({
     target: document,
     type: 'keydown',
     filterMapEvent: keyboardEvent => Option.some(toMessage(keyboardEvent.key)),

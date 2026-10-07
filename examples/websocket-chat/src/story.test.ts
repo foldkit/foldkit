@@ -87,6 +87,20 @@ describe('update', () => {
         }),
       )
     })
+
+    test('releasing the socket preserves a connection error', () => {
+      story(
+        update,
+        given(connectedModel),
+        message(Message.FailedConnect({ error: 'Connection error' })),
+        message(Message.ReleasedChatSocket()),
+        model(model => {
+          expect(model.connection).toEqual(
+            ConnectionState.Error({ error: 'Connection error' }),
+          )
+        }),
+      )
+    })
   })
 
   describe('message input', () => {

@@ -18,7 +18,7 @@ type DependenciesSchema<Dependencies> = Schema.Schema<Dependencies> & {
 }
 
 /**
- * The entry shape produced by helpers like `Subscription.persistent` and
+ * The entry shape produced by helpers like `Subscription.fromStream` and
  * `Port.subscription` before branding. Pass values of this shape into
  * `Subscription.make` as entry values.
  */
@@ -50,7 +50,7 @@ type Entry<Model, Message, Dependencies, Services = never> =
  * `Subscription.lift`, or `Subscription.aggregate`. The brand field is
  * `never`, so application code cannot manually construct a `Subscription`
  * value: it must go through one of those constructors (or a helper like
- * `Subscription.persistent` that returns an entry shape, then through
+ * `Subscription.fromStream` that returns an entry shape, then through
  * `make`).
  *
  * Two variants by `keepAliveEquivalence` presence:
@@ -213,7 +213,7 @@ type EntriesOf<Records extends AnySubscriptionsList> = EntriesOfRecord<
   Records[number]
 >
 
-// NOTE: persistent entries use `unknown` because they belong to every Model
+// NOTE: Model-independent entries use `unknown` because they belong to every Model
 // universe, so they must not collapse the inferred reference Model.
 type ModelOfEntry<AnyEntry> = [AnyEntry] extends [
   Subscription<infer Model, any, any, any>,
@@ -354,16 +354,16 @@ export const aggregate: {
 }) as any
 
 /**
- * Wraps a Stream as a Subscription entry whose lifecycle is independent of
- * the Model. The Stream runs for the lifetime of the Subscriptions record;
- * no Model change tears it down or restarts it. Use for any Stream whose
- * work doesn't depend on Model state, such as system theme listeners,
- * viewport width observers, or route-independent timers.
+ * Wraps a Stream as a Subscription entry with no dependencies on its own
+ * Model. Local Model changes do not restart the Stream. A parent can still
+ * gate the entry when lifting it, so the Stream starts and stops with that
+ * parent condition. Use for work such as system theme listeners, viewport
+ * width observers, or route-independent timers.
  *
  * Returns an entry shape, not a branded Subscription. Pass it into `make`
  * as an entry value.
  */
-export const persistent = <Message, Services = never>(
+export const fromStream = <Message, Services = never>(
   stream: Stream.Stream<Message, never, Services>,
 ): EntryWithoutKeepAlive<
   unknown,

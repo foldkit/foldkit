@@ -38,15 +38,15 @@ export type FromMediaQueryConfig<Output> = Readonly<{
  * server rendering as long as it runs only in the browser.
  *
  * This helper returns a Stream, not a Subscription entry. Pass it to
- * `Subscription.persistent` for a query the application always follows. To
+ * `Subscription.fromStream` for a query the application always follows. To
  * follow the query only in a particular Model state, use it with `Stream.when`
  * inside a `Subscription.make` entry.
  *
  * @example
  * ```typescript
  * const subscriptions = Subscription.make<Model, Message>()(_entry => ({
- *   reducedMotion: Subscription.persistent(
- *     Subscription.fromMediaQuery({
+ *   reducedMotion: Subscription.fromStream(
+ *     Dom.fromMediaQuery({
  *       query: '(prefers-reduced-motion: reduce)',
  *       mapMatches: isMatching =>
  *         Message.ChangedReducedMotion({ isReducedMotion: isMatching }),

@@ -8,7 +8,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { Command, Runtime, Subscription, type Update } from 'foldkit'
+import { Command, Dom, Runtime, Subscription, type Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -244,6 +244,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       dependenciesToStream: ({ isPlaying, interval }) =>
         Stream.when(
           Stream.tick(Duration.millis(interval)).pipe(
+            Stream.drop(1),
             Stream.map(Message.TickedClock),
           ),
           Effect.sync(() => isPlaying),
@@ -251,8 +252,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     },
   ),
 
-  keyboard: Subscription.persistent(
-    Subscription.fromEventFilterMapPreventDefault({
+  keyboard: Subscription.fromStream(
+    Dom.fromEventFilterMapPreventDefault({
       target: document,
       type: 'keydown',
       filterMapEvent: keyboardEvent =>

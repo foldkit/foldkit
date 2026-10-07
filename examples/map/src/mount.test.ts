@@ -2,10 +2,11 @@ import { Deferred, Effect, PubSub, Stream } from 'effect'
 import { Mount } from 'foldkit'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-import { MountMap } from './main'
+import { Message, MountMap } from './main'
 
 const maplibre = vi.hoisted(() => {
   let container: HTMLElement | undefined
+  let onMoveEnd: (() => void) | undefined
 
   return {
     get container(): HTMLElement | undefined {
@@ -16,6 +17,17 @@ const maplibre = vi.hoisted(() => {
     },
     disableKeyboard: vi.fn(),
     enableKeyboard: vi.fn(),
+    disablePointerInteractions: vi.fn(),
+    enablePointerInteractions: vi.fn(),
+    clearEventHandlers: (): void => {
+      onMoveEnd = undefined
+    },
+    emitMoveEnd: (): void => {
+      onMoveEnd?.()
+    },
+    setMoveEndListener: (listener: () => void): void => {
+      onMoveEnd = listener
+    },
     makeMap: vi.fn(),
     removeMap: vi.fn(),
   }
@@ -28,6 +40,41 @@ vi.mock('maplibre-gl', () => {
       enable: maplibre.enableKeyboard,
     }
 
+    readonly boxZoom = {
+      disable: maplibre.disablePointerInteractions,
+      enable: maplibre.enablePointerInteractions,
+    }
+
+    readonly doubleClickZoom = {
+      disable: maplibre.disablePointerInteractions,
+      enable: maplibre.enablePointerInteractions,
+    }
+
+    readonly dragPan = {
+      disable: maplibre.disablePointerInteractions,
+      enable: maplibre.enablePointerInteractions,
+    }
+
+    readonly dragRotate = {
+      disable: maplibre.disablePointerInteractions,
+      enable: maplibre.enablePointerInteractions,
+    }
+
+    readonly scrollZoom = {
+      disable: maplibre.disablePointerInteractions,
+      enable: maplibre.enablePointerInteractions,
+    }
+
+    readonly touchPitch = {
+      disable: maplibre.disablePointerInteractions,
+      enable: maplibre.enablePointerInteractions,
+    }
+
+    readonly touchZoomRotate = {
+      disable: maplibre.disablePointerInteractions,
+      enable: maplibre.enablePointerInteractions,
+    }
+
     constructor({ container }: { container: HTMLElement }) {
       maplibre.container = container
       maplibre.makeMap()
@@ -35,6 +82,31 @@ vi.mock('maplibre-gl', () => {
 
     remove(): void {
       maplibre.removeMap()
+    }
+
+    on(eventName: string, listener: () => void): this {
+      if (eventName === 'moveend') {
+        maplibre.setMoveEndListener(listener)
+      }
+      return this
+    }
+
+    off(): this {
+      maplibre.clearEventHandlers()
+      return this
+    }
+
+    getContainer(): HTMLElement {
+      return maplibre.container ?? document.createElement('div')
+    }
+
+    getBounds() {
+      return {
+        getWest: () => -180,
+        getSouth: () => -85,
+        getEast: () => 180,
+        getNorth: () => 85,
+      }
     }
   }
 
@@ -61,6 +133,7 @@ vi.mock('maplibre-gl', () => {
 describe('MountMap', () => {
   beforeEach(() => {
     maplibre.container = undefined
+    maplibre.clearEventHandlers()
     vi.clearAllMocks()
   })
 
@@ -122,6 +195,48 @@ describe('MountMap', () => {
 
     expect(maplibre.disableKeyboard).toHaveBeenCalledOnce()
     expect(maplibre.enableKeyboard).toHaveBeenCalledTimes(2)
+    expect(maplibre.disablePointerInteractions).toHaveBeenCalledTimes(7)
+    expect(maplibre.enablePointerInteractions).toHaveBeenCalledTimes(14)
     expect(maplibre.removeMap).toHaveBeenCalledOnce()
+  })
+
+  test('suppresses initial and interaction Messages while the Mount is paused', async () => {
+    const host = document.createElement('div')
+
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const observedMount = yield* Deferred.make<void>()
+          const receivedMessages: Array<Message> = []
+          const viewStates = yield* PubSub.unbounded<Mount.ViewState>({
+            replay: 1,
+          })
+          yield* PubSub.publish(viewStates, Mount.ViewState.make('Paused'))
+          yield* MountMap({ hostId: 'test-map-host' })
+            .f(host, Stream.fromPubSub(viewStates))
+            .pipe(
+              Stream.runForEach(message =>
+                Effect.sync(() => {
+                  receivedMessages.push(message)
+                  if (message._tag === 'SucceededMountMap') {
+                    Effect.runSync(Deferred.succeed(observedMount, undefined))
+                  }
+                }),
+              ),
+              Effect.forkScoped,
+            )
+
+          yield* Deferred.await(observedMount)
+          const marker = host.querySelector('[data-location-id]')
+          marker?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+          maplibre.emitMoveEnd()
+          yield* Effect.yieldNow
+
+          expect(receivedMessages.map(message => message._tag)).toEqual([
+            'SucceededMountMap',
+          ])
+        }),
+      ),
+    )
   })
 })

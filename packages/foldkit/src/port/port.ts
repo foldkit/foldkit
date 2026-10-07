@@ -1,6 +1,6 @@
 import { Context, Effect, Option, Queue, Schema, Stream } from 'effect'
 
-import { persistent } from '../subscription/subscription.js'
+import { fromStream } from '../subscription/subscription.js'
 
 /** Type-level brand for inbound Port values. */
 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -203,10 +203,10 @@ export const stream = <Value, Encoded>(
 
 /**
  * Builds a Subscription entry that wraps every decoded value arriving on an
- * inbound Port into a Message. The entry is persistent: it runs for the
- * runtime's lifetime, independent of the Model. Pass it as an entry value
- * inside `Subscription.make`. For a Model-gated entry, build one yourself
- * from `Port.stream`.
+ * inbound Port into a Message. The entry has no Model dependencies of its own,
+ * though a parent can gate it when lifting the Subscription. Pass it as an
+ * entry value inside `Subscription.make`. For an entry gated by its own Model,
+ * build one from `Port.stream`.
  *
  * @example
  * ```ts
@@ -220,7 +220,7 @@ export const stream = <Value, Encoded>(
 export const subscription = <Value, Encoded, Message>(
   port: Inbound<Value, Encoded>,
   toMessage: (value: Value) => Message,
-) => persistent(Stream.map(stream(port), toMessage))
+) => fromStream(Stream.map(stream(port), toMessage))
 
 /**
  * Emits a value on an outbound Port. The value is encoded against the Port's

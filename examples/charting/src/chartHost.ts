@@ -10,11 +10,10 @@ export const setChart = (hostId: string, chart: EChartsType): void => {
 export const getChart = (hostId: string): Option.Option<EChartsType> =>
   Option.fromNullishOr(chartsByHostId.get(hostId))
 
-export const removeChart = (hostId: string): void => {
-  const maybeChart = getChart(hostId)
+export const removeChart = (hostId: string, chart: EChartsType): void => {
+  chart.dispose()
 
-  if (Option.isSome(maybeChart)) {
-    maybeChart.value.dispose()
+  if (chartsByHostId.get(hostId) === chart) {
     chartsByHostId.delete(hostId)
   }
 }

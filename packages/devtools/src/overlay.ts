@@ -11,7 +11,6 @@ import {
   Option,
   Order,
   Predicate,
-  Queue,
   Record,
   Schema,
   Stream,
@@ -36,6 +35,7 @@ import {
   toInspectableValue,
 } from 'foldkit/devtools-host'
 import { lockScroll, unlockScroll } from 'foldkit/dom'
+import * as Dom from 'foldkit/dom'
 import {
   type Html,
   type HtmlBuilder,
@@ -189,7 +189,7 @@ const Message = defineMessageUnion({
   CompletedLockScroll: {},
   CompletedUnlockScroll: {},
   CompletedScrollToTop: {},
-  CrossedMobileBreakpoint: { isMobile: Schema.Boolean },
+  ObservedMobileBreakpoint: { isMobile: Schema.Boolean },
   ReceivedInspectedState: {
     model: Schema.Unknown,
     maybeMessage: Schema.Option(Schema.Unknown),
@@ -708,10 +708,18 @@ const makeUpdate = (
         model: modifyFields(model, { isFlattened: () => isFlattened }),
         commands: [PersistDevToolsState({ isOpen: model.isOpen, isFlattened })],
       }),
-      CrossedMobileBreakpoint: ({ isMobile }) => ({
-        model: modifyFields(model, { isMobile: () => isMobile }),
-        commands: Option.toArray(maybeToggleScrollLock(model.isOpen, isMobile)),
-      }),
+      ObservedMobileBreakpoint: ({ isMobile }) => {
+        if (isMobile === model.isMobile) {
+          return { model }
+        }
+
+        return {
+          model: modifyFields(model, { isMobile: () => isMobile }),
+          commands: Option.toArray(
+            maybeToggleScrollLock(model.isOpen, isMobile),
+          ),
+        }
+      },
       ClickedRow: ({ index }) =>
         Match.value(mode).pipe(
           Match.withReturnType<UpdateReturn>(),
@@ -965,40 +973,16 @@ const makeOverlaySubscriptions = (store: DevToolsStore, shadow: ShadowRoot) => {
       isActive: model => Option.isSome(model.maybePendingScrubIndex),
       toMessage: () => Message.TickedScrubFrame(),
     }),
-    storeUpdates: Subscription.persistent(
-      Stream.concat(
-        Stream.fromEffect(
-          SubscriptionRef.get(store.stateRef).pipe(
-            Effect.map(state =>
-              Message.ReceivedStoreUpdate(toDisplayState(state)),
-            ),
-          ),
-        ),
-        Stream.map(SubscriptionRef.changes(store.stateRef), state =>
-          Message.ReceivedStoreUpdate(toDisplayState(state)),
-        ),
+    storeUpdates: Subscription.fromStream(
+      SubscriptionRef.changes(store.stateRef).pipe(
+        Stream.map(state => Message.ReceivedStoreUpdate(toDisplayState(state))),
       ),
     ),
-    mobileBreakpoint: Subscription.persistent(
-      Stream.callback<Message>(queue =>
-        Effect.acquireRelease(
-          Effect.sync(() => {
-            const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_QUERY)
-            const handler = (event: MediaQueryListEvent) => {
-              Queue.offerUnsafe(
-                queue,
-                Message.CrossedMobileBreakpoint({ isMobile: event.matches }),
-              )
-            }
-            mediaQuery.addEventListener('change', handler)
-            return { mediaQuery, handler }
-          }),
-          ({ mediaQuery, handler }) =>
-            Effect.sync(() =>
-              mediaQuery.removeEventListener('change', handler),
-            ),
-        ).pipe(Effect.flatMap(() => Effect.never)),
-      ),
+    mobileBreakpoint: Subscription.fromStream(
+      Dom.fromMediaQuery({
+        query: MOBILE_BREAKPOINT_QUERY,
+        mapMatches: isMobile => Message.ObservedMobileBreakpoint({ isMobile }),
+      }),
     ),
   }))
 

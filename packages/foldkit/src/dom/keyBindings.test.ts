@@ -1,9 +1,9 @@
-import { Duration, Effect, Fiber, Schema, Stream } from 'effect'
+import { Duration, Effect, Fiber, Predicate, Schema, Stream } from 'effect'
 import { afterEach, describe, expect, expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
+import { make } from '../subscription/subscription.js'
 import { type KeyBindingsConfig, keyBindings } from './keyBindings.js'
-import { make } from './subscription.js'
 
 const Message = defineMessageUnion({
   PressedKeys: { name: Schema.String },
@@ -31,6 +31,35 @@ const press = (
   target: EventTarget = document,
 ): KeyboardEvent => {
   const event = new KeyboardEvent('keydown', {
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+    ...init,
+  })
+  target.dispatchEvent(event)
+  return event
+}
+
+type WindowWithEventConstructors = Window &
+  Readonly<{
+    Event: typeof Event
+    KeyboardEvent: typeof KeyboardEvent
+  }>
+
+const hasEventConstructors = (
+  ownerWindow: Window,
+): ownerWindow is WindowWithEventConstructors =>
+  Predicate.hasProperty(ownerWindow, 'Event') &&
+  Predicate.isFunction(ownerWindow.Event) &&
+  Predicate.hasProperty(ownerWindow, 'KeyboardEvent') &&
+  Predicate.isFunction(ownerWindow.KeyboardEvent)
+
+const pressInWindow = (
+  ownerWindow: WindowWithEventConstructors,
+  init: KeyboardEventInit,
+  target: EventTarget,
+): KeyboardEvent => {
+  const event = new ownerWindow.KeyboardEvent('keydown', {
     bubbles: true,
     cancelable: true,
     composed: true,
@@ -579,6 +608,142 @@ describe('keyBindings', () => {
     expect(received).toEqual([
       Message.PressedKeys({ name: 'PressedPaletteShortcut' }),
     ])
+  })
+
+  const verifyIframeTarget = async (
+    selectTarget: (
+      context: Readonly<{
+        iframeDocument: Document
+        iframeWindow: Window
+        root: HTMLElement
+      }>,
+    ) => EventTarget,
+  ): Promise<void> => {
+    const iframe = document.createElement('iframe')
+    document.body.appendChild(iframe)
+
+    const iframeDocument = iframe.contentDocument
+    const iframeWindow = iframe.contentWindow
+    if (iframeDocument === null || iframeWindow === null) {
+      throw new Error('Expected the iframe to have a document and window')
+    }
+    if (!hasEventConstructors(iframeWindow)) {
+      throw new Error('Expected the iframe window to have event constructors')
+    }
+
+    const root = iframeDocument.createElement('div')
+    const input = iframeDocument.createElement('input')
+    const button = iframeDocument.createElement('button')
+    root.append(input, button)
+    iframeDocument.body.appendChild(root)
+
+    const { fiber, received } = await start({
+      target: selectTarget({ iframeDocument, iframeWindow, root }),
+      bindings: [
+        {
+          keys: '/',
+          mapEvent: toMessage('PressedPaletteShortcut'),
+        },
+        {
+          keys: ['G', 'H'],
+          mapEvent: toMessage('PressedHomeSequence'),
+        },
+      ],
+    })
+
+    pressInWindow(iframeWindow, { key: '/' }, input)
+    pressInWindow(iframeWindow, { key: '/' }, button)
+    pressInWindow(iframeWindow, { key: 'g' }, button)
+    iframeWindow.dispatchEvent(new iframeWindow.Event('blur'))
+    pressInWindow(iframeWindow, { key: 'h' }, button)
+    await tick()
+    await stop(fiber)
+
+    expect(received).toEqual([
+      Message.PressedKeys({ name: 'PressedPaletteShortcut' }),
+    ])
+  }
+
+  it('uses the owning realm for an iframe Window target', () =>
+    verifyIframeTarget(({ iframeWindow }) => iframeWindow))
+
+  it('uses the owning realm for an iframe Document target', () =>
+    verifyIframeTarget(({ iframeDocument }) => iframeDocument))
+
+  it('uses the owning realm for an iframe element target', () =>
+    verifyIframeTarget(({ root }) => root))
+
+  it('validates Mod against an iframe target realm', async () => {
+    const iframe = document.createElement('iframe')
+    document.body.appendChild(iframe)
+
+    const iframeWindow = iframe.contentWindow
+    if (iframeWindow === null) {
+      throw new Error('Expected the iframe to have a window')
+    }
+    if (!hasEventConstructors(iframeWindow)) {
+      throw new Error('Expected the iframe window to have event constructors')
+    }
+
+    const isParentApple = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
+    const iframeUserAgent = isParentApple ? 'Windows' : 'Macintosh'
+    const targetModKey: 'Control' | 'Meta' = isParentApple ? 'Control' : 'Meta'
+    const parentModKey: 'Control' | 'Meta' = isParentApple ? 'Meta' : 'Control'
+    Object.defineProperty(iframeWindow.navigator, 'userAgent', {
+      configurable: true,
+      value: iframeUserAgent,
+    })
+
+    expect(() =>
+      keyBindings<Message>({
+        target: iframeWindow,
+        bindings: [
+          { keys: 'Mod+K', mapEvent: toMessage('PressedImplicitMod') },
+          {
+            keys: `${targetModKey}+K`,
+            mapEvent: toMessage('PressedExplicitTargetMod'),
+          },
+        ],
+      }),
+    ).toThrowError(/duplicates/)
+
+    const modifierInit = (modKey: 'Control' | 'Meta'): KeyboardEventInit =>
+      modKey === 'Control' ? { ctrlKey: true } : { metaKey: true }
+    const verifyTarget = async (
+      target: EventTarget | (() => EventTarget),
+    ): Promise<void> => {
+      const { fiber, received } = await start({
+        target,
+        bindings: [
+          { keys: 'Mod+K', mapEvent: toMessage('PressedImplicitMod') },
+          {
+            keys: `${parentModKey}+K`,
+            mapEvent: toMessage('PressedExplicitParentMod'),
+          },
+        ],
+      })
+
+      pressInWindow(
+        iframeWindow,
+        { key: 'k', ...modifierInit(targetModKey) },
+        iframeWindow,
+      )
+      pressInWindow(
+        iframeWindow,
+        { key: 'k', ...modifierInit(parentModKey) },
+        iframeWindow,
+      )
+      await tick()
+      await stop(fiber)
+
+      expect(received).toEqual([
+        Message.PressedKeys({ name: 'PressedImplicitMod' }),
+        Message.PressedKeys({ name: 'PressedExplicitParentMod' }),
+      ])
+    }
+
+    await verifyTarget(iframeWindow)
+    await verifyTarget(() => iframeWindow)
   })
 
   it('rejects malformed and ambiguous binding tables', () => {
