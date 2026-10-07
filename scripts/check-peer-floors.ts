@@ -56,7 +56,7 @@ const FLOORS = [
     packageDir: 'packages/vite-plugin-foldkit',
     packageName: '@foldkit/vite-plugin',
     dependency: 'foldkit',
-    minimum: '0.166.0',
+    minimum: '0.167.0',
     safePackageVersion: '0.27.0',
   },
 ] as const
