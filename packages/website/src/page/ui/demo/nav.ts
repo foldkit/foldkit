@@ -1,4 +1,4 @@
-import { Array, Option, Schema, pipe } from 'effect'
+import { Array, Option, pipe } from 'effect'
 import { type Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import type { Url } from 'foldkit/url'
 
@@ -6,11 +6,9 @@ import { Nav } from '@foldkit/ui'
 
 import { Icon } from '../../../icon'
 import type { Message } from '../message'
+import type { NavDemoSection } from '../model'
 
 // DEMO CONTENT
-
-const NavDemoSection = Schema.Literals(['Home', 'Search', 'Library', 'Profile'])
-type NavDemoSection = typeof NavDemoSection.Type
 
 const demoSections: ReadonlyArray<NavDemoSection> = [
   'Home',
@@ -21,12 +19,12 @@ const demoSections: ReadonlyArray<NavDemoSection> = [
 
 const NAV_SECTION_QUERY_KEY = 'section'
 
-const defaultSection: NavDemoSection = 'Home'
+export const defaultNavDemoSection: NavDemoSection = 'Home'
 
 const sectionToHref = (section: NavDemoSection): string =>
   `?${NAV_SECTION_QUERY_KEY}=${section.toLowerCase()}`
 
-const sectionFromUrl = (url: Url): NavDemoSection =>
+export const navDemoSectionFromUrl = (url: Url): NavDemoSection =>
   pipe(
     url.search,
     Option.flatMapNullishOr(search =>
@@ -38,7 +36,7 @@ const sectionFromUrl = (url: Url): NavDemoSection =>
         section => section.toLowerCase() === sectionParam.toLowerCase(),
       ),
     ),
-    Option.getOrElse(() => defaultSection),
+    Option.getOrElse(() => defaultNavDemoSection),
   )
 
 const navClassName =
@@ -74,31 +72,30 @@ const urlBar = (currentSection: NavDemoSection): Html =>
     ],
   )
 
-export const basicDemo = (url: Url, h: HtmlBuilder<Message>) => {
-  const currentSection = sectionFromUrl(url)
-
-  return [
-    h.div(
-      [h.Class('w-full max-w-lg mx-auto')],
-      [
-        Nav.view<NavDemoSection>({
-          items: demoSections,
-          ariaLabel: 'App sections',
-          toHref: sectionToHref,
-          isItemCurrent: section => section === currentSection,
-          toView: ({ nav, items }) =>
-            h.nav(
-              [...nav, h.Class(navClassName)],
-              items.map(item =>
-                h.a(
-                  [...item.link, h.Class(linkClassName)],
-                  [h.span([], [item.value])],
-                ),
+export const basicDemo = (
+  currentSection: NavDemoSection,
+  h: HtmlBuilder<Message>,
+) => [
+  h.div(
+    [h.Class('w-full max-w-lg mx-auto')],
+    [
+      Nav.view<NavDemoSection>({
+        items: demoSections,
+        ariaLabel: 'App sections',
+        toHref: sectionToHref,
+        isItemCurrent: section => section === currentSection,
+        toView: ({ nav, items }) =>
+          h.nav(
+            [...nav, h.Class(navClassName)],
+            items.map(item =>
+              h.a(
+                [...item.link, h.Class(linkClassName)],
+                [h.span([], [item.value])],
               ),
             ),
-        }),
-        urlBar(currentSection),
-      ],
-    ),
-  ]
-}
+          ),
+      }),
+      urlBar(currentSection),
+    ],
+  ),
+]

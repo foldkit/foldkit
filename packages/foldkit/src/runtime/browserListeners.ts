@@ -1,37 +1,126 @@
-import { Option, String } from 'effect'
+import { Option, Schema, String } from 'effect'
 
 import { OptionExt, StringExt } from '../effectExtensions/index.js'
+import {
+  pendingScrollReadResume,
+  recordLeavingEntryAndTraverse,
+  startHistoryEntryTracking,
+} from '../navigation/historyEntries.js'
+import { UrlChangeType } from '../navigation/urlChangeType.js'
 import { UrlRequest } from '../navigation/urlRequest.js'
+import type { RenderCommit } from '../render/commit.js'
 import { Url } from '../url/index.js'
 
-/** Configuration for URL routing with handlers for URL requests and URL changes. */
+/** Configuration for URL routing with handlers for URL requests and URL changes.
+ *  `onUrlChange` receives the new URL and how it changed:
+ *  `UrlChangeType.Push()` from `pushUrl`, `UrlChangeType.Replace()` from
+ *  `replaceUrl`, and `UrlChangeType.Traverse` for Back and Forward, carrying
+ *  `maybeSavedScrollPosition`, the scroll position the reader last had on that
+ *  entry, or `Option.none()` when none was recorded. */
 export type RoutingConfig<Message> = Readonly<{
   onUrlRequest: (request: UrlRequest) => Message
-  onUrlChange: (url: Url) => Message
+  onUrlChange: (url: Url, urlChangeType: UrlChangeType) => Message
 }>
+
+/** The navigation listeners of a routing runtime. `resumeScrollReadsAfterBoot`
+ *  is called once boot has completed, and `removeListeners` on teardown. */
+export type NavigationEventListeners = Readonly<{
+  resumeScrollReadsAfterBoot: () => void
+  removeListeners: () => void
+}>
+
+const isUrlChangeType = Schema.is(UrlChangeType)
+
+// NOTE: the render that shows the arrived entry can be held for longer than a
+// frame, for example by a View Transition, so this waits for its commit, then
+// one frame more.
+const scheduleOneFrameAfterRender = (
+  renderCommit: typeof RenderCommit.Service,
+  callback: () => void,
+): (() => void) => {
+  let cancel = (): void => {}
+
+  const requestFrame = (): void => {
+    const frameRequest = requestAnimationFrame(callback)
+
+    cancel = () => {
+      cancelAnimationFrame(frameRequest)
+    }
+  }
+
+  if (renderCommit.isCommitPending()) {
+    cancel = renderCommit.onNextCommit(requestFrame)
+  } else {
+    requestFrame()
+  }
+
+  return () => {
+    cancel()
+  }
+}
 
 export const addNavigationEventListeners = <Message>(
   dispatch: (message: Message) => void,
   routingConfig: RoutingConfig<Message>,
-): (() => void) => {
-  const removePopStateListener = addPopStateListener(dispatch, routingConfig)
+  renderCommit: typeof RenderCommit.Service,
+): NavigationEventListeners => {
+  let isBootComplete = false
+  let cancelScheduledResume = (): void => {}
+
+  const resumeScrollReadsAfterRender = (): void => {
+    const maybeResume = pendingScrollReadResume()
+
+    if (Option.isSome(maybeResume)) {
+      cancelScheduledResume()
+      cancelScheduledResume = scheduleOneFrameAfterRender(
+        renderCommit,
+        maybeResume.value,
+      )
+    }
+  }
+
+  const stopHistoryEntryTracking = startHistoryEntryTracking()
+  const removePopStateListener = addPopStateListener(
+    dispatch,
+    routingConfig,
+    () => {
+      if (isBootComplete) {
+        resumeScrollReadsAfterRender()
+      }
+    },
+  )
   const removeLinkClickListener = addLinkClickListener(dispatch, routingConfig)
   const removeProgrammaticNavigationListener =
     addProgrammaticNavigationListener(dispatch, routingConfig)
 
-  return () => {
-    removePopStateListener()
-    removeLinkClickListener()
-    removeProgrammaticNavigationListener()
+  return {
+    resumeScrollReadsAfterBoot: () => {
+      isBootComplete = true
+      resumeScrollReadsAfterRender()
+    },
+    removeListeners: () => {
+      cancelScheduledResume()
+      removePopStateListener()
+      removeLinkClickListener()
+      removeProgrammaticNavigationListener()
+      stopHistoryEntryTracking()
+    },
   }
 }
 
 const addPopStateListener = <Message>(
   dispatch: (message: Message) => void,
   routingConfig: RoutingConfig<Message>,
+  onTraversalDispatched: () => void,
 ): (() => void) => {
-  const onPopState = () => {
-    dispatch(routingConfig.onUrlChange(locationToUrl()))
+  const onPopState = (event: PopStateEvent) => {
+    dispatch(
+      routingConfig.onUrlChange(
+        locationToUrl(),
+        recordLeavingEntryAndTraverse(event.state),
+      ),
+    )
+    onTraversalDispatched()
   }
 
   window.addEventListener('popstate', onPopState)
@@ -105,8 +194,13 @@ const addProgrammaticNavigationListener = <Message>(
   dispatch: (message: Message) => void,
   routingConfig: RoutingConfig<Message>,
 ): (() => void) => {
-  const onProgrammaticNavigation = () => {
-    dispatch(routingConfig.onUrlChange(locationToUrl()))
+  const onProgrammaticNavigation = (event: Event) => {
+    const urlChangeType =
+      event instanceof CustomEvent && isUrlChangeType(event.detail)
+        ? event.detail
+        : UrlChangeType.Push()
+
+    dispatch(routingConfig.onUrlChange(locationToUrl(), urlChangeType))
   }
 
   window.addEventListener('foldkit:urlchange', onProgrammaticNavigation)

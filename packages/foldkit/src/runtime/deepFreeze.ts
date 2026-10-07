@@ -1,4 +1,6 @@
-import { Array, Option, Predicate, Record } from 'effect'
+import { Array, Option, Record } from 'effect'
+
+import { PredicateExt } from '../effectExtensions/index.js'
 
 /**
  * Recursively `Object.freeze`s a Model so accidental mutations throw a
@@ -43,19 +45,11 @@ export const deepFreeze = <T>(value: T): T => {
     return value
   }
 
-  if (!isPlainObject(value)) {
+  if (!PredicateExt.isPlainObject(value)) {
     return value
   }
 
   Object.freeze(value)
   Record.values(value).forEach(deepFreeze)
   return value
-}
-
-const isPlainObject = (value: unknown): value is Record<string, unknown> => {
-  if (!Predicate.isObject(value)) {
-    return false
-  }
-  const prototype = Object.getPrototypeOf(value)
-  return prototype === Object.prototype || prototype === null
 }

@@ -442,7 +442,7 @@ Runtime.run(application)
 
 ### With Routing
 
-For apps with pages, navigation, and URL-driven state. init receives Flags (if any) and the current URL. Add a `routing` config with two Message constructors:
+For apps with pages, navigation, and URL-driven state. init receives Flags (if any), the current URL, and a `LoadType` (`Push`, `Reload`, or `Traverse`). Add a `routing` config with two Message constructors:
 
 ```ts
 const application = Runtime.makeApplication({
@@ -492,7 +492,14 @@ With `makeElement`, the runtime does not manage the title or document metadata.
 
 `lang` and `dir` sync to the `<html>` element, so an app that switches language at runtime drives them from the Model. `dir` is `TextDirection` from `foldkit/html`, a Schema over `'Ltr' | 'Rtl' | 'Auto'` that you can drop straight into a Model `Schema.Struct`, and the runtime writes it as the lowercase attribute value. Both fields are optional and have no default: when a view omits one, the runtime does not touch that attribute, leaving whatever value it currently holds, so a view that never sets it leaves the served HTML in place.
 
-`onUrlRequest` fires when the user clicks a link. The Message receives a `UrlRequest` (a tagged union from the `Navigation` namespace) which you handle in update by matching on its `_tag`. `onUrlChange` fires when the browser URL changes (back/forward buttons); the handler updates the route from the new URL.
+`onUrlRequest` fires when the user clicks a link. The Message receives a `UrlRequest` (a tagged union from the `Navigation` namespace) which you handle in update by matching on its `_tag`. `onUrlChange` fires when the browser URL changes, after `pushUrl`, `replaceUrl`, or Back and Forward. It receives the new URL and a `UrlChangeType` from `foldkit/navigation`: `Push`, `Replace`, or `Traverse`. The handler updates the route from the new URL. Handling the `UrlChangeType`, and the `LoadType` that init receives, is optional.
+
+The runtime never scrolls the window. An app that manages the scroll position follows the Scroll Position section of `repos/foldkit/packages/website/src/page/routing.md`, whose code is `repos/foldkit/packages/website/src/snippet/routingScrollPosition.ts`. `repos/foldkit/examples/routing/src/main.ts` applies the pattern in a whole app:
+
+- init returns a Command that sets `history.scrollRestoration = 'manual'`, and restores `maybeSavedScrollPosition` on `Reload` or `Traverse`.
+- `ChangedUrl` carries `urlChangeType`.
+- update scrolls to the top on `Push` when the route changed, comparing routes rather than keeping the URL in the Model, and restores `maybeSavedScrollPosition` on `Traverse`.
+- Each restore is a Command that yields `Render.afterCommit` before `window.scrollTo`.
 
 For the canonical update-handler shapes (the exact `UrlRequest` tag names, how to dispatch `pushUrl` vs an external load Command, and how to derive the route from a `Url`), see `repos/foldkit/examples/routing/src/main.ts`.
 

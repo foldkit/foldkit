@@ -29,6 +29,14 @@ export type Plan = typeof Plan.Type
 export const DemoTab = Schema.Literals(['Foldkit', 'React', 'Elm'])
 export type DemoTab = typeof DemoTab.Type
 
+export const NavDemoSection = Schema.Literals([
+  'Home',
+  'Search',
+  'Library',
+  'Profile',
+])
+export type NavDemoSection = typeof NavDemoSection.Type
+
 export const City = Schema.Literals([
   'Johannesburg',
   'Kyiv',
@@ -140,6 +148,7 @@ export const Model = Schema.Struct({
   horizontalTabsDemoTab: DemoTab,
   verticalTabsDemo: Tabs.Model,
   verticalTabsDemoTab: DemoTab,
+  navDemoSection: NavDemoSection,
   dragAndDropDemo: DragAndDrop.Model,
   dragAndDropDemoColumns: Schema.Array(DemoColumn),
   dragAndDropDemoAnnouncement: Schema.String,

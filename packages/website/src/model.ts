@@ -1,5 +1,4 @@
 import { Schema } from 'effect'
-import { Url } from 'foldkit/url'
 
 import { Dialog, Menu } from '@foldkit/ui'
 
@@ -22,7 +21,6 @@ import * as SnippetDisclosure from './snippetDisclosure'
 
 export const Model = Schema.Struct({
   route: AppRoute,
-  url: Url,
   deployment: Deployment,
   snippetCopy: SnippetCopy.Model,
   snippetDisclosure: SnippetDisclosure.Model,

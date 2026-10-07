@@ -38,7 +38,8 @@ const application = Runtime.makeApplication<
   container: document.getElementById('root'),
   routing: {
     onUrlRequest: request => Message.ClickedLink({ request }),
-    onUrlChange: url => Message.ChangedUrl({ url }),
+    onUrlChange: (url, urlChangeType) =>
+      Message.ChangedUrl({ url, urlChangeType }),
   },
   resources: Layer.mergeAll(Search.PagefindService.Default, devTracerLayer),
   devTools: {

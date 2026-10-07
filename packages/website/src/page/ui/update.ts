@@ -2,6 +2,7 @@ import { Array, Match, Number, Option, Schema, pipe } from 'effect'
 import { Update } from 'foldkit'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
+import type { Url } from 'foldkit/url'
 
 import {
   Animation,
@@ -25,6 +26,7 @@ import {
 import { CityCombobox, CityMultiCombobox } from './demo/combobox'
 import { CharacterListbox, ItemListbox, ItemMultiListbox } from './demo/listbox'
 import { DemoMenu, type MenuItem } from './demo/menu'
+import { navDemoSectionFromUrl } from './demo/nav'
 import { PlanRadioGroup } from './demo/radioGroup'
 import { DemoTabs } from './demo/tabs'
 import { Toast } from './demo/toastModule'
@@ -1507,3 +1509,9 @@ export const update = (model: Model, message: Message) =>
       return updateVirtualListChatMessages(model, nextMessages)
     },
   })
+
+export const informUrlChanged = (model: Model, url: Url): UpdateReturn => ({
+  model: modifyFields(model, {
+    navDemoSection: () => navDemoSectionFromUrl(url),
+  }),
+})

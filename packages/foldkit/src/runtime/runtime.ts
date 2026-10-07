@@ -20,12 +20,15 @@ import {
   __htmlBuilder as htmlBuilderFor,
 } from '../html/index.js'
 import type { ManagedResources } from '../managedResource/index.js'
+import { claimLoadType } from '../navigation/historyEntries.js'
+import type { LoadType } from '../navigation/loadType.js'
 import type { Ports } from '../port/index.js'
 import { RenderCommit, createCommitNotifier } from '../render/commit.js'
 import type { Subscriptions } from '../subscription/subscription.js'
 import type { Return as UpdateReturn } from '../update/index.js'
 import { Url, fromString as urlFromString } from '../url/index.js'
 import {
+  type NavigationEventListeners,
   type RoutingConfig,
   addNavigationEventListeners,
 } from './browserListeners.js'
@@ -76,6 +79,30 @@ type AnyCommand<T, E = never, R = never> = {
   readonly effect: Effect.Effect<T, E, R>
 }
 
+/** The `init` of a runtime, which with a routing config also receives the
+ *  current URL and how the reader arrived at the page. */
+type RuntimeInitConfig<
+  Model,
+  Message,
+  Flags,
+  Resources,
+  ManagedResourceServices,
+> =
+  | Readonly<{
+      routing?: undefined
+      init: (
+        flags: Flags,
+      ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
+    }>
+  | Readonly<{
+      routing: RoutingConfig<Message>
+      init: (
+        flags: Flags,
+        url: Url | undefined,
+        loadType: LoadType,
+      ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
+    }>
+
 /** Full runtime configuration including Model Schema, Flags, init, update, view, and optional routing/stream config. */
 export type RuntimeConfig<
   Model,
@@ -92,10 +119,6 @@ export type RuntimeConfig<
   Flags: Schema.Codec<Flags, any, unknown, unknown>
   configuredFlags: Option.Option<Effect.Effect<Flags, never, Resources>>
   isFlagsRequired: boolean
-  init: (
-    flags: Flags,
-    url?: Url,
-  ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
   update: (
     model: Model,
     message: Message,
@@ -127,7 +150,6 @@ export type RuntimeConfig<
    * served DOM.
    */
   hydration?: HydrationConfig
-  routing?: RoutingConfig<Message>
   crash?: CrashConfig<Model, Message>
   slow?: SlowConfig<Model, Message>
   /**
@@ -221,7 +243,8 @@ export type RuntimeConfig<
    */
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
   devTools?: DevToolsConfig
-}>
+}> &
+  RuntimeInitConfig<Model, Message, Flags, Resources, ManagedResourceServices>
 
 export type FlagsSchemaConfig<Flags> = Readonly<{
   // Flags decode synchronously, on hydration through `decodeUnknownSync` and
@@ -454,11 +477,19 @@ export const makeRuntime = <
         const decodePreservedModel = Schema.decodeUnknownExit(ModelJsonCodec)
         const encodePreservedModel = Schema.encodeUnknownSync(ModelJsonCodec)
 
-        const currentUrl: Option.Option<Url> = Option.fromNullishOr(
-          routingConfig,
-        ).pipe(Option.flatMap(() => urlFromString(window.location.href)))
-
         type InitResult = ReturnType<typeof init>
+
+        const applyInit = ((): ((flags: Flags) => InitResult) => {
+          if (routingConfig) {
+            const url = Option.getOrUndefined(
+              urlFromString(window.location.href),
+            )
+
+            return flags => init(flags, url, claimLoadType())
+          } else {
+            return flags => init(flags)
+          }
+        })()
 
         // NOTE: a restored Model skips `init`, so resolving Flags on that
         // path would build the `resources` Layer only to discard what it
@@ -469,14 +500,20 @@ export const makeRuntime = <
         // than it used to, and their release defects would bury its cause.
         const runInit: Effect.Effect<InitResult> = Effect.map(
           resolveFlags,
-          flags => init(flags, Option.getOrUndefined(currentUrl)),
+          applyInit,
         )
 
         const init_ = yield* preservedModel !== undefined
           ? Exit.match(decodePreservedModel(preservedModel), {
               onFailure: () => runInit,
               onSuccess: restoredModel =>
-                Effect.succeed<InitResult>({ model: restoredModel }),
+                Effect.sync((): InitResult => {
+                  if (routingConfig) {
+                    claimLoadType()
+                  }
+
+                  return { model: restoredModel }
+                }),
             })
           : runInit
         const initModelRaw = init_.model
@@ -598,15 +635,24 @@ export const makeRuntime = <
           )
         }
 
-        if (routingConfig) {
-          yield* Effect.acquireRelease(
-            Effect.sync(() =>
-              addNavigationEventListeners(enqueueMessage, routingConfig),
-            ),
-            removeNavigationEventListeners =>
-              Effect.sync(() => removeNavigationEventListeners()),
-          )
-        }
+        const maybeNavigationEventListeners: Option.Option<NavigationEventListeners> =
+          routingConfig
+            ? Option.some(
+                yield* Effect.acquireRelease(
+                  Effect.sync(() =>
+                    addNavigationEventListeners(
+                      enqueueMessage,
+                      routingConfig,
+                      commitNotifier.service,
+                    ),
+                  ),
+                  navigationEventListeners =>
+                    Effect.sync(() =>
+                      navigationEventListeners.removeListeners(),
+                    ),
+                ),
+              )
+            : Option.none()
 
         // NOTE: the Model is plain closure state. `processMessagePlain`
         // reads and writes it directly, and the render side (the frame, and
@@ -881,6 +927,10 @@ export const makeRuntime = <
         }
 
         completeBoot()
+
+        if (Option.isSome(maybeNavigationEventListeners)) {
+          maybeNavigationEventListeners.value.resumeScrollReadsAfterBoot()
+        }
 
         // NOTE: suspend forever. Messages are processed synchronously on
         // the dispatching stack and render frames run as plain rAF

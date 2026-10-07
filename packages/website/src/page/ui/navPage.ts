@@ -1,6 +1,5 @@
 import { Submodel } from 'foldkit'
 import type { Html } from 'foldkit/html'
-import type { Url } from 'foldkit/url'
 
 import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
@@ -21,18 +20,13 @@ type ViewInputs = Readonly<{
   renderCopyButton: CodeBlock.RenderCopyButton
   renderSnippet: CodeBlock.RenderSnippet
   renderHeadingLink: RenderHeadingLink
-  url: Url
 }>
 
 export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (
-    _model,
-    { renderCopyButton, renderSnippet, renderHeadingLink, url },
-    h,
-  ): Html =>
+  (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
     renderPage({
       demos: {
-        basic: demoContainer(...Nav.basicDemo(url, h)),
+        basic: demoContainer(...Nav.basicDemo(model.navDemoSection, h)),
       },
       renderCopyButton,
       renderSnippet,

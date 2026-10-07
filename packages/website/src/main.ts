@@ -1,6 +1,7 @@
 import {
   DateTime,
   Effect,
+  Equal,
   Layer,
   Match,
   Option,
@@ -14,13 +15,24 @@ import {
   Command,
   Dom,
   ManagedResource,
+  Render,
   Runtime,
   Subscription,
   Update,
 } from 'foldkit'
-import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
+import {
+  type LoadType,
+  ScrollPosition,
+  UrlRequest,
+  load,
+  pushUrl,
+} from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
-import { Url, toString as urlToString } from 'foldkit/url'
+import {
+  Url,
+  fromString as urlFromString,
+  toString as urlToString,
+} from 'foldkit/url'
 import { githubStarCount } from 'virtual:landing-data'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
@@ -156,6 +168,8 @@ const loadBrowserEnvironment = Effect.gen(function* () {
 
   const today = yield* Calendar.today.local
 
+  const maybeUrl = yield* Effect.sync(() => urlFromString(window.location.href))
+
   return Message.CompletedLoadBrowserEnvironment({
     maybeThemePreference: themePreference,
     maybeSidebarState,
@@ -163,6 +177,7 @@ const loadBrowserEnvironment = Effect.gen(function* () {
     isPlaygroundSupported,
     currentYear,
     today,
+    maybeUrl,
   })
 })
 
@@ -204,7 +219,7 @@ export const init: Runtime.RoutingApplicationInit<
   Flags,
   AppResources,
   AppManagedResources
-> = (flags: Flags, url: Url) => {
+> = (flags: Flags, url: Url, loadType: LoadType) => {
   const maybeThemePreference = Option.none<ThemePreference>()
   const systemTheme: ResolvedTheme = 'Light'
   const resolvedTheme = systemTheme
@@ -253,7 +268,6 @@ export const init: Runtime.RoutingApplicationInit<
         exampleDetail,
       }) => ({
         route: initialRoute,
-        url,
         deployment: flags.deployment,
         snippetCopy: snippetCopyInit.model,
         snippetDisclosure: snippetDisclosureInit.model,
@@ -305,6 +319,11 @@ export const init: Runtime.RoutingApplicationInit<
     },
   )
 
+  const anchorCommands = Option.match(url.hash, {
+    onNone: () => [],
+    onSome: hash => [ScrollToAnchor({ hash })],
+  })
+
   return {
     model: pageInits.model,
     commands: [
@@ -312,13 +331,27 @@ export const init: Runtime.RoutingApplicationInit<
       ...analyticsCommands,
       ...(pageInits.commands ?? []),
       ScrollSidebarActiveLinkIntoView(),
-      ...Option.match(url.hash, {
-        onNone: () => [],
-        onSome: hash => [ScrollToAnchor({ hash })],
-      }),
+      DisableBrowserScrollRestoration(),
+      ...Match.value(loadType).pipe(
+        Match.withReturnType<ReadonlyArray<Command.Command<Message>>>(),
+        Match.tag('Push', () => anchorCommands),
+        Match.tag('Reload', 'Traverse', ({ maybeSavedScrollPosition }) =>
+          restoreScrollPositionOr(maybeSavedScrollPosition, anchorCommands),
+        ),
+        Match.exhaustive,
+      ),
     ],
   }
 }
+
+const restoreScrollPositionOr = (
+  maybeSavedScrollPosition: Option.Option<ScrollPosition>,
+  commandsWithoutPosition: ReadonlyArray<Command.Command<Message>>,
+): ReadonlyArray<Command.Command<Message>> =>
+  Option.match(maybeSavedScrollPosition, {
+    onNone: () => commandsWithoutPosition,
+    onSome: scrollPosition => [RestoreScrollPosition(scrollPosition)],
+  })
 
 // UPDATE
 
@@ -327,8 +360,6 @@ type UpdateStep = Update.Step<
   Message,
   AppResources | AppManagedResources
 >
-
-const isPathnameEqual = (a: Url, b: Url): boolean => a.pathname === b.pathname
 
 const foldThemeMenuOutMessage = Menu.OutMessage.match<
   Update.Step<Model, Message>,
@@ -522,12 +553,27 @@ const foldApiReferenceRouteChanged = Update.foldChildStep({
   toParentMessage: toGotApiReferenceMessage,
 })
 
+const readUiPages = (model: Model): Option.Option<Ui.Model> =>
+  Option.some(model.uiPages)
+
+const writeUiPages = (model: Model, nextUiPages: Ui.Model): Model =>
+  modifyFields(model, { uiPages: () => nextUiPages })
+
+const toGotUiPageMessage = (message: Ui.Message): Message =>
+  Message.GotUiPageMessage({ message })
+
 const foldUiPages = Update.foldChild({
   update: Ui.update,
-  read: (model: Model) => Option.some(model.uiPages),
-  write: (model, nextUiPages) =>
-    modifyFields(model, { uiPages: () => nextUiPages }),
-  toParentMessage: message => Message.GotUiPageMessage({ message }),
+  read: readUiPages,
+  write: writeUiPages,
+  toParentMessage: toGotUiPageMessage,
+})
+
+const foldUiPagesUrlChanged = Update.foldChild({
+  update: Ui.informUrlChanged,
+  read: readUiPages,
+  write: writeUiPages,
+  toParentMessage: toGotUiPageMessage,
 })
 
 const readExampleDetail = (
@@ -630,7 +676,7 @@ export const update = (model: Model, message: Message) =>
         }),
       }),
 
-    ChangedUrl: ({ url }) => {
+    ChangedUrl: ({ url, urlChangeType }) => {
       const nextRoute = urlToAppRoute(url)
 
       const maybeNextExampleSlug = pipe(
@@ -661,14 +707,16 @@ export const update = (model: Model, message: Message) =>
         Match.orElse(() => []),
       )
 
+      const isNewPage = !Equal.equals(nextRoute, model.route)
+
       const maybeScrollSidebar = Option.liftPredicate(
         ScrollSidebarActiveLinkIntoView(),
-        () => !isPathnameEqual(model.url, url),
+        () => isNewPage,
       )
 
       const maybeScrollToTop = Option.liftPredicate(
         ScrollToTop(),
-        () => !isPathnameEqual(model.url, url),
+        () => isNewPage,
       )
 
       const nextPlaygroundRoute = pipe(
@@ -680,19 +728,30 @@ export const update = (model: Model, message: Message) =>
       const writeRouteFields: UpdateStep = model => ({
         model: modifyFields(model, {
           route: () => nextRoute,
-          url: () => url,
           playground: () => nextPlaygroundRoute,
           sidebarGroups: () => nextSidebarGroups,
         }),
       })
 
+      const anchorOrTopCommands = Option.match(url.hash, {
+        onNone: () => Option.toArray(maybeScrollToTop),
+        onSome: hash => [ScrollToAnchor({ hash })],
+      })
+
       const scrollToRoute: UpdateStep = model => ({
         model,
         commands: [
-          ...Option.match(url.hash, {
-            onNone: () => Option.toArray(maybeScrollToTop),
-            onSome: hash => [ScrollToAnchor({ hash })],
-          }),
+          ...Match.value(urlChangeType).pipe(
+            Match.withReturnType<ReadonlyArray<Command.Command<Message>>>(),
+            Match.tag('Push', 'Replace', () => anchorOrTopCommands),
+            Match.tag('Traverse', ({ maybeSavedScrollPosition }) =>
+              restoreScrollPositionOr(
+                maybeSavedScrollPosition,
+                anchorOrTopCommands,
+              ),
+            ),
+            Match.exhaustive,
+          ),
           ...Option.toArray(maybeScrollSidebar),
         ],
       })
@@ -703,6 +762,7 @@ export const update = (model: Model, message: Message) =>
         foldMobileMenuDialogClose,
         foldThemeMenuClose,
         foldSearchRouteChanged,
+        foldUiPagesUrlChanged(url),
         ...routeSteps,
         scrollToRoute,
       ])
@@ -710,13 +770,7 @@ export const update = (model: Model, message: Message) =>
 
     ClickedCopyLink: ({ hash }) => ({
       model,
-      commands: [
-        CopyLink({
-          url: urlToString(
-            modifyFields(model.url, { hash: () => Option.some(hash) }),
-          ),
-        }),
-      ],
+      commands: [CopyLink({ hash })],
     }),
 
     ClickedOpenMobileMenu: () =>
@@ -771,6 +825,7 @@ export const update = (model: Model, message: Message) =>
       isPlaygroundSupported,
       currentYear,
       today,
+      maybeUrl,
     }) => {
       const themePreference: ThemePreference = Option.getOrElse(
         maybeThemePreference,
@@ -805,8 +860,9 @@ export const update = (model: Model, message: Message) =>
           Update.foldChildInit(Ui.init(today), {
             toParentModel: uiPages =>
               modifyFields(stepModel, { uiPages: () => uiPages }),
-            toParentMessage: message => Message.GotUiPageMessage({ message }),
+            toParentMessage: toGotUiPageMessage,
           }),
+        ...Option.toArray(Option.map(maybeUrl, foldUiPagesUrlChanged)),
       ])
     },
 
@@ -855,6 +911,8 @@ export const update = (model: Model, message: Message) =>
     CompletedInjectSpeedInsights: () => ({ model }),
     CompletedScrollToTop: () => ({ model }),
     CompletedScrollToAnchor: () => ({ model }),
+    CompletedRestoreScrollPosition: () => ({ model }),
+    CompletedDisableBrowserScrollRestoration: () => ({ model }),
     CompletedScrollSidebarActiveLinkIntoView: () => ({ model }),
     CompletedScrollMobileMenuActiveLinkIntoView: () => ({ model }),
     CompletedApplyTheme: () => ({ model }),
@@ -873,7 +931,7 @@ const InjectAnalytics = Command.define('InjectAnalytics', {
   ),
 })
 
-const LoadBrowserEnvironment = Command.define('LoadBrowserEnvironment', {
+export const LoadBrowserEnvironment = Command.define('LoadBrowserEnvironment', {
   messages: [Message.CompletedLoadBrowserEnvironment],
   execute: loadBrowserEnvironment,
 })
@@ -885,17 +943,28 @@ const InjectSpeedInsights = Command.define('InjectSpeedInsights', {
   ),
 })
 
-const CopyLink = Command.define('CopyLink', {
-  args: { url: Schema.String },
-  messages: [Message.SucceededCopyLink, Message.FailedCopyLink],
-  execute: ({ url }) =>
-    Effect.tryPromise({
-      try: () => navigator.clipboard.writeText(url),
-      catch: () => new Error('Failed to copy link to clipboard'),
-    }).pipe(
-      Effect.as(Message.SucceededCopyLink()),
-      Effect.catch(() => Effect.succeed(Message.FailedCopyLink())),
+const currentUrlWithHash = (hash: string): Option.Option<string> =>
+  pipe(
+    urlFromString(window.location.href),
+    Option.map(url =>
+      urlToString(modifyFields(url, { hash: () => Option.some(hash) })),
     ),
+  )
+
+export const CopyLink = Command.define('CopyLink', {
+  args: { hash: Schema.String },
+  messages: [Message.SucceededCopyLink, Message.FailedCopyLink],
+  execute: ({ hash }) =>
+    Effect.gen(function* () {
+      const link = yield* Effect.fromOption(currentUrlWithHash(hash))
+
+      yield* Effect.tryPromise({
+        try: () => navigator.clipboard.writeText(link),
+        catch: () => new Error('Failed to copy link to clipboard'),
+      })
+
+      return Message.SucceededCopyLink()
+    }).pipe(Effect.catch(() => Effect.succeed(Message.FailedCopyLink()))),
 })
 
 export const ScrollToTop = Command.define('ScrollToTop', {
@@ -906,7 +975,29 @@ export const ScrollToTop = Command.define('ScrollToTop', {
   }),
 })
 
-const ScrollToAnchor = Command.define('ScrollToAnchor', {
+export const RestoreScrollPosition = Command.define('RestoreScrollPosition', {
+  args: ScrollPosition.fields,
+  messages: [Message.CompletedRestoreScrollPosition],
+  execute: ({ x, y }) =>
+    Effect.gen(function* () {
+      yield* Render.afterCommit
+      window.scrollTo({ left: x, top: y, behavior: 'instant' })
+      return Message.CompletedRestoreScrollPosition()
+    }),
+})
+
+export const DisableBrowserScrollRestoration = Command.define(
+  'DisableBrowserScrollRestoration',
+  {
+    messages: [Message.CompletedDisableBrowserScrollRestoration],
+    execute: Effect.sync(() => {
+      window.history.scrollRestoration = 'manual'
+      return Message.CompletedDisableBrowserScrollRestoration()
+    }),
+  },
+)
+
+export const ScrollToAnchor = Command.define('ScrollToAnchor', {
   args: { hash: Schema.String },
   messages: [Message.CompletedScrollToAnchor],
   execute: ({ hash }) =>
@@ -957,7 +1048,7 @@ const setThemeColorMeta = (color: string): void => {
   }
 }
 
-const ApplyTheme = Command.define('ApplyTheme', {
+export const ApplyTheme = Command.define('ApplyTheme', {
   args: { theme: ResolvedTheme },
   messages: [Message.CompletedApplyTheme],
   execute: ({ theme }) =>

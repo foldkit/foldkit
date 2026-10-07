@@ -1,8 +1,15 @@
-import { Array, Effect, Match, Option, Schema } from 'effect'
-import { Command, Runtime, Subscription, Update } from 'foldkit'
+import { Array, Effect, Equal, Match, Option, Schema } from 'effect'
+import { Command, Render, Runtime, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
+import {
+  type LoadType,
+  ScrollPosition,
+  UrlChangeType,
+  UrlRequest,
+  load,
+  pushUrl,
+} from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
@@ -43,8 +50,11 @@ type NavigationShortcut = typeof NavigationShortcut.Type
 export const Message = defineMessageUnion({
   CompletedNavigateInternal: {},
   CompletedLoadExternal: {},
+  CompletedDisableBrowserScrollRestoration: {},
+  CompletedScrollToTop: {},
+  CompletedRestoreScrollPosition: {},
   ClickedLink: { request: UrlRequest },
-  ChangedUrl: { url: Url },
+  ChangedUrl: { url: Url, urlChangeType: UrlChangeType },
   EnteredNavigationShortcut: { shortcut: NavigationShortcut },
   GotPeopleMessage: { message: People.Message },
 })
@@ -55,6 +65,7 @@ export type Message = typeof Message.Type
 
 export const init: Runtime.RoutingApplicationInit<Model, Message> = (
   url: Url,
+  loadType: LoadType,
 ) => {
   const route = urlToAppRoute(url)
 
@@ -63,10 +74,26 @@ export const init: Runtime.RoutingApplicationInit<Model, Message> = (
     Match.orElse(() => AppRoute.People({ searchText: Option.none() })),
   )
 
-  return Update.foldChildInit(People.init(initialPeopleRoute), {
+  const peopleInit = Update.foldChildInit(People.init(initialPeopleRoute), {
     toParentModel: peoplePage => ({ route, peoplePage }),
     toParentMessage: message => Message.GotPeopleMessage({ message }),
   })
+
+  return {
+    model: peopleInit.model,
+    commands: [
+      ...(peopleInit.commands ?? []),
+      DisableBrowserScrollRestoration(),
+      ...Match.value(loadType).pipe(
+        Match.withReturnType<ReadonlyArray<Command.Command<Message>>>(),
+        Match.tag('Push', () => []),
+        Match.tag('Reload', 'Traverse', ({ maybeSavedScrollPosition }) =>
+          restoreScrollPositionCommands(maybeSavedScrollPosition),
+        ),
+        Match.exhaustive,
+      ),
+    ],
+  }
 }
 
 // COMMAND
@@ -84,6 +111,41 @@ const LoadExternal = Command.define('LoadExternal', {
   execute: ({ href }) =>
     load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
 })
+
+export const DisableBrowserScrollRestoration = Command.define(
+  'DisableBrowserScrollRestoration',
+  {
+    messages: [Message.CompletedDisableBrowserScrollRestoration],
+    execute: Effect.sync(() => {
+      window.history.scrollRestoration = 'manual'
+      return Message.CompletedDisableBrowserScrollRestoration()
+    }),
+  },
+)
+
+export const ScrollToTop = Command.define('ScrollToTop', {
+  messages: [Message.CompletedScrollToTop],
+  execute: Effect.sync(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' })
+    return Message.CompletedScrollToTop()
+  }),
+})
+
+export const RestoreScrollPosition = Command.define('RestoreScrollPosition', {
+  args: ScrollPosition.fields,
+  messages: [Message.CompletedRestoreScrollPosition],
+  execute: ({ x, y }) =>
+    Effect.gen(function* () {
+      yield* Render.afterCommit
+      window.scrollTo({ left: x, top: y, behavior: 'instant' })
+      return Message.CompletedRestoreScrollPosition()
+    }),
+})
+
+const restoreScrollPositionCommands = (
+  maybeSavedScrollPosition: Option.Option<ScrollPosition>,
+): ReadonlyArray<Command.Command<Message>> =>
+  Option.toArray(Option.map(maybeSavedScrollPosition, RestoreScrollPosition))
 
 // UPDATE
 
@@ -117,10 +179,37 @@ const setRoute =
   (nextRoute: AppRoute): Update.Step<Model, Message> =>
   model => ({ model: modifyFields(model, { route: () => nextRoute }) })
 
+const isPeopleRoute = AppRoute.isAnyOf(['People'])
+
+const isSamePage = (currentRoute: AppRoute, nextRoute: AppRoute): boolean =>
+  Equal.equals(currentRoute, nextRoute) ||
+  (isPeopleRoute(currentRoute) && isPeopleRoute(nextRoute))
+
+const scrollCommandsForUrlChange = (
+  currentRoute: AppRoute,
+  nextRoute: AppRoute,
+  urlChangeType: UrlChangeType,
+): ReadonlyArray<Command.Command<Message>> =>
+  UrlChangeType.match(urlChangeType, {
+    Push: () =>
+      Option.toArray(
+        Option.liftPredicate(
+          ScrollToTop(),
+          () => !isSamePage(currentRoute, nextRoute),
+        ),
+      ),
+    Replace: () => [],
+    Traverse: ({ maybeSavedScrollPosition }) =>
+      restoreScrollPositionCommands(maybeSavedScrollPosition),
+  })
+
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
+    CompletedDisableBrowserScrollRestoration: () => ({ model }),
+    CompletedScrollToTop: () => ({ model }),
+    CompletedRestoreScrollPosition: () => ({ model }),
 
     ClickedLink: ({ request }) =>
       UrlRequest.match<UpdateReturn>(request, {
@@ -134,7 +223,7 @@ export const update = (model: Model, message: Message) =>
         }),
       }),
 
-    ChangedUrl: ({ url }) => {
+    ChangedUrl: ({ url, urlChangeType }) => {
       const nextRoute = urlToAppRoute(url)
 
       const routeSteps = Match.value(nextRoute).pipe(
@@ -145,7 +234,20 @@ export const update = (model: Model, message: Message) =>
         Match.orElse(() => []),
       )
 
-      return Update.combine(model, [setRoute(nextRoute), ...routeSteps])
+      const scrollToRoute: Update.Step<Model, Message> = stepModel => ({
+        model: stepModel,
+        commands: scrollCommandsForUrlChange(
+          model.route,
+          nextRoute,
+          urlChangeType,
+        ),
+      })
+
+      return Update.combine(model, [
+        setRoute(nextRoute),
+        ...routeSteps,
+        scrollToRoute,
+      ])
     },
 
     EnteredNavigationShortcut: ({ shortcut }) => {

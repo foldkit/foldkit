@@ -2,6 +2,7 @@ import { Layer, Option, Predicate, Schema } from 'effect'
 
 import { Document, type HtmlBuilder } from '../html/index.js'
 import type { ManagedResources } from '../managedResource/index.js'
+import type { LoadType } from '../navigation/loadType.js'
 import type { Ports } from '../port/index.js'
 import type { Subscriptions } from '../subscription/subscription.js'
 import type { Return as UpdateReturn } from '../update/index.js'
@@ -53,7 +54,9 @@ type BaseApplicationConfig<
   devTools?: DevToolsConfig
 }>
 
-/** Configuration for `makeApplication` with Flags and URL routing. */
+/** Configuration for `makeApplication` with Flags and URL routing. `init`
+ *  receives the Flags, the current URL, and the `LoadType` that says how the
+ *  reader arrived at the page. */
 export type RoutingApplicationConfigWithFlags<
   Model,
   Message,
@@ -74,10 +77,13 @@ export type RoutingApplicationConfigWithFlags<
     init: (
       flags: Flags,
       url: Url,
+      loadType: LoadType,
     ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
   }>
 
-/** Configuration for `makeApplication` with URL routing but no Flags. */
+/** Configuration for `makeApplication` with URL routing but no Flags. `init`
+ *  receives the current URL and the `LoadType` that says how the reader
+ *  arrived at the page. */
 export type RoutingApplicationConfig<
   Model,
   Message,
@@ -95,6 +101,7 @@ export type RoutingApplicationConfig<
     routing: RoutingConfig<Message>
     init: (
       url: Url,
+      loadType: LoadType,
     ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
   }>
 
@@ -155,7 +162,18 @@ export type ApplicationInit<
       flags: Flags,
     ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
 
-/** The `init` function type for a `makeApplication` app with URL routing, receives the current URL and optional Flags. */
+/** The `init` function type for a `makeApplication` app with URL routing.
+ *  Receives the Flags, when the app declares them, then the current URL and how
+ *  the reader arrived at the page: `LoadType.Push()` for a new visit,
+ *  `LoadType.Reload` for a reload, and `LoadType.Traverse` for Back or Forward
+ *  into the page. `Reload` and `Traverse` carry `maybeSavedScrollPosition`, the
+ *  scroll position the reader last had on this history entry, or
+ *  `Option.none()` when none was recorded.
+ *
+ *  A server render passes `LoadType.Push()`, while a hydrating client's `init`
+ *  receives the real `LoadType`. Under `hydrate`, keep what the view renders
+ *  independent of the `LoadType` and act on it only through Commands, so the
+ *  client's first render matches the HTML the server sent. */
 export type RoutingApplicationInit<
   Model,
   Message,
@@ -165,18 +183,22 @@ export type RoutingApplicationInit<
 > = Flags extends void
   ? (
       url: Url,
+      loadType: LoadType,
     ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
   : (
       flags: Flags,
       url: Url,
+      loadType: LoadType,
     ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
 
 /** Creates a Foldkit application that owns the page and returns a runtime that
  *  can be passed to `run`. The `view` returns a `Document`, so the runtime
  *  manages `document.title` and the canonical / og:url tags. Add a `routing`
- *  config for URL routing. Use one page-owning application per document. To
- *  mount an app scoped to a node without touching the document `<head>`, use
- *  `makeElement`. */
+ *  config for URL routing. A routing app's `init` then receives the current URL
+ *  and a `LoadType`, and `routing.onUrlChange` receives the new URL and a
+ *  `UrlChangeType` on every change. Use one page-owning application per
+ *  document. To mount an app scoped to a node without touching the document
+ *  `<head>`, use `makeElement`. */
 export function makeApplication<
   Model,
   Message extends { _tag: string },
@@ -348,7 +370,7 @@ export function makeApplication<
       Flags: config.Flags,
       configuredFlags: Option.none(),
       isFlagsRequired: true,
-      init: (flags: unknown, url) =>
+      init: (flags: unknown, url: Url | undefined, loadType: LoadType) =>
         (
           config as RoutingApplicationConfigWithFlags<
             Model,
@@ -357,7 +379,7 @@ export function makeApplication<
             Resources,
             ManagedResourceServices
           >
-        ).init(flags as Flags, url ?? currentUrl!),
+        ).init(flags as Flags, url ?? currentUrl!, loadType),
     } as RuntimeConfig<
       Model,
       Message,
@@ -373,7 +395,7 @@ export function makeApplication<
       Flags: Schema.Void,
       configuredFlags: Option.none(),
       isFlagsRequired: false,
-      init: (_flags, url) =>
+      init: (_flags: void, url: Url | undefined, loadType: LoadType) =>
         (
           config as RoutingApplicationConfig<
             Model,
@@ -381,7 +403,7 @@ export function makeApplication<
             Resources,
             ManagedResourceServices
           >
-        ).init(url ?? currentUrl!),
+        ).init(url ?? currentUrl!, loadType),
     } as RuntimeConfig<
       Model,
       Message,
