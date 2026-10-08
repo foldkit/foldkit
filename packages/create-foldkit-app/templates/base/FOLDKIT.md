@@ -100,7 +100,9 @@ Omit the children argument when an element has none: `h.div([h.Class('divider')]
 
 Define a Command with `Command.define(name, { args, messages, execute })`; omit `args` when the Command takes none. Assign definitions to PascalCase constants. Never inline in pipe chains. Name the effect `execute` performs, not the later Model transition caused when update handles its result: a timer that only waits before update starts a dismissal is `WaitBeforeDismissal`, not `DismissAfter`. Commands catch all errors via `Effect.catch(() => Effect.succeed(Message.FailedX(...)))` so side effects never crash the app. Definitions live colocated with the update function that returns them.
 
-Command args contain values already present in the Model or Message. Calling `Date.now()`, `crypto.randomUUID()`, or another source of time or randomness while preparing a Command happens before the Command executes, whether the call appears directly in the args object or its result is assigned to a local variable first. Obtain those values in `execute` and return them in the result Message.
+For a replaceable Command implementation, omit `execute` and build a handler Layer with `Definition.toLayer(handler)`. Wrap the update function in `Update.make` so its Command requirements reach `Application.make`, then supply the Layer with `Application.provide`. The SSR template's `PersistCount` Command shows this path. Give distinct definitions distinct names; a Layer from another definition with the same name fails when the Command runs.
+
+Command args contain values already present in the Model or Message. Calling `Date.now()`, `crypto.randomUUID()`, or another source of time or randomness while preparing a Command happens before the Command executes, whether the call appears directly in the args object or its result is assigned to a local variable first. Obtain those values in the inline `execute` or Layer handler and return them in the result Message.
 
 For the with-args shape, see `repos/foldkit/examples/weather/src/main.ts` or `repos/foldkit/examples/kanban/src/command.ts`. For an argless DOM-side-effect Command, the argless form in `kanban/src/command.ts` (`FocusAddCardInput`) is the canonical reference.
 
@@ -108,7 +110,7 @@ For DOM operations (focus, scroll, modals, scroll lock), Foldkit ships a `Dom` m
 
 ### File Organization
 
-Keep the runtime boot separate from the pure definitions. `src/entry.ts` calls `Runtime.makeApplication`, then `Runtime.run` for a client-rendered app or `Runtime.hydrate` for an SSR or SSG app. A client-rendered app references that entry from `index.html`. An SSR or SSG app names it in `ssr.clientEntry` in `vite.config.ts`, imports CSS from it, and exports `renderDocument` from `src/entry.server.ts` to produce the complete document. Its source tree has no `index.html`.
+Keep the runtime boot separate from the pure definitions. `src/entry.ts` calls `Application.make` and supplies any handler Layers with `Application.provide`, then calls `Runtime.run` for a client-rendered app or `Runtime.hydrate` for an SSR or SSG app. A client-rendered app references that entry from `index.html`. An SSR or SSG app names it in `ssr.clientEntry` in `vite.config.ts`, imports CSS from it, and exports `renderDocument` from `src/entry.server.ts` to produce the complete document. Its source tree has no `index.html`.
 
 The definitions (Model, Messages, init, update, view, Commands) never call `Runtime.run` or `Runtime.hydrate`, so tests and server entries can import them without booting a browser runtime. Keep both calls out of `main.ts`.
 

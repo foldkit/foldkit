@@ -8,7 +8,7 @@ import {
   flow,
   pipe,
 } from 'effect'
-import { Command, Runtime, Subscription, type Update } from 'foldkit'
+import { Command, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -44,27 +44,33 @@ export type Message = typeof Message.Type
 export const DetermineStartTime = Command.define('DetermineStartTime', {
   args: { elapsedMs: Schema.Number },
   messages: [Message.CompletedDetermineStartTime],
-  execute: ({ elapsedMs }) =>
+})
+
+export const DetermineStartTimeLive = DetermineStartTime.toLayer(
+  ({ elapsedMs }) =>
     Effect.gen(function* () {
       const now = yield* Clock.currentTimeMillis
       return Message.CompletedDetermineStartTime({ startTime: now - elapsedMs })
     }),
-})
+)
 
 export const DetermineTickTime = Command.define('DetermineTickTime', {
   args: { startTime: Schema.Number },
   messages: [Message.CompletedDetermineTickTime],
-  execute: ({ startTime }) =>
+})
+
+export const DetermineTickTimeLive = DetermineTickTime.toLayer(
+  ({ startTime }) =>
     Effect.gen(function* () {
       const now = yield* Clock.currentTimeMillis
       return Message.CompletedDetermineTickTime({ elapsedMs: now - startTime })
     }),
-})
+)
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedStart: () => ({
       model,
       commands: [DetermineStartTime({ elapsedMs: model.elapsedMs })],
@@ -101,11 +107,12 @@ export const update = (model: Model, message: Message) =>
         elapsedMs: () => elapsedMs,
       }),
     }),
-  })
+  }),
+)
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+export const init = () => ({
   model: {
     elapsedMs: 0,
     isRunning: false,
@@ -117,20 +124,24 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   tick: entry(
+    'WatchStopwatchTicks',
     { isRunning: Schema.Boolean },
     {
       modelToDependencies: model => ({ isRunning: model.isRunning }),
-      dependenciesToStream: ({ isRunning }) =>
-        Stream.when(
-          Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
-            Stream.drop(1),
-            Stream.map(Message.Ticked),
-          ),
-          Effect.sync(() => isRunning),
-        ),
     },
   ),
 }))
+
+export const WatchStopwatchTicksLive = subscriptions.tick.toLayer(
+  ({ isRunning }) =>
+    Stream.when(
+      Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
+        Stream.drop(1),
+        Stream.map(Message.Ticked),
+      ),
+      Effect.sync(() => isRunning),
+    ),
+)
 
 // VIEW
 

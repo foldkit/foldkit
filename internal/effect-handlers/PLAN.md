@@ -4,9 +4,9 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 ## Status
 
-**Current milestone:** Command, Subscription, and ManagedResource handler Layers work through `Application.make` and chained `Application.provide`. Application assembly supports Flags and routing. Weather and Managed Resource Layer examples use the new surface.
+**Current milestone:** Command, Subscription, and ManagedResource handler Layers work through `Application.make` and chained `Application.provide`. Application assembly supports Flags and routing. Weather, Stopwatch, and Managed Resource Layer examples use the new surface.
 
-**Next decision:** Resolve the Mount/view requirement boundary, then migrate first-party consumers and active documentation.
+**Next implementation:** Add explicitly registered Mount handler Layers, then migrate first-party consumers and active documentation.
 
 **Scope:** Production handler Layers and application assembly. Whole-application testing APIs are deferred.
 
@@ -15,7 +15,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 | Command handlers                          | Implemented, verifying | Define a Command separately from its handler Layer.                                   |
 | Application assembly                      | Implemented, verifying | See unsatisfied requirements on an application and provide Layers before starting it. |
 | Subscription and ManagedResource handlers | Implemented, verifying | Replace implementations while preserving Model-driven lifecycles.                     |
-| Mount boundary                            | Planned                | Settle how Mount requirements enter the application type.                             |
+| Mount boundary                            | Design chosen          | Register Layer-backed Mount definitions to carry their requirements.                  |
 | Migration and verification                | In progress            | First-party apps, templates, and active docs use the final API.                       |
 
 ## Target surface
@@ -61,14 +61,17 @@ This is the working checklist for separating Foldkit effect definitions from the
 - [x] Reject distinct Subscription definitions that use the same handler name in one application.
 - [x] Move Subscription Stream implementations into handler Layers without changing restart and keep-alive behavior.
 - [x] Move ManagedResource acquire and release implementations into handler Layers without changing active-value access or release timing.
-- [ ] Migrate first-party Subscriptions, ManagedResources, and templates.
+- [ ] Migrate first-party Subscriptions and ManagedResources. The Stopwatch Subscription and Managed Resource Layer example are migrated.
+- [x] Migrate SSR and SSG scaffolds to `Application.make`; the SSR cookie-writing Command has a handler Layer.
 
 ### 5. Mount boundary
 
 - [x] Document the `view` type boundary that prevents Mount handler requirements from joining the application `R` channel.
-- [ ] Choose and verify an explicit registration or type-propagation design before adding `Mount.toLayer`.
+- [x] Choose explicit Mount registration rather than propagating requirements through `Html` and `Document`.
+- [ ] Add `Mount.toLayer` for one-shot and streaming definitions, preserving element-driven acquisition, teardown, and Message lifting.
+- [ ] Infer registered Mount requirements into `Application.make` and validate rendered Mounts before patching the DOM.
 
-`view` returns a `Document`, and `MountAction.f` currently returns a Stream with no exposed `R`. A Mount used only inside `view` therefore cannot add a handler requirement to `Application.make` by inference from update or Subscriptions. The likely path is an explicit `mounts` registration in the application definition, with a runtime check that every rendered layered Mount was registered. This needs a focused API and lifecycle spike before implementation. The alternative is to thread an `R` type through `Html`, `Document`, and the view builder, which would affect every view API.
+`view` returns a `Document`, and `MountAction.f` currently returns a Stream with no exposed `R`. A Mount used only inside `view` therefore cannot add a handler requirement to `Application.make` by inference from update or Subscriptions. The application will register its Layer-backed Mount definitions in a `mounts` collection. That collection contributes handler requirements to the application's `R` channel. A pre-patch check of rendered Mount identities will reject unregistered Layer-backed actions, including ones revealed by later Model states. An unused registration is valid because conditional views are normal. Inline Mounts need no registration.
 
 ### 6. Verification and publication
 
@@ -82,7 +85,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 - Foldkit: 2,984 tests passed, 1 skipped.
 - Workspace: all 52 projects passed TypeScript checks after building their local package dependencies.
-- Weather and Managed Resource Layer examples: type checks and Story/Scene tests passed.
+- Weather, Stopwatch, and Managed Resource Layer examples: type checks and Story/Scene tests passed.
 - Root and application lint, formatting, and `git diff --check` passed.
 - The API reference generator succeeds with warnings about helper types referenced by the new signatures; those need cleanup before publication.
 

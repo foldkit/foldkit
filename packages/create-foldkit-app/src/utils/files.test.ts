@@ -92,6 +92,9 @@ describe('rendering templates', () => {
     expect(readTemplateFile('rendering/ssg/src/entry.ts')).toContain(
       'Runtime.hydrate(application)',
     )
+    expect(readTemplateFile('rendering/ssg/src/entry.ts')).toContain(
+      'Application.make({',
+    )
   })
 
   it('ssr overlays the base with a server entry, fetch handler, and start script', () => {
@@ -120,7 +123,7 @@ describe('rendering templates', () => {
       'flags: flagsForRequest(',
     )
     expect(readTemplateFile('rendering/ssr/src/entry.ts')).toContain(
-      'Runtime.hydrate(application)',
+      'Runtime.hydrate(Application.provide(application, PersistCountLive))',
     )
   })
 

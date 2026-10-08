@@ -1,8 +1,18 @@
-import { Runtime } from 'foldkit'
+import { Application, Runtime } from 'foldkit'
 
-import { Message, Model, init, subscriptions, update, view } from './main'
+import {
+  DetermineStartTimeLive,
+  DetermineTickTimeLive,
+  Message,
+  Model,
+  WatchStopwatchTicksLive,
+  init,
+  subscriptions,
+  update,
+  view,
+} from './main'
 
-const application = Runtime.makeApplication({
+const application = Application.make({
   Model,
   init,
   update,
@@ -14,4 +24,8 @@ const application = Runtime.makeApplication({
   },
 })
 
-Runtime.run(application)
+const withStartTime = Application.provide(application, DetermineStartTimeLive)
+const withTickTime = Application.provide(withStartTime, DetermineTickTimeLive)
+const runnable = Application.provide(withTickTime, WatchStopwatchTicksLive)
+
+Runtime.run(runnable)
