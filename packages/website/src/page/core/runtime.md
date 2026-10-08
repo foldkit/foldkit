@@ -9,6 +9,10 @@ The Runtime API makes two independent choices:
 - `makeApplication` or `makeElement` decides what the app owns. An application owns the page; an element owns only its container.
 - `Runtime.run` or `Runtime.embed` decides who owns the runtime lifetime. `run` starts it for the page lifetime; `embed` returns a handle the host disposes.
 
+For a page-owning application with Layer-backed Commands, Subscriptions, or ManagedResources, `Application.make` carries their inferred Effect requirements. Call `Application.provide` until they are satisfied, then pass the runnable application to `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed`. Provision can be chained because a handler Layer may itself need services from a later Layer. The application config has no `resources` field; runtime-wide services are supplied through `Application.provide`.
+
+::Snippet{name="runApplicationLayers" label="Providing application handler Layers"}
+
 ## makeApplication {#make-application}
 
 `makeApplication` creates a Foldkit program for an app that owns the page. It supports both apps that leave the URL alone and apps that manage routing. The difference is whether you provide a `routing` config. To scope an app to one node without owning the page, use `makeElement`.

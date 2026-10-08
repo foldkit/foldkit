@@ -1,7 +1,8 @@
-import { Effect, Option, Schema } from 'effect'
+import { Context, Effect, Exit, Layer, Option, Schema, Scope } from 'effect'
 import { describe, expect, expectTypeOf, it } from 'vitest'
 
 import {
+  type Handler,
   type ServiceOf,
   type ServicesOf,
   aggregate,
@@ -31,6 +32,32 @@ const childManagedResources = make<ChildModel, ChildMessage>()(entry => ({
       Option.map(model.maybeToken, token => ({ token })),
     acquire: ({ token }) => Effect.succeed({ token }),
     release: () => Effect.void,
+    onAcquired: () => childMessage('AcquiredSession'),
+    onReleased: () => childMessage('ReleasedSession'),
+    onAcquireError: () => childMessage('FailedSession'),
+  }),
+}))
+
+class Prefix extends Context.Service<Prefix, { readonly value: string }>()(
+  'ManagedResourceHandlerTestPrefix',
+) {}
+
+class Suffix extends Context.Service<Suffix, { readonly value: string }>()(
+  'ManagedResourceHandlerTestSuffix',
+) {}
+
+class BuildCount extends Context.Service<
+  BuildCount,
+  { readonly increment: () => void }
+>()('ManagedResourceHandlerTestBuildCount') {}
+
+const LayeredSessionResource = tag<string>()('LayeredSessionResource')
+
+const layeredManagedResources = make<ChildModel, ChildMessage>()(entry => ({
+  session: entry('ManageSession', sessionSchema, {
+    resource: LayeredSessionResource,
+    modelToMaybeRequirements: model =>
+      Option.map(model.maybeToken, token => ({ token })),
     onAcquired: () => childMessage('AcquiredSession'),
     onReleased: () => childMessage('ReleasedSession'),
     onAcquireError: () => childMessage('FailedSession'),
@@ -76,6 +103,14 @@ const liftedManagedResources = lift(childManagedResources)<
   toParentMessage: gotChild,
 })
 
+const liftedLayeredManagedResources = lift(layeredManagedResources)<
+  ParentModel,
+  ParentMessage
+>({
+  read: model => model.maybeChild,
+  toParentMessage: gotChild,
+})
+
 describe('make', () => {
   it('inlines the positional requirements schema on each entry', () => {
     expect(childManagedResources.session.schema).toBe(sessionSchema)
@@ -83,6 +118,140 @@ describe('make', () => {
 
   it('exposes the resource tag for service-union inference', () => {
     expect(childManagedResources.session.resource).toBe(SessionResource)
+    expectTypeOf(
+      childManagedResources.session.acquire({ token: 'abc' }),
+    ).toEqualTypeOf<
+      Effect.Effect<Readonly<{ token: string }>, unknown, Scope.Scope>
+    >()
+  })
+
+  it('carries a named lifecycle Handler and the Layer dependencies', () => {
+    const layer = layeredManagedResources.session.toLayer({
+      acquire: ({ token }) => Effect.map(Prefix, ({ value }) => value + token),
+      release: value =>
+        Effect.asVoid(
+          Effect.map(Suffix, ({ value: suffix }) => value + suffix),
+        ),
+    })
+
+    expectTypeOf(
+      layeredManagedResources.session.acquire({ token: 'abc' }),
+    ).toEqualTypeOf<
+      Effect.Effect<string, unknown, Handler<'ManageSession'> | Scope.Scope>
+    >()
+    expectTypeOf(layer).toEqualTypeOf<
+      Layer.Layer<Handler<'ManageSession'>, never, Prefix | Suffix>
+    >()
+    expect(layeredManagedResources.session.name).toBe('ManageSession')
+  })
+
+  it('uses invocation context for both acquire and release', async () => {
+    const released: Array<string> = []
+    const layer = layeredManagedResources.session.toLayer({
+      acquire: ({ token }) => Effect.map(Prefix, ({ value }) => value + token),
+      release: value =>
+        Effect.flatMap(Suffix, ({ value: suffix }) =>
+          Effect.sync(() => released.push(value + suffix)),
+        ),
+    })
+
+    const result = await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const value = yield* layeredManagedResources.session.acquire({
+            token: 'abc',
+          })
+          yield* layeredManagedResources.session.release(value)
+          return value
+        }).pipe(
+          Effect.provideService(Prefix, { value: 'invocation:' }),
+          Effect.provideService(Suffix, { value: ':invocation' }),
+          Effect.provide(layer),
+          Effect.provide(
+            Layer.mergeAll(
+              Layer.succeed(Prefix, { value: 'construction:' }),
+              Layer.succeed(Suffix, { value: ':construction' }),
+            ),
+          ),
+        ),
+      ),
+    )
+
+    expect(result).toBe('invocation:abc')
+    expect(released).toEqual(['invocation:abc:invocation'])
+  })
+
+  it('uses the resource lifetime Scope for lifecycle finalizers', async () => {
+    const finalizations: Array<string> = []
+    const layer = layeredManagedResources.session.toLayer({
+      acquire: ({ token }) =>
+        Effect.gen(function* () {
+          yield* Effect.addFinalizer(() =>
+            Effect.sync(() => finalizations.push('acquire')),
+          )
+          return token
+        }),
+      release: () =>
+        Effect.addFinalizer(() =>
+          Effect.sync(() => finalizations.push('release')),
+        ),
+    })
+    const constructionScope = await Effect.runPromise(Scope.make())
+    const handlerContext = await Effect.runPromise(
+      Layer.buildWithScope(layer, constructionScope),
+    )
+
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.gen(function* () {
+          const value = yield* layeredManagedResources.session.acquire({
+            token: 'abc',
+          })
+          yield* layeredManagedResources.session.release(value)
+        }).pipe(Effect.provide(handlerContext)),
+      ),
+    )
+
+    expect(finalizations).toEqual(['release', 'acquire'])
+
+    await Effect.runPromise(Scope.close(constructionScope, Exit.void))
+  })
+
+  it('builds an Effect supplied lifecycle once and defers its handlers', async () => {
+    let builds = 0
+    let acquisitions = 0
+    const layer = layeredManagedResources.session.toLayer(
+      Effect.map(BuildCount, ({ increment }) => {
+        increment()
+        return {
+          acquire: ({ token }: { readonly token: string }) =>
+            Effect.sync(() => {
+              acquisitions += 1
+              return token
+            }),
+          release: () => Effect.void,
+        }
+      }),
+    )
+
+    await Effect.runPromise(
+      Effect.scoped(
+        Effect.all([
+          layeredManagedResources.session.acquire({ token: 'first' }),
+          layeredManagedResources.session.acquire({ token: 'second' }),
+        ]).pipe(
+          Effect.provide(layer),
+          Effect.provideService(BuildCount, {
+            increment: () => {
+              builds += 1
+            },
+          }),
+        ),
+      ),
+    )
+
+    expect(builds).toBe(1)
+    expect(acquisitions).toBe(2)
   })
 })
 
@@ -146,6 +315,18 @@ describe('lift', () => {
 
   it('preserves the child requirements schema', () => {
     expect(liftedManagedResources.session.schema).toBe(sessionSchema)
+  })
+
+  it('preserves a layered entry lifecycle identity', () => {
+    expect(liftedLayeredManagedResources.session.name).toBe('ManageSession')
+    expect(liftedLayeredManagedResources.session.toLayer).toBe(
+      layeredManagedResources.session.toLayer,
+    )
+    expectTypeOf(
+      liftedLayeredManagedResources.session.acquire({ token: 'abc' }),
+    ).toEqualTypeOf<
+      Effect.Effect<string, unknown, Handler<'ManageSession'> | Scope.Scope>
+    >()
   })
 })
 

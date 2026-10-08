@@ -8,9 +8,7 @@ const application = Application.make({
   update,
   view,
   container: document.getElementById('root'),
-  devTools: {
-    Message,
-  },
+  devTools: { Message },
 })
 
 const withWeatherHandler = Application.provide(application, FetchWeatherLive)

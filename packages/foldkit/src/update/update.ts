@@ -6,7 +6,7 @@ import { type Command, mapMessage, mapMessages } from '../command/index.js'
 /** The Commands collection an update return may include. The collection keeps
  *  the order in which the update returned them, but the runtime forks the
  *  Commands independently. `R` is the services the Commands need and defaults
- *  to `never` for applications without resources.
+ *  to `never` for updates without service requirements.
  *
  *  Name an alias when a module reuses the same Message and service types:
  *
@@ -33,7 +33,9 @@ export type Commands<Message, R = never> = ReadonlyArray<
  *  ```
  *
  *  Give it a local `UpdateReturn` alias when another matcher or helper in the
- *  module needs the same type. */
+ *  module needs the same type. When Commands use handler Layers, wrap the
+ *  update with {@link make} to infer their requirements across branches.
+ *  An explicit `Return<Model, Message>` annotation fixes `R` to `never`. */
 export type Return<Model, Message, R = never> = Readonly<{
   model: Model
   commands?: Commands<Message, R>
@@ -42,6 +44,62 @@ export type Return<Model, Message, R = never> = Readonly<{
    *  where a caller would keep only the Model and Commands. */
   outMessage?: never
 }>
+
+type AnyUpdate = (model: any, message: any) => any
+
+type CommandRequirements<Output> = Output extends unknown
+  ? 'commands' extends keyof Output
+    ? Output extends Readonly<{ commands?: infer Commands }>
+      ? Commands extends ReadonlyArray<infer CommandValue>
+        ? CommandValue extends Command<any, any, infer R>
+          ? R
+          : never
+        : never
+      : never
+    : never
+  : never
+
+type ValidateUpdate<Update extends AnyUpdate> = Update extends (
+  model: infer Model,
+  message: infer Message,
+) => infer Output
+  ? [Output] extends [Return<Model, Message, unknown>]
+    ? unknown
+    : never
+  : never
+
+type MadeUpdate<Update extends AnyUpdate> = (
+  model: Parameters<Update>[0],
+  message: Parameters<Update>[1],
+) => Return<
+  Parameters<Update>[0],
+  Parameters<Update>[1],
+  CommandRequirements<ReturnType<Update>>
+>
+
+/** Defines an update while inferring the union of services required by the
+ * Commands returned across all Message branches. The returned function keeps
+ * the ordinary {@link Return} contract, including its prohibition on silently
+ * discarding an OutMessage.
+ *
+ * Use this when Command implementations come from Layers, so application
+ * assembly can infer every required handler service without a hand-written
+ * requirements union:
+ *
+ * ```ts
+ * export const update = Update.make((model: Model, message: Message) =>
+ *   Message.match(message, {
+ *     ClickedSave: () => ({ model, commands: [Save()] }),
+ *     CompletedSave: () => ({ model }),
+ *   }),
+ * )
+ * ``` */
+export function make<const Update extends AnyUpdate>(
+  update: Update & ValidateUpdate<Update>,
+): MadeUpdate<Update>
+export function make(update: AnyUpdate): AnyUpdate {
+  return update
+}
 
 /** The return shape of an update that can also surface an OutMessage to its
  *  parent. Omit `commands` when the update statically creates none. Return a

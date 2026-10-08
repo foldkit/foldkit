@@ -2,6 +2,7 @@ import {
   Context,
   Effect,
   Equivalence,
+  Layer,
   Option,
   Schema,
   Stream,
@@ -12,6 +13,7 @@ import { describe, expect, expectTypeOf, it } from 'vitest'
 import { defineTaggedUnion } from '../schema/index.js'
 import {
   type GatedDependencies,
+  type Handler,
   type Subscriptions,
   aggregate,
   lift,
@@ -663,6 +665,178 @@ type StreamMessage<AnyStream> =
 
 type StreamServices<AnyStream> =
   AnyStream extends Stream.Stream<any, any, infer Services> ? Services : never
+
+describe('Layer-backed entries', () => {
+  class Prefix extends Context.Service<Prefix, { readonly value: string }>()(
+    'SubscriptionHandlerTestPrefix',
+  ) {}
+
+  class Suffix extends Context.Service<Suffix, { readonly value: string }>()(
+    'SubscriptionHandlerTestSuffix',
+  ) {}
+
+  const subscriptions = make<ChildModel, string>()(entry => ({
+    registrationKey: entry('WatchLabel', childFields, {
+      modelToDependencies: model => ({
+        isRunning: model.isRunning,
+        label: model.label,
+      }),
+    }),
+    latestLabel: entry('WatchLatestLabel', childFields, {
+      modelToDependencies: model => ({
+        isRunning: model.isRunning,
+        label: model.label,
+      }),
+      keepAliveEquivalence: Equivalence.make(
+        (left, right) => left.isRunning === right.isRunning,
+      ),
+    }),
+  }))
+
+  it('separates the registration key from the handler name and carries its requirements', () => {
+    const layer = subscriptions.registrationKey.toLayer(({ label }) =>
+      Stream.fromEffect(Effect.map(Prefix, ({ value }) => `${value}${label}`)),
+    )
+
+    expect(Object.keys(subscriptions)).toEqual([
+      'registrationKey',
+      'latestLabel',
+    ])
+    expect(subscriptions.registrationKey.name).toBe('WatchLabel')
+    expectTypeOf(layer).toEqualTypeOf<
+      Layer.Layer<Handler<'WatchLabel'>, never, Prefix>
+    >()
+    expectTypeOf<
+      StreamServices<
+        ReturnType<typeof subscriptions.registrationKey.dependenciesToStream>
+      >
+    >().toEqualTypeOf<Handler<'WatchLabel'>>()
+
+    const constructedLayer = subscriptions.registrationKey.toLayer(
+      Effect.map(
+        Suffix,
+        () =>
+          ({ label }: ChildDependencies) =>
+            Stream.fromEffect(
+              Effect.map(Prefix, ({ value }) => `${value}${label}`),
+            ),
+      ),
+    )
+    expectTypeOf(constructedLayer).toEqualTypeOf<
+      Layer.Layer<Handler<'WatchLabel'>, never, Prefix | Suffix>
+    >()
+  })
+
+  it('uses invocation context over the context captured by the handler Layer', async () => {
+    const layer = subscriptions.registrationKey.toLayer(({ label }) =>
+      Stream.fromEffect(Effect.map(Prefix, ({ value }) => `${value}${label}`)),
+    )
+    const handlerLayer = Layer.provide(
+      layer,
+      Layer.succeed(Prefix, { value: 'construction:' }),
+    )
+    const dependencies = subscriptions.registrationKey.modelToDependencies({
+      isRunning: true,
+      label: 'hello',
+    })
+
+    const result = await Effect.runPromise(
+      Stream.runCollect(
+        subscriptions.registrationKey.dependenciesToStream(dependencies),
+      ).pipe(
+        Effect.provideService(Prefix, { value: 'invocation:' }),
+        Effect.provide(handlerLayer),
+      ),
+    )
+
+    expect(result).toEqual(['invocation:hello'])
+  })
+
+  it('builds an Effect supplied handler once for multiple Stream executions', async () => {
+    let builds = 0
+    const layer = subscriptions.registrationKey.toLayer(
+      Effect.map(Suffix, () => {
+        builds += 1
+        return ({ label }: ChildDependencies) => Stream.succeed(label)
+      }),
+    )
+    const handlerLayer = Layer.provide(
+      layer,
+      Layer.succeed(Suffix, { value: 'unused' }),
+    )
+    const first = subscriptions.registrationKey.modelToDependencies({
+      isRunning: true,
+      label: 'first',
+    })
+    const second = subscriptions.registrationKey.modelToDependencies({
+      isRunning: true,
+      label: 'second',
+    })
+
+    const result = await Effect.runPromise(
+      Effect.all([
+        Stream.runCollect(
+          subscriptions.registrationKey.dependenciesToStream(first),
+        ),
+        Stream.runCollect(
+          subscriptions.registrationKey.dependenciesToStream(second),
+        ),
+      ]).pipe(Effect.provide(handlerLayer)),
+    )
+
+    expect(builds).toBe(1)
+    expect(result).toEqual([['first'], ['second']])
+  })
+
+  it('passes current dependencies to a keep-alive handler', async () => {
+    const layer = subscriptions.latestLabel.toLayer(
+      (_dependencies, readDependencies) =>
+        Stream.sync(() => readDependencies().label),
+    )
+    const initial = subscriptions.latestLabel.modelToDependencies({
+      isRunning: true,
+      label: 'initial',
+    })
+    const current = subscriptions.latestLabel.modelToDependencies({
+      isRunning: true,
+      label: 'current',
+    })
+
+    const result = await Effect.runPromise(
+      Stream.runCollect(
+        subscriptions.latestLabel.dependenciesToStream(initial, () => current),
+      ).pipe(Effect.provide(layer)),
+    )
+
+    expect(result).toEqual(['current'])
+  })
+
+  it('preserves the handler Layer constructor through lift', () => {
+    const lifted = lift(subscriptions)<ParentModel, ParentMessage>({
+      read: model => Option.some(model.child),
+      toParentMessage,
+    })
+
+    expect(lifted.registrationKey.toLayer).toBe(
+      subscriptions.registrationKey.toLayer,
+    )
+    expect(lifted.registrationKey.name).toBe('WatchLabel')
+    expectTypeOf(lifted.registrationKey.toLayer).toEqualTypeOf(
+      subscriptions.registrationKey.toLayer,
+    )
+  })
+
+  it('preserves the handler Layer constructor through aggregate', () => {
+    const combined = aggregate(subscriptions)
+
+    expect(combined.registrationKey.toLayer).toBe(
+      subscriptions.registrationKey.toLayer,
+    )
+    expectTypeOf(combined.registrationKey.toLayer).toEqualTypeOf(
+      subscriptions.registrationKey.toLayer,
+    )
+  })
+})
 
 describe('lift types', () => {
   it('keeps the optional reader, services, and keepAlive dependencies', () => {

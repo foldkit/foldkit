@@ -265,6 +265,15 @@ type RuntimeInternals = {
     flags?: Effect.Effect<any, never, any>,
     buildId?: string,
   ) => Effect.Effect<void>
+  startWithApplicationLayer: (
+    maybeConnector: Option.Option<HostConnector>,
+    preservedModel: unknown,
+    bootMode: BootMode,
+    flags: Effect.Effect<any, never, any> | undefined,
+    buildId: string | undefined,
+    applicationLayer: Layer.Layer<any, any, any>,
+  ) => Effect.Effect<void>
+  applicationLayer?: Layer.Layer<any, any, any>
   kind: 'Application' | 'Element'
   isEmbedActive: boolean
   maybeActiveFiber: Option.Option<Fiber.Fiber<void>>
@@ -376,6 +385,7 @@ export const makeRuntime = <
     bootMode: BootMode = 'Fresh',
     bootFlags?: Effect.Effect<Flags, never, Resources>,
     buildId?: string,
+    applicationLayer?: Layer.Layer<any, any, any>,
   ): Effect.Effect<void> => {
     // NOTE: one notifier per runtime, provided across the whole runtime
     // Effect so Commands, Subscriptions, and Mount-forked Effects all resolve
@@ -431,6 +441,7 @@ export const makeRuntime = <
             managedResources,
             runtimeScope,
             maybePortChannels,
+            applicationLayer,
           })
 
         const { maybeHydrationRoot, resolveFlags } =
@@ -825,6 +836,7 @@ export const makeRuntime = <
           modelPubSub,
           runtimeScope,
           enqueueMessageEffect,
+          provideAllResources,
           crashWith,
         })
 
@@ -913,6 +925,22 @@ export const makeRuntime = <
   runtimeInternals.set(program, {
     startWith: (maybeConnector, preservedModel, bootMode, flags, buildId) =>
       startWith(maybeConnector, preservedModel, bootMode, flags, buildId),
+    startWithApplicationLayer: (
+      maybeConnector,
+      preservedModel,
+      bootMode,
+      flags,
+      buildId,
+      applicationLayer,
+    ) =>
+      startWith(
+        maybeConnector,
+        preservedModel,
+        bootMode,
+        flags,
+        buildId,
+        applicationLayer,
+      ),
     kind,
     isEmbedActive: false,
     maybeActiveFiber: Option.none(),

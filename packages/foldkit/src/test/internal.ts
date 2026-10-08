@@ -1,11 +1,7 @@
 import { Array, Equal, Option, Order, Predicate, pipe } from 'effect'
 import type { Effect } from 'effect'
 
-import {
-  type CommandDefinition,
-  CommandDefinitionTypeId,
-} from '../command/index.js'
-import type * as Interruptible from '../command/interruptible/index.js'
+import { CommandDefinitionTypeId } from '../command/index.js'
 import { type MountDefinition, MountDefinitionTypeId } from '../mount/index.js'
 
 /** A Command in a test simulation. Carries `name` and optionally the `args`
@@ -43,7 +39,9 @@ export type AnyCommand = Readonly<{
  *  intentionally unsupported. If a subset of args carries the meaning the
  *  test is verifying, the right assertion is usually against the Model that
  *  the Command's result fed through update, not a partial Command shape. */
-export type CommandMatcher = CommandDefinition<string, unknown> | AnyCommand
+export type CommandMatcher =
+  | ResolvableCommandDefinition<string, unknown>
+  | AnyCommand
 
 /** A typed Command instance carrying the result Message type through its
  * `effect` field. */
@@ -55,20 +53,16 @@ export type AnyCommandInstance<ResultMessage = unknown> = Readonly<{
 
 /** A Command Definition whose result Message can be supplied by Story and
  * Scene resolution APIs. */
-export type ResolvableCommandDefinition<Name extends string, ResultMessage> =
-  | CommandDefinition<Name, ResultMessage>
-  | Interruptible.DefinitionNoArgs<Name, Effect.Effect<ResultMessage, any, any>>
-  | Interruptible.DefinitionWithArgs<
-      Name,
-      any,
-      any,
-      Effect.Effect<ResultMessage, any, any>
-    >
-  | Interruptible.DefinitionWithArgsNameKeyed<
-      Name,
-      any,
-      Effect.Effect<ResultMessage, any, any>
-    >
+export type ResolvableCommandDefinition<
+  Name extends string,
+  ResultMessage,
+> = Readonly<{
+  [CommandDefinitionTypeId]: typeof CommandDefinitionTypeId
+  name: Name
+}> &
+  ((
+    ...args: Array<any>
+  ) => Readonly<{ effect: Effect.Effect<ResultMessage, any, any> }>)
 
 /** A Definition or Command instance accepted by Story and Scene resolution
  * APIs. */
@@ -85,7 +79,7 @@ type ResultMessageForMatcher<Matcher extends ResolvableCommandMatcher> =
 
 const isCommandDefinitionMatcher = (
   matcher: CommandMatcher,
-): matcher is CommandDefinition<string, unknown> =>
+): matcher is ResolvableCommandDefinition<string, unknown> =>
   Predicate.hasProperty(matcher, CommandDefinitionTypeId)
 
 /** Whether a `matcher` matches a pending Command. Definition matchers match

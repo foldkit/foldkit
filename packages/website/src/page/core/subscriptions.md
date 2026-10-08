@@ -57,12 +57,14 @@ Commands describe one-shot work that produces one result. Subscriptions describe
 
 ::Snippet{name="counterAutoCount" label="Auto-counting Subscription"}
 
-`Subscription.make<Model, Message>()` receives a function that builds a named record of entries. Each call to `entry` takes two arguments:
+`Subscription.make<Model, Message>()` receives a function that builds a named record of entries. The inline form of `entry` takes two arguments:
 
 - A field map defining the dependency Schema, in the same shape passed to `Schema.Struct`.
 - An object containing `modelToDependencies` and `dependenciesToStream`.
 
 `modelToDependencies` extracts the values that control the entry. `dependenciesToStream` creates its Stream. Foldkit compares the extracted record structurally by default, so unrelated Model updates do not restart the timer.
+
+For a replaceable Stream implementation, pass a stable handler name before the dependency fields and omit `dependenciesToStream` from the callbacks. The returned entry has `toLayer(handler)` and `toLayer(Effect<handler>)`. Its record key identifies the running Subscription, while its handler name identifies the Layer requirement. `Application.provide` supplies that Layer; `Subscription.lift` and `Subscription.aggregate` preserve the handler identity and Model-driven restart behavior.
 
 When `isAutoCounting` changes to `true`, the new Stream starts ticking. When it changes back to `false`, the active scope closes and the timer stops.
 

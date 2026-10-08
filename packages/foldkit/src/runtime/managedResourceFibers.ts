@@ -26,6 +26,7 @@ export const forkManagedResourceFibers = <Model, Message>({
   modelPubSub,
   runtimeScope,
   enqueueMessageEffect,
+  provideAllResources,
   crashWith,
 }: Readonly<{
   managedResourceRefs: ReadonlyArray<ManagedResourceRef<Model, Message>>
@@ -33,6 +34,9 @@ export const forkManagedResourceFibers = <Model, Message>({
   modelPubSub: PubSub.PubSub<Model>
   runtimeScope: Scope.Scope
   enqueueMessageEffect: (message: Message) => Effect.Effect<void>
+  provideAllResources: <A>(
+    effect: Effect.Effect<A, never, any>,
+  ) => Effect.Effect<A>
   crashWith: (
     cause: Cause.Cause<never>,
     maybeMessage: Option.Option<Message>,
@@ -105,11 +109,11 @@ export const forkManagedResourceFibers = <Model, Message>({
           Stream.changesWith(equivalence),
           Stream.switchMap(maybeRequirementsToLifecycle(config, resourceRef)),
           Stream.runForEach(Effect.flatMap(enqueueMessageEffect)),
+          provideAllResources,
           // NOTE: a defect in `modelToMaybeRequirements` or the equivalence
           // surfaces as the crash view instead of dying silently in this
-          // fiber. `provideAllResources` is not needed: `acquire` only
-          // requires `Scope`, which `Stream.scoped` supplies, and `release`
-          // requires nothing.
+          // fiber. Layer-backed lifecycle handlers resolve through the same
+          // application context as Commands and Subscriptions.
           Effect.catchCause(cause => crashWith(cause, Option.none())),
         ),
       )

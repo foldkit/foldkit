@@ -3,11 +3,21 @@ import {
   type Equivalence,
   Function,
   Option,
+  Predicate,
   Record,
   Schema,
   Stream,
   pipe,
 } from 'effect'
+
+import {
+  type Handler,
+  type ToLayerWithKeepAlive,
+  type ToLayerWithoutKeepAlive,
+  makeHandler,
+} from './handler.js'
+
+export type { Handler } from './handler.js'
 
 type SubscriptionBrand = {
   readonly __subscription: never
@@ -44,6 +54,30 @@ type EntryWithKeepAlive<Model, Message, Dependencies, Services> = {
 type Entry<Model, Message, Dependencies, Services = never> =
   | EntryWithoutKeepAlive<Model, Message, Dependencies, Services>
   | EntryWithKeepAlive<Model, Message, Dependencies, Services>
+
+/** A Subscription entry whose Stream implementation is supplied by a Layer. */
+export type LayeredEntryWithoutKeepAlive<
+  Name extends string,
+  Model,
+  Message,
+  Dependencies,
+> = EntryWithoutKeepAlive<Model, Message, Dependencies, Handler<Name>> &
+  Readonly<{
+    name: Name
+    toLayer: ToLayerWithoutKeepAlive<Name, Dependencies, Message>
+  }>
+
+/** A keep-alive Subscription entry whose Stream implementation is supplied by a Layer. */
+export type LayeredEntryWithKeepAlive<
+  Name extends string,
+  Model,
+  Message,
+  Dependencies,
+> = EntryWithKeepAlive<Model, Message, Dependencies, Handler<Name>> &
+  Readonly<{
+    name: Name
+    toLayer: ToLayerWithKeepAlive<Name, Dependencies, Message>
+  }>
 
 /**
  * A single subscription entry produced by `Subscription.make`,
@@ -107,47 +141,94 @@ type EntryCallbacksWithKeepAlive<Model, Message, Dependencies, Services> = {
   ) => Stream.Stream<Message, never, Services>
 }
 
+type LayeredEntryCallbacksWithoutKeepAlive<Model, Dependencies> = {
+  readonly modelToDependencies: (model: Model) => Dependencies
+  readonly keepAliveEquivalence?: never
+}
+
+type LayeredEntryCallbacksWithKeepAlive<Model, Dependencies> = {
+  readonly modelToDependencies: (model: Model) => Dependencies
+  readonly keepAliveEquivalence: Equivalence.Equivalence<Dependencies>
+}
+
 /**
- * Builds a single subscription entry from a field map and callbacks.
+ * Builds a single Subscription entry from a handler name, field map, and
+ * lifecycle callbacks. The resulting entry has a `toLayer` method that
+ * supplies its Stream implementation. The handler name identifies that Layer
+ * requirement; the key returned from `Subscription.make` continues to identify
+ * the entry's running fiber.
  *
- * The field map is the same shape you would pass to `Schema.Struct`. Reading the
- * schema as a positional argument (rather than a property on the entry
- * literal) lets TypeScript fully resolve the `Dependencies` type before
- * contextually typing `modelToDependencies` and `dependenciesToStream`, so
- * destructuring patterns like `({ maybeMapHostId })` are inferred correctly
- * even when the field schemas use transforms (e.g. `Schema.Option`).
+ * The two-argument inline form remains available while existing Subscriptions
+ * migrate. In that form, the callbacks also include `dependenciesToStream` and
+ * its Effect services are provided directly to the application.
  *
- * Two overloads, one per `keepAliveEquivalence` presence:
+ * The field map is the same shape you would pass to `Schema.Struct`. Keeping it
+ * positional lets TypeScript fully resolve the `Dependencies` type before
+ * contextually typing the callbacks, including fields that use Schema
+ * transforms such as `Schema.Option`.
  *
- * - Without `keepAliveEquivalence`, `dependenciesToStream` takes a single
+ * - Without `keepAliveEquivalence`, the Layer handler takes a single
  *   `dependencies` argument.
- * - With `keepAliveEquivalence`, `dependenciesToStream` also receives a
+ * - With `keepAliveEquivalence`, the Layer handler also receives a
  *   `readDependencies` thunk for accessing the latest value while the Stream
  *   stays running across Model changes the equivalence accepts as equal.
  */
-export type EntryBuilder<Model, Message, Services> = <
-  const Fields extends Schema.Struct.Fields,
-  Callbacks extends
-    | EntryCallbacksWithoutKeepAlive<
+export interface EntryBuilder<Model, Message, Services> {
+  <
+    const Name extends string,
+    const Fields extends Schema.Struct.Fields,
+    Callbacks extends
+      | LayeredEntryCallbacksWithoutKeepAlive<Model, Schema.Struct.Type<Fields>>
+      | LayeredEntryCallbacksWithKeepAlive<Model, Schema.Struct.Type<Fields>>,
+  >(
+    name: Name,
+    fields: Fields,
+    callbacks: Callbacks,
+  ): Callbacks extends {
+    readonly keepAliveEquivalence: Equivalence.Equivalence<any>
+  }
+    ? LayeredEntryWithKeepAlive<
+        Name,
+        Model,
+        Message,
+        Schema.Struct.Type<Fields>
+      >
+    : LayeredEntryWithoutKeepAlive<
+        Name,
+        Model,
+        Message,
+        Schema.Struct.Type<Fields>
+      >
+
+  <
+    const Fields extends Schema.Struct.Fields,
+    Callbacks extends
+      | EntryCallbacksWithoutKeepAlive<
+          Model,
+          Message,
+          Schema.Struct.Type<Fields>,
+          Services
+        >
+      | EntryCallbacksWithKeepAlive<
+          Model,
+          Message,
+          Schema.Struct.Type<Fields>,
+          Services
+        >,
+  >(
+    fields: Fields,
+    callbacks: Callbacks,
+  ): Callbacks extends {
+    readonly keepAliveEquivalence: Equivalence.Equivalence<any>
+  }
+    ? EntryWithKeepAlive<Model, Message, Schema.Struct.Type<Fields>, Services>
+    : EntryWithoutKeepAlive<
         Model,
         Message,
         Schema.Struct.Type<Fields>,
         Services
       >
-    | EntryCallbacksWithKeepAlive<
-        Model,
-        Message,
-        Schema.Struct.Type<Fields>,
-        Services
-      >,
->(
-  fields: Fields,
-  callbacks: Callbacks,
-) => Callbacks extends {
-  readonly keepAliveEquivalence: Equivalence.Equivalence<any>
 }
-  ? EntryWithKeepAlive<Model, Message, Schema.Struct.Type<Fields>, Services>
-  : EntryWithoutKeepAlive<Model, Message, Schema.Struct.Type<Fields>, Services>
 
 /**
  * Declares a Subscriptions record. The Model, Message, and optional Services
@@ -160,23 +241,28 @@ export type EntryBuilder<Model, Message, Services> = <
  *
  * @example
  * ```ts
- * Subscription.make<Model, Message>()(entry => ({
+ * const subscriptions = Subscription.make<Model, Message>()(entry => ({
  *   tick: entry(
+ *     'WatchTicks',
  *     { isRunning: Schema.Boolean },
  *     {
  *       modelToDependencies: model => ({ isRunning: model.isRunning }),
- *       dependenciesToStream: ({ isRunning }) =>
- *         Stream.when(..., Effect.sync(() => isRunning)),
  *     },
  *   ),
  * }))
+ *
+ * const WatchTicksLive = subscriptions.tick.toLayer(({ isRunning }) =>
+ *   isRunning
+ *     ? Stream.fromEffect(Effect.succeed(Message.Tick()))
+ *     : Stream.empty,
+ * )
  * ```
  */
 export const make =
   <Model, Message, Services = never>() =>
   <
     Entries extends Readonly<
-      Record<string, Entry<Model, Message, any, Services>>
+      Record<string, Entry<Model, Message, any, Services | Handler<string>>>
     >,
   >(
     build: (entry: EntryBuilder<Model, Message, Services>) => Entries,
@@ -185,12 +271,30 @@ export const make =
   } => {
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const entryBuilder = ((
-      fields: Schema.Struct.Fields,
-      callbacks: Record<string, unknown>,
-    ) => ({
-      dependenciesSchema: Schema.Struct(fields),
-      ...callbacks,
-    })) as unknown as EntryBuilder<Model, Message, Services>
+      nameOrFields: string | Schema.Struct.Fields,
+      fieldsOrCallbacks: Schema.Struct.Fields | Record<string, unknown>,
+      maybeCallbacks?: Record<string, unknown>,
+    ) => {
+      if (Predicate.isString(nameOrFields)) {
+        const handler = makeHandler(nameOrFields)
+
+        return {
+          name: nameOrFields,
+          dependenciesSchema: Schema.Struct(
+            /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+            fieldsOrCallbacks as Schema.Struct.Fields,
+          ),
+          ...maybeCallbacks,
+          dependenciesToStream: handler.toStream,
+          toLayer: handler.toLayer,
+        }
+      }
+
+      return {
+        dependenciesSchema: Schema.Struct(nameOrFields),
+        ...fieldsOrCallbacks,
+      }
+    }) as unknown as EntryBuilder<Model, Message, Services>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     return build(entryBuilder) as any
   }
@@ -434,7 +538,13 @@ type LiftedSubscriptions<ParentModel, ParentMessage, Subscriptions> = {
         ParentMessage,
         GatedDependencies<Dependencies>,
         Services
-      >
+      > &
+        (Subscriptions[K] extends {
+          readonly name: infer Name
+          readonly toLayer: infer ToLayer
+        }
+          ? Readonly<{ name: Name; toLayer: ToLayer }>
+          : unknown)
     : never
 }
 
@@ -492,6 +602,7 @@ const toLiftedEntry = (
     )
 
     return {
+      ...subscription,
       dependenciesSchema,
       modelToDependencies,
       keepAliveEquivalence: (
@@ -523,6 +634,7 @@ const toLiftedEntry = (
   }
 
   return {
+    ...subscription,
     dependenciesSchema,
     modelToDependencies,
     dependenciesToStream: (gatedDependencies: GatedDependencies<any>) =>

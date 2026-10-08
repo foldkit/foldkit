@@ -18,15 +18,22 @@ The counter has returned an empty Commands array so far. A delayed reset puts th
 
 When `ClickedResetAfterDelay` arrives, update keeps the Model unchanged and returns `DelayReset()`. The runtime waits one second, then dispatches `CompletedDelayReset`. That new Message reaches update, which resets the count to zero.
 
-`Command.define` gives the work a name and a result contract. A definition has three required parts:
+`Command.define` gives the work a name and a result contract:
 
 - `messages` lists every Message the Command may produce.
-- `execute` contains the Effect that produces one of those Messages.
 - The first argument names the Command for DevTools, traces, and tests.
+
+Supply the implementation inline with `execute`, or omit it to give the definition a `toLayer` method that supplies the handler through an Effect Layer.
 
 Two optional fields extend that contract. `args` defines a Schema for inputs that vary by dispatch. `interrupt` makes in-flight work explicitly interruptible.
 
 Command names are verb-first imperatives such as `FetchWeather`, `FocusItems`, and `LockScroll`. A Command names work for the runtime to perform. Its result Message records what happened, using a past-tense name such as `SucceededFetchWeather`, `FailedFetchWeather`, or `CompletedLockScroll`.
+
+### Handler Layers
+
+A Layer-backed Command definition retains its args, result Messages, and interruption behavior. The definition contributes a named handler requirement to the application's Effect requirements. Build its implementation with `Definition.toLayer(handler)` or `Definition.toLayer(Effect<handler>)`, then pass that Layer to `Application.provide`. Use `Update.make` around an update function so the Command requirements from every Message branch reach the application type.
+
+The handler Layer is built once for a runtime start, after runtime-owned services such as ManagedResource accessors exist. The handler can acquire dependencies while the Layer is built and use them when its Command runs. Services present at invocation take precedence over captured services. The [weather example](https://github.com/foldkit/foldkit/tree/main/examples/weather/src) shows the definition, handler Layer, update, and application wiring together.
 
 ## Testable by Design
 

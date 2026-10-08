@@ -3,7 +3,11 @@ export type {
   CommandDefinition,
   CommandDefinitionNoArgs,
   CommandDefinitionWithArgs,
+  Handler,
+  HandlerOf,
   InterruptOption,
+  LayeredCommandDefinitionNoArgs,
+  LayeredCommandDefinitionWithArgs,
 } from './index.js'
 export {
   CommandDefinitionTypeId,

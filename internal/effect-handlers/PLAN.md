@@ -1,0 +1,91 @@
+# Effect handler Layers
+
+This is the working checklist for separating Foldkit effect definitions from their production implementations. Update the checkboxes as each slice is completed.
+
+## Status
+
+**Current milestone:** Command, Subscription, and ManagedResource handler Layers work through `Application.make` and chained `Application.provide`. Application assembly supports Flags and routing. Weather and Managed Resource Layer examples use the new surface.
+
+**Next decision:** Resolve the Mount/view requirement boundary, then migrate first-party consumers and active documentation. Layer identity collisions need an application-wide rule before broad migration.
+
+**Scope:** Production handler Layers and application assembly. Whole-application testing APIs are deferred.
+
+| Milestone                                 | Status                 | What the user can use afterward                                                       |
+| ----------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------- |
+| Command handlers                          | Implemented, verifying | Define a Command separately from its handler Layer.                                   |
+| Application assembly                      | Implemented, verifying | See unsatisfied requirements on an application and provide Layers before starting it. |
+| Subscription and ManagedResource handlers | Implemented, verifying | Replace implementations while preserving Model-driven lifecycles.                     |
+| Mount boundary                            | Planned                | Settle how Mount requirements enter the application type.                             |
+| Migration and verification                | In progress            | First-party apps, templates, and active docs use the final API.                       |
+
+## Target surface
+
+- `Command` definitions declare identity, arguments, result Messages, and interruption behavior. `toLayer` supplies an implementation.
+- An application carries its unsatisfied Effect requirements until a Layer is provided. The application config does not own an app-wide `resources` Layer.
+- Subscriptions retain record keys as registration identities and gain explicit, stable handler names. Their Model dependency logic stays with the definition; a Layer supplies the Stream factory. Lift and aggregation preserve the handler identity.
+- ManagedResources retain Model-driven acquisition and release. A Layer supplies the acquire and release functions, while `managedResources` registers the lifecycle and result Messages with the application.
+- Mount definitions retain their names and element-driven lifecycle. A separate Layer API needs an explicit solution for requirements hidden inside `view`.
+
+## Work items
+
+### 1. Type and lifecycle proof
+
+- [x] Prove a Layer-backed Command contributes a synthetic handler service to an inferred update return.
+- [x] Add `Update.make` to validate update results and infer the union of Command handler requirements.
+- [ ] Migrate explicit `Message.match<Update.Return<...>>` and Step annotations where their `R` would otherwise be fixed to `never`.
+- [x] Prove an application can retain and satisfy requirements from init, update, Subscriptions, and ManagedResources without manually listing each service generic.
+- [x] Prove client-only application requirements from init, update, and Subscriptions survive Layer provision, including dependencies introduced by a handler Layer.
+- [x] Prove handler Layers can capture construction context and merge it with the execution context, with an explicit duplicate-service precedence rule.
+- [x] Check that Command Message lifting preserves handler requirements and Command identity. The existing Submodel fold type tests cover service unions; a layered Submodel example remains part of migration.
+- [ ] Set an application-wide identity and collision rule for Command and Subscription names before migrating shared Submodels.
+  - The website currently declares `DelayAdvancePhase` in both its note player and async counter demos. They need distinct handler identities if both use Layers.
+
+### 2. Application assembly
+
+- [x] Separate application definition, Layer provision, and host startup for `run`, `hydrate`, and `embed`.
+- [x] Add `Application.make` and chainable `Application.provide` for client-only applications without Flags or routing.
+- [x] Extend application assembly to Flags and routing, including hydration and embed startup through the provided runtime internals.
+- [ ] Remove `resources` from application configuration after the replacement path works.
+- [x] Keep runtime-provided ManagedResource accessors and Port channels available to handlers.
+- [x] Place handler Layer construction after runtime-provided services exist. A Layer can acquire a Model-driven ManagedResource accessor while it is constructed.
+
+### 3. Command handlers
+
+- [x] Add a synthetic service for Layer-backed Command definitions and `toLayer(handler | Effect<handler>)`.
+- [x] Preserve Command identity, argument capture, result Message mapping, and interruption. Existing Command and DevTools tests pass.
+- [ ] Migrate first-party Command definitions and application Layers.
+
+### 4. Subscription and ManagedResource handlers
+
+- [x] Add a named Subscription handler identity distinct from the record key. Preserve it through lift and aggregate. The current API has no rekey helper.
+- [ ] Reject distinct Subscription definitions that use the same handler name in one application.
+- [x] Move Subscription Stream implementations into handler Layers without changing restart and keep-alive behavior.
+- [x] Move ManagedResource acquire and release implementations into handler Layers without changing active-value access or release timing.
+- [ ] Migrate first-party Subscriptions, ManagedResources, and templates.
+
+### 5. Mount boundary
+
+- [x] Document the `view` type boundary that prevents Mount handler requirements from joining the application `R` channel.
+- [ ] Choose and verify an explicit registration or type-propagation design before adding `Mount.toLayer`.
+
+`view` returns a `Document`, and `MountAction.f` currently returns a Stream with no exposed `R`. A Mount used only inside `view` therefore cannot add a handler requirement to `Application.make` by inference from update or Subscriptions. The likely path is an explicit `mounts` registration in the application definition, with a runtime check that every rendered layered Mount was registered. This needs a focused API and lifecycle spike before implementation. The alternative is to thread an `R` type through `Html`, `Document`, and the view builder, which would affect every view API.
+
+### 6. Verification and publication
+
+- [ ] Complete active documentation, examples, and template migration for the final public API. The weather and Managed Resource Layer examples and four core guides cover the first slice.
+- [x] Run workspace type checks, all Foldkit unit tests, focused example tests, and lint for the current slice.
+- [ ] Resolve API reference generator warnings about helper types exposed through the new public signatures.
+- [ ] Run the remaining full build and end-to-end verification gates after migration.
+- [ ] Review the full diff for public API coherence and migration guidance.
+
+## Verification snapshot
+
+- Foldkit: 2,978 tests passed, 1 skipped.
+- Workspace: all 52 projects passed TypeScript checks after building their local package dependencies.
+- Weather and Managed Resource Layer examples: type checks and Story/Scene tests passed.
+- Root and application lint, formatting, and `git diff --check` passed.
+- The API reference generator succeeds with warnings about helper types referenced by the new signatures; those need cleanup before publication.
+
+## Deferred work
+
+Whole-application test mode, controlled handler Layers, test scheduling, and a Story/Scene-style application test DSL belong to a later workstream. This work establishes stable identities and replaceable execution boundaries for them.

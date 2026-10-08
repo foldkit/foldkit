@@ -4,6 +4,9 @@ export type {
   EntryGates,
   EntryWithoutKeepAlive,
   GatedDependencies,
+  Handler,
+  LayeredEntryWithKeepAlive,
+  LayeredEntryWithoutKeepAlive,
   Subscription,
   Subscriptions,
 } from './subscription.js'

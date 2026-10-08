@@ -65,6 +65,7 @@ export const makeResourceProvider = <
   managedResources,
   runtimeScope,
   maybePortChannels,
+  applicationLayer,
 }: Readonly<{
   resources: Layer.Layer<Resources> | undefined
   managedResources:
@@ -72,6 +73,7 @@ export const makeResourceProvider = <
     | undefined
   runtimeScope: Scope.Scope
   maybePortChannels: Option.Option<PortChannelsBundle>
+  applicationLayer: Layer.Layer<any, any, any> | undefined
 }>): Effect.Effect<
   ResourceProvider<Model, Message, Resources, ManagedResourceServices>
 > =>
@@ -147,14 +149,46 @@ export const makeResourceProvider = <
 
     const interruptRegistry = __makeInterruptRegistry()
 
+    const managedResourceContext = Array.reduce(
+      managedResourceRefs,
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      Context.empty() as Context.Context<any>,
+      (context, { config, ref }) =>
+        Context.add(context, config.resource._tag, ref),
+    )
+    const portContext = Option.match(maybePortChannels, {
+      onNone: () => managedResourceContext,
+      onSome: portChannels =>
+        Context.add(
+          managedResourceContext,
+          __CurrentPortChannels,
+          portChannels.channels,
+        ),
+    })
+    const runtimeContext = Context.add(
+      portContext,
+      __CurrentInterruptRegistry,
+      interruptRegistry,
+    )
+    const applicationContext = applicationLayer
+      ? yield* Layer.buildWithScope(applicationLayer, runtimeScope).pipe(
+          Effect.provideContext(runtimeContext),
+          Effect.orDie,
+        )
+      : Context.empty()
+    const providedContext = Context.merge(runtimeContext, applicationContext)
+
     const provideAllResources = <A>(
       effect: Effect.Effect<A, never, Resources | ManagedResourceServices>,
     ): Effect.Effect<A> => {
       const withResources = Option.match(maybeAcquireResourceContext, {
-        onNone: () => effect,
+        onNone: () => Effect.provideContext(effect, providedContext),
         onSome: acquireResourceContext =>
           Effect.flatMap(acquireResourceContext, resourceContext =>
-            Effect.provideContext(effect, resourceContext),
+            Effect.provideContext(
+              effect,
+              Context.merge(resourceContext, providedContext),
+            ),
           ),
       })
 

@@ -1,8 +1,17 @@
-import { Runtime } from 'foldkit'
+import { Application, Runtime } from 'foldkit'
 
-import { Message, Model, init, managedResources, update, view } from './main'
+import {
+  ComputeLive,
+  ManageEngineLive,
+  Message,
+  Model,
+  init,
+  managedResources,
+  update,
+  view,
+} from './main'
 
-const application = Runtime.makeApplication({
+const application = Application.make({
   Model,
   init,
   update,
@@ -14,4 +23,7 @@ const application = Runtime.makeApplication({
   },
 })
 
-Runtime.run(application)
+const withCompute = Application.provide(application, ComputeLive)
+const runnable = Application.provide(withCompute, ManageEngineLive)
+
+Runtime.run(runnable)

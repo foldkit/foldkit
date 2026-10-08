@@ -1279,7 +1279,8 @@ type SceneManagedResourceEntry<
   Option.Option<any>,
   Value,
   any,
-  OnAcquired
+  OnAcquired,
+  any
 >
 
 /** Declares that a ManagedResource's acquire succeeded, feeding the entry's

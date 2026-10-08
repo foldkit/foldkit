@@ -10,6 +10,8 @@ Resources are the kitchen equipment available all night. A Managed Resource is a
 
 Define the handle’s identity with `ManagedResource.tag`, then wire its lifecycle with `ManagedResource.make`. The `modelToMaybeRequirements` function returns `Option.some(params)` while the handle should be active and `Option.none()` while it should be absent.
 
+For a replaceable lifecycle implementation, give an entry a stable handler name and supply its acquire and release functions with `entry.toLayer({ acquire, release })` or an Effect that builds that handler. The `managedResources` record stays in the application: it declares the Model condition, the handle identity, and the lifecycle Messages. `Application.provide` supplies the handler Layer. The Layer lasts for the application lifetime; the handle it acquires still starts and stops according to the Model.
+
 ::Snippet{name="managedResources" label="Camera ManagedResource lifecycle"}
 
 The runtime compares the requirements after every Model change and performs the corresponding transition.
@@ -50,7 +52,7 @@ A child Submodel defines its Managed Resources in its own Model and Message term
 The same operations compose across every Submodel level: `make` at the owner, `lift` through each parent, and `aggregate` at the root. [Subscription Organization](/patterns/subscription-organization) traces that leaf-to-root shape with Subscriptions; the Managed Resource structure is identical.
 
 :::Info{label="Resources vs Managed Resources"}
-Use `resources` for services that live with the runtime, such as an `RpcClient` or analytics client. Use `managedResources` for handles whose lifetime follows the Model, such as camera streams, an `AudioContext`, or `WebSocket` connections.
+Use `Application.provide` for services that live with the runtime, such as an `RpcClient` or analytics client. Use `managedResources` for handles whose lifetime follows the Model, such as camera streams, an `AudioContext`, or `WebSocket` connections. The older `Runtime.makeApplication` entry point accepts a `resources` field for app-wide services.
 :::
 
 Resources and Managed Resources cover long-lived services and Model-scoped handles. Unrecoverable errors in update, view, or a Command follow a different runtime path. The next page covers crash views.

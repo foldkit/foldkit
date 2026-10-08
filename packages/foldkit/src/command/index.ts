@@ -1,9 +1,11 @@
 import { Array, Effect, Function, Option, Predicate, Schema } from 'effect'
 
 import { CommandDefinitionTypeId, brandAsDefinition } from './brand.js'
+import { type Handler, type ToLayer, makeHandler } from './handler.js'
 import * as Interruptible from './interruptible/index.js'
 
 export { CommandDefinitionTypeId }
+export type { Handler, HandlerOf } from './handler.js'
 
 /** A named Effect that produces a message, optionally carrying the args used
  *  to construct it. `key` is present on Commands built by
@@ -72,6 +74,34 @@ export interface CommandDefinitionWithArgs<
   }>
 }
 
+/** A Command definition whose execution is supplied by a handler Layer. */
+export interface LayeredCommandDefinitionNoArgs<
+  Name extends string,
+  Message,
+> extends CommandDefinitionNoArgs<
+  Name,
+  Effect.Effect<Message, never, Handler<Name>>
+> {
+  readonly toLayer: ToLayer<Name, void, Message>
+}
+
+/** An argument-bearing Command definition whose execution is supplied by a handler Layer. */
+export interface LayeredCommandDefinitionWithArgs<
+  Name extends string,
+  Fields extends Schema.Struct.Fields,
+  Message,
+> extends CommandDefinitionWithArgs<
+  Name,
+  Fields,
+  Effect.Effect<Message, never, Handler<Name>>
+> {
+  readonly toLayer: ToLayer<
+    Name,
+    Schema.Schema.Type<Schema.Struct<Fields>>,
+    Message
+  >
+}
+
 /** A Command definition created with `Command.define`. Union over the no-args and with-args shapes; consumers that only need name/identity can accept this. */
 export type CommandDefinition<
   Name extends string = string,
@@ -110,7 +140,7 @@ type DefineConfig = Readonly<{
         keyFields?: ReadonlyArray<string>
         toKey?: (keyArgs: any) => string
       }>
-  execute: any
+  execute?: any
 }>
 
 // NOTE: The suspend is load bearing, not a redundant wrapper. Without it the
@@ -128,18 +158,24 @@ const suspendExecute = (
 ): Effect.Effect<any, any, any> => Effect.suspend(() => config.execute(args))
 
 /**
- * Defines a Command. Every input is a named field: `args` declares the args
- * Schema, `messages` lists the Messages this Command can produce, `execute`
- * holds the Effect, and `interrupt` opts into interruption.
+ * Defines a Command. `args` declares the args Schema, `messages` lists the
+ * Messages this Command can produce, and `interrupt` opts into interruption.
  *
- * `args` is optional. Omit it and `execute` is a bare Effect and the Definition
- * is callable as `Definition()`; declare it and `execute` receives the args and
- * the Definition is callable as `Definition(args)`.
+ * Omit `execute` to give the Definition a `toLayer` method. The resulting
+ * Command requires a handler service named for the Definition. A Layer built
+ * with `toLayer` supplies the implementation and captures its construction
+ * context. The current execution context takes precedence when the Command
+ * runs, so runtime-provided services are available to the handler.
  *
- * Constructing a Command never runs `execute`. When `args` is declared the body
- * is deferred until the runtime executes the Command, so no side effect the
- * body performs and no exception it raises can reach update, and a Command that
- * update builds and then discards runs nothing at all.
+ * `execute` defines the implementation inline. With no `args`, it is a bare
+ * Effect and the Definition is callable as
+ * `Definition()`. With `args`, it receives the declared args and the Definition
+ * is callable as `Definition(args)`.
+ *
+ * Constructing a Command never runs its implementation. An argument-bearing
+ * inline `execute` body and a Layer-backed handler body are both deferred until
+ * the runtime executes the Command. Side effects and exceptions from either
+ * body cannot reach update, and a Command that update discards runs nothing.
  *
  * With `interrupt`, every invocation registers under a key in the runtime's
  * interrupt registry for the duration of its Effect, and the returned Definition
@@ -165,7 +201,18 @@ const suspendExecute = (
  * runtime starts and tears those down as the Model declares them, so there is
  * no in-flight Command to interrupt.
  *
- * @example No args
+ * @example Layer-backed handler
+ * ```ts
+ * const SendMessage = Command.define('SendMessage', {
+ *   args: { text: Schema.String },
+ *   messages: [CompletedSendMessage],
+ * })
+ * const SendMessageLive = SendMessage.toLayer(({ text }) =>
+ *   Effect.log(text).pipe(Effect.as(CompletedSendMessage())),
+ * )
+ * ```
+ *
+ * @example Inline execution with no args
  * ```ts
  * const LockScroll = Command.define('LockScroll', {
  *   messages: [CompletedLockScroll],
@@ -217,6 +264,112 @@ const suspendExecute = (
  * )
  * ```
  */
+export function define<
+  const Name extends string,
+  Fields extends Schema.Struct.Fields,
+  const Messages extends ReadonlyArray<Schema.Top>,
+  const KeyField extends keyof Schema.Schema.Type<Schema.Struct<Fields>> &
+    string,
+>(
+  name: Name,
+  config: Readonly<{
+    args: Fields
+    messages: Messages
+    interrupt: Readonly<{
+      keyFields: Array.NonEmptyReadonlyArray<KeyField>
+      toKey: (
+        keyArgs: Pick<Schema.Schema.Type<Schema.Struct<Fields>>, KeyField>,
+      ) => string
+    }>
+    execute?: never
+  }>,
+): Interruptible.DefinitionWithArgs<
+  Name,
+  Fields,
+  Pick<Schema.Schema.Type<Schema.Struct<Fields>>, KeyField>,
+  Effect.Effect<Schema.Schema.Type<Messages[number]>, never, Handler<Name>>
+> &
+  Readonly<{
+    toLayer: ToLayer<
+      Name,
+      Schema.Schema.Type<Schema.Struct<Fields>>,
+      Schema.Schema.Type<Messages[number]>
+    >
+  }>
+
+export function define<
+  const Name extends string,
+  Fields extends Schema.Struct.Fields,
+  const Messages extends ReadonlyArray<Schema.Top>,
+>(
+  name: Name,
+  config: Readonly<{
+    args: Fields
+    messages: Messages
+    interrupt: true
+    execute?: never
+  }>,
+): Interruptible.DefinitionWithArgsNameKeyed<
+  Name,
+  Fields,
+  Effect.Effect<Schema.Schema.Type<Messages[number]>, never, Handler<Name>>
+> &
+  Readonly<{
+    toLayer: ToLayer<
+      Name,
+      Schema.Schema.Type<Schema.Struct<Fields>>,
+      Schema.Schema.Type<Messages[number]>
+    >
+  }>
+
+export function define<
+  const Name extends string,
+  Fields extends Schema.Struct.Fields,
+  const Messages extends ReadonlyArray<Schema.Top>,
+>(
+  name: Name,
+  config: Readonly<{
+    args: Fields
+    messages: Messages
+    interrupt?: never
+    execute?: never
+  }>,
+): LayeredCommandDefinitionWithArgs<
+  Name,
+  Fields,
+  Schema.Schema.Type<Messages[number]>
+>
+
+export function define<
+  const Name extends string,
+  const Messages extends ReadonlyArray<Schema.Top>,
+>(
+  name: Name,
+  config: Readonly<{
+    messages: Messages
+    interrupt: true
+    execute?: never
+  }>,
+): Interruptible.DefinitionNoArgs<
+  Name,
+  Effect.Effect<Schema.Schema.Type<Messages[number]>, never, Handler<Name>>
+> &
+  Readonly<{
+    toLayer: ToLayer<Name, void, Schema.Schema.Type<Messages[number]>>
+  }>
+
+export function define<
+  const Name extends string,
+  const Messages extends ReadonlyArray<Schema.Top>,
+>(
+  name: Name,
+  config: Readonly<{
+    messages: Messages
+    interrupt?: never
+    execute?: never
+  }>,
+): LayeredCommandDefinitionNoArgs<Name, Schema.Schema.Type<Messages[number]>>
+
 export function define<
   const Name extends string,
   Fields extends Schema.Struct.Fields,
@@ -303,24 +456,45 @@ export function define<
 export function define(name: string, config: DefineConfig): unknown {
   const isArgsDeclared = Predicate.isNotUndefined(config.args)
   const maybeInterrupt = Option.fromNullishOr(config.interrupt)
+  const handler = Predicate.isUndefined(config.execute)
+    ? makeHandler<string, any, any>(name)
+    : undefined
+  const makeEffect = (args: any): Effect.Effect<any, any, any> => {
+    if (handler) {
+      return handler.execute(args)
+    }
+
+    if (isArgsDeclared) {
+      return suspendExecute(config, args)
+    }
+
+    return config.execute
+  }
+  const attachHandler = (definition: unknown): void => {
+    if (handler) {
+      Object.defineProperty(definition, 'toLayer', { value: handler.toLayer })
+    }
+  }
 
   if (Option.isNone(maybeInterrupt)) {
     if (isArgsDeclared) {
       const definition = (args: any) => ({
         name,
         args,
-        effect: suspendExecute(config, args),
+        effect: makeEffect(args),
         messageMappers: [],
       })
       brandAsDefinition(definition, name)
+      attachHandler(definition)
       return definition
     } else {
       const definition = () => ({
         name,
-        effect: config.execute,
+        effect: makeEffect(undefined),
         messageMappers: [],
       })
       brandAsDefinition(definition, name)
+      attachHandler(definition)
       return definition
     }
   }
@@ -337,10 +511,14 @@ export function define(name: string, config: DefineConfig): unknown {
     const definition = () => ({
       name,
       key: name,
-      effect: Interruptible.__registerKeyWhileRunning(name, config.execute),
+      effect: Interruptible.__registerKeyWhileRunning(
+        name,
+        makeEffect(undefined),
+      ),
       messageMappers: [],
     })
     brandAsDefinition(definition, name)
+    attachHandler(definition)
     Object.defineProperty(definition, 'Interrupt', {
       value: Interruptible.__makeInterruptDefinitionNoArgs(name, name),
     })
@@ -352,13 +530,11 @@ export function define(name: string, config: DefineConfig): unknown {
       name,
       args,
       key: name,
-      effect: Interruptible.__registerKeyWhileRunning(
-        name,
-        suspendExecute(config, args),
-      ),
+      effect: Interruptible.__registerKeyWhileRunning(name, makeEffect(args)),
       messageMappers: [],
     })
     brandAsDefinition(definition, name)
+    attachHandler(definition)
     Object.defineProperty(definition, 'Interrupt', {
       value: Interruptible.__makeInterruptDefinitionNoArgs(name, name),
     })
@@ -374,14 +550,12 @@ export function define(name: string, config: DefineConfig): unknown {
       name,
       args,
       key,
-      effect: Interruptible.__registerKeyWhileRunning(
-        key,
-        suspendExecute(config, args),
-      ),
+      effect: Interruptible.__registerKeyWhileRunning(key, makeEffect(args)),
       messageMappers: [],
     }
   }
   brandAsDefinition(definition, name)
+  attachHandler(definition)
   Object.defineProperty(definition, 'Interrupt', {
     value: Interruptible.__makeInterruptDefinitionWithArgs(name, toFullKey),
   })

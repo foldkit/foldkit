@@ -8,7 +8,7 @@ import {
   Option,
   Schema,
 } from 'effect'
-import { Command, ManagedResource, Runtime, type Update } from 'foldkit'
+import { Command, ManagedResource, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
@@ -43,7 +43,6 @@ const engineLayer: Layer.Layer<ComputeEngineService> = Layer.effect(
 )
 
 const Engine = ManagedResource.tag<ComputeEngine>()('ComputeEngine')
-type EngineService = ManagedResource.ServiceOf<typeof Engine>
 
 // MODEL
 
@@ -82,21 +81,23 @@ export type Message = typeof Message.Type
 export const Compute = Command.define('Compute', {
   args: { value: Schema.Number },
   messages: [Message.CompletedCompute, Message.SkippedCompute],
-  execute: ({ value }) =>
-    Effect.gen(function* () {
-      const engine = yield* Engine.get
-      return Message.CompletedCompute({ result: engine.square(value) })
-    }).pipe(
-      Effect.catchTag('ResourceNotAvailable', () =>
-        Effect.succeed(Message.SkippedCompute()),
-      ),
-    ),
 })
+
+export const ComputeLive = Compute.toLayer(({ value }) =>
+  Effect.gen(function* () {
+    const engine = yield* Engine.get
+    return Message.CompletedCompute({ result: engine.square(value) })
+  }).pipe(
+    Effect.catchTag('ResourceNotAvailable', () =>
+      Effect.succeed(Message.SkippedCompute()),
+    ),
+  ),
+)
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message, EngineService>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedStartEngine: () => ({
       model: modifyFields(model, { engine: () => EngineState.Booting() }),
     }),
@@ -134,11 +135,12 @@ export const update = (model: Model, message: Message) =>
     }),
 
     SkippedCompute: () => ({ model }),
-  })
+  }),
+)
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+export const init = () => ({
   model: {
     engine: EngineState.Off(),
     computeCount: 0,
@@ -150,7 +152,7 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 
 export const managedResources = ManagedResource.make<Model, Message>()(
   entry => ({
-    engine: entry(Schema.Option(Schema.Null), {
+    engine: entry('ManageEngine', Schema.Option(Schema.Null), {
       resource: Engine,
       modelToMaybeRequirements: model =>
         Match.value(model.engine).pipe(
@@ -158,11 +160,6 @@ export const managedResources = ManagedResource.make<Model, Message>()(
           Match.tag('Off', 'Failed', () => Option.none()),
           Match.exhaustive,
         ),
-      acquire: () =>
-        Layer.build(engineLayer).pipe(
-          Effect.map(context => Context.get(context, ComputeEngineService)),
-        ),
-      release: () => Effect.void,
       onAcquired: ({ engineId }) => Message.StartedEngine({ engineId }),
       onReleased: () => Message.StoppedEngine(),
       onAcquireError: error =>
@@ -170,6 +167,14 @@ export const managedResources = ManagedResource.make<Model, Message>()(
     }),
   }),
 )
+
+export const ManageEngineLive = managedResources.engine.toLayer({
+  acquire: () =>
+    Layer.build(engineLayer).pipe(
+      Effect.map(context => Context.get(context, ComputeEngineService)),
+    ),
+  release: () => Effect.void,
+})
 
 // VIEW
 

@@ -1,6 +1,6 @@
 import { Array, Effect, Match, Option, Schema, String } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
-import { AsyncData, Command, Http, Runtime, type Update } from 'foldkit'
+import { AsyncData, Command, Runtime, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -39,8 +39,8 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     UpdatedZipCodeInput: ({ value }) => ({
       model: modifyFields(model, {
         zipCodeInput: () => value,
@@ -70,7 +70,8 @@ export const update = (model: Model, message: Message) =>
         weather: () => WeatherAsyncData.Failure({ error }),
       }),
     }),
-  })
+  }),
+)
 
 // INIT
 
@@ -207,9 +208,11 @@ export const fetchWeatherEffect = (zipCode: string) =>
 export const FetchWeather = Command.define('FetchWeather', {
   args: { zipCode: Schema.String },
   messages: [Message.SucceededFetchWeather, Message.FailedFetchWeather],
-  execute: ({ zipCode }) =>
-    Effect.provide(fetchWeatherEffect(zipCode), Http.layer),
 })
+
+export const FetchWeatherLive = FetchWeather.toLayer(({ zipCode }) =>
+  fetchWeatherEffect(zipCode),
+)
 
 // VIEW
 

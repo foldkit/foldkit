@@ -5,6 +5,7 @@ export {
   foldChildInits,
   foldChildStep,
   foldChildAt,
+  make,
   refresh,
   withOutMessage,
 } from './index.js'
