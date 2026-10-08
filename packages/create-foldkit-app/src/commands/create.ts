@@ -92,7 +92,9 @@ const resolveInput = (input: CreateInput) =>
       onSome: Effect.succeed,
     })
     if (rendering !== 'spa' && Option.isSome(input.example)) {
-      yield* Effect.fail('The --example flag only applies to spa rendering.')
+      return yield* Effect.fail(
+        'The --example flag only applies to spa rendering.',
+      )
     }
     const scaffold = yield* resolveScaffold(rendering, input.example)
     const packageManager = yield* Option.match(input.packageManager, {

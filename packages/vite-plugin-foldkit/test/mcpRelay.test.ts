@@ -384,6 +384,78 @@ describe('DevTools MCP relay', () => {
   )
 
   it(
+    'continues serving Model requests after a preserved Model cannot be serialized',
+    async () => {
+      const handlers = new Map<string, unknown>()
+      const captureHandlers: Plugin = {
+        name: 'test:capture-foldkit-model-handlers',
+        configureServer: server => {
+          const on = server.ws.on.bind(server.ws)
+          Reflect.set(server.ws, 'on', (event: string, listener: unknown) => {
+            handlers.set(event, listener)
+            Reflect.apply(on, server.ws, [event, listener])
+            return server.ws
+          })
+        },
+      }
+      const server = await startMiddlewareServer(
+        { devToolsMcpPort: false },
+        undefined,
+        [captureHandlers],
+      )
+      const send = vi.spyOn(server.ws, 'send')
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+      onTestFinished(() => {
+        send.mockRestore()
+        warn.mockRestore()
+      })
+
+      const preserveModel = handlers.get('foldkit:preserve-model')
+      const requestModel = handlers.get('foldkit:request-model')
+      if (
+        !Predicate.isFunction(preserveModel) ||
+        !Predicate.isFunction(requestModel)
+      ) {
+        throw new Error(
+          'expected Foldkit Model-preservation WebSocket handlers',
+        )
+      }
+
+      preserveModel({
+        id: 'unserializable',
+        model: 1n,
+        isReloadFlush: true,
+      })
+      requestModel({ id: 'unserializable' })
+      preserveModel({
+        id: 'serializable',
+        model: { count: 1 },
+        isReloadFlush: true,
+      })
+      requestModel({ id: 'serializable' })
+
+      await expect
+        .poll(
+          () =>
+            send.mock.calls.filter(
+              ([event]) => event === 'foldkit:restore-model',
+            ).length,
+        )
+        .toBe(2)
+
+      expect(warn).toHaveBeenCalledWith(
+        '[foldkit:preserve] failed to send restore-model payload',
+        expect.anything(),
+      )
+      expect(send).toHaveBeenLastCalledWith('foldkit:restore-model', {
+        id: 'serializable',
+        model: { count: 1 },
+      })
+    },
+    TEST_TIMEOUT,
+  )
+
+  it(
     'closes connected MCP clients when the dev server closes',
     async () => {
       const port = await findFreePort()

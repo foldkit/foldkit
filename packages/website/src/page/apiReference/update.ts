@@ -29,7 +29,7 @@ const LoadApiData = Command.define('LoadApiData', {
         error instanceof Error ? error.message : 'Unknown error',
     })
 
-    const parsedApi = Schema.decodeUnknownSync(ParsedApiReference)(
+    const parsedApi = yield* Schema.decodeUnknownEffect(ParsedApiReference)(
       parsedApiModule.default,
     )
 

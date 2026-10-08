@@ -512,11 +512,6 @@ export const WritePlaygroundFile = Command.define('WritePlaygroundFile', {
           }),
         ),
       ),
-      Effect.catch(error =>
-        Effect.succeed(
-          Message.FailedWritePlaygroundFile({ reason: reasonFromError(error) }),
-        ),
-      ),
     ),
 })
 
