@@ -1,144 +1,297 @@
-import { ConfigProvider, Effect, Option, Schedule, pipe } from 'effect'
-import { Request, type RelayRecord } from 'foldkit/devtools-protocol'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { Array, Effect, Exit, Option } from 'effect'
 import { createServer as createNetServer } from 'node:net'
-import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
-import { createServer } from 'vite'
+import { join } from 'node:path'
+import { expect, it, onTestFinished } from 'vitest'
+import { WebSocket, WebSocketServer } from 'ws'
+
+import { makeRelayClient } from '../src/relayClient.ts'
+import type { RelayTarget } from '../src/relayLocation.ts'
+import { boundPort } from './boundPort.ts'
 import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  onTestFinished,
-} from 'vitest'
+  POLL_TIMEOUT,
+  connectionCount,
+  listedIds,
+  loggedErrors,
+  openBrowserRuntime,
+  openSession,
+  startApplication,
+  useWorkspace,
+} from './relayFixtures.ts'
 
-import * as NodeServices from '@effect/platform-node/NodeServices'
-import { foldkit } from '@foldkit/vite-plugin'
-
-import { resolveRelayUrl } from '../src/relayLocation.ts'
-import { discoverRelay } from '../src/relayRegistry.ts'
-import {
-  type WebSocketClient,
-  connectWebSocketClient,
-} from '../src/webSocketClient.ts'
-
-const RELAY_DIRECTORY_VARIABLE = 'FOLDKIT_DEVTOOLS_RELAY_DIRECTORY'
-const PACKAGE_ROOT = resolve(import.meta.dirname, '..')
 const TEST_TIMEOUT = 30_000
+const IDLE_WINDOW = 500
+const CALL_COUNT = 3
+const CLOSE_DELAY = 100
+const CONNECT_TIMEOUT = 2_000
 
-const findFreePort = () =>
-  new Promise<number>((resolvePort, reject) => {
-    const probe = createNetServer()
-    probe.on('error', reject)
-    probe.listen(0, '127.0.0.1', () => {
-      const address = probe.address()
-      if (address === null || typeof address === 'string') {
-        probe.close()
-        reject(new Error('Could not determine a free port'))
-        return
-      }
+const workspace = useWorkspace()
 
-      const { port } = address
-      probe.close(() => resolvePort(port))
+const fixedTarget = (url: string): RelayTarget => ({
+  key: url,
+  url,
+  maybeProjectRoot: Option.none(),
+})
+
+const startRelay = async (onConnection: (socket: WebSocket) => void) => {
+  const relay = new WebSocketServer({ host: '127.0.0.1', port: 0 })
+  onTestFinished(() => new Promise<void>(done => relay.close(() => done())))
+  await new Promise<void>(resolveListening =>
+    relay.once('listening', () => resolveListening()),
+  )
+  const port = Option.getOrThrowWith(
+    boundPort(relay.address()),
+    () => new Error('relay has no port'),
+  )
+  relay.on('connection', onConnection)
+  return `ws://127.0.0.1:${port}`
+}
+
+const runtimesResponse = (connectionId: string) => ({
+  _tag: 'ResponseRuntimes',
+  runtimes: [{ connectionId, url: 'http://app/', title: connectionId }],
+})
+
+const startAnsweringRelay = async (response: unknown) => {
+  const connections: Array<WebSocket> = []
+  const url = await startRelay(socket => {
+    connections.push(socket)
+    socket.on('message', raw => {
+      const { id } = JSON.parse(raw.toString())
+      socket.send(JSON.stringify({ id, response }))
     })
   })
+  return { url, connections }
+}
 
-describe('relay connection', () => {
-  let registryDirectory = ''
-  let previousRegistryDirectory: string | undefined
-
-  beforeEach(async () => {
-    previousRegistryDirectory = process.env[RELAY_DIRECTORY_VARIABLE]
-    registryDirectory = await mkdtemp(join(tmpdir(), 'foldkit-mcp-relay-'))
-    process.env[RELAY_DIRECTORY_VARIABLE] = registryDirectory
-  })
-
-  afterEach(async () => {
-    if (previousRegistryDirectory === undefined) {
-      delete process.env[RELAY_DIRECTORY_VARIABLE]
-    } else {
-      process.env[RELAY_DIRECTORY_VARIABLE] = previousRegistryDirectory
-    }
-    await rm(registryDirectory, { recursive: true, force: true })
-  })
-
-  it(
-    'discovers the relay, connects, and follows a dev server restart',
-    async () => {
-      const port = await findFreePort()
-      const server = await createServer({
-        root: PACKAGE_ROOT,
-        configFile: false,
-        logLevel: 'silent',
-        server: { port, strictPort: true, host: '127.0.0.1' },
-        plugins: [foldkit()],
-      })
-      onTestFinished(() => server.close().catch(() => undefined))
-      await server.listen()
-
-      const settings = {
-        maybeConfiguredPort: Option.none<string>(),
-        maybeConfiguredHost: Option.none<string>(),
-        projectRoot: PACKAGE_ROOT,
-      }
-      const listRuntimes = (client: WebSocketClient) =>
-        client.sendRequest(Request.RequestListRuntimes(), Option.none()).pipe(
-          Effect.retry({
-            schedule: Schedule.spaced('250 millis'),
-            times: 60,
-          }),
-        )
-      const tokenFromPublishedRelay = (
-        maybeRecord: Option.Option<RelayRecord>,
-        previousToken: string | undefined,
-      ) =>
-        pipe(
-          maybeRecord,
-          Option.flatMap(record =>
-            Option.fromNullishOr(new URL(record.url).searchParams.get('token')),
-          ),
-          Option.filter(token => token !== previousToken),
-        )
-      const waitForPublishedToken = (previousToken: string | undefined) =>
-        discoverRelay(PACKAGE_ROOT).pipe(
-          Effect.flatMap(maybeRecord =>
-            Option.match(tokenFromPublishedRelay(maybeRecord, previousToken), {
-              onNone: () => Effect.fail(new Error('no new relay published')),
-              onSome: token => Effect.succeed(token),
-            }),
-          ),
-          Effect.retry({ schedule: Schedule.spaced('100 millis'), times: 100 }),
-        )
-
-      await Effect.runPromise(
-        Effect.gen(function* () {
-          const before = yield* waitForPublishedToken(undefined)
-          const client = yield* connectWebSocketClient(
-            resolveRelayUrl(settings),
-          )
-
-          const first = yield* listRuntimes(client)
-          expect(first._tag).toBe('ResponseRuntimes')
-
-          yield* Effect.promise(() => server.restart())
-          const after = yield* waitForPublishedToken(before)
-          expect(after).not.toBe(before)
-
-          const second = yield* listRuntimes(client)
-          expect(second._tag).toBe('ResponseRuntimes')
-
-          yield* client.close
-        }).pipe(
-          Effect.provideService(
-            ConfigProvider.ConfigProvider,
-            ConfigProvider.fromEnv(),
-          ),
-          Effect.provide(NodeServices.layer),
-        ),
-      )
-    },
-    TEST_TIMEOUT,
+const firstConnection = (connections: ReadonlyArray<WebSocket>): WebSocket =>
+  Option.getOrThrowWith(
+    Array.head(connections),
+    () => new Error('the relay has no connection'),
   )
-})
+
+const openClient = async (
+  resolveTargets: Effect.Effect<ReadonlyArray<RelayTarget>>,
+) => {
+  const client = await Effect.runPromise(makeRelayClient(resolveTargets))
+  onTestFinished(() => Effect.runPromise(client.close))
+  return client
+}
+
+const startDroppingRelay = async () => {
+  const connections = { count: 0 }
+  const url = await startRelay(socket => {
+    connections.count += 1
+    socket.close()
+  })
+  return { url, connections }
+}
+
+const startStalledServer = async () => {
+  const stalled = createNetServer(socket => {
+    socket.resume()
+  })
+  onTestFinished(() => new Promise<void>(done => stalled.close(() => done())))
+  await new Promise<void>(resolveListening =>
+    stalled.listen(0, '127.0.0.1', () => resolveListening()),
+  )
+  const port = Option.getOrThrowWith(
+    boundPort(stalled.address()),
+    () => new Error('server has no port'),
+  )
+  return `ws://127.0.0.1:${port}`
+}
+
+it(
+  'connects on the first call after the dev server starts',
+  async () => {
+    const application = join(workspace.root, 'application')
+    const session = await openSession(application)
+
+    await expect(listedIds(session)).rejects.toThrow(
+      'Not connected to a Foldkit dev server',
+    )
+
+    const server = await startApplication(application)
+    await openBrowserRuntime(server, 'runtime-application')
+
+    await expect
+      .poll(() => listedIds(session), { timeout: POLL_TIMEOUT })
+      .toStrictEqual(['runtime-application'])
+    expect(await listedIds(session)).toStrictEqual(['runtime-application'])
+    expect(connectionCount()).toBe(1)
+  },
+  TEST_TIMEOUT,
+)
+
+it(
+  'follows a dev server restart on the next call',
+  async () => {
+    const application = join(workspace.root, 'application')
+    const server = await startApplication(application)
+    const session = await openSession(application)
+    expect(await listedIds(session)).toStrictEqual([])
+
+    await server.restart()
+
+    await expect
+      .poll(() => listedIds(session), { timeout: POLL_TIMEOUT })
+      .toStrictEqual([])
+    expect(connectionCount()).toBe(2)
+  },
+  TEST_TIMEOUT,
+)
+
+it(
+  'opens at most one connection per call to a relay that drops each one',
+  async () => {
+    const relay = await startDroppingRelay()
+    const client = await openClient(Effect.succeed([fixedTarget(relay.url)]))
+
+    await new Promise(done => setTimeout(done, IDLE_WINDOW))
+    expect(relay.connections.count).toBe(0)
+
+    await Effect.runPromise(
+      Effect.forEach(
+        Array.range(1, CALL_COUNT),
+        () => Effect.exit(client.listRuntimes),
+        { discard: true },
+      ),
+    )
+    await new Promise(done => setTimeout(done, IDLE_WINDOW))
+
+    expect(relay.connections.count).toBeGreaterThan(0)
+    expect(relay.connections.count).toBeLessThanOrEqual(CALL_COUNT)
+  },
+  TEST_TIMEOUT,
+)
+
+it(
+  'reports a relay that does not answer a listing and lists nothing from it',
+  async () => {
+    const url = await startRelay(() => {})
+    const client = await openClient(Effect.succeed([fixedTarget(url)]))
+
+    expect(await Effect.runPromise(client.listRuntimes)).toStrictEqual([])
+    expect(loggedErrors()).toContainEqual(
+      expect.stringContaining(
+        `[foldkit-devtools-mcp] listing runtimes at ${url}/ failed: `,
+      ),
+    )
+  },
+  TEST_TIMEOUT,
+)
+
+it(
+  'reports the reason a relay gives for refusing a listing and lists nothing from it',
+  async () => {
+    const relay = await startAnsweringRelay({
+      _tag: 'ResponseError',
+      reason: 'listing refused',
+    })
+    const client = await openClient(Effect.succeed([fixedTarget(relay.url)]))
+
+    expect(await Effect.runPromise(client.listRuntimes)).toStrictEqual([])
+    expect(loggedErrors()).toContainEqual(
+      `[foldkit-devtools-mcp] listing runtimes at ${relay.url}/ failed: listing refused`,
+    )
+  },
+  TEST_TIMEOUT,
+)
+
+it(
+  'reports a relay that answers a listing with another response and lists nothing from it',
+  async () => {
+    const relay = await startAnsweringRelay({ _tag: 'ResponseResumed' })
+    const client = await openClient(Effect.succeed([fixedTarget(relay.url)]))
+
+    expect(await Effect.runPromise(client.listRuntimes)).toStrictEqual([])
+    expect(loggedErrors()).toContainEqual(
+      `[foldkit-devtools-mcp] listing runtimes at ${relay.url}/ failed: the relay answered ResponseResumed`,
+    )
+  },
+  TEST_TIMEOUT,
+)
+
+it(
+  'reconnects to a published relay that closed its connection',
+  async () => {
+    const relay = await startAnsweringRelay(runtimesResponse('runtime-relay'))
+    const client = await openClient(Effect.succeed([fixedTarget(relay.url)]))
+    expect(await listedIds(client)).toStrictEqual(['runtime-relay'])
+
+    const closedConnection = firstConnection(relay.connections)
+    await new Promise(done => {
+      closedConnection.once('close', done)
+      closedConnection.close()
+    })
+
+    expect(await listedIds(client)).toStrictEqual(['runtime-relay'])
+    expect(relay.connections).toHaveLength(2)
+  },
+  TEST_TIMEOUT,
+)
+
+it(
+  'closes its connection to a relay that is no longer published',
+  async () => {
+    const kept = await startAnsweringRelay(runtimesResponse('runtime-kept'))
+    const retired = await startAnsweringRelay(
+      runtimesResponse('runtime-retired'),
+    )
+    const registry = {
+      targets: [fixedTarget(retired.url), fixedTarget(kept.url)],
+    }
+    const client = await openClient(Effect.sync(() => registry.targets))
+    expect(await listedIds(client)).toStrictEqual([
+      'runtime-kept',
+      'runtime-retired',
+    ])
+
+    registry.targets = [fixedTarget(kept.url)]
+
+    expect(await listedIds(client)).toStrictEqual(['runtime-kept'])
+    await expect
+      .poll(() => firstConnection(retired.connections).readyState, {
+        timeout: POLL_TIMEOUT,
+      })
+      .toBe(WebSocket.CLOSED)
+    expect(firstConnection(kept.connections).readyState).toBe(WebSocket.OPEN)
+  },
+  TEST_TIMEOUT,
+)
+
+it(
+  'closes only after a call still connecting fails at the connect timeout, without an uncaught error',
+  async () => {
+    const url = await startStalledServer()
+    const uncaught: Array<unknown> = []
+    const onUncaught = (error: unknown) => uncaught.push(error)
+    process.on('uncaughtException', onUncaught)
+    onTestFinished(() => {
+      process.off('uncaughtException', onUncaught)
+    })
+    const client = await Effect.runPromise(
+      makeRelayClient(Effect.succeed([fixedTarget(url)])),
+    )
+    const settledOperations: Array<string> = []
+
+    const startedAt = Date.now()
+    const pending = Effect.runPromise(Effect.exit(client.listRuntimes)).then(
+      exit => {
+        settledOperations.push('listRuntimes')
+        return exit
+      },
+    )
+    await new Promise(done => setTimeout(done, CLOSE_DELAY))
+    await Effect.runPromise(client.close)
+    settledOperations.push('close')
+    const exit = await pending
+    await new Promise(done => setTimeout(done, CLOSE_DELAY))
+
+    expect(settledOperations).toStrictEqual(['listRuntimes', 'close'])
+    expect(Exit.isFailure(exit)).toBe(true)
+    expect(Date.now() - startedAt).toBeGreaterThanOrEqual(CONNECT_TIMEOUT)
+    expect(uncaught).toStrictEqual([])
+  },
+  TEST_TIMEOUT,
+)

@@ -157,7 +157,7 @@ const isFoldkitPackageSpecifier = (specifier: string): boolean =>
 // NOTE: the counter's own config supplies the workspace aliases that resolve
 // `@foldkit/devtools/vite` to source, and those aliases are what a synthetic
 // config would miss while every example is broken. Its plugins are rebuilt
-// here so the test does not bind the fixed DevTools MCP relay port.
+// here without the DevTools MCP relay the counter configures on a fixed port.
 const createCounterServer = async () => {
   const config = await resolveConfig(
     { root: COUNTER_ROOT, logLevel: 'silent' },
@@ -171,7 +171,7 @@ const createCounterServer = async () => {
     server: { middlewareMode: true },
     resolve: { alias: config.resolve.alias },
     optimizeDeps: { noDiscovery: true },
-    plugins: [foldkit()],
+    plugins: [foldkit({ devToolsMcpPort: false })],
   })
 }
 

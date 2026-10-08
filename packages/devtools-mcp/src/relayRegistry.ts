@@ -1,15 +1,19 @@
 import {
   Array,
   Config,
+  Console,
   Effect,
   FileSystem,
+  HashSet,
   Option,
   Order,
   Path,
+  Ref,
   Schema,
   String,
   pipe,
 } from 'effect'
+import type { ChildProcessSpawner } from 'effect/process'
 import {
   RELAY_REGISTRY_DIRECTORY_NAME,
   RELAY_REGISTRY_DIRECTORY_VARIABLE,
@@ -17,11 +21,23 @@ import {
 } from 'foldkit/devtools-protocol'
 import { tmpdir } from 'node:os'
 
+import {
+  type RelayRegistryTrust,
+  makeRelayRegistryTrust,
+} from './relayRegistryTrust.js'
+
 const RUNTIME_DIRECTORY_VARIABLE = 'XDG_RUNTIME_DIR'
 const RECORD_FILE_EXTENSION = '.json'
 const RETIRING_RECORD_SUFFIX = '.retiring'
 
 export type RelayRegistryServices = FileSystem.FileSystem | Path.Path
+
+export type RelayRegistryReader = Readonly<{
+  trust: RelayRegistryTrust
+  reportedRefusals: Ref.Ref<HashSet.HashSet<string>>
+}>
+
+type RootPathApi = Pick<Path.Path, 'isAbsolute' | 'relative' | 'sep'>
 
 const decodeRelayRecord = Schema.decodeUnknownOption(
   Schema.fromJsonString(RelayRecord),
@@ -113,24 +129,107 @@ const newestFirst: Order.Order<RelayRecord> = Order.mapInput(
   record => record.startedAt,
 )
 
-export const discoverRelay = (
-  projectRoot: string,
-): Effect.Effect<Option.Option<RelayRecord>, never, RelayRegistryServices> =>
+export const isWithinRoot = (
+  root: string,
+  candidate: string,
+  pathApi: RootPathApi,
+): boolean => {
+  const relativePath = pathApi.relative(root, candidate)
+  return (
+    relativePath === '' ||
+    (relativePath !== '..' &&
+      !relativePath.startsWith(`..${pathApi.sep}`) &&
+      !pathApi.isAbsolute(relativePath))
+  )
+}
+
+export const makeRelayRegistryReader: Effect.Effect<RelayRegistryReader> =
+  Effect.gen(function* () {
+    const trust = yield* makeRelayRegistryTrust
+    const reportedRefusals = yield* Ref.make(HashSet.empty<string>())
+    const registryReader: RelayRegistryReader = { trust, reportedRefusals }
+    return registryReader
+  })
+
+const reportRefusal = (
+  reportedRefusals: Ref.Ref<HashSet.HashSet<string>>,
+  directory: string,
+  reason: string,
+): Effect.Effect<void> =>
+  Effect.gen(function* () {
+    const line = `[foldkit-devtools-mcp] ignoring the relay registry at ${directory}: it ${reason}`
+    const isFirstReport = yield* Ref.modify(reportedRefusals, reported => [
+      !HashSet.has(reported, line),
+      HashSet.add(reported, line),
+    ])
+
+    if (isFirstReport) {
+      yield* Console.error(line)
+    }
+  })
+
+const trustedRegistryDirectory = (
+  registryReader: RelayRegistryReader,
+): Effect.Effect<
+  Option.Option<string>,
+  never,
+  RelayRegistryServices | ChildProcessSpawner.ChildProcessSpawner
+> =>
+  Effect.gen(function* () {
+    const fileSystem = yield* FileSystem.FileSystem
+    const directory = yield* relayRegistryDirectory
+    const isPresent = yield* fileSystem
+      .exists(directory)
+      .pipe(Effect.orElseSucceed(() => false))
+    if (!isPresent) {
+      return Option.none()
+    }
+
+    const maybeRefusal = yield* registryReader.trust.refusal(directory)
+    if (Option.isSome(maybeRefusal)) {
+      yield* reportRefusal(
+        registryReader.reportedRefusals,
+        directory,
+        maybeRefusal.value,
+      )
+      return Option.none()
+    }
+
+    return Option.some(directory)
+  }).pipe(Effect.orElseSucceed(() => Option.none<string>()))
+
+const realRoot = (
+  root: string,
+): Effect.Effect<string, never, RelayRegistryServices> =>
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem
     const path = yield* Path.Path
-    const directory = yield* relayRegistryDirectory
+    const resolvedRoot = path.resolve(root)
+    return yield* fileSystem
+      .realPath(resolvedRoot)
+      .pipe(Effect.orElseSucceed(() => resolvedRoot))
+  })
 
-    const isWithinProjectRoot = (candidatePath: string): boolean => {
-      const relativePath = path.relative(projectRoot, candidatePath)
-      return (
-        relativePath === '' ||
-        (relativePath !== '..' &&
-          !relativePath.startsWith(`..${path.sep}`) &&
-          !path.isAbsolute(relativePath))
-      )
+const segmentCount = (root: string, path: Path.Path): number =>
+  pipe(root, String.split(path.sep), Array.filter(String.isNonEmpty)).length
+
+export const discoverRelays = (
+  projectRoot: string,
+  registryReader: RelayRegistryReader,
+): Effect.Effect<
+  ReadonlyArray<RelayRecord>,
+  never,
+  RelayRegistryServices | ChildProcessSpawner.ChildProcessSpawner
+> =>
+  Effect.gen(function* () {
+    const maybeDirectory = yield* trustedRegistryDirectory(registryReader)
+    if (Option.isNone(maybeDirectory)) {
+      return []
     }
 
+    const fileSystem = yield* FileSystem.FileSystem
+    const path = yield* Path.Path
+    const directory = maybeDirectory.value
     const fileNames = yield* fileSystem
       .readDirectory(directory)
       .pipe(Effect.orElseSucceed((): ReadonlyArray<string> => []))
@@ -138,17 +237,38 @@ export const discoverRelay = (
       fileNames,
       String.endsWith(RECORD_FILE_EXTENSION),
     )
-    const maybeRecords = yield* Effect.forEach(
-      recordFileNames,
-      recordFileName =>
+    const records = Array.getSomes(
+      yield* Effect.forEach(recordFileNames, recordFileName =>
         readLiveRecordFile(path.join(directory, recordFileName)),
+      ),
     )
 
+    const realProjectRoot = yield* realRoot(projectRoot)
+    const rootedRecords = yield* Effect.forEach(records, record =>
+      Effect.map(realRoot(record.root), root => ({ record, root })),
+    )
+
+    const recordsInside = Array.filter(rootedRecords, ({ root }) =>
+      isWithinRoot(realProjectRoot, root, path),
+    )
+    const recordsEnclosing = Array.filter(rootedRecords, ({ root }) =>
+      isWithinRoot(root, realProjectRoot, path),
+    )
+    const nearestDepth = Array.reduce(recordsEnclosing, 0, (depth, { root }) =>
+      Math.max(depth, segmentCount(root, path)),
+    )
+    const selected = Array.match(recordsInside, {
+      onEmpty: () =>
+        Array.filter(
+          recordsEnclosing,
+          ({ root }) => segmentCount(root, path) === nearestDepth,
+        ),
+      onNonEmpty: inside => inside,
+    })
+
     return pipe(
-      maybeRecords,
-      Array.getSomes,
-      Array.filter(record => isWithinProjectRoot(record.root)),
+      selected,
+      Array.map(({ record }) => record),
       Array.sort(newestFirst),
-      Array.head,
     )
   })

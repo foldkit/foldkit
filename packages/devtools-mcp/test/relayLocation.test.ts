@@ -5,16 +5,19 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import * as NodeServices from '@effect/platform-node/NodeServices'
-
 import {
   type Settings,
   loadSettings,
-  resolveRelayUrl,
+  resolveRelayTargets,
 } from '../src/relayLocation.ts'
+import {
+  RELAY_DIRECTORY_VARIABLE,
+  makeUncheckedRegistryReader,
+  runWithNode,
+} from './relayRegistryFixtures.ts'
 
-const RELAY_DIRECTORY_VARIABLE = 'FOLDKIT_DEVTOOLS_RELAY_DIRECTORY'
 const PROJECT_ROOT = '/workspace/app'
+const PRIVATE_DIRECTORY_MODE = 0o700
 
 const settings = (overrides: Partial<Settings> = {}): Settings => ({
   maybeConfiguredPort: Option.none(),
@@ -32,24 +35,24 @@ const published: RelayRecord = {
   startedAt: 1,
 }
 
-describe('resolveRelayUrl', () => {
+describe('resolveRelayTargets', () => {
   let registryDirectory = ''
   let previousRegistryDirectory: string | undefined
 
   const resolve = (value: Settings) =>
-    Effect.runPromise(
-      resolveRelayUrl(value).pipe(
-        Effect.provideService(
-          ConfigProvider.ConfigProvider,
-          ConfigProvider.fromEnv(),
-        ),
-        Effect.provide(NodeServices.layer),
+    runWithNode(
+      Effect.flatMap(makeUncheckedRegistryReader, registryReader =>
+        resolveRelayTargets(value, registryReader),
       ),
     )
+
+  const resolveUrls = (value: Settings) =>
+    resolve(value).then(targets => targets.map(({ url }) => url))
 
   beforeEach(async () => {
     previousRegistryDirectory = process.env[RELAY_DIRECTORY_VARIABLE]
     registryDirectory = await mkdtemp(join(tmpdir(), 'foldkit-mcp-location-'))
+    await rm(registryDirectory, { recursive: true, force: true })
     process.env[RELAY_DIRECTORY_VARIABLE] = registryDirectory
   })
 
@@ -63,7 +66,10 @@ describe('resolveRelayUrl', () => {
   })
 
   const publish = async () => {
-    await mkdir(registryDirectory, { recursive: true })
+    await mkdir(registryDirectory, {
+      recursive: true,
+      mode: PRIVATE_DIRECTORY_MODE,
+    })
     await writeFile(
       join(registryDirectory, 'app.json'),
       JSON.stringify(published),
@@ -74,35 +80,50 @@ describe('resolveRelayUrl', () => {
   it('uses a configured port instead of a published relay', async () => {
     await publish()
     expect(
-      await resolve(settings({ maybeConfiguredPort: Option.some('4600') })),
-    ).toBe('ws://localhost:4600')
+      await resolveUrls(settings({ maybeConfiguredPort: Option.some('4600') })),
+    ).toStrictEqual(['ws://localhost:4600'])
+  })
+
+  it('uses a configured host instead of a published relay', async () => {
+    await publish()
+    expect(
+      await resolveUrls(
+        settings({ maybeConfiguredHost: Option.some('devbox') }),
+      ),
+    ).toStrictEqual(['ws://devbox:9988'])
   })
 
   it('uses a configured host with a configured port', async () => {
+    await publish()
     expect(
-      await resolve(
+      await resolveUrls(
         settings({
           maybeConfiguredPort: Option.some('4600'),
           maybeConfiguredHost: Option.some('devbox'),
         }),
       ),
-    ).toBe('ws://devbox:4600')
+    ).toStrictEqual(['ws://devbox:4600'])
   })
 
   it('uses a published relay address with its token', async () => {
     await publish()
-    expect(await resolve(settings())).toBe(published.url)
-  })
-
-  it('replaces only a published relay hostname with a configured host', async () => {
-    await publish()
-    expect(
-      await resolve(settings({ maybeConfiguredHost: Option.some('devbox') })),
-    ).toBe('ws://devbox:5173/__foldkit/devtools-mcp?token=abc')
+    expect(await resolve(settings())).toStrictEqual([
+      {
+        key: published.id,
+        url: published.url,
+        maybeProjectRoot: Option.some(PROJECT_ROOT),
+      },
+    ])
   })
 
   it('uses the legacy port when no relay is published', async () => {
-    expect(await resolve(settings())).toBe('ws://localhost:9988')
+    expect(await resolve(settings())).toStrictEqual([
+      {
+        key: 'ws://localhost:9988',
+        url: 'ws://localhost:9988',
+        maybeProjectRoot: Option.none(),
+      },
+    ])
   })
 })
 

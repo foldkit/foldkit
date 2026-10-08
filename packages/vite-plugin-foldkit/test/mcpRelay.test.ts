@@ -4,12 +4,14 @@ import {
   Effect,
   FileSystem,
   Option,
+  Order,
   Predicate,
+  Schema,
 } from 'effect'
-import type { RelayRecord } from 'foldkit/devtools-protocol'
-import { chmod, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
-import { connect, createServer as createNetServer } from 'node:net'
-import { networkInterfaces, tmpdir } from 'node:os'
+import { RelayRecord } from 'foldkit/devtools-protocol'
+import { chmod, readFile, readdir, writeFile } from 'node:fs/promises'
+import { createServer as createNetServer } from 'node:net'
+import { networkInterfaces } from 'node:os'
 import { join, resolve } from 'node:path'
 import {
   type HmrContext,
@@ -18,15 +20,7 @@ import {
   type ViteDevServer,
   createServer,
 } from 'vite'
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  onTestFinished,
-  vi,
-} from 'vitest'
+import { describe, expect, it, onTestFinished } from 'vitest'
 import { WebSocket } from 'ws'
 
 import * as NodeServices from '@effect/platform-node/NodeServices'
@@ -36,47 +30,32 @@ import { type FoldkitPluginOptions, foldkit } from '../src/index.ts'
 import {
   type RelayPublisherServices,
   publishRelayRecord,
-  readRelayRecord,
-  relayRegistryDirectoryRefusal,
   retireRelayRecord,
 } from '../src/relayRegistry.ts'
+import {
+  makeRelayRegistryTrust,
+  relayRegistryDirectoryRefusal,
+} from '../src/relayRegistryTrust.ts'
+import { boundPort } from './boundPort.ts'
+import {
+  POLL_TIMEOUT,
+  RELAY_DIRECTORY_VARIABLE,
+  RELAY_PATH,
+  findListener,
+  listenerOn,
+  loggedLines,
+  openWebSocket,
+  publishedRecords,
+  serverPort,
+  silenceRelayErrors,
+  startOnConfiguredRelayPort,
+  useRelayRegistry,
+  waitUntilPublished,
+} from './relayFixtures.ts'
 
 const PACKAGE_ROOT = resolve(import.meta.dirname, '..')
 const TEST_TIMEOUT = 20_000
-const POLL_TIMEOUT = 10_000
 const MODEL_PRESERVATION_RESPONSE_BUDGET = 500
-
-const findFreePort = () =>
-  new Promise<number>((resolvePort, reject) => {
-    const probe = createNetServer()
-    probe.on('error', error => {
-      probe.close()
-      reject(error)
-    })
-    probe.listen(0, '127.0.0.1', () => {
-      const address = probe.address()
-      if (address === null || typeof address === 'string') {
-        probe.close()
-        reject(new Error('Could not determine a free port'))
-        return
-      }
-      const { port } = address
-      probe.close(() => resolvePort(port))
-    })
-  })
-
-const isPortAccepting = (port: number) =>
-  new Promise<boolean>(resolveAccepting => {
-    const socket = connect({ port, host: '127.0.0.1' })
-    socket.on('connect', () => {
-      socket.destroy()
-      resolveAccepting(true)
-    })
-    socket.on('error', () => {
-      socket.destroy()
-      resolveAccepting(false)
-    })
-  })
 
 const startMiddlewareModeServer = async (devToolsMcpPort: number) => {
   const server = await createServer({
@@ -90,15 +69,12 @@ const startMiddlewareModeServer = async (devToolsMcpPort: number) => {
   return server
 }
 
-const startStandaloneServer = async (
-  devToolsMcpPort: number,
-  serverPort: number,
-) => {
+const startStandaloneServer = async (devToolsMcpPort: number) => {
   const server = await createServer({
     root: PACKAGE_ROOT,
     configFile: false,
     logLevel: 'silent',
-    server: { port: serverPort, strictPort: true, host: '127.0.0.1' },
+    server: { port: 0, host: '127.0.0.1' },
     plugins: [foldkit({ devToolsMcpPort })],
   })
   onTestFinished(() => server.close().catch(() => undefined))
@@ -107,7 +83,9 @@ const startStandaloneServer = async (
 }
 
 const waitUntilRelayListening = (port: number) =>
-  expect.poll(() => isPortAccepting(port), { timeout: POLL_TIMEOUT }).toBe(true)
+  expect
+    .poll(() => Option.isSome(findListener(port)), { timeout: POLL_TIMEOUT })
+    .toBe(true)
 
 const connectClient = async (port: number) => {
   const client = new WebSocket(`ws://127.0.0.1:${port}`)
@@ -121,13 +99,17 @@ const connectClient = async (port: number) => {
 
 // NOTE: Binds every interface, the way `ws` does. Holding only 127.0.0.1
 // leaves the relay free to bind `::` and the contention never happens.
-const holdPort = async (port: number) => {
+const holdFreePort = async (): Promise<number> => {
   const squatter = createNetServer()
   onTestFinished(() => new Promise<void>(done => squatter.close(() => done())))
   await new Promise<void>((resolveListening, reject) => {
     squatter.on('error', reject)
-    squatter.listen(port, () => resolveListening())
+    squatter.listen(0, () => resolveListening())
   })
+  return Option.getOrThrowWith(
+    boundPort(squatter.address()),
+    () => new Error('The squatter has no bound port'),
+  )
 }
 
 const requestPreservedModel = async (port: number) => {
@@ -202,22 +184,15 @@ const requestModel = (client: WebSocket, id: string) => {
   return restored
 }
 
-const RELAY_DIRECTORY_VARIABLE = 'FOLDKIT_DEVTOOLS_RELAY_DIRECTORY'
-const RELAY_PATH = '/__foldkit/devtools-mcp'
 const NO_RELAY_SETTLE = 300
 
-const startMiddlewareServer = async (
-  options: FoldkitPluginOptions,
-  mode: string | undefined = undefined,
-  plugins: ReadonlyArray<Plugin> = [],
-) => {
+const startMiddlewareServer = async (options: FoldkitPluginOptions) => {
   const server = await createServer({
     root: PACKAGE_ROOT,
     configFile: false,
     logLevel: 'silent',
     server: { middlewareMode: true },
-    plugins: [...plugins, foldkit(options)],
-    ...(mode === undefined ? {} : { mode }),
+    plugins: [foldkit(options)],
   })
   onTestFinished(() => server.close().catch(() => undefined))
   return server
@@ -225,7 +200,6 @@ const startMiddlewareServer = async (
 
 const startListeningServer = async (
   options: FoldkitPluginOptions,
-  serverPort: number,
   plugins: ReadonlyArray<Plugin> = [],
   host = '127.0.0.1',
 ) => {
@@ -233,7 +207,7 @@ const startListeningServer = async (
     root: PACKAGE_ROOT,
     configFile: false,
     logLevel: 'silent',
-    server: { port: serverPort, strictPort: true, host },
+    server: { port: 0, host },
     plugins: [...plugins, foldkit(options)],
   })
   onTestFinished(() => server.close().catch(() => undefined))
@@ -254,27 +228,18 @@ const runRegistry = <A, E>(
     ),
   )
 
-const publishedRecord = (root: string) =>
-  Effect.runPromise(
-    readRelayRecord(root).pipe(
-      Effect.provideService(
-        ConfigProvider.ConfigProvider,
-        ConfigProvider.fromEnv(),
-      ),
-      Effect.provide(NodeServices.layer),
-    ),
-  ).then(Option.getOrUndefined)
+const publish = (record: RelayRecord) =>
+  Effect.flatMap(makeRelayRegistryTrust, trust =>
+    publishRelayRecord(record, trust),
+  )
 
-const waitUntilPublished = async (root: string): Promise<RelayRecord> => {
-  await expect
-    .poll(() => publishedRecord(root), { timeout: POLL_TIMEOUT })
-    .toBeDefined()
-  const record = await publishedRecord(root)
-  if (record === undefined) {
-    throw new Error('relay record vanished')
-  }
-  return record
-}
+const decodeRelayRecordJson = Schema.decodeUnknownSync(
+  Schema.fromJsonString(RelayRecord),
+)
+
+// NOTE: This exceeds every PID Linux or macOS can issue, so no live process can
+// carry it.
+const DEAD_PID = 2_147_483_647
 
 const connectionRefused = (url: string) =>
   new Promise<boolean>(resolveRefused => {
@@ -286,18 +251,26 @@ const connectionRefused = (url: string) =>
 
 const RELAY_TOKEN_PATTERN = /^[0-9a-f]{64}$/
 
-const connectClientAt = async (url: string) => {
-  const client = new WebSocket(url)
-  onTestFinished(() => client.terminate())
-  await new Promise<void>((resolveOpen, reject) => {
-    client.on('open', () => resolveOpen())
-    client.on('error', reject)
-  })
-  return client
-}
-
 const settle = () =>
   new Promise<void>(done => setTimeout(done, NO_RELAY_SETTLE))
+
+const expectOwnLoopbackRelay = async (
+  record: RelayRecord,
+  maybeDevServerPort: Option.Option<number>,
+) => {
+  const url = new URL(record.url)
+  expect(url.protocol).toBe('ws:')
+  expect(url.hostname).toBe('127.0.0.1')
+  expect(Number(url.port)).toBeGreaterThan(0)
+  if (Option.isSome(maybeDevServerPort)) {
+    expect(Number(url.port)).not.toBe(maybeDevServerPort.value)
+  }
+  expect(url.pathname).toBe(RELAY_PATH)
+  expect(url.searchParams.get('token')).toMatch(RELAY_TOKEN_PATTERN)
+  const client = await openWebSocket(record.url)
+  expect(client.readyState).toBe(client.OPEN)
+  return url
+}
 
 const RUNTIME_DIRECTORY_VARIABLE = 'XDG_RUNTIME_DIR'
 const REGISTRY_DIRECTORY_NAME = 'foldkit-devtools-relays'
@@ -315,25 +288,25 @@ const withRuntimeDirectory = (runtimeDirectory: string) => {
   return join(runtimeDirectory, REGISTRY_DIRECTORY_NAME)
 }
 
-const joinedLogLines = (calls: ReadonlyArray<ReadonlyArray<unknown>>) =>
-  calls.map(call => call.map(String).join(' '))
-
 const maybeNetworkAddress = Array.findFirst(
   Object.values(networkInterfaces()).flatMap(addresses => addresses ?? []),
   address => address.family === 'IPv4' && !address.internal,
 ).pipe(Option.map(address => address.address))
 
 describe('DevTools MCP relay', () => {
+  useRelayRegistry()
+
   it(
     'releases its port when a middleware-mode dev server closes',
     async () => {
-      const port = await findFreePort()
-      const server = await startMiddlewareModeServer(port)
-      await waitUntilRelayListening(port)
+      const { server, relayPort } = await startOnConfiguredRelayPort(
+        startMiddlewareModeServer,
+      )
+      const relayListener = listenerOn(relayPort)
 
       await server.close()
 
-      expect(await isPortAccepting(port)).toBe(false)
+      expect(relayListener.listening).toBe(false)
     },
     TEST_TIMEOUT,
   )
@@ -341,8 +314,7 @@ describe('DevTools MCP relay', () => {
   it(
     'keeps an event for the replaced server out of the replacement',
     async () => {
-      const serverPort = await findFreePort()
-      const server = await startListeningServer({}, serverPort)
+      const server = await startListeningServer({})
       // NOTE: Vite restarts a server in place, so a copy taken now keeps the
       // replaced server's config and hot channel after the restart.
       const replacedServer: ViteDevServer = { ...server }
@@ -361,7 +333,7 @@ describe('DevTools MCP relay', () => {
       await server.restart()
       expect(server.config).not.toBe(replacedServer.config)
 
-      const client = await openHmrClient(serverPort)
+      const client = await openHmrClient(serverPort(server))
       sendCustom(client, 'foldkit:preserve-model', {
         id: 'app',
         model: { count: 1 },
@@ -386,15 +358,16 @@ describe('DevTools MCP relay', () => {
   it(
     'closes connected MCP clients when the dev server closes',
     async () => {
-      const port = await findFreePort()
-      const server = await startMiddlewareModeServer(port)
-      await waitUntilRelayListening(port)
-      const client = await connectClient(port)
+      const { server, relayPort } = await startOnConfiguredRelayPort(
+        startMiddlewareModeServer,
+      )
+      const client = await connectClient(relayPort)
+      const relayListener = listenerOn(relayPort)
 
       await server.close()
 
       await expect.poll(() => client.readyState === client.CLOSED).toBe(true)
-      expect(await isPortAccepting(port)).toBe(false)
+      expect(relayListener.listening).toBe(false)
     },
     TEST_TIMEOUT,
   )
@@ -402,14 +375,14 @@ describe('DevTools MCP relay', () => {
   it(
     'releases its port when a standalone dev server closes',
     async () => {
-      const port = await findFreePort()
-      const serverPort = await findFreePort()
-      const server = await startStandaloneServer(port, serverPort)
-      await waitUntilRelayListening(port)
+      const { server, relayPort } = await startOnConfiguredRelayPort(
+        startStandaloneServer,
+      )
+      const relayListener = listenerOn(relayPort)
 
       await server.close()
 
-      expect(await isPortAccepting(port)).toBe(false)
+      expect(relayListener.listening).toBe(false)
     },
     TEST_TIMEOUT,
   )
@@ -417,19 +390,20 @@ describe('DevTools MCP relay', () => {
   it(
     'hands the relay over to the replacement when a dev server restarts',
     async () => {
-      const port = await findFreePort()
-      const server = await startMiddlewareModeServer(port)
-      await waitUntilRelayListening(port)
+      const { server, relayPort } = await startOnConfiguredRelayPort(
+        startMiddlewareModeServer,
+      )
 
       await server.restart()
 
-      await waitUntilRelayListening(port)
-      const client = await connectClient(port)
+      await waitUntilRelayListening(relayPort)
+      const client = await connectClient(relayPort)
       expect(client.readyState).toBe(client.OPEN)
+      const relayListener = listenerOn(relayPort)
 
       await server.close()
 
-      expect(await isPortAccepting(port)).toBe(false)
+      expect(relayListener.listening).toBe(false)
     },
     TEST_TIMEOUT,
   )
@@ -437,14 +411,12 @@ describe('DevTools MCP relay', () => {
   it(
     'serves Model-preservation requests while a contended bind is still retrying',
     async () => {
-      const port = await findFreePort()
-      const serverPort = await findFreePort()
-      await holdPort(port)
-      await startStandaloneServer(port, serverPort)
+      const port = await holdFreePort()
+      const server = await startStandaloneServer(port)
 
       await expect(
         Promise.race([
-          requestPreservedModel(serverPort),
+          requestPreservedModel(serverPort(server)),
           new Promise((_, reject) =>
             setTimeout(
               () =>
@@ -463,8 +435,7 @@ describe('DevTools MCP relay', () => {
   it(
     'closes promptly while a contended bind is still retrying',
     async () => {
-      const port = await findFreePort()
-      await holdPort(port)
+      const port = await holdFreePort()
       const server = await startMiddlewareModeServer(port)
 
       const startedAt = Date.now()
@@ -479,46 +450,27 @@ describe('DevTools MCP relay', () => {
 })
 
 describe('DevTools MCP relay discovery', () => {
-  let registryDirectory = ''
-  let previousRegistryDirectory: string | undefined
-
-  beforeEach(async () => {
-    previousRegistryDirectory = process.env[RELAY_DIRECTORY_VARIABLE]
-    registryDirectory = await mkdtemp(join(tmpdir(), 'foldkit-relay-test-'))
-    process.env[RELAY_DIRECTORY_VARIABLE] = registryDirectory
-  })
-
-  afterEach(async () => {
-    if (previousRegistryDirectory === undefined) {
-      delete process.env[RELAY_DIRECTORY_VARIABLE]
-    } else {
-      process.env[RELAY_DIRECTORY_VARIABLE] = previousRegistryDirectory
-    }
-    await rm(registryDirectory, { recursive: true, force: true })
-  })
+  const directories = useRelayRegistry()
 
   it(
-    'serves the relay on the dev server itself and publishes its address',
+    'publishes a loopback relay of its own for a dev server',
     async () => {
-      const serverPort = await findFreePort()
-      const server = await startListeningServer({}, serverPort)
+      const server = await startListeningServer({})
       const root = server.config.root
 
       const record = await waitUntilPublished(root)
 
       expect(record.pid).toBe(process.pid)
-      const url = new URL(record.url)
-      expect(`${url.origin}${url.pathname}`).toBe(
-        `ws://127.0.0.1:${serverPort}${RELAY_PATH}`,
+      const url = await expectOwnLoopbackRelay(
+        record,
+        Option.some(serverPort(server)),
       )
-      expect(url.searchParams.get('token')).toMatch(RELAY_TOKEN_PATTERN)
-      const client = await connectClientAt(record.url)
-      expect(client.readyState).toBe(client.OPEN)
+      const relayListener = listenerOn(Number(url.port))
 
       await server.close()
 
-      expect(await publishedRecord(root)).toBeUndefined()
-      expect(await isPortAccepting(serverPort)).toBe(false)
+      expect(await publishedRecords(root)).toStrictEqual([])
+      expect(relayListener.listening).toBe(false)
     },
     TEST_TIMEOUT,
   )
@@ -526,8 +478,7 @@ describe('DevTools MCP relay discovery', () => {
   it(
     'refuses a relay connection that lacks the published token',
     async () => {
-      const serverPort = await findFreePort()
-      const server = await startListeningServer({}, serverPort)
+      const server = await startListeningServer({})
       const record = await waitUntilPublished(server.config.root)
 
       const withoutToken = new URL(record.url)
@@ -561,13 +512,12 @@ describe('DevTools MCP relay discovery', () => {
   it(
     'leaves other upgrades on the dev server to Vite',
     async () => {
-      const serverPort = await findFreePort()
-      const server = await startListeningServer({}, serverPort)
+      const server = await startListeningServer({})
       await waitUntilPublished(server.config.root)
 
       await expect(
         Promise.race([
-          requestPreservedModel(serverPort),
+          requestPreservedModel(serverPort(server)),
           new Promise((_, reject) =>
             setTimeout(
               () =>
@@ -584,25 +534,20 @@ describe('DevTools MCP relay discovery', () => {
   )
 
   it(
-    'falls back to a free loopback port in middleware mode',
+    'publishes a loopback relay of its own for a middleware-mode server',
     async () => {
       const server = await startMiddlewareServer({})
       const root = server.config.root
 
       const record = await waitUntilPublished(root)
 
-      const url = new URL(record.url)
-      expect(url.hostname).toBe('127.0.0.1')
-      expect(Number(url.port)).toBeGreaterThan(0)
-      expect(url.searchParams.get('token')).toMatch(RELAY_TOKEN_PATTERN)
-      await waitUntilRelayListening(Number(url.port))
-      const client = await connectClientAt(record.url)
-      expect(client.readyState).toBe(client.OPEN)
+      const url = await expectOwnLoopbackRelay(record, Option.none())
+      const relayListener = listenerOn(Number(url.port))
 
       await server.close()
 
-      expect(await publishedRecord(root)).toBeUndefined()
-      expect(await isPortAccepting(Number(url.port))).toBe(false)
+      expect(await publishedRecords(root)).toStrictEqual([])
+      expect(relayListener.listening).toBe(false)
     },
     TEST_TIMEOUT,
   )
@@ -610,64 +555,27 @@ describe('DevTools MCP relay discovery', () => {
   it(
     'keeps a configured port on a socket of its own and publishes it',
     async () => {
-      const port = await findFreePort()
-      const serverPort = await findFreePort()
-      const server = await startListeningServer(
-        { devToolsMcpPort: port },
-        serverPort,
+      const { server, relayPort } = await startOnConfiguredRelayPort(
+        devToolsMcpPort => startListeningServer({ devToolsMcpPort }),
       )
 
       const record = await waitUntilPublished(server.config.root)
 
-      expect(record.url).toBe(`ws://localhost:${port}`)
-      await waitUntilRelayListening(port)
+      expect(record.url).toBe(`ws://localhost:${relayPort}`)
+      await waitUntilRelayListening(relayPort)
     },
     TEST_TIMEOUT,
   )
 
   it(
-    'starts no relay when Vite runs in test mode',
+    'publishes a loopback relay of its own for an HTTPS dev server',
     async () => {
-      const server = await startMiddlewareServer({}, 'test')
-
-      await settle()
-
-      expect(await publishedRecord(server.config.root)).toBeUndefined()
-    },
-    TEST_TIMEOUT,
-  )
-
-  it(
-    'starts no relay when Vitest runs the server in another mode',
-    async () => {
-      const server = await startMiddlewareServer({}, 'development', [
-        { name: 'vitest' },
-      ])
-
-      await settle()
-
-      expect(await publishedRecord(server.config.root)).toBeUndefined()
-    },
-    TEST_TIMEOUT,
-  )
-
-  it(
-    'takes a loopback socket instead of hosting the relay on an HTTPS server',
-    async () => {
-      const serverPort = await findFreePort()
-      const server = await startListeningServer({}, serverPort, [basicSsl()])
+      const server = await startListeningServer({}, [basicSsl()])
       expect(server.config.server.https).toBeDefined()
 
       const record = await waitUntilPublished(server.config.root)
 
-      const url = new URL(record.url)
-      expect(url.protocol).toBe('ws:')
-      expect(url.hostname).toBe('127.0.0.1')
-      expect(Number(url.port)).not.toBe(serverPort)
-      expect(url.pathname).toBe(RELAY_PATH)
-      expect(url.searchParams.get('token')).toMatch(RELAY_TOKEN_PATTERN)
-      const client = await connectClientAt(record.url)
-      expect(client.readyState).toBe(client.OPEN)
+      await expectOwnLoopbackRelay(record, Option.some(serverPort(server)))
     },
     TEST_TIMEOUT,
   )
@@ -679,44 +587,46 @@ describe('DevTools MCP relay discovery', () => {
 
       await settle()
 
-      expect(await publishedRecord(server.config.root)).toBeUndefined()
+      expect(await publishedRecords(server.config.root)).toStrictEqual([])
     },
     TEST_TIMEOUT,
   )
 
   it(
-    'keeps the replacement relay published across a dev server restart',
+    'publishes a new relay when a dev server restarts',
     async () => {
-      const serverPort = await findFreePort()
-      const server = await startListeningServer({}, serverPort)
+      const server = await startListeningServer({})
       const root = server.config.root
       const before = await waitUntilPublished(root)
+      const beforeUrl = new URL(before.url)
+      const replacedListener = listenerOn(Number(beforeUrl.port))
 
       await server.restart()
 
       await expect
         .poll(
           async () =>
-            (await publishedRecord(root))?.startedAt !== before.startedAt,
+            (await publishedRecords(root)).map(({ id }) => id).join() !==
+            before.id,
           { timeout: POLL_TIMEOUT },
         )
         .toBe(true)
       const after = await waitUntilPublished(root)
-      const beforeUrl = new URL(before.url)
       const afterUrl = new URL(after.url)
-      expect(`${afterUrl.origin}${afterUrl.pathname}`).toBe(
-        `${beforeUrl.origin}${beforeUrl.pathname}`,
-      )
+      expect(after.id).not.toBe(before.id)
       expect(afterUrl.searchParams.get('token')).not.toBe(
         beforeUrl.searchParams.get('token'),
       )
-      expect(await connectionRefused(before.url)).toBe(true)
-      const client = await connectClientAt(after.url)
+      expect(replacedListener.listening).toBe(false)
+      const withReplacedToken = new URL(after.url)
+      withReplacedToken.search = beforeUrl.search
+      expect(await connectionRefused(withReplacedToken.toString())).toBe(true)
+      const client = await openWebSocket(after.url)
       expect(client.readyState).toBe(client.OPEN)
 
       await server.close()
 
-      expect(await publishedRecord(root)).toBeUndefined()
+      expect(await publishedRecords(root)).toStrictEqual([])
     },
     TEST_TIMEOUT,
   )
@@ -727,24 +637,26 @@ describe('DevTools MCP relay discovery', () => {
       const server = await startMiddlewareServer({})
       const root = server.config.root
       const before = await waitUntilPublished(root)
+      const replacedListener = listenerOn(Number(new URL(before.url).port))
 
       await server.restart()
 
       await expect
-        .poll(async () => (await publishedRecord(root))?.url !== before.url, {
-          timeout: POLL_TIMEOUT,
-        })
+        .poll(
+          async () =>
+            (await publishedRecords(root)).map(({ id }) => id).join() !==
+            before.id,
+          { timeout: POLL_TIMEOUT },
+        )
         .toBe(true)
       const after = await waitUntilPublished(root)
-      const client = await connectClientAt(after.url)
+      const client = await openWebSocket(after.url)
       expect(client.readyState).toBe(client.OPEN)
-      expect(await isPortAccepting(Number(new URL(before.url).port))).toBe(
-        false,
-      )
+      expect(replacedListener.listening).toBe(false)
 
       await server.close()
 
-      expect(await publishedRecord(root)).toBeUndefined()
+      expect(await publishedRecords(root)).toStrictEqual([])
     },
     TEST_TIMEOUT,
   )
@@ -752,7 +664,7 @@ describe('DevTools MCP relay discovery', () => {
   it(
     'publishes under XDG_RUNTIME_DIR when no registry directory is configured',
     async () => {
-      const runtimeDirectory = withRuntimeDirectory(registryDirectory)
+      const runtimeDirectory = withRuntimeDirectory(directories.registry)
       delete process.env[RELAY_DIRECTORY_VARIABLE]
       const server = await startMiddlewareServer({})
 
@@ -761,8 +673,9 @@ describe('DevTools MCP relay discovery', () => {
           timeout: POLL_TIMEOUT,
         })
         .toHaveLength(1)
-      const record = await publishedRecord(server.config.root)
-      expect(record?.root).toBe(server.config.root)
+      expect(
+        (await publishedRecords(server.config.root)).map(({ root }) => root),
+      ).toStrictEqual([server.config.root])
     },
     TEST_TIMEOUT,
   )
@@ -770,27 +683,21 @@ describe('DevTools MCP relay discovery', () => {
   it.skipIf(process.getuid === undefined)(
     'refuses a registry directory that other users can read',
     async () => {
-      await chmod(registryDirectory, 0o755)
-      const logged = vi.spyOn(console, 'log').mockImplementation(() => {})
-      const reported = vi.spyOn(console, 'error').mockImplementation(() => {})
-      onTestFinished(() => {
-        logged.mockRestore()
-        reported.mockRestore()
-      })
-
+      silenceRelayErrors()
+      await chmod(directories.registry, 0o755)
       await startMiddlewareServer({})
 
       await expect
-        .poll(() => joinedLogLines(reported.mock.calls), {
+        .poll(() => loggedLines(console.error), {
           timeout: POLL_TIMEOUT,
         })
         .toContainEqual(
           expect.stringContaining('is readable or writable by other users'),
         )
-      expect(joinedLogLines(logged.mock.calls)).toContainEqual(
+      expect(loggedLines(console.log)).toContainEqual(
         expect.stringContaining('MCP relay listening at'),
       )
-      expect(await readdir(registryDirectory)).toEqual([])
+      expect(await readdir(directories.registry)).toEqual([])
     },
     TEST_TIMEOUT,
   )
@@ -798,29 +705,23 @@ describe('DevTools MCP relay discovery', () => {
   it(
     'keeps listening and names the remedy when the registry cannot be written',
     async () => {
-      const notADirectory = join(registryDirectory, 'registry-file')
+      silenceRelayErrors()
+      const notADirectory = join(directories.registry, 'registry-file')
       await writeFile(notADirectory, '', 'utf-8')
       process.env[RELAY_DIRECTORY_VARIABLE] = notADirectory
-      const logged = vi.spyOn(console, 'log').mockImplementation(() => {})
-      const reported = vi.spyOn(console, 'error').mockImplementation(() => {})
-      onTestFinished(() => {
-        logged.mockRestore()
-        reported.mockRestore()
-      })
-
       await startMiddlewareServer({})
 
       await expect
-        .poll(() => joinedLogLines(reported.mock.calls), {
+        .poll(() => loggedLines(console.error), {
           timeout: POLL_TIMEOUT,
         })
         .toContainEqual(
           expect.stringContaining('the registry could not be written'),
         )
-      expect(joinedLogLines(reported.mock.calls)).toContainEqual(
+      expect(loggedLines(console.error)).toContainEqual(
         expect.stringContaining('FOLDKIT_DEVTOOLS_RELAY_DIRECTORY'),
       )
-      expect(joinedLogLines(logged.mock.calls)).toContainEqual(
+      expect(loggedLines(console.log)).toContainEqual(
         expect.stringContaining('MCP relay listening at'),
       )
     },
@@ -834,7 +735,7 @@ describe('DevTools MCP relay discovery', () => {
       const info = await Effect.runPromise(
         Effect.gen(function* () {
           const fileSystem = yield* FileSystem.FileSystem
-          return yield* fileSystem.stat(registryDirectory)
+          return yield* fileSystem.stat(directories.registry)
         }).pipe(Effect.provide(NodeServices.layer)),
       )
       const ownedByAnother = {
@@ -859,7 +760,7 @@ describe('DevTools MCP relay discovery', () => {
     const info = await Effect.runPromise(
       Effect.gen(function* () {
         const fileSystem = yield* FileSystem.FileSystem
-        return yield* fileSystem.stat(registryDirectory)
+        return yield* fileSystem.stat(directories.registry)
       }).pipe(Effect.provide(NodeServices.layer)),
     )
     const privateMode = { ...info, mode: 0o700, uid: Option.none<number>() }
@@ -874,96 +775,169 @@ describe('DevTools MCP relay discovery', () => {
   })
 
   it.skipIf(Option.isNone(maybeNetworkAddress))(
-    'publishes the network address the dev server is bound to',
+    'publishes a loopback relay of its own for a dev server bound to a network address',
     async () => {
       const host = Option.getOrThrow(maybeNetworkAddress)
-      const serverPort = await findFreePort()
-      const server = await startListeningServer({}, serverPort, [], host)
+      const server = await startListeningServer({}, [], host)
 
       const record = await waitUntilPublished(server.config.root)
 
-      const url = new URL(record.url)
-      expect(url.hostname).toBe(host)
-      expect(Number(url.port)).toBe(serverPort)
-      const client = await connectClientAt(record.url)
-      expect(client.readyState).toBe(client.OPEN)
+      await expectOwnLoopbackRelay(record, Option.some(serverPort(server)))
     },
     TEST_TIMEOUT,
   )
 
   it(
-    'retires a record only for the relay that published it',
+    'publishes each relay under its own id and retires only that one',
     async () => {
       const root = '/workspace/owned'
-      const url = 'ws://localhost:9988'
-      const published: RelayRecord = {
+      const first: RelayRecord = {
         version: 1,
-        id: 'replacement',
-        root,
-        url,
-        pid: process.pid,
-        startedAt: 2,
-      }
-      await runRegistry(publishRelayRecord(published))
-
-      await runRegistry(retireRelayRecord(root, 'replaced'))
-      expect(await publishedRecord(root)).toEqual(published)
-
-      await runRegistry(retireRelayRecord(root, 'replacement'))
-      expect(await publishedRecord(root)).toBeUndefined()
-    },
-    TEST_TIMEOUT,
-  )
-
-  it(
-    'does not restore a moved replacement over a newer relay record',
-    async () => {
-      const root = '/workspace/overlapping-restarts'
-      const original: RelayRecord = {
-        version: 1,
-        id: 'original',
+        id: 'first',
         root,
         url: 'ws://localhost:9988',
         pid: process.pid,
         startedAt: 1,
       }
-      const replacement: RelayRecord = {
-        ...original,
-        id: 'replacement',
+      const second: RelayRecord = { ...first, id: 'second', startedAt: 2 }
+      await runRegistry(publish(first))
+      await runRegistry(publish(second))
+
+      expect(
+        Array.sort(await readdir(directories.registry), Order.String),
+      ).toStrictEqual(['first.json', 'second.json'])
+
+      await runRegistry(retireRelayRecord(second.id))
+
+      expect(await publishedRecords(root)).toStrictEqual([first])
+    },
+    TEST_TIMEOUT,
+  )
+
+  it(
+    'writes a record the RelayRecord Schema decodes',
+    async () => {
+      const server = await startMiddlewareServer({})
+      const record = await waitUntilPublished(server.config.root)
+
+      const raw = await readFile(
+        join(directories.registry, `${encodeURIComponent(record.id)}.json`),
+        'utf-8',
+      )
+
+      expect(decodeRelayRecordJson(raw)).toStrictEqual({
+        version: 1,
+        id: record.id,
+        root: server.config.root,
+        url: record.url,
+        pid: process.pid,
+        startedAt: record.startedAt,
+      })
+    },
+    TEST_TIMEOUT,
+  )
+
+  it(
+    'keeps the first record when a second dev server for the same root stops',
+    async () => {
+      const first = await startListeningServer({})
+      const root = first.config.root
+      const firstRecord = await waitUntilPublished(root)
+      const second = await startListeningServer({})
+      await expect
+        .poll(async () => (await publishedRecords(root)).length, {
+          timeout: POLL_TIMEOUT,
+        })
+        .toBe(2)
+
+      await second.close()
+
+      expect(await publishedRecords(root)).toStrictEqual([firstRecord])
+    },
+    TEST_TIMEOUT,
+  )
+
+  it(
+    'removes the record of a dev server that is gone when it publishes',
+    async () => {
+      await writeFile(
+        join(directories.registry, 'gone.json'),
+        JSON.stringify({
+          version: 1,
+          id: 'gone',
+          root: PACKAGE_ROOT,
+          url: 'ws://127.0.0.1:1/__foldkit/devtools-mcp?token=gone',
+          pid: DEAD_PID,
+          startedAt: 1,
+        }),
+      )
+
+      const server = await startMiddlewareServer({})
+      const record = await waitUntilPublished(server.config.root)
+
+      expect(await readdir(directories.registry)).toStrictEqual([
+        `${encodeURIComponent(record.id)}.json`,
+      ])
+    },
+    TEST_TIMEOUT,
+  )
+
+  it(
+    'keeps a record an older relay republishes while a dead one is removed',
+    async () => {
+      const legacyPath = join(directories.registry, 'legacy.json')
+      const dead: RelayRecord = {
+        version: 1,
+        id: 'dead',
+        root: '/workspace/legacy',
+        url: 'ws://localhost:9988',
+        pid: DEAD_PID,
+        startedAt: 1,
+      }
+      const republished: RelayRecord = {
+        ...dead,
+        id: 'republished',
+        pid: process.pid,
         startedAt: 2,
       }
-      const newest: RelayRecord = { ...original, id: 'newest', startedAt: 3 }
-      await runRegistry(publishRelayRecord(original))
+      const published: RelayRecord = {
+        ...dead,
+        id: 'published',
+        root: '/workspace/current',
+        pid: process.pid,
+        startedAt: 3,
+      }
+      await writeFile(legacyPath, JSON.stringify(dead), 'utf-8')
 
       await runRegistry(
         Effect.gen(function* () {
           const fileSystem = yield* FileSystem.FileSystem
-          const interleavedFileSystem = {
+          const interleavedFileSystem: FileSystem.FileSystem = {
             ...fileSystem,
-            rename: (fromPath: string, toPath: string) =>
+            rename: (fromPath, toPath) =>
               Effect.gen(function* () {
                 if (toPath.endsWith('.retiring')) {
-                  yield* Effect.promise(() =>
-                    runRegistry(publishRelayRecord(replacement)),
+                  yield* fileSystem.writeFileString(
+                    fromPath,
+                    JSON.stringify(republished),
                   )
-                  yield* fileSystem.rename(fromPath, toPath)
-                  yield* Effect.promise(() =>
-                    runRegistry(publishRelayRecord(newest)),
-                  )
-                } else {
-                  yield* fileSystem.rename(fromPath, toPath)
                 }
+                yield* fileSystem.rename(fromPath, toPath)
               }),
           }
 
-          yield* retireRelayRecord(root, original.id).pipe(
+          yield* publish(published).pipe(
             Effect.provideService(FileSystem.FileSystem, interleavedFileSystem),
           )
         }),
       )
 
-      expect(await publishedRecord(root)).toEqual(newest)
-      expect(await readdir(registryDirectory)).toHaveLength(1)
+      expect(JSON.parse(await readFile(legacyPath, 'utf-8'))).toStrictEqual(
+        republished,
+      )
+      expect(
+        Array.sort(await readdir(directories.registry), Order.String),
+      ).toStrictEqual(['legacy.json', 'published.json'])
     },
     TEST_TIMEOUT,
   )
