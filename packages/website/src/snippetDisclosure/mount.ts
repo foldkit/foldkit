@@ -13,7 +13,10 @@ const COLLAPSIBLE_HEIGHT_PX =
 export const MeasureSnippetHeight = Mount.define('MeasureSnippetHeight', {
   args: { snippetId: Schema.String },
   messages: [Message.CompletedMeasureSnippetHeight],
-  execute: ({ element, snippetId }) =>
+})
+
+export const MeasureSnippetHeightLive = MeasureSnippetHeight.toLayer(
+  ({ element, snippetId }) =>
     Effect.sync(() =>
       Message.CompletedMeasureSnippetHeight({
         snippetId,
@@ -23,4 +26,4 @@ export const MeasureSnippetHeight = Mount.define('MeasureSnippetHeight', {
             : SnippetSize.Fits(),
       }),
     ),
-})
+)

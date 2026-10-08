@@ -1,5 +1,5 @@
 import { Array, Effect, Option, Record, Schema, pipe } from 'effect'
-import { AsyncData, Command, type Update } from 'foldkit'
+import { AsyncData, Command, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import {
@@ -18,7 +18,10 @@ import {
 
 const LoadApiData = Command.define('LoadApiData', {
   messages: [Message.SucceededLoadApiData, Message.FailedLoadApiData],
-  execute: Effect.gen(function* () {
+})
+
+export const Live = LoadApiData.toLayer(() =>
+  Effect.gen(function* () {
     const [parsedApiModule, highlightsModule] = yield* Effect.tryPromise({
       try: () =>
         Promise.all([
@@ -48,9 +51,13 @@ const LoadApiData = Command.define('LoadApiData', {
       ),
     ),
   ),
-})
+)
 
-export type UpdateReturn = Update.Return<Model, Message>
+export type UpdateReturn = Update.Return<
+  Model,
+  Message,
+  Command.HandlerOf<typeof LoadApiData>
+>
 
 const disclosuresForApiData = (apiData: ApiData): Disclosures =>
   pipe(
@@ -71,8 +78,8 @@ const disclosuresForApiData = (apiData: ApiData): Disclosures =>
     Record.fromEntries,
   )
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     RequestedApiData: () =>
       Option.match(AsyncData.loadIfMissing(model.apiData), {
         onNone: () => ({ model }),
@@ -100,7 +107,8 @@ export const update = (model: Model, message: Message) =>
         disclosures: disclosures => Record.set(disclosures, id, isOpen),
       }),
     }),
-  })
+  }),
+)
 
 export const informRouteChanged = (model: Model) =>
   update(model, Message.RequestedApiData())

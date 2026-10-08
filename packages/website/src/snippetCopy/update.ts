@@ -1,4 +1,4 @@
-import { Effect, HashSet, Schema } from 'effect'
+import { Effect, HashSet, Layer, Schema } from 'effect'
 import { Command, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
@@ -7,8 +7,8 @@ import { type Model } from './model'
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedCopySnippet: ({ snippetId, text }) => ({
       model,
       commands: [CopySnippet({ snippetId, text })],
@@ -31,22 +31,24 @@ export const update = (model: Model, message: Message) =>
         copiedSnippetIds: HashSet.remove(snippetId),
       }),
     }),
-  })
+  }),
+)
 
 // COMMAND
 
 export const CopySnippet = Command.define('CopySnippet', {
   args: { snippetId: Schema.String, text: Schema.String },
   messages: [Message.SucceededCopySnippet, Message.FailedCopySnippet],
-  execute: ({ snippetId, text }) =>
-    Effect.tryPromise({
-      try: () => navigator.clipboard.writeText(text),
-      catch: () => new Error('Failed to copy to clipboard'),
-    }).pipe(
-      Effect.as(Message.SucceededCopySnippet({ snippetId })),
-      Effect.catch(() => Effect.succeed(Message.FailedCopySnippet())),
-    ),
 })
+const CopySnippetLive = CopySnippet.toLayer(({ snippetId, text }) =>
+  Effect.tryPromise({
+    try: () => navigator.clipboard.writeText(text),
+    catch: () => new Error('Failed to copy to clipboard'),
+  }).pipe(
+    Effect.as(Message.SucceededCopySnippet({ snippetId })),
+    Effect.catch(() => Effect.succeed(Message.FailedCopySnippet())),
+  ),
+)
 
 const COPY_INDICATOR_DURATION = '2 seconds'
 
@@ -55,11 +57,18 @@ export const WaitBeforeHidingCopiedIndicator = Command.define(
   {
     args: { snippetId: Schema.String },
     messages: [Message.CompletedWaitBeforeHidingCopiedIndicator],
-    execute: ({ snippetId }) =>
-      Effect.sleep(COPY_INDICATOR_DURATION).pipe(
-        Effect.as(
-          Message.CompletedWaitBeforeHidingCopiedIndicator({ snippetId }),
-        ),
-      ),
   },
+)
+const WaitBeforeHidingCopiedIndicatorLive =
+  WaitBeforeHidingCopiedIndicator.toLayer(({ snippetId }) =>
+    Effect.sleep(COPY_INDICATOR_DURATION).pipe(
+      Effect.as(
+        Message.CompletedWaitBeforeHidingCopiedIndicator({ snippetId }),
+      ),
+    ),
+  )
+
+export const Live = Layer.mergeAll(
+  CopySnippetLive,
+  WaitBeforeHidingCopiedIndicatorLive,
 )

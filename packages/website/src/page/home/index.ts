@@ -1,4 +1,5 @@
 export { init } from './init'
+export { Live } from './live'
 export { managedResources } from './managedResources'
 export { Message, OutMessage } from './message'
 export { Model } from './model'

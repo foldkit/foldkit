@@ -7,7 +7,6 @@ import { Menu, Tabs } from '@foldkit/ui'
 import { ExampleSlug } from '../example/meta'
 import * as AsyncCounterDemo from './asyncCounterDemo'
 import * as DemoTab from './demoTab'
-import { type ManagedResourceServices } from './managedResources'
 import { Message, OutMessage } from './message'
 import { type Model } from './model'
 import * as NotePlayerDemo from './notePlayerDemo'
@@ -91,7 +90,7 @@ type UpdateReturn = Update.ReturnWithOutMessage<
   Model,
   Message,
   OutMessage,
-  ManagedResourceServices
+  AsyncCounterDemo.UpdateRequirements | NotePlayerDemo.UpdateRequirements
 >
 
 export const update = (model: Model, message: Message) =>

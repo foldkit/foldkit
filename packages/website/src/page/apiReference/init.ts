@@ -2,10 +2,10 @@ import { Option } from 'effect'
 import { Update } from 'foldkit'
 
 import { Message } from './message'
-import { type ApiData, ApiDataAsyncData, type Model } from './model'
-import { update } from './update'
+import { type ApiData, ApiDataAsyncData } from './model'
+import { type UpdateReturn, update } from './update'
 
-export type InitReturn = Update.Return<Model, Message>
+export type InitReturn = UpdateReturn
 
 export const init = (): InitReturn => ({
   model: {

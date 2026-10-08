@@ -14,7 +14,6 @@ import {
   Command,
   Dom,
   ManagedResource,
-  Runtime,
   Subscription,
   Update,
 } from 'foldkit'
@@ -69,12 +68,6 @@ export type { Message } from './message'
 export { Model } from './model'
 export type { TableOfContentsEntry } from './tableOfContentsEntry'
 export { view } from './view/application'
-
-export type AppResources = Search.PagefindService
-
-export type AppManagedResources = ManagedResource.ServicesOf<
-  typeof managedResources
->
 
 // THEME
 
@@ -198,13 +191,7 @@ const initialSidebarGroups = (
   return sidebarGroups
 }
 
-export const init: Runtime.RoutingApplicationInit<
-  Model,
-  Message,
-  Flags,
-  AppResources,
-  AppManagedResources
-> = (flags: Flags, url: Url) => {
+export const init = (flags: Flags, url: Url) => {
   const maybeThemePreference = Option.none<ThemePreference>()
   const systemTheme: ResolvedTheme = 'Light'
   const resolvedTheme = systemTheme
@@ -322,16 +309,22 @@ export const init: Runtime.RoutingApplicationInit<
 
 // UPDATE
 
-type UpdateStep = Update.Step<
-  Model,
-  Message,
-  AppResources | AppManagedResources
+type AppRequirements = Layer.Success<
+  | typeof Live
+  | typeof Search.Live
+  | typeof Home.Live
+  | typeof Playground.Live
+  | typeof ApiReference.Live
+  | typeof Example.Live
+  | typeof SnippetCopy.Live
 >
+
+type UpdateStep = Update.Step<Model, Message, AppRequirements>
 
 const isPathnameEqual = (a: Url, b: Url): boolean => a.pathname === b.pathname
 
 const foldThemeMenuOutMessage = Menu.OutMessage.match<
-  Update.Step<Model, Message>,
+  UpdateStep,
   Menu.OutMessage<ThemePreference>
 >({
   Selected:
@@ -455,7 +448,7 @@ const toGotHomeMessage = (message: Home.Message): Message =>
   Message.GotHomeMessage({ message })
 
 const foldHomeOutMessage = (outMessage: Home.OutMessage) =>
-  Home.OutMessage.match<Update.Step<Model, Message>>(outMessage, {
+  Home.OutMessage.match<UpdateStep>(outMessage, {
     SelectedPlaygroundExample:
       ({ exampleSlug }) =>
       model => ({
@@ -596,11 +589,7 @@ const foldPlayground = Update.foldChild({
   toParentMessage: message => Message.GotPlaygroundMessage({ message }),
 })
 
-type UpdateReturn = Update.Return<
-  Model,
-  Message,
-  AppResources | AppManagedResources
->
+type UpdateReturn = Update.Return<Model, Message, AppRequirements>
 
 export const update = (model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
@@ -868,67 +857,80 @@ export const update = (model: Model, message: Message) =>
 
 const InjectAnalytics = Command.define('InjectAnalytics', {
   messages: [Message.CompletedInjectAnalytics],
-  execute: Effect.sync(() => inject()).pipe(
+})
+const InjectAnalyticsLive = InjectAnalytics.toLayer(() =>
+  Effect.sync(() => inject()).pipe(
     Effect.as(Message.CompletedInjectAnalytics()),
   ),
-})
+)
 
 const LoadBrowserEnvironment = Command.define('LoadBrowserEnvironment', {
   messages: [Message.CompletedLoadBrowserEnvironment],
-  execute: loadBrowserEnvironment,
 })
+const LoadBrowserEnvironmentLive = LoadBrowserEnvironment.toLayer(
+  () => loadBrowserEnvironment,
+)
 
 const InjectSpeedInsights = Command.define('InjectSpeedInsights', {
   messages: [Message.CompletedInjectSpeedInsights],
-  execute: Effect.sync(() => SpeedInsights.injectSpeedInsights()).pipe(
+})
+const InjectSpeedInsightsLive = InjectSpeedInsights.toLayer(() =>
+  Effect.sync(() => SpeedInsights.injectSpeedInsights()).pipe(
     Effect.as(Message.CompletedInjectSpeedInsights()),
   ),
-})
+)
 
 const CopyLink = Command.define('CopyLink', {
   args: { url: Schema.String },
   messages: [Message.SucceededCopyLink, Message.FailedCopyLink],
-  execute: ({ url }) =>
-    Effect.tryPromise({
-      try: () => navigator.clipboard.writeText(url),
-      catch: () => new Error('Failed to copy link to clipboard'),
-    }).pipe(
-      Effect.as(Message.SucceededCopyLink()),
-      Effect.catch(() => Effect.succeed(Message.FailedCopyLink())),
-    ),
 })
+const CopyLinkLive = CopyLink.toLayer(({ url }) =>
+  Effect.tryPromise({
+    try: () => navigator.clipboard.writeText(url),
+    catch: () => new Error('Failed to copy link to clipboard'),
+  }).pipe(
+    Effect.as(Message.SucceededCopyLink()),
+    Effect.catch(() => Effect.succeed(Message.FailedCopyLink())),
+  ),
+)
 
 export const ScrollToTop = Command.define('ScrollToTop', {
   messages: [Message.CompletedScrollToTop],
-  execute: Effect.sync(() => {
+})
+const ScrollToTopLive = ScrollToTop.toLayer(() =>
+  Effect.sync(() => {
     window.scrollTo({ top: 0, behavior: 'instant' })
     return Message.CompletedScrollToTop()
   }),
-})
+)
 
 const ScrollToAnchor = Command.define('ScrollToAnchor', {
   args: { hash: Schema.String },
   messages: [Message.CompletedScrollToAnchor],
-  execute: ({ hash }) =>
-    Effect.gen(function* () {
-      const target = `#${CSS.escape(hash)}`
-      yield* Dom.scrollIntoViewAfterPaint(target, { block: 'start' })
-      yield* Dom.focus(target, { preventScroll: true, makeFocusable: true })
-    }).pipe(Effect.ignore, Effect.as(Message.CompletedScrollToAnchor())),
 })
+const ScrollToAnchorLive = ScrollToAnchor.toLayer(({ hash }) =>
+  Effect.gen(function* () {
+    const target = `#${CSS.escape(hash)}`
+    yield* Dom.scrollIntoViewAfterPaint(target, { block: 'start' })
+    yield* Dom.focus(target, { preventScroll: true, makeFocusable: true })
+  }).pipe(Effect.ignore, Effect.as(Message.CompletedScrollToAnchor())),
+)
 
 export const ScrollSidebarActiveLinkIntoView = Command.define(
   'ScrollSidebarActiveLinkIntoView',
   {
     messages: [Message.CompletedScrollSidebarActiveLinkIntoView],
-    execute: Dom.scrollIntoViewIfNotVisible(
+  },
+)
+const ScrollSidebarActiveLinkIntoViewLive =
+  ScrollSidebarActiveLinkIntoView.toLayer(() =>
+    Dom.scrollIntoViewIfNotVisible(
       `#${DOCS_SIDEBAR_NAV_ID} [aria-current="page"]`,
     ).pipe(
       Effect.ignore,
       Effect.as(Message.CompletedScrollSidebarActiveLinkIntoView()),
     ),
-  },
-)
+  )
 
 const MOBILE_MENU_ACTIVE_LINK = `#${MOBILE_MENU_NAV_ID} [aria-current="page"]`
 
@@ -936,14 +938,17 @@ const ScrollMobileMenuActiveLinkIntoView = Command.define(
   'ScrollMobileMenuActiveLinkIntoView',
   {
     messages: [Message.CompletedScrollMobileMenuActiveLinkIntoView],
-    execute: Dom.scrollIntoViewIfNotVisible(MOBILE_MENU_ACTIVE_LINK, {
+  },
+)
+const ScrollMobileMenuActiveLinkIntoViewLive =
+  ScrollMobileMenuActiveLinkIntoView.toLayer(() =>
+    Dom.scrollIntoViewIfNotVisible(MOBILE_MENU_ACTIVE_LINK, {
       when: 'Commit',
     }).pipe(
       Effect.ignore,
       Effect.as(Message.CompletedScrollMobileMenuActiveLinkIntoView()),
     ),
-  },
-)
+  )
 
 // NOTE: mirrors --color-cream and --color-gray-900 in styles.css.
 // src/themeColor.test.ts fails when these drift.
@@ -960,53 +965,54 @@ const setThemeColorMeta = (color: string): void => {
 const ApplyTheme = Command.define('ApplyTheme', {
   args: { theme: ResolvedTheme },
   messages: [Message.CompletedApplyTheme],
-  execute: ({ theme }) =>
-    Effect.sync(() => {
-      Match.value(theme).pipe(
-        Match.when('Dark', () => {
-          document.documentElement.classList.add('dark')
-          setThemeColorMeta(DARK_THEME_COLOR)
-        }),
-        Match.when('Light', () => {
-          document.documentElement.classList.remove('dark')
-          setThemeColorMeta(LIGHT_THEME_COLOR)
-        }),
-        Match.exhaustive,
-      )
-      return Message.CompletedApplyTheme()
-    }),
 })
+const ApplyThemeLive = ApplyTheme.toLayer(({ theme }) =>
+  Effect.sync(() => {
+    Match.value(theme).pipe(
+      Match.when('Dark', () => {
+        document.documentElement.classList.add('dark')
+        setThemeColorMeta(DARK_THEME_COLOR)
+      }),
+      Match.when('Light', () => {
+        document.documentElement.classList.remove('dark')
+        setThemeColorMeta(LIGHT_THEME_COLOR)
+      }),
+      Match.exhaustive,
+    )
+    return Message.CompletedApplyTheme()
+  }),
+)
 
 const SaveThemePreference = Command.define('SaveThemePreference', {
   args: { preference: ThemePreference },
   messages: [Message.CompletedSaveThemePreference],
-  execute: ({ preference }) =>
-    Effect.gen(function* () {
-      const store = yield* KeyValueStore.KeyValueStore
-      yield* store.set(THEME_STORAGE_KEY, JSON.stringify(preference))
-      return Message.CompletedSaveThemePreference()
-    }).pipe(
-      Effect.catch(() =>
-        Effect.succeed(Message.CompletedSaveThemePreference()),
-      ),
-      Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-    ),
 })
+const SaveThemePreferenceLive = SaveThemePreference.toLayer(({ preference }) =>
+  Effect.gen(function* () {
+    const store = yield* KeyValueStore.KeyValueStore
+    yield* store.set(THEME_STORAGE_KEY, JSON.stringify(preference))
+    return Message.CompletedSaveThemePreference()
+  }).pipe(
+    Effect.catch(() => Effect.succeed(Message.CompletedSaveThemePreference())),
+    Effect.provide(BrowserKeyValueStore.layerLocalStorage),
+  ),
+)
 
 const SaveSidebarState = Command.define('SaveSidebarState', {
   args: { state: SidebarState },
   messages: [Message.CompletedSaveSidebarState],
-  execute: ({ state }) =>
-    Effect.gen(function* () {
-      const store = yield* KeyValueStore.KeyValueStore
-      const json = yield* Schema.encodeEffect(SidebarStateJsonString)(state)
-      yield* store.set(SIDEBAR_STORAGE_KEY, json)
-      return Message.CompletedSaveSidebarState()
-    }).pipe(
-      Effect.catch(() => Effect.succeed(Message.CompletedSaveSidebarState())),
-      Effect.provide(BrowserKeyValueStore.layerSessionStorage),
-    ),
 })
+const SaveSidebarStateLive = SaveSidebarState.toLayer(({ state }) =>
+  Effect.gen(function* () {
+    const store = yield* KeyValueStore.KeyValueStore
+    const json = yield* Schema.encodeEffect(SidebarStateJsonString)(state)
+    yield* store.set(SIDEBAR_STORAGE_KEY, json)
+    return Message.CompletedSaveSidebarState()
+  }).pipe(
+    Effect.catch(() => Effect.succeed(Message.CompletedSaveSidebarState())),
+    Effect.provide(BrowserKeyValueStore.layerSessionStorage),
+  ),
+)
 
 const modelToSidebarState = (model: Model): SidebarState => ({
   open: model.sidebarGroups,
@@ -1018,25 +1024,57 @@ const saveSidebarState = (model: Model) =>
 const NavigateInternal = Command.define('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
-  execute: ({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
 })
+const NavigateInternalLive = NavigateInternal.toLayer(({ url }) =>
+  pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+)
 
 const LoadExternal = Command.define('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
-  execute: ({ href }) =>
-    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
 })
+const LoadExternalLive = LoadExternal.toLayer(({ href }) =>
+  load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+)
 
 export const LoadPlayground = Command.define('LoadPlayground', {
   args: { exampleSlug: Example.ExampleSlug },
   messages: [Message.CompletedLoadPlayground],
-  execute: ({ exampleSlug }) =>
-    load(playgroundRouter({ exampleSlug })).pipe(
-      Effect.as(Message.CompletedLoadPlayground()),
-    ),
 })
+const LoadPlaygroundLive = LoadPlayground.toLayer(({ exampleSlug }) =>
+  load(playgroundRouter({ exampleSlug })).pipe(
+    Effect.as(Message.CompletedLoadPlayground()),
+  ),
+)
+
+const BootLive = Layer.mergeAll(
+  InjectAnalyticsLive,
+  LoadBrowserEnvironmentLive,
+  InjectSpeedInsightsLive,
+)
+
+const NavigationLive = Layer.mergeAll(
+  ScrollToTopLive,
+  ScrollToAnchorLive,
+  ScrollSidebarActiveLinkIntoViewLive,
+  ScrollMobileMenuActiveLinkIntoViewLive,
+  NavigateInternalLive,
+  LoadExternalLive,
+  LoadPlaygroundLive,
+)
+
+const PreferenceLive = Layer.mergeAll(
+  ApplyThemeLive,
+  SaveThemePreferenceLive,
+  SaveSidebarStateLive,
+)
+
+export const Live = Layer.mergeAll(
+  BootLive,
+  NavigationLive,
+  PreferenceLive,
+  CopyLinkLive,
+)
 
 // SUBSCRIPTION
 

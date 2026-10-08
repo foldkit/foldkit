@@ -2,7 +2,12 @@ import { Array, Duration } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
-import { DelayAdvancePhase, Message, init, update } from './asyncCounterDemo'
+import {
+  DelayAdvanceAsyncCounterPhase,
+  Message,
+  init,
+  update,
+} from './asyncCounterDemo'
 
 const init_ = init()
 
@@ -16,8 +21,8 @@ const advancePhases = (steps: number, generation: number) =>
     steps,
     () =>
       [
-        DelayAdvancePhase,
-        Message.CompletedDelayAdvancePhase({ generation }),
+        DelayAdvanceAsyncCounterPhase,
+        Message.CompletedDelayAdvanceAsyncCounterPhase({ generation }),
       ] as const,
   )
 
@@ -32,7 +37,7 @@ describe('async counter demo', () => {
         expect(model.phase).toBe('IncrementMessage')
         expect(model.generation).toBe(1)
       }),
-      Command.expectExact(DelayAdvancePhase),
+      Command.expectExact(DelayAdvanceAsyncCounterPhase),
       Command.resolveAll(...advancePhases(INCREMENT_PHASE_STEPS, 1)),
       model(model => {
         expect(model.phase).toBe('Idle')
@@ -121,7 +126,7 @@ describe('async counter demo', () => {
         expect(model.phase).toBe('ResetCommand')
       }),
       Command.expectExact(
-        DelayAdvancePhase({
+        DelayAdvanceAsyncCounterPhase({
           generation: 2,
           duration: Duration.fromInputUnsafe('1 second'),
         }),
@@ -148,8 +153,8 @@ describe('async counter demo', () => {
         expect(model.generation).toBe(2)
       }),
       Command.resolve(
-        DelayAdvancePhase,
-        Message.CompletedDelayAdvancePhase({ generation: 1 }),
+        DelayAdvanceAsyncCounterPhase,
+        Message.CompletedDelayAdvanceAsyncCounterPhase({ generation: 1 }),
       ),
       model(model => {
         expect(model.phase).toBe('ResetMessage')

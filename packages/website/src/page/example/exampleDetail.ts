@@ -1,4 +1,13 @@
-import { Array, Effect, Option, Queue, Schema, Stream, pipe } from 'effect'
+import {
+  Array,
+  Effect,
+  Layer,
+  Option,
+  Queue,
+  Schema,
+  Stream,
+  pipe,
+} from 'effect'
 import { AsyncData, Command, Mount, Submodel, Update } from 'foldkit'
 import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
@@ -38,18 +47,20 @@ export const LoadExampleSources = Command.define('LoadExampleSources', {
     Message.SucceededLoadExampleSources,
     Message.FailedLoadExampleSources,
   ],
-  execute: ({ slug }) =>
-    Effect.tryPromise({
-      try: () => loadSourcesForSlug(slug),
-      catch: error =>
-        error instanceof Error ? error.message : `Unknown example: ${slug}`,
-    }).pipe(
-      Effect.map(sources => Message.SucceededLoadExampleSources({ sources })),
-      Effect.catch(error =>
-        Effect.succeed(Message.FailedLoadExampleSources({ error })),
-      ),
-    ),
 })
+
+const LoadExampleSourcesLive = LoadExampleSources.toLayer(({ slug }) =>
+  Effect.tryPromise({
+    try: () => loadSourcesForSlug(slug),
+    catch: error =>
+      error instanceof Error ? error.message : `Unknown example: ${slug}`,
+  }).pipe(
+    Effect.map(sources => Message.SucceededLoadExampleSources({ sources })),
+    Effect.catch(error =>
+      Effect.succeed(Message.FailedLoadExampleSources({ error })),
+    ),
+  ),
+)
 
 // MOUNT
 
@@ -103,13 +114,27 @@ const ObserveExampleUrlMessages = Mount.defineStream(
   'ObserveExampleUrlMessages',
   {
     messages: [Message.ChangedExampleUrl],
-    execute: ({ element }) => observeExampleUrlMessages(element),
   },
+)
+
+const ObserveExampleUrlMessagesLive = ObserveExampleUrlMessages.toLayer(
+  ({ element }) => observeExampleUrlMessages(element),
+)
+
+export const mounts = [ObserveExampleUrlMessages]
+
+export const Live = Layer.mergeAll(
+  LoadExampleSourcesLive,
+  ObserveExampleUrlMessagesLive,
 )
 
 // INIT
 
-type UpdateReturn = Update.Return<Model, Message>
+type UpdateReturn = Update.Return<
+  Model,
+  Message,
+  Command.HandlerOf<typeof LoadExampleSources>
+>
 
 export const init = (): UpdateReturn => ({
   model: {
@@ -150,8 +175,8 @@ export const boot = (
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     GotSourceFileTabsMessage: ({ message }) =>
       foldSourceFileTabs(model, message),
     ChangedExampleUrl: ({ url }) => ({
@@ -189,7 +214,8 @@ export const update = (model: Model, message: Message) =>
         currentSources: () => CurrentSourcesAsyncData.Failure({ error }),
       }),
     }),
-  })
+  }),
+)
 
 export const informRouteChanged = (model: Model, slug: string) =>
   isSourceAvailable(slug)

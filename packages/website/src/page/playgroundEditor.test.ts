@@ -2,7 +2,7 @@ import { Deferred, Effect, PubSub, Stream } from 'effect'
 import { Mount } from 'foldkit'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-import { PlaygroundEditor } from './playground'
+import { PlaygroundEditor, PlaygroundEditorLive } from './playground'
 
 const monaco = vi.hoisted(() => ({
   addExtraLib: vi.fn(),
@@ -85,7 +85,11 @@ describe('PlaygroundEditor', () => {
             files: {},
           })
             .f(document.createElement('div'), Stream.fromPubSub(viewStates))
-            .pipe(Stream.runDrain, Effect.forkScoped)
+            .pipe(
+              Stream.runDrain,
+              Effect.provide(PlaygroundEditorLive),
+              Effect.forkScoped,
+            )
 
           yield* Deferred.await(observedInitialLive)
           expect(monaco.createEditor).toHaveBeenCalledOnce()

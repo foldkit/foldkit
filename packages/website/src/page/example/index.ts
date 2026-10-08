@@ -1,4 +1,5 @@
 export * as ExampleDetail from './exampleDetail'
+export { Live, mounts } from './exampleDetail'
 export {
   ExampleSlug,
   exampleSlugs,

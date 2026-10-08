@@ -7,6 +7,7 @@ import { type Model } from '../model'
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   systemTheme: entry(
+    'WatchSystemTheme',
     { isSystemPreference: Schema.Boolean },
     {
       modelToDependencies: model => ({
@@ -15,15 +16,18 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
           preference => preference === 'System',
         ),
       }),
-      dependenciesToStream: ({ isSystemPreference }) =>
-        Stream.when(
-          Dom.streamFromMediaQuery({
-            query: DARK_COLOR_SCHEME_QUERY,
-            mapMatches: isDark =>
-              Message.ChangedSystemTheme({ theme: isDark ? 'Dark' : 'Light' }),
-          }),
-          Effect.sync(() => isSystemPreference),
-        ),
     },
   ),
 }))
+
+export const Live = subscriptions.systemTheme.toLayer(
+  ({ isSystemPreference }) =>
+    Stream.when(
+      Dom.streamFromMediaQuery({
+        query: DARK_COLOR_SCHEME_QUERY,
+        mapMatches: isDark =>
+          Message.ChangedSystemTheme({ theme: isDark ? 'Dark' : 'Light' }),
+      }),
+      Effect.sync(() => isSystemPreference),
+    ),
+)
