@@ -1,4 +1,10 @@
 export type {
+  Handler,
+  LayeredMountDefinition,
+  LayeredMountDefinitionNoArgs,
+  LayeredMountDefinitionWithArgs,
+  LayeredStreamMountDefinitionNoArgs,
+  LayeredStreamMountDefinitionWithArgs,
   MountAction,
   MountDefinition,
   MountDefinitionNoArgs,

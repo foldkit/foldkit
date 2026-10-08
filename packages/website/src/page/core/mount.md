@@ -8,6 +8,8 @@ Mount is the escape hatch for work whose cause is a particular element existing 
 
 Use `Mount.define` for work that produces one Message when it starts. Its `execute` receives the live element and the rendered view's state, then returns an `Effect<Message>` that emits that Message. Its scope remains open until unmount so cleanup registered with `Effect.acquireRelease` runs at the right time. Use `Mount.defineStream` when listeners or observers on the element must emit a continuing `Stream<Message>`.
 
+Omit `execute` to separate a Mount definition from its implementation. The returned definition has `toLayer(handler)` and `toLayer(Effect<handler>)`; both `define` and `defineStream` support this form.
+
 Both forms require at least one declared result Message. When no result needs to change the Model, return a descriptive `Completed*` Message and leave the Model unchanged in update. The Message keeps the effect visible to DevTools, Scene tests, and replay.
 
 :::Info{label="Functional core, imperative shell"}
@@ -46,6 +48,14 @@ Portal-to-body is a small example. When an overlay enters the DOM, its Mount mov
 
 ::Snippet{name="mountPortalToBody" label="Portal-to-body"}
 
+### Handler Layers
+
+A Layer-backed Mount still starts when its element enters the DOM and stops when that element leaves. Register its definition in `Application.make({ mounts: [...] })` so the application carries its handler requirement, then supply the implementation with `Application.provide`. Registration declares a Mount the view may render; a conditional Mount need not appear in every render.
+
+::Snippet{name="mountHandlerLayers" label="Registering a Mount handler Layer"}
+
+Foldkit checks each rendered Layer-backed Mount before patching the DOM and reports any definition missing from `mounts`. Use the same definition in the view, registration, and `toLayer` call. Distinct Mount definitions within one application need distinct names; the same definition can appear on multiple elements. The handler Layer lives for the application lifetime, while each Mount acquisition and cleanup follows its element.
+
 :::Info{label="Two rules for Mount work"}
 First, `execute` must use the live element. If it does not read or write that element, a Message or Model condition is probably the real cause. Second, the work must be safe to repeat whenever that element is inserted again. DOM measurement, paired DOM manipulation, observers, and element-owned library instances fit these rules.
 :::
@@ -60,13 +70,13 @@ DevTools re-renders historical Models. Elements inserted during replay run their
 
 ## Per-Instance Args {#args}
 
-A Mount often needs an input that differs by element instance, such as an initial scroll position, chart data, or a stable host id. Declare those under `args`, using the same Schema record shape a [Command](/core/commands) takes. `args`, `messages`, and `execute` are all named fields on one config object. `execute` receives the runtime fields `element` and `viewStateChanges` alongside the declared args, so those names are reserved and rejected under `args`:
+A Mount often needs an input that differs by element instance, such as an initial scroll position, chart data, or a stable host id. Declare those under `args`, using the same Schema record shape a [Command](/core/commands) takes. The inline form names `args`, `messages`, and `execute` on one config object. The Layer-backed form omits `execute`. Both implementations receive the runtime fields `element` and `viewStateChanges` alongside the declared args, so those names are reserved and rejected under `args`:
 
 ::Snippet{name="mountDefineArgs" label="Mount args definition"}
 
 Calling the Definition with an args record creates the MountAction passed to `OnMount`. That call never runs `execute`. The runtime calls it when the element enters the DOM, so nothing `execute` does happens inside the pure view that built the action. `Mount.defineStream` takes the same fields, and its `execute` returns a `Stream<Message>` instead.
 
-Args are only per-instance inputs. Module constants stay in lexical scope, app-wide services come from Foldkit `Resources`, Model-owned handles come from `ManagedResources`, and Effect services remain available through `yield*` inside `execute`.
+Args are only per-instance inputs. Module constants stay in lexical scope, app-wide services come from `Application.provide`, Model-owned handles come from `ManagedResources`, and Effect services remain available through `yield*` inside an inline `execute` or a Layer handler.
 
 :::Info{label="Args surface in DevTools and tests"}
 DevTools shows the args beside the Mount name. Scene tests can target one instance by passing the same args record to `Mount.expectHas` or `Mount.resolve`. See [Scene](/testing/scene) for the Definition and instance matcher contract.

@@ -9,6 +9,11 @@ import {
 } from 'effect'
 
 import type { ServicesOf as ManagedResourceServicesOf } from '../managedResource/index.js'
+import {
+  type LayeredMountDefinition,
+  type MountAction,
+  MountRegistrationTypeId,
+} from '../mount/index.js'
 import type { Ports } from '../port/index.js'
 import type { Return as UpdateReturn } from '../update/index.js'
 import type {
@@ -75,6 +80,17 @@ type SubscriptionRequirements<Subscriptions> =
       : never
     : never
 
+type MountRequirements<Config> =
+  Config extends Readonly<{
+    mounts: ReadonlyArray<infer Definition>
+  }>
+    ? Definition extends (
+        ...args: ReadonlyArray<any>
+      ) => MountAction<any, any, infer Requirements>
+      ? Requirements
+      : never
+    : never
+
 type ManagedResourceRuntimeServices<Config> =
   Config extends Readonly<{ managedResources: infer ManagedResources }>
     ? ManagedResourceServicesOf<ManagedResources>
@@ -109,6 +125,7 @@ type ConfigRequirements<Config, Update> = Exclude<
   | (Config extends Readonly<{ subscriptions: infer Subscriptions }>
       ? SubscriptionRequirements<Subscriptions>
       : never)
+  | MountRequirements<Config>
   | ManagedResourceLifecycleRequirements<Config>,
   ManagedResourceRuntimeServices<Config>
 >
@@ -168,6 +185,25 @@ const assertDistinctHandlerNames = (
     }
 
     definitions.set(name, { key, toLayer })
+  }
+}
+
+const assertDistinctMountNames = (
+  mounts: ReadonlyArray<LayeredMountDefinition>,
+): void => {
+  const definitions = new Map<string, object>()
+
+  for (const mount of mounts) {
+    const previous = definitions.get(mount.name)
+    const registration = mount[MountRegistrationTypeId]
+
+    if (previous && previous !== registration) {
+      throw new Error(
+        `[foldkit] Mount handlers have the same name "${mount.name}" but different definitions. Give each definition a distinct name.`,
+      )
+    }
+
+    definitions.set(mount.name, registration)
   }
 }
 
@@ -313,19 +349,25 @@ export function make(
     assertDistinctHandlerNames('ManagedResource', config.managedResources)
   }
 
+  if (config.mounts) {
+    assertDistinctMountNames(config.mounts)
+  }
+
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   return makeApplication(config as any)
 }
 
 /** Supplies the services a Layer produces and carries its own requirements
- * forward on the application. Layers are built once for each runtime start
- * and released when that runtime stops. */
+ * forward on the application. Combine independent feature Layers with
+ * `Layer.mergeAll` before calling this once. A bundle may produce services
+ * beyond the application's requirements; they remain available at runtime.
+ * Layers are built once for each runtime start and released when it stops. */
 export const provide = <
   P extends Ports | undefined,
   Flags,
   CurrentRequirements,
   RuntimeServices,
-  Provided extends CurrentRequirements,
+  Provided,
   E,
   Needed,
 >(

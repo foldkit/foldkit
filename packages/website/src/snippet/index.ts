@@ -388,6 +388,8 @@ export { default as createKeyedLazyEntityRaw } from './createKeyedLazyEntity.ts?
 export { default as createKeyedLazyEntityHighlighted } from './createKeyedLazyEntity.ts?highlighted'
 export { default as mountPortalToBodyRaw } from './mountPortalToBody.ts?raw'
 export { default as mountPortalToBodyHighlighted } from './mountPortalToBody.ts?highlighted'
+export { default as mountHandlerLayersRaw } from './mountHandlerLayers.ts?raw'
+export { default as mountHandlerLayersHighlighted } from './mountHandlerLayers.ts?highlighted'
 export { default as mountThirdPartyChartRaw } from './mountThirdPartyChart.ts?raw'
 export { default as mountThirdPartyChartHighlighted } from './mountThirdPartyChart.ts?highlighted'
 export { default as mountViewStateChangesRaw } from './mountViewStateChanges.ts?raw'

@@ -11,6 +11,8 @@ The Runtime API makes two independent choices:
 
 For a page-owning application with Layer-backed Commands, Subscriptions, or ManagedResources, `Application.make` carries their inferred Effect requirements. Call `Application.provide` until they are satisfied, then pass the runnable application to `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed`. Provision can be chained because a handler Layer may itself need services from a later Layer. The application config has no `resources` field; runtime-wide services are supplied through `Application.provide`.
 
+For a larger application, combine independent feature Layers with Effect's `Layer.mergeAll` and call `Application.provide` once. Use `Layer.provideMerge` when one feature Layer needs a service from another. A feature can export one combined Layer for its Commands, Subscriptions, and Mounts, so the application entry imports feature Layers rather than every handler.
+
 ::Snippet{name="runApplicationLayers" label="Providing application handler Layers"}
 
 ## makeApplication {#make-application}

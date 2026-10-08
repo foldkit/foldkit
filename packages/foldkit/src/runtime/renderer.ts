@@ -1,8 +1,18 @@
-import { Cause, Context, Effect, Exit, Option, type Scope } from 'effect'
+import {
+  Cause,
+  Context,
+  Effect,
+  Exit,
+  Option,
+  Predicate,
+  type Scope,
+} from 'effect'
 
 import {
   type BoundaryRegistry,
   type Document,
+  FOLDKIT_MOUNT_KEY,
+  type FoldkitMountMarker,
   type HtmlBuilder,
   __beginRender as beginHtmlRender,
   __beginReplayRender as beginReplayHtmlRender,
@@ -14,7 +24,12 @@ import {
 } from '../html/index.js'
 import { __hydrateVNode } from '../hydrate.js'
 import { FOLDKIT_APP_ATTRIBUTE } from '../hydrationMarker.js'
-import { MountRuntime, MountTracker } from '../mount/index.js'
+import {
+  type LayeredMountDefinition,
+  MountRegistrationTypeId,
+  MountRuntime,
+  MountTracker,
+} from '../mount/index.js'
 import type { CommitNotifier } from '../render/commit.js'
 import {
   VNode,
@@ -122,6 +137,7 @@ export const makeRenderer = <Model, Message>({
   duplicateIdScanner,
   maybeResolvedViewTransition,
   commitNotifier,
+  mounts,
   runtimeContext,
   readLiveModel,
   messageQueue,
@@ -147,6 +163,7 @@ export const makeRenderer = <Model, Message>({
     ResolvedViewTransition<Model, Message>
   >
   commitNotifier: CommitNotifier
+  mounts: ReadonlyArray<LayeredMountDefinition>
   runtimeContext: Context.Context<never>
   readLiveModel: () => Model
   messageQueue: MessageQueue<Message>
@@ -271,28 +288,29 @@ export const makeRenderer = <Model, Message>({
     // stay visible.
     yield* Effect.addFinalizer(exit =>
       Effect.gen(function* () {
-        if (!Exit.hasInterrupts(exit)) {
-          return
-        }
-        const maybeCurrentVNode = vnodeSlot.maybeCurrentVNode
-        yield* Option.match(maybeCurrentVNode, {
-          onNone: () => Effect.void,
-          onSome: currentVNode =>
-            Effect.sync(() => {
-              const placeholderNode = __patchVNode(
-                Option.some(currentVNode),
-                null,
-                container,
-              ).elm
-              if (placeholderNode && placeholderNode.parentNode) {
-                placeholderNode.parentNode.replaceChild(
+        if (Exit.hasInterrupts(exit)) {
+          const maybeCurrentVNode = vnodeSlot.maybeCurrentVNode
+          yield* Option.match(maybeCurrentVNode, {
+            onNone: () => Effect.void,
+            onSome: currentVNode =>
+              Effect.sync(() => {
+                const placeholderNode = __patchVNode(
+                  Option.some(currentVNode),
+                  null,
                   container,
-                  placeholderNode,
-                )
-                container.replaceChildren()
-              }
-            }),
-        })
+                ).elm
+                if (placeholderNode && placeholderNode.parentNode) {
+                  placeholderNode.parentNode.replaceChild(
+                    container,
+                    placeholderNode,
+                  )
+                  container.replaceChildren()
+                }
+              }),
+          })
+        }
+
+        yield* mountRuntime.interruptFibers
       }),
     )
 
@@ -364,6 +382,54 @@ export const makeRenderer = <Model, Message>({
     // dropped from the registry via snabbdom destroy hooks attached
     // by `h.submodel` to each child vnode.
     const boundaryRegistry: BoundaryRegistry = createHtmlBoundaryRegistry()
+    const registeredMounts = new Set(
+      mounts.map(mount => mount[MountRegistrationTypeId]),
+    )
+
+    const assertLayeredMountsAreRegistered = (root: VNode | null): void => {
+      if (root === null) {
+        return
+      }
+
+      const visited = new Set<object>()
+      const missing = new Map<object, string>()
+      const walk = (node: VNode): void => {
+        if (visited.has(node)) {
+          return
+        }
+        visited.add(node)
+
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        const marker = node.data?.[FOLDKIT_MOUNT_KEY] as
+          | FoldkitMountMarker
+          | undefined
+        const registration = marker?.[MountRegistrationTypeId]
+        if (
+          marker !== undefined &&
+          registration !== undefined &&
+          !registeredMounts.has(registration)
+        ) {
+          missing.set(registration, marker.name)
+        }
+
+        for (const child of node.children ?? []) {
+          if (!Predicate.isString(child)) {
+            walk(child)
+          }
+        }
+      }
+      walk(root)
+
+      if (missing.size === 0) {
+        return
+      }
+
+      const names = globalThis.Array.from(missing.values()).sort()
+      throw new Error(
+        `[foldkit] The rendered view contains Layer-backed Mounts that were not registered: ${names.join(', ')}. ` +
+          'Add each Definition to Application.make({ mounts: [...] }).',
+      )
+    }
 
     // NOTE: callers set `isRenderingFrame` before calling this and clear
     // it after. Without it, a Message dispatched while the patch is still
@@ -408,6 +474,7 @@ export const makeRenderer = <Model, Message>({
         },
       )
       const { body: nextVNode } = nextDocument
+      assertLayeredMountsAreRegistered(nextVNode)
 
       reportSlowPhase<SlowViewContext<Model, Message>>(
         maybeLiveSlowView,
@@ -497,7 +564,15 @@ export const makeRenderer = <Model, Message>({
     ) =>
       Effect.gen(function* () {
         status.isRenderingFrame = true
-        const renderContext = yield* Effect.context<never>()
+        const renderContext = Context.add(
+          Context.add(
+            Context.add(runtimeContext, Dispatch, dispatchService),
+            MountTracker,
+            mountTracker,
+          ),
+          MountRuntime,
+          mountRuntime,
+        )
         if (renderMode === 'Replay') {
           beginReplayHtmlRender()
         }
@@ -516,9 +591,6 @@ export const makeRenderer = <Model, Message>({
             drainPendingMessages()
           }),
         ),
-        Effect.provideService(Dispatch, dispatchService),
-        Effect.provideService(MountTracker, mountTracker),
-        Effect.provideService(MountRuntime, mountRuntime),
       )
 
     const liveRenderContext = Context.add(

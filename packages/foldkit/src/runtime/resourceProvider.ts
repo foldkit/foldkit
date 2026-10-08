@@ -39,6 +39,7 @@ export type ResourceProvider<
   Resources,
   ManagedResourceServices,
 > = Readonly<{
+  applicationContext: Context.Context<never>
   managedResourceRefs: ReadonlyArray<ManagedResourceRef<Model, Message>>
   provideAllResources: <A>(
     effect: Effect.Effect<A, never, Resources | ManagedResourceServices>,
@@ -269,5 +270,10 @@ export const makeResourceProvider = <
           }),
       })
 
-    return { managedResourceRefs, provideAllResources, provideResources }
+    return {
+      applicationContext,
+      managedResourceRefs,
+      provideAllResources,
+      provideResources,
+    }
   })

@@ -2,6 +2,7 @@ import { Layer, Option, Predicate, Schema } from 'effect'
 
 import { Document, type HtmlBuilder } from '../html/index.js'
 import type { ManagedResources } from '../managedResource/index.js'
+import type { LayeredMountDefinition } from '../mount/index.js'
 import type { Ports } from '../port/index.js'
 import type { Subscriptions } from '../subscription/subscription.js'
 import type { Return as UpdateReturn } from '../update/index.js'
@@ -41,6 +42,7 @@ type BaseApplicationConfig<
     Message,
     Resources | ManagedResourceServices
   >
+  mounts?: ReadonlyArray<LayeredMountDefinition>
   container: HTMLElement | null
   ports?: P
   crash?: CrashConfig<Model, Message>
@@ -316,6 +318,7 @@ export function makeApplication<
     manageDocument: true,
     ports: config.ports,
     ...(config.subscriptions && { subscriptions: config.subscriptions }),
+    ...(config.mounts && { mounts: config.mounts }),
     container: resolvedContainer,
     ...(hydration && { hydration }),
     ...(hasRouting && { routing: config.routing }),

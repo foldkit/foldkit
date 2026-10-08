@@ -1,3 +1,4 @@
+import { Layer } from 'effect'
 import { Application, Runtime } from 'foldkit'
 
 import {
@@ -24,8 +25,11 @@ const application = Application.make({
   },
 })
 
-const withStartTime = Application.provide(application, DetermineStartTimeLive)
-const withTickTime = Application.provide(withStartTime, DetermineTickTimeLive)
-const runnable = Application.provide(withTickTime, WatchStopwatchTicksLive)
+const StopwatchLive = Layer.mergeAll(
+  DetermineStartTimeLive,
+  DetermineTickTimeLive,
+  WatchStopwatchTicksLive,
+)
+const runnable = Application.provide(application, StopwatchLive)
 
 Runtime.run(runnable)

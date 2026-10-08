@@ -25,8 +25,10 @@ import {
   reflectedAttributeName,
 } from '../domReflection.js'
 import type { File } from '../file/index.js'
-import type { MountAction } from '../mount/index.js'
 import {
+  type MountAction,
+  type MountRegistration,
+  MountRegistrationTypeId,
   MountRuntime,
   MountTracker,
   liveViewStateChanges,
@@ -564,6 +566,7 @@ export type FoldkitMountMarker = Readonly<{
   name: string
   args?: Record<string, unknown>
   messageMappers?: ReadonlyArray<(message: unknown) => unknown>
+  [MountRegistrationTypeId]?: MountRegistration
 }>
 
 /** Union of all HTML, SVG, and MathML attributes a virtual DOM element can carry.
@@ -963,7 +966,7 @@ export type Attribute<Message> = Data.TaggedEnum<{
     readonly f: (event: CustomEvent<unknown>) => Option.Option<Message>
   }
   OnMount: {
-    readonly action: MountAction<Message, any>
+    readonly action: MountAction<Message, any, any>
   }
   OnUnmount: {
     readonly message: Message
@@ -2497,10 +2500,14 @@ const attributeHandlers: AttributeHandlers = {
     const notifyEnded = Option.isSome(maybeTracker)
       ? () => maybeTracker.value.ended(action.name, action.args)
       : Function.constVoid
-    const markerWithArgs: FoldkitMountMarker =
-      action.args === undefined
-        ? { name: action.name }
-        : { name: action.name, args: action.args }
+    const registration = action[MountRegistrationTypeId]
+    const markerWithArgs: FoldkitMountMarker = {
+      name: action.name,
+      ...(action.args !== undefined && { args: action.args }),
+      ...(registration !== undefined && {
+        [MountRegistrationTypeId]: registration,
+      }),
+    }
     const boundaryLift = ctx.boundaryMappers
     const marker: FoldkitMountMarker = Array.isReadonlyArrayEmpty(boundaryLift)
       ? markerWithArgs
@@ -2585,7 +2592,13 @@ const attributeHandlers: AttributeHandlers = {
         previousFiber === undefined
           ? runMount
           : Fiber.interrupt(previousFiber).pipe(Effect.andThen(runMount))
-      const fiber = Effect.runForkWith(capturedContext)(acquire)
+      const fiber = Effect.runForkWith(capturedContext)(
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        acquire as Effect.Effect<void>,
+      )
+      if (Option.isSome(maybeMountRuntime)) {
+        maybeMountRuntime.value.registerFiber(fiber)
+      }
       onMountStates.set(element, {
         fiber,
         lifecycle,
@@ -4924,9 +4937,9 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'PreserveAspectRatio'
     readonly value: string
   }
-  OnMount: (action: MountAction<Message, any>) => {
+  OnMount: (action: MountAction<Message, any, any>) => {
     readonly _tag: 'OnMount'
-    readonly action: MountAction<Message, any>
+    readonly action: MountAction<Message, any, any>
   }
   OnUnmount: (message: Message) => {
     readonly _tag: 'OnUnmount'
@@ -5457,7 +5470,7 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   RefY: (value: string) => RefY({ value }),
   Orient: (value: string) => Orient({ value }),
   PreserveAspectRatio: (value: string) => PreserveAspectRatio({ value }),
-  OnMount: (action: MountAction<Message, any>) => OnMount({ action }),
+  OnMount: (action: MountAction<Message, any, any>) => OnMount({ action }),
   /**
    * Dispatches `message` when this element is removed from the DOM by a
    * structural patch (a key change, a parent re-render that drops it, route

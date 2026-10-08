@@ -4,9 +4,9 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 ## Status
 
-**Current milestone:** Command, Subscription, and ManagedResource handler Layers work through `Application.make` and chained `Application.provide`. Application assembly supports Flags and routing. Weather, Stopwatch, and Managed Resource Layer examples use the new surface.
+**Current milestone:** Command, Subscription, Mount, and ManagedResource handler Layers work through `Application.make` and `Application.provide`. Application assembly supports Flags and routing. Weather, Stopwatch, and Managed Resource Layer examples use the new surface.
 
-**Next implementation:** Add explicitly registered Mount handler Layers, then migrate first-party consumers and active documentation.
+**Next implementation:** Migrate first-party consumers by feature, beginning with the website as the composition and type-inference stress test.
 
 **Scope:** Production handler Layers and application assembly. Whole-application testing APIs are deferred.
 
@@ -15,7 +15,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 | Command handlers                          | Implemented, verifying | Define a Command separately from its handler Layer.                                   |
 | Application assembly                      | Implemented, verifying | See unsatisfied requirements on an application and provide Layers before starting it. |
 | Subscription and ManagedResource handlers | Implemented, verifying | Replace implementations while preserving Model-driven lifecycles.                     |
-| Mount boundary                            | Design chosen          | Register Layer-backed Mount definitions to carry their requirements.                  |
+| Mount boundary                            | Implemented, verifying | Register Layer-backed Mount definitions to carry their requirements.                  |
 | Migration and verification                | In progress            | First-party apps, templates, and active docs use the final API.                       |
 
 ## Target surface
@@ -24,7 +24,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 - An application carries its unsatisfied Effect requirements until a Layer is provided. The application config does not own an app-wide `resources` Layer.
 - Subscriptions retain record keys as registration identities and gain explicit, stable handler names. Their Model dependency logic stays with the definition; a Layer supplies the Stream factory. Lift and aggregation preserve the handler identity.
 - ManagedResources retain Model-driven acquisition and release. A Layer supplies the acquire and release functions, while `managedResources` registers the lifecycle and result Messages with the application.
-- Mount definitions retain their names and element-driven lifecycle. A separate Layer API needs an explicit solution for requirements hidden inside `view`.
+- Mount definitions retain their names and element-driven lifecycle. Layer-backed Mounts enter the application requirements through explicit registration because `view` does not expose handler requirements.
 
 ## Work items
 
@@ -68,14 +68,18 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 - [x] Document the `view` type boundary that prevents Mount handler requirements from joining the application `R` channel.
 - [x] Choose explicit Mount registration rather than propagating requirements through `Html` and `Document`.
-- [ ] Add `Mount.toLayer` for one-shot and streaming definitions, preserving element-driven acquisition, teardown, and Message lifting.
-- [ ] Infer registered Mount requirements into `Application.make` and validate rendered Mounts before patching the DOM.
+- [x] Add `Mount.toLayer` for one-shot and streaming definitions, preserving element-driven acquisition, teardown, and Message lifting.
+- [x] Infer registered Mount requirements into `Application.make` and validate rendered Mounts before patching the DOM.
 
 `view` returns a `Document`, and `MountAction.f` currently returns a Stream with no exposed `R`. A Mount used only inside `view` therefore cannot add a handler requirement to `Application.make` by inference from update or Subscriptions. The application will register its Layer-backed Mount definitions in a `mounts` collection. That collection contributes handler requirements to the application's `R` channel. A pre-patch check of rendered Mount identities will reject unregistered Layer-backed actions, including ones revealed by later Model states. An unused registration is valid because conditional views are normal. Inline Mounts need no registration.
 
 ### 6. Verification and publication
 
-- [ ] Complete active documentation, examples, and template migration for the final public API. The weather and Managed Resource Layer examples and four core guides cover the first slice.
+- [ ] Complete active documentation, examples, and template migration for the final public API. The weather, Stopwatch, and Managed Resource Layer examples and five core guides cover the first slice.
+- [ ] Verify feature Layer composition with the website's production Commands, then migrate its application entry without listing every handler there. The website currently has 25 production Command definitions across Main, Search, Home, Playground, API Reference, and Example; documentation snippets account for another 51 definitions.
+  - Each feature owns a `Live` Layer next to its update/lifecycle definitions. Features with multiple modules compose their local Layers and export one `Live` from their barrel.
+  - `src/live.ts` composes feature Layers and service providers. `entry.ts` imports that one `WebsiteLive` value and calls `Application.provide` once; it never imports individual handler Layers.
+  - Split the 14 Commands currently in `main.ts` into coherent site-shell groups as the migration exposes those boundaries. Distinct `DelayAdvancePhase` Commands in Home demos need distinct names.
 - [x] Run workspace type checks, all Foldkit unit tests, focused example tests, and lint for the current slice.
 - [ ] Resolve API reference generator warnings about helper types exposed through the new public signatures.
 - [ ] Run the remaining full build and end-to-end verification gates after migration.
@@ -83,7 +87,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 ## Verification snapshot
 
-- Foldkit: 2,984 tests passed, 1 skipped.
+- Foldkit: 2,996 tests passed, 1 skipped.
 - Workspace: all 52 projects passed TypeScript checks after building their local package dependencies.
 - Weather, Stopwatch, and Managed Resource Layer examples: type checks and Story/Scene tests passed.
 - Root and application lint, formatting, and `git diff --check` passed.

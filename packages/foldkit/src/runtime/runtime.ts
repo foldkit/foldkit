@@ -1,5 +1,6 @@
 import {
   Array,
+  Context,
   Duration,
   Effect,
   Exit,
@@ -20,6 +21,7 @@ import {
   __htmlBuilder as htmlBuilderFor,
 } from '../html/index.js'
 import type { ManagedResources } from '../managedResource/index.js'
+import type { LayeredMountDefinition } from '../mount/index.js'
 import type { Ports } from '../port/index.js'
 import { RenderCommit, createCommitNotifier } from '../render/commit.js'
 import type { Subscriptions } from '../subscription/subscription.js'
@@ -115,6 +117,7 @@ export type RuntimeConfig<
     Message,
     Resources | ManagedResourceServices
   >
+  mounts?: ReadonlyArray<LayeredMountDefinition>
   container: HTMLElement
   /**
    * Present when `makeApplication` found a server-rendered root stamped with
@@ -301,6 +304,7 @@ export const makeRuntime = <
   view,
   manageDocument,
   subscriptions,
+  mounts,
   container,
   hydration,
   routing: routingConfig,
@@ -435,14 +439,18 @@ export const makeRuntime = <
           },
         )
 
-        const { managedResourceRefs, provideAllResources, provideResources } =
-          yield* makeResourceProvider({
-            resources,
-            managedResources,
-            runtimeScope,
-            maybePortChannels,
-            applicationLayer,
-          })
+        const {
+          applicationContext,
+          managedResourceRefs,
+          provideAllResources,
+          provideResources,
+        } = yield* makeResourceProvider({
+          resources,
+          managedResources,
+          runtimeScope,
+          maybePortChannels,
+          applicationLayer,
+        })
 
         const { maybeHydrationRoot, resolveFlags } =
           yield* resolveHydrationHandoff({
@@ -628,7 +636,10 @@ export const makeRuntime = <
         // NOTE: the runtime context for OnMount forking and Command forking
         // is captured once here; it is constant for the lifetime of the
         // runtime.
-        const runtimeContext = yield* Effect.context<never>()
+        const runtimeContext = Context.merge(
+          yield* Effect.context<never>(),
+          applicationContext,
+        )
 
         const {
           crashWith,
@@ -652,6 +663,7 @@ export const makeRuntime = <
           duplicateIdScanner,
           maybeResolvedViewTransition,
           commitNotifier,
+          mounts: mounts ?? [],
           runtimeContext,
           readLiveModel: () => liveModel,
           messageQueue,

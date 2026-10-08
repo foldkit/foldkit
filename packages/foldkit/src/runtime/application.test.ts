@@ -348,8 +348,15 @@ const checkApplicationTypes = (): void => {
     Effect.succeed(Message.CompletedSend({ text: 'other' })),
   )
 
-  // @ts-expect-error A different Command handler cannot satisfy Send.
-  Application.provide(application, otherLayer)
+  // @ts-expect-error A different Command handler leaves Send unsatisfied.
+  run(Application.provide(application, otherLayer))
+
+  const combinedLayer = Layer.mergeAll(
+    Send.toLayer(({ text }) => Effect.succeed(Message.CompletedSend({ text }))),
+    otherLayer,
+    DatabaseLive,
+  )
+  run(Application.provide(application, combinedLayer))
 
   const applicationWithTwoHandlers = Application.make({
     Model,
