@@ -37,6 +37,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
             model.virtualListChatDemo,
             model.virtualListChatMessages,
             h,
+            model.virtualListChatAnnouncedOlderCount,
           ),
         ),
       },

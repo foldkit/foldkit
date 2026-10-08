@@ -1259,7 +1259,76 @@ describe('VirtualList', () => {
       expect(measurement.commands).toBeUndefined()
     })
 
-    it('clears the remaining reserve when the final page exceeds its estimate', () => {
+    it('releases exact-height reservations without retaining measured rows', () => {
+      const model = init({ id: 'test', rowHeightPx: 30, startPaddingPx: 1000 })
+      const prepend = informItemsPrependedFromStartPadding(model, {
+        itemKeys: ['older', 'first'],
+        prependedItems: [{ key: 'older', estimatedHeightPx: 80 }],
+      })
+      const measurement = update(
+        prepend.model,
+        Message.MeasuredRows({
+          measurements: [
+            {
+              key: 'older',
+              height: 80,
+              layoutHeightPx: 80,
+              layoutVersion: prepend.model.layoutVersion,
+            },
+          ],
+        }),
+      )
+
+      expect(measurement.model.startPaddingPx).toBe(920)
+      expect(measurement.model.reservedStartRowHeights).toStrictEqual({})
+      expect(measurement.model.measuredRowHeights).toStrictEqual({})
+      expect(measurement.commands).toBeUndefined()
+    })
+
+    it('preserves the viewport until the remaining final-page reserve is removed after scrolling', async () => {
+      const observed = update(
+        init({ id: 'test', rowHeightPx: 30, startPaddingPx: 1000 }),
+        Message.ObservedContainerScroll({
+          scrollTop: 1100,
+          scrollHeight: 1500,
+          containerHeight: 100,
+          anchor: {
+            _tag: 'Row',
+            key: 'first',
+            index: 0,
+            viewportOffset: -100,
+          },
+        }),
+      )
+      const prepend = informItemsPrependedFromStartPadding(observed.model, {
+        itemKeys: ['older', 'first'],
+        prependedItems: [{ key: 'older', estimatedHeightPx: 80 }],
+        isFinalPage: true,
+      })
+
+      expect(prepend.model.startPaddingPx).toBe(920)
+      expect(prepend.model.startPaddingState._tag).toBe('FinalPage')
+      expect(prepend.commands).toBeUndefined()
+
+      const settled = replenishStartPadding(prepend.model, 1000)
+      expect(settled.model.startPaddingPx).toBe(0)
+      expect(settled.model.pendingScroll).toStrictEqual({
+        _tag: 'Pending',
+        version: 1,
+        request: {
+          _tag: 'Anchor',
+          anchor: { _tag: 'Offset', scrollTop: 180 },
+          baselineScrollTop: 1100,
+        },
+      })
+      expect(await executeScroll(settled, 1100, 100, [], 580)).toBe(180)
+
+      const repeated = replenishStartPadding(settled.model, 1000)
+      expect(repeated.model).toBe(settled.model)
+      expect(repeated.commands).toBeUndefined()
+    })
+
+    it('restores the anchor when the final batch exceeds its reserve', () => {
       const model = init({ id: 'test', rowHeightPx: 30, startPaddingPx: 70 })
       const prepend = informItemsPrependedFromStartPadding(model, {
         itemKeys: ['older', 'first'],
@@ -1268,8 +1337,8 @@ describe('VirtualList', () => {
       })
 
       expect(prepend.model.startPaddingPx).toBe(0)
-      expect(prepend.model.reservedStartRowHeights).toStrictEqual({ older: 80 })
-      expect(prepend.commands).toBeUndefined()
+      expect(prepend.model.startPaddingState._tag).toBe('FinalPage')
+      expect(prepend.commands ?? []).toHaveLength(1)
     })
   })
 
@@ -1293,6 +1362,46 @@ describe('VirtualList', () => {
       const unchanged = replenishStartPadding(replenished.model, 1000)
       expect(unchanged.model).toBe(replenished.model)
       expect(unchanged.commands).toBeUndefined()
+    })
+  })
+
+  describe('ObserveVirtualList', () => {
+    it('reports scroll settling without native scrollend support', async () => {
+      const element = document.createElement('div')
+      element.id = 'test'
+      document.body.append(element)
+
+      try {
+        const ended = await Effect.runPromise(
+          Effect.scoped(
+            Effect.gen(function* () {
+              const mounted = yield* Deferred.make<void>()
+              const settled = yield* Deferred.make<void>()
+              yield* ObserveVirtualList({
+                id: 'test',
+                observeStartGestures: true,
+              })
+                .f(element, Mount.liveViewStateChanges)
+                .pipe(
+                  Stream.runForEach(message =>
+                    message._tag === 'EndedContainerScroll'
+                      ? Deferred.succeed(settled, undefined)
+                      : Deferred.succeed(mounted, undefined),
+                  ),
+                  Effect.forkScoped,
+                )
+              yield* Deferred.await(mounted)
+              element.dispatchEvent(new Event('scroll'))
+              yield* Deferred.await(settled)
+              return true
+            }),
+          ).pipe(Effect.timeout('2 seconds')),
+        )
+
+        expect(ended).toBe(true)
+      } finally {
+        element.remove()
+      }
     })
   })
 

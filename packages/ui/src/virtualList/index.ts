@@ -120,6 +120,11 @@ const MeasurementMode = defineTaggedUnion({
   PreservePosition: {},
 })
 
+const StartPaddingState = defineTaggedUnion({
+  Available: {},
+  FinalPage: {},
+})
+
 /** Schema for the virtual list's state. Tracks scroll position, container
  *  measurement, and any in-flight programmatic scroll. */
 export const Model = Schema.Struct({
@@ -130,6 +135,7 @@ export const Model = Schema.Struct({
   viewportAnchor: ViewportAnchor,
   measuredRowHeights: Schema.Record(Schema.String, Schema.Number),
   startPaddingPx: Schema.Number,
+  startPaddingState: StartPaddingState,
   reservedStartRowHeights: Schema.Record(Schema.String, Schema.Number),
   measurementMode: MeasurementMode,
   layoutVersion: Schema.Number,
@@ -232,6 +238,7 @@ export const init = (config: InitConfig): Model => {
     }),
     measuredRowHeights: Record.empty(),
     startPaddingPx: config.startPaddingPx ?? 0,
+    startPaddingState: StartPaddingState.Available(),
     reservedStartRowHeights: Record.empty(),
     measurementMode: MeasurementMode.ReconcileAnchor(),
     layoutVersion: 0,
@@ -732,7 +739,9 @@ const hasChangedMeasurement = (
     model.measuredRowHeights,
     Record.get(measurement.key),
     Option.match({
-      onNone: () => true,
+      onNone: () =>
+        measurement.layoutHeightPx === undefined ||
+        measurement.height !== measurement.layoutHeightPx,
       onSome: height => height !== measurement.height,
     }),
   )
@@ -751,7 +760,23 @@ const applyRowMeasurements = (
   const changedMeasurements = Array.filter(measurements, measurement =>
     hasChangedMeasurement(model, measurement),
   )
-  if (Array.isArrayEmpty(changedMeasurements)) {
+  const measuredReservedKeys = HashSet.fromIterable(
+    Array.map(
+      Array.filter(
+        measurements,
+        measurement =>
+          measurement.layoutVersion === model.layoutVersion &&
+          Option.isSome(
+            Record.get(model.reservedStartRowHeights, measurement.key),
+          ),
+      ),
+      measurement => measurement.key,
+    ),
+  )
+  if (
+    Array.isArrayEmpty(changedMeasurements) &&
+    HashSet.isEmpty(measuredReservedKeys)
+  ) {
     return { model }
   }
 
@@ -763,9 +788,6 @@ const applyRowMeasurements = (
   )
   const reservedMeasurements = Array.filter(changedMeasurements, measurement =>
     Option.isSome(Record.get(model.reservedStartRowHeights, measurement.key)),
-  )
-  const measuredReservedKeys = HashSet.fromIterable(
-    Array.map(reservedMeasurements, measurement => measurement.key),
   )
   const reservedCompensationPx = Array.reduce(
     reservedMeasurements,
@@ -965,8 +987,8 @@ export const informItemsChanged = (
 /** Replaces reserved space above the loaded rows with newly prepended items.
  *  Estimates must match the view's estimates so existing rows retain their
  *  physical positions without a scroll correction during touch momentum.
- *  Mark the final page to remove any unused reserve. If a non-final batch
- *  exceeds the remaining reserve, normal anchor restoration runs. */
+ *  Mark the final page to remove unused reserve after scrolling settles.
+ *  A batch larger than the remaining reserve uses anchor restoration. */
 export const informItemsPrependedFromStartPadding = (
   model: Model,
   input: Readonly<{
@@ -982,9 +1004,15 @@ export const informItemsPrependedFromStartPadding = (
     0,
     (sum, item) => sum + item.estimatedHeightPx,
   )
-  if (estimatedHeightPx > model.startPaddingPx && input.isFinalPage !== true) {
+  if (estimatedHeightPx > model.startPaddingPx) {
     return informItemsChanged(
-      modifyFields(model, { startPaddingPx: () => 0 }),
+      modifyFields(model, {
+        startPaddingPx: () => 0,
+        startPaddingState: () =>
+          input.isFinalPage === true
+            ? StartPaddingState.FinalPage()
+            : model.startPaddingState,
+      }),
       input.itemKeys,
     )
   }
@@ -1004,10 +1032,11 @@ export const informItemsPrependedFromStartPadding = (
       ),
       reservedStartRowHeights: () => reservedStartRowHeights,
       measurementMode: () => MeasurementMode.PreservePosition(),
-      startPaddingPx: padding =>
+      startPaddingPx: padding => padding - estimatedHeightPx,
+      startPaddingState: () =>
         input.isFinalPage === true
-          ? 0
-          : Math.max(0, padding - estimatedHeightPx),
+          ? StartPaddingState.FinalPage()
+          : model.startPaddingState,
       viewportAnchor: anchor =>
         ViewportAnchor.match(anchor, {
           Offset: ({ scrollTop }) => ViewportAnchor.Offset({ scrollTop }),
@@ -1024,26 +1053,32 @@ export const informItemsPrependedFromStartPadding = (
   }
 }
 
-/** Restores start padding after scrolling settles while preserving the visible
- *  position. Call this in response to `EndedContainerScroll` so the required
- *  scroll-position correction cannot interrupt touch momentum. */
+/** Restores start padding, or removes unused final-page padding, after
+ *  scrolling settles while preserving the visible position. */
 export const replenishStartPadding = (
   model: Model,
   targetPaddingPx: number,
 ): ScrollReturn => {
-  if (model.startPaddingPx >= targetPaddingPx) {
+  const nextPaddingPx = StartPaddingState.match<number>(
+    model.startPaddingState,
+    {
+      Available: () => Math.max(model.startPaddingPx, targetPaddingPx),
+      FinalPage: () => 0,
+    },
+  )
+  if (model.startPaddingPx === nextPaddingPx) {
     return { model }
   }
 
   return buildScrollRequest(
     modifyFields(model, {
-      startPaddingPx: () => targetPaddingPx,
+      startPaddingPx: () => nextPaddingPx,
       measurementMode: () => MeasurementMode.ReconcileAnchor(),
       layoutVersion: Number.increment,
     }),
     ScrollRequest.Anchor({
       anchor: ViewportAnchor.Offset({
-        scrollTop: model.scrollTop + targetPaddingPx - model.startPaddingPx,
+        scrollTop: model.scrollTop + nextPaddingPx - model.startPaddingPx,
       }),
       baselineScrollTop: model.scrollTop,
     }),
@@ -1069,8 +1104,15 @@ const prefixSum = <Item>(
   items: ReadonlyArray<Item>,
   itemToRowHeightPx: (item: Item, index: number) => number,
 ): ReadonlyArray<number> => {
-  const heights = Array.map(items, itemToRowHeightPx)
-  return Array.scan(heights, 0, (cumulative, height) => cumulative + height)
+  const offsets: Array<number> = [0]
+  let cumulativeHeight = 0
+  let index = 0
+  for (const item of items) {
+    cumulativeHeight += itemToRowHeightPx(item, index)
+    offsets.push(cumulativeHeight)
+    index += 1
+  }
+  return offsets
 }
 
 const lastOrZero = (values: ReadonlyArray<number>): number =>
@@ -1085,6 +1127,15 @@ export const ContentAlignment = Schema.Literals(['Start', 'End'])
 
 export type ContentAlignment = typeof ContentAlignment.Type
 
+/** Set size and row positions exposed to assistive technology for paged data. */
+export const AccessibleSet = defineTaggedUnion({
+  Loaded: {},
+  Unknown: {},
+  Known: { size: Schema.Number, firstPosition: Schema.Number },
+})
+
+export type AccessibleSet = typeof AccessibleSet.Type
+
 type ListLayout = Readonly<{
   maybeCumulativeOffsets: Option.Option<ReadonlyArray<number>>
   rowHeightPx: number
@@ -1093,6 +1144,21 @@ type ListLayout = Readonly<{
   containerHeight: number
   maxScrollTop: number
 }>
+
+type CachedListLayout = Readonly<{
+  measuredRowHeights: Model['measuredRowHeights']
+  measurement: Model['measurement']
+  rowHeightPx: number
+  startPaddingPx: number
+  itemToKey: unknown
+  itemToRowHeightPx: unknown
+  itemToEstimatedRowHeightPx: unknown
+  dynamicRowHeights: true | undefined
+  contentAlignment: ContentAlignment
+  layout: ListLayout
+}>
+
+const listLayoutCache = new WeakMap<ReadonlyArray<unknown>, CachedListLayout>()
 
 const measuredRowHeight = (model: Model, key: string): Option.Option<number> =>
   Record.get(model.measuredRowHeights, key)
@@ -1108,6 +1174,22 @@ const listLayout = <Item>(
     | undefined,
   contentAlignment: ContentAlignment,
 ): ListLayout => {
+  const cachedLayout = listLayoutCache.get(items)
+  if (
+    cachedLayout !== undefined &&
+    cachedLayout.measuredRowHeights === model.measuredRowHeights &&
+    cachedLayout.measurement === model.measurement &&
+    cachedLayout.rowHeightPx === model.rowHeightPx &&
+    cachedLayout.startPaddingPx === model.startPaddingPx &&
+    cachedLayout.itemToKey === itemToKey &&
+    cachedLayout.itemToRowHeightPx === itemToRowHeightPx &&
+    cachedLayout.itemToEstimatedRowHeightPx === itemToEstimatedRowHeightPx &&
+    cachedLayout.dynamicRowHeights === dynamicRowHeights &&
+    cachedLayout.contentAlignment === contentAlignment
+  ) {
+    return cachedLayout.layout
+  }
+
   const rowHeightFor = (item: Item, index: number): number => {
     if (dynamicRowHeights !== undefined) {
       const key = itemToKey(item, index)
@@ -1139,7 +1221,7 @@ const listLayout = <Item>(
       ? Math.max(0, containerHeight - model.startPaddingPx - totalHeight)
       : 0
   const leadingInset = alignmentInset + model.startPaddingPx
-  return {
+  const layout = {
     maybeCumulativeOffsets,
     rowHeightPx: model.rowHeightPx,
     totalHeight,
@@ -1147,6 +1229,19 @@ const listLayout = <Item>(
     containerHeight,
     maxScrollTop: Math.max(0, leadingInset + totalHeight - containerHeight),
   }
+  listLayoutCache.set(items, {
+    measuredRowHeights: model.measuredRowHeights,
+    measurement: model.measurement,
+    rowHeightPx: model.rowHeightPx,
+    startPaddingPx: model.startPaddingPx,
+    itemToKey,
+    itemToRowHeightPx,
+    itemToEstimatedRowHeightPx,
+    dynamicRowHeights,
+    contentAlignment,
+    layout,
+  })
+  return layout
 }
 
 const offsetAt = (layout: ListLayout, index: number): number =>
@@ -1280,6 +1375,25 @@ const scrollTopForView = <Item>(
       }),
   })
 
+const firstOffsetIndex = (
+  offsets: ReadonlyArray<number>,
+  threshold: number,
+  isInclusive: boolean,
+): number => {
+  let start = 0
+  let end = offsets.length
+  while (start < end) {
+    const midpoint = Math.floor((start + end) / 2)
+    const offset = Option.getOrThrow(Array.get(offsets, midpoint))
+    if (offset > threshold || (isInclusive && offset === threshold)) {
+      end = midpoint
+    } else {
+      start = midpoint + 1
+    }
+  }
+  return start
+}
+
 const visibleWindowForLayout = (
   layout: ListLayout,
   scrollTop: number,
@@ -1293,23 +1407,19 @@ const visibleWindowForLayout = (
   )
   const firstVisibleIndex = Option.match(layout.maybeCumulativeOffsets, {
     onNone: () => Math.floor(contentScrollTop / layout.rowHeightPx),
-    onSome: cumulativeOffsets =>
-      pipe(
-        cumulativeOffsets,
-        Array.findFirstIndex(Number.isGreaterThan(contentScrollTop)),
-        Option.match({
-          onNone: () => itemCount,
-          onSome: index => Math.max(0, index - 1),
-        }),
-      ),
+    onSome: cumulativeOffsets => {
+      const index = firstOffsetIndex(cumulativeOffsets, contentScrollTop, false)
+      return index === cumulativeOffsets.length
+        ? itemCount
+        : Math.max(0, index - 1)
+    },
   })
   const lastVisibleIndex = Option.match(layout.maybeCumulativeOffsets, {
     onNone: () => Math.ceil(contentViewportEnd / layout.rowHeightPx),
     onSome: cumulativeOffsets =>
-      pipe(
-        cumulativeOffsets,
-        Array.findFirstIndex(Number.isGreaterThanOrEqualTo(contentViewportEnd)),
-        Option.getOrElse(() => itemCount),
+      Math.min(
+        itemCount,
+        firstOffsetIndex(cumulativeOffsets, contentViewportEnd, true),
       ),
   })
   const startIndex = clampIndex(firstVisibleIndex - overscan, itemCount)
@@ -1375,6 +1485,7 @@ type ObserveVirtualListMessage =
 
 const START_GESTURE_TOUCH_DISTANCE_PX = 4
 const WHEEL_BURST_QUIET_MS = 160
+const SCROLL_SETTLE_FALLBACK_MS = 500
 
 const observeVirtualList = (
   element: Element,
@@ -1388,6 +1499,36 @@ const observeVirtualList = (
           return () => undefined
         }
 
+        const hasScrollEnd = 'onscrollend' in element
+        let isTouchActive = false
+        let scrollSettleTimeout: ReturnType<typeof setTimeout> | undefined
+
+        const emitEndedContainerScroll = () => {
+          if (isTouchActive) {
+            return
+          }
+
+          if (scrollSettleTimeout !== undefined) {
+            clearTimeout(scrollSettleTimeout)
+            scrollSettleTimeout = undefined
+          }
+          Queue.offerUnsafe(queue, Message.EndedContainerScroll())
+        }
+
+        const scheduleScrollSettleFallback = () => {
+          if (hasScrollEnd) {
+            return
+          }
+
+          if (scrollSettleTimeout !== undefined) {
+            clearTimeout(scrollSettleTimeout)
+          }
+          scrollSettleTimeout = setTimeout(() => {
+            scrollSettleTimeout = undefined
+            emitEndedContainerScroll()
+          }, SCROLL_SETTLE_FALLBACK_MS)
+        }
+
         const emitContainerMeasurement = () =>
           Queue.offerUnsafe(
             queue,
@@ -1399,7 +1540,7 @@ const observeVirtualList = (
 
         emitContainerMeasurement()
 
-        const scrollListener = () =>
+        const scrollListener = () => {
           Queue.offerUnsafe(
             queue,
             Message.ObservedContainerScroll({
@@ -1415,10 +1556,13 @@ const observeVirtualList = (
               ),
             }),
           )
+          if (observeStartGestures) {
+            scheduleScrollSettleFallback()
+          }
+        }
         element.addEventListener('scroll', scrollListener, { passive: true })
 
-        const scrollEndListener = () =>
-          Queue.offerUnsafe(queue, Message.EndedContainerScroll())
+        const scrollEndListener = () => emitEndedContainerScroll()
 
         const emitStartGesture = () =>
           Queue.offerUnsafe(
@@ -1440,6 +1584,12 @@ const observeVirtualList = (
         let wheelBurstTimeout: ReturnType<typeof setTimeout> | undefined
 
         const touchStartListener = (event: TouchEvent) => {
+          isTouchActive = true
+          if (scrollSettleTimeout !== undefined) {
+            clearTimeout(scrollSettleTimeout)
+            scrollSettleTimeout = undefined
+          }
+
           if (event.touches.length !== 1) {
             activeTouch = undefined
             return
@@ -1495,6 +1645,10 @@ const observeVirtualList = (
           ) {
             activeTouch = undefined
           }
+          if (event.touches.length === 0) {
+            isTouchActive = false
+            scheduleScrollSettleFallback()
+          }
         }
 
         const wheelListener = (event: WheelEvent) => {
@@ -1509,6 +1663,7 @@ const observeVirtualList = (
           if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) {
             return
           }
+          scheduleScrollSettleFallback()
           if (!isWheelBurstActive && event.deltaY < 0) {
             isWheelBurstActive = true
             emitStartGesture()
@@ -1525,6 +1680,7 @@ const observeVirtualList = (
             event.key === 'Home' ||
             (event.key === ' ' && event.shiftKey)
           ) {
+            scheduleScrollSettleFallback()
             emitStartGesture()
           }
         }
@@ -1641,6 +1797,9 @@ const observeVirtualList = (
             if (wheelBurstTimeout !== undefined) {
               clearTimeout(wheelBurstTimeout)
             }
+            if (scrollSettleTimeout !== undefined) {
+              clearTimeout(scrollSettleTimeout)
+            }
           }
         }
       }),
@@ -1686,6 +1845,7 @@ type BaseViewInputs<Item> = Readonly<{
   items: ReadonlyArray<Item>
   itemToKey: (item: Item, index: number) => string
   itemToView: (item: Item, index: number) => Html
+  accessibleSet?: AccessibleSet
   overscan?: number
   observeStartGestures?: boolean
   rowElement?: Exclude<TagName, 'textarea'>
@@ -1735,6 +1895,7 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
       items,
       itemToKey,
       itemToView,
+      accessibleSet = AccessibleSet.Loaded(),
       itemToRowHeightPx,
       dynamicRowHeights,
       itemToEstimatedRowHeightPx,
@@ -1797,6 +1958,16 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
       itemToEstimatedRowHeightPx,
       contentAlignment,
     )
+    const announcedSet = AccessibleSet.match<
+      Readonly<{ size: number; positionOffset: number }>
+    >(accessibleSet, {
+      Loaded: () => ({ size: items.length, positionOffset: 0 }),
+      Unknown: () => ({ size: -1, positionOffset: 0 }),
+      Known: ({ size, firstPosition }) => ({
+        size,
+        positionOffset: firstPosition - 1,
+      }),
+    })
     const maybeWindow = Measurement.match<Option.Option<VisibleWindow>>(
       model.measurement,
       {
@@ -1871,8 +2042,8 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
               h.Role('listitem'),
               h.DataAttribute('virtual-list-item-key', key),
               h.DataAttribute('virtual-list-item-index', String(dataIndex)),
-              h.AriaSetsize(items.length),
-              h.AriaPosinset(dataIndex + 1),
+              h.AriaSetsize(announcedSet.size),
+              h.AriaPosinset(announcedSet.positionOffset + dataIndex + 1),
               ...rowSizingAttributes,
             ],
             [itemToView(item, dataIndex)],

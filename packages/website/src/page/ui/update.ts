@@ -32,6 +32,7 @@ import {
   CHAT_START_RUNWAY_PX,
   COLLAPSED_HISTORY_MESSAGE_HEIGHT_PX,
   ROW_COUNT as VIRTUAL_LIST_ROW_COUNT,
+  chatMessageKey,
   estimatedChatMessageHeight,
 } from './demo/virtualList'
 import { Message } from './message'
@@ -1175,9 +1176,9 @@ const prependVirtualListChatMessages = (
   })
   const estimateHeight = estimatedChatMessageHeight(model.virtualListChatDemo)
   return foldVirtualListChatItemsPrepended(nextModel, {
-    itemKeys: Array.map(nextMessages, message => globalThis.String(message.id)),
+    itemKeys: Array.map(nextMessages, chatMessageKey),
     prependedItems: Array.map(olderMessages, message => ({
-      key: globalThis.String(message.id),
+      key: chatMessageKey(message),
       estimatedHeightPx: estimateHeight(message),
     })),
   })
@@ -1244,6 +1245,23 @@ const prependVirtualListChatMessagesOnStartGesture =
   (scrollTop: number, containerHeight: number): Update.Step<Model, Message> =>
   model =>
     prependVirtualListChatMessagesNearStart(scrollTop, containerHeight)(model)
+
+const recordLoadedVirtualListChatHistory: Update.Step<
+  Model,
+  Message
+> = model => {
+  const olderMessageCount =
+    model.virtualListChatMessages.length - model.virtualListChatNextId
+  if (olderMessageCount <= model.virtualListChatAnnouncedOlderCount) {
+    return { model }
+  }
+
+  return {
+    model: modifyFields(model, {
+      virtualListChatAnnouncedOlderCount: () => olderMessageCount,
+    }),
+  }
+}
 
 // UPDATE
 
@@ -1580,6 +1598,7 @@ export const update = (model: Model, message: Message) =>
           Update.combine(model, [
             foldVirtualListChatDemo(message),
             foldVirtualListChatReplenishStartPadding(CHAT_START_RUNWAY_PX),
+            recordLoadedVirtualListChatHistory,
           ]),
         ),
         Match.orElse(() => foldVirtualListChatDemo(model, message)),
@@ -1589,6 +1608,7 @@ export const update = (model: Model, message: Message) =>
       Update.combine(model, [
         prependVirtualListChatMessages,
         foldVirtualListChatReplenishStartPadding(CHAT_START_RUNWAY_PX),
+        recordLoadedVirtualListChatHistory,
       ]),
 
     ClickedVirtualListChatScrollToMessage: () =>

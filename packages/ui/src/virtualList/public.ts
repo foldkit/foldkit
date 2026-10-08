@@ -12,6 +12,7 @@ export {
   view,
   Model,
   Message,
+  AccessibleSet,
   ContentAlignment,
   ScrollAlignment,
   ScrollTarget,

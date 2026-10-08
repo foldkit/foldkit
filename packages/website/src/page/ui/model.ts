@@ -150,5 +150,6 @@ export const Model = Schema.Struct({
   virtualListChatDemo: VirtualList.Model,
   virtualListChatMessages: Schema.Array(VirtualListChatMessage),
   virtualListChatNextId: Schema.Number,
+  virtualListChatAnnouncedOlderCount: Schema.Number,
 })
 export type Model = typeof Model.Type

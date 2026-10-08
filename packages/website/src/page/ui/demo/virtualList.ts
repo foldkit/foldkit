@@ -400,12 +400,12 @@ const WIDE_EXPANDED_HISTORY_MESSAGE_HEIGHT_PX = 72
 const NARROW_INITIAL_MESSAGE_HEIGHTS_PX = [48, 68, 88, 68]
 const NARROW_INITIAL_MESSAGE_DETAIL_HEIGHT_PX = 62.5
 
-export const estimatedChatMessageHeight = (model: VirtualList.Model) => {
-  const isNarrowContainer =
-    model.measurement._tag === 'Measured' &&
-    model.measurement.containerWidth < NARROW_CHAT_CONTAINER_WIDTH_PX
+export const chatMessageKey = (message: VirtualListChatMessage): string =>
+  globalThis.String(message.id)
 
-  return (message: VirtualListChatMessage): number => {
+const estimateChatMessageHeightForWidth =
+  (isNarrowContainer: boolean) =>
+  (message: VirtualListChatMessage): number => {
     if (message.id < 0) {
       if (isNarrowContainer) {
         return message.isExpanded
@@ -432,7 +432,15 @@ export const estimatedChatMessageHeight = (model: VirtualList.Model) => {
       ? EXPANDED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX
       : COLLAPSED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX
   }
-}
+
+const estimateNarrowChatMessageHeight = estimateChatMessageHeightForWidth(true)
+const estimateWideChatMessageHeight = estimateChatMessageHeightForWidth(false)
+
+export const estimatedChatMessageHeight = (model: VirtualList.Model) =>
+  model.measurement._tag === 'Measured' &&
+  model.measurement.containerWidth < NARROW_CHAT_CONTAINER_WIDTH_PX
+    ? estimateNarrowChatMessageHeight
+    : estimateWideChatMessageHeight
 
 const chatMessageView = (
   message: VirtualListChatMessage,
@@ -484,6 +492,7 @@ export const virtualListChatDemo = (
   model: VirtualList.Model,
   messages: ReadonlyArray<VirtualListChatMessage>,
   h: HtmlBuilder<Message>,
+  announcedOlderCount = 0,
 ) => [
   h.div(
     [h.Class('flex w-full flex-col gap-4')],
@@ -523,14 +532,28 @@ export const virtualListChatDemo = (
           ),
         ],
       ),
+      h.span(
+        [
+          h.Role('status'),
+          h.AriaAtomic(true),
+          h.Class('sr-only'),
+          h.DataAttribute('virtual-list-chat-status', 'true'),
+        ],
+        [
+          announcedOlderCount > 0
+            ? `Loaded ${announcedOlderCount} older messages`
+            : '',
+        ],
+      ),
       h.submodel({
         slotId: model.id,
         model,
         view: VirtualList.view<VirtualListChatMessage>(),
         viewInputs: {
           items: messages,
-          itemToKey: message => globalThis.String(message.id),
+          itemToKey: chatMessageKey,
           itemToView: message => chatMessageView(message, h),
+          accessibleSet: VirtualList.AccessibleSet.Unknown(),
           dynamicRowHeights: true,
           overscan: 16,
           observeStartGestures: true,

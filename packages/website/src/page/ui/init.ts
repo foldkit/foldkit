@@ -196,6 +196,7 @@ export const init = (today: Calendar.CalendarDate): InitReturn => ({
     }),
     virtualListChatMessages: initialVirtualListChatMessages,
     virtualListChatNextId: initialVirtualListChatMessages.length,
+    virtualListChatAnnouncedOlderCount: 0,
     dragAndDropDemoColumns: [
       {
         id: 'backlog',

@@ -105,11 +105,17 @@ test('keeps end-anchored dynamic lists stable across append, prepend, and row gr
     container.locator('[data-virtual-list-item-key]'),
   ).not.toHaveCount(0)
   await waitForInitialEnd(container)
+  await expect(
+    container.locator('[data-virtual-list-item-key]').first(),
+  ).toHaveAttribute('aria-setsize', '-1')
 
   await scrollAwayFromEnd(container)
   const prependAnchor = await visibleAnchor(container)
   await page.locator('[data-virtual-list-chat-prepend]').click()
   await expectAnchorTop(container, prependAnchor)
+  await expect(page.locator('[data-virtual-list-chat-status]')).toContainText(
+    'older messages',
+  )
 
   const appendAnchor = await visibleAnchor(container)
   await page.getByRole('button', { name: 'Add message' }).click()
@@ -150,6 +156,9 @@ test('loads beyond the initial runway across upward scrolls', async ({
   })
   await waitForInitialEnd(container)
   expect(await loadedChatMessageCount(page)).toBe(24)
+  await expect(
+    container.locator('[data-virtual-list-item-key]').first(),
+  ).toHaveAttribute('aria-setsize', '-1')
   await container.evaluate(element => {
     element.addEventListener(
       'scrollend',
@@ -303,6 +312,36 @@ test('loads beyond the initial runway across upward scrolls', async ({
   expect(
     await container.locator('[data-virtual-list-item-key]').count(),
   ).toBeLessThan(80)
+  await expect(page.locator('[data-virtual-list-chat-status]')).toContainText(
+    'older messages',
+  )
+})
+
+test('keeps the focused message mounted when older history is prepended', async ({
+  page,
+}) => {
+  await page.goto('/ui/virtual-list')
+  await waitForClientRuntime(page)
+
+  const container = page.getByRole('list', {
+    name: 'End-anchored chat messages',
+  })
+  await waitForInitialEnd(container)
+  const message = container
+    .locator('[data-virtual-list-chat-message-id]')
+    .last()
+  const id = await message.getAttribute('data-virtual-list-chat-message-id')
+  await message.focus()
+
+  await page.locator('[data-virtual-list-chat-prepend]').evaluate(element => {
+    if (element instanceof HTMLElement) {
+      element.click()
+    }
+  })
+
+  await expect(
+    container.locator(`[data-virtual-list-chat-message-id="${id}"]`),
+  ).toBeFocused()
 })
 
 test('keeps a distant key centered while correcting a low row-height estimate', async ({
