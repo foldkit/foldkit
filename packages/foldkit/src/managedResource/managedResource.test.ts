@@ -181,6 +181,33 @@ describe('make', () => {
     expect(released).toEqual(['invocation:abc:invocation'])
   })
 
+  it('rejects a handler Layer from another ManagedResource definition with the same name', async () => {
+    const other = make<ChildModel, ChildMessage>()(entry => ({
+      session: entry('ManageSession', sessionSchema, {
+        resource: LayeredSessionResource,
+        modelToMaybeRequirements: model =>
+          Option.map(model.maybeToken, token => ({ token })),
+        onAcquired: () => childMessage('AcquiredSession'),
+        onReleased: () => childMessage('ReleasedSession'),
+        onAcquireError: () => childMessage('FailedSession'),
+      }),
+    }))
+    const otherLayer = other.session.toLayer({
+      acquire: ({ token }) => Effect.succeed(token),
+      release: () => Effect.void,
+    })
+
+    await expect(
+      Effect.runPromise(
+        Effect.scoped(
+          layeredManagedResources.session
+            .acquire({ token: 'abc' })
+            .pipe(Effect.provide(otherLayer)),
+        ),
+      ),
+    ).rejects.toThrow('belongs to another definition with the same name')
+  })
+
   it('uses the resource lifetime Scope for lifecycle finalizers', async () => {
     const finalizations: Array<string> = []
     const layer = layeredManagedResources.session.toLayer({

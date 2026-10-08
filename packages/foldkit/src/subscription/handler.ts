@@ -17,6 +17,7 @@ type StreamHandlerWithKeepAlive<Dependencies, Message, R> = (
 ) => Stream.Stream<Message, never, R>
 
 type HandlerService<Dependencies, Message> = Readonly<{
+  identity: symbol
   context: Context.Context<never>
   dependenciesToStream: (
     dependencies: Dependencies,
@@ -70,6 +71,7 @@ export interface ToLayerWithKeepAlive<
 export const makeHandler = <Name extends string, Dependencies, Message>(
   name: Name,
 ) => {
+  const identity = Symbol(name)
   const service = Context.Service<
     Handler<Name>,
     HandlerService<Dependencies, Message>
@@ -80,15 +82,23 @@ export const makeHandler = <Name extends string, Dependencies, Message>(
     readDependencies?: () => Dependencies,
   ): Stream.Stream<Message, never, Handler<Name>> =>
     Stream.unwrap(
-      Effect.map(service, ({ context, dependenciesToStream }) =>
-        Stream.suspend(() =>
-          dependenciesToStream(dependencies, readDependencies),
+      Effect.map(service, handler => {
+        if (handler.identity !== identity) {
+          return Stream.die(
+            new Error(
+              `[foldkit] Subscription handler "${name}" belongs to another definition with the same name. Give each definition a distinct name.`,
+            ),
+          )
+        }
+
+        return Stream.suspend(() =>
+          handler.dependenciesToStream(dependencies, readDependencies),
         ).pipe(
           Stream.updateContext(invocationContext =>
-            Context.merge(context, invocationContext),
+            Context.merge(handler.context, invocationContext),
           ),
-        ),
-      ),
+        )
+      }),
     )
 
   const toLayer = <R, E = never, BuildR = never>(
@@ -107,7 +117,7 @@ export const makeHandler = <Name extends string, Dependencies, Message>(
           Exclude<R, Scope.Scope> | BuildR
         >()
         const handler = Effect.isEffect(build) ? yield* build : build
-        return { context, dependenciesToStream: handler }
+        return { identity, context, dependenciesToStream: handler }
       }),
     )
 

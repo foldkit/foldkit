@@ -12,6 +12,8 @@ Define the handle’s identity with `ManagedResource.tag`, then wire its lifecyc
 
 For a replaceable lifecycle implementation, give an entry a stable handler name and supply its acquire and release functions with `entry.toLayer({ acquire, release })` or an Effect that builds that handler. The `managedResources` record stays in the application: it declares the Model condition, the handle identity, and the lifecycle Messages. `Application.provide` supplies the handler Layer. The Layer lasts for the application lifetime; the handle it acquires still starts and stops according to the Model.
 
+Distinct ManagedResource definitions within one application need distinct handler names. A lifted use of the same definition can share its handler Layer. `Application.make` rejects duplicate names from different definitions.
+
 ::Snippet{name="managedResources" label="Camera ManagedResource lifecycle"}
 
 The runtime compares the requirements after every Model change and performs the corresponding transition.

@@ -35,6 +35,8 @@ A Layer-backed Command definition retains its args, result Messages, and interru
 
 The handler Layer is built once for a runtime start, after runtime-owned services such as ManagedResource accessors exist. The handler can acquire dependencies while the Layer is built and use them when its Command runs. Services present at invocation take precedence over captured services. The [weather example](https://github.com/foldkit/foldkit/tree/main/examples/weather/src) shows the definition, handler Layer, update, and application wiring together.
 
+Give each Layer-backed Command definition a distinct name within an application. A Command accepts a Layer built from its own definition; using a Layer from a different definition with the same name fails when that Command runs.
+
 ## Testable by Design
 
 Because Commands are data and update is pure, a test can simulate the update loop without running any Effects. Dispatch a Message, inspect the returned Command, resolve it with a result Message, and assert on the final Model.

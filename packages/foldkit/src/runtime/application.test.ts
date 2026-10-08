@@ -1,7 +1,8 @@
-import { Context, Effect, Fiber, Layer, Schema, Stream } from 'effect'
+import { Context, Effect, Fiber, Layer, Option, Schema, Stream } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Command from '../command/index.js'
+import * as ManagedResource from '../managedResource/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import * as Subscription from '../subscription/subscription.js'
 import * as Application from './application.js'
@@ -79,6 +80,104 @@ const makeTestApplication = () =>
   })
 
 describe('Application', () => {
+  it('rejects distinct Subscription definitions with the same handler name', () => {
+    const subscriptions = Subscription.make<Model, Message>()(entry => ({
+      first: entry(
+        'WatchStatus',
+        { token: Schema.Null },
+        {
+          modelToDependencies: () => ({ token: null }),
+        },
+      ),
+      second: entry(
+        'WatchStatus',
+        { token: Schema.Null },
+        {
+          modelToDependencies: () => ({ token: null }),
+        },
+      ),
+    }))
+
+    expect(() =>
+      Application.make({
+        Model,
+        init: () => ({ model: { status: 'ready' } }),
+        update: updateWithoutRequirements,
+        view: (model, h) => ({
+          title: 'Duplicate Subscription handlers',
+          body: h.div([], [model.status]),
+        }),
+        subscriptions,
+        container,
+      }),
+    ).toThrow('same name "WatchStatus" but different definitions')
+  })
+
+  it('allows multiple registrations of the same Subscription definition', () => {
+    const subscriptions = Subscription.make<Model, Message>()(entry => ({
+      first: entry(
+        'WatchStatus',
+        { token: Schema.Null },
+        {
+          modelToDependencies: () => ({ token: null }),
+        },
+      ),
+    }))
+    const sharedSubscriptions = {
+      first: subscriptions.first,
+      second: subscriptions.first,
+    }
+
+    expect(() =>
+      Application.make({
+        Model,
+        init: () => ({ model: { status: 'ready' } }),
+        update: updateWithoutRequirements,
+        view: (model, h) => ({
+          title: 'Shared Subscription handler',
+          body: h.div([], [model.status]),
+        }),
+        subscriptions: sharedSubscriptions,
+        container,
+      }),
+    ).not.toThrow()
+  })
+
+  it('rejects distinct ManagedResource definitions with the same handler name', () => {
+    const firstResource = ManagedResource.tag<string>()('FirstStatus')
+    const secondResource = ManagedResource.tag<string>()('SecondStatus')
+    const managedResources = ManagedResource.make<Model, Message>()(entry => ({
+      first: entry('ManageStatus', Schema.Option(Schema.Null), {
+        resource: firstResource,
+        modelToMaybeRequirements: () => Option.none(),
+        onAcquired: text => Message.CompletedSend({ text }),
+        onReleased: () => Message.CompletedSend({ text: 'released' }),
+        onAcquireError: () => Message.CompletedSend({ text: 'failed' }),
+      }),
+      second: entry('ManageStatus', Schema.Option(Schema.Null), {
+        resource: secondResource,
+        modelToMaybeRequirements: () => Option.none(),
+        onAcquired: text => Message.CompletedSend({ text }),
+        onReleased: () => Message.CompletedSend({ text: 'released' }),
+        onAcquireError: () => Message.CompletedSend({ text: 'failed' }),
+      }),
+    }))
+
+    expect(() =>
+      Application.make({
+        Model,
+        init: () => ({ model: { status: 'ready' } }),
+        update: updateWithoutRequirements,
+        view: (model, h) => ({
+          title: 'Duplicate ManagedResource handlers',
+          body: h.div([], [model.status]),
+        }),
+        managedResources,
+        container,
+      }),
+    ).toThrow('same name "ManageStatus" but different definitions')
+  })
+
   it('provides inferred Command handlers for the runtime lifetime', async () => {
     const application = makeTestApplication()
     let handlerBuildCount = 0

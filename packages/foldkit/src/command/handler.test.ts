@@ -169,3 +169,19 @@ it('keeps interruptible Command identity with a Layer-backed handler', async () 
   ).toBe('ReadPrefix.Interrupt')
   expect(result).toEqual(Message.CompletedSendMessage({ text: 'ready' }))
 })
+
+it('rejects a handler Layer from another Command definition with the same name', async () => {
+  const otherSendMessage = Command.define('SendMessage', {
+    args: { text: Schema.String },
+    messages: [Message.CompletedSendMessage],
+  })
+  const otherLayer = otherSendMessage.toLayer(({ text }) =>
+    Effect.succeed(Message.CompletedSendMessage({ text })),
+  )
+
+  await expect(
+    Effect.runPromise(
+      SendMessage({ text: 'hello' }).effect.pipe(Effect.provide(otherLayer)),
+    ),
+  ).rejects.toThrow('belongs to another definition with the same name')
+})

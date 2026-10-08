@@ -66,6 +66,8 @@ Commands describe one-shot work that produces one result. Subscriptions describe
 
 For a replaceable Stream implementation, pass a stable handler name before the dependency fields and omit `dependenciesToStream` from the callbacks. The returned entry has `toLayer(handler)` and `toLayer(Effect<handler>)`. Its record key identifies the running Subscription, while its handler name identifies the Layer requirement. `Application.provide` supplies that Layer; `Subscription.lift` and `Subscription.aggregate` preserve the handler identity and Model-driven restart behavior.
 
+Distinct Subscription definitions within one application need distinct handler names. The same definition can be lifted into multiple registration keys and share one handler Layer. `Application.make` rejects duplicate names from different definitions.
+
 When `isAutoCounting` changes to `true`, the new Stream starts ticking. When it changes back to `false`, the active scope closes and the timer stops.
 
 Defining `subscriptions` is only half of the setup. Pass the record to `makeApplication` or no streams start. The field is optional, so omitting it still produces a valid application without Subscription behavior.

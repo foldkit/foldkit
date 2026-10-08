@@ -16,6 +16,7 @@ export type HandlerOf<
     : never
 
 type HandlerService<Args, Message> = Readonly<{
+  identity: symbol
   context: Context.Context<never>
   execute: (args: Args) => Effect.Effect<Message, never, any>
 }>
@@ -35,17 +36,26 @@ export interface ToLayer<Name extends string, Args, Message> {
 
 /** @internal Builds the service-backed execution and Layer constructor for a Command definition. */
 export const makeHandler = <Name extends string, Args, Message>(name: Name) => {
+  const identity = Symbol(name)
   const service = Context.Service<Handler<Name>, HandlerService<Args, Message>>(
     `foldkit/Command/${name}`,
   )
 
   const execute = (args: Args): Effect.Effect<Message, never, Handler<Name>> =>
-    Effect.flatMap(service, ({ context, execute }) =>
-      Effect.updateContext(
-        Effect.suspend(() => execute(args)),
-        invocationContext => Context.merge(context, invocationContext),
-      ),
-    )
+    Effect.flatMap(service, handler => {
+      if (handler.identity !== identity) {
+        return Effect.die(
+          new Error(
+            `[foldkit] Command handler "${name}" belongs to another definition with the same name. Give each definition a distinct name.`,
+          ),
+        )
+      }
+
+      return Effect.updateContext(
+        Effect.suspend(() => handler.execute(args)),
+        invocationContext => Context.merge(handler.context, invocationContext),
+      )
+    })
 
   const toLayer: ToLayer<Name, Args, Message> = <R, E = never, BuildR = never>(
     build:
@@ -63,7 +73,7 @@ export const makeHandler = <Name extends string, Args, Message>(name: Name) => {
           Exclude<R, Scope.Scope> | BuildR
         >()
         const handler = Effect.isEffect(build) ? yield* build : build
-        return { context, execute: handler }
+        return { identity, context, execute: handler }
       }),
     )
 

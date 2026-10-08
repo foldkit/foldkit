@@ -15,6 +15,7 @@ type LifecycleHandler<Params, Value, AcquireR, ReleaseR> = Readonly<{
 }>
 
 type HandlerService<Params, Value> = Readonly<{
+  identity: symbol
   context: Context.Context<never>
   acquire: (params: Params) => Effect.Effect<Value, unknown, any>
   release: (value: Value) => Effect.Effect<void, unknown, any>
@@ -39,6 +40,7 @@ export interface ToLayer<Name extends string, Params, Value> {
 
 /** @internal Builds the service-backed lifecycle functions for a Managed Resource entry. */
 export const makeHandler = <Name extends string, Params, Value>(name: Name) => {
+  const identity = Symbol(name)
   const service = Context.Service<Handler<Name>, HandlerService<Params, Value>>(
     `foldkit/ManagedResource/${name}`,
   )
@@ -46,22 +48,38 @@ export const makeHandler = <Name extends string, Params, Value>(name: Name) => {
   const acquire = (
     params: Params,
   ): Effect.Effect<Value, unknown, Handler<Name> | Scope.Scope> =>
-    Effect.flatMap(service, ({ context, acquire }) =>
-      Effect.updateContext(
-        Effect.suspend(() => acquire(params)),
-        invocationContext => Context.merge(context, invocationContext),
-      ),
-    )
+    Effect.flatMap(service, handler => {
+      if (handler.identity !== identity) {
+        return Effect.die(
+          new Error(
+            `[foldkit] ManagedResource handler "${name}" belongs to another definition with the same name. Give each definition a distinct name.`,
+          ),
+        )
+      }
+
+      return Effect.updateContext(
+        Effect.suspend(() => handler.acquire(params)),
+        invocationContext => Context.merge(handler.context, invocationContext),
+      )
+    })
 
   const release = (
     value: Value,
   ): Effect.Effect<void, unknown, Handler<Name> | Scope.Scope> =>
-    Effect.flatMap(service, ({ context, release }) =>
-      Effect.updateContext(
-        Effect.suspend(() => release(value)),
-        invocationContext => Context.merge(context, invocationContext),
-      ),
-    )
+    Effect.flatMap(service, handler => {
+      if (handler.identity !== identity) {
+        return Effect.die(
+          new Error(
+            `[foldkit] ManagedResource handler "${name}" belongs to another definition with the same name. Give each definition a distinct name.`,
+          ),
+        )
+      }
+
+      return Effect.updateContext(
+        Effect.suspend(() => handler.release(value)),
+        invocationContext => Context.merge(handler.context, invocationContext),
+      )
+    })
 
   const toLayer: ToLayer<Name, Params, Value> = <
     AcquireR,
@@ -88,7 +106,7 @@ export const makeHandler = <Name extends string, Params, Value>(name: Name) => {
           Exclude<AcquireR | ReleaseR, Scope.Scope> | BuildR
         >()
         const handler = Effect.isEffect(build) ? yield* build : build
-        return { context, ...handler }
+        return { identity, context, ...handler }
       }),
     )
 

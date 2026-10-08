@@ -1,4 +1,12 @@
-import { Effect, Layer, Option, Schema, type Scope, Stream } from 'effect'
+import {
+  Effect,
+  Layer,
+  Option,
+  Predicate,
+  Schema,
+  type Scope,
+  Stream,
+} from 'effect'
 
 import type { ServicesOf as ManagedResourceServicesOf } from '../managedResource/index.js'
 import type { Ports } from '../port/index.js'
@@ -130,6 +138,38 @@ type ResidualRequirements<Current, Provided, Needed, RuntimeServices> = Exclude<
   Exclude<Current, Provided> | Needed,
   RuntimeServices
 >
+
+const assertDistinctHandlerNames = (
+  kind: 'Subscription' | 'ManagedResource',
+  entries: Readonly<Record<string, unknown>>,
+): void => {
+  const definitions = new Map<
+    string,
+    Readonly<{ key: string; toLayer: unknown }>
+  >()
+
+  for (const [key, entry] of globalThis.Object.entries(entries)) {
+    if (!Predicate.isObject(entry)) {
+      continue
+    }
+
+    const { name, toLayer } = entry
+
+    if (!Predicate.isString(name) || !Predicate.isFunction(toLayer)) {
+      continue
+    }
+
+    const previous = definitions.get(name)
+
+    if (previous && previous.toLayer !== toLayer) {
+      throw new Error(
+        `[foldkit] ${kind} handlers "${previous.key}" and "${key}" have the same name "${name}" but different definitions. Give each definition a distinct name.`,
+      )
+    }
+
+    definitions.set(name, { key, toLayer })
+  }
+}
 
 type PendingApplication<
   P extends Ports | undefined,
@@ -265,6 +305,14 @@ export function make(
     | ApplicationConfigWithFlagsWithoutResources<any, any, any>
     | ApplicationConfigWithoutResources<any, any>,
 ): unknown {
+  if (config.subscriptions) {
+    assertDistinctHandlerNames('Subscription', config.subscriptions)
+  }
+
+  if (config.managedResources) {
+    assertDistinctHandlerNames('ManagedResource', config.managedResources)
+  }
+
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   return makeApplication(config as any)
 }

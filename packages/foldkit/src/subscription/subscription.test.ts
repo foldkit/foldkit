@@ -752,6 +752,32 @@ describe('Layer-backed entries', () => {
     expect(result).toEqual(['invocation:hello'])
   })
 
+  it('rejects a handler Layer from another Subscription definition with the same name', async () => {
+    const other = make<ChildModel, string>()(entry => ({
+      registrationKey: entry('WatchLabel', childFields, {
+        modelToDependencies: model => ({
+          isRunning: model.isRunning,
+          label: model.label,
+        }),
+      }),
+    }))
+    const otherLayer = other.registrationKey.toLayer(() =>
+      Stream.succeed('wrong'),
+    )
+    const dependencies = subscriptions.registrationKey.modelToDependencies({
+      isRunning: true,
+      label: 'hello',
+    })
+
+    await expect(
+      Effect.runPromise(
+        Stream.runCollect(
+          subscriptions.registrationKey.dependenciesToStream(dependencies),
+        ).pipe(Effect.provide(otherLayer)),
+      ),
+    ).rejects.toThrow('belongs to another definition with the same name')
+  })
+
   it('builds an Effect supplied handler once for multiple Stream executions', async () => {
     let builds = 0
     const layer = subscriptions.registrationKey.toLayer(

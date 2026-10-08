@@ -6,7 +6,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 **Current milestone:** Command, Subscription, and ManagedResource handler Layers work through `Application.make` and chained `Application.provide`. Application assembly supports Flags and routing. Weather and Managed Resource Layer examples use the new surface.
 
-**Next decision:** Resolve the Mount/view requirement boundary, then migrate first-party consumers and active documentation. Layer identity collisions need an application-wide rule before broad migration.
+**Next decision:** Resolve the Mount/view requirement boundary, then migrate first-party consumers and active documentation.
 
 **Scope:** Production handler Layers and application assembly. Whole-application testing APIs are deferred.
 
@@ -37,7 +37,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 - [x] Prove client-only application requirements from init, update, and Subscriptions survive Layer provision, including dependencies introduced by a handler Layer.
 - [x] Prove handler Layers can capture construction context and merge it with the execution context, with an explicit duplicate-service precedence rule.
 - [x] Check that Command Message lifting preserves handler requirements and Command identity. The existing Submodel fold type tests cover service unions; a layered Submodel example remains part of migration.
-- [ ] Set an application-wide identity and collision rule for Command and Subscription names before migrating shared Submodels.
+- [x] Set an application-wide identity and collision rule for handler names before migrating shared Submodels. Distinct registered Subscription and ManagedResource definitions with the same name fail at `Application.make`; Command Layer mismatches fail when the Command runs because Commands are not registered at assembly. Lifted uses of the same definition can share its Layer.
   - The website currently declares `DelayAdvancePhase` in both its note player and async counter demos. They need distinct handler identities if both use Layers.
 
 ### 2. Application assembly
@@ -58,7 +58,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 ### 4. Subscription and ManagedResource handlers
 
 - [x] Add a named Subscription handler identity distinct from the record key. Preserve it through lift and aggregate. The current API has no rekey helper.
-- [ ] Reject distinct Subscription definitions that use the same handler name in one application.
+- [x] Reject distinct Subscription definitions that use the same handler name in one application.
 - [x] Move Subscription Stream implementations into handler Layers without changing restart and keep-alive behavior.
 - [x] Move ManagedResource acquire and release implementations into handler Layers without changing active-value access or release timing.
 - [ ] Migrate first-party Subscriptions, ManagedResources, and templates.
@@ -80,7 +80,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 ## Verification snapshot
 
-- Foldkit: 2,978 tests passed, 1 skipped.
+- Foldkit: 2,984 tests passed, 1 skipped.
 - Workspace: all 52 projects passed TypeScript checks after building their local package dependencies.
 - Weather and Managed Resource Layer examples: type checks and Story/Scene tests passed.
 - Root and application lint, formatting, and `git diff --check` passed.
