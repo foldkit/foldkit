@@ -489,6 +489,8 @@ export const virtualListChatDemo = (
           itemToKey: message => globalThis.String(message.id),
           itemToView: message => chatMessageView(message, h),
           dynamicRowHeights: true,
+          overscan: 16,
+          observeStartBoundaryGestures: true,
           itemToEstimatedRowHeightPx: message =>
             message.isExpanded
               ? EXPANDED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX

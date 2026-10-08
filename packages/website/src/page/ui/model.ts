@@ -71,9 +71,9 @@ export const VirtualListChatMessage = Schema.Struct({
 
 export type VirtualListChatMessage = typeof VirtualListChatMessage.Type
 
-export const VirtualListChatStartProximity = defineTaggedUnion({
-  Away: {},
-  Near: {},
+export const VirtualListChatHistoryLoadState = defineTaggedUnion({
+  Ready: {},
+  AwaitingReposition: {},
 })
 
 export const Model = Schema.Struct({
@@ -156,6 +156,6 @@ export const Model = Schema.Struct({
   virtualListChatDemo: VirtualList.Model,
   virtualListChatMessages: Schema.Array(VirtualListChatMessage),
   virtualListChatNextId: Schema.Number,
-  virtualListChatStartProximity: VirtualListChatStartProximity,
+  virtualListChatHistoryLoadState: VirtualListChatHistoryLoadState,
 })
 export type Model = typeof Model.Type

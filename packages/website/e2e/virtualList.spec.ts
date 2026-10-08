@@ -11,6 +11,17 @@ const distanceFromEnd = (container: Locator): Promise<number> =>
     element => element.scrollHeight - element.clientHeight - element.scrollTop,
   )
 
+const waitForInitialEnd = async (container: Locator) => {
+  await expect.poll(() => distanceFromEnd(container)).toBeLessThanOrEqual(1)
+  await container.evaluate(
+    () =>
+      new Promise<void>(resolve => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      }),
+  )
+  await expect.poll(() => distanceFromEnd(container)).toBeLessThanOrEqual(1)
+}
+
 type VisibleAnchor = Readonly<{ key: string; top: number; index: number }>
 
 const visibleAnchor = (container: Locator): Promise<VisibleAnchor> =>
@@ -85,7 +96,7 @@ test('keeps end-anchored dynamic lists stable across append, prepend, and row gr
   await expect(
     container.locator('[data-virtual-list-item-key]'),
   ).not.toHaveCount(0)
-  await expect.poll(() => distanceFromEnd(container)).toBeLessThanOrEqual(1)
+  await waitForInitialEnd(container)
 
   await scrollAwayFromEnd(container)
   const prependAnchor = await visibleAnchor(container)
@@ -120,7 +131,7 @@ test('keeps end-anchored dynamic lists stable across append, prepend, and row gr
   await expect.poll(() => distanceFromEnd(container)).toBeLessThanOrEqual(1)
 })
 
-test('loads older messages when scrolling near the start and preserves the visible row', async ({
+test('prefetches successive batches while preserving the visible row', async ({
   page,
 }) => {
   await page.goto('/ui/virtual-list')
@@ -129,37 +140,148 @@ test('loads older messages when scrolling near the start and preserves the visib
   const container = page.getByRole('list', {
     name: 'End-anchored chat messages',
   })
-  await expect.poll(() => distanceFromEnd(container)).toBeLessThanOrEqual(1)
+  await waitForInitialEnd(container)
+
+  await container.evaluate(
+    element =>
+      new Promise<void>(resolve => {
+        element.scrollTop = element.clientHeight * 2 + 100
+        element.dispatchEvent(new Event('scroll'))
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      }),
+  )
+  await expect(
+    page.getByText('24 messages · Click to expand a message'),
+  ).toBeVisible()
   const initialScrollHeight = await container.evaluate(
     element => element.scrollHeight,
   )
 
-  await container.evaluate(element => {
-    element.scrollTop = 120
-    element.dispatchEvent(new Event('scroll'))
-  })
-  await expect(
-    container.locator('[data-virtual-list-item-key="0"]'),
-  ).toHaveCount(1)
-
   const startAnchor = await container.evaluate(element => {
-    element.scrollTop = 40
-    const row = element.querySelector<HTMLElement>(
-      '[data-virtual-list-item-key="0"]',
-    )
-    if (row === null) {
-      throw new Error('Expected the first row to be rendered')
+    element.scrollTop = element.clientHeight * 2 - 20
+    const containerRect = element.getBoundingClientRect()
+    const row = Array.from(
+      element.querySelectorAll<HTMLElement>('[data-virtual-list-item-key]'),
+    ).find(row => {
+      const rect = row.getBoundingClientRect()
+      return rect.bottom > containerRect.top && rect.top < containerRect.bottom
+    })
+    if (row === undefined) {
+      throw new Error('Expected a visible keyed row near the start')
     }
+    const key = row.getAttribute('data-virtual-list-item-key')
+    const index = Number(row.getAttribute('data-virtual-list-item-index'))
+    if (key === null || !Number.isFinite(index)) {
+      throw new Error('Expected a visible keyed row near the start')
+    }
+
+    const nativeScrollTo = element.scrollTo
+    Object.defineProperty(element, 'scrollTo', {
+      configurable: true,
+      value: (...args: Array<unknown>) => {
+        const calls = Number(element.dataset['scriptScrollCalls'] ?? '0')
+        element.dataset['scriptScrollCalls'] = String(calls + 1)
+        return Reflect.apply(nativeScrollTo, element, args)
+      },
+    })
+
     const top =
       row.getBoundingClientRect().top - element.getBoundingClientRect().top
     element.dispatchEvent(new Event('scroll'))
-    return { key: '0', top, index: 0 }
+    return { key, top, index }
   })
 
+  await expect(
+    page.getByText('48 messages · Click to expand a message'),
+  ).toBeVisible()
   await expect
     .poll(() => container.evaluate(element => element.scrollHeight))
     .toBeGreaterThan(initialScrollHeight + 200)
   await expectAnchorTop(container, startAnchor)
+  await expect
+    .poll(() =>
+      container.evaluate(element =>
+        Number(element.dataset['scriptScrollCalls'] ?? '0'),
+      ),
+    )
+    .toBe(0)
+  await expect
+    .poll(() =>
+      container.evaluate(element => element.scrollTop - element.clientHeight),
+    )
+    .toBeGreaterThan(0)
+
+  await container.evaluate(element => {
+    element.scrollTop = element.clientHeight * 2 - 20
+    element.dispatchEvent(new Event('scroll'))
+  })
+  await expect(
+    page.getByText('72 messages · Click to expand a message'),
+  ).toBeVisible()
+  await expect
+    .poll(() => container.evaluate(element => element.scrollTop))
+    .toBeGreaterThan(0)
+})
+
+test('loads older messages from a new upward gesture at the physical start', async ({
+  page,
+}) => {
+  await page.goto('/ui/virtual-list')
+  await waitForClientRuntime(page)
+
+  const container = page.getByRole('list', {
+    name: 'End-anchored chat messages',
+  })
+  await waitForInitialEnd(container)
+
+  await container.evaluate(element => {
+    element.addEventListener(
+      'scroll',
+      event => event.stopImmediatePropagation(),
+      { capture: true },
+    )
+    element.scrollTop = 0
+  })
+  await expect
+    .poll(() => container.evaluate(element => element.scrollTop))
+    .toBe(0)
+  await expect(
+    page.getByText('24 messages · Click to expand a message'),
+  ).toBeVisible()
+
+  await container.evaluate(element => {
+    element.dispatchEvent(
+      new WheelEvent('wheel', { bubbles: true, deltaY: -80 }),
+    )
+    element.dispatchEvent(
+      new WheelEvent('wheel', { bubbles: true, deltaY: -80 }),
+    )
+  })
+  await expect(
+    page.getByText('48 messages · Click to expand a message'),
+  ).toBeVisible()
+  await expect
+    .poll(() => container.evaluate(element => element.scrollTop))
+    .toBeGreaterThan(0)
+
+  await container.evaluate(element => {
+    element.scrollTop = 0
+    const dispatchTouch = (type: string, clientY: number) => {
+      const touch = { identifier: 7, clientX: 100, clientY }
+      const event = new Event(type, { bubbles: true })
+      Object.defineProperties(event, {
+        touches: { value: [touch] },
+        changedTouches: { value: [touch] },
+      })
+      element.dispatchEvent(event)
+    }
+    dispatchTouch('touchstart', 100)
+    dispatchTouch('touchmove', 140)
+    dispatchTouch('touchmove', 140)
+  })
+  await expect(
+    page.getByText('72 messages · Click to expand a message'),
+  ).toBeVisible()
 })
 
 test('loads older messages after jumping directly from the end to the start', async ({
@@ -171,7 +293,7 @@ test('loads older messages after jumping directly from the end to the start', as
   const container = page.getByRole('list', {
     name: 'End-anchored chat messages',
   })
-  await expect.poll(() => distanceFromEnd(container)).toBeLessThanOrEqual(1)
+  await waitForInitialEnd(container)
 
   await container.evaluate(element => {
     element.scrollTop = 0
@@ -179,11 +301,8 @@ test('loads older messages after jumping directly from the end to the start', as
   })
 
   await expect(
-    container.locator('[data-virtual-list-item-key="-8"]'),
-  ).toHaveCount(1)
-  await expect
-    .poll(() => container.evaluate(element => element.scrollTop))
-    .toBeLessThanOrEqual(1)
+    page.getByText('48 messages · Click to expand a message'),
+  ).toBeVisible()
 })
 
 test('keeps a distant key centered while correcting a low row-height estimate', async ({
@@ -195,7 +314,7 @@ test('keeps a distant key centered while correcting a low row-height estimate', 
   const container = page.getByRole('list', {
     name: 'End-anchored chat messages',
   })
-  await expect.poll(() => distanceFromEnd(container)).toBeLessThanOrEqual(1)
+  await waitForInitialEnd(container)
   await page.locator('[data-virtual-list-chat-scroll-to-message]').click()
 
   await expect

@@ -143,6 +143,7 @@ export const Message = defineMessageUnion({
     containerHeight: Schema.Number,
     anchor: ObservedAnchor,
   },
+  StartedScrollTowardStartAtBoundary: {},
   ResizedContainer: {
     containerWidth: Schema.Number,
     containerHeight: Schema.Number,
@@ -511,7 +512,14 @@ export const ApplyScroll = Command.define('ApplyScroll', {
         })
       }
 
-      element.scrollTop = clampScrollTop(element, maybeScrollTop.value)
+      const nextScrollTop = clampScrollTop(element, maybeScrollTop.value)
+      const shouldApplyScroll = ScrollRequest.match<boolean>(request, {
+        Target: () => element.scrollTop !== nextScrollTop,
+        Anchor: () => Math.abs(element.scrollTop - nextScrollTop) > 1,
+      })
+      if (shouldApplyScroll) {
+        element.scrollTo({ top: nextScrollTop })
+      }
       return Message.CompletedApplyScroll({
         version,
         outcome: ApplyScrollOutcome.Applied({
@@ -717,21 +725,29 @@ const applyRowMeasurements = (
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     ObservedContainerScroll: snapshot => {
-      const nextPendingScrollVersion = PendingScroll.match<number>(
-        model.pendingScroll,
-        {
-          Idle: () => model.pendingScrollVersion,
-          Pending: () => Number.increment(model.pendingScrollVersion),
-        },
-      )
-      return {
-        model: modifyFields(applyScrollSnapshot(model, snapshot), {
-          initialScroll: () => InitialScroll.Applied(),
-          pendingScroll: () => PendingScroll.Idle(),
-          pendingScrollVersion: () => nextPendingScrollVersion,
-        }),
-      }
+      const nextModel = modifyFields(applyScrollSnapshot(model, snapshot), {
+        initialScroll: () => InitialScroll.Applied(),
+      })
+      return PendingScroll.match<ScrollReturn>(model.pendingScroll, {
+        Idle: () => ({ model: nextModel }),
+        Pending: ({ request }) =>
+          ScrollRequest.match<ScrollReturn>(request, {
+            Target: () => ({
+              model: modifyFields(nextModel, {
+                pendingScroll: () => PendingScroll.Idle(),
+                pendingScrollVersion: Number.increment,
+              }),
+            }),
+            Anchor: () =>
+              buildScrollRequest(
+                nextModel,
+                ScrollRequest.Anchor({ anchor: nextModel.viewportAnchor }),
+              ),
+          }),
+      })
     },
+
+    StartedScrollTowardStartAtBoundary: () => ({ model }),
 
     ResizedContainer: ({ containerWidth, containerHeight }) =>
       measureContainer(model, containerWidth, containerHeight),
@@ -1141,12 +1157,18 @@ const rowMeasurement = (
 
 type ObserveVirtualListMessage =
   | typeof Message.ObservedContainerScroll.Type
+  | typeof Message.StartedScrollTowardStartAtBoundary.Type
   | typeof Message.ResizedContainer.Type
   | typeof Message.MeasuredRows.Type
+
+const START_BOUNDARY_TOLERANCE_PX = 1
+const START_BOUNDARY_TOUCH_DISTANCE_PX = 4
+const WHEEL_BURST_QUIET_MS = 160
 
 const observeVirtualList = (
   element: Element,
   id: string,
+  observeStartBoundaryGestures: boolean,
 ): Stream.Stream<ObserveVirtualListMessage> =>
   Stream.callback<ObserveVirtualListMessage>(queue =>
     Effect.acquireRelease(
@@ -1177,6 +1199,131 @@ const observeVirtualList = (
             }),
           )
         element.addEventListener('scroll', scrollListener, { passive: true })
+
+        const isAtStart = () => element.scrollTop <= START_BOUNDARY_TOLERANCE_PX
+        const emitStartBoundaryGesture = () =>
+          Queue.offerUnsafe(queue, Message.StartedScrollTowardStartAtBoundary())
+
+        let activeTouch:
+          | Readonly<{
+              identifier: number
+              startX: number
+              startY: number
+              isAtStart: boolean
+            }>
+          | undefined
+        let isWheelBurstActive = false
+        let wheelBurstTimeout: ReturnType<typeof setTimeout> | undefined
+
+        const touchStartListener = (event: TouchEvent) => {
+          if (event.touches.length !== 1) {
+            activeTouch = undefined
+            return
+          }
+
+          const maybeTouch = Array.head(
+            globalThis.Array.from(event.changedTouches),
+          )
+          if (Option.isSome(maybeTouch)) {
+            activeTouch = {
+              identifier: maybeTouch.value.identifier,
+              startX: maybeTouch.value.clientX,
+              startY: maybeTouch.value.clientY,
+              isAtStart: isAtStart(),
+            }
+          }
+        }
+
+        const touchMoveListener = (event: TouchEvent) => {
+          if (activeTouch === undefined || event.touches.length !== 1) {
+            return
+          }
+
+          const maybeTouch = Array.findFirst(
+            globalThis.Array.from(event.changedTouches),
+            touch => touch.identifier === activeTouch?.identifier,
+          )
+          if (Option.isNone(maybeTouch)) {
+            return
+          }
+
+          const deltaX = maybeTouch.value.clientX - activeTouch.startX
+          const deltaY = maybeTouch.value.clientY - activeTouch.startY
+          if (
+            Math.abs(deltaY) < START_BOUNDARY_TOUCH_DISTANCE_PX ||
+            Math.abs(deltaY) <= Math.abs(deltaX)
+          ) {
+            return
+          }
+
+          if (activeTouch.isAtStart && deltaY > 0) {
+            emitStartBoundaryGesture()
+          }
+          activeTouch = undefined
+        }
+
+        const touchEndListener = (event: TouchEvent) => {
+          if (
+            activeTouch !== undefined &&
+            Array.some(
+              globalThis.Array.from(event.changedTouches),
+              touch => touch.identifier === activeTouch?.identifier,
+            )
+          ) {
+            activeTouch = undefined
+          }
+        }
+
+        const wheelListener = (event: WheelEvent) => {
+          if (wheelBurstTimeout !== undefined) {
+            clearTimeout(wheelBurstTimeout)
+          }
+          wheelBurstTimeout = setTimeout(() => {
+            isWheelBurstActive = false
+            wheelBurstTimeout = undefined
+          }, WHEEL_BURST_QUIET_MS)
+
+          if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) {
+            return
+          }
+          if (!isWheelBurstActive) {
+            isWheelBurstActive = true
+            if (event.deltaY < 0 && isAtStart()) {
+              emitStartBoundaryGesture()
+            }
+          }
+        }
+
+        const keyDownListener = (event: KeyboardEvent) => {
+          if (event.target !== element || event.repeat || !isAtStart()) {
+            return
+          }
+          if (
+            event.key === 'ArrowUp' ||
+            event.key === 'PageUp' ||
+            event.key === 'Home' ||
+            (event.key === ' ' && event.shiftKey)
+          ) {
+            emitStartBoundaryGesture()
+          }
+        }
+
+        if (observeStartBoundaryGestures) {
+          element.addEventListener('touchstart', touchStartListener, {
+            passive: true,
+          })
+          element.addEventListener('touchmove', touchMoveListener, {
+            passive: true,
+          })
+          element.addEventListener('touchend', touchEndListener, {
+            passive: true,
+          })
+          element.addEventListener('touchcancel', touchEndListener, {
+            passive: true,
+          })
+          element.addEventListener('wheel', wheelListener, { passive: true })
+          element.addEventListener('keydown', keyDownListener)
+        }
 
         const containerResizeObserver = new ResizeObserver(entries => {
           const lastEntry = Array.last(entries)
@@ -1261,25 +1408,46 @@ const observeVirtualList = (
           rowResizeObserver.disconnect()
           containerResizeObserver.disconnect()
           element.removeEventListener('scroll', scrollListener)
+          if (observeStartBoundaryGestures) {
+            element.removeEventListener('touchstart', touchStartListener)
+            element.removeEventListener('touchmove', touchMoveListener)
+            element.removeEventListener('touchend', touchEndListener)
+            element.removeEventListener('touchcancel', touchEndListener)
+            element.removeEventListener('wheel', wheelListener)
+            element.removeEventListener('keydown', keyDownListener)
+            if (wheelBurstTimeout !== undefined) {
+              clearTimeout(wheelBurstTimeout)
+            }
+          }
         }
       }),
       cleanup => Effect.sync(cleanup),
     ).pipe(Effect.flatMap(() => Effect.never)),
   )
 
-/** Container-owned Mount that tracks scrolling, container resizing, and
- *  rendered row measurements for dynamic-height lists. */
+/** Container-owned Mount that tracks scrolling, resizing, row measurements,
+ *  and optional gestures at the physical start of the list. */
 export const ObserveVirtualList = Mount.defineStream('ObserveVirtualList', {
-  args: { id: Schema.String },
+  args: {
+    id: Schema.String,
+    observeStartBoundaryGestures: Schema.optional(Schema.Boolean),
+  },
   messages: [
     Message.ObservedContainerScroll,
+    Message.StartedScrollTowardStartAtBoundary,
     Message.ResizedContainer,
     Message.MeasuredRows,
   ],
-  execute: ({ element, id, viewStateChanges }) =>
+  execute: ({ element, id, observeStartBoundaryGestures, viewStateChanges }) =>
     viewStateChanges.pipe(
       Stream.switchMap(viewState =>
-        viewState === 'Live' ? observeVirtualList(element, id) : Stream.never,
+        viewState === 'Live'
+          ? observeVirtualList(
+              element,
+              id,
+              observeStartBoundaryGestures ?? false,
+            )
+          : Stream.never,
       ),
     ),
 })
@@ -1291,12 +1459,15 @@ const DEFAULT_OVERSCAN = 5
 /** Per-render view inputs passed to `view` via `h.submodel`'s `viewInputs` field.
  *
  *  VirtualList owns scroll and resize observation through a Mount on its
- *  container. Dynamic rows are measured by the same lifecycle owner. */
+ *  container. Dynamic rows are measured by the same lifecycle owner.
+ *  `observeStartBoundaryGestures` emits a Message for a new gesture toward
+ *  earlier content when the container is already at its physical start. */
 type BaseViewInputs<Item> = Readonly<{
   items: ReadonlyArray<Item>
   itemToKey: (item: Item, index: number) => string
   itemToView: (item: Item, index: number) => Html
   overscan?: number
+  observeStartBoundaryGestures?: boolean
   rowElement?: Exclude<TagName, 'textarea'>
   containerClassName?: string
   containerAttributes?: ReadonlyArray<ChildAttribute>
@@ -1348,6 +1519,7 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
       dynamicRowHeights,
       itemToEstimatedRowHeightPx,
       overscan = DEFAULT_OVERSCAN,
+      observeStartBoundaryGestures = false,
       rowElement = 'li',
       containerClassName,
       containerAttributes = [],
@@ -1361,10 +1533,16 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
         'virtual-list-scroll-version',
         String(model.pendingScrollVersion),
       ),
-      h.OnMount(ObserveVirtualList({ id: model.id })),
+      h.OnMount(
+        ObserveVirtualList(
+          observeStartBoundaryGestures
+            ? { id: model.id, observeStartBoundaryGestures }
+            : { id: model.id },
+        ),
+      ),
       h.Style({
         overflow: 'auto',
-        'overflow-anchor': 'none',
+        'overflow-anchor': 'auto',
         'list-style': 'none',
         margin: '0',
         padding: '0',
@@ -1420,12 +1598,18 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
 
         const topSpacer = h.keyed('li')(`${model.id}-top-spacer`, [
           h.Role('presentation'),
-          h.Style({ height: `${topSpacerHeight}px` }),
+          h.Style({
+            height: `${topSpacerHeight}px`,
+            'overflow-anchor': 'none',
+          }),
         ])
 
         const bottomSpacer = h.keyed('li')(`${model.id}-bottom-spacer`, [
           h.Role('presentation'),
-          h.Style({ height: `${bottomSpacerHeight}px` }),
+          h.Style({
+            height: `${bottomSpacerHeight}px`,
+            'overflow-anchor': 'none',
+          }),
         ])
 
         const renderedRows = Array.map(visibleItems, (item, sliceIndex) => {

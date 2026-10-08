@@ -66,7 +66,7 @@ The container needs a constrained height. Without it, the container grows to fit
 
 The scrollable container keeps its configured `id`. Use that for selectors instead of the removed `data-virtual-list-id` attribute.
 
-`contentAlignment: 'End'` adds a leading inset when all rows are shorter than the viewport, so an underfilled chat sits against the bottom. VirtualList disables native CSS scroll anchoring because its stable-key correction owns that behavior.
+`contentAlignment: 'End'` adds a leading inset when all rows are shorter than the viewport, so an underfilled chat sits against the bottom. VirtualList lets the browser anchor rendered rows as content above them changes, while excluding spacer rows. Its stable-key correction restores the selected row when native anchoring does not.
 
 | Attribute                          | Condition                                                                           |
 | ---------------------------------- | ----------------------------------------------------------------------------------- |

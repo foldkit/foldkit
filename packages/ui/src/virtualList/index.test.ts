@@ -1,7 +1,7 @@
 import { Array, Deferred, Effect, Option, Stream, pipe } from 'effect'
 import * as Mount from 'foldkit/mount'
 import * as Story from 'foldkit/story'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
   ApplyScroll,
@@ -37,6 +37,11 @@ const createScrollElement = (
   const element = document.createElement('div')
   element.id = 'test'
   element.scrollTop = currentScrollTop
+  element.scrollTo = options => {
+    if (typeof options === 'object' && options.top !== undefined) {
+      element.scrollTop = options.top
+    }
+  }
   element.setAttribute(
     'data-virtual-list-scroll-version',
     String(activeScrollVersion),
@@ -394,6 +399,98 @@ describe('VirtualList', () => {
           },
         })
       }
+    })
+
+    it('rebases an in-flight anchor correction to the latest visible row', () => {
+      const observed = update(
+        defaultInit(),
+        Message.ObservedContainerScroll({
+          scrollTop: 40,
+          scrollHeight: 1000,
+          containerHeight: 300,
+          anchor: {
+            _tag: 'Row',
+            key: 'first',
+            index: 0,
+            viewportOffset: -40,
+          },
+        }),
+      )
+      const changed = informItemsChanged(observed.model, ['older', 'first'])
+      const advanced = update(
+        changed.model,
+        Message.ObservedContainerScroll({
+          scrollTop: 140,
+          scrollHeight: 1100,
+          containerHeight: 300,
+          anchor: {
+            _tag: 'Row',
+            key: 'first',
+            index: 1,
+            viewportOffset: -20,
+          },
+        }),
+      )
+
+      expect(advanced.model.pendingScrollVersion).toBe(
+        changed.model.pendingScrollVersion + 1,
+      )
+      expect(advanced.model.pendingScroll).toMatchObject({
+        _tag: 'Pending',
+        request: {
+          _tag: 'Anchor',
+          anchor: {
+            _tag: 'Row',
+            key: 'first',
+            index: 1,
+            viewportOffset: -20,
+          },
+        },
+      })
+      expect(advanced.commands ?? []).toHaveLength(1)
+
+      const staleCompletion = update(
+        advanced.model,
+        completedApplyScroll(changed.model.pendingScrollVersion),
+      )
+      expect(staleCompletion.model.pendingScroll).toEqual(
+        advanced.model.pendingScroll,
+      )
+    })
+
+    it('uses the current offset when no row is visible during an anchor correction', () => {
+      const observed = update(
+        defaultInit(),
+        Message.ObservedContainerScroll({
+          scrollTop: 40,
+          scrollHeight: 1000,
+          containerHeight: 300,
+          anchor: {
+            _tag: 'Row',
+            key: 'first',
+            index: 0,
+            viewportOffset: -40,
+          },
+        }),
+      )
+      const changed = informItemsChanged(observed.model, ['older', 'first'])
+      const advanced = update(
+        changed.model,
+        Message.ObservedContainerScroll({
+          scrollTop: 360,
+          scrollHeight: 1100,
+          containerHeight: 300,
+          anchor: { _tag: 'None' },
+        }),
+      )
+
+      expect(advanced.model.pendingScroll).toMatchObject({
+        _tag: 'Pending',
+        request: {
+          _tag: 'Anchor',
+          anchor: { _tag: 'Offset', scrollTop: 360 },
+        },
+      })
     })
   })
 
@@ -963,6 +1060,92 @@ describe('VirtualList', () => {
         expect(itemChange.model.pendingScroll.request._tag).toBe('Anchor')
       }
       expect(itemChange.commands ?? []).toHaveLength(1)
+    })
+
+    it('does not write scrollTop when the visible row already has its anchored position', async () => {
+      const observed = update(
+        defaultInit(),
+        Message.ObservedContainerScroll({
+          scrollTop: 40,
+          scrollHeight: 1000,
+          containerHeight: 100,
+          anchor: {
+            _tag: 'Row',
+            key: 'first',
+            index: 0,
+            viewportOffset: -40,
+          },
+        }),
+      )
+      const itemChange = informItemsChanged(observed.model, ['first'])
+      const element = createScrollElement(
+        40,
+        100,
+        [{ index: 0, key: 'first', start: 0, height: 80 }],
+        1000,
+        itemChange.model.pendingScrollVersion,
+      )
+      let scrollTop = element.scrollTop
+      let scrollWrites = 0
+      Object.defineProperty(element, 'scrollTop', {
+        get: () => scrollTop,
+        set: (value: number) => {
+          scrollTop = value
+          scrollWrites += 1
+        },
+      })
+      document.body.append(element)
+
+      try {
+        expect(await runMountedScroll(itemChange, element)).toBe(40)
+        expect(scrollWrites).toBe(0)
+      } finally {
+        element.remove()
+      }
+    })
+
+    it('restores the keyed row when native anchoring does not preserve its position', async () => {
+      const observed = update(
+        defaultInit(),
+        Message.ObservedContainerScroll({
+          scrollTop: 40,
+          scrollHeight: 1000,
+          containerHeight: 100,
+          anchor: {
+            _tag: 'Row',
+            key: 'first',
+            index: 0,
+            viewportOffset: -40,
+          },
+        }),
+      )
+      const itemChange = informItemsChanged(observed.model, ['first'])
+      const element = createScrollElement(
+        40,
+        100,
+        [{ index: 0, key: 'first', start: 120, height: 80 }],
+        1000,
+        itemChange.model.pendingScrollVersion,
+      )
+      let scrollTop = element.scrollTop
+      let scrollWrites = 0
+      Object.defineProperty(element, 'scrollTop', {
+        get: () => scrollTop,
+        set: (value: number) => {
+          scrollTop = value
+          scrollWrites += 1
+        },
+      })
+      document.body.append(element)
+      const scrollTo = vi.spyOn(element, 'scrollTo')
+
+      try {
+        expect(await runMountedScroll(itemChange, element)).toBe(160)
+        expect(scrollTo).toHaveBeenCalledWith({ top: 160 })
+        expect(scrollWrites).toBe(1)
+      } finally {
+        element.remove()
+      }
     })
   })
 
