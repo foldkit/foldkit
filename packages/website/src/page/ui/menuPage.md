@@ -50,14 +50,14 @@ When `isAnimated` is true, enter/leave animations flow through the [Animation](/
 
 Menu uses `aria-activedescendant`. Focus stays on the items container while arrow keys update the highlighted item. Typeahead search accumulates characters for 350ms.
 
-| Key                | Description                                                          |
-| ------------------ | -------------------------------------------------------------------- |
-| `Enter / Space`    | Opens the menu (from button) or selects the active item.             |
-| `Arrow Down`       | Opens with first item active (from button) or moves to next item.    |
-| `Arrow Up`         | Opens with last item active (from button) or moves to previous item. |
-| `Home / End`       | Moves to the first / last item.                                      |
-| `Escape`           | Closes the menu and returns focus to the button.                     |
-| `Type a character` | Typeahead search: jumps to the matching item.                        |
+| Key                | Description                                                                                                                                                                                           |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Enter / Space`    | Opens the menu (from button) or selects the active item.                                                                                                                                              |
+| `Arrow Down`       | Opens with first item active (from button) or moves to next item.                                                                                                                                     |
+| `Arrow Up`         | Opens with last item active (from button) or moves to previous item.                                                                                                                                  |
+| `Home / End`       | Moves to the first / last item.                                                                                                                                                                       |
+| `Escape`           | Closes the menu and returns focus to the button.                                                                                                                                                      |
+| `Type a character` | Typeahead search: jumps to the matching item. A character pressed with Control, Meta, or Alt is ignored and the event stays uncancelled, so your key bindings and the browser's shortcuts receive it. |
 
 ## Accessibility
 

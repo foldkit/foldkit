@@ -1502,6 +1502,33 @@ describe('Listbox', () => {
       })
     })
 
+    it('leaves a character pressed with Control, Meta, or Alt to the page', () => {
+      const items = Scene.selector('#test-items')
+      const banana = Scene.selector('#test-item-1')
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.given(openModel()),
+        acknowledgeAnchor,
+        acknowledgeBackdrop,
+        Scene.keydown(items, 'b', { metaKey: true }),
+        Scene.expectIgnored(),
+        Scene.keydown(items, 'b', { ctrlKey: true }),
+        Scene.expectIgnored(),
+        Scene.keydown(items, 'b', { altKey: true }),
+        Scene.expectIgnored(),
+        Scene.expect(banana).not.toHaveAttr('data-active'),
+        Scene.keydown(items, 'B', { shiftKey: true }),
+        Scene.expectHandled(),
+        Scene.expect(banana).toHaveAttr('data-active', ''),
+        Scene.Command.resolve(
+          DelayClearSearch,
+          Message.CompletedDelayClearSearch({
+            version: STALE_CLEAR_SEARCH_VERSION,
+          }),
+        ),
+      )
+    })
+
     describe('read-only', () => {
       const button = Scene.selector('#test-button')
       const itemsContainer = Scene.selector('#test-items')

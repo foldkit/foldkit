@@ -1,7 +1,18 @@
 import { Array, Match, Option, Predicate, pipe } from 'effect'
+import type { KeyboardModifiers } from 'foldkit/html'
 
-/** Whether a keyboard event key is a single printable character (not a named key like "Enter" or "ArrowDown"). */
-export const isPrintableKey = (key: string): boolean => key.length === 1
+/** Whether a keydown typed a character for typeahead: a single printable key
+ *  (not a named key like "Enter" or "ArrowDown") pressed without Control,
+ *  Meta, or Alt. Shift+B types a capital B, so it searches. A chord such as
+ *  Meta+B is a shortcut, so typeahead ignores it and leaves the event
+ *  uncancelled for the application's key bindings and the browser. */
+export const isTypedCharacter =
+  (modifiers: KeyboardModifiers) =>
+  (key: string): boolean =>
+    key.length === 1 &&
+    !modifiers.ctrlKey &&
+    !modifiers.metaKey &&
+    !modifiers.altKey
 
 export const wrapIndex = (index: number, length: number): number =>
   ((index % length) + length) % length
