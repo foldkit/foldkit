@@ -21,12 +21,12 @@ import {
 } from '@foldkit/ui'
 
 import { Toast } from './demo/toastModule'
-import type { Message } from './message'
 import {
-  type Model,
-  VirtualListChatHistoryLoadState,
-  type VirtualListChatMessage,
-} from './model'
+  CHAT_START_RUNWAY_PX,
+  INITIAL_CHAT_MESSAGE_COUNT,
+} from './demo/virtualList'
+import type { Message } from './message'
+import { type Model, type VirtualListChatMessage } from './model'
 
 export type InitReturn = Update.Return<Model, Message>
 
@@ -37,10 +37,8 @@ const chatBodies = [
   'Perfect. I’ll queue the release once CI finishes.',
 ]
 
-const INITIAL_VIRTUAL_LIST_CHAT_MESSAGE_COUNT = 24
-
 const initialVirtualListChatMessages: ReadonlyArray<VirtualListChatMessage> =
-  Array.makeBy(INITIAL_VIRTUAL_LIST_CHAT_MESSAGE_COUNT, index => ({
+  Array.makeBy(INITIAL_CHAT_MESSAGE_COUNT, index => ({
     id: index,
     body: Option.getOrElse(
       Array.get(chatBodies, index % chatBodies.length),
@@ -192,12 +190,12 @@ export const init = (today: Calendar.CalendarDate): InitReturn => ({
     virtualListChatDemo: VirtualList.init({
       id: 'virtual-list-chat-demo',
       rowHeightPx: 64,
+      startPaddingPx: CHAT_START_RUNWAY_PX,
       initialScroll: { target: VirtualList.ScrollTarget.End() },
       followEnd: { thresholdPx: 8 },
     }),
     virtualListChatMessages: initialVirtualListChatMessages,
     virtualListChatNextId: initialVirtualListChatMessages.length,
-    virtualListChatHistoryLoadState: VirtualListChatHistoryLoadState.Ready(),
     dragAndDropDemoColumns: [
       {
         id: 'backlog',

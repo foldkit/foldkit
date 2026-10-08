@@ -28,9 +28,13 @@ import { DemoMenu, type MenuItem } from './demo/menu'
 import { PlanRadioGroup } from './demo/radioGroup'
 import { DemoTabs } from './demo/tabs'
 import { Toast } from './demo/toastModule'
-import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './demo/virtualList'
+import {
+  CHAT_START_RUNWAY_PX,
+  COLLAPSED_HISTORY_MESSAGE_HEIGHT_PX,
+  ROW_COUNT as VIRTUAL_LIST_ROW_COUNT,
+  estimatedChatMessageHeight,
+} from './demo/virtualList'
 import { Message } from './message'
-import { VirtualListChatHistoryLoadState } from './model'
 import type { Model } from './model'
 import type {
   City,
@@ -1087,6 +1091,28 @@ const foldVirtualListChatItemsChanged = Update.foldChild({
     Message.GotVirtualListChatDemoMessage({ message }),
 })
 
+const foldVirtualListChatItemsPrepended = Update.foldChild({
+  update: VirtualList.informItemsPrependedFromStartPadding,
+  read: (model: Model) => Option.some(model.virtualListChatDemo),
+  write: (model, nextVirtualListChatDemo) =>
+    modifyFields(model, {
+      virtualListChatDemo: () => nextVirtualListChatDemo,
+    }),
+  toParentMessage: message =>
+    Message.GotVirtualListChatDemoMessage({ message }),
+})
+
+const foldVirtualListChatReplenishStartPadding = Update.foldChild({
+  update: VirtualList.replenishStartPadding,
+  read: (model: Model) => Option.some(model.virtualListChatDemo),
+  write: (model, nextVirtualListChatDemo) =>
+    modifyFields(model, {
+      virtualListChatDemo: () => nextVirtualListChatDemo,
+    }),
+  toParentMessage: message =>
+    Message.GotVirtualListChatDemoMessage({ message }),
+})
+
 const foldVirtualListChatScrollToKey = Update.foldChild({
   update: (virtualListModel: VirtualList.Model, key: string) =>
     VirtualList.scrollToKey(virtualListModel, key, { alignment: 'Center' }),
@@ -1099,8 +1125,9 @@ const foldVirtualListChatScrollToKey = Update.foldChild({
     Message.GotVirtualListChatDemoMessage({ message }),
 })
 
-const VIRTUAL_LIST_CHAT_START_THRESHOLD_VIEWPORTS = 2
-const VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE = 24
+const VIRTUAL_LIST_CHAT_START_THRESHOLD_VIEWPORTS = 4
+const VIRTUAL_LIST_CHAT_PREFETCH_VIEWPORTS = 6
+const VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE = 32
 
 const updateVirtualListChatMessages = (
   model: Model,
@@ -1117,7 +1144,10 @@ const updateVirtualListChatMessages = (
   )
 }
 
-const prependVirtualListChatMessages = (model: Model) => {
+const prependVirtualListChatMessages = (
+  model: Model,
+  requestedCount = VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE,
+) => {
   const firstId = pipe(
     model.virtualListChatMessages,
     Array.head,
@@ -1126,33 +1156,40 @@ const prependVirtualListChatMessages = (model: Model) => {
       onSome: message => message.id,
     }),
   )
-  const olderMessages = Array.makeBy(
-    VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE,
-    index => {
-      const id = firstId - VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE + index
-      return {
-        id,
-        body: `Older message ${id} loaded above the viewport.`,
-        isExpanded: id % 3 === 0,
-      }
-    },
-  )
+  const count = Math.max(0, requestedCount)
+  if (count <= 0) {
+    return { model }
+  }
+
+  const olderMessages = Array.makeBy(count, index => {
+    const id = firstId - count + index
+    return {
+      id,
+      body: `Older message ${id}`,
+      isExpanded: false,
+    }
+  })
   const nextMessages = [...olderMessages, ...model.virtualListChatMessages]
-  return updateVirtualListChatMessages(model, nextMessages)
+  const nextModel = modifyFields(model, {
+    virtualListChatMessages: () => nextMessages,
+  })
+  const estimateHeight = estimatedChatMessageHeight(model.virtualListChatDemo)
+  return foldVirtualListChatItemsPrepended(nextModel, {
+    itemKeys: Array.map(nextMessages, message => globalThis.String(message.id)),
+    prependedItems: Array.map(olderMessages, message => ({
+      key: globalThis.String(message.id),
+      estimatedHeightPx: estimateHeight(message),
+    })),
+  })
 }
 
 const isNearVirtualListChatStart = (
+  virtualList: VirtualList.Model,
   scrollTop: number,
   containerHeight: number,
 ): boolean =>
-  scrollTop <= containerHeight * VIRTUAL_LIST_CHAT_START_THRESHOLD_VIEWPORTS
-
-const awaitVirtualListChatReposition: Update.Step<Model, Message> = model => ({
-  model: modifyFields(model, {
-    virtualListChatHistoryLoadState: () =>
-      VirtualListChatHistoryLoadState.AwaitingReposition(),
-  }),
-})
+  scrollTop - virtualList.startPaddingPx <=
+  containerHeight * VIRTUAL_LIST_CHAT_START_THRESHOLD_VIEWPORTS
 
 const prependVirtualListChatMessagesOnStartThresholdEntry =
   (
@@ -1160,56 +1197,53 @@ const prependVirtualListChatMessagesOnStartThresholdEntry =
     previousScrollTop: number,
     containerHeight: number,
   ): Update.Step<Model, Message> =>
-  stepModel =>
-    VirtualListChatHistoryLoadState.match<Update.Return<Model, Message>>(
-      stepModel.virtualListChatHistoryLoadState,
-      {
-        Ready: () => {
-          if (
-            scrollTop < previousScrollTop - 1 &&
-            isNearVirtualListChatStart(scrollTop, containerHeight)
-          ) {
-            return Update.combine(stepModel, [
-              awaitVirtualListChatReposition,
-              prependVirtualListChatMessages,
-            ])
-          } else {
-            return { model: stepModel }
-          }
-        },
-        AwaitingReposition: () => ({ model: stepModel }),
-      },
+  stepModel => {
+    if (
+      scrollTop < previousScrollTop - 1 &&
+      isNearVirtualListChatStart(
+        stepModel.virtualListChatDemo,
+        scrollTop,
+        containerHeight,
+      )
+    ) {
+      return prependVirtualListChatMessagesNearStart(
+        scrollTop,
+        containerHeight,
+      )(stepModel)
+    }
+
+    return { model: stepModel }
+  }
+
+const prependVirtualListChatMessagesNearStart =
+  (scrollTop: number, containerHeight: number): Update.Step<Model, Message> =>
+  model => {
+    if (
+      !isNearVirtualListChatStart(
+        model.virtualListChatDemo,
+        scrollTop,
+        containerHeight,
+      )
+    ) {
+      return { model }
+    }
+
+    const distanceToLoadedStart =
+      scrollTop - model.virtualListChatDemo.startPaddingPx
+    const neededHeight =
+      containerHeight * VIRTUAL_LIST_CHAT_PREFETCH_VIEWPORTS -
+      distanceToLoadedStart
+    const requestedCount = Math.ceil(
+      neededHeight / COLLAPSED_HISTORY_MESSAGE_HEIGHT_PX,
     )
 
-const prependVirtualListChatMessagesAtStartBoundary: Update.Step<
-  Model,
-  Message
-> = model =>
-  VirtualListChatHistoryLoadState.match<Update.Return<Model, Message>>(
-    model.virtualListChatHistoryLoadState,
-    {
-      Ready: () =>
-        Update.combine(model, [
-          awaitVirtualListChatReposition,
-          prependVirtualListChatMessages,
-        ]),
-      AwaitingReposition: () => ({ model }),
-    },
-  )
+    return prependVirtualListChatMessages(model, requestedCount)
+  }
 
-const finishVirtualListChatReposition: Update.Step<Model, Message> = model =>
-  VirtualListChatHistoryLoadState.match<Update.Return<Model, Message>>(
-    model.virtualListChatHistoryLoadState,
-    {
-      Ready: () => ({ model }),
-      AwaitingReposition: () => ({
-        model: modifyFields(model, {
-          virtualListChatHistoryLoadState: () =>
-            VirtualListChatHistoryLoadState.Ready(),
-        }),
-      }),
-    },
-  )
+const prependVirtualListChatMessagesOnStartGesture =
+  (scrollTop: number, containerHeight: number): Update.Step<Model, Message> =>
+  model =>
+    prependVirtualListChatMessagesNearStart(scrollTop, containerHeight)(model)
 
 // UPDATE
 
@@ -1531,25 +1565,31 @@ export const update = (model: Model, message: Message) =>
             ),
           ]),
         ),
-        Match.tag('StartedScrollTowardStartAtBoundary', () =>
-          Update.combine(model, [
-            foldVirtualListChatDemo(message),
-            prependVirtualListChatMessagesAtStartBoundary,
-          ]),
+        Match.tag(
+          'StartedScrollTowardStart',
+          ({ scrollTop, containerHeight }) =>
+            Update.combine(model, [
+              foldVirtualListChatDemo(message),
+              prependVirtualListChatMessagesOnStartGesture(
+                scrollTop,
+                containerHeight,
+              ),
+            ]),
         ),
-        Match.tag('CompletedApplyScroll', ({ version }) =>
+        Match.tag('EndedContainerScroll', () =>
           Update.combine(model, [
             foldVirtualListChatDemo(message),
-            stepModel =>
-              version === stepModel.virtualListChatDemo.pendingScrollVersion
-                ? finishVirtualListChatReposition(stepModel)
-                : { model: stepModel },
+            foldVirtualListChatReplenishStartPadding(CHAT_START_RUNWAY_PX),
           ]),
         ),
         Match.orElse(() => foldVirtualListChatDemo(model, message)),
       ),
 
-    ClickedVirtualListChatPrepend: () => prependVirtualListChatMessages(model),
+    ClickedVirtualListChatPrepend: () =>
+      Update.combine(model, [
+        prependVirtualListChatMessages,
+        foldVirtualListChatReplenishStartPadding(CHAT_START_RUNWAY_PX),
+      ]),
 
     ClickedVirtualListChatScrollToMessage: () =>
       foldVirtualListChatScrollToKey(model, '7'),

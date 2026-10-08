@@ -97,7 +97,7 @@ const ScrollRequest = defineTaggedUnion({
     target: ScrollTarget,
     alignment: ScrollAlignment,
   },
-  Anchor: { anchor: ViewportAnchor },
+  Anchor: { anchor: ViewportAnchor, baselineScrollTop: Schema.Number },
 })
 
 const PendingScroll = defineTaggedUnion({
@@ -115,6 +115,11 @@ const EndBehavior = defineTaggedUnion({
   Follow: { thresholdPx: Schema.Number },
 })
 
+const MeasurementMode = defineTaggedUnion({
+  ReconcileAnchor: {},
+  PreservePosition: {},
+})
+
 /** Schema for the virtual list's state. Tracks scroll position, container
  *  measurement, and any in-flight programmatic scroll. */
 export const Model = Schema.Struct({
@@ -124,6 +129,9 @@ export const Model = Schema.Struct({
   measurement: Measurement,
   viewportAnchor: ViewportAnchor,
   measuredRowHeights: Schema.Record(Schema.String, Schema.Number),
+  startPaddingPx: Schema.Number,
+  reservedStartRowHeights: Schema.Record(Schema.String, Schema.Number),
+  measurementMode: MeasurementMode,
   layoutVersion: Schema.Number,
   initialScroll: InitialScroll,
   endBehavior: EndBehavior,
@@ -142,8 +150,13 @@ export const Message = defineMessageUnion({
     scrollHeight: Schema.Number,
     containerHeight: Schema.Number,
     anchor: ObservedAnchor,
+    layoutVersion: Schema.optional(Schema.Number),
   },
-  StartedScrollTowardStartAtBoundary: {},
+  StartedScrollTowardStart: {
+    scrollTop: Schema.Number,
+    containerHeight: Schema.Number,
+  },
+  EndedContainerScroll: {},
   ResizedContainer: {
     containerWidth: Schema.Number,
     containerHeight: Schema.Number,
@@ -154,6 +167,8 @@ export const Message = defineMessageUnion({
         key: Schema.String,
         height: Schema.Number,
         layoutVersion: Schema.Number,
+        index: Schema.optional(Schema.Number),
+        layoutHeightPx: Schema.optional(Schema.Number),
       }),
     ),
   },
@@ -171,6 +186,7 @@ export type Message = typeof Message.Type
 export type InitConfig = Readonly<{
   id: string
   rowHeightPx: number
+  startPaddingPx?: number
   initialScrollTop?: number
   initialScroll?: Readonly<{
     target: ScrollTarget
@@ -215,6 +231,9 @@ export const init = (config: InitConfig): Model => {
       scrollTop: config.initialScrollTop ?? 0,
     }),
     measuredRowHeights: Record.empty(),
+    startPaddingPx: config.startPaddingPx ?? 0,
+    reservedStartRowHeights: Record.empty(),
+    measurementMode: MeasurementMode.ReconcileAnchor(),
     layoutVersion: 0,
     initialScroll,
     endBehavior:
@@ -504,6 +523,18 @@ export const ApplyScroll = Command.define('ApplyScroll', {
         })
       }
 
+      const isStaleAnchor = ScrollRequest.match<boolean>(request, {
+        Target: () => false,
+        Anchor: ({ baselineScrollTop }) =>
+          Math.abs(element.scrollTop - baselineScrollTop) > 1,
+      })
+      if (isStaleAnchor) {
+        return Message.CompletedApplyScroll({
+          version,
+          outcome: ApplyScrollOutcome.Skipped(),
+        })
+      }
+
       const maybeScrollTop = scrollTopForRequest(element, request)
       if (Option.isNone(maybeScrollTop)) {
         return Message.CompletedApplyScroll({
@@ -564,7 +595,11 @@ const currentScrollRequest = (model: Model): typeof ScrollRequest.Type =>
   PendingScroll.match<typeof ScrollRequest.Type>(model.pendingScroll, {
     Idle: () =>
       InitialScroll.match<typeof ScrollRequest.Type>(model.initialScroll, {
-        Applied: () => ScrollRequest.Anchor({ anchor: model.viewportAnchor }),
+        Applied: () =>
+          ScrollRequest.Anchor({
+            anchor: model.viewportAnchor,
+            baselineScrollTop: model.scrollTop,
+          }),
         Pending: ({ target, alignment }) =>
           ScrollRequest.Target({ target, alignment }),
       }),
@@ -608,18 +643,29 @@ const applyScrollSnapshot = (
     scrollHeight: number
     containerHeight: number
     anchor: typeof ObservedAnchor.Type
+    layoutVersion?: number | undefined
   }>,
 ): Model =>
   modifyFields(model, {
     scrollTop: () => snapshot.scrollTop,
-    viewportAnchor: () =>
-      anchorFromSnapshot(
+    viewportAnchor: () => {
+      const nextAnchor = anchorFromSnapshot(
         model,
         snapshot.scrollTop,
         snapshot.scrollHeight,
         snapshot.containerHeight,
         snapshot.anchor,
-      ),
+      )
+      if (
+        snapshot.layoutVersion !== undefined &&
+        snapshot.layoutVersion !== model.layoutVersion &&
+        nextAnchor._tag !== 'End'
+      ) {
+        return model.viewportAnchor
+      }
+
+      return nextAnchor
+    },
   })
 
 const measureContainer = (
@@ -674,6 +720,8 @@ const hasChangedMeasurement = (
     key: string
     height: number
     layoutVersion: number
+    index?: number | undefined
+    layoutHeightPx?: number | undefined
   }>,
 ): boolean => {
   if (measurement.layoutVersion !== model.layoutVersion) {
@@ -696,6 +744,8 @@ const applyRowMeasurements = (
     key: string
     height: number
     layoutVersion: number
+    index?: number | undefined
+    layoutHeightPx?: number | undefined
   }>,
 ): ScrollReturn => {
   const changedMeasurements = Array.filter(measurements, measurement =>
@@ -711,14 +761,64 @@ const applyRowMeasurements = (
     (heights, measurement) =>
       Record.set(heights, measurement.key, measurement.height),
   )
-  return Update.combine(model, [
-    stepModel => ({
-      model: modifyFields(stepModel, {
-        measuredRowHeights: () => measuredRowHeights,
-      }),
-    }),
-    reconcileLayout,
-  ])
+  const reservedMeasurements = Array.filter(changedMeasurements, measurement =>
+    Option.isSome(Record.get(model.reservedStartRowHeights, measurement.key)),
+  )
+  const measuredReservedKeys = HashSet.fromIterable(
+    Array.map(reservedMeasurements, measurement => measurement.key),
+  )
+  const reservedCompensationPx = Array.reduce(
+    reservedMeasurements,
+    0,
+    (sum, measurement) =>
+      sum +
+      measurement.height -
+      Option.getOrElse(
+        Record.get(model.reservedStartRowHeights, measurement.key),
+        () => measurement.height,
+      ),
+  )
+  const unreservedMeasurements = Array.filter(
+    changedMeasurements,
+    measurement => !HashSet.has(measuredReservedKeys, measurement.key),
+  )
+  const canAbsorbUnreservedMeasurements =
+    model.startPaddingPx > 0 &&
+    model.measurementMode._tag === 'PreservePosition' &&
+    model.viewportAnchor._tag === 'Row' &&
+    Array.every(
+      unreservedMeasurements,
+      measurement =>
+        measurement.index !== undefined &&
+        measurement.layoutHeightPx !== undefined,
+    )
+  const unreservedCompensationPx = canAbsorbUnreservedMeasurements
+    ? Array.reduce(unreservedMeasurements, 0, (sum, measurement) =>
+        model.viewportAnchor._tag === 'Row' &&
+        measurement.index !== undefined &&
+        measurement.layoutHeightPx !== undefined &&
+        measurement.index < model.viewportAnchor.index
+          ? sum + measurement.height - measurement.layoutHeightPx
+          : sum,
+      )
+    : 0
+  const compensationPx = reservedCompensationPx + unreservedCompensationPx
+  const nextModel = modifyFields(model, {
+    measuredRowHeights: () => measuredRowHeights,
+    reservedStartRowHeights: Record.filter(
+      (_, key) => !HashSet.has(measuredReservedKeys, key),
+    ),
+    startPaddingPx: padding => Math.max(0, padding - compensationPx),
+  })
+  if (
+    (Array.isArrayEmpty(unreservedMeasurements) ||
+      canAbsorbUnreservedMeasurements) &&
+    compensationPx <= model.startPaddingPx
+  ) {
+    return { model: nextModel }
+  }
+
+  return reconcileLayout(nextModel)
 }
 
 /** Processes a VirtualList Message and returns the next Model and optional Commands. */
@@ -741,13 +841,17 @@ export const update = (model: Model, message: Message) =>
             Anchor: () =>
               buildScrollRequest(
                 nextModel,
-                ScrollRequest.Anchor({ anchor: nextModel.viewportAnchor }),
+                ScrollRequest.Anchor({
+                  anchor: nextModel.viewportAnchor,
+                  baselineScrollTop: nextModel.scrollTop,
+                }),
               ),
           }),
       })
     },
 
-    StartedScrollTowardStartAtBoundary: () => ({ model }),
+    StartedScrollTowardStart: () => ({ model }),
+    EndedContainerScroll: () => ({ model }),
 
     ResizedContainer: ({ containerWidth, containerHeight }) =>
       measureContainer(model, containerWidth, containerHeight),
@@ -797,6 +901,7 @@ export const scrollTo = (
     stepModel => ({
       model: modifyFields(stepModel, {
         initialScroll: () => InitialScroll.Applied(),
+        measurementMode: () => MeasurementMode.ReconcileAnchor(),
       }),
     }),
     stepModel =>
@@ -849,11 +954,100 @@ export const informItemsChanged = (
         measuredRowHeights: Record.filter((_, key) =>
           HashSet.has(currentKeys, key),
         ),
+        measurementMode: () => MeasurementMode.ReconcileAnchor(),
         layoutVersion: Number.increment,
       }),
     }),
     reconcileLayout,
   ])
+}
+
+/** Replaces reserved space above the loaded rows with newly prepended items.
+ *  Estimates must match the view's estimates so existing rows retain their
+ *  physical positions without a scroll correction during touch momentum.
+ *  Mark the final page to remove any unused reserve. If a non-final batch
+ *  exceeds the remaining reserve, normal anchor restoration runs. */
+export const informItemsPrependedFromStartPadding = (
+  model: Model,
+  input: Readonly<{
+    itemKeys: ReadonlyArray<string>
+    prependedItems: ReadonlyArray<
+      Readonly<{ key: string; estimatedHeightPx: number }>
+    >
+    isFinalPage?: boolean
+  }>,
+): ScrollReturn => {
+  const estimatedHeightPx = Array.reduce(
+    input.prependedItems,
+    0,
+    (sum, item) => sum + item.estimatedHeightPx,
+  )
+  if (estimatedHeightPx > model.startPaddingPx && input.isFinalPage !== true) {
+    return informItemsChanged(
+      modifyFields(model, { startPaddingPx: () => 0 }),
+      input.itemKeys,
+    )
+  }
+
+  const currentKeys = HashSet.fromIterable(input.itemKeys)
+  const reservedStartRowHeights = Array.reduce(
+    input.prependedItems,
+    Record.filter(model.reservedStartRowHeights, (_, key) =>
+      HashSet.has(currentKeys, key),
+    ),
+    (heights, item) => Record.set(heights, item.key, item.estimatedHeightPx),
+  )
+  return {
+    model: modifyFields(model, {
+      measuredRowHeights: Record.filter((_, key) =>
+        HashSet.has(currentKeys, key),
+      ),
+      reservedStartRowHeights: () => reservedStartRowHeights,
+      measurementMode: () => MeasurementMode.PreservePosition(),
+      startPaddingPx: padding =>
+        input.isFinalPage === true
+          ? 0
+          : Math.max(0, padding - estimatedHeightPx),
+      viewportAnchor: anchor =>
+        ViewportAnchor.match(anchor, {
+          Offset: ({ scrollTop }) => ViewportAnchor.Offset({ scrollTop }),
+          Row: ({ key, index, viewportOffset }) =>
+            ViewportAnchor.Row({
+              key,
+              index: index + input.prependedItems.length,
+              viewportOffset,
+            }),
+          End: () => ViewportAnchor.End(),
+        }),
+      layoutVersion: Number.increment,
+    }),
+  }
+}
+
+/** Restores start padding after scrolling settles while preserving the visible
+ *  position. Call this in response to `EndedContainerScroll` so the required
+ *  scroll-position correction cannot interrupt touch momentum. */
+export const replenishStartPadding = (
+  model: Model,
+  targetPaddingPx: number,
+): ScrollReturn => {
+  if (model.startPaddingPx >= targetPaddingPx) {
+    return { model }
+  }
+
+  return buildScrollRequest(
+    modifyFields(model, {
+      startPaddingPx: () => targetPaddingPx,
+      measurementMode: () => MeasurementMode.ReconcileAnchor(),
+      layoutVersion: Number.increment,
+    }),
+    ScrollRequest.Anchor({
+      anchor: ViewportAnchor.Offset({
+        scrollTop: model.scrollTop + targetPaddingPx - model.startPaddingPx,
+      }),
+      baselineScrollTop: model.scrollTop,
+    }),
+  )
 }
 
 // HELPERS
@@ -940,8 +1134,11 @@ const listLayout = <Item>(
     Unmeasured: () => 0,
     Measured: ({ containerHeight }) => containerHeight,
   })
-  const leadingInset =
-    contentAlignment === 'End' ? Math.max(0, containerHeight - totalHeight) : 0
+  const alignmentInset =
+    contentAlignment === 'End'
+      ? Math.max(0, containerHeight - model.startPaddingPx - totalHeight)
+      : 0
+  const leadingInset = alignmentInset + model.startPaddingPx
   return {
     maybeCumulativeOffsets,
     rowHeightPx: model.rowHeightPx,
@@ -1133,6 +1330,8 @@ const rowMeasurement = (
   key: string
   height: number
   layoutVersion: number
+  index?: number | undefined
+  layoutHeightPx?: number | undefined
 }> => {
   if (!(entry.target instanceof HTMLElement)) {
     return Option.none()
@@ -1144,6 +1343,16 @@ const rowMeasurement = (
     Option.fromNullishOr,
     Option.flatMap(Number.parse),
   )
+  const maybeIndex = pipe(
+    entry.target.getAttribute('data-virtual-list-item-index'),
+    Option.fromNullishOr,
+    Option.flatMap(Number.parse),
+  )
+  const maybeLayoutHeightPx = pipe(
+    entry.target.getAttribute('data-virtual-list-layout-height'),
+    Option.fromNullishOr,
+    Option.flatMap(Number.parse),
+  )
   if (key === null || Option.isNone(layoutVersion)) {
     return Option.none()
   }
@@ -1152,23 +1361,25 @@ const rowMeasurement = (
     key,
     height: entry.target.getBoundingClientRect().height,
     layoutVersion: layoutVersion.value,
+    index: Option.getOrUndefined(maybeIndex),
+    layoutHeightPx: Option.getOrUndefined(maybeLayoutHeightPx),
   })
 }
 
 type ObserveVirtualListMessage =
   | typeof Message.ObservedContainerScroll.Type
-  | typeof Message.StartedScrollTowardStartAtBoundary.Type
+  | typeof Message.StartedScrollTowardStart.Type
+  | typeof Message.EndedContainerScroll.Type
   | typeof Message.ResizedContainer.Type
   | typeof Message.MeasuredRows.Type
 
-const START_BOUNDARY_TOLERANCE_PX = 1
-const START_BOUNDARY_TOUCH_DISTANCE_PX = 4
+const START_GESTURE_TOUCH_DISTANCE_PX = 4
 const WHEEL_BURST_QUIET_MS = 160
 
 const observeVirtualList = (
   element: Element,
   id: string,
-  observeStartBoundaryGestures: boolean,
+  observeStartGestures: boolean,
 ): Stream.Stream<ObserveVirtualListMessage> =>
   Stream.callback<ObserveVirtualListMessage>(queue =>
     Effect.acquireRelease(
@@ -1196,20 +1407,33 @@ const observeVirtualList = (
               scrollHeight: element.scrollHeight,
               containerHeight: element.clientHeight,
               anchor: observedAnchor(element),
+              layoutVersion: pipe(
+                element.getAttribute('data-virtual-list-layout-version'),
+                Option.fromNullishOr,
+                Option.flatMap(Number.parse),
+                Option.getOrUndefined,
+              ),
             }),
           )
         element.addEventListener('scroll', scrollListener, { passive: true })
 
-        const isAtStart = () => element.scrollTop <= START_BOUNDARY_TOLERANCE_PX
-        const emitStartBoundaryGesture = () =>
-          Queue.offerUnsafe(queue, Message.StartedScrollTowardStartAtBoundary())
+        const scrollEndListener = () =>
+          Queue.offerUnsafe(queue, Message.EndedContainerScroll())
+
+        const emitStartGesture = () =>
+          Queue.offerUnsafe(
+            queue,
+            Message.StartedScrollTowardStart({
+              scrollTop: element.scrollTop,
+              containerHeight: element.clientHeight,
+            }),
+          )
 
         let activeTouch:
           | Readonly<{
               identifier: number
               startX: number
               startY: number
-              isAtStart: boolean
             }>
           | undefined
         let isWheelBurstActive = false
@@ -1229,7 +1453,6 @@ const observeVirtualList = (
               identifier: maybeTouch.value.identifier,
               startX: maybeTouch.value.clientX,
               startY: maybeTouch.value.clientY,
-              isAtStart: isAtStart(),
             }
           }
         }
@@ -1250,14 +1473,14 @@ const observeVirtualList = (
           const deltaX = maybeTouch.value.clientX - activeTouch.startX
           const deltaY = maybeTouch.value.clientY - activeTouch.startY
           if (
-            Math.abs(deltaY) < START_BOUNDARY_TOUCH_DISTANCE_PX ||
+            Math.abs(deltaY) < START_GESTURE_TOUCH_DISTANCE_PX ||
             Math.abs(deltaY) <= Math.abs(deltaX)
           ) {
             return
           }
 
-          if (activeTouch.isAtStart && deltaY > 0) {
-            emitStartBoundaryGesture()
+          if (deltaY > 0) {
+            emitStartGesture()
           }
           activeTouch = undefined
         }
@@ -1286,16 +1509,14 @@ const observeVirtualList = (
           if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) {
             return
           }
-          if (!isWheelBurstActive) {
+          if (!isWheelBurstActive && event.deltaY < 0) {
             isWheelBurstActive = true
-            if (event.deltaY < 0 && isAtStart()) {
-              emitStartBoundaryGesture()
-            }
+            emitStartGesture()
           }
         }
 
         const keyDownListener = (event: KeyboardEvent) => {
-          if (event.target !== element || event.repeat || !isAtStart()) {
+          if (event.target !== element || event.repeat) {
             return
           }
           if (
@@ -1304,11 +1525,12 @@ const observeVirtualList = (
             event.key === 'Home' ||
             (event.key === ' ' && event.shiftKey)
           ) {
-            emitStartBoundaryGesture()
+            emitStartGesture()
           }
         }
 
-        if (observeStartBoundaryGestures) {
+        if (observeStartGestures) {
+          element.addEventListener('scrollend', scrollEndListener)
           element.addEventListener('touchstart', touchStartListener, {
             passive: true,
           })
@@ -1408,7 +1630,8 @@ const observeVirtualList = (
           rowResizeObserver.disconnect()
           containerResizeObserver.disconnect()
           element.removeEventListener('scroll', scrollListener)
-          if (observeStartBoundaryGestures) {
+          if (observeStartGestures) {
+            element.removeEventListener('scrollend', scrollEndListener)
             element.removeEventListener('touchstart', touchStartListener)
             element.removeEventListener('touchmove', touchMoveListener)
             element.removeEventListener('touchend', touchEndListener)
@@ -1426,27 +1649,24 @@ const observeVirtualList = (
   )
 
 /** Container-owned Mount that tracks scrolling, resizing, row measurements,
- *  and optional gestures at the physical start of the list. */
+ *  and optional upward gesture and scroll-end events. */
 export const ObserveVirtualList = Mount.defineStream('ObserveVirtualList', {
   args: {
     id: Schema.String,
-    observeStartBoundaryGestures: Schema.optional(Schema.Boolean),
+    observeStartGestures: Schema.optional(Schema.Boolean),
   },
   messages: [
     Message.ObservedContainerScroll,
-    Message.StartedScrollTowardStartAtBoundary,
+    Message.StartedScrollTowardStart,
+    Message.EndedContainerScroll,
     Message.ResizedContainer,
     Message.MeasuredRows,
   ],
-  execute: ({ element, id, observeStartBoundaryGestures, viewStateChanges }) =>
+  execute: ({ element, id, observeStartGestures, viewStateChanges }) =>
     viewStateChanges.pipe(
       Stream.switchMap(viewState =>
         viewState === 'Live'
-          ? observeVirtualList(
-              element,
-              id,
-              observeStartBoundaryGestures ?? false,
-            )
+          ? observeVirtualList(element, id, observeStartGestures ?? false)
           : Stream.never,
       ),
     ),
@@ -1460,14 +1680,14 @@ const DEFAULT_OVERSCAN = 5
  *
  *  VirtualList owns scroll and resize observation through a Mount on its
  *  container. Dynamic rows are measured by the same lifecycle owner.
- *  `observeStartBoundaryGestures` emits a Message for a new gesture toward
- *  earlier content when the container is already at its physical start. */
+ *  `observeStartGestures` emits Messages when a gesture starts toward earlier
+ *  content and when scrolling settles. */
 type BaseViewInputs<Item> = Readonly<{
   items: ReadonlyArray<Item>
   itemToKey: (item: Item, index: number) => string
   itemToView: (item: Item, index: number) => Html
   overscan?: number
-  observeStartBoundaryGestures?: boolean
+  observeStartGestures?: boolean
   rowElement?: Exclude<TagName, 'textarea'>
   containerClassName?: string
   containerAttributes?: ReadonlyArray<ChildAttribute>
@@ -1519,7 +1739,7 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
       dynamicRowHeights,
       itemToEstimatedRowHeightPx,
       overscan = DEFAULT_OVERSCAN,
-      observeStartBoundaryGestures = false,
+      observeStartGestures = false,
       rowElement = 'li',
       containerClassName,
       containerAttributes = [],
@@ -1533,16 +1753,24 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
         'virtual-list-scroll-version',
         String(model.pendingScrollVersion),
       ),
+      h.DataAttribute(
+        'virtual-list-start-padding',
+        String(model.startPaddingPx),
+      ),
+      h.DataAttribute(
+        'virtual-list-layout-version',
+        String(model.layoutVersion),
+      ),
       h.OnMount(
         ObserveVirtualList(
-          observeStartBoundaryGestures
-            ? { id: model.id, observeStartBoundaryGestures }
+          observeStartGestures
+            ? { id: model.id, observeStartGestures }
             : { id: model.id },
         ),
       ),
       h.Style({
         overflow: 'auto',
-        'overflow-anchor': 'auto',
+        'overflow-anchor': model.startPaddingPx > 0 ? 'none' : 'auto',
         'list-style': 'none',
         margin: '0',
         padding: '0',
@@ -1630,6 +1858,10 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
                   h.DataAttribute(
                     'virtual-list-layout-version',
                     String(model.layoutVersion),
+                  ),
+                  h.DataAttribute(
+                    'virtual-list-layout-height',
+                    String(rowHeight),
                   ),
                   h.Style({ display: 'grid' }),
                 ]

@@ -2,6 +2,8 @@ export {
   init,
   update,
   informItemsChanged,
+  informItemsPrependedFromStartPadding,
+  replenishStartPadding,
   scrollTo,
   scrollToEnd,
   scrollToIndex,

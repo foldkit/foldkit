@@ -12,7 +12,9 @@ import {
   type ScrollAlignment,
   ScrollTarget,
   informItemsChanged,
+  informItemsPrependedFromStartPadding,
   init,
+  replenishStartPadding,
   scrollToEnd,
   scrollToIndex,
   scrollToKey,
@@ -367,6 +369,47 @@ describe('VirtualList', () => {
       })
     })
 
+    it('keeps an end scroll from a previous layout while rejecting its row index', () => {
+      const model = init({
+        id: 'test',
+        rowHeightPx: 30,
+        followEnd: { thresholdPx: 5 },
+      })
+      const observed = update(
+        model,
+        Message.ObservedContainerScroll({
+          scrollTop: 600,
+          scrollHeight: 1000,
+          containerHeight: 300,
+          anchor: {
+            _tag: 'Row',
+            key: 'visible',
+            index: 20,
+            viewportOffset: -4,
+          },
+        }),
+      )
+      const changed = informItemsChanged(observed.model, ['visible'])
+      const atEnd = update(
+        changed.model,
+        Message.ObservedContainerScroll({
+          scrollTop: 700,
+          scrollHeight: 1000,
+          containerHeight: 300,
+          layoutVersion: 0,
+          anchor: {
+            _tag: 'Row',
+            key: 'visible',
+            index: 20,
+            viewportOffset: -4,
+          },
+        }),
+      )
+
+      expect(atEnd.model.viewportAnchor._tag).toBe('End')
+      expect(atEnd.model.scrollTop).toBe(700)
+    })
+
     it('replaces an in-flight request with the live user scroll anchor', () => {
       const requested = scrollToEnd(defaultInit())
       const scrolled = update(
@@ -391,6 +434,7 @@ describe('VirtualList', () => {
       if (changed.model.pendingScroll._tag === 'Pending') {
         expect(changed.model.pendingScroll.request).toStrictEqual({
           _tag: 'Anchor',
+          baselineScrollTop: 600,
           anchor: {
             _tag: 'Row',
             key: 'row-20',
@@ -1147,9 +1191,172 @@ describe('VirtualList', () => {
         element.remove()
       }
     })
+
+    it('does not undo a user scroll that overtakes a pending anchor correction', async () => {
+      const observed = update(
+        defaultInit(),
+        Message.ObservedContainerScroll({
+          scrollTop: 40,
+          scrollHeight: 1000,
+          containerHeight: 100,
+          anchor: {
+            _tag: 'Row',
+            key: 'first',
+            index: 0,
+            viewportOffset: -40,
+          },
+        }),
+      )
+      const itemChange = informItemsChanged(observed.model, ['first'])
+      const element = createScrollElement(
+        180,
+        100,
+        [{ index: 0, key: 'first', start: 120, height: 80 }],
+        1000,
+        itemChange.model.pendingScrollVersion,
+      )
+      const scrollTo = vi.spyOn(element, 'scrollTo')
+      document.body.append(element)
+
+      try {
+        expect(await runMountedScroll(itemChange, element)).toBe(180)
+        expect(scrollTo).not.toHaveBeenCalled()
+      } finally {
+        element.remove()
+      }
+    })
+  })
+
+  describe('informItemsPrependedFromStartPadding', () => {
+    it('replaces reserved space with rows and absorbs their first measurements without scrolling', () => {
+      const model = init({ id: 'test', rowHeightPx: 30, startPaddingPx: 1000 })
+      const prepend = informItemsPrependedFromStartPadding(model, {
+        itemKeys: ['older', 'first'],
+        prependedItems: [{ key: 'older', estimatedHeightPx: 80 }],
+      })
+
+      expect(prepend.model.startPaddingPx).toBe(920)
+      expect(prepend.model.reservedStartRowHeights).toStrictEqual({ older: 80 })
+      expect(prepend.model.pendingScroll._tag).toBe('Idle')
+      expect(prepend.commands).toBeUndefined()
+
+      const measurement = update(
+        prepend.model,
+        Message.MeasuredRows({
+          measurements: [
+            {
+              key: 'older',
+              height: 100,
+              layoutVersion: prepend.model.layoutVersion,
+            },
+          ],
+        }),
+      )
+
+      expect(measurement.model.startPaddingPx).toBe(900)
+      expect(measurement.model.measuredRowHeights).toStrictEqual({ older: 100 })
+      expect(measurement.model.reservedStartRowHeights).toStrictEqual({})
+      expect(measurement.commands).toBeUndefined()
+    })
+
+    it('clears the remaining reserve when the final page exceeds its estimate', () => {
+      const model = init({ id: 'test', rowHeightPx: 30, startPaddingPx: 70 })
+      const prepend = informItemsPrependedFromStartPadding(model, {
+        itemKeys: ['older', 'first'],
+        prependedItems: [{ key: 'older', estimatedHeightPx: 80 }],
+        isFinalPage: true,
+      })
+
+      expect(prepend.model.startPaddingPx).toBe(0)
+      expect(prepend.model.reservedStartRowHeights).toStrictEqual({ older: 80 })
+      expect(prepend.commands).toBeUndefined()
+    })
+  })
+
+  describe('replenishStartPadding', () => {
+    it('restores the runway through an anchor correction after scrolling ends', () => {
+      const model = init({ id: 'test', rowHeightPx: 30, startPaddingPx: 100 })
+      const replenished = replenishStartPadding(model, 1000)
+
+      expect(replenished.model.startPaddingPx).toBe(1000)
+      expect(replenished.model.pendingScroll).toStrictEqual({
+        _tag: 'Pending',
+        version: 1,
+        request: {
+          _tag: 'Anchor',
+          anchor: { _tag: 'Offset', scrollTop: 900 },
+          baselineScrollTop: 0,
+        },
+      })
+      expect(replenished.commands ?? []).toHaveLength(1)
+
+      const unchanged = replenishStartPadding(replenished.model, 1000)
+      expect(unchanged.model).toBe(replenished.model)
+      expect(unchanged.commands).toBeUndefined()
+    })
   })
 
   describe('MeasuredRows', () => {
+    it('absorbs a height correction above the visible row into start padding', () => {
+      const model = init({ id: 'test', rowHeightPx: 30, startPaddingPx: 1000 })
+      const observed = update(
+        model,
+        Message.ObservedContainerScroll({
+          scrollTop: 1300,
+          scrollHeight: 2000,
+          containerHeight: 100,
+          anchor: {
+            _tag: 'Row',
+            key: 'visible',
+            index: 10,
+            viewportOffset: 0,
+          },
+        }),
+      )
+      const prepend = informItemsPrependedFromStartPadding(observed.model, {
+        itemKeys: ['new', 'earlier', 'visible'],
+        prependedItems: [{ key: 'new', estimatedHeightPx: 30 }],
+      })
+      const staleScroll = update(
+        prepend.model,
+        Message.ObservedContainerScroll({
+          scrollTop: 1300,
+          scrollHeight: 2000,
+          containerHeight: 100,
+          layoutVersion: 0,
+          anchor: {
+            _tag: 'Row',
+            key: 'visible',
+            index: 10,
+            viewportOffset: 0,
+          },
+        }),
+      )
+      expect(staleScroll.model.viewportAnchor).toStrictEqual({
+        _tag: 'Row',
+        key: 'visible',
+        index: 11,
+        viewportOffset: 0,
+      })
+      const measurement = update(
+        staleScroll.model,
+        Message.MeasuredRows({
+          measurements: [
+            {
+              key: 'earlier',
+              index: 6,
+              height: 50,
+              layoutHeightPx: 30,
+              layoutVersion: prepend.model.layoutVersion,
+            },
+          ],
+        }),
+      )
+
+      expect(measurement.model.startPaddingPx).toBe(950)
+      expect(measurement.commands).toBeUndefined()
+    })
+
     it('stores measurements from the current layout and reconciles the anchor', () => {
       const measurement = update(
         defaultInit(),

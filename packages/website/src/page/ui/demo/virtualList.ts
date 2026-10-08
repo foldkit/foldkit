@@ -388,8 +388,51 @@ const sentChatMessageClassName =
 const chatMessageDetailClassName =
   'text-xs leading-relaxed text-gray-600 dark:text-gray-400'
 
+export const INITIAL_CHAT_MESSAGE_COUNT = 24
+export const CHAT_START_RUNWAY_PX = 100_000
+export const COLLAPSED_HISTORY_MESSAGE_HEIGHT_PX = 48
+
 const COLLAPSED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX = 48
 const EXPANDED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX = 80
+const NARROW_CHAT_CONTAINER_WIDTH_PX = 480
+const NARROW_EXPANDED_HISTORY_MESSAGE_HEIGHT_PX = 130.5
+const WIDE_EXPANDED_HISTORY_MESSAGE_HEIGHT_PX = 72
+const NARROW_INITIAL_MESSAGE_HEIGHTS_PX = [48, 68, 88, 68]
+const NARROW_INITIAL_MESSAGE_DETAIL_HEIGHT_PX = 62.5
+
+export const estimatedChatMessageHeight = (model: VirtualList.Model) => {
+  const isNarrowContainer =
+    model.measurement._tag === 'Measured' &&
+    model.measurement.containerWidth < NARROW_CHAT_CONTAINER_WIDTH_PX
+
+  return (message: VirtualListChatMessage): number => {
+    if (message.id < 0) {
+      if (isNarrowContainer) {
+        return message.isExpanded
+          ? NARROW_EXPANDED_HISTORY_MESSAGE_HEIGHT_PX
+          : COLLAPSED_HISTORY_MESSAGE_HEIGHT_PX
+      }
+
+      return message.isExpanded
+        ? WIDE_EXPANDED_HISTORY_MESSAGE_HEIGHT_PX
+        : COLLAPSED_HISTORY_MESSAGE_HEIGHT_PX
+    }
+
+    if (isNarrowContainer) {
+      const collapsedHeight = Option.getOrElse(
+        Array.get(NARROW_INITIAL_MESSAGE_HEIGHTS_PX, message.id % 4),
+        () => COLLAPSED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX,
+      )
+      return message.isExpanded
+        ? collapsedHeight + NARROW_INITIAL_MESSAGE_DETAIL_HEIGHT_PX
+        : collapsedHeight
+    }
+
+    return message.isExpanded
+      ? EXPANDED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX
+      : COLLAPSED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX
+  }
+}
 
 const chatMessageView = (
   message: VirtualListChatMessage,
@@ -490,11 +533,8 @@ export const virtualListChatDemo = (
           itemToView: message => chatMessageView(message, h),
           dynamicRowHeights: true,
           overscan: 16,
-          observeStartBoundaryGestures: true,
-          itemToEstimatedRowHeightPx: message =>
-            message.isExpanded
-              ? EXPANDED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX
-              : COLLAPSED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX,
+          observeStartGestures: true,
+          itemToEstimatedRowHeightPx: estimatedChatMessageHeight(model),
           contentAlignment: 'End',
           containerClassName:
             'h-96 sm:h-80 w-full rounded-lg bg-gray-100/70 dark:bg-gray-950/40 ring-1 ring-gray-200 dark:ring-gray-800 overscroll-none',
