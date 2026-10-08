@@ -28,7 +28,7 @@
     "foldkit": ">=0.165.0"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.29.0",
+    "@modelcontextprotocol/sdk": "1.31.0",
     "ws": "^8.21.3"
   },
   "devDependencies": {
