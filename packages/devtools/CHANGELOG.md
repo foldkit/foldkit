@@ -1,5 +1,11 @@
 # @foldkit/devtools
 
+## 0.167.1
+
+### Patch Changes
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
 ## 0.167.0
 
 ### Minor Changes
