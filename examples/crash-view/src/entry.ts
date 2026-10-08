@@ -1,9 +1,9 @@
 import { Option } from 'effect'
-import { Runtime } from 'foldkit'
+import { Application, Runtime } from 'foldkit'
 
 import { Message, Model, crashView, init, update, view } from './main'
 
-const application = Runtime.makeApplication({
+const application = Application.make({
   Model,
   init,
   update,

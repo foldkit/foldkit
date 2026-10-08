@@ -1,7 +1,7 @@
 import { Deferred, Effect, Stream } from 'effect'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-import { Message, MountMap } from './main'
+import { Message, MountMap, MountMapLive } from './main'
 
 const maplibre = vi.hoisted(() => {
   let container: HTMLElement | undefined
@@ -123,7 +123,7 @@ const mountAndInteract = (host: HTMLElement): Effect.Effect<Array<Message>> =>
       ])
       return received
     }),
-  )
+  ).pipe(Effect.provide(MountMapLive))
 
 describe('MountMap', () => {
   beforeEach(() => {

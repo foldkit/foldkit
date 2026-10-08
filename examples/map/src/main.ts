@@ -3,13 +3,14 @@ import {
   Array,
   Effect,
   Equal,
+  Layer,
   Option,
   Queue,
   Schema,
   Stream,
   String,
 } from 'effect'
-import { Command, Mount, Runtime, Update } from 'foldkit'
+import { Command, Mount, Update } from 'foldkit'
 import * as Dom from 'foldkit/dom'
 import type { Document, Html } from 'foldkit/html'
 import { HtmlBuilder } from 'foldkit/html'
@@ -126,21 +127,26 @@ export const FlyTo = Command.define('FlyTo', {
     zoom: Schema.Number,
   },
   messages: [Message.SucceededFlyTo, Message.FailedFlyTo],
-  execute: ({ maybeHostId, lng, lat, zoom }) =>
-    Option.match(maybeHostId, {
-      onNone: () =>
-        Effect.succeed(
-          Message.FailedFlyTo({
-            reason: 'FlyTo dispatched before the map mounted.',
-          }),
-        ),
-      onSome: hostId => flyToMap(hostId, lng, lat, zoom),
-    }),
 })
+
+const FlyToLive = FlyTo.toLayer(({ maybeHostId, lng, lat, zoom }) =>
+  Option.match(maybeHostId, {
+    onNone: () =>
+      Effect.succeed(
+        Message.FailedFlyTo({
+          reason: 'FlyTo dispatched before the map mounted.',
+        }),
+      ),
+    onSome: hostId => flyToMap(hostId, lng, lat, zoom),
+  }),
+)
 
 export const Geolocate = Command.define('Geolocate', {
   messages: [Message.SucceededGeolocate, Message.FailedGeolocate],
-  execute: Effect.gen(function* () {
+})
+
+const GeolocateLive = Geolocate.toLayer(() =>
+  Effect.gen(function* () {
     const position = yield* Effect.callback<GeolocationPosition, Error>(
       resume => {
         if (typeof navigator === 'undefined' || !navigator.geolocation) {
@@ -176,33 +182,50 @@ export const Geolocate = Command.define('Geolocate', {
       ),
     ),
   ),
-})
+)
 
 const SEARCH_INPUT_ID = 'map-search-input'
 
 export const FocusSearchInput = Command.define('FocusSearchInput', {
   messages: [Message.CompletedFocusSearchInput],
-  execute: Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
+})
+
+const FocusSearchInputLive = FocusSearchInput.toLayer(() =>
+  Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
     Effect.ignore,
     Effect.as(Message.CompletedFocusSearchInput()),
   ),
-})
+)
 
 export const LockBodyScroll = Command.define('LockBodyScroll', {
   messages: [Message.CompletedLockBodyScroll],
-  execute: Effect.sync(() => {
+})
+
+const LockBodyScrollLive = LockBodyScroll.toLayer(() =>
+  Effect.sync(() => {
     document.body.classList.add('overflow-hidden')
     return Message.CompletedLockBodyScroll()
   }),
-})
+)
 
 export const UnlockBodyScroll = Command.define('UnlockBodyScroll', {
   messages: [Message.CompletedUnlockBodyScroll],
-  execute: Effect.sync(() => {
+})
+
+const UnlockBodyScrollLive = UnlockBodyScroll.toLayer(() =>
+  Effect.sync(() => {
     document.body.classList.remove('overflow-hidden')
     return Message.CompletedUnlockBodyScroll()
   }),
-})
+)
+
+const CommandsLive = Layer.mergeAll(
+  FlyToLive,
+  GeolocateLive,
+  FocusSearchInputLive,
+  LockBodyScrollLive,
+  UnlockBodyScrollLive,
+)
 
 // UPDATE
 
@@ -212,8 +235,8 @@ const findLocation = (
 ): Option.Option<Location> =>
   Array.findFirst(model.locations, ({ id }) => Equal.equals(id, locationId))
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     SucceededMountMap: ({ hostId }) => ({
       model: modifyFields(model, { maybeMapHostId: () => Option.some(hostId) }),
     }),
@@ -295,11 +318,12 @@ export const update = (model: Model, message: Message) =>
     CompletedFocusSearchInput: () => ({ model }),
     CompletedLockBodyScroll: () => ({ model }),
     CompletedUnlockBodyScroll: () => ({ model }),
-  })
+  }),
+)
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+export const init = () => ({
   model: {
     locations: featuredLocations,
     searchQuery: '',
@@ -446,8 +470,15 @@ export const MountMap = Mount.defineStream('MountMap', {
     Message.MovedMap,
     Message.ClickedMarker,
   ],
-  execute: ({ element, hostId }) => mountMap(element, hostId),
 })
+
+export const MountMapLive = MountMap.toLayer(({ element, hostId }) =>
+  mountMap(element, hostId),
+)
+
+export const mounts = [MountMap]
+
+export const Live = Layer.mergeAll(CommandsLive, MountMapLive)
 
 const boundsFromMap = (map: MapInstance): Bounds => {
   const bounds = map.getBounds()

@@ -1,10 +1,10 @@
-import { Array, Option, Result, pipe } from 'effect'
-import { AsyncData, Command, Update } from 'foldkit'
+import { Array, Layer, Option, Result, pipe } from 'effect'
+import { AsyncData, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { RadioGroup } from '@foldkit/ui'
 
-import { FetchTelemetry, SyncChart } from './command'
+import { CommandsLive, FetchTelemetry, SyncChart } from './command'
 import type { ChartMode, PackageId, Period } from './domain'
 import { Message } from './message'
 import { type Model, TelemetryAsyncData } from './model'
@@ -14,7 +14,9 @@ import {
   PeriodRadioGroup,
 } from './radioGroups'
 
-type UpdateReturn = Update.Return<Model, Message>
+type CommandServices = Layer.Success<typeof CommandsLive>
+type UpdateReturn = Update.Return<Model, Message, CommandServices>
+type UpdateStep = Update.Step<Model, Message, CommandServices>
 
 const syncChart = (args: {
   maybeChartHostId: Model['maybeChartHostId']
@@ -23,7 +25,7 @@ const syncChart = (args: {
   selectedPackageId: Model['selectedPackageId']
   period: Model['period']
   maybeSelectedDatumId: Model['maybeSelectedDatumId']
-}): ReadonlyArray<Command.Command<Message>> =>
+}): Update.Commands<Message, CommandServices> =>
   pipe(
     args.maybeChartHostId,
     Option.flatMap(hostId =>
@@ -51,7 +53,7 @@ const refetchTelemetry = (model: Model): UpdateReturn =>
   })
 
 const selectedControl =
-  (updateModel: (model: Model) => Model): Update.Step<Model, Message> =>
+  (updateModel: (model: Model) => Model): UpdateStep =>
   model => {
     const nextModel = updateModel(
       modifyFields(model, { maybeSelectedDatumId: () => Option.none() }),
@@ -71,7 +73,7 @@ const selectedControl =
   }
 
 const foldChartModeRadioGroupOutMessage = RadioGroup.OutMessage.match<
-  Update.Step<Model, Message>,
+  UpdateStep,
   RadioGroup.OutMessage<ChartMode>
 >({
   Selected: ({ value }) =>
@@ -89,7 +91,7 @@ const foldChartModeRadioGroup = Update.foldChild({
 })
 
 const foldPeriodRadioGroupOutMessage = RadioGroup.OutMessage.match<
-  Update.Step<Model, Message>,
+  UpdateStep,
   RadioGroup.OutMessage<Period>
 >({
   Selected: ({ value }) =>
@@ -106,7 +108,7 @@ const foldPeriodRadioGroup = Update.foldChild({
 })
 
 const foldPackageRadioGroupOutMessage = RadioGroup.OutMessage.match<
-  Update.Step<Model, Message>,
+  UpdateStep,
   RadioGroup.OutMessage<PackageId>
 >({
   Selected: ({ value }) =>
@@ -122,7 +124,7 @@ const foldPackageRadioGroup = Update.foldChild({
   foldOutMessage: foldPackageRadioGroupOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
+export const update = Update.make((model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     GotChartModeRadioGroupMessage: ({ message }) =>
       foldChartModeRadioGroup(model, message),
@@ -206,4 +208,5 @@ export const update = (model: Model, message: Message) =>
         maybeChartError: () => Option.some(reason),
       }),
     }),
-  })
+  }),
+)

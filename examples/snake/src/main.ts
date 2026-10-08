@@ -2,13 +2,14 @@ import {
   Array,
   Duration,
   Effect,
+  Layer,
   Match,
   Option,
   Schema,
   Stream,
   pipe,
 } from 'effect'
-import { Command, Dom, Runtime, Subscription, type Update } from 'foldkit'
+import { Command, Dom, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -51,7 +52,11 @@ export type Message = typeof Message.Type
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => {
+export const init = (): Update.Return<
+  Model,
+  Message,
+  Command.HandlerOf<typeof GenerateApplePosition>
+> => {
   const snake = Snake.create(GAME.INITIAL_POSITION)
 
   return {
@@ -64,16 +69,20 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => {
       points: 0,
       highScore: 0,
     },
-    commands: [GenerateApplePosition({ snake: snake })],
+    commands: [GenerateApplePosition({ snake })],
   }
 }
 
 // UPDATE
 
-type UpdateReturn = Update.Return<Model, Message>
+type UpdateReturn = Update.Return<
+  Model,
+  Message,
+  Command.HandlerOf<typeof GenerateApplePosition>
+>
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     PressedKey: ({ key }) =>
       Match.value(key).pipe(
         Match.withReturnType<UpdateReturn>(),
@@ -151,7 +160,10 @@ export const update = (model: Model, message: Message) =>
         ? model.direction
         : model.nextDirection
 
-      const newHead = Position.move(model.snake[0], currentDirection)
+      const newHead = Position.move(
+        Array.headNonEmpty(model.snake),
+        currentDirection,
+      )
       const willEatApple = Position.equivalence(newHead, model.apple)
 
       const nextSnake = willEatApple
@@ -167,18 +179,20 @@ export const update = (model: Model, message: Message) =>
         }
       }
 
-      const commands = willEatApple
-        ? [GenerateApplePosition({ snake: nextSnake })]
-        : []
+      const nextModel = modifyFields(model, {
+        snake: () => nextSnake,
+        direction: () => currentDirection,
+        points: points =>
+          willEatApple ? points + GAME.POINTS_PER_APPLE : points,
+      })
 
-      return {
-        model: modifyFields(model, {
-          snake: () => nextSnake,
-          direction: () => currentDirection,
-          points: points =>
-            willEatApple ? points + GAME.POINTS_PER_APPLE : points,
-        }),
-        commands,
+      if (willEatApple) {
+        return {
+          model: nextModel,
+          commands: [GenerateApplePosition({ snake: nextSnake })],
+        }
+      } else {
+        return { model: nextModel }
       }
     },
 
@@ -210,25 +224,29 @@ export const update = (model: Model, message: Message) =>
         apple: () => position,
       }),
     }),
-  })
+  }),
+)
 
 // COMMAND
 
 export const GenerateApplePosition = Command.define('GenerateApplePosition', {
   args: { snake: Snake.Snake },
   messages: [Message.CompletedGenerateApplePosition],
-  execute: ({ snake }) =>
-    Apple.generatePosition(snake).pipe(
-      Effect.map(position =>
-        Message.CompletedGenerateApplePosition({ position }),
-      ),
-    ),
 })
+
+const GenerateApplePositionLive = GenerateApplePosition.toLayer(({ snake }) =>
+  Apple.generatePosition(snake).pipe(
+    Effect.map(position =>
+      Message.CompletedGenerateApplePosition({ position }),
+    ),
+  ),
+)
 
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   gameClock: entry(
+    'WatchGameClock',
     {
       isPlaying: Schema.Boolean,
       interval: Schema.Number,
@@ -241,31 +259,45 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
           GAME_SPEED.BASE_INTERVAL - model.points,
         ),
       }),
-      dependenciesToStream: ({ isPlaying, interval }) =>
-        Stream.when(
-          Stream.tick(Duration.millis(interval)).pipe(
-            Stream.drop(1),
-            Stream.map(Message.TickedClock),
-          ),
-          Effect.sync(() => isPlaying),
-        ),
     },
   ),
 
-  keyboard: Subscription.persistentEntry(
-    Dom.streamFromEventFilterMapPreventDefault({
-      target: document,
-      type: 'keydown',
-      filterMapEvent: keyboardEvent =>
-        Option.some(Message.PressedKey({ key: keyboardEvent.key })),
-    }),
-  ),
+  keyboard: entry('WatchKeyboard', {}, { modelToDependencies: () => ({}) }),
 }))
+
+const WatchGameClockLive = subscriptions.gameClock.toLayer(
+  ({ isPlaying, interval }) =>
+    Stream.when(
+      Stream.tick(Duration.millis(interval)).pipe(
+        Stream.drop(1),
+        Stream.map(Message.TickedClock),
+      ),
+      Effect.sync(() => isPlaying),
+    ),
+)
+
+const WatchKeyboardLive = subscriptions.keyboard.toLayer(() =>
+  Dom.streamFromEventFilterMapPreventDefault({
+    target: document,
+    type: 'keydown',
+    filterMapEvent: keyboardEvent =>
+      Option.some(Message.PressedKey({ key: keyboardEvent.key })),
+  }),
+)
+
+export const Live = Layer.mergeAll(
+  GenerateApplePositionLive,
+  WatchGameClockLive,
+  WatchKeyboardLive,
+)
 
 // VIEW
 
 const cellClass = (x: number, y: number, model: Model): string => {
-  const isSnakeHead = Position.equivalence({ x, y }, model.snake[0])
+  const isSnakeHead = Position.equivalence(
+    { x, y },
+    Array.headNonEmpty(model.snake),
+  )
   const isSnakeTail = pipe(
     model.snake,
     Array.tailNonEmpty,
