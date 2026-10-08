@@ -53,8 +53,8 @@ A child Submodel defines its Managed Resources in its own Model and Message term
 
 The same operations compose across every Submodel level: `make` at the owner, `lift` through each parent, and `aggregate` at the root. [Subscription Organization](/patterns/subscription-organization) traces that leaf-to-root shape with Subscriptions; the Managed Resource structure is identical.
 
-:::Info{label="Resources vs Managed Resources"}
-Use `Application.provide` for services that live with the runtime, such as an `RpcClient` or analytics client. Use `managedResources` for handles whose lifetime follows the Model, such as camera streams, an `AudioContext`, or `WebSocket` connections. The older `Runtime.makeApplication` entry point accepts a `resources` field for app-wide services.
+:::Info{label="Application Layers vs Managed Resources"}
+Use `Application.provide` for services that live with the runtime, such as an `RpcClient` or analytics client. Use `managedResources` for handles whose lifetime follows the Model, such as camera streams, an `AudioContext`, or `WebSocket` connections.
 :::
 
 Resources and Managed Resources cover long-lived services and Model-scoped handles. Unrecoverable errors in update, view, or a Command follow a different runtime path. The next page covers crash views.

@@ -1,15 +1,22 @@
 import { Layer } from 'effect'
-import { Runtime } from 'foldkit'
+import { Application, Runtime } from 'foldkit'
 
-const application = Runtime.makeApplication({
+const application = Application.make({
   Model,
   init,
   update,
   view,
   container: document.getElementById('root'),
-  resources: Layer.mergeAll(
-    ApiClientService.Default,
-    AnalyticsService.Default,
-    ComputeWorkerService.Default,
-  ),
 })
+
+const ServicesLive = Layer.mergeAll(
+  ApiClientService.Default,
+  AnalyticsService.Default,
+  ComputeWorkerService.Default,
+)
+
+const Live = Layer.provide(
+  Layer.mergeAll(LoadUserLive, TrackPageViewLive, ComputePreviewLive),
+  ServicesLive,
+)
+Runtime.run(Application.provide(application, Live))
