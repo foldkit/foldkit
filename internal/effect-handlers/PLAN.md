@@ -4,9 +4,9 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 ## Status
 
-**Current milestone:** Command, Subscription, Mount, and ManagedResource handler Layers work through `Application.make` and `Application.provide`. The website now composes production handlers by feature and provides one `WebsiteLive` Layer at its entry point.
+**Current milestone:** Command, Subscription, Mount, and ManagedResource handler Layers work through `Application.make` and `Application.provide`. The website and representative lifecycle examples compose production handlers by feature.
 
-**Next implementation:** Migrate the remaining first-party examples and active documentation, then retire the old application `resources` configuration.
+**Next implementation:** Migrate the 22 remaining first-party example entries and active inline-handler snippets, then retire the old application `resources` configuration.
 
 **Scope:** Production handler Layers and application assembly. Whole-application testing APIs are deferred.
 
@@ -61,7 +61,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 - [x] Reject distinct Subscription definitions that use the same handler name in one application.
 - [x] Move Subscription Stream implementations into handler Layers without changing restart and keep-alive behavior.
 - [x] Move ManagedResource acquire and release implementations into handler Layers without changing active-value access or release timing.
-- [ ] Migrate first-party Subscriptions and ManagedResources. The website, Stopwatch Subscription, and Managed Resource Layer example are migrated.
+- [ ] Migrate first-party Subscriptions and ManagedResources. The website, Stopwatch, WebSocket Chat, Snake, and Managed Resource Layer examples are migrated.
 - [x] Migrate SSR and SSG scaffolds to `Application.make`; the SSR cookie-writing Command has a handler Layer.
 
 ### 5. Mount boundary
@@ -75,13 +75,13 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 ### 6. Verification and publication
 
-- [ ] Complete active documentation, examples, and template migration for the final public API. The weather, Stopwatch, and Managed Resource Layer examples and five core guides cover the first slice.
+- [ ] Complete active documentation, examples, and template migration for the final public API. The Resources guide and its shared-service snippets use application Layers. Weather, Stopwatch, Managed Resource Layer, WebSocket Chat, Snake, Charting, and Map examples use the new surface, along with four simple entries.
 - [x] Verify feature Layer composition with the website's 27 production Commands, then migrate its application entry without listing every handler there. Documentation snippets account for another 51 definitions.
   - Each feature owns a `Live` Layer next to its update/lifecycle definitions. Features with multiple modules compose their local Layers and export one `Live` from their barrel.
   - `src/live.ts` composes feature Layers and service providers. `entry.ts` imports that one `WebsiteLive` value and calls `Application.provide` once; it never imports individual handler Layers.
   - The 14 site-shell Commands compose into boot, navigation, and preference Layers. The two Home phase delay Commands have distinct names.
 - [x] Run workspace type checks, all Foldkit unit tests, focused example tests, and lint for the current slice.
-- [ ] Resolve API reference generator warnings about helper types exposed through the new public signatures.
+- [x] Resolve API reference generator warnings about helper types exposed through the new public signatures.
 - [x] Run the website build and browser smoke suite after its migration.
 - [ ] Run full build and end-to-end verification gates after the remaining migrations.
 - [ ] Review the full diff for public API coherence and migration guidance.
@@ -93,7 +93,8 @@ This is the working checklist for separating Foldkit effect definitions from the
 - Weather, Stopwatch, and Managed Resource Layer examples: type checks and Story/Scene tests passed.
 - Root and application lint, formatting, and `git diff --check` passed.
 - Website: 1,301 unit tests passed across 29 files; TypeScript, build, and six browser smoke tests passed. Two browser tests timed out under parallel load, then passed serially with retries disabled.
-- The API reference generator succeeds with warnings about helper types referenced by the new signatures; those need cleanup before publication.
+- WebSocket Chat, Snake, Charting, Map, Counter, Counters, Crash View, and Web Components: targeted type checks and 105 existing tests passed.
+- The API reference generator succeeds without warnings after documenting private signature helpers in its exclusion list.
 
 ## Deferred work
 
