@@ -35,6 +35,8 @@ A Layer-backed Command definition retains its args, result Messages, and interru
 
 Passing an Effect to `toLayer` constructs the handler once for a runtime start. That Effect may acquire services and return an `args => Effect` function that uses them for every Command execution. Args remain serializable update data; HTTP clients, storage, RPC clients, and other dependencies remain Effect requirements. Looking up a handler for another Command execution does not reconstruct it. Scoped resources acquired while the application Layer is built release when that runtime stops.
 
+Use a plain handler when its work belongs to each Command execution. Reading `Clock.currentTimeMillis`, for example, happens each time the Command runs. Service Layers construct the services; a service lookup inside a handler uses the provided instance. Use an Effect constructor when preparing the handler requires work during Layer construction, such as capturing a provided client or acquiring a scoped resource.
+
 An inline `execute` may require the same services. Its service requirements flow directly to the application instead of through a named handler requirement. The [weather example](https://github.com/foldkit/foldkit/tree/main/examples/weather/src) shows the definition, handler Layer, update, and application wiring together.
 
 Give each Layer-backed Command definition a distinct name within an application. A Command accepts a Layer built from its own definition; using a Layer from a different definition with the same name fails when that Command runs.

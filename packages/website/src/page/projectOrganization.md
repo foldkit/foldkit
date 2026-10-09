@@ -28,7 +28,9 @@ Split a large feature again only when its own files become difficult to navigate
 
 Keep each handler Layer beside the Command, Subscription, Mount, or ManagedResource definition it implements. Name an individual production Layer after that definition, such as `LoadProductsLive` or `ProductUpdatesLive`. The handler owns the translation from Foldkit args or dependencies into an Effect or Stream. External clients stay in its Effect requirements.
 
-When a feature has several handlers, its `live.ts` combines them under one `Live` export. The bundle also includes the `Live` Layers exported by child features. It may provide business services that the feature owns while leaving concrete HTTP, storage, RPC, and browser providers open for the application root.
+When a feature is split across modules, its `live.ts` combines the handler Layers under one `Live` export. The bundle also includes the `Live` Layers exported by child features. It may provide business services that the feature owns while leaving concrete HTTP, storage, RPC, and browser providers open for the application root.
+
+In a small application, `main.ts` exports `Live` with the handlers it owns. A single handler can be exported as `Live` directly; several handlers use `Layer.mergeAll`. Extract that composition to `live.ts` when the module grows, and re-export it from the feature's barrel.
 
 ::Snippet{name="applicationFeatureLive" label="Feature handler Layer composition"}
 

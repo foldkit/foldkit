@@ -3,7 +3,7 @@ import { HttpClient, HttpClientResponse } from 'effect/http'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { expect, test } from 'vitest'
 
-import { FetchWeather, Message, fetchWeatherEffect, update } from './main'
+import { FetchWeather, Message, fetchWeather, update } from './main'
 import {
   mockGeocodingResponse,
   mockWeatherResponse,
@@ -70,7 +70,7 @@ test('fetchWeather returns SucceededFetchWeather with data on success', async ()
 
   const HttpClientTest = Layer.succeed(HttpClient.HttpClient, mockClient)
 
-  const resultMessage = await fetchWeatherEffect('90210').pipe(
+  const resultMessage = await fetchWeather('90210').pipe(
     Effect.provide(HttpClientTest),
     Effect.runPromise,
   )
@@ -93,7 +93,7 @@ test('fetchWeather returns FailedFetchWeather on HTTP failure', async () => {
 
   const HttpClientTest = Layer.succeed(HttpClient.HttpClient, mockClient)
 
-  const resultMessage = await fetchWeatherEffect('invalid').pipe(
+  const resultMessage = await fetchWeather('invalid').pipe(
     Effect.provide(HttpClientTest),
     Effect.runPromise,
   )
@@ -113,7 +113,7 @@ test('fetchWeather returns FailedFetchWeather when no results found', async () =
 
   const HttpClientTest = Layer.succeed(HttpClient.HttpClient, mockClient)
 
-  const resultMessage = await fetchWeatherEffect('00000').pipe(
+  const resultMessage = await fetchWeather('00000').pipe(
     Effect.provide(HttpClientTest),
     Effect.runPromise,
   )

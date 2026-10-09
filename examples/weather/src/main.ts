@@ -122,7 +122,7 @@ const weatherCodeToDescription = (code: number): string =>
     Match.orElse(() => 'Unknown'),
   )
 
-export const fetchWeatherEffect = (zipCode: string) =>
+export const fetchWeather = (zipCode: string) =>
   Effect.gen(function* () {
     if (String.isEmpty(zipCode.trim())) {
       return yield* Effect.fail(
@@ -211,7 +211,7 @@ export const FetchWeather = Command.define('FetchWeather', {
 })
 
 const FetchWeatherLive = FetchWeather.toLayer(({ zipCode }) =>
-  fetchWeatherEffect(zipCode),
+  fetchWeather(zipCode),
 )
 
 export const Live = FetchWeatherLive
