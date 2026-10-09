@@ -244,8 +244,8 @@ export interface EntryBuilder<Model, Message> {
     Value,
     Service,
     OnAcquired extends (value: Value) => Message,
-    AcquireR,
-    ReleaseR,
+    AcquireRequirements,
+    ReleaseRequirements,
   >(
     schema: RequirementsSchema,
     config: {
@@ -255,8 +255,10 @@ export interface EntryBuilder<Model, Message> {
       ) => Schema.Schema.Type<RequirementsSchema>
       readonly acquire: (
         params: AcquireParams<Schema.Schema.Type<RequirementsSchema>>,
-      ) => Effect.Effect<Value, unknown, Scope.Scope | AcquireR>
-      readonly release: (value: Value) => Effect.Effect<void, unknown, ReleaseR>
+      ) => Effect.Effect<Value, unknown, Scope.Scope | AcquireRequirements>
+      readonly release: (
+        value: Value,
+      ) => Effect.Effect<void, unknown, ReleaseRequirements>
       readonly onAcquired: OnAcquired & ((value: Value) => Message)
       readonly onReleased: () => Message
       readonly onAcquireError: (error: unknown) => Message
@@ -268,7 +270,7 @@ export interface EntryBuilder<Model, Message> {
     Value,
     Service,
     OnAcquired,
-    AcquireR | ReleaseR
+    AcquireRequirements | ReleaseRequirements
   >
 }
 

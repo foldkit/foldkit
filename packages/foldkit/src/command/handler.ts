@@ -29,15 +29,19 @@ type HandlerService<Args, Message> = Readonly<{
  * Provide alternative dependency services to test the same handler logic.
  */
 export interface ToLayer<Name extends string, Args, Message> {
-  <R, E = never, BuildR = never>(
+  <ExecuteRequirements, E = never, BuildRequirements = never>(
     build:
-      | ((args: Args) => Effect.Effect<Message, never, R>)
+      | ((args: Args) => Effect.Effect<Message, never, ExecuteRequirements>)
       | Effect.Effect<
-          (args: Args) => Effect.Effect<Message, never, R>,
+          (args: Args) => Effect.Effect<Message, never, ExecuteRequirements>,
           E,
-          BuildR
+          BuildRequirements
         >,
-  ): Layer.Layer<Handler<Name>, E, Exclude<R | BuildR, Scope.Scope>>
+  ): Layer.Layer<
+    Handler<Name>,
+    E,
+    Exclude<ExecuteRequirements | BuildRequirements, Scope.Scope>
+  >
 }
 
 /** @internal Builds the service-backed execution and Layer constructor for a Command definition. */
@@ -63,20 +67,28 @@ export const makeHandler = <Name extends string, Args, Message>(name: Name) => {
       )
     })
 
-  const toLayer: ToLayer<Name, Args, Message> = <R, E = never, BuildR = never>(
+  const toLayer: ToLayer<Name, Args, Message> = <
+    ExecuteRequirements,
+    E = never,
+    BuildRequirements = never,
+  >(
     build:
-      | ((args: Args) => Effect.Effect<Message, never, R>)
+      | ((args: Args) => Effect.Effect<Message, never, ExecuteRequirements>)
       | Effect.Effect<
-          (args: Args) => Effect.Effect<Message, never, R>,
+          (args: Args) => Effect.Effect<Message, never, ExecuteRequirements>,
           E,
-          BuildR
+          BuildRequirements
         >,
-  ): Layer.Layer<Handler<Name>, E, Exclude<R | BuildR, Scope.Scope>> =>
+  ): Layer.Layer<
+    Handler<Name>,
+    E,
+    Exclude<ExecuteRequirements | BuildRequirements, Scope.Scope>
+  > =>
     Layer.effect(
       service,
       Effect.gen(function* () {
         const context = yield* Effect.context<
-          Exclude<R, Scope.Scope> | BuildR
+          Exclude<ExecuteRequirements, Scope.Scope> | BuildRequirements
         >()
         const handler = Effect.isEffect(build) ? yield* build : build
         return { identity, context, execute: handler }

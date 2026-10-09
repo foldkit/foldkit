@@ -38,15 +38,23 @@ export interface ToLayerWithoutKeepAlive<
   Dependencies,
   Message,
 > {
-  <R, E = never, BuildR = never>(
+  <StreamRequirements, E = never, BuildRequirements = never>(
     build:
-      | StreamHandlerWithoutKeepAlive<Dependencies, Message, R>
+      | StreamHandlerWithoutKeepAlive<Dependencies, Message, StreamRequirements>
       | Effect.Effect<
-          StreamHandlerWithoutKeepAlive<Dependencies, Message, R>,
+          StreamHandlerWithoutKeepAlive<
+            Dependencies,
+            Message,
+            StreamRequirements
+          >,
           E,
-          BuildR
+          BuildRequirements
         >,
-  ): Layer.Layer<Handler<Name>, E, Exclude<R | BuildR, Scope.Scope>>
+  ): Layer.Layer<
+    Handler<Name>,
+    E,
+    Exclude<StreamRequirements | BuildRequirements, Scope.Scope>
+  >
 }
 
 /**
@@ -62,15 +70,19 @@ export interface ToLayerWithKeepAlive<
   Dependencies,
   Message,
 > {
-  <R, E = never, BuildR = never>(
+  <StreamRequirements, E = never, BuildRequirements = never>(
     build:
-      | StreamHandlerWithKeepAlive<Dependencies, Message, R>
+      | StreamHandlerWithKeepAlive<Dependencies, Message, StreamRequirements>
       | Effect.Effect<
-          StreamHandlerWithKeepAlive<Dependencies, Message, R>,
+          StreamHandlerWithKeepAlive<Dependencies, Message, StreamRequirements>,
           E,
-          BuildR
+          BuildRequirements
         >,
-  ): Layer.Layer<Handler<Name>, E, Exclude<R | BuildR, Scope.Scope>>
+  ): Layer.Layer<
+    Handler<Name>,
+    E,
+    Exclude<StreamRequirements | BuildRequirements, Scope.Scope>
+  >
 }
 
 /** @internal Builds the service-backed Stream factories for a Subscription entry. */
@@ -107,20 +119,28 @@ export const makeHandler = <Name extends string, Dependencies, Message>(
       }),
     )
 
-  const toLayer = <R, E = never, BuildR = never>(
+  const toLayer = <StreamRequirements, E = never, BuildRequirements = never>(
     build:
-      | ((...args: ReadonlyArray<any>) => Stream.Stream<Message, never, R>)
+      | ((
+          ...args: ReadonlyArray<any>
+        ) => Stream.Stream<Message, never, StreamRequirements>)
       | Effect.Effect<
-          (...args: ReadonlyArray<any>) => Stream.Stream<Message, never, R>,
+          (
+            ...args: ReadonlyArray<any>
+          ) => Stream.Stream<Message, never, StreamRequirements>,
           E,
-          BuildR
+          BuildRequirements
         >,
-  ): Layer.Layer<Handler<Name>, E, Exclude<R | BuildR, Scope.Scope>> =>
+  ): Layer.Layer<
+    Handler<Name>,
+    E,
+    Exclude<StreamRequirements | BuildRequirements, Scope.Scope>
+  > =>
     Layer.effect(
       service,
       Effect.gen(function* () {
         const context = yield* Effect.context<
-          Exclude<R, Scope.Scope> | BuildR
+          Exclude<StreamRequirements, Scope.Scope> | BuildRequirements
         >()
         const handler = Effect.isEffect(build) ? yield* build : build
         return { identity, context, dependenciesToStream: handler }

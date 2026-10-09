@@ -10,15 +10,17 @@ export interface Handler<Name extends string> {
 type LifecycleHandler<
   Params,
   Value,
-  AcquireR,
-  ReleaseR,
+  AcquireRequirements,
+  ReleaseRequirements,
   AcquireError,
   ReleaseError,
 > = Readonly<{
   acquire: (
     params: Params,
-  ) => Effect.Effect<Value, AcquireError, AcquireR | Scope.Scope>
-  release: (value: Value) => Effect.Effect<void, ReleaseError, ReleaseR>
+  ) => Effect.Effect<Value, AcquireError, AcquireRequirements | Scope.Scope>
+  release: (
+    value: Value,
+  ) => Effect.Effect<void, ReleaseError, ReleaseRequirements>
 }>
 
 type HandlerService<Params, Value> = Readonly<{
@@ -36,10 +38,10 @@ type HandlerService<Params, Value> = Readonly<{
  */
 export interface ToLayer<Name extends string, Params, Value> {
   <
-    AcquireR,
-    ReleaseR,
-    E = never,
-    BuildR = never,
+    AcquireRequirements,
+    ReleaseRequirements,
+    BuildError = never,
+    BuildRequirements = never,
     AcquireError = unknown,
     ReleaseError = unknown,
   >(
@@ -47,8 +49,8 @@ export interface ToLayer<Name extends string, Params, Value> {
       | LifecycleHandler<
           Params,
           Value,
-          AcquireR,
-          ReleaseR,
+          AcquireRequirements,
+          ReleaseRequirements,
           AcquireError,
           ReleaseError
         >
@@ -56,18 +58,21 @@ export interface ToLayer<Name extends string, Params, Value> {
           LifecycleHandler<
             Params,
             Value,
-            AcquireR,
-            ReleaseR,
+            AcquireRequirements,
+            ReleaseRequirements,
             AcquireError,
             ReleaseError
           >,
-          E,
-          BuildR
+          BuildError,
+          BuildRequirements
         >,
   ): Layer.Layer<
     Handler<Name>,
-    E,
-    Exclude<AcquireR | ReleaseR | BuildR, Scope.Scope>
+    BuildError,
+    Exclude<
+      AcquireRequirements | ReleaseRequirements | BuildRequirements,
+      Scope.Scope
+    >
   >
 }
 
@@ -115,10 +120,10 @@ export const makeHandler = <Name extends string, Params, Value>(name: Name) => {
     })
 
   const toLayer: ToLayer<Name, Params, Value> = <
-    AcquireR,
-    ReleaseR,
-    E = never,
-    BuildR = never,
+    AcquireRequirements,
+    ReleaseRequirements,
+    BuildError = never,
+    BuildRequirements = never,
     AcquireError = unknown,
     ReleaseError = unknown,
   >(
@@ -126,8 +131,8 @@ export const makeHandler = <Name extends string, Params, Value>(name: Name) => {
       | LifecycleHandler<
           Params,
           Value,
-          AcquireR,
-          ReleaseR,
+          AcquireRequirements,
+          ReleaseRequirements,
           AcquireError,
           ReleaseError
         >
@@ -135,24 +140,28 @@ export const makeHandler = <Name extends string, Params, Value>(name: Name) => {
           LifecycleHandler<
             Params,
             Value,
-            AcquireR,
-            ReleaseR,
+            AcquireRequirements,
+            ReleaseRequirements,
             AcquireError,
             ReleaseError
           >,
-          E,
-          BuildR
+          BuildError,
+          BuildRequirements
         >,
   ): Layer.Layer<
     Handler<Name>,
-    E,
-    Exclude<AcquireR | ReleaseR | BuildR, Scope.Scope>
+    BuildError,
+    Exclude<
+      AcquireRequirements | ReleaseRequirements | BuildRequirements,
+      Scope.Scope
+    >
   > =>
     Layer.effect(
       service,
       Effect.gen(function* () {
         const context = yield* Effect.context<
-          Exclude<AcquireR | ReleaseR, Scope.Scope> | BuildR
+          | Exclude<AcquireRequirements | ReleaseRequirements, Scope.Scope>
+          | BuildRequirements
         >()
         const handler = Effect.isEffect(build) ? yield* build : build
         return { identity, context, ...handler }

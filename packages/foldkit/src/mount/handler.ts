@@ -34,11 +34,19 @@ type StreamHandlerService<Input, Message> = Readonly<{
  * services to test the same DOM behavior and cleanup.
  */
 export interface ToEffectLayer<Name extends string, Input, Message> {
-  <R, E = never, BuildR = never>(
+  <ExecuteRequirements, E = never, BuildRequirements = never>(
     build:
-      | EffectHandler<Input, Message, R>
-      | Effect.Effect<EffectHandler<Input, Message, R>, E, BuildR>,
-  ): Layer.Layer<Handler<Name>, E, Exclude<R | BuildR, Scope.Scope>>
+      | EffectHandler<Input, Message, ExecuteRequirements>
+      | Effect.Effect<
+          EffectHandler<Input, Message, ExecuteRequirements>,
+          E,
+          BuildRequirements
+        >,
+  ): Layer.Layer<
+    Handler<Name>,
+    E,
+    Exclude<ExecuteRequirements | BuildRequirements, Scope.Scope>
+  >
 }
 
 /**
@@ -48,11 +56,19 @@ export interface ToEffectLayer<Name extends string, Input, Message> {
  * services to test the same Stream behavior and cleanup.
  */
 export interface ToStreamLayer<Name extends string, Input, Message> {
-  <R, E = never, BuildR = never>(
+  <StreamRequirements, E = never, BuildRequirements = never>(
     build:
-      | StreamHandler<Input, Message, R>
-      | Effect.Effect<StreamHandler<Input, Message, R>, E, BuildR>,
-  ): Layer.Layer<Handler<Name>, E, Exclude<R | BuildR, Scope.Scope>>
+      | StreamHandler<Input, Message, StreamRequirements>
+      | Effect.Effect<
+          StreamHandler<Input, Message, StreamRequirements>,
+          E,
+          BuildRequirements
+        >,
+  ): Layer.Layer<
+    Handler<Name>,
+    E,
+    Exclude<StreamRequirements | BuildRequirements, Scope.Scope>
+  >
 }
 
 /** @internal Builds service-backed execution for a one-shot Mount definition. */
@@ -84,19 +100,27 @@ export const makeEffectHandler = <Name extends string, Input, Message>(
     })
 
   const toLayer: ToEffectLayer<Name, Input, Message> = <
-    R,
+    ExecuteRequirements,
     E = never,
-    BuildR = never,
+    BuildRequirements = never,
   >(
     build:
-      | EffectHandler<Input, Message, R>
-      | Effect.Effect<EffectHandler<Input, Message, R>, E, BuildR>,
-  ): Layer.Layer<Handler<Name>, E, Exclude<R | BuildR, Scope.Scope>> =>
+      | EffectHandler<Input, Message, ExecuteRequirements>
+      | Effect.Effect<
+          EffectHandler<Input, Message, ExecuteRequirements>,
+          E,
+          BuildRequirements
+        >,
+  ): Layer.Layer<
+    Handler<Name>,
+    E,
+    Exclude<ExecuteRequirements | BuildRequirements, Scope.Scope>
+  > =>
     Layer.effect(
       service,
       Effect.gen(function* () {
         const context = yield* Effect.context<
-          Exclude<R, Scope.Scope> | BuildR
+          Exclude<ExecuteRequirements, Scope.Scope> | BuildRequirements
         >()
         const handler = Effect.isEffect(build) ? yield* build : build
         return { identity, context, execute: handler }
@@ -138,19 +162,27 @@ export const makeStreamHandler = <Name extends string, Input, Message>(
     )
 
   const toLayer: ToStreamLayer<Name, Input, Message> = <
-    R,
+    StreamRequirements,
     E = never,
-    BuildR = never,
+    BuildRequirements = never,
   >(
     build:
-      | StreamHandler<Input, Message, R>
-      | Effect.Effect<StreamHandler<Input, Message, R>, E, BuildR>,
-  ): Layer.Layer<Handler<Name>, E, Exclude<R | BuildR, Scope.Scope>> =>
+      | StreamHandler<Input, Message, StreamRequirements>
+      | Effect.Effect<
+          StreamHandler<Input, Message, StreamRequirements>,
+          E,
+          BuildRequirements
+        >,
+  ): Layer.Layer<
+    Handler<Name>,
+    E,
+    Exclude<StreamRequirements | BuildRequirements, Scope.Scope>
+  > =>
     Layer.effect(
       service,
       Effect.gen(function* () {
         const context = yield* Effect.context<
-          Exclude<R, Scope.Scope> | BuildR
+          Exclude<StreamRequirements, Scope.Scope> | BuildRequirements
         >()
         const handler = Effect.isEffect(build) ? yield* build : build
         return { identity, context, execute: handler }
