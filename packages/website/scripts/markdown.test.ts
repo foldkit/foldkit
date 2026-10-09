@@ -87,6 +87,43 @@ const y = 2</code></pre>
     )
   })
 
+  it('extracts captioned code from a collapsed snippet disclosure', () => {
+    setBody(`
+      <figure data-llm-label="HTTP Command">
+        <figcaption>HTTP Command</figcaption>
+        <div>
+          <div aria-hidden="true">
+            <div>
+              <pre data-language="typescript"><code>const FetchCount = Command.define()</code></pre>
+            </div>
+          </div>
+        </div>
+        <button>Show code</button>
+      </figure>
+    `)
+
+    expect(extractMarkdownFromRenderedDocument(document, SITE_URL)).toBe(
+      '**HTTP Command**\n\n```typescript\nconst FetchCount = Command.define()\n```',
+    )
+  })
+
+  it('rejects a captioned code block omitted from the Markdown export', () => {
+    setBody(`
+      <figure>
+        <figcaption>HTTP Command</figcaption>
+        <div aria-hidden="true">
+          <pre data-language="typescript"><code>const FetchCount = Command.define()</code></pre>
+        </div>
+      </figure>
+    `)
+
+    expect(() =>
+      extractMarkdownFromRenderedDocument(document, SITE_URL),
+    ).toThrow(
+      'Captioned code block "HTTP Command" was not followed by a fenced source block in exported Markdown.',
+    )
+  })
+
   it('skips elements marked data-llm-ignore', () => {
     setBody(`
       <p>kept paragraph</p>

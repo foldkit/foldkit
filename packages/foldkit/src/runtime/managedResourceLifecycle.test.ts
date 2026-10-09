@@ -51,7 +51,7 @@ const releaseEngine = ({ id }: EngineShape) =>
     })
 
     if (id === RELEASE_DEFECT_ID) {
-      yield* Effect.sync(() => {
+      return yield* Effect.sync(() => {
         throw new Error(RELEASE_ERROR)
       })
     }

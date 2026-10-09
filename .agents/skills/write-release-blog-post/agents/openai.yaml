@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Write Release Blog Post'
+  short_description: 'Write Foldkit release announcements'
+  default_prompt: 'Use $write-release-blog-post to draft a Foldkit release announcement from the release changes and established blog style.'

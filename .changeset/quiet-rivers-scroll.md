@@ -1,9 +1,0 @@
----
-'@foldkit/ui': minor
----
-
-Add complete end-anchored and dynamic-height scrolling to VirtualList. Lists can target an index, stable key, pixel offset, or the end; align rows to the start, center, end, or nearest edge; follow appended content while the user remains at the end; preserve a stable row across prepend, removal, reorder, and resize; and measure rendered row heights from estimates. Initial targets wait for asynchronously supplied items, and per-item height estimates work as a top-level view input. VirtualList now owns its container lifecycle through a Mount, so new integrations do not need Subscription wiring and programmatic scrolling works inside shadow roots.
-
-VirtualList's Model now includes scroll-request, anchor, and measurement state, and its Message union includes container, row-measurement, and scroll-result variants. Consumers that construct a Model literal or match every Message must update those sites. Use `VirtualList.init` to create the Model. Delete `VirtualList.subscriptions.containerEvents` from existing Subscription wiring; the export is removed so TypeScript will flag remaining callers. Replace `scrollToIndexVariable(model, items, itemToRowHeightPx, index, options)` with `scrollToIndex(model, index, options)`; the view now resolves variable row heights. Use the container's `id` instead of the removed duplicate `data-virtual-list-id` attribute.
-
-Remove the legacy `ScrolledContainer` and `MeasuredContainer` Message variants. Delete manual dispatches; the Mount now emits `ObservedContainerScroll` with the scroll position, dimensions, and row anchor, and `ResizedContainer` with both dimensions. Update exhaustive Message matches. Remove the stale `visibleWindow` and `visibleWindowVariable` helpers and `VisibleWindow` type; render through `VirtualList.view` so logical targets, measured heights, and anchors use the same layout. IDs must be unique across mounted VirtualLists, including separate shadow roots.

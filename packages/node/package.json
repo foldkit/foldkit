@@ -1,6 +1,6 @@
 {
   "name": "@foldkit/node",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Node.js host adapter for Foldkit server-rendered applications",
   "type": "module",
   "main": "./dist/index.js",

@@ -1,5 +1,21 @@
 # create-foldkit-app
 
+## 0.39.0
+
+### Minor Changes
+
+- [#1584](https://github.com/foldkit/foldkit/pull/1584) [`fe2701c`](https://github.com/foldkit/foldkit/commit/fe2701c2fa4bb4370f59548006bcee5cc009575e) Thanks [@devinjameson](https://github.com/devinjameson)! - Render SSR and SSG documents from server-entry code. An `ssr.build` browser build now starts from a script and never emits an unrendered HTML template. The server entry's `renderDocument` receives the rendered application and the browser build's script, stylesheet, and module-preload URLs. Request-time rendering and prerendering use the same document renderer. `Server.renderDocument` supplies a complete document with application metadata, hydration markers, and unambiguous handoff structure.
+
+  **Migration:** add `ssr.clientEntry: '/src/entry.ts'`, import stylesheets from that client entry, and export `renderDocument = Server.renderDocument` from the server entry. Remove the source `index.html` and move additional document tags into a wrapper around `Server.renderDocument(application, assets, { head })`. `head` accepts trusted author-owned HTML, so escape any request-derived values before interpolating them. Remove `containerId` from SSR build and prerender options. Standalone `foldkitBuild` calls must pass `clientEntry` in their options. Build-time `transformIndexHtml` hooks no longer run; dev hooks still transform the rendered document. Use an absolute-path or full-URL Vite `base`; relative bases and relative or runtime `renderBuiltUrl` results are rejected. Upgrade Foldkit to 0.167.0 or newer alongside @foldkit/vite-plugin 0.27.0. The plugin requires the document-rendering APIs introduced in Foldkit 0.167.0.
+
+  An SSR build refuses an `index.html` already in the browser output before prerendering, including files copied from `publicDir`, emitted by another plugin, or left by an earlier build with `emptyOutDir` disabled. Remove those root documents so only a generated page can occupy `/`.
+
+  Custom template-based hosts can use `injectIntoTemplate`, `toResponse`, and `handleRequest` with a template. The template-based Vite dev host is available when `clientEntry` and `ssr.build` are omitted. Separate client-only builds and previews support Vite's relative-base behavior. SSR and SSG scaffolds use code-rendered documents and CSS imports.
+
+### Patch Changes
+
+- [#1586](https://github.com/foldkit/foldkit/pull/1586) [`2eb97fb`](https://github.com/foldkit/foldkit/commit/2eb97fb142a16b7a2ede2c49d50c49aa474c7d3a) Thanks [@devinjameson](https://github.com/devinjameson)! - Add a Node host adapter that serves Foldkit SSR builds from their manifest. New server-rendered projects use the adapter. Applications can use custom hosts for delivery policies outside its scope.
+
 ## 0.38.0
 
 ### Minor Changes

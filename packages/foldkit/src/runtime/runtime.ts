@@ -887,7 +887,7 @@ export const makeRuntime = <
         // callbacks, so this fiber's only remaining job is keeping the
         // runtime scope open until interruption (an embedded app's dispose)
         // or the document goes away.
-        yield* Effect.never
+        return yield* Effect.never
       }),
     ).pipe(
       Effect.provideService(RenderCommit, commitNotifier.service),

@@ -28,10 +28,10 @@ export const SaveCanvas = Command.define('SaveCanvas', {
         paletteThemeIndex,
         selectedColorIndex,
       }
-      yield* store.set(
-        STORAGE_KEY,
-        Schema.encodeSync(SavedCanvasJsonString)(data),
+      const encodedCanvas = yield* Schema.encodeEffect(SavedCanvasJsonString)(
+        data,
       )
+      yield* store.set(STORAGE_KEY, encodedCanvas)
       return Message.CompletedSaveCanvas()
     }).pipe(
       Effect.catch(() => Effect.succeed(Message.CompletedSaveCanvas())),
@@ -83,12 +83,5 @@ export const ExportPng = Command.define('ExportPng', {
       link.click()
 
       return Message.SucceededExportPng()
-    }).pipe(
-      Effect.catchTag('FailedExportPng', error => Effect.succeed(error)),
-      Effect.catch(() =>
-        Effect.succeed(
-          Message.FailedExportPng({ error: 'Failed to export image' }),
-        ),
-      ),
-    ),
+    }).pipe(Effect.catchTag('FailedExportPng', error => Effect.succeed(error))),
 })

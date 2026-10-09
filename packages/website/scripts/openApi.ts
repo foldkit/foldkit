@@ -184,7 +184,7 @@ export const openApiDocument = {
       '',
       'Every endpoint is a public, unauthenticated GET. There is no key and no registration. Responses carry `Access-Control-Allow-Origin: *` and name the metadata headers in `Access-Control-Expose-Headers`, so a browser agent can read both the body and the headers. Under `/api` only GET, HEAD, and OPTIONS are accepted; any other method answers 405 with an `Allow` header.',
       '',
-      `Versioning: the version is the first path segment after \`/api\`, and every response from a supported version prefix carries an \`API-Version\` header. A response for an unknown prefix carries no version because no version served it. Inside a version the surface only grows, so ignore fields you do not recognize. A breaking change ships as a new prefix (\`/api/v2\`) and the previous version starts carrying \`Deprecation\` (RFC 9745, a structured-field date such as \`@1780272000\`, holding when that version became deprecated), \`Sunset\` (RFC 8594, an HTTP-date such as \`Wed, 31 Dec 2025 23:59:59 GMT\`, holding when it stops answering), and a \`Link\` header with \`rel="deprecation"\`. The two dates are at least ${DEPRECATION_NOTICE_DAYS} days apart. The headers do not share a value format, and what a client has left is \`Sunset\` minus the current time, not the notice period.`,
+      `Versioning: the version is the first path segment after \`/api\`, and every response from a supported version prefix carries an \`API-Version\` header. A response for an unknown prefix carries no version because no version served it. Inside a version the surface only grows, so ignore fields you do not recognize. A breaking change ships as a new prefix (\`/api/v2\`) and the previous version starts carrying \`Deprecation\` (RFC 9745, a structured-field date such as \`@1735689600\`, holding when that version became deprecated), \`Sunset\` (RFC 8594, an HTTP-date such as \`Wed, 31 Dec 2025 23:59:59 GMT\`, holding when it stops answering), and a \`Link\` header with \`rel="deprecation"\`. The two dates are at least ${DEPRECATION_NOTICE_DAYS} days apart. The headers do not share a value format, and what a client has left is \`Sunset\` minus the current time, not the notice period.`,
       '',
       `Rate limits: every response carries \`RateLimit\` and \`RateLimit-Policy\` advertising an advisory ceiling of ${RATE_LIMIT_QUOTA} requests per ${RATE_LIMIT_WINDOW_SECONDS} seconds. The site is static files behind a CDN and keeps no per-client counter, so both the remaining count and the seconds until reset are constants describing the policy rather than this client's balance. The site itself never returns 429. The hosting platform may reject a request before it reaches this API and return a platform-owned 429 outside this contract; if that response carries \`Retry-After\`, obey it.`,
       '',
@@ -390,7 +390,7 @@ export const openApiDocument = {
         description:
           'Present only on a deprecated API version. An RFC 9745 structured-field date holding the moment that version became deprecated. Note that this is not the same value format as Sunset.',
         schema: { type: 'string' },
-        example: '@1780272000',
+        example: '@1735689600',
       },
       Sunset: {
         description:
@@ -567,6 +567,7 @@ export const openApiDocument = {
           'description',
           'difficulty',
           'tags',
+          'status',
           'url',
           'markdownUrl',
           'playgroundUrl',
@@ -585,6 +586,12 @@ export const openApiDocument = {
             type: 'array',
             description: 'The concepts the example covers.',
             items: { type: 'string' },
+          },
+          status: {
+            type: 'string',
+            description:
+              'Whether the example is available or paused while its integration is updated.',
+            enum: ['Available', 'Paused'],
           },
           url: urlField('The example write-up.'),
           markdownUrl: urlField('The example write-up as Markdown.'),

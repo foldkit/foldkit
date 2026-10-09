@@ -1,5 +1,13 @@
 # @foldkit/oxlint-plugin
 
+## 0.15.3
+
+### Patch Changes
+
+- [#1608](https://github.com/foldkit/foldkit/pull/1608) [`9d0f289`](https://github.com/foldkit/foldkit/commit/9d0f28976e5e1edd19db8118da5b43ad7c444adc) Thanks [@devinjameson](https://github.com/devinjameson)! - Recognize direct-field `Update.foldChildAt` boundaries and empty curried `toParentOutMessage` mappers. Direct-field inference requires `writeAt` to replace that field, avoiding false positives for keyed collection updates.
+
+- [#1616](https://github.com/foldkit/foldkit/pull/1616) [`5f7e247`](https://github.com/foldkit/foldkit/commit/5f7e2470d7037b97f768a5cc478e2a0d920e5b28) Thanks [@devinjameson](https://github.com/devinjameson)! - Point the stream event cancellation rule's guidance to `Dom.streamFromEventFilterMapPreventDefault`.
+
 ## 0.15.2
 
 ### Patch Changes

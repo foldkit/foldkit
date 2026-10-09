@@ -72,7 +72,10 @@ declare module '*.txt?highlighted' {
 }
 
 declare module 'virtual:css-snippets' {
-  const snippets: Record<string, { raw: string; highlighted: string }>
+  const snippets: Record<
+    string,
+    { raw: string; highlighted: string; language: string }
+  >
   export default snippets
 }
 

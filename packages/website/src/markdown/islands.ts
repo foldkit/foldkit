@@ -50,7 +50,11 @@ export const docIslands = (
         onSome: snippet =>
           CodeBlock.highlightedView(
             `${pageId}-snippet-${name}-${occurrenceIndex}`,
-            ih.div([ih.Class('text-sm'), ih.InnerHTML(snippet.highlighted)]),
+            ih.div([
+              ih.Class('text-sm'),
+              ih.DataAttribute('language', snippet.language),
+              ih.InnerHTML(snippet.highlighted),
+            ]),
             snippet.raw,
             `Copy ${label} to clipboard`,
             slots.renderSnippet,

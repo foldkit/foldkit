@@ -226,7 +226,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       filterMapEvent: event =>
         pipe(
           event.detail,
-          Schema.decodeUnknownOption(SlowWarningReport),
+          Schema.decodeOption(SlowWarningReport),
           Option.map(report => Message.RecordedSlowWarning({ report })),
         ),
     }),

@@ -9,7 +9,11 @@ import { CodeBlock } from '../../component'
 import { Icon } from '../../icon'
 import { exampleSourceHref } from '../../link'
 import { pageTitle, para } from '../../prose'
-import { examplesRouter, playgroundRouter } from '../../route'
+import {
+  exampleDetailRouter,
+  examplesRouter,
+  playgroundRouter,
+} from '../../route'
 import type { TableOfContentsEntry } from '../../tableOfContentsEntry'
 import { Message } from './message'
 import { type ExampleMeta, findBySlug } from './meta'
@@ -250,11 +254,50 @@ const headerView = (meta: ExampleMeta): Html =>
       ),
       pageTitle('example-detail', meta.title),
       para(meta.description),
-      ih.div(
-        [ih.Class('flex flex-wrap items-center gap-2 mt-3')],
-        Array.map(meta.tags, text => featureTag(text)),
-      ),
+      ...(meta.livePreview === 'Unavailable'
+        ? []
+        : [
+            ih.div(
+              [ih.Class('flex flex-wrap items-center gap-2 mt-3')],
+              Array.map(meta.tags, text => featureTag(text)),
+            ),
+          ]),
       ...(meta.livePreview === 'Unavailable' ? [] : [exampleActions(meta)]),
+    ],
+  )
+
+const pausedExampleNotice = (meta: ExampleMeta): Html =>
+  ih.div(
+    [
+      ih.Class(
+        'rounded-xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100',
+      ),
+    ],
+    [
+      ih.h2(
+        [ih.Class('text-base font-semibold mb-2')],
+        [`${meta.title} is paused`],
+      ),
+      ...(meta.slug === 'livestore'
+        ? [
+            ih.p(
+              [ih.Class('leading-relaxed mt-3')],
+              [
+                'For a current example of a third-party integration with a live connection, see ',
+                ih.a(
+                  [
+                    ih.Href(
+                      exampleDetailRouter({ exampleSlug: 'websocket-chat' }),
+                    ),
+                    ih.Class('link-accent font-medium'),
+                  ],
+                  ['WebSocket Chat'],
+                ),
+                '.',
+              ],
+            ),
+          ]
+        : []),
     ],
   )
 
@@ -647,7 +690,7 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
           [
             headerView(meta),
             ...(meta.livePreview === 'Unavailable'
-              ? []
+              ? [pausedExampleNotice(meta)]
               : availableExampleContentView(
                   model,
                   meta,

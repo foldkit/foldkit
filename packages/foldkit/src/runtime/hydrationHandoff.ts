@@ -1,4 +1,4 @@
-import { Array, Effect, Option, Predicate, Schema, pipe } from 'effect'
+import { Array, Data, Effect, Option, Predicate, Schema, pipe } from 'effect'
 
 import { HYDRATION_BUILD_ATTRIBUTE } from '../buildToken.js'
 import {
@@ -19,6 +19,10 @@ export type HydrationConfig = Readonly<{
   flagsScripts: ReadonlyArray<HTMLScriptElement>
   isFlagsRequired: boolean
 }>
+
+class FlagsPayloadDecodeFailed extends Data.TaggedError(
+  'FlagsPayloadDecodeFailed',
+)<Readonly<{ cause: unknown }>> {}
 
 const hydrationForRoot = (
   root: HTMLElement,
@@ -476,7 +480,7 @@ export const resolveHydrationHandoff = <Flags, Resources>({
             decode => decode(parsedPayload),
           )
         },
-        catch: cause => cause,
+        catch: cause => new FlagsPayloadDecodeFailed({ cause }),
       }).pipe(
         Effect.catch(cause =>
           refuseHydration<Flags>(
