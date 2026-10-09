@@ -160,6 +160,7 @@ Don't add inline or block comments to explain code. If code needs explanation, r
 
 ## Test Fixtures
 
+- Test framework contracts in `packages/foldkit/`. Do not add tests to example apps solely to verify handler construction, context propagation, or other framework internals.
 - Keep complete executable programs used by tests in source fixture files, not template strings embedded in test code. Supply per-test paths and values through data files or explicit inputs. Inline source strings are appropriate when the source text itself is what the test checks.
 
 ## Session Echoes

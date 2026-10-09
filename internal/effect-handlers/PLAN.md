@@ -37,7 +37,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 - [x] Capture stable service dependencies with Effect constructors where that makes the handler boundary clearer. Keep changing inputs and actual work inside the returned handler.
 - [x] Explain construction, lookup, execution, and application versus operation lifetimes in active docs and published TSDoc.
 - [x] Show execution tests using real handler Layers with controlled dependency providers built beneath them.
-- [x] Verify constructor reuse, current-time sampling, service substitution, and scoped cleanup using meaningful coverage. The Clock sampling and context precedence assertions detect deliberately incorrect implementations.
+- [x] Verify constructor reuse, deferred execution, service substitution, and scoped cleanup in the Foldkit suite. The context precedence assertions detect an incorrect merge order.
 - [x] Complete independent consumer API, documentation, and implementation reviews and address their findings.
 - [x] Run repository gates, including the full workspace build, type checks, unit suites, and 18 website browser tests without retries.
 - [x] Review the exact committed diff before publication.
@@ -48,7 +48,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 - Full workspace build, all 52 TypeScript projects, formatting, lint, dead-code, script tests, and source gates passed.
 - Full workspace unit suites passed, including 3,011 Foldkit tests (one skipped), 1,307 website tests, and the first-party application suites.
 - All 18 website browser tests passed without retries. Application Layers and Project Organization were also inspected at their normal desktop measure.
-- Execution tests use the real Weather and Stopwatch handlers with controlled service providers. Sampling time at construction and reversing invocation-context precedence both make the relevant assertions fail.
+- The Foldkit handler suite covers constructor reuse, deferred execution, and captured versus invocation services. Reversing invocation-context precedence makes the relevant assertion fail. Weather execution tests use the real handler with a controlled HTTP provider.
 - WebSocket lifecycle tests verify that capturing its constructor does not move socket acquisition or cleanup out of the Model-driven handle scope.
 
 ### 1. Type and lifecycle proof
