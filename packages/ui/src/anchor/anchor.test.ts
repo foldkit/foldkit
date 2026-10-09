@@ -132,6 +132,56 @@ describe('portalToContainingRoot', () => {
     expect(dialog.firstElementChild).toBe(secondPanel)
   })
 
+  it('removes an emptied shared portal root so the next portal creates a fresh one', () => {
+    const first = document.createElement('div')
+    document.body.appendChild(first)
+
+    const cleanup = portalToContainingRoot(first)
+    const firstRoot = document.getElementById(PORTAL_ROOT_ID)
+    cleanup()
+
+    expect(firstRoot?.isConnected).toBe(false)
+    expect(document.getElementById(PORTAL_ROOT_ID)).toBeNull()
+
+    const second = document.createElement('div')
+    document.body.appendChild(second)
+    portalToContainingRoot(second)
+
+    const secondRoot = document.getElementById(PORTAL_ROOT_ID)
+    expect(secondRoot).not.toBeNull()
+    expect(secondRoot).not.toBe(firstRoot)
+    expect(secondRoot?.inert).toBe(false)
+    expect(second.parentNode).toBe(secondRoot)
+  })
+
+  it('removes an emptied shadow portal root', () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const shadow = host.attachShadow({ mode: 'open' })
+    const element = document.createElement('div')
+    shadow.appendChild(element)
+
+    const cleanup = portalToContainingRoot(element)
+    cleanup()
+
+    expect(shadow.getElementById(PORTAL_ROOT_ID)).toBeNull()
+    expect(document.getElementById(PORTAL_ROOT_ID)).toBeNull()
+  })
+
+  it('keeps the shared portal root while another element is still portaled into it', () => {
+    const first = document.createElement('div')
+    const second = document.createElement('div')
+    document.body.append(first, second)
+
+    const cleanupFirst = portalToContainingRoot(first)
+    portalToContainingRoot(second)
+    const portalRoot = document.getElementById(PORTAL_ROOT_ID)
+    cleanupFirst()
+
+    expect(portalRoot?.isConnected).toBe(true)
+    expect(second.parentElement).toBe(portalRoot)
+  })
+
   it('keeps a dialog portal root while another element is still portaled into it', () => {
     const dialog = document.createElement('dialog')
     const first = document.createElement('div')
