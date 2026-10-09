@@ -75,9 +75,21 @@
       "types": "./dist/menu/public.d.ts",
       "import": "./dist/menu/public.js"
     },
+    "./meter": {
+      "types": "./dist/meter/public.d.ts",
+      "import": "./dist/meter/public.js"
+    },
+    "./nav": {
+      "types": "./dist/nav/public.d.ts",
+      "import": "./dist/nav/public.js"
+    },
     "./popover": {
       "types": "./dist/popover/public.d.ts",
       "import": "./dist/popover/public.js"
+    },
+    "./progress": {
+      "types": "./dist/progress/public.d.ts",
+      "import": "./dist/progress/public.js"
     },
     "./radioGroup": {
       "types": "./dist/radioGroup/public.d.ts",
