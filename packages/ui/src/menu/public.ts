@@ -25,6 +25,7 @@ export {
   DelayClearPathSearch,
   DelayOpenSubmenu,
   DelayCloseSubmenu,
+  DelayActivatePathItem,
   ScrollPathItemIntoView,
   DetectMovementOrAnimationEnd,
   type Opened,

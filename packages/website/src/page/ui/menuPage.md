@@ -72,7 +72,7 @@ Menu uses `aria-activedescendant`. Focus stays on the root items container while
 | `Tab / Shift+Tab`  | Leaves the menu tree without trapping focus.                                        |
 | `Type a character` | Typeahead search: jumps to the matching item.                                       |
 
-Pointer hover opens a submenu after a short delay. Moving across the gap into its panel keeps it open. Click or touch on a submenu trigger opens the child immediately.
+Pointer hover opens a submenu after a short delay. While a child is open, Menu briefly defers activation of other parent items so the pointer can travel diagonally into that child without switching panels. Click or touch on a submenu trigger opens the child immediately; activating the open trigger again closes that child and leaves the root menu open.
 
 ## Accessibility
 

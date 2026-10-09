@@ -1,9 +1,28 @@
 import AxeBuilder from '@axe-core/playwright'
 import { type Page, expect, test } from '@playwright/test'
 
+const RUNTIME_LOAD_TIMEOUT_MILLISECONDS = 15_000
+
 const waitForRuntime = async (page: Page) => {
-  await expect(page.locator('[data-browser-environment-loaded]')).toHaveCount(1)
+  await expect(page.locator('[data-browser-environment-loaded]')).toHaveCount(
+    1,
+    {
+      timeout: RUNTIME_LOAD_TIMEOUT_MILLISECONDS,
+    },
+  )
 }
+
+const suppressSlowWarnings = (page: Page) =>
+  page.addInitScript(() => {
+    const warn = console.warn
+    console.warn = (...args) => {
+      if (globalThis.String(args.at(0)).startsWith('[foldkit] Slow')) {
+        return
+      }
+
+      warn(...args)
+    }
+  })
 
 test('navigates nested actions with the keyboard and selects a leaf', async ({
   page,
@@ -76,6 +95,7 @@ test('navigates nested actions with the keyboard and selects a leaf', async ({
 })
 
 test('opens a submenu on touch activation without hover', async ({ page }) => {
+  await suppressSlowWarnings(page)
   await page.goto('/ui/menu')
   await waitForRuntime(page)
 
@@ -92,6 +112,54 @@ test('opens a submenu on touch activation without hover', async ({ page }) => {
   await expect(childMenu).toHaveCount(0)
 
   await organize.click()
+  await expect(childMenu).toBeVisible()
+  await expect(organize).toHaveAttribute('aria-expanded', 'true')
+
+  await organize.dispatchEvent('click')
+  await expect(organize).toHaveAttribute('aria-expanded', 'false')
+  await expect(childMenu).toHaveCount(0)
+  await expect(page.locator('#menu-submenu-demo-items')).toBeVisible()
+})
+
+test('keeps a submenu open while the pointer crosses a parent leaf', async ({
+  page,
+}) => {
+  await suppressSlowWarnings(page)
+  await page.goto('/ui/menu')
+  await waitForRuntime(page)
+
+  await page.locator('#menu-submenu-demo-button').click()
+  const organize = page.getByRole('menuitem', { name: 'Organize' })
+  const childMenu = page.locator('#menu-submenu-demo-submenu-2')
+  await organize.hover()
+  await expect(childMenu).toBeVisible()
+
+  const triggerBox = await organize.boundingBox()
+  const parentLeafBox = await page
+    .getByRole('menuitem', { name: 'Duplicate' })
+    .boundingBox()
+  const targetBox = await page
+    .getByRole('menuitem', { name: 'Inbox' })
+    .boundingBox()
+  expect(triggerBox).not.toBeNull()
+  expect(parentLeafBox).not.toBeNull()
+  expect(targetBox).not.toBeNull()
+  if (triggerBox === null || parentLeafBox === null || targetBox === null) {
+    return
+  }
+
+  await page.mouse.move(triggerBox.x + 12, triggerBox.y + triggerBox.height / 2)
+  await page.mouse.move(
+    parentLeafBox.x + 12,
+    parentLeafBox.y + parentLeafBox.height / 2,
+    { steps: 2 },
+  )
+  await page.mouse.move(
+    targetBox.x + targetBox.width / 2,
+    targetBox.y + targetBox.height / 2,
+    { steps: 12 },
+  )
+  await page.waitForTimeout(350)
   await expect(childMenu).toBeVisible()
 })
 

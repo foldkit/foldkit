@@ -106,6 +106,7 @@ describe('Menu', () => {
         pathSearchVersion: 0,
         maybePendingSubmenuIndexPath: Option.none(),
         maybePendingSubmenuCloseDepth: Option.none(),
+        maybePendingPathItemIndexPath: Option.none(),
         submenuRequestVersion: 0,
       })
     })
@@ -191,6 +192,20 @@ describe('Menu', () => {
         ).toStrictEqual(Option.some(Option.some(2)))
       })
 
+      it('closes an open child when its trigger is activated again', () => {
+        const trigger = Message.ClickedSubmenuTrigger({
+          indexPath: [1],
+          submenuPath: ['organize'],
+          maybeActiveItemIndex: Option.some(0),
+        })
+        const opened = update(openModel(), trigger)
+        const closed = update(opened.model, trigger)
+
+        expect(opened.model.openSubmenuIndexPath).toStrictEqual([1])
+        expect(closed.model.openSubmenuIndexPath).toStrictEqual([])
+        expect(closed.model.isOpen).toBe(true)
+      })
+
       it('replaces an open sibling in one update', () => {
         const firstSibling = update(
           openModel(),
@@ -273,6 +288,104 @@ describe('Menu', () => {
           Option.none(),
         )
         expect(delayed.model.openSubmenuIndexPath).toStrictEqual([])
+      })
+
+      it('cancels a sibling hover when the pointer reaches the open child', () => {
+        const open = update(
+          openModel(),
+          Message.OpenedSubmenu({
+            indexPath: [1],
+            submenuPath: ['organize'],
+            maybeActiveItemIndex: Option.some(0),
+          }),
+        ).model
+        const requested = update(
+          open,
+          Message.RequestedSubmenuOpen({
+            indexPath: [2],
+            submenuPath: ['move'],
+            maybeActiveItemIndex: Option.some(0),
+          }),
+        )
+        const enteredChild = update(
+          requested.model,
+          Message.MovedPointerWithinSubmenu({ depth: 1 }),
+        )
+        const delayed = update(
+          enteredChild.model,
+          Message.CompletedDelayOpenSubmenu({
+            indexPath: [2],
+            submenuPath: ['move'],
+            maybeActiveItemIndex: Option.some(0),
+            version: requested.model.submenuRequestVersion,
+          }),
+        )
+
+        expect(delayed.model.openSubmenuIndexPath).toStrictEqual([1])
+        expect(delayed.model.openSubmenuPath).toStrictEqual(['organize'])
+      })
+
+      it('keeps the child open while the pointer crosses a parent leaf', () => {
+        const open = update(
+          openModel(),
+          Message.OpenedSubmenu({
+            indexPath: [1],
+            submenuPath: ['organize'],
+            maybeActiveItemIndex: Option.some(0),
+          }),
+        ).model
+        const requested = update(
+          open,
+          Message.RequestedPathItemActivation({ indexPath: [2] }),
+        )
+        const enteredChild = update(
+          requested.model,
+          Message.MovedPointerWithinSubmenu({ depth: 1 }),
+        )
+        const delayed = update(
+          enteredChild.model,
+          Message.CompletedDelayActivatePathItem({
+            indexPath: [2],
+            version: requested.model.submenuRequestVersion,
+          }),
+        )
+
+        expect(requested.commands).toMatchObject([
+          {
+            name: 'DelayActivatePathItem',
+            args: {
+              indexPath: [2],
+              version: requested.model.submenuRequestVersion,
+            },
+          },
+        ])
+        expect(delayed.model.openSubmenuIndexPath).toStrictEqual([1])
+        expect(delayed.model.maybeActiveItemIndex).toStrictEqual(Option.some(1))
+      })
+
+      it('activates a parent leaf after the pointer rests on it', () => {
+        const open = update(
+          openModel(),
+          Message.OpenedSubmenu({
+            indexPath: [1],
+            submenuPath: ['organize'],
+            maybeActiveItemIndex: Option.some(0),
+          }),
+        ).model
+        const requested = update(
+          open,
+          Message.RequestedPathItemActivation({ indexPath: [2] }),
+        )
+        const delayed = update(
+          requested.model,
+          Message.CompletedDelayActivatePathItem({
+            indexPath: [2],
+            version: requested.model.submenuRequestVersion,
+          }),
+        )
+
+        expect(delayed.model.openSubmenuIndexPath).toStrictEqual([])
+        expect(delayed.model.maybeActiveItemIndex).toStrictEqual(Option.some(2))
       })
 
       it('does not let an old child search timer clear a sibling query', () => {

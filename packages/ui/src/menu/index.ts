@@ -85,6 +85,7 @@ export const Model = Schema.Struct({
   pathSearchVersion: Schema.Number,
   maybePendingSubmenuIndexPath: Schema.Option(Schema.Array(Schema.Number)),
   maybePendingSubmenuCloseDepth: Schema.Option(Schema.Number),
+  maybePendingPathItemIndexPath: Schema.Option(Schema.Array(Schema.Number)),
   submenuRequestVersion: Schema.Number,
 })
 
@@ -161,6 +162,11 @@ export const Message = defineMessageUnion({
     submenuPath: Schema.Array(Schema.String),
     maybeActiveItemIndex: Schema.Option(Schema.Number),
   },
+  ClickedSubmenuTrigger: {
+    indexPath: Schema.Array(Schema.Number),
+    submenuPath: Schema.Array(Schema.String),
+    maybeActiveItemIndex: Schema.Option(Schema.Number),
+  },
   RequestedSubmenuOpen: {
     indexPath: Schema.Array(Schema.Number),
     submenuPath: Schema.Array(Schema.String),
@@ -174,8 +180,15 @@ export const Message = defineMessageUnion({
   },
   RequestedSubmenuClose: { depth: Schema.Number },
   CancelledSubmenuClose: {},
+  MovedPointerWithinSubmenu: { depth: Schema.Number },
   CompletedDelayCloseSubmenu: { depth: Schema.Number, version: Schema.Number },
   ClosedSubmenu: { depth: Schema.Number },
+  RequestedPathItemActivation: { indexPath: Schema.Array(Schema.Number) },
+  CompletedDelayActivatePathItem: {
+    indexPath: Schema.Array(Schema.Number),
+    version: Schema.Number,
+  },
+  LeftPathItem: { indexPath: Schema.Array(Schema.Number) },
   SelectedPathItem: {
     index: Schema.Number,
     item: Schema.String,
@@ -271,6 +284,7 @@ export const init = (config: InitConfig): Model => ({
   pathSearchVersion: 0,
   maybePendingSubmenuIndexPath: Option.none(),
   maybePendingSubmenuCloseDepth: Option.none(),
+  maybePendingPathItemIndexPath: Option.none(),
   submenuRequestVersion: 0,
 })
 
@@ -290,6 +304,7 @@ const closedModel = (model: Model): Model =>
     submenuLevels: () => [],
     maybePendingSubmenuIndexPath: () => Option.none(),
     maybePendingSubmenuCloseDepth: () => Option.none(),
+    maybePendingPathItemIndexPath: () => Option.none(),
     submenuRequestVersion: Number.increment,
   })
 
@@ -525,6 +540,18 @@ export const DelayCloseSubmenu = Command.define('DelayCloseSubmenu', {
       Effect.as(Message.CompletedDelayCloseSubmenu({ depth, version })),
     ),
 })
+/** Waits briefly before activating a parent item while its submenu is open. */
+export const DelayActivatePathItem = Command.define('DelayActivatePathItem', {
+  args: {
+    indexPath: Schema.Array(Schema.Number),
+    version: Schema.Number,
+  },
+  messages: [Message.CompletedDelayActivatePathItem],
+  execute: ({ indexPath, version }) =>
+    Effect.sleep(SUBMENU_OPEN_DELAY_MILLISECONDS).pipe(
+      Effect.as(Message.CompletedDelayActivatePathItem({ indexPath, version })),
+    ),
+})
 /** Detects whether the menu button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation submodel that leave is complete. */
 export const DetectMovementOrAnimationEnd = Command.define(
   'DetectMovementOrAnimationEnd',
@@ -688,6 +715,9 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           openIndex => openIndex !== maybeIndex.value,
         )
       const hasPendingOpen = Option.isSome(model.maybePendingSubmenuIndexPath)
+      const hasPendingActivation = Option.isSome(
+        model.maybePendingPathItemIndexPath,
+      )
       const withoutOpenChild = shouldCloseChild
         ? modifyFields(model, {
             openSubmenuIndexPath: Array.take(depth),
@@ -696,10 +726,11 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           })
         : model
       const baseModel =
-        shouldCloseChild || hasPendingOpen
+        shouldCloseChild || hasPendingOpen || hasPendingActivation
           ? modifyFields(withoutOpenChild, {
               maybePendingSubmenuIndexPath: () => Option.none(),
               maybePendingSubmenuCloseDepth: () => Option.none(),
+              maybePendingPathItemIndexPath: () => Option.none(),
               submenuRequestVersion: Number.increment,
             })
           : withoutOpenChild
@@ -741,9 +772,33 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           ],
           maybePendingSubmenuIndexPath: () => Option.none(),
           maybePendingSubmenuCloseDepth: () => Option.none(),
+          maybePendingPathItemIndexPath: () => Option.none(),
           submenuRequestVersion: Number.increment,
         }),
       }
+    },
+
+    ClickedSubmenuTrigger: ({
+      indexPath,
+      submenuPath,
+      maybeActiveItemIndex,
+    }) => {
+      const depth = Array.length(indexPath)
+      const isOpen =
+        Array.length(model.openSubmenuIndexPath) >= depth &&
+        Equal.equals(Array.take(model.openSubmenuIndexPath, depth), indexPath)
+      if (isOpen) {
+        return update(model, Message.ClosedSubmenu({ depth }))
+      }
+
+      return update(
+        model,
+        Message.OpenedSubmenu({
+          indexPath,
+          submenuPath,
+          maybeActiveItemIndex,
+        }),
+      )
     },
 
     RequestedSubmenuOpen: ({
@@ -767,6 +822,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         model: modifyFields(withActiveTrigger, {
           maybePendingSubmenuIndexPath: () => Option.some(indexPath),
           maybePendingSubmenuCloseDepth: () => Option.none(),
+          maybePendingPathItemIndexPath: () => Option.none(),
           submenuRequestVersion: () => nextVersion,
         }),
         commands: [
@@ -842,6 +898,36 @@ export const update = (model: Model, message: Message): UpdateReturn => {
       }
     },
 
+    MovedPointerWithinSubmenu: ({ depth }) => {
+      const shouldCancelOpen = Option.exists(
+        model.maybePendingSubmenuIndexPath,
+        indexPath => Array.length(indexPath) <= depth,
+      )
+      const shouldCancelActivation = Option.exists(
+        model.maybePendingPathItemIndexPath,
+        indexPath => Array.length(indexPath) <= depth,
+      )
+      const shouldCancelClose = Option.isSome(
+        model.maybePendingSubmenuCloseDepth,
+      )
+      if (!shouldCancelOpen && !shouldCancelActivation && !shouldCancelClose) {
+        return { model }
+      }
+
+      return {
+        model: modifyFields(model, {
+          maybePendingSubmenuIndexPath: maybePendingSubmenuIndexPath =>
+            shouldCancelOpen ? Option.none() : maybePendingSubmenuIndexPath,
+          maybePendingPathItemIndexPath: maybePendingPathItemIndexPath =>
+            shouldCancelActivation
+              ? Option.none()
+              : maybePendingPathItemIndexPath,
+          maybePendingSubmenuCloseDepth: () => Option.none(),
+          submenuRequestVersion: Number.increment,
+        }),
+      }
+    },
+
     CompletedDelayCloseSubmenu: ({ depth, version }) => {
       const isPending = Option.contains(
         model.maybePendingSubmenuCloseDepth,
@@ -867,6 +953,74 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           submenuLevels: () => Array.take(model.submenuLevels, depth - 1),
           maybePendingSubmenuIndexPath: () => Option.none(),
           maybePendingSubmenuCloseDepth: () => Option.none(),
+          maybePendingPathItemIndexPath: () => Option.none(),
+          submenuRequestVersion: Number.increment,
+        }),
+      }
+    },
+
+    RequestedPathItemActivation: ({ indexPath }) => {
+      const depth = Array.length(indexPath) - 1
+      const isChildOpen = Option.isSome(
+        Array.get(model.openSubmenuIndexPath, depth),
+      )
+      if (!isChildOpen) {
+        return update(
+          model,
+          Message.ActivatedPathItem({
+            indexPath,
+            activationTrigger: 'Pointer',
+          }),
+        )
+      }
+
+      const isAlreadyPending = Option.exists(
+        model.maybePendingPathItemIndexPath,
+        pendingPath => Equal.equals(pendingPath, indexPath),
+      )
+      if (isAlreadyPending) {
+        return { model }
+      }
+
+      const nextVersion = Number.increment(model.submenuRequestVersion)
+      return {
+        model: modifyFields(model, {
+          maybePendingSubmenuIndexPath: () => Option.none(),
+          maybePendingSubmenuCloseDepth: () => Option.none(),
+          maybePendingPathItemIndexPath: () => Option.some(indexPath),
+          submenuRequestVersion: () => nextVersion,
+        }),
+        commands: [DelayActivatePathItem({ indexPath, version: nextVersion })],
+      }
+    },
+
+    CompletedDelayActivatePathItem: ({ indexPath, version }) => {
+      const isPending = Option.exists(
+        model.maybePendingPathItemIndexPath,
+        pendingPath => Equal.equals(pendingPath, indexPath),
+      )
+      if (version !== model.submenuRequestVersion || !isPending) {
+        return { model }
+      }
+
+      return update(
+        model,
+        Message.ActivatedPathItem({ indexPath, activationTrigger: 'Pointer' }),
+      )
+    },
+
+    LeftPathItem: ({ indexPath }) => {
+      const isPending = Option.exists(
+        model.maybePendingPathItemIndexPath,
+        pendingPath => Equal.equals(pendingPath, indexPath),
+      )
+      if (!isPending) {
+        return { model }
+      }
+
+      return {
+        model: modifyFields(model, {
+          maybePendingPathItemIndexPath: () => Option.none(),
           submenuRequestVersion: Number.increment,
         }),
       }
@@ -2410,8 +2564,9 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
               content: h.span([], [entry.label]),
             })
           : itemToConfig(entry, context)
-        const clickMessage = isSubmenu(entry)
-          ? Message.OpenedSubmenu({
+        const clickMessage = (): Message => {
+          if (isSubmenu(entry)) {
+            return Message.ClickedSubmenuTrigger({
               indexPath,
               submenuPath: path,
               maybeActiveItemIndex: childFirstEnabledIndex(
@@ -2420,12 +2575,15 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
                 indexPath,
               ),
             })
-          : Message.SelectedPathItem({
-              index,
-              item: entry,
-              path,
-              indexPath,
-            })
+          }
+
+          return Message.SelectedPathItem({
+            index,
+            item: entry,
+            path,
+            indexPath,
+          })
+        }
 
         const rendered = h.keyed('div')(
           entryKey,
@@ -2449,7 +2607,7 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
               : []),
             ...(!isDisabled && !isLeaving
               ? [
-                  h.OnClick(clickMessage),
+                  h.OnClick(clickMessage()),
                   h.OnPointerMove((_screenX, _screenY, pointerType) => {
                     if (pointerType === 'touch') {
                       return Option.none()
@@ -2474,10 +2632,7 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
                       )
                     }
                     return Option.some(
-                      Message.ActivatedPathItem({
-                        indexPath,
-                        activationTrigger: 'Pointer',
-                      }),
+                      Message.RequestedPathItemActivation({ indexPath }),
                     )
                   }),
                   ...(isSubmenu(entry)
@@ -2489,7 +2644,14 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
                           ),
                         ),
                       ]
-                    : []),
+                    : [
+                        h.OnPointerLeave(pointerType =>
+                          OptionExt.when(
+                            pointerType !== 'touch',
+                            Message.LeftPathItem({ indexPath }),
+                          ),
+                        ),
+                      ]),
                 ]
               : []),
             ...(config.className ? [h.Class(config.className)] : []),
@@ -2635,7 +2797,7 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
                 h.OnPointerMove((_screenX, _screenY, pointerType) =>
                   OptionExt.when(
                     pointerType !== 'touch',
-                    Message.CancelledSubmenuClose(),
+                    Message.MovedPointerWithinSubmenu({ depth }),
                   ),
                 ),
               ]
