@@ -11,7 +11,7 @@ test('keeps sustained upward history scrolling populated and continuous', async 
   await container.locator('[data-virtual-list-item-key]').first().waitFor()
   await page.waitForTimeout(400)
   await expect(
-    page.getByText('24 messages · Click to expand a message'),
+    page.getByText('24 messages loaded', { exact: true }),
   ).toBeVisible()
 
   const result = await container.evaluate(async element => {
