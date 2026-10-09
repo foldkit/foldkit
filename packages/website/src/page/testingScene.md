@@ -188,7 +188,7 @@ Each matcher accepts either a Command Definition (matches by name) or a Command 
 
 ## Mounts
 
-When a rendered view contains an `OnMount` attribute, Scene keeps that Mount pending until the test supplies its result Message. If the mounted element later leaves the tree, the test must also acknowledge the unmount with `Mount.expectEnded`.
+A Mount starts when its element is inserted. Scene keeps that Mount pending until the test supplies its result Message. Adding `OnMount` to an element that is already in the tree leaves it out, because the runtime reuses that DOM node and does not run `execute` again. If the mounted element later leaves the tree, the test must also acknowledge the unmount with `Mount.expectEnded`.
 
 This applies to Mounts declared inside `@foldkit/ui` components too. Popovers, dialogs, and other components export their Mount Definitions so a consumer test can name and resolve them.
 

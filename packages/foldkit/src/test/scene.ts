@@ -19,7 +19,6 @@ import { serializedStylePropertyName } from '../domReflection.js'
 import type { File } from '../file/index.js'
 import type { FoldkitMountMarker } from '../html/index.js'
 import {
-  FOLDKIT_MOUNT_KEY,
   FileHandlerSymbol,
   __clearRuntime as clearHtmlRuntime,
   __htmlBuilder as htmlBuilderFor,
@@ -35,6 +34,7 @@ import type { Entry as ManagedResourceEntry } from '../managedResource/index.js'
 import { MountTracker } from '../mount/index.js'
 import type { MountDefinition } from '../mount/index.js'
 import { Dispatch } from '../runtime/dispatch.js'
+import { sameVnode } from '../snabbdom/vnode.js'
 import { tagNameFromSelector } from '../tagName.js'
 import type { VNode } from '../vdom.js'
 import type {
@@ -289,6 +289,7 @@ type InternalSceneSimulation<
     capturingDispatch: CapturingDispatch
     scope: Option.Option<Locator>
     mountSlots: ReadonlyArray<MountSlotState>
+    startedMountNodes: WeakSet<VNode>
     outMessages: ReadonlyArray<OutMessage>
     outMessageRevision: number
     lastInteractionOutcome: InteractionOutcome
@@ -298,15 +299,240 @@ type InternalSceneSimulation<
 const slotKey = ({ name, occurrence }: PendingMount): string =>
   `${name}#${occurrence}`
 
-const collectRenderedSlots = (vnode: VNode): ReadonlyArray<PendingMount> => {
+const mountMarkerOf = (node: VNode): FoldkitMountMarker | undefined =>
+  node.data?.foldkitMount
+
+const vnodeChildren = (node: VNode): Array<VNode> =>
+  Array.map(node.children ?? [], child =>
+    Predicate.isString(child)
+      ? {
+          sel: undefined,
+          data: undefined,
+          children: undefined,
+          elm: undefined,
+          text: child,
+          key: undefined,
+        }
+      : child,
+  )
+
+const childAt = <A>(children: ReadonlyArray<A>, index: number): A | undefined =>
+  Option.getOrUndefined(Array.get(children, index))
+
+const keyToIndex = (
+  children: ReadonlyArray<VNode | undefined>,
+  beginIndex: number,
+  endIndex: number,
+): Map<PropertyKey, number> => {
+  const map = new Map<PropertyKey, number>()
+  for (let index = beginIndex; index <= endIndex; index++) {
+    const key = childAt(children, index)?.key
+    if (key !== undefined) {
+      map.set(key, index)
+    }
+  }
+  return map
+}
+
+type ElementVisit =
+  | Readonly<{ _tag: 'Patched'; previous: VNode; next: VNode }>
+  | Readonly<{ _tag: 'Created'; next: VNode }>
+
+// NOTE: `updateChildren` skips a prefix of children that are the same vnode
+// object. That skip is only an optimization: those nodes are still the same
+// DOM elements. This walk patches them so a Mount on a cached vnode stays.
+const visitSiblings = (
+  previousChildren: ReadonlyArray<VNode>,
+  nextSiblings: ReadonlyArray<VNode>,
+  visit: (elementVisit: ElementVisit) => void,
+): void => {
+  if (
+    Option.isNone(Array.head(previousChildren)) &&
+    Option.isNone(Array.head(nextSiblings))
+  ) {
+    return
+  }
+
+  const previousSiblings: Array<VNode | undefined> = [...previousChildren]
+
+  let previousStartIndex = 0
+  let nextStartIndex = 0
+  let previousEndIndex = previousSiblings.length - 1
+  let nextEndIndex = nextSiblings.length - 1
+  let previousStartVnode = childAt(previousSiblings, previousStartIndex)
+  let previousEndVnode = childAt(previousSiblings, previousEndIndex)
+  let nextStartVnode = childAt(nextSiblings, nextStartIndex)
+  let nextEndVnode = childAt(nextSiblings, nextEndIndex)
+  let previousKeyToIndex: Map<PropertyKey, number> | undefined
+
+  while (
+    previousStartIndex <= previousEndIndex &&
+    nextStartIndex <= nextEndIndex
+  ) {
+    if (previousStartVnode === undefined) {
+      previousStartIndex += 1
+      previousStartVnode = childAt(previousSiblings, previousStartIndex)
+      continue
+    }
+    if (previousEndVnode === undefined) {
+      previousEndIndex -= 1
+      previousEndVnode = childAt(previousSiblings, previousEndIndex)
+      continue
+    }
+    if (nextStartVnode === undefined) {
+      nextStartIndex += 1
+      nextStartVnode = childAt(nextSiblings, nextStartIndex)
+      continue
+    }
+    if (nextEndVnode === undefined) {
+      nextEndIndex -= 1
+      nextEndVnode = childAt(nextSiblings, nextEndIndex)
+      continue
+    }
+    if (sameVnode(previousStartVnode, nextStartVnode)) {
+      visit({
+        _tag: 'Patched',
+        previous: previousStartVnode,
+        next: nextStartVnode,
+      })
+      previousStartIndex += 1
+      nextStartIndex += 1
+      previousStartVnode = childAt(previousSiblings, previousStartIndex)
+      nextStartVnode = childAt(nextSiblings, nextStartIndex)
+      continue
+    }
+    if (sameVnode(previousEndVnode, nextEndVnode)) {
+      visit({
+        _tag: 'Patched',
+        previous: previousEndVnode,
+        next: nextEndVnode,
+      })
+      previousEndIndex -= 1
+      nextEndIndex -= 1
+      previousEndVnode = childAt(previousSiblings, previousEndIndex)
+      nextEndVnode = childAt(nextSiblings, nextEndIndex)
+      continue
+    }
+    if (sameVnode(previousStartVnode, nextEndVnode)) {
+      visit({
+        _tag: 'Patched',
+        previous: previousStartVnode,
+        next: nextEndVnode,
+      })
+      previousStartIndex += 1
+      nextEndIndex -= 1
+      previousStartVnode = childAt(previousSiblings, previousStartIndex)
+      nextEndVnode = childAt(nextSiblings, nextEndIndex)
+      continue
+    }
+    if (sameVnode(previousEndVnode, nextStartVnode)) {
+      visit({
+        _tag: 'Patched',
+        previous: previousEndVnode,
+        next: nextStartVnode,
+      })
+      previousEndIndex -= 1
+      nextStartIndex += 1
+      previousEndVnode = childAt(previousSiblings, previousEndIndex)
+      nextStartVnode = childAt(nextSiblings, nextStartIndex)
+      continue
+    }
+
+    if (previousKeyToIndex === undefined) {
+      previousKeyToIndex = keyToIndex(
+        previousSiblings,
+        previousStartIndex,
+        previousEndIndex,
+      )
+    }
+    const nextStartKey = nextStartVnode.key
+    const indexInPrevious =
+      nextStartKey === undefined
+        ? undefined
+        : previousKeyToIndex.get(nextStartKey)
+    if (indexInPrevious === undefined) {
+      visit({ _tag: 'Created', next: nextStartVnode })
+      nextStartIndex += 1
+      nextStartVnode = childAt(nextSiblings, nextStartIndex)
+      continue
+    }
+    const nextEndKey = nextEndVnode.key
+    if (
+      nextEndKey === undefined ||
+      previousKeyToIndex.get(nextEndKey) === undefined
+    ) {
+      visit({ _tag: 'Created', next: nextEndVnode })
+      nextEndIndex -= 1
+      nextEndVnode = childAt(nextSiblings, nextEndIndex)
+      continue
+    }
+
+    const vnodeToMove = childAt(previousSiblings, indexInPrevious)
+    if (vnodeToMove === undefined || !sameVnode(vnodeToMove, nextStartVnode)) {
+      visit({ _tag: 'Created', next: nextStartVnode })
+    } else {
+      visit({
+        _tag: 'Patched',
+        previous: vnodeToMove,
+        next: nextStartVnode,
+      })
+      previousSiblings.splice(indexInPrevious, 1, undefined)
+    }
+    nextStartIndex += 1
+    nextStartVnode = childAt(nextSiblings, nextStartIndex)
+  }
+
+  if (nextStartIndex <= nextEndIndex) {
+    for (let index = nextStartIndex; index <= nextEndIndex; index++) {
+      const next = childAt(nextSiblings, index)
+      if (next !== undefined) {
+        visit({ _tag: 'Created', next })
+      }
+    }
+  }
+}
+
+const includeCreatedMounts = (node: VNode, included: WeakSet<VNode>): void => {
+  if (mountMarkerOf(node) !== undefined) {
+    included.add(node)
+  }
+  for (const child of vnodeChildren(node)) {
+    includeCreatedMounts(child, included)
+  }
+}
+
+const walkPatchedMounts = (
+  previous: VNode,
+  next: VNode,
+  included: WeakSet<VNode>,
+  previouslyStarted: WeakSet<VNode>,
+): void => {
+  if (mountMarkerOf(next) !== undefined && previouslyStarted.has(previous)) {
+    included.add(next)
+  }
+  visitSiblings(vnodeChildren(previous), vnodeChildren(next), elementVisit => {
+    if (elementVisit._tag === 'Created') {
+      includeCreatedMounts(elementVisit.next, included)
+      return
+    }
+    walkPatchedMounts(
+      elementVisit.previous,
+      elementVisit.next,
+      included,
+      previouslyStarted,
+    )
+  })
+}
+
+const collectRenderedSlots = (
+  vnode: VNode,
+  included: WeakSet<VNode>,
+): ReadonlyArray<PendingMount> => {
   const counts = new Map<string, number>()
   const slots: Array<PendingMount> = []
   const walk = (node: VNode): void => {
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    const marker = node.data?.[FOLDKIT_MOUNT_KEY] as
-      | FoldkitMountMarker
-      | undefined
-    if (marker !== undefined) {
+    const marker = mountMarkerOf(node)
+    if (marker !== undefined && included.has(node)) {
       const occurrence = counts.get(marker.name) ?? 0
       counts.set(marker.name, occurrence + 1)
       const slotWithArgs: PendingMount =
@@ -319,24 +545,56 @@ const collectRenderedSlots = (vnode: VNode): ReadonlyArray<PendingMount> => {
           : { ...slotWithArgs, messageMappers: marker.messageMappers },
       )
     }
-    for (const child of node.children ?? []) {
-      if (typeof child !== 'string') {
-        walk(child)
-      }
+    for (const child of vnodeChildren(node)) {
+      walk(child)
     }
   }
   walk(vnode)
   return slots
 }
 
+const startedMounts = (
+  maybePreviousTree: Option.Option<VNode>,
+  rendered: VNode,
+  previouslyStarted: WeakSet<VNode>,
+): Readonly<{
+  slots: ReadonlyArray<PendingMount>
+  startedNodes: WeakSet<VNode>
+}> => {
+  const included = new WeakSet<VNode>()
+  if (
+    Option.isSome(maybePreviousTree) &&
+    sameVnode(maybePreviousTree.value, rendered)
+  ) {
+    walkPatchedMounts(
+      maybePreviousTree.value,
+      rendered,
+      included,
+      previouslyStarted,
+    )
+  } else {
+    includeCreatedMounts(rendered, included)
+  }
+  return {
+    slots: collectRenderedSlots(rendered, included),
+    startedNodes: included,
+  }
+}
+
 const reconcileMountSlots = (
   previous: ReadonlyArray<MountSlotState>,
   rendered: VNode,
-): ReadonlyArray<MountSlotState> => {
+  maybePreviousTree: Option.Option<VNode>,
+  previouslyStarted: WeakSet<VNode>,
+): Readonly<{
+  slots: ReadonlyArray<MountSlotState>
+  startedNodes: WeakSet<VNode>
+}> => {
   const previousByKey = new Map(
     Array.map(previous, state => [slotKey(state.slot), state] as const),
   )
-  const renderedSlots = collectRenderedSlots(rendered)
+  const started = startedMounts(maybePreviousTree, rendered, previouslyStarted)
+  const renderedSlots = started.slots
   const renderedKeys = new Set(Array.map(renderedSlots, slotKey))
   const fromRendered = Array.map(renderedSlots, slot => {
     const existing = previousByKey.get(slotKey(slot))
@@ -359,10 +617,13 @@ const reconcileMountSlots = (
         !state.status.acknowledged,
     ),
   )
-  return Array.appendAll(
-    fromRendered,
-    Array.appendAll(fromVanished, unacknowledgedRevived),
-  )
+  return {
+    slots: Array.appendAll(
+      fromRendered,
+      Array.appendAll(fromVanished, unacknowledgedRevived),
+    ),
+    startedNodes: started.startedNodes,
+  }
 }
 
 const endStatus = (state: MountSlotState): MountSlotState => {
@@ -1781,13 +2042,20 @@ const runSteps = <Model, Message, OutMessage>(
         internal.model,
         internal.capturingDispatch.dispatch,
       )
-      const mountSlots = reconcileMountSlots(internal.mountSlots, html)
-      const mounts = pendingMountsOf(mountSlots)
-      return { ...internal, html, mountSlots, mounts } as SceneSimulation<
-        Model,
-        Message,
-        OutMessage
-      >
+      const reconciledMounts = reconcileMountSlots(
+        internal.mountSlots,
+        html,
+        Option.fromNullishOr(internal.html),
+        internal.startedMountNodes,
+      )
+      const mounts = pendingMountsOf(reconciledMounts.slots)
+      return {
+        ...internal,
+        html,
+        mountSlots: reconciledMounts.slots,
+        mounts,
+        startedMountNodes: reconciledMounts.startedNodes,
+      } as SceneSimulation<Model, Message, OutMessage>
     }
 
     return next
@@ -3082,6 +3350,7 @@ export const scene: {
     commands: Array.empty(),
     mounts: [],
     mountSlots: [],
+    startedMountNodes: new WeakSet(),
     outMessage: undefined,
     outMessages: [],
     outMessageRevision: 0,
