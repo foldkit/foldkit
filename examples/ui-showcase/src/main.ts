@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Array, Effect, Match, Option, Schema, pipe } from 'effect'
+import { Array, Effect, Match, Option, Record, Schema, pipe } from 'effect'
 import {
   Calendar,
   Command,
@@ -115,34 +115,51 @@ const virtualListRouter = pipe(
   Route.mapTo(AppRoute.VirtualList),
 )
 
+type ComponentRouteTag = Exclude<
+  keyof typeof AppRoute.guards,
+  'Home' | 'NotFound'
+>
+
+type ComponentRoute = Exclude<
+  AppRoute,
+  typeof AppRoute.Home.Type | typeof AppRoute.NotFound.Type
+>
+
+const COMPONENT_ROUTES: Record.ReadonlyRecord<
+  ComponentRouteTag,
+  Readonly<{ label: string; router: Route.Router<ComponentRoute> }>
+> = {
+  Animation: { label: 'Animation', router: animationRouter },
+  Button: { label: 'Button', router: buttonRouter },
+  Calendar: { label: 'Calendar', router: calendarRouter },
+  Checkbox: { label: 'Checkbox', router: checkboxRouter },
+  Combobox: { label: 'Combobox', router: comboboxRouter },
+  DatePicker: { label: 'Date Picker', router: datePickerRouter },
+  Dialog: { label: 'Dialog', router: dialogRouter },
+  Disclosure: { label: 'Disclosure', router: disclosureRouter },
+  DragAndDrop: { label: 'Drag and Drop', router: dragAndDropRouter },
+  Fieldset: { label: 'Fieldset', router: fieldsetRouter },
+  FileDrop: { label: 'File Drop', router: fileDropRouter },
+  HoverIntent: { label: 'Hover Intent', router: hoverIntentRouter },
+  Input: { label: 'Input', router: inputRouter },
+  Listbox: { label: 'Listbox', router: listboxRouter },
+  Menu: { label: 'Menu', router: menuRouter },
+  Meter: { label: 'Meter', router: meterRouter },
+  Popover: { label: 'Popover', router: popoverRouter },
+  Progress: { label: 'Progress', router: progressRouter },
+  RadioGroup: { label: 'Radio Group', router: radioGroupRouter },
+  Select: { label: 'Select', router: selectRouter },
+  Slider: { label: 'Slider', router: sliderRouter },
+  Switch: { label: 'Switch', router: switchRouter },
+  Tabs: { label: 'Tabs', router: tabsRouter },
+  Textarea: { label: 'Textarea', router: textareaRouter },
+  Toast: { label: 'Toast', router: toastRouter },
+  Tooltip: { label: 'Tooltip', router: tooltipRouter },
+  VirtualList: { label: 'Virtual List', router: virtualListRouter },
+}
+
 const routeParser = Route.oneOf(
-  buttonRouter,
-  calendarRouter,
-  checkboxRouter,
-  comboboxRouter,
-  datePickerRouter,
-  dialogRouter,
-  disclosureRouter,
-  dragAndDropRouter,
-  fieldsetRouter,
-  fileDropRouter,
-  hoverIntentRouter,
-  inputRouter,
-  listboxRouter,
-  menuRouter,
-  meterRouter,
-  popoverRouter,
-  progressRouter,
-  radioGroupRouter,
-  selectRouter,
-  sliderRouter,
-  switchRouter,
-  tabsRouter,
-  textareaRouter,
-  toastRouter,
-  tooltipRouter,
-  animationRouter,
-  virtualListRouter,
+  ...Array.map(Record.values(COMPONENT_ROUTES), ({ router }) => router),
   homeRouter,
 )
 
@@ -272,99 +289,36 @@ export const update = (model: Model, message: Message) =>
 
 // VIEW
 
-type NavItem = Readonly<{
-  label: string
-  routeTag: string
-  href: string
-}>
-
-const NAV_ITEMS: ReadonlyArray<NavItem> = [
-  { label: 'Animation', routeTag: 'Animation', href: animationRouter() },
-  { label: 'Button', routeTag: 'Button', href: buttonRouter() },
-  { label: 'Calendar', routeTag: 'Calendar', href: calendarRouter() },
-  { label: 'Checkbox', routeTag: 'Checkbox', href: checkboxRouter() },
-  { label: 'Combobox', routeTag: 'Combobox', href: comboboxRouter() },
-  { label: 'Date Picker', routeTag: 'DatePicker', href: datePickerRouter() },
-  { label: 'Dialog', routeTag: 'Dialog', href: dialogRouter() },
-  { label: 'Disclosure', routeTag: 'Disclosure', href: disclosureRouter() },
-  {
-    label: 'Drag and Drop',
-    routeTag: 'DragAndDrop',
-    href: dragAndDropRouter(),
-  },
-  { label: 'Fieldset', routeTag: 'Fieldset', href: fieldsetRouter() },
-  { label: 'File Drop', routeTag: 'FileDrop', href: fileDropRouter() },
-  {
-    label: 'Hover Intent',
-    routeTag: 'HoverIntent',
-    href: hoverIntentRouter(),
-  },
-  { label: 'Input', routeTag: 'Input', href: inputRouter() },
-  { label: 'Listbox', routeTag: 'Listbox', href: listboxRouter() },
-  { label: 'Menu', routeTag: 'Menu', href: menuRouter() },
-  { label: 'Meter', routeTag: 'Meter', href: meterRouter() },
-  { label: 'Popover', routeTag: 'Popover', href: popoverRouter() },
-  { label: 'Progress', routeTag: 'Progress', href: progressRouter() },
-  { label: 'Radio Group', routeTag: 'RadioGroup', href: radioGroupRouter() },
-  { label: 'Select', routeTag: 'Select', href: selectRouter() },
-  { label: 'Slider', routeTag: 'Slider', href: sliderRouter() },
-  { label: 'Switch', routeTag: 'Switch', href: switchRouter() },
-  { label: 'Tabs', routeTag: 'Tabs', href: tabsRouter() },
-  { label: 'Textarea', routeTag: 'Textarea', href: textareaRouter() },
-  { label: 'Toast', routeTag: 'Toast', href: toastRouter() },
-  { label: 'Tooltip', routeTag: 'Tooltip', href: tooltipRouter() },
-  {
-    label: 'Virtual List',
-    routeTag: 'VirtualList',
-    href: virtualListRouter(),
-  },
-]
-
-const NAV_ROUTE_TAGS: ReadonlyArray<string> = Array.map(
-  NAV_ITEMS,
-  navItem => navItem.routeTag,
-)
-
-const navItemHref = (index: number): string =>
-  pipe(
-    NAV_ITEMS,
-    Array.get(index),
-    Option.map(navItem => navItem.href),
-    Option.getOrElse(() => homeRouter()),
-  )
+const COMPONENT_ROUTE_TAGS = Record.keys(COMPONENT_ROUTES)
 
 const componentNav = (
   currentRoute: AppRoute,
-  toView: (render: Nav.RenderInfo) => Html,
+  toView: (render: Nav.RenderInfo<ComponentRouteTag>) => Html,
 ): Html =>
-  Nav.view({
-    items: NAV_ROUTE_TAGS,
+  Nav.view<ComponentRouteTag>({
+    items: COMPONENT_ROUTE_TAGS,
     ariaLabel: 'Components',
-    toHref: (_routeTag, index) => navItemHref(index),
-    isItemCurrent: routeTag => currentRoute._tag === routeTag,
+    toHref: routeTag => COMPONENT_ROUTES[routeTag].router(),
+    isItemCurrent: routeTag => AppRoute.guards[routeTag](currentRoute),
     toView,
   })
 
 const navListView = <Message>(
-  items: ReadonlyArray<Nav.ItemInfo>,
+  items: ReadonlyArray<Nav.ItemInfo<ComponentRouteTag>>,
   linkClassName: (isActive: boolean) => string,
   h: HtmlBuilder<Message>,
 ): Html =>
   h.ul(
     [h.Class('flex flex-col gap-0.5')],
-    pipe(
-      NAV_ITEMS,
-      Array.zip(items),
-      Array.map(([navItem, item]) =>
-        h.li(
-          [],
-          [
-            h.a(
-              [...item.link, h.Class(linkClassName(item.isCurrent))],
-              [navItem.label],
-            ),
-          ],
-        ),
+    Array.map(items, item =>
+      h.li(
+        [],
+        [
+          h.a(
+            [...item.link, h.Class(linkClassName(item.isCurrent))],
+            [COMPONENT_ROUTES[item.value].label],
+          ),
+        ],
       ),
     ),
   )
@@ -386,7 +340,10 @@ const mobileNavLinkClassName = (isActive: boolean): string =>
   )
 
 const sidebarView = (currentRoute: AppRoute, h: HtmlBuilder<Message>): Html => {
-  const sidebarNavView = ({ nav, items }: Nav.RenderInfo): Html =>
+  const sidebarNavView = ({
+    nav,
+    items,
+  }: Nav.RenderInfo<ComponentRouteTag>): Html =>
     h.nav(
       [
         ...nav,
@@ -422,7 +379,10 @@ const mobileMenuContent = (
   closeButton: Dialog.RenderInfo['closeButton'],
   h: HtmlBuilder<UiMessage>,
 ): Html => {
-  const mobileNavView = ({ nav, items }: Nav.RenderInfo): Html =>
+  const mobileNavView = ({
+    nav,
+    items,
+  }: Nav.RenderInfo<ComponentRouteTag>): Html =>
     h.nav(
       [
         ...nav,
