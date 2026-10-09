@@ -8,7 +8,7 @@ The example uses two files. `src/main.ts` holds the pure application definitions
 
 ::Snippet{name="counter" label="Counter main.ts"}
 
-The entry imports those definitions and passes them to `Runtime.makeApplication`. `Runtime.run` then starts the application in the selected container.
+The entry passes those definitions to `Application.make`. `Runtime.run` then starts the application in the selected container.
 
 ::Snippet{name="counterEntry" label="Counter entry.ts"}
 

@@ -4,13 +4,14 @@ import {
   Duration,
   Effect,
   HashMap,
+  Layer,
   Match,
   Option,
   Schema,
   Stream,
   pipe,
 } from 'effect'
-import { AsyncData, Command, Runtime, Subscription, Update } from 'foldkit'
+import { AsyncData, Command, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -93,7 +94,12 @@ export type Message = typeof Message.Type
 
 // UPDATE
 
-type UpdateReturn = Update.Return<Model, Message>
+type UpdateRequirements =
+  | Command.HandlerOf<typeof FetchPosts>
+  | Command.HandlerOf<typeof FetchPostDetail>
+  | Command.HandlerOf<typeof FetchStats>
+
+type UpdateReturn = Update.Return<Model, Message, UpdateRequirements>
 
 const applyPostsTransition = (
   model: Model,
@@ -144,7 +150,7 @@ const activateTab = (model: Model, tab: Tab): UpdateReturn => {
 }
 
 const foldTabsOutMessage = Tabs.OutMessage.match<
-  Update.Step<Model, Message>,
+  Update.Step<Model, Message, UpdateRequirements>,
   Tabs.OutMessage<Tab>
 >({
   Selected:
@@ -161,7 +167,7 @@ const foldTabs = Update.foldChild({
   foldOutMessage: foldTabsOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
+export const update = Update.make((model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     GotTabsMessage: ({ message }) => foldTabs(model, message),
 
@@ -220,19 +226,20 @@ export const update = (model: Model, message: Message) =>
     SettledFetchStats: ({ result }) => ({
       model: modifyFields(model, { stats: AsyncData.settle(result) }),
     }),
-  })
+  }),
+)
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
-  model: {
+export const init = () => ({
+  model: Model.make({
     tabs: Tabs.init({ id: TABS_ID }),
     activeTab: 'Posts',
     posts: PostsData.Loading(),
     postDetailById: HashMap.empty(),
     maybeSelectedPostId: Option.none(),
     stats: StatsData.Idle(),
-  },
+  }),
   commands: [FetchPosts()],
 })
 
@@ -240,7 +247,10 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 
 export const FetchPosts = Command.define('FetchPosts', {
   messages: [Message.SettledFetchPosts],
-  execute: pipe(
+})
+
+const FetchPostsLive = FetchPosts.toLayer(() =>
+  pipe(
     Effect.gen(function* () {
       const posts = yield* fetchPosts
       const fetchedAt = yield* Clock.currentTimeMillis
@@ -249,26 +259,31 @@ export const FetchPosts = Command.define('FetchPosts', {
     Effect.result,
     Effect.map(result => Message.SettledFetchPosts({ result })),
   ),
-})
+)
 
 export const FetchPostDetail = Command.define('FetchPostDetail', {
   args: { postId: Schema.String },
   messages: [Message.SettledFetchPostDetail],
-  execute: ({ postId }) =>
-    pipe(
-      Effect.gen(function* () {
-        const detail = yield* fetchPostDetail(postId)
-        const fetchedAt = yield* Clock.currentTimeMillis
-        return FetchedPostDetail.make({ detail, fetchedAt })
-      }),
-      Effect.result,
-      Effect.map(result => Message.SettledFetchPostDetail({ postId, result })),
-    ),
 })
+
+const FetchPostDetailLive = FetchPostDetail.toLayer(({ postId }) =>
+  pipe(
+    Effect.gen(function* () {
+      const detail = yield* fetchPostDetail(postId)
+      const fetchedAt = yield* Clock.currentTimeMillis
+      return FetchedPostDetail.make({ detail, fetchedAt })
+    }),
+    Effect.result,
+    Effect.map(result => Message.SettledFetchPostDetail({ postId, result })),
+  ),
+)
 
 export const FetchStats = Command.define('FetchStats', {
   messages: [Message.SettledFetchStats],
-  execute: pipe(
+})
+
+const FetchStatsLive = FetchStats.toLayer(() =>
+  pipe(
     Effect.gen(function* () {
       const stats = yield* fetchStats
       const fetchedAt = yield* Clock.currentTimeMillis
@@ -277,31 +292,42 @@ export const FetchStats = Command.define('FetchStats', {
     Effect.result,
     Effect.map(result => Message.SettledFetchStats({ result })),
   ),
-})
+)
 
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   revalidateStats: entry(
+    'WatchStatsRevalidation',
     { isObservingStats: Schema.Boolean },
     {
       modelToDependencies: model => ({
         isObservingStats:
           model.activeTab === 'Stats' && AsyncData.hasData(model.stats),
       }),
-      dependenciesToStream: ({ isObservingStats }) =>
-        Stream.when(
-          // NOTE: Stream.tick emits once immediately. Drop that first
-          // emission so freshly loaded stats are not refetched instantly.
-          Stream.tick(STATS_REFETCH_INTERVAL).pipe(
-            Stream.drop(1),
-            Stream.map(Message.TickedRevalidateStats),
-          ),
-          Effect.sync(() => isObservingStats),
-        ),
     },
   ),
 }))
+
+const WatchStatsRevalidationLive = subscriptions.revalidateStats.toLayer(
+  ({ isObservingStats }) =>
+    Stream.when(
+      // NOTE: Stream.tick emits once immediately. Drop that first
+      // emission so freshly loaded stats are not refetched instantly.
+      Stream.tick(STATS_REFETCH_INTERVAL).pipe(
+        Stream.drop(1),
+        Stream.map(Message.TickedRevalidateStats),
+      ),
+      Effect.sync(() => isObservingStats),
+    ),
+)
+
+export const Live = Layer.mergeAll(
+  FetchPostsLive,
+  FetchPostDetailLive,
+  FetchStatsLive,
+  WatchStatsRevalidationLive,
+)
 
 // VIEW
 

@@ -6,7 +6,7 @@ A Foldkit app usually starts in two files. `src/main.ts` holds the pure definiti
 
 The Runtime API makes two independent choices:
 
-- `makeApplication` or `makeElement` decides what the app owns. An application owns the page; an element owns only its container.
+- `Application.make` or `Runtime.makeElement` decides what the app owns. An application owns the page; an element owns only its container.
 - `Runtime.run` or `Runtime.embed` decides who owns the runtime lifetime. `run` starts it for the page lifetime; `embed` returns a handle the host disposes.
 
 For a page-owning application with Layer-backed Commands, Subscriptions, or ManagedResources, `Application.make` carries their inferred Effect requirements. Call `Application.provide` until they are satisfied, then pass the runnable application to `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed`. Provision can be chained because a handler Layer may itself need services from a later Layer. The application config has no `resources` field; runtime-wide services are supplied through `Application.provide`.
@@ -15,31 +15,31 @@ For a larger application, combine independent feature Layers with Effect's `Laye
 
 ::Snippet{name="runApplicationLayers" label="Providing application handler Layers"}
 
-## makeApplication {#make-application}
+## Application.make {#make-application}
 
-`makeApplication` creates a Foldkit program for an app that owns the page. It supports both apps that leave the URL alone and apps that manage routing. The difference is whether you provide a `routing` config. To scope an app to one node without owning the page, use `makeElement`.
+`Application.make` creates a Foldkit program for an app that owns the page. It supports both apps that leave the URL alone and apps that manage routing. The difference is whether you provide a `routing` config. To scope an app to one node without owning the page, use `Runtime.makeElement`.
 
 ### Without routing
 
 Without a `routing` config, the program doesn't manage the URL bar.
 
-::Snippet{name="runMakeApplication" label="Using makeApplication without routing"}
+::Snippet{name="runMakeApplication" label="Application without routing"}
 
 ### With routing
 
 With a `routing` config, the program manages the URL bar. The init function receives the current URL and can use it to set the initial route.
 
-::Snippet{name="runMakeApplicationRouting" label="Using makeApplication with routing"}
+::Snippet{name="runMakeApplicationRouting" label="Application with routing"}
 
 The `routing` config has two handlers. `onUrlRequest` turns a clicked link into a Message, giving update the choice between internal and external navigation. `onUrlChange` turns the new URL into a Message so update can store the corresponding route in the Model. See [Routing & Navigation](/core/routing-and-navigation) for the full walkthrough.
 
-The view returns a `Document` rather than bare HTML. A `Document` contains the body plus the document-level state that `makeApplication` reapplies on every render. The tab title, the `<html>` language and direction, and the canonical and og\:url tags therefore stay in sync with the Model. [The Document](/core/view#the-document) lists every field.
+The view returns a `Document` rather than bare HTML. A `Document` contains the body plus the document-level state that `Application.make` reapplies on every render. The tab title, the `<html>` language and direction, and the canonical and og\:url tags therefore stay in sync with the Model. [The Document](/core/view#the-document) lists every field.
 
 ## makeElement {#make-element}
 
-`makeApplication` assumes it owns the page. That is correct for an app that owns its tab, but not for a widget on a page controlled by another application, where document updates would overwrite the host page metadata.
+`Application.make` assumes it owns the page. That is correct for an app that owns its tab, but not for a widget on a page controlled by another application, where document updates would overwrite the host page metadata.
 
-Use `makeElement` to scope a Foldkit app to its container. Its view returns `Html` directly, and the runtime never touches the document `<head>` or the `<html>` element. The same Model, init, update, Command, Subscription, resource, and crash-handling architecture remains available. Element-scoped apps do not own the URL bar, so `makeElement` has no `routing` config.
+Use `Runtime.makeElement` to scope a Foldkit app to its container. Its view returns `Html` directly, and the runtime never touches the document `<head>` or the `<html>` element. The same Model, init, update, Command, Subscription, resource, and crash-handling architecture remains available. Element-scoped apps do not own the URL bar, so `makeElement` has no `routing` config.
 
 Flags still resolve before init, but their wiring follows the ownership boundary. A page-owning application receives its Flags Effect when `Runtime.run` starts it. A self-contained element receives its Flags Effect in the `makeElement` config.
 

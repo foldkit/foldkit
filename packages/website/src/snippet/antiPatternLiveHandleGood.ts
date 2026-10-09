@@ -1,18 +1,15 @@
 // ✅ Good: Model state controls the WebSocket's lifetime.
 
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Command, ManagedResource } from 'foldkit'
 
 const ChatSocket = ManagedResource.tag<WebSocket>()('ChatSocket')
 const RoomRequirements = Schema.Struct({ roomId: Schema.String })
 
 const managedResources = ManagedResource.make<Model, Message>()(entry => ({
-  chatSocket: entry(Schema.Option(RoomRequirements), {
+  chatSocket: entry('ManageChatSocket', Schema.Option(RoomRequirements), {
     resource: ChatSocket,
     modelToMaybeRequirements: model => model.maybeRoomRequirements,
-    acquire: ({ roomId }) =>
-      Effect.try(() => new WebSocket(`/rooms/${roomId}`)),
-    release: socket => Effect.sync(() => socket.close()),
     onAcquired: () => Message.AcquiredChatSocket(),
     onReleased: () => Message.ReleasedChatSocket(),
     onAcquireError: error =>
@@ -20,18 +17,25 @@ const managedResources = ManagedResource.make<Model, Message>()(entry => ({
   }),
 }))
 
+const ManageChatSocketLive = managedResources.chatSocket.toLayer({
+  acquire: ({ roomId }) => Effect.try(() => new WebSocket(`/rooms/${roomId}`)),
+  release: socket => Effect.sync(() => socket.close()),
+})
+
 const SendChatMessage = Command.define('SendChatMessage', {
   args: { text: Schema.String },
   messages: [Message.CompletedSendChatMessage, Message.FailedSendChatMessage],
-  execute: ({ text }) =>
-    ChatSocket.get.pipe(
-      Effect.flatMap(socket => Effect.try(() => socket.send(text))),
-      Effect.match({
-        onFailure: error =>
-          Message.FailedSendChatMessage({
-            error: globalThis.String(error),
-          }),
-        onSuccess: () => Message.CompletedSendChatMessage(),
-      }),
-    ),
 })
+
+const SendChatMessageLive = SendChatMessage.toLayer(({ text }) =>
+  ChatSocket.get.pipe(
+    Effect.flatMap(socket => Effect.try(() => socket.send(text))),
+    Effect.match({
+      onFailure: error =>
+        Message.FailedSendChatMessage({ error: globalThis.String(error) }),
+      onSuccess: () => Message.CompletedSendChatMessage(),
+    }),
+  ),
+)
+
+const Live = Layer.mergeAll(ManageChatSocketLive, SendChatMessageLive)

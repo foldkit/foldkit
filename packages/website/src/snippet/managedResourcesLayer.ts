@@ -38,17 +38,20 @@ const Engine = ManagedResource.tag<ChessEngine>()('ChessEngine')
 //    Layer.build registers the Layer's finalizers on it. They tear down when
 //    the resource is released or re-acquired.
 const managedResources = ManagedResource.make<Model, Message>()(entry => ({
-  engine: entry(Schema.Option(Schema.Null), {
+  engine: entry('ManageEngine', Schema.Option(Schema.Null), {
     resource: Engine,
     modelToMaybeRequirements: model => Option.as(model.maybeAnalysisSlug, null),
-    acquire: () =>
-      Layer.build(engineLayer).pipe(
-        Effect.map(context => Context.get(context, ChessEngineService)),
-      ),
-    // The scope closes on release, so the Layer finalizers run automatically.
-    release: () => Effect.void,
     onAcquired: () => StartedEngine(),
     onReleased: () => StoppedEngine(),
     onAcquireError: error => FailedStartEngine({ error: String(error) }),
   }),
 }))
+
+const ManageEngineLive = managedResources.engine.toLayer({
+  acquire: () =>
+    Layer.build(engineLayer).pipe(
+      Effect.map(context => Context.get(context, ChessEngineService)),
+    ),
+  // The scope closes on release, so the Layer finalizers run automatically.
+  release: () => Effect.void,
+})

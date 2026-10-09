@@ -5,7 +5,10 @@ const CameraStream = ManagedResource.tag<MediaStream>()('CameraStream')
 
 const TakePhoto = Command.define('TakePhoto', {
   messages: [SucceededTakePhoto, CameraUnavailable],
-  execute: Effect.gen(function* () {
+})
+
+const TakePhotoLive = TakePhoto.toLayer(() =>
+  Effect.gen(function* () {
     const stream = yield* CameraStream.get
 
     const maybeTrack = Array.head(stream.getVideoTracks())
@@ -19,4 +22,4 @@ const TakePhoto = Command.define('TakePhoto', {
 
     return SucceededTakePhoto({ width: bitmap.width, height: bitmap.height })
   }).pipe(Effect.catch(() => Effect.succeed(CameraUnavailable()))),
-})
+)

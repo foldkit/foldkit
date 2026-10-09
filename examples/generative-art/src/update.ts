@@ -1,10 +1,14 @@
-import { Array, Number, Option, Result } from 'effect'
-import { Command, Update } from 'foldkit'
+import { Array, Layer, Number, Option, Result } from 'effect'
+import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { Slider } from '@foldkit/ui'
 
-import { GenerateAmbientParticle, GenerateBurstParticle } from './command'
+import {
+  CommandsLive,
+  GenerateAmbientParticle,
+  GenerateBurstParticle,
+} from './command'
 import {
   BURST_BOOST_DURATION_MS,
   BURST_HUE_ANCHOR_DRIFT_DEG_PER_SECOND,
@@ -35,7 +39,8 @@ import { Message } from './message'
 import { Model, Particle, Point } from './model'
 import { fractalNoise } from './noise'
 
-type UpdateReturn = Update.Return<Model, Message>
+type CommandServices = Layer.Success<typeof CommandsLive>
+type UpdateReturn = Update.Return<Model, Message, CommandServices>
 
 const computeFieldAngle = (
   point: Point,
@@ -178,7 +183,7 @@ const spawnBurstParticles = (
   x: number,
   y: number,
   hueAnchor: number,
-): ReadonlyArray<Command.Command<Message>> =>
+): Update.Commands<Message, CommandServices> =>
   Array.makeBy(BURST_PARTICLE_COUNT, index =>
     GenerateBurstParticle({
       x,
@@ -190,7 +195,7 @@ const spawnBurstParticles = (
 
 const spawnAmbientParticles = (
   particleCount: number,
-): ReadonlyArray<Command.Command<Message>> => {
+): Update.Commands<Message, CommandServices> => {
   const missing = TARGET_PARTICLE_COUNT - particleCount
   const clamped = Math.max(0, Math.min(missing, SPAWN_PER_FRAME_MAX))
   return Array.makeBy(clamped, () => GenerateAmbientParticle())
@@ -257,7 +262,7 @@ const foldNoiseScaleSlider = Update.foldChild({
   foldOutMessage: foldNoiseScaleSliderOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
+export const update = Update.make((model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     TickedFrame: ({ deltaTimeMs }) => {
       const deltaSeconds = cappedDeltaSeconds(deltaTimeMs)
@@ -317,4 +322,5 @@ export const update = (model: Model, message: Message) =>
 
     GotNoiseScaleSliderMessage: ({ message }) =>
       foldNoiseScaleSlider(model, message),
-  })
+  }),
+)

@@ -1,6 +1,6 @@
-import { Runtime } from 'foldkit'
+import { Application, Runtime } from 'foldkit'
 
-const application = Runtime.makeApplication({
+const application = Application.make({
   Model,
   init,
   update,

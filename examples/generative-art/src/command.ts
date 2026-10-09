@@ -1,4 +1,4 @@
-import { Effect, Option, Random, Schema } from 'effect'
+import { Effect, Layer, Option, Random, Schema } from 'effect'
 import { Command } from 'foldkit'
 
 import {
@@ -20,40 +20,43 @@ export const GenerateAmbientParticle = Command.define(
   'GenerateAmbientParticle',
   {
     messages: [Message.CompletedGenerateAmbientParticle],
-    execute: Effect.gen(function* () {
-      const x = yield* Random.nextBetween(
-        SETTLE_BAND_PX,
-        CANVAS_WIDTH - SETTLE_BAND_PX,
-      )
-      const y = yield* Random.nextBetween(
-        SETTLE_BAND_PX,
-        CANVAS_HEIGHT - SETTLE_BAND_PX,
-      )
-      const baseHue = yield* Random.nextBetween(HUE_MIN, HUE_MAX)
-      const hueDriftPerSecond = yield* Random.nextBetween(
-        HUE_DRIFT_MIN,
-        HUE_DRIFT_MAX,
-      )
-      const lifespanMs = yield* Random.nextBetween(
-        PARTICLE_LIFESPAN_MIN_MS,
-        PARTICLE_LIFESPAN_MAX_MS,
-      )
-      const speed = yield* Random.nextBetween(
-        PARTICLE_SPEED_MIN,
-        PARTICLE_SPEED_MAX,
-      )
-      return Message.CompletedGenerateAmbientParticle({
-        x,
-        y,
-        baseHue,
-        hueDriftPerSecond,
-        lifespanMs,
-        speed,
-        initialAngle: Option.none(),
-        initialSpeedScale: 1,
-      })
-    }),
   },
+)
+
+const GenerateAmbientParticleLive = GenerateAmbientParticle.toLayer(() =>
+  Effect.gen(function* () {
+    const x = yield* Random.nextBetween(
+      SETTLE_BAND_PX,
+      CANVAS_WIDTH - SETTLE_BAND_PX,
+    )
+    const y = yield* Random.nextBetween(
+      SETTLE_BAND_PX,
+      CANVAS_HEIGHT - SETTLE_BAND_PX,
+    )
+    const baseHue = yield* Random.nextBetween(HUE_MIN, HUE_MAX)
+    const hueDriftPerSecond = yield* Random.nextBetween(
+      HUE_DRIFT_MIN,
+      HUE_DRIFT_MAX,
+    )
+    const lifespanMs = yield* Random.nextBetween(
+      PARTICLE_LIFESPAN_MIN_MS,
+      PARTICLE_LIFESPAN_MAX_MS,
+    )
+    const speed = yield* Random.nextBetween(
+      PARTICLE_SPEED_MIN,
+      PARTICLE_SPEED_MAX,
+    )
+    return Message.CompletedGenerateAmbientParticle({
+      x,
+      y,
+      baseHue,
+      hueDriftPerSecond,
+      lifespanMs,
+      speed,
+      initialAngle: Option.none(),
+      initialSpeedScale: 1,
+    })
+  }),
 )
 
 const BURST_POSITION_JITTER_PX = 6
@@ -70,7 +73,10 @@ export const GenerateBurstParticle = Command.define('GenerateBurstParticle', {
     hueAnchor: Schema.Number,
   },
   messages: [Message.CompletedGenerateBurstParticle],
-  execute: ({ x, y, angle, hueAnchor }) =>
+})
+
+const GenerateBurstParticleLive = GenerateBurstParticle.toLayer(
+  ({ x, y, angle, hueAnchor }) =>
     Effect.gen(function* () {
       const jitterX = yield* Random.nextBetween(
         -BURST_POSITION_JITTER_PX,
@@ -111,4 +117,9 @@ export const GenerateBurstParticle = Command.define('GenerateBurstParticle', {
         initialSpeedScale,
       })
     }),
-})
+)
+
+export const CommandsLive = Layer.mergeAll(
+  GenerateAmbientParticleLive,
+  GenerateBurstParticleLive,
+)

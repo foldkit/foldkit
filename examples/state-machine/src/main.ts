@@ -10,7 +10,7 @@ import {
   flow,
   pipe,
 } from 'effect'
-import { Command, Runtime, Update } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import { Machine } from 'foldkit/experimental'
 import { otherwise, to, when } from 'foldkit/experimental/machine'
 import { defineMessageUnion } from 'foldkit/message'
@@ -113,14 +113,16 @@ const PLACE_ORDER_DELAY = Duration.seconds(1)
 export const PlaceOrder = Command.define('PlaceOrder', {
   args: { isShippingRequired: Schema.Boolean },
   messages: [Message.SucceededPlaceOrder],
-  execute: ({ isShippingRequired }) =>
-    Effect.gen(function* () {
-      yield* Effect.sleep(PLACE_ORDER_DELAY)
-      return Message.SucceededPlaceOrder({
-        orderId: isShippingRequired ? 'SHIP-1001' : 'DIGI-1001',
-      })
-    }),
 })
+
+export const Live = PlaceOrder.toLayer(({ isShippingRequired }) =>
+  Effect.gen(function* () {
+    yield* Effect.sleep(PLACE_ORDER_DELAY)
+    return Message.SucceededPlaceOrder({
+      orderId: isShippingRequired ? 'SHIP-1001' : 'DIGI-1001',
+    })
+  }),
+)
 
 // MACHINE
 
@@ -338,18 +340,22 @@ export const initialModel = Model.make({
   nextTransitionLogId: 0,
 })
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+export const init = () => ({
   model: initialModel,
 })
 
 // UPDATE
 
-type UpdateReturn = Update.Return<Model, Message>
+type UpdateReturn = Update.Return<
+  Model,
+  Message,
+  Command.HandlerOf<typeof PlaceOrder>
+>
 
 export const TRANSITION_LOG_LIMIT = 20
 
 const resultToTransitionSummary = (
-  result: Machine.TransitionResult<typeof CheckoutState.Type, Message>,
+  result: ReturnType<typeof checkoutMachine.step>,
 ): string =>
   Match.value(result).pipe(
     Match.tagsExhaustive({
@@ -393,7 +399,7 @@ const stepMachine =
   }
 
 const foldEditionRadioGroupOutMessage = RadioGroup.OutMessage.match<
-  Update.Step<Model, Message>
+  Update.Step<Model, Message, Command.HandlerOf<typeof PlaceOrder>>
 >({
   Selected: ({ value }) =>
     stepMachine(
@@ -412,7 +418,7 @@ const foldEditionRadioGroup = Update.foldChild({
   foldOutMessage: foldEditionRadioGroupOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
+export const update = Update.make((model: Model, message: Message) =>
   Match.value(message).pipe(
     Match.withReturnType<UpdateReturn>(),
     Match.tag('GotEditionRadioGroupMessage', ({ message }) =>
@@ -433,4 +439,5 @@ export const update = (model: Model, message: Message) =>
       () => stepMachine(message)(model),
     ),
     Match.exhaustive,
-  )
+  ),
+)

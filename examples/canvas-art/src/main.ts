@@ -1,5 +1,5 @@
 import { Array, Effect, Number, Option, Random, Schema, pipe } from 'effect'
-import { Canvas, Command, Runtime, Subscription, type Update } from 'foldkit'
+import { Canvas, Command, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -67,8 +67,8 @@ export type Message = typeof Message.Type
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
-  model: { balls: [], nextId: 0, isRunning: true },
+export const init = () => ({
+  model: Model.make({ balls: [], nextId: 0, isRunning: true }),
 })
 
 // COMMAND
@@ -76,29 +76,31 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 export const GenerateBall = Command.define('GenerateBall', {
   args: { x: Schema.Number, y: Schema.Number },
   messages: [Message.CompletedGenerateBall],
-  execute: ({ x, y }) =>
-    Effect.gen(function* () {
-      const angle = yield* Random.nextBetween(0, FULL_CIRCLE_RADIANS)
-      const speed = yield* Random.nextBetween(BALL_SPEED_MIN, BALL_SPEED_MAX)
-      const radius = yield* Random.nextBetween(BALL_RADIUS_MIN, BALL_RADIUS_MAX)
-      const colorIndex = yield* Random.nextIntBetween(0, PALETTE.length, {
-        halfOpen: true,
-      })
-      const color = pipe(
-        PALETTE,
-        Array.get(colorIndex),
-        Option.getOrElse(() => FALLBACK_COLOR),
-      )
-      return Message.CompletedGenerateBall({
-        x,
-        y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        radius,
-        color,
-      })
-    }),
 })
+
+export const Live = GenerateBall.toLayer(({ x, y }) =>
+  Effect.gen(function* () {
+    const angle = yield* Random.nextBetween(0, FULL_CIRCLE_RADIANS)
+    const speed = yield* Random.nextBetween(BALL_SPEED_MIN, BALL_SPEED_MAX)
+    const radius = yield* Random.nextBetween(BALL_RADIUS_MIN, BALL_RADIUS_MAX)
+    const colorIndex = yield* Random.nextIntBetween(0, PALETTE.length, {
+      halfOpen: true,
+    })
+    const color = pipe(
+      PALETTE,
+      Array.get(colorIndex),
+      Option.getOrElse(() => FALLBACK_COLOR),
+    )
+    return Message.CompletedGenerateBall({
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      radius,
+      color,
+    })
+  }),
+)
 
 // UPDATE
 
@@ -121,8 +123,8 @@ const advanceBall =
     })
   }
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     TickedFrame: ({ deltaTime }) => ({
       model: modifyFields(model, {
         balls: Array.map(advanceBall(deltaTime / MS_PER_SECOND)),
@@ -154,7 +156,8 @@ export const update = (model: Model, message: Message) =>
     ClickedTogglePlay: () => ({
       model: modifyFields(model, { isRunning: running => !running }),
     }),
-  })
+  }),
+)
 
 // SUBSCRIPTION
 

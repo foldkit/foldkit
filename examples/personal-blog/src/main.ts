@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
-import { Effect, Option, Schema } from 'effect'
-import { Command, Runtime, Update } from 'foldkit'
+import { Effect, Layer, Option, Schema } from 'effect'
+import { Command, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
@@ -38,29 +38,32 @@ export type Message = typeof Message.Type
 
 // INIT
 
-export const init: Runtime.RoutingApplicationInit<Model, Message> = (
-  url: Url,
-) => ({ model: { route: Route.urlToAppRoute(url), counter: Counter.init } })
+export const init = (url: Url) => ({
+  model: { route: Route.urlToAppRoute(url), counter: Counter.init },
+})
 
 // COMMAND
 
 const NavigateInternal = Command.define('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
-  execute: ({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
 })
 
 const LoadExternal = Command.define('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
-  execute: ({ href }) =>
-    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
 })
 
-// UPDATE
+export const Live = Layer.mergeAll(
+  NavigateInternal.toLayer(({ url }) =>
+    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+  ),
+  LoadExternal.toLayer(({ href }) =>
+    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+  ),
+)
 
-type UpdateReturn = Update.Return<Model, Message>
+// UPDATE
 
 const foldCounter = Update.foldChild({
   update: Counter.update,
@@ -70,10 +73,10 @@ const foldCounter = Update.foldChild({
   toParentMessage: message => Message.GotCounterMessage({ message }),
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedLink: ({ request }) =>
-      UrlRequest.match<UpdateReturn>(request, {
+      UrlRequest.match(request, {
         Internal: ({ url }) => ({
           model,
           commands: [NavigateInternal({ url: urlToString(url) })],
@@ -92,7 +95,8 @@ export const update = (model: Model, message: Message) =>
     GotCounterMessage: ({ message }) => foldCounter(model, message),
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
-  })
+  }),
+)
 
 // VIEW
 

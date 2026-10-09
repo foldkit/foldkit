@@ -1,5 +1,14 @@
-import { Array, Duration, Effect, Match, Option, Schema, pipe } from 'effect'
-import { Command, Runtime, Update } from 'foldkit'
+import {
+  Array,
+  Duration,
+  Effect,
+  Layer,
+  Match,
+  Option,
+  Schema,
+  pipe,
+} from 'effect'
+import { Command, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
@@ -74,46 +83,52 @@ export type Message = typeof Message.Type
 const NavigateInternal = Command.define('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
-  execute: ({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
 })
 
 const LoadExternal = Command.define('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
-  execute: ({ href }) =>
-    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
 })
 
 export const LoadCatalog = Command.define('LoadCatalog', {
   messages: [Message.SucceededLoadCatalog],
-  execute: Effect.sleep(CATALOG_LATENCY).pipe(
-    Effect.as(Message.SucceededLoadCatalog()),
-  ),
 })
 
 export const LoadPainting = Command.define('LoadPainting', {
   args: { paintingId: Schema.Number },
   messages: [Message.SucceededLoadPainting],
-  execute: ({ paintingId }) =>
-    Effect.sleep(PAINTING_LATENCY).pipe(
-      Effect.as(Message.SucceededLoadPainting({ paintingId })),
-    ),
 })
 
 export const SaveDraft = Command.define('SaveDraft', {
   args: { draft: Schema.String },
   messages: [Message.SucceededSaveDraft],
-  execute: ({ draft }) =>
+})
+
+export const Live = Layer.mergeAll(
+  NavigateInternal.toLayer(({ url }) =>
+    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+  ),
+  LoadExternal.toLayer(({ href }) =>
+    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+  ),
+  LoadCatalog.toLayer(() =>
+    Effect.sleep(CATALOG_LATENCY).pipe(
+      Effect.as(Message.SucceededLoadCatalog()),
+    ),
+  ),
+  LoadPainting.toLayer(({ paintingId }) =>
+    Effect.sleep(PAINTING_LATENCY).pipe(
+      Effect.as(Message.SucceededLoadPainting({ paintingId })),
+    ),
+  ),
+  SaveDraft.toLayer(({ draft }) =>
     Effect.sleep(SAVE_LATENCY).pipe(
       Effect.as(Message.SucceededSaveDraft({ draft })),
     ),
-})
+  ),
+)
 
 // UPDATE
-
-type UpdateReturn = Update.Return<Model, Message>
-type Step = Update.Step<Model, Message>
 
 export type AppTransition = Transition.Transition<AppRoute>
 
@@ -125,26 +140,23 @@ const nextSequenceNumber = (
     onSome: newestEntry => newestEntry.sequenceNumber + 1,
   })
 
-const logTransition =
-  (transition: AppTransition): Step =>
-  model => ({
-    model: modifyFields(model, {
-      transitionLog: transitionLog =>
-        pipe(
-          transitionLog,
-          Array.prepend({
-            sequenceNumber: nextSequenceNumber(transitionLog),
-            maybePreviousRoute: transition.maybePreviousRoute,
-            nextRoute: transition.nextRoute,
-          }),
-          Array.take(MAX_LOGGED_TRANSITIONS),
-        ),
-    }),
-  })
+const logTransition = (transition: AppTransition) => (model: Model) => ({
+  model: modifyFields(model, {
+    transitionLog: transitionLog =>
+      pipe(
+        transitionLog,
+        Array.prepend({
+          sequenceNumber: nextSequenceNumber(transitionLog),
+          maybePreviousRoute: transition.maybePreviousRoute,
+          nextRoute: transition.nextRoute,
+        }),
+        Array.take(MAX_LOGGED_TRANSITIONS),
+      ),
+  }),
+})
 
 const loadCatalogOnGalleryEntry =
-  (transition: AppTransition): Step =>
-  model =>
+  (transition: AppTransition) => (model: Model) =>
     Transition.isEntering(transition, 'Gallery') &&
     model.catalogStatus !== 'Loading'
       ? {
@@ -153,22 +165,19 @@ const loadCatalogOnGalleryEntry =
         }
       : { model }
 
-const loadPaintingOnEntry =
-  (transition: AppTransition): Step =>
-  model =>
-    Option.match(Transition.entered(transition, 'Painting'), {
-      onNone: () => ({ model }),
-      onSome: ({ paintingId }) => ({
-        model: modifyFields(model, {
-          paintingStatus: () => PaintingStatus.Loading({ paintingId }),
-        }),
-        commands: [LoadPainting({ paintingId })],
+const loadPaintingOnEntry = (transition: AppTransition) => (model: Model) =>
+  Option.match(Transition.entered(transition, 'Painting'), {
+    onNone: () => ({ model }),
+    onSome: ({ paintingId }) => ({
+      model: modifyFields(model, {
+        paintingStatus: () => PaintingStatus.Loading({ paintingId }),
       }),
-    })
+      commands: [LoadPainting({ paintingId })],
+    }),
+  })
 
 const reloadPaintingOnIdChange =
-  (transition: AppTransition): Step =>
-  model =>
+  (transition: AppTransition) => (model: Model) =>
     Option.match(Transition.stayed(transition, 'Painting'), {
       onNone: () => ({ model }),
       onSome: ({ previousRoute, nextRoute }) =>
@@ -185,21 +194,16 @@ const reloadPaintingOnIdChange =
             },
     })
 
-const saveDraftOnStudioExit =
-  (transition: AppTransition): Step =>
-  model =>
-    Option.match(Transition.exited(transition, 'Studio'), {
-      onNone: () => ({ model }),
-      onSome: () =>
-        model.studioDraft === ''
-          ? { model }
-          : { model, commands: [SaveDraft({ draft: model.studioDraft })] },
-    })
+const saveDraftOnStudioExit = (transition: AppTransition) => (model: Model) =>
+  Option.match(Transition.exited(transition, 'Studio'), {
+    onNone: () => ({ model }),
+    onSome: () =>
+      model.studioDraft === ''
+        ? { model }
+        : { model, commands: [SaveDraft({ draft: model.studioDraft })] },
+  })
 
-const handleTransition = (
-  model: Model,
-  transition: AppTransition,
-): UpdateReturn =>
+const handleTransition = (model: Model, transition: AppTransition) =>
   Update.combine(model, [
     logTransition(transition),
     loadCatalogOnGalleryEntry(transition),
@@ -208,13 +212,13 @@ const handleTransition = (
     saveDraftOnStudioExit(transition),
   ])
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
 
     ClickedLink: ({ request }) =>
-      UrlRequest.match<UpdateReturn>(request, {
+      UrlRequest.match(request, {
         Internal: ({ url }) => ({
           model,
           commands: [NavigateInternal({ url: urlToString(url) })],
@@ -255,13 +259,12 @@ export const update = (model: Model, message: Message) =>
     SucceededSaveDraft: ({ draft }) => ({
       model: modifyFields(model, { maybeSavedDraft: () => Option.some(draft) }),
     }),
-  })
+  }),
+)
 
 // INIT
 
-export const init: Runtime.RoutingApplicationInit<Model, Message> = (
-  url: Url,
-) => {
+export const init = (url: Url) => {
   const route = urlToAppRoute(url)
   const initialModel = Model.make({
     route,

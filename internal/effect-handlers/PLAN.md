@@ -6,7 +6,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 **Current milestone:** Command, Subscription, Mount, and ManagedResource handler Layers work through `Application.make` and `Application.provide`. The website and representative lifecycle examples compose production handlers by feature.
 
-**Next implementation:** Migrate the 22 remaining first-party example entries and active inline-handler snippets, then retire the old application `resources` configuration.
+**Next implementation:** Migrate the 13 remaining first-party example entries, finish active inline-handler snippets, then retire the old application `resources` configuration.
 
 **Scope:** Production handler Layers and application assembly. Whole-application testing APIs are deferred.
 
@@ -75,7 +75,9 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 ### 6. Verification and publication
 
-- [ ] Complete active documentation, examples, and template migration for the final public API. The Resources guide and its shared-service snippets use application Layers. Weather, Stopwatch, Managed Resource Layer, WebSocket Chat, Snake, Charting, and Map examples use the new surface, along with four simple entries.
+- [ ] Complete active documentation, examples, and template migration for the final public API.
+  - The website and 20 example entries use `Application.make`. Their replaceable effects use handler Layers; 13 example entries remain to migrate.
+  - Runtime entry, Resources, and ManagedResource teaching snippets use `Application.make` and `toLayer` where those APIs apply.
 - [x] Verify feature Layer composition with the website's 27 production Commands, then migrate its application entry without listing every handler there. Documentation snippets account for another 51 definitions.
   - Each feature owns a `Live` Layer next to its update/lifecycle definitions. Features with multiple modules compose their local Layers and export one `Live` from their barrel.
   - `src/live.ts` composes feature Layers and service providers. `entry.ts` imports that one `WebsiteLive` value and calls `Application.provide` once; it never imports individual handler Layers.
@@ -94,6 +96,8 @@ This is the working checklist for separating Foldkit effect definitions from the
 - Root and application lint, formatting, and `git diff --check` passed.
 - Website: 1,301 unit tests passed across 29 files; TypeScript, build, and six browser smoke tests passed. Two browser tests timed out under parallel load, then passed serially with retries disabled.
 - WebSocket Chat, Snake, Charting, Map, Counter, Counters, Crash View, and Web Components: targeted type checks and 105 existing tests passed.
+- API Cache, Canvas Art, Form, Generative Art, Interrupting Commands, Personal Blog, Route Transitions, State Machine, and View Transitions: targeted type checks and 115 existing tests passed.
+- Website TypeScript check and production build passed with the updated Runtime, Resources, and ManagedResource pages.
 - The API reference generator succeeds without warnings after documenting private signature helpers in its exclusion list.
 
 ## Deferred work

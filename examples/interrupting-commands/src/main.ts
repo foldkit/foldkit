@@ -9,7 +9,7 @@ import {
   Schema,
   pipe,
 } from 'effect'
-import { Command, Runtime, type Update } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -56,7 +56,7 @@ export const initialModel: Model = {
   uploads: [],
 }
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+export const init = () => ({
   model: initialModel,
 })
 
@@ -97,14 +97,16 @@ export const UploadFile = Command.define('UploadFile', {
     keyFields: ['uploadId'],
     toKey: ({ uploadId }) => String(uploadId),
   },
-  execute: ({ uploadId, sizeMegabytes }) =>
-    Effect.gen(function* () {
-      yield* Effect.sleep(
-        Duration.millis(sizeMegabytes * MILLISECONDS_PER_MEGABYTE),
-      )
-      return Message.SucceededUploadFile({ uploadId })
-    }),
 })
+
+export const Live = UploadFile.toLayer(({ uploadId, sizeMegabytes }) =>
+  Effect.gen(function* () {
+    yield* Effect.sleep(
+      Duration.millis(sizeMegabytes * MILLISECONDS_PER_MEGABYTE),
+    )
+    return Message.SucceededUploadFile({ uploadId })
+  }),
+)
 
 export const CancelUploadFile = ({ uploadId }: UploadKey) =>
   UploadFile.Interrupt({ uploadId }, outcome =>
@@ -120,10 +122,8 @@ const setStatusForId = (uploadId: number, status: UploadStatus) =>
       : upload,
   )
 
-type UpdateReturn = Update.Return<Model, Message>
-
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedStartUpload: () => {
       const fakeFile = fakeFileForUpload(model.uploadId)
       const startedUpload = Upload.make({
@@ -186,7 +186,7 @@ export const update = (model: Model, message: Message) =>
     }),
 
     CompletedCancelUploadFile: ({ uploadId, outcome }) =>
-      Command.Interruptible.Outcome.match<UpdateReturn>(outcome, {
+      Command.Interruptible.Outcome.match(outcome, {
         Interrupted: () => ({
           model: modifyFields(model, {
             uploads: setStatusForId(uploadId, 'Cancelled'),
@@ -194,7 +194,8 @@ export const update = (model: Model, message: Message) =>
         }),
         NotFound: () => ({ model }),
       }),
-  })
+  }),
+)
 
 // VIEW
 

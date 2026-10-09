@@ -1,9 +1,8 @@
-import { Array, Option } from 'effect'
-import { Runtime } from 'foldkit'
+import { Array, Layer, Option } from 'effect'
 
 import { Slider } from '@foldkit/ui'
 
-import { GenerateAmbientParticle } from './command'
+import { CommandsLive, GenerateAmbientParticle } from './command'
 import {
   FLOW_STRENGTH_MAX,
   FLOW_STRENGTH_MIN,
@@ -17,11 +16,11 @@ import {
 } from './constant'
 import { Message } from './message'
 import { Model } from './model'
-import { subscriptions } from './subscription'
+import { WatchAnimationFramesLive, subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+export const init = () => ({
   model: {
     particles: [],
     nextId: 0,
@@ -57,5 +56,7 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
     GenerateAmbientParticle(),
   ),
 })
+
+export const Live = Layer.mergeAll(CommandsLive, WatchAnimationFramesLive)
 
 export { Message, Model, subscriptions, update, view }

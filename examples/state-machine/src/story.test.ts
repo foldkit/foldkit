@@ -5,6 +5,7 @@ import { describe, expect, test } from 'vitest'
 
 import {
   CheckoutState,
+  Live,
   Message,
   type Model,
   PlaceOrder,
@@ -39,7 +40,11 @@ describe('update', () => {
         expect(yield* Fiber.join(fiber)).toStrictEqual(
           Message.SucceededPlaceOrder({ orderId: 'DIGI-1001' }),
         )
-      }).pipe(Effect.scoped, Effect.provide(TestClock.layer())),
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(TestClock.layer()),
+        Effect.provide(Live),
+      ),
     ))
 
   test('physical carts visit Shipping before Payment', () => {
