@@ -9,7 +9,7 @@ import {
 } from 'foldkit/html'
 
 import { type CodeBlock, Shared } from '../component'
-import { pageNeighbors } from '../docsNav'
+import { type NavPage, pageNeighbors } from '../docsNav'
 import { Icon } from '../icon'
 import { Link } from '../link'
 import { Message } from '../message'
@@ -50,7 +50,7 @@ import {
   WhyFoldkit,
 } from '../page'
 import * as Prose from '../prose'
-import { AppRoute, type DocsRoute, homeRouter } from '../route'
+import { AppRoute, type DocsRoute, homeRouter, routeToUrlPath } from '../route'
 import * as SnippetCopy from '../snippetCopy'
 import * as SnippetDisclosure from '../snippetDisclosure'
 import { type TableOfContentsEntry } from '../tableOfContentsEntry'
@@ -207,8 +207,6 @@ export const footerView = (
 
 // PAGE NAVIGATION
 
-type NavPage = Readonly<{ href: string; label: string }>
-
 const neighborLink = (
   config: Readonly<{
     page: NavPage
@@ -218,7 +216,7 @@ const neighborLink = (
 ) =>
   h.a(
     [
-      h.Href(config.page.href),
+      h.Href(routeToUrlPath(config.page.route)),
       h.Class(
         clsx('group flex flex-col gap-1', {
           'items-start text-left': config.direction === 'Previous',
@@ -254,8 +252,8 @@ const neighborLink = (
     ],
   )
 
-const pageNavigationView = (tag: string, h: HtmlBuilder<Message>) => {
-  const { maybePrevious, maybeNext } = pageNeighbors(tag)
+const pageNavigationView = (route: DocsRoute, h: HtmlBuilder<Message>) => {
+  const { maybePrevious, maybeNext } = pageNeighbors(route)
 
   if (Option.isNone(maybePrevious) && Option.isNone(maybeNext)) {
     return h.empty
@@ -1239,7 +1237,7 @@ export const view = (
                   content,
                   h.div(
                     [PagefindIgnore, LlmIgnore],
-                    [pageNavigationView(docsRoute._tag, h)],
+                    [pageNavigationView(docsRoute, h)],
                   ),
                 ],
               ),
