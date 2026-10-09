@@ -144,6 +144,7 @@ Whole-application test mode, controlled dependency services, test scheduling, an
 - Lint, formatting, dead-code, and `git diff --check` passed.
 - The real-handler service example compiled under strict TypeScript, and both Application Layers and Project Organization were inspected in the browser.
 - Mutation checks confirmed the shared-service lifetime, Search substitution, and independent storage tests catch incorrect wiring.
+- The prebundle source check excludes the test files omitted by the library build. Regression fixtures cover both excluded test imports and missing published imports.
 - Independent implementation and consumer API review, plus a separate documentation and naming review, found no unresolved issues after repairs.
 
 ## Release review

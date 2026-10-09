@@ -5,6 +5,7 @@
       "entry": [
         "scripts/*.{ts,js,mjs,sh}",
         "scripts/**/*.test.mjs",
+        "scripts/fixtures/effect-prebundle/*.ts",
         "scripts/fixtures/host-parity/entry.server.ts",
         "scripts/fixtures/host-parity/vite.config.ts"
       ],
