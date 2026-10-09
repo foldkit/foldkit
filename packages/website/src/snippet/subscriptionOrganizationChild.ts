@@ -7,7 +7,7 @@ import type { Model } from './model'
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   escapeKey: entry(
-    'WatchThemeMenuEscape',
+    'ThemeMenuEscapePresses',
     { isOpen: Schema.Boolean },
     {
       modelToDependencies: model => ({ isOpen: model.isOpen }),
@@ -15,7 +15,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const WatchThemeMenuEscapeLive = subscriptions.escapeKey.toLayer(
+export const ThemeMenuEscapePressesLive = subscriptions.escapeKey.toLayer(
   ({ isOpen }) =>
     Stream.when(
       Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
@@ -26,4 +26,4 @@ export const WatchThemeMenuEscapeLive = subscriptions.escapeKey.toLayer(
     ),
 )
 
-export { WatchThemeMenuEscapeLive as Live }
+export { ThemeMenuEscapePressesLive as Live }

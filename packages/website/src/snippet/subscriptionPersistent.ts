@@ -11,10 +11,10 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  heartbeat: entry('WatchHeartbeat'),
+  heartbeat: entry('HeartbeatTicks'),
 }))
 
-export const WatchHeartbeatLive = subscriptions.heartbeat.toLayer(() =>
+export const HeartbeatTicksLive = subscriptions.heartbeat.toLayer(() =>
   Stream.tick(Duration.seconds(30)).pipe(
     Stream.drop(1),
     Stream.map(Message.TickedHeartbeat),

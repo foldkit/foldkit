@@ -384,7 +384,9 @@ Build them with `Subscription.make<Model, Message>()(entry => ({ ... }))`. Use t
 - A `modelToDependencies(model)` function that returns the parameters the stream needs. Wrap an absent dependency in `Option` at the field level. The runtime restarts the stream whenever the dependencies change.
 - A handler Layer built with `subscriptions.key.toLayer(dependencies => stream)`. Errors should be mapped to a `Failed*` Message inside the stream rather than thrown. Merge the handler Layer into the feature's `Live` Layer.
 
-For always-active Layer-backed Subscriptions (keyboard listeners, window resize, animation frame ticks), pass only the stable handler name: `entry('WatchKeyboard')`. The Subscription then stays active across local Model updates. Its parent can still gate it when lifted.
+Name the handler for the events or scoped behavior the entry supplies, such as `KeyboardPresses`, `SystemThemeChanges`, or `GameClockTicks`. The record key identifies the registration, and the Model dependencies determine when its scope is active. Avoid generic `Watch*` names that identify only the input source. Name an individual implementation Layer from the handler identity, such as `KeyboardPressesLive`; a feature can compose those Layers under `Live`.
+
+For Layer-backed Subscriptions without local Model dependencies (keyboard listeners, window resize, animation frame ticks), pass only the stable handler name: `entry('KeyboardPresses')`. The Subscription then stays active across local Model updates. Its parent can still gate it when lifted.
 
 Canonical live examples:
 

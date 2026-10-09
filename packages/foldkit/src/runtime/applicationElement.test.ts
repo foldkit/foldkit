@@ -328,7 +328,7 @@ const checkElementTypes = (): void => {
 
   const subscriptions = Subscription.make<Model, Message>()(entry => ({
     status: entry(
-      'WatchStatus',
+      'StatusUpdates',
       { status: Schema.String },
       { modelToDependencies: model => ({ status: model.status }) },
     ),

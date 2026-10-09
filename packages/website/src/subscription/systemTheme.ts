@@ -7,7 +7,7 @@ import { type Model } from '../model'
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   systemTheme: entry(
-    'WatchSystemTheme',
+    'SystemThemeChanges',
     { isSystemPreference: Schema.Boolean },
     {
       modelToDependencies: model => ({
@@ -20,7 +20,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const WatchSystemThemeLive = subscriptions.systemTheme.toLayer(
+export const SystemThemeChangesLive = subscriptions.systemTheme.toLayer(
   ({ isSystemPreference }) =>
     Stream.when(
       Dom.streamFromMediaQuery({
@@ -32,4 +32,4 @@ export const WatchSystemThemeLive = subscriptions.systemTheme.toLayer(
     ),
 )
 
-export { WatchSystemThemeLive as Live }
+export { SystemThemeChangesLive as Live }

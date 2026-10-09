@@ -242,7 +242,7 @@ const GenerateApplePositionLive = GenerateApplePosition.toLayer(({ snake }) =>
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   gameClock: entry(
-    'WatchGameClock',
+    'GameClockTicks',
     {
       isPlaying: Schema.Boolean,
       interval: Schema.Number,
@@ -258,10 +258,10 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     },
   ),
 
-  keyboard: entry('WatchKeyboard'),
+  keyboard: entry('KeyboardPresses'),
 }))
 
-const WatchGameClockLive = subscriptions.gameClock.toLayer(
+const GameClockTicksLive = subscriptions.gameClock.toLayer(
   ({ isPlaying, interval }) =>
     Stream.when(
       Stream.tick(Duration.millis(interval)).pipe(
@@ -272,7 +272,7 @@ const WatchGameClockLive = subscriptions.gameClock.toLayer(
     ),
 )
 
-const WatchKeyboardLive = subscriptions.keyboard.toLayer(() =>
+const KeyboardPressesLive = subscriptions.keyboard.toLayer(() =>
   Dom.streamFromEventFilterMapPreventDefault({
     target: document,
     type: 'keydown',
@@ -283,8 +283,8 @@ const WatchKeyboardLive = subscriptions.keyboard.toLayer(() =>
 
 export const Live = Layer.mergeAll(
   GenerateApplePositionLive,
-  WatchGameClockLive,
-  WatchKeyboardLive,
+  GameClockTicksLive,
+  KeyboardPressesLive,
 )
 
 // VIEW

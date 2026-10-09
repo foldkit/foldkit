@@ -2,7 +2,7 @@ import { Application, Runtime } from 'foldkit'
 
 import {
   Model,
-  WatchAutoCountTicksLive,
+  AutoCountTicksLive,
   init,
   subscriptions,
   update,
@@ -18,4 +18,4 @@ const application = Application.make({
   container: document.getElementById('root'),
 })
 
-Runtime.run(Application.provide(application, WatchAutoCountTicksLive))
+Runtime.run(Application.provide(application, AutoCountTicksLive))

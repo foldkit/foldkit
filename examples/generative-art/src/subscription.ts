@@ -24,7 +24,7 @@ const noiseScaleSliderSubscriptions = Subscription.lift({
 
 const frameSubscription = Subscription.make<Model, Message>()(entry => ({
   frame: entry(
-    'WatchAnimationFrames',
+    'AnimationFrameTicks',
     { isActive: Schema.Boolean },
     {
       modelToDependencies: model => ({ isActive: model.isRunning }),
@@ -55,7 +55,7 @@ const makeAnimationFrameStream = (): Stream.Stream<Message> =>
     ).pipe(Effect.flatMap(() => Effect.never)),
   )
 
-export const WatchAnimationFramesLive = frameSubscription.frame.toLayer(
+export const AnimationFrameTicksLive = frameSubscription.frame.toLayer(
   ({ isActive }) =>
     Stream.when(
       makeAnimationFrameStream(),

@@ -16,7 +16,7 @@ import {
 } from './constant'
 import { Message } from './message'
 import { Model } from './model'
-import { WatchAnimationFramesLive, subscriptions } from './subscription'
+import { AnimationFrameTicksLive, subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
@@ -57,6 +57,6 @@ export const init = () => ({
   ),
 })
 
-export const Live = Layer.mergeAll(CommandsLive, WatchAnimationFramesLive)
+export const Live = Layer.mergeAll(CommandsLive, AnimationFrameTicksLive)
 
 export { Message, Model, subscriptions, update, view }

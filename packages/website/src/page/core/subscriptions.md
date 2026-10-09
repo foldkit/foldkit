@@ -65,7 +65,7 @@ Commands describe one-shot work that produces one result. Subscriptions describe
 
 `modelToDependencies` extracts the values that control the entry. `subscriptions.tick.toLayer` supplies the Stream factory. Foldkit compares the extracted record structurally by default, so unrelated Model updates do not restart the timer.
 
-The inline form takes the dependency fields and an object with both `modelToDependencies` and `dependenciesToStream`. A Layer-backed entry has `toLayer(handler)` and `toLayer(Effect<handler>)`. Its record key identifies the running Subscription, while its handler name identifies the Layer requirement. `Application.provide` supplies that Layer; `Subscription.lift` and `Subscription.aggregate` preserve the handler identity and Model-driven restart behavior.
+The inline form takes the dependency fields and an object with both `modelToDependencies` and `dependenciesToStream`. Each Layer-backed entry, such as `subscriptions.tick`, is an individual definition with `toLayer(handler)` and `toLayer(Effect<handler>)`. Its record key identifies the running Subscription, while its handler name identifies the Layer requirement. `Application.provide` supplies that Layer; `Subscription.lift` and `Subscription.aggregate` preserve the handler identity and Model-driven restart behavior.
 
 Distinct Subscription definitions within one application need distinct handler names. The same definition can be lifted into multiple registration keys and share one handler Layer. `Application.make` rejects duplicate names from different definitions.
 
@@ -76,6 +76,14 @@ Defining `subscriptions` is only half of the setup. Pass the record to `Applicat
 ::Snippet{name="counterEntryWithSubscriptions" label="Subscription wiring"}
 
 The [websocket-chat example](/example-apps/websocket-chat) shows a more involved event stream. [Typing Terminal](https://typingterminal.com) and its [source](https://github.com/foldkit/foldkit/tree/main/packages/typing-game) show Subscriptions inside a complete application.
+
+### Naming a Subscription
+
+A Subscription definition describes a scoped Stream. Its record key identifies the registration that Foldkit starts and stops; its handler name identifies the Stream or scoped behavior a Layer supplies. In the counter example, `tick` is the record key, `AutoCountTicks` is the handler name, and `AutoCountTicksLive` is one implementation Layer. A feature can export a composed `Live` Layer containing several such handlers.
+
+Name the events or scoped behavior the definition supplies, such as `KeyboardPresses`, `SystemThemeChanges`, `GameClockTicks`, or `DragSelectionStyles`. `KeyboardPresses` identifies the events produced from keyboard input; `GameClockTicks` identifies the events produced by a timer. The Model dependencies determine when the Stream is active and when its scope restarts; they do not need to appear in the handler name.
+
+Unlike a Command, a Subscription may emit many Messages or maintain scoped work without emitting any. Its handler name does not need to mirror a single result Message or follow the Command imperative naming convention. Name an individual Layer from its handler identity, such as `AutoCountTicksLive`; reserve a bare `Live` for a feature-level composition or re-export.
 
 ## Animation Frames
 

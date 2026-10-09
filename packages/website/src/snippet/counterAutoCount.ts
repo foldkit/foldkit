@@ -23,7 +23,7 @@ type Model = typeof Model.Type
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   tick: entry(
-    'WatchAutoCountTicks',
+    'AutoCountTicks',
     { isAutoCounting: Schema.Boolean },
     {
       modelToDependencies: model => ({
@@ -33,7 +33,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const WatchAutoCountTicksLive = subscriptions.tick.toLayer(
+export const AutoCountTicksLive = subscriptions.tick.toLayer(
   ({ isAutoCounting }) =>
     Stream.when(
       Stream.tick(Duration.seconds(1)).pipe(

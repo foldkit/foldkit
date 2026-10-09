@@ -5,14 +5,15 @@ import { type Model } from '../model'
 import { NARROW_VIEWPORT_QUERY } from '../viewport'
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  viewportWidth: entry('WatchViewportWidth'),
+  viewportWidth: entry('ViewportWidthChanges'),
 }))
 
-export const WatchViewportWidthLive = subscriptions.viewportWidth.toLayer(() =>
-  Dom.streamFromMediaQuery({
-    query: NARROW_VIEWPORT_QUERY,
-    mapMatches: isNarrow => Message.ChangedViewportWidth({ isNarrow }),
-  }),
+export const ViewportWidthChangesLive = subscriptions.viewportWidth.toLayer(
+  () =>
+    Dom.streamFromMediaQuery({
+      query: NARROW_VIEWPORT_QUERY,
+      mapMatches: isNarrow => Message.ChangedViewportWidth({ isNarrow }),
+    }),
 )
 
-export { WatchViewportWidthLive as Live }
+export { ViewportWidthChangesLive as Live }

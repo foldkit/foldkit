@@ -92,14 +92,14 @@ describe('Application', () => {
   it('rejects distinct Subscription definitions with the same handler name', () => {
     const subscriptions = Subscription.make<Model, Message>()(entry => ({
       first: entry(
-        'WatchStatus',
+        'StatusUpdates',
         { token: Schema.Null },
         {
           modelToDependencies: () => ({ token: null }),
         },
       ),
       second: entry(
-        'WatchStatus',
+        'StatusUpdates',
         { token: Schema.Null },
         {
           modelToDependencies: () => ({ token: null }),
@@ -119,13 +119,13 @@ describe('Application', () => {
         subscriptions,
         container,
       }),
-    ).toThrow('same name "WatchStatus" but different definitions')
+    ).toThrow('same name "StatusUpdates" but different definitions')
   })
 
   it('allows multiple registrations of the same Subscription definition', () => {
     const subscriptions = Subscription.make<Model, Message>()(entry => ({
       first: entry(
-        'WatchStatus',
+        'StatusUpdates',
         { token: Schema.Null },
         {
           modelToDependencies: () => ({ token: null }),
@@ -252,7 +252,7 @@ describe('Application', () => {
   it('runs a named Subscription through its application Layer', async () => {
     const subscriptions = Subscription.make<Model, Message>()(entry => ({
       ready: entry(
-        'WatchReady',
+        'ReadyUpdates',
         { token: Schema.Null },
         {
           modelToDependencies: () => ({ token: null }),
@@ -466,7 +466,7 @@ const checkApplicationTypes = (): void => {
 
   const layeredSubscriptions = Subscription.make<Model, Message>()(entry => ({
     storedValue: entry(
-      'WatchStoredValue',
+      'StoredValues',
       { status: Schema.String },
       {
         modelToDependencies: model => ({ status: model.status }),
@@ -560,7 +560,7 @@ const checkApplicationTypes = (): void => {
   const routingFlagsSubscriptions = Subscription.make<Model, Message>()(
     entry => ({
       location: entry(
-        'WatchLocation',
+        'LocationChanges',
         { pathname: Schema.String },
         {
           modelToDependencies: model => ({ pathname: model.status }),

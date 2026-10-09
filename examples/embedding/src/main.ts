@@ -80,17 +80,17 @@ export const update = Update.make((model: Model, message: Message) =>
 const TICK_INTERVAL = Duration.seconds(1)
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  tick: entry('WatchWidgetTicks'),
+  tick: entry('WidgetTicks'),
   hostStep: Port.subscriptionEntry(ports.inbound.stepChanged, step =>
     Message.ChangedStep({ step }),
   ),
 }))
 
-const WatchWidgetTicksLive = subscriptions.tick.toLayer(() =>
+const WidgetTicksLive = subscriptions.tick.toLayer(() =>
   Stream.tick(TICK_INTERVAL).pipe(Stream.drop(1), Stream.map(Message.Ticked)),
 )
 
-export const Live = Layer.mergeAll(ReportCountLive, WatchWidgetTicksLive)
+export const Live = Layer.mergeAll(ReportCountLive, WidgetTicksLive)
 
 // VIEW
 

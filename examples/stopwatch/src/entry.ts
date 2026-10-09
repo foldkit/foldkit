@@ -6,7 +6,7 @@ import {
   DetermineTickTimeLive,
   Message,
   Model,
-  WatchStopwatchTicksLive,
+  StopwatchTicksLive,
   init,
   subscriptions,
   update,
@@ -28,7 +28,7 @@ const application = Application.make({
 const StopwatchLive = Layer.mergeAll(
   DetermineStartTimeLive,
   DetermineTickTimeLive,
-  WatchStopwatchTicksLive,
+  StopwatchTicksLive,
 )
 const runnable = Application.provide(application, StopwatchLive)
 

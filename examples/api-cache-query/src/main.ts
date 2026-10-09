@@ -210,7 +210,7 @@ export const init = () => {
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   revalidateStats: entry(
-    'WatchStatsRefreshInterval',
+    'StatsRefreshTicks',
     { isStatsRefreshActive: Schema.Boolean },
     {
       modelToDependencies: model => ({
@@ -222,7 +222,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-const WatchStatsRefreshIntervalLive = subscriptions.revalidateStats.toLayer(
+const StatsRefreshTicksLive = subscriptions.revalidateStats.toLayer(
   ({ isStatsRefreshActive }) =>
     Stream.when(
       Stream.tick(STATS_REFETCH_INTERVAL).pipe(
@@ -237,7 +237,7 @@ export const Live = Layer.mergeAll(
   FetchPostsLive,
   FetchStatsLive,
   FetchPostLive,
-  WatchStatsRefreshIntervalLive,
+  StatsRefreshTicksLive,
 )
 
 // VIEW

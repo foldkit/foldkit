@@ -49,7 +49,7 @@ import {
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   activeSection: entry(
-    'WatchActiveSection',
+    'ActiveSectionChanges',
     {
       pageId: Schema.String,
       sections: Schema.Array(Schema.String),
@@ -194,7 +194,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const WatchActiveSectionLive = subscriptions.activeSection.toLayer(
+export const ActiveSectionChangesLive = subscriptions.activeSection.toLayer(
   ({ sections }) =>
     Stream.callback<typeof Message.ChangedActiveSection.Type>(queue =>
       Effect.gen(function* () {
@@ -250,4 +250,4 @@ export const WatchActiveSectionLive = subscriptions.activeSection.toLayer(
     ),
 )
 
-export { WatchActiveSectionLive as Live }
+export { ActiveSectionChangesLive as Live }

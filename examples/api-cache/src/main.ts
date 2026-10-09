@@ -298,7 +298,7 @@ const FetchStatsLive = FetchStats.toLayer(() =>
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   revalidateStats: entry(
-    'WatchStatsRevalidation',
+    'StatsRevalidationTicks',
     { isObservingStats: Schema.Boolean },
     {
       modelToDependencies: model => ({
@@ -309,7 +309,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-const WatchStatsRevalidationLive = subscriptions.revalidateStats.toLayer(
+const StatsRevalidationTicksLive = subscriptions.revalidateStats.toLayer(
   ({ isObservingStats }) =>
     Stream.when(
       // NOTE: Stream.tick emits once immediately. Drop that first
@@ -326,7 +326,7 @@ export const Live = Layer.mergeAll(
   FetchPostsLive,
   FetchPostDetailLive,
   FetchStatsLive,
-  WatchStatsRevalidationLive,
+  StatsRevalidationTicksLive,
 )
 
 // VIEW

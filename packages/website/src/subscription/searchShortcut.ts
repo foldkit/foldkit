@@ -7,7 +7,7 @@ import { isSearchRoute } from '../route'
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   searchShortcut: entry(
-    'WatchSearchShortcut',
+    'SearchShortcutPresses',
     { isSearchAvailable: Schema.Boolean },
     {
       modelToDependencies: model => ({
@@ -17,7 +17,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const WatchSearchShortcutLive = subscriptions.searchShortcut.toLayer(
+export const SearchShortcutPressesLive = subscriptions.searchShortcut.toLayer(
   ({ isSearchAvailable }) =>
     Stream.when(
       Dom.streamFromEventFilterMapPreventDefault({
@@ -34,4 +34,4 @@ export const WatchSearchShortcutLive = subscriptions.searchShortcut.toLayer(
     ),
 )
 
-export { WatchSearchShortcutLive as Live }
+export { SearchShortcutPressesLive as Live }

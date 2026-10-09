@@ -64,6 +64,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 - [x] Move Subscription Stream implementations into handler Layers without changing restart and keep-alive behavior.
 - [x] Move ManagedResource acquire and release implementations into handler Layers without changing active-value access or release timing.
 - [x] Migrate first-party page-owning Subscriptions and ManagedResources. The website, page-owning examples, and Typing Game use Layer-backed handlers where the implementation is app-owned.
+- [x] Document Subscription names as the supplied event stream or scoped behavior, distinct from the registration key and Layer binding. First-party handler names and Layers follow that guidance.
 - [x] Migrate SSR and SSG scaffolds to `Application.make`; the SSR cookie-writing Command has a handler Layer.
 
 ### 5. Mount boundary
@@ -120,5 +121,4 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 Whole-application test mode, controlled handler Layers, test scheduling, and a Story/Scene-style application test DSL belong to a later workstream. This work establishes stable identities and replaceable execution boundaries for them.
 
-- [ ] Add Subscription naming guidance to the active docs. Distinguish the registration key (`gameClock`), stable handler identity (`GameClockTicks`), and implementation Layer (`GameClockTicksLive`). Name the event stream or scoped behavior supplied while active, not the Model condition that activates it. Do not require the Command imperative pattern or a universal `Watch*` prefix; use `Watch*` only when the Subscription actually observes something. Audit first-party definitions and rename misleading handler identities and their Layer bindings so the examples follow this guidance.
 - [ ] Add a Foldkit lint rule for individual handler Layer names. A Command binding initialized by `PlaceOrder.toLayer(...)` should be `PlaceOrderLive` in production or `PlaceOrderTest` for a test implementation. Permit feature-level `Live` bundles and re-exports. Cover qualified definitions, test fixtures, and an autofix before enabling the rule across first-party code. Extend the same convention to Subscription, Mount, and ManagedResource handlers where their definitions have stable names.

@@ -20,7 +20,7 @@ const themeMenuSubscriptions = Subscription.lift(ThemeMenu.subscriptions)<
 
 const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
   unsavedChangesWarning: entry(
-    'WatchUnsavedChangesWarning',
+    'UnsavedChangesNavigationWarnings',
     { hasUnsavedChanges: Schema.Boolean },
     {
       modelToDependencies: model => ({
@@ -35,7 +35,7 @@ export const subscriptions = Subscription.aggregate(
   localSubscriptions,
 )
 
-const WatchUnsavedChangesWarningLive =
+const UnsavedChangesNavigationWarningsLive =
   localSubscriptions.unsavedChangesWarning.toLayer(({ hasUnsavedChanges }) =>
     Stream.when(
       Dom.streamFromEventFilterMapPreventDefault({
@@ -52,5 +52,5 @@ const WatchUnsavedChangesWarningLive =
 
 export const Live = Layer.mergeAll(
   ThemeMenu.Live,
-  WatchUnsavedChangesWarningLive,
+  UnsavedChangesNavigationWarningsLive,
 )

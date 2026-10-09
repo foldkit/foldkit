@@ -229,9 +229,9 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  slowWarnings: entry('WatchSlowWarnings'),
+  slowWarnings: entry('SlowWarningReports'),
   burnCpuDuringDependencyExtraction: entry(
-    'WatchSubscriptionDependencies',
+    'SlowDependencyExtraction',
     {
       activeWorkload: Workload,
     },
@@ -249,7 +249,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-const WatchSlowWarningsLive = subscriptions.slowWarnings.toLayer(() =>
+const SlowWarningReportsLive = subscriptions.slowWarnings.toLayer(() =>
   Dom.streamFromEventFilterMap({
     target: slowWarningTarget,
     type: SLOW_WARNING_EVENT,
@@ -262,12 +262,12 @@ const WatchSlowWarningsLive = subscriptions.slowWarnings.toLayer(() =>
   }),
 )
 
-const WatchSubscriptionDependenciesLive =
+const SlowDependencyExtractionLive =
   subscriptions.burnCpuDuringDependencyExtraction.toLayer(() => Stream.empty)
 
 export const Live = Layer.mergeAll(
-  WatchSlowWarningsLive,
-  WatchSubscriptionDependenciesLive,
+  SlowWarningReportsLive,
+  SlowDependencyExtractionLive,
 )
 
 // VIEW

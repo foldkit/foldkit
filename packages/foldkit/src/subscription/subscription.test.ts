@@ -676,13 +676,13 @@ describe('Layer-backed entries', () => {
   ) {}
 
   const subscriptions = make<ChildModel, string>()(entry => ({
-    registrationKey: entry('WatchLabel', childFields, {
+    registrationKey: entry('LabelValues', childFields, {
       modelToDependencies: model => ({
         isRunning: model.isRunning,
         label: model.label,
       }),
     }),
-    latestLabel: entry('WatchLatestLabel', childFields, {
+    latestLabel: entry('LatestLabelValues', childFields, {
       modelToDependencies: model => ({
         isRunning: model.isRunning,
         label: model.label,
@@ -695,7 +695,7 @@ describe('Layer-backed entries', () => {
 
   it('runs a named Stream without local Model dependencies', async () => {
     const persistent = make<ChildModel, string>()(entry => ({
-      heartbeat: entry('WatchHeartbeat'),
+      heartbeat: entry('HeartbeatTicks'),
     }))
     const layer = persistent.heartbeat.toLayer(() => Stream.succeed('tick'))
     const dependencies = persistent.heartbeat.modelToDependencies({
@@ -707,10 +707,10 @@ describe('Layer-backed entries', () => {
       label: 'second',
     })
 
-    expect(persistent.heartbeat.name).toBe('WatchHeartbeat')
+    expect(persistent.heartbeat.name).toBe('HeartbeatTicks')
     expect(dependencies).toEqual({})
     expect(nextDependencies).toEqual(dependencies)
-    expectTypeOf(layer).toEqualTypeOf<Layer.Layer<Handler<'WatchHeartbeat'>>>()
+    expectTypeOf(layer).toEqualTypeOf<Layer.Layer<Handler<'HeartbeatTicks'>>>()
 
     const result = await Effect.runPromise(
       Stream.runCollect(
@@ -730,15 +730,15 @@ describe('Layer-backed entries', () => {
       'registrationKey',
       'latestLabel',
     ])
-    expect(subscriptions.registrationKey.name).toBe('WatchLabel')
+    expect(subscriptions.registrationKey.name).toBe('LabelValues')
     expectTypeOf(layer).toEqualTypeOf<
-      Layer.Layer<Handler<'WatchLabel'>, never, Prefix>
+      Layer.Layer<Handler<'LabelValues'>, never, Prefix>
     >()
     expectTypeOf<
       StreamServices<
         ReturnType<typeof subscriptions.registrationKey.dependenciesToStream>
       >
-    >().toEqualTypeOf<Handler<'WatchLabel'>>()
+    >().toEqualTypeOf<Handler<'LabelValues'>>()
 
     const constructedLayer = subscriptions.registrationKey.toLayer(
       Effect.map(
@@ -751,7 +751,7 @@ describe('Layer-backed entries', () => {
       ),
     )
     expectTypeOf(constructedLayer).toEqualTypeOf<
-      Layer.Layer<Handler<'WatchLabel'>, never, Prefix | Suffix>
+      Layer.Layer<Handler<'LabelValues'>, never, Prefix | Suffix>
     >()
   })
 
@@ -782,7 +782,7 @@ describe('Layer-backed entries', () => {
 
   it('rejects a handler Layer from another Subscription definition with the same name', async () => {
     const other = make<ChildModel, string>()(entry => ({
-      registrationKey: entry('WatchLabel', childFields, {
+      registrationKey: entry('LabelValues', childFields, {
         modelToDependencies: model => ({
           isRunning: model.isRunning,
           label: model.label,
@@ -874,7 +874,7 @@ describe('Layer-backed entries', () => {
     expect(lifted.registrationKey.toLayer).toBe(
       subscriptions.registrationKey.toLayer,
     )
-    expect(lifted.registrationKey.name).toBe('WatchLabel')
+    expect(lifted.registrationKey.name).toBe('LabelValues')
     expectTypeOf(lifted.registrationKey.toLayer).toEqualTypeOf(
       subscriptions.registrationKey.toLayer,
     )

@@ -624,11 +624,11 @@ For file uploads (resumes, images, attachments):
 
 ### Subscriptions (if real-time)
 
-- Prefer the Layer-backed form: `Subscription.make<Model, Message>()(entry => ({ key: entry('WatchFeatureEvent', fields, { modelToDependencies, equivalence? }) }))`. The stable handler name is distinct from the record key. Supply the Stream with `subscriptions.key.toLayer(dependencies => stream)` and merge that Layer into the feature's `Live`
+- Prefer the Layer-backed form: `Subscription.make<Model, Message>()(entry => ({ roomUpdates: entry('RoomUpdates', fields, { modelToDependencies }) }))`. The stable handler name describes the supplied Stream or scoped behavior, while the record key identifies its registration. Supply the Stream with `subscriptions.roomUpdates.toLayer(dependencies => stream)` and merge that Layer into the feature's `Live`
 - `modelToDependencies` extracts Subscription parameters from Model
 - The `toLayer` handler builds `Stream<Message>` from dependencies
 - Subscriptions auto-start/stop based on Model state. Never manually managed
-- For Subscriptions with no Model dependencies (always active), pass `{}` as the `entry` fields argument and return `{}` from `modelToDependencies`
+- For Subscriptions with no local Model dependencies, use `entry('KeyboardPresses')` with no fields or callback; a parent can still gate the entry when lifting it
 - To embed child Subscriptions, use `Subscription.lift(childRecord)<Parent, Parent>({ read, toParentMessage })`. Its `read` returns `Option<ChildModel>`, matching `Update.foldChild` and `ManagedResource.lift`; `None` stops every child Stream without reading child dependencies. Use `Option.some` for always-present children. Every lifted entry wraps its dependencies in `GatedDependencies`. Add `when` on the parent's lift call to gate on a parent fact the child cannot see (the route a page Submodel sits behind); the parent owns the gate and reads the parent Model, and a closed gate tears the entry's Stream down. `when: parentModel => boolean` gates every entry; `when: { entryName: parentModel => boolean }` adds a condition only to the entries it names; child absence still stops every entry, so a child never splits its record to suit its parent's gating. To combine multiple records, use `Subscription.aggregate(...records)`, which reads the Model, Message, and any Effect services off the records
 
 ### Managed Resources (if stateful runtime handles)

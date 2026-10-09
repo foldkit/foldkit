@@ -16,7 +16,7 @@ const settingsSubscriptions = Subscription.lift(Settings.subscriptions)<
 
 const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
   systemTheme: entry(
-    'WatchSystemTheme',
+    'SystemThemeChanges',
     { isSystemPreference: Schema.Boolean },
     {
       modelToDependencies: model => ({
@@ -31,7 +31,7 @@ export const subscriptions = Subscription.aggregate(
   localSubscriptions,
 )
 
-const WatchSystemThemeLive = localSubscriptions.systemTheme.toLayer(
+const SystemThemeChangesLive = localSubscriptions.systemTheme.toLayer(
   ({ isSystemPreference }) =>
     Stream.when(
       Dom.streamFromMediaQuery({
@@ -43,4 +43,4 @@ const WatchSystemThemeLive = localSubscriptions.systemTheme.toLayer(
     ),
 )
 
-export const Live = Layer.mergeAll(Settings.Live, WatchSystemThemeLive)
+export const Live = Layer.mergeAll(Settings.Live, SystemThemeChangesLive)

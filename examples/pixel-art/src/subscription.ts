@@ -39,12 +39,12 @@ const toToolMessage = (event: KeyboardEvent): Option.Option<Message> => {
 }
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  undoRedoKeys: entry('WatchUndoRedoKeys'),
+  undoRedoKeys: entry('UndoRedoKeyPresses'),
 
-  toolKeys: entry('WatchToolKeys'),
+  toolKeys: entry('ToolKeyPresses'),
 
   mouseRelease: entry(
-    'WatchMouseRelease',
+    'MouseReleases',
     { isDrawing: Schema.Boolean },
     {
       modelToDependencies: model => ({ isDrawing: model.isDrawing }),
@@ -52,27 +52,33 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const SubscriptionsLive = Layer.mergeAll(
-  subscriptions.undoRedoKeys.toLayer(() =>
-    Dom.streamFromEventFilterMapPreventDefault({
-      target: document,
-      type: 'keydown',
-      filterMapEvent: toUndoRedoMessage,
-    }),
-  ),
-  subscriptions.toolKeys.toLayer(() =>
-    Dom.streamFromEventFilterMap({
-      target: document,
-      type: 'keydown',
-      filterMapEvent: toToolMessage,
-    }),
-  ),
-  subscriptions.mouseRelease.toLayer(({ isDrawing }) =>
-    Stream.when(
-      Stream.fromEventListener(document, 'mouseup').pipe(
-        Stream.map(() => Message.ReleasedMouse()),
-      ),
-      Effect.sync(() => isDrawing),
+const UndoRedoKeyPressesLive = subscriptions.undoRedoKeys.toLayer(() =>
+  Dom.streamFromEventFilterMapPreventDefault({
+    target: document,
+    type: 'keydown',
+    filterMapEvent: toUndoRedoMessage,
+  }),
+)
+
+const ToolKeyPressesLive = subscriptions.toolKeys.toLayer(() =>
+  Dom.streamFromEventFilterMap({
+    target: document,
+    type: 'keydown',
+    filterMapEvent: toToolMessage,
+  }),
+)
+
+const MouseReleasesLive = subscriptions.mouseRelease.toLayer(({ isDrawing }) =>
+  Stream.when(
+    Stream.fromEventListener(document, 'mouseup').pipe(
+      Stream.map(() => Message.ReleasedMouse()),
     ),
+    Effect.sync(() => isDrawing),
   ),
+)
+
+export const SubscriptionsLive = Layer.mergeAll(
+  UndoRedoKeyPressesLive,
+  ToolKeyPressesLive,
+  MouseReleasesLive,
 )

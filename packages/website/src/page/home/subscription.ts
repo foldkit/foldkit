@@ -9,14 +9,14 @@ import { type Model } from './model'
 const TOGGLE_INTERVAL = Duration.seconds(3)
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  aiHeading: entry('WatchAiHeading'),
+  aiHeading: entry('AiHeadingToggleTicks'),
 }))
 
-const WatchAiHeadingLive = subscriptions.aiHeading.toLayer(() =>
+const AiHeadingToggleTicksLive = subscriptions.aiHeading.toLayer(() =>
   Stream.tick(TOGGLE_INTERVAL).pipe(
     Stream.drop(1),
     Stream.map(Message.ToggledAiHeading),
   ),
 )
 
-export const Live = WatchAiHeadingLive
+export const Live = AiHeadingToggleTicksLive

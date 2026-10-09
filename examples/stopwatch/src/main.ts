@@ -124,7 +124,7 @@ export const init = () => ({
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   tick: entry(
-    'WatchStopwatchTicks',
+    'StopwatchTicks',
     { isRunning: Schema.Boolean },
     {
       modelToDependencies: model => ({ isRunning: model.isRunning }),
@@ -132,15 +132,14 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const WatchStopwatchTicksLive = subscriptions.tick.toLayer(
-  ({ isRunning }) =>
-    Stream.when(
-      Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
-        Stream.drop(1),
-        Stream.map(Message.Ticked),
-      ),
-      Effect.sync(() => isRunning),
+export const StopwatchTicksLive = subscriptions.tick.toLayer(({ isRunning }) =>
+  Stream.when(
+    Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
+      Stream.drop(1),
+      Stream.map(Message.Ticked),
     ),
+    Effect.sync(() => isRunning),
+  ),
 )
 
 // VIEW

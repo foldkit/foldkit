@@ -249,7 +249,7 @@ export interface EntryBuilder<Model, Message, Services> {
  * ```ts
  * const subscriptions = Subscription.make<Model, Message>()(entry => ({
  *   tick: entry(
- *     'WatchTicks',
+ *     'CounterTicks',
  *     { isRunning: Schema.Boolean },
  *     {
  *       modelToDependencies: model => ({ isRunning: model.isRunning }),
@@ -257,9 +257,12 @@ export interface EntryBuilder<Model, Message, Services> {
  *   ),
  * }))
  *
- * const WatchTicksLive = subscriptions.tick.toLayer(({ isRunning }) =>
+ * const CounterTicksLive = subscriptions.tick.toLayer(({ isRunning }) =>
  *   isRunning
- *     ? Stream.fromEffect(Effect.succeed(Message.Tick()))
+ *     ? Stream.tick(Duration.seconds(1)).pipe(
+ *         Stream.drop(1),
+ *         Stream.map(Message.Ticked),
+ *       )
  *     : Stream.empty,
  * )
  * ```

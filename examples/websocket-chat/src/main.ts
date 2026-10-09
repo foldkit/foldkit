@@ -348,7 +348,7 @@ const streamChatSocketMessages = (socket: WebSocket) =>
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   isConnected: entry(
-    'WatchChatSocket',
+    'ChatSocketMessages',
     { isConnected: Schema.Boolean },
     {
       modelToDependencies: model => ({
@@ -358,7 +358,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-const WatchChatSocketLive = subscriptions.isConnected.toLayer(
+const ChatSocketMessagesLive = subscriptions.isConnected.toLayer(
   ({ isConnected }) =>
     Stream.when(
       Stream.unwrap(
@@ -376,7 +376,7 @@ const WatchChatSocketLive = subscriptions.isConnected.toLayer(
 export const Live = Layer.mergeAll(
   CommandsLive,
   ManageChatSocketLive,
-  WatchChatSocketLive,
+  ChatSocketMessagesLive,
 )
 
 // VIEW
