@@ -140,7 +140,7 @@ Whole-application test mode, controlled dependency services, test scheduling, an
 - Full workspace build and all 52 TypeScript projects passed.
 - Full workspace tests passed, including 3,010 Foldkit tests (one skipped) and 1,307 website tests.
 - All 19 browser tests for the eight changed example applications passed serially with retries disabled.
-- All 18 website browser tests passed serially with retries disabled.
+- All 18 website browser tests passed serially and in parallel with retries disabled. Sidebar interaction waits for hydration and browser initialization.
 - Lint, formatting, dead-code, and `git diff --check` passed.
 - The real-handler service example compiled under strict TypeScript, and both Application Layers and Project Organization were inspected in the browser.
 - Mutation checks confirmed the shared-service lifetime, Search substitution, and independent storage tests catch incorrect wiring.
