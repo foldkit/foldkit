@@ -128,7 +128,21 @@ Each `args` field has the same restriction as `data` and `error`: its Schema Cod
 
 Provide `toKey` when several argument values deliberately identify the same retained resource. Suppose the args are `{ postId: Schema.String, preview: Schema.Boolean }`, but `preview` changes only how the request is made. `toKey: ({ postId }) => postId` makes the preview and non-preview requests share one entry. A collision means sharing data and pending work, so omit a field only when that is the application's intended identity rule.
 
-A KeyedQuery retains entries until `reset` clears all of them. It does not currently expire entries, cap their number, or remove one key. Use it for a set whose lifetime and size fit the parent Model. Manage a different cache shape directly when entries need individual eviction or another retention policy.
+A KeyedQuery retains entries until `forget` removes a key, `retainOnly` changes the retained set, or `reset` clears all of them. It does not expire entries or cap their number automatically. The parent controls the retained set through its Model and Messages.
+
+## Control Query Lifecycles
+
+`replace` starts a new Fetch even when one is pending. It keeps available data on screen and advances the request generation, so the earlier Fetch cannot overwrite the replacement. On a settled Query, it uses the same transition as `revalidateOrLoad`.
+
+`forget(model, args)` removes one KeyedQuery entry while preserving the generation counter. Forgetting and then loading the same key cannot reuse an older request's identity. Use `reset` to clear a plain Query or every entry in a KeyedQuery.
+
+`retainOnly(model, argsList)` removes KeyedQuery entries outside the supplied keys. It preserves retained entries and their arguments, and does not fetch missing entries. An empty list removes every entry.
+
+When the retained set follows parent Model state, apply `retainOnly` in the update handler that changes that state. Compose it with `loadIfMissing` to fetch the selected entry explicitly:
+
+::Snippet{name="queryRetainOnly" label="Retaining the selected post"}
+
+These operations do not interrupt running Commands. A completion for a forgotten entry is ignored, and a later Fetch uses a new generation. The [API Cache Query example](/example-apps/api-cache-query) retains the selected post and clears its detail when the user returns to the list.
 
 ## Test Query Commands
 
