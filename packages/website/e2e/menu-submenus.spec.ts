@@ -57,6 +57,9 @@ test('navigates nested actions with the keyboard and selects a leaf', async ({
   const inboxId = await inbox.getAttribute('id')
   expect(inboxId).not.toBeNull()
   await expect(rootMenu).toHaveAttribute('aria-activedescendant', inboxId ?? '')
+  await expect(
+    page.getByRole('menuitem', { name: 'Organize' }),
+  ).not.toHaveAttribute('aria-expanded')
 
   await page.keyboard.press('ArrowLeft')
   await expect(inbox).toHaveCount(0)
@@ -73,6 +76,16 @@ test('navigates nested actions with the keyboard and selects a leaf', async ({
   )
   await page.keyboard.press('ArrowRight')
   await expect(page.getByRole('menuitem', { name: 'Email' })).toBeVisible()
+  await expect(
+    page.getByRole('menuitem', { name: 'Share' }),
+  ).not.toHaveAttribute('aria-expanded')
+  await expect(
+    page.getByRole('menuitem', { name: 'Organize' }),
+  ).not.toHaveAttribute('aria-expanded')
+  await expect(rootMenu).toHaveAttribute(
+    'aria-activedescendant',
+    'menu-submenu-demo-submenu-2-2-item-0',
+  )
   await page.keyboard.press('Escape')
   await expect(page.getByRole('menuitem', { name: 'Email' })).toHaveCount(0)
   await expect(rootMenu).toBeFocused()
@@ -113,7 +126,8 @@ test('opens a submenu on touch activation without hover', async ({ page }) => {
 
   await organize.click()
   await expect(childMenu).toBeVisible()
-  await expect(organize).toHaveAttribute('aria-expanded', 'true')
+  await expect(organize).not.toHaveAttribute('aria-expanded')
+  await expect(organize).toHaveAttribute('data-open', '')
 
   await organize.dispatchEvent('click')
   await expect(organize).toHaveAttribute('aria-expanded', 'false')
@@ -180,6 +194,16 @@ test('does not open a disabled submenu', async ({ page }) => {
     'data-active',
     '',
   )
+  await page.keyboard.press('ArrowUp')
+  await expect(exportItem).toHaveAttribute('data-active', '')
+  await expect(rootMenu).toHaveAttribute(
+    'aria-activedescendant',
+    'menu-submenu-demo-items-item-4',
+  )
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('ArrowRight')
+  await expect(page.locator('#menu-submenu-demo-submenu-4')).toHaveCount(0)
+  await expect(rootMenu).toBeVisible()
   await page.keyboard.press('ArrowUp')
   await expect(page.getByRole('menuitem', { name: 'Move' })).toHaveAttribute(
     'data-active',
@@ -410,7 +434,8 @@ test('exposes portaled children to assistive technology and lets Tab leave', asy
   await trigger.click()
   await organize.click()
   await expect(childMenu).toBeVisible()
-  await expect(organize).toHaveAttribute('aria-expanded', 'true')
+  await expect(organize).not.toHaveAttribute('aria-expanded')
+  await expect(organize).toHaveAttribute('data-open', '')
   const childMenuId = await childMenu.getAttribute('id')
   expect(childMenuId).not.toBeNull()
   await expect(organize).toHaveAttribute('aria-controls', childMenuId ?? '')

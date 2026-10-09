@@ -9,9 +9,13 @@ import type { Model, ViewInputs } from './index.js'
 import {
   AnchorMenu,
   AnchorSubmenu,
+  DelayClearPathSearch,
+  DelayClearSearch,
+  FocusItems,
   Message,
   PortalMenuBackdrop,
   PortalSubmenuLayer,
+  ScrollIntoView,
   ScrollPathItemIntoView,
   buttonId,
   create,
@@ -174,6 +178,80 @@ describe('Menu', () => {
       )
     })
 
+    it('omits the expanded trigger state while the child has an active descendant', () => {
+      Scene.scene(
+        { update, view: nestedSceneView },
+        Scene.given(openModel()),
+        Scene.expect(Scene.selector('#test-items-item-0')).toHaveAttr(
+          'aria-expanded',
+          'false',
+        ),
+        Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
+        Scene.Mount.resolve(
+          PortalMenuBackdrop,
+          Message.CompletedPortalMenuBackdrop(),
+        ),
+        Scene.Mount.resolve(
+          PortalSubmenuLayer,
+          Message.CompletedPortalSubmenuLayer(),
+        ),
+        Scene.keydown(Scene.selector('#test-items'), 'ArrowRight'),
+        Scene.Mount.resolve(AnchorSubmenu, Message.CompletedAnchorSubmenu()),
+        Scene.expect(Scene.selector('#test-items-item-0')).not.toHaveAttr(
+          'aria-expanded',
+        ),
+        Scene.expect(Scene.selector('#test-items-item-0')).toHaveAttr(
+          'data-open',
+        ),
+        Scene.expect(Scene.selector('#test-items')).toHaveAttr(
+          'aria-activedescendant',
+          'test-submenu-0-item-0',
+        ),
+        Scene.keydown(Scene.selector('#test-items'), 'ArrowLeft'),
+        Scene.Mount.expectEnded(AnchorSubmenu),
+        Scene.expect(Scene.selector('#test-items-item-0')).toHaveAttr(
+          'aria-expanded',
+          'false',
+        ),
+        Scene.expect(Scene.selector('#test-items-item-0')).not.toHaveAttr(
+          'data-open',
+        ),
+      )
+    })
+
+    it('exposes expansion when the child active index is outside the supplied items', () => {
+      const staleChildOpen = update(
+        openModel(),
+        Message.OpenedSubmenu({
+          indexPath: [0],
+          submenuPath: ['current-export'],
+          maybeActiveItemIndex: Option.some(4),
+        }),
+      ).model
+
+      Scene.scene(
+        { update, view: nestedSceneView },
+        Scene.given(staleChildOpen),
+        Scene.expect(Scene.selector('#test-items-item-0')).toHaveAttr(
+          'aria-expanded',
+          'true',
+        ),
+        Scene.expect(Scene.selector('#test-items')).not.toHaveAttr(
+          'aria-activedescendant',
+        ),
+        Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
+        Scene.Mount.resolve(
+          PortalMenuBackdrop,
+          Message.CompletedPortalMenuBackdrop(),
+        ),
+        Scene.Mount.resolve(
+          PortalSubmenuLayer,
+          Message.CompletedPortalSubmenuLayer(),
+        ),
+        Scene.Mount.resolve(AnchorSubmenu, Message.CompletedAnchorSubmenu()),
+      )
+    })
+
     it('omits an active descendant when an open child has no items', () => {
       const emptyChildOpen = update(
         openModel(),
@@ -187,6 +265,10 @@ describe('Menu', () => {
       Scene.scene(
         { update, view: emptyNestedSceneView },
         Scene.given(emptyChildOpen),
+        Scene.expect(Scene.selector('#test-items-item-0')).toHaveAttr(
+          'aria-expanded',
+          'true',
+        ),
         Scene.expect(Scene.selector('#test-items')).not.toHaveAttr(
           'aria-activedescendant',
         ),
@@ -326,7 +408,7 @@ describe('Menu', () => {
       )
     })
 
-    it('does not activate disabled entries in a child level', () => {
+    it('makes disabled child actions discoverable without activating them', () => {
       const view = (model: Model, h: HtmlBuilder<Message>) =>
         TestMenu.view(
           model,
@@ -364,6 +446,10 @@ describe('Menu', () => {
       Scene.scene(
         { update, view },
         Scene.given(childOpen),
+        Scene.expect(Scene.selector('#test-items-item-0')).toHaveAttr(
+          'aria-expanded',
+          'true',
+        ),
         Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
         Scene.Mount.resolve(
           PortalMenuBackdrop,
@@ -375,9 +461,117 @@ describe('Menu', () => {
         ),
         Scene.Mount.resolve(AnchorSubmenu, Message.CompletedAnchorSubmenu()),
         Scene.keydown(Scene.selector('#test-items'), 'ArrowDown'),
-        Scene.expectIgnored(),
-        Scene.expect(Scene.selector('#test-items')).not.toHaveAttr(
+        Scene.Command.resolve(
+          ScrollPathItemIntoView,
+          Message.CompletedScrollPathItemIntoView(),
+        ),
+        Scene.expect(Scene.selector('#test-items')).toHaveAttr(
           'aria-activedescendant',
+          'test-submenu-0-item-0',
+        ),
+        Scene.expect(Scene.selector('#test-items-item-0')).not.toHaveAttr(
+          'aria-expanded',
+        ),
+        Scene.keydown(Scene.selector('#test-items'), 'Enter'),
+        Scene.expectIgnored(),
+        Scene.keydown(Scene.selector('#test-items'), ' '),
+        Scene.expect(Scene.selector('#test-items')).toHaveAttr(
+          'aria-activedescendant',
+          'test-submenu-0-item-0',
+        ),
+        Scene.keydown(Scene.selector('#test-items'), 'End'),
+        Scene.Command.resolve(
+          ScrollPathItemIntoView,
+          Message.CompletedScrollPathItemIntoView(),
+        ),
+        Scene.expect(Scene.selector('#test-items')).toHaveAttr(
+          'aria-activedescendant',
+          'test-submenu-0-item-1',
+        ),
+        Scene.keydown(Scene.selector('#test-items'), 'ArrowRight'),
+        Scene.expectIgnored(),
+        Scene.expect(Scene.selector('#test-submenu-0-1')).not.toExist(),
+        Scene.keydown(Scene.selector('#test-items'), 'e'),
+        Scene.Command.resolve(
+          DelayClearPathSearch,
+          Message.CompletedDelayClearPathSearch({ depth: 1, version: 1 }),
+        ),
+        Scene.expect(Scene.selector('#test-items')).toHaveAttr(
+          'aria-activedescendant',
+          'test-submenu-0-item-0',
+        ),
+      )
+    })
+
+    it('makes disabled flat actions discoverable without clicking them', () => {
+      const view = (model: Model, h: HtmlBuilder<Message>) =>
+        TestMenu.view(
+          model,
+          {
+            items: ['Unavailable', 'Edit', 'Delete'],
+            itemToConfig: item => ({ content: h.span([], [item]) }),
+            isItemDisabled: item => item !== 'Edit',
+            buttonContent: h.span([], ['Actions']),
+          },
+          h,
+        )
+
+      Scene.scene(
+        { update, view },
+        Scene.given(init({ id: 'test' })),
+        Scene.keydown(button, 'Enter'),
+        Scene.Command.resolve(FocusItems, Message.CompletedFocusItems()),
+        Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu()),
+        Scene.Mount.resolve(
+          PortalMenuBackdrop,
+          Message.CompletedPortalMenuBackdrop(),
+        ),
+        Scene.expect(Scene.selector('#test-items')).toHaveAttr(
+          'aria-activedescendant',
+          'test-item-1',
+        ),
+        Scene.keydown(Scene.selector('#test-items'), 'End'),
+        Scene.Command.resolve(
+          ScrollIntoView,
+          Message.CompletedScrollIntoView(),
+        ),
+        Scene.expect(Scene.selector('#test-items')).toHaveAttr(
+          'aria-activedescendant',
+          'test-item-2',
+        ),
+        Scene.keydown(Scene.selector('#test-items'), 'Enter'),
+        Scene.expectIgnored(),
+        Scene.keydown(Scene.selector('#test-items'), ' '),
+        Scene.expect(Scene.selector('#test-items')).toHaveAttr(
+          'aria-activedescendant',
+          'test-item-2',
+        ),
+        Scene.keydown(Scene.selector('#test-items'), 'Home'),
+        Scene.Command.resolve(
+          ScrollIntoView,
+          Message.CompletedScrollIntoView(),
+        ),
+        Scene.expect(Scene.selector('#test-items')).toHaveAttr(
+          'aria-activedescendant',
+          'test-item-0',
+        ),
+        Scene.keydown(Scene.selector('#test-items'), 'ArrowDown'),
+        Scene.Command.resolve(
+          ScrollIntoView,
+          Message.CompletedScrollIntoView(),
+        ),
+        Scene.expect(Scene.selector('#test-items')).toHaveAttr(
+          'aria-activedescendant',
+          'test-item-1',
+        ),
+        Scene.keydown(Scene.selector('#test-items'), 'd'),
+        Scene.Command.resolve(
+          DelayClearSearch,
+          Message.CompletedDelayClearSearch({ version: 1 }),
+        ),
+        Scene.expect(Scene.selector('#test-items')).toHaveAttr(
+          'aria-activedescendant',
+          'test-item-2',
         ),
       )
     })

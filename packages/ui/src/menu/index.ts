@@ -2,6 +2,7 @@ import {
   Array,
   Effect,
   Equal,
+  Function,
   Match,
   Number,
   Option,
@@ -1672,17 +1673,22 @@ const flatMenuViewImpl = defineView<Model, Message, LegacyViewInputs<string>>(
         Option.exists(item => isItemDisabled(item, index)),
       )
 
-    const firstEnabledIndex = findFirstEnabledIndex(
-      items.length,
-      0,
-      isDisabled,
-    )(0, 1)
+    const findInitialIndex = (
+      startIndex: number,
+      direction: 1 | -1,
+    ): Option.Option<number> => {
+      const index = findFirstEnabledIndex(
+        items.length,
+        0,
+        isDisabled,
+      )(startIndex, direction)
 
-    const lastEnabledIndex = findFirstEnabledIndex(
-      items.length,
-      0,
-      isDisabled,
-    )(items.length - 1, -1)
+      return pipe(
+        Array.get(items, index),
+        Option.filter(() => !isDisabled(index)),
+        Option.map(() => index),
+      )
+    }
 
     const handleButtonKeyDown = (
       key: string,
@@ -1700,14 +1706,14 @@ const flatMenuViewImpl = defineView<Model, Message, LegacyViewInputs<string>>(
         Match.whenOr('Enter', ' ', 'ArrowDown', () =>
           Option.some(
             Message.Opened({
-              maybeActiveItemIndex: Option.some(firstEnabledIndex),
+              maybeActiveItemIndex: findInitialIndex(0, 1),
             }),
           ),
         ),
         Match.when('ArrowUp', () =>
           Option.some(
             Message.Opened({
-              maybeActiveItemIndex: Option.some(lastEnabledIndex),
+              maybeActiveItemIndex: findInitialIndex(items.length - 1, -1),
             }),
           ),
         ),
@@ -1735,13 +1741,28 @@ const flatMenuViewImpl = defineView<Model, Message, LegacyViewInputs<string>>(
     const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
       OptionExt.when(key === ' ', Message.SuppressedSpaceScroll())
 
-    const resolveActiveIndex = keyToIndex(
-      'ArrowDown',
-      'ArrowUp',
-      items.length,
-      Option.getOrElse(maybeActiveItemIndex, () => 0),
-      isDisabled,
-    )
+    const resolveActiveIndex = (key: string): Option.Option<number> => {
+      if (Array.isReadonlyArrayEmpty(items)) {
+        return Option.none()
+      }
+
+      if (Option.isNone(maybeActiveItemIndex) && key === 'ArrowDown') {
+        return Option.some(0)
+      }
+      if (Option.isNone(maybeActiveItemIndex) && key === 'ArrowUp') {
+        return Option.some(items.length - 1)
+      }
+
+      return Option.some(
+        keyToIndex(
+          'ArrowDown',
+          'ArrowUp',
+          items.length,
+          Option.getOrElse(maybeActiveItemIndex, () => 0),
+          Function.constFalse,
+        )(key),
+      )
+    }
 
     const searchForKey = (key: string): Option.Option<Message> => {
       const nextQuery = searchQuery + key
@@ -1749,7 +1770,7 @@ const flatMenuViewImpl = defineView<Model, Message, LegacyViewInputs<string>>(
         items,
         nextQuery,
         maybeActiveItemIndex,
-        isDisabled,
+        Function.constFalse,
         itemToSearchText,
         String.isNonEmpty(searchQuery),
       )
@@ -1767,15 +1788,22 @@ const flatMenuViewImpl = defineView<Model, Message, LegacyViewInputs<string>>(
       return Match.value(key).pipe(
         Match.when('Escape', () => Option.some(Message.Closed())),
         Match.when('Enter', () =>
-          Option.map(maybeActiveItemIndex, index =>
-            Message.RequestedItemClick({ index }),
+          pipe(
+            maybeActiveItemIndex,
+            Option.filter(index => !isDisabled(index)),
+            Option.map(index => Message.RequestedItemClick({ index })),
           ),
         ),
         Match.when(' ', () =>
           String.isNonEmpty(searchQuery)
             ? searchForKey(' ')
-            : Option.map(maybeActiveItemIndex, index =>
-                Message.RequestedItemClick({ index }),
+            : pipe(
+                maybeActiveItemIndex,
+                Option.filter(index => !isDisabled(index)),
+                Option.map(index => Message.RequestedItemClick({ index })),
+                Option.orElse(() =>
+                  Option.some(Message.SuppressedSpaceScroll()),
+                ),
               ),
         ),
         Match.whenOr(
@@ -1786,9 +1814,9 @@ const flatMenuViewImpl = defineView<Model, Message, LegacyViewInputs<string>>(
           'PageUp',
           'PageDown',
           () =>
-            Option.some(
+            Option.map(resolveActiveIndex(key), index =>
               Message.ActivatedItem({
-                index: resolveActiveIndex(key),
+                index,
                 activationTrigger: 'Keyboard',
               }),
             ),
@@ -2252,6 +2280,11 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       activeDepth,
     )
     const currentLevel = levelAtDepth(model, activeDepth)
+    const maybeCurrentActiveItemIndex = Option.filter(
+      currentLevel.maybeActiveItemIndex,
+      index => Option.isSome(Array.get(current.entries, index)),
+    )
+    const isActiveDescendantPresent = Option.isSome(maybeCurrentActiveItemIndex)
     const currentIsDisabled = (index: number): boolean =>
       Option.exists(Array.get(current.entries, index), entry =>
         entryIsDisabled(
@@ -2263,16 +2296,11 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       )
     const resolveActiveIndex = (key: string): number => {
       if (Option.isNone(currentLevel.maybeActiveItemIndex)) {
-        const find = findFirstEnabledIndex(
-          Array.length(current.entries),
-          0,
-          currentIsDisabled,
-        )
         if (key === 'ArrowDown') {
-          return find(0, 1)
+          return 0
         }
         if (key === 'ArrowUp') {
-          return find(Array.length(current.entries) - 1, -1)
+          return Array.length(current.entries) - 1
         }
       }
 
@@ -2281,14 +2309,13 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
         'ArrowUp',
         Array.length(current.entries),
         Option.getOrElse(currentLevel.maybeActiveItemIndex, () => 0),
-        currentIsDisabled,
+        Function.constFalse,
       )(key)
     }
-    const resolveEnabledIndex = (key: string): Option.Option<number> => {
+    const resolveItemIndex = (key: string): Option.Option<number> => {
       const index = resolveActiveIndex(key)
       return pipe(
         Array.get(current.entries, index),
-        Option.filter(() => !currentIsDisabled(index)),
         Option.map(() => index),
       )
     }
@@ -2299,7 +2326,7 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
         current.entries,
         nextQuery,
         currentLevel.maybeActiveItemIndex,
-        currentIsDisabled,
+        Function.constFalse,
         (entry, index) => {
           if (isSubmenu(entry)) {
             return entry.label
@@ -2396,7 +2423,9 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
         Match.when(' ', () =>
           String.isNonEmpty(currentLevel.searchQuery)
             ? searchForKey(' ')
-            : activateCurrentEntry(),
+            : Option.orElse(activateCurrentEntry(), () =>
+                Option.some(Message.SuppressedSpaceScroll()),
+              ),
         ),
         Match.whenOr(
           'ArrowDown',
@@ -2406,7 +2435,7 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
           'PageUp',
           'PageDown',
           () =>
-            Option.map(resolveEnabledIndex(key), index =>
+            Option.map(resolveItemIndex(key), index =>
               Message.ActivatedPathItem({
                 indexPath: [...openSubmenuIndexPath, index],
                 activationTrigger: 'Keyboard',
@@ -2482,6 +2511,19 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
 
     const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
       OptionExt.when(key === ' ', Message.SuppressedSpaceScroll())
+
+    // NOTE: VoiceOver can announce a trigger's expanded state change instead of
+    // its newly active child. Omit that competing state while a child is active.
+    const resolveSubmenuExpandedAttributes = (isOpenSubmenu: boolean) => {
+      if (!isOpenSubmenu) {
+        return [h.AriaExpanded(false)]
+      }
+      if (!isActiveDescendantPresent) {
+        return [h.AriaExpanded(true)]
+      }
+
+      return []
+    }
 
     const renderLevel = (
       levelEntries: ReadonlyArray<Entry<string>>,
@@ -2594,10 +2636,13 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
               ? [
                   h.AriaLabel(entry.label),
                   h.AriaHasPopup('menu'),
-                  h.AriaExpanded(isOpenSubmenu),
+                  ...resolveSubmenuExpandedAttributes(isOpenSubmenu),
                   h.AriaControls(menuLevelId(id, indexPath)),
                   ...(isOpenSubmenu
-                    ? [h.AriaOwns(menuLevelId(id, indexPath))]
+                    ? [
+                        h.AriaOwns(menuLevelId(id, indexPath)),
+                        h.DataAttribute('open', ''),
+                      ]
                     : []),
                 ]
               : []),
@@ -2743,19 +2788,14 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
             ]
           : renderedItems
       const maybeActiveDescendant = isRoot
-        ? Option.match(
-            Option.filter(currentLevel.maybeActiveItemIndex, index =>
-              Option.isSome(Array.get(current.entries, index)),
-            ),
-            {
-              onNone: () => [],
-              onSome: index => [
-                h.AriaActiveDescendant(
-                  pathItemId(id, [...openSubmenuIndexPath, index]),
-                ),
-              ],
-            },
-          )
+        ? Option.match(maybeCurrentActiveItemIndex, {
+            onNone: () => [],
+            onSome: index => [
+              h.AriaActiveDescendant(
+                pathItemId(id, [...openSubmenuIndexPath, index]),
+              ),
+            ],
+          })
         : []
       const panel = h.keyed('div')(
         menuLevelKey(id, submenuIds),

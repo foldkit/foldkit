@@ -50,7 +50,7 @@ When `isAnimated` is true, the root panel's enter/leave animations flow through 
 
 | Attribute        | Condition                                                                                                                                                       |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-open`      | Present on the button when the menu is open.                                                                                                                    |
+| `data-open`      | Present on the root button when the menu is open and on submenu triggers whose child panel is open.                                                             |
 | `data-active`    | Present on the highlighted menu item.                                                                                                                           |
 | `data-disabled`  | Present on disabled menu items.                                                                                                                                 |
 | `data-closed`    | Present during close animation.                                                                                                                                 |
@@ -60,11 +60,13 @@ When `isAnimated` is true, the root panel's enter/leave animations flow through 
 
 Menu uses `aria-activedescendant`. Focus stays on the root items container while arrow keys update the highlighted item in the active level. Typeahead search is separate for each level and accumulates characters for 350ms. Modified shortcuts do not enter typeahead.
 
+Keyboard opening activates the first or last enabled item. Navigation and typeahead can highlight disabled items so assistive technology can announce their unavailable state. Disabled items cannot be selected, and disabled submenu triggers cannot open a child panel.
+
 | Key                | Description                                                                         |
 | ------------------ | ----------------------------------------------------------------------------------- |
 | `Enter / Space`    | Opens the menu from the button, opens an active submenu, or selects an active leaf. |
-| `Arrow Down`       | Opens with first item active (from button) or moves to next item.                   |
-| `Arrow Up`         | Opens with last item active (from button) or moves to previous item.                |
+| `Arrow Down`       | Opens with first enabled item active (from button) or moves to next item.           |
+| `Arrow Up`         | Opens with last enabled item active (from button) or moves to previous item.        |
 | `Home / End`       | Moves to the first / last item.                                                     |
 | `Arrow Right`      | Opens the active submenu and activates its first enabled item.                      |
 | `Arrow Left`       | Closes a child menu and reactivates its parent trigger.                             |
@@ -76,7 +78,9 @@ Pointer hover opens a submenu after a short delay. While a child is open, Menu b
 
 ## Accessibility
 
-The button receives `aria-haspopup="menu"` and `aria-expanded`. The root items container receives `role="menu"` with `aria-activedescendant`. Each item receives `role="menuitem"`. A submenu trigger also exposes `aria-haspopup="menu"`, `aria-expanded`, and `aria-controls`; `aria-owns` connects it to its portaled child panel.
+The button receives `aria-haspopup="menu"` and `aria-expanded`. The root items container receives `role="menu"` with `aria-activedescendant`. Each item receives `role="menuitem"`. A submenu trigger exposes `aria-haspopup="menu"` and `aria-controls`; `aria-owns` connects it to its portaled child panel.
+
+Closed submenu triggers expose `aria-expanded="false"`. While a child has an active descendant, its open trigger omits `aria-expanded` so VoiceOver can announce the child without a competing expanded state announcement. An open child without a valid active item exposes `aria-expanded="true"`. Use `data-open` or the `isSubmenuOpen` context for styling submenu triggers.
 
 Give the trigger an accessible name. For a visible label, wire a native `<label for>` that targets the trigger id with `Menu.buttonId(id)` rather than hardcoding the `-button` convention. The `for` association makes the trigger properly labeled: assistive technology announces it by the visible label text, and clicking the label opens the menu. That is why it is the recommended pattern.
 
