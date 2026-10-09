@@ -48,16 +48,17 @@ export const GenerateEducationEntryId = Command.define(
   },
 )
 
-export const Live = GenerateEducationEntryId.toLayer(() =>
-  Effect.gen(function* () {
-    const crypto = yield* Crypto.Crypto
-    const entryId = yield* crypto.randomUUIDv4
-    return Message.SucceededGenerateEducationEntryId({ entryId })
-  }).pipe(
-    Effect.catch(() =>
-      Effect.succeed(Message.FailedGenerateEducationEntryId()),
+export const GenerateEducationEntryIdLive = GenerateEducationEntryId.toLayer(
+  () =>
+    Effect.gen(function* () {
+      const crypto = yield* Crypto.Crypto
+      const entryId = yield* crypto.randomUUIDv4
+      return Message.SucceededGenerateEducationEntryId({ entryId })
+    }).pipe(
+      Effect.catch(() =>
+        Effect.succeed(Message.FailedGenerateEducationEntryId()),
+      ),
     ),
-  ),
 )
 
 // UPDATE

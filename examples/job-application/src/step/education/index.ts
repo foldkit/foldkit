@@ -4,7 +4,7 @@ export {
   init,
   update,
   GenerateEducationEntryId,
-  Live,
+  GenerateEducationEntryIdLive as Live,
   hasErrors,
   isComplete,
   revealErrors,

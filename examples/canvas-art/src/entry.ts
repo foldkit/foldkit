@@ -1,6 +1,14 @@
 import { Application, Runtime } from 'foldkit'
 
-import { Live, Message, Model, init, subscriptions, update, view } from './main'
+import {
+  GenerateBallLive,
+  Message,
+  Model,
+  init,
+  subscriptions,
+  update,
+  view,
+} from './main'
 
 const application = Application.make({
   Model,
@@ -14,4 +22,4 @@ const application = Application.make({
   },
 })
 
-Runtime.run(Application.provide(application, Live))
+Runtime.run(Application.provide(application, GenerateBallLive))

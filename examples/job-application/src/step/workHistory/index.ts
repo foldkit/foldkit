@@ -4,7 +4,7 @@ export {
   init,
   update,
   GenerateWorkHistoryEntryId,
-  Live,
+  GenerateWorkHistoryEntryIdLive as Live,
   hasErrors,
   isComplete,
   revealErrors,

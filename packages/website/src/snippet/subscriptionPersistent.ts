@@ -14,7 +14,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   heartbeat: entry('WatchHeartbeat'),
 }))
 
-export const Live = subscriptions.heartbeat.toLayer(() =>
+export const WatchHeartbeatLive = subscriptions.heartbeat.toLayer(() =>
   Stream.tick(Duration.seconds(30)).pipe(
     Stream.drop(1),
     Stream.map(Message.TickedHeartbeat),

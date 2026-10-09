@@ -5,10 +5,10 @@ import { describe, expect, test } from 'vitest'
 
 import {
   CheckoutState,
-  Live,
   Message,
   type Model,
   PlaceOrder,
+  PlaceOrderLive,
   Promo,
   TRANSITION_LOG_LIMIT,
   initialModel,
@@ -43,7 +43,7 @@ describe('update', () => {
       }).pipe(
         Effect.scoped,
         Effect.provide(TestClock.layer()),
-        Effect.provide(Live),
+        Effect.provide(PlaceOrderLive),
       ),
     ))
 

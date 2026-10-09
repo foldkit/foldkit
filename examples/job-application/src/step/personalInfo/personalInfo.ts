@@ -136,22 +136,23 @@ export const ValidateEmailAsync = Command.define('ValidateEmailAsync', {
   messages: [Message.CompletedValidateEmailAsync],
 })
 
-export const Live = ValidateEmailAsync.toLayer(({ emailInput, validationId }) =>
-  Effect.gen(function* () {
-    if (yield* isEmailTaken(emailInput)) {
+export const ValidateEmailAsyncLive = ValidateEmailAsync.toLayer(
+  ({ emailInput, validationId }) =>
+    Effect.gen(function* () {
+      if (yield* isEmailTaken(emailInput)) {
+        return Message.CompletedValidateEmailAsync({
+          validationId,
+          field: Invalid({
+            value: emailInput,
+            errors: ['This email is already in use'],
+          }),
+        })
+      }
       return Message.CompletedValidateEmailAsync({
         validationId,
-        field: Invalid({
-          value: emailInput,
-          errors: ['This email is already in use'],
-        }),
+        field: Valid({ value: emailInput }),
       })
-    }
-    return Message.CompletedValidateEmailAsync({
-      validationId,
-      field: Valid({ value: emailInput }),
-    })
-  }),
+    }),
 )
 
 // UPDATE

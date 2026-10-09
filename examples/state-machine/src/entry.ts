@@ -1,6 +1,6 @@
 import { Application, Runtime } from 'foldkit'
 
-import { Live, Message, Model, init, update } from './main'
+import { Message, Model, PlaceOrderLive, init, update } from './main'
 import { view } from './view'
 
 const application = Application.make({
@@ -14,4 +14,4 @@ const application = Application.make({
   },
 })
 
-Runtime.run(Application.provide(application, Live))
+Runtime.run(Application.provide(application, PlaceOrderLive))

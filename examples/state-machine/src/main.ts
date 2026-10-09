@@ -115,7 +115,7 @@ export const PlaceOrder = Command.define('PlaceOrder', {
   messages: [Message.SucceededPlaceOrder],
 })
 
-export const Live = PlaceOrder.toLayer(({ isShippingRequired }) =>
+export const PlaceOrderLive = PlaceOrder.toLayer(({ isShippingRequired }) =>
   Effect.gen(function* () {
     yield* Effect.sleep(PLACE_ORDER_DELAY)
     return Message.SucceededPlaceOrder({

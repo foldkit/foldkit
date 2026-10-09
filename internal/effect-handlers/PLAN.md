@@ -55,6 +55,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 - [x] Add a synthetic service for Layer-backed Command definitions and `toLayer(handler | Effect<handler>)`.
 - [x] Preserve Command identity, argument capture, result Message mapping, and interruption. Existing Command and DevTools tests pass.
 - [x] Migrate first-party page-owning Command definitions and application Layers. The website's 27 production Commands, all 33 page-owning example entries, Typing Game, and the Embedding example are migrated.
+- [x] Name individual handler Layers after their definitions (`PlaceOrderLive`); use feature-level `Live` for composition and re-exports.
 
 ### 4. Subscription and ManagedResource handlers
 
@@ -118,3 +119,5 @@ This is the working checklist for separating Foldkit effect definitions from the
 ## Deferred work
 
 Whole-application test mode, controlled handler Layers, test scheduling, and a Story/Scene-style application test DSL belong to a later workstream. This work establishes stable identities and replaceable execution boundaries for them.
+
+- [ ] Add a Foldkit lint rule for individual handler Layer names. A Command binding initialized by `PlaceOrder.toLayer(...)` should be `PlaceOrderLive` in production or `PlaceOrderTest` for a test implementation. Permit feature-level `Live` bundles and re-exports. Cover qualified definitions, test fixtures, and an autofix before enabling the rule across first-party code. Extend the same convention to Subscription, Mount, and ManagedResource handlers where their definitions have stable names.

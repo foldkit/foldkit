@@ -20,7 +20,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const Live = subscriptions.systemTheme.toLayer(
+export const WatchSystemThemeLive = subscriptions.systemTheme.toLayer(
   ({ isSystemPreference }) =>
     Stream.when(
       Dom.streamFromMediaQuery({
@@ -31,3 +31,5 @@ export const Live = subscriptions.systemTheme.toLayer(
       Effect.sync(() => isSystemPreference),
     ),
 )
+
+export { WatchSystemThemeLive as Live }

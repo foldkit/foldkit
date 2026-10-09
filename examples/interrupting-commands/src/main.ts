@@ -99,13 +99,14 @@ export const UploadFile = Command.define('UploadFile', {
   },
 })
 
-export const Live = UploadFile.toLayer(({ uploadId, sizeMegabytes }) =>
-  Effect.gen(function* () {
-    yield* Effect.sleep(
-      Duration.millis(sizeMegabytes * MILLISECONDS_PER_MEGABYTE),
-    )
-    return Message.SucceededUploadFile({ uploadId })
-  }),
+export const UploadFileLive = UploadFile.toLayer(
+  ({ uploadId, sizeMegabytes }) =>
+    Effect.gen(function* () {
+      yield* Effect.sleep(
+        Duration.millis(sizeMegabytes * MILLISECONDS_PER_MEGABYTE),
+      )
+      return Message.SucceededUploadFile({ uploadId })
+    }),
 )
 
 export const CancelUploadFile = ({ uploadId }: UploadKey) =>

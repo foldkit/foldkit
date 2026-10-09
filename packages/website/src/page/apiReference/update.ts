@@ -20,7 +20,7 @@ const LoadApiData = Command.define('LoadApiData', {
   messages: [Message.SucceededLoadApiData, Message.FailedLoadApiData],
 })
 
-export const Live = LoadApiData.toLayer(() =>
+export const LoadApiDataLive = LoadApiData.toLayer(() =>
   Effect.gen(function* () {
     const [parsedApiModule, highlightsModule] = yield* Effect.tryPromise({
       try: () =>

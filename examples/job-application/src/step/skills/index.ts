@@ -4,7 +4,7 @@ export {
   init,
   update,
   GenerateSkillsEntryId,
-  Live,
+  GenerateSkillsEntryIdLive as Live,
   hasErrors,
   isComplete,
   revealErrors,

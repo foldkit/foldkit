@@ -78,7 +78,7 @@ export const GenerateBall = Command.define('GenerateBall', {
   messages: [Message.CompletedGenerateBall],
 })
 
-export const Live = GenerateBall.toLayer(({ x, y }) =>
+export const GenerateBallLive = GenerateBall.toLayer(({ x, y }) =>
   Effect.gen(function* () {
     const angle = yield* Random.nextBetween(0, FULL_CIRCLE_RADIANS)
     const speed = yield* Random.nextBetween(BALL_SPEED_MIN, BALL_SPEED_MAX)

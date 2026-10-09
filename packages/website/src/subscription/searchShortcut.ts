@@ -17,7 +17,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const Live = subscriptions.searchShortcut.toLayer(
+export const WatchSearchShortcutLive = subscriptions.searchShortcut.toLayer(
   ({ isSearchAvailable }) =>
     Stream.when(
       Dom.streamFromEventFilterMapPreventDefault({
@@ -33,3 +33,5 @@ export const Live = subscriptions.searchShortcut.toLayer(
       Effect.sync(() => isSearchAvailable),
     ),
 )
+
+export { WatchSearchShortcutLive as Live }

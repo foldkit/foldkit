@@ -57,9 +57,11 @@ export const ReplaceSearchUrl = Command.define('ReplaceSearchUrl', {
   messages: [Message.CompletedReplaceSearchUrl],
 })
 
-export const Live = ReplaceSearchUrl.toLayer(({ url }) =>
+export const ReplaceSearchUrlLive = ReplaceSearchUrl.toLayer(({ url }) =>
   replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceSearchUrl())),
 )
+
+export { ReplaceSearchUrlLive as Live }
 
 // UPDATE
 

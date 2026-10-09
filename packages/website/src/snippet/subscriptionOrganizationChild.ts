@@ -15,12 +15,15 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const Live = subscriptions.escapeKey.toLayer(({ isOpen }) =>
-  Stream.when(
-    Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-      Stream.filter(event => event.key === 'Escape'),
-      Stream.map(PressedEscape),
+export const WatchThemeMenuEscapeLive = subscriptions.escapeKey.toLayer(
+  ({ isOpen }) =>
+    Stream.when(
+      Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
+        Stream.filter(event => event.key === 'Escape'),
+        Stream.map(PressedEscape),
+      ),
+      Effect.sync(() => isOpen),
     ),
-    Effect.sync(() => isOpen),
-  ),
 )
+
+export { WatchThemeMenuEscapeLive as Live }
