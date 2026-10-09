@@ -317,6 +317,74 @@ export function init(
     return vnode.elm
   }
 
+  // NOTE: code outside the patch can move a rendered element out of its
+  // parent while the vnode keeps its place among its siblings. A Mount that
+  // portals an overlay panel does this. Such an element cannot be a reference
+  // node for `insertBefore` in that parent, and a reorder of its siblings must
+  // not pull it back. A fragment parent is exempt, since its children live in
+  // the fragment's own parent.
+  function isChildOf(parentElement: Node, node: Node): boolean {
+    return (
+      api.parentNode(node) === parentElement ||
+      (api.isDocumentFragment?.(parentElement) ?? false)
+    )
+  }
+
+  function firstChildElmIn(
+    parentElement: Node,
+    vnodes: Array<VNode>,
+    startIndex: number,
+    endIndex: number,
+  ): Node | null {
+    for (; startIndex <= endIndex; ++startIndex) {
+      const elm = vnodes[startIndex]?.elm
+      if (elm !== undefined && isChildOf(parentElement, elm)) {
+        return elm
+      }
+    }
+    return null
+  }
+
+  function referenceAfter(
+    parentElement: Node,
+    previousEndElm: Node,
+    nextChildren: Array<VNode>,
+    nextEndIndex: number,
+  ): Node | null {
+    return isChildOf(parentElement, previousEndElm)
+      ? api.nextSibling(previousEndElm)
+      : firstChildElmIn(
+          parentElement,
+          nextChildren,
+          nextEndIndex + 1,
+          nextChildren.length - 1,
+        )
+  }
+
+  function referenceBefore(
+    parentElement: Node,
+    previousChildren: Array<VNode>,
+    previousStartIndex: number,
+    previousEndIndex: number,
+    nextChildren: Array<VNode>,
+    nextEndIndex: number,
+  ): Node | null {
+    return (
+      firstChildElmIn(
+        parentElement,
+        previousChildren,
+        previousStartIndex,
+        previousEndIndex,
+      ) ??
+      firstChildElmIn(
+        parentElement,
+        nextChildren,
+        nextEndIndex + 1,
+        nextChildren.length - 1,
+      )
+    )
+  }
+
   function addVnodes(
     parentElement: Node,
     before: Node | null,
@@ -491,7 +559,6 @@ export function init(
     let previousKeyToIndex: Map<Key, number> | undefined
     let indexInPreviousChildren: number | undefined
     let vnodeToMove: VNode
-    let before: Node | null
 
     while (
       previousStartIndex <= previousEndIndex &&
@@ -516,21 +583,37 @@ export function init(
       } else if (sameVnode(previousStartVnode, nextEndVnode)) {
         // Vnode moved right
         patchVnode(previousStartVnode, nextEndVnode, insertedVnodeQueue)
-        api.insertBefore(
-          parentElement,
-          previousStartVnode.elm!,
-          api.nextSibling(previousEndVnode.elm!),
-        )
+        if (isChildOf(parentElement, previousStartVnode.elm!)) {
+          api.insertBefore(
+            parentElement,
+            previousStartVnode.elm!,
+            referenceAfter(
+              parentElement,
+              previousEndVnode.elm!,
+              nextChildren,
+              nextEndIndex,
+            ),
+          )
+        }
         previousStartVnode = previousChildren[++previousStartIndex]
         nextEndVnode = nextChildren[--nextEndIndex]
       } else if (sameVnode(previousEndVnode, nextStartVnode)) {
         // Vnode moved left
         patchVnode(previousEndVnode, nextStartVnode, insertedVnodeQueue)
-        api.insertBefore(
-          parentElement,
-          previousEndVnode.elm!,
-          previousStartVnode.elm!,
-        )
+        if (isChildOf(parentElement, previousEndVnode.elm!)) {
+          api.insertBefore(
+            parentElement,
+            previousEndVnode.elm!,
+            referenceBefore(
+              parentElement,
+              previousChildren,
+              previousStartIndex,
+              previousEndIndex - 1,
+              nextChildren,
+              nextEndIndex,
+            ),
+          )
+        }
         previousEndVnode = previousChildren[--previousEndIndex]
         nextStartVnode = nextChildren[++nextStartIndex]
       } else {
@@ -557,7 +640,14 @@ export function init(
           api.insertBefore(
             parentElement,
             createElm(nextStartVnode, insertedVnodeQueue),
-            previousStartVnode.elm!,
+            referenceBefore(
+              parentElement,
+              previousChildren,
+              previousStartIndex,
+              previousEndIndex,
+              nextChildren,
+              nextEndIndex,
+            ),
           )
           nextStartVnode = nextChildren[++nextStartIndex]
         } else if (
@@ -568,7 +658,12 @@ export function init(
           api.insertBefore(
             parentElement,
             createElm(nextEndVnode, insertedVnodeQueue),
-            api.nextSibling(previousEndVnode.elm!),
+            referenceAfter(
+              parentElement,
+              previousEndVnode.elm!,
+              nextChildren,
+              nextEndIndex,
+            ),
           )
           nextEndVnode = nextChildren[--nextEndIndex]
         } else {
@@ -579,16 +674,32 @@ export function init(
             api.insertBefore(
               parentElement,
               createElm(nextStartVnode, insertedVnodeQueue),
-              previousStartVnode.elm!,
+              referenceBefore(
+                parentElement,
+                previousChildren,
+                previousStartIndex,
+                previousEndIndex,
+                nextChildren,
+                nextEndIndex,
+              ),
             )
           } else {
             patchVnode(vnodeToMove, nextStartVnode, insertedVnodeQueue)
             previousChildren[indexInPreviousChildren] = undefined as any
-            api.insertBefore(
-              parentElement,
-              vnodeToMove.elm!,
-              previousStartVnode.elm!,
-            )
+            if (isChildOf(parentElement, vnodeToMove.elm!)) {
+              api.insertBefore(
+                parentElement,
+                vnodeToMove.elm!,
+                referenceBefore(
+                  parentElement,
+                  previousChildren,
+                  previousStartIndex,
+                  previousEndIndex,
+                  nextChildren,
+                  nextEndIndex,
+                ),
+              )
+            }
           }
           nextStartVnode = nextChildren[++nextStartIndex]
         }
@@ -596,13 +707,14 @@ export function init(
     }
 
     if (nextStartIndex <= nextEndIndex) {
-      before =
-        nextChildren[nextEndIndex + 1] == null
-          ? null
-          : nextChildren[nextEndIndex + 1]!.elm!
       addVnodes(
         parentElement,
-        before,
+        firstChildElmIn(
+          parentElement,
+          nextChildren,
+          nextEndIndex + 1,
+          nextChildren.length - 1,
+        ),
         nextChildren,
         nextStartIndex,
         nextEndIndex,
