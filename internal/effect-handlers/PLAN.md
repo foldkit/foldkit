@@ -23,7 +23,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 - `Command` definitions declare identity, arguments, result Messages, and interruption behavior. `toLayer` supplies an implementation.
 - An application carries its unsatisfied Effect requirements until a Layer is provided. The application config does not own an app-wide `resources` Layer.
-- Subscriptions retain record keys as registration identities and gain explicit, stable handler names. Their Model dependency logic stays with the definition; a Layer supplies the Stream factory. Lift and aggregation preserve the handler identity.
+- Subscriptions retain record keys as registration identities and gain explicit, stable handler names. Their Model dependency logic stays with the definition; a Layer supplies the Stream factory. A name-only entry handles Streams without local Model dependencies. Lift and aggregation preserve the handler identity.
 - ManagedResources retain Model-driven acquisition and release. A Layer supplies the acquire and release functions, while `managedResources` registers the lifecycle and result Messages with the application.
 - Mount definitions retain their names and element-driven lifecycle. Layer-backed Mounts enter the application requirements through explicit registration because `view` does not expose handler requirements.
 

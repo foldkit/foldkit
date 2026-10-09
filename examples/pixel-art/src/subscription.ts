@@ -39,21 +39,9 @@ const toToolMessage = (event: KeyboardEvent): Option.Option<Message> => {
 }
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  undoRedoKeys: entry(
-    'WatchUndoRedoKeys',
-    {},
-    {
-      modelToDependencies: () => ({}),
-    },
-  ),
+  undoRedoKeys: entry('WatchUndoRedoKeys'),
 
-  toolKeys: entry(
-    'WatchToolKeys',
-    {},
-    {
-      modelToDependencies: () => ({}),
-    },
-  ),
+  toolKeys: entry('WatchToolKeys'),
 
   mouseRelease: entry(
     'WatchMouseRelease',

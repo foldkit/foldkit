@@ -80,7 +80,7 @@ export const update = Update.make((model: Model, message: Message) =>
 const TICK_INTERVAL = Duration.seconds(1)
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  tick: entry('WatchWidgetTicks', {}, { modelToDependencies: () => ({}) }),
+  tick: entry('WatchWidgetTicks'),
   hostStep: Port.subscriptionEntry(ports.inbound.stepChanged, step =>
     Message.ChangedStep({ step }),
   ),

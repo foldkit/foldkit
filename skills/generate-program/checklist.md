@@ -518,7 +518,7 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 - [ ] Layer-backed Subscriptions use `Subscription.make<Model, Message>()(entry => ({ key: entry('WatchFeatureEvent', fields, { modelToDependencies, equivalence? }) }))`. Each stable handler name is distinct within the application, and the bare field map is not wrapped in `Schema.Struct`.
 - [ ] Each layered entry has a `subscriptions.key.toLayer(dependencies => stream)` handler merged into the owning feature's `Live` Layer.
 - [ ] `modelToDependencies` extracts exactly the data the stream needs from Model, not the full Model. Wrap absent dependencies in `Option` at the field level when the subscription should stop.
-- [ ] Always-active subscriptions pass `{}` as the `entry` fields argument and return `{}` from `modelToDependencies`.
+- [ ] Always-active Layer-backed Subscriptions use `entry('WatchFeatureEvent')` with no dependency fields or callback. Self-contained inline Streams can use `Subscription.persistentEntry(stream)`.
 - [ ] Message mapping happens inside `Stream.map(event => Message.UpdatedX({ data: event }))`, not scattered through update.
 - [ ] Subscription files live at `src/subscription.ts` (or `src/subscription/` directory for multiple), never inline in `main.ts`.
 

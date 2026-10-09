@@ -229,11 +229,7 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  slowWarnings: entry(
-    'WatchSlowWarnings',
-    {},
-    { modelToDependencies: () => ({}) },
-  ),
+  slowWarnings: entry('WatchSlowWarnings'),
   burnCpuDuringDependencyExtraction: entry(
     'WatchSubscriptionDependencies',
     {

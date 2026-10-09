@@ -57,7 +57,7 @@ Commands describe one-shot work that produces one result. Subscriptions describe
 
 ::Snippet{name="counterAutoCount" label="Auto-counting Subscription"}
 
-`Subscription.make<Model, Message>()` receives a function that builds a named record of entries. The example uses the Layer-backed form of `entry`, which takes three arguments:
+`Subscription.make<Model, Message>()` receives a function that builds a named record of entries. When a Layer-backed entry depends on the Model, `entry` takes three arguments:
 
 - A stable handler name for the Layer requirement.
 - A field map defining the dependency Schema, in the same shape passed to `Schema.Struct`.
@@ -91,9 +91,11 @@ Use `Stream.tick` for discrete wall-clock steps that should occur every N millis
 
 ## Streams Without Local Model Dependencies
 
-`Subscription.persistentEntry` wraps a Stream in an entry with no dependencies on its own Model. Local Model changes leave the Stream running. A parent can still gate the entry when lifting it.
+For a Layer-backed Subscription with no local Model dependencies, pass only its stable handler name to `entry`. Local Model changes leave the Stream running. A parent can still gate the entry when lifting it.
 
 ::Snippet{name="subscriptionPersistent" label="Heartbeat without Model dependencies"}
+
+Use `Subscription.persistentEntry(stream)` for a self-contained inline Stream that does not need a handler Layer.
 
 For work whose lifetime depends on the Model, define an entry with `Subscription.make` and derive its dependencies from the Model.
 

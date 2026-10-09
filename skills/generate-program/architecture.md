@@ -377,14 +377,14 @@ The runtime resolves the `toParentMessage` wrap at event-fire time through a sco
 
 Subscriptions are model-driven streams. They automatically start and stop based on model state.
 
-Build them with `Subscription.make<Model, Message>()(entry => ({ ... }))`. Prefer the Layer-backed `entry(handlerName, fields, callbacks)` form. For each Subscription, provide:
+Build them with `Subscription.make<Model, Message>()(entry => ({ ... }))`. Use the Layer-backed `entry(handlerName, fields, callbacks)` form when its lifetime depends on the Model. For those Subscriptions, provide:
 
 - A stable handler name. Distinct definitions in one application need distinct names even when their record keys differ.
 - A `fields` map (the bare field map passed as `entry`'s second argument) naming every dependency. The builder calls `Schema.Struct(fields)` internally and infers the dependency type from this map.
 - A `modelToDependencies(model)` function that returns the parameters the stream needs. Wrap an absent dependency in `Option` at the field level. The runtime restarts the stream whenever the dependencies change.
 - A handler Layer built with `subscriptions.key.toLayer(dependencies => stream)`. Errors should be mapped to a `Failed*` Message inside the stream rather than thrown. Merge the handler Layer into the feature's `Live` Layer.
 
-For always-active Subscriptions (keyboard listeners, window resize, animation frame ticks), pass `{}` as the fields argument and return `{}` from `modelToDependencies`. The Subscription then never stops.
+For always-active Layer-backed Subscriptions (keyboard listeners, window resize, animation frame ticks), pass only the stable handler name: `entry('WatchKeyboard')`. The Subscription then stays active across local Model updates. Its parent can still gate it when lifted.
 
 Canonical live examples:
 

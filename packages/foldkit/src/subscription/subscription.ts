@@ -172,8 +172,14 @@ type LayeredEntryCallbacksWithKeepAlive<Model, Dependencies> = {
  * - With `keepAliveEquivalence`, the Layer handler also receives a
  *   `readDependencies` thunk for accessing the latest value while the Stream
  *   stays running across Model changes the equivalence accepts as equal.
+ * - With only a handler name, the entry has no local Model dependencies. Its
+ *   Stream stays active across Model updates unless a parent gates it.
  */
 export interface EntryBuilder<Model, Message, Services> {
+  <const Name extends string>(
+    name: Name,
+  ): LayeredEntryWithoutKeepAlive<Name, Model, Message, Record<string, never>>
+
   <
     const Name extends string,
     const Fields extends Schema.Struct.Fields,
@@ -272,11 +278,21 @@ export const make =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const entryBuilder = ((
       nameOrFields: string | Schema.Struct.Fields,
-      fieldsOrCallbacks: Schema.Struct.Fields | Record<string, unknown>,
+      fieldsOrCallbacks?: Schema.Struct.Fields | Record<string, unknown>,
       maybeCallbacks?: Record<string, unknown>,
     ) => {
       if (Predicate.isString(nameOrFields)) {
         const handler = makeHandler(nameOrFields)
+
+        if (Predicate.isUndefined(fieldsOrCallbacks)) {
+          return {
+            name: nameOrFields,
+            dependenciesSchema: Schema.Struct({}),
+            modelToDependencies: () => ({}),
+            dependenciesToStream: handler.toStream,
+            toLayer: handler.toLayer,
+          }
+        }
 
         return {
           name: nameOrFields,

@@ -258,7 +258,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     },
   ),
 
-  keyboard: entry('WatchKeyboard', {}, { modelToDependencies: () => ({}) }),
+  keyboard: entry('WatchKeyboard'),
 }))
 
 const WatchGameClockLive = subscriptions.gameClock.toLayer(

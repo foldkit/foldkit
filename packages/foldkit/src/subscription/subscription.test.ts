@@ -693,6 +693,34 @@ describe('Layer-backed entries', () => {
     }),
   }))
 
+  it('runs a named Stream without local Model dependencies', async () => {
+    const persistent = make<ChildModel, string>()(entry => ({
+      heartbeat: entry('WatchHeartbeat'),
+    }))
+    const layer = persistent.heartbeat.toLayer(() => Stream.succeed('tick'))
+    const dependencies = persistent.heartbeat.modelToDependencies({
+      isRunning: true,
+      label: 'first',
+    })
+    const nextDependencies = persistent.heartbeat.modelToDependencies({
+      isRunning: false,
+      label: 'second',
+    })
+
+    expect(persistent.heartbeat.name).toBe('WatchHeartbeat')
+    expect(dependencies).toEqual({})
+    expect(nextDependencies).toEqual(dependencies)
+    expectTypeOf(layer).toEqualTypeOf<Layer.Layer<Handler<'WatchHeartbeat'>>>()
+
+    const result = await Effect.runPromise(
+      Stream.runCollect(
+        persistent.heartbeat.dependenciesToStream(dependencies),
+      ).pipe(Effect.provide(layer)),
+    )
+
+    expect(result).toEqual(['tick'])
+  })
+
   it('separates the registration key from the handler name and carries its requirements', () => {
     const layer = subscriptions.registrationKey.toLayer(({ label }) =>
       Stream.fromEffect(Effect.map(Prefix, ({ value }) => `${value}${label}`)),

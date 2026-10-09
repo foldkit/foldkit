@@ -169,11 +169,7 @@ export const update = Update.make((model: Model, message: Message) =>
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  keyBindings: entry(
-    'WatchNavigationShortcuts',
-    {},
-    { modelToDependencies: () => ({}) },
-  ),
+  keyBindings: entry('WatchNavigationShortcuts'),
 }))
 
 const WatchNavigationShortcutsLive = subscriptions.keyBindings.toLayer(() =>

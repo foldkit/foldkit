@@ -9,13 +9,7 @@ import { type Model } from './model'
 const TOGGLE_INTERVAL = Duration.seconds(3)
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  aiHeading: entry(
-    'WatchAiHeading',
-    {},
-    {
-      modelToDependencies: () => ({}),
-    },
-  ),
+  aiHeading: entry('WatchAiHeading'),
 }))
 
 const WatchAiHeadingLive = subscriptions.aiHeading.toLayer(() =>
