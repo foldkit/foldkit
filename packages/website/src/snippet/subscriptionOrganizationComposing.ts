@@ -32,7 +32,7 @@ export const subscriptions = Subscription.aggregate(
   localSubscriptions,
 )
 
-const UnsavedChangesNavigationWarningsLive =
+const UnsavedChangesNavigationWarningsLayer =
   localSubscriptions.unsavedChangesWarning.toLayer(({ hasUnsavedChanges }) =>
     Stream.when(
       Dom.streamFromEventFilterMapPreventDefault({
@@ -47,7 +47,7 @@ const UnsavedChangesNavigationWarningsLive =
     ),
   )
 
-export const Live = Layer.mergeAll(
-  ThemeMenu.Live,
-  UnsavedChangesNavigationWarningsLive,
+export const layer = Layer.mergeAll(
+  ThemeMenu.layer,
+  UnsavedChangesNavigationWarningsLayer,
 )

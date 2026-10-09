@@ -26,12 +26,13 @@ type HandlerService<Dependencies, Message> = Readonly<{
 }>
 
 /**
- * Builds a Layer from a Subscription handler without `keepAliveEquivalence`.
- * Handler dependencies are captured while the Layer is constructed. The
- * Stream's invocation context is merged when it runs and takes precedence.
- * An Effect constructor runs when the application Layer is built, rather than
- * on each Stream restart. Test the handler's transformations and lifecycle by
- * providing alternative dependency services to the same handler Layer.
+ * Creates a Layer recipe from a Subscription handler without `keepAliveEquivalence`.
+ * An Effect constructor runs once when the application Layer is built and may
+ * capture shared services. The returned handler receives Model dependencies
+ * each time Foldkit starts the Stream, whose resources follow that Stream's scope.
+ * Captured services retain their identity; service lookups inside the Stream
+ * use its invocation context over the construction context. Provide test
+ * services before building the same handler Layer to test its transformations.
  */
 export interface ToLayerWithoutKeepAlive<
   Name extends string,
@@ -58,12 +59,14 @@ export interface ToLayerWithoutKeepAlive<
 }
 
 /**
- * Builds a Layer from a Subscription handler with `keepAliveEquivalence`.
- * Handler dependencies are captured while the Layer is constructed. The
- * Stream's invocation context is merged when it runs and takes precedence.
- * An Effect constructor runs when the application Layer is built, rather than
- * on each Stream restart. Test the handler's transformations and lifecycle by
- * providing alternative dependency services to the same handler Layer.
+ * Creates a Layer recipe from a Subscription handler with `keepAliveEquivalence`.
+ * An Effect constructor runs once when the application Layer is built and may
+ * capture shared services. The returned handler receives Model dependencies
+ * and `readDependencies` each time Foldkit starts the Stream. Keep reads of
+ * changing dependencies inside that handler or Stream.
+ * Captured services retain their identity; service lookups inside the Stream
+ * use its invocation context over the construction context. Provide test
+ * services before building the same handler Layer to test its transformations.
  */
 export interface ToLayerWithKeepAlive<
   Name extends string,

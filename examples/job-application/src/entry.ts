@@ -5,7 +5,7 @@ import { BrowserCrypto } from '@effect/platform-browser'
 
 import {
   Flags,
-  Live as HandlersLive,
+  layer as HandlersLayer,
   Message,
   Model,
   flags,
@@ -14,7 +14,7 @@ import {
   view,
 } from './main'
 
-const Live = HandlersLive.pipe(Layer.provideMerge(BrowserCrypto.layer))
+const layer = HandlersLayer.pipe(Layer.provideMerge(BrowserCrypto.layer))
 
 const application = Application.make({
   Model,
@@ -28,4 +28,4 @@ const application = Application.make({
   },
 })
 
-Runtime.run(Application.provide(application, Live), { flags })
+Runtime.run(Application.provide(application, layer), { flags })

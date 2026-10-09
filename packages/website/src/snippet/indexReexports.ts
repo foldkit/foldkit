@@ -1,7 +1,7 @@
 // page/products/index.ts
 export { Model } from './model'
 export { Message } from './message'
-export { Live } from './live'
+export { layer } from './layer'
 export { subscriptions } from './subscription'
 export { managedResources } from './managedResource'
 export { mounts } from './mount'

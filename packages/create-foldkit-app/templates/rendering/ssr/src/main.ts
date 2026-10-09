@@ -67,7 +67,7 @@ export const PersistCount = Command.define('PersistCount', {
   messages: [Message.CompletedPersistCount],
 })
 
-export const PersistCountLive = PersistCount.toLayer(({ count }) =>
+export const PersistCountLayer = PersistCount.toLayer(({ count }) =>
   Effect.try(() => {
     document.cookie = `${COUNT_COOKIE}=${count}; path=/; max-age=${COUNT_COOKIE_MAX_AGE_SECONDS}`
   }).pipe(

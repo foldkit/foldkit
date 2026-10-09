@@ -2,7 +2,7 @@
 
 ## Overview
 
-A small Foldkit app can start in two files. `src/main.ts` holds the pure definitions: Model, Messages, update, init, and view. `src/entry.ts` assembles and starts the runtime. Larger apps can move assembly to `src/application.ts` and handler Layer composition to `src/live.ts`, leaving `entry.ts` with one provision step. Keeping runtime side effects in `entry.ts` leaves the definitions directly importable from tests.
+A small Foldkit app can start in two files. `src/main.ts` holds the pure definitions: Model, Messages, update, init, and view. `src/entry.ts` assembles and starts the runtime. Larger apps can move assembly to `src/application.ts` and handler Layer composition to `src/layer.ts`, leaving `entry.ts` with one provision step. Keeping runtime side effects in `entry.ts` leaves the definitions directly importable from tests.
 
 The Runtime API makes two independent choices:
 
@@ -11,9 +11,9 @@ The Runtime API makes two independent choices:
 
 For an application with service-dependent inline Commands, Subscriptions, or ManagedResources, or with Layer-backed Commands, Subscriptions, Mounts, or ManagedResources, `Application.make` and `Application.makeElement` carry their inferred Effect requirements. An inline Mount must supply its own services. Call `Application.provide` until the application requirements are satisfied, then pass the runnable program to `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` as appropriate. Provision can be chained because a handler Layer may itself need services from a later Layer. The assembly config has no `resources` field; runtime-wide services are supplied through `Application.provide`.
 
-For a larger application, combine independent feature Layers with Effect's `Layer.mergeAll` and call `Application.provide` once. Each feature exports one `Live` Layer for its Commands, Subscriptions, Mounts, ManagedResources, and child features. A feature may provide business services it owns while leaving HTTP, storage, RPC, and browser requirements open. The application root chooses those concrete environment providers and composes one root `Live` Layer. Use `Layer.provideMerge` when a provider must also remain available to Flags or another application consumer. The entry imports that root Layer once. [Project Organization](/patterns/project-organization#composing-handler-layers) shows the complete file structure.
+For a larger application, combine independent feature Layers with Effect's `Layer.mergeAll` and call `Application.provide` once. Each feature exports one lowercase `layer` for its Commands, Subscriptions, Mounts, ManagedResources, and child features. A feature may provide business services it owns while leaving HTTP, storage, RPC, and browser requirements open. The application root chooses those concrete environment providers and composes one root `layer`. Use `Layer.provideMerge` when a provider must also remain available to Flags or another application consumer. The entry imports that root Layer once. [Project Organization](/patterns/project-organization#composing-handler-layers) shows the complete file structure.
 
-The runtime builds the supplied Layer once for each start and releases its Scope when that start stops. Command lookup, Subscription restarts, Mount insertions, and ManagedResource reacquisitions reuse the application-scoped handlers and providers.
+`Application.provide` adds the supplied Layer recipe to the program. The Runtime builds that application Layer once for each start and releases its Scope when that start stops. Command lookup, Subscription restarts, Mount insertions, and ManagedResource reacquisitions reuse the resulting application-scoped handlers and providers.
 
 ::Snippet{name="runApplicationLayers" label="Providing application handler Layers"}
 

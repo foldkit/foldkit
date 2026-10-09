@@ -12,7 +12,7 @@ export const SubmitApplication = Command.define('SubmitApplication', {
   ],
 })
 
-export const SubmitApplicationLive = SubmitApplication.toLayer(() =>
+export const SubmitApplicationLayer = SubmitApplication.toLayer(() =>
   Effect.gen(function* () {
     yield* Effect.sleep(Duration.millis(1500))
     return Message.SucceededSubmitApplication()

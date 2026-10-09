@@ -84,7 +84,7 @@ export type Message = typeof Message.Type
 type UpdateReturn = Update.Return<
   Model,
   Message,
-  Layer.Success<typeof CommandsLive>
+  Layer.Success<typeof CommandsLayer>
 >
 
 export const update = Update.make((model: Model, message: Message) =>
@@ -192,7 +192,7 @@ export const TimestampSentMessage = Command.define('TimestampSentMessage', {
   messages: [Message.TimestampedMessage],
 })
 
-const TimestampSentMessageLive = TimestampSentMessage.toLayer(({ text }) =>
+const TimestampSentMessageLayer = TimestampSentMessage.toLayer(({ text }) =>
   getZonedTime.pipe(
     Effect.map(zoned =>
       Message.TimestampedMessage({ text, zoned, isSent: true }),
@@ -208,7 +208,7 @@ export const TimestampReceivedMessage = Command.define(
   },
 )
 
-const TimestampReceivedMessageLive = TimestampReceivedMessage.toLayer(
+const TimestampReceivedMessageLayer = TimestampReceivedMessage.toLayer(
   ({ text }) =>
     getZonedTime.pipe(
       Effect.map(zoned =>
@@ -222,7 +222,7 @@ export const SendMessage = Command.define('SendMessage', {
   messages: [Message.SucceededSendMessage, Message.FailedSendMessage],
 })
 
-const SendMessageLive = SendMessage.toLayer(({ text }) =>
+const SendMessageLayer = SendMessage.toLayer(({ text }) =>
   ChatSocket.get.pipe(
     Effect.flatMap(socket =>
       Effect.try({
@@ -243,10 +243,10 @@ const SendMessageLive = SendMessage.toLayer(({ text }) =>
   ),
 )
 
-const CommandsLive = Layer.mergeAll(
-  TimestampSentMessageLive,
-  TimestampReceivedMessageLive,
-  SendMessageLive,
+const CommandsLayer = Layer.mergeAll(
+  TimestampSentMessageLayer,
+  TimestampReceivedMessageLayer,
+  SendMessageLayer,
 )
 
 // MANAGED RESOURCE
@@ -271,47 +271,52 @@ export const managedResources = ManagedResource.make<Model, Message>()(
   }),
 )
 
-export const ManageChatSocketLive = managedResources.chatSocket.toLayer({
-  acquire: () =>
-    Effect.gen(function* () {
-      const makeWebSocket = yield* Socket.WebSocketConstructor
-      const socket = yield* Effect.acquireRelease(
-        Effect.sync(() => makeWebSocket(WS_URL)),
-        socket =>
-          Effect.sync(() => {
-            socket.close()
-          }),
-      )
+export const ManageChatSocketLayer = managedResources.chatSocket.toLayer(
+  Effect.gen(function* () {
+    const makeWebSocket = yield* Socket.WebSocketConstructor
 
-      yield* Effect.callback<void, Error>(resume => {
-        const removeListeners = () => {
-          socket.removeEventListener('open', handleOpen)
-          socket.removeEventListener('error', handleError)
-        }
-        const handleOpen = () => {
-          removeListeners()
-          resume(Effect.void)
-        }
-        const handleError = () => {
-          removeListeners()
-          resume(Effect.fail(new Error('Failed to connect to WebSocket')))
-        }
+    return {
+      acquire: () =>
+        Effect.gen(function* () {
+          const socket = yield* Effect.acquireRelease(
+            Effect.sync(() => makeWebSocket(WS_URL)),
+            socket =>
+              Effect.sync(() => {
+                socket.close()
+              }),
+          )
 
-        socket.addEventListener('open', handleOpen)
-        socket.addEventListener('error', handleError)
+          yield* Effect.callback<void, Error>(resume => {
+            const removeListeners = () => {
+              socket.removeEventListener('open', handleOpen)
+              socket.removeEventListener('error', handleError)
+            }
+            const handleOpen = () => {
+              removeListeners()
+              resume(Effect.void)
+            }
+            const handleError = () => {
+              removeListeners()
+              resume(Effect.fail(new Error('Failed to connect to WebSocket')))
+            }
 
-        return Effect.sync(removeListeners)
-      }).pipe(
-        Effect.timeout(Duration.millis(CONNECTION_TIMEOUT_MS)),
-        Effect.catchTag('TimeoutError', () =>
-          Effect.fail(new Error('Connection timeout')),
-        ),
-      )
+            socket.addEventListener('open', handleOpen)
+            socket.addEventListener('error', handleError)
 
-      return socket
-    }),
-  release: () => Effect.void,
-})
+            return Effect.sync(removeListeners)
+          }).pipe(
+            Effect.timeout(Duration.millis(CONNECTION_TIMEOUT_MS)),
+            Effect.catchTag('TimeoutError', () =>
+              Effect.fail(new Error('Connection timeout')),
+            ),
+          )
+
+          return socket
+        }),
+      release: () => Effect.void,
+    }
+  }),
+)
 
 // SUBSCRIPTION
 
@@ -375,7 +380,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-const ChatSocketMessagesLive = subscriptions.chatSocketMessages.toLayer(
+const ChatSocketMessagesLayer = subscriptions.chatSocketMessages.toLayer(
   ({ isConnected }) =>
     Stream.when(
       Stream.unwrap(
@@ -390,10 +395,10 @@ const ChatSocketMessagesLive = subscriptions.chatSocketMessages.toLayer(
     ),
 )
 
-export const Live = Layer.mergeAll(
-  CommandsLive,
-  ManageChatSocketLive,
-  ChatSocketMessagesLive,
+export const layer = Layer.mergeAll(
+  CommandsLayer,
+  ManageChatSocketLayer,
+  ChatSocketMessagesLayer,
 )
 
 // VIEW

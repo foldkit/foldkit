@@ -79,7 +79,7 @@ const LoadExternal = Command.define('LoadExternal', {
   messages: [Message.CompletedLoadExternal],
 })
 
-const CommandsLive = Layer.mergeAll(
+const CommandsLayer = Layer.mergeAll(
   NavigateInternal.toLayer(({ url }) =>
     pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
   ),
@@ -91,7 +91,7 @@ const CommandsLive = Layer.mergeAll(
 // UPDATE
 
 type UpdateRequirements =
-  | Layer.Success<typeof CommandsLive>
+  | Layer.Success<typeof CommandsLayer>
   | People.UpdateRequirements
 type UpdateReturn = Update.Return<Model, Message, UpdateRequirements>
 
@@ -174,7 +174,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   }),
 }))
 
-const NavigationShortcutPressesLive = subscriptions.keyBindings.toLayer(() =>
+const NavigationShortcutPressesLayer = subscriptions.keyBindings.toLayer(() =>
   Dom.streamFromKeyBindings<typeof Message.EnteredNavigationShortcut.Type>({
     bindings: [
       {
@@ -197,10 +197,10 @@ const NavigationShortcutPressesLive = subscriptions.keyBindings.toLayer(() =>
   }),
 )
 
-export const Live = Layer.mergeAll(
-  CommandsLive,
-  People.Live,
-  NavigationShortcutPressesLive,
+export const layer = Layer.mergeAll(
+  CommandsLayer,
+  People.layer,
+  NavigationShortcutPressesLayer,
 )
 
 // VIEW

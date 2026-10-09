@@ -1,6 +1,6 @@
 import { Application, Runtime } from 'foldkit'
 
-import { Flags, Live, Message, Model, init, update, view } from './main'
+import { Flags, Message, Model, init, layer, update, view } from './main'
 import './styles.css'
 
 const application = Application.make({
@@ -15,4 +15,4 @@ const application = Application.make({
   },
 })
 
-Runtime.hydrate(Application.provide(application, Live))
+Runtime.hydrate(Application.provide(application, layer))

@@ -10,7 +10,7 @@ export class RoomByIdStore extends Context.Service<
   SubscriptionRef.SubscriptionRef<RoomById>
 >()('RoomByIdStore') {}
 
-export const RoomByIdStoreLive = Layer.effect(
+export const RoomByIdStoreLayer = Layer.effect(
   RoomByIdStore,
   SubscriptionRef.make(HashMap.empty<string, Shared.Room>()),
 )
@@ -25,7 +25,7 @@ export class ProgressByGamePlayerStore extends Context.Service<
   SubscriptionRef.SubscriptionRef<ProgressByGamePlayer>
 >()('ProgressByGamePlayerStore') {}
 
-export const ProgressByGamePlayerStoreLive = Layer.effect(
+export const ProgressByGamePlayerStoreLayer = Layer.effect(
   ProgressByGamePlayerStore,
   SubscriptionRef.make(
     HashMap.empty<Shared.GamePlayer, Shared.PlayerProgress>(),
@@ -40,7 +40,7 @@ export class PendingCleanupPlayerIdsStore extends Context.Service<
   Ref.Ref<PendingCleanupPlayerIds>
 >()('PendingCleanupPlayerIdsStore') {}
 
-export const PendingCleanupPlayerIdsStoreLive = Layer.effect(
+export const PendingCleanupPlayerIdsStoreLayer = Layer.effect(
   PendingCleanupPlayerIdsStore,
   Ref.make(HashSet.empty<string>()),
 )

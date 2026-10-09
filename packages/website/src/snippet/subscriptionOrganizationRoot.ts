@@ -32,7 +32,7 @@ export const subscriptions = Subscription.aggregate(
   localSubscriptions,
 )
 
-const SystemThemeChangesLive = localSubscriptions.systemTheme.toLayer(
+const SystemThemeChangesLayer = localSubscriptions.systemTheme.toLayer(
   ({ isSystemPreference }) =>
     Stream.when(
       Dom.streamFromMediaQuery({
@@ -44,4 +44,4 @@ const SystemThemeChangesLive = localSubscriptions.systemTheme.toLayer(
     ),
 )
 
-export const Live = Layer.mergeAll(Settings.Live, SystemThemeChangesLive)
+export const layer = Layer.mergeAll(Settings.layer, SystemThemeChangesLayer)

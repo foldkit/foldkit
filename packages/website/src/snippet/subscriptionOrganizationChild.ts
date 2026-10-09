@@ -16,7 +16,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const ThemeMenuEscapePressesLive = subscriptions.escapeKey.toLayer(
+export const ThemeMenuEscapePressesLayer = subscriptions.escapeKey.toLayer(
   ({ isOpen }) =>
     Stream.when(
       Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
@@ -27,4 +27,4 @@ export const ThemeMenuEscapePressesLive = subscriptions.escapeKey.toLayer(
     ),
 )
 
-export { ThemeMenuEscapePressesLive as Live }
+export { ThemeMenuEscapePressesLayer as layer }

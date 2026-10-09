@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { RadioGroup } from '@foldkit/ui'
 
-import { CommandsLive, FetchTelemetry, SyncChart } from './command'
+import { CommandsLayer, FetchTelemetry, SyncChart } from './command'
 import type { ChartMode, PackageId, Period } from './domain'
 import { Message } from './message'
 import { type Model, TelemetryAsyncData } from './model'
@@ -14,7 +14,7 @@ import {
   PeriodRadioGroup,
 } from './radioGroups'
 
-type CommandServices = Layer.Success<typeof CommandsLive>
+type CommandServices = Layer.Success<typeof CommandsLayer>
 type UpdateReturn = Update.Return<Model, Message, CommandServices>
 type UpdateStep = Update.Step<Model, Message, CommandServices>
 

@@ -16,7 +16,7 @@ const MeasurePanel = Mount.define('MeasurePanel', {
   messages: [Message.CompletedMeasurePanel],
 })
 
-const MeasurePanelLive = MeasurePanel.toLayer(({ element }) =>
+const MeasurePanelLayer = MeasurePanel.toLayer(({ element }) =>
   Effect.sync(() =>
     Message.CompletedMeasurePanel({
       height: element.getBoundingClientRect().height,
@@ -57,4 +57,4 @@ const application = Application.make({
   container: document.getElementById('root'),
 })
 
-Runtime.run(Application.provide(application, MeasurePanelLive))
+Runtime.run(Application.provide(application, MeasurePanelLayer))

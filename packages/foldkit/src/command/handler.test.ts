@@ -26,7 +26,7 @@ const SendMessage = Command.define('SendMessage', {
   messages: [Message.CompletedSendMessage],
 })
 
-const SendMessageLive = SendMessage.toLayer(({ text }) =>
+const SendMessageLayer = SendMessage.toLayer(({ text }) =>
   Effect.map(Prefix, ({ value }) =>
     Message.CompletedSendMessage({ text: value + text }),
   ),
@@ -59,7 +59,7 @@ it('carries the handler requirement and its implementation dependencies', () => 
   expectTypeOf<Command.HandlerOf<typeof SendMessage>>().toEqualTypeOf<
     Command.Handler<'SendMessage'>
   >()
-  expectTypeOf(SendMessageLive).toEqualTypeOf<
+  expectTypeOf(SendMessageLayer).toEqualTypeOf<
     Layer.Layer<Command.Handler<'SendMessage'>, never, Prefix>
   >()
 
@@ -92,7 +92,7 @@ it('carries the handler requirement and its implementation dependencies', () => 
 })
 
 it('uses invocation context over the context captured by the handler Layer', async () => {
-  const handlerLayer = SendMessageLive.pipe(
+  const handlerLayer = SendMessageLayer.pipe(
     Layer.provideMerge(Layer.succeed(Prefix, { value: 'construction:' })),
   )
   const result = await Effect.runPromise(
@@ -104,6 +104,40 @@ it('uses invocation context over the context captured by the handler Layer', asy
 
   expect(result).toEqual(
     Message.CompletedSendMessage({ text: 'invocation:hello' }),
+  )
+})
+
+it('retains constructor captures while execution lookups use invocation services', async () => {
+  const handlerLayer = SendMessage.toLayer(
+    Effect.gen(function* () {
+      const prefix = yield* Prefix
+
+      return ({ text }) =>
+        Effect.map(Suffix, suffix =>
+          Message.CompletedSendMessage({
+            text: prefix.value + text + suffix.value,
+          }),
+        )
+    }),
+  ).pipe(
+    Layer.provide(
+      Layer.mergeAll(
+        Layer.succeed(Prefix, { value: 'construction:' }),
+        Layer.succeed(Suffix, { value: ':construction' }),
+      ),
+    ),
+  )
+
+  const result = await Effect.runPromise(
+    SendMessage({ text: 'hello' }).effect.pipe(
+      Effect.provideService(Prefix, { value: 'invocation:' }),
+      Effect.provideService(Suffix, { value: ':invocation' }),
+      Effect.provide(handlerLayer),
+    ),
+  )
+
+  expect(result).toEqual(
+    Message.CompletedSendMessage({ text: 'construction:hello:invocation' }),
   )
 })
 

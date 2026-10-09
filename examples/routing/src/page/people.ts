@@ -142,7 +142,7 @@ export const FetchPeople = Command.define('FetchPeople', {
   messages: [Message.CompletedFetchPeople],
 })
 
-export const Live = Layer.mergeAll(
+export const layer = Layer.mergeAll(
   PushSearchUrl.toLayer(({ searchText }) =>
     pushUrl(peopleRouter({ searchText })).pipe(
       Effect.as(Message.CompletedPushSearchUrl()),
@@ -162,7 +162,7 @@ export const Live = Layer.mergeAll(
 
 // UPDATE
 
-export type UpdateRequirements = Layer.Success<typeof Live>
+export type UpdateRequirements = Layer.Success<typeof layer>
 export type UpdateReturn = Update.Return<Model, Message, UpdateRequirements>
 
 export const update = Update.make((model: Model, message: Message) =>

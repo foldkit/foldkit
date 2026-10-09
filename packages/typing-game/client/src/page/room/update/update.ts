@@ -18,7 +18,7 @@ import { optionWhen } from '../../../optionWhen'
 import { homeRouter } from '../../../route'
 import {
   ClearSession,
-  CommandsLive,
+  CommandsLayer,
   CopyRoomId,
   FocusRoomPageUsernameInput,
   JoinRoom,
@@ -37,12 +37,12 @@ const NavigateHome = Command.define('NavigateHome', {
   messages: [Message.CompletedNavigateHome],
 })
 
-export const NavigateHomeLive = NavigateHome.toLayer(() =>
+export const NavigateHomeLayer = NavigateHome.toLayer(() =>
   pushUrl(homeRouter()).pipe(Effect.as(Message.CompletedNavigateHome())),
 )
 
 export type UpdateRequirements =
-  | Layer.Success<typeof CommandsLive>
+  | Layer.Success<typeof CommandsLayer>
   | Command.HandlerOf<typeof NavigateHome>
 export type UpdateReturn = Update.Return<Model, Message, UpdateRequirements>
 const withUpdateReturn = Match.withReturnType<UpdateReturn>()

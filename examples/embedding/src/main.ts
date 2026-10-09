@@ -48,7 +48,7 @@ export const ReportCount = Command.define('ReportCount', {
   messages: [Message.CompletedReportCount],
 })
 
-const ReportCountLive = ReportCount.toLayer(({ count }) =>
+const ReportCountLayer = ReportCount.toLayer(({ count }) =>
   Port.emit(ports.outbound.countChanged, count).pipe(
     Effect.as(Message.CompletedReportCount()),
   ),
@@ -86,11 +86,11 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-const WidgetTicksLive = subscriptions.tick.toLayer(() =>
+const WidgetTicksLayer = subscriptions.tick.toLayer(() =>
   Stream.tick(TICK_INTERVAL).pipe(Stream.drop(1), Stream.map(Message.Ticked)),
 )
 
-export const Live = Layer.mergeAll(ReportCountLive, WidgetTicksLive)
+export const layer = Layer.mergeAll(ReportCountLayer, WidgetTicksLayer)
 
 // VIEW
 
@@ -155,5 +155,5 @@ export const makeElement = (container: HTMLElement, flags: Flags) =>
         Message,
       },
     }),
-    Application.provide(Live),
+    Application.provide(layer),
   )

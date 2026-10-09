@@ -17,7 +17,7 @@ const DelayReset = Command.define(
   },
 )
 
-const DelayResetLive = DelayReset.toLayer(() =>
+const DelayResetLayer = DelayReset.toLayer(() =>
   Effect.sleep('1 second').pipe(Effect.as(Message.CompletedDelayReset())),
 )
 

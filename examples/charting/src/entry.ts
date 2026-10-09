@@ -2,7 +2,7 @@ import { Application, Runtime } from 'foldkit'
 
 import { registerEcharts } from './echarts'
 import { init } from './init'
-import { Live, mounts } from './live'
+import { layer, mounts } from './layer'
 import { Message } from './message'
 import { Model } from './model'
 import { update } from './update'
@@ -22,4 +22,4 @@ const application = Application.make({
   },
 })
 
-Runtime.run(Application.provide(application, Live))
+Runtime.run(Application.provide(application, layer))

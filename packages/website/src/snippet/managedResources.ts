@@ -33,7 +33,7 @@ const managedResources = ManagedResource.make<Model, Message>()(entry => ({
 }))
 
 // 3. Supply the lifecycle implementation with a Layer.
-const ManageCameraLive = managedResources.camera.toLayer({
+const ManageCameraLayer = managedResources.camera.toLayer({
   acquire: ({ facingMode }) =>
     Effect.tryPromise(() =>
       navigator.mediaDevices.getUserMedia({ video: { facingMode } }),
@@ -51,4 +51,4 @@ const application = Application.make({
   managedResources,
 })
 
-Runtime.run(Application.provide(application, ManageCameraLive))
+Runtime.run(Application.provide(application, ManageCameraLayer))

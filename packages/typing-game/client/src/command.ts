@@ -10,7 +10,7 @@ export const NavigateToRoom = Command.define('NavigateToRoom', {
   messages: [Message.CompletedNavigateToRoom],
 })
 
-export const NavigateToRoomLive = NavigateToRoom.toLayer(({ roomId }) =>
+export const NavigateToRoomLayer = NavigateToRoom.toLayer(({ roomId }) =>
   pushUrl(roomRouter({ roomId })).pipe(
     Effect.as(Message.CompletedNavigateToRoom()),
   ),

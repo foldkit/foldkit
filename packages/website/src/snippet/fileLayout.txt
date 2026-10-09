@@ -1,7 +1,7 @@
 src/
 +-- entry.ts               Runtime bootstrap
 +-- application.ts         Root runtime registrations + Application.make
-+-- live.ts                Root Live Layer
++-- layer.ts               Root application Layer
 +-- init.ts                App-level init
 +-- model.ts               App-level state
 +-- message.ts             App-level messages
@@ -18,7 +18,7 @@ src/
 |   +-- index.ts           Re-exports all pages
 |   +-- home/
 |   |   +-- index.ts       Re-exports Home module
-|   |   +-- live.ts        Home Live Layer
+|   |   +-- layer.ts       Home handler Layer
 |   |   +-- init.ts        Home init
 |   |   +-- model.ts       Home state
 |   |   +-- message.ts     Home events
@@ -30,7 +30,7 @@ src/
 |   |   +-- scene.test.ts  Scene tests for the Home view
 |   +-- products/
 |       +-- index.ts
-|       +-- live.ts
+|       +-- layer.ts
 |       +-- init.ts
 |       +-- model.ts
 |       +-- message.ts
@@ -45,7 +45,7 @@ src/
 |       +-- scene.test.ts
 |       +-- reviews/
 |           +-- index.ts
-|           +-- live.ts
+|           +-- layer.ts
 |
 +-- domain/
     +-- index.ts           Re-exports domain modules

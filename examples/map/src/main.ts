@@ -129,7 +129,7 @@ export const FlyTo = Command.define('FlyTo', {
   messages: [Message.SucceededFlyTo, Message.FailedFlyTo],
 })
 
-const FlyToLive = FlyTo.toLayer(({ maybeHostId, lng, lat, zoom }) =>
+const FlyToLayer = FlyTo.toLayer(({ maybeHostId, lng, lat, zoom }) =>
   Option.match(maybeHostId, {
     onNone: () =>
       Effect.succeed(
@@ -145,7 +145,7 @@ export const Geolocate = Command.define('Geolocate', {
   messages: [Message.SucceededGeolocate, Message.FailedGeolocate],
 })
 
-const GeolocateLive = Geolocate.toLayer(() =>
+const GeolocateLayer = Geolocate.toLayer(() =>
   Effect.gen(function* () {
     const position = yield* Effect.callback<GeolocationPosition, Error>(
       resume => {
@@ -190,7 +190,7 @@ export const FocusSearchInput = Command.define('FocusSearchInput', {
   messages: [Message.CompletedFocusSearchInput],
 })
 
-const FocusSearchInputLive = FocusSearchInput.toLayer(() =>
+const FocusSearchInputLayer = FocusSearchInput.toLayer(() =>
   Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
     Effect.ignore,
     Effect.as(Message.CompletedFocusSearchInput()),
@@ -201,7 +201,7 @@ export const LockBodyScroll = Command.define('LockBodyScroll', {
   messages: [Message.CompletedLockBodyScroll],
 })
 
-const LockBodyScrollLive = LockBodyScroll.toLayer(() =>
+const LockBodyScrollLayer = LockBodyScroll.toLayer(() =>
   Effect.sync(() => {
     document.body.classList.add('overflow-hidden')
     return Message.CompletedLockBodyScroll()
@@ -212,19 +212,19 @@ export const UnlockBodyScroll = Command.define('UnlockBodyScroll', {
   messages: [Message.CompletedUnlockBodyScroll],
 })
 
-const UnlockBodyScrollLive = UnlockBodyScroll.toLayer(() =>
+const UnlockBodyScrollLayer = UnlockBodyScroll.toLayer(() =>
   Effect.sync(() => {
     document.body.classList.remove('overflow-hidden')
     return Message.CompletedUnlockBodyScroll()
   }),
 )
 
-const CommandsLive = Layer.mergeAll(
-  FlyToLive,
-  GeolocateLive,
-  FocusSearchInputLive,
-  LockBodyScrollLive,
-  UnlockBodyScrollLive,
+const CommandsLayer = Layer.mergeAll(
+  FlyToLayer,
+  GeolocateLayer,
+  FocusSearchInputLayer,
+  LockBodyScrollLayer,
+  UnlockBodyScrollLayer,
 )
 
 // UPDATE
@@ -472,13 +472,13 @@ export const MountMap = Mount.defineStream('MountMap', {
   ],
 })
 
-export const MountMapLive = MountMap.toLayer(({ element, hostId }) =>
+export const MountMapLayer = MountMap.toLayer(({ element, hostId }) =>
   mountMap(element, hostId),
 )
 
 export const mounts = [MountMap]
 
-export const Live = Layer.mergeAll(CommandsLive, MountMapLive)
+export const layer = Layer.mergeAll(CommandsLayer, MountMapLayer)
 
 const boundsFromMap = (map: MapInstance): Bounds => {
   const bounds = map.getBounds()

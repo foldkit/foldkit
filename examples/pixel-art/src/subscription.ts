@@ -63,7 +63,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-const UndoRedoKeyPressesLive = subscriptions.undoRedoKeys.toLayer(() =>
+const UndoRedoKeyPressesLayer = subscriptions.undoRedoKeys.toLayer(() =>
   Dom.streamFromEventFilterMapPreventDefault({
     target: document,
     type: 'keydown',
@@ -71,7 +71,7 @@ const UndoRedoKeyPressesLive = subscriptions.undoRedoKeys.toLayer(() =>
   }),
 )
 
-const ToolKeyPressesLive = subscriptions.toolKeys.toLayer(() =>
+const ToolKeyPressesLayer = subscriptions.toolKeys.toLayer(() =>
   Dom.streamFromEventFilterMap({
     target: document,
     type: 'keydown',
@@ -79,7 +79,7 @@ const ToolKeyPressesLive = subscriptions.toolKeys.toLayer(() =>
   }),
 )
 
-const MouseReleasesLive = subscriptions.mouseRelease.toLayer(({ isDrawing }) =>
+const MouseReleasesLayer = subscriptions.mouseRelease.toLayer(({ isDrawing }) =>
   Stream.when(
     Stream.fromEventListener(document, 'mouseup').pipe(
       Stream.map(() => Message.ReleasedMouse()),
@@ -88,8 +88,8 @@ const MouseReleasesLive = subscriptions.mouseRelease.toLayer(({ isDrawing }) =>
   ),
 )
 
-export const SubscriptionsLive = Layer.mergeAll(
-  UndoRedoKeyPressesLive,
-  ToolKeyPressesLive,
-  MouseReleasesLive,
+export const SubscriptionsLayer = Layer.mergeAll(
+  UndoRedoKeyPressesLayer,
+  ToolKeyPressesLayer,
+  MouseReleasesLayer,
 )

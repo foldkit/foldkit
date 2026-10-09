@@ -33,21 +33,23 @@ Command names are verb-first imperatives such as `FetchWeather`, `FocusItems`, a
 
 A Layer-backed Command definition retains its args, result Messages, and interruption behavior. The definition contributes a named handler requirement to the application's Effect requirements. Build its implementation with `Definition.toLayer(handler)` or `Definition.toLayer(Effect<handler>)`, then pass that Layer to `Application.provide`. Use `Update.make` around an update function so the Command requirements from every Message branch reach the application type.
 
-Passing an Effect to `toLayer` constructs the handler once for a runtime start. That Effect may acquire services and return an `args => Effect` function that uses them for every Command execution. Args remain serializable update data; HTTP clients, storage, RPC clients, and other dependencies remain Effect requirements. Looking up a handler for another Command execution does not reconstruct it. Scoped resources acquired while the application Layer is built release when that runtime stops.
+Calling `toLayer` creates a Layer recipe; it does not build the Layer. The Runtime builds the application Layer once for each start. When `toLayer` receives an Effect, that build runs the Effect once and obtains the handler used for every Command execution. The Runtime later looks up that handler and calls it with the current args. Looking up an Effect service uses the provider instance the Layer already built; it does not construct the provider.
 
-Use a plain handler when its work belongs to each Command execution. Reading `Clock.currentTimeMillis`, for example, happens each time the Command runs. Service Layers construct the services; a service lookup inside a handler uses the provided instance. Use an Effect constructor when preparing the handler requires work during Layer construction, such as capturing a provided client or acquiring a scoped resource.
+Use the plain handler form when the implementation reads its services contextually during each execution. Use the Effect constructor when capturing a stable injected service or accessor makes the dependency boundary clearer, or when preparing the handler requires application-scoped acquisition. The constructor may capture an RPC client or repository accessor. It must not capture invocation args, current time, Subscription dependencies, a DOM element, or a ManagedResource handle; those values belong to the operation or lifecycle scope that supplies them.
+
+A captured service remains the instance from Layer construction, even when a later invocation provides a different service with the same tag. A contextual lookup can see invocation services instead. When the Runtime combines the application context with an invocation context, invocation services win.
 
 An inline `execute` may require the same services. Its service requirements flow directly to the application instead of through a named handler requirement. The [weather example](https://github.com/foldkit/foldkit/tree/main/examples/weather/src) shows the definition, handler Layer, update, and application wiring together.
 
 Give each Layer-backed Command definition a distinct name within an application. A Command accepts a Layer built from its own definition; using a Layer from a different definition with the same name fails when that Command runs.
 
-Name an individual production Layer after its definition, such as `FetchWeatherLive`. A feature with several handler Layers combines them under one `Live` export. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows how that composition reaches the application entry.
+Name an individual production Layer after its definition, such as `FetchWeatherLayer`. A feature with several handler Layers combines them under one lowercase `layer` export. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows how that composition reaches the application entry.
 
 ### Testing the Handler Through Its Services
 
-A whole-application execution test should normally provide the same Command handler Layer as production and replace the services beneath it. For example, compose `FetchWeatherLive` with the browser HTTP Layer in production and with an HTTP test Layer in a test. Both compositions run the real `FetchWeather` handler, including request construction, decoding, failure conversion, and result Message mapping.
+A whole-application execution test should normally provide the same Command handler Layer as production and replace the services beneath it before building the application Layer. For example, compose `FetchWeatherLayer` with the browser HTTP Layer in production and with an HTTP test Layer in a test. Both compositions run the real `FetchWeather` handler, including request construction, decoding, failure conversion, and result Message mapping.
 
-Replacing the entire handler Layer is useful when a test needs to orchestrate a particular result path without executing that operation. That test covers how the application responds to the supplied result; it does not cover the replaced handler. Inline `execute` definitions use the same service boundary: provide a test service Layer to run the real `execute` code.
+A handler stub is useful when a narrower test needs to orchestrate a particular result path without executing that operation. That test covers how the application responds to the supplied result; it does not cover the replaced handler. Inline `execute` definitions use the same service boundary: provide a test service Layer to run the real `execute` code.
 
 ## Testable by Design
 
@@ -65,9 +67,9 @@ The same structure applies to network work. This version asks an API for the nex
 
 ::Snippet{name="counterHttpCommand" label="HTTP Command"}
 
-`FetchCountLive` obtains `HttpClient` from the Effect context, executes the request, and decodes the response with Schema. Success produces `SucceededFetchCount`. `Effect.catch` converts failures into `FailedFetchCount`, so a failed request becomes another fact for update to handle instead of crashing the application.
+`FetchCountLayer` obtains `HttpClient` from the Effect context, executes the request, and decodes the response with Schema. Success produces `SucceededFetchCount`. `Effect.catch` converts failures into `FailedFetchCount`, so a failed request becomes another fact for update to handle instead of crashing the application.
 
-The application root provides `Http.layer`, Foldkit's Fetch-backed client with trace-header propagation disabled. Effect enables those headers by default, which can trigger browser CORS preflights against APIs and development proxies. A whole-application test provides a deterministic client beneath the same `FetchCountLive` handler.
+The application root provides `Http.layer`, Foldkit's Fetch-backed client with trace-header propagation disabled. Effect enables those headers by default, which can trigger browser CORS preflights against APIs and development proxies. A whole-application test provides a deterministic client beneath the same `FetchCountLayer` handler.
 
 :::Info{label="Errors are tracked, not hidden"}
 The Effect error channel records whether a Command can fail. Once every failure has been converted into a Message, the type confirms that the error channel is empty. Update then handles failure and success through the same Message loop.

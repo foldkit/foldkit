@@ -26,4 +26,4 @@ const postsQuery = Query.define({
   error: Schema.String,
 })
 
-const FetchPostsLive = postsQuery.toLayer(() => fetchPosts)
+const FetchPostsLayer = postsQuery.toLayer(() => fetchPosts)

@@ -136,7 +136,7 @@ export const ValidateEmailAsync = Command.define('ValidateEmailAsync', {
   messages: [Message.CompletedValidateEmailAsync],
 })
 
-export const ValidateEmailAsyncLive = ValidateEmailAsync.toLayer(
+export const ValidateEmailAsyncLayer = ValidateEmailAsync.toLayer(
   ({ emailInput, validationId }) =>
     Effect.gen(function* () {
       if (yield* isEmailTaken(emailInput)) {

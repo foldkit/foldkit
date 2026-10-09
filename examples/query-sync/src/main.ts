@@ -265,7 +265,7 @@ const LoadExternal = Command.define('LoadExternal', {
   messages: [Message.CompletedLoadExternal],
 })
 
-export const Live = Layer.mergeAll(
+export const layer = Layer.mergeAll(
   ReplaceFilters.toLayer(fields =>
     replaceUrl(browseRouter(fields)).pipe(
       Effect.as(Message.CompletedReplaceFilters()),
@@ -279,7 +279,7 @@ export const Live = Layer.mergeAll(
   ),
 )
 
-type UpdateRequirements = Layer.Success<typeof Live>
+type UpdateRequirements = Layer.Success<typeof layer>
 type UpdateReturn = Update.Return<Model, Message, UpdateRequirements>
 
 const DietListbox = Listbox.create<string>()

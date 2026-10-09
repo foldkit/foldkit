@@ -54,7 +54,7 @@ const LoadExternal = Command.define('LoadExternal', {
   messages: [Message.CompletedLoadExternal],
 })
 
-export const Live = Layer.mergeAll(
+export const layer = Layer.mergeAll(
   NavigateInternal.toLayer(({ url }) =>
     pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
   ),

@@ -27,16 +27,15 @@ const localManagedResources = ManagedResource.make<Model, Message>()(entry => ({
   }),
 }))
 
-const ManageSignalingSocketLive = localManagedResources.signalingSocket.toLayer(
-  {
+const ManageSignalingSocketLayer =
+  localManagedResources.signalingSocket.toLayer({
     acquire: () => Effect.try(() => new WebSocket(SIGNALING_URL)),
     release: socket => Effect.sync(() => socket.close()),
-  },
-)
+  })
 
 export const managedResources = ManagedResource.aggregate(
   videoCallManagedResources,
   localManagedResources,
 )
 
-export const Live = Layer.mergeAll(VideoCall.Live, ManageSignalingSocketLive)
+export const layer = Layer.mergeAll(VideoCall.layer, ManageSignalingSocketLayer)

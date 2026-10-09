@@ -47,12 +47,18 @@ export const DetermineStartTime = Command.define('DetermineStartTime', {
   messages: [Message.CompletedDetermineStartTime],
 })
 
-export const DetermineStartTimeLive = DetermineStartTime.toLayer(
-  ({ elapsedMs }) =>
-    Effect.gen(function* () {
-      const now = yield* Clock.currentTimeMillis
-      return Message.CompletedDetermineStartTime({ startTime: now - elapsedMs })
-    }),
+export const DetermineStartTimeLayer = DetermineStartTime.toLayer(
+  Effect.gen(function* () {
+    const clock = yield* Clock.Clock
+
+    return ({ elapsedMs }) =>
+      Effect.gen(function* () {
+        const now = yield* clock.currentTimeMillis
+        return Message.CompletedDetermineStartTime({
+          startTime: now - elapsedMs,
+        })
+      })
+  }),
 )
 
 export const DetermineTickTime = Command.define('DetermineTickTime', {
@@ -60,12 +66,18 @@ export const DetermineTickTime = Command.define('DetermineTickTime', {
   messages: [Message.CompletedDetermineTickTime],
 })
 
-export const DetermineTickTimeLive = DetermineTickTime.toLayer(
-  ({ startTime }) =>
-    Effect.gen(function* () {
-      const now = yield* Clock.currentTimeMillis
-      return Message.CompletedDetermineTickTime({ elapsedMs: now - startTime })
-    }),
+export const DetermineTickTimeLayer = DetermineTickTime.toLayer(
+  Effect.gen(function* () {
+    const clock = yield* Clock.Clock
+
+    return ({ startTime }) =>
+      Effect.gen(function* () {
+        const now = yield* clock.currentTimeMillis
+        return Message.CompletedDetermineTickTime({
+          elapsedMs: now - startTime,
+        })
+      })
+  }),
 )
 
 // UPDATE
@@ -134,7 +146,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const StopwatchTicksLive = subscriptions.tick.toLayer(({ isRunning }) =>
+export const StopwatchTicksLayer = subscriptions.tick.toLayer(({ isRunning }) =>
   Stream.when(
     Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
       Stream.drop(1),
@@ -144,10 +156,10 @@ export const StopwatchTicksLive = subscriptions.tick.toLayer(({ isRunning }) =>
   ),
 )
 
-export const Live = Layer.mergeAll(
-  DetermineStartTimeLive,
-  DetermineTickTimeLive,
-  StopwatchTicksLive,
+export const layer = Layer.mergeAll(
+  DetermineStartTimeLayer,
+  DetermineTickTimeLayer,
+  StopwatchTicksLayer,
 )
 
 // VIEW

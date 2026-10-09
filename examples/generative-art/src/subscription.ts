@@ -58,7 +58,7 @@ const makeAnimationFrameStream = (): Stream.Stream<
     ).pipe(Effect.flatMap(() => Effect.never)),
   )
 
-export const AnimationFrameTicksLive = frameSubscription.frame.toLayer(
+export const AnimationFrameTicksLayer = frameSubscription.frame.toLayer(
   ({ isActive }) =>
     Stream.when(
       makeAnimationFrameStream(),

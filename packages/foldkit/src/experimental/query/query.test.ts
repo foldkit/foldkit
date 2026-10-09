@@ -866,11 +866,11 @@ describe('Layer-backed Query handlers', () => {
 
   it.effect('settles an unkeyed fetch through its Layer', () =>
     Effect.gen(function* () {
-      const live = layeredNotes.toLayer(() => Effect.succeed(hello))
-      const data = yield* Effect.provide(layeredNotes.run, live)
+      const handlerLayer = layeredNotes.toLayer(() => Effect.succeed(hello))
+      const data = yield* Effect.provide(layeredNotes.run, handlerLayer)
       const completion = yield* Effect.provide(
         layeredNotes.Fetch({ generation: 4 }).effect,
-        live,
+        handlerLayer,
       )
 
       expect(data).toEqual(AsyncData.Success({ data: hello }))
@@ -885,25 +885,25 @@ describe('Layer-backed Query handlers', () => {
 
   it.effect('passes keyed args to its Layer and settles failures', () =>
     Effect.gen(function* () {
-      const live = layeredNoteById.toLayer(({ noteId }) =>
+      const handlerLayer = layeredNoteById.toLayer(({ noteId }) =>
         noteId === 'missing'
           ? Effect.fail('missing')
           : Effect.succeed({ id: noteId, body: 'hello' }),
       )
       const success = yield* Effect.provide(
         layeredNoteById.run({ noteId: '1' }),
-        live,
+        handlerLayer,
       )
       const failure = yield* Effect.provide(
         layeredNoteById.run({ noteId: 'missing' }),
-        live,
+        handlerLayer,
       )
       const completion = yield* Effect.provide(
         layeredNoteById.Fetch({
           args: { noteId: '1' },
           generation: 5,
         }).effect,
-        live,
+        handlerLayer,
       )
 
       expect(success).toEqual(
@@ -926,7 +926,7 @@ describe('Layer-backed Query handlers', () => {
         Prefix,
         { readonly value: string }
       >()('Prefix') {}
-      const live = layeredNotes.toLayer(
+      const handlerLayer = layeredNotes.toLayer(
         Effect.map(
           Prefix,
           ({ value }) =>
@@ -936,7 +936,10 @@ describe('Layer-backed Query handlers', () => {
       )
       const data = yield* Effect.provide(
         layeredNotes.run,
-        Layer.provide(live, Layer.succeed(Prefix, { value: 'captured' })),
+        Layer.provide(
+          handlerLayer,
+          Layer.succeed(Prefix, { value: 'captured' }),
+        ),
       )
 
       expect(data).toEqual(

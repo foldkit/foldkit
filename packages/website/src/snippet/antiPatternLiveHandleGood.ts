@@ -19,7 +19,7 @@ const managedResources = ManagedResource.make<Model, Message>()(entry => ({
   }),
 }))
 
-const ManageChatSocketLive = managedResources.chatSocket.toLayer({
+const ManageChatSocketLayer = managedResources.chatSocket.toLayer({
   acquire: ({ roomId }) => Effect.try(() => new WebSocket(`/rooms/${roomId}`)),
   release: socket => Effect.sync(() => socket.close()),
 })
@@ -29,7 +29,7 @@ const SendChatMessage = Command.define('SendChatMessage', {
   messages: [Message.SucceededSendChatMessage, Message.FailedSendChatMessage],
 })
 
-const SendChatMessageLive = SendChatMessage.toLayer(({ text }) =>
+const SendChatMessageLayer = SendChatMessage.toLayer(({ text }) =>
   ChatSocket.get.pipe(
     Effect.flatMap(socket => Effect.try(() => socket.send(text))),
     Effect.match({
@@ -40,4 +40,4 @@ const SendChatMessageLive = SendChatMessage.toLayer(({ text }) =>
   ),
 )
 
-const Live = Layer.mergeAll(ManageChatSocketLive, SendChatMessageLive)
+const layer = Layer.mergeAll(ManageChatSocketLayer, SendChatMessageLayer)

@@ -34,7 +34,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const AutoCountTicksLive = subscriptions.tick.toLayer(
+export const AutoCountTicksLayer = subscriptions.tick.toLayer(
   ({ isAutoCounting }) =>
     Stream.when(
       Stream.tick(Duration.seconds(1)).pipe(

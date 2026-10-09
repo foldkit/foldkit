@@ -5,7 +5,7 @@ import { getChart } from './chartHost'
 import { ChartMode, PackageId, Period, Telemetry } from './domain'
 import { makeChartOption } from './echarts'
 import { Message } from './message'
-import { fetchRawTelemetry, transformTelemetry } from './telemetry'
+import { makeFetchRawTelemetry, transformTelemetry } from './telemetry'
 
 // COMMAND
 
@@ -13,16 +13,23 @@ export const FetchTelemetry = Command.define('FetchTelemetry', {
   messages: [Message.SucceededFetchTelemetry, Message.FailedFetchTelemetry],
 })
 
-const FetchTelemetryLive = FetchTelemetry.toLayer(() =>
-  fetchRawTelemetry.pipe(
-    Effect.map(transformTelemetry),
-    Effect.map(telemetry => Message.SucceededFetchTelemetry({ telemetry })),
-    Effect.catch(error =>
-      Effect.succeed(
-        Message.FailedFetchTelemetry({
-          error: error instanceof Error ? error.message : `${error}`,
-        }),
-      ),
+const FetchTelemetryLayer = FetchTelemetry.toLayer(
+  makeFetchRawTelemetry.pipe(
+    Effect.map(
+      fetch => () =>
+        fetch().pipe(
+          Effect.map(transformTelemetry),
+          Effect.map(telemetry =>
+            Message.SucceededFetchTelemetry({ telemetry }),
+          ),
+          Effect.catch(error =>
+            Effect.succeed(
+              Message.FailedFetchTelemetry({
+                error: error instanceof Error ? error.message : `${error}`,
+              }),
+            ),
+          ),
+        ),
     ),
   ),
 )
@@ -39,7 +46,7 @@ export const SyncChart = Command.define('SyncChart', {
   messages: [Message.SucceededSyncChart, Message.FailedSyncChart],
 })
 
-const SyncChartLive = SyncChart.toLayer(args =>
+const SyncChartLayer = SyncChart.toLayer(args =>
   Option.match(getChart(args.hostId), {
     onNone: () =>
       Effect.succeed(
@@ -61,4 +68,4 @@ const SyncChartLive = SyncChart.toLayer(args =>
   }),
 )
 
-export const CommandsLive = Layer.mergeAll(FetchTelemetryLive, SyncChartLive)
+export const CommandsLayer = Layer.mergeAll(FetchTelemetryLayer, SyncChartLayer)

@@ -24,7 +24,7 @@ const LoadUser = Command.define('LoadUser', {
   messages: [Message.SucceededLoadUser, Message.FailedLoadUser],
 })
 
-const LoadUserLive = LoadUser.toLayer(
+const LoadUserLayer = LoadUser.toLayer(
   Effect.gen(function* () {
     const apiClient = yield* ApiClientService
     return ({ userId }) =>
@@ -37,7 +37,7 @@ const LoadUserLive = LoadUser.toLayer(
   }),
 )
 
-const ApiLive = Layer.effect(
+const ApiLayer = Layer.effect(
   ApiClientService,
   Effect.gen(function* () {
     const httpClient = yield* HttpClient.HttpClient
@@ -52,14 +52,14 @@ const ApiLive = Layer.effect(
   }),
 )
 
-const ApiTest = Layer.succeed(ApiClientService, {
+const ApiTestLayer = Layer.succeed(ApiClientService, {
   getUser: userId =>
     Effect.succeed(User.make({ id: userId, name: 'Test User' })),
 })
 
-export const HandlersLive = LoadUserLive
-export const Live = Layer.provideMerge(
-  Layer.provideMerge(HandlersLive, ApiLive),
+export const HandlersLayer = LoadUserLayer
+export const layer = Layer.provideMerge(
+  Layer.provideMerge(HandlersLayer, ApiLayer),
   Http.layer,
 )
-export const TestLive = Layer.provideMerge(HandlersLive, ApiTest)
+export const TestLayer = Layer.provideMerge(HandlersLayer, ApiTestLayer)

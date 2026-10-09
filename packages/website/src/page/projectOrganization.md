@@ -16,7 +16,7 @@ When one file becomes hard to navigate, separate the root pieces and give each [
 
 Each feature folder owns its Model, Messages, update, view, Commands, Subscriptions, Mounts, ManagedResources, handler Layers, and tests. Do not create empty files only to match the diagram. Add a file when the feature has that concern.
 
-In the diagram, `products/service.ts` owns the feature's `ProductCatalogLive` business service. The feature `Live` Layer provides it beneath the product handlers. Root `environment.ts` owns concrete HTTP, RPC, and browser provider Layers. Root `storage.ts` defines separate `LocalStorage` and `SessionStorage` service tags and binds them to their platform providers. Applications that do not need those concerns omit the files.
+In the diagram, `products/service.ts` owns the feature's `ProductCatalogLayer` business service. The feature's `layer` export provides it beneath the product handlers. Root `environment.ts` owns concrete HTTP, RPC, and browser provider Layers. Root `storage.ts` defines separate `LocalStorage` and `SessionStorage` service tags and binds them to their platform providers. Applications that do not need those concerns omit the files.
 
 Keep Commands beside the update that returns them. A feature that fetches its own data owns that Command instead of importing it from a root Command collection. Extract `message.ts` when a Command needs to import its result Message constructors without creating a cycle.
 
@@ -26,35 +26,35 @@ Split a large feature again only when its own files become difficult to navigate
 
 ## Composing Handler Layers
 
-Keep each handler Layer beside the Command, Subscription, Mount, or ManagedResource definition it implements. Name an individual production Layer after that definition, such as `LoadProductsLive` or `ProductUpdatesLive`. The handler owns the translation from Foldkit args or dependencies into an Effect or Stream. External clients stay in its Effect requirements.
+Keep each handler Layer beside the Command, Subscription, Mount, or ManagedResource definition it implements. Name an individual production Layer after that definition, such as `LoadProductsLayer` or `ProductUpdatesLayer`. The handler owns the translation from Foldkit args or dependencies into an Effect or Stream. External clients stay in its Effect requirements.
 
-When a feature is split across modules, its `live.ts` combines the handler Layers under one `Live` export. The bundle also includes the `Live` Layers exported by child features. It may provide business services that the feature owns while leaving concrete HTTP, storage, RPC, and browser providers open for the application root.
+When a feature is split across modules, its `layer.ts` combines the handler Layers under one lowercase `layer` export. The bundle also includes the `layer` exports from child features. It may provide business services that the feature owns while leaving concrete HTTP, storage, RPC, and browser providers open for the application root.
 
-In a small application, `main.ts` exports `Live` with the handlers it owns. A single handler can be exported as `Live` directly; several handlers use `Layer.mergeAll`. Extract that composition to `live.ts` when the module grows, and re-export it from the feature's barrel.
+In a small application, `main.ts` exports `layer` with the handlers it owns. A single handler can be exported as `layer` directly; several handlers use `Layer.mergeAll`. Extract that composition to `layer.ts` when the module grows, and re-export it from the feature's barrel.
 
-::Snippet{name="applicationFeatureLive" label="Feature handler Layer composition"}
+::Snippet{name="applicationFeatureLayer" label="Feature handler Layer composition"}
 
-Products provides `ProductCatalogLive` privately inside its `Live` bundle. The catalog's external dependencies stay open for the root's production or test providers.
+Products provides `ProductCatalogLayer` privately inside its `layer` bundle. The catalog's external dependencies stay open for the root's production or test providers.
 
-The application root repeats the same composition with its own handlers and the `Live` Layer from each top-level feature. It also chooses the concrete providers for the environment where the app runs.
+The application root repeats the same composition with its own handlers and the `layer` export from each top-level feature. It also chooses the concrete providers for the environment where the app runs.
 
-::Snippet{name="applicationRootLive" label="Root handler Layer composition"}
+::Snippet{name="applicationRootLayer" label="Root handler Layer composition"}
 
-`LocalStorageLive` and `SessionStorageLive` implement distinct application service tags, so both stores can coexist without changing the platform `KeyValueStore` identity inside either provider. `TestLive` reuses the exported `HandlersLive` bundle and changes only the environment Layers.
+`LocalStorageLayer` and `SessionStorageLayer` implement distinct application service tags, so both stores can coexist without changing the platform `KeyValueStore` identity inside either provider. `TestLayer` reuses the exported `HandlersLayer` bundle and changes only the environment Layers.
 
-The entry imports only the root `Live` Layer and supplies it with one `Application.provide` call. Adding another handler or changing an environment provider changes Layer composition without adding another provision step to `entry.ts`. A test root can compose the same feature `Live` Layers with test providers, so whole-application execution keeps the real handlers. See [Providing application handler Layers](/core/runtime#overview) for the entry code.
+The entry imports only the root `layer` and supplies it with one `Application.provide` call. Adding another handler or changing an environment provider changes Layer composition without adding another provision step to `entry.ts`. A test root can compose the same feature Layers with test providers before the application Layer is built, so whole-application execution keeps the real handlers. See [Providing application handler Layers](/core/runtime#overview) for the entry code.
 
 ## Composing Runtime Registrations
 
-Handler Layers and runtime registrations are parallel graphs with different jobs. A feature's `Live` Layer supplies implementations. Its `subscriptions`, `managedResources`, and `mounts` say which behaviors Foldkit manages for that feature. Keep both exports at the feature boundary, then let `application.ts` assemble the root program.
+Handler Layers and runtime registrations are parallel graphs with different jobs. A feature's `layer` supplies implementations. Its `subscriptions`, `managedResources`, and `mounts` say which behaviors Foldkit manages for that feature. Keep both exports at the feature boundary, then let `application.ts` assemble the root program.
 
 ::Snippet{name="applicationRegistrations" label="Root runtime registration composition"}
 
 `Subscription.lift` and `ManagedResource.lift` connect a child feature's Model and Messages to its parent. Direct `Subscription.aggregate(first, second)` keeps the individual Subscription definitions, including their declared Messages and `toLayer` helpers. Use the curried aggregate form only for a record already widened or annotated at a module boundary; it erases that per-entry metadata.
 
-`Application.make` receives the completed registration graph. `entry.ts` imports only `application` and the root `Live` Layer, then starts `Application.provide(application, Live)`. It does not import feature Commands, Subscription handlers, Mount handlers, or ManagedResource handlers.
+`Application.make` receives the completed registration graph. `entry.ts` imports only `application` and the root `layer`, then starts `Application.provide(application, layer)`. It does not import feature Commands, Subscription handlers, Mount handlers, or ManagedResource handlers.
 
-When a parent update needs an explicit requirement union, derive each child branch from `Update.RequirementsOf<typeof Child.update>` and include other Command-producing helpers. Do not derive it from `Layer.Success<typeof Child.Live>`: a feature `Live` Layer may also implement Subscriptions, Mounts, or ManagedResources that the update never returns.
+When a parent update needs an explicit requirement union, derive each child branch from `Update.RequirementsOf<typeof Child.update>` and include other Command-producing helpers. Do not derive it from `Layer.Success<typeof Child.layer>`: a feature Layer may also implement Subscriptions, Mounts, or ManagedResources that the update never returns.
 
 ## Where Tests Live
 
@@ -68,7 +68,7 @@ When one folder holds more than one test of a kind, prefix with the subject, lik
 
 See the [Testing](/testing) page for the full Story and Scene reference.
 
-When a test starts the full application, compose the production feature `Live` Layers with test implementations of their external services. This runs real Command, Subscription, Mount, and ManagedResource handlers. Replace a whole handler only when the test intentionally supplies its result or lifecycle path; that test does not cover the replaced handler.
+When a test starts the full application, compose the production feature Layers with test implementations of their external services before building the application Layer. This runs real Command, Subscription, Mount, and ManagedResource handlers. Replace a whole handler only when the test intentionally supplies its result or lifecycle path; that narrower orchestration test does not cover the replaced handler.
 
 ## Domain Modules
 
@@ -80,7 +80,7 @@ Import the module as a namespace and call operations such as `Cart.addItem` and 
 
 ## Index Re-exports {#index-reexports}
 
-Use `index.ts` only as a barrel. Re-export the feature's application surface: `Live`, plus `subscriptions`, `managedResources`, or `mounts` when the feature owns them.
+Use `index.ts` only as a barrel. Re-export the feature's application surface: `layer`, plus `subscriptions`, `managedResources`, or `mounts` when the feature owns them.
 
 ::Snippet{name="indexReexports" label="Index re-exports"}
 

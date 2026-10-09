@@ -42,14 +42,19 @@ export const GenerateSkillsEntryId = Command.define('GenerateSkillsEntryId', {
   ],
 })
 
-export const GenerateSkillsEntryIdLive = GenerateSkillsEntryId.toLayer(() =>
+export const GenerateSkillsEntryIdLayer = GenerateSkillsEntryId.toLayer(
   Effect.gen(function* () {
     const crypto = yield* Crypto.Crypto
-    const entryId = yield* crypto.randomUUIDv4
-    return Message.SucceededGenerateSkillsEntryId({ entryId })
-  }).pipe(
-    Effect.catch(() => Effect.succeed(Message.FailedGenerateSkillsEntryId())),
-  ),
+    return () =>
+      crypto.randomUUIDv4.pipe(
+        Effect.map(entryId =>
+          Message.SucceededGenerateSkillsEntryId({ entryId }),
+        ),
+        Effect.catch(() =>
+          Effect.succeed(Message.FailedGenerateSkillsEntryId()),
+        ),
+      )
+  }),
 )
 
 // UPDATE

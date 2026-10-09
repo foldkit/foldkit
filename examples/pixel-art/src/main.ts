@@ -3,7 +3,7 @@ import { KeyValueStore } from 'effect/persistence'
 
 import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
 
-import { CommandsLive } from './command'
+import { CommandsLayer } from './command'
 import {
   DEFAULT_COLOR_INDEX,
   DEFAULT_GRID_SIZE,
@@ -13,7 +13,7 @@ import {
 import { createEmptyGrid } from './grid'
 import { Message } from './message'
 import { Model, SavedCanvas, SavedCanvasJsonString } from './model'
-import { SubscriptionsLive, subscriptions } from './subscription'
+import { SubscriptionsLayer, subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 import {
@@ -80,6 +80,6 @@ export const init = (flags: Flags) => ({
   }),
 })
 
-export const Live = Layer.mergeAll(CommandsLive, SubscriptionsLive)
+export const layer = Layer.mergeAll(CommandsLayer, SubscriptionsLayer)
 
 export { Message, Model, subscriptions, update, view }

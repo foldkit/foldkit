@@ -46,15 +46,15 @@ const LoadExternal = Command.define('LoadExternal', {
   messages: [Message.CompletedLoadExternal],
 })
 
-const NavigateInternalLive = NavigateInternal.toLayer(({ url }) =>
+const NavigateInternalLayer = NavigateInternal.toLayer(({ url }) =>
   pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
 )
 
-const LoadExternalLive = LoadExternal.toLayer(({ href }) =>
+const LoadExternalLayer = LoadExternal.toLayer(({ href }) =>
   load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
 )
 
-export const Live = Layer.mergeAll(NavigateInternalLive, LoadExternalLive)
+export const layer = Layer.mergeAll(NavigateInternalLayer, LoadExternalLayer)
 
 // UPDATE
 

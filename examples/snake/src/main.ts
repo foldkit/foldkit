@@ -5,6 +5,7 @@ import {
   Layer,
   Match,
   Option,
+  Random,
   Schema,
   Stream,
   pipe,
@@ -230,12 +231,16 @@ export const GenerateApplePosition = Command.define('GenerateApplePosition', {
   messages: [Message.CompletedGenerateApplePosition],
 })
 
-const GenerateApplePositionLive = GenerateApplePosition.toLayer(({ snake }) =>
-  Apple.generatePosition(snake).pipe(
-    Effect.map(position =>
-      Message.CompletedGenerateApplePosition({ position }),
-    ),
-  ),
+const GenerateApplePositionLayer = GenerateApplePosition.toLayer(
+  Effect.gen(function* () {
+    const random = yield* Random.Random
+    return ({ snake }) =>
+      Apple.generatePosition(random, snake).pipe(
+        Effect.map(position =>
+          Message.CompletedGenerateApplePosition({ position }),
+        ),
+      )
+  }),
 )
 
 // SUBSCRIPTION
@@ -262,7 +267,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   keyboard: entry('KeyboardPresses', { messages: [Message.PressedKey] }),
 }))
 
-const GameClockTicksLive = subscriptions.gameClock.toLayer(
+const GameClockTicksLayer = subscriptions.gameClock.toLayer(
   ({ isPlaying, interval }) =>
     Stream.when(
       Stream.tick(Duration.millis(interval)).pipe(
@@ -273,7 +278,7 @@ const GameClockTicksLive = subscriptions.gameClock.toLayer(
     ),
 )
 
-const KeyboardPressesLive = subscriptions.keyboard.toLayer(() =>
+const KeyboardPressesLayer = subscriptions.keyboard.toLayer(() =>
   Dom.streamFromEventFilterMapPreventDefault({
     target: document,
     type: 'keydown',
@@ -282,10 +287,10 @@ const KeyboardPressesLive = subscriptions.keyboard.toLayer(() =>
   }),
 )
 
-export const Live = Layer.mergeAll(
-  GenerateApplePositionLive,
-  GameClockTicksLive,
-  KeyboardPressesLive,
+export const layer = Layer.mergeAll(
+  GenerateApplePositionLayer,
+  GameClockTicksLayer,
+  KeyboardPressesLayer,
 )
 
 // VIEW

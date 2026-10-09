@@ -7,6 +7,7 @@ import {
   Layer,
   Match,
   Option,
+  Random,
   Schema,
   Stream,
   pipe,
@@ -50,11 +51,15 @@ export const postsQuery = Query.define({
   error: Schema.String,
 })
 
-const FetchPostsLive = postsQuery.toLayer(() =>
+const FetchPostsLayer = postsQuery.toLayer(
   Effect.gen(function* () {
-    const posts = yield* fetchPosts
-    const fetchedAt = yield* Clock.currentTimeMillis
-    return { posts, fetchedAt }
+    const clock = yield* Clock.Clock
+    return () =>
+      Effect.gen(function* () {
+        const posts = yield* fetchPosts
+        const fetchedAt = yield* clock.currentTimeMillis
+        return { posts, fetchedAt }
+      })
   }),
 )
 
@@ -64,11 +69,16 @@ export const statsQuery = Query.define({
   error: Schema.String,
 })
 
-const FetchStatsLive = statsQuery.toLayer(() =>
+const FetchStatsLayer = statsQuery.toLayer(
   Effect.gen(function* () {
-    const stats = yield* fetchStats
-    const fetchedAt = yield* Clock.currentTimeMillis
-    return { stats, fetchedAt }
+    const clock = yield* Clock.Clock
+    const random = yield* Random.Random
+    return () =>
+      Effect.gen(function* () {
+        const stats = yield* fetchStats(random)
+        const fetchedAt = yield* clock.currentTimeMillis
+        return { stats, fetchedAt }
+      })
   }),
 )
 
@@ -79,11 +89,15 @@ export const postQuery = Query.define({
   error: Schema.String,
 })
 
-const FetchPostLive = postQuery.toLayer(({ postId }) =>
+const FetchPostLayer = postQuery.toLayer(
   Effect.gen(function* () {
-    const post = yield* fetchPostDetail(postId)
-    const fetchedAt = yield* Clock.currentTimeMillis
-    return { post, fetchedAt }
+    const clock = yield* Clock.Clock
+    return ({ postId }) =>
+      Effect.gen(function* () {
+        const post = yield* fetchPostDetail(postId)
+        const fetchedAt = yield* clock.currentTimeMillis
+        return { post, fetchedAt }
+      })
   }),
 )
 
@@ -223,7 +237,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-const StatsRefreshTicksLive = subscriptions.revalidateStats.toLayer(
+const StatsRefreshTicksLayer = subscriptions.revalidateStats.toLayer(
   ({ isStatsRefreshActive }) =>
     Stream.when(
       Stream.tick(STATS_REFETCH_INTERVAL).pipe(
@@ -234,11 +248,11 @@ const StatsRefreshTicksLive = subscriptions.revalidateStats.toLayer(
     ),
 )
 
-export const Live = Layer.mergeAll(
-  FetchPostsLive,
-  FetchStatsLive,
-  FetchPostLive,
-  StatsRefreshTicksLive,
+export const layer = Layer.mergeAll(
+  FetchPostsLayer,
+  FetchStatsLayer,
+  FetchPostLayer,
+  StatsRefreshTicksLayer,
 )
 
 // VIEW

@@ -3,7 +3,7 @@ import { Socket } from 'effect/socket'
 import { TestClock } from 'effect/testing'
 import { describe, expect, test } from 'vitest'
 
-import { ManageChatSocketLive, managedResources } from './main'
+import { ManageChatSocketLayer, managedResources } from './main'
 
 type WebSocketEventName = 'open' | 'message' | 'error' | 'close'
 type WebSocketEventListener = (event: Socket.WebSocketEvent) => void
@@ -80,9 +80,11 @@ const makeTestSocket = () => {
     Socket.WebSocketConstructor,
     () => socket,
   )
-  const live = ManageChatSocketLive.pipe(Layer.provide(constructorLayer))
+  const handlerLayer = ManageChatSocketLayer.pipe(
+    Layer.provide(constructorLayer),
+  )
 
-  return { socket, live }
+  return { socket, handlerLayer }
 }
 
 // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
@@ -104,9 +106,9 @@ const expectSocketClosed = (socket: TestWebSocket): void => {
   expectReadinessListenersRemoved(socket)
 }
 
-describe('ManageChatSocketLive', () => {
+describe('ManageChatSocketLayer', () => {
   test('closes a socket when readiness is interrupted before open', async () => {
-    const { socket, live } = makeTestSocket()
+    const { socket, handlerLayer } = makeTestSocket()
 
     await Effect.runPromise(
       Effect.scoped(
@@ -117,7 +119,7 @@ describe('ManageChatSocketLive', () => {
 
           yield* Deferred.await(socket.readinessStarted)
           yield* Fiber.interrupt(acquisition)
-        }).pipe(Effect.provide(live)),
+        }).pipe(Effect.provide(handlerLayer)),
       ),
     )
 
@@ -125,7 +127,7 @@ describe('ManageChatSocketLive', () => {
   })
 
   test('closes a socket when readiness fails before open', async () => {
-    const { socket, live } = makeTestSocket()
+    const { socket, handlerLayer } = makeTestSocket()
 
     const exit = await Effect.runPromise(
       Effect.scoped(
@@ -137,7 +139,7 @@ describe('ManageChatSocketLive', () => {
           yield* Deferred.await(socket.readinessStarted)
           socket.emit('error')
           return yield* Fiber.await(acquisition)
-        }).pipe(Effect.provide(live)),
+        }).pipe(Effect.provide(handlerLayer)),
       ),
     )
 
@@ -146,7 +148,7 @@ describe('ManageChatSocketLive', () => {
   })
 
   test('closes a socket when readiness times out', async () => {
-    const { socket, live } = makeTestSocket()
+    const { socket, handlerLayer } = makeTestSocket()
 
     const exit = await Effect.runPromise(
       Effect.scoped(
@@ -158,7 +160,9 @@ describe('ManageChatSocketLive', () => {
           yield* Deferred.await(socket.readinessStarted)
           yield* TestClock.adjust('5 seconds')
           return yield* Fiber.await(acquisition)
-        }).pipe(Effect.provide(Layer.mergeAll(live, TestClock.layer()))),
+        }).pipe(
+          Effect.provide(Layer.mergeAll(handlerLayer, TestClock.layer())),
+        ),
       ),
     )
 
@@ -167,7 +171,7 @@ describe('ManageChatSocketLive', () => {
   })
 
   test('keeps an open socket alive until its resource scope closes', async () => {
-    const { socket, live } = makeTestSocket()
+    const { socket, handlerLayer } = makeTestSocket()
 
     await Effect.runPromise(
       Effect.scoped(
@@ -182,7 +186,7 @@ describe('ManageChatSocketLive', () => {
           expect(socket.closeCount).toBe(0)
           expect(socket.readyState).toBe(OPEN_READY_STATE)
           expectReadinessListenersRemoved(socket)
-        }).pipe(Effect.provide(live)),
+        }).pipe(Effect.provide(handlerLayer)),
       ),
     )
 

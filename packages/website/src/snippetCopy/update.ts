@@ -40,7 +40,7 @@ export const CopySnippet = Command.define('CopySnippet', {
   args: { snippetId: Schema.String, text: Schema.String },
   messages: [Message.SucceededCopySnippet, Message.FailedCopySnippet],
 })
-const CopySnippetLive = CopySnippet.toLayer(({ snippetId, text }) =>
+const CopySnippetLayer = CopySnippet.toLayer(({ snippetId, text }) =>
   Effect.tryPromise({
     try: () => navigator.clipboard.writeText(text),
     catch: () => new Error('Failed to copy to clipboard'),
@@ -59,7 +59,7 @@ export const WaitBeforeHidingCopiedIndicator = Command.define(
     messages: [Message.CompletedWaitBeforeHidingCopiedIndicator],
   },
 )
-const WaitBeforeHidingCopiedIndicatorLive =
+const WaitBeforeHidingCopiedIndicatorLayer =
   WaitBeforeHidingCopiedIndicator.toLayer(({ snippetId }) =>
     Effect.sleep(COPY_INDICATOR_DURATION).pipe(
       Effect.as(
@@ -68,7 +68,7 @@ const WaitBeforeHidingCopiedIndicatorLive =
     ),
   )
 
-export const Live = Layer.mergeAll(
-  CopySnippetLive,
-  WaitBeforeHidingCopiedIndicatorLive,
+export const layer = Layer.mergeAll(
+  CopySnippetLayer,
+  WaitBeforeHidingCopiedIndicatorLayer,
 )

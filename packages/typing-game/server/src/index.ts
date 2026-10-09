@@ -16,14 +16,14 @@ import {
 } from './handler/index.ts'
 import {
   PendingCleanupPlayerIdsStore,
-  PendingCleanupPlayerIdsStoreLive,
+  PendingCleanupPlayerIdsStoreLayer,
   ProgressByGamePlayerStore,
-  ProgressByGamePlayerStoreLive,
+  ProgressByGamePlayerStoreLayer,
   RoomByIdStore,
-  RoomByIdStoreLive,
+  RoomByIdStoreLayer,
 } from './store.ts'
 
-const RoomLive = Shared.RoomRpcs.toLayer(
+const RoomLayer = Shared.RoomRpcs.toLayer(
   Effect.gen(function* () {
     const roomByIdRef = yield* RoomByIdStore
     const progressByGamePlayerRef = yield* ProgressByGamePlayerStore
@@ -49,21 +49,21 @@ const RpcAppLayer = RpcServer.layerHttp({
   path: '/rpc',
   protocol: 'http',
 }).pipe(
-  Layer.provide(RoomLive),
+  Layer.provide(RoomLayer),
   Layer.provide(RpcSerialization.layerNdjson),
-  Layer.provide(RoomByIdStoreLive),
-  Layer.provide(ProgressByGamePlayerStoreLive),
-  Layer.provide(PendingCleanupPlayerIdsStoreLive),
+  Layer.provide(RoomByIdStoreLayer),
+  Layer.provide(ProgressByGamePlayerStoreLayer),
+  Layer.provide(PendingCleanupPlayerIdsStoreLayer),
 )
 
-const HttpAppLive = Layer.unwrap(
+const HttpAppLayer = Layer.unwrap(
   pipe(
     HttpRouter.toHttpEffect(RpcAppLayer),
     Effect.map(HttpServer.serve(HttpMiddleware.cors())),
   ),
 )
 
-const Main = HttpAppLive.pipe(
+const Main = HttpAppLayer.pipe(
   HttpServer.withLogAddress,
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3001 })),
 )

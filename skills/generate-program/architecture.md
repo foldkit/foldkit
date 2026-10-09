@@ -71,7 +71,7 @@ Event handlers in the view dispatch Messages. They don't perform actions directl
 
 Define Command identities with `Command.define`, whose second argument declares `args` (optional), every result Message in `messages`, and optional interruption behavior. Supply the production implementation separately with `Definition.toLayer(handler)`. Convert expected failures to Messages with `Effect.catch(() => Effect.succeed(Message.FailedX(...)))` so update can handle them as facts. Defects may still terminate the Effect and follow the runtime's crash path.
 
-Always assign definitions to PascalCase constants. Never use `Command.define` inline in a pipe chain. Definitions live where they're produced, colocated with the update function. Name the handler Layer `<CommandName>Live` and merge it into that feature's `Live` Layer. Let TypeScript infer Command return types. The `messages` array constrains the handler's return type at the type level.
+Always assign definitions to PascalCase constants. Never use `Command.define` inline in a pipe chain. Definitions live where they're produced, colocated with the update function. Name the handler Layer `<CommandName>Layer` and merge it into that feature's lowercase `layer` export. Let TypeScript infer Command return types. The `messages` array constrains the handler's return type at the type level.
 
 For the canonical shapes, study the live examples directly. They stay synced with the API:
 
@@ -179,7 +179,7 @@ const update = Update.make((model: Model, message: Message) =>
 
 Update, init, boot, and component helper producers return `{ model }` when they statically create no Commands. When they compute a Commands collection, they return it directly without checking whether it is empty. Never write the literal `commands: []`.
 
-Inside `Update.make`, let the outer helper infer the Command requirement channel through `Message.match(message, handlers)`. An explicit `Message.match<Update.Return<Model, Message>>` fixes that channel to `never` and discards the handler requirements the application must provide. When helpers or other matchers need a reusable return alias and any branch returns Commands, include the relevant requirements: derive them from the feature's handler bundle with `Layer.Success<typeof CommandsLive>` and use that as the requirement parameter of `Update.Return` or `Update.ReturnWithOutMessage`. Do not repeat the alias on the update function when the match already constrains its branches.
+Inside `Update.make`, let the outer helper infer the Command requirement channel through `Message.match(message, handlers)`. An explicit `Message.match<Update.Return<Model, Message>>` fixes that channel to `never` and discards the handler requirements the application must provide. When helpers or other matchers need a reusable return alias and any branch returns Commands, include the relevant requirements: derive them from the feature's handler bundle with `Layer.Success<typeof CommandsLayer>` and use that as the requirement parameter of `Update.Return` or `Update.ReturnWithOutMessage`. Do not repeat the alias on the update function when the match already constrains its branches.
 
 Use `Update.Return<Model, Message>` for an update that cannot emit an OutMessage. It prevents a result containing an OutMessage from entering code that would keep only its Model and Commands. A result with no `outMessage` can still be used where `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is expected. The missing field means that update emitted no OutMessage. A hand-written plain-return type must preserve the `outMessage?: never` field.
 
@@ -266,7 +266,7 @@ Runtime.run(application, { flags })
 
 Hydrated applications do not provide a browser Flags Effect. `Runtime.hydrate(application)` decodes the exact Schema-encoded Flags payload emitted by the server. `@foldkit/vite-plugin` compiles the shared deployment identity into Foldkit for coordinated client and server builds; separately orchestrated builds pass the same explicit `buildId` override to each artifact. Hydration compares that identity against the id the server stamped on the root before it reads the handoff at all. Missing or invalid server handoff data, and a page from another deployment, are fatal boot errors.
 
-Leave a Flags service in the Effect requirements when the application root should choose or share its provider. Keep a service used by both Flags and handlers exposed from the root `Live` Layer with `Layer.provideMerge(HandlersLive, ServicesLive)`. A service may be private to `flags` only when startup deliberately owns it and no application environment needs to substitute or share it. `Application.provide` builds the resulting Layer eagerly on every runtime start, before executing a fresh Flags Effect, init, or the first render, including a start that restores a preserved Model. `Runtime.hydrate` validates the server handoff before acquiring Layers. A construction failure stops startup before the first render. Do not also provide a root service inside `flags`: doing both builds it twice and hands the app two instances of whatever it holds.
+Leave a Flags service in the Effect requirements when the application root should choose or share its provider. Keep a service used by both Flags and handlers exposed from the root `layer` with `Layer.provideMerge(HandlersLayer, ServicesLayer)`. A service may be private to `flags` only when startup deliberately owns it and no application environment needs to substitute or share it. The Runtime builds the resulting Layer eagerly on every start, before executing a fresh Flags Effect, init, or the first render, including a start that restores a preserved Model. `Runtime.hydrate` validates the server handoff before acquiring Layers. A construction failure stops startup before the first render. Do not also provide a root service inside `flags`: doing both builds it twice and hands the app two instances of whatever it holds.
 
 An Element owns its Flags Effect because no separate runtime call seeds it. Put both `Flags` and `flags` in the `Application.makeElement` config. The embedded widget example later in this guide shows the full shape.
 
@@ -274,18 +274,18 @@ An Element owns its Flags Effect because no separate runtime call seeds it. Put 
 
 Layer-backed Commands, Subscriptions, Mounts, and ManagedResources leave handler requirements on the program returned by `Application.make` or `Application.makeElement`. Inline Commands, Subscriptions, and ManagedResources may leave ordinary service requirements on the same program. An inline Mount must supply its own services, so use a Layer-backed Mount when the provider belongs to application assembly. Supply open requirements with `Application.provide` before starting the program. The assembly config has no `resources` field. Every provided Layer is built once for each runtime start and released when that runtime stops.
 
-Compose Layers at the same boundaries as the application. A feature exports one `Live` Layer that combines its local handlers with its children's Layers:
+Compose Layers at the same boundaries as the application. A feature exports one lowercase `layer` that combines its local handlers with its children's Layers:
 
 ```ts
-export const Live = Layer.mergeAll(
-  CommandsLive,
-  SubscriptionsLive,
-  Search.Live,
-  Settings.Live,
+export const layer = Layer.mergeAll(
+  CommandsLayer,
+  SubscriptionsLayer,
+  Search.layer,
+  Settings.layer,
 )
 ```
 
-The root repeats that composition once for the application's features. The entry imports only the root `Live` Layer:
+The root repeats that composition once for the application's features. The entry imports only the root `layer`:
 
 ```ts
 const application = Application.make({
@@ -297,16 +297,20 @@ const application = Application.make({
   container: document.getElementById('root'),
 })
 
-Runtime.run(Application.provide(application, Live))
+Runtime.run(Application.provide(application, layer))
 ```
 
-If a feature's handler Layers need a business service owned by that feature, provide it beneath the feature bundle with `Layer.provide`, then export the feature `Live`. Leave concrete HTTP, storage, RPC, and browser requirements open for the application root. The root chooses those providers and uses `Layer.provideMerge` when their outputs must remain available to Flags or another application consumer. Keep handler-by-handler imports out of the entry point. `Application.provide` can be chained when one provided Layer leaves requirements for a later Layer, but a composed root `Live` keeps ordinary application wiring at feature granularity.
+If a feature's handler Layers need a business service owned by that feature, provide it beneath the feature bundle with `Layer.provide`, then export the feature `layer`. Leave concrete HTTP, storage, RPC, and browser requirements open for the application root. The root chooses those providers and uses `Layer.provideMerge` when their outputs must remain available to Flags or another application consumer. Keep handler-by-handler imports out of the entry point. `Application.provide` can be chained when one provided Layer leaves requirements for a later Layer, but a composed root `layer` keeps ordinary application wiring at feature granularity.
 
-The runtime builds the application Layer once for each start. Command lookup, Subscription restart, Mount insertion, and ManagedResource reacquisition reuse those handlers and providers. Scope finalizers registered while building the Layer run when that runtime stops. A ManagedResource handle has its own Model-driven scope; releasing that handle does not rebuild the app-scoped lifecycle handler.
+Calling `toLayer` creates a recipe; it does not build the Layer. The Runtime builds the application Layer once for each start. An Effect constructor passed to `toLayer` runs once during that build and returns the handler used later. Command lookup, Subscription restart, Mount insertion, and ManagedResource reacquisition reuse those handlers and providers. Looking up a service retrieves an instance from the Effect context; it does not construct the provider. Scope finalizers registered while building the Layer run when that runtime stops.
 
-Whole-application execution tests compose the same handler `Live` Layers with deterministic providers for external services. Keep any business service Layer whose decoding, retries, or policy the test should cover, and replace its lower HTTP or RPC transport. That keeps Command result mapping, Subscription Stream transformation, Mount element lifecycle, and ManagedResource acquire and release behavior under test. Replacing a complete handler can orchestrate a result path, but does not test the replaced handler. Inline Commands, Subscriptions, and ManagedResources also use service substitution through `Application.provide`; an inline Mount must close its own requirements.
+Use an Effect constructor when capturing a stable injected service or accessor clarifies the dependency boundary. The plain handler form remains convenient when each invocation should look up its services contextually. A captured value is not replaced by a later invocation context override. A contextual lookup sees the merged context, where invocation services win.
 
-The implementation Layer graph does not replace the registration graph. A feature also exports its `subscriptions`, `managedResources`, and `mounts`. In `application.ts`, lift child registrations into the root Model and Message types, aggregate the records, collect Mount definitions, and pass the results to `Application.make`. The entry then imports only the assembled `application` and the root `Live` Layer.
+Keep four lifetimes distinct. Application services such as RPC clients last for one Runtime start. A Command Effect lasts for one dispatch. Subscription Streams and ManagedResource handles follow Model conditions. Mount acquisition follows one DOM element. Do not capture current time, Command args, Subscription dependencies, a DOM element, or an active ManagedResource handle in an application-scoped constructor.
+
+Whole-application execution tests compose the same handler Layers with deterministic providers for external services before building the application Layer. Keep any business service Layer whose decoding, retries, or policy the test should cover, and replace its lower HTTP or RPC transport. That keeps Command result mapping, Subscription Stream transformation, Mount element lifecycle, and ManagedResource acquire and release behavior under test. Replacing a complete handler is a narrower way to orchestrate a result path, and does not test the replaced handler. Use Effect Layers directly for substitution rather than introducing a testing DSL. Inline Commands, Subscriptions, and ManagedResources also use service substitution through `Application.provide`; an inline Mount must close its own requirements.
+
+The implementation Layer graph does not replace the registration graph. A feature also exports its `subscriptions`, `managedResources`, and `mounts`. In `application.ts`, lift child registrations into the root Model and Message types, aggregate the records, collect Mount definitions, and pass the results to `Application.make`. The entry then imports only the assembled `application` and the root `layer`.
 
 Direct `Subscription.aggregate(first, second)` preserves each Subscription definition's key and Message contract. The curried `Subscription.aggregate<Model, Message>()(...records)` form intentionally exposes one broad record type at an explicit module boundary. Keep the direct form while the application composes known feature records.
 
@@ -333,7 +337,7 @@ const update = (model: Model, message: Message) =>
   )
 
 // Parent folds the child update and handles its OutMessage
-type NavigationRequirements = Layer.Success<typeof NavigationLive>
+type NavigationRequirements = Layer.Success<typeof NavigationLayer>
 
 const foldChildOutMessage = Child.OutMessage.match<
   Update.Step<ParentModel, ParentMessage, NavigationRequirements>
@@ -392,9 +396,9 @@ Build them with `Subscription.make<Model, Message>()(entry => ({ ... }))`. Use t
 - A `fields` map (the bare field map passed as `entry`'s second argument) naming every dependency. The builder calls `Schema.Struct(fields)` internally and infers the dependency type from this map.
 - A `messages` collection in `callbacks` listing the exact Message Schemas the handler Stream can emit. Use `messages: []` when the scoped Stream emits no Messages. The declared collection constrains `toLayer` and describes the Stream's output contract to runtime tooling.
 - A `modelToDependencies(model)` function that returns the parameters the stream needs. Wrap an absent dependency in `Option` at the field level. The runtime restarts the stream whenever the dependencies change.
-- A handler Layer built with `subscriptions.key.toLayer(dependencies => stream)`. Errors should be mapped to a `Failed*` Message inside the stream rather than thrown. Merge the handler Layer into the feature's `Live` Layer.
+- A handler Layer built with `subscriptions.key.toLayer(dependencies => stream)`. Errors should be mapped to a `Failed*` Message inside the stream rather than thrown. Merge the handler Layer into the feature's `layer`.
 
-Name the handler for the events or scoped behavior the entry supplies, such as `KeyboardPresses`, `SystemThemeChanges`, or `GameClockTicks`. The record key identifies the registration, and the Model dependencies determine when its scope is active. Avoid generic `Watch*` names that identify only the input source. Name an individual implementation Layer from the handler identity, such as `KeyboardPressesLive`; a feature can compose those Layers under `Live`.
+Name the handler for the events or scoped behavior the entry supplies, such as `KeyboardPresses`, `SystemThemeChanges`, or `GameClockTicks`. The record key identifies the registration, and the Model dependencies determine when its scope is active. Avoid generic `Watch*` names that identify only the input source. Name an individual implementation Layer from the handler identity, such as `KeyboardPressesLayer`; a feature can compose those Layers under `layer`.
 
 For Layer-backed Subscriptions without local Model dependencies (keyboard listeners, window resize, animation frame ticks), pass the stable handler name and Message Schemas: `entry('KeyboardPresses', { messages: [Message.PressedKey] })`. The Subscription then stays active across local Model updates. Its parent can still gate it when lifted.
 
@@ -545,7 +549,7 @@ export const makeElement = (container: HTMLElement, flags: Flags) =>
       view,
       container,
     }),
-    Application.provide(Live),
+    Application.provide(layer),
   )
 ```
 

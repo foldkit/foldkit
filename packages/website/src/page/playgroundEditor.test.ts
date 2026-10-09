@@ -2,7 +2,7 @@ import { Deferred, Effect, PubSub, Stream } from 'effect'
 import { Mount } from 'foldkit'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-import { MountPlaygroundEditor, MountPlaygroundEditorLive } from './playground'
+import { MountPlaygroundEditor, MountPlaygroundEditorLayer } from './playground'
 
 const monaco = vi.hoisted(() => ({
   addExtraLib: vi.fn(),
@@ -62,12 +62,12 @@ describe('MountPlaygroundEditor', () => {
     await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* () {
-          const observedInitialLive = yield* Deferred.make<void>()
+          const observedInitialLayer = yield* Deferred.make<void>()
           const observedPaused = yield* Deferred.make<void>()
           const observedResumed = yield* Deferred.make<void>()
           monaco.updateOptions.mockImplementation(() => {
             if (monaco.updateOptions.mock.calls.length === 1) {
-              Effect.runSync(Deferred.succeed(observedInitialLive, undefined))
+              Effect.runSync(Deferred.succeed(observedInitialLayer, undefined))
             } else if (monaco.updateOptions.mock.calls.length === 2) {
               Effect.runSync(Deferred.succeed(observedPaused, undefined))
             } else if (monaco.updateOptions.mock.calls.length === 3) {
@@ -87,11 +87,11 @@ describe('MountPlaygroundEditor', () => {
             .f(document.createElement('div'), Stream.fromPubSub(viewStates))
             .pipe(
               Stream.runDrain,
-              Effect.provide(MountPlaygroundEditorLive),
+              Effect.provide(MountPlaygroundEditorLayer),
               Effect.forkScoped,
             )
 
-          yield* Deferred.await(observedInitialLive)
+          yield* Deferred.await(observedInitialLayer)
           expect(monaco.createEditor).toHaveBeenCalledOnce()
           expect(monaco.editorDispose).not.toHaveBeenCalled()
 

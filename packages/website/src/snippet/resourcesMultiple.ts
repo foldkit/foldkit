@@ -1,20 +1,24 @@
 import { Layer } from 'effect'
 
-import { LoadUserLive } from './command'
-import { AnalyticsLive, ApiClientLive, ComputeWorkerLive } from './environment'
-import { ComputePreviewLive } from './managedResource'
-import { TrackPageViewLive } from './subscription'
+import { LoadUserLayer } from './command'
+import {
+  AnalyticsLayer,
+  ApiClientLayer,
+  ComputeWorkerLayer,
+} from './environment'
+import { ComputePreviewLayer } from './managedResource'
+import { TrackPageViewLayer } from './subscription'
 
-export const HandlersLive = Layer.mergeAll(
-  LoadUserLive,
-  TrackPageViewLive,
-  ComputePreviewLive,
+export const HandlersLayer = Layer.mergeAll(
+  LoadUserLayer,
+  TrackPageViewLayer,
+  ComputePreviewLayer,
 )
 
-const ServicesLive = Layer.mergeAll(
-  ApiClientLive,
-  AnalyticsLive,
-  ComputeWorkerLive,
+const ServicesLayer = Layer.mergeAll(
+  ApiClientLayer,
+  AnalyticsLayer,
+  ComputeWorkerLayer,
 )
 
-export const Live = Layer.provideMerge(HandlersLive, ServicesLive)
+export const layer = Layer.provideMerge(HandlersLayer, ServicesLayer)

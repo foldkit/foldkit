@@ -3,7 +3,7 @@ import { KeyValueStore } from 'effect/persistence'
 
 import { DragAndDrop } from '@foldkit/ui'
 
-import { CommandsLive } from './command'
+import { CommandsLayer } from './command'
 import { DEFAULT_COLUMNS, STORAGE_KEY } from './constant'
 import { Message } from './message'
 import { Model, SavedBoard, SavedBoardJsonString } from './model'
@@ -51,6 +51,6 @@ export const init = (flags: Flags) => {
   }
 }
 
-export const Live = CommandsLive
+export const layer = CommandsLayer
 
 export { Message, Model, subscriptions, update, view }

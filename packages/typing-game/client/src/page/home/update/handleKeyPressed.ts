@@ -3,7 +3,7 @@ import { type Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import {
-  CommandsLive,
+  CommandsLayer,
   CreateRoom,
   FocusRoomIdInput,
   FocusUsernameInput,
@@ -14,7 +14,7 @@ import { HOME_ACTIONS, HomeAction, HomeStep, Model } from '../model'
 type UpdateReturn = Update.Return<
   Model,
   Message,
-  Layer.Success<typeof CommandsLive>
+  Layer.Success<typeof CommandsLayer>
 >
 const withUpdateReturn = Match.withReturnType<UpdateReturn>()
 

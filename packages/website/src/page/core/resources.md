@@ -8,25 +8,42 @@ Some Effect services need one instance shared across an application. An RPC clie
 Shared services are the kitchen equipment available all night. Every dish can use the same oven. A Model-driven handle, such as a camera stream, belongs to a [ManagedResource](/core/managed-resources) instead: it exists only while the Model needs it.
 :::
 
-`Application.make` defines the application and carries its unsatisfied Effect requirements. `Application.provide` supplies a Layer before `Runtime.run` starts it. The runtime builds that Layer once per start and releases it when the application stops. Looking up a Command handler or restarting a Subscription does not rebuild the application Layer. A hydrating start validates the server handoff before acquiring any application Layer.
+`Application.make` defines the application and carries its unsatisfied Effect requirements. `Application.provide` adds a Layer recipe before `Runtime.run` starts the program. The Runtime builds the application Layer once per start and releases it when the application stops. Looking up a Command handler or restarting a Subscription does not rebuild the Layer or its providers. A hydrating start validates the server handoff before acquiring any application Layer.
 
-A Command definition names the operation and its result Messages. Its `toLayer` handler can use an Effect service. `Layer.provide` builds that service beneath the handler Layer, so the handler captures it when the Layer is constructed. The same boundary applies to Layer-backed Subscriptions, Mounts, and ManagedResources.
+A Command definition names the operation and its result Messages. Its `toLayer` handler can use an Effect service. `Layer.provide` composes that service Layer beneath the handler Layer. An Effect constructor can capture the provided instance when the application Layer is built, while a plain handler can look it up during each invocation. The same boundary applies to Layer-backed Subscriptions, Mounts, and ManagedResources.
 
 ::Snippet{name="resources" label="Shared API client service"}
 
-The application requires the `LoadUser` handler service. `LoadUserLive` is the real handler in both compositions. Production supplies `ApiLive`; a test supplies `ApiTest`. The API client starts once with the application, rather than once per `LoadUser` execution. `TestLive` covers the real `LoadUser` mapping and error policy, but it does not cover the replaced `ApiLive` request and decoder.
+The application requires the `LoadUser` handler service. `LoadUserLayer` is the real handler in both compositions. Production supplies `ApiLayer`; a test supplies `ApiTestLayer`. The API client starts once with the application, rather than once per `LoadUser` execution. `TestLayer` covers the real `LoadUser` mapping and error policy, but it does not cover the replaced `ApiLayer` request and decoder.
 
-Passing an Effect to `toLayer` lets the handler acquire its dependencies once and return an `args => Effect` function. The args continue to be serializable values from update. Dependencies such as `ApiClientService` stay in the Effect requirement channel.
+Calling `toLayer` creates a recipe for providing the handler service. Passing an Effect to `toLayer` makes that recipe run a constructor once when the Runtime builds the application Layer. For a Command, the returned handler receives serializable args each time the Command runs.
+
+The Effect constructor is useful when capturing a stable injected service or accessor makes the dependency boundary clear. It may capture `ApiClientService`, for example. Do not capture current time, Command args, Subscription dependencies, a Mount's element, or an active ManagedResource handle. Those values belong to the shorter-lived operation or lifecycle that supplies them.
+
+Looking up an Effect service uses an instance from the current context; the lookup does not construct its provider. A service captured by the constructor remains that instance for the runtime start. A later invocation context cannot replace the captured value. A handler that performs the lookup during invocation can see invocation-specific services instead, because Foldkit merges contexts with invocation services taking precedence.
 
 ## Testing Through Service Boundaries
 
-Whole-application execution tests retain the real Command, Subscription, Mount, and ManagedResource handlers. Replace the dependency Layers beneath those handlers: an API client, storage service, RPC transport, clock, or browser capability. This exercises the application's real effect translation and lifecycle behavior while making the external environment deterministic.
+Whole-application execution tests retain the real Command, Subscription, Mount, and ManagedResource handlers. Replace the dependency Layers beneath those handlers before the Runtime builds the application Layer: an API client, storage service, RPC transport, clock, or browser capability. This exercises the application's real effect translation and lifecycle behavior while making the external environment deterministic.
 
-Choose the lowest service boundary whose code the test needs to exercise. If `ApiLive` contains request construction, authentication, decoding, retries, or other business behavior, keep `ApiLive` and replace its lower HTTP or RPC transport. Replacing `ApiLive` with `ApiTest` deliberately narrows the test to code above that service.
+Choose the lowest service boundary whose code the test needs to exercise. If `ApiLayer` contains request construction, authentication, decoding, retries, or other business behavior, keep `ApiLayer` and replace its lower HTTP or RPC transport. Replacing `ApiLayer` with `ApiTestLayer` deliberately narrows the test to code above that service.
 
 For a Subscription, the test service supplies the upstream events while the real handler still builds the Stream and Foldkit still starts, restarts, and stops it from Model dependencies. For a Mount, the test capability sits beneath the real element-scoped handler. For a ManagedResource, the test capability sits beneath the real acquire and release handler, so the Model-driven handle scope remains under test.
 
-Replacing an entire handler is an explicit orchestration choice. It can drive a result path directly, but it does not test the handler that was replaced. Inline Command, Subscription, and ManagedResource definitions are also testable through their Effect requirements; they do not need to be converted to `toLayer` only to substitute dependencies. An inline Mount cannot leave an app service requirement open, so use a Layer-backed Mount when the application or a whole-application test must choose that provider.
+A handler stub is a narrower orchestration choice. It can drive a result path directly, but it does not test the handler that was replaced. Inline Command, Subscription, and ManagedResource definitions are also testable through their Effect requirements; they do not need to be converted to `toLayer` only to substitute dependencies. An inline Mount cannot leave an app service requirement open, so use a Layer-backed Mount when the application or a whole-application test must choose that provider.
+
+## Choosing the Lifetime
+
+Put a value in the scope that owns its start and stop:
+
+| Lifetime              | Use it for                                       | Examples                                                 |
+| --------------------- | ------------------------------------------------ | -------------------------------------------------------- |
+| One Runtime start     | Shared Effect services and constructed handlers  | RPC clients, repositories, analytics clients             |
+| One Command execution | Work and values produced for one dispatch        | Current time, request args, one HTTP response            |
+| A Model condition     | Subscription Streams and ManagedResource handles | Route-scoped events, a connected socket, a camera stream |
+| One mounted element   | Mount acquisition and cleanup                    | Element observers, chart instances, anchored overlays    |
+
+The application Layer may construct a stable service or handler accessor. It must not move values from the other three scopes into application lifetime. A current timestamp changes per Command. Subscription dependencies change with the Model. A ManagedResource handle exists only while its Model condition holds. A Mount's `Element` exists only for that mounted node.
 
 ## Application and Private Provider Lifetimes
 
@@ -45,7 +62,7 @@ When an application needs localStorage and sessionStorage at the same time, defi
 
 ::Snippet{name="resourcesPerCommandHttp" label="HTTP provider at the application root"}
 
-Foldkit’s `Http.layer` uses Effect’s Fetch-backed client with trace-header propagation disabled. Browser `traceparent` headers can turn otherwise CORS-simple requests into preflighted requests against plain APIs and development proxies. The application root provides it beneath `HandlersLive`; a test root provides an HTTP test Layer beneath the same handlers.
+Foldkit’s `Http.layer` uses Effect’s Fetch-backed client with trace-header propagation disabled. Browser `traceparent` headers can turn otherwise CORS-simple requests into preflighted requests against plain APIs and development proxies. The application root provides it beneath `HandlersLayer`; a test root provides `HttpTestLayer` beneath the same handlers.
 
 ## Services in Flags
 
@@ -59,7 +76,7 @@ If the service Layer fails to build, startup cannot reach init or the first rend
 
 ## Providing Multiple Services
 
-Use `Layer.mergeAll` to combine service Layers. A reusable feature `Live` Layer combines its real handlers and may provide business services owned by that feature. Leave concrete HTTP, storage, RPC, and browser providers as requirements for the application root to choose. The root composes those providers once, then the entry imports and provides one root `Live` Layer. The next snippet shows only that root composition. Its Command, Subscription, and ManagedResource modules export the handler Layers, while `environment.ts` exports the concrete provider Layers.
+Use `Layer.mergeAll` to combine service Layers. A reusable feature's lowercase `layer` export combines its real handlers and may provide business services owned by that feature. Leave concrete HTTP, storage, RPC, and browser providers as requirements for the application root to choose. The root composes those providers once, then the entry imports and provides one root `layer`. The next snippet shows only that root composition. Its Command, Subscription, and ManagedResource modules export the handler Layers, while `environment.ts` exports the concrete provider Layers.
 
 ::Snippet{name="resourcesMultiple" label="Multiple shared services"}
 

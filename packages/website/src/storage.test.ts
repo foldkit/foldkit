@@ -3,9 +3,9 @@ import { afterEach, expect, it } from 'vitest'
 
 import {
   LocalStorage,
-  LocalStorageLive,
+  LocalStorageLayer,
   SessionStorage,
-  SessionStorageLive,
+  SessionStorageLayer,
 } from './storage'
 
 afterEach(() => {
@@ -27,7 +27,7 @@ it('provides independent local and session stores in one application context', a
         session: yield* session.get('preference'),
       }
     }).pipe(
-      Effect.provide(Layer.mergeAll(LocalStorageLive, SessionStorageLive)),
+      Effect.provide(Layer.mergeAll(LocalStorageLayer, SessionStorageLayer)),
     ),
   )
 

@@ -31,10 +31,14 @@ type HandlerService<Params, Value> = Readonly<{
 }>
 
 /**
- * Builds a Layer from a ManagedResource lifecycle handler or an Effect that
- * constructs one. The constructor runs when the application Layer is built;
- * acquire and release follow the entry's Model-driven lifetime. Provide
- * alternative dependency services to test the same acquisition and cleanup.
+ * Creates a Layer recipe from a ManagedResource lifecycle handler or an Effect
+ * that constructs one. The constructor runs once when the application Layer
+ * is built and may capture shared services. The returned acquire and release
+ * functions manage each handle according to Model state. Acquire scoped
+ * resources inside acquire so their finalizers follow the handle's lifetime.
+ * Provide test services before building the same lifecycle handler Layer.
+ * Captured services retain their identity; service lookups during acquire and
+ * release use the invocation context over the construction context.
  */
 export interface ToLayer<Name extends string, Params, Value> {
   <

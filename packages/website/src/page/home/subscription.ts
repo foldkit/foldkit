@@ -14,11 +14,11 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   }),
 }))
 
-const AiHeadingToggleTicksLive = subscriptions.aiHeading.toLayer(() =>
+const AiHeadingToggleTicksLayer = subscriptions.aiHeading.toLayer(() =>
   Stream.tick(TOGGLE_INTERVAL).pipe(
     Stream.drop(1),
     Stream.map(Message.ToggledAiHeading),
   ),
 )
 
-export const Live = AiHeadingToggleTicksLive
+export const layer = AiHeadingToggleTicksLayer

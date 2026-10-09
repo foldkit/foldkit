@@ -2,7 +2,7 @@ import { Effect, Layer, Match, String } from 'effect'
 import { HttpClient, HttpClientResponse } from 'effect/http'
 import { expect, test } from 'vitest'
 
-import { FetchWeather, Live as WeatherLive } from './main'
+import { FetchWeather, layer as WeatherLayer } from './main'
 
 test('the FetchWeather handler returns a success Message from HTTP responses', async () => {
   const testClient = HttpClient.make(request =>
@@ -39,13 +39,13 @@ test('the FetchWeather handler returns a success Message from HTTP responses', a
     }),
   )
 
-  const TestLive = Layer.provide(
-    WeatherLive,
+  const TestLayer = Layer.provide(
+    WeatherLayer,
     Layer.succeed(HttpClient.HttpClient, testClient),
   )
 
   const message = await FetchWeather({ zipCode: '90210' }).effect.pipe(
-    Effect.provide(TestLive),
+    Effect.provide(TestLayer),
     Effect.runPromise,
   )
 

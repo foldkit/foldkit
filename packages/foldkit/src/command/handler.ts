@@ -22,11 +22,14 @@ type HandlerService<Args, Message> = Readonly<{
 }>
 
 /**
- * Builds a Layer from a Command handler or an Effect that constructs one.
- * An Effect constructor runs once when the application Layer is built and
- * can capture shared services for subsequent executions. Arguments are
- * dispatch data; service dependencies enter through the Effect requirements.
- * Provide alternative dependency services to test the same handler logic.
+ * Creates a Layer recipe from a Command handler or an Effect that constructs one.
+ * The runtime builds the application Layer once before init. An Effect
+ * constructor can capture shared services and return the handler; its body
+ * receives arguments and performs work on each Command execution.
+ * Provide test services before building the Layer to run the same handler logic.
+ * Services captured by the constructor retain their identity. Service lookups
+ * inside execution use the invocation context over the construction context.
+ * Arguments are dispatch data; services enter through Effect requirements.
  */
 export interface ToLayer<Name extends string, Args, Message> {
   <ExecuteRequirements, E = never, BuildRequirements = never>(

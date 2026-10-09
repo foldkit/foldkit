@@ -16,7 +16,7 @@ const NavigateInternal = Command.define('NavigateInternal', {
   messages: [Message.CompletedNavigateInternal],
 })
 
-const NavigateInternalLive = NavigateInternal.toLayer(({ url }) =>
+const NavigateInternalLayer = NavigateInternal.toLayer(({ url }) =>
   pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
 )
 
@@ -25,18 +25,18 @@ const LoadExternal = Command.define('LoadExternal', {
   messages: [Message.CompletedLoadExternal],
 })
 
-const LoadExternalLive = LoadExternal.toLayer(({ href }) =>
+const LoadExternalLayer = LoadExternal.toLayer(({ href }) =>
   load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
 )
 
-export const NavigationLive = Layer.mergeAll(
-  NavigateInternalLive,
-  LoadExternalLive,
+export const NavigationLayer = Layer.mergeAll(
+  NavigateInternalLayer,
+  LoadExternalLayer,
 )
 
 type UpdateRequirements =
   | Command.HandlerOf<typeof NavigateToRoom>
-  | Layer.Success<typeof NavigationLive>
+  | Layer.Success<typeof NavigationLayer>
   | Home.UpdateRequirements
   | Room.UpdateRequirements
 

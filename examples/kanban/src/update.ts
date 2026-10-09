@@ -5,7 +5,7 @@ import { modifyFields } from 'foldkit/struct'
 import { DragAndDrop } from '@foldkit/ui'
 
 import {
-  CommandsLive,
+  CommandsLayer,
   FocusAddCardInput,
   GenerateCardId,
   SaveBoard,
@@ -14,7 +14,7 @@ import { Column } from './domain'
 import { Message } from './message'
 import type { Model } from './model'
 
-type CommandServices = Layer.Success<typeof CommandsLive>
+type CommandServices = Layer.Success<typeof CommandsLayer>
 type UpdateReturn = Update.Return<Model, Message, CommandServices>
 
 const findCardTitle = (

@@ -16,12 +16,16 @@ export const FetchRoom = Command.define('FetchRoom', {
   messages: [Message.SucceededFetchRoom, Message.FailedFetchRoom],
 })
 
-const FetchRoomLive = FetchRoom.toLayer(({ roomId }) =>
+const FetchRoomLayer = FetchRoom.toLayer(
   Effect.gen(function* () {
     const client = yield* RoomsClient
-    const room = yield* client.getRoomById({ roomId })
-    return Message.SucceededFetchRoom({ room })
-  }).pipe(Effect.catch(() => Effect.succeed(Message.FailedFetchRoom()))),
+
+    return ({ roomId }) =>
+      client.getRoomById({ roomId }).pipe(
+        Effect.map(room => Message.SucceededFetchRoom({ room })),
+        Effect.catch(() => Effect.succeed(Message.FailedFetchRoom())),
+      )
+  }),
 )
 
 export const LoadSession = Command.define('LoadSession', {
@@ -29,33 +33,37 @@ export const LoadSession = Command.define('LoadSession', {
   messages: [Message.CompletedLoadSession],
 })
 
-const LoadSessionLive = LoadSession.toLayer(({ roomId }) =>
+const LoadSessionLayer = LoadSession.toLayer(
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
-    const maybeSessionJson = yield* store.get(ROOM_PLAYER_SESSION_KEY)
 
-    const sessionJson = yield* Effect.fromOption(
-      Option.fromNullishOr(maybeSessionJson),
-    )
-    const decodeSession = Schema.decodeEffect(RoomPlayerSessionJsonString)
+    return ({ roomId }) =>
+      Effect.gen(function* () {
+        const maybeSessionJson = yield* store.get(ROOM_PLAYER_SESSION_KEY)
 
-    return yield* decodeSession(sessionJson).pipe(
-      Effect.map(session =>
-        Message.CompletedLoadSession({
-          maybeSession: Option.liftPredicate(
-            session,
-            session => session.roomId === roomId,
+        const sessionJson = yield* Effect.fromOption(
+          Option.fromNullishOr(maybeSessionJson),
+        )
+        const decodeSession = Schema.decodeEffect(RoomPlayerSessionJsonString)
+
+        return yield* decodeSession(sessionJson).pipe(
+          Effect.map(session =>
+            Message.CompletedLoadSession({
+              maybeSession: Option.liftPredicate(
+                session,
+                session => session.roomId === roomId,
+              ),
+            }),
           ),
-        }),
-      ),
-    )
-  }).pipe(
-    Effect.catch(() =>
-      Effect.succeed(
-        Message.CompletedLoadSession({ maybeSession: Option.none() }),
-      ),
-    ),
-  ),
+        )
+      }).pipe(
+        Effect.catch(() =>
+          Effect.succeed(
+            Message.CompletedLoadSession({ maybeSession: Option.none() }),
+          ),
+        ),
+      )
+  }),
 )
 
 export const JoinRoom = Command.define('JoinRoom', {
@@ -63,12 +71,16 @@ export const JoinRoom = Command.define('JoinRoom', {
   messages: [Message.SucceededJoinRoom, Message.FailedJoinRoom],
 })
 
-const JoinRoomLive = JoinRoom.toLayer(({ username, roomId }) =>
+const JoinRoomLayer = JoinRoom.toLayer(
   Effect.gen(function* () {
     const client = yield* RoomsClient
-    const { player } = yield* client.joinRoom({ username, roomId })
-    return Message.SucceededJoinRoom({ player })
-  }).pipe(Effect.catch(() => Effect.succeed(Message.FailedJoinRoom()))),
+
+    return ({ username, roomId }) =>
+      client.joinRoom({ username, roomId }).pipe(
+        Effect.map(({ player }) => Message.SucceededJoinRoom({ player })),
+        Effect.catch(() => Effect.succeed(Message.FailedJoinRoom())),
+      )
+  }),
 )
 
 export const StartGame = Command.define('StartGame', {
@@ -76,12 +88,16 @@ export const StartGame = Command.define('StartGame', {
   messages: [Message.SucceededStartGame, Message.FailedStartGame],
 })
 
-const StartGameLive = StartGame.toLayer(({ roomId, playerId }) =>
+const StartGameLayer = StartGame.toLayer(
   Effect.gen(function* () {
     const client = yield* RoomsClient
-    yield* client.startGame({ roomId, playerId })
-    return Message.SucceededStartGame()
-  }).pipe(Effect.catch(() => Effect.succeed(Message.FailedStartGame()))),
+
+    return ({ roomId, playerId }) =>
+      client.startGame({ roomId, playerId }).pipe(
+        Effect.as(Message.SucceededStartGame()),
+        Effect.catch(() => Effect.succeed(Message.FailedStartGame())),
+      )
+  }),
 )
 
 export const UpdatePlayerProgress = Command.define('UpdatePlayerProgress', {
@@ -94,22 +110,25 @@ export const UpdatePlayerProgress = Command.define('UpdatePlayerProgress', {
   messages: [Message.CompletedUpdatePlayerProgress],
 })
 
-const UpdatePlayerProgressLive = UpdatePlayerProgress.toLayer(
-  ({ playerId, gameId, userGameText, charsTyped }) =>
-    Effect.gen(function* () {
-      const client = yield* RoomsClient
-      yield* client.updatePlayerProgress({
-        playerId,
-        gameId,
-        userText: userGameText,
-        charsTyped,
-      })
-      return Message.CompletedUpdatePlayerProgress()
-    }).pipe(
-      Effect.catch(() =>
-        Effect.succeed(Message.CompletedUpdatePlayerProgress()),
-      ),
-    ),
+const UpdatePlayerProgressLayer = UpdatePlayerProgress.toLayer(
+  Effect.gen(function* () {
+    const client = yield* RoomsClient
+
+    return ({ playerId, gameId, userGameText, charsTyped }) =>
+      client
+        .updatePlayerProgress({
+          playerId,
+          gameId,
+          userText: userGameText,
+          charsTyped,
+        })
+        .pipe(
+          Effect.as(Message.CompletedUpdatePlayerProgress()),
+          Effect.catch(() =>
+            Effect.succeed(Message.CompletedUpdatePlayerProgress()),
+          ),
+        )
+  }),
 )
 
 export const CopyRoomId = Command.define('CopyRoomId', {
@@ -117,7 +136,7 @@ export const CopyRoomId = Command.define('CopyRoomId', {
   messages: [Message.SucceededCopyRoomId, Message.FailedCopyRoomId],
 })
 
-const CopyRoomIdLive = CopyRoomId.toLayer(({ roomId }) =>
+const CopyRoomIdLayer = CopyRoomId.toLayer(({ roomId }) =>
   Effect.tryPromise({
     try: () => navigator.clipboard.writeText(roomId),
     catch: () => new Error('Failed to copy to clipboard'),
@@ -134,7 +153,7 @@ export const WaitForExitCountdownInterval = Command.define(
   },
 )
 
-const WaitForExitCountdownIntervalLive = WaitForExitCountdownInterval.toLayer(
+const WaitForExitCountdownIntervalLayer = WaitForExitCountdownInterval.toLayer(
   () =>
     Effect.sleep('1 second').pipe(
       Effect.as(Message.CompletedWaitForExitCountdownInterval()),
@@ -150,7 +169,7 @@ export const WaitBeforeHidingRoomIdCopiedIndicator = Command.define(
   },
 )
 
-const WaitBeforeHidingRoomIdCopiedIndicatorLive =
+const WaitBeforeHidingRoomIdCopiedIndicatorLayer =
   WaitBeforeHidingRoomIdCopiedIndicator.toLayer(() =>
     Effect.sleep(COPY_INDICATOR_DURATION).pipe(
       Effect.as(Message.CompletedWaitBeforeHidingRoomIdCopiedIndicator()),
@@ -164,28 +183,38 @@ export const SavePlayerSession = Command.define('SavePlayerSession', {
   messages: [Message.CompletedSavePlayerSession],
 })
 
-const SavePlayerSessionLive = SavePlayerSession.toLayer(({ session }) =>
+const SavePlayerSessionLayer = SavePlayerSession.toLayer(
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
-    const encodeSession = Schema.encodeEffect(RoomPlayerSessionJsonString)
-    const sessionJson = yield* encodeSession(session)
-    yield* store.set(ROOM_PLAYER_SESSION_KEY, sessionJson)
-    return Message.CompletedSavePlayerSession()
-  }).pipe(
-    Effect.catch(() => Effect.succeed(Message.CompletedSavePlayerSession())),
-  ),
+
+    return ({ session }) =>
+      Effect.gen(function* () {
+        const encodeSession = Schema.encodeEffect(RoomPlayerSessionJsonString)
+        const sessionJson = yield* encodeSession(session)
+        yield* store.set(ROOM_PLAYER_SESSION_KEY, sessionJson)
+        return Message.CompletedSavePlayerSession()
+      }).pipe(
+        Effect.catch(() =>
+          Effect.succeed(Message.CompletedSavePlayerSession()),
+        ),
+      )
+  }),
 )
 
 export const ClearSession = Command.define('ClearSession', {
   messages: [Message.CompletedClearSession],
 })
 
-const ClearSessionLive = ClearSession.toLayer(() =>
+const ClearSessionLayer = ClearSession.toLayer(
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
-    yield* store.remove(ROOM_PLAYER_SESSION_KEY)
-    return Message.CompletedClearSession()
-  }).pipe(Effect.catch(() => Effect.succeed(Message.CompletedClearSession()))),
+
+    return () =>
+      store.remove(ROOM_PLAYER_SESSION_KEY).pipe(
+        Effect.as(Message.CompletedClearSession()),
+        Effect.catch(() => Effect.succeed(Message.CompletedClearSession())),
+      )
+  }),
 )
 
 export const FocusRoomPageUsernameInput = Command.define(
@@ -195,7 +224,7 @@ export const FocusRoomPageUsernameInput = Command.define(
   },
 )
 
-const FocusRoomPageUsernameInputLive = FocusRoomPageUsernameInput.toLayer(() =>
+const FocusRoomPageUsernameInputLayer = FocusRoomPageUsernameInput.toLayer(() =>
   Dom.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
     Effect.ignore,
     Effect.as(Message.CompletedFocusRoomPageUsernameInput()),
@@ -206,24 +235,24 @@ export const FocusUserGameTextInput = Command.define('FocusUserGameTextInput', {
   messages: [Message.CompletedFocusUserGameTextInput],
 })
 
-const FocusUserGameTextInputLive = FocusUserGameTextInput.toLayer(() =>
+const FocusUserGameTextInputLayer = FocusUserGameTextInput.toLayer(() =>
   Dom.focus(`#${USER_GAME_TEXT_INPUT_ID}`).pipe(
     Effect.ignore,
     Effect.as(Message.CompletedFocusUserGameTextInput()),
   ),
 )
 
-export const CommandsLive = Layer.mergeAll(
-  FetchRoomLive,
-  LoadSessionLive,
-  JoinRoomLive,
-  StartGameLive,
-  UpdatePlayerProgressLive,
-  CopyRoomIdLive,
-  WaitForExitCountdownIntervalLive,
-  WaitBeforeHidingRoomIdCopiedIndicatorLive,
-  SavePlayerSessionLive,
-  ClearSessionLive,
-  FocusRoomPageUsernameInputLive,
-  FocusUserGameTextInputLive,
+export const CommandsLayer = Layer.mergeAll(
+  FetchRoomLayer,
+  LoadSessionLayer,
+  JoinRoomLayer,
+  StartGameLayer,
+  UpdatePlayerProgressLayer,
+  CopyRoomIdLayer,
+  WaitForExitCountdownIntervalLayer,
+  WaitBeforeHidingRoomIdCopiedIndicatorLayer,
+  SavePlayerSessionLayer,
+  ClearSessionLayer,
+  FocusRoomPageUsernameInputLayer,
+  FocusUserGameTextInputLayer,
 )

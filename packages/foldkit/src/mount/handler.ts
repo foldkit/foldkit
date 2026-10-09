@@ -28,10 +28,13 @@ type StreamHandlerService<Input, Message> = Readonly<{
 }>
 
 /**
- * Builds a Layer from a one-shot Mount handler or an Effect that constructs one.
- * An Effect constructor runs when the application Layer is built. The handler
- * executes in the rendered element's scope. Provide alternative dependency
- * services to test the same DOM behavior and cleanup.
+ * Creates a Layer recipe from a one-shot Mount handler or an Effect that constructs one.
+ * An Effect constructor runs once when the application Layer is built and may
+ * capture shared services. The returned handler receives the rendered element
+ * and executes in that element's scope. Perform DOM work inside the handler.
+ * Provide test services before building the same handler Layer.
+ * Captured services retain their identity; service lookups inside execution
+ * use the invocation context over the construction context.
  */
 export interface ToEffectLayer<Name extends string, Input, Message> {
   <ExecuteRequirements, E = never, BuildRequirements = never>(
@@ -50,10 +53,13 @@ export interface ToEffectLayer<Name extends string, Input, Message> {
 }
 
 /**
- * Builds a Layer from a streaming Mount handler or an Effect that constructs one.
- * An Effect constructor runs when the application Layer is built. Each Stream
- * executes in the rendered element's scope. Provide alternative dependency
- * services to test the same Stream behavior and cleanup.
+ * Creates a Layer recipe from a streaming Mount handler or an Effect that constructs one.
+ * An Effect constructor runs once when the application Layer is built and may
+ * capture shared services. The returned handler receives the rendered element
+ * and produces a Stream whose resources follow that element's scope.
+ * Provide test services before building the same handler Layer.
+ * Captured services retain their identity; service lookups inside the Stream
+ * use the invocation context over the construction context.
  */
 export interface ToStreamLayer<Name extends string, Input, Message> {
   <StreamRequirements, E = never, BuildRequirements = never>(

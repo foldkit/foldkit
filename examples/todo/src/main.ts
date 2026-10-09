@@ -279,26 +279,38 @@ export const SaveTodos = Command.define('SaveTodos', {
   messages: [Message.SucceededSaveTodos, Message.FailedSaveTodos],
 })
 
-const GenerateTodoLive = GenerateTodo.toLayer(({ text }) =>
+const GenerateTodoLayer = GenerateTodo.toLayer(
   Effect.gen(function* () {
-    const id = yield* Random.nextIntBetween(0, Number.MAX_SAFE_INTEGER).pipe(
-      Effect.map(value => value.toString(36)),
-    )
-    const timestamp = yield* Clock.currentTimeMillis
-    return Message.CompletedGenerateTodo({ id, timestamp, text })
+    const clock = yield* Clock.Clock
+    const random = yield* Random.Random
+    return ({ text }) =>
+      Effect.gen(function* () {
+        const id = yield* Random.nextIntBetween(
+          0,
+          Number.MAX_SAFE_INTEGER,
+        ).pipe(
+          Effect.provideService(Random.Random, random),
+          Effect.map(value => value.toString(36)),
+        )
+        const timestamp = yield* clock.currentTimeMillis
+        return Message.CompletedGenerateTodo({ id, timestamp, text })
+      })
   }),
 )
 
-const SaveTodosLive = SaveTodos.toLayer(({ todos }) =>
+const SaveTodosLayer = SaveTodos.toLayer(
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
-    const encodedTodos = yield* Schema.encodeEffect(TodosJsonString)(todos)
-    yield* store.set(TODOS_STORAGE_KEY, encodedTodos)
-    return Message.SucceededSaveTodos({ todos })
-  }).pipe(Effect.catch(() => Effect.succeed(Message.FailedSaveTodos()))),
+    return ({ todos }) =>
+      Effect.gen(function* () {
+        const encodedTodos = yield* Schema.encodeEffect(TodosJsonString)(todos)
+        yield* store.set(TODOS_STORAGE_KEY, encodedTodos)
+        return Message.SucceededSaveTodos({ todos })
+      }).pipe(Effect.catch(() => Effect.succeed(Message.FailedSaveTodos())))
+  }),
 )
 
-export const Live = Layer.mergeAll(GenerateTodoLive, SaveTodosLive)
+export const layer = Layer.mergeAll(GenerateTodoLayer, SaveTodosLayer)
 
 // VIEW
 

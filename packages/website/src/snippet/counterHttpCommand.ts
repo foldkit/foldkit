@@ -16,24 +16,30 @@ const FetchCount = Command.define('FetchCount', {
   messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
 })
 
-const FetchCountLive = FetchCount.toLayer(() =>
+const FetchCountLayer = FetchCount.toLayer(
   Effect.gen(function* () {
     const client = yield* HttpClient.HttpClient
-    const response = yield* client.execute(HttpClientRequest.get('/api/count'))
 
-    if (response.status !== 200) {
-      return yield* Effect.fail('API request failed')
-    }
+    return () =>
+      Effect.gen(function* () {
+        const response = yield* client.execute(
+          HttpClientRequest.get('/api/count'),
+        )
 
-    const { count } = yield* Schema.decodeUnknownEffect(CountResponse)(
-      yield* response.json,
-    )
-    return Message.SucceededFetchCount({ count })
-  }).pipe(
-    Effect.catch(error =>
-      Effect.succeed(Message.FailedFetchCount({ error: String(error) })),
-    ),
-  ),
+        if (response.status !== 200) {
+          return yield* Effect.fail('API request failed')
+        }
+
+        const { count } = yield* Schema.decodeUnknownEffect(CountResponse)(
+          yield* response.json,
+        )
+        return Message.SucceededFetchCount({ count })
+      }).pipe(
+        Effect.catch(error =>
+          Effect.succeed(Message.FailedFetchCount({ error: String(error) })),
+        ),
+      )
+  }),
 )
 
 const update = Update.make((model: Model, message: Message) =>

@@ -238,7 +238,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-const SlowWarningReportsLive = subscriptions.slowWarnings.toLayer(() =>
+const SlowWarningReportsLayer = subscriptions.slowWarnings.toLayer(() =>
   Dom.streamFromEventFilterMap({
     target: slowWarningTarget,
     type: SLOW_WARNING_EVENT,
@@ -251,7 +251,7 @@ const SlowWarningReportsLive = subscriptions.slowWarnings.toLayer(() =>
   }),
 )
 
-export const Live = SlowWarningReportsLive
+export const layer = SlowWarningReportsLayer
 
 // VIEW
 

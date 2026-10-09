@@ -7,6 +7,7 @@ import {
   Layer,
   Match,
   Option,
+  Random,
   Schema,
   Stream,
   pipe,
@@ -249,16 +250,20 @@ export const FetchPosts = Command.define('FetchPosts', {
   messages: [Message.CompletedFetchPosts],
 })
 
-const FetchPostsLive = FetchPosts.toLayer(() =>
-  pipe(
-    Effect.gen(function* () {
-      const posts = yield* fetchPosts
-      const fetchedAt = yield* Clock.currentTimeMillis
-      return FetchedPosts.make({ posts, fetchedAt })
-    }),
-    Effect.result,
-    Effect.map(result => Message.CompletedFetchPosts({ result })),
-  ),
+const FetchPostsLayer = FetchPosts.toLayer(
+  Effect.gen(function* () {
+    const clock = yield* Clock.Clock
+    return () =>
+      pipe(
+        Effect.gen(function* () {
+          const posts = yield* fetchPosts
+          const fetchedAt = yield* clock.currentTimeMillis
+          return FetchedPosts.make({ posts, fetchedAt })
+        }),
+        Effect.result,
+        Effect.map(result => Message.CompletedFetchPosts({ result })),
+      )
+  }),
 )
 
 export const FetchPostDetail = Command.define('FetchPostDetail', {
@@ -266,32 +271,43 @@ export const FetchPostDetail = Command.define('FetchPostDetail', {
   messages: [Message.CompletedFetchPostDetail],
 })
 
-const FetchPostDetailLive = FetchPostDetail.toLayer(({ postId }) =>
-  pipe(
-    Effect.gen(function* () {
-      const detail = yield* fetchPostDetail(postId)
-      const fetchedAt = yield* Clock.currentTimeMillis
-      return FetchedPostDetail.make({ detail, fetchedAt })
-    }),
-    Effect.result,
-    Effect.map(result => Message.CompletedFetchPostDetail({ postId, result })),
-  ),
+const FetchPostDetailLayer = FetchPostDetail.toLayer(
+  Effect.gen(function* () {
+    const clock = yield* Clock.Clock
+    return ({ postId }) =>
+      pipe(
+        Effect.gen(function* () {
+          const detail = yield* fetchPostDetail(postId)
+          const fetchedAt = yield* clock.currentTimeMillis
+          return FetchedPostDetail.make({ detail, fetchedAt })
+        }),
+        Effect.result,
+        Effect.map(result =>
+          Message.CompletedFetchPostDetail({ postId, result }),
+        ),
+      )
+  }),
 )
 
 export const FetchStats = Command.define('FetchStats', {
   messages: [Message.CompletedFetchStats],
 })
 
-const FetchStatsLive = FetchStats.toLayer(() =>
-  pipe(
-    Effect.gen(function* () {
-      const stats = yield* fetchStats
-      const fetchedAt = yield* Clock.currentTimeMillis
-      return FetchedStats.make({ stats, fetchedAt })
-    }),
-    Effect.result,
-    Effect.map(result => Message.CompletedFetchStats({ result })),
-  ),
+const FetchStatsLayer = FetchStats.toLayer(
+  Effect.gen(function* () {
+    const clock = yield* Clock.Clock
+    const random = yield* Random.Random
+    return () =>
+      pipe(
+        Effect.gen(function* () {
+          const stats = yield* fetchStats(random)
+          const fetchedAt = yield* clock.currentTimeMillis
+          return FetchedStats.make({ stats, fetchedAt })
+        }),
+        Effect.result,
+        Effect.map(result => Message.CompletedFetchStats({ result })),
+      )
+  }),
 )
 
 // SUBSCRIPTION
@@ -310,7 +326,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-const StatsRevalidationTicksLive = subscriptions.revalidateStats.toLayer(
+const StatsRevalidationTicksLayer = subscriptions.revalidateStats.toLayer(
   ({ isObservingStats }) =>
     Stream.when(
       // NOTE: Stream.tick emits once immediately. Drop that first
@@ -323,11 +339,11 @@ const StatsRevalidationTicksLive = subscriptions.revalidateStats.toLayer(
     ),
 )
 
-export const Live = Layer.mergeAll(
-  FetchPostsLive,
-  FetchPostDetailLive,
-  FetchStatsLive,
-  StatsRevalidationTicksLive,
+export const layer = Layer.mergeAll(
+  FetchPostsLayer,
+  FetchPostDetailLayer,
+  FetchStatsLayer,
+  StatsRevalidationTicksLayer,
 )
 
 // VIEW

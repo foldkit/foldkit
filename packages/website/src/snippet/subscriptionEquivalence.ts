@@ -36,7 +36,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const AutoScrollDuringDragLive = subscriptions.autoScroll.toLayer(
+export const AutoScrollDuringDragLayer = subscriptions.autoScroll.toLayer(
   ({ isDragging }, readDependencies) =>
     Stream.when(
       Stream.callback<typeof Message.AdvancedAutoScrollFrame.Type>(queue =>

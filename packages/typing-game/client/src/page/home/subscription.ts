@@ -18,7 +18,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-const HomeKeyPressesLive = subscriptions.homeKeyboard.toLayer(
+const HomeKeyPressesLayer = subscriptions.homeKeyboard.toLayer(
   ({ shouldCaptureKeyboard }) =>
     Stream.when(
       capturedKeyDownStream(key => Message.PressedKey({ key })),
@@ -26,4 +26,4 @@ const HomeKeyPressesLive = subscriptions.homeKeyboard.toLayer(
     ),
 )
 
-export const SubscriptionsLive = HomeKeyPressesLive
+export const SubscriptionsLayer = HomeKeyPressesLayer

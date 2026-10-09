@@ -50,7 +50,7 @@ const managedResources = ManagedResource.make<Model, Message>()(entry => ({
   }),
 }))
 
-const ManageEngineLive = managedResources.engine.toLayer({
+const ManageEngineLayer = managedResources.engine.toLayer({
   acquire: () =>
     Layer.build(engineLayer).pipe(
       Effect.map(context => Context.get(context, ChessEngineService)),

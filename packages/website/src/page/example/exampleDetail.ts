@@ -49,7 +49,7 @@ export const LoadExampleSources = Command.define('LoadExampleSources', {
   ],
 })
 
-const LoadExampleSourcesLive = LoadExampleSources.toLayer(({ slug }) =>
+const LoadExampleSourcesLayer = LoadExampleSources.toLayer(({ slug }) =>
   Effect.tryPromise({
     try: () => loadSourcesForSlug(slug),
     catch: error =>
@@ -117,15 +117,15 @@ const ObserveExampleUrlMessages = Mount.defineStream(
   },
 )
 
-const ObserveExampleUrlMessagesLive = ObserveExampleUrlMessages.toLayer(
+const ObserveExampleUrlMessagesLayer = ObserveExampleUrlMessages.toLayer(
   ({ element }) => observeExampleUrlMessages(element),
 )
 
 export const mounts = [ObserveExampleUrlMessages]
 
-export const Live = Layer.mergeAll(
-  LoadExampleSourcesLive,
-  ObserveExampleUrlMessagesLive,
+export const layer = Layer.mergeAll(
+  LoadExampleSourcesLayer,
+  ObserveExampleUrlMessagesLayer,
 )
 
 // INIT

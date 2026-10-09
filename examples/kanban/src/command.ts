@@ -21,34 +21,40 @@ export const FocusAddCardInput = Command.define('FocusAddCardInput', {
   messages: [Message.CompletedFocusAddCardInput],
 })
 
-const GenerateCardIdLive = GenerateCardId.toLayer(({ columnId, title }) =>
+const GenerateCardIdLayer = GenerateCardId.toLayer(
   Effect.gen(function* () {
     const crypto = yield* Crypto.Crypto
-    const cardId = yield* Effect.orDie(crypto.randomUUIDv4)
-    return Message.CompletedGenerateCardId({ cardId, columnId, title })
+    return ({ columnId, title }) =>
+      Effect.gen(function* () {
+        const cardId = yield* Effect.orDie(crypto.randomUUIDv4)
+        return Message.CompletedGenerateCardId({ cardId, columnId, title })
+      })
   }),
 )
 
-const SaveBoardLive = SaveBoard.toLayer(({ columns }) =>
+const SaveBoardLayer = SaveBoard.toLayer(
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
-    const encodedBoard = yield* Schema.encodeEffect(SavedBoardJsonString)({
-      columns,
-    })
-    yield* store.set(STORAGE_KEY, encodedBoard)
-    return Message.CompletedSaveBoard()
-  }).pipe(Effect.catch(() => Effect.succeed(Message.CompletedSaveBoard()))),
+    return ({ columns }) =>
+      Effect.gen(function* () {
+        const encodedBoard = yield* Schema.encodeEffect(SavedBoardJsonString)({
+          columns,
+        })
+        yield* store.set(STORAGE_KEY, encodedBoard)
+        return Message.CompletedSaveBoard()
+      }).pipe(Effect.catch(() => Effect.succeed(Message.CompletedSaveBoard())))
+  }),
 )
 
-const FocusAddCardInputLive = FocusAddCardInput.toLayer(() =>
+const FocusAddCardInputLayer = FocusAddCardInput.toLayer(() =>
   Dom.focus(`#${ADD_CARD_INPUT_ID}`).pipe(
     Effect.ignore,
     Effect.as(Message.CompletedFocusAddCardInput()),
   ),
 )
 
-export const CommandsLive = Layer.mergeAll(
-  GenerateCardIdLive,
-  SaveBoardLive,
-  FocusAddCardInputLive,
+export const CommandsLayer = Layer.mergeAll(
+  GenerateCardIdLayer,
+  SaveBoardLayer,
+  FocusAddCardInputLayer,
 )

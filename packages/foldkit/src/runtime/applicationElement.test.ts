@@ -70,7 +70,7 @@ describe('Application.makeElement', () => {
     let handlerBuildCount = 0
     let handlerReleaseCount = 0
 
-    const DatabaseLive = Layer.effect(
+    const DatabaseLayer = Layer.effect(
       Database,
       Effect.acquireRelease(
         Effect.sync((): DatabaseShape => {
@@ -83,7 +83,7 @@ describe('Application.makeElement', () => {
           }),
       ),
     )
-    const SendLive = Send.toLayer(
+    const SendLayer = Send.toLayer(
       Effect.acquireRelease(
         Effect.gen(function* () {
           const database = yield* Database
@@ -114,8 +114,8 @@ describe('Application.makeElement', () => {
       ports,
       container,
     })
-    const withHandler = Application.provide(element, SendLive)
-    const provided = Application.provide(withHandler, DatabaseLive)
+    const withHandler = Application.provide(element, SendLayer)
+    const provided = Application.provide(withHandler, DatabaseLayer)
     const handle = embed(provided)
 
     try {

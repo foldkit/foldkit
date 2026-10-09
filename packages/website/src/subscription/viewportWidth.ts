@@ -10,7 +10,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   }),
 }))
 
-export const ViewportWidthChangesLive = subscriptions.viewportWidth.toLayer(
+export const ViewportWidthChangesLayer = subscriptions.viewportWidth.toLayer(
   () =>
     Dom.streamFromMediaQuery({
       query: NARROW_VIEWPORT_QUERY,
@@ -18,4 +18,4 @@ export const ViewportWidthChangesLive = subscriptions.viewportWidth.toLayer(
     }),
 )
 
-export { ViewportWidthChangesLive as Live }
+export { ViewportWidthChangesLayer as layer }

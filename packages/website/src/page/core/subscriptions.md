@@ -69,7 +69,7 @@ The declared Message Schemas constrain the Stream returned from `toLayer` and de
 
 The inline form takes the dependency fields and an object with both `modelToDependencies` and `dependenciesToStream`. Each Layer-backed entry, such as `subscriptions.tick`, is an individual definition with `toLayer(handler)` and `toLayer(Effect<handler>)`. Its record key identifies the running Subscription, while its handler name identifies the Layer requirement. `Application.provide` supplies that Layer; `Subscription.lift` and `Subscription.aggregate` preserve the handler identity and Model-driven restart behavior.
 
-An Effect passed to `toLayer` constructs the Stream factory once when the application Layer is built. It may acquire a service and return a `dependencies => Stream` function. A dependency change restarts the Stream scope, but it does not reconstruct the handler or its provider. Scoped resources owned by the application Layer release when the runtime stops.
+Calling `toLayer` creates a Layer recipe. When it receives an Effect, the Runtime runs that constructor once while building the application Layer and obtains a `dependencies => Stream` handler. The constructor may capture a stable injected service or accessor. It must not capture the current dependency record; Foldkit passes that record when starting each Stream. A dependency change restarts the Stream scope without reconstructing the handler or its provider. Scoped resources owned by the application Layer release when the runtime stops.
 
 In a whole-application execution test, retain that real Stream factory and replace its upstream capabilities. A fake clock, event source, RPC transport, or browser service can make emissions deterministic while the real Subscription still transforms them and Foldkit still applies its Model-driven start, restart, and stop behavior. An inline `dependenciesToStream` can require the same test services directly.
 
@@ -85,11 +85,11 @@ The [websocket-chat example](/example-apps/websocket-chat) shows a more involved
 
 ### Naming a Subscription
 
-A Subscription definition describes a scoped Stream. Its record key identifies the registration that Foldkit starts and stops; its handler name identifies the Stream or scoped behavior a Layer supplies. In the counter example, `tick` is the record key, `AutoCountTicks` is the handler name, and `AutoCountTicksLive` is one implementation Layer. A feature can export a composed `Live` Layer containing several such handlers.
+A Subscription definition describes a scoped Stream. Its record key identifies the registration that Foldkit starts and stops; its handler name identifies the Stream or scoped behavior a Layer supplies. In the counter example, `tick` is the record key, `AutoCountTicks` is the handler name, and `AutoCountTicksLayer` is one implementation Layer. A feature can export a composed lowercase `layer` containing several such handlers.
 
 Name the events or scoped behavior the definition supplies, such as `KeyboardPresses`, `SystemThemeChanges`, `GameClockTicks`, or `DragSelectionStyles`. `KeyboardPresses` identifies the events produced from keyboard input; `GameClockTicks` identifies the events produced by a timer. The Model dependencies determine when the Stream is active and when its scope restarts; they do not need to appear in the handler name.
 
-Unlike a Command, a Subscription may emit many Messages or maintain scoped work without emitting any. Its handler name does not need to mirror a single result Message or follow the Command imperative naming convention. Name an individual Layer from its handler identity, such as `AutoCountTicksLive`; reserve a bare `Live` for a feature-level composition or re-export.
+Unlike a Command, a Subscription may emit many Messages or maintain scoped work without emitting any. Its handler name does not need to mirror a single result Message or follow the Command imperative naming convention. Name an individual Layer from its handler identity, such as `AutoCountTicksLayer`; use lowercase `layer` for a feature-level composition or re-export.
 
 ## Animation Frames
 

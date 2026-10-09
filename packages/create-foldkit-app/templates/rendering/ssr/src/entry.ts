@@ -4,7 +4,7 @@ import {
   Flags,
   Message,
   Model,
-  PersistCountLive,
+  PersistCountLayer,
   init,
   update,
   view,
@@ -23,4 +23,4 @@ const application = Application.make({
   },
 })
 
-Runtime.hydrate(Application.provide(application, PersistCountLive))
+Runtime.hydrate(Application.provide(application, PersistCountLayer))

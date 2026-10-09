@@ -85,7 +85,7 @@ export const SimulateAuthRequest = Command.define('SimulateAuthRequest', {
   ],
 })
 
-export const SimulateAuthRequestLive = SimulateAuthRequest.toLayer(
+export const SimulateAuthRequestLayer = SimulateAuthRequest.toLayer(
   ({ email, password }) =>
     Effect.gen(function* () {
       yield* Effect.sleep(Duration.seconds(1))

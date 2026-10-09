@@ -2,7 +2,7 @@
 'foldkit': minor
 ---
 
-Allow Command definitions to omit `execute` and supply their implementation with `Definition.toLayer(handler)` or `Definition.toLayer(Effect<handler>)`. Layer-backed Commands carry a named handler service requirement. The handler Layer captures its construction context, while services present when the Command runs take precedence.
+Allow Command definitions to omit `execute` and supply their implementation with `Definition.toLayer(handler)` or `Definition.toLayer(Effect<handler>)`. Layer-backed Commands carry a named handler service requirement. The handler Layer captures its construction context. Contextual service lookups during execution prefer invocation services; values captured by an Effect constructor retain their identity.
 
 Named Subscription entries can supply their Stream factory with `entry.toLayer(handler)` or an Effect-built handler. Named ManagedResource entries can supply their acquire and release functions with `entry.toLayer({ acquire, release })` or an Effect-built handler. Both keep their Model-driven lifecycles and existing registration keys.
 
@@ -15,3 +15,5 @@ Each handler name belongs to one definition within an application. `Application.
 Layer-backed Mount definitions use `toLayer` for one-shot Effects and Streams. Register each definition in `Application.make({ mounts: [...] })` so its handler requirement enters the application type. Foldkit validates rendered Mount identities before patching, carries application Layers into Mount execution, and finishes Mount cleanup before releasing those Layers.
 
 Keep real handler Layers reusable across environments by selecting HTTP, storage, RPC, and other external service providers at application assembly. Use `Layer.provideMerge` when Flags or other runtime effects also need the supplied services. Effectful handler constructors run during application Layer construction; Commands and Subscription restarts reuse those services until runtime shutdown. Tests can supply alternative dependencies while executing the same handler logic. Inline Commands, Subscriptions, and ManagedResources can also require services directly. A Mount that needs application services uses a registered handler Layer.
+
+Name individual handler and provider Layers `FooLayer`, and compose feature handlers under a lowercase `layer` export in `layer.ts`. An Effect constructor can capture stable service dependencies during application Layer construction and return the handler that performs each operation. Provide controlled service Layers beneath the same handler Layers to execute application logic in tests.

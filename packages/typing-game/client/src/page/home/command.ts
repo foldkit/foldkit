@@ -10,16 +10,20 @@ export const CreateRoom = Command.define('CreateRoom', {
   messages: [Message.SucceededCreateRoom, Message.FailedCreateRoom],
 })
 
-const CreateRoomLive = CreateRoom.toLayer(({ username }) =>
+const CreateRoomLayer = CreateRoom.toLayer(
   Effect.gen(function* () {
     const client = yield* RoomsClient
-    const { player, room } = yield* client.createRoom({ username })
-    return Message.SucceededCreateRoom({ roomId: room.id, player })
-  }).pipe(
-    Effect.catch(error =>
-      Effect.succeed(Message.FailedCreateRoom({ error: String(error) })),
-    ),
-  ),
+
+    return ({ username }) =>
+      client.createRoom({ username }).pipe(
+        Effect.map(({ player, room }) =>
+          Message.SucceededCreateRoom({ roomId: room.id, player }),
+        ),
+        Effect.catch(error =>
+          Effect.succeed(Message.FailedCreateRoom({ error: String(error) })),
+        ),
+      )
+  }),
 )
 
 export const JoinRoomFromHome = Command.define('JoinRoomFromHome', {
@@ -27,23 +31,29 @@ export const JoinRoomFromHome = Command.define('JoinRoomFromHome', {
   messages: [Message.SucceededJoinRoomFromHome, Message.FailedJoinRoomFromHome],
 })
 
-const JoinRoomFromHomeLive = JoinRoomFromHome.toLayer(({ username, roomId }) =>
+const JoinRoomFromHomeLayer = JoinRoomFromHome.toLayer(
   Effect.gen(function* () {
     const client = yield* RoomsClient
-    const { player, room } = yield* client.joinRoom({ username, roomId })
-    return Message.SucceededJoinRoomFromHome({ roomId: room.id, player })
-  }).pipe(
-    Effect.catch(error =>
-      Effect.succeed(Message.FailedJoinRoomFromHome({ error: String(error) })),
-    ),
-  ),
+
+    return ({ username, roomId }) =>
+      client.joinRoom({ username, roomId }).pipe(
+        Effect.map(({ player, room }) =>
+          Message.SucceededJoinRoomFromHome({ roomId: room.id, player }),
+        ),
+        Effect.catch(error =>
+          Effect.succeed(
+            Message.FailedJoinRoomFromHome({ error: String(error) }),
+          ),
+        ),
+      )
+  }),
 )
 
 export const FocusUsernameInput = Command.define('FocusUsernameInput', {
   messages: [Message.CompletedFocusUsernameInput],
 })
 
-const FocusUsernameInputLive = FocusUsernameInput.toLayer(() =>
+const FocusUsernameInputLayer = FocusUsernameInput.toLayer(() =>
   Dom.focus(`#${USERNAME_INPUT_ID}`).pipe(
     Effect.ignore,
     Effect.as(Message.CompletedFocusUsernameInput()),
@@ -54,16 +64,16 @@ export const FocusRoomIdInput = Command.define('FocusRoomIdInput', {
   messages: [Message.CompletedFocusRoomIdInput],
 })
 
-const FocusRoomIdInputLive = FocusRoomIdInput.toLayer(() =>
+const FocusRoomIdInputLayer = FocusRoomIdInput.toLayer(() =>
   Dom.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
     Effect.ignore,
     Effect.as(Message.CompletedFocusRoomIdInput()),
   ),
 )
 
-export const CommandsLive = Layer.mergeAll(
-  CreateRoomLive,
-  JoinRoomFromHomeLive,
-  FocusUsernameInputLive,
-  FocusRoomIdInputLive,
+export const CommandsLayer = Layer.mergeAll(
+  CreateRoomLayer,
+  JoinRoomFromHomeLayer,
+  FocusUsernameInputLayer,
+  FocusRoomIdInputLayer,
 )

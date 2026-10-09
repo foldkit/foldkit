@@ -5,7 +5,7 @@ import { modifyFields } from 'foldkit/struct'
 import { Slider } from '@foldkit/ui'
 
 import {
-  CommandsLive,
+  CommandsLayer,
   GenerateAmbientParticle,
   GenerateBurstParticle,
 } from './command'
@@ -39,7 +39,7 @@ import { Message } from './message'
 import { Model, Particle, Point } from './model'
 import { fractalNoise } from './noise'
 
-type CommandServices = Layer.Success<typeof CommandsLive>
+type CommandServices = Layer.Success<typeof CommandsLayer>
 type UpdateReturn = Update.Return<Model, Message, CommandServices>
 
 const computeFieldAngle = (

@@ -83,7 +83,7 @@ export const Compute = Command.define('Compute', {
   messages: [Message.SucceededCompute, Message.FailedCompute],
 })
 
-export const ComputeLive = Compute.toLayer(({ value }) =>
+export const ComputeLayer = Compute.toLayer(({ value }) =>
   Effect.gen(function* () {
     const engine = yield* Engine.get
     return Message.SucceededCompute({ result: engine.square(value) })
@@ -168,7 +168,7 @@ export const managedResources = ManagedResource.make<Model, Message>()(
   }),
 )
 
-export const ManageEngineLive = managedResources.engine.toLayer({
+export const ManageEngineLayer = managedResources.engine.toLayer({
   acquire: () =>
     Layer.build(engineLayer).pipe(
       Effect.map(context => Context.get(context, ComputeEngineService)),
@@ -176,7 +176,7 @@ export const ManageEngineLive = managedResources.engine.toLayer({
   release: () => Effect.void,
 })
 
-export const Live = Layer.mergeAll(ComputeLive, ManageEngineLive)
+export const layer = Layer.mergeAll(ComputeLayer, ManageEngineLayer)
 
 // VIEW
 

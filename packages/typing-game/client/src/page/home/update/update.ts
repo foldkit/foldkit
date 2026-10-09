@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { optionWhen } from '../../../optionWhen'
 import {
-  CommandsLive,
+  CommandsLayer,
   FocusRoomIdInput,
   FocusUsernameInput,
   JoinRoomFromHome,
@@ -17,9 +17,9 @@ export type UpdateReturn = Update.ReturnWithOutMessage<
   Model,
   Message,
   OutMessage,
-  Layer.Success<typeof CommandsLive>
+  Layer.Success<typeof CommandsLayer>
 >
-export type UpdateRequirements = Layer.Success<typeof CommandsLive>
+export type UpdateRequirements = Layer.Success<typeof CommandsLayer>
 const withUpdateReturn = Match.withReturnType<UpdateReturn>()
 
 export const update = (model: Model, message: Message) =>

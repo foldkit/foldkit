@@ -76,4 +76,4 @@ export const init = (flags: Flags, url: Url): InitReturn => {
   })
 }
 
-export { Live } from './update'
+export { layer } from './update'

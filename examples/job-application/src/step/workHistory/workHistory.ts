@@ -48,17 +48,20 @@ export const GenerateWorkHistoryEntryId = Command.define(
   },
 )
 
-export const GenerateWorkHistoryEntryIdLive =
-  GenerateWorkHistoryEntryId.toLayer(() =>
+export const GenerateWorkHistoryEntryIdLayer =
+  GenerateWorkHistoryEntryId.toLayer(
     Effect.gen(function* () {
       const crypto = yield* Crypto.Crypto
-      const entryId = yield* crypto.randomUUIDv4
-      return Message.SucceededGenerateWorkHistoryEntryId({ entryId })
-    }).pipe(
-      Effect.catch(() =>
-        Effect.succeed(Message.FailedGenerateWorkHistoryEntryId()),
-      ),
-    ),
+      return () =>
+        crypto.randomUUIDv4.pipe(
+          Effect.map(entryId =>
+            Message.SucceededGenerateWorkHistoryEntryId({ entryId }),
+          ),
+          Effect.catch(() =>
+            Effect.succeed(Message.FailedGenerateWorkHistoryEntryId()),
+          ),
+        )
+    }),
   )
 
 // UPDATE

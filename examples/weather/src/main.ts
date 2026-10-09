@@ -122,15 +122,13 @@ const weatherCodeToDescription = (code: number): string =>
     Match.orElse(() => 'Unknown'),
   )
 
-export const fetchWeather = (zipCode: string) =>
+const fetchWeather = (zipCode: string, client: HttpClient.HttpClient) =>
   Effect.gen(function* () {
     if (String.isEmpty(zipCode.trim())) {
       return yield* Effect.fail(
         Message.FailedFetchWeather({ error: 'Zip code required' }),
       )
     }
-
-    const client = yield* HttpClient.HttpClient
 
     const geocodeRequest = HttpClientRequest.get(GEOCODING_API).pipe(
       HttpClientRequest.setUrlParams({
@@ -210,11 +208,15 @@ export const FetchWeather = Command.define('FetchWeather', {
   messages: [Message.SucceededFetchWeather, Message.FailedFetchWeather],
 })
 
-const FetchWeatherLive = FetchWeather.toLayer(({ zipCode }) =>
-  fetchWeather(zipCode),
+const FetchWeatherLayer = FetchWeather.toLayer(
+  Effect.gen(function* () {
+    const client = yield* HttpClient.HttpClient
+
+    return ({ zipCode }) => fetchWeather(zipCode, client)
+  }),
 )
 
-export const Live = FetchWeatherLive
+export const layer = FetchWeatherLayer
 
 // VIEW
 

@@ -163,7 +163,7 @@ export const managedResources = ManagedResource.make<Model, Message>()(
   }),
 )
 
-const ManageWebContainerPlaygroundLive =
+const ManageWebContainerPlaygroundLayer =
   managedResources.webContainerPlayground.toLayer({
     acquire: ({ slug }) =>
       Effect.gen(function* () {
@@ -445,7 +445,7 @@ export const MountPlaygroundEditor = Mount.defineStream(
   },
 )
 
-export const MountPlaygroundEditorLive = MountPlaygroundEditor.toLayer(
+export const MountPlaygroundEditorLayer = MountPlaygroundEditor.toLayer(
   ({ element, path, initialContent, files, viewStateChanges }) =>
     streamPlaygroundEditorMessages(
       element,
@@ -474,7 +474,7 @@ export const WaitForPlaygroundServerFailure = Command.define(
   },
 )
 
-const WaitForPlaygroundServerFailureLive =
+const WaitForPlaygroundServerFailureLayer =
   WaitForPlaygroundServerFailure.toLayer(() =>
     Effect.gen(function* () {
       const { serverFailure } = yield* WebContainerPlayground.get
@@ -501,7 +501,7 @@ export const SchedulePlaygroundFileWrite = Command.define(
   },
 )
 
-const SchedulePlaygroundFileWriteLive = SchedulePlaygroundFileWrite.toLayer(
+const SchedulePlaygroundFileWriteLayer = SchedulePlaygroundFileWrite.toLayer(
   ({ path, content }) =>
     Effect.gen(function* () {
       const { container, pendingWrites } = yield* WebContainerPlayground.get
@@ -543,11 +543,11 @@ const SchedulePlaygroundFileWriteLive = SchedulePlaygroundFileWrite.toLayer(
 
 export const mounts = [MountPlaygroundEditor]
 
-export const Live = Layer.mergeAll(
-  ManageWebContainerPlaygroundLive,
-  MountPlaygroundEditorLive,
-  WaitForPlaygroundServerFailureLive,
-  SchedulePlaygroundFileWriteLive,
+export const layer = Layer.mergeAll(
+  ManageWebContainerPlaygroundLayer,
+  MountPlaygroundEditorLayer,
+  WaitForPlaygroundServerFailureLayer,
+  SchedulePlaygroundFileWriteLayer,
 )
 
 // UPDATE

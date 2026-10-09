@@ -95,7 +95,7 @@ export const ValidateEmail = Command.define('ValidateEmail', {
   messages: [Message.CompletedValidateEmail],
 })
 
-const ValidateEmailLive = ValidateEmail.toLayer(({ email }) =>
+const ValidateEmailLayer = ValidateEmail.toLayer(({ email }) =>
   Effect.gen(function* () {
     if (yield* isEmailOnWaitlist(email)) {
       return Message.CompletedValidateEmail({
@@ -223,20 +223,24 @@ export const SubmitForm = Command.define('SubmitForm', {
   messages: [Message.SucceededSubmitForm, Message.FailedSubmitForm],
 })
 
-const SubmitFormLive = SubmitForm.toLayer(({ name }) =>
+const SubmitFormLayer = SubmitForm.toLayer(
   Effect.gen(function* () {
-    yield* Effect.sleep(`${FAKE_API_DELAY_MS} millis`)
+    const random = yield* Random.Random
+    return ({ name }) =>
+      Effect.gen(function* () {
+        yield* Effect.sleep(`${FAKE_API_DELAY_MS} millis`)
 
-    const isSuccess = yield* Random.nextBoolean
-    if (isSuccess) {
-      return Message.SucceededSubmitForm({ name })
-    } else {
-      return Message.FailedSubmitForm()
-    }
+        const isSuccess = yield* Random.nextBoolean
+        if (isSuccess) {
+          return Message.SucceededSubmitForm({ name })
+        } else {
+          return Message.FailedSubmitForm()
+        }
+      }).pipe(Effect.provideService(Random.Random, random))
   }),
 )
 
-export const Live = Layer.mergeAll(ValidateEmailLive, SubmitFormLive)
+export const layer = Layer.mergeAll(ValidateEmailLayer, SubmitFormLayer)
 
 // VIEW
 

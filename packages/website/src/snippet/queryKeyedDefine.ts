@@ -5,4 +5,4 @@ const postQuery = Query.define({
   args: { postId: Schema.String },
 })
 
-const FetchPostLive = postQuery.toLayer(({ postId }) => fetchPost(postId))
+const FetchPostLayer = postQuery.toLayer(({ postId }) => fetchPost(postId))

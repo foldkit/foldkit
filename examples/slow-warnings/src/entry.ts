@@ -1,11 +1,11 @@
 import { Application, Runtime } from 'foldkit'
 
 import {
-  Live,
   Message,
   Model,
   handleSlow,
   init,
+  layer,
   subscriptions,
   update,
   view,
@@ -27,4 +27,4 @@ const application = Application.make({
   },
 })
 
-Runtime.run(Application.provide(application, Live))
+Runtime.run(Application.provide(application, layer))

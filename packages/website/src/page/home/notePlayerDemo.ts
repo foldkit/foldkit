@@ -191,7 +191,7 @@ const DelayAdvanceNotePlayerPhase = Command.define(
   },
 )
 
-const DelayAdvanceNotePlayerPhaseLive = DelayAdvanceNotePlayerPhase.toLayer(
+const DelayAdvanceNotePlayerPhaseLayer = DelayAdvanceNotePlayerPhase.toLayer(
   ({ generation }) =>
     Effect.sleep(PHASE_DURATION).pipe(
       Effect.as(Message.CompletedDelayAdvanceNotePlayerPhase({ generation })),
@@ -479,7 +479,7 @@ export const managedResources = ManagedResource.make<Model, Message>()(
   }),
 )
 
-const ManageAudioContextLive = managedResources.audioContext.toLayer({
+const ManageAudioContextLayer = managedResources.audioContext.toLayer({
   acquire: () =>
     Effect.try({
       try: () => new AudioContext(),
@@ -497,7 +497,7 @@ const PlayNote = Command.define('PlayNote', {
   messages: [Message.CompletedPlayNote],
 })
 
-const PlayNoteLive = PlayNote.toLayer(({ note, duration, noteIndex }) =>
+const PlayNoteLayer = PlayNote.toLayer(({ note, duration, noteIndex }) =>
   Effect.gen(function* () {
     const audioContext = yield* AudioContextResource.get
     yield* Effect.promise(() => audioContext.resume().catch(() => undefined))
@@ -550,10 +550,10 @@ const PlayNoteLive = PlayNote.toLayer(({ note, duration, noteIndex }) =>
   ),
 )
 
-export const Live = Layer.mergeAll(
-  DelayAdvanceNotePlayerPhaseLive,
-  PlayNoteLive,
-  ManageAudioContextLive,
+export const layer = Layer.mergeAll(
+  DelayAdvanceNotePlayerPhaseLayer,
+  PlayNoteLayer,
+  ManageAudioContextLayer,
 )
 
 // VIEW

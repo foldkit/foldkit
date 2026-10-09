@@ -13,12 +13,12 @@ export class SessionStorage extends Context.Service<
   KeyValueStore.KeyValueStore
 >()('WebsiteSessionStorage') {}
 
-export const LocalStorageLive = Layer.effect(
+export const LocalStorageLayer = Layer.effect(
   LocalStorage,
   Effect.service(KeyValueStore.KeyValueStore),
 ).pipe(Layer.provide(BrowserKeyValueStore.layerLocalStorage))
 
-export const SessionStorageLive = Layer.effect(
+export const SessionStorageLayer = Layer.effect(
   SessionStorage,
   Effect.service(KeyValueStore.KeyValueStore),
 ).pipe(Layer.provide(BrowserKeyValueStore.layerSessionStorage))

@@ -3,7 +3,7 @@ import { Calendar } from 'foldkit'
 
 import { Menu, Tabs } from '@foldkit/ui'
 
-import { SubmitApplicationLive } from './command'
+import { SubmitApplicationLayer } from './command'
 import { Message } from './message'
 import { Model, Submission } from './model'
 import {
@@ -68,12 +68,12 @@ export const init = ({
   }),
 })
 
-export const Live = Layer.mergeAll(
-  SubmitApplicationLive,
-  PersonalInfo.Live,
-  WorkHistory.Live,
-  Education.Live,
-  Skills.Live,
+export const layer = Layer.mergeAll(
+  SubmitApplicationLayer,
+  PersonalInfo.layer,
+  WorkHistory.layer,
+  Education.layer,
+  Skills.layer,
 )
 
 export { Message, Model, update, view }

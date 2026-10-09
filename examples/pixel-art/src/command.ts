@@ -19,22 +19,24 @@ export const SaveCanvas = Command.define('SaveCanvas', {
   messages: [Message.CompletedSaveCanvas],
 })
 
-const SaveCanvasLive = SaveCanvas.toLayer(
-  ({ grid, gridSize, paletteThemeIndex, selectedColorIndex }) =>
-    Effect.gen(function* () {
-      const store = yield* KeyValueStore.KeyValueStore
-      const data: SavedCanvas = {
-        grid,
-        gridSize,
-        paletteThemeIndex,
-        selectedColorIndex,
-      }
-      const encodedCanvas = yield* Schema.encodeEffect(SavedCanvasJsonString)(
-        data,
-      )
-      yield* store.set(STORAGE_KEY, encodedCanvas)
-      return Message.CompletedSaveCanvas()
-    }).pipe(Effect.catch(() => Effect.succeed(Message.CompletedSaveCanvas()))),
+const SaveCanvasLayer = SaveCanvas.toLayer(
+  Effect.gen(function* () {
+    const store = yield* KeyValueStore.KeyValueStore
+    return ({ grid, gridSize, paletteThemeIndex, selectedColorIndex }) =>
+      Effect.gen(function* () {
+        const data: SavedCanvas = {
+          grid,
+          gridSize,
+          paletteThemeIndex,
+          selectedColorIndex,
+        }
+        const encodedCanvas = yield* Schema.encodeEffect(SavedCanvasJsonString)(
+          data,
+        )
+        yield* store.set(STORAGE_KEY, encodedCanvas)
+        return Message.CompletedSaveCanvas()
+      }).pipe(Effect.catch(() => Effect.succeed(Message.CompletedSaveCanvas())))
+  }),
 )
 
 export const saveCanvas = (model: Model) =>
@@ -54,7 +56,7 @@ export const ExportPng = Command.define('ExportPng', {
   messages: [Message.SucceededExportPng, Message.FailedExportPng],
 })
 
-const ExportPngLive = ExportPng.toLayer(
+const ExportPngLayer = ExportPng.toLayer(
   ({ grid, gridSize, paletteThemeIndex }) =>
     Effect.gen(function* () {
       const theme = PALETTE_THEMES[paletteThemeIndex] ?? PALETTE_THEMES[0]
@@ -87,4 +89,4 @@ const ExportPngLive = ExportPng.toLayer(
     }).pipe(Effect.catchTag('FailedExportPng', error => Effect.succeed(error))),
 )
 
-export const CommandsLive = Layer.mergeAll(SaveCanvasLive, ExportPngLive)
+export const CommandsLayer = Layer.mergeAll(SaveCanvasLayer, ExportPngLayer)

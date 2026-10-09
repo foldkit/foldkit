@@ -209,7 +209,7 @@ const suspendExecute = (
  *   args: { text: Schema.String },
  *   messages: [Message.CompletedSendMessage],
  * })
- * const SendMessageLive = SendMessage.toLayer(({ text }) =>
+ * const SendMessageLayer = SendMessage.toLayer(({ text }) =>
  *   Effect.log(text).pipe(Effect.as(Message.CompletedSendMessage())),
  * )
  * ```

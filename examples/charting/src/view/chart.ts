@@ -123,7 +123,7 @@ export const MountChart = Mount.defineStream('MountChart', {
   ],
 })
 
-export const MountChartLive = MountChart.toLayer(({ element, hostId }) =>
+export const MountChartLayer = MountChart.toLayer(({ element, hostId }) =>
   mountChart(element, hostId),
 )
 

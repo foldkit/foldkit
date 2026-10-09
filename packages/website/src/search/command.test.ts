@@ -1,7 +1,7 @@
 import { Array, Effect, Layer } from 'effect'
 import { describe, expect, it } from 'vitest'
 
-import { Live } from './live'
+import { layer } from './layer'
 import { Message } from './message'
 import { PagefindService } from './pagefind'
 import { FetchSearchResults } from './update'
@@ -10,7 +10,7 @@ describe('Search Command services', () => {
   it('loads and normalizes results from the supplied search service', async () => {
     const queries: Array<string> = []
     const loadedResults: Array<number> = []
-    const PagefindTest = Layer.succeed(PagefindService, {
+    const PagefindTestLayer = Layer.succeed(PagefindService, {
       search: async query => {
         queries.push(query)
         return {
@@ -29,7 +29,7 @@ describe('Search Command services', () => {
 
     const message = await Effect.runPromise(
       FetchSearchResults({ query: 'Commands' }).effect.pipe(
-        Effect.provide(Layer.provide(Live, PagefindTest)),
+        Effect.provide(Layer.provide(layer, PagefindTestLayer)),
       ),
     )
 
@@ -50,7 +50,7 @@ describe('Search Command services', () => {
   })
 
   it('converts a supplied search service failure into an empty result', async () => {
-    const PagefindTest = Layer.succeed(PagefindService, {
+    const PagefindTestLayer = Layer.succeed(PagefindService, {
       search: async () => {
         throw new Error('Search unavailable')
       },
@@ -58,7 +58,7 @@ describe('Search Command services', () => {
 
     const message = await Effect.runPromise(
       FetchSearchResults({ query: 'Commands' }).effect.pipe(
-        Effect.provide(Layer.provide(Live, PagefindTest)),
+        Effect.provide(Layer.provide(layer, PagefindTestLayer)),
       ),
     )
 

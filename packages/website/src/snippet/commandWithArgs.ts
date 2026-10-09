@@ -18,21 +18,25 @@ const FetchWeather = Command.define('FetchWeather', {
 })
 
 // The handler receives a typed args record.
-const FetchWeatherLive = FetchWeather.toLayer(({ zipCode }) =>
+const FetchWeatherLayer = FetchWeather.toLayer(
   Effect.gen(function* () {
     const client = yield* HttpClient.HttpClient
-    const response = yield* client.execute(
-      HttpClientRequest.get(`/api/weather?zip=${zipCode}`),
-    )
-    const weather = yield* Schema.decodeUnknownEffect(WeatherSchema)(
-      yield* response.json,
-    )
-    return Message.SucceededFetchWeather({ weather })
-  }).pipe(
-    Effect.catch(error =>
-      Effect.succeed(Message.FailedFetchWeather({ error: String(error) })),
-    ),
-  ),
+
+    return ({ zipCode }) =>
+      Effect.gen(function* () {
+        const response = yield* client.execute(
+          HttpClientRequest.get(`/api/weather?zip=${zipCode}`),
+        )
+        const weather = yield* Schema.decodeUnknownEffect(WeatherSchema)(
+          yield* response.json,
+        )
+        return Message.SucceededFetchWeather({ weather })
+      }).pipe(
+        Effect.catch(error =>
+          Effect.succeed(Message.FailedFetchWeather({ error: String(error) })),
+        ),
+      )
+  }),
 )
 
 const update = Update.make((model: Model, message: Message) =>

@@ -72,19 +72,19 @@ const LoadExternal = Command.define('LoadExternal', {
   messages: [Message.CompletedLoadExternal],
 })
 
-export const Live = Layer.mergeAll(
+export const layer = Layer.mergeAll(
   NavigateInternal.toLayer(({ url }) =>
     pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
   ),
   LoadExternal.toLayer(({ href }) =>
     load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
   ),
-  Products.Live,
+  Products.layer,
 )
 
 // UPDATE
 
-type UpdateRequirements = Layer.Success<typeof Live>
+type UpdateRequirements = Layer.Success<typeof layer>
 type UpdateReturn = Update.Return<Model, Message, UpdateRequirements>
 
 const foldProductsOutMessage = Products.OutMessage.match<

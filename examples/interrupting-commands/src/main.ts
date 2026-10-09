@@ -99,7 +99,7 @@ export const UploadFile = Command.define('UploadFile', {
   },
 })
 
-export const UploadFileLive = UploadFile.toLayer(
+export const UploadFileLayer = UploadFile.toLayer(
   ({ uploadId, sizeMegabytes }) =>
     Effect.gen(function* () {
       yield* Effect.sleep(

@@ -23,40 +23,43 @@ export const FetchSearchResults = Command.define('FetchSearchResults', {
   messages: [Message.CompletedFetchSearchResults],
 })
 
-export const FetchSearchResultsLive = FetchSearchResults.toLayer(({ query }) =>
+export const FetchSearchResultsLayer = FetchSearchResults.toLayer(
   Effect.gen(function* () {
     const pagefind = yield* PagefindService
 
-    const searchResponse = yield* Effect.tryPromise({
-      try: () => pagefind.search(query),
-      catch: () => new Error('Pagefind search failed'),
-    })
+    return ({ query }) =>
+      Effect.gen(function* () {
+        const searchResponse = yield* Effect.tryPromise({
+          try: () => pagefind.search(query),
+          catch: () => new Error('Pagefind search failed'),
+        })
 
-    const topResults = Array.take(searchResponse.results, MAX_RESULTS)
+        const topResults = Array.take(searchResponse.results, MAX_RESULTS)
 
-    const loadedResults = yield* Effect.tryPromise({
-      try: () => Promise.all(topResults.map(result => result.data())),
-      catch: () => new Error('Failed to load result data'),
-    })
+        const loadedResults = yield* Effect.tryPromise({
+          try: () => Promise.all(topResults.map(result => result.data())),
+          catch: () => new Error('Failed to load result data'),
+        })
 
-    const results = Array.map(loadedResults, data =>
-      SearchResult.make({
-        url: data.url,
-        title: data.meta?.title ?? 'Untitled',
-        excerpt: data.excerpt,
-        section: data.meta?.section ?? '',
-        kind: data.meta?.kind ?? '',
-      }),
-    )
+        const results = Array.map(loadedResults, data =>
+          SearchResult.make({
+            url: data.url,
+            title: data.meta?.title ?? 'Untitled',
+            excerpt: data.excerpt,
+            section: data.meta?.section ?? '',
+            kind: data.meta?.kind ?? '',
+          }),
+        )
 
-    return Message.CompletedFetchSearchResults({ results, query })
-  }).pipe(
-    Effect.catch(() =>
-      Effect.succeed(
-        Message.CompletedFetchSearchResults({ results: [], query }),
-      ),
-    ),
-  ),
+        return Message.CompletedFetchSearchResults({ results, query })
+      }).pipe(
+        Effect.catch(() =>
+          Effect.succeed(
+            Message.CompletedFetchSearchResults({ results: [], query }),
+          ),
+        ),
+      )
+  }),
 )
 
 export const ScrollToResult = Command.define('ScrollToResult', {
@@ -64,7 +67,7 @@ export const ScrollToResult = Command.define('ScrollToResult', {
   messages: [Message.CompletedScrollToResult],
 })
 
-export const ScrollToResultLive = ScrollToResult.toLayer(({ index }) =>
+export const ScrollToResultLayer = ScrollToResult.toLayer(({ index }) =>
   Dom.scrollIntoView(`${SEARCH_RESULT_SELECTOR}"${index}"]`).pipe(
     Effect.ignore,
     Effect.as(Message.CompletedScrollToResult()),
@@ -76,7 +79,7 @@ export const NavigateToResult = Command.define('NavigateToResult', {
   messages: [Message.CompletedNavigateToResult],
 })
 
-export const NavigateToResultLive = NavigateToResult.toLayer(({ url }) =>
+export const NavigateToResultLayer = NavigateToResult.toLayer(({ url }) =>
   pushUrl(url).pipe(Effect.as(Message.CompletedNavigateToResult())),
 )
 
@@ -84,7 +87,7 @@ export const FocusSearchInput = Command.define('FocusSearchInput', {
   messages: [Message.CompletedFocusSearchInput],
 })
 
-export const FocusSearchInputLive = FocusSearchInput.toLayer(() =>
+export const FocusSearchInputLayer = FocusSearchInput.toLayer(() =>
   Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
     Effect.ignore,
     Effect.as(Message.CompletedFocusSearchInput()),

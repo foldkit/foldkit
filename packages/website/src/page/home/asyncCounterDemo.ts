@@ -87,14 +87,14 @@ export const DelayAdvanceAsyncCounterPhase = Command.define(
   },
 )
 
-const DelayAdvanceAsyncCounterPhaseLive = DelayAdvanceAsyncCounterPhase.toLayer(
-  ({ generation, duration }) =>
+const DelayAdvanceAsyncCounterPhaseLayer =
+  DelayAdvanceAsyncCounterPhase.toLayer(({ generation, duration }) =>
     Effect.sleep(duration).pipe(
       Effect.as(Message.CompletedDelayAdvanceAsyncCounterPhase({ generation })),
     ),
-)
+  )
 
-export const Live = DelayAdvanceAsyncCounterPhaseLive
+export const layer = DelayAdvanceAsyncCounterPhaseLayer
 
 export type UpdateRequirements = Command.HandlerOf<
   typeof DelayAdvanceAsyncCounterPhase

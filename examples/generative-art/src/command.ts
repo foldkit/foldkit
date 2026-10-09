@@ -23,39 +23,43 @@ export const GenerateAmbientParticle = Command.define(
   },
 )
 
-const GenerateAmbientParticleLive = GenerateAmbientParticle.toLayer(() =>
+const GenerateAmbientParticleLayer = GenerateAmbientParticle.toLayer(
   Effect.gen(function* () {
-    const x = yield* Random.nextBetween(
-      SETTLE_BAND_PX,
-      CANVAS_WIDTH - SETTLE_BAND_PX,
-    )
-    const y = yield* Random.nextBetween(
-      SETTLE_BAND_PX,
-      CANVAS_HEIGHT - SETTLE_BAND_PX,
-    )
-    const baseHue = yield* Random.nextBetween(HUE_MIN, HUE_MAX)
-    const hueDriftPerSecond = yield* Random.nextBetween(
-      HUE_DRIFT_MIN,
-      HUE_DRIFT_MAX,
-    )
-    const lifespanMs = yield* Random.nextBetween(
-      PARTICLE_LIFESPAN_MIN_MS,
-      PARTICLE_LIFESPAN_MAX_MS,
-    )
-    const speed = yield* Random.nextBetween(
-      PARTICLE_SPEED_MIN,
-      PARTICLE_SPEED_MAX,
-    )
-    return Message.CompletedGenerateAmbientParticle({
-      x,
-      y,
-      baseHue,
-      hueDriftPerSecond,
-      lifespanMs,
-      speed,
-      initialAngle: Option.none(),
-      initialSpeedScale: 1,
-    })
+    const random = yield* Random.Random
+    return () =>
+      Effect.gen(function* () {
+        const x = yield* Random.nextBetween(
+          SETTLE_BAND_PX,
+          CANVAS_WIDTH - SETTLE_BAND_PX,
+        )
+        const y = yield* Random.nextBetween(
+          SETTLE_BAND_PX,
+          CANVAS_HEIGHT - SETTLE_BAND_PX,
+        )
+        const baseHue = yield* Random.nextBetween(HUE_MIN, HUE_MAX)
+        const hueDriftPerSecond = yield* Random.nextBetween(
+          HUE_DRIFT_MIN,
+          HUE_DRIFT_MAX,
+        )
+        const lifespanMs = yield* Random.nextBetween(
+          PARTICLE_LIFESPAN_MIN_MS,
+          PARTICLE_LIFESPAN_MAX_MS,
+        )
+        const speed = yield* Random.nextBetween(
+          PARTICLE_SPEED_MIN,
+          PARTICLE_SPEED_MAX,
+        )
+        return Message.CompletedGenerateAmbientParticle({
+          x,
+          y,
+          baseHue,
+          hueDriftPerSecond,
+          lifespanMs,
+          speed,
+          initialAngle: Option.none(),
+          initialSpeedScale: 1,
+        })
+      }).pipe(Effect.provideService(Random.Random, random))
   }),
 )
 
@@ -75,51 +79,54 @@ export const GenerateBurstParticle = Command.define('GenerateBurstParticle', {
   messages: [Message.CompletedGenerateBurstParticle],
 })
 
-const GenerateBurstParticleLive = GenerateBurstParticle.toLayer(
-  ({ x, y, angle, hueAnchor }) =>
-    Effect.gen(function* () {
-      const jitterX = yield* Random.nextBetween(
-        -BURST_POSITION_JITTER_PX,
-        BURST_POSITION_JITTER_PX,
-      )
-      const jitterY = yield* Random.nextBetween(
-        -BURST_POSITION_JITTER_PX,
-        BURST_POSITION_JITTER_PX,
-      )
-      const hueOffset = yield* Random.nextBetween(
-        -BURST_HUE_JITTER_DEGREES,
-        BURST_HUE_JITTER_DEGREES,
-      )
-      const hueDriftPerSecond = yield* Random.nextBetween(
-        HUE_DRIFT_MIN,
-        HUE_DRIFT_MAX,
-      )
-      const lifespanMs = yield* Random.nextBetween(
-        PARTICLE_LIFESPAN_MIN_MS * BURST_LIFESPAN_FACTOR,
-        PARTICLE_LIFESPAN_MAX_MS * BURST_LIFESPAN_FACTOR,
-      )
-      const speed = yield* Random.nextBetween(
-        PARTICLE_SPEED_MIN,
-        PARTICLE_SPEED_MAX,
-      )
-      const initialSpeedScale = yield* Random.nextBetween(
-        BURST_INITIAL_SPEED_SCALE_MIN,
-        BURST_INITIAL_SPEED_SCALE_MAX,
-      )
-      return Message.CompletedGenerateBurstParticle({
-        x: x + jitterX,
-        y: y + jitterY,
-        baseHue: (hueAnchor + hueOffset + HUE_MAX) % HUE_MAX,
-        hueDriftPerSecond,
-        lifespanMs,
-        speed,
-        initialAngle: Option.some(angle),
-        initialSpeedScale,
-      })
-    }),
+const GenerateBurstParticleLayer = GenerateBurstParticle.toLayer(
+  Effect.gen(function* () {
+    const random = yield* Random.Random
+    return ({ x, y, angle, hueAnchor }) =>
+      Effect.gen(function* () {
+        const jitterX = yield* Random.nextBetween(
+          -BURST_POSITION_JITTER_PX,
+          BURST_POSITION_JITTER_PX,
+        )
+        const jitterY = yield* Random.nextBetween(
+          -BURST_POSITION_JITTER_PX,
+          BURST_POSITION_JITTER_PX,
+        )
+        const hueOffset = yield* Random.nextBetween(
+          -BURST_HUE_JITTER_DEGREES,
+          BURST_HUE_JITTER_DEGREES,
+        )
+        const hueDriftPerSecond = yield* Random.nextBetween(
+          HUE_DRIFT_MIN,
+          HUE_DRIFT_MAX,
+        )
+        const lifespanMs = yield* Random.nextBetween(
+          PARTICLE_LIFESPAN_MIN_MS * BURST_LIFESPAN_FACTOR,
+          PARTICLE_LIFESPAN_MAX_MS * BURST_LIFESPAN_FACTOR,
+        )
+        const speed = yield* Random.nextBetween(
+          PARTICLE_SPEED_MIN,
+          PARTICLE_SPEED_MAX,
+        )
+        const initialSpeedScale = yield* Random.nextBetween(
+          BURST_INITIAL_SPEED_SCALE_MIN,
+          BURST_INITIAL_SPEED_SCALE_MAX,
+        )
+        return Message.CompletedGenerateBurstParticle({
+          x: x + jitterX,
+          y: y + jitterY,
+          baseHue: (hueAnchor + hueOffset + HUE_MAX) % HUE_MAX,
+          hueDriftPerSecond,
+          lifespanMs,
+          speed,
+          initialAngle: Option.some(angle),
+          initialSpeedScale,
+        })
+      }).pipe(Effect.provideService(Random.Random, random))
+  }),
 )
 
-export const CommandsLive = Layer.mergeAll(
-  GenerateAmbientParticleLive,
-  GenerateBurstParticleLive,
+export const CommandsLayer = Layer.mergeAll(
+  GenerateAmbientParticleLayer,
+  GenerateBurstParticleLayer,
 )

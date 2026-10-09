@@ -43,7 +43,7 @@ type DatabaseShape = Readonly<{
 
 class Database extends Context.Service<Database, DatabaseShape>()('Database') {}
 
-const DatabaseLive = Layer.succeed(Database, {
+const DatabaseLayer = Layer.succeed(Database, {
   store: text => `${text} stored`,
 })
 
@@ -370,7 +370,7 @@ const checkApplicationTypes = (): void => {
   const combinedLayer = Layer.mergeAll(
     Send.toLayer(({ text }) => Effect.succeed(Message.CompletedSend({ text }))),
     otherLayer,
-    DatabaseLive,
+    DatabaseLayer,
   )
   run(Application.provide(application, combinedLayer))
 
@@ -438,7 +438,7 @@ const checkApplicationTypes = (): void => {
   // @ts-expect-error Database remains after the Command handler is provided.
   run(withHandler)
 
-  const provided = pipe(withHandler, Application.provide(DatabaseLive))
+  const provided = pipe(withHandler, Application.provide(DatabaseLayer))
   run(provided)
 
   const subscriptions = Subscription.make<Model, Message, Database>()(
@@ -466,7 +466,7 @@ const checkApplicationTypes = (): void => {
 
   // @ts-expect-error The Subscription's Database requirement is unsatisfied.
   run(applicationWithSubscription)
-  run(Application.provide(applicationWithSubscription, DatabaseLive))
+  run(Application.provide(applicationWithSubscription, DatabaseLayer))
 
   const layeredSubscriptions = Subscription.make<Model, Message>()(entry => ({
     storedValue: entry(

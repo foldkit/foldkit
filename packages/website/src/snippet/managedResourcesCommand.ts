@@ -9,7 +9,7 @@ const TakePhoto = Command.define('TakePhoto', {
   messages: [Message.SucceededTakePhoto, Message.FailedTakePhoto],
 })
 
-const TakePhotoLive = TakePhoto.toLayer(() =>
+const TakePhotoLayer = TakePhoto.toLayer(() =>
   Effect.gen(function* () {
     const stream = yield* CameraStream.get
 

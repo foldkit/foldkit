@@ -18,7 +18,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const SearchShortcutPressesLive = subscriptions.searchShortcut.toLayer(
+export const SearchShortcutPressesLayer = subscriptions.searchShortcut.toLayer(
   ({ isSearchAvailable }) =>
     Stream.when(
       Dom.streamFromEventFilterMapPreventDefault({
@@ -35,4 +35,4 @@ export const SearchShortcutPressesLive = subscriptions.searchShortcut.toLayer(
     ),
 )
 
-export { SearchShortcutPressesLive as Live }
+export { SearchShortcutPressesLayer as layer }

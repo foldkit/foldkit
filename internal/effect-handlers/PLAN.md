@@ -4,7 +4,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 ## Status
 
-**Current milestone:** Ready for PR review. Service provider choices are at application assembly, real handlers are reusable across environments, and shared service lifetimes are verified. Independent implementation, API, documentation, and committed-diff reviews are complete.
+**Current milestone:** Ready for PR review. First-party code and active docs use `FooLayer`, feature `layer` exports, and service capture during handler construction. Full repository gates passed. Independent implementation, consumer API, documentation, and committed-diff reviews found no unresolved defects.
 
 **Next implementation:** Design whole-application testing against the handler identities and Layer boundaries established here.
 
@@ -29,6 +29,27 @@ This is the working checklist for separating Foldkit effect definitions from the
 - Mount definitions retain their names and element-driven lifecycle. Layer-backed Mounts enter the application requirements through explicit registration because `view` does not expose handler requirements.
 
 ## Work items
+
+### Layer naming and handler constructors
+
+- [x] Name individual handler and provider Layers `FooLayer`, alternative test providers `FooTestLayer`, and composed feature exports `layer`.
+- [x] Rename composition modules to `layer.ts` and update application entries, barrels, snippets, and scaffolds.
+- [x] Capture stable service dependencies with Effect constructors where that makes the handler boundary clearer. Keep changing inputs and actual work inside the returned handler.
+- [x] Explain construction, lookup, execution, and application versus operation lifetimes in active docs and published TSDoc.
+- [x] Show execution tests using real handler Layers with controlled dependency providers built beneath them.
+- [x] Verify constructor reuse, current-time sampling, service substitution, and scoped cleanup using meaningful coverage. The Clock sampling and context precedence assertions detect deliberately incorrect implementations.
+- [x] Complete independent consumer API, documentation, and implementation reviews and address their findings.
+- [x] Run repository gates, including the full workspace build, type checks, unit suites, and 18 website browser tests without retries.
+- [x] Review the exact committed diff before publication.
+- [x] Prepare the PR review guide with the final naming and constructor examples.
+
+### Constructor verification
+
+- Full workspace build, all 52 TypeScript projects, formatting, lint, dead-code, script tests, and source gates passed.
+- Full workspace unit suites passed, including 3,011 Foldkit tests (one skipped), 1,307 website tests, and the first-party application suites.
+- All 18 website browser tests passed without retries. Application Layers and Project Organization were also inspected at their normal desktop measure.
+- Execution tests use the real Weather and Stopwatch handlers with controlled service providers. Sampling time at construction and reversing invocation-context precedence both make the relevant assertions fail.
+- WebSocket lifecycle tests verify that capturing its constructor does not move socket acquisition or cleanup out of the Model-driven handle scope.
 
 ### 1. Type and lifecycle proof
 
@@ -56,7 +77,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 - [x] Add a synthetic service for Layer-backed Command definitions and `toLayer(handler | Effect<handler>)`.
 - [x] Preserve Command identity, argument capture, result Message mapping, and interruption. Existing Command and DevTools tests pass.
 - [x] Migrate first-party page-owning Command definitions and application Layers. The website's 27 production Commands, all 33 page-owning example entries, Typing Game, and the Embedding example are migrated.
-- [x] Name individual handler Layers after their definitions (`PlaceOrderLive`); use feature-level `Live` for composition and re-exports.
+- [x] Name individual handler Layers after their definitions (`PlaceOrderLayer`); use feature-level `layer` for composition and re-exports.
 
 ### 4. Subscription and ManagedResource handlers
 
@@ -89,10 +110,10 @@ This is the working checklist for separating Foldkit effect definitions from the
 - [x] Complete active documentation, examples, and template migration for the final public API.
   - The website and all 33 page-owning example entries use `Application.make`. The experimental Query fetch API also has a Layer boundary for keyed and unkeyed Queries.
   - Runtime entry, Resources, and ManagedResource teaching snippets use `Application.make` and `toLayer` where those APIs apply.
-  - `skills/generate-program` and active README guidance teach `Application.make`, `Application.makeElement`, and feature-composed `Live` Layers.
+  - `skills/generate-program` and active README guidance teach `Application.make`, `Application.makeElement`, and feature-composed `layer` Layers.
 - [x] Verify feature Layer composition with the website's 27 production Commands, then migrate its application entry without listing every handler there. Documentation snippets account for another 51 definitions.
-  - Each feature owns a `Live` Layer next to its update/lifecycle definitions. Features with multiple modules compose their local Layers and export one `Live` from their barrel.
-  - `src/live.ts` composes feature Layers and service providers. `entry.ts` imports that one `Live` value and calls `Application.provide` once; it never imports individual handler Layers.
+  - Each feature owns a `layer` Layer next to its update/lifecycle definitions. Features with multiple modules compose their local Layers and export one `layer` from their barrel.
+  - `src/layer.ts` composes feature Layers and service providers. `entry.ts` imports that one `layer` value and calls `Application.provide` once; it never imports individual handler Layers.
   - The 14 site-shell Commands compose into boot, navigation, and preference Layers. The two Home phase delay Commands have distinct names.
 - [x] Run workspace type checks, all Foldkit unit tests, focused example tests, and lint for the current slice.
 - [x] Resolve API reference generator warnings about helper types exposed through the new public signatures.
@@ -120,7 +141,7 @@ The published-package check runs during production deployment after publication.
 
 Whole-application test mode, controlled dependency services, test scheduling, and a Story/Scene-style application test DSL belong to a later workstream. Execution tests should use the application's real handlers and replace their external services. Explicit handler stubs can support orchestration tests that exercise result paths without executing those handlers.
 
-- [ ] Add a Foldkit lint rule for individual handler Layer names. A Command binding initialized by `PlaceOrder.toLayer(...)` should be `PlaceOrderLive` in production or `PlaceOrderTest` for a test implementation. Permit feature-level `Live` bundles and re-exports. Cover qualified definitions, test fixtures, and an autofix before enabling the rule across first-party code. Extend the same convention to Subscription, Mount, and ManagedResource handlers where their definitions have stable names.
+- [ ] Add a Foldkit lint rule for individual handler Layer names. A Command binding initialized by `PlaceOrder.toLayer(...)` should be `PlaceOrderLayer` in production or `PlaceOrderTestLayer` for a test implementation. Permit feature-level `layer` bundles and re-exports. Cover qualified definitions, test fixtures, and an autofix before enabling the rule across first-party code. Extend the same convention to Subscription, Mount, and ManagedResource handlers where their definitions have stable names.
 
 ## Service assembly follow-up
 

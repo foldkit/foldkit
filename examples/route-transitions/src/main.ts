@@ -104,7 +104,7 @@ export const SaveDraft = Command.define('SaveDraft', {
   messages: [Message.CompletedSaveDraft],
 })
 
-export const Live = Layer.mergeAll(
+export const layer = Layer.mergeAll(
   NavigateInternal.toLayer(({ url }) =>
     pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
   ),

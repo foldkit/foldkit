@@ -37,14 +37,15 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-const RoomUpdatesLive = subscriptions.roomStream.toLayer(
-  ({ maybeRoomStream }) =>
-    Option.match(maybeRoomStream, {
-      onNone: () => Stream.empty,
-      onSome: ({ roomId, playerId }) =>
-        Effect.gen(function* () {
-          const client = yield* RoomsClient
-          return client.subscribeToRoom({ roomId, playerId }).pipe(
+const RoomUpdatesLayer = subscriptions.roomStream.toLayer(
+  Effect.gen(function* () {
+    const client = yield* RoomsClient
+
+    return ({ maybeRoomStream }) =>
+      Option.match(maybeRoomStream, {
+        onNone: () => Stream.empty,
+        onSome: ({ roomId, playerId }) =>
+          client.subscribeToRoom({ roomId, playerId }).pipe(
             Stream.map(({ room, maybePlayerProgress }) =>
               Message.UpdatedRoom({ room, maybePlayerProgress }),
             ),
@@ -58,12 +59,12 @@ const RoomUpdatesLive = subscriptions.roomStream.toLayer(
                 }),
               ),
             ),
-          )
-        }).pipe(Stream.unwrap),
-    }),
+          ),
+      })
+  }),
 )
 
-const RoomKeyPressesLive = subscriptions.roomKeyboard.toLayer(
+const RoomKeyPressesLayer = subscriptions.roomKeyboard.toLayer(
   ({ shouldCaptureKeyboard }) =>
     Stream.when(
       capturedKeyDownStream(key => Message.PressedKey({ key })),
@@ -71,7 +72,7 @@ const RoomKeyPressesLive = subscriptions.roomKeyboard.toLayer(
     ),
 )
 
-export const SubscriptionsLive = Layer.mergeAll(
-  RoomUpdatesLive,
-  RoomKeyPressesLive,
+export const SubscriptionsLayer = Layer.mergeAll(
+  RoomUpdatesLayer,
+  RoomKeyPressesLayer,
 )

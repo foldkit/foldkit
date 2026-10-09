@@ -56,11 +56,11 @@ A Layer-backed Mount still starts when its element enters the DOM and stops when
 
 Foldkit checks each rendered Layer-backed Mount before patching the DOM and reports any definition missing from `mounts`. Use the same definition in the view, registration, and `toLayer` call. Distinct Mount definitions within one application need distinct names; the same definition can appear on multiple elements. The handler Layer lives for the application lifetime, while each Mount acquisition and cleanup follows its element.
 
-An Effect passed to `toLayer` constructs the element handler once for a runtime start and may capture app-lifetime services. Each element still receives its own Mount scope. Removing and reinserting an element reruns the real handler without rebuilding its provider.
+Calling `toLayer` creates a Layer recipe. When it receives an Effect, the Runtime runs that constructor once while building the application Layer and obtains the element handler. The constructor may capture a stable injected service or accessor. It must not capture a DOM element or Mount args; Foldkit supplies those when each element is mounted. Each element receives its own Mount scope. Removing and reinserting an element reruns the real handler without rebuilding its provider.
 
 A whole-application execution test retains the real Layer-backed Mount handler and replaces the browser or library capability beneath it. The Mount still receives a live test element, performs its element-scoped transformation, and releases on unmount. Replacing the whole handler can acknowledge or orchestrate a Mount result, but that path does not test the replaced integration.
 
-Name the Mount for the imperative work attached to the element, using a verb-first name such as `MeasurePanel`, `AnchorPopover`, or `PortalMenuBackdrop`. Name its production Layer after the definition, such as `MeasurePanelLive`, and include it in the feature's `Live` Layer.
+Name the Mount for the imperative work attached to the element, using a verb-first name such as `MeasurePanel`, `AnchorPopover`, or `PortalMenuBackdrop`. Name its production Layer after the definition, such as `MeasurePanelLayer`, and include it in the feature's lowercase `layer` export.
 
 :::Info{label="Two rules for Mount work"}
 First, `execute` must use the live element. If it does not read or write that element, a Message or Model condition is probably the real cause. Second, the work must be safe to repeat whenever that element is inserted again. DOM measurement, paired DOM manipulation, observers, and element-owned library instances fit these rules.

@@ -289,7 +289,7 @@ export interface EntryBuilder<Model, Message, Services> {
  *   ),
  * }))
  *
- * const CounterTicksLive = subscriptions.tick.toLayer(({ isRunning }) =>
+ * const CounterTicksLayer = subscriptions.tick.toLayer(({ isRunning }) =>
  *   isRunning
  *     ? Stream.tick(Duration.seconds(1)).pipe(
  *         Stream.drop(1),

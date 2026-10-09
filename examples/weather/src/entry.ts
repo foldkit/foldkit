@@ -2,7 +2,7 @@ import { Layer } from 'effect'
 import { Application, Http, Runtime } from 'foldkit'
 
 import {
-  Live as HandlersLive,
+  layer as HandlersLayer,
   Message,
   Model,
   init,
@@ -10,7 +10,7 @@ import {
   view,
 } from './main'
 
-const Live = HandlersLive.pipe(Layer.provideMerge(Http.layer))
+const layer = HandlersLayer.pipe(Layer.provideMerge(Http.layer))
 
 const application = Application.make({
   Model,
@@ -23,4 +23,4 @@ const application = Application.make({
   },
 })
 
-Runtime.run(Application.provide(application, Live))
+Runtime.run(Application.provide(application, layer))

@@ -195,7 +195,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const ActiveSectionChangesLive = subscriptions.activeSection.toLayer(
+export const ActiveSectionChangesLayer = subscriptions.activeSection.toLayer(
   ({ sections }) =>
     Stream.callback<typeof Message.ChangedActiveSection.Type>(queue =>
       Effect.gen(function* () {
@@ -251,4 +251,4 @@ export const ActiveSectionChangesLive = subscriptions.activeSection.toLayer(
     ),
 )
 
-export { ActiveSectionChangesLive as Live }
+export { ActiveSectionChangesLayer as layer }

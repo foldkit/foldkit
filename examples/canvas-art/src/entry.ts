@@ -1,7 +1,7 @@
 import { Application, Runtime } from 'foldkit'
 
 import {
-  GenerateBallLive,
+  GenerateBallLayer,
   Message,
   Model,
   init,
@@ -22,4 +22,4 @@ const application = Application.make({
   },
 })
 
-Runtime.run(Application.provide(application, GenerateBallLive))
+Runtime.run(Application.provide(application, GenerateBallLayer))

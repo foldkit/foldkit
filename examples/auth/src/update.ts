@@ -6,7 +6,7 @@ import { toString as urlToString } from 'foldkit/url'
 
 import {
   ClearSession,
-  CommandsLive,
+  CommandsLayer,
   LoadExternal,
   LogError,
   NavigateInternal,
@@ -20,9 +20,9 @@ import { Model } from './model'
 import { LoggedIn, LoggedOut } from './page'
 import { AppRoute, urlToAppRoute } from './route'
 
-export const Live = Layer.mergeAll(CommandsLive, LoggedOut.Live)
+export const layer = Layer.mergeAll(CommandsLayer, LoggedOut.layer)
 
-type CommandServices = Layer.Success<typeof Live>
+type CommandServices = Layer.Success<typeof layer>
 
 type UpdateReturn = Update.Return<Model, Message, CommandServices>
 const withUpdateReturn = Match.withReturnType<UpdateReturn>()

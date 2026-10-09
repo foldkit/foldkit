@@ -5,9 +5,9 @@ import * as SearchShortcut from './searchShortcut'
 import * as SystemTheme from './systemTheme'
 import * as ViewportWidth from './viewportWidth'
 
-export const Live = Layer.mergeAll(
-  ActiveSection.Live,
-  SearchShortcut.Live,
-  SystemTheme.Live,
-  ViewportWidth.Live,
+export const layer = Layer.mergeAll(
+  ActiveSection.layer,
+  SearchShortcut.layer,
+  SystemTheme.layer,
+  ViewportWidth.layer,
 )

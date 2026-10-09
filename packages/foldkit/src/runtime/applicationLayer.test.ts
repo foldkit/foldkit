@@ -120,7 +120,7 @@ describe('Application Layers', () => {
     )
     const releaseGate = Deferred.makeUnsafe<void>()
     const events: Array<string> = []
-    const FirstLive = Layer.effect(
+    const FirstLayer = Layer.effect(
       ValueService,
       Effect.acquireRelease(
         Effect.sync((): ValueShape => {
@@ -140,7 +140,7 @@ describe('Application Layers', () => {
           ),
       ),
     )
-    const SecondLive = Layer.sync(ValueService, (): ValueShape => {
+    const SecondLayer = Layer.sync(ValueService, (): ValueShape => {
       events.push('second acquired')
       return { value: 'second' }
     })
@@ -151,8 +151,8 @@ describe('Application Layers', () => {
       view: (model, h) => h.div([], [model.label]),
       container,
     })
-    const first = Application.provide(element, FirstLive)
-    const second = Application.provide(element, SecondLive)
+    const first = Application.provide(element, FirstLayer)
+    const second = Application.provide(element, SecondLayer)
     const firstHandle = embed(first)
 
     await awaitBodyText('ready')
@@ -187,11 +187,11 @@ describe('Application Layers', () => {
     let valueBuilds = 0
     let derivedBuilds = 0
 
-    const ValueLive = Layer.sync(ValueService, (): ValueShape => {
+    const ValueLayer = Layer.sync(ValueService, (): ValueShape => {
       valueBuilds += 1
       return { value: 'value' }
     })
-    const DerivedLive = Layer.effect(
+    const DerivedLayer = Layer.effect(
       DerivedService,
       Effect.map(ValueService, ({ value }): ValueShape => {
         derivedBuilds += 1
@@ -208,8 +208,8 @@ describe('Application Layers', () => {
       view: documentView,
       container,
     })
-    const withDerived = Application.provide(application, DerivedLive)
-    const provided = Application.provide(withDerived, ValueLive)
+    const withDerived = Application.provide(application, DerivedLayer)
+    const provided = Application.provide(withDerived, ValueLayer)
     const handle = embed(provided, {
       flags: Effect.gen(function* () {
         const value = yield* ValueService
@@ -231,7 +231,7 @@ describe('Application Layers', () => {
     let buildCount = 0
     let releaseCount = 0
 
-    const ValueLive = Layer.effect(
+    const ValueLayer = Layer.effect(
       ValueService,
       Effect.acquireRelease(
         Effect.sync((): ValueShape => {
@@ -254,7 +254,7 @@ describe('Application Layers', () => {
       view: documentView,
       container,
     })
-    const provided = Application.provide(application, ValueLive)
+    const provided = Application.provide(application, ValueLayer)
     const handle = embed(provided, {
       flags: Effect.map(ValueService, ({ value }) => ({
         initialLabel: value,
@@ -278,7 +278,7 @@ describe('Application Layers', () => {
     let buildCount = 0
     let releaseCount = 0
 
-    const ValueLive = Layer.effect(
+    const ValueLayer = Layer.effect(
       ValueService,
       Effect.acquireRelease(
         Effect.sync((): ValueShape => {
@@ -298,7 +298,7 @@ describe('Application Layers', () => {
       view: (model, h) => h.div([], [model.label]),
       container,
     })
-    const provided = Application.provide(element, ValueLive)
+    const provided = Application.provide(element, ValueLayer)
     const fiber = Effect.runFork(provided.start())
 
     try {
@@ -316,7 +316,7 @@ describe('Application Layers', () => {
     let buildCount = 0
     let releaseCount = 0
 
-    const ValueLive = Layer.effect(
+    const ValueLayer = Layer.effect(
       ValueService,
       Effect.acquireRelease(
         Effect.sync((): ValueShape => {
@@ -343,7 +343,7 @@ describe('Application Layers', () => {
       view: (model, h) => h.div([], [model.label]),
       container,
     })
-    const provided = Application.provide(element, ValueLive)
+    const provided = Application.provide(element, ValueLayer)
     const fiber = Effect.runFork(provided.start())
 
     try {
@@ -400,7 +400,7 @@ describe('Application Layers', () => {
     let subscriptionHandlerBuilds = 0
     let commandRuns = 0
 
-    const ValueLive = Layer.effect(
+    const ValueLayer = Layer.effect(
       ValueService,
       Effect.acquireRelease(
         Effect.sync((): ValueShape => {
@@ -413,7 +413,7 @@ describe('Application Layers', () => {
           }),
       ),
     )
-    const ChangePhaseLive = ChangePhase.toLayer(
+    const ChangePhaseLayer = ChangePhase.toLayer(
       Effect.gen(function* () {
         const { value } = yield* ValueService
         commandHandlerBuilds += 1
@@ -430,7 +430,7 @@ describe('Application Layers', () => {
           })
       }),
     )
-    const TrackApplicationPhaseLive = subscriptions.phase.toLayer(
+    const TrackApplicationPhaseLayer = subscriptions.phase.toLayer(
       Effect.gen(function* () {
         const { value } = yield* ValueService
         subscriptionHandlerBuilds += 1
@@ -506,13 +506,13 @@ describe('Application Layers', () => {
       subscriptions,
       container,
     })
-    const HandlersLive = Layer.mergeAll(
-      ChangePhaseLive,
-      TrackApplicationPhaseLive,
+    const HandlersLayer = Layer.mergeAll(
+      ChangePhaseLayer,
+      TrackApplicationPhaseLayer,
     )
     const provided = Application.provide(
       element,
-      Layer.provideMerge(HandlersLive, ValueLive),
+      Layer.provideMerge(HandlersLayer, ValueLayer),
     )
     const fiber = Effect.runFork(provided.start())
 
@@ -546,7 +546,7 @@ describe('Application Layers', () => {
     let flagsRunCount = 0
     let initRunCount = 0
 
-    const ValueLive = Layer.effect(
+    const ValueLayer = Layer.effect(
       ValueService,
       Effect.acquireRelease(
         Effect.sync((): ValueShape => {
@@ -575,7 +575,7 @@ describe('Application Layers', () => {
       view: (model, h) => h.div([], [model.label]),
       container,
     })
-    const provided = Application.provide(element, ValueLive)
+    const provided = Application.provide(element, ValueLayer)
     const fiber = Effect.runFork(provided.start({ label: 'restored' }))
 
     try {
@@ -595,7 +595,7 @@ describe('Application Layers', () => {
     let flagsRunCount = 0
     let initRunCount = 0
 
-    const ValueLive = Layer.sync(ValueService, (): ValueShape => {
+    const ValueLayer = Layer.sync(ValueService, (): ValueShape => {
       buildCount += 1
       return { value: `build-${buildCount}` }
     })
@@ -615,7 +615,7 @@ describe('Application Layers', () => {
       view: (model, h) => h.div([], [model.label]),
       container,
     })
-    const provided = Application.provide(element, ValueLive)
+    const provided = Application.provide(element, ValueLayer)
     const fiber = Effect.runFork(provided.start({ notALabel: 0 }))
 
     try {
@@ -632,7 +632,7 @@ describe('Application Layers', () => {
     const LAYER_BUILD_ERROR = 'application Layer failed to build'
     let flagsRunCount = 0
 
-    const FailingApplicationLive = Layer.effect(
+    const FailingApplicationLayer = Layer.effect(
       ValueService,
       Effect.fail(new Error(LAYER_BUILD_ERROR)),
     )
@@ -653,7 +653,7 @@ describe('Application Layers', () => {
       },
       container,
     })
-    const provided = Application.provide(element, FailingApplicationLive)
+    const provided = Application.provide(element, FailingApplicationLayer)
     const exit = await Effect.runPromiseExit(provided.start())
 
     expect(Exit.isFailure(exit)).toBe(true)
@@ -685,13 +685,13 @@ const checkApplicationLayerTypes = (): void => {
   )
   run(flagsOnlyProvided, { flags: flagsNeedingService })
 
-  const DerivedLive = Layer.effect(
+  const DerivedLayer = Layer.effect(
     DerivedService,
     Effect.map(ValueService, ({ value }): ValueShape => ({
       value: `${value}-derived`,
     })),
   )
-  const withDerived = Application.provide(flagsOnlyApplication, DerivedLive)
+  const withDerived = Application.provide(flagsOnlyApplication, DerivedLayer)
   const withBoth = Application.provide(
     withDerived,
     Layer.succeed(ValueService, { value: 'provided' }),

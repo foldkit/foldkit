@@ -8,7 +8,7 @@ import {
   Message,
   type Model,
   PlaceOrder,
-  PlaceOrderLive,
+  PlaceOrderLayer,
   Promo,
   TRANSITION_LOG_LIMIT,
   initialModel,
@@ -43,7 +43,7 @@ describe('update', () => {
       }).pipe(
         Effect.scoped,
         Effect.provide(
-          PlaceOrderLive.pipe(Layer.provideMerge(TestClock.layer())),
+          PlaceOrderLayer.pipe(Layer.provideMerge(TestClock.layer())),
         ),
       ),
     ))
