@@ -21,6 +21,7 @@ import {
 } from '@foldkit/ui'
 
 import { Toast } from './demo/toastModule'
+import { VirtualListChatHistorySource, VirtualListChatMessage } from './model'
 
 export const Message = defineMessageUnion({
   ClickedButtonDemo: {},
@@ -92,6 +93,13 @@ export const Message = defineMessageUnion({
   ClickedVirtualListVariableScrollToMiddle: {},
   GotVirtualListChatDemoMessage: { message: VirtualList.Message },
   ClickedVirtualListChatPrepend: {},
+  GotVirtualListChatHistoryModeGroupMessage: { message: RadioGroup.Message },
+  SucceededFetchVirtualListChatHistory: {
+    requestVersion: Schema.Number,
+    messages: Schema.Array(VirtualListChatMessage),
+    source: VirtualListChatHistorySource,
+    page: VirtualList.HistoryPage,
+  },
   ClickedVirtualListChatScrollToMessage: {},
   ClickedVirtualListChatAppend: {},
   ClickedVirtualListChatToggleMessage: { messageId: Schema.Number },

@@ -2,6 +2,7 @@ export {
   init,
   update,
   informItemsChanged,
+  informHistoryPrepended,
   scrollTo,
   scrollToEnd,
   scrollToIndex,
@@ -10,6 +11,8 @@ export {
   view,
   Model,
   Message,
+  HistoryPage,
+  AccessibleSet,
   ContentAlignment,
   ScrollAlignment,
   ScrollTarget,
@@ -17,6 +20,8 @@ export {
 
 export type {
   InitConfig,
+  HistoryPrependInput,
+  HistoryRows,
   RowHeightInputs,
   ScrollToOptions,
   ViewInputs,

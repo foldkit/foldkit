@@ -71,9 +71,28 @@ export const VirtualListChatMessage = Schema.Struct({
 
 export type VirtualListChatMessage = typeof VirtualListChatMessage.Type
 
-export const VirtualListChatStartProximity = defineTaggedUnion({
-  Away: {},
-  Near: {},
+export const VirtualListChatHistorySource = defineTaggedUnion({
+  Unbounded: {},
+  Finite: { remainingCount: Schema.Number },
+})
+
+export const VirtualListChatHistoryMode = Schema.Literals([
+  'Infinite',
+  'Finite',
+])
+export type VirtualListChatHistoryMode = typeof VirtualListChatHistoryMode.Type
+
+export const historyModeForSource = (
+  source: typeof VirtualListChatHistorySource.Type,
+): VirtualListChatHistoryMode =>
+  VirtualListChatHistorySource.match<VirtualListChatHistoryMode>(source, {
+    Unbounded: () => 'Infinite',
+    Finite: () => 'Finite',
+  })
+
+export const VirtualListChatHistoryLoad = defineTaggedUnion({
+  Idle: {},
+  Loading: { trigger: Schema.Literals(['Scroll', 'Button']) },
 })
 
 export const Model = Schema.Struct({
@@ -156,6 +175,11 @@ export const Model = Schema.Struct({
   virtualListChatDemo: VirtualList.Model,
   virtualListChatMessages: Schema.Array(VirtualListChatMessage),
   virtualListChatNextId: Schema.Number,
-  virtualListChatStartProximity: VirtualListChatStartProximity,
+  virtualListChatHistorySource: VirtualListChatHistorySource,
+  virtualListChatHistoryModeGroup: RadioGroup.Model,
+  virtualListChatHistoryLoad: VirtualListChatHistoryLoad,
+  virtualListChatHistoryRequestVersion: Schema.Number,
+  virtualListChatLoadedOlderCount: Schema.Number,
+  virtualListChatAnnouncedOlderCount: Schema.Number,
 })
 export type Model = typeof Model.Type

@@ -1,10 +1,16 @@
 import { Array, Match, Option, pipe } from 'effect'
 import { type HtmlBuilder, childAttributes } from 'foldkit/html'
 
-import { VirtualList } from '@foldkit/ui'
+import { RadioGroup, VirtualList } from '@foldkit/ui'
 
 import { Message } from '../message'
-import type { VirtualListChatMessage } from '../model'
+import {
+  VirtualListChatHistoryLoad,
+  type VirtualListChatHistoryMode,
+  VirtualListChatHistorySource,
+  type VirtualListChatMessage,
+  historyModeForSource,
+} from '../model'
 
 // SAMPLE DATA
 
@@ -388,8 +394,92 @@ const sentChatMessageClassName =
 const chatMessageDetailClassName =
   'text-xs leading-relaxed text-gray-600 dark:text-gray-400'
 
+const historyModeGroupClassName =
+  'inline-flex w-fit rounded-lg bg-gray-100 p-1 ring-1 ring-gray-200 dark:bg-gray-800 dark:ring-gray-700'
+const historyModeOptionClassName =
+  'rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 outline-none transition-colors data-[checked]:bg-white data-[checked]:text-gray-900 data-[checked]:shadow-sm focus-visible:ring-2 focus-visible:ring-accent-600 dark:text-gray-300 dark:data-[checked]:bg-gray-950 dark:data-[checked]:text-white dark:focus-visible:ring-accent-400'
+
+export const HistoryModeRadioGroup =
+  RadioGroup.create<VirtualListChatHistoryMode>()
+
+const historyModes: ReadonlyArray<VirtualListChatHistoryMode> = [
+  'Infinite',
+  'Finite',
+]
+
+export const INITIAL_CHAT_MESSAGE_COUNT = 24
+export const UNBOUNDED_CHAT_START_RUNWAY_PX = 800
+export const FINITE_CHAT_START_RUNWAY_PX = 1_200
+export const CHAT_HISTORY_PREFETCH_VIEWPORTS = 6
+export const COLLAPSED_HISTORY_MESSAGE_HEIGHT_PX = 48
+
 const COLLAPSED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX = 48
 const EXPANDED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX = 80
+const NARROW_CHAT_CONTAINER_WIDTH_PX = 480
+const NARROW_EXPANDED_HISTORY_MESSAGE_HEIGHT_PX = 130.5
+const WIDE_EXPANDED_HISTORY_MESSAGE_HEIGHT_PX = 72
+const NARROW_INITIAL_MESSAGE_HEIGHTS_PX = [48, 68, 88, 68]
+const NARROW_INITIAL_MESSAGE_DETAIL_HEIGHT_PX = 62.5
+
+export const chatMessageKey = (message: VirtualListChatMessage): string =>
+  globalThis.String(message.id)
+
+const estimateChatMessageHeightForWidth =
+  ({ isNarrowContainer }: Readonly<{ isNarrowContainer: boolean }>) =>
+  (message: VirtualListChatMessage): number => {
+    if (message.id < 0) {
+      if (isNarrowContainer) {
+        return message.isExpanded
+          ? NARROW_EXPANDED_HISTORY_MESSAGE_HEIGHT_PX
+          : COLLAPSED_HISTORY_MESSAGE_HEIGHT_PX
+      }
+
+      return message.isExpanded
+        ? WIDE_EXPANDED_HISTORY_MESSAGE_HEIGHT_PX
+        : COLLAPSED_HISTORY_MESSAGE_HEIGHT_PX
+    }
+
+    if (isNarrowContainer) {
+      const collapsedHeight = Option.getOrElse(
+        Array.get(NARROW_INITIAL_MESSAGE_HEIGHTS_PX, message.id % 4),
+        () => COLLAPSED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX,
+      )
+      return message.isExpanded
+        ? collapsedHeight + NARROW_INITIAL_MESSAGE_DETAIL_HEIGHT_PX
+        : collapsedHeight
+    }
+
+    return message.isExpanded
+      ? EXPANDED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX
+      : COLLAPSED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX
+  }
+
+const estimateNarrowChatMessageHeight = estimateChatMessageHeightForWidth({
+  isNarrowContainer: true,
+})
+const estimateWideChatMessageHeight = estimateChatMessageHeightForWidth({
+  isNarrowContainer: false,
+})
+
+export const estimatedChatMessageHeight = (model: VirtualList.Model) =>
+  Match.value(model.measurement).pipe(
+    Match.withReturnType<(message: VirtualListChatMessage) => number>(),
+    Match.tagsExhaustive({
+      Unmeasured: () => estimateWideChatMessageHeight,
+      Measured: ({ containerWidth }) =>
+        containerWidth < NARROW_CHAT_CONTAINER_WIDTH_PX
+          ? estimateNarrowChatMessageHeight
+          : estimateWideChatMessageHeight,
+    }),
+  )
+
+export const chatHistoryRows = (
+  model: VirtualList.Model,
+): VirtualList.HistoryRows<VirtualListChatMessage> => ({
+  itemToKey: chatMessageKey,
+  dynamicRowHeights: true,
+  itemToEstimatedRowHeightPx: estimatedChatMessageHeight(model),
+})
 
 const chatMessageView = (
   message: VirtualListChatMessage,
@@ -437,99 +527,254 @@ const chatMessageView = (
   )
 }
 
+const chatHistoryStatus = (
+  isLoading: boolean,
+  isComplete: boolean,
+  announcedOlderCount: number,
+): string => {
+  if (isLoading) {
+    return 'Loading older messages'
+  }
+
+  if (isComplete) {
+    return 'All older messages loaded'
+  }
+
+  if (announcedOlderCount > 0) {
+    return `Loaded ${announcedOlderCount} older messages`
+  }
+
+  return ''
+}
+
 export const virtualListChatDemo = (
   model: VirtualList.Model,
   messages: ReadonlyArray<VirtualListChatMessage>,
   h: HtmlBuilder<Message>,
-) => [
-  h.div(
-    [h.Class('flex w-full flex-col gap-4')],
-    [
-      h.div(
-        [h.Class('flex flex-wrap items-center justify-between gap-3')],
-        [
-          h.div(
-            [h.Class('flex flex-col gap-0.5')],
-            [
-              h.span(
+  options: Readonly<{
+    historySource: typeof VirtualListChatHistorySource.Type
+    historyLoad: typeof VirtualListChatHistoryLoad.Type
+    announcedOlderCount: number
+    historyModeGroup?: RadioGroup.Model
+  }> = {
+    historySource: VirtualListChatHistorySource.Unbounded(),
+    historyLoad: VirtualListChatHistoryLoad.Idle(),
+    announcedOlderCount: 0,
+  },
+) => {
+  const { historySource, historyLoad, announcedOlderCount } = options
+  const historyModeGroup = options.historyModeGroup
+  const isLoading = VirtualListChatHistoryLoad.match(historyLoad, {
+    Idle: () => false,
+    Loading: () => true,
+  })
+  const isComplete = VirtualListChatHistorySource.match(historySource, {
+    Unbounded: () => false,
+    Finite: ({ remainingCount }) => remainingCount <= 0,
+  })
+  const historyMode = historyModeForSource(historySource)
+  const isFiniteHistory = historyMode === 'Finite'
+  const accessibleSet = VirtualListChatHistorySource.match(historySource, {
+    Unbounded: () => VirtualList.AccessibleSet.Unknown(),
+    Finite: ({ remainingCount }) =>
+      VirtualList.AccessibleSet.Known({
+        size: messages.length + remainingCount,
+        firstPosition: remainingCount + 1,
+      }),
+  })
+
+  return [
+    h.div(
+      [h.Class('flex w-full flex-col gap-4')],
+      [
+        h.div(
+          [h.Class('flex flex-col gap-1')],
+          [
+            h.div(
+              [h.Class('flex flex-wrap items-baseline gap-x-3 gap-y-0.5')],
+              [
+                h.h4(
+                  [
+                    h.Class(
+                      'text-base font-semibold text-gray-900 dark:text-gray-100',
+                    ),
+                  ],
+                  ['Conversation'],
+                ),
+                h.span(
+                  [
+                    h.Class(
+                      'text-xs font-medium tabular-nums text-gray-500 dark:text-gray-400',
+                    ),
+                  ],
+                  [`${messages.length} messages loaded`],
+                ),
+              ],
+            ),
+            h.p(
+              [h.Class('text-sm text-gray-600 dark:text-gray-400')],
+              [
+                isFiniteHistory
+                  ? 'Scroll up to reach the first message. Select a message to expand it.'
+                  : 'Scroll up to load older messages. Select a message to expand it.',
+              ],
+            ),
+          ],
+        ),
+        ...(historyModeGroup === undefined
+          ? []
+          : [
+              h.div(
                 [
                   h.Class(
-                    'text-sm font-semibold text-gray-900 dark:text-gray-100',
+                    'flex flex-col gap-3 rounded-lg border border-gray-200 bg-white/70 p-3 sm:flex-row sm:items-center sm:justify-between dark:border-gray-700/60 dark:bg-gray-950/30',
                   ),
                 ],
-                ['Conversation'],
-              ),
-              h.span(
-                [h.Class('text-xs text-gray-500 dark:text-gray-400')],
-                [`${messages.length} messages · Click to expand a message`],
-              ),
-            ],
-          ),
-          h.div(
-            [h.Class('flex w-full items-center sm:ml-auto sm:w-auto')],
-            [
-              h.button(
                 [
-                  h.Class(secondaryButtonClassName),
-                  h.DataAttribute('virtual-list-chat-prepend', 'true'),
-                  h.OnClick(Message.ClickedVirtualListChatPrepend()),
+                  h.div(
+                    [h.Class('flex min-w-0 flex-col gap-1.5')],
+                    [
+                      h.div(
+                        [h.Class('flex flex-wrap items-center gap-2 sm:gap-3')],
+                        [
+                          h.span(
+                            [
+                              h.Class(
+                                'text-sm font-medium text-gray-700 dark:text-gray-200',
+                              ),
+                            ],
+                            ['History mode'],
+                          ),
+                          h.submodel({
+                            slotId: historyModeGroup.id,
+                            model: historyModeGroup,
+                            view: HistoryModeRadioGroup.view,
+                            viewInputs: {
+                              selectedValue: Option.some(historyMode),
+                              options: historyModes,
+                              ariaLabel: 'History mode',
+                              orientation: 'Horizontal',
+                              toView: ({ group, options }) =>
+                                h.div(
+                                  [
+                                    ...group,
+                                    h.AriaDescribedBy(
+                                      `${historyModeGroup.id}-hint`,
+                                    ),
+                                    h.Class(historyModeGroupClassName),
+                                  ],
+                                  options.map(option =>
+                                    h.button(
+                                      [
+                                        ...option.option,
+                                        h.Class(historyModeOptionClassName),
+                                      ],
+                                      [
+                                        h.span(
+                                          [...option.label],
+                                          [option.value],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                            },
+                            toParentMessage: message =>
+                              Message.GotVirtualListChatHistoryModeGroupMessage(
+                                {
+                                  message,
+                                },
+                              ),
+                          }),
+                        ],
+                      ),
+                      h.span(
+                        [
+                          h.Id(`${historyModeGroup.id}-hint`),
+                          h.Class('text-xs text-gray-500 dark:text-gray-400'),
+                        ],
+                        ['Changing modes resets the conversation.'],
+                      ),
+                    ],
+                  ),
+                  ...(isFiniteHistory
+                    ? []
+                    : [
+                        h.button(
+                          [
+                            h.Class(
+                              `${secondaryButtonClassName} w-full shrink-0 sm:w-auto`,
+                            ),
+                            h.DataAttribute(
+                              'virtual-list-chat-prepend',
+                              'true',
+                            ),
+                            h.OnClick(Message.ClickedVirtualListChatPrepend()),
+                            ...(isLoading ? [h.Disabled(true)] : []),
+                          ],
+                          ['Load older'],
+                        ),
+                      ]),
                 ],
-                ['Load older'],
               ),
-            ],
-          ),
-        ],
-      ),
-      h.submodel({
-        slotId: model.id,
-        model,
-        view: VirtualList.view<VirtualListChatMessage>(),
-        viewInputs: {
-          items: messages,
-          itemToKey: message => globalThis.String(message.id),
-          itemToView: message => chatMessageView(message, h),
-          dynamicRowHeights: true,
-          itemToEstimatedRowHeightPx: message =>
-            message.isExpanded
-              ? EXPANDED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX
-              : COLLAPSED_CHAT_MESSAGE_ESTIMATED_HEIGHT_PX,
-          contentAlignment: 'End',
-          containerClassName:
-            'h-96 sm:h-80 w-full rounded-lg bg-gray-100/70 dark:bg-gray-950/40 ring-1 ring-gray-200 dark:ring-gray-800 overscroll-none',
-          containerAttributes: childAttributes([
-            h.AriaLabel('End-anchored chat messages'),
-            h.Tabindex(0),
-          ]),
-        },
-        toParentMessage: message =>
-          Message.GotVirtualListChatDemoMessage({ message }),
-      }),
-      h.div(
-        [h.Class('flex w-full items-center justify-between gap-2')],
-        [
-          h.button(
-            [
-              h.Class(secondaryButtonClassName),
-              h.DataAttribute('virtual-list-chat-scroll-to-message', 'true'),
-              h.OnClick(Message.ClickedVirtualListChatScrollToMessage()),
-            ],
-            [
-              h.span([h.Class('sm:hidden')], ['Jump to #7']),
-              h.span([h.Class('hidden sm:inline')], ['Jump to message 7']),
-            ],
-          ),
-          h.button(
-            [
-              h.Class(
-                `${buttonClassName} inline-flex h-9 items-center justify-center`,
-              ),
-              h.DataAttribute('virtual-list-chat-append', 'true'),
-              h.OnClick(Message.ClickedVirtualListChatAppend()),
-            ],
-            ['Add message'],
-          ),
-        ],
-      ),
-    ],
-  ),
-]
+            ]),
+        h.span(
+          [
+            h.Role('status'),
+            h.AriaAtomic(true),
+            h.Class('sr-only'),
+            h.DataAttribute('virtual-list-chat-status', 'true'),
+          ],
+          [chatHistoryStatus(isLoading, isComplete, announcedOlderCount)],
+        ),
+        h.submodel({
+          slotId: model.id,
+          model,
+          view: VirtualList.view<VirtualListChatMessage>(),
+          viewInputs: {
+            items: messages,
+            ...chatHistoryRows(model),
+            itemToView: message => chatMessageView(message, h),
+            accessibleSet,
+            overscan: 16,
+            contentAlignment: 'End',
+            containerClassName:
+              'h-96 sm:h-80 w-full rounded-lg bg-gray-100/70 dark:bg-gray-950/40 ring-1 ring-gray-200 dark:ring-gray-800 overscroll-none',
+            containerAttributes: childAttributes([
+              h.AriaLabel('End-anchored chat messages'),
+              h.Tabindex(0),
+            ]),
+          },
+          toParentMessage: message =>
+            Message.GotVirtualListChatDemoMessage({ message }),
+        }),
+        h.div(
+          [h.Class('grid w-full grid-cols-2 gap-2 sm:flex sm:justify-end')],
+          [
+            h.button(
+              [
+                h.Class(`${secondaryButtonClassName} min-w-0`),
+                h.DataAttribute('virtual-list-chat-scroll-to-message', 'true'),
+                h.OnClick(Message.ClickedVirtualListChatScrollToMessage()),
+              ],
+              [
+                h.span([h.Class('sm:hidden')], ['Jump to #7']),
+                h.span([h.Class('hidden sm:inline')], ['Jump to message 7']),
+              ],
+            ),
+            h.button(
+              [
+                h.Class(
+                  `${buttonClassName} inline-flex h-9 min-w-0 items-center justify-center`,
+                ),
+                h.DataAttribute('virtual-list-chat-append', 'true'),
+                h.OnClick(Message.ClickedVirtualListChatAppend()),
+              ],
+              ['Add message'],
+            ),
+          ],
+        ),
+      ],
+    ),
+  ]
+}
