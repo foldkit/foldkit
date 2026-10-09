@@ -1,10 +1,10 @@
 import { Effect, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
-import { Runtime } from 'foldkit'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { DragAndDrop } from '@foldkit/ui'
 
+import { CommandsLive } from './command'
 import { DEFAULT_COLUMNS, STORAGE_KEY } from './constant'
 import { Message } from './message'
 import { Model, SavedBoard, SavedBoardJsonString } from './model'
@@ -35,7 +35,7 @@ export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => {
+export const init = (flags: Flags) => {
   const columns = Option.match(flags.maybeSavedBoard, {
     onNone: () => DEFAULT_COLUMNS,
     onSome: ({ columns }) => columns,
@@ -51,5 +51,7 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => {
     },
   }
 }
+
+export const Live = CommandsLive
 
 export { Message, Model, subscriptions, update, view }

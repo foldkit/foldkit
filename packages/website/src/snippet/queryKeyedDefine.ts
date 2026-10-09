@@ -3,5 +3,6 @@ const postQuery = Query.define({
   data: Post,
   error: Schema.String,
   args: { postId: Schema.String },
-  execute: ({ postId }) => fetchPost(postId),
 })
+
+const FetchPostLive = postQuery.toLayer(({ postId }) => fetchPost(postId))

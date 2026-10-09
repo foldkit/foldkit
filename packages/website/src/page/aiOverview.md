@@ -4,7 +4,7 @@
 
 AI coding agents work best in a Foldkit project when they can see both its predictable architecture and its current source.
 
-The architecture gives every part of the program a clear role. The Model holds state. Messages record facts. update decides the next Model and which Commands to return. view describes the UI. The Runtime starts and manages outside work described by Commands, Subscriptions, Mounts, Flags, Resources, and ManagedResource entries.
+The architecture gives every part of the program a clear role. The Model holds state. Messages record facts. update decides the next Model and which Commands to return. view describes the UI. The Runtime starts and manages outside work described by Commands, Subscriptions, Mounts, Flags, and ManagedResource entries. Application Layers supply their handlers and shared services.
 
 An agent can follow that loop from an interaction to a Message, through update, and back to the rendered result. It can also see where a Submodel owns behavior and how an OutMessage carries a fact to its parent.
 

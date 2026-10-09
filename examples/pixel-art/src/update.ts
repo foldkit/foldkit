@@ -1,10 +1,10 @@
 import { Array, Match, Option } from 'effect'
-import { Update } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
 
-import { ExportPng, saveCanvas } from './command'
+import { ExportPng, SaveCanvas, saveCanvas } from './command'
 import { DEFAULT_COLOR_INDEX } from './constant'
 import {
   createEmptyGrid,
@@ -30,7 +30,11 @@ import {
   ToolRadioGroup,
 } from './view/toolbar'
 
-type UpdateReturn = Update.Return<Model, Message>
+type CommandServices =
+  | Command.HandlerOf<typeof SaveCanvas>
+  | Command.HandlerOf<typeof ExportPng>
+
+type UpdateReturn = Update.Return<Model, Message, CommandServices>
 
 const withUpdateReturn = Match.withReturnType<UpdateReturn>()
 
@@ -79,7 +83,7 @@ const foldErrorDialogOpen = Update.foldChildStep({
 })
 
 const foldThemeListboxOutMessage = Listbox.OutMessage.match<
-  Update.Step<Model, Message>
+  Update.Step<Model, Message, CommandServices>
 >({
   Selected:
     ({ value }) =>
@@ -163,7 +167,7 @@ const selectColor = (model: Model, colorIndex: PaletteIndex): UpdateReturn => {
 }
 
 const foldToolRadioGroupOutMessage = RadioGroup.OutMessage.match<
-  Update.Step<Model, Message>,
+  Update.Step<Model, Message, CommandServices>,
   RadioGroup.OutMessage<Tool>
 >({
   Selected:
@@ -182,7 +186,7 @@ const foldToolRadioGroup = Update.foldChild({
 })
 
 const foldGridSizeRadioGroupOutMessage = RadioGroup.OutMessage.match<
-  Update.Step<Model, Message>
+  Update.Step<Model, Message, CommandServices>
 >({
   Selected:
     ({ value }) =>
@@ -200,7 +204,7 @@ const foldGridSizeRadioGroup = Update.foldChild({
 })
 
 const foldPaletteRadioGroupOutMessage = RadioGroup.OutMessage.match<
-  Update.Step<Model, Message>
+  Update.Step<Model, Message, CommandServices>
 >({
   Selected:
     ({ value }) =>
@@ -220,7 +224,7 @@ const foldPaletteRadioGroup = Update.foldChild({
   foldOutMessage: foldPaletteRadioGroupOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
+export const update = Update.make((model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     PressedCell: ({ x, y }) =>
       Match.value(model.tool).pipe(
@@ -454,7 +458,8 @@ export const update = (model: Model, message: Message) =>
 
     GotGridSizeConfirmDialogMessage: ({ message }) =>
       foldGridSizeConfirmDialog(model, message),
-  })
+  }),
+)
 
 const applyGridSizeChange = (model: Model, size: number): UpdateReturn => ({
   model: modifyFields(model, {

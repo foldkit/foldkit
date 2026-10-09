@@ -7,16 +7,20 @@ import { Model, capturesKeyboard } from './model'
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   homeKeyboard: entry(
+    'WatchHomeKeyboard',
     { shouldCaptureKeyboard: Schema.Boolean },
     {
       modelToDependencies: model => ({
         shouldCaptureKeyboard: capturesKeyboard(model),
       }),
-      dependenciesToStream: ({ shouldCaptureKeyboard }) =>
-        Stream.when(
-          capturedKeyDownStream(key => Message.PressedKey({ key })),
-          Effect.sync(() => shouldCaptureKeyboard),
-        ),
     },
   ),
 }))
+
+export const SubscriptionsLive = subscriptions.homeKeyboard.toLayer(
+  ({ shouldCaptureKeyboard }) =>
+    Stream.when(
+      capturedKeyDownStream(key => Message.PressedKey({ key })),
+      Effect.sync(() => shouldCaptureKeyboard),
+    ),
+)

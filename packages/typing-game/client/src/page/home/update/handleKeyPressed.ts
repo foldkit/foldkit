@@ -1,13 +1,21 @@
-import { Array, Match, Number, Option, flow, pipe } from 'effect'
+import { Array, Layer, Match, Number, Option, flow, pipe } from 'effect'
 import { type Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { RoomsClient } from '../../../rpc'
-import { CreateRoom, FocusRoomIdInput, FocusUsernameInput } from '../command'
+import {
+  CommandsLive,
+  CreateRoom,
+  FocusRoomIdInput,
+  FocusUsernameInput,
+} from '../command'
 import { Message } from '../message'
 import { HOME_ACTIONS, HomeAction, HomeStep, Model } from '../model'
 
-type UpdateReturn = Update.Return<Model, Message, RoomsClient>
+type UpdateReturn = Update.Return<
+  Model,
+  Message,
+  Layer.Success<typeof CommandsLive>
+>
 const withUpdateReturn = Match.withReturnType<UpdateReturn>()
 
 export const handleKeyPressed =

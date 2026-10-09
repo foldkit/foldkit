@@ -33,7 +33,7 @@ DevTools displays the value as `<redacted:access token>`. This prevents accident
 
 DevTools are enabled by default in development. Recording and the MCP bridge live in the core runtime. The browser overlay ships separately in `@foldkit/devtools`. When that package is installed as a development dependency, `@foldkit/vite-plugin` mounts the overlay automatically during development. Production builds omit it without an application-level environment check.
 
-Add a `devTools` object to `makeApplication` only when you need to configure DevTools or allow MCP dispatch. To include the overlay in production, move `@foldkit/devtools` to regular `dependencies` and set `show: 'Always'`. You do not need to import the overlay.
+Add a `devTools` object to `Application.make` only when you need to configure DevTools or allow MCP dispatch. To include the overlay in production, move `@foldkit/devtools` to regular `dependencies` and set `show: 'Always'`. You do not need to import the overlay.
 
 ::Snippet{name="devtoolsBasic" label="Configuring DevTools"}
 

@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { Array, Duration, Effect, Option, Schema, String, pipe } from 'effect'
-import { Command, FieldValidation, Submodel, type Update } from 'foldkit'
+import { Command, FieldValidation, Submodel, Update } from 'foldkit'
 import {
   Field,
   Invalid,
@@ -83,7 +83,10 @@ export const SimulateAuthRequest = Command.define('SimulateAuthRequest', {
     Message.SucceededSimulateAuthRequest,
     Message.FailedSimulateAuthRequest,
   ],
-  execute: ({ email, password }) =>
+})
+
+export const SimulateAuthRequestLive = SimulateAuthRequest.toLayer(
+  ({ email, password }) =>
     Effect.gen(function* () {
       yield* Effect.sleep(Duration.seconds(1))
 
@@ -104,57 +107,55 @@ export const SimulateAuthRequest = Command.define('SimulateAuthRequest', {
 
       return Message.SucceededSimulateAuthRequest({ session })
     }),
-})
+)
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
-    message,
-    {
-      ChangedEmail: ({ value }) => ({
-        model: modifyFields(model, { email: () => validateEmail(value) }),
-      }),
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
+    ChangedEmail: ({ value }) => ({
+      model: modifyFields(model, { email: () => validateEmail(value) }),
+    }),
 
-      ChangedPassword: ({ value }) => ({
-        model: modifyFields(model, { password: () => validatePassword(value) }),
-      }),
+    ChangedPassword: ({ value }) => ({
+      model: modifyFields(model, { password: () => validatePassword(value) }),
+    }),
 
-      SubmittedForm: () => {
-        if (model.isSubmitting) {
-          return { model }
-        }
+    SubmittedForm: () => {
+      if (model.isSubmitting) {
+        return { model }
+      }
 
-        if (!isFormValid(model)) {
-          return { model }
-        }
+      if (!isFormValid(model)) {
+        return { model }
+      }
 
-        return {
-          model: modifyFields(model, { isSubmitting: () => true }),
-          commands: [
-            SimulateAuthRequest({
-              email: model.email.value,
-              password: model.password.value,
-            }),
-          ],
-        }
-      },
-
-      SucceededSimulateAuthRequest: ({ session }) => ({
-        model,
-        outMessage: OutMessage.SucceededLogin({ session }),
-      }),
-
-      FailedSimulateAuthRequest: ({ error }) => ({
-        model: modifyFields(model, {
-          password: () =>
-            Invalid({
-              value: model.password.value,
-              errors: [error],
-            }),
-          isSubmitting: () => false,
-        }),
-      }),
+      return {
+        model: modifyFields(model, { isSubmitting: () => true }),
+        commands: [
+          SimulateAuthRequest({
+            email: model.email.value,
+            password: model.password.value,
+          }),
+        ],
+      }
     },
-  )
+
+    SucceededSimulateAuthRequest: ({ session }) => ({
+      model,
+      outMessage: OutMessage.SucceededLogin({ session }),
+    }),
+
+    FailedSimulateAuthRequest: ({ error }) => ({
+      model: modifyFields(model, {
+        password: () =>
+          Invalid({
+            value: model.password.value,
+            errors: [error],
+          }),
+        isSubmitting: () => false,
+      }),
+    }),
+  }),
+)
 
 // VIEW
 

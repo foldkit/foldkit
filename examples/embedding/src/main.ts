@@ -1,5 +1,5 @@
-import { Duration, Effect, Schema, Stream } from 'effect'
-import { Command, Port, Runtime, Subscription, type Update } from 'foldkit'
+import { Duration, Effect, Layer, Schema, Stream } from 'effect'
+import { Application, Command, Port, Subscription, Update } from 'foldkit'
 import { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -37,8 +37,8 @@ export const ports = {
 export const Flags = Schema.Struct({ initialCount: Schema.Number })
 export type Flags = typeof Flags.Type
 
-export const init: Runtime.ElementInit<Model, Message, Flags> = flags => ({
-  model: { count: flags.initialCount, step: 1 },
+export const init = (flags: Flags) => ({
+  model: Model.make({ count: flags.initialCount, step: 1 }),
 })
 
 // COMMAND
@@ -46,17 +46,17 @@ export const init: Runtime.ElementInit<Model, Message, Flags> = flags => ({
 export const ReportCount = Command.define('ReportCount', {
   args: { count: Schema.Number },
   messages: [Message.CompletedReportCount],
-  execute: ({ count }) =>
-    Port.emit(ports.outbound.countChanged, count).pipe(
-      Effect.as(Message.CompletedReportCount()),
-    ),
 })
+
+const ReportCountLive = ReportCount.toLayer(({ count }) =>
+  Port.emit(ports.outbound.countChanged, count).pipe(
+    Effect.as(Message.CompletedReportCount()),
+  ),
+)
 
 // UPDATE
 
-type UpdateReturn = Update.Return<Model, Message>
-
-const advance = (model: Model): UpdateReturn => {
+const advance = (model: Model) => {
   const count = model.count + model.step
   return {
     model: modifyFields(model, { count: () => count }),
@@ -64,28 +64,33 @@ const advance = (model: Model): UpdateReturn => {
   }
 }
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     Ticked: () => advance(model),
     ClickedAdvance: () => advance(model),
     ChangedStep: ({ step }) => ({
       model: modifyFields(model, { step: () => step }),
     }),
     CompletedReportCount: () => ({ model }),
-  })
+  }),
+)
 
 // SUBSCRIPTION
 
 const TICK_INTERVAL = Duration.seconds(1)
 
-export const subscriptions = Subscription.make<Model, Message>()(_entry => ({
-  tick: Subscription.persistentEntry(
-    Stream.tick(TICK_INTERVAL).pipe(Stream.drop(1), Stream.map(Message.Ticked)),
-  ),
+export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  tick: entry('WatchWidgetTicks', {}, { modelToDependencies: () => ({}) }),
   hostStep: Port.subscriptionEntry(ports.inbound.stepChanged, step =>
     Message.ChangedStep({ step }),
   ),
 }))
+
+const WatchWidgetTicksLive = subscriptions.tick.toLayer(() =>
+  Stream.tick(TICK_INTERVAL).pipe(Stream.drop(1), Stream.map(Message.Ticked)),
+)
+
+export const Live = Layer.mergeAll(ReportCountLive, WatchWidgetTicksLive)
 
 // VIEW
 
@@ -135,17 +140,20 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html =>
 // PROGRAM
 
 export const makeElement = (container: HTMLElement, flags: Flags) =>
-  Runtime.makeElement({
-    Model,
-    Flags,
-    flags: Effect.succeed(flags),
-    init,
-    update,
-    view,
-    subscriptions,
-    ports,
-    container,
-    devTools: {
-      Message,
-    },
-  })
+  Application.provide(
+    Application.makeElement({
+      Model,
+      Flags,
+      flags: Effect.succeed(flags),
+      init,
+      update,
+      view,
+      subscriptions,
+      ports,
+      container,
+      devTools: {
+        Message,
+      },
+    }),
+    Live,
+  )

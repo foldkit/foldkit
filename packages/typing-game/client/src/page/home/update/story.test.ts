@@ -13,7 +13,7 @@ import {
   CreateRoom,
   FocusRoomIdInput,
   FocusUsernameInput,
-  JoinRoom,
+  JoinRoomFromHome,
 } from '../command'
 import { Message, OutMessage } from '../message'
 import { HomeStep } from '../model'
@@ -212,8 +212,8 @@ describe('joining a room', () => {
       message(Message.ChangedRoomId({ value: 'r1' })),
       message(Message.SubmittedJoinRoomForm()),
       Command.resolve(
-        JoinRoom,
-        Message.SucceededJoinRoom({ roomId: 'r1', player: alice }),
+        JoinRoomFromHome,
+        Message.SucceededJoinRoomFromHome({ roomId: 'r1', player: alice }),
       ),
       expectOutMessage(OutMessage.JoinedRoom({ roomId: 'r1', player: alice })),
     )
@@ -223,7 +223,7 @@ describe('joining a room', () => {
     story(
       update,
       givenEnterRoomIdStep(),
-      message(Message.FailedJoinRoom({ error: 'Room not found' })),
+      message(Message.FailedJoinRoomFromHome({ error: 'Room not found' })),
       model(model => {
         expect(model.formError).toMatchObject({
           _tag: 'Some',

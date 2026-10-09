@@ -12,7 +12,7 @@ Effectful work lives at boundaries managed by the Runtime. Depending on the boun
 - [Mount](/core/mount) describes work tied to one live `Element`. Use it for element measurement, observers, portaling, and imperative third-party libraries.
 - [Flags](/core/init-and-flags#flags) obtain the outside data needed before init can construct the first Model.
 - [Subscriptions](/core/subscriptions) describe ongoing work whose lifetime follows dependencies derived from the Model.
-- [Resources](/core/resources) provide app-lifetime services shared by Commands, Subscriptions, Mounts, and Flags.
+- [Application Layers](/core/resources) provide app-lifetime services shared by Commands, Subscriptions, Mounts, and Flags.
 - [ManagedResource](/core/managed-resources) acquires a typed stateful handle while a Model condition holds. Commands and Subscriptions can use that handle while it is live.
 
 These descriptions do nothing until the Runtime starts them. One narrow exception stays inside its boundary: a DOM-event mapper may need to perform synchronous browser work before returning a value. Use [`Dom.streamFromEventFilterMapPreventDefault`](/core/dom#filtered-events-and-synchronous-cancellation) when handling an event should also cancel its default action. The helper runs `filterMapEvent` and calls `preventDefault()` inside the browser's dispatch, while a downstream `Stream` operator runs too late to cancel the event. `Subscription.make` checks that the final Stream emits Messages.

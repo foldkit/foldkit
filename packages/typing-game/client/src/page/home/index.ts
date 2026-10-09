@@ -1,5 +1,7 @@
 export * as Model from './model'
 export { Message, OutMessage } from './message'
+export { CommandsLive } from './command'
+export { Live } from './live'
 export * from './subscription'
 export * from './init'
 export * from './update'

@@ -10,8 +10,11 @@ export const SubmitApplication = Command.define('SubmitApplication', {
     Message.SucceededSubmitApplication,
     Message.FailedSubmitApplication,
   ],
-  execute: Effect.gen(function* () {
+})
+
+export const SubmitApplicationLive = SubmitApplication.toLayer(() =>
+  Effect.gen(function* () {
     yield* Effect.sleep(Duration.millis(1500))
     return Message.SucceededSubmitApplication()
   }),
-})
+)

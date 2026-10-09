@@ -4,7 +4,12 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
 import * as Entry from './entry'
-import { GenerateEntryId, Message, init, update } from './workHistory'
+import {
+  GenerateWorkHistoryEntryId,
+  Message,
+  init,
+  update,
+} from './workHistory'
 
 const today = Calendar.make(2026, 4, 16)
 const givenInitial = given(init(today, 'work-history-entry-1'))
@@ -15,10 +20,10 @@ describe('workHistory', () => {
       update,
       givenInitial,
       message(Message.ClickedAddEntry()),
-      Command.expectHas(GenerateEntryId),
+      Command.expectHas(GenerateWorkHistoryEntryId),
       Command.resolve(
-        GenerateEntryId,
-        Message.SucceededGenerateEntryId({ entryId: 'test-work-1' }),
+        GenerateWorkHistoryEntryId,
+        Message.SucceededGenerateWorkHistoryEntryId({ entryId: 'test-work-1' }),
       ),
       model(model => {
         expect(model.entries).toHaveLength(2)
@@ -26,11 +31,11 @@ describe('workHistory', () => {
     )
   })
 
-  test('FailedGenerateEntryId leaves the entries unchanged', () => {
+  test('FailedGenerateWorkHistoryEntryId leaves the entries unchanged', () => {
     story(
       update,
       givenInitial,
-      message(Message.FailedGenerateEntryId()),
+      message(Message.FailedGenerateWorkHistoryEntryId()),
       Command.expectNone(),
       model(model => {
         expect(model).toEqual(init(today, 'work-history-entry-1'))

@@ -21,21 +21,25 @@ type Model = typeof Model.Type
 
 // SUBSCRIPTION
 
-const subscriptions = Subscription.make<Model, Message>()(entry => ({
+export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   tick: entry(
+    'WatchAutoCountTicks',
     { isAutoCounting: Schema.Boolean },
     {
       modelToDependencies: model => ({
         isAutoCounting: model.isAutoCounting,
       }),
-      dependenciesToStream: ({ isAutoCounting }) =>
-        Stream.when(
-          Stream.tick(Duration.seconds(1)).pipe(
-            Stream.drop(1),
-            Stream.map(Message.Ticked),
-          ),
-          Effect.sync(() => isAutoCounting),
-        ),
     },
   ),
 }))
+
+export const WatchAutoCountTicksLive = subscriptions.tick.toLayer(
+  ({ isAutoCounting }) =>
+    Stream.when(
+      Stream.tick(Duration.seconds(1)).pipe(
+        Stream.drop(1),
+        Stream.map(Message.Ticked),
+      ),
+      Effect.sync(() => isAutoCounting),
+    ),
+)

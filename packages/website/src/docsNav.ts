@@ -310,7 +310,7 @@ export const docsSections: ReadonlyArray<DocsSection> = [
         {
           _tag: 'CoreResources',
           href: coreResourcesRouter(),
-          label: 'Resources',
+          label: 'Application Layers',
         },
         {
           _tag: 'CoreManagedResources',

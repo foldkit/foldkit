@@ -1,9 +1,10 @@
-import { Crypto, Effect, Schema } from 'effect'
-import { Calendar, Runtime } from 'foldkit'
+import { Crypto, Effect, Layer, Schema } from 'effect'
+import { Calendar } from 'foldkit'
 
 import { BrowserCrypto } from '@effect/platform-browser'
 import { Menu, Tabs } from '@foldkit/ui'
 
+import { SubmitApplicationLive } from './command'
 import { Message } from './message'
 import { Model, Submission } from './model'
 import {
@@ -43,13 +44,13 @@ export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message, Flags> = ({
+export const init = ({
   today,
   initialWorkHistoryEntryId,
   initialEducationEntryId,
   initialSkillsEntryId,
-}) => ({
-  model: {
+}: Flags) => ({
+  model: Model.make({
     currentStep: 'PersonalInfo',
     personalInfo: PersonalInfo.init(today),
     workHistory: WorkHistory.init(today, initialWorkHistoryEntryId),
@@ -62,7 +63,15 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = ({
     stepMenu: Menu.init({ id: 'step-menu' }),
     stepTabs: Tabs.init({ id: 'step-tabs' }),
     isSubmitAttempted: false,
-  },
+  }),
 })
+
+export const Live = Layer.mergeAll(
+  SubmitApplicationLive,
+  PersonalInfo.Live,
+  WorkHistory.Live,
+  Education.Live,
+  Skills.Live,
+).pipe(Layer.provide(BrowserCrypto.layer))
 
 export { Message, Model, update, view }

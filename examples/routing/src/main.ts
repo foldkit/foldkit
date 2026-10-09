@@ -1,5 +1,5 @@
-import { Array, Effect, Match, Option, Schema } from 'effect'
-import { Command, Dom, Runtime, Subscription, Update } from 'foldkit'
+import { Array, Effect, Layer, Match, Option, Schema } from 'effect'
+import { Command, Dom, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
@@ -53,9 +53,7 @@ export type Message = typeof Message.Type
 
 // INIT
 
-export const init: Runtime.RoutingApplicationInit<Model, Message> = (
-  url: Url,
-) => {
+export const init = (url: Url) => {
   const route = urlToAppRoute(url)
 
   const initialPeopleRoute = Match.value(route).pipe(
@@ -74,20 +72,28 @@ export const init: Runtime.RoutingApplicationInit<Model, Message> = (
 export const NavigateInternal = Command.define('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
-  execute: ({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
 })
 
 const LoadExternal = Command.define('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
-  execute: ({ href }) =>
-    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
 })
+
+const CommandsLive = Layer.mergeAll(
+  NavigateInternal.toLayer(({ url }) =>
+    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+  ),
+  LoadExternal.toLayer(({ href }) =>
+    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+  ),
+)
 
 // UPDATE
 
-type UpdateReturn = Update.Return<Model, Message>
+type UpdateRequirements =
+  | Layer.Success<typeof CommandsLive>
+  | People.UpdateRequirements
+type UpdateReturn = Update.Return<Model, Message, UpdateRequirements>
 
 const navigationUrlByShortcut: Readonly<
   Record<NavigationShortcut, () => string>
@@ -100,7 +106,7 @@ const navigationUrlByShortcut: Readonly<
 
 const foldPeopleEntry = <Input>(
   update: (peoplePage: People.Model, input: Input) => People.UpdateReturn,
-): Update.Fold<Model, Message, Input> =>
+): Update.Fold<Model, Message, Input, People.UpdateRequirements> =>
   Update.foldChild({
     update,
     read: model => Option.some(model.peoplePage),
@@ -114,10 +120,10 @@ const foldPeople = foldPeopleEntry(People.update)
 const foldPeopleRouteChanged = foldPeopleEntry(People.informRouteChanged)
 
 const setRoute =
-  (nextRoute: AppRoute): Update.Step<Model, Message> =>
+  (nextRoute: AppRoute): Update.Step<Model, Message, UpdateRequirements> =>
   model => ({ model: modifyFields(model, { route: () => nextRoute }) })
 
-export const update = (model: Model, message: Message) =>
+export const update = Update.make((model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
@@ -138,7 +144,9 @@ export const update = (model: Model, message: Message) =>
       const nextRoute = urlToAppRoute(url)
 
       const routeSteps = Match.value(nextRoute).pipe(
-        Match.withReturnType<ReadonlyArray<Update.Step<Model, Message>>>(),
+        Match.withReturnType<
+          ReadonlyArray<Update.Step<Model, Message, UpdateRequirements>>
+        >(),
         Match.tag('People', peopleRoute => [
           foldPeopleRouteChanged(peopleRoute),
         ]),
@@ -155,34 +163,47 @@ export const update = (model: Model, message: Message) =>
     },
 
     GotPeopleMessage: ({ message }) => foldPeople(model, message),
-  })
+  }),
+)
 
 // SUBSCRIPTION
 
-export const subscriptions = Subscription.make<Model, Message>()(() => ({
-  keyBindings: Subscription.persistentEntry(
-    Dom.streamFromKeyBindings<Message>({
-      bindings: [
-        {
-          keys: ['G', 'H'],
-          mapEvent: () => Message.EnteredNavigationShortcut({ shortcut: 'GH' }),
-        },
-        {
-          keys: ['G', 'P'],
-          mapEvent: () => Message.EnteredNavigationShortcut({ shortcut: 'GP' }),
-        },
-        {
-          keys: ['G', 'F'],
-          mapEvent: () => Message.EnteredNavigationShortcut({ shortcut: 'GF' }),
-        },
-        {
-          keys: ['G', 'N'],
-          mapEvent: () => Message.EnteredNavigationShortcut({ shortcut: 'GN' }),
-        },
-      ],
-    }),
+export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  keyBindings: entry(
+    'WatchNavigationShortcuts',
+    {},
+    { modelToDependencies: () => ({}) },
   ),
 }))
+
+const WatchNavigationShortcutsLive = subscriptions.keyBindings.toLayer(() =>
+  Dom.streamFromKeyBindings<Message>({
+    bindings: [
+      {
+        keys: ['G', 'H'],
+        mapEvent: () => Message.EnteredNavigationShortcut({ shortcut: 'GH' }),
+      },
+      {
+        keys: ['G', 'P'],
+        mapEvent: () => Message.EnteredNavigationShortcut({ shortcut: 'GP' }),
+      },
+      {
+        keys: ['G', 'F'],
+        mapEvent: () => Message.EnteredNavigationShortcut({ shortcut: 'GF' }),
+      },
+      {
+        keys: ['G', 'N'],
+        mapEvent: () => Message.EnteredNavigationShortcut({ shortcut: 'GN' }),
+      },
+    ],
+  }),
+)
+
+export const Live = Layer.mergeAll(
+  CommandsLive,
+  People.Live,
+  WatchNavigationShortcutsLive,
+)
 
 // VIEW
 

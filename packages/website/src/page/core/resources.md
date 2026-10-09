@@ -1,4 +1,4 @@
-# Resources
+# Application Layers
 
 ## Overview
 
@@ -37,7 +37,7 @@ Common cases follow from that distinction:
 
 When many HTTP Commands share a derived client, compose their handler Layers and provide the client Layer underneath that bundle. This builds the client once and lets every handler capture it. An Effect-level test can provide a mock service while constructing a handler Layer.
 
-## Resources in Flags
+## Services in Flags
 
 The Flags Effect can require services too. `Runtime.run` resolves Flags before calling init, so an application Layer that supplies a Flags dependency must build during startup.
 

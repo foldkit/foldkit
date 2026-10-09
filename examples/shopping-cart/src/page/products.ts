@@ -55,45 +55,48 @@ export const init = (products: ReadonlyArray<Item.Item>): Model => ({
 export const ReplaceSearchUrl = Command.define('ReplaceSearchUrl', {
   args: { url: Schema.String },
   messages: [Message.CompletedReplaceSearchUrl],
-  execute: ({ url }) =>
-    replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceSearchUrl())),
 })
+
+export const Live = ReplaceSearchUrl.toLayer(({ url }) =>
+  replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceSearchUrl())),
+)
 
 // UPDATE
 
+export type UpdateRequirements = Command.HandlerOf<typeof ReplaceSearchUrl>
+
 export const update = (model: Model, message: Message) =>
-  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
-    message,
-    {
-      CompletedReplaceSearchUrl: () => ({ model }),
+  Message.match<
+    Update.ReturnWithOutMessage<Model, Message, OutMessage, UpdateRequirements>
+  >(message, {
+    CompletedReplaceSearchUrl: () => ({ model }),
 
-      ChangedSearchInput: ({ value }) => ({
-        model: modifyFields(model, { searchText: () => value }),
-        commands: [
-          ReplaceSearchUrl({
-            url: productsRouter({
-              searchText: Option.fromNullishOr(value || null),
-            }),
+    ChangedSearchInput: ({ value }) => ({
+      model: modifyFields(model, { searchText: () => value }),
+      commands: [
+        ReplaceSearchUrl({
+          url: productsRouter({
+            searchText: Option.fromNullishOr(value || null),
           }),
-        ],
-      }),
+        }),
+      ],
+    }),
 
-      ClickedAddToCart: ({ item }) => ({
-        model,
-        outMessage: OutMessage.AddedToCart({ item }),
-      }),
+    ClickedAddToCart: ({ item }) => ({
+      model,
+      outMessage: OutMessage.AddedToCart({ item }),
+    }),
 
-      ClickedIncrementQuantity: ({ itemId }) => ({
-        model,
-        outMessage: OutMessage.IncrementedQuantity({ itemId }),
-      }),
+    ClickedIncrementQuantity: ({ itemId }) => ({
+      model,
+      outMessage: OutMessage.IncrementedQuantity({ itemId }),
+    }),
 
-      ClickedDecrementQuantity: ({ itemId }) => ({
-        model,
-        outMessage: OutMessage.DecrementedQuantity({ itemId }),
-      }),
-    },
-  )
+    ClickedDecrementQuantity: ({ itemId }) => ({
+      model,
+      outMessage: OutMessage.DecrementedQuantity({ itemId }),
+    }),
+  })
 
 // VIEW
 

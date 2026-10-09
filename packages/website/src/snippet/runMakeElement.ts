@@ -1,8 +1,8 @@
-import { Runtime } from 'foldkit'
+import { Application, Runtime } from 'foldkit'
 
 import { Model, init, update, view } from './main'
 
-const element = Runtime.makeElement({
+const element = Application.makeElement({
   Model,
   init,
   update,

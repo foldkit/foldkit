@@ -1,5 +1,5 @@
 import { Effect } from 'effect'
-import { Command, type Update } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -14,17 +14,18 @@ const DelayReset = Command.define(
   {
     // Every Message this Command can produce
     messages: [Message.CompletedDelayReset],
-    // The Effect
-    execute: Effect.sleep('1 second').pipe(
-      Effect.as(Message.CompletedDelayReset()),
-    ),
   },
 )
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const DelayResetLive = DelayReset.toLayer(() =>
+  Effect.sleep('1 second').pipe(Effect.as(Message.CompletedDelayReset())),
+)
+
+const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedResetAfterDelay: () => ({ model, commands: [DelayReset()] }),
     CompletedDelayReset: () => ({
       model: modifyFields(model, { count: () => 0 }),
     }),
-  })
+  }),
+)

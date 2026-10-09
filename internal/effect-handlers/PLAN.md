@@ -4,9 +4,9 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 ## Status
 
-**Current milestone:** Command, Subscription, Mount, and ManagedResource handler Layers work through `Application.make` and `Application.provide`. The website and representative lifecycle examples compose production handlers by feature.
+**Current milestone:** Command, Subscription, Mount, and ManagedResource handler Layers work through `Application.make`, `Application.makeElement`, and `Application.provide`. The website, first-party examples, and Typing Game compose production handlers by feature.
 
-**Next implementation:** Migrate the 13 remaining first-party example entries, finish active inline-handler snippets, then retire the old application `resources` configuration.
+**Next implementation:** Finish the active teaching material and migrate legacy `resources` callers to the Layer assembly path. Retire the old `resources` configuration after its lifecycle tests have a replacement path.
 
 **Scope:** Production handler Layers and application assembly. Whole-application testing APIs are deferred.
 
@@ -16,6 +16,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 | Application assembly                      | Implemented, verifying | See unsatisfied requirements on an application and provide Layers before starting it. |
 | Subscription and ManagedResource handlers | Implemented, verifying | Replace implementations while preserving Model-driven lifecycles.                     |
 | Mount boundary                            | Implemented, verifying | Register Layer-backed Mount definitions to carry their requirements.                  |
+| Embedded Element assembly                 | Implemented, verifying | Provide handler Layers and Flags services to a container-scoped Element.              |
 | Migration and verification                | In progress            | First-party apps, templates, and active docs use the final API.                       |
 
 ## Target surface
@@ -53,7 +54,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 - [x] Add a synthetic service for Layer-backed Command definitions and `toLayer(handler | Effect<handler>)`.
 - [x] Preserve Command identity, argument capture, result Message mapping, and interruption. Existing Command and DevTools tests pass.
-- [ ] Migrate first-party Command definitions and application Layers. The website's 27 production Commands are migrated.
+- [x] Migrate first-party page-owning Command definitions and application Layers. The website's 27 production Commands, all 33 page-owning example entries, Typing Game, and the Embedding example are migrated.
 
 ### 4. Subscription and ManagedResource handlers
 
@@ -61,7 +62,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 - [x] Reject distinct Subscription definitions that use the same handler name in one application.
 - [x] Move Subscription Stream implementations into handler Layers without changing restart and keep-alive behavior.
 - [x] Move ManagedResource acquire and release implementations into handler Layers without changing active-value access or release timing.
-- [ ] Migrate first-party Subscriptions and ManagedResources. The website, Stopwatch, WebSocket Chat, Snake, and Managed Resource Layer examples are migrated.
+- [x] Migrate first-party page-owning Subscriptions and ManagedResources. The website, page-owning examples, and Typing Game use Layer-backed handlers where the implementation is app-owned.
 - [x] Migrate SSR and SSG scaffolds to `Application.make`; the SSR cookie-writing Command has a handler Layer.
 
 ### 5. Mount boundary
@@ -73,11 +74,18 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 `view` returns a `Document`, and `MountAction.f` currently returns a Stream with no exposed `R`. A Mount used only inside `view` therefore cannot add a handler requirement to `Application.make` by inference from update or Subscriptions. The application will register its Layer-backed Mount definitions in a `mounts` collection. That collection contributes handler requirements to the application's `R` channel. A pre-patch check of rendered Mount identities will reject unregistered Layer-backed actions, including ones revealed by later Model states. An unused registration is valid because conditional views are normal. Inline Mounts need no registration.
 
-### 6. Verification and publication
+### 6. Embedded Element assembly
+
+- [x] Add a Layer-aware `Application.makeElement` path for container-scoped apps. Include Flags, init and update Commands, Subscriptions, ManagedResources, and registered Mounts in its requirements.
+- [x] Migrate the Embedding example to `Application.makeElement` and feature-composed handler Layers.
+- [ ] Decide when to retire `resources` from the legacy `Runtime.makeApplication` and `Runtime.makeElement` APIs. They currently have lazy acquisition semantics and published Element consumers; migrate their lifecycle tests before removing them.
+
+### 7. Verification and publication
 
 - [ ] Complete active documentation, examples, and template migration for the final public API.
-  - The website and 20 example entries use `Application.make`. Their replaceable effects use handler Layers; 13 example entries remain to migrate.
+  - The website and all 33 page-owning example entries use `Application.make`. The experimental Query fetch API also has a Layer boundary for keyed and unkeyed Queries.
   - Runtime entry, Resources, and ManagedResource teaching snippets use `Application.make` and `toLayer` where those APIs apply.
+  - `skills/generate-program` still teaches the legacy `Runtime.makeApplication` and `Runtime.makeElement` entry points. Migrate it before retiring those APIs.
 - [x] Verify feature Layer composition with the website's 27 production Commands, then migrate its application entry without listing every handler there. Documentation snippets account for another 51 definitions.
   - Each feature owns a `Live` Layer next to its update/lifecycle definitions. Features with multiple modules compose their local Layers and export one `Live` from their barrel.
   - `src/live.ts` composes feature Layers and service providers. `entry.ts` imports that one `WebsiteLive` value and calls `Application.provide` once; it never imports individual handler Layers.
@@ -85,7 +93,8 @@ This is the working checklist for separating Foldkit effect definitions from the
 - [x] Run workspace type checks, all Foldkit unit tests, focused example tests, and lint for the current slice.
 - [x] Resolve API reference generator warnings about helper types exposed through the new public signatures.
 - [x] Run the website build and browser smoke suite after its migration.
-- [ ] Run full build and end-to-end verification gates after the remaining migrations.
+- [x] Run the full workspace build and TypeScript gates after the Element migration.
+- [x] Run the website end-to-end suite after the Element migration.
 - [ ] Review the full diff for public API coherence and migration guidance.
 
 ## Verification snapshot
@@ -97,6 +106,12 @@ This is the working checklist for separating Foldkit effect definitions from the
 - Website: 1,301 unit tests passed across 29 files; TypeScript, build, and six browser smoke tests passed. Two browser tests timed out under parallel load, then passed serially with retries disabled.
 - WebSocket Chat, Snake, Charting, Map, Counter, Counters, Crash View, and Web Components: targeted type checks and 105 existing tests passed.
 - API Cache, Canvas Art, Form, Generative Art, Interrupting Commands, Personal Blog, Route Transitions, State Machine, and View Transitions: targeted type checks and 115 existing tests passed.
+- Auth, Job Application, Kanban, Pixel Art, Query Sync, Routing, Shopping Cart, Slow Warnings, SSG, SSR, Todo, and UI Showcase: targeted type checks and 259 existing tests passed.
+- Typing Game client: type check, 16 tests, production build, lint, and formatting passed with one composed `Live` Layer instead of an application `resources` field.
+- Query: 46 Foldkit tests and 16 API Cache Query tests passed. Foldkit, website, and the example type checks passed.
+- Embedded Element assembly: 64 focused Foldkit runtime tests passed. The Embedding example type check and six tests passed.
+- The full workspace build and TypeScript checks passed. Foldkit's full suite passed with 3,005 tests and one skipped; root lint and formatting passed.
+- Website browser suite: 17 tests passed directly and one passed on retry under parallel load. The timed-out test passed in a separate serial run with retries disabled.
 - Website TypeScript check and production build passed with the updated Runtime, Resources, and ManagedResource pages.
 - The API reference generator succeeds without warnings after documenting private signature helpers in its exclusion list.
 

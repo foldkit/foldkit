@@ -1,4 +1,4 @@
-import { Effect, Match, Option, Schema, Stream } from 'effect'
+import { Effect, Layer, Match, Option, Schema, Stream } from 'effect'
 import { Dom, Subscription } from 'foldkit'
 
 import { Message } from './message'
@@ -39,33 +39,52 @@ const toToolMessage = (event: KeyboardEvent): Option.Option<Message> => {
 }
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  undoRedoKeys: Subscription.persistentEntry(
+  undoRedoKeys: entry(
+    'WatchUndoRedoKeys',
+    {},
+    {
+      modelToDependencies: () => ({}),
+    },
+  ),
+
+  toolKeys: entry(
+    'WatchToolKeys',
+    {},
+    {
+      modelToDependencies: () => ({}),
+    },
+  ),
+
+  mouseRelease: entry(
+    'WatchMouseRelease',
+    { isDrawing: Schema.Boolean },
+    {
+      modelToDependencies: model => ({ isDrawing: model.isDrawing }),
+    },
+  ),
+}))
+
+export const SubscriptionsLive = Layer.mergeAll(
+  subscriptions.undoRedoKeys.toLayer(() =>
     Dom.streamFromEventFilterMapPreventDefault({
       target: document,
       type: 'keydown',
       filterMapEvent: toUndoRedoMessage,
     }),
   ),
-
-  toolKeys: Subscription.persistentEntry(
+  subscriptions.toolKeys.toLayer(() =>
     Dom.streamFromEventFilterMap({
       target: document,
       type: 'keydown',
       filterMapEvent: toToolMessage,
     }),
   ),
-
-  mouseRelease: entry(
-    { isDrawing: Schema.Boolean },
-    {
-      modelToDependencies: model => ({ isDrawing: model.isDrawing }),
-      dependenciesToStream: ({ isDrawing }) =>
-        Stream.when(
-          Stream.fromEventListener(document, 'mouseup').pipe(
-            Stream.map(() => Message.ReleasedMouse()),
-          ),
-          Effect.sync(() => isDrawing),
-        ),
-    },
+  subscriptions.mouseRelease.toLayer(({ isDrawing }) =>
+    Stream.when(
+      Stream.fromEventListener(document, 'mouseup').pipe(
+        Stream.map(() => Message.ReleasedMouse()),
+      ),
+      Effect.sync(() => isDrawing),
+    ),
   ),
-}))
+)

@@ -47,7 +47,7 @@ Five sources report through the Runtime: Commands, the Browser, Mounts, Subscrip
 - **Subscriptions:** scoped Streams gated by a slice of the Model. The runtime keeps a Subscription alive while that slice holds its value, then starts a fresh scope when the value changes. A Subscription often turns an external source, such as timer ticks, `WebSocket` frames, or system theme changes, into Messages. It can also emit no Messages and maintain DOM state for its lifetime, such as setting `user-select: none` while a drag is active.
 - **ManagedResources:** stateful handles, such as a camera stream, a `WebSocket` connection, or a Web Worker pool, that exist while a slice of the Model holds a particular value. The runtime acquires and releases the handle and dispatches Messages for each lifecycle transition. Commands and Subscriptions can use the typed handle while it is live and receive `ResourceNotAvailable` rather than crashing when it is not.
 
-Resources sit beneath the loop instead of feeding it directly. They are app-lifetime dependencies such as an `RpcClient`, an analytics client, or a background compute worker. The runtime shares them with Commands, Subscriptions, and startup Flags, but Resources do not produce Messages themselves.
+Application Layers sit beneath the loop instead of feeding it directly. They supply app-lifetime services such as an `RpcClient`, an analytics client, or a background compute worker, along with the handlers for Commands, Subscriptions, Mounts, and ManagedResources. The runtime shares their services with effect handlers and startup Flags. A Layer does not produce Messages itself.
 
 These sources never mutate the Model. They report what happened with a Message, and only `update` decides the next state. If you want to know how the app reached its current state, follow the Messages.
 
@@ -55,19 +55,19 @@ These sources never mutate the Model. They report what happened with a Message, 
 
 Use this table as a reference after you understand the loop:
 
-| Concept         | Definition                                                                                                                                                                                                  |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Model           | The single data structure that holds the entire application state.                                                                                                                                          |
-| Message         | A fact about something that happened, such as a button click, a keypress, or a successful request with a payload.                                                                                           |
-| update          | A pure function that receives the current Model and a Message, then returns the next Model and any Commands to execute.                                                                                     |
-| view            | A pure function that renders the Model as HTML. Its event handlers construct Messages.                                                                                                                      |
-| Command         | A description of a one-shot side effect. The runtime executes it and sends the result back as one of its declared Messages.                                                                                 |
-| Mount           | Imperative work scoped to a live DOM element. It emits Messages through an Effect or Stream and cleans up when the element unmounts.                                                                        |
-| Subscription    | A scoped Stream gated by a slice of the Model. The runtime restarts its scope when that slice changes.                                                                                                      |
-| Resource        | An app-lifetime singleton shared with Commands, Subscriptions, and startup Flags. It is a dependency, not a Message source.                                                                                 |
-| ManagedResource | A stateful handle scoped to a slice of the Model. The runtime manages its lifecycle, and Commands and Subscriptions can use it while it is live.                                                            |
-| Runtime         | The Foldkit engine that executes Commands, runs Subscriptions, manages Mount and resource lifecycles, and routes Messages back into update.                                                                 |
-| Submodel        | A self-contained Model, Message, update, and Commands that a parent embeds and delegates to. A child can surface high-level facts to its parent through the optional `outMessage` field returned by update. |
+| Concept           | Definition                                                                                                                                                                                                  |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Model             | The single data structure that holds the entire application state.                                                                                                                                          |
+| Message           | A fact about something that happened, such as a button click, a keypress, or a successful request with a payload.                                                                                           |
+| update            | A pure function that receives the current Model and a Message, then returns the next Model and any Commands to execute.                                                                                     |
+| view              | A pure function that renders the Model as HTML. Its event handlers construct Messages.                                                                                                                      |
+| Command           | A description of a one-shot side effect. The runtime executes it and sends the result back as one of its declared Messages.                                                                                 |
+| Mount             | Imperative work scoped to a live DOM element. It emits Messages through an Effect or Stream and cleans up when the element unmounts.                                                                        |
+| Subscription      | A scoped Stream gated by a slice of the Model. The runtime restarts its scope when that slice changes.                                                                                                      |
+| Application Layer | A provider of app-lifetime services and effect handlers. Its services can be shared by Commands, Subscriptions, and startup Flags. It is not a Message source.                                              |
+| ManagedResource   | A stateful handle scoped to a slice of the Model. The runtime manages its lifecycle, and Commands and Subscriptions can use it while it is live.                                                            |
+| Runtime           | The Foldkit engine that executes Commands, runs Subscriptions, manages Mount and resource lifecycles, and routes Messages back into update.                                                                 |
+| Submodel          | A self-contained Model, Message, update, and Commands that a parent embeds and delegates to. A child can surface high-level facts to its parent through the optional `outMessage` field returned by update. |
 
 ## The Restaurant Analogy
 
@@ -79,17 +79,17 @@ Messages work the same way. “Table 3 asked for the check” is a fact given to
 Use the analogy to remember who knows the state and who performs effects. The definitions above remain the literal contracts.
 :::
 
-| Foldkit         | Restaurant                                                                                                                  |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Model           | The waiter’s notebook: the current state of everything                                                                      |
-| Message         | Something that happens: “table 3 asked for the check”                                                                       |
-| update          | The waiter: hears what happened, updates the notebook, maybe writes a slip                                                  |
-| view            | What the customers actually see: plates on the table, the check arriving                                                    |
-| Command         | A slip for the kitchen: “prepare the salmon”                                                                                |
-| Mount           | Tableside flambé: rolled out to a specific table the moment its dish arrives, rolled away when the plate is cleared         |
-| Subscription    | A standing order: “keep the coffee coming for table 5”                                                                      |
-| Resource        | Kitchen equipment: the oven, the stand mixer, the deep fryer. Turned on when the kitchen opens and available to every dish. |
-| ManagedResource | A specialty station: set up when the menu features the seafood special, broken down when the special ends                   |
-| Runtime         | The kitchen: does the work, reports back when done                                                                          |
+| Foldkit           | Restaurant                                                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Model             | The waiter’s notebook: the current state of everything                                                              |
+| Message           | Something that happens: “table 3 asked for the check”                                                               |
+| update            | The waiter: hears what happened, updates the notebook, maybe writes a slip                                          |
+| view              | What the customers actually see: plates on the table, the check arriving                                            |
+| Command           | A slip for the kitchen: “prepare the salmon”                                                                        |
+| Mount             | Tableside flambé: rolled out to a specific table the moment its dish arrives, rolled away when the plate is cleared |
+| Subscription      | A standing order: “keep the coffee coming for table 5”                                                              |
+| Application Layer | Kitchen equipment and the cooks who use it: available while the restaurant is open to fulfill orders.               |
+| ManagedResource   | A specialty station: set up when the menu features the seafood special, broken down when the special ends           |
+| Runtime           | The kitchen: does the work, reports back when done                                                                  |
 
 That’s the architecture in the abstract. The next page shows a complete counter application: the core of the loop (a Model, Messages, `update`, `init`, and `view`) wired together and running.

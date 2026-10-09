@@ -1,6 +1,5 @@
 const PostList = Schema.Array(Post)
 
-// The generated FetchPosts Command performs this Effect.
 const fetchPosts = Effect.gen(function* () {
   const response = yield* Effect.tryPromise({
     try: () => fetch('/api/posts'),
@@ -25,5 +24,6 @@ const postsQuery = Query.define({
   name: 'Posts',
   data: PostList,
   error: Schema.String,
-  execute: fetchPosts,
 })
+
+const FetchPostsLive = postsQuery.toLayer(() => fetchPosts)

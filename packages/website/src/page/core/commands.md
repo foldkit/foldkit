@@ -23,7 +23,7 @@ When `ClickedResetAfterDelay` arrives, update keeps the Model unchanged and retu
 - `messages` lists every Message the Command may produce.
 - The first argument names the Command for DevTools, traces, and tests.
 
-Supply the implementation inline with `execute`, or omit it to give the definition a `toLayer` method that supplies the handler through an Effect Layer.
+The example gives the definition a `toLayer` handler, which supplies its implementation through an Effect Layer. An inline `execute` is also available for Commands whose implementation does not need to be replaced at application assembly.
 
 Two optional fields extend that contract. `args` defines a Schema for inputs that vary by dispatch. `interrupt` makes in-flight work explicitly interruptible.
 
@@ -53,7 +53,7 @@ The same structure applies to network work. This version asks an API for the nex
 
 ::Snippet{name="counterHttpCommand" label="HTTP Command"}
 
-`FetchCount` obtains `HttpClient` from the Effect context, executes the request, and decodes the response with Schema. Success produces `SucceededFetchCount`. `Effect.catch` converts failures into `FailedFetchCount`, so a failed request becomes another fact for update to handle instead of crashing the application.
+`FetchCountLive` obtains `HttpClient` from the Effect context, executes the request, and decodes the response with Schema. Success produces `SucceededFetchCount`. `Effect.catch` converts failures into `FailedFetchCount`, so a failed request becomes another fact for update to handle instead of crashing the application.
 
 `Effect.provide(Http.layer)` supplies Foldkit's Fetch-backed client with trace-header propagation disabled. Effect enables those headers by default, which can trigger browser CORS preflights against APIs and development proxies. A test can provide a mock client instead.
 
@@ -63,13 +63,13 @@ The Effect error channel records whether a Command can fail. Once every failure 
 
 ## Commands with Args
 
-Many Commands need an input that changes from one dispatch to the next. For example: a weather lookup needs a zip code, a focus call needs an element id, and a delay may need a duration. Declare those values in `args`. The Command Definition then accepts a typed record, and `execute` receives that record when the runtime starts the work.
+Many Commands need an input that changes from one dispatch to the next. For example: a weather lookup needs a zip code, a focus call needs an element id, and a delay may need a duration. Declare those values in `args`. The Command Definition then accepts a typed record, and its handler receives that record when the runtime starts the work.
 
 ::Snippet{name="commandWithArgs" label="Command with args"}
 
 Args appear beside the Command name in DevTools. Story and Scene tests can also match the exact dispatch with `Command.expectExact(FetchWeather({ zipCode: '90210' }))`.
 
-Args should contain per-dispatch inputs, not every dependency used by the Effect. Module constants remain in lexical scope. App-wide services come from [Resources](/core/resources), Model-gated handles come from [ManagedResources](/core/managed-resources), and other Effect services can be obtained with `yield*`.
+Args should contain per-dispatch inputs, not every dependency used by the Effect. Module constants remain in lexical scope. App-wide services come from [Application Layers](/core/resources), Model-gated handles come from [ManagedResources](/core/managed-resources), and other Effect services can be obtained with `yield*`.
 
 ## Interrupting Commands
 

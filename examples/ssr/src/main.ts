@@ -1,5 +1,5 @@
 import { Effect, Schema } from 'effect'
-import { Command, Runtime, type Update } from 'foldkit'
+import { Command, Runtime, Update } from 'foldkit'
 import { type Document, type Html, type HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -38,8 +38,8 @@ export type Message = typeof Message.Type
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedDecrement: () => {
       const nextCount = model.count - 1
       return {
@@ -55,7 +55,8 @@ export const update = (model: Model, message: Message) =>
       }
     },
     CompletedPersistCount: () => ({ model }),
-  })
+  }),
+)
 
 // COMMAND
 
@@ -64,14 +65,18 @@ const COUNT_COOKIE_MAX_AGE_SECONDS = 31536000
 export const PersistCount = Command.define('PersistCount', {
   args: { count: Schema.Number },
   messages: [Message.CompletedPersistCount],
-  execute: ({ count }) =>
-    Effect.try(() => {
-      document.cookie = `${COUNT_COOKIE}=${count}; path=/; max-age=${COUNT_COOKIE_MAX_AGE_SECONDS}`
-    }).pipe(
-      Effect.map(() => Message.CompletedPersistCount()),
-      Effect.catch(() => Effect.succeed(Message.CompletedPersistCount())),
-    ),
 })
+
+const PersistCountLive = PersistCount.toLayer(({ count }) =>
+  Effect.try(() => {
+    document.cookie = `${COUNT_COOKIE}=${count}; path=/; max-age=${COUNT_COOKIE_MAX_AGE_SECONDS}`
+  }).pipe(
+    Effect.map(() => Message.CompletedPersistCount()),
+    Effect.catch(() => Effect.succeed(Message.CompletedPersistCount())),
+  ),
+)
+
+export const Live = PersistCountLive
 
 // INIT
 

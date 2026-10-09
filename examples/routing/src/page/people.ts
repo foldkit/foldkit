@@ -1,5 +1,14 @@
-import { Array, Duration, Effect, Option, Schema, String, pipe } from 'effect'
-import { Command, Submodel, type Update } from 'foldkit'
+import {
+  Array,
+  Duration,
+  Effect,
+  Layer,
+  Option,
+  Schema,
+  String,
+  pipe,
+} from 'effect'
+import { Command, Submodel, Update } from 'foldkit'
 import { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { pushUrl } from 'foldkit/navigation'
@@ -103,7 +112,11 @@ export type Message = typeof Message.Type
 
 // INIT
 
-type InitReturn = Update.Return<Model, Message>
+type InitReturn = Update.Return<
+  Model,
+  Message,
+  Command.HandlerOf<typeof FetchPeople>
+>
 
 export const init = (route: PeopleRoute): InitReturn => {
   const searchText = routeSearchText(route)
@@ -122,16 +135,20 @@ export const init = (route: PeopleRoute): InitReturn => {
 export const PushSearchUrl = Command.define('PushSearchUrl', {
   args: { searchText: Schema.Option(Schema.String) },
   messages: [Message.CompletedPushSearchUrl],
-  execute: ({ searchText }) =>
-    pushUrl(peopleRouter({ searchText })).pipe(
-      Effect.as(Message.CompletedPushSearchUrl()),
-    ),
 })
 
 export const FetchPeople = Command.define('FetchPeople', {
   args: { searchText: Schema.String },
   messages: [Message.SucceededFetchPeople],
-  execute: ({ searchText }) =>
+})
+
+export const Live = Layer.mergeAll(
+  PushSearchUrl.toLayer(({ searchText }) =>
+    pushUrl(peopleRouter({ searchText })).pipe(
+      Effect.as(Message.CompletedPushSearchUrl()),
+    ),
+  ),
+  FetchPeople.toLayer(({ searchText }) =>
     Effect.sleep(SEARCH_LATENCY).pipe(
       Effect.as(
         Message.SucceededFetchPeople({
@@ -140,13 +157,15 @@ export const FetchPeople = Command.define('FetchPeople', {
         }),
       ),
     ),
-})
+  ),
+)
 
 // UPDATE
 
-export type UpdateReturn = Update.Return<Model, Message>
+export type UpdateRequirements = Layer.Success<typeof Live>
+export type UpdateReturn = Update.Return<Model, Message, UpdateRequirements>
 
-export const update = (model: Model, message: Message) =>
+export const update = Update.make((model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     ChangedSearchInput: ({ value }) => ({
       model: modifyFields(model, { searchInput: () => value }),
@@ -181,7 +200,8 @@ export const update = (model: Model, message: Message) =>
     }),
 
     CompletedPushSearchUrl: () => ({ model }),
-  })
+  }),
+)
 
 /** Tells the People page that the route changed. People does not own the
  *  route; it derives its own state (the search input and history) from the new

@@ -28,15 +28,17 @@ Query does not react to rendering, expire data after a duration, poll, or refres
 
 ## Define a Query
 
-Import the `Query` namespace from `foldkit/experimental`. Define the data and error Schemas, give the fetch a name, and provide the Effect that performs it:
+Import the `Query` namespace from `foldkit/experimental`. Define the data and error Schemas, give the fetch a name, and supply its implementation with `toLayer`:
 
 ::Snippet{name="queryDefine" label="Defining a Query for posts"}
 
 With no `args`, `Query.define` returns a Query that retains one value. In this definition:
 
 - `data` and `error` determine the `AsyncData` and Message Schemas.
-- `execute` is the Effect the Runtime performs when it runs the generated fetch Command.
+- `toLayer` supplies the fetch Effect for the generated Command. The Query definition can be reused with a different Layer.
 - `name: 'Posts'` gives the generated Command the name `FetchPosts` in DevTools and tests.
+
+Add the resulting Layer to the application's `Live` Layer and pass it to `Application.provide` at the entry point. Loading operations carry `FetchPosts` as a handler requirement, so an application that starts this Query cannot run without a Layer for it. The Layer can also acquire services while it is constructed; those services are available when the fetch Command executes later.
 
 The `data` and `error` values must be Schema Codecs that require no encoding or decoding services. Query uses them to build its Model and completion Message Schemas.
 
@@ -99,7 +101,7 @@ Choose the operation that matches why the parent is loading or refreshing:
 - Use `revalidateOrLoad` for a Refresh or Retry action that should work whether data is present or absent.
 - Use `revalidate` when an event affects only resources that have already loaded. A mutation result or interval tick can refresh visible data without cold-loading every related Query.
 
-Automatic behavior is still ordinary Foldkit architecture. For interval refetching, a [Subscription](/core/subscriptions) dispatches a tick Message while a Model condition is true, and that Message calls `revalidate`. For retries, compose `execute` with Effect's retry and Schedule APIs. To refresh related resources after a mutation, have the mutation result Message call the appropriate loading operation for each affected Query. Query supplies the transition; the parent records the reason and chooses when it happens.
+Automatic behavior is still ordinary Foldkit architecture. For interval refetching, a [Subscription](/core/subscriptions) dispatches a tick Message while a Model condition is true, and that Message calls `revalidate`. For retries, compose the fetch Effect with Effect's retry and Schedule APIs. To refresh related resources after a mutation, have the mutation result Message call the appropriate loading operation for each affected Query. Query supplies the transition; the parent records the reason and chooses when it happens.
 
 The [API Cache Query example](/example-apps/api-cache-query) shows all three shapes together: a Query loaded at startup, a KeyedQuery that retains post details by id, and a Query revalidated by a Subscription while its tab is active.
 

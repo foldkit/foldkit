@@ -134,27 +134,33 @@ const isEmailTaken = (emailInput: string): Effect.Effect<boolean> =>
 export const ValidateEmailAsync = Command.define('ValidateEmailAsync', {
   args: { emailInput: Schema.String, validationId: Schema.Number },
   messages: [Message.CompletedValidateEmailAsync],
-  execute: ({ emailInput, validationId }) =>
-    Effect.gen(function* () {
-      if (yield* isEmailTaken(emailInput)) {
-        return Message.CompletedValidateEmailAsync({
-          validationId,
-          field: Invalid({
-            value: emailInput,
-            errors: ['This email is already in use'],
-          }),
-        })
-      }
+})
+
+export const Live = ValidateEmailAsync.toLayer(({ emailInput, validationId }) =>
+  Effect.gen(function* () {
+    if (yield* isEmailTaken(emailInput)) {
       return Message.CompletedValidateEmailAsync({
         validationId,
-        field: Valid({ value: emailInput }),
+        field: Invalid({
+          value: emailInput,
+          errors: ['This email is already in use'],
+        }),
       })
-    }),
-})
+    }
+    return Message.CompletedValidateEmailAsync({
+      validationId,
+      field: Valid({ value: emailInput }),
+    })
+  }),
+)
 
 // UPDATE
 
-type UpdateReturn = Update.Return<Model, Message>
+type UpdateReturn = Update.Return<
+  Model,
+  Message,
+  Command.HandlerOf<typeof ValidateEmailAsync>
+>
 
 const foldPronounsOutMessage = Listbox.OutMessage.match<
   Update.Step<Model, Message>
@@ -202,7 +208,7 @@ const foldAvailableDate = Update.foldChild({
   foldOutMessage: foldAvailableDateOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
+export const update = Update.make((model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     UpdatedFirstName: ({ value }) => ({
       model: modifyFields(model, { firstName: () => validateFirstName(value) }),
@@ -257,7 +263,8 @@ export const update = (model: Model, message: Message) =>
     }),
 
     GotAvailableDateMessage: ({ message }) => foldAvailableDate(model, message),
-  })
+  }),
+)
 
 // VALIDATION SUMMARY
 

@@ -57,20 +57,21 @@ Commands describe one-shot work that produces one result. Subscriptions describe
 
 ::Snippet{name="counterAutoCount" label="Auto-counting Subscription"}
 
-`Subscription.make<Model, Message>()` receives a function that builds a named record of entries. The inline form of `entry` takes two arguments:
+`Subscription.make<Model, Message>()` receives a function that builds a named record of entries. The example uses the Layer-backed form of `entry`, which takes three arguments:
 
+- A stable handler name for the Layer requirement.
 - A field map defining the dependency Schema, in the same shape passed to `Schema.Struct`.
-- An object containing `modelToDependencies` and `dependenciesToStream`.
+- An object containing `modelToDependencies`.
 
-`modelToDependencies` extracts the values that control the entry. `dependenciesToStream` creates its Stream. Foldkit compares the extracted record structurally by default, so unrelated Model updates do not restart the timer.
+`modelToDependencies` extracts the values that control the entry. `subscriptions.tick.toLayer` supplies the Stream factory. Foldkit compares the extracted record structurally by default, so unrelated Model updates do not restart the timer.
 
-For a replaceable Stream implementation, pass a stable handler name before the dependency fields and omit `dependenciesToStream` from the callbacks. The returned entry has `toLayer(handler)` and `toLayer(Effect<handler>)`. Its record key identifies the running Subscription, while its handler name identifies the Layer requirement. `Application.provide` supplies that Layer; `Subscription.lift` and `Subscription.aggregate` preserve the handler identity and Model-driven restart behavior.
+The inline form takes the dependency fields and an object with both `modelToDependencies` and `dependenciesToStream`. A Layer-backed entry has `toLayer(handler)` and `toLayer(Effect<handler>)`. Its record key identifies the running Subscription, while its handler name identifies the Layer requirement. `Application.provide` supplies that Layer; `Subscription.lift` and `Subscription.aggregate` preserve the handler identity and Model-driven restart behavior.
 
 Distinct Subscription definitions within one application need distinct handler names. The same definition can be lifted into multiple registration keys and share one handler Layer. `Application.make` rejects duplicate names from different definitions.
 
 When `isAutoCounting` changes to `true`, the new Stream starts ticking. When it changes back to `false`, the active scope closes and the timer stops.
 
-Defining `subscriptions` is only half of the setup. Pass the record to `makeApplication` or no streams start. The field is optional, so omitting it still produces a valid application without Subscription behavior.
+Defining `subscriptions` is only half of the setup. Pass the record to `Application.make` or no streams start. The field is optional, so omitting it still produces a valid application without Subscription behavior.
 
 ::Snippet{name="counterEntryWithSubscriptions" label="Subscription wiring"}
 
@@ -114,7 +115,7 @@ Auto-scroll during drag and drop is one example. `isDragging` should start and s
 
 ### Reading Live Dependencies
 
-The second argument to `dependenciesToStream` is `readDependencies`. It synchronously returns the latest dependency record, including fields that `keepAliveEquivalence` excluded from the restart decision. The animation callback can therefore read the newest `clientY` on every frame without restarting its Stream.
+The second argument to the `toLayer` handler is `readDependencies`. It synchronously returns the latest dependency record, including fields that `keepAliveEquivalence` excluded from the restart decision. The animation callback can therefore read the newest `clientY` on every frame without restarting its Stream.
 
 Most entries should use the first `dependencies` argument directly. Reach for `readDependencies` only when a long-lived callback needs current values that should not control its lifetime. The [Drag and Drop](/ui/drag-and-drop) component and [Kanban example](/example-apps/kanban) show this pattern in context.
 

@@ -59,11 +59,19 @@ type CommandRequirements<Output> = Output extends unknown
     : never
   : never
 
+type OutMessageOf<Output> = Output extends unknown
+  ? 'outMessage' extends keyof Output
+    ? Output extends Readonly<{ outMessage?: infer OutMessage }>
+      ? Exclude<OutMessage, undefined>
+      : never
+    : never
+  : never
+
 type ValidateUpdate<Update extends AnyUpdate> = Update extends (
   model: infer Model,
   message: infer Message,
 ) => infer Output
-  ? [Output] extends [Return<Model, Message, unknown>]
+  ? [Output] extends [ReturnWithOutMessage<Model, Message, unknown, unknown>]
     ? unknown
     : never
   : never
@@ -71,16 +79,24 @@ type ValidateUpdate<Update extends AnyUpdate> = Update extends (
 type MadeUpdate<Update extends AnyUpdate> = (
   model: Parameters<Update>[0],
   message: Parameters<Update>[1],
-) => Return<
-  Parameters<Update>[0],
-  Parameters<Update>[1],
-  CommandRequirements<ReturnType<Update>>
->
+) => [OutMessageOf<ReturnType<Update>>] extends [never]
+  ? Return<
+      Parameters<Update>[0],
+      Parameters<Update>[1],
+      CommandRequirements<ReturnType<Update>>
+    >
+  : ReturnWithOutMessage<
+      Parameters<Update>[0],
+      Parameters<Update>[1],
+      OutMessageOf<ReturnType<Update>>,
+      CommandRequirements<ReturnType<Update>>
+    >
 
 /** Defines an update while inferring the union of services required by the
- * Commands returned across all Message branches. The returned function keeps
- * the ordinary {@link Return} contract, including its prohibition on silently
- * discarding an OutMessage.
+ * Commands returned across all Message branches. If a branch emits an
+ * OutMessage, the returned function has a {@link ReturnWithOutMessage}
+ * contract so a parent must handle it. Otherwise it has a {@link Return}
+ * contract.
  *
  * Use this when Command implementations come from Layers, so application
  * assembly can infer every required handler service without a hand-written

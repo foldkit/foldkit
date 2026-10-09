@@ -1,4 +1,13 @@
-import { Array, Effect, Match, Number, Option, String, pipe } from 'effect'
+import {
+  Array,
+  Effect,
+  Layer,
+  Match,
+  Number,
+  Option,
+  String,
+  pipe,
+} from 'effect'
 import { AsyncData, Command, type Update } from 'foldkit'
 import { pushUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
@@ -7,9 +16,9 @@ import * as Shared from '@typing-game/shared'
 
 import { optionWhen } from '../../../optionWhen'
 import { homeRouter } from '../../../route'
-import { RoomsClient } from '../../../rpc'
 import {
   ClearSession,
+  CommandsLive,
   CopyRoomId,
   FocusRoomPageUsernameInput,
   JoinRoom,
@@ -26,12 +35,16 @@ import { handleRoomUpdated } from './handleRoomUpdates'
 
 const NavigateHome = Command.define('NavigateHome', {
   messages: [Message.CompletedNavigateHome],
-  execute: pushUrl(homeRouter()).pipe(
-    Effect.as(Message.CompletedNavigateHome()),
-  ),
 })
 
-export type UpdateReturn = Update.Return<Model, Message, RoomsClient>
+export const NavigateHomeLive = NavigateHome.toLayer(() =>
+  pushUrl(homeRouter()).pipe(Effect.as(Message.CompletedNavigateHome())),
+)
+
+export type UpdateRequirements =
+  | Layer.Success<typeof CommandsLive>
+  | Command.HandlerOf<typeof NavigateHome>
+export type UpdateReturn = Update.Return<Model, Message, UpdateRequirements>
 const withUpdateReturn = Match.withReturnType<UpdateReturn>()
 
 /** Per-dispatch parent state the Room page needs from the root.

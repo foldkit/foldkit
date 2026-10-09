@@ -30,7 +30,7 @@ export type ManagedResourceRef<Model, Message> = Readonly<{
 /**
  * The functions the runtime uses to give Commands and Subscriptions the
  * app's `resources` Layer, its Managed Resources, its port channels, and
- * the interrupt registry, and to give Flags the Layer alone, plus the
+ * the interrupt registry, and to give Flags application services, plus the
  * Managed Resource refs the lifecycle fibers write to.
  */
 export type ResourceProvider<
@@ -54,7 +54,8 @@ export type ResourceProvider<
  * `resources` Layer into the runtime scope, a Ref per Managed Resource, and
  * the two functions that provide them. `provideAllResources` is for Commands
  * and Subscriptions. `provideResources` is for Flags, which run before there
- * is a Model to render a crash view against.
+ * is a Model to render a crash view against; it shares the application Layer
+ * with those later effects.
  */
 export const makeResourceProvider = <
   Model,
@@ -218,35 +219,43 @@ export const makeResourceProvider = <
       )
     }
 
-    // NOTE: Flags run through the same cached build that Commands and
-    // Subscriptions use, rather than being handed the Layer again, so a
-    // service needed both at startup and by a Command is constructed
-    // once. An app without Flags never reaches it, which keeps the Layer
-    // lazy when the first thing that needs it is a Command.
+    // NOTE: Flags run through the same cached legacy resource build that
+    // Commands and Subscriptions use, so a service needed both at startup
+    // and by a Command is constructed once. An app without Flags never
+    // reaches it, which keeps that Layer lazy until a Command needs it.
     //
     // NOTE: a Layer that fails to build is not fatal here. Flags resolve
     // before `init`, so there is no Model for a crash view to render
     // against and a failure escaping this point kills the app with a
-    // blank container. Running Flags against an empty context instead
-    // lets an app whose Flags never touch the Layer boot as it did
+    // blank container. Running Flags without the legacy resource services
+    // instead lets an app whose Flags never touch that Layer boot as it did
     // before Flags could consume `resources`: the cached failure then
     // surfaces at the first Command or Subscription, where `crashWith`
-    // does render the crash view. Flags that do need the Layer still
-    // fail here, and both causes are reported: the `Service not found`
-    // defect the empty context produced is useless on its own, and the
+    // does render the crash view. Flags that do need the resource Layer still
+    // fail here, and both causes are reported: a `Service not found`
+    // defect from the fallback context is useless on its own, and the
     // build failure that explains it would be lost if it replaced the
     // Flags cause outright. Combining them also keeps a Flags Effect
     // that fails for its own unrelated reason visible instead of
     // attributing its defect to the Layer. Interrupts propagate
     // untouched on both sides, because dispose racing either the build
     // or the Flags run is not a failure to recover from, and
-    // `Effect.catchCause` hands the handler interrupt causes too.
+    // `Effect.catchCause` hands the handler interrupt causes too. The
+    // application Layer is already built at this point and remains available
+    // to Flags even when the legacy resource Layer fails.
     const provideResources = <A>(
       effect: Effect.Effect<A, never, Resources>,
     ): Effect.Effect<A> =>
       Option.match(maybeAcquireResourceContext, {
-        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-        onNone: () => effect as Effect.Effect<A>,
+        onNone: () =>
+          applicationLayer
+            ? Effect.provideContext(
+                effect,
+                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+                providedContext as Context.Context<Resources>,
+              )
+            : /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+              (effect as Effect.Effect<A>),
         onSome: acquireResourceContext =>
           Effect.matchCauseEffect(acquireResourceContext, {
             onFailure: buildCause =>
@@ -256,7 +265,7 @@ export const makeResourceProvider = <
                     Effect.provideContext(
                       effect,
                       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                      Context.empty() as Context.Context<Resources>,
+                      providedContext as Context.Context<Resources>,
                     ),
                     flagsCause =>
                       Cause.hasInterruptsOnly(flagsCause)
@@ -266,7 +275,10 @@ export const makeResourceProvider = <
                           ),
                   ),
             onSuccess: resourceContext =>
-              Effect.provideContext(effect, resourceContext),
+              Effect.provideContext(
+                effect,
+                Context.merge(resourceContext, providedContext),
+              ),
           }),
       })
 

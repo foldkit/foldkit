@@ -1,10 +1,10 @@
-import { Effect, Option, Schema } from 'effect'
+import { Effect, Layer, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
-import { Runtime } from 'foldkit'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
 
+import { CommandsLive } from './command'
 import {
   DEFAULT_COLOR_INDEX,
   DEFAULT_GRID_SIZE,
@@ -14,7 +14,7 @@ import {
 import { createEmptyGrid } from './grid'
 import { Message } from './message'
 import { Model, SavedCanvas, SavedCanvasJsonString } from './model'
-import { subscriptions } from './subscription'
+import { SubscriptionsLive, subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 import {
@@ -46,8 +46,8 @@ export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
-  model: {
+export const init = (flags: Flags) => ({
+  model: Model.make({
     grid: Option.match(flags.maybeSavedCanvas, {
       onNone: () => createEmptyGrid(DEFAULT_GRID_SIZE),
       onSome: ({ grid }) => grid,
@@ -78,7 +78,9 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
     toolRadioGroup: RadioGroup.init({ id: TOOL_RADIO_GROUP_ID }),
     gridSizeRadioGroup: RadioGroup.init({ id: GRID_SIZE_RADIO_GROUP_ID }),
     paletteRadioGroup: RadioGroup.init({ id: PALETTE_RADIO_GROUP_ID }),
-  },
+  }),
 })
+
+export const Live = Layer.mergeAll(CommandsLive, SubscriptionsLive)
 
 export { Message, Model, subscriptions, update, view }

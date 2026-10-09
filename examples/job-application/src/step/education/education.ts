@@ -4,8 +4,6 @@ import { type CalendarDate } from 'foldkit/calendar'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import { BrowserCrypto } from '@effect/platform-browser'
-
 import * as Entry from './entry'
 
 // MODEL
@@ -20,8 +18,8 @@ export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ClickedAddEntry: {},
-  SucceededGenerateEntryId: { entryId: Schema.String },
-  FailedGenerateEntryId: {},
+  SucceededGenerateEducationEntryId: { entryId: Schema.String },
+  FailedGenerateEducationEntryId: {},
   RemovedEntry: { entryId: Schema.String },
   GotEntryMessage: {
     entryId: Schema.String,
@@ -40,17 +38,27 @@ export const init = (today: CalendarDate, initialEntryId: string): Model => ({
 
 // COMMAND
 
-export const GenerateEntryId = Command.define('GenerateEntryId', {
-  messages: [Message.SucceededGenerateEntryId, Message.FailedGenerateEntryId],
-  execute: Effect.gen(function* () {
+export const GenerateEducationEntryId = Command.define(
+  'GenerateEducationEntryId',
+  {
+    messages: [
+      Message.SucceededGenerateEducationEntryId,
+      Message.FailedGenerateEducationEntryId,
+    ],
+  },
+)
+
+export const Live = GenerateEducationEntryId.toLayer(() =>
+  Effect.gen(function* () {
     const crypto = yield* Crypto.Crypto
     const entryId = yield* crypto.randomUUIDv4
-    return Message.SucceededGenerateEntryId({ entryId })
+    return Message.SucceededGenerateEducationEntryId({ entryId })
   }).pipe(
-    Effect.provide(BrowserCrypto.layer),
-    Effect.catch(() => Effect.succeed(Message.FailedGenerateEntryId())),
+    Effect.catch(() =>
+      Effect.succeed(Message.FailedGenerateEducationEntryId()),
+    ),
   ),
-})
+)
 
 // UPDATE
 
@@ -76,17 +84,17 @@ const foldEntry = Update.foldChildAt({
   foldOutMessage: foldEntryOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
-    ClickedAddEntry: () => ({ model, commands: [GenerateEntryId()] }),
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
+    ClickedAddEntry: () => ({ model, commands: [GenerateEducationEntryId()] }),
 
-    SucceededGenerateEntryId: ({ entryId }) => ({
+    SucceededGenerateEducationEntryId: ({ entryId }) => ({
       model: modifyFields(model, {
         entries: Array.append(Entry.init(entryId)),
       }),
     }),
 
-    FailedGenerateEntryId: () => ({ model }),
+    FailedGenerateEducationEntryId: () => ({ model }),
 
     RemovedEntry: ({ entryId }) => ({
       model: modifyFields(model, {
@@ -96,7 +104,8 @@ export const update = (model: Model, message: Message) =>
 
     GotEntryMessage: ({ entryId, message }) =>
       foldEntry(model, entryId, message),
-  })
+  }),
+)
 
 // VALIDATION SUMMARY
 

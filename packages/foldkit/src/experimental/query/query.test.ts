@@ -13,6 +13,7 @@ import { expect, expectTypeOf } from 'vitest'
 import { describe, it } from '@effect/vitest'
 
 import * as AsyncData from '../../asyncData/index.js'
+import * as Command from '../../command/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
 import * as Story from '../../test/story.js'
@@ -828,6 +829,118 @@ describe('Query.run', () => {
       const data = yield* noteById.run({ noteId: '1' })
       expect(data).toEqual(
         AsyncData.Success({ data: { id: '1', body: 'hello' } }),
+      )
+    }),
+  )
+})
+
+describe('Layer-backed Query handlers', () => {
+  const layeredNotes = Query.define({
+    name: 'LayeredNotes',
+    data: Schema.Array(Note),
+    error: Schema.String,
+  })
+  const layeredNoteById = Query.define({
+    name: 'LayeredNote',
+    data: Note,
+    error: Schema.String,
+    args: { noteId: Schema.String },
+  })
+
+  it('carries each fetch handler through loading operations', () => {
+    expectTypeOf(layeredNotes.loadIfMissing).returns.toEqualTypeOf<
+      Update.Return<
+        (typeof layeredNotes.Model)['Type'],
+        (typeof layeredNotes.Message)['Type'],
+        Command.HandlerOf<typeof layeredNotes.Fetch>
+      >
+    >()
+    expectTypeOf(layeredNoteById.run).returns.toEqualTypeOf<
+      Effect.Effect<
+        AsyncData.AsyncData<Note, string>,
+        never,
+        Command.HandlerOf<typeof layeredNoteById.Fetch>
+      >
+    >()
+  })
+
+  it.effect('settles an unkeyed fetch through its Layer', () =>
+    Effect.gen(function* () {
+      const live = layeredNotes.toLayer(() => Effect.succeed(hello))
+      const data = yield* Effect.provide(layeredNotes.run, live)
+      const completion = yield* Effect.provide(
+        layeredNotes.Fetch({ generation: 4 }).effect,
+        live,
+      )
+
+      expect(data).toEqual(AsyncData.Success({ data: hello }))
+      expect(completion).toEqual(
+        layeredNotes.Message.CompletedFetch({
+          generation: 4,
+          result: Result.succeed(hello),
+        }),
+      )
+    }),
+  )
+
+  it.effect('passes keyed args to its Layer and settles failures', () =>
+    Effect.gen(function* () {
+      const live = layeredNoteById.toLayer(({ noteId }) =>
+        noteId === 'missing'
+          ? Effect.fail('missing')
+          : Effect.succeed({ id: noteId, body: 'hello' }),
+      )
+      const success = yield* Effect.provide(
+        layeredNoteById.run({ noteId: '1' }),
+        live,
+      )
+      const failure = yield* Effect.provide(
+        layeredNoteById.run({ noteId: 'missing' }),
+        live,
+      )
+      const completion = yield* Effect.provide(
+        layeredNoteById.Fetch({
+          args: { noteId: '1' },
+          generation: 5,
+        }).effect,
+        live,
+      )
+
+      expect(success).toEqual(
+        AsyncData.Success({ data: { id: '1', body: 'hello' } }),
+      )
+      expect(failure).toEqual(AsyncData.Failure({ error: 'missing' }))
+      expect(completion).toEqual(
+        layeredNoteById.Message.CompletedFetch({
+          args: { noteId: '1' },
+          generation: 5,
+          result: Result.succeed({ id: '1', body: 'hello' }),
+        }),
+      )
+    }),
+  )
+
+  it.effect('acquires a handler factory when the Layer is constructed', () =>
+    Effect.gen(function* () {
+      class Prefix extends Context.Service<
+        Prefix,
+        { readonly value: string }
+      >()('Prefix') {}
+      const live = layeredNotes.toLayer(
+        Effect.map(
+          Prefix,
+          ({ value }) =>
+            () =>
+              Effect.succeed([{ id: value, body: 'hello' }]),
+        ),
+      )
+      const data = yield* Effect.provide(
+        layeredNotes.run,
+        Layer.provide(live, Layer.succeed(Prefix, { value: 'captured' })),
+      )
+
+      expect(data).toEqual(
+        AsyncData.Success({ data: [{ id: 'captured', body: 'hello' }] }),
       )
     }),
   )

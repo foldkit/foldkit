@@ -11,11 +11,13 @@ import { ports } from './ports'
 export const ReportCount = Command.define('ReportCount', {
   args: { count: Schema.Number },
   messages: [CompletedReportCount],
-  execute: ({ count }) =>
-    Port.emit(ports.outbound.countChanged, count).pipe(
-      Effect.as(CompletedReportCount()),
-    ),
 })
+
+export const ReportCountLive = ReportCount.toLayer(({ count }) =>
+  Port.emit(ports.outbound.countChanged, count).pipe(
+    Effect.as(CompletedReportCount()),
+  ),
+)
 
 // In update, emitting is just returning the Command:
 const handleAdvance = (model: Model): UpdateReturn => {

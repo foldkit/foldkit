@@ -1,10 +1,9 @@
 import clsx from 'clsx'
-import { Array, Effect, Match, Option, Schema, pipe } from 'effect'
+import { Array, Effect, Layer, Match, Option, Schema, pipe } from 'effect'
 import {
   Calendar,
   Command,
   Route,
-  Runtime,
   Submodel,
   Subscription,
   Update,
@@ -175,16 +174,21 @@ export type Message = typeof Message.Type
 const NavigateInternal = Command.define('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
-  execute: ({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
 })
 
 const LoadExternal = Command.define('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
-  execute: ({ href }) =>
-    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
 })
+
+export const Live = Layer.mergeAll(
+  NavigateInternal.toLayer(({ url }) =>
+    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+  ),
+  LoadExternal.toLayer(({ href }) =>
+    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+  ),
+)
 
 // INIT
 
@@ -199,10 +203,7 @@ export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   return { today }
 })
 
-export const init: Runtime.RoutingApplicationInit<Model, Message, Flags> = (
-  flags: Flags,
-  url: Url,
-) => {
+export const init = (flags: Flags, url: Url) => {
   return Update.foldChildInit(uiInit(flags.today), {
     toParentModel: uiModel => ({ route: urlToAppRoute(url), uiModel }),
     toParentMessage: message => Message.GotUiMessage({ message }),
@@ -238,9 +239,14 @@ const foldUiCloseMobileMenu = Update.foldChildStep({
   toParentMessage: toUiMessage,
 })
 
-type UpdateReturn = Update.Return<Model, Message>
+type UpdateReturn = Update.Return<
+  Model,
+  Message,
+  | Command.HandlerOf<typeof NavigateInternal>
+  | Command.HandlerOf<typeof LoadExternal>
+>
 
-export const update = (model: Model, message: Message) =>
+export const update = Update.make((model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
@@ -268,7 +274,8 @@ export const update = (model: Model, message: Message) =>
     ClickedOpenMobileMenu: () => foldUiOpenMobileMenu(model),
 
     GotUiMessage: ({ message }) => foldUi(model, message),
-  })
+  }),
+)
 
 // VIEW
 

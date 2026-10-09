@@ -8,8 +8,10 @@ import { roomRouter } from './route'
 export const NavigateToRoom = Command.define('NavigateToRoom', {
   args: { roomId: Schema.String },
   messages: [Message.CompletedNavigateToRoom],
-  execute: ({ roomId }) =>
-    pushUrl(roomRouter({ roomId })).pipe(
-      Effect.as(Message.CompletedNavigateToRoom()),
-    ),
 })
+
+export const NavigateToRoomLive = NavigateToRoom.toLayer(({ roomId }) =>
+  pushUrl(roomRouter({ roomId })).pipe(
+    Effect.as(Message.CompletedNavigateToRoom()),
+  ),
+)

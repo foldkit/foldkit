@@ -8,7 +8,7 @@ The [embedding example](/example-apps/embedding) runs everything on this page: a
 
 ## Choosing an Entry Point
 
-Embedded apps are usually built with `makeElement`: the view returns `Html` and the runtime stays scoped to its container, never touching the document `<head>`, the URL bar, or anything else the host owns. Use `makeApplication` only when the embedded app should own page-level concerns like the document title. `embed` accepts programs from both.
+Embedded apps are usually built with `Application.makeElement`: the view returns `Html` and the runtime stays scoped to its container, never touching the document `<head>`, the URL bar, or anything else the host owns. Use `Application.make` when the embedded app should own page-level concerns like the document title. `embed` accepts programs from both. Both forms carry their Effect requirements until `Application.provide` supplies the needed Layers.
 
 ## Declaring Ports
 
@@ -22,7 +22,7 @@ Host interop maps onto primitives the architecture already has. Data crosses the
 
 ### Flags: Initial Data In {#flags}
 
-Data the app needs once, at startup, enters through `Flags`, exactly as in a page-owning app. The host passes values when it constructs the program, and `init` folds them into the initial Model.
+Data the app needs once, at startup, enters through `Flags`, exactly as in a page-owning app. The host passes values when it constructs the program, and `init` folds them into the initial Model. An embedded Element config includes its Flags Effect; any services that Effect requires join the Element's requirements.
 
 ### Inbound Ports: a Subscription {#inbound-ports}
 

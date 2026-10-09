@@ -1,12 +1,13 @@
-import { Effect, Match, Option, Schema } from 'effect'
+import { Effect, Layer, Match, Option, Schema } from 'effect'
 import { Command, Update } from 'foldkit'
 import { UrlRequest, load, pushUrl, replaceUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
 
-import { ClearSession, LogError, SaveSession } from './command'
+import { ClearSession, CommandsLive, LogError, SaveSession } from './command'
 import { Message } from './message'
 import { LoggedIn, LoggedOut, Model } from './model'
+import * as Login from './page/loggedOut/page/login'
 import {
   AppRoute,
   dashboardRouter,
@@ -18,43 +19,62 @@ import {
 const NavigateInternal = Command.define('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
-  execute: ({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
 })
 
 const LoadExternal = Command.define('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
-  execute: ({ href }) =>
-    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
 })
 
 export const RedirectToLogin = Command.define('RedirectToLogin', {
   messages: [Message.CompletedNavigateInternal],
-  execute: replaceUrl(loginRouter()).pipe(
-    Effect.as(Message.CompletedNavigateInternal()),
-  ),
 })
 
 export const RedirectToDashboard = Command.define('RedirectToDashboard', {
   messages: [Message.CompletedNavigateInternal],
-  execute: replaceUrl(dashboardRouter()).pipe(
-    Effect.as(Message.CompletedNavigateInternal()),
-  ),
 })
 
 const RedirectToHome = Command.define('RedirectToHome', {
   messages: [Message.CompletedNavigateInternal],
-  execute: replaceUrl(homeRouter()).pipe(
-    Effect.as(Message.CompletedNavigateInternal()),
-  ),
 })
 
-type UpdateReturn = Update.Return<Model, Message>
+const NavigationLive = Layer.mergeAll(
+  NavigateInternal.toLayer(({ url }) =>
+    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+  ),
+  LoadExternal.toLayer(({ href }) =>
+    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+  ),
+  RedirectToLogin.toLayer(() =>
+    replaceUrl(loginRouter()).pipe(
+      Effect.as(Message.CompletedNavigateInternal()),
+    ),
+  ),
+  RedirectToDashboard.toLayer(() =>
+    replaceUrl(dashboardRouter()).pipe(
+      Effect.as(Message.CompletedNavigateInternal()),
+    ),
+  ),
+  RedirectToHome.toLayer(() =>
+    replaceUrl(homeRouter()).pipe(
+      Effect.as(Message.CompletedNavigateInternal()),
+    ),
+  ),
+)
+
+export const Live = Layer.mergeAll(
+  CommandsLive,
+  NavigationLive,
+  Login.SimulateAuthRequestLive,
+)
+
+type CommandServices = Layer.Success<typeof Live>
+
+type UpdateReturn = Update.Return<Model, Message, CommandServices>
 const withUpdateReturn = Match.withReturnType<UpdateReturn>()
 
 const foldLoggedOutOutMessage = LoggedOut.OutMessage.match<
-  Update.Step<Model, Message>
+  Update.Step<Model, Message, CommandServices>
 >({
   SucceededLogin:
     ({ session }) =>
@@ -79,7 +99,7 @@ const foldLoggedOut = Update.foldChild({
 })
 
 const foldLoggedInOutMessage = LoggedIn.OutMessage.match<
-  Update.Step<Model, Message>
+  Update.Step<Model, Message, CommandServices>
 >({
   RequestedLogout: () => () => ({
     model: LoggedOut.init(AppRoute.Home()),
@@ -101,7 +121,7 @@ const foldLoggedIn = Update.foldChild({
   foldOutMessage: foldLoggedInOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
+export const update = Update.make((model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     ClickedLink: ({ request }) =>
       UrlRequest.match<UpdateReturn>(request, {
@@ -163,4 +183,5 @@ export const update = (model: Model, message: Message) =>
     CompletedLogError: () => ({ model }),
     SucceededSaveSession: () => ({ model }),
     SucceededClearSession: () => ({ model }),
-  })
+  }),
+)

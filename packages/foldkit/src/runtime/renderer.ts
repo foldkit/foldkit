@@ -427,7 +427,7 @@ export const makeRenderer = <Model, Message>({
       const names = globalThis.Array.from(missing.values()).sort()
       throw new Error(
         `[foldkit] The rendered view contains Layer-backed Mounts that were not registered: ${names.join(', ')}. ` +
-          'Add each Definition to Application.make({ mounts: [...] }).',
+          'Add each Definition to Application.make or Application.makeElement through the mounts field.',
       )
     }
 

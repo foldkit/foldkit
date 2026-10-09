@@ -3,12 +3,15 @@ import {
   Effect,
   Function,
   HashMap,
+  Layer,
   Number,
   Option,
   Order,
   Predicate,
   Record,
+  type Result,
   Schema,
+  type Scope,
   pipe,
 } from 'effect'
 
@@ -97,6 +100,73 @@ export type KeyedQueryConfig<
     args: Schema.Schema.Type<Schema.Struct<Fields>>,
   ) => Effect.Effect<A, E, R>
 }>
+
+/** Definition fields for a KeyedQuery whose fetch handler is supplied by a Layer. */
+export type LayeredKeyedQueryConfig<
+  Name extends string,
+  A,
+  AI,
+  E,
+  EI,
+  Fields extends SyncFields,
+> = Readonly<{
+  name: Name
+  data: Schema.Codec<A, AI, never, never>
+  error: Schema.Codec<E, EI, never, never>
+  args: Fields
+  toKey?: (args: Schema.Schema.Type<Schema.Struct<Fields>>) => string
+  execute?: never
+}>
+
+/** Builds a KeyedQuery fetch handler Layer from a fetch or an Effect that constructs one. */
+export interface KeyedQueryToLayer<
+  Name extends string,
+  A,
+  E,
+  Fields extends SyncFields,
+> {
+  <R, BuildE = never, BuildR = never>(
+    build:
+      | ((args: KeyedArgs<Fields>) => Effect.Effect<A, E, R>)
+      | Effect.Effect<
+          (args: KeyedArgs<Fields>) => Effect.Effect<A, E, R>,
+          BuildE,
+          BuildR
+        >,
+  ): Layer.Layer<
+    Command.Handler<`Fetch${Name}`>,
+    BuildE,
+    Exclude<R | BuildR, Scope.Scope>
+  >
+}
+
+/** A KeyedQuery whose fetch implementation is supplied by a Layer. */
+export interface LayeredKeyedQuery<
+  Name extends string,
+  A,
+  AI,
+  E,
+  EI,
+  Fields extends SyncFields,
+> extends KeyedQuery<
+  Name,
+  A,
+  AI,
+  E,
+  EI,
+  Fields,
+  Command.Handler<`Fetch${Name}`>
+> {
+  readonly Fetch: Command.LayeredCommandDefinitionWithArgs<
+    `Fetch${Name}`,
+    {
+      readonly args: Schema.Struct<Fields>
+      readonly generation: typeof Schema.Number
+    },
+    CompletedFetchOf<KeyedQueryMessage<A, AI, E, EI, Fields>>
+  >
+  readonly toLayer: KeyedQueryToLayer<Name, A, E, Fields>
+}
 
 const makeKeyedQueryMessage = <A, AI, E, EI, Fields extends SyncFields>(
   data: Schema.Codec<A, AI>,
@@ -253,7 +323,7 @@ export interface KeyedQuery<
   ) => Effect.Effect<AsyncData.AsyncData<A, E>, never, R>
 }
 
-export function defineKeyedQuery<
+const makeKeyedQuery = <
   Name extends string,
   A,
   AI,
@@ -262,8 +332,27 @@ export function defineKeyedQuery<
   Fields extends SyncFields,
   R,
 >(
-  config: KeyedQueryConfig<Name, A, AI, E, EI, Fields, R>,
-): KeyedQuery<Name, A, AI, E, EI, Fields, R> {
+  config: Pick<
+    KeyedQueryConfig<Name, A, AI, E, EI, Fields, R>,
+    'name' | 'data' | 'error' | 'args' | 'toKey'
+  >,
+  Message: KeyedQueryMessage<A, AI, E, EI, Fields>,
+  Fetch: Command.CommandDefinitionWithArgs<
+    `Fetch${Name}`,
+    {
+      readonly args: Schema.Struct<Fields>
+      readonly generation: typeof Schema.Number
+    },
+    Effect.Effect<
+      CompletedFetchOf<KeyedQueryMessage<A, AI, E, EI, Fields>>,
+      never,
+      R
+    >
+  >,
+  run: (
+    args: KeyedArgs<Fields>,
+  ) => Effect.Effect<AsyncData.AsyncData<A, E>, never, R>,
+): KeyedQuery<Name, A, AI, E, EI, Fields, R> => {
   const asyncData = AsyncData.Schema(config.data, config.error)
   type EntryData = typeof asyncData.schema.Type
   const Args = Schema.Struct(config.args)
@@ -276,27 +365,7 @@ export function defineKeyedQuery<
 
   const argsToKey = config.toKey ?? encodeKey(Args)
 
-  const Message = makeKeyedQueryMessage(config.data, config.error, Args)
   type Message = KeyedQueryMessage<A, AI, E, EI, Fields>['Type']
-
-  const Fetch = Command.define(`Fetch${config.name}`, {
-    args: { args: Args, generation: Schema.Number },
-    messages: [Message.CompletedFetch],
-    execute: ({ args, generation }) =>
-      pipe(
-        config.execute(args),
-        Effect.result,
-        Effect.map((result): typeof Message.CompletedFetch.Type =>
-          // NOTE: CompletedFetch's constructor input view rejects args that are already the decoded Type.
-          ({
-            _tag: 'CompletedFetch',
-            args,
-            generation,
-            result,
-          }),
-        ),
-      ),
-  })
 
   const Model = makeKeyedQueryModel(config.data, config.error, Args)
   type Model = KeyedQueryModel<A, AI, E, EI, Fields>['Type']
@@ -408,9 +477,6 @@ export function defineKeyedQuery<
     return liftFromLens(config)
   }
 
-  const run = (args: Args): Effect.Effect<EntryData, never, R> =>
-    runExecute(config.execute(args))
-
   return {
     Model,
     Message,
@@ -425,4 +491,126 @@ export function defineKeyedQuery<
     lift,
     run,
   } satisfies KeyedQuery<Name, A, AI, E, EI, Fields, R>
+}
+
+export function defineKeyedQuery<
+  Name extends string,
+  A,
+  AI,
+  E,
+  EI,
+  Fields extends SyncFields,
+  R,
+>(
+  config: KeyedQueryConfig<Name, A, AI, E, EI, Fields, R>,
+): KeyedQuery<Name, A, AI, E, EI, Fields, R>
+export function defineKeyedQuery<
+  Name extends string,
+  A,
+  AI,
+  E,
+  EI,
+  Fields extends SyncFields,
+>(
+  config: LayeredKeyedQueryConfig<Name, A, AI, E, EI, Fields>,
+): LayeredKeyedQuery<Name, A, AI, E, EI, Fields>
+export function defineKeyedQuery<
+  Name extends string,
+  A,
+  AI,
+  E,
+  EI,
+  Fields extends SyncFields,
+  R,
+>(
+  config:
+    | KeyedQueryConfig<Name, A, AI, E, EI, Fields, R>
+    | LayeredKeyedQueryConfig<Name, A, AI, E, EI, Fields>,
+):
+  | KeyedQuery<Name, A, AI, E, EI, Fields, R>
+  | LayeredKeyedQuery<Name, A, AI, E, EI, Fields>
+export function defineKeyedQuery<
+  Name extends string,
+  A,
+  AI,
+  E,
+  EI,
+  Fields extends SyncFields,
+  R,
+>(
+  config:
+    | KeyedQueryConfig<Name, A, AI, E, EI, Fields, R>
+    | LayeredKeyedQueryConfig<Name, A, AI, E, EI, Fields>,
+):
+  | KeyedQuery<Name, A, AI, E, EI, Fields, R>
+  | LayeredKeyedQuery<Name, A, AI, E, EI, Fields> {
+  const Args = Schema.Struct(config.args)
+  const Message = makeKeyedQueryMessage(config.data, config.error, Args)
+  const completedFetch = (
+    args: KeyedArgs<Fields>,
+    generation: number,
+    result: Result.Result<A, E>,
+  ): typeof Message.CompletedFetch.Type => ({
+    // NOTE: The constructor input view rejects args already decoded as the Schema Type.
+    _tag: 'CompletedFetch',
+    args,
+    generation,
+    result,
+  })
+
+  if (config.execute !== undefined) {
+    const Fetch = Command.define(`Fetch${config.name}`, {
+      args: { args: Args, generation: Schema.Number },
+      messages: [Message.CompletedFetch],
+      execute: ({ args, generation }) =>
+        pipe(
+          config.execute(args),
+          Effect.result,
+          Effect.map(result => completedFetch(args, generation, result)),
+        ),
+    })
+
+    return makeKeyedQuery(config, Message, Fetch, args =>
+      runExecute(config.execute(args)),
+    )
+  }
+
+  const Fetch = Command.define(`Fetch${config.name}`, {
+    args: { args: Args, generation: Schema.Number },
+    messages: [Message.CompletedFetch],
+  })
+  const run = (args: KeyedArgs<Fields>) =>
+    pipe(
+      Fetch({ args, generation: 0 }).effect,
+      Effect.map(({ result }) => AsyncData.settle(AsyncData.Loading(), result)),
+    )
+  const query = makeKeyedQuery(config, Message, Fetch, run)
+
+  const toLayer: KeyedQueryToLayer<Name, A, E, Fields> = <
+    HandlerR,
+    BuildE = never,
+    BuildR = never,
+  >(
+    build:
+      | ((args: KeyedArgs<Fields>) => Effect.Effect<A, E, HandlerR>)
+      | Effect.Effect<
+          (args: KeyedArgs<Fields>) => Effect.Effect<A, E, HandlerR>,
+          BuildE,
+          BuildR
+        >,
+  ) =>
+    Fetch.toLayer(
+      Effect.map(
+        Effect.isEffect(build) ? build : Effect.succeed(build),
+        execute =>
+          ({ args, generation }) =>
+            pipe(
+              execute(args),
+              Effect.result,
+              Effect.map(result => completedFetch(args, generation, result)),
+            ),
+      ),
+    )
+
+  return { ...query, Fetch, toLayer }
 }

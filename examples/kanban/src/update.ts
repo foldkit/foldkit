@@ -1,15 +1,21 @@
-import { Array, Match, Option, String, pipe } from 'effect'
+import { Array, Layer, Match, Option, String, pipe } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { DragAndDrop } from '@foldkit/ui'
 
-import { FocusAddCardInput, GenerateCardId, SaveBoard } from './command'
+import {
+  CommandsLive,
+  FocusAddCardInput,
+  GenerateCardId,
+  SaveBoard,
+} from './command'
 import { Column } from './domain'
 import { Message } from './message'
 import type { Model } from './model'
 
-type UpdateReturn = Update.Return<Model, Message>
+type CommandServices = Layer.Success<typeof CommandsLive>
+type UpdateReturn = Update.Return<Model, Message, CommandServices>
 
 const findCardTitle = (
   columns: ReadonlyArray<Column.Column>,
@@ -95,7 +101,9 @@ const screenReaderTextForDrop = (
 
 const foldDragAndDropOutMessage: (
   previousModel: Model,
-) => (outMessage: DragAndDrop.OutMessage) => Update.Step<Model, Message> =
+) => (
+  outMessage: DragAndDrop.OutMessage,
+) => Update.Step<Model, Message, CommandServices> =
   previousModel => outMessage => model =>
     DragAndDrop.OutMessage.match<UpdateReturn>(outMessage, {
       Reordered: ({ itemId, fromContainerId, toContainerId, toIndex }) => {
@@ -136,7 +144,7 @@ const foldDragAndDrop = (previousModel: Model) =>
     foldOutMessage: foldDragAndDropOutMessage(previousModel),
   })
 
-export const update = (model: Model, message: Message) =>
+export const update = Update.make((model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     GotDragAndDropMessage: ({ message }) =>
       foldDragAndDrop(model)(model, message),
@@ -202,4 +210,5 @@ export const update = (model: Model, message: Message) =>
     CompletedSaveBoard: () => ({ model }),
 
     CompletedFocusAddCardInput: () => ({ model }),
-  })
+  }),
+)

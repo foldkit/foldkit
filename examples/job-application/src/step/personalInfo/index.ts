@@ -4,6 +4,7 @@ export {
   init,
   update,
   ValidateEmailAsync,
+  Live,
   hasErrors,
   isComplete,
   revealErrors,

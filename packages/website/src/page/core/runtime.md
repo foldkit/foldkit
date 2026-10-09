@@ -6,10 +6,10 @@ A Foldkit app usually starts in two files. `src/main.ts` holds the pure definiti
 
 The Runtime API makes two independent choices:
 
-- `Application.make` or `Runtime.makeElement` decides what the app owns. An application owns the page; an element owns only its container.
+- `Application.make` or `Application.makeElement` decides what the app owns. An application owns the page; an Element owns only its container.
 - `Runtime.run` or `Runtime.embed` decides who owns the runtime lifetime. `run` starts it for the page lifetime; `embed` returns a handle the host disposes.
 
-For a page-owning application with Layer-backed Commands, Subscriptions, or ManagedResources, `Application.make` carries their inferred Effect requirements. Call `Application.provide` until they are satisfied, then pass the runnable application to `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed`. Provision can be chained because a handler Layer may itself need services from a later Layer. The application config has no `resources` field; runtime-wide services are supplied through `Application.provide`.
+For an application with Layer-backed Commands, Subscriptions, Mounts, or ManagedResources, `Application.make` and `Application.makeElement` carry their inferred Effect requirements. Call `Application.provide` until they are satisfied, then pass the runnable program to `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` as appropriate. Provision can be chained because a handler Layer may itself need services from a later Layer. The assembly config has no `resources` field; runtime-wide services are supplied through `Application.provide`.
 
 For a larger application, combine independent feature Layers with Effect's `Layer.mergeAll` and call `Application.provide` once. Use `Layer.provideMerge` when one feature Layer needs a service from another. A feature can export one combined Layer for its Commands, Subscriptions, and Mounts, so the application entry imports feature Layers rather than every handler.
 
@@ -17,7 +17,7 @@ For a larger application, combine independent feature Layers with Effect's `Laye
 
 ## Application.make {#make-application}
 
-`Application.make` creates a Foldkit program for an app that owns the page. It supports both apps that leave the URL alone and apps that manage routing. The difference is whether you provide a `routing` config. To scope an app to one node without owning the page, use `Runtime.makeElement`.
+`Application.make` creates a Foldkit program for an app that owns the page. It supports both apps that leave the URL alone and apps that manage routing. The difference is whether you provide a `routing` config. To scope an app to one node without owning the page, use `Application.makeElement`.
 
 ### Without routing
 
@@ -39,11 +39,11 @@ The view returns a `Document` rather than bare HTML. A `Document` contains the b
 
 `Application.make` assumes it owns the page. That is correct for an app that owns its tab, but not for a widget on a page controlled by another application, where document updates would overwrite the host page metadata.
 
-Use `Runtime.makeElement` to scope a Foldkit app to its container. Its view returns `Html` directly, and the runtime never touches the document `<head>` or the `<html>` element. The same Model, init, update, Command, Subscription, resource, and crash-handling architecture remains available. Element-scoped apps do not own the URL bar, so `makeElement` has no `routing` config.
+Use `Application.makeElement` to scope a Foldkit app to its container. Its view returns `Html` directly, and the runtime never touches the document `<head>` or the `<html>` element. The same Model, init, update, Command, Subscription, ManagedResource, and crash-handling architecture remains available. Element-scoped apps do not own the URL bar, so `Application.makeElement` has no `routing` config. Provide its required handler Layers with `Application.provide` before starting it.
 
-Flags still resolve before init, but their wiring follows the ownership boundary. A page-owning application receives its Flags Effect when `Runtime.run` starts it. A self-contained element receives its Flags Effect in the `makeElement` config.
+Flags still resolve before init, but their wiring follows the ownership boundary. A page-owning application receives its Flags Effect when `Runtime.run` starts it. A self-contained Element receives its Flags Effect in the `Application.makeElement` config, and that Effect's requirements join the Element's requirements.
 
-::Snippet{name="runMakeElement" label="Using makeElement"}
+::Snippet{name="runMakeElement" label="Using Application.makeElement"}
 
 ## embed
 

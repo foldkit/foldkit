@@ -1,4 +1,4 @@
-import { Effect, Match, Option, Schema } from 'effect'
+import { Effect, Layer, Match, Option, Schema } from 'effect'
 import { Command, Update, Url } from 'foldkit'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
@@ -10,30 +10,48 @@ import { Message } from './message'
 import { Model } from './model'
 import { Home, Room } from './page'
 import { urlToAppRoute } from './route'
-import { RoomsClient } from './rpc'
 
 const NavigateInternal = Command.define('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
-  execute: ({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
 })
+
+const NavigateInternalLive = NavigateInternal.toLayer(({ url }) =>
+  pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+)
 
 const LoadExternal = Command.define('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
-  execute: ({ href }) =>
-    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
 })
+
+const LoadExternalLive = LoadExternal.toLayer(({ href }) =>
+  load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+)
+
+export const NavigationLive = Layer.mergeAll(
+  NavigateInternalLive,
+  LoadExternalLive,
+)
 
 export type UpdateReturn<Model, Message> = Update.Return<
   Model,
   Message,
-  RoomsClient
+  | Command.HandlerOf<typeof NavigateToRoom>
+  | Layer.Success<typeof NavigationLive>
+  | Home.UpdateRequirements
+  | Room.UpdateRequirements
 >
 const withUpdateReturn = Match.withReturnType<UpdateReturn<Model, Message>>()
 
-type UpdateStep = Update.Step<Model, Message, RoomsClient>
+type UpdateStep = Update.Step<
+  Model,
+  Message,
+  | Command.HandlerOf<typeof NavigateToRoom>
+  | Layer.Success<typeof NavigationLive>
+  | Home.UpdateRequirements
+  | Room.UpdateRequirements
+>
 
 const readHome = (model: Model): Option.Option<Home.Model.Model> =>
   Option.some(model.home)
@@ -92,7 +110,7 @@ const foldRoomMessage = (roomId: string) =>
     toParentMessage: toGotRoomMessage,
   })
 
-export const update = (model: Model, message: Message) =>
+export const update = Update.make((model: Model, message: Message) =>
   Message.match<UpdateReturn<Model, Message>>(message, {
     ClickedLink: ({ request }) =>
       UrlRequest.match<UpdateReturn<Model, Message>>(request, {
@@ -125,4 +143,5 @@ export const update = (model: Model, message: Message) =>
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
     CompletedNavigateToRoom: () => ({ model }),
-  })
+  }),
+)

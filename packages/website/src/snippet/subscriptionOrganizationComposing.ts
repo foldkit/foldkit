@@ -1,5 +1,5 @@
 // page/settings/subscription.ts
-import { Effect, Option, Schema, Stream } from 'effect'
+import { Effect, Layer, Option, Schema, Stream } from 'effect'
 import { Dom, Subscription } from 'foldkit'
 
 import {
@@ -20,23 +20,12 @@ const themeMenuSubscriptions = Subscription.lift(ThemeMenu.subscriptions)<
 
 const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
   unsavedChangesWarning: entry(
+    'WatchUnsavedChangesWarning',
     { hasUnsavedChanges: Schema.Boolean },
     {
       modelToDependencies: model => ({
         hasUnsavedChanges: model.hasUnsavedChanges,
       }),
-      dependenciesToStream: ({ hasUnsavedChanges }) =>
-        Stream.when(
-          Dom.streamFromEventFilterMapPreventDefault({
-            target: window,
-            type: 'beforeunload',
-            filterMapEvent: event => {
-              event.returnValue = true
-              return Option.some(StartedNavigationAway())
-            },
-          }),
-          Effect.sync(() => hasUnsavedChanges),
-        ),
     },
   ),
 }))
@@ -44,4 +33,24 @@ const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
 export const subscriptions = Subscription.aggregate(
   themeMenuSubscriptions,
   localSubscriptions,
+)
+
+const WatchUnsavedChangesWarningLive =
+  localSubscriptions.unsavedChangesWarning.toLayer(({ hasUnsavedChanges }) =>
+    Stream.when(
+      Dom.streamFromEventFilterMapPreventDefault({
+        target: window,
+        type: 'beforeunload',
+        filterMapEvent: event => {
+          event.returnValue = true
+          return Option.some(StartedNavigationAway())
+        },
+      }),
+      Effect.sync(() => hasUnsavedChanges),
+    ),
+  )
+
+export const Live = Layer.mergeAll(
+  ThemeMenu.Live,
+  WatchUnsavedChangesWarningLive,
 )

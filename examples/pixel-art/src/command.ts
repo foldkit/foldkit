@@ -1,4 +1,4 @@
-import { Array, Effect, Predicate, Schema } from 'effect'
+import { Array, Effect, Layer, Predicate, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 import { Command } from 'foldkit'
 
@@ -19,7 +19,10 @@ export const SaveCanvas = Command.define('SaveCanvas', {
     selectedColorIndex: PaletteIndex,
   },
   messages: [Message.CompletedSaveCanvas],
-  execute: ({ grid, gridSize, paletteThemeIndex, selectedColorIndex }) =>
+})
+
+const SaveCanvasLive = SaveCanvas.toLayer(
+  ({ grid, gridSize, paletteThemeIndex, selectedColorIndex }) =>
     Effect.gen(function* () {
       const store = yield* KeyValueStore.KeyValueStore
       const data: SavedCanvas = {
@@ -37,7 +40,7 @@ export const SaveCanvas = Command.define('SaveCanvas', {
       Effect.catch(() => Effect.succeed(Message.CompletedSaveCanvas())),
       Effect.provide(BrowserKeyValueStore.layerLocalStorage),
     ),
-})
+)
 
 export const saveCanvas = (model: Model) =>
   SaveCanvas({
@@ -54,7 +57,10 @@ export const ExportPng = Command.define('ExportPng', {
     paletteThemeIndex: Schema.Number,
   },
   messages: [Message.SucceededExportPng, Message.FailedExportPng],
-  execute: ({ grid, gridSize, paletteThemeIndex }) =>
+})
+
+const ExportPngLive = ExportPng.toLayer(
+  ({ grid, gridSize, paletteThemeIndex }) =>
     Effect.gen(function* () {
       const theme = PALETTE_THEMES[paletteThemeIndex] ?? PALETTE_THEMES[0]
       const scale =
@@ -85,3 +91,5 @@ export const ExportPng = Command.define('ExportPng', {
       return Message.SucceededExportPng()
     }).pipe(Effect.catchTag('FailedExportPng', error => Effect.succeed(error))),
 })
+
+export const CommandsLive = Layer.mergeAll(SaveCanvasLive, ExportPngLive)

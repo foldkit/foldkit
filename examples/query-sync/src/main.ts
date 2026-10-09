@@ -2,6 +2,7 @@ import { clsx } from 'clsx'
 import {
   Array,
   Effect,
+  Layer,
   Match,
   Option,
   Order,
@@ -11,7 +12,7 @@ import {
   Types,
   pipe,
 } from 'effect'
-import { Command, Route, Runtime, Update } from 'foldkit'
+import { Command, Route, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl, replaceUrl } from 'foldkit/navigation'
@@ -193,9 +194,7 @@ const routeToBrowseFields = (route: AppRoute): BrowseFields =>
     Match.orElse(() => emptyBrowseFields),
   )
 
-export const init: Runtime.RoutingApplicationInit<Model, Message> = (
-  url: Url,
-) => {
+export const init = (url: Url) => {
   const route = urlToAppRoute(url)
 
   return {
@@ -254,33 +253,40 @@ export const ReplaceFilters = Command.define('ReplaceFilters', {
     period: Schema.Option(Period),
   },
   messages: [Message.CompletedReplaceFilters],
-  execute: fields =>
-    replaceUrl(browseRouter(fields)).pipe(
-      Effect.as(Message.CompletedReplaceFilters()),
-    ),
 })
 
 const NavigateInternal = Command.define('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
-  execute: ({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
 })
 
 const LoadExternal = Command.define('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
-  execute: ({ href }) =>
-    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
 })
 
-type UpdateReturn = Update.Return<Model, Message>
+export const Live = Layer.mergeAll(
+  ReplaceFilters.toLayer(fields =>
+    replaceUrl(browseRouter(fields)).pipe(
+      Effect.as(Message.CompletedReplaceFilters()),
+    ),
+  ),
+  NavigateInternal.toLayer(({ url }) =>
+    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+  ),
+  LoadExternal.toLayer(({ href }) =>
+    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+  ),
+)
+
+type UpdateRequirements = Layer.Success<typeof Live>
+type UpdateReturn = Update.Return<Model, Message, UpdateRequirements>
 
 const DietListbox = Listbox.create<string>()
 const PeriodListbox = Listbox.create<string>()
 
 const foldDietListboxOutMessage = Listbox.OutMessage.match<
-  Update.Step<Model, Message>
+  Update.Step<Model, Message, UpdateRequirements>
 >({
   Selected:
     ({ value }) =>
@@ -308,7 +314,7 @@ const foldDietListbox = Update.foldChild({
 })
 
 const foldPeriodListboxOutMessage = Listbox.OutMessage.match<
-  Update.Step<Model, Message>
+  Update.Step<Model, Message, UpdateRequirements>
 >({
   Selected:
     ({ value }) =>
@@ -335,7 +341,7 @@ const foldPeriodListbox = Update.foldChild({
   foldOutMessage: foldPeriodListboxOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
+export const update = Update.make((model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
@@ -390,7 +396,8 @@ export const update = (model: Model, message: Message) =>
     GotDietListboxMessage: ({ message }) => foldDietListbox(model, message),
 
     GotPeriodListboxMessage: ({ message }) => foldPeriodListbox(model, message),
-  })
+  }),
+)
 
 // VIEW
 

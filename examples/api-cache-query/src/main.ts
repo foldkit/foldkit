@@ -4,13 +4,14 @@ import {
   DateTime,
   Duration,
   Effect,
+  Layer,
   Match,
   Option,
   Schema,
   Stream,
   pipe,
 } from 'effect'
-import { AsyncData, Runtime, Subscription, Update } from 'foldkit'
+import { AsyncData, Command, Subscription, Update } from 'foldkit'
 import { Query } from 'foldkit/experimental'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -47,36 +48,44 @@ export const postsQuery = Query.define({
   name: 'Posts',
   data: PostsData,
   error: Schema.String,
-  execute: Effect.gen(function* () {
+})
+
+const FetchPostsLive = postsQuery.toLayer(() =>
+  Effect.gen(function* () {
     const posts = yield* fetchPosts
     const fetchedAt = yield* Clock.currentTimeMillis
     return { posts, fetchedAt }
   }),
-})
+)
 
 export const statsQuery = Query.define({
   name: 'Stats',
   data: StatsData,
   error: Schema.String,
-  execute: Effect.gen(function* () {
+})
+
+const FetchStatsLive = statsQuery.toLayer(() =>
+  Effect.gen(function* () {
     const stats = yield* fetchStats
     const fetchedAt = yield* Clock.currentTimeMillis
     return { stats, fetchedAt }
   }),
-})
+)
 
 export const postQuery = Query.define({
   name: 'Post',
   args: { postId: Schema.String },
   data: PostData,
   error: Schema.String,
-  execute: ({ postId }) =>
-    Effect.gen(function* () {
-      const post = yield* fetchPostDetail(postId)
-      const fetchedAt = yield* Clock.currentTimeMillis
-      return { post, fetchedAt }
-    }),
 })
+
+const FetchPostLive = postQuery.toLayer(({ postId }) =>
+  Effect.gen(function* () {
+    const post = yield* fetchPostDetail(postId)
+    const fetchedAt = yield* Clock.currentTimeMillis
+    return { post, fetchedAt }
+  }),
+)
 
 const Tab = Schema.Literals(['Posts', 'Stats'])
 type Tab = typeof Tab.Type
@@ -109,7 +118,12 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-type UpdateReturn = Update.Return<Model, Message>
+type QueryHandlers =
+  | Command.HandlerOf<typeof postsQuery.Fetch>
+  | Command.HandlerOf<typeof statsQuery.Fetch>
+  | Command.HandlerOf<typeof postQuery.Fetch>
+
+type UpdateReturn = Update.Return<Model, Message, QueryHandlers>
 
 const posts = postsQuery.lift<Model, Message>({
   parentField: 'posts',
@@ -138,7 +152,7 @@ const activateTab = (model: Model, tab: Tab): UpdateReturn => {
 }
 
 const foldTabsOutMessage = Tabs.OutMessage.match<
-  Update.Step<Model, Message>,
+  Update.Step<Model, Message, QueryHandlers>,
   Tabs.OutMessage<Tab>
 >({
   Selected:
@@ -155,7 +169,7 @@ const foldTabs = Update.foldChild({
   foldOutMessage: foldTabsOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
+export const update = Update.make((model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     GotTabsMessage: ({ message }) => foldTabs(model, message),
     GotPostsMessage: ({ message }) => posts.fold(model, message),
@@ -178,9 +192,10 @@ export const update = (model: Model, message: Message) =>
     ClickedRefreshStats: () => stats.revalidateOrLoad(model),
     ClickedRetryStats: () => stats.revalidateOrLoad(model),
     TickedStatsRefreshInterval: () => stats.revalidate(model),
-  })
+  }),
+)
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => {
+export const init = () => {
   const model = Model.make({
     tabs: Tabs.init({ id: TABS_ID }),
     activeTab: 'Posts',
@@ -195,6 +210,7 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => {
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   revalidateStats: entry(
+    'WatchStatsRefreshInterval',
     { isStatsRefreshActive: Schema.Boolean },
     {
       modelToDependencies: model => ({
@@ -202,17 +218,27 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
           model.activeTab === 'Stats' &&
           AsyncData.hasData(statsQuery.read(model.stats)),
       }),
-      dependenciesToStream: ({ isStatsRefreshActive }) =>
-        Stream.when(
-          Stream.tick(STATS_REFETCH_INTERVAL).pipe(
-            Stream.drop(1),
-            Stream.map(Message.TickedStatsRefreshInterval),
-          ),
-          Effect.sync(() => isStatsRefreshActive),
-        ),
     },
   ),
 }))
+
+const WatchStatsRefreshIntervalLive = subscriptions.revalidateStats.toLayer(
+  ({ isStatsRefreshActive }) =>
+    Stream.when(
+      Stream.tick(STATS_REFETCH_INTERVAL).pipe(
+        Stream.drop(1),
+        Stream.map(Message.TickedStatsRefreshInterval),
+      ),
+      Effect.sync(() => isStatsRefreshActive),
+    ),
+)
+
+export const Live = Layer.mergeAll(
+  FetchPostsLive,
+  FetchStatsLive,
+  FetchPostLive,
+  WatchStatsRefreshIntervalLive,
+)
 
 // VIEW
 

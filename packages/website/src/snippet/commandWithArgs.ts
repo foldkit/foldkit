@@ -1,6 +1,6 @@
 import { Effect, Schema } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
-import { Command, Http, type Update } from 'foldkit'
+import { Command, Http, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -15,27 +15,29 @@ const FetchWeather = Command.define('FetchWeather', {
   args: { zipCode: Schema.String },
   // Every Message this Command can produce.
   messages: [Message.SucceededFetchWeather, Message.FailedFetchWeather],
-  // The Effect receives a typed args record.
-  execute: ({ zipCode }) =>
-    Effect.gen(function* () {
-      const client = yield* HttpClient.HttpClient
-      const response = yield* client.execute(
-        HttpClientRequest.get(`/api/weather?zip=${zipCode}`),
-      )
-      const weather = yield* Schema.decodeUnknownEffect(WeatherSchema)(
-        yield* response.json,
-      )
-      return Message.SucceededFetchWeather({ weather })
-    }).pipe(
-      Effect.catch(error =>
-        Effect.succeed(Message.FailedFetchWeather({ error: String(error) })),
-      ),
-      Effect.provide(Http.layer),
-    ),
 })
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+// The handler receives a typed args record.
+const FetchWeatherLive = FetchWeather.toLayer(({ zipCode }) =>
+  Effect.gen(function* () {
+    const client = yield* HttpClient.HttpClient
+    const response = yield* client.execute(
+      HttpClientRequest.get(`/api/weather?zip=${zipCode}`),
+    )
+    const weather = yield* Schema.decodeUnknownEffect(WeatherSchema)(
+      yield* response.json,
+    )
+    return Message.SucceededFetchWeather({ weather })
+  }).pipe(
+    Effect.catch(error =>
+      Effect.succeed(Message.FailedFetchWeather({ error: String(error) })),
+    ),
+    Effect.provide(Http.layer),
+  ),
+)
+
+const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     // Pass args when dispatching the Command.
     SubmittedWeatherForm: () => ({
       model,
@@ -45,4 +47,5 @@ const update = (model: Model, message: Message) =>
       model: modifyFields(model, { weather: () => weather }),
     }),
     FailedFetchWeather: () => ({ model }),
-  })
+  }),
+)

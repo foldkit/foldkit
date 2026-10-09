@@ -2,6 +2,7 @@ import { Effect, Layer, Option, Predicate, Schema } from 'effect'
 
 import { Document, Html, type HtmlBuilder } from '../html/index.js'
 import type { ManagedResources } from '../managedResource/index.js'
+import type { LayeredMountDefinition } from '../mount/index.js'
 import type { Ports } from '../port/index.js'
 import type { Subscriptions } from '../subscription/subscription.js'
 import type { Return as UpdateReturn } from '../update/index.js'
@@ -39,6 +40,7 @@ type BaseElementConfig<
     Message,
     Resources | ManagedResourceServices
   >
+  mounts?: ReadonlyArray<LayeredMountDefinition>
   container: HTMLElement | null
   ports?: P
   crash?: ElementCrashConfig<Model, Message>
@@ -214,6 +216,7 @@ export function makeElement<
     manageDocument: false,
     ports: config.ports,
     ...(config.subscriptions && { subscriptions: config.subscriptions }),
+    ...(config.mounts && { mounts: config.mounts }),
     container,
     ...(Predicate.isNotUndefined(crash) && { crash }),
     ...(Predicate.isNotUndefined(config.slow) && {

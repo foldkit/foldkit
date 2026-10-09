@@ -1,12 +1,12 @@
-import { Runtime } from 'foldkit'
+import { Application, Runtime } from 'foldkit'
 
-import { Flags, flags, init } from './main'
+import { Flags, Live, flags, init } from './main'
 import { Message } from './message'
 import { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-const application = Runtime.makeApplication({
+const application = Application.make({
   Model,
   Flags,
   init,
@@ -22,4 +22,4 @@ const application = Runtime.makeApplication({
   },
 })
 
-Runtime.run(application, { flags })
+Runtime.run(Application.provide(application, Live), { flags })

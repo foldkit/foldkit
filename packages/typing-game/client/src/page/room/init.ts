@@ -1,15 +1,15 @@
-import { Array, Option, pipe } from 'effect'
+import { Array, Layer, Option, pipe } from 'effect'
 import { Command, type Update } from 'foldkit'
 
 import { AppRoute } from '../../route'
-import { RoomsClient } from '../../rpc'
-import { FetchRoom, LoadSession } from './command'
+import { CommandsLive, FetchRoom, LoadSession } from './command'
 import { Message } from './message'
 import { Model, RoomAsyncData } from './model'
 
-export type InitReturn = Update.Return<Model, Message, RoomsClient>
+type Requirements = Layer.Success<typeof CommandsLive>
+export type InitReturn = Update.Return<Model, Message, Requirements>
 export const init = (route: AppRoute): InitReturn => {
-  const commands: ReadonlyArray<Command.Command<Message, never, RoomsClient>> =
+  const commands: ReadonlyArray<Command.Command<Message, never, Requirements>> =
     pipe(
       route,
       Option.liftPredicate(route => route._tag === 'Room'),

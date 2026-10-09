@@ -1,6 +1,6 @@
 import { Effect, Schema } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
-import { Command, Http, type Update } from 'foldkit'
+import { Command, Http, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -14,7 +14,10 @@ const CountResponse = Schema.Struct({ count: Schema.Number })
 
 const FetchCount = Command.define('FetchCount', {
   messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
-  execute: Effect.gen(function* () {
+})
+
+const FetchCountLive = FetchCount.toLayer(() =>
+  Effect.gen(function* () {
     const client = yield* HttpClient.HttpClient
     const response = yield* client.execute(HttpClientRequest.get('/api/count'))
 
@@ -32,13 +35,14 @@ const FetchCount = Command.define('FetchCount', {
     ),
     Effect.provide(Http.layer),
   ),
-})
+)
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedFetchCount: () => ({ model, commands: [FetchCount()] }),
     SucceededFetchCount: ({ count }) => ({
       model: modifyFields(model, { count: () => count }),
     }),
     FailedFetchCount: () => ({ model }),
-  })
+  }),
+)

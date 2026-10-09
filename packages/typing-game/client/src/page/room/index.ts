@@ -1,5 +1,8 @@
 export * as Model from './model'
 export { Message } from './message'
+export { CommandsLive } from './command'
+export { NavigateHomeLive } from './update'
+export { Live } from './live'
 export * from './subscription'
 export * from './init'
 export * from './update'

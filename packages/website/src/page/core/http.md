@@ -16,7 +16,7 @@ Local observability remains intact. The `http.client` span still records request
 
 ## Providing It in a Command
 
-Provide `Http.layer` at the edge of the Command's Effect with `Effect.provide`. The Layer is a thin wrapper around the browser's `fetch`, so it can stay local to a self-contained Command. When many HTTP Commands share one configured client, provide it once through [Resources](/core/resources).
+Provide `Http.layer` at the edge of the Command's Effect with `Effect.provide`. The Layer is a thin wrapper around the browser's `fetch`, so it can stay local to a self-contained Command. When many HTTP Commands share one configured client, provide it once through [Application Layers](/core/resources).
 
 The Command remains responsible for status checks, response decoding, and converting failures into declared Messages.
 

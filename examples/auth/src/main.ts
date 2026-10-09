@@ -1,6 +1,6 @@
 import { Effect, Match, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
-import { Runtime, type Update } from 'foldkit'
+import { Command, type Update } from 'foldkit'
 import { Url } from 'foldkit/url'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
@@ -39,13 +39,15 @@ export type Flags = typeof Flags.Type
 
 // INIT
 
-type InitReturn = Update.Return<Model, Message>
+type InitReturn = Update.Return<
+  Model,
+  Message,
+  | Command.HandlerOf<typeof RedirectToLogin>
+  | Command.HandlerOf<typeof RedirectToDashboard>
+>
 const withInitReturn = Match.withReturnType<InitReturn>()
 
-export const init: Runtime.RoutingApplicationInit<Model, Message, Flags> = (
-  flags: Flags,
-  url: Url,
-): InitReturn => {
+export const init = (flags: Flags, url: Url): InitReturn => {
   const route = urlToAppRoute(url)
 
   return Option.match(flags.maybeSession, {
@@ -74,3 +76,5 @@ export const init: Runtime.RoutingApplicationInit<Model, Message, Flags> = (
       ),
   })
 }
+
+export { Live } from './update'

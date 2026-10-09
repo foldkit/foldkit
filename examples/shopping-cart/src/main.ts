@@ -1,5 +1,5 @@
-import { Effect, Match, Option, Schema } from 'effect'
-import { Command, Runtime, Update } from 'foldkit'
+import { Effect, Layer, Match, Option, Schema } from 'effect'
+import { Command, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
@@ -48,9 +48,7 @@ export type Message = typeof Message.Type
 
 // INIT
 
-export const init: Runtime.RoutingApplicationInit<Model, Message> = (
-  url: Url,
-) => {
+export const init = (url: Url) => {
   return {
     model: {
       route: urlToAppRoute(url),
@@ -67,20 +65,27 @@ export const init: Runtime.RoutingApplicationInit<Model, Message> = (
 const NavigateInternal = Command.define('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
-  execute: ({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
 })
 
 const LoadExternal = Command.define('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
-  execute: ({ href }) =>
-    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
 })
+
+export const Live = Layer.mergeAll(
+  NavigateInternal.toLayer(({ url }) =>
+    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+  ),
+  LoadExternal.toLayer(({ href }) =>
+    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+  ),
+  Products.Live,
+)
 
 // UPDATE
 
-type UpdateReturn = Update.Return<Model, Message>
+type UpdateRequirements = Layer.Success<typeof Live>
+type UpdateReturn = Update.Return<Model, Message, UpdateRequirements>
 
 const foldProductsOutMessage = Products.OutMessage.match<
   Update.Step<Model, Message>
@@ -109,7 +114,7 @@ const foldProducts = Update.foldChild({
   foldOutMessage: foldProductsOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
+export const update = Update.make((model: Model, message: Message) =>
   Message.match<UpdateReturn>(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
@@ -172,7 +177,8 @@ export const update = (model: Model, message: Message) =>
         deliveryInstructions: () => '',
       }),
     }),
-  })
+  }),
+)
 
 // VIEW
 

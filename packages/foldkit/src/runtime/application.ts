@@ -23,6 +23,8 @@ import type {
   RoutingApplicationConfigWithFlags,
 } from './makeApplication.js'
 import { makeApplication } from './makeApplication.js'
+import type { ElementConfig, ElementConfigWithFlags } from './makeElement.js'
+import { makeElement as makeRuntimeElement } from './makeElement.js'
 import { type MakeRuntimeReturn, runtimeInternals } from './runtime.js'
 
 declare const ApplicationTypeId: unique symbol
@@ -46,6 +48,14 @@ type RoutingApplicationConfigWithFlagsWithoutResources<Model, Message, Flags> =
   WithoutResources<
     RoutingApplicationConfigWithFlags<Model, Message, Flags, any, any, any>
   >
+
+type ElementConfigWithoutResources<Model, Message> = WithoutResources<
+  ElementConfig<Model, Message, any, any, any>
+> &
+  Readonly<{ Flags?: never; flags?: never }>
+
+type ElementConfigWithFlagsWithoutResources<Model, Message, Flags> =
+  WithoutResources<ElementConfigWithFlags<Model, Message, Flags, any, any, any>>
 
 type CommandRequirements<Command> =
   Command extends Readonly<{
@@ -126,6 +136,11 @@ type ConfigRequirements<Config, Update> = Exclude<
       ? SubscriptionRequirements<Subscriptions>
       : never)
   | MountRequirements<Config>
+  | (Config extends Readonly<{
+      flags: Effect.Effect<any, any, infer Requirements>
+    }>
+      ? Requirements
+      : never)
   | ManagedResourceLifecycleRequirements<Config>,
   ManagedResourceRuntimeServices<Config>
 >
@@ -212,14 +227,26 @@ type PendingApplication<
   Flags,
   Requirements,
   RuntimeServices,
+  Kind extends 'Application' | 'Element' = 'Application',
 > = Readonly<{
   ports: P
   [ApplicationTypeId]: Readonly<{
     Flags: (flags: Flags) => Flags
     Requirements: (requirements: Requirements) => Requirements
     RuntimeServices: (services: RuntimeServices) => RuntimeServices
+    Kind: Kind
   }>
 }>
+
+type Program<
+  P extends Ports | undefined,
+  Flags,
+  Requirements,
+  RuntimeServices,
+  Kind extends 'Application' | 'Element',
+> = [Requirements] extends [never]
+  ? MakeRuntimeReturn<P, Flags, never, Kind>
+  : PendingApplication<P, Flags, Requirements, RuntimeServices, Kind>
 
 /** A page-owning Foldkit application whose Effect requirements are carried in
  * its type. Applications with no requirements can be passed directly to
@@ -232,7 +259,16 @@ export type Application<
   RuntimeServices = never,
 > = [Requirements] extends [never]
   ? MakeRuntimeReturn<P, Flags, never, 'Application'>
-  : PendingApplication<P, Flags, Requirements, RuntimeServices>
+  : PendingApplication<P, Flags, Requirements, RuntimeServices, 'Application'>
+
+/** A container-scoped Foldkit Element whose Effect requirements are carried
+ * in its type. Supply its handler Layers through {@link provide} before
+ * passing it to `Runtime.run` or `Runtime.embed`. */
+export type Element<
+  P extends Ports | undefined = undefined,
+  Requirements = never,
+  RuntimeServices = never,
+> = Program<P, void, Requirements, RuntimeServices, 'Element'>
 
 /** Defines a page-owning Foldkit application and preserves the services its
  * init Commands, update Commands, and Subscriptions require. */
@@ -357,6 +393,75 @@ export function make(
   return makeApplication(config as any)
 }
 
+/** Defines a container-scoped Foldkit Element with requirements inferred from
+ * its Flags Effect, init and update Commands, Subscriptions, registered Mounts,
+ * and ManagedResources. Its view returns `Html` and does not manage page
+ * metadata. */
+export function makeElement<
+  const ModelSchema extends Schema.Codec<any, any, any, any>,
+  const FlagsSchema extends Schema.Codec<any, any, never, never>,
+  const Update extends (model: ModelSchema['Type'], message: any) => any,
+  const Config extends Omit<
+    ElementConfigWithFlagsWithoutResources<
+      ModelSchema['Type'],
+      UpdateMessage<Update>,
+      FlagsSchema['Type']
+    >,
+    'Model' | 'Flags' | 'update'
+  >,
+>(
+  config: Config &
+    Readonly<{
+      Model: ModelSchema
+      Flags: FlagsSchema
+      update: Update & ValidUpdate<ModelSchema['Type'], Update>
+    }>,
+): Element<
+  ConfigPorts<Config>,
+  ConfigRequirements<Config, Update>,
+  ManagedResourceRuntimeServices<Config>
+>
+
+export function makeElement<
+  const ModelSchema extends Schema.Codec<any, any, any, any>,
+  const Update extends (model: ModelSchema['Type'], message: any) => any,
+  const Config extends Omit<
+    ElementConfigWithoutResources<ModelSchema['Type'], UpdateMessage<Update>>,
+    'Model' | 'update'
+  >,
+>(
+  config: Config &
+    Readonly<{
+      Model: ModelSchema
+      update: Update & ValidUpdate<ModelSchema['Type'], Update>
+    }>,
+): Element<
+  ConfigPorts<Config>,
+  ConfigRequirements<Config, Update>,
+  ManagedResourceRuntimeServices<Config>
+>
+
+export function makeElement(
+  config:
+    | ElementConfigWithFlagsWithoutResources<any, any, any>
+    | ElementConfigWithoutResources<any, any>,
+): unknown {
+  if (config.subscriptions) {
+    assertDistinctHandlerNames('Subscription', config.subscriptions)
+  }
+
+  if (config.managedResources) {
+    assertDistinctHandlerNames('ManagedResource', config.managedResources)
+  }
+
+  if (config.mounts) {
+    assertDistinctMountNames(config.mounts)
+  }
+
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  return makeRuntimeElement(config as any)
+}
+
 /** Supplies the services a Layer produces and carries its own requirements
  * forward on the application. Combine independent feature Layers with
  * `Layer.mergeAll` before calling this once. A bundle may produce services
@@ -367,6 +472,7 @@ export const provide = <
   Flags,
   CurrentRequirements,
   RuntimeServices,
+  Kind extends 'Application' | 'Element',
   Provided,
   E,
   Needed,
@@ -375,27 +481,29 @@ export const provide = <
     P,
     Flags,
     CurrentRequirements,
-    RuntimeServices
+    RuntimeServices,
+    Kind
   >,
   layer: Layer.Layer<Provided, E, Needed>,
-): Application<
+): Program<
   P,
   Flags,
   ResidualRequirements<CurrentRequirements, Provided, Needed, RuntimeServices>,
-  RuntimeServices
+  RuntimeServices,
+  Kind
 > => {
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const program = application as unknown as MakeRuntimeReturn<
     P,
     Flags,
     CurrentRequirements,
-    'Application'
+    Kind
   >
   const internals = runtimeInternals.get(program)
 
   if (internals === undefined) {
     throw new Error(
-      '[foldkit] Application.provide expects an application created by Application.make.',
+      '[foldkit] Application.provide expects a program created by Application.make or Application.makeElement.',
     )
   }
 
@@ -432,7 +540,7 @@ export const provide = <
   })
 
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  return provided as unknown as Application<
+  return provided as unknown as Program<
     P,
     Flags,
     ResidualRequirements<
@@ -441,6 +549,7 @@ export const provide = <
       Needed,
       RuntimeServices
     >,
-    RuntimeServices
+    RuntimeServices,
+    Kind
   >
 }
