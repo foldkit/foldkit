@@ -193,6 +193,33 @@ A hydratable render with neither a compiled nor explicit id fails with `MissingB
 
 The standalone `foldkitSsr({ serverEntry, buildId })` export retains explicit build-id support for separately orchestrated integrations. The aggregate `foldkit({ ssr })` plugin owns the automatic path.
 
+## Compiled Schema parsers
+
+`schemaCompiler` compiles the Schemas your modules export into static parsers during `vite build`, so `Schema.decode*` calls on those Schemas skip Effect's runtime interpreter:
+
+```typescript
+plugins: [
+  foldkit({
+    schemaCompiler: {
+      modules: ['/src/schema/api.ts', '/src/schema/model.ts'],
+      operations: ['decode', 'encode'],
+    },
+  }),
+]
+```
+
+At the start of the client build, the plugin loads each listed module in Node through a Vite server that shares the project's resolve settings and none of its plugins. It compiles the exported Schemas with Effect's unstable `SchemaAOTCompiler` and keeps the result in memory as `virtual:foldkit/schema-compiler`. The plugin imports that module ahead of the entry in every HTML page, so the parsers are installed before the entry runs. A module that cannot be resolved or loaded fails the build.
+
+Things to know before turning it on:
+
+- Module paths resolve like imports in the project. For example: `'/src/schema/api.ts'` from the project root, an absolute path, or an alias.
+- Only direct Schema exports are compiled, along with the Schemas they contain. A Schema derived at the call site interprets its own step and still uses the compiled Schemas inside it.
+- A listed module cannot touch the DOM or start the Runtime when imported, and it must build the same Schemas in Node as in the browser. A Schema that branches on `import.meta.env.SSR` or `typeof window` is compiled from its Node definition.
+- The listed modules join the entry's initial module graph and evaluate before the installation.
+- `operations` defaults to `['decode']`. `'encode'`, `'is'`, and `'make'` prepare the other parser families.
+- A client build without an HTML entry warns instead of installing. Import `virtual:foldkit/schema-compiler` first in its entry module, and add `declare module 'virtual:foldkit/schema-compiler' {}` to a declaration file for TypeScript. The dev server and server builds resolve that import to an empty module. `FOLDKIT_SCHEMA_COMPILER_MODULE_ID` exports the id.
+- The dev server and server builds are unaffected. They keep interpreting.
+
 ## DevTools overlay
 
 When `@foldkit/devtools` is installed as a development dependency, the plugin mounts its overlay automatically during development and leaves it out of production builds. No application import or `devTools.overlay` field is needed.
