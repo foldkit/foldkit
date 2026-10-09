@@ -58,6 +58,7 @@ export const Message = defineMessageUnion({
   GotListboxGroupedDemoMessage: { message: Listbox.Message },
   GotMenuBasicDemoMessage: { message: Menu.Message },
   GotMenuAnimatedDemoMessage: { message: Menu.Message },
+  GotMenuSubmenuDemoMessage: { message: Menu.Message },
   GotPopoverBasicDemoMessage: { message: Popover.Message },
   GotPopoverAnimatedDemoMessage: { message: Popover.Message },
   GotPopoverArrowDemoMessage: { message: Popover.Message },
