@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Schema, pipe } from 'effect'
 import { Application, Port } from 'foldkit'
 
 // Each Port carries a Schema. The host works with the Schema's Encoded
@@ -11,7 +11,7 @@ export const ports = {
 }
 
 export const makeElement = (container: HTMLElement, flags: Flags) =>
-  Application.provide(
+  pipe(
     Application.makeElement({
       Model,
       Flags,
@@ -25,5 +25,5 @@ export const makeElement = (container: HTMLElement, flags: Flags) =>
       ports,
       container,
     }),
-    Live,
+    Application.provide(Live),
   )

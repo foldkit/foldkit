@@ -1,4 +1,4 @@
-import { Duration, Effect, Layer, Schema, Stream } from 'effect'
+import { Duration, Effect, Layer, Schema, Stream, pipe } from 'effect'
 import { Application, Command, Port, Subscription, Update } from 'foldkit'
 import { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -140,7 +140,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html =>
 // PROGRAM
 
 export const makeElement = (container: HTMLElement, flags: Flags) =>
-  Application.provide(
+  pipe(
     Application.makeElement({
       Model,
       Flags,
@@ -155,5 +155,5 @@ export const makeElement = (container: HTMLElement, flags: Flags) =>
         Message,
       },
     }),
-    Live,
+    Application.provide(Live),
   )

@@ -523,7 +523,7 @@ Element Flags are self-contained in the assembly config. A host factory can turn
 
 ```ts
 export const makeElement = (container: HTMLElement, flags: Flags) =>
-  Application.provide(
+  pipe(
     Application.makeElement({
       Model,
       Flags,
@@ -533,7 +533,7 @@ export const makeElement = (container: HTMLElement, flags: Flags) =>
       view,
       container,
     }),
-    Live,
+    Application.provide(Live),
   )
 ```
 

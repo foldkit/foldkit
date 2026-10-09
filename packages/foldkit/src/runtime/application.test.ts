@@ -1,4 +1,13 @@
-import { Context, Effect, Fiber, Layer, Option, Schema, Stream } from 'effect'
+import {
+  Context,
+  Effect,
+  Fiber,
+  Layer,
+  Option,
+  Schema,
+  Stream,
+  pipe,
+} from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Command from '../command/index.js'
@@ -213,8 +222,11 @@ describe('Application', () => {
           }),
       ),
     )
-    const withHandler = Application.provide(application, handlerLayer)
-    const provided = Application.provide(withHandler, databaseLayer)
+    const provided = pipe(
+      application,
+      Application.provide(handlerLayer),
+      Application.provide(databaseLayer),
+    )
     const fiber = Effect.runFork(__startProgram(provided, undefined, 'Fresh'))
 
     try {
@@ -414,12 +426,15 @@ const checkApplicationTypes = (): void => {
       Message.CompletedSend({ text: database.store(text) }),
     ),
   )
-  const withHandler = Application.provide(application, handlerNeedingDatabase)
+  const withHandler = pipe(
+    application,
+    Application.provide(handlerNeedingDatabase),
+  )
 
   // @ts-expect-error Database remains after the Command handler is provided.
   run(withHandler)
 
-  const provided = Application.provide(withHandler, DatabaseLive)
+  const provided = pipe(withHandler, Application.provide(DatabaseLive))
   run(provided)
 
   const subscriptions = Subscription.make<Model, Message, Database>()(

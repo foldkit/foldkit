@@ -1,5 +1,6 @@
 import {
   Effect,
+  Function,
   Layer,
   Option,
   Predicate,
@@ -464,81 +465,26 @@ export function makeElement(
  * forward on the application. Combine independent feature Layers with
  * `Layer.mergeAll` before calling this once. A bundle may produce services
  * beyond the application's requirements; they remain available at runtime.
- * Layers are built once for each runtime start and released when it stops. */
-export const provide = <
-  P extends Ports | undefined,
-  Flags,
-  CurrentRequirements,
-  RuntimeServices,
-  Kind extends 'Application' | 'Element',
-  Provided,
-  E,
-  Needed,
->(
-  application: PendingApplication<
-    P,
+ * Layers are built once for each runtime start and released when it stops.
+ * Call data-first or pass a Layer alone to use this function in a pipe. */
+export const provide: {
+  <Provided, E, Needed>(
+    layer: Layer.Layer<Provided, E, Needed>,
+  ): <
+    P extends Ports | undefined,
     Flags,
     CurrentRequirements,
     RuntimeServices,
-    Kind
-  >,
-  layer: Layer.Layer<Provided, E, Needed>,
-): Program<
-  P,
-  Flags,
-  ResidualRequirements<CurrentRequirements, Provided, Needed, RuntimeServices>,
-  RuntimeServices,
-  Kind
-> => {
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  const program = application as unknown as MakeRuntimeReturn<
-    P,
-    Flags,
-    CurrentRequirements,
-    Kind
-  >
-  const internals = runtimeInternals.get(program)
-
-  if (internals === undefined) {
-    throw new Error(
-      '[foldkit] Application.provide expects a program created by Application.make or Application.makeElement.',
-    )
-  }
-
-  const applicationLayer = internals.applicationLayer
-    ? Layer.provideMerge(internals.applicationLayer, layer)
-    : layer
-
-  const startWith = (
-    maybeConnector: Parameters<typeof internals.startWith>[0],
-    preservedModel?: unknown,
-    bootMode: Parameters<typeof internals.startWith>[2] = 'Fresh',
-    flags?: Parameters<typeof internals.startWith>[3],
-    buildId?: string,
-  ) =>
-    internals.startWithApplicationLayer(
-      maybeConnector,
-      preservedModel,
-      bootMode,
-      flags,
-      buildId,
-      applicationLayer,
-    )
-
-  const provided = {
-    ...program,
-    start: (preservedModel?: unknown) =>
-      startWith(Option.none(), preservedModel),
-  }
-
-  runtimeInternals.set(provided, {
-    ...internals,
-    applicationLayer,
-    startWith,
-  })
-
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  return provided as unknown as Program<
+    Kind extends 'Application' | 'Element',
+  >(
+    application: PendingApplication<
+      P,
+      Flags,
+      CurrentRequirements,
+      RuntimeServices,
+      Kind
+    >,
+  ) => Program<
     P,
     Flags,
     ResidualRequirements<
@@ -550,4 +496,127 @@ export const provide = <
     RuntimeServices,
     Kind
   >
-}
+  <
+    P extends Ports | undefined,
+    Flags,
+    CurrentRequirements,
+    RuntimeServices,
+    Kind extends 'Application' | 'Element',
+    Provided,
+    E,
+    Needed,
+  >(
+    application: PendingApplication<
+      P,
+      Flags,
+      CurrentRequirements,
+      RuntimeServices,
+      Kind
+    >,
+    layer: Layer.Layer<Provided, E, Needed>,
+  ): Program<
+    P,
+    Flags,
+    ResidualRequirements<
+      CurrentRequirements,
+      Provided,
+      Needed,
+      RuntimeServices
+    >,
+    RuntimeServices,
+    Kind
+  >
+} = Function.dual(
+  2,
+  <
+    P extends Ports | undefined,
+    Flags,
+    CurrentRequirements,
+    RuntimeServices,
+    Kind extends 'Application' | 'Element',
+    Provided,
+    E,
+    Needed,
+  >(
+    application: PendingApplication<
+      P,
+      Flags,
+      CurrentRequirements,
+      RuntimeServices,
+      Kind
+    >,
+    layer: Layer.Layer<Provided, E, Needed>,
+  ): Program<
+    P,
+    Flags,
+    ResidualRequirements<
+      CurrentRequirements,
+      Provided,
+      Needed,
+      RuntimeServices
+    >,
+    RuntimeServices,
+    Kind
+  > => {
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const program = application as unknown as MakeRuntimeReturn<
+      P,
+      Flags,
+      CurrentRequirements,
+      Kind
+    >
+    const internals = runtimeInternals.get(program)
+
+    if (internals === undefined) {
+      throw new Error(
+        '[foldkit] Application.provide expects a program created by Application.make or Application.makeElement.',
+      )
+    }
+
+    const applicationLayer = internals.applicationLayer
+      ? Layer.provideMerge(internals.applicationLayer, layer)
+      : layer
+
+    const startWith = (
+      maybeConnector: Parameters<typeof internals.startWith>[0],
+      preservedModel?: unknown,
+      bootMode: Parameters<typeof internals.startWith>[2] = 'Fresh',
+      flags?: Parameters<typeof internals.startWith>[3],
+      buildId?: string,
+    ) =>
+      internals.startWithApplicationLayer(
+        maybeConnector,
+        preservedModel,
+        bootMode,
+        flags,
+        buildId,
+        applicationLayer,
+      )
+
+    const provided = {
+      ...program,
+      start: (preservedModel?: unknown) =>
+        startWith(Option.none(), preservedModel),
+    }
+
+    runtimeInternals.set(provided, {
+      ...internals,
+      applicationLayer,
+      startWith,
+    })
+
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    return provided as unknown as Program<
+      P,
+      Flags,
+      ResidualRequirements<
+        CurrentRequirements,
+        Provided,
+        Needed,
+        RuntimeServices
+      >,
+      RuntimeServices,
+      Kind
+    >
+  },
+)

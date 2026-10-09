@@ -44,7 +44,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 ### 2. Application assembly
 
 - [x] Separate application definition, Layer provision, and host startup for `run`, `hydrate`, and `embed`.
-- [x] Add `Application.make` and chainable `Application.provide` for client-only applications without Flags or routing.
+- [x] Add `Application.make` and chainable `Application.provide` for client-only applications without Flags or routing. `Application.provide` supports data-first calls and data-last composition with `pipe`.
 - [x] Extend application assembly to Flags and routing, including hydration and embed startup through the provided runtime internals.
 - [x] Remove `resources` from application configuration after the replacement path works.
 - [x] Keep runtime-provided ManagedResource accessors and Port channels available to handlers.
