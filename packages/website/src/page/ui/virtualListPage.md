@@ -42,6 +42,12 @@ An initial index, key, offset, or end target remains pending if the list mounts 
 
 ::Snippet{name="uiVirtualListChat" label="End-anchored dynamic-height VirtualList"}
 
+## Memoizing rows
+
+`itemToKey` is the row's DOM identity. Use that same id when memoizing the row view with `createKeyedLazy`, and pass `{ evict: 'AbsentFromRender' }`.
+
+`createKeyedLazy()` keeps every key until the page closes. In a virtual list those keys are every row that has been on screen. Each cached entry holds the row's VNode, and that VNode holds the row's DOM element, so those rows stay in memory after they scroll out of the window. `{ evict: 'AbsentFromRender' }` drops keys the latest render did not call. Rows still in the window keep their cache hits. Rows that scrolled out are released when that render finishes.
+
 ## Programmatic scrolling
 
 `scrollToIndex`, `scrollToKey`, `scrollToOffset`, and `scrollToEnd` all create logical scroll requests. The next view selects the target window, then the Command aligns the live rendered row or applies the live maximum offset.
