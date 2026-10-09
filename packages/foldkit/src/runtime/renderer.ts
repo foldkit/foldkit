@@ -158,6 +158,7 @@ export const makeRenderer = <Model, Message>({
       enqueueMessageEffect,
       drainPendingMessages,
       resetDrainBudget,
+      settleAwaitedMessages,
     } = messageQueue
     const {
       mountTracker,
@@ -331,6 +332,7 @@ export const makeRenderer = <Model, Message>({
           manageDocument,
         )
         settlePendingCommit()
+        settleAwaitedMessages()
       })
 
     // NOTE: `maybeLastDirtyMessage` holds the most recent dirtying Message,
