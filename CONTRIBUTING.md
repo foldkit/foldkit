@@ -69,6 +69,7 @@ Beyond the usual lint, typecheck, and test steps, the suite enforces a few repos
 | `check:changeset-unwrapped`        | Changeset prose is not hard-wrapped. Write each paragraph as one line.                                                                                             |
 | `changeset status`                 | Every change to a publishable package has a changeset.                                                                                                             |
 | `check:dead-code`                  | No unused files, exports, or dependencies.                                                                                                                         |
+| `check:ui-subpath-exports`         | Every `packages/ui/src` component with a `public.ts` has an exports entry, a main-entry namespace and an example alias.                                            |
 
 ## Commits
 
