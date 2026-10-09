@@ -6,8 +6,8 @@ import { toString as urlToString } from 'foldkit/url'
 
 import { ClearSession, CommandsLive, LogError, SaveSession } from './command'
 import { Message } from './message'
-import { LoggedIn, LoggedOut, Model } from './model'
-import * as Login from './page/loggedOut/page/login'
+import { Model } from './model'
+import { LoggedIn, LoggedOut } from './page'
 import {
   AppRoute,
   dashboardRouter,
@@ -62,11 +62,7 @@ const NavigationLive = Layer.mergeAll(
   ),
 )
 
-export const Live = Layer.mergeAll(
-  CommandsLive,
-  NavigationLive,
-  Login.SimulateAuthRequestLive,
-)
+export const Live = Layer.mergeAll(CommandsLive, NavigationLive, LoggedOut.Live)
 
 type CommandServices = Layer.Success<typeof Live>
 
