@@ -110,6 +110,8 @@ For `OnKeyDownPreventDefault`, returning `Some` claims the key. Foldkit suppress
 
 `OnKeyDownSelf` and `OnKeyDownSelfPreventDefault` handle only keydowns that target the host itself. Keydowns bubbling from descendants are ignored. Use them when a composite widget owns keyboard input for its host but embeds interactive children whose keys should remain independent. The prevent-default variant otherwise follows the same `Some` and `None` contract as `OnKeyDownPreventDefault`.
 
+Every `OnKeyDown` attribute leaves a keydown alone while an input method is still composing. Foldkit does not call the handler and does not suppress the browser default, so Enter can confirm a Japanese, Chinese, or Korean conversion.
+
 Handlers never run Effects or decide consequences. The example classifies Enter with an active result as `SelectedResult`; update decides what selection changes. When a translator grows, extract it to a named pure function and pass that function to the attribute.
 
 ## Focus Regions
