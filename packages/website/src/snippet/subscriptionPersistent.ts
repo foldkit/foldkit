@@ -11,7 +11,9 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  heartbeat: entry('HeartbeatTicks'),
+  heartbeat: entry('HeartbeatTicks', {
+    messages: [Message.TickedHeartbeat],
+  }),
 }))
 
 export const HeartbeatTicksLive = subscriptions.heartbeat.toLayer(() =>

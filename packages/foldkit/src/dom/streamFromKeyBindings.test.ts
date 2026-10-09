@@ -98,6 +98,7 @@ describe('streamFromKeyBindings', () => {
       expectTypeOf(rawEventStream).toEqualTypeOf<Stream.Stream<KeyboardEvent>>()
 
       make<{ isActive: boolean }, Message>()(entry => ({
+        // @ts-expect-error a raw KeyboardEvent is not an application Message
         keyboard: entry(
           { isActive: Schema.Boolean },
           {

@@ -14,6 +14,8 @@ For a replaceable lifecycle implementation, give an entry a stable handler name 
 
 Distinct ManagedResource definitions within one application need distinct handler names. A lifted use of the same definition can share its handler Layer. `Application.make` rejects duplicate names from different definitions.
 
+The record key identifies the lifecycle that Foldkit watches. The handler name identifies the acquire-and-release implementation supplied by a Layer. Use a verb-first name such as `ManageCamera` or `ManageChatSocket`, name its production Layer `ManageCameraLive` or `ManageChatSocketLive`, and include that Layer in the feature's `Live` Layer.
+
 ::Snippet{name="managedResources" label="Camera ManagedResource lifecycle"}
 
 The runtime compares the requirements after every Model change and performs the corresponding transition.

@@ -133,6 +133,9 @@ export const update = Update.make((model: Model, message: Message) =>
 
     GotLoggedInMessage: ({ message }) => foldLoggedIn(model, message),
     CompletedNavigateInternal: () => ({ model }),
+    CompletedRedirectToLogin: () => ({ model }),
+    CompletedRedirectToDashboard: () => ({ model }),
+    CompletedRedirectToHome: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
     CompletedLogError: () => ({ model }),
     SucceededSaveSession: () => ({ model }),

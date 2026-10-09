@@ -95,6 +95,7 @@ describe('Application', () => {
         'StatusUpdates',
         { token: Schema.Null },
         {
+          messages: [],
           modelToDependencies: () => ({ token: null }),
         },
       ),
@@ -102,6 +103,7 @@ describe('Application', () => {
         'StatusUpdates',
         { token: Schema.Null },
         {
+          messages: [],
           modelToDependencies: () => ({ token: null }),
         },
       ),
@@ -128,6 +130,7 @@ describe('Application', () => {
         'StatusUpdates',
         { token: Schema.Null },
         {
+          messages: [],
           modelToDependencies: () => ({ token: null }),
         },
       ),
@@ -255,6 +258,7 @@ describe('Application', () => {
         'ReadyUpdates',
         { token: Schema.Null },
         {
+          messages: [Message.CompletedSend],
           modelToDependencies: () => ({ token: null }),
         },
       ),
@@ -469,6 +473,7 @@ const checkApplicationTypes = (): void => {
       'StoredValues',
       { status: Schema.String },
       {
+        messages: [],
         modelToDependencies: model => ({ status: model.status }),
       },
     ),
@@ -563,6 +568,7 @@ const checkApplicationTypes = (): void => {
         'LocationChanges',
         { pathname: Schema.String },
         {
+          messages: [],
           modelToDependencies: model => ({ pathname: model.status }),
         },
       ),

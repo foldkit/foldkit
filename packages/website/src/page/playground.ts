@@ -74,8 +74,8 @@ export const Message = defineMessageUnion({
   EditedPlaygroundFile: { path: Schema.String, content: Schema.String },
   SucceededMountPlaygroundEditor: {},
   FailedMountPlaygroundEditor: { reason: Schema.String },
-  ScheduledWritePlaygroundFile: {},
-  FailedWritePlaygroundFile: { reason: Schema.String },
+  SucceededSchedulePlaygroundFileWrite: {},
+  FailedSchedulePlaygroundFileWrite: { reason: Schema.String },
   CompletedWaitForPlaygroundServerFailure: { reason: Schema.String },
 })
 export type Message = typeof Message.Type
@@ -429,20 +429,23 @@ const streamPlaygroundEditorMessages = (
     ),
   )
 
-export const PlaygroundEditor = Mount.defineStream('PlaygroundEditor', {
-  args: {
-    path: Schema.String,
-    initialContent: Schema.String,
-    files: Schema.Record(Schema.String, Schema.String),
+export const MountPlaygroundEditor = Mount.defineStream(
+  'MountPlaygroundEditor',
+  {
+    args: {
+      path: Schema.String,
+      initialContent: Schema.String,
+      files: Schema.Record(Schema.String, Schema.String),
+    },
+    messages: [
+      Message.SucceededMountPlaygroundEditor,
+      Message.FailedMountPlaygroundEditor,
+      Message.EditedPlaygroundFile,
+    ],
   },
-  messages: [
-    Message.SucceededMountPlaygroundEditor,
-    Message.FailedMountPlaygroundEditor,
-    Message.EditedPlaygroundFile,
-  ],
-})
+)
 
-export const PlaygroundEditorLive = PlaygroundEditor.toLayer(
+export const MountPlaygroundEditorLive = MountPlaygroundEditor.toLayer(
   ({ element, path, initialContent, files, viewStateChanges }) =>
     streamPlaygroundEditorMessages(
       element,
@@ -487,15 +490,18 @@ const WaitForPlaygroundServerFailureLive =
     }).pipe(Effect.catchTag('ResourceNotAvailable', () => Effect.interrupt)),
   )
 
-export const WritePlaygroundFile = Command.define('WritePlaygroundFile', {
-  args: { path: Schema.String, content: Schema.String },
-  messages: [
-    Message.ScheduledWritePlaygroundFile,
-    Message.FailedWritePlaygroundFile,
-  ],
-})
+export const SchedulePlaygroundFileWrite = Command.define(
+  'SchedulePlaygroundFileWrite',
+  {
+    args: { path: Schema.String, content: Schema.String },
+    messages: [
+      Message.SucceededSchedulePlaygroundFileWrite,
+      Message.FailedSchedulePlaygroundFileWrite,
+    ],
+  },
+)
 
-const WritePlaygroundFileLive = WritePlaygroundFile.toLayer(
+const SchedulePlaygroundFileWriteLive = SchedulePlaygroundFileWrite.toLayer(
   ({ path, content }) =>
     Effect.gen(function* () {
       const { container, pendingWrites } = yield* WebContainerPlayground.get
@@ -523,11 +529,11 @@ const WritePlaygroundFileLive = WritePlaygroundFile.toLayer(
         ),
         { startImmediately: true },
       )
-      return Message.ScheduledWritePlaygroundFile()
+      return Message.SucceededSchedulePlaygroundFileWrite()
     }).pipe(
       Effect.catchTag('ResourceNotAvailable', () =>
         Effect.succeed(
-          Message.FailedWritePlaygroundFile({
+          Message.FailedSchedulePlaygroundFileWrite({
             reason: 'WebContainer not yet ready',
           }),
         ),
@@ -535,13 +541,13 @@ const WritePlaygroundFileLive = WritePlaygroundFile.toLayer(
     ),
 )
 
-export const mounts = [PlaygroundEditor]
+export const mounts = [MountPlaygroundEditor]
 
 export const Live = Layer.mergeAll(
   ManageWebContainerPlaygroundLive,
-  PlaygroundEditorLive,
+  MountPlaygroundEditorLive,
   WaitForPlaygroundServerFailureLive,
-  WritePlaygroundFileLive,
+  SchedulePlaygroundFileWriteLive,
 )
 
 // UPDATE
@@ -554,11 +560,11 @@ const appendDeduped = (
 
 const flushDirtyPaths = (
   model: Model,
-): ReadonlyArray<ReturnType<typeof WritePlaygroundFile>> =>
+): ReadonlyArray<ReturnType<typeof SchedulePlaygroundFileWrite>> =>
   model.dirtyPaths.flatMap(path =>
     pipe(
       Record.get(model.files, path),
-      Option.map(content => WritePlaygroundFile({ path, content })),
+      Option.map(content => SchedulePlaygroundFileWrite({ path, content })),
       Option.toArray,
     ),
   )
@@ -624,7 +630,7 @@ export const update = Update.make((model: Model, message: Message) =>
       if (isBooted) {
         return {
           model: nextModel,
-          commands: [WritePlaygroundFile({ path, content })],
+          commands: [SchedulePlaygroundFileWrite({ path, content })],
         }
       } else {
         return { model: nextModel }
@@ -635,10 +641,10 @@ export const update = Update.make((model: Model, message: Message) =>
         state: () => PlaygroundState.Failed({ reason }),
       }),
     }),
-    ScheduledWritePlaygroundFile: () => ({
+    SucceededSchedulePlaygroundFileWrite: () => ({
       model: modifyFields(model, { lastWriteError: () => Option.none() }),
     }),
-    FailedWritePlaygroundFile: ({ reason }) => ({
+    FailedSchedulePlaygroundFileWrite: ({ reason }) => ({
       model: modifyFields(model, {
         lastWriteError: () => Option.some(reason),
       }),
@@ -783,7 +789,9 @@ const editorPanelContent = (
     [
       h.keyed('div')(`editor-${path}`, [
         h.Class('flex-1 min-h-0 min-w-0 overflow-hidden'),
-        h.OnMount(PlaygroundEditor({ path, initialContent: content, files })),
+        h.OnMount(
+          MountPlaygroundEditor({ path, initialContent: content, files }),
+        ),
       ]),
     ],
   )

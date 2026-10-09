@@ -55,6 +55,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       sections: Schema.Array(Schema.String),
     },
     {
+      messages: [Message.ChangedActiveSection],
       modelToDependencies: model => {
         const currentPageTableOfContents = Match.value(model.route).pipe(
           Match.tags({

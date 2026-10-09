@@ -70,10 +70,10 @@ export const Message = defineMessageUnion({
   CompletedLoadExternal: {},
   ClickedLink: { request: UrlRequest },
   ChangedUrl: { url: Url },
-  SucceededLoadCatalog: {},
-  SucceededLoadPainting: { paintingId: Schema.Number },
+  CompletedLoadCatalog: {},
+  CompletedLoadPainting: { paintingId: Schema.Number },
   UpdatedStudioDraft: { value: Schema.String },
-  SucceededSaveDraft: { draft: Schema.String },
+  CompletedSaveDraft: { draft: Schema.String },
 })
 
 export type Message = typeof Message.Type
@@ -91,17 +91,17 @@ const LoadExternal = Command.define('LoadExternal', {
 })
 
 export const LoadCatalog = Command.define('LoadCatalog', {
-  messages: [Message.SucceededLoadCatalog],
+  messages: [Message.CompletedLoadCatalog],
 })
 
 export const LoadPainting = Command.define('LoadPainting', {
   args: { paintingId: Schema.Number },
-  messages: [Message.SucceededLoadPainting],
+  messages: [Message.CompletedLoadPainting],
 })
 
 export const SaveDraft = Command.define('SaveDraft', {
   args: { draft: Schema.String },
-  messages: [Message.SucceededSaveDraft],
+  messages: [Message.CompletedSaveDraft],
 })
 
 export const Live = Layer.mergeAll(
@@ -113,17 +113,17 @@ export const Live = Layer.mergeAll(
   ),
   LoadCatalog.toLayer(() =>
     Effect.sleep(CATALOG_LATENCY).pipe(
-      Effect.as(Message.SucceededLoadCatalog()),
+      Effect.as(Message.CompletedLoadCatalog()),
     ),
   ),
   LoadPainting.toLayer(({ paintingId }) =>
     Effect.sleep(PAINTING_LATENCY).pipe(
-      Effect.as(Message.SucceededLoadPainting({ paintingId })),
+      Effect.as(Message.CompletedLoadPainting({ paintingId })),
     ),
   ),
   SaveDraft.toLayer(({ draft }) =>
     Effect.sleep(SAVE_LATENCY).pipe(
-      Effect.as(Message.SucceededSaveDraft({ draft })),
+      Effect.as(Message.CompletedSaveDraft({ draft })),
     ),
   ),
 )
@@ -238,11 +238,11 @@ export const update = Update.make((model: Model, message: Message) =>
       )
     },
 
-    SucceededLoadCatalog: () => ({
+    CompletedLoadCatalog: () => ({
       model: modifyFields(model, { catalogStatus: () => 'Ready' }),
     }),
 
-    SucceededLoadPainting: ({ paintingId }) =>
+    CompletedLoadPainting: ({ paintingId }) =>
       model.paintingStatus._tag === 'Loading' &&
       model.paintingStatus.paintingId === paintingId
         ? {
@@ -256,7 +256,7 @@ export const update = Update.make((model: Model, message: Message) =>
       model: modifyFields(model, { studioDraft: () => value }),
     }),
 
-    SucceededSaveDraft: ({ draft }) => ({
+    CompletedSaveDraft: ({ draft }) => ({
       model: modifyFields(model, { maybeSavedDraft: () => Option.some(draft) }),
     }),
   }),

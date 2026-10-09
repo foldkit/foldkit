@@ -14,13 +14,39 @@ When one file becomes hard to navigate, separate the root pieces and give each [
 
 ::Snippet{name="fileLayout" label="Recommended application structure"}
 
-Each feature folder owns its Model, Messages, update, view, Commands, Subscriptions, and tests. Do not create empty files only to match the diagram. Add a file when the feature has that concern.
+Each feature folder owns its Model, Messages, update, view, Commands, Subscriptions, Mounts, ManagedResources, handler Layers, and tests. Do not create empty files only to match the diagram. Add a file when the feature has that concern.
 
 Keep Commands beside the update that returns them. A feature that fetches its own data owns that Command instead of importing it from a root Command collection. Extract `message.ts` when a Command needs to import its result Message constructors without creating a cycle.
 
 A feature that declares Subscriptions owns `subscription.ts`. The parent lifts that record into its own Model and Message types. See [Subscription Organization](/patterns/subscription-organization).
 
 Split a large feature again only when its own files become difficult to navigate. The [Typing Terminal room source](https://github.com/foldkit/foldkit/tree/main/packages/typing-game/client/src/page/room) has `view/` and `update/` subfolders inside one Room feature.
+
+## Composing Handler Layers
+
+Keep each handler Layer beside the Command, Subscription, Mount, or ManagedResource definition it implements. Name an individual production Layer after that definition, such as `LoadProductsLive` or `ProductUpdatesLive`.
+
+When a feature has several handlers, its `live.ts` combines them under one `Live` export. The bundle also includes the `Live` Layers exported by child features.
+
+::Snippet{name="applicationFeatureLive" label="Feature handler Layer composition"}
+
+The application root repeats the same composition with its own handlers and the `Live` Layer from each top-level feature.
+
+::Snippet{name="applicationRootLive" label="Root handler Layer composition"}
+
+The entry imports only that root `Live` Layer and supplies it with one `Application.provide` call. Adding another handler to an existing feature changes the feature's `live.ts`; it does not add another import or provision step to `entry.ts`. See [Providing application handler Layers](/core/runtime#overview) for the entry code.
+
+## Composing Runtime Registrations
+
+Handler Layers and runtime registrations are parallel graphs with different jobs. A feature's `Live` Layer supplies implementations. Its `subscriptions`, `managedResources`, and `mounts` say which behaviors Foldkit manages for that feature. Keep both exports at the feature boundary, then let `application.ts` assemble the root program.
+
+::Snippet{name="applicationRegistrations" label="Root runtime registration composition"}
+
+`Subscription.lift` and `ManagedResource.lift` connect a child feature's Model and Messages to its parent. Direct `Subscription.aggregate(first, second)` keeps the individual Subscription definitions, including their declared Messages and `toLayer` helpers. Use the curried aggregate form only for a record already widened or annotated at a module boundary; it erases that per-entry metadata.
+
+`Application.make` receives the completed registration graph. `entry.ts` imports only `application` and the root `Live` Layer, then starts `Application.provide(application, Live)`. It does not import feature Commands, Subscription handlers, Mount handlers, or ManagedResource handlers.
+
+When a parent update needs an explicit requirement union, derive each child branch from `Update.RequirementsOf<typeof Child.update>` and include other Command-producing helpers. Do not derive it from `Layer.Success<typeof Child.Live>`: a feature `Live` Layer may also implement Subscriptions, Mounts, or ManagedResources that the update never returns.
 
 ## Where Tests Live
 
@@ -44,7 +70,7 @@ Import the module as a namespace and call operations such as `Cart.addItem` and 
 
 ## Index Re-exports {#index-reexports}
 
-Use `index.ts` only as a barrel. Re-export the feature's modules from it.
+Use `index.ts` only as a barrel. Re-export the feature's application surface: `Live`, plus `subscriptions`, `managedResources`, or `mounts` when the feature owns them.
 
 ::Snippet{name="indexReexports" label="Index re-exports"}
 
@@ -52,7 +78,7 @@ Consumers can then import the feature as a namespace.
 
 ::Snippet{name="indexUsage" label="Namespace usage"}
 
-`Home.` exposes the feature's public surface without revealing its internal file layout.
+`Products.` exposes the feature's public surface without revealing its internal file layout.
 
 ### Keep Barrel Dependencies Pointing Inward
 

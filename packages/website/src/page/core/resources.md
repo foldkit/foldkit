@@ -8,7 +8,7 @@ Some Effect services need one instance shared across an application. An RPC clie
 Shared services are the kitchen equipment available all night. Every dish can use the same oven. A Model-driven handle, such as a camera stream, belongs to a [ManagedResource](/core/managed-resources) instead: it exists only while the Model needs it.
 :::
 
-`Application.make` defines the application and carries its unsatisfied Effect requirements. `Application.provide` supplies a Layer before `Runtime.run` starts it. The runtime builds that Layer once per start and releases it when the application stops.
+`Application.make` defines the application and carries its unsatisfied Effect requirements. `Application.provide` supplies a Layer before `Runtime.run` starts it. The runtime builds that Layer once per start and releases it when the application stops. A hydrating start validates the server handoff before acquiring any application Layer.
 
 A Command definition names the operation and its result Messages. Its `toLayer` handler can use an Effect service. `Layer.provide` builds that service beneath the handler Layer, so the handler captures it when the Layer is constructed.
 
@@ -45,7 +45,7 @@ The Flags Effect can require services too. `Runtime.run` resolves Flags before c
 
 If the service Layer fails to build, startup cannot reach init or the first render. There is no Model for a crash view yet. Provide a service used only by Flags with `Effect.provide` inside the Flags Effect when it does not need an application lifetime. Reading persisted startup state through `KeyValueStore` is a common case.
 
-`Application.make` carries requirements from init, update, Subscriptions, and ManagedResources. `Runtime.run` requires those requirements to be supplied. A Flags Effect can use a service produced by `Application.provide`, as shown above.
+`Application.make` carries requirements from init, update, Subscriptions, registered Mounts, and ManagedResources. `Runtime.run` requires those requirements to be supplied. A Flags Effect can use a service produced by `Application.provide`, as shown above.
 
 ## Providing Multiple Services
 

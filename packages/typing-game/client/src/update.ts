@@ -34,24 +34,20 @@ export const NavigationLive = Layer.mergeAll(
   LoadExternalLive,
 )
 
+type UpdateRequirements =
+  | Command.HandlerOf<typeof NavigateToRoom>
+  | Layer.Success<typeof NavigationLive>
+  | Home.UpdateRequirements
+  | Room.UpdateRequirements
+
 export type UpdateReturn<Model, Message> = Update.Return<
   Model,
   Message,
-  | Command.HandlerOf<typeof NavigateToRoom>
-  | Layer.Success<typeof NavigationLive>
-  | Home.UpdateRequirements
-  | Room.UpdateRequirements
+  UpdateRequirements
 >
 const withUpdateReturn = Match.withReturnType<UpdateReturn<Model, Message>>()
 
-type UpdateStep = Update.Step<
-  Model,
-  Message,
-  | Command.HandlerOf<typeof NavigateToRoom>
-  | Layer.Success<typeof NavigationLive>
-  | Home.UpdateRequirements
-  | Room.UpdateRequirements
->
+type UpdateStep = Update.Step<Model, Message, UpdateRequirements>
 
 const readHome = (model: Model): Option.Option<Home.Model.Model> =>
   Option.some(model.home)

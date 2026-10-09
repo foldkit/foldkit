@@ -2,4 +2,4 @@
 'foldkit': minor
 ---
 
-Allow Layer-backed Subscriptions without local Model dependencies to use `entry('WatchHeartbeat')`. The name-only form keeps the Stream active across local Model updates and preserves its named handler Layer for application assembly. A parent may still gate the Subscription when lifting it.
+Layer-backed Subscriptions declare the Message schemas their Streams can emit. Use `entry('HeartbeatTicks', { messages: [Message.Ticked] })` when there are no local Model dependencies, or add `messages` beside `modelToDependencies` for a dependency-bearing entry. An empty declaration constrains a silent Subscription to `Stream<never>`. The declaration and handler Layer remain available after `Subscription.lift` and direct `Subscription.aggregate(records...)`, providing a stable source and output contract for future application testing.

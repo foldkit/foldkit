@@ -7,7 +7,7 @@ import * as SnippetCopy from './snippetCopy'
 import * as SnippetDisclosure from './snippetDisclosure'
 import * as Subscriptions from './subscription'
 
-export const WebsiteLive = Layer.mergeAll(
+export const Live = Layer.mergeAll(
   MainLive,
   Search.Live,
   Home.Live,

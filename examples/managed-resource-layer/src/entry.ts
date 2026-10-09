@@ -1,8 +1,7 @@
 import { Application, Runtime } from 'foldkit'
 
 import {
-  ComputeLive,
-  ManageEngineLive,
+  Live,
   Message,
   Model,
   init,
@@ -23,7 +22,4 @@ const application = Application.make({
   },
 })
 
-const withCompute = Application.provide(application, ComputeLive)
-const runnable = Application.provide(withCompute, ManageEngineLive)
-
-Runtime.run(runnable)
+Runtime.run(Application.provide(application, Live))

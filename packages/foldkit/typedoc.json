@@ -21,6 +21,7 @@
     "ChildMessageOf",
     "ChildModelOf",
     "CommonRenderOptions",
+    "CommandRequirements",
     "CompatibleResources",
     "CompatibleSubscriptions",
     "ConfigPorts",

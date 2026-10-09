@@ -2,11 +2,7 @@
 import { Effect, Layer, Option, Schema, Stream } from 'effect'
 import { Dom, Subscription } from 'foldkit'
 
-import {
-  GotThemeMenuMessage,
-  type Message,
-  StartedNavigationAway,
-} from './message'
+import { Message } from './message'
 import type { Model } from './model'
 import * as ThemeMenu from './themeMenu'
 
@@ -15,7 +11,7 @@ const themeMenuSubscriptions = Subscription.lift(ThemeMenu.subscriptions)<
   Message
 >({
   read: model => Option.some(model.themeMenu),
-  toParentMessage: message => GotThemeMenuMessage({ message }),
+  toParentMessage: message => Message.GotThemeMenuMessage({ message }),
 })
 
 const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
@@ -23,6 +19,7 @@ const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
     'UnsavedChangesNavigationWarnings',
     { hasUnsavedChanges: Schema.Boolean },
     {
+      messages: [Message.StartedNavigationAway],
       modelToDependencies: model => ({
         hasUnsavedChanges: model.hasUnsavedChanges,
       }),
@@ -43,7 +40,7 @@ const UnsavedChangesNavigationWarningsLive =
         type: 'beforeunload',
         filterMapEvent: event => {
           event.returnValue = true
-          return Option.some(StartedNavigationAway())
+          return Option.some(Message.StartedNavigationAway())
         },
       }),
       Effect.sync(() => hasUnsavedChanges),

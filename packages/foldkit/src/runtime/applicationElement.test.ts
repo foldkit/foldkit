@@ -330,7 +330,10 @@ const checkElementTypes = (): void => {
     status: entry(
       'StatusUpdates',
       { status: Schema.String },
-      { modelToDependencies: model => ({ status: model.status }) },
+      {
+        messages: [],
+        modelToDependencies: model => ({ status: model.status }),
+      },
     ),
   }))
   const subscriptionElement = Application.makeElement({

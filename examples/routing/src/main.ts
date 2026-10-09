@@ -169,11 +169,13 @@ export const update = Update.make((model: Model, message: Message) =>
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  keyBindings: entry('NavigationShortcutPresses'),
+  keyBindings: entry('NavigationShortcutPresses', {
+    messages: [Message.EnteredNavigationShortcut],
+  }),
 }))
 
 const NavigationShortcutPressesLive = subscriptions.keyBindings.toLayer(() =>
-  Dom.streamFromKeyBindings<Message>({
+  Dom.streamFromKeyBindings<typeof Message.EnteredNavigationShortcut.Type>({
     bindings: [
       {
         keys: ['G', 'H'],

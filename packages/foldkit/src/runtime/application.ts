@@ -59,6 +59,10 @@ type InferredElementConfig<Model, Message> = ElementConfig<
 type InferredElementConfigWithFlags<Model, Message, Flags> =
   ElementConfigWithFlags<Model, Message, Flags, any, any, any>
 
+type ExactConfigKeys<Config, Shape> = Readonly<{
+  [Key in Exclude<keyof Config, keyof Shape>]: never
+}>
+
 type CommandRequirements<Command> =
   Command extends Readonly<{
     effect: Effect.Effect<any, any, infer Requirements>
@@ -161,11 +165,23 @@ type UpdateMessage<Update> = Update extends (
   ? Message
   : never
 
+type DeclaredUpdateMessage<
+  Update extends (...args: ReadonlyArray<any>) => any,
+> =
+  Parameters<Update> extends [any, ...infer MessageParameters]
+    ? Exclude<MessageParameters[number], undefined>
+    : never
+
 type ValidUpdate<Model, Update> = Update extends (
   model: Model,
-  message: infer Message,
+  message: any,
 ) => any
-  ? (model: Model, message: Message) => UpdateReturn<Model, Message, unknown>
+  ? [DeclaredUpdateMessage<Update>] extends [Readonly<{ _tag: string }>]
+    ? (
+        model: Model,
+        message: UpdateMessage<Update>,
+      ) => UpdateReturn<Model, UpdateMessage<Update>, unknown>
+    : never
   : never
 
 type ResidualRequirements<Current, Provided, Needed, RuntimeServices> = Exclude<
@@ -229,6 +245,7 @@ type PendingApplication<
   Flags,
   Requirements,
   RuntimeServices,
+  ProvidedServices,
   Kind extends 'Application' | 'Element' = 'Application',
 > = Readonly<{
   ports: P
@@ -236,6 +253,7 @@ type PendingApplication<
     Flags: (flags: Flags) => Flags
     Requirements: (requirements: Requirements) => Requirements
     RuntimeServices: (services: RuntimeServices) => RuntimeServices
+    ProvidedServices: (services: ProvidedServices) => ProvidedServices
     Kind: Kind
   }>
 }>
@@ -245,10 +263,19 @@ type Program<
   Flags,
   Requirements,
   RuntimeServices,
+  ProvidedServices,
   Kind extends 'Application' | 'Element',
-> = [Requirements] extends [never]
-  ? MakeRuntimeReturn<P, Flags, never, Kind>
-  : PendingApplication<P, Flags, Requirements, RuntimeServices, Kind>
+> = PendingApplication<
+  P,
+  Flags,
+  Requirements,
+  RuntimeServices,
+  ProvidedServices,
+  Kind
+> &
+  ([Requirements] extends [never]
+    ? MakeRuntimeReturn<P, Flags, ProvidedServices, Kind>
+    : unknown)
 
 /** A page-owning Foldkit application whose Effect requirements are carried in
  * its type. Applications with no requirements can be passed directly to
@@ -259,9 +286,15 @@ export type Application<
   Flags = void,
   Requirements = never,
   RuntimeServices = never,
-> = [Requirements] extends [never]
-  ? MakeRuntimeReturn<P, Flags, never, 'Application'>
-  : PendingApplication<P, Flags, Requirements, RuntimeServices, 'Application'>
+  ProvidedServices = never,
+> = Program<
+  P,
+  Flags,
+  Requirements,
+  RuntimeServices,
+  ProvidedServices,
+  'Application'
+>
 
 /** A container-scoped Foldkit Element whose Effect requirements are carried
  * in its type. Supply its handler Layers through {@link provide} before
@@ -270,10 +303,12 @@ export type Element<
   P extends Ports | undefined = undefined,
   Requirements = never,
   RuntimeServices = never,
-> = Program<P, void, Requirements, RuntimeServices, 'Element'>
+  ProvidedServices = never,
+> = Program<P, void, Requirements, RuntimeServices, ProvidedServices, 'Element'>
 
 /** Defines a page-owning Foldkit application and preserves the services its
- * init Commands, update Commands, and Subscriptions require. */
+ * init and update Commands, Subscriptions, registered Mounts, and
+ * ManagedResources require. */
 export function make<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const FlagsSchema extends Schema.Codec<any, any, never, never>,
@@ -292,7 +327,15 @@ export function make<
       Model: ModelSchema
       Flags: FlagsSchema
       update: Update & ValidUpdate<ModelSchema['Type'], Update>
-    }>,
+    }> &
+    ExactConfigKeys<
+      Config,
+      InferredRoutingApplicationConfigWithFlags<
+        ModelSchema['Type'],
+        UpdateMessage<Update>,
+        FlagsSchema['Type']
+      >
+    >,
 ): Application<
   ConfigPorts<Config>,
   FlagsSchema['Type'],
@@ -315,7 +358,14 @@ export function make<
     Readonly<{
       Model: ModelSchema
       update: Update & ValidUpdate<ModelSchema['Type'], Update>
-    }>,
+    }> &
+    ExactConfigKeys<
+      Config,
+      InferredRoutingApplicationConfig<
+        ModelSchema['Type'],
+        UpdateMessage<Update>
+      >
+    >,
 ): Application<
   ConfigPorts<Config>,
   void,
@@ -341,7 +391,15 @@ export function make<
       Model: ModelSchema
       Flags: FlagsSchema
       update: Update & ValidUpdate<ModelSchema['Type'], Update>
-    }>,
+    }> &
+    ExactConfigKeys<
+      Config,
+      InferredApplicationConfigWithFlags<
+        ModelSchema['Type'],
+        UpdateMessage<Update>,
+        FlagsSchema['Type']
+      >
+    >,
 ): Application<
   ConfigPorts<Config>,
   FlagsSchema['Type'],
@@ -361,7 +419,11 @@ export function make<
     Readonly<{
       Model: ModelSchema
       update: Update & ValidUpdate<ModelSchema['Type'], Update>
-    }>,
+    }> &
+    ExactConfigKeys<
+      Config,
+      InferredApplicationConfig<ModelSchema['Type'], UpdateMessage<Update>>
+    >,
 ): Application<
   ConfigPorts<Config>,
   void,
@@ -414,7 +476,15 @@ export function makeElement<
       Model: ModelSchema
       Flags: FlagsSchema
       update: Update & ValidUpdate<ModelSchema['Type'], Update>
-    }>,
+    }> &
+    ExactConfigKeys<
+      Config,
+      InferredElementConfigWithFlags<
+        ModelSchema['Type'],
+        UpdateMessage<Update>,
+        FlagsSchema['Type']
+      >
+    >,
 ): Element<
   ConfigPorts<Config>,
   ConfigRequirements<Config, Update>,
@@ -433,7 +503,11 @@ export function makeElement<
     Readonly<{
       Model: ModelSchema
       update: Update & ValidUpdate<ModelSchema['Type'], Update>
-    }>,
+    }> &
+    ExactConfigKeys<
+      Config,
+      InferredElementConfig<ModelSchema['Type'], UpdateMessage<Update>>
+    >,
 ): Element<
   ConfigPorts<Config>,
   ConfigRequirements<Config, Update>,
@@ -464,9 +538,16 @@ export function makeElement(
 /** Supplies the services a Layer produces and carries its own requirements
  * forward on the application. Combine independent feature Layers with
  * `Layer.mergeAll` before calling this once. A bundle may produce services
- * beyond the application's requirements; they remain available at runtime.
- * Layers are built once for each runtime start and released when it stops.
- * Call data-first or pass a Layer alone to use this function in a pipe. */
+ * beyond the application's requirements; they remain available to Flags and
+ * other runtime effects. With repeated calls, a later Layer supplies the
+ * Layers provided earlier: supply handler Layers before their dependencies.
+ * Provision also works when the application has no
+ * unmet requirements, for example when only its Flags Effect needs a shared
+ * service. Layers are built once for each runtime start and released when it
+ * stops. A hydrating start validates its server handoff before building
+ * Layers. Provided variants of one program share its embed activity and
+ * disposal ordering. Call data-first or pass a Layer alone to use this
+ * function in a pipe. */
 export const provide: {
   <Provided, E, Needed>(
     layer: Layer.Layer<Provided, E, Needed>,
@@ -475,6 +556,7 @@ export const provide: {
     Flags,
     CurrentRequirements,
     RuntimeServices,
+    ProvidedServices,
     Kind extends 'Application' | 'Element',
   >(
     application: PendingApplication<
@@ -482,6 +564,7 @@ export const provide: {
       Flags,
       CurrentRequirements,
       RuntimeServices,
+      ProvidedServices,
       Kind
     >,
   ) => Program<
@@ -494,6 +577,7 @@ export const provide: {
       RuntimeServices
     >,
     RuntimeServices,
+    ProvidedServices | Provided,
     Kind
   >
   <
@@ -501,6 +585,7 @@ export const provide: {
     Flags,
     CurrentRequirements,
     RuntimeServices,
+    ProvidedServices,
     Kind extends 'Application' | 'Element',
     Provided,
     E,
@@ -511,6 +596,7 @@ export const provide: {
       Flags,
       CurrentRequirements,
       RuntimeServices,
+      ProvidedServices,
       Kind
     >,
     layer: Layer.Layer<Provided, E, Needed>,
@@ -524,6 +610,7 @@ export const provide: {
       RuntimeServices
     >,
     RuntimeServices,
+    ProvidedServices | Provided,
     Kind
   >
 } = Function.dual(
@@ -533,6 +620,7 @@ export const provide: {
     Flags,
     CurrentRequirements,
     RuntimeServices,
+    ProvidedServices,
     Kind extends 'Application' | 'Element',
     Provided,
     E,
@@ -543,6 +631,7 @@ export const provide: {
       Flags,
       CurrentRequirements,
       RuntimeServices,
+      ProvidedServices,
       Kind
     >,
     layer: Layer.Layer<Provided, E, Needed>,
@@ -556,13 +645,14 @@ export const provide: {
       RuntimeServices
     >,
     RuntimeServices,
+    ProvidedServices | Provided,
     Kind
   > => {
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const program = application as unknown as MakeRuntimeReturn<
       P,
       Flags,
-      CurrentRequirements,
+      ProvidedServices,
       Kind
     >
     const internals = runtimeInternals.get(program)
@@ -616,6 +706,7 @@ export const provide: {
         RuntimeServices
       >,
       RuntimeServices,
+      ProvidedServices | Provided,
       Kind
     >
   },

@@ -21,6 +21,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       clientY: Schema.Number,
     },
     {
+      messages: [Message.AdvancedAutoScrollFrame],
       modelToDependencies: model => ({
         isDragging: model.isDragging,
         clientY: model.clientY,

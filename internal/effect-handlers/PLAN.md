@@ -4,7 +4,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 ## Status
 
-**Current milestone:** Complete. Command, Subscription, Mount, and ManagedResource handler Layers work through `Application.make`, `Application.makeElement`, and `Application.provide`. The website, first-party examples, Typing Game, and generated-app guidance compose production handlers by feature.
+**Current milestone:** Ready for PR review. Independent implementation, consumer API, and naming and documentation reviews are complete, with all findings addressed. A fresh reviewer approved the repaired committed diff. The large-application probe compiled 120 Commands organized into six feature Layers through the public API.
 
 **Next implementation:** Design whole-application testing against the handler identities and Layer boundaries established here.
 
@@ -23,7 +23,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 - `Command` definitions declare identity, arguments, result Messages, and interruption behavior. `toLayer` supplies an implementation.
 - An application carries its unsatisfied Effect requirements until a Layer is provided. The application config does not own an app-wide `resources` Layer.
-- Subscriptions retain record keys as registration identities and gain explicit, stable handler names. Their Model dependency logic stays with the definition; a Layer supplies the Stream factory. A name-only entry handles Streams without local Model dependencies. Lift and aggregation preserve the handler identity.
+- Subscriptions retain record keys as registration identities and gain explicit, stable handler names and emitted Message declarations. Their Model dependency logic stays with the definition; a Layer supplies the Stream factory. A named entry with Message declarations and no dependency map handles Streams without local Model dependencies. Lift and aggregation preserve the handler identity and Message contract.
 - ManagedResources retain Model-driven acquisition and release. A Layer supplies the acquire and release functions, while `managedResources` registers the lifecycle and result Messages with the application.
 - Mount definitions retain their names and element-driven lifecycle. Layer-backed Mounts enter the application requirements through explicit registration because `view` does not expose handler requirements.
 
@@ -60,6 +60,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 ### 4. Subscription and ManagedResource handlers
 
 - [x] Add a named Subscription handler identity distinct from the record key. Preserve it through lift and aggregate. The current API has no rekey helper.
+- [x] Require named Subscriptions to declare emitted Message schemas, constrain handler Stream output to that union (`never` for an empty declaration), and preserve declarations through lift and aggregate.
 - [x] Reject distinct Subscription definitions that use the same handler name in one application.
 - [x] Move Subscription Stream implementations into handler Layers without changing restart and keep-alive behavior.
 - [x] Move ManagedResource acquire and release implementations into handler Layers without changing active-value access or release timing.
@@ -90,7 +91,7 @@ This is the working checklist for separating Foldkit effect definitions from the
   - `skills/generate-program` and active README guidance teach `Application.make`, `Application.makeElement`, and feature-composed `Live` Layers.
 - [x] Verify feature Layer composition with the website's 27 production Commands, then migrate its application entry without listing every handler there. Documentation snippets account for another 51 definitions.
   - Each feature owns a `Live` Layer next to its update/lifecycle definitions. Features with multiple modules compose their local Layers and export one `Live` from their barrel.
-  - `src/live.ts` composes feature Layers and service providers. `entry.ts` imports that one `WebsiteLive` value and calls `Application.provide` once; it never imports individual handler Layers.
+  - `src/live.ts` composes feature Layers and service providers. `entry.ts` imports that one `Live` value and calls `Application.provide` once; it never imports individual handler Layers.
   - The 14 site-shell Commands compose into boot, navigation, and preference Layers. The two Home phase delay Commands have distinct names.
 - [x] Run workspace type checks, all Foldkit unit tests, focused example tests, and lint for the current slice.
 - [x] Resolve API reference generator warnings about helper types exposed through the new public signatures.
@@ -101,24 +102,43 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 ## Verification snapshot
 
-- Foldkit: 2,996 tests passed, 1 skipped.
-- Workspace: all 52 projects passed TypeScript checks after building their local package dependencies.
-- Weather, Stopwatch, and Managed Resource Layer examples: type checks and Story/Scene tests passed.
-- Root and application lint, formatting, and `git diff --check` passed.
-- Website: 1,301 unit tests passed across 29 files; TypeScript, build, and six browser smoke tests passed. Two browser tests timed out under parallel load, then passed serially with retries disabled.
-- WebSocket Chat, Snake, Charting, Map, Counter, Counters, Crash View, and Web Components: targeted type checks and 105 existing tests passed.
-- API Cache, Canvas Art, Form, Generative Art, Interrupting Commands, Personal Blog, Route Transitions, State Machine, and View Transitions: targeted type checks and 115 existing tests passed.
-- Auth, Job Application, Kanban, Pixel Art, Query Sync, Routing, Shopping Cart, Slow Warnings, SSG, SSR, Todo, and UI Showcase: targeted type checks and 259 existing tests passed.
-- Typing Game client: type check, 16 tests, production build, lint, and formatting passed with one composed `Live` Layer instead of an application `resources` field.
-- Query: 46 Foldkit tests and 16 API Cache Query tests passed. Foldkit, website, and the example type checks passed.
-- Embedded Element assembly: 64 focused Foldkit runtime tests passed. The Embedding example type check and six tests passed.
-- The final full workspace build and TypeScript checks passed. Foldkit's full suite passed with 2,996 tests and one skipped after replacing the `resources` configuration tests with application Layer lifecycle tests.
-- Website browser suite: 18 tests passed serially with retries disabled after the runtime change.
-- Website TypeScript check and production build passed with the updated Runtime, Resources, and ManagedResource pages.
-- The API reference generator succeeds without warnings after documenting private signature helpers in its exclusion list.
+- All 52 projects passed TypeScript checks and the full workspace build.
+- The full workspace test command passed, including 3,007 Foldkit tests (one skipped), 1,304 website tests, and the first-party application suites.
+- All 18 website browser tests passed serially with retries disabled.
+- Formatting, lint, dead-code, and `git diff --check` passed.
+- Script TypeScript checks, script tests, and repository source gates passed.
+- The API reference generator completed without warnings.
+- Scaffold smoke, packed SSR consumer, scaffold server rendering, host and DOM parity, and repeatable prerender checks passed. The packed SSR critical matrix passed in Chromium, Firefox, and WebKit after the runtime repairs.
+- Built public declarations compiled the 120-Command application and a contextual update with no inference-depth failure.
+
+The published-package check runs during production deployment after publication. The website release-input check evaluates a version-bumped release commit; neither is a PR gate.
 
 ## Deferred work
 
 Whole-application test mode, controlled handler Layers, test scheduling, and a Story/Scene-style application test DSL belong to a later workstream. This work establishes stable identities and replaceable execution boundaries for them.
 
 - [ ] Add a Foldkit lint rule for individual handler Layer names. A Command binding initialized by `PlaceOrder.toLayer(...)` should be `PlaceOrderLive` in production or `PlaceOrderTest` for a test implementation. Permit feature-level `Live` bundles and re-exports. Cover qualified definitions, test fixtures, and an autofix before enabling the rule across first-party code. Extend the same convention to Subscription, Mount, and ManagedResource handlers where their definitions have stable names.
+
+## Release review
+
+- [x] Review the public API and feature-level Layer composition from a consumer's perspective.
+- [x] Audit active documentation, snippets, scaffolds, and published TSDoc for the final API.
+- [x] Resolve any findings from the API and documentation reviews.
+- [x] Run the repository's formatting, lint, dead-code, build, typecheck, test, and browser gates.
+- [x] Review the full branch diff and changesets for durable migration guidance.
+
+## Independent review
+
+- [x] Review the committed implementation for type, context, and lifecycle defects.
+- [x] Review the consumer API and application organization at framework scale.
+- [x] Review naming, active documentation, snippets, and scaffold guidance against Foldkit conventions.
+- [x] Resolve actionable findings and verify the repairs.
+- [x] Review the resulting committed diff independently.
+
+### Findings
+
+- [x] Validate the server hydration handoff before acquiring application Layers. A stale page is contained even when a provided Layer would fail to build.
+- [x] Share embed activity and previous-fiber sequencing across provided variants of one Element.
+- [x] Preserve trailing context parameters in `Update.make`.
+- [x] Align active Message namespaces, result names, handler names, and Subscription registration keys with Foldkit conventions.
+- [x] Make organization snippets and scaffold guidance agree with their actual file layout and startup contract.

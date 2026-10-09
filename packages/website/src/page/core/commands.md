@@ -37,6 +37,8 @@ The handler Layer is built once for a runtime start, after runtime-owned service
 
 Give each Layer-backed Command definition a distinct name within an application. A Command accepts a Layer built from its own definition; using a Layer from a different definition with the same name fails when that Command runs.
 
+Name an individual production Layer after its definition, such as `FetchWeatherLive`. A feature with several handler Layers combines them under one `Live` export. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows how that composition reaches the application entry.
+
 ## Testable by Design
 
 Because Commands are data and update is pure, a test can simulate the update loop without running any Effects. Dispatch a Message, inspect the returned Command, resolve it with a result Message, and assert on the final Model.

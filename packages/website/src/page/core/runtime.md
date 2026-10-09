@@ -2,7 +2,7 @@
 
 ## Overview
 
-A Foldkit app usually starts in two files. `src/main.ts` holds the pure definitions: Model, Messages, update, init, and view. `src/entry.ts` imports them, creates the runtime, and starts it. Keeping runtime side effects in `entry.ts` leaves `main.ts` directly importable from tests.
+A small Foldkit app can start in two files. `src/main.ts` holds the pure definitions: Model, Messages, update, init, and view. `src/entry.ts` assembles and starts the runtime. Larger apps can move assembly to `src/application.ts` and handler Layer composition to `src/live.ts`, leaving `entry.ts` with one provision step. Keeping runtime side effects in `entry.ts` leaves the definitions directly importable from tests.
 
 The Runtime API makes two independent choices:
 
@@ -11,7 +11,7 @@ The Runtime API makes two independent choices:
 
 For an application with Layer-backed Commands, Subscriptions, Mounts, or ManagedResources, `Application.make` and `Application.makeElement` carry their inferred Effect requirements. Call `Application.provide` until they are satisfied, then pass the runnable program to `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` as appropriate. Provision can be chained because a handler Layer may itself need services from a later Layer. The assembly config has no `resources` field; runtime-wide services are supplied through `Application.provide`.
 
-For a larger application, combine independent feature Layers with Effect's `Layer.mergeAll` and call `Application.provide` once. Use `Layer.provideMerge` when one feature Layer needs a service from another. A feature can export one combined Layer for its Commands, Subscriptions, and Mounts, so the application entry imports feature Layers rather than every handler.
+For a larger application, combine independent feature Layers with Effect's `Layer.mergeAll` and call `Application.provide` once. Use `Layer.provideMerge` when one feature Layer needs a service from another. Each feature exports one `Live` Layer for its Commands, Subscriptions, Mounts, ManagedResources, and child features. A root `Live` Layer composes those feature Layers, so the application entry imports one Layer instead of every handler. [Project Organization](/patterns/project-organization#composing-handler-layers) shows the complete file structure.
 
 ::Snippet{name="runApplicationLayers" label="Providing application handler Layers"}
 
@@ -50,5 +50,7 @@ Flags still resolve before init, but their wiring follows the ownership boundary
 `Runtime.run` starts a program for the lifetime of the page and returns no handle. `Runtime.embed` starts one under a host-controlled lifetime, whether the host is React or anything else. The host seeds the program with Flags, exchanges values through Schema-typed Ports, and tears it down with `dispose`.
 
 The returned handle is the whole boundary. The host never reads the Model or dispatches Messages directly. Disposing the handle stops the runtime and its lifecycle work, removes the rendered DOM, and restores the empty container so it can be embedded again.
+
+Values produced from one program by `Application.provide` share its container lifetime. Dispose the active handle before embedding another provided variant; Foldkit finishes the previous teardown before starting the next variant.
 
 The [Embedding](/core/embedding) guide has the full walkthrough.

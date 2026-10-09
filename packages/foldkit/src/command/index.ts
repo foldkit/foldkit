@@ -203,20 +203,22 @@ const suspendExecute = (
  *
  * @example Layer-backed handler
  * ```ts
+ * import { Message } from './message'
+ *
  * const SendMessage = Command.define('SendMessage', {
  *   args: { text: Schema.String },
- *   messages: [CompletedSendMessage],
+ *   messages: [Message.CompletedSendMessage],
  * })
  * const SendMessageLive = SendMessage.toLayer(({ text }) =>
- *   Effect.log(text).pipe(Effect.as(CompletedSendMessage())),
+ *   Effect.log(text).pipe(Effect.as(Message.CompletedSendMessage())),
  * )
  * ```
  *
  * @example Inline execution with no args
  * ```ts
  * const LockScroll = Command.define('LockScroll', {
- *   messages: [CompletedLockScroll],
- *   execute: Dom.lockScroll.pipe(Effect.as(CompletedLockScroll())),
+ *   messages: [Message.CompletedLockScroll],
+ *   execute: Dom.lockScroll.pipe(Effect.as(Message.CompletedLockScroll())),
  * })
  * // Call site:
  * LockScroll()
@@ -226,7 +228,7 @@ const suspendExecute = (
  * ```ts
  * const FetchWeather = Command.define('FetchWeather', {
  *   args: { zipCode: Schema.String },
- *   messages: [SucceededFetchWeather, FailedFetchWeather],
+ *   messages: [Message.SucceededFetchWeather, Message.FailedFetchWeather],
  *   execute: ({ zipCode }) => Effect.gen(function* () { ... }),
  * })
  * // Call site:
@@ -237,20 +239,20 @@ const suspendExecute = (
  * ```ts
  * const SaveDraft = Command.define('SaveDraft', {
  *   args: { draftId: Schema.String, body: Schema.String },
- *   messages: [SucceededSaveDraft, FailedSaveDraft],
+ *   messages: [Message.SucceededSaveDraft, Message.FailedSaveDraft],
  *   interrupt: true,
  *   execute: ({ draftId, body }) => Effect.gen(function* () { ... }),
  * })
  * // Call sites:
  * SaveDraft({ draftId: 'abc', body })
- * SaveDraft.Interrupt(outcome => CompletedCancelSaveDraft({ outcome }))
+ * SaveDraft.Interrupt(outcome => Message.CompletedCancelSaveDraft({ outcome }))
  * ```
  *
  * @example Interruptible, keyed by args
  * ```ts
  * const UploadFile = Command.define('UploadFile', {
  *   args: { uploadId: Schema.Number, file: Schema.instanceOf(File) },
- *   messages: [SucceededUploadFile, FailedUploadFile],
+ *   messages: [Message.SucceededUploadFile, Message.FailedUploadFile],
  *   interrupt: {
  *     keyFields: ['uploadId'],
  *     toKey: ({ uploadId }) => String(uploadId),
@@ -260,7 +262,7 @@ const suspendExecute = (
  * // Call sites:
  * UploadFile({ uploadId: 1, file })
  * UploadFile.Interrupt({ uploadId: 1 }, outcome =>
- *   CompletedCancelUploadFile({ uploadId: 1, outcome }),
+ *   Message.CompletedCancelUploadFile({ uploadId: 1, outcome }),
  * )
  * ```
  */

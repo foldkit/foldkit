@@ -27,13 +27,16 @@ const frameSubscription = Subscription.make<Model, Message>()(entry => ({
     'AnimationFrameTicks',
     { isActive: Schema.Boolean },
     {
+      messages: [Message.TickedFrame],
       modelToDependencies: model => ({ isActive: model.isRunning }),
     },
   ),
 }))
 
-const makeAnimationFrameStream = (): Stream.Stream<Message> =>
-  Stream.callback<Message>(queue =>
+const makeAnimationFrameStream = (): Stream.Stream<
+  typeof Message.TickedFrame.Type
+> =>
+  Stream.callback<typeof Message.TickedFrame.Type>(queue =>
     Effect.acquireRelease(
       Effect.sync(() => {
         const state = {

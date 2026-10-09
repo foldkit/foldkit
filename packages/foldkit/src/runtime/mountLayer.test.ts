@@ -7,6 +7,7 @@ import * as Application from './application.js'
 import { __startProgram, run } from './start.js'
 
 const Message = defineMessageUnion({
+  ClickedRevealMount: {},
   CompletedAnchorPanel: { label: Schema.String },
 })
 type Message = typeof Message.Type
@@ -21,6 +22,7 @@ const AnchorPanel = Mount.define('AnchorPanel', {
 
 const update = (_model: Model, message: Message) =>
   Message.match(message, {
+    ClickedRevealMount: () => ({ model: { status: 'revealing Mount' } }),
     CompletedAnchorPanel: ({ label }) => ({ model: { status: label } }),
   })
 
@@ -107,6 +109,58 @@ describe('Layer-backed Mount runtime', () => {
           'Layer-backed Mounts that were not registered: AnchorPanel',
         )
         expect(document.title).toBe('Application Crash')
+        expect(document.body.textContent).not.toContain('anchored')
+      })
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+      consoleError.mockRestore()
+    }
+  })
+
+  it('checks a Layer-backed Mount revealed by a later Model state', async () => {
+    let reportedError: Error | undefined
+    const application = Application.make({
+      Model,
+      init: () => ({ model: { status: 'ready' } }),
+      update,
+      view: (model, h) => ({
+        title: 'Conditional unregistered Mount test',
+        body:
+          model.status === 'revealing Mount'
+            ? h.div(
+                [h.OnMount(AnchorPanel({ label: 'anchored' }))],
+                [model.status],
+              )
+            : h.button(
+                [h.OnClick(Message.ClickedRevealMount())],
+                ['reveal Mount'],
+              ),
+      }),
+      crash: {
+        report: ({ error }) => {
+          reportedError = error
+        },
+      },
+      container,
+    })
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const fiber = Effect.runFork(
+      __startProgram(application, undefined, 'Fresh'),
+    )
+
+    try {
+      await vi.waitFor(() => {
+        expect(document.body.textContent).toContain('reveal Mount')
+      })
+
+      document.body.querySelector('button')?.click()
+
+      await vi.waitFor(() => {
+        expect(reportedError?.message).toContain(
+          'Layer-backed Mounts that were not registered: AnchorPanel',
+        )
+        expect(document.title).toBe('Application Crash')
+        expect(document.body.textContent).not.toContain('revealing Mount')
       })
     } finally {
       await Effect.runPromise(Fiber.interrupt(fiber))

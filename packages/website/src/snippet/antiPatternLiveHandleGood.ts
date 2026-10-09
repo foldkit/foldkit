@@ -3,6 +3,8 @@
 import { Effect, Layer, Schema } from 'effect'
 import { Command, ManagedResource } from 'foldkit'
 
+import { Message } from './message'
+
 const ChatSocket = ManagedResource.tag<WebSocket>()('ChatSocket')
 const RoomRequirements = Schema.Struct({ roomId: Schema.String })
 
@@ -24,7 +26,7 @@ const ManageChatSocketLive = managedResources.chatSocket.toLayer({
 
 const SendChatMessage = Command.define('SendChatMessage', {
   args: { text: Schema.String },
-  messages: [Message.CompletedSendChatMessage, Message.FailedSendChatMessage],
+  messages: [Message.SucceededSendChatMessage, Message.FailedSendChatMessage],
 })
 
 const SendChatMessageLive = SendChatMessage.toLayer(({ text }) =>
@@ -33,7 +35,7 @@ const SendChatMessageLive = SendChatMessage.toLayer(({ text }) =>
     Effect.match({
       onFailure: error =>
         Message.FailedSendChatMessage({ error: globalThis.String(error) }),
-      onSuccess: () => Message.CompletedSendChatMessage(),
+      onSuccess: () => Message.SucceededSendChatMessage(),
     }),
   ),
 )

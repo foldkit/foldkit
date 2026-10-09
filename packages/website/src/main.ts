@@ -309,15 +309,15 @@ export const init = (flags: Flags, url: Url) => {
 
 // UPDATE
 
-type AppRequirements = Layer.Success<
-  | typeof Live
-  | typeof Search.Live
-  | typeof Home.Live
-  | typeof Playground.Live
-  | typeof ApiReference.Live
-  | typeof Example.Live
-  | typeof SnippetCopy.Live
->
+type AppRequirements =
+  | Layer.Success<typeof Live>
+  | Update.RequirementsOf<typeof Search.open>
+  | Update.RequirementsOf<typeof Search.update>
+  | Update.RequirementsOf<typeof Home.update>
+  | Update.RequirementsOf<typeof Playground.update>
+  | Update.RequirementsOf<typeof ApiReference.update>
+  | Update.RequirementsOf<typeof Example.ExampleDetail.update>
+  | Update.RequirementsOf<typeof SnippetCopy.update>
 
 type UpdateStep = Update.Step<Model, Message, AppRequirements>
 

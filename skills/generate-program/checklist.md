@@ -224,7 +224,7 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 - [ ] Updates that can return Commands are wrapped with `Update.make`, so Command handler requirements reach the application type.
 - [ ] Every Layer-backed Command, Subscription, Mount, and ManagedResource has a handler Layer supplied through `Application.provide` before `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed`. The application config has no `resources` field.
 - [ ] Each feature exports one `Live` Layer composed from its local and child handler Layers. The root exports one `Live` Layer, and the entry provides that root Layer instead of importing every handler.
-- [ ] Layer construction is safe to run eagerly on every runtime start, before Flags, init, or the first render. A restored-Model start builds the Layer too, and a construction failure prevents the first render.
+- [ ] Layer construction is safe to run eagerly on every runtime start, before a fresh Flags Effect, init, or the first render. Hydration validates the server handoff before acquiring Layers. A restored-Model start builds the Layer too, and a construction failure prevents the first render.
 - [ ] A page-owning program with Flags declares `Flags` in `Application.make` and passes `flags` to `Runtime.run(application, { flags })`. An Element with Flags declares both `Flags` and `flags` in `Application.makeElement`.
 
 ## Purity
@@ -502,7 +502,7 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 
 - [ ] Each source file exports only its public contract: typically `Model`, `Message`, `init`, `update`, `view`, plus named schemas/constants other modules consume. Internal helpers are not exported.
 - [ ] Section headers present in files that span multiple sections: `// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// COMMAND`, `// VIEW`, `// RUN`. Order: Model → Message → Flags (if any) → Init → Update → Command → View → Run.
-- [ ] `index.ts` is always a barrel, never implementation. If a module `foo/` has code, the shape is `foo/foo.ts` for code + `foo/index.ts` for `export * from './foo'` and `export * as Child from './child'`.
+- [ ] `index.ts` is always a barrel, never implementation. Re-export each intended public name explicitly; use `export *` only when the whole module surface is intentionally public. If a module `foo/` has code, the shape is `foo/foo.ts` for code + `foo/index.ts` for the barrel and `export * as Child from './child'` for an intentionally public child namespace.
 - [ ] Imports ordered: npm packages first (alphabetized), then `foldkit/*`, then relative imports. No mixed groups.
 - [ ] Message unions are exported as values and types when used across modules. Variants stay on the owning namespace: `Message.ClickedSave()`, never a separate `ClickedSave` export. Internal-only Message unions stay unexported.
 
@@ -515,10 +515,10 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 
 ## Subscriptions [T2+]
 
-- [ ] Layer-backed Subscriptions use `Subscription.make<Model, Message>()(entry => ({ roomUpdates: entry('RoomUpdates', fields, { modelToDependencies }) }))`. Each stable handler name describes the supplied Stream or scoped behavior and is distinct within the application; the bare field map is not wrapped in `Schema.Struct`.
+- [ ] Layer-backed Subscriptions use `Subscription.make<Model, Message>()(entry => ({ roomUpdates: entry('RoomUpdates', fields, { messages: [Message.ReceivedRoomUpdate], modelToDependencies }) }))`. Each stable handler name describes the supplied Stream or scoped behavior and is distinct within the application; `messages` declares every Message Schema the handler can emit, and the bare field map is not wrapped in `Schema.Struct`.
 - [ ] Each layered entry has a `subscriptions.roomUpdates.toLayer(dependencies => stream)` handler merged into the owning feature's `Live` Layer.
 - [ ] `modelToDependencies` extracts exactly the data the stream needs from Model, not the full Model. Wrap absent dependencies in `Option` at the field level when the subscription should stop.
-- [ ] Layer-backed Subscriptions without local Model dependencies use `entry('KeyboardPresses')` with no dependency fields or callback. Self-contained inline Streams can use `Subscription.persistentEntry(stream)`.
+- [ ] Layer-backed Subscriptions without local Model dependencies use `entry('KeyboardPresses', { messages: [Message.PressedKey] })` with no dependency fields or callback. Use `messages: []` for a silent scoped Stream. Self-contained inline Streams can use `Subscription.persistentEntry(stream)`.
 - [ ] Message mapping happens inside `Stream.map(event => Message.UpdatedX({ data: event }))`, not scattered through update.
 - [ ] Subscription files live at `src/subscription.ts` (or `src/subscription/` directory for multiple), never inline in `main.ts`.
 

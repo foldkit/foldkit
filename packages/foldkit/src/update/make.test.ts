@@ -5,6 +5,7 @@ import { describe, it } from '@effect/vitest'
 
 import * as Command from '../command/index.js'
 import { defineMessageUnion } from '../message/index.js'
+import { modifyFields } from '../struct/index.js'
 import {
   type FoldWithOutMessage,
   type Return,
@@ -23,6 +24,9 @@ type Message = typeof Message.Type
 
 const Model = Schema.Struct({ count: Schema.Number })
 type Model = typeof Model.Type
+
+const DispatchContext = Schema.Struct({ factor: Schema.Number })
+type DispatchContext = typeof DispatchContext.Type
 
 const OutMessage = defineMessageUnion({
   LoadedProfile: {},
@@ -76,6 +80,38 @@ const outwardUpdate = make((model: Model, message: Message) =>
   }),
 )
 
+const contextualUpdate = make(
+  (model: Model, message: Message, context: DispatchContext) =>
+    Message.match(message, {
+      ClickedLoadProfile: () => ({
+        model: modifyFields(model, {
+          count: count => count * context.factor,
+        }),
+        commands: [LoadProfile()],
+      }),
+      ClickedLoadPreferences: () => loadPreferences(model),
+      CompletedLoadProfile: () => ({
+        model,
+        outMessage: OutMessage.LoadedProfile(),
+      }),
+      CompletedLoadPreferences: () => ({ model }),
+    }),
+)
+
+const optionalContextUpdate = make(
+  (model: Model, _message: Message, _context?: DispatchContext) => ({ model }),
+)
+
+const modelOnlyUpdate = make((model: Model) => ({ model }))
+
+const restContextUpdate = make(
+  (
+    model: Model,
+    _message: Message,
+    ..._contexts: ReadonlyArray<DispatchContext>
+  ) => ({ model }),
+)
+
 const foldChildUpdate = foldChild({
   update: outwardUpdate,
   read: (model: ParentModel) => Option.some(model.child),
@@ -106,6 +142,41 @@ describe('make', () => {
     expect(result.commands?.map(({ name }) => name)).toEqual(['LoadProfile'])
   })
 
+  it('preserves required, optional, and rest context parameters', () => {
+    expectTypeOf(contextualUpdate).toEqualTypeOf<
+      (
+        model: Model,
+        message: Message,
+        context: DispatchContext,
+      ) => ReturnWithOutMessage<
+        Model,
+        Message,
+        OutMessage,
+        Command.Handler<'LoadProfile'> | Command.Handler<'LoadPreferences'>
+      >
+    >()
+
+    expectTypeOf(optionalContextUpdate).toEqualTypeOf<
+      (
+        model: Model,
+        message: Message,
+        context?: DispatchContext,
+      ) => Return<Model, Message>
+    >()
+
+    expectTypeOf(modelOnlyUpdate).toEqualTypeOf<
+      (model: Model) => Return<Model, undefined>
+    >()
+
+    expectTypeOf(restContextUpdate).toEqualTypeOf<
+      (
+        model: Model,
+        message: Message,
+        ...contexts: ReadonlyArray<DispatchContext>
+      ) => Return<Model, Message>
+    >()
+  })
+
   it('requires every Message branch to return an Update.Return', () => {
     // @ts-expect-error Every branch must return the next Model.
     make((model: Model, message: Message) =>
@@ -116,6 +187,12 @@ describe('make', () => {
         CompletedLoadPreferences: () => ({ model }),
       }),
     )
+
+    // @ts-expect-error Context parameters do not relax output validation.
+    make((_model: Model, _message: Message, _context: DispatchContext) => 42)
+
+    // @ts-expect-error A model-only update must still return the next Model.
+    make((_model: Model) => 42)
   })
 
   it('carries an OutMessage and Command requirements through a child fold', () => {

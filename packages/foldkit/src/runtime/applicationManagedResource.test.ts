@@ -167,3 +167,71 @@ it('provides layered ManagedResource acquire and release with runtime-owned acce
     await Effect.runPromise(Fiber.interrupt(fiber))
   }
 })
+
+it('releases an active Layer-backed ManagedResource when the runtime stops', async () => {
+  let releaseCount = 0
+
+  const application = Application.make({
+    Model,
+    init: () => ({
+      model: Model.make({
+        engine: EngineState.Off(),
+        maybeValue: Option.none(),
+      }),
+    }),
+    update,
+    view: (model, h) => ({
+      title: 'Managed Resource Layer teardown test',
+      body: h.div(
+        [],
+        [
+          h.button([h.OnClick(Message.ClickedStartEngine())], ['start']),
+          Option.match(model.maybeValue, {
+            onNone: () => 'waiting',
+            onSome: value => `value: ${value}`,
+          }),
+        ],
+      ),
+    }),
+    managedResources,
+    container,
+  })
+  const withLifecycle = Application.provide(
+    application,
+    managedResources.engine.toLayer({
+      acquire: () => Effect.succeed(7),
+      release: () =>
+        Effect.sync(() => {
+          releaseCount += 1
+        }),
+    }),
+  )
+  const provided = Application.provide(
+    withLifecycle,
+    ReadEngine.toLayer(() =>
+      Engine.get.pipe(
+        Effect.map(value => Message.CompletedReadEngine({ value })),
+        Effect.catchTag('ResourceNotAvailable', () =>
+          Effect.succeed(Message.SkippedReadEngine()),
+        ),
+      ),
+    ),
+  )
+  const fiber = Effect.runFork(__startProgram(provided, undefined, 'Fresh'))
+
+  try {
+    await vi.waitFor(() => {
+      expect(document.body.textContent).toContain('waiting')
+    })
+
+    document.body.querySelector('button')?.click()
+
+    await vi.waitFor(() => {
+      expect(document.body.textContent).toContain('value: 7')
+    })
+  } finally {
+    await Effect.runPromise(Fiber.interrupt(fiber))
+  }
+
+  expect(releaseCount).toBe(1)
+})

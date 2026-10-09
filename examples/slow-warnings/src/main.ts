@@ -1,13 +1,4 @@
-import {
-  Array,
-  Layer,
-  Match,
-  Number,
-  Option,
-  Schema,
-  Stream,
-  pipe,
-} from 'effect'
+import { Array, Match, Number, Option, Schema, Stream, pipe } from 'effect'
 import { Dom, Runtime, Subscription, Update } from 'foldkit'
 import { type Document, type Html, HtmlBuilder, createLazy } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -229,22 +220,20 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  slowWarnings: entry('SlowWarningReports'),
+  slowWarnings: entry('SlowWarningReports', {
+    messages: [Message.RecordedSlowWarning],
+  }),
   burnCpuDuringDependencyExtraction: entry(
-    'SlowDependencyExtraction',
-    {
-      activeWorkload: Workload,
-    },
+    { activeWorkload: Workload },
     {
       modelToDependencies: model => {
         if (model.activeWorkload === 'SubscriptionDependencies') {
           burnCpu(SUBSCRIPTION_DEPENDENCIES_WORK_MS)
         }
 
-        return {
-          activeWorkload: model.activeWorkload,
-        }
+        return { activeWorkload: model.activeWorkload }
       },
+      dependenciesToStream: () => Stream.empty,
     },
   ),
 }))
@@ -262,13 +251,7 @@ const SlowWarningReportsLive = subscriptions.slowWarnings.toLayer(() =>
   }),
 )
 
-const SlowDependencyExtractionLive =
-  subscriptions.burnCpuDuringDependencyExtraction.toLayer(() => Stream.empty)
-
-export const Live = Layer.mergeAll(
-  SlowWarningReportsLive,
-  SlowDependencyExtractionLive,
-)
+export const Live = SlowWarningReportsLive
 
 // VIEW
 

@@ -2,7 +2,7 @@
 import { Effect, Layer, Option, Schema, Stream } from 'effect'
 import { Dom, Subscription } from 'foldkit'
 
-import { ChangedSystemTheme, GotSettingsMessage, type Message } from './message'
+import { Message } from './message'
 import type { Model } from './model'
 import * as Settings from './settings'
 
@@ -11,7 +11,7 @@ const settingsSubscriptions = Subscription.lift(Settings.subscriptions)<
   Message
 >({
   read: model => Option.some(model.settings),
-  toParentMessage: message => GotSettingsMessage({ message }),
+  toParentMessage: message => Message.GotSettingsMessage({ message }),
 })
 
 const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
@@ -19,6 +19,7 @@ const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
     'SystemThemeChanges',
     { isSystemPreference: Schema.Boolean },
     {
+      messages: [Message.ChangedSystemTheme],
       modelToDependencies: model => ({
         isSystemPreference: model.themePreference === 'System',
       }),
@@ -37,7 +38,7 @@ const SystemThemeChangesLive = localSubscriptions.systemTheme.toLayer(
       Dom.streamFromMediaQuery({
         query: '(prefers-color-scheme: dark)',
         mapMatches: isDark =>
-          ChangedSystemTheme({ theme: isDark ? 'Dark' : 'Light' }),
+          Message.ChangedSystemTheme({ theme: isDark ? 'Dark' : 'Light' }),
       }),
       Effect.sync(() => isSystemPreference),
     ),

@@ -1,6 +1,8 @@
 import { Effect, Option, Schema, pipe } from 'effect'
 import { Application, ManagedResource, Runtime } from 'foldkit'
 
+import { Message } from './message'
+
 // 1. Define a Managed Resource identity
 const CameraStream = ManagedResource.tag<MediaStream>()('CameraStream')
 
@@ -22,9 +24,10 @@ const managedResources = ManagedResource.make<Model, Message>()(entry => ({
             facingMode: callState.facingMode,
           })),
         ),
-      onAcquired: () => AcquiredCamera(),
-      onReleased: () => ReleasedCamera(),
-      onAcquireError: error => FailedAcquireCamera({ error: String(error) }),
+      onAcquired: () => Message.AcquiredCamera(),
+      onReleased: () => Message.ReleasedCamera(),
+      onAcquireError: error =>
+        Message.FailedAcquireCamera({ error: String(error) }),
     },
   ),
 }))

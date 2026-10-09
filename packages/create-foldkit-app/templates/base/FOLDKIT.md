@@ -98,9 +98,15 @@ Omit the children argument when an element has none: `h.div([h.Class('divider')]
 
 ### Commands
 
-Define a Command with `Command.define(name, { args, messages, execute })`; omit `args` when the Command takes none. Assign definitions to PascalCase constants. Never inline in pipe chains. Name the effect `execute` performs, not the later Model transition caused when update handles its result: a timer that only waits before update starts a dismissal is `WaitBeforeDismissal`, not `DismissAfter`. Commands catch all errors via `Effect.catch(() => Effect.succeed(Message.FailedX(...)))` so side effects never crash the app. Definitions live colocated with the update function that returns them.
+Define a Command with `Command.define(name, { args, messages, execute })`; omit `args` when the Command takes none. Assign definitions to PascalCase constants. Never inline in pipe chains. Name the effect `execute` performs, not the later Model transition caused when update handles its result: a timer that only waits before update starts a dismissal is `WaitBeforeDismissal`, not `DismissAfter`. Convert expected Command failures to result Messages with `Effect.catch(() => Effect.succeed(Message.FailedX(...)))`. Defects follow the application's crash handling. Definitions live colocated with the update function that returns them.
 
 For a replaceable Command implementation, omit `execute` and build a handler Layer with `Definition.toLayer(handler)`. Wrap the update function in `Update.make` so its Command requirements reach `Application.make`, then supply the Layer with `Application.provide`. The SSR template's `PersistCount` Command shows this path. Give distinct definitions distinct names; a Layer from another definition with the same name fails when the Command runs.
+
+Keep each handler Layer beside its Command, Subscription, Mount, or ManagedResource definition. Name an individual production handler `<DefinitionName>Live`, such as `FetchWeatherLive`; reserve `Live` for feature or root bundles. When a feature has several handlers, export one `Live` Layer from the feature and merge its local handlers with its children's `Live` Layers. A larger application repeats that composition in `src/live.ts`.
+
+Handler Layers and runtime registrations are separate graphs. `Live` supplies the implementations. A feature's `subscriptions`, `managedResources`, and `mounts` register the work Foldkit manages. Export both kinds of values from the feature barrel. In apps with several features, `src/application.ts` lifts and aggregates feature registrations, passes them to `Application.make`, and `entry.ts` imports only `application` and the root `Live` Layer for one `Application.provide` call.
+
+Layer-backed Subscriptions declare `messages` beside their dependencies: `entry('RoomUpdates', fields, { messages: [Message.ReceivedRoomUpdate], modelToDependencies })`. The declaration limits the Stream returned by `toLayer`; use `messages: []` for silent scoped work. It also records the contract for planned source-aware whole-application tests. Current Story and Scene tests do not run an entire application.
 
 Command args contain values already present in the Model or Message. Calling `Date.now()`, `crypto.randomUUID()`, or another source of time or randomness while preparing a Command happens before the Command executes, whether the call appears directly in the args object or its result is assigned to a local variable first. Obtain those values in the inline `execute` or Layer handler and return them in the result Message.
 
@@ -110,7 +116,9 @@ For DOM operations (focus, scroll, modals, scroll lock), Foldkit ships a `Dom` m
 
 ### File Organization
 
-Keep the runtime boot separate from the pure definitions. `src/entry.ts` calls `Application.make` and supplies any handler Layers with `Application.provide`, then calls `Runtime.run` for a client-rendered app or `Runtime.hydrate` for an SSR or SSG app. A client-rendered app references that entry from `index.html`. An SSR or SSG app names it in `ssr.clientEntry` in `vite.config.ts`, imports CSS from it, and exports `renderDocument` from `src/entry.server.ts` to produce the complete document. Its source tree has no `index.html`.
+Keep the runtime boot separate from pure definitions. A small app may assemble `Application.make` and supply its handler Layers directly in `src/entry.ts`. In an app with several features, `src/application.ts` lifts and combines feature registrations, then calls `Application.make`, and `src/live.ts` composes the root `Live` Layer. The entry imports `application` and `Live`, then supplies the Layer with `Application.provide`.
+
+Start a client-rendered app with `Runtime.run` and an SSR or SSG app with `Runtime.hydrate`. A client-rendered app references its entry from `index.html`. An SSR or SSG app names the entry in `ssr.clientEntry` in `vite.config.ts`, imports CSS from it, and exports `renderDocument` from `src/entry.server.ts` to produce the complete document. Its source tree has no `index.html`.
 
 The definitions (Model, Messages, init, update, view, Commands) never call `Runtime.run` or `Runtime.hydrate`, so tests and server entries can import them without booting a browser runtime. Keep both calls out of `main.ts`.
 

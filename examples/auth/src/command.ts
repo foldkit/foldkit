@@ -75,31 +75,29 @@ const LoadExternalLive = LoadExternal.toLayer(({ href }) =>
 )
 
 export const RedirectToLogin = Command.define('RedirectToLogin', {
-  messages: [Message.CompletedNavigateInternal],
+  messages: [Message.CompletedRedirectToLogin],
 })
 
 const RedirectToLoginLive = RedirectToLogin.toLayer(() =>
-  replaceUrl(loginRouter()).pipe(
-    Effect.as(Message.CompletedNavigateInternal()),
-  ),
+  replaceUrl(loginRouter()).pipe(Effect.as(Message.CompletedRedirectToLogin())),
 )
 
 export const RedirectToDashboard = Command.define('RedirectToDashboard', {
-  messages: [Message.CompletedNavigateInternal],
+  messages: [Message.CompletedRedirectToDashboard],
 })
 
 const RedirectToDashboardLive = RedirectToDashboard.toLayer(() =>
   replaceUrl(dashboardRouter()).pipe(
-    Effect.as(Message.CompletedNavigateInternal()),
+    Effect.as(Message.CompletedRedirectToDashboard()),
   ),
 )
 
 export const RedirectToHome = Command.define('RedirectToHome', {
-  messages: [Message.CompletedNavigateInternal],
+  messages: [Message.CompletedRedirectToHome],
 })
 
 const RedirectToHomeLive = RedirectToHome.toLayer(() =>
-  replaceUrl(homeRouter()).pipe(Effect.as(Message.CompletedNavigateInternal())),
+  replaceUrl(homeRouter()).pipe(Effect.as(Message.CompletedRedirectToHome())),
 )
 
 export const CommandsLive = Layer.mergeAll(

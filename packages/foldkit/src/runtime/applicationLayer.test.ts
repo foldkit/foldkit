@@ -1,14 +1,26 @@
-import { Cause, Context, Effect, Exit, Fiber, Layer, Schema } from 'effect'
+import {
+  Cause,
+  Context,
+  Deferred,
+  Effect,
+  Exit,
+  Fiber,
+  Layer,
+  Option,
+  Schema,
+} from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Command from '../command/index.js'
 import type { HtmlBuilder } from '../html/index.js'
+import * as ManagedResource from '../managedResource/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import * as Application from './application.js'
 import { makeApplication } from './makeApplication.js'
 import type { ElementConfigWithFlags } from './makeElement.js'
-import { run } from './start.js'
+import * as ModelPreservationBridge from './modelPreservationBridge.js'
+import { embed, run } from './start.js'
 
 const Message = defineMessageUnion({
   ClickedReadValue: {},
@@ -26,6 +38,10 @@ type ValueShape = Readonly<{ value: string }>
 
 class ValueService extends Context.Service<ValueService, ValueShape>()(
   'ValueService',
+) {}
+
+class DerivedService extends Context.Service<DerivedService, ValueShape>()(
+  'DerivedService',
 ) {}
 
 const ReadValue = Command.define('ReadValue', {
@@ -68,6 +84,193 @@ const awaitBodyText = (text: string): Promise<void> =>
   })
 
 describe('Application Layers', () => {
+  it('rejects concurrent embeds of variants provided from one Element', async () => {
+    vi.spyOn(ModelPreservationBridge, 'resolvePreservedModel').mockReturnValue(
+      Effect.succeed(undefined),
+    )
+    const element = Application.makeElement({
+      Model,
+      init: () => ({ model: { label: 'ready' } }),
+      update: (model: Model) => ({ model }),
+      view: (model, h) => h.div([], [model.label]),
+      container,
+    })
+    const first = Application.provide(element, Layer.empty)
+    const second = Application.provide(element, Layer.empty)
+    const firstHandle = embed(first)
+    let secondHandle: ReturnType<typeof embed> | undefined
+
+    try {
+      await awaitBodyText('ready')
+      expect(() => {
+        secondHandle = embed(second)
+      }).toThrow(/already embedded/)
+    } finally {
+      secondHandle?.dispose()
+      firstHandle.dispose()
+    }
+  })
+
+  it('sequences teardown before embedding another provided variant', async () => {
+    vi.spyOn(ModelPreservationBridge, 'resolvePreservedModel').mockReturnValue(
+      Effect.succeed(undefined),
+    )
+    const releaseGate = Effect.runSync(Deferred.make<void>())
+    const events: Array<string> = []
+    const FirstLive = Layer.effect(
+      ValueService,
+      Effect.acquireRelease(
+        Effect.sync((): ValueShape => {
+          events.push('first acquired')
+          return { value: 'first' }
+        }),
+        () =>
+          Effect.sync(() => {
+            events.push('first release started')
+          }).pipe(
+            Effect.andThen(Deferred.await(releaseGate)),
+            Effect.andThen(
+              Effect.sync(() => {
+                events.push('first released')
+              }),
+            ),
+          ),
+      ),
+    )
+    const SecondLive = Layer.sync(ValueService, (): ValueShape => {
+      events.push('second acquired')
+      return { value: 'second' }
+    })
+    const element = Application.makeElement({
+      Model,
+      init: () => ({ model: { label: 'ready' } }),
+      update: (model: Model) => ({ model }),
+      view: (model, h) => h.div([], [model.label]),
+      container,
+    })
+    const first = Application.provide(element, FirstLive)
+    const second = Application.provide(element, SecondLive)
+    const firstHandle = embed(first)
+
+    await awaitBodyText('ready')
+    expect(events).toEqual(['first acquired'])
+    firstHandle.dispose()
+
+    await vi.waitFor(() => {
+      expect(events).toEqual(['first acquired', 'first release started'])
+    })
+
+    const secondHandle = embed(second)
+    try {
+      expect(events).toEqual(['first acquired', 'first release started'])
+
+      Deferred.doneUnsafe(releaseGate, Effect.void)
+
+      await vi.waitFor(() => {
+        expect(events).toEqual([
+          'first acquired',
+          'first release started',
+          'first released',
+          'second acquired',
+        ])
+      })
+    } finally {
+      Deferred.doneUnsafe(releaseGate, Effect.void)
+      secondHandle.dispose()
+    }
+  })
+
+  it('builds sequential handler Layers with later service providers', async () => {
+    let valueBuilds = 0
+    let derivedBuilds = 0
+
+    const ValueLive = Layer.sync(ValueService, (): ValueShape => {
+      valueBuilds += 1
+      return { value: 'value' }
+    })
+    const DerivedLive = Layer.effect(
+      DerivedService,
+      Effect.map(ValueService, ({ value }): ValueShape => {
+        derivedBuilds += 1
+        return { value: `${value}-derived` }
+      }),
+    )
+    const application = Application.make({
+      Model,
+      Flags,
+      init: ({ initialLabel }) => ({
+        model: Model.make({ label: initialLabel }),
+      }),
+      update: (model: Model, _message: Message) => ({ model }),
+      view: documentView,
+      container,
+    })
+    const withDerived = Application.provide(application, DerivedLive)
+    const provided = Application.provide(withDerived, ValueLive)
+    const handle = embed(provided, {
+      flags: Effect.gen(function* () {
+        const value = yield* ValueService
+        const derived = yield* DerivedService
+        return { initialLabel: `${value.value} ${derived.value}` }
+      }),
+    })
+
+    try {
+      await awaitBodyText('value value-derived')
+      expect(valueBuilds).toBe(1)
+      expect(derivedBuilds).toBe(1)
+    } finally {
+      handle.dispose()
+    }
+  })
+
+  it('provides a shared service to a Flags-only page application', async () => {
+    let buildCount = 0
+    let releaseCount = 0
+
+    const ValueLive = Layer.effect(
+      ValueService,
+      Effect.acquireRelease(
+        Effect.sync((): ValueShape => {
+          buildCount += 1
+          return { value: 'from Layer' }
+        }),
+        () =>
+          Effect.sync(() => {
+            releaseCount += 1
+          }),
+      ),
+    )
+    const application = Application.make({
+      Model,
+      Flags,
+      init: ({ initialLabel }) => ({
+        model: Model.make({ label: initialLabel }),
+      }),
+      update: (model: Model, _message: Message) => ({ model }),
+      view: documentView,
+      container,
+    })
+    const provided = Application.provide(application, ValueLive)
+    const handle = embed(provided, {
+      flags: Effect.map(ValueService, ({ value }) => ({
+        initialLabel: value,
+      })),
+    })
+
+    try {
+      await awaitBodyText('from Layer')
+      expect(buildCount).toBe(1)
+      expect(releaseCount).toBe(0)
+    } finally {
+      handle.dispose()
+    }
+
+    await vi.waitFor(() => {
+      expect(releaseCount).toBe(1)
+    })
+  })
+
   it('builds eagerly and releases at runtime teardown', async () => {
     let buildCount = 0
     let releaseCount = 0
@@ -88,7 +291,7 @@ describe('Application Layers', () => {
     const element = Application.makeElement({
       Model,
       init: () => ({ model: { label: 'ready' } }),
-      update,
+      update: (model: Model) => ({ model }),
       view: (model, h) => h.div([], [model.label]),
       container,
     })
@@ -279,6 +482,131 @@ describe('Application Layers', () => {
 const checkApplicationLayerTypes = (): void => {
   const flagsNeedingService: Effect.Effect<Flags, never, ValueService> =
     Effect.map(ValueService, ({ value }) => ({ initialLabel: value }))
+
+  const flagsOnlyApplication = Application.make({
+    Model,
+    Flags,
+    init: ({ initialLabel }) => ({
+      model: Model.make({ label: initialLabel }),
+    }),
+    update: (model: Model, _message: Message) => ({ model }),
+    view: documentView,
+    container,
+  })
+  const flagsOnlyProvided = Application.provide(
+    flagsOnlyApplication,
+    Layer.succeed(ValueService, { value: 'provided' }),
+  )
+  run(flagsOnlyProvided, { flags: flagsNeedingService })
+
+  const DerivedLive = Layer.effect(
+    DerivedService,
+    Effect.map(ValueService, ({ value }): ValueShape => ({
+      value: `${value}-derived`,
+    })),
+  )
+  const withDerived = Application.provide(flagsOnlyApplication, DerivedLive)
+  const withBoth = Application.provide(
+    withDerived,
+    Layer.succeed(ValueService, { value: 'provided' }),
+  )
+  run(withBoth, {
+    flags: Effect.gen(function* () {
+      const value = yield* ValueService
+      const derived = yield* DerivedService
+      return { initialLabel: `${value.value} ${derived.value}` }
+    }),
+  })
+
+  const withUnresolvedLaterDependency = Application.provide(
+    flagsOnlyProvided,
+    Layer.effect(
+      DerivedService,
+      Effect.map(ValueService, ({ value }): ValueShape => ({
+        value: `${value}-derived`,
+      })),
+    ),
+  )
+  // @ts-expect-error A later Layer cannot consume an earlier Layer through sequential provision.
+  run(withUnresolvedLaterDependency, {
+    flags: Effect.gen(function* () {
+      const value = yield* ValueService
+      const derived = yield* DerivedService
+      return { initialLabel: `${value.value} ${derived.value}` }
+    }),
+  })
+
+  const Engine = ManagedResource.tag<number>()('FlagsEngine')
+  const managedResources = ManagedResource.make<Model, Message>()(entry => ({
+    engine: entry('ManageFlagsEngine', Schema.Option(Schema.Null), {
+      resource: Engine,
+      modelToMaybeRequirements: () => Option.none(),
+      onAcquired: () => Message.ClickedReadValue(),
+      onReleased: () => Message.ClickedReadValue(),
+      onAcquireError: () => Message.ClickedReadValue(),
+    }),
+  }))
+  const managedApplication = Application.make({
+    Model,
+    Flags,
+    init: ({ initialLabel }) => ({
+      model: Model.make({ label: initialLabel }),
+    }),
+    update: (model: Model, _message: Message) => ({ model }),
+    view: documentView,
+    managedResources,
+    container,
+  })
+  const runnableManagedApplication = Application.provide(
+    managedApplication,
+    managedResources.engine.toLayer({
+      acquire: () => Effect.succeed(1),
+      release: () => Effect.void,
+    }),
+  )
+  run(runnableManagedApplication, {
+    flags: Effect.succeed({ initialLabel: 'ready' }),
+  })
+  run(runnableManagedApplication, {
+    // @ts-expect-error Flags resolve before Model-driven ManagedResources can be acquired.
+    flags: Engine.get.pipe(
+      Effect.map(value => ({ initialLabel: `${value}` })),
+      Effect.catchTag('ResourceNotAvailable', () =>
+        Effect.succeed({ initialLabel: 'unavailable' }),
+      ),
+    ),
+  })
+
+  const staleResourcesConfig = {
+    Model,
+    init: () => ({ model: Model.make({ label: 'ready' }) }),
+    update,
+    view: documentView,
+    container,
+    resources: Layer.empty,
+  }
+  // @ts-expect-error Application.make rejects removed configuration fields.
+  Application.make(staleResourcesConfig)
+
+  const misspelledSubscriptionsConfig = {
+    Model,
+    init: () => ({ model: Model.make({ label: 'ready' }) }),
+    update: (model: Model) => ({ model }),
+    view: (model: Model, h: HtmlBuilder<Message>) => h.div([], [model.label]),
+    container,
+    subsriptions: {},
+  }
+  // @ts-expect-error Application.makeElement rejects unknown configuration fields.
+  Application.makeElement(misspelledSubscriptionsConfig)
+
+  Application.make({
+    Model,
+    init: () => ({ model: Model.make({ label: 'ready' }) }),
+    // @ts-expect-error Application.make requires tagged Messages when update accepts a Message.
+    update: (model: Model, _message: number) => ({ model }),
+    view: (model, h) => ({ title: '', body: h.div([], [model.label]) }),
+    container,
+  })
 
   const element = Application.makeElement({
     Model,

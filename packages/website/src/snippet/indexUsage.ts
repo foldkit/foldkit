@@ -1,10 +1,14 @@
 import { Cart, Item } from './domain'
-import { Home, Products } from './page'
+import { Products } from './page'
 
 // Access page modules
-Home.Model
-Home.view
-Home.update
+Products.Model
+Products.view
+Products.update
+Products.Live
+Products.subscriptions
+Products.managedResources
+Products.mounts
 
 // Access domain modules
 Cart.addItem(item)(cart)

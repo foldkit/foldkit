@@ -10,6 +10,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     'SearchShortcutPresses',
     { isSearchAvailable: Schema.Boolean },
     {
+      messages: [Message.PressedSearchShortcut],
       modelToDependencies: model => ({
         isSearchAvailable: isSearchRoute(model.route),
       }),

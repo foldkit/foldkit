@@ -82,12 +82,12 @@ export const Message = defineMessageUnion({
   ClickedRefreshStats: {},
   ClickedRetryStats: {},
   TickedRevalidateStats: {},
-  SettledFetchPosts: { result: Schema.Result(FetchedPosts, Schema.String) },
-  SettledFetchPostDetail: {
+  CompletedFetchPosts: { result: Schema.Result(FetchedPosts, Schema.String) },
+  CompletedFetchPostDetail: {
     postId: Schema.String,
     result: Schema.Result(FetchedPostDetail, Schema.String),
   },
-  SettledFetchStats: { result: Schema.Result(FetchedStats, Schema.String) },
+  CompletedFetchStats: { result: Schema.Result(FetchedStats, Schema.String) },
 })
 
 export type Message = typeof Message.Type
@@ -213,17 +213,17 @@ export const update = Update.make((model: Model, message: Message) =>
     TickedRevalidateStats: () =>
       applyStatsTransition(model, AsyncData.revalidate(model.stats)),
 
-    SettledFetchPosts: ({ result }) => ({
+    CompletedFetchPosts: ({ result }) => ({
       model: modifyFields(model, { posts: AsyncData.settle(result) }),
     }),
 
-    SettledFetchPostDetail: ({ postId, result }) => ({
+    CompletedFetchPostDetail: ({ postId, result }) => ({
       model: modifyFields(model, {
         postDetailById: HashMap.modify(postId, AsyncData.settle(result)),
       }),
     }),
 
-    SettledFetchStats: ({ result }) => ({
+    CompletedFetchStats: ({ result }) => ({
       model: modifyFields(model, { stats: AsyncData.settle(result) }),
     }),
   }),
@@ -246,7 +246,7 @@ export const init = () => ({
 // COMMAND
 
 export const FetchPosts = Command.define('FetchPosts', {
-  messages: [Message.SettledFetchPosts],
+  messages: [Message.CompletedFetchPosts],
 })
 
 const FetchPostsLive = FetchPosts.toLayer(() =>
@@ -257,13 +257,13 @@ const FetchPostsLive = FetchPosts.toLayer(() =>
       return FetchedPosts.make({ posts, fetchedAt })
     }),
     Effect.result,
-    Effect.map(result => Message.SettledFetchPosts({ result })),
+    Effect.map(result => Message.CompletedFetchPosts({ result })),
   ),
 )
 
 export const FetchPostDetail = Command.define('FetchPostDetail', {
   args: { postId: Schema.String },
-  messages: [Message.SettledFetchPostDetail],
+  messages: [Message.CompletedFetchPostDetail],
 })
 
 const FetchPostDetailLive = FetchPostDetail.toLayer(({ postId }) =>
@@ -274,12 +274,12 @@ const FetchPostDetailLive = FetchPostDetail.toLayer(({ postId }) =>
       return FetchedPostDetail.make({ detail, fetchedAt })
     }),
     Effect.result,
-    Effect.map(result => Message.SettledFetchPostDetail({ postId, result })),
+    Effect.map(result => Message.CompletedFetchPostDetail({ postId, result })),
   ),
 )
 
 export const FetchStats = Command.define('FetchStats', {
-  messages: [Message.SettledFetchStats],
+  messages: [Message.CompletedFetchStats],
 })
 
 const FetchStatsLive = FetchStats.toLayer(() =>
@@ -290,7 +290,7 @@ const FetchStatsLive = FetchStats.toLayer(() =>
       return FetchedStats.make({ stats, fetchedAt })
     }),
     Effect.result,
-    Effect.map(result => Message.SettledFetchStats({ result })),
+    Effect.map(result => Message.CompletedFetchStats({ result })),
   ),
 )
 
@@ -301,6 +301,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     'StatsRevalidationTicks',
     { isObservingStats: Schema.Boolean },
     {
+      messages: [Message.TickedRevalidateStats],
       modelToDependencies: model => ({
         isObservingStats:
           model.activeTab === 'Stats' && AsyncData.hasData(model.stats),

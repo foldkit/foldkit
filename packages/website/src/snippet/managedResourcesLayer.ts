@@ -1,6 +1,8 @@
 import { Context, Effect, Layer, Option, Schema } from 'effect'
 import { ManagedResource } from 'foldkit'
 
+import { Message } from './message'
+
 // A FEN string is a text description of a chess position.
 interface ChessEngine {
   readonly bestMove: (fen: string) => Effect.Effect<string>
@@ -41,9 +43,10 @@ const managedResources = ManagedResource.make<Model, Message>()(entry => ({
   engine: entry('ManageEngine', Schema.Option(Schema.Null), {
     resource: Engine,
     modelToMaybeRequirements: model => Option.as(model.maybeAnalysisSlug, null),
-    onAcquired: () => StartedEngine(),
-    onReleased: () => StoppedEngine(),
-    onAcquireError: error => FailedStartEngine({ error: String(error) }),
+    onAcquired: () => Message.StartedEngine(),
+    onReleased: () => Message.StoppedEngine(),
+    onAcquireError: error =>
+      Message.FailedStartEngine({ error: String(error) }),
   }),
 }))
 

@@ -40,7 +40,7 @@ export const Message = defineMessageUnion({
   ClickedCancelUpload: { uploadId: Schema.Number },
   ClickedCancelAllUploads: {},
   ClickedRestartUpload: { uploadId: Schema.Number },
-  SucceededUploadFile: { uploadId: Schema.Number },
+  CompletedUploadFile: { uploadId: Schema.Number },
   CompletedCancelUploadFile: {
     uploadId: Schema.Number,
     outcome: Command.Interruptible.Outcome,
@@ -92,7 +92,7 @@ export type UploadKey = typeof UploadKey.Type
 
 export const UploadFile = Command.define('UploadFile', {
   args: { ...UploadKey.fields, sizeMegabytes: Schema.Number },
-  messages: [Message.SucceededUploadFile],
+  messages: [Message.CompletedUploadFile],
   interrupt: {
     keyFields: ['uploadId'],
     toKey: ({ uploadId }) => String(uploadId),
@@ -105,7 +105,7 @@ export const UploadFileLive = UploadFile.toLayer(
       yield* Effect.sleep(
         Duration.millis(sizeMegabytes * MILLISECONDS_PER_MEGABYTE),
       )
-      return Message.SucceededUploadFile({ uploadId })
+      return Message.CompletedUploadFile({ uploadId })
     }),
 )
 
@@ -182,7 +182,7 @@ export const update = Update.make((model: Model, message: Message) =>
         }),
       ),
 
-    SucceededUploadFile: ({ uploadId }) => ({
+    CompletedUploadFile: ({ uploadId }) => ({
       model: modifyFields(model, { uploads: setStatusForId(uploadId, 'Done') }),
     }),
 

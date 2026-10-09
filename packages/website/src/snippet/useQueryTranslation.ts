@@ -12,7 +12,7 @@ const Model = Schema.Struct({
 
 const Message = defineMessageUnion({
   EnteredPostsRoute: {},
-  SettledFetchPosts: {
+  CompletedFetchPosts: {
     result: Schema.Result(Schema.Array(Post), Schema.String),
   },
 })
@@ -20,11 +20,11 @@ const Message = defineMessageUnion({
 // COMMAND
 
 const FetchPosts = Command.define('FetchPosts', {
-  messages: [Message.SettledFetchPosts],
+  messages: [Message.CompletedFetchPosts],
   execute: pipe(
     fetchPosts,
     Effect.result,
-    Effect.map(result => Message.SettledFetchPosts({ result })),
+    Effect.map(result => Message.CompletedFetchPosts({ result })),
   ),
 })
 
@@ -40,7 +40,7 @@ Match.tagsExhaustive({
       }),
     }),
 
-  SettledFetchPosts: ({ result }) => ({
+  CompletedFetchPosts: ({ result }) => ({
     model: modifyFields(model, { posts: AsyncData.settle(result) }),
   }),
 })

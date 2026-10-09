@@ -10,6 +10,7 @@ import {
 } from 'effect'
 import { describe, expect, expectTypeOf, it } from 'vitest'
 
+import { defineMessageUnion } from '../message/index.js'
 import { defineTaggedUnion } from '../schema/index.js'
 import {
   type GatedDependencies,
@@ -667,6 +668,103 @@ type StreamServices<AnyStream> =
   AnyStream extends Stream.Stream<any, any, infer Services> ? Services : never
 
 describe('Layer-backed entries', () => {
+  const HandlerMessage = defineMessageUnion({
+    ObservedTick: {},
+    IgnoredTick: {},
+  })
+  type HandlerMessage = typeof HandlerMessage.Type
+
+  const contracted = make<ChildModel, HandlerMessage>()(entry => ({
+    observed: entry('ObservedTicks', {
+      messages: [HandlerMessage.ObservedTick],
+    }),
+    observedWhileRunning: entry('ObservedRunningTicks', childFields, {
+      messages: [HandlerMessage.ObservedTick],
+      modelToDependencies: model => ({
+        isRunning: model.isRunning,
+        label: model.label,
+      }),
+    }),
+    silent: entry('SilentWatch', { messages: [] }),
+  }))
+
+  it('preserves declared Message schemas through lift and aggregate', () => {
+    const lifted = lift(contracted)<
+      ParentModel,
+      Readonly<{ _tag: 'GotObserved'; message: HandlerMessage }>
+    >({
+      read: model => Option.some(model.child),
+      toParentMessage: message => ({ _tag: 'GotObserved', message }),
+    })
+    const combined = aggregate(lifted)
+
+    expect(combined.observed.messages).toBe(contracted.observed.messages)
+    expect(combined.silent.messages).toBe(contracted.silent.messages)
+    expectTypeOf(contracted.observed.messages).toEqualTypeOf<
+      readonly [typeof HandlerMessage.ObservedTick]
+    >()
+    expectTypeOf(contracted.silent.messages).toEqualTypeOf<readonly []>()
+    expectTypeOf(contracted.observedWhileRunning.messages).toEqualTypeOf<
+      readonly [typeof HandlerMessage.ObservedTick]
+    >()
+    expectTypeOf(combined.observed.toLayer).toEqualTypeOf(
+      contracted.observed.toLayer,
+    )
+  })
+
+  if (false) {
+    contracted.observed.toLayer(() =>
+      Stream.succeed(HandlerMessage.ObservedTick()),
+    )
+    contracted.observedWhileRunning.toLayer(() =>
+      Stream.succeed(HandlerMessage.ObservedTick()),
+    )
+    contracted.silent.toLayer(() => Stream.empty)
+
+    // @ts-expect-error An undeclared Message cannot be emitted by this Subscription.
+    contracted.observed.toLayer(() =>
+      Stream.succeed(HandlerMessage.IgnoredTick()),
+    )
+    // @ts-expect-error A dependency-bearing handler has the same declared output limit.
+    contracted.observedWhileRunning.toLayer(() =>
+      Stream.succeed(HandlerMessage.IgnoredTick()),
+    )
+    // @ts-expect-error Silent Subscriptions cannot emit Messages.
+    contracted.silent.toLayer(() =>
+      Stream.succeed(HandlerMessage.ObservedTick()),
+    )
+
+    const lifted = lift(contracted)<
+      ParentModel,
+      Readonly<{ _tag: 'GotObserved'; message: HandlerMessage }>
+    >({
+      read: model => Option.some(model.child),
+      toParentMessage: message => ({ _tag: 'GotObserved', message }),
+    })
+    lifted.observed.toLayer(() => Stream.succeed(HandlerMessage.ObservedTick()))
+    // @ts-expect-error The lifted handler still emits the child Message.
+    lifted.observed.toLayer(() =>
+      Stream.succeed({
+        _tag: 'GotObserved',
+        message: HandlerMessage.ObservedTick(),
+      }),
+    )
+
+    const combined = aggregate(lifted)
+    combined.observed.toLayer(() =>
+      Stream.succeed(HandlerMessage.ObservedTick()),
+    )
+    // @ts-expect-error Aggregation retains the declared child Message contract.
+    combined.observed.toLayer(() =>
+      Stream.succeed(HandlerMessage.IgnoredTick()),
+    )
+
+    make<ChildModel, HandlerMessage>()(entry => ({
+      // @ts-expect-error A declared schema must produce a Message in the enclosing union.
+      wrong: entry('Wrong', { messages: [Schema.Number] }),
+    }))
+  }
+
   class Prefix extends Context.Service<Prefix, { readonly value: string }>()(
     'SubscriptionHandlerTestPrefix',
   ) {}
@@ -677,12 +775,14 @@ describe('Layer-backed entries', () => {
 
   const subscriptions = make<ChildModel, string>()(entry => ({
     registrationKey: entry('LabelValues', childFields, {
+      messages: [Schema.String],
       modelToDependencies: model => ({
         isRunning: model.isRunning,
         label: model.label,
       }),
     }),
     latestLabel: entry('LatestLabelValues', childFields, {
+      messages: [Schema.String],
       modelToDependencies: model => ({
         isRunning: model.isRunning,
         label: model.label,
@@ -695,7 +795,7 @@ describe('Layer-backed entries', () => {
 
   it('runs a named Stream without local Model dependencies', async () => {
     const persistent = make<ChildModel, string>()(entry => ({
-      heartbeat: entry('HeartbeatTicks'),
+      heartbeat: entry('HeartbeatTicks', { messages: [Schema.String] }),
     }))
     const layer = persistent.heartbeat.toLayer(() => Stream.succeed('tick'))
     const dependencies = persistent.heartbeat.modelToDependencies({
@@ -708,6 +808,7 @@ describe('Layer-backed entries', () => {
     })
 
     expect(persistent.heartbeat.name).toBe('HeartbeatTicks')
+    expect(persistent.heartbeat.messages).toEqual([Schema.String])
     expect(dependencies).toEqual({})
     expect(nextDependencies).toEqual(dependencies)
     expectTypeOf(layer).toEqualTypeOf<Layer.Layer<Handler<'HeartbeatTicks'>>>()
@@ -783,6 +884,7 @@ describe('Layer-backed entries', () => {
   it('rejects a handler Layer from another Subscription definition with the same name', async () => {
     const other = make<ChildModel, string>()(entry => ({
       registrationKey: entry('LabelValues', childFields, {
+        messages: [Schema.String],
         modelToDependencies: model => ({
           isRunning: model.isRunning,
           label: model.label,
@@ -875,6 +977,9 @@ describe('Layer-backed entries', () => {
       subscriptions.registrationKey.toLayer,
     )
     expect(lifted.registrationKey.name).toBe('LabelValues')
+    expect(lifted.registrationKey.messages).toBe(
+      subscriptions.registrationKey.messages,
+    )
     expectTypeOf(lifted.registrationKey.toLayer).toEqualTypeOf(
       subscriptions.registrationKey.toLayer,
     )
@@ -885,6 +990,9 @@ describe('Layer-backed entries', () => {
 
     expect(combined.registrationKey.toLayer).toBe(
       subscriptions.registrationKey.toLayer,
+    )
+    expect(combined.registrationKey.messages).toBe(
+      subscriptions.registrationKey.messages,
     )
     expectTypeOf(combined.registrationKey.toLayer).toEqualTypeOf(
       subscriptions.registrationKey.toLayer,

@@ -15,6 +15,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       ),
     },
     {
+      messages: [Message.UpdatedRoom, Message.FailedStreamRoom],
       modelToDependencies: model => ({
         maybeRoomStream: Option.map(model.maybeSession, session => ({
           roomId: session.roomId,
@@ -28,6 +29,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     'RoomKeyPresses',
     { shouldCaptureKeyboard: Schema.Boolean },
     {
+      messages: [Message.PressedKey],
       modelToDependencies: model => ({
         shouldCaptureKeyboard: capturesKeyboard(model),
       }),

@@ -10,6 +10,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     'SystemThemeChanges',
     { isSystemPreference: Schema.Boolean },
     {
+      messages: [Message.ChangedSystemTheme],
       modelToDependencies: model => ({
         isSystemPreference: Option.exists(
           model.maybeThemePreference,

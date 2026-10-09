@@ -280,8 +280,8 @@ export interface EntryBuilder<Model, Message> {
  * Use this when a resource is expensive or stateful and should only exist while
  * the model is in a particular state: a camera stream during a video call, a
  * WebSocket connection while on a chat page, or a Web Worker pool during a
- * computation. For resources that live for the entire application lifetime, use
- * the static `resources` config instead.
+ * computation. For services that live for the entire application lifetime,
+ * supply a Layer through `Application.provide` instead.
  *
  * Reach for `ManagedResource.aggregate` to combine multiple records, and
  * `ManagedResource.lift` to translate a child Submodel's record into a parent
@@ -291,8 +291,8 @@ export interface EntryBuilder<Model, Message> {
  * `release` in a Layer. The returned entry's `toLayer` method supplies both
  * lifecycle functions. The handler name identifies the Layer requirement;
  * the record key continues to identify the lifecycle the runtime watches.
- * The two-argument inline form remains available while existing Managed
- * Resources migrate.
+ * The two-argument inline form puts `acquire` and `release` in the entry
+ * config when the lifecycle does not need a separate handler Layer.
  *
  * **Lifecycle** — The runtime watches each entry's `modelToMaybeRequirements`
  * after every model update, structurally comparing the result against the

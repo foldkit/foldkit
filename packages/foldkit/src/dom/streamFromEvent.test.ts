@@ -393,6 +393,7 @@ describe('event type inference', () => {
       ).toEqualTypeOf<Stream.Stream<KeyboardEvent>>()
 
       make<{ isActive: boolean }, InferenceMessage>()(entry => ({
+        // @ts-expect-error a raw KeyboardEvent is not an application Message
         keyboard: entry(
           { isActive: Schema.Boolean },
           {

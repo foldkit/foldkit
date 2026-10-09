@@ -101,7 +101,7 @@ export const Message = defineMessageUnion({
   ChangedSearchInput: { value: Schema.String },
   SubmittedSearch: {},
   ChangedRoute: { route: AppRoute.People },
-  SucceededFetchPeople: {
+  CompletedFetchPeople: {
     query: Schema.String,
     people: Schema.Array(Person),
   },
@@ -139,7 +139,7 @@ export const PushSearchUrl = Command.define('PushSearchUrl', {
 
 export const FetchPeople = Command.define('FetchPeople', {
   args: { searchText: Schema.String },
-  messages: [Message.SucceededFetchPeople],
+  messages: [Message.CompletedFetchPeople],
 })
 
 export const Live = Layer.mergeAll(
@@ -151,7 +151,7 @@ export const Live = Layer.mergeAll(
   FetchPeople.toLayer(({ searchText }) =>
     Effect.sleep(SEARCH_LATENCY).pipe(
       Effect.as(
-        Message.SucceededFetchPeople({
+        Message.CompletedFetchPeople({
           query: searchText,
           people: searchPeople(searchText),
         }),
@@ -193,7 +193,7 @@ export const update = Update.make((model: Model, message: Message) =>
       }
     },
 
-    SucceededFetchPeople: ({ query, people: fetchedPeople }) => ({
+    CompletedFetchPeople: ({ query, people: fetchedPeople }) => ({
       model: modifyFields(model, {
         results: () => SearchResults.Loaded({ query, people: fetchedPeople }),
       }),

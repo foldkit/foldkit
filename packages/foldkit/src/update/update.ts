@@ -45,7 +45,7 @@ export type Return<Model, Message, R = never> = Readonly<{
   outMessage?: never
 }>
 
-type AnyUpdate = (model: any, message: any) => any
+type AnyUpdate = (...args: ReadonlyArray<any>) => any
 
 type CommandRequirements<Output> = Output extends unknown
   ? 'commands' extends keyof Output
@@ -59,6 +59,14 @@ type CommandRequirements<Output> = Output extends unknown
     : never
   : never
 
+/** The Effect services required by the Commands an update can return. This
+ * reads the update's return contract, including requirements carried through
+ * child folds, without including services used only by Subscriptions, Mounts,
+ * or ManagedResources. */
+export type RequirementsOf<
+  Update extends (...args: ReadonlyArray<any>) => any,
+> = CommandRequirements<ReturnType<Update>>
+
 type OutMessageOf<Output> = Output extends unknown
   ? 'outMessage' extends keyof Output
     ? Output extends Readonly<{ outMessage?: infer OutMessage }>
@@ -67,18 +75,30 @@ type OutMessageOf<Output> = Output extends unknown
     : never
   : never
 
-type ValidateUpdate<Update extends AnyUpdate> = Update extends (
-  model: infer Model,
-  message: infer Message,
-) => infer Output
-  ? [Output] extends [ReturnWithOutMessage<Model, Message, unknown, unknown>]
-    ? unknown
-    : never
-  : never
+type ValidateUpdate<Update extends AnyUpdate> =
+  Parameters<Update> extends readonly [
+    model: infer Model,
+    message: infer Message,
+    ...context: ReadonlyArray<any>,
+  ]
+    ? [ReturnType<Update>] extends [
+        ReturnWithOutMessage<Model, Message, unknown, unknown>,
+      ]
+      ? unknown
+      : never
+    : Update extends (
+          model: infer Model,
+          message: infer Message,
+        ) => infer Output
+      ? [Output] extends [
+          ReturnWithOutMessage<Model, Message, unknown, unknown>,
+        ]
+        ? unknown
+        : never
+      : never
 
 type MadeUpdate<Update extends AnyUpdate> = (
-  model: Parameters<Update>[0],
-  message: Parameters<Update>[1],
+  ...args: Parameters<Update>
 ) => [OutMessageOf<ReturnType<Update>>] extends [never]
   ? Return<
       Parameters<Update>[0],
@@ -96,7 +116,8 @@ type MadeUpdate<Update extends AnyUpdate> = (
  * Commands returned across all Message branches. If a branch emits an
  * OutMessage, the returned function has a {@link ReturnWithOutMessage}
  * contract so a parent must handle it. Otherwise it has a {@link Return}
- * contract.
+ * contract. Required, optional, and rest context parameters are preserved in
+ * the returned function.
  *
  * Use this when Command implementations come from Layers, so application
  * assembly can infer every required handler service without a hand-written

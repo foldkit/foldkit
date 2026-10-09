@@ -61,9 +61,11 @@ Commands describe one-shot work that produces one result. Subscriptions describe
 
 - A stable handler name for the Layer requirement.
 - A field map defining the dependency Schema, in the same shape passed to `Schema.Struct`.
-- An object containing `modelToDependencies`.
+- An object containing `messages` and `modelToDependencies`. `messages` lists the Message Schemas that the handler Stream may emit. Use `messages: []` for scoped work that emits no Messages.
 
 `modelToDependencies` extracts the values that control the entry. `subscriptions.tick.toLayer` supplies the Stream factory. Foldkit compares the extracted record structurally by default, so unrelated Model updates do not restart the timer.
+
+The declared Message Schemas constrain the Stream returned from `toLayer`. They also record the output contract needed for planned source-aware whole-application tests. Story and Scene do not currently start an entire Foldkit application or attribute an emission to a Subscription source.
 
 The inline form takes the dependency fields and an object with both `modelToDependencies` and `dependenciesToStream`. Each Layer-backed entry, such as `subscriptions.tick`, is an individual definition with `toLayer(handler)` and `toLayer(Effect<handler>)`. Its record key identifies the running Subscription, while its handler name identifies the Layer requirement. `Application.provide` supplies that Layer; `Subscription.lift` and `Subscription.aggregate` preserve the handler identity and Model-driven restart behavior.
 
@@ -99,7 +101,7 @@ Use `Stream.tick` for discrete wall-clock steps that should occur every N millis
 
 ## Streams Without Local Model Dependencies
 
-For a Layer-backed Subscription with no local Model dependencies, pass only its stable handler name to `entry`. Local Model changes leave the Stream running. A parent can still gate the entry when lifting it.
+For a Layer-backed Subscription with no local Model dependencies, pass its stable handler name and declared Messages to `entry`. Local Model changes leave the Stream running. A parent can still gate the entry when lifting it.
 
 ::Snippet{name="subscriptionPersistent" label="Heartbeat without Model dependencies"}
 
@@ -133,6 +135,6 @@ Most entries should use the first `dependencies` argument directly. Reach for `r
 
 When a parent embeds a Submodel with Subscriptions, the parent must lift the child's Messages into its own Message type. `Subscription.lift` composes the entire record in one call. Its `read` returns an `Option` of the child Model, matching `Update.foldChild` and `ManagedResource.lift`. Returning `None` stops every child Stream without reading child dependencies. Wrap an always-present child in `Option.some`.
 
-The optional `when` field lets the parent add a condition the child cannot see, such as whether the child's page is the active route. One predicate can gate the whole record, or a map can gate selected entries. The child continues to own its own dependencies. See [Subscription Organization](/patterns/subscription-organization) for the complete composition pattern.
+The optional `when` field lets the parent add a condition the child cannot see, such as whether the child's page is the active route. One predicate can gate the whole record, or a map can gate selected entries. The child continues to own its own dependencies. Direct `Subscription.aggregate(first, second)` keeps each entry's declared Message collection and `toLayer` helper. The curried form serves an already widened or annotated record at a module boundary, and erases that per-entry metadata. See [Subscription Organization](/patterns/subscription-organization) for the complete composition pattern.
 
 The application now has state transitions, one-shot Commands, element-scoped Mounts, and ongoing Subscriptions. The remaining question is where the first Model and startup Commands come from. [Init & Flags](/core/init-and-flags) defines that boundary.

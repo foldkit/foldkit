@@ -52,7 +52,7 @@ describe('login flow', () => {
       Command.expectExact(SaveSession, RedirectToDashboard),
       Command.resolveAll(
         [SaveSession, Message.SucceededSaveSession()],
-        [RedirectToDashboard, Message.CompletedNavigateInternal()],
+        [RedirectToDashboard, Message.CompletedRedirectToDashboard()],
       ),
       expect(text('Welcome back, alice!')).toExist(),
     )

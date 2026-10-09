@@ -195,7 +195,8 @@ src/entry.ts         ← Application.make + Runtime.run
 
 ```
 src/main.ts          ← Model, init, update, view
-src/entry.ts         ← Application.make + Application.provide + Runtime.run
+src/application.ts   ← Root registrations + Application.make
+src/entry.ts         ← Application.provide + Runtime.run
 src/live.ts          ← Root Live Layer composed from handler Layers
 src/message.ts       ← Message definitions
 src/command.ts       ← Command definitions + handler Layers
@@ -207,7 +208,8 @@ src/command.ts       ← Command definitions + handler Layers
 
 ```
 src/main.ts          ← init, update, view
-src/entry.ts         ← Application.make + Application.provide + Runtime.run
+src/application.ts   ← Root registrations + Application.make
+src/entry.ts         ← Application.provide + Runtime.run
 src/live.ts          ← Root Live Layer composed from feature Layers
 src/model.ts         ← Model schema
 src/message.ts       ← Message definitions
@@ -221,7 +223,8 @@ src/domain/          ← Shared domain schemas (if multiple entities)
 
 ```
 src/main.ts          ← Root init, update, view
-src/entry.ts         ← Application.make + Application.provide + Runtime.run
+src/application.ts   ← Root registrations + Application.make
+src/entry.ts         ← Application.provide + Runtime.run
 src/live.ts          ← Root Live Layer composed from feature Layers
 src/model.ts         ← Root model (contains submodels)
 src/message.ts       ← Root messages + Got* bridging
@@ -401,7 +404,7 @@ Command.define(name, { args, messages }): every input is a named field.
   directly, so you destructure the fields themselves; the call site passes args:
   const Fetch = Command.define('Fetch', {
     args: { id: Schema.String },
-    messages: [Ok, Err],
+    messages: [Message.SucceededFetch, Message.FailedFetch],
   })
   const FetchLive = Fetch.toLayer(({ id }) => ...)
   update: [Fetch({ id })]     // NOT Fetch({ id })(effect)
@@ -606,7 +609,8 @@ For file uploads (resumes, images, attachments):
 - See the With and Without URL Routing section in [architecture.md](architecture.md) for the full pattern
 - Include `ClickedLink` and `ChangedUrl` Messages for programs with routing, with proper `UrlRequest.Internal` / `UrlRequest.External` handling in update
 - Each feature that owns Layer-backed Commands, Subscriptions, Mounts, or ManagedResources exports one `Live` Layer. Compose child and local Layers with `Layer.mergeAll` at the feature boundary, compose one root `Live` Layer from those feature Layers, and supply it with `Application.provide(application, Live)`. Keep the entry at feature granularity instead of importing every handler Layer there. There is no `resources` field on `Application.make` or `Application.makeElement`
-- `Application.provide` Layers build eagerly for every runtime start, including a restored-Model start, before Flags, init, or the first render. A Layer construction failure stops startup before the first render. The runtime releases the Layer when that start stops
+- Build a second, parallel graph for runtime registrations. A feature exports its `subscriptions`, `managedResources`, and `mounts` beside its `Live` Layer. `application.ts` lifts child registrations into root Model and Message types, aggregates records, collects Mount definitions, and gives the result to `Application.make`. `entry.ts` imports only `application` and the root `Live` Layer
+- `Application.provide` Layers build eagerly for every runtime start, including a restored-Model start, before a fresh Flags Effect, init, or the first render. `Runtime.hydrate` validates the server handoff before acquiring Layers. A Layer construction failure stops startup before the first render. The runtime releases the Layer when that start stops
 - A page-owning app with Flags declares the `Flags` Schema in `Application.make` and passes the Flags Effect to `Runtime.run(application, { flags })`. A self-contained Element declares both `Flags` and `flags` in the `Application.makeElement` config. Requirements of either Flags Effect can be supplied through `Application.provide`
 - End with `Runtime.run(application)` for a page-owning app after its requirements are provided. When a host application controls the program's lifecycle, end with `Runtime.embed(element)` instead and hand the returned handle to the host; mirror `repos/foldkit/examples/embedding/src/host.ts` for the host side and its `main.ts` for the widget side
 - Name the variable holding an `Application.make` result `application`, and the variable holding an `Application.makeElement` result `element`
@@ -624,12 +628,12 @@ For file uploads (resumes, images, attachments):
 
 ### Subscriptions (if real-time)
 
-- Prefer the Layer-backed form: `Subscription.make<Model, Message>()(entry => ({ roomUpdates: entry('RoomUpdates', fields, { modelToDependencies }) }))`. The stable handler name describes the supplied Stream or scoped behavior, while the record key identifies its registration. Supply the Stream with `subscriptions.roomUpdates.toLayer(dependencies => stream)` and merge that Layer into the feature's `Live`
+- Prefer the Layer-backed form: `Subscription.make<Model, Message>()(entry => ({ roomUpdates: entry('RoomUpdates', fields, { messages: [Message.ReceivedRoomUpdate], modelToDependencies }) }))`. The stable handler name describes the supplied Stream or scoped behavior, while the record key identifies its registration. `messages` is the exact Message Schema collection the handler can emit; use `messages: []` for a silent scoped Stream. Supply the Stream with `subscriptions.roomUpdates.toLayer(dependencies => stream)` and merge that Layer into the feature's `Live`
 - `modelToDependencies` extracts Subscription parameters from Model
-- The `toLayer` handler builds `Stream<Message>` from dependencies
+- The `toLayer` handler builds a Stream limited to the declared `messages` from dependencies. The declaration records the contract for planned source-aware whole-application tests; current Story and Scene tests do not run an entire application
 - Subscriptions auto-start/stop based on Model state. Never manually managed
-- For Subscriptions with no local Model dependencies, use `entry('KeyboardPresses')` with no fields or callback; a parent can still gate the entry when lifting it
-- To embed child Subscriptions, use `Subscription.lift(childRecord)<Parent, Parent>({ read, toParentMessage })`. Its `read` returns `Option<ChildModel>`, matching `Update.foldChild` and `ManagedResource.lift`; `None` stops every child Stream without reading child dependencies. Use `Option.some` for always-present children. Every lifted entry wraps its dependencies in `GatedDependencies`. Add `when` on the parent's lift call to gate on a parent fact the child cannot see (the route a page Submodel sits behind); the parent owns the gate and reads the parent Model, and a closed gate tears the entry's Stream down. `when: parentModel => boolean` gates every entry; `when: { entryName: parentModel => boolean }` adds a condition only to the entries it names; child absence still stops every entry, so a child never splits its record to suit its parent's gating. To combine multiple records, use `Subscription.aggregate(...records)`, which reads the Model, Message, and any Effect services off the records
+- For Subscriptions with no local Model dependencies, use `entry('KeyboardPresses', { messages: [Message.PressedKey] })` with no fields or callback; a parent can still gate the entry when lifting it
+- To embed child Subscriptions, use `Subscription.lift(childRecord)<Parent, Parent>({ read, toParentMessage })`. Its `read` returns `Option<ChildModel>`, matching `Update.foldChild` and `ManagedResource.lift`; `None` stops every child Stream without reading child dependencies. Use `Option.some` for always-present children. Every lifted entry wraps its dependencies in `GatedDependencies`. Add `when` on the parent's lift call to gate on a parent fact the child cannot see (the route a page Submodel sits behind); the parent owns the gate and reads the parent Model, and a closed gate tears the entry's Stream down. `when: parentModel => boolean` gates every entry; `when: { entryName: parentModel => boolean }` adds a condition only to the entries it names; child absence still stops every entry, so a child never splits its record to suit its parent's gating. Direct `Subscription.aggregate(first, second)` preserves the individual entry contracts. Use an explicitly typed aggregate only when one broader Message channel is the intended boundary
 
 ### Managed Resources (if stateful runtime handles)
 

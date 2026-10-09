@@ -5,7 +5,9 @@ import { type Model } from '../model'
 import { NARROW_VIEWPORT_QUERY } from '../viewport'
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  viewportWidth: entry('ViewportWidthChanges'),
+  viewportWidth: entry('ViewportWidthChanges', {
+    messages: [Message.ChangedViewportWidth],
+  }),
 }))
 
 export const ViewportWidthChangesLive = subscriptions.viewportWidth.toLayer(

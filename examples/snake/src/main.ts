@@ -248,6 +248,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       interval: Schema.Number,
     },
     {
+      messages: [Message.TickedClock],
       modelToDependencies: model => ({
         isPlaying: model.gameState === 'Playing',
         interval: Math.max(
@@ -258,7 +259,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     },
   ),
 
-  keyboard: entry('KeyboardPresses'),
+  keyboard: entry('KeyboardPresses', { messages: [Message.PressedKey] }),
 }))
 
 const GameClockTicksLive = subscriptions.gameClock.toLayer(

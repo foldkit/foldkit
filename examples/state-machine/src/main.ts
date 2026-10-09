@@ -101,7 +101,7 @@ export const Message = defineMessageUnion({
   ToggledTermsAccepted: { isAccepted: Schema.Boolean },
   UpdatedPromoCode: { value: Schema.String },
   SubmittedPromoCode: {},
-  SucceededPlaceOrder: { orderId: Schema.String },
+  CompletedPlaceOrder: { orderId: Schema.String },
 })
 
 export type Message = typeof Message.Type
@@ -112,13 +112,13 @@ const PLACE_ORDER_DELAY = Duration.seconds(1)
 
 export const PlaceOrder = Command.define('PlaceOrder', {
   args: { isShippingRequired: Schema.Boolean },
-  messages: [Message.SucceededPlaceOrder],
+  messages: [Message.CompletedPlaceOrder],
 })
 
 export const PlaceOrderLive = PlaceOrder.toLayer(({ isShippingRequired }) =>
   Effect.gen(function* () {
     yield* Effect.sleep(PLACE_ORDER_DELAY)
-    return Message.SucceededPlaceOrder({
+    return Message.CompletedPlaceOrder({
       orderId: isShippingRequired ? 'SHIP-1001' : 'DIGI-1001',
     })
   }),
@@ -319,7 +319,7 @@ export const checkoutMachine = Machine.define({
     },
     Placing: {
       on: {
-        SucceededPlaceOrder: to('Confirmed', ({ state, message }) => ({
+        CompletedPlaceOrder: to('Confirmed', ({ state, message }) => ({
           model: CheckoutState.Confirmed({
             isShippingRequired: state.isShippingRequired,
             maybeDiscount: state.maybeDiscount,
@@ -435,7 +435,7 @@ export const update = Update.make((model: Model, message: Message) =>
       'ToggledTermsAccepted',
       'UpdatedPromoCode',
       'SubmittedPromoCode',
-      'SucceededPlaceOrder',
+      'CompletedPlaceOrder',
       () => stepMachine(message)(model),
     ),
     Match.exhaustive,

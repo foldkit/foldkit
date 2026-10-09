@@ -1,17 +1,6 @@
-import { Layer } from 'effect'
 import { Application, Runtime } from 'foldkit'
 
-import {
-  DetermineStartTimeLive,
-  DetermineTickTimeLive,
-  Message,
-  Model,
-  StopwatchTicksLive,
-  init,
-  subscriptions,
-  update,
-  view,
-} from './main'
+import { Live, Message, Model, init, subscriptions, update, view } from './main'
 
 const application = Application.make({
   Model,
@@ -25,11 +14,4 @@ const application = Application.make({
   },
 })
 
-const StopwatchLive = Layer.mergeAll(
-  DetermineStartTimeLive,
-  DetermineTickTimeLive,
-  StopwatchTicksLive,
-)
-const runnable = Application.provide(application, StopwatchLive)
-
-Runtime.run(runnable)
+Runtime.run(Application.provide(application, Live))

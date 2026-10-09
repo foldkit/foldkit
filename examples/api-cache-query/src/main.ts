@@ -213,6 +213,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     'StatsRefreshTicks',
     { isStatsRefreshActive: Schema.Boolean },
     {
+      messages: [Message.TickedStatsRefreshInterval],
       modelToDependencies: model => ({
         isStatsRefreshActive:
           model.activeTab === 'Stats' &&

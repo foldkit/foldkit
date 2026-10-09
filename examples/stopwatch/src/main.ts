@@ -2,6 +2,7 @@ import {
   Clock,
   Duration,
   Effect,
+  Layer,
   Schema,
   Stream,
   String,
@@ -127,6 +128,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     'StopwatchTicks',
     { isRunning: Schema.Boolean },
     {
+      messages: [Message.Ticked],
       modelToDependencies: model => ({ isRunning: model.isRunning }),
     },
   ),
@@ -140,6 +142,12 @@ export const StopwatchTicksLive = subscriptions.tick.toLayer(({ isRunning }) =>
     ),
     Effect.sync(() => isRunning),
   ),
+)
+
+export const Live = Layer.mergeAll(
+  DetermineStartTimeLive,
+  DetermineTickTimeLive,
+  StopwatchTicksLive,
 )
 
 // VIEW

@@ -2,7 +2,7 @@ import { Effect, Schema } from 'effect'
 import { Command, Port } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { CompletedReportCount } from './message'
+import { Message } from './message'
 import { ports } from './ports'
 
 // An outbound Port is written from a Command. Port.emit encodes the value
@@ -10,12 +10,12 @@ import { ports } from './ports'
 // Completed* Message like any other fire-and-forget Command.
 export const ReportCount = Command.define('ReportCount', {
   args: { count: Schema.Number },
-  messages: [CompletedReportCount],
+  messages: [Message.CompletedReportCount],
 })
 
 export const ReportCountLive = ReportCount.toLayer(({ count }) =>
   Port.emit(ports.outbound.countChanged, count).pipe(
-    Effect.as(CompletedReportCount()),
+    Effect.as(Message.CompletedReportCount()),
   ),
 )
 

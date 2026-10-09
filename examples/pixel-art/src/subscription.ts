@@ -4,14 +4,20 @@ import { Dom, Subscription } from 'foldkit'
 import { Message } from './message'
 import type { Model } from './model'
 
-const toUndoRedoMessage = (event: KeyboardEvent): Option.Option<Message> => {
+type UndoRedoMessage =
+  | typeof Message.ClickedUndo.Type
+  | typeof Message.ClickedRedo.Type
+
+const toUndoRedoMessage = (
+  event: KeyboardEvent,
+): Option.Option<UndoRedoMessage> => {
   const isCtrlOrMeta = event.ctrlKey || event.metaKey
   if (!isCtrlOrMeta) {
     return Option.none()
   }
 
   return Match.value(event.key.toLowerCase()).pipe(
-    Match.withReturnType<Option.Option<Message>>(),
+    Match.withReturnType<Option.Option<UndoRedoMessage>>(),
     Match.when('z', () =>
       Option.some(
         event.shiftKey ? Message.ClickedRedo() : Message.ClickedUndo(),
@@ -22,13 +28,15 @@ const toUndoRedoMessage = (event: KeyboardEvent): Option.Option<Message> => {
   )
 }
 
-const toToolMessage = (event: KeyboardEvent): Option.Option<Message> => {
+const toToolMessage = (
+  event: KeyboardEvent,
+): Option.Option<typeof Message.SelectedTool.Type> => {
   if (event.ctrlKey || event.metaKey) {
     return Option.none()
   }
 
   return Match.value(event.key.toLowerCase()).pipe(
-    Match.withReturnType<Option.Option<Message>>(),
+    Match.withReturnType<Option.Option<typeof Message.SelectedTool.Type>>(),
     Match.when('b', () => Option.some(Message.SelectedTool({ tool: 'Brush' }))),
     Match.when('f', () => Option.some(Message.SelectedTool({ tool: 'Fill' }))),
     Match.when('e', () =>
@@ -39,14 +47,17 @@ const toToolMessage = (event: KeyboardEvent): Option.Option<Message> => {
 }
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  undoRedoKeys: entry('UndoRedoKeyPresses'),
+  undoRedoKeys: entry('UndoRedoKeyPresses', {
+    messages: [Message.ClickedUndo, Message.ClickedRedo],
+  }),
 
-  toolKeys: entry('ToolKeyPresses'),
+  toolKeys: entry('ToolKeyPresses', { messages: [Message.SelectedTool] }),
 
   mouseRelease: entry(
     'MouseReleases',
     { isDrawing: Schema.Boolean },
     {
+      messages: [Message.ReleasedMouse],
       modelToDependencies: model => ({ isDrawing: model.isDrawing }),
     },
   ),

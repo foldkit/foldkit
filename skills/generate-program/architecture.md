@@ -6,7 +6,7 @@
 
 Every Foldkit app follows The Elm Architecture (TEA). A Message arrives. The user clicked a button, a timer fired, an HTTP response came back. The update function receives the current Model and the Message and returns a new Model along with any Commands to execute. The view function renders the new Model as HTML. When the user interacts with the view, it produces another Message, and the loop continues.
 
-The complete cycle, including Subscriptions and ManagedResources:
+The complete cycle, including Mounts, Subscriptions, and ManagedResources:
 
 ```
           +------------------------------------------------------+
@@ -24,13 +24,14 @@ Model    Command<Message>[]                                      |
   |               +-> Runtime -----------------------------------+
   |                                                              |
   +-> view -> Browser -> user events ----------------------------+
+  |       +-> Mounts -> Runtime ---------------------------------+
   |                                                              |
   +-> Subscriptions -> Stream<Message> -> Runtime ----------------+
   |                                                              |
   +-> ManagedResources -> lifecycle -----------------------------+
 ```
 
-Every path on the right side produces a Message that feeds back into update. Commands are one-shot effects. Subscriptions emit a continuous stream of Messages. ManagedResources dispatch Messages when they're acquired, released, or fail to acquire. The Browser sends Messages when the user interacts with the DOM. Four sources, one loop.
+Effects that emit Messages feed them back into update. Commands are one-shot effects. Mounts perform work while a rendered element exists. Subscriptions manage a Stream whose emissions can become Messages. ManagedResources dispatch Messages when they're acquired, released, or fail to acquire. The Browser sends Messages when the user interacts with the DOM. Silent Mounts and Subscriptions perform scoped work without dispatching a Message.
 
 There are no escape hatches:
 
@@ -38,7 +39,7 @@ There are no escape hatches:
 - **Messages** are facts about what happened: past-tense, never imperative
 - **update** is a pure function. It receives the current Model and a Message, then returns an `Update.Return<Model, Message>`
 - **view** is a pure function: `(model, h) → Html`, where `h` is the builder the runtime supplies
-- **Commands** are the only place side effects happen. They return Messages
+- **Side effects** stay outside update and view. The Runtime performs Commands and manages Mount, Subscription, and ManagedResource lifecycles. Each reports results through Messages
 
 ## Core Invariants
 
@@ -265,7 +266,7 @@ Runtime.run(application, { flags })
 
 Hydrated applications do not provide a browser Flags Effect. `Runtime.hydrate(application)` decodes the exact Schema-encoded Flags payload emitted by the server. `@foldkit/vite-plugin` compiles the shared deployment identity into Foldkit for coordinated client and server builds; separately orchestrated builds pass the same explicit `buildId` override to each artifact. Hydration compares that identity against the id the server stamped on the root before it reads the handoff at all. Missing or invalid server handoff data, and a page from another deployment, are fatal boot errors.
 
-A service used only at startup is discharged inside `flags` with `Effect.provide`, the same way a Command discharges its own (`Effect.provide(BrowserKeyValueStore.layerLocalStorage)`). When the service is an app-wide singleton that Commands also use, leave the requirement in the flags type as `Effect<Flags, never, ApiClientService>` and keep that service exposed from the root `Live` Layer with `Layer.provideMerge(CommandsLive, ApiClientLive)`. `Application.provide` builds the resulting Layer eagerly on every runtime start, before Flags, init, or the first render, including a start that restores a preserved Model. A construction failure therefore stops startup before the first render. Never also provide that Layer inside `flags`: doing both builds it twice and hands the app two instances of whatever it holds.
+A service used only at startup is discharged inside `flags` with `Effect.provide`, the same way a Command discharges its own (`Effect.provide(BrowserKeyValueStore.layerLocalStorage)`). When the service is an app-wide singleton that Commands also use, leave the requirement in the flags type as `Effect<Flags, never, ApiClientService>` and keep that service exposed from the root `Live` Layer with `Layer.provideMerge(CommandsLive, ApiClientLive)`. `Application.provide` builds the resulting Layer eagerly on every runtime start, before executing a fresh Flags Effect, init, or the first render, including a start that restores a preserved Model. `Runtime.hydrate` validates the server handoff before acquiring Layers. A construction failure stops startup before the first render. Never also provide that Layer inside `flags`: doing both builds it twice and hands the app two instances of whatever it holds.
 
 An Element owns its Flags Effect because no separate runtime call seeds it. Put both `Flags` and `flags` in the `Application.makeElement` config. The embedded widget example later in this guide shows the full shape.
 
@@ -300,6 +301,10 @@ Runtime.run(Application.provide(application, Live))
 ```
 
 If a feature's handler Layers need a shared service, provide that service beneath the feature bundle with `Layer.provide` or `Layer.provideMerge`, then export the completed feature `Live`. Keep handler-by-handler imports out of the entry point. `Application.provide` can be chained when one provided Layer leaves requirements for a later Layer, but a composed root `Live` keeps ordinary application wiring at feature granularity.
+
+The implementation Layer graph does not replace the registration graph. A feature also exports its `subscriptions`, `managedResources`, and `mounts`. In `application.ts`, lift child registrations into the root Model and Message types, aggregate the records, collect Mount definitions, and pass the results to `Application.make`. The entry then imports only the assembled `application` and the root `Live` Layer.
+
+Direct `Subscription.aggregate(first, second)` preserves each Subscription definition's key and Message contract. The curried `Subscription.aggregate<Model, Message>()(...records)` form intentionally exposes one broad record type at an explicit module boundary. Keep the direct form while the application composes known feature records.
 
 ## The Submodel Pattern
 
@@ -381,12 +386,13 @@ Build them with `Subscription.make<Model, Message>()(entry => ({ ... }))`. Use t
 
 - A stable handler name. Distinct definitions in one application need distinct names even when their record keys differ.
 - A `fields` map (the bare field map passed as `entry`'s second argument) naming every dependency. The builder calls `Schema.Struct(fields)` internally and infers the dependency type from this map.
+- A `messages` collection in `callbacks` listing the exact Message Schemas the handler Stream can emit. Use `messages: []` when the scoped Stream emits no Messages. The declared collection constrains `toLayer` and records the contract for planned source-aware whole-application tests. Story and Scene do not currently start an entire application.
 - A `modelToDependencies(model)` function that returns the parameters the stream needs. Wrap an absent dependency in `Option` at the field level. The runtime restarts the stream whenever the dependencies change.
 - A handler Layer built with `subscriptions.key.toLayer(dependencies => stream)`. Errors should be mapped to a `Failed*` Message inside the stream rather than thrown. Merge the handler Layer into the feature's `Live` Layer.
 
 Name the handler for the events or scoped behavior the entry supplies, such as `KeyboardPresses`, `SystemThemeChanges`, or `GameClockTicks`. The record key identifies the registration, and the Model dependencies determine when its scope is active. Avoid generic `Watch*` names that identify only the input source. Name an individual implementation Layer from the handler identity, such as `KeyboardPressesLive`; a feature can compose those Layers under `Live`.
 
-For Layer-backed Subscriptions without local Model dependencies (keyboard listeners, window resize, animation frame ticks), pass only the stable handler name: `entry('KeyboardPresses')`. The Subscription then stays active across local Model updates. Its parent can still gate it when lifted.
+For Layer-backed Subscriptions without local Model dependencies (keyboard listeners, window resize, animation frame ticks), pass the stable handler name and Message Schemas: `entry('KeyboardPresses', { messages: [Message.PressedKey] })`. The Subscription then stays active across local Model updates. Its parent can still gate it when lifted.
 
 Canonical live examples:
 

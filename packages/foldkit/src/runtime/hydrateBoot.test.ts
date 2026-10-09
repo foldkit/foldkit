@@ -1,4 +1,4 @@
-import { Effect, Fiber, Option, Schema } from 'effect'
+import { Context, Effect, Fiber, Layer, Option, Schema } from 'effect'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { renderToString } from '../experimental/server/server.js'
@@ -6,6 +6,7 @@ import type { Document } from '../html/index.js'
 import { __htmlBuilder } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import type * as Update from '../update/index.js'
+import * as Application from './application.js'
 import { makeApplication } from './makeApplication.js'
 import { __startProgram, hydrate, run } from './start.js'
 
@@ -759,6 +760,96 @@ describe('hydrating boot', () => {
     expect(document.body.hasAttribute('data-foldkit-refused')).toBe(false)
     expect(document.querySelector('[data-foldkit-refusal-shield]')).toBeNull()
   }
+
+  it('refuses a stale page before building application Layers', async () => {
+    await renderServerPage({ start: 5 })
+    const servedRoot = document.querySelector('[data-foldkit-app]')
+    servedRoot?.setAttribute('data-foldkit-build', 'other-deployment')
+    let acquisitionCount = 0
+
+    class StartupService extends Context.Service<StartupService, void>()(
+      'HydrationStartupService',
+    ) {}
+
+    const application = Application.make({
+      Model,
+      Flags,
+      init,
+      update,
+      view,
+      container: nullContainer(),
+    })
+    const provided = Application.provide(
+      application,
+      Layer.effect(
+        StartupService,
+        Effect.sync(() => {
+          acquisitionCount += 1
+          throw new Error('startup Layer acquisition failed')
+        }),
+      ),
+    )
+
+    await expect(
+      Effect.runPromise(
+        __startProgram(provided, undefined, 'Hydrate', undefined, BUILD_ID),
+      ),
+    ).rejects.toThrow('this client belongs to deployment')
+    expect(acquisitionCount).toBe(0)
+    expectContained(servedRoot)
+  })
+
+  it('shares the application Layer lifetime with an adopted server page', async () => {
+    await renderServerPage({ start: 5 })
+    const serverCount = document.getElementById('count')
+    let acquisitionCount = 0
+    let releaseCount = 0
+
+    class StartupService extends Context.Service<StartupService, void>()(
+      'HydrationStartupService',
+    ) {}
+
+    const application = Application.make({
+      Model,
+      Flags,
+      init,
+      update,
+      view,
+      container: nullContainer(),
+    })
+    const provided = Application.provide(
+      application,
+      Layer.effect(
+        StartupService,
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            acquisitionCount += 1
+          }),
+          () =>
+            Effect.sync(() => {
+              releaseCount += 1
+            }),
+        ),
+      ),
+    )
+    const fiber = Effect.runFork(
+      __startProgram(provided, undefined, 'Hydrate', undefined, BUILD_ID),
+    )
+
+    try {
+      await vi.waitFor(() => {
+        expect(document.title).toBe('Count 5')
+      })
+      expect(document.getElementById('count')).toBe(serverCount)
+      expect(acquisitionCount).toBe(1)
+      expect(releaseCount).toBe(0)
+      expectNotContained()
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+
+    expect(releaseCount).toBe(1)
+  })
 
   it.each([
     { name: 'omitted options', optionsArguments: [] },

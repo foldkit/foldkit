@@ -56,6 +56,8 @@ A Layer-backed Mount still starts when its element enters the DOM and stops when
 
 Foldkit checks each rendered Layer-backed Mount before patching the DOM and reports any definition missing from `mounts`. Use the same definition in the view, registration, and `toLayer` call. Distinct Mount definitions within one application need distinct names; the same definition can appear on multiple elements. The handler Layer lives for the application lifetime, while each Mount acquisition and cleanup follows its element.
 
+Name the Mount for the imperative work attached to the element, using a verb-first name such as `MeasurePanel`, `AnchorPopover`, or `PortalMenuBackdrop`. Name its production Layer after the definition, such as `MeasurePanelLive`, and include it in the feature's `Live` Layer.
+
 :::Info{label="Two rules for Mount work"}
 First, `execute` must use the live element. If it does not read or write that element, a Message or Model condition is probably the real cause. Second, the work must be safe to repeat whenever that element is inserted again. DOM measurement, paired DOM manipulation, observers, and element-owned library instances fit these rules.
 :::
@@ -76,7 +78,7 @@ A Mount often needs an input that differs by element instance, such as an initia
 
 Calling the Definition with an args record creates the MountAction passed to `OnMount`. That call never runs `execute`. The runtime calls it when the element enters the DOM, so nothing `execute` does happens inside the pure view that built the action. `Mount.defineStream` takes the same fields, and its `execute` returns a `Stream<Message>` instead.
 
-Args are only per-instance inputs. Module constants stay in lexical scope, app-wide services come from `Application.provide`, Model-owned handles come from `ManagedResources`, and Effect services remain available through `yield*` inside an inline `execute` or a Layer handler.
+Args are only per-instance inputs. Module constants stay in lexical scope, and Model-owned handles come from ManagedResources. Put an app-wide service requirement in a Layer handler so `Application.provide` can supply it. An inline `execute` must supply its own Effect service requirements with `Effect.provide`.
 
 :::Info{label="Args surface in DevTools and tests"}
 DevTools shows the args beside the Mount name. Scene tests can target one instance by passing the same args record to `Mount.expectHas` or `Mount.resolve`. See [Scene](/testing/scene) for the Definition and instance matcher contract.

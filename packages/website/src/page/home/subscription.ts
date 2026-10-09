@@ -9,7 +9,9 @@ import { type Model } from './model'
 const TOGGLE_INTERVAL = Duration.seconds(3)
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  aiHeading: entry('AiHeadingToggleTicks'),
+  aiHeading: entry('AiHeadingToggleTicks', {
+    messages: [Message.ToggledAiHeading],
+  }),
 }))
 
 const AiHeadingToggleTicksLive = subscriptions.aiHeading.toLayer(() =>

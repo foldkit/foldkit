@@ -227,6 +227,11 @@ export type MakeRuntimeReturn<
   }>
 }>
 
+type EmbedLifecycle = {
+  isEmbedActive: boolean
+  maybeActiveFiber: Option.Option<Fiber.Fiber<void>>
+}
+
 type RuntimeInternals = {
   startWith: (
     maybeConnector: Option.Option<HostConnector>,
@@ -245,8 +250,7 @@ type RuntimeInternals = {
   ) => Effect.Effect<void>
   applicationLayer?: Layer.Layer<any, any, any>
   kind: 'Application' | 'Element'
-  isEmbedActive: boolean
-  maybeActiveFiber: Option.Option<Fiber.Fiber<void>>
+  embedLifecycle: EmbedLifecycle
 }
 
 export const runtimeInternals = new WeakMap<object, RuntimeInternals>()
@@ -383,6 +387,19 @@ export const makeRuntime = <
         // detached fork would outlive the runtime.
         const runtimeScope = yield* Effect.scope
 
+        const { maybeHydrationRoot, resolveFlags } =
+          yield* resolveHydrationHandoff({
+            bootMode,
+            hydration,
+            bootFlags,
+            configuredFlags,
+            isFlagsRequired,
+            FlagsCodec,
+            preservedModel,
+            container,
+            buildId,
+          })
+
         const maybePortChannels: Option.Option<PortChannelsBundle> = pipe(
           Option.fromNullishOr(ports),
           Option.map(portsConfig =>
@@ -417,20 +434,6 @@ export const makeRuntime = <
           applicationLayer,
         })
 
-        const { maybeHydrationRoot, resolveFlags } =
-          yield* resolveHydrationHandoff({
-            bootMode,
-            hydration,
-            bootFlags,
-            configuredFlags,
-            isFlagsRequired,
-            FlagsCodec,
-            preservedModel,
-            container,
-            buildId,
-            provideApplicationServices,
-          })
-
         const ModelJsonCodec = Schema.toCodecJson(
           /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
           Model as Schema.Codec<Model>,
@@ -451,7 +454,7 @@ export const makeRuntime = <
         // tears down more than it used to, and their release defects would
         // bury its cause.
         const runInit: Effect.Effect<InitResult> = Effect.map(
-          resolveFlags,
+          provideApplicationServices(resolveFlags),
           flags => init(flags, Option.getOrUndefined(currentUrl)),
         )
 
@@ -918,8 +921,10 @@ export const makeRuntime = <
         applicationLayer,
       ),
     kind,
-    isEmbedActive: false,
-    maybeActiveFiber: Option.none(),
+    embedLifecycle: {
+      isEmbedActive: false,
+      maybeActiveFiber: Option.none(),
+    },
   })
   return program
 }

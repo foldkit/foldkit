@@ -1,10 +1,12 @@
 import { Array, Effect, Option } from 'effect'
 import { Command, ManagedResource } from 'foldkit'
 
+import { Message } from './message'
+
 const CameraStream = ManagedResource.tag<MediaStream>()('CameraStream')
 
 const TakePhoto = Command.define('TakePhoto', {
-  messages: [SucceededTakePhoto, CameraUnavailable],
+  messages: [Message.SucceededTakePhoto, Message.FailedTakePhoto],
 })
 
 const TakePhotoLive = TakePhoto.toLayer(() =>
@@ -20,6 +22,9 @@ const TakePhotoLive = TakePhoto.toLayer(() =>
       },
     })
 
-    return SucceededTakePhoto({ width: bitmap.width, height: bitmap.height })
-  }).pipe(Effect.catch(() => Effect.succeed(CameraUnavailable()))),
+    return Message.SucceededTakePhoto({
+      width: bitmap.width,
+      height: bitmap.height,
+    })
+  }).pipe(Effect.catch(() => Effect.succeed(Message.FailedTakePhoto()))),
 )

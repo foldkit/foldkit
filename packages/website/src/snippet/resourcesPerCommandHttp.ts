@@ -2,9 +2,11 @@ import { Effect, Schema } from 'effect'
 import { HttpClient } from 'effect/http'
 import { Command, Http } from 'foldkit'
 
+import { Message } from './message'
+
 const FetchWeather = Command.define('FetchWeather', {
   args: { city: Schema.String },
-  messages: [SucceededFetchWeather, FailedFetchWeather],
+  messages: [Message.SucceededFetchWeather, Message.FailedFetchWeather],
 })
 
 const FetchWeatherLive = FetchWeather.toLayer(({ city }) =>
@@ -14,10 +16,10 @@ const FetchWeatherLive = FetchWeather.toLayer(({ city }) =>
     const data = yield* Schema.decodeUnknownEffect(WeatherResponse)(
       yield* response.json,
     )
-    return SucceededFetchWeather({ weather: data })
+    return Message.SucceededFetchWeather({ weather: data })
   }).pipe(
     Effect.catch(() =>
-      Effect.succeed(FailedFetchWeather({ error: 'Request failed' })),
+      Effect.succeed(Message.FailedFetchWeather({ error: 'Request failed' })),
     ),
     Effect.provide(Http.layer),
   ),

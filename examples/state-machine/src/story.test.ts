@@ -38,7 +38,7 @@ describe('update', () => {
 
         yield* TestClock.adjust('1 millis')
         expect(yield* Fiber.join(fiber)).toStrictEqual(
-          Message.SucceededPlaceOrder({ orderId: 'DIGI-1001' }),
+          Message.CompletedPlaceOrder({ orderId: 'DIGI-1001' }),
         )
       }).pipe(
         Effect.scoped,
@@ -170,7 +170,7 @@ describe('update', () => {
       Command.expectExact(PlaceOrder({ isShippingRequired: false })),
       Command.resolve(
         PlaceOrder,
-        Message.SucceededPlaceOrder({ orderId: 'DIGI-1001' }),
+        Message.CompletedPlaceOrder({ orderId: 'DIGI-1001' }),
       ),
       model(model => {
         expect(model.checkout._tag).toBe('Confirmed')

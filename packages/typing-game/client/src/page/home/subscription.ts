@@ -10,6 +10,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     'HomeKeyPresses',
     { shouldCaptureKeyboard: Schema.Boolean },
     {
+      messages: [Message.PressedKey],
       modelToDependencies: model => ({
         shouldCaptureKeyboard: capturesKeyboard(model),
       }),

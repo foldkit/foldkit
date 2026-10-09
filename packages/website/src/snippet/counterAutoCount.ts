@@ -26,6 +26,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     'AutoCountTicks',
     { isAutoCounting: Schema.Boolean },
     {
+      messages: [Message.Ticked],
       modelToDependencies: model => ({
         isAutoCounting: model.isAutoCounting,
       }),

@@ -70,8 +70,8 @@ export const Message = defineMessageUnion({
   StoppedEngine: {},
   FailedStartEngine: { reason: Schema.String },
   ClickedCompute: {},
-  CompletedCompute: { result: Schema.Number },
-  SkippedCompute: {},
+  SucceededCompute: { result: Schema.Number },
+  FailedCompute: {},
 })
 
 export type Message = typeof Message.Type
@@ -80,16 +80,16 @@ export type Message = typeof Message.Type
 
 export const Compute = Command.define('Compute', {
   args: { value: Schema.Number },
-  messages: [Message.CompletedCompute, Message.SkippedCompute],
+  messages: [Message.SucceededCompute, Message.FailedCompute],
 })
 
 export const ComputeLive = Compute.toLayer(({ value }) =>
   Effect.gen(function* () {
     const engine = yield* Engine.get
-    return Message.CompletedCompute({ result: engine.square(value) })
+    return Message.SucceededCompute({ result: engine.square(value) })
   }).pipe(
     Effect.catchTag('ResourceNotAvailable', () =>
-      Effect.succeed(Message.SkippedCompute()),
+      Effect.succeed(Message.FailedCompute()),
     ),
   ),
 )
@@ -128,13 +128,13 @@ export const update = Update.make((model: Model, message: Message) =>
       }
     },
 
-    CompletedCompute: ({ result }) => ({
+    SucceededCompute: ({ result }) => ({
       model: modifyFields(model, {
         maybeSquareResult: () => Option.some(result),
       }),
     }),
 
-    SkippedCompute: () => ({ model }),
+    FailedCompute: () => ({ model }),
   }),
 )
 
@@ -175,6 +175,8 @@ export const ManageEngineLive = managedResources.engine.toLayer({
     ),
   release: () => Effect.void,
 })
+
+export const Live = Layer.mergeAll(ComputeLive, ManageEngineLive)
 
 // VIEW
 

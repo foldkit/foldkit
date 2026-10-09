@@ -1,4 +1,13 @@
-import { Array, Data, Effect, Option, Predicate, Schema, pipe } from 'effect'
+import {
+  Array,
+  Data,
+  Effect,
+  Function,
+  Option,
+  Predicate,
+  Schema,
+  pipe,
+} from 'effect'
 
 import { HYDRATION_BUILD_ATTRIBUTE } from '../buildToken.js'
 import {
@@ -385,9 +394,9 @@ export const findDocumentHydration = (
  *  render adopts, when this boot adopts one, and the Effect that produces the
  *  Flags `init` runs with, from the page's payload or from the app's own
  *  Flags Effect. */
-export type ResolvedHydrationHandoff<Flags> = Readonly<{
+export type ResolvedHydrationHandoff<Flags, Resources> = Readonly<{
   maybeHydrationRoot: Option.Option<HTMLElement>
-  resolveFlags: Effect.Effect<Flags>
+  resolveFlags: Effect.Effect<Flags, never, Resources>
 }>
 
 /**
@@ -410,7 +419,6 @@ export const resolveHydrationHandoff = <Flags, Resources>({
   preservedModel,
   container,
   buildId,
-  provideApplicationServices,
 }: Readonly<{
   bootMode: BootMode
   hydration: HydrationConfig | undefined
@@ -421,19 +429,15 @@ export const resolveHydrationHandoff = <Flags, Resources>({
   preservedModel: unknown
   container: HTMLElement
   buildId: string | undefined
-  provideApplicationServices: <A>(
-    effect: Effect.Effect<A, never, Resources>,
-  ) => Effect.Effect<A>
-}>): Effect.Effect<ResolvedHydrationHandoff<Flags>> =>
+}>): Effect.Effect<ResolvedHydrationHandoff<Flags, Resources>> =>
   Effect.gen(function* () {
     const maybeResolveFreshFlags = Option.orElse(
       Option.fromNullishOr(bootFlags),
       () => configuredFlags,
     )
 
-    const resolveFreshFlags: Effect.Effect<Flags> = Option.match(
-      maybeResolveFreshFlags,
-      {
+    const resolveFreshFlags: Effect.Effect<Flags, never, Resources> =
+      Option.match(maybeResolveFreshFlags, {
         onNone: () =>
           isFlagsRequired
             ? Effect.die(
@@ -444,9 +448,8 @@ export const resolveHydrationHandoff = <Flags, Resources>({
               )
             : /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
               Effect.succeed(undefined as Flags),
-        onSome: provideApplicationServices,
-      },
-    )
+        onSome: Function.identity,
+      })
 
     // Every hydration refusal that knows which root it was going to adopt
     // contains that root first. The build id is one reason to refuse; a
@@ -582,7 +585,7 @@ export const resolveHydrationHandoff = <Flags, Resources>({
       },
     )
 
-    const resolveFlags: Effect.Effect<Flags> = Option.match(
+    const resolveFlags: Effect.Effect<Flags, never, Resources> = Option.match(
       maybeHydrationFlags,
       {
         onNone: () => resolveFreshFlags,
