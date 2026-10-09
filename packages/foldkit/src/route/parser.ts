@@ -6,6 +6,7 @@ import {
   Predicate,
   Record,
   Schema,
+  SchemaAST,
   String,
   flow,
   pipe,
@@ -613,17 +614,93 @@ export const slash: {
       ),
   })
 
+type ArrayQueryField = Readonly<{ name: string; isOptional: boolean }>
+
+const isArrayEncoded = (ast: SchemaAST.AST): boolean => {
+  if (SchemaAST.isUnion(ast)) {
+    const definedTypes = Array.filter(
+      ast.types,
+      type => !SchemaAST.isUndefined(type),
+    )
+
+    return (
+      Array.isArrayNonEmpty(definedTypes) &&
+      Array.every(definedTypes, isArrayEncoded)
+    )
+  } else {
+    return SchemaAST.isArrays(ast)
+  }
+}
+
+const toArrayQueryFields = (
+  ast: SchemaAST.AST,
+): ReadonlyArray<ArrayQueryField> => {
+  const encodedAst = SchemaAST.toEncoded(ast)
+
+  if (!SchemaAST.isObjects(encodedAst)) {
+    return []
+  }
+
+  return Array.flatMap(
+    encodedAst.propertySignatures,
+    ({ name, type }): ReadonlyArray<ArrayQueryField> => {
+      if (Predicate.isString(name) && isArrayEncoded(type)) {
+        return [{ name, isOptional: SchemaAST.isOptional(type) }]
+      } else {
+        return []
+      }
+    },
+  )
+}
+
+const toQueryRecord = (
+  searchParams: URLSearchParams,
+  arrayQueryFields: ReadonlyArray<ArrayQueryField>,
+): Record<string, string | ReadonlyArray<string>> => {
+  const arrayEntries = Array.flatMap(
+    arrayQueryFields,
+    ({ name, isOptional }): ReadonlyArray<[string, ReadonlyArray<string>]> => {
+      const values = searchParams.getAll(name)
+
+      if (isOptional && Array.isArrayEmpty(values)) {
+        return []
+      } else {
+        return [[name, values]]
+      }
+    },
+  )
+
+  return {
+    ...Record.fromEntries(searchParams.entries()),
+    ...Record.fromEntries(arrayEntries),
+  }
+}
+
 /**
  * Adds query parameter parsing to a `Biparser` using an Effect `Schema`.
  *
  * Produces a `TerminalParser` that cannot be extended with `slash`,
  * since query parameters must appear at the end of a route definition.
  *
+ * A `Schema.Struct` field whose encoded form is an array uses one parameter
+ * for each element: `{ tags: ['rent', 'lease'] }` builds
+ * `?tags=rent&tags=lease`, and that URL parses back to the same array. Each
+ * element must encode to a string, as every query value does.
+ *
+ * An empty array builds no parameter. When the URL has no parameter for an
+ * array field, a required field parses to an empty array, and an optional
+ * field parses as a missing key. An optional field therefore does not keep an
+ * empty array: it parses back as absent, or as its decoding default.
+ *
+ * Every other field reads the last value of its parameter.
+ *
  * @example
  * ```ts
  * pipe(
  *   literal('search'),
- *   query(Schema.Struct({ q: Schema.String })),
+ *   query(
+ *     Schema.Struct({ q: Schema.String, tags: Schema.Array(Schema.String) }),
+ *   ),
  *   mapTo(SearchRoute),
  * )
  * ```
@@ -637,13 +714,16 @@ export const query =
   <B extends Record<string, unknown>>(
     parser: Biparser<B>,
   ): TerminalParser<B & A> => {
+    const arrayQueryFields = toArrayQueryFields(schema.ast)
+    const arrayQueryFieldNames = Array.map(arrayQueryFields, ({ name }) => name)
+
     const queryParser: Biparser<B & A> = {
       parse: (segments, search) =>
         pipe(
           parser.parse(segments, search),
           Effect.flatMap(([pathValue, remainingSegments]) => {
             const searchParams = new URLSearchParams(search ?? '')
-            const queryRecord = Record.fromEntries(searchParams.entries())
+            const queryRecord = toQueryRecord(searchParams, arrayQueryFields)
 
             return pipe(
               queryRecord,
@@ -679,7 +759,15 @@ export const query =
                   queryValue,
                   Record.toEntries,
                   Array.forEach(([key, val]) => {
-                    if (Predicate.isNotNullish(val)) {
+                    if (
+                      Array.isArray(val) &&
+                      Array.contains(arrayQueryFieldNames, key)
+                    ) {
+                      newQueryParams.delete(key)
+                      Array.forEach(val, element => {
+                        newQueryParams.append(key, globalThis.String(element))
+                      })
+                    } else if (Predicate.isNotNullish(val)) {
                       newQueryParams.set(key, val.toString())
                     }
                   }),
