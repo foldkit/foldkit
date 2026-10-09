@@ -10,8 +10,8 @@ import { NavigationLayer } from './update'
 export const HandlersLayer = Layer.mergeAll(
   NavigateToRoomLayer,
   NavigationLayer,
-  Home.layer,
-  Room.layer,
+  Home.Layer,
+  Room.Layer,
 )
 
 const ServicesLayer = Layer.mergeAll(
@@ -19,4 +19,4 @@ const ServicesLayer = Layer.mergeAll(
   BrowserKeyValueStore.layerSessionStorage,
 )
 
-export const layer = HandlersLayer.pipe(Layer.provideMerge(ServicesLayer))
+export const AppLayer = Layer.provide(HandlersLayer, ServicesLayer)

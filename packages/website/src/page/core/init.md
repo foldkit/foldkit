@@ -28,7 +28,7 @@ Pass the Schema to `Application.make` as `Flags`, then pass the Effect to `Runti
 
 ::Snippet{name="counterEntryWithFlags" label="Flags wiring"}
 
-The Flags Effect leaves `KeyValueStore` in its requirements, and the application root supplies the browser provider through `Application.provide`. A whole-application test can provide a deterministic store at the same boundary. The runtime builds the Layer once and shares it with Flags, Commands, and Subscriptions that require the same service. See [Application Layers](/core/resources) for the full setup.
+The Flags Effect leaves `KeyValueStore` in its requirements, and the application root supplies the browser provider through `Application.provide`. A whole-application test can provide a deterministic store at the same boundary. The runtime builds the Layer once and shares it with Flags, Commands, and Subscriptions that require the same service. See [Layers](/core/layers) for the full setup.
 
 ### Server Rendering and Hydration
 

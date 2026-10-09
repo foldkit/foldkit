@@ -1,5 +1,5 @@
 // page/settings/subscription.ts
-import { Effect, Layer, Option, Schema, Stream } from 'effect'
+import { Effect, Layer as EffectLayer, Option, Schema, Stream } from 'effect'
 import { Dom, Subscription } from 'foldkit'
 
 import { Message } from './message'
@@ -47,7 +47,7 @@ const UnsavedChangesNavigationWarningsLayer =
     ),
   )
 
-export const layer = Layer.mergeAll(
-  ThemeMenu.layer,
+export const Layer = EffectLayer.mergeAll(
+  ThemeMenu.Layer,
   UnsavedChangesNavigationWarningsLayer,
 )

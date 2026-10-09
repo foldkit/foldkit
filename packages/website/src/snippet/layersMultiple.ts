@@ -21,4 +21,4 @@ const ServicesLayer = Layer.mergeAll(
   ComputeWorkerLayer,
 )
 
-export const layer = Layer.provideMerge(HandlersLayer, ServicesLayer)
+export const AppLayer = Layer.provide(HandlersLayer, ServicesLayer)

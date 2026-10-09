@@ -5,7 +5,7 @@ import { BrowserKeyValueStore } from '@effect/platform-browser'
 
 import {
   Flags,
-  layer as HandlersLayer,
+  Layer as HandlersLayer,
   Message,
   Model,
   flags,
@@ -14,7 +14,7 @@ import {
   view,
 } from './main'
 
-const layer = HandlersLayer.pipe(
+const AppLayer = HandlersLayer.pipe(
   Layer.provideMerge(BrowserKeyValueStore.layerLocalStorage),
 )
 
@@ -30,4 +30,4 @@ const application = Application.make({
   },
 })
 
-Runtime.run(Application.provide(application, layer), { flags })
+Runtime.run(Application.provide(application, AppLayer), { flags })

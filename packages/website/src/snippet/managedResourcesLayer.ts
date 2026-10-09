@@ -16,7 +16,7 @@ class ChessEngineService extends Context.Service<
 // A heavy engine whose init and teardown are packaged as an Effect Layer.
 // Building the Layer spawns the worker, and the finalizer registered by
 // acquireRelease terminates it.
-const engineLayer: Layer.Layer<ChessEngineService> = Layer.effect(
+const ChessEngineLayer: Layer.Layer<ChessEngineService> = Layer.effect(
   ChessEngineService,
   Effect.gen(function* () {
     const worker = yield* Effect.acquireRelease(
@@ -52,7 +52,7 @@ const managedResources = ManagedResource.make<Model, Message>()(entry => ({
 
 const ManageEngineLayer = managedResources.engine.toLayer({
   acquire: () =>
-    Layer.build(engineLayer).pipe(
+    Layer.build(ChessEngineLayer).pipe(
       Effect.map(context => Context.get(context, ChessEngineService)),
     ),
   // The scope closes on release, so the Layer finalizers run automatically.

@@ -4,7 +4,7 @@ import {
   DateTime,
   Duration,
   Effect,
-  Layer,
+  Layer as EffectLayer,
   Match,
   Option,
   Random,
@@ -248,7 +248,7 @@ const StatsRefreshTicksLayer = subscriptions.revalidateStats.toLayer(
     ),
 )
 
-export const layer = Layer.mergeAll(
+export const Layer = EffectLayer.mergeAll(
   FetchPostsLayer,
   FetchStatsLayer,
   FetchPostLayer,

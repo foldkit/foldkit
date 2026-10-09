@@ -4,7 +4,7 @@ export { Model } from './model'
 export { renderer } from './renderer'
 export {
   CopySnippet,
-  layer,
+  Layer,
   WaitBeforeHidingCopiedIndicator,
   update,
 } from './update'

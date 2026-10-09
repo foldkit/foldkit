@@ -15,6 +15,7 @@ import {
   DetermineTickTime,
   Message,
   Model,
+  subscriptions,
   update,
   view,
 } from './main'
@@ -95,7 +96,7 @@ describe('view', () => {
     })
 
     scene(
-      { update, view },
+      { update, view, subscriptions },
       given(runningModel),
       expect(text('00:00.00')).toExist(),
       Subscription.emit(Message.Ticked()),

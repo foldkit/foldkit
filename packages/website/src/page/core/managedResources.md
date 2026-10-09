@@ -2,10 +2,10 @@
 
 ## Overview
 
-Application Layers live for the entire runtime. Some stateful handles should exist only while the Model is in a particular state: a camera stream during a video call, a `WebSocket` while on a chat page, or a Web Worker pool during a computation. Managed Resources give those handles a Model-driven acquire and release lifecycle, using the same dependency-diffing engine as Subscriptions.
+Layers provided to the application live for the entire runtime. Some stateful handles should exist only while the Model is in a particular state: a camera stream during a video call, a `WebSocket` while on a chat page, or a Web Worker pool during a computation. Managed Resources give those handles a Model-driven acquire and release lifecycle, using the same dependency-diffing engine as Subscriptions.
 
 :::Info{label="The restaurant analogy"}
-Application Layers are the kitchen equipment available all night. A Managed Resource is a specialty station set up only while the menu needs it. Changing the special tears down the old station and sets up the new one, just as changing camera requirements releases one stream and acquires another. A Command that asks for an inactive station receives `ResourceNotAvailable`.
+Application-scoped Layers are the kitchen equipment available all night. A Managed Resource is a specialty station set up only while the menu needs it. Changing the special tears down the old station and sets up the new one, just as changing camera requirements releases one stream and acquires another. A Command that asks for an inactive station receives `ResourceNotAvailable`.
 :::
 
 Define the handle’s identity with `ManagedResource.tag`, then wire its lifecycle with `ManagedResource.make`. The `modelToMaybeRequirements` function returns `Option.some(params)` while the handle should be active and `Option.none()` while it should be absent.
@@ -16,7 +16,7 @@ Calling `toLayer` creates a Layer recipe. When it receives an Effect, the Runtim
 
 Distinct ManagedResource definitions within one application need distinct handler names. A lifted use of the same definition can share its handler Layer. `Application.make` rejects duplicate names from different definitions.
 
-The record key identifies the lifecycle that Foldkit watches. The handler name identifies the acquire-and-release implementation supplied by a Layer. Use a verb-first name such as `ManageCamera` or `ManageChatSocket`, name its production Layer `ManageCameraLayer` or `ManageChatSocketLayer`, and include that Layer in the feature's lowercase `layer` export.
+The record key identifies the lifecycle that Foldkit watches. The handler name identifies the acquire-and-release implementation supplied by a Layer. Use a verb-first name such as `ManageCamera` or `ManageChatSocket`, name its production Layer `ManageCameraLayer` or `ManageChatSocketLayer`, and include that Layer in the feature's `Layer` export.
 
 ::Snippet{name="managedResources" label="Camera ManagedResource lifecycle"}
 
@@ -61,8 +61,8 @@ A child Submodel defines its Managed Resources in its own Model and Message term
 
 The same operations compose across every Submodel level: `make` at the owner, `lift` through each parent, and `aggregate` at the root. [Subscription Organization](/patterns/subscription-organization) traces that leaf-to-root shape with Subscriptions; the Managed Resource structure is identical.
 
-:::Info{label="Application Layers vs Managed Resources"}
+:::Info{label="Layers vs Managed Resources"}
 Use `Application.provide` for services and handler accessors that live with the runtime, such as an `RpcClient` or analytics client. Use `managedResources` for handles whose lifetime follows the Model, such as camera streams, an `AudioContext`, or `WebSocket` connections. These are separate scopes: restarting or releasing a ManagedResource handle does not rebuild the app service or handler Layer that implements its lifecycle.
 :::
 
-Application Layers and Managed Resources cover long-lived services and Model-scoped handles. Unrecoverable errors in update, view, or a Command follow a different runtime path. The next page covers crash views.
+Layers and Managed Resources cover app-lifetime services and Model-scoped handles. Unrecoverable errors in update, view, or a Command follow a different runtime path. The next page covers crash views.

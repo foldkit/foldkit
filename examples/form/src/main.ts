@@ -1,5 +1,12 @@
 import clsx from 'clsx'
-import { Array, Duration, Effect, Layer, Random, Schema } from 'effect'
+import {
+  Array,
+  Duration,
+  Effect,
+  Layer as EffectLayer,
+  Random,
+  Schema,
+} from 'effect'
 import { Command, FieldValidation, Runtime, Update } from 'foldkit'
 import {
   Field,
@@ -240,7 +247,7 @@ const SubmitFormLayer = SubmitForm.toLayer(
   }),
 )
 
-export const layer = Layer.mergeAll(ValidateEmailLayer, SubmitFormLayer)
+export const Layer = EffectLayer.mergeAll(ValidateEmailLayer, SubmitFormLayer)
 
 // VIEW
 

@@ -2,7 +2,7 @@ import {
   Clock,
   Duration,
   Effect,
-  Layer,
+  Layer as EffectLayer,
   Schema,
   Stream,
   String,
@@ -156,7 +156,7 @@ export const StopwatchTicksLayer = subscriptions.tick.toLayer(({ isRunning }) =>
   ),
 )
 
-export const layer = Layer.mergeAll(
+export const Layer = EffectLayer.mergeAll(
   DetermineStartTimeLayer,
   DetermineTickTimeLayer,
   StopwatchTicksLayer,

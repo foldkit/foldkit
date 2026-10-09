@@ -2,21 +2,14 @@ import {
   Clock,
   DateTime,
   Effect,
-  Layer,
+  Layer as EffectLayer,
   Match,
   Option,
   Record,
   Schema,
   pipe,
 } from 'effect'
-import {
-  Calendar,
-  Command,
-  Dom,
-  ManagedResource,
-  Subscription,
-  Update,
-} from 'foldkit'
+import { Calendar, Command, Dom, Update } from 'foldkit'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
@@ -61,7 +54,6 @@ import {
 import * as SnippetCopy from './snippetCopy'
 import * as SnippetDisclosure from './snippetDisclosure'
 import { LocalStorage, SessionStorage } from './storage'
-import * as Subscriptions from './subscription'
 import { ThemeSelector } from './view'
 
 export type { Message } from './message'
@@ -304,7 +296,7 @@ export const init = (flags: Flags, url: Url) => {
 // UPDATE
 
 type AppRequirements =
-  | Layer.Success<typeof layer>
+  | EffectLayer.Success<typeof Layer>
   | Update.RequirementsOf<typeof Search.open>
   | Update.RequirementsOf<typeof Search.update>
   | Update.RequirementsOf<typeof Home.update>
@@ -1058,13 +1050,13 @@ const LoadPlaygroundLayer = LoadPlayground.toLayer(({ exampleSlug }) =>
   ),
 )
 
-const BootLayer = Layer.mergeAll(
+const BootLayer = EffectLayer.mergeAll(
   InjectAnalyticsLayer,
   LoadBrowserEnvironmentLayer,
   InjectSpeedInsightsLayer,
 )
 
-const NavigationLayer = Layer.mergeAll(
+const NavigationLayer = EffectLayer.mergeAll(
   ScrollToTopLayer,
   ScrollToAnchorLayer,
   ScrollSidebarActiveLinkIntoViewLayer,
@@ -1074,72 +1066,15 @@ const NavigationLayer = Layer.mergeAll(
   LoadPlaygroundLayer,
 )
 
-const PreferenceLayer = Layer.mergeAll(
+const PreferenceLayer = EffectLayer.mergeAll(
   ApplyThemeLayer,
   SaveThemePreferenceLayer,
   SaveSidebarStateLayer,
 )
 
-export const layer = Layer.mergeAll(
+export const Layer = EffectLayer.mergeAll(
   BootLayer,
   NavigationLayer,
   PreferenceLayer,
   CopyLinkLayer,
 )
-
-// SUBSCRIPTION
-
-const homeSubscriptions = Subscription.lift(Home.subscriptions)<Model, Message>(
-  {
-    read: model => model.maybeHome,
-    toParentMessage: toGotHomeMessage,
-  },
-)
-
-const uiPagesSubscriptions = Subscription.lift(Ui.subscriptions)<
-  Model,
-  Message
->({
-  read: model => Option.some(model.uiPages),
-  toParentMessage: message => Message.GotUiPageMessage({ message }),
-})
-
-export const subscriptions = Subscription.aggregate(
-  Subscriptions.ActiveSection.subscriptions,
-  homeSubscriptions,
-  uiPagesSubscriptions,
-  Subscriptions.SearchShortcut.subscriptions,
-  Subscriptions.SystemTheme.subscriptions,
-  Subscriptions.ViewportWidth.subscriptions,
-)
-
-// MANAGED RESOURCE
-
-const playgroundManagedResources = ManagedResource.lift(
-  Playground.managedResources,
-)<Model, Message>({
-  read: model =>
-    Option.filter(model.playground, () =>
-      Option.contains(model.maybeIsPlaygroundSupported, true),
-    ),
-  toParentMessage: message => Message.GotPlaygroundMessage({ message }),
-})
-
-const homeManagedResources = ManagedResource.lift(Home.managedResources)<
-  Model,
-  Message
->({
-  read: model => model.maybeHome,
-  toParentMessage: toGotHomeMessage,
-})
-
-export const managedResources = ManagedResource.aggregate(
-  homeManagedResources,
-  playgroundManagedResources,
-)
-
-// TRACER
-// NOTE: Custom dev tracer disabled pending Effect v4 beta Tracer/Layer API rewrite.
-// v4 beta removed Layer.setTracer and changed Tracer.make's signature; restore
-// once we adopt the new Tracer construction pattern.
-export const devTracerLayer: Layer.Layer<never> = Layer.empty

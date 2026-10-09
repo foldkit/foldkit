@@ -21,4 +21,4 @@ const AiHeadingToggleTicksLayer = subscriptions.aiHeading.toLayer(() =>
   ),
 )
 
-export const layer = AiHeadingToggleTicksLayer
+export const Layer = AiHeadingToggleTicksLayer

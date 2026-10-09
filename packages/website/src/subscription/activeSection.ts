@@ -113,7 +113,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             CoreCanvas: () => Core.CoreCanvas.tableOfContents,
             CoreRuntime: () => Core.Runtime.tableOfContents,
             CoreServerRendering: () => Core.CoreServerRendering.tableOfContents,
-            CoreResources: () => Core.Resources.tableOfContents,
+            CoreLayers: () => Core.Layers.tableOfContents,
             CoreManagedResources: () => Core.ManagedResources.tableOfContents,
             CoreCrashView: () => Core.CrashView.tableOfContents,
             CoreViewTransitions: () => Core.ViewTransitions.tableOfContents,
@@ -251,4 +251,4 @@ export const ActiveSectionChangesLayer = subscriptions.activeSection.toLayer(
     ),
 )
 
-export { ActiveSectionChangesLayer as layer }
+export { ActiveSectionChangesLayer as Layer }

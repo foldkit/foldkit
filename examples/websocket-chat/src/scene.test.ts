@@ -23,6 +23,7 @@ import {
   TimestampReceivedMessage,
   TimestampSentMessage,
   managedResources,
+  subscriptions,
   update,
   view,
 } from './main'
@@ -156,7 +157,7 @@ describe('view', () => {
 
   test('a message arriving on the socket Subscription lands in the conversation', () => {
     scene(
-      { update, view },
+      { update, view, subscriptions },
       given(
         modifyFields(idleModel, {
           connection: () => ConnectionState.Connected(),

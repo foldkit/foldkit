@@ -15,4 +15,4 @@ export const HandlersLayer = Layer.mergeAll(
   MountChartLayer,
 )
 
-export const layer = HandlersLayer.pipe(Layer.provideMerge(Http.layer))
+export const AppLayer = Layer.provide(HandlersLayer, Http.layer)

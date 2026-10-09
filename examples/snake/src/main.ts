@@ -2,7 +2,7 @@ import {
   Array,
   Duration,
   Effect,
-  Layer,
+  Layer as EffectLayer,
   Match,
   Option,
   Random,
@@ -287,7 +287,7 @@ const KeyboardPressesLayer = subscriptions.keyboard.toLayer(() =>
   }),
 )
 
-export const layer = Layer.mergeAll(
+export const Layer = EffectLayer.mergeAll(
   GenerateApplePositionLayer,
   GameClockTicksLayer,
   KeyboardPressesLayer,

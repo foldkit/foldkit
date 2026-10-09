@@ -4,21 +4,22 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 ## Status
 
-**Current milestone:** Ready for PR review. First-party code and active docs use `FooLayer`, feature `layer` exports, and service capture during handler construction. Full repository gates passed. Independent implementation, consumer API, documentation, and committed-diff reviews found no unresolved defects.
+**Current milestone:** Ready for owner review. The approved review follow-up is implemented and verified, with independent consumer, implementation, documentation, and committed-diff reviews complete.
 
-**Next implementation:** Design whole-application testing against the handler identities and Layer boundaries established here.
+**Next step:** Owner review of the public API, lifecycle boundaries, and migration. The PR review guide records the published head, publication gates, CI results, and reading order. Whole-application testing is a later workstream.
 
-**Scope:** Production handler Layers and application assembly. Whole-application testing APIs are deferred.
+**Scope:** Production handler Layers, application assembly, and restricting the existing Scene `Subscription.emit` step to declared Subscription Messages. Whole-application testing APIs are deferred.
 
-| Milestone                                 | Status   | What the user can use afterward                                                       |
-| ----------------------------------------- | -------- | ------------------------------------------------------------------------------------- |
-| Command handlers                          | Verified | Define a Command separately from its handler Layer.                                   |
-| Application assembly                      | Verified | See unsatisfied requirements on an application and provide Layers before starting it. |
-| Subscription and ManagedResource handlers | Verified | Replace implementations while preserving Model-driven lifecycles.                     |
-| Mount boundary                            | Verified | Register Layer-backed Mount definitions to carry their requirements.                  |
-| Embedded Element assembly                 | Verified | Provide handler Layers and Flags services to a container-scoped Element.              |
-| Migration and verification                | Verified | First-party apps, templates, and active docs use the final API.                       |
-| Service substitution and app lifetimes    | Verified | Run real handler logic with different dependency providers and share app services.    |
+| Milestone                                 | Status   | What the user can use afterward                                                           |
+| ----------------------------------------- | -------- | ----------------------------------------------------------------------------------------- |
+| Command handlers                          | Verified | Define a Command separately from its handler Layer.                                       |
+| Application assembly                      | Verified | See unsatisfied requirements on an application and provide Layers before starting it.     |
+| Subscription and ManagedResource handlers | Verified | Replace implementations while preserving Model-driven lifecycles.                         |
+| Mount boundary                            | Verified | Register Layer-backed Mount definitions to carry their requirements.                      |
+| Embedded Element assembly                 | Verified | Provide handler Layers and Flags services to a container-scoped Element.                  |
+| Migration and verification                | Verified | First-party apps, templates, and active docs use the final API.                           |
+| Service substitution and app lifetimes    | Verified | Run real handler logic with different dependency providers and share app services.        |
+| Scene Subscription Message contract       | Verified | Emit only Messages declared by registered Subscriptions, including lifted child Messages. |
 
 ## Target surface
 
@@ -30,9 +31,33 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 ## Work items
 
+### Review follow-up
+
+- [x] Export feature bundles as `Layer`, use `AppLayer` for the assembled root, and align applications, snippets, scaffolds, skills, and repository guidance.
+- [x] Assemble root Subscription and ManagedResource registrations in the website's `application.ts`; expose `makeApplication(container)` and keep container selection and startup in `entry.ts`.
+- [x] Remove the empty tracer provider and separate root handler and environment provider bundles. Use `provideMerge` where the environment services must also reach consumers outside the handlers.
+- [x] Publish the Layers guide at `/core/layers`, update active links and metadata, and preserve old HTML and Markdown URLs through permanent redirects.
+- [x] Divide the Commands handler guidance into focused subsections using the existing H4 support.
+- [x] Remove the storage adapter wiring test and retain the Search handler tests that cover application result loading, normalization, and failure behavior.
+- [x] Complete the Scene Subscription Message release requirement below, migrate supported consumers, and document its declared-message boundary.
+- [x] Run the required build, lint, typecheck, unit, script, and browser stages and review the implementation, consumer surface, and docs independently.
+- [x] Prepare the updated PR review guide, including the Scene contract and factory boundary.
+- [x] Review the resulting committed diff independently.
+
+### Approved review follow-up verification
+
+- Foldkit's Scene and Subscription suites pass all 802 focused tests. They cover registered declarations, full payload validation before update, raw-child lift replay, ambiguous registrations, inline keep-alive metadata, inactive queued events, and nested scope groups. Negative type cases reject Messages from other effect boundaries and broad records that erased declaration types.
+- Toast's 26 focused tests, Stopwatch's 13 tests, and WebSocket Chat's 24 tests pass with declared registrations.
+- Foldkit and UI builds, UI and website typechecks, and the API reference generator pass with zero warnings.
+- Layers, Commands handler subsections, Scene Subscriptions, and Project Organization were inspected at normal desktop width.
+- Independent review approved the consumer composition, provider visibility and lifetimes, documentation routes, and Scene declaration contract after concrete repairs.
+- The full workspace build, all 52 TypeScript projects, lint, dead-code, scripts, source checks, and unit suites pass. Unit results include 3,033 Foldkit tests (one skipped), 1,226 UI tests, 1,307 website tests, and 517 lint tests. Website registration imports are verified without DOM container setup.
+- All 18 website browser tests pass serially with retries disabled. The parallel run passed with one retry after a five-second hydration-marker timeout in the combobox case. The serial run passed that case.
+- Formatting and `git diff --check` pass. Independent review of the committed implementation found no actionable findings. Publication gate and CI results are recorded in the PR review guide.
+
 ### Layer naming and handler constructors
 
-- [x] Name individual handler and provider Layers `FooLayer`, alternative test providers `FooTestLayer`, and composed feature exports `layer`.
+- [x] Name individual handler and provider Layers `FooLayer`, alternative test providers `FooTestLayer`, and composed feature exports `Layer`.
 - [x] Rename composition modules to `layer.ts` and update application entries, barrels, snippets, and scaffolds.
 - [x] Capture stable service dependencies with Effect constructors where that makes the handler boundary clearer. Keep changing inputs and actual work inside the returned handler.
 - [x] Explain construction, lookup, execution, and application versus operation lifetimes in active docs and published TSDoc.
@@ -85,7 +110,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 - [x] Add a synthetic service for Layer-backed Command definitions and `toLayer(handler | Effect<handler>)`.
 - [x] Preserve Command identity, argument capture, result Message mapping, and interruption. Existing Command and DevTools tests pass.
 - [x] Migrate first-party page-owning Command definitions and application Layers. The website's 27 production Commands, all 33 page-owning example entries, Typing Game, and the Embedding example are migrated.
-- [x] Name individual handler Layers after their definitions (`PlaceOrderLayer`); use feature-level `layer` for composition and re-exports.
+- [x] Name individual handler Layers after their definitions (`PlaceOrderLayer`); use feature-level `Layer` for composition and re-exports.
 
 ### 4. Subscription and ManagedResource handlers
 
@@ -118,10 +143,10 @@ This is the working checklist for separating Foldkit effect definitions from the
 - [x] Complete active documentation, examples, and template migration for the final public API.
   - The website and all 33 page-owning example entries use `Application.make`. The experimental Query fetch API also has a Layer boundary for keyed and unkeyed Queries.
   - Runtime entry, Resources, and ManagedResource teaching snippets use `Application.make` and `toLayer` where those APIs apply.
-  - `skills/generate-program` and active README guidance teach `Application.make`, `Application.makeElement`, and feature-composed `layer` Layers.
+  - `skills/generate-program` and active README guidance teach `Application.make`, `Application.makeElement`, and feature-composed `Layer` bundles.
 - [x] Verify feature Layer composition with the website's 27 production Commands, then migrate its application entry without listing every handler there. Documentation snippets account for another 51 definitions.
-  - Each feature owns a `layer` Layer next to its update/lifecycle definitions. Features with multiple modules compose their local Layers and export one `layer` from their barrel.
-  - `src/layer.ts` composes feature Layers and service providers. `entry.ts` imports that one `layer` value and calls `Application.provide` once; it never imports individual handler Layers.
+  - Each feature owns a `Layer` bundle next to its update/lifecycle definitions. Features with multiple modules compose their local Layers and export `Layer` from their barrel.
+  - `src/layer.ts` composes feature Layers and service providers. `entry.ts` imports the root `AppLayer` value and calls `Application.provide` once; it never imports individual handler Layers.
   - The 14 site-shell Commands compose into boot, navigation, and preference Layers. The two Home phase delay Commands have distinct names.
 - [x] Run workspace type checks, all Foldkit unit tests, focused example tests, and lint for the current slice.
 - [x] Resolve API reference generator warnings about helper types exposed through the new public signatures.
@@ -150,7 +175,7 @@ The published-package check runs during production deployment after publication.
 Whole-application test mode, controlled dependency services, test scheduling, and a Story/Scene-style application test DSL belong to a later workstream. Execution tests should use the application's real handlers and replace their external services. Explicit handler stubs can support orchestration tests that exercise result paths without executing those handlers.
 
 - [ ] Prepare a separate Oxlint policy follow-up PR. Investigate legitimate exceptions and overlap with existing rules before enabling these policies; they do not block the handler Layer PR.
-  - [ ] Investigate individual handler Layer names: `PlaceOrderLayer` for the real handler and `PlaceOrderTestLayer` for a test implementation. Permit feature-level `layer` bundles and re-exports. Cover qualified definitions, fixtures, and an autofix. Apply the convention to Subscription, Mount, and ManagedResource handlers with stable names.
+  - [ ] Investigate individual handler Layer names: `PlaceOrderLayer` for the real handler and `PlaceOrderTestLayer` for a test implementation. Permit feature-level `Layer` bundles and root `AppLayer` compositions and re-exports. Cover qualified definitions, fixtures, and an autofix. Apply the convention to Subscription, Mount, and ManagedResource handlers with stable names.
   - [ ] Investigate preferring injectable platform services in application effects, including the appropriate boundaries for browser APIs, pure helpers, and entry-point providers.
   - [ ] Investigate prohibiting detached root runners inside lifecycle handlers. Account for entry-point startup, test runners, and existing scope and acquisition rules.
   - [ ] Evaluate a universal effectful-constructor rule only if it offers a concrete semantic benefit. It is not the default policy: a syntax wrapper alone does not improve dependency handling. Invocation-specific service lookups and Model-controlled resource access may belong inside the returned handler.
@@ -165,7 +190,7 @@ Existing lint rules must recognize `.toLayer` handler execution boundaries in th
 - [x] Preserve distinct local and session storage service identities in the website.
 - [x] Explain inline service requirements, effectful handler construction, and dependency substitution in active docs and generated app guidance.
 - [x] Verify a shared service survives Commands and Subscription restarts and releases once at shutdown.
-- [x] Verify real Search logic with a supplied search service and independent storage roles.
+- [x] Verify real Search logic with a supplied search service and inspect the distinct storage provider bindings.
 - [x] Run relevant workspace build, typecheck, test, lint, formatting, documentation, and browser gates.
 - [x] Complete independent implementation, API, and documentation reviews.
 - [x] Review the completed implementation in a committed diff before PR publication.
@@ -178,7 +203,7 @@ Existing lint rules must recognize `.toLayer` handler execution boundaries in th
 - All 18 website browser tests passed serially and in parallel with retries disabled. Sidebar interaction waits for hydration and browser initialization.
 - Lint, formatting, dead-code, and `git diff --check` passed.
 - The real-handler service example compiled under strict TypeScript, and both Application Layers and Project Organization were inspected in the browser.
-- Mutation checks confirmed the shared-service lifetime, Search substitution, and independent storage tests catch incorrect wiring.
+- Mutation checks confirmed the shared-service lifetime and Search substitution tests detect incorrect behavior.
 - The WebSocket example uses the real lifecycle handler with a supplied constructor service. Four deterministic tests verify scoped closure and listener cleanup after interruption, readiness failure, timeout, and successful acquisition; a finalizer mutation makes all four fail.
 - The prebundle source check excludes the test files omitted by the library build. Regression fixtures cover both excluded test imports and missing published imports.
 - Current main's Effect lint checks, typed Schema operations, and relay fixes are integrated. Lifecycle callback inputs preserve their error types; rule exceptions cover validated runtime type-erasure boundaries and tests of their public contracts.
@@ -186,6 +211,10 @@ Existing lint rules must recognize `.toLayer` handler execution boundaries in th
 
 ## Release review
 
+- [x] Restrict Scene's `Subscription.emit` to Messages declared by the Scene's registered Subscriptions before completing this work and making the next Foldkit release.
+  - Reject other application Messages, including Command-only and DOM-only Messages.
+  - Preserve the restriction through Subscription lift and aggregation, including wrapped child Messages.
+  - Verify accepted and rejected Messages with type and runtime coverage, and update Scene documentation and affected tests.
 - [x] Review the public API and feature-level Layer composition from a consumer's perspective.
 - [x] Audit active documentation, snippets, scaffolds, and published TSDoc for the final API.
 - [x] Resolve any findings from the API and documentation reviews.

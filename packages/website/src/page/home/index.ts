@@ -1,5 +1,5 @@
 export { init } from './init'
-export { layer } from './layer'
+export { Layer } from './layer'
 export { managedResources } from './managedResources'
 export { Message, OutMessage } from './message'
 export { Model } from './model'

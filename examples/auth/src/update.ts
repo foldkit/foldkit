@@ -1,4 +1,4 @@
-import { Layer, Match, Option } from 'effect'
+import { Layer as EffectLayer, Match, Option } from 'effect'
 import { Update } from 'foldkit'
 import { UrlRequest } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
@@ -20,9 +20,9 @@ import { Model } from './model'
 import { LoggedIn, LoggedOut } from './page'
 import { AppRoute, urlToAppRoute } from './route'
 
-export const layer = Layer.mergeAll(CommandsLayer, LoggedOut.layer)
+export const Layer = EffectLayer.mergeAll(CommandsLayer, LoggedOut.Layer)
 
-type CommandServices = Layer.Success<typeof layer>
+type CommandServices = EffectLayer.Success<typeof Layer>
 
 type UpdateReturn = Update.Return<Model, Message, CommandServices>
 const withUpdateReturn = Match.withReturnType<UpdateReturn>()

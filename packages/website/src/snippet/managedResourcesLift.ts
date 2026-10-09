@@ -1,5 +1,5 @@
 // page/call/managedResource.ts
-import { Effect, Layer, Option, Schema } from 'effect'
+import { Effect, Layer as EffectLayer, Option, Schema } from 'effect'
 import { ManagedResource } from 'foldkit'
 
 import { Message } from './message'
@@ -38,4 +38,7 @@ export const managedResources = ManagedResource.aggregate(
   localManagedResources,
 )
 
-export const layer = Layer.mergeAll(VideoCall.layer, ManageSignalingSocketLayer)
+export const Layer = EffectLayer.mergeAll(
+  VideoCall.Layer,
+  ManageSignalingSocketLayer,
+)

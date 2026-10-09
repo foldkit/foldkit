@@ -1,7 +1,7 @@
 src/
 +-- entry.ts               Runtime bootstrap
-+-- application.ts         Root runtime registrations + Application.make
-+-- layer.ts               Root application Layer
++-- application.ts         Root registrations + application assembly
++-- layer.ts               AppLayer and alternate AppTestLayer
 +-- init.ts                App-level init
 +-- model.ts               App-level state
 +-- message.ts             App-level messages

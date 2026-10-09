@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import {
   Array,
   Effect,
-  Layer,
+  Layer as EffectLayer,
   Match,
   Option,
   Order,
@@ -265,7 +265,7 @@ const LoadExternal = Command.define('LoadExternal', {
   messages: [Message.CompletedLoadExternal],
 })
 
-export const layer = Layer.mergeAll(
+export const Layer = EffectLayer.mergeAll(
   ReplaceFilters.toLayer(fields =>
     replaceUrl(browseRouter(fields)).pipe(
       Effect.as(Message.CompletedReplaceFilters()),
@@ -279,7 +279,7 @@ export const layer = Layer.mergeAll(
   ),
 )
 
-type UpdateRequirements = Layer.Success<typeof layer>
+type UpdateRequirements = EffectLayer.Success<typeof Layer>
 type UpdateReturn = Update.Return<Model, Message, UpdateRequirements>
 
 const DietListbox = Listbox.create<string>()

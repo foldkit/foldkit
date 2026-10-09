@@ -3,7 +3,7 @@ import {
   Array,
   Duration,
   Effect,
-  Layer,
+  Layer as EffectLayer,
   Match,
   Number,
   Option,
@@ -550,7 +550,7 @@ const PlayNoteLayer = PlayNote.toLayer(({ note, duration, noteIndex }) =>
   ),
 )
 
-export const layer = Layer.mergeAll(
+export const Layer = EffectLayer.mergeAll(
   DelayAdvanceNotePlayerPhaseLayer,
   PlayNoteLayer,
   ManageAudioContextLayer,

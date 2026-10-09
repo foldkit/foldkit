@@ -667,6 +667,78 @@ type StreamMessage<AnyStream> =
 type StreamServices<AnyStream> =
   AnyStream extends Stream.Stream<any, any, infer Services> ? Services : never
 
+describe('inline Message declarations', () => {
+  const Message = defineMessageUnion({
+    ObservedTick: {},
+    IgnoredTick: {},
+  })
+  type Message = typeof Message.Type
+
+  const subscriptions = make<ChildModel, Message>()(entry => ({
+    ticks: entry(childFields, {
+      messages: [Message.ObservedTick],
+      modelToDependencies: model => ({
+        isRunning: model.isRunning,
+        label: model.label,
+      }),
+      dependenciesToStream: () => Stream.succeed(Message.ObservedTick()),
+    }),
+  }))
+
+  const keepAliveSubscriptions = make<ChildModel, Message>()(entry => ({
+    ticks: entry(childFields, {
+      messages: [Message.ObservedTick],
+      modelToDependencies: model => ({
+        isRunning: model.isRunning,
+        label: model.label,
+      }),
+      keepAliveEquivalence: Equivalence.make(
+        (left, right) => left.isRunning === right.isRunning,
+      ),
+      dependenciesToStream: () => Stream.succeed(Message.ObservedTick()),
+    }),
+  }))
+
+  it('retains the declaration on an inline entry', () => {
+    expect(subscriptions.ticks.messages).toEqual([Message.ObservedTick])
+    expectTypeOf(subscriptions.ticks.messages).toEqualTypeOf<
+      readonly [typeof Message.ObservedTick]
+    >()
+    expectTypeOf(keepAliveSubscriptions.ticks.messages).toEqualTypeOf<
+      readonly [typeof Message.ObservedTick]
+    >()
+  })
+
+  if (false) {
+    make<ChildModel, Message>()(entry => ({
+      ticks: entry(childFields, {
+        // @ts-expect-error The inline Stream can emit only its declared Messages.
+        messages: [Message.ObservedTick],
+        modelToDependencies: model => ({
+          isRunning: model.isRunning,
+          label: model.label,
+        }),
+        dependenciesToStream: () => Stream.succeed(Message.IgnoredTick()),
+      }),
+    }))
+
+    make<ChildModel, Message>()(entry => ({
+      ticks: entry(childFields, {
+        // @ts-expect-error A keep-alive inline Stream can emit only its declared Messages.
+        messages: [Message.ObservedTick],
+        modelToDependencies: model => ({
+          isRunning: model.isRunning,
+          label: model.label,
+        }),
+        keepAliveEquivalence: Equivalence.make(
+          (left, right) => left.isRunning === right.isRunning,
+        ),
+        dependenciesToStream: () => Stream.succeed(Message.IgnoredTick()),
+      }),
+    }))
+  }
+})
+
 describe('Layer-backed entries', () => {
   const HandlerMessage = defineMessageUnion({
     ObservedTick: {},

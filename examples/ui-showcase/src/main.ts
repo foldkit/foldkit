@@ -1,5 +1,13 @@
 import clsx from 'clsx'
-import { Array, Effect, Layer, Match, Option, Schema, pipe } from 'effect'
+import {
+  Array,
+  Effect,
+  Layer as EffectLayer,
+  Match,
+  Option,
+  Schema,
+  pipe,
+} from 'effect'
 import {
   Calendar,
   Command,
@@ -181,7 +189,7 @@ const LoadExternal = Command.define('LoadExternal', {
   messages: [Message.CompletedLoadExternal],
 })
 
-export const layer = Layer.mergeAll(
+export const Layer = EffectLayer.mergeAll(
   NavigateInternal.toLayer(({ url }) =>
     pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
   ),

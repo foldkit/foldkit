@@ -640,6 +640,11 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     isAnyDragging: isAnyDragging(model),
   })
 
+  type SwipePointerMessage =
+    | typeof MessageSchema.MovedSwipePointer.Type
+    | typeof MessageSchema.ReleasedSwipePointer.Type
+    | typeof MessageSchema.CancelledSwipe.Type
+
   const subscriptions = Subscription.make<Model, Message>()(entry => ({
     swipePointer: entry(
       {
@@ -647,6 +652,11 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         isAnyDragging: Schema.Boolean,
       },
       {
+        messages: [
+          MessageSchema.MovedSwipePointer,
+          MessageSchema.ReleasedSwipePointer,
+          MessageSchema.CancelledSwipe,
+        ],
         modelToDependencies: swipeDependencies,
         dependenciesToStream: ({ isSwipeEnabled, isAnyDragging }) => {
           const pointerMoveStream = Dom.streamFromEvent({
@@ -673,10 +683,13 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
             mapEvent: event =>
               MessageSchema.CancelledSwipe({ pointerId: event.pointerId }),
           })
-          const pointerMessages = Stream.mergeAll<Message, never, never>(
-            [pointerMoveStream, pointerUpStream, pointerCancelStream],
-            { concurrency: 'unbounded' },
-          )
+          const pointerMessages = Stream.mergeAll<
+            SwipePointerMessage,
+            never,
+            never
+          >([pointerMoveStream, pointerUpStream, pointerCancelStream], {
+            concurrency: 'unbounded',
+          })
 
           return Stream.when(
             Stream.merge(pointerMessages, documentStylesWhileSwiping),
@@ -692,6 +705,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         isAnyDragging: Schema.Boolean,
       },
       {
+        messages: [MessageSchema.PressedEscape],
         modelToDependencies: swipeDependencies,
         dependenciesToStream: ({ isSwipeEnabled, isAnyDragging }) =>
           Stream.when(

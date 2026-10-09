@@ -76,7 +76,7 @@ const PersistCountLayer = PersistCount.toLayer(({ count }) =>
   ),
 )
 
-export const layer = PersistCountLayer
+export const Layer = PersistCountLayer
 
 // INIT
 

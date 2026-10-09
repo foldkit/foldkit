@@ -3,8 +3,8 @@ import {
   Clock,
   Duration,
   Effect,
+  Layer as EffectLayer,
   HashMap,
-  Layer,
   Match,
   Option,
   Random,
@@ -339,7 +339,7 @@ const StatsRevalidationTicksLayer = subscriptions.revalidateStats.toLayer(
     ),
 )
 
-export const layer = Layer.mergeAll(
+export const Layer = EffectLayer.mergeAll(
   FetchPostsLayer,
   FetchPostDetailLayer,
   FetchStatsLayer,

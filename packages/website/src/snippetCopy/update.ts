@@ -1,4 +1,4 @@
-import { Effect, HashSet, Layer, Schema } from 'effect'
+import { Effect, Layer as EffectLayer, HashSet, Schema } from 'effect'
 import { Command, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
@@ -68,7 +68,7 @@ const WaitBeforeHidingCopiedIndicatorLayer =
     ),
   )
 
-export const layer = Layer.mergeAll(
+export const Layer = EffectLayer.mergeAll(
   CopySnippetLayer,
   WaitBeforeHidingCopiedIndicatorLayer,
 )

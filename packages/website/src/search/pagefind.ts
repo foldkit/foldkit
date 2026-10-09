@@ -27,13 +27,13 @@ const NOOP_PAGEFIND: PagefindModule = {
 export class PagefindService extends Context.Service<
   PagefindService,
   PagefindModule
->()('PagefindService') {
-  static readonly Default = Layer.effect(
-    this,
-    Effect.tryPromise({
-      try: (): Promise<PagefindModule> =>
-        new Function('path', 'return import(path)')(PAGEFIND_PATH),
-      catch: () => new Error('Pagefind not available'),
-    }).pipe(Effect.catch(() => Effect.succeed(NOOP_PAGEFIND))),
-  )
-}
+>()('PagefindService') {}
+
+export const PagefindLayer = Layer.effect(
+  PagefindService,
+  Effect.tryPromise({
+    try: (): Promise<PagefindModule> =>
+      new Function('path', 'return import(path)')(PAGEFIND_PATH),
+    catch: () => new Error('Pagefind not available'),
+  }).pipe(Effect.catch(() => Effect.succeed(NOOP_PAGEFIND))),
+)

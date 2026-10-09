@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Schema } from 'effect'
+import { Effect, Layer as EffectLayer, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 
 import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
@@ -80,6 +80,6 @@ export const init = (flags: Flags) => ({
   }),
 })
 
-export const layer = Layer.mergeAll(CommandsLayer, SubscriptionsLayer)
+export const Layer = EffectLayer.mergeAll(CommandsLayer, SubscriptionsLayer)
 
 export { Message, Model, subscriptions, update, view }

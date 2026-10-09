@@ -3,9 +3,9 @@ import { Application, Runtime } from 'foldkit'
 
 class ApiClientService extends Context.Service<ApiClientService, ApiClient>()(
   'ApiClientService',
-) {
-  static readonly Default = Layer.effect(this, makeApiClient)
-}
+) {}
+
+const ApiClientLayer = Layer.effect(ApiClientService, makeApiClient)
 
 const Flags = Schema.Struct({
   maybeSession: Schema.Option(Session),
@@ -33,6 +33,6 @@ const application = Application.make({
   container: document.getElementById('root'),
 })
 
-Runtime.run(Application.provide(application, ApiClientService.Default), {
+Runtime.run(Application.provide(application, ApiClientLayer), {
   flags,
 })

@@ -1,4 +1,11 @@
-import { Array, Effect, Layer, Match, Option, Schema } from 'effect'
+import {
+  Array,
+  Effect,
+  Layer as EffectLayer,
+  Match,
+  Option,
+  Schema,
+} from 'effect'
 import { Command, Dom, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -79,7 +86,7 @@ const LoadExternal = Command.define('LoadExternal', {
   messages: [Message.CompletedLoadExternal],
 })
 
-const CommandsLayer = Layer.mergeAll(
+const CommandsLayer = EffectLayer.mergeAll(
   NavigateInternal.toLayer(({ url }) =>
     pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
   ),
@@ -91,7 +98,7 @@ const CommandsLayer = Layer.mergeAll(
 // UPDATE
 
 type UpdateRequirements =
-  | Layer.Success<typeof CommandsLayer>
+  | EffectLayer.Success<typeof CommandsLayer>
   | People.UpdateRequirements
 type UpdateReturn = Update.Return<Model, Message, UpdateRequirements>
 
@@ -197,9 +204,9 @@ const NavigationShortcutPressesLayer = subscriptions.keyBindings.toLayer(() =>
   }),
 )
 
-export const layer = Layer.mergeAll(
+export const Layer = EffectLayer.mergeAll(
   CommandsLayer,
-  People.layer,
+  People.Layer,
   NavigationShortcutPressesLayer,
 )
 

@@ -3,8 +3,8 @@ import {
   Array,
   Deferred,
   Effect,
+  Layer as EffectLayer,
   FiberMap,
-  Layer,
   Match,
   Option,
   Order,
@@ -543,7 +543,7 @@ const SchedulePlaygroundFileWriteLayer = SchedulePlaygroundFileWrite.toLayer(
 
 export const mounts = [MountPlaygroundEditor]
 
-export const layer = Layer.mergeAll(
+export const Layer = EffectLayer.mergeAll(
   ManageWebContainerPlaygroundLayer,
   MountPlaygroundEditorLayer,
   WaitForPlaygroundServerFailureLayer,

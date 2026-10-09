@@ -17,8 +17,8 @@ import {
 
 export const HandlersLayer = Layer.mergeAll(
   NavigationLayer,
-  Home.layer,
-  Products.layer,
+  Home.Layer,
+  Products.Layer,
 )
 const ServicesLayer = Layer.mergeAll(
   BrowserHttpLayer,
@@ -33,5 +33,5 @@ const ServicesTestLayer = Layer.mergeAll(
   RpcTestLayer,
 )
 
-export const layer = Layer.provideMerge(HandlersLayer, ServicesLayer)
-export const TestLayer = Layer.provideMerge(HandlersLayer, ServicesTestLayer)
+export const AppLayer = Layer.provide(HandlersLayer, ServicesLayer)
+export const AppTestLayer = Layer.provide(HandlersLayer, ServicesTestLayer)

@@ -95,7 +95,7 @@ Choose the boundary whose lifetime matches the work:
 | Work that requires one rendered element                               | [Mount](/core/mount)                       |
 | Ongoing work controlled by Model-derived dependencies                 | [Subscription](/core/subscriptions)        |
 | A typed handle needed while a Model condition holds                   | [ManagedResource](/core/managed-resources) |
-| A service shared for the entire application Runtime                   | [Application Layer](/core/resources)       |
+| A service shared for the entire application Runtime                   | [Layer](/core/layers)                      |
 | A native web component whose properties and events remain declarative | [CustomElement](/core/custom-element)      |
 
 If a Mount's `execute` function never uses its element, the work should not be tied to that element's lifetime. Choose the boundary based on what actually starts and stops the work. The [Mount comparison](/core/mount#when-to-reach-for-mount) and [Managed Resources](/core/managed-resources) guides cover these choices in depth.

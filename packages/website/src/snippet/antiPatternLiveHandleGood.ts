@@ -1,6 +1,6 @@
 // ✅ Good: Model state controls the WebSocket's lifetime.
 
-import { Effect, Layer, Schema } from 'effect'
+import { Effect, Layer as EffectLayer, Schema } from 'effect'
 import { Command, ManagedResource } from 'foldkit'
 
 import { Message } from './message'
@@ -40,4 +40,7 @@ const SendChatMessageLayer = SendChatMessage.toLayer(({ text }) =>
   ),
 )
 
-const layer = Layer.mergeAll(ManageChatSocketLayer, SendChatMessageLayer)
+export const Layer = EffectLayer.mergeAll(
+  ManageChatSocketLayer,
+  SendChatMessageLayer,
+)

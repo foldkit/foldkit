@@ -1,4 +1,11 @@
-import { Array, Effect, Layer, Option, Schema, String } from 'effect'
+import {
+  Array,
+  Effect,
+  Layer as EffectLayer,
+  Option,
+  Schema,
+  String,
+} from 'effect'
 import { Command, Runtime, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -50,7 +57,7 @@ const LoadExternal = Command.define('LoadExternal', {
   messages: [Message.CompletedLoadExternal],
 })
 
-export const layer = Layer.mergeAll(
+export const Layer = EffectLayer.mergeAll(
   NavigateInternal.toLayer(({ url }) =>
     pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
   ),

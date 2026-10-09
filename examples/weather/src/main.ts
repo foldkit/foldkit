@@ -216,7 +216,7 @@ const FetchWeatherLayer = FetchWeather.toLayer(
   }),
 )
 
-export const layer = FetchWeatherLayer
+export const Layer = FetchWeatherLayer
 
 // VIEW
 

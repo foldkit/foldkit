@@ -1,11 +1,11 @@
 import { Effect, Schema, Stream } from 'effect'
 import { Command, Dom, Subscription } from 'foldkit'
 
-import { Api } from './api'
+import { Api, ApiLayer } from './api'
 
 // A side effect is a Command returned from update. It has a name, shows up
 // in DevTools next to the Message that produced it, and is assertable in
-// tests. Api is an Effect service; Api.Default is its layer.
+// tests. Api is an Effect service; ApiLayer provides it.
 const CreateTodo = Command.define('CreateTodo', {
   args: { text: Schema.String },
   messages: [SucceededCreateTodo, FailedCreateTodo],
@@ -15,7 +15,7 @@ const CreateTodo = Command.define('CreateTodo', {
       yield* api.createTodo(text)
       return SucceededCreateTodo()
     }).pipe(
-      Effect.provide(Api.Default),
+      Effect.provide(ApiLayer),
       Effect.catch(() => Effect.succeed(FailedCreateTodo())),
     ),
 })

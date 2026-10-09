@@ -1,20 +1,20 @@
-# Application Layers
+# Layers
 
 ## Overview
 
-Some Effect services need one instance shared across an application. An RPC client may assemble a transport stack when it starts; an analytics client may keep one session open. Define the service with [Context.Service](https://effect.website/docs/requirements-management/services/), then build its Layer as part of the application’s production Layers.
+An Effect Layer is a recipe for constructing services and managing their lifetime. Foldkit uses Layers for shared application services and for handlers that implement Commands, Subscriptions, Mounts, and ManagedResources. The Runtime builds the provided Layers once when the application starts and releases their scoped resources when it stops.
 
 :::Info{label="Think of it like a restaurant kitchen"}
 Shared services are the kitchen equipment available all night. Every dish can use the same oven. A Model-driven handle, such as a camera stream, belongs to a [ManagedResource](/core/managed-resources) instead: it exists only while the Model needs it.
 :::
 
-`Application.make` defines the application and carries its unsatisfied Effect requirements. `Application.provide` adds a Layer recipe before `Runtime.run` starts the program. The Runtime builds the application Layer once per start and releases it when the application stops. Looking up a Command handler or restarting a Subscription does not rebuild the Layer or its providers. A hydrating start validates the server handoff before acquiring any application Layer.
+`Application.make` defines the application and carries its unsatisfied Effect requirements. `Application.provide` adds a Layer recipe before `Runtime.run` starts the program. Looking up a Command handler or restarting a Subscription reuses the services that the Layer already built. A hydrating start validates the server handoff before acquiring any Layer.
 
 A Command definition names the operation and its result Messages. Its `toLayer` handler can use an Effect service. `Layer.provide` composes that service Layer beneath the handler Layer. An Effect constructor can capture the provided instance when the application Layer is built, while a plain handler can look it up during each invocation. The same boundary applies to Layer-backed Subscriptions, Mounts, and ManagedResources.
 
-::Snippet{name="resources" label="Shared API client service"}
+::Snippet{name="layers" label="Shared API client service"}
 
-The application requires the `LoadUser` handler service. `LoadUserLayer` is the real handler in both compositions. Production supplies `ApiLayer`; a test supplies `ApiTestLayer`. The API client starts once with the application, rather than once per `LoadUser` execution. `TestLayer` covers the real `LoadUser` mapping and error policy, but it does not cover the replaced `ApiLayer` request and decoder.
+The application requires the `LoadUser` handler service. `LoadUserLayer` is the real handler in both compositions. `AppLayer` supplies `ApiLayer`; `AppTestLayer` supplies `ApiTestLayer`. The API client starts once with the application, rather than once per `LoadUser` execution. This substitution exercises the real `LoadUser` mapping and error policy. Code inside the replaced `ApiLayer` is outside that test path.
 
 Calling `toLayer` creates a recipe for providing the handler service. Passing an Effect to `toLayer` makes that recipe run a constructor once when the Runtime builds the application Layer. For a Command, the returned handler receives serializable args each time the Command runs.
 
@@ -60,15 +60,15 @@ Use a private provider only when the operation deliberately owns that provider a
 
 When an application needs localStorage and sessionStorage at the same time, define distinct application service tags such as `LocalStorage` and `SessionStorage`. Bind each tag to its platform `KeyValueStore` Layer at the root. The tags preserve both identities without hiding either provider inside a Command.
 
-::Snippet{name="resourcesPerCommandHttp" label="HTTP provider at the application root"}
+::Snippet{name="layersPerCommandHttp" label="HTTP provider at the application root"}
 
-Foldkit’s `Http.layer` uses Effect’s Fetch-backed client with trace-header propagation disabled. Browser `traceparent` headers can turn otherwise CORS-simple requests into preflighted requests against plain APIs and development proxies. The application root provides it beneath `HandlersLayer`; a test root provides `HttpTestLayer` beneath the same handlers.
+Foldkit’s `Http.layer` uses Effect’s Fetch-backed client with trace-header propagation disabled. Browser `traceparent` headers can turn otherwise CORS-simple requests into preflighted requests against plain APIs and development proxies. The application root provides it beneath the handler Layer; a test root can provide `HttpTestLayer` beneath the same handler.
 
 ## Services in Flags
 
 The Flags Effect can require services too. `Runtime.run` resolves Flags before calling init, so an application Layer that supplies a Flags dependency must build during startup.
 
-::Snippet{name="resourcesFlags" label="Flags consuming a resource"}
+::Snippet{name="layersFlags" label="Flags consuming a service"}
 
 If the service Layer fails to build, startup cannot reach init or the first render. There is no Model for a crash view yet. A service used only by one Flags Effect may be private to that Effect when the application should never select or share it. Shared services stay exposed from the root Layer with `Layer.provideMerge` so Flags and handlers receive the same instance.
 
@@ -76,8 +76,8 @@ If the service Layer fails to build, startup cannot reach init or the first rend
 
 ## Providing Multiple Services
 
-Use `Layer.mergeAll` to combine service Layers. A reusable feature's lowercase `layer` export combines its real handlers and may provide business services owned by that feature. Leave concrete HTTP, storage, RPC, and browser providers as requirements for the application root to choose. The root composes those providers once, then the entry imports and provides one root `layer`. The next snippet shows only that root composition. Its Command, Subscription, and ManagedResource modules export the handler Layers, while `environment.ts` exports the concrete provider Layers.
+Use `Layer.mergeAll` to combine service Layers. A reusable feature's `Layer` export combines its real handlers and may provide business services owned by that feature. Leave concrete HTTP, storage, RPC, and browser providers as requirements for the application root to choose. The root combines feature implementations in `HandlersLayer`, combines providers in `ServicesLayer`, and exports `AppLayer` from their composition. The entry imports and provides `AppLayer`. The next snippet shows only that root composition. Its Command, Subscription, and ManagedResource modules export the handler Layers, while `environment.ts` exports the concrete provider Layers.
 
-::Snippet{name="resourcesMultiple" label="Multiple shared services"}
+::Snippet{name="layersMultiple" label="Multiple shared services"}
 
 The provider Layer and its handler Layers live for the application runtime. Resources acquired in their Scope release when the runtime stops. When a camera stream, `WebSocket`, or other handle should exist only while the Model is in a particular state, use [Managed Resources](/core/managed-resources) instead.

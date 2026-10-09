@@ -27,4 +27,4 @@ export const ThemeMenuEscapePressesLayer = subscriptions.escapeKey.toLayer(
     ),
 )
 
-export { ThemeMenuEscapePressesLayer as layer }
+export { ThemeMenuEscapePressesLayer as Layer }

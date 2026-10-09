@@ -288,7 +288,11 @@ describe('Toast', () => {
 
     it('holds the release offset until the leave animation starts', () => {
       Scene.scene(
-        { update: Toast.update, view: sceneView() },
+        {
+          update: Toast.update,
+          view: sceneView(),
+          subscriptions: Toast.subscriptions,
+        },
         Scene.given(withEntry()),
         Scene.pointerDown(entryZero, { clientX: 100 }),
         Scene.expect(entryZero).toHaveAttr('data-swipe', 'move'),
@@ -328,7 +332,11 @@ describe('Toast', () => {
 
     it('returns a short swipe to zero while settling', () => {
       Scene.scene(
-        { update: Toast.update, view: sceneView() },
+        {
+          update: Toast.update,
+          view: sceneView(),
+          subscriptions: Toast.subscriptions,
+        },
         Scene.given(withEntry()),
         Scene.pointerDown(entryZero, { clientX: 100 }),
         Scene.Subscription.emit(

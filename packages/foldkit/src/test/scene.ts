@@ -35,6 +35,11 @@ import type { Entry as ManagedResourceEntry } from '../managedResource/index.js'
 import { MountTracker } from '../mount/index.js'
 import type { MountDefinition } from '../mount/index.js'
 import { Dispatch } from '../runtime/dispatch.js'
+import {
+  type Subscription as RuntimeSubscription,
+  type MessageDeclaration as SubscriptionMessageDeclaration,
+  __messageDeclarations as subscriptionMessageDeclarations,
+} from '../subscription/subscription.js'
 import { tagNameFromSelector } from '../tagName.js'
 import type { VNode } from '../vdom.js'
 import type {
@@ -184,9 +189,17 @@ type GivenStep<Model> = Readonly<{ _phantomModel: Model }> &
   ) => SceneSimulation<M, Message, OutMessage>)
 
 /** A typed Subscription Message step. */
-export type SubscriptionMessageStep<Message> = Readonly<{
+export type SubscriptionMessageStep<Message, Entry = undefined> = Readonly<{
   _tag: 'SubscriptionMessageStep'
+  entry: Entry
   message: Message
+}>
+
+/** A group of Scene steps whose Locators resolve within one parent element. */
+export type InsideStep<Steps extends ReadonlyArray<unknown>> = Readonly<{
+  _tag: 'InsideStep'
+  parent: Locator
+  steps: Steps
 }>
 
 /** A typed OutMessage assertion step. */
@@ -201,14 +214,57 @@ export type OutMessagesStep<OutMessage> = Readonly<{
   expected: readonly [OutMessage, OutMessage, ...ReadonlyArray<OutMessage>]
 }>
 
+type AnySubscriptions = Readonly<
+  Record<string, RuntimeSubscription<any, any, any, any>>
+>
+
+type RegisteredSubscriptions<Model, Message> = Readonly<
+  Record<string, RuntimeSubscription<Model, Message, any, any>>
+>
+
 /** A single step in a scene: a `given` step, typed Message or OutMessage step,
  *  or scene simulation transform. */
-export type SceneStep<Model, Message, OutMessage> =
+export type SceneStep<Model, Message, OutMessage, Subscriptions = undefined> =
   | GivenStep<NoInfer<Model>>
-  | Readonly<{
-      _tag: 'SubscriptionMessageStep'
-      message: NoInfer<Message>
-    }>
+  | SubscriptionMessageStep<
+      NoInfer<Subscriptions> extends Readonly<
+        Record<string, RuntimeSubscription<any, any, any, any>>
+      >
+        ? NoInfer<Subscriptions>[keyof NoInfer<Subscriptions>] extends infer Entry
+          ? Entry extends Readonly<{
+              messages: infer Messages extends ReadonlyArray<Schema.Top>
+            }>
+            ? Schema.Schema.Type<Messages[number]>
+            : never
+          : never
+        : never
+    >
+  | (NoInfer<Subscriptions> extends Readonly<
+      Record<string, RuntimeSubscription<any, any, any, any>>
+    >
+      ? {
+          readonly [
+            Key in keyof NoInfer<Subscriptions>
+          ]: NoInfer<Subscriptions>[Key] extends Readonly<{
+            messages: infer Messages extends ReadonlyArray<Schema.Top>
+          }>
+            ? SubscriptionMessageStep<
+                Schema.Schema.Type<Messages[number]>,
+                NoInfer<Subscriptions>[Key]
+              >
+            : never
+        }[keyof NoInfer<Subscriptions>]
+      : never)
+  | InsideStep<
+      ReadonlyArray<
+        SceneStep<
+          NoInfer<Model>,
+          NoInfer<Message>,
+          NoInfer<OutMessage>,
+          NoInfer<Subscriptions>
+        >
+      >
+    >
   | Readonly<{
       _tag: 'OutMessageStep'
       expected: NoInfer<OutMessage>
@@ -293,6 +349,7 @@ type InternalSceneSimulation<
     outMessageRevision: number
     lastInteractionOutcome: InteractionOutcome
     maybeUnacknowledgedIgnored: Option.Option<IgnoredInteraction>
+    subscriptionDeclarations: ReadonlyArray<SubscriptionMessageDeclaration>
   }>
 
 const slotKey = ({ name, occurrence }: PendingMount): string =>
@@ -679,15 +736,86 @@ const applyExternalMessages = <Model, Message, OutMessage>(
   return Array.reduce(messages, simulation, applyMessageWithoutBoundaryChecks)
 }
 
+const applySubscriptionMappers = (
+  declaration: SubscriptionMessageDeclaration,
+  message: unknown,
+): unknown =>
+  Array.reduce(
+    declaration.messageMappers,
+    message,
+    (current, toParentMessage) => toParentMessage(current),
+  )
+
+const resolveSubscriptionMessage = (
+  declarations: ReadonlyArray<SubscriptionMessageDeclaration>,
+  entry: unknown,
+  message: unknown,
+): unknown => {
+  const matchingDeclarations = pipe(
+    declarations,
+    Array.filter(
+      declaration =>
+        (entry === undefined || declaration.entry === entry) &&
+        Array.some(declaration.schemas, schema => Schema.is(schema)(message)),
+    ),
+  )
+
+  return Array.matchLeft(matchingDeclarations, {
+    onEmpty: () => {
+      const target =
+        entry === undefined
+          ? 'the registered Subscriptions'
+          : 'the selected Subscription'
+      throw new Error(
+        `Scene.Subscription.emit received a Message that is not declared by ${target}:\n\n` +
+          `    ${JSON.stringify(message)}`,
+      )
+    },
+    onNonEmpty: (declaration, remainingDeclarations) => {
+      if (Array.isArrayNonEmpty(remainingDeclarations)) {
+        const entryKeys = pipe(
+          matchingDeclarations,
+          Array.map(({ entryKey }) => entryKey),
+          Array.join(', '),
+        )
+
+        if (entry !== undefined) {
+          throw new Error(
+            'Scene.Subscription.emit selected a Subscription entry ' +
+              `registered under multiple keys: ${entryKeys}.\n\n` +
+              'Register a distinct Subscription entry object for each key ' +
+              'before selecting one with `Scene.Subscription.emit(entry, message)`.',
+          )
+        }
+
+        throw new Error(
+          'Scene.Subscription.emit matched multiple registered ' +
+            `Subscriptions: ${entryKeys}.\n\n` +
+            'Pass the intended entry as the first argument, such as ' +
+            '`Scene.Subscription.emit(subscriptions.ticks, Message.Ticked())`.',
+        )
+      }
+
+      return applySubscriptionMappers(declaration, message)
+    },
+  })
+}
+
 const applySubscriptionMessage = <Model, Message, OutMessage>(
   simulation: SceneSimulation<Model, Message, OutMessage>,
-  message: Message,
+  step: SubscriptionMessageStep<unknown, unknown>,
 ): SceneSimulation<Model, Message, OutMessage> => {
   const internal = toInternal(simulation)
   const context = 'when a Subscription emitted a new Message'
 
   assertExternalMessageBoundary(simulation, context)
 
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const message = resolveSubscriptionMessage(
+    internal.subscriptionDeclarations,
+    step.entry,
+    step.message,
+  ) as Message
   const messageUpdate = internal.updateFn(internal.model, message)
 
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -1245,20 +1373,48 @@ const applyExternalMessage = <Model, Message, OutMessage>(
   return applyExternalMessages(simulation, [message], context)
 }
 
-/** Feeds a Message through update as if a Subscription had emitted it,
- *  then re-renders. Use it for Messages whose real cause is a Subscription
- *  (a timer tick, a WebSocket frame, a global listener), which have no
- *  element in the rendered tree to interact with. Do NOT reach for it when
- *  the Message has a DOM affordance: click the actual button instead, so
- *  the test exercises the handler wiring this step skips. Like an
- *  interaction, it throws if unresolved Commands, unresolved Mounts, or
- *  unacknowledged unmounts are pending. */
-const emitSubscriptionMessage = <Message>(
-  message: Message,
-): SubscriptionMessageStep<Message> => ({
-  _tag: 'SubscriptionMessageStep',
-  message,
-})
+const SubscriptionMessageNotProvided = Symbol(
+  'foldkit/Scene/SubscriptionMessageNotProvided',
+)
+
+/** Feeds a declared Message through update as if a registered Subscription
+ *  emitted it, then re-renders. A lifted Subscription accepts its raw child
+ *  Message and applies the same `toParentMessage` chain as production. Pass
+ *  the entry first when the same raw Message is registered through multiple
+ *  lift paths. The one-argument form keeps root calls concise. */
+const emitSubscriptionMessage: {
+  <Message>(message: Message): SubscriptionMessageStep<Message>
+  <
+    Entry extends Readonly<{
+      messages: ReadonlyArray<Schema.Top>
+    }>,
+  >(
+    entry: Entry,
+    message: NoInfer<Schema.Schema.Type<Entry['messages'][number]>>,
+  ): SubscriptionMessageStep<
+    Schema.Schema.Type<Entry['messages'][number]>,
+    Entry
+  >
+} = <Message, Entry>(
+  entryOrMessage: Entry | Message,
+  maybeMessage:
+    | Message
+    | typeof SubscriptionMessageNotProvided = SubscriptionMessageNotProvided,
+): SubscriptionMessageStep<Message, Entry | undefined> => {
+  /* eslint-disable @typescript-eslint/consistent-type-assertions */
+  return {
+    _tag: 'SubscriptionMessageStep',
+    entry:
+      maybeMessage === SubscriptionMessageNotProvided
+        ? undefined
+        : (entryOrMessage as Entry),
+    message:
+      maybeMessage === SubscriptionMessageNotProvided
+        ? (entryOrMessage as Message)
+        : maybeMessage,
+  }
+  /* eslint-enable @typescript-eslint/consistent-type-assertions */
+}
 
 const MANAGED_RESOURCE_CONTEXT =
   'when a ManagedResource dispatched a new Message'
@@ -1504,9 +1660,16 @@ export const Mount = {
 /** Steps that model Messages arriving from a Subscription.
  *  Destructure as `const { Subscription } = Scene` for concise call sites. */
 export const Subscription = {
-  /** Feeds a Message through update as if a Subscription had emitted it,
-   *  then re-renders. Only for Messages whose real cause is a Subscription;
-   *  if the Message has a DOM affordance, click it instead. */
+  /** Feeds a Message declared by the Scene's registered Subscriptions through
+   *  update, then re-renders. Pass the raw child Message for a lifted
+   *  Subscription; Scene applies its `toParentMessage` chain. The one-argument
+   *  form works when exactly one registered entry declares the Message. Pass
+   *  the entry first to select one of several lift paths.
+   *
+   *  Inline Subscriptions participate when their callbacks declare
+   *  `messages`. Silent and undeclared inline Subscriptions accept no
+   *  Messages. Use this only for Messages whose real cause is a Subscription;
+   *  interact with the rendered DOM for DOM Messages. */
   emit: emitSubscriptionMessage,
 } as const
 
@@ -1721,12 +1884,16 @@ export const tap =
     return simulation
   }
 
-const applySceneStep = <Model, Message, OutMessage>(
+const applySceneStep = <Model, Message, OutMessage, Subscriptions>(
   simulation: SceneSimulation<Model, Message, OutMessage>,
-  step: SceneStep<Model, Message, OutMessage>,
+  step: SceneStep<Model, Message, OutMessage, Subscriptions>,
 ): SceneSimulation<Model, Message, OutMessage> => {
+  if (Predicate.isTagged(step, 'InsideStep')) {
+    return applyInsideStep(simulation, step)
+  }
+
   if (Predicate.isTagged(step, 'SubscriptionMessageStep')) {
-    return applySubscriptionMessage(simulation, step.message)
+    return applySubscriptionMessage(simulation, step)
   }
 
   if (Predicate.isTagged(step, 'OutMessageStep')) {
@@ -1746,9 +1913,9 @@ const applySceneStep = <Model, Message, OutMessage>(
   return simulation
 }
 
-const runSteps = <Model, Message, OutMessage>(
+const runSteps = <Model, Message, OutMessage, Subscriptions>(
   seed: SceneSimulation<Model, Message, OutMessage>,
-  steps: ReadonlyArray<SceneStep<Model, Message, OutMessage>>,
+  steps: ReadonlyArray<SceneStep<Model, Message, OutMessage, Subscriptions>>,
 ): SceneSimulation<Model, Message, OutMessage> =>
   /* eslint-disable @typescript-eslint/consistent-type-assertions */
   Array.reduce(steps, seed, (current, step) => {
@@ -1795,38 +1962,50 @@ const runSteps = <Model, Message, OutMessage>(
   })
 /* eslint-enable @typescript-eslint/consistent-type-assertions */
 
+const applyInsideStep = <Model, Message, OutMessage, Subscriptions>(
+  simulation: SceneSimulation<Model, Message, OutMessage>,
+  step: InsideStep<
+    ReadonlyArray<SceneStep<Model, Message, OutMessage, Subscriptions>>
+  >,
+): SceneSimulation<Model, Message, OutMessage> => {
+  const internal = toInternal(simulation)
+  const priorScope = internal.scope
+  const nextScope = Option.match(priorScope, {
+    onNone: () => step.parent,
+    onSome: within(step.parent),
+  })
+  /* eslint-disable @typescript-eslint/consistent-type-assertions */
+  const scopedEntry = {
+    ...internal,
+    scope: Option.some(nextScope),
+  } as unknown as SceneSimulation<Model, Message, OutMessage>
+  const afterSteps = runSteps<Model, Message, OutMessage, Subscriptions>(
+    scopedEntry,
+    step.steps,
+  )
+  const afterInternal = toInternal(afterSteps)
+  return {
+    ...afterInternal,
+    scope: priorScope,
+  } as unknown as SceneSimulation<Model, Message, OutMessage>
+  /* eslint-enable @typescript-eslint/consistent-type-assertions */
+}
+
 /** Scopes a sequence of steps to a parent element. Every Locator referenced by
  *  child steps (assertions, interactions) resolves within the parent's subtree.
  *  Use this when several steps share the same scope. For a single scoped query,
  *  prefer `within(parent, child)` directly. Nested `inside` calls compose scopes
  *  via `within(outer, inner)`. */
-export const inside =
-  <Model, Message, OutMessage = undefined>(
-    parent: Locator,
-    ...steps: ReadonlyArray<NoInfer<SceneStep<Model, Message, OutMessage>>>
-  ) =>
-  (
-    simulation: SceneSimulation<Model, Message, OutMessage>,
-  ): SceneSimulation<Model, Message, OutMessage> => {
-    const internal = toInternal(simulation)
-    const priorScope = internal.scope
-    const nextScope = Option.match(priorScope, {
-      onNone: () => parent,
-      onSome: within(parent),
-    })
-    /* eslint-disable @typescript-eslint/consistent-type-assertions */
-    const scopedEntry = {
-      ...internal,
-      scope: Option.some(nextScope),
-    } as unknown as SceneSimulation<Model, Message, OutMessage>
-    const afterSteps = runSteps(scopedEntry, steps)
-    const afterInternal = toInternal(afterSteps)
-    return {
-      ...afterInternal,
-      scope: priorScope,
-    } as unknown as SceneSimulation<Model, Message, OutMessage>
-    /* eslint-enable @typescript-eslint/consistent-type-assertions */
-  }
+export const inside = <
+  const Steps extends ReadonlyArray<SceneStep<any, any, any, any>>,
+>(
+  parent: Locator,
+  ...steps: Steps
+): InsideStep<Steps> => ({
+  _tag: 'InsideStep',
+  parent,
+  steps,
+})
 
 const findAncestorWithHandler = (
   root: VNode,
@@ -3028,11 +3207,22 @@ export const withViewInputs =
 
 // SCENE
 
-/** Executes a scene test. Throws if any Commands or Mounts remain
- *  unresolved, any unmount is unacknowledged, or any interaction fell
- *  through unacknowledged. */
+/** Executes a scene test. Register the tested program's `subscriptions` to use
+ *  {@link Subscription.emit}; the exact record retains each entry's declared
+ *  Message schemas and lift path. A scene without registered Subscriptions
+ *  cannot use that step.
+ *
+ *  Throws if any Commands or Mounts remain unresolved, any unmount is
+ *  unacknowledged, or any interaction fell through unacknowledged. */
 export const scene: {
-  <Model, Message, OutMessage = never>(
+  <
+    Model,
+    Message,
+    OutMessage = never,
+    const Subscriptions extends
+      | RegisteredSubscriptions<Model, Message>
+      | undefined = undefined,
+  >(
     config: Readonly<{
       update: (
         model: Model,
@@ -3043,12 +3233,24 @@ export const scene: {
         outMessage?: OutMessage
       }>
       view: (model: Model, h: HtmlBuilder<Message>) => Html | Document
+      subscriptions?: Subscriptions
     }>,
     ...steps: ReadonlyArray<
-      SceneStep<NoInfer<Model>, NoInfer<Message>, NoInfer<OutMessage>>
+      SceneStep<
+        NoInfer<Model>,
+        NoInfer<Message>,
+        NoInfer<OutMessage>,
+        NoInfer<Subscriptions>
+      >
     >
   ): void
-  <Model, Message>(
+  <
+    Model,
+    Message,
+    const Subscriptions extends
+      | RegisteredSubscriptions<Model, Message>
+      | undefined = undefined,
+  >(
     config: Readonly<{
       update: (
         model: Model,
@@ -3059,20 +3261,32 @@ export const scene: {
         outMessage?: never
       }>
       view: (model: Model, h: HtmlBuilder<Message>) => Html | Document
+      subscriptions?: Subscriptions
     }>,
     ...steps: ReadonlyArray<
-      SceneStep<NoInfer<Model>, NoInfer<Message>, undefined>
+      SceneStep<
+        NoInfer<Model>,
+        NoInfer<Message>,
+        undefined,
+        NoInfer<Subscriptions>
+      >
     >
   ): void
-} = <Model, Message, OutMessage = undefined>(
+} = <
+  Model,
+  Message,
+  OutMessage = undefined,
+  Subscriptions extends AnySubscriptions | undefined = undefined,
+>(
   config: Readonly<{
     update: (
       model: Model,
       message: Message,
     ) => SimulationUpdateReturn<Model, OutMessage>
     view: (model: Model, h: HtmlBuilder<Message>) => Html | Document
+    subscriptions?: Subscriptions
   }>,
-  ...steps: ReadonlyArray<SceneStep<Model, Message, OutMessage>>
+  ...steps: ReadonlyArray<SceneStep<Model, Message, OutMessage, Subscriptions>>
 ): void => {
   const capturingDispatch = createCapturingDispatch()
 
@@ -3094,6 +3308,9 @@ export const scene: {
     scope: Option.none(),
     lastInteractionOutcome: NotRun,
     maybeUnacknowledgedIgnored: Option.none(),
+    subscriptionDeclarations: subscriptionMessageDeclarations(
+      config.subscriptions ?? {},
+    ),
   } as unknown as SceneSimulation<Model, Message, OutMessage>
 
   const result = runSteps(seed, steps)

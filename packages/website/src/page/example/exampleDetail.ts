@@ -1,7 +1,7 @@
 import {
   Array,
   Effect,
-  Layer,
+  Layer as EffectLayer,
   Option,
   Queue,
   Schema,
@@ -123,7 +123,7 @@ const ObserveExampleUrlMessagesLayer = ObserveExampleUrlMessages.toLayer(
 
 export const mounts = [ObserveExampleUrlMessages]
 
-export const layer = Layer.mergeAll(
+export const Layer = EffectLayer.mergeAll(
   LoadExampleSourcesLayer,
   ObserveExampleUrlMessagesLayer,
 )

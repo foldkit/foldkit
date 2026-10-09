@@ -25,5 +25,5 @@ export const makeElement = (container: HTMLElement, flags: Flags) =>
       ports,
       container,
     }),
-    Application.provide(layer),
+    Application.provide(Layer),
   )

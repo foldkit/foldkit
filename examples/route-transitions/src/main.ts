@@ -2,7 +2,7 @@ import {
   Array,
   Duration,
   Effect,
-  Layer,
+  Layer as EffectLayer,
   Match,
   Option,
   Schema,
@@ -104,7 +104,7 @@ export const SaveDraft = Command.define('SaveDraft', {
   messages: [Message.CompletedSaveDraft],
 })
 
-export const layer = Layer.mergeAll(
+export const Layer = EffectLayer.mergeAll(
   NavigateInternal.toLayer(({ url }) =>
     pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
   ),

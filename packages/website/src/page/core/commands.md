@@ -33,17 +33,21 @@ Command names are verb-first imperatives such as `FetchWeather`, `FocusItems`, a
 
 A Layer-backed Command definition retains its args, result Messages, and interruption behavior. The definition contributes a named handler requirement to the application's Effect requirements. Build its implementation with `Definition.toLayer(handler)` or `Definition.toLayer(Effect<handler>)`, then pass that Layer to `Application.provide`. Use `Update.make` around an update function so the Command requirements from every Message branch reach the application type.
 
-Calling `toLayer` creates a Layer recipe; it does not build the Layer. The Runtime builds the application Layer once for each start. When `toLayer` receives an Effect, that build runs the Effect once and obtains the handler used for every Command execution. The Runtime later looks up that handler and calls it with the current args. Looking up an Effect service uses the provider instance the Layer already built; it does not construct the provider.
+#### Implementing the Handler
 
-Use the plain handler form when the implementation reads its services contextually during each execution. Use the Effect constructor when capturing a stable injected service or accessor makes the dependency boundary clearer, or when preparing the handler requires application-scoped acquisition. The constructor may capture an RPC client or repository accessor. It must not capture invocation args, current time, Subscription dependencies, a DOM element, or a ManagedResource handle; those values belong to the operation or lifecycle scope that supplies them.
+Use the plain handler form when the implementation reads its services during each execution. Use the Effect constructor when capturing a stable injected service or accessor makes the dependency boundary clearer, or when preparing the handler requires application-scoped acquisition. Keep changing values in the operation that supplies them: the constructor must not capture Command args or current time.
 
-A captured service remains the instance from Layer construction, even when a later invocation provides a different service with the same tag. A contextual lookup can see invocation services instead. When the Runtime combines the application context with an invocation context, invocation services win.
+Calling `toLayer` creates a recipe. The Runtime builds that Layer when the application starts, then reuses its handler for later Command executions. [Layers](/core/layers) covers Layer lifetime, service lookup, constructor capture, and provider substitution in depth.
+
+#### Inline Execution
 
 An inline `execute` may require the same services. Its service requirements flow directly to the application instead of through a named handler requirement. The [weather example](https://github.com/foldkit/foldkit/tree/main/examples/weather/src) shows the definition, handler Layer, update, and application wiring together.
 
+#### Naming and Composition
+
 Give each Layer-backed Command definition a distinct name within an application. A Command accepts a Layer built from its own definition; using a Layer from a different definition with the same name fails when that Command runs.
 
-Name an individual production Layer after its definition, such as `FetchWeatherLayer`. A feature with several handler Layers combines them under one lowercase `layer` export. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows how that composition reaches the application entry.
+Name an individual production Layer after its definition, such as `FetchWeatherLayer`. A feature with several handler Layers combines them under one `Layer` export. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows how that composition reaches the application entry.
 
 ### Testing the Handler Through Its Services
 
@@ -83,7 +87,7 @@ Many Commands need an input that changes from one dispatch to the next. For exam
 
 Args appear beside the Command name in DevTools. Story and Scene tests can also match the exact dispatch with `Command.expectExact(FetchWeather({ zipCode: '90210' }))`.
 
-Args should contain per-dispatch inputs, not every dependency used by the Effect. Module constants remain in lexical scope. App-wide services come from [Application Layers](/core/resources), Model-gated handles come from [ManagedResources](/core/managed-resources), and other Effect services can be obtained with `yield*`.
+Args should contain per-dispatch inputs, not every dependency used by the Effect. Module constants remain in lexical scope. App-wide services come from [Layers](/core/layers), Model-gated handles come from [ManagedResources](/core/managed-resources), and other Effect services can be obtained with `yield*`.
 
 ## Interrupting Commands
 

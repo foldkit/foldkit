@@ -30,17 +30,18 @@ export const managedResources = ManagedResource.lift(Products.managedResources)<
   toParentMessage: message => Message.GotProductsMessage({ message }),
 })
 
-export const application = Application.make({
-  Model,
-  init,
-  update,
-  view,
-  subscriptions,
-  managedResources,
-  mounts: Products.mounts,
-  container: document.getElementById('root'),
-  routing: {
-    onUrlRequest: request => Message.ClickedLink({ request }),
-    onUrlChange: url => Message.ChangedUrl({ url }),
-  },
-})
+export const makeApplication = (container: HTMLElement | null) =>
+  Application.make({
+    Model,
+    init,
+    update,
+    view,
+    subscriptions,
+    managedResources,
+    mounts: Products.mounts,
+    container,
+    routing: {
+      onUrlRequest: request => Message.ClickedLink({ request }),
+      onUrlChange: url => Message.ChangedUrl({ url }),
+    },
+  })

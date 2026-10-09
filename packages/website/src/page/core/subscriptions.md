@@ -85,11 +85,11 @@ The [websocket-chat example](/example-apps/websocket-chat) shows a more involved
 
 ### Naming a Subscription
 
-A Subscription definition describes a scoped Stream. Its record key identifies the registration that Foldkit starts and stops; its handler name identifies the Stream or scoped behavior a Layer supplies. In the counter example, `tick` is the record key, `AutoCountTicks` is the handler name, and `AutoCountTicksLayer` is one implementation Layer. A feature can export a composed lowercase `layer` containing several such handlers.
+A Subscription definition describes a scoped Stream. Its record key identifies the registration that Foldkit starts and stops; its handler name identifies the Stream or scoped behavior a Layer supplies. In the counter example, `tick` is the record key, `AutoCountTicks` is the handler name, and `AutoCountTicksLayer` is one implementation Layer. A feature can export a composed `Layer` containing several such handlers.
 
 Name the events or scoped behavior the definition supplies, such as `KeyboardPresses`, `SystemThemeChanges`, `GameClockTicks`, or `DragSelectionStyles`. `KeyboardPresses` identifies the events produced from keyboard input; `GameClockTicks` identifies the events produced by a timer. The Model dependencies determine when the Stream is active and when its scope restarts; they do not need to appear in the handler name.
 
-Unlike a Command, a Subscription may emit many Messages or maintain scoped work without emitting any. Its handler name does not need to mirror a single result Message or follow the Command imperative naming convention. Name an individual Layer from its handler identity, such as `AutoCountTicksLayer`; use lowercase `layer` for a feature-level composition or re-export.
+Unlike a Command, a Subscription may emit many Messages or maintain scoped work without emitting any. Its handler name does not need to mirror a single result Message or follow the Command imperative naming convention. Name an individual Layer from its handler identity, such as `AutoCountTicksLayer`; use `Layer` for a feature-level composition or re-export.
 
 ## Animation Frames
 

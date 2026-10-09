@@ -3,7 +3,7 @@ import {
   DateTime,
   Duration,
   Effect,
-  Layer,
+  Layer as EffectLayer,
   Match,
   Option,
   Predicate,
@@ -84,7 +84,7 @@ export type Message = typeof Message.Type
 type UpdateReturn = Update.Return<
   Model,
   Message,
-  Layer.Success<typeof CommandsLayer>
+  EffectLayer.Success<typeof CommandsLayer>
 >
 
 export const update = Update.make((model: Model, message: Message) =>
@@ -243,7 +243,7 @@ const SendMessageLayer = SendMessage.toLayer(({ text }) =>
   ),
 )
 
-const CommandsLayer = Layer.mergeAll(
+const CommandsLayer = EffectLayer.mergeAll(
   TimestampSentMessageLayer,
   TimestampReceivedMessageLayer,
   SendMessageLayer,
@@ -395,7 +395,7 @@ const ChatSocketMessagesLayer = subscriptions.chatSocketMessages.toLayer(
     ),
 )
 
-export const layer = Layer.mergeAll(
+export const Layer = EffectLayer.mergeAll(
   CommandsLayer,
   ManageChatSocketLayer,
   ChatSocketMessagesLayer,

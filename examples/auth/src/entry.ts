@@ -3,13 +3,13 @@ import { Application, Runtime } from 'foldkit'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 
-import { Flags, layer as HandlersLayer, flags, init } from './main'
+import { Flags, Layer as HandlersLayer, flags, init } from './main'
 import { Message } from './message'
 import { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-const layer = HandlersLayer.pipe(
+const AppLayer = HandlersLayer.pipe(
   Layer.provideMerge(BrowserKeyValueStore.layerLocalStorage),
 )
 
@@ -29,4 +29,4 @@ const application = Application.make({
   },
 })
 
-Runtime.run(Application.provide(application, layer), { flags })
+Runtime.run(Application.provide(application, AppLayer), { flags })

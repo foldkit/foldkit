@@ -4,7 +4,7 @@ export {
   init,
   update,
   GenerateWorkHistoryEntryId,
-  GenerateWorkHistoryEntryIdLayer as layer,
+  GenerateWorkHistoryEntryIdLayer as Layer,
   hasErrors,
   isComplete,
   revealErrors,

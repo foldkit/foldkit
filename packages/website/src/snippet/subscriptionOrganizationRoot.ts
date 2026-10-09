@@ -1,5 +1,5 @@
 // subscription.ts
-import { Effect, Layer, Option, Schema, Stream } from 'effect'
+import { Effect, Layer as EffectLayer, Option, Schema, Stream } from 'effect'
 import { Dom, Subscription } from 'foldkit'
 
 import { Message } from './message'
@@ -44,4 +44,7 @@ const SystemThemeChangesLayer = localSubscriptions.systemTheme.toLayer(
     ),
 )
 
-export const layer = Layer.mergeAll(Settings.layer, SystemThemeChangesLayer)
+export const Layer = EffectLayer.mergeAll(
+  Settings.Layer,
+  SystemThemeChangesLayer,
+)

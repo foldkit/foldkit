@@ -31,4 +31,6 @@ const FetchWeatherLayer = FetchWeather.toLayer(
 )
 
 export const HandlersLayer = FetchWeatherLayer
-export const layer = Layer.provideMerge(HandlersLayer, Http.layer)
+const ServicesLayer = Http.layer
+
+export const AppLayer = Layer.provide(HandlersLayer, ServicesLayer)

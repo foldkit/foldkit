@@ -33,4 +33,4 @@ export const SystemThemeChangesLayer = subscriptions.systemTheme.toLayer(
     ),
 )
 
-export { SystemThemeChangesLayer as layer }
+export { SystemThemeChangesLayer as Layer }

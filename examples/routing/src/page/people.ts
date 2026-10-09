@@ -2,7 +2,7 @@ import {
   Array,
   Duration,
   Effect,
-  Layer,
+  Layer as EffectLayer,
   Option,
   Schema,
   String,
@@ -142,7 +142,7 @@ export const FetchPeople = Command.define('FetchPeople', {
   messages: [Message.CompletedFetchPeople],
 })
 
-export const layer = Layer.mergeAll(
+export const Layer = EffectLayer.mergeAll(
   PushSearchUrl.toLayer(({ searchText }) =>
     pushUrl(peopleRouter({ searchText })).pipe(
       Effect.as(Message.CompletedPushSearchUrl()),
@@ -162,7 +162,7 @@ export const layer = Layer.mergeAll(
 
 // UPDATE
 
-export type UpdateRequirements = Layer.Success<typeof layer>
+export type UpdateRequirements = EffectLayer.Success<typeof Layer>
 export type UpdateReturn = Update.Return<Model, Message, UpdateRequirements>
 
 export const update = Update.make((model: Model, message: Message) =>

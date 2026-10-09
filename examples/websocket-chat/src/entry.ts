@@ -3,10 +3,10 @@ import { Socket } from 'effect/socket'
 import { Application, Runtime } from 'foldkit'
 
 import {
+  Layer as HandlersLayer,
   Message,
   Model,
   init,
-  layer,
   managedResources,
   subscriptions,
   update,
@@ -26,9 +26,9 @@ const application = Application.make({
   },
 })
 
-Runtime.run(
-  Application.provide(
-    application,
-    layer.pipe(Layer.provide(Socket.layerWebSocketConstructorGlobal)),
-  ),
+const AppLayer = Layer.provide(
+  HandlersLayer,
+  Socket.layerWebSocketConstructorGlobal,
 )
+
+Runtime.run(Application.provide(application, AppLayer))

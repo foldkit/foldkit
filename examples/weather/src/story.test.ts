@@ -1,9 +1,9 @@
-import { Effect, Layer, Match, String } from 'effect'
+import { Effect, Layer as EffectLayer, Match, String } from 'effect'
 import { HttpClient, HttpClientResponse } from 'effect/http'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { expect, test } from 'vitest'
 
-import { FetchWeather, Message, layer, update } from './main'
+import { FetchWeather, Layer, Message, update } from './main'
 import {
   mockGeocodingResponse,
   mockWeatherResponse,
@@ -68,10 +68,13 @@ test('fetchWeather returns SucceededFetchWeather with data on success', async ()
     }),
   )
 
-  const HttpClientTestLayer = Layer.succeed(HttpClient.HttpClient, mockClient)
+  const HttpClientTestLayer = EffectLayer.succeed(
+    HttpClient.HttpClient,
+    mockClient,
+  )
 
   const resultMessage = await FetchWeather({ zipCode: '90210' }).effect.pipe(
-    Effect.provide(layer.pipe(Layer.provide(HttpClientTestLayer))),
+    Effect.provide(Layer.pipe(EffectLayer.provide(HttpClientTestLayer))),
     Effect.runPromise,
   )
 
@@ -91,10 +94,13 @@ test('fetchWeather returns FailedFetchWeather on HTTP failure', async () => {
     ),
   )
 
-  const HttpClientTestLayer = Layer.succeed(HttpClient.HttpClient, mockClient)
+  const HttpClientTestLayer = EffectLayer.succeed(
+    HttpClient.HttpClient,
+    mockClient,
+  )
 
   const resultMessage = await FetchWeather({ zipCode: 'invalid' }).effect.pipe(
-    Effect.provide(layer.pipe(Layer.provide(HttpClientTestLayer))),
+    Effect.provide(Layer.pipe(EffectLayer.provide(HttpClientTestLayer))),
     Effect.runPromise,
   )
 
@@ -111,10 +117,13 @@ test('fetchWeather returns FailedFetchWeather when no results found', async () =
     ),
   )
 
-  const HttpClientTestLayer = Layer.succeed(HttpClient.HttpClient, mockClient)
+  const HttpClientTestLayer = EffectLayer.succeed(
+    HttpClient.HttpClient,
+    mockClient,
+  )
 
   const resultMessage = await FetchWeather({ zipCode: '00000' }).effect.pipe(
-    Effect.provide(layer.pipe(Layer.provide(HttpClientTestLayer))),
+    Effect.provide(Layer.pipe(EffectLayer.provide(HttpClientTestLayer))),
     Effect.runPromise,
   )
 

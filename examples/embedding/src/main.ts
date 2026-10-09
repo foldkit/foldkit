@@ -1,4 +1,11 @@
-import { Duration, Effect, Layer, Schema, Stream, pipe } from 'effect'
+import {
+  Duration,
+  Effect,
+  Layer as EffectLayer,
+  Schema,
+  Stream,
+  pipe,
+} from 'effect'
 import { Application, Command, Port, Subscription, Update } from 'foldkit'
 import { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -90,7 +97,7 @@ const WidgetTicksLayer = subscriptions.tick.toLayer(() =>
   Stream.tick(TICK_INTERVAL).pipe(Stream.drop(1), Stream.map(Message.Ticked)),
 )
 
-export const layer = Layer.mergeAll(ReportCountLayer, WidgetTicksLayer)
+export const Layer = EffectLayer.mergeAll(ReportCountLayer, WidgetTicksLayer)
 
 // VIEW
 
@@ -155,5 +162,5 @@ export const makeElement = (container: HTMLElement, flags: Flags) =>
         Message,
       },
     }),
-    Application.provide(layer),
+    Application.provide(Layer),
   )

@@ -170,6 +170,32 @@ type DeclaredMessages<Callbacks> =
 type EmittedMessage<Messages extends ReadonlyArray<Schema.Top>> =
   Schema.Schema.Type<Messages[number]>
 
+type DeclaredEntryCallbacksWithoutKeepAlive<
+  Model,
+  Dependencies,
+  Services,
+  Messages extends ReadonlyArray<Schema.Top>,
+> = EntryCallbacksWithoutKeepAlive<
+  Model,
+  EmittedMessage<Messages>,
+  Dependencies,
+  Services
+> &
+  Readonly<{ messages: Messages }>
+
+type DeclaredEntryCallbacksWithKeepAlive<
+  Model,
+  Dependencies,
+  Services,
+  Messages extends ReadonlyArray<Schema.Top>,
+> = EntryCallbacksWithKeepAlive<
+  Model,
+  EmittedMessage<Messages>,
+  Dependencies,
+  Services
+> &
+  Readonly<{ messages: Messages }>
+
 /**
  * Builds a single Subscription entry from a handler name, field map, and
  * lifecycle callbacks. The resulting entry has a `toLayer` method that
@@ -193,6 +219,10 @@ type EmittedMessage<Messages extends ReadonlyArray<Schema.Top>> =
  *   stays running across Model changes the equivalence accepts as equal.
  * - Named entries declare the Messages their handler Stream can emit. An
  *   empty `messages` collection describes a silent scoped Stream.
+ * - Inline entries may declare `messages` too. The Stream remains inline, and
+ *   the declaration lets `Scene.Subscription.emit` validate and drive those
+ *   Messages. An inline entry without `messages` remains valid at runtime but
+ *   declares no Messages to Scene.
  * - With a handler name and Message declarations but no field map, the entry
  *   has no local Model dependencies. Its Stream stays active across Model
  *   updates unless a parent gates it.
@@ -239,7 +269,45 @@ export interface EntryBuilder<Model, Message, Services> {
 
   <
     const Fields extends Schema.Struct.Fields,
-    Callbacks extends
+    const Messages extends ReadonlyArray<Schema.Top>,
+  >(
+    fields: Fields,
+    callbacks: DeclaredEntryCallbacksWithKeepAlive<
+      Model,
+      Schema.Struct.Type<Fields>,
+      Services,
+      Messages
+    >,
+  ): EntryWithKeepAlive<
+    Model,
+    EmittedMessage<Messages>,
+    Schema.Struct.Type<Fields>,
+    Services
+  > &
+    Readonly<{ messages: Messages }>
+
+  <
+    const Fields extends Schema.Struct.Fields,
+    const Messages extends ReadonlyArray<Schema.Top>,
+  >(
+    fields: Fields,
+    callbacks: DeclaredEntryCallbacksWithoutKeepAlive<
+      Model,
+      Schema.Struct.Type<Fields>,
+      Services,
+      Messages
+    >,
+  ): EntryWithoutKeepAlive<
+    Model,
+    EmittedMessage<Messages>,
+    Schema.Struct.Type<Fields>,
+    Services
+  > &
+    Readonly<{ messages: Messages }>
+
+  <
+    const Fields extends Schema.Struct.Fields,
+    Callbacks extends (
       | EntryCallbacksWithoutKeepAlive<
           Model,
           Message,
@@ -251,7 +319,9 @@ export interface EntryBuilder<Model, Message, Services> {
           Message,
           Schema.Struct.Type<Fields>,
           Services
-        >,
+        >
+    ) &
+      Readonly<{ messages?: never }>,
   >(
     fields: Fields,
     callbacks: Callbacks,
@@ -596,12 +666,14 @@ type LiftedSubscriptions<ParentModel, ParentMessage, Subscriptions> = {
         GatedDependencies<Dependencies>,
         Services
       > &
+        (Subscriptions[K] extends { readonly messages: infer Messages }
+          ? Readonly<{ messages: Messages }>
+          : unknown) &
         (Subscriptions[K] extends {
           readonly name: infer Name
-          readonly messages: infer Messages
           readonly toLayer: infer ToLayer
         }
-          ? Readonly<{ name: Name; messages: Messages; toLayer: ToLayer }>
+          ? Readonly<{ name: Name; toLayer: ToLayer }>
           : unknown)
     : never
 }
@@ -636,11 +708,24 @@ const toParentStream = (
   stream: Stream.Stream<any, never, any>,
 ) => Stream.map(stream, config.toParentMessage)
 
+const SubscriptionMessageMappersTypeId = Symbol(
+  'foldkit/SubscriptionMessageMappers',
+)
+
+type SubscriptionWithMessageMetadata = Readonly<{
+  messages?: ReadonlyArray<Schema.Top>
+  [SubscriptionMessageMappersTypeId]?: ReadonlyArray<
+    (message: unknown) => unknown
+  >
+}>
+
 const toLiftedEntry = (
   subscription: Subscription<any, any, any, any>,
   config: AnyLiftConfig,
   when: (parentModel: any) => boolean,
 ) => {
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const messageMetadata = subscription as SubscriptionWithMessageMetadata
   const dependenciesSchema = Schema.Struct({
     maybeDependencies: Schema.Option(subscription.dependenciesSchema),
   })
@@ -661,6 +746,10 @@ const toLiftedEntry = (
 
     return {
       ...subscription,
+      [SubscriptionMessageMappersTypeId]: [
+        ...(messageMetadata[SubscriptionMessageMappersTypeId] ?? []),
+        config.toParentMessage,
+      ],
       dependenciesSchema,
       modelToDependencies,
       keepAliveEquivalence: (
@@ -693,6 +782,10 @@ const toLiftedEntry = (
 
   return {
     ...subscription,
+    [SubscriptionMessageMappersTypeId]: [
+      ...(messageMetadata[SubscriptionMessageMappersTypeId] ?? []),
+      config.toParentMessage,
+    ],
     dependenciesSchema,
     modelToDependencies,
     dependenciesToStream: (gatedDependencies: GatedDependencies<any>) =>
@@ -763,3 +856,36 @@ export const lift =
     Record.map(subscriptions, (subscription, key) =>
       toLiftedEntry(subscription, config, toEntryWhen(config.when, key)),
     ) as any
+
+/** @internal A declared Subscription Message and the lift chain production
+ * applies before dispatching it to the root update. */
+export type MessageDeclaration = Readonly<{
+  entry: Subscription<any, any, any, any>
+  entryKey: string
+  schemas: ReadonlyArray<Schema.Top>
+  messageMappers: ReadonlyArray<(message: unknown) => unknown>
+}>
+
+/** @internal Reads Message declarations retained by `make`, `lift`, and
+ * `aggregate` for Scene's Subscription boundary. */
+export const __messageDeclarations = (
+  subscriptions: Readonly<Record<string, Subscription<any, any, any, any>>>,
+): ReadonlyArray<MessageDeclaration> => {
+  const declarations: Array<MessageDeclaration> = []
+
+  for (const [entryKey, subscription] of Object.entries(subscriptions)) {
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const metadata = subscription as SubscriptionWithMessageMetadata
+
+    if (metadata.messages !== undefined) {
+      declarations.push({
+        entry: subscription,
+        entryKey,
+        schemas: metadata.messages,
+        messageMappers: metadata[SubscriptionMessageMappersTypeId] ?? [],
+      })
+    }
+  }
+
+  return declarations
+}

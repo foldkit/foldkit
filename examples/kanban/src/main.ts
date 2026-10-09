@@ -51,6 +51,6 @@ export const init = (flags: Flags) => {
   }
 }
 
-export const layer = CommandsLayer
+export const Layer = CommandsLayer
 
 export { Message, Model, subscriptions, update, view }

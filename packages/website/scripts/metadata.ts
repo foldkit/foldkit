@@ -240,9 +240,9 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Server Rendering',
     'Render the same application to HTML for request-time SSR or build-time SSG, then hydrate it in place through a validated build-id and Flags handoff.',
   ),
-  CoreResources: core(
-    'Resources',
-    'Provide app-lifetime Effect services to Commands, Subscriptions, Mounts, and Flags, or provide a service directly when sharing is unnecessary.',
+  CoreLayers: core(
+    'Layers',
+    'Compose app-lifetime Effect services and handlers for Commands, Subscriptions, Mounts, ManagedResources, and Flags.',
   ),
   CoreManagedResources: core(
     'Managed Resources',

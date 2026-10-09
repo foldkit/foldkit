@@ -5,4 +5,4 @@ import { AppLayer } from './layer'
 
 const application = makeApplication(document.getElementById('root'))
 
-Runtime.hydrate(Application.provide(application, AppLayer))
+Runtime.run(Application.provide(application, AppLayer))

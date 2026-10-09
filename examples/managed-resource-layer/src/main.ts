@@ -2,7 +2,7 @@ import {
   Context,
   Crypto,
   Effect,
-  Layer,
+  Layer as EffectLayer,
   Match,
   Number,
   Option,
@@ -28,19 +28,22 @@ class ComputeEngineService extends Context.Service<
   ComputeEngine
 >()('ComputeEngineService') {}
 
-const engineLayer: Layer.Layer<ComputeEngineService, never, Crypto.Crypto> =
-  Layer.effect(
-    ComputeEngineService,
-    Effect.acquireRelease(
-      Effect.gen(function* () {
-        const crypto = yield* Crypto.Crypto
-        const id = yield* Effect.orDie(crypto.randomUUIDv4)
-        const engineId = `engine-${id.slice(0, 8)}`
-        return { engineId, square: (value: number) => value * value }
-      }),
-      ({ engineId }) => Effect.log(`Tore down ${engineId}`),
-    ),
-  )
+const ComputeEngineLayer: EffectLayer.Layer<
+  ComputeEngineService,
+  never,
+  Crypto.Crypto
+> = EffectLayer.effect(
+  ComputeEngineService,
+  Effect.acquireRelease(
+    Effect.gen(function* () {
+      const crypto = yield* Crypto.Crypto
+      const id = yield* Effect.orDie(crypto.randomUUIDv4)
+      const engineId = `engine-${id.slice(0, 8)}`
+      return { engineId, square: (value: number) => value * value }
+    }),
+    ({ engineId }) => Effect.log(`Tore down ${engineId}`),
+  ),
+)
 
 const Engine = ManagedResource.tag<ComputeEngine>()('ComputeEngine')
 
@@ -170,13 +173,13 @@ export const managedResources = ManagedResource.make<Model, Message>()(
 
 export const ManageEngineLayer = managedResources.engine.toLayer({
   acquire: () =>
-    Layer.build(engineLayer).pipe(
+    EffectLayer.build(ComputeEngineLayer).pipe(
       Effect.map(context => Context.get(context, ComputeEngineService)),
     ),
   release: () => Effect.void,
 })
 
-export const layer = Layer.mergeAll(ComputeLayer, ManageEngineLayer)
+export const Layer = EffectLayer.mergeAll(ComputeLayer, ManageEngineLayer)
 
 // VIEW
 

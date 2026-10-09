@@ -18,4 +18,4 @@ export const ViewportWidthChangesLayer = subscriptions.viewportWidth.toLayer(
     }),
 )
 
-export { ViewportWidthChangesLayer as layer }
+export { ViewportWidthChangesLayer as Layer }

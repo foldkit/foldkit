@@ -24,6 +24,7 @@ export const Message = defineMessageUnion({
   FailedMountSidebar: { reason: Schema.String },
   ClickedIncrement: {},
   ScrolledTo: { offset: Schema.Number },
+  Ticked: {},
 })
 
 export type Message = typeof Message.Type
@@ -84,6 +85,7 @@ export const update = (model: Model, message: Message) =>
       model: modifyFields(model, { count: Number.increment }),
     }),
     ScrolledTo: () => ({ model }),
+    Ticked: () => ({ model }),
   })
 
 // VIEW

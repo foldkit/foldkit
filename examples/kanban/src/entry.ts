@@ -5,7 +5,7 @@ import { BrowserCrypto, BrowserKeyValueStore } from '@effect/platform-browser'
 
 import {
   Flags,
-  layer as HandlersLayer,
+  Layer as HandlersLayer,
   Message,
   Model,
   flags,
@@ -19,7 +19,7 @@ const BrowserServicesLayer = Layer.mergeAll(
   BrowserCrypto.layer,
   BrowserKeyValueStore.layerLocalStorage,
 )
-const layer = HandlersLayer.pipe(Layer.provideMerge(BrowserServicesLayer))
+const AppLayer = HandlersLayer.pipe(Layer.provideMerge(BrowserServicesLayer))
 
 const application = Application.make({
   Model,
@@ -34,4 +34,4 @@ const application = Application.make({
   },
 })
 
-Runtime.run(Application.provide(application, layer), { flags })
+Runtime.run(Application.provide(application, AppLayer), { flags })

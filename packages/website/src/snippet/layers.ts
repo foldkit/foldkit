@@ -58,8 +58,8 @@ const ApiTestLayer = Layer.succeed(ApiClientService, {
 })
 
 export const HandlersLayer = LoadUserLayer
-export const layer = Layer.provideMerge(
-  Layer.provideMerge(HandlersLayer, ApiLayer),
-  Http.layer,
-)
-export const TestLayer = Layer.provideMerge(HandlersLayer, ApiTestLayer)
+const ServicesLayer = Layer.provide(ApiLayer, Http.layer)
+const ServicesTestLayer = ApiTestLayer
+
+export const AppLayer = Layer.provide(HandlersLayer, ServicesLayer)
+export const AppTestLayer = Layer.provide(HandlersLayer, ServicesTestLayer)

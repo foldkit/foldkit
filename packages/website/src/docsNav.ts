@@ -26,6 +26,7 @@ import {
   coreFreezeModelRouter,
   coreHttpRouter,
   coreInitAndFlagsRouter,
+  coreLayersRouter,
   coreMachineRouter,
   coreManagedResourcesRouter,
   coreMessagesRouter,
@@ -34,7 +35,6 @@ import {
   corePreserveScrollRouter,
   coreQueryRouter,
   coreRenderRouter,
-  coreResourcesRouter,
   coreRuntimeRouter,
   coreServerRenderingRouter,
   coreSlowWarningsRouter,
@@ -308,9 +308,9 @@ export const docsSections: ReadonlyArray<DocsSection> = [
       ],
       [
         {
-          _tag: 'CoreResources',
-          href: coreResourcesRouter(),
-          label: 'Application Layers',
+          _tag: 'CoreLayers',
+          href: coreLayersRouter(),
+          label: 'Layers',
         },
         {
           _tag: 'CoreManagedResources',

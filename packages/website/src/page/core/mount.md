@@ -60,7 +60,7 @@ Calling `toLayer` creates a Layer recipe. When it receives an Effect, the Runtim
 
 A whole-application execution test retains the real Layer-backed Mount handler and replaces the browser or library capability beneath it. The Mount still receives a live test element, performs its element-scoped transformation, and releases on unmount. Replacing the whole handler can acknowledge or orchestrate a Mount result, but that path does not test the replaced integration.
 
-Name the Mount for the imperative work attached to the element, using a verb-first name such as `MeasurePanel`, `AnchorPopover`, or `PortalMenuBackdrop`. Name its production Layer after the definition, such as `MeasurePanelLayer`, and include it in the feature's lowercase `layer` export.
+Name the Mount for the imperative work attached to the element, using a verb-first name such as `MeasurePanel`, `AnchorPopover`, or `PortalMenuBackdrop`. Name its production Layer after the definition, such as `MeasurePanelLayer`, and include it in the feature's `Layer` export.
 
 :::Info{label="Two rules for Mount work"}
 First, `execute` must use the live element. If it does not read or write that element, a Message or Model condition is probably the real cause. Second, the work must be safe to repeat whenever that element is inserted again. DOM measurement, paired DOM manipulation, observers, and element-owned library instances fit these rules.

@@ -35,4 +35,4 @@ export const SearchShortcutPressesLayer = subscriptions.searchShortcut.toLayer(
     ),
 )
 
-export { SearchShortcutPressesLayer as layer }
+export { SearchShortcutPressesLayer as Layer }

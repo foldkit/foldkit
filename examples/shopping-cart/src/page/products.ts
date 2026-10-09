@@ -61,7 +61,7 @@ export const ReplaceSearchUrlLayer = ReplaceSearchUrl.toLayer(({ url }) =>
   replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceSearchUrl())),
 )
 
-export { ReplaceSearchUrlLayer as layer }
+export { ReplaceSearchUrlLayer as Layer }
 
 // UPDATE
 

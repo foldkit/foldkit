@@ -3,7 +3,7 @@ import {
   Array,
   Clock,
   Effect,
-  Layer,
+  Layer as EffectLayer,
   Match,
   Option,
   Random,
@@ -310,7 +310,7 @@ const SaveTodosLayer = SaveTodos.toLayer(
   }),
 )
 
-export const layer = Layer.mergeAll(GenerateTodoLayer, SaveTodosLayer)
+export const Layer = EffectLayer.mergeAll(GenerateTodoLayer, SaveTodosLayer)
 
 // VIEW
 

@@ -94,7 +94,7 @@ const DelayAdvanceAsyncCounterPhaseLayer =
     ),
   )
 
-export const layer = DelayAdvanceAsyncCounterPhaseLayer
+export const Layer = DelayAdvanceAsyncCounterPhaseLayer
 
 export type UpdateRequirements = Command.HandlerOf<
   typeof DelayAdvanceAsyncCounterPhase

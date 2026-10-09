@@ -251,7 +251,7 @@ const SlowWarningReportsLayer = subscriptions.slowWarnings.toLayer(() =>
   }),
 )
 
-export const layer = SlowWarningReportsLayer
+export const Layer = SlowWarningReportsLayer
 
 // VIEW
 

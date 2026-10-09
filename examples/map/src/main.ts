@@ -2,8 +2,8 @@ import clsx from 'clsx'
 import {
   Array,
   Effect,
+  Layer as EffectLayer,
   Equal,
-  Layer,
   Option,
   Queue,
   Schema,
@@ -219,7 +219,7 @@ const UnlockBodyScrollLayer = UnlockBodyScroll.toLayer(() =>
   }),
 )
 
-const CommandsLayer = Layer.mergeAll(
+const CommandsLayer = EffectLayer.mergeAll(
   FlyToLayer,
   GeolocateLayer,
   FocusSearchInputLayer,
@@ -478,7 +478,7 @@ export const MountMapLayer = MountMap.toLayer(({ element, hostId }) =>
 
 export const mounts = [MountMap]
 
-export const layer = Layer.mergeAll(CommandsLayer, MountMapLayer)
+export const Layer = EffectLayer.mergeAll(CommandsLayer, MountMapLayer)
 
 const boundsFromMap = (map: MapInstance): Bounds => {
   const bounds = map.getBounds()

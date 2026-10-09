@@ -213,11 +213,17 @@ UI components export their Mount definitions (`Popover.AnchorPopover`, `Listbox.
 
 ## Subscriptions
 
-A Subscription Message has no element to interact with. `Subscription.emit(message)` feeds a timer tick, WebSocket frame, global listener result, or other Subscription output through update and renders the next view.
+`Subscription.emit` supplies a declared Subscription output, such as a timer tick, WebSocket frame, or global listener result. Register the application's `subscriptions` in the `scene` config, then emit the raw Message to run update and render the next view. A Scene with no `subscriptions` config accepts no Subscription Message.
 
-::Snippet{name="sceneSubscriptionEmit" label="Emitting a Subscription value"}
+::Snippet{name="testingSubscription" label="Emitting declared Subscription Messages"}
 
-Use it only when the Message's cause lives outside the rendered tree. If the Message comes from a button, click the button. That interaction verifies the handler wiring that `emit` would skip. `emit` throws while Commands, Mounts, or unacknowledged unmounts are pending.
+Each Subscription entry's `messages` collection is its emission contract. `emit` accepts only a raw Message declared by a registered entry and validates its payload at runtime. An inline entry must declare `messages` to participate; an entry with no declaration or `messages: []` has no Message that Scene can emit.
+
+For a lifted Subscription, pass the child Message. Scene replays the entry's `toParentMessage` mapping through every lift boundary before calling the update under test. The one-argument form must match exactly one registered entry. When the same Message is declared by more than one registration, call `Subscription.emit(entry, message)` with the exact registered entry to select the path. Those registrations need distinct entry objects: assigning one entry object to two keys does not let the exact-entry form distinguish the keys, so create a separate lifted entry for each path.
+
+`emit` supplies an output from the registered Subscription graph; it does not evaluate `modelToDependencies` against the current Model. This allows a test to represent an event that was already queued when its Subscription became inactive.
+
+Use `emit` for a Subscription-origin fact. If the same Message can come from a button or another DOM interaction, use that interaction when testing the DOM-origin path. The interaction verifies the handler wiring that `emit` would skip. `emit` throws while Commands, Mounts, or unacknowledged unmounts are pending.
 
 ## Managed Resources
 

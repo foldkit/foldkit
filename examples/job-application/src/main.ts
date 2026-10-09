@@ -1,4 +1,4 @@
-import { Crypto, Effect, Layer, Schema } from 'effect'
+import { Crypto, Effect, Layer as EffectLayer, Schema } from 'effect'
 import { Calendar } from 'foldkit'
 
 import { Menu, Tabs } from '@foldkit/ui'
@@ -68,12 +68,12 @@ export const init = ({
   }),
 })
 
-export const layer = Layer.mergeAll(
+export const Layer = EffectLayer.mergeAll(
   SubmitApplicationLayer,
-  PersonalInfo.layer,
-  WorkHistory.layer,
-  Education.layer,
-  Skills.layer,
+  PersonalInfo.Layer,
+  WorkHistory.Layer,
+  Education.Layer,
+  Skills.Layer,
 )
 
 export { Message, Model, update, view }

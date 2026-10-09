@@ -1,5 +1,5 @@
 export * as ExampleDetail from './exampleDetail'
-export { layer, mounts } from './exampleDetail'
+export { Layer, mounts } from './exampleDetail'
 export {
   ExampleSlug,
   exampleSlugs,
