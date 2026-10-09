@@ -671,11 +671,13 @@ const foldMenuSubmenuDemoOutMessage = Menu.OutMessage.match<
   Menu.OutMessage<SubmenuDemoItem>
 >({
   Selected: ({ value, path }) => {
-    const nextMenuSubmenuDemoSelection = Option.some(path?.join(' / ') ?? value)
+    const nextMaybeMenuSubmenuDemoSelection = Option.some(
+      path?.join(' / ') ?? value,
+    )
 
     return model => ({
       model: modifyFields(model, {
-        maybeMenuSubmenuDemoSelection: () => nextMenuSubmenuDemoSelection,
+        maybeMenuSubmenuDemoSelection: () => nextMaybeMenuSubmenuDemoSelection,
       }),
     })
   },

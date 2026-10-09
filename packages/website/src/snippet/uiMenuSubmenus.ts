@@ -64,7 +64,7 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-// A leaf selection updates the parent Model. Submenu triggers do not select:
+// Submenu triggers open child menus; only leaf actions emit Selected:
 const foldMenuOutMessage = Menu.OutMessage.match<
   Update.Step<Model, Message>,
   Menu.OutMessage<Action>

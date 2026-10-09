@@ -3,6 +3,7 @@ import {
   Effect,
   Equal,
   Match,
+  Number,
   Option,
   Predicate,
   Schema,
@@ -289,7 +290,7 @@ const closedModel = (model: Model): Model =>
     submenuLevels: () => [],
     maybePendingSubmenuIndexPath: () => Option.none(),
     maybePendingSubmenuCloseDepth: () => Option.none(),
-    submenuRequestVersion: () => model.submenuRequestVersion + 1,
+    submenuRequestVersion: Number.increment,
   })
 
 /** Returns the bare DOM id of the menu trigger button, derived from the
@@ -312,15 +313,17 @@ const menuLevelId = (
   id: string,
   parentIndexPath: ReadonlyArray<number>,
 ): string =>
-  Array.isReadonlyArrayEmpty(parentIndexPath)
-    ? `${id}-items`
-    : `${id}-submenu-${pathSuffix(parentIndexPath)}`
+  Array.match(parentIndexPath, {
+    onEmpty: () => `${id}-items`,
+    onNonEmpty: () => `${id}-submenu-${pathSuffix(parentIndexPath)}`,
+  })
 
-const pathItemId = (id: string, indexPath: ReadonlyArray<number>): string =>
-  `${menuLevelId(id, Array.dropRight(indexPath, 1))}-item-${Option.getOrElse(
-    Array.last(indexPath),
-    () => 0,
-  )}`
+const pathItemId = (id: string, indexPath: ReadonlyArray<number>): string => {
+  const index = Option.getOrThrow(Array.last(indexPath))
+  const parentIndexPath = Array.dropRight(indexPath, 1)
+
+  return `${menuLevelId(id, parentIndexPath)}-item-${index}`
+}
 
 const stablePathKey = (parts: ReadonlyArray<string>): string =>
   pipe(parts, Array.map(encodeURIComponent), Array.join('/'))
@@ -676,7 +679,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         return { model }
       }
 
-      const depth = indexPath.length - 1
+      const depth = Array.length(indexPath) - 1
       const maybeOpenIndex = Array.get(model.openSubmenuIndexPath, depth)
       const shouldCloseChild =
         activationTrigger === 'Pointer' &&
@@ -685,32 +688,28 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           openIndex => openIndex !== maybeIndex.value,
         )
       const hasPendingOpen = Option.isSome(model.maybePendingSubmenuIndexPath)
+      const withoutOpenChild = shouldCloseChild
+        ? modifyFields(model, {
+            openSubmenuIndexPath: Array.take(depth),
+            openSubmenuPath: Array.take(depth),
+            submenuLevels: Array.take(depth),
+          })
+        : model
       const baseModel =
         shouldCloseChild || hasPendingOpen
-          ? modifyFields(model, {
-              openSubmenuIndexPath: () =>
-                shouldCloseChild
-                  ? Array.take(model.openSubmenuIndexPath, depth)
-                  : model.openSubmenuIndexPath,
-              openSubmenuPath: () =>
-                shouldCloseChild
-                  ? Array.take(model.openSubmenuPath, depth)
-                  : model.openSubmenuPath,
-              submenuLevels: () =>
-                shouldCloseChild
-                  ? Array.take(model.submenuLevels, depth)
-                  : model.submenuLevels,
+          ? modifyFields(withoutOpenChild, {
               maybePendingSubmenuIndexPath: () => Option.none(),
               maybePendingSubmenuCloseDepth: () => Option.none(),
-              submenuRequestVersion: () => model.submenuRequestVersion + 1,
+              submenuRequestVersion: Number.increment,
             })
-          : model
+          : withoutOpenChild
       return {
         model: modifyFields(
-          updateLevelAtDepth(baseModel, depth, level => ({
-            ...level,
-            maybeActiveItemIndex: Option.some(maybeIndex.value),
-          })),
+          updateLevelAtDepth(baseModel, depth, level =>
+            modifyFields(level, {
+              maybeActiveItemIndex: () => Option.some(maybeIndex.value),
+            }),
+          ),
           { activationTrigger: () => activationTrigger },
         ),
         commands:
@@ -722,26 +721,27 @@ export const update = (model: Model, message: Message): UpdateReturn => {
 
     OpenedSubmenu: ({ indexPath, submenuPath, maybeActiveItemIndex }) => {
       const maybeTriggerIndex = Array.last(indexPath)
-      const parentDepth = indexPath.length - 1
+      const parentDepth = Array.length(indexPath) - 1
       const withActiveTrigger = Option.match(maybeTriggerIndex, {
         onNone: () => model,
         onSome: triggerIndex =>
-          updateLevelAtDepth(model, parentDepth, level => ({
-            ...level,
-            maybeActiveItemIndex: Option.some(triggerIndex),
-          })),
+          updateLevelAtDepth(model, parentDepth, level =>
+            modifyFields(level, {
+              maybeActiveItemIndex: () => Option.some(triggerIndex),
+            }),
+          ),
       })
       return {
         model: modifyFields(withActiveTrigger, {
           openSubmenuIndexPath: () => indexPath,
           openSubmenuPath: () => submenuPath,
           submenuLevels: () => [
-            ...Array.take(model.submenuLevels, indexPath.length - 1),
+            ...Array.take(model.submenuLevels, Array.length(indexPath) - 1),
             emptyMenuLevel(maybeActiveItemIndex),
           ],
           maybePendingSubmenuIndexPath: () => Option.none(),
           maybePendingSubmenuCloseDepth: () => Option.none(),
-          submenuRequestVersion: () => model.submenuRequestVersion + 1,
+          submenuRequestVersion: Number.increment,
         }),
       }
     },
@@ -751,16 +751,17 @@ export const update = (model: Model, message: Message): UpdateReturn => {
       submenuPath,
       maybeActiveItemIndex,
     }) => {
-      const nextVersion = model.submenuRequestVersion + 1
+      const nextVersion = Number.increment(model.submenuRequestVersion)
       const maybeTriggerIndex = Array.last(indexPath)
-      const parentDepth = indexPath.length - 1
+      const parentDepth = Array.length(indexPath) - 1
       const withActiveTrigger = Option.match(maybeTriggerIndex, {
         onNone: () => model,
         onSome: triggerIndex =>
-          updateLevelAtDepth(model, parentDepth, level => ({
-            ...level,
-            maybeActiveItemIndex: Option.some(triggerIndex),
-          })),
+          updateLevelAtDepth(model, parentDepth, level =>
+            modifyFields(level, {
+              maybeActiveItemIndex: () => Option.some(triggerIndex),
+            }),
+          ),
       })
       return {
         model: modifyFields(withActiveTrigger, {
@@ -787,7 +788,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     }) => {
       const isPending = Option.exists(
         model.maybePendingSubmenuIndexPath,
-        Equal.equals(indexPath),
+        path => Equal.equals(path, indexPath),
       )
       if (version !== model.submenuRequestVersion || !isPending) {
         return { model }
@@ -804,7 +805,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
     },
 
     RequestedSubmenuClose: ({ depth }) => {
-      if (model.openSubmenuIndexPath.length < depth) {
+      if (Array.length(model.openSubmenuIndexPath) < depth) {
         if (Option.isNone(model.maybePendingSubmenuIndexPath)) {
           return { model }
         }
@@ -812,12 +813,12 @@ export const update = (model: Model, message: Message): UpdateReturn => {
         return {
           model: modifyFields(model, {
             maybePendingSubmenuIndexPath: () => Option.none(),
-            submenuRequestVersion: version => version + 1,
+            submenuRequestVersion: Number.increment,
           }),
         }
       }
 
-      const nextVersion = model.submenuRequestVersion + 1
+      const nextVersion = Number.increment(model.submenuRequestVersion)
       return {
         model: modifyFields(model, {
           maybePendingSubmenuIndexPath: () => Option.none(),
@@ -836,7 +837,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
       return {
         model: modifyFields(model, {
           maybePendingSubmenuCloseDepth: () => Option.none(),
-          submenuRequestVersion: () => model.submenuRequestVersion + 1,
+          submenuRequestVersion: Number.increment,
         }),
       }
     },
@@ -866,7 +867,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           submenuLevels: () => Array.take(model.submenuLevels, depth - 1),
           maybePendingSubmenuIndexPath: () => Option.none(),
           maybePendingSubmenuCloseDepth: () => Option.none(),
-          submenuRequestVersion: () => model.submenuRequestVersion + 1,
+          submenuRequestVersion: Number.increment,
         }),
       }
     },
@@ -880,18 +881,17 @@ export const update = (model: Model, message: Message): UpdateReturn => {
       ),
 
     SearchedPath: ({ depth, key, maybeTargetIndex }) => {
-      const nextSearchVersion = model.pathSearchVersion + 1
+      const nextSearchVersion = Number.increment(model.pathSearchVersion)
       return {
         model: modifyFields(
-          updateLevelAtDepth(model, depth, currentLevel => ({
-            ...currentLevel,
-            searchQuery: currentLevel.searchQuery + key,
-            searchVersion: nextSearchVersion,
-            maybeActiveItemIndex: Option.orElse(
-              maybeTargetIndex,
-              () => currentLevel.maybeActiveItemIndex,
-            ),
-          })),
+          updateLevelAtDepth(model, depth, currentLevel =>
+            modifyFields(currentLevel, {
+              searchQuery: searchQuery => searchQuery + key,
+              searchVersion: () => nextSearchVersion,
+              maybeActiveItemIndex: maybeActiveItemIndex =>
+                Option.orElse(maybeTargetIndex, () => maybeActiveItemIndex),
+            }),
+          ),
           { pathSearchVersion: () => nextSearchVersion },
         ),
         commands: [DelayClearPathSearch({ depth, version: nextSearchVersion })],
@@ -905,10 +905,9 @@ export const update = (model: Model, message: Message): UpdateReturn => {
       }
 
       return {
-        model: updateLevelAtDepth(model, depth, currentLevel => ({
-          ...currentLevel,
-          searchQuery: '',
-        })),
+        model: updateLevelAtDepth(model, depth, currentLevel =>
+          modifyFields(currentLevel, { searchQuery: () => '' }),
+        ),
       }
     },
 
@@ -933,7 +932,7 @@ export const update = (model: Model, message: Message): UpdateReturn => {
           submenuLevels: () => [],
           maybePendingSubmenuIndexPath: () => Option.none(),
           maybePendingSubmenuCloseDepth: () => Option.none(),
-          submenuRequestVersion: () => model.submenuRequestVersion + 1,
+          submenuRequestVersion: Number.increment,
         }),
       )
     },
@@ -2075,51 +2074,43 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       }
 
       const isChildDisabled = (childIndex: number): boolean =>
-        pipe(
-          Array.get(submenuEntry.items, childIndex),
-          Option.exists(child =>
-            entryIsDisabled(
-              child,
-              childIndex,
-              [...path, isSubmenu(child) ? child.id : child],
-              [...indexPath, childIndex],
-            ),
+        Option.exists(Array.get(submenuEntry.items, childIndex), child =>
+          entryIsDisabled(
+            child,
+            childIndex,
+            [...path, isSubmenu(child) ? child.id : child],
+            [...indexPath, childIndex],
           ),
         )
       const firstIndex = findFirstEnabledIndex(
-        submenuEntry.items.length,
+        Array.length(submenuEntry.items),
         0,
         isChildDisabled,
       )(0, 1)
 
-      return isChildDisabled(firstIndex)
-        ? Option.none()
-        : Option.some(firstIndex)
+      return Option.liftPredicate(firstIndex, index => !isChildDisabled(index))
     }
 
     const current = entriesAndIdsAtPath(storedOpenSubmenuIndexPath)
-    const activeDepth = current.ids.length
+    const activeDepth = Array.length(current.ids)
     const openSubmenuIndexPath = Array.take(
       storedOpenSubmenuIndexPath,
       activeDepth,
     )
     const currentLevel = levelAtDepth(model, activeDepth)
     const currentIsDisabled = (index: number): boolean =>
-      pipe(
-        Array.get(current.entries, index),
-        Option.exists(entry =>
-          entryIsDisabled(
-            entry,
-            index,
-            [...current.ids, isSubmenu(entry) ? entry.id : entry],
-            [...openSubmenuIndexPath, index],
-          ),
+      Option.exists(Array.get(current.entries, index), entry =>
+        entryIsDisabled(
+          entry,
+          index,
+          [...current.ids, isSubmenu(entry) ? entry.id : entry],
+          [...openSubmenuIndexPath, index],
         ),
       )
     const resolveActiveIndex = (key: string): number => {
       if (Option.isNone(currentLevel.maybeActiveItemIndex)) {
         const find = findFirstEnabledIndex(
-          current.entries.length,
+          Array.length(current.entries),
           0,
           currentIsDisabled,
         )
@@ -2127,14 +2118,14 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
           return find(0, 1)
         }
         if (key === 'ArrowUp') {
-          return find(current.entries.length - 1, -1)
+          return find(Array.length(current.entries) - 1, -1)
         }
       }
 
       return keyToIndex(
         'ArrowDown',
         'ArrowUp',
-        current.entries.length,
+        Array.length(current.entries),
         Option.getOrElse(currentLevel.maybeActiveItemIndex, () => 0),
         currentIsDisabled,
       )(key)
@@ -2274,15 +2265,12 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
     }
 
     const rootIsDisabled = (index: number): boolean =>
-      pipe(
-        Array.get(items, index),
-        Option.exists(entry =>
-          entryIsDisabled(
-            entry,
-            index,
-            [isSubmenu(entry) ? entry.id : entry],
-            [index],
-          ),
+      Option.exists(Array.get(items, index), entry =>
+        entryIsDisabled(
+          entry,
+          index,
+          [isSubmenu(entry) ? entry.id : entry],
+          [index],
         ),
       )
     const firstEnabledRootIndex = (): Option.Option<number> => {
@@ -2291,13 +2279,11 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       }
 
       const firstIndex = findFirstEnabledIndex(
-        items.length,
+        Array.length(items),
         0,
         rootIsDisabled,
       )(0, 1)
-      return rootIsDisabled(firstIndex)
-        ? Option.none()
-        : Option.some(firstIndex)
+      return Option.liftPredicate(firstIndex, index => !rootIsDisabled(index))
     }
     const lastEnabledRootIndex = (): Option.Option<number> => {
       if (Array.isReadonlyArrayEmpty(items)) {
@@ -2305,11 +2291,11 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       }
 
       const lastIndex = findFirstEnabledIndex(
-        items.length,
+        Array.length(items),
         0,
         rootIsDisabled,
-      )(items.length - 1, -1)
-      return rootIsDisabled(lastIndex) ? Option.none() : Option.some(lastIndex)
+      )(Array.length(items) - 1, -1)
+      return Option.liftPredicate(lastIndex, index => !rootIsDisabled(index))
     }
     const handleButtonKeyDown = (
       key: string,
@@ -2362,32 +2348,29 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
           return Option.none()
         }
 
-        return pipe(
-          level.maybeActiveItemIndex,
-          Option.flatMap(index =>
-            pipe(
-              Array.get(levelEntries, index),
-              Option.filter(Predicate.isString),
-              Option.filter(
-                item =>
-                  !entryIsDisabled(
-                    item,
-                    index,
-                    [...submenuIds, item],
-                    [...parentIndexPath, index],
-                  ),
-              ),
-              Option.map(item =>
-                Message.ReleasedPointerOnPathItem({
-                  screenX,
-                  screenY,
-                  timeStamp,
-                  index,
+        return Option.flatMap(level.maybeActiveItemIndex, index =>
+          pipe(
+            Array.get(levelEntries, index),
+            Option.filter(Predicate.isString),
+            Option.filter(
+              item =>
+                !entryIsDisabled(
                   item,
-                  path: [...submenuIds, item],
-                  indexPath: [...parentIndexPath, index],
-                }),
-              ),
+                  index,
+                  [...submenuIds, item],
+                  [...parentIndexPath, index],
+                ),
+            ),
+            Option.map(item =>
+              Message.ReleasedPointerOnPathItem({
+                screenX,
+                screenY,
+                timeStamp,
+                index,
+                item,
+                path: [...submenuIds, item],
+                indexPath: [...parentIndexPath, index],
+              }),
             ),
           ),
         )
@@ -2407,12 +2390,12 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
             : Option.some(itemGroupKey(entry, index))
         const isActive = Option.exists(
           level.maybeActiveItemIndex,
-          Equal.equals(index),
+          activeIndex => activeIndex === index,
         )
         const isDisabled = entryIsDisabled(entry, index, path, indexPath)
         const isOpenSubmenu =
           isSubmenu(entry) &&
-          openSubmenuIndexPath.length > depth &&
+          Array.length(openSubmenuIndexPath) > depth &&
           Equal.equals(indexPath, Array.take(openSubmenuIndexPath, depth + 1))
         const context: EntryContext<string> = {
           isActive,
@@ -2530,9 +2513,8 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
 
         return Array.flatMap(segments, (segment, segmentIndex) => {
           const firstItem = Option.getOrThrow(Array.head(segment.items))
-          const maybeHeading = pipe(
-            firstItem.maybeGroupKey,
-            Option.flatMap(key => Option.fromNullishOr(groupToHeading?.(key))),
+          const maybeHeading = Option.flatMap(firstItem.maybeGroupKey, key =>
+            Option.fromNullishOr(groupToHeading?.(key)),
           )
           const groupId = `${panelId}-group-${segment.key}-${firstItem.entryKey}`
           const headingId = `${groupId}-heading`
@@ -2600,11 +2582,8 @@ const nestedMenuViewImpl = defineView<Model, Message, ViewInputs<string>>(
           : renderedItems
       const maybeActiveDescendant = isRoot
         ? Option.match(
-            pipe(
-              currentLevel.maybeActiveItemIndex,
-              Option.filter(index =>
-                Option.isSome(Array.get(current.entries, index)),
-              ),
+            Option.filter(currentLevel.maybeActiveItemIndex, index =>
+              Option.isSome(Array.get(current.entries, index)),
             ),
             {
               onNone: () => [],

@@ -1,3 +1,4 @@
+import { clsx } from 'clsx'
 import { Match, Option } from 'effect'
 import {
   Html,
@@ -18,9 +19,15 @@ const triggerClassName = 'demo-neutral-button inline-flex items-center gap-1.5'
 
 const basicItemsClassName = 'demo-popup-surface w-48 overflow-hidden'
 
-const submenuItemsClassName = `${basicItemsClassName} dark:shadow-[0_10px_28px_rgba(0,0,0,0.5)]`
+const submenuItemsClassName = clsx(
+  basicItemsClassName,
+  'dark:shadow-[0_10px_28px_rgba(0,0,0,0.5)]',
+)
 
-const animatedItemsClassName = `${basicItemsClassName} transition duration-200 ease-out data-[closed]:scale-95 data-[closed]:opacity-0`
+const animatedItemsClassName = clsx(
+  basicItemsClassName,
+  'transition duration-200 ease-out data-[closed]:scale-95 data-[closed]:opacity-0',
+)
 
 const itemClassName = 'demo-option'
 
