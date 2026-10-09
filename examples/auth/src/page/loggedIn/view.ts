@@ -5,7 +5,12 @@ import { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Session } from '../../domain/session'
 import { notFoundView } from '../../notFoundView'
-import { dashboardRouter, settingsRouter } from '../../route'
+import {
+  AppRoute,
+  LoggedInRoute,
+  dashboardRouter,
+  settingsRouter,
+} from '../../route'
 import { Message } from './message'
 import { Model } from './model'
 import * as Dashboard from './page/dashboard'
@@ -18,7 +23,7 @@ const navLinkClassName = (isActive: boolean) =>
 
 const navigationView = (
   session: Session,
-  currentRouteTag: string,
+  currentRoute: LoggedInRoute,
   h: HtmlBuilder<Message>,
 ): Html =>
   h.nav(
@@ -37,7 +42,9 @@ const navigationView = (
                     [
                       h.Href(dashboardRouter()),
                       h.Class(
-                        navLinkClassName(currentRouteTag === 'Dashboard'),
+                        navLinkClassName(
+                          AppRoute.guards.Dashboard(currentRoute),
+                        ),
                       ),
                     ],
                     ['Dashboard'],
@@ -50,7 +57,11 @@ const navigationView = (
                   h.a(
                     [
                       h.Href(settingsRouter()),
-                      h.Class(navLinkClassName(currentRouteTag === 'Settings')),
+                      h.Class(
+                        navLinkClassName(
+                          AppRoute.guards.Settings(currentRoute),
+                        ),
+                      ),
                     ],
                     ['Settings'],
                   ),
@@ -68,7 +79,7 @@ export const view = Submodel.defineView<Model, Message>((model, h) =>
   h.div(
     [h.Class('min-h-screen')],
     [
-      navigationView(model.session, model.route._tag, h),
+      navigationView(model.session, model.route, h),
       h.main(
         [h.Class('py-8')],
         [
