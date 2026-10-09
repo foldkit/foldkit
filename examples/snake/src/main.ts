@@ -52,15 +52,11 @@ export type Message = typeof Message.Type
 
 // INIT
 
-export const init = (): Update.Return<
-  Model,
-  Message,
-  Command.HandlerOf<typeof GenerateApplePosition>
-> => {
+export const init = () => {
   const snake = Snake.create(GAME.INITIAL_POSITION)
 
   return {
-    model: {
+    model: Model.make({
       snake,
       apple: { x: 15, y: 15 },
       direction: GAME.INITIAL_DIRECTION,
@@ -68,7 +64,7 @@ export const init = (): Update.Return<
       gameState: 'NotStarted',
       points: 0,
       highScore: 0,
-    },
+    }),
     commands: [GenerateApplePosition({ snake })],
   }
 }
