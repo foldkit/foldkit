@@ -4,6 +4,10 @@ import { modifyFields } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 
 import {
+  type ValueOutMessageMatch,
+  bindValueOutMessageMatch,
+} from '../internal/valueOutMessageMatch.js'
+import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewInputsCommon,
@@ -119,10 +123,11 @@ type BundleUpdateReturn<Item extends string> = Update.ReturnWithOutMessage<
 >
 
 /** The `view`, `update`, and programmatic helpers that `Combobox.create`
- *  returns, bound to one `Item` type. Name it to annotate a value that
- *  holds a created bundle, such as a field on a config object or a
- *  function parameter that takes the bundle rather than calling `create`
- *  itself. */
+ *  returns, bound to one `Item` type. `OutMessage.match` folds `Selected`
+ *  and `ClearedSelection`, and `Selected` carries that same `Item`. Name it
+ *  to annotate a value that holds a created bundle, such as a field on a
+ *  config object or a function parameter that takes the bundle rather than
+ *  calling `create` itself. */
 export type Bundle<Item extends string = string> = Readonly<{
   view: SubmodelView<Model, Message, ViewInputs<Item>>
   update: (model: Model, message: Message) => BundleUpdateReturn<Item>
@@ -133,14 +138,18 @@ export type Bundle<Item extends string = string> = Readonly<{
   ) => BundleUpdateReturn<Item>
   open: (model: Model) => BundleUpdateReturn<Item>
   close: (model: Model, restingInputValue: string) => BundleUpdateReturn<Item>
+  OutMessage: Readonly<{
+    match: ValueOutMessageMatch<OutMessage<Item>>
+  }>
 }>
 
 /** Pairs the single-select combobox's `view` and `update` (and programmatic
  *  helpers) behind a single Item-typed entry point. See `Listbox.create`
  *  for the rationale; the combobox factory follows the same shape with
  *  `selectItem` taking both `item` and `displayText`. `selectItem` emits
- *  `Selected({ value })` with the input resting on `displayText`; what the
- *  selection becomes is the parent's fold to decide. */
+ *  `Selected({ value })` with the input resting on `displayText`. Fold that
+ *  OutMessage with the bundle's `OutMessage.match`, which types `value` as
+ *  `Item`. What the selection becomes is the parent's fold to decide. */
 export const create = <Item extends string = string>(): Bundle<Item> => {
   type UpdateReturn = Update.ReturnWithOutMessage<
     Model,
@@ -179,5 +188,8 @@ export const create = <Item extends string = string>(): Bundle<Item> => {
         model,
         Message.Closed({ restingInputValue, isClearable: true }),
       ),
+    OutMessage: {
+      match: bindValueOutMessageMatch<OutMessage<Item>>(OutMessage.match),
+    },
   }
 }
