@@ -5,13 +5,13 @@ import { Url } from 'foldkit/url'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 
+import { RedirectToDashboard, RedirectToLogin } from './command'
 import { SESSION_STORAGE_KEY } from './constant'
 import { Session, SessionJsonString } from './domain/session'
 import { Message } from './message'
 import { Model } from './model'
 import { LoggedIn, LoggedOut } from './page'
 import { AppRoute, urlToAppRoute } from './route'
-import { RedirectToDashboard, RedirectToLogin } from './update'
 
 // FLAGS
 

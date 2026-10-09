@@ -1,68 +1,26 @@
-import { Effect, Layer, Match, Option, Schema } from 'effect'
-import { Command, Update } from 'foldkit'
-import { UrlRequest, load, pushUrl, replaceUrl } from 'foldkit/navigation'
+import { Layer, Match, Option } from 'effect'
+import { Update } from 'foldkit'
+import { UrlRequest } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
 
-import { ClearSession, CommandsLive, LogError, SaveSession } from './command'
+import {
+  ClearSession,
+  CommandsLive,
+  LoadExternal,
+  LogError,
+  NavigateInternal,
+  RedirectToDashboard,
+  RedirectToHome,
+  RedirectToLogin,
+  SaveSession,
+} from './command'
 import { Message } from './message'
 import { Model } from './model'
 import { LoggedIn, LoggedOut } from './page'
-import {
-  AppRoute,
-  dashboardRouter,
-  homeRouter,
-  loginRouter,
-  urlToAppRoute,
-} from './route'
+import { AppRoute, urlToAppRoute } from './route'
 
-const NavigateInternal = Command.define('NavigateInternal', {
-  args: { url: Schema.String },
-  messages: [Message.CompletedNavigateInternal],
-})
-
-const LoadExternal = Command.define('LoadExternal', {
-  args: { href: Schema.String },
-  messages: [Message.CompletedLoadExternal],
-})
-
-export const RedirectToLogin = Command.define('RedirectToLogin', {
-  messages: [Message.CompletedNavigateInternal],
-})
-
-export const RedirectToDashboard = Command.define('RedirectToDashboard', {
-  messages: [Message.CompletedNavigateInternal],
-})
-
-const RedirectToHome = Command.define('RedirectToHome', {
-  messages: [Message.CompletedNavigateInternal],
-})
-
-const NavigationLive = Layer.mergeAll(
-  NavigateInternal.toLayer(({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
-  ),
-  LoadExternal.toLayer(({ href }) =>
-    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
-  ),
-  RedirectToLogin.toLayer(() =>
-    replaceUrl(loginRouter()).pipe(
-      Effect.as(Message.CompletedNavigateInternal()),
-    ),
-  ),
-  RedirectToDashboard.toLayer(() =>
-    replaceUrl(dashboardRouter()).pipe(
-      Effect.as(Message.CompletedNavigateInternal()),
-    ),
-  ),
-  RedirectToHome.toLayer(() =>
-    replaceUrl(homeRouter()).pipe(
-      Effect.as(Message.CompletedNavigateInternal()),
-    ),
-  ),
-)
-
-export const Live = Layer.mergeAll(CommandsLive, NavigationLive, LoggedOut.Live)
+export const Live = Layer.mergeAll(CommandsLive, LoggedOut.Live)
 
 type CommandServices = Layer.Success<typeof Live>
 
