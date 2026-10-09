@@ -889,6 +889,102 @@ const delimiterCollisionMachine = define({
   },
 })
 
+const MermaidUnsafeState = defineTaggedUnion({
+  Idle: {},
+  'Not Asked': {},
+  'A|B': {},
+  'Line\nBreak': {},
+  Note: {},
+  state_4e: {},
+  root_start: {},
+  root_end: {},
+  TBD: {},
+  _Private_: {},
+  '': {},
+})
+
+const MermaidUnsafeMessage = defineMessageUnion({
+  'Clicked: Fetch; now': {},
+  'B|C': {},
+  '"Go" direction TB %%{init}%% #35; <b>': {},
+  ChangedDirection: {},
+  _Private_: {},
+  '': {},
+})
+
+const mermaidUnsafeMachine = define({
+  state: MermaidUnsafeState,
+  message: MermaidUnsafeMessage,
+})({
+  initial: MermaidUnsafeState.Idle(),
+  states: {
+    Idle: {
+      on: {
+        'Clicked: Fetch; now': to('Not Asked', () => ({
+          model: MermaidUnsafeState['Not Asked'](),
+        })),
+      },
+    },
+    'Not Asked': {
+      on: {
+        'B|C': [
+          when(
+            () => false,
+            'A|B',
+            () => ({ model: MermaidUnsafeState['A|B']() }),
+          ),
+          otherwise(
+            to('Line\nBreak', () => ({
+              model: MermaidUnsafeState['Line\nBreak'](),
+            })),
+          ),
+        ],
+      },
+    },
+    'A|B': {
+      on: {
+        '"Go" direction TB %%{init}%% #35; <b>': to('Note', () => ({
+          model: MermaidUnsafeState.Note(),
+        })),
+      },
+    },
+    'Line\nBreak': {
+      on: {
+        '': to('state_4e', () => ({ model: MermaidUnsafeState.state_4e() })),
+      },
+    },
+    Note: {
+      on: {
+        'B|C': to('root_start', () => ({
+          model: MermaidUnsafeState.root_start(),
+        })),
+      },
+    },
+    state_4e: {
+      on: {
+        'B|C': to('', () => ({ model: MermaidUnsafeState['']() })),
+      },
+    },
+    root_start: {
+      on: {
+        ChangedDirection: to('TBD', () => ({
+          model: MermaidUnsafeState.TBD(),
+        })),
+      },
+    },
+    TBD: {
+      on: {
+        'B|C': to('Idle', () => ({ model: MermaidUnsafeState.Idle() })),
+      },
+    },
+    _Private_: {
+      on: {
+        _Private_: to('Idle', () => ({ model: MermaidUnsafeState.Idle() })),
+      },
+    },
+  },
+})
+
 const PlainIdle = Schema.Struct({ _tag: Schema.Literal('PlainIdle') })
 const PlainActive = Schema.Struct({ _tag: Schema.Literal('PlainActive') })
 
@@ -2314,6 +2410,38 @@ describe('type-level guarantees', () => {
         reason: 'UnreachableSource',
       },
     ])
+  })
+})
+
+describe('Mermaid output', () => {
+  it('emits Mermaid identifiers and escaped labels for arbitrary tags', () => {
+    expect(mermaidUnsafeMachine.toMermaid()).toBe(
+      [
+        'stateDiagram-v2',
+        '  Idle',
+        '  state "Not#32;Asked" as state_4e_6f_74_20_41_73_6b_65_64',
+        '  state "A#124;B" as state_41_7c_42',
+        '  state "Line#10;Break" as state_4c_69_6e_65_a_42_72_65_61_6b',
+        '  state "Note" as state_4e_6f_74_65',
+        '  state "state#95;4e" as state_73_74_61_74_65_5f_34_65',
+        '  state "root#95;start" as state_72_6f_6f_74_5f_73_74_61_72_74',
+        '  state "root#95;end" as state_72_6f_6f_74_5f_65_6e_64',
+        '  state "TBD" as state_54_42_44',
+        '  state "#95;Private#95;" as state_5f_50_72_69_76_61_74_65_5f',
+        '  state "#8203;" as state_',
+        '  [*] --> Idle',
+        '  Idle --> state_4e_6f_74_20_41_73_6b_65_64: Clicked#58;#32;Fetch#59;#32;now',
+        '  state_4e_6f_74_20_41_73_6b_65_64 --> state_41_7c_42: B#124;C [when 1]',
+        '  state_4e_6f_74_20_41_73_6b_65_64 --> state_4c_69_6e_65_a_42_72_65_61_6b: B#124;C [otherwise]',
+        '  state_41_7c_42 --> state_4e_6f_74_65: #34;Go#34;#32;direction#32;TB#32;#37;#37;#123;init#125;#37;#37;#32;#35;35#59;#32;#60;b#62;',
+        '  state_4c_69_6e_65_a_42_72_65_61_6b --> state_73_74_61_74_65_5f_34_65',
+        '  state_4e_6f_74_65 --> state_72_6f_6f_74_5f_73_74_61_72_74: B#124;C',
+        '  state_73_74_61_74_65_5f_34_65 --> state_: B#124;C',
+        '  state_72_6f_6f_74_5f_73_74_61_72_74 --> state_54_42_44: ChangedDirection',
+        '  state_54_42_44 --> Idle: B#124;C',
+        '  state_5f_50_72_69_76_61_74_65_5f --> Idle: #95;Private#95;',
+      ].join('\n'),
+    )
   })
 })
 
