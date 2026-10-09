@@ -79,13 +79,13 @@ Do not put `max-height: inherit` on the child. That copies the panel's full meas
 
 ## Keyboard Interaction
 
-By default, the panel receives `tabindex="0"` so it can receive focus. Tab navigates naturally through the panel content. Escape closes and returns focus to the button.
+By default, the panel receives `tabindex="0"` so it can receive focus. The panel is portaled to the start of the page, and Tab still follows the trigger: into the panel, through its contents, and on to the next control after the trigger. Shift+Tab from the first control returns to the trigger. Escape closes and returns focus to the button.
 
-| Key             | Description                                                                   |
-| --------------- | ----------------------------------------------------------------------------- |
-| `Enter / Space` | Toggles the popover.                                                          |
-| `Escape`        | Closes the popover and returns focus to the button.                           |
-| `Tab`           | Navigates within the panel. By default, closes the popover when focus leaves. |
+| Key             | Description                                                                                                                                                                                      |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Enter / Space` | Toggles the popover.                                                                                                                                                                             |
+| `Escape`        | Closes the popover and returns focus to the button.                                                                                                                                              |
+| `Tab`           | Enters the panel from the trigger, moves through it, and continues after the trigger. Shift+Tab from the first control returns to the trigger. By default, leaving the panel closes the popover. |
 
 ## Accessibility
 
