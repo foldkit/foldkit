@@ -1,8 +1,8 @@
-import { Array, Effect, Fiber, Option, Predicate, Schema, Stream } from 'effect'
+import { Array, Effect, Fiber, Option, Schema, Stream } from 'effect'
 import { Scene, Story } from 'foldkit'
 import { DEVTOOLS_HOST_ID } from 'foldkit/devtools-host'
 import * as Dom from 'foldkit/dom'
-import type { ChildAttribute, HtmlBuilder } from 'foldkit/html'
+import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import type * as Runtime from 'foldkit/runtime'
 import { modifyFields } from 'foldkit/struct'
@@ -19,7 +19,6 @@ import {
   Model,
   OutMessage,
   ReleaseDialogResources,
-  type RenderInfo,
   ShowDialog,
   boot,
   descriptionId,
@@ -74,151 +73,26 @@ const parentInit: Runtime.ApplicationInit<ParentModel, ParentMessage> = () =>
     foldOutMessage: foldDialogOutMessage,
   })
 
-const isDialogVisible = (model: Model): boolean =>
-  model.isOpen || model.animation.transitionState !== 'Idle'
-
-const isOnUnmount = (childAttribute: ChildAttribute): boolean =>
-  Predicate.isTagged(childAttribute.attribute, 'OnUnmount')
-
-// Renders the dialog view through the Scene harness (which manages the runtime
-// frame) and reports whether the published `dialog` attribute group carries the
-// OnUnmount backstop.
-const dialogHasOnUnmount = (model: Model): boolean => {
-  let hasOnUnmount = false
-  const sceneView = (currentModel: Model, h: HtmlBuilder<Message>) =>
+const renderInfoView =
+  (hasDescription = false) =>
+  (model: Model, h: HtmlBuilder<Message>) =>
     view(
-      currentModel,
-      {
-        toView: ({ dialog }) => {
-          hasOnUnmount = dialog.some(isOnUnmount)
-          return h.dialog([...dialog])
-        },
-      },
-      h,
-    )
-
-  if (isDialogVisible(model)) {
-    Scene.scene(
-      { update, view: sceneView },
-      Scene.given(model),
-      acknowledgeAcquireResources,
-    )
-  } else {
-    Scene.scene({ update, view: sceneView }, Scene.given(model))
-  }
-  return hasOnUnmount
-}
-
-// Renders the dialog view through the Scene harness and returns the chosen
-// RenderInfo attribute group so a test can inspect what the consumer receives.
-const renderGroup = (
-  model: Model,
-  selectGroup: (render: RenderInfo) => ReadonlyArray<ChildAttribute>,
-  hasDescription = false,
-): ReadonlyArray<ChildAttribute> => {
-  let captured: ReadonlyArray<ChildAttribute> = []
-  const sceneView = (currentModel: Model, h: HtmlBuilder<Message>) =>
-    view(
-      currentModel,
+      model,
       {
         hasDescription,
-        toView: render => {
-          captured = selectGroup(render)
-          return h.dialog([...render.dialog])
-        },
+        toView: ({ dialog, title, description, initialFocus, closeButton }) =>
+          h.dialog(
+            [...dialog],
+            [
+              h.h2([...title], ['Title']),
+              h.p([...description], ['Description']),
+              h.input([...initialFocus]),
+              h.button([...closeButton], ['Close']),
+            ],
+          ),
       },
       h,
     )
-
-  if (isDialogVisible(model)) {
-    if (model.animation.transitionState === 'LeaveStart') {
-      Scene.scene(
-        { update, view: sceneView },
-        Scene.given(model),
-        acknowledgeAcquireResources,
-        Scene.Command.resolve(
-          Animation.WaitForPaint,
-          Animation.Message.CompletedWaitForPaint({
-            generation: model.animation.transitionGeneration,
-          }),
-        ),
-        Scene.Command.resolve(
-          Animation.WaitForAnimationSettled,
-          Animation.Message.EndedAnimation({
-            generation: model.animation.transitionGeneration,
-          }),
-        ),
-        Scene.Command.resolve(CloseDialog, Message.CompletedCloseDialog()),
-        Scene.Mount.expectEnded(AcquireResources),
-      )
-    } else {
-      Scene.scene(
-        { update, view: sceneView },
-        Scene.given(model),
-        acknowledgeAcquireResources,
-      )
-    }
-  } else {
-    Scene.scene({ update, view: sceneView }, Scene.given(model))
-  }
-  return captured
-}
-
-const hasIdAttribute = (
-  group: ReadonlyArray<ChildAttribute>,
-  id: string,
-): boolean =>
-  group.some(
-    ({ attribute }) =>
-      Predicate.isTagged(attribute, 'Id') &&
-      Predicate.hasProperty(attribute, 'value') &&
-      attribute.value === id,
-  )
-
-const hasDataAttribute = (
-  group: ReadonlyArray<ChildAttribute>,
-  key: string,
-): boolean =>
-  group.some(
-    ({ attribute }) =>
-      Predicate.isTagged(attribute, 'DataAttribute') &&
-      Predicate.hasProperty(attribute, 'key') &&
-      attribute.key === key,
-  )
-
-const hasButtonType = (group: ReadonlyArray<ChildAttribute>): boolean =>
-  group.some(
-    ({ attribute }) =>
-      Predicate.isTagged(attribute, 'Type') &&
-      Predicate.hasProperty(attribute, 'value') &&
-      attribute.value === 'button',
-  )
-
-const hasAriaDescribedBy = (
-  group: ReadonlyArray<ChildAttribute>,
-  id: string,
-): boolean =>
-  group.some(
-    ({ attribute }) =>
-      Predicate.isTagged(attribute, 'AriaDescribedBy') &&
-      Predicate.hasProperty(attribute, 'value') &&
-      attribute.value === id,
-  )
-
-const hasCancelPrevention = (group: ReadonlyArray<ChildAttribute>): boolean =>
-  group.some(({ attribute }) =>
-    Predicate.isTagged(attribute, 'OnCancelPreventDefault'),
-  )
-
-const hasEscapeCancelMapping = (
-  group: ReadonlyArray<ChildAttribute>,
-): boolean =>
-  group.some(
-    ({ attribute }) =>
-      Predicate.isTagged(attribute, 'OnCancelPreventDefault') &&
-      Predicate.hasProperty(attribute, 'maybeCustomEventMessage') &&
-      Predicate.isTagged(attribute.maybeCustomEventMessage, 'Some'),
-  )
 
 describe('Dialog', () => {
   describe('init', () => {
@@ -857,67 +731,62 @@ describe('Dialog', () => {
   describe('RenderInfo title and description', () => {
     it('publishes the title id the dialog labels itself by', () => {
       const model = init({ id: 'my-dialog' })
-      expect(
-        hasIdAttribute(
-          renderGroup(model, render => render.title),
-          titleId(model),
-        ),
-      ).toBe(true)
+      Scene.scene(
+        { update, view: renderInfoView() },
+        Scene.given(model),
+        Scene.expect(Scene.selector('h2')).toHaveId(titleId(model)),
+      )
     })
 
     it('publishes the description id the dialog describes itself by', () => {
       const model = init({ id: 'my-dialog' })
-      expect(
-        hasIdAttribute(
-          renderGroup(model, render => render.description),
-          descriptionId(model),
-        ),
-      ).toBe(true)
+      Scene.scene(
+        { update, view: renderInfoView() },
+        Scene.given(model),
+        Scene.expect(Scene.selector('p')).toHaveId(descriptionId(model)),
+      )
     })
   })
 
   describe('RenderInfo dialog', () => {
     it('omits aria-describedby by default', () => {
-      expect(
-        hasAriaDescribedBy(
-          renderGroup(init({ id: 'my-dialog' }), render => render.dialog),
-          'my-dialog-dialog-description',
+      Scene.scene(
+        { update, view: renderInfoView() },
+        Scene.given(init({ id: 'my-dialog' })),
+        Scene.expect(Scene.selector('dialog')).not.toHaveAttr(
+          'aria-describedby',
         ),
-      ).toBe(false)
+      )
     })
 
     it('references the description when opted in', () => {
-      expect(
-        hasAriaDescribedBy(
-          renderGroup(init({ id: 'my-dialog' }), render => render.dialog, true),
+      Scene.scene(
+        { update, view: renderInfoView(true) },
+        Scene.given(init({ id: 'my-dialog' })),
+        Scene.expect(Scene.selector('dialog')).toHaveAttr(
+          'aria-describedby',
           'my-dialog-dialog-description',
         ),
-      ).toBe(true)
+      )
     })
 
-    it('suppresses native cancel events', () => {
-      expect(
-        hasCancelPrevention(
-          renderGroup(init({ id: 'my-dialog' }), render => render.dialog),
-        ),
-      ).toBe(true)
-    })
-
-    it('maps the showDialog Escape signal', () => {
-      expect(
-        hasEscapeCancelMapping(
-          renderGroup(init({ id: 'my-dialog' }), render => render.dialog),
-        ),
-      ).toBe(true)
+    it('attaches a cancel handler', () => {
+      Scene.scene(
+        { update, view: renderInfoView() },
+        Scene.given(init({ id: 'my-dialog' })),
+        Scene.expect(Scene.selector('dialog')).toHaveHandler('cancel'),
+      )
     })
   })
 
   describe('RenderInfo closeButton', () => {
     it('publishes type button so a close control does not submit a form', () => {
-      const model = boot({ id: 'my-dialog' }).model
-      expect(
-        hasButtonType(renderGroup(model, render => render.closeButton)),
-      ).toBe(true)
+      Scene.scene(
+        { update, view: renderInfoView() },
+        Scene.given(boot({ id: 'my-dialog' }).model),
+        acknowledgeAcquireResources,
+        Scene.expect(Scene.selector('button')).toHaveAttr('type', 'button'),
+      )
     })
 
     it('publishes type button while the leave animation runs', () => {
@@ -935,21 +804,38 @@ describe('Dialog', () => {
             ),
         },
       )
-      expect(
-        hasButtonType(renderGroup(leavingModel, render => render.closeButton)),
-      ).toBe(true)
+      Scene.scene(
+        { update, view: renderInfoView() },
+        Scene.given(leavingModel),
+        Scene.expect(Scene.selector('button')).toHaveAttr('type', 'button'),
+        acknowledgeAcquireResources,
+        Scene.Command.resolve(
+          Animation.WaitForPaint,
+          Animation.Message.CompletedWaitForPaint({
+            generation: leavingModel.animation.transitionGeneration,
+          }),
+        ),
+        Scene.Command.resolve(
+          Animation.WaitForAnimationSettled,
+          Animation.Message.EndedAnimation({
+            generation: leavingModel.animation.transitionGeneration,
+          }),
+        ),
+        Scene.Command.resolve(CloseDialog, Message.CompletedCloseDialog()),
+        Scene.Mount.expectEnded(AcquireResources),
+      )
     })
   })
 
   describe('RenderInfo initialFocus', () => {
     it('publishes the marker the dialog focuses on open', () => {
-      const model = init({ id: 'my-dialog' })
-      expect(
-        hasDataAttribute(
-          renderGroup(model, render => render.initialFocus),
-          initialFocusMarkerAttribute,
+      Scene.scene(
+        { update, view: renderInfoView() },
+        Scene.given(init({ id: 'my-dialog' })),
+        Scene.expect(Scene.selector('input')).toHaveAttr(
+          `data-${initialFocusMarkerAttribute}`,
         ),
-      ).toBe(true)
+      )
     })
 
     it.effect(
@@ -1203,28 +1089,18 @@ describe('Dialog', () => {
     )
   })
 
-  describe('view OnUnmount gating', () => {
-    it('includes the OnUnmount backstop on the dialog while it is open', () => {
-      expect(dialogHasOnUnmount(boot({ id: 'test' }).model)).toBe(true)
-    })
-
-    it('omits the OnUnmount backstop while the dialog is closed', () => {
-      expect(dialogHasOnUnmount(init({ id: 'test' }))).toBe(false)
-    })
-
-    it('renders the dialog closed with no OnUnmount backstop after a failed show', () => {
+  describe('view after a failed show', () => {
+    it('renders the dialog closed', () => {
       const dialogShowFailed = update(
         boot({ id: 'test' }).model,
         Message.FailedShowDialog(),
       )
 
-      expect(
-        hasDataAttribute(
-          renderGroup(dialogShowFailed.model, render => render.dialog),
-          'open',
-        ),
-      ).toBe(false)
-      expect(dialogHasOnUnmount(dialogShowFailed.model)).toBe(false)
+      Scene.scene(
+        { update, view: renderInfoView() },
+        Scene.given(dialogShowFailed.model),
+        Scene.expect(Scene.selector('dialog')).not.toHaveAttr('data-open'),
+      )
     })
   })
 

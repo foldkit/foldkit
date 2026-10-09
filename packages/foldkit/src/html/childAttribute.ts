@@ -11,6 +11,8 @@ import {
 
 const BRAND = '__childAttribute'
 
+declare const ChildAttributeTypeId: unique symbol
+
 const isOnMountAttribute = (attribute: unknown): boolean =>
   Predicate.isTagged(attribute, 'OnMount')
 
@@ -21,6 +23,16 @@ const isOnMountAttribute = (attribute: unknown): boolean =>
  *  produced these; the runtime routes each handler through the
  *  originating Submodel's wrap chain at event-fire time.
  *
+ *  Created via {@link childAttributes}. Element constructors accept
+ *  `ChildAttribute` alongside `Attribute<Message>` in their attribute
+ *  arrays. Opaque: a group can be spread into an attribute array, but its
+ *  representation is not part of the API. */
+export interface ChildAttribute {
+  readonly [ChildAttributeTypeId]: typeof ChildAttributeTypeId
+}
+
+/** The representation behind {@link ChildAttribute}.
+ *
  *  `resolveUnmount` snapshots the boundary's wrapping chain at the time the
  *  group was published (child boundary alive) so `OnUnmount` can dispatch a
  *  root message from a destroy hook that fires after the boundary has been
@@ -29,10 +41,8 @@ const isOnMountAttribute = (attribute: unknown): boolean =>
  *  also carry `resolveMountDispatch`, which binds the Mount to the acquiring
  *  render's dispatch owner while following that owner's current live wrappers.
  *
- *  Created via {@link childAttributes}. Element constructors accept
- *  `ChildAttribute` alongside `Attribute<Message>` in their attribute
- *  arrays. */
-export type ChildAttribute = Readonly<{
+ * @internal */
+export type InternalChildAttribute = Readonly<{
   readonly [BRAND]: true
   readonly attribute: unknown
   readonly dispatch: DispatchSync
@@ -41,7 +51,9 @@ export type ChildAttribute = Readonly<{
   readonly resolveMountDispatch?: MountDispatchResolver
 }>
 
-export const isChildAttribute = (value: unknown): value is ChildAttribute =>
+export const isChildAttribute = (
+  value: unknown,
+): value is InternalChildAttribute =>
   typeof value === 'object' && value !== null && BRAND in value
 
 /** Captures the current boundary's dispatcher and wraps each attribute
@@ -76,12 +88,16 @@ export const childAttributes = <Attribute>(
   const resolveMountDispatch = attributes.some(isOnMountAttribute)
     ? requireMountDispatchResolver()
     : undefined
-  return attributes.map(attribute => ({
-    [BRAND]: true,
-    attribute,
-    dispatch,
-    resolveUnmount,
-    boundaryMappers,
-    ...(resolveMountDispatch !== undefined && { resolveMountDispatch }),
-  }))
+  const published: ReadonlyArray<InternalChildAttribute> = attributes.map(
+    attribute => ({
+      [BRAND]: true,
+      attribute,
+      dispatch,
+      resolveUnmount,
+      boundaryMappers,
+      ...(resolveMountDispatch !== undefined && { resolveMountDispatch }),
+    }),
+  )
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  return published as unknown as ReadonlyArray<ChildAttribute>
 }

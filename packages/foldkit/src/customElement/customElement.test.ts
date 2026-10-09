@@ -5,6 +5,7 @@ import { describe, it } from '@effect/vitest'
 
 import { beginRender, createBoundaryRegistry } from '../html/boundary.js'
 import { type ChildAttribute, childAttributes } from '../html/childAttribute.js'
+import { fromHtml } from '../html/htmlNode.js'
 import {
   type Html,
   __htmlBuilder,
@@ -69,7 +70,7 @@ const createCapturingDispatch = () => {
 }
 
 const renderView = (
-  build: () => VNode | null,
+  build: () => Html,
   dispatch: typeof Dispatch.Service,
 ): VNode => {
   const testContext = Context.make(Dispatch, dispatch).pipe(
@@ -82,7 +83,7 @@ const renderView = (
   setHtmlRuntime(dispatch.dispatchSync, testContext)
   let vnode: VNode | null
   try {
-    vnode = build()
+    vnode = fromHtml(build())
   } finally {
     clearHtmlRuntime()
   }
@@ -341,20 +342,22 @@ describe('ElementBuilder ChildAttribute support', () => {
         })
       })
 
-      const result = submodelImpl(
-        {
-          slotId: 'fake-control',
-          model: {},
-          view: fakeControlView,
-          viewInputs: {
-            toView: attributes => {
-              const rating = emojiRating.withMessage(__htmlBuilder<Message>())
-              return rating([...attributes.control, rating.Value(3)])
+      const result = fromHtml(
+        submodelImpl(
+          {
+            slotId: 'fake-control',
+            model: {},
+            view: fakeControlView,
+            viewInputs: {
+              toView: attributes => {
+                const rating = emojiRating.withMessage(__htmlBuilder<Message>())
+                return rating([...attributes.control, rating.Value(3)])
+              },
             },
+            toParentMessage: message => GotChild({ message }),
           },
-          toParentMessage: message => GotChild({ message }),
-        },
-        __htmlBuilder(),
+          __htmlBuilder(),
+        ),
       )
       if (result === null) {
         throw new Error('submodel returned null Html')

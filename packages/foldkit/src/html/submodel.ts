@@ -10,6 +10,7 @@ import {
   rollbackBoundaryWrapTransaction,
 } from './boundary.js'
 import { isChildAttribute } from './childAttribute.js'
+import { type Html, fromHtml, toHtml } from './htmlNode.js'
 import type { HtmlBuilder } from './index.js'
 import {
   type DispatchSync,
@@ -57,12 +58,8 @@ const SUBMODEL_MESSAGE_BRAND = '__submodelMessage'
 export type SubmodelView<Model, Message, ViewInputs = void> = ([
   ViewInputs,
 ] extends [void]
-  ? (model: Model, h: HtmlBuilder<Message>) => VNode | null
-  : (
-      model: Model,
-      viewInputs: ViewInputs,
-      h: HtmlBuilder<Message>,
-    ) => VNode | null) & {
+  ? (model: Model, h: HtmlBuilder<Message>) => Html
+  : (model: Model, viewInputs: ViewInputs, h: HtmlBuilder<Message>) => Html) & {
   readonly [SUBMODEL_MESSAGE_BRAND]: Message
 }
 
@@ -91,12 +88,8 @@ export type SubmodelView<Model, Message, ViewInputs = void> = ([
  *  the confusion this type is meant to prevent. */
 export const defineView = <Model, Message = never, ViewInputs = void>(
   fn: [ViewInputs] extends [void]
-    ? (model: Model, h: HtmlBuilder<Message>) => VNode | null
-    : (
-        model: Model,
-        viewInputs: ViewInputs,
-        h: HtmlBuilder<Message>,
-      ) => VNode | null,
+    ? (model: Model, h: HtmlBuilder<Message>) => Html
+    : (model: Model, viewInputs: ViewInputs, h: HtmlBuilder<Message>) => Html,
 ): SubmodelView<Model, Message, ViewInputs> =>
   // NOTE: The cast attaches the SUBMODEL_MESSAGE_BRAND to the runtime
   // function value at the type level only. `h.submodel` reads the brand
@@ -111,9 +104,7 @@ export const defineView = <Model, Message = never, ViewInputs = void>(
  *  {@link SubmodelConfig} constrain their `View` parameter with it so the
  *  concrete types are recovered per call site via the `View*Of`
  *  extractors. */
-export type AnySubmodelView = ((
-  ...args: ReadonlyArray<any>
-) => VNode | null) & {
+export type AnySubmodelView = ((...args: ReadonlyArray<any>) => Html) & {
   readonly [SUBMODEL_MESSAGE_BRAND]: unknown
 }
 
@@ -347,7 +338,7 @@ const withBoundaryCleanup = (
 export const submodel = <View extends AnySubmodelView>(
   config: SubmodelConfig<View, unknown>,
   htmlBuilderSingleton: HtmlBuilder<unknown>,
-): VNode | null => {
+): Html => {
   // Snapshot the parent frame BEFORE pushing the child boundary. The
   // snapshot is captured into slot-callback closures by
   // `wrapViewInputsForOuterBoundary` so they can replay the parent's
@@ -387,8 +378,8 @@ export const submodel = <View extends AnySubmodelView>(
         const view = config.view as (
           model: ViewModelOf<View>,
           h: HtmlBuilder<ViewMessageOf<View>>,
-        ) => VNode | null
-        vnode = view(config.model, childBuilder)
+        ) => Html
+        vnode = fromHtml(view(config.model, childBuilder))
       } else {
         const wrappedViewInputs = wrapViewInputsForOuterBoundary(
           /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -400,8 +391,8 @@ export const submodel = <View extends AnySubmodelView>(
           model: ViewModelOf<View>,
           viewInputs: ViewInputsOf<View>,
           h: HtmlBuilder<ViewMessageOf<View>>,
-        ) => VNode | null
-        vnode = view(config.model, wrappedViewInputs, childBuilder)
+        ) => Html
+        vnode = fromHtml(view(config.model, wrappedViewInputs, childBuilder))
       }
     } finally {
       clearRuntime()
@@ -420,7 +411,7 @@ export const submodel = <View extends AnySubmodelView>(
       parentFrame.mountOuterDispatch,
     )
     commitBoundaryWrapTransaction(registry, transaction)
-    return vnodeWithCleanup
+    return toHtml(vnodeWithCleanup)
   } catch (error) {
     rollbackBoundaryWrapTransaction(registry, transaction)
     throw error

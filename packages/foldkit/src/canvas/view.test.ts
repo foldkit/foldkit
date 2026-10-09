@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
+import { type Html, fromHtml } from '../html/htmlNode.js'
 import {
   __htmlBuilder,
   __clearRuntime as clearHtmlRuntime,
@@ -49,7 +50,7 @@ const createCapturingDispatch = () => {
 }
 
 const renderView = (
-  build: () => VNode | null,
+  build: () => Html,
   dispatch: typeof Dispatch.Service,
 ): VNode => {
   const testContext = Context.make(Dispatch, dispatch).pipe(
@@ -62,7 +63,7 @@ const renderView = (
   setHtmlRuntime(dispatch.dispatchSync, testContext)
   let vnode: VNode | null
   try {
-    vnode = build()
+    vnode = fromHtml(build())
   } finally {
     clearHtmlRuntime()
   }

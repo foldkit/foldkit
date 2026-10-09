@@ -35,9 +35,9 @@ The warning `_tag` identifies the phase to inspect. Start with the work attribut
 
 Foldkit measures four phases independently:
 
-- **`View`:** Builds the next VNode tree from the Model. The default budget is 16ms. The context includes the triggering Message as an `Option` because init has no Message.
+- **`View`:** Builds the next `Html` tree from the Model. The default budget is 16ms. The context includes the triggering Message as an `Option` because init has no Message.
 - **`Update`:** Produces the next Model for a Message. The default budget is 4ms. The context includes the Message that ran.
-- **`Patch`:** Diffs the VNode trees and applies changes to the DOM. The default budget is 8ms. The context includes the triggering Message as an `Option`.
+- **`Patch`:** Diffs the old and new `Html` trees and applies changes to the DOM. The default budget is 8ms. The context includes the triggering Message as an `Option`.
 - **`SubscriptionDependencies`:** Extracts one Subscription's dependencies after a Model change. The default budget is 2ms per Subscription. The context includes `subscriptionKey`.
 
 ## Configuration

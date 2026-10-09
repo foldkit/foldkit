@@ -1,51 +1,20 @@
-import { Array, Option, Schema } from 'effect'
-import { inertHtml as ih } from 'foldkit/html'
+import { Schema } from 'effect'
+import { type Html, inertHtml as ih } from 'foldkit/html'
+import * as Scene from 'foldkit/scene'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { parseMarkdown } from '../vite/vite.js'
 import { defaultViews, islandsFor, view } from './view.js'
 
-type TestVNode = Readonly<{
-  sel?: string | undefined
-  key?: string | undefined
-  text?: string | undefined
-  data?:
-    | Readonly<{
-        props?: Readonly<Record<string, unknown>> | undefined
-        style?: Readonly<Record<string, unknown>> | undefined
-      }>
-    | undefined
-  children?: ReadonlyArray<TestVNode | string> | undefined
-}>
-
-const asElement = (node: unknown): TestVNode => {
-  if (node === null || node === undefined || typeof node === 'string') {
-    throw new Error(`Expected an element vnode, got: ${String(node)}`)
-  }
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  return node as TestVNode
-}
-
-const childAt = (node: TestVNode, index: number): TestVNode =>
-  Option.match(Array.get(node.children ?? [], index), {
-    onNone: () => {
-      throw new Error(`Expected a child at index ${index} of <${node.sel}>`)
-    },
-    onSome: asElement,
-  })
-
-const textOf = (node: TestVNode): string =>
-  (node.children ?? [])
-    .map(child => {
-      if (typeof child === 'string') {
-        return child
-      }
-      if (child.text !== undefined) {
-        return child.text
-      }
-      return textOf(child)
-    })
-    .join('')
+const expectRendered = (
+  rendered: Html,
+  ...steps: ReadonlyArray<Scene.SceneStep<null, unknown, never>>
+): void =>
+  Scene.scene(
+    { update: (model: null) => ({ model }), view: () => rendered },
+    Scene.given(null),
+    ...steps,
+  )
 
 const lines = (...sourceLines: ReadonlyArray<string>): string =>
   sourceLines.join('\n')
@@ -60,14 +29,15 @@ describe('view', () => {
       lines('# Title', '', 'A paragraph.', '', '---'),
     )
 
-    const root = asElement(view(document))
-
-    expect(root.sel).toBe('div')
-    expect(childAt(root, 0).sel).toBe('h1')
-    expect(textOf(childAt(root, 0))).toBe('Title')
-    expect(childAt(root, 1).sel).toBe('p')
-    expect(textOf(childAt(root, 1))).toBe('A paragraph.')
-    expect(childAt(root, 2).sel).toBe('hr')
+    expectRendered(
+      view(document),
+      Scene.expect(Scene.selector('div h1')).toHaveText('Title'),
+      Scene.expect(Scene.selector('div p')).toHaveText('A paragraph.'),
+      Scene.expect(Scene.selector('div hr')).toExist(),
+      Scene.tap(({ html }) => {
+        expect(Scene.textContent(html)).toBe('TitleA paragraph.')
+      }),
+    )
   })
 
   it('renders every heading level to its matching element', () => {
@@ -82,11 +52,18 @@ describe('view', () => {
       ),
     )
 
-    const root = asElement(view(document))
-
-    expect(
-      (root.children ?? []).map(child => asElement(child).sel),
-    ).toStrictEqual(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+    expectRendered(
+      view(document),
+      Scene.expect(Scene.selector('h1')).toHaveText('one'),
+      Scene.expect(Scene.selector('h2')).toHaveText('two'),
+      Scene.expect(Scene.selector('h3')).toHaveText('three'),
+      Scene.expect(Scene.selector('h4')).toHaveText('four'),
+      Scene.expect(Scene.selector('h5')).toHaveText('five'),
+      Scene.expect(Scene.selector('h6')).toHaveText('six'),
+      Scene.tap(({ html }) => {
+        expect(Scene.textContent(html)).toBe('onetwothreefourfivesix')
+      }),
+    )
   })
 
   it('passes each code block its occurrence index in document order', () => {
@@ -120,28 +97,34 @@ describe('view', () => {
       'Some *emphasis*, `code`, and a [link](https://example.com).',
     )
 
-    const paragraph = childAt(asElement(view(document)), 0)
-    const [, emphasis, , inlineCode, , link] = paragraph.children ?? []
-
-    expect(asElement(emphasis).sel).toBe('em')
-    expect(asElement(inlineCode).sel).toBe('code')
-    expect(asElement(link).sel).toBe('a')
-    expect(asElement(link).data?.props).toMatchObject({
-      href: 'https://example.com',
-    })
+    expectRendered(
+      view(document),
+      Scene.expect(Scene.selector('p')).toHaveText(
+        'Some emphasis, code, and a link.',
+      ),
+      Scene.expect(Scene.selector('p em')).toHaveText('emphasis'),
+      Scene.expect(Scene.selector('p code')).toHaveText('code'),
+      Scene.expect(Scene.selector('p a')).toHaveText('link'),
+      Scene.expect(Scene.selector('p a')).toHaveAttr(
+        'href',
+        'https://example.com',
+      ),
+    )
   })
 
   it('renders unordered and ordered lists', () => {
     const unordered = parseMarkdown(lines('- one', '- two'))
     const ordered = parseMarkdown(lines('3. three', '4. four'))
 
-    const unorderedList = childAt(asElement(view(unordered)), 0)
-    const orderedList = childAt(asElement(view(ordered)), 0)
-
-    expect(unorderedList.sel).toBe('ul')
-    expect(orderedList.sel).toBe('ol')
-    expect(orderedList.data?.props).toMatchObject({ start: 3 })
-    expect(childAt(orderedList, 0).sel).toBe('li')
+    expectRendered(
+      view(unordered),
+      Scene.expect(Scene.selector('div ul li')).toHaveText('one'),
+    )
+    expectRendered(
+      view(ordered),
+      Scene.expect(Scene.selector('div ol')).toHaveAttr('start', '3'),
+      Scene.expect(Scene.selector('div ol li')).toHaveText('three'),
+    )
   })
 
   it('renders table header and body cells with alignment styles', () => {
@@ -149,19 +132,21 @@ describe('view', () => {
       lines('| Stock | Speed |', '| :--- | ---: |', '| Portra | 400 |'),
     )
 
-    const table = childAt(asElement(view(document)), 0)
-    const headerRow = childAt(childAt(table, 0), 0)
-    const bodyRow = childAt(childAt(table, 1), 0)
-
-    expect(table.sel).toBe('table')
-    expect(childAt(headerRow, 0).sel).toBe('th')
-    expect(childAt(headerRow, 0).data?.style).toMatchObject({
-      'text-align': 'left',
-    })
-    expect(childAt(bodyRow, 1).sel).toBe('td')
-    expect(childAt(bodyRow, 1).data?.style).toMatchObject({
-      'text-align': 'right',
-    })
+    expectRendered(
+      view(document),
+      Scene.expect(Scene.selector('table th')).toHaveText('Stock'),
+      Scene.expect(Scene.selector('table th')).toHaveStyle(
+        'text-align',
+        'left',
+      ),
+      Scene.expect(Scene.nth(Scene.all.selector('table td'), 1)).toHaveText(
+        '400',
+      ),
+      Scene.expect(Scene.nth(Scene.all.selector('table td'), 1)).toHaveStyle(
+        'text-align',
+        'right',
+      ),
+    )
   })
 
   it('renders islands through the registered view with attributes and nested content', () => {
@@ -169,7 +154,7 @@ describe('view', () => {
       lines(':::Note{tone="calm"}', 'Inside the island.', ':::'),
     )
 
-    const root = asElement(
+    expectRendered(
       view(document, {
         islands: {
           Note: (attributes, content) =>
@@ -179,11 +164,11 @@ describe('view', () => {
             ),
         },
       }),
+      Scene.expect(Scene.selector('div aside')).toHaveClass('note-calm'),
+      Scene.expect(Scene.selector('div aside p')).toHaveText(
+        'Inside the island.',
+      ),
     )
-
-    const island = childAt(root, 0)
-    expect(island.sel).toBe('aside')
-    expect(textOf(childAt(island, 0))).toBe('Inside the island.')
   })
 
   it('passes each island its per-name occurrence index in document order', () => {
@@ -208,9 +193,10 @@ describe('view', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     const document = parseMarkdown('::constructor')
 
-    const root = asElement(view(document, { islands: {} }))
-
-    expect(root.children ?? []).toHaveLength(0)
+    expectRendered(
+      view(document, { islands: {} }),
+      Scene.expect(Scene.selector('div')).toBeEmpty(),
+    )
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('No island view registered for "constructor"'),
     )
@@ -220,10 +206,10 @@ describe('view', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     const document = parseMarkdown(lines('::Missing', '', '::Missing'))
 
-    const root = asElement(view(document))
+    const rendered = view(document)
     view(document)
 
-    expect(root.children ?? []).toHaveLength(0)
+    expectRendered(rendered, Scene.expect(Scene.selector('div')).toBeEmpty())
     expect(warn).toHaveBeenCalledOnce()
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('No island view registered for "Missing"'),
@@ -233,24 +219,21 @@ describe('view', () => {
   it('applies view overrides over the defaults', () => {
     const document = parseMarkdown('A paragraph.')
 
-    const root = asElement(
+    expectRendered(
       view(document, {
         views: {
           Paragraph: (_paragraph, content) =>
             ih.p([ih.Class('leading-relaxed')], content),
         },
       }),
+      Scene.expect(Scene.selector('div p')).toHaveClass('leading-relaxed'),
     )
-
-    expect(childAt(root, 0).data).toMatchObject({
-      class: { 'leading-relaxed': true },
-    })
   })
 
   it('islandsFor decodes attributes through the island schema before dispatch', () => {
     const document = parseMarkdown('::Badge{label="hi"}')
 
-    const root = asElement(
+    expectRendered(
       view(document, {
         islands: islandsFor(
           {
@@ -262,25 +245,23 @@ describe('view', () => {
           },
         ),
       }),
+      Scene.expect(Scene.selector('div span')).toHaveText('hi0'),
     )
-
-    expect(textOf(childAt(root, 0))).toBe('hi0')
   })
 
   it('islandsFor warns and renders nothing when attributes fail the schema', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     const document = parseMarkdown('::Gauge')
 
-    const root = asElement(
+    expectRendered(
       view(document, {
         islands: islandsFor(
           { Gauge: Schema.Struct({ level: Schema.String }) },
           { Gauge: ({ level }) => ih.span([], [level]) },
         ),
       }),
+      Scene.expect(Scene.selector('div')).toBeEmpty(),
     )
-
-    expect(root.children ?? []).toHaveLength(0)
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('Invalid attributes for island "Gauge"'),
     )
@@ -289,14 +270,13 @@ describe('view', () => {
   it('exposes the default views for reuse inside overrides', () => {
     const document = parseMarkdown('# Title')
 
-    const root = asElement(
+    expectRendered(
       view(document, {
         views: {
           Heading: (heading, content) => defaultViews.Heading(heading, content),
         },
       }),
+      Scene.expect(Scene.selector('div h1')).toHaveText('Title'),
     )
-
-    expect(childAt(root, 0).sel).toBe('h1')
   })
 })

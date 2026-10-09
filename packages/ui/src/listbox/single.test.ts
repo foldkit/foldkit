@@ -2021,7 +2021,7 @@ describe('Listbox', () => {
           { update, view: sceneView({ isDisabled: true }) },
           Scene.given(closedModel()),
           Scene.tap(({ html }) => {
-            expect(html.data?.attrs?.['data-disabled']).toBe('')
+            expect(Scene.attr(html, 'data-disabled')).toEqual(Option.some(''))
           }),
         )
       })
@@ -2031,7 +2031,7 @@ describe('Listbox', () => {
           { update, view: sceneView() },
           Scene.given(closedModel()),
           Scene.tap(({ html }) => {
-            expect(html.data?.attrs?.['data-disabled']).toBeUndefined()
+            expect(Scene.attr(html, 'data-disabled')).toEqual(Option.none())
           }),
         )
       })
@@ -2072,7 +2072,7 @@ describe('Listbox', () => {
           { update, view: sceneView({ isInvalid: true }) },
           Scene.given(closedModel()),
           Scene.tap(({ html }) => {
-            expect(html.data?.attrs?.['data-invalid']).toBe('')
+            expect(Scene.attr(html, 'data-invalid')).toEqual(Option.some(''))
           }),
         )
       })
@@ -2082,7 +2082,7 @@ describe('Listbox', () => {
           { update, view: sceneView() },
           Scene.given(closedModel()),
           Scene.tap(({ html }) => {
-            expect(html.data?.attrs?.['data-invalid']).toBeUndefined()
+            expect(Scene.attr(html, 'data-invalid')).toEqual(Option.none())
           }),
         )
       })

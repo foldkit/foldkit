@@ -33,7 +33,7 @@ const postView = (
 const lazyPostView = createKeyedLazy()
 
 // Navigating between posts moves between slots instead of overwriting one.
-// Coming back to a post you already read returns its cached VNode.
+// Coming back to a post you already read returns its cached Html.
 const view = (
   post: Post,
   snippetCopy: SnippetCopy.Model,

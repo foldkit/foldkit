@@ -17,7 +17,6 @@ import type { DevToolsStore } from '../devTools/store.js'
 import { INIT_INDEX, latestEntryIndex } from '../devTools/store.js'
 import {
   type Html,
-  Prop,
   __htmlBuilder,
   createLazy,
   defineView,
@@ -26,6 +25,7 @@ import { defineMessageUnion } from '../message/index.js'
 import * as Mount from '../mount/index.js'
 import { modifyFields } from '../struct/index.js'
 import * as Subscription from '../subscription/subscription.js'
+import { prop } from '../test/rendererNodes.js'
 import type * as Update from '../update/index.js'
 import { __setDevToolsOverlay } from './devToolsConfig.js'
 import { makeApplication } from './makeApplication.js'
@@ -1608,7 +1608,7 @@ describe('Mount view-state awareness', () => {
                     h.div(
                       [
                         h.Id('failing-property'),
-                        Prop({
+                        prop({
                           key: 'foldkitPatchFailure',
                           value: 'fail',
                         }),
@@ -1831,7 +1831,7 @@ describe('Mount view-state awareness', () => {
                 [
                   lifecycleHtml.OnMount(mountPanel),
                   lifecycleHtml.OnUnmount(LifecycleMessage.UnmountedPanel()),
-                  Prop({
+                  prop({
                     key: 'foldkitLifecycleFailure',
                     value: model.isFailurePropertyEnabled ? 'fail' : 'safe',
                   }),
@@ -1990,7 +1990,7 @@ describe('Mount view-state awareness', () => {
             h.span([], ['Inserted']),
             h.div(
               [
-                Prop({
+                prop({
                   key: 'foldkitPatchFailure',
                   value: 'fail',
                 }),

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { defineMessageUnion } from '../message/index.js'
 import { MountTracker } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
+import { fromHtml } from './htmlNode.js'
 import { type HtmlBuilder, __htmlBuilder } from './index.js'
 import {
   type DispatchSync,
@@ -60,7 +61,7 @@ const fakeClick = () => {
 const clickHandlerOf = (
   vnode: ReturnType<HtmlBuilder<Message>['button']>,
 ): ((event: unknown) => void) =>
-  vnode?.data?.on?.['click'] as unknown as (event: unknown) => void
+  fromHtml(vnode)?.data?.on?.['click'] as unknown as (event: unknown) => void
 /* eslint-enable @typescript-eslint/consistent-type-assertions */
 
 describe('OnClick', () => {

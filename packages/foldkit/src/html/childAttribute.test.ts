@@ -5,13 +5,18 @@ import { describe, it } from '@effect/vitest'
 
 import { MountTracker } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
-import { h as snabbdomH } from '../snabbdom/index.js'
+import { type VNode, h as snabbdomH } from '../snabbdom/index.js'
 import {
   type BoundaryRegistry,
   beginRender,
   createBoundaryRegistry,
 } from './boundary.js'
-import { type ChildAttribute, childAttributes } from './childAttribute.js'
+import {
+  type ChildAttribute,
+  childAttributes,
+  isChildAttribute,
+} from './childAttribute.js'
+import { fromHtml, toHtml } from './htmlNode.js'
 import { type Html, __htmlBuilder } from './index.js'
 import {
   type DispatchSync,
@@ -27,7 +32,7 @@ import {
 
 const submodel = <View extends AnySubmodelView>(
   config: SubmodelConfig<View, unknown>,
-): Html => submodelImpl(config, __htmlBuilder())
+): VNode | null => fromHtml(submodelImpl(config, __htmlBuilder()))
 
 const setUpRuntime = (
   registry: BoundaryRegistry,
@@ -91,12 +96,16 @@ describe('childAttributes', () => {
 
     expect(
       clickAttributes.every(
-        attribute => attribute.resolveMountDispatch === undefined,
+        attribute =>
+          isChildAttribute(attribute) &&
+          attribute.resolveMountDispatch === undefined,
       ),
     ).toBe(true)
     expect(
       mountAttributes.every(
-        attribute => attribute.resolveMountDispatch !== undefined,
+        attribute =>
+          isChildAttribute(attribute) &&
+          attribute.resolveMountDispatch !== undefined,
       ),
     ).toBe(true)
   })
@@ -305,7 +314,7 @@ describe('childAttributes', () => {
         const h = __htmlBuilder<FirstChild>()
         firstAttributes = childAttributes([h.OnClick({ _tag: 'FirstChild' })])
         viewInputs.capture(firstAttributes)
-        return snabbdomH('span')
+        return toHtml(snabbdomH('span'))
       }),
       viewInputs: {
         capture: attributes => {
@@ -322,7 +331,7 @@ describe('childAttributes', () => {
         const h = __htmlBuilder<SecondChild>()
         secondAttributes = childAttributes([h.OnClick({ _tag: 'SecondChild' })])
         viewInputs.capture(secondAttributes)
-        return snabbdomH('span')
+        return toHtml(snabbdomH('span'))
       }),
       viewInputs: {
         capture: attributes => {
@@ -335,7 +344,9 @@ describe('childAttributes', () => {
     // Build a parent vnode using both attribute sets and verify each
     // routes correctly.
     const hParent = __htmlBuilder<ParentDirect>()
-    const merged = hParent.div([...firstAttributes, ...secondAttributes])
+    const merged = fromHtml(
+      hParent.div([...firstAttributes, ...secondAttributes]),
+    )
 
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const onClick = merged?.data?.on?.click as () => void

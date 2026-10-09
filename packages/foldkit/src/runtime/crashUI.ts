@@ -1,5 +1,6 @@
 import { Context, Effect, Option } from 'effect'
 
+import { fromHtml } from '../html/htmlNode.js'
 import {
   Document,
   Html,
@@ -300,7 +301,7 @@ export const renderCrashView = <Model, Message>(
 
     const patchedVNode = __patchVNode(
       vnodeSlot.maybeCurrentVNode,
-      crashDocument.body,
+      fromHtml(crashDocument.body),
       container,
     )
     vnodeSlot.maybeCurrentVNode = Option.some(patchedVNode)
@@ -323,7 +324,7 @@ export const renderCrashView = <Model, Message>(
 
     const patchedVNode = __patchVNode(
       vnodeSlot.maybeCurrentVNode,
-      fallbackDocument.body,
+      fromHtml(fallbackDocument.body),
       container,
     )
     vnodeSlot.maybeCurrentVNode = Option.some(patchedVNode)

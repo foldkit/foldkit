@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { MountTracker } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
+import { fromHtml } from './htmlNode.js'
 import { __htmlBuilder } from './index.js'
 import {
   type DispatchSync,
@@ -53,7 +54,7 @@ describe('AllowDrop', () => {
   it('registers a dragover handler that prevents the default', () => {
     const vnode = h.div([h.AllowDrop()])
 
-    const dragoverHandler = vnode?.data?.on?.['dragover']
+    const dragoverHandler = fromHtml(vnode)?.data?.on?.['dragover']
     expect(typeof dragoverHandler).toBe('function')
 
     let isDefaultPrevented = false

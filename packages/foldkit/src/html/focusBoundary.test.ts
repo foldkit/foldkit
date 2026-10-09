@@ -17,6 +17,7 @@ import {
   toVNode,
 } from '../snabbdom/index.js'
 import type { VNode } from '../vdom.js'
+import { type Html, fromHtml } from './htmlNode.js'
 import {
   DEVTOOLS_HOST_ID,
   __htmlBuilder,
@@ -51,7 +52,7 @@ const createCapturingDispatch = () => {
 }
 
 const renderView = (
-  build: () => VNode | null,
+  build: () => Html,
   dispatch: typeof Dispatch.Service,
 ): VNode => {
   const context = Context.make(Dispatch, dispatch).pipe(
@@ -64,7 +65,7 @@ const renderView = (
   setHtmlRuntime(dispatch.dispatchSync, context)
   let vnode: VNode | null
   try {
-    vnode = build()
+    vnode = fromHtml(build())
   } finally {
     clearHtmlRuntime()
   }

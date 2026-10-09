@@ -1,13 +1,16 @@
 import { Option } from 'effect'
 import { describe, expect, it } from 'vitest'
 
+import { fromHtml } from './htmlNode.js'
 import { type HtmlBuilder, __htmlBuilder } from './index.js'
 
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 const pointerDownHandlerOf = (
   vnode: ReturnType<HtmlBuilder<never>['div']>,
 ): ((event: unknown) => void) =>
-  vnode?.data?.on?.['pointerdown'] as unknown as (event: unknown) => void
+  fromHtml(vnode)?.data?.on?.['pointerdown'] as unknown as (
+    event: unknown,
+  ) => void
 /* eslint-enable @typescript-eslint/consistent-type-assertions */
 
 describe('OnPointerDown', () => {

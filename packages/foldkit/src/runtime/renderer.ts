@@ -1,5 +1,6 @@
 import { Cause, Context, Effect, Exit, Option, type Scope } from 'effect'
 
+import { fromHtml } from '../html/htmlNode.js'
 import {
   type BoundaryRegistry,
   type Document,
@@ -407,7 +408,7 @@ export const makeRenderer = <Model, Message>({
           }
         },
       )
-      const { body: nextVNode } = nextDocument
+      const nextVNode = fromHtml(nextDocument.body)
 
       reportSlowPhase<SlowViewContext<Model, Message>>(
         maybeLiveSlowView,

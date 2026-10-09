@@ -17,6 +17,7 @@ import { kebabToPascal } from '../customElement/index.js'
 import type { CustomElementSpec, EventSchema } from '../customElement/index.js'
 import { serializedStylePropertyName } from '../domReflection.js'
 import type { File } from '../file/index.js'
+import { fromHtml } from '../html/htmlNode.js'
 import type { FoldkitMountMarker } from '../html/index.js'
 import {
   FOLDKIT_MOUNT_KEY,
@@ -76,16 +77,18 @@ import {
   resolveByMatcher,
   resolveMountByMatcher,
 } from './internal.js'
-import type { Locator, LocatorAll } from './query.js'
+import type { Locator, LocatorAll, SceneElement } from './query.js'
 import {
   accessibleDescription,
   accessibleName,
   ancestorsOf,
-  attr,
+  attrOfNode,
+  fromSceneElement,
   isHidden,
   resolveTarget,
   selector,
-  textContent,
+  textContentOfNode,
+  toSceneElement,
   within,
 } from './query.js'
 import {
@@ -145,10 +148,10 @@ export {
   nth,
   filter,
 } from './query.js'
-export type { Locator, LocatorAll } from './query.js'
+export type { Locator, LocatorAll, SceneElement as Element } from './query.js'
 
 /** Multi-match Locator factories. Each returns a `LocatorAll` that resolves
- *  to every matching VNode. Convert to a single `Locator` via `first`,
+ *  to every matching element. Convert to a single `Locator` via `first`,
  *  `last`, or `nth(n)`, or narrow via `filter`. */
 export const all = {
   role: allRole,
@@ -163,7 +166,7 @@ export const all = {
 } as const
 export { sceneMatchers } from './matchers.js'
 
-/** An immutable test simulation that includes the rendered VNode tree.
+/** An immutable test simulation that includes the rendered view tree.
  *  The Model and Message are intentionally opaque. Scene tests assert
  *  through the view, not the model. Use Story for model-level assertions. */
 export type SceneSimulation<Model, Message, OutMessage = undefined> = Readonly<{
@@ -174,7 +177,7 @@ export type SceneSimulation<Model, Message, OutMessage = undefined> = Readonly<{
   /** The sole OutMessage from the latest update-producing Scene step.
    *  Undefined when that step emitted none or more than one. */
   outMessage: OutMessage | undefined
-  html: VNode
+  html: SceneElement
 }>
 
 /** A callable step that sets the initial Model. Carries phantom type for compile-time validation. */
@@ -482,7 +485,7 @@ const applyScopeToLocatorAll = (
   Option.match(scope, {
     onNone: () => locatorAll,
     onSome: parent => {
-      const resolve = (html: VNode): ReadonlyArray<VNode> =>
+      const resolve = (html: SceneElement): ReadonlyArray<SceneElement> =>
         Option.match(parent(html), {
           onNone: () => [],
           onSome: locatorAll,
@@ -534,7 +537,7 @@ const renderView = <Model, Message>(
     clearHtmlRuntime()
   }
 
-  const vnode = isDocument(result) ? (result.body ?? null) : result
+  const vnode = fromHtml(isDocument(result) ? (result.body ?? null) : result)
 
   if (vnode === null) {
     throw new Error(
@@ -1783,11 +1786,12 @@ const runSteps = <Model, Message, OutMessage>(
       )
       const mountSlots = reconcileMountSlots(internal.mountSlots, html)
       const mounts = pendingMountsOf(mountSlots)
-      return { ...internal, html, mountSlots, mounts } as SceneSimulation<
-        Model,
-        Message,
-        OutMessage
-      >
+      return {
+        ...internal,
+        html: toSceneElement(html),
+        mountSlots,
+        mounts,
+      } as SceneSimulation<Model, Message, OutMessage>
     }
 
     return next
@@ -1897,7 +1901,11 @@ export const click =
     const { value: element } = maybeElement
     const propagationPath = [
       element,
-      ...pipe(internal.html, ancestorsOf(element), Array.reverse),
+      ...pipe(
+        fromSceneElement(internal.html),
+        ancestorsOf(element),
+        Array.reverse,
+      ),
     ]
     const activationElement = pipe(
       propagationPath,
@@ -1943,7 +1951,9 @@ export const click =
       const maybeSubmitter = Array.findFirst(propagationPath, isSubmitButton)
       const maybeForm = pipe(
         maybeSubmitter,
-        Option.flatMap(submitter => formOwnerOf(internal.html, submitter)),
+        Option.flatMap(submitter =>
+          formOwnerOf(fromSceneElement(internal.html), submitter),
+        ),
       )
 
       if (Option.isSome(maybeForm)) {
@@ -2008,7 +2018,7 @@ export const doubleClick =
     }
 
     const maybeAncestor = findAncestorWithHandler(
-      internal.html,
+      fromSceneElement(internal.html),
       element,
       'dblclick',
     )
@@ -2070,7 +2080,7 @@ export const contextMenu =
     }
 
     const maybeAncestor = findAncestorWithHandler(
-      internal.html,
+      fromSceneElement(internal.html),
       element,
       'contextmenu',
     )
@@ -2186,7 +2196,10 @@ export const pointerDown =
         clientX,
         clientY,
         pointerId,
-        target: simulatedPointerTarget(internal.html, element),
+        target: simulatedPointerTarget(
+          fromSceneElement(internal.html),
+          element,
+        ),
       })
     }
 
@@ -2201,7 +2214,7 @@ export const pointerDown =
     }
 
     const maybeAncestor = findAncestorWithHandler(
-      internal.html,
+      fromSceneElement(internal.html),
       element,
       'pointerdown',
     )
@@ -2277,7 +2290,7 @@ export const pointerUp =
     }
 
     const maybeAncestor = findAncestorWithHandler(
-      internal.html,
+      fromSceneElement(internal.html),
       element,
       'pointerup',
     )
@@ -2614,10 +2627,10 @@ export const keydown: {
 // ASSERTION STEPS
 
 type SceneAssertion = (
-  maybeElement: Option.Option<VNode>,
+  maybeElement: Option.Option<SceneElement>,
   description: string,
   isNot: boolean,
-  root: VNode,
+  root: SceneElement,
 ) => void
 
 const wrapAssertion =
@@ -2651,7 +2664,10 @@ const assertOnElement =
         `Expected element matching ${description} ${negation}to ${expectation} but the element does not exist.`,
       )
     }
-    const { pass, actual } = check(maybeElement.value, root)
+    const { pass, actual } = check(
+      fromSceneElement(maybeElement.value),
+      fromSceneElement(root),
+    )
     if (isNot ? pass : !pass) {
       throw new Error(
         isNot
@@ -2695,8 +2711,8 @@ const textIncludes = (value: string, expected: string | RegExp): boolean =>
 const assertHasText = (expected: string | RegExp): SceneAssertion =>
   assertOnElement(
     vnode => ({
-      pass: textMatches(textContent(vnode), expected),
-      actual: `received "${textContent(vnode)}"`,
+      pass: textMatches(textContentOfNode(vnode), expected),
+      actual: `received "${textContentOfNode(vnode)}"`,
     }),
     `have text ${describeExpected(expected)}`,
   )
@@ -2704,8 +2720,8 @@ const assertHasText = (expected: string | RegExp): SceneAssertion =>
 const assertContainsText = (expected: string | RegExp): SceneAssertion =>
   assertOnElement(
     vnode => ({
-      pass: textIncludes(textContent(vnode), expected),
-      actual: `received "${textContent(vnode)}"`,
+      pass: textIncludes(textContentOfNode(vnode), expected),
+      actual: `received "${textContentOfNode(vnode)}"`,
     }),
     `contain text ${describeExpected(expected)}`,
   )
@@ -2716,7 +2732,7 @@ const assertHasAttr = (
 ): SceneAssertion =>
   assertOnElement(
     vnode => {
-      const actualValue = attr(vnode, name)
+      const actualValue = attrOfNode(vnode, name)
       if (Predicate.isUndefined(value)) {
         return {
           pass: Option.isSome(actualValue),
@@ -2795,9 +2811,25 @@ const assertHasHandler = (name: string): SceneAssertion =>
     `have handler "${name}"`,
   )
 
+const describeKey = (key: PropertyKey): string =>
+  Predicate.isString(key) ? `"${key}"` : globalThis.String(key)
+
+const assertHasKey = (expected: PropertyKey): SceneAssertion =>
+  assertOnElement(
+    vnode =>
+      Option.match(Option.fromNullishOr(vnode.key), {
+        onNone: () => ({ pass: false, actual: 'the element has no key' }),
+        onSome: actual => ({
+          pass: actual === expected,
+          actual: `received key ${describeKey(actual)}`,
+        }),
+      }),
+    `have key ${describeKey(expected)}`,
+  )
+
 const assertHasValue = (expected: string): SceneAssertion =>
   assertOnElement(vnode => {
-    const actualValue = attr(vnode, 'value')
+    const actualValue = attrOfNode(vnode, 'value')
     return Option.match(actualValue, {
       onNone: () => ({
         pass: false,
@@ -2811,11 +2843,11 @@ const assertHasValue = (expected: string): SceneAssertion =>
   }, `have value "${expected}"`)
 
 const isDisabled = (vnode: VNode): boolean => {
-  const disabled = attr(vnode, 'disabled')
+  const disabled = attrOfNode(vnode, 'disabled')
   if (Option.isSome(disabled) && disabled.value !== 'false') {
     return true
   }
-  const ariaDisabled = attr(vnode, 'aria-disabled')
+  const ariaDisabled = attrOfNode(vnode, 'aria-disabled')
   return Option.isSome(ariaDisabled) && ariaDisabled.value === 'true'
 }
 
@@ -2836,8 +2868,8 @@ const assertIsEnabled: SceneAssertion = assertOnElement(
 )
 
 const assertIsChecked: SceneAssertion = assertOnElement(vnode => {
-  const checked = attr(vnode, 'checked')
-  const ariaChecked = attr(vnode, 'aria-checked')
+  const checked = attrOfNode(vnode, 'checked')
+  const ariaChecked = attrOfNode(vnode, 'aria-checked')
   const pass =
     (Option.isSome(checked) && checked.value !== 'false') ||
     (Option.isSome(ariaChecked) && ariaChecked.value === 'true')
@@ -2877,7 +2909,7 @@ const assertHasAccessibleDescription = (
 
 const assertIsEmpty: SceneAssertion = assertOnElement(vnode => {
   const childCount = (vnode.children ?? []).length
-  const text = textContent(vnode)
+  const text = textContentOfNode(vnode)
   return {
     pass: String.isEmpty(text) && childCount === 0,
     actual: String.isNonEmpty(text)
@@ -2888,7 +2920,7 @@ const assertIsEmpty: SceneAssertion = assertOnElement(vnode => {
 
 const assertHasId = (expected: string): SceneAssertion =>
   assertOnElement(vnode => {
-    const actualId = attr(vnode, 'id')
+    const actualId = attrOfNode(vnode, 'id')
     return Option.match(actualId, {
       onNone: () => ({ pass: false, actual: 'the element has no id' }),
       onSome: actual => ({
@@ -2915,6 +2947,10 @@ const buildExpectChain = (locator: Locator, isNot: boolean) => ({
     wrapAssertion(locator, assertHasHook(name), isNot),
   toHaveHandler: (name: string) =>
     wrapAssertion(locator, assertHasHandler(name), isNot),
+  /** Asserts the key the view gave the element through `h.keyed` or
+   *  `h.Key`. */
+  toHaveKey: (expected: PropertyKey) =>
+    wrapAssertion(locator, assertHasKey(expected), isNot),
   toHaveValue: (expected: string) =>
     wrapAssertion(locator, assertHasValue(expected), isNot),
   toBeDisabled: () => wrapAssertion(locator, assertIsDisabled, isNot),
@@ -2944,7 +2980,7 @@ const wrapAllAssertion =
   (
     locatorAll: LocatorAll,
     assertion: (
-      matches: ReadonlyArray<VNode>,
+      matches: ReadonlyArray<SceneElement>,
       description: string,
       isNot: boolean,
     ) => void,
@@ -2966,7 +3002,7 @@ const wrapAllAssertion =
 const assertCount =
   (expected: number) =>
   (
-    matches: ReadonlyArray<VNode>,
+    matches: ReadonlyArray<SceneElement>,
     description: string,
     isNot: boolean,
   ): void => {

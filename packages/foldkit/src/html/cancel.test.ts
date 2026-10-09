@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { defineMessageUnion } from '../message/index.js'
 import { MountTracker } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
+import { fromHtml } from './htmlNode.js'
 import { type HtmlBuilder, __htmlBuilder } from './index.js'
 import {
   type DispatchSync,
@@ -37,7 +38,7 @@ const setUpRuntime = (dispatched: Array<unknown>): void => {
 const cancelHandlerOf = (
   vnode: ReturnType<HtmlBuilder<Message>['dialog']>,
 ): ((event: Event) => void) =>
-  vnode?.data?.on?.['cancel'] as unknown as (event: Event) => void
+  fromHtml(vnode)?.data?.on?.['cancel'] as unknown as (event: Event) => void
 /* eslint-enable @typescript-eslint/consistent-type-assertions */
 
 describe('cancel attributes', () => {

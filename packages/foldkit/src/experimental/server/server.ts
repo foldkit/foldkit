@@ -27,6 +27,7 @@ import {
   parsedAttributeName,
 } from '../../domReflection.js'
 import { beginRender, createBoundaryRegistry } from '../../html/boundary.js'
+import { fromHtml } from '../../html/htmlNode.js'
 import {
   type Document,
   type HtmlBuilder,
@@ -728,9 +729,7 @@ const DOCUMENT_STRUCTURE_TAGS: ReadonlySet<string> = new Set([
   'html',
 ])
 
-const assertRootIsNotDocumentStructure = (
-  root: NonNullable<Document['body']>,
-): void => {
+const assertRootIsNotDocumentStructure = (root: VNode): void => {
   const tagName = tagNameFromSelector(root.sel ?? '').toLowerCase()
   if (!DOCUMENT_STRUCTURE_TAGS.has(tagName)) {
     return
@@ -907,10 +906,7 @@ const assertNoReservedHandoffMarkers = (root: Parse5Element): void => {
 // invariant that the served root parses back to the single intended element.
 // The single element the served markup parses back to, or a refusal naming what
 // the parser did to it instead.
-const parsedRootOf = (
-  html: string,
-  root: NonNullable<Document['body']>,
-): Parse5Element => {
+const parsedRootOf = (html: string, root: VNode): Parse5Element => {
   const fragment = parseFragment(DIV_FRAGMENT_CONTEXT, html, {})
   const significant = fragment.childNodes.filter(node => !isIgnorableText(node))
   const only = significant[0]
@@ -958,10 +954,7 @@ const parsedRootOf = (
 // reshaped subtree, so without it a dropped subtree is simply lost, with nothing
 // left to notice. What stays conditional is the marker check below: only a
 // hydratable render emits a stamp for the parser to move.
-const assertParsedRootMatchesView = (
-  html: string,
-  root: NonNullable<Document['body']>,
-): void => {
+const assertParsedRootMatchesView = (html: string, root: VNode): void => {
   const parsed = parsedRootOf(html, root)
   assertNoReservedHandoffMarkers(parsed)
   assertStructureMatches(parsed, root)
@@ -971,7 +964,7 @@ const assertSingleStampedRoot = (
   html: string,
   runtimeId: string,
   buildId: string,
-  root: NonNullable<Document['body']>,
+  root: VNode,
 ): void => {
   const only = parsedRootOf(html, root)
   const applicationMarkers = elementsCarrying(only, FOLDKIT_APP_ATTRIBUTE)
@@ -1313,7 +1306,7 @@ const parseUrl = (url: string): Effect.Effect<Url, InvalidUrl> =>
   })
 
 const validateHydrationRoot = (
-  body: Document['body'],
+  body: VNode | null,
 ): Effect.Effect<void, InvalidHydrationRoot> => {
   if (body === null) {
     return Effect.fail(new InvalidHydrationRoot({ rootKind: 'Empty' }))
@@ -1444,9 +1437,10 @@ export function renderToString(
       return hasRouting ? config.init(url) : config.init()
     })()
     const nextDocument = runView(config.view, initReturn.model)
+    const body = fromHtml(nextDocument.body)
 
     if (isHydratable) {
-      yield* validateHydrationRoot(nextDocument.body)
+      yield* validateHydrationRoot(body)
     }
 
     const rootHtml = yield* Effect.try({
@@ -1454,14 +1448,14 @@ export function renderToString(
         // Checked for every render, hydratable or not: static markup is placed
         // into a document the same way, so a document-structure root is
         // rearranged by the parser either way.
-        if (nextDocument.body !== null) {
-          assertRootIsNotDocumentStructure(nextDocument.body)
-          assertViewDoesNotAuthorReservedContent(nextDocument.body)
+        if (body !== null) {
+          assertRootIsNotDocumentStructure(body)
+          assertViewDoesNotAuthorReservedContent(body)
         }
         // The build id rides on the root so hydration can refuse a page from
         // another deployment before it adopts any of its DOM.
         const html = serializeHtml(
-          nextDocument.body,
+          body,
           isHydratable
             ? {
                 rootAttributes: {
@@ -1480,11 +1474,11 @@ export function renderToString(
         __assertNoDeclarativeShadowRoot(html)
         __assertNoDocumentStructureEscape(html)
         __assertNoLiveBaseElement(html)
-        if (nextDocument.body !== null) {
+        if (body !== null) {
           if (isHydratable) {
-            assertSingleStampedRoot(html, runtimeId, buildId, nextDocument.body)
+            assertSingleStampedRoot(html, runtimeId, buildId, body)
           } else {
-            assertParsedRootMatchesView(html, nextDocument.body)
+            assertParsedRootMatchesView(html, body)
           }
         }
         return html

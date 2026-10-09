@@ -116,7 +116,7 @@ The [Routing example](/example-apps/routing) uses a rest route to drive a small 
 
 ## Route View Identity
 
-Each route arm delegates to its own view function, and view functions are identity boundaries: the build brands the VNodes a function returns with that function’s identity, and the differ replaces a position whose identity changed instead of patching it. Navigating from one route to another therefore tears down the old page and builds the new one fresh, with no keys and no wrapper elements. The identity is stamped by `@foldkit/vite-plugin`, which `create-foldkit-app` includes by default. Do not build a Foldkit app without it:
+Each route arm delegates to its own view function, and view functions are identity boundaries: the build brands the `Html` a function returns with that function’s identity, and the differ replaces a position whose identity changed instead of patching it. Navigating from one route to another therefore tears down the old page and builds the new one fresh, with no keys and no wrapper elements. The identity is stamped by `@foldkit/vite-plugin`, which `create-foldkit-app` includes by default. Do not build a Foldkit app without it:
 
 ::Snippet{name="routingViewIdentity" label="Route view identity"}
 

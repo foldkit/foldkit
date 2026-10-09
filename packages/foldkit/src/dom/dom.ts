@@ -291,7 +291,7 @@ const queryHTMLElement = (
  *
  * Do not use `OnMount` for focus. The cause of focus-on-open is the
  * Message, not the element appearing. Mount is for per-instance lifecycle
- * effects bound to a VNode existing where the live element handle is
+ * effects bound to an element existing where the live element handle is
  * needed (positioning, portaling, observer attachment, library setup).
  *
  * Waiting for the commit puts the element in the DOM. It does not make the

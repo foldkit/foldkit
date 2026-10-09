@@ -9,6 +9,7 @@ import {
   registerBoundaryWrapTransactionRollback,
   restoreBoundaryWrapsForLazyHit,
 } from './boundary.js'
+import { type Html, fromHtml, toHtml } from './htmlNode.js'
 import {
   type DispatchSync,
   requireBoundary,
@@ -47,7 +48,7 @@ type CacheEntry = Readonly<{
 
 const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
   previousEntry: CacheEntry | undefined,
-  fn: (...args: Args) => VNode | null,
+  fn: (...args: Args) => Html,
   args: Args,
   onCache: (entry: CacheEntry | undefined) => void,
 ): VNode | null => {
@@ -78,7 +79,7 @@ const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
   const trackedBoundaries = beginLazyTracking(registry)
   let vnode: VNode | null
   try {
-    vnode = fn(...args)
+    vnode = fromHtml(fn(...args))
   } finally {
     endLazyTracking(registry)
   }
@@ -107,35 +108,37 @@ const resolveOrCache = <Args extends ReadonlyArray<unknown>>(
 
 /** Creates a memoization slot for a view function. On each render, if the
  *  function reference, dispatchers, Mount render owner, and all arguments are
- *  equal to the previous call, the cached VNode is returned without
- *  re-running the view function. Snabbdom's `patchVnode` short-circuits when
- *  it sees the same VNode reference, so both VNode construction and subtree
- *  diffing are skipped.
+ *  equal to the previous call, the cached Html is returned without
+ *  re-running the view function. The renderer short-circuits when it sees the
+ *  same Html reference, so both view construction and subtree diffing are
+ *  skipped.
  *
  *  Dispatchers and Mount render ownership are part of the cache key because
- *  event handlers and Mounts in the cached VNode close over the frame active
- *  when the VNode was built. Returning a VNode built under a different frame
+ *  event handlers and Mounts in the cached Html close over the frame active
+ *  when the Html was built. Returning Html built under a different frame
  *  would silently misroute events or retain the wrong Mount lifecycle owner.
  *
- *  The cached VNode must be rendered at a single position in the tree.
- *  Snabbdom tracks the real DOM through each VNode's mutable `.elm` field
- *  and assumes one VNode per position. Rendering the same cached VNode at
- *  two positions causes patches to collide and can duplicate or misplace
- *  DOM nodes. If the same content needs to appear in multiple positions,
- *  create one slot per position. */
+ *  The cached Html must be rendered at a single position in the tree. The
+ *  renderer records the real DOM element on each rendered node and assumes
+ *  one node per position. Rendering the same cached Html at two positions
+ *  causes patches to collide and can duplicate or misplace DOM nodes. If the
+ *  same content needs to appear in multiple positions, create one slot per
+ *  position. */
 export const createLazy = (): (<Args extends ReadonlyArray<unknown>>(
-  fn: (...args: Args) => VNode | null,
+  fn: (...args: Args) => Html,
   args: Args,
-) => VNode | null) => {
+) => Html) => {
   let cached: CacheEntry | undefined
 
   return <Args extends ReadonlyArray<unknown>>(
-    fn: (...args: Args) => VNode | null,
+    fn: (...args: Args) => Html,
     args: Args,
-  ): VNode | null =>
-    resolveOrCache(cached, fn, args, entry => {
-      cached = entry
-    })
+  ): Html =>
+    toHtml(
+      resolveOrCache(cached, fn, args, entry => {
+        cached = entry
+      }),
+    )
 }
 
 /** Creates a keyed memoization map for one view function rendered under many
@@ -158,26 +161,28 @@ export const createLazy = (): (<Args extends ReadonlyArray<unknown>>(
  *  needs, the upgrade path is a variant that drops keys absent from the latest
  *  render pass, not a cap on this one.
  *
- *  Like `createLazy`, each key's cached VNode must be rendered at a single
+ *  Like `createLazy`, each key's cached Html must be rendered at a single
  *  position in the tree. If the same content needs to appear in multiple
  *  positions, give each position its own key. */
 export const createKeyedLazy = (): (<Args extends ReadonlyArray<unknown>>(
   key: PropertyKey,
-  fn: (...args: Args) => VNode | null,
+  fn: (...args: Args) => Html,
   args: Args,
-) => VNode | null) => {
+) => Html) => {
   const cache = new Map<PropertyKey, CacheEntry>()
 
   return <Args extends ReadonlyArray<unknown>>(
     key: PropertyKey,
-    fn: (...args: Args) => VNode | null,
+    fn: (...args: Args) => Html,
     args: Args,
-  ): VNode | null =>
-    resolveOrCache(cache.get(key), fn, args, entry => {
-      if (entry === undefined) {
-        cache.delete(key)
-      } else {
-        cache.set(key, entry)
-      }
-    })
+  ): Html =>
+    toHtml(
+      resolveOrCache(cache.get(key), fn, args, entry => {
+        if (entry === undefined) {
+          cache.delete(key)
+        } else {
+          cache.set(key, entry)
+        }
+      }),
+    )
 }

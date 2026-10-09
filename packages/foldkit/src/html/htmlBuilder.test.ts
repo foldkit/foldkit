@@ -8,6 +8,7 @@ import { Dispatch, embed, makeElement } from '../runtime/index.js'
 import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
 import { beginRender, createBoundaryRegistry } from './boundary.js'
+import { fromHtml } from './htmlNode.js'
 import * as HtmlModule from './index.js'
 import {
   type Html,
@@ -196,8 +197,8 @@ describe('HtmlBuilder runtime guarantees', () => {
   it('keeps a typed property client-only where the element does not reflect it', () => {
     const div = __htmlBuilder<never>().div([inertHtml.Type('button')])
 
-    expect(div?.data?.props?.['type']).toBe('button')
-    expect(isClientOnlyProperty(div?.data?.props, 'type')).toBe(true)
+    expect(fromHtml(div)?.data?.props?.['type']).toBe('button')
+    expect(isClientOnlyProperty(fromHtml(div)?.data?.props, 'type')).toBe(true)
   })
 
   afterEach(() => {
@@ -247,7 +248,7 @@ describe('HtmlBuilder runtime guarantees', () => {
       })
 
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      const onClick = result?.data?.on?.['click'] as () => void
+      const onClick = fromHtml(result)?.data?.on?.['click'] as () => void
       onClick()
 
       expect(dispatched).toEqual([

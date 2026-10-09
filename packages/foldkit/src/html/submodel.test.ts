@@ -6,6 +6,11 @@ import { describe, it } from '@effect/vitest'
 import { MountTracker } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
 import { h } from '../snabbdom/index.js'
+import {
+  createVNodeKeyedLazy,
+  createVNodeLazy,
+  defineVNodeView,
+} from '../test/rendererNodes.js'
 import { type VNode, dedupeSharedVNodes, memoizedVNodes } from '../vdom.js'
 import {
   type BoundaryRegistry,
@@ -14,6 +19,7 @@ import {
   registerBoundaryWrap,
   resolveMountBoundaryDispatch,
 } from './boundary.js'
+import { type Html, fromHtml } from './htmlNode.js'
 import { __htmlBuilder } from './index.js'
 import { createKeyedLazy, createLazy } from './lazy.js'
 import {
@@ -33,7 +39,7 @@ import {
 
 const submodel = <View extends AnySubmodelView>(
   config: SubmodelConfig<View, unknown>,
-): VNode | null => submodelImpl(config, __htmlBuilder())
+): VNode | null => fromHtml(submodelImpl(config, __htmlBuilder()))
 
 const asVNode = (child: VNode | string | undefined): VNode => {
   if (child === undefined || typeof child === 'string') {
@@ -81,7 +87,7 @@ const GotChild = (args: { entryId: string; message: ChildMessage }) =>
 // Submodel's boundary. Calling `requireDispatch()` inside the click
 // handler would resolve at fire time when the boundary has already
 // been popped.
-const childView = defineView<{ value: number }, ChildMessage>(model => {
+const childView = defineVNodeView<{ value: number }, ChildMessage>(model => {
   const dispatch = requireDispatch()
   return h('button', {
     on: {
@@ -154,7 +160,7 @@ describe('h.submodel', () => {
     const innerResult = submodel({
       slotId: 'parent',
       model: {},
-      view: defineView<object, ParentMessage>(() =>
+      view: defineVNodeView<object, ParentMessage>(() =>
         submodel({
           slotId: 'child-1',
           model: { value: 99 },
@@ -182,7 +188,7 @@ describe('h.submodel', () => {
   })
 
   it('passes viewInputs as the second view argument when provided', () => {
-    const viewWithInputs = defineView<
+    const viewWithInputs = defineVNodeView<
       { value: number },
       ChildMessage,
       { label: string }
@@ -220,7 +226,7 @@ describe('h.submodel', () => {
       submodel({
         slotId: 'inner',
         model: {},
-        view: defineView<object, ChildMessage>(() => h('span')),
+        view: defineVNodeView<object, ChildMessage>(() => h('span')),
         toParentMessage: message => GotChild({ entryId: 'inner', message }),
       })
 
@@ -265,14 +271,14 @@ describe('h.submodel', () => {
     {
       kind: 'createLazy',
       makeLazy: () => {
-        const lazy = createLazy()
+        const lazy = createVNodeLazy()
         return (view: () => VNode | null) => lazy(view, [])
       },
     },
     {
       kind: 'createKeyedLazy',
       makeLazy: () => {
-        const lazy = createKeyedLazy()
+        const lazy = createVNodeKeyedLazy()
         return (view: () => VNode | null) => lazy('cached-row', view, [])
       },
     },
@@ -441,23 +447,25 @@ describe('h.submodel', () => {
 
   it('composes the user-supplied destroy hook with the boundary cleanup hook', () => {
     let userDestroyCalled = false
-    const viewWithDestroy = defineView<{ value: number }, ChildMessage>(_ => {
-      const dispatch = requireDispatch()
-      return h('button', {
-        on: {
-          click: () =>
-            dispatch({
-              _tag: 'ChildClicked',
-              value: 0,
-            } satisfies ChildMessage),
-        },
-        hook: {
-          destroy: () => {
-            userDestroyCalled = true
+    const viewWithDestroy = defineVNodeView<{ value: number }, ChildMessage>(
+      _ => {
+        const dispatch = requireDispatch()
+        return h('button', {
+          on: {
+            click: () =>
+              dispatch({
+                _tag: 'ChildClicked',
+                value: 0,
+              } satisfies ChildMessage),
           },
-        },
-      })
-    })
+          hook: {
+            destroy: () => {
+              userDestroyCalled = true
+            },
+          },
+        })
+      },
+    )
 
     const result = submodel({
       slotId: 'with-user-destroy',
@@ -480,7 +488,7 @@ describe('h.submodel', () => {
     submodel({
       slotId: 'child-1',
       model: {},
-      view: defineView<object, ChildMessage>(() => {
+      view: defineVNodeView<object, ChildMessage>(() => {
         const first = requireDispatch()
         const second = requireDispatch()
         expect(first).toBe(second)
@@ -533,7 +541,7 @@ describe('h.submodel', () => {
       ) => unknown
     }>
 
-    const fakeCheckboxView = defineView<
+    const fakeCheckboxView = defineVNodeView<
       object,
       ChildMessage,
       CheckboxLikeInputs
@@ -592,18 +600,20 @@ describe('h.submodel', () => {
     type Selected = Readonly<{ _tag: 'Selected'; value: number }>
     type SelectedOnly = Selected
 
-    const selectingView = defineView<{ value: number }, SelectedOnly>(model => {
-      const dispatch = requireDispatch()
-      return h('button', {
-        on: {
-          click: () =>
-            dispatch({
-              _tag: 'Selected',
-              value: model.value,
-            } satisfies Selected),
-        },
-      })
-    })
+    const selectingView = defineVNodeView<{ value: number }, SelectedOnly>(
+      model => {
+        const dispatch = requireDispatch()
+        return h('button', {
+          on: {
+            click: () =>
+              dispatch({
+                _tag: 'Selected',
+                value: model.value,
+              } satisfies Selected),
+          },
+        })
+      },
+    )
 
     const result = submodel({
       slotId: 'inference-check',
@@ -626,7 +636,9 @@ describe('h.submodel', () => {
   })
 
   it('returns null and deregisters the wrap when the view returns null', () => {
-    const nullView = defineView<{ value: number }, ChildMessage>(() => null)
+    const nullView = defineVNodeView<{ value: number }, ChildMessage>(
+      () => null,
+    )
 
     const result = submodel({
       slotId: 'null-view',
@@ -674,7 +686,7 @@ describe('h.submodel', () => {
       setUpRuntime(registry, replayDispatched)
       const replayMountOuterDispatch = requireMountDispatch()
       beginRender(registry)
-      const replayView = defineView<{ value: number }, ChildMessage>(
+      const replayView = defineVNodeView<{ value: number }, ChildMessage>(
         (model, h) => {
           h.submodel({
             slotId: 'nested',
@@ -738,14 +750,14 @@ describe('h.submodel', () => {
       kind: 'createLazy',
       makeLazy: () => {
         const lazy = createLazy()
-        return (view: () => VNode | null) => lazy(view, [])
+        return (view: () => Html) => lazy(view, [])
       },
     },
     {
       kind: 'createKeyedLazy',
       makeLazy: () => {
         const lazy = createKeyedLazy()
-        return (view: () => VNode | null) => lazy('nested', view, [])
+        return (view: () => Html) => lazy('nested', view, [])
       },
     },
   ])(
@@ -767,7 +779,7 @@ describe('h.submodel', () => {
           }),
         })
       }
-      const failedView = defineView<object, ChildMessage>(() => {
+      const failedView = defineVNodeView<object, ChildMessage>(() => {
         lazy(renderNested)
         throw new Error('Outer view failed after caching its child')
       })
@@ -820,7 +832,7 @@ describe('h.submodel', () => {
       submodel({
         slotId: 'parent-a',
         model: {},
-        view: defineView<object, ParentMessage>(() =>
+        view: defineVNodeView<object, ParentMessage>(() =>
           submodel({
             slotId: 'child',
             model: { value: 1 },
@@ -834,7 +846,7 @@ describe('h.submodel', () => {
       submodel({
         slotId: 'parent-b',
         model: {},
-        view: defineView<object, ParentMessage>(() =>
+        view: defineVNodeView<object, ParentMessage>(() =>
           submodel({
             slotId: 'child',
             model: { value: 2 },
@@ -867,7 +879,7 @@ describe('h.submodel', () => {
         toParentMessage: message => GotChild({ entryId: 'shared', message }),
       })
 
-    const lazyRow = createKeyedLazy()
+    const lazyRow = createVNodeKeyedLazy()
     const renderRow = (key: string): VNode | null =>
       lazyRow(key, rowView, [key])
 
@@ -896,7 +908,7 @@ describe('h.submodel', () => {
         toParentMessage: message => GotChild({ entryId: 'shared', message }),
       })
 
-    const lazyRow = createKeyedLazy()
+    const lazyRow = createVNodeKeyedLazy()
     const renderRow = (key: string): VNode | null =>
       lazyRow(key, rowView, [key])
 
@@ -933,7 +945,7 @@ describe('h.submodel', () => {
         toParentMessage: message => GotChild({ entryId: item.id, message }),
       })
 
-    const lazyRow = createKeyedLazy()
+    const lazyRow = createVNodeKeyedLazy()
     const renderRow = (item: Item): VNode | null => {
       const vnode = lazyRow(item.id, rowView, [item])
       if (vnode !== null && vnode.key !== item.id) {
@@ -995,10 +1007,10 @@ describe('h.submodel', () => {
     // cached subtree, which carries the .elm snabbdom recorded on a prior
     // patch. Without that propagation the wrapper looks like ordinary view
     // output and dedupe clones the cached child, defeating memoization.
-    const lazy = createLazy()
+    const lazy = createVNodeLazy()
     const buildChild = (value: number) =>
       h('div', {}, [h('span', {}, [`value: ${value}`])])
-    const memoizedChildView = defineView<{ value: number }, ChildMessage>(
+    const memoizedChildView = defineVNodeView<{ value: number }, ChildMessage>(
       model => lazy(buildChild, [model.value]),
     )
 
@@ -1040,7 +1052,7 @@ describe('h.submodel', () => {
     }): ParentSlotMessage => ({ _tag: 'GotSlotChild', ...args })
 
     type ShellInputs = Readonly<{ slot: () => VNode | null }>
-    const shellView = defineView<object, ChildMessage, ShellInputs>(
+    const shellView = defineVNodeView<object, ChildMessage, ShellInputs>(
       (_, viewInputs) => {
         const slotVNode = viewInputs.slot()
         return h('div', {}, [slotVNode ?? h('span')])
@@ -1079,7 +1091,7 @@ describe('h.submodel', () => {
     type NestedInputs = Readonly<{
       config: Readonly<{ onSubmit: () => unknown }>
     }>
-    const viewWithNested = defineView<object, ChildMessage, NestedInputs>(
+    const viewWithNested = defineVNodeView<object, ChildMessage, NestedInputs>(
       (_model, _viewInputs) => h('div'),
     )
 
@@ -1106,7 +1118,7 @@ describe('h.submodel', () => {
     type ItemsInputs = Readonly<{
       items: ReadonlyArray<Readonly<{ onSelect: () => unknown }>>
     }>
-    const viewWithItems = defineView<object, ChildMessage, ItemsInputs>(
+    const viewWithItems = defineVNodeView<object, ChildMessage, ItemsInputs>(
       (_model, _viewInputs) => h('div'),
     )
 
@@ -1129,7 +1141,7 @@ describe('h.submodel', () => {
     // accepted. Models lean on `Option`, `Either`, and similar data
     // types heavily; threading them through `viewInputs` is a common idiom.
     type OptionInputs = Readonly<{ maybeValue: Option.Option<string> }>
-    const viewWithOption = defineView<object, ChildMessage, OptionInputs>(
+    const viewWithOption = defineVNodeView<object, ChildMessage, OptionInputs>(
       (_model, _viewInputs) => h('div'),
     )
 
