@@ -455,8 +455,12 @@ export const makeUpdate = <Model extends BaseModel>(
       SuppressedItemCommit: () => ({ model }),
       CompletedAnchorListbox: () => ({ model }),
       CompletedPortalListboxBackdrop: () => ({ model }),
-      Opened: ({ maybeActiveItemIndex }) =>
-        openListbox(
+      Opened: ({ maybeActiveItemIndex }) => {
+        if (model.isOpen) {
+          return { model }
+        }
+
+        return openListbox(
           modifyBaseFields(model, {
             maybeActiveItemIndex: () => maybeActiveItemIndex,
             activationTrigger: () =>
@@ -469,7 +473,8 @@ export const makeUpdate = <Model extends BaseModel>(
             maybeLastPointerPosition: () => Option.none(),
           }),
           openCommands,
-        ),
+        )
+      },
 
       Closed: () => closeListbox(model, closeWithFocusCommands),
 
