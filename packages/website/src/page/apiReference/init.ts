@@ -2,21 +2,17 @@ import { Option } from 'effect'
 import { Update } from 'foldkit'
 
 import { Message } from './message'
-import { type ApiData, ApiDataAsyncData } from './model'
-import { type UpdateReturn, update } from './update'
+import { type ApiData, ApiDataAsyncData, Model } from './model'
+import { update } from './update'
 
-export type InitReturn = UpdateReturn
-
-export const init = (): InitReturn => ({
-  model: {
+export const init = () => ({
+  model: Model.make({
     apiData: ApiDataAsyncData.Idle(),
     disclosures: {},
-  },
+  }),
 })
 
-export const boot = (
-  maybeApiData: Option.Option<ApiData> = Option.none(),
-): InitReturn => {
+export const boot = (maybeApiData: Option.Option<ApiData> = Option.none()) => {
   const init_ = init()
   return Update.combine(init_.model, [
     stepModel => update(stepModel, Message.RequestedApiData()),

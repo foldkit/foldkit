@@ -26,7 +26,7 @@ import {
 import type { TableOfContentsEntry } from '../../tableOfContentsEntry'
 import { Message } from './message'
 import { type ExampleMeta, findBySlug } from './meta'
-import { CurrentSourcesAsyncData, type Model } from './model'
+import { CurrentSourcesAsyncData, Model } from './model'
 import {
   type ExampleSourceFile,
   ExampleSources,
@@ -130,20 +130,14 @@ export const Live = Layer.mergeAll(
 
 // INIT
 
-type UpdateReturn = Update.Return<
-  Model,
-  Message,
-  Command.HandlerOf<typeof LoadExampleSources>
->
-
-export const init = (): UpdateReturn => ({
-  model: {
+export const init = () => ({
+  model: Model.make({
     sourceFileTabs: Tabs.init({ id: 'source-file-tabs' }),
     maybeActiveSourceFilePath: Option.none(),
     maybeExampleUrl: Option.none(),
     isLivePreviewOpen: true,
     currentSources: CurrentSourcesAsyncData.Idle(),
-  },
+  }),
 })
 
 const isSourceAvailable = (slug: string): boolean =>
@@ -157,7 +151,7 @@ export const boot = (
   maybeExampleSources: Option.Option<
     typeof ExampleSources.Type
   > = Option.none(),
-): UpdateReturn => {
+) => {
   const init_ = init()
   return Option.match(maybeExampleSources, {
     onNone: () =>

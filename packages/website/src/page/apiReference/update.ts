@@ -53,12 +53,6 @@ export const Live = LoadApiData.toLayer(() =>
   ),
 )
 
-export type UpdateReturn = Update.Return<
-  Model,
-  Message,
-  Command.HandlerOf<typeof LoadApiData>
->
-
 const disclosuresForApiData = (apiData: ApiData): Disclosures =>
   pipe(
     apiData.parsedApi.modules,

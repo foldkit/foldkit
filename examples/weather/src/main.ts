@@ -1,6 +1,6 @@
 import { Array, Effect, Match, Option, Schema, String } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
-import { AsyncData, Command, Runtime, Update } from 'foldkit'
+import { AsyncData, Command, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -75,11 +75,11 @@ export const update = Update.make((model: Model, message: Message) =>
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
-  model: {
+export const init = () => ({
+  model: Model.make({
     zipCodeInput: '',
     weather: WeatherAsyncData.Idle(),
-  },
+  }),
 })
 
 // COMMAND
