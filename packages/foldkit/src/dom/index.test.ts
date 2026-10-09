@@ -1341,6 +1341,100 @@ describe('showDialog', () => {
         document.body.innerHTML = ''
       }),
   )
+
+  it.effect(
+    'releases the dialog resources when its open element leaves the document',
+    () =>
+      Effect.gen(function* () {
+        const trigger = document.createElement('button')
+        const page = document.createElement('section')
+        document.body.append(trigger, page)
+        page.appendChild(makeDialog('solo'))
+
+        trigger.focus()
+        yield* lockScroll
+        yield* showDialog('#solo')
+        expect(document.documentElement.style.overflow).toBe('hidden')
+
+        page.remove()
+
+        yield* Effect.promise(() =>
+          vi.waitFor(() => {
+            expect(document.documentElement.style.overflow).toBe('')
+          }),
+        )
+
+        expect(pressTab().defaultPrevented).toBe(false)
+        expect(document.activeElement).toBe(trigger)
+        expect(yield* releaseDialogResources('solo')).toBe(false)
+
+        document.body.innerHTML = ''
+      }),
+  )
+
+  it.effect(
+    'restores the dialog beneath when the topmost open element leaves the document',
+    () =>
+      Effect.gen(function* () {
+        const background = document.createElement('main')
+        document.body.appendChild(background)
+        const parent = makeDialog('parent')
+        const child = makeDialog('child')
+        const cancelled: Array<string> = []
+        parent.addEventListener('cancel', () => cancelled.push('parent'))
+
+        yield* lockScroll
+        yield* showDialog('#parent', { isModal: true })
+        yield* lockScroll
+        yield* showDialog('#child', { isModal: true })
+        expect(parent.inert).toBe(true)
+
+        child.remove()
+
+        yield* Effect.promise(() =>
+          vi.waitFor(() => {
+            expect(parent.inert).toBe(false)
+          }),
+        )
+
+        expect(background.inert).toBe(true)
+        expect(document.documentElement.style.overflow).toBe('hidden')
+        pressEscape()
+        expect(cancelled).toEqual(['parent'])
+
+        yield* closeDialog('#parent')
+        yield* unlockScroll
+
+        expect(background.inert).toBe(false)
+        expect(document.documentElement.style.overflow).toBe('')
+        document.body.innerHTML = ''
+      }),
+  )
+
+  it.effect(
+    'keeps the dialog resources when its open element moves within the document',
+    () =>
+      Effect.gen(function* () {
+        const portalRoot = document.createElement('div')
+        document.body.appendChild(portalRoot)
+        const dialog = makeDialog('solo')
+
+        yield* lockScroll
+        yield* showDialog('#solo')
+
+        portalRoot.appendChild(dialog)
+
+        yield* Effect.promise(
+          () => new Promise<void>(resolve => setTimeout(resolve, 0)),
+        )
+
+        expect(document.documentElement.style.overflow).toBe('hidden')
+        expect(yield* releaseDialogResources('solo')).toBe(true)
+        expect(document.documentElement.style.overflow).toBe('')
+
+        document.body.innerHTML = ''
+      }),
+  )
 })
 
 describe('releaseDialogResources', () => {

@@ -5471,6 +5471,13 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
    * the close Command that would release the scroll lock and focus trap never
    * runs. An `OnUnmount` Message lets `update` release those resources.
    *
+   * The Message reaches `update` only while the Model that handles it exists.
+   * When the same update that removes the element also removes the owning
+   * Submodel, `Update.foldChild` reads no child Model and drops the Message.
+   * Do not make this Message the only release path for a document-level
+   * resource. `Dom.showDialog` releases its own resources when the open
+   * element leaves the document for this reason.
+   *
    * Works across Submodel boundaries. The destroy hook fires during the patch
    * that removes the element, after the Submodel's own teardown has
    * deregistered its boundary wrap, so the wrapping chain is resolved eagerly

@@ -45,6 +45,7 @@ let modalAllowedElements: ReadonlyArray<HTMLElement> = []
 let modalAllowedOutsideElements: ReadonlyArray<HTMLElement> = []
 let modalAllowedSelectors: ReadonlyArray<string> = []
 let modalAllowedAncestors = new Set<HTMLElement>()
+let dialogRemovalObserver: MutationObserver | undefined
 
 const containsAllowedSelector = (node: Node): boolean => {
   if (!(node instanceof Element || node instanceof DocumentFragment)) {
@@ -212,6 +213,27 @@ const synchronizeModalIsolation = (): void => {
   })
 }
 
+const releaseDisconnectedDialogs = (): void => {
+  const disconnectedDialogs = Array.filter(
+    openDialogStack,
+    dialog => !dialog.element.isConnected,
+  )
+
+  for (const dialog of Array.reverse(disconnectedDialogs)) {
+    Effect.runSync(releaseDialogResources(dialog.id))
+  }
+}
+
+const synchronizeDialogRemovalObserver = (): void => {
+  if (Array.isReadonlyArrayEmpty(openDialogStack)) {
+    dialogRemovalObserver?.disconnect()
+    dialogRemovalObserver = undefined
+  } else if (dialogRemovalObserver === undefined) {
+    dialogRemovalObserver = new MutationObserver(releaseDisconnectedDialogs)
+    dialogRemovalObserver.observe(document, { childList: true, subtree: true })
+  }
+}
+
 const FOCUSABLE_SELECTOR = Array.join(
   [
     'a[href]:not([tabindex="-1"])',
@@ -363,6 +385,14 @@ export const focus = (
  * holds them. The latter makes concurrent lifecycle recovery and application
  * Commands safe without duplicating focus traps or stack entries.
  *
+ * When the open element leaves the document without a `closeDialog`, the
+ * resources are released as `releaseDialogResources` releases them. No Message
+ * has to reach `update` for that release. The release includes one page scroll
+ * lock, so call `lockScroll` once for each `showDialog` that resolves to
+ * `true`. Without that lock, the release takes a lock that another holder
+ * owns. An element that moves to another parent in one synchronous step stays
+ * in the document and keeps the resources.
+ *
  * @example
  * ```typescript
  * Dom.showDialog('#my-dialog')
@@ -421,6 +451,7 @@ export const showDialog = (
     )
 
     synchronizeModalIsolation()
+    synchronizeDialogRemovalObserver()
 
     const handleKeydown = (event: KeyboardEvent): void => {
       if (!element.open) {
@@ -582,6 +613,7 @@ const releaseDialogHygieneById = (id: string): boolean => {
 
   openDialogStack = Array.filter(openDialogStack, dialog => dialog.id !== id)
   synchronizeModalIsolation()
+  synchronizeDialogRemovalObserver()
   openDialogCount = Math.max(0, Number.decrement(openDialogCount))
   hygiene.removeKeydownListener()
   dialogHygieneById.delete(id)
@@ -604,8 +636,9 @@ const releaseDialogHygieneById = (id: string): boolean => {
  * keyboard handler, modal background isolation, the recorded return focus,
  * the dialog stack entry, the z-index counter, and one page scroll lock.
  * Use this when the element is removed without a close Message, such as
- * navigation away from a route-keyed subtree. The runtime also calls it
- * directly on disposal. The normal close path already releases these.
+ * navigation away from a route-keyed subtree. `showDialog` also calls it when
+ * the open element leaves the document, and the runtime calls it directly on
+ * disposal. The normal close path already releases these.
  * That path is `closeDialog` first, then the Dialog component's scroll unlock
  * when `closeDialog` reports a release. This function is the cleanup for the
  * case where no close Message ever reaches `update`.
