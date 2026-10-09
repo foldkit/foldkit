@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Predicate, Schema } from 'effect'
+import { Effect, Option, Predicate, Schema } from 'effect'
 
 import { Document, Html, type HtmlBuilder } from '../html/index.js'
 import type { ManagedResources } from '../managedResource/index.js'
@@ -47,7 +47,6 @@ type BaseElementConfig<
   slow?: SlowConfig<Model, Message>
   viewTransition?: ViewTransitionConfig<Model, Message>
   freezeModel?: boolean
-  resources?: Layer.Layer<Resources>
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
   devTools?: DevToolsConfig
 }>
@@ -64,12 +63,11 @@ export type ElementConfigWithFlags<
   FlagsSchemaConfig<Flags> &
   Readonly<{
     /**
-     * Resolves the Flags once at startup, before `init` runs. Services this
-     * Effect requires are provided from the `resources` Layer, which the
-     * runtime builds a single time and shares with every Command and
-     * Subscription. The error channel is `never`, so this Effect handles its
-     * own failures with `Effect.catch`, the same contract a Command's Effect
-     * has.
+     * Resolves the Flags once at startup, before `init` runs. Define an
+     * Element with `Application.makeElement` to supply shared Flags services
+     * through `Application.provide`. The error channel is `never`, so this
+     * Effect handles its own failures with `Effect.catch`, the same contract
+     * a Command's Effect has.
      */
     flags: Effect.Effect<Flags, never, NoInfer<Resources>>
     init: (
@@ -146,7 +144,7 @@ export function makeElement<
   Model,
   Message extends { _tag: string },
   Flags,
-  Resources = never,
+  Resources extends never = never,
   ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
 >(
@@ -163,7 +161,7 @@ export function makeElement<
 export function makeElement<
   Model,
   Message extends { _tag: string },
-  Resources = never,
+  Resources extends never = never,
   ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
 >(
@@ -228,7 +226,6 @@ export function makeElement<
     ...(Predicate.isNotUndefined(config.freezeModel) && {
       freezeModel: config.freezeModel,
     }),
-    ...(config.resources && { resources: config.resources }),
     ...(config.managedResources && {
       managedResources: config.managedResources,
     }),

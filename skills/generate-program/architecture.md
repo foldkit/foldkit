@@ -66,11 +66,11 @@ The view function takes the Model and the builder `h`, and returns Html. It must
 
 Event handlers in the view dispatch Messages. They don't perform actions directly.
 
-### 3. Commands Catch All Errors
+### 3. Expected Command Failures Become Messages
 
-Define Command identities with `Command.define`, whose second argument is a config object: `args` (optional) declares the args Schema, `messages` lists every Message the Command can produce, `execute` holds the Effect, and `interrupt` opts into interruption. Every Command must handle its own errors via `Effect.catch(() => Effect.succeed(Message.FailedX(...)))` and convert them to Messages. Commands never throw, so the app never crashes from an unhandled side effect.
+Define Command identities with `Command.define`, whose second argument declares `args` (optional), every result Message in `messages`, and optional interruption behavior. Supply the production implementation separately with `Definition.toLayer(handler)`. Convert expected failures to Messages with `Effect.catch(() => Effect.succeed(Message.FailedX(...)))` so update can handle them as facts. Defects may still terminate the Effect and follow the runtime's crash path.
 
-Always assign definitions to PascalCase constants. Never use `Command.define` inline in a pipe chain. Definitions live where they're produced, colocated with the update function. Let TypeScript infer Command return types. The `messages` array constrains the Effect's return type at the type level.
+Always assign definitions to PascalCase constants. Never use `Command.define` inline in a pipe chain. Definitions live where they're produced, colocated with the update function. Name the handler Layer `<CommandName>Live` and merge it into that feature's `Live` Layer. Let TypeScript infer Command return types. The `messages` array constrains the handler's return type at the type level.
 
 For the canonical shapes, study the live examples directly. They stay synced with the API:
 
@@ -165,17 +165,20 @@ const Message = defineMessageUnion({
 ```ts
 import { Update } from 'foldkit'
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     // ...
-  })
+  }),
+)
 ```
+
+`Update.make` preserves the handler requirements of Commands returned by every Message branch so `Application.make` can carry them to the entry point. Use the plain function shape only when the update cannot return Commands.
 
 `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is the Submodel counterpart, adding an optional `outMessage` field.
 
 Update, init, boot, and component helper producers return `{ model }` when they statically create no Commands. When they compute a Commands collection, they return it directly without checking whether it is empty. Never write the literal `commands: []`.
 
-Inline the return type when the matcher is its only use. Create an `UpdateReturn` alias when another matcher, helper, or exported signature reuses it. `Message.match<UpdateReturn>` constrains the whole update function, so do not repeat `: UpdateReturn` on its signature. When a domain union match inside a handler needs the same constraint, pass it as that union's `match` or `matchOrElse` generic (`Submission.match<UpdateReturn>(submission, { ... })`). Use `Match.withReturnType<UpdateReturn>()` only on an Effect `Match` (a partial Message match, a shared multi-tag handler, or a union without its own matcher).
+Inside `Update.make`, let the outer helper infer the Command requirement channel through `Message.match(message, handlers)`. An explicit `Message.match<Update.Return<Model, Message>>` fixes that channel to `never` and discards the handler requirements the application must provide. When helpers or other matchers need a reusable return alias and any branch returns Commands, include the relevant requirements: derive them from the feature's handler bundle with `Layer.Success<typeof CommandsLive>` and use that as the requirement parameter of `Update.Return` or `Update.ReturnWithOutMessage`. Do not repeat the alias on the update function when the match already constrains its branches.
 
 Use `Update.Return<Model, Message>` for an update that cannot emit an OutMessage. It prevents a result containing an OutMessage from entering code that would keep only its Model and Commands. A result with no `outMessage` can still be used where `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is expected. The missing field means that update emitted no OutMessage. A hand-written plain-return type must preserve the `outMessage?: never` field.
 
@@ -225,8 +228,8 @@ const flags: Effect.Effect<Flags> = Effect.gen(function* () {
   return Flags({ createdAt: now })
 })
 
-const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
-  model: { createdAt: flags.createdAt },
+const init = (flags: Flags) => ({
+  model: Model({ createdAt: flags.createdAt }),
 })
 ```
 
@@ -246,10 +249,10 @@ export const SavedBoardJsonString = Schema.fromJsonString(
 
 `toCodecJson` turns the domain value into canonical JSON, then `fromJsonString` stringifies it. Leave it out and a field like `Schema.Option` writes Effect's runtime shape (`{_id:"Option",_tag:"None"}`) to storage. The next boot fails to decode it, the Flags `Effect.catch` falls back to the empty value, and the user's saved data looks gone. For a Schema that is already JSON-native, `toCodecJson` changes nothing on the wire, so composing it every time costs nothing.
 
-Declare the `Flags` Schema on `Runtime.makeApplication`, then pass the Effect to `Runtime.run`:
+Declare the `Flags` Schema on `Application.make`, then pass the Effect to `Runtime.run`:
 
 ```ts
-const application = Runtime.makeApplication({
+const application = Application.make({
   Model,
   Flags,
   init,
@@ -262,7 +265,41 @@ Runtime.run(application, { flags })
 
 Hydrated applications do not provide a browser Flags Effect. `Runtime.hydrate(application)` decodes the exact Schema-encoded Flags payload emitted by the server. `@foldkit/vite-plugin` compiles the shared deployment identity into Foldkit for coordinated client and server builds; separately orchestrated builds pass the same explicit `buildId` override to each artifact. Hydration compares that identity against the id the server stamped on the root before it reads the handoff at all. Missing or invalid server handoff data, and a page from another deployment, are fatal boot errors.
 
-A service used only at startup is discharged inside `flags` with `Effect.provide`, the same way a Command discharges its own (`Effect.provide(BrowserKeyValueStore.layerLocalStorage)`). When the service is an app-wide singleton that Commands also use, leave the requirement in the flags type as `Effect<Flags, never, ApiClientService>` and let `resources` provide it. The runtime builds that Layer once and shares it with Flags, Commands, and Subscriptions. Never provide the same Layer to `flags` and pass it as `resources`: that builds it twice and hands the app two instances of whatever it holds.
+A service used only at startup is discharged inside `flags` with `Effect.provide`, the same way a Command discharges its own (`Effect.provide(BrowserKeyValueStore.layerLocalStorage)`). When the service is an app-wide singleton that Commands also use, leave the requirement in the flags type as `Effect<Flags, never, ApiClientService>` and keep that service exposed from the root `Live` Layer with `Layer.provideMerge(CommandsLive, ApiClientLive)`. `Application.provide` builds the resulting Layer eagerly on every runtime start, before Flags, init, or the first render, including a start that restores a preserved Model. A construction failure therefore stops startup before the first render. Never also provide that Layer inside `flags`: doing both builds it twice and hands the app two instances of whatever it holds.
+
+An Element owns its Flags Effect because no separate runtime call seeds it. Put both `Flags` and `flags` in the `Application.makeElement` config. The embedded widget example later in this guide shows the full shape.
+
+## Application Layers
+
+Layer-backed Commands, Subscriptions, Mounts, and ManagedResources leave handler requirements on the program returned by `Application.make` or `Application.makeElement`. Supply them with `Application.provide` before starting the program. The assembly config has no `resources` field. Every provided Layer is built eagerly for each runtime start and released when that runtime stops.
+
+Compose Layers at the same boundaries as the application. A feature exports one `Live` Layer that combines its local handlers with its children's Layers:
+
+```ts
+export const Live = Layer.mergeAll(
+  CommandsLive,
+  SubscriptionsLive,
+  Search.Live,
+  Settings.Live,
+)
+```
+
+The root repeats that composition once for the application's features. The entry imports only the root `Live` Layer:
+
+```ts
+const application = Application.make({
+  Model,
+  init,
+  update,
+  view,
+  subscriptions,
+  container: document.getElementById('root'),
+})
+
+Runtime.run(Application.provide(application, Live))
+```
+
+If a feature's handler Layers need a shared service, provide that service beneath the feature bundle with `Layer.provide` or `Layer.provideMerge`, then export the completed feature `Live`. Keep handler-by-handler imports out of the entry point. `Application.provide` can be chained when one provided Layer leaves requirements for a later Layer, but a composed root `Live` keeps ordinary application wiring at feature granularity.
 
 ## The Submodel Pattern
 
@@ -287,8 +324,10 @@ const update = (model: Model, message: Message) =>
   )
 
 // Parent folds the child update and handles its OutMessage
+type NavigationRequirements = Layer.Success<typeof NavigationLive>
+
 const foldChildOutMessage = Child.OutMessage.match<
-  Update.Step<ParentModel, ParentMessage>
+  Update.Step<ParentModel, ParentMessage, NavigationRequirements>
 >({
   SucceededCreateRoom:
     ({ roomId }) =>
@@ -306,10 +345,11 @@ const foldChild = Update.foldChild({
   foldOutMessage: foldChildOutMessage,
 })
 
-const update = (model: ParentModel, message: ParentMessage) =>
-  ParentMessage.match<Update.Return<ParentModel, ParentMessage>>(message, {
+const update = Update.make((model: ParentModel, message: ParentMessage) =>
+  ParentMessage.match(message, {
     GotChildMessage: ({ message }) => foldChild(model, message),
-  })
+  }),
+)
 ```
 
 ### View Delegation
@@ -337,13 +377,14 @@ The runtime resolves the `toParentMessage` wrap at event-fire time through a sco
 
 Subscriptions are model-driven streams. They automatically start and stop based on model state.
 
-Build them with `Subscription.make<Model, Message>()(entry => ({ ... }))`. The builder callback receives an `entry(fields, callbacks)` helper. For each subscription, you provide:
+Build them with `Subscription.make<Model, Message>()(entry => ({ ... }))`. Prefer the Layer-backed `entry(handlerName, fields, callbacks)` form. For each Subscription, provide:
 
-- A `fields` map (the bare field map passed as `entry`'s first argument) naming every dependency. The builder calls `Schema.Struct(fields)` internally and infers the dependency type from this map.
+- A stable handler name. Distinct definitions in one application need distinct names even when their record keys differ.
+- A `fields` map (the bare field map passed as `entry`'s second argument) naming every dependency. The builder calls `Schema.Struct(fields)` internally and infers the dependency type from this map.
 - A `modelToDependencies(model)` function that returns the parameters the stream needs. Wrap an absent dependency in `Option` at the field level. The runtime restarts the stream whenever the dependencies change.
-- A `dependenciesToStream(dependencies)` function that turns those parameters into a `Stream<Message>`. Errors should be mapped to a `Failed*` Message inside the stream rather than thrown.
+- A handler Layer built with `subscriptions.key.toLayer(dependencies => stream)`. Errors should be mapped to a `Failed*` Message inside the stream rather than thrown. Merge the handler Layer into the feature's `Live` Layer.
 
-For always-active Subscriptions (keyboard listeners, window resize, animation frame ticks), pass `{}` as the `entry` fields argument and return `{}` from `modelToDependencies`. The Subscription then never stops.
+For always-active Subscriptions (keyboard listeners, window resize, animation frame ticks), pass `{}` as the fields argument and return `{}` from `modelToDependencies`. The Subscription then never stops.
 
 Canonical live examples:
 
@@ -418,18 +459,18 @@ Use these directly from the `effect` package for non-DOM concerns. No Foldkit wr
 | UUID                  | `yield* Effect.orDie(crypto.randomUUIDv4)` after `const crypto = yield* Crypto.Crypto`; provide `BrowserCrypto.layer` |
 | Delay                 | `yield* Effect.sleep(Duration.millis(500))`                                                                           |
 
-Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, or `Math.random()`. They compose naturally inside `Command.define`. For canonical wiring, see `repos/foldkit/examples/kanban/src/command.ts` (`FocusAddCardInput` wraps `Dom.focus`, `GenerateCardId` acquires `Crypto.Crypto` and provides `BrowserCrypto.layer`) and `repos/foldkit/examples/stopwatch/src/main.ts` (`Clock.currentTimeMillis` inside an `Effect.gen`).
+Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, or `Math.random()`. They compose naturally inside a Command's `toLayer` handler. For canonical wiring, see `repos/foldkit/examples/kanban/src/command.ts` (`FocusAddCardInput` wraps `Dom.focus`, `GenerateCardId` acquires `Crypto.Crypto` and provides `BrowserCrypto.layer`) and `repos/foldkit/examples/stopwatch/src/main.ts` (`Clock.currentTimeMillis` inside an `Effect.gen`).
 
 ## With and Without URL Routing
 
-`Runtime.makeApplication` handles both cases. Add a `routing` config when the app needs URL routing.
+`Application.make` handles both cases. Add a `routing` config when the app needs URL routing.
 
 ### Without Routing
 
 For single-page apps that own the page but don't navigate. init receives only Flags (if any):
 
 ```ts
-const application = Runtime.makeApplication({
+const application = Application.make({
   Model,
   init,
   update,
@@ -445,7 +486,7 @@ Runtime.run(application)
 For apps with pages, navigation, and URL-driven state. init receives Flags (if any) and the current URL. Add a `routing` config with two Message constructors:
 
 ```ts
-const application = Runtime.makeApplication({
+const application = Application.make({
   Model,
   init,
   update,
@@ -462,12 +503,12 @@ Runtime.run(application)
 
 ### Scoped to a Node (Embedded Widgets)
 
-`makeApplication` assumes it owns the page. Its `view` returns a `Document` (`{ title, lang?, dir?, canonical?, ogUrl?, body }`), and the runtime manages `document.title`, the `lang` and `dir` attributes on `<html>`, `<link rel="canonical">`, and `<meta property="og:url">`. A widget embedded on a page does not own that metadata.
+`Application.make` assumes it owns the page. Its `view` returns a `Document` (`{ title, lang?, dir?, canonical?, ogUrl?, body }`), and the runtime manages `document.title`, the `lang` and `dir` attributes on `<html>`, `<link rel="canonical">`, and `<meta property="og:url">`. A widget embedded on a page does not own that metadata.
 
-Use `Runtime.makeElement` instead. Its `view` returns `Html` directly (no title to discard) and the runtime never touches the document `<head>` or the `<html>` element. Everything else (Model, init, update, Commands, Subscriptions, Flags, crash handling) is identical. Embedded apps don't own the URL bar, so `makeElement` has no `routing` config.
+Use `Application.makeElement` instead. Its `view` returns `Html` directly (no title to discard) and the runtime never touches the document `<head>` or the `<html>` element. Everything else (Model, init, update, Commands, Subscriptions, Flags, crash handling) is identical. Embedded apps don't own the URL bar, so `Application.makeElement` has no `routing` config.
 
 ```ts
-const element = Runtime.makeElement({
+const element = Application.makeElement({
   Model,
   init,
   update,
@@ -478,17 +519,35 @@ const element = Runtime.makeElement({
 Runtime.run(element)
 ```
 
+Element Flags are self-contained in the assembly config. A host factory can turn its initial data into the Flags Effect, then provide the Element's root handler Layer:
+
+```ts
+export const makeElement = (container: HTMLElement, flags: Flags) =>
+  Application.provide(
+    Application.makeElement({
+      Model,
+      Flags,
+      flags: Effect.succeed(flags),
+      init,
+      update,
+      view,
+      container,
+    }),
+    Live,
+  )
+```
+
 When the host application needs to control the embedded app (mount and unmount it, push data in, receive values out), start it with `Runtime.embed(program)` instead of `Runtime.run`. `embed` returns a handle with `dispose` plus one entry per Port declared on the config: the host sends on inbound Ports, subscribes to outbound Ports, and disposes on unmount, never touching the Model. Inbound Ports are consumed by the app as Subscription sources and outbound Ports are written from Commands, so the app itself stays inside the standard architecture. `repos/foldkit/examples/embedding/` shows the full pattern: the widget in `src/main.ts`, the host in `src/host.ts`.
 
 ### Document Metadata
 
-With `makeApplication`, the `view` returns a `Document`. The runtime writes `title` to `document.title` after every render. It never derives `canonical` from the address bar. Build the canonical from the typed route in the Model, where the application can decide which route and query values identify the page.
+With `Application.make`, the `view` returns a `Document`. The runtime writes `title` to `document.title` after every render. It never derives `canonical` from the address bar. Build the canonical from the typed route in the Model, where the application can decide which route and query values identify the page.
 
 If no render supplies `canonical`, the runtime leaves a served `<link rel="canonical">` unchanged or keeps the document without one. Before the client first writes a canonical, it records the existing `href`. A later omission restores that value, or removes the element if the runtime created it. During hydration, the recorded value can be the initial route's server-rendered canonical, so omission means restore that baseline rather than remove every canonical.
 
 `ogUrl` can be supplied independently. An omitted `ogUrl` uses an explicit `canonical`, and its restore or removal behavior is the same. `Server.renderToString` returns only a canonical supplied by the view and gives `ogUrl` the explicit canonical when `ogUrl` is omitted. It does not derive either field from `Request.url`.
 
-With `makeElement`, the runtime does not manage the title or document metadata.
+With `Application.makeElement`, the runtime does not manage the title or document metadata.
 
 `lang` and `dir` sync to the `<html>` element, so an app that switches language at runtime drives them from the Model. `dir` is `TextDirection` from `foldkit/html`, a Schema over `'Ltr' | 'Rtl' | 'Auto'` that you can drop straight into a Model `Schema.Struct`, and the runtime writes it as the lowercase attribute value. Both fields are optional and have no default: when a view omits one, the runtime does not touch that attribute, leaving whatever value it currently holds, so a view that never sets it leaves the served HTML in place.
 
@@ -498,7 +557,7 @@ For the canonical update-handler shapes (the exact `UrlRequest` tag names, how t
 
 ### How to Choose
 
-- App is a widget embedded on a page it does not own (must not touch the host `<head>`) → `makeElement`
-- The host application also needs to drive it (lifecycle, data in, values out) → `makeElement` started with `Runtime.embed`, communicating through Flags and Ports
-- App owns the page and mentions "pages", "navigation", "routes", URLs → `makeApplication` with `routing` config
-- App owns the page with no navigation → `makeApplication` without `routing`
+- App is a widget embedded on a page it does not own (must not touch the host `<head>`) → `Application.makeElement`
+- The host application also needs to drive it (lifecycle, data in, values out) → `Application.makeElement` started with `Runtime.embed`, communicating through Flags and Ports
+- App owns the page and mentions "pages", "navigation", "routes", URLs → `Application.make` with `routing` config
+- App owns the page with no navigation → `Application.make` without `routing`

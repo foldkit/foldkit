@@ -319,12 +319,11 @@ export const makeRenderer = <Model, Message>({
     // `Effect.runFork` from their catch blocks), and the Command and
     // Subscription fibers (a Command's Effect and a Subscription's
     // Stream are typed with a `never` error channel, so a cause
-    // escaping one can only be a `resources` Layer build failure or an
-    // escaped defect, both unrecoverable). Each path catches its own
-    // cause so a failure surfaces as the crash view instead of dying
-    // silently and leaving the DOM frozen at the last successful
-    // render. The first crash wins: concurrent Command fibers can fail
-    // on the same broken Layer, and only one should report and render.
+    // escaping one is an unrecoverable defect). Each path catches its
+    // own cause so a failure surfaces as the crash view instead of
+    // dying silently and leaving the DOM frozen at the last successful
+    // render. The first crash wins: concurrent Command fibers can fail,
+    // and only one should report and render.
     const crashWith = (
       cause: Cause.Cause<never>,
       maybeMessage: Option.Option<Message>,

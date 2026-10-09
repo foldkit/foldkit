@@ -183,44 +183,11 @@ export type RuntimeConfig<
    */
   preserveScroll?: boolean
   /**
-   * An Effect Layer providing services shared by the fresh-boot Flags Effect
-   * and every Command and Subscription. The runtime builds the Layer once,
-   * the first time it is needed: at startup when a fresh boot supplies Flags
-   * (they resolve before `init`) or Subscriptions (their pipelines run for the
-   * application's lifetime), otherwise when the first Command runs. The
-   * built services are reused for the application's lifetime and released
-   * at runtime teardown.
-   *
-   * Put a service here when it is a genuine app-wide singleton: when
-   * construction is expensive relative to how often Commands need it (an
-   * RPC client rebuilt on every invocation), or when every Command must
-   * share one instance (an AudioContext whose oscillators feed one audio
-   * graph, an RTCPeerConnection). A Layer that fails to build crashes the
-   * app with the crash view: the runtime provides this Layer to every
-   * Command, so a service that cannot be constructed leaves no Command
-   * safe to run. The one exception is a Layer that fails while Flags are
-   * resolving and the Flags Effect needs it: that lands before the first
-   * render, where there is no Model to render a crash view against, so
-   * startup fails instead. Neither cause is swallowed, so a Flags Effect
-   * that fails for its own unrelated reason stays visible alongside the
-   * build error.
-   *
-   * Provide a service inside the Command's Effect instead when
-   * construction is cheap and stateless (an HTTP client via `foldkit/http`
-   * is a thin `fetch` wrapper), when different Commands want different
-   * implementations of the same tag (`KeyValueStore` over localStorage in
-   * one Command and sessionStorage in another), or when a service that can
-   * fail to construct should only take down the Commands that use it. An
-   * HTTP client can graduate here once many Commands share one configured
-   * client, but it starts per-Command.
-   */
-  resources?: Layer.Layer<Resources>
-  /**
-   * Model-driven resources with acquire/release lifecycle. Unlike `resources`
-   * which persist for the application's lifetime, Managed Resources are
-   * acquired and released based on the current model state. Create with
-   * `ManagedResource.make`, compose child Submodels with `ManagedResource.lift`,
-   * and combine records with `ManagedResource.aggregate`.
+   * Model-driven resources with acquire/release lifecycle. Managed Resources
+   * are acquired and released based on the current model state. Create with
+   * `ManagedResource.make`, compose child Submodels with
+   * `ManagedResource.lift`, and combine records with
+   * `ManagedResource.aggregate`.
    */
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
   devTools?: DevToolsConfig
@@ -313,7 +280,6 @@ export const makeRuntime = <
   viewTransition,
   freezeModel,
   preserveScroll,
-  resources,
   managedResources,
   devTools,
 }: RuntimeConfig<
@@ -443,9 +409,8 @@ export const makeRuntime = <
           applicationContext,
           managedResourceRefs,
           provideAllResources,
-          provideResources,
+          provideApplicationServices,
         } = yield* makeResourceProvider({
-          resources,
           managedResources,
           runtimeScope,
           maybePortChannels,
@@ -463,7 +428,7 @@ export const makeRuntime = <
             preservedModel,
             container,
             buildId,
-            provideResources,
+            provideApplicationServices,
           })
 
         const ModelJsonCodec = Schema.toCodecJson(
@@ -479,13 +444,12 @@ export const makeRuntime = <
 
         type InitResult = ReturnType<typeof init>
 
-        // NOTE: a restored Model skips `init`, so resolving Flags on that
-        // path would build the `resources` Layer only to discard what it
-        // produced. Gating the resolution on the restore decision is what
-        // stops a reload from reconnecting whatever the Layer holds. It has
-        // to stay ahead of the preserve-scheduler and preservation finalizers: a
-        // Flags Effect that fails after those are registered tears down more
-        // than it used to, and their release defects would bury its cause.
+        // NOTE: a restored Model skips `init`, so resolving Flags on that path
+        // would perform startup work only to discard what it produced. This
+        // has to stay ahead of the preserve-scheduler and preservation
+        // finalizers: a Flags Effect that fails after those are registered
+        // tears down more than it used to, and their release defects would
+        // bury its cause.
         const runInit: Effect.Effect<InitResult> = Effect.map(
           resolveFlags,
           flags => init(flags, Option.getOrUndefined(currentUrl)),

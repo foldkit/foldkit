@@ -4,20 +4,20 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 ## Status
 
-**Current milestone:** Command, Subscription, Mount, and ManagedResource handler Layers work through `Application.make`, `Application.makeElement`, and `Application.provide`. The website, first-party examples, and Typing Game compose production handlers by feature.
+**Current milestone:** Complete. Command, Subscription, Mount, and ManagedResource handler Layers work through `Application.make`, `Application.makeElement`, and `Application.provide`. The website, first-party examples, Typing Game, and generated-app guidance compose production handlers by feature.
 
-**Next implementation:** Finish the active teaching material and migrate legacy `resources` callers to the Layer assembly path. Retire the old `resources` configuration after its lifecycle tests have a replacement path.
+**Next implementation:** Design whole-application testing against the handler identities and Layer boundaries established here.
 
 **Scope:** Production handler Layers and application assembly. Whole-application testing APIs are deferred.
 
-| Milestone                                 | Status                 | What the user can use afterward                                                       |
-| ----------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------- |
-| Command handlers                          | Implemented, verifying | Define a Command separately from its handler Layer.                                   |
-| Application assembly                      | Implemented, verifying | See unsatisfied requirements on an application and provide Layers before starting it. |
-| Subscription and ManagedResource handlers | Implemented, verifying | Replace implementations while preserving Model-driven lifecycles.                     |
-| Mount boundary                            | Implemented, verifying | Register Layer-backed Mount definitions to carry their requirements.                  |
-| Embedded Element assembly                 | Implemented, verifying | Provide handler Layers and Flags services to a container-scoped Element.              |
-| Migration and verification                | In progress            | First-party apps, templates, and active docs use the final API.                       |
+| Milestone                                 | Status   | What the user can use afterward                                                       |
+| ----------------------------------------- | -------- | ------------------------------------------------------------------------------------- |
+| Command handlers                          | Verified | Define a Command separately from its handler Layer.                                   |
+| Application assembly                      | Verified | See unsatisfied requirements on an application and provide Layers before starting it. |
+| Subscription and ManagedResource handlers | Verified | Replace implementations while preserving Model-driven lifecycles.                     |
+| Mount boundary                            | Verified | Register Layer-backed Mount definitions to carry their requirements.                  |
+| Embedded Element assembly                 | Verified | Provide handler Layers and Flags services to a container-scoped Element.              |
+| Migration and verification                | Verified | First-party apps, templates, and active docs use the final API.                       |
 
 ## Target surface
 
@@ -33,7 +33,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 - [x] Prove a Layer-backed Command contributes a synthetic handler service to an inferred update return.
 - [x] Add `Update.make` to validate update results and infer the union of Command handler requirements.
-- [ ] Migrate explicit `Message.match<Update.Return<...>>` and Step annotations where their `R` would otherwise be fixed to `never`. The website's nested folds and update functions are migrated.
+- [x] Migrate explicit `Message.match<Update.Return<...>>` and Step annotations where their `R` would otherwise be fixed to `never`. Pure updates may retain these annotations.
 - [x] Prove an application can retain and satisfy requirements from init, update, Subscriptions, and ManagedResources without manually listing each service generic.
 - [x] Prove client-only application requirements from init, update, and Subscriptions survive Layer provision, including dependencies introduced by a handler Layer.
 - [x] Prove handler Layers can capture construction context and merge it with the execution context, with an explicit duplicate-service precedence rule.
@@ -46,7 +46,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 - [x] Separate application definition, Layer provision, and host startup for `run`, `hydrate`, and `embed`.
 - [x] Add `Application.make` and chainable `Application.provide` for client-only applications without Flags or routing.
 - [x] Extend application assembly to Flags and routing, including hydration and embed startup through the provided runtime internals.
-- [ ] Remove `resources` from application configuration after the replacement path works.
+- [x] Remove `resources` from application configuration after the replacement path works.
 - [x] Keep runtime-provided ManagedResource accessors and Port channels available to handlers.
 - [x] Place handler Layer construction after runtime-provided services exist. A Layer can acquire a Model-driven ManagedResource accessor while it is constructed.
 
@@ -78,14 +78,14 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 - [x] Add a Layer-aware `Application.makeElement` path for container-scoped apps. Include Flags, init and update Commands, Subscriptions, ManagedResources, and registered Mounts in its requirements.
 - [x] Migrate the Embedding example to `Application.makeElement` and feature-composed handler Layers.
-- [ ] Decide when to retire `resources` from the legacy `Runtime.makeApplication` and `Runtime.makeElement` APIs. They currently have lazy acquisition semantics and published Element consumers; migrate their lifecycle tests before removing them.
+- [x] Retire `resources` from legacy `Runtime.makeApplication` and `Runtime.makeElement` after replacing their lifecycle tests. Those constructors remain available for self-contained effects; shared services enter through `Application.provide`.
 
 ### 7. Verification and publication
 
-- [ ] Complete active documentation, examples, and template migration for the final public API.
+- [x] Complete active documentation, examples, and template migration for the final public API.
   - The website and all 33 page-owning example entries use `Application.make`. The experimental Query fetch API also has a Layer boundary for keyed and unkeyed Queries.
   - Runtime entry, Resources, and ManagedResource teaching snippets use `Application.make` and `toLayer` where those APIs apply.
-  - `skills/generate-program` still teaches the legacy `Runtime.makeApplication` and `Runtime.makeElement` entry points. Migrate it before retiring those APIs.
+  - `skills/generate-program` and active README guidance teach `Application.make`, `Application.makeElement`, and feature-composed `Live` Layers.
 - [x] Verify feature Layer composition with the website's 27 production Commands, then migrate its application entry without listing every handler there. Documentation snippets account for another 51 definitions.
   - Each feature owns a `Live` Layer next to its update/lifecycle definitions. Features with multiple modules compose their local Layers and export one `Live` from their barrel.
   - `src/live.ts` composes feature Layers and service providers. `entry.ts` imports that one `WebsiteLive` value and calls `Application.provide` once; it never imports individual handler Layers.
@@ -95,7 +95,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 - [x] Run the website build and browser smoke suite after its migration.
 - [x] Run the full workspace build and TypeScript gates after the Element migration.
 - [x] Run the website end-to-end suite after the Element migration.
-- [ ] Review the full diff for public API coherence and migration guidance.
+- [x] Review the full diff for public API coherence and migration guidance.
 
 ## Verification snapshot
 
@@ -110,8 +110,8 @@ This is the working checklist for separating Foldkit effect definitions from the
 - Typing Game client: type check, 16 tests, production build, lint, and formatting passed with one composed `Live` Layer instead of an application `resources` field.
 - Query: 46 Foldkit tests and 16 API Cache Query tests passed. Foldkit, website, and the example type checks passed.
 - Embedded Element assembly: 64 focused Foldkit runtime tests passed. The Embedding example type check and six tests passed.
-- The full workspace build and TypeScript checks passed. Foldkit's full suite passed with 3,005 tests and one skipped; root lint and formatting passed.
-- Website browser suite: 17 tests passed directly and one passed on retry under parallel load. The timed-out test passed in a separate serial run with retries disabled.
+- The final full workspace build and TypeScript checks passed. Foldkit's full suite passed with 2,996 tests and one skipped after replacing the `resources` configuration tests with application Layer lifecycle tests.
+- Website browser suite: 18 tests passed serially with retries disabled after the runtime change.
 - Website TypeScript check and production build passed with the updated Runtime, Resources, and ManagedResource pages.
 - The API reference generator succeeds without warnings after documenting private signature helpers in its exclusion list.
 

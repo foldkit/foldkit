@@ -44,7 +44,7 @@ This complete program defines the Model, Messages, update, init, and view in `ma
 ```ts
 // src/main.ts
 import { Schema } from 'effect'
-import { Runtime, Update } from 'foldkit'
+import { Update } from 'foldkit'
 import { Document, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -78,8 +78,8 @@ export const update = (model: Model, message: Message) =>
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
-  model: { count: 0 },
+export const init = () => ({
+  model: Model.make({ count: 0 }),
 })
 
 // VIEW
@@ -100,11 +100,11 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
 
 ```ts
 // src/entry.ts
-import { Runtime } from 'foldkit'
+import { Application, Runtime } from 'foldkit'
 
 import { Model, init, update, view } from './main'
 
-const application = Runtime.makeApplication({
+const application = Application.make({
   Model,
   init,
   update,

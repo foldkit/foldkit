@@ -29,33 +29,34 @@ import { type MakeRuntimeReturn, runtimeInternals } from './runtime.js'
 
 declare const ApplicationTypeId: unique symbol
 
-type WithoutResources<Config> = Omit<Config, 'resources'> &
-  Readonly<{ resources?: never }>
-
-type ApplicationConfigWithoutResources<Model, Message> = WithoutResources<
-  ApplicationConfig<Model, Message, any, any, any>
+type InferredApplicationConfig<Model, Message> = ApplicationConfig<
+  Model,
+  Message,
+  any,
+  any,
+  any
 >
 
-type ApplicationConfigWithFlagsWithoutResources<Model, Message, Flags> =
-  WithoutResources<
-    ApplicationConfigWithFlags<Model, Message, Flags, any, any, any>
-  >
+type InferredApplicationConfigWithFlags<Model, Message, Flags> =
+  ApplicationConfigWithFlags<Model, Message, Flags, any, any, any>
 
-type RoutingApplicationConfigWithoutResources<Model, Message> =
-  WithoutResources<RoutingApplicationConfig<Model, Message, any, any, any>>
+type InferredRoutingApplicationConfig<Model, Message> =
+  RoutingApplicationConfig<Model, Message, any, any, any>
 
-type RoutingApplicationConfigWithFlagsWithoutResources<Model, Message, Flags> =
-  WithoutResources<
-    RoutingApplicationConfigWithFlags<Model, Message, Flags, any, any, any>
-  >
+type InferredRoutingApplicationConfigWithFlags<Model, Message, Flags> =
+  RoutingApplicationConfigWithFlags<Model, Message, Flags, any, any, any>
 
-type ElementConfigWithoutResources<Model, Message> = WithoutResources<
-  ElementConfig<Model, Message, any, any, any>
+type InferredElementConfig<Model, Message> = ElementConfig<
+  Model,
+  Message,
+  any,
+  any,
+  any
 > &
   Readonly<{ Flags?: never; flags?: never }>
 
-type ElementConfigWithFlagsWithoutResources<Model, Message, Flags> =
-  WithoutResources<ElementConfigWithFlags<Model, Message, Flags, any, any, any>>
+type InferredElementConfigWithFlags<Model, Message, Flags> =
+  ElementConfigWithFlags<Model, Message, Flags, any, any, any>
 
 type CommandRequirements<Command> =
   Command extends Readonly<{
@@ -277,7 +278,7 @@ export function make<
   const FlagsSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
   const Config extends Omit<
-    RoutingApplicationConfigWithFlagsWithoutResources<
+    InferredRoutingApplicationConfigWithFlags<
       ModelSchema['Type'],
       UpdateMessage<Update>,
       FlagsSchema['Type']
@@ -302,7 +303,7 @@ export function make<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
   const Config extends Omit<
-    RoutingApplicationConfigWithoutResources<
+    InferredRoutingApplicationConfig<
       ModelSchema['Type'],
       UpdateMessage<Update>
     >,
@@ -326,7 +327,7 @@ export function make<
   const FlagsSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
   const Config extends Omit<
-    ApplicationConfigWithFlagsWithoutResources<
+    InferredApplicationConfigWithFlags<
       ModelSchema['Type'],
       UpdateMessage<Update>,
       FlagsSchema['Type']
@@ -351,10 +352,7 @@ export function make<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
   const Config extends Omit<
-    ApplicationConfigWithoutResources<
-      ModelSchema['Type'],
-      UpdateMessage<Update>
-    >,
+    InferredApplicationConfig<ModelSchema['Type'], UpdateMessage<Update>>,
     'Model' | 'update'
   >,
 >(
@@ -372,10 +370,10 @@ export function make<
 
 export function make(
   config:
-    | RoutingApplicationConfigWithFlagsWithoutResources<any, any, any>
-    | RoutingApplicationConfigWithoutResources<any, any>
-    | ApplicationConfigWithFlagsWithoutResources<any, any, any>
-    | ApplicationConfigWithoutResources<any, any>,
+    | InferredRoutingApplicationConfigWithFlags<any, any, any>
+    | InferredRoutingApplicationConfig<any, any>
+    | InferredApplicationConfigWithFlags<any, any, any>
+    | InferredApplicationConfig<any, any>,
 ): unknown {
   if (config.subscriptions) {
     assertDistinctHandlerNames('Subscription', config.subscriptions)
@@ -402,7 +400,7 @@ export function makeElement<
   const FlagsSchema extends Schema.Codec<any, any, never, never>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
   const Config extends Omit<
-    ElementConfigWithFlagsWithoutResources<
+    InferredElementConfigWithFlags<
       ModelSchema['Type'],
       UpdateMessage<Update>,
       FlagsSchema['Type']
@@ -426,7 +424,7 @@ export function makeElement<
   const ModelSchema extends Schema.Codec<any, any, any, any>,
   const Update extends (model: ModelSchema['Type'], message: any) => any,
   const Config extends Omit<
-    ElementConfigWithoutResources<ModelSchema['Type'], UpdateMessage<Update>>,
+    InferredElementConfig<ModelSchema['Type'], UpdateMessage<Update>>,
     'Model' | 'update'
   >,
 >(
@@ -443,8 +441,8 @@ export function makeElement<
 
 export function makeElement(
   config:
-    | ElementConfigWithFlagsWithoutResources<any, any, any>
-    | ElementConfigWithoutResources<any, any>,
+    | InferredElementConfigWithFlags<any, any, any>
+    | InferredElementConfig<any, any>,
 ): unknown {
   if (config.subscriptions) {
     assertDistinctHandlerNames('Subscription', config.subscriptions)

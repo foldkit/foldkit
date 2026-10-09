@@ -410,7 +410,7 @@ export const resolveHydrationHandoff = <Flags, Resources>({
   preservedModel,
   container,
   buildId,
-  provideResources,
+  provideApplicationServices,
 }: Readonly<{
   bootMode: BootMode
   hydration: HydrationConfig | undefined
@@ -421,7 +421,7 @@ export const resolveHydrationHandoff = <Flags, Resources>({
   preservedModel: unknown
   container: HTMLElement
   buildId: string | undefined
-  provideResources: <A>(
+  provideApplicationServices: <A>(
     effect: Effect.Effect<A, never, Resources>,
   ) => Effect.Effect<A>
 }>): Effect.Effect<ResolvedHydrationHandoff<Flags>> =>
@@ -444,7 +444,7 @@ export const resolveHydrationHandoff = <Flags, Resources>({
               )
             : /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
               Effect.succeed(undefined as Flags),
-        onSome: provideResources,
+        onSome: provideApplicationServices,
       },
     )
 

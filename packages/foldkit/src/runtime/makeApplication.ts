@@ -1,4 +1,4 @@
-import { Layer, Option, Predicate, Schema } from 'effect'
+import { Option, Predicate, Schema } from 'effect'
 
 import { Document, type HtmlBuilder } from '../html/index.js'
 import type { ManagedResources } from '../managedResource/index.js'
@@ -50,7 +50,6 @@ type BaseApplicationConfig<
   viewTransition?: ViewTransitionConfig<Model, Message>
   freezeModel?: boolean
   preserveScroll?: boolean
-  resources?: Layer.Layer<Resources>
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
   devTools?: DevToolsConfig
 }>
@@ -183,7 +182,7 @@ export function makeApplication<
   Model,
   Message extends { _tag: string },
   Flags,
-  Resources = never,
+  Resources extends never = never,
   ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
 >(
@@ -200,7 +199,7 @@ export function makeApplication<
 export function makeApplication<
   Model,
   Message extends { _tag: string },
-  Resources = never,
+  Resources extends never = never,
   ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
 >(
@@ -217,7 +216,7 @@ export function makeApplication<
   Model,
   Message extends { _tag: string },
   Flags,
-  Resources = never,
+  Resources extends never = never,
   ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
 >(
@@ -234,7 +233,7 @@ export function makeApplication<
 export function makeApplication<
   Model,
   Message extends { _tag: string },
-  Resources = never,
+  Resources extends never = never,
   ManagedResourceServices = never,
   P extends Ports | undefined = undefined,
 >(
@@ -335,7 +334,6 @@ export function makeApplication<
     ...(Predicate.isNotUndefined(config.preserveScroll) && {
       preserveScroll: config.preserveScroll,
     }),
-    ...(config.resources && { resources: config.resources }),
     ...(config.managedResources && {
       managedResources: config.managedResources,
     }),
