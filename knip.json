@@ -83,6 +83,10 @@
       "entry": [],
       "ignoreDependencies": ["@foldkit/devtools", "tailwindcss"]
     },
+    "examples/routing": {
+      "entry": ["src/lazy/entry.ts"],
+      "ignoreDependencies": ["@foldkit/devtools", "tailwindcss"]
+    },
     "examples/ssr": {
       "entry": ["src/entry.ts", "src/entry.server.ts"],
       "ignoreFiles": ["vite.config.playground.ts"],
