@@ -59,6 +59,8 @@ Menu uses `aria-activedescendant`. Focus stays on the items container while arro
 | `Escape`           | Closes the menu and returns focus to the button.                     |
 | `Type a character` | Typeahead search: jumps to the matching item.                        |
 
+A character pressed with `Ctrl`, `Meta`, or `Alt` is not typeahead, and `Space` pressed with one of them does not select an item. Menu leaves that keydown to the browser, so `Cmd+F` still opens the find bar while the menu is open.
+
 ## Accessibility
 
 The button receives `aria-haspopup="menu"` and `aria-expanded`. The items container receives `role="menu"` with `aria-activedescendant`. Each item receives `role="menuitem"`.

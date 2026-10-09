@@ -12,7 +12,7 @@ import {
 } from 'effect'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
-import type { ChildAttribute, Html } from 'foldkit/html'
+import type { ChildAttribute, Html, KeyboardModifiers } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Mount from 'foldkit/mount'
 import { makeModifyFieldsFor } from 'foldkit/struct'
@@ -34,7 +34,8 @@ import * as OptionExt from '../internal/optionExtensions.js'
 import { idSelector } from '../internal/selectors.js'
 import {
   findFirstEnabledIndex,
-  isPrintableKey,
+  isShortcutChord,
+  isTypeaheadKey,
   keyToIndex,
 } from '../keyboard.js'
 import { resolveTypeaheadMatch } from '../typeahead.js'
@@ -896,9 +897,12 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
         ),
       )
 
-      const handleButtonKeyDown = (key: string): Option.Option<Message> => {
+      const handleButtonKeyDown = (
+        key: string,
+        modifiers: KeyboardModifiers,
+      ): Option.Option<Message> => {
         if (isOpen) {
-          return handleItemsKeyDown(key)
+          return handleItemsKeyDown(key, modifiers)
         }
 
         return Match.value(key).pipe(
@@ -993,15 +997,24 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
         }
       }
 
-      const handleItemsKeyDown = (key: string): Option.Option<Message> =>
-        Match.value(key).pipe(
+      const handleItemsKeyDown = (
+        key: string,
+        modifiers: KeyboardModifiers,
+      ): Option.Option<Message> => {
+        const isSearchKey = isTypeaheadKey(modifiers)
+
+        return Match.value(key).pipe(
           Match.when('Escape', () => Option.some(Message.Closed())),
           Match.when('Enter', resolveCommitMessage),
-          Match.when(' ', () =>
-            String.isNonEmpty(searchQuery)
+          Match.when(' ', () => {
+            if (isShortcutChord(modifiers)) {
+              return Option.none()
+            }
+
+            return String.isNonEmpty(searchQuery)
               ? searchForKey(' ')
-              : resolveCommitMessage(),
-          ),
+              : resolveCommitMessage()
+          }),
           Match.when(isNavigationKey, () =>
             Option.some(
               Message.ActivatedItem({
@@ -1010,9 +1023,10 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
               }),
             ),
           ),
-          Match.when(isPrintableKey, () => searchForKey(key)),
+          Match.when(isSearchKey, () => searchForKey(key)),
           Match.orElse(() => Option.none()),
         )
+      }
 
       const resolveButtonLabel = () => {
         if (Predicate.isNotUndefined(ariaLabel)) {

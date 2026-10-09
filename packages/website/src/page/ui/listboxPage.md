@@ -85,6 +85,8 @@ Listbox uses typeahead search: typing printable characters jumps to the first ma
 | `Escape`           | Closes the dropdown and returns focus to the button.                                                                                     |
 | `Type a character` | Typeahead search: jumps to the first matching item. Accumulates characters for 350ms.                                                    |
 
+A character pressed with `Ctrl`, `Meta`, or `Alt` is not typeahead, and `Space` pressed with one of them does not select an item. Listbox leaves that keydown to the browser, so `Cmd+F` still opens the find bar while the dropdown is open.
+
 `Space` reaches the commit path only when no search query is pending; with one in flight it types into the query instead. Opening, closing, navigation, and typeahead are unaffected by `isReadOnly`. See [Read-Only](#read-only).
 
 ## Accessibility
