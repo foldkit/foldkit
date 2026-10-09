@@ -5,10 +5,50 @@ import { anchorSetup, portalBackdrop, portalToContainingRoot } from './index.js'
 const PORTAL_ROOT_ID = 'foldkit-portal-root'
 const DIALOG_PORTAL_ROOT_ATTRIBUTE = 'data-foldkit-portal-root'
 
+// NOTE: happy-dom keeps `scrollTop` and `scrollLeft` when a node moves.
+// Chromium and WebKit reset them on the moved element and on every
+// descendant, so the tests that cover scroll offsets apply that reset by hand
+// after the move.
+const resetScrollOffsets = (element: Element): void => {
+  for (const candidate of [element, ...element.querySelectorAll('*')]) {
+    candidate.scrollTop = 0
+    candidate.scrollLeft = 0
+  }
+}
+
 describe('portalToContainingRoot', () => {
   afterEach(() => {
+    vi.restoreAllMocks()
     document.getElementById(PORTAL_ROOT_ID)?.remove()
     document.body.replaceChildren()
+  })
+
+  it('keeps the scroll offsets of the element and its descendants across the move', () => {
+    const portalRoot = document.createElement('div')
+    portalRoot.id = PORTAL_ROOT_ID
+    const panel = document.createElement('div')
+    const list = document.createElement('div')
+    const footer = document.createElement('div')
+    panel.append(list, footer)
+    document.body.append(portalRoot, panel)
+    vi.spyOn(portalRoot, 'appendChild').mockImplementation(
+      <T extends Node>(node: T): T => {
+        portalRoot.insertBefore(node, null)
+        resetScrollOffsets(panel)
+        return node
+      },
+    )
+    panel.scrollLeft = 12
+    list.scrollTop = 300
+    list.scrollLeft = 40
+
+    portalToContainingRoot(panel)
+
+    expect(panel.parentElement).toBe(portalRoot)
+    expect(panel.scrollLeft).toBe(12)
+    expect(list.scrollTop).toBe(300)
+    expect(list.scrollLeft).toBe(40)
+    expect(footer.scrollTop).toBe(0)
   })
 
   it('portals a light-DOM element into a portal root in document.body', () => {
@@ -163,8 +203,32 @@ describe('portalToContainingRoot', () => {
 
 describe('portalBackdrop', () => {
   afterEach(() => {
+    vi.restoreAllMocks()
     document.getElementById(PORTAL_ROOT_ID)?.remove()
     document.body.replaceChildren()
+  })
+
+  it('keeps the scroll offsets of a backdrop moved inside a dialog', () => {
+    const dialog = document.createElement('dialog')
+    const panel = document.createElement('div')
+    const wrapper = document.createElement('div')
+    const backdrop = document.createElement('div')
+    const content = document.createElement('div')
+    backdrop.appendChild(content)
+    wrapper.appendChild(backdrop)
+    panel.appendChild(wrapper)
+    dialog.appendChild(panel)
+    document.body.appendChild(dialog)
+    vi.spyOn(wrapper, 'before').mockImplementation(() => {
+      panel.insertBefore(backdrop, wrapper)
+      resetScrollOffsets(backdrop)
+    })
+    content.scrollTop = 120
+
+    portalBackdrop(backdrop)
+
+    expect(backdrop.nextElementSibling).toBe(wrapper)
+    expect(content.scrollTop).toBe(120)
   })
 
   it('portals a backdrop outside a dialog into the portal root in document.body', () => {
