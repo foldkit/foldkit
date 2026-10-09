@@ -704,6 +704,56 @@ const isInlineConfigFunction = (
   )
 }
 
+const isToLayerCall = (call: ESTree.CallExpression): boolean => {
+  const callee = innermostExpression(call.callee)
+  return (
+    isMemberExpression(callee) &&
+    Option.contains(staticMemberName(callee), 'toLayer')
+  )
+}
+
+const isToLayerArgument = (
+  argument: ESTree.Node,
+  call: ESTree.CallExpression,
+): boolean =>
+  call.arguments.length === 1 &&
+  Option.contains(Array.head(call.arguments), argument) &&
+  isToLayerCall(call)
+
+const toLayerLifecycleEffectProperties = new Set(['acquire', 'release'])
+
+const isToLayerHandlerFunction = (
+  fn: ESTree.ArrowFunctionExpression | ESTree.Function,
+): boolean => {
+  const maybeDirectCall = enclosingCallArgument(fn)
+  if (Option.isSome(maybeDirectCall)) {
+    return isToLayerArgument(
+      maybeDirectCall.value.argument,
+      maybeDirectCall.value.call,
+    )
+  }
+
+  const maybeProperty = enclosingPropertyValue(fn)
+  if (Option.isNone(maybeProperty)) {
+    return false
+  }
+  const property = maybeProperty.value
+  if (
+    property.parent.type !== 'ObjectExpression' ||
+    !Option.exists(staticPropertyName(property), name =>
+      toLayerLifecycleEffectProperties.has(name),
+    )
+  ) {
+    return false
+  }
+
+  const maybeCall = enclosingCallArgument(property.parent)
+  return (
+    Option.isSome(maybeCall) &&
+    isToLayerArgument(maybeCall.value.argument, maybeCall.value.call)
+  )
+}
+
 const hasFactoryAncestor = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
   node: ESTree.Node,
@@ -779,7 +829,8 @@ const isDeferredFunction = (
     commandAndMountEffectProperties,
     commandAndMountFactories,
   ) ||
-  isNestedLifecycleFunction(references, fn)
+  isNestedLifecycleFunction(references, fn) ||
+  isToLayerHandlerFunction(fn)
 
 const isInsideEffectBoundary = (
   references: WeakMap<ESTree.Node, Reference> | undefined,

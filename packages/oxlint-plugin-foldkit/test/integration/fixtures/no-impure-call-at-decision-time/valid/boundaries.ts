@@ -12,6 +12,10 @@ export const ReadClock = Command.define('ReadClock', {
     Effect.succeed(CompletedReadClock({ timestamp: Date.now() })),
 })
 
+export const ReadClockLayer = ReadClock.toLayer(() =>
+  Effect.succeed(CompletedReadClock({ timestamp: Date.now() })),
+)
+
 export const ReadClockWithEffect = Command.define('ReadClockWithEffect', {
   messages: [CompletedReadClockWithEffect],
   execute: Effect.sync(() => performance.now()),

@@ -552,6 +552,91 @@ describe('no-impure-call-at-decision-time', () => {
     expect(mountStreamResult).toHaveLength(0)
   })
 
+  it('allows plain handlers supplied to toLayer', () => {
+    const commandResult = run(
+      inDirectCallback(
+        Testing.callOfMember('Date', 'now'),
+        'ReadClock',
+        'toLayer',
+      ),
+    )
+    const subscriptionResult = run(
+      inDirectCallback(
+        Testing.callOfMember('Math', 'random'),
+        'clockSubscription',
+        'toLayer',
+      ),
+    )
+    const acquireResult = run(
+      inPositionedObjectCallback(
+        Testing.callOfMember('crypto', 'randomUUID'),
+        'sessionResource',
+        'toLayer',
+        'acquire',
+        [],
+        [],
+      ),
+    )
+    const releaseResult = run(
+      inPositionedObjectCallback(
+        Testing.callOfMember('performance', 'now'),
+        'sessionResource',
+        'toLayer',
+        'release',
+        [],
+        [],
+      ),
+    )
+
+    expect(commandResult).toHaveLength(0)
+    expect(subscriptionResult).toHaveLength(0)
+    expect(acquireResult).toHaveLength(0)
+    expect(releaseResult).toHaveLength(0)
+  })
+
+  it('does not treat eager toLayer arguments or unrelated callbacks as handlers', () => {
+    const eagerOperation = Testing.callOfMember('Date', 'now')
+    const eagerBoundary = atProgram(
+      Testing.callOfMember('ReadClock', 'toLayer', [eagerOperation]),
+    )
+    Object.assign(eagerOperation, { parent: eagerBoundary })
+
+    const nestedOperation = Testing.callOfMember('Math', 'random')
+    const nestedCallback = Testing.arrowFn(nestedOperation)
+    const wrapper = Testing.callExpr('wrapHandler', [nestedCallback])
+    const wrappedBoundary = atProgram(
+      Testing.callOfMember('ReadClock', 'toLayer', [wrapper]),
+    )
+    Object.assign(nestedOperation, { parent: nestedCallback })
+    Object.assign(nestedCallback, { parent: wrapper })
+    Object.assign(wrapper, { parent: wrappedBoundary })
+
+    const misplacedResult = run(
+      inPositionedCallback(
+        Testing.callOfMember('performance', 'now'),
+        'ReadClock',
+        'toLayer',
+        [Testing.id('options')],
+        [],
+      ),
+    )
+    const unrelatedPropertyResult = run(
+      inPositionedObjectCallback(
+        Testing.callOfMember('crypto', 'randomUUID'),
+        'sessionResource',
+        'toLayer',
+        'build',
+        [],
+        [],
+      ),
+    )
+
+    expect(run(eagerOperation)).toHaveLength(1)
+    expect(run(nestedOperation)).toHaveLength(1)
+    expect(misplacedResult).toHaveLength(1)
+    expect(unrelatedPropertyResult).toHaveLength(1)
+  })
+
   it('allows only the deferred Subscription and ManagedResource callbacks', () => {
     const subscriptionResult = run(
       inNestedLifecycleConfig(

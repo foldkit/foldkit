@@ -19,12 +19,18 @@ const saveBad = (body: string) => {
 const SaveDraft = Command.define('SaveDraft', {
   args: { body: Schema.String },
   messages: [Message.CompletedSaveDraft],
-  execute: ({ body: _body }) =>
-    Effect.gen(function* () {
-      const crypto = yield* Crypto.Crypto
-      const draftId = yield* Effect.orDie(crypto.randomUUIDv4)
-      return Message.CompletedSaveDraft({ draftId })
-    }),
 })
+
+const SaveDraftLayer = SaveDraft.toLayer(
+  Effect.gen(function* () {
+    const crypto = yield* Crypto.Crypto
+
+    return ({ body: _body }) =>
+      Effect.gen(function* () {
+        const draftId = yield* Effect.orDie(crypto.randomUUIDv4)
+        return Message.CompletedSaveDraft({ draftId })
+      })
+  }),
+)
 
 const saveGood = (body: string) => SaveDraft({ body })

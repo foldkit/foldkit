@@ -200,10 +200,12 @@ Flags these direct calls unless they appear inside a recognized callback that Ef
 
 The rule reports the call wherever it is written. Assigning its result to a local variable before passing that variable to a Command does not defer it. Neither does writing the call directly in the Command args. JavaScript obtains the value before constructing the Command in both cases.
 
-Obtain time or randomness inside the Command's `execute` callback instead. Use `Clock` or `Random` for time and ordinary randomness. For UUIDs and cryptographic randomness, use the `Crypto.Crypto` service and supply the platform Crypto Layer at the application root. Return the value in the result Message.
+Obtain time or randomness inside the Command handler instead. Use `Clock` or `Random` for time and ordinary randomness. For UUIDs and cryptographic randomness, use the `Crypto.Crypto` service and supply the platform Crypto Layer at the application root. Return the value in the result Message. An effectful handler constructor can capture the service when the application Layer builds; obtain the changing value inside the returned handler.
 
 The rule recognizes the deferred callback positions in Effect and Stream. It also recognizes these Foldkit lifecycle callbacks when they are declared inline:
 
+- The single handler argument in `Definition.toLayer(handler)` for Commands, Mounts, Subscriptions, and Queries
+- `acquire` and `release` in `resource.toLayer({ acquire, release })`
 - `execute` in `Command.define`, `Mount.define`, and `Mount.defineStream`
 - `dependenciesToStream` in `Subscription.make`
 - `acquire` and `release` in `ManagedResource.make`
@@ -214,7 +216,7 @@ The recommended and all presets disable this rule in runtime entry files (`entry
 
 The presets also disable the rule in TypeScript files under a `server` directory and in `prerender.ts` or `prerender.tsx`. Those files belong to the host rather than the Foldkit application state machine, so their request handlers and build scripts do not return values through Messages. Test files remain excluded with the rest of the Foldkit rules.
 
-This direct-call catalog does not prove that a file is pure. It recognizes static global member paths and ignores locally shadowed globals. It does not follow a method alias such as `const now = Date.now` to a later `now()` call, nor does it inspect a helper's call graph.
+This direct-call catalog does not prove that a file is pure. It recognizes static global member paths and ignores locally shadowed globals. It does not follow a method alias such as `const now = Date.now` to a later `now()` call, nor does it inspect a helper's call graph. Recognition of `.toLayer` handlers uses the method name and direct argument shape, without resolving the receiver's TypeScript type.
 
 ::Snippet{name="lintNoImpureCallAtDecisionTime" label="Rule: foldkit/no-impure-call-at-decision-time"}
 

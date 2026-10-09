@@ -51,6 +51,14 @@ This is the working checklist for separating Foldkit effect definitions from the
 - The Foldkit handler suite covers constructor reuse, deferred execution, and captured versus invocation services. Reversing invocation-context precedence makes the relevant assertion fail. Weather execution tests use the real handler with a controlled HTTP provider.
 - WebSocket lifecycle tests verify that capturing its constructor does not move socket acquisition or cleanup out of the Model-driven handle scope.
 
+### Existing lint compatibility
+
+- [x] Recognize direct `.toLayer` handler callbacks and ManagedResource acquisition and release callbacks as deferred execution boundaries.
+- [x] Preserve diagnostics for eager argument expressions, unrelated callbacks, and unsupported argument positions.
+- [x] Verify the new unit and real Oxlint regressions fail without the compatibility fix. All 517 lint package tests and its TypeScript checks pass with the fix.
+- [x] Document the supported boundaries and show service capture with operation-time UUID generation.
+- [x] Record proposed naming, platform-service, and detached-runner policies as a separate workstream.
+
 ### 1. Type and lifecycle proof
 
 - [x] Prove a Layer-backed Command contributes a synthetic handler service to an inferred update return.
@@ -141,7 +149,13 @@ The published-package check runs during production deployment after publication.
 
 Whole-application test mode, controlled dependency services, test scheduling, and a Story/Scene-style application test DSL belong to a later workstream. Execution tests should use the application's real handlers and replace their external services. Explicit handler stubs can support orchestration tests that exercise result paths without executing those handlers.
 
-- [ ] Add a Foldkit lint rule for individual handler Layer names. A Command binding initialized by `PlaceOrder.toLayer(...)` should be `PlaceOrderLayer` in production or `PlaceOrderTestLayer` for a test implementation. Permit feature-level `layer` bundles and re-exports. Cover qualified definitions, test fixtures, and an autofix before enabling the rule across first-party code. Extend the same convention to Subscription, Mount, and ManagedResource handlers where their definitions have stable names.
+- [ ] Prepare a separate Oxlint policy follow-up PR. Investigate legitimate exceptions and overlap with existing rules before enabling these policies; they do not block the handler Layer PR.
+  - [ ] Investigate individual handler Layer names: `PlaceOrderLayer` for the real handler and `PlaceOrderTestLayer` for a test implementation. Permit feature-level `layer` bundles and re-exports. Cover qualified definitions, fixtures, and an autofix. Apply the convention to Subscription, Mount, and ManagedResource handlers with stable names.
+  - [ ] Investigate preferring injectable platform services in application effects, including the appropriate boundaries for browser APIs, pure helpers, and entry-point providers.
+  - [ ] Investigate prohibiting detached root runners inside lifecycle handlers. Account for entry-point startup, test runners, and existing scope and acquisition rules.
+  - [ ] Evaluate a universal effectful-constructor rule only if it offers a concrete semantic benefit. It is not the default policy: a syntax wrapper alone does not improve dependency handling. Invocation-specific service lookups and Model-controlled resource access may belong inside the returned handler.
+
+Existing lint rules must recognize `.toLayer` handler execution boundaries in this PR. Resource acquisition belongs to its intended Command, Stream, Mount, or ManagedResource scope.
 
 ## Service assembly follow-up
 
