@@ -588,33 +588,54 @@ export const virtualListChatDemo = (
       [h.Class('flex w-full flex-col gap-4')],
       [
         h.div(
-          [h.Class('flex flex-wrap items-center justify-between gap-3')],
+          [h.Class('flex flex-col gap-1')],
           [
             h.div(
-              [h.Class('flex flex-col gap-0.5')],
+              [h.Class('flex flex-wrap items-baseline gap-x-3 gap-y-0.5')],
               [
-                h.span(
+                h.h4(
                   [
                     h.Class(
-                      'text-sm font-semibold text-gray-900 dark:text-gray-100',
+                      'text-base font-semibold text-gray-900 dark:text-gray-100',
                     ),
                   ],
                   ['Conversation'],
                 ),
                 h.span(
-                  [h.Class('text-xs text-gray-500 dark:text-gray-400')],
-                  [`${messages.length} messages · Click to expand a message`],
+                  [
+                    h.Class(
+                      'text-xs font-medium tabular-nums text-gray-500 dark:text-gray-400',
+                    ),
+                  ],
+                  [`${messages.length} messages loaded`],
                 ),
               ],
             ),
-            h.div(
-              [h.Class('flex flex-wrap items-center gap-2 sm:ml-auto')],
+            h.p(
+              [h.Class('text-sm text-gray-600 dark:text-gray-400')],
               [
-                ...(historyModeGroup === undefined
-                  ? []
-                  : [
+                isFiniteHistory
+                  ? 'Scroll up to reach the first message. Select a message to expand it.'
+                  : 'Scroll up to load older messages. Select a message to expand it.',
+              ],
+            ),
+          ],
+        ),
+        ...(historyModeGroup === undefined
+          ? []
+          : [
+              h.div(
+                [
+                  h.Class(
+                    'flex flex-col gap-3 rounded-lg border border-gray-200 bg-white/70 p-3 sm:flex-row sm:items-center sm:justify-between dark:border-gray-700/60 dark:bg-gray-950/30',
+                  ),
+                ],
+                [
+                  h.div(
+                    [h.Class('flex min-w-0 flex-col gap-1.5')],
+                    [
                       h.div(
-                        [h.Class('flex flex-col gap-1')],
+                        [h.Class('flex flex-wrap items-center gap-2 sm:gap-3')],
                         [
                           h.span(
                             [
@@ -665,35 +686,38 @@ export const virtualListChatDemo = (
                                 },
                               ),
                           }),
-                          h.span(
-                            [
-                              h.Id(`${historyModeGroup.id}-hint`),
-                              h.Class(
-                                'text-xs text-gray-500 dark:text-gray-400',
-                              ),
-                            ],
-                            ['Switching modes restarts the demo.'],
-                          ),
                         ],
                       ),
-                    ]),
-                ...(isFiniteHistory
-                  ? []
-                  : [
-                      h.button(
+                      h.span(
                         [
-                          h.Class(secondaryButtonClassName),
-                          h.DataAttribute('virtual-list-chat-prepend', 'true'),
-                          h.OnClick(Message.ClickedVirtualListChatPrepend()),
-                          ...(isLoading ? [h.Disabled(true)] : []),
+                          h.Id(`${historyModeGroup.id}-hint`),
+                          h.Class('text-xs text-gray-500 dark:text-gray-400'),
                         ],
-                        ['Load older'],
+                        ['Changing modes resets the conversation.'],
                       ),
-                    ]),
-              ],
-            ),
-          ],
-        ),
+                    ],
+                  ),
+                  ...(isFiniteHistory
+                    ? []
+                    : [
+                        h.button(
+                          [
+                            h.Class(
+                              `${secondaryButtonClassName} w-full shrink-0 sm:w-auto`,
+                            ),
+                            h.DataAttribute(
+                              'virtual-list-chat-prepend',
+                              'true',
+                            ),
+                            h.OnClick(Message.ClickedVirtualListChatPrepend()),
+                            ...(isLoading ? [h.Disabled(true)] : []),
+                          ],
+                          ['Load older'],
+                        ),
+                      ]),
+                ],
+              ),
+            ]),
         h.span(
           [
             h.Role('status'),
@@ -725,11 +749,11 @@ export const virtualListChatDemo = (
             Message.GotVirtualListChatDemoMessage({ message }),
         }),
         h.div(
-          [h.Class('flex w-full items-center justify-between gap-2')],
+          [h.Class('grid w-full grid-cols-2 gap-2 sm:flex sm:justify-end')],
           [
             h.button(
               [
-                h.Class(secondaryButtonClassName),
+                h.Class(`${secondaryButtonClassName} min-w-0`),
                 h.DataAttribute('virtual-list-chat-scroll-to-message', 'true'),
                 h.OnClick(Message.ClickedVirtualListChatScrollToMessage()),
               ],
@@ -741,7 +765,7 @@ export const virtualListChatDemo = (
             h.button(
               [
                 h.Class(
-                  `${buttonClassName} inline-flex h-9 items-center justify-center`,
+                  `${buttonClassName} inline-flex h-9 min-w-0 items-center justify-center`,
                 ),
                 h.DataAttribute('virtual-list-chat-append', 'true'),
                 h.OnClick(Message.ClickedVirtualListChatAppend()),

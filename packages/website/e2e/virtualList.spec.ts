@@ -81,9 +81,7 @@ const expectAnchorTop = async (container: Locator, anchor: VisibleAnchor) => {
 
 const loadedChatMessageCount = async (page: Page): Promise<number> =>
   Number.parseInt(
-    (await page
-      .getByText(/messages · Click to expand a message/)
-      .textContent()) ?? '',
+    (await page.getByText(/^\d+ messages loaded$/).textContent()) ?? '',
     10,
   )
 
@@ -102,7 +100,7 @@ test('waits for upward scrolling before loading chat history in either mode', as
 
   const historyMode = page.getByRole('radiogroup', { name: 'History mode' })
   await expect(historyMode).toHaveAccessibleDescription(
-    'Switching modes restarts the demo.',
+    'Changing modes resets the conversation.',
   )
   await expect(
     historyMode.getByRole('radio', { name: 'Infinite', exact: true }),
