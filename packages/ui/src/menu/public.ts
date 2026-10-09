@@ -32,6 +32,7 @@ export {
   type ReleasedPointerOnItems,
   type IgnoredMouseClick,
   type SuppressedSpaceScroll,
+  type MovedPointerOffButton,
 } from './index.js'
 
 export type {
