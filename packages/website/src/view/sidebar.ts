@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { Array, Equal, Option, pipe } from 'effect'
+import { Array, Equal, Option } from 'effect'
 import { Html, type HtmlBuilder, createKeyedLazy } from 'foldkit/html'
 import apiModuleIndex from 'virtual:api-module-index'
 
@@ -20,11 +20,11 @@ import { Link } from '../link'
 import { Message } from '../message'
 import { type Model } from '../model'
 import {
-  AppRoute,
   apiModuleRouter,
   blogRouter,
   homeRouter,
   isBlogRoute,
+  routeToUrlPath,
 } from '../route'
 import { type GroupKey, type SidebarGroups } from '../sidebarStorage'
 
@@ -159,21 +159,16 @@ const getStartedClass = (isActive: boolean) =>
 
 const getStartedNavItem = (
   route: Model['route'],
-  maybeExampleSlug: Option.Option<string>,
   h: HtmlBuilder<Message>,
 ): Html => {
-  const isActive = isNavPageActive(
-    route._tag,
-    maybeExampleSlug,
-    getStartedPage._tag,
-  )
+  const isActive = isNavPageActive(route, getStartedPage)
 
   return h.li(
     [h.Class('mb-2.5')],
     [
       h.a(
         [
-          h.Href(getStartedPage.href),
+          h.Href(routeToUrlPath(getStartedPage.route)),
           h.Class(getStartedClass(isActive)),
           ...(isActive ? [h.AriaCurrent('page')] : []),
         ],
@@ -193,18 +188,7 @@ const computeNavLinks = (
   h: HtmlBuilder<Message>,
 ): Html => {
   const isOnApiModulePage = route._tag === 'ApiModule'
-  const maybeExampleSlug = pipe(
-    route,
-    Option.liftPredicate(
-      (route): route is typeof AppRoute.ExampleDetail.Type =>
-        route._tag === 'ExampleDetail',
-    ),
-    Option.map(route => route.exampleSlug),
-  )
-  const maybeActiveSectionKey = findActiveSectionKey(
-    route._tag,
-    maybeExampleSlug,
-  )
+  const maybeActiveSectionKey = findActiveSectionKey(route)
   const isLocked = (key: GroupKey): boolean =>
     Option.exists(maybeActiveSectionKey, Equal.equals(key))
 
@@ -213,8 +197,8 @@ const computeNavLinks = (
       [h.Class('space-y-1')],
       Array.map(pages, page =>
         navLink(
-          page.href,
-          isNavPageActive(route._tag, maybeExampleSlug, page._tag),
+          routeToUrlPath(page.route),
+          isNavPageActive(route, page),
           page.label,
           h,
         ),
@@ -224,7 +208,7 @@ const computeNavLinks = (
   return h.ul(
     [h.Class('space-y-0.5')],
     [
-      getStartedNavItem(route, maybeExampleSlug, h),
+      getStartedNavItem(route, h),
       ...(idPrefix === MOBILE_ID_PREFIX
         ? [
             sidebarGroup(

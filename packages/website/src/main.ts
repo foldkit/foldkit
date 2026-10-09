@@ -226,10 +226,7 @@ export const init: Runtime.RoutingApplicationInit<
   const snippetDisclosureInit = SnippetDisclosure.init()
   const coreSubmodelPageInit = Core.SubmodelPage.init()
 
-  const maybeInitialActiveSectionKey = findActiveSectionKey(
-    initialRoute._tag,
-    maybeInitialExampleSlug,
-  )
+  const maybeInitialActiveSectionKey = findActiveSectionKey(initialRoute)
 
   const analyticsCommands = isTelemetryEnabled(flags.deployment)
     ? [InjectAnalytics(), InjectSpeedInsights()]
@@ -633,16 +630,7 @@ export const update = (model: Model, message: Message) =>
     ChangedUrl: ({ url }) => {
       const nextRoute = urlToAppRoute(url)
 
-      const maybeNextExampleSlug = pipe(
-        nextRoute,
-        Option.liftPredicate(route => route._tag === 'ExampleDetail'),
-        Option.map(({ exampleSlug }) => exampleSlug),
-      )
-
-      const maybeNextActiveSectionKey = findActiveSectionKey(
-        nextRoute._tag,
-        maybeNextExampleSlug,
-      )
+      const maybeNextActiveSectionKey = findActiveSectionKey(nextRoute)
 
       const nextSidebarGroups = Option.match(maybeNextActiveSectionKey, {
         onNone: () => model.sidebarGroups,
@@ -777,15 +765,7 @@ export const update = (model: Model, message: Message) =>
         () => 'System',
       )
       const resolvedTheme = resolveTheme(themePreference, systemTheme)
-      const maybeExampleSlug = pipe(
-        model.route,
-        Option.liftPredicate(route => route._tag === 'ExampleDetail'),
-        Option.map(({ exampleSlug }) => exampleSlug),
-      )
-      const maybeActiveSectionKey = findActiveSectionKey(
-        model.route._tag,
-        maybeExampleSlug,
-      )
+      const maybeActiveSectionKey = findActiveSectionKey(model.route)
       const applyBrowserEnvironment: UpdateStep = stepModel => ({
         model: modifyFields(stepModel, {
           currentYear: () => currentYear,
