@@ -1,3 +1,5 @@
+import { Layer } from 'effect'
+import { Socket } from 'effect/socket'
 import { Application, Runtime } from 'foldkit'
 
 import {
@@ -24,4 +26,9 @@ const application = Application.make({
   },
 })
 
-Runtime.run(Application.provide(application, Live))
+Runtime.run(
+  Application.provide(
+    application,
+    Live.pipe(Layer.provide(Socket.layerWebSocketConstructorGlobal)),
+  ),
+)

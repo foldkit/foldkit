@@ -6,11 +6,13 @@ import {
   Layer,
   Match,
   Option,
+  Predicate,
   Queue,
   Schema,
   Stream,
   String,
 } from 'effect'
+import { Socket } from 'effect/socket'
 import { Command, ManagedResource, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -36,7 +38,7 @@ const ChatMessage = Schema.Struct({
 
 type ChatMessage = typeof ChatMessage.Type
 
-const ChatSocket = ManagedResource.tag<WebSocket>()('ChatSocket')
+const ChatSocket = ManagedResource.tag<Socket.WebSocketLike>()('ChatSocket')
 
 export const ConnectionState = defineTaggedUnion({
   Disconnected: {},
@@ -269,43 +271,51 @@ export const managedResources = ManagedResource.make<Model, Message>()(
   }),
 )
 
-const ManageChatSocketLive = managedResources.chatSocket.toLayer({
+export const ManageChatSocketLive = managedResources.chatSocket.toLayer({
   acquire: () =>
-    Effect.callback<WebSocket, Error>(resume => {
-      const socket = new WebSocket(WS_URL)
+    Effect.gen(function* () {
+      const makeWebSocket = yield* Socket.WebSocketConstructor
+      const socket = yield* Effect.acquireRelease(
+        Effect.sync(() => makeWebSocket(WS_URL)),
+        socket =>
+          Effect.sync(() => {
+            socket.close()
+          }),
+      )
 
-      const handleOpen = () => {
-        socket.removeEventListener('error', handleError)
-        resume(Effect.succeed(socket))
-      }
+      yield* Effect.callback<void, Error>(resume => {
+        const removeListeners = () => {
+          socket.removeEventListener('open', handleOpen)
+          socket.removeEventListener('error', handleError)
+        }
+        const handleOpen = () => {
+          removeListeners()
+          resume(Effect.void)
+        }
+        const handleError = () => {
+          removeListeners()
+          resume(Effect.fail(new Error('Failed to connect to WebSocket')))
+        }
 
-      const handleError = () => {
-        socket.removeEventListener('open', handleOpen)
-        resume(Effect.fail(new Error('Failed to connect to WebSocket')))
-      }
+        socket.addEventListener('open', handleOpen)
+        socket.addEventListener('error', handleError)
 
-      socket.addEventListener('open', handleOpen)
-      socket.addEventListener('error', handleError)
+        return Effect.sync(removeListeners)
+      }).pipe(
+        Effect.timeout(Duration.millis(CONNECTION_TIMEOUT_MS)),
+        Effect.catchTag('TimeoutError', () =>
+          Effect.fail(new Error('Connection timeout')),
+        ),
+      )
 
-      return Effect.sync(() => {
-        socket.removeEventListener('open', handleOpen)
-        socket.removeEventListener('error', handleError)
-      })
-    }).pipe(
-      Effect.timeout(Duration.millis(CONNECTION_TIMEOUT_MS)),
-      Effect.catchTag('TimeoutError', () =>
-        Effect.fail(new Error('Connection timeout')),
-      ),
-    ),
-  release: socket =>
-    Effect.sync(() => {
-      socket.close()
+      return socket
     }),
+  release: () => Effect.void,
 })
 
 // SUBSCRIPTION
 
-const streamChatSocketMessages = (socket: WebSocket) =>
+const streamChatSocketMessages = (socket: Socket.WebSocketLike) =>
   Stream.callback<
     | typeof Message.ReceivedMessage.Type
     | typeof Message.DisconnectedChatSocket.Type
@@ -313,11 +323,13 @@ const streamChatSocketMessages = (socket: WebSocket) =>
   >(queue =>
     Effect.acquireRelease(
       Effect.sync(() => {
-        const handleMessage = (event: MessageEvent) => {
-          Queue.offerUnsafe(
-            queue,
-            Message.ReceivedMessage({ text: event.data }),
-          )
+        const handleMessage = (event: Socket.WebSocketEvent) => {
+          if (Predicate.isString(event.data)) {
+            Queue.offerUnsafe(
+              queue,
+              Message.ReceivedMessage({ text: event.data }),
+            )
+          }
         }
         const handleClose = () => {
           Queue.offerUnsafe(queue, Message.DisconnectedChatSocket())

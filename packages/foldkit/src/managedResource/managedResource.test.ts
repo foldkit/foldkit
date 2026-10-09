@@ -1,4 +1,13 @@
-import { Context, Effect, Exit, Layer, Option, Schema, Scope } from 'effect'
+import {
+  Context,
+  Data,
+  Effect,
+  Exit,
+  Layer,
+  Option,
+  Schema,
+  Scope,
+} from 'effect'
 import { describe, expect, expectTypeOf, it } from 'vitest'
 
 import {
@@ -50,6 +59,10 @@ class BuildCount extends Context.Service<
   BuildCount,
   { readonly increment: () => void }
 >()('ManagedResourceHandlerTestBuildCount') {}
+
+class AcquireFailure extends Data.TaggedError('AcquireFailure')<{}> {}
+
+class ReleaseFailure extends Data.TaggedError('ReleaseFailure')<{}> {}
 
 const LayeredSessionResource = tag<string>()('LayeredSessionResource')
 
@@ -145,6 +158,66 @@ describe('make', () => {
     expect(layeredManagedResources.session.name).toBe('ManageSession')
   })
 
+  it('constrains lifecycle callback errors without changing the Layer construction error', () => {
+    layeredManagedResources.session.toLayer<
+      Prefix,
+      Suffix,
+      never,
+      never,
+      AcquireFailure,
+      ReleaseFailure
+    >({
+      // @ts-expect-error The acquire callback must fail with AcquireFailure.
+      acquire: () => Effect.fail(new ReleaseFailure()),
+      release: () => Effect.fail(new ReleaseFailure()),
+    })
+
+    const layer = layeredManagedResources.session.toLayer<
+      Prefix,
+      Suffix,
+      never,
+      never,
+      AcquireFailure,
+      ReleaseFailure
+    >({
+      acquire: () =>
+        Effect.callback<string, AcquireFailure, Prefix>(resume => {
+          resume(Effect.fail(new AcquireFailure()))
+          return Effect.asVoid(Prefix)
+        }),
+      release: () =>
+        Effect.callback<void, ReleaseFailure, Suffix>(resume => {
+          resume(Effect.fail(new ReleaseFailure()))
+          return Effect.asVoid(Suffix)
+        }),
+    })
+
+    expectTypeOf(layer).toEqualTypeOf<
+      Layer.Layer<Handler<'ManageSession'>, never, Prefix | Suffix>
+    >()
+  })
+
+  it('infers lifecycle requirements from an Effect supplied handler', () => {
+    const layer = layeredManagedResources.session.toLayer(
+      Effect.map(BuildCount, () => ({
+        acquire: () =>
+          Effect.callback<string, AcquireFailure, Prefix>(resume => {
+            resume(Effect.fail(new AcquireFailure()))
+            return Effect.asVoid(Prefix)
+          }),
+        release: () =>
+          Effect.callback<void, ReleaseFailure, Suffix>(resume => {
+            resume(Effect.fail(new ReleaseFailure()))
+            return Effect.asVoid(Suffix)
+          }),
+      })),
+    )
+
+    expectTypeOf(layer).toEqualTypeOf<
+      Layer.Layer<Handler<'ManageSession'>, never, BuildCount | Prefix | Suffix>
+    >()
+  })
+
   it('uses invocation context for both acquire and release', async () => {
     const released: Array<string> = []
     const layer = layeredManagedResources.session.toLayer({
@@ -166,11 +239,13 @@ describe('make', () => {
         }).pipe(
           Effect.provideService(Prefix, { value: 'invocation:' }),
           Effect.provideService(Suffix, { value: ':invocation' }),
-          Effect.provide(layer),
           Effect.provide(
-            Layer.mergeAll(
-              Layer.succeed(Prefix, { value: 'construction:' }),
-              Layer.succeed(Suffix, { value: ':construction' }),
+            Layer.provideMerge(
+              layer,
+              Layer.mergeAll(
+                Layer.succeed(Prefix, { value: 'construction:' }),
+                Layer.succeed(Suffix, { value: ':construction' }),
+              ),
             ),
           ),
         ),

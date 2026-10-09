@@ -92,11 +92,13 @@ it('carries the handler requirement and its implementation dependencies', () => 
 })
 
 it('uses invocation context over the context captured by the handler Layer', async () => {
+  const handlerLayer = SendMessageLive.pipe(
+    Layer.provideMerge(Layer.succeed(Prefix, { value: 'construction:' })),
+  )
   const result = await Effect.runPromise(
     SendMessage({ text: 'hello' }).effect.pipe(
       Effect.provideService(Prefix, { value: 'invocation:' }),
-      Effect.provide(SendMessageLive),
-      Effect.provide(Layer.succeed(Prefix, { value: 'construction:' })),
+      Effect.provide(handlerLayer),
     ),
   )
 
@@ -153,11 +155,11 @@ it('keeps interruptible Command identity with a Layer-backed handler', async () 
   )
 
   const command = ReadPrefix()
+  const handlerLayer = layer.pipe(
+    Layer.provideMerge(Layer.succeed(Prefix, { value: 'ready' })),
+  )
   const result = await Effect.runPromise(
-    command.effect.pipe(
-      Effect.provide(layer),
-      Effect.provide(Layer.succeed(Prefix, { value: 'ready' })),
-    ),
+    command.effect.pipe(Effect.provide(handlerLayer)),
   )
 
   expect(command.name).toBe('ReadPrefix')

@@ -1,4 +1,4 @@
-import { Array, Effect, Fiber, Option, Ref, pipe } from 'effect'
+import { Array, Effect, Fiber, Layer, Option, Ref, pipe } from 'effect'
 import { TestClock } from 'effect/testing'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
@@ -42,8 +42,9 @@ describe('update', () => {
         )
       }).pipe(
         Effect.scoped,
-        Effect.provide(TestClock.layer()),
-        Effect.provide(PlaceOrderLive),
+        Effect.provide(
+          PlaceOrderLive.pipe(Layer.provideMerge(TestClock.layer())),
+        ),
       ),
     ))
 

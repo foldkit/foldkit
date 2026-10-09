@@ -85,6 +85,6 @@ const ExportPngLive = ExportPng.toLayer(
 
       return Message.SucceededExportPng()
     }).pipe(Effect.catchTag('FailedExportPng', error => Effect.succeed(error))),
-})
+)
 
 export const CommandsLive = Layer.mergeAll(SaveCanvasLive, ExportPngLive)

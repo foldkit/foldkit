@@ -31,6 +31,8 @@ The runtime compares the requirements after every Model change and performs the 
 
 If acquisition fails, the runtime dispatches `onAcquireError` as a Message. The lifecycle keeps watching for the next requirements change, and the failed acquisition does not crash the application.
 
+Register cleanup when each handle is created, before waiting for it to become ready. `Effect.acquireRelease` inside `acquire` ties that cleanup to the ManagedResource Scope, including when readiness fails, times out, or is interrupted. The entry's explicit `release` callback runs only after acquisition has returned a handle.
+
 In a whole-application execution test, keep the real lifecycle handler and replace the service it uses to open the camera, socket, worker, or other external capability. The test then covers the same Model-driven acquire, reacquire, release, error, and cleanup paths as production. Replacing the entire lifecycle handler can orchestrate those result paths, but it does not test the replaced acquire and release code.
 
 ## Accessing Managed Resources in Commands {#accessing-managed-resources}

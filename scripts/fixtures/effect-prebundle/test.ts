@@ -1,3 +1,3 @@
-import { Deferred, Effect } from 'effect'
+import { Deferred } from 'effect'
 
-export const deferred = Effect.runSync(Deferred.make<void>())
+export const deferred = Deferred.makeUnsafe<void>()

@@ -39,7 +39,27 @@
     {
       "files": ["packages/foldkit/src/runtime/resourceProvider.ts"],
       "rules": {
+        "effecttsgo/any-unknown-in-error-context": "off",
         "effecttsgo/unsafe-effect-type-assertion": "off"
+      }
+    },
+    {
+      "files": [
+        "packages/foldkit/src/command/handler.ts",
+        "packages/foldkit/src/mount/handler.ts",
+        "packages/foldkit/src/runtime/application.ts",
+        "packages/foldkit/src/runtime/runtime.ts",
+        "packages/foldkit/src/managedResource/managedResource.test.ts"
+      ],
+      "rules": {
+        "effecttsgo/any-unknown-in-error-context": "off"
+      }
+    },
+    {
+      "files": ["packages/foldkit/src/managedResource/handler.ts"],
+      "rules": {
+        "effecttsgo/any-unknown-in-error-context": "off",
+        "effecttsgo/leaking-requirements": "off"
       }
     },
     {

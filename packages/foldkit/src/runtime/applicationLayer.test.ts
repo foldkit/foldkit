@@ -118,7 +118,7 @@ describe('Application Layers', () => {
     vi.spyOn(ModelPreservationBridge, 'resolvePreservedModel').mockReturnValue(
       Effect.succeed(undefined),
     )
-    const releaseGate = Effect.runSync(Deferred.make<void>())
+    const releaseGate = Deferred.makeUnsafe<void>()
     const events: Array<string> = []
     const FirstLive = Layer.effect(
       ValueService,
@@ -390,9 +390,9 @@ describe('Application Layers', () => {
       }),
     )
 
-    const initialStreamAcquired = Effect.runSync(Deferred.make<void>())
-    const restartedStreamAcquired = Effect.runSync(Deferred.make<void>())
-    const restartedStreamReleased = Effect.runSync(Deferred.make<void>())
+    const initialStreamAcquired = Deferred.makeUnsafe<void>()
+    const restartedStreamAcquired = Deferred.makeUnsafe<void>()
+    const restartedStreamReleased = Deferred.makeUnsafe<void>()
     const streamEvents: Array<string> = []
     let serviceBuilds = 0
     let serviceReleases = 0

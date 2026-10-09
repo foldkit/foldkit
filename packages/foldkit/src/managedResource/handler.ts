@@ -7,11 +7,18 @@ export interface Handler<Name extends string> {
   readonly [HandlerTypeId]: Name
 }
 
-type LifecycleHandler<Params, Value, AcquireR, ReleaseR> = Readonly<{
+type LifecycleHandler<
+  Params,
+  Value,
+  AcquireR,
+  ReleaseR,
+  AcquireError,
+  ReleaseError,
+> = Readonly<{
   acquire: (
     params: Params,
-  ) => Effect.Effect<Value, unknown, AcquireR | Scope.Scope>
-  release: (value: Value) => Effect.Effect<void, unknown, ReleaseR>
+  ) => Effect.Effect<Value, AcquireError, AcquireR | Scope.Scope>
+  release: (value: Value) => Effect.Effect<void, ReleaseError, ReleaseR>
 }>
 
 type HandlerService<Params, Value> = Readonly<{
@@ -28,11 +35,32 @@ type HandlerService<Params, Value> = Readonly<{
  * alternative dependency services to test the same acquisition and cleanup.
  */
 export interface ToLayer<Name extends string, Params, Value> {
-  <AcquireR, ReleaseR, E = never, BuildR = never>(
+  <
+    AcquireR,
+    ReleaseR,
+    E = never,
+    BuildR = never,
+    AcquireError = unknown,
+    ReleaseError = unknown,
+  >(
     build:
-      | LifecycleHandler<Params, Value, AcquireR, ReleaseR>
+      | LifecycleHandler<
+          Params,
+          Value,
+          AcquireR,
+          ReleaseR,
+          AcquireError,
+          ReleaseError
+        >
       | Effect.Effect<
-          LifecycleHandler<Params, Value, AcquireR, ReleaseR>,
+          LifecycleHandler<
+            Params,
+            Value,
+            AcquireR,
+            ReleaseR,
+            AcquireError,
+            ReleaseError
+          >,
           E,
           BuildR
         >,
@@ -91,11 +119,27 @@ export const makeHandler = <Name extends string, Params, Value>(name: Name) => {
     ReleaseR,
     E = never,
     BuildR = never,
+    AcquireError = unknown,
+    ReleaseError = unknown,
   >(
     build:
-      | LifecycleHandler<Params, Value, AcquireR, ReleaseR>
+      | LifecycleHandler<
+          Params,
+          Value,
+          AcquireR,
+          ReleaseR,
+          AcquireError,
+          ReleaseError
+        >
       | Effect.Effect<
-          LifecycleHandler<Params, Value, AcquireR, ReleaseR>,
+          LifecycleHandler<
+            Params,
+            Value,
+            AcquireR,
+            ReleaseR,
+            AcquireError,
+            ReleaseError
+          >,
           E,
           BuildR
         >,

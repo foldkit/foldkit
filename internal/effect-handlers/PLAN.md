@@ -138,13 +138,15 @@ Whole-application test mode, controlled dependency services, test scheduling, an
 ### Follow-up verification
 
 - Full workspace build and all 52 TypeScript projects passed.
-- Full workspace tests passed, including 3,008 Foldkit tests (one skipped) and 1,307 website tests.
-- All 17 browser tests for the seven changed example applications passed serially with retries disabled.
+- Full workspace tests passed, including 3,010 Foldkit tests (one skipped) and 1,307 website tests.
+- All 19 browser tests for the eight changed example applications passed serially with retries disabled.
 - All 18 website browser tests passed serially with retries disabled.
 - Lint, formatting, dead-code, and `git diff --check` passed.
 - The real-handler service example compiled under strict TypeScript, and both Application Layers and Project Organization were inspected in the browser.
 - Mutation checks confirmed the shared-service lifetime, Search substitution, and independent storage tests catch incorrect wiring.
+- The WebSocket example uses the real lifecycle handler with a supplied constructor service. Four deterministic tests verify scoped closure and listener cleanup after interruption, readiness failure, timeout, and successful acquisition; a finalizer mutation makes all four fail.
 - The prebundle source check excludes the test files omitted by the library build. Regression fixtures cover both excluded test imports and missing published imports.
+- Current main's Effect lint checks, typed Schema operations, and relay fixes are integrated. Lifecycle callback inputs preserve their error types; rule exceptions cover validated runtime type-erasure boundaries and tests of their public contracts.
 - Independent implementation and consumer API review, plus a separate documentation and naming review, found no unresolved issues after repairs.
 
 ## Release review
