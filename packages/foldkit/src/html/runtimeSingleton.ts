@@ -163,8 +163,8 @@ export type UnmountResolver = (message: unknown) => () => void
 
 /** Returns an {@link UnmountResolver} bound to the current frame's boundary.
  *  `OnUnmount` calls the resolver at build time (boundary alive) to capture a
- *  dispatch thunk that survives the boundary being torn down during the same
- *  patch. Throws when called outside of a runtime frame. */
+ *  dispatch thunk that does not depend on what the registry holds when the
+ *  element is torn down. Throws when called outside of a runtime frame. */
 export const requireUnmountResolver = (): UnmountResolver => {
   const frame = requireFrame()
   return message =>

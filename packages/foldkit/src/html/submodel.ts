@@ -291,20 +291,29 @@ const wrapViewInputsForOuterBoundary = <ViewInputs>(
   return wrapped as ViewInputs
 }
 
-/** Returns a copy of the vnode with a snabbdom `destroy` hook that
- *  deregisters this Submodel's boundary when the DOM node is removed.
- *  Composes with any existing destroy hook the user's view may have set.
+/** Returns a copy of the vnode with a snabbdom `postdestroy` hook that
+ *  deregisters this Submodel's boundary when snabbdom destroys the vnode.
+ *  Composes with any `postdestroy` hook already on the vnode, such as the one
+ *  of a Submodel nested at the same vnode.
+ *
+ *  snabbdom runs a vnode's `destroy` hook before it detaches that vnode's
+ *  listeners and before it visits the descendants. A `destroy` hook in the
+ *  subtree can make the browser fire an event on an element that still
+ *  listens. For example: in Chromium, a Mount release that removes a focused
+ *  element fires `blur` on it. `postdestroy` runs after every `destroy` hook
+ *  in the subtree, so the wrap is still registered when that listener
+ *  dispatches.
  *
  *  Copies the vnode (rather than mutating in place) so module-level
  *  cached vnodes a user might return from view are not contaminated with
- *  a destroy hook bound to this boundary id.
+ *  a hook bound to this boundary id.
  *
  *  This is what lets `h.submodel` survive cache hits from
  *  `createKeyedLazy`. When a cached vnode is reused across renders,
- *  snabbdom doesn't fire destroy, so the wrap stays registered and
+ *  snabbdom doesn't fire `postdestroy`, so the wrap stays registered and
  *  dispatches continue to route correctly. When the vnode is actually
  *  removed (entry deleted from a list, conditional render flips),
- *  destroy fires and the wrap is evicted: bounded memory, no leaks.
+ *  `postdestroy` fires and the wrap is evicted: bounded memory, no leaks.
  *
  *  See `submodel.test.ts` for the cache-hit-survival and
  *  destroy-deregisters-wrap assertions. */
@@ -317,16 +326,16 @@ const withBoundaryCleanup = (
 ): VNode => {
   const data = vnode.data ?? {}
   const hook = data.hook ?? {}
-  const previousDestroy = hook.destroy
-  const compositeDestroy = (removed: VNode): void => {
+  const previousPostDestroy = hook.postdestroy
+  const compositePostDestroy = (removed: VNode): void => {
     deregisterBoundaryWrap(registry, boundaryId, descriptor, mountOuterDispatch)
-    if (previousDestroy !== undefined) {
-      previousDestroy(removed)
+    if (previousPostDestroy !== undefined) {
+      previousPostDestroy(removed)
     }
   }
   const wrapped: VNode = {
     ...vnode,
-    data: { ...data, hook: { ...hook, destroy: compositeDestroy } },
+    data: { ...data, hook: { ...hook, postdestroy: compositePostDestroy } },
   }
   // NOTE: a memoized child view returns the same vnode by reference each render;
   // this wrapper is fresh but shares its cached children. Propagate membership
