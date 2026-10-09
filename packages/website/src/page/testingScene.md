@@ -137,9 +137,12 @@ Property, state, and accessibility matchers require the Locator to match an elem
 | `.toBeChecked()`                            | Has aria-checked="true" or the checked attribute                                                                                                   |
 | `.toHaveValue(value)`                       | Has the given current form-control value                                                                                                           |
 | `.toHaveAttr(name, value)`                  | Has the given attribute set to the given value                                                                                                     |
+| `.toHaveAttrs(attributes)`                  | Has every given attribute set to its given value                                                                                                   |
 | `.toHaveId(id)`                             | Has the given id                                                                                                                                   |
 | `.toHaveClass(name)`                        | Has the given CSS class                                                                                                                            |
 | `.toHaveStyle(name, value)`                 | Has the given inline style property                                                                                                                |
+
+A `toHaveAttrs` failure names each attribute that is missing or set to a different value. `.not.toHaveAttrs` passes as soon as one attribute is missing or different. To assert that each attribute is absent, use `.not.toHaveAttr(name)` for each one. An empty set of attributes throws, since it would assert nothing.
 
 Accessible-name and accessible-description matching excludes hidden descendant content. A hidden node directly referenced by `aria-labelledby` or `aria-describedby` contributes its full subtree text.
 

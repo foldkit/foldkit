@@ -1890,6 +1890,60 @@ describe('custom matchers', () => {
     )
   })
 
+  test('toHaveAttrs passes when every attribute matches', () => {
+    expect(Option.some(element)).toHaveAttrs({
+      type: 'submit',
+      'aria-expanded': 'false',
+    })
+  })
+
+  test('toHaveAttrs names every missing or mismatched attribute', () => {
+    expect(() =>
+      expect(Option.some(element)).toHaveAttrs({
+        type: 'submit',
+        name: 'login',
+        'aria-expanded': 'true',
+      }),
+    ).toThrow(
+      'Expected element to have attributes type="submit", name="login", aria-expanded="true" but "name" is not present; "aria-expanded" received "false".',
+    )
+  })
+
+  test('toHaveAttrs fails when the element does not exist', () => {
+    expect(() => expect(Option.none()).toHaveAttrs({ type: 'submit' })).toThrow(
+      'Expected element to have attributes type="submit" but the element does not exist.',
+    )
+  })
+
+  test('toHaveAttrs refuses an empty set of attributes', () => {
+    const emptyMessage = 'toHaveAttrs needs at least one attribute.'
+
+    expect(() => expect(Option.some(element)).toHaveAttrs({})).toThrow(
+      emptyMessage,
+    )
+    expect(() => expect(Option.some(element)).not.toHaveAttrs({})).toThrow(
+      emptyMessage,
+    )
+  })
+
+  test('not.toHaveAttrs passes when the set as a whole does not match', () => {
+    expect(Option.some(element)).not.toHaveAttrs({
+      type: 'submit',
+      'aria-expanded': 'true',
+    })
+  })
+
+  test('not.toHaveAttrs fails when every attribute matches', () => {
+    expect(() =>
+      expect(Option.some(element)).not.toHaveAttrs({
+        type: 'submit',
+        'aria-expanded': 'false',
+      }),
+    ).toThrow(
+      'Expected element not to have attributes type="submit", aria-expanded="false" but it does.',
+    )
+  })
+
   test('toHaveStyle normalizes property aliases and declaration names', () => {
     expect(Option.some(styledElement)).toHaveStyle('backgroundColor', 'red')
     expect(Option.some(styledElement)).toHaveStyle('background-color', 'red')
@@ -2447,6 +2501,123 @@ describe('scene with expect', () => {
       { update, view },
       Scene.given(initialModel),
       Scene.expect(Scene.label('Email')).toHaveAttr('type', 'email'),
+    )
+  })
+
+  test('toHaveAttrs checks every attribute', () => {
+    Scene.scene(
+      {
+        update,
+        view: (_model, h) =>
+          h.div([
+            h.Id('meter'),
+            h.Attribute('aria-valuemin', '0'),
+            h.Attribute('aria-valuemax', '100'),
+            h.Attribute('aria-valuenow', '25'),
+            h.Attribute('data-value', '25'),
+          ]),
+      },
+      Scene.given(initialModel),
+      Scene.expect(Scene.selector('#meter')).toHaveAttrs({
+        'aria-valuemin': '0',
+        'aria-valuemax': '100',
+        'aria-valuenow': '25',
+        'data-value': '25',
+      }),
+    )
+  })
+
+  test('toHaveAttrs names every missing or mismatched attribute', () => {
+    expect(() =>
+      Scene.scene(
+        {
+          update,
+          view: (_model, h) =>
+            h.div([
+              h.Id('meter'),
+              h.Attribute('aria-valuemin', '0'),
+              h.Attribute('aria-valuemax', '80'),
+            ]),
+        },
+        Scene.given(initialModel),
+        Scene.expect(Scene.selector('#meter')).toHaveAttrs({
+          'aria-valuemin': '0',
+          'aria-valuemax': '100',
+          'aria-valuenow': '25',
+        }),
+      ),
+    ).toThrow(
+      'Expected element matching "#meter" to have attributes aria-valuemin="0", aria-valuemax="100", aria-valuenow="25" but "aria-valuemax" received "80"; "aria-valuenow" is not present.',
+    )
+  })
+
+  test('toHaveAttrs throws when the element is missing', () => {
+    expect(() =>
+      Scene.scene(
+        { update, view },
+        Scene.given(initialModel),
+        Scene.expect(Scene.role('dialog')).toHaveAttrs({
+          'aria-modal': 'true',
+        }),
+      ),
+    ).toThrow(
+      'Expected element matching dialog to have attributes aria-modal="true" but the element does not exist.',
+    )
+  })
+
+  test('not.toHaveAttrs throws when the element is missing', () => {
+    expect(() =>
+      Scene.scene(
+        { update, view },
+        Scene.given(initialModel),
+        Scene.expect(Scene.role('dialog')).not.toHaveAttrs({
+          'aria-modal': 'true',
+        }),
+      ),
+    ).toThrow(
+      'Expected element matching dialog not to have attributes aria-modal="true" but the element does not exist.',
+    )
+  })
+
+  test('toHaveAttrs refuses an empty set of attributes', () => {
+    const emptyMessage = 'toHaveAttrs needs at least one attribute.'
+
+    expect(() =>
+      Scene.scene(
+        { update, view },
+        Scene.given(initialModel),
+        Scene.expect(Scene.label('Email')).toHaveAttrs({}),
+      ),
+    ).toThrow(emptyMessage)
+    expect(() =>
+      Scene.scene(
+        { update, view },
+        Scene.given(initialModel),
+        Scene.expect(Scene.label('Email')).not.toHaveAttrs({}),
+      ),
+    ).toThrow(emptyMessage)
+  })
+
+  test('not.toHaveAttrs passes when the set as a whole does not match', () => {
+    Scene.scene(
+      { update, view },
+      Scene.given(initialModel),
+      Scene.expect(Scene.label('Email')).not.toHaveAttrs({
+        type: 'email',
+        name: 'email',
+      }),
+    )
+  })
+
+  test('not.toHaveAttrs fails when every attribute matches', () => {
+    expect(() =>
+      Scene.scene(
+        { update, view },
+        Scene.given(initialModel),
+        Scene.expect(Scene.label('Email')).not.toHaveAttrs({ type: 'email' }),
+      ),
+    ).toThrow(
+      'Expected element matching label "Email" not to have attributes type="email" but it does.',
     )
   })
 
