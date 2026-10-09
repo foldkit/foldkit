@@ -181,3 +181,19 @@ The last case is staying. `Transition.stayed(transition, tag)` returns both side
 Because a cold load counts as an entry, `init` and the `ChangedUrl` handler share one load-on-entry policy: reloading on `/people` runs the same entry Commands as clicking there from the home page. Transition helpers compose by concatenation, as above; a handler that mixes entry, exit, and per-navigation Commands flattens their results into one batch.
 
 The [Route Transition API reference](/api-reference/route-transition) lists every helper with its full signature.
+
+## URL Fragments
+
+Clicking a link to `#pricing` on the current page, or to `/about#pricing`, updates the URL, but the page does not scroll to the pricing section and focus does not move there. The click reaches `onUrlRequest` as an Internal request like any other link, and update decides what happens next. The `ClickedLink` handler from [Navigation](#navigation) returns a Command that calls `pushUrl`. `pushUrl` and `replaceUrl` write history and call `onUrlChange`, but neither performs a fragment navigation. Landing on the fragment is a Command the application returns explicitly from `init` and the `ChangedUrl` handler. Both return it alongside the route-driven Commands from [Cold Loads](#cold-loads):
+
+::Snippet{name="routingUrlFragments" label="URL fragment example"}
+
+`ScrollToAnchor` waits for paint because a link to another route renders its target in the same update, and the browser has to lay out the new page before the scroll can land on it. It then focuses the target, so a keyboard user who presses Tab continues from that section instead of from the link. `ScrollToAnchor` approximates the browser’s own fragment navigation: it scrolls and moves focus, but it does not set `:target`.
+
+When no element matches the hash, the Command does nothing, so a link to a missing section on another route leaves the new page at the old scroll position. A link to an `id` that the URL percent-encodes, such as one with non-ASCII letters or spaces, does not scroll either, because the hash arrives encoded and matches no element. A link to a bare `#` leaves the page where it is, while the browser’s own navigation would scroll to the top.
+
+The scroll lands only on content rendered by the same update. The Commands in a batch start together, so `ScrollToAnchor` does not wait for `FetchPeople`: a shared link to `/people#person-3` finds no target before the fetch finishes, and the page never scrolls to that person. To land there, return `ScrollToAnchor` from the handler for the fetch result, for example `SucceededFetchPeople`, when `model.url.hash` is `Some` and the list is arriving for the first time. On a later refetch, such as one from a Refresh button, the same Command would pull the user back to that person after they had scrolled away.
+
+`ScrollToTop` runs only when the pathname changed, so a link within the page does not undo its own scroll. Back and Forward also reach `onUrlChange` and run the same Commands, so returning to another page lands at its top, or at its fragment, instead of where the user left it. `ScrollToTop` and `ScrollToAnchor` each report back with a `Completed*` Message whose update handler returns `{ model }` unchanged, and the Model keeps the current `url` so the `ChangedUrl` handler can compare pathnames.
+
+This pattern covers a link to a section on the current page, a link to a section on another route, and a shared link that arrives with a hash, which `init` handles.
