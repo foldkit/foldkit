@@ -5,9 +5,10 @@ import { ApiReference, Example, Home, Playground } from './page'
 import * as Search from './search'
 import * as SnippetCopy from './snippetCopy'
 import * as SnippetDisclosure from './snippetDisclosure'
+import { LocalStorageLive, SessionStorageLive } from './storage'
 import * as Subscriptions from './subscription'
 
-export const Live = Layer.mergeAll(
+export const HandlersLive = Layer.mergeAll(
   MainLive,
   Search.Live,
   Home.Live,
@@ -18,4 +19,14 @@ export const Live = Layer.mergeAll(
   SnippetDisclosure.Live,
   Subscriptions.Live,
   devTracerLayer,
+)
+
+export const Live = HandlersLive.pipe(
+  Layer.provideMerge(
+    Layer.mergeAll(
+      LocalStorageLive,
+      SessionStorageLive,
+      Search.PagefindService.Default,
+    ),
+  ),
 )

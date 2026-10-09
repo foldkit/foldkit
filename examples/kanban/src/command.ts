@@ -2,8 +2,6 @@ import { Crypto, Effect, Layer, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 import { Command, Dom } from 'foldkit'
 
-import { BrowserCrypto, BrowserKeyValueStore } from '@effect/platform-browser'
-
 import { ADD_CARD_INPUT_ID, STORAGE_KEY } from './constant'
 import { Column } from './domain'
 import { Message } from './message'
@@ -53,8 +51,4 @@ export const CommandsLive = Layer.mergeAll(
   GenerateCardIdLive,
   SaveBoardLive,
   FocusAddCardInputLive,
-).pipe(
-  Layer.provide(
-    Layer.mergeAll(BrowserCrypto.layer, BrowserKeyValueStore.layerLocalStorage),
-  ),
 )

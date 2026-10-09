@@ -1,8 +1,6 @@
 import { Crypto, Effect, Schema } from 'effect'
 import { Command } from 'foldkit'
 
-import { BrowserCrypto } from '@effect/platform-browser'
-
 const SaveDraftWithId = Command.define('SaveDraftWithId', {
   args: { body: Schema.String, draftId: Schema.String },
   messages: [Message.CompletedSaveDraftWithId],
@@ -26,7 +24,7 @@ const SaveDraft = Command.define('SaveDraft', {
       const crypto = yield* Crypto.Crypto
       const draftId = yield* Effect.orDie(crypto.randomUUIDv4)
       return Message.CompletedSaveDraft({ draftId })
-    }).pipe(Effect.provide(BrowserCrypto.layer)),
+    }),
 })
 
 const saveGood = (body: string) => SaveDraft({ body })

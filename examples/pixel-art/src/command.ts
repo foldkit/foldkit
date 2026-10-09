@@ -2,8 +2,6 @@ import { Array, Effect, Layer, Predicate, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 import { Command } from 'foldkit'
 
-import { BrowserKeyValueStore } from '@effect/platform-browser'
-
 import { CANVAS_SIZE_PX, EXPORT_SCALE, STORAGE_KEY } from './constant'
 import { Message } from './message'
 import type { Model, SavedCanvas } from './model'
@@ -36,10 +34,7 @@ const SaveCanvasLive = SaveCanvas.toLayer(
       )
       yield* store.set(STORAGE_KEY, encodedCanvas)
       return Message.CompletedSaveCanvas()
-    }).pipe(
-      Effect.catch(() => Effect.succeed(Message.CompletedSaveCanvas())),
-      Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-    ),
+    }).pipe(Effect.catch(() => Effect.succeed(Message.CompletedSaveCanvas()))),
 )
 
 export const saveCanvas = (model: Model) =>

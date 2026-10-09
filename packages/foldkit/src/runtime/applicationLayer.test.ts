@@ -8,6 +8,7 @@ import {
   Layer,
   Option,
   Schema,
+  Stream,
 } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -16,6 +17,8 @@ import type { HtmlBuilder } from '../html/index.js'
 import * as ManagedResource from '../managedResource/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
+import * as Subscription from '../subscription/public.js'
+import * as Update from '../update/index.js'
 import * as Application from './application.js'
 import { makeApplication } from './makeApplication.js'
 import type { ElementConfigWithFlags } from './makeElement.js'
@@ -352,6 +355,189 @@ describe('Application Layers', () => {
     }
 
     expect(releaseCount).toBe(1)
+  })
+
+  it('shares one scoped service across Flags and Layer-backed runtime handlers', async () => {
+    const LifecycleMessage = defineMessageUnion({
+      CompletedChangePhase: {
+        phase: Schema.Literals(['Restart', 'Stop']),
+        value: Schema.String,
+      },
+    })
+    type LifecycleMessage = typeof LifecycleMessage.Type
+
+    const LifecycleModel = Schema.Struct({
+      label: Schema.String,
+      phase: Schema.Literals(['Initial', 'Restarted', 'Stopped']),
+      commandRuns: Schema.Number,
+    })
+    type LifecycleModel = typeof LifecycleModel.Type
+
+    const ChangePhase = Command.define('ChangePhase', {
+      args: { phase: Schema.Literals(['Restart', 'Stop']) },
+      messages: [LifecycleMessage.CompletedChangePhase],
+    })
+    const subscriptions = Subscription.make<LifecycleModel, LifecycleMessage>()(
+      entry => ({
+        phase: entry(
+          'TrackApplicationPhase',
+          { phase: Schema.Literals(['Initial', 'Restarted', 'Stopped']) },
+          {
+            messages: [],
+            modelToDependencies: model => ({ phase: model.phase }),
+          },
+        ),
+      }),
+    )
+
+    const initialStreamAcquired = Effect.runSync(Deferred.make<void>())
+    const restartedStreamAcquired = Effect.runSync(Deferred.make<void>())
+    const restartedStreamReleased = Effect.runSync(Deferred.make<void>())
+    const streamEvents: Array<string> = []
+    let serviceBuilds = 0
+    let serviceReleases = 0
+    let commandHandlerBuilds = 0
+    let subscriptionHandlerBuilds = 0
+    let commandRuns = 0
+
+    const ValueLive = Layer.effect(
+      ValueService,
+      Effect.acquireRelease(
+        Effect.sync((): ValueShape => {
+          serviceBuilds += 1
+          return { value: `service-${serviceBuilds}` }
+        }),
+        () =>
+          Effect.sync(() => {
+            serviceReleases += 1
+          }),
+      ),
+    )
+    const ChangePhaseLive = ChangePhase.toLayer(
+      Effect.gen(function* () {
+        const { value } = yield* ValueService
+        commandHandlerBuilds += 1
+
+        return ({ phase }) =>
+          Effect.gen(function* () {
+            commandRuns += 1
+            yield* Deferred.await(
+              phase === 'Restart'
+                ? initialStreamAcquired
+                : restartedStreamAcquired,
+            )
+            return LifecycleMessage.CompletedChangePhase({ phase, value })
+          })
+      }),
+    )
+    const TrackApplicationPhaseLive = subscriptions.phase.toLayer(
+      Effect.gen(function* () {
+        const { value } = yield* ValueService
+        subscriptionHandlerBuilds += 1
+
+        return ({ phase }) => {
+          if (phase === 'Stopped') {
+            return Stream.empty
+          }
+
+          const acquired =
+            phase === 'Initial'
+              ? initialStreamAcquired
+              : restartedStreamAcquired
+
+          return Stream.scoped(
+            Stream.fromEffect(
+              Effect.acquireRelease(
+                Effect.sync(() => {
+                  streamEvents.push(`acquired ${phase} with ${value}`)
+                  Deferred.doneUnsafe(acquired, Effect.void)
+                }),
+                () =>
+                  Effect.sync(() => {
+                    streamEvents.push(`released ${phase} with ${value}`)
+                    if (phase === 'Restarted') {
+                      Deferred.doneUnsafe(restartedStreamReleased, Effect.void)
+                    }
+                  }),
+              ),
+            ).pipe(Stream.flatMap(() => Stream.never)),
+          )
+        }
+      }),
+    )
+    const update = Update.make(
+      (model: LifecycleModel, message: LifecycleMessage) =>
+        LifecycleMessage.match(message, {
+          CompletedChangePhase: ({ phase, value }) => {
+            const nextModel = modifyFields(model, {
+              label: label => `${label} ${phase}-${value}`,
+              phase: () => (phase === 'Restart' ? 'Restarted' : 'Stopped'),
+              commandRuns: count => count + 1,
+            })
+
+            if (phase === 'Restart') {
+              return {
+                model: nextModel,
+                commands: [ChangePhase({ phase: 'Stop' })],
+              }
+            } else {
+              return { model: nextModel }
+            }
+          },
+        }),
+    )
+    const element = Application.makeElement({
+      Model: LifecycleModel,
+      Flags,
+      flags: Effect.map(ValueService, ({ value }) => ({
+        initialLabel: `flags-${value}`,
+      })),
+      init: ({ initialLabel }) => ({
+        model: LifecycleModel.make({
+          label: initialLabel,
+          phase: 'Initial',
+          commandRuns: 0,
+        }),
+        commands: [ChangePhase({ phase: 'Restart' })],
+      }),
+      update,
+      view: (model, h) =>
+        h.div([], [`${model.label} runs-${model.commandRuns}`]),
+      subscriptions,
+      container,
+    })
+    const HandlersLive = Layer.mergeAll(
+      ChangePhaseLive,
+      TrackApplicationPhaseLive,
+    )
+    const provided = Application.provide(
+      element,
+      Layer.provideMerge(HandlersLive, ValueLive),
+    )
+    const fiber = Effect.runFork(provided.start())
+
+    try {
+      await Effect.runPromise(Deferred.await(restartedStreamReleased))
+      await awaitBodyText(
+        'flags-service-1 Restart-service-1 Stop-service-1 runs-2',
+      )
+
+      expect(serviceBuilds).toBe(1)
+      expect(serviceReleases).toBe(0)
+      expect(commandHandlerBuilds).toBe(1)
+      expect(subscriptionHandlerBuilds).toBe(1)
+      expect(commandRuns).toBe(2)
+      expect(streamEvents).toEqual([
+        'acquired Initial with service-1',
+        'released Initial with service-1',
+        'acquired Restarted with service-1',
+        'released Restarted with service-1',
+      ])
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+
+    expect(serviceReleases).toBe(1)
   })
 
   it('builds the Layer but skips Flags and init for a preserved Model', async () => {

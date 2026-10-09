@@ -21,7 +21,13 @@ type HandlerService<Args, Message> = Readonly<{
   execute: (args: Args) => Effect.Effect<Message, never, any>
 }>
 
-/** Builds a Layer from a Command handler or an Effect that constructs one. */
+/**
+ * Builds a Layer from a Command handler or an Effect that constructs one.
+ * An Effect constructor runs once when the application Layer is built and
+ * can capture shared services for subsequent executions. Arguments are
+ * dispatch data; service dependencies enter through the Effect requirements.
+ * Provide alternative dependency services to test the same handler logic.
+ */
 export interface ToLayer<Name extends string, Args, Message> {
   <R, E = never, BuildR = never>(
     build:

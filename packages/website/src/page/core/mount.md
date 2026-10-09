@@ -56,6 +56,10 @@ A Layer-backed Mount still starts when its element enters the DOM and stops when
 
 Foldkit checks each rendered Layer-backed Mount before patching the DOM and reports any definition missing from `mounts`. Use the same definition in the view, registration, and `toLayer` call. Distinct Mount definitions within one application need distinct names; the same definition can appear on multiple elements. The handler Layer lives for the application lifetime, while each Mount acquisition and cleanup follows its element.
 
+An Effect passed to `toLayer` constructs the element handler once for a runtime start and may capture app-lifetime services. Each element still receives its own Mount scope. Removing and reinserting an element reruns the real handler without rebuilding its provider.
+
+A whole-application execution test retains the real Layer-backed Mount handler and replaces the browser or library capability beneath it. The Mount still receives a live test element, performs its element-scoped transformation, and releases on unmount. Replacing the whole handler can acknowledge or orchestrate a Mount result, but that path does not test the replaced integration.
+
 Name the Mount for the imperative work attached to the element, using a verb-first name such as `MeasurePanel`, `AnchorPopover`, or `PortalMenuBackdrop`. Name its production Layer after the definition, such as `MeasurePanelLive`, and include it in the feature's `Live` Layer.
 
 :::Info{label="Two rules for Mount work"}
@@ -78,7 +82,7 @@ A Mount often needs an input that differs by element instance, such as an initia
 
 Calling the Definition with an args record creates the MountAction passed to `OnMount`. That call never runs `execute`. The runtime calls it when the element enters the DOM, so nothing `execute` does happens inside the pure view that built the action. `Mount.defineStream` takes the same fields, and its `execute` returns a `Stream<Message>` instead.
 
-Args are only per-instance inputs. Module constants stay in lexical scope, and Model-owned handles come from ManagedResources. Put an app-wide service requirement in a Layer handler so `Application.provide` can supply it. An inline `execute` must supply its own Effect service requirements with `Effect.provide`.
+Args are only per-instance inputs. Module constants stay in lexical scope, and Model-owned handles come from ManagedResources. Put an app-wide service requirement in a Layer handler so `Application.provide` can supply it. An inline Mount `execute` must supply its own Effect service requirements with `Effect.provide`. Hardwiring a production provider there also hides that dependency from whole-application substitution, so use the Layer-backed form when tests or another environment need to choose the provider.
 
 :::Info{label="Args surface in DevTools and tests"}
 DevTools shows the args beside the Mount name. Scene tests can target one instance by passing the same args record to `Mount.expectHas` or `Mount.resolve`. See [Scene](/testing/scene) for the Definition and instance matcher contract.

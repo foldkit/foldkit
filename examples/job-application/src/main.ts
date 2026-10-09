@@ -1,7 +1,6 @@
 import { Crypto, Effect, Layer, Schema } from 'effect'
 import { Calendar } from 'foldkit'
 
-import { BrowserCrypto } from '@effect/platform-browser'
 import { Menu, Tabs } from '@foldkit/ui'
 
 import { SubmitApplicationLive } from './command'
@@ -28,19 +27,22 @@ export const Flags = Schema.Struct({
 })
 export type Flags = typeof Flags.Type
 
-export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
-  const today = yield* Calendar.today.local
-  const crypto = yield* Crypto.Crypto
-  const initialWorkHistoryEntryId = yield* Effect.orDie(crypto.randomUUIDv4)
-  const initialEducationEntryId = yield* Effect.orDie(crypto.randomUUIDv4)
-  const initialSkillsEntryId = yield* Effect.orDie(crypto.randomUUIDv4)
-  return {
-    today,
-    initialWorkHistoryEntryId,
-    initialEducationEntryId,
-    initialSkillsEntryId,
-  }
-}).pipe(Effect.provide(BrowserCrypto.layer))
+export const flags: Effect.Effect<Flags, never, Crypto.Crypto> = Effect.gen(
+  function* () {
+    const today = yield* Calendar.today.local
+    const crypto = yield* Crypto.Crypto
+    const initialWorkHistoryEntryId = yield* Effect.orDie(crypto.randomUUIDv4)
+    const initialEducationEntryId = yield* Effect.orDie(crypto.randomUUIDv4)
+    const initialSkillsEntryId = yield* Effect.orDie(crypto.randomUUIDv4)
+
+    return {
+      today,
+      initialWorkHistoryEntryId,
+      initialEducationEntryId,
+      initialSkillsEntryId,
+    }
+  },
+)
 
 // INIT
 
@@ -72,6 +74,6 @@ export const Live = Layer.mergeAll(
   WorkHistory.Live,
   Education.Live,
   Skills.Live,
-).pipe(Layer.provide(BrowserCrypto.layer))
+)
 
 export { Message, Model, update, view }

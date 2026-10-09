@@ -5,7 +5,7 @@ const SaveCanvas = Command.define('SaveCanvas', {
     paletteThemeIndex: Schema.Number,
     selectedColorIndex: PaletteIndex,
   },
-  messages: [CompletedSaveCanvas],
+  messages: [Message.CompletedSaveCanvas],
   execute: ({ grid, gridSize, paletteThemeIndex, selectedColorIndex }) =>
     Effect.gen(function* () {
       const store = yield* KeyValueStore.KeyValueStore
@@ -19,11 +19,8 @@ const SaveCanvas = Command.define('SaveCanvas', {
         STORAGE_KEY,
         Schema.encodeSync(SavedCanvasJsonString)(data),
       )
-      return CompletedSaveCanvas()
-    }).pipe(
-      Effect.catch(() => Effect.succeed(CompletedSaveCanvas())),
-      Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-    ),
+      return Message.CompletedSaveCanvas()
+    }).pipe(Effect.catch(() => Effect.succeed(Message.CompletedSaveCanvas()))),
 })
 
 const ExportPng = Command.define('ExportPng', {
@@ -32,7 +29,7 @@ const ExportPng = Command.define('ExportPng', {
     gridSize: Schema.Number,
     paletteThemeIndex: Schema.Number,
   },
-  messages: [SucceededExportPng, FailedExportPng],
+  messages: [Message.SucceededExportPng, Message.FailedExportPng],
   execute: ({ grid, gridSize, paletteThemeIndex }) =>
     Effect.gen(function* () {
       const theme = PALETTE_THEMES[paletteThemeIndex] ?? PALETTE_THEMES[0]
@@ -41,17 +38,19 @@ const ExportPng = Command.define('ExportPng', {
 
       if (Predicate.isNull(context)) {
         return yield* Effect.fail(
-          FailedExportPng({ error: 'Canvas 2D context not available' }),
+          Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
         )
       }
 
       // ... paint each cell, then click a generated download link
 
-      return SucceededExportPng()
+      return Message.SucceededExportPng()
     }).pipe(
       Effect.catchTag('FailedExportPng', error => Effect.succeed(error)),
       Effect.catch(() =>
-        Effect.succeed(FailedExportPng({ error: 'Failed to export image' })),
+        Effect.succeed(
+          Message.FailedExportPng({ error: 'Failed to export image' }),
+        ),
       ),
     ),
 })

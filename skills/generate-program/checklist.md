@@ -223,8 +223,8 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 - [ ] Page-owning programs use `Application.make`; container-scoped widgets use `Application.makeElement`. Program assembly does not live on the `Runtime` namespace.
 - [ ] Updates that can return Commands are wrapped with `Update.make`, so Command handler requirements reach the application type.
 - [ ] Every Layer-backed Command, Subscription, Mount, and ManagedResource has a handler Layer supplied through `Application.provide` before `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed`. The application config has no `resources` field.
-- [ ] Each feature exports one `Live` Layer composed from its local and child handler Layers. The root exports one `Live` Layer, and the entry provides that root Layer instead of importing every handler.
-- [ ] Layer construction is safe to run eagerly on every runtime start, before a fresh Flags Effect, init, or the first render. Hydration validates the server handoff before acquiring Layers. A restored-Model start builds the Layer too, and a construction failure prevents the first render.
+- [ ] Each feature exports one `Live` Layer composed from its local and child handler Layers. Feature-owned business services may be provided there, while concrete HTTP, storage, RPC, and browser providers stay open until the application root. The root exports one `Live` Layer, and the entry provides that root Layer instead of importing every handler.
+- [ ] Layer construction is safe to run eagerly once on every runtime start, before a fresh Flags Effect, init, or the first render. Handler lookup and lifecycle restarts reuse the built providers. Hydration validates the server handoff before acquiring Layers. A restored-Model start builds the Layer too, a construction failure prevents the first render, and runtime stop releases its Scope.
 - [ ] A page-owning program with Flags declares `Flags` in `Application.make` and passes `flags` to `Runtime.run(application, { flags })`. An Element with Flags declares both `Flags` and `flags` in `Application.makeElement`.
 
 ## Purity
@@ -241,7 +241,7 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 - [ ] Every Command identity defined with `Command.define` and assigned to a PascalCase constant
 - [ ] No inline `Command.define` in pipe chains. Always stored as a constant
 - [ ] Definitions colocated with the update that produces them
-- [ ] Production implementations use `Definition.toLayer(handler)`, are named `<CommandName>Live`, and enter the owning feature's `Live` Layer. The entry does not import handler Layers one by one.
+- [ ] Layer-backed production implementations use `Definition.toLayer(handler)` or `Definition.toLayer(Effect<handler>)`, are named `<CommandName>Live`, and enter the owning feature's `Live` Layer. Inline `execute` definitions may also require services through `Application.provide`. The entry does not import handler Layers one by one.
 - [ ] Every _fallible_ Command catches all errors: `Effect.catch(() => Effect.succeed(Message.FailedX(...)))`. Infallible Effects (`Clock.currentTimeMillis`, `Random.nextIntBetween`, `Calendar.today.local`) do NOT need catch. If the type system shows no error channel, there's nothing to catch, and no paired `Failed*` Message is needed either. UUID generation via `Crypto.Crypto` uses `Effect.orDie` instead of a `Failed*` Message; a crypto failure is a defect, not a domain error.
 - [ ] Return types inferred. No explicit `Command<typeof A>` annotations
 - [ ] Commands that can't meaningfully fail return `Completed*` Messages, payload-carrying ones included
@@ -308,7 +308,7 @@ Foldkit ships these; reaching past them is a finding, not a style choice.
 - [ ] Child folds include `toParentOutMessage` only when at least one child OutMessage should continue to the current Submodel's parent. Partial forwarding matches every child variant and returns `undefined` for variants that stop here. The property is omitted when every variant stops here, and no `toParentOutMessage: () => undefined` mapping appears
 - [ ] Two-or-more-step post-mutation handlers use `Update.combine(model, [...])` and `Update.refresh({ read, revalidate, write, load })` rather than hand-threaded `modifyFields` chains and conditional Command arrays. One Step is not wrapped in `Update.combine`, and an inline Step parameter is named `stepModel`
 - [ ] `Update.foldChildInit`, `Update.foldChildInits`, `Update.foldChild`, or `Update.foldChildStep` re-tag child Submodel Commands through `toParentMessage` when applicable; direct `Command.mapMessages` is reserved for lower-level helpers and route-gated initialization
-- [ ] HTTP uses `HttpClient` / `HttpClientRequest` from `effect/http`, with `Effect.provide(effect, Http.layer)` to supply the client. Not `@effect/platform` (`@effect/platform-browser` is separate and is for `BrowserKeyValueStore` / `BrowserCrypto`)
+- [ ] HTTP uses `HttpClient` / `HttpClientRequest` from `effect/http`. Handlers leave the client in their requirements, and the application root supplies `Http.layer` from `foldkit`. Not `@effect/platform` (`@effect/platform-browser` is separate and is for `BrowserKeyValueStore` / `BrowserCrypto`)
 - [ ] UI components are imported from `@foldkit/ui` by name (`import { Dialog, Input } from '@foldkit/ui'`). There is no `Ui` namespace on `foldkit`
 
 ## Effect-TS patterns
@@ -427,7 +427,7 @@ Each confirmed miss is a concrete a11y bug a screen reader user would hit.
 - [ ] Every fallible Command (`Succeeded*`/`Failed*` pair) tested for both outcomes
 - [ ] At least one multi-step test that chains Messages and Command resolutions
 - [ ] Submodel tests assert `outMessage` when the child signals to parent
-- [ ] Tests use `Command.resolve(Definition, resultMessage)`. Never run Command Effects directly in story tests
+- [ ] Story tests use `Command.resolve(Definition, resultMessage)` and never run Command Effects directly. Whole-application execution tests keep the real handler Layers and replace their dependency providers
 - [ ] All tests pass with the project's test script
 
 **Scene tests** (REQUIRED at Tier 3+; strongly encouraged at Tier 2):
@@ -535,7 +535,7 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 - [ ] Test names state the behavior being tested: `it('surfaces a validation error when email is malformed')`, not `it('tests validation')` or `it('handles the reported bug')`.
 - [ ] Each `story` pipeline reads as a narrative: initial model → action → assert → action → assert. Not a dump of unrelated assertions.
 - [ ] Scene tests use accessible locators (`role('button', { name: /submit/i })`, `label('Email')`) over `placeholder` or CSS selectors.
-- [ ] Commands in tests are resolved with `Command.resolve(Definition, resultMessage)`. Never run Command Effects directly.
+- [ ] Story tests resolve Commands with `Command.resolve(Definition, resultMessage)` and never run Command Effects directly. Whole-application execution tests compose the production handler Layers with deterministic providers at the lowest service boundary the test needs to cover
 
 ## Residual code smells (each is a fail)
 

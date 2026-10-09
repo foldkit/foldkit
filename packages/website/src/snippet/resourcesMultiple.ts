@@ -1,22 +1,20 @@
 import { Layer } from 'effect'
-import { Application, Runtime } from 'foldkit'
 
-const application = Application.make({
-  Model,
-  init,
-  update,
-  view,
-  container: document.getElementById('root'),
-})
+import { LoadUserLive } from './command'
+import { AnalyticsLive, ApiClientLive, ComputeWorkerLive } from './environment'
+import { ComputePreviewLive } from './managedResource'
+import { TrackPageViewLive } from './subscription'
+
+export const HandlersLive = Layer.mergeAll(
+  LoadUserLive,
+  TrackPageViewLive,
+  ComputePreviewLive,
+)
 
 const ServicesLive = Layer.mergeAll(
-  ApiClientService.Default,
-  AnalyticsService.Default,
-  ComputeWorkerService.Default,
+  ApiClientLive,
+  AnalyticsLive,
+  ComputeWorkerLive,
 )
 
-const Live = Layer.provide(
-  Layer.mergeAll(LoadUserLive, TrackPageViewLive, ComputePreviewLive),
-  ServicesLive,
-)
-Runtime.run(Application.provide(application, Live))
+export const Live = Layer.provideMerge(HandlersLive, ServicesLive)

@@ -1,34 +1,65 @@
 import { Context, Effect, Layer, Schema } from 'effect'
-import { Application, Command, Runtime } from 'foldkit'
+import { HttpClient, HttpClientRequest } from 'effect/http'
+import { Command, Http } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
 
-import { Message } from './message'
+const User = Schema.Struct({ id: Schema.String, name: Schema.String })
+type User = typeof User.Type
+
+const Message = defineMessageUnion({
+  SucceededLoadUser: { user: User },
+  FailedLoadUser: { error: Schema.String },
+})
+
+type ApiClient = Readonly<{
+  getUser: (userId: string) => Effect.Effect<User, unknown>
+}>
 
 class ApiClientService extends Context.Service<ApiClientService, ApiClient>()(
   'ApiClientService',
-) {
-  static readonly Default = Layer.effect(this, makeApiClient)
-}
+) {}
 
 const LoadUser = Command.define('LoadUser', {
   args: { userId: Schema.String },
-  messages: [Message.CompletedLoadUser],
+  messages: [Message.SucceededLoadUser, Message.FailedLoadUser],
 })
 
-const LoadUserLive = LoadUser.toLayer(({ userId }) =>
+const LoadUserLive = LoadUser.toLayer(
   Effect.gen(function* () {
     const apiClient = yield* ApiClientService
-    const user = yield* apiClient.getUser(userId)
-    return Message.CompletedLoadUser({ user })
+    return ({ userId }) =>
+      apiClient.getUser(userId).pipe(
+        Effect.map(user => Message.SucceededLoadUser({ user })),
+        Effect.catch(() =>
+          Effect.succeed(Message.FailedLoadUser({ error: 'Request failed' })),
+        ),
+      )
   }),
 )
 
-const application = Application.make({
-  Model,
-  init,
-  update,
-  view,
-  container: document.getElementById('root'),
+const ApiLive = Layer.effect(
+  ApiClientService,
+  Effect.gen(function* () {
+    const httpClient = yield* HttpClient.HttpClient
+    return {
+      getUser: userId =>
+        Effect.gen(function* () {
+          const request = HttpClientRequest.get(`/api/users/${userId}`)
+          const response = yield* httpClient.execute(request)
+          return yield* Schema.decodeUnknownEffect(User)(yield* response.json)
+        }),
+    }
+  }),
+)
+
+const ApiTest = Layer.succeed(ApiClientService, {
+  getUser: userId =>
+    Effect.succeed(User.make({ id: userId, name: 'Test User' })),
 })
 
-const Live = Layer.provide(LoadUserLive, ApiClientService.Default)
-Runtime.run(Application.provide(application, Live))
+export const HandlersLive = LoadUserLive
+export const Live = Layer.provideMerge(
+  Layer.provideMerge(HandlersLive, ApiLive),
+  Http.layer,
+)
+export const TestLive = Layer.provideMerge(HandlersLive, ApiTest)

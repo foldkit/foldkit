@@ -10,7 +10,9 @@ Application Layers are the kitchen equipment available all night. A Managed Reso
 
 Define the handle’s identity with `ManagedResource.tag`, then wire its lifecycle with `ManagedResource.make`. The `modelToMaybeRequirements` function returns `Option.some(params)` while the handle should be active and `Option.none()` while it should be absent.
 
-For a replaceable lifecycle implementation, give an entry a stable handler name and supply its acquire and release functions with `entry.toLayer({ acquire, release })` or an Effect that builds that handler. The `managedResources` record stays in the application: it declares the Model condition, the handle identity, and the lifecycle Messages. `Application.provide` supplies the handler Layer. The Layer lasts for the application lifetime; the handle it acquires still starts and stops according to the Model.
+To separate a lifecycle implementation from its definition, give an entry a stable handler name and supply its acquire and release functions with `entry.toLayer({ acquire, release })` or an Effect that builds that handler. The `managedResources` record stays in the application: it declares the Model condition, the handle identity, and the lifecycle Messages. `Application.provide` supplies the handler Layer. The Layer lasts for the application lifetime; the handle it acquires still starts and stops according to the Model.
+
+An Effect passed to `toLayer` constructs the lifecycle handler once for a runtime start and may capture app-lifetime services. Model changes call the returned `acquire` and `release` functions without rebuilding that handler or its providers.
 
 Distinct ManagedResource definitions within one application need distinct handler names. A lifted use of the same definition can share its handler Layer. `Application.make` rejects duplicate names from different definitions.
 
@@ -28,6 +30,8 @@ The runtime compares the requirements after every Model change and performs the 
 | Structurally equal requirements                  | Keep the current handle.                                                   |
 
 If acquisition fails, the runtime dispatches `onAcquireError` as a Message. The lifecycle keeps watching for the next requirements change, and the failed acquisition does not crash the application.
+
+In a whole-application execution test, keep the real lifecycle handler and replace the service it uses to open the camera, socket, worker, or other external capability. The test then covers the same Model-driven acquire, reacquire, release, error, and cleanup paths as production. Replacing the entire lifecycle handler can orchestrate those result paths, but it does not test the replaced acquire and release code.
 
 ## Accessing Managed Resources in Commands {#accessing-managed-resources}
 
@@ -56,7 +60,7 @@ A child Submodel defines its Managed Resources in its own Model and Message term
 The same operations compose across every Submodel level: `make` at the owner, `lift` through each parent, and `aggregate` at the root. [Subscription Organization](/patterns/subscription-organization) traces that leaf-to-root shape with Subscriptions; the Managed Resource structure is identical.
 
 :::Info{label="Application Layers vs Managed Resources"}
-Use `Application.provide` for services that live with the runtime, such as an `RpcClient` or analytics client. Use `managedResources` for handles whose lifetime follows the Model, such as camera streams, an `AudioContext`, or `WebSocket` connections.
+Use `Application.provide` for services and handler accessors that live with the runtime, such as an `RpcClient` or analytics client. Use `managedResources` for handles whose lifetime follows the Model, such as camera streams, an `AudioContext`, or `WebSocket` connections. These are separate scopes: restarting or releasing a ManagedResource handle does not rebuild the app service or handler Layer that implements its lifecycle.
 :::
 
 Application Layers and Managed Resources cover long-lived services and Model-scoped handles. Unrecoverable errors in update, view, or a Command follow a different runtime path. The next page covers crash views.

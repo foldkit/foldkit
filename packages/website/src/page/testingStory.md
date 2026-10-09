@@ -69,8 +69,10 @@ Do not use Effect's `flow` to group Story steps. Message and OutMessage steps ar
 
 Story tests the state machine. It does not run the Effect inside a Command.
 
-To test that a Command’s Effect works correctly (for example, that an HTTP request parses the response right), test it separately with `Effect.provide` and a mock service layer:
+To test a Command's work, execute its Effect with the feature's real handler Layer and a deterministic service Layer. For example, `WeatherLive` supplies the real `FetchWeather` handler, while a test HTTP client controls its responses. The test checks request construction, response parsing, and the resulting Message:
 
 ::Snippet{name="testingCommandEffect" label="Command Effect test"}
 
 The two tests cover different contracts. Story checks which Command update returns and what update does with its result Message. The Effect test checks the work the Command executes.
+
+A whole-application execution test uses the same boundary at the application root. Keep the real Command, Subscription, Mount, and ManagedResource handlers, then provide deterministic services beneath their `Live` Layers. Replacing a complete handler can orchestrate a result path, but that path does not test the replaced handler.

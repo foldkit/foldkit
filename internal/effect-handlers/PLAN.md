@@ -4,7 +4,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 ## Status
 
-**Current milestone:** Ready for PR review. Independent implementation, consumer API, and naming and documentation reviews are complete, with all findings addressed. A fresh reviewer approved the repaired committed diff. The large-application probe compiled 120 Commands organized into six feature Layers through the public API.
+**Current milestone:** Ready for PR review. Service provider choices are at application assembly, real handlers are reusable across environments, and shared service lifetimes are verified. Independent implementation, API, documentation, and committed-diff reviews are complete.
 
 **Next implementation:** Design whole-application testing against the handler identities and Layer boundaries established here.
 
@@ -18,6 +18,7 @@ This is the working checklist for separating Foldkit effect definitions from the
 | Mount boundary                            | Verified | Register Layer-backed Mount definitions to carry their requirements.                  |
 | Embedded Element assembly                 | Verified | Provide handler Layers and Flags services to a container-scoped Element.              |
 | Migration and verification                | Verified | First-party apps, templates, and active docs use the final API.                       |
+| Service substitution and app lifetimes    | Verified | Run real handler logic with different dependency providers and share app services.    |
 
 ## Target surface
 
@@ -102,6 +103,8 @@ This is the working checklist for separating Foldkit effect definitions from the
 
 ## Verification snapshot
 
+The following snapshot covers the completed handler and application API milestone. The service assembly follow-up has its own checklist below.
+
 - All 52 projects passed TypeScript checks and the full workspace build.
 - The full workspace test command passed, including 3,007 Foldkit tests (one skipped), 1,304 website tests, and the first-party application suites.
 - All 18 website browser tests passed serially with retries disabled.
@@ -115,9 +118,33 @@ The published-package check runs during production deployment after publication.
 
 ## Deferred work
 
-Whole-application test mode, controlled handler Layers, test scheduling, and a Story/Scene-style application test DSL belong to a later workstream. This work establishes stable identities and replaceable execution boundaries for them.
+Whole-application test mode, controlled dependency services, test scheduling, and a Story/Scene-style application test DSL belong to a later workstream. Execution tests should use the application's real handlers and replace their external services. Explicit handler stubs can support orchestration tests that exercise result paths without executing those handlers.
 
 - [ ] Add a Foldkit lint rule for individual handler Layer names. A Command binding initialized by `PlaceOrder.toLayer(...)` should be `PlaceOrderLive` in production or `PlaceOrderTest` for a test implementation. Permit feature-level `Live` bundles and re-exports. Cover qualified definitions, test fixtures, and an autofix before enabling the rule across first-party code. Extend the same convention to Subscription, Mount, and ManagedResource handlers where their definitions have stable names.
+
+## Service assembly follow-up
+
+- [x] Inventory concrete providers inside handlers, Flags, and feature bundles.
+- [x] Confirm Typing Game's RPC client is provided at the application root and has application lifetime.
+- [x] Move HTTP, storage, Crypto, and Search provider choices to application assembly while retaining real handlers.
+- [x] Preserve distinct local and session storage service identities in the website.
+- [x] Explain inline service requirements, effectful handler construction, and dependency substitution in active docs and generated app guidance.
+- [x] Verify a shared service survives Commands and Subscription restarts and releases once at shutdown.
+- [x] Verify real Search logic with a supplied search service and independent storage roles.
+- [x] Run relevant workspace build, typecheck, test, lint, formatting, documentation, and browser gates.
+- [x] Complete independent implementation, API, and documentation reviews.
+- [x] Review the completed implementation in a committed diff before PR publication.
+
+### Follow-up verification
+
+- Full workspace build and all 52 TypeScript projects passed.
+- Full workspace tests passed, including 3,008 Foldkit tests (one skipped) and 1,307 website tests.
+- All 17 browser tests for the seven changed example applications passed serially with retries disabled.
+- All 18 website browser tests passed serially with retries disabled.
+- Lint, formatting, dead-code, and `git diff --check` passed.
+- The real-handler service example compiled under strict TypeScript, and both Application Layers and Project Organization were inspected in the browser.
+- Mutation checks confirmed the shared-service lifetime, Search substitution, and independent storage tests catch incorrect wiring.
+- Independent implementation and consumer API review, plus a separate documentation and naming review, found no unresolved issues after repairs.
 
 ## Release review
 

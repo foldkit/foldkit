@@ -27,7 +27,12 @@ type StreamHandlerService<Input, Message> = Readonly<{
   execute: StreamHandler<Input, Message, any>
 }>
 
-/** Builds a Layer from a one-shot Mount handler or an Effect that constructs one. */
+/**
+ * Builds a Layer from a one-shot Mount handler or an Effect that constructs one.
+ * An Effect constructor runs when the application Layer is built. The handler
+ * executes in the rendered element's scope. Provide alternative dependency
+ * services to test the same DOM behavior and cleanup.
+ */
 export interface ToEffectLayer<Name extends string, Input, Message> {
   <R, E = never, BuildR = never>(
     build:
@@ -36,7 +41,12 @@ export interface ToEffectLayer<Name extends string, Input, Message> {
   ): Layer.Layer<Handler<Name>, E, Exclude<R | BuildR, Scope.Scope>>
 }
 
-/** Builds a Layer from a streaming Mount handler or an Effect that constructs one. */
+/**
+ * Builds a Layer from a streaming Mount handler or an Effect that constructs one.
+ * An Effect constructor runs when the application Layer is built. Each Stream
+ * executes in the rendered element's scope. Provide alternative dependency
+ * services to test the same Stream behavior and cleanup.
+ */
 export interface ToStreamLayer<Name extends string, Input, Message> {
   <R, E = never, BuildR = never>(
     build:

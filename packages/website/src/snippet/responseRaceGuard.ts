@@ -1,6 +1,6 @@
 import { Effect, Schema, pipe } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
-import { AsyncData, Command, Http, type Update } from 'foldkit'
+import { AsyncData, Command, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -50,14 +50,13 @@ const Search = Command.define('Search', {
       Effect.mapError(error => String(error)),
       Effect.result,
       Effect.map(result => Message.SettledSearch({ query, result })),
-      Effect.provide(Http.layer),
     ),
 })
 
 // UPDATE
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     UpdatedQuery: ({ query }) => ({
       model: modifyFields(model, {
         queryInput: () => query,
@@ -74,4 +73,5 @@ const update = (model: Model, message: Message) =>
         model: modifyFields(model, { searchResults: AsyncData.settle(result) }),
       }
     },
-  })
+  }),
+)

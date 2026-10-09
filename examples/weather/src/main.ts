@@ -1,6 +1,6 @@
-import { Array, Effect, Layer, Match, Option, Schema, String } from 'effect'
+import { Array, Effect, Match, Option, Schema, String } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
-import { AsyncData, Command, Http, Update } from 'foldkit'
+import { AsyncData, Command, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -210,11 +210,11 @@ export const FetchWeather = Command.define('FetchWeather', {
   messages: [Message.SucceededFetchWeather, Message.FailedFetchWeather],
 })
 
-export const FetchWeatherLive = FetchWeather.toLayer(({ zipCode }) =>
+const FetchWeatherLive = FetchWeather.toLayer(({ zipCode }) =>
   fetchWeatherEffect(zipCode),
 )
 
-export const Live = Layer.provide(FetchWeatherLive, Http.layer)
+export const Live = FetchWeatherLive
 
 // VIEW
 

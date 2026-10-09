@@ -16,6 +16,8 @@ When one file becomes hard to navigate, separate the root pieces and give each [
 
 Each feature folder owns its Model, Messages, update, view, Commands, Subscriptions, Mounts, ManagedResources, handler Layers, and tests. Do not create empty files only to match the diagram. Add a file when the feature has that concern.
 
+In the diagram, `products/service.ts` owns the feature's `ProductCatalogLive` business service. The feature `Live` Layer provides it beneath the product handlers. Root `environment.ts` owns concrete HTTP, RPC, and browser provider Layers. Root `storage.ts` defines separate `LocalStorage` and `SessionStorage` service tags and binds them to their platform providers. Applications that do not need those concerns omit the files.
+
 Keep Commands beside the update that returns them. A feature that fetches its own data owns that Command instead of importing it from a root Command collection. Extract `message.ts` when a Command needs to import its result Message constructors without creating a cycle.
 
 A feature that declares Subscriptions owns `subscription.ts`. The parent lifts that record into its own Model and Message types. See [Subscription Organization](/patterns/subscription-organization).
@@ -24,17 +26,21 @@ Split a large feature again only when its own files become difficult to navigate
 
 ## Composing Handler Layers
 
-Keep each handler Layer beside the Command, Subscription, Mount, or ManagedResource definition it implements. Name an individual production Layer after that definition, such as `LoadProductsLive` or `ProductUpdatesLive`.
+Keep each handler Layer beside the Command, Subscription, Mount, or ManagedResource definition it implements. Name an individual production Layer after that definition, such as `LoadProductsLive` or `ProductUpdatesLive`. The handler owns the translation from Foldkit args or dependencies into an Effect or Stream. External clients stay in its Effect requirements.
 
-When a feature has several handlers, its `live.ts` combines them under one `Live` export. The bundle also includes the `Live` Layers exported by child features.
+When a feature has several handlers, its `live.ts` combines them under one `Live` export. The bundle also includes the `Live` Layers exported by child features. It may provide business services that the feature owns while leaving concrete HTTP, storage, RPC, and browser providers open for the application root.
 
 ::Snippet{name="applicationFeatureLive" label="Feature handler Layer composition"}
 
-The application root repeats the same composition with its own handlers and the `Live` Layer from each top-level feature.
+Products provides `ProductCatalogLive` privately inside its `Live` bundle. The catalog's external dependencies stay open for the root's production or test providers.
+
+The application root repeats the same composition with its own handlers and the `Live` Layer from each top-level feature. It also chooses the concrete providers for the environment where the app runs.
 
 ::Snippet{name="applicationRootLive" label="Root handler Layer composition"}
 
-The entry imports only that root `Live` Layer and supplies it with one `Application.provide` call. Adding another handler to an existing feature changes the feature's `live.ts`; it does not add another import or provision step to `entry.ts`. See [Providing application handler Layers](/core/runtime#overview) for the entry code.
+`LocalStorageLive` and `SessionStorageLive` implement distinct application service tags, so both stores can coexist without changing the platform `KeyValueStore` identity inside either provider. `TestLive` reuses the exported `HandlersLive` bundle and changes only the environment Layers.
+
+The entry imports only the root `Live` Layer and supplies it with one `Application.provide` call. Adding another handler or changing an environment provider changes Layer composition without adding another provision step to `entry.ts`. A test root can compose the same feature `Live` Layers with test providers, so whole-application execution keeps the real handlers. See [Providing application handler Layers](/core/runtime#overview) for the entry code.
 
 ## Composing Runtime Registrations
 
@@ -59,6 +65,8 @@ Keep root Scene tests for flows that cross features or pages. Split several root
 When one folder holds more than one test of a kind, prefix with the subject, like `login.story.test.ts`. Pure modules in `domain/` need neither primitive; they take ordinary Vitest tests beside them.
 
 See the [Testing](/testing) page for the full Story and Scene reference.
+
+When a test starts the full application, compose the production feature `Live` Layers with test implementations of their external services. This runs real Command, Subscription, Mount, and ManagedResource handlers. Replace a whole handler only when the test intentionally supplies its result or lifecycle path; that test does not cover the replaced handler.
 
 ## Domain Modules
 

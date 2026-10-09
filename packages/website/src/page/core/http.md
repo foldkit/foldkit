@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `Http` module has one export: `Http.layer`, a Fetch-backed Effect `HttpClient` Layer with trace-header propagation disabled by default. Provide it to an HTTP [Command](/core/commands), then yield `HttpClient.HttpClient` inside that Command.
+The `Http` module has one export: `Http.layer`, a Fetch-backed Effect `HttpClient` Layer with trace-header propagation disabled by default. Provide it from the application root, then yield `HttpClient.HttpClient` inside an HTTP [Command](/core/commands).
 
 Import client modules from `effect/http`, their path in Effect 4 stable.
 
@@ -14,9 +14,9 @@ In a browser, those extra headers can turn an otherwise CORS-simple cross-origin
 
 Local observability remains intact. The `http.client` span still records request method, URL, and status, and a Foldkit app nests it under the Command span. Only the outgoing trace-context headers are removed.
 
-## Providing It in a Command
+## Providing It to the Application
 
-Provide `Http.layer` at the edge of the Command's Effect with `Effect.provide`. The Layer is a thin wrapper around the browser's `fetch`, so it can stay local to a self-contained Command. When many HTTP Commands share one configured client, provide it once through [Application Layers](/core/resources).
+Leave `HttpClient.HttpClient` in each handler's Effect requirements. Compose the handlers into `HandlersLive`, then provide `Http.layer` beneath that bundle at the application root. The root owns the concrete browser transport, and a whole-application test can provide a deterministic HTTP client beneath the same handlers. See [Application Layers](/core/resources) for service and handler composition.
 
 The Command remains responsible for status checks, response decoding, and converting failures into declared Messages.
 
@@ -26,7 +26,7 @@ The Command remains responsible for status checks, response decoding, and conver
 
 `Http.layer` supplies an overridable default to `FetchHttpClient.layer`, so Effect's normal client customization remains available. Provide `FetchHttpClient.Fetch` to substitute a custom `fetch` implementation. Set `HttpClient.TracerPropagationEnabled` to `true` for a Command that participates in distributed tracing.
 
-Transform a yielded client with helpers such as `HttpClient.mapRequest` to add authentication headers or prepend a base URL. Use `HttpClient.retry` or `HttpClient.retryTransient` for request retry policies. A custom Layer is only necessary when the transport is not `fetch` or when the application wants to centralize a configured client.
+Transform a yielded client with helpers such as `HttpClient.mapRequest` to add authentication headers or prepend a base URL. Use `HttpClient.retry` or `HttpClient.retryTransient` for request retry policies. Put a custom transport or shared configured client in the root provider graph.
 
 ## Full API Surface
 

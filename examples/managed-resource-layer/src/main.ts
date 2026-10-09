@@ -14,7 +14,6 @@ import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
-import { BrowserCrypto } from '@effect/platform-browser'
 import { Button } from '@foldkit/ui'
 
 // ENGINE
@@ -29,18 +28,19 @@ class ComputeEngineService extends Context.Service<
   ComputeEngine
 >()('ComputeEngineService') {}
 
-const engineLayer: Layer.Layer<ComputeEngineService> = Layer.effect(
-  ComputeEngineService,
-  Effect.acquireRelease(
-    Effect.gen(function* () {
-      const crypto = yield* Crypto.Crypto
-      const id = yield* Effect.orDie(crypto.randomUUIDv4)
-      const engineId = `engine-${id.slice(0, 8)}`
-      return { engineId, square: (value: number) => value * value }
-    }).pipe(Effect.provide(BrowserCrypto.layer)),
-    ({ engineId }) => Effect.log(`Tore down ${engineId}`),
-  ),
-)
+const engineLayer: Layer.Layer<ComputeEngineService, never, Crypto.Crypto> =
+  Layer.effect(
+    ComputeEngineService,
+    Effect.acquireRelease(
+      Effect.gen(function* () {
+        const crypto = yield* Crypto.Crypto
+        const id = yield* Effect.orDie(crypto.randomUUIDv4)
+        const engineId = `engine-${id.slice(0, 8)}`
+        return { engineId, square: (value: number) => value * value }
+      }),
+      ({ engineId }) => Effect.log(`Tore down ${engineId}`),
+    ),
+  )
 
 const Engine = ManagedResource.tag<ComputeEngine>()('ComputeEngine')
 

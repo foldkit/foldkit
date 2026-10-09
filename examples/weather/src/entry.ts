@@ -1,6 +1,16 @@
-import { Application, Runtime } from 'foldkit'
+import { Layer } from 'effect'
+import { Application, Http, Runtime } from 'foldkit'
 
-import { Live, Message, Model, init, update, view } from './main'
+import {
+  Live as HandlersLive,
+  Message,
+  Model,
+  init,
+  update,
+  view,
+} from './main'
+
+const Live = HandlersLive.pipe(Layer.provideMerge(Http.layer))
 
 const application = Application.make({
   Model,

@@ -6,6 +6,8 @@ src/
 +-- model.ts               App-level state
 +-- message.ts             App-level messages
 +-- command.ts             App-level Commands
++-- environment.ts         Concrete HTTP, RPC, and browser provider Layers
++-- storage.ts             Distinct LocalStorage and SessionStorage service tags
 +-- route.ts               Route definitions
 +-- update.ts              App-level update
 +-- view.ts                App-level view
@@ -33,6 +35,7 @@ src/
 |       +-- model.ts
 |       +-- message.ts
 |       +-- command.ts
+|       +-- service.ts     ProductCatalog business service + Layer
 |       +-- subscription.ts
 |       +-- mount.ts
 |       +-- managedResource.ts

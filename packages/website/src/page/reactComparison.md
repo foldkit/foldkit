@@ -128,6 +128,8 @@ Both Commands are named definitions with Schema-checked arguments and declared r
 
 Update returns a Command value. The Runtime executes its Effect and dispatches the resulting Message. Foldkit DevTools can associate the Command with the Message and Model transition that produced it, and Story or Scene tests can inspect or resolve the same value.
 
+`SaveCanvas` leaves its storage service in the Effect requirements. The application root binds that tag to localStorage, while a whole-application test can bind it to a deterministic store and retain the real Command handler.
+
 :::Info{label="Effect locations in this application"}
 Event-driven work is in `command.ts`. Keyboard and mouse-release event sources are Subscriptions in `subscription.ts`. This application does not need a Mount. The primitive identifies why each effect exists.
 :::

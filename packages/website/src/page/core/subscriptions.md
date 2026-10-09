@@ -65,9 +65,13 @@ Commands describe one-shot work that produces one result. Subscriptions describe
 
 `modelToDependencies` extracts the values that control the entry. `subscriptions.tick.toLayer` supplies the Stream factory. Foldkit compares the extracted record structurally by default, so unrelated Model updates do not restart the timer.
 
-The declared Message Schemas constrain the Stream returned from `toLayer`. They also record the output contract needed for planned source-aware whole-application tests. Story and Scene do not currently start an entire Foldkit application or attribute an emission to a Subscription source.
+The declared Message Schemas constrain the Stream returned from `toLayer` and describe its output contract to runtime tooling.
 
 The inline form takes the dependency fields and an object with both `modelToDependencies` and `dependenciesToStream`. Each Layer-backed entry, such as `subscriptions.tick`, is an individual definition with `toLayer(handler)` and `toLayer(Effect<handler>)`. Its record key identifies the running Subscription, while its handler name identifies the Layer requirement. `Application.provide` supplies that Layer; `Subscription.lift` and `Subscription.aggregate` preserve the handler identity and Model-driven restart behavior.
+
+An Effect passed to `toLayer` constructs the Stream factory once when the application Layer is built. It may acquire a service and return a `dependencies => Stream` function. A dependency change restarts the Stream scope, but it does not reconstruct the handler or its provider. Scoped resources owned by the application Layer release when the runtime stops.
+
+In a whole-application execution test, retain that real Stream factory and replace its upstream capabilities. A fake clock, event source, RPC transport, or browser service can make emissions deterministic while the real Subscription still transforms them and Foldkit still applies its Model-driven start, restart, and stop behavior. An inline `dependenciesToStream` can require the same test services directly.
 
 Distinct Subscription definitions within one application need distinct handler names. The same definition can be lifted into multiple registration keys and share one handler Layer. `Application.make` rejects duplicate names from different definitions.
 

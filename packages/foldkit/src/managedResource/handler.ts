@@ -21,7 +21,12 @@ type HandlerService<Params, Value> = Readonly<{
   release: (value: Value) => Effect.Effect<void, unknown, any>
 }>
 
-/** Builds a Layer from a Managed Resource lifecycle handler. */
+/**
+ * Builds a Layer from a ManagedResource lifecycle handler or an Effect that
+ * constructs one. The constructor runs when the application Layer is built;
+ * acquire and release follow the entry's Model-driven lifetime. Provide
+ * alternative dependency services to test the same acquisition and cleanup.
+ */
 export interface ToLayer<Name extends string, Params, Value> {
   <AcquireR, ReleaseR, E = never, BuildR = never>(
     build:

@@ -266,13 +266,13 @@ Runtime.run(application, { flags })
 
 Hydrated applications do not provide a browser Flags Effect. `Runtime.hydrate(application)` decodes the exact Schema-encoded Flags payload emitted by the server. `@foldkit/vite-plugin` compiles the shared deployment identity into Foldkit for coordinated client and server builds; separately orchestrated builds pass the same explicit `buildId` override to each artifact. Hydration compares that identity against the id the server stamped on the root before it reads the handoff at all. Missing or invalid server handoff data, and a page from another deployment, are fatal boot errors.
 
-A service used only at startup is discharged inside `flags` with `Effect.provide`, the same way a Command discharges its own (`Effect.provide(BrowserKeyValueStore.layerLocalStorage)`). When the service is an app-wide singleton that Commands also use, leave the requirement in the flags type as `Effect<Flags, never, ApiClientService>` and keep that service exposed from the root `Live` Layer with `Layer.provideMerge(CommandsLive, ApiClientLive)`. `Application.provide` builds the resulting Layer eagerly on every runtime start, before executing a fresh Flags Effect, init, or the first render, including a start that restores a preserved Model. `Runtime.hydrate` validates the server handoff before acquiring Layers. A construction failure stops startup before the first render. Never also provide that Layer inside `flags`: doing both builds it twice and hands the app two instances of whatever it holds.
+Leave a Flags service in the Effect requirements when the application root should choose or share its provider. Keep a service used by both Flags and handlers exposed from the root `Live` Layer with `Layer.provideMerge(HandlersLive, ServicesLive)`. A service may be private to `flags` only when startup deliberately owns it and no application environment needs to substitute or share it. `Application.provide` builds the resulting Layer eagerly on every runtime start, before executing a fresh Flags Effect, init, or the first render, including a start that restores a preserved Model. `Runtime.hydrate` validates the server handoff before acquiring Layers. A construction failure stops startup before the first render. Do not also provide a root service inside `flags`: doing both builds it twice and hands the app two instances of whatever it holds.
 
 An Element owns its Flags Effect because no separate runtime call seeds it. Put both `Flags` and `flags` in the `Application.makeElement` config. The embedded widget example later in this guide shows the full shape.
 
 ## Application Layers
 
-Layer-backed Commands, Subscriptions, Mounts, and ManagedResources leave handler requirements on the program returned by `Application.make` or `Application.makeElement`. Supply them with `Application.provide` before starting the program. The assembly config has no `resources` field. Every provided Layer is built eagerly for each runtime start and released when that runtime stops.
+Layer-backed Commands, Subscriptions, Mounts, and ManagedResources leave handler requirements on the program returned by `Application.make` or `Application.makeElement`. Inline Commands, Subscriptions, and ManagedResources may leave ordinary service requirements on the same program. An inline Mount must supply its own services, so use a Layer-backed Mount when the provider belongs to application assembly. Supply open requirements with `Application.provide` before starting the program. The assembly config has no `resources` field. Every provided Layer is built once for each runtime start and released when that runtime stops.
 
 Compose Layers at the same boundaries as the application. A feature exports one `Live` Layer that combines its local handlers with its children's Layers:
 
@@ -300,7 +300,11 @@ const application = Application.make({
 Runtime.run(Application.provide(application, Live))
 ```
 
-If a feature's handler Layers need a shared service, provide that service beneath the feature bundle with `Layer.provide` or `Layer.provideMerge`, then export the completed feature `Live`. Keep handler-by-handler imports out of the entry point. `Application.provide` can be chained when one provided Layer leaves requirements for a later Layer, but a composed root `Live` keeps ordinary application wiring at feature granularity.
+If a feature's handler Layers need a business service owned by that feature, provide it beneath the feature bundle with `Layer.provide`, then export the feature `Live`. Leave concrete HTTP, storage, RPC, and browser requirements open for the application root. The root chooses those providers and uses `Layer.provideMerge` when their outputs must remain available to Flags or another application consumer. Keep handler-by-handler imports out of the entry point. `Application.provide` can be chained when one provided Layer leaves requirements for a later Layer, but a composed root `Live` keeps ordinary application wiring at feature granularity.
+
+The runtime builds the application Layer once for each start. Command lookup, Subscription restart, Mount insertion, and ManagedResource reacquisition reuse those handlers and providers. Scope finalizers registered while building the Layer run when that runtime stops. A ManagedResource handle has its own Model-driven scope; releasing that handle does not rebuild the app-scoped lifecycle handler.
+
+Whole-application execution tests compose the same handler `Live` Layers with deterministic providers for external services. Keep any business service Layer whose decoding, retries, or policy the test should cover, and replace its lower HTTP or RPC transport. That keeps Command result mapping, Subscription Stream transformation, Mount element lifecycle, and ManagedResource acquire and release behavior under test. Replacing a complete handler can orchestrate a result path, but does not test the replaced handler. Inline Commands, Subscriptions, and ManagedResources also use service substitution through `Application.provide`; an inline Mount must close its own requirements.
 
 The implementation Layer graph does not replace the registration graph. A feature also exports its `subscriptions`, `managedResources`, and `mounts`. In `application.ts`, lift child registrations into the root Model and Message types, aggregate the records, collect Mount definitions, and pass the results to `Application.make`. The entry then imports only the assembled `application` and the root `Live` Layer.
 
@@ -386,7 +390,7 @@ Build them with `Subscription.make<Model, Message>()(entry => ({ ... }))`. Use t
 
 - A stable handler name. Distinct definitions in one application need distinct names even when their record keys differ.
 - A `fields` map (the bare field map passed as `entry`'s second argument) naming every dependency. The builder calls `Schema.Struct(fields)` internally and infers the dependency type from this map.
-- A `messages` collection in `callbacks` listing the exact Message Schemas the handler Stream can emit. Use `messages: []` when the scoped Stream emits no Messages. The declared collection constrains `toLayer` and records the contract for planned source-aware whole-application tests. Story and Scene do not currently start an entire application.
+- A `messages` collection in `callbacks` listing the exact Message Schemas the handler Stream can emit. Use `messages: []` when the scoped Stream emits no Messages. The declared collection constrains `toLayer` and describes the Stream's output contract to runtime tooling.
 - A `modelToDependencies(model)` function that returns the parameters the stream needs. Wrap an absent dependency in `Option` at the field level. The runtime restarts the stream whenever the dependencies change.
 - A handler Layer built with `subscriptions.key.toLayer(dependencies => stream)`. Errors should be mapped to a `Failed*` Message inside the stream rather than thrown. Merge the handler Layer into the feature's `Live` Layer.
 
@@ -458,16 +462,16 @@ Import as `import { Dom } from 'foldkit'` (or `import * as Dom from 'foldkit/dom
 
 Use these directly from the `effect` package for non-DOM concerns. No Foldkit wrapper is needed.
 
-| Need                  | Use                                                                                                                   |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Current time (millis) | `yield* Clock.currentTimeMillis`                                                                                      |
-| Current calendar date | `yield* Calendar.today.local` (returns `CalendarDate`)                                                                |
-| Random integer        | `yield* Random.nextIntBetween(min, max)`                                                                              |
-| Random float          | `yield* Random.nextBetween(min, max)`                                                                                 |
-| UUID                  | `yield* Effect.orDie(crypto.randomUUIDv4)` after `const crypto = yield* Crypto.Crypto`; provide `BrowserCrypto.layer` |
-| Delay                 | `yield* Effect.sleep(Duration.millis(500))`                                                                           |
+| Need                  | Use                                                                                                                                           |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Current time (millis) | `yield* Clock.currentTimeMillis`                                                                                                              |
+| Current calendar date | `yield* Calendar.today.local` (returns `CalendarDate`)                                                                                        |
+| Random integer        | `yield* Random.nextIntBetween(min, max)`                                                                                                      |
+| Random float          | `yield* Random.nextBetween(min, max)`                                                                                                         |
+| UUID                  | `yield* Effect.orDie(crypto.randomUUIDv4)` after `const crypto = yield* Crypto.Crypto`; provide `BrowserCrypto.layer` at the application root |
+| Delay                 | `yield* Effect.sleep(Duration.millis(500))`                                                                                                   |
 
-Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, or `Math.random()`. They compose naturally inside a Command's `toLayer` handler. For canonical wiring, see `repos/foldkit/examples/kanban/src/command.ts` (`FocusAddCardInput` wraps `Dom.focus`, `GenerateCardId` acquires `Crypto.Crypto` and provides `BrowserCrypto.layer`) and `repos/foldkit/examples/stopwatch/src/main.ts` (`Clock.currentTimeMillis` inside an `Effect.gen`).
+Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, or `Math.random()`. They compose naturally inside a Command's `toLayer` handler. For canonical wiring, see `repos/foldkit/examples/kanban/src/command.ts` (`FocusAddCardInput` wraps `Dom.focus`, `GenerateCardId` requires `Crypto.Crypto`) and `repos/foldkit/examples/kanban/src/entry.ts` (the root supplies `BrowserCrypto.layer`). `repos/foldkit/examples/stopwatch/src/main.ts` shows `Clock.currentTimeMillis` inside an `Effect.gen`.
 
 ## With and Without URL Routing
 

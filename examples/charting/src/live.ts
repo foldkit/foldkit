@@ -8,11 +8,11 @@ import { MountChart, MountChartLive } from './view/chart'
 
 export const mounts = [MountChart]
 
-const TelemetryApisLive = Layer.mergeAll(GitHubApiLive, NpmApiLive).pipe(
-  Layer.provide(Http.layer),
-)
+const TelemetryApisLive = Layer.mergeAll(GitHubApiLive, NpmApiLive)
 
-export const Live = Layer.mergeAll(
+export const HandlersLive = Layer.mergeAll(
   CommandsLive.pipe(Layer.provide(TelemetryApisLive)),
   MountChartLive,
 )
+
+export const Live = HandlersLive.pipe(Layer.provideMerge(Http.layer))

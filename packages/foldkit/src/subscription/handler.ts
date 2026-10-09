@@ -29,6 +29,9 @@ type HandlerService<Dependencies, Message> = Readonly<{
  * Builds a Layer from a Subscription handler without `keepAliveEquivalence`.
  * Handler dependencies are captured while the Layer is constructed. The
  * Stream's invocation context is merged when it runs and takes precedence.
+ * An Effect constructor runs when the application Layer is built, rather than
+ * on each Stream restart. Test the handler's transformations and lifecycle by
+ * providing alternative dependency services to the same handler Layer.
  */
 export interface ToLayerWithoutKeepAlive<
   Name extends string,
@@ -50,6 +53,9 @@ export interface ToLayerWithoutKeepAlive<
  * Builds a Layer from a Subscription handler with `keepAliveEquivalence`.
  * Handler dependencies are captured while the Layer is constructed. The
  * Stream's invocation context is merged when it runs and takes precedence.
+ * An Effect constructor runs when the application Layer is built, rather than
+ * on each Stream restart. Test the handler's transformations and lifecycle by
+ * providing alternative dependency services to the same handler Layer.
  */
 export interface ToLayerWithKeepAlive<
   Name extends string,

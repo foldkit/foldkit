@@ -544,7 +544,11 @@ export function makeElement(
  * Provision also works when the application has no
  * unmet requirements, for example when only its Flags Effect needs a shared
  * service. Layers are built once for each runtime start and released when it
- * stops. A hydrating start validates its server handoff before building
+ * stops. Commands and Subscription restarts reuse these services. Keep concrete
+ * environment providers at application assembly so tests can provide different
+ * services to the same handler Layers. Use `Layer.provideMerge` when the provider
+ * must also be available to Flags or other runtime effects.
+ * A hydrating start validates its server handoff before building
  * Layers. Provided variants of one program share its embed activity and
  * disposal ordering. Call data-first or pass a Layer alone to use this
  * function in a pipe. */

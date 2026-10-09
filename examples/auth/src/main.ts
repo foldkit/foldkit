@@ -3,8 +3,6 @@ import { KeyValueStore } from 'effect/persistence'
 import { Command, type Update } from 'foldkit'
 import { Url } from 'foldkit/url'
 
-import { BrowserKeyValueStore } from '@effect/platform-browser'
-
 import { RedirectToDashboard, RedirectToLogin } from './command'
 import { SESSION_STORAGE_KEY } from './constant'
 import { Session, SessionJsonString } from './domain/session'
@@ -19,22 +17,22 @@ export const Flags = Schema.Struct({
   maybeSession: Schema.Option(Session),
 })
 
-export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
-  const store = yield* KeyValueStore.KeyValueStore
-  const sessionJson = yield* Effect.fromOption(
-    Option.fromNullishOr(yield* store.get(SESSION_STORAGE_KEY)),
+export const flags: Effect.Effect<Flags, never, KeyValueStore.KeyValueStore> =
+  Effect.gen(function* () {
+    const store = yield* KeyValueStore.KeyValueStore
+    const sessionJson = yield* Effect.fromOption(
+      Option.fromNullishOr(yield* store.get(SESSION_STORAGE_KEY)),
+    )
+
+    const decodeSession = Schema.decodeEffect(SessionJsonString)
+    const session = yield* decodeSession(sessionJson)
+
+    return Flags.make({ maybeSession: Option.some(session) })
+  }).pipe(
+    Effect.catch(() =>
+      Effect.succeed(Flags.make({ maybeSession: Option.none() })),
+    ),
   )
-
-  const decodeSession = Schema.decodeEffect(SessionJsonString)
-  const session = yield* decodeSession(sessionJson)
-
-  return Flags.make({ maybeSession: Option.some(session) })
-}).pipe(
-  Effect.catch(() =>
-    Effect.succeed(Flags.make({ maybeSession: Option.none() })),
-  ),
-  Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-)
 
 export type Flags = typeof Flags.Type
 

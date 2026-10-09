@@ -17,7 +17,6 @@ import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
-import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Button, Checkbox, Input } from '@foldkit/ui'
 
 // CONSTANT
@@ -299,9 +298,7 @@ const SaveTodosLive = SaveTodos.toLayer(({ todos }) =>
   }).pipe(Effect.catch(() => Effect.succeed(Message.FailedSaveTodos()))),
 )
 
-export const Live = Layer.mergeAll(GenerateTodoLive, SaveTodosLive).pipe(
-  Layer.provide(BrowserKeyValueStore.layerLocalStorage),
-)
+export const Live = Layer.mergeAll(GenerateTodoLive, SaveTodosLive)
 
 // VIEW
 
@@ -653,17 +650,15 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
 
 // FLAG
 
-export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
-  const store = yield* KeyValueStore.KeyValueStore
-  const todosJson = yield* Effect.fromOption(
-    Option.fromNullishOr(yield* store.get(TODOS_STORAGE_KEY)),
-  )
+export const flags: Effect.Effect<Flags, never, KeyValueStore.KeyValueStore> =
+  Effect.gen(function* () {
+    const store = yield* KeyValueStore.KeyValueStore
+    const todosJson = yield* Effect.fromOption(
+      Option.fromNullishOr(yield* store.get(TODOS_STORAGE_KEY)),
+    )
 
-  const decodeTodos = Schema.decodeEffect(TodosJsonString)
-  const todos = yield* decodeTodos(todosJson)
+    const decodeTodos = Schema.decodeEffect(TodosJsonString)
+    const todos = yield* decodeTodos(todosJson)
 
-  return { todos: Option.some(todos) }
-}).pipe(
-  Effect.catch(() => Effect.succeed({ todos: Option.none() })),
-  Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-)
+    return { todos: Option.some(todos) }
+  }).pipe(Effect.catch(() => Effect.succeed({ todos: Option.none() })))

@@ -2,8 +2,6 @@ import { Effect, Layer, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 import { Command, Dom } from 'foldkit'
 
-import { BrowserKeyValueStore } from '@effect/platform-browser'
-
 import {
   ROOM_PAGE_USERNAME_INPUT_ID,
   ROOM_PLAYER_SESSION_KEY,
@@ -57,7 +55,6 @@ const LoadSessionLive = LoadSession.toLayer(({ roomId }) =>
         Message.CompletedLoadSession({ maybeSession: Option.none() }),
       ),
     ),
-    Effect.provide(BrowserKeyValueStore.layerSessionStorage),
   ),
 )
 
@@ -176,7 +173,6 @@ const SavePlayerSessionLive = SavePlayerSession.toLayer(({ session }) =>
     return Message.CompletedSavePlayerSession()
   }).pipe(
     Effect.catch(() => Effect.succeed(Message.CompletedSavePlayerSession())),
-    Effect.provide(BrowserKeyValueStore.layerSessionStorage),
   ),
 )
 
@@ -189,10 +185,7 @@ const ClearSessionLive = ClearSession.toLayer(() =>
     const store = yield* KeyValueStore.KeyValueStore
     yield* store.remove(ROOM_PLAYER_SESSION_KEY)
     return Message.CompletedClearSession()
-  }).pipe(
-    Effect.catch(() => Effect.succeed(Message.CompletedClearSession())),
-    Effect.provide(BrowserKeyValueStore.layerSessionStorage),
-  ),
+  }).pipe(Effect.catch(() => Effect.succeed(Message.CompletedClearSession()))),
 )
 
 export const FocusRoomPageUsernameInput = Command.define(

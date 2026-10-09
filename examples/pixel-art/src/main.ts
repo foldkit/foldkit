@@ -1,7 +1,6 @@
 import { Effect, Layer, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 
-import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
 
 import { CommandsLive } from './command'
@@ -30,19 +29,19 @@ export const Flags = Schema.Struct({
 })
 export type Flags = typeof Flags.Type
 
-export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
-  const store = yield* KeyValueStore.KeyValueStore
-  const json = yield* Effect.fromOption(
-    Option.fromNullishOr(yield* store.get(STORAGE_KEY)),
+export const flags: Effect.Effect<Flags, never, KeyValueStore.KeyValueStore> =
+  Effect.gen(function* () {
+    const store = yield* KeyValueStore.KeyValueStore
+    const json = yield* Effect.fromOption(
+      Option.fromNullishOr(yield* store.get(STORAGE_KEY)),
+    )
+    const decoded = yield* Schema.decodeEffect(SavedCanvasJsonString)(json)
+    return Flags.make({ maybeSavedCanvas: Option.some(decoded) })
+  }).pipe(
+    Effect.catch(() =>
+      Effect.succeed(Flags.make({ maybeSavedCanvas: Option.none() })),
+    ),
   )
-  const decoded = yield* Schema.decodeEffect(SavedCanvasJsonString)(json)
-  return Flags.make({ maybeSavedCanvas: Option.some(decoded) })
-}).pipe(
-  Effect.catch(() =>
-    Effect.succeed(Flags.make({ maybeSavedCanvas: Option.none() })),
-  ),
-  Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-)
 
 // INIT
 

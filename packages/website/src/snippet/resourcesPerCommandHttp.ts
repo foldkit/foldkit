@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { HttpClient } from 'effect/http'
 import { Command, Http } from 'foldkit'
 
@@ -21,6 +21,8 @@ const FetchWeatherLive = FetchWeather.toLayer(({ city }) =>
     Effect.catch(() =>
       Effect.succeed(Message.FailedFetchWeather({ error: 'Request failed' })),
     ),
-    Effect.provide(Http.layer),
   ),
 )
+
+export const HandlersLive = FetchWeatherLive
+export const Live = Layer.provideMerge(HandlersLive, Http.layer)

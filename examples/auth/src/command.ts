@@ -3,8 +3,6 @@ import { KeyValueStore } from 'effect/persistence'
 import { Command } from 'foldkit'
 import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
 
-import { BrowserKeyValueStore } from '@effect/platform-browser'
-
 import { SESSION_STORAGE_KEY } from './constant'
 import { Session, SessionJsonString } from './domain/session'
 import { Message } from './message'
@@ -26,7 +24,6 @@ const SaveSessionLive = SaveSession.toLayer(({ session }) =>
     Effect.catch(error =>
       Effect.succeed(Message.FailedSaveSession({ error: String(error) })),
     ),
-    Effect.provide(BrowserKeyValueStore.layerLocalStorage),
   ),
 )
 
@@ -43,7 +40,6 @@ const ClearSessionLive = ClearSession.toLayer(() =>
     Effect.catch(error =>
       Effect.succeed(Message.FailedClearSession({ error: String(error) })),
     ),
-    Effect.provide(BrowserKeyValueStore.layerLocalStorage),
   ),
 )
 

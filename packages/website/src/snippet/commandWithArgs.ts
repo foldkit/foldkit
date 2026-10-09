@@ -1,6 +1,6 @@
 import { Effect, Schema } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
-import { Command, Http, Update } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -32,7 +32,6 @@ const FetchWeatherLive = FetchWeather.toLayer(({ zipCode }) =>
     Effect.catch(error =>
       Effect.succeed(Message.FailedFetchWeather({ error: String(error) })),
     ),
-    Effect.provide(Http.layer),
   ),
 )
 

@@ -8,7 +8,6 @@ import {
   Schema,
   pipe,
 } from 'effect'
-import { KeyValueStore } from 'effect/persistence'
 import {
   Calendar,
   Command,
@@ -22,7 +21,6 @@ import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 import { githubStarCount } from 'virtual:landing-data'
 
-import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Dialog, Menu } from '@foldkit/ui'
 import { inject } from '@vercel/analytics'
 import * as SpeedInsights from '@vercel/speed-insights'
@@ -61,6 +59,7 @@ import {
 } from './sidebarStorage'
 import * as SnippetCopy from './snippetCopy'
 import * as SnippetDisclosure from './snippetDisclosure'
+import { LocalStorage, SessionStorage } from './storage'
 import * as Subscriptions from './subscription'
 import { ThemeSelector } from './view'
 
@@ -109,7 +108,7 @@ const detectPlaygroundSupport = (): boolean =>
 const loadBrowserEnvironment = Effect.gen(function* () {
   const themePreference: Option.Option<ThemePreference> = yield* Effect.gen(
     function* () {
-      const store = yield* KeyValueStore.KeyValueStore
+      const store = yield* LocalStorage
       const json = yield* Effect.fromOption(
         Option.fromNullishOr(yield* store.get(THEME_STORAGE_KEY)),
       )
@@ -118,24 +117,18 @@ const loadBrowserEnvironment = Effect.gen(function* () {
       )(json)
       return Option.some(theme)
     },
-  ).pipe(
-    Effect.catch(() => Effect.succeed(Option.none<ThemePreference>())),
-    Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-  )
+  ).pipe(Effect.catch(() => Effect.succeed(Option.none<ThemePreference>())))
 
   const maybeSidebarState: Option.Option<SidebarState> = yield* Effect.gen(
     function* () {
-      const store = yield* KeyValueStore.KeyValueStore
+      const store = yield* SessionStorage
       const json = yield* Effect.fromOption(
         Option.fromNullishOr(yield* store.get(SIDEBAR_STORAGE_KEY)),
       )
       const state = yield* Schema.decodeEffect(SidebarStateJsonString)(json)
       return Option.some(state)
     },
-  ).pipe(
-    Effect.catch(() => Effect.succeed(Option.none<SidebarState>())),
-    Effect.provide(BrowserKeyValueStore.layerSessionStorage),
-  )
+  ).pipe(Effect.catch(() => Effect.succeed(Option.none<SidebarState>())))
 
   const systemTheme: ResolvedTheme = yield* Effect.sync(() =>
     window.matchMedia(DARK_COLOR_SCHEME_QUERY).matches ? 'Dark' : 'Light',
@@ -989,12 +982,11 @@ const SaveThemePreference = Command.define('SaveThemePreference', {
 })
 const SaveThemePreferenceLive = SaveThemePreference.toLayer(({ preference }) =>
   Effect.gen(function* () {
-    const store = yield* KeyValueStore.KeyValueStore
+    const store = yield* LocalStorage
     yield* store.set(THEME_STORAGE_KEY, JSON.stringify(preference))
     return Message.CompletedSaveThemePreference()
   }).pipe(
     Effect.catch(() => Effect.succeed(Message.CompletedSaveThemePreference())),
-    Effect.provide(BrowserKeyValueStore.layerLocalStorage),
   ),
 )
 
@@ -1004,13 +996,12 @@ const SaveSidebarState = Command.define('SaveSidebarState', {
 })
 const SaveSidebarStateLive = SaveSidebarState.toLayer(({ state }) =>
   Effect.gen(function* () {
-    const store = yield* KeyValueStore.KeyValueStore
+    const store = yield* SessionStorage
     const json = yield* Schema.encodeEffect(SidebarStateJsonString)(state)
     yield* store.set(SIDEBAR_STORAGE_KEY, json)
     return Message.CompletedSaveSidebarState()
   }).pipe(
     Effect.catch(() => Effect.succeed(Message.CompletedSaveSidebarState())),
-    Effect.provide(BrowserKeyValueStore.layerSessionStorage),
   ),
 )
 

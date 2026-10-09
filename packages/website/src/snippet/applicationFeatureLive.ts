@@ -4,12 +4,15 @@ import { LoadProductsLive } from './command'
 import { ManageProductPreviewLive } from './managedResource'
 import { MeasureProductGridLive } from './mount'
 import * as Reviews from './reviews'
+import { ProductCatalogLive } from './service'
 import { ProductUpdatesLive } from './subscription'
 
-export const Live = Layer.mergeAll(
+const HandlersLive = Layer.mergeAll(
   LoadProductsLive,
   ProductUpdatesLive,
   MeasureProductGridLive,
   ManageProductPreviewLive,
   Reviews.Live,
 )
+
+export const Live = Layer.provide(HandlersLive, ProductCatalogLive)
