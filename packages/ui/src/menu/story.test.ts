@@ -499,6 +499,57 @@ describe('Menu', () => {
       })
     })
 
+    describe('ClickedButton', () => {
+      const mousePress = Message.PressedPointerOnButton({
+        pointerType: 'mouse',
+        button: 0,
+        screenX: 100,
+        screenY: 200,
+        timeStamp: 1000,
+      })
+
+      it('keeps the menu open after the click that follows a mouse press', () => {
+        Story.story(
+          update,
+          givenClosed,
+          Story.message(mousePress),
+          acknowledgeFocusItems,
+          Story.message(Message.ClickedButton()),
+          Story.model(model => {
+            expect(model.isOpen).toBe(true)
+            expect(model.maybeLastButtonPointerType).toStrictEqual(
+              Option.none(),
+            )
+          }),
+        )
+      })
+
+      it('opens when the click did not follow a mouse press', () => {
+        Story.story(
+          update,
+          givenClosed,
+          Story.message(Message.ClickedButton()),
+          acknowledgeFocusItems,
+          Story.model(model => {
+            expect(model.isOpen).toBe(true)
+            expect(model.activationTrigger).toBe('Pointer')
+          }),
+        )
+      })
+
+      it('closes an open menu when the click did not follow a mouse press', () => {
+        Story.story(
+          update,
+          givenOpen,
+          Story.message(Message.ClickedButton()),
+          Story.Command.resolve(FocusButton, Message.CompletedFocusButton()),
+          Story.model(model => {
+            expect(model.isOpen).toBe(false)
+          }),
+        )
+      })
+    })
+
     describe('ReleasedPointerOnItems', () => {
       const givenOpenAndOrigin = Story.steps(
         givenClosed,
