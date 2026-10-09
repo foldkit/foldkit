@@ -20,7 +20,7 @@ Leave `HttpClient.HttpClient` in each handler's Effect requirements. Compose eac
 
 The Command remains responsible for status checks, response decoding, and converting failures into declared Messages.
 
-::Snippet{name="counterHttpCommand" label="HTTP Command"}
+::Snippet{name="counterHttpCommand" label="Fetching and decoding a count"}
 
 ## Customizing the Client
 

@@ -1,54 +1,35 @@
-import { Effect, Schema } from 'effect'
-import { HttpClient, HttpClientRequest } from 'effect/http'
+import { Duration, Effect, Schema } from 'effect'
 import { Command, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
+import type { Model } from './main'
+
 const Message = defineMessageUnion({
-  SubmittedWeatherForm: {},
-  SucceededFetchWeather: { weather: WeatherSchema },
-  FailedFetchWeather: { error: Schema.String },
+  ClickedResetAfterDelay: { delayMs: Schema.Number },
+  CompletedWaitBeforeReset: {},
+})
+type Message = typeof Message.Type
+
+const WaitBeforeReset = Command.define('WaitBeforeReset', {
+  args: { delayMs: Schema.Number },
+  messages: [Message.CompletedWaitBeforeReset],
 })
 
-const FetchWeather = Command.define('FetchWeather', {
-  // Args schema: the per-dispatch inputs the Command needs.
-  args: { zipCode: Schema.String },
-  // Every Message this Command can produce.
-  messages: [Message.SucceededFetchWeather, Message.FailedFetchWeather],
-})
-
-// The handler receives a typed args record.
-const FetchWeatherLayer = FetchWeather.toLayer(
-  Effect.gen(function* () {
-    const client = yield* HttpClient.HttpClient
-
-    return ({ zipCode }) =>
-      Effect.gen(function* () {
-        const response = yield* client.execute(
-          HttpClientRequest.get(`/api/weather?zip=${zipCode}`),
-        )
-        const weather = yield* Schema.decodeUnknownEffect(WeatherSchema)(
-          yield* response.json,
-        )
-        return Message.SucceededFetchWeather({ weather })
-      }).pipe(
-        Effect.catch(error =>
-          Effect.succeed(Message.FailedFetchWeather({ error: String(error) })),
-        ),
-      )
-  }),
+const WaitBeforeResetLayer = WaitBeforeReset.toLayer(({ delayMs }) =>
+  Effect.sleep(Duration.millis(delayMs)).pipe(
+    Effect.as(Message.CompletedWaitBeforeReset()),
+  ),
 )
 
 const update = Update.make((model: Model, message: Message) =>
   Message.match(message, {
-    // Pass args when dispatching the Command.
-    SubmittedWeatherForm: () => ({
+    ClickedResetAfterDelay: ({ delayMs }) => ({
       model,
-      commands: [FetchWeather({ zipCode: model.zipCodeInput })],
+      commands: [WaitBeforeReset({ delayMs })],
     }),
-    SucceededFetchWeather: ({ weather }) => ({
-      model: modifyFields(model, { weather: () => weather }),
+    CompletedWaitBeforeReset: () => ({
+      model: modifyFields(model, { count: () => 0 }),
     }),
-    FailedFetchWeather: () => ({ model }),
   }),
 )

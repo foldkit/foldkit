@@ -1,15 +1,21 @@
 import { Effect, Schema } from 'effect'
+import { HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/http'
 import { Command } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-const Message = defineMessageUnion({
-  SucceededUploadFile: { uploadId: Schema.Number },
-  FailedUploadFile: { uploadId: Schema.Number },
+export const Message = defineMessageUnion({
+  SucceededUploadFile: { uploadId: Schema.Int },
+  FailedUploadFile: { uploadId: Schema.Int },
+  CompletedCancelUploadFile: {
+    uploadId: Schema.Int,
+    outcome: Command.Interruptible.Outcome,
+  },
 })
+export type Message = typeof Message.Type
 
-const UploadFile = Command.define('UploadFile', {
+export const UploadFile = Command.define('UploadFile', {
   args: {
-    uploadId: Schema.Number,
+    uploadId: Schema.Int,
     file: Schema.instanceOf(File),
   },
   messages: [Message.SucceededUploadFile, Message.FailedUploadFile],
@@ -18,8 +24,19 @@ const UploadFile = Command.define('UploadFile', {
     toKey: ({ uploadId }) => globalThis.String(uploadId),
   },
   execute: ({ uploadId, file }) =>
-    postFile(file).pipe(
-      Effect.as(Message.SucceededUploadFile({ uploadId })),
+    Effect.gen(function* () {
+      const client = yield* HttpClient.HttpClient
+      const formData = new FormData()
+      formData.set('file', file)
+
+      const request = HttpClientRequest.post(`/api/uploads/${uploadId}`).pipe(
+        HttpClientRequest.bodyFormData(formData),
+      )
+      const response = yield* client.execute(request)
+      yield* HttpClientResponse.filterStatusOk(response)
+
+      return Message.SucceededUploadFile({ uploadId })
+    }).pipe(
       Effect.catch(() =>
         Effect.succeed(Message.FailedUploadFile({ uploadId })),
       ),

@@ -170,6 +170,18 @@ The following snapshot covers the completed handler and application API mileston
 
 The published-package check runs during production deployment after publication. The website release-input check evaluates a version-bumped release commit; neither is a PR gate.
 
+## Commands tutorial
+
+- [x] Explain the pure update and Runtime execution boundary before introducing handler mechanics.
+- [x] Show a complete first Command, application entry, and Story test.
+- [x] Introduce per-dispatch args before HTTP services and handler constructors.
+- [x] Show root service composition, an Effect constructor, inline execution, and a real-handler test with a supplied HTTP service.
+- [x] Progress from timer cancellation to keyed uploads, replacement sequencing, and cancellation intent.
+- [x] Preserve existing section links and clarify the context needed by focused excerpts.
+- [x] Compile the complete counter and focused Command examples against built Foldkit declarations, and execute both documented tests.
+- [x] Verify the replacement update preserves a named Command's requirements with a temporary Schema-backed compilation fixture.
+- [x] Pass website typechecking and all 825 focused Markdown tests; inspect the rendered tutorial and complete an independent editorial and API review.
+
 ## Deferred work
 
 Whole-application test mode, controlled dependency services, test scheduling, and a Story/Scene-style application test DSL belong to a later workstream. Execution tests should use the application's real handlers and replace their external services. Explicit handler stubs can support orchestration tests that exercise result paths without executing those handlers.

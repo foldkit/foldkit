@@ -1,48 +1,50 @@
 import { Effect, Schema } from 'effect'
-import { HttpClient, HttpClientRequest } from 'effect/http'
+import { HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/http'
 import { Command, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-const Message = defineMessageUnion({
+import type { Model } from './main'
+
+export const Message = defineMessageUnion({
   ClickedFetchCount: {},
-  SucceededFetchCount: { count: Schema.Number },
+  SucceededFetchCount: { count: Schema.Int },
   FailedFetchCount: { error: Schema.String },
 })
+export type Message = typeof Message.Type
 
-const CountResponse = Schema.Struct({ count: Schema.Number })
+const CountResponse = Schema.Struct({ count: Schema.Int })
 
-const FetchCount = Command.define('FetchCount', {
+export const FetchCount = Command.define('FetchCount', {
   messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
 })
 
-const FetchCountLayer = FetchCount.toLayer(
+export const fetchCount = (client: HttpClient.HttpClient) =>
+  Effect.gen(function* () {
+    const response = yield* client.execute(HttpClientRequest.get('/api/count'))
+    const successfulResponse =
+      yield* HttpClientResponse.filterStatusOk(response)
+
+    const { count } = yield* Schema.decodeUnknownEffect(CountResponse)(
+      yield* successfulResponse.json,
+    )
+    return Message.SucceededFetchCount({ count })
+  }).pipe(
+    Effect.catch(error =>
+      Effect.succeed(
+        Message.FailedFetchCount({ error: globalThis.String(error) }),
+      ),
+    ),
+  )
+
+export const FetchCountLayer = FetchCount.toLayer(() =>
   Effect.gen(function* () {
     const client = yield* HttpClient.HttpClient
-
-    return () =>
-      Effect.gen(function* () {
-        const response = yield* client.execute(
-          HttpClientRequest.get('/api/count'),
-        )
-
-        if (response.status !== 200) {
-          return yield* Effect.fail('API request failed')
-        }
-
-        const { count } = yield* Schema.decodeUnknownEffect(CountResponse)(
-          yield* response.json,
-        )
-        return Message.SucceededFetchCount({ count })
-      }).pipe(
-        Effect.catch(error =>
-          Effect.succeed(Message.FailedFetchCount({ error: String(error) })),
-        ),
-      )
+    return yield* fetchCount(client)
   }),
 )
 
-const update = Update.make((model: Model, message: Message) =>
+export const update = Update.make((model: Model, message: Message) =>
   Message.match(message, {
     ClickedFetchCount: () => ({ model, commands: [FetchCount()] }),
     SucceededFetchCount: ({ count }) => ({
