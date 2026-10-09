@@ -172,60 +172,18 @@ describe('VirtualList', () => {
       Scene.scene(
         { update, view: dynamicView },
         Scene.given(measuredModel),
-        acknowledgeObserver,
+        Scene.tap(() => expect(estimateCount).toBe(items.length)),
+        Scene.Mount.resolve(
+          ObserveVirtualList({ id: 'test' }),
+          Message.ObservedContainerScroll({
+            scrollTop: 90,
+            scrollHeight: 300_000,
+            containerHeight: 90,
+            anchor: { _tag: 'None' },
+          }),
+        ),
+        Scene.tap(() => expect(estimateCount).toBe(items.length)),
       )
-      const initialEstimateCount = estimateCount
-      expect(initialEstimateCount).toBe(items.length)
-
-      const scrolled = update(
-        measuredModel,
-        Message.ObservedContainerScroll({
-          scrollTop: 90,
-          scrollHeight: 30_000,
-          containerHeight: 90,
-          anchor: { _tag: 'None' },
-        }),
-      )
-      Scene.scene(
-        { update, view: dynamicView },
-        Scene.given(scrolled.model),
-        acknowledgeObserver,
-      )
-      expect(estimateCount).toBe(initialEstimateCount)
-
-      const exactMeasurement = update(
-        scrolled.model,
-        Message.MeasuredRows({
-          measurements: [
-            {
-              key: '0',
-              height: ROW_HEIGHT,
-              layoutHeightPx: ROW_HEIGHT,
-              layoutVersion: scrolled.model.layoutVersion,
-            },
-          ],
-        }),
-      )
-      expect(exactMeasurement.model).toBe(scrolled.model)
-
-      const measured = update(
-        scrolled.model,
-        Message.MeasuredRows({
-          measurements: [
-            {
-              key: '0',
-              height: 35,
-              layoutVersion: scrolled.model.layoutVersion,
-            },
-          ],
-        }),
-      )
-      Scene.scene(
-        { update, view: dynamicView },
-        Scene.given(measured.model),
-        acknowledgeObserver,
-      )
-      expect(estimateCount).toBeGreaterThan(initialEstimateCount)
     })
 
     it('renders the visible slice of rows once the container is measured', () => {

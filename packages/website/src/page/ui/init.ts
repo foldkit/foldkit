@@ -22,11 +22,18 @@ import {
 
 import { Toast } from './demo/toastModule'
 import {
-  CHAT_START_RUNWAY_PX,
+  CHAT_HISTORY_PREFETCH_VIEWPORTS,
+  FINITE_CHAT_START_RUNWAY_PX,
   INITIAL_CHAT_MESSAGE_COUNT,
+  UNBOUNDED_CHAT_START_RUNWAY_PX,
 } from './demo/virtualList'
 import type { Message } from './message'
-import { type Model, type VirtualListChatMessage } from './model'
+import {
+  type Model,
+  VirtualListChatHistoryLoad,
+  VirtualListChatHistorySource,
+  type VirtualListChatMessage,
+} from './model'
 
 export type InitReturn = Update.Return<Model, Message>
 
@@ -37,7 +44,7 @@ const chatBodies = [
   'Perfect. I’ll queue the release once CI finishes.',
 ]
 
-const initialVirtualListChatMessages: ReadonlyArray<VirtualListChatMessage> =
+export const initialVirtualListChatMessages: ReadonlyArray<VirtualListChatMessage> =
   Array.makeBy(INITIAL_CHAT_MESSAGE_COUNT, index => ({
     id: index,
     body: Option.getOrElse(
@@ -46,6 +53,26 @@ const initialVirtualListChatMessages: ReadonlyArray<VirtualListChatMessage> =
     ),
     isExpanded: index % 7 === 0,
   }))
+
+export const initVirtualListChatDemo = (
+  source: typeof VirtualListChatHistorySource.Type,
+): VirtualList.Model =>
+  VirtualList.init({
+    id: VirtualListChatHistorySource.match(source, {
+      Unbounded: () => 'virtual-list-chat-demo',
+      Finite: () => 'virtual-list-chat-demo-finite',
+    }),
+    rowHeightPx: 64,
+    history: {
+      reservePx: VirtualListChatHistorySource.match(source, {
+        Unbounded: () => UNBOUNDED_CHAT_START_RUNWAY_PX,
+        Finite: () => FINITE_CHAT_START_RUNWAY_PX,
+      }),
+      prefetchViewports: CHAT_HISTORY_PREFETCH_VIEWPORTS,
+    },
+    initialScroll: { target: VirtualList.ScrollTarget.End() },
+    followEnd: { thresholdPx: 8 },
+  })
 
 export const init = (today: Calendar.CalendarDate): InitReturn => ({
   model: {
@@ -187,15 +214,18 @@ export const init = (today: Calendar.CalendarDate): InitReturn => ({
       id: 'virtual-list-variable-demo',
       rowHeightPx: 56,
     }),
-    virtualListChatDemo: VirtualList.init({
-      id: 'virtual-list-chat-demo',
-      rowHeightPx: 64,
-      startPaddingPx: CHAT_START_RUNWAY_PX,
-      initialScroll: { target: VirtualList.ScrollTarget.End() },
-      followEnd: { thresholdPx: 8 },
-    }),
+    virtualListChatDemo: initVirtualListChatDemo(
+      VirtualListChatHistorySource.Unbounded(),
+    ),
     virtualListChatMessages: initialVirtualListChatMessages,
     virtualListChatNextId: initialVirtualListChatMessages.length,
+    virtualListChatHistorySource: VirtualListChatHistorySource.Unbounded(),
+    virtualListChatHistoryModeGroup: RadioGroup.init({
+      id: 'virtual-list-chat-history-mode',
+    }),
+    virtualListChatHistoryLoad: VirtualListChatHistoryLoad.Idle(),
+    virtualListChatHistoryRequestVersion: 0,
+    virtualListChatLoadedOlderCount: 0,
     virtualListChatAnnouncedOlderCount: 0,
     dragAndDropDemoColumns: [
       {

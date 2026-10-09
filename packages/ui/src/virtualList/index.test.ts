@@ -6,15 +6,16 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   ApplyScroll,
   ApplyScrollOutcome,
+  HistoryPage,
+  type HistoryRows,
   Message,
   type Model,
   ObserveVirtualList,
   type ScrollAlignment,
   ScrollTarget,
+  informHistoryPrepended,
   informItemsChanged,
-  informItemsPrependedFromStartPadding,
   init,
-  replenishStartPadding,
   scrollToEnd,
   scrollToIndex,
   scrollToKey,
@@ -23,6 +24,49 @@ import {
 } from './index.js'
 
 const defaultInit = (): Model => init({ id: 'test', rowHeightPx: 30 })
+
+type HistoryItem = Readonly<{ key: string; estimatedHeightPx: number }>
+
+const historyRows: HistoryRows<HistoryItem> = {
+  itemToKey: (item: HistoryItem) => item.key,
+  dynamicRowHeights: true,
+  itemToEstimatedRowHeightPx: (item: HistoryItem) => item.estimatedHeightPx,
+}
+
+const historyInit = (reservePx = 1000): Model =>
+  init({
+    id: 'test',
+    rowHeightPx: 30,
+    history: { reservePx, prefetchViewports: 4 },
+  })
+
+const activeHistoryModel = (reservePx = 1000): Model =>
+  update(
+    historyInit(reservePx),
+    Message.ApproachedLoadedStart({
+      distanceToLoadedStartPx: 0,
+      containerHeight: 100,
+    }),
+  ).model
+
+const prependHistory = (
+  model: Model,
+  itemKeys: ReadonlyArray<string>,
+  prependedItems: ReadonlyArray<HistoryItem>,
+  page: HistoryPage = HistoryPage.More(),
+) =>
+  informHistoryPrepended(model, {
+    items: Array.map(itemKeys, key =>
+      pipe(
+        prependedItems,
+        Array.findFirst(item => item.key === key),
+        Option.getOrElse(() => ({ key, estimatedHeightPx: 30 })),
+      ),
+    ),
+    prependedItems,
+    itemToKey: historyRows.itemToKey,
+    page,
+  })
 
 type ScrollReturn = ReturnType<typeof scrollToIndex>
 
@@ -1227,19 +1271,27 @@ describe('VirtualList', () => {
     })
   })
 
-  describe('informItemsPrependedFromStartPadding', () => {
-    it('replaces reserved space with rows and absorbs their first measurements without scrolling', () => {
-      const model = init({ id: 'test', rowHeightPx: 30, startPaddingPx: 1000 })
-      const prepend = informItemsPrependedFromStartPadding(model, {
-        itemKeys: ['older', 'first'],
-        prependedItems: [{ key: 'older', estimatedHeightPx: 80 }],
-      })
+  describe('informHistoryPrepended', () => {
+    it('extends history without consuming the loading buffer or issuing a scroll', () => {
+      const model = activeHistoryModel()
+      const prepend = prependHistory(
+        model,
+        ['older', 'first'],
+        [{ key: 'older', estimatedHeightPx: 80 }],
+      )
 
-      expect(prepend.model.startPaddingPx).toBe(920)
-      expect(prepend.model.reservedStartRowHeights).toStrictEqual({ older: 80 })
+      expect(prepend.model.startPaddingPx).toBe(1000)
       expect(prepend.model.pendingScroll._tag).toBe('Idle')
       expect(prepend.commands).toBeUndefined()
+    })
 
+    it('records a measured prepended row without changing the loading buffer', () => {
+      const model = activeHistoryModel()
+      const prepend = prependHistory(
+        model,
+        ['older', 'first'],
+        [{ key: 'older', estimatedHeightPx: 80 }],
+      )
       const measurement = update(
         prepend.model,
         Message.MeasuredRows({
@@ -1247,128 +1299,136 @@ describe('VirtualList', () => {
             {
               key: 'older',
               height: 100,
-              layoutVersion: prepend.model.layoutVersion,
-            },
-          ],
-        }),
-      )
-
-      expect(measurement.model.startPaddingPx).toBe(900)
-      expect(measurement.model.measuredRowHeights).toStrictEqual({ older: 100 })
-      expect(measurement.model.reservedStartRowHeights).toStrictEqual({})
-      expect(measurement.commands).toBeUndefined()
-    })
-
-    it('releases exact-height reservations without retaining measured rows', () => {
-      const model = init({ id: 'test', rowHeightPx: 30, startPaddingPx: 1000 })
-      const prepend = informItemsPrependedFromStartPadding(model, {
-        itemKeys: ['older', 'first'],
-        prependedItems: [{ key: 'older', estimatedHeightPx: 80 }],
-      })
-      const measurement = update(
-        prepend.model,
-        Message.MeasuredRows({
-          measurements: [
-            {
-              key: 'older',
-              height: 80,
               layoutHeightPx: 80,
+              index: 0,
               layoutVersion: prepend.model.layoutVersion,
             },
           ],
         }),
       )
 
-      expect(measurement.model.startPaddingPx).toBe(920)
-      expect(measurement.model.reservedStartRowHeights).toStrictEqual({})
-      expect(measurement.model.measuredRowHeights).toStrictEqual({})
+      expect(measurement.model.startPaddingPx).toBe(1000)
+      expect(measurement.model.measuredRowHeights).toStrictEqual({ older: 100 })
       expect(measurement.commands).toBeUndefined()
     })
 
-    it('preserves the viewport until the remaining final-page reserve is removed after scrolling', async () => {
-      const observed = update(
-        init({ id: 'test', rowHeightPx: 30, startPaddingPx: 1000 }),
-        Message.ObservedContainerScroll({
-          scrollTop: 1100,
-          scrollHeight: 1500,
-          containerHeight: 100,
-          anchor: {
-            _tag: 'Row',
-            key: 'first',
-            index: 0,
-            viewportOffset: -100,
-          },
-        }),
+    it('removes the loading buffer when the final page arrives', () => {
+      const prepend = prependHistory(
+        historyInit(),
+        ['older', 'first'],
+        [{ key: 'older', estimatedHeightPx: 80 }],
+        HistoryPage.Complete(),
       )
-      const prepend = informItemsPrependedFromStartPadding(observed.model, {
-        itemKeys: ['older', 'first'],
-        prependedItems: [{ key: 'older', estimatedHeightPx: 80 }],
-        isFinalPage: true,
-      })
-
-      expect(prepend.model.startPaddingPx).toBe(920)
-      expect(prepend.model.startPaddingState._tag).toBe('FinalPage')
-      expect(prepend.commands).toBeUndefined()
-
-      const settled = replenishStartPadding(prepend.model, 1000)
-      expect(settled.model.startPaddingPx).toBe(0)
-      expect(settled.model.pendingScroll).toStrictEqual({
-        _tag: 'Pending',
-        version: 1,
-        request: {
-          _tag: 'Anchor',
-          anchor: { _tag: 'Offset', scrollTop: 180 },
-          baselineScrollTop: 1100,
-        },
-      })
-      expect(await executeScroll(settled, 1100, 100, [], 580)).toBe(180)
-
-      const repeated = replenishStartPadding(settled.model, 1000)
-      expect(repeated.model).toBe(settled.model)
-      expect(repeated.commands).toBeUndefined()
-    })
-
-    it('restores the anchor when the final batch exceeds its reserve', () => {
-      const model = init({ id: 'test', rowHeightPx: 30, startPaddingPx: 70 })
-      const prepend = informItemsPrependedFromStartPadding(model, {
-        itemKeys: ['older', 'first'],
-        prependedItems: [{ key: 'older', estimatedHeightPx: 80 }],
-        isFinalPage: true,
-      })
 
       expect(prepend.model.startPaddingPx).toBe(0)
-      expect(prepend.model.startPaddingState._tag).toBe('FinalPage')
-      expect(prepend.commands ?? []).toHaveLength(1)
+      expect(prepend.model.history).toMatchObject({
+        _tag: 'Enabled',
+        page: { _tag: 'Complete' },
+      })
+      expect(prepend.commands).toBeUndefined()
+    })
+
+    it('finishes history without a scroll even when the final page is tall', () => {
+      const model = activeHistoryModel(70)
+      const prepend = prependHistory(
+        model,
+        ['older', 'first'],
+        [{ key: 'older', estimatedHeightPx: 80 }],
+        HistoryPage.Complete(),
+      )
+
+      expect(prepend.model.startPaddingPx).toBe(0)
+      expect(prepend.model.history).toMatchObject({
+        _tag: 'Enabled',
+        page: { _tag: 'Complete' },
+      })
+      expect(prepend.commands).toBeUndefined()
     })
   })
 
-  describe('replenishStartPadding', () => {
-    it('restores the runway through an anchor correction after scrolling ends', () => {
-      const model = init({ id: 'test', rowHeightPx: 30, startPaddingPx: 100 })
-      const replenished = replenishStartPadding(model, 1000)
+  describe('EndedContainerScroll', () => {
+    it('leaves an ordinary list unchanged for history events', () => {
+      const model = defaultInit()
+      const approached = update(
+        model,
+        Message.ApproachedLoadedStart({
+          distanceToLoadedStartPx: 100,
+          containerHeight: 300,
+        }),
+      )
+      const settled = update(model, Message.EndedContainerScroll())
+
+      expect(approached.model).toBe(model)
+      expect(settled.model).toBe(model)
+      expect(settled.commands).toBeUndefined()
+    })
+
+    it('ends history scrolling without moving the viewport', () => {
+      const model = activeHistoryModel()
+      const prepend = prependHistory(
+        model,
+        ['older', 'first'],
+        [{ key: 'older', estimatedHeightPx: 100 }],
+      )
+      const replenished = update(prepend.model, Message.EndedContainerScroll())
 
       expect(replenished.model.startPaddingPx).toBe(1000)
-      expect(replenished.model.pendingScroll).toStrictEqual({
-        _tag: 'Pending',
-        version: 1,
-        request: {
-          _tag: 'Anchor',
-          anchor: { _tag: 'Offset', scrollTop: 900 },
-          baselineScrollTop: 0,
-        },
-      })
-      expect(replenished.commands ?? []).toHaveLength(1)
+      expect(replenished.model.pendingScroll._tag).toBe('Idle')
+      expect(replenished.commands).toBeUndefined()
 
-      const unchanged = replenishStartPadding(replenished.model, 1000)
-      expect(unchanged.model).toBe(replenished.model)
+      const unchanged = update(
+        replenished.model,
+        Message.EndedContainerScroll(),
+      )
+      expect(unchanged.model.startPaddingPx).toBe(1000)
       expect(unchanged.commands).toBeUndefined()
     })
   })
 
+  describe('ObservedContainerScroll with history', () => {
+    it('keeps a stable loading buffer throughout repeated page loads', () => {
+      const scrolled = update(
+        activeHistoryModel(),
+        Message.ObservedContainerScroll({
+          scrollTop: 900,
+          scrollHeight: 1300,
+          containerHeight: 100,
+          anchor: { _tag: 'None' },
+        }),
+      )
+      const prepend = prependHistory(
+        scrolled.model,
+        ['older', 'first'],
+        [{ key: 'older', estimatedHeightPx: 300 }],
+      )
+      const continuedScroll = update(
+        prepend.model,
+        Message.ObservedContainerScroll({
+          scrollTop: 800,
+          scrollHeight: 1300,
+          containerHeight: 100,
+          anchor: { _tag: 'None' },
+        }),
+      )
+
+      expect(continuedScroll.model.startPaddingPx).toBe(1000)
+      expect(continuedScroll.commands).toBeUndefined()
+
+      const replenished = update(
+        continuedScroll.model,
+        Message.EndedContainerScroll(),
+      )
+      expect(replenished.model.startPaddingPx).toBe(1000)
+      expect(replenished.model.pendingScroll._tag).toBe('Idle')
+      expect(replenished.commands).toBeUndefined()
+    })
+  })
+
   describe('ObserveVirtualList', () => {
-    it('reports scroll settling without native scrollend support', async () => {
+    it('reports scroll settling when native scrollend is not delivered', async () => {
       const element = document.createElement('div')
       element.id = 'test'
+      Object.defineProperty(element, 'onscrollend', { value: null })
       document.body.append(element)
 
       try {
@@ -1379,7 +1439,7 @@ describe('VirtualList', () => {
               const settled = yield* Deferred.make<void>()
               yield* ObserveVirtualList({
                 id: 'test',
-                observeStartGestures: true,
+                observeHistory: true,
               })
                 .f(element, Mount.liveViewStateChanges)
                 .pipe(
@@ -1406,8 +1466,32 @@ describe('VirtualList', () => {
   })
 
   describe('MeasuredRows', () => {
-    it('absorbs a height correction above the visible row into start padding', () => {
-      const model = init({ id: 'test', rowHeightPx: 30, startPaddingPx: 1000 })
+    it('leaves the Model unchanged when a row matches its layout height', () => {
+      const initialModel = defaultInit()
+      Story.story(
+        update,
+        Story.given(initialModel),
+        Story.message(
+          Message.MeasuredRows({
+            measurements: [
+              {
+                key: 'row-1',
+                height: 30,
+                layoutHeightPx: 30,
+                layoutVersion: initialModel.layoutVersion,
+              },
+            ],
+          }),
+        ),
+        Story.model(model => {
+          expect(model).toBe(initialModel)
+        }),
+        Story.Command.expectNone(),
+      )
+    })
+
+    it('records a height correction above the visible row without scrolling', () => {
+      const model = historyInit()
       const observed = update(
         model,
         Message.ObservedContainerScroll({
@@ -1422,10 +1506,11 @@ describe('VirtualList', () => {
           },
         }),
       )
-      const prepend = informItemsPrependedFromStartPadding(observed.model, {
-        itemKeys: ['new', 'earlier', 'visible'],
-        prependedItems: [{ key: 'new', estimatedHeightPx: 30 }],
-      })
+      const prepend = prependHistory(
+        observed.model,
+        ['new', 'earlier', 'visible'],
+        [{ key: 'new', estimatedHeightPx: 30 }],
+      )
       const staleScroll = update(
         prepend.model,
         Message.ObservedContainerScroll({
@@ -1462,8 +1547,46 @@ describe('VirtualList', () => {
         }),
       )
 
-      expect(measurement.model.startPaddingPx).toBe(950)
+      expect(measurement.model.startPaddingPx).toBe(1000)
       expect(measurement.commands).toBeUndefined()
+    })
+
+    it('reconciles a visible row when a later history row measures taller', () => {
+      const initialModel = historyInit()
+      const scrolled = update(
+        initialModel,
+        Message.ObservedContainerScroll({
+          scrollTop: -160,
+          scrollHeight: 2000,
+          containerHeight: 100,
+          anchor: {
+            _tag: 'Row',
+            key: 'visible',
+            index: 10,
+            viewportOffset: 0,
+          },
+        }),
+      )
+
+      Story.story(
+        update,
+        Story.given(scrolled.model),
+        Story.message(
+          Message.MeasuredRows({
+            measurements: [
+              {
+                key: 'later',
+                index: 12,
+                height: 80,
+                layoutHeightPx: 30,
+                layoutVersion: scrolled.model.layoutVersion,
+              },
+            ],
+          }),
+        ),
+        Story.Command.expectHas(ApplyScroll),
+        Story.Command.resolve(ApplyScroll, completedApplyScroll(1)),
+      )
     })
 
     it('stores measurements from the current layout and reconciles the anchor', () => {

@@ -5,6 +5,12 @@ import { modifyFields } from 'foldkit/struct'
 
 import { VirtualList } from '@foldkit/ui'
 
+const historyRows: VirtualList.HistoryRows<ChatMessage> = {
+  itemToKey: message => String(message.id),
+  dynamicRowHeights: true,
+  itemToEstimatedRowHeightPx: message => (message.body.length > 120 ? 96 : 64),
+}
+
 // INIT
 
 const init = () => ({
@@ -15,6 +21,7 @@ const init = () => ({
       rowHeightPx: 64,
       initialScroll: { target: VirtualList.ScrollTarget.End() },
       followEnd: { thresholdPx: 8 },
+      history: { reservePx: 800, prefetchViewports: 3 },
     }),
   },
 })
@@ -37,6 +44,17 @@ const foldMessageListItemsChanged = Update.foldChild({
   toParentMessage: message => Message.GotMessageListMessage({ message }),
 })
 
+const foldMessageListHistoryPrepended = Update.foldChild({
+  update: (
+    messageList: VirtualList.Model,
+    input: VirtualList.HistoryPrependInput<ChatMessage>,
+  ) => VirtualList.informHistoryPrepended(messageList, input),
+  read: (model: Model) => Option.some(model.messageList),
+  write: (model, nextMessageList) =>
+    modifyFields(model, { messageList: () => nextMessageList }),
+  toParentMessage: message => Message.GotMessageListMessage({ message }),
+})
+
 GotMessageListMessage: ({ message }) => foldMessageList(model, message)
 
 ReceivedMessage: ({ message }) => {
@@ -50,6 +68,21 @@ ReceivedMessage: ({ message }) => {
   )
 }
 
+CompletedFetchOlderMessages: ({ messages, hasMore }) => {
+  const nextMessages = [...messages, ...model.messages]
+  const nextModel = modifyFields(model, {
+    messages: () => nextMessages,
+  })
+  return foldMessageListHistoryPrepended(nextModel, {
+    items: nextMessages,
+    prependedItems: messages,
+    itemToKey: historyRows.itemToKey,
+    page: hasMore
+      ? VirtualList.HistoryPage.More()
+      : VirtualList.HistoryPage.Complete(),
+  })
+}
+
 // VIEW
 
 const view = (model: Model, h: HtmlBuilder<Message>) =>
@@ -59,12 +92,9 @@ const view = (model: Model, h: HtmlBuilder<Message>) =>
     view: VirtualList.view<ChatMessage>(),
     viewInputs: {
       items: model.messages,
-      itemToKey: message => String(message.id),
+      ...historyRows,
       itemToView: message =>
         h.div([h.Class('rounded-xl px-3 py-2')], [message.body]),
-      dynamicRowHeights: true,
-      itemToEstimatedRowHeightPx: message =>
-        message.body.length > 120 ? 96 : 64,
       contentAlignment: 'End',
       containerClassName: 'h-96 overflow-auto',
     },

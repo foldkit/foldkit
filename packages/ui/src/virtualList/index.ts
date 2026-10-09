@@ -115,14 +115,21 @@ const EndBehavior = defineTaggedUnion({
   Follow: { thresholdPx: Schema.Number },
 })
 
-const MeasurementMode = defineTaggedUnion({
-  ReconcileAnchor: {},
-  PreservePosition: {},
+/** Whether the loaded history has another page before its first row. */
+export const HistoryPage = defineTaggedUnion({
+  More: {},
+  Complete: {},
 })
 
-const StartPaddingState = defineTaggedUnion({
-  Available: {},
-  FinalPage: {},
+export type HistoryPage = typeof HistoryPage.Type
+
+const HistoryState = defineTaggedUnion({
+  Disabled: {},
+  Enabled: {
+    reservePx: Schema.Number,
+    prefetchViewports: Schema.Number,
+    page: HistoryPage,
+  },
 })
 
 /** Schema for the virtual list's state. Tracks scroll position, container
@@ -135,9 +142,8 @@ export const Model = Schema.Struct({
   viewportAnchor: ViewportAnchor,
   measuredRowHeights: Schema.Record(Schema.String, Schema.Number),
   startPaddingPx: Schema.Number,
-  startPaddingState: StartPaddingState,
-  reservedStartRowHeights: Schema.Record(Schema.String, Schema.Number),
-  measurementMode: MeasurementMode,
+  history: HistoryState,
+  historyPageVersion: Schema.Number,
   layoutVersion: Schema.Number,
   initialScroll: InitialScroll,
   endBehavior: EndBehavior,
@@ -158,8 +164,8 @@ export const Message = defineMessageUnion({
     anchor: ObservedAnchor,
     layoutVersion: Schema.optional(Schema.Number),
   },
-  StartedScrollTowardStart: {
-    scrollTop: Schema.Number,
+  ApproachedLoadedStart: {
+    distanceToLoadedStartPx: Schema.Number,
     containerHeight: Schema.Number,
   },
   EndedContainerScroll: {},
@@ -192,7 +198,10 @@ export type Message = typeof Message.Type
 export type InitConfig = Readonly<{
   id: string
   rowHeightPx: number
-  startPaddingPx?: number
+  history?: Readonly<{
+    reservePx: number
+    prefetchViewports: number
+  }>
   initialScrollTop?: number
   initialScroll?: Readonly<{
     target: ScrollTarget
@@ -237,10 +246,16 @@ export const init = (config: InitConfig): Model => {
       scrollTop: config.initialScrollTop ?? 0,
     }),
     measuredRowHeights: Record.empty(),
-    startPaddingPx: config.startPaddingPx ?? 0,
-    startPaddingState: StartPaddingState.Available(),
-    reservedStartRowHeights: Record.empty(),
-    measurementMode: MeasurementMode.ReconcileAnchor(),
+    startPaddingPx: Math.max(0, config.history?.reservePx ?? 0),
+    history:
+      config.history === undefined
+        ? HistoryState.Disabled()
+        : HistoryState.Enabled({
+            reservePx: Math.max(0, config.history.reservePx),
+            prefetchViewports: Math.max(0, config.history.prefetchViewports),
+            page: HistoryPage.More(),
+          }),
+    historyPageVersion: 0,
     layoutVersion: 0,
     initialScroll,
     endBehavior:
@@ -357,8 +372,21 @@ const observedAnchor = (element: HTMLElement): typeof ObservedAnchor.Type => {
 const maxScrollTop = (element: HTMLElement): number =>
   Math.max(0, element.scrollHeight - element.clientHeight)
 
+const isBottomOrigin = (element: HTMLElement): boolean =>
+  element.hasAttribute('data-virtual-list-bottom-origin')
+
+const logicalScrollTop = (element: HTMLElement): number =>
+  isBottomOrigin(element)
+    ? maxScrollTop(element) + element.scrollTop
+    : element.scrollTop
+
+const rawScrollTop = (element: HTMLElement, scrollTop: number): number =>
+  isBottomOrigin(element) ? scrollTop - maxScrollTop(element) : scrollTop
+
 const clampScrollTop = (element: HTMLElement, scrollTop: number): number =>
-  Math.max(0, Math.min(scrollTop, maxScrollTop(element)))
+  isBottomOrigin(element)
+    ? Math.max(-maxScrollTop(element), Math.min(scrollTop, 0))
+    : Math.max(0, Math.min(scrollTop, maxScrollTop(element)))
 
 const rowForIndex = (
   element: HTMLElement,
@@ -404,7 +432,7 @@ const rowOffsets = (container: HTMLElement, row: HTMLElement): RowOffsets => {
   const viewportTop =
     container.getBoundingClientRect().top + container.clientTop
   const rowRect = row.getBoundingClientRect()
-  const startOffset = container.scrollTop + rowRect.top - viewportTop
+  const startOffset = logicalScrollTop(container) + rowRect.top - viewportTop
   return { startOffset, endOffset: startOffset + rowRect.height }
 }
 
@@ -428,12 +456,15 @@ const scrollTopForRowTarget = (
 ): Option.Option<number> =>
   Option.map(rowForTarget(element, target), row => {
     const offsets = rowOffsets(element, row)
-    return scrollTopForRow(
-      element.scrollTop,
-      element.clientHeight,
-      offsets.startOffset,
-      offsets.endOffset,
-      alignment,
+    return rawScrollTop(
+      element,
+      scrollTopForRow(
+        logicalScrollTop(element),
+        element.clientHeight,
+        offsets.startOffset,
+        offsets.endOffset,
+        alignment,
+      ),
     )
   })
 
@@ -446,8 +477,8 @@ const scrollTopForTarget = (
     Index: indexTarget =>
       scrollTopForRowTarget(element, indexTarget, alignment),
     Key: keyTarget => scrollTopForRowTarget(element, keyTarget, alignment),
-    Offset: ({ offset }) => Option.some(offset),
-    End: () => Option.some(maxScrollTop(element)),
+    Offset: ({ offset }) => Option.some(rawScrollTop(element, offset)),
+    End: () => Option.some(rawScrollTop(element, maxScrollTop(element))),
   })
 
 const rowForAnchor = (
@@ -466,12 +497,15 @@ const scrollTopForAnchor = (
     Offset: ({ scrollTop }) => Option.some(scrollTop),
     Row: rowAnchor =>
       Option.map(rowForAnchor(element, rowAnchor), row =>
-        Math.max(
-          0,
-          rowOffsets(element, row).startOffset - rowAnchor.viewportOffset,
+        rawScrollTop(
+          element,
+          Math.max(
+            0,
+            rowOffsets(element, row).startOffset - rowAnchor.viewportOffset,
+          ),
         ),
       ),
-    End: () => Option.some(maxScrollTop(element)),
+    End: () => Option.some(rawScrollTop(element, maxScrollTop(element))),
   })
 
 const scrollTopForRequest = (
@@ -623,10 +657,10 @@ const anchorFromSnapshot = (
   containerHeight: number,
   anchor: typeof ObservedAnchor.Type,
 ): typeof ViewportAnchor.Type => {
-  const distanceFromEnd = Math.max(
-    0,
-    scrollHeight - containerHeight - scrollTop,
-  )
+  const distanceFromEnd =
+    model.history._tag === 'Enabled'
+      ? Math.max(0, -scrollTop)
+      : Math.max(0, scrollHeight - containerHeight - scrollTop)
   const isFollowingEnd = EndBehavior.match<boolean>(model.endBehavior, {
     PreserveAnchor: () => false,
     Follow: ({ thresholdPx }) => distanceFromEnd <= thresholdPx,
@@ -760,23 +794,7 @@ const applyRowMeasurements = (
   const changedMeasurements = Array.filter(measurements, measurement =>
     hasChangedMeasurement(model, measurement),
   )
-  const measuredReservedKeys = HashSet.fromIterable(
-    Array.map(
-      Array.filter(
-        measurements,
-        measurement =>
-          measurement.layoutVersion === model.layoutVersion &&
-          Option.isSome(
-            Record.get(model.reservedStartRowHeights, measurement.key),
-          ),
-      ),
-      measurement => measurement.key,
-    ),
-  )
-  if (
-    Array.isArrayEmpty(changedMeasurements) &&
-    HashSet.isEmpty(measuredReservedKeys)
-  ) {
+  if (Array.isArrayEmpty(changedMeasurements)) {
     return { model }
   }
 
@@ -786,58 +804,26 @@ const applyRowMeasurements = (
     (heights, measurement) =>
       Record.set(heights, measurement.key, measurement.height),
   )
-  const reservedMeasurements = Array.filter(changedMeasurements, measurement =>
-    Option.isSome(Record.get(model.reservedStartRowHeights, measurement.key)),
-  )
-  const reservedCompensationPx = Array.reduce(
-    reservedMeasurements,
-    0,
-    (sum, measurement) =>
-      sum +
-      measurement.height -
-      Option.getOrElse(
-        Record.get(model.reservedStartRowHeights, measurement.key),
-        () => measurement.height,
-      ),
-  )
-  const unreservedMeasurements = Array.filter(
-    changedMeasurements,
-    measurement => !HashSet.has(measuredReservedKeys, measurement.key),
-  )
-  const canAbsorbUnreservedMeasurements =
-    model.startPaddingPx > 0 &&
-    model.measurementMode._tag === 'PreservePosition' &&
-    model.viewportAnchor._tag === 'Row' &&
-    Array.every(
-      unreservedMeasurements,
-      measurement =>
-        measurement.index !== undefined &&
-        measurement.layoutHeightPx !== undefined,
-    )
-  const unreservedCompensationPx = canAbsorbUnreservedMeasurements
-    ? Array.reduce(unreservedMeasurements, 0, (sum, measurement) =>
-        model.viewportAnchor._tag === 'Row' &&
-        measurement.index !== undefined &&
-        measurement.layoutHeightPx !== undefined &&
-        measurement.index < model.viewportAnchor.index
-          ? sum + measurement.height - measurement.layoutHeightPx
-          : sum,
-      )
-    : 0
-  const compensationPx = reservedCompensationPx + unreservedCompensationPx
   const nextModel = modifyFields(model, {
     measuredRowHeights: () => measuredRowHeights,
-    reservedStartRowHeights: Record.filter(
-      (_, key) => !HashSet.has(measuredReservedKeys, key),
-    ),
-    startPaddingPx: padding => Math.max(0, padding - compensationPx),
   })
-  if (
-    (Array.isArrayEmpty(unreservedMeasurements) ||
-      canAbsorbUnreservedMeasurements) &&
-    compensationPx <= model.startPaddingPx
-  ) {
-    return { model: nextModel }
+  if (model.history._tag === 'Enabled') {
+    const shouldReconcileAnchor = ViewportAnchor.match<boolean>(
+      model.viewportAnchor,
+      {
+        Offset: () => false,
+        End: () => false,
+        Row: ({ index }) =>
+          Array.some(
+            changedMeasurements,
+            measurement =>
+              measurement.index === undefined || measurement.index >= index,
+          ),
+      },
+    )
+    if (!shouldReconcileAnchor) {
+      return { model: nextModel }
+    }
   }
 
   return reconcileLayout(nextModel)
@@ -872,7 +858,7 @@ export const update = (model: Model, message: Message) =>
       })
     },
 
-    StartedScrollTowardStart: () => ({ model }),
+    ApproachedLoadedStart: () => ({ model }),
     EndedContainerScroll: () => ({ model }),
 
     ResizedContainer: ({ containerWidth, containerHeight }) =>
@@ -919,22 +905,15 @@ export const scrollTo = (
   target: ScrollTarget,
   options: ScrollToOptions = {},
 ): ScrollReturn =>
-  Update.combine(model, [
-    stepModel => ({
-      model: modifyFields(stepModel, {
-        initialScroll: () => InitialScroll.Applied(),
-        measurementMode: () => MeasurementMode.ReconcileAnchor(),
-      }),
+  buildScrollRequest(
+    modifyFields(model, {
+      initialScroll: () => InitialScroll.Applied(),
     }),
-    stepModel =>
-      buildScrollRequest(
-        stepModel,
-        ScrollRequest.Target({
-          target,
-          alignment: options.alignment ?? 'Start',
-        }),
-      ),
-  ])
+    ScrollRequest.Target({
+      target,
+      alignment: options.alignment ?? 'Start',
+    }),
+  )
 
 /** Programmatically scrolls the container so the row at `index` is visible.
  *  The next view resolves the logical index with its current sizing mode, and
@@ -976,7 +955,6 @@ export const informItemsChanged = (
         measuredRowHeights: Record.filter((_, key) =>
           HashSet.has(currentKeys, key),
         ),
-        measurementMode: () => MeasurementMode.ReconcileAnchor(),
         layoutVersion: Number.increment,
       }),
     }),
@@ -984,105 +962,62 @@ export const informItemsChanged = (
   ])
 }
 
-/** Replaces reserved space above the loaded rows with newly prepended items.
- *  Estimates must match the view's estimates so existing rows retain their
- *  physical positions without a scroll correction during touch momentum.
- *  Mark the final page to remove unused reserve after scrolling settles.
- *  A batch larger than the remaining reserve uses anchor restoration. */
-export const informItemsPrependedFromStartPadding = (
-  model: Model,
-  input: Readonly<{
-    itemKeys: ReadonlyArray<string>
-    prependedItems: ReadonlyArray<
-      Readonly<{ key: string; estimatedHeightPx: number }>
-    >
-    isFinalPage?: boolean
-  }>,
-): ScrollReturn => {
-  const estimatedHeightPx = Array.reduce(
-    input.prependedItems,
-    0,
-    (sum, item) => sum + item.estimatedHeightPx,
-  )
-  if (estimatedHeightPx > model.startPaddingPx) {
-    return informItemsChanged(
-      modifyFields(model, {
-        startPaddingPx: () => 0,
-        startPaddingState: () =>
-          input.isFinalPage === true
-            ? StartPaddingState.FinalPage()
-            : model.startPaddingState,
-      }),
-      input.itemKeys,
-    )
-  }
+/** Stable key and row-height definitions supplied to `view`. */
+export type HistoryRows<Item> = Readonly<{
+  itemToKey: (item: Item, index: number) => string
+}> &
+  RowHeightInputs<Item>
 
-  const currentKeys = HashSet.fromIterable(input.itemKeys)
-  const reservedStartRowHeights = Array.reduce(
-    input.prependedItems,
-    Record.filter(model.reservedStartRowHeights, (_, key) =>
-      HashSet.has(currentKeys, key),
-    ),
-    (heights, item) => Record.set(heights, item.key, item.estimatedHeightPx),
-  )
-  return {
-    model: modifyFields(model, {
-      measuredRowHeights: Record.filter((_, key) =>
-        HashSet.has(currentKeys, key),
-      ),
-      reservedStartRowHeights: () => reservedStartRowHeights,
-      measurementMode: () => MeasurementMode.PreservePosition(),
-      startPaddingPx: padding => padding - estimatedHeightPx,
-      startPaddingState: () =>
-        input.isFinalPage === true
-          ? StartPaddingState.FinalPage()
-          : model.startPaddingState,
-      viewportAnchor: anchor =>
-        ViewportAnchor.match(anchor, {
-          Offset: ({ scrollTop }) => ViewportAnchor.Offset({ scrollTop }),
-          Row: ({ key, index, viewportOffset }) =>
-            ViewportAnchor.Row({
-              key,
-              index: index + input.prependedItems.length,
-              viewportOffset,
-            }),
-          End: () => ViewportAnchor.End(),
-        }),
-      layoutVersion: Number.increment,
-    }),
-  }
-}
+/** Inputs for a newly prepended history page. Use the same stable key
+ *  function supplied to `view`. */
+export type HistoryPrependInput<Item> = Readonly<{
+  items: ReadonlyArray<Item>
+  prependedItems: ReadonlyArray<Item>
+  itemToKey: (item: Item, index: number) => string
+  page: HistoryPage
+}>
 
-/** Restores start padding, or removes unused final-page padding, after
- *  scrolling settles while preserving the visible position. */
-export const replenishStartPadding = (
+/** Records a newly loaded history page while preserving the visible rows. */
+export const informHistoryPrepended = <Item>(
   model: Model,
-  targetPaddingPx: number,
+  input: HistoryPrependInput<Item>,
 ): ScrollReturn => {
-  const nextPaddingPx = StartPaddingState.match<number>(
-    model.startPaddingState,
-    {
-      Available: () => Math.max(model.startPaddingPx, targetPaddingPx),
-      FinalPage: () => 0,
+  const itemKeys = Array.map(input.items, input.itemToKey)
+
+  return HistoryState.match<ScrollReturn>(model.history, {
+    Disabled: () => informItemsChanged(model, itemKeys),
+    Enabled: ({ reservePx, prefetchViewports }) => {
+      const currentKeys = HashSet.fromIterable(itemKeys)
+      const nextHistory = HistoryState.Enabled({
+        reservePx,
+        prefetchViewports,
+        page: input.page,
+      })
+      const nextViewportAnchor = ViewportAnchor.match(model.viewportAnchor, {
+        Offset: ({ scrollTop }) => ViewportAnchor.Offset({ scrollTop }),
+        Row: ({ key, index, viewportOffset }) =>
+          ViewportAnchor.Row({
+            key,
+            index: index + input.prependedItems.length,
+            viewportOffset,
+          }),
+        End: () => ViewportAnchor.End(),
+      })
+      const nextModel = modifyFields(model, {
+        measuredRowHeights: Record.filter((_, key) =>
+          HashSet.has(currentKeys, key),
+        ),
+        history: () => nextHistory,
+        startPaddingPx: padding =>
+          input.page._tag === 'Complete' ? 0 : padding,
+        historyPageVersion: Number.increment,
+        viewportAnchor: () => nextViewportAnchor,
+        layoutVersion: Number.increment,
+      })
+
+      return { model: nextModel }
     },
-  )
-  if (model.startPaddingPx === nextPaddingPx) {
-    return { model }
-  }
-
-  return buildScrollRequest(
-    modifyFields(model, {
-      startPaddingPx: () => nextPaddingPx,
-      measurementMode: () => MeasurementMode.ReconcileAnchor(),
-      layoutVersion: Number.increment,
-    }),
-    ScrollRequest.Anchor({
-      anchor: ViewportAnchor.Offset({
-        scrollTop: model.scrollTop + nextPaddingPx - model.startPaddingPx,
-      }),
-      baselineScrollTop: model.scrollTop,
-    }),
-  )
+  })
 }
 
 // HELPERS
@@ -1175,7 +1110,7 @@ const listLayout = <Item>(
   contentAlignment: ContentAlignment,
 ): ListLayout => {
   const cachedLayout = listLayoutCache.get(items)
-  if (
+  const isCachedLayoutReusable =
     cachedLayout !== undefined &&
     cachedLayout.measuredRowHeights === model.measuredRowHeights &&
     cachedLayout.measurement === model.measurement &&
@@ -1186,7 +1121,7 @@ const listLayout = <Item>(
     cachedLayout.itemToEstimatedRowHeightPx === itemToEstimatedRowHeightPx &&
     cachedLayout.dynamicRowHeights === dynamicRowHeights &&
     cachedLayout.contentAlignment === contentAlignment
-  ) {
+  if (isCachedLayoutReusable) {
     return cachedLayout.layout
   }
 
@@ -1281,6 +1216,18 @@ const indexForKey = <Item>(
 const clampLayoutScrollTop = (layout: ListLayout, scrollTop: number): number =>
   Math.max(0, Math.min(scrollTop, layout.maxScrollTop))
 
+const layoutScrollTop = (
+  model: Model,
+  layout: ListLayout,
+  scrollTop: number = model.scrollTop,
+): number =>
+  clampLayoutScrollTop(
+    layout,
+    model.history._tag === 'Enabled'
+      ? layout.maxScrollTop + scrollTop
+      : scrollTop,
+  )
+
 const alignedLayoutScrollTop = (
   model: Model,
   layout: ListLayout,
@@ -1290,7 +1237,7 @@ const alignedLayoutScrollTop = (
   clampLayoutScrollTop(
     layout,
     scrollTopForRow(
-      model.scrollTop,
+      layoutScrollTop(model, layout),
       layout.containerHeight,
       offsets.startOffset,
       offsets.endOffset,
@@ -1326,13 +1273,14 @@ const scrollTopForLayoutTarget = <Item>(
   })
 
 const scrollTopForLayoutAnchor = <Item>(
+  model: Model,
   layout: ListLayout,
   items: ReadonlyArray<Item>,
   itemToKey: (item: Item, index: number) => string,
   anchor: typeof ViewportAnchor.Type,
 ): number =>
   ViewportAnchor.match<number>(anchor, {
-    Offset: ({ scrollTop }) => clampLayoutScrollTop(layout, scrollTop),
+    Offset: ({ scrollTop }) => layoutScrollTop(model, layout, scrollTop),
     Row: ({ key, index, viewportOffset }) => {
       const anchorIndex = Option.getOrElse(
         indexForKey(items, itemToKey, key),
@@ -1355,7 +1303,7 @@ const scrollTopForView = <Item>(
   itemToKey: (item: Item, index: number) => string,
 ): number =>
   PendingScroll.match<number>(model.pendingScroll, {
-    Idle: () => clampLayoutScrollTop(layout, model.scrollTop),
+    Idle: () => layoutScrollTop(model, layout),
     Pending: ({ request }) =>
       ScrollRequest.match<number>(request, {
         Target: ({ target, alignment }) =>
@@ -1368,10 +1316,10 @@ const scrollTopForView = <Item>(
               target,
               alignment,
             ),
-            () => clampLayoutScrollTop(layout, model.scrollTop),
+            () => layoutScrollTop(model, layout),
           ),
         Anchor: ({ anchor }) =>
-          scrollTopForLayoutAnchor(layout, items, itemToKey, anchor),
+          scrollTopForLayoutAnchor(model, layout, items, itemToKey, anchor),
       }),
   })
 
@@ -1478,7 +1426,7 @@ const rowMeasurement = (
 
 type ObserveVirtualListMessage =
   | typeof Message.ObservedContainerScroll.Type
-  | typeof Message.StartedScrollTowardStart.Type
+  | typeof Message.ApproachedLoadedStart.Type
   | typeof Message.EndedContainerScroll.Type
   | typeof Message.ResizedContainer.Type
   | typeof Message.MeasuredRows.Type
@@ -1490,7 +1438,7 @@ const SCROLL_SETTLE_FALLBACK_MS = 500
 const observeVirtualList = (
   element: Element,
   id: string,
-  observeStartGestures: boolean,
+  observeHistory: boolean,
 ): Stream.Stream<ObserveVirtualListMessage> =>
   Stream.callback<ObserveVirtualListMessage>(queue =>
     Effect.acquireRelease(
@@ -1499,15 +1447,75 @@ const observeVirtualList = (
           return () => undefined
         }
 
-        const hasScrollEnd = 'onscrollend' in element
         let isTouchActive = false
+        let previousScrollTop = element.scrollTop
+        let previousDistanceFromEnd = Math.max(
+          0,
+          element.scrollHeight - element.clientHeight - element.scrollTop,
+        )
+        let lastApproachedPageVersion: string | undefined
         let scrollSettleTimeout: ReturnType<typeof setTimeout> | undefined
+
+        const maybeEmitApproachedLoadedStart = (isTowardStart: boolean) => {
+          if (
+            element.getAttribute('data-virtual-list-history-page') !== 'More'
+          ) {
+            return
+          }
+
+          const maybeStartPaddingPx = pipe(
+            element.getAttribute('data-virtual-list-start-padding'),
+            Option.fromNullishOr,
+            Option.flatMap(Number.parse),
+          )
+          const maybePrefetchViewports = pipe(
+            element.getAttribute(
+              'data-virtual-list-history-prefetch-viewports',
+            ),
+            Option.fromNullishOr,
+            Option.flatMap(Number.parse),
+          )
+          const pageVersion = element.getAttribute(
+            'data-virtual-list-history-page-version',
+          )
+          if (
+            Option.isNone(maybeStartPaddingPx) ||
+            Option.isNone(maybePrefetchViewports) ||
+            pageVersion === null
+          ) {
+            return
+          }
+
+          const distanceToLoadedStartPx =
+            logicalScrollTop(element) - maybeStartPaddingPx.value
+          if (
+            distanceToLoadedStartPx >
+            element.clientHeight * maybePrefetchViewports.value
+          ) {
+            lastApproachedPageVersion = undefined
+            return
+          }
+
+          if (!isTowardStart || lastApproachedPageVersion === pageVersion) {
+            return
+          }
+
+          lastApproachedPageVersion = pageVersion
+          Queue.offerUnsafe(
+            queue,
+            Message.ApproachedLoadedStart({
+              distanceToLoadedStartPx,
+              containerHeight: element.clientHeight,
+            }),
+          )
+        }
 
         const emitEndedContainerScroll = () => {
           if (isTouchActive) {
             return
           }
 
+          lastApproachedPageVersion = undefined
           if (scrollSettleTimeout !== undefined) {
             clearTimeout(scrollSettleTimeout)
             scrollSettleTimeout = undefined
@@ -1516,10 +1524,6 @@ const observeVirtualList = (
         }
 
         const scheduleScrollSettleFallback = () => {
-          if (hasScrollEnd) {
-            return
-          }
-
           if (scrollSettleTimeout !== undefined) {
             clearTimeout(scrollSettleTimeout)
           }
@@ -1541,6 +1545,15 @@ const observeVirtualList = (
         emitContainerMeasurement()
 
         const scrollListener = () => {
+          const distanceFromEnd = Math.max(
+            0,
+            element.scrollHeight - element.clientHeight - element.scrollTop,
+          )
+          const isTowardStart =
+            element.scrollTop < previousScrollTop - 1 &&
+            distanceFromEnd > previousDistanceFromEnd + 1
+          previousScrollTop = element.scrollTop
+          previousDistanceFromEnd = distanceFromEnd
           Queue.offerUnsafe(
             queue,
             Message.ObservedContainerScroll({
@@ -1556,22 +1569,14 @@ const observeVirtualList = (
               ),
             }),
           )
-          if (observeStartGestures) {
+          if (observeHistory) {
             scheduleScrollSettleFallback()
+            maybeEmitApproachedLoadedStart(isTowardStart)
           }
         }
         element.addEventListener('scroll', scrollListener, { passive: true })
 
         const scrollEndListener = () => emitEndedContainerScroll()
-
-        const emitStartGesture = () =>
-          Queue.offerUnsafe(
-            queue,
-            Message.StartedScrollTowardStart({
-              scrollTop: element.scrollTop,
-              containerHeight: element.clientHeight,
-            }),
-          )
 
         let activeTouch:
           | Readonly<{
@@ -1630,7 +1635,7 @@ const observeVirtualList = (
           }
 
           if (deltaY > 0) {
-            emitStartGesture()
+            maybeEmitApproachedLoadedStart(true)
           }
           activeTouch = undefined
         }
@@ -1666,7 +1671,7 @@ const observeVirtualList = (
           scheduleScrollSettleFallback()
           if (!isWheelBurstActive && event.deltaY < 0) {
             isWheelBurstActive = true
-            emitStartGesture()
+            maybeEmitApproachedLoadedStart(true)
           }
         }
 
@@ -1681,11 +1686,11 @@ const observeVirtualList = (
             (event.key === ' ' && event.shiftKey)
           ) {
             scheduleScrollSettleFallback()
-            emitStartGesture()
+            maybeEmitApproachedLoadedStart(true)
           }
         }
 
-        if (observeStartGestures) {
+        if (observeHistory) {
           element.addEventListener('scrollend', scrollEndListener)
           element.addEventListener('touchstart', touchStartListener, {
             passive: true,
@@ -1786,7 +1791,7 @@ const observeVirtualList = (
           rowResizeObserver.disconnect()
           containerResizeObserver.disconnect()
           element.removeEventListener('scroll', scrollListener)
-          if (observeStartGestures) {
+          if (observeHistory) {
             element.removeEventListener('scrollend', scrollEndListener)
             element.removeEventListener('touchstart', touchStartListener)
             element.removeEventListener('touchmove', touchMoveListener)
@@ -1812,20 +1817,20 @@ const observeVirtualList = (
 export const ObserveVirtualList = Mount.defineStream('ObserveVirtualList', {
   args: {
     id: Schema.String,
-    observeStartGestures: Schema.optional(Schema.Boolean),
+    observeHistory: Schema.optional(Schema.Boolean),
   },
   messages: [
     Message.ObservedContainerScroll,
-    Message.StartedScrollTowardStart,
+    Message.ApproachedLoadedStart,
     Message.EndedContainerScroll,
     Message.ResizedContainer,
     Message.MeasuredRows,
   ],
-  execute: ({ element, id, observeStartGestures, viewStateChanges }) =>
+  execute: ({ element, id, observeHistory, viewStateChanges }) =>
     viewStateChanges.pipe(
       Stream.switchMap(viewState =>
         viewState === 'Live'
-          ? observeVirtualList(element, id, observeStartGestures ?? false)
+          ? observeVirtualList(element, id, observeHistory ?? false)
           : Stream.never,
       ),
     ),
@@ -1839,15 +1844,12 @@ const DEFAULT_OVERSCAN = 5
  *
  *  VirtualList owns scroll and resize observation through a Mount on its
  *  container. Dynamic rows are measured by the same lifecycle owner.
- *  `observeStartGestures` emits Messages when a gesture starts toward earlier
- *  content and when scrolling settles. */
+ *  A configured history list observes upward gestures and scroll settling. */
 type BaseViewInputs<Item> = Readonly<{
   items: ReadonlyArray<Item>
-  itemToKey: (item: Item, index: number) => string
   itemToView: (item: Item, index: number) => Html
   accessibleSet?: AccessibleSet
   overscan?: number
-  observeStartGestures?: boolean
   rowElement?: Exclude<TagName, 'textarea'>
   containerClassName?: string
   containerAttributes?: ReadonlyArray<ChildAttribute>
@@ -1873,7 +1875,8 @@ export type RowHeightInputs<Item> =
       itemToEstimatedRowHeightPx?: never
     }>
 
-export type ViewInputs<Item> = BaseViewInputs<Item> & RowHeightInputs<Item>
+/** Row definitions and display inputs supplied to `view` through `h.submodel`. */
+export type ViewInputs<Item> = BaseViewInputs<Item> & HistoryRows<Item>
 
 /** Renders a virtualized list. Only items inside the viewport (plus an
  *  overscan buffer) are mounted; spacer elements above and below the
@@ -1893,23 +1896,43 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
   (model, viewInputs, h) => {
     const {
       items,
-      itemToKey,
       itemToView,
       accessibleSet = AccessibleSet.Loaded(),
-      itemToRowHeightPx,
-      dynamicRowHeights,
-      itemToEstimatedRowHeightPx,
       overscan = DEFAULT_OVERSCAN,
-      observeStartGestures = false,
       rowElement = 'li',
       containerClassName,
       containerAttributes = [],
       contentAlignment = 'Start',
     } = viewInputs
+    const {
+      itemToKey,
+      itemToRowHeightPx,
+      dynamicRowHeights,
+      itemToEstimatedRowHeightPx,
+    } = viewInputs
+    const historyAttributes = HistoryState.match(model.history, {
+      Disabled: () => [],
+      Enabled: ({ prefetchViewports, page }) => [
+        h.DataAttribute(
+          'virtual-list-history-prefetch-viewports',
+          String(prefetchViewports),
+        ),
+        h.DataAttribute('virtual-list-history-page', page._tag),
+        h.DataAttribute(
+          'virtual-list-history-page-version',
+          String(model.historyPageVersion),
+        ),
+      ],
+    })
+    const observeHistory = model.history._tag === 'Enabled'
 
     const baseContainerAttributes = [
       h.Id(model.id),
       h.Role('list'),
+      ...historyAttributes,
+      ...(observeHistory
+        ? [h.DataAttribute('virtual-list-bottom-origin', 'true')]
+        : []),
       h.DataAttribute(
         'virtual-list-scroll-version',
         String(model.pendingScrollVersion),
@@ -1924,14 +1947,16 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
       ),
       h.OnMount(
         ObserveVirtualList(
-          observeStartGestures
-            ? { id: model.id, observeStartGestures }
-            : { id: model.id },
+          observeHistory ? { id: model.id, observeHistory } : { id: model.id },
         ),
       ),
       h.Style({
         overflow: 'auto',
-        'overflow-anchor': model.startPaddingPx > 0 ? 'none' : 'auto',
+        'overflow-anchor':
+          model.startPaddingPx > 0 || observeHistory ? 'none' : 'auto',
+        ...(observeHistory
+          ? { display: 'flex', 'flex-direction': 'column-reverse' }
+          : {}),
         'list-style': 'none',
         margin: '0',
         padding: '0',
@@ -2000,6 +2025,9 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
           h.Style({
             height: `${topSpacerHeight}px`,
             'overflow-anchor': 'none',
+            ...(observeHistory
+              ? { order: String(items.length + 1), 'flex-shrink': '0' }
+              : {}),
           }),
         ])
 
@@ -2008,6 +2036,7 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
           h.Style({
             height: `${bottomSpacerHeight}px`,
             'overflow-anchor': 'none',
+            ...(observeHistory ? { order: '0', 'flex-shrink': '0' } : {}),
           }),
         ])
 
@@ -2022,6 +2051,12 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
                   h.Style({
                     height: `${rowHeight}px`,
                     display: 'grid',
+                    ...(observeHistory
+                      ? {
+                          order: String(items.length - dataIndex),
+                          'flex-shrink': '0',
+                        }
+                      : {}),
                   }),
                 ]
               : [
@@ -2034,7 +2069,15 @@ const viewImpl = defineView<Model, Message, ViewInputs<unknown>>(
                     'virtual-list-layout-height',
                     String(rowHeight),
                   ),
-                  h.Style({ display: 'grid' }),
+                  h.Style({
+                    display: 'grid',
+                    ...(observeHistory
+                      ? {
+                          order: String(items.length - dataIndex),
+                          'flex-shrink': '0',
+                        }
+                      : {}),
+                  }),
                 ]
           return h.keyed(rowElement)(
             key,
