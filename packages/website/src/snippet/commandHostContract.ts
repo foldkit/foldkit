@@ -1,21 +1,13 @@
-import { Effect, Schema } from 'effect'
+import { Schema } from 'effect'
 import { Command } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-const Message = defineMessageUnion({
-  CompletedSaveDocument: {},
+export const Message = defineMessageUnion({
+  SucceededSaveDocument: {},
+  FailedSaveDocument: { reason: Schema.String },
 })
 
 export const SaveDocument = Command.define('SaveDocument', {
   args: { contents: Schema.String },
-  messages: [Message.CompletedSaveDocument],
+  messages: [Message.SucceededSaveDocument, Message.FailedSaveDocument],
 })
-
-export const makeSaveDocumentLayer = (
-  saveDocument: (contents: string) => Effect.Effect<void>,
-) =>
-  SaveDocument.toLayer(
-    Effect.succeed(({ contents }) =>
-      saveDocument(contents).pipe(Effect.as(Message.CompletedSaveDocument())),
-    ),
-  )

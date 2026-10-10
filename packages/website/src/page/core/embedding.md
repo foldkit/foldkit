@@ -10,6 +10,12 @@ The [embedding example](/example-apps/embedding) runs everything on this page: a
 
 Embedded apps are usually built with `Application.makeElement`: the view returns `Html` and the runtime stays scoped to its container, never touching the document `<head>`, the URL bar, or anything else the host owns. Use `Application.make` when the embedded app should own page-level concerns like the document title. `embed` accepts programs from both. Both forms carry their Effect requirements until `Application.provide` supplies the needed Layers.
 
+## Providing Host Implementations
+
+An embedded feature can declare a Command whose implementation belongs to its host. For example, an editor can request `SaveDocument` while the host supplies the persistence handler through `SaveDocument.toLayer`. The handler returns the editor's declared result Messages, which its update handles through the usual data flow.
+
+Provide that handler and its required services before calling `Runtime.embed`. [Host implementations for reusable features](/core/layers#host-implementations-for-reusable-features) shows the feature contract and a browser-storage host. When the feature owns the handler's workflow, provide its attached `.layer` and choose the underlying services at the host boundary instead.
+
 ## Declaring Ports
 
 Ports are declared with `Port.inbound` and `Port.outbound`, grouped in a record, and registered on the program config. The record keys name the ports on the handle:

@@ -12,6 +12,7 @@ import {
   coreArchitectureRouter,
   coreDevToolsRouter,
   coreEmbeddingRouter,
+  coreLayersRouter,
   coreManagedResourcesRouter,
   coreServerRenderingRouter,
   coreSubmodelRouter,
@@ -195,7 +196,7 @@ const heroSection = (
               ),
             ],
             [
-              'Foldkit is a TypeScript frontend framework built on Effect. It makes state and side effects explicit, so your team and AI agents can build features, trace behavior, and test changes.',
+              'Foldkit is a TypeScript frontend framework built on Effect. It makes state, side effects, and the services your application needs explicit, so your team and AI agents can build features, trace behavior, and test changes.',
             ],
           ),
           h.div(
@@ -286,6 +287,24 @@ const poweredBySection = (): Html =>
               poweredByItem(
                 'Commands use Effect for services, interruption, resources, and concurrency',
               ),
+              poweredByItem(
+                'TypeScript checks that required handlers and services are provided',
+              ),
+            ],
+          ),
+          ih.p(
+            [
+              ih.Class(
+                'mt-6 text-base md:text-lg font-book text-gray-700 dark:text-gray-300 leading-relaxed max-w-3xl',
+              ),
+            ],
+            [
+              'Each feature bundles its effect handlers in an ',
+              ih.a(
+                [ih.Href(coreLayersRouter()), ih.Class('link-accent')],
+                ['Effect Layer'],
+              ),
+              '. At the application root, compose those bundles with the services they need. Tests can provide controlled services while running the same handlers.',
             ],
           ),
         ],

@@ -47,9 +47,15 @@ Five sources report through the Runtime: Commands, the Browser, Mounts, Subscrip
 - **Subscriptions:** scoped Streams gated by a slice of the Model. The runtime keeps a Subscription alive while that slice holds its value, then starts a fresh scope when the value changes. A Subscription often turns an external source, such as timer ticks, `WebSocket` frames, or system theme changes, into Messages. It can also emit no Messages and maintain DOM state for its lifetime, such as setting `user-select: none` while a drag is active.
 - **ManagedResources:** stateful handles, such as a camera stream, a `WebSocket` connection, or a Web Worker pool, that exist while a slice of the Model holds a particular value. The runtime acquires and releases the handle and dispatches Messages for each lifecycle transition. Commands and Subscriptions can use the typed handle while it is live and receive `ResourceNotAvailable` rather than crashing when it is not.
 
-Layers sit beneath the loop instead of feeding it directly. They supply app-lifetime services such as an `RpcClient`, an analytics client, or a background compute worker, along with the handlers for Commands, Subscriptions, Mounts, and ManagedResources. Application-owned definitions attach their default handlers and expose `.layer` recipes; features combine those recipes in `EffectsLayer`, and the root `AppLayer` supplies their shared services. The runtime shares those service instances with effect handlers and startup Flags. A Layer does not produce Messages itself.
-
 These sources never mutate the Model. They report what happened with a Message, and only `update` decides the next state. If you want to know how the app reached its current state, follow the Messages.
+
+## Application Assembly
+
+Layers supply the handlers for Commands, Subscriptions, Mounts, and ManagedResources, along with shared services such as an `RpcClient` or an analytics client. Application-owned definitions attach their implementations and expose `.layer` recipes. Each feature combines those recipes in `EffectsLayer`, and the root `AppLayer` supplies their services. Include those Layers explicitly; attaching a constructor does not install its handler automatically.
+
+An update that returns a Command requires that named operation's handler. The handler Layer requires the services its implementation uses. Adding another service to the implementation changes the Layer's requirements without changing update's handler requirement. TypeScript checks that application assembly supplies the remaining requirements before the Runtime can start. [Handler and service requirements](/core/layers#handler-and-service-requirements) shows how this differs from carrying implementation dependencies through update.
+
+The Runtime builds the application Layer once per start and shares its service instances with effect handlers and startup Flags. A Layer does not produce Messages itself. Command work, Subscription Streams, mounted elements, and ManagedResource handles retain their own lifetimes; [Layers](/core/layers#choosing-the-lifetime) explains which scope owns each.
 
 ## Definitions
 

@@ -18,11 +18,29 @@ The application requires the `LoadUser` handler service. Both compositions inclu
 
 Passing the constructor Effect as the final definition argument creates the definition's `.layer` recipe through the same construction path and handler identity that `toLayer(constructor)` uses. It does not install the handler automatically. Include that recipe in the feature's `EffectsLayer` and provide the root `AppLayer` explicitly. Foldkit does not search for an attached handler or fall back to it when another implementation is missing.
 
-The handler Effect runs once when the Runtime builds the application Layer. For a Command, the function it returns receives serializable args each time the Command runs. For a Subscription, the returned function receives the current Model dependencies each time Foldkit starts or restarts its Stream. Mount and ManagedResource handlers likewise receive their element or Model-scoped requirements when that lifecycle begins.
+The handler Effect runs once when the Runtime builds the application Layer, including constructors for handlers that are never invoked. For a Command, the function it returns receives serializable args each time the Command runs. For a Subscription, the returned function receives the current Model dependencies each time Foldkit starts or restarts its Stream. Mount and ManagedResource handlers likewise receive their element or Model-scoped requirements when that lifecycle begins.
 
 Use `Effect.gen` to capture services, then leave a blank line before returning the invocation function. When construction has no work to perform, use `Effect.succeed(handler)`. The consistent shape makes application dependencies visible in the Layer graph even for a small handler.
 
 Do not capture current time, Command args, Subscription dependencies, a Mount's element, or an active ManagedResource handle. Those values belong to the shorter-lived operation or lifecycle that supplies them. Looking up a service in the constructor retrieves the instance built for the application; the lookup does not construct its provider again.
+
+## Handler and Service Requirements
+
+Handler Layers separate the operations that the update function requests from the services used to implement them. An update that returns `LoadUser({ userId })` requires the `LoadUser` handler. Its implementation requires `ApiClientService`.
+
+Suppose the handler also records successful loads through a `Telemetry` service. The constructor now obtains both services, and the returned function calls them when the Command runs. `LoadUser.layer` requires both services. The emitted Command requires `Command.Handler<'LoadUser'>`, so update and the parent updates that lift its Commands continue to carry that handler requirement.
+
+Compare that with a Command carrying the implementation Effect directly. Its Effect requires every service the implementation uses. Adding telemetry changes that requirement from `ApiClientService` to `ApiClientService | Telemetry`, which flows through update and its parent folds.
+
+| Requirement carried by                  | Before adding telemetry | After adding telemetry          |
+| --------------------------------------- | ----------------------- | ------------------------------- |
+| A Command with an inline implementation | `ApiClientService`      | `ApiClientService \| Telemetry` |
+| A Command produced by `LoadUser(...)`   | `LoadUser` handler      | `LoadUser` handler              |
+| The handler provider `LoadUser.layer`   | `ApiClientService`      | `ApiClientService \| Telemetry` |
+
+Application assembly must supply the new telemetry dependency before `Runtime.run` accepts the application. An incomplete provider composition carries `Telemetry` as an unsatisfied requirement until the root supplies it. If that requirement reaches `Runtime.run`, TypeScript rejects the application. The update and its parent folds require the `LoadUser` handler throughout.
+
+An inline Effect can also carry typed dependencies and use replaceable services. Defining a separate operation service yourself can achieve the same separation. Foldkit generates that service boundary from each definition and uses it across Commands, Subscriptions, Mounts, and ManagedResources. The cost is explicit handler Layer composition, even for a small implementation.
 
 ## Testing Through Service Boundaries
 
@@ -32,13 +50,27 @@ Choose the lowest service boundary whose code the test needs to exercise. If `Ap
 
 For a Subscription, the test service supplies the upstream events while the real handler still builds the Stream and Foldkit still starts, restarts, and stops it from Model dependencies. For a Mount, the test capability sits beneath the real element-scoped handler. For a ManagedResource, the test capability sits beneath the real acquire and release handler, so the Model-driven handle scope remains under test.
 
-A handler stub is a narrower, host-owned orchestration seam. A definition without a final constructor argument exposes `toLayer`, which a host or focused test uses to provide an implementation. That can drive a result path directly, but it does not test the handler that was replaced. Ordinary execution tests need no new testing DSL: compose the production `.layer` recipes with test Layers for the external services, then execute the application or operation through Effect.
+A handler stub can drive a result path directly, but it does not test the handler that was replaced. Ordinary execution tests need no new testing DSL: compose the production `.layer` recipes with test Layers for the external services, then execute the application or operation through Effect.
 
-::Snippet{name="commandHostContract" label="Command implemented by an external host"}
+## Host Implementations for Reusable Features
 
-`SaveDocument` has no `.layer` because its module does not own a default implementation. The embedding host calls `makeSaveDocumentLayer` with its save operation and includes the returned Layer in that host's `AppLayer`. Foldkit does not install another implementation when that Layer is absent.
+A reusable feature can define an operation and require the application using it to supply the implementation. The feature owns the Command's args and result Messages. Its update returns that Command, and the host decides how to perform the operation.
 
-Handler Layers make assembly requirements and application lifetime ownership explicit in the root Layer graph. The same typed requirements can also be carried directly in an Effect's service requirements, so handler Layers do not create a separate dependency registry or uniquely make services replaceable. They give Foldkit's runtime primitives one consistent application assembly boundary.
+For example, an editor feature can declare `SaveDocument` without choosing where documents are stored:
+
+::Snippet{name="commandHostContract" label="Editor declaring its save operation"}
+
+The editor's update returns `SaveDocument({ contents })` when the user requests a save and handles `SucceededSaveDocument` or `FailedSaveDocument` when it finishes. Omitting the final constructor argument gives the definition no `.layer`. The editor requires `Command.Handler<'SaveDocument'>`, which its parent carries to application assembly.
+
+A standalone host can implement this contract using browser storage:
+
+::Snippet{name="commandHostImplementation" label="Host saving a document to browser storage"}
+
+The host constructs a handler with `SaveDocument.toLayer` and provides its storage service beneath it. Include this handler alongside the feature's other handlers in the root `EffectsLayer`. Provide the assembled `AppLayer` before starting the application with `Runtime.run` or `Runtime.embed`. Without a provider for `SaveDocument`, the application retains that requirement and TypeScript rejects the start.
+
+The same editor could be used inside a publishing application whose host saves through its document API. Both hosts use the editor's Command definition and report its declared result Messages, so the editor's Model and update need no storage-specific branches.
+
+Use a host implementation when the operation's behavior belongs to the host. If the feature owns the save workflow and its result mapping, attach its constructor and let the host provide the storage or API service beneath that handler. Ordinary execution tests retain whichever handler the application uses and substitute its underlying services.
 
 ## Choosing the Lifetime
 

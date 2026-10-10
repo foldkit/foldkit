@@ -111,9 +111,11 @@ The constructor runs once at application startup and returns a function. That fu
 
 This constructor shape gives Commands, Subscriptions, Mounts, and ManagedResources one dependency injection boundary. Services are selected once at application assembly, while each Command invocation still receives its own args and performs fresh work. Looking up a service in the constructor retrieves the instance supplied by the application Layer; it does not construct that service again.
 
+An update that returns `FetchCount()` requires the `FetchCount` handler. Adding another service to its implementation changes `FetchCount.layer`'s requirements at assembly without changing update's handler requirement. [Handler and service requirements](/core/layers#handler-and-service-requirements) compares how this dependency change flows through inline Effects and handler Layers.
+
 When a handler has no dependencies or setup, use `Effect.succeed(handler)`. This keeps the same boundary without inventing construction work.
 
-Omit the final constructor argument when the definition is a contract whose implementation belongs to an external host. That definition has no `.layer`. The host calls `toLayer` with its implementation Effect at its assembly boundary. `toLayer` is also available when a focused test deliberately replaces the entire handler. Most execution tests keep `.layer` and replace the HTTP, storage, RPC, clock, or browser service beneath it.
+Omit the final constructor argument when the definition is a contract whose implementation belongs to an external host. That definition has no `.layer`. The host calls `toLayer` with its implementation Effect at its assembly boundary. [Host implementations for reusable features](/core/layers#host-implementations-for-reusable-features) shows an editor declaring a save operation that its host implements. `toLayer` is also available when a focused test deliberately replaces the entire handler. Most execution tests keep `.layer` and replace the HTTP, storage, RPC, clock, or browser service beneath it.
 
 Keep changing values inside the invocation. Command args, the current time, and an active ManagedResource handle belong to the operation that uses them. Capturing a value in the constructor gives it application lifetime. [Layers](/core/layers) explains acquisition and provider lifetimes in depth.
 
