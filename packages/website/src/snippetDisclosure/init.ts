@@ -6,7 +6,7 @@ import { type Model } from './model'
 
 export const init = (): Update.Return<Model, Message> => ({
   model: {
-    openSnippetIds: HashSet.empty(),
+    openDisclosureIds: HashSet.empty(),
     snippetSizes: HashMap.empty(),
   },
 })

@@ -21,10 +21,19 @@ const { model } = update(
   Message.SucceededLoadExampleSources({ sources }),
 )
 
-const renderedSnippetIds = (slug: string): ReadonlyArray<string> => {
-  const ids: Array<string> = []
+const renderedSnippets = (
+  slug: string,
+): ReadonlyArray<{
+  id: string
+  disclosureGroupId: string | undefined
+}> => {
+  const snippets: Array<{ id: string; disclosureGroupId: string | undefined }> =
+    []
   const renderSnippet: CodeBlock.RenderSnippet = config => {
-    ids.push(config.id)
+    snippets.push({
+      id: config.id,
+      disclosureGroupId: config.disclosureGroupId,
+    })
     return ih.empty
   }
 
@@ -40,13 +49,16 @@ const renderedSnippetIds = (slug: string): ReadonlyArray<string> => {
     given(model),
   )
 
-  return ids
+  return snippets
 }
 
 describe('example detail', () => {
-  test('source code controls include the example slug in their identity', () => {
-    expect(renderedSnippetIds('ssr')).toEqual([
-      'example-ssr-source-src/main.ts',
+  test('source code uses separate file identities and one disclosure group', () => {
+    expect(renderedSnippets('ssr')).toEqual([
+      {
+        id: 'example-ssr-source-src/main.ts',
+        disclosureGroupId: 'example-ssr-source',
+      },
     ])
   })
 })

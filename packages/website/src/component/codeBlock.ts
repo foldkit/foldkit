@@ -17,6 +17,7 @@ export type RenderCopyButton = (
 export type RenderSnippet = (
   config: Readonly<{
     id: string
+    disclosureGroupId?: string
     title?: string
     content: Html
     rawCode: string

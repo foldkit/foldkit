@@ -230,22 +230,22 @@ describe('application', () => {
   })
 
   test('the parent owns each snippet disclosure state', () => {
-    const snippetId = 'root-story-snippet'
+    const disclosureId = 'root-story-snippet'
 
     story(
       update,
       given(initAt(homeUrl)),
       message(
         Message.GotSnippetDisclosureMessage({
-          message: SnippetDisclosure.Message.ToggledSnippet({
-            snippetId,
+          message: SnippetDisclosure.Message.ToggledCodeDisclosure({
+            disclosureId,
             isOpen: true,
           }),
         }),
       ),
       model(model => {
         expect(
-          HashSet.has(model.snippetDisclosure.openSnippetIds, snippetId),
+          HashSet.has(model.snippetDisclosure.openDisclosureIds, disclosureId),
         ).toBe(true)
       }),
     )
