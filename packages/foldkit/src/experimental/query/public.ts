@@ -4,5 +4,6 @@ export type {
   KeyedQueryConfig,
   KeyedQueryToLayer,
   LayeredKeyedQuery,
+  SyncFields,
 } from './keyedQuery.js'
 export type { LayeredQuery, Query, QueryConfig, QueryToLayer } from './query.js'

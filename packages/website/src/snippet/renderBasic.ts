@@ -1,11 +1,11 @@
 import { Effect } from 'effect'
 import { Command, Render } from 'foldkit'
 
-const MeasurePanel = Command.define('MeasurePanel', {
-  messages: [MeasuredPanel],
-})
-
-const MeasurePanelLayer = MeasurePanel.toLayer(
+const MeasurePanel = Command.define(
+  'MeasurePanel',
+  {
+    messages: [MeasuredPanel],
+  },
   Effect.succeed(() =>
     Effect.gen(function* () {
       yield* Render.afterCommit
@@ -19,10 +19,10 @@ const MeasurePanelLayer = MeasurePanel.toLayer(
   ),
 )
 
-const StartTransition = Command.define('StartTransition', {
-  messages: [StartedTransition],
-})
-
-const StartTransitionLayer = StartTransition.toLayer(
+const StartTransition = Command.define(
+  'StartTransition',
+  {
+    messages: [StartedTransition],
+  },
   Effect.succeed(() => Render.afterPaint.pipe(Effect.as(StartedTransition()))),
 )

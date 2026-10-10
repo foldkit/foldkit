@@ -32,11 +32,11 @@ export type Message = typeof Message.Type
 
 // COMMAND
 
-export const SelectResume = Command.define('SelectResume', {
-  messages: [Message.CompletedSelectResume, Message.CancelledSelectResume],
-})
-
-export const SelectResumeLayer = SelectResume.toLayer(
+export const SelectResume = Command.define(
+  'SelectResume',
+  {
+    messages: [Message.CompletedSelectResume, Message.CancelledSelectResume],
+  },
   Effect.succeed(() =>
     File.select(['application/pdf']).pipe(
       Effect.map(
@@ -49,12 +49,12 @@ export const SelectResumeLayer = SelectResume.toLayer(
   ),
 )
 
-export const ReadResumePreview = Command.define('ReadResumePreview', {
-  args: { file: File.File },
-  messages: [Message.SucceededReadPreview, Message.FailedReadPreview],
-})
-
-export const ReadResumePreviewLayer = ReadResumePreview.toLayer(
+export const ReadResumePreview = Command.define(
+  'ReadResumePreview',
+  {
+    args: { file: File.File },
+    messages: [Message.SucceededReadPreview, Message.FailedReadPreview],
+  },
   Effect.succeed(({ file }) =>
     File.readAsDataUrl(file).pipe(
       Effect.map(dataUrl => Message.SucceededReadPreview({ dataUrl })),
@@ -149,6 +149,6 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
 }
 
 export const EffectsLayer = Layer.mergeAll(
-  SelectResumeLayer,
-  ReadResumePreviewLayer,
+  SelectResume.layer,
+  ReadResumePreview.layer,
 )

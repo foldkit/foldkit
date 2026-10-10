@@ -22,7 +22,7 @@ The Kind column below identifies each component category.
 
 ## Application Wiring
 
-Some components use Commands, Subscriptions, or Mounts for focus, positioning, animation, and other effects. The default bundle exposes `UI.EffectsLayer` and `UI.mounts`. Merge the Layer into the application's `EffectsLayer`, and include the Mount definitions in the application's `mounts` registration.
+Some components use Commands, Subscriptions, or Mounts for focus, positioning, animation, and other effects. `UI.EffectsLayer` aggregates the attached recipes for the standard component set, while `UI.mounts` aggregates their Mount definitions. Merge the Layer into the application's `EffectsLayer`, and include the Mount definitions in the application's `mounts` registration.
 
 The examples below assume `./main` exports the application's Model, init, update, view, and its own handler `EffectsLayer`. Supply any external service providers beneath the combined Layer as described in [Layers](/core/layers).
 
@@ -30,7 +30,7 @@ The examples below assume `./main` exports the application's Model, init, update
 
 Mount registration is necessary because view and `Html` do not carry Effect requirements. Registering the complete UI Mount collection is inert for components the view never renders.
 
-Applications that need a smaller bundle can merge individual component exports such as `Dialog.EffectsLayer` and `Menu.EffectsLayer`, then collect those components' `mounts`.
+Applications that select a smaller component set can merge individual exports such as `Dialog.EffectsLayer` and `Menu.EffectsLayer`, then collect those components' `mounts`. The aggregate and selective paths provide the same component handlers; the selective path leaves unused definitions out of the application graph.
 
 ::Snippet{name="uiEffectsSelective" label="Providing selected UI component effects"}
 

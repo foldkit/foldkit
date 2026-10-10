@@ -77,13 +77,12 @@ export const init = (config: InitConfig): Model => ({
 
 /** Waits for the tooltip's show delay before emitting
  *  `CompletedWaitBeforeShowing`. */
-export const WaitBeforeShowing = Command.define('WaitBeforeShowing', {
-  args: { delay: Schema.DurationFromMillis, version: Schema.Number },
-  messages: [Message.CompletedWaitBeforeShowing],
-})
-
-/** Effect provider for {@link WaitBeforeShowing}. */
-export const WaitBeforeShowingLayer = WaitBeforeShowing.toLayer(
+export const WaitBeforeShowing = Command.define(
+  'WaitBeforeShowing',
+  {
+    args: { delay: Schema.DurationFromMillis, version: Schema.Number },
+    messages: [Message.CompletedWaitBeforeShowing],
+  },
   Effect.succeed(({ delay, version }) =>
     Effect.sleep(delay).pipe(
       Effect.as(Message.CompletedWaitBeforeShowing({ version })),
@@ -91,17 +90,13 @@ export const WaitBeforeShowingLayer = WaitBeforeShowing.toLayer(
   ),
 )
 
-/** @internal Command handlers owned by Tooltip. */
-export const CommandsLayer = Layer.mergeAll(WaitBeforeShowingLayer)
-
 /** The anchor-positioning Mount this Tooltip renders on its panel. */
-export const AnchorTooltip = Mount.define('AnchorTooltip', {
-  args: { buttonId: Schema.String, anchor: AnchorConfig },
-  messages: [Message.CompletedAnchorTooltip],
-})
-
-/** Effect provider for {@link AnchorTooltip}. */
-export const AnchorTooltipLayer = AnchorTooltip.toLayer(
+export const AnchorTooltip = Mount.define(
+  'AnchorTooltip',
+  {
+    args: { buttonId: Schema.String, anchor: AnchorConfig },
+    messages: [Message.CompletedAnchorTooltip],
+  },
   Effect.succeed(({ element, buttonId, anchor }) =>
     Effect.gen(function* () {
       yield* Effect.acquireRelease(
@@ -123,7 +118,10 @@ export const AnchorTooltipLayer = AnchorTooltip.toLayer(
 export const mounts = [AnchorTooltip]
 
 /** Effect providers used by the Tooltip component. */
-export const EffectsLayer = Layer.mergeAll(CommandsLayer, AnchorTooltipLayer)
+export const EffectsLayer = Layer.mergeAll(
+  WaitBeforeShowing.layer,
+  AnchorTooltip.layer,
+)
 
 const computeUpdate = Update.make((model: Model, message: Message) =>
   Message.match(message, {

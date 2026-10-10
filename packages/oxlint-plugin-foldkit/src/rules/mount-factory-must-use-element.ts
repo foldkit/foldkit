@@ -66,7 +66,8 @@ const isMountHandler = (node: unknown): node is MountHandler =>
   node !== null &&
   'type' in node &&
   (node.type === 'ArrowFunctionExpression' ||
-    node.type === 'FunctionExpression')
+    node.type === 'FunctionExpression' ||
+    node.type === 'FunctionDeclaration')
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
@@ -85,26 +86,66 @@ const shadowsBindingName = (
   )
 }
 
-const referencesName = (value: unknown, bindingName: string): boolean => {
+const referencesHandlerParameter = (
+  value: Record<string, unknown>,
+  handler: MountHandler,
+  bindingName: string,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean => {
+  if (value.type !== 'Identifier' || value.name !== bindingName) {
+    return false
+  }
+
+  if (references === undefined) {
+    return true
+  }
+
+  return (
+    isIdentifierReference(value) &&
+    Option.exists(resolvedVariable(references, value), variable =>
+      variable.defs.some(
+        definition =>
+          definition.type === 'Parameter' && definition.node === handler,
+      ),
+    )
+  )
+}
+
+const referencesName = (
+  value: unknown,
+  handler: MountHandler,
+  bindingName: string,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean => {
   if (!isRecord(value)) return false
-  if (value.type === 'Identifier' && value.name === bindingName) return true
+  if (referencesHandlerParameter(value, handler, bindingName, references)) {
+    return true
+  }
   if (
+    references === undefined &&
     (value.type === 'ArrowFunctionExpression' ||
-      value.type === 'FunctionExpression') &&
+      value.type === 'FunctionExpression' ||
+      value.type === 'FunctionDeclaration') &&
     shadowsBindingName(value, bindingName)
   ) {
     return false
   }
   if (value.type === 'MemberExpression' && value.computed !== true) {
-    return referencesName(value.object, bindingName)
+    return referencesName(value.object, handler, bindingName, references)
   }
   if (value.type === 'Property') {
     const computedKeyReferences =
-      value.computed === true && referencesName(value.key, bindingName)
-    return computedKeyReferences || referencesName(value.value, bindingName)
+      value.computed === true &&
+      referencesName(value.key, handler, bindingName, references)
+    return (
+      computedKeyReferences ||
+      referencesName(value.value, handler, bindingName, references)
+    )
   }
   return Object.entries(value).some(
-    ([key, child]) => key !== 'parent' && referencesName(child, bindingName),
+    ([key, child]) =>
+      key !== 'parent' &&
+      referencesName(child, handler, bindingName, references),
   )
 }
 
@@ -112,15 +153,16 @@ type InputUse = 'Element' | 'OtherField' | 'MaybeElement'
 
 const inputUses = (
   value: unknown,
+  handler: MountHandler,
   inputName: string,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
 ): ReadonlyArray<InputUse> => {
   if (!isRecord(value)) return []
 
   if (
     value.type === 'MemberExpression' &&
     isRecord(value.object) &&
-    value.object.type === 'Identifier' &&
-    value.object.name === inputName
+    referencesHandlerParameter(value.object, handler, inputName, references)
   ) {
     if (value.computed === true) return ['MaybeElement']
 
@@ -132,12 +174,14 @@ const inputUses = (
   }
 
   if (value.type === 'MemberExpression' && value.computed !== true) {
-    return inputUses(value.object, inputName)
+    return inputUses(value.object, handler, inputName, references)
   }
 
   if (
+    references === undefined &&
     (value.type === 'ArrowFunctionExpression' ||
-      value.type === 'FunctionExpression') &&
+      value.type === 'FunctionExpression' ||
+      value.type === 'FunctionDeclaration') &&
     shadowsBindingName(value, inputName)
   ) {
     return []
@@ -145,17 +189,22 @@ const inputUses = (
 
   if (value.type === 'Property') {
     const keyUses =
-      value.computed === true ? inputUses(value.key, inputName) : []
+      value.computed === true
+        ? inputUses(value.key, handler, inputName, references)
+        : []
 
-    return [...keyUses, ...inputUses(value.value, inputName)]
+    return [
+      ...keyUses,
+      ...inputUses(value.value, handler, inputName, references),
+    ]
   }
 
-  if (value.type === 'Identifier' && value.name === inputName) {
+  if (referencesHandlerParameter(value, handler, inputName, references)) {
     return ['MaybeElement']
   }
 
   return Object.entries(value).flatMap(([key, child]) =>
-    key === 'parent' ? [] : inputUses(child, inputName),
+    key === 'parent' ? [] : inputUses(child, handler, inputName, references),
   )
 }
 
@@ -193,11 +242,12 @@ const withoutDefault = (value: ESTree.Node): ESTree.Node =>
 const bindingDiagnostic = (
   handler: MountHandler,
   bindingName: string,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
 ): Option.Option<string> => {
   if (bindingName.startsWith('_')) {
     return Option.some(ignoredElementBindingMessage(bindingName))
   }
-  return referencesName(handler.body, bindingName)
+  return referencesName(handler.body, handler, bindingName, references)
     ? Option.none()
     : Option.some(unusedElementBindingMessage(bindingName))
 }
@@ -205,8 +255,9 @@ const bindingDiagnostic = (
 const unpackedDiagnostic = (
   handler: MountHandler,
   bindingName: string,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
 ): Option.Option<string> => {
-  const uses = inputUses(handler.body, bindingName)
+  const uses = inputUses(handler.body, handler, bindingName, references)
 
   if (Array.isReadonlyArrayEmpty(uses)) {
     return Option.some(unusedInputMessage(bindingName))
@@ -217,7 +268,10 @@ const unpackedDiagnostic = (
     : Option.none()
 }
 
-const handlerDiagnostic = (handler: MountHandler): Option.Option<string> => {
+const handlerDiagnostic = (
+  handler: MountHandler,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): Option.Option<string> => {
   const [firstParameter] = handler.params
 
   if (firstParameter === undefined) {
@@ -225,7 +279,7 @@ const handlerDiagnostic = (handler: MountHandler): Option.Option<string> => {
   }
 
   if (firstParameter.type === 'Identifier') {
-    return unpackedDiagnostic(handler, firstParameter.name)
+    return unpackedDiagnostic(handler, firstParameter.name, references)
   }
 
   if (firstParameter.type !== 'ObjectPattern') {
@@ -236,13 +290,13 @@ const handlerDiagnostic = (handler: MountHandler): Option.Option<string> => {
     onNone: () =>
       Option.match(restBindingName(firstParameter), {
         onNone: () => Option.some(NO_ELEMENT_BINDING_MESSAGE),
-        onSome: restName => unpackedDiagnostic(handler, restName),
+        onSome: restName => unpackedDiagnostic(handler, restName, references),
       }),
     onSome: property => {
       const pattern = withoutDefault(property.value)
 
       return pattern.type === 'Identifier'
-        ? bindingDiagnostic(handler, pattern.name)
+        ? bindingDiagnostic(handler, pattern.name, references)
         : Option.none<string>()
     },
   })
@@ -281,6 +335,14 @@ const mountHandler = (
   localMountDefinitions: ReadonlySet<string>,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): Option.Option<MountHandler> => {
+  if (isMountDefinitionCall(node, references) && node.arguments.length === 3) {
+    return pipe(
+      Array.last(node.arguments),
+      Option.flatMap(build => effectConstructorValue(build, references)),
+      Option.filter(isMountHandler),
+    )
+  }
+
   if (
     !isMemberExpression(node.callee) ||
     !Option.exists(staticMemberName(node.callee), name => name === 'toLayer') ||
@@ -337,7 +399,7 @@ export const mountFactoryMustUseElement = Rule.define({
           {
             onNone: () => Effect.void,
             onSome: handler =>
-              Option.match(handlerDiagnostic(handler), {
+              Option.match(handlerDiagnostic(handler, references), {
                 onNone: () => Effect.void,
                 onSome: message =>
                   ctx.report(Diagnostic.make({ node: handler, message })),

@@ -458,19 +458,21 @@ class ShadowRootService extends Context.Service<
   ShadowRoot
 >()('foldkit/DevToolsShadowRoot') {}
 
-export const LockScroll = Command.define('LockScroll', {
-  messages: [Message.CompletedLockScroll],
-})
-const LockScrollLayer = LockScroll.toLayer(
+export const LockScroll = Command.define(
+  'LockScroll',
+  {
+    messages: [Message.CompletedLockScroll],
+  },
   Effect.succeed(() =>
     lockScroll.pipe(Effect.as(Message.CompletedLockScroll())),
   ),
 )
 
-export const UnlockScroll = Command.define('UnlockScroll', {
-  messages: [Message.CompletedUnlockScroll],
-})
-const UnlockScrollLayer = UnlockScroll.toLayer(
+export const UnlockScroll = Command.define(
+  'UnlockScroll',
+  {
+    messages: [Message.CompletedUnlockScroll],
+  },
   Effect.succeed(() =>
     unlockScroll.pipe(Effect.as(Message.CompletedUnlockScroll())),
   ),
@@ -505,11 +507,12 @@ const readPersistedState = Effect.gen(function* () {
   return yield* Schema.decodeEffect(DevToolsPersistedStateJson)(json)
 }).pipe(Effect.catch(() => Effect.succeed(DEFAULT_PERSISTED_STATE)))
 
-export const PersistDevToolsState = Command.define('PersistDevToolsState', {
-  args: { isOpen: Schema.Boolean, isFlattened: Schema.Boolean },
-  messages: [Message.CompletedPersistDevToolsState],
-})
-const PersistDevToolsStateLayer = PersistDevToolsState.toLayer(
+export const PersistDevToolsState = Command.define(
+  'PersistDevToolsState',
+  {
+    args: { isOpen: Schema.Boolean, isFlattened: Schema.Boolean },
+    messages: [Message.CompletedPersistDevToolsState],
+  },
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
 
@@ -552,11 +555,12 @@ const buildInspectionEffect = (store: DevToolsStore, index: number) =>
 // returns the model it resolved so the inspector reuses that single
 // resolution. Inspect-only navigation (no host pause) still uses
 // `InspectState`, which resolves once on its own.
-export const JumpToAndInspect = Command.define('JumpToAndInspect', {
-  args: { index: Schema.Number },
-  messages: [Message.ReceivedInspectedState],
-})
-const JumpToAndInspectLayer = JumpToAndInspect.toLayer(
+export const JumpToAndInspect = Command.define(
+  'JumpToAndInspect',
+  {
+    args: { index: Schema.Number },
+    messages: [Message.ReceivedInspectedState],
+  },
   Effect.gen(function* () {
     const store = yield* StoreService
 
@@ -568,11 +572,12 @@ const JumpToAndInspectLayer = JumpToAndInspect.toLayer(
   }),
 )
 
-export const InspectState = Command.define('InspectState', {
-  args: { index: Schema.Number },
-  messages: [Message.ReceivedInspectedState],
-})
-const InspectStateLayer = InspectState.toLayer(
+export const InspectState = Command.define(
+  'InspectState',
+  {
+    args: { index: Schema.Number },
+    messages: [Message.ReceivedInspectedState],
+  },
   Effect.gen(function* () {
     const store = yield* StoreService
 
@@ -580,10 +585,11 @@ const InspectStateLayer = InspectState.toLayer(
   }),
 )
 
-export const InspectLatest = Command.define('InspectLatest', {
-  messages: [Message.ReceivedInspectedState],
-})
-const InspectLatestLayer = InspectLatest.toLayer(
+export const InspectLatest = Command.define(
+  'InspectLatest',
+  {
+    messages: [Message.ReceivedInspectedState],
+  },
   Effect.gen(function* () {
     const store = yield* StoreService
 
@@ -595,10 +601,11 @@ const InspectLatestLayer = InspectLatest.toLayer(
   }),
 )
 
-export const Resume = Command.define('Resume', {
-  messages: [Message.CompletedResume],
-})
-const ResumeLayer = Resume.toLayer(
+export const Resume = Command.define(
+  'Resume',
+  {
+    messages: [Message.CompletedResume],
+  },
   Effect.gen(function* () {
     const store = yield* StoreService
 
@@ -606,10 +613,11 @@ const ResumeLayer = Resume.toLayer(
   }),
 )
 
-export const Clear = Command.define('Clear', {
-  messages: [Message.CompletedClear],
-})
-const ClearLayer = Clear.toLayer(
+export const Clear = Command.define(
+  'Clear',
+  {
+    messages: [Message.CompletedClear],
+  },
   Effect.gen(function* () {
     const store = yield* StoreService
 
@@ -617,19 +625,19 @@ const ClearLayer = Clear.toLayer(
   }),
 )
 
-export const CopyPayloadToClipboard = Command.define('CopyPayloadToClipboard', {
-  args: {
-    targetId: Schema.String,
-    requestId: Schema.Number,
-    payload: Schema.Unknown,
+export const CopyPayloadToClipboard = Command.define(
+  'CopyPayloadToClipboard',
+  {
+    args: {
+      targetId: Schema.String,
+      requestId: Schema.Number,
+      payload: Schema.Unknown,
+    },
+    messages: [
+      Message.SucceededCopyPayloadToClipboard,
+      Message.FailedCopyPayloadToClipboard,
+    ],
   },
-  messages: [
-    Message.SucceededCopyPayloadToClipboard,
-    Message.FailedCopyPayloadToClipboard,
-  ],
-})
-/** Provides the DevTools clipboard Command handler. */
-export const CopyPayloadToClipboardLayer = CopyPayloadToClipboard.toLayer(
   Effect.succeed(({ targetId, requestId, payload }) =>
     Effect.gen(function* () {
       const text = yield* serializePayload(payload)
@@ -647,6 +655,8 @@ export const CopyPayloadToClipboardLayer = CopyPayloadToClipboard.toLayer(
     ),
   ),
 )
+/** Provides the DevTools clipboard Command handler. */
+export const CopyPayloadToClipboardLayer = CopyPayloadToClipboard.layer
 
 const COPY_INDICATOR_DURATION = '1 second'
 
@@ -656,25 +666,23 @@ export const WaitBeforeHidingCopyIndicator = Command.define(
     args: { targetId: Schema.String, requestId: Schema.Number },
     messages: [Message.CompletedWaitBeforeHidingCopyIndicator],
   },
-)
-const WaitBeforeHidingCopyIndicatorLayer =
-  WaitBeforeHidingCopyIndicator.toLayer(
-    Effect.succeed(({ targetId, requestId }) =>
-      Effect.sleep(COPY_INDICATOR_DURATION).pipe(
-        Effect.as(
-          Message.CompletedWaitBeforeHidingCopyIndicator({
-            targetId,
-            requestId,
-          }),
-        ),
+  Effect.succeed(({ targetId, requestId }) =>
+    Effect.sleep(COPY_INDICATOR_DURATION).pipe(
+      Effect.as(
+        Message.CompletedWaitBeforeHidingCopyIndicator({
+          targetId,
+          requestId,
+        }),
       ),
     ),
-  )
+  ),
+)
 
-export const ScrollToTop = Command.define('ScrollToTop', {
-  messages: [Message.CompletedScrollToTop],
-})
-const ScrollToTopLayer = ScrollToTop.toLayer(
+export const ScrollToTop = Command.define(
+  'ScrollToTop',
+  {
+    messages: [Message.CompletedScrollToTop],
+  },
   Effect.gen(function* () {
     const shadow = yield* ShadowRootService
 
@@ -980,45 +988,43 @@ const overlaySubscriptions = Subscription.make<Model, Message>()(entry => ({
         isActive: Option.isSome(model.maybePendingScrubIndex),
       }),
     },
+    Effect.succeed(({ isActive }) =>
+      isActive
+        ? Subscription.animationFrameStream.pipe(
+            Stream.map(() => Message.TickedScrubFrame()),
+          )
+        : Stream.empty,
+    ),
   ),
-  storeUpdates: entry('StoreUpdates', {
-    messages: [Message.ReceivedStoreUpdate],
-  }),
-  mobileBreakpointChanges: entry('MobileBreakpointChanges', {
-    messages: [Message.ObservedMobileBreakpoint],
-  }),
-}))
+  storeUpdates: entry(
+    'StoreUpdates',
+    {
+      messages: [Message.ReceivedStoreUpdate],
+    },
+    Effect.gen(function* () {
+      const store = yield* StoreService
 
-const ScrubFrameTicksLayer = overlaySubscriptions.scrubFrameTicks.toLayer(
-  Effect.succeed(({ isActive }) =>
-    isActive
-      ? Subscription.animationFrameStream.pipe(
-          Stream.map(() => Message.TickedScrubFrame()),
+      return () =>
+        SubscriptionRef.changes(store.stateRef).pipe(
+          Stream.map(state =>
+            Message.ReceivedStoreUpdate(toDisplayState(state)),
+          ),
         )
-      : Stream.empty,
+    }),
   ),
-)
-
-const StoreUpdatesLayer = overlaySubscriptions.storeUpdates.toLayer(
-  Effect.gen(function* () {
-    const store = yield* StoreService
-
-    return () =>
-      SubscriptionRef.changes(store.stateRef).pipe(
-        Stream.map(state => Message.ReceivedStoreUpdate(toDisplayState(state))),
-      )
-  }),
-)
-
-const MobileBreakpointChangesLayer =
-  overlaySubscriptions.mobileBreakpointChanges.toLayer(
+  mobileBreakpointChanges: entry(
+    'MobileBreakpointChanges',
+    {
+      messages: [Message.ObservedMobileBreakpoint],
+    },
     Effect.succeed(() =>
       Dom.streamFromMediaQuery({
         query: MOBILE_BREAKPOINT_QUERY,
         mapMatches: isMobile => Message.ObservedMobileBreakpoint({ isMobile }),
       }),
     ),
-  )
+  ),
+}))
 
 // VIEW
 
@@ -2897,20 +2903,20 @@ export const createOverlay = (
     )
 
     const EffectsLayer = Layer.mergeAll(
-      LockScrollLayer,
-      UnlockScrollLayer,
-      PersistDevToolsStateLayer,
-      JumpToAndInspectLayer,
-      InspectStateLayer,
-      InspectLatestLayer,
-      ResumeLayer,
-      ClearLayer,
+      LockScroll.layer,
+      UnlockScroll.layer,
+      PersistDevToolsState.layer,
+      JumpToAndInspect.layer,
+      InspectState.layer,
+      InspectLatest.layer,
+      Resume.layer,
+      Clear.layer,
       CopyPayloadToClipboardLayer,
-      WaitBeforeHidingCopyIndicatorLayer,
-      ScrollToTopLayer,
-      ScrubFrameTicksLayer,
-      StoreUpdatesLayer,
-      MobileBreakpointChangesLayer,
+      WaitBeforeHidingCopyIndicator.layer,
+      ScrollToTop.layer,
+      overlaySubscriptions.scrubFrameTicks.layer,
+      overlaySubscriptions.storeUpdates.layer,
+      overlaySubscriptions.mobileBreakpointChanges.layer,
       Listbox.EffectsLayer,
       Tabs.EffectsLayer,
       scrubberSlider.EffectsLayer,

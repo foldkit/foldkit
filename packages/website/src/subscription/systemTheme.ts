@@ -18,20 +18,17 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
         ),
       }),
     },
+    Effect.succeed(({ isSystemPreference }) =>
+      Stream.when(
+        Dom.streamFromMediaQuery({
+          query: DARK_COLOR_SCHEME_QUERY,
+          mapMatches: isDark =>
+            Message.ChangedSystemTheme({ theme: isDark ? 'Dark' : 'Light' }),
+        }),
+        Effect.sync(() => isSystemPreference),
+      ),
+    ),
   ),
 }))
 
-export const SystemThemeChangesLayer = subscriptions.systemThemeChanges.toLayer(
-  Effect.succeed(({ isSystemPreference }) =>
-    Stream.when(
-      Dom.streamFromMediaQuery({
-        query: DARK_COLOR_SCHEME_QUERY,
-        mapMatches: isDark =>
-          Message.ChangedSystemTheme({ theme: isDark ? 'Dark' : 'Light' }),
-      }),
-      Effect.sync(() => isSystemPreference),
-    ),
-  ),
-)
-
-export { SystemThemeChangesLayer as EffectsLayer }
+export const EffectsLayer = subscriptions.systemThemeChanges.layer

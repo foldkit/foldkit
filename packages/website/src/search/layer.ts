@@ -1,15 +1,15 @@
 import { Layer } from 'effect'
 
 import {
-  FetchSearchResultsLayer,
-  FocusSearchInputLayer,
-  NavigateToResultLayer,
-  ScrollToResultLayer,
+  FetchSearchResults,
+  FocusSearchInput,
+  NavigateToResult,
+  ScrollToResult,
 } from './update'
 
 export const EffectsLayer = Layer.mergeAll(
-  FetchSearchResultsLayer,
-  FocusSearchInputLayer,
-  NavigateToResultLayer,
-  ScrollToResultLayer,
+  FetchSearchResults.layer,
+  FocusSearchInput.layer,
+  NavigateToResult.layer,
+  ScrollToResult.layer,
 )

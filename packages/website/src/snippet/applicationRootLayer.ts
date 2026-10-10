@@ -1,6 +1,6 @@
 import { Layer } from 'effect'
 
-import { NavigationLayer } from './command'
+import { Navigate } from './command'
 import {
   BrowserHttpLayer,
   HttpTestLayer,
@@ -16,7 +16,7 @@ import {
 } from './storage'
 
 export const EffectsLayer = Layer.mergeAll(
-  NavigationLayer,
+  Navigate.layer,
   Home.EffectsLayer,
   Products.EffectsLayer,
 )

@@ -10,10 +10,10 @@ const SaveDraft = {
 }
 
 // ✅ Good
-const FetchWeather = Command.define('FetchWeather', {
-  messages: [SucceededFetchWeather],
-})
-
-const FetchWeatherLayer = FetchWeather.toLayer(
+const FetchWeather = Command.define(
+  'FetchWeather',
+  {
+    messages: [SucceededFetchWeather],
+  },
   Effect.succeed(() => fetchWeatherEffect),
 )

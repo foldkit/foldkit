@@ -33,11 +33,6 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
         isDragging: Equivalence.Boolean,
       }),
     },
-  ),
-}))
-
-export const AutoScrollDuringDragLayer =
-  subscriptions.autoScrollDuringDrag.toLayer(
     Effect.succeed(({ isDragging }, readDependencies) =>
       Stream.when(
         Stream.callback<typeof Message.AdvancedAutoScrollFrame.Type>(queue =>
@@ -62,4 +57,7 @@ export const AutoScrollDuringDragLayer =
         Effect.sync(() => isDragging),
       ),
     ),
-  )
+  ),
+}))
+
+export const EffectsLayer = subscriptions.autoScrollDuringDrag.layer

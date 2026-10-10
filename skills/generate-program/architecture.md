@@ -69,9 +69,9 @@ Event handlers in the view dispatch Messages. They don't perform actions directl
 
 ### 3. Expected Command Failures Become Messages
 
-Define Command identities with `Command.define`, whose second argument declares `args` (optional), every result Message in `messages`, and optional interruption behavior. Definitions omit `execute`. Supply the production implementation with `Definition.toLayer(Effect<handler>)`. Use `Effect.gen` to capture services and return the invocation function, or `Effect.succeed(handler)` when construction has no work. Convert expected failures to Messages with `Effect.catch(() => Effect.succeed(Message.FailedX(...)))` so update can handle them as facts. Defects may still terminate the Effect and follow the runtime's crash path.
+Define Command identities with `Command.define`, whose config declares `args` (optional), every result Message in `messages`, and optional interruption behavior. Pass the production constructor Effect as the final argument. Definitions omit `execute`. Compose `Fetch.layer` directly in the owning feature's `EffectsLayer`. Use `Effect.gen` in the constructor to capture services and return the invocation function, or `Effect.succeed(handler)` when construction has no work. Convert expected failures to Messages with `Effect.catch(() => Effect.succeed(Message.FailedX(...)))` so update can handle them as facts. Defects may still terminate the Effect and follow the runtime's crash path. Omit the final argument only for a contract whose implementation belongs to an external host; that definition has no `.layer` and the host uses `toLayer`.
 
-Always assign definitions to PascalCase constants. Never use `Command.define` inline in a pipe chain. Definitions live where they're produced, colocated with the update function. Name the handler Layer `<CommandName>Layer` and merge it into that feature's `EffectsLayer` export. Let TypeScript infer Command return types. The `messages` array constrains the handler's return type at the type level.
+Always assign definitions to PascalCase constants. Never use `Command.define` inline in a pipe chain. Definitions live where they're produced, colocated with the update function. Create a standalone `<CommandName>Layer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly. Let TypeScript infer Command return types. The `messages` array constrains the handler's return type at the type level.
 
 For the canonical shapes, study the live examples directly. They stay synced with the API:
 
@@ -274,12 +274,12 @@ An Element owns its Flags Effect because no separate runtime call seeds it. Put 
 
 Commands, Subscriptions, Mounts, and ManagedResources leave handler requirements on the program returned by `Application.make` or `Application.makeElement`. Supply those requirements and their external services with `Application.provide` before starting the program. The assembly config has no `resources` field. Every provided Layer is built once for each runtime start and released when that runtime stops.
 
-Compose Layers at the same boundaries as the application. A feature exports one `EffectsLayer` that combines its local handlers with its children's effect bundles. Import Effect's module as `Layer` without an alias:
+Compose Layers at the same boundaries as the application. A feature's `layer.ts` imports its definitions and exports one `EffectsLayer` that combines their attached recipes with its children's effect bundles. Import Effect's module as `Layer` without an alias:
 
 ```ts
 export const EffectsLayer = Layer.mergeAll(
-  FetchResultsLayer,
-  SearchEventsLayer,
+  FetchResults.layer,
+  subscriptions.searchEvents.layer,
   Search.EffectsLayer,
   Settings.EffectsLayer,
 )
@@ -307,9 +307,9 @@ A static `application` export is acceptable only when every importer is browser-
 
 If a feature's handler Layers need a business service owned by that feature, provide it beneath the feature's `EffectsLayer`. Leave concrete HTTP, storage, RPC, and browser requirements open for the application root. The root chooses those providers and uses `Layer.provideMerge` when their outputs must remain available to Flags or another application consumer. Keep handler-by-handler imports out of the entry point. `Application.provide` can be chained when one provided Layer leaves requirements for a later Layer, but a composed `AppLayer` keeps ordinary application wiring at feature granularity.
 
-Calling `toLayer` creates a recipe; it does not build the Layer. The Runtime builds the application Layer once for each start. An Effect constructor passed to `toLayer` runs once during that build and returns the handler used later. Command lookup, Subscription restart, Mount insertion, and ManagedResource reacquisition reuse those handlers and providers. Looking up a service retrieves an instance from the Effect context; it does not construct the provider. Scope finalizers registered while building the Layer run when that runtime stops.
+Passing the final constructor Effect creates the definition's `.layer` recipe; it does not build the Layer. The Runtime builds the application Layer once for each start. The constructor runs once during that build and returns the function used later. Command lookup, Subscription restart, Mount insertion, and ManagedResource reacquisition reuse those handlers and providers. Looking up a service retrieves an instance from the Effect context; it does not construct the provider. Scope finalizers registered while building the Layer run when that runtime stops.
 
-Every `toLayer` call receives an Effect constructor. Use `Effect.gen` to capture services, leave a blank line, then return the invocation function. Use `Effect.succeed(handler)` when construction has no work to perform. Each invocation still receives the current Command args, Subscription dependencies, Mount element, or ManagedResource requirements.
+Every attached implementation is the final Effect constructor argument. Use `Effect.gen` to capture services, leave a blank line, then return the invocation function. Use `Effect.succeed(handler)` when construction has no work to perform. Each invocation still receives the current Command args, Subscription dependencies, Mount element, or ManagedResource requirements.
 
 Keep four lifetimes distinct. Application services such as RPC clients last for one Runtime start. A Command Effect lasts for one dispatch. Subscription Streams and ManagedResource handles follow Model conditions. Mount acquisition follows one DOM element. Do not capture current time, Command args, Subscription dependencies, a DOM element, or an active ManagedResource handle in an application-scoped constructor.
 
@@ -395,13 +395,13 @@ Build them with `Subscription.make<Model, Message>()(entry => ({ ... }))`. Use t
 
 - A stable handler name. Distinct definitions in one application need distinct names even when their record keys differ.
 - A `fields` map (the bare field map passed as `entry`'s second argument) naming every dependency. The builder calls `Schema.Struct(fields)` internally and infers the dependency type from this map.
-- A `messages` collection in `callbacks` listing the exact Message Schemas the handler Stream can emit. Use `messages: []` when the scoped Stream emits no Messages. The declared collection constrains `toLayer` and describes the Stream's output contract to runtime tooling.
+- A `messages` collection in `callbacks` listing the exact Message Schemas the handler Stream can emit. Use `messages: []` when the scoped Stream emits no Messages. The declared collection constrains the final constructor and describes the Stream's output contract to runtime tooling.
 - A `modelToDependencies(model)` function that returns the parameters the stream needs. Wrap an absent dependency in `Option` at the field level. The runtime restarts the stream whenever the dependencies change.
-- A handler Layer built with `subscriptions.key.toLayer(Effect.succeed(dependencies => stream))`. Errors should be mapped to a `Failed*` Message inside the stream rather than thrown. Merge the handler Layer into the feature's `EffectsLayer`.
+- A final `Effect.succeed(dependencies => stream)` argument. Errors should be mapped to a `Failed*` Message inside the stream rather than thrown. Compose `subscriptions.key.layer` directly in the feature's `EffectsLayer`.
 
-Name the handler for the events or scoped behavior the entry supplies, such as `KeyboardPresses`, `SystemThemeChanges`, or `GameClockTicks`. Keep the record key parallel, such as `keyboardPresses`, `systemThemeChanges`, or `gameClockTicks`. The Model dependencies determine when its scope is active. Avoid generic `Watch*` names that identify only the input source. Name an individual implementation Layer from the handler identity, such as `KeyboardPressesLayer`; a feature composes those Layers under `EffectsLayer`.
+Name the handler for the events or scoped behavior the entry supplies, such as `KeyboardPresses`, `SystemThemeChanges`, or `GameClockTicks`. Keep the record key parallel, such as `keyboardPresses`, `systemThemeChanges`, or `gameClockTicks`. The Model dependencies determine when its scope is active. Avoid generic `Watch*` names that identify only the input source. Compose the entry's attached recipe directly in `EffectsLayer`; create a standalone binding such as `KeyboardPressesLayer` only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly.
 
-For Layer-backed Subscriptions without local Model dependencies (keyboard listeners, window resize, animation frame ticks), pass the stable handler name and Message Schemas: `entry('KeyboardPresses', { messages: [Message.PressedKey] })`. The Subscription then stays active across local Model updates. Its parent can still gate it when lifted.
+For Layer-backed Subscriptions without local Model dependencies (keyboard listeners, window resize, animation frame ticks), pass the stable handler name, Message Schemas, and constructor: `entry('KeyboardPresses', { messages: [Message.PressedKey] }, Effect.succeed(() => stream))`. The Subscription then stays active across local Model updates. Its parent can still gate it when lifted.
 
 Canonical live examples:
 
@@ -476,7 +476,7 @@ Use these directly from the `effect` package for non-DOM concerns. No Foldkit wr
 | UUID                  | `yield* Effect.orDie(crypto.randomUUIDv4)` after `const crypto = yield* Crypto.Crypto`; provide `BrowserCrypto.layer` at the application root |
 | Delay                 | `yield* Effect.sleep(Duration.millis(500))`                                                                                                   |
 
-Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, or `Math.random()`. They compose naturally inside a Command's `toLayer` handler. For canonical wiring, see `repos/foldkit/examples/kanban/src/command.ts` (`FocusAddCardInput` wraps `Dom.focus`, `GenerateCardId` requires `Crypto.Crypto`) and `repos/foldkit/examples/kanban/src/entry.ts` (the root supplies `BrowserCrypto.layer`). `repos/foldkit/examples/stopwatch/src/main.ts` shows `Clock.currentTimeMillis` inside an `Effect.gen`.
+Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, or `Math.random()`. They compose naturally inside a Command's attached handler. For canonical wiring, see `repos/foldkit/examples/kanban/src/command.ts` (`FocusAddCardInput` wraps `Dom.focus`, `GenerateCardId` requires `Crypto.Crypto`) and `repos/foldkit/examples/kanban/src/entry.ts` (the root supplies `BrowserCrypto.layer`). `repos/foldkit/examples/stopwatch/src/main.ts` shows `Clock.currentTimeMillis` inside an `Effect.gen`.
 
 ## With and Without URL Routing
 

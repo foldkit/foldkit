@@ -1,18 +1,18 @@
 import { Layer } from 'effect'
 
-import { LoadProductsLayer } from './command'
-import { ManageProductPreviewLayer } from './managedResource'
-import { MeasureProductGridLayer } from './mount'
+import { LoadProducts } from './command'
+import { managedResources } from './managedResource'
+import { MeasureProductGrid } from './mount'
 import * as Reviews from './reviews'
 import { ProductCatalogLayer } from './service'
-import { ProductUpdatesLayer } from './subscription'
+import { subscriptions } from './subscription'
 
 export const EffectsLayer = Layer.provide(
   Layer.mergeAll(
-    LoadProductsLayer,
-    ProductUpdatesLayer,
-    MeasureProductGridLayer,
-    ManageProductPreviewLayer,
+    LoadProducts.layer,
+    subscriptions.productUpdates.layer,
+    MeasureProductGrid.layer,
+    managedResources.productPreview.layer,
     Reviews.EffectsLayer,
   ),
   ProductCatalogLayer,

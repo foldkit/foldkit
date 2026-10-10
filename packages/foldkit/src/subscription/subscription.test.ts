@@ -1,5 +1,6 @@
 import {
   Context,
+  Data,
   Deferred,
   Effect,
   Equivalence,
@@ -900,6 +901,68 @@ describe('Layer-backed entries', () => {
       )
       return {}
     })
+
+    const attachedCallbacks = {
+      messages: [HandlerMessage.ObservedTick],
+      modelToDependencies: (model: ChildModel) => ({ id: model.label }),
+    }
+    const narrowHandler = Effect.succeed(({ id }: Readonly<{ id: 'only' }>) =>
+      Stream.when(
+        Stream.succeed(HandlerMessage.ObservedTick()),
+        Effect.succeed(id.length > 0),
+      ),
+    )
+    const broad = ({ id }: Readonly<{ id: string }>) =>
+      Stream.when(
+        Stream.succeed(HandlerMessage.ObservedTick()),
+        Effect.succeed(id.length > 0),
+      )
+    const narrow = ({ id }: Readonly<{ id: 'only' }>) =>
+      Stream.when(
+        Stream.succeed(HandlerMessage.ObservedTick()),
+        Effect.succeed(id.length > 0),
+      )
+    const unionHandler = Effect.succeed(
+      globalThis.Math.random() > 0.5 ? broad : narrow,
+    )
+    const keepAliveCallbacks = {
+      ...attachedCallbacks,
+      keepAliveEquivalence: () => true,
+    }
+    const narrowReadHandler = Effect.succeed(
+      (
+        _dependencies: Readonly<{ id: string }>,
+        readDependencies: () => Readonly<{ id: 'only' }>,
+      ) =>
+        Stream.when(
+          Stream.succeed(HandlerMessage.ObservedTick()),
+          Effect.succeed(readDependencies().id.length > 0),
+        ),
+    )
+
+    make<ChildModel, HandlerMessage>()(entry => ({
+      narrow: entry(
+        'NarrowAttachedSubscription',
+        { id: Schema.String },
+        attachedCallbacks,
+        // @ts-expect-error An attached handler must accept every declared dependency value.
+        narrowHandler,
+      ),
+      union: entry(
+        'UnionAttachedSubscription',
+        { id: Schema.String },
+        attachedCallbacks,
+        // @ts-expect-error Every member of a handler union must accept all dependencies.
+        unionHandler,
+      ),
+      narrowRead: entry(
+        'NarrowReadAttachedSubscription',
+        { id: Schema.String },
+        // @ts-expect-error The keep-alive reader must return every declared dependency value.
+        keepAliveCallbacks,
+        narrowReadHandler,
+      ),
+    }))
   }
 
   class Prefix extends Context.Service<Prefix, { readonly value: string }>()(
@@ -909,6 +972,176 @@ describe('Layer-backed entries', () => {
   class Suffix extends Context.Service<Suffix, { readonly value: string }>()(
     'SubscriptionHandlerTestSuffix',
   ) {}
+
+  class HandlerBuildFailure extends Data.TaggedError(
+    'HandlerBuildFailure',
+  )<{}> {}
+
+  const attached = make<ChildModel, string>()(entry => ({
+    values: entry(
+      'AttachedLabelValues',
+      childFields,
+      {
+        messages: [Schema.String],
+        modelToDependencies: model => ({
+          isRunning: model.isRunning,
+          label: model.label,
+        }),
+      },
+      Effect.gen(function* () {
+        yield* Effect.scope
+        const { value: prefix } = yield* Prefix
+
+        if (prefix === 'fail') {
+          return yield* Effect.fail(new HandlerBuildFailure())
+        }
+
+        return ({ label }) =>
+          Stream.fromEffect(
+            Effect.gen(function* () {
+              yield* Effect.scope
+              const { value: suffix } = yield* Suffix
+              return `${prefix}${label}${suffix}`
+            }),
+          )
+      }),
+    ),
+  }))
+
+  const attachedVariants = make<ChildModel, string>()(entry => ({
+    failed: entry(
+      'AttachedFailedValues',
+      { messages: [Schema.String] },
+      Effect.fail(new HandlerBuildFailure()),
+    ),
+    persistent: entry(
+      'AttachedPersistentValues',
+      { messages: [Schema.String] },
+      Effect.succeed(dependencies => {
+        expectTypeOf(dependencies).toEqualTypeOf<Record<string, never>>()
+        return Stream.succeed('persistent')
+      }),
+    ),
+    contextual: entry(
+      'AttachedContextualValues',
+      {
+        id: Schema.String,
+        maybeCount: Schema.Option(Schema.Number),
+        label: Schema.optional(Schema.String),
+      },
+      {
+        messages: [Schema.String],
+        modelToDependencies: model => ({
+          id: model.label,
+          maybeCount: Option.none(),
+        }),
+      },
+      Effect.succeed(({ id, maybeCount, label }) => {
+        const exactId: string = id
+        const exactCount: Option.Option<number> = maybeCount
+        const exactLabel: string | undefined = label
+        // @ts-expect-error A required Schema.String field has no arbitrary members.
+        id.doesNotExist()
+        // @ts-expect-error A Schema.Option field retains its Option value type.
+        maybeCount.doesNotExist()
+        // @ts-expect-error An optional Schema.String field retains its string value type.
+        label?.doesNotExist()
+        return Stream.succeed(
+          `${exactId}:${Option.isSome(exactCount)}:${exactLabel ?? ''}`,
+        )
+      }),
+    ),
+    keepAlive: entry(
+      'AttachedKeepAliveValues',
+      childFields,
+      {
+        messages: [Schema.String],
+        modelToDependencies: model => ({
+          isRunning: model.isRunning,
+          label: model.label,
+        }),
+        keepAliveEquivalence: Equivalence.make(
+          (left, right) => left.isRunning === right.isRunning,
+        ),
+      },
+      Effect.succeed((dependencies, readDependencies) => {
+        expectTypeOf(dependencies).toEqualTypeOf<ChildDependencies>()
+        expectTypeOf(
+          readDependencies,
+        ).returns.toEqualTypeOf<ChildDependencies>()
+        return Stream.succeed(readDependencies().label)
+      }),
+    ),
+  }))
+
+  it('contextually types attached persistent and keep-alive handlers', () => {
+    expectTypeOf(attachedVariants.failed.layer).toEqualTypeOf<
+      Layer.Layer<Handler<'AttachedFailedValues'>, HandlerBuildFailure>
+    >()
+    expectTypeOf(attachedVariants.persistent.layer).toEqualTypeOf<
+      Layer.Layer<Handler<'AttachedPersistentValues'>>
+    >()
+    expectTypeOf(attachedVariants.contextual.layer).toEqualTypeOf<
+      Layer.Layer<Handler<'AttachedContextualValues'>>
+    >()
+    expectTypeOf(attachedVariants.keepAlive.layer).toEqualTypeOf<
+      Layer.Layer<Handler<'AttachedKeepAliveValues'>>
+    >()
+  })
+
+  it('attaches a precise handler Layer and preserves it through composition', async () => {
+    const lifted = lift(attached)<ParentModel, ParentMessage>({
+      read: model => Option.some(model.child),
+      toParentMessage,
+    })
+    const combined = aggregate(lifted)
+
+    expectTypeOf(attached.values.layer).toEqualTypeOf<
+      Layer.Layer<
+        Handler<'AttachedLabelValues'>,
+        HandlerBuildFailure,
+        Prefix | Suffix
+      >
+    >()
+    expect(lifted.values.layer).toBe(attached.values.layer)
+    expect(combined.values.layer).toBe(attached.values.layer)
+    expectTypeOf(lifted.values.layer).toEqualTypeOf(attached.values.layer)
+    expectTypeOf(combined.values.layer).toEqualTypeOf(attached.values.layer)
+
+    const handlerLayer = Layer.provide(
+      attached.values.layer,
+      Layer.mergeAll(
+        Layer.succeed(Prefix, { value: 'construction-' }),
+        Layer.succeed(Suffix, { value: '-construction' }),
+      ),
+    )
+    const dependencies = attached.values.modelToDependencies({
+      isRunning: true,
+      label: 'middle',
+    })
+    const result = await Effect.runPromise(
+      Effect.scoped(
+        Stream.runCollect(
+          attached.values.dependenciesToStream(dependencies),
+        ).pipe(
+          Effect.provide(handlerLayer),
+          Effect.provideService(Prefix, { value: 'invocation-' }),
+          Effect.provideService(Suffix, { value: '-invocation' }),
+        ),
+      ),
+    )
+
+    expect(result).toEqual(['construction-middle-invocation'])
+  })
+
+  it('leaves host contracts without an attached Layer', () => {
+    expect('layer' in contracted.observed).toBe(false)
+
+    if (false) {
+      // @ts-expect-error A host contract exposes toLayer but has no attached layer.
+      contracted.observed.layer
+    }
+  })
 
   const subscriptions = make<ChildModel, string>()(entry => ({
     registrationKey: entry('LabelValues', childFields, {

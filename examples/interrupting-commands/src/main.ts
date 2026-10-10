@@ -90,16 +90,16 @@ const MILLISECONDS_PER_MEGABYTE = 100
 export const UploadKey = Schema.Struct({ uploadId: Schema.Number })
 export type UploadKey = typeof UploadKey.Type
 
-export const UploadFile = Command.define('UploadFile', {
-  args: { ...UploadKey.fields, sizeMegabytes: Schema.Number },
-  messages: [Message.CompletedUploadFile],
-  interrupt: {
-    keyFields: ['uploadId'],
-    toKey: ({ uploadId }) => String(uploadId),
+export const UploadFile = Command.define(
+  'UploadFile',
+  {
+    args: { ...UploadKey.fields, sizeMegabytes: Schema.Number },
+    messages: [Message.CompletedUploadFile],
+    interrupt: {
+      keyFields: ['uploadId'],
+      toKey: ({ uploadId }) => String(uploadId),
+    },
   },
-})
-
-export const UploadFileLayer = UploadFile.toLayer(
   Effect.succeed(({ uploadId, sizeMegabytes }) =>
     Effect.gen(function* () {
       yield* Effect.sleep(
@@ -109,6 +109,8 @@ export const UploadFileLayer = UploadFile.toLayer(
     }),
   ),
 )
+
+export const EffectsLayer = UploadFile.layer
 
 export const CancelUploadFile = ({ uploadId }: UploadKey) =>
   UploadFile.Interrupt({ uploadId }, outcome =>

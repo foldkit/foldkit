@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option, Schema } from 'effect'
+import { Context, Effect, Layer, Option, Predicate, Schema } from 'effect'
 import { ManagedResource } from 'foldkit'
 
 import { Message } from './message'
@@ -25,10 +25,22 @@ const ChessEngineLayer: Layer.Layer<ChessEngineService> = Layer.effect(
     )
 
     return {
-      bestMove: (fen: string): Effect.Effect<string> => {
-        // Your engine protocol goes here: post the FEN to the worker and
-        // resolve with its best-move reply.
-      },
+      bestMove: (fen: string): Effect.Effect<string> =>
+        Effect.callback<string>(resume => {
+          const receiveBestMove = (event: MessageEvent<unknown>) => {
+            if (Predicate.isString(event.data)) {
+              worker.removeEventListener('message', receiveBestMove)
+              resume(Effect.succeed(event.data))
+            }
+          }
+
+          worker.addEventListener('message', receiveBestMove)
+          worker.postMessage({ fen })
+
+          return Effect.sync(() =>
+            worker.removeEventListener('message', receiveBestMove),
+          )
+        }),
     }
   }),
 )
@@ -40,23 +52,25 @@ const Engine = ManagedResource.tag<ChessEngine>()('ChessEngine')
 //    Layer.build registers the Layer's finalizers on it. They tear down when
 //    the resource is released or re-acquired.
 const managedResources = ManagedResource.make<Model, Message>()(entry => ({
-  engine: entry('ManageEngine', Schema.Option(Schema.Null), {
-    resource: Engine,
-    modelToMaybeRequirements: model => Option.as(model.maybeAnalysisSlug, null),
-    onAcquired: () => Message.StartedEngine(),
-    onReleased: () => Message.StoppedEngine(),
-    onAcquireError: error =>
-      Message.FailedStartEngine({ error: String(error) }),
-  }),
+  engine: entry(
+    'ManageEngine',
+    Schema.Option(Schema.Null),
+    {
+      resource: Engine,
+      modelToMaybeRequirements: model =>
+        Option.as(model.maybeAnalysisSlug, null),
+      onAcquired: () => Message.StartedEngine(),
+      onReleased: () => Message.StoppedEngine(),
+      onAcquireError: error =>
+        Message.FailedStartEngine({ error: String(error) }),
+    },
+    Effect.succeed({
+      acquire: () =>
+        Layer.build(ChessEngineLayer).pipe(
+          Effect.map(context => Context.get(context, ChessEngineService)),
+        ),
+      // The scope closes on release, so the Layer finalizers run automatically.
+      release: () => Effect.void,
+    }),
+  ),
 }))
-
-const ManageEngineLayer = managedResources.engine.toLayer(
-  Effect.succeed({
-    acquire: () =>
-      Layer.build(ChessEngineLayer).pipe(
-        Effect.map(context => Context.get(context, ChessEngineService)),
-      ),
-    // The scope closes on release, so the Layer finalizers run automatically.
-    release: () => Effect.void,
-  }),
-)

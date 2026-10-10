@@ -35,6 +35,7 @@ import {
   parentFieldToLens,
 } from './internal.js'
 
+/** Schema fields whose encoding and decoding require no services. */
 export type SyncFields = {
   readonly [x: PropertyKey]: Schema.Codec<unknown, unknown, never, never>
 }
@@ -96,6 +97,7 @@ export type KeyedQueryConfig<
   args: Fields
   toKey?: (args: Schema.Schema.Type<Schema.Struct<Fields>>) => string
   execute?: never
+  handler?: never
 }>
 
 /** Builds a KeyedQuery fetch handler Layer from an Effect that constructs a fetch. */
@@ -478,6 +480,33 @@ export function defineKeyedQuery<
   E,
   EI,
   Fields extends SyncFields,
+  HandlerRequirements = never,
+  BuildError = never,
+  BuildRequirements = never,
+>(
+  config: KeyedQueryConfig<Name, A, AI, E, EI, Fields>,
+  handler: Effect.Effect<
+    (
+      args: KeyedArgs<NoInfer<Fields>>,
+    ) => Effect.Effect<NoInfer<A>, NoInfer<E>, HandlerRequirements>,
+    BuildError,
+    BuildRequirements
+  >,
+): LayeredKeyedQuery<Name, A, AI, E, EI, Fields> &
+  Readonly<{
+    layer: Layer.Layer<
+      Command.Handler<`Fetch${Name}`>,
+      BuildError,
+      Exclude<HandlerRequirements | BuildRequirements, Scope.Scope>
+    >
+  }>
+export function defineKeyedQuery<
+  Name extends string,
+  A,
+  AI,
+  E,
+  EI,
+  Fields extends SyncFields,
 >(
   config: KeyedQueryConfig<Name, A, AI, E, EI, Fields>,
 ): LayeredKeyedQuery<Name, A, AI, E, EI, Fields>
@@ -488,9 +517,24 @@ export function defineKeyedQuery<
   E,
   EI,
   Fields extends SyncFields,
+  HandlerRequirements = never,
+  BuildError = never,
+  BuildRequirements = never,
 >(
   config: KeyedQueryConfig<Name, A, AI, E, EI, Fields>,
-): LayeredKeyedQuery<Name, A, AI, E, EI, Fields> {
+  handler?: Effect.Effect<
+    (args: KeyedArgs<Fields>) => Effect.Effect<A, E, HandlerRequirements>,
+    BuildError,
+    BuildRequirements
+  >,
+): LayeredKeyedQuery<Name, A, AI, E, EI, Fields> &
+  Readonly<{
+    layer?: Layer.Layer<
+      Command.Handler<`Fetch${Name}`>,
+      BuildError,
+      Exclude<HandlerRequirements | BuildRequirements, Scope.Scope>
+    >
+  }> {
   const Args = Schema.Struct(config.args)
   const Message = makeKeyedQueryMessage(config.data, config.error, Args)
   const completedFetch = (
@@ -540,5 +584,11 @@ export function defineKeyedQuery<
       ),
     )
 
-  return { ...query, Fetch, toLayer }
+  const definition = { ...query, Fetch, toLayer }
+
+  if (handler) {
+    return { ...definition, layer: toLayer(handler) }
+  } else {
+    return definition
+  }
 }

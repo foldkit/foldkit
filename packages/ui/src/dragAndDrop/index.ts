@@ -166,12 +166,12 @@ export const init = (config: InitConfig): Model => ({
 type Direction = (typeof Message.PressedArrowKey.Type)['direction']
 
 /** Focuses a draggable item by ID after a keyboard move, drop, or cancel. */
-export const FocusItem = Command.define('FocusItem', {
-  args: { itemId: Schema.String },
-  messages: [Message.CompletedFocusItem],
-})
-/** Provides the handler for {@link FocusItem}. */
-export const FocusItemLayer = FocusItem.toLayer(
+export const FocusItem = Command.define(
+  'FocusItem',
+  {
+    args: { itemId: Schema.String },
+    messages: [Message.CompletedFocusItem],
+  },
   Effect.succeed(({ itemId }) =>
     Dom.focus(attributeSelector('data-draggable-id', itemId)).pipe(
       Effect.ignore,
@@ -179,7 +179,6 @@ export const FocusItemLayer = FocusItem.toLayer(
     ),
   ),
 )
-
 const resolveWithinContainer = (
   config: Readonly<{
     itemId: string
@@ -290,33 +289,26 @@ const resolveKeyboardMoveTarget = (
   )
 
 /** Resolves the next keyboard drag position by querying the DOM for adjacent sortable items and containers. */
-export const ResolveKeyboardMove = Command.define('ResolveKeyboardMove', {
-  args: {
-    itemId: Schema.String,
-    currentContainerId: Schema.String,
-    currentIndex: Schema.Number,
-    direction: Schema.Literals([
-      'Up',
-      'Down',
-      'Left',
-      'Right',
-      'NextContainer',
-      'PreviousContainer',
-    ]),
+export const ResolveKeyboardMove = Command.define(
+  'ResolveKeyboardMove',
+  {
+    args: {
+      itemId: Schema.String,
+      currentContainerId: Schema.String,
+      currentIndex: Schema.Number,
+      direction: Schema.Literals([
+        'Up',
+        'Down',
+        'Left',
+        'Right',
+        'NextContainer',
+        'PreviousContainer',
+      ]),
+    },
+    messages: [Message.CompletedResolveKeyboardMove],
   },
-  messages: [Message.CompletedResolveKeyboardMove],
-})
-/** Provides the handler for {@link ResolveKeyboardMove}. */
-export const ResolveKeyboardMoveLayer = ResolveKeyboardMove.toLayer(
   Effect.succeed(resolveKeyboardMoveTarget),
 )
-
-/** @internal */
-export const CommandsLayer = Layer.mergeAll(
-  FocusItemLayer,
-  ResolveKeyboardMoveLayer,
-)
-
 // UPDATE
 
 /** Processes a drag-and-drop Message and returns the next Model, optional
@@ -578,6 +570,38 @@ const keyboardDragActivityFromModel = (
   )
 
 /** Document-level subscriptions for pointer and keyboard events during drag operations. */
+const streamKeyboardDragEvents = () =>
+  Dom.streamFromEventFilterMapPreventDefault({
+    target: document,
+    type: 'keydown',
+    filterMapEvent: event => {
+      // NOTE: the draggable's OnKeyDownPreventDefault calls preventDefault on
+      // the Space that activates keyboard drag. Skip it here so the same
+      // keypress doesn't also confirm the drop in the same tick.
+      if (event.defaultPrevented) {
+        return Option.none()
+      }
+      return Match.value(event.key).pipe(
+        Match.withReturnType<Option.Option<Message>>(),
+        Match.when('Tab', () =>
+          Option.some(
+            Message.PressedArrowKey({
+              direction: event.shiftKey ? 'PreviousContainer' : 'NextContainer',
+            }),
+          ),
+        ),
+        Match.whenOr(' ', 'Enter', () =>
+          Option.some(Message.ConfirmedKeyboardDrop()),
+        ),
+        Match.orElse(key =>
+          Option.map(arrowKeyToDirection(key), direction =>
+            Message.PressedArrowKey({ direction }),
+          ),
+        ),
+      )
+    },
+  })
+
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   documentPointer: entry(
     'DragAndDropDocumentPointer',
@@ -592,6 +616,35 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
         orientation: model.orientation,
       }),
     },
+    Effect.succeed(({ dragActivity, orientation }) => {
+      const pointerEvents = Stream.merge(
+        Stream.fromEventListener<PointerEvent>(document, 'pointermove').pipe(
+          Stream.mapEffect(event =>
+            Effect.sync(() =>
+              Message.MovedPointer({
+                screenX: event.screenX,
+                screenY: event.screenY,
+                clientX: event.clientX,
+                clientY: event.clientY,
+                maybeDropTarget: resolveDropTarget(
+                  event.clientX,
+                  event.clientY,
+                  orientation,
+                ),
+              }),
+            ),
+          ),
+        ),
+        Stream.fromEventListener<PointerEvent>(document, 'pointerup').pipe(
+          Stream.map(() => Message.ReleasedPointer()),
+        ),
+      )
+
+      return Stream.when(
+        Stream.merge(pointerEvents, documentDragStyles),
+        Effect.sync(() => dragActivity === 'Active'),
+      )
+    }),
   ),
 
   documentEscape: entry(
@@ -603,6 +656,15 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
         dragActivity: dragActivityFromModel(model),
       }),
     },
+    Effect.succeed(({ dragActivity }) =>
+      Stream.when(
+        Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
+          Stream.filter(({ key }) => key === 'Escape'),
+          Stream.map(() => Message.CancelledDrag()),
+        ),
+        Effect.sync(() => dragActivity === 'Active'),
+      ),
+    ),
   ),
 
   documentKeyboard: entry(
@@ -614,6 +676,12 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
         dragActivity: keyboardDragActivityFromModel(model),
       }),
     },
+    Effect.succeed(({ dragActivity }) =>
+      Stream.when(
+        streamKeyboardDragEvents(),
+        Effect.sync(() => dragActivity === 'Active'),
+      ),
+    ),
   ),
 
   autoScroll: entry(
@@ -635,130 +703,38 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
         isDragging: Equivalence.Boolean,
       }),
     },
+    Effect.succeed(({ isDragging }, readDependencies) =>
+      Stream.when(
+        Stream.callback<typeof Message.AdvancedAutoScrollFrame.Type>(queue =>
+          Effect.acquireRelease(
+            Effect.sync(() => {
+              const ref = { id: 0 }
+              const step = () => {
+                autoScroll(readDependencies().clientY)
+                Queue.offerUnsafe(queue, Message.AdvancedAutoScrollFrame())
+                ref.id = requestAnimationFrame(step)
+              }
+              ref.id = requestAnimationFrame(step)
+              return ref
+            }),
+            ref => Effect.sync(() => cancelAnimationFrame(ref.id)),
+          ).pipe(Effect.flatMap(() => Effect.never)),
+        ),
+        Effect.sync(() => isDragging),
+      ),
+    ),
   ),
 }))
 
-/** Provides the pointer-event handler for `subscriptions.documentPointer`. */
-export const DocumentPointerLayer = subscriptions.documentPointer.toLayer(
-  Effect.succeed(({ dragActivity, orientation }) => {
-    const pointerEvents = Stream.merge(
-      Stream.fromEventListener<PointerEvent>(document, 'pointermove').pipe(
-        Stream.mapEffect(event =>
-          Effect.sync(() =>
-            Message.MovedPointer({
-              screenX: event.screenX,
-              screenY: event.screenY,
-              clientX: event.clientX,
-              clientY: event.clientY,
-              maybeDropTarget: resolveDropTarget(
-                event.clientX,
-                event.clientY,
-                orientation,
-              ),
-            }),
-          ),
-        ),
-      ),
-      Stream.fromEventListener<PointerEvent>(document, 'pointerup').pipe(
-        Stream.map(() => Message.ReleasedPointer()),
-      ),
-    )
-
-    return Stream.when(
-      Stream.merge(pointerEvents, documentDragStyles),
-      Effect.sync(() => dragActivity === 'Active'),
-    )
-  }),
-)
-
-/** Provides the Escape-key handler for `subscriptions.documentEscape`. */
-export const DocumentEscapeLayer = subscriptions.documentEscape.toLayer(
-  Effect.succeed(({ dragActivity }) =>
-    Stream.when(
-      Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-        Stream.filter(({ key }) => key === 'Escape'),
-        Stream.map(() => Message.CancelledDrag()),
-      ),
-      Effect.sync(() => dragActivity === 'Active'),
-    ),
-  ),
-)
-
-/** Provides the keyboard handler for `subscriptions.documentKeyboard`. */
-export const DocumentKeyboardLayer = subscriptions.documentKeyboard.toLayer(
-  Effect.succeed(({ dragActivity }) =>
-    Stream.when(
-      Dom.streamFromEventFilterMapPreventDefault({
-        target: document,
-        type: 'keydown',
-        filterMapEvent: event => {
-          // NOTE: the draggable's OnKeyDownPreventDefault calls preventDefault on
-          // the Space that activates keyboard drag. Skip it here so the same
-          // keypress doesn't also confirm the drop in the same tick.
-          if (event.defaultPrevented) {
-            return Option.none()
-          }
-          return Match.value(event.key).pipe(
-            Match.withReturnType<Option.Option<Message>>(),
-            Match.when('Tab', () =>
-              Option.some(
-                Message.PressedArrowKey({
-                  direction: event.shiftKey
-                    ? 'PreviousContainer'
-                    : 'NextContainer',
-                }),
-              ),
-            ),
-            Match.whenOr(' ', 'Enter', () =>
-              Option.some(Message.ConfirmedKeyboardDrop()),
-            ),
-            Match.orElse(key =>
-              Option.map(arrowKeyToDirection(key), direction =>
-                Message.PressedArrowKey({ direction }),
-              ),
-            ),
-          )
-        },
-      }),
-      Effect.sync(() => dragActivity === 'Active'),
-    ),
-  ),
-)
-
-/** Provides the animation-frame handler for `subscriptions.autoScroll`. */
-export const AutoScrollLayer = subscriptions.autoScroll.toLayer(
-  Effect.succeed(({ isDragging }, readDependencies) =>
-    Stream.when(
-      Stream.callback<typeof Message.AdvancedAutoScrollFrame.Type>(queue =>
-        Effect.acquireRelease(
-          Effect.sync(() => {
-            const ref = { id: 0 }
-            const step = () => {
-              autoScroll(readDependencies().clientY)
-              Queue.offerUnsafe(queue, Message.AdvancedAutoScrollFrame())
-              ref.id = requestAnimationFrame(step)
-            }
-            ref.id = requestAnimationFrame(step)
-            return ref
-          }),
-          ref => Effect.sync(() => cancelAnimationFrame(ref.id)),
-        ).pipe(Effect.flatMap(() => Effect.never)),
-      ),
-      Effect.sync(() => isDragging),
-    ),
-  ),
-)
-
-/** @internal */
-export const SubscriptionsLayer = Layer.mergeAll(
-  DocumentPointerLayer,
-  DocumentEscapeLayer,
-  DocumentKeyboardLayer,
-  AutoScrollLayer,
-)
-
 /** Provides DragAndDrop's Command and Subscription handlers. */
-export const EffectsLayer = Layer.mergeAll(CommandsLayer, SubscriptionsLayer)
+export const EffectsLayer = Layer.mergeAll(
+  FocusItem.layer,
+  ResolveKeyboardMove.layer,
+  subscriptions.documentPointer.layer,
+  subscriptions.documentEscape.layer,
+  subscriptions.documentKeyboard.layer,
+  subscriptions.autoScroll.layer,
+)
 
 // VIEW
 

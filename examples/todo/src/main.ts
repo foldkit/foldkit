@@ -269,17 +269,12 @@ export const update = Update.make((model: Model, message: Message) =>
 
 // COMMAND
 
-export const GenerateTodo = Command.define('GenerateTodo', {
-  args: { text: Schema.String },
-  messages: [Message.CompletedGenerateTodo],
-})
-
-export const SaveTodos = Command.define('SaveTodos', {
-  args: { todos: Todos },
-  messages: [Message.SucceededSaveTodos, Message.FailedSaveTodos],
-})
-
-const GenerateTodoLayer = GenerateTodo.toLayer(
+export const GenerateTodo = Command.define(
+  'GenerateTodo',
+  {
+    args: { text: Schema.String },
+    messages: [Message.CompletedGenerateTodo],
+  },
   Effect.gen(function* () {
     const clock = yield* Clock.Clock
 
@@ -296,7 +291,12 @@ const GenerateTodoLayer = GenerateTodo.toLayer(
   }),
 )
 
-const SaveTodosLayer = SaveTodos.toLayer(
+export const SaveTodos = Command.define(
+  'SaveTodos',
+  {
+    args: { todos: Todos },
+    messages: [Message.SucceededSaveTodos, Message.FailedSaveTodos],
+  },
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
 
@@ -309,7 +309,7 @@ const SaveTodosLayer = SaveTodos.toLayer(
   }),
 )
 
-export const EffectsLayer = Layer.mergeAll(GenerateTodoLayer, SaveTodosLayer)
+export const EffectsLayer = Layer.mergeAll(GenerateTodo.layer, SaveTodos.layer)
 
 // VIEW
 

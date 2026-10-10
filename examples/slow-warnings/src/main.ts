@@ -230,9 +230,24 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  slowWarningReports: entry('SlowWarningReports', {
-    messages: [Message.RecordedSlowWarning],
-  }),
+  slowWarningReports: entry(
+    'SlowWarningReports',
+    {
+      messages: [Message.RecordedSlowWarning],
+    },
+    Effect.succeed(() =>
+      Dom.streamFromEventFilterMap({
+        target: slowWarningTarget,
+        type: SLOW_WARNING_EVENT,
+        filterMapEvent: event =>
+          pipe(
+            event.detail,
+            Schema.decodeOption(SlowWarningReport),
+            Option.map(report => Message.RecordedSlowWarning({ report })),
+          ),
+      }),
+    ),
+  ),
   dependencyExtractionWork: entry(
     'DependencyExtractionWork',
     { activeWorkload: Workload },
@@ -246,32 +261,13 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       },
       messages: [],
     },
+    Effect.succeed(() => Stream.empty),
   ),
 }))
 
-const SlowWarningReportsLayer = subscriptions.slowWarningReports.toLayer(
-  Effect.succeed(() =>
-    Dom.streamFromEventFilterMap({
-      target: slowWarningTarget,
-      type: SLOW_WARNING_EVENT,
-      filterMapEvent: event =>
-        pipe(
-          event.detail,
-          Schema.decodeOption(SlowWarningReport),
-          Option.map(report => Message.RecordedSlowWarning({ report })),
-        ),
-    }),
-  ),
-)
-
-const DependencyExtractionWorkLayer =
-  subscriptions.dependencyExtractionWork.toLayer(
-    Effect.succeed(() => Stream.empty),
-  )
-
 export const EffectsLayer = Layer.mergeAll(
-  SlowWarningReportsLayer,
-  DependencyExtractionWorkLayer,
+  subscriptions.slowWarningReports.layer,
+  subscriptions.dependencyExtractionWork.layer,
 )
 
 // VIEW

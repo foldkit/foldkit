@@ -237,32 +237,32 @@ type HandlerReturn<Model> = Readonly<{
 }>
 
 /** Prevents page scrolling while the combobox popup is open in modal mode. */
-export const LockComboboxScroll = Command.define('LockComboboxScroll', {
-  messages: [Message.CompletedLockComboboxScroll],
-})
-/** Provides the handler for {@link LockComboboxScroll}. */
-export const LockComboboxScrollLayer = LockComboboxScroll.toLayer(
+export const LockComboboxScroll = Command.define(
+  'LockComboboxScroll',
+  {
+    messages: [Message.CompletedLockComboboxScroll],
+  },
   Effect.succeed(() =>
     Dom.lockScroll.pipe(Effect.as(Message.CompletedLockComboboxScroll())),
   ),
 )
 /** Re-enables page scrolling after the combobox popup closes. */
-export const UnlockComboboxScroll = Command.define('UnlockComboboxScroll', {
-  messages: [Message.CompletedUnlockComboboxScroll],
-})
-/** Provides the handler for {@link UnlockComboboxScroll}. */
-export const UnlockComboboxScrollLayer = UnlockComboboxScroll.toLayer(
+export const UnlockComboboxScroll = Command.define(
+  'UnlockComboboxScroll',
+  {
+    messages: [Message.CompletedUnlockComboboxScroll],
+  },
   Effect.succeed(() =>
     Dom.unlockScroll.pipe(Effect.as(Message.CompletedUnlockComboboxScroll())),
   ),
 )
 /** Marks all elements outside the combobox as inert for modal behavior. */
-export const InertComboboxOthers = Command.define('InertComboboxOthers', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedInertComboboxOthers],
-})
-/** Provides the handler for {@link InertComboboxOthers}. */
-export const InertComboboxOthersLayer = InertComboboxOthers.toLayer(
+export const InertComboboxOthers = Command.define(
+  'InertComboboxOthers',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedInertComboboxOthers],
+  },
   Effect.succeed(({ id }) =>
     Dom.inertOthers(id, [
       inputWrapperSelector(id),
@@ -272,12 +272,12 @@ export const InertComboboxOthersLayer = InertComboboxOthers.toLayer(
   ),
 )
 /** Removes the inert attribute from elements outside the combobox. */
-export const RestoreComboboxInert = Command.define('RestoreComboboxInert', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedRestoreComboboxInert],
-})
-/** Provides the handler for {@link RestoreComboboxInert}. */
-export const RestoreComboboxInertLayer = RestoreComboboxInert.toLayer(
+export const RestoreComboboxInert = Command.define(
+  'RestoreComboboxInert',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedRestoreComboboxInert],
+  },
   Effect.succeed(({ id }) =>
     Dom.restoreInert(id).pipe(
       Effect.as(Message.CompletedRestoreComboboxInert()),
@@ -285,12 +285,12 @@ export const RestoreComboboxInertLayer = RestoreComboboxInert.toLayer(
   ),
 )
 /** Moves focus to the combobox input after selection or close. */
-export const FocusComboboxInput = Command.define('FocusComboboxInput', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedFocusComboboxInput],
-})
-/** Provides the handler for {@link FocusComboboxInput}. */
-export const FocusComboboxInputLayer = FocusComboboxInput.toLayer(
+export const FocusComboboxInput = Command.define(
+  'FocusComboboxInput',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedFocusComboboxInput],
+  },
   Effect.succeed(({ id }) =>
     Dom.focus(inputSelector(id)).pipe(
       Effect.ignore,
@@ -305,24 +305,20 @@ export const ScrollComboboxItemIntoView = Command.define(
     args: { id: Schema.String, index: Schema.Number },
     messages: [Message.CompletedScrollComboboxItemIntoView],
   },
-)
-/** Provides the handler for {@link ScrollComboboxItemIntoView}. */
-export const ScrollComboboxItemIntoViewLayer =
-  ScrollComboboxItemIntoView.toLayer(
-    Effect.succeed(({ id, index }) =>
-      Dom.scrollIntoView(itemSelector(id, index)).pipe(
-        Effect.ignore,
-        Effect.as(Message.CompletedScrollComboboxItemIntoView()),
-      ),
+  Effect.succeed(({ id, index }) =>
+    Dom.scrollIntoView(itemSelector(id, index)).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedScrollComboboxItemIntoView()),
     ),
-  )
+  ),
+)
 /** Programmatically clicks the active combobox item's DOM element. */
-export const ClickComboboxItem = Command.define('ClickComboboxItem', {
-  args: { id: Schema.String, index: Schema.Number },
-  messages: [Message.CompletedClickComboboxItem],
-})
-/** Provides the handler for {@link ClickComboboxItem}. */
-export const ClickComboboxItemLayer = ClickComboboxItem.toLayer(
+export const ClickComboboxItem = Command.define(
+  'ClickComboboxItem',
+  {
+    args: { id: Schema.String, index: Schema.Number },
+    messages: [Message.CompletedClickComboboxItem],
+  },
   Effect.succeed(({ id, index }) =>
     Dom.clickElement(itemSelector(id, index)).pipe(
       Effect.ignore,
@@ -337,40 +333,24 @@ export const DetectComboboxMovementOrAnimationEnd = Command.define(
     args: { id: Schema.String, generation: Schema.Number },
     messages: [Message.GotAnimationMessage],
   },
-)
-/** Provides the handler for {@link DetectComboboxMovementOrAnimationEnd}. */
-export const DetectComboboxMovementOrAnimationEndLayer =
-  DetectComboboxMovementOrAnimationEnd.toLayer(
-    Effect.succeed(({ id, generation }) =>
-      Effect.raceFirst(
-        Dom.detectElementMovement(inputWrapperSelector(id)).pipe(
-          Effect.as(
-            Message.GotAnimationMessage({
-              message: Animation.Message.EndedAnimation({ generation }),
-            }),
-          ),
+  Effect.succeed(({ id, generation }) =>
+    Effect.raceFirst(
+      Dom.detectElementMovement(inputWrapperSelector(id)).pipe(
+        Effect.as(
+          Message.GotAnimationMessage({
+            message: Animation.Message.EndedAnimation({ generation }),
+          }),
         ),
-        Dom.waitForAnimationSettled(itemsSelector(id)).pipe(
-          Effect.as(
-            Message.GotAnimationMessage({
-              message: Animation.Message.EndedAnimation({ generation }),
-            }),
-          ),
+      ),
+      Dom.waitForAnimationSettled(itemsSelector(id)).pipe(
+        Effect.as(
+          Message.GotAnimationMessage({
+            message: Animation.Message.EndedAnimation({ generation }),
+          }),
         ),
       ),
     ),
-  )
-
-/** @internal */
-export const CommandsLayer = Layer.mergeAll(
-  LockComboboxScrollLayer,
-  UnlockComboboxScrollLayer,
-  InertComboboxOthersLayer,
-  RestoreComboboxInertLayer,
-  FocusComboboxInputLayer,
-  ScrollComboboxItemIntoViewLayer,
-  ClickComboboxItemLayer,
-  DetectComboboxMovementOrAnimationEndLayer,
+  ),
 )
 
 /** Creates a combobox update function from variant-specific handlers. Shared logic (open, close, activate, transition) is handled internally; only close, selection, and immediate-activation behavior varies by variant. */
@@ -734,12 +714,12 @@ export const makeUpdate = <Model extends BaseModel>(
  *  installs the `pointerdown`-cancelling capture listener that prevents
  *  input blur on item presses. Exposed so Scene tests can call
  *  `Scene.Mount.resolve(AnchorCombobox, CompletedAnchorCombobox())`. */
-export const AnchorCombobox = Mount.define('AnchorCombobox', {
-  args: { buttonId: Schema.String, anchor: AnchorConfig },
-  messages: [Message.CompletedAnchorCombobox],
-})
-/** Provides the handler for {@link AnchorCombobox}. */
-export const AnchorComboboxLayer = AnchorCombobox.toLayer(
+export const AnchorCombobox = Mount.define(
+  'AnchorCombobox',
+  {
+    args: { buttonId: Schema.String, anchor: AnchorConfig },
+    messages: [Message.CompletedAnchorCombobox],
+  },
   Effect.succeed(({ element, buttonId, anchor }) =>
     Effect.gen(function* () {
       yield* Effect.acquireRelease(
@@ -778,9 +758,6 @@ export const AttachComboboxPreventBlur = Mount.define(
   {
     messages: [Message.CompletedAttachComboboxPreventBlur],
   },
-)
-/** Provides the handler for {@link AttachComboboxPreventBlur}. */
-export const AttachComboboxPreventBlurLayer = AttachComboboxPreventBlur.toLayer(
   Effect.succeed(({ element }) =>
     Effect.gen(function* () {
       yield* Effect.acquireRelease(
@@ -811,38 +788,34 @@ export const AttachComboboxSelectOnFocus = Mount.define(
   {
     messages: [Message.CompletedAttachComboboxSelectOnFocus],
   },
-)
-/** Provides the handler for {@link AttachComboboxSelectOnFocus}. */
-export const AttachComboboxSelectOnFocusLayer =
-  AttachComboboxSelectOnFocus.toLayer(
-    Effect.succeed(({ element }) =>
-      Effect.gen(function* () {
-        yield* Effect.acquireRelease(
-          Effect.sync(() => {
-            const handler = () => {
-              if (element instanceof HTMLInputElement) {
-                element.select()
-              }
+  Effect.succeed(({ element }) =>
+    Effect.gen(function* () {
+      yield* Effect.acquireRelease(
+        Effect.sync(() => {
+          const handler = () => {
+            if (element instanceof HTMLInputElement) {
+              element.select()
             }
-            element.addEventListener('focus', handler)
-            return handler
-          }),
-          handler =>
-            Effect.sync(() => element.removeEventListener('focus', handler)),
-        )
-        return Message.CompletedAttachComboboxSelectOnFocus()
-      }),
-    ),
-  )
+          }
+          element.addEventListener('focus', handler)
+          return handler
+        }),
+        handler =>
+          Effect.sync(() => element.removeEventListener('focus', handler)),
+      )
+      return Message.CompletedAttachComboboxSelectOnFocus()
+    }),
+  ),
+)
 
 /** The backdrop-portaling Mount this Combobox renders. Exposed so Scene tests can
  *  call `Scene.Mount.resolve(PortalComboboxBackdrop, CompletedPortalComboboxBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
-export const PortalComboboxBackdrop = Mount.define('PortalComboboxBackdrop', {
-  messages: [Message.CompletedPortalComboboxBackdrop],
-})
-/** Provides the handler for {@link PortalComboboxBackdrop}. */
-export const PortalComboboxBackdropLayer = PortalComboboxBackdrop.toLayer(
+export const PortalComboboxBackdrop = Mount.define(
+  'PortalComboboxBackdrop',
+  {
+    messages: [Message.CompletedPortalComboboxBackdrop],
+  },
   Effect.succeed(({ element }) =>
     Effect.gen(function* () {
       yield* Effect.acquireRelease(
@@ -864,11 +837,18 @@ export const mounts = [
 
 /** Provides Combobox's Command and Mount handlers. */
 export const EffectsLayer = Layer.mergeAll(
-  CommandsLayer,
-  AnchorComboboxLayer,
-  AttachComboboxPreventBlurLayer,
-  AttachComboboxSelectOnFocusLayer,
-  PortalComboboxBackdropLayer,
+  LockComboboxScroll.layer,
+  UnlockComboboxScroll.layer,
+  InertComboboxOthers.layer,
+  RestoreComboboxInert.layer,
+  FocusComboboxInput.layer,
+  ScrollComboboxItemIntoView.layer,
+  ClickComboboxItem.layer,
+  DetectComboboxMovementOrAnimationEnd.layer,
+  AnchorCombobox.layer,
+  AttachComboboxPreventBlur.layer,
+  AttachComboboxSelectOnFocus.layer,
+  PortalComboboxBackdrop.layer,
   AnimationEffectsLayer,
 )
 

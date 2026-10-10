@@ -7,6 +7,7 @@ const Message = defineMessageUnion({
   SucceededMountChart: {},
   FailedMountChart: { reason: Schema.String },
 })
+type Message = typeof Message.Type
 
 // Mount.define gives the action a name and constrains what Messages it can
 // produce, plus an args record so the chart's per-instance data flows through
@@ -17,12 +18,12 @@ const Message = defineMessageUnion({
 const ChartData = Schema.Array(Schema.Number)
 type ChartData = typeof ChartData.Type
 
-const MountChart = Mount.define('MountChart', {
-  args: { data: ChartData },
-  messages: [Message.SucceededMountChart, Message.FailedMountChart],
-})
-
-const MountChartLayer = MountChart.toLayer(
+const MountChart = Mount.define(
+  'MountChart',
+  {
+    args: { data: ChartData },
+    messages: [Message.SucceededMountChart, Message.FailedMountChart],
+  },
   Effect.succeed(({ element, data }) =>
     Effect.gen(function* () {
       yield* Effect.acquireRelease(

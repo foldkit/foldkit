@@ -63,5 +63,3 @@ export const init = (flags: Flags, url: Url) => {
       ),
   })
 }
-
-export { EffectsLayer } from './layer'

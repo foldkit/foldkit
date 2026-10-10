@@ -18,11 +18,11 @@ The counter's update function has only changed the count so far. Add a button th
 
 Three pieces connect the work to update:
 
-- `Command.define` names `WaitBeforeReset` and declares the Messages it can produce.
-- `WaitBeforeResetLayer` supplies the handler: wait one second, then produce `CompletedWaitBeforeReset`.
+- `Command.define` names `WaitBeforeReset`, declares the Messages it can produce, and takes its handler constructor as the final argument. The returned handler waits one second, then produces `CompletedWaitBeforeReset`.
+- `WaitBeforeReset.layer` is the Layer recipe for that handler.
 - `WaitBeforeReset()` creates the Command value that update returns. Creating that value does not start the timer.
 
-The definition always omits `execute`. A Command definition belongs to pure application logic; its Layer supplies the effects at application assembly. `toLayer` always receives an Effect that constructs the invocation function. Use `Effect.succeed` when construction has no work to do.
+The final argument is an Effect that constructs the invocation function, and `.layer` is the Layer recipe application assembly provides. Use `Effect.succeed` when construction has no work to do.
 
 `Update.make` infers the handler requirements from every update branch. It does not execute Commands or change the function's behavior.
 
@@ -70,7 +70,7 @@ Network work follows the same loop. This excerpt also uses the counter's Model. 
 
 ::Snippet{name="counterHttpCommand" label="Fetching and decoding a count"}
 
-`FetchCountLayer` captures the application's `HttpClient` when its handler is constructed. `fetchCount` constructs the request, checks for a successful status, and decodes the JSON with Schema. It produces `SucceededFetchCount` with the decoded count. Update then puts that value in the Model.
+The `FetchCount` handler captures the application's `HttpClient` when its Layer is built. `fetchCount` constructs the request, checks for a successful status, and decodes the JSON with Schema. It produces `SucceededFetchCount` with the decoded count. Update then puts that value in the Model.
 
 `Effect.catch` converts request, status, and decoding failures into `FailedFetchCount`. A failed request becomes a fact for update to handle. This small counter keeps its current count on failure; an application can store an error state and render a retry button in that branch.
 
@@ -80,7 +80,7 @@ A Command handler must convert its expected failures into declared result Messag
 
 ## Handler Layers
 
-Separating the Command definition from its handler lets update declare work without choosing how that work is implemented. Update imports `FetchCount`; application assembly supplies `FetchCountLayer` and the HTTP service it needs. A feature can expose its Commands to a parent while keeping its implementations in one `EffectsLayer`.
+Separating the Command definition from its handler lets update declare work without choosing how that work is implemented. Update imports `FetchCount`; application assembly supplies its attached handler and the HTTP service it needs. A feature can expose its Commands to a parent while keeping its implementations in one `EffectsLayer`.
 
 The two Layers serve different purposes:
 
@@ -89,7 +89,7 @@ The two Layers serve different purposes:
 | `FetchCountLayer` | The application's request, decoding, and result Message logic |
 | `Http.layer`      | The browser HTTP client used by that logic                    |
 
-For an execution test, keep `FetchCountLayer` and provide a deterministic HTTP client beneath it. The request and result handling then run as they do in the application.
+This tutorial names the individual provider `FetchCountLayer` because both root composition and the direct execution test reuse it. In ordinary feature assembly, compose `FetchCount.layer` directly in `EffectsLayer`. For an execution test, keep that real handler and provide a deterministic HTTP client beneath it. The request and result handling then run as they do in the application.
 
 ### Providing Services
 
@@ -103,7 +103,7 @@ The entry point provides `AppLayer` to the application, as it provided the count
 
 ### Constructing the Handler {#implementing-the-handler}
 
-`toLayer` accepts an Effect that constructs the handler. The constructor captures dependencies when the application Layer is built, then returns the function that performs each invocation:
+The final `Command.define` argument is an Effect that constructs the handler. It captures dependencies when the application Layer is built, then returns the function that performs each invocation:
 
 ::Snippet{name="commandHandlerConstructor" label="Capturing a client during handler construction"}
 
@@ -111,13 +111,15 @@ The constructor runs once at application startup and returns a function. That fu
 
 This constructor shape gives Commands, Subscriptions, Mounts, and ManagedResources one dependency injection boundary. Services are selected once at application assembly, while each Command invocation still receives its own args and performs fresh work. Looking up a service in the constructor retrieves the instance supplied by the application Layer; it does not construct that service again.
 
-When a handler has no dependencies or setup, pass `Effect.succeed(handler)`. This keeps the same boundary without inventing construction work.
+When a handler has no dependencies or setup, use `Effect.succeed(handler)`. This keeps the same boundary without inventing construction work.
+
+Omit the final constructor argument when the definition is a contract whose implementation belongs to an external host. That definition has no `.layer`. The host calls `toLayer` with its implementation Effect at its assembly boundary. `toLayer` is also available when a focused test deliberately replaces the entire handler. Most execution tests keep `.layer` and replace the HTTP, storage, RPC, clock, or browser service beneath it.
 
 Keep changing values inside the invocation. Command args, the current time, and an active ManagedResource handle belong to the operation that uses them. Capturing a value in the constructor gives it application lifetime. [Layers](/core/layers) explains acquisition and provider lifetimes in depth.
 
 ### Naming and Composition
 
-Name an individual handler Layer after its definition: `FetchCountLayer`. A feature with several effect handlers combines them under one `EffectsLayer` export, consumed through its namespace, such as `Search.EffectsLayer`. The root combines feature effect handlers in `EffectsLayer`, shared providers in `ServicesLayer`, and both in `AppLayer`. The entry point imports `AppLayer`. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows the file layout and composition.
+Compose `FetchCount.layer` directly in the feature's `EffectsLayer`. Create a standalone `FetchCountLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly. A feature's `layer.ts` imports its definitions and exposes the bundle through its namespace, such as `Search.EffectsLayer`. The root combines feature effect handlers in `EffectsLayer`, shared providers in `ServicesLayer`, and both in `AppLayer`. The entry point imports `AppLayer`. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows the file layout and composition.
 
 Give each Layer-backed Command definition a distinct name within an application. A Command accepts a Layer built from its own definition. Providing a Layer from a different definition with the same name fails when the Command runs.
 

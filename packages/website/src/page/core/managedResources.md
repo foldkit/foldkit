@@ -10,15 +10,17 @@ Application-scoped Layers are the kitchen equipment available all night. A Manag
 
 Define the handle’s identity with `ManagedResource.tag`, then wire its lifecycle with `ManagedResource.make`. The `modelToMaybeRequirements` function returns `Option.some(params)` while the handle should be active and `Option.none()` while it should be absent.
 
-Give each entry a stable handler name and supply its acquire and release functions with `entry.toLayer(Effect<handler>)`. The `managedResources` record stays in the application: it declares the Model condition, the handle identity, and the lifecycle Messages. `Application.provide` supplies the handler Layer. The Layer lasts for the application lifetime; the handle it acquires still starts and stops according to the Model.
+Give each entry a stable handler name and pass a final Effect argument that constructs both `acquire` and `release`. Both functions are required whenever the constructor is supplied. The entry exposes that attached recipe as `.layer`. The `managedResources` record stays in the application: it declares the Model condition, the handle identity, and the lifecycle Messages. `Application.provide` supplies the handler Layer. The Layer lasts for the application lifetime; the handle it acquires still starts and stops according to the Model.
 
-Calling `toLayer` creates a Layer recipe. The Runtime runs its Effect constructor once while building the application Layer and obtains the lifecycle handler. Use `Effect.succeed({ acquire, release })` when construction has no dependencies. The constructor must not capture an active resource handle or the current requirements; each Model-scoped acquisition supplies those values. Model changes call the returned `acquire` and `release` functions without rebuilding the handler or its providers.
+The Runtime runs the attached handler Effect once while building the application Layer and obtains the lifecycle handler. Use `Effect.succeed({ acquire, release })` when construction has no dependencies. The constructor must not capture an active resource handle or the current requirements; each Model-scoped acquisition supplies those values. Model changes call the returned `acquire` and `release` functions without rebuilding the handler or its providers.
+
+Omit the final constructor argument when an external host owns the lifecycle implementation. That entry has no `.layer`; the host supplies the implementation with `entry.toLayer`. The method also constructs an alternative to an attached handler. Both `acquire` and `release` are required in either constructor.
 
 Distinct ManagedResource definitions within one application need distinct handler names. A lifted use of the same definition can share its handler Layer. `Application.make` rejects duplicate names from different definitions.
 
 Each registered `ManagedResource.tag` key has one handle accessor and one lifecycle owner. `Application.make` and `Application.makeElement` reject that tag key under two record keys, including separately created tags whose key strings match. Give independent resource instances distinct tag keys. Lifting an entry through its parents preserves its existing handle identity.
 
-The record key identifies the lifecycle that Foldkit watches. The handler name identifies the acquire-and-release implementation supplied by a Layer. Use a verb-first name such as `ManageCamera` or `ManageChatSocket`, name its production Layer `ManageCameraLayer` or `ManageChatSocketLayer`, and include that Layer in the feature's `EffectsLayer` export.
+The record key identifies the lifecycle that Foldkit watches. The handler name identifies the acquire-and-release implementation supplied by a Layer. Use a verb-first name such as `ManageCamera` or `ManageChatSocket`, and compose the entry's `.layer` directly in the feature's `EffectsLayer` export. Create a standalone `ManageCameraLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly.
 
 ::Snippet{name="managedResources" label="Camera ManagedResource lifecycle"}
 
@@ -33,13 +35,13 @@ The runtime compares the requirements after every Model change and performs the 
 
 If acquisition fails, the runtime dispatches `onAcquireError` as a Message. The lifecycle keeps watching for the next requirements change, and the failed acquisition does not crash the application.
 
-Register cleanup when each handle is created, before waiting for it to become ready. `Effect.acquireRelease` inside `acquire` ties that cleanup to the ManagedResource Scope, including when readiness fails, times out, or is interrupted. The entry's explicit `release` callback runs only after acquisition has returned a handle.
+Register cleanup when each handle is created, before waiting for it to become ready. `Effect.acquireRelease` inside `acquire` ties that cleanup to the ManagedResource Scope, including when readiness fails, times out, or is interrupted. The entry's explicit `release` callback runs only after acquisition has returned a handle. On release, Foldkit runs that callback and every scoped finalizer before it clears the handle or dispatches `onReleased`. Cleanup defects are contained so the remaining cleanup and lifecycle transition can finish.
 
 In a whole-application execution test, keep the real lifecycle handler and replace the service it uses to open the camera, socket, worker, or other external capability. The test then covers the same Model-driven acquire, reacquire, release, error, and cleanup paths as production. Replacing the entire lifecycle handler can orchestrate those result paths, but it does not test the replaced acquire and release code.
 
 ## Accessing Managed Resources in Commands {#accessing-managed-resources}
 
-Commands access the current handle through `.get`. Because the handle may be inactive, `.get` can fail with `ResourceNotAvailable`. The Command must turn that error into one of its declared result Messages.
+Commands access the current handle through `.get`. Keep that lookup inside the returned Command function so it runs for each invocation; capturing `.get` while the handler Layer is built would read at application lifetime instead of the ManagedResource lifetime. Because the handle may be inactive, `.get` can fail with `ResourceNotAvailable`. The Command must turn that error into one of its declared result Messages.
 
 ::Snippet{name="managedResourcesCommand" label="ManagedResource Command"}
 
@@ -51,7 +53,7 @@ When setup and teardown are already packaged as an Effect `Layer`, keep that lif
 
 ::Snippet{name="managedResourcesLayer" label="Layer-backed ManagedResource"}
 
-The resource tag holds that bare value, so Commands read it through `.get` with no wrapper to destructure. Any finalizer registered during `acquire`, through either `Layer.build` or `Effect.addFinalizer`, runs when the handle is released. In that case the explicit `release` can be `() => Effect.void`. The explicit callback runs first, followed by the Scope finalizers in Effect’s last-in-first-out order.
+The resource tag holds that bare value, so Commands read it through `.get` with no wrapper to destructure. Any finalizer registered during `acquire`, through either `Layer.build` or `Effect.addFinalizer`, runs when the handle is released. In that case the required explicit `release` can be `() => Effect.void`: scoped acquisition has already registered the real cleanup. The explicit callback runs first, followed by the Scope finalizers in Effect’s last-in-first-out order.
 
 ## Composing Child Submodels
 

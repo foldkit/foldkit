@@ -34,22 +34,22 @@ export type Message = typeof Message.Type
 
 // COMMAND
 
-export const FetchCount = Command.define('FetchCount', {
-  messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
-})
-
-export const FetchCountLayer = FetchCount.toLayer(
+export const FetchCount = Command.define(
+  'FetchCount',
+  {
+    messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
+  },
   Effect.succeed(() =>
     Effect.sync(() => Message.SucceededFetchCount({ count: 0 })),
   ),
 )
 
-export const FetchCountById = Command.define('FetchCountById', {
-  args: { id: Schema.Number },
-  messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
-})
-
-export const FetchCountByIdLayer = FetchCountById.toLayer(
+export const FetchCountById = Command.define(
+  'FetchCountById',
+  {
+    args: { id: Schema.Number },
+    messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
+  },
   Effect.succeed(({ id }) =>
     Effect.sync(() => Message.SucceededFetchCount({ count: id })),
   ),
@@ -122,4 +122,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-export const EffectsLayer = Layer.mergeAll(FetchCountLayer, FetchCountByIdLayer)
+export const EffectsLayer = Layer.mergeAll(
+  FetchCount.layer,
+  FetchCountById.layer,
+)

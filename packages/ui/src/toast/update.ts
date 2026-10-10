@@ -58,16 +58,16 @@ export type ShowInput<A> = Readonly<{
 
 /** Waits for an entry's auto-dismiss duration, then emits a versioned
  *  `CompletedWaitBeforeDismissal` Message so update can ignore stale timers. */
-export const WaitBeforeDismissal = Command.define('WaitBeforeDismissal', {
-  args: {
-    entryId: Schema.String,
-    version: Schema.Number,
-    duration: Schema.DurationFromMillis,
+export const WaitBeforeDismissal = Command.define(
+  'WaitBeforeDismissal',
+  {
+    args: {
+      entryId: Schema.String,
+      version: Schema.Number,
+      duration: Schema.DurationFromMillis,
+    },
+    messages: [Message.CompletedWaitBeforeDismissal],
   },
-  messages: [Message.CompletedWaitBeforeDismissal],
-})
-/** Provides the handler for {@link WaitBeforeDismissal}. */
-export const WaitBeforeDismissalLayer = WaitBeforeDismissal.toLayer(
   Effect.succeed(({ entryId, version, duration }) =>
     Effect.gen(function* () {
       yield* Effect.sleep(duration)
@@ -80,15 +80,15 @@ const DEFAULT_VARIANT: Variant = 'Info'
 
 /** Waits for a short or cancelled swipe to animate back, then emits
  *  `CompletedWaitForSwipeSettled` so update can clear `Settling`. */
-export const WaitForSwipeSettled = Command.define('WaitForSwipeSettled', {
-  args: {
-    entryId: Schema.String,
-    version: Schema.Number,
+export const WaitForSwipeSettled = Command.define(
+  'WaitForSwipeSettled',
+  {
+    args: {
+      entryId: Schema.String,
+      version: Schema.Number,
+    },
+    messages: [Message.CompletedWaitForSwipeSettled],
   },
-  messages: [Message.CompletedWaitForSwipeSettled],
-})
-/** Provides the handler for {@link WaitForSwipeSettled}. */
-export const WaitForSwipeSettledLayer = WaitForSwipeSettled.toLayer(
   Effect.succeed(({ entryId, version }) =>
     Effect.gen(function* () {
       yield* Effect.sleep(SWIPE_SETTLE_DURATION)
@@ -97,14 +97,16 @@ export const WaitForSwipeSettledLayer = WaitForSwipeSettled.toLayer(
   ),
 )
 
-/** @internal */
-export const CommandsLayer = Layer.mergeAll(
-  WaitBeforeDismissalLayer,
-  WaitForSwipeSettledLayer,
+const SharedEffectsLayer = Layer.mergeAll(
+  WaitBeforeDismissal.layer,
+  WaitForSwipeSettled.layer,
 )
 
 /** Provides Toast's payload-independent Command handlers. */
-export const EffectsLayer = Layer.mergeAll(CommandsLayer, AnimationEffectsLayer)
+export const EffectsLayer = Layer.mergeAll(
+  SharedEffectsLayer,
+  AnimationEffectsLayer,
+)
 
 /** Horizontal offset in pixels for an entry's swipe state. `Dragging`
  *  reports the distance travelled from the press point; `Dismissing` reports
@@ -682,6 +684,44 @@ export const makeRuntime = <const Name extends string, A, I>(
         ],
         modelToDependencies: swipeDependencies,
       },
+      Effect.succeed(({ isSwipeEnabled, isAnyDragging }) => {
+        const pointerMoveStream = Dom.streamFromEvent({
+          target: document,
+          type: 'pointermove',
+          mapEvent: event =>
+            MessageSchema.MovedSwipePointer({
+              pointerId: event.pointerId,
+              clientX: event.clientX,
+            }),
+        })
+        const pointerUpStream = Dom.streamFromEvent({
+          target: document,
+          type: 'pointerup',
+          mapEvent: event =>
+            MessageSchema.ReleasedSwipePointer({
+              pointerId: event.pointerId,
+              clientX: event.clientX,
+            }),
+        })
+        const pointerCancelStream = Dom.streamFromEvent({
+          target: document,
+          type: 'pointercancel',
+          mapEvent: event =>
+            MessageSchema.CancelledSwipe({ pointerId: event.pointerId }),
+        })
+        const pointerMessages = Stream.mergeAll<
+          SwipePointerMessage,
+          never,
+          never
+        >([pointerMoveStream, pointerUpStream, pointerCancelStream], {
+          concurrency: 'unbounded',
+        })
+
+        return Stream.when(
+          Stream.merge(pointerMessages, documentStylesWhileSwiping),
+          Effect.sync(() => isSwipeEnabled && isAnyDragging),
+        )
+      }),
     ),
 
     swipeEscape: entry(
@@ -694,74 +734,28 @@ export const makeRuntime = <const Name extends string, A, I>(
         messages: [MessageSchema.PressedEscape],
         modelToDependencies: swipeDependencies,
       },
+      Effect.succeed(({ isSwipeEnabled, isAnyDragging }) =>
+        Stream.when(
+          Dom.streamFromEventFilterMap({
+            target: document,
+            type: 'keydown',
+            filterMapEvent: event =>
+              pipe(
+                Option.liftPredicate(event.key, key => key === 'Escape'),
+                Option.map(() => MessageSchema.PressedEscape()),
+              ),
+          }),
+          Effect.sync(() => isSwipeEnabled && isAnyDragging),
+        ),
+      ),
     ),
   }))
 
-  /** Provides the pointer handler for `subscriptions.swipePointer`. */
-  const SwipePointerLayer = subscriptions.swipePointer.toLayer(
-    Effect.succeed(({ isSwipeEnabled, isAnyDragging }) => {
-      const pointerMoveStream = Dom.streamFromEvent({
-        target: document,
-        type: 'pointermove',
-        mapEvent: event =>
-          MessageSchema.MovedSwipePointer({
-            pointerId: event.pointerId,
-            clientX: event.clientX,
-          }),
-      })
-      const pointerUpStream = Dom.streamFromEvent({
-        target: document,
-        type: 'pointerup',
-        mapEvent: event =>
-          MessageSchema.ReleasedSwipePointer({
-            pointerId: event.pointerId,
-            clientX: event.clientX,
-          }),
-      })
-      const pointerCancelStream = Dom.streamFromEvent({
-        target: document,
-        type: 'pointercancel',
-        mapEvent: event =>
-          MessageSchema.CancelledSwipe({ pointerId: event.pointerId }),
-      })
-      const pointerMessages = Stream.mergeAll<
-        SwipePointerMessage,
-        never,
-        never
-      >([pointerMoveStream, pointerUpStream, pointerCancelStream], {
-        concurrency: 'unbounded',
-      })
-
-      return Stream.when(
-        Stream.merge(pointerMessages, documentStylesWhileSwiping),
-        Effect.sync(() => isSwipeEnabled && isAnyDragging),
-      )
-    }),
-  )
-
-  /** Provides the keyboard handler for `subscriptions.swipeEscape`. */
-  const SwipeEscapeLayer = subscriptions.swipeEscape.toLayer(
-    Effect.succeed(({ isSwipeEnabled, isAnyDragging }) =>
-      Stream.when(
-        Dom.streamFromEventFilterMap({
-          target: document,
-          type: 'keydown',
-          filterMapEvent: event =>
-            pipe(
-              Option.liftPredicate(event.key, key => key === 'Escape'),
-              Option.map(() => MessageSchema.PressedEscape()),
-            ),
-        }),
-        Effect.sync(() => isSwipeEnabled && isAnyDragging),
-      ),
-    ),
-  )
-
   /** Provides this Toast instance's Command and Subscription handlers. */
   const EffectsLayer = Layer.mergeAll(
-    CommandsLayer,
-    SwipePointerLayer,
-    SwipeEscapeLayer,
+    SharedEffectsLayer,
+    subscriptions.swipePointer.layer,
+    subscriptions.swipeEscape.layer,
     AnimationEffectsLayer,
   )
 
@@ -778,8 +772,6 @@ export const makeRuntime = <const Name extends string, A, I>(
     dismiss,
     dismissAll,
     subscriptions,
-    SwipePointerLayer,
-    SwipeEscapeLayer,
     EffectsLayer,
     swipeOffset,
   }

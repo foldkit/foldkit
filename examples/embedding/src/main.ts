@@ -43,12 +43,12 @@ export const init = (flags: Flags) => ({
 
 // COMMAND
 
-export const ReportCount = Command.define('ReportCount', {
-  args: { count: Schema.Number },
-  messages: [Message.CompletedReportCount],
-})
-
-const ReportCountLayer = ReportCount.toLayer(
+export const ReportCount = Command.define(
+  'ReportCount',
+  {
+    args: { count: Schema.Number },
+    messages: [Message.CompletedReportCount],
+  },
   Effect.succeed(({ count }) =>
     Port.emit(ports.outbound.countChanged, count).pipe(
       Effect.as(Message.CompletedReportCount()),
@@ -82,30 +82,35 @@ export const update = Update.make((model: Model, message: Message) =>
 const TICK_INTERVAL = Duration.seconds(1)
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  widgetTicks: entry('WidgetTicks', { messages: [Message.Ticked] }),
-  hostStepChanges: entry('HostStepChanges', {
-    messages: [Message.ChangedStep],
-  }),
-}))
-
-const WidgetTicksLayer = subscriptions.widgetTicks.toLayer(
-  Effect.succeed(() =>
-    Stream.tick(TICK_INTERVAL).pipe(Stream.drop(1), Stream.map(Message.Ticked)),
-  ),
-)
-
-const HostStepChangesLayer = subscriptions.hostStepChanges.toLayer(
-  Effect.succeed(() =>
-    Port.stream(ports.inbound.stepChanged).pipe(
-      Stream.map(step => Message.ChangedStep({ step })),
+  widgetTicks: entry(
+    'WidgetTicks',
+    {
+      messages: [Message.Ticked],
+    },
+    Effect.succeed(() =>
+      Stream.tick(TICK_INTERVAL).pipe(
+        Stream.drop(1),
+        Stream.map(Message.Ticked),
+      ),
     ),
   ),
-)
+  hostStepChanges: entry(
+    'HostStepChanges',
+    {
+      messages: [Message.ChangedStep],
+    },
+    Effect.succeed(() =>
+      Port.stream(ports.inbound.stepChanged).pipe(
+        Stream.map(step => Message.ChangedStep({ step })),
+      ),
+    ),
+  ),
+}))
 
 export const EffectsLayer = Layer.mergeAll(
-  ReportCountLayer,
-  WidgetTicksLayer,
-  HostStepChangesLayer,
+  ReportCount.layer,
+  subscriptions.widgetTicks.layer,
+  subscriptions.hostStepChanges.layer,
 )
 
 // VIEW

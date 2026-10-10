@@ -1,10 +1,7 @@
-import { Layer } from 'effect'
 import { Application, Runtime } from 'foldkit'
 
-import { BrowserKeyValueStore } from '@effect/platform-browser'
-
+import { AppLayer } from './layer'
 import {
-  EffectsLayer,
   Flags,
   Message,
   Model,
@@ -15,10 +12,6 @@ import {
   update,
   view,
 } from './main'
-
-const AppLayer = EffectsLayer.pipe(
-  Layer.provideMerge(BrowserKeyValueStore.layerLocalStorage),
-)
 
 const application = Application.make({
   Model,

@@ -1,10 +1,7 @@
-import { Layer } from 'effect'
 import { Application, Runtime } from 'foldkit'
 
-import { BrowserCrypto, BrowserKeyValueStore } from '@effect/platform-browser'
-
+import { AppLayer } from './layer'
 import {
-  EffectsLayer,
   Flags,
   Message,
   Model,
@@ -15,12 +12,6 @@ import {
   update,
   view,
 } from './main'
-
-const ServicesLayer = Layer.mergeAll(
-  BrowserCrypto.layer,
-  BrowserKeyValueStore.layerLocalStorage,
-)
-const AppLayer = EffectsLayer.pipe(Layer.provideMerge(ServicesLayer))
 
 const application = Application.make({
   Model,

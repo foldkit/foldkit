@@ -35,14 +35,14 @@ export const init = (initialEntryId: string): Model => ({
 
 // COMMAND
 
-export const GenerateSkillsEntryId = Command.define('GenerateSkillsEntryId', {
-  messages: [
-    Message.SucceededGenerateSkillsEntryId,
-    Message.FailedGenerateSkillsEntryId,
-  ],
-})
-
-export const GenerateSkillsEntryIdLayer = GenerateSkillsEntryId.toLayer(
+export const GenerateSkillsEntryId = Command.define(
+  'GenerateSkillsEntryId',
+  {
+    messages: [
+      Message.SucceededGenerateSkillsEntryId,
+      Message.FailedGenerateSkillsEntryId,
+    ],
+  },
   Effect.gen(function* () {
     const crypto = yield* Crypto.Crypto
 
@@ -57,6 +57,8 @@ export const GenerateSkillsEntryIdLayer = GenerateSkillsEntryId.toLayer(
       )
   }),
 )
+
+export const EffectsLayer = GenerateSkillsEntryId.layer
 
 // UPDATE
 

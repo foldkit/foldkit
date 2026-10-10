@@ -12,21 +12,24 @@ import { AnchorConfig, anchorSetup } from '@foldkit/ui/anchor'
 // the Definition, the way a Command's result Message is named after the
 // Command:
 const Message = defineMessageUnion({
+  ClickedTrigger: {},
   CompletedAnchorPanel: {},
 })
+type Message = typeof Message.Type
 
 // Mount.define takes the Definition name and a config: a Schema for the args
-// captured at mount and the result Messages. The Layer handler receives the
-// live element alongside those args. anchorSetup is a plain DOM function that
-// returns a cleanup, so it goes inside Effect.sync and the cleanup is
-// registered with Effect.acquireRelease. Construct the resource inside the
-// acquire body, never before it, or it leaks on interruption:
-const AnchorPanel = Mount.define('AnchorPanel', {
-  args: { buttonId: Schema.String, anchor: AnchorConfig },
-  messages: [Message.CompletedAnchorPanel],
-})
-
-const AnchorPanelLayer = AnchorPanel.toLayer(
+// captured at mount and the result Messages. The final constructor Effect
+// builds the handler, which receives the live element alongside those args.
+// anchorSetup is a plain DOM function that returns a cleanup, so it goes inside
+// Effect.sync and the cleanup is registered with Effect.acquireRelease.
+// Construct the resource inside the acquire body, never before it, or it leaks
+// on interruption:
+const AnchorPanel = Mount.define(
+  'AnchorPanel',
+  {
+    args: { buttonId: Schema.String, anchor: AnchorConfig },
+    messages: [Message.CompletedAnchorPanel],
+  },
   Effect.succeed(({ element, buttonId, anchor }) =>
     Effect.gen(function* () {
       yield* Effect.acquireRelease(
@@ -48,7 +51,7 @@ const view = (h: HtmlBuilder<Message>): Html =>
     [],
     [
       h.button(
-        [h.Id('search-select-button'), h.OnClick(ClickedTrigger())],
+        [h.Id('search-select-button'), h.OnClick(Message.ClickedTrigger())],
         ['Open'],
       ),
       ...(model.isOpen

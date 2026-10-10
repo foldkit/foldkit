@@ -1,12 +1,19 @@
 import { Effect } from 'effect'
 import { HttpClient } from 'effect/http'
+import { Command } from 'foldkit'
 
-import { FetchCount, fetchCount } from './counterHttpCommand'
+import { Message, fetchCount } from './counterHttpCommand'
 
-export const FetchCountLayer = FetchCount.toLayer(
+export const FetchCount = Command.define(
+  'FetchCount',
+  {
+    messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
+  },
   Effect.gen(function* () {
     const client = yield* HttpClient.HttpClient
 
     return () => fetchCount(client)
   }),
 )
+
+export const EffectsLayer = FetchCount.layer

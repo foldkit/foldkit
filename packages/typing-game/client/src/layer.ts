@@ -2,14 +2,15 @@ import { Layer } from 'effect'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 
-import { NavigateToRoomLayer } from './command'
+import { NavigateToRoom } from './command'
 import { Home, Room } from './page'
 import { RoomsClientLayer } from './rpc'
-import { NavigationLayer } from './update'
+import { LoadExternal, NavigateInternal } from './update'
 
 export const EffectsLayer = Layer.mergeAll(
-  NavigateToRoomLayer,
-  NavigationLayer,
+  NavigateToRoom.layer,
+  NavigateInternal.layer,
+  LoadExternal.layer,
   Home.EffectsLayer,
   Room.EffectsLayer,
 )

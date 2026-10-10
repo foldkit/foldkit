@@ -42,12 +42,12 @@ export type Message = typeof Message.Type
 
 // COMMAND
 
-export const DetermineStartTime = Command.define('DetermineStartTime', {
-  args: { elapsedMs: Schema.Number },
-  messages: [Message.CompletedDetermineStartTime],
-})
-
-export const DetermineStartTimeLayer = DetermineStartTime.toLayer(
+export const DetermineStartTime = Command.define(
+  'DetermineStartTime',
+  {
+    args: { elapsedMs: Schema.Number },
+    messages: [Message.CompletedDetermineStartTime],
+  },
   Effect.gen(function* () {
     const clock = yield* Clock.Clock
 
@@ -62,12 +62,12 @@ export const DetermineStartTimeLayer = DetermineStartTime.toLayer(
   }),
 )
 
-export const DetermineTickTime = Command.define('DetermineTickTime', {
-  args: { startTime: Schema.Number },
-  messages: [Message.CompletedDetermineTickTime],
-})
-
-export const DetermineTickTimeLayer = DetermineTickTime.toLayer(
+export const DetermineTickTime = Command.define(
+  'DetermineTickTime',
+  {
+    args: { startTime: Schema.Number },
+    messages: [Message.CompletedDetermineTickTime],
+  },
   Effect.gen(function* () {
     const clock = yield* Clock.Clock
 
@@ -145,25 +145,22 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       messages: [Message.Ticked],
       modelToDependencies: model => ({ isRunning: model.isRunning }),
     },
+    Effect.succeed(({ isRunning }) =>
+      Stream.when(
+        Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
+          Stream.drop(1),
+          Stream.map(Message.Ticked),
+        ),
+        Effect.sync(() => isRunning),
+      ),
+    ),
   ),
 }))
 
-export const StopwatchTicksLayer = subscriptions.stopwatchTicks.toLayer(
-  Effect.succeed(({ isRunning }) =>
-    Stream.when(
-      Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
-        Stream.drop(1),
-        Stream.map(Message.Ticked),
-      ),
-      Effect.sync(() => isRunning),
-    ),
-  ),
-)
-
 export const EffectsLayer = Layer.mergeAll(
-  DetermineStartTimeLayer,
-  DetermineTickTimeLayer,
-  StopwatchTicksLayer,
+  DetermineStartTime.layer,
+  DetermineTickTime.layer,
+  subscriptions.stopwatchTicks.layer,
 )
 
 // VIEW

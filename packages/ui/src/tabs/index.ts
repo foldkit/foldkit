@@ -107,13 +107,12 @@ const tabId = (id: string, index: number): string => `${id}-tab-${index}`
 const tabPanelId = (id: string, index: number): string => `${id}-panel-${index}`
 
 /** Moves focus to the tab at the given index. */
-export const FocusTab = Command.define('FocusTab', {
-  args: { id: Schema.String, index: Schema.Number },
-  messages: [Message.CompletedFocusTab],
-})
-
-/** Effect provider for {@link FocusTab}. */
-export const FocusTabLayer = FocusTab.toLayer(
+export const FocusTab = Command.define(
+  'FocusTab',
+  {
+    args: { id: Schema.String, index: Schema.Number },
+    messages: [Message.CompletedFocusTab],
+  },
   Effect.succeed(({ id, index }) =>
     Dom.focus(idSelector(tabId(id, index))).pipe(
       Effect.ignore,
@@ -123,7 +122,7 @@ export const FocusTabLayer = FocusTab.toLayer(
 )
 
 /** Effect providers used by the Tabs component. */
-export const EffectsLayer = Layer.mergeAll(FocusTabLayer)
+export const EffectsLayer = Layer.mergeAll(FocusTab.layer)
 
 /** Processes a Tabs Message and returns the next Model, optional Commands, and
  *  an optional OutMessage. `Selected` fires when a tab is committed via click

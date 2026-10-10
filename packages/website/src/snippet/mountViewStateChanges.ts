@@ -8,11 +8,11 @@ const Message = defineMessageUnion({
   CompletedMountEditor: {},
 })
 
-const MountEditor = Mount.define('MountEditor', {
-  messages: [Message.CompletedMountEditor],
-})
-
-const MountEditorLayer = MountEditor.toLayer(
+const MountEditor = Mount.define(
+  'MountEditor',
+  {
+    messages: [Message.CompletedMountEditor],
+  },
   Effect.succeed(({ element, viewStateChanges }) =>
     Effect.gen(function* () {
       const editor = yield* Effect.acquireRelease(

@@ -1,16 +1,16 @@
-import { Effect, Layer, Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Command, Dom } from 'foldkit'
 
 import { ROOM_ID_INPUT_ID, USERNAME_INPUT_ID } from '../../constant'
 import { RoomsClient } from '../../rpc'
 import { Message } from './message'
 
-export const CreateRoom = Command.define('CreateRoom', {
-  args: { username: Schema.String },
-  messages: [Message.SucceededCreateRoom, Message.FailedCreateRoom],
-})
-
-const CreateRoomLayer = CreateRoom.toLayer(
+export const CreateRoom = Command.define(
+  'CreateRoom',
+  {
+    args: { username: Schema.String },
+    messages: [Message.SucceededCreateRoom, Message.FailedCreateRoom],
+  },
   Effect.gen(function* () {
     const client = yield* RoomsClient
 
@@ -26,12 +26,15 @@ const CreateRoomLayer = CreateRoom.toLayer(
   }),
 )
 
-export const JoinRoomFromHome = Command.define('JoinRoomFromHome', {
-  args: { username: Schema.String, roomId: Schema.String },
-  messages: [Message.SucceededJoinRoomFromHome, Message.FailedJoinRoomFromHome],
-})
-
-const JoinRoomFromHomeLayer = JoinRoomFromHome.toLayer(
+export const JoinRoomFromHome = Command.define(
+  'JoinRoomFromHome',
+  {
+    args: { username: Schema.String, roomId: Schema.String },
+    messages: [
+      Message.SucceededJoinRoomFromHome,
+      Message.FailedJoinRoomFromHome,
+    ],
+  },
   Effect.gen(function* () {
     const client = yield* RoomsClient
 
@@ -49,11 +52,11 @@ const JoinRoomFromHomeLayer = JoinRoomFromHome.toLayer(
   }),
 )
 
-export const FocusUsernameInput = Command.define('FocusUsernameInput', {
-  messages: [Message.CompletedFocusUsernameInput],
-})
-
-const FocusUsernameInputLayer = FocusUsernameInput.toLayer(
+export const FocusUsernameInput = Command.define(
+  'FocusUsernameInput',
+  {
+    messages: [Message.CompletedFocusUsernameInput],
+  },
   Effect.succeed(() =>
     Dom.focus(`#${USERNAME_INPUT_ID}`).pipe(
       Effect.ignore,
@@ -62,22 +65,15 @@ const FocusUsernameInputLayer = FocusUsernameInput.toLayer(
   ),
 )
 
-export const FocusRoomIdInput = Command.define('FocusRoomIdInput', {
-  messages: [Message.CompletedFocusRoomIdInput],
-})
-
-const FocusRoomIdInputLayer = FocusRoomIdInput.toLayer(
+export const FocusRoomIdInput = Command.define(
+  'FocusRoomIdInput',
+  {
+    messages: [Message.CompletedFocusRoomIdInput],
+  },
   Effect.succeed(() =>
     Dom.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
       Effect.ignore,
       Effect.as(Message.CompletedFocusRoomIdInput()),
     ),
   ),
-)
-
-export const CommandsLayer = Layer.mergeAll(
-  CreateRoomLayer,
-  JoinRoomFromHomeLayer,
-  FocusUsernameInputLayer,
-  FocusRoomIdInputLayer,
 )

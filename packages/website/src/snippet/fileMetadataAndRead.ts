@@ -4,12 +4,12 @@ import { Command, File } from 'foldkit'
 const describeFile = (file: File.File): string =>
   `${File.name(file)} (${File.mimeType(file)}, ${File.size(file)} bytes)`
 
-const ReadAvatarPreview = Command.define('ReadAvatarPreview', {
-  args: { file: File.File },
-  messages: [SucceededReadAvatarPreview, FailedReadAvatarPreview],
-})
-
-const ReadAvatarPreviewLayer = ReadAvatarPreview.toLayer(
+const ReadAvatarPreview = Command.define(
+  'ReadAvatarPreview',
+  {
+    args: { file: File.File },
+    messages: [SucceededReadAvatarPreview, FailedReadAvatarPreview],
+  },
   Effect.succeed(({ file }) =>
     File.readAsDataUrl(file).pipe(
       Effect.map(dataUrl => SucceededReadAvatarPreview({ dataUrl })),

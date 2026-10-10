@@ -120,17 +120,17 @@ const flyToMap = (
       }),
   })
 
-export const FlyTo = Command.define('FlyTo', {
-  args: {
-    maybeHostId: Schema.Option(Schema.String),
-    lng: Schema.Number,
-    lat: Schema.Number,
-    zoom: Schema.Number,
+export const FlyTo = Command.define(
+  'FlyTo',
+  {
+    args: {
+      maybeHostId: Schema.Option(Schema.String),
+      lng: Schema.Number,
+      lat: Schema.Number,
+      zoom: Schema.Number,
+    },
+    messages: [Message.SucceededFlyTo, Message.FailedFlyTo],
   },
-  messages: [Message.SucceededFlyTo, Message.FailedFlyTo],
-})
-
-const FlyToLayer = FlyTo.toLayer(
   Effect.succeed(({ maybeHostId, lng, lat, zoom }) =>
     Option.match(maybeHostId, {
       onNone: () =>
@@ -144,11 +144,11 @@ const FlyToLayer = FlyTo.toLayer(
   ),
 )
 
-export const Geolocate = Command.define('Geolocate', {
-  messages: [Message.SucceededGeolocate, Message.FailedGeolocate],
-})
-
-const GeolocateLayer = Geolocate.toLayer(
+export const Geolocate = Command.define(
+  'Geolocate',
+  {
+    messages: [Message.SucceededGeolocate, Message.FailedGeolocate],
+  },
   Effect.succeed(() =>
     Effect.gen(function* () {
       const position = yield* Effect.callback<GeolocationPosition, Error>(
@@ -191,11 +191,11 @@ const GeolocateLayer = Geolocate.toLayer(
 
 const SEARCH_INPUT_ID = 'map-search-input'
 
-export const FocusSearchInput = Command.define('FocusSearchInput', {
-  messages: [Message.CompletedFocusSearchInput],
-})
-
-const FocusSearchInputLayer = FocusSearchInput.toLayer(
+export const FocusSearchInput = Command.define(
+  'FocusSearchInput',
+  {
+    messages: [Message.CompletedFocusSearchInput],
+  },
   Effect.succeed(() =>
     Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
       Effect.ignore,
@@ -204,11 +204,11 @@ const FocusSearchInputLayer = FocusSearchInput.toLayer(
   ),
 )
 
-export const LockBodyScroll = Command.define('LockBodyScroll', {
-  messages: [Message.CompletedLockBodyScroll],
-})
-
-const LockBodyScrollLayer = LockBodyScroll.toLayer(
+export const LockBodyScroll = Command.define(
+  'LockBodyScroll',
+  {
+    messages: [Message.CompletedLockBodyScroll],
+  },
   Effect.succeed(() =>
     Effect.sync(() => {
       document.body.classList.add('overflow-hidden')
@@ -217,25 +217,17 @@ const LockBodyScrollLayer = LockBodyScroll.toLayer(
   ),
 )
 
-export const UnlockBodyScroll = Command.define('UnlockBodyScroll', {
-  messages: [Message.CompletedUnlockBodyScroll],
-})
-
-const UnlockBodyScrollLayer = UnlockBodyScroll.toLayer(
+export const UnlockBodyScroll = Command.define(
+  'UnlockBodyScroll',
+  {
+    messages: [Message.CompletedUnlockBodyScroll],
+  },
   Effect.succeed(() =>
     Effect.sync(() => {
       document.body.classList.remove('overflow-hidden')
       return Message.CompletedUnlockBodyScroll()
     }),
   ),
-)
-
-const CommandsLayer = Layer.mergeAll(
-  FlyToLayer,
-  GeolocateLayer,
-  FocusSearchInputLayer,
-  LockBodyScrollLayer,
-  UnlockBodyScrollLayer,
 )
 
 // UPDATE
@@ -419,17 +411,17 @@ const listenToMapMovesAndMarkerClicks = (
       }),
   )
 
-export const MountMap = Mount.defineStream('MountMap', {
-  args: { hostId: Schema.String },
-  messages: [
-    Message.SucceededMountMap,
-    Message.FailedMountMap,
-    Message.MovedMap,
-    Message.ClickedMarker,
-  ],
-})
-
-export const MountMapLayer = MountMap.toLayer(
+export const MountMap = Mount.defineStream(
+  'MountMap',
+  {
+    args: { hostId: Schema.String },
+    messages: [
+      Message.SucceededMountMap,
+      Message.FailedMountMap,
+      Message.MovedMap,
+      Message.ClickedMarker,
+    ],
+  },
   Effect.succeed(({ element, hostId }) =>
     Stream.callback<MountMapMessage>(queue =>
       Effect.gen(function* () {
@@ -497,8 +489,12 @@ export const mounts = [...UI.mounts, MountMap]
 
 export const EffectsLayer = Layer.mergeAll(
   UI.EffectsLayer,
-  CommandsLayer,
-  MountMapLayer,
+  FlyTo.layer,
+  Geolocate.layer,
+  FocusSearchInput.layer,
+  LockBodyScroll.layer,
+  UnlockBodyScroll.layer,
+  MountMap.layer,
 )
 
 const boundsFromMap = (map: MapInstance): Bounds => {

@@ -1,4 +1,4 @@
-import { Cause, Effect, Layer, Option, Schema, Stream } from 'effect'
+import { Cause, Effect, Option, Schema, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 
 import { capturedKeyDownStream } from '../../keyboard'
@@ -23,6 +23,30 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
         })),
       }),
     },
+    Effect.gen(function* () {
+      const client = yield* RoomsClient
+
+      return ({ maybeRoomStream }) =>
+        Option.match(maybeRoomStream, {
+          onNone: () => Stream.empty,
+          onSome: ({ roomId, playerId }) =>
+            client.subscribeToRoom({ roomId, playerId }).pipe(
+              Stream.map(({ room, maybePlayerProgress }) =>
+                Message.UpdatedRoom({ room, maybePlayerProgress }),
+              ),
+              Stream.catchCause(cause =>
+                Stream.make(
+                  Message.FailedStreamRoom({
+                    error: Option.match(Cause.findErrorOption(cause), {
+                      onSome: failure => String(failure),
+                      onNone: () => 'Unknown stream error',
+                    }),
+                  }),
+                ),
+              ),
+            ),
+        })
+    }),
   ),
 
   roomKeyPresses: entry(
@@ -34,46 +58,11 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
         shouldCaptureKeyboard: capturesKeyboard(model),
       }),
     },
-  ),
-}))
-
-const RoomUpdatesLayer = subscriptions.roomUpdates.toLayer(
-  Effect.gen(function* () {
-    const client = yield* RoomsClient
-
-    return ({ maybeRoomStream }) =>
-      Option.match(maybeRoomStream, {
-        onNone: () => Stream.empty,
-        onSome: ({ roomId, playerId }) =>
-          client.subscribeToRoom({ roomId, playerId }).pipe(
-            Stream.map(({ room, maybePlayerProgress }) =>
-              Message.UpdatedRoom({ room, maybePlayerProgress }),
-            ),
-            Stream.catchCause(cause =>
-              Stream.make(
-                Message.FailedStreamRoom({
-                  error: Option.match(Cause.findErrorOption(cause), {
-                    onSome: failure => String(failure),
-                    onNone: () => 'Unknown stream error',
-                  }),
-                }),
-              ),
-            ),
-          ),
-      })
-  }),
-)
-
-const RoomKeyPressesLayer = subscriptions.roomKeyPresses.toLayer(
-  Effect.succeed(({ shouldCaptureKeyboard }) =>
-    Stream.when(
-      capturedKeyDownStream(key => Message.PressedKey({ key })),
-      Effect.sync(() => shouldCaptureKeyboard),
+    Effect.succeed(({ shouldCaptureKeyboard }) =>
+      Stream.when(
+        capturedKeyDownStream(key => Message.PressedKey({ key })),
+        Effect.sync(() => shouldCaptureKeyboard),
+      ),
     ),
   ),
-)
-
-export const SubscriptionsLayer = Layer.mergeAll(
-  RoomUpdatesLayer,
-  RoomKeyPressesLayer,
-)
+}))

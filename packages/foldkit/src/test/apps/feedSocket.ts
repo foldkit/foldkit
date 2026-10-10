@@ -47,33 +47,34 @@ export const feedResources = ManagedResource.make<Model, Message>()(entry => ({
       onAcquireError: error =>
         Message.FailedAcquireFeedSocket({ error: String(error) }),
     },
+    Effect.succeed({
+      acquire: () => Effect.succeed({ socketId: 'live' }),
+      release: () => Effect.void,
+    }),
   ),
-  presence: entry('ManagePresence', Schema.Option(Schema.Null), {
-    resource: PresenceResource,
-    modelToMaybeRequirements: model =>
-      model.isFeedOpen ? Option.some(null) : Option.none(),
-    onAcquired: () => Message.AcquiredFeedSocket({ socketId: 'presence' }),
-    onReleased: () => Message.ReleasedFeedSocket(),
-    onAcquireError: error =>
-      Message.FailedAcquireFeedSocket({ error: String(error) }),
-  }),
+  presence: entry(
+    'ManagePresence',
+    Schema.Option(Schema.Null),
+    {
+      resource: PresenceResource,
+      modelToMaybeRequirements: model =>
+        model.isFeedOpen ? Option.some(null) : Option.none(),
+      onAcquired: () => Message.AcquiredFeedSocket({ socketId: 'presence' }),
+      onReleased: () => Message.ReleasedFeedSocket(),
+      onAcquireError: error =>
+        Message.FailedAcquireFeedSocket({ error: String(error) }),
+    },
+    Effect.succeed({
+      acquire: () => Effect.succeed('online'),
+      release: () => Effect.void,
+    }),
+  ),
 }))
 
-const FeedSocketLayer = feedResources.feedSocket.toLayer(
-  Effect.succeed({
-    acquire: () => Effect.succeed({ socketId: 'live' }),
-    release: () => Effect.void,
-  }),
+export const EffectsLayer = Layer.mergeAll(
+  feedResources.feedSocket.layer,
+  feedResources.presence.layer,
 )
-
-const PresenceLayer = feedResources.presence.toLayer(
-  Effect.succeed({
-    acquire: () => Effect.succeed('online'),
-    release: () => Effect.void,
-  }),
-)
-
-export const EffectsLayer = Layer.mergeAll(FeedSocketLayer, PresenceLayer)
 
 // INIT
 

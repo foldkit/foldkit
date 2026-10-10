@@ -15,3 +15,7 @@ export const MountResizeLayer = MountResize.toLayer(
 
 export const defineLocal = (Mount: { define: (name: string) => string }) =>
   Mount.define('LocalMount')
+
+export const MeasureResize = Mount.define('MeasureResize', {
+  messages: [CompletedMountResize],
+}, Effect.succeed(({ element }) => Effect.sync(() => resizeObserver.observe(element))))

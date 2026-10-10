@@ -12,12 +12,12 @@ import { Animation } from '@foldkit/ui'
 // result, so Animation can tell this leave's settlement apart from a late
 // result left over from an earlier enter. This one waits on a child panel
 // instead of the Animation wrapper:
-const WaitForPanelSettled = Command.define('WaitForPanelSettled', {
-  args: { generation: Schema.Number },
-  messages: [Animation.Message.EndedAnimation],
-})
-
-const WaitForPanelSettledLayer = WaitForPanelSettled.toLayer(
+const WaitForPanelSettled = Command.define(
+  'WaitForPanelSettled',
+  {
+    args: { generation: Schema.Number },
+    messages: [Animation.Message.EndedAnimation],
+  },
   Effect.succeed(({ generation }) =>
     Dom.waitForAnimationSettled('#drawer-panel').pipe(
       Effect.as(Animation.Message.EndedAnimation({ generation })),
@@ -30,7 +30,9 @@ const foldAnimationOutMessage = (
   outMessage: Animation.OutMessage,
   { liftCommand }: Update.FoldContext<Animation.Message, Message>,
 ) =>
-  Animation.OutMessage.match(outMessage, {
+  Animation.OutMessage.match<
+    Update.Step<Model, Message, Command.Handler<'WaitForPanelSettled'>>
+  >(outMessage, {
     StartedLeaveAnimating: ({ generation }) =>
       Update.makeStep((model: Model) => ({
         model,

@@ -20,13 +20,12 @@ const elementSelector = (id: string): string => idSelector(id)
 
 /** Waits for paint via double-rAF, then reports the transition generation that
  *  scheduled the wait. */
-export const WaitForPaint = Command.define('WaitForPaint', {
-  args: { generation: Schema.Number },
-  messages: [Message.CompletedWaitForPaint],
-})
-
-/** Effect provider for {@link WaitForPaint}. */
-export const WaitForPaintLayer = WaitForPaint.toLayer(
+export const WaitForPaint = Command.define(
+  'WaitForPaint',
+  {
+    args: { generation: Schema.Number },
+    messages: [Message.CompletedWaitForPaint],
+  },
   Effect.succeed(({ generation }) =>
     Render.afterPaint.pipe(
       Effect.as(Message.CompletedWaitForPaint({ generation })),
@@ -42,10 +41,6 @@ export const WaitForAnimationSettled = Command.define(
     args: { id: Schema.String, generation: Schema.Number },
     messages: [Message.EndedAnimation],
   },
-)
-
-/** Effect provider for {@link WaitForAnimationSettled}. */
-export const WaitForAnimationSettledLayer = WaitForAnimationSettled.toLayer(
   Effect.succeed(({ id, generation }) =>
     Dom.waitForAnimationSettled(elementSelector(id)).pipe(
       Effect.as(Message.EndedAnimation({ generation })),
@@ -55,8 +50,8 @@ export const WaitForAnimationSettledLayer = WaitForAnimationSettled.toLayer(
 
 /** Effect providers used by the Animation component. */
 export const EffectsLayer = Layer.mergeAll(
-  WaitForPaintLayer,
-  WaitForAnimationSettledLayer,
+  WaitForPaint.layer,
+  WaitForAnimationSettled.layer,
 )
 
 /** Processes an Animation Message and returns the next Model, optional

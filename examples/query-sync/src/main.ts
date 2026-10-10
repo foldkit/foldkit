@@ -246,27 +246,17 @@ const selectionToParam = <A extends string>(
   )
 }
 
-export const ReplaceFilters = Command.define('ReplaceFilters', {
-  args: {
-    search: Schema.Option(Schema.String),
-    sorting: Sorting,
-    diet: Schema.Option(Diet),
-    period: Schema.Option(Period),
+export const ReplaceFilters = Command.define(
+  'ReplaceFilters',
+  {
+    args: {
+      search: Schema.Option(Schema.String),
+      sorting: Sorting,
+      diet: Schema.Option(Diet),
+      period: Schema.Option(Period),
+    },
+    messages: [Message.CompletedReplaceFilters],
   },
-  messages: [Message.CompletedReplaceFilters],
-})
-
-const NavigateInternal = Command.define('NavigateInternal', {
-  args: { url: Schema.String },
-  messages: [Message.CompletedNavigateInternal],
-})
-
-const LoadExternal = Command.define('LoadExternal', {
-  args: { href: Schema.String },
-  messages: [Message.CompletedLoadExternal],
-})
-
-const ReplaceFiltersLayer = ReplaceFilters.toLayer(
   Effect.succeed(fields =>
     replaceUrl(browseRouter(fields)).pipe(
       Effect.as(Message.CompletedReplaceFilters()),
@@ -274,13 +264,23 @@ const ReplaceFiltersLayer = ReplaceFilters.toLayer(
   ),
 )
 
-const NavigateInternalLayer = NavigateInternal.toLayer(
+const NavigateInternal = Command.define(
+  'NavigateInternal',
+  {
+    args: { url: Schema.String },
+    messages: [Message.CompletedNavigateInternal],
+  },
   Effect.succeed(({ url }) =>
     pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
   ),
 )
 
-const LoadExternalLayer = LoadExternal.toLayer(
+const LoadExternal = Command.define(
+  'LoadExternal',
+  {
+    args: { href: Schema.String },
+    messages: [Message.CompletedLoadExternal],
+  },
   Effect.succeed(({ href }) =>
     load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
   ),
@@ -288,9 +288,9 @@ const LoadExternalLayer = LoadExternal.toLayer(
 
 export const EffectsLayer = Layer.mergeAll(
   UI.EffectsLayer,
-  ReplaceFiltersLayer,
-  NavigateInternalLayer,
-  LoadExternalLayer,
+  ReplaceFilters.layer,
+  NavigateInternal.layer,
+  LoadExternal.layer,
 )
 
 const DietListbox = Listbox.create<string>()

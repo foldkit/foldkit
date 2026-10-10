@@ -23,11 +23,11 @@ import { Model, RoomAsyncData } from '../model'
 import { validateUserTextInput } from '../userGameText'
 import { handleRoomUpdated } from './handleRoomUpdates'
 
-const NavigateHome = Command.define('NavigateHome', {
-  messages: [Message.CompletedNavigateHome],
-})
-
-export const NavigateHomeLayer = NavigateHome.toLayer(
+export const NavigateHome = Command.define(
+  'NavigateHome',
+  {
+    messages: [Message.CompletedNavigateHome],
+  },
   Effect.succeed(() =>
     pushUrl(homeRouter()).pipe(Effect.as(Message.CompletedNavigateHome())),
   ),

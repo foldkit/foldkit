@@ -27,17 +27,14 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
       messages: [Message.Ticked],
       modelToDependencies: model => ({ isRunning: model.isRunning }),
     },
-  ),
-}))
-
-const StopwatchTicksLayer = subscriptions.stopwatchTicks.toLayer(
-  Effect.succeed(({ isRunning }) =>
-    Stream.when(
-      Stream.tick(Duration.millis(100)).pipe(
-        Stream.drop(1),
-        Stream.map(Message.Ticked),
+    Effect.succeed(({ isRunning }) =>
+      Stream.when(
+        Stream.tick(Duration.millis(100)).pipe(
+          Stream.drop(1),
+          Stream.map(Message.Ticked),
+        ),
+        Effect.sync(() => isRunning),
       ),
-      Effect.sync(() => isRunning),
     ),
   ),
-)
+}))

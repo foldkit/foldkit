@@ -31,17 +31,16 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
         isAutoCounting: model.isAutoCounting,
       }),
     },
+    Effect.succeed(({ isAutoCounting }) =>
+      Stream.when(
+        Stream.tick(Duration.seconds(1)).pipe(
+          Stream.drop(1),
+          Stream.map(Message.Ticked),
+        ),
+        Effect.sync(() => isAutoCounting),
+      ),
+    ),
   ),
 }))
 
-export const GameClockTicksLayer = subscriptions.gameClockTicks.toLayer(
-  Effect.succeed(({ isAutoCounting }) =>
-    Stream.when(
-      Stream.tick(Duration.seconds(1)).pipe(
-        Stream.drop(1),
-        Stream.map(Message.Ticked),
-      ),
-      Effect.sync(() => isAutoCounting),
-    ),
-  ),
-)
+export const EffectsLayer = subscriptions.gameClockTicks.layer

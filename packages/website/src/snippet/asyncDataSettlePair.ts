@@ -1,8 +1,8 @@
-const LoadAllNotes = Command.define('LoadAllNotes', {
-  messages: [SucceededLoadAllNotes, FailedLoadAllNotes],
-})
-
-const LoadAllNotesLayer = LoadAllNotes.toLayer(
+const LoadAllNotes = Command.define(
+  'LoadAllNotes',
+  {
+    messages: [SucceededLoadAllNotes, FailedLoadAllNotes],
+  },
   Effect.succeed(() =>
     pipe(
       fetchAllNotes,
@@ -14,15 +14,19 @@ const LoadAllNotesLayer = LoadAllNotes.toLayer(
   ),
 )
 
-Match.tagsExhaustive({
-  SucceededLoadAllNotes: ({ notes }) => ({
-    model: modifyFields(model, {
-      allNotes: () => AsyncData.Success({ data: notes }),
+const update = Update.make((model: Model, message: Message) =>
+  Match.value(message).pipe(
+    Match.tagsExhaustive({
+      SucceededLoadAllNotes: ({ notes }) => ({
+        model: modifyFields(model, {
+          allNotes: () => AsyncData.Success({ data: notes }),
+        }),
+      }),
+      FailedLoadAllNotes: ({ error }) => ({
+        model: modifyFields(model, {
+          allNotes: () => AsyncData.Failure({ error }),
+        }),
+      }),
     }),
-  }),
-  FailedLoadAllNotes: ({ error }) => ({
-    model: modifyFields(model, {
-      allNotes: () => AsyncData.Failure({ error }),
-    }),
-  }),
-})
+  ),
+)

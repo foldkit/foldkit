@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Random, Schema } from 'effect'
+import { Effect, Option, Random, Schema } from 'effect'
 import { Command } from 'foldkit'
 
 import {
@@ -21,9 +21,6 @@ export const GenerateAmbientParticle = Command.define(
   {
     messages: [Message.CompletedGenerateAmbientParticle],
   },
-)
-
-const GenerateAmbientParticleLayer = GenerateAmbientParticle.toLayer(
   Effect.succeed(() =>
     Effect.gen(function* () {
       const x = yield* Random.nextBetween(
@@ -67,17 +64,17 @@ const BURST_INITIAL_SPEED_SCALE_MIN = 1.4
 const BURST_INITIAL_SPEED_SCALE_MAX = 2.2
 const BURST_HUE_JITTER_DEGREES = 30
 
-export const GenerateBurstParticle = Command.define('GenerateBurstParticle', {
-  args: {
-    x: Schema.Number,
-    y: Schema.Number,
-    angle: Schema.Number,
-    hueAnchor: Schema.Number,
+export const GenerateBurstParticle = Command.define(
+  'GenerateBurstParticle',
+  {
+    args: {
+      x: Schema.Number,
+      y: Schema.Number,
+      angle: Schema.Number,
+      hueAnchor: Schema.Number,
+    },
+    messages: [Message.CompletedGenerateBurstParticle],
   },
-  messages: [Message.CompletedGenerateBurstParticle],
-})
-
-const GenerateBurstParticleLayer = GenerateBurstParticle.toLayer(
   Effect.succeed(({ x, y, angle, hueAnchor }) =>
     Effect.gen(function* () {
       const jitterX = yield* Random.nextBetween(
@@ -120,9 +117,4 @@ const GenerateBurstParticleLayer = GenerateBurstParticle.toLayer(
       })
     }),
   ),
-)
-
-export const CommandsLayer = Layer.mergeAll(
-  GenerateAmbientParticleLayer,
-  GenerateBurstParticleLayer,
 )

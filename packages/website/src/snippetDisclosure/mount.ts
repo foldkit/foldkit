@@ -10,12 +10,12 @@ export const MINIMUM_EXPANSION_HEIGHT_PX = 48
 const COLLAPSIBLE_HEIGHT_PX =
   COLLAPSED_PREVIEW_HEIGHT_PX + MINIMUM_EXPANSION_HEIGHT_PX
 
-export const MeasureSnippetHeight = Mount.define('MeasureSnippetHeight', {
-  args: { snippetId: Schema.String },
-  messages: [Message.CompletedMeasureSnippetHeight],
-})
-
-export const MeasureSnippetHeightLayer = MeasureSnippetHeight.toLayer(
+export const MeasureSnippetHeight = Mount.define(
+  'MeasureSnippetHeight',
+  {
+    args: { snippetId: Schema.String },
+    messages: [Message.CompletedMeasureSnippetHeight],
+  },
   Effect.succeed(({ element, snippetId }) =>
     Effect.sync(() =>
       Message.CompletedMeasureSnippetHeight({

@@ -1,4 +1,4 @@
-import { Context, Effect, Fiber, Layer, Option, Schema } from 'effect'
+import { Context, Effect, Exit, Fiber, Layer, Option, Schema } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Command from '../command/index.js'
@@ -17,11 +17,21 @@ class EngineService extends Context.Service<EngineService, EngineShape>()(
 ) {}
 
 const ACQUIRE_FAILURE_ID = 'acquire-failure'
+const PARTIAL_ACQUIRE_FAILURE_ID = 'partial-acquire-failure'
+const INTERRUPTED_ACQUIRE_ID = 'interrupted-acquire'
 const RELEASE_DEFECT_ID = 'release-defect'
+const FINALIZER_DEFECT_ID = 'finalizer-defect'
+const ASYNC_FINALIZER_ID = 'async-finalizer'
 const LAYER_BUILD_ERROR = 'engine layer failed to build'
 const RELEASE_ERROR = 'engine release failed'
+const ACQUIRE_CALLBACK_ERROR = 'engine acquire callback threw'
+const RELEASE_CALLBACK_ERROR = 'engine release callback threw'
 
 let log: Array<string> = []
+let asyncFinalizerStarted: Promise<void> = Promise.resolve()
+let signalAsyncFinalizerStarted: () => void = () => {}
+let asyncFinalizerCompletion: Promise<void> = Promise.resolve()
+let allowAsyncFinalizerCompletion: () => void = () => {}
 
 const acquireEngine = (id: string): Effect.Effect<EngineShape, Error> => {
   if (id === ACQUIRE_FAILURE_ID) {
@@ -34,15 +44,61 @@ const acquireEngine = (id: string): Effect.Effect<EngineShape, Error> => {
   }
 }
 
-const makeEngineLayer = (id: string): Layer.Layer<EngineService, Error> =>
-  Layer.effect(
-    EngineService,
-    Effect.acquireRelease(acquireEngine(id), () =>
-      Effect.sync(() => {
-        log.push(`finalize:${id}`)
+const makeEngineLayer = (id: string): Layer.Layer<EngineService, Error> => {
+  if (id === PARTIAL_ACQUIRE_FAILURE_ID) {
+    return Layer.effect(
+      EngineService,
+      Effect.gen(function* () {
+        yield* Effect.addFinalizer(exit =>
+          Effect.sync(() => {
+            log.push(
+              `finalize:${id}:${Exit.hasInterrupts(exit) ? 'Interrupted' : 'Failure'}`,
+            )
+          }),
+        )
+        return yield* Effect.fail(new Error(LAYER_BUILD_ERROR))
       }),
-    ),
-  )
+    )
+  } else if (id === INTERRUPTED_ACQUIRE_ID) {
+    return Layer.effect(
+      EngineService,
+      Effect.gen(function* () {
+        yield* Effect.addFinalizer(exit =>
+          Effect.sync(() => {
+            log.push(
+              `finalize:${id}:${Exit.hasInterrupts(exit) ? 'Interrupted' : 'Other'}`,
+            )
+          }),
+        )
+        yield* Effect.sync(() => {
+          log.push(`acquiring:${id}`)
+        })
+        return yield* Effect.never
+      }),
+    )
+  } else {
+    return Layer.effect(
+      EngineService,
+      Effect.acquireRelease(acquireEngine(id), () => {
+        if (id === ASYNC_FINALIZER_ID) {
+          return Effect.promise<void>(async () => {
+            log.push(`finalizing:${id}`)
+            signalAsyncFinalizerStarted()
+            await asyncFinalizerCompletion
+            log.push(`finalize:${id}`)
+          })
+        } else {
+          return Effect.sync(() => {
+            log.push(`finalize:${id}`)
+            if (id === FINALIZER_DEFECT_ID) {
+              throw new Error('engine finalizer failed')
+            }
+          })
+        }
+      }),
+    )
+  }
+}
 
 const releaseEngine = ({ id }: EngineShape) =>
   Effect.gen(function* () {
@@ -135,6 +191,25 @@ const managedResources = make<Model, Message>()(entry => ({
   ),
 }))
 
+const acquireCallbackThrowManagedResources: typeof managedResources = {
+  engine: {
+    ...managedResources.engine,
+    acquire: () => {
+      throw new Error(ACQUIRE_CALLBACK_ERROR)
+    },
+  },
+}
+
+const releaseCallbackThrowManagedResources: typeof managedResources = {
+  engine: {
+    ...managedResources.engine,
+    release: () => {
+      log.push('release')
+      throw new Error(RELEASE_CALLBACK_ERROR)
+    },
+  },
+}
+
 const EngineLayer = managedResources.engine.toLayer(
   Effect.succeed({
     acquire: ({ id }) =>
@@ -171,6 +246,12 @@ let container: HTMLElement
 
 beforeEach(() => {
   log = []
+  asyncFinalizerStarted = new Promise(resolve => {
+    signalAsyncFinalizerStarted = resolve
+  })
+  asyncFinalizerCompletion = new Promise(resolve => {
+    allowAsyncFinalizerCompletion = resolve
+  })
   vi.spyOn(console, 'error').mockImplementation(() => {})
   container = document.createElement('div')
   container.id = 'app'
@@ -182,7 +263,10 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-const startEngineApp = (initialId: string) =>
+const startEngineApp = (
+  initialId: string,
+  resources: typeof managedResources = managedResources,
+) =>
   Application.makeElement({
     Model,
     init: () => ({
@@ -196,7 +280,7 @@ const startEngineApp = (initialId: string) =>
     view,
     crash,
     container,
-    managedResources,
+    managedResources: resources,
   })
 
 const awaitBodyText = (text: string): Promise<void> =>
@@ -307,6 +391,49 @@ describe('managed resource lifecycle with a Layer-built resource', () => {
     }
   })
 
+  it('closes a partially acquired scope before dispatching onAcquireError', async () => {
+    const element = startEngineApp(PARTIAL_ACQUIRE_FAILURE_ID)
+    const fiber = Effect.runFork(
+      Application.provide(
+        element,
+        Layer.mergeAll(ReadEngineLayer, EngineLayer),
+      ).start(),
+    )
+
+    try {
+      await awaitBodyText(`failed:Error: ${LAYER_BUILD_ERROR}`)
+
+      expect(log).toStrictEqual([
+        `finalize:${PARTIAL_ACQUIRE_FAILURE_ID}:Failure`,
+      ])
+      expect(document.body.textContent).not.toContain('status:released')
+
+      clickButton('read')
+      await awaitBodyText('value:unavailable')
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('surfaces a thrown acquire callback through crash handling', async () => {
+    const element = startEngineApp('a', acquireCallbackThrowManagedResources)
+    const fiber = Effect.runFork(
+      Application.provide(
+        element,
+        Layer.mergeAll(ReadEngineLayer, EngineLayer),
+      ).start(),
+    )
+
+    try {
+      await awaitBodyText(`Crash view: ${ACQUIRE_CALLBACK_ERROR}`)
+
+      expect(log).toStrictEqual([])
+      expect(document.body.textContent).not.toContain('status:released')
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
   it('runs the explicit release before the Layer finalizer on teardown', async () => {
     const element = startEngineApp('a')
     const fiber = Effect.runFork(
@@ -348,6 +475,137 @@ describe('managed resource lifecycle with a Layer-built resource', () => {
       clickButton('read')
       await awaitBodyText('value:unavailable')
     } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('finishes cleanup when the release callback throws', async () => {
+    const element = startEngineApp('a', releaseCallbackThrowManagedResources)
+    const fiber = Effect.runFork(
+      Application.provide(
+        element,
+        Layer.mergeAll(ReadEngineLayer, EngineLayer),
+      ).start(),
+    )
+
+    try {
+      await awaitBodyText('status:acquired')
+
+      clickButton('stop')
+      await awaitBodyText('status:released')
+
+      expect(log).toStrictEqual(['build:a', 'release', 'finalize:a'])
+      expect(document.body.textContent).not.toContain('Crash view')
+
+      clickButton('read')
+      await awaitBodyText('value:unavailable')
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('clears the ref and dispatches onReleased after a finalizer defect', async () => {
+    const element = startEngineApp(FINALIZER_DEFECT_ID)
+    const fiber = Effect.runFork(
+      Application.provide(
+        element,
+        Layer.mergeAll(ReadEngineLayer, EngineLayer),
+      ).start(),
+    )
+
+    try {
+      await awaitBodyText('status:acquired')
+
+      clickButton('stop')
+      await awaitBodyText('status:released')
+
+      expect(log).toStrictEqual([
+        `build:${FINALIZER_DEFECT_ID}`,
+        'release',
+        `finalize:${FINALIZER_DEFECT_ID}`,
+      ])
+      expect(document.body.textContent).not.toContain('Crash view')
+
+      clickButton('read')
+      await awaitBodyText('value:unavailable')
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(fiber))
+    }
+  })
+
+  it('releases the live activation when the application shuts down', async () => {
+    const element = startEngineApp('a')
+    const fiber = Effect.runFork(
+      Application.provide(
+        element,
+        Layer.mergeAll(ReadEngineLayer, EngineLayer),
+      ).start(),
+    )
+
+    await awaitBodyText('status:acquired')
+    await Effect.runPromise(Fiber.interrupt(fiber))
+
+    expect(log).toStrictEqual(['build:a', 'release', 'finalize:a'])
+  })
+
+  it('closes a partial activation when acquisition is interrupted', async () => {
+    const element = startEngineApp(INTERRUPTED_ACQUIRE_ID)
+    const fiber = Effect.runFork(
+      Application.provide(
+        element,
+        Layer.mergeAll(ReadEngineLayer, EngineLayer),
+      ).start(),
+    )
+
+    await awaitLogEntry(`acquiring:${INTERRUPTED_ACQUIRE_ID}`)
+    await Effect.runPromise(Fiber.interrupt(fiber))
+
+    expect(log).toStrictEqual([
+      `acquiring:${INTERRUPTED_ACQUIRE_ID}`,
+      `finalize:${INTERRUPTED_ACQUIRE_ID}:Interrupted`,
+    ])
+  })
+
+  it('waits for async finalizers before clearing the ref and dispatching onReleased', async () => {
+    const element = startEngineApp(ASYNC_FINALIZER_ID)
+    const fiber = Effect.runFork(
+      Application.provide(
+        element,
+        Layer.mergeAll(ReadEngineLayer, EngineLayer),
+      ).start(),
+    )
+
+    try {
+      await awaitBodyText('status:acquired')
+
+      clickButton('stop')
+      await asyncFinalizerStarted
+
+      expect(log).toStrictEqual([
+        `build:${ASYNC_FINALIZER_ID}`,
+        'release',
+        `finalizing:${ASYNC_FINALIZER_ID}`,
+      ])
+      expect(document.body.textContent).not.toContain('status:released')
+
+      clickButton('read')
+      await awaitBodyText(`value:${ASYNC_FINALIZER_ID}`)
+      expect(document.body.textContent).not.toContain('status:released')
+
+      allowAsyncFinalizerCompletion()
+      await awaitBodyText('status:released')
+
+      expect(log).toStrictEqual([
+        `build:${ASYNC_FINALIZER_ID}`,
+        'release',
+        `finalizing:${ASYNC_FINALIZER_ID}`,
+        `finalize:${ASYNC_FINALIZER_ID}`,
+      ])
+
+      clickButton('read')
+      await awaitBodyText('value:unavailable')
+    } finally {
+      allowAsyncFinalizerCompletion()
       await Effect.runPromise(Fiber.interrupt(fiber))
     }
   })

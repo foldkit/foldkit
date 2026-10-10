@@ -125,7 +125,7 @@ describe('real-oxlint rule fixtures', () => {
 
   it('reports every direct decision-time operation in its invalid fixture', () => {
     expect(countDiagnostics('no-impure-call-at-decision-time', 'invalid')).toBe(
-      24,
+      31,
     )
   })
 
@@ -200,6 +200,12 @@ describe('real-oxlint rule fixtures', () => {
 
   it('recognizes explicit and contextual HtmlBuilder parameters', () => {
     expect(countDiagnostics('no-empty-children-array', 'invalid')).toBe(6)
+  })
+
+  it('reports every invalid Mount handler', () => {
+    expect(countDiagnostics('mount-factory-must-use-element', 'invalid')).toBe(
+      9,
+    )
   })
 
   it('tracks same-named tagged unions by binding', () => {

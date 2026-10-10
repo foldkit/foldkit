@@ -15,16 +15,11 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
         shouldCaptureKeyboard: capturesKeyboard(model),
       }),
     },
-  ),
-}))
-
-const HomeKeyPressesLayer = subscriptions.homeKeyPresses.toLayer(
-  Effect.succeed(({ shouldCaptureKeyboard }) =>
-    Stream.when(
-      capturedKeyDownStream(key => Message.PressedKey({ key })),
-      Effect.sync(() => shouldCaptureKeyboard),
+    Effect.succeed(({ shouldCaptureKeyboard }) =>
+      Stream.when(
+        capturedKeyDownStream(key => Message.PressedKey({ key })),
+        Effect.sync(() => shouldCaptureKeyboard),
+      ),
     ),
   ),
-)
-
-export const SubscriptionsLayer = HomeKeyPressesLayer
+}))

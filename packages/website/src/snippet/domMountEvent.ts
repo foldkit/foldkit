@@ -8,11 +8,11 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const TrackPointer = Mount.defineStream('TrackPointer', {
-  messages: [Message.MovedPointer],
-})
-
-const TrackPointerLayer = TrackPointer.toLayer(
+const TrackPointer = Mount.defineStream(
+  'TrackPointer',
+  {
+    messages: [Message.MovedPointer],
+  },
   Effect.succeed(({ element }) =>
     Dom.streamFromEvent({
       target: element,

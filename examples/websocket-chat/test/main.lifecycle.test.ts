@@ -3,7 +3,7 @@ import { Socket } from 'effect/socket'
 import { TestClock } from 'effect/testing'
 import { describe, expect, test } from 'vitest'
 
-import { ManageChatSocketLayer, managedResources } from '../src/main'
+import { managedResources } from '../src/main'
 
 type WebSocketEventName = 'open' | 'message' | 'error' | 'close'
 type WebSocketEventListener = (event: Socket.WebSocketEvent) => void
@@ -80,7 +80,7 @@ const makeTestSocket = () => {
     Socket.WebSocketConstructor,
     () => socket,
   )
-  const handlerLayer = ManageChatSocketLayer.pipe(
+  const handlerLayer = managedResources.chatSocket.layer.pipe(
     Layer.provide(constructorLayer),
   )
 
@@ -106,7 +106,7 @@ const expectSocketClosed = (socket: TestWebSocket): void => {
   expectReadinessListenersRemoved(socket)
 }
 
-describe('ManageChatSocketLayer', () => {
+describe('Chat socket lifecycle', () => {
   test('closes a socket when readiness is interrupted before open', async () => {
     const { socket, handlerLayer } = makeTestSocket()
 

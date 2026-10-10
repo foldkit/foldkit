@@ -192,11 +192,6 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
         }
       },
     },
-  ),
-}))
-
-export const ActiveSectionChangesLayer =
-  subscriptions.activeSectionChanges.toLayer(
     Effect.succeed(({ sections }) =>
       Stream.callback<typeof Message.ChangedActiveSection.Type>(queue =>
         Effect.gen(function* () {
@@ -254,6 +249,7 @@ export const ActiveSectionChangesLayer =
         }),
       ),
     ),
-  )
+  ),
+}))
 
-export { ActiveSectionChangesLayer as EffectsLayer }
+export const EffectsLayer = subscriptions.activeSectionChanges.layer

@@ -10,18 +10,15 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
       messages: [TickedFrame],
       modelToDependencies: model => ({ isActive: model.isPlaying }),
     },
+    Effect.succeed(({ isActive }) =>
+      isActive
+        ? Subscription.animationFrameStream.pipe(
+            Stream.map(deltaTime => TickedFrame({ deltaTime })),
+          )
+        : Stream.empty,
+    ),
   ),
 }))
-
-const AnimationFrameTicksLayer = subscriptions.animationFrameTicks.toLayer(
-  Effect.succeed(({ isActive }) =>
-    isActive
-      ? Subscription.animationFrameStream.pipe(
-          Stream.map(deltaTime => TickedFrame({ deltaTime })),
-        )
-      : Stream.empty,
-  ),
-)
 
 const view = (model: Model, h: HtmlBuilder<Message>): Html =>
   Canvas.view(

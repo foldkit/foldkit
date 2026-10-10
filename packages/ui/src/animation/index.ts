@@ -6,9 +6,7 @@ import { Message, Model, OutMessage, TransitionState, init } from './schema.js'
 import {
   EffectsLayer,
   WaitForAnimationSettled,
-  WaitForAnimationSettledLayer,
   WaitForPaint,
-  WaitForPaintLayer,
   defaultLeaveCommand,
   hide,
   show,
@@ -21,9 +19,7 @@ export { init, Message, Model, OutMessage, TransitionState }
 
 export {
   WaitForAnimationSettled,
-  WaitForAnimationSettledLayer,
   WaitForPaint,
-  WaitForPaintLayer,
   EffectsLayer,
   defaultLeaveCommand,
   hide,

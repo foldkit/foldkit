@@ -26,18 +26,15 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
       messages: [Message.PressedKey],
       modelToDependencies: model => ({ isListening: model.isListening }),
     },
-  ),
-}))
-
-const ShortcutKeyPressesLayer = subscriptions.shortcutKeyPresses.toLayer(
-  Effect.succeed(({ isListening }) =>
-    Stream.when(
-      Dom.streamFromEvent({
-        target: window,
-        type: 'keydown',
-        mapEvent: event => Message.PressedKey({ key: event.key }),
-      }),
-      Effect.sync(() => isListening),
+    Effect.succeed(({ isListening }) =>
+      Stream.when(
+        Dom.streamFromEvent({
+          target: window,
+          type: 'keydown',
+          mapEvent: event => Message.PressedKey({ key: event.key }),
+        }),
+        Effect.sync(() => isListening),
+      ),
     ),
   ),
-)
+}))

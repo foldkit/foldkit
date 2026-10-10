@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema } from 'effect'
+import { Context, Data, Effect, Layer, Schema } from 'effect'
 import { expect, expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
@@ -21,12 +21,12 @@ class Suffix extends Context.Service<Suffix, { readonly value: string }>()(
   'CommandHandlerTestSuffix',
 ) {}
 
-const SendMessage = Command.define('SendMessage', {
-  args: { text: Schema.String },
-  messages: [Message.CompletedSendMessage],
-})
-
-const SendMessageLayer = SendMessage.toLayer(
+const SendMessage = Command.define(
+  'SendMessage',
+  {
+    args: { text: Schema.String },
+    messages: [Message.CompletedSendMessage],
+  },
   Effect.succeed(({ text }) =>
     Effect.map(Prefix, ({ value }) =>
       Message.CompletedSendMessage({ text: value + text }),
@@ -34,10 +34,20 @@ const SendMessageLayer = SendMessage.toLayer(
   ),
 )
 
-const ReadPrefix = Command.define('ReadPrefix', {
-  messages: [Message.CompletedSendMessage],
-  interrupt: true,
-})
+const SendMessageLayer = SendMessage.layer
+
+const ReadPrefix = Command.define(
+  'ReadPrefix',
+  {
+    messages: [Message.CompletedSendMessage],
+    interrupt: true,
+  },
+  Effect.succeed(() =>
+    Effect.map(Prefix, ({ value }) =>
+      Message.CompletedSendMessage({ text: value }),
+    ),
+  ),
+)
 
 const update = (model: Model, message: Message) =>
   Message.match(message, {
@@ -163,7 +173,12 @@ it('defers the handler body until the Command runs', async () => {
 
 it('builds an Effect supplied handler once for multiple Command executions', async () => {
   let builds = 0
-  const layer = SendMessage.toLayer(
+  const BuildOnce = Command.define(
+    'BuildOnce',
+    {
+      args: { text: Schema.String },
+      messages: [Message.CompletedSendMessage],
+    },
     Effect.sync(() => {
       builds += 1
       return ({ text }: { readonly text: string }) =>
@@ -173,9 +188,9 @@ it('builds an Effect supplied handler once for multiple Command executions', asy
 
   const results = await Effect.runPromise(
     Effect.all([
-      SendMessage({ text: 'first' }).effect,
-      SendMessage({ text: 'second' }).effect,
-    ]).pipe(Effect.provide(layer)),
+      BuildOnce({ text: 'first' }).effect,
+      BuildOnce({ text: 'second' }).effect,
+    ]).pipe(Effect.provide(BuildOnce.layer)),
   )
 
   expect(builds).toBe(1)
@@ -186,16 +201,8 @@ it('builds an Effect supplied handler once for multiple Command executions', asy
 })
 
 it('keeps interruptible Command identity with a Layer-backed handler', async () => {
-  const layer = ReadPrefix.toLayer(
-    Effect.succeed(() =>
-      Effect.map(Prefix, ({ value }) =>
-        Message.CompletedSendMessage({ text: value }),
-      ),
-    ),
-  )
-
   const command = ReadPrefix()
-  const handlerLayer = layer.pipe(
+  const handlerLayer = ReadPrefix.layer.pipe(
     Layer.provideMerge(Layer.succeed(Prefix, { value: 'ready' })),
   )
   const result = await Effect.runPromise(
@@ -210,6 +217,66 @@ it('keeps interruptible Command identity with a Layer-backed handler', async () 
     ).name,
   ).toBe('ReadPrefix.Interrupt')
   expect(result).toEqual(Message.CompletedSendMessage({ text: 'ready' }))
+})
+
+it('infers constructor failures and nested handler requirements', () => {
+  class BuildFailure extends Data.TaggedError('BuildFailure')<{}> {}
+
+  const NestedRequirements = Command.define(
+    'NestedRequirements',
+    {
+      args: { text: Schema.String },
+      messages: [Message.CompletedSendMessage],
+    },
+    Effect.gen(function* () {
+      yield* Effect.scope
+      const suffix = yield* Suffix
+      if (suffix.value === 'unavailable') {
+        return yield* Effect.fail(new BuildFailure())
+      }
+
+      return ({ text }) => {
+        const exactText: string = text
+        void exactText
+        // @ts-expect-error Schema.String is decoded as string rather than any.
+        text.doesNotExist()
+        return Effect.gen(function* () {
+          yield* Effect.scope
+          const prefix = yield* Prefix
+          return Message.CompletedSendMessage({
+            text: prefix.value + text + suffix.value,
+          })
+        })
+      }
+    }),
+  )
+
+  expectTypeOf(NestedRequirements.layer).toEqualTypeOf<
+    Layer.Layer<
+      Command.Handler<'NestedRequirements'>,
+      BuildFailure,
+      Prefix | Suffix
+    >
+  >()
+})
+
+it('keeps host contracts external and accepts alternative handlers', async () => {
+  const SendFromHost = Command.define('SendFromHost', {
+    args: { text: Schema.String },
+    messages: [Message.CompletedSendMessage],
+  })
+  const layer = SendFromHost.toLayer(
+    Effect.succeed(({ text }) =>
+      Effect.succeed(Message.CompletedSendMessage({ text: `host:${text}` })),
+    ),
+  )
+
+  expect('layer' in SendFromHost).toBe(false)
+  expect(
+    await Effect.runPromise(
+      SendFromHost({ text: 'hello' }).effect.pipe(Effect.provide(layer)),
+    ),
+  ).toEqual(Message.CompletedSendMessage({ text: 'host:hello' }))
 })
 
 it('rejects a handler Layer from another Command definition with the same name', async () => {

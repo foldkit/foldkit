@@ -52,11 +52,12 @@ CompletedItemsFocus
 
 ```ts
 // RIGHT: the Message is named from the Command that caused it
-const DetermineStartTime = Command.define('DetermineStartTime', {
-  args: { elapsedMs: Schema.Number },
-  messages: [Message.CompletedDetermineStartTime],
-})
-const DetermineStartTimeLayer = DetermineStartTime.toLayer(
+const DetermineStartTime = Command.define(
+  'DetermineStartTime',
+  {
+    args: { elapsedMs: Schema.Number },
+    messages: [Message.CompletedDetermineStartTime],
+  },
   Effect.succeed(({ elapsedMs }) =>
     Clock.currentTimeMillis.pipe(
       Effect.map(now =>
@@ -65,11 +66,12 @@ const DetermineStartTimeLayer = DetermineStartTime.toLayer(
     ),
   ),
 )
-const GenerateCardId = Command.define('GenerateCardId', {
-  args: { columnId: Schema.String },
-  messages: [Message.CompletedGenerateCardId],
-})
-const GenerateCardIdLayer = GenerateCardId.toLayer(
+const GenerateCardId = Command.define(
+  'GenerateCardId',
+  {
+    args: { columnId: Schema.String },
+    messages: [Message.CompletedGenerateCardId],
+  },
   Effect.gen(function* () {
     const crypto = yield* Crypto.Crypto
 
@@ -80,11 +82,12 @@ const GenerateCardIdLayer = GenerateCardId.toLayer(
       })
   }),
 )
-const SaveTodos = Command.define('SaveTodos', {
-  args: { todos: Todos },
-  messages: [Message.SucceededSaveTodos, Message.FailedSaveTodos],
-})
-const SaveTodosLayer = SaveTodos.toLayer(
+const SaveTodos = Command.define(
+  'SaveTodos',
+  {
+    args: { todos: Todos },
+    messages: [Message.SucceededSaveTodos, Message.FailedSaveTodos],
+  },
   Effect.succeed(({ todos }) =>
     saveTodos(todos).pipe(
       Effect.match({
@@ -93,6 +96,11 @@ const SaveTodosLayer = SaveTodos.toLayer(
       }),
     ),
   ),
+)
+const EffectsLayer = Layer.mergeAll(
+  DetermineStartTime.layer,
+  GenerateCardId.layer,
+  SaveTodos.layer,
 )
 
 // WRONG: the Command verb conjugated to past tense

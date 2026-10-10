@@ -1,6 +1,7 @@
 import {
   Cause,
   Effect,
+  Exit,
   Option,
   PubSub,
   Ref,
@@ -59,26 +60,56 @@ export const forkManagedResourceFibers = <Model, Message>({
         ? Option.getOrThrow(maybeRequirements)
         : maybeRequirements
 
-      const acquire = Effect.gen(function* () {
-        const value = yield* config.acquire(requirements)
-        yield* Ref.set(resourceRef, Option.some(value))
-        return value
-      })
-
-      const release = (value: unknown) =>
+      const acquire = Effect.uninterruptibleMask(restore =>
         Effect.gen(function* () {
-          yield* config
-            .release(value)
-            .pipe(Effect.catchCause(() => Effect.void))
+          const activationScope = yield* Scope.make()
+          const acquireExit = yield* restore(
+            Effect.suspend(() => config.acquire(requirements)).pipe(
+              Effect.provideService(Scope.Scope, activationScope),
+            ),
+          ).pipe(Effect.exit)
+
+          if (Exit.isFailure(acquireExit)) {
+            yield* Scope.close(activationScope, acquireExit).pipe(
+              Effect.catchCause(() => Effect.void),
+            )
+            return yield* Effect.failCause(acquireExit.cause)
+          }
+
+          yield* Ref.set(resourceRef, Option.some(acquireExit.value))
+          return { activationScope, value: acquireExit.value }
+        }),
+      )
+
+      const release = (
+        {
+          activationScope,
+          value,
+        }: Readonly<{
+          activationScope: Scope.Closeable
+          value: unknown
+        }>,
+        exit: Exit.Exit<unknown, unknown>,
+      ) =>
+        Effect.gen(function* () {
+          yield* Effect.suspend(() => config.release(value)).pipe(
+            Effect.provideService(Scope.Scope, activationScope),
+            Effect.catchCause(() => Effect.void),
+          )
+          yield* Scope.close(activationScope, exit).pipe(
+            Effect.catchCause(() => Effect.void),
+          )
           yield* Ref.set(resourceRef, Option.none())
           yield* enqueueMessageEffect(config.onReleased())
         })
 
       return pipe(
         Stream.scoped(
-          Stream.fromEffect(Effect.acquireRelease(acquire, release)),
+          Stream.fromEffect(
+            Effect.acquireRelease(acquire, release, { interruptible: true }),
+          ),
         ),
-        Stream.flatMap(value =>
+        Stream.flatMap(({ value }) =>
           Stream.concat(Stream.make(config.onAcquired(value)), Stream.never),
         ),
         Stream.map(Effect.succeed),

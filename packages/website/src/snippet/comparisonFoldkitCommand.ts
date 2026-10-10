@@ -1,14 +1,14 @@
-const SaveCanvas = Command.define('SaveCanvas', {
-  args: {
-    grid: Grid,
-    gridSize: Schema.Number,
-    paletteThemeIndex: Schema.Number,
-    selectedColorIndex: PaletteIndex,
+const SaveCanvas = Command.define(
+  'SaveCanvas',
+  {
+    args: {
+      grid: Grid,
+      gridSize: Schema.Number,
+      paletteThemeIndex: Schema.Number,
+      selectedColorIndex: PaletteIndex,
+    },
+    messages: [Message.CompletedSaveCanvas],
   },
-  messages: [Message.CompletedSaveCanvas],
-})
-
-const SaveCanvasLayer = SaveCanvas.toLayer(
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
 
@@ -29,16 +29,16 @@ const SaveCanvasLayer = SaveCanvas.toLayer(
   }),
 )
 
-const ExportPng = Command.define('ExportPng', {
-  args: {
-    grid: Grid,
-    gridSize: Schema.Number,
-    paletteThemeIndex: Schema.Number,
+const ExportPng = Command.define(
+  'ExportPng',
+  {
+    args: {
+      grid: Grid,
+      gridSize: Schema.Number,
+      paletteThemeIndex: Schema.Number,
+    },
+    messages: [Message.SucceededExportPng, Message.FailedExportPng],
   },
-  messages: [Message.SucceededExportPng, Message.FailedExportPng],
-})
-
-const ExportPngLayer = ExportPng.toLayer(
   Effect.succeed(({ grid, gridSize, paletteThemeIndex }) =>
     Effect.gen(function* () {
       const theme = PALETTE_THEMES[paletteThemeIndex] ?? PALETTE_THEMES[0]

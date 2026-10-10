@@ -824,10 +824,11 @@ export const update = Update.make((model: Model, message: Message) =>
 
 // COMMAND
 
-const InjectAnalytics = Command.define('InjectAnalytics', {
-  messages: [Message.CompletedInjectAnalytics],
-})
-const InjectAnalyticsLayer = InjectAnalytics.toLayer(
+const InjectAnalytics = Command.define(
+  'InjectAnalytics',
+  {
+    messages: [Message.CompletedInjectAnalytics],
+  },
   Effect.succeed(() =>
     Effect.sync(() => inject()).pipe(
       Effect.as(Message.CompletedInjectAnalytics()),
@@ -835,10 +836,11 @@ const InjectAnalyticsLayer = InjectAnalytics.toLayer(
   ),
 )
 
-const LoadBrowserEnvironment = Command.define('LoadBrowserEnvironment', {
-  messages: [Message.CompletedLoadBrowserEnvironment],
-})
-const LoadBrowserEnvironmentLayer = LoadBrowserEnvironment.toLayer(
+const LoadBrowserEnvironment = Command.define(
+  'LoadBrowserEnvironment',
+  {
+    messages: [Message.CompletedLoadBrowserEnvironment],
+  },
   Effect.gen(function* () {
     const localStorage = yield* LocalStorage
     const sessionStorage = yield* SessionStorage
@@ -853,10 +855,11 @@ const LoadBrowserEnvironmentLayer = LoadBrowserEnvironment.toLayer(
   }),
 )
 
-const InjectSpeedInsights = Command.define('InjectSpeedInsights', {
-  messages: [Message.CompletedInjectSpeedInsights],
-})
-const InjectSpeedInsightsLayer = InjectSpeedInsights.toLayer(
+const InjectSpeedInsights = Command.define(
+  'InjectSpeedInsights',
+  {
+    messages: [Message.CompletedInjectSpeedInsights],
+  },
   Effect.succeed(() =>
     Effect.sync(() => SpeedInsights.injectSpeedInsights()).pipe(
       Effect.as(Message.CompletedInjectSpeedInsights()),
@@ -864,11 +867,12 @@ const InjectSpeedInsightsLayer = InjectSpeedInsights.toLayer(
   ),
 )
 
-const CopyLink = Command.define('CopyLink', {
-  args: { url: Schema.String },
-  messages: [Message.SucceededCopyLink, Message.FailedCopyLink],
-})
-const CopyLinkLayer = CopyLink.toLayer(
+const CopyLink = Command.define(
+  'CopyLink',
+  {
+    args: { url: Schema.String },
+    messages: [Message.SucceededCopyLink, Message.FailedCopyLink],
+  },
   Effect.succeed(({ url }) =>
     Effect.tryPromise({
       try: () => navigator.clipboard.writeText(url),
@@ -880,10 +884,11 @@ const CopyLinkLayer = CopyLink.toLayer(
   ),
 )
 
-export const ScrollToTop = Command.define('ScrollToTop', {
-  messages: [Message.CompletedScrollToTop],
-})
-const ScrollToTopLayer = ScrollToTop.toLayer(
+export const ScrollToTop = Command.define(
+  'ScrollToTop',
+  {
+    messages: [Message.CompletedScrollToTop],
+  },
   Effect.succeed(() =>
     Effect.sync(() => {
       window.scrollTo({ top: 0, behavior: 'instant' })
@@ -892,11 +897,12 @@ const ScrollToTopLayer = ScrollToTop.toLayer(
   ),
 )
 
-const ScrollToAnchor = Command.define('ScrollToAnchor', {
-  args: { hash: Schema.String },
-  messages: [Message.CompletedScrollToAnchor],
-})
-const ScrollToAnchorLayer = ScrollToAnchor.toLayer(
+const ScrollToAnchor = Command.define(
+  'ScrollToAnchor',
+  {
+    args: { hash: Schema.String },
+    messages: [Message.CompletedScrollToAnchor],
+  },
   Effect.succeed(({ hash }) =>
     Effect.gen(function* () {
       const target = `#${CSS.escape(hash)}`
@@ -911,18 +917,15 @@ export const ScrollSidebarActiveLinkIntoView = Command.define(
   {
     messages: [Message.CompletedScrollSidebarActiveLinkIntoView],
   },
-)
-const ScrollSidebarActiveLinkIntoViewLayer =
-  ScrollSidebarActiveLinkIntoView.toLayer(
-    Effect.succeed(() =>
-      Dom.scrollIntoViewIfNotVisible(
-        `#${DOCS_SIDEBAR_NAV_ID} [aria-current="page"]`,
-      ).pipe(
-        Effect.ignore,
-        Effect.as(Message.CompletedScrollSidebarActiveLinkIntoView()),
-      ),
+  Effect.succeed(() =>
+    Dom.scrollIntoViewIfNotVisible(
+      `#${DOCS_SIDEBAR_NAV_ID} [aria-current="page"]`,
+    ).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedScrollSidebarActiveLinkIntoView()),
     ),
-  )
+  ),
+)
 
 const MOBILE_MENU_ACTIVE_LINK = `#${MOBILE_MENU_NAV_ID} [aria-current="page"]`
 
@@ -931,18 +934,15 @@ const ScrollMobileMenuActiveLinkIntoView = Command.define(
   {
     messages: [Message.CompletedScrollMobileMenuActiveLinkIntoView],
   },
-)
-const ScrollMobileMenuActiveLinkIntoViewLayer =
-  ScrollMobileMenuActiveLinkIntoView.toLayer(
-    Effect.succeed(() =>
-      Dom.scrollIntoViewIfNotVisible(MOBILE_MENU_ACTIVE_LINK, {
-        when: 'Commit',
-      }).pipe(
-        Effect.ignore,
-        Effect.as(Message.CompletedScrollMobileMenuActiveLinkIntoView()),
-      ),
+  Effect.succeed(() =>
+    Dom.scrollIntoViewIfNotVisible(MOBILE_MENU_ACTIVE_LINK, {
+      when: 'Commit',
+    }).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedScrollMobileMenuActiveLinkIntoView()),
     ),
-  )
+  ),
+)
 
 // NOTE: mirrors --color-cream and --color-gray-900 in styles.css.
 // src/themeColor.test.ts fails when these drift.
@@ -956,11 +956,12 @@ const setThemeColorMeta = (color: string): void => {
   }
 }
 
-const ApplyTheme = Command.define('ApplyTheme', {
-  args: { theme: ResolvedTheme },
-  messages: [Message.CompletedApplyTheme],
-})
-const ApplyThemeLayer = ApplyTheme.toLayer(
+const ApplyTheme = Command.define(
+  'ApplyTheme',
+  {
+    args: { theme: ResolvedTheme },
+    messages: [Message.CompletedApplyTheme],
+  },
   Effect.succeed(({ theme }) =>
     Effect.sync(() => {
       Match.value(theme).pipe(
@@ -979,11 +980,12 @@ const ApplyThemeLayer = ApplyTheme.toLayer(
   ),
 )
 
-const SaveThemePreference = Command.define('SaveThemePreference', {
-  args: { preference: ThemePreference },
-  messages: [Message.CompletedSaveThemePreference],
-})
-const SaveThemePreferenceLayer = SaveThemePreference.toLayer(
+const SaveThemePreference = Command.define(
+  'SaveThemePreference',
+  {
+    args: { preference: ThemePreference },
+    messages: [Message.CompletedSaveThemePreference],
+  },
   Effect.gen(function* () {
     const store = yield* LocalStorage
 
@@ -997,11 +999,12 @@ const SaveThemePreferenceLayer = SaveThemePreference.toLayer(
   }),
 )
 
-const SaveSidebarState = Command.define('SaveSidebarState', {
-  args: { state: SidebarState },
-  messages: [Message.CompletedSaveSidebarState],
-})
-const SaveSidebarStateLayer = SaveSidebarState.toLayer(
+const SaveSidebarState = Command.define(
+  'SaveSidebarState',
+  {
+    args: { state: SidebarState },
+    messages: [Message.CompletedSaveSidebarState],
+  },
   Effect.gen(function* () {
     const store = yield* SessionStorage
 
@@ -1023,31 +1026,34 @@ const modelToSidebarState = (model: Model): SidebarState => ({
 const saveSidebarState = (model: Model) =>
   SaveSidebarState({ state: modelToSidebarState(model) })
 
-const NavigateInternal = Command.define('NavigateInternal', {
-  args: { url: Schema.String },
-  messages: [Message.CompletedNavigateInternal],
-})
-const NavigateInternalLayer = NavigateInternal.toLayer(
+const NavigateInternal = Command.define(
+  'NavigateInternal',
+  {
+    args: { url: Schema.String },
+    messages: [Message.CompletedNavigateInternal],
+  },
   Effect.succeed(({ url }) =>
     pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
   ),
 )
 
-const LoadExternal = Command.define('LoadExternal', {
-  args: { href: Schema.String },
-  messages: [Message.CompletedLoadExternal],
-})
-const LoadExternalLayer = LoadExternal.toLayer(
+const LoadExternal = Command.define(
+  'LoadExternal',
+  {
+    args: { href: Schema.String },
+    messages: [Message.CompletedLoadExternal],
+  },
   Effect.succeed(({ href }) =>
     load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
   ),
 )
 
-export const LoadPlayground = Command.define('LoadPlayground', {
-  args: { exampleSlug: Example.ExampleSlug },
-  messages: [Message.CompletedLoadPlayground],
-})
-const LoadPlaygroundLayer = LoadPlayground.toLayer(
+export const LoadPlayground = Command.define(
+  'LoadPlayground',
+  {
+    args: { exampleSlug: Example.ExampleSlug },
+    messages: [Message.CompletedLoadPlayground],
+  },
   Effect.succeed(({ exampleSlug }) =>
     load(playgroundRouter({ exampleSlug })).pipe(
       Effect.as(Message.CompletedLoadPlayground()),
@@ -1055,31 +1061,19 @@ const LoadPlaygroundLayer = LoadPlayground.toLayer(
   ),
 )
 
-const BootLayer = Layer.mergeAll(
-  InjectAnalyticsLayer,
-  LoadBrowserEnvironmentLayer,
-  InjectSpeedInsightsLayer,
-)
-
-const NavigationLayer = Layer.mergeAll(
-  ScrollToTopLayer,
-  ScrollToAnchorLayer,
-  ScrollSidebarActiveLinkIntoViewLayer,
-  ScrollMobileMenuActiveLinkIntoViewLayer,
-  NavigateInternalLayer,
-  LoadExternalLayer,
-  LoadPlaygroundLayer,
-)
-
-const PreferenceLayer = Layer.mergeAll(
-  ApplyThemeLayer,
-  SaveThemePreferenceLayer,
-  SaveSidebarStateLayer,
-)
-
 export const EffectsLayer = Layer.mergeAll(
-  BootLayer,
-  NavigationLayer,
-  PreferenceLayer,
-  CopyLinkLayer,
+  InjectAnalytics.layer,
+  LoadBrowserEnvironment.layer,
+  InjectSpeedInsights.layer,
+  ScrollToTop.layer,
+  ScrollToAnchor.layer,
+  ScrollSidebarActiveLinkIntoView.layer,
+  ScrollMobileMenuActiveLinkIntoView.layer,
+  NavigateInternal.layer,
+  LoadExternal.layer,
+  LoadPlayground.layer,
+  ApplyTheme.layer,
+  SaveThemePreference.layer,
+  SaveSidebarState.layer,
+  CopyLink.layer,
 )

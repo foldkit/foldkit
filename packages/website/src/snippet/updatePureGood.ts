@@ -5,11 +5,11 @@ import { modifyFields } from 'foldkit/struct'
 import { Message } from './message'
 import type { Model } from './model'
 
-const FocusSearchInput = Command.define('FocusSearchInput', {
-  messages: [Message.CompletedFocusSearchInput],
-})
-
-const FocusSearchInputLayer = FocusSearchInput.toLayer(
+const FocusSearchInput = Command.define(
+  'FocusSearchInput',
+  {
+    messages: [Message.CompletedFocusSearchInput],
+  },
   Effect.succeed(() =>
     Dom.focus('#search-input').pipe(
       Effect.ignore,

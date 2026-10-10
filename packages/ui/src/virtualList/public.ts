@@ -14,9 +14,7 @@ export {
   ScrollAlignment,
   ScrollTarget,
   ApplyScroll,
-  ApplyScrollLayer,
   ObserveVirtualList,
-  ObserveVirtualListLayer,
   EffectsLayer,
   mounts,
 } from './index.js'

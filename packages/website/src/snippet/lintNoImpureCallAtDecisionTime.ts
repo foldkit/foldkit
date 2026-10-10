@@ -1,12 +1,12 @@
 import { Crypto, Effect, Schema } from 'effect'
 import { Command } from 'foldkit'
 
-const SaveDraftWithId = Command.define('SaveDraftWithId', {
-  args: { body: Schema.String, draftId: Schema.String },
-  messages: [Message.CompletedSaveDraftWithId],
-})
-
-const SaveDraftWithIdLayer = SaveDraftWithId.toLayer(
+const SaveDraftWithId = Command.define(
+  'SaveDraftWithId',
+  {
+    args: { body: Schema.String, draftId: Schema.String },
+    messages: [Message.CompletedSaveDraftWithId],
+  },
   Effect.succeed(({ draftId }) =>
     Effect.succeed(Message.CompletedSaveDraftWithId({ draftId })),
   ),
@@ -20,12 +20,12 @@ const saveBad = (body: string) => {
 }
 
 // ✅ Good: the runtime obtains the UUID when it executes the Command.
-const SaveDraft = Command.define('SaveDraft', {
-  args: { body: Schema.String },
-  messages: [Message.CompletedSaveDraft],
-})
-
-const SaveDraftLayer = SaveDraft.toLayer(
+const SaveDraft = Command.define(
+  'SaveDraft',
+  {
+    args: { body: Schema.String },
+    messages: [Message.CompletedSaveDraft],
+  },
   Effect.gen(function* () {
     const crypto = yield* Crypto.Crypto
 

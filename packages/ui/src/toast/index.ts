@@ -39,9 +39,7 @@ export {
 
 export {
   WaitBeforeDismissal,
-  WaitBeforeDismissalLayer,
   WaitForSwipeSettled,
-  WaitForSwipeSettledLayer,
   EffectsLayer,
   swipeOffset,
 } from './update.js'

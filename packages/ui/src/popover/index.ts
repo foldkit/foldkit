@@ -141,32 +141,32 @@ export const buttonId = (id: string): string => `${id}-button`
 export const arrowId = (id: string): string => `${id}-arrow`
 
 /** Prevents page scrolling while the popover is open in modal mode. */
-export const LockPopoverScroll = Command.define('LockPopoverScroll', {
-  messages: [Message.CompletedLockPopoverScroll],
-})
-/** Provides the handler for {@link LockPopoverScroll}. */
-export const LockPopoverScrollLayer = LockPopoverScroll.toLayer(
+export const LockPopoverScroll = Command.define(
+  'LockPopoverScroll',
+  {
+    messages: [Message.CompletedLockPopoverScroll],
+  },
   Effect.succeed(() =>
     Dom.lockScroll.pipe(Effect.as(Message.CompletedLockPopoverScroll())),
   ),
 )
 /** Re-enables page scrolling after the popover closes. */
-export const UnlockPopoverScroll = Command.define('UnlockPopoverScroll', {
-  messages: [Message.CompletedUnlockPopoverScroll],
-})
-/** Provides the handler for {@link UnlockPopoverScroll}. */
-export const UnlockPopoverScrollLayer = UnlockPopoverScroll.toLayer(
+export const UnlockPopoverScroll = Command.define(
+  'UnlockPopoverScroll',
+  {
+    messages: [Message.CompletedUnlockPopoverScroll],
+  },
   Effect.succeed(() =>
     Dom.unlockScroll.pipe(Effect.as(Message.CompletedUnlockPopoverScroll())),
   ),
 )
 /** Marks all elements outside the popover as inert for modal behavior. */
-export const InertPopoverOthers = Command.define('InertPopoverOthers', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedInertPopoverOthers],
-})
-/** Provides the handler for {@link InertPopoverOthers}. */
-export const InertPopoverOthersLayer = InertPopoverOthers.toLayer(
+export const InertPopoverOthers = Command.define(
+  'InertPopoverOthers',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedInertPopoverOthers],
+  },
   Effect.succeed(({ id }) =>
     Dom.inertOthers(id, [buttonSelector(id), panelSelector(id)]).pipe(
       Effect.as(Message.CompletedInertPopoverOthers()),
@@ -174,12 +174,12 @@ export const InertPopoverOthersLayer = InertPopoverOthers.toLayer(
   ),
 )
 /** Removes the inert attribute from elements outside the popover. */
-export const RestorePopoverInert = Command.define('RestorePopoverInert', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedRestorePopoverInert],
-})
-/** Provides the handler for {@link RestorePopoverInert}. */
-export const RestorePopoverInertLayer = RestorePopoverInert.toLayer(
+export const RestorePopoverInert = Command.define(
+  'RestorePopoverInert',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedRestorePopoverInert],
+  },
   Effect.succeed(({ id }) =>
     Dom.restoreInert(id).pipe(
       Effect.as(Message.CompletedRestorePopoverInert()),
@@ -187,12 +187,12 @@ export const RestorePopoverInertLayer = RestorePopoverInert.toLayer(
   ),
 )
 /** Moves focus to the popover panel after opening. */
-export const FocusPopoverPanel = Command.define('FocusPopoverPanel', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedFocusPopoverPanel],
-})
-/** Provides the handler for {@link FocusPopoverPanel}. */
-export const FocusPopoverPanelLayer = FocusPopoverPanel.toLayer(
+export const FocusPopoverPanel = Command.define(
+  'FocusPopoverPanel',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedFocusPopoverPanel],
+  },
   Effect.succeed(({ id }) =>
     Dom.focus(panelSelector(id)).pipe(
       Effect.ignore,
@@ -201,12 +201,12 @@ export const FocusPopoverPanelLayer = FocusPopoverPanel.toLayer(
   ),
 )
 /** Moves focus back to the popover button after closing. */
-export const FocusPopoverButton = Command.define('FocusPopoverButton', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedFocusPopoverButton],
-})
-/** Provides the handler for {@link FocusPopoverButton}. */
-export const FocusPopoverButtonLayer = FocusPopoverButton.toLayer(
+export const FocusPopoverButton = Command.define(
+  'FocusPopoverButton',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedFocusPopoverButton],
+  },
   Effect.succeed(({ id }) =>
     Dom.focus(buttonSelector(id)).pipe(
       Effect.ignore,
@@ -221,39 +221,24 @@ export const DetectPopoverMovementOrAnimationEnd = Command.define(
     args: { id: Schema.String, generation: Schema.Number },
     messages: [Message.GotAnimationMessage],
   },
-)
-/** Provides the handler for {@link DetectPopoverMovementOrAnimationEnd}. */
-export const DetectPopoverMovementOrAnimationEndLayer =
-  DetectPopoverMovementOrAnimationEnd.toLayer(
-    Effect.succeed(({ id, generation }) =>
-      Effect.raceFirst(
-        Dom.detectElementMovement(buttonSelector(id)).pipe(
-          Effect.as(
-            Message.GotAnimationMessage({
-              message: Animation.Message.EndedAnimation({ generation }),
-            }),
-          ),
+  Effect.succeed(({ id, generation }) =>
+    Effect.raceFirst(
+      Dom.detectElementMovement(buttonSelector(id)).pipe(
+        Effect.as(
+          Message.GotAnimationMessage({
+            message: Animation.Message.EndedAnimation({ generation }),
+          }),
         ),
-        Dom.waitForAnimationSettled(panelSelector(id)).pipe(
-          Effect.as(
-            Message.GotAnimationMessage({
-              message: Animation.Message.EndedAnimation({ generation }),
-            }),
-          ),
+      ),
+      Dom.waitForAnimationSettled(panelSelector(id)).pipe(
+        Effect.as(
+          Message.GotAnimationMessage({
+            message: Animation.Message.EndedAnimation({ generation }),
+          }),
         ),
       ),
     ),
-  )
-
-/** @internal */
-export const CommandsLayer = Layer.mergeAll(
-  LockPopoverScrollLayer,
-  UnlockPopoverScrollLayer,
-  InertPopoverOthersLayer,
-  RestorePopoverInertLayer,
-  FocusPopoverPanelLayer,
-  FocusPopoverButtonLayer,
-  DetectPopoverMovementOrAnimationEndLayer,
+  ),
 )
 
 const foldAnimationOutMessage = Animation.OutMessage.match({
@@ -436,18 +421,18 @@ export const update = Update.make((model: Model, message: Message) => {
 /** The anchor-positioning Mount this Popover renders on its panel. Exposed so
  *  Scene tests can call `Scene.Mount.resolve(AnchorPopover, CompletedAnchorPopover())`
  *  to acknowledge the mount produced by the rendered panel. */
-export const AnchorPopover = Mount.define('AnchorPopover', {
-  args: {
-    buttonId: Schema.String,
-    anchor: AnchorConfig,
-    focusSelector: Schema.optional(Schema.String),
-    arrowId: Schema.optional(Schema.String),
-    arrowPadding: Schema.optional(Schema.Number),
+export const AnchorPopover = Mount.define(
+  'AnchorPopover',
+  {
+    args: {
+      buttonId: Schema.String,
+      anchor: AnchorConfig,
+      focusSelector: Schema.optional(Schema.String),
+      arrowId: Schema.optional(Schema.String),
+      arrowPadding: Schema.optional(Schema.Number),
+    },
+    messages: [Message.CompletedAnchorPopover],
   },
-  messages: [Message.CompletedAnchorPopover],
-})
-/** Provides the handler for {@link AnchorPopover}. */
-export const AnchorPopoverLayer = AnchorPopover.toLayer(
   Effect.succeed(
     ({ element, buttonId, anchor, focusSelector, arrowId, arrowPadding }) =>
       Effect.gen(function* () {
@@ -473,11 +458,11 @@ export const AnchorPopoverLayer = AnchorPopover.toLayer(
 /** The backdrop-portaling Mount this Popover renders. Exposed so Scene tests can
  *  call `Scene.Mount.resolve(PortalPopoverBackdrop, CompletedPortalPopoverBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
-export const PortalPopoverBackdrop = Mount.define('PortalPopoverBackdrop', {
-  messages: [Message.CompletedPortalPopoverBackdrop],
-})
-/** Provides the handler for {@link PortalPopoverBackdrop}. */
-export const PortalPopoverBackdropLayer = PortalPopoverBackdrop.toLayer(
+export const PortalPopoverBackdrop = Mount.define(
+  'PortalPopoverBackdrop',
+  {
+    messages: [Message.CompletedPortalPopoverBackdrop],
+  },
   Effect.succeed(({ element }) =>
     Effect.gen(function* () {
       yield* Effect.acquireRelease(
@@ -494,9 +479,15 @@ export const mounts = [AnchorPopover, PortalPopoverBackdrop]
 
 /** Provides Popover's Command and Mount handlers. */
 export const EffectsLayer = Layer.mergeAll(
-  CommandsLayer,
-  AnchorPopoverLayer,
-  PortalPopoverBackdropLayer,
+  LockPopoverScroll.layer,
+  UnlockPopoverScroll.layer,
+  InertPopoverOthers.layer,
+  RestorePopoverInert.layer,
+  FocusPopoverPanel.layer,
+  FocusPopoverButton.layer,
+  DetectPopoverMovementOrAnimationEnd.layer,
+  AnchorPopover.layer,
+  PortalPopoverBackdrop.layer,
   AnimationEffectsLayer,
 )
 

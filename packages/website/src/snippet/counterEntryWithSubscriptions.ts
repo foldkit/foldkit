@@ -1,13 +1,6 @@
 import { Application, Runtime } from 'foldkit'
 
-import {
-  Model,
-  GameClockTicksLayer,
-  init,
-  subscriptions,
-  update,
-  view,
-} from './main'
+import { Model, EffectsLayer, init, subscriptions, update, view } from './main'
 
 const application = Application.make({
   Model,
@@ -18,4 +11,4 @@ const application = Application.make({
   container: document.getElementById('root'),
 })
 
-Runtime.run(Application.provide(application, GameClockTicksLayer))
+Runtime.run(Application.provide(application, EffectsLayer))

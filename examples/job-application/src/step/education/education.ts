@@ -46,9 +46,6 @@ export const GenerateEducationEntryId = Command.define(
       Message.FailedGenerateEducationEntryId,
     ],
   },
-)
-
-export const GenerateEducationEntryIdLayer = GenerateEducationEntryId.toLayer(
   Effect.gen(function* () {
     const crypto = yield* Crypto.Crypto
 
@@ -63,6 +60,8 @@ export const GenerateEducationEntryIdLayer = GenerateEducationEntryId.toLayer(
       )
   }),
 )
+
+export const EffectsLayer = GenerateEducationEntryId.layer
 
 // UPDATE
 

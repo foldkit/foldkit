@@ -30,6 +30,12 @@ const frameSubscription = Subscription.make<Model, Message>()(entry => ({
       messages: [Message.TickedFrame],
       modelToDependencies: model => ({ isActive: model.isRunning }),
     },
+    Effect.succeed(({ isActive }) =>
+      Stream.when(
+        animationFrameStream,
+        Effect.sync(() => isActive),
+      ),
+    ),
   ),
 }))
 
@@ -55,16 +61,6 @@ const animationFrameStream = Stream.callback<typeof Message.TickedFrame.Type>(
       state => Effect.sync(() => cancelAnimationFrame(state.frameId)),
     ).pipe(Effect.flatMap(() => Effect.never)),
 )
-
-export const AnimationFrameTicksLayer =
-  frameSubscription.animationFrameTicks.toLayer(
-    Effect.succeed(({ isActive }) =>
-      Stream.when(
-        animationFrameStream,
-        Effect.sync(() => isActive),
-      ),
-    ),
-  )
 
 export const subscriptions = Subscription.aggregate(
   frameSubscription,

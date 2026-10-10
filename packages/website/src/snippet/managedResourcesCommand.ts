@@ -5,11 +5,11 @@ import { Message } from './message'
 
 const CameraStream = ManagedResource.tag<MediaStream>()('CameraStream')
 
-const TakePhoto = Command.define('TakePhoto', {
-  messages: [Message.SucceededTakePhoto, Message.FailedTakePhoto],
-})
-
-const TakePhotoLayer = TakePhoto.toLayer(
+const TakePhoto = Command.define(
+  'TakePhoto',
+  {
+    messages: [Message.SucceededTakePhoto, Message.FailedTakePhoto],
+  },
   Effect.succeed(() =>
     Effect.gen(function* () {
       const stream = yield* CameraStream.get

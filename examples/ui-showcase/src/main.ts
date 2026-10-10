@@ -166,23 +166,23 @@ export type Message = typeof Message.Type
 
 // COMMAND
 
-const NavigateInternal = Command.define('NavigateInternal', {
-  args: { url: Schema.String },
-  messages: [Message.CompletedNavigateInternal],
-})
-
-const LoadExternal = Command.define('LoadExternal', {
-  args: { href: Schema.String },
-  messages: [Message.CompletedLoadExternal],
-})
-
-const NavigateInternalLayer = NavigateInternal.toLayer(
+const NavigateInternal = Command.define(
+  'NavigateInternal',
+  {
+    args: { url: Schema.String },
+    messages: [Message.CompletedNavigateInternal],
+  },
   Effect.succeed(({ url }) =>
     pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
   ),
 )
 
-const LoadExternalLayer = LoadExternal.toLayer(
+const LoadExternal = Command.define(
+  'LoadExternal',
+  {
+    args: { href: Schema.String },
+    messages: [Message.CompletedLoadExternal],
+  },
   Effect.succeed(({ href }) =>
     load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
   ),
@@ -190,8 +190,8 @@ const LoadExternalLayer = LoadExternal.toLayer(
 
 export const EffectsLayer = Layer.mergeAll(
   Ui.EffectsLayer,
-  NavigateInternalLayer,
-  LoadExternalLayer,
+  NavigateInternal.layer,
+  LoadExternal.layer,
 )
 
 // INIT

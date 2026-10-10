@@ -50,16 +50,16 @@ export type Message = typeof Message.Type
 export const UploadFileArgs = Schema.Struct({ uploadId: Schema.Number })
 export type UploadFileArgs = typeof UploadFileArgs.Type
 
-export const UploadFile = Command.define('UploadFile', {
-  args: UploadFileArgs.fields,
-  messages: [Message.SucceededUploadFile, Message.FailedUploadFile],
-  interrupt: {
-    keyFields: ['uploadId'],
-    toKey: ({ uploadId }) => String(uploadId),
+export const UploadFile = Command.define(
+  'UploadFile',
+  {
+    args: UploadFileArgs.fields,
+    messages: [Message.SucceededUploadFile, Message.FailedUploadFile],
+    interrupt: {
+      keyFields: ['uploadId'],
+      toKey: ({ uploadId }) => String(uploadId),
+    },
   },
-})
-
-export const UploadFileLayer = UploadFile.toLayer(
   Effect.succeed(({ uploadId }) =>
     Effect.as(Effect.never, Message.SucceededUploadFile({ uploadId })),
   ),
@@ -161,4 +161,4 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   return { title: 'Uploads', body }
 }
 
-export const EffectsLayer = Layer.mergeAll(UploadFileLayer)
+export const EffectsLayer = Layer.mergeAll(UploadFile.layer)

@@ -18,6 +18,8 @@ export { default as commandHandlerConstructorRaw } from './commandHandlerConstru
 export { default as commandHandlerConstructorHighlighted } from './commandHandlerConstructor.ts?highlighted'
 export { default as commandHandlerTestRaw } from './commandHandlerTest.ts?raw'
 export { default as commandHandlerTestHighlighted } from './commandHandlerTest.ts?highlighted'
+export { default as commandHostContractRaw } from './commandHostContract.ts?raw'
+export { default as commandHostContractHighlighted } from './commandHostContract.ts?highlighted'
 export { default as commandInterruptibleRaw } from './commandInterruptible.ts?raw'
 export { default as commandInterruptibleHighlighted } from './commandInterruptible.ts?highlighted'
 export { default as commandInterruptKeyRaw } from './commandInterruptKey.ts?raw'

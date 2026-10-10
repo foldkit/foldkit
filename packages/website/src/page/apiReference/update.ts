@@ -16,11 +16,11 @@ import {
   type Model,
 } from './model'
 
-const LoadApiData = Command.define('LoadApiData', {
-  messages: [Message.SucceededLoadApiData, Message.FailedLoadApiData],
-})
-
-export const LoadApiDataLayer = LoadApiData.toLayer(
+const LoadApiData = Command.define(
+  'LoadApiData',
+  {
+    messages: [Message.SucceededLoadApiData, Message.FailedLoadApiData],
+  },
   Effect.succeed(() =>
     Effect.gen(function* () {
       const [parsedApiModule, highlightsModule] = yield* Effect.tryPromise({
@@ -55,6 +55,8 @@ export const LoadApiDataLayer = LoadApiData.toLayer(
     ),
   ),
 )
+
+export const EffectsLayer = LoadApiData.layer
 
 const disclosuresForApiData = (apiData: ApiData): Disclosures =>
   pipe(

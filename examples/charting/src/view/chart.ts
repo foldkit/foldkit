@@ -114,16 +114,16 @@ const mountChart = (element: Element, hostId: string) =>
     ),
   )
 
-export const MountChart = Mount.defineStream('MountChart', {
-  args: { hostId: Schema.String },
-  messages: [
-    Message.SucceededMountChart,
-    Message.FailedMountChart,
-    Message.ClickedChartDatum,
-  ],
-})
-
-export const MountChartLayer = MountChart.toLayer(
+export const MountChart = Mount.defineStream(
+  'MountChart',
+  {
+    args: { hostId: Schema.String },
+    messages: [
+      Message.SucceededMountChart,
+      Message.FailedMountChart,
+      Message.ClickedChartDatum,
+    ],
+  },
   Effect.succeed(({ element, hostId }) => mountChart(element, hostId)),
 )
 

@@ -1,11 +1,31 @@
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  undoRedoKeyPresses: entry('UndoRedoKeyPresses', {
-    messages: [ClickedUndo, ClickedRedo],
-  }),
+  undoRedoKeyPresses: entry(
+    'UndoRedoKeyPresses',
+    {
+      messages: [ClickedUndo, ClickedRedo],
+    },
+    Effect.succeed(() =>
+      Dom.streamFromEventFilterMapPreventDefault({
+        target: document,
+        type: 'keydown',
+        filterMapEvent: toUndoRedoMessage,
+      }),
+    ),
+  ),
 
-  toolKeyPresses: entry('ToolKeyPresses', {
-    messages: [SelectedTool],
-  }),
+  toolKeyPresses: entry(
+    'ToolKeyPresses',
+    {
+      messages: [SelectedTool],
+    },
+    Effect.succeed(() =>
+      Dom.streamFromEventFilterMap({
+        target: document,
+        type: 'keydown',
+        filterMapEvent: toToolMessage,
+      }),
+    ),
+  ),
 
   mouseReleases: entry(
     'MouseReleases',
@@ -14,36 +34,13 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       messages: [ReleasedMouse],
       modelToDependencies: model => ({ isDrawing: model.isDrawing }),
     },
-  ),
-}))
-
-const UndoRedoKeyPressesLayer = subscriptions.undoRedoKeyPresses.toLayer(
-  Effect.succeed(() =>
-    Dom.streamFromEventFilterMapPreventDefault({
-      target: document,
-      type: 'keydown',
-      filterMapEvent: toUndoRedoMessage,
-    }),
-  ),
-)
-
-const ToolKeyPressesLayer = subscriptions.toolKeyPresses.toLayer(
-  Effect.succeed(() =>
-    Dom.streamFromEventFilterMap({
-      target: document,
-      type: 'keydown',
-      filterMapEvent: toToolMessage,
-    }),
-  ),
-)
-
-const MouseReleasesLayer = subscriptions.mouseReleases.toLayer(
-  Effect.succeed(({ isDrawing }) =>
-    Stream.when(
-      Stream.fromEventListener(document, 'mouseup').pipe(
-        Stream.map(() => ReleasedMouse()),
+    Effect.succeed(({ isDrawing }) =>
+      Stream.when(
+        Stream.fromEventListener(document, 'mouseup').pipe(
+          Stream.map(() => ReleasedMouse()),
+        ),
+        Effect.succeed(isDrawing),
       ),
-      Effect.succeed(isDrawing),
     ),
   ),
-)
+}))

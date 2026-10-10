@@ -90,12 +90,12 @@ const isEmailOnWaitlist = (email: string): Effect.Effect<boolean> =>
     return Array.contains(EMAILS_ON_WAITLIST, email.toLowerCase())
   })
 
-export const ValidateEmail = Command.define('ValidateEmail', {
-  args: { email: Schema.String },
-  messages: [Message.CompletedValidateEmail],
-})
-
-const ValidateEmailLayer = ValidateEmail.toLayer(
+export const ValidateEmail = Command.define(
+  'ValidateEmail',
+  {
+    args: { email: Schema.String },
+    messages: [Message.CompletedValidateEmail],
+  },
   Effect.succeed(({ email }) =>
     Effect.gen(function* () {
       if (yield* isEmailOnWaitlist(email)) {
@@ -216,16 +216,16 @@ export const update = Update.make((model: Model, message: Message) =>
 
 // COMMAND
 
-export const SubmitForm = Command.define('SubmitForm', {
-  args: {
-    name: Schema.String,
-    email: Schema.String,
-    messageText: Schema.String,
+export const SubmitForm = Command.define(
+  'SubmitForm',
+  {
+    args: {
+      name: Schema.String,
+      email: Schema.String,
+      messageText: Schema.String,
+    },
+    messages: [Message.SucceededSubmitForm, Message.FailedSubmitForm],
   },
-  messages: [Message.SucceededSubmitForm, Message.FailedSubmitForm],
-})
-
-const SubmitFormLayer = SubmitForm.toLayer(
   Effect.succeed(({ name }) =>
     Effect.gen(function* () {
       yield* Effect.sleep(`${FAKE_API_DELAY_MS} millis`)
@@ -240,7 +240,10 @@ const SubmitFormLayer = SubmitForm.toLayer(
   ),
 )
 
-export const EffectsLayer = Layer.mergeAll(ValidateEmailLayer, SubmitFormLayer)
+export const EffectsLayer = Layer.mergeAll(
+  ValidateEmail.layer,
+  SubmitForm.layer,
+)
 
 // VIEW
 

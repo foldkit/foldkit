@@ -156,13 +156,12 @@ const acquireDialogResourcesResult = (
  *  acquisition becomes uninterruptible after the committed element is found,
  *  so modal resources and the scroll lock cannot split. A concurrent
  *  lifecycle acquisition reuses the resources already held by the id. */
-export const ShowDialog = Command.define('ShowDialog', {
-  args: { id: Schema.String, focusSelector: Schema.String },
-  messages: [Message.SucceededShowDialog, Message.FailedShowDialog],
-})
-
-/** Effect provider for {@link ShowDialog}. */
-export const ShowDialogLayer = ShowDialog.toLayer(
+export const ShowDialog = Command.define(
+  'ShowDialog',
+  {
+    args: { id: Schema.String, focusSelector: Schema.String },
+    messages: [Message.SucceededShowDialog, Message.FailedShowDialog],
+  },
   Effect.succeed(({ id, focusSelector }) =>
     acquireDialogResourcesResult(id, focusSelector),
   ),
@@ -173,13 +172,15 @@ export const ShowDialogLayer = ShowDialog.toLayer(
  *  open Dialog without replaying initialization Commands. A successful
  *  acquisition also resumes a preserved animation transition from its current
  *  phase. */
-export const AcquireResources = Mount.define('AcquireResources', {
-  args: { id: Schema.String, focusSelector: Schema.String },
-  messages: [Message.SucceededAcquireResources, Message.FailedAcquireResources],
-})
-
-/** Effect provider for {@link AcquireResources}. */
-export const AcquireResourcesLayer = AcquireResources.toLayer(
+export const AcquireResources = Mount.define(
+  'AcquireResources',
+  {
+    args: { id: Schema.String, focusSelector: Schema.String },
+    messages: [
+      Message.SucceededAcquireResources,
+      Message.FailedAcquireResources,
+    ],
+  },
   Effect.succeed(({ element, id, focusSelector }) => {
     if (!(element instanceof HTMLDialogElement) || element.id !== id) {
       return Effect.succeed(Message.FailedAcquireResources())
@@ -214,13 +215,12 @@ export const AcquireResourcesLayer = AcquireResources.toLayer(
  *  close runs, the Command calls `Dom.releaseDialogResources` instead. That
  *  releases the scroll lock, focus trap, return focus, and stack entry if the
  *  dialog still holds them. The background is restored before return focus. */
-export const CloseDialog = Command.define('CloseDialog', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedCloseDialog],
-})
-
-/** Effect provider for {@link CloseDialog}. */
-export const CloseDialogLayer = CloseDialog.toLayer(
+export const CloseDialog = Command.define(
+  'CloseDialog',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedCloseDialog],
+  },
   Effect.succeed(({ id }) =>
     Dom.closeDialog(dialogSelector(id)).pipe(
       Effect.andThen(isReleased =>
@@ -236,13 +236,12 @@ export const CloseDialogLayer = CloseDialog.toLayer(
  *  focus trap, return focus, stack entry, background isolation) when the
  *  element unmounts without a purposeful close. Calling it after
  *  `CloseDialog` released those resources is a no-op. */
-export const ReleaseDialogResources = Command.define('ReleaseDialogResources', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedReleaseDialogResources],
-})
-
-/** Effect provider for {@link ReleaseDialogResources}. */
-export const ReleaseDialogResourcesLayer = ReleaseDialogResources.toLayer(
+export const ReleaseDialogResources = Command.define(
+  'ReleaseDialogResources',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedReleaseDialogResources],
+  },
   Effect.succeed(({ id }) =>
     Dom.releaseDialogResources(id).pipe(
       Effect.ignore,
@@ -251,20 +250,15 @@ export const ReleaseDialogResourcesLayer = ReleaseDialogResources.toLayer(
   ),
 )
 
-/** @internal Command handlers owned by Dialog. */
-export const CommandsLayer = Layer.mergeAll(
-  ShowDialogLayer,
-  CloseDialogLayer,
-  ReleaseDialogResourcesLayer,
-)
-
 /** Mount definitions rendered by Dialog. */
 export const mounts = [AcquireResources]
 
 /** Effect providers used by the Dialog component. */
 export const EffectsLayer = Layer.mergeAll(
-  CommandsLayer,
-  AcquireResourcesLayer,
+  ShowDialog.layer,
+  CloseDialog.layer,
+  ReleaseDialogResources.layer,
+  AcquireResources.layer,
   AnimationUpdate.EffectsLayer,
 )
 

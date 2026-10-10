@@ -220,32 +220,32 @@ type HandlerReturn<Model> = Readonly<{
 }>
 
 /** Prevents page scrolling while the listbox is open in modal mode. */
-export const LockListboxScroll = Command.define('LockListboxScroll', {
-  messages: [Message.CompletedLockListboxScroll],
-})
-/** Provides the handler for {@link LockListboxScroll}. */
-export const LockListboxScrollLayer = LockListboxScroll.toLayer(
+export const LockListboxScroll = Command.define(
+  'LockListboxScroll',
+  {
+    messages: [Message.CompletedLockListboxScroll],
+  },
   Effect.succeed(() =>
     Dom.lockScroll.pipe(Effect.as(Message.CompletedLockListboxScroll())),
   ),
 )
 /** Re-enables page scrolling after the listbox closes. */
-export const UnlockListboxScroll = Command.define('UnlockListboxScroll', {
-  messages: [Message.CompletedUnlockListboxScroll],
-})
-/** Provides the handler for {@link UnlockListboxScroll}. */
-export const UnlockListboxScrollLayer = UnlockListboxScroll.toLayer(
+export const UnlockListboxScroll = Command.define(
+  'UnlockListboxScroll',
+  {
+    messages: [Message.CompletedUnlockListboxScroll],
+  },
   Effect.succeed(() =>
     Dom.unlockScroll.pipe(Effect.as(Message.CompletedUnlockListboxScroll())),
   ),
 )
 /** Marks all elements outside the listbox as inert for modal behavior. */
-export const InertListboxOthers = Command.define('InertListboxOthers', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedInertListboxOthers],
-})
-/** Provides the handler for {@link InertListboxOthers}. */
-export const InertListboxOthersLayer = InertListboxOthers.toLayer(
+export const InertListboxOthers = Command.define(
+  'InertListboxOthers',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedInertListboxOthers],
+  },
   Effect.succeed(({ id }) =>
     Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]).pipe(
       Effect.as(Message.CompletedInertListboxOthers()),
@@ -253,12 +253,12 @@ export const InertListboxOthersLayer = InertListboxOthers.toLayer(
   ),
 )
 /** Removes the inert attribute from elements outside the listbox. */
-export const RestoreListboxInert = Command.define('RestoreListboxInert', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedRestoreListboxInert],
-})
-/** Provides the handler for {@link RestoreListboxInert}. */
-export const RestoreListboxInertLayer = RestoreListboxInert.toLayer(
+export const RestoreListboxInert = Command.define(
+  'RestoreListboxInert',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedRestoreListboxInert],
+  },
   Effect.succeed(({ id }) =>
     Dom.restoreInert(id).pipe(
       Effect.as(Message.CompletedRestoreListboxInert()),
@@ -266,12 +266,12 @@ export const RestoreListboxInertLayer = RestoreListboxInert.toLayer(
   ),
 )
 /** Moves focus back to the listbox button after closing. */
-export const FocusListboxButton = Command.define('FocusListboxButton', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedFocusListboxButton],
-})
-/** Provides the handler for {@link FocusListboxButton}. */
-export const FocusListboxButtonLayer = FocusListboxButton.toLayer(
+export const FocusListboxButton = Command.define(
+  'FocusListboxButton',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedFocusListboxButton],
+  },
   Effect.succeed(({ id }) =>
     Dom.focus(buttonSelector(id)).pipe(
       Effect.ignore,
@@ -280,12 +280,12 @@ export const FocusListboxButtonLayer = FocusListboxButton.toLayer(
   ),
 )
 /** Moves focus to the listbox items container after opening. */
-export const FocusListboxItems = Command.define('FocusListboxItems', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedFocusListboxItems],
-})
-/** Provides the handler for {@link FocusListboxItems}. */
-export const FocusListboxItemsLayer = FocusListboxItems.toLayer(
+export const FocusListboxItems = Command.define(
+  'FocusListboxItems',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedFocusListboxItems],
+  },
   Effect.succeed(({ id }) =>
     Dom.focus(itemsSelector(id)).pipe(
       Effect.ignore,
@@ -300,9 +300,6 @@ export const ScrollListboxItemIntoView = Command.define(
     args: { id: Schema.String, index: Schema.Number },
     messages: [Message.CompletedScrollListboxItemIntoView],
   },
-)
-/** Provides the handler for {@link ScrollListboxItemIntoView}. */
-export const ScrollListboxItemIntoViewLayer = ScrollListboxItemIntoView.toLayer(
   Effect.succeed(({ id, index }) =>
     Dom.scrollIntoView(itemSelector(id, index)).pipe(
       Effect.ignore,
@@ -311,12 +308,12 @@ export const ScrollListboxItemIntoViewLayer = ScrollListboxItemIntoView.toLayer(
   ),
 )
 /** Programmatically clicks the active listbox item's DOM element. */
-export const ClickListboxItem = Command.define('ClickListboxItem', {
-  args: { id: Schema.String, index: Schema.Number },
-  messages: [Message.CompletedClickListboxItem],
-})
-/** Provides the handler for {@link ClickListboxItem}. */
-export const ClickListboxItemLayer = ClickListboxItem.toLayer(
+export const ClickListboxItem = Command.define(
+  'ClickListboxItem',
+  {
+    args: { id: Schema.String, index: Schema.Number },
+    messages: [Message.CompletedClickListboxItem],
+  },
   Effect.succeed(({ id, index }) =>
     Dom.clickElement(itemSelector(id, index)).pipe(
       Effect.ignore,
@@ -331,9 +328,6 @@ export const DelayClearListboxSearch = Command.define(
     args: { version: Schema.Number },
     messages: [Message.CompletedDelayClearListboxSearch],
   },
-)
-/** Provides the handler for {@link DelayClearListboxSearch}. */
-export const DelayClearListboxSearchLayer = DelayClearListboxSearch.toLayer(
   Effect.succeed(({ version }) =>
     Effect.sleep(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
       Effect.as(Message.CompletedDelayClearListboxSearch({ version })),
@@ -347,42 +341,24 @@ export const DetectListboxMovementOrAnimationEnd = Command.define(
     args: { id: Schema.String, generation: Schema.Number },
     messages: [Message.GotAnimationMessage],
   },
-)
-/** Provides the handler for {@link DetectListboxMovementOrAnimationEnd}. */
-export const DetectListboxMovementOrAnimationEndLayer =
-  DetectListboxMovementOrAnimationEnd.toLayer(
-    Effect.succeed(({ id, generation }) =>
-      Effect.raceFirst(
-        Dom.detectElementMovement(buttonSelector(id)).pipe(
-          Effect.as(
-            Message.GotAnimationMessage({
-              message: Animation.Message.EndedAnimation({ generation }),
-            }),
-          ),
+  Effect.succeed(({ id, generation }) =>
+    Effect.raceFirst(
+      Dom.detectElementMovement(buttonSelector(id)).pipe(
+        Effect.as(
+          Message.GotAnimationMessage({
+            message: Animation.Message.EndedAnimation({ generation }),
+          }),
         ),
-        Dom.waitForAnimationSettled(itemsSelector(id)).pipe(
-          Effect.as(
-            Message.GotAnimationMessage({
-              message: Animation.Message.EndedAnimation({ generation }),
-            }),
-          ),
+      ),
+      Dom.waitForAnimationSettled(itemsSelector(id)).pipe(
+        Effect.as(
+          Message.GotAnimationMessage({
+            message: Animation.Message.EndedAnimation({ generation }),
+          }),
         ),
       ),
     ),
-  )
-
-/** @internal */
-export const CommandsLayer = Layer.mergeAll(
-  LockListboxScrollLayer,
-  UnlockListboxScrollLayer,
-  InertListboxOthersLayer,
-  RestoreListboxInertLayer,
-  FocusListboxButtonLayer,
-  FocusListboxItemsLayer,
-  ScrollListboxItemIntoViewLayer,
-  ClickListboxItemLayer,
-  DelayClearListboxSearchLayer,
-  DetectListboxMovementOrAnimationEndLayer,
+  ),
 )
 
 export const makeUpdate = <Model extends BaseModel>(
@@ -680,12 +656,12 @@ export const makeUpdate = <Model extends BaseModel>(
  *
  *  Exposed so Scene tests can call
  *  `Scene.Mount.resolve(AnchorListbox, CompletedAnchorListbox())`. */
-export const AnchorListbox = Mount.define('AnchorListbox', {
-  args: { buttonId: Schema.String, anchor: AnchorConfig },
-  messages: [Message.CompletedAnchorListbox],
-})
-/** Provides the handler for {@link AnchorListbox}. */
-export const AnchorListboxLayer = AnchorListbox.toLayer(
+export const AnchorListbox = Mount.define(
+  'AnchorListbox',
+  {
+    args: { buttonId: Schema.String, anchor: AnchorConfig },
+    messages: [Message.CompletedAnchorListbox],
+  },
   Effect.succeed(({ element, buttonId, anchor }) =>
     Effect.gen(function* () {
       yield* Effect.acquireRelease(
@@ -706,11 +682,11 @@ export const AnchorListboxLayer = AnchorListbox.toLayer(
 /** The backdrop-portaling Mount this Listbox renders. Exposed so Scene tests can
  *  call `Scene.Mount.resolve(PortalListboxBackdrop, CompletedPortalListboxBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
-export const PortalListboxBackdrop = Mount.define('PortalListboxBackdrop', {
-  messages: [Message.CompletedPortalListboxBackdrop],
-})
-/** Provides the handler for {@link PortalListboxBackdrop}. */
-export const PortalListboxBackdropLayer = PortalListboxBackdrop.toLayer(
+export const PortalListboxBackdrop = Mount.define(
+  'PortalListboxBackdrop',
+  {
+    messages: [Message.CompletedPortalListboxBackdrop],
+  },
   Effect.succeed(({ element }) =>
     Effect.gen(function* () {
       yield* Effect.acquireRelease(
@@ -727,9 +703,18 @@ export const mounts = [AnchorListbox, PortalListboxBackdrop]
 
 /** Provides Listbox's Command and Mount handlers. */
 export const EffectsLayer = Layer.mergeAll(
-  CommandsLayer,
-  AnchorListboxLayer,
-  PortalListboxBackdropLayer,
+  LockListboxScroll.layer,
+  UnlockListboxScroll.layer,
+  InertListboxOthers.layer,
+  RestoreListboxInert.layer,
+  FocusListboxButton.layer,
+  FocusListboxItems.layer,
+  ScrollListboxItemIntoView.layer,
+  ClickListboxItem.layer,
+  DelayClearListboxSearch.layer,
+  DetectListboxMovementOrAnimationEnd.layer,
+  AnchorListbox.layer,
+  PortalListboxBackdrop.layer,
   AnimationEffectsLayer,
 )
 

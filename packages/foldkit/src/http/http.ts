@@ -23,29 +23,32 @@ import { FetchHttpClient, HttpClient } from 'effect/http'
  *
  * @example
  * ```typescript
- * import { Http } from 'foldkit'
+ * import { Effect, Layer, Schema } from 'effect'
+ * import { HttpClient } from 'effect/http'
+ * import { Command, Http } from 'foldkit'
  *
- * const FetchCount = Command.define('FetchCount', {
- *   messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
- * })
+ * const FetchCount = Command.define(
+ *   'FetchCount',
+ *   { messages: [Message.SucceededFetchCount, Message.FailedFetchCount] },
+ *   Effect.gen(function* () {
+ *     const client = yield* HttpClient.HttpClient
  *
- * const FetchCountLayer = FetchCount.toLayer(
- *   Effect.succeed(() =>
- *     Effect.gen(function* () {
- *       const client = yield* HttpClient.HttpClient
- *       const response = yield* client.get('/api/count')
- *       const { count } = yield* Schema.decodeUnknownEffect(CountResponse)(
- *         yield* response.json,
+ *     return () =>
+ *       Effect.gen(function* () {
+ *         const response = yield* client.get('/api/count')
+ *         const { count } = yield* Schema.decodeUnknownEffect(CountResponse)(
+ *           yield* response.json,
+ *         )
+ *         return Message.SucceededFetchCount({ count })
+ *       }).pipe(
+ *         Effect.catch(() =>
+ *           Effect.succeed(Message.FailedFetchCount({ error: 'Request failed' })),
+ *         ),
  *       )
- *       return Message.SucceededFetchCount({ count })
- *     }).pipe(
- *       Effect.catch(() =>
- *         Effect.succeed(Message.FailedFetchCount({ error: 'Request failed' })),
- *       ),
- *       Effect.provide(Http.layer),
- *     ),
- *   ),
+ *   }),
  * )
+ *
+ * const AppLayer = FetchCount.layer.pipe(Layer.provide(Http.layer))
  * ```
  */
 export const layer: Layer.Layer<HttpClient.HttpClient> = Layer.provide(

@@ -5,12 +5,12 @@ import { pushUrl } from 'foldkit/navigation'
 import { Message } from './message'
 import { roomRouter } from './route'
 
-export const NavigateToRoom = Command.define('NavigateToRoom', {
-  args: { roomId: Schema.String },
-  messages: [Message.CompletedNavigateToRoom],
-})
-
-export const NavigateToRoomLayer = NavigateToRoom.toLayer(
+export const NavigateToRoom = Command.define(
+  'NavigateToRoom',
+  {
+    args: { roomId: Schema.String },
+    messages: [Message.CompletedNavigateToRoom],
+  },
   Effect.succeed(({ roomId }) =>
     pushUrl(roomRouter({ roomId })).pipe(
       Effect.as(Message.CompletedNavigateToRoom()),

@@ -69,29 +69,27 @@ export const init = (url: Url) => {
 
 // COMMAND
 
-export const NavigateInternal = Command.define('NavigateInternal', {
-  args: { url: Schema.String },
-  messages: [Message.CompletedNavigateInternal],
-})
-
-const LoadExternal = Command.define('LoadExternal', {
-  args: { href: Schema.String },
-  messages: [Message.CompletedLoadExternal],
-})
-
-const NavigateInternalLayer = NavigateInternal.toLayer(
+export const NavigateInternal = Command.define(
+  'NavigateInternal',
+  {
+    args: { url: Schema.String },
+    messages: [Message.CompletedNavigateInternal],
+  },
   Effect.succeed(({ url }) =>
     pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
   ),
 )
 
-const LoadExternalLayer = LoadExternal.toLayer(
+const LoadExternal = Command.define(
+  'LoadExternal',
+  {
+    args: { href: Schema.String },
+    messages: [Message.CompletedLoadExternal],
+  },
   Effect.succeed(({ href }) =>
     load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
   ),
 )
-
-const CommandsLayer = Layer.mergeAll(NavigateInternalLayer, LoadExternalLayer)
 
 // UPDATE
 
@@ -169,13 +167,11 @@ export const update = Update.make((model: Model, message: Message) =>
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  navigationShortcutPresses: entry('NavigationShortcutPresses', {
-    messages: [Message.EnteredNavigationShortcut],
-  }),
-}))
-
-const NavigationShortcutPressesLayer =
-  subscriptions.navigationShortcutPresses.toLayer(
+  navigationShortcutPresses: entry(
+    'NavigationShortcutPresses',
+    {
+      messages: [Message.EnteredNavigationShortcut],
+    },
     Effect.succeed(() =>
       Dom.streamFromKeyBindings<typeof Message.EnteredNavigationShortcut.Type>({
         bindings: [
@@ -202,12 +198,14 @@ const NavigationShortcutPressesLayer =
         ],
       }),
     ),
-  )
+  ),
+}))
 
 export const EffectsLayer = Layer.mergeAll(
-  CommandsLayer,
+  NavigateInternal.layer,
+  LoadExternal.layer,
   People.EffectsLayer,
-  NavigationShortcutPressesLayer,
+  subscriptions.navigationShortcutPresses.layer,
 )
 
 // VIEW

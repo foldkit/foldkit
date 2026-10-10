@@ -9,18 +9,18 @@ import { type Model } from './model'
 const TOGGLE_INTERVAL = Duration.seconds(3)
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  aiHeadingToggleTicks: entry('AiHeadingToggleTicks', {
-    messages: [Message.ToggledAiHeading],
-  }),
-}))
-
-const AiHeadingToggleTicksLayer = subscriptions.aiHeadingToggleTicks.toLayer(
-  Effect.succeed(() =>
-    Stream.tick(TOGGLE_INTERVAL).pipe(
-      Stream.drop(1),
-      Stream.map(Message.ToggledAiHeading),
+  aiHeadingToggleTicks: entry(
+    'AiHeadingToggleTicks',
+    {
+      messages: [Message.ToggledAiHeading],
+    },
+    Effect.succeed(() =>
+      Stream.tick(TOGGLE_INTERVAL).pipe(
+        Stream.drop(1),
+        Stream.map(Message.ToggledAiHeading),
+      ),
     ),
   ),
-)
+}))
 
-export const EffectsLayer = AiHeadingToggleTicksLayer
+export const EffectsLayer = subscriptions.aiHeadingToggleTicks.layer

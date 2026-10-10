@@ -18,12 +18,12 @@ export const KEYBOARD_WARMUP_INPUT_ID = 'search-keyboard-warmup'
 
 const SEARCH_RESULT_SELECTOR = '[data-search-result-index='
 
-export const FetchSearchResults = Command.define('FetchSearchResults', {
-  args: { query: Schema.String },
-  messages: [Message.CompletedFetchSearchResults],
-})
-
-export const FetchSearchResultsLayer = FetchSearchResults.toLayer(
+export const FetchSearchResults = Command.define(
+  'FetchSearchResults',
+  {
+    args: { query: Schema.String },
+    messages: [Message.CompletedFetchSearchResults],
+  },
   Effect.gen(function* () {
     const pagefind = yield* PagefindService
 
@@ -62,12 +62,12 @@ export const FetchSearchResultsLayer = FetchSearchResults.toLayer(
   }),
 )
 
-export const ScrollToResult = Command.define('ScrollToResult', {
-  args: { index: Schema.Number },
-  messages: [Message.CompletedScrollToResult],
-})
-
-export const ScrollToResultLayer = ScrollToResult.toLayer(
+export const ScrollToResult = Command.define(
+  'ScrollToResult',
+  {
+    args: { index: Schema.Number },
+    messages: [Message.CompletedScrollToResult],
+  },
   Effect.succeed(({ index }) =>
     Dom.scrollIntoView(`${SEARCH_RESULT_SELECTOR}"${index}"]`).pipe(
       Effect.ignore,
@@ -76,22 +76,22 @@ export const ScrollToResultLayer = ScrollToResult.toLayer(
   ),
 )
 
-export const NavigateToResult = Command.define('NavigateToResult', {
-  args: { url: Schema.String },
-  messages: [Message.CompletedNavigateToResult],
-})
-
-export const NavigateToResultLayer = NavigateToResult.toLayer(
+export const NavigateToResult = Command.define(
+  'NavigateToResult',
+  {
+    args: { url: Schema.String },
+    messages: [Message.CompletedNavigateToResult],
+  },
   Effect.succeed(({ url }) =>
     pushUrl(url).pipe(Effect.as(Message.CompletedNavigateToResult())),
   ),
 )
 
-export const FocusSearchInput = Command.define('FocusSearchInput', {
-  messages: [Message.CompletedFocusSearchInput],
-})
-
-export const FocusSearchInputLayer = FocusSearchInput.toLayer(
+export const FocusSearchInput = Command.define(
+  'FocusSearchInput',
+  {
+    messages: [Message.CompletedFocusSearchInput],
+  },
   Effect.succeed(() =>
     Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
       Effect.ignore,

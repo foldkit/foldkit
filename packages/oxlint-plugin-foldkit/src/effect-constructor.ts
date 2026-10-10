@@ -1,7 +1,14 @@
 import { Array, Option, pipe } from 'effect'
-import { AST, type ESTree, type Reference } from 'effect-oxlint'
+import { AST, type ESTree, type Reference, type Variable } from 'effect-oxlint'
 
-import { isCallExpression, resolveImportedPath } from './guards.ts'
+import {
+  isCallExpression,
+  isIdentifier,
+  isIdentifierReference,
+  isVariableDeclarator,
+  resolveImportedPath,
+  resolvedVariable,
+} from './guards.ts'
 
 type EffectConstructorFunction =
   | ESTree.ArrowFunctionExpression
@@ -42,6 +49,67 @@ const isEffectConstructorFunction = (
   'type' in node &&
   (node.type === 'ArrowFunctionExpression' ||
     node.type === 'FunctionExpression')
+
+const localVariableValue = (variable: Variable): Option.Option<ESTree.Node> => {
+  if (variable.defs.length !== 1) {
+    return Option.none()
+  }
+
+  const [definition] = variable.defs
+  if (definition === undefined) {
+    return Option.none()
+  }
+
+  if (
+    definition.type === 'Variable' &&
+    isVariableDeclarator(definition.node) &&
+    isIdentifier(definition.node.id) &&
+    definition.node.init !== null &&
+    definition.node.parent.type === 'VariableDeclaration' &&
+    definition.node.parent.kind === 'const'
+  ) {
+    return Option.some(definition.node.init)
+  }
+
+  if (
+    definition.type === 'FunctionName' &&
+    definition.node.type === 'FunctionDeclaration' &&
+    !variable.references.some(reference => reference.isWrite())
+  ) {
+    return Option.some(definition.node)
+  }
+
+  return Option.none()
+}
+
+const resolveLocalValueWith = (
+  node: ESTree.Node,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+  visited: Set<Variable>,
+): Option.Option<ESTree.Node> => {
+  const expression = unwrapExpression(node)
+  if (references === undefined || !isIdentifierReference(expression)) {
+    return Option.some(expression)
+  }
+
+  return Option.flatMap(resolvedVariable(references, expression), variable => {
+    if (visited.has(variable)) {
+      return Option.none()
+    }
+
+    visited.add(variable)
+    return Option.flatMap(localVariableValue(variable), value =>
+      resolveLocalValueWith(value, references, visited),
+    )
+  })
+}
+
+/** @internal Resolves immutable local aliases to a local function, object, or expression. Imported, mutable, ambiguous, and cyclic bindings are left unresolved. */
+export const resolveLocalValue = (
+  node: ESTree.Node,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): Option.Option<ESTree.Node> =>
+  resolveLocalValueWith(node, references, new Set())
 
 const isEffectCall = (
   node: ESTree.CallExpression,
@@ -106,45 +174,69 @@ const returnedBy = (
     Option.flatMap(returnedExpression),
   )
 
-/** @internal Resolves the handler value produced by a supported Effect constructor. */
-export function effectConstructorValue(
+const effectConstructorValueWith = (
   node: ESTree.Node,
   references: WeakMap<ESTree.Node, Reference> | undefined,
-): Option.Option<ESTree.Node> {
-  const expression = unwrapExpression(node)
-  if (!isCallExpression(expression)) {
+  visited: ReadonlySet<ESTree.Node>,
+): Option.Option<ESTree.Node> =>
+  Option.flatMap(resolveLocalValue(node, references), expression => {
+    if (visited.has(expression)) {
+      return Option.none()
+    }
+
+    const nextVisited = new Set(visited)
+    nextVisited.add(expression)
+
+    if (!isCallExpression(expression)) {
+      return Option.none()
+    }
+
+    if (isEffectCall(expression, 'succeed', references)) {
+      return pipe(
+        Array.head(expression.arguments),
+        Option.flatMap(value => resolveLocalValue(value, references)),
+      )
+    }
+
+    if (
+      isEffectCall(expression, 'sync', references) ||
+      isEffectCall(expression, 'gen', references) ||
+      isEffectCall(expression, 'map', references)
+    ) {
+      return pipe(
+        returnedBy(
+          expression,
+          isEffectCall(expression, 'map', references) ? 'last' : 'first',
+        ),
+        Option.flatMap(value => resolveLocalValue(value, references)),
+      )
+    }
+
+    if (isEffectCall(expression, 'flatMap', references)) {
+      return pipe(
+        returnedBy(expression, 'last'),
+        Option.flatMap(returned =>
+          effectConstructorValueWith(returned, references, nextVisited),
+        ),
+      )
+    }
+
+    if (isEffectCall(expression, 'acquireRelease', references)) {
+      return pipe(
+        Array.head(expression.arguments),
+        Option.map(unwrapExpression),
+        Option.flatMap(acquire =>
+          effectConstructorValueWith(acquire, references, nextVisited),
+        ),
+      )
+    }
+
     return Option.none()
-  }
+  })
 
-  if (isEffectCall(expression, 'succeed', references)) {
-    return pipe(Array.head(expression.arguments), Option.map(unwrapExpression))
-  }
-
-  if (
-    isEffectCall(expression, 'sync', references) ||
-    isEffectCall(expression, 'gen', references) ||
-    isEffectCall(expression, 'map', references)
-  ) {
-    return returnedBy(
-      expression,
-      isEffectCall(expression, 'map', references) ? 'last' : 'first',
-    )
-  }
-
-  if (isEffectCall(expression, 'flatMap', references)) {
-    return pipe(
-      returnedBy(expression, 'last'),
-      Option.flatMap(returned => effectConstructorValue(returned, references)),
-    )
-  }
-
-  if (isEffectCall(expression, 'acquireRelease', references)) {
-    return pipe(
-      Array.head(expression.arguments),
-      Option.map(unwrapExpression),
-      Option.flatMap(acquire => effectConstructorValue(acquire, references)),
-    )
-  }
-
-  return Option.none()
-}
+/** @internal Resolves the handler value produced by a supported Effect constructor. */
+export const effectConstructorValue = (
+  node: ESTree.Node,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): Option.Option<ESTree.Node> =>
+  effectConstructorValueWith(node, references, new Set())

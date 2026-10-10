@@ -83,12 +83,12 @@ export const init = () => ({
 
 // COMMAND
 
-export const GenerateBall = Command.define('GenerateBall', {
-  args: { x: Schema.Number, y: Schema.Number },
-  messages: [Message.CompletedGenerateBall],
-})
-
-export const GenerateBallLayer = GenerateBall.toLayer(
+export const GenerateBall = Command.define(
+  'GenerateBall',
+  {
+    args: { x: Schema.Number, y: Schema.Number },
+    messages: [Message.CompletedGenerateBall],
+  },
   Effect.succeed(({ x, y }) =>
     Effect.gen(function* () {
       const angle = yield* Random.nextBetween(0, FULL_CIRCLE_RADIANS)
@@ -181,22 +181,19 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       messages: [Message.TickedFrame],
       modelToDependencies: model => ({ isActive: model.isRunning }),
     },
+    Effect.succeed(({ isActive }) =>
+      isActive
+        ? Subscription.animationFrameStream.pipe(
+            Stream.map(deltaTime => Message.TickedFrame({ deltaTime })),
+          )
+        : Stream.empty,
+    ),
   ),
 }))
 
-const AnimationFrameTicksLayer = subscriptions.animationFrameTicks.toLayer(
-  Effect.succeed(({ isActive }) =>
-    isActive
-      ? Subscription.animationFrameStream.pipe(
-          Stream.map(deltaTime => Message.TickedFrame({ deltaTime })),
-        )
-      : Stream.empty,
-  ),
-)
-
 export const EffectsLayer = Layer.mergeAll(
-  GenerateBallLayer,
-  AnimationFrameTicksLayer,
+  GenerateBall.layer,
+  subscriptions.animationFrameTicks.layer,
 )
 
 // VIEW

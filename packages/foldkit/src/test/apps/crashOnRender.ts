@@ -48,11 +48,11 @@ export const reloadedSources: ReadonlyArray<RawSource> = [
   { kind: 'Book', id: '' },
 ]
 
-export const ReloadSources = Command.define('ReloadSources', {
-  messages: [Message.CompletedReloadSources],
-})
-
-export const ReloadSourcesLayer = ReloadSources.toLayer(
+export const ReloadSources = Command.define(
+  'ReloadSources',
+  {
+    messages: [Message.CompletedReloadSources],
+  },
   Effect.succeed(() =>
     Effect.succeed(
       Message.CompletedReloadSources({ sources: reloadedSources }),
@@ -126,4 +126,4 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   return { title: 'Sources', body }
 }
 
-export const EffectsLayer = Layer.mergeAll(ReloadSourcesLayer)
+export const EffectsLayer = Layer.mergeAll(ReloadSources.layer)

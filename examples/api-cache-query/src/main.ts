@@ -45,13 +45,12 @@ const PostData = Schema.Struct({
 
 const StatsData = Schema.Struct({ stats: Stats, fetchedAt: Schema.Number })
 
-export const postsQuery = Query.define({
-  name: 'Posts',
-  data: PostsData,
-  error: Schema.String,
-})
-
-const FetchPostsLayer = postsQuery.toLayer(
+export const postsQuery = Query.define(
+  {
+    name: 'Posts',
+    data: PostsData,
+    error: Schema.String,
+  },
   Effect.gen(function* () {
     const clock = yield* Clock.Clock
 
@@ -65,13 +64,12 @@ const FetchPostsLayer = postsQuery.toLayer(
   }),
 )
 
-export const statsQuery = Query.define({
-  name: 'Stats',
-  data: StatsData,
-  error: Schema.String,
-})
-
-const FetchStatsLayer = statsQuery.toLayer(
+export const statsQuery = Query.define(
+  {
+    name: 'Stats',
+    data: StatsData,
+    error: Schema.String,
+  },
   Effect.gen(function* () {
     const clock = yield* Clock.Clock
 
@@ -85,14 +83,13 @@ const FetchStatsLayer = statsQuery.toLayer(
   }),
 )
 
-export const postQuery = Query.define({
-  name: 'Post',
-  args: { postId: Schema.String },
-  data: PostData,
-  error: Schema.String,
-})
-
-const FetchPostLayer = postQuery.toLayer(
+export const postQuery = Query.define(
+  {
+    name: 'Post',
+    args: { postId: Schema.String },
+    data: PostData,
+    error: Schema.String,
+  },
   Effect.gen(function* () {
     const clock = yield* Clock.Clock
 
@@ -227,27 +224,24 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
           AsyncData.hasData(statsQuery.read(model.stats)),
       }),
     },
+    Effect.succeed(({ isStatsRefreshActive }) =>
+      Stream.when(
+        Stream.tick(STATS_REFETCH_INTERVAL).pipe(
+          Stream.drop(1),
+          Stream.map(Message.TickedStatsRefreshInterval),
+        ),
+        Effect.sync(() => isStatsRefreshActive),
+      ),
+    ),
   ),
 }))
 
-const StatsRefreshTicksLayer = subscriptions.statsRefreshTicks.toLayer(
-  Effect.succeed(({ isStatsRefreshActive }) =>
-    Stream.when(
-      Stream.tick(STATS_REFETCH_INTERVAL).pipe(
-        Stream.drop(1),
-        Stream.map(Message.TickedStatsRefreshInterval),
-      ),
-      Effect.sync(() => isStatsRefreshActive),
-    ),
-  ),
-)
-
 export const EffectsLayer = Layer.mergeAll(
   UI.EffectsLayer,
-  FetchPostsLayer,
-  FetchStatsLayer,
-  FetchPostLayer,
-  StatsRefreshTicksLayer,
+  postsQuery.layer,
+  statsQuery.layer,
+  postQuery.layer,
+  subscriptions.statsRefreshTicks.layer,
 )
 
 // VIEW

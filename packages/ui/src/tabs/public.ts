@@ -8,7 +8,6 @@ export {
   type SelectedTab,
   type FocusedTab,
   FocusTab,
-  FocusTabLayer,
   EffectsLayer,
   Orientation,
   PanelMount,

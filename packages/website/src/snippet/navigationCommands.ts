@@ -12,11 +12,12 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const NavigateInternal = Command.define('NavigateInternal', {
-  args: { url: Schema.String },
-  messages: [Message.CompletedNavigateInternal],
-})
-const NavigateInternalLayer = NavigateInternal.toLayer(
+const NavigateInternal = Command.define(
+  'NavigateInternal',
+  {
+    args: { url: Schema.String },
+    messages: [Message.CompletedNavigateInternal],
+  },
   Effect.succeed(({ url }) =>
     Navigation.pushUrl(url).pipe(
       Effect.as(Message.CompletedNavigateInternal()),
@@ -24,49 +25,54 @@ const NavigateInternalLayer = NavigateInternal.toLayer(
   ),
 )
 
-const ReplaceUrl = Command.define('ReplaceUrl', {
-  args: { url: Schema.String },
-  messages: [Message.CompletedReplaceUrl],
-})
-const ReplaceUrlLayer = ReplaceUrl.toLayer(
+const ReplaceUrl = Command.define(
+  'ReplaceUrl',
+  {
+    args: { url: Schema.String },
+    messages: [Message.CompletedReplaceUrl],
+  },
   Effect.succeed(({ url }) =>
     Navigation.replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceUrl())),
   ),
 )
 
-const GoBack = Command.define('GoBack', {
-  messages: [Message.CompletedGoBack],
-})
-const GoBackLayer = GoBack.toLayer(
+const GoBack = Command.define(
+  'GoBack',
+  {
+    messages: [Message.CompletedGoBack],
+  },
   Effect.succeed(() =>
     Navigation.back().pipe(Effect.as(Message.CompletedGoBack())),
   ),
 )
 
-const GoForward = Command.define('GoForward', {
-  messages: [Message.CompletedGoForward],
-})
-const GoForwardLayer = GoForward.toLayer(
+const GoForward = Command.define(
+  'GoForward',
+  {
+    messages: [Message.CompletedGoForward],
+  },
   Effect.succeed(() =>
     Navigation.forward().pipe(Effect.as(Message.CompletedGoForward())),
   ),
 )
 
-const LoadExternal = Command.define('LoadExternal', {
-  args: { href: Schema.String },
-  messages: [Message.CompletedLoadExternal],
-})
-const LoadExternalLayer = LoadExternal.toLayer(
+const LoadExternal = Command.define(
+  'LoadExternal',
+  {
+    args: { href: Schema.String },
+    messages: [Message.CompletedLoadExternal],
+  },
   Effect.succeed(({ href }) =>
     Navigation.load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
   ),
 )
 
-const OpenUrl = Command.define('OpenUrl', {
-  args: { url: Schema.String },
-  messages: [Message.CompletedOpenUrl],
-})
-const OpenUrlLayer = OpenUrl.toLayer(
+const OpenUrl = Command.define(
+  'OpenUrl',
+  {
+    args: { url: Schema.String },
+    messages: [Message.CompletedOpenUrl],
+  },
   Effect.succeed(({ url }) =>
     Navigation.openUrl(url).pipe(Effect.as(Message.CompletedOpenUrl())),
   ),

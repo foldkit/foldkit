@@ -35,20 +35,17 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
         isAutoCounting: model.isAutoCounting,
       }),
     },
-  ),
-}))
-
-const GameClockTicksLayer = subscriptions.gameClockTicks.toLayer(
-  Effect.succeed(({ isAutoCounting }) =>
-    Stream.when(
-      Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
-        Stream.drop(1),
-        Stream.map(Message.Ticked),
+    Effect.succeed(({ isAutoCounting }) =>
+      Stream.when(
+        Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
+          Stream.drop(1),
+          Stream.map(Message.Ticked),
+        ),
+        Effect.sync(() => isAutoCounting),
       ),
-      Effect.sync(() => isAutoCounting),
     ),
   ),
-)
+}))
 
 // UPDATE
 

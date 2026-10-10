@@ -1,4 +1,4 @@
-import { Crypto, Effect, Layer, Schema } from 'effect'
+import { Crypto, Effect, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 import { Command, Dom } from 'foldkit'
 
@@ -7,21 +7,12 @@ import { Column } from './domain'
 import { Message } from './message'
 import { SavedBoardJsonString } from './model'
 
-export const GenerateCardId = Command.define('GenerateCardId', {
-  args: { columnId: Schema.String, title: Schema.String },
-  messages: [Message.CompletedGenerateCardId],
-})
-
-export const SaveBoard = Command.define('SaveBoard', {
-  args: { columns: Schema.Array(Column.Column) },
-  messages: [Message.CompletedSaveBoard],
-})
-
-export const FocusAddCardInput = Command.define('FocusAddCardInput', {
-  messages: [Message.CompletedFocusAddCardInput],
-})
-
-const GenerateCardIdLayer = GenerateCardId.toLayer(
+export const GenerateCardId = Command.define(
+  'GenerateCardId',
+  {
+    args: { columnId: Schema.String, title: Schema.String },
+    messages: [Message.CompletedGenerateCardId],
+  },
   Effect.gen(function* () {
     const crypto = yield* Crypto.Crypto
 
@@ -34,7 +25,12 @@ const GenerateCardIdLayer = GenerateCardId.toLayer(
   }),
 )
 
-const SaveBoardLayer = SaveBoard.toLayer(
+export const SaveBoard = Command.define(
+  'SaveBoard',
+  {
+    args: { columns: Schema.Array(Column.Column) },
+    messages: [Message.CompletedSaveBoard],
+  },
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
 
@@ -49,17 +45,15 @@ const SaveBoardLayer = SaveBoard.toLayer(
   }),
 )
 
-const FocusAddCardInputLayer = FocusAddCardInput.toLayer(
+export const FocusAddCardInput = Command.define(
+  'FocusAddCardInput',
+  {
+    messages: [Message.CompletedFocusAddCardInput],
+  },
   Effect.succeed(() =>
     Dom.focus(`#${ADD_CARD_INPUT_ID}`).pipe(
       Effect.ignore,
       Effect.as(Message.CompletedFocusAddCardInput()),
     ),
   ),
-)
-
-export const CommandsLayer = Layer.mergeAll(
-  GenerateCardIdLayer,
-  SaveBoardLayer,
-  FocusAddCardInputLayer,
 )

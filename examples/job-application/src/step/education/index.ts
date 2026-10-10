@@ -4,7 +4,7 @@ export {
   init,
   update,
   GenerateEducationEntryId,
-  GenerateEducationEntryIdLayer as EffectsLayer,
+  EffectsLayer,
   hasErrors,
   isComplete,
   revealErrors,

@@ -32,29 +32,26 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
       ],
       modelToDependencies: model => ({ searchState: model.searchState }),
     },
+    Effect.succeed(({ searchState }) =>
+      Dom.streamFromKeyBindings<Message>({
+        bindings: [
+          {
+            keys: 'Mod+K',
+            whileTyping: 'Allow',
+            mapEvent: () => Message.PressedSearchShortcut(),
+          },
+          {
+            keys: 'Escape',
+            isEnabled: searchState._tag === 'Open',
+            whileTyping: 'Allow',
+            mapEvent: () => Message.PressedEscape(),
+          },
+          {
+            keys: ['G', 'H'],
+            mapEvent: () => Message.PressedHomeShortcut(),
+          },
+        ],
+      }),
+    ),
   ),
 }))
-
-const KeyBindingsLayer = subscriptions.keyBindings.toLayer(
-  Effect.succeed(({ searchState }) =>
-    Dom.streamFromKeyBindings<Message>({
-      bindings: [
-        {
-          keys: 'Mod+K',
-          whileTyping: 'Allow',
-          mapEvent: () => Message.PressedSearchShortcut(),
-        },
-        {
-          keys: 'Escape',
-          isEnabled: searchState._tag === 'Open',
-          whileTyping: 'Allow',
-          mapEvent: () => Message.PressedEscape(),
-        },
-        {
-          keys: ['G', 'H'],
-          mapEvent: () => Message.PressedHomeShortcut(),
-        },
-      ],
-    }),
-  ),
-)

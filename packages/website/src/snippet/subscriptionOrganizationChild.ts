@@ -13,20 +13,16 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       messages: [Message.PressedEscape],
       modelToDependencies: model => ({ isOpen: model.isOpen }),
     },
-  ),
-}))
-
-export const ThemeMenuEscapePressesLayer =
-  subscriptions.themeMenuEscapePresses.toLayer(
     Effect.succeed(({ isOpen }) =>
       Stream.when(
         Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
           Stream.filter(event => event.key === 'Escape'),
-          Stream.map(Message.PressedEscape),
+          Stream.map(() => Message.PressedEscape()),
         ),
         Effect.sync(() => isOpen),
       ),
     ),
-  )
+  ),
+}))
 
-export { ThemeMenuEscapePressesLayer as EffectsLayer }
+export const EffectsLayer = subscriptions.themeMenuEscapePresses.layer

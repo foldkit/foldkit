@@ -6,12 +6,12 @@ import { Api, ApiLayer } from './api'
 // A side effect is a Command returned from update. It has a name, shows up
 // in DevTools next to the Message that produced it, and is assertable in
 // tests. Api is an Effect service; ApiLayer provides it.
-const CreateTodo = Command.define('CreateTodo', {
-  args: { text: Schema.String },
-  messages: [SucceededCreateTodo, FailedCreateTodo],
-})
-
-const CreateTodoLayer = CreateTodo.toLayer(
+const CreateTodo = Command.define(
+  'CreateTodo',
+  {
+    args: { text: Schema.String },
+    messages: [SucceededCreateTodo, FailedCreateTodo],
+  },
   Effect.gen(function* () {
     const api = yield* Api
 
@@ -34,21 +34,21 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       messages: [ReleasedMouse],
       modelToDependencies: model => ({ isDrawing: model.isDrawing }),
     },
+    Effect.succeed(({ isDrawing }) =>
+      Stream.when(
+        Dom.streamFromEvent({
+          target: document,
+          type: 'mouseup',
+          mapEvent: () => ReleasedMouse(),
+        }),
+        Effect.sync(() => isDrawing),
+      ),
+    ),
   ),
 }))
 
-const MouseReleasesLayer = subscriptions.mouseReleases.toLayer(
-  Effect.succeed(({ isDrawing }) =>
-    Stream.when(
-      Dom.streamFromEvent({
-        target: document,
-        type: 'mouseup',
-        mapEvent: () => ReleasedMouse(),
-      }),
-      Effect.sync(() => isDrawing),
-    ),
-  ),
+export const EffectsLayer = Layer.mergeAll(
+  CreateTodo.layer,
+  subscriptions.mouseReleases.layer,
 )
-
-export const EffectsLayer = Layer.mergeAll(CreateTodoLayer, MouseReleasesLayer)
 export const ServicesLayer = ApiLayer

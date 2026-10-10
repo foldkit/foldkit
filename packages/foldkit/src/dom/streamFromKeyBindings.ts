@@ -935,32 +935,31 @@ const keyBindingStream = <Message>(
  *         isPaletteOpen: model.paletteState._tag === 'Open',
  *       }),
  *     },
+ *     Effect.succeed(({ isPaletteOpen }) =>
+ *       Dom.streamFromKeyBindings<Message>({
+ *         bindings: [
+ *           {
+ *             keys: 'Escape',
+ *             isEnabled: isPaletteOpen,
+ *             whileTyping: 'Allow',
+ *             mapEvent: () => Message.PressedEscape(),
+ *           },
+ *           {
+ *             keys: 'Mod+K',
+ *             whileTyping: 'Allow',
+ *             mapEvent: () => Message.PressedSearchShortcut(),
+ *           },
+ *           {
+ *             keys: ['G', 'L'],
+ *             mapEvent: () => Message.PressedListShortcut(),
+ *           },
+ *         ],
+ *       }),
+ *     ),
  *   ),
  * }))
  *
- * const KeyBindingsLayer = subscriptions.keyBindings.toLayer(
- *   Effect.succeed(({ isPaletteOpen }) =>
- *     Dom.streamFromKeyBindings<Message>({
- *       bindings: [
- *         {
- *           keys: 'Escape',
- *           isEnabled: isPaletteOpen,
- *           whileTyping: 'Allow',
- *           mapEvent: () => Message.PressedEscape(),
- *         },
- *         {
- *           keys: 'Mod+K',
- *           whileTyping: 'Allow',
- *           mapEvent: () => Message.PressedSearchShortcut(),
- *         },
- *         {
- *           keys: ['G', 'L'],
- *           mapEvent: () => Message.PressedListShortcut(),
- *         },
- *       ],
- *     }),
- *   ),
- * )
+ * const EffectsLayer = subscriptions.keyBindings.layer
  * ```
  */
 export const streamFromKeyBindings = <Output>(

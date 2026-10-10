@@ -8,7 +8,7 @@ Mount is the escape hatch for work whose cause is a particular element existing 
 
 Use `Mount.define` for work that produces one Message when it starts. Its handler receives the live element and the rendered view's state, then returns an `Effect<Message>` that emits that Message. Its scope remains open until unmount so cleanup registered with `Effect.acquireRelease` runs at the right time. Use `Mount.defineStream` when listeners or observers on the element must emit a continuing `Stream<Message>`.
 
-Mount definitions declare their name, args, and result Messages without an `execute` field. Supply the implementation through `toLayer`, which accepts an Effect that constructs the handler. Both `define` and `defineStream` use this form.
+Mount definitions declare their name, args, and result Messages in the config, then take the handler constructor Effect as the final argument. Both `define` and `defineStream` expose the attached recipe as `.layer`.
 
 Both forms require at least one declared result Message. When no result needs to change the Model, return a descriptive `Completed*` Message and leave the Model unchanged in update. The Message keeps the effect visible to DevTools, Scene tests, and replay.
 
@@ -54,13 +54,15 @@ A Mount starts when its element enters the DOM and stops when that element leave
 
 ::Snippet{name="mountHandlerLayers" label="Registering a Mount handler Layer"}
 
-Foldkit checks each rendered Mount before patching the DOM and reports any definition missing from `mounts`. Use the same definition in the view, registration, and `toLayer` call. Distinct Mount definitions within one application need distinct names; the same definition can appear on multiple elements. The handler Layer lives for the application lifetime, while each Mount acquisition and cleanup follows its element.
+Foldkit checks each rendered Mount before patching the DOM and reports any definition missing from `mounts`. Use the same definition in the view, registration, and Layer composition. Distinct Mount definitions within one application need distinct names; the same definition can appear on multiple elements. The handler Layer lives for the application lifetime, while each Mount acquisition and cleanup follows its element.
 
-Calling `toLayer` creates a Layer recipe. The Runtime runs its Effect constructor once while building the application Layer and obtains the element handler. Use `Effect.succeed` when construction has no dependencies. The constructor must not capture a DOM element or Mount args; Foldkit supplies those when each element is mounted. Each element receives its own Mount scope. Removing and reinserting an element reruns the real handler without rebuilding its provider.
+The Runtime runs the attached handler Effect once while building the application Layer and obtains the element handler. Use `Effect.succeed` when construction has no dependencies. The constructor must not capture a DOM element or Mount args; Foldkit supplies those when each element is mounted. Each element receives its own Mount scope. Removing and reinserting an element reruns the real handler without rebuilding its provider.
+
+Omit the final constructor argument only when an external host owns the Mount implementation. That definition has no `.layer`; the host calls `toLayer` at its assembly boundary. Ordinary application Mounts keep their implementation attached and include `.layer` in the feature's `EffectsLayer`.
 
 A whole-application execution test retains the real Layer-backed Mount handler and replaces the browser or library capability beneath it. The Mount still receives a live test element, performs its element-scoped transformation, and releases on unmount. Replacing the whole handler can acknowledge or orchestrate a Mount result, but that path does not test the replaced integration.
 
-Name the Mount for the imperative work attached to the element, using a verb-first name such as `MeasurePanel`, `AnchorPopover`, or `PortalMenuBackdrop`. Name its production Layer after the definition, such as `MeasurePanelLayer`, and include it in the feature's `EffectsLayer` export.
+Name the Mount for the imperative work attached to the element, using a verb-first name such as `MeasurePanel`, `AnchorPopover`, or `PortalMenuBackdrop`. Compose `MeasurePanel.layer` directly in the feature's `EffectsLayer` export. Name an individual provider `MeasurePanelLayer` only when it is intentionally public or independently reused outside that bundle's assembly.
 
 Registration is necessary because view and `Html` do not carry an Effect requirement parameter. The `mounts` collection tells `Application.make` which handler requirements a rendered tree may introduce. Registering a Mount that the view never renders is inert: Foldkit does not construct an element lifecycle, install listeners, or change browser behavior for that Mount.
 

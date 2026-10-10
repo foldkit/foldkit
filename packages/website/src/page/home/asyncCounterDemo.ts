@@ -83,20 +83,14 @@ export const DelayAdvanceAsyncCounterPhase = Command.define(
     args: { generation: Schema.Number, duration: Schema.DurationFromMillis },
     messages: [Message.CompletedDelayAdvanceAsyncCounterPhase],
   },
+  Effect.succeed(({ generation, duration }) =>
+    Effect.sleep(duration).pipe(
+      Effect.as(Message.CompletedDelayAdvanceAsyncCounterPhase({ generation })),
+    ),
+  ),
 )
 
-const DelayAdvanceAsyncCounterPhaseLayer =
-  DelayAdvanceAsyncCounterPhase.toLayer(
-    Effect.succeed(({ generation, duration }) =>
-      Effect.sleep(duration).pipe(
-        Effect.as(
-          Message.CompletedDelayAdvanceAsyncCounterPhase({ generation }),
-        ),
-      ),
-    ),
-  )
-
-export const EffectsLayer = DelayAdvanceAsyncCounterPhaseLayer
+export const EffectsLayer = DelayAdvanceAsyncCounterPhase.layer
 
 export type UpdateRequirements = Update.RequirementsOf<typeof update>
 

@@ -15,9 +15,17 @@ export type Message = typeof Message.Type
 
 const CountResponse = Schema.Struct({ count: Schema.Int })
 
-export const FetchCount = Command.define('FetchCount', {
-  messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
-})
+export const FetchCount = Command.define(
+  'FetchCount',
+  {
+    messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
+  },
+  Effect.gen(function* () {
+    const client = yield* HttpClient.HttpClient
+
+    return () => fetchCount(client)
+  }),
+)
 
 export const fetchCount = (client: HttpClient.HttpClient) =>
   Effect.gen(function* () {
@@ -37,13 +45,7 @@ export const fetchCount = (client: HttpClient.HttpClient) =>
     ),
   )
 
-export const FetchCountLayer = FetchCount.toLayer(
-  Effect.gen(function* () {
-    const client = yield* HttpClient.HttpClient
-
-    return () => fetchCount(client)
-  }),
-)
+export const FetchCountLayer = FetchCount.layer
 
 export const update = Update.make((model: Model, message: Message) =>
   Message.match(message, {

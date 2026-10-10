@@ -24,16 +24,6 @@ const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
         hasUnsavedChanges: model.hasUnsavedChanges,
       }),
     },
-  ),
-}))
-
-export const subscriptions = Subscription.aggregate(
-  themeMenuSubscriptions,
-  localSubscriptions,
-)
-
-const UnsavedChangesNavigationWarningsLayer =
-  localSubscriptions.unsavedChangesNavigationWarnings.toLayer(
     Effect.succeed(({ hasUnsavedChanges }) =>
       Stream.when(
         Dom.streamFromEventFilterMapPreventDefault({
@@ -47,9 +37,15 @@ const UnsavedChangesNavigationWarningsLayer =
         Effect.sync(() => hasUnsavedChanges),
       ),
     ),
-  )
+  ),
+}))
+
+export const subscriptions = Subscription.aggregate(
+  themeMenuSubscriptions,
+  localSubscriptions,
+)
 
 export const EffectsLayer = Layer.mergeAll(
   ThemeMenu.EffectsLayer,
-  UnsavedChangesNavigationWarningsLayer,
+  localSubscriptions.unsavedChangesNavigationWarnings.layer,
 )

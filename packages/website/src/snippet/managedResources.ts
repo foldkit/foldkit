@@ -29,20 +29,16 @@ const managedResources = ManagedResource.make<Model, Message>()(entry => ({
       onAcquireError: error =>
         Message.FailedAcquireCamera({ error: String(error) }),
     },
+    Effect.succeed({
+      acquire: ({ facingMode }) =>
+        Effect.tryPromise(() =>
+          navigator.mediaDevices.getUserMedia({ video: { facingMode } }),
+        ),
+      release: stream =>
+        Effect.sync(() => stream.getTracks().forEach(track => track.stop())),
+    }),
   ),
 }))
-
-// 3. Supply the lifecycle implementation with a Layer.
-const ManageCameraLayer = managedResources.camera.toLayer(
-  Effect.succeed({
-    acquire: ({ facingMode }) =>
-      Effect.tryPromise(() =>
-        navigator.mediaDevices.getUserMedia({ video: { facingMode } }),
-      ),
-    release: stream =>
-      Effect.sync(() => stream.getTracks().forEach(track => track.stop())),
-  }),
-)
 
 const application = Application.make({
   Model,
@@ -53,4 +49,4 @@ const application = Application.make({
   managedResources,
 })
 
-Runtime.run(Application.provide(application, ManageCameraLayer))
+Runtime.run(Application.provide(application, managedResources.camera.layer))

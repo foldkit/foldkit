@@ -5,8 +5,6 @@ export {
   view,
   subscriptions,
   forRoot,
-  DragPointerLayer,
-  DragEscapeLayer,
   EffectsLayer,
   fractionOfValue,
   snapAndClamp,

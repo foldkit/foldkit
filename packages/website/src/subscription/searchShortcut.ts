@@ -15,11 +15,6 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
         isSearchAvailable: isSearchRoute(model.route),
       }),
     },
-  ),
-}))
-
-export const SearchShortcutPressesLayer =
-  subscriptions.searchShortcutPresses.toLayer(
     Effect.succeed(({ isSearchAvailable }) =>
       Stream.when(
         Dom.streamFromEventFilterMapPreventDefault({
@@ -35,6 +30,7 @@ export const SearchShortcutPressesLayer =
         Effect.sync(() => isSearchAvailable),
       ),
     ),
-  )
+  ),
+}))
 
-export { SearchShortcutPressesLayer as EffectsLayer }
+export const EffectsLayer = subscriptions.searchShortcutPresses.layer

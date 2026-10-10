@@ -187,9 +187,6 @@ const DelayAdvanceNotePlayerPhase = Command.define(
     args: { generation: Schema.Number },
     messages: [Message.CompletedDelayAdvanceNotePlayerPhase],
   },
-)
-
-const DelayAdvanceNotePlayerPhaseLayer = DelayAdvanceNotePlayerPhase.toLayer(
   Effect.succeed(({ generation }) =>
     Effect.sleep(PHASE_DURATION).pipe(
       Effect.as(Message.CompletedDelayAdvanceNotePlayerPhase({ generation })),
@@ -461,37 +458,38 @@ const AudioContextResource = ManagedResource.tag<AudioContext>()('AudioContext')
 
 export const managedResources = ManagedResource.make<Model, Message>()(
   entry => ({
-    audioContext: entry('ManageAudioContext', Schema.Option(Schema.Null), {
-      resource: AudioContextResource,
-      modelToMaybeRequirements: () => Option.some(null),
-      onAcquired: () => Message.SucceededAcquireAudioContext(),
-      onReleased: () => Message.ReleasedAudioContext(),
-      onAcquireError: () => Message.FailedAcquireAudioContext(),
-    }),
-  }),
-)
-
-const ManageAudioContextLayer = managedResources.audioContext.toLayer(
-  Effect.succeed({
-    acquire: () =>
-      Effect.try({
-        try: () => new AudioContext(),
-        catch: () =>
-          new Error('The Web Audio API is unavailable in this browser.'),
+    audioContext: entry(
+      'ManageAudioContext',
+      Schema.Option(Schema.Null),
+      {
+        resource: AudioContextResource,
+        modelToMaybeRequirements: () => Option.some(null),
+        onAcquired: () => Message.SucceededAcquireAudioContext(),
+        onReleased: () => Message.ReleasedAudioContext(),
+        onAcquireError: () => Message.FailedAcquireAudioContext(),
+      },
+      Effect.succeed({
+        acquire: () =>
+          Effect.try({
+            try: () => new AudioContext(),
+            catch: () =>
+              new Error('The Web Audio API is unavailable in this browser.'),
+          }),
+        release: audioContext =>
+          Effect.promise(() => audioContext.close().catch(() => undefined)),
       }),
-    release: audioContext =>
-      Effect.promise(() => audioContext.close().catch(() => undefined)),
+    ),
   }),
 )
 
 // COMMAND
 
-const PlayNote = Command.define('PlayNote', {
-  args: { note: Note, duration: NoteDuration, noteIndex: Schema.Number },
-  messages: [Message.CompletedPlayNote],
-})
-
-const PlayNoteLayer = PlayNote.toLayer(
+const PlayNote = Command.define(
+  'PlayNote',
+  {
+    args: { note: Note, duration: NoteDuration, noteIndex: Schema.Number },
+    messages: [Message.CompletedPlayNote],
+  },
   Effect.succeed(({ note, duration, noteIndex }) =>
     Effect.gen(function* () {
       const audioContext = yield* AudioContextResource.get
@@ -550,9 +548,9 @@ const PlayNoteLayer = PlayNote.toLayer(
 )
 
 export const EffectsLayer = Layer.mergeAll(
-  DelayAdvanceNotePlayerPhaseLayer,
-  PlayNoteLayer,
-  ManageAudioContextLayer,
+  DelayAdvanceNotePlayerPhase.layer,
+  PlayNote.layer,
+  managedResources.audioContext.layer,
 )
 
 // VIEW

@@ -1,10 +1,9 @@
-import { Effect, Layer, Option, Schema } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 
 import * as UI from '@foldkit/ui'
 import { DragAndDrop } from '@foldkit/ui'
 
-import { CommandsLayer } from './command'
 import { DEFAULT_COLUMNS, STORAGE_KEY } from './constant'
 import { Message } from './message'
 import { Model, SavedBoard, SavedBoardJsonString } from './model'
@@ -52,8 +51,6 @@ export const init = (flags: Flags) => {
     },
   }
 }
-
-export const EffectsLayer = Layer.mergeAll(UI.EffectsLayer, CommandsLayer)
 
 export { Message, Model, subscriptions, update, view }
 

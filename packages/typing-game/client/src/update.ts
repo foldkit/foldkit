@@ -1,4 +1,4 @@
-import { Effect, Layer, Match, Option, Schema } from 'effect'
+import { Effect, Match, Option, Schema } from 'effect'
 import { Command, Update, Url } from 'foldkit'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
@@ -11,31 +11,26 @@ import { Model } from './model'
 import { Home, Room } from './page'
 import { urlToAppRoute } from './route'
 
-const NavigateInternal = Command.define('NavigateInternal', {
-  args: { url: Schema.String },
-  messages: [Message.CompletedNavigateInternal],
-})
-
-const NavigateInternalLayer = NavigateInternal.toLayer(
+export const NavigateInternal = Command.define(
+  'NavigateInternal',
+  {
+    args: { url: Schema.String },
+    messages: [Message.CompletedNavigateInternal],
+  },
   Effect.succeed(({ url }) =>
     pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
   ),
 )
 
-const LoadExternal = Command.define('LoadExternal', {
-  args: { href: Schema.String },
-  messages: [Message.CompletedLoadExternal],
-})
-
-const LoadExternalLayer = LoadExternal.toLayer(
+export const LoadExternal = Command.define(
+  'LoadExternal',
+  {
+    args: { href: Schema.String },
+    messages: [Message.CompletedLoadExternal],
+  },
   Effect.succeed(({ href }) =>
     load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
   ),
-)
-
-export const NavigationLayer = Layer.mergeAll(
-  NavigateInternalLayer,
-  LoadExternalLayer,
 )
 
 const readHome = (model: Model): Option.Option<Home.Model.Model> =>

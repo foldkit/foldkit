@@ -355,7 +355,7 @@ For each Foldkit module you plan to use, read the `.d.ts` at the paths below. Re
 <project>/node_modules/foldkit/dist/navigation/index.d.ts # pushUrl, load: all return Effect<void> (no Effect.ignore needed)
 
 # If using async / side effects
-<project>/node_modules/foldkit/dist/command/index.d.ts  # Command.define, Definition.toLayer, Command.mapMessages
+<project>/node_modules/foldkit/dist/command/index.d.ts  # Command.define, Definition.layer, Definition.toLayer, Command.mapMessages
 <project>/node_modules/foldkit/dist/asyncData/public.d.ts # AsyncData: Idle/Loading/Refreshing/Failure/Stale/Success + Schema, match, isPending, hasData, revalidate
 <project>/node_modules/foldkit/dist/http/public.d.ts     # Http.layer: provide it beneath handlers at the application root
 <project>/node_modules/foldkit/dist/dom/index.d.ts      # focus, advanceFocus, scrollIntoView, showDialog, closeDialog, clickElement, lockScroll, unlockScroll, inertOthers, restoreInert, detectElementMovement, waitForAnimationSettled. For time/random/delay use Effect's Clock, Random, Effect.sleep + Duration directly. For UUIDs use Crypto.Crypto's randomUUIDv4 and provide BrowserCrypto.layer at the application root.
@@ -402,14 +402,14 @@ AsyncData.match(value, { onIdle, onLoading, onRefreshing, onFailure, onStale, on
   //   onIdle: () => B          onLoading: () => B
   //   onRefreshing: (data) => B     onSuccess: (data) => B
   //   onFailure: (error) => B       onStale: ({ error, data }) => B
-Command.define(name, { args, messages }): every input is a named field.
-  `toLayer` binds the production handler and receives the decoded args object
+Command.define(name, { args, messages }, constructor): every input is a named field.
+  The final constructor Effect returns the production function, which receives the decoded args object
   directly, so you destructure the fields themselves; the call site passes args:
   const Fetch = Command.define('Fetch', {
     args: { id: Schema.String },
     messages: [Message.SucceededFetch, Message.FailedFetch],
-  })
-  const FetchLayer = Fetch.toLayer(Effect.succeed(({ id }) => ...))
+  }, Effect.succeed(({ id }) => ...))
+  const EffectsLayer = Fetch.layer
   update: [Fetch({ id })]     // NOT Fetch({ id })(effect)
 Document: NOT generic, and `body` is a single Html, not an array
 Input.view({ id, value, onInput, isInvalid?, type?, placeholder?, toView: (attrs) => Html }, h)
@@ -431,7 +431,7 @@ Record these in the crib and keep them visible while generating:
 - **Let `Application.make` infer init from the config.** A non-routing init receives Flags when declared. A routing init receives Flags first when declared and `url: Url` last. Wrap update with `Update.make` so every Command handler requirement from its Message branches reaches the application type.
 - **`Route.mapTo` takes the route schema, not a factory function.** `pipe(literal('new'), Route.mapTo(AppRoute.NewLink))`. NOT `Route.mapTo(() => AppRoute.NewLink())`.
 - **`Effect.ignore` is ONLY for fallible Effects.** `pushUrl(path).pipe(Effect.as(Message()))`. No `Effect.ignore` because `pushUrl` returns `Effect<void>`.
-- **`Command.define` takes a config object with a `messages` array and no `execute` field**: `const Fetch = Command.define('Fetch', { messages: [Message.SucceededFetch, Message.FailedFetch] })`, followed by `const FetchLayer = Fetch.toLayer(Effect.succeed(handler))`. `messages` is required and is always an array, even for one Message. Merge handler Layers into the owning feature's `EffectsLayer` export.
+- **`Command.define` takes a config object with a `messages` array, followed by the handler constructor Effect**: `const Fetch = Command.define('Fetch', { messages: [Message.SucceededFetch, Message.FailedFetch] }, Effect.succeed(fetch))`. Definitions have no `execute` field. `messages` is required and is always an array, even for one Message. Merge `Fetch.layer` into the owning feature's `EffectsLayer` export. Omit the final constructor argument only for a contract whose implementation belongs to an external host; that definition has no `.layer` and the host uses `toLayer`.
 - **`makeRules` takes `{ required?: Rule.RuleMessage, rules: Array<Rule.Rule> }` where `Rule.Rule = [Predicate, Rule.RuleMessage]`**: a tuple, NOT `{ test, message }`. Rule constructors live on the `Rule` namespace (`Rule.url({ message })`, `Rule.email(message?)`, `Rule.minLength(n, message?)`, `Rule.pattern(regex, message?)`, `Rule.fromSchema(schema, message)`).
 - **`Field.Invalid` has `errors: NonEmptyArray<string>`, not `error: string`.** Use `Array.headNonEmpty(errors)` to get the first message; use `Rule.resolveMessage(message, value)` to resolve a rule message to its final string.
 - **Route variants stay on `AppRoute` and drop the repeated `Route` suffix.** Write `AppRoute.Home` and `AppRoute.NewLink`, not sibling bindings named `HomeRoute` and `NewLinkRoute`.
@@ -526,7 +526,7 @@ Every message must carry meaning. No `NoOp`.
 
 ### Commands
 
-- Define Command identities with `Command.define`, whose second argument declares `args` (optional), `messages`, and `interrupt` (optional). Definitions omit `execute`. Supply the production implementation with `Definition.toLayer(Effect<handler>)`. Use `Effect.gen` to capture services, leave a blank line, then return the invocation function. Use `Effect.succeed(handler)` when construction has no work to perform. The Runtime constructs the handler once per application start; each invocation receives current args and performs fresh work. Update returns `Fetch({ id })`, and the owning feature merges `FetchLayer` into its exported `EffectsLayer`
+- Define Command identities with `Command.define`, whose config declares `args` (optional), `messages`, and `interrupt` (optional), followed by the handler constructor Effect as the final argument. Definitions omit `execute`. Compose `Fetch.layer` directly in the owning feature's `EffectsLayer`. Use `Effect.gen` in the constructor to capture services, leave a blank line, then return the invocation function. Use `Effect.succeed(handler)` when construction has no work to perform. The Runtime constructs the handler once per application start; each invocation receives current args and performs fresh work. Update returns `Fetch({ id })`. Create a standalone `FetchLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly. Omit the final argument only for an external host contract and use `toLayer` at that host boundary
 - To make a Command interruptible, add `interrupt`. `interrupt: true` keys every invocation by the Command name; `interrupt: { keyFields, toKey }` selects the args that identify an invocation and derives its key so concurrent invocations can be cancelled independently. The selected fields become the args required by the Definition's `Interrupt` constructor
 - Always assign definitions to PascalCase constants. Never inline in pipe chains
 - Definitions live where they're produced, colocated with the update function
@@ -615,7 +615,7 @@ For file uploads (resumes, images, attachments):
 - Build a second, parallel graph for runtime registrations. A feature exports its `subscriptions`, `managedResources`, and `mounts` beside its `EffectsLayer`. For a large app, `application.ts` lifts child registrations into root Model and Message types, aggregates records, collects Mount definitions, and exposes application assembly. Use a `makeApplication(container)` factory whenever tests or server tooling import the registration module, or when the entry chooses the DOM container. A static `application` export is acceptable only when every importer is browser-side and runs after the intended container exists. The entry imports that assembly and `AppLayer`. A small app may assemble and provide the application directly in `entry.ts`
 - `Application.provide` Layers build eagerly once for every runtime start, including a restored-Model start, before a fresh Flags Effect, init, or the first render. Command lookup, Subscription restart, Mount insertion, and ManagedResource reacquisition reuse those app-scoped handlers and providers. `Runtime.hydrate` validates the server handoff before acquiring Layers. A Layer construction failure stops startup before the first render. The runtime releases the Layer Scope when that start stops
 - Keep four lifetimes distinct: application services such as RPC clients last for one Runtime start; one Command Effect lasts for one dispatch; Subscription Streams and ManagedResource handles follow Model conditions; Mount acquisition follows one DOM element. Keep the `ManagedResource` name for the Model-scoped handle primitive
-- An Effect constructor passed to `toLayer` captures application services. It must not capture current time, Command args, Subscription dependencies, a DOM element, or an active ManagedResource handle. Service lookup retrieves the instance built for that application start; it does not construct the provider
+- A definition's final constructor Effect captures application services. It must not capture current time, Command args, Subscription dependencies, a DOM element, or an active ManagedResource handle. Service lookup retrieves the instance built for that application start; it does not construct the provider
 - A page-owning app with Flags declares the `Flags` Schema in `Application.make` and passes the Flags Effect to `Runtime.run(application, { flags })`. A self-contained Element declares both `Flags` and `flags` in the `Application.makeElement` config. Requirements of either Flags Effect can be supplied through `Application.provide`
 - End with `Runtime.run(application)` for a page-owning app after its requirements are provided. When a host application controls the program's lifecycle, end with `Runtime.embed(element)` instead and hand the returned handle to the host; mirror `repos/foldkit/examples/embedding/src/host.ts` for the host side and its `main.ts` for the widget side
 - Name an application factory `makeApplication`, the variable holding its `Application.make` result `application`, and the variable holding an `Application.makeElement` result `element`
@@ -633,16 +633,16 @@ For file uploads (resumes, images, attachments):
 
 ### Subscriptions (if real-time)
 
-- Define named entries with `Subscription.make<Model, Message>()(entry => ({ roomUpdates: entry('RoomUpdates', fields, { messages: [Message.ReceivedRoomUpdate], modelToDependencies }) }))`. The stable handler name describes the supplied Stream or scoped behavior, while the record key identifies its registration. `messages` is the exact Message Schema collection the handler can emit; use `messages: []` for a silent scoped Stream. Supply the Stream with `subscriptions.roomUpdates.toLayer(Effect.succeed(dependencies => stream))` and merge that Layer into the feature's `EffectsLayer`
+- Define named entries with `Subscription.make<Model, Message>()(entry => ({ roomUpdates: entry('RoomUpdates', fields, { messages: [Message.ReceivedRoomUpdate], modelToDependencies }, Effect.succeed(dependencies => stream)) }))`. The stable handler name describes the supplied Stream or scoped behavior, while the record key identifies its registration. `messages` is the exact Message Schema collection the handler can emit; use `messages: []` for a silent scoped Stream. Compose `subscriptions.roomUpdates.layer` directly in the feature's `EffectsLayer`
 - `modelToDependencies` extracts Subscription parameters from Model
-- The `toLayer` Effect constructs a Stream handler limited to the declared `messages`. A dependency change invokes that handler with the latest dependencies and restarts the Stream scope without reconstructing the handler or its providers
+- The final Effect argument constructs a Stream function limited to the declared `messages`. A dependency change invokes that function with the latest dependencies and restarts the Stream scope without reconstructing the handler or its providers. Omit the final argument only for an external host contract and use `toLayer` at that boundary
 - Subscriptions auto-start/stop based on Model state. Never manually managed
-- For Subscriptions with no local Model dependencies, use `entry('KeyboardPresses', { messages: [Message.PressedKey] })` with no fields or callback; a parent can still gate the entry when lifting it
+- For Subscriptions with no local Model dependencies, use `entry('KeyboardPresses', { messages: [Message.PressedKey] }, Effect.succeed(() => stream))` with no dependency fields or callback; a parent can still gate the entry when lifting it
 - To embed child Subscriptions, use `Subscription.lift(childRecord)<Parent, Parent>({ read, toParentMessage })`. Its `read` returns `Option<ChildModel>`, matching `Update.foldChild` and `ManagedResource.lift`; `None` stops every child Stream without reading child dependencies. Use `Option.some` for always-present children. Every lifted entry wraps its dependencies in `GatedDependencies`. Add `when` on the parent's lift call to gate on a parent fact the child cannot see (the route a page Submodel sits behind); the parent owns the gate and reads the parent Model, and a closed gate tears the entry's Stream down. `when: parentModel => boolean` gates every entry; `when: { entryName: parentModel => boolean }` adds a condition only to the entries it names; child absence still stops every entry, so a child never splits its record to suit its parent's gating. Direct `Subscription.aggregate(first, second)` preserves the individual entry contracts. Use an explicitly typed aggregate only when one broader Message channel is the intended boundary
 
 ### Managed Resources (if stateful runtime handles)
 
-- Define with `ManagedResource.make<Model, Message>()(entry => ({ key: entry('ManageFeatureResource', requirementsSchema, config) }))`. The stable handler name precedes the requirements Schema. `config` carries the `resource` tag, `modelToMaybeRequirements`, and the `onAcquired`/`onReleased`/`onAcquireError` Messages. Supply the implementation with `managedResources.key.toLayer(Effect<{ acquire, release }>)` and merge that Layer into the feature's `EffectsLayer`
+- Define with `ManagedResource.make<Model, Message>()(entry => ({ key: entry('ManageFeatureResource', requirementsSchema, config, constructor) }))`. The stable handler name precedes the requirements Schema. `config` carries the `resource` tag, `modelToMaybeRequirements`, and the `onAcquired`/`onReleased`/`onAcquireError` Messages. The final constructor is an `Effect<{ acquire, release }>`; both lifecycle functions are required whenever it is supplied. Compose `managedResources.key.layer` directly in the feature's `EffectsLayer`
 - `modelToMaybeRequirements` returns `Option.some(params)` to acquire (or re-acquire when params change) and `Option.none()` to release. Resources auto-acquire/release on Model state, like Subscriptions
 - For a resource with no params, use `Schema.Option(Schema.Null)` and return `Option.some(null)`
 - Read the service union with `ManagedResource.ServicesOf<typeof managedResources>`

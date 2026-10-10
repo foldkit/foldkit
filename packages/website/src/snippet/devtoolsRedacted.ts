@@ -33,13 +33,13 @@ const Message = defineMessageUnion({
 
 // COMMAND
 
-const FetchProfile = Command.define('FetchProfile', {
-  // 3. Require a Redacted value because DevTools records Command arguments.
-  args: { accessToken: AccessToken },
-  messages: [Message.CompletedFetchProfile, Message.FailedFetchProfile],
-})
-
-const FetchProfileLayer = FetchProfile.toLayer(
+const FetchProfile = Command.define(
+  'FetchProfile',
+  {
+    // 3. Require a Redacted value because DevTools records Command arguments.
+    args: { accessToken: AccessToken },
+    messages: [Message.CompletedFetchProfile, Message.FailedFetchProfile],
+  },
   Effect.succeed(({ accessToken }) =>
     Effect.tryPromise(() =>
       fetch('/api/profile', {

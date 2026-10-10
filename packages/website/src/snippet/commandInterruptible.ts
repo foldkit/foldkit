@@ -15,18 +15,20 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const WaitBeforeReset = Command.define('WaitBeforeReset', {
-  messages: [Message.CompletedWaitBeforeReset],
-  interrupt: true,
-})
-
-export const WaitBeforeResetLayer = WaitBeforeReset.toLayer(
+export const WaitBeforeReset = Command.define(
+  'WaitBeforeReset',
+  {
+    messages: [Message.CompletedWaitBeforeReset],
+    interrupt: true,
+  },
   Effect.succeed(() =>
     Effect.sleep('1 second').pipe(
       Effect.as(Message.CompletedWaitBeforeReset()),
     ),
   ),
 )
+
+export const EffectsLayer = WaitBeforeReset.layer
 
 const update = Update.make((model: Model, message: Message) =>
   Message.match(message, {

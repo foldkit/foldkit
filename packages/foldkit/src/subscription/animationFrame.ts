@@ -11,15 +11,25 @@ import { Effect, Queue, Stream } from 'effect'
  *
  * @example
  * ```ts
- * const FrameLayer = subscriptions.frame.toLayer(
- *   Effect.succeed(({ isActive }) =>
- *     isActive
- *       ? Subscription.animationFrameStream.pipe(
- *           Stream.map(deltaTime => Message.Ticked({ deltaTime })),
- *         )
- *       : Stream.empty,
+ * const subscriptions = Subscription.make<Model, Message>()(entry => ({
+ *   frame: entry(
+ *     'AnimationFrameTicks',
+ *     { isActive: Schema.Boolean },
+ *     {
+ *       messages: [Message.Ticked],
+ *       modelToDependencies: model => ({ isActive: model.isActive }),
+ *     },
+ *     Effect.succeed(({ isActive }) =>
+ *       isActive
+ *         ? Subscription.animationFrameStream.pipe(
+ *             Stream.map(deltaTime => Message.Ticked({ deltaTime })),
+ *           )
+ *         : Stream.empty,
+ *     ),
  *   ),
- * )
+ * }))
+ *
+ * const EffectsLayer = subscriptions.frame.layer
  * ```
  */
 export const animationFrameStream: Stream.Stream<number> =

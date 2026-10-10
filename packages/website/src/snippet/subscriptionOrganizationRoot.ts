@@ -24,6 +24,16 @@ const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
         isSystemPreference: model.themePreference === 'System',
       }),
     },
+    Effect.succeed(({ isSystemPreference }) =>
+      Stream.when(
+        Dom.streamFromMediaQuery({
+          query: '(prefers-color-scheme: dark)',
+          mapMatches: isDark =>
+            Message.ChangedSystemTheme({ theme: isDark ? 'Dark' : 'Light' }),
+        }),
+        Effect.sync(() => isSystemPreference),
+      ),
+    ),
   ),
 }))
 
@@ -32,20 +42,7 @@ export const subscriptions = Subscription.aggregate(
   localSubscriptions,
 )
 
-const SystemThemeChangesLayer = localSubscriptions.systemThemeChanges.toLayer(
-  Effect.succeed(({ isSystemPreference }) =>
-    Stream.when(
-      Dom.streamFromMediaQuery({
-        query: '(prefers-color-scheme: dark)',
-        mapMatches: isDark =>
-          Message.ChangedSystemTheme({ theme: isDark ? 'Dark' : 'Light' }),
-      }),
-      Effect.sync(() => isSystemPreference),
-    ),
-  ),
-)
-
 export const EffectsLayer = Layer.mergeAll(
   Settings.EffectsLayer,
-  SystemThemeChangesLayer,
+  localSubscriptions.systemThemeChanges.layer,
 )

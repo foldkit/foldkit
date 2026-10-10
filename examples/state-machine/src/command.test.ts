@@ -2,7 +2,7 @@ import { Effect, Fiber, Layer, Ref } from 'effect'
 import { TestClock } from 'effect/testing'
 import { expect, test } from 'vitest'
 
-import { Message, PlaceOrder, PlaceOrderLayer } from './main'
+import { Message, PlaceOrder } from './main'
 
 test('PlaceOrder waits before succeeding', () =>
   Effect.runPromise(
@@ -25,7 +25,7 @@ test('PlaceOrder waits before succeeding', () =>
     }).pipe(
       Effect.scoped,
       Effect.provide(
-        PlaceOrderLayer.pipe(Layer.provideMerge(TestClock.layer())),
+        PlaceOrder.layer.pipe(Layer.provideMerge(TestClock.layer())),
       ),
     ),
   ))

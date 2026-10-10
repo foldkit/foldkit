@@ -32,21 +32,21 @@ export type ChildOutMessage = typeof ChildOutMessage.Type
 
 // CHILD COMMAND
 
-export const SubmitForm = Command.define('SubmitForm', {
-  messages: [ChildMessage.SucceededSubmitForm],
-})
-
-export const SubmitFormLayer = SubmitForm.toLayer(
+export const SubmitForm = Command.define(
+  'SubmitForm',
+  {
+    messages: [ChildMessage.SucceededSubmitForm],
+  },
   Effect.succeed(() =>
     Effect.sync(() => ChildMessage.SucceededSubmitForm({ id: 'abc' })),
   ),
 )
 
-export const ResetForm = Command.define('ResetForm', {
-  messages: [ChildMessage.CompletedResetForm],
-})
-
-export const ResetFormLayer = ResetForm.toLayer(
+export const ResetForm = Command.define(
+  'ResetForm',
+  {
+    messages: [ChildMessage.CompletedResetForm],
+  },
   Effect.succeed(() => Effect.sync(() => ChildMessage.CompletedResetForm())),
 )
 
@@ -135,4 +135,4 @@ export const parentUpdate = Update.make(
     }),
 )
 
-export const EffectsLayer = Layer.mergeAll(SubmitFormLayer, ResetFormLayer)
+export const EffectsLayer = Layer.mergeAll(SubmitForm.layer, ResetForm.layer)

@@ -224,6 +224,48 @@ describe('mount-factory-must-use-element', () => {
     expect(result[0]?.diagnostic.node).toBe(handler)
   })
 
+  const definitionMethods: ReadonlyArray<'define' | 'defineStream'> = [
+    'define',
+    'defineStream',
+  ]
+
+  it.each(definitionMethods)(
+    'checks attached %s constructor handlers',
+    method => {
+      const handler = Testing.arrowFn(Testing.callExpr('analyticsPing'), [
+        elementPattern(),
+      ])
+      const definition = mountDefinition(method)
+      const result = runOn({
+        ...definition,
+        arguments: [
+          ...definition.arguments,
+          Testing.callOfMember('Effect', 'succeed', [handler]),
+        ],
+      })
+
+      expect(result).toHaveLength(1)
+      expect(result[0]?.diagnostic.node).toBe(handler)
+    },
+  )
+
+  it('accepts an attached constructor handler that uses the element', () => {
+    const handler = Testing.arrowFn(
+      Testing.callExpr('measure', [Testing.id('element')]),
+      [elementPattern()],
+    )
+    const definition = mountDefinition()
+    const result = runOn({
+      ...definition,
+      arguments: [
+        ...definition.arguments,
+        Testing.callOfMember('Effect', 'succeed', [handler]),
+      ],
+    })
+
+    expect(result).toHaveLength(0)
+  })
+
   it('checks the handler returned by an effectful constructor', () => {
     const handler = Testing.arrowFn(Testing.callExpr('analyticsPing'), [
       elementPattern(),
@@ -375,6 +417,28 @@ describe('mount-factory-must-use-element', () => {
     expect(result[0]?.diagnostic.message).toContain('`element`')
     expect(result[0]?.diagnostic.message).toContain('never referenced')
     expect(result[0]?.diagnostic.node).toBe(handler)
+  })
+
+  it('does not count a nested function declaration shadow as an element use', () => {
+    const nestedFunction = {
+      type: 'FunctionDeclaration',
+      id: Testing.id('readElement'),
+      params: [Testing.id('element')],
+      body: Testing.blockStmt([
+        Testing.exprStmt(
+          Testing.callExpr('useElement', [Testing.id('element')]),
+        ),
+      ]),
+      generator: false,
+      async: false,
+    }
+    const handler = Testing.arrowFn(Testing.blockStmt([nestedFunction]), [
+      elementPattern(),
+    ])
+    const result = runOn(mountLayer(handler))
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.diagnostic.message).toContain('never referenced')
   })
 
   it('flags an underscore-prefixed element binding even when referenced', () => {

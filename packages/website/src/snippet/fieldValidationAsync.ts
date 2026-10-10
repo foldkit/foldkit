@@ -5,12 +5,12 @@ import { modifyFields } from 'foldkit/struct'
 
 const validateEmail = validate(emailRules)
 
-const CheckEmailAvailable = Command.define('CheckEmailAvailable', {
-  args: { email: Schema.String, validationId: Schema.Number },
-  messages: [CompletedCheckEmailAvailable],
-})
-
-const CheckEmailAvailableLayer = CheckEmailAvailable.toLayer(
+const CheckEmailAvailable = Command.define(
+  'CheckEmailAvailable',
+  {
+    args: { email: Schema.String, validationId: Schema.Number },
+    messages: [CompletedCheckEmailAvailable],
+  },
   Effect.succeed(({ email, validationId }) =>
     Effect.gen(function* () {
       const isAvailable = yield* apiCheckEmail(email)

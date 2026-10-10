@@ -145,12 +145,12 @@ type Message = typeof Message.Type
 
 // COMMAND
 
-const DelayReset = Command.define('DelayReset', {
-  args: { seconds: Schema.Number },
-  messages: [Message.CompletedDelayReset],
-})
-
-const DelayResetLayer = DelayReset.toLayer(
+const DelayReset = Command.define(
+  'DelayReset',
+  {
+    args: { seconds: Schema.Number },
+    messages: [Message.CompletedDelayReset],
+  },
   Effect.succeed(({ seconds }) =>
     Effect.sleep(\`\${seconds} seconds\`).pipe(
       Effect.as(Message.CompletedDelayReset()),
@@ -158,7 +158,7 @@ const DelayResetLayer = DelayReset.toLayer(
   ),
 )
 
-const EffectsLayer = DelayResetLayer
+const EffectsLayer = DelayReset.layer
 
 // UPDATE
 
@@ -198,11 +198,8 @@ const COUNTER_PHASE_REGIONS: PhaseRegions = {
     { from: '    ClickedResetAfterDelay: () => ({', to: '    }),' },
   ],
   ResetCommand: [
-    { from: "const DelayReset = Command.define('DelayReset', {", to: '})' },
-    {
-      from: 'const DelayResetLayer = DelayReset.toLayer(',
-      to: 'const EffectsLayer = DelayResetLayer',
-    },
+    { from: 'const DelayReset = Command.define(', to: ')' },
+    { from: 'const EffectsLayer = DelayReset.layer' },
     { from: '      commands: [DelayReset({ seconds: model.resetDuration })],' },
   ],
   ResetCommandMessage: [{ from: '  CompletedDelayReset: {},' }],
@@ -316,31 +313,32 @@ const update = Update.make((model: Model, message: Message) =>
 const AudioContextResource = ManagedResource.tag<AudioContext>()('AudioContext')
 
 const managedResources = ManagedResource.make<Model, Message>()(entry => ({
-  audioContext: entry('ManageAudioContext', Schema.Option(Schema.Null), {
-    resource: AudioContextResource,
-    modelToMaybeRequirements: () => Option.some(null),
-    onAcquired: () => Message.SucceededAcquireAudioContext(),
-    onReleased: () => Message.ReleasedAudioContext(),
-    onAcquireError: () => Message.FailedAcquireAudioContext(),
-  }),
+  audioContext: entry(
+    'ManageAudioContext',
+    Schema.Option(Schema.Null),
+    {
+      resource: AudioContextResource,
+      modelToMaybeRequirements: () => Option.some(null),
+      onAcquired: () => Message.SucceededAcquireAudioContext(),
+      onReleased: () => Message.ReleasedAudioContext(),
+      onAcquireError: () => Message.FailedAcquireAudioContext(),
+    },
+    Effect.succeed({
+      acquire: () => Effect.try(() => new AudioContext()),
+      release: audioContext =>
+        Effect.promise(() => audioContext.close().catch(() => undefined)),
+    }),
+  ),
 }))
-
-const ManageAudioContextLayer = managedResources.audioContext.toLayer(
-  Effect.succeed({
-    acquire: () => Effect.try(() => new AudioContext()),
-    release: audioContext =>
-      Effect.promise(() => audioContext.close().catch(() => undefined)),
-  }),
-)
 
 // COMMAND
 
-const PlayNote = Command.define('PlayNote', {
-  args: { note: Note, duration: Schema.Number, noteIndex: Schema.Number },
-  messages: [Message.CompletedPlayNote],
-})
-
-const PlayNoteLayer = PlayNote.toLayer(
+const PlayNote = Command.define(
+  'PlayNote',
+  {
+    args: { note: Note, duration: Schema.Number, noteIndex: Schema.Number },
+    messages: [Message.CompletedPlayNote],
+  },
   Effect.succeed(({ note, duration, noteIndex }) =>
     Effect.gen(function* () {
       const audioContext = yield* AudioContextResource.get
@@ -366,8 +364,8 @@ const PlayNoteLayer = PlayNote.toLayer(
 )
 
 const EffectsLayer = Layer.mergeAll(
-  PlayNoteLayer,
-  ManageAudioContextLayer,
+  PlayNote.layer,
+  managedResources.audioContext.layer,
 )`
 
 const NOTE_PLAYER_PHASE_REGIONS: PhaseRegions = {
@@ -391,11 +389,7 @@ const NOTE_PLAYER_PHASE_REGIONS: PhaseRegions = {
   ],
   NoteModel: [{ from: 'const Model = Schema.Struct({', to: '})' }],
   NoteCommand: [
-    { from: "const PlayNote = Command.define('PlayNote', {", to: '})' },
-    {
-      from: 'const PlayNoteLayer = PlayNote.toLayer(',
-      to: ')',
-    },
+    { from: 'const PlayNote = Command.define(', to: ')' },
     {
       from: 'const EffectsLayer = Layer.mergeAll(',
       to: ')',

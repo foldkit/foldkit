@@ -218,12 +218,12 @@ export const update = Update.make((model: Model, message: Message) =>
 
 // COMMAND
 
-export const GenerateApplePosition = Command.define('GenerateApplePosition', {
-  args: { snake: Snake.Snake },
-  messages: [Message.CompletedGenerateApplePosition],
-})
-
-const GenerateApplePositionLayer = GenerateApplePosition.toLayer(
+export const GenerateApplePosition = Command.define(
+  'GenerateApplePosition',
+  {
+    args: { snake: Snake.Snake },
+    messages: [Message.CompletedGenerateApplePosition],
+  },
   Effect.succeed(({ snake }) =>
     Apple.generatePosition(snake).pipe(
       Effect.map(position =>
@@ -252,38 +252,37 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
         ),
       }),
     },
-  ),
-
-  keyboardPresses: entry('KeyboardPresses', { messages: [Message.PressedKey] }),
-}))
-
-const GameClockTicksLayer = subscriptions.gameClockTicks.toLayer(
-  Effect.succeed(({ isPlaying, interval }) =>
-    Stream.when(
-      Stream.tick(Duration.millis(interval)).pipe(
-        Stream.drop(1),
-        Stream.map(Message.TickedClock),
+    Effect.succeed(({ isPlaying, interval }) =>
+      Stream.when(
+        Stream.tick(Duration.millis(interval)).pipe(
+          Stream.drop(1),
+          Stream.map(Message.TickedClock),
+        ),
+        Effect.sync(() => isPlaying),
       ),
-      Effect.sync(() => isPlaying),
     ),
   ),
-)
 
-const KeyboardPressesLayer = subscriptions.keyboardPresses.toLayer(
-  Effect.succeed(() =>
-    Dom.streamFromEventFilterMapPreventDefault({
-      target: document,
-      type: 'keydown',
-      filterMapEvent: keyboardEvent =>
-        Option.some(Message.PressedKey({ key: keyboardEvent.key })),
-    }),
+  keyboardPresses: entry(
+    'KeyboardPresses',
+    {
+      messages: [Message.PressedKey],
+    },
+    Effect.succeed(() =>
+      Dom.streamFromEventFilterMapPreventDefault({
+        target: document,
+        type: 'keydown',
+        filterMapEvent: keyboardEvent =>
+          Option.some(Message.PressedKey({ key: keyboardEvent.key })),
+      }),
+    ),
   ),
-)
+}))
 
 export const EffectsLayer = Layer.mergeAll(
-  GenerateApplePositionLayer,
-  GameClockTicksLayer,
-  KeyboardPressesLayer,
+  GenerateApplePosition.layer,
+  subscriptions.gameClockTicks.layer,
+  subscriptions.keyboardPresses.layer,
 )
 
 // VIEW

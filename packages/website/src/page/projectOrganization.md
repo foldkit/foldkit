@@ -26,9 +26,9 @@ Split a large feature again only when its own files become difficult to navigate
 
 ## Composing Handler Layers
 
-Keep each handler Layer beside the Command, Subscription, Mount, or ManagedResource definition it implements. Name an individual production Layer after that definition, such as `LoadProductsLayer` or `ProductUpdatesLayer`, and name an alternate test implementation `LoadProductsTestLayer`. The handler owns the translation from Foldkit args or dependencies into an Effect or Stream. External clients stay in its Effect requirements.
+Keep each handler attached to the Command, Subscription, Mount, or ManagedResource definition it implements. Compose `LoadProducts.layer` or `subscriptions.productUpdates.layer` directly in the feature's `EffectsLayer`. Name a standalone binding `LoadProductsLayer` only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly, and name an external alternate `LoadProductsTestLayer`. The handler owns the translation from Foldkit args or dependencies into an Effect or Stream. External clients stay in its Effect requirements.
 
-When a feature is split across modules, its `layer.ts` combines the handler Layers under one `EffectsLayer` export. The bundle also includes each child feature's `EffectsLayer`. It may provide business services that the feature owns while leaving concrete HTTP, storage, RPC, and browser providers open for the application root. Import Effect's module as `Layer`; the public bundle has a different name, so no alias is needed.
+When a feature is split across modules, its `layer.ts` imports the definitions and combines their attached `.layer` recipes under one `EffectsLayer` export. The bundle also includes each child feature's `EffectsLayer`. It may provide business services that the feature owns while leaving concrete HTTP, storage, RPC, and browser providers open for the application root. Import Effect's module as `Layer`; the public bundle has a different name, so no alias is needed.
 
 In a small application, `main.ts` can export an `EffectsLayer` with the handlers it owns, and `entry.ts` can assemble and run the application directly. Add separate `application.ts` and `layer.ts` roots when several features make those responsibilities useful: `application.ts` lifts registrations and exposes application assembly, while `layer.ts` composes root `EffectsLayer`, `ServicesLayer`, `AppLayer`, and any alternate `AppTestLayer`.
 
@@ -52,7 +52,7 @@ Handler Layers and runtime registrations are parallel graphs with different jobs
 
 ::Snippet{name="applicationRegistrations" label="Root runtime registration composition"}
 
-`Subscription.lift` and `ManagedResource.lift` connect a child feature's Model and Messages to its parent. Direct `Subscription.aggregate(first, second)` keeps the individual Subscription definitions, including their declared Messages and `toLayer` helpers. The curried form, `Subscription.aggregate<Model, Message>()(first, second)`, constrains the parent Model and Message while preserving those definitions and their exact handler requirements. Let the assembled record infer its type so a module boundary does not erase its entry metadata.
+`Subscription.lift` and `ManagedResource.lift` connect a child feature's Model and Messages to its parent. Direct `Subscription.aggregate(first, second)` keeps the individual Subscription definitions, including their declared Messages, `.layer` recipes, and `toLayer` helpers. The curried form, `Subscription.aggregate<Model, Message>()(first, second)`, constrains the parent Model and Message while preserving those definitions and their exact handler requirements. Let the assembled record infer its type so a module boundary does not erase its entry metadata.
 
 `Application.make` receives the completed registration graph inside `makeApplication`. `entry.ts` imports that factory and `AppLayer`, resolves the container, then starts the provided application. It does not import feature Commands, Subscription handlers, Mount handlers, or ManagedResource handlers.
 

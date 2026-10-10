@@ -6,12 +6,12 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const SubmitOrder = Command.define('SubmitOrder', {
-  args: { orderDraft: OrderDraft },
-  messages: [Message.SucceededSubmitOrder, Message.FailedSubmitOrder],
-})
-
-const SubmitOrderLayer = SubmitOrder.toLayer(
+const SubmitOrder = Command.define(
+  'SubmitOrder',
+  {
+    args: { orderDraft: OrderDraft },
+    messages: [Message.SucceededSubmitOrder, Message.FailedSubmitOrder],
+  },
   Effect.succeed(({ orderDraft }) =>
     Orders.place(orderDraft).pipe(
       Effect.map(order => Message.SucceededSubmitOrder({ order })),

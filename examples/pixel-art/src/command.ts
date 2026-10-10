@@ -1,4 +1,4 @@
-import { Array, Effect, Layer, Predicate, Schema } from 'effect'
+import { Array, Effect, Predicate, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 import { Command } from 'foldkit'
 
@@ -9,17 +9,17 @@ import { Grid, PaletteIndex } from './model'
 import { SavedCanvasJsonString } from './model'
 import { PALETTE_THEMES, resolveColor } from './palette'
 
-export const SaveCanvas = Command.define('SaveCanvas', {
-  args: {
-    grid: Grid,
-    gridSize: Schema.Number,
-    paletteThemeIndex: Schema.Number,
-    selectedColorIndex: PaletteIndex,
+export const SaveCanvas = Command.define(
+  'SaveCanvas',
+  {
+    args: {
+      grid: Grid,
+      gridSize: Schema.Number,
+      paletteThemeIndex: Schema.Number,
+      selectedColorIndex: PaletteIndex,
+    },
+    messages: [Message.CompletedSaveCanvas],
   },
-  messages: [Message.CompletedSaveCanvas],
-})
-
-const SaveCanvasLayer = SaveCanvas.toLayer(
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
 
@@ -48,16 +48,16 @@ export const saveCanvas = (model: Model) =>
     selectedColorIndex: model.selectedColorIndex,
   })
 
-export const ExportPng = Command.define('ExportPng', {
-  args: {
-    grid: Grid,
-    gridSize: Schema.Number,
-    paletteThemeIndex: Schema.Number,
+export const ExportPng = Command.define(
+  'ExportPng',
+  {
+    args: {
+      grid: Grid,
+      gridSize: Schema.Number,
+      paletteThemeIndex: Schema.Number,
+    },
+    messages: [Message.SucceededExportPng, Message.FailedExportPng],
   },
-  messages: [Message.SucceededExportPng, Message.FailedExportPng],
-})
-
-const ExportPngLayer = ExportPng.toLayer(
   Effect.succeed(({ grid, gridSize, paletteThemeIndex }) =>
     Effect.gen(function* () {
       const theme = PALETTE_THEMES[paletteThemeIndex] ?? PALETTE_THEMES[0]
@@ -90,5 +90,3 @@ const ExportPngLayer = ExportPng.toLayer(
     }).pipe(Effect.catchTag('FailedExportPng', error => Effect.succeed(error))),
   ),
 )
-
-export const CommandsLayer = Layer.mergeAll(SaveCanvasLayer, ExportPngLayer)

@@ -1,18 +1,18 @@
 import { Layer } from 'effect'
 
-import { LoadUserLayer } from './command'
+import { LoadUser } from './command'
 import {
   AnalyticsLayer,
   ApiClientLayer,
   ComputeWorkerLayer,
 } from './environment'
-import { ComputePreviewLayer } from './managedResource'
-import { TrackPageViewLayer } from './subscription'
+import { managedResources } from './managedResource'
+import { subscriptions } from './subscription'
 
 export const EffectsLayer = Layer.mergeAll(
-  LoadUserLayer,
-  TrackPageViewLayer,
-  ComputePreviewLayer,
+  LoadUser.layer,
+  subscriptions.trackPageView.layer,
+  managedResources.computePreview.layer,
 )
 
 export const ServicesLayer = Layer.mergeAll(

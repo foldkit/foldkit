@@ -199,6 +199,57 @@ const inToLayerLifecycleHandler = (
   return operation
 }
 
+const inAttachedHandler = (
+  operation: Readonly<{ type: string }>,
+  namespace: string,
+  method: string,
+  argumentsBefore: ReadonlyArray<unknown>,
+  propertyName?: string,
+) => {
+  const handler = Testing.arrowFn(operation)
+  const property = {
+    type: 'Property',
+    kind: 'init',
+    key: Testing.id(propertyName ?? 'acquire'),
+    value: handler,
+    method: false,
+    shorthand: false,
+    computed: false,
+  }
+  const lifecycle = { type: 'ObjectExpression', properties: [property] }
+  const value = propertyName === undefined ? handler : lifecycle
+  const build = Testing.callOfMember('Effect', 'succeed', [value])
+  const definition =
+    namespace === 'Subscription' || namespace === 'ManagedResource'
+      ? Testing.callExpr('entry', [...argumentsBefore, build])
+      : Testing.callOfMember(namespace, method, [...argumentsBefore, build])
+
+  Object.assign(operation, { parent: handler })
+  Object.assign(handler, {
+    parent: propertyName === undefined ? build : property,
+  })
+  Object.assign(property, { parent: lifecycle })
+  Object.assign(lifecycle, { parent: build })
+  Object.assign(build, { parent: definition })
+
+  if (namespace === 'Subscription' || namespace === 'ManagedResource') {
+    const builder = Testing.arrowFn(definition, [Testing.id('entry')])
+    const make = Testing.callOfMember(namespace, 'make')
+    const boundary = atProgram({
+      type: 'CallExpression',
+      callee: make,
+      arguments: [builder],
+    })
+    Object.assign(definition, { parent: builder })
+    Object.assign(builder, { parent: boundary })
+    Object.assign(make, { parent: boundary })
+  } else {
+    atProgram(definition)
+  }
+
+  return operation
+}
+
 const inNestedLifecycleConfig = (
   operation: Readonly<{ type: string }>,
   namespace: string,
@@ -584,6 +635,97 @@ describe('no-impure-call-at-decision-time', () => {
 
     expect(commandResult).toHaveLength(0)
     expect(subscriptionResult).toHaveLength(0)
+  })
+
+  it.each([
+    [
+      'Command',
+      'define',
+      [Testing.strLiteral('ReadClock'), Testing.id('config')],
+    ],
+    [
+      'Mount',
+      'define',
+      [Testing.strLiteral('MeasurePanel'), Testing.id('config')],
+    ],
+    [
+      'Mount',
+      'defineStream',
+      [Testing.strLiteral('PanelSizes'), Testing.id('config')],
+    ],
+    ['Query', 'define', [Testing.id('config')]],
+    [
+      'Subscription',
+      'entry',
+      [Testing.strLiteral('ClockTicks'), Testing.id('config')],
+    ],
+    [
+      'Subscription',
+      'entry',
+      [
+        Testing.strLiteral('ClockTicks'),
+        Testing.id('fields'),
+        Testing.id('config'),
+      ],
+    ],
+  ])(
+    'allows an attached %s.%s invocation handler',
+    (namespace, method, before) => {
+      expect(
+        run(
+          inAttachedHandler(
+            Testing.callOfMember('Date', 'now'),
+            namespace,
+            method,
+            before,
+          ),
+        ),
+      ).toHaveLength(0)
+    },
+  )
+
+  it.each(['acquire', 'release'])(
+    'allows attached ManagedResource %s handlers',
+    propertyName => {
+      expect(
+        run(
+          inAttachedHandler(
+            Testing.callOfMember('Date', 'now'),
+            'ManagedResource',
+            'entry',
+            [
+              Testing.strLiteral('Session'),
+              Testing.id('schema'),
+              Testing.id('config'),
+            ],
+            propertyName,
+          ),
+        ),
+      ).toHaveLength(0)
+    },
+  )
+
+  it('checks arbitrary constructors and eager attached argument expressions', () => {
+    const arbitrary = inAttachedHandler(
+      Testing.callOfMember('Date', 'now'),
+      'Other',
+      'define',
+      [Testing.strLiteral('ReadClock'), Testing.id('config')],
+    )
+    const operation = Testing.callOfMember('Math', 'random')
+    const build = Testing.callOfMember('Effect', 'succeed', [operation])
+    const definition = atProgram(
+      Testing.callOfMember('Command', 'define', [
+        Testing.strLiteral('ReadClock'),
+        Testing.id('config'),
+        build,
+      ]),
+    )
+    Object.assign(operation, { parent: build })
+    Object.assign(build, { parent: definition })
+
+    expect(run(arbitrary)).toHaveLength(1)
+    expect(run(operation)).toHaveLength(1)
   })
 
   it('allows lifecycle handlers on an object returned by an Effect constructor', () => {

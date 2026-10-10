@@ -234,11 +234,11 @@ export const init = () => ({
 
 // COMMAND
 
-export const FetchPosts = Command.define('FetchPosts', {
-  messages: [Message.CompletedFetchPosts],
-})
-
-const FetchPostsLayer = FetchPosts.toLayer(
+export const FetchPosts = Command.define(
+  'FetchPosts',
+  {
+    messages: [Message.CompletedFetchPosts],
+  },
   Effect.gen(function* () {
     const clock = yield* Clock.Clock
 
@@ -256,12 +256,12 @@ const FetchPostsLayer = FetchPosts.toLayer(
   }),
 )
 
-export const FetchPostDetail = Command.define('FetchPostDetail', {
-  args: { postId: Schema.String },
-  messages: [Message.CompletedFetchPostDetail],
-})
-
-const FetchPostDetailLayer = FetchPostDetail.toLayer(
+export const FetchPostDetail = Command.define(
+  'FetchPostDetail',
+  {
+    args: { postId: Schema.String },
+    messages: [Message.CompletedFetchPostDetail],
+  },
   Effect.gen(function* () {
     const clock = yield* Clock.Clock
 
@@ -281,11 +281,11 @@ const FetchPostDetailLayer = FetchPostDetail.toLayer(
   }),
 )
 
-export const FetchStats = Command.define('FetchStats', {
-  messages: [Message.CompletedFetchStats],
-})
-
-const FetchStatsLayer = FetchStats.toLayer(
+export const FetchStats = Command.define(
+  'FetchStats',
+  {
+    messages: [Message.CompletedFetchStats],
+  },
   Effect.gen(function* () {
     const clock = yield* Clock.Clock
 
@@ -316,11 +316,6 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
           model.activeTab === 'Stats' && AsyncData.hasData(model.stats),
       }),
     },
-  ),
-}))
-
-const StatsRevalidationTicksLayer =
-  subscriptions.statsRevalidationTicks.toLayer(
     Effect.succeed(({ isObservingStats }) =>
       Stream.when(
         // NOTE: Stream.tick emits once immediately. Drop that first
@@ -332,14 +327,15 @@ const StatsRevalidationTicksLayer =
         Effect.sync(() => isObservingStats),
       ),
     ),
-  )
+  ),
+}))
 
 export const EffectsLayer = Layer.mergeAll(
   UI.EffectsLayer,
-  FetchPostsLayer,
-  FetchPostDetailLayer,
-  FetchStatsLayer,
-  StatsRevalidationTicksLayer,
+  FetchPosts.layer,
+  FetchPostDetail.layer,
+  FetchStats.layer,
+  subscriptions.statsRevalidationTicks.layer,
 )
 
 // VIEW

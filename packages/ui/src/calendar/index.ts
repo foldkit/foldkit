@@ -141,13 +141,12 @@ const gridSelector = (modelId: string): string => idSelector(gridId(modelId))
 
 /** Focuses the calendar grid container. Parent components like DatePicker
  * dispatch this after opening to hand focus to the grid's keyboard layer. */
-export const FocusGrid = Command.define('FocusGrid', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedFocusGrid],
-})
-
-/** Effect provider for {@link FocusGrid}. */
-export const FocusGridLayer = FocusGrid.toLayer(
+export const FocusGrid = Command.define(
+  'FocusGrid',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedFocusGrid],
+  },
   Effect.succeed(({ id }) =>
     Dom.focus(gridSelector(id)).pipe(
       Effect.ignore,
@@ -157,7 +156,7 @@ export const FocusGridLayer = FocusGrid.toLayer(
 )
 
 /** Effect providers used by the Calendar component. */
-export const EffectsLayer = Layer.mergeAll(FocusGridLayer)
+export const EffectsLayer = Layer.mergeAll(FocusGrid.layer)
 
 /** Programmatically selects a date on the calendar, committing it as the
  * chosen value and moving the cursor onto it. Use this in controlled-mode

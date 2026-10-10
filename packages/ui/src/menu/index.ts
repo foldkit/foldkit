@@ -212,32 +212,32 @@ const itemSelector = (id: string, index: number): string =>
   idSelector(`${id}-item-${index}`)
 
 /** Prevents page scrolling while the menu is open. */
-export const LockMenuScroll = Command.define('LockMenuScroll', {
-  messages: [Message.CompletedLockMenuScroll],
-})
-/** Effect provider for {@link LockMenuScroll}. */
-export const LockMenuScrollLayer = LockMenuScroll.toLayer(
+export const LockMenuScroll = Command.define(
+  'LockMenuScroll',
+  {
+    messages: [Message.CompletedLockMenuScroll],
+  },
   Effect.succeed(() =>
     Dom.lockScroll.pipe(Effect.as(Message.CompletedLockMenuScroll())),
   ),
 )
 /** Re-enables page scrolling after the menu closes. */
-export const UnlockMenuScroll = Command.define('UnlockMenuScroll', {
-  messages: [Message.CompletedUnlockMenuScroll],
-})
-/** Effect provider for {@link UnlockMenuScroll}. */
-export const UnlockMenuScrollLayer = UnlockMenuScroll.toLayer(
+export const UnlockMenuScroll = Command.define(
+  'UnlockMenuScroll',
+  {
+    messages: [Message.CompletedUnlockMenuScroll],
+  },
   Effect.succeed(() =>
     Dom.unlockScroll.pipe(Effect.as(Message.CompletedUnlockMenuScroll())),
   ),
 )
 /** Marks all elements outside the menu as inert for modal behavior. */
-export const InertMenuOthers = Command.define('InertMenuOthers', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedInertMenuOthers],
-})
-/** Effect provider for {@link InertMenuOthers}. */
-export const InertMenuOthersLayer = InertMenuOthers.toLayer(
+export const InertMenuOthers = Command.define(
+  'InertMenuOthers',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedInertMenuOthers],
+  },
   Effect.succeed(({ id }) =>
     Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]).pipe(
       Effect.as(Message.CompletedInertMenuOthers()),
@@ -245,23 +245,23 @@ export const InertMenuOthersLayer = InertMenuOthers.toLayer(
   ),
 )
 /** Removes the inert attribute from elements outside the menu. */
-export const RestoreMenuInert = Command.define('RestoreMenuInert', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedRestoreMenuInert],
-})
-/** Effect provider for {@link RestoreMenuInert}. */
-export const RestoreMenuInertLayer = RestoreMenuInert.toLayer(
+export const RestoreMenuInert = Command.define(
+  'RestoreMenuInert',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedRestoreMenuInert],
+  },
   Effect.succeed(({ id }) =>
     Dom.restoreInert(id).pipe(Effect.as(Message.CompletedRestoreMenuInert())),
   ),
 )
 /** Moves focus to the menu items container after opening. */
-export const FocusMenuItems = Command.define('FocusMenuItems', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedFocusMenuItems],
-})
-/** Effect provider for {@link FocusMenuItems}. */
-export const FocusMenuItemsLayer = FocusMenuItems.toLayer(
+export const FocusMenuItems = Command.define(
+  'FocusMenuItems',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedFocusMenuItems],
+  },
   Effect.succeed(({ id }) =>
     Dom.focus(itemsSelector(id)).pipe(
       Effect.ignore,
@@ -270,12 +270,12 @@ export const FocusMenuItemsLayer = FocusMenuItems.toLayer(
   ),
 )
 /** Moves focus back to the menu button after closing. */
-export const FocusMenuButton = Command.define('FocusMenuButton', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedFocusMenuButton],
-})
-/** Effect provider for {@link FocusMenuButton}. */
-export const FocusMenuButtonLayer = FocusMenuButton.toLayer(
+export const FocusMenuButton = Command.define(
+  'FocusMenuButton',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedFocusMenuButton],
+  },
   Effect.succeed(({ id }) =>
     Dom.focus(buttonSelector(id)).pipe(
       Effect.ignore,
@@ -284,12 +284,12 @@ export const FocusMenuButtonLayer = FocusMenuButton.toLayer(
   ),
 )
 /** Scrolls the active menu item into view after keyboard navigation. */
-export const ScrollMenuItemIntoView = Command.define('ScrollMenuItemIntoView', {
-  args: { id: Schema.String, index: Schema.Number },
-  messages: [Message.CompletedScrollMenuItemIntoView],
-})
-/** Effect provider for {@link ScrollMenuItemIntoView}. */
-export const ScrollMenuItemIntoViewLayer = ScrollMenuItemIntoView.toLayer(
+export const ScrollMenuItemIntoView = Command.define(
+  'ScrollMenuItemIntoView',
+  {
+    args: { id: Schema.String, index: Schema.Number },
+    messages: [Message.CompletedScrollMenuItemIntoView],
+  },
   Effect.succeed(({ id, index }) =>
     Dom.scrollIntoView(itemSelector(id, index)).pipe(
       Effect.ignore,
@@ -298,12 +298,12 @@ export const ScrollMenuItemIntoViewLayer = ScrollMenuItemIntoView.toLayer(
   ),
 )
 /** Programmatically clicks the active menu item's DOM element. */
-export const ClickMenuItem = Command.define('ClickMenuItem', {
-  args: { id: Schema.String, index: Schema.Number },
-  messages: [Message.CompletedClickMenuItem],
-})
-/** Effect provider for {@link ClickMenuItem}. */
-export const ClickMenuItemLayer = ClickMenuItem.toLayer(
+export const ClickMenuItem = Command.define(
+  'ClickMenuItem',
+  {
+    args: { id: Schema.String, index: Schema.Number },
+    messages: [Message.CompletedClickMenuItem],
+  },
   Effect.succeed(({ id, index }) =>
     Dom.clickElement(itemSelector(id, index)).pipe(
       Effect.ignore,
@@ -312,12 +312,12 @@ export const ClickMenuItemLayer = ClickMenuItem.toLayer(
   ),
 )
 /** Waits for the typeahead search debounce period before clearing the query. */
-export const DelayClearMenuSearch = Command.define('DelayClearMenuSearch', {
-  args: { version: Schema.Number },
-  messages: [Message.CompletedDelayClearMenuSearch],
-})
-/** Effect provider for {@link DelayClearMenuSearch}. */
-export const DelayClearMenuSearchLayer = DelayClearMenuSearch.toLayer(
+export const DelayClearMenuSearch = Command.define(
+  'DelayClearMenuSearch',
+  {
+    args: { version: Schema.Number },
+    messages: [Message.CompletedDelayClearMenuSearch],
+  },
   Effect.succeed(({ version }) =>
     Effect.sleep(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
       Effect.as(Message.CompletedDelayClearMenuSearch({ version })),
@@ -331,42 +331,24 @@ export const DetectMenuMovementOrAnimationEnd = Command.define(
     args: { id: Schema.String, generation: Schema.Number },
     messages: [Message.GotAnimationMessage],
   },
-)
-/** Effect provider for {@link DetectMenuMovementOrAnimationEnd}. */
-export const DetectMenuMovementOrAnimationEndLayer =
-  DetectMenuMovementOrAnimationEnd.toLayer(
-    Effect.succeed(({ id, generation }) =>
-      Effect.raceFirst(
-        Dom.detectElementMovement(buttonSelector(id)).pipe(
-          Effect.as(
-            Message.GotAnimationMessage({
-              message: Animation.Message.EndedAnimation({ generation }),
-            }),
-          ),
+  Effect.succeed(({ id, generation }) =>
+    Effect.raceFirst(
+      Dom.detectElementMovement(buttonSelector(id)).pipe(
+        Effect.as(
+          Message.GotAnimationMessage({
+            message: Animation.Message.EndedAnimation({ generation }),
+          }),
         ),
-        Dom.waitForAnimationSettled(itemsSelector(id)).pipe(
-          Effect.as(
-            Message.GotAnimationMessage({
-              message: Animation.Message.EndedAnimation({ generation }),
-            }),
-          ),
+      ),
+      Dom.waitForAnimationSettled(itemsSelector(id)).pipe(
+        Effect.as(
+          Message.GotAnimationMessage({
+            message: Animation.Message.EndedAnimation({ generation }),
+          }),
         ),
       ),
     ),
-  )
-
-/** @internal Command handlers owned by Menu. */
-export const CommandsLayer = Layer.mergeAll(
-  LockMenuScrollLayer,
-  UnlockMenuScrollLayer,
-  InertMenuOthersLayer,
-  RestoreMenuInertLayer,
-  FocusMenuItemsLayer,
-  FocusMenuButtonLayer,
-  ScrollMenuItemIntoViewLayer,
-  ClickMenuItemLayer,
-  DelayClearMenuSearchLayer,
-  DetectMenuMovementOrAnimationEndLayer,
+  ),
 )
 
 const foldAnimationOutMessage = Animation.OutMessage.match({
@@ -693,13 +675,12 @@ export const update = Update.make((model: Model, message: Message) => {
  *
  *  Exposed so Scene tests can call
  *  `Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu())`. */
-export const AnchorMenu = Mount.define('AnchorMenu', {
-  args: { buttonId: Schema.String, anchor: AnchorConfig },
-  messages: [Message.CompletedAnchorMenu],
-})
-
-/** Effect provider for {@link AnchorMenu}. */
-export const AnchorMenuLayer = AnchorMenu.toLayer(
+export const AnchorMenu = Mount.define(
+  'AnchorMenu',
+  {
+    args: { buttonId: Schema.String, anchor: AnchorConfig },
+    messages: [Message.CompletedAnchorMenu],
+  },
   Effect.succeed(({ element, buttonId, anchor }) =>
     Effect.gen(function* () {
       yield* Effect.acquireRelease(
@@ -720,12 +701,11 @@ export const AnchorMenuLayer = AnchorMenu.toLayer(
 /** The backdrop-portaling Mount this Menu renders. Exposed so Scene tests can
  *  call `Scene.Mount.resolve(PortalMenuBackdrop, Message.CompletedPortalMenuBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
-export const PortalMenuBackdrop = Mount.define('PortalMenuBackdrop', {
-  messages: [Message.CompletedPortalMenuBackdrop],
-})
-
-/** Effect provider for {@link PortalMenuBackdrop}. */
-export const PortalMenuBackdropLayer = PortalMenuBackdrop.toLayer(
+export const PortalMenuBackdrop = Mount.define(
+  'PortalMenuBackdrop',
+  {
+    messages: [Message.CompletedPortalMenuBackdrop],
+  },
   Effect.succeed(({ element }) =>
     Effect.gen(function* () {
       yield* Effect.acquireRelease(
@@ -742,9 +722,18 @@ export const mounts = [AnchorMenu, PortalMenuBackdrop]
 
 /** Effect providers used by the Menu component. */
 export const EffectsLayer = Layer.mergeAll(
-  CommandsLayer,
-  AnchorMenuLayer,
-  PortalMenuBackdropLayer,
+  LockMenuScroll.layer,
+  UnlockMenuScroll.layer,
+  InertMenuOthers.layer,
+  RestoreMenuInert.layer,
+  FocusMenuItems.layer,
+  FocusMenuButton.layer,
+  ScrollMenuItemIntoView.layer,
+  ClickMenuItem.layer,
+  DelayClearMenuSearch.layer,
+  DetectMenuMovementOrAnimationEnd.layer,
+  AnchorMenu.layer,
+  PortalMenuBackdrop.layer,
   AnimationEffectsLayer,
 )
 

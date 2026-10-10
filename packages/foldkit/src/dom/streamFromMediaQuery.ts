@@ -45,20 +45,20 @@ export type StreamFromMediaQueryConfig<Output> = Readonly<{
  * @example
  * ```typescript
  * const subscriptions = Subscription.make<Model, Message>()(entry => ({
- *   reducedMotion: entry('ReducedMotion', {
- *     messages: [Message.ChangedReducedMotion],
- *   }),
+ *   reducedMotion: entry(
+ *     'ReducedMotion',
+ *     { messages: [Message.ChangedReducedMotion] },
+ *     Effect.succeed(() =>
+ *       Dom.streamFromMediaQuery({
+ *         query: '(prefers-reduced-motion: reduce)',
+ *         mapMatches: isMatching =>
+ *           Message.ChangedReducedMotion({ isReducedMotion: isMatching }),
+ *       }),
+ *     ),
+ *   ),
  * }))
  *
- * const ReducedMotionLayer = subscriptions.reducedMotion.toLayer(
- *   Effect.succeed(() =>
- *     Dom.streamFromMediaQuery({
- *       query: '(prefers-reduced-motion: reduce)',
- *       mapMatches: isMatching =>
- *         Message.ChangedReducedMotion({ isReducedMotion: isMatching }),
- *     }),
- *   ),
- * )
+ * const EffectsLayer = subscriptions.reducedMotion.layer
  * ```
  */
 export const streamFromMediaQuery = <Output>(

@@ -1,10 +1,9 @@
-import { Effect, Layer, Option, Schema } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 
 import * as UI from '@foldkit/ui'
 import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
 
-import { CommandsLayer } from './command'
 import {
   DEFAULT_COLOR_INDEX,
   DEFAULT_GRID_SIZE,
@@ -14,7 +13,7 @@ import {
 import { createEmptyGrid } from './grid'
 import { Message } from './message'
 import { Model, SavedCanvas, SavedCanvasJsonString } from './model'
-import { SubscriptionsLayer, subscriptions } from './subscription'
+import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 import {
@@ -81,12 +80,6 @@ export const init = (flags: Flags) => ({
     paletteRadioGroup: RadioGroup.init({ id: PALETTE_RADIO_GROUP_ID }),
   }),
 })
-
-export const EffectsLayer = Layer.mergeAll(
-  UI.EffectsLayer,
-  CommandsLayer,
-  SubscriptionsLayer,
-)
 
 export { Message, Model, subscriptions, update, view }
 

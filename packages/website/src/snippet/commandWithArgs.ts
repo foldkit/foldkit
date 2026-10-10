@@ -11,12 +11,12 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const WaitBeforeReset = Command.define('WaitBeforeReset', {
-  args: { delayMs: Schema.Number },
-  messages: [Message.CompletedWaitBeforeReset],
-})
-
-const WaitBeforeResetLayer = WaitBeforeReset.toLayer(
+const WaitBeforeReset = Command.define(
+  'WaitBeforeReset',
+  {
+    args: { delayMs: Schema.Number },
+    messages: [Message.CompletedWaitBeforeReset],
+  },
   Effect.succeed(({ delayMs }) =>
     Effect.sleep(Duration.millis(delayMs)).pipe(
       Effect.as(Message.CompletedWaitBeforeReset()),

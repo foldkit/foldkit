@@ -112,12 +112,12 @@ export type Message = typeof Message.Type
 
 const PLACE_ORDER_DELAY = Duration.seconds(1)
 
-export const PlaceOrder = Command.define('PlaceOrder', {
-  args: { isShippingRequired: Schema.Boolean },
-  messages: [Message.CompletedPlaceOrder],
-})
-
-export const PlaceOrderLayer = PlaceOrder.toLayer(
+export const PlaceOrder = Command.define(
+  'PlaceOrder',
+  {
+    args: { isShippingRequired: Schema.Boolean },
+    messages: [Message.CompletedPlaceOrder],
+  },
   Effect.succeed(({ isShippingRequired }) =>
     Effect.gen(function* () {
       yield* Effect.sleep(PLACE_ORDER_DELAY)
@@ -438,6 +438,6 @@ export const update = Update.make((model: Model, message: Message) =>
   ),
 )
 
-export const EffectsLayer = Layer.mergeAll(UI.EffectsLayer, PlaceOrderLayer)
+export const EffectsLayer = Layer.mergeAll(UI.EffectsLayer, PlaceOrder.layer)
 
 export const mounts = UI.mounts

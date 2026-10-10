@@ -123,7 +123,7 @@ describe('rendering templates', () => {
       'flags: flagsForRequest(',
     )
     expect(readTemplateFile('rendering/ssr/src/entry.ts')).toContain(
-      'Runtime.hydrate(Application.provide(application, PersistCountLayer))',
+      'Runtime.hydrate(Application.provide(application, EffectsLayer))',
     )
   })
 

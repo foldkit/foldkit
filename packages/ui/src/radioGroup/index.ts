@@ -103,13 +103,12 @@ const descriptionId = (id: string, index: number): string =>
   `${id}-option-${index}-description`
 
 /** Moves focus to the option at the given index. */
-export const FocusOption = Command.define('FocusOption', {
-  args: { id: Schema.String, index: Schema.Number },
-  messages: [Message.CompletedFocusOption],
-})
-
-/** Effect provider for {@link FocusOption}. */
-export const FocusOptionLayer = FocusOption.toLayer(
+export const FocusOption = Command.define(
+  'FocusOption',
+  {
+    args: { id: Schema.String, index: Schema.Number },
+    messages: [Message.CompletedFocusOption],
+  },
   Effect.succeed(({ id, index }) =>
     Dom.focus(idSelector(optionId(id, index))).pipe(
       Effect.ignore,
@@ -119,7 +118,7 @@ export const FocusOptionLayer = FocusOption.toLayer(
 )
 
 /** Effect providers used by the RadioGroup component. */
-export const EffectsLayer = Layer.mergeAll(FocusOptionLayer)
+export const EffectsLayer = Layer.mergeAll(FocusOption.layer)
 
 /** Processes a RadioGroup Message and returns the next Model, optional
  *  Commands, and an optional OutMessage. `Selected` fires when an option is

@@ -32,12 +32,12 @@ type Message = typeof Message.Type
 
 // COMMAND
 
-const Search = Command.define('Search', {
-  args: { query: Schema.String },
-  messages: [Message.SettledSearch],
-})
-
-const SearchLayer = Search.toLayer(
+const Search = Command.define(
+  'Search',
+  {
+    args: { query: Schema.String },
+    messages: [Message.SettledSearch],
+  },
   Effect.gen(function* () {
     const client = yield* HttpClient.HttpClient
 

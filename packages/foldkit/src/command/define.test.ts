@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
@@ -23,6 +23,96 @@ if (false) {
     // @ts-expect-error toLayer accepts an Effect that constructs the handler.
     () => Effect.succeed(Message.CompletedDoWork()),
   )
+  // @ts-expect-error A host contract has no default handler Layer.
+  void LayerOnly.layer
+
+  Command.define(
+    'DirectHandler',
+    {
+      messages: [Message.CompletedDoWork],
+    },
+    // @ts-expect-error The final argument is an Effect constructor, not the handler function itself.
+    () => Effect.succeed(Message.CompletedDoWork()),
+  )
+
+  Command.define(
+    'InvalidHandlerResult',
+    {
+      messages: [Message.CompletedDoWork],
+    },
+    // @ts-expect-error Handler results must belong to the declared Messages.
+    Effect.succeed(() =>
+      Effect.succeed(Message.CompletedRunTask({ taskId: 1 })),
+    ),
+  )
+
+  Command.define(
+    'ExactHandlerArgs',
+    {
+      args: {
+        text: Schema.String,
+        count: Schema.NumberFromString,
+        maybeCount: Schema.Option(Schema.Number),
+        label: Schema.optional(Schema.String),
+      },
+      messages: [Message.CompletedDoWork],
+    },
+    Effect.succeed(({ text, count, maybeCount, label }) => {
+      const exactText: string = text
+      const exactCount: number = count
+      const exactMaybeCount: Option.Option<number> = maybeCount
+      const exactLabel: string | undefined = label
+      void exactText
+      void exactCount
+      void exactMaybeCount
+      void exactLabel
+      // @ts-expect-error Schema.String is decoded as string rather than any.
+      text.doesNotExist()
+      // @ts-expect-error Transformed Schema output is decoded as number.
+      count.doesNotExist()
+      // @ts-expect-error Schema.Option output is decoded as Option<number>.
+      maybeCount.doesNotExist()
+      // @ts-expect-error Optional Schema output is decoded as string | undefined.
+      label?.doesNotExist()
+      return Effect.succeed(Message.CompletedDoWork())
+    }),
+  )
+
+  const narrowHandlerMessages: readonly [typeof Message.CompletedDoWork] = [
+    Message.CompletedDoWork,
+  ]
+  const narrowHandlerConfig = {
+    args: { text: Schema.String },
+    messages: narrowHandlerMessages,
+  }
+  Command.define(
+    'NarrowHandlerArgs',
+    narrowHandlerConfig,
+    // @ts-expect-error A handler must accept every value allowed by the args Schema.
+    Effect.succeed(({ text }: { readonly text: 'only' }) =>
+      Effect.succeed(text).pipe(Effect.as(Message.CompletedDoWork())),
+    ),
+  )
+
+  const chooseCommandHandler = (isNarrow: boolean) => {
+    if (isNarrow) {
+      return ({ text }: { readonly text: 'only' }) =>
+        Effect.succeed(text).pipe(Effect.as(Message.CompletedDoWork()))
+    } else {
+      return ({ text }: { readonly text: string }) =>
+        Effect.succeed(text).pipe(Effect.as(Message.CompletedDoWork()))
+    }
+  }
+  const unionHandlerConfig = {
+    args: { text: Schema.String },
+    messages: narrowHandlerMessages,
+  }
+  Command.define(
+    'UnionHandlerArgs',
+    unionHandlerConfig,
+    // @ts-expect-error Every possible constructed handler must accept the full args Schema.
+    Effect.sync(() => chooseCommandHandler(true)),
+  )
 
   const inlineConfig = {
     messages: [Message.CompletedDoWork],
@@ -30,17 +120,54 @@ if (false) {
   }
   // @ts-expect-error Command definitions cannot carry inline implementations.
   Command.define('InlineCommand', inlineConfig)
+
+  const misplacedHandlerConfig = {
+    messages: [Message.CompletedDoWork],
+    handler: Effect.succeed(() => Effect.succeed(Message.CompletedDoWork())),
+  }
+  // @ts-expect-error Handler constructors are supplied as the final argument.
+  Command.define('MisplacedHandler', misplacedHandlerConfig)
 }
 
 describe('Command.define defers its handler body', () => {
+  it('supports heterogeneous declared Message results', () => {
+    const CompleteTask = Command.define(
+      'CompleteTask',
+      {
+        args: {
+          outcome: Schema.Literals(['Run', 'Save']),
+          taskId: Schema.Number,
+        },
+        messages: [Message.CompletedRunTask, Message.CompletedSaveDraft],
+      },
+      Effect.succeed(({ outcome, taskId }) => {
+        if (outcome === 'Run') {
+          return Effect.succeed(Message.CompletedRunTask({ taskId }))
+        } else {
+          return Effect.succeed(Message.CompletedSaveDraft({ draftId: taskId }))
+        }
+      }),
+    )
+
+    expect(
+      Effect.runSync(
+        Effect.provide(
+          CompleteTask({ outcome: 'Save', taskId: 4 }).effect,
+          CompleteTask.layer,
+        ),
+      ),
+    ).toEqual(Message.CompletedSaveDraft({ draftId: 4 }))
+  })
+
   it('does not run the body of an args Command until the effect runs', () => {
     let bodyRunCount = 0
 
-    const RunTask = Command.define('RunTask', {
-      args: { taskId: Schema.Number },
-      messages: [Message.CompletedRunTask],
-    })
-    const RunTaskLayer = RunTask.toLayer(
+    const RunTask = Command.define(
+      'RunTask',
+      {
+        args: { taskId: Schema.Number },
+        messages: [Message.CompletedRunTask],
+      },
       Effect.succeed(({ taskId }) => {
         bodyRunCount = bodyRunCount + 1
         return Effect.succeed(Message.CompletedRunTask({ taskId }))
@@ -51,7 +178,7 @@ describe('Command.define defers its handler body', () => {
     expect(bodyRunCount).toBe(0)
 
     expect(
-      Effect.runSync(Effect.provide(instance.effect, RunTaskLayer)),
+      Effect.runSync(Effect.provide(instance.effect, RunTask.layer)),
     ).toEqual(Message.CompletedRunTask({ taskId: 7 }))
     expect(bodyRunCount).toBe(1)
   })
@@ -99,15 +226,16 @@ describe('Command.define defers its handler body', () => {
   it('defers the body of an interruptible args Command while keying at construction', () => {
     let bodyRunCount = 0
 
-    const SaveDraft = Command.define('SaveDraft', {
-      args: { draftId: Schema.Number },
-      messages: [Message.CompletedSaveDraft],
-      interrupt: {
-        keyFields: ['draftId'],
-        toKey: ({ draftId }) => draftId.toString(),
+    const SaveDraft = Command.define(
+      'SaveDraft',
+      {
+        args: { draftId: Schema.Number },
+        messages: [Message.CompletedSaveDraft],
+        interrupt: {
+          keyFields: ['draftId'],
+          toKey: ({ draftId }) => draftId.toString(),
+        },
       },
-    })
-    const SaveDraftLayer = SaveDraft.toLayer(
       Effect.succeed(({ draftId }) => {
         bodyRunCount = bodyRunCount + 1
         return Effect.succeed(Message.CompletedSaveDraft({ draftId }))
@@ -125,7 +253,7 @@ describe('Command.define defers its handler body', () => {
           __CurrentRegistry,
           __makeRegistry(),
         ),
-        SaveDraftLayer,
+        SaveDraft.layer,
       ),
     )
     expect(result).toEqual(Message.CompletedSaveDraft({ draftId: 3 }))
@@ -135,10 +263,11 @@ describe('Command.define defers its handler body', () => {
   it('runs a no-args handler when the Command effect runs', () => {
     let effectRunCount = 0
 
-    const DoWork = Command.define('DoWork', {
-      messages: [Message.CompletedDoWork],
-    })
-    const DoWorkLayer = DoWork.toLayer(
+    const DoWork = Command.define(
+      'DoWork',
+      {
+        messages: [Message.CompletedDoWork],
+      },
       Effect.succeed(() =>
         Effect.sync(() => {
           effectRunCount = effectRunCount + 1
@@ -151,8 +280,28 @@ describe('Command.define defers its handler body', () => {
     expect(effectRunCount).toBe(0)
 
     expect(
-      Effect.runSync(Effect.provide(instance.effect, DoWorkLayer)),
+      Effect.runSync(Effect.provide(instance.effect, DoWork.layer)),
     ).toEqual(Message.CompletedDoWork())
     expect(effectRunCount).toBe(1)
+  })
+
+  it('attaches a handler to an args Command keyed by its name', () => {
+    const ReadTask = Command.define(
+      'ReadTask',
+      {
+        args: { taskId: Schema.Number },
+        messages: [Message.CompletedRunTask],
+        interrupt: true,
+      },
+      Effect.succeed(({ taskId }) =>
+        Effect.succeed(Message.CompletedRunTask({ taskId })),
+      ),
+    )
+    const command = ReadTask({ taskId: 9 })
+
+    expect(command.key).toBe('ReadTask')
+    expect(
+      Effect.runSync(Effect.provide(command.effect, ReadTask.layer)),
+    ).toEqual(Message.CompletedRunTask({ taskId: 9 }))
   })
 })

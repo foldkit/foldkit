@@ -48,7 +48,7 @@ Three functions build the hierarchy.
 | `Subscription.lift`      | Reads a child Model and wraps each emitted child Message. An optional `when` adds a parent-owned gate. | A child exports a Subscriptions record.           |
 | `Subscription.aggregate` | Combines records, infers their shared types, and rejects duplicate keys at startup.                    | A level has more than one local or lifted record. |
 
-`entry.toLayer` supplies the Stream implementation for a named entry. `Layer.mergeAll` combines the local handler Layer with each child's `EffectsLayer` export. This Layer composition follows the same feature hierarchy as the Subscription records.
+Each entry attaches its Stream constructor as the final `entry` argument and exposes the recipe as `.layer`. `Layer.mergeAll` combines the local handler Layer with each child's `EffectsLayer` export. This Layer composition follows the same feature hierarchy as the Subscription records.
 
 ## Organization Principles
 
@@ -70,7 +70,7 @@ The next three snippets trace one record from a leaf, through a composing Submod
 
 ### The Leaf Submodel {#leaf-submodel}
 
-A leaf declares its entries with `Subscription.make` and supplies each named handler through `toLayer`.
+A leaf declares its entries with `Subscription.make`, attaches each named handler, and exports the resulting `.layer` recipes through `EffectsLayer`.
 
 ::Snippet{name="subscriptionOrganizationChild" label="Leaf Submodel Subscription file"}
 

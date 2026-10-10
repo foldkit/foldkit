@@ -14,13 +14,7 @@ export {
   Message,
   OutMessage,
   FocusItem,
-  FocusItemLayer,
   ResolveKeyboardMove,
-  ResolveKeyboardMoveLayer,
-  DocumentPointerLayer,
-  DocumentEscapeLayer,
-  DocumentKeyboardLayer,
-  AutoScrollLayer,
   EffectsLayer,
 } from './index.js'
 

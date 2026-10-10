@@ -9,30 +9,31 @@ const ChatSocket = ManagedResource.tag<WebSocket>()('ChatSocket')
 const RoomRequirements = Schema.Struct({ roomId: Schema.String })
 
 const managedResources = ManagedResource.make<Model, Message>()(entry => ({
-  chatSocket: entry('ManageChatSocket', Schema.Option(RoomRequirements), {
-    resource: ChatSocket,
-    modelToMaybeRequirements: model => model.maybeRoomRequirements,
-    onAcquired: () => Message.AcquiredChatSocket(),
-    onReleased: () => Message.ReleasedChatSocket(),
-    onAcquireError: error =>
-      Message.FailedAcquireChatSocket({ error: globalThis.String(error) }),
-  }),
+  chatSocket: entry(
+    'ManageChatSocket',
+    Schema.Option(RoomRequirements),
+    {
+      resource: ChatSocket,
+      modelToMaybeRequirements: model => model.maybeRoomRequirements,
+      onAcquired: () => Message.AcquiredChatSocket(),
+      onReleased: () => Message.ReleasedChatSocket(),
+      onAcquireError: error =>
+        Message.FailedAcquireChatSocket({ error: globalThis.String(error) }),
+    },
+    Effect.succeed({
+      acquire: ({ roomId }) =>
+        Effect.try(() => new WebSocket(`/rooms/${roomId}`)),
+      release: socket => Effect.sync(() => socket.close()),
+    }),
+  ),
 }))
 
-const ManageChatSocketLayer = managedResources.chatSocket.toLayer(
-  Effect.succeed({
-    acquire: ({ roomId }) =>
-      Effect.try(() => new WebSocket(`/rooms/${roomId}`)),
-    release: socket => Effect.sync(() => socket.close()),
-  }),
-)
-
-const SendChatMessage = Command.define('SendChatMessage', {
-  args: { text: Schema.String },
-  messages: [Message.SucceededSendChatMessage, Message.FailedSendChatMessage],
-})
-
-const SendChatMessageLayer = SendChatMessage.toLayer(
+const SendChatMessage = Command.define(
+  'SendChatMessage',
+  {
+    args: { text: Schema.String },
+    messages: [Message.SucceededSendChatMessage, Message.FailedSendChatMessage],
+  },
   Effect.succeed(({ text }) =>
     ChatSocket.get.pipe(
       Effect.flatMap(socket => Effect.try(() => socket.send(text))),
@@ -46,6 +47,6 @@ const SendChatMessageLayer = SendChatMessage.toLayer(
 )
 
 export const EffectsLayer = Layer.mergeAll(
-  ManageChatSocketLayer,
-  SendChatMessageLayer,
+  managedResources.chatSocket.layer,
+  SendChatMessage.layer,
 )

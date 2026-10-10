@@ -1,7 +1,7 @@
 import { Application, Runtime } from 'foldkit'
 
+import { EffectsLayer } from './layer'
 import {
-  EffectsLayer,
   Message,
   Model,
   init,

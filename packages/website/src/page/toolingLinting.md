@@ -202,10 +202,11 @@ The rule reports the call wherever it is written. Assigning its result to a loca
 
 Obtain time or randomness inside the Command handler instead. Use `Clock` or `Random` for time and ordinary randomness. For UUIDs and cryptographic randomness, use the `Crypto.Crypto` service and supply the platform Crypto Layer at the application root. Return the value in the result Message. An effectful handler constructor can capture the service when the application Layer builds; obtain the changing value inside the returned handler.
 
-The rule recognizes the deferred callback positions in Effect and Stream. It also recognizes the handler functions returned by Foldkit effect constructors:
+The rule recognizes the deferred callback positions in Effect and Stream. It also recognizes the handler functions returned by Foldkit handler Effects:
 
-- The Command, Mount, Subscription, and Query handler returned inside `Definition.toLayer(Effect<handler>)`
-- `acquire` and `release` in the handler returned inside `resource.toLayer(Effect<{ acquire, release }>)`
+- The Command, Mount, Subscription, and Query function returned by a definition's `handler` Effect
+- `acquire` and `release` in a ManagedResource entry's `handler` Effect
+- The same shapes passed to `toLayer` for external alternatives
 
 Not every function passed to Effect is deferred. The rule still checks functions stored as Effect values, `Effect.fromOption`'s `onNone`, callbacks passed to `Effect.run*`, transform callbacks after the body of `Effect.fn` or `Effect.fnUntraced`, and callbacks passed to Effect APIs whose names end in `Eager`. It also checks the surrounding lifecycle builders and their synchronous Model projections. For example, `Subscription.make`'s builder and `modelToDependencies` are not execution callbacks.
 
@@ -213,7 +214,7 @@ The recommended and all presets disable this rule in runtime entry files (`entry
 
 The presets also disable the rule in TypeScript files under a `server` directory and in `prerender.ts` or `prerender.tsx`. Those files belong to the host rather than the Foldkit application state machine, so their request handlers and build scripts do not return values through Messages. Test files remain excluded with the rest of the Foldkit rules.
 
-This direct-call catalog does not prove that a file is pure. It recognizes static global member paths and ignores locally shadowed globals. It does not follow a method alias such as `const now = Date.now` to a later `now()` call, nor does it inspect a helper's call graph. Recognition of `.toLayer` handlers uses the method name and direct argument shape, without resolving the receiver's TypeScript type.
+This direct-call catalog does not prove that a file is pure. It recognizes static global member paths and ignores locally shadowed globals. It does not follow a method alias such as `const now = Date.now` to a later `now()` call, nor does it inspect a helper's call graph. Recognition of attached and `toLayer` handlers uses the direct syntax shape without resolving the receiver's TypeScript type.
 
 ::Snippet{name="lintNoImpureCallAtDecisionTime" label="Rule: foldkit/no-impure-call-at-decision-time"}
 
@@ -293,7 +294,7 @@ Requires selection component factories, such as Combobox, Listbox, Menu, and Tab
 
 ### foldkit/mount-factory-must-use-element {#mount-factory-must-use-element}
 
-Requires the handler supplied by a Mount's `toLayer` constructor to read or write its element. If it never touches the element, the cause was misidentified and Mount is the wrong primitive.
+Requires a Mount handler to read or write its element. This covers attached handlers and external alternatives supplied through `toLayer`. If it never touches the element, the cause was misidentified and Mount is the wrong primitive.
 
 ::Snippet{name="lintMountFactoryMustUseElement" label="Rule: foldkit/mount-factory-must-use-element"}
 

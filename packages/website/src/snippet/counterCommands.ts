@@ -20,11 +20,11 @@ export type Message = typeof Message.Type
 
 // COMMAND
 
-export const WaitBeforeReset = Command.define('WaitBeforeReset', {
-  messages: [Message.CompletedWaitBeforeReset],
-})
-
-export const WaitBeforeResetLayer = WaitBeforeReset.toLayer(
+export const WaitBeforeReset = Command.define(
+  'WaitBeforeReset',
+  {
+    messages: [Message.CompletedWaitBeforeReset],
+  },
   Effect.succeed(() =>
     Effect.sleep('1 second').pipe(
       Effect.as(Message.CompletedWaitBeforeReset()),
@@ -32,7 +32,7 @@ export const WaitBeforeResetLayer = WaitBeforeReset.toLayer(
   ),
 )
 
-export const EffectsLayer = WaitBeforeResetLayer
+export const EffectsLayer = WaitBeforeReset.layer
 
 // INIT
 

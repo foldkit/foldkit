@@ -7,11 +7,11 @@ import { Message } from './message'
 import type { Model } from './model'
 
 // ✅ Run random work in a Command
-const GenerateApplePosition = Command.define('GenerateApplePosition', {
-  messages: [Message.CompletedGenerateApplePosition],
-})
-
-const GenerateApplePositionLayer = GenerateApplePosition.toLayer(
+const GenerateApplePosition = Command.define(
+  'GenerateApplePosition',
+  {
+    messages: [Message.CompletedGenerateApplePosition],
+  },
   Effect.succeed(() =>
     Effect.gen(function* () {
       const x = yield* Random.nextIntBetween(0, GRID_SIZE, { halfOpen: true })

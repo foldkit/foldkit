@@ -1,5 +1,5 @@
 import { Effect, Schema } from 'effect'
-import { Command, type Update } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
@@ -31,12 +31,12 @@ type Message = typeof Message.Type
 
 // COMMAND
 
-const FetchUser = Command.define('FetchUser', {
-  args: { userId: Schema.String },
-  messages: [Message.SucceededFetchUser, Message.FailedFetchUser],
-})
-
-const FetchUserLayer = FetchUser.toLayer(
+const FetchUser = Command.define(
+  'FetchUser',
+  {
+    args: { userId: Schema.String },
+    messages: [Message.SucceededFetchUser, Message.FailedFetchUser],
+  },
   Effect.succeed(({ userId }) =>
     Effect.gen(function* () {
       const response = yield* Effect.tryPromise(() =>
@@ -54,8 +54,8 @@ const FetchUserLayer = FetchUser.toLayer(
 
 // UPDATE
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedFetchUser: ({ userId }) => ({
       model: modifyFields(model, { user: () => UserState.Loading() }),
       commands: [FetchUser({ userId })],
@@ -66,4 +66,5 @@ const update = (model: Model, message: Message) =>
     FailedFetchUser: ({ error }) => ({
       model: modifyFields(model, { user: () => UserState.Failure({ error }) }),
     }),
-  })
+  }),
+)

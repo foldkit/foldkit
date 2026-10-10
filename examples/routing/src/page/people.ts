@@ -126,17 +126,12 @@ export const init = (route: PeopleRoute) => {
 
 // COMMAND
 
-export const PushSearchUrl = Command.define('PushSearchUrl', {
-  args: { searchText: Schema.Option(Schema.String) },
-  messages: [Message.CompletedPushSearchUrl],
-})
-
-export const FetchPeople = Command.define('FetchPeople', {
-  args: { searchText: Schema.String },
-  messages: [Message.CompletedFetchPeople],
-})
-
-const PushSearchUrlLayer = PushSearchUrl.toLayer(
+export const PushSearchUrl = Command.define(
+  'PushSearchUrl',
+  {
+    args: { searchText: Schema.Option(Schema.String) },
+    messages: [Message.CompletedPushSearchUrl],
+  },
   Effect.succeed(({ searchText }) =>
     pushUrl(peopleRouter({ searchText })).pipe(
       Effect.as(Message.CompletedPushSearchUrl()),
@@ -144,7 +139,12 @@ const PushSearchUrlLayer = PushSearchUrl.toLayer(
   ),
 )
 
-const FetchPeopleLayer = FetchPeople.toLayer(
+export const FetchPeople = Command.define(
+  'FetchPeople',
+  {
+    args: { searchText: Schema.String },
+    messages: [Message.CompletedFetchPeople],
+  },
   Effect.succeed(({ searchText }) =>
     Effect.sleep(SEARCH_LATENCY).pipe(
       Effect.as(
@@ -157,7 +157,10 @@ const FetchPeopleLayer = FetchPeople.toLayer(
   ),
 )
 
-export const EffectsLayer = Layer.mergeAll(PushSearchUrlLayer, FetchPeopleLayer)
+export const EffectsLayer = Layer.mergeAll(
+  PushSearchUrl.layer,
+  FetchPeople.layer,
+)
 
 // UPDATE
 

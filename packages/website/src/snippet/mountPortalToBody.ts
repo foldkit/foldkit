@@ -6,6 +6,7 @@ import { defineMessageUnion } from 'foldkit/message'
 const Message = defineMessageUnion({
   CompletedPortalToBody: {},
 })
+type Message = typeof Message.Type
 
 // Portal-to-body is a per-instance lifecycle effect that uses the element
 // directly. The Effect's acquireRelease moves the element to document.body
@@ -13,11 +14,11 @@ const Message = defineMessageUnion({
 // the element Mount provides, idempotent and safe to re-run during
 // DevTools time-travel.
 
-const PortalToBody = Mount.define('PortalToBody', {
-  messages: [Message.CompletedPortalToBody],
-})
-
-const PortalToBodyLayer = PortalToBody.toLayer(
+const PortalToBody = Mount.define(
+  'PortalToBody',
+  {
+    messages: [Message.CompletedPortalToBody],
+  },
   Effect.succeed(({ element }) =>
     Effect.gen(function* () {
       yield* Effect.acquireRelease(

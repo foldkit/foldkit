@@ -39,28 +39,28 @@ export type Message = typeof Message.Type
 // `ui/listbox/shared.ts`, etc. for production-shaped Mounts that read or write
 // the element handle.
 
-export const MeasurePanel = Mount.define('MeasurePanel', {
-  messages: [Message.MeasuredPanel, Message.FailedMountSidebar],
-})
-
-export const MeasurePanelLayer = MeasurePanel.toLayer(
+export const MeasurePanel = Mount.define(
+  'MeasurePanel',
+  {
+    messages: [Message.MeasuredPanel, Message.FailedMountSidebar],
+  },
   Effect.succeed(() => Effect.succeed(Message.MeasuredPanel({ width: 320 }))),
 )
 
-export const FocusButton = Mount.define('FocusButton', {
-  messages: [Message.CompletedFocusButton],
-})
-
-export const FocusButtonLayer = FocusButton.toLayer(
+export const FocusButton = Mount.define(
+  'FocusButton',
+  {
+    messages: [Message.CompletedFocusButton],
+  },
   Effect.succeed(() => Effect.succeed(Message.CompletedFocusButton())),
 )
 
-export const ScrollList = Mount.define('ScrollList', {
-  args: { offset: Schema.Number },
-  messages: [Message.ScrolledTo],
-})
-
-export const ScrollListLayer = ScrollList.toLayer(
+export const ScrollList = Mount.define(
+  'ScrollList',
+  {
+    args: { offset: Schema.Number },
+    messages: [Message.ScrolledTo],
+  },
   Effect.succeed(({ element, offset }) =>
     Effect.sync(() => {
       if (element instanceof HTMLElement) {
@@ -169,7 +169,7 @@ export const scrollListView = (
 }
 
 export const EffectsLayer = Layer.mergeAll(
-  MeasurePanelLayer,
-  FocusButtonLayer,
-  ScrollListLayer,
+  MeasurePanel.layer,
+  FocusButton.layer,
+  ScrollList.layer,
 )

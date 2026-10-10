@@ -1,11 +1,11 @@
 import { Effect, Option } from 'effect'
 import { Command, File } from 'foldkit'
 
-const SelectResume = Command.define('SelectResume', {
-  messages: [CompletedSelectResume, CancelledSelectResume],
-})
-
-const SelectResumeLayer = SelectResume.toLayer(
+const SelectResume = Command.define(
+  'SelectResume',
+  {
+    messages: [CompletedSelectResume, CancelledSelectResume],
+  },
   Effect.succeed(() =>
     File.select(['application/pdf']).pipe(
       Effect.map(
@@ -18,11 +18,11 @@ const SelectResumeLayer = SelectResume.toLayer(
   ),
 )
 
-const SelectAttachments = Command.define('SelectAttachments', {
-  messages: [CompletedSelectAttachments],
-})
-
-const SelectAttachmentsLayer = SelectAttachments.toLayer(
+const SelectAttachments = Command.define(
+  'SelectAttachments',
+  {
+    messages: [CompletedSelectAttachments],
+  },
   Effect.succeed(() =>
     File.selectMultiple(['image/*', 'application/pdf']).pipe(
       Effect.map(files => CompletedSelectAttachments({ files })),

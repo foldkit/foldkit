@@ -41,15 +41,15 @@ export { CurrentSourcesAsyncData, Model } from './model'
 /** Loads the source files for the example identified by `slug`, producing the
  *  loaded sources on success or a failure Message when the fetch does not
  *  complete. */
-export const LoadExampleSources = Command.define('LoadExampleSources', {
-  args: { slug: Schema.String },
-  messages: [
-    Message.SucceededLoadExampleSources,
-    Message.FailedLoadExampleSources,
-  ],
-})
-
-const LoadExampleSourcesLayer = LoadExampleSources.toLayer(
+export const LoadExampleSources = Command.define(
+  'LoadExampleSources',
+  {
+    args: { slug: Schema.String },
+    messages: [
+      Message.SucceededLoadExampleSources,
+      Message.FailedLoadExampleSources,
+    ],
+  },
   Effect.succeed(({ slug }) =>
     Effect.tryPromise({
       try: () => loadSourcesForSlug(slug),
@@ -117,17 +117,14 @@ const ObserveExampleUrlMessages = Mount.defineStream(
   {
     messages: [Message.ChangedExampleUrl],
   },
-)
-
-const ObserveExampleUrlMessagesLayer = ObserveExampleUrlMessages.toLayer(
   Effect.succeed(({ element }) => observeExampleUrlMessages(element)),
 )
 
 export const mounts = [ObserveExampleUrlMessages]
 
 export const EffectsLayer = Layer.mergeAll(
-  LoadExampleSourcesLayer,
-  ObserveExampleUrlMessagesLayer,
+  LoadExampleSources.layer,
+  ObserveExampleUrlMessages.layer,
 )
 
 // INIT

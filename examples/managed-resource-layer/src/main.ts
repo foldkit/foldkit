@@ -81,12 +81,12 @@ export type Message = typeof Message.Type
 
 // COMMAND
 
-export const Compute = Command.define('Compute', {
-  args: { value: Schema.Number },
-  messages: [Message.SucceededCompute, Message.FailedCompute],
-})
-
-export const ComputeLayer = Compute.toLayer(
+export const Compute = Command.define(
+  'Compute',
+  {
+    args: { value: Schema.Number },
+    messages: [Message.SucceededCompute, Message.FailedCompute],
+  },
   Effect.succeed(({ value }) =>
     Effect.gen(function* () {
       const engine = yield* Engine.get
@@ -158,33 +158,37 @@ export const init = () => ({
 
 export const managedResources = ManagedResource.make<Model, Message>()(
   entry => ({
-    engine: entry('ManageEngine', Schema.Option(Schema.Null), {
-      resource: Engine,
-      modelToMaybeRequirements: model =>
-        Match.value(model.engine).pipe(
-          Match.tag('Booting', 'Ready', () => Option.some(null)),
-          Match.tag('Off', 'Failed', () => Option.none()),
-          Match.exhaustive,
-        ),
-      onAcquired: ({ engineId }) => Message.StartedEngine({ engineId }),
-      onReleased: () => Message.StoppedEngine(),
-      onAcquireError: error =>
-        Message.FailedStartEngine({ reason: String(error) }),
-    }),
+    engine: entry(
+      'ManageEngine',
+      Schema.Option(Schema.Null),
+      {
+        resource: Engine,
+        modelToMaybeRequirements: model =>
+          Match.value(model.engine).pipe(
+            Match.tag('Booting', 'Ready', () => Option.some(null)),
+            Match.tag('Off', 'Failed', () => Option.none()),
+            Match.exhaustive,
+          ),
+        onAcquired: ({ engineId }) => Message.StartedEngine({ engineId }),
+        onReleased: () => Message.StoppedEngine(),
+        onAcquireError: error =>
+          Message.FailedStartEngine({ reason: String(error) }),
+      },
+      Effect.succeed({
+        acquire: () =>
+          Layer.build(ComputeEngineLayer).pipe(
+            Effect.map(context => Context.get(context, ComputeEngineService)),
+          ),
+        release: () => Effect.void,
+      }),
+    ),
   }),
 )
 
-export const ManageEngineLayer = managedResources.engine.toLayer(
-  Effect.succeed({
-    acquire: () =>
-      Layer.build(ComputeEngineLayer).pipe(
-        Effect.map(context => Context.get(context, ComputeEngineService)),
-      ),
-    release: () => Effect.void,
-  }),
+export const EffectsLayer = Layer.mergeAll(
+  Compute.layer,
+  managedResources.engine.layer,
 )
-
-export const EffectsLayer = Layer.mergeAll(ComputeLayer, ManageEngineLayer)
 
 // VIEW
 

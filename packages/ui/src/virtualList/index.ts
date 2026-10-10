@@ -460,16 +460,16 @@ const scrollTopForRequest = (
 
 const mountedContainers = new Map<string, Set<HTMLElement>>()
 
-export const ApplyScroll = Command.define('ApplyScroll', {
-  args: {
-    id: Schema.String,
-    request: ScrollRequest,
-    version: Schema.Number,
+export const ApplyScroll = Command.define(
+  'ApplyScroll',
+  {
+    args: {
+      id: Schema.String,
+      request: ScrollRequest,
+      version: Schema.Number,
+    },
+    messages: [Message.CompletedApplyScroll],
   },
-  messages: [Message.CompletedApplyScroll],
-})
-/** Provides the handler for {@link ApplyScroll}. */
-export const ApplyScrollLayer = ApplyScroll.toLayer(
   Effect.succeed(({ id, request, version }) =>
     Effect.gen(function* () {
       yield* Render.afterCommit
@@ -528,9 +528,6 @@ export const ApplyScrollLayer = ApplyScroll.toLayer(
     }),
   ),
 )
-
-/** @internal */
-export const CommandsLayer = Layer.mergeAll(ApplyScrollLayer)
 
 /** Options shared by row-targeted programmatic scrolling helpers. */
 export type ScrollToOptions = Readonly<{
@@ -1266,16 +1263,16 @@ const observeVirtualList = (
 
 /** Container-owned Mount that tracks scrolling, container resizing, and
  *  rendered row measurements for dynamic-height lists. */
-export const ObserveVirtualList = Mount.defineStream('ObserveVirtualList', {
-  args: { id: Schema.String },
-  messages: [
-    Message.ObservedContainerScroll,
-    Message.ResizedContainer,
-    Message.MeasuredRows,
-  ],
-})
-/** Provides the handler for {@link ObserveVirtualList}. */
-export const ObserveVirtualListLayer = ObserveVirtualList.toLayer(
+export const ObserveVirtualList = Mount.defineStream(
+  'ObserveVirtualList',
+  {
+    args: { id: Schema.String },
+    messages: [
+      Message.ObservedContainerScroll,
+      Message.ResizedContainer,
+      Message.MeasuredRows,
+    ],
+  },
   Effect.succeed(({ element, id, viewStateChanges }) =>
     viewStateChanges.pipe(
       Stream.switchMap(viewState =>
@@ -1290,8 +1287,8 @@ export const mounts = [ObserveVirtualList]
 
 /** Provides VirtualList's Command and Mount handlers. */
 export const EffectsLayer = Layer.mergeAll(
-  CommandsLayer,
-  ObserveVirtualListLayer,
+  ApplyScroll.layer,
+  ObserveVirtualList.layer,
 )
 
 // VIEW

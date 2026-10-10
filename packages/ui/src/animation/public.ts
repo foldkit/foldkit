@@ -13,9 +13,7 @@ export {
   type Hid,
   TransitionState,
   WaitForPaint,
-  WaitForPaintLayer,
   WaitForAnimationSettled,
-  WaitForAnimationSettledLayer,
   EffectsLayer,
 } from './index.js'
 

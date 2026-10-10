@@ -4,7 +4,7 @@ import { Calendar } from 'foldkit'
 import * as UI from '@foldkit/ui'
 import { Menu, Tabs } from '@foldkit/ui'
 
-import { SubmitApplicationLayer } from './command'
+import { SubmitApplication } from './command'
 import { Message } from './message'
 import { Model, Submission } from './model'
 import {
@@ -72,7 +72,7 @@ export const init = ({
 
 export const EffectsLayer = Layer.mergeAll(
   UI.EffectsLayer,
-  SubmitApplicationLayer,
+  SubmitApplication.layer,
   PersonalInfo.EffectsLayer,
   WorkHistory.EffectsLayer,
   Education.EffectsLayer,

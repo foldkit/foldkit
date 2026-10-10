@@ -12,11 +12,11 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const MeasurePanel = Mount.define('MeasurePanel', {
-  messages: [Message.CompletedMeasurePanel],
-})
-
-const MeasurePanelLayer = MeasurePanel.toLayer(
+const MeasurePanel = Mount.define(
+  'MeasurePanel',
+  {
+    messages: [Message.CompletedMeasurePanel],
+  },
   Effect.succeed(({ element }) =>
     Effect.sync(() =>
       Message.CompletedMeasurePanel({
@@ -59,4 +59,4 @@ const application = Application.make({
   container: document.getElementById('root'),
 })
 
-Runtime.run(Application.provide(application, MeasurePanelLayer))
+Runtime.run(Application.provide(application, MeasurePanel.layer))

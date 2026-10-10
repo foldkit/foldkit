@@ -77,15 +77,15 @@ const isFormValid = (model: Model): boolean =>
 
 // UPDATE
 
-export const SimulateAuthRequest = Command.define('SimulateAuthRequest', {
-  args: { email: Schema.String, password: Schema.String },
-  messages: [
-    Message.SucceededSimulateAuthRequest,
-    Message.FailedSimulateAuthRequest,
-  ],
-})
-
-export const SimulateAuthRequestLayer = SimulateAuthRequest.toLayer(
+export const SimulateAuthRequest = Command.define(
+  'SimulateAuthRequest',
+  {
+    args: { email: Schema.String, password: Schema.String },
+    messages: [
+      Message.SucceededSimulateAuthRequest,
+      Message.FailedSimulateAuthRequest,
+    ],
+  },
   Effect.succeed(({ email, password }) =>
     Effect.gen(function* () {
       yield* Effect.sleep(Duration.seconds(1))
@@ -109,6 +109,8 @@ export const SimulateAuthRequestLayer = SimulateAuthRequest.toLayer(
     }),
   ),
 )
+
+export const EffectsLayer = SimulateAuthRequest.layer
 
 export const update = Update.make((model: Model, message: Message) =>
   Message.match(message, {

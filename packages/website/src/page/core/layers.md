@@ -10,13 +10,15 @@ Shared services are the kitchen equipment available all night. Every dish can us
 
 `Application.make` defines the application and carries its unsatisfied Effect requirements. `Application.provide` adds the application Layer before `Runtime.run` starts the program. Command execution, Subscription restart, Mount insertion, and ManagedResource acquisition reuse the handlers and services that Layer built. A hydrating start validates the server handoff before acquiring the Layer.
 
-A Command definition names the operation and its result Messages. Its `toLayer` constructor captures any services the implementation needs, then returns the function that handles each invocation. `Layer.provide` composes those service Layers beneath the handler Layer. Subscriptions, Mounts, and ManagedResources use the same constructor boundary.
+A Command definition names the operation and its result Messages. Its final constructor argument is an Effect that captures any services the implementation needs, then returns the function that handles each invocation. The definition's `.layer` is the recipe application assembly provides. `Layer.provide` composes service Layers beneath that handler Layer. Subscriptions, Mounts, and ManagedResources use the same constructor boundary.
 
 ::Snippet{name="layers" label="Shared API client service"}
 
-The application requires the `LoadUser` handler service. `LoadUserLayer` is the real handler in both compositions. `AppLayer` supplies `ApiLayer`; `AppTestLayer` supplies `ApiTestLayer`. The API client starts once with the application, rather than once per `LoadUser` execution. This substitution exercises the real `LoadUser` mapping and error policy. Code inside the replaced `ApiLayer` is outside that test path.
+The application requires the `LoadUser` handler service. Both compositions include the real handler through `EffectsLayer = LoadUser.layer`. `AppLayer` supplies `ApiLayer`; `AppTestLayer` supplies `ApiTestLayer`. The API client starts once with the application, rather than once per `LoadUser` execution. This substitution exercises the real `LoadUser` mapping and error policy. Code inside the replaced `ApiLayer` is outside that test path.
 
-Calling `toLayer` with an Effect creates a recipe for providing the handler service. The Effect runs once when the Runtime builds the application Layer. For a Command, the function it returns receives serializable args each time the Command runs. For a Subscription, the returned function receives the current Model dependencies each time Foldkit starts or restarts its Stream. Mount and ManagedResource handlers likewise receive their element or Model-scoped requirements when that lifecycle begins.
+Passing the constructor Effect as the final definition argument creates the definition's `.layer` recipe through the same construction path and handler identity that `toLayer(constructor)` uses. It does not install the handler automatically. Include that recipe in the feature's `EffectsLayer` and provide the root `AppLayer` explicitly. Foldkit does not search for an attached handler or fall back to it when another implementation is missing.
+
+The handler Effect runs once when the Runtime builds the application Layer. For a Command, the function it returns receives serializable args each time the Command runs. For a Subscription, the returned function receives the current Model dependencies each time Foldkit starts or restarts its Stream. Mount and ManagedResource handlers likewise receive their element or Model-scoped requirements when that lifecycle begins.
 
 Use `Effect.gen` to capture services, then leave a blank line before returning the invocation function. When construction has no work to perform, use `Effect.succeed(handler)`. The consistent shape makes application dependencies visible in the Layer graph even for a small handler.
 
@@ -30,7 +32,13 @@ Choose the lowest service boundary whose code the test needs to exercise. If `Ap
 
 For a Subscription, the test service supplies the upstream events while the real handler still builds the Stream and Foldkit still starts, restarts, and stops it from Model dependencies. For a Mount, the test capability sits beneath the real element-scoped handler. For a ManagedResource, the test capability sits beneath the real acquire and release handler, so the Model-driven handle scope remains under test.
 
-A handler stub is a narrower orchestration choice. It can drive a result path directly, but it does not test the handler that was replaced. Ordinary execution tests need no new testing DSL: compose the production handler Layers with test Layers for the external services, then execute the application or operation through Effect.
+A handler stub is a narrower, host-owned orchestration seam. A definition without a final constructor argument exposes `toLayer`, which a host or focused test uses to provide an implementation. That can drive a result path directly, but it does not test the handler that was replaced. Ordinary execution tests need no new testing DSL: compose the production `.layer` recipes with test Layers for the external services, then execute the application or operation through Effect.
+
+::Snippet{name="commandHostContract" label="Command implemented by an external host"}
+
+`SaveDocument` has no `.layer` because its module does not own a default implementation. The embedding host calls `makeSaveDocumentLayer` with its save operation and includes the returned Layer in that host's `AppLayer`. Foldkit does not install another implementation when that Layer is absent.
+
+Handler Layers make assembly requirements and application lifetime ownership explicit in the root Layer graph. The same typed requirements can also be carried directly in an Effect's service requirements, so handler Layers do not create a separate dependency registry or uniquely make services replaceable. They give Foldkit's runtime primitives one consistent application assembly boundary.
 
 ## Choosing the Lifetime
 
@@ -76,7 +84,7 @@ If the service Layer fails to build, startup cannot reach init or the first rend
 
 ## Layer Naming and Composition
 
-Import Effect's `Layer` module as `Layer`. Name an individual production implementation after its definition, such as `LoadUserLayer`, and name an alternate test implementation `LoadUserTestLayer`. A feature exports its combined implementation bundle as `EffectsLayer`, accessed through the feature namespace as `Search.EffectsLayer`.
+Import Effect's `Layer` module as `Layer`. A feature's `layer.ts` imports its definitions and composes attached recipes such as `LoadUser.layer` directly in `EffectsLayer`. Create a standalone `LoadUserLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly, and name an external alternate `LoadUserTestLayer`. Access the combined bundle through the feature namespace as `Search.EffectsLayer`.
 
 Each Submodel includes its own Commands, Subscriptions, Mounts, and ManagedResources in that bundle. Its parent merges the child `EffectsLayer` with its own handler Layers. Repeating this at each Submodel boundary produces one root `EffectsLayer` without making the entry point import every leaf implementation.
 

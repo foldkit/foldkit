@@ -4,12 +4,12 @@ import { Command, Http } from 'foldkit'
 
 import { Message } from './message'
 
-const FetchWeather = Command.define('FetchWeather', {
-  args: { city: Schema.String },
-  messages: [Message.SucceededFetchWeather, Message.FailedFetchWeather],
-})
-
-const FetchWeatherLayer = FetchWeather.toLayer(
+const FetchWeather = Command.define(
+  'FetchWeather',
+  {
+    args: { city: Schema.String },
+    messages: [Message.SucceededFetchWeather, Message.FailedFetchWeather],
+  },
   Effect.gen(function* () {
     const client = yield* HttpClient.HttpClient
 
@@ -30,7 +30,7 @@ const FetchWeatherLayer = FetchWeather.toLayer(
   }),
 )
 
-export const EffectsLayer = FetchWeatherLayer
+export const EffectsLayer = FetchWeather.layer
 export const ServicesLayer = Http.layer
 
 export const AppLayer = Layer.provide(EffectsLayer, ServicesLayer)

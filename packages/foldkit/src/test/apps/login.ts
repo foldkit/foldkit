@@ -33,11 +33,11 @@ export type Message = typeof Message.Type
 
 // COMMAND
 
-export const Authenticate = Command.define('Authenticate', {
-  messages: [Message.SucceededAuthenticate, Message.FailedAuthenticate],
-})
-
-export const AuthenticateLayer = Authenticate.toLayer(
+export const Authenticate = Command.define(
+  'Authenticate',
+  {
+    messages: [Message.SucceededAuthenticate, Message.FailedAuthenticate],
+  },
   Effect.succeed(() =>
     Effect.sync(() => Message.SucceededAuthenticate({ username: 'alice' })),
   ),
@@ -169,4 +169,4 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-export const EffectsLayer = Layer.mergeAll(AuthenticateLayer)
+export const EffectsLayer = Layer.mergeAll(Authenticate.layer)

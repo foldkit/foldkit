@@ -20,9 +20,7 @@ export {
   type Opened,
   type PressedEscape,
   WaitBeforeClosing,
-  WaitBeforeClosingLayer,
   WaitBeforeOpening,
-  WaitBeforeOpeningLayer,
   EffectsLayer,
 } from './index.js'
 

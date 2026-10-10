@@ -36,11 +36,12 @@ export const update = Update.make((model: Model, message: Message) =>
 
 // COMMAND
 
-export const CopySnippet = Command.define('CopySnippet', {
-  args: { snippetId: Schema.String, text: Schema.String },
-  messages: [Message.SucceededCopySnippet, Message.FailedCopySnippet],
-})
-const CopySnippetLayer = CopySnippet.toLayer(
+export const CopySnippet = Command.define(
+  'CopySnippet',
+  {
+    args: { snippetId: Schema.String, text: Schema.String },
+    messages: [Message.SucceededCopySnippet, Message.FailedCopySnippet],
+  },
   Effect.succeed(({ snippetId, text }) =>
     Effect.tryPromise({
       try: () => navigator.clipboard.writeText(text),
@@ -60,19 +61,16 @@ export const WaitBeforeHidingCopiedIndicator = Command.define(
     args: { snippetId: Schema.String },
     messages: [Message.CompletedWaitBeforeHidingCopiedIndicator],
   },
-)
-const WaitBeforeHidingCopiedIndicatorLayer =
-  WaitBeforeHidingCopiedIndicator.toLayer(
-    Effect.succeed(({ snippetId }) =>
-      Effect.sleep(COPY_INDICATOR_DURATION).pipe(
-        Effect.as(
-          Message.CompletedWaitBeforeHidingCopiedIndicator({ snippetId }),
-        ),
+  Effect.succeed(({ snippetId }) =>
+    Effect.sleep(COPY_INDICATOR_DURATION).pipe(
+      Effect.as(
+        Message.CompletedWaitBeforeHidingCopiedIndicator({ snippetId }),
       ),
     ),
-  )
+  ),
+)
 
 export const EffectsLayer = Layer.mergeAll(
-  CopySnippetLayer,
-  WaitBeforeHidingCopiedIndicatorLayer,
+  CopySnippet.layer,
+  WaitBeforeHidingCopiedIndicator.layer,
 )

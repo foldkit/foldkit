@@ -159,23 +159,19 @@ export const managedResources = ManagedResource.make<Model, Message>()(
         onAcquireError: error =>
           Message.FailedBootPlayground({ reason: reasonFromError(error) }),
       },
+      Effect.succeed({
+        acquire: ({ slug }) =>
+          Effect.gen(function* () {
+            const fileEntry = yield* Effect.fromOption(
+              Record.get(filesBySlug, slug),
+            )
+            return yield* acquirePlaygroundWebContainer(fileEntry.files)
+          }),
+        release: () => Effect.void,
+      }),
     ),
   }),
 )
-
-const ManageWebContainerPlaygroundLayer =
-  managedResources.webContainerPlayground.toLayer(
-    Effect.succeed({
-      acquire: ({ slug }) =>
-        Effect.gen(function* () {
-          const fileEntry = yield* Effect.fromOption(
-            Record.get(filesBySlug, slug),
-          )
-          return yield* acquirePlaygroundWebContainer(fileEntry.files)
-        }),
-      release: () => Effect.void,
-    }),
-  )
 
 // MOUNT
 
@@ -445,9 +441,6 @@ export const MountPlaygroundEditor = Mount.defineStream(
       Message.EditedPlaygroundFile,
     ],
   },
-)
-
-export const MountPlaygroundEditorLayer = MountPlaygroundEditor.toLayer(
   Effect.succeed(({ element, path, initialContent, files, viewStateChanges }) =>
     streamPlaygroundEditorMessages(
       element,
@@ -475,25 +468,21 @@ export const WaitForPlaygroundServerFailure = Command.define(
   {
     messages: [Message.CompletedWaitForPlaygroundServerFailure],
   },
-)
-
-const WaitForPlaygroundServerFailureLayer =
-  WaitForPlaygroundServerFailure.toLayer(
-    Effect.succeed(() =>
-      Effect.gen(function* () {
-        const { serverFailure } = yield* WebContainerPlayground.get
-        return yield* Deferred.await(serverFailure).pipe(
-          Effect.catch(error =>
-            Effect.succeed(
-              Message.CompletedWaitForPlaygroundServerFailure({
-                reason: reasonFromError(error),
-              }),
-            ),
+  Effect.succeed(() =>
+    Effect.gen(function* () {
+      const { serverFailure } = yield* WebContainerPlayground.get
+      return yield* Deferred.await(serverFailure).pipe(
+        Effect.catch(error =>
+          Effect.succeed(
+            Message.CompletedWaitForPlaygroundServerFailure({
+              reason: reasonFromError(error),
+            }),
           ),
-        )
-      }).pipe(Effect.catchTag('ResourceNotAvailable', () => Effect.interrupt)),
-    ),
-  )
+        ),
+      )
+    }).pipe(Effect.catchTag('ResourceNotAvailable', () => Effect.interrupt)),
+  ),
+)
 
 export const SchedulePlaygroundFileWrite = Command.define(
   'SchedulePlaygroundFileWrite',
@@ -504,9 +493,6 @@ export const SchedulePlaygroundFileWrite = Command.define(
       Message.FailedSchedulePlaygroundFileWrite,
     ],
   },
-)
-
-const SchedulePlaygroundFileWriteLayer = SchedulePlaygroundFileWrite.toLayer(
   Effect.succeed(({ path, content }) =>
     Effect.gen(function* () {
       const { container, pendingWrites } = yield* WebContainerPlayground.get
@@ -550,10 +536,10 @@ const SchedulePlaygroundFileWriteLayer = SchedulePlaygroundFileWrite.toLayer(
 export const mounts = [MountPlaygroundEditor]
 
 export const EffectsLayer = Layer.mergeAll(
-  ManageWebContainerPlaygroundLayer,
-  MountPlaygroundEditorLayer,
-  WaitForPlaygroundServerFailureLayer,
-  SchedulePlaygroundFileWriteLayer,
+  managedResources.webContainerPlayground.layer,
+  MountPlaygroundEditor.layer,
+  WaitForPlaygroundServerFailure.layer,
+  SchedulePlaygroundFileWrite.layer,
 )
 
 // UPDATE
