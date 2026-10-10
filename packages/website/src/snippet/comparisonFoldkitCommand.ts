@@ -1,15 +1,12 @@
-const SaveCanvas = Command.define(
-  'SaveCanvas',
-  {
-    args: {
-      grid: Grid,
-      gridSize: Schema.Number,
-      paletteThemeIndex: Schema.Number,
-      selectedColorIndex: PaletteIndex,
-    },
-    messages: [Message.CompletedSaveCanvas],
+const SaveCanvas = Command.define('SaveCanvas', {
+  args: {
+    grid: Grid,
+    gridSize: Schema.Number,
+    paletteThemeIndex: Schema.Number,
+    selectedColorIndex: PaletteIndex,
   },
-  Effect.gen(function* () {
+  messages: [Message.CompletedSaveCanvas],
+  handler: function* () {
     const store = yield* KeyValueStore.KeyValueStore
 
     return ({ grid, gridSize, paletteThemeIndex, selectedColorIndex }) =>
@@ -26,34 +23,36 @@ const SaveCanvas = Command.define(
         yield* store.set(STORAGE_KEY, encodedCanvas)
         return Message.CompletedSaveCanvas()
       }).pipe(Effect.catch(() => Effect.succeed(Message.CompletedSaveCanvas())))
-  }),
-)
-
-const ExportPng = Command.define(
-  'ExportPng',
-  {
-    args: {
-      grid: Grid,
-      gridSize: Schema.Number,
-      paletteThemeIndex: Schema.Number,
-    },
-    messages: [Message.SucceededExportPng, Message.FailedExportPng],
   },
-  Effect.succeed(({ grid, gridSize, paletteThemeIndex }) =>
-    Effect.gen(function* () {
-      const theme = PALETTE_THEMES[paletteThemeIndex] ?? PALETTE_THEMES[0]
-      const canvas = document.createElement('canvas')
-      const context = canvas.getContext('2d')
+})
 
-      if (Predicate.isNull(context)) {
-        return yield* Effect.fail(
-          Message.FailedExportPng({ error: 'Canvas 2D context not available' }),
-        )
-      }
+const ExportPng = Command.define('ExportPng', {
+  args: {
+    grid: Grid,
+    gridSize: Schema.Number,
+    paletteThemeIndex: Schema.Number,
+  },
+  messages: [Message.SucceededExportPng, Message.FailedExportPng],
+  handler: function* () {
+    return ({ grid, gridSize, paletteThemeIndex }) =>
+      Effect.gen(function* () {
+        const theme = PALETTE_THEMES[paletteThemeIndex] ?? PALETTE_THEMES[0]
+        const canvas = document.createElement('canvas')
+        const context = canvas.getContext('2d')
 
-      // ... paint each cell, then click a generated download link
+        if (Predicate.isNull(context)) {
+          return yield* Effect.fail(
+            Message.FailedExportPng({
+              error: 'Canvas 2D context not available',
+            }),
+          )
+        }
 
-      return Message.SucceededExportPng()
-    }).pipe(Effect.catchTag('FailedExportPng', error => Effect.succeed(error))),
-  ),
-)
+        // ... paint each cell, then click a generated download link
+
+        return Message.SucceededExportPng()
+      }).pipe(
+        Effect.catchTag('FailedExportPng', error => Effect.succeed(error)),
+      )
+  },
+})

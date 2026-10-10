@@ -48,17 +48,15 @@ export const reloadedSources: ReadonlyArray<RawSource> = [
   { kind: 'Book', id: '' },
 ]
 
-export const ReloadSources = Command.define(
-  'ReloadSources',
-  {
-    messages: [Message.CompletedReloadSources],
+export const ReloadSources = Command.define('ReloadSources', {
+  messages: [Message.CompletedReloadSources],
+  handler: function* () {
+    return () =>
+      Effect.succeed(
+        Message.CompletedReloadSources({ sources: reloadedSources }),
+      )
   },
-  Effect.succeed(() =>
-    Effect.succeed(
-      Message.CompletedReloadSources({ sources: reloadedSources }),
-    ),
-  ),
-)
+})
 
 // INIT
 

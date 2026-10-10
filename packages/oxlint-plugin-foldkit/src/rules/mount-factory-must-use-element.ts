@@ -8,17 +8,24 @@ import {
   RuleContext,
 } from 'effect-oxlint'
 
-import { effectConstructorValue } from '../effect-constructor.ts'
+import {
+  effectConstructorValue,
+  generatorConstructorValue,
+  resolveLocalValue,
+} from '../effect-constructor.ts'
 import {
   indexReferences,
   isCallExpression,
   isIdentifier,
   isIdentifierReference,
   isMemberExpression,
+  isObjectExpression,
+  isObjectProperty,
   isVariableDeclarator,
   resolveFoldkitApiPath,
   resolvedVariable,
   staticMemberName,
+  staticPropertyName,
 } from '../guards.ts'
 
 const MOUNT_DEFINITION_METHODS = ['define', 'defineStream']
@@ -330,16 +337,36 @@ const isLocalMountDefinition = (
   )
 }
 
+const attachedMountHandler = (
+  config: ESTree.Node,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): Option.Option<MountHandler> =>
+  pipe(
+    resolveLocalValue(config, references),
+    Option.filter(isObjectExpression),
+    Option.flatMap(object =>
+      Array.findFirst(
+        object.properties,
+        (property): property is ESTree.ObjectProperty =>
+          isObjectProperty(property) &&
+          Option.contains(staticPropertyName(property), 'handler'),
+      ),
+    ),
+    Option.flatMap(property =>
+      generatorConstructorValue(property.value, references),
+    ),
+    Option.filter(isMountHandler),
+  )
+
 const mountHandler = (
   node: ESTree.CallExpression,
   localMountDefinitions: ReadonlySet<string>,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): Option.Option<MountHandler> => {
-  if (isMountDefinitionCall(node, references) && node.arguments.length === 3) {
+  if (isMountDefinitionCall(node, references) && node.arguments.length === 2) {
     return pipe(
       Array.last(node.arguments),
-      Option.flatMap(build => effectConstructorValue(build, references)),
-      Option.filter(isMountHandler),
+      Option.flatMap(config => attachedMountHandler(config, references)),
     )
   }
 

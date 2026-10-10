@@ -23,20 +23,21 @@ const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
       modelToDependencies: model => ({
         hasUnsavedChanges: model.hasUnsavedChanges,
       }),
+      handler: function* () {
+        return ({ hasUnsavedChanges }) =>
+          Stream.when(
+            Dom.streamFromEventFilterMapPreventDefault({
+              target: window,
+              type: 'beforeunload',
+              filterMapEvent: event => {
+                event.returnValue = true
+                return Option.some(Message.StartedNavigationAway())
+              },
+            }),
+            Effect.sync(() => hasUnsavedChanges),
+          )
+      },
     },
-    Effect.succeed(({ hasUnsavedChanges }) =>
-      Stream.when(
-        Dom.streamFromEventFilterMapPreventDefault({
-          target: window,
-          type: 'beforeunload',
-          filterMapEvent: event => {
-            event.returnValue = true
-            return Option.some(Message.StartedNavigationAway())
-          },
-        }),
-        Effect.sync(() => hasUnsavedChanges),
-      ),
-    ),
   ),
 }))
 

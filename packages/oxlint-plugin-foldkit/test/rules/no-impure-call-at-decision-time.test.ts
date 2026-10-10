@@ -207,7 +207,7 @@ const inAttachedHandler = (
   propertyName?: string,
 ) => {
   const handler = Testing.arrowFn(operation)
-  const property = {
+  const lifecycleProperty = {
     type: 'Property',
     kind: 'init',
     key: Testing.id(propertyName ?? 'acquire'),
@@ -216,21 +216,47 @@ const inAttachedHandler = (
     shorthand: false,
     computed: false,
   }
-  const lifecycle = { type: 'ObjectExpression', properties: [property] }
+  const lifecycle = {
+    type: 'ObjectExpression',
+    properties: [lifecycleProperty],
+  }
   const value = propertyName === undefined ? handler : lifecycle
-  const build = Testing.callOfMember('Effect', 'succeed', [value])
+  const returnStatement = Testing.returnStmt(value)
+  const body = Testing.blockStmt([returnStatement])
+  const constructor = {
+    type: 'FunctionExpression',
+    id: null,
+    params: [],
+    body,
+    generator: true,
+    async: false,
+  }
+  const handlerProperty = {
+    type: 'Property',
+    kind: 'init',
+    key: Testing.id('handler'),
+    value: constructor,
+    method: false,
+    shorthand: false,
+    computed: false,
+  }
+  const config = { type: 'ObjectExpression', properties: [handlerProperty] }
   const definition =
     namespace === 'Subscription' || namespace === 'ManagedResource'
-      ? Testing.callExpr('entry', [...argumentsBefore, build])
-      : Testing.callOfMember(namespace, method, [...argumentsBefore, build])
+      ? Testing.callExpr('entry', [...argumentsBefore, config])
+      : Testing.callOfMember(namespace, method, [...argumentsBefore, config])
 
   Object.assign(operation, { parent: handler })
   Object.assign(handler, {
-    parent: propertyName === undefined ? build : property,
+    parent: propertyName === undefined ? returnStatement : lifecycleProperty,
   })
-  Object.assign(property, { parent: lifecycle })
-  Object.assign(lifecycle, { parent: build })
-  Object.assign(build, { parent: definition })
+  Object.assign(lifecycleProperty, { parent: lifecycle })
+  Object.assign(lifecycle, { parent: returnStatement })
+  Object.assign(returnStatement, { parent: body })
+  Object.assign(body, { parent: constructor })
+  Object.assign(constructor, { parent: handlerProperty })
+  Object.assign(handlerProperty, { parent: config })
+  Object.assign(config, { parent: definition })
 
   if (namespace === 'Subscription' || namespace === 'ManagedResource') {
     const builder = Testing.arrowFn(definition, [Testing.id('entry')])
@@ -246,6 +272,48 @@ const inAttachedHandler = (
   } else {
     atProgram(definition)
   }
+
+  return operation
+}
+
+const inAttachedConstructorSetup = (operation: Readonly<{ type: string }>) => {
+  const setup = Testing.exprStmt(operation)
+  const invocation = Testing.arrowFn(Testing.callOfMember('Effect', 'void'))
+  const returnStatement = Testing.returnStmt(invocation)
+  const body = Testing.blockStmt([setup, returnStatement])
+  const constructor = {
+    type: 'FunctionExpression',
+    id: null,
+    params: [],
+    body,
+    generator: true,
+    async: false,
+  }
+  const handlerProperty = {
+    type: 'Property',
+    kind: 'init',
+    key: Testing.id('handler'),
+    value: constructor,
+    method: false,
+    shorthand: false,
+    computed: false,
+  }
+  const config = { type: 'ObjectExpression', properties: [handlerProperty] }
+  const definition = atProgram(
+    Testing.callOfMember('Command', 'define', [
+      Testing.strLiteral('ReadClock'),
+      config,
+    ]),
+  )
+
+  Object.assign(operation, { parent: setup })
+  Object.assign(setup, { parent: body })
+  Object.assign(invocation, { parent: returnStatement })
+  Object.assign(returnStatement, { parent: body })
+  Object.assign(body, { parent: constructor })
+  Object.assign(constructor, { parent: handlerProperty })
+  Object.assign(handlerProperty, { parent: config })
+  Object.assign(config, { parent: definition })
 
   return operation
 }
@@ -638,35 +706,15 @@ describe('no-impure-call-at-decision-time', () => {
   })
 
   it.each([
-    [
-      'Command',
-      'define',
-      [Testing.strLiteral('ReadClock'), Testing.id('config')],
-    ],
-    [
-      'Mount',
-      'define',
-      [Testing.strLiteral('MeasurePanel'), Testing.id('config')],
-    ],
-    [
-      'Mount',
-      'defineStream',
-      [Testing.strLiteral('PanelSizes'), Testing.id('config')],
-    ],
-    ['Query', 'define', [Testing.id('config')]],
+    ['Command', 'define', [Testing.strLiteral('ReadClock')]],
+    ['Mount', 'define', [Testing.strLiteral('MeasurePanel')]],
+    ['Mount', 'defineStream', [Testing.strLiteral('PanelSizes')]],
+    ['Query', 'define', []],
+    ['Subscription', 'entry', [Testing.strLiteral('ClockTicks')]],
     [
       'Subscription',
       'entry',
-      [Testing.strLiteral('ClockTicks'), Testing.id('config')],
-    ],
-    [
-      'Subscription',
-      'entry',
-      [
-        Testing.strLiteral('ClockTicks'),
-        Testing.id('fields'),
-        Testing.id('config'),
-      ],
+      [Testing.strLiteral('ClockTicks'), Testing.id('fields')],
     ],
   ])(
     'allows an attached %s.%s invocation handler',
@@ -693,11 +741,7 @@ describe('no-impure-call-at-decision-time', () => {
             Testing.callOfMember('Date', 'now'),
             'ManagedResource',
             'entry',
-            [
-              Testing.strLiteral('Session'),
-              Testing.id('schema'),
-              Testing.id('config'),
-            ],
+            [Testing.strLiteral('Session'), Testing.id('schema')],
             propertyName,
           ),
         ),
@@ -705,7 +749,7 @@ describe('no-impure-call-at-decision-time', () => {
     },
   )
 
-  it('checks arbitrary constructors and eager attached argument expressions', () => {
+  it('checks arbitrary constructors and eager attached handler expressions', () => {
     const arbitrary = inAttachedHandler(
       Testing.callOfMember('Date', 'now'),
       'Other',
@@ -713,19 +757,38 @@ describe('no-impure-call-at-decision-time', () => {
       [Testing.strLiteral('ReadClock'), Testing.id('config')],
     )
     const operation = Testing.callOfMember('Math', 'random')
-    const build = Testing.callOfMember('Effect', 'succeed', [operation])
+    const eagerHandler = Testing.callExpr('makeHandler', [operation])
+    const handlerProperty = {
+      type: 'Property',
+      kind: 'init',
+      key: Testing.id('handler'),
+      value: eagerHandler,
+      method: false,
+      shorthand: false,
+      computed: false,
+    }
+    const config = { type: 'ObjectExpression', properties: [handlerProperty] }
     const definition = atProgram(
       Testing.callOfMember('Command', 'define', [
         Testing.strLiteral('ReadClock'),
-        Testing.id('config'),
-        build,
+        config,
       ]),
     )
-    Object.assign(operation, { parent: build })
-    Object.assign(build, { parent: definition })
+    Object.assign(operation, { parent: eagerHandler })
+    Object.assign(eagerHandler, { parent: handlerProperty })
+    Object.assign(handlerProperty, { parent: config })
+    Object.assign(config, { parent: definition })
 
     expect(run(arbitrary)).toHaveLength(1)
     expect(run(operation)).toHaveLength(1)
+  })
+
+  it('checks direct calls in attached generator constructor setup', () => {
+    const result = run(
+      inAttachedConstructorSetup(Testing.callOfMember('Date', 'now')),
+    )
+
+    expect(result).toHaveLength(1)
   })
 
   it('allows lifecycle handlers on an object returned by an Effect constructor', () => {

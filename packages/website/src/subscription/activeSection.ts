@@ -191,64 +191,75 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
           sections: Array.map(currentPageTableOfContents, ({ id }) => id),
         }
       },
-    },
-    Effect.succeed(({ sections }) =>
-      Stream.callback<typeof Message.ChangedActiveSection.Type>(queue =>
-        Effect.gen(function* () {
-          if (!Array.isReadonlyArrayNonEmpty(sections)) {
-            return yield* Effect.never
-          }
+      handler: function* () {
+        return ({ sections }) =>
+          Stream.callback<typeof Message.ChangedActiveSection.Type>(queue =>
+            Effect.gen(function* () {
+              if (!Array.isReadonlyArrayNonEmpty(sections)) {
+                return yield* Effect.never
+              }
 
-          yield* Render.afterCommit
+              yield* Render.afterCommit
 
-          yield* Effect.acquireRelease(
-            Effect.sync(() => {
-              const visibleSections = MutableRef.make(HashSet.empty<string>())
-              const observer = new IntersectionObserver(
-                entries => {
-                  Array.forEach(
-                    entries,
-                    ({ isIntersecting, target: { id } }) => {
-                      if (isIntersecting) {
-                        MutableRef.update(visibleSections, HashSet.add(id))
-                      } else {
-                        MutableRef.update(visibleSections, HashSet.remove(id))
+              yield* Effect.acquireRelease(
+                Effect.sync(() => {
+                  const visibleSections = MutableRef.make(
+                    HashSet.empty<string>(),
+                  )
+                  const observer = new IntersectionObserver(
+                    entries => {
+                      Array.forEach(
+                        entries,
+                        ({ isIntersecting, target: { id } }) => {
+                          if (isIntersecting) {
+                            MutableRef.update(visibleSections, HashSet.add(id))
+                          } else {
+                            MutableRef.update(
+                              visibleSections,
+                              HashSet.remove(id),
+                            )
+                          }
+                        },
+                      )
+
+                      const activeSectionId = Array.findFirst(
+                        sections,
+                        sectionId =>
+                          HashSet.has(
+                            MutableRef.get(visibleSections),
+                            sectionId,
+                          ),
+                      )
+
+                      if (Option.isSome(activeSectionId)) {
+                        Queue.offerUnsafe(
+                          queue,
+                          Message.ChangedActiveSection({
+                            sectionId: activeSectionId.value,
+                          }),
+                        )
                       }
                     },
+                    { rootMargin: '-100px 0px -80% 0px' },
                   )
 
-                  const activeSectionId = Array.findFirst(sections, sectionId =>
-                    HashSet.has(MutableRef.get(visibleSections), sectionId),
-                  )
+                  Array.forEach(sections, sectionId => {
+                    const element = document.getElementById(sectionId)
+                    if (element) {
+                      observer.observe(element)
+                    }
+                  })
 
-                  if (Option.isSome(activeSectionId)) {
-                    Queue.offerUnsafe(
-                      queue,
-                      Message.ChangedActiveSection({
-                        sectionId: activeSectionId.value,
-                      }),
-                    )
-                  }
-                },
-                { rootMargin: '-100px 0px -80% 0px' },
+                  return observer
+                }),
+                observer => Effect.sync(() => observer.disconnect()),
               )
 
-              Array.forEach(sections, sectionId => {
-                const element = document.getElementById(sectionId)
-                if (element) {
-                  observer.observe(element)
-                }
-              })
-
-              return observer
+              return yield* Effect.never
             }),
-            observer => Effect.sync(() => observer.disconnect()),
           )
-
-          return yield* Effect.never
-        }),
-      ),
-    ),
+      },
+    },
   ),
 }))
 

@@ -10,21 +10,19 @@ export const MINIMUM_EXPANSION_HEIGHT_PX = 48
 const COLLAPSIBLE_HEIGHT_PX =
   COLLAPSED_PREVIEW_HEIGHT_PX + MINIMUM_EXPANSION_HEIGHT_PX
 
-export const MeasureSnippetHeight = Mount.define(
-  'MeasureSnippetHeight',
-  {
-    args: { snippetId: Schema.String },
-    messages: [Message.CompletedMeasureSnippetHeight],
+export const MeasureSnippetHeight = Mount.define('MeasureSnippetHeight', {
+  args: { snippetId: Schema.String },
+  messages: [Message.CompletedMeasureSnippetHeight],
+  handler: function* () {
+    return ({ element, snippetId }) =>
+      Effect.sync(() =>
+        Message.CompletedMeasureSnippetHeight({
+          snippetId,
+          snippetSize:
+            element.scrollHeight > COLLAPSIBLE_HEIGHT_PX
+              ? SnippetSize.Overflows()
+              : SnippetSize.Fits(),
+        }),
+      )
   },
-  Effect.succeed(({ element, snippetId }) =>
-    Effect.sync(() =>
-      Message.CompletedMeasureSnippetHeight({
-        snippetId,
-        snippetSize:
-          element.scrollHeight > COLLAPSIBLE_HEIGHT_PX
-            ? SnippetSize.Overflows()
-            : SnippetSize.Fits(),
-      }),
-    ),
-  ),
-)
+})

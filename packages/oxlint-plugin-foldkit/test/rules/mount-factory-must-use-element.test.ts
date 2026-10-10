@@ -43,6 +43,28 @@ const mountDefinition = (method: 'define' | 'defineStream' = 'define') =>
     ]),
   ])
 
+const generatorConstructor = (handler: unknown) => ({
+  type: 'FunctionExpression',
+  id: null,
+  params: [],
+  body: Testing.blockStmt([Testing.returnStmt(handler)]),
+  generator: true,
+  async: false,
+})
+
+const attachedMountDefinition = (
+  handler: unknown,
+  method: 'define' | 'defineStream' = 'define',
+  constructor: unknown = generatorConstructor(handler),
+) =>
+  Testing.callOfMember('Mount', method, [
+    Testing.strLiteral('MountThing'),
+    Testing.objectExpr([
+      { key: 'messages', value: Testing.id('CompletedMountThing') },
+      { key: 'handler', value: constructor },
+    ]),
+  ])
+
 const toLayer = (
   definition: unknown,
   handler: unknown,
@@ -230,19 +252,12 @@ describe('mount-factory-must-use-element', () => {
   ]
 
   it.each(definitionMethods)(
-    'checks attached %s constructor handlers',
+    'checks attached %s generator handlers',
     method => {
       const handler = Testing.arrowFn(Testing.callExpr('analyticsPing'), [
         elementPattern(),
       ])
-      const definition = mountDefinition(method)
-      const result = runOn({
-        ...definition,
-        arguments: [
-          ...definition.arguments,
-          Testing.callOfMember('Effect', 'succeed', [handler]),
-        ],
-      })
+      const result = runOn(attachedMountDefinition(handler, method))
 
       expect(result).toHaveLength(1)
       expect(result[0]?.diagnostic.node).toBe(handler)
@@ -254,14 +269,7 @@ describe('mount-factory-must-use-element', () => {
       Testing.callExpr('measure', [Testing.id('element')]),
       [elementPattern()],
     )
-    const definition = mountDefinition()
-    const result = runOn({
-      ...definition,
-      arguments: [
-        ...definition.arguments,
-        Testing.callOfMember('Effect', 'succeed', [handler]),
-      ],
-    })
+    const result = runOn(attachedMountDefinition(handler))
 
     expect(result).toHaveLength(0)
   })

@@ -58,44 +58,40 @@ export type ShowInput<A> = Readonly<{
 
 /** Waits for an entry's auto-dismiss duration, then emits a versioned
  *  `CompletedWaitBeforeDismissal` Message so update can ignore stale timers. */
-export const WaitBeforeDismissal = Command.define(
-  'WaitBeforeDismissal',
-  {
-    args: {
-      entryId: Schema.String,
-      version: Schema.Number,
-      duration: Schema.DurationFromMillis,
-    },
-    messages: [Message.CompletedWaitBeforeDismissal],
+export const WaitBeforeDismissal = Command.define('WaitBeforeDismissal', {
+  args: {
+    entryId: Schema.String,
+    version: Schema.Number,
+    duration: Schema.DurationFromMillis,
   },
-  Effect.succeed(({ entryId, version, duration }) =>
-    Effect.gen(function* () {
-      yield* Effect.sleep(duration)
-      return Message.CompletedWaitBeforeDismissal({ entryId, version })
-    }),
-  ),
-)
+  messages: [Message.CompletedWaitBeforeDismissal],
+  handler: function* () {
+    return ({ entryId, version, duration }) =>
+      Effect.gen(function* () {
+        yield* Effect.sleep(duration)
+        return Message.CompletedWaitBeforeDismissal({ entryId, version })
+      })
+  },
+})
 
 const DEFAULT_VARIANT: Variant = 'Info'
 
 /** Waits for a short or cancelled swipe to animate back, then emits
  *  `CompletedWaitForSwipeSettled` so update can clear `Settling`. */
-export const WaitForSwipeSettled = Command.define(
-  'WaitForSwipeSettled',
-  {
-    args: {
-      entryId: Schema.String,
-      version: Schema.Number,
-    },
-    messages: [Message.CompletedWaitForSwipeSettled],
+export const WaitForSwipeSettled = Command.define('WaitForSwipeSettled', {
+  args: {
+    entryId: Schema.String,
+    version: Schema.Number,
   },
-  Effect.succeed(({ entryId, version }) =>
-    Effect.gen(function* () {
-      yield* Effect.sleep(SWIPE_SETTLE_DURATION)
-      return Message.CompletedWaitForSwipeSettled({ entryId, version })
-    }),
-  ),
-)
+  messages: [Message.CompletedWaitForSwipeSettled],
+  handler: function* () {
+    return ({ entryId, version }) =>
+      Effect.gen(function* () {
+        yield* Effect.sleep(SWIPE_SETTLE_DURATION)
+        return Message.CompletedWaitForSwipeSettled({ entryId, version })
+      })
+  },
+})
 
 const SharedEffectsLayer = Layer.mergeAll(
   WaitBeforeDismissal.layer,
@@ -683,45 +679,47 @@ export const makeRuntime = <const Name extends string, A, I>(
           MessageSchema.CancelledSwipe,
         ],
         modelToDependencies: swipeDependencies,
-      },
-      Effect.succeed(({ isSwipeEnabled, isAnyDragging }) => {
-        const pointerMoveStream = Dom.streamFromEvent({
-          target: document,
-          type: 'pointermove',
-          mapEvent: event =>
-            MessageSchema.MovedSwipePointer({
-              pointerId: event.pointerId,
-              clientX: event.clientX,
-            }),
-        })
-        const pointerUpStream = Dom.streamFromEvent({
-          target: document,
-          type: 'pointerup',
-          mapEvent: event =>
-            MessageSchema.ReleasedSwipePointer({
-              pointerId: event.pointerId,
-              clientX: event.clientX,
-            }),
-        })
-        const pointerCancelStream = Dom.streamFromEvent({
-          target: document,
-          type: 'pointercancel',
-          mapEvent: event =>
-            MessageSchema.CancelledSwipe({ pointerId: event.pointerId }),
-        })
-        const pointerMessages = Stream.mergeAll<
-          SwipePointerMessage,
-          never,
-          never
-        >([pointerMoveStream, pointerUpStream, pointerCancelStream], {
-          concurrency: 'unbounded',
-        })
+        handler: function* () {
+          return ({ isSwipeEnabled, isAnyDragging }) => {
+            const pointerMoveStream = Dom.streamFromEvent({
+              target: document,
+              type: 'pointermove',
+              mapEvent: event =>
+                MessageSchema.MovedSwipePointer({
+                  pointerId: event.pointerId,
+                  clientX: event.clientX,
+                }),
+            })
+            const pointerUpStream = Dom.streamFromEvent({
+              target: document,
+              type: 'pointerup',
+              mapEvent: event =>
+                MessageSchema.ReleasedSwipePointer({
+                  pointerId: event.pointerId,
+                  clientX: event.clientX,
+                }),
+            })
+            const pointerCancelStream = Dom.streamFromEvent({
+              target: document,
+              type: 'pointercancel',
+              mapEvent: event =>
+                MessageSchema.CancelledSwipe({ pointerId: event.pointerId }),
+            })
+            const pointerMessages = Stream.mergeAll<
+              SwipePointerMessage,
+              never,
+              never
+            >([pointerMoveStream, pointerUpStream, pointerCancelStream], {
+              concurrency: 'unbounded',
+            })
 
-        return Stream.when(
-          Stream.merge(pointerMessages, documentStylesWhileSwiping),
-          Effect.sync(() => isSwipeEnabled && isAnyDragging),
-        )
-      }),
+            return Stream.when(
+              Stream.merge(pointerMessages, documentStylesWhileSwiping),
+              Effect.sync(() => isSwipeEnabled && isAnyDragging),
+            )
+          }
+        },
+      },
     ),
 
     swipeEscape: entry(
@@ -733,21 +731,22 @@ export const makeRuntime = <const Name extends string, A, I>(
       {
         messages: [MessageSchema.PressedEscape],
         modelToDependencies: swipeDependencies,
+        handler: function* () {
+          return ({ isSwipeEnabled, isAnyDragging }) =>
+            Stream.when(
+              Dom.streamFromEventFilterMap({
+                target: document,
+                type: 'keydown',
+                filterMapEvent: event =>
+                  pipe(
+                    Option.liftPredicate(event.key, key => key === 'Escape'),
+                    Option.map(() => MessageSchema.PressedEscape()),
+                  ),
+              }),
+              Effect.sync(() => isSwipeEnabled && isAnyDragging),
+            )
+        },
       },
-      Effect.succeed(({ isSwipeEnabled, isAnyDragging }) =>
-        Stream.when(
-          Dom.streamFromEventFilterMap({
-            target: document,
-            type: 'keydown',
-            filterMapEvent: event =>
-              pipe(
-                Option.liftPredicate(event.key, key => key === 'Escape'),
-                Option.map(() => MessageSchema.PressedEscape()),
-              ),
-          }),
-          Effect.sync(() => isSwipeEnabled && isAnyDragging),
-        ),
-      ),
     ),
   }))
 

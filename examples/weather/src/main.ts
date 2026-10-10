@@ -203,18 +203,15 @@ const fetchWeather = (zipCode: string, client: HttpClient.HttpClient) =>
     ),
   )
 
-export const FetchWeather = Command.define(
-  'FetchWeather',
-  {
-    args: { zipCode: Schema.String },
-    messages: [Message.SucceededFetchWeather, Message.FailedFetchWeather],
-  },
-  Effect.gen(function* () {
+export const FetchWeather = Command.define('FetchWeather', {
+  args: { zipCode: Schema.String },
+  messages: [Message.SucceededFetchWeather, Message.FailedFetchWeather],
+  handler: function* () {
     const client = yield* HttpClient.HttpClient
 
     return ({ zipCode }) => fetchWeather(zipCode, client)
-  }),
-)
+  },
+})
 
 export const EffectsLayer = FetchWeather.layer
 

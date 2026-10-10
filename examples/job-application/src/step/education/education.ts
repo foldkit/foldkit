@@ -45,20 +45,20 @@ export const GenerateEducationEntryId = Command.define(
       Message.SucceededGenerateEducationEntryId,
       Message.FailedGenerateEducationEntryId,
     ],
-  },
-  Effect.gen(function* () {
-    const crypto = yield* Crypto.Crypto
+    handler: function* () {
+      const crypto = yield* Crypto.Crypto
 
-    return () =>
-      crypto.randomUUIDv4.pipe(
-        Effect.map(entryId =>
-          Message.SucceededGenerateEducationEntryId({ entryId }),
-        ),
-        Effect.catch(() =>
-          Effect.succeed(Message.FailedGenerateEducationEntryId()),
-        ),
-      )
-  }),
+      return () =>
+        crypto.randomUUIDv4.pipe(
+          Effect.map(entryId =>
+            Message.SucceededGenerateEducationEntryId({ entryId }),
+          ),
+          Effect.catch(() =>
+            Effect.succeed(Message.FailedGenerateEducationEntryId()),
+          ),
+        )
+    },
+  },
 )
 
 export const EffectsLayer = GenerateEducationEntryId.layer

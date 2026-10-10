@@ -81,24 +81,22 @@ export type Message = typeof Message.Type
 
 // COMMAND
 
-export const Compute = Command.define(
-  'Compute',
-  {
-    args: { value: Schema.Number },
-    messages: [Message.SucceededCompute, Message.FailedCompute],
-  },
-  Effect.succeed(({ value }) =>
-    Effect.gen(function* () {
-      const engine = yield* Engine.get
+export const Compute = Command.define('Compute', {
+  args: { value: Schema.Number },
+  messages: [Message.SucceededCompute, Message.FailedCompute],
+  handler: function* () {
+    return ({ value }) =>
+      Effect.gen(function* () {
+        const engine = yield* Engine.get
 
-      return Message.SucceededCompute({ result: engine.square(value) })
-    }).pipe(
-      Effect.catchTag('ResourceNotAvailable', () =>
-        Effect.succeed(Message.FailedCompute()),
-      ),
-    ),
-  ),
-)
+        return Message.SucceededCompute({ result: engine.square(value) })
+      }).pipe(
+        Effect.catchTag('ResourceNotAvailable', () =>
+          Effect.succeed(Message.FailedCompute()),
+        ),
+      )
+  },
+})
 
 // UPDATE
 
@@ -158,30 +156,28 @@ export const init = () => ({
 
 export const managedResources = ManagedResource.make<Model, Message>()(
   entry => ({
-    engine: entry(
-      'ManageEngine',
-      Schema.Option(Schema.Null),
-      {
-        resource: Engine,
-        modelToMaybeRequirements: model =>
-          Match.value(model.engine).pipe(
-            Match.tag('Booting', 'Ready', () => Option.some(null)),
-            Match.tag('Off', 'Failed', () => Option.none()),
-            Match.exhaustive,
-          ),
-        onAcquired: ({ engineId }) => Message.StartedEngine({ engineId }),
-        onReleased: () => Message.StoppedEngine(),
-        onAcquireError: error =>
-          Message.FailedStartEngine({ reason: String(error) }),
+    engine: entry('ManageEngine', Schema.Option(Schema.Null), {
+      resource: Engine,
+      modelToMaybeRequirements: model =>
+        Match.value(model.engine).pipe(
+          Match.tag('Booting', 'Ready', () => Option.some(null)),
+          Match.tag('Off', 'Failed', () => Option.none()),
+          Match.exhaustive,
+        ),
+      onAcquired: ({ engineId }) => Message.StartedEngine({ engineId }),
+      onReleased: () => Message.StoppedEngine(),
+      onAcquireError: error =>
+        Message.FailedStartEngine({ reason: String(error) }),
+      handler: function* () {
+        return {
+          acquire: () =>
+            Layer.build(ComputeEngineLayer).pipe(
+              Effect.map(context => Context.get(context, ComputeEngineService)),
+            ),
+          release: () => Effect.void,
+        }
       },
-      Effect.succeed({
-        acquire: () =>
-          Layer.build(ComputeEngineLayer).pipe(
-            Effect.map(context => Context.get(context, ComputeEngineService)),
-          ),
-        release: () => Effect.void,
-      }),
-    ),
+    }),
   }),
 )
 

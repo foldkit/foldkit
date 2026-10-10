@@ -36,22 +36,20 @@ export const update = Update.make((model: Model, message: Message) =>
 
 // COMMAND
 
-export const CopySnippet = Command.define(
-  'CopySnippet',
-  {
-    args: { snippetId: Schema.String, text: Schema.String },
-    messages: [Message.SucceededCopySnippet, Message.FailedCopySnippet],
+export const CopySnippet = Command.define('CopySnippet', {
+  args: { snippetId: Schema.String, text: Schema.String },
+  messages: [Message.SucceededCopySnippet, Message.FailedCopySnippet],
+  handler: function* () {
+    return ({ snippetId, text }) =>
+      Effect.tryPromise({
+        try: () => navigator.clipboard.writeText(text),
+        catch: () => new Error('Failed to copy to clipboard'),
+      }).pipe(
+        Effect.as(Message.SucceededCopySnippet({ snippetId })),
+        Effect.catch(() => Effect.succeed(Message.FailedCopySnippet())),
+      )
   },
-  Effect.succeed(({ snippetId, text }) =>
-    Effect.tryPromise({
-      try: () => navigator.clipboard.writeText(text),
-      catch: () => new Error('Failed to copy to clipboard'),
-    }).pipe(
-      Effect.as(Message.SucceededCopySnippet({ snippetId })),
-      Effect.catch(() => Effect.succeed(Message.FailedCopySnippet())),
-    ),
-  ),
-)
+})
 
 const COPY_INDICATOR_DURATION = '2 seconds'
 
@@ -60,14 +58,15 @@ export const WaitBeforeHidingCopiedIndicator = Command.define(
   {
     args: { snippetId: Schema.String },
     messages: [Message.CompletedWaitBeforeHidingCopiedIndicator],
+    handler: function* () {
+      return ({ snippetId }) =>
+        Effect.sleep(COPY_INDICATOR_DURATION).pipe(
+          Effect.as(
+            Message.CompletedWaitBeforeHidingCopiedIndicator({ snippetId }),
+          ),
+        )
+    },
   },
-  Effect.succeed(({ snippetId }) =>
-    Effect.sleep(COPY_INDICATOR_DURATION).pipe(
-      Effect.as(
-        Message.CompletedWaitBeforeHidingCopiedIndicator({ snippetId }),
-      ),
-    ),
-  ),
 )
 
 export const EffectsLayer = Layer.mergeAll(

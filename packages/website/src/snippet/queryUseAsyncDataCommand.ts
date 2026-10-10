@@ -6,18 +6,16 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const SubmitOrder = Command.define(
-  'SubmitOrder',
-  {
-    args: { orderDraft: OrderDraft },
-    messages: [Message.SucceededSubmitOrder, Message.FailedSubmitOrder],
+const SubmitOrder = Command.define('SubmitOrder', {
+  args: { orderDraft: OrderDraft },
+  messages: [Message.SucceededSubmitOrder, Message.FailedSubmitOrder],
+  handler: function* () {
+    return ({ orderDraft }) =>
+      Orders.place(orderDraft).pipe(
+        Effect.map(order => Message.SucceededSubmitOrder({ order })),
+        Effect.catch(error =>
+          Effect.succeed(Message.FailedSubmitOrder({ error })),
+        ),
+      )
   },
-  Effect.succeed(({ orderDraft }) =>
-    Orders.place(orderDraft).pipe(
-      Effect.map(order => Message.SucceededSubmitOrder({ order })),
-      Effect.catch(error =>
-        Effect.succeed(Message.FailedSubmitOrder({ error })),
-      ),
-    ),
-  ),
-)
+})

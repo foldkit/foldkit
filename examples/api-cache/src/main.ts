@@ -234,12 +234,9 @@ export const init = () => ({
 
 // COMMAND
 
-export const FetchPosts = Command.define(
-  'FetchPosts',
-  {
-    messages: [Message.CompletedFetchPosts],
-  },
-  Effect.gen(function* () {
+export const FetchPosts = Command.define('FetchPosts', {
+  messages: [Message.CompletedFetchPosts],
+  handler: function* () {
     const clock = yield* Clock.Clock
 
     return () =>
@@ -253,16 +250,13 @@ export const FetchPosts = Command.define(
         Effect.result,
         Effect.map(result => Message.CompletedFetchPosts({ result })),
       )
-  }),
-)
-
-export const FetchPostDetail = Command.define(
-  'FetchPostDetail',
-  {
-    args: { postId: Schema.String },
-    messages: [Message.CompletedFetchPostDetail],
   },
-  Effect.gen(function* () {
+})
+
+export const FetchPostDetail = Command.define('FetchPostDetail', {
+  args: { postId: Schema.String },
+  messages: [Message.CompletedFetchPostDetail],
+  handler: function* () {
     const clock = yield* Clock.Clock
 
     return ({ postId }) =>
@@ -278,15 +272,12 @@ export const FetchPostDetail = Command.define(
           Message.CompletedFetchPostDetail({ postId, result }),
         ),
       )
-  }),
-)
-
-export const FetchStats = Command.define(
-  'FetchStats',
-  {
-    messages: [Message.CompletedFetchStats],
   },
-  Effect.gen(function* () {
+})
+
+export const FetchStats = Command.define('FetchStats', {
+  messages: [Message.CompletedFetchStats],
+  handler: function* () {
     const clock = yield* Clock.Clock
 
     return () =>
@@ -300,8 +291,8 @@ export const FetchStats = Command.define(
         Effect.result,
         Effect.map(result => Message.CompletedFetchStats({ result })),
       )
-  }),
-)
+  },
+})
 
 // SUBSCRIPTION
 
@@ -315,18 +306,19 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
         isObservingStats:
           model.activeTab === 'Stats' && AsyncData.hasData(model.stats),
       }),
+      handler: function* () {
+        return ({ isObservingStats }) =>
+          Stream.when(
+            // NOTE: Stream.tick emits once immediately. Drop that first
+            // emission so freshly loaded stats are not refetched instantly.
+            Stream.tick(STATS_REFETCH_INTERVAL).pipe(
+              Stream.drop(1),
+              Stream.map(Message.TickedRevalidateStats),
+            ),
+            Effect.sync(() => isObservingStats),
+          )
+      },
     },
-    Effect.succeed(({ isObservingStats }) =>
-      Stream.when(
-        // NOTE: Stream.tick emits once immediately. Drop that first
-        // emission so freshly loaded stats are not refetched instantly.
-        Stream.tick(STATS_REFETCH_INTERVAL).pipe(
-          Stream.drop(1),
-          Stream.map(Message.TickedRevalidateStats),
-        ),
-        Effect.sync(() => isObservingStats),
-      ),
-    ),
   ),
 }))
 

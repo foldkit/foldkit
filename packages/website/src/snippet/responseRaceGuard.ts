@@ -32,13 +32,10 @@ type Message = typeof Message.Type
 
 // COMMAND
 
-const Search = Command.define(
-  'Search',
-  {
-    args: { query: Schema.String },
-    messages: [Message.SettledSearch],
-  },
-  Effect.gen(function* () {
+const Search = Command.define('Search', {
+  args: { query: Schema.String },
+  messages: [Message.SettledSearch],
+  handler: function* () {
     const client = yield* HttpClient.HttpClient
 
     return ({ query }) =>
@@ -56,8 +53,8 @@ const Search = Command.define(
         Effect.result,
         Effect.map(result => Message.SettledSearch({ query, result })),
       )
-  }),
-)
+  },
+})
 
 // UPDATE
 

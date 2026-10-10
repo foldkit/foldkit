@@ -43,18 +43,16 @@ export const init = (flags: Flags) => ({
 
 // COMMAND
 
-export const ReportCount = Command.define(
-  'ReportCount',
-  {
-    args: { count: Schema.Number },
-    messages: [Message.CompletedReportCount],
+export const ReportCount = Command.define('ReportCount', {
+  args: { count: Schema.Number },
+  messages: [Message.CompletedReportCount],
+  handler: function* () {
+    return ({ count }) =>
+      Port.emit(ports.outbound.countChanged, count).pipe(
+        Effect.as(Message.CompletedReportCount()),
+      )
   },
-  Effect.succeed(({ count }) =>
-    Port.emit(ports.outbound.countChanged, count).pipe(
-      Effect.as(Message.CompletedReportCount()),
-    ),
-  ),
-)
+})
 
 // UPDATE
 
@@ -82,29 +80,25 @@ export const update = Update.make((model: Model, message: Message) =>
 const TICK_INTERVAL = Duration.seconds(1)
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  widgetTicks: entry(
-    'WidgetTicks',
-    {
-      messages: [Message.Ticked],
+  widgetTicks: entry('WidgetTicks', {
+    messages: [Message.Ticked],
+    handler: function* () {
+      return () =>
+        Stream.tick(TICK_INTERVAL).pipe(
+          Stream.drop(1),
+          Stream.map(Message.Ticked),
+        )
     },
-    Effect.succeed(() =>
-      Stream.tick(TICK_INTERVAL).pipe(
-        Stream.drop(1),
-        Stream.map(Message.Ticked),
-      ),
-    ),
-  ),
-  hostStepChanges: entry(
-    'HostStepChanges',
-    {
-      messages: [Message.ChangedStep],
+  }),
+  hostStepChanges: entry('HostStepChanges', {
+    messages: [Message.ChangedStep],
+    handler: function* () {
+      return () =>
+        Port.stream(ports.inbound.stepChanged).pipe(
+          Stream.map(step => Message.ChangedStep({ step })),
+        )
     },
-    Effect.succeed(() =>
-      Port.stream(ports.inbound.stepChanged).pipe(
-        Stream.map(step => Message.ChangedStep({ step })),
-      ),
-    ),
-  ),
+  }),
 }))
 
 export const EffectsLayer = Layer.mergeAll(

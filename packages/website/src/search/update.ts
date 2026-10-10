@@ -18,13 +18,10 @@ export const KEYBOARD_WARMUP_INPUT_ID = 'search-keyboard-warmup'
 
 const SEARCH_RESULT_SELECTOR = '[data-search-result-index='
 
-export const FetchSearchResults = Command.define(
-  'FetchSearchResults',
-  {
-    args: { query: Schema.String },
-    messages: [Message.CompletedFetchSearchResults],
-  },
-  Effect.gen(function* () {
+export const FetchSearchResults = Command.define('FetchSearchResults', {
+  args: { query: Schema.String },
+  messages: [Message.CompletedFetchSearchResults],
+  handler: function* () {
     const pagefind = yield* PagefindService
 
     return ({ query }) =>
@@ -59,46 +56,40 @@ export const FetchSearchResults = Command.define(
           ),
         ),
       )
-  }),
-)
-
-export const ScrollToResult = Command.define(
-  'ScrollToResult',
-  {
-    args: { index: Schema.Number },
-    messages: [Message.CompletedScrollToResult],
   },
-  Effect.succeed(({ index }) =>
-    Dom.scrollIntoView(`${SEARCH_RESULT_SELECTOR}"${index}"]`).pipe(
-      Effect.ignore,
-      Effect.as(Message.CompletedScrollToResult()),
-    ),
-  ),
-)
+})
 
-export const NavigateToResult = Command.define(
-  'NavigateToResult',
-  {
-    args: { url: Schema.String },
-    messages: [Message.CompletedNavigateToResult],
+export const ScrollToResult = Command.define('ScrollToResult', {
+  args: { index: Schema.Number },
+  messages: [Message.CompletedScrollToResult],
+  handler: function* () {
+    return ({ index }) =>
+      Dom.scrollIntoView(`${SEARCH_RESULT_SELECTOR}"${index}"]`).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedScrollToResult()),
+      )
   },
-  Effect.succeed(({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateToResult())),
-  ),
-)
+})
 
-export const FocusSearchInput = Command.define(
-  'FocusSearchInput',
-  {
-    messages: [Message.CompletedFocusSearchInput],
+export const NavigateToResult = Command.define('NavigateToResult', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateToResult],
+  handler: function* () {
+    return ({ url }) =>
+      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateToResult()))
   },
-  Effect.succeed(() =>
-    Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
-      Effect.ignore,
-      Effect.as(Message.CompletedFocusSearchInput()),
-    ),
-  ),
-)
+})
+
+export const FocusSearchInput = Command.define('FocusSearchInput', {
+  messages: [Message.CompletedFocusSearchInput],
+  handler: function* () {
+    return () =>
+      Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedFocusSearchInput()),
+      )
+  },
+})
 
 const foldSearchDialogOutMessage = (
   outMessage: typeof Dialog.OutMessage.Type,

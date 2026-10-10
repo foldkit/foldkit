@@ -24,13 +24,12 @@ export type Message = typeof Message.Type
 
 /** Left unresolved by a test that wants a bookkeeping violation alongside a
  *  fall-through, so the two end-of-scene checks can be ordered. */
-export const RecordReset = Command.define(
-  'RecordReset',
-  {
-    messages: [Message.CompletedRecordReset],
+export const RecordReset = Command.define('RecordReset', {
+  messages: [Message.CompletedRecordReset],
+  handler: function* () {
+    return () => Effect.sync(() => Message.CompletedRecordReset())
   },
-  Effect.succeed(() => Effect.sync(() => Message.CompletedRecordReset())),
-)
+})
 
 // INIT
 

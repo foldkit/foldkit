@@ -5,12 +5,13 @@ import { importedHandler } from 'external-handlers'
 const observeElement = ({ element }) =>
   Effect.sync(() => resizeObserver.observe(element))
 const observeElementAlias = observeElement
-const observeElementBuild = Effect.succeed(observeElementAlias)
+const observeElementBuild = function* () {
+  return observeElementAlias
+}
 
 export const ObserveNamedElement = Mount.define(
   'ObserveNamedElement',
-  { messages: [CompletedObserveNamedElement] },
-  observeElementBuild,
+  { messages: [CompletedObserveNamedElement], handler: observeElementBuild},
 )
 
 const observeGeneratedElement = ({ element }) =>
@@ -18,11 +19,10 @@ const observeGeneratedElement = ({ element }) =>
 
 export const ObserveGeneratedElement = Mount.define(
   'ObserveGeneratedElement',
-  { messages: [CompletedObserveGeneratedElement] },
-  Effect.gen(function* () {
+  { messages: [CompletedObserveGeneratedElement], handler: function* () {
     yield* Effect.void
     return observeGeneratedElement
-  }),
+  }},
 )
 
 function observeDeclaredElement({ element }) {
@@ -31,8 +31,7 @@ function observeDeclaredElement({ element }) {
 
 export const ObserveDeclaredElement = Mount.define(
   'ObserveDeclaredElement',
-  { messages: [CompletedObserveDeclaredElement] },
-  Effect.succeed(observeDeclaredElement),
+  { messages: [CompletedObserveDeclaredElement], handler: function* () { return observeDeclaredElement }},
 )
 
 {
@@ -41,8 +40,7 @@ export const ObserveDeclaredElement = Mount.define(
 
   Mount.define(
     'ObserveShadowedElement',
-    { messages: [CompletedObserveShadowedElement] },
-    Effect.succeed(observeElement),
+    { messages: [CompletedObserveShadowedElement], handler: function* () { return observeElement }},
   )
 }
 
@@ -51,12 +49,10 @@ const cycleB = cycleA
 
 Mount.define(
   'UnresolvedCycle',
-  { messages: [CompletedUnresolvedCycle] },
-  Effect.succeed(cycleA),
+  { messages: [CompletedUnresolvedCycle], handler: function* () { return cycleA }},
 )
 
 Mount.define(
   'ImportedHandler',
-  { messages: [CompletedImportedHandler] },
-  Effect.succeed(importedHandler),
+  { messages: [CompletedImportedHandler], handler: function* () { return importedHandler }},
 )

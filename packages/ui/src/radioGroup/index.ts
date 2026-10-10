@@ -103,19 +103,17 @@ const descriptionId = (id: string, index: number): string =>
   `${id}-option-${index}-description`
 
 /** Moves focus to the option at the given index. */
-export const FocusOption = Command.define(
-  'FocusOption',
-  {
-    args: { id: Schema.String, index: Schema.Number },
-    messages: [Message.CompletedFocusOption],
+export const FocusOption = Command.define('FocusOption', {
+  args: { id: Schema.String, index: Schema.Number },
+  messages: [Message.CompletedFocusOption],
+  handler: function* () {
+    return ({ id, index }) =>
+      Dom.focus(idSelector(optionId(id, index))).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedFocusOption()),
+      )
   },
-  Effect.succeed(({ id, index }) =>
-    Dom.focus(idSelector(optionId(id, index))).pipe(
-      Effect.ignore,
-      Effect.as(Message.CompletedFocusOption()),
-    ),
-  ),
-)
+})
 
 /** Effect providers used by the RadioGroup component. */
 export const EffectsLayer = Layer.mergeAll(FocusOption.layer)

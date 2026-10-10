@@ -1,18 +1,16 @@
-const LoadAllNotes = Command.define(
-  'LoadAllNotes',
-  {
-    messages: [SucceededLoadAllNotes, FailedLoadAllNotes],
+const LoadAllNotes = Command.define('LoadAllNotes', {
+  messages: [SucceededLoadAllNotes, FailedLoadAllNotes],
+  handler: function* () {
+    return () =>
+      pipe(
+        fetchAllNotes,
+        Effect.match({
+          onSuccess: notes => SucceededLoadAllNotes({ notes }),
+          onFailure: error => FailedLoadAllNotes({ error }),
+        }),
+      )
   },
-  Effect.succeed(() =>
-    pipe(
-      fetchAllNotes,
-      Effect.match({
-        onSuccess: notes => SucceededLoadAllNotes({ notes }),
-        onFailure: error => FailedLoadAllNotes({ error }),
-      }),
-    ),
-  ),
-)
+})
 
 const update = Update.make((model: Model, message: Message) =>
   Match.value(message).pipe(

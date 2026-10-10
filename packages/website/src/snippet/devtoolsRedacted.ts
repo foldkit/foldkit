@@ -33,27 +33,25 @@ const Message = defineMessageUnion({
 
 // COMMAND
 
-const FetchProfile = Command.define(
-  'FetchProfile',
-  {
-    // 3. Require a Redacted value because DevTools records Command arguments.
-    args: { accessToken: AccessToken },
-    messages: [Message.CompletedFetchProfile, Message.FailedFetchProfile],
+const FetchProfile = Command.define('FetchProfile', {
+  // 3. Require a Redacted value because DevTools records Command arguments.
+  args: { accessToken: AccessToken },
+  messages: [Message.CompletedFetchProfile, Message.FailedFetchProfile],
+  handler: function* () {
+    return ({ accessToken }) =>
+      Effect.tryPromise(() =>
+        fetch('/api/profile', {
+          headers: {
+            // 4. Recover the raw token only at the request boundary that needs it.
+            Authorization: `Bearer ${Redacted.value(accessToken)}`,
+          },
+        }),
+      ).pipe(
+        Effect.as(Message.CompletedFetchProfile()),
+        Effect.catch(() => Effect.succeed(Message.FailedFetchProfile())),
+      )
   },
-  Effect.succeed(({ accessToken }) =>
-    Effect.tryPromise(() =>
-      fetch('/api/profile', {
-        headers: {
-          // 4. Recover the raw token only at the request boundary that needs it.
-          Authorization: `Bearer ${Redacted.value(accessToken)}`,
-        },
-      }),
-    ).pipe(
-      Effect.as(Message.CompletedFetchProfile()),
-      Effect.catch(() => Effect.succeed(Message.FailedFetchProfile())),
-    ),
-  ),
-)
+})
 
 const fetchProfile = (model: Model) =>
   FetchProfile({ accessToken: model.accessToken })

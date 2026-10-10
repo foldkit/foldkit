@@ -21,33 +21,29 @@ class Suffix extends Context.Service<Suffix, { readonly value: string }>()(
   'CommandHandlerTestSuffix',
 ) {}
 
-const SendMessage = Command.define(
-  'SendMessage',
-  {
-    args: { text: Schema.String },
-    messages: [Message.CompletedSendMessage],
+const SendMessage = Command.define('SendMessage', {
+  args: { text: Schema.String },
+  messages: [Message.CompletedSendMessage],
+  handler: function* () {
+    return ({ text }) =>
+      Effect.map(Prefix, ({ value }) =>
+        Message.CompletedSendMessage({ text: value + text }),
+      )
   },
-  Effect.succeed(({ text }) =>
-    Effect.map(Prefix, ({ value }) =>
-      Message.CompletedSendMessage({ text: value + text }),
-    ),
-  ),
-)
+})
 
 const SendMessageLayer = SendMessage.layer
 
-const ReadPrefix = Command.define(
-  'ReadPrefix',
-  {
-    messages: [Message.CompletedSendMessage],
-    interrupt: true,
+const ReadPrefix = Command.define('ReadPrefix', {
+  messages: [Message.CompletedSendMessage],
+  interrupt: true,
+  handler: function* () {
+    return () =>
+      Effect.map(Prefix, ({ value }) =>
+        Message.CompletedSendMessage({ text: value }),
+      )
   },
-  Effect.succeed(() =>
-    Effect.map(Prefix, ({ value }) =>
-      Message.CompletedSendMessage({ text: value }),
-    ),
-  ),
-)
+})
 
 const update = (model: Model, message: Message) =>
   Message.match(message, {
@@ -171,20 +167,18 @@ it('defers the handler body until the Command runs', async () => {
   expect(executions).toBe(1)
 })
 
-it('builds an Effect supplied handler once for multiple Command executions', async () => {
+it('builds the handler once for multiple Command executions', async () => {
   let builds = 0
-  const BuildOnce = Command.define(
-    'BuildOnce',
-    {
-      args: { text: Schema.String },
-      messages: [Message.CompletedSendMessage],
-    },
-    Effect.sync(() => {
+  const BuildOnce = Command.define('BuildOnce', {
+    args: { text: Schema.String },
+    messages: [Message.CompletedSendMessage],
+    handler: function* () {
       builds += 1
-      return ({ text }: { readonly text: string }) =>
+
+      return ({ text }) =>
         Effect.succeed(Message.CompletedSendMessage({ text }))
-    }),
-  )
+    },
+  })
 
   const results = await Effect.runPromise(
     Effect.all([
@@ -222,13 +216,10 @@ it('keeps interruptible Command identity with a Layer-backed handler', async () 
 it('infers constructor failures and nested handler requirements', () => {
   class BuildFailure extends Data.TaggedError('BuildFailure')<{}> {}
 
-  const NestedRequirements = Command.define(
-    'NestedRequirements',
-    {
-      args: { text: Schema.String },
-      messages: [Message.CompletedSendMessage],
-    },
-    Effect.gen(function* () {
+  const NestedRequirements = Command.define('NestedRequirements', {
+    args: { text: Schema.String },
+    messages: [Message.CompletedSendMessage],
+    handler: function* () {
       yield* Effect.scope
       const suffix = yield* Suffix
       if (suffix.value === 'unavailable') {
@@ -248,8 +239,8 @@ it('infers constructor failures and nested handler requirements', () => {
           })
         })
       }
-    }),
-  )
+    },
+  })
 
   expectTypeOf(NestedRequirements.layer).toEqualTypeOf<
     Layer.Layer<

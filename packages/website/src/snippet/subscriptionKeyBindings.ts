@@ -31,27 +31,28 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
         Message.PressedHomeShortcut,
       ],
       modelToDependencies: model => ({ searchState: model.searchState }),
+      handler: function* () {
+        return ({ searchState }) =>
+          Dom.streamFromKeyBindings<Message>({
+            bindings: [
+              {
+                keys: 'Mod+K',
+                whileTyping: 'Allow',
+                mapEvent: () => Message.PressedSearchShortcut(),
+              },
+              {
+                keys: 'Escape',
+                isEnabled: searchState._tag === 'Open',
+                whileTyping: 'Allow',
+                mapEvent: () => Message.PressedEscape(),
+              },
+              {
+                keys: ['G', 'H'],
+                mapEvent: () => Message.PressedHomeShortcut(),
+              },
+            ],
+          })
+      },
     },
-    Effect.succeed(({ searchState }) =>
-      Dom.streamFromKeyBindings<Message>({
-        bindings: [
-          {
-            keys: 'Mod+K',
-            whileTyping: 'Allow',
-            mapEvent: () => Message.PressedSearchShortcut(),
-          },
-          {
-            keys: 'Escape',
-            isEnabled: searchState._tag === 'Open',
-            whileTyping: 'Allow',
-            mapEvent: () => Message.PressedEscape(),
-          },
-          {
-            keys: ['G', 'H'],
-            mapEvent: () => Message.PressedHomeShortcut(),
-          },
-        ],
-      }),
-    ),
   ),
 }))

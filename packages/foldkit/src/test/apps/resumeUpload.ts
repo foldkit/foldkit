@@ -32,36 +32,32 @@ export type Message = typeof Message.Type
 
 // COMMAND
 
-export const SelectResume = Command.define(
-  'SelectResume',
-  {
-    messages: [Message.CompletedSelectResume, Message.CancelledSelectResume],
+export const SelectResume = Command.define('SelectResume', {
+  messages: [Message.CompletedSelectResume, Message.CancelledSelectResume],
+  handler: function* () {
+    return () =>
+      File.select(['application/pdf']).pipe(
+        Effect.map(
+          Option.match({
+            onNone: () => Message.CancelledSelectResume(),
+            onSome: file => Message.CompletedSelectResume({ file }),
+          }),
+        ),
+      )
   },
-  Effect.succeed(() =>
-    File.select(['application/pdf']).pipe(
-      Effect.map(
-        Option.match({
-          onNone: () => Message.CancelledSelectResume(),
-          onSome: file => Message.CompletedSelectResume({ file }),
-        }),
-      ),
-    ),
-  ),
-)
+})
 
-export const ReadResumePreview = Command.define(
-  'ReadResumePreview',
-  {
-    args: { file: File.File },
-    messages: [Message.SucceededReadPreview, Message.FailedReadPreview],
+export const ReadResumePreview = Command.define('ReadResumePreview', {
+  args: { file: File.File },
+  messages: [Message.SucceededReadPreview, Message.FailedReadPreview],
+  handler: function* () {
+    return ({ file }) =>
+      File.readAsDataUrl(file).pipe(
+        Effect.map(dataUrl => Message.SucceededReadPreview({ dataUrl })),
+        Effect.catch(() => Effect.succeed(Message.FailedReadPreview())),
+      )
   },
-  Effect.succeed(({ file }) =>
-    File.readAsDataUrl(file).pipe(
-      Effect.map(dataUrl => Message.SucceededReadPreview({ dataUrl })),
-      Effect.catch(() => Effect.succeed(Message.FailedReadPreview())),
-    ),
-  ),
-)
+})
 
 // INIT
 

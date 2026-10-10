@@ -105,18 +105,14 @@ const layeredManagedResources = make<ChildModel, ChildMessage>()(entry => ({
 }))
 
 const attachedManagedResources = make<ChildModel, ChildMessage>()(entry => ({
-  session: entry(
-    'AttachedManageSession',
-    sessionSchema,
-    {
-      resource: LayeredSessionResource,
-      modelToMaybeRequirements: model =>
-        Option.map(model.maybeToken, token => ({ token })),
-      onAcquired: () => childMessage('AcquiredSession'),
-      onReleased: () => childMessage('ReleasedSession'),
-      onAcquireError: () => childMessage('FailedSession'),
-    },
-    Effect.gen(function* () {
+  session: entry('AttachedManageSession', sessionSchema, {
+    resource: LayeredSessionResource,
+    modelToMaybeRequirements: model =>
+      Option.map(model.maybeToken, token => ({ token })),
+    onAcquired: () => childMessage('AcquiredSession'),
+    onReleased: () => childMessage('ReleasedSession'),
+    onAcquireError: () => childMessage('FailedSession'),
+    handler: function* () {
       yield* Effect.scope
       const { isFailure } = yield* BuildGate
 
@@ -138,25 +134,21 @@ const attachedManagedResources = make<ChildModel, ChildMessage>()(entry => ({
             yield* Effect.sync(() => value + suffix)
           }),
       }
-    }),
-  ),
-  failedSession: entry(
-    'FailedAttachedManageSession',
-    sessionSchema,
-    {
-      resource: LayeredSessionResource,
-      modelToMaybeRequirements: model =>
-        Option.map(model.maybeToken, token => ({ token })),
-      onAcquired: () => childMessage('AcquiredSession'),
-      onReleased: () => childMessage('ReleasedSession'),
-      onAcquireError: () => childMessage('FailedSession'),
     },
-    Effect.gen(function* () {
+  }),
+  failedSession: entry('FailedAttachedManageSession', sessionSchema, {
+    resource: LayeredSessionResource,
+    modelToMaybeRequirements: model =>
+      Option.map(model.maybeToken, token => ({ token })),
+    onAcquired: () => childMessage('AcquiredSession'),
+    onReleased: () => childMessage('ReleasedSession'),
+    onAcquireError: () => childMessage('FailedSession'),
+    handler: function* () {
       yield* Effect.scope
       yield* BuildGate
       return yield* Effect.fail(new AcquireFailure())
-    }),
-  ),
+    },
+  }),
   contextualSession: entry(
     'ContextualAttachedManageSession',
     contextualSessionSchema,
@@ -176,31 +168,34 @@ const attachedManagedResources = make<ChildModel, ChildMessage>()(entry => ({
       },
       onReleased: () => childMessage('ReleasedSession'),
       onAcquireError: () => childMessage('FailedSession'),
+      handler: function* () {
+        yield* Effect.void
+        return {
+          acquire: ({ id, maybeCount, label }) => {
+            const exactId: string = id
+            const exactCount: Option.Option<number> = maybeCount
+            const exactLabel: string | undefined = label
+            // @ts-expect-error A required Schema.String field has no arbitrary members.
+            id.doesNotExist()
+            // @ts-expect-error A Schema.Option field retains its Option value type.
+            maybeCount.doesNotExist()
+            // @ts-expect-error An optional Schema.String field retains its string value type.
+            label?.doesNotExist()
+            return Effect.succeed(
+              `${exactId}:${Option.isSome(exactCount)}:${exactLabel ?? ''}`,
+            )
+          },
+          release: value => {
+            const exactValue: string = value
+            // @ts-expect-error Release receives the ManagedResource's exact value type.
+            value.doesNotExist()
+            return Effect.sync(() => {
+              void exactValue
+            })
+          },
+        }
+      },
     },
-    Effect.succeed({
-      acquire: ({ id, maybeCount, label }) => {
-        const exactId: string = id
-        const exactCount: Option.Option<number> = maybeCount
-        const exactLabel: string | undefined = label
-        // @ts-expect-error A required Schema.String field has no arbitrary members.
-        id.doesNotExist()
-        // @ts-expect-error A Schema.Option field retains its Option value type.
-        maybeCount.doesNotExist()
-        // @ts-expect-error An optional Schema.String field retains its string value type.
-        label?.doesNotExist()
-        return Effect.succeed(
-          `${exactId}:${Option.isSome(exactCount)}:${exactLabel ?? ''}`,
-        )
-      },
-      release: value => {
-        const exactValue: string = value
-        // @ts-expect-error Release receives the ManagedResource's exact value type.
-        value.doesNotExist()
-        return Effect.sync(() => {
-          void exactValue
-        })
-      },
-    }),
   ),
 }))
 
@@ -224,11 +219,13 @@ if (false) {
         onAcquired: () => childMessage('AcquiredSession'),
         onReleased: () => childMessage('ReleasedSession'),
         onAcquireError: () => childMessage('FailedSession'),
+        handler: function* () {
+          return {
+            acquire: ({ token }) => Effect.succeed(token),
+            release: () => Effect.void,
+          }
+        },
       },
-      Effect.succeed({
-        acquire: ({ token }) => Effect.succeed(token),
-        release: () => Effect.void,
-      }),
     ),
     unionHost: entry('UnionSessionHost', unionSessionSchema, {
       resource: LayeredSessionResource,
@@ -238,25 +235,23 @@ if (false) {
       onReleased: () => childMessage('ReleasedSession'),
       onAcquireError: () => childMessage('FailedSession'),
     }),
-    unionAttached: entry(
-      'UnionAttachedSession',
-      unionSessionSchema,
-      {
-        resource: LayeredSessionResource,
-        modelToMaybeRequirements: model =>
-          Option.map(model.maybeToken, token => ({ token })),
-        onAcquired: () => childMessage('AcquiredSession'),
-        onReleased: () => childMessage('ReleasedSession'),
-        onAcquireError: () => childMessage('FailedSession'),
+    unionAttached: entry('UnionAttachedSession', unionSessionSchema, {
+      resource: LayeredSessionResource,
+      modelToMaybeRequirements: model =>
+        Option.map(model.maybeToken, token => ({ token })),
+      onAcquired: () => childMessage('AcquiredSession'),
+      onReleased: () => childMessage('ReleasedSession'),
+      onAcquireError: () => childMessage('FailedSession'),
+      handler: function* () {
+        return {
+          acquire: requirements =>
+            Effect.succeed(
+              'id' in requirements ? requirements.id : requirements.token,
+            ),
+          release: () => Effect.void,
+        }
       },
-      Effect.succeed({
-        acquire: requirements =>
-          Effect.succeed(
-            'id' in requirements ? requirements.id : requirements.token,
-          ),
-        release: () => Effect.void,
-      }),
-    ),
+    }),
   }))
 
   schemaFallbackEntries.annotatedHost.toLayer(
@@ -293,6 +288,38 @@ if (false) {
     }),
   )
 
+  make<ChildModel, ChildMessage>()(entry => ({
+    missingRelease: entry('MissingReleaseSession', sessionSchema, {
+      resource: LayeredSessionResource,
+      modelToMaybeRequirements: model =>
+        Option.map(model.maybeToken, token => ({ token })),
+      onAcquired: () => childMessage('AcquiredSession'),
+      onReleased: () => childMessage('ReleasedSession'),
+      onAcquireError: () => childMessage('FailedSession'),
+      // @ts-expect-error An attached lifecycle handler must define release.
+      handler: function* () {
+        return {
+          acquire: ({ token }) => Effect.succeed(token),
+        }
+      },
+    }),
+    wrongValue: entry('WrongValueSession', sessionSchema, {
+      resource: LayeredSessionResource,
+      modelToMaybeRequirements: model =>
+        Option.map(model.maybeToken, token => ({ token })),
+      onAcquired: () => childMessage('AcquiredSession'),
+      onReleased: () => childMessage('ReleasedSession'),
+      onAcquireError: () => childMessage('FailedSession'),
+      // @ts-expect-error Acquire must produce the ManagedResource's exact value type.
+      handler: function* () {
+        return {
+          acquire: () => Effect.succeed(123),
+          release: () => Effect.void,
+        }
+      },
+    }),
+  }))
+
   make<ChildModel, ChildMessage>()(entry => {
     const narrowAcquireConfig = {
       resource: LayeredSessionResource,
@@ -302,11 +329,13 @@ if (false) {
       onReleased: () => childMessage('ReleasedSession'),
       onAcquireError: () => childMessage('FailedSession'),
     }
-    const narrowAcquireHandler = Effect.succeed({
-      acquire: ({ token }: Readonly<{ token: 'only' }>) =>
-        Effect.succeed(token),
-      release: (_value: string) => Effect.void,
-    })
+    const narrowAcquireHandler = function* () {
+      return {
+        acquire: ({ token }: Readonly<{ token: 'only' }>) =>
+          Effect.succeed(token),
+        release: (_value: string) => Effect.void,
+      }
+    }
 
     const narrowReleaseConfig = {
       resource: LayeredSessionResource,
@@ -316,43 +345,41 @@ if (false) {
       onReleased: () => childMessage('ReleasedSession'),
       onAcquireError: () => childMessage('FailedSession'),
     }
-    const narrowReleaseHandler = Effect.succeed({
-      acquire: ({ token }: Readonly<{ token: string }>) =>
-        Effect.succeed<'one' | 'two'>(token === 'one' ? 'one' : 'two'),
-      release: (_value: 'one') => Effect.void,
-    })
+    const narrowReleaseHandler = function* () {
+      return {
+        acquire: ({ token }: Readonly<{ token: string }>) =>
+          Effect.succeed<'one' | 'two'>(token === 'one' ? 'one' : 'two'),
+        release: (_value: 'one') => Effect.void,
+      }
+    }
 
     const unionAcquire =
       globalThis.Math.random() > 0.5
         ? ({ token }: Readonly<{ token: 'only' }>) => Effect.succeed(token)
         : ({ token }: Readonly<{ token: string }>) => Effect.succeed(token)
-    const unionAcquireHandler = Effect.succeed({
-      acquire: unionAcquire,
-      release: (_value: string) => Effect.void,
-    })
+    const unionAcquireHandler = function* () {
+      return {
+        acquire: unionAcquire,
+        release: (_value: string) => Effect.void,
+      }
+    }
 
     return {
-      narrowAcquire: entry(
-        'NarrowAcquireSession',
-        sessionSchema,
-        narrowAcquireConfig,
+      narrowAcquire: entry('NarrowAcquireSession', sessionSchema, {
+        ...narrowAcquireConfig,
         // @ts-expect-error Acquire must accept every value allowed by the requirements schema.
-        narrowAcquireHandler,
-      ),
-      narrowRelease: entry(
-        'NarrowReleaseSession',
-        sessionSchema,
-        narrowReleaseConfig,
+        handler: narrowAcquireHandler,
+      }),
+      narrowRelease: entry('NarrowReleaseSession', sessionSchema, {
+        ...narrowReleaseConfig,
         // @ts-expect-error Release must accept every value acquire can publish.
-        narrowReleaseHandler,
-      ),
-      unionAcquire: entry(
-        'UnionAcquireSession',
-        sessionSchema,
-        narrowAcquireConfig,
+        handler: narrowReleaseHandler,
+      }),
+      unionAcquire: entry('UnionAcquireSession', sessionSchema, {
+        ...narrowAcquireConfig,
         // @ts-expect-error Every member of an acquire union must accept all requirements.
-        unionAcquireHandler,
-      ),
+        handler: unionAcquireHandler,
+      }),
     }
   })
 
@@ -365,19 +392,19 @@ if (false) {
       onReleased: () => childMessage('ReleasedSession'),
       onAcquireError: () => childMessage('FailedSession'),
     }
-    const unionInputHandler = Effect.succeed({
-      acquire: (id: 'One') => Effect.succeed(id),
-      release: (_value: string) => Effect.void,
-    })
+    const unionInputHandler = function* () {
+      return {
+        acquire: (id: 'One') => Effect.succeed(id),
+        release: (_value: string) => Effect.void,
+      }
+    }
 
     return {
-      unionInput: entry(
-        'UnionInputSession',
-        Schema.Literals(['One', 'Two']),
-        unionInputConfig,
+      unionInput: entry('UnionInputSession', Schema.Literals(['One', 'Two']), {
+        ...unionInputConfig,
         // @ts-expect-error Acquire must accept every variant allowed by the requirements schema.
-        unionInputHandler,
-      ),
+        handler: unionInputHandler,
+      }),
     }
   })
 
@@ -387,13 +414,13 @@ if (false) {
       Resource extends ManagedResource<any, any>,
       AcquireRequirements,
       ReleaseRequirements,
-      BuildError,
-      BuildRequirements,
+      Yielded extends Effect.Effect<unknown, unknown, unknown>,
     >(
       fields: Fields,
       resource: Resource,
       modelToRequirements: (model: ChildModel) => Schema.Struct.Type<Fields>,
-      handler: Effect.Effect<
+      handler: () => Generator<
+        Yielded,
         Readonly<{
           acquire: (
             requirements: Schema.Struct.Type<Fields>,
@@ -402,22 +429,17 @@ if (false) {
             value: Value<Resource>,
           ) => Effect.Effect<void, unknown, ReleaseRequirements>
         }>,
-        BuildError,
-        BuildRequirements
+        unknown
       >,
     ) =>
-      entry(
-        'GenericManagedResource',
-        Schema.Struct(fields),
-        {
-          resource,
-          modelToMaybeRequirements: modelToRequirements,
-          onAcquired: () => childMessage('AcquiredSession'),
-          onReleased: () => childMessage('ReleasedSession'),
-          onAcquireError: () => childMessage('FailedSession'),
-        },
+      entry('GenericManagedResource', Schema.Struct(fields), {
+        resource,
+        modelToMaybeRequirements: modelToRequirements,
+        onAcquired: () => childMessage('AcquiredSession'),
+        onReleased: () => childMessage('ReleasedSession'),
+        onAcquireError: () => childMessage('FailedSession'),
         handler,
-      )
+      })
 
     void genericEntry
     return {}
@@ -563,6 +585,7 @@ describe('make', () => {
       attachedManagedResources.session.onAcquired,
     ).parameters.toEqualTypeOf<[]>()
     expect('layer' in layeredManagedResources.session).toBe(false)
+    expect('handler' in attachedManagedResources.session).toBe(false)
 
     const handlerLayer = Layer.provide(
       attachedManagedResources.session.layer,

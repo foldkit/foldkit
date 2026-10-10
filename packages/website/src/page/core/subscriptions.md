@@ -57,22 +57,21 @@ Commands describe one-shot work that produces one result. Subscriptions describe
 
 ::Snippet{name="counterAutoCount" label="Auto-counting Subscription"}
 
-`Subscription.make<Model, Message>()` receives a function that builds a named record of entries. When a Layer-backed entry depends on the Model, `entry` takes four arguments:
+`Subscription.make<Model, Message>()` receives a function that builds a named record of entries. When a Layer-backed entry depends on the Model, `entry` takes three arguments:
 
 - A stable handler name for the Layer requirement.
 - A field map defining the dependency Schema, in the same shape passed to `Schema.Struct`.
-- An object containing `messages` and `modelToDependencies`. `messages` lists the Message Schemas that the handler Stream may emit. Use `messages: []` for scoped work that emits no Messages.
-- A final Effect argument that constructs the Stream function.
+- A config containing `messages`, `modelToDependencies`, and the `handler` generator that returns the Stream function. `messages` lists the Message Schemas that the handler Stream may emit. Use `messages: []` for scoped work that emits no Messages.
 
-`modelToDependencies` extracts the values that control the entry. The final argument constructs the Stream factory, and `subscriptions.gameClockTicks.layer` supplies it to the application. Foldkit compares the extracted record structurally by default, so unrelated Model updates do not restart the timer.
+`modelToDependencies` extracts the values that control the entry. The `handler` generator constructs the Stream factory, and `subscriptions.gameClockTicks.layer` supplies it to the application. Foldkit compares the extracted record structurally by default, so unrelated Model updates do not restart the timer.
 
 The declared Message Schemas constrain the Stream returned by the handler and describe its output contract to runtime tooling.
 
-Each entry, such as `subscriptions.gameClockTicks`, is an individual definition. Its record key identifies the running Subscription, while its handler name identifies the Layer requirement. An entry with a final constructor argument exposes `.layer`; `Application.provide` supplies that Layer. `Subscription.lift` and `Subscription.aggregate` preserve the definition, attached recipe, handler identity, and Model-driven restart behavior.
+Each entry, such as `subscriptions.gameClockTicks`, is an individual definition. Its record key identifies the running Subscription, while its handler name identifies the Layer requirement. An entry with `handler` exposes `.layer`; `Application.provide` supplies that Layer. `Subscription.lift` and `Subscription.aggregate` preserve the definition, attached recipe, handler identity, and Model-driven restart behavior.
 
-The Runtime runs the attached handler Effect once while building the application Layer and obtains a `dependencies => Stream` function. Use `Effect.succeed` when construction needs no services. The constructor must not capture the current dependency record; Foldkit passes that record when starting each Stream. A dependency change restarts the Stream scope without reconstructing the handler or its provider. Scoped resources owned by the application Layer release when the runtime stops.
+The Runtime runs the attached handler generator once while building the application Layer and obtains a `dependencies => Stream` function. Return that function directly when construction needs no services. The constructor must not capture the current dependency record; Foldkit passes that record when starting each Stream. A dependency change restarts the Stream scope without reconstructing the handler or its provider. Scoped resources owned by the application Layer release when the runtime stops.
 
-Omit the final constructor argument for a Subscription contract whose Stream belongs to an external host. Such an entry has no `.layer`; the host calls `toLayer` with its implementation Effect. A focused orchestration test can use the same seam, though ordinary execution tests keep the attached handler and replace its underlying service Layers.
+Omit `handler` for a Subscription contract whose Stream belongs to an external host. Such an entry has no `.layer`; the host calls `toLayer` with its implementation Effect. A focused orchestration test can use the same seam, though ordinary execution tests keep the attached handler and replace its underlying service Layers.
 
 In a whole-application execution test, retain that real Stream handler and replace its upstream capabilities. A fake clock, event source, RPC transport, or browser service can make emissions deterministic while the real Subscription still transforms them and Foldkit still applies its Model-driven start, restart, and stop behavior.
 

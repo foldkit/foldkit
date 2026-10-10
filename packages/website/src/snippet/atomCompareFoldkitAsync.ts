@@ -27,12 +27,9 @@ type Message = typeof Message.Type
 // COMMAND
 
 // Api is an Effect service; ApiLayer provides it.
-const FetchUser = Command.define(
-  'FetchUser',
-  {
-    messages: [Message.SucceededLoadUser, Message.FailedLoadUser],
-  },
-  Effect.gen(function* () {
+const FetchUser = Command.define('FetchUser', {
+  messages: [Message.SucceededLoadUser, Message.FailedLoadUser],
+  handler: function* () {
     const api = yield* Api
 
     return () =>
@@ -42,8 +39,8 @@ const FetchUser = Command.define(
           Effect.succeed(Message.FailedLoadUser({ error })),
         ),
       )
-  }),
-)
+  },
+})
 
 export const EffectsLayer = FetchUser.layer
 export const ServicesLayer = ApiLayer

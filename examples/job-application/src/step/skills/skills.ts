@@ -35,15 +35,12 @@ export const init = (initialEntryId: string): Model => ({
 
 // COMMAND
 
-export const GenerateSkillsEntryId = Command.define(
-  'GenerateSkillsEntryId',
-  {
-    messages: [
-      Message.SucceededGenerateSkillsEntryId,
-      Message.FailedGenerateSkillsEntryId,
-    ],
-  },
-  Effect.gen(function* () {
+export const GenerateSkillsEntryId = Command.define('GenerateSkillsEntryId', {
+  messages: [
+    Message.SucceededGenerateSkillsEntryId,
+    Message.FailedGenerateSkillsEntryId,
+  ],
+  handler: function* () {
     const crypto = yield* Crypto.Crypto
 
     return () =>
@@ -55,8 +52,8 @@ export const GenerateSkillsEntryId = Command.define(
           Effect.succeed(Message.FailedGenerateSkillsEntryId()),
         ),
       )
-  }),
-)
+  },
+})
 
 export const EffectsLayer = GenerateSkillsEntryId.layer
 

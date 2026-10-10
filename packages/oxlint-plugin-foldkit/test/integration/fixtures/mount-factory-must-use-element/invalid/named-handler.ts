@@ -7,19 +7,17 @@ const ignoreElementAlias = ignoreElement
 
 export const IgnoreNamedElement = Mount.define(
   'IgnoreNamedElement',
-  { messages: [CompletedIgnoreNamedElement] },
-  Effect.succeed(ignoreElementAlias),
+  { messages: [CompletedIgnoreNamedElement], handler: function* () { return ignoreElementAlias }},
 )
 
 const ignoreGeneratedElement = () => Effect.sync(() => startAnalytics())
 
 export const IgnoreGeneratedElement = Mount.define(
   'IgnoreGeneratedElement',
-  { messages: [CompletedIgnoreGeneratedElement] },
-  Effect.gen(function* () {
+  { messages: [CompletedIgnoreGeneratedElement], handler: function* () {
     yield* Effect.void
     return ignoreGeneratedElement
-  }),
+  }},
 )
 
 function ignoreDeclaredElement({ element: _element }) {
@@ -28,8 +26,7 @@ function ignoreDeclaredElement({ element: _element }) {
 
 export const IgnoreDeclaredElement = Mount.define(
   'IgnoreDeclaredElement',
-  { messages: [CompletedIgnoreDeclaredElement] },
-  Effect.succeed(ignoreDeclaredElement),
+  { messages: [CompletedIgnoreDeclaredElement], handler: function* () { return ignoreDeclaredElement }},
 )
 
 const ignoreElementThroughNestedDeclaration = ({ element }) => {
@@ -42,8 +39,7 @@ const ignoreElementThroughNestedDeclaration = ({ element }) => {
 
 export const IgnoreElementThroughNestedDeclaration = Mount.define(
   'IgnoreElementThroughNestedDeclaration',
-  { messages: [CompletedIgnoreElementThroughNestedDeclaration] },
-  Effect.succeed(ignoreElementThroughNestedDeclaration),
+  { messages: [CompletedIgnoreElementThroughNestedDeclaration], handler: function* () { return ignoreElementThroughNestedDeclaration }},
 )
 
 const ignoreElementThroughNestedDestructuring = ({ element }) => {
@@ -54,8 +50,7 @@ const ignoreElementThroughNestedDestructuring = ({ element }) => {
 
 export const IgnoreElementThroughNestedDestructuring = Mount.define(
   'IgnoreElementThroughNestedDestructuring',
-  { messages: [CompletedIgnoreElementThroughNestedDestructuring] },
-  Effect.succeed(ignoreElementThroughNestedDestructuring),
+  { messages: [CompletedIgnoreElementThroughNestedDestructuring], handler: function* () { return ignoreElementThroughNestedDestructuring }},
 )
 
 const ignoreElementThroughBlockBinding = ({ element }) => {
@@ -69,8 +64,7 @@ const ignoreElementThroughBlockBinding = ({ element }) => {
 
 export const IgnoreElementThroughBlockBinding = Mount.define(
   'IgnoreElementThroughBlockBinding',
-  { messages: [CompletedIgnoreElementThroughBlockBinding] },
-  Effect.succeed(ignoreElementThroughBlockBinding),
+  { messages: [CompletedIgnoreElementThroughBlockBinding], handler: function* () { return ignoreElementThroughBlockBinding }},
 )
 
 const observeElement = ({ element }) =>
@@ -82,13 +76,11 @@ const observeElement = ({ element }) =>
 
   Mount.define(
     'IgnoreShadowedElement',
-    { messages: [CompletedIgnoreShadowedElement] },
-    Effect.succeed(observeElement),
+    { messages: [CompletedIgnoreShadowedElement], handler: function* () { return observeElement }},
   )
 }
 
 Mount.define(
   'ObserveOuterElement',
-  { messages: [CompletedObserveOuterElement] },
-  Effect.succeed(observeElement),
+  { messages: [CompletedObserveOuterElement], handler: function* () { return observeElement }},
 )

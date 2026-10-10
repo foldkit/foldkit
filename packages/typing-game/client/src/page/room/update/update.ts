@@ -23,15 +23,13 @@ import { Model, RoomAsyncData } from '../model'
 import { validateUserTextInput } from '../userGameText'
 import { handleRoomUpdated } from './handleRoomUpdates'
 
-export const NavigateHome = Command.define(
-  'NavigateHome',
-  {
-    messages: [Message.CompletedNavigateHome],
+export const NavigateHome = Command.define('NavigateHome', {
+  messages: [Message.CompletedNavigateHome],
+  handler: function* () {
+    return () =>
+      pushUrl(homeRouter()).pipe(Effect.as(Message.CompletedNavigateHome()))
   },
-  Effect.succeed(() =>
-    pushUrl(homeRouter()).pipe(Effect.as(Message.CompletedNavigateHome())),
-  ),
-)
+})
 
 /** Per-dispatch parent state the Room page needs from the root.
  *  `roomId` comes from the current Room route when the user is on the

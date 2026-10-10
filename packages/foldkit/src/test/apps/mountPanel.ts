@@ -39,37 +39,33 @@ export type Message = typeof Message.Type
 // `ui/listbox/shared.ts`, etc. for production-shaped Mounts that read or write
 // the element handle.
 
-export const MeasurePanel = Mount.define(
-  'MeasurePanel',
-  {
-    messages: [Message.MeasuredPanel, Message.FailedMountSidebar],
+export const MeasurePanel = Mount.define('MeasurePanel', {
+  messages: [Message.MeasuredPanel, Message.FailedMountSidebar],
+  handler: function* () {
+    return () => Effect.succeed(Message.MeasuredPanel({ width: 320 }))
   },
-  Effect.succeed(() => Effect.succeed(Message.MeasuredPanel({ width: 320 }))),
-)
+})
 
-export const FocusButton = Mount.define(
-  'FocusButton',
-  {
-    messages: [Message.CompletedFocusButton],
+export const FocusButton = Mount.define('FocusButton', {
+  messages: [Message.CompletedFocusButton],
+  handler: function* () {
+    return () => Effect.succeed(Message.CompletedFocusButton())
   },
-  Effect.succeed(() => Effect.succeed(Message.CompletedFocusButton())),
-)
+})
 
-export const ScrollList = Mount.define(
-  'ScrollList',
-  {
-    args: { offset: Schema.Number },
-    messages: [Message.ScrolledTo],
+export const ScrollList = Mount.define('ScrollList', {
+  args: { offset: Schema.Number },
+  messages: [Message.ScrolledTo],
+  handler: function* () {
+    return ({ element, offset }) =>
+      Effect.sync(() => {
+        if (element instanceof HTMLElement) {
+          element.scrollTop = offset
+        }
+        return Message.ScrolledTo({ offset })
+      })
   },
-  Effect.succeed(({ element, offset }) =>
-    Effect.sync(() => {
-      if (element instanceof HTMLElement) {
-        element.scrollTop = offset
-      }
-      return Message.ScrolledTo({ offset })
-    }),
-  ),
-)
+})
 
 export const Mounts = [MeasurePanel, FocusButton, ScrollList]
 

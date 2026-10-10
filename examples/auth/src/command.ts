@@ -8,13 +8,10 @@ import { Session, SessionJsonString } from './domain/session'
 import { Message } from './message'
 import { dashboardRouter, homeRouter, loginRouter } from './route'
 
-export const SaveSession = Command.define(
-  'SaveSession',
-  {
-    args: { session: Session },
-    messages: [Message.SucceededSaveSession, Message.FailedSaveSession],
-  },
-  Effect.gen(function* () {
+export const SaveSession = Command.define('SaveSession', {
+  args: { session: Session },
+  messages: [Message.SucceededSaveSession, Message.FailedSaveSession],
+  handler: function* () {
     const store = yield* KeyValueStore.KeyValueStore
 
     return ({ session }) =>
@@ -28,15 +25,12 @@ export const SaveSession = Command.define(
           Effect.succeed(Message.FailedSaveSession({ error: String(error) })),
         ),
       )
-  }),
-)
-
-export const ClearSession = Command.define(
-  'ClearSession',
-  {
-    messages: [Message.SucceededClearSession, Message.FailedClearSession],
   },
-  Effect.gen(function* () {
+})
+
+export const ClearSession = Command.define('ClearSession', {
+  messages: [Message.SucceededClearSession, Message.FailedClearSession],
+  handler: function* () {
     const store = yield* KeyValueStore.KeyValueStore
 
     return () =>
@@ -46,72 +40,62 @@ export const ClearSession = Command.define(
           Effect.succeed(Message.FailedClearSession({ error: String(error) })),
         ),
       )
-  }),
-)
-
-export const LogError = Command.define(
-  'LogError',
-  {
-    args: { entries: Schema.Array(Schema.Unknown) },
-    messages: [Message.CompletedLogError],
   },
-  Effect.succeed(({ entries }) =>
-    Console.error(...entries).pipe(Effect.as(Message.CompletedLogError())),
-  ),
-)
+})
 
-export const NavigateInternal = Command.define(
-  'NavigateInternal',
-  {
-    args: { url: Schema.String },
-    messages: [Message.CompletedNavigateInternal],
+export const LogError = Command.define('LogError', {
+  args: { entries: Schema.Array(Schema.Unknown) },
+  messages: [Message.CompletedLogError],
+  handler: function* () {
+    return ({ entries }) =>
+      Console.error(...entries).pipe(Effect.as(Message.CompletedLogError()))
   },
-  Effect.succeed(({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
-  ),
-)
+})
 
-export const LoadExternal = Command.define(
-  'LoadExternal',
-  {
-    args: { href: Schema.String },
-    messages: [Message.CompletedLoadExternal],
+export const NavigateInternal = Command.define('NavigateInternal', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateInternal],
+  handler: function* () {
+    return ({ url }) =>
+      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
   },
-  Effect.succeed(({ href }) =>
-    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
-  ),
-)
+})
 
-export const RedirectToLogin = Command.define(
-  'RedirectToLogin',
-  {
-    messages: [Message.CompletedRedirectToLogin],
+export const LoadExternal = Command.define('LoadExternal', {
+  args: { href: Schema.String },
+  messages: [Message.CompletedLoadExternal],
+  handler: function* () {
+    return ({ href }) =>
+      load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
   },
-  Effect.succeed(() =>
-    replaceUrl(loginRouter()).pipe(
-      Effect.as(Message.CompletedRedirectToLogin()),
-    ),
-  ),
-)
+})
 
-export const RedirectToDashboard = Command.define(
-  'RedirectToDashboard',
-  {
-    messages: [Message.CompletedRedirectToDashboard],
+export const RedirectToLogin = Command.define('RedirectToLogin', {
+  messages: [Message.CompletedRedirectToLogin],
+  handler: function* () {
+    return () =>
+      replaceUrl(loginRouter()).pipe(
+        Effect.as(Message.CompletedRedirectToLogin()),
+      )
   },
-  Effect.succeed(() =>
-    replaceUrl(dashboardRouter()).pipe(
-      Effect.as(Message.CompletedRedirectToDashboard()),
-    ),
-  ),
-)
+})
 
-export const RedirectToHome = Command.define(
-  'RedirectToHome',
-  {
-    messages: [Message.CompletedRedirectToHome],
+export const RedirectToDashboard = Command.define('RedirectToDashboard', {
+  messages: [Message.CompletedRedirectToDashboard],
+  handler: function* () {
+    return () =>
+      replaceUrl(dashboardRouter()).pipe(
+        Effect.as(Message.CompletedRedirectToDashboard()),
+      )
   },
-  Effect.succeed(() =>
-    replaceUrl(homeRouter()).pipe(Effect.as(Message.CompletedRedirectToHome())),
-  ),
-)
+})
+
+export const RedirectToHome = Command.define('RedirectToHome', {
+  messages: [Message.CompletedRedirectToHome],
+  handler: function* () {
+    return () =>
+      replaceUrl(homeRouter()).pipe(
+        Effect.as(Message.CompletedRedirectToHome()),
+      )
+  },
+})

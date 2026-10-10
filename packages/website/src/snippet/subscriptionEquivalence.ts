@@ -32,31 +32,39 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       keepAliveEquivalence: Equivalence.Struct({
         isDragging: Equivalence.Boolean,
       }),
+      handler: function* () {
+        return ({ isDragging }, readDependencies) =>
+          Stream.when(
+            Stream.callback<typeof Message.AdvancedAutoScrollFrame.Type>(
+              queue =>
+                Effect.acquireRelease(
+                  Effect.sync(() => {
+                    const animationFrameIdRef = { current: 0 }
+                    const step = () => {
+                      const { clientY } = readDependencies()
+                      window.scrollBy(
+                        0,
+                        clientY > window.innerHeight - 40 ? 5 : 0,
+                      )
+                      Queue.offerUnsafe(
+                        queue,
+                        Message.AdvancedAutoScrollFrame(),
+                      )
+                      animationFrameIdRef.current = requestAnimationFrame(step)
+                    }
+                    animationFrameIdRef.current = requestAnimationFrame(step)
+                    return animationFrameIdRef
+                  }),
+                  animationFrameIdRef =>
+                    Effect.sync(() =>
+                      cancelAnimationFrame(animationFrameIdRef.current),
+                    ),
+                ).pipe(Effect.flatMap(() => Effect.never)),
+            ),
+            Effect.sync(() => isDragging),
+          )
+      },
     },
-    Effect.succeed(({ isDragging }, readDependencies) =>
-      Stream.when(
-        Stream.callback<typeof Message.AdvancedAutoScrollFrame.Type>(queue =>
-          Effect.acquireRelease(
-            Effect.sync(() => {
-              const animationFrameIdRef = { current: 0 }
-              const step = () => {
-                const { clientY } = readDependencies()
-                window.scrollBy(0, clientY > window.innerHeight - 40 ? 5 : 0)
-                Queue.offerUnsafe(queue, Message.AdvancedAutoScrollFrame())
-                animationFrameIdRef.current = requestAnimationFrame(step)
-              }
-              animationFrameIdRef.current = requestAnimationFrame(step)
-              return animationFrameIdRef
-            }),
-            animationFrameIdRef =>
-              Effect.sync(() =>
-                cancelAnimationFrame(animationFrameIdRef.current),
-              ),
-          ).pipe(Effect.flatMap(() => Effect.never)),
-        ),
-        Effect.sync(() => isDragging),
-      ),
-    ),
   ),
 }))
 

@@ -126,36 +126,32 @@ export const init = (route: PeopleRoute) => {
 
 // COMMAND
 
-export const PushSearchUrl = Command.define(
-  'PushSearchUrl',
-  {
-    args: { searchText: Schema.Option(Schema.String) },
-    messages: [Message.CompletedPushSearchUrl],
+export const PushSearchUrl = Command.define('PushSearchUrl', {
+  args: { searchText: Schema.Option(Schema.String) },
+  messages: [Message.CompletedPushSearchUrl],
+  handler: function* () {
+    return ({ searchText }) =>
+      pushUrl(peopleRouter({ searchText })).pipe(
+        Effect.as(Message.CompletedPushSearchUrl()),
+      )
   },
-  Effect.succeed(({ searchText }) =>
-    pushUrl(peopleRouter({ searchText })).pipe(
-      Effect.as(Message.CompletedPushSearchUrl()),
-    ),
-  ),
-)
+})
 
-export const FetchPeople = Command.define(
-  'FetchPeople',
-  {
-    args: { searchText: Schema.String },
-    messages: [Message.CompletedFetchPeople],
+export const FetchPeople = Command.define('FetchPeople', {
+  args: { searchText: Schema.String },
+  messages: [Message.CompletedFetchPeople],
+  handler: function* () {
+    return ({ searchText }) =>
+      Effect.sleep(SEARCH_LATENCY).pipe(
+        Effect.as(
+          Message.CompletedFetchPeople({
+            query: searchText,
+            people: searchPeople(searchText),
+          }),
+        ),
+      )
   },
-  Effect.succeed(({ searchText }) =>
-    Effect.sleep(SEARCH_LATENCY).pipe(
-      Effect.as(
-        Message.CompletedFetchPeople({
-          query: searchText,
-          people: searchPeople(searchText),
-        }),
-      ),
-    ),
-  ),
-)
+})
 
 export const EffectsLayer = Layer.mergeAll(
   PushSearchUrl.layer,

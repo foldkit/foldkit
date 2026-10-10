@@ -17,17 +17,20 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
           preference => preference === 'System',
         ),
       }),
+      handler: function* () {
+        return ({ isSystemPreference }) =>
+          Stream.when(
+            Dom.streamFromMediaQuery({
+              query: DARK_COLOR_SCHEME_QUERY,
+              mapMatches: isDark =>
+                Message.ChangedSystemTheme({
+                  theme: isDark ? 'Dark' : 'Light',
+                }),
+            }),
+            Effect.sync(() => isSystemPreference),
+          )
+      },
     },
-    Effect.succeed(({ isSystemPreference }) =>
-      Stream.when(
-        Dom.streamFromMediaQuery({
-          query: DARK_COLOR_SCHEME_QUERY,
-          mapMatches: isDark =>
-            Message.ChangedSystemTheme({ theme: isDark ? 'Dark' : 'Light' }),
-        }),
-        Effect.sync(() => isSystemPreference),
-      ),
-    ),
   ),
 }))
 

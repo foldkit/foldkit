@@ -5,39 +5,37 @@ import { modifyFields } from 'foldkit/struct'
 
 const validateEmail = validate(emailRules)
 
-const CheckEmailAvailable = Command.define(
-  'CheckEmailAvailable',
-  {
-    args: { email: Schema.String, validationId: Schema.Number },
-    messages: [CompletedCheckEmailAvailable],
-  },
-  Effect.succeed(({ email, validationId }) =>
-    Effect.gen(function* () {
-      const isAvailable = yield* apiCheckEmail(email)
-      return CompletedCheckEmailAvailable({
-        validationId,
-        field: isAvailable
-          ? Valid({ value: email })
-          : Invalid({
-              value: email,
-              errors: ['This email is already taken'],
+const CheckEmailAvailable = Command.define('CheckEmailAvailable', {
+  args: { email: Schema.String, validationId: Schema.Number },
+  messages: [CompletedCheckEmailAvailable],
+  handler: function* () {
+    return ({ email, validationId }) =>
+      Effect.gen(function* () {
+        const isAvailable = yield* apiCheckEmail(email)
+        return CompletedCheckEmailAvailable({
+          validationId,
+          field: isAvailable
+            ? Valid({ value: email })
+            : Invalid({
+                value: email,
+                errors: ['This email is already taken'],
+              }),
+        })
+      }).pipe(
+        Effect.catch(() =>
+          Effect.succeed(
+            CompletedCheckEmailAvailable({
+              validationId,
+              field: Invalid({
+                value: email,
+                errors: ['Could not check this email. Try again.'],
+              }),
             }),
-      })
-    }).pipe(
-      Effect.catch(() =>
-        Effect.succeed(
-          CompletedCheckEmailAvailable({
-            validationId,
-            field: Invalid({
-              value: email,
-              errors: ['Could not check this email. Try again.'],
-            }),
-          }),
+          ),
         ),
-      ),
-    ),
-  ),
-)
+      )
+  },
+})
 
 const update = Update.make((model: Model, message: Message) =>
   Message.match(message, {

@@ -19,17 +19,15 @@ type Model = typeof Model.Type
 // SUBSCRIPTION
 
 const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  reducedMotionChanges: entry(
-    'ReducedMotionChanges',
-    {
-      messages: [Message.ChangedReducedMotion],
+  reducedMotionChanges: entry('ReducedMotionChanges', {
+    messages: [Message.ChangedReducedMotion],
+    handler: function* () {
+      return () =>
+        Dom.streamFromMediaQuery({
+          query: '(prefers-reduced-motion: reduce)',
+          mapMatches: isMatching =>
+            Message.ChangedReducedMotion({ isReducedMotion: isMatching }),
+        })
     },
-    Effect.succeed(() =>
-      Dom.streamFromMediaQuery({
-        query: '(prefers-reduced-motion: reduce)',
-        mapMatches: isMatching =>
-          Message.ChangedReducedMotion({ isReducedMotion: isMatching }),
-      }),
-    ),
-  ),
+  }),
 }))

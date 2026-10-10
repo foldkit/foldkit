@@ -6,15 +6,13 @@ const Message = defineMessageUnion({
   CompletedScrollPanel: {},
 })
 
-const ScrollPanel = Mount.define(
-  'ScrollPanel',
-  {
-    args: { initialScroll: Schema.Number },
-    messages: [Message.CompletedScrollPanel],
+const ScrollPanel = Mount.define('ScrollPanel', {
+  args: { initialScroll: Schema.Number },
+  messages: [Message.CompletedScrollPanel],
+  handler: function* () {
+    return ({ element, initialScroll }) =>
+      Effect.sync(() => element.scrollTo({ top: initialScroll })).pipe(
+        Effect.as(Message.CompletedScrollPanel()),
+      )
   },
-  Effect.succeed(({ element, initialScroll }) =>
-    Effect.sync(() => element.scrollTo({ top: initialScroll })).pipe(
-      Effect.as(Message.CompletedScrollPanel()),
-    ),
-  ),
-)
+})

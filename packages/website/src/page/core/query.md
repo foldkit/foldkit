@@ -28,19 +28,19 @@ Query does not react to rendering, expire data after a duration, poll, or refres
 
 ## Define a Query
 
-Import the `Query` namespace from `foldkit/experimental`. Define the data and error Schemas and fetch name in the config, then attach the implementation as the final argument:
+Import the `Query` namespace from `foldkit/experimental`. Define the data and error Schemas and fetch name in the config, then attach the implementation through `config.handler`:
 
 ::Snippet{name="queryDefine" label="Defining a Query for posts"}
 
 With no `args`, `Query.define` returns a Query that retains one value. In this definition:
 
 - `data` and `error` determine the `AsyncData` and Message Schemas.
-- The final Effect argument constructs the fetch function, and `.layer` supplies it for the generated Command.
+- The `handler` generator constructs the fetch function, and `.layer` supplies it for the generated Command.
 - `name: 'Posts'` gives the generated Command the name `FetchPosts` in DevTools and tests.
 
-Add the resulting Layer to the owning feature's `EffectsLayer` export and pass the root `AppLayer` to `Application.provide` at the entry point. Loading operations carry `FetchPosts` as a handler requirement, so an application that starts this Query cannot run without a Layer for it. The Effect constructor can capture stable services while the application Layer is built; those services are available when the fetch Command executes later.
+Add the resulting Layer to the owning feature's `EffectsLayer` export and pass the root `AppLayer` to `Application.provide` at the entry point. Loading operations carry `FetchPosts` as a handler requirement, so an application that starts this Query cannot run without a Layer for it. The handler generator can capture stable services while the application Layer is built; those services are available when the fetch Command executes later.
 
-Omit the final constructor argument when an external host supplies the fetch implementation. That definition has no `.layer`; the host constructs its provider with `toLayer`. The method also constructs an alternative to an attached handler. Ordinary execution tests keep `.layer` and replace the services required by its handler.
+Omit `handler` when an external host supplies the fetch implementation. That definition has no `.layer`; the host constructs its provider with `toLayer`, which accepts the implementation Effect constructor. The method also constructs an alternative to an attached handler. Ordinary execution tests keep `.layer` and replace the services required by its handler.
 
 The `data` and `error` values must be Schema Codecs that require no encoding or decoding services. Query uses them to build its Model and completion Message Schemas.
 

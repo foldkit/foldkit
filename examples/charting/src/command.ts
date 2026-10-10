@@ -9,12 +9,9 @@ import { makeFetchRawTelemetry, transformTelemetry } from './telemetry'
 
 // COMMAND
 
-export const FetchTelemetry = Command.define(
-  'FetchTelemetry',
-  {
-    messages: [Message.SucceededFetchTelemetry, Message.FailedFetchTelemetry],
-  },
-  Effect.gen(function* () {
+export const FetchTelemetry = Command.define('FetchTelemetry', {
+  messages: [Message.SucceededFetchTelemetry, Message.FailedFetchTelemetry],
+  handler: function* () {
     const fetchRawTelemetry = yield* makeFetchRawTelemetry
 
     return () =>
@@ -29,41 +26,39 @@ export const FetchTelemetry = Command.define(
           ),
         ),
       )
-  }),
-)
-
-export const SyncChart = Command.define(
-  'SyncChart',
-  {
-    args: {
-      hostId: Schema.String,
-      telemetry: Telemetry,
-      chartMode: ChartMode,
-      selectedPackageId: PackageId,
-      period: Period,
-      maybeSelectedDatumId: Schema.Option(Schema.String),
-    },
-    messages: [Message.SucceededSyncChart, Message.FailedSyncChart],
   },
-  Effect.succeed(args =>
-    Option.match(getChart(args.hostId), {
-      onNone: () =>
-        Effect.succeed(
-          Message.FailedSyncChart({
-            reason: `Could not find a live chart for hostId ${args.hostId}.`,
-          }),
-        ),
-      onSome: chart =>
-        Effect.try(() => chart.setOption(makeChartOption(args), true)).pipe(
-          Effect.as(Message.SucceededSyncChart()),
-          Effect.catch(error =>
-            Effect.succeed(
-              Message.FailedSyncChart({
-                reason: error instanceof Error ? error.message : `${error}`,
-              }),
+})
+
+export const SyncChart = Command.define('SyncChart', {
+  args: {
+    hostId: Schema.String,
+    telemetry: Telemetry,
+    chartMode: ChartMode,
+    selectedPackageId: PackageId,
+    period: Period,
+    maybeSelectedDatumId: Schema.Option(Schema.String),
+  },
+  messages: [Message.SucceededSyncChart, Message.FailedSyncChart],
+  handler: function* () {
+    return args =>
+      Option.match(getChart(args.hostId), {
+        onNone: () =>
+          Effect.succeed(
+            Message.FailedSyncChart({
+              reason: `Could not find a live chart for hostId ${args.hostId}.`,
+            }),
+          ),
+        onSome: chart =>
+          Effect.try(() => chart.setOption(makeChartOption(args), true)).pipe(
+            Effect.as(Message.SucceededSyncChart()),
+            Effect.catch(error =>
+              Effect.succeed(
+                Message.FailedSyncChart({
+                  reason: error instanceof Error ? error.message : `${error}`,
+                }),
+              ),
             ),
           ),
-        ),
-    }),
-  ),
-)
+      })
+  },
+})

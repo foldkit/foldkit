@@ -141,19 +141,17 @@ const gridSelector = (modelId: string): string => idSelector(gridId(modelId))
 
 /** Focuses the calendar grid container. Parent components like DatePicker
  * dispatch this after opening to hand focus to the grid's keyboard layer. */
-export const FocusGrid = Command.define(
-  'FocusGrid',
-  {
-    args: { id: Schema.String },
-    messages: [Message.CompletedFocusGrid],
+export const FocusGrid = Command.define('FocusGrid', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedFocusGrid],
+  handler: function* () {
+    return ({ id }) =>
+      Dom.focus(gridSelector(id)).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedFocusGrid()),
+      )
   },
-  Effect.succeed(({ id }) =>
-    Dom.focus(gridSelector(id)).pipe(
-      Effect.ignore,
-      Effect.as(Message.CompletedFocusGrid()),
-    ),
-  ),
-)
+})
 
 /** Effect providers used by the Calendar component. */
 export const EffectsLayer = Layer.mergeAll(FocusGrid.layer)

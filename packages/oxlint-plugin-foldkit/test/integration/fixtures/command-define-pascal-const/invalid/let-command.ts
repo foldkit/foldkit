@@ -10,5 +10,5 @@ const refreshSessionEffect = Effect.succeed(Message.CompletedRefreshSession())
 
 export let RefreshSession = Command.define('RefreshSession', {
   messages: [Message.CompletedRefreshSession],
-  execute: refreshSessionEffect,
+  handler: refreshSessionEffect,
 })

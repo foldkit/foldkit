@@ -20,11 +20,11 @@ const fetchPosts = Effect.gen(function* () {
   )
 })
 
-const postsQuery = Query.define(
-  {
-    name: 'Posts',
-    data: PostList,
-    error: Schema.String,
+const postsQuery = Query.define({
+  name: 'Posts',
+  data: PostList,
+  error: Schema.String,
+  handler: function* () {
+    return () => fetchPosts
   },
-  Effect.succeed(() => fetchPosts),
-)
+})

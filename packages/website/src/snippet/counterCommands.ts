@@ -20,17 +20,15 @@ export type Message = typeof Message.Type
 
 // COMMAND
 
-export const WaitBeforeReset = Command.define(
-  'WaitBeforeReset',
-  {
-    messages: [Message.CompletedWaitBeforeReset],
+export const WaitBeforeReset = Command.define('WaitBeforeReset', {
+  messages: [Message.CompletedWaitBeforeReset],
+  handler: function* () {
+    return () =>
+      Effect.sleep('1 second').pipe(
+        Effect.as(Message.CompletedWaitBeforeReset()),
+      )
   },
-  Effect.succeed(() =>
-    Effect.sleep('1 second').pipe(
-      Effect.as(Message.CompletedWaitBeforeReset()),
-    ),
-  ),
-)
+})
 
 export const EffectsLayer = WaitBeforeReset.layer
 

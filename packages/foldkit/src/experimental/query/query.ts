@@ -23,7 +23,6 @@ export type QueryConfig<Name extends string, A, AI, E, EI> = Readonly<{
   data: Schema.Codec<A, AI, never, never>
   error: Schema.Codec<E, EI, never, never>
   execute?: never
-  handler?: never
 }>
 
 /** Builds a Query fetch handler Layer from an Effect that constructs a fetch. */
@@ -290,33 +289,6 @@ const makeQuery = <Name extends string, A, AI, E, EI, R>(
   } satisfies Query<Name, A, AI, E, EI, R>
 }
 
-export function defineQuery<
-  Name extends string,
-  A,
-  AI,
-  E,
-  EI,
-  HandlerRequirements = never,
-  BuildError = never,
-  BuildRequirements = never,
->(
-  config: QueryConfig<Name, A, AI, E, EI>,
-  handler: Effect.Effect<
-    () => Effect.Effect<NoInfer<A>, NoInfer<E>, HandlerRequirements>,
-    BuildError,
-    BuildRequirements
-  >,
-): LayeredQuery<Name, A, AI, E, EI> &
-  Readonly<{
-    layer: Layer.Layer<
-      Command.Handler<`Fetch${Name}`>,
-      BuildError,
-      Exclude<HandlerRequirements | BuildRequirements, Scope.Scope>
-    >
-  }>
-export function defineQuery<Name extends string, A, AI, E, EI>(
-  config: QueryConfig<Name, A, AI, E, EI>,
-): LayeredQuery<Name, A, AI, E, EI>
 export function defineQuery<
   Name extends string,
   A,

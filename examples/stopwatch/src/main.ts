@@ -42,13 +42,10 @@ export type Message = typeof Message.Type
 
 // COMMAND
 
-export const DetermineStartTime = Command.define(
-  'DetermineStartTime',
-  {
-    args: { elapsedMs: Schema.Number },
-    messages: [Message.CompletedDetermineStartTime],
-  },
-  Effect.gen(function* () {
+export const DetermineStartTime = Command.define('DetermineStartTime', {
+  args: { elapsedMs: Schema.Number },
+  messages: [Message.CompletedDetermineStartTime],
+  handler: function* () {
     const clock = yield* Clock.Clock
 
     return ({ elapsedMs }) =>
@@ -59,16 +56,13 @@ export const DetermineStartTime = Command.define(
           startTime: now - elapsedMs,
         })
       })
-  }),
-)
-
-export const DetermineTickTime = Command.define(
-  'DetermineTickTime',
-  {
-    args: { startTime: Schema.Number },
-    messages: [Message.CompletedDetermineTickTime],
   },
-  Effect.gen(function* () {
+})
+
+export const DetermineTickTime = Command.define('DetermineTickTime', {
+  args: { startTime: Schema.Number },
+  messages: [Message.CompletedDetermineTickTime],
+  handler: function* () {
     const clock = yield* Clock.Clock
 
     return ({ startTime }) =>
@@ -79,8 +73,8 @@ export const DetermineTickTime = Command.define(
           elapsedMs: now - startTime,
         })
       })
-  }),
-)
+  },
+})
 
 // UPDATE
 
@@ -144,16 +138,17 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     {
       messages: [Message.Ticked],
       modelToDependencies: model => ({ isRunning: model.isRunning }),
+      handler: function* () {
+        return ({ isRunning }) =>
+          Stream.when(
+            Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
+              Stream.drop(1),
+              Stream.map(Message.Ticked),
+            ),
+            Effect.sync(() => isRunning),
+          )
+      },
     },
-    Effect.succeed(({ isRunning }) =>
-      Stream.when(
-        Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
-          Stream.drop(1),
-          Stream.map(Message.Ticked),
-        ),
-        Effect.sync(() => isRunning),
-      ),
-    ),
   ),
 }))
 

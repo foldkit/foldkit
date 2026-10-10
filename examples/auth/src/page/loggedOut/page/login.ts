@@ -77,38 +77,36 @@ const isFormValid = (model: Model): boolean =>
 
 // UPDATE
 
-export const SimulateAuthRequest = Command.define(
-  'SimulateAuthRequest',
-  {
-    args: { email: Schema.String, password: Schema.String },
-    messages: [
-      Message.SucceededSimulateAuthRequest,
-      Message.FailedSimulateAuthRequest,
-    ],
+export const SimulateAuthRequest = Command.define('SimulateAuthRequest', {
+  args: { email: Schema.String, password: Schema.String },
+  messages: [
+    Message.SucceededSimulateAuthRequest,
+    Message.FailedSimulateAuthRequest,
+  ],
+  handler: function* () {
+    return ({ email, password }) =>
+      Effect.gen(function* () {
+        yield* Effect.sleep(Duration.seconds(1))
+
+        if (password !== 'password') {
+          return Message.FailedSimulateAuthRequest({
+            error: 'Invalid credentials',
+          })
+        }
+
+        const name = pipe(
+          email,
+          String.split('@'),
+          Array.head,
+          Option.getOrElse(() => email),
+        )
+
+        const session: Session = { userId: '1', email, name }
+
+        return Message.SucceededSimulateAuthRequest({ session })
+      })
   },
-  Effect.succeed(({ email, password }) =>
-    Effect.gen(function* () {
-      yield* Effect.sleep(Duration.seconds(1))
-
-      if (password !== 'password') {
-        return Message.FailedSimulateAuthRequest({
-          error: 'Invalid credentials',
-        })
-      }
-
-      const name = pipe(
-        email,
-        String.split('@'),
-        Array.head,
-        Option.getOrElse(() => email),
-      )
-
-      const session: Session = { userId: '1', email, name }
-
-      return Message.SucceededSimulateAuthRequest({ session })
-    }),
-  ),
-)
+})
 
 export const EffectsLayer = SimulateAuthRequest.layer
 

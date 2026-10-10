@@ -29,13 +29,14 @@ const frameSubscription = Subscription.make<Model, Message>()(entry => ({
     {
       messages: [Message.TickedFrame],
       modelToDependencies: model => ({ isActive: model.isRunning }),
+      handler: function* () {
+        return ({ isActive }) =>
+          Stream.when(
+            animationFrameStream,
+            Effect.sync(() => isActive),
+          )
+      },
     },
-    Effect.succeed(({ isActive }) =>
-      Stream.when(
-        animationFrameStream,
-        Effect.sync(() => isActive),
-      ),
-    ),
   ),
 }))
 

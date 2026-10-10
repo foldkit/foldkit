@@ -11,18 +11,16 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const WaitBeforeReset = Command.define(
-  'WaitBeforeReset',
-  {
-    args: { delayMs: Schema.Number },
-    messages: [Message.CompletedWaitBeforeReset],
+const WaitBeforeReset = Command.define('WaitBeforeReset', {
+  args: { delayMs: Schema.Number },
+  messages: [Message.CompletedWaitBeforeReset],
+  handler: function* () {
+    return ({ delayMs }) =>
+      Effect.sleep(Duration.millis(delayMs)).pipe(
+        Effect.as(Message.CompletedWaitBeforeReset()),
+      )
   },
-  Effect.succeed(({ delayMs }) =>
-    Effect.sleep(Duration.millis(delayMs)).pipe(
-      Effect.as(Message.CompletedWaitBeforeReset()),
-    ),
-  ),
-)
+})
 
 const update = Update.make((model: Model, message: Message) =>
   Message.match(message, {

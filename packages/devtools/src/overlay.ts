@@ -458,25 +458,19 @@ class ShadowRootService extends Context.Service<
   ShadowRoot
 >()('foldkit/DevToolsShadowRoot') {}
 
-export const LockScroll = Command.define(
-  'LockScroll',
-  {
-    messages: [Message.CompletedLockScroll],
+export const LockScroll = Command.define('LockScroll', {
+  messages: [Message.CompletedLockScroll],
+  handler: function* () {
+    return () => lockScroll.pipe(Effect.as(Message.CompletedLockScroll()))
   },
-  Effect.succeed(() =>
-    lockScroll.pipe(Effect.as(Message.CompletedLockScroll())),
-  ),
-)
+})
 
-export const UnlockScroll = Command.define(
-  'UnlockScroll',
-  {
-    messages: [Message.CompletedUnlockScroll],
+export const UnlockScroll = Command.define('UnlockScroll', {
+  messages: [Message.CompletedUnlockScroll],
+  handler: function* () {
+    return () => unlockScroll.pipe(Effect.as(Message.CompletedUnlockScroll()))
   },
-  Effect.succeed(() =>
-    unlockScroll.pipe(Effect.as(Message.CompletedUnlockScroll())),
-  ),
-)
+})
 
 const maybeToggleScrollLock = (isEnabled: boolean, shouldLock: boolean) =>
   OptionExt.when(isEnabled, shouldLock ? LockScroll() : UnlockScroll())
@@ -507,13 +501,10 @@ const readPersistedState = Effect.gen(function* () {
   return yield* Schema.decodeEffect(DevToolsPersistedStateJson)(json)
 }).pipe(Effect.catch(() => Effect.succeed(DEFAULT_PERSISTED_STATE)))
 
-export const PersistDevToolsState = Command.define(
-  'PersistDevToolsState',
-  {
-    args: { isOpen: Schema.Boolean, isFlattened: Schema.Boolean },
-    messages: [Message.CompletedPersistDevToolsState],
-  },
-  Effect.gen(function* () {
+export const PersistDevToolsState = Command.define('PersistDevToolsState', {
+  args: { isOpen: Schema.Boolean, isFlattened: Schema.Boolean },
+  messages: [Message.CompletedPersistDevToolsState],
+  handler: function* () {
     const store = yield* KeyValueStore.KeyValueStore
 
     return ({ isOpen, isFlattened }) =>
@@ -529,8 +520,8 @@ export const PersistDevToolsState = Command.define(
           Effect.succeed(Message.CompletedPersistDevToolsState()),
         ),
       )
-  }),
-)
+  },
+})
 
 const buildInspectionFromModel = (
   store: DevToolsStore,
@@ -555,13 +546,10 @@ const buildInspectionEffect = (store: DevToolsStore, index: number) =>
 // returns the model it resolved so the inspector reuses that single
 // resolution. Inspect-only navigation (no host pause) still uses
 // `InspectState`, which resolves once on its own.
-export const JumpToAndInspect = Command.define(
-  'JumpToAndInspect',
-  {
-    args: { index: Schema.Number },
-    messages: [Message.ReceivedInspectedState],
-  },
-  Effect.gen(function* () {
+export const JumpToAndInspect = Command.define('JumpToAndInspect', {
+  args: { index: Schema.Number },
+  messages: [Message.ReceivedInspectedState],
+  handler: function* () {
     const store = yield* StoreService
 
     return ({ index }) =>
@@ -569,28 +557,22 @@ export const JumpToAndInspect = Command.define(
         const model = yield* store.jumpTo(index)
         return yield* buildInspectionFromModel(store, index, model)
       })
-  }),
-)
-
-export const InspectState = Command.define(
-  'InspectState',
-  {
-    args: { index: Schema.Number },
-    messages: [Message.ReceivedInspectedState],
   },
-  Effect.gen(function* () {
+})
+
+export const InspectState = Command.define('InspectState', {
+  args: { index: Schema.Number },
+  messages: [Message.ReceivedInspectedState],
+  handler: function* () {
     const store = yield* StoreService
 
     return ({ index }) => buildInspectionEffect(store, index)
-  }),
-)
-
-export const InspectLatest = Command.define(
-  'InspectLatest',
-  {
-    messages: [Message.ReceivedInspectedState],
   },
-  Effect.gen(function* () {
+})
+
+export const InspectLatest = Command.define('InspectLatest', {
+  messages: [Message.ReceivedInspectedState],
+  handler: function* () {
     const store = yield* StoreService
 
     return () =>
@@ -598,63 +580,55 @@ export const InspectLatest = Command.define(
         const state = yield* SubscriptionRef.get(store.stateRef)
         return yield* buildInspectionEffect(store, latestEntryIndex(state))
       })
-  }),
-)
-
-export const Resume = Command.define(
-  'Resume',
-  {
-    messages: [Message.CompletedResume],
   },
-  Effect.gen(function* () {
+})
+
+export const Resume = Command.define('Resume', {
+  messages: [Message.CompletedResume],
+  handler: function* () {
     const store = yield* StoreService
 
     return () => store.resume.pipe(Effect.as(Message.CompletedResume()))
-  }),
-)
-
-export const Clear = Command.define(
-  'Clear',
-  {
-    messages: [Message.CompletedClear],
   },
-  Effect.gen(function* () {
+})
+
+export const Clear = Command.define('Clear', {
+  messages: [Message.CompletedClear],
+  handler: function* () {
     const store = yield* StoreService
 
     return () => store.clear.pipe(Effect.as(Message.CompletedClear()))
-  }),
-)
-
-export const CopyPayloadToClipboard = Command.define(
-  'CopyPayloadToClipboard',
-  {
-    args: {
-      targetId: Schema.String,
-      requestId: Schema.Number,
-      payload: Schema.Unknown,
-    },
-    messages: [
-      Message.SucceededCopyPayloadToClipboard,
-      Message.FailedCopyPayloadToClipboard,
-    ],
   },
-  Effect.succeed(({ targetId, requestId, payload }) =>
-    Effect.gen(function* () {
-      const text = yield* serializePayload(payload)
-      yield* Effect.tryPromise({
-        try: () => navigator.clipboard.writeText(text),
-        catch: () => new Error('Failed to copy payload to clipboard'),
-      })
-      return Message.SucceededCopyPayloadToClipboard({ targetId, requestId })
-    }).pipe(
-      Effect.catch(() =>
-        Effect.succeed(
-          Message.FailedCopyPayloadToClipboard({ targetId, requestId }),
+})
+
+export const CopyPayloadToClipboard = Command.define('CopyPayloadToClipboard', {
+  args: {
+    targetId: Schema.String,
+    requestId: Schema.Number,
+    payload: Schema.Unknown,
+  },
+  messages: [
+    Message.SucceededCopyPayloadToClipboard,
+    Message.FailedCopyPayloadToClipboard,
+  ],
+  handler: function* () {
+    return ({ targetId, requestId, payload }) =>
+      Effect.gen(function* () {
+        const text = yield* serializePayload(payload)
+        yield* Effect.tryPromise({
+          try: () => navigator.clipboard.writeText(text),
+          catch: () => new Error('Failed to copy payload to clipboard'),
+        })
+        return Message.SucceededCopyPayloadToClipboard({ targetId, requestId })
+      }).pipe(
+        Effect.catch(() =>
+          Effect.succeed(
+            Message.FailedCopyPayloadToClipboard({ targetId, requestId }),
+          ),
         ),
-      ),
-    ),
-  ),
-)
+      )
+  },
+})
 /** Provides the DevTools clipboard Command handler. */
 export const CopyPayloadToClipboardLayer = CopyPayloadToClipboard.layer
 
@@ -665,25 +639,23 @@ export const WaitBeforeHidingCopyIndicator = Command.define(
   {
     args: { targetId: Schema.String, requestId: Schema.Number },
     messages: [Message.CompletedWaitBeforeHidingCopyIndicator],
+    handler: function* () {
+      return ({ targetId, requestId }) =>
+        Effect.sleep(COPY_INDICATOR_DURATION).pipe(
+          Effect.as(
+            Message.CompletedWaitBeforeHidingCopyIndicator({
+              targetId,
+              requestId,
+            }),
+          ),
+        )
+    },
   },
-  Effect.succeed(({ targetId, requestId }) =>
-    Effect.sleep(COPY_INDICATOR_DURATION).pipe(
-      Effect.as(
-        Message.CompletedWaitBeforeHidingCopyIndicator({
-          targetId,
-          requestId,
-        }),
-      ),
-    ),
-  ),
 )
 
-export const ScrollToTop = Command.define(
-  'ScrollToTop',
-  {
-    messages: [Message.CompletedScrollToTop],
-  },
-  Effect.gen(function* () {
+export const ScrollToTop = Command.define('ScrollToTop', {
+  messages: [Message.CompletedScrollToTop],
+  handler: function* () {
     const shadow = yield* ShadowRootService
 
     return () =>
@@ -694,8 +666,8 @@ export const ScrollToTop = Command.define(
         }
         return Message.CompletedScrollToTop()
       })
-  }),
-)
+  },
+})
 
 const makeUpdate = (mode: DevToolsMode) =>
   Update.make((model: Model, message: Message) =>
@@ -987,21 +959,19 @@ const overlaySubscriptions = Subscription.make<Model, Message>()(entry => ({
       modelToDependencies: model => ({
         isActive: Option.isSome(model.maybePendingScrubIndex),
       }),
+      handler: function* () {
+        return ({ isActive }) =>
+          isActive
+            ? Subscription.animationFrameStream.pipe(
+                Stream.map(() => Message.TickedScrubFrame()),
+              )
+            : Stream.empty
+      },
     },
-    Effect.succeed(({ isActive }) =>
-      isActive
-        ? Subscription.animationFrameStream.pipe(
-            Stream.map(() => Message.TickedScrubFrame()),
-          )
-        : Stream.empty,
-    ),
   ),
-  storeUpdates: entry(
-    'StoreUpdates',
-    {
-      messages: [Message.ReceivedStoreUpdate],
-    },
-    Effect.gen(function* () {
+  storeUpdates: entry('StoreUpdates', {
+    messages: [Message.ReceivedStoreUpdate],
+    handler: function* () {
       const store = yield* StoreService
 
       return () =>
@@ -1010,20 +980,19 @@ const overlaySubscriptions = Subscription.make<Model, Message>()(entry => ({
             Message.ReceivedStoreUpdate(toDisplayState(state)),
           ),
         )
-    }),
-  ),
-  mobileBreakpointChanges: entry(
-    'MobileBreakpointChanges',
-    {
-      messages: [Message.ObservedMobileBreakpoint],
     },
-    Effect.succeed(() =>
-      Dom.streamFromMediaQuery({
-        query: MOBILE_BREAKPOINT_QUERY,
-        mapMatches: isMobile => Message.ObservedMobileBreakpoint({ isMobile }),
-      }),
-    ),
-  ),
+  }),
+  mobileBreakpointChanges: entry('MobileBreakpointChanges', {
+    messages: [Message.ObservedMobileBreakpoint],
+    handler: function* () {
+      return () =>
+        Dom.streamFromMediaQuery({
+          query: MOBILE_BREAKPOINT_QUERY,
+          mapMatches: isMobile =>
+            Message.ObservedMobileBreakpoint({ isMobile }),
+        })
+    },
+  }),
 }))
 
 // VIEW

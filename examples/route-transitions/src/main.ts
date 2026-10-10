@@ -80,65 +80,55 @@ export type Message = typeof Message.Type
 
 // COMMAND
 
-const NavigateInternal = Command.define(
-  'NavigateInternal',
-  {
-    args: { url: Schema.String },
-    messages: [Message.CompletedNavigateInternal],
+const NavigateInternal = Command.define('NavigateInternal', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateInternal],
+  handler: function* () {
+    return ({ url }) =>
+      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
   },
-  Effect.succeed(({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
-  ),
-)
+})
 
-const LoadExternal = Command.define(
-  'LoadExternal',
-  {
-    args: { href: Schema.String },
-    messages: [Message.CompletedLoadExternal],
+const LoadExternal = Command.define('LoadExternal', {
+  args: { href: Schema.String },
+  messages: [Message.CompletedLoadExternal],
+  handler: function* () {
+    return ({ href }) =>
+      load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
   },
-  Effect.succeed(({ href }) =>
-    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
-  ),
-)
+})
 
-export const LoadCatalog = Command.define(
-  'LoadCatalog',
-  {
-    messages: [Message.CompletedLoadCatalog],
+export const LoadCatalog = Command.define('LoadCatalog', {
+  messages: [Message.CompletedLoadCatalog],
+  handler: function* () {
+    return () =>
+      Effect.sleep(CATALOG_LATENCY).pipe(
+        Effect.as(Message.CompletedLoadCatalog()),
+      )
   },
-  Effect.succeed(() =>
-    Effect.sleep(CATALOG_LATENCY).pipe(
-      Effect.as(Message.CompletedLoadCatalog()),
-    ),
-  ),
-)
+})
 
-export const LoadPainting = Command.define(
-  'LoadPainting',
-  {
-    args: { paintingId: Schema.Number },
-    messages: [Message.CompletedLoadPainting],
+export const LoadPainting = Command.define('LoadPainting', {
+  args: { paintingId: Schema.Number },
+  messages: [Message.CompletedLoadPainting],
+  handler: function* () {
+    return ({ paintingId }) =>
+      Effect.sleep(PAINTING_LATENCY).pipe(
+        Effect.as(Message.CompletedLoadPainting({ paintingId })),
+      )
   },
-  Effect.succeed(({ paintingId }) =>
-    Effect.sleep(PAINTING_LATENCY).pipe(
-      Effect.as(Message.CompletedLoadPainting({ paintingId })),
-    ),
-  ),
-)
+})
 
-export const SaveDraft = Command.define(
-  'SaveDraft',
-  {
-    args: { draft: Schema.String },
-    messages: [Message.CompletedSaveDraft],
+export const SaveDraft = Command.define('SaveDraft', {
+  args: { draft: Schema.String },
+  messages: [Message.CompletedSaveDraft],
+  handler: function* () {
+    return ({ draft }) =>
+      Effect.sleep(SAVE_LATENCY).pipe(
+        Effect.as(Message.CompletedSaveDraft({ draft })),
+      )
   },
-  Effect.succeed(({ draft }) =>
-    Effect.sleep(SAVE_LATENCY).pipe(
-      Effect.as(Message.CompletedSaveDraft({ draft })),
-    ),
-  ),
-)
+})
 
 export const EffectsLayer = Layer.mergeAll(
   NavigateInternal.layer,

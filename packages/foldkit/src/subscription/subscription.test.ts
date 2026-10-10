@@ -883,6 +883,18 @@ describe('Layer-backed entries', () => {
     make<ChildModel, HandlerMessage>()(entry => ({
       // @ts-expect-error A declared schema must produce a Message in the enclosing union.
       wrong: entry('Wrong', { messages: [Schema.Number] }),
+      wrongAttached: entry(
+        'WrongAttached',
+        { id: Schema.String },
+        {
+          messages: [HandlerMessage.ObservedTick],
+          modelToDependencies: model => ({ id: model.label }),
+          // @ts-expect-error An attached handler cannot emit an undeclared Message.
+          handler: function* () {
+            return () => Stream.succeed(HandlerMessage.IgnoredTick())
+          },
+        },
+      ),
     }))
 
     const inlineCallbacks = {
@@ -906,12 +918,13 @@ describe('Layer-backed entries', () => {
       messages: [HandlerMessage.ObservedTick],
       modelToDependencies: (model: ChildModel) => ({ id: model.label }),
     }
-    const narrowHandler = Effect.succeed(({ id }: Readonly<{ id: 'only' }>) =>
-      Stream.when(
-        Stream.succeed(HandlerMessage.ObservedTick()),
-        Effect.succeed(id.length > 0),
-      ),
-    )
+    const narrowHandler = function* () {
+      return ({ id }: Readonly<{ id: 'only' }>) =>
+        Stream.when(
+          Stream.succeed(HandlerMessage.ObservedTick()),
+          Effect.succeed(id.length > 0),
+        )
+    }
     const broad = ({ id }: Readonly<{ id: string }>) =>
       Stream.when(
         Stream.succeed(HandlerMessage.ObservedTick()),
@@ -922,45 +935,51 @@ describe('Layer-backed entries', () => {
         Stream.succeed(HandlerMessage.ObservedTick()),
         Effect.succeed(id.length > 0),
       )
-    const unionHandler = Effect.succeed(
-      globalThis.Math.random() > 0.5 ? broad : narrow,
-    )
+    const unionHandler = function* () {
+      return globalThis.Math.random() > 0.5 ? broad : narrow
+    }
     const keepAliveCallbacks = {
       ...attachedCallbacks,
       keepAliveEquivalence: () => true,
     }
-    const narrowReadHandler = Effect.succeed(
-      (
+    const narrowReadHandler = function* () {
+      return (
         _dependencies: Readonly<{ id: string }>,
         readDependencies: () => Readonly<{ id: 'only' }>,
       ) =>
         Stream.when(
           Stream.succeed(HandlerMessage.ObservedTick()),
           Effect.succeed(readDependencies().id.length > 0),
-        ),
-    )
+        )
+    }
 
     make<ChildModel, HandlerMessage>()(entry => ({
       narrow: entry(
         'NarrowAttachedSubscription',
         { id: Schema.String },
-        attachedCallbacks,
-        // @ts-expect-error An attached handler must accept every declared dependency value.
-        narrowHandler,
+        {
+          ...attachedCallbacks,
+          // @ts-expect-error An attached handler must accept every declared dependency value.
+          handler: narrowHandler,
+        },
       ),
       union: entry(
         'UnionAttachedSubscription',
         { id: Schema.String },
-        attachedCallbacks,
-        // @ts-expect-error Every member of a handler union must accept all dependencies.
-        unionHandler,
+        {
+          ...attachedCallbacks,
+          // @ts-expect-error Every member of a handler union must accept all dependencies.
+          handler: unionHandler,
+        },
       ),
       narrowRead: entry(
         'NarrowReadAttachedSubscription',
         { id: Schema.String },
-        // @ts-expect-error The keep-alive reader must return every declared dependency value.
-        keepAliveCallbacks,
-        narrowReadHandler,
+        {
+          ...keepAliveCallbacks,
+          // @ts-expect-error The keep-alive reader must return every declared dependency value.
+          handler: narrowReadHandler,
+        },
       ),
     }))
   }
@@ -978,17 +997,13 @@ describe('Layer-backed entries', () => {
   )<{}> {}
 
   const attached = make<ChildModel, string>()(entry => ({
-    values: entry(
-      'AttachedLabelValues',
-      childFields,
-      {
-        messages: [Schema.String],
-        modelToDependencies: model => ({
-          isRunning: model.isRunning,
-          label: model.label,
-        }),
-      },
-      Effect.gen(function* () {
+    values: entry('AttachedLabelValues', childFields, {
+      messages: [Schema.String],
+      modelToDependencies: model => ({
+        isRunning: model.isRunning,
+        label: model.label,
+      }),
+      handler: function* () {
         yield* Effect.scope
         const { value: prefix } = yield* Prefix
 
@@ -1004,24 +1019,26 @@ describe('Layer-backed entries', () => {
               return `${prefix}${label}${suffix}`
             }),
           )
-      }),
-    ),
+      },
+    }),
   }))
 
   const attachedVariants = make<ChildModel, string>()(entry => ({
-    failed: entry(
-      'AttachedFailedValues',
-      { messages: [Schema.String] },
-      Effect.fail(new HandlerBuildFailure()),
-    ),
-    persistent: entry(
-      'AttachedPersistentValues',
-      { messages: [Schema.String] },
-      Effect.succeed(dependencies => {
-        expectTypeOf(dependencies).toEqualTypeOf<Record<string, never>>()
-        return Stream.succeed('persistent')
-      }),
-    ),
+    failed: entry('AttachedFailedValues', {
+      messages: [Schema.String],
+      handler: function* () {
+        return yield* Effect.fail(new HandlerBuildFailure())
+      },
+    }),
+    persistent: entry('AttachedPersistentValues', {
+      messages: [Schema.String],
+      handler: function* () {
+        return dependencies => {
+          expectTypeOf(dependencies).toEqualTypeOf<Record<string, never>>()
+          return Stream.succeed('persistent')
+        }
+      },
+    }),
     contextual: entry(
       'AttachedContextualValues',
       {
@@ -1035,43 +1052,44 @@ describe('Layer-backed entries', () => {
           id: model.label,
           maybeCount: Option.none(),
         }),
+        handler: function* () {
+          yield* Effect.void
+          return ({ id, maybeCount, label }) => {
+            const exactId: string = id
+            const exactCount: Option.Option<number> = maybeCount
+            const exactLabel: string | undefined = label
+            // @ts-expect-error A required Schema.String field has no arbitrary members.
+            id.doesNotExist()
+            // @ts-expect-error A Schema.Option field retains its Option value type.
+            maybeCount.doesNotExist()
+            // @ts-expect-error An optional Schema.String field retains its string value type.
+            label?.doesNotExist()
+            return Stream.succeed(
+              `${exactId}:${Option.isSome(exactCount)}:${exactLabel ?? ''}`,
+            )
+          }
+        },
       },
-      Effect.succeed(({ id, maybeCount, label }) => {
-        const exactId: string = id
-        const exactCount: Option.Option<number> = maybeCount
-        const exactLabel: string | undefined = label
-        // @ts-expect-error A required Schema.String field has no arbitrary members.
-        id.doesNotExist()
-        // @ts-expect-error A Schema.Option field retains its Option value type.
-        maybeCount.doesNotExist()
-        // @ts-expect-error An optional Schema.String field retains its string value type.
-        label?.doesNotExist()
-        return Stream.succeed(
-          `${exactId}:${Option.isSome(exactCount)}:${exactLabel ?? ''}`,
-        )
-      }),
     ),
-    keepAlive: entry(
-      'AttachedKeepAliveValues',
-      childFields,
-      {
-        messages: [Schema.String],
-        modelToDependencies: model => ({
-          isRunning: model.isRunning,
-          label: model.label,
-        }),
-        keepAliveEquivalence: Equivalence.make(
-          (left, right) => left.isRunning === right.isRunning,
-        ),
+    keepAlive: entry('AttachedKeepAliveValues', childFields, {
+      messages: [Schema.String],
+      modelToDependencies: model => ({
+        isRunning: model.isRunning,
+        label: model.label,
+      }),
+      keepAliveEquivalence: Equivalence.make(
+        (left, right) => left.isRunning === right.isRunning,
+      ),
+      handler: function* () {
+        return (dependencies, readDependencies) => {
+          expectTypeOf(dependencies).toEqualTypeOf<ChildDependencies>()
+          expectTypeOf(
+            readDependencies,
+          ).returns.toEqualTypeOf<ChildDependencies>()
+          return Stream.succeed(readDependencies().label)
+        }
       },
-      Effect.succeed((dependencies, readDependencies) => {
-        expectTypeOf(dependencies).toEqualTypeOf<ChildDependencies>()
-        expectTypeOf(
-          readDependencies,
-        ).returns.toEqualTypeOf<ChildDependencies>()
-        return Stream.succeed(readDependencies().label)
-      }),
-    ),
+    }),
   }))
 
   it('contextually types attached persistent and keep-alive handlers', () => {
@@ -1107,6 +1125,7 @@ describe('Layer-backed entries', () => {
     expect(combined.values.layer).toBe(attached.values.layer)
     expectTypeOf(lifted.values.layer).toEqualTypeOf(attached.values.layer)
     expectTypeOf(combined.values.layer).toEqualTypeOf(attached.values.layer)
+    expect('handler' in attached.values).toBe(false)
 
     const handlerLayer = Layer.provide(
       attached.values.layer,

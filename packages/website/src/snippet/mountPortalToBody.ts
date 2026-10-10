@@ -14,21 +14,19 @@ type Message = typeof Message.Type
 // the element Mount provides, idempotent and safe to re-run during
 // DevTools time-travel.
 
-const PortalToBody = Mount.define(
-  'PortalToBody',
-  {
-    messages: [Message.CompletedPortalToBody],
+const PortalToBody = Mount.define('PortalToBody', {
+  messages: [Message.CompletedPortalToBody],
+  handler: function* () {
+    return ({ element }) =>
+      Effect.gen(function* () {
+        yield* Effect.acquireRelease(
+          Effect.sync(() => document.body.appendChild(element)),
+          () => Effect.sync(() => element.remove()),
+        )
+        return Message.CompletedPortalToBody()
+      })
   },
-  Effect.succeed(({ element }) =>
-    Effect.gen(function* () {
-      yield* Effect.acquireRelease(
-        Effect.sync(() => document.body.appendChild(element)),
-        () => Effect.sync(() => element.remove()),
-      )
-      return Message.CompletedPortalToBody()
-    }),
-  ),
-)
+})
 
 const overlayView = (h: HtmlBuilder<Message>): Html =>
   h.div([h.Class('fixed inset-0 bg-black/50'), h.OnMount(PortalToBody())])

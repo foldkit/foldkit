@@ -12,19 +12,17 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const MeasurePanel = Mount.define(
-  'MeasurePanel',
-  {
-    messages: [Message.CompletedMeasurePanel],
+const MeasurePanel = Mount.define('MeasurePanel', {
+  messages: [Message.CompletedMeasurePanel],
+  handler: function* () {
+    return ({ element }) =>
+      Effect.sync(() =>
+        Message.CompletedMeasurePanel({
+          height: element.getBoundingClientRect().height,
+        }),
+      )
   },
-  Effect.succeed(({ element }) =>
-    Effect.sync(() =>
-      Message.CompletedMeasurePanel({
-        height: element.getBoundingClientRect().height,
-      }),
-    ),
-  ),
-)
+})
 
 const init = () => ({ model: Model.make({ panelHeight: Option.none() }) })
 

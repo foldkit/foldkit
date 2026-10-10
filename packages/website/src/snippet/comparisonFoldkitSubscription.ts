@@ -1,31 +1,27 @@
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  undoRedoKeyPresses: entry(
-    'UndoRedoKeyPresses',
-    {
-      messages: [ClickedUndo, ClickedRedo],
+  undoRedoKeyPresses: entry('UndoRedoKeyPresses', {
+    messages: [ClickedUndo, ClickedRedo],
+    handler: function* () {
+      return () =>
+        Dom.streamFromEventFilterMapPreventDefault({
+          target: document,
+          type: 'keydown',
+          filterMapEvent: toUndoRedoMessage,
+        })
     },
-    Effect.succeed(() =>
-      Dom.streamFromEventFilterMapPreventDefault({
-        target: document,
-        type: 'keydown',
-        filterMapEvent: toUndoRedoMessage,
-      }),
-    ),
-  ),
+  }),
 
-  toolKeyPresses: entry(
-    'ToolKeyPresses',
-    {
-      messages: [SelectedTool],
+  toolKeyPresses: entry('ToolKeyPresses', {
+    messages: [SelectedTool],
+    handler: function* () {
+      return () =>
+        Dom.streamFromEventFilterMap({
+          target: document,
+          type: 'keydown',
+          filterMapEvent: toToolMessage,
+        })
     },
-    Effect.succeed(() =>
-      Dom.streamFromEventFilterMap({
-        target: document,
-        type: 'keydown',
-        filterMapEvent: toToolMessage,
-      }),
-    ),
-  ),
+  }),
 
   mouseReleases: entry(
     'MouseReleases',
@@ -33,14 +29,15 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     {
       messages: [ReleasedMouse],
       modelToDependencies: model => ({ isDrawing: model.isDrawing }),
+      handler: function* () {
+        return ({ isDrawing }) =>
+          Stream.when(
+            Stream.fromEventListener(document, 'mouseup').pipe(
+              Stream.map(() => ReleasedMouse()),
+            ),
+            Effect.succeed(isDrawing),
+          )
+      },
     },
-    Effect.succeed(({ isDrawing }) =>
-      Stream.when(
-        Stream.fromEventListener(document, 'mouseup').pipe(
-          Stream.map(() => ReleasedMouse()),
-        ),
-        Effect.succeed(isDrawing),
-      ),
-    ),
   ),
 }))

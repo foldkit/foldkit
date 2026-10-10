@@ -27,13 +27,14 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
     {
       messages: [Message.TickedFrame],
       modelToDependencies: model => ({ isActive: model.isPlaying }),
+      handler: function* () {
+        return ({ isActive }) =>
+          isActive
+            ? Subscription.animationFrameStream.pipe(
+                Stream.map(deltaTime => Message.TickedFrame({ deltaTime })),
+              )
+            : Stream.empty
+      },
     },
-    Effect.succeed(({ isActive }) =>
-      isActive
-        ? Subscription.animationFrameStream.pipe(
-            Stream.map(deltaTime => Message.TickedFrame({ deltaTime })),
-          )
-        : Stream.empty,
-    ),
   ),
 }))

@@ -438,38 +438,44 @@ export const forRoot = <const Name extends string>(
           min: model.min,
           max: model.max,
         }),
-      },
-      Effect.succeed(({ dragActivity, id, min, max }) => {
-        const pointerEvents = Stream.merge(
-          Stream.fromEventListener<PointerEvent>(document, 'pointermove').pipe(
-            Stream.mapEffect(event =>
-              Effect.sync(() =>
-                Option.map(findTrackElement(id, getTrackRoot()), track =>
-                  Message.MovedDragPointer({
-                    value: valueFromPointer(
-                      event.clientX,
-                      event.clientY,
-                      track,
-                      min,
-                      max,
+        handler: function* () {
+          return ({ dragActivity, id, min, max }) => {
+            const pointerEvents = Stream.merge(
+              Stream.fromEventListener<PointerEvent>(
+                document,
+                'pointermove',
+              ).pipe(
+                Stream.mapEffect(event =>
+                  Effect.sync(() =>
+                    Option.map(findTrackElement(id, getTrackRoot()), track =>
+                      Message.MovedDragPointer({
+                        value: valueFromPointer(
+                          event.clientX,
+                          event.clientY,
+                          track,
+                          min,
+                          max,
+                        ),
+                      }),
                     ),
-                  }),
+                  ),
                 ),
+                Stream.filter(Option.isSome),
+                Stream.map(option => option.value),
               ),
-            ),
-            Stream.filter(Option.isSome),
-            Stream.map(option => option.value),
-          ),
-          Stream.fromEventListener<PointerEvent>(document, 'pointerup').pipe(
-            Stream.map(() => Message.ReleasedDragPointer()),
-          ),
-        )
+              Stream.fromEventListener<PointerEvent>(
+                document,
+                'pointerup',
+              ).pipe(Stream.map(() => Message.ReleasedDragPointer())),
+            )
 
-        return Stream.when(
-          Stream.merge(pointerEvents, documentDragStyles),
-          Effect.sync(() => dragActivity === 'Active'),
-        )
-      }),
+            return Stream.when(
+              Stream.merge(pointerEvents, documentDragStyles),
+              Effect.sync(() => dragActivity === 'Active'),
+            )
+          }
+        },
+      },
     ),
 
     dragEscape: entry(
@@ -480,16 +486,17 @@ export const forRoot = <const Name extends string>(
         modelToDependencies: model => ({
           dragActivity: dragActivityFromModel(model),
         }),
+        handler: function* () {
+          return ({ dragActivity }) =>
+            Stream.when(
+              Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
+                Stream.filter(({ key }) => key === 'Escape'),
+                Stream.map(() => Message.CancelledDrag()),
+              ),
+              Effect.sync(() => dragActivity === 'Active'),
+            )
+        },
       },
-      Effect.succeed(({ dragActivity }) =>
-        Stream.when(
-          Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-            Stream.filter(({ key }) => key === 'Escape'),
-            Stream.map(() => Message.CancelledDrag()),
-          ),
-          Effect.sync(() => dragActivity === 'Active'),
-        ),
-      ),
     ),
   }))
 

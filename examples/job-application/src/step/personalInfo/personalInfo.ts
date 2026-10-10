@@ -131,30 +131,28 @@ const isEmailTaken = (emailInput: string): Effect.Effect<boolean> =>
     return Array.contains(TAKEN_EMAILS, emailInput.toLowerCase())
   })
 
-export const ValidateEmailAsync = Command.define(
-  'ValidateEmailAsync',
-  {
-    args: { emailInput: Schema.String, validationId: Schema.Number },
-    messages: [Message.CompletedValidateEmailAsync],
-  },
-  Effect.succeed(({ emailInput, validationId }) =>
-    Effect.gen(function* () {
-      if (yield* isEmailTaken(emailInput)) {
+export const ValidateEmailAsync = Command.define('ValidateEmailAsync', {
+  args: { emailInput: Schema.String, validationId: Schema.Number },
+  messages: [Message.CompletedValidateEmailAsync],
+  handler: function* () {
+    return ({ emailInput, validationId }) =>
+      Effect.gen(function* () {
+        if (yield* isEmailTaken(emailInput)) {
+          return Message.CompletedValidateEmailAsync({
+            validationId,
+            field: Invalid({
+              value: emailInput,
+              errors: ['This email is already in use'],
+            }),
+          })
+        }
         return Message.CompletedValidateEmailAsync({
           validationId,
-          field: Invalid({
-            value: emailInput,
-            errors: ['This email is already in use'],
-          }),
+          field: Valid({ value: emailInput }),
         })
-      }
-      return Message.CompletedValidateEmailAsync({
-        validationId,
-        field: Valid({ value: emailInput }),
       })
-    }),
-  ),
-)
+  },
+})
 
 export const EffectsLayer = ValidateEmailAsync.layer
 

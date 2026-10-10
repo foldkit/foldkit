@@ -62,21 +62,19 @@ export const update = Update.make((model: Model, message: Message) =>
 
 const COUNT_COOKIE_MAX_AGE_SECONDS = 31536000
 
-export const PersistCount = Command.define(
-  'PersistCount',
-  {
-    args: { count: Schema.Number },
-    messages: [Message.CompletedPersistCount],
+export const PersistCount = Command.define('PersistCount', {
+  args: { count: Schema.Number },
+  messages: [Message.CompletedPersistCount],
+  handler: function* () {
+    return ({ count }) =>
+      Effect.try(() => {
+        document.cookie = `${COUNT_COOKIE}=${count}; path=/; max-age=${COUNT_COOKIE_MAX_AGE_SECONDS}`
+      }).pipe(
+        Effect.map(() => Message.CompletedPersistCount()),
+        Effect.catch(() => Effect.succeed(Message.CompletedPersistCount())),
+      )
   },
-  Effect.succeed(({ count }) =>
-    Effect.try(() => {
-      document.cookie = `${COUNT_COOKIE}=${count}; path=/; max-age=${COUNT_COOKIE_MAX_AGE_SECONDS}`
-    }).pipe(
-      Effect.map(() => Message.CompletedPersistCount()),
-      Effect.catch(() => Effect.succeed(Message.CompletedPersistCount())),
-    ),
-  ),
-)
+})
 
 export const EffectsLayer = PersistCount.layer
 

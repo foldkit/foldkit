@@ -26,15 +26,16 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
     {
       messages: [Message.Ticked],
       modelToDependencies: model => ({ isRunning: model.isRunning }),
+      handler: function* () {
+        return ({ isRunning }) =>
+          Stream.when(
+            Stream.tick(Duration.millis(100)).pipe(
+              Stream.drop(1),
+              Stream.map(Message.Ticked),
+            ),
+            Effect.sync(() => isRunning),
+          )
+      },
     },
-    Effect.succeed(({ isRunning }) =>
-      Stream.when(
-        Stream.tick(Duration.millis(100)).pipe(
-          Stream.drop(1),
-          Stream.map(Message.Ticked),
-        ),
-        Effect.sync(() => isRunning),
-      ),
-    ),
   ),
 }))

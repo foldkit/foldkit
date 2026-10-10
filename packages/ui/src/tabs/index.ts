@@ -107,19 +107,17 @@ const tabId = (id: string, index: number): string => `${id}-tab-${index}`
 const tabPanelId = (id: string, index: number): string => `${id}-panel-${index}`
 
 /** Moves focus to the tab at the given index. */
-export const FocusTab = Command.define(
-  'FocusTab',
-  {
-    args: { id: Schema.String, index: Schema.Number },
-    messages: [Message.CompletedFocusTab],
+export const FocusTab = Command.define('FocusTab', {
+  args: { id: Schema.String, index: Schema.Number },
+  messages: [Message.CompletedFocusTab],
+  handler: function* () {
+    return ({ id, index }) =>
+      Dom.focus(idSelector(tabId(id, index))).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedFocusTab()),
+      )
   },
-  Effect.succeed(({ id, index }) =>
-    Dom.focus(idSelector(tabId(id, index))).pipe(
-      Effect.ignore,
-      Effect.as(Message.CompletedFocusTab()),
-    ),
-  ),
-)
+})
 
 /** Effect providers used by the Tabs component. */
 export const EffectsLayer = Layer.mergeAll(FocusTab.layer)

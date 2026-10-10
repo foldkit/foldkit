@@ -7,17 +7,15 @@ import { ports } from './ports'
 // value the host sends into a Message, so host input enters update the same way
 // any other external event does.
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  hostStepChanges: entry(
-    'HostStepChanges',
-    {
-      messages: [ChangedStep],
+  hostStepChanges: entry('HostStepChanges', {
+    messages: [ChangedStep],
+    handler: function* () {
+      return () =>
+        Port.stream(ports.inbound.stepChanged).pipe(
+          Stream.map(step => ChangedStep({ step })),
+        )
     },
-    Effect.succeed(() =>
-      Port.stream(ports.inbound.stepChanged).pipe(
-        Stream.map(step => ChangedStep({ step })),
-      ),
-    ),
-  ),
+  }),
 }))
 
 export const EffectsLayer = subscriptions.hostStepChanges.layer

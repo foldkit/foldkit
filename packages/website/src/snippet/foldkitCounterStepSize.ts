@@ -36,16 +36,17 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
       modelToDependencies: model => ({
         isAutoCounting: model.isAutoCounting,
       }),
+      handler: function* () {
+        return ({ isAutoCounting }) =>
+          Stream.when(
+            Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
+              Stream.drop(1),
+              Stream.map(Message.Ticked),
+            ),
+            Effect.sync(() => isAutoCounting),
+          )
+      },
     },
-    Effect.succeed(({ isAutoCounting }) =>
-      Stream.when(
-        Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
-          Stream.drop(1),
-          Stream.map(Message.Ticked),
-        ),
-        Effect.sync(() => isAutoCounting),
-      ),
-    ),
   ),
 }))
 

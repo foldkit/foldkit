@@ -13,20 +13,17 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const UploadFile = Command.define(
-  'UploadFile',
-  {
-    args: {
-      uploadId: Schema.Int,
-      file: Schema.instanceOf(File),
-    },
-    messages: [Message.SucceededUploadFile, Message.FailedUploadFile],
-    interrupt: {
-      keyFields: ['uploadId'],
-      toKey: ({ uploadId }) => globalThis.String(uploadId),
-    },
+export const UploadFile = Command.define('UploadFile', {
+  args: {
+    uploadId: Schema.Int,
+    file: Schema.instanceOf(File),
   },
-  Effect.gen(function* () {
+  messages: [Message.SucceededUploadFile, Message.FailedUploadFile],
+  interrupt: {
+    keyFields: ['uploadId'],
+    toKey: ({ uploadId }) => globalThis.String(uploadId),
+  },
+  handler: function* () {
     const client = yield* HttpClient.HttpClient
 
     return ({ uploadId, file }) =>
@@ -46,7 +43,7 @@ export const UploadFile = Command.define(
           Effect.succeed(Message.FailedUploadFile({ uploadId })),
         ),
       )
-  }),
-)
+  },
+})
 
 export const EffectsLayer = UploadFile.layer

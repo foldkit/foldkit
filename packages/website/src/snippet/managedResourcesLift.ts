@@ -18,22 +18,19 @@ const videoCallManagedResources = ManagedResource.lift(
 })
 
 const localManagedResources = ManagedResource.make<Model, Message>()(entry => ({
-  signalingSocket: entry(
-    'ManageSignalingSocket',
-    Schema.Option(Schema.Null),
-    {
-      resource: SignalingSocket,
-      modelToMaybeRequirements: model => Option.as(model.videoCall, null),
-      onAcquired: () => Message.OpenedSignaling(),
-      onReleased: () => Message.ClosedSignaling(),
-      onAcquireError: error =>
-        Message.FailedSignaling({ error: String(error) }),
+  signalingSocket: entry('ManageSignalingSocket', Schema.Option(Schema.Null), {
+    resource: SignalingSocket,
+    modelToMaybeRequirements: model => Option.as(model.videoCall, null),
+    onAcquired: () => Message.OpenedSignaling(),
+    onReleased: () => Message.ClosedSignaling(),
+    onAcquireError: error => Message.FailedSignaling({ error: String(error) }),
+    handler: function* () {
+      return {
+        acquire: () => Effect.try(() => new WebSocket(SIGNALING_URL)),
+        release: socket => Effect.sync(() => socket.close()),
+      }
     },
-    Effect.succeed({
-      acquire: () => Effect.try(() => new WebSocket(SIGNALING_URL)),
-      release: socket => Effect.sync(() => socket.close()),
-    }),
-  ),
+  }),
 }))
 
 export const managedResources = ManagedResource.aggregate(

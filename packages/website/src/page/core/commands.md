@@ -18,11 +18,11 @@ The counter's update function has only changed the count so far. Add a button th
 
 Three pieces connect the work to update:
 
-- `Command.define` names `WaitBeforeReset`, declares the Messages it can produce, and takes its handler constructor as the final argument. The returned handler waits one second, then produces `CompletedWaitBeforeReset`.
+- `Command.define` names `WaitBeforeReset`, declares the Messages it can produce, and stores its handler constructor in `config.handler`. The returned handler waits one second, then produces `CompletedWaitBeforeReset`.
 - `WaitBeforeReset.layer` is the Layer recipe for that handler.
 - `WaitBeforeReset()` creates the Command value that update returns. Creating that value does not start the timer.
 
-The final argument is an Effect that constructs the invocation function, and `.layer` is the Layer recipe application assembly provides. Use `Effect.succeed` when construction has no work to do.
+`config.handler` is a generator constructor. Foldkit applies `Effect.gen` internally, builds the invocation function once, and exposes its Layer recipe for application assembly. Return the invocation function directly from the generator when construction has no setup work.
 
 `Update.make` infers the handler requirements from every update branch. It does not execute Commands or change the function's behavior.
 
@@ -103,7 +103,7 @@ The entry point provides `AppLayer` to the application, as it provided the count
 
 ### Constructing the Handler {#implementing-the-handler}
 
-The final `Command.define` argument is an Effect that constructs the handler. It captures dependencies when the application Layer is built, then returns the function that performs each invocation:
+`config.handler` is a generator constructor that captures dependencies when the application Layer is built, then returns the function that performs each invocation:
 
 ::Snippet{name="commandHandlerConstructor" label="Capturing a client during handler construction"}
 
@@ -113,9 +113,9 @@ This constructor shape gives Commands, Subscriptions, Mounts, and ManagedResourc
 
 An update that returns `FetchCount()` requires the `FetchCount` handler. Adding another service to its implementation changes `FetchCount.layer`'s requirements at assembly without changing update's handler requirement. [Handler and service requirements](/core/layers#handler-and-service-requirements) compares how this dependency change flows through inline Effects and handler Layers.
 
-When a handler has no dependencies or setup, use `Effect.succeed(handler)`. This keeps the same boundary without inventing construction work.
+When a handler has no dependencies or setup, return it directly from `function* () { return handler }`.
 
-Omit the final constructor argument when the definition is a contract whose implementation belongs to an external host. That definition has no `.layer`. The host calls `toLayer` with its implementation Effect at its assembly boundary. [Host implementations for reusable features](/core/layers#host-implementations-for-reusable-features) shows an editor declaring a save operation that its host implements. `toLayer` is also available when a focused test deliberately replaces the entire handler. Most execution tests keep `.layer` and replace the HTTP, storage, RPC, clock, or browser service beneath it.
+Omit `handler` when the definition is a contract whose implementation belongs to an external host. That definition has no `.layer`. The host calls `toLayer` with its implementation Effect at its assembly boundary. [Host implementations for reusable features](/core/layers#host-implementations-for-reusable-features) shows an editor declaring a save operation that its host implements. It also accepts an alternative handler when a focused test deliberately replaces the entire handler. Most execution tests keep `.layer` and replace the HTTP, storage, RPC, clock, or browser service beneath it.
 
 Keep changing values inside the invocation. Command args, the current time, and an active ManagedResource handle belong to the operation that uses them. Capturing a value in the constructor gives it application lifetime. [Layers](/core/layers) explains acquisition and provider lifetimes in depth.
 

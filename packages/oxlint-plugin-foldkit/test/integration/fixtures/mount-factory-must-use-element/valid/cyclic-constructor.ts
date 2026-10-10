@@ -12,11 +12,11 @@ const recursiveBuild: Effect.Effect<Handler> = Effect.flatMap(
   () => recursiveBuild,
 )
 
-Mount.define(
-  'RecursiveConstructor',
-  { messages: [Message.CompletedCyclicMount] },
-  recursiveBuild,
-)
+const RecursiveConstructor = Mount.define('RecursiveConstructor', {
+  messages: [Message.CompletedCyclicMount],
+})
+
+RecursiveConstructor.toLayer(recursiveBuild)
 
 const firstBuild: Effect.Effect<Handler> = Effect.flatMap(
   Effect.void,
@@ -27,11 +27,12 @@ const secondBuild: Effect.Effect<Handler> = Effect.flatMap(
   () => firstBuild,
 )
 
-Mount.define(
+const IndirectRecursiveConstructor = Mount.define(
   'IndirectRecursiveConstructor',
   { messages: [Message.CompletedCyclicMount] },
-  firstBuild,
 )
+
+IndirectRecursiveConstructor.toLayer(firstBuild)
 
 const scopedBuild: Effect.Effect<Handler, never, Scope.Scope> =
   Effect.acquireRelease(

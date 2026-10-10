@@ -4,24 +4,24 @@ import { importedHandler } from 'external-handlers'
 
 const readClock = () => Effect.succeed(Date.now())
 const readClockAlias = readClock
-const readClockBuild = Effect.succeed(readClockAlias)
+const readClockBuild = function* () {
+  return readClockAlias
+}
 
 export const ReadNamedClock = Command.define(
   'ReadNamedClock',
-  { messages: [CompletedReadNamedClock] },
-  readClockBuild,
+  { messages: [CompletedReadNamedClock], handler: readClockBuild},
 )
 
 const readGeneratedClock = () => Effect.succeed(performance.now())
 
 export const ReadGeneratedClock = Command.define(
   'ReadGeneratedClock',
-  { messages: [CompletedReadGeneratedClock] },
-  Effect.gen(function* () {
+  { messages: [CompletedReadGeneratedClock], handler: function* () {
     yield* Effect.void
     const readGeneratedClockAlias = readGeneratedClock
     return readGeneratedClockAlias
-  }),
+  }},
 )
 
 function readDeclaredClock() {
@@ -30,16 +30,14 @@ function readDeclaredClock() {
 
 export const ReadDeclaredClock = Command.define(
   'ReadDeclaredClock',
-  { messages: [CompletedReadDeclaredClock] },
-  Effect.succeed(readDeclaredClock),
+  { messages: [CompletedReadDeclaredClock], handler: function* () { return readDeclaredClock }},
 )
 
 const readClockInsideEffect = () => Effect.succeed(Math.random())
 
 export const ReadClockInsideEffect = Command.define(
   'ReadClockInsideEffect',
-  { messages: [CompletedReadClockInsideEffect] },
-  Effect.succeed(readClockInsideEffect),
+  { messages: [CompletedReadClockInsideEffect], handler: function* () { return readClockInsideEffect }},
 )
 
 export const deferredExtraRead = Effect.sync(() => readClockInsideEffect())
@@ -63,8 +61,8 @@ export const managedResources = ManagedResource.make<Model, Message>()(
         onAcquired: () => AcquiredConnection(),
         onAcquireError: () => FailedAcquireConnection(),
         onReleased: () => ReleasedConnection(),
+      handler: function* () { return connectionLifecycleAlias },
       },
-      Effect.succeed(connectionLifecycleAlias),
     ),
     generatedConnection: entry(
       'GeneratedNamedConnection',
@@ -75,11 +73,11 @@ export const managedResources = ManagedResource.make<Model, Message>()(
         onAcquired: () => AcquiredConnection(),
         onAcquireError: () => FailedAcquireConnection(),
         onReleased: () => ReleasedConnection(),
-      },
-      Effect.gen(function* () {
+      handler: function* () {
         yield* Effect.void
         return connectionLifecycleAlias
-      }),
+      },
+      },
     ),
   }),
 )
@@ -89,8 +87,7 @@ export const managedResources = ManagedResource.make<Model, Message>()(
 
   Command.define(
     'ReadShadowedClock',
-    { messages: [CompletedReadShadowedClock] },
-    Effect.succeed(readClock),
+    { messages: [CompletedReadShadowedClock], handler: function* () { return readClock }},
   )
 }
 
@@ -99,12 +96,10 @@ const cycleB = cycleA
 
 Command.define(
   'UnresolvedCycle',
-  { messages: [CompletedUnresolvedCycle] },
-  Effect.succeed(cycleA),
+  { messages: [CompletedUnresolvedCycle], handler: function* () { return cycleA }},
 )
 
 Command.define(
   'ImportedHandler',
-  { messages: [CompletedImportedHandler] },
-  Effect.succeed(importedHandler),
+  { messages: [CompletedImportedHandler], handler: function* () { return importedHandler }},
 )

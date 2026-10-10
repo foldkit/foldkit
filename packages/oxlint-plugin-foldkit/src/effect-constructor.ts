@@ -50,6 +50,16 @@ const isEffectConstructorFunction = (
   (node.type === 'ArrowFunctionExpression' ||
     node.type === 'FunctionExpression')
 
+const isGeneratorConstructorFunction = (
+  node: unknown,
+): node is ESTree.Function =>
+  typeof node === 'object' &&
+  node !== null &&
+  'type' in node &&
+  (node.type === 'FunctionExpression' || node.type === 'FunctionDeclaration') &&
+  'generator' in node &&
+  node.generator === true
+
 const localVariableValue = (variable: Variable): Option.Option<ESTree.Node> => {
   if (variable.defs.length !== 1) {
     return Option.none()
@@ -240,3 +250,15 @@ export const effectConstructorValue = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): Option.Option<ESTree.Node> =>
   effectConstructorValueWith(node, references, new Set())
+
+/** @internal Resolves the handler value returned by a generator constructor. */
+export const generatorConstructorValue = (
+  node: ESTree.Node,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): Option.Option<ESTree.Node> =>
+  pipe(
+    resolveLocalValue(node, references),
+    Option.filter(isGeneratorConstructorFunction),
+    Option.flatMap(returnedExpression),
+    Option.flatMap(value => resolveLocalValue(value, references)),
+  )

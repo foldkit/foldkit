@@ -23,17 +23,20 @@ const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
       modelToDependencies: model => ({
         isSystemPreference: model.themePreference === 'System',
       }),
+      handler: function* () {
+        return ({ isSystemPreference }) =>
+          Stream.when(
+            Dom.streamFromMediaQuery({
+              query: '(prefers-color-scheme: dark)',
+              mapMatches: isDark =>
+                Message.ChangedSystemTheme({
+                  theme: isDark ? 'Dark' : 'Light',
+                }),
+            }),
+            Effect.sync(() => isSystemPreference),
+          )
+      },
     },
-    Effect.succeed(({ isSystemPreference }) =>
-      Stream.when(
-        Dom.streamFromMediaQuery({
-          query: '(prefers-color-scheme: dark)',
-          mapMatches: isDark =>
-            Message.ChangedSystemTheme({ theme: isDark ? 'Dark' : 'Light' }),
-        }),
-        Effect.sync(() => isSystemPreference),
-      ),
-    ),
   ),
 }))
 

@@ -34,26 +34,21 @@ export type Message = typeof Message.Type
 
 // COMMAND
 
-export const FetchCount = Command.define(
-  'FetchCount',
-  {
-    messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
+export const FetchCount = Command.define('FetchCount', {
+  messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
+  handler: function* () {
+    return () => Effect.sync(() => Message.SucceededFetchCount({ count: 0 }))
   },
-  Effect.succeed(() =>
-    Effect.sync(() => Message.SucceededFetchCount({ count: 0 })),
-  ),
-)
+})
 
-export const FetchCountById = Command.define(
-  'FetchCountById',
-  {
-    args: { id: Schema.Number },
-    messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
+export const FetchCountById = Command.define('FetchCountById', {
+  args: { id: Schema.Number },
+  messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
+  handler: function* () {
+    return ({ id }) =>
+      Effect.sync(() => Message.SucceededFetchCount({ count: id }))
   },
-  Effect.succeed(({ id }) =>
-    Effect.sync(() => Message.SucceededFetchCount({ count: id })),
-  ),
-)
+})
 
 // INIT
 

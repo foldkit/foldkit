@@ -26,19 +26,17 @@ type Message = typeof Message.Type
 
 // COMMAND
 
-const FetchPosts = Command.define(
-  'FetchPosts',
-  {
-    messages: [Message.CompletedFetchPosts],
+const FetchPosts = Command.define('FetchPosts', {
+  messages: [Message.CompletedFetchPosts],
+  handler: function* () {
+    return () =>
+      pipe(
+        fetchPosts,
+        Effect.result,
+        Effect.map(result => Message.CompletedFetchPosts({ result })),
+      )
   },
-  Effect.succeed(() =>
-    pipe(
-      fetchPosts,
-      Effect.result,
-      Effect.map(result => Message.CompletedFetchPosts({ result })),
-    ),
-  ),
-)
+})
 
 // UPDATE
 

@@ -12,68 +12,55 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const NavigateInternal = Command.define(
-  'NavigateInternal',
-  {
-    args: { url: Schema.String },
-    messages: [Message.CompletedNavigateInternal],
+const NavigateInternal = Command.define('NavigateInternal', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateInternal],
+  handler: function* () {
+    return ({ url }) =>
+      Navigation.pushUrl(url).pipe(
+        Effect.as(Message.CompletedNavigateInternal()),
+      )
   },
-  Effect.succeed(({ url }) =>
-    Navigation.pushUrl(url).pipe(
-      Effect.as(Message.CompletedNavigateInternal()),
-    ),
-  ),
-)
+})
 
-const ReplaceUrl = Command.define(
-  'ReplaceUrl',
-  {
-    args: { url: Schema.String },
-    messages: [Message.CompletedReplaceUrl],
+const ReplaceUrl = Command.define('ReplaceUrl', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedReplaceUrl],
+  handler: function* () {
+    return ({ url }) =>
+      Navigation.replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceUrl()))
   },
-  Effect.succeed(({ url }) =>
-    Navigation.replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceUrl())),
-  ),
-)
+})
 
-const GoBack = Command.define(
-  'GoBack',
-  {
-    messages: [Message.CompletedGoBack],
+const GoBack = Command.define('GoBack', {
+  messages: [Message.CompletedGoBack],
+  handler: function* () {
+    return () => Navigation.back().pipe(Effect.as(Message.CompletedGoBack()))
   },
-  Effect.succeed(() =>
-    Navigation.back().pipe(Effect.as(Message.CompletedGoBack())),
-  ),
-)
+})
 
-const GoForward = Command.define(
-  'GoForward',
-  {
-    messages: [Message.CompletedGoForward],
+const GoForward = Command.define('GoForward', {
+  messages: [Message.CompletedGoForward],
+  handler: function* () {
+    return () =>
+      Navigation.forward().pipe(Effect.as(Message.CompletedGoForward()))
   },
-  Effect.succeed(() =>
-    Navigation.forward().pipe(Effect.as(Message.CompletedGoForward())),
-  ),
-)
+})
 
-const LoadExternal = Command.define(
-  'LoadExternal',
-  {
-    args: { href: Schema.String },
-    messages: [Message.CompletedLoadExternal],
+const LoadExternal = Command.define('LoadExternal', {
+  args: { href: Schema.String },
+  messages: [Message.CompletedLoadExternal],
+  handler: function* () {
+    return ({ href }) =>
+      Navigation.load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
   },
-  Effect.succeed(({ href }) =>
-    Navigation.load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
-  ),
-)
+})
 
-const OpenUrl = Command.define(
-  'OpenUrl',
-  {
-    args: { url: Schema.String },
-    messages: [Message.CompletedOpenUrl],
+const OpenUrl = Command.define('OpenUrl', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedOpenUrl],
+  handler: function* () {
+    return ({ url }) =>
+      Navigation.openUrl(url).pipe(Effect.as(Message.CompletedOpenUrl()))
   },
-  Effect.succeed(({ url }) =>
-    Navigation.openUrl(url).pipe(Effect.as(Message.CompletedOpenUrl())),
-  ),
-)
+})

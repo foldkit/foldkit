@@ -120,115 +120,105 @@ const flyToMap = (
       }),
   })
 
-export const FlyTo = Command.define(
-  'FlyTo',
-  {
-    args: {
-      maybeHostId: Schema.Option(Schema.String),
-      lng: Schema.Number,
-      lat: Schema.Number,
-      zoom: Schema.Number,
-    },
-    messages: [Message.SucceededFlyTo, Message.FailedFlyTo],
+export const FlyTo = Command.define('FlyTo', {
+  args: {
+    maybeHostId: Schema.Option(Schema.String),
+    lng: Schema.Number,
+    lat: Schema.Number,
+    zoom: Schema.Number,
   },
-  Effect.succeed(({ maybeHostId, lng, lat, zoom }) =>
-    Option.match(maybeHostId, {
-      onNone: () =>
-        Effect.succeed(
-          Message.FailedFlyTo({
-            reason: 'FlyTo dispatched before the map mounted.',
-          }),
-        ),
-      onSome: hostId => flyToMap(hostId, lng, lat, zoom),
-    }),
-  ),
-)
-
-export const Geolocate = Command.define(
-  'Geolocate',
-  {
-    messages: [Message.SucceededGeolocate, Message.FailedGeolocate],
-  },
-  Effect.succeed(() =>
-    Effect.gen(function* () {
-      const position = yield* Effect.callback<GeolocationPosition, Error>(
-        resume => {
-          if (typeof navigator === 'undefined' || !navigator.geolocation) {
-            resume(
-              Effect.fail(
-                new Error(
-                  'Geolocation is not available in this browser context.',
-                ),
-              ),
-            )
-            return
-          }
-          navigator.geolocation.getCurrentPosition(
-            position => resume(Effect.succeed(position)),
-            error => resume(Effect.fail(new Error(error.message))),
-            {
-              enableHighAccuracy: false,
-              timeout: GEOLOCATION_TIMEOUT_MS,
-            },
-          )
-        },
-      )
-      return Message.SucceededGeolocate({
-        lng: position.coords.longitude,
-        lat: position.coords.latitude,
+  messages: [Message.SucceededFlyTo, Message.FailedFlyTo],
+  handler: function* () {
+    return ({ maybeHostId, lng, lat, zoom }) =>
+      Option.match(maybeHostId, {
+        onNone: () =>
+          Effect.succeed(
+            Message.FailedFlyTo({
+              reason: 'FlyTo dispatched before the map mounted.',
+            }),
+          ),
+        onSome: hostId => flyToMap(hostId, lng, lat, zoom),
       })
-    }).pipe(
-      Effect.catch(error =>
-        Effect.succeed(
-          Message.FailedGeolocate({
-            reason: error instanceof Error ? error.message : `${error}`,
-          }),
+  },
+})
+
+export const Geolocate = Command.define('Geolocate', {
+  messages: [Message.SucceededGeolocate, Message.FailedGeolocate],
+  handler: function* () {
+    return () =>
+      Effect.gen(function* () {
+        const position = yield* Effect.callback<GeolocationPosition, Error>(
+          resume => {
+            if (typeof navigator === 'undefined' || !navigator.geolocation) {
+              resume(
+                Effect.fail(
+                  new Error(
+                    'Geolocation is not available in this browser context.',
+                  ),
+                ),
+              )
+              return
+            }
+            navigator.geolocation.getCurrentPosition(
+              position => resume(Effect.succeed(position)),
+              error => resume(Effect.fail(new Error(error.message))),
+              {
+                enableHighAccuracy: false,
+                timeout: GEOLOCATION_TIMEOUT_MS,
+              },
+            )
+          },
+        )
+        return Message.SucceededGeolocate({
+          lng: position.coords.longitude,
+          lat: position.coords.latitude,
+        })
+      }).pipe(
+        Effect.catch(error =>
+          Effect.succeed(
+            Message.FailedGeolocate({
+              reason: error instanceof Error ? error.message : `${error}`,
+            }),
+          ),
         ),
-      ),
-    ),
-  ),
-)
+      )
+  },
+})
 
 const SEARCH_INPUT_ID = 'map-search-input'
 
-export const FocusSearchInput = Command.define(
-  'FocusSearchInput',
-  {
-    messages: [Message.CompletedFocusSearchInput],
+export const FocusSearchInput = Command.define('FocusSearchInput', {
+  messages: [Message.CompletedFocusSearchInput],
+  handler: function* () {
+    return () =>
+      Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedFocusSearchInput()),
+      )
   },
-  Effect.succeed(() =>
-    Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
-      Effect.ignore,
-      Effect.as(Message.CompletedFocusSearchInput()),
-    ),
-  ),
-)
+})
 
-export const LockBodyScroll = Command.define(
-  'LockBodyScroll',
-  {
-    messages: [Message.CompletedLockBodyScroll],
+export const LockBodyScroll = Command.define('LockBodyScroll', {
+  messages: [Message.CompletedLockBodyScroll],
+  handler: function* () {
+    return () =>
+      Effect.sync(() => {
+        document.body.classList.add('overflow-hidden')
+        return Message.CompletedLockBodyScroll()
+      })
   },
-  Effect.succeed(() =>
-    Effect.sync(() => {
-      document.body.classList.add('overflow-hidden')
-      return Message.CompletedLockBodyScroll()
-    }),
-  ),
-)
+})
 
-export const UnlockBodyScroll = Command.define(
-  'UnlockBodyScroll',
-  {
-    messages: [Message.CompletedUnlockBodyScroll],
+export const UnlockBodyScroll = Command.define('UnlockBodyScroll', {
+  messages: [Message.CompletedUnlockBodyScroll],
+  handler: function* () {
+    return () =>
+      Effect.sync(() => {
+        document.body.classList.remove('overflow-hidden')
+        return Message.CompletedUnlockBodyScroll()
+      })
   },
-  Effect.succeed(() =>
-    Effect.sync(() => {
-      document.body.classList.remove('overflow-hidden')
-      return Message.CompletedUnlockBodyScroll()
-    }),
-  ),
-)
+})
 
 // UPDATE
 
@@ -411,79 +401,77 @@ const listenToMapMovesAndMarkerClicks = (
       }),
   )
 
-export const MountMap = Mount.defineStream(
-  'MountMap',
-  {
-    args: { hostId: Schema.String },
-    messages: [
-      Message.SucceededMountMap,
-      Message.FailedMountMap,
-      Message.MovedMap,
-      Message.ClickedMarker,
-    ],
-  },
-  Effect.succeed(({ element, hostId }) =>
-    Stream.callback<MountMapMessage>(queue =>
-      Effect.gen(function* () {
-        if (!(element instanceof HTMLElement)) {
-          Queue.offerUnsafe(
-            queue,
-            Message.FailedMountMap({
-              reason: 'Map host is not an HTMLElement.',
-            }),
-          )
-          return yield* Effect.never
-        }
-
-        const mapResource = yield* Effect.acquireRelease(
-          Effect.gen(function* () {
-            const maplibre = yield* Effect.tryPromise(
-              () => import('maplibre-gl'),
-            )
-            const map = yield* Effect.try({
-              try: () => {
-                maplibre.setWorkerUrl(maplibreWorkerUrl)
-                return new maplibre.Map({
-                  container: element,
-                  style: 'https://demotiles.maplibre.org/style.json',
-                  center: [0, 20],
-                  zoom: INITIAL_MAP_ZOOM,
-                })
-              },
-              catch: toMapMountError,
-            })
-            return { map, maplibre }
-          }),
-          ({ map }) => Effect.sync(() => removeMap(hostId, map)),
-        )
-        const { map, maplibre } = mapResource
-
-        yield* addLocationMarkers(map, maplibre)
-        setMap(hostId, map)
-
-        yield* listenToMapMovesAndMarkerClicks(map, queue)
-
-        Queue.offerUnsafe(queue, Message.SucceededMountMap({ hostId }))
-        Queue.offerUnsafe(
-          queue,
-          Message.MovedMap({ bounds: boundsFromMap(map) }),
-        )
-        return yield* Effect.never
-      }).pipe(
-        Effect.catch(error =>
-          Effect.sync(() =>
+export const MountMap = Mount.defineStream('MountMap', {
+  args: { hostId: Schema.String },
+  messages: [
+    Message.SucceededMountMap,
+    Message.FailedMountMap,
+    Message.MovedMap,
+    Message.ClickedMarker,
+  ],
+  handler: function* () {
+    return ({ element, hostId }) =>
+      Stream.callback<MountMapMessage>(queue =>
+        Effect.gen(function* () {
+          if (!(element instanceof HTMLElement)) {
             Queue.offerUnsafe(
               queue,
               Message.FailedMountMap({
-                reason: toMapMountError(error).message,
+                reason: 'Map host is not an HTMLElement.',
               }),
+            )
+            return yield* Effect.never
+          }
+
+          const mapResource = yield* Effect.acquireRelease(
+            Effect.gen(function* () {
+              const maplibre = yield* Effect.tryPromise(
+                () => import('maplibre-gl'),
+              )
+              const map = yield* Effect.try({
+                try: () => {
+                  maplibre.setWorkerUrl(maplibreWorkerUrl)
+                  return new maplibre.Map({
+                    container: element,
+                    style: 'https://demotiles.maplibre.org/style.json',
+                    center: [0, 20],
+                    zoom: INITIAL_MAP_ZOOM,
+                  })
+                },
+                catch: toMapMountError,
+              })
+              return { map, maplibre }
+            }),
+            ({ map }) => Effect.sync(() => removeMap(hostId, map)),
+          )
+          const { map, maplibre } = mapResource
+
+          yield* addLocationMarkers(map, maplibre)
+          setMap(hostId, map)
+
+          yield* listenToMapMovesAndMarkerClicks(map, queue)
+
+          Queue.offerUnsafe(queue, Message.SucceededMountMap({ hostId }))
+          Queue.offerUnsafe(
+            queue,
+            Message.MovedMap({ bounds: boundsFromMap(map) }),
+          )
+          return yield* Effect.never
+        }).pipe(
+          Effect.catch(error =>
+            Effect.sync(() =>
+              Queue.offerUnsafe(
+                queue,
+                Message.FailedMountMap({
+                  reason: toMapMountError(error).message,
+                }),
+              ),
             ),
           ),
         ),
-      ),
-    ),
-  ),
-)
+      )
+  },
+})
 
 export const mounts = [...UI.mounts, MountMap]
 

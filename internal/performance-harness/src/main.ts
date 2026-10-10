@@ -50,16 +50,14 @@ const heavyPayload = makeHeavyArray(HEAVY_ITEM_COUNT)
 
 // COMMAND
 
-const FillHistoryStep = Command.define(
-  'FillHistoryStep',
-  {
-    args: { remaining: Schema.Number },
-    messages: [Message.CompletedFillHistoryStep],
+const FillHistoryStep = Command.define('FillHistoryStep', {
+  args: { remaining: Schema.Number },
+  messages: [Message.CompletedFillHistoryStep],
+  handler: function* () {
+    return ({ remaining }) =>
+      Effect.sync(() => Message.CompletedFillHistoryStep({ remaining }))
   },
-  Effect.succeed(({ remaining }) =>
-    Effect.sync(() => Message.CompletedFillHistoryStep({ remaining })),
-  ),
-)
+})
 
 export const EffectsLayer = FillHistoryStep.layer
 

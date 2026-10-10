@@ -39,29 +39,25 @@ type Message = typeof Message.Type
 
 // COMMAND
 
-const NavigateInternal = Command.define(
-  'NavigateInternal',
-  {
-    args: { url: Schema.String },
-    messages: [Message.CompletedNavigateInternal],
+const NavigateInternal = Command.define('NavigateInternal', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateInternal],
+  handler: function* () {
+    return ({ url }) =>
+      Navigation.pushUrl(url).pipe(
+        Effect.as(Message.CompletedNavigateInternal()),
+      )
   },
-  Effect.succeed(({ url }) =>
-    Navigation.pushUrl(url).pipe(
-      Effect.as(Message.CompletedNavigateInternal()),
-    ),
-  ),
-)
+})
 
-const LoadExternal = Command.define(
-  'LoadExternal',
-  {
-    args: { href: Schema.String },
-    messages: [Message.CompletedLoadExternal],
+const LoadExternal = Command.define('LoadExternal', {
+  args: { href: Schema.String },
+  messages: [Message.CompletedLoadExternal],
+  handler: function* () {
+    return ({ href }) =>
+      Navigation.load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
   },
-  Effect.succeed(({ href }) =>
-    Navigation.load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
-  ),
-)
+})
 
 // UPDATE
 

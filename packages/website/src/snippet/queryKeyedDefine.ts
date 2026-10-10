@@ -1,9 +1,9 @@
-const postQuery = Query.define(
-  {
-    name: 'Post',
-    data: Post,
-    error: Schema.String,
-    args: { postId: Schema.String },
+const postQuery = Query.define({
+  name: 'Post',
+  data: Post,
+  error: Schema.String,
+  args: { postId: Schema.String },
+  handler: function* () {
+    return ({ postId }) => fetchPost(postId)
   },
-  Effect.succeed(({ postId }) => fetchPost(postId)),
-)
+})

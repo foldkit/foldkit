@@ -83,36 +83,37 @@ export const init = () => ({
 
 // COMMAND
 
-export const GenerateBall = Command.define(
-  'GenerateBall',
-  {
-    args: { x: Schema.Number, y: Schema.Number },
-    messages: [Message.CompletedGenerateBall],
+export const GenerateBall = Command.define('GenerateBall', {
+  args: { x: Schema.Number, y: Schema.Number },
+  messages: [Message.CompletedGenerateBall],
+  handler: function* () {
+    return ({ x, y }) =>
+      Effect.gen(function* () {
+        const angle = yield* Random.nextBetween(0, FULL_CIRCLE_RADIANS)
+        const speed = yield* Random.nextBetween(BALL_SPEED_MIN, BALL_SPEED_MAX)
+        const radius = yield* Random.nextBetween(
+          BALL_RADIUS_MIN,
+          BALL_RADIUS_MAX,
+        )
+        const colorIndex = yield* Random.nextIntBetween(0, PALETTE.length, {
+          halfOpen: true,
+        })
+        const color = pipe(
+          PALETTE,
+          Array.get(colorIndex),
+          Option.getOrElse(() => FALLBACK_COLOR),
+        )
+        return Message.CompletedGenerateBall({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius,
+          color,
+        })
+      })
   },
-  Effect.succeed(({ x, y }) =>
-    Effect.gen(function* () {
-      const angle = yield* Random.nextBetween(0, FULL_CIRCLE_RADIANS)
-      const speed = yield* Random.nextBetween(BALL_SPEED_MIN, BALL_SPEED_MAX)
-      const radius = yield* Random.nextBetween(BALL_RADIUS_MIN, BALL_RADIUS_MAX)
-      const colorIndex = yield* Random.nextIntBetween(0, PALETTE.length, {
-        halfOpen: true,
-      })
-      const color = pipe(
-        PALETTE,
-        Array.get(colorIndex),
-        Option.getOrElse(() => FALLBACK_COLOR),
-      )
-      return Message.CompletedGenerateBall({
-        x,
-        y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        radius,
-        color,
-      })
-    }),
-  ),
-)
+})
 
 // UPDATE
 
@@ -180,14 +181,15 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     {
       messages: [Message.TickedFrame],
       modelToDependencies: model => ({ isActive: model.isRunning }),
+      handler: function* () {
+        return ({ isActive }) =>
+          isActive
+            ? Subscription.animationFrameStream.pipe(
+                Stream.map(deltaTime => Message.TickedFrame({ deltaTime })),
+              )
+            : Stream.empty
+      },
     },
-    Effect.succeed(({ isActive }) =>
-      isActive
-        ? Subscription.animationFrameStream.pipe(
-            Stream.map(deltaTime => Message.TickedFrame({ deltaTime })),
-          )
-        : Stream.empty,
-    ),
   ),
 }))
 

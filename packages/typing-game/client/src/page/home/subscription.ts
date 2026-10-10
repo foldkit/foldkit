@@ -14,12 +14,13 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       modelToDependencies: model => ({
         shouldCaptureKeyboard: capturesKeyboard(model),
       }),
+      handler: function* () {
+        return ({ shouldCaptureKeyboard }) =>
+          Stream.when(
+            capturedKeyDownStream(key => Message.PressedKey({ key })),
+            Effect.sync(() => shouldCaptureKeyboard),
+          )
+      },
     },
-    Effect.succeed(({ shouldCaptureKeyboard }) =>
-      Stream.when(
-        capturedKeyDownStream(key => Message.PressedKey({ key })),
-        Effect.sync(() => shouldCaptureKeyboard),
-      ),
-    ),
   ),
 }))

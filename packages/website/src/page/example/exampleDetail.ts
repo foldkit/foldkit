@@ -41,28 +41,26 @@ export { CurrentSourcesAsyncData, Model } from './model'
 /** Loads the source files for the example identified by `slug`, producing the
  *  loaded sources on success or a failure Message when the fetch does not
  *  complete. */
-export const LoadExampleSources = Command.define(
-  'LoadExampleSources',
-  {
-    args: { slug: Schema.String },
-    messages: [
-      Message.SucceededLoadExampleSources,
-      Message.FailedLoadExampleSources,
-    ],
+export const LoadExampleSources = Command.define('LoadExampleSources', {
+  args: { slug: Schema.String },
+  messages: [
+    Message.SucceededLoadExampleSources,
+    Message.FailedLoadExampleSources,
+  ],
+  handler: function* () {
+    return ({ slug }) =>
+      Effect.tryPromise({
+        try: () => loadSourcesForSlug(slug),
+        catch: error =>
+          error instanceof Error ? error.message : `Unknown example: ${slug}`,
+      }).pipe(
+        Effect.map(sources => Message.SucceededLoadExampleSources({ sources })),
+        Effect.catch(error =>
+          Effect.succeed(Message.FailedLoadExampleSources({ error })),
+        ),
+      )
   },
-  Effect.succeed(({ slug }) =>
-    Effect.tryPromise({
-      try: () => loadSourcesForSlug(slug),
-      catch: error =>
-        error instanceof Error ? error.message : `Unknown example: ${slug}`,
-    }).pipe(
-      Effect.map(sources => Message.SucceededLoadExampleSources({ sources })),
-      Effect.catch(error =>
-        Effect.succeed(Message.FailedLoadExampleSources({ error })),
-      ),
-    ),
-  ),
-)
+})
 
 // MOUNT
 
@@ -116,8 +114,10 @@ const ObserveExampleUrlMessages = Mount.defineStream(
   'ObserveExampleUrlMessages',
   {
     messages: [Message.ChangedExampleUrl],
+    handler: function* () {
+      return ({ element }) => observeExampleUrlMessages(element)
+    },
   },
-  Effect.succeed(({ element }) => observeExampleUrlMessages(element)),
 )
 
 export const mounts = [ObserveExampleUrlMessages]

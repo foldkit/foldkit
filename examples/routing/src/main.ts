@@ -69,27 +69,23 @@ export const init = (url: Url) => {
 
 // COMMAND
 
-export const NavigateInternal = Command.define(
-  'NavigateInternal',
-  {
-    args: { url: Schema.String },
-    messages: [Message.CompletedNavigateInternal],
+export const NavigateInternal = Command.define('NavigateInternal', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateInternal],
+  handler: function* () {
+    return ({ url }) =>
+      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
   },
-  Effect.succeed(({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
-  ),
-)
+})
 
-const LoadExternal = Command.define(
-  'LoadExternal',
-  {
-    args: { href: Schema.String },
-    messages: [Message.CompletedLoadExternal],
+const LoadExternal = Command.define('LoadExternal', {
+  args: { href: Schema.String },
+  messages: [Message.CompletedLoadExternal],
+  handler: function* () {
+    return ({ href }) =>
+      load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
   },
-  Effect.succeed(({ href }) =>
-    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
-  ),
-)
+})
 
 // UPDATE
 
@@ -167,38 +163,38 @@ export const update = Update.make((model: Model, message: Message) =>
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  navigationShortcutPresses: entry(
-    'NavigationShortcutPresses',
-    {
-      messages: [Message.EnteredNavigationShortcut],
+  navigationShortcutPresses: entry('NavigationShortcutPresses', {
+    messages: [Message.EnteredNavigationShortcut],
+    handler: function* () {
+      return () =>
+        Dom.streamFromKeyBindings<
+          typeof Message.EnteredNavigationShortcut.Type
+        >({
+          bindings: [
+            {
+              keys: ['G', 'H'],
+              mapEvent: () =>
+                Message.EnteredNavigationShortcut({ shortcut: 'GH' }),
+            },
+            {
+              keys: ['G', 'P'],
+              mapEvent: () =>
+                Message.EnteredNavigationShortcut({ shortcut: 'GP' }),
+            },
+            {
+              keys: ['G', 'F'],
+              mapEvent: () =>
+                Message.EnteredNavigationShortcut({ shortcut: 'GF' }),
+            },
+            {
+              keys: ['G', 'N'],
+              mapEvent: () =>
+                Message.EnteredNavigationShortcut({ shortcut: 'GN' }),
+            },
+          ],
+        })
     },
-    Effect.succeed(() =>
-      Dom.streamFromKeyBindings<typeof Message.EnteredNavigationShortcut.Type>({
-        bindings: [
-          {
-            keys: ['G', 'H'],
-            mapEvent: () =>
-              Message.EnteredNavigationShortcut({ shortcut: 'GH' }),
-          },
-          {
-            keys: ['G', 'P'],
-            mapEvent: () =>
-              Message.EnteredNavigationShortcut({ shortcut: 'GP' }),
-          },
-          {
-            keys: ['G', 'F'],
-            mapEvent: () =>
-              Message.EnteredNavigationShortcut({ shortcut: 'GF' }),
-          },
-          {
-            keys: ['G', 'N'],
-            mapEvent: () =>
-              Message.EnteredNavigationShortcut({ shortcut: 'GN' }),
-          },
-        ],
-      }),
-    ),
-  ),
+  }),
 }))
 
 export const EffectsLayer = Layer.mergeAll(

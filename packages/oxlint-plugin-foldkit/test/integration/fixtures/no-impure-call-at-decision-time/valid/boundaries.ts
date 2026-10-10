@@ -150,11 +150,11 @@ export const fromKnownTime = new Date(timestamp)
 
 export const ReadAttachedClock = Command.define('ReadAttachedClock', {
   messages: [CompletedReadClock],
-}, Effect.succeed(() => Effect.succeed(CompletedReadClock({ timestamp: Date.now() }))))
+handler: function* () { return () => Effect.succeed(CompletedReadClock({ timestamp: Date.now() })) },
+})
 
 export const attachedSubscriptions = Subscription.make<Model, Message>()(entry => ({
-  clock: entry('AttachedClock', { messages: [Schema.Number] },
-    Effect.succeed(() => Stream.make(Date.now())),
+  clock: entry('AttachedClock', { messages: [Schema.Number], handler: function* () { return () => Stream.make(Date.now()) }},
   ),
 }))
 
@@ -165,8 +165,9 @@ export const attachedResources = ManagedResource.make<Model, Message>()(entry =>
     onAcquired: () => AcquiredConnection(),
     onAcquireError: () => FailedAcquireConnection(),
     onReleased: () => ReleasedConnection(),
-  }, Effect.succeed({
+  handler: function* () { return {
     acquire: () => Effect.succeed(crypto.randomUUID()),
     release: () => Effect.sync(() => crypto.getRandomValues(bytes)),
-  })),
+  } },
+  }),
 }))

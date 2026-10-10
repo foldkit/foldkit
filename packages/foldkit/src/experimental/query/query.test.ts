@@ -65,6 +65,13 @@ class QueryTestService extends Context.Service<
   { readonly token: string }
 >()('QueryTestService') {}
 
+class QueryHandlerTestService extends Context.Service<
+  QueryHandlerTestService,
+  { readonly offset: number }
+>()('QueryHandlerTestService') {}
+
+class QueryBuildFailure extends Error {}
+
 const stringNeedingDecode = Schema.String.pipe(
   Schema.optional,
   Schema.withDecodingDefault(
@@ -837,30 +844,66 @@ describe('Query.run', () => {
 })
 
 describe('Canonical Query handler construction', () => {
-  const canonicalNotes = Query.define(
-    {
-      name: 'CanonicalNotes',
-      data: Schema.Array(Note),
-      error: Schema.String,
-    },
-    Effect.gen(function* () {
+  const canonicalNotes = Query.define({
+    name: 'CanonicalNotes',
+    data: Schema.Array(Note),
+    error: Schema.String,
+    handler: function* () {
       const service = yield* QueryTestService
 
       return () => Effect.succeed([{ id: service.token, body: 'hello' }])
-    }),
-  )
-
-  const canonicalNote = Query.define(
-    {
-      name: 'CanonicalNote',
-      data: Note,
-      error: Schema.String,
-      args: { noteId: Schema.String },
     },
-    Effect.succeed(({ noteId }) =>
-      Effect.succeed({ id: noteId, body: 'hello' }),
-    ),
-  )
+  })
+
+  const canonicalNote = Query.define({
+    name: 'CanonicalNote',
+    data: Note,
+    error: Schema.String,
+    args: { noteId: Schema.String },
+    handler: function* () {
+      return ({ noteId }) => Effect.succeed({ id: noteId, body: 'hello' })
+    },
+  })
+
+  const exactInference = Query.define({
+    name: 'ExactInference',
+    data: Schema.Option(Schema.NumberFromString),
+    error: Schema.Option(Schema.NumberFromString),
+    args: {
+      count: Schema.NumberFromString,
+      maybeCount: Schema.Option(Schema.Number),
+      label: Schema.optional(Schema.String),
+    },
+    handler: function* () {
+      const builderService = yield* QueryTestService
+      yield* Effect.scope
+
+      if (builderService.token === '') {
+        return yield* Effect.fail(new QueryBuildFailure())
+      }
+
+      return ({ count, maybeCount, label }) => {
+        expectTypeOf(count).toEqualTypeOf<number>()
+        expectTypeOf(maybeCount).toEqualTypeOf<Option.Option<number>>()
+        expectTypeOf(label).toEqualTypeOf<string | undefined>()
+
+        return Effect.gen(function* () {
+          yield* Effect.scope
+          const handlerService = yield* QueryHandlerTestService
+          const total =
+            count +
+            Option.getOrElse(maybeCount, () => 0) +
+            handlerService.offset
+
+          if (label === undefined) {
+            return yield* Effect.fail(Option.some(total))
+          }
+
+          return Option.some(total)
+        })
+      }
+    },
+  })
 
   it('infers fetch arguments and provider requirements from the declared Schemas', () => {
     expectTypeOf(canonicalNotes.layer).toEqualTypeOf<
@@ -883,6 +926,13 @@ describe('Canonical Query handler construction', () => {
         Command.Handler<'FetchCanonicalNotes'>
       >
     >()
+    expectTypeOf(exactInference.layer).toEqualTypeOf<
+      Layer.Layer<
+        Command.Handler<'FetchExactInference'>,
+        QueryBuildFailure,
+        QueryTestService | QueryHandlerTestService
+      >
+    >()
 
     if (false) {
       const config = {
@@ -890,30 +940,43 @@ describe('Canonical Query handler construction', () => {
         data: Note,
         error: Schema.String,
       }
-      const invalidHandler = Effect.succeed(() => Effect.succeed('invalid'))
+      const invalidHandler = function* () {
+        return () => Effect.succeed('invalid')
+      }
       // @ts-expect-error Fetch results must match the declared data Schema.
-      Query.define(config, invalidHandler)
+      Query.define({ ...config, handler: invalidHandler })
 
       const keyedConfig = {
         ...config,
         args: { noteId: Schema.String },
       }
-      const narrowHandler = Effect.succeed(
-        ({ noteId }: Readonly<{ noteId: 'only' }>) =>
-          Effect.succeed({ id: noteId, body: 'hello' }),
-      )
+      const narrowHandler = function* () {
+        return ({ noteId }: Readonly<{ noteId: 'only' }>) =>
+          Effect.succeed({ id: noteId, body: 'hello' })
+      }
       // @ts-expect-error A fetch must accept every value allowed by the args Schema.
-      Query.define(keyedConfig, narrowHandler)
+      Query.define({ ...keyedConfig, handler: narrowHandler })
 
-      const unionHandler = Effect.succeed(
-        Math.random() > 0.5
+      const unionHandler = function* () {
+        return Math.random() > 0.5
           ? ({ noteId }: Readonly<{ noteId: string }>) =>
               Effect.succeed({ id: noteId, body: 'hello' })
           : ({ noteId }: Readonly<{ noteId: 'only' }>) =>
-              Effect.succeed({ id: noteId, body: 'hello' }),
-      )
+              Effect.succeed({ id: noteId, body: 'hello' })
+      }
       // @ts-expect-error Every possible fetch handler must accept the declared args.
-      Query.define(keyedConfig, unionHandler)
+      Query.define({ ...keyedConfig, handler: unionHandler })
+
+      const invalidErrorHandler = function* () {
+        return () => Effect.fail('invalid')
+      }
+      Query.define({
+        name: 'InvalidError',
+        data: Schema.Option(Schema.NumberFromString),
+        error: Schema.Option(Schema.NumberFromString),
+        // @ts-expect-error Fetch failures must match the decoded error Schema.
+        handler: invalidErrorHandler,
+      })
     }
   })
 
@@ -929,24 +992,26 @@ describe('Canonical Query handler construction', () => {
           label: Schema.optional(Schema.String),
         },
       }
-      Query.define(
-        config,
-        Effect.succeed(({ id, maybeCount, label }) => {
-          expectTypeOf(id).toEqualTypeOf<string>()
-          expectTypeOf(maybeCount).toEqualTypeOf<Option.Option<number>>()
-          expectTypeOf(label).toEqualTypeOf<string | undefined>()
-          // @ts-expect-error Decoded strings reject undeclared members.
-          id.doesNotExist()
-          // @ts-expect-error Decoded Options reject undeclared members.
-          maybeCount.doesNotExist()
-          // @ts-expect-error Optional decoded strings reject undeclared members.
-          label?.doesNotExist()
-          return Effect.succeed(id)
-        }),
-      )
-      Query.define(
-        config,
-        Effect.gen(function* () {
+      Query.define({
+        ...config,
+        handler: function* () {
+          return ({ id, maybeCount, label }) => {
+            expectTypeOf(id).toEqualTypeOf<string>()
+            expectTypeOf(maybeCount).toEqualTypeOf<Option.Option<number>>()
+            expectTypeOf(label).toEqualTypeOf<string | undefined>()
+            // @ts-expect-error Decoded strings reject undeclared members.
+            id.doesNotExist()
+            // @ts-expect-error Decoded Options reject undeclared members.
+            maybeCount.doesNotExist()
+            // @ts-expect-error Optional decoded strings reject undeclared members.
+            label?.doesNotExist()
+            return Effect.succeed(id)
+          }
+        },
+      })
+      Query.define({
+        ...config,
+        handler: function* () {
           yield* QueryTestService
 
           return ({ id, maybeCount, label }) => {
@@ -957,8 +1022,8 @@ describe('Canonical Query handler construction', () => {
             id.doesNotExist()
             return Effect.succeed(id)
           }
-        }),
-      )
+        },
+      })
     }
   })
 
@@ -966,17 +1031,16 @@ describe('Canonical Query handler construction', () => {
     const makeStringQuery = <const Fields extends Query.SyncFields>(
       args: Fields,
     ) =>
-      Query.define(
-        {
-          name: 'GenericStrings',
-          data: Schema.String,
-          error: Schema.Never,
-          args,
+      Query.define({
+        name: 'GenericStrings',
+        data: Schema.String,
+        error: Schema.Never,
+        args,
+        handler: function* () {
+          return (values: Schema.Struct.Type<Fields>) =>
+            Effect.succeed(JSON.stringify(values))
         },
-        Effect.succeed((values: Schema.Struct.Type<Fields>) =>
-          Effect.succeed(JSON.stringify(values)),
-        ),
-      )
+      })
     const generic = makeStringQuery({ id: Schema.String })
     expectTypeOf(generic.run)
       .parameter(0)
@@ -987,23 +1051,23 @@ describe('Canonical Query handler construction', () => {
   })
 
   it('carries constructor failures without introducing fetch requirements', () => {
-    const failed = Query.define(
-      {
-        name: 'FailedCanonicalNotes',
-        data: Schema.Array(Note),
-        error: Schema.String,
+    const failed = Query.define({
+      name: 'FailedCanonicalNotes',
+      data: Schema.Array(Note),
+      error: Schema.String,
+      handler: function* () {
+        return yield* Effect.fail('unavailable')
       },
-      Effect.fail('unavailable'),
-    )
-    const failedKeyed = Query.define(
-      {
-        name: 'FailedCanonicalNote',
-        args: { noteId: Schema.String },
-        data: Note,
-        error: Schema.String,
+    })
+    const failedKeyed = Query.define({
+      name: 'FailedCanonicalNote',
+      args: { noteId: Schema.String },
+      data: Note,
+      error: Schema.String,
+      handler: function* () {
+        return yield* Effect.fail('unavailable')
       },
-      Effect.fail('unavailable'),
-    )
+    })
 
     expectTypeOf(failed.layer).toEqualTypeOf<
       Layer.Layer<Command.Handler<'FetchFailedCanonicalNotes'>, string>
@@ -1017,21 +1081,19 @@ describe('Canonical Query handler construction', () => {
     Effect.gen(function* () {
       const constructionCount = yield* Ref.make(0)
       const invocationCount = yield* Ref.make(0)
-      const counted = Query.define(
-        {
-          name: 'CountedNotes',
-          data: Schema.Array(Note),
-          error: Schema.String,
-        },
-        Effect.gen(function* () {
+      const counted = Query.define({
+        name: 'CountedNotes',
+        data: Schema.Array(Note),
+        error: Schema.String,
+        handler: function* () {
           yield* Ref.update(constructionCount, count => count + 1)
 
           return () =>
             Ref.update(invocationCount, count => count + 1).pipe(
               Effect.as(hello),
             )
-        }),
-      )
+        },
+      })
 
       expect(yield* Ref.get(constructionCount)).toBe(0)
 
@@ -1088,6 +1150,9 @@ describe('Layer-backed Query handlers', () => {
   })
 
   if (false) {
+    // @ts-expect-error A host contract has no canonical handler Layer.
+    void layeredNotes.layer
+
     layeredNotes.toLayer<never, never, never>(
       // @ts-expect-error toLayer accepts an Effect that constructs the fetch handler.
       () => Effect.succeed([hello]),
@@ -1101,6 +1166,15 @@ describe('Layer-backed Query handlers', () => {
     }
     // @ts-expect-error Query definitions cannot carry inline implementations.
     Query.define(inlineConfig)
+
+    const effectHandlerConfig = {
+      name: 'EffectHandlerNotes',
+      data: Schema.Array(Note),
+      error: Schema.String,
+      handler: Effect.succeed(() => Effect.succeed([hello])),
+    }
+    // @ts-expect-error handler accepts a generator function rather than a constructed Effect.
+    Query.define(effectHandlerConfig)
   }
 
   it('carries each fetch handler through loading operations', () => {

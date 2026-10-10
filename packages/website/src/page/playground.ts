@@ -158,17 +158,19 @@ export const managedResources = ManagedResource.make<Model, Message>()(
         onReleased: () => Message.ReleasedPlayground(),
         onAcquireError: error =>
           Message.FailedBootPlayground({ reason: reasonFromError(error) }),
+        handler: function* () {
+          return {
+            acquire: ({ slug }) =>
+              Effect.gen(function* () {
+                const fileEntry = yield* Effect.fromOption(
+                  Record.get(filesBySlug, slug),
+                )
+                return yield* acquirePlaygroundWebContainer(fileEntry.files)
+              }),
+            release: () => Effect.void,
+          }
+        },
       },
-      Effect.succeed({
-        acquire: ({ slug }) =>
-          Effect.gen(function* () {
-            const fileEntry = yield* Effect.fromOption(
-              Record.get(filesBySlug, slug),
-            )
-            return yield* acquirePlaygroundWebContainer(fileEntry.files)
-          }),
-        release: () => Effect.void,
-      }),
     ),
   }),
 )
@@ -440,16 +442,17 @@ export const MountPlaygroundEditor = Mount.defineStream(
       Message.FailedMountPlaygroundEditor,
       Message.EditedPlaygroundFile,
     ],
+    handler: function* () {
+      return ({ element, path, initialContent, files, viewStateChanges }) =>
+        streamPlaygroundEditorMessages(
+          element,
+          path,
+          initialContent,
+          files,
+          viewStateChanges,
+        )
+    },
   },
-  Effect.succeed(({ element, path, initialContent, files, viewStateChanges }) =>
-    streamPlaygroundEditorMessages(
-      element,
-      path,
-      initialContent,
-      files,
-      viewStateChanges,
-    ),
-  ),
 )
 
 // COMMAND
@@ -467,21 +470,22 @@ export const WaitForPlaygroundServerFailure = Command.define(
   'WaitForPlaygroundServerFailure',
   {
     messages: [Message.CompletedWaitForPlaygroundServerFailure],
+    handler: function* () {
+      return () =>
+        Effect.gen(function* () {
+          const { serverFailure } = yield* WebContainerPlayground.get
+          return yield* Deferred.await(serverFailure).pipe(
+            Effect.catch(error =>
+              Effect.succeed(
+                Message.CompletedWaitForPlaygroundServerFailure({
+                  reason: reasonFromError(error),
+                }),
+              ),
+            ),
+          )
+        }).pipe(Effect.catchTag('ResourceNotAvailable', () => Effect.interrupt))
+    },
   },
-  Effect.succeed(() =>
-    Effect.gen(function* () {
-      const { serverFailure } = yield* WebContainerPlayground.get
-      return yield* Deferred.await(serverFailure).pipe(
-        Effect.catch(error =>
-          Effect.succeed(
-            Message.CompletedWaitForPlaygroundServerFailure({
-              reason: reasonFromError(error),
-            }),
-          ),
-        ),
-      )
-    }).pipe(Effect.catchTag('ResourceNotAvailable', () => Effect.interrupt)),
-  ),
 )
 
 export const SchedulePlaygroundFileWrite = Command.define(
@@ -492,45 +496,48 @@ export const SchedulePlaygroundFileWrite = Command.define(
       Message.SucceededSchedulePlaygroundFileWrite,
       Message.FailedSchedulePlaygroundFileWrite,
     ],
-  },
-  Effect.succeed(({ path, content }) =>
-    Effect.gen(function* () {
-      const { container, pendingWrites } = yield* WebContainerPlayground.get
-      yield* FiberMap.run(
-        pendingWrites,
-        path,
+    handler: function* () {
+      return ({ path, content }) =>
         Effect.gen(function* () {
-          yield* Effect.sleep(WRITE_DEBOUNCE_MILLIS)
-          yield* Effect.tryPromise(() => container.fs.writeFile(path, content))
-          if (path !== STYLES_CSS_PATH) {
-            const stylesContent = yield* Effect.tryPromise(() =>
-              container.fs.readFile(STYLES_CSS_PATH, 'utf-8'),
-            )
-            yield* Effect.tryPromise(() =>
-              container.fs.writeFile(STYLES_CSS_PATH, stylesContent),
-            )
-          }
+          const { container, pendingWrites } = yield* WebContainerPlayground.get
+          yield* FiberMap.run(
+            pendingWrites,
+            path,
+            Effect.gen(function* () {
+              yield* Effect.sleep(WRITE_DEBOUNCE_MILLIS)
+              yield* Effect.tryPromise(() =>
+                container.fs.writeFile(path, content),
+              )
+              if (path !== STYLES_CSS_PATH) {
+                const stylesContent = yield* Effect.tryPromise(() =>
+                  container.fs.readFile(STYLES_CSS_PATH, 'utf-8'),
+                )
+                yield* Effect.tryPromise(() =>
+                  container.fs.writeFile(STYLES_CSS_PATH, stylesContent),
+                )
+              }
+            }).pipe(
+              Effect.catch(error =>
+                Effect.logError(
+                  `[playground] Debounced write failed for ${path}:`,
+                  error,
+                ),
+              ),
+            ),
+            { startImmediately: true },
+          )
+          return Message.SucceededSchedulePlaygroundFileWrite()
         }).pipe(
-          Effect.catch(error =>
-            Effect.logError(
-              `[playground] Debounced write failed for ${path}:`,
-              error,
+          Effect.catchTag('ResourceNotAvailable', () =>
+            Effect.succeed(
+              Message.FailedSchedulePlaygroundFileWrite({
+                reason: 'WebContainer not yet ready',
+              }),
             ),
           ),
-        ),
-        { startImmediately: true },
-      )
-      return Message.SucceededSchedulePlaygroundFileWrite()
-    }).pipe(
-      Effect.catchTag('ResourceNotAvailable', () =>
-        Effect.succeed(
-          Message.FailedSchedulePlaygroundFileWrite({
-            reason: 'WebContainer not yet ready',
-          }),
-        ),
-      ),
-    ),
-  ),
+        )
+    },
+  },
 )
 
 export const mounts = [MountPlaygroundEditor]

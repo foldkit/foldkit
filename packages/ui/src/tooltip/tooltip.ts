@@ -77,42 +77,38 @@ export const init = (config: InitConfig): Model => ({
 
 /** Waits for the tooltip's show delay before emitting
  *  `CompletedWaitBeforeShowing`. */
-export const WaitBeforeShowing = Command.define(
-  'WaitBeforeShowing',
-  {
-    args: { delay: Schema.DurationFromMillis, version: Schema.Number },
-    messages: [Message.CompletedWaitBeforeShowing],
+export const WaitBeforeShowing = Command.define('WaitBeforeShowing', {
+  args: { delay: Schema.DurationFromMillis, version: Schema.Number },
+  messages: [Message.CompletedWaitBeforeShowing],
+  handler: function* () {
+    return ({ delay, version }) =>
+      Effect.sleep(delay).pipe(
+        Effect.as(Message.CompletedWaitBeforeShowing({ version })),
+      )
   },
-  Effect.succeed(({ delay, version }) =>
-    Effect.sleep(delay).pipe(
-      Effect.as(Message.CompletedWaitBeforeShowing({ version })),
-    ),
-  ),
-)
+})
 
 /** The anchor-positioning Mount this Tooltip renders on its panel. */
-export const AnchorTooltip = Mount.define(
-  'AnchorTooltip',
-  {
-    args: { buttonId: Schema.String, anchor: AnchorConfig },
-    messages: [Message.CompletedAnchorTooltip],
+export const AnchorTooltip = Mount.define('AnchorTooltip', {
+  args: { buttonId: Schema.String, anchor: AnchorConfig },
+  messages: [Message.CompletedAnchorTooltip],
+  handler: function* () {
+    return ({ element, buttonId, anchor }) =>
+      Effect.gen(function* () {
+        yield* Effect.acquireRelease(
+          Effect.sync(() =>
+            anchorSetup(element, {
+              buttonId,
+              anchor,
+              interceptTab: false,
+            }),
+          ),
+          cleanup => Effect.sync(cleanup),
+        )
+        return Message.CompletedAnchorTooltip()
+      })
   },
-  Effect.succeed(({ element, buttonId, anchor }) =>
-    Effect.gen(function* () {
-      yield* Effect.acquireRelease(
-        Effect.sync(() =>
-          anchorSetup(element, {
-            buttonId,
-            anchor,
-            interceptTab: false,
-          }),
-        ),
-        cleanup => Effect.sync(cleanup),
-      )
-      return Message.CompletedAnchorTooltip()
-    }),
-  ),
-)
+})
 
 /** Mount definitions rendered by Tooltip. */
 export const mounts = [AnchorTooltip]

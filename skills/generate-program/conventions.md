@@ -52,27 +52,24 @@ CompletedItemsFocus
 
 ```ts
 // RIGHT: the Message is named from the Command that caused it
-const DetermineStartTime = Command.define(
-  'DetermineStartTime',
-  {
-    args: { elapsedMs: Schema.Number },
-    messages: [Message.CompletedDetermineStartTime],
+const DetermineStartTime = Command.define('DetermineStartTime', {
+  args: { elapsedMs: Schema.Number },
+  messages: [Message.CompletedDetermineStartTime],
+
+  handler: function* () {
+    return ({ elapsedMs }) =>
+      Clock.currentTimeMillis.pipe(
+        Effect.map(now =>
+          Message.CompletedDetermineStartTime({ startTime: now - elapsedMs }),
+        ),
+      )
   },
-  Effect.succeed(({ elapsedMs }) =>
-    Clock.currentTimeMillis.pipe(
-      Effect.map(now =>
-        Message.CompletedDetermineStartTime({ startTime: now - elapsedMs }),
-      ),
-    ),
-  ),
-)
-const GenerateCardId = Command.define(
-  'GenerateCardId',
-  {
-    args: { columnId: Schema.String },
-    messages: [Message.CompletedGenerateCardId],
-  },
-  Effect.gen(function* () {
+})
+const GenerateCardId = Command.define('GenerateCardId', {
+  args: { columnId: Schema.String },
+  messages: [Message.CompletedGenerateCardId],
+
+  handler: function* () {
     const crypto = yield* Crypto.Crypto
 
     return ({ columnId }) =>
@@ -80,23 +77,22 @@ const GenerateCardId = Command.define(
         const cardId = yield* Effect.orDie(crypto.randomUUIDv4)
         return Message.CompletedGenerateCardId({ cardId, columnId })
       })
-  }),
-)
-const SaveTodos = Command.define(
-  'SaveTodos',
-  {
-    args: { todos: Todos },
-    messages: [Message.SucceededSaveTodos, Message.FailedSaveTodos],
   },
-  Effect.succeed(({ todos }) =>
-    saveTodos(todos).pipe(
-      Effect.match({
-        onFailure: () => Message.FailedSaveTodos(),
-        onSuccess: () => Message.SucceededSaveTodos({ todos }),
-      }),
-    ),
-  ),
-)
+})
+const SaveTodos = Command.define('SaveTodos', {
+  args: { todos: Todos },
+  messages: [Message.SucceededSaveTodos, Message.FailedSaveTodos],
+
+  handler: function* () {
+    return ({ todos }) =>
+      saveTodos(todos).pipe(
+        Effect.match({
+          onFailure: () => Message.FailedSaveTodos(),
+          onSuccess: () => Message.SucceededSaveTodos({ todos }),
+        }),
+      )
+  },
+})
 const EffectsLayer = Layer.mergeAll(
   DetermineStartTime.layer,
   GenerateCardId.layer,

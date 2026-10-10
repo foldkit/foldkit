@@ -14,22 +14,23 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       modelToDependencies: model => ({
         isSearchAvailable: isSearchRoute(model.route),
       }),
+      handler: function* () {
+        return ({ isSearchAvailable }) =>
+          Stream.when(
+            Dom.streamFromEventFilterMapPreventDefault({
+              target: document,
+              type: 'keydown',
+              filterMapEvent: event => {
+                if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+                  return Option.some(Message.PressedSearchShortcut())
+                }
+                return Option.none()
+              },
+            }),
+            Effect.sync(() => isSearchAvailable),
+          )
+      },
     },
-    Effect.succeed(({ isSearchAvailable }) =>
-      Stream.when(
-        Dom.streamFromEventFilterMapPreventDefault({
-          target: document,
-          type: 'keydown',
-          filterMapEvent: event => {
-            if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
-              return Option.some(Message.PressedSearchShortcut())
-            }
-            return Option.none()
-          },
-        }),
-        Effect.sync(() => isSearchAvailable),
-      ),
-    ),
   ),
 }))
 

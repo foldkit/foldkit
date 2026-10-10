@@ -9,7 +9,7 @@ const Message = defineMessageUnion({
 
 export const FetchUser = Command.define('FetchUser', {
   messages: [Message.CompletedFetchUser],
-  execute: Effect.succeed(Message.CompletedFetchUser()),
+  handler: function* () { return Message.CompletedFetchUser() },
 })
 
 export const defineLocal = (Command: { define: (name: string) => string }) => {

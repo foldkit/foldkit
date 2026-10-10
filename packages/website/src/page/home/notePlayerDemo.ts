@@ -186,12 +186,15 @@ const DelayAdvanceNotePlayerPhase = Command.define(
   {
     args: { generation: Schema.Number },
     messages: [Message.CompletedDelayAdvanceNotePlayerPhase],
+    handler: function* () {
+      return ({ generation }) =>
+        Effect.sleep(PHASE_DURATION).pipe(
+          Effect.as(
+            Message.CompletedDelayAdvanceNotePlayerPhase({ generation }),
+          ),
+        )
+    },
   },
-  Effect.succeed(({ generation }) =>
-    Effect.sleep(PHASE_DURATION).pipe(
-      Effect.as(Message.CompletedDelayAdvanceNotePlayerPhase({ generation })),
-    ),
-  ),
 )
 
 export type UpdateRequirements = Update.RequirementsOf<typeof update>
@@ -458,94 +461,92 @@ const AudioContextResource = ManagedResource.tag<AudioContext>()('AudioContext')
 
 export const managedResources = ManagedResource.make<Model, Message>()(
   entry => ({
-    audioContext: entry(
-      'ManageAudioContext',
-      Schema.Option(Schema.Null),
-      {
-        resource: AudioContextResource,
-        modelToMaybeRequirements: () => Option.some(null),
-        onAcquired: () => Message.SucceededAcquireAudioContext(),
-        onReleased: () => Message.ReleasedAudioContext(),
-        onAcquireError: () => Message.FailedAcquireAudioContext(),
+    audioContext: entry('ManageAudioContext', Schema.Option(Schema.Null), {
+      resource: AudioContextResource,
+      modelToMaybeRequirements: () => Option.some(null),
+      onAcquired: () => Message.SucceededAcquireAudioContext(),
+      onReleased: () => Message.ReleasedAudioContext(),
+      onAcquireError: () => Message.FailedAcquireAudioContext(),
+      handler: function* () {
+        return {
+          acquire: () =>
+            Effect.try({
+              try: () => new AudioContext(),
+              catch: () =>
+                new Error('The Web Audio API is unavailable in this browser.'),
+            }),
+          release: audioContext =>
+            Effect.promise(() => audioContext.close().catch(() => undefined)),
+        }
       },
-      Effect.succeed({
-        acquire: () =>
-          Effect.try({
-            try: () => new AudioContext(),
-            catch: () =>
-              new Error('The Web Audio API is unavailable in this browser.'),
-          }),
-        release: audioContext =>
-          Effect.promise(() => audioContext.close().catch(() => undefined)),
-      }),
-    ),
+    }),
   }),
 )
 
 // COMMAND
 
-const PlayNote = Command.define(
-  'PlayNote',
-  {
-    args: { note: Note, duration: NoteDuration, noteIndex: Schema.Number },
-    messages: [Message.CompletedPlayNote],
-  },
-  Effect.succeed(({ note, duration, noteIndex }) =>
-    Effect.gen(function* () {
-      const audioContext = yield* AudioContextResource.get
-      yield* Effect.promise(() => audioContext.resume().catch(() => undefined))
+const PlayNote = Command.define('PlayNote', {
+  args: { note: Note, duration: NoteDuration, noteIndex: Schema.Number },
+  messages: [Message.CompletedPlayNote],
+  handler: function* () {
+    return ({ note, duration, noteIndex }) =>
+      Effect.gen(function* () {
+        const audioContext = yield* AudioContextResource.get
+        yield* Effect.promise(() =>
+          audioContext.resume().catch(() => undefined),
+        )
 
-      return yield* Effect.callback<typeof Message.CompletedPlayNote.Type>(
-        resume => {
-          if (audioContext.state === 'closed') {
-            resume(Effect.succeed(Message.CompletedPlayNote({ noteIndex })))
-            return
-          }
+        return yield* Effect.callback<typeof Message.CompletedPlayNote.Type>(
+          resume => {
+            if (audioContext.state === 'closed') {
+              resume(Effect.succeed(Message.CompletedPlayNote({ noteIndex })))
+              return
+            }
 
-          const oscillator = audioContext.createOscillator()
-          const gainNode = audioContext.createGain()
-          const durationSeconds = DURATION_MILLISECONDS[duration] / 1000
+            const oscillator = audioContext.createOscillator()
+            const gainNode = audioContext.createGain()
+            const durationSeconds = DURATION_MILLISECONDS[duration] / 1000
 
-          oscillator.type = 'triangle'
-          oscillator.frequency.setValueAtTime(
-            NOTE_FREQUENCIES[note],
-            audioContext.currentTime,
-          )
+            oscillator.type = 'triangle'
+            oscillator.frequency.setValueAtTime(
+              NOTE_FREQUENCIES[note],
+              audioContext.currentTime,
+            )
 
-          const releaseEnd =
-            audioContext.currentTime + durationSeconds - GAIN_RELEASE_TIME
+            const releaseEnd =
+              audioContext.currentTime + durationSeconds - GAIN_RELEASE_TIME
 
-          gainNode.gain.setValueAtTime(0, audioContext.currentTime)
-          gainNode.gain.linearRampToValueAtTime(
-            0.1,
-            audioContext.currentTime + GAIN_ATTACK_TIME,
-          )
-          gainNode.gain.exponentialRampToValueAtTime(
-            GAIN_NEAR_SILENT,
-            releaseEnd,
-          )
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime)
+            gainNode.gain.linearRampToValueAtTime(
+              0.1,
+              audioContext.currentTime + GAIN_ATTACK_TIME,
+            )
+            gainNode.gain.exponentialRampToValueAtTime(
+              GAIN_NEAR_SILENT,
+              releaseEnd,
+            )
 
-          oscillator.connect(gainNode)
-          gainNode.connect(audioContext.destination)
+            oscillator.connect(gainNode)
+            gainNode.connect(audioContext.destination)
 
-          oscillator.start()
-          oscillator.stop(audioContext.currentTime + durationSeconds)
+            oscillator.start()
+            oscillator.stop(audioContext.currentTime + durationSeconds)
 
-          oscillator.onended = () => {
-            gainNode.disconnect()
-            resume(Effect.succeed(Message.CompletedPlayNote({ noteIndex })))
-          }
-        },
-      )
-    }).pipe(
-      Effect.catchTag('ResourceNotAvailable', () =>
-        Effect.sleep(Duration.millis(DURATION_MILLISECONDS[duration])).pipe(
-          Effect.map(() => Message.CompletedPlayNote({ noteIndex })),
+            oscillator.onended = () => {
+              gainNode.disconnect()
+              resume(Effect.succeed(Message.CompletedPlayNote({ noteIndex })))
+            }
+          },
+        )
+      }).pipe(
+        Effect.catchTag('ResourceNotAvailable', () =>
+          Effect.sleep(Duration.millis(DURATION_MILLISECONDS[duration])).pipe(
+            Effect.map(() => Message.CompletedPlayNote({ noteIndex })),
+          ),
         ),
-      ),
-    ),
-  ),
-)
+      )
+  },
+})
 
 export const EffectsLayer = Layer.mergeAll(
   DelayAdvanceNotePlayerPhase.layer,

@@ -8,23 +8,21 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const TrackPointer = Mount.defineStream(
-  'TrackPointer',
-  {
-    messages: [Message.MovedPointer],
+const TrackPointer = Mount.defineStream('TrackPointer', {
+  messages: [Message.MovedPointer],
+  handler: function* () {
+    return ({ element }) =>
+      Dom.streamFromEvent({
+        target: element,
+        type: 'pointermove',
+        mapEvent: event =>
+          Message.MovedPointer({
+            clientX: event.clientX,
+            clientY: event.clientY,
+          }),
+      })
   },
-  Effect.succeed(({ element }) =>
-    Dom.streamFromEvent({
-      target: element,
-      type: 'pointermove',
-      mapEvent: event =>
-        Message.MovedPointer({
-          clientX: event.clientX,
-          clientY: event.clientY,
-        }),
-    }),
-  ),
-)
+})
 
 const panelView = (h: HtmlBuilder<Message>): Html =>
   h.div([h.Class('h-48'), h.OnMount(TrackPointer())])

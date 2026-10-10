@@ -206,10 +206,28 @@ export type ServicesOf<Resources> = {
     : never
 }[keyof Resources]
 
+type LayeredEntryConfig<
+  Model,
+  Message,
+  RequirementsSchema extends Schema.Schema<any>,
+  Resource extends ManagedResource<any, any>,
+  OnAcquired extends (value: Value<Resource>) => Message,
+> = Readonly<{
+  resource: Resource
+  modelToMaybeRequirements: (
+    model: Model,
+  ) => Schema.Schema.Type<RequirementsSchema>
+  onAcquired: OnAcquired
+  onReleased: () => Message
+  onAcquireError: (error: unknown) => Message
+  acquire?: never
+  release?: never
+}>
+
 /**
  * Builds a single ManagedResource entry from a handler name, requirements
- * schema, and config. Supplying a lifecycle handler Effect as the final
- * argument attaches its application Layer as `layer`. Omitting it declares a
+ * schema, and config. Supplying a lifecycle `handler` generator in the config
+ * attaches its application Layer as `layer`. Omitting it declares a
  * host contract whose required `acquire` and `release` implementation is
  * supplied through `toLayer`. Reading the schema as a positional argument (rather
  * than a property on the config literal) lets TypeScript fully resolve the
@@ -228,39 +246,39 @@ export interface EntryBuilder<Model, Message> {
     OnAcquired extends (value: Value<Resource>) => Message,
     AcquireRequirements = never,
     ReleaseRequirements = never,
-    BuildError = never,
-    BuildRequirements = never,
+    Yielded extends Effect.Effect<unknown, unknown, unknown> = Effect.Effect<
+      never,
+      never,
+      never
+    >,
   >(
     name: Name,
     schema: RequirementsSchema,
-    config: {
-      readonly resource: Resource
-      readonly modelToMaybeRequirements: (
-        model: Model,
-      ) => Schema.Schema.Type<RequirementsSchema>
-      readonly onAcquired: OnAcquired
-      readonly onReleased: () => Message
-      readonly onAcquireError: (error: unknown) => Message
-      readonly acquire?: never
-      readonly release?: never
-      readonly handler?: never
-    },
-    handler: Effect.Effect<
+    config: LayeredEntryConfig<
+      Model,
+      Message,
+      RequirementsSchema,
+      Resource,
+      OnAcquired
+    > &
       Readonly<{
-        acquire: (
-          params: AcquireParamsFromSchema<RequirementsSchema>,
-        ) => Effect.Effect<
-          NoInfer<Value<Resource>>,
-          unknown,
-          AcquireRequirements
+        handler: () => Generator<
+          Yielded,
+          Readonly<{
+            acquire: (
+              params: AcquireParamsFromSchema<RequirementsSchema>,
+            ) => Effect.Effect<
+              NoInfer<Value<Resource>>,
+              unknown,
+              AcquireRequirements
+            >
+            release: (
+              value: NoInfer<Value<Resource>>,
+            ) => Effect.Effect<void, unknown, ReleaseRequirements>
+          }>,
+          unknown
         >
-        release: (
-          value: NoInfer<Value<Resource>>,
-        ) => Effect.Effect<void, unknown, ReleaseRequirements>
       }>,
-      BuildError,
-      BuildRequirements
-    >,
   ): LayeredEntry<
     Name,
     Model,
@@ -274,9 +292,9 @@ export interface EntryBuilder<Model, Message> {
     Readonly<{
       layer: Layer.Layer<
         Handler<Name>,
-        BuildError,
+        Effect.Error<Yielded>,
         Exclude<
-          AcquireRequirements | ReleaseRequirements | BuildRequirements,
+          AcquireRequirements | ReleaseRequirements | Effect.Services<Yielded>,
           Scope.Scope
         >
       >
@@ -287,62 +305,17 @@ export interface EntryBuilder<Model, Message> {
     RequirementsSchema extends Schema.Schema<any>,
     Resource extends ManagedResource<any, any>,
     OnAcquired extends (value: Value<Resource>) => Message,
-    BuildError,
-    BuildRequirements,
   >(
     name: Name,
     schema: RequirementsSchema,
-    config: {
-      readonly resource: Resource
-      readonly modelToMaybeRequirements: (
-        model: Model,
-      ) => Schema.Schema.Type<RequirementsSchema>
-      readonly onAcquired: OnAcquired
-      readonly onReleased: () => Message
-      readonly onAcquireError: (error: unknown) => Message
-      readonly acquire?: never
-      readonly release?: never
-      readonly handler?: never
-    },
-    handler: Effect.Effect<never, BuildError, BuildRequirements>,
-  ): LayeredEntry<
-    Name,
-    Model,
-    Message,
-    Schema.Schema.Type<RequirementsSchema>,
-    Value<Resource>,
-    ServiceOf<Resource>,
-    OnAcquired,
-    AcquireParamsFromSchema<RequirementsSchema>
-  > &
-    Readonly<{
-      layer: Layer.Layer<
-        Handler<Name>,
-        BuildError,
-        Exclude<BuildRequirements, Scope.Scope>
-      >
-    }>
-
-  <
-    const Name extends string,
-    RequirementsSchema extends Schema.Schema<any>,
-    Resource extends ManagedResource<any, any>,
-    OnAcquired extends (value: Value<Resource>) => Message,
-  >(
-    name: Name,
-    schema: RequirementsSchema,
-    config: {
-      readonly resource: Resource
-      readonly modelToMaybeRequirements: (
-        model: Model,
-      ) => Schema.Schema.Type<RequirementsSchema>
-      readonly onAcquired: OnAcquired
-      readonly onReleased: () => Message
-      readonly onAcquireError: (error: unknown) => Message
-      readonly acquire?: never
-      readonly release?: never
-      readonly handler?: never
-    },
+    config: LayeredEntryConfig<
+      Model,
+      Message,
+      RequirementsSchema,
+      Resource,
+      OnAcquired
+    > &
+      Readonly<{ handler?: never }>,
   ): LayeredEntry<
     Name,
     Model,
@@ -414,6 +387,8 @@ export interface EntryBuilder<Model, Message> {
  *   dispatches `onReleased()` so bookkeeping completes. Resources that
  *   register their teardown as scope finalizers in `acquire` leave this as
  *   `() => Effect.void`.
+ * - `handler`: An Effect generator for the `acquire` and `release`
+ *   callbacks. When present, the entry exposes the resulting Layer as `layer`.
  * - `onAcquired` — Message dispatched when `acquire` succeeds.
  * - `onAcquireError` — Message dispatched when `acquire` fails.
  * - `onReleased` — Message dispatched after `release` and the activation scope's
@@ -442,17 +417,19 @@ export interface EntryBuilder<Model, Message> {
  *       onAcquireError: error =>
  *         Message.FailedAcquireCamera({ error: String(error) }),
  *       onReleased: () => Message.ReleasedCamera(),
+ *       handler: function* () {
+ *         return {
+ *           acquire: ({ facingMode }) =>
+ *             Effect.tryPromise(() =>
+ *               navigator.mediaDevices.getUserMedia({ video: { facingMode } }),
+ *             ),
+ *           release: stream =>
+ *             Effect.sync(() =>
+ *               stream.getTracks().forEach(track => track.stop()),
+ *             ),
+ *         }
+ *       },
  *     },
- *     Effect.succeed({
- *       acquire: ({ facingMode }) =>
- *         Effect.tryPromise(() =>
- *           navigator.mediaDevices.getUserMedia({ video: { facingMode } }),
- *         ),
- *       release: stream =>
- *         Effect.sync(() =>
- *           stream.getTracks().forEach(track => track.stop()),
- *         ),
- *     }),
  *   ),
  * }))
  *
@@ -474,15 +451,21 @@ export const make =
     const entry = ((
       name: string,
       schema: Schema.Schema<any>,
-      config: Record<string, unknown>,
-      configuredHandler?: Effect.Effect<any, any, any>,
+      config: Record<string, unknown> & {
+        readonly handler?: () => Generator<
+          Effect.Effect<any, any, any>,
+          any,
+          unknown
+        >
+      },
     ) => {
       const handler = makeHandler(name)
+      const { handler: configuredHandler, ...callbacks } = config
 
       const resource = {
         name,
         schema,
-        ...config,
+        ...callbacks,
         acquire: handler.acquire,
         release: handler.release,
         toLayer: handler.toLayer,
@@ -492,7 +475,7 @@ export const make =
         return resource
       } else {
         // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
-        const layer = handler.toLayer(configuredHandler)
+        const layer = handler.toLayer(Effect.gen(configuredHandler))
         // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
         return { ...resource, layer }
       }

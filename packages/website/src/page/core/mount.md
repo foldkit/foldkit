@@ -8,7 +8,7 @@ Mount is the escape hatch for work whose cause is a particular element existing 
 
 Use `Mount.define` for work that produces one Message when it starts. Its handler receives the live element and the rendered view's state, then returns an `Effect<Message>` that emits that Message. Its scope remains open until unmount so cleanup registered with `Effect.acquireRelease` runs at the right time. Use `Mount.defineStream` when listeners or observers on the element must emit a continuing `Stream<Message>`.
 
-Mount definitions declare their name, args, and result Messages in the config, then take the handler constructor Effect as the final argument. Both `define` and `defineStream` expose the attached recipe as `.layer`.
+Mount definitions declare their name, args, and result Messages in the config, then set `config.handler` to a generator constructor. Foldkit applies `Effect.gen` internally. Both `define` and `defineStream` expose the attached recipe as `.layer`.
 
 Both forms require at least one declared result Message. When no result needs to change the Model, return a descriptive `Completed*` Message and leave the Model unchanged in update. The Message keeps the effect visible to DevTools, Scene tests, and replay.
 
@@ -56,9 +56,9 @@ A Mount starts when its element enters the DOM and stops when that element leave
 
 Foldkit checks each rendered Mount before patching the DOM and reports any definition missing from `mounts`. Use the same definition in the view, registration, and Layer composition. Distinct Mount definitions within one application need distinct names; the same definition can appear on multiple elements. The handler Layer lives for the application lifetime, while each Mount acquisition and cleanup follows its element.
 
-The Runtime runs the attached handler Effect once while building the application Layer and obtains the element handler. Use `Effect.succeed` when construction has no dependencies. The constructor must not capture a DOM element or Mount args; Foldkit supplies those when each element is mounted. Each element receives its own Mount scope. Removing and reinserting an element reruns the real handler without rebuilding its provider.
+The Runtime runs the attached handler generator once while building the application Layer and obtains the element handler. Return it directly from the generator when construction has no dependencies. The constructor must not capture a DOM element or Mount args; Foldkit supplies those when each element is mounted. Each element receives its own Mount scope. Removing and reinserting an element reruns the real handler without rebuilding its provider.
 
-Omit the final constructor argument only when an external host owns the Mount implementation. That definition has no `.layer`; the host calls `toLayer` at its assembly boundary. Ordinary application Mounts keep their implementation attached and include `.layer` in the feature's `EffectsLayer`.
+Omit `handler` only when an external host owns the Mount implementation. That definition has no `.layer`; the host calls `toLayer` with its implementation Effect constructor at its assembly boundary. Ordinary application Mounts keep their implementation attached and include `.layer` in the feature's `EffectsLayer`.
 
 A whole-application execution test retains the real Layer-backed Mount handler and replaces the browser or library capability beneath it. The Mount still receives a live test element, performs its element-scoped transformation, and releases on unmount. Replacing the whole handler can acknowledge or orchestrate a Mount result, but that path does not test the replaced integration.
 

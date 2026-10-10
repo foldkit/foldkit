@@ -17,29 +17,27 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-// Mount.define takes the Definition name and a config: a Schema for the args
-// captured at mount and the result Messages. The final constructor Effect
-// builds the handler, which receives the live element alongside those args.
+// Mount.define takes the Definition name and a config containing the args
+// Schema, result Messages, and handler generator. The returned handler
+// receives the live element alongside the args captured at mount.
 // anchorSetup is a plain DOM function that returns a cleanup, so it goes inside
 // Effect.sync and the cleanup is registered with Effect.acquireRelease.
 // Construct the resource inside the acquire body, never before it, or it leaks
 // on interruption:
-const AnchorPanel = Mount.define(
-  'AnchorPanel',
-  {
-    args: { buttonId: Schema.String, anchor: AnchorConfig },
-    messages: [Message.CompletedAnchorPanel],
+const AnchorPanel = Mount.define('AnchorPanel', {
+  args: { buttonId: Schema.String, anchor: AnchorConfig },
+  messages: [Message.CompletedAnchorPanel],
+  handler: function* () {
+    return ({ element, buttonId, anchor }) =>
+      Effect.gen(function* () {
+        yield* Effect.acquireRelease(
+          Effect.sync(() => anchorSetup(element, { buttonId, anchor })),
+          cleanup => Effect.sync(cleanup),
+        )
+        return Message.CompletedAnchorPanel()
+      })
   },
-  Effect.succeed(({ element, buttonId, anchor }) =>
-    Effect.gen(function* () {
-      yield* Effect.acquireRelease(
-        Effect.sync(() => anchorSetup(element, { buttonId, anchor })),
-        cleanup => Effect.sync(cleanup),
-      )
-      return Message.CompletedAnchorPanel()
-    }),
-  ),
-)
+})
 
 // The trigger needs a stable id, because that is what anchorSetup resolves
 // the button by. Render the panel only while it is open, and spread the Mount

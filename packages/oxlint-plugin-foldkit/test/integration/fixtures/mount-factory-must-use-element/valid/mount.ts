@@ -18,4 +18,5 @@ export const defineLocal = (Mount: { define: (name: string) => string }) =>
 
 export const MeasureResize = Mount.define('MeasureResize', {
   messages: [CompletedMountResize],
-}, Effect.succeed(({ element }) => Effect.sync(() => resizeObserver.observe(element))))
+handler: function* () { return ({ element }) => Effect.sync(() => resizeObserver.observe(element)) },
+})

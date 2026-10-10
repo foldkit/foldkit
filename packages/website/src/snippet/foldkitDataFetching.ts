@@ -31,26 +31,24 @@ type Message = typeof Message.Type
 
 // COMMAND
 
-const FetchUser = Command.define(
-  'FetchUser',
-  {
-    args: { userId: Schema.String },
-    messages: [Message.SucceededFetchUser, Message.FailedFetchUser],
-  },
-  Effect.succeed(({ userId }) =>
-    Effect.gen(function* () {
-      const response = yield* Effect.tryPromise(() =>
-        fetch(`/api/users/${userId}`).then(response => response.json()),
+const FetchUser = Command.define('FetchUser', {
+  args: { userId: Schema.String },
+  messages: [Message.SucceededFetchUser, Message.FailedFetchUser],
+  handler: function* () {
+    return ({ userId }) =>
+      Effect.gen(function* () {
+        const response = yield* Effect.tryPromise(() =>
+          fetch(`/api/users/${userId}`).then(response => response.json()),
+        )
+        const data = yield* Schema.decodeUnknownEffect(UserSchema)(response)
+        return Message.SucceededFetchUser({ data })
+      }).pipe(
+        Effect.catch(error =>
+          Effect.succeed(Message.FailedFetchUser({ error: String(error) })),
+        ),
       )
-      const data = yield* Schema.decodeUnknownEffect(UserSchema)(response)
-      return Message.SucceededFetchUser({ data })
-    }).pipe(
-      Effect.catch(error =>
-        Effect.succeed(Message.FailedFetchUser({ error: String(error) })),
-      ),
-    ),
-  ),
-)
+  },
+})
 
 // UPDATE
 

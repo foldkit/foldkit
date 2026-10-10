@@ -150,12 +150,13 @@ const DelayReset = Command.define(
   {
     args: { seconds: Schema.Number },
     messages: [Message.CompletedDelayReset],
+    handler: function* () {
+      return ({ seconds }) =>
+        Effect.sleep(\`\${seconds} seconds\`).pipe(
+          Effect.as(Message.CompletedDelayReset()),
+        )
+    },
   },
-  Effect.succeed(({ seconds }) =>
-    Effect.sleep(\`\${seconds} seconds\`).pipe(
-      Effect.as(Message.CompletedDelayReset()),
-    ),
-  ),
 )
 
 const EffectsLayer = DelayReset.layer
@@ -322,12 +323,14 @@ const managedResources = ManagedResource.make<Model, Message>()(entry => ({
       onAcquired: () => Message.SucceededAcquireAudioContext(),
       onReleased: () => Message.ReleasedAudioContext(),
       onAcquireError: () => Message.FailedAcquireAudioContext(),
+      handler: function* () {
+        return {
+          acquire: () => Effect.try(() => new AudioContext()),
+          release: audioContext =>
+            Effect.promise(() => audioContext.close().catch(() => undefined)),
+        }
+      },
     },
-    Effect.succeed({
-      acquire: () => Effect.try(() => new AudioContext()),
-      release: audioContext =>
-        Effect.promise(() => audioContext.close().catch(() => undefined)),
-    }),
   ),
 }))
 
@@ -338,29 +341,30 @@ const PlayNote = Command.define(
   {
     args: { note: Note, duration: Schema.Number, noteIndex: Schema.Number },
     messages: [Message.CompletedPlayNote],
-  },
-  Effect.succeed(({ note, duration, noteIndex }) =>
-    Effect.gen(function* () {
-      const audioContext = yield* AudioContextResource.get
+    handler: function* () {
+      return ({ note, duration, noteIndex }) =>
+        Effect.gen(function* () {
+          const audioContext = yield* AudioContextResource.get
 
-      return yield* Effect.callback<typeof Message.CompletedPlayNote.Type>(resume => {
-        const oscillator = audioContext.createOscillator()
-        oscillator.frequency.setValueAtTime(
-          NOTE_FREQUENCIES[note],
-          audioContext.currentTime,
+          return yield* Effect.callback<typeof Message.CompletedPlayNote.Type>(resume => {
+            const oscillator = audioContext.createOscillator()
+            oscillator.frequency.setValueAtTime(
+              NOTE_FREQUENCIES[note],
+              audioContext.currentTime,
+            )
+            oscillator.connect(audioContext.destination)
+            oscillator.start()
+            oscillator.stop(audioContext.currentTime + duration)
+            oscillator.onended = () =>
+              resume(Effect.succeed(Message.CompletedPlayNote({ noteIndex })))
+          })
+        }).pipe(
+          Effect.catchTag('ResourceNotAvailable', () =>
+            Effect.succeed(Message.CompletedPlayNote({ noteIndex })),
+          ),
         )
-        oscillator.connect(audioContext.destination)
-        oscillator.start()
-        oscillator.stop(audioContext.currentTime + duration)
-        oscillator.onended = () =>
-          resume(Effect.succeed(Message.CompletedPlayNote({ noteIndex })))
-      })
-    }).pipe(
-      Effect.catchTag('ResourceNotAvailable', () =>
-        Effect.succeed(Message.CompletedPlayNote({ noteIndex })),
-      ),
-    ),
-  ),
+    },
+  },
 )
 
 const EffectsLayer = Layer.mergeAll(

@@ -58,8 +58,8 @@ export type Ports = Readonly<{
  * @example
  * ```ts
  * export const ports = {
- *   inbound: { stepChanged: Port.inbound(Schema.Number) },
- *   outbound: { countChanged: Port.outbound(Schema.Number) },
+ *  inbound: { stepChanged: Port.inbound(Schema.Number) },
+ *  outbound: { countChanged: Port.outbound(Schema.Number) },
  * }
  * ```
  */
@@ -78,8 +78,8 @@ export const inbound = <Value, Encoded>(
  * @example
  * ```ts
  * export const ports = {
- *   inbound: { stepChanged: Port.inbound(Schema.Number) },
- *   outbound: { countChanged: Port.outbound(Schema.Number) },
+ *  inbound: { stepChanged: Port.inbound(Schema.Number) },
+ *  outbound: { countChanged: Port.outbound(Schema.Number) },
  * }
  * ```
  */
@@ -206,16 +206,15 @@ export const stream = <Value, Encoded>(
  *
  * ```ts
  * const ReportCount = Command.define(
- *   'ReportCount',
- *   {
- *     args: { count: Schema.Number },
- *     messages: [Message.CompletedReportCount],
- *   },
- *   Effect.succeed(({ count }) =>
- *     Port.emit(ports.outbound.countChanged, count).pipe(
- *       Effect.as(Message.CompletedReportCount()),
- *     ),
- *   ),
+ *  'ReportCount',
+ *  {
+ *    args: { count: Schema.Number },
+ *    messages: [Message.CompletedReportCount],
+ *  handler: function* () { return ({ count }) =>
+ *    Port.emit(ports.outbound.countChanged, count).pipe(
+ *      Effect.as(Message.CompletedReportCount()),
+ *    ) },
+ *  },
  * )
  * const EffectsLayer = ReportCount.layer
  * ```

@@ -2,7 +2,7 @@
 'foldkit': minor
 ---
 
-Construct experimental Query and KeyedQuery fetch implementations through the final `Query.define` Effect argument and expose the attached recipe as `query.layer`. Fetch Commands from these definitions carry a handler requirement through Query loading operations, and `query.run` uses the same handler Layer. Omit the final argument when an external host supplies the fetch implementation; that definition has no `.layer`. `query.toLayer` constructs a host implementation or an alternative to the canonical handler.
+Construct experimental Query and KeyedQuery fetch implementations through `config.handler`, a generator constructor, and expose the attached recipe as `query.layer`. Foldkit applies `Effect.gen` internally. Fetch Commands from these definitions carry a handler requirement through Query loading operations, and `query.run` uses the same handler Layer. Omit `handler` when an external host supplies the fetch implementation; that definition has no `.layer`. `query.toLayer` accepts the host implementation Effect constructor or an alternative to the canonical handler.
 
 Keep the existing fetch Effect and its data/error Schemas. For example, assume `fetchPosts` requests and decodes an array matching the `PostList` Schema, with failures represented as strings.
 
@@ -20,19 +20,20 @@ const postsQuery = Query.define({
 **After**
 
 ```ts
-const postsQuery = Query.define(
-  {
-    name: 'Posts',
-    data: PostList,
-    error: Schema.String,
+const postsQuery = Query.define({
+  name: 'Posts',
+  data: PostList,
+  error: Schema.String,
+
+  handler: function* () {
+    return () => fetchPosts
   },
-  Effect.succeed(() => fetchPosts),
-)
+})
 
 export const EffectsLayer = postsQuery.layer
 ```
 
-The constructor produces a function, so use `Effect.succeed(() => fetchPosts)`, rather than passing the fetch Effect itself to `Effect.succeed`. When construction needs shared services, obtain them with `Effect.gen` and return the fetch function.
+The handler generator produces a function, so return `() => fetchPosts` directly. When construction needs shared services, yield them in the generator and return the fetch function; Foldkit applies `Effect.gen` internally.
 
 For a KeyedQuery, preserve the existing args Schema and fetch function. Here `Post` is the data Schema, and `fetchPost(postId)` requests and decodes one post.
 
@@ -51,15 +52,16 @@ const postQuery = Query.define({
 **After**
 
 ```ts
-const postQuery = Query.define(
-  {
-    name: 'Post',
-    args: { postId: Schema.String },
-    data: Post,
-    error: Schema.String,
+const postQuery = Query.define({
+  name: 'Post',
+  args: { postId: Schema.String },
+  data: Post,
+  error: Schema.String,
+
+  handler: function* () {
+    return ({ postId }) => fetchPost(postId)
   },
-  Effect.succeed(({ postId }) => fetchPost(postId)),
-)
+})
 
 export const EffectsLayer = postQuery.layer
 ```

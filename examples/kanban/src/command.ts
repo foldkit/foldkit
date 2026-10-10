@@ -7,13 +7,10 @@ import { Column } from './domain'
 import { Message } from './message'
 import { SavedBoardJsonString } from './model'
 
-export const GenerateCardId = Command.define(
-  'GenerateCardId',
-  {
-    args: { columnId: Schema.String, title: Schema.String },
-    messages: [Message.CompletedGenerateCardId],
-  },
-  Effect.gen(function* () {
+export const GenerateCardId = Command.define('GenerateCardId', {
+  args: { columnId: Schema.String, title: Schema.String },
+  messages: [Message.CompletedGenerateCardId],
+  handler: function* () {
     const crypto = yield* Crypto.Crypto
 
     return ({ columnId, title }) =>
@@ -22,16 +19,13 @@ export const GenerateCardId = Command.define(
 
         return Message.CompletedGenerateCardId({ cardId, columnId, title })
       })
-  }),
-)
-
-export const SaveBoard = Command.define(
-  'SaveBoard',
-  {
-    args: { columns: Schema.Array(Column.Column) },
-    messages: [Message.CompletedSaveBoard],
   },
-  Effect.gen(function* () {
+})
+
+export const SaveBoard = Command.define('SaveBoard', {
+  args: { columns: Schema.Array(Column.Column) },
+  messages: [Message.CompletedSaveBoard],
+  handler: function* () {
     const store = yield* KeyValueStore.KeyValueStore
 
     return ({ columns }) =>
@@ -42,18 +36,16 @@ export const SaveBoard = Command.define(
         yield* store.set(STORAGE_KEY, encodedBoard)
         return Message.CompletedSaveBoard()
       }).pipe(Effect.catch(() => Effect.succeed(Message.CompletedSaveBoard())))
-  }),
-)
-
-export const FocusAddCardInput = Command.define(
-  'FocusAddCardInput',
-  {
-    messages: [Message.CompletedFocusAddCardInput],
   },
-  Effect.succeed(() =>
-    Dom.focus(`#${ADD_CARD_INPUT_ID}`).pipe(
-      Effect.ignore,
-      Effect.as(Message.CompletedFocusAddCardInput()),
-    ),
-  ),
-)
+})
+
+export const FocusAddCardInput = Command.define('FocusAddCardInput', {
+  messages: [Message.CompletedFocusAddCardInput],
+  handler: function* () {
+    return () =>
+      Dom.focus(`#${ADD_CARD_INPUT_ID}`).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedFocusAddCardInput()),
+      )
+  },
+})

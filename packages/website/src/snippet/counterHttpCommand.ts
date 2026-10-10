@@ -15,17 +15,14 @@ export type Message = typeof Message.Type
 
 const CountResponse = Schema.Struct({ count: Schema.Int })
 
-export const FetchCount = Command.define(
-  'FetchCount',
-  {
-    messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
-  },
-  Effect.gen(function* () {
+export const FetchCount = Command.define('FetchCount', {
+  messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
+  handler: function* () {
     const client = yield* HttpClient.HttpClient
 
     return () => fetchCount(client)
-  }),
-)
+  },
+})
 
 export const fetchCount = (client: HttpClient.HttpClient) =>
   Effect.gen(function* () {

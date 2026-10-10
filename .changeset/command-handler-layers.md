@@ -7,9 +7,9 @@ Move the implementations of Commands, Subscriptions, Mounts, and ManagedResource
 
 A Command definition carries its named handler requirement through update and parent composition. Its Layer carries the implementation's service requirements. Adding an HTTP, storage, or telemetry dependency changes the handler Layer's requirements, which application assembly must satisfy, without changing update's handler requirement.
 
-The Runtime builds the provided application Layer once for each start. The final definition argument is an Effect that constructs its handler during that build, and the definition exposes the attached recipe as `.layer`. Commands, Subscriptions, and Mounts return a function that performs work with the current args, dependencies, or element. ManagedResources return an object with `acquire` and `release` functions that manage each Model-controlled handle. Use `Effect.gen` to capture services and return the handler. Use `Effect.succeed(handler)` when construction has no work to perform.
+The Runtime builds the provided application Layer once for each start. A definition's `config.handler` is a generator constructor that builds its handler during that build, and the definition exposes the attached recipe as `.layer`. Foldkit applies `Effect.gen` internally. Commands, Subscriptions, and Mounts return a function that performs work with the current args, dependencies, or element. ManagedResources return an object with `acquire` and `release` functions that manage each Model-controlled handle. Return the handler directly when construction has no work to perform.
 
-Commands, Mounts, Subscription entries, ManagedResource entries, and experimental Query definitions may omit the final constructor argument when an external host owns the implementation. Those definitions have no `.layer`; the host supplies its implementation through `toLayer`. An attached `.layer` uses the same construction path and definition identity as `toLayer(constructor)`. A ManagedResource constructor must supply both `acquire` and `release`, whether attached to the entry or passed to `toLayer`.
+Commands, Mounts, Subscription entries, ManagedResource entries, and experimental Query definitions may omit `handler` when an external host owns the implementation. Those definitions have no `.layer`; the host supplies its implementation through `toLayer`, which accepts the implementation Effect constructor. An attached `.layer` uses the same construction path and definition identity as `toLayer(constructor)`. A ManagedResource handler must supply both `acquire` and `release`, whether attached to the entry or passed to `toLayer`.
 
 ## Migration
 
@@ -17,7 +17,7 @@ Each pair shows the affected part of an existing module. Imports from `./message
 
 ### Commands
 
-Remove `execute` from `Command.define`. Pass the handler constructor Effect after the config. Obtain shared services in the constructor, and use them inside the returned invocation function.
+Remove `execute` from `Command.define`. Set `config.handler` to the handler generator. Obtain shared services in the generator, and use them inside the returned invocation function.
 
 **Before**
 
@@ -54,13 +54,10 @@ import { Message } from './message'
 
 const DRAFT_STORAGE_KEY = 'draft'
 
-export const StoreDraft = Command.define(
-  'StoreDraft',
-  {
-    args: { contents: Schema.String },
-    messages: [Message.CompletedStoreDraft, Message.FailedStoreDraft],
-  },
-  Effect.gen(function* () {
+export const StoreDraft = Command.define('StoreDraft', {
+  args: { contents: Schema.String },
+  messages: [Message.CompletedStoreDraft, Message.FailedStoreDraft],
+  handler: function* () {
     const store = yield* KeyValueStore.KeyValueStore
 
     return ({ contents }) =>
@@ -68,17 +65,17 @@ export const StoreDraft = Command.define(
         Effect.as(Message.CompletedStoreDraft()),
         Effect.catch(() => Effect.succeed(Message.FailedStoreDraft())),
       )
-  }),
-)
+  },
+})
 
 export const EffectsLayer = StoreDraft.layer
 ```
 
-update calls `StoreDraft({ contents })` as before. Its requirement is the `StoreDraft` handler; the storage service requirement belongs to `StoreDraft.layer` and must be supplied at assembly. Use `Effect.succeed(handler)` for a constructor that needs no services or preparation.
+update calls `StoreDraft({ contents })` as before. Its requirement is the `StoreDraft` handler; the storage service requirement belongs to `StoreDraft.layer` and must be supplied at assembly. Return the handler directly from `function* () { return handler }` when construction needs no services or preparation.
 
 ### Subscriptions
 
-Give every entry a stable handler name and a `messages` declaration. Keep `modelToDependencies` on entries with Model dependencies. Move `dependenciesToStream` into the final constructor Effect.
+Give every entry a stable handler name, a `messages` declaration, and a `handler` generator. Keep `modelToDependencies` on entries with Model dependencies. Move `dependenciesToStream` into the handler generator.
 
 This timer follows the Model's `isRunning` field.
 
@@ -129,16 +126,17 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     {
       messages: [Message.TickedGameClock],
       modelToDependencies: model => ({ isRunning: model.isRunning }),
+      handler: function* () {
+        return ({ isRunning }) =>
+          Stream.when(
+            Stream.tick(TICK_INTERVAL).pipe(
+              Stream.drop(1),
+              Stream.map(Message.TickedGameClock),
+            ),
+            Effect.sync(() => isRunning),
+          )
+      },
     },
-    Effect.succeed(({ isRunning }) =>
-      Stream.when(
-        Stream.tick(TICK_INTERVAL).pipe(
-          Stream.drop(1),
-          Stream.map(Message.TickedGameClock),
-        ),
-        Effect.sync(() => isRunning),
-      ),
-    ),
   ),
 }))
 
@@ -168,16 +166,16 @@ export const subscriptions = Subscription.make<Model, Message>()(_entry => ({
 
 ```ts
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  heartbeatTicks: entry(
-    'HeartbeatTicks',
-    { messages: [Message.TickedHeartbeat] },
-    Effect.succeed(() =>
-      Stream.tick(HEARTBEAT_INTERVAL).pipe(
-        Stream.drop(1),
-        Stream.map(Message.TickedHeartbeat),
-      ),
-    ),
-  ),
+  heartbeatTicks: entry('HeartbeatTicks', {
+    messages: [Message.TickedHeartbeat],
+    handler: function* () {
+      return () =>
+        Stream.tick(HEARTBEAT_INTERVAL).pipe(
+          Stream.drop(1),
+          Stream.map(Message.TickedHeartbeat),
+        )
+    },
+  }),
 }))
 
 export const EffectsLayer = subscriptions.heartbeatTicks.layer
@@ -187,7 +185,7 @@ export const EffectsLayer = subscriptions.heartbeatTicks.layer
 
 ### Mounts
 
-Remove `execute` from `Mount.define` and `Mount.defineStream`. Pass the element handler constructor Effect after the config. The following measurement still happens when the element mounts.
+Remove `execute` from `Mount.define` and `Mount.defineStream`. Set `config.handler` to the element handler generator. The following measurement still happens when the element mounts.
 
 **Before**
 
@@ -216,17 +214,17 @@ import { Mount } from 'foldkit'
 
 import { Message } from './message'
 
-export const MeasurePanel = Mount.define(
-  'MeasurePanel',
-  { messages: [Message.CompletedMeasurePanel] },
-  Effect.succeed(({ element }) =>
-    Effect.sync(() =>
-      Message.CompletedMeasurePanel({
-        height: element.getBoundingClientRect().height,
-      }),
-    ),
-  ),
-)
+export const MeasurePanel = Mount.define('MeasurePanel', {
+  messages: [Message.CompletedMeasurePanel],
+  handler: function* () {
+    return ({ element }) =>
+      Effect.sync(() =>
+        Message.CompletedMeasurePanel({
+          height: element.getBoundingClientRect().height,
+        }),
+      )
+  },
+})
 
 export const mounts = [MeasurePanel]
 export const EffectsLayer = MeasurePanel.layer
@@ -234,11 +232,11 @@ export const EffectsLayer = MeasurePanel.layer
 
 Use `h.OnMount(MeasurePanel())` in the view as before. Add `mounts` to `Application.make({ mounts, ... })` and provide `EffectsLayer`. Registration is required because view and `Html` do not carry Effect requirements. A registered Mount that is absent from the rendered tree performs no element work.
 
-`Mount.defineStream` takes the same final constructor position, returning an element function that produces a Stream. Keep element acquisition and cleanup inside that returned handler so each element owns its own scope.
+`Mount.defineStream` uses the same `config.handler` generator, returning an element function that produces a Stream. Keep element acquisition and cleanup inside that returned handler so each element owns its own scope.
 
 ### ManagedResources
 
-Give every entry a stable handler name. Move `acquire` and `release` from the config into the final constructor Effect; keep Model requirements and lifecycle Messages in the config.
+Give every entry a stable handler name. Put a generator in `config.handler` that returns `acquire` and `release`; keep Model requirements and lifecycle Messages in the config.
 
 This camera entry assumes `model.maybeCamera` has the Schema `Schema.Option(Schema.Struct({ facingMode: Schema.String }))`.
 
@@ -292,26 +290,26 @@ const CameraRequirements = Schema.Option(
 
 export const managedResources = ManagedResource.make<Model, Message>()(
   entry => ({
-    camera: entry(
-      'ManageCamera',
-      CameraRequirements,
-      {
-        resource: CameraStream,
-        modelToMaybeRequirements: model => model.maybeCamera,
-        onAcquired: () => Message.AcquiredCamera(),
-        onReleased: () => Message.ReleasedCamera(),
-        onAcquireError: error =>
-          Message.FailedAcquireCamera({ reason: String(error) }),
+    camera: entry('ManageCamera', CameraRequirements, {
+      resource: CameraStream,
+      modelToMaybeRequirements: model => model.maybeCamera,
+      onAcquired: () => Message.AcquiredCamera(),
+      onReleased: () => Message.ReleasedCamera(),
+      onAcquireError: error =>
+        Message.FailedAcquireCamera({ reason: String(error) }),
+      handler: function* () {
+        return {
+          acquire: ({ facingMode }) =>
+            Effect.tryPromise(() =>
+              navigator.mediaDevices.getUserMedia({ video: { facingMode } }),
+            ),
+          release: stream =>
+            Effect.sync(() =>
+              stream.getTracks().forEach(track => track.stop()),
+            ),
+        }
       },
-      Effect.succeed({
-        acquire: ({ facingMode }) =>
-          Effect.tryPromise(() =>
-            navigator.mediaDevices.getUserMedia({ video: { facingMode } }),
-          ),
-        release: stream =>
-          Effect.sync(() => stream.getTracks().forEach(track => track.stop())),
-      }),
-    ),
+    }),
   }),
 )
 

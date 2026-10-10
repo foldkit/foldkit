@@ -10,17 +10,17 @@ Shared services are the kitchen equipment available all night. Every dish can us
 
 `Application.make` defines the application and carries its unsatisfied Effect requirements. `Application.provide` adds the application Layer before `Runtime.run` starts the program. Command execution, Subscription restart, Mount insertion, and ManagedResource acquisition reuse the handlers and services that Layer built. A hydrating start validates the server handoff before acquiring the Layer.
 
-A Command definition names the operation and its result Messages. Its final constructor argument is an Effect that captures any services the implementation needs, then returns the function that handles each invocation. The definition's `.layer` is the recipe application assembly provides. `Layer.provide` composes service Layers beneath that handler Layer. Subscriptions, Mounts, and ManagedResources use the same constructor boundary.
+A Command definition names the operation and its result Messages. Its `config.handler` is a generator constructor that captures any services the implementation needs, then returns the function that handles each invocation. Foldkit applies `Effect.gen` internally. The definition's `.layer` is the recipe application assembly provides. `Layer.provide` composes service Layers beneath that handler Layer. Subscriptions, Mounts, and ManagedResources use the same constructor boundary.
 
 ::Snippet{name="layers" label="Shared API client service"}
 
 The application requires the `LoadUser` handler service. Both compositions include the real handler through `EffectsLayer = LoadUser.layer`. `AppLayer` supplies `ApiLayer`; `AppTestLayer` supplies `ApiTestLayer`. The API client starts once with the application, rather than once per `LoadUser` execution. This substitution exercises the real `LoadUser` mapping and error policy. Code inside the replaced `ApiLayer` is outside that test path.
 
-Passing the constructor Effect as the final definition argument creates the definition's `.layer` recipe through the same construction path and handler identity that `toLayer(constructor)` uses. It does not install the handler automatically. Include that recipe in the feature's `EffectsLayer` and provide the root `AppLayer` explicitly. Foldkit does not search for an attached handler or fall back to it when another implementation is missing.
+Setting `config.handler` creates the definition's `.layer` recipe through the same construction path and handler identity that `toLayer(constructor)` uses. It does not install the handler automatically. Include that recipe in the feature's `EffectsLayer` and provide the root `AppLayer` explicitly. Foldkit does not search for an attached handler or fall back to it when another implementation is missing.
 
-The handler Effect runs once when the Runtime builds the application Layer, including constructors for handlers that are never invoked. For a Command, the function it returns receives serializable args each time the Command runs. For a Subscription, the returned function receives the current Model dependencies each time Foldkit starts or restarts its Stream. Mount and ManagedResource handlers likewise receive their element or Model-scoped requirements when that lifecycle begins.
+The handler generator runs once when the Runtime builds the application Layer, including constructors for handlers that are never invoked. For a Command, the function it returns receives serializable args each time the Command runs. For a Subscription, the returned function receives the current Model dependencies each time Foldkit starts or restarts its Stream. Mount and ManagedResource handlers likewise receive their element or Model-scoped requirements when that lifecycle begins.
 
-Use `Effect.gen` to capture services, then leave a blank line before returning the invocation function. When construction has no work to perform, use `Effect.succeed(handler)`. The consistent shape makes application dependencies visible in the Layer graph even for a small handler.
+Use `function* ()` to capture services, then return the invocation function. Foldkit applies `Effect.gen` around the generator. When construction has no work to perform, return the handler directly from the generator. The consistent shape makes application dependencies visible in the Layer graph even for a small handler.
 
 Do not capture current time, Command args, Subscription dependencies, a Mount's element, or an active ManagedResource handle. Those values belong to the shorter-lived operation or lifecycle that supplies them. Looking up a service in the constructor retrieves the instance built for the application; the lookup does not construct its provider again.
 
@@ -60,7 +60,7 @@ For example, an editor feature can declare `SaveDocument` without choosing where
 
 ::Snippet{name="commandHostContract" label="Editor declaring its save operation"}
 
-The editor's update returns `SaveDocument({ contents })` when the user requests a save and handles `SucceededSaveDocument` or `FailedSaveDocument` when it finishes. Omitting the final constructor argument gives the definition no `.layer`. The editor requires `Command.Handler<'SaveDocument'>`, which its parent carries to application assembly.
+The editor's update returns `SaveDocument({ contents })` when the user requests a save and handles `SucceededSaveDocument` or `FailedSaveDocument` when it finishes. Omitting `handler` gives the definition no `.layer`. The editor requires `Command.Handler<'SaveDocument'>`, which its parent carries to application assembly.
 
 A standalone host can implement this contract using browser storage:
 

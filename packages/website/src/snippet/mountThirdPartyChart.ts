@@ -18,32 +18,30 @@ type Message = typeof Message.Type
 const ChartData = Schema.Array(Schema.Number)
 type ChartData = typeof ChartData.Type
 
-const MountChart = Mount.define(
-  'MountChart',
-  {
-    args: { data: ChartData },
-    messages: [Message.SucceededMountChart, Message.FailedMountChart],
-  },
-  Effect.succeed(({ element, data }) =>
-    Effect.gen(function* () {
-      yield* Effect.acquireRelease(
-        Effect.tryPromise(() => import('some-chart-library')).pipe(
-          Effect.map(({ Chart }) => new Chart(element, { data })),
+const MountChart = Mount.define('MountChart', {
+  args: { data: ChartData },
+  messages: [Message.SucceededMountChart, Message.FailedMountChart],
+  handler: function* () {
+    return ({ element, data }) =>
+      Effect.gen(function* () {
+        yield* Effect.acquireRelease(
+          Effect.tryPromise(() => import('some-chart-library')).pipe(
+            Effect.map(({ Chart }) => new Chart(element, { data })),
+          ),
+          chart => Effect.sync(() => chart.destroy()),
+        )
+        return Message.SucceededMountChart()
+      }).pipe(
+        Effect.catch(error =>
+          Effect.succeed(
+            Message.FailedMountChart({
+              reason: error instanceof Error ? error.message : String(error),
+            }),
+          ),
         ),
-        chart => Effect.sync(() => chart.destroy()),
       )
-      return Message.SucceededMountChart()
-    }).pipe(
-      Effect.catch(error =>
-        Effect.succeed(
-          Message.FailedMountChart({
-            reason: error instanceof Error ? error.message : String(error),
-          }),
-        ),
-      ),
-    ),
-  ),
-)
+  },
+})
 
 const chartView = (data: ChartData, h: HtmlBuilder<Message>): Html =>
   h.div([h.Class('w-[480px] h-[320px]'), h.OnMount(MountChart({ data }))])

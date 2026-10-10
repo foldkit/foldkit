@@ -1,4 +1,4 @@
-import { Array, Effect, Option } from 'effect'
+import { Array, Effect, Option, pipe } from 'effect'
 import {
   Diagnostic,
   type ESTree,
@@ -11,6 +11,7 @@ import {
 
 import {
   effectConstructorValue,
+  generatorConstructorValue,
   resolveLocalValue,
 } from '../effect-constructor.ts'
 import {
@@ -870,7 +871,7 @@ const localVariableCarriesFunction = (
       return true
     }
 
-    return Option.exists(effectConstructorValue(value, references), handler =>
+    return Option.exists(handlerConstructorValue(value, references), handler =>
       handlerValueContainsFunction(references, handler, fn),
     )
   })
@@ -945,6 +946,26 @@ const isEntryBuilderCall = (
   return false
 }
 
+const handlerConfigValue = (
+  config: ESTree.Node,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): Option.Option<ESTree.Node> =>
+  Option.flatMap(resolveLocalValue(config, references), value => {
+    if (!isObjectExpression(value)) {
+      return Option.none()
+    }
+
+    return pipe(
+      value.properties,
+      Array.findFirst(
+        (property): property is ESTree.ObjectProperty =>
+          isObjectProperty(property) &&
+          Option.contains(staticPropertyName(property), 'handler'),
+      ),
+      Option.map(property => property.value),
+    )
+  })
+
 const handlerConstructorArgument = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
   call: ESTree.CallExpression,
@@ -956,17 +977,33 @@ const handlerConstructorArgument = (
   const isDefinition = Option.exists(
     apiCallKey(references, call),
     key =>
-      (call.arguments.length === 3 &&
+      (call.arguments.length === 2 &&
         (key === 'Command.define' ||
           key === 'Mount.define' ||
           key === 'Mount.defineStream')) ||
-      (call.arguments.length === 2 && key === 'Query.define'),
+      (call.arguments.length === 1 && key === 'Query.define'),
   )
   const isEntry =
-    (call.arguments.length === 3 || call.arguments.length === 4) &&
+    (call.arguments.length === 2 || call.arguments.length === 3) &&
     isEntryBuilderCall(references, call)
 
-  return isDefinition || isEntry ? Array.last(call.arguments) : Option.none()
+  return isDefinition || isEntry
+    ? pipe(
+        call.arguments,
+        Array.last,
+        Option.flatMap(config => handlerConfigValue(config, references)),
+      )
+    : Option.none()
+}
+
+const handlerConstructorValue = (
+  constructor: ESTree.Node,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): Option.Option<ESTree.Node> => {
+  const generatorValue = generatorConstructorValue(constructor, references)
+  return Option.isSome(generatorValue)
+    ? generatorValue
+    : effectConstructorValue(constructor, references)
 }
 
 const enclosingHandlerConstructor = (
@@ -1018,7 +1055,7 @@ const variableHandlerUse = (
     const maybeBuild = enclosingHandlerConstructor(references, identifier)
     if (
       Option.exists(maybeBuild, build =>
-        Option.exists(effectConstructorValue(build, references), handler =>
+        Option.exists(handlerConstructorValue(build, references), handler =>
           handlerValueContainsFunction(references, handler, fn),
         ),
       )
@@ -1064,7 +1101,7 @@ const isConstructedHandlerFunction = (
   const maybeBuild = enclosingHandlerConstructor(references, fn)
   if (
     Option.exists(maybeBuild, build =>
-      Option.exists(effectConstructorValue(build, references), handler =>
+      Option.exists(handlerConstructorValue(build, references), handler =>
         handlerValueContainsFunction(references, handler, fn),
       ),
     )

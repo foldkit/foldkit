@@ -52,16 +52,14 @@ export const init = (products: ReadonlyArray<Item.Item>): Model => ({
 
 // COMMAND
 
-export const ReplaceSearchUrl = Command.define(
-  'ReplaceSearchUrl',
-  {
-    args: { url: Schema.String },
-    messages: [Message.CompletedReplaceSearchUrl],
+export const ReplaceSearchUrl = Command.define('ReplaceSearchUrl', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedReplaceSearchUrl],
+  handler: function* () {
+    return ({ url }) =>
+      replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceSearchUrl()))
   },
-  Effect.succeed(({ url }) =>
-    replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceSearchUrl())),
-  ),
-)
+})
 
 export const EffectsLayer = ReplaceSearchUrl.layer
 

@@ -28,15 +28,19 @@ const managedResources = ManagedResource.make<Model, Message>()(entry => ({
       onReleased: () => Message.ReleasedCamera(),
       onAcquireError: error =>
         Message.FailedAcquireCamera({ error: String(error) }),
+      handler: function* () {
+        return {
+          acquire: ({ facingMode }) =>
+            Effect.tryPromise(() =>
+              navigator.mediaDevices.getUserMedia({ video: { facingMode } }),
+            ),
+          release: stream =>
+            Effect.sync(() =>
+              stream.getTracks().forEach(track => track.stop()),
+            ),
+        }
+      },
     },
-    Effect.succeed({
-      acquire: ({ facingMode }) =>
-        Effect.tryPromise(() =>
-          navigator.mediaDevices.getUserMedia({ video: { facingMode } }),
-        ),
-      release: stream =>
-        Effect.sync(() => stream.getTracks().forEach(track => track.stop())),
-    }),
   ),
 }))
 

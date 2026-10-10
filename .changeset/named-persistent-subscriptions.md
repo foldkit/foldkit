@@ -2,9 +2,9 @@
 'foldkit': minor
 ---
 
-Subscriptions declare the Message Schemas their Streams can emit. Use `entry('HeartbeatTicks', { messages: [Message.Ticked] }, constructor)` when there are no local Model dependencies, or pass the constructor after the dependency fields and callbacks config for a dependency-bearing entry. The entry exposes the attached recipe as `.layer`; `toLayer` remains available for an external alternative. An empty declaration constrains a silent Subscription to `Stream<never>`. The declaration and handler Layer remain available after `Subscription.lift` and direct `Subscription.aggregate(records...)`, providing a stable source and output contract for Scene.
+Subscriptions declare the Message Schemas their Streams can emit. Use `entry('HeartbeatTicks', { messages: [Message.Ticked], handler: function* () { return () => stream } })` when there are no local Model dependencies, or put the same `handler` field in the callbacks config for a dependency-bearing entry. Foldkit applies `Effect.gen` internally. The entry exposes the attached recipe as `.layer`; `toLayer` remains available for an external alternative. An empty declaration constrains a silent Subscription to `Stream<never>`. The declaration and handler Layer remain available after `Subscription.lift` and direct `Subscription.aggregate(records...)`, providing a stable source and output contract for Scene.
 
-Remove uses of `Subscription.persistentEntry`, `Subscription.animationFrameEntry`, and `Port.subscriptionEntry`. Define ordinary named entries instead. Replace `Subscription.persistentEntry(stream)` with `entry(name, { messages }, Effect.succeed(() => stream))`, then provide the entry's `.layer`.
+Remove uses of `Subscription.persistentEntry`, `Subscription.animationFrameEntry`, and `Port.subscriptionEntry`. Define ordinary named entries instead. Replace `Subscription.persistentEntry(stream)` with `entry(name, { messages, handler: function* () { return () => stream } })`, then provide the entry's `.layer`.
 
 For an animation frame entry whose Model has `isPlaying`, migrate the helper to a dependency-bearing entry. Map the cold `Subscription.animationFrameStream` to the entry's Message in its handler. Each subscriber owns its animation loop and cancels the pending frame request when its scope closes.
 
@@ -29,14 +29,15 @@ const subscriptions = Subscription.make<Model, Message>()(entry => ({
     {
       messages: [Message.TickedFrame],
       modelToDependencies: model => ({ isActive: model.isPlaying }),
+      handler: function* () {
+        return ({ isActive }) =>
+          isActive
+            ? Subscription.animationFrameStream.pipe(
+                Stream.map(deltaTime => Message.TickedFrame({ deltaTime })),
+              )
+            : Stream.empty
+      },
     },
-    Effect.succeed(({ isActive }) =>
-      isActive
-        ? Subscription.animationFrameStream.pipe(
-            Stream.map(deltaTime => Message.TickedFrame({ deltaTime })),
-          )
-        : Stream.empty,
-    ),
   ),
 }))
 
@@ -64,15 +65,15 @@ const subscriptions = Subscription.aggregate(
 
 ```ts
 const portSubscriptions = Subscription.make<Model, Message>()(entry => ({
-  hostStep: entry(
-    'HostStepChanges',
-    { messages: [Message.ChangedStep] },
-    Effect.succeed(() =>
-      Port.stream(ports.inbound.stepChanged).pipe(
-        Stream.map(step => Message.ChangedStep({ step })),
-      ),
-    ),
-  ),
+  hostStep: entry('HostStepChanges', {
+    messages: [Message.ChangedStep],
+    handler: function* () {
+      return () =>
+        Port.stream(ports.inbound.stepChanged).pipe(
+          Stream.map(step => Message.ChangedStep({ step })),
+        )
+    },
+  }),
 }))
 
 const subscriptions = Subscription.aggregate(

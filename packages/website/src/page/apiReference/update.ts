@@ -16,45 +16,43 @@ import {
   type Model,
 } from './model'
 
-const LoadApiData = Command.define(
-  'LoadApiData',
-  {
-    messages: [Message.SucceededLoadApiData, Message.FailedLoadApiData],
-  },
-  Effect.succeed(() =>
-    Effect.gen(function* () {
-      const [parsedApiModule, highlightsModule] = yield* Effect.tryPromise({
-        try: () =>
-          Promise.all([
-            import('virtual:parsed-api'),
-            import('virtual:api-highlights'),
-          ]),
-        catch: error =>
-          error instanceof Error ? error.message : 'Unknown error',
-      })
+const LoadApiData = Command.define('LoadApiData', {
+  messages: [Message.SucceededLoadApiData, Message.FailedLoadApiData],
+  handler: function* () {
+    return () =>
+      Effect.gen(function* () {
+        const [parsedApiModule, highlightsModule] = yield* Effect.tryPromise({
+          try: () =>
+            Promise.all([
+              import('virtual:parsed-api'),
+              import('virtual:api-highlights'),
+            ]),
+          catch: error =>
+            error instanceof Error ? error.message : 'Unknown error',
+        })
 
-      const parsedApi = yield* Schema.decodeUnknownEffect(ParsedApiReference)(
-        parsedApiModule.default,
-      )
+        const parsedApi = yield* Schema.decodeUnknownEffect(ParsedApiReference)(
+          parsedApiModule.default,
+        )
 
-      return Message.SucceededLoadApiData({
-        apiData: {
-          parsedApi,
-          highlights: highlightsModule.default,
-        },
-      })
-    }).pipe(
-      Effect.catch(error =>
-        Effect.succeed(
-          Message.FailedLoadApiData({
-            error:
-              typeof error === 'string' ? error : 'Failed to load API data',
-          }),
+        return Message.SucceededLoadApiData({
+          apiData: {
+            parsedApi,
+            highlights: highlightsModule.default,
+          },
+        })
+      }).pipe(
+        Effect.catch(error =>
+          Effect.succeed(
+            Message.FailedLoadApiData({
+              error:
+                typeof error === 'string' ? error : 'Failed to load API data',
+            }),
+          ),
         ),
-      ),
-    ),
-  ),
-)
+      )
+  },
+})
 
 export const EffectsLayer = LoadApiData.layer
 

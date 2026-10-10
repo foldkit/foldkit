@@ -269,13 +269,10 @@ export const update = Update.make((model: Model, message: Message) =>
 
 // COMMAND
 
-export const GenerateTodo = Command.define(
-  'GenerateTodo',
-  {
-    args: { text: Schema.String },
-    messages: [Message.CompletedGenerateTodo],
-  },
-  Effect.gen(function* () {
+export const GenerateTodo = Command.define('GenerateTodo', {
+  args: { text: Schema.String },
+  messages: [Message.CompletedGenerateTodo],
+  handler: function* () {
     const clock = yield* Clock.Clock
 
     return ({ text }) =>
@@ -288,16 +285,13 @@ export const GenerateTodo = Command.define(
 
         return Message.CompletedGenerateTodo({ id, timestamp, text })
       })
-  }),
-)
-
-export const SaveTodos = Command.define(
-  'SaveTodos',
-  {
-    args: { todos: Todos },
-    messages: [Message.SucceededSaveTodos, Message.FailedSaveTodos],
   },
-  Effect.gen(function* () {
+})
+
+export const SaveTodos = Command.define('SaveTodos', {
+  args: { todos: Todos },
+  messages: [Message.SucceededSaveTodos, Message.FailedSaveTodos],
+  handler: function* () {
     const store = yield* KeyValueStore.KeyValueStore
 
     return ({ todos }) =>
@@ -306,8 +300,8 @@ export const SaveTodos = Command.define(
         yield* store.set(TODOS_STORAGE_KEY, encodedTodos)
         return Message.SucceededSaveTodos({ todos })
       }).pipe(Effect.catch(() => Effect.succeed(Message.FailedSaveTodos())))
-  }),
-)
+  },
+})
 
 export const EffectsLayer = Layer.mergeAll(GenerateTodo.layer, SaveTodos.layer)
 

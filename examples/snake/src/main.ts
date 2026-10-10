@@ -218,20 +218,18 @@ export const update = Update.make((model: Model, message: Message) =>
 
 // COMMAND
 
-export const GenerateApplePosition = Command.define(
-  'GenerateApplePosition',
-  {
-    args: { snake: Snake.Snake },
-    messages: [Message.CompletedGenerateApplePosition],
+export const GenerateApplePosition = Command.define('GenerateApplePosition', {
+  args: { snake: Snake.Snake },
+  messages: [Message.CompletedGenerateApplePosition],
+  handler: function* () {
+    return ({ snake }) =>
+      Apple.generatePosition(snake).pipe(
+        Effect.map(position =>
+          Message.CompletedGenerateApplePosition({ position }),
+        ),
+      )
   },
-  Effect.succeed(({ snake }) =>
-    Apple.generatePosition(snake).pipe(
-      Effect.map(position =>
-        Message.CompletedGenerateApplePosition({ position }),
-      ),
-    ),
-  ),
-)
+})
 
 // SUBSCRIPTION
 
@@ -251,32 +249,31 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
           GAME_SPEED.BASE_INTERVAL - model.points,
         ),
       }),
+      handler: function* () {
+        return ({ isPlaying, interval }) =>
+          Stream.when(
+            Stream.tick(Duration.millis(interval)).pipe(
+              Stream.drop(1),
+              Stream.map(Message.TickedClock),
+            ),
+            Effect.sync(() => isPlaying),
+          )
+      },
     },
-    Effect.succeed(({ isPlaying, interval }) =>
-      Stream.when(
-        Stream.tick(Duration.millis(interval)).pipe(
-          Stream.drop(1),
-          Stream.map(Message.TickedClock),
-        ),
-        Effect.sync(() => isPlaying),
-      ),
-    ),
   ),
 
-  keyboardPresses: entry(
-    'KeyboardPresses',
-    {
-      messages: [Message.PressedKey],
+  keyboardPresses: entry('KeyboardPresses', {
+    messages: [Message.PressedKey],
+    handler: function* () {
+      return () =>
+        Dom.streamFromEventFilterMapPreventDefault({
+          target: document,
+          type: 'keydown',
+          filterMapEvent: keyboardEvent =>
+            Option.some(Message.PressedKey({ key: keyboardEvent.key })),
+        })
     },
-    Effect.succeed(() =>
-      Dom.streamFromEventFilterMapPreventDefault({
-        target: document,
-        type: 'keydown',
-        filterMapEvent: keyboardEvent =>
-          Option.some(Message.PressedKey({ key: keyboardEvent.key })),
-      }),
-    ),
-  ),
+  }),
 }))
 
 export const EffectsLayer = Layer.mergeAll(

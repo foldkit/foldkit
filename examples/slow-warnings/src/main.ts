@@ -1,6 +1,5 @@
 import {
   Array,
-  Effect,
   Layer,
   Match,
   Number,
@@ -230,24 +229,22 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  slowWarningReports: entry(
-    'SlowWarningReports',
-    {
-      messages: [Message.RecordedSlowWarning],
+  slowWarningReports: entry('SlowWarningReports', {
+    messages: [Message.RecordedSlowWarning],
+    handler: function* () {
+      return () =>
+        Dom.streamFromEventFilterMap({
+          target: slowWarningTarget,
+          type: SLOW_WARNING_EVENT,
+          filterMapEvent: event =>
+            pipe(
+              event.detail,
+              Schema.decodeOption(SlowWarningReport),
+              Option.map(report => Message.RecordedSlowWarning({ report })),
+            ),
+        })
     },
-    Effect.succeed(() =>
-      Dom.streamFromEventFilterMap({
-        target: slowWarningTarget,
-        type: SLOW_WARNING_EVENT,
-        filterMapEvent: event =>
-          pipe(
-            event.detail,
-            Schema.decodeOption(SlowWarningReport),
-            Option.map(report => Message.RecordedSlowWarning({ report })),
-          ),
-      }),
-    ),
-  ),
+  }),
   dependencyExtractionWork: entry(
     'DependencyExtractionWork',
     { activeWorkload: Workload },
@@ -260,8 +257,10 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
         return { activeWorkload: model.activeWorkload }
       },
       messages: [],
+      handler: function* () {
+        return () => Stream.empty
+      },
     },
-    Effect.succeed(() => Stream.empty),
   ),
 }))
 

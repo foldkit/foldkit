@@ -57,32 +57,28 @@ export const init = (config: InitConfig = {}): Model => ({
 // COMMAND
 
 /** Waits before opening, then emits the version that scheduled the wait. */
-export const WaitBeforeOpening = Command.define(
-  'WaitBeforeOpening',
-  {
-    args: { delay: Schema.DurationFromMillis, version: Schema.Number },
-    messages: [Message.CompletedWaitBeforeOpening],
+export const WaitBeforeOpening = Command.define('WaitBeforeOpening', {
+  args: { delay: Schema.DurationFromMillis, version: Schema.Number },
+  messages: [Message.CompletedWaitBeforeOpening],
+  handler: function* () {
+    return ({ delay, version }) =>
+      Effect.sleep(delay).pipe(
+        Effect.as(Message.CompletedWaitBeforeOpening({ version })),
+      )
   },
-  Effect.succeed(({ delay, version }) =>
-    Effect.sleep(delay).pipe(
-      Effect.as(Message.CompletedWaitBeforeOpening({ version })),
-    ),
-  ),
-)
+})
 
 /** Waits before closing, then emits the version that scheduled the wait. */
-export const WaitBeforeClosing = Command.define(
-  'WaitBeforeClosing',
-  {
-    args: { delay: Schema.DurationFromMillis, version: Schema.Number },
-    messages: [Message.CompletedWaitBeforeClosing],
+export const WaitBeforeClosing = Command.define('WaitBeforeClosing', {
+  args: { delay: Schema.DurationFromMillis, version: Schema.Number },
+  messages: [Message.CompletedWaitBeforeClosing],
+  handler: function* () {
+    return ({ delay, version }) =>
+      Effect.sleep(delay).pipe(
+        Effect.as(Message.CompletedWaitBeforeClosing({ version })),
+      )
   },
-  Effect.succeed(({ delay, version }) =>
-    Effect.sleep(delay).pipe(
-      Effect.as(Message.CompletedWaitBeforeClosing({ version })),
-    ),
-  ),
-)
+})
 
 /** Effect providers used by the HoverIntent component. */
 export const EffectsLayer = Layer.mergeAll(

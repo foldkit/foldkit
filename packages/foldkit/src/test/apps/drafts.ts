@@ -31,17 +31,15 @@ export type Message = typeof Message.Type
 export const SaveDraftArgs = Schema.Struct({ revision: Schema.Number })
 export type SaveDraftArgs = typeof SaveDraftArgs.Type
 
-export const SaveDraft = Command.define(
-  'SaveDraft',
-  {
-    args: SaveDraftArgs.fields,
-    messages: [Message.SucceededSaveDraft],
-    interrupt: true,
+export const SaveDraft = Command.define('SaveDraft', {
+  args: SaveDraftArgs.fields,
+  messages: [Message.SucceededSaveDraft],
+  interrupt: true,
+  handler: function* () {
+    return ({ revision }) =>
+      Effect.as(Effect.never, Message.SucceededSaveDraft({ revision }))
   },
-  Effect.succeed(({ revision }) =>
-    Effect.as(Effect.never, Message.SucceededSaveDraft({ revision })),
-  ),
-)
+})
 
 // INIT
 

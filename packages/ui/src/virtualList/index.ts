@@ -460,74 +460,72 @@ const scrollTopForRequest = (
 
 const mountedContainers = new Map<string, Set<HTMLElement>>()
 
-export const ApplyScroll = Command.define(
-  'ApplyScroll',
-  {
-    args: {
-      id: Schema.String,
-      request: ScrollRequest,
-      version: Schema.Number,
-    },
-    messages: [Message.CompletedApplyScroll],
+export const ApplyScroll = Command.define('ApplyScroll', {
+  args: {
+    id: Schema.String,
+    request: ScrollRequest,
+    version: Schema.Number,
   },
-  Effect.succeed(({ id, request, version }) =>
-    Effect.gen(function* () {
-      yield* Render.afterCommit
+  messages: [Message.CompletedApplyScroll],
+  handler: function* () {
+    return ({ id, request, version }) =>
+      Effect.gen(function* () {
+        yield* Render.afterCommit
 
-      const containers = mountedContainers.get(id)
-      if (containers === undefined || containers.size !== 1) {
+        const containers = mountedContainers.get(id)
+        if (containers === undefined || containers.size !== 1) {
+          return Message.CompletedApplyScroll({
+            version,
+            outcome: ApplyScrollOutcome.Skipped(),
+          })
+        }
+
+        const maybeElement = pipe(containers, Array.fromIterable, Array.head)
+        if (Option.isNone(maybeElement)) {
+          return Message.CompletedApplyScroll({
+            version,
+            outcome: ApplyScrollOutcome.Skipped(),
+          })
+        }
+
+        const element = maybeElement.value
+
+        const maybeActiveVersion = pipe(
+          element.getAttribute('data-virtual-list-scroll-version'),
+          Option.fromNullishOr,
+          Option.flatMap(Number.parse),
+        )
+        if (
+          Option.isNone(maybeActiveVersion) ||
+          maybeActiveVersion.value !== version
+        ) {
+          return Message.CompletedApplyScroll({
+            version,
+            outcome: ApplyScrollOutcome.Skipped(),
+          })
+        }
+
+        const maybeScrollTop = scrollTopForRequest(element, request)
+        if (Option.isNone(maybeScrollTop)) {
+          return Message.CompletedApplyScroll({
+            version,
+            outcome: ApplyScrollOutcome.Skipped(),
+          })
+        }
+
+        element.scrollTop = clampScrollTop(element, maybeScrollTop.value)
         return Message.CompletedApplyScroll({
           version,
-          outcome: ApplyScrollOutcome.Skipped(),
+          outcome: ApplyScrollOutcome.Applied({
+            scrollTop: element.scrollTop,
+            scrollHeight: element.scrollHeight,
+            containerHeight: element.clientHeight,
+            anchor: observedAnchor(element),
+          }),
         })
-      }
-
-      const maybeElement = pipe(containers, Array.fromIterable, Array.head)
-      if (Option.isNone(maybeElement)) {
-        return Message.CompletedApplyScroll({
-          version,
-          outcome: ApplyScrollOutcome.Skipped(),
-        })
-      }
-
-      const element = maybeElement.value
-
-      const maybeActiveVersion = pipe(
-        element.getAttribute('data-virtual-list-scroll-version'),
-        Option.fromNullishOr,
-        Option.flatMap(Number.parse),
-      )
-      if (
-        Option.isNone(maybeActiveVersion) ||
-        maybeActiveVersion.value !== version
-      ) {
-        return Message.CompletedApplyScroll({
-          version,
-          outcome: ApplyScrollOutcome.Skipped(),
-        })
-      }
-
-      const maybeScrollTop = scrollTopForRequest(element, request)
-      if (Option.isNone(maybeScrollTop)) {
-        return Message.CompletedApplyScroll({
-          version,
-          outcome: ApplyScrollOutcome.Skipped(),
-        })
-      }
-
-      element.scrollTop = clampScrollTop(element, maybeScrollTop.value)
-      return Message.CompletedApplyScroll({
-        version,
-        outcome: ApplyScrollOutcome.Applied({
-          scrollTop: element.scrollTop,
-          scrollHeight: element.scrollHeight,
-          containerHeight: element.clientHeight,
-          anchor: observedAnchor(element),
-        }),
       })
-    }),
-  ),
-)
+  },
+})
 
 /** Options shared by row-targeted programmatic scrolling helpers. */
 export type ScrollToOptions = Readonly<{
@@ -1263,24 +1261,22 @@ const observeVirtualList = (
 
 /** Container-owned Mount that tracks scrolling, container resizing, and
  *  rendered row measurements for dynamic-height lists. */
-export const ObserveVirtualList = Mount.defineStream(
-  'ObserveVirtualList',
-  {
-    args: { id: Schema.String },
-    messages: [
-      Message.ObservedContainerScroll,
-      Message.ResizedContainer,
-      Message.MeasuredRows,
-    ],
+export const ObserveVirtualList = Mount.defineStream('ObserveVirtualList', {
+  args: { id: Schema.String },
+  messages: [
+    Message.ObservedContainerScroll,
+    Message.ResizedContainer,
+    Message.MeasuredRows,
+  ],
+  handler: function* () {
+    return ({ element, id, viewStateChanges }) =>
+      viewStateChanges.pipe(
+        Stream.switchMap(viewState =>
+          viewState === 'Live' ? observeVirtualList(element, id) : Stream.never,
+        ),
+      )
   },
-  Effect.succeed(({ element, id, viewStateChanges }) =>
-    viewStateChanges.pipe(
-      Stream.switchMap(viewState =>
-        viewState === 'Live' ? observeVirtualList(element, id) : Stream.never,
-      ),
-    ),
-  ),
-)
+})
 
 /** Mount Definitions rendered by VirtualList views. */
 export const mounts = [ObserveVirtualList]

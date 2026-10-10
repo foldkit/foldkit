@@ -50,20 +50,18 @@ export type Message = typeof Message.Type
 export const UploadFileArgs = Schema.Struct({ uploadId: Schema.Number })
 export type UploadFileArgs = typeof UploadFileArgs.Type
 
-export const UploadFile = Command.define(
-  'UploadFile',
-  {
-    args: UploadFileArgs.fields,
-    messages: [Message.SucceededUploadFile, Message.FailedUploadFile],
-    interrupt: {
-      keyFields: ['uploadId'],
-      toKey: ({ uploadId }) => String(uploadId),
-    },
+export const UploadFile = Command.define('UploadFile', {
+  args: UploadFileArgs.fields,
+  messages: [Message.SucceededUploadFile, Message.FailedUploadFile],
+  interrupt: {
+    keyFields: ['uploadId'],
+    toKey: ({ uploadId }) => String(uploadId),
   },
-  Effect.succeed(({ uploadId }) =>
-    Effect.as(Effect.never, Message.SucceededUploadFile({ uploadId })),
-  ),
-)
+  handler: function* () {
+    return ({ uploadId }) =>
+      Effect.as(Effect.never, Message.SucceededUploadFile({ uploadId }))
+  },
+})
 
 export const CancelUploadFile = ({ uploadId }: UploadFileArgs) =>
   UploadFile.Interrupt({ uploadId }, outcome =>

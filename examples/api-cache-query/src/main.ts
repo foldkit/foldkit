@@ -45,13 +45,11 @@ const PostData = Schema.Struct({
 
 const StatsData = Schema.Struct({ stats: Stats, fetchedAt: Schema.Number })
 
-export const postsQuery = Query.define(
-  {
-    name: 'Posts',
-    data: PostsData,
-    error: Schema.String,
-  },
-  Effect.gen(function* () {
+export const postsQuery = Query.define({
+  name: 'Posts',
+  data: PostsData,
+  error: Schema.String,
+  handler: function* () {
     const clock = yield* Clock.Clock
 
     return () =>
@@ -61,16 +59,14 @@ export const postsQuery = Query.define(
 
         return { posts, fetchedAt }
       })
-  }),
-)
-
-export const statsQuery = Query.define(
-  {
-    name: 'Stats',
-    data: StatsData,
-    error: Schema.String,
   },
-  Effect.gen(function* () {
+})
+
+export const statsQuery = Query.define({
+  name: 'Stats',
+  data: StatsData,
+  error: Schema.String,
+  handler: function* () {
     const clock = yield* Clock.Clock
 
     return () =>
@@ -80,17 +76,15 @@ export const statsQuery = Query.define(
 
         return { stats, fetchedAt }
       })
-  }),
-)
-
-export const postQuery = Query.define(
-  {
-    name: 'Post',
-    args: { postId: Schema.String },
-    data: PostData,
-    error: Schema.String,
   },
-  Effect.gen(function* () {
+})
+
+export const postQuery = Query.define({
+  name: 'Post',
+  args: { postId: Schema.String },
+  data: PostData,
+  error: Schema.String,
+  handler: function* () {
     const clock = yield* Clock.Clock
 
     return ({ postId }) =>
@@ -100,8 +94,8 @@ export const postQuery = Query.define(
 
         return { post, fetchedAt }
       })
-  }),
-)
+  },
+})
 
 const Tab = Schema.Literals(['Posts', 'Stats'])
 type Tab = typeof Tab.Type
@@ -223,16 +217,17 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
           model.activeTab === 'Stats' &&
           AsyncData.hasData(statsQuery.read(model.stats)),
       }),
+      handler: function* () {
+        return ({ isStatsRefreshActive }) =>
+          Stream.when(
+            Stream.tick(STATS_REFETCH_INTERVAL).pipe(
+              Stream.drop(1),
+              Stream.map(Message.TickedStatsRefreshInterval),
+            ),
+            Effect.sync(() => isStatsRefreshActive),
+          )
+      },
     },
-    Effect.succeed(({ isStatsRefreshActive }) =>
-      Stream.when(
-        Stream.tick(STATS_REFETCH_INTERVAL).pipe(
-          Stream.drop(1),
-          Stream.map(Message.TickedStatsRefreshInterval),
-        ),
-        Effect.sync(() => isStatsRefreshActive),
-      ),
-    ),
   ),
 }))
 

@@ -19,13 +19,10 @@ class ApiClientService extends Context.Service<ApiClientService, ApiClient>()(
   'ApiClientService',
 ) {}
 
-const LoadUser = Command.define(
-  'LoadUser',
-  {
-    args: { userId: Schema.String },
-    messages: [Message.SucceededLoadUser, Message.FailedLoadUser],
-  },
-  Effect.gen(function* () {
+const LoadUser = Command.define('LoadUser', {
+  args: { userId: Schema.String },
+  messages: [Message.SucceededLoadUser, Message.FailedLoadUser],
+  handler: function* () {
     const apiClient = yield* ApiClientService
 
     return ({ userId }) =>
@@ -35,8 +32,8 @@ const LoadUser = Command.define(
           Effect.succeed(Message.FailedLoadUser({ error: 'Request failed' })),
         ),
       )
-  }),
-)
+  },
+})
 
 const ApiLayer = Layer.effect(
   ApiClientService,

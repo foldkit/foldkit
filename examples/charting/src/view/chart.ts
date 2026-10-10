@@ -114,18 +114,17 @@ const mountChart = (element: Element, hostId: string) =>
     ),
   )
 
-export const MountChart = Mount.defineStream(
-  'MountChart',
-  {
-    args: { hostId: Schema.String },
-    messages: [
-      Message.SucceededMountChart,
-      Message.FailedMountChart,
-      Message.ClickedChartDatum,
-    ],
+export const MountChart = Mount.defineStream('MountChart', {
+  args: { hostId: Schema.String },
+  messages: [
+    Message.SucceededMountChart,
+    Message.FailedMountChart,
+    Message.ClickedChartDatum,
+  ],
+  handler: function* () {
+    return ({ element, hostId }) => mountChart(element, hostId)
   },
-  Effect.succeed(({ element, hostId }) => mountChart(element, hostId)),
-)
+})
 
 export const chartPanelView = (
   model: Model,

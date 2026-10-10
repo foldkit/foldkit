@@ -97,7 +97,6 @@ export type KeyedQueryConfig<
   args: Fields
   toKey?: (args: Schema.Schema.Type<Schema.Struct<Fields>>) => string
   execute?: never
-  handler?: never
 }>
 
 /** Builds a KeyedQuery fetch handler Layer from an Effect that constructs a fetch. */
@@ -473,43 +472,6 @@ const makeKeyedQuery = <
   } satisfies KeyedQuery<Name, A, AI, E, EI, Fields, R>
 }
 
-export function defineKeyedQuery<
-  Name extends string,
-  A,
-  AI,
-  E,
-  EI,
-  Fields extends SyncFields,
-  HandlerRequirements = never,
-  BuildError = never,
-  BuildRequirements = never,
->(
-  config: KeyedQueryConfig<Name, A, AI, E, EI, Fields>,
-  handler: Effect.Effect<
-    (
-      args: KeyedArgs<NoInfer<Fields>>,
-    ) => Effect.Effect<NoInfer<A>, NoInfer<E>, HandlerRequirements>,
-    BuildError,
-    BuildRequirements
-  >,
-): LayeredKeyedQuery<Name, A, AI, E, EI, Fields> &
-  Readonly<{
-    layer: Layer.Layer<
-      Command.Handler<`Fetch${Name}`>,
-      BuildError,
-      Exclude<HandlerRequirements | BuildRequirements, Scope.Scope>
-    >
-  }>
-export function defineKeyedQuery<
-  Name extends string,
-  A,
-  AI,
-  E,
-  EI,
-  Fields extends SyncFields,
->(
-  config: KeyedQueryConfig<Name, A, AI, E, EI, Fields>,
-): LayeredKeyedQuery<Name, A, AI, E, EI, Fields>
 export function defineKeyedQuery<
   Name extends string,
   A,

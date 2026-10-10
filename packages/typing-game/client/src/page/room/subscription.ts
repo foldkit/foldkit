@@ -22,31 +22,31 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
           playerId: session.player.id,
         })),
       }),
-    },
-    Effect.gen(function* () {
-      const client = yield* RoomsClient
+      handler: function* () {
+        const client = yield* RoomsClient
 
-      return ({ maybeRoomStream }) =>
-        Option.match(maybeRoomStream, {
-          onNone: () => Stream.empty,
-          onSome: ({ roomId, playerId }) =>
-            client.subscribeToRoom({ roomId, playerId }).pipe(
-              Stream.map(({ room, maybePlayerProgress }) =>
-                Message.UpdatedRoom({ room, maybePlayerProgress }),
-              ),
-              Stream.catchCause(cause =>
-                Stream.make(
-                  Message.FailedStreamRoom({
-                    error: Option.match(Cause.findErrorOption(cause), {
-                      onSome: failure => String(failure),
-                      onNone: () => 'Unknown stream error',
+        return ({ maybeRoomStream }) =>
+          Option.match(maybeRoomStream, {
+            onNone: () => Stream.empty,
+            onSome: ({ roomId, playerId }) =>
+              client.subscribeToRoom({ roomId, playerId }).pipe(
+                Stream.map(({ room, maybePlayerProgress }) =>
+                  Message.UpdatedRoom({ room, maybePlayerProgress }),
+                ),
+                Stream.catchCause(cause =>
+                  Stream.make(
+                    Message.FailedStreamRoom({
+                      error: Option.match(Cause.findErrorOption(cause), {
+                        onSome: failure => String(failure),
+                        onNone: () => 'Unknown stream error',
+                      }),
                     }),
-                  }),
+                  ),
                 ),
               ),
-            ),
-        })
-    }),
+          })
+      },
+    },
   ),
 
   roomKeyPresses: entry(
@@ -57,12 +57,13 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
       modelToDependencies: model => ({
         shouldCaptureKeyboard: capturesKeyboard(model),
       }),
+      handler: function* () {
+        return ({ shouldCaptureKeyboard }) =>
+          Stream.when(
+            capturedKeyDownStream(key => Message.PressedKey({ key })),
+            Effect.sync(() => shouldCaptureKeyboard),
+          )
+      },
     },
-    Effect.succeed(({ shouldCaptureKeyboard }) =>
-      Stream.when(
-        capturedKeyDownStream(key => Message.PressedKey({ key })),
-        Effect.sync(() => shouldCaptureKeyboard),
-      ),
-    ),
   ),
 }))

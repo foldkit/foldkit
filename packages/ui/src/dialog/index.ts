@@ -156,56 +156,50 @@ const acquireDialogResourcesResult = (
  *  acquisition becomes uninterruptible after the committed element is found,
  *  so modal resources and the scroll lock cannot split. A concurrent
  *  lifecycle acquisition reuses the resources already held by the id. */
-export const ShowDialog = Command.define(
-  'ShowDialog',
-  {
-    args: { id: Schema.String, focusSelector: Schema.String },
-    messages: [Message.SucceededShowDialog, Message.FailedShowDialog],
+export const ShowDialog = Command.define('ShowDialog', {
+  args: { id: Schema.String, focusSelector: Schema.String },
+  messages: [Message.SucceededShowDialog, Message.FailedShowDialog],
+  handler: function* () {
+    return ({ id, focusSelector }) =>
+      acquireDialogResourcesResult(id, focusSelector)
   },
-  Effect.succeed(({ id, focusSelector }) =>
-    acquireDialogResourcesResult(id, focusSelector),
-  ),
-)
+})
 
 /** Reacquires an initially visible Dialog's framework resources when its
  *  element mounts, including after development Model preservation restores an
  *  open Dialog without replaying initialization Commands. A successful
  *  acquisition also resumes a preserved animation transition from its current
  *  phase. */
-export const AcquireResources = Mount.define(
-  'AcquireResources',
-  {
-    args: { id: Schema.String, focusSelector: Schema.String },
-    messages: [
-      Message.SucceededAcquireResources,
-      Message.FailedAcquireResources,
-    ],
-  },
-  Effect.succeed(({ element, id, focusSelector }) => {
-    if (!(element instanceof HTMLDialogElement) || element.id !== id) {
-      return Effect.succeed(Message.FailedAcquireResources())
+export const AcquireResources = Mount.define('AcquireResources', {
+  args: { id: Schema.String, focusSelector: Schema.String },
+  messages: [Message.SucceededAcquireResources, Message.FailedAcquireResources],
+  handler: function* () {
+    return ({ element, id, focusSelector }) => {
+      if (!(element instanceof HTMLDialogElement) || element.id !== id) {
+        return Effect.succeed(Message.FailedAcquireResources())
+      }
+
+      const acquisition = acquireDialogResources(id, focusSelector).pipe(
+        Effect.map(isAcquired => ({
+          isAcquired,
+          message: Message.SucceededAcquireResources(),
+        })),
+        Effect.catch(() =>
+          Effect.succeed({
+            isAcquired: false,
+            message: Message.FailedAcquireResources(),
+          }),
+        ),
+      )
+
+      return Effect.acquireRelease(acquisition, ({ isAcquired }) =>
+        isAcquired
+          ? Dom.releaseDialogResources(id).pipe(Effect.ignore)
+          : Effect.void,
+      ).pipe(Effect.map(({ message }) => message))
     }
-
-    const acquisition = acquireDialogResources(id, focusSelector).pipe(
-      Effect.map(isAcquired => ({
-        isAcquired,
-        message: Message.SucceededAcquireResources(),
-      })),
-      Effect.catch(() =>
-        Effect.succeed({
-          isAcquired: false,
-          message: Message.FailedAcquireResources(),
-        }),
-      ),
-    )
-
-    return Effect.acquireRelease(acquisition, ({ isAcquired }) =>
-      isAcquired
-        ? Dom.releaseDialogResources(id).pipe(Effect.ignore)
-        : Effect.void,
-    ).pipe(Effect.map(({ message }) => message))
-  }),
-)
+  },
+})
 
 /** Calls `close()` on the native dialog element and unlocks page scroll when
  *  the close released the resources `ShowDialog` installed. A close that runs
@@ -215,40 +209,36 @@ export const AcquireResources = Mount.define(
  *  close runs, the Command calls `Dom.releaseDialogResources` instead. That
  *  releases the scroll lock, focus trap, return focus, and stack entry if the
  *  dialog still holds them. The background is restored before return focus. */
-export const CloseDialog = Command.define(
-  'CloseDialog',
-  {
-    args: { id: Schema.String },
-    messages: [Message.CompletedCloseDialog],
+export const CloseDialog = Command.define('CloseDialog', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedCloseDialog],
+  handler: function* () {
+    return ({ id }) =>
+      Dom.closeDialog(dialogSelector(id)).pipe(
+        Effect.andThen(isReleased =>
+          isReleased ? Dom.unlockScroll : Effect.void,
+        ),
+        Effect.catch(() => Dom.releaseDialogResources(id)),
+        Effect.as(Message.CompletedCloseDialog()),
+      )
   },
-  Effect.succeed(({ id }) =>
-    Dom.closeDialog(dialogSelector(id)).pipe(
-      Effect.andThen(isReleased =>
-        isReleased ? Dom.unlockScroll : Effect.void,
-      ),
-      Effect.catch(() => Dom.releaseDialogResources(id)),
-      Effect.as(Message.CompletedCloseDialog()),
-    ),
-  ),
-)
+})
 
 /** Releases the framework hygiene the dialog holds while open (scroll lock,
  *  focus trap, return focus, stack entry, background isolation) when the
  *  element unmounts without a purposeful close. Calling it after
  *  `CloseDialog` released those resources is a no-op. */
-export const ReleaseDialogResources = Command.define(
-  'ReleaseDialogResources',
-  {
-    args: { id: Schema.String },
-    messages: [Message.CompletedReleaseDialogResources],
+export const ReleaseDialogResources = Command.define('ReleaseDialogResources', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedReleaseDialogResources],
+  handler: function* () {
+    return ({ id }) =>
+      Dom.releaseDialogResources(id).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedReleaseDialogResources()),
+      )
   },
-  Effect.succeed(({ id }) =>
-    Dom.releaseDialogResources(id).pipe(
-      Effect.ignore,
-      Effect.as(Message.CompletedReleaseDialogResources()),
-    ),
-  ),
-)
+})
 
 /** Mount definitions rendered by Dialog. */
 export const mounts = [AcquireResources]

@@ -143,6 +143,11 @@ export type InterruptOption<
 type DefineConfig = Readonly<{
   args?: Schema.Struct.Fields
   messages: ReadonlyArray<Schema.Top>
+  handler?: () => Generator<
+    Effect.Effect<any, any, any>,
+    (args: any) => Effect.Effect<any, never, any>,
+    unknown
+  >
   interrupt?:
     | true
     | Readonly<{
@@ -160,13 +165,14 @@ type HandlerArgs<Fields extends Schema.Struct.Fields> = Schema.Struct.Type<
  * Defines a Command. `args` declares the args Schema, `messages` lists the
  * Messages this Command can produce, and `interrupt` opts into interruption.
  *
- * The final argument is an Effect that constructs the handler. The
- * Definition's `layer` provides that handler to the application. The
+ * `handler` is a generator function that constructs the handler. Foldkit
+ * applies `Effect.gen` to the generator. The Definition's `layer` provides
+ * that handler to the application. The
  * constructor runs when the application Layer is built and may capture
  * services. The returned handler runs for each Command invocation. The current
  * execution context takes precedence over the construction context.
  *
- * Omit the final argument to declare a host contract. A host contract has no
+ * Omit `handler` to declare a host contract. A host contract has no
  * `layer`; use its `toLayer` method to supply an implementation at the
  * application boundary or in a test.
  *
@@ -198,88 +204,53 @@ type HandlerArgs<Fields extends Schema.Struct.Fields> = Schema.Struct.Type<
  * runtime starts and tears those down as the Model declares them, so there is
  * no in-flight Command to interrupt.
  *
- * @example Layer-backed handler
+ * @example With args
  * ```ts
- * import { Message } from './message'
- *
- * const SendMessage = Command.define(
- *   'SendMessage',
- *   {
- *     args: { text: Schema.String },
- *     messages: [Message.CompletedSendMessage],
+ * const SendMessage = Command.define('SendMessage', {
+ *   args: { text: Schema.String },
+ *   messages: [Message.CompletedSendMessage],
+ *   handler: function* () {
+ *     return ({ text }) =>
+ *       Effect.log(text).pipe(Effect.as(Message.CompletedSendMessage()))
  *   },
- *   Effect.succeed(({ text }) =>
- *     Effect.log(text).pipe(Effect.as(Message.CompletedSendMessage())),
- *   ),
- * )
+ * })
  * const EffectsLayer = SendMessage.layer
+ * SendMessage({ text: 'Hello' })
  * ```
  *
  * @example With no args
  * ```ts
- * const LockScroll = Command.define(
- *   'LockScroll',
- *   { messages: [Message.CompletedLockScroll] },
- *   Effect.succeed(() =>
- *     Dom.lockScroll.pipe(Effect.as(Message.CompletedLockScroll())),
- *   ),
- * )
+ * const LockScroll = Command.define('LockScroll', {
+ *   messages: [Message.CompletedLockScroll],
+ *   handler: function* () {
+ *     return () =>
+ *       Dom.lockScroll.pipe(Effect.as(Message.CompletedLockScroll()))
+ *   },
+ * })
  * const EffectsLayer = LockScroll.layer
- * // Call site:
  * LockScroll()
  * ```
  *
- * @example With args
+ * @example Interruptible, keyed by declared args
  * ```ts
- * const FetchWeather = Command.define(
- *   'FetchWeather',
- *   {
- *     args: { zipCode: Schema.String },
- *     messages: [Message.SucceededFetchWeather, Message.FailedFetchWeather],
+ * const SaveDraft = Command.define('SaveDraft', {
+ *   args: { draftId: Schema.String, body: Schema.String },
+ *   messages: [Message.CompletedSaveDraft],
+ *   interrupt: {
+ *     keyFields: ['draftId'],
+ *     toKey: ({ draftId }) => draftId,
  *   },
- *   Effect.succeed(({ zipCode }) => Effect.gen(function* () { ... })),
- * )
- * const EffectsLayer = FetchWeather.layer
- * // Call site:
- * FetchWeather({ zipCode: '90210' })
- * ```
- *
- * @example Interruptible, keyed by the Command name
- * ```ts
- * const SaveDraft = Command.define(
- *   'SaveDraft',
- *   {
- *     args: { draftId: Schema.String, body: Schema.String },
- *     messages: [Message.SucceededSaveDraft, Message.FailedSaveDraft],
- *     interrupt: true,
+ *   handler: function* () {
+ *     return ({ draftId, body }) =>
+ *       Effect.log(body).pipe(
+ *         Effect.as(Message.CompletedSaveDraft({ draftId })),
+ *       )
  *   },
- *   Effect.succeed(({ draftId, body }) => Effect.gen(function* () { ... })),
- * )
+ * })
  * const EffectsLayer = SaveDraft.layer
- * // Call sites:
- * SaveDraft({ draftId: 'abc', body })
- * SaveDraft.Interrupt(outcome => Message.CompletedCancelSaveDraft({ outcome }))
- * ```
- *
- * @example Interruptible, keyed by args
- * ```ts
- * const UploadFile = Command.define(
- *   'UploadFile',
- *   {
- *     args: { uploadId: Schema.Number, file: Schema.instanceOf(File) },
- *     messages: [Message.SucceededUploadFile, Message.FailedUploadFile],
- *     interrupt: {
- *       keyFields: ['uploadId'],
- *       toKey: ({ uploadId }) => String(uploadId),
- *     },
- *   },
- *   Effect.succeed(({ uploadId, file }) => Effect.gen(function* () { ... })),
- * )
- * const EffectsLayer = UploadFile.layer
- * // Call sites:
- * UploadFile({ uploadId: 1, file })
- * UploadFile.Interrupt({ uploadId: 1 }, outcome =>
- *   Message.CompletedCancelUploadFile({ uploadId: 1, outcome }),
+ * SaveDraft({ draftId: 'abc', body: 'Draft contents' })
+ * SaveDraft.Interrupt({ draftId: 'abc' }, outcome =>
+ *   Message.CompletedCancelSaveDraft({ outcome }),
  * )
  * ```
  */
@@ -290,14 +261,27 @@ export function define<
   const KeyField extends keyof Schema.Schema.Type<Schema.Struct<Fields>> &
     string,
   HandlerRequirements = never,
-  BuildError = never,
-  BuildRequirements = never,
+  Yielded extends Effect.Effect<unknown, unknown, unknown> = Effect.Effect<
+    never,
+    never,
+    never
+  >,
 >(
   name: Name,
   config: Readonly<{
     args: Fields
     messages: Messages
-    handler?: never
+    handler: () => Generator<
+      Yielded,
+      (
+        args: HandlerArgs<Fields>,
+      ) => Effect.Effect<
+        NoInfer<Schema.Schema.Type<Messages[number]>>,
+        never,
+        HandlerRequirements
+      >,
+      unknown
+    >
     execute?: never
     interrupt: Readonly<{
       keyFields: Array.NonEmptyReadonlyArray<KeyField>
@@ -306,17 +290,6 @@ export function define<
       ) => string
     }>
   }>,
-  handler: Effect.Effect<
-    (
-      args: HandlerArgs<Fields>,
-    ) => Effect.Effect<
-      NoInfer<Schema.Schema.Type<Messages[number]>>,
-      never,
-      HandlerRequirements
-    >,
-    BuildError,
-    BuildRequirements
-  >,
 ): Interruptible.DefinitionWithArgs<
   Name,
   Fields,
@@ -331,8 +304,8 @@ export function define<
     >
     layer: Layer.Layer<
       Handler<Name>,
-      BuildError,
-      Exclude<HandlerRequirements | BuildRequirements, Scope.Scope>
+      Effect.Error<Yielded>,
+      Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
     >
   }>
 
@@ -375,28 +348,30 @@ export function define<
   Fields extends Schema.Struct.Fields,
   const Messages extends ReadonlyArray<Schema.Top>,
   HandlerRequirements = never,
-  BuildError = never,
-  BuildRequirements = never,
+  Yielded extends Effect.Effect<unknown, unknown, unknown> = Effect.Effect<
+    never,
+    never,
+    never
+  >,
 >(
   name: Name,
   config: Readonly<{
     args: Fields
     messages: Messages
-    handler?: never
+    handler: () => Generator<
+      Yielded,
+      (
+        args: HandlerArgs<Fields>,
+      ) => Effect.Effect<
+        NoInfer<Schema.Schema.Type<Messages[number]>>,
+        never,
+        HandlerRequirements
+      >,
+      unknown
+    >
     execute?: never
     interrupt: true
   }>,
-  handler: Effect.Effect<
-    (
-      args: HandlerArgs<Fields>,
-    ) => Effect.Effect<
-      NoInfer<Schema.Schema.Type<Messages[number]>>,
-      never,
-      HandlerRequirements
-    >,
-    BuildError,
-    BuildRequirements
-  >,
 ): Interruptible.DefinitionWithArgsNameKeyed<
   Name,
   Fields,
@@ -410,8 +385,8 @@ export function define<
     >
     layer: Layer.Layer<
       Handler<Name>,
-      BuildError,
-      Exclude<HandlerRequirements | BuildRequirements, Scope.Scope>
+      Effect.Error<Yielded>,
+      Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
     >
   }>
 
@@ -446,28 +421,30 @@ export function define<
   Fields extends Schema.Struct.Fields,
   const Messages extends ReadonlyArray<Schema.Top>,
   HandlerRequirements = never,
-  BuildError = never,
-  BuildRequirements = never,
+  Yielded extends Effect.Effect<unknown, unknown, unknown> = Effect.Effect<
+    never,
+    never,
+    never
+  >,
 >(
   name: Name,
   config: Readonly<{
     args: Fields
     messages: Messages
-    handler?: never
+    handler: () => Generator<
+      Yielded,
+      (
+        args: HandlerArgs<Fields>,
+      ) => Effect.Effect<
+        NoInfer<Schema.Schema.Type<Messages[number]>>,
+        never,
+        HandlerRequirements
+      >,
+      unknown
+    >
     execute?: never
     interrupt?: never
   }>,
-  handler: Effect.Effect<
-    (
-      args: HandlerArgs<Fields>,
-    ) => Effect.Effect<
-      NoInfer<Schema.Schema.Type<Messages[number]>>,
-      never,
-      HandlerRequirements
-    >,
-    BuildError,
-    BuildRequirements
-  >,
 ): LayeredCommandDefinitionWithArgs<
   Name,
   Fields,
@@ -476,8 +453,8 @@ export function define<
   Readonly<{
     layer: Layer.Layer<
       Handler<Name>,
-      BuildError,
-      Exclude<HandlerRequirements | BuildRequirements, Scope.Scope>
+      Effect.Error<Yielded>,
+      Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
     >
   }>
 
@@ -504,25 +481,28 @@ export function define<
   const Name extends string,
   const Messages extends ReadonlyArray<Schema.Top>,
   HandlerRequirements = never,
-  BuildError = never,
-  BuildRequirements = never,
+  Yielded extends Effect.Effect<unknown, unknown, unknown> = Effect.Effect<
+    never,
+    never,
+    never
+  >,
 >(
   name: Name,
   config: Readonly<{
+    args?: never
     messages: Messages
-    handler?: never
+    handler: () => Generator<
+      Yielded,
+      () => Effect.Effect<
+        NoInfer<Schema.Schema.Type<Messages[number]>>,
+        never,
+        HandlerRequirements
+      >,
+      unknown
+    >
     execute?: never
     interrupt: true
   }>,
-  handler: Effect.Effect<
-    () => Effect.Effect<
-      NoInfer<Schema.Schema.Type<Messages[number]>>,
-      never,
-      HandlerRequirements
-    >,
-    BuildError,
-    BuildRequirements
-  >,
 ): Interruptible.DefinitionNoArgs<
   Name,
   Effect.Effect<Schema.Schema.Type<Messages[number]>, never, Handler<Name>>
@@ -531,8 +511,8 @@ export function define<
     toLayer: ToLayer<Name, void, Schema.Schema.Type<Messages[number]>>
     layer: Layer.Layer<
       Handler<Name>,
-      BuildError,
-      Exclude<HandlerRequirements | BuildRequirements, Scope.Scope>
+      Effect.Error<Yielded>,
+      Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
     >
   }>
 
@@ -542,6 +522,7 @@ export function define<
 >(
   name: Name,
   config: Readonly<{
+    args?: never
     messages: Messages
     handler?: never
     execute?: never
@@ -559,31 +540,34 @@ export function define<
   const Name extends string,
   const Messages extends ReadonlyArray<Schema.Top>,
   HandlerRequirements = never,
-  BuildError = never,
-  BuildRequirements = never,
+  Yielded extends Effect.Effect<unknown, unknown, unknown> = Effect.Effect<
+    never,
+    never,
+    never
+  >,
 >(
   name: Name,
   config: Readonly<{
+    args?: never
     messages: Messages
-    handler?: never
+    handler: () => Generator<
+      Yielded,
+      () => Effect.Effect<
+        NoInfer<Schema.Schema.Type<Messages[number]>>,
+        never,
+        HandlerRequirements
+      >,
+      unknown
+    >
     execute?: never
     interrupt?: never
   }>,
-  handler: Effect.Effect<
-    () => Effect.Effect<
-      NoInfer<Schema.Schema.Type<Messages[number]>>,
-      never,
-      HandlerRequirements
-    >,
-    BuildError,
-    BuildRequirements
-  >,
 ): LayeredCommandDefinitionNoArgs<Name, Schema.Schema.Type<Messages[number]>> &
   Readonly<{
     layer: Layer.Layer<
       Handler<Name>,
-      BuildError,
-      Exclude<HandlerRequirements | BuildRequirements, Scope.Scope>
+      Effect.Error<Yielded>,
+      Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
     >
   }>
 
@@ -593,18 +577,14 @@ export function define<
 >(
   name: Name,
   config: Readonly<{
+    args?: never
     messages: Messages
     handler?: never
     execute?: never
     interrupt?: never
   }>,
 ): LayeredCommandDefinitionNoArgs<Name, Schema.Schema.Type<Messages[number]>>
-
-export function define(
-  name: string,
-  config: DefineConfig,
-  handlerEffect?: Effect.Effect<any, any, any>,
-): unknown {
+export function define(name: string, config: DefineConfig): unknown {
   const isArgsDeclared = Predicate.isNotUndefined(config.args)
   const maybeInterrupt = Option.fromNullishOr(config.interrupt)
   const handler = makeHandler<string, any, any>(name)
@@ -612,9 +592,9 @@ export function define(
     handler.execute(args)
   const attachHandler = (definition: unknown): void => {
     Object.defineProperty(definition, 'toLayer', { value: handler.toLayer })
-    if (Predicate.isNotUndefined(handlerEffect)) {
+    if (Predicate.isNotUndefined(config.handler)) {
       Object.defineProperty(definition, 'layer', {
-        value: handler.toLayer(handlerEffect),
+        value: handler.toLayer(Effect.gen(config.handler)),
       })
     }
   }
