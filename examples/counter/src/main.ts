@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { Runtime, type Update } from 'foldkit'
+import { Runtime, Update } from 'foldkit'
 import { Document, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -22,8 +22,8 @@ export type Message = typeof Message.Type
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedDecrement: () => ({
       model: modifyFields(model, { count: count => count - 1 }),
     }),
@@ -31,7 +31,8 @@ export const update = (model: Model, message: Message) =>
       model: modifyFields(model, { count: count => count + 1 }),
     }),
     ClickedReset: () => ({ model: modifyFields(model, { count: () => 0 }) }),
-  })
+  }),
+)
 
 // INIT
 

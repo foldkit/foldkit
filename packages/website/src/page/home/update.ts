@@ -7,7 +7,6 @@ import { Menu, Tabs } from '@foldkit/ui'
 import { ExampleSlug } from '../example/meta'
 import * as AsyncCounterDemo from './asyncCounterDemo'
 import * as DemoTab from './demoTab'
-import { type ManagedResourceServices } from './managedResources'
 import { Message, OutMessage } from './message'
 import { type Model } from './model'
 import * as NotePlayerDemo from './notePlayerDemo'
@@ -16,30 +15,20 @@ import * as NotePlayerDemo from './notePlayerDemo'
 
 const PlaygroundMenu = Menu.create<ExampleSlug>()
 
-const selectDemoTab = (
-  model: Model,
-  tab: DemoTab.Tab,
-): Update.Return<Model, Message> => ({
+const selectDemoTab = (model: Model, tab: DemoTab.Tab) => ({
   model: modifyFields(model, { activeDemoTab: () => tab }),
 })
 
-const selectPlaygroundExample = (
-  model: Model,
-  exampleSlug: ExampleSlug,
-): Update.ReturnWithOutMessage<Model, Message, OutMessage> => ({
+const selectPlaygroundExample = (model: Model, exampleSlug: ExampleSlug) => ({
   model,
   outMessage: OutMessage.SelectedPlaygroundExample({ exampleSlug }),
 })
 
-const foldDemoTabsOutMessage = Tabs.OutMessage.match<
-  Update.Step<Model, Message>,
-  Tabs.OutMessage<DemoTab.Tab>
->({
-  Selected:
-    ({ value }) =>
-    model =>
-      selectDemoTab(model, value),
-})
+const foldDemoTabsOutMessage = (outMessage: Tabs.OutMessage<DemoTab.Tab>) =>
+  Tabs.OutMessage.match(outMessage, {
+    Selected: ({ value }) =>
+      Update.makeStep((model: Model) => selectDemoTab(model, value)),
+  })
 
 const foldDemoTabs = Update.foldChild({
   update: DemoTab.DemoTabs.update,
@@ -50,17 +39,15 @@ const foldDemoTabs = Update.foldChild({
   foldOutMessage: foldDemoTabsOutMessage,
 })
 
-const foldPlaygroundMenuOutMessage = Menu.OutMessage.match<
-  Update.StepWithOutMessage<Model, Message, OutMessage>,
-  Menu.OutMessage<ExampleSlug>
->({
-  // NOTE: A fresh document load preserves the COEP/COOP headers required by
-  // WebContainer. SPA navigation would reuse the current document.
-  Selected:
-    ({ value }) =>
-    model =>
-      selectPlaygroundExample(model, value),
-})
+const foldPlaygroundMenuOutMessage = (
+  outMessage: Menu.OutMessage<ExampleSlug>,
+) =>
+  Menu.OutMessage.match(outMessage, {
+    // NOTE: A fresh document load preserves the COEP/COOP headers required by
+    // WebContainer. SPA navigation would reuse the current document.
+    Selected: ({ value }) =>
+      Update.makeStep((model: Model) => selectPlaygroundExample(model, value)),
+  })
 
 const foldPlaygroundMenu = Update.foldChild({
   update: PlaygroundMenu.update,
@@ -87,15 +74,8 @@ const foldNotePlayerDemo = Update.foldChild({
   toParentMessage: message => Message.GotNotePlayerDemoMessage({ message }),
 })
 
-type UpdateReturn = Update.ReturnWithOutMessage<
-  Model,
-  Message,
-  OutMessage,
-  ManagedResourceServices
->
-
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ToggledAiHeading: () => ({
       model: modifyFields(model, { aiHeadingToggleCount: Number.increment }),
     }),
@@ -106,4 +86,5 @@ export const update = (model: Model, message: Message) =>
       foldAsyncCounterDemo(model, message),
     GotNotePlayerDemoMessage: ({ message }) =>
       foldNotePlayerDemo(model, message),
-  })
+  }),
+)

@@ -2,6 +2,7 @@ import {
   Array,
   Effect,
   Fiber,
+  Layer,
   Match,
   Option,
   Schema,
@@ -14,9 +15,9 @@ import * as Command from '../command/index.js'
 import type { DevToolsStore } from '../devTools/store.js'
 import { __htmlBuilder } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
-import type * as Update from '../update/index.js'
+import * as Update from '../update/index.js'
+import * as Application from './application.js'
 import { __setDevToolsOverlay } from './devToolsConfig.js'
-import { makeElement } from './makeElement.js'
 
 // CHILD
 
@@ -27,8 +28,11 @@ type ChildMessage = typeof ChildMessage.Type
 
 const DoChildWork = Command.define('DoChildWork', {
   messages: [ChildMessage.CompletedDoChildWork],
-  execute: Effect.succeed(ChildMessage.CompletedDoChildWork()),
 })
+
+const DoChildWorkLayer = DoChildWork.toLayer(
+  Effect.succeed(() => Effect.succeed(ChildMessage.CompletedDoChildWork())),
+)
 
 // PARENT
 
@@ -40,18 +44,17 @@ type Message = typeof Message.Type
 const Model = Schema.Struct({ label: Schema.String })
 type Model = typeof Model.Type
 
-type UpdateReturn = Update.Return<Model, Message>
-
-const update = (_model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+const update = Update.make((_model: Model, message: Message) =>
+  Message.match(message, {
     GotChildMessage: ({ message: childMessage }) =>
       Match.value(childMessage).pipe(
-        Match.withReturnType<UpdateReturn>(),
+        Match.withReturnType<Update.Return<Model, Message>>(),
         Match.tagsExhaustive({
           CompletedDoChildWork: () => ({ model: { label: 'child done' } }),
         }),
       ),
-  })
+  }),
+)
 
 const h = __htmlBuilder<Message>()
 
@@ -93,7 +96,7 @@ const requireDevToolsStore = (
 
 describe('command message mappers', () => {
   it('dispatches a mapped Command result in the parent Message space', async () => {
-    const element = makeElement({
+    const element = Application.makeElement({
       Model,
       init: () => ({
         model: { label: 'start' },
@@ -107,7 +110,9 @@ describe('command message mappers', () => {
       container,
     })
 
-    const fiber = Effect.runFork(element.start())
+    const fiber = Effect.runFork(
+      Application.provide(element, DoChildWorkLayer).start(),
+    )
 
     try {
       // DoChildWork resolves to CompletedDoChildWork (child Message).
@@ -153,8 +158,13 @@ describe('command message mappers', () => {
     })
     const ChooseDestination = Command.define('ChooseDestination', {
       messages: [ChildMessage.CompletedChooseDestination],
-      execute: Effect.promise(() => destinationPromise).pipe(Effect.orDie),
     })
+
+    const ChooseDestinationLayer = ChooseDestination.toLayer(
+      Effect.succeed(() =>
+        Effect.promise(() => destinationPromise).pipe(Effect.orDie),
+      ),
+    )
 
     let middleMapperCalls = 0
     let rootMapperCalls = 0
@@ -165,7 +175,7 @@ describe('command message mappers', () => {
     })
 
     const dynamicH = __htmlBuilder<RootMessage>()
-    const element = makeElement({
+    const element = Application.makeElement({
       Model: DynamicModel,
       init: () => ({
         model: { label: 'start' },
@@ -195,7 +205,12 @@ describe('command message mappers', () => {
       devTools: { show: 'Always' },
     })
 
-    const fiber = Effect.runFork(element.start())
+    const fiber = Effect.runFork(
+      Application.provide(
+        element,
+        Layer.mergeAll(DoChildWorkLayer, ChooseDestinationLayer),
+      ).start(),
+    )
 
     try {
       await vi.waitFor(() => {
@@ -238,8 +253,11 @@ describe('command message mappers', () => {
   it('leaves an interrupted Command destination unresolved', async () => {
     const WaitForChild = Command.define('WaitForChild', {
       messages: [ChildMessage.CompletedDoChildWork],
-      execute: Effect.never,
     })
+
+    const WaitForChildLayer = WaitForChild.toLayer(
+      Effect.succeed(() => Effect.never),
+    )
 
     let mapperCalls = 0
     let maybeStore: DevToolsStore | null = null
@@ -248,7 +266,7 @@ describe('command message mappers', () => {
       return Effect.void
     })
 
-    const element = makeElement({
+    const element = Application.makeElement({
       Model,
       init: () => ({
         model: { label: 'start' },
@@ -262,7 +280,12 @@ describe('command message mappers', () => {
       container,
       devTools: { show: 'Always' },
     })
-    const fiber = Effect.runFork(element.start())
+    const fiber = Effect.runFork(
+      Application.provide(
+        element,
+        Layer.mergeAll(DoChildWorkLayer, WaitForChildLayer),
+      ).start(),
+    )
 
     try {
       await vi.waitFor(async () => {

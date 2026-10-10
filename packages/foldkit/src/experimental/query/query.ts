@@ -1,4 +1,4 @@
-import { Effect, Number, Schema, pipe } from 'effect'
+import { Effect, Layer, Number, Schema, type Scope, pipe } from 'effect'
 
 import * as AsyncData from '../../asyncData/index.js'
 import * as Command from '../../command/index.js'
@@ -15,15 +15,43 @@ import {
   applyTransition,
   isParentFieldConfig,
   parentFieldToLens,
-  runExecute,
 } from './internal.js'
 
-export type QueryConfig<Name extends string, A, AI, E, EI, R> = Readonly<{
+/** Definition fields for a Query. */
+export type QueryConfig<Name extends string, A, AI, E, EI> = Readonly<{
   name: Name
   data: Schema.Codec<A, AI, never, never>
   error: Schema.Codec<E, EI, never, never>
-  execute: Effect.Effect<A, E, R>
+  execute?: never
 }>
+
+/** Builds a Query fetch handler Layer from an Effect that constructs a fetch. */
+export interface QueryToLayer<Name extends string, A, E> {
+  <R, BuildE = never, BuildR = never>(
+    build: Effect.Effect<() => Effect.Effect<A, E, R>, BuildE, BuildR>,
+  ): Layer.Layer<
+    Command.Handler<`Fetch${Name}`>,
+    BuildE,
+    Exclude<R | BuildR, Scope.Scope>
+  >
+}
+
+/** A Query whose fetch implementation is supplied by a Layer. */
+export interface LayeredQuery<Name extends string, A, AI, E, EI> extends Query<
+  Name,
+  A,
+  AI,
+  E,
+  EI,
+  Command.Handler<`Fetch${Name}`>
+> {
+  readonly Fetch: Command.LayeredCommandDefinitionWithArgs<
+    `Fetch${Name}`,
+    { readonly generation: typeof Schema.Number },
+    CompletedFetchOf<QueryMessage<A, AI, E, EI>>
+  >
+  readonly toLayer: QueryToLayer<Name, A, E>
+}
 
 const makeQueryMessage = <A, AI, E, EI>(
   data: Schema.Codec<A, AI>,
@@ -139,27 +167,22 @@ export interface Query<Name extends string, A, AI, E, EI, R = never> {
     QueryMessage<A, AI, E, EI>['Type'],
     R
   >
-  /** Executes the configured fetch directly and returns settled `AsyncData`. */
+  /** Executes the fetch handler directly and returns settled `AsyncData`. */
   readonly run: Effect.Effect<AsyncData.AsyncData<A, E>, never, R>
 }
 
-export function defineQuery<Name extends string, A, AI, E, EI, R>(
-  config: QueryConfig<Name, A, AI, E, EI, R>,
-): Query<Name, A, AI, E, EI, R> {
+const makeQuery = <Name extends string, A, AI, E, EI, R>(
+  config: QueryConfig<Name, A, AI, E, EI>,
+  Message: QueryMessage<A, AI, E, EI>,
+  Fetch: Command.CommandDefinitionWithArgs<
+    `Fetch${Name}`,
+    { readonly generation: typeof Schema.Number },
+    Effect.Effect<CompletedFetchOf<QueryMessage<A, AI, E, EI>>, never, R>
+  >,
+  run: Effect.Effect<AsyncData.AsyncData<A, E>, never, R>,
+): Query<Name, A, AI, E, EI, R> => {
   const Model = makeQueryModel(config.data, config.error)
-  const Message = makeQueryMessage(config.data, config.error)
   type Message = QueryMessage<A, AI, E, EI>['Type']
-
-  const Fetch = Command.define(`Fetch${config.name}`, {
-    args: { generation: Schema.Number },
-    messages: [Message.CompletedFetch],
-    execute: ({ generation }) =>
-      pipe(
-        config.execute,
-        Effect.result,
-        Effect.map(result => Message.CompletedFetch({ generation, result })),
-      ),
-  })
 
   type Model = typeof Model.Type
   type UpdateReturn = Update.Return<Model, Message, R>
@@ -250,8 +273,6 @@ export function defineQuery<Name extends string, A, AI, E, EI, R>(
     return liftFromLens(config)
   }
 
-  const run = runExecute(config.execute)
-
   return {
     Model,
     Message,
@@ -266,4 +287,71 @@ export function defineQuery<Name extends string, A, AI, E, EI, R>(
     lift,
     run,
   } satisfies Query<Name, A, AI, E, EI, R>
+}
+
+export function defineQuery<
+  Name extends string,
+  A,
+  AI,
+  E,
+  EI,
+  HandlerRequirements = never,
+  BuildError = never,
+  BuildRequirements = never,
+>(
+  config: QueryConfig<Name, A, AI, E, EI>,
+  handler?: Effect.Effect<
+    () => Effect.Effect<A, E, HandlerRequirements>,
+    BuildError,
+    BuildRequirements
+  >,
+): LayeredQuery<Name, A, AI, E, EI> &
+  Readonly<{
+    layer?: Layer.Layer<
+      Command.Handler<`Fetch${Name}`>,
+      BuildError,
+      Exclude<HandlerRequirements | BuildRequirements, Scope.Scope>
+    >
+  }> {
+  const Message = makeQueryMessage(config.data, config.error)
+
+  const Fetch = Command.define(`Fetch${config.name}`, {
+    args: { generation: Schema.Number },
+    messages: [Message.CompletedFetch],
+  })
+  const run = pipe(
+    Fetch({ generation: 0 }).effect,
+    Effect.map(({ result }) => AsyncData.settle(AsyncData.Loading(), result)),
+  )
+  const query = makeQuery(config, Message, Fetch, run)
+
+  const toLayer: QueryToLayer<Name, A, E> = <
+    HandlerR,
+    BuildE = never,
+    BuildR = never,
+  >(
+    build: Effect.Effect<() => Effect.Effect<A, E, HandlerR>, BuildE, BuildR>,
+  ) =>
+    Fetch.toLayer(
+      Effect.map(
+        build,
+        execute =>
+          ({ generation }) =>
+            pipe(
+              execute(),
+              Effect.result,
+              Effect.map(result =>
+                Message.CompletedFetch({ generation, result }),
+              ),
+            ),
+      ),
+    )
+
+  const definition = { ...query, Fetch, toLayer }
+
+  if (handler) {
+    return { ...definition, layer: toLayer(handler) }
+  } else {
+    return definition
+  }
 }

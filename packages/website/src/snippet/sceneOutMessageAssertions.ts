@@ -1,5 +1,4 @@
 import {
-  Subscription,
   click,
   expectNoOutMessage,
   expectOutMessage,
@@ -14,7 +13,7 @@ scene(
   given(initialModel),
   click(role('button', { name: 'Log out' })),
   expectOutMessage(OutMessage.RequestedLogout()),
-  Subscription.emit(Message.CompletedAction()),
+  click(role('button', { name: 'Dismiss notification' })),
   expectNoOutMessage(),
 )
 

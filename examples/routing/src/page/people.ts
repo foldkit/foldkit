@@ -1,5 +1,14 @@
-import { Array, Duration, Effect, Option, Schema, String, pipe } from 'effect'
-import { Command, Submodel, type Update } from 'foldkit'
+import {
+  Array,
+  Duration,
+  Effect,
+  Layer,
+  Option,
+  Schema,
+  String,
+  pipe,
+} from 'effect'
+import { Command, Submodel, Update } from 'foldkit'
 import { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { pushUrl } from 'foldkit/navigation'
@@ -92,7 +101,7 @@ export const Message = defineMessageUnion({
   ChangedSearchInput: { value: Schema.String },
   SubmittedSearch: {},
   ChangedRoute: { route: AppRoute.People },
-  SucceededFetchPeople: {
+  CompletedFetchPeople: {
     query: Schema.String,
     people: Schema.Array(Person),
   },
@@ -103,16 +112,14 @@ export type Message = typeof Message.Type
 
 // INIT
 
-type InitReturn = Update.Return<Model, Message>
-
-export const init = (route: PeopleRoute): InitReturn => {
+export const init = (route: PeopleRoute) => {
   const searchText = routeSearchText(route)
   return {
-    model: {
+    model: Model.make({
       searchInput: searchText,
       searchHistory: addSearchToHistory([], searchText),
       results: SearchResults.Loading(),
-    },
+    }),
     commands: [FetchPeople({ searchText })],
   }
 }
@@ -122,32 +129,41 @@ export const init = (route: PeopleRoute): InitReturn => {
 export const PushSearchUrl = Command.define('PushSearchUrl', {
   args: { searchText: Schema.Option(Schema.String) },
   messages: [Message.CompletedPushSearchUrl],
-  execute: ({ searchText }) =>
-    pushUrl(peopleRouter({ searchText })).pipe(
-      Effect.as(Message.CompletedPushSearchUrl()),
-    ),
+  handler: function* () {
+    return ({ searchText }) =>
+      pushUrl(peopleRouter({ searchText })).pipe(
+        Effect.as(Message.CompletedPushSearchUrl()),
+      )
+  },
 })
 
 export const FetchPeople = Command.define('FetchPeople', {
   args: { searchText: Schema.String },
-  messages: [Message.SucceededFetchPeople],
-  execute: ({ searchText }) =>
-    Effect.sleep(SEARCH_LATENCY).pipe(
-      Effect.as(
-        Message.SucceededFetchPeople({
-          query: searchText,
-          people: searchPeople(searchText),
-        }),
-      ),
-    ),
+  messages: [Message.CompletedFetchPeople],
+  handler: function* () {
+    return ({ searchText }) =>
+      Effect.sleep(SEARCH_LATENCY).pipe(
+        Effect.as(
+          Message.CompletedFetchPeople({
+            query: searchText,
+            people: searchPeople(searchText),
+          }),
+        ),
+      )
+  },
 })
+
+export const EffectsLayer = Layer.mergeAll(
+  PushSearchUrl.layer,
+  FetchPeople.layer,
+)
 
 // UPDATE
 
-export type UpdateReturn = Update.Return<Model, Message>
+export type UpdateRequirements = Update.RequirementsOf<typeof update>
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ChangedSearchInput: ({ value }) => ({
       model: modifyFields(model, { searchInput: () => value }),
     }),
@@ -174,14 +190,15 @@ export const update = (model: Model, message: Message) =>
       }
     },
 
-    SucceededFetchPeople: ({ query, people: fetchedPeople }) => ({
+    CompletedFetchPeople: ({ query, people: fetchedPeople }) => ({
       model: modifyFields(model, {
         results: () => SearchResults.Loaded({ query, people: fetchedPeople }),
       }),
     }),
 
     CompletedPushSearchUrl: () => ({ model }),
-  })
+  }),
+)
 
 /** Tells the People page that the route changed. People does not own the
  *  route; it derives its own state (the search input and history) from the new

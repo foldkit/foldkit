@@ -108,7 +108,7 @@ export const STATIC_ROUTES: ReadonlyArray<AppRoute> = [
   AppRoute.CoreCanvas(),
   AppRoute.CoreRuntime(),
   AppRoute.CoreServerRendering(),
-  AppRoute.CoreResources(),
+  AppRoute.CoreLayers(),
   AppRoute.CoreManagedResources(),
   AppRoute.CoreDevTools(),
   AppRoute.CoreCrashView(),

@@ -3,12 +3,15 @@ import {
   Effect,
   Function,
   HashMap,
+  Layer,
   Number,
   Option,
   Order,
   Predicate,
   Record,
+  type Result,
   Schema,
+  type Scope,
   pipe,
 } from 'effect'
 
@@ -30,9 +33,9 @@ import {
   isParentFieldConfig,
   liftChildFold,
   parentFieldToLens,
-  runExecute,
 } from './internal.js'
 
+/** Schema fields whose encoding and decoding require no services. */
 export type SyncFields = {
   readonly [x: PropertyKey]: Schema.Codec<unknown, unknown, never, never>
 }
@@ -79,6 +82,7 @@ const encodeKey = <A, I>(schema: Schema.Codec<A, I, never, never>) => {
     encodeJsonString(canonicalizeJson(encodeJson(value)))
 }
 
+/** Definition fields for a KeyedQuery. */
 export type KeyedQueryConfig<
   Name extends string,
   A,
@@ -86,17 +90,62 @@ export type KeyedQueryConfig<
   E,
   EI,
   Fields extends SyncFields,
-  R,
 > = Readonly<{
   name: Name
   data: Schema.Codec<A, AI, never, never>
   error: Schema.Codec<E, EI, never, never>
   args: Fields
   toKey?: (args: Schema.Schema.Type<Schema.Struct<Fields>>) => string
-  execute: (
-    args: Schema.Schema.Type<Schema.Struct<Fields>>,
-  ) => Effect.Effect<A, E, R>
+  execute?: never
 }>
+
+/** Builds a KeyedQuery fetch handler Layer from an Effect that constructs a fetch. */
+export interface KeyedQueryToLayer<
+  Name extends string,
+  A,
+  E,
+  Fields extends SyncFields,
+> {
+  <R, BuildE = never, BuildR = never>(
+    build: Effect.Effect<
+      (args: KeyedArgs<Fields>) => Effect.Effect<A, E, R>,
+      BuildE,
+      BuildR
+    >,
+  ): Layer.Layer<
+    Command.Handler<`Fetch${Name}`>,
+    BuildE,
+    Exclude<R | BuildR, Scope.Scope>
+  >
+}
+
+/** A KeyedQuery whose fetch implementation is supplied by a Layer. */
+export interface LayeredKeyedQuery<
+  Name extends string,
+  A,
+  AI,
+  E,
+  EI,
+  Fields extends SyncFields,
+> extends KeyedQuery<
+  Name,
+  A,
+  AI,
+  E,
+  EI,
+  Fields,
+  Command.Handler<`Fetch${Name}`>
+> {
+  readonly Fetch: Command.LayeredCommandDefinitionWithArgs<
+    `Fetch${Name}`,
+    {
+      readonly args: Schema.Struct<Fields>
+      readonly generation: typeof Schema.Number
+    },
+    CompletedFetchOf<KeyedQueryMessage<A, AI, E, EI, Fields>>
+  >
+  readonly toLayer: KeyedQueryToLayer<Name, A, E, Fields>
+}
 
 const makeKeyedQueryMessage = <A, AI, E, EI, Fields extends SyncFields>(
   data: Schema.Codec<A, AI>,
@@ -247,13 +296,13 @@ export interface KeyedQuery<
     KeyedArgs<Fields>,
     R
   >
-  /** Executes one keyed fetch directly and returns settled `AsyncData`. */
+  /** Executes the fetch handler for one key and returns settled `AsyncData`. */
   readonly run: (
     args: KeyedArgs<Fields>,
   ) => Effect.Effect<AsyncData.AsyncData<A, E>, never, R>
 }
 
-export function defineKeyedQuery<
+const makeKeyedQuery = <
   Name extends string,
   A,
   AI,
@@ -262,8 +311,27 @@ export function defineKeyedQuery<
   Fields extends SyncFields,
   R,
 >(
-  config: KeyedQueryConfig<Name, A, AI, E, EI, Fields, R>,
-): KeyedQuery<Name, A, AI, E, EI, Fields, R> {
+  config: Pick<
+    KeyedQueryConfig<Name, A, AI, E, EI, Fields>,
+    'name' | 'data' | 'error' | 'args' | 'toKey'
+  >,
+  Message: KeyedQueryMessage<A, AI, E, EI, Fields>,
+  Fetch: Command.CommandDefinitionWithArgs<
+    `Fetch${Name}`,
+    {
+      readonly args: Schema.Struct<Fields>
+      readonly generation: typeof Schema.Number
+    },
+    Effect.Effect<
+      CompletedFetchOf<KeyedQueryMessage<A, AI, E, EI, Fields>>,
+      never,
+      R
+    >
+  >,
+  run: (
+    args: KeyedArgs<Fields>,
+  ) => Effect.Effect<AsyncData.AsyncData<A, E>, never, R>,
+): KeyedQuery<Name, A, AI, E, EI, Fields, R> => {
   const asyncData = AsyncData.Schema(config.data, config.error)
   type EntryData = typeof asyncData.schema.Type
   const Args = Schema.Struct(config.args)
@@ -276,27 +344,7 @@ export function defineKeyedQuery<
 
   const argsToKey = config.toKey ?? encodeKey(Args)
 
-  const Message = makeKeyedQueryMessage(config.data, config.error, Args)
   type Message = KeyedQueryMessage<A, AI, E, EI, Fields>['Type']
-
-  const Fetch = Command.define(`Fetch${config.name}`, {
-    args: { args: Args, generation: Schema.Number },
-    messages: [Message.CompletedFetch],
-    execute: ({ args, generation }) =>
-      pipe(
-        config.execute(args),
-        Effect.result,
-        Effect.map((result): typeof Message.CompletedFetch.Type =>
-          // NOTE: CompletedFetch's constructor input view rejects args that are already the decoded Type.
-          ({
-            _tag: 'CompletedFetch',
-            args,
-            generation,
-            result,
-          }),
-        ),
-      ),
-  })
 
   const Model = makeKeyedQueryModel(config.data, config.error, Args)
   type Model = KeyedQueryModel<A, AI, E, EI, Fields>['Type']
@@ -408,9 +456,6 @@ export function defineKeyedQuery<
     return liftFromLens(config)
   }
 
-  const run = (args: Args): Effect.Effect<EntryData, never, R> =>
-    runExecute(config.execute(args))
-
   return {
     Model,
     Message,
@@ -425,4 +470,87 @@ export function defineKeyedQuery<
     lift,
     run,
   } satisfies KeyedQuery<Name, A, AI, E, EI, Fields, R>
+}
+
+export function defineKeyedQuery<
+  Name extends string,
+  A,
+  AI,
+  E,
+  EI,
+  Fields extends SyncFields,
+  HandlerRequirements = never,
+  BuildError = never,
+  BuildRequirements = never,
+>(
+  config: KeyedQueryConfig<Name, A, AI, E, EI, Fields>,
+  handler?: Effect.Effect<
+    (args: KeyedArgs<Fields>) => Effect.Effect<A, E, HandlerRequirements>,
+    BuildError,
+    BuildRequirements
+  >,
+): LayeredKeyedQuery<Name, A, AI, E, EI, Fields> &
+  Readonly<{
+    layer?: Layer.Layer<
+      Command.Handler<`Fetch${Name}`>,
+      BuildError,
+      Exclude<HandlerRequirements | BuildRequirements, Scope.Scope>
+    >
+  }> {
+  const Args = Schema.Struct(config.args)
+  const Message = makeKeyedQueryMessage(config.data, config.error, Args)
+  const completedFetch = (
+    args: KeyedArgs<Fields>,
+    generation: number,
+    result: Result.Result<A, E>,
+  ): typeof Message.CompletedFetch.Type => ({
+    // NOTE: The constructor input view rejects args already decoded as the Schema Type.
+    _tag: 'CompletedFetch',
+    args,
+    generation,
+    result,
+  })
+
+  const Fetch = Command.define(`Fetch${config.name}`, {
+    args: { args: Args, generation: Schema.Number },
+    messages: [Message.CompletedFetch],
+  })
+  const run = (args: KeyedArgs<Fields>) =>
+    pipe(
+      Fetch({ args, generation: 0 }).effect,
+      Effect.map(({ result }) => AsyncData.settle(AsyncData.Loading(), result)),
+    )
+  const query = makeKeyedQuery(config, Message, Fetch, run)
+
+  const toLayer: KeyedQueryToLayer<Name, A, E, Fields> = <
+    HandlerR,
+    BuildE = never,
+    BuildR = never,
+  >(
+    build: Effect.Effect<
+      (args: KeyedArgs<Fields>) => Effect.Effect<A, E, HandlerR>,
+      BuildE,
+      BuildR
+    >,
+  ) =>
+    Fetch.toLayer(
+      Effect.map(
+        build,
+        execute =>
+          ({ args, generation }) =>
+            pipe(
+              execute(args),
+              Effect.result,
+              Effect.map(result => completedFetch(args, generation, result)),
+            ),
+      ),
+    )
+
+  const definition = { ...query, Fetch, toLayer }
+
+  if (handler) {
+    return { ...definition, layer: toLayer(handler) }
+  } else {
+    return definition
+  }
 }

@@ -28,7 +28,7 @@ Messages use past-tense, verb-first naming. The verb prefix acts as a category m
 
 The prefixes above other than `Succeeded*`, `Failed*`, and `Completed*` are for facts that originate in the view, a Subscription, a Mount, or flags. A Command's own result Message is named from the Command, never from the fact it reports.
 
-Audit the Command name before deriving its result Message. Name the effect its `execute` body performs, not the later Model transition caused when update handles the result. A timer that only waits before update starts a dismissal is `WaitBeforeDismissal`, not `DismissAfter`; its result is `CompletedWaitBeforeDismissal`.
+Audit the Command name before deriving its result Message. Name the effect its handler performs, not the later Model transition caused when update handles the result. A timer that only waits before update starts a dismissal is `WaitBeforeDismissal`, not `DismissAfter`; its result is `CompletedWaitBeforeDismissal`.
 
 #### Completed\* naming
 
@@ -52,37 +52,52 @@ CompletedItemsFocus
 
 ```ts
 // RIGHT: the Message is named from the Command that caused it
-Command.define('DetermineStartTime', {
+const DetermineStartTime = Command.define('DetermineStartTime', {
   args: { elapsedMs: Schema.Number },
   messages: [Message.CompletedDetermineStartTime],
-  execute: ({ elapsedMs }) =>
-    Clock.currentTimeMillis.pipe(
-      Effect.map(now =>
-        Message.CompletedDetermineStartTime({ startTime: now - elapsedMs }),
-      ),
-    ),
+
+  handler: function* () {
+    return ({ elapsedMs }) =>
+      Clock.currentTimeMillis.pipe(
+        Effect.map(now =>
+          Message.CompletedDetermineStartTime({ startTime: now - elapsedMs }),
+        ),
+      )
+  },
 })
-Command.define('GenerateCardId', {
+const GenerateCardId = Command.define('GenerateCardId', {
   args: { columnId: Schema.String },
   messages: [Message.CompletedGenerateCardId],
-  execute: ({ columnId }) =>
-    Effect.gen(function* () {
-      const crypto = yield* Crypto.Crypto
-      const cardId = yield* Effect.orDie(crypto.randomUUIDv4)
-      return Message.CompletedGenerateCardId({ cardId, columnId })
-    }).pipe(Effect.provide(BrowserCrypto.layer)),
+
+  handler: function* () {
+    const crypto = yield* Crypto.Crypto
+
+    return ({ columnId }) =>
+      Effect.gen(function* () {
+        const cardId = yield* Effect.orDie(crypto.randomUUIDv4)
+        return Message.CompletedGenerateCardId({ cardId, columnId })
+      })
+  },
 })
-Command.define('SaveTodos', {
+const SaveTodos = Command.define('SaveTodos', {
   args: { todos: Todos },
   messages: [Message.SucceededSaveTodos, Message.FailedSaveTodos],
-  execute: ({ todos }) =>
-    saveTodos(todos).pipe(
-      Effect.match({
-        onFailure: () => Message.FailedSaveTodos(),
-        onSuccess: () => Message.SucceededSaveTodos({ todos }),
-      }),
-    ),
+
+  handler: function* () {
+    return ({ todos }) =>
+      saveTodos(todos).pipe(
+        Effect.match({
+          onFailure: () => Message.FailedSaveTodos(),
+          onSuccess: () => Message.SucceededSaveTodos({ todos }),
+        }),
+      )
+  },
 })
+const EffectsLayer = Layer.mergeAll(
+  DetermineStartTime.layer,
+  GenerateCardId.layer,
+  SaveTodos.layer,
+)
 
 // WRONG: the Command verb conjugated to past tense
 DeterminedStartTime
@@ -90,7 +105,7 @@ GeneratedCardId
 SavedTodos
 ```
 
-The exception is a Message with more than one cause. When several Commands resolve to the same Message, or a Command synthesizes a Message that a Subscription also emits, name it for the fact instead: `EndedAnimation` is produced both by the `WaitForAnimationSettled` Command and by each component's `DetectMovementOrAnimationEnd` race, so no single Command owns the name.
+The exception is a Message with more than one cause. When several Commands resolve to the same Message, or a Command synthesizes a Message that a Subscription also emits, name it for the fact instead: `EndedAnimation` is produced both by the `WaitForAnimationSettled` Command and by component-specific movement or animation races, so no single Command owns the name.
 
 Keep each `defineMessageUnion()` case's payload object on one line when it fits. Let Oxfmt wrap payloads that need more space, so the declaration remains easy to scan as one variant per line.
 
@@ -618,7 +633,7 @@ Notes:
 
 - Only import what you actually use in the file. The lint pass catches unused imports.
 - Module-by-module reminders, for example: `Calendar` for `Calendar.CalendarDate`, `Calendar.today.local`, `Calendar.make`, `Calendar.addDays` etc., paired with the `Calendar` or `DatePicker` component from `@foldkit/ui` (the component and the `foldkit` date module share the name `Calendar`; they are different things). `Dom` for DOM-side-effect helpers (`Dom.focus`, `Dom.scrollIntoView`, `Dom.showDialog`, `Dom.closeDialog`, `Dom.lockScroll`, `Dom.unlockScroll`, `Dom.waitForAnimationSettled`, etc.). `File` for file upload primitives paired with `FileDrop` from `@foldkit/ui`. `foldkit/fieldValidation` for form validation.
-- For time, randomness, or delays, use Effect's built-ins directly rather than reaching for a Foldkit module: `Clock.currentTimeMillis`, `Random.nextIntBetween`, `Effect.sleep(Duration.millis(...))`. For UUIDs, use the `Crypto.Crypto` service's `randomUUIDv4` Effect with a platform Crypto layer (`BrowserCrypto.layer` from `@effect/platform-browser`).
+- For time, randomness, or delays, use Effect's built-ins directly rather than reaching for a Foldkit module: `Clock.currentTimeMillis`, `Random.nextIntBetween`, `Effect.sleep(Duration.millis(...))`. For UUIDs, use the `Crypto.Crypto` service's `randomUUIDv4` Effect and provide the platform Crypto Layer (`BrowserCrypto.layer` from `@effect/platform-browser`) at the application root.
 - Import Effect modules by their PascalCase names. When an Effect module name collides with a JavaScript or TypeScript global, qualify the global through `globalThis`, such as `globalThis.String`, `globalThis.Array`, or `globalThis.Record`. When an existing local or public binding must retain the module name, give the Effect import an explicit `Effect` prefix, such as `Order as EffectOrder`.
 - `Message.match` is the exhaustive matcher on a union returned by `defineMessageUnion()`. A `defineTaggedUnion` or `defineRouteUnion` namespace owns exhaustive `match` and partial `matchOrElse`. `Match` is Effect's Match module for partial Message matching, handlers shared by several tags, and unions without their own matcher.
 - **UI components live in a separate package.** Import them by name from `@foldkit/ui`: `import { Dialog, DatePicker, FileDrop, Toast, Tooltip } from '@foldkit/ui'`. Deep imports (`@foldkit/ui/dialog`) work too. There is no `Ui` export on the `foldkit` package, so `Ui.Dialog.view` does not resolve.

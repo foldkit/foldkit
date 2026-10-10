@@ -99,11 +99,13 @@ for f in $(grep -rl "HttpClient" src/); do
   grep -q "from 'effect/http'" "$f" || echo "WRONG HttpClient ORIGIN: $f"
 done
 
-# Review update return types. Inline Update.Return at a Message.match when that
-# is its only use. Keep an UpdateReturn alias when another matcher, helper, or
-# exported signature reuses it. A hand-written plain type must include
-# outMessage?: never; prefer the framework type instead.
-rg -n 'type [A-Za-z]*UpdateReturn =|Message\.match<Update\.Return' src/
+# Review update return types. An Update.make body should let Message.match infer
+# Command requirements. Command-producing Step helpers use Update.makeStep. A
+# reusable UpdateReturn alias derives child requirements from
+# Update.RequirementsOf<typeof Child.update> and adds other Command-producing
+# helpers explicitly. A hand-written plain type must include outMessage?: never;
+# prefer the framework type instead.
+rg -n 'type [A-Za-z]*UpdateReturn =|Message\.match<Update\.Return|Update\.make' src/
 rg -n -U 'type [A-Za-z]*UpdateReturn\s*=\s*Readonly<\{' src/
 
 # Review destructuring that names an update-result field. Application results
@@ -218,6 +220,17 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 - [ ] Every `Succeeded*` has a paired `Failed*`
 - [ ] Every discriminated union variant is handled in both update and view
 
+## Application wiring
+
+- [ ] Page-owning programs use `Application.make`; container-scoped widgets use `Application.makeElement`. Program assembly does not live on the `Runtime` namespace.
+- [ ] Whenever tests or server tooling import registration exports, or when the entry chooses the DOM container, `application.ts` exposes `makeApplication(container)` and defers `Application.make` until the entry calls it. A static `application` export is acceptable only when every importer is browser-side and runs after the intended container exists. Small apps may assemble directly in `entry.ts`.
+- [ ] Updates that can return Commands are wrapped with `Update.make`, so Command handler requirements reach the application type.
+- [ ] Every Layer-backed Command, Subscription, Mount, and ManagedResource has a handler Layer supplied through `Application.provide` before `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed`. The application config has no `resources` field.
+- [ ] Each feature exports one `EffectsLayer` composed from its local and child handler Layers. Import Effect's module as `Layer` without an alias. Feature-owned business services may be provided there, while concrete HTTP, storage, RPC, and browser providers stay open until the application root. The root exports `EffectsLayer`, `ServicesLayer`, and `AppLayer`, and defines any `AppTestLayer` by reusing `EffectsLayer` with `ServicesTestLayer`. The entry provides the selected root Layer instead of importing every handler.
+- [ ] Layer construction is safe to run eagerly once on every runtime start, before a fresh Flags Effect, init, or the first render. A definition's `.layer` is only a recipe. Its handler generator returns one function during the application Layer build; Foldkit applies `Effect.gen` internally. Handler lookup, invocation, and lifecycle restarts happen later and reuse the built handler and providers. A service lookup retrieves a provided instance; it does not construct the provider. Hydration validates the server handoff before acquiring Layers. A restored-Model start builds the Layer too, a construction failure prevents the first render, and runtime stop releases its Scope.
+- [ ] Handler generators capture only stable injected services or accessors. They do not capture current time, Command args, Subscription dependencies, a DOM element, or an active ManagedResource handle. Captured services remain fixed when an invocation supplies another service under the same tag; contextual lookups use the merged context, where invocation services win.
+- [ ] A page-owning program with Flags declares `Flags` in `Application.make` and passes `flags` to `Runtime.run(application, { flags })`. An Element with Flags declares both `Flags` and `flags` in `Application.makeElement`.
+
 ## Purity
 
 - [ ] update function has no side effects (no DOM, no randomness, no I/O)
@@ -232,32 +245,32 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 - [ ] Every Command identity defined with `Command.define` and assigned to a PascalCase constant
 - [ ] No inline `Command.define` in pipe chains. Always stored as a constant
 - [ ] Definitions colocated with the update that produces them
+- [ ] Command definitions omit `execute` and attach production implementations as `config.handler`, a generator constructor that returns the invocation function. Foldkit applies `Effect.gen` internally. Include `Definition.layer` directly in the owning feature's `EffectsLayer`; create a standalone `<CommandName>Layer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly. Return the handler directly when construction has no work. Only external host contracts omit `handler` and use `toLayer` with an Effect constructor. The entry does not import handler Layers one by one.
 - [ ] Every _fallible_ Command catches all errors: `Effect.catch(() => Effect.succeed(Message.FailedX(...)))`. Infallible Effects (`Clock.currentTimeMillis`, `Random.nextIntBetween`, `Calendar.today.local`) do NOT need catch. If the type system shows no error channel, there's nothing to catch, and no paired `Failed*` Message is needed either. UUID generation via `Crypto.Crypto` uses `Effect.orDie` instead of a `Failed*` Message; a crypto failure is a defect, not a domain error.
 - [ ] Return types inferred. No explicit `Command<typeof A>` annotations
-- [ ] Factory functions named by action: `fetchWeather`, not `fetchWeatherCommand`
 - [ ] Commands that can't meaningfully fail return `Completed*` Messages, payload-carrying ones included
 
 ## Mount, Command, Subscription, ManagedResource, CustomElement: pick by what causes the side effect
 
 - [ ] **One-time effect after a Message dispatched** → Command. Focus-on-open, navigation, network, storage, analytics, scroll lock paired with a modal opening/closing all belong in `update`'s return, not in `OnMount`.
-- [ ] **Per-instance lifecycle bound to a VNode existing**, where the live `Element` handle is needed → Mount. Anchor positioning, backdrop portaling, attaching observers/listeners to a specific element, third-party library instantiation that takes the element as host. Two constructors picked by emission cardinality: `Mount.define(name, { messages, execute: ({ element }) => Effect<Message> })` for one-shot Mounts that produce exactly one Message at acquire (anchor setup, portal-to-body, library instantiation); `Mount.defineStream(name, { messages, execute: ({ element }) => Stream<Message> })` for continuous-event Mounts where the element produces a stream of events from listeners or observers (scroll listeners, IntersectionObservers, MutationObservers). Per-instance inputs go in `args`, and `execute` receives them alongside `element`. Both compose cleanup via `Effect.acquireRelease` and keep the scope open until destroy.
+- [ ] **Per-instance lifecycle bound to a VNode existing**, where the live `Element` handle is needed → Mount. Anchor positioning, backdrop portaling, attaching observers/listeners to a specific element, third-party library instantiation that takes the element as host. Two constructors picked by emission cardinality: `Mount.define(name, { messages, handler })` for one-shot Mounts that produce exactly one Message at acquire (anchor setup, portal-to-body, library instantiation); `Mount.defineStream(name, { messages, handler })` for continuous-event Mounts where the element produces a stream of events from listeners or observers (scroll listeners, IntersectionObservers, MutationObservers). Set `handler: function* () { return ({ element }) => Effect<Message> }` or its Stream form, register the definition in `Application.make({ mounts })`, and compose `Definition.layer` directly in the owning feature's `EffectsLayer`. Per-instance inputs go in `args`, and the handler receives them alongside `element`. Both compose cleanup via `Effect.acquireRelease` and keep the scope open until destroy.
 - [ ] **External event source gated by a Model condition** → Subscription. Timers, document/window events, system theme changes, WebSocket message streams. The factory returns `Stream<Message>` whose lifetime is gated by `modelToDependencies`. Subscriptions look like `Mount.defineStream` in shape (Stream + `Effect.acquireRelease` cleanup), but the cause anchor differs: Mount = element existence, Subscription = Model condition.
 - [ ] **Stateful runtime object** (websocket, camera stream, library instance) keyed on a Model condition, with Commands consuming the handle via `yield*` → ManagedResource. Not a generic "lifecycle on Model condition". There must be a handle for Commands to use.
 - [ ] **Native web component** (Shoelace, vanilla-colorful, emoji-picker-element, anything that speaks typed JS properties + observed attributes + dispatched `CustomEvent`s) → CustomElement. Side-effect-import the package to register the element with the browser, then declare its surface with `CustomElement.define({ tag, properties, events })` to get a typed inline builder. Do NOT reach for Mount + Subscription + tag-name registry to wrap a web component; `CustomElement.define` is the higher-level fit when those three surfaces are available.
 
 ### Two practical rules for Mount (both must hold)
 
-- [ ] **`execute` uses the element it receives.** If `execute` doesn't read or write the element, Mount is the wrong primitive. Pick Command (transition-driven) or paired Commands (lifecycle-bound but element-handle-not-used).
+- [ ] **The Mount handler uses the element it receives.** If it doesn't read or write the element, Mount is the wrong primitive. Pick Command (transition-driven) or paired Commands (lifecycle-bound but element-handle-not-used).
 - [ ] **The work is DOM measurement, DOM manipulation, or continuous element-scoped event listening on that element.** Read geometry, mutate CSS, attach an observer/listener, portal the element, hand it to a third-party library. Anything else (network, storage, analytics, focus-on-transition, scroll lock for the page) is a Command.
 
 ### Replay safety
 
-- [ ] A Mount's `execute` runs again during DevTools time-travel renders. The two rules above keep Mount work inherently replay-safe (read-only DOM measurement, idempotent DOM mutation, paired observer attachment+cleanup via `Effect.acquireRelease`). If your Mount touches the live world in a way that disrupts replay (focus stealing, scroll locking the live page, library re-instantiation), it shouldn't be a Mount.
+- [ ] A Mount's handler runs again during DevTools time-travel renders. The two rules above keep Mount work inherently replay-safe (read-only DOM measurement, idempotent DOM mutation, paired observer attachment+cleanup via `Effect.acquireRelease`). If your Mount touches the live world in a way that disrupts replay (focus stealing, scroll locking the live page, library re-instantiation), it shouldn't be a Mount.
 
 ### Smell check
 
 - [ ] **Don't reach for Mount just because the work happens to coincide with an element appearing.** Check what causes the work. If a Message just dispatched (e.g. `Opened*`, `Submitted*`), the cause is the Message, not the element. Use a Command returned from `update`'s handler. Example: focusing a search input when its dialog opens. The cause is `Opened`, not the input's existence; return a `FocusInput` Command from the `Opened` handler.
-- [ ] **`Effect.acquireRelease` construction lives INSIDE the acquire body, not before it.** If your acquire body reads as `Effect.sync(() => alreadyExistingValue)`, the construction happened earlier and your release is dangling. `acquireRelease` only guarantees atomicity of "acquire body completes → release is registered"; anything constructed outside the acquire body, even one `yield*` earlier, is unprotected against interruption. Fix: express the construction as the success value of the acquire Effect (`Effect.tryPromise(...).pipe(Effect.map(({ Lib }) => new Lib(...)))` for async imports, `Effect.sync(() => new Thing(...))` for sync construction). Applies anywhere `acquireRelease` is used: a Mount's `execute`, Subscription bodies, anywhere a release function depends on a value produced inside an Effect chain.
+- [ ] **`Effect.acquireRelease` construction lives INSIDE the acquire body, not before it.** If your acquire body reads as `Effect.sync(() => alreadyExistingValue)`, the construction happened earlier and your release is dangling. `acquireRelease` only guarantees atomicity of "acquire body completes → release is registered"; anything constructed outside the acquire body, even one `yield*` earlier, is unprotected against interruption. Fix: express the construction as the success value of the acquire Effect (`Effect.tryPromise(...).pipe(Effect.map(({ Lib }) => new Lib(...)))` for async imports, `Effect.sync(() => new Thing(...))` for sync construction). Applies anywhere `acquireRelease` is used: a Mount handler, Subscription bodies, anywhere a release function depends on a value produced inside an Effect chain.
 
 ### Naming
 
@@ -289,7 +302,7 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 
 Foldkit ships these; reaching past them is a finding, not a style choice.
 
-- [ ] A return type used only at `Message.match` is written inline as `Update.Return<Model, Message>` or `Update.ReturnWithOutMessage<Model, Message, OutMessage>`. An `UpdateReturn` alias exists only when another matcher, helper, or exported signature reuses it. The update signature does not repeat the type already supplied to the match. A hand-written plain-return type includes `outMessage?: never`
+- [ ] Inside `Update.make`, `Message.match` has no `Update.Return<Model, Message>` generic that would fix Command requirements to `never`. Command-producing Step helpers use `Update.makeStep`. A reused `UpdateReturn` alias derives child update requirements with `Update.RequirementsOf<typeof Child.update>` and adds other Command-producing helpers explicitly, rather than using the broader `Layer.Success<typeof EffectsLayer>`. The update signature does not repeat the type already supplied to a match, and a hand-written plain-return type includes `outMessage?: never`
 - [ ] Update, init, boot, and component helper producers omit `commands` when they statically create no Commands. They return computed Commands collections directly without checking whether the collection is empty. They never write the literal `commands: []`
 - [ ] Update, init, boot, and component helper results are bound to values named after their operations and consumed with dot access, not destructured or renamed. Name collisions use a trailing underscore such as `init_`; child `write` parameters use `next<Field>`
 - [ ] Optional Commands pass directly to `Command.mapMessages`; `result.commands ?? []` appears only where an operation requires a concrete array
@@ -299,7 +312,7 @@ Foldkit ships these; reaching past them is a finding, not a style choice.
 - [ ] Child folds include `toParentOutMessage` only when at least one child OutMessage should continue to the current Submodel's parent. Partial forwarding matches every child variant and returns `undefined` for variants that stop here. The property is omitted when every variant stops here, and no `toParentOutMessage: () => undefined` mapping appears
 - [ ] Two-or-more-step post-mutation handlers use `Update.combine(model, [...])` and `Update.refresh({ read, revalidate, write, load })` rather than hand-threaded `modifyFields` chains and conditional Command arrays. One Step is not wrapped in `Update.combine`, and an inline Step parameter is named `stepModel`
 - [ ] `Update.foldChildInit`, `Update.foldChildInits`, `Update.foldChild`, or `Update.foldChildStep` re-tag child Submodel Commands through `toParentMessage` when applicable; direct `Command.mapMessages` is reserved for lower-level helpers and route-gated initialization
-- [ ] HTTP uses `HttpClient` / `HttpClientRequest` from `effect/http`, with `Effect.provide(effect, Http.layer)` to supply the client. Not `@effect/platform` (`@effect/platform-browser` is separate and is for `BrowserKeyValueStore` / `BrowserCrypto`)
+- [ ] HTTP uses `HttpClient` / `HttpClientRequest` from `effect/http`. Handlers leave the client in their requirements, and the application root supplies `Http.layer` from `foldkit`. Not `@effect/platform` (`@effect/platform-browser` is separate and is for `BrowserKeyValueStore` / `BrowserCrypto`)
 - [ ] UI components are imported from `@foldkit/ui` by name (`import { Dialog, Input } from '@foldkit/ui'`). There is no `Ui` namespace on `foldkit`
 
 ## Effect-TS patterns
@@ -324,7 +337,8 @@ Foldkit ships these; reaching past them is a finding, not a style choice.
 - [ ] Foldkit UI components used where interaction matches (Dialog, Tabs, Menu, Combobox, DatePicker, FileDrop, Toast, Tooltip, DragAndDrop, etc.). Never hand-roll accessible widgets
 - [ ] **Form inputs use `Input.view`, `Textarea.view`, `Button.view` from `@foldkit/ui`.** Hand-rolled `input`/`textarea`/`button` elements in a form are a fail unless the file has a NOTE comment explaining why the component couldn't be used.
 - [ ] Each stateful UI component has its Model in the app Model, a `Got*` Message, init in init, and delegation in update. Stateless render helpers (`Button`, `Input`, `Textarea`, `Select`, `Fieldset`, `Checkbox`, `Switch`, `Disclosure`, `Nav`) are called directly in view and dispatch parent Messages; the controlled ones (`Checkbox`, `Switch`, `Disclosure`) take the current value in from the parent Model, which stores the new value on toggle
-- [ ] `Toast` uses `Toast.make(PayloadSchema)` to bind to a consumer-defined payload type
+- [ ] UI handler Layers are provided and Mount definitions are registered: use `UI.EffectsLayer` with `UI.mounts`, or compose the selected components' `EffectsLayer` and `mounts`. Component Subscriptions are lifted into the owning feature. View and `Html` cannot prove Mount registration through their types.
+- [ ] `Toast` uses `Toast.make('AppToast', PayloadSchema)` to bind a stable instance name and consumer-defined payload type, then composes the returned `subscriptions` and `EffectsLayer`
 - [ ] No custom keyboard navigation or ARIA attributes for patterns covered by Foldkit UI components
 
 ### Mechanical check: no hand-rolling
@@ -379,7 +393,7 @@ Foldkit UI components ARE the a11y pass for their covered patterns. These checks
 - [ ] Required form fields are marked `AriaRequired(true)` on the rendered input. `Input.view` has no `required` option, so pass it through the `toView` callback's `input` attribute group. The `required` HTML attribute alone is not enough for every screen reader.
 - [ ] Focus is visible, either via Tailwind's `focus-visible:` classes or the browser default. If you've reset outline, you must replace it. Grep for `outline-none` without a paired `focus-visible:` class.
 - [ ] Color is not the only carrier of meaning. A red border on an invalid input needs an accompanying error message or icon. Don't ship "invalid = red only."
-- [ ] Page `<title>` is set via the `title` field of the `Document` returned by `view` (with `Runtime.makeApplication`). For routed apps, each route returns a distinct title.
+- [ ] Page `<title>` is set via the `title` field of the `Document` returned by `view` (with `Application.make`). For routed apps, each route returns a distinct title.
 
 ### Mechanical check: a11y
 
@@ -418,7 +432,7 @@ Each confirmed miss is a concrete a11y bug a screen reader user would hit.
 - [ ] Every fallible Command (`Succeeded*`/`Failed*` pair) tested for both outcomes
 - [ ] At least one multi-step test that chains Messages and Command resolutions
 - [ ] Submodel tests assert `outMessage` when the child signals to parent
-- [ ] Tests use `Command.resolve(Definition, resultMessage)`. Never run Command Effects directly in story tests
+- [ ] Story tests use `Command.resolve(Definition, resultMessage)` and never run Command Effects directly. Whole-application execution tests keep the real handler Layers and replace their dependency providers
 - [ ] All tests pass with the project's test script
 
 **Scene tests** (REQUIRED at Tier 3+; strongly encouraged at Tier 2):
@@ -431,6 +445,7 @@ For Tier 3+ apps (routing, async Commands, forms), missing `scene.test.ts` is a 
 - [ ] At minimum one test per discriminated-union state that has distinct view output (loading, error, empty, populated)
 - [ ] Uses accessible locators: `role(...)`, `label(...)`, `text(...)`. Not `placeholder` or CSS selectors.
 - [ ] Scoped queries with `within` or `inside` when a parent container contains multiple similar elements
+- [ ] A Scene that uses `Subscription.emit` passes `subscriptions` in its config and calls `Subscription.emit(entry, message)` with the registered entry that declares the raw Message. Lifted entries receive child Messages so Scene can replay `toParentMessage`. Registrations that need selection use distinct entry objects; create a separate lifted entry for each path instead of reusing one entry object under several keys. Silent entries with `messages: []` are not emitted from.
 
 ---
 
@@ -481,9 +496,8 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 - [ ] No `maybe*` name holds a native `T | undefined`; `maybe*` is reserved for `Option`. Grep `maybe[A-Z]` against function signatures and variable types; each hit should be `Option<T>`, not `T | undefined`.
 - [ ] Internal API boundaries (helper function configs, view builders, domain operations) use `Option<T>` for optional fields, not `T | undefined`. Call sites then read `Option.some(x)` / `Option.none()` instead of `x` / `undefined`. The `T | undefined` form is only acceptable at framework boundaries (React props, vendored library configs, JSON decoding) that already use it.
 - [ ] Boolean fields prefixed `is*`: `isPlaying`, `isDismissed`, `isMenuOpen`.
-- [ ] Command function names are verbs describing the action: `fetchWeather`, `focusButton`, `scrollToItem`. Never `fetchWeatherCommand` or `weatherFetcher`.
 - [ ] Command `define` names are verb-first PascalCase imperatives: `FetchWeather`, `FocusButton`, `LockScroll`.
-- [ ] Command names describe the effect their `execute` bodies perform, not the later Model transition: a timer that only waits before dismissal is `WaitBeforeDismissal`, not `DismissAfter`.
+- [ ] Command names describe the effect their handlers perform, not the later Model transition: a timer that only waits before dismissal is `WaitBeforeDismissal`, not `DismissAfter`.
 - [ ] Message names are verb-first past-tense: `ClickedSubmit`, `UpdatedEmail`, `SucceededFetchWeather`. Never noun-first (`SubmitClicked`) or imperative (`FetchWeather` as a Message).
 - [ ] `Completed*` Messages mirror the Command name verb-first: Command `LockScroll` → Message `CompletedLockScroll`. Never `CompletedScrollLock`.
 - [ ] A Command's result Message is named from the Command, not from the fact it reports: `DetermineStartTime` → `CompletedDetermineStartTime`, never `DeterminedStartTime`. The only exception is a Message with more than one cause.
@@ -494,7 +508,7 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 
 - [ ] Each source file exports only its public contract: typically `Model`, `Message`, `init`, `update`, `view`, plus named schemas/constants other modules consume. Internal helpers are not exported.
 - [ ] Section headers present in files that span multiple sections: `// MODEL`, `// MESSAGE`, `// INIT`, `// UPDATE`, `// COMMAND`, `// VIEW`, `// RUN`. Order: Model → Message → Flags (if any) → Init → Update → Command → View → Run.
-- [ ] `index.ts` is always a barrel, never implementation. If a module `foo/` has code, the shape is `foo/foo.ts` for code + `foo/index.ts` for `export * from './foo'` and `export * as Child from './child'`.
+- [ ] `index.ts` is always a barrel, never implementation. Re-export each intended public name explicitly; use `export *` only when the whole module surface is intentionally public. If a module `foo/` has code, the shape is `foo/foo.ts` for code + `foo/index.ts` for the barrel and `export * as Child from './child'` for an intentionally public child namespace.
 - [ ] Imports ordered: npm packages first (alphabetized), then `foldkit/*`, then relative imports. No mixed groups.
 - [ ] Message unions are exported as values and types when used across modules. Variants stay on the owning namespace: `Message.ClickedSave()`, never a separate `ClickedSave` export. Internal-only Message unions stay unexported.
 
@@ -502,20 +516,22 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 
 - [ ] [T5+] If the app has multiple Submodels, each has its own directory with at minimum `main.ts` (init/update/view), `message.ts` (messages + OutMessage schema), and optionally `command.ts` (submodel Commands).
 - [ ] [T3+] If update returns Commands across multiple handlers AND the Commands involve non-trivial Effect pipelines (HTTP, Dom compositions), Commands are defined in their own `command.ts` file, not inline in update.
-- [ ] Command factories are pre-wrapped and named by action: `const fetchWeather = (city) => ...` returns the Command-wrapped Effect. Call sites read as `[fetchWeather(city)]`, not `[FetchWeather(Effect.gen(...))]`.
+- [ ] Command definitions receive only declared args at call sites: `[FetchWeather({ city })]`. The Effect implementation is `config.handler`, and `FetchWeather.layer` enters the feature's `EffectsLayer`, not the call site.
 - [ ] [T5+] OutMessage unions are explicitly tagged with `// OUT MESSAGE` section comment when they appear in a submodel `message.ts`.
 
 ## Subscriptions [T2+]
 
-- [ ] Subscriptions use `Subscription.make<Model, Message>()(entry => ({ key: entry(fields, callbacks) }))`. Each `entry(...)` call takes the bare field map as its first argument (no `Schema.Struct` wrap) and the `{ modelToDependencies, dependenciesToStream, equivalence? }` callbacks as its second.
+- [ ] Subscriptions use `Subscription.make<Model, Message>()(entry => ({ roomUpdates: entry('RoomUpdates', fields, { messages: [Message.ReceivedRoomUpdate], modelToDependencies, handler: function* () { return dependencies => stream } }) }))`. Each stable handler name describes the supplied Stream or scoped behavior and is distinct within the application; its record key uses the parallel camelCase name, `messages` declares every Message Schema the handler can emit, and the bare field map is not wrapped in `Schema.Struct`.
+- [ ] Each entry stores a generator constructor in `handler` that returns `dependencies => stream`; Foldkit applies `Effect.gen`, and its `subscriptions.roomUpdates.layer` recipe is merged into the owning feature's `EffectsLayer`.
 - [ ] `modelToDependencies` extracts exactly the data the stream needs from Model, not the full Model. Wrap absent dependencies in `Option` at the field level when the subscription should stop.
-- [ ] Always-active subscriptions pass `{}` as the `entry` fields argument and return `{}` from `modelToDependencies`.
-- [ ] Message mapping happens inside `Stream.map(event => Effect.succeed(Message.UpdatedX({ data: event })))`, not scattered through update.
+- [ ] Subscriptions without local Model dependencies use `entry('KeyboardPresses', { messages: [Message.PressedKey], handler: function* () { return () => stream } })` with no dependency fields or callback. Use `messages: []` for a silent scoped Stream.
+- [ ] Message mapping happens inside `Stream.map(event => Message.UpdatedX({ data: event }))`, not scattered through update.
 - [ ] Subscription files live at `src/subscription.ts` (or `src/subscription/` directory for multiple), never inline in `main.ts`.
 
 ## Managed Resources [T7]
 
-- [ ] Managed Resources use `ManagedResource.make<Model, Message>()(entry => ({ key: entry(requirementsSchema, config) }))`. The requirements schema is the positional first argument (usually `Schema.Option(...)`), not a field on `config`. No standalone `ManagedResourceDeps` struct.
+- [ ] Managed Resources use `ManagedResource.make<Model, Message>()(entry => ({ key: entry('ManageFeatureResource', requirementsSchema, { ...config, handler }) }))`. The stable handler name precedes the requirements Schema (usually `Schema.Option(...)`), which is not a field on `config`. No standalone `ManagedResourceDeps` struct.
+- [ ] Each ManagedResource entry supplies a `handler` generator returning both `acquire` and `release`, and its `managedResources.key.layer` recipe is merged into the owning feature's `EffectsLayer`. A no-op `release` is justified only when scoped acquisition already registered the real cleanup.
 - [ ] `modelToMaybeRequirements` returns `Option.some(params)` to acquire and `Option.none()` to release. `acquire` fails into the error channel so `onAcquireError` fires instead of crashing; `release` never throws.
 - [ ] The service union is read with `ManagedResource.ServicesOf<typeof managedResources>`, not hand-maintained in parallel.
 - [ ] A child Submodel that owns a Managed Resource exposes its own `make` record in child terms; the parent composes it with `ManagedResource.lift(childRecord)<Parent, Parent>({ read, toParentMessage })` (where `read` returns `Option<ChildModel>`) and `ManagedResource.aggregate`. No hand-rolled parent factory threading `read`/`toParentMessage` into the child.
@@ -525,7 +541,7 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 - [ ] Test names state the behavior being tested: `it('surfaces a validation error when email is malformed')`, not `it('tests validation')` or `it('handles the reported bug')`.
 - [ ] Each `story` pipeline reads as a narrative: initial model → action → assert → action → assert. Not a dump of unrelated assertions.
 - [ ] Scene tests use accessible locators (`role('button', { name: /submit/i })`, `label('Email')`) over `placeholder` or CSS selectors.
-- [ ] Commands in tests are resolved with `Command.resolve(Definition, resultMessage)`. Never run Command Effects directly.
+- [ ] Story tests resolve Commands with `Command.resolve(Definition, resultMessage)` and never run Command Effects directly. Whole-application execution tests compose the production handler Layers with deterministic providers at the lowest service boundary the test needs to cover
 
 ## Residual code smells (each is a fail)
 

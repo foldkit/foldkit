@@ -1,4 +1,13 @@
-import { Effect, Fiber, Option, PubSub, Queue, Schema, Stream } from 'effect'
+import {
+  Effect,
+  Fiber,
+  Layer,
+  Option,
+  PubSub,
+  Queue,
+  Schema,
+  Stream,
+} from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Command from '../command/index.js'
@@ -7,9 +16,9 @@ import { __htmlBuilder } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { afterCommit } from '../render/render.js'
 import * as Subscription from '../subscription/subscription.js'
-import type * as Update from '../update/index.js'
+import * as Update from '../update/index.js'
+import * as Application from './application.js'
 import { __setDevToolsOverlay } from './devToolsConfig.js'
-import { makeElement } from './makeElement.js'
 import {
   __decideViewTransition,
   __resolveStartViewTransition,
@@ -179,13 +188,14 @@ type Model = typeof Model.Type
 
 const h = __htmlBuilder<Message>()
 
-const update = (_model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const update = Update.make((_model: Model, message: Message) =>
+  Message.match(message, {
     ClickedTransition: () => ({ model: { label: 'transitioned' } }),
     ClickedPlain: () => ({ model: { label: 'plain' } }),
     CompletedProbeCommittedDom: () => ({ model: _model }),
     Ticked: () => ({ model: { label: 'ticked' } }),
-  })
+  }),
+)
 
 describe('makeElement with viewTransition', () => {
   let container: HTMLElement
@@ -231,7 +241,7 @@ describe('makeElement with viewTransition', () => {
       return Effect.void
     })
 
-    const element = makeElement({
+    const element = Application.makeElement({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update,
@@ -293,7 +303,7 @@ describe('makeElement with viewTransition', () => {
       return Effect.void
     })
 
-    const element = makeElement({
+    const element = Application.makeElement({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update,
@@ -370,26 +380,31 @@ describe('makeElement with viewTransition', () => {
 
       const ProbeCommittedDom = Command.define('ProbeCommittedDom', {
         messages: [Message.CompletedProbeCommittedDom],
-        execute: Effect.gen(function* () {
-          isProbeWaiting = true
-          yield* afterCommit
-          observedLabels.push(
-            document.querySelector('#label')?.textContent ?? '',
-          )
-          return Message.CompletedProbeCommittedDom()
-        }),
       })
+
+      const ProbeCommittedDomLayer = ProbeCommittedDom.toLayer(
+        Effect.succeed(() =>
+          Effect.gen(function* () {
+            isProbeWaiting = true
+            yield* afterCommit
+            observedLabels.push(
+              document.querySelector('#label')?.textContent ?? '',
+            )
+            return Message.CompletedProbeCommittedDom()
+          }),
+        ),
+      )
       let maybeStore: DevToolsStore | null = null
       __setDevToolsOverlay(store => {
         maybeStore = store
         return Effect.void
       })
 
-      const element = makeElement({
+      const element = Application.makeElement({
         Model,
         init: () => ({ model: { label: 'initial' } }),
-        update: (model: Model, message: Message) =>
-          Message.match<Update.Return<Model, Message>>(message, {
+        update: Update.make((model: Model, message: Message) =>
+          Message.match(message, {
             ClickedTransition: () => ({
               model: { label: 'transitioned' },
               commands: [ProbeCommittedDom()],
@@ -398,6 +413,7 @@ describe('makeElement with viewTransition', () => {
             CompletedProbeCommittedDom: () => ({ model }),
             Ticked: () => ({ model: { label: 'ticked' } }),
           }),
+        ),
         view: model => {
           renderCount += 1
           return h.div(
@@ -412,7 +428,9 @@ describe('makeElement with viewTransition', () => {
         viewTransition: () => true,
         devTools: { show: 'Always' },
       })
-      const fiber = Effect.runFork(element.start())
+      const fiber = Effect.runFork(
+        Application.provide(element, ProbeCommittedDomLayer).start(),
+      )
 
       try {
         await awaitBodyText('initial')
@@ -494,15 +512,26 @@ describe('makeElement with viewTransition', () => {
       PubSub.unbounded<Message>(),
     )
     let isSubscriptionReady = false
-    const subscriptions = Subscription.make<Model, Message>()(() => ({
-      testMessages: Subscription.persistentEntry(
+    const subscriptions = Subscription.make<Model, Message>()(entry => ({
+      testMessages: entry('TestMessages', {
+        messages: [
+          Message.ClickedTransition,
+          Message.ClickedPlain,
+          Message.CompletedProbeCommittedDom,
+          Message.Ticked,
+        ],
+      }),
+    }))
+
+    const TestMessagesLayer = subscriptions.testMessages.toLayer(
+      Effect.succeed(() =>
         Stream.fromEffect(
           Effect.sync(() => {
             isSubscriptionReady = true
           }),
         ).pipe(Stream.flatMap(() => Stream.fromPubSub(subscriptionMessages))),
       ),
-    }))
+    )
     let didProcessTick = false
     let maybeStore: DevToolsStore | null = null
     __setDevToolsOverlay(store => {
@@ -510,22 +539,24 @@ describe('makeElement with viewTransition', () => {
       return Effect.void
     })
 
-    const element = makeElement({
+    const element = Application.makeElement({
       Model,
       init: () => ({ model: { label: 'initial' } }),
-      update: (model, message) => {
+      update: Update.make((model, message) => {
         if (message._tag === 'Ticked') {
           didProcessTick = true
         }
         return update(model, message)
-      },
+      }),
       view: model => h.div([], [model.label]),
       subscriptions,
       container,
       viewTransition: () => true,
       devTools: { show: 'Always' },
     })
-    const fiber = Effect.runFork(element.start())
+    const fiber = Effect.runFork(
+      Application.provide(element, TestMessagesLayer).start(),
+    )
 
     try {
       await awaitBodyText('initial')
@@ -567,7 +598,7 @@ describe('makeElement with viewTransition', () => {
       },
     })
 
-    const element = makeElement({
+    const element = Application.makeElement({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update,
@@ -632,7 +663,7 @@ describe('makeElement with viewTransition', () => {
       },
     })
 
-    const element = makeElement({
+    const element = Application.makeElement({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update,
@@ -688,7 +719,7 @@ describe('makeElement with viewTransition', () => {
       },
     })
 
-    const element = makeElement({
+    const element = Application.makeElement({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update,
@@ -750,7 +781,7 @@ describe('makeElement with viewTransition', () => {
       removeEventListener: () => {},
     }))
 
-    const element = makeElement({
+    const element = Application.makeElement({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update,
@@ -799,7 +830,7 @@ describe('makeElement with viewTransition', () => {
       },
     })
 
-    const element = makeElement({
+    const element = Application.makeElement({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update,
@@ -869,34 +900,49 @@ describe('makeElement with viewTransition', () => {
 
     const ProbePendingCommit = Command.define('ProbePendingCommit', {
       messages: [Message.CompletedProbeCommittedDom],
-      execute: Effect.gen(function* () {
-        yield* afterCommit
-        didPendingProbeResume = true
-        return Message.CompletedProbeCommittedDom()
-      }),
-    })
-    const CrashRuntime = Command.define('CrashRuntime', {
-      messages: [Message.CompletedProbeCommittedDom],
-      execute: Effect.gen(function* () {
-        yield* Queue.take(crashTrigger)
-        return yield* Effect.die(new Error('boom from Command'))
-      }),
-    })
-    const ProbeAfterCrash = Command.define('ProbeAfterCrash', {
-      messages: [Message.CompletedProbeCommittedDom],
-      execute: Effect.gen(function* () {
-        yield* Queue.take(afterCrashProbeTrigger)
-        yield* afterCommit
-        didAfterCrashProbeResume = true
-        return Message.CompletedProbeCommittedDom()
-      }),
     })
 
-    const element = makeElement({
+    const ProbePendingCommitLayer = ProbePendingCommit.toLayer(
+      Effect.succeed(() =>
+        Effect.gen(function* () {
+          yield* afterCommit
+          didPendingProbeResume = true
+          return Message.CompletedProbeCommittedDom()
+        }),
+      ),
+    )
+    const CrashRuntime = Command.define('CrashRuntime', {
+      messages: [Message.CompletedProbeCommittedDom],
+    })
+
+    const CrashRuntimeLayer = CrashRuntime.toLayer(
+      Effect.succeed(() =>
+        Effect.gen(function* () {
+          yield* Queue.take(crashTrigger)
+          return yield* Effect.die(new Error('boom from Command'))
+        }),
+      ),
+    )
+    const ProbeAfterCrash = Command.define('ProbeAfterCrash', {
+      messages: [Message.CompletedProbeCommittedDom],
+    })
+
+    const ProbeAfterCrashLayer = ProbeAfterCrash.toLayer(
+      Effect.succeed(() =>
+        Effect.gen(function* () {
+          yield* Queue.take(afterCrashProbeTrigger)
+          yield* afterCommit
+          didAfterCrashProbeResume = true
+          return Message.CompletedProbeCommittedDom()
+        }),
+      ),
+    )
+
+    const element = Application.makeElement({
       Model,
       init: () => ({ model: { label: 'initial' } }),
-      update: (model: Model, message: Message) =>
-        Message.match<Update.Return<Model, Message>>(message, {
+      update: Update.make((model: Model, message: Message) =>
+        Message.match(message, {
           ClickedTransition: () => ({
             model: { label: 'transitioned' },
             commands: [ProbePendingCommit(), CrashRuntime(), ProbeAfterCrash()],
@@ -905,6 +951,7 @@ describe('makeElement with viewTransition', () => {
           CompletedProbeCommittedDom: () => ({ model }),
           Ticked: () => ({ model: { label: 'ticked' } }),
         }),
+      ),
       view: model =>
         h.div(
           [],
@@ -918,7 +965,16 @@ describe('makeElement with viewTransition', () => {
       crash: { view: () => h.div([], ['Crashed']) },
     })
 
-    const fiber = Effect.runFork(element.start())
+    const fiber = Effect.runFork(
+      Application.provide(
+        element,
+        Layer.mergeAll(
+          ProbePendingCommitLayer,
+          CrashRuntimeLayer,
+          ProbeAfterCrashLayer,
+        ),
+      ).start(),
+    )
 
     try {
       await awaitBodyText('initial')
@@ -953,7 +1009,7 @@ describe('makeElement with viewTransition', () => {
       },
     })
 
-    const element = makeElement({
+    const element = Application.makeElement({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update,
@@ -1001,7 +1057,7 @@ describe('makeElement with viewTransition', () => {
       },
     })
 
-    const element = makeElement({
+    const element = Application.makeElement({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update,
@@ -1057,7 +1113,7 @@ describe('makeElement with viewTransition', () => {
       },
     })
 
-    const element = makeElement({
+    const element = Application.makeElement({
       Model,
       init: () => ({ model: { label: 'initial' } }),
       update,

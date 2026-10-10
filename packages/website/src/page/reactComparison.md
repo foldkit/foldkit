@@ -64,7 +64,7 @@ The Foldkit entry point supplies the Runtime with the application definitions:
 
 ::Snippet{name="comparisonFoldkitProgram" label="Foldkit program"}
 
-`init` constructs the first Model and startup Commands. `Runtime.makeApplication` receives the Model and Flags Schemas, init, update, view, Subscriptions, and container. The Runtime dispatches Messages and executes lifecycle primitives.
+`init` constructs the first Model and startup Commands. `Application.make` receives the Model and Flags Schemas, init, update, view, Subscriptions, and container. The Runtime dispatches Messages and executes lifecycle primitives.
 
 The Foldkit view still passes Model data to smaller view functions as parameters. Those functions do not own Hook state or lifecycle, so the Runtime assembly stays separate from the view tree.
 
@@ -127,6 +127,8 @@ Both Commands are named definitions with Schema-checked arguments and declared r
 ::Snippet{name="comparisonFoldkitCommand" label="Foldkit Commands"}
 
 Update returns a Command value. The Runtime executes its Effect and dispatches the resulting Message. Foldkit DevTools can associate the Command with the Message and Model transition that produced it, and Story or Scene tests can inspect or resolve the same value.
+
+`SaveCanvas` leaves its storage service in the Effect requirements. The application root binds that tag to localStorage, while a whole-application test can bind it to a deterministic store and retain the real Command handler.
 
 :::Info{label="Effect locations in this application"}
 Event-driven work is in `command.ts`. Keyboard and mouse-release event sources are Subscriptions in `subscription.ts`. This application does not need a Mount. The primitive identifies why each effect exists.

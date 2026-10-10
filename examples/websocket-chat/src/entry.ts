@@ -1,6 +1,9 @@
-import { Runtime } from 'foldkit'
+import { Layer } from 'effect'
+import { Socket } from 'effect/socket'
+import { Application, Runtime } from 'foldkit'
 
 import {
+  EffectsLayer,
   Message,
   Model,
   init,
@@ -10,7 +13,7 @@ import {
   view,
 } from './main'
 
-const application = Runtime.makeApplication({
+const application = Application.make({
   Model,
   init,
   update,
@@ -23,4 +26,9 @@ const application = Runtime.makeApplication({
   },
 })
 
-Runtime.run(application)
+const AppLayer = Layer.provide(
+  EffectsLayer,
+  Socket.layerWebSocketConstructorGlobal,
+)
+
+Runtime.run(Application.provide(application, AppLayer))

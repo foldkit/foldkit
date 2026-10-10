@@ -1,11 +1,12 @@
-import { Effect, Option, Schema, Stream } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { Command, ManagedResource, Subscription } from 'foldkit'
 
 const Save = Command.define('Save', {
   args: { id: Schema.String, createdAt: Schema.Number },
   messages: [CompletedSave],
-  execute: () => Effect.succeed(CompletedSave()),
 })
+
+export const EagerSaveLayer = Save.toLayer(Effect.succeed(Date.now()))
 
 const makeId = () => Math.random().toString()
 const FakeEffect = {
@@ -56,12 +57,13 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => {
 
   return {
     clock: entry(
+      'Clock',
       { initializedSubscriptionAt: Schema.Number },
       {
+        messages: [],
         modelToDependencies: () => ({
           initializedSubscriptionAt: Date.now(),
         }),
-        dependenciesToStream: () => Stream.empty,
       },
     ),
   }
@@ -69,10 +71,17 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => {
 
 export const managedResources = ManagedResource.make<Model, Message>()(
   entry => ({
-    connection: entry(Resource, Schema.Struct({}), {
-      modelToMaybeRequirements: () => Option.some({ startedAt: Date.now() }),
-      acquire: () => Effect.succeed(ResourceValue),
-      release: () => Effect.void,
-    }),
+    connection: entry(
+      'Connection',
+      Schema.Struct({}),
+      {
+        resource: Resource,
+        modelToMaybeRequirements: () =>
+          Option.some({ startedAt: Date.now() }),
+        onAcquired: () => AcquiredConnection(),
+        onAcquireError: () => FailedAcquireConnection(),
+        onReleased: () => ReleasedConnection(),
+      },
+    ),
   }),
 )

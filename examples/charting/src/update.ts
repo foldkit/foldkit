@@ -1,5 +1,5 @@
 import { Array, Option, Result, pipe } from 'effect'
-import { AsyncData, Command, Update } from 'foldkit'
+import { AsyncData, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { RadioGroup } from '@foldkit/ui'
@@ -14,8 +14,6 @@ import {
   PeriodRadioGroup,
 } from './radioGroups'
 
-type UpdateReturn = Update.Return<Model, Message>
-
 const syncChart = (args: {
   maybeChartHostId: Model['maybeChartHostId']
   telemetry: Model['telemetry']
@@ -23,7 +21,7 @@ const syncChart = (args: {
   selectedPackageId: Model['selectedPackageId']
   period: Model['period']
   maybeSelectedDatumId: Model['maybeSelectedDatumId']
-}): ReadonlyArray<Command.Command<Message>> =>
+}) =>
   pipe(
     args.maybeChartHostId,
     Option.flatMap(hostId =>
@@ -41,7 +39,7 @@ const syncChart = (args: {
     Array.fromOption,
   )
 
-const refetchTelemetry = (model: Model): UpdateReturn =>
+const refetchTelemetry = (model: Model) =>
   Option.match(AsyncData.revalidateOrLoad(model.telemetry), {
     onNone: () => ({ model }),
     onSome: nextTelemetry => ({
@@ -51,8 +49,7 @@ const refetchTelemetry = (model: Model): UpdateReturn =>
   })
 
 const selectedControl =
-  (updateModel: (model: Model) => Model): Update.Step<Model, Message> =>
-  model => {
+  (updateModel: (model: Model) => Model) => (model: Model) => {
     const nextModel = updateModel(
       modifyFields(model, { maybeSelectedDatumId: () => Option.none() }),
     )
@@ -70,13 +67,13 @@ const selectedControl =
     }
   }
 
-const foldChartModeRadioGroupOutMessage = RadioGroup.OutMessage.match<
-  Update.Step<Model, Message>,
-  RadioGroup.OutMessage<ChartMode>
->({
-  Selected: ({ value }) =>
-    selectedControl(modifyFields({ chartMode: () => value })),
-})
+const foldChartModeRadioGroupOutMessage = (
+  outMessage: RadioGroup.OutMessage<ChartMode>,
+) =>
+  RadioGroup.OutMessage.match(outMessage, {
+    Selected: ({ value }) =>
+      selectedControl(modifyFields({ chartMode: () => value })),
+  })
 
 const foldChartModeRadioGroup = Update.foldChild({
   update: ChartModeRadioGroup.update,
@@ -88,13 +85,13 @@ const foldChartModeRadioGroup = Update.foldChild({
   foldOutMessage: foldChartModeRadioGroupOutMessage,
 })
 
-const foldPeriodRadioGroupOutMessage = RadioGroup.OutMessage.match<
-  Update.Step<Model, Message>,
-  RadioGroup.OutMessage<Period>
->({
-  Selected: ({ value }) =>
-    selectedControl(modifyFields({ period: () => value })),
-})
+const foldPeriodRadioGroupOutMessage = (
+  outMessage: RadioGroup.OutMessage<Period>,
+) =>
+  RadioGroup.OutMessage.match(outMessage, {
+    Selected: ({ value }) =>
+      selectedControl(modifyFields({ period: () => value })),
+  })
 
 const foldPeriodRadioGroup = Update.foldChild({
   update: PeriodRadioGroup.update,
@@ -105,13 +102,13 @@ const foldPeriodRadioGroup = Update.foldChild({
   foldOutMessage: foldPeriodRadioGroupOutMessage,
 })
 
-const foldPackageRadioGroupOutMessage = RadioGroup.OutMessage.match<
-  Update.Step<Model, Message>,
-  RadioGroup.OutMessage<PackageId>
->({
-  Selected: ({ value }) =>
-    selectedControl(modifyFields({ selectedPackageId: () => value })),
-})
+const foldPackageRadioGroupOutMessage = (
+  outMessage: RadioGroup.OutMessage<PackageId>,
+) =>
+  RadioGroup.OutMessage.match(outMessage, {
+    Selected: ({ value }) =>
+      selectedControl(modifyFields({ selectedPackageId: () => value })),
+  })
 
 const foldPackageRadioGroup = Update.foldChild({
   update: PackageRadioGroup.update,
@@ -122,8 +119,8 @@ const foldPackageRadioGroup = Update.foldChild({
   foldOutMessage: foldPackageRadioGroupOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     GotChartModeRadioGroupMessage: ({ message }) =>
       foldChartModeRadioGroup(model, message),
 
@@ -206,4 +203,5 @@ export const update = (model: Model, message: Message) =>
         maybeChartError: () => Option.some(reason),
       }),
     }),
-  })
+  }),
+)

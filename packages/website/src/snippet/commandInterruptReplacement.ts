@@ -1,5 +1,5 @@
 import { Number } from 'effect'
-import type { Update } from 'foldkit'
+import { Update } from 'foldkit'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
@@ -9,12 +9,10 @@ const SearchState = defineTaggedUnion({
   Cancelling: {},
 })
 
-type UpdateReturn = Update.Return<Model, Message>
-
-const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     UpdatedQuery: ({ query }) =>
-      SearchState.match<UpdateReturn>(model.searchState, {
+      SearchState.match(model.searchState, {
         Idle: () => {
           const nextGeneration = Number.increment(model.generation)
 
@@ -79,4 +77,5 @@ const update = (model: Model, message: Message) =>
         }),
       }
     },
-  })
+  }),
+)

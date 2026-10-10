@@ -6,14 +6,13 @@ import { describe, expect, test } from 'vitest'
 
 import { Dialog, Menu } from '@foldkit/ui'
 
+import { managedResources, subscriptions } from './application'
 import { Deployment } from './deployment'
 import {
   LoadPlayground,
   ScrollSidebarActiveLinkIntoView,
   ScrollToTop,
   init,
-  managedResources,
-  subscriptions,
   update,
 } from './main'
 import { Message } from './message'
@@ -39,7 +38,7 @@ const flags = {
 
 const initAt = (url: Url.Url): Model => init(flags, url).model
 
-const aiHeadingSubscription = subscriptions.aiHeading
+const aiHeadingSubscription = subscriptions.aiHeadingToggleTicks
 
 const expectHomePresent = (model: Model): void => {
   expect(Option.isSome(model.maybeHome)).toBe(true)

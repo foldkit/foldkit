@@ -1,10 +1,10 @@
-import { Effect, Number, Option, Schema } from 'effect'
+import { Effect, Layer, Number, Option, Schema } from 'effect'
 
 import * as Command from '../../command/index.js'
 import type { Html, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
-import type * as Update from '../../update/index.js'
+import * as Update from '../../update/index.js'
 
 // MODEL
 
@@ -26,7 +26,9 @@ export type Message = typeof Message.Type
  *  fall-through, so the two end-of-scene checks can be ordered. */
 export const RecordReset = Command.define('RecordReset', {
   messages: [Message.CompletedRecordReset],
-  execute: Effect.sync(() => Message.CompletedRecordReset()),
+  handler: function* () {
+    return () => Effect.sync(() => Message.CompletedRecordReset())
+  },
 })
 
 // INIT
@@ -35,8 +37,8 @@ export const initialModel: Model = { commits: 0 }
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     Committed: () => ({
       model: modifyFields(model, { commits: Number.increment }),
     }),
@@ -45,7 +47,8 @@ export const update = (model: Model, message: Message) =>
       commands: [RecordReset()],
     }),
     CompletedRecordReset: () => ({ model }),
-  })
+  }),
+)
 
 // VIEW
 
@@ -65,3 +68,5 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html =>
       h.button([h.Id(resetId), h.OnClick(Message.Reset())], ['Reset']),
     ],
   )
+
+export const EffectsLayer = Layer.mergeAll(RecordReset.layer)

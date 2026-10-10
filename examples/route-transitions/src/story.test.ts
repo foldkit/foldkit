@@ -71,7 +71,7 @@ describe('update', () => {
         expect(model.transitionLog).toHaveLength(1)
       }),
       Command.expectHas(LoadCatalog),
-      Command.resolve(LoadCatalog, Message.SucceededLoadCatalog()),
+      Command.resolve(LoadCatalog, Message.CompletedLoadCatalog()),
       model(model => {
         expect(model.catalogStatus).toBe('Ready')
       }),
@@ -111,7 +111,7 @@ describe('update', () => {
       Command.expectHas(LoadPainting),
       Command.resolve(
         LoadPainting,
-        Message.SucceededLoadPainting({ paintingId: 3 }),
+        Message.CompletedLoadPainting({ paintingId: 3 }),
       ),
       model(model => {
         expect(model.paintingStatus).toStrictEqual(
@@ -143,7 +143,7 @@ describe('update', () => {
       Command.expectHas(LoadPainting),
       Command.resolve(
         LoadPainting,
-        Message.SucceededLoadPainting({ paintingId: 2 }),
+        Message.CompletedLoadPainting({ paintingId: 2 }),
       ),
       model(model => {
         expect(model.paintingStatus).toStrictEqual(
@@ -181,7 +181,7 @@ describe('update', () => {
           paintingStatus: () => PaintingStatus.Loading({ paintingId: 2 }),
         }),
       ),
-      message(Message.SucceededLoadPainting({ paintingId: 1 })),
+      message(Message.CompletedLoadPainting({ paintingId: 1 })),
       model(model => {
         expect(model.paintingStatus).toStrictEqual(
           PaintingStatus.Loading({ paintingId: 2 }),
@@ -202,7 +202,7 @@ describe('update', () => {
       Command.expectHas(SaveDraft),
       Command.resolve(
         SaveDraft,
-        Message.SucceededSaveDraft({ draft: 'half-finished thought' }),
+        Message.CompletedSaveDraft({ draft: 'half-finished thought' }),
       ),
       model(model => {
         expect(model.maybeSavedDraft).toStrictEqual(

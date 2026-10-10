@@ -1,10 +1,10 @@
-import { Array, Effect, Schema } from 'effect'
+import { Array, Effect, Layer, Schema } from 'effect'
 
 import * as Command from '../../command/index.js'
 import type { Document, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
-import type * as Update from '../../update/index.js'
+import * as Update from '../../update/index.js'
 
 // MODEL
 
@@ -50,9 +50,12 @@ export const reloadedSources: ReadonlyArray<RawSource> = [
 
 export const ReloadSources = Command.define('ReloadSources', {
   messages: [Message.CompletedReloadSources],
-  execute: Effect.succeed(
-    Message.CompletedReloadSources({ sources: reloadedSources }),
-  ),
+  handler: function* () {
+    return () =>
+      Effect.succeed(
+        Message.CompletedReloadSources({ sources: reloadedSources }),
+      )
+  },
 })
 
 // INIT
@@ -69,8 +72,8 @@ export const initialModel: Model = { sources: validSources }
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedReload: () => ({ model, commands: [ReloadSources()] }),
     CompletedReloadSources: ({ sources }) => ({
       model: modifyFields(model, { sources: () => sources }),
@@ -80,7 +83,8 @@ export const update = (model: Model, message: Message) =>
       const source = Source.make({ kind: 'Book', id })
       return { model: modifyFields(model, { sources: Array.append(source) }) }
     },
-  })
+  }),
+)
 
 // VIEW
 
@@ -119,3 +123,5 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
 
   return { title: 'Sources', body }
 }
+
+export const EffectsLayer = Layer.mergeAll(ReloadSources.layer)

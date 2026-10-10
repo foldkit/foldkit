@@ -1,23 +1,39 @@
-import { Effect, Queue, Schema, Stream } from 'effect'
+import { Effect, Queue, Stream } from 'effect'
 
 /**
- * Configuration for the `animationFrameEntry` Subscription helper.
+ * A cold Stream that emits the elapsed milliseconds on every
+ * `requestAnimationFrame` tick. Each subscriber owns its animation frame loop,
+ * and ending the Stream cancels the pending frame.
  *
- * `isActive(model)` controls whether the request-animation-frame loop is
- * scheduled at all. When it returns `false` (e.g. the game is paused, the
- * scene is static, or the canvas is offscreen), no rAF callbacks fire and
- * no Messages are emitted. The Subscription system automatically restarts
- * the loop when `isActive` flips back to `true`.
+ * The browser pauses `requestAnimationFrame` when the tab is hidden, so the
+ * first elapsed value after it becomes visible may be large. Cap the value in
+ * the Subscription handler when the update uses it for motion or physics.
+ *
+ * @example
+ * ```ts
+ * const subscriptions = Subscription.make<Model, Message>()(entry => ({
+ *   frame: entry(
+ *     'AnimationFrameTicks',
+ *     { isActive: Schema.Boolean },
+ *     {
+ *       messages: [Message.Ticked],
+ *       modelToDependencies: model => ({ isActive: model.isActive }),
+ *     },
+ *     Effect.succeed(({ isActive }) =>
+ *       isActive
+ *         ? Subscription.animationFrameStream.pipe(
+ *             Stream.map(deltaTime => Message.Ticked({ deltaTime })),
+ *           )
+ *         : Stream.empty,
+ *     ),
+ *   ),
+ * }))
+ *
+ * const EffectsLayer = subscriptions.frame.layer
+ * ```
  */
-export type AnimationFrameConfig<Model, Message> = Readonly<{
-  isActive: (model: Model) => boolean
-  toMessage: (deltaTime: number) => Message
-}>
-
-const makeAnimationFrameStream = <Message>(
-  toMessage: (deltaTime: number) => Message,
-): Stream.Stream<Message> =>
-  Stream.callback<Message>(queue =>
+export const animationFrameStream: Stream.Stream<number> =
+  Stream.callback<number>(queue =>
     Effect.acquireRelease(
       Effect.sync(() => {
         const state = {
@@ -28,7 +44,7 @@ const makeAnimationFrameStream = <Message>(
         const tick = (now: number): void => {
           const deltaTime = now - state.lastTime
           state.lastTime = now
-          Queue.offerUnsafe(queue, toMessage(deltaTime))
+          Queue.offerUnsafe(queue, deltaTime)
           state.frameId = requestAnimationFrame(tick)
         }
 
@@ -38,41 +54,3 @@ const makeAnimationFrameStream = <Message>(
       state => Effect.sync(() => cancelAnimationFrame(state.frameId)),
     ).pipe(Effect.flatMap(() => Effect.never)),
   )
-
-/**
- * Build a Subscription entry that emits a Message on every
- * `requestAnimationFrame` tick, with the inter-frame delta in milliseconds.
- *
- * @example
- * ```typescript
- * const subscriptions = Subscription.make<Model, Message>()(_entry => ({
- *   frame: Subscription.animationFrameEntry({
- *     isActive: model => model.isPlaying,
- *     toMessage: deltaTime => Tick({ deltaTime }),
- *   }),
- * }))
- * ```
- *
- * The browser pauses `requestAnimationFrame` when the tab is hidden, so
- * `deltaTime` may spike to several seconds on the first frame after the
- * tab regains focus. If your `update` function multiplies `deltaTime`
- * against motion or physics, cap it to a reasonable maximum (32ms is
- * typical) before using it. Otherwise a multi-second `deltaTime` can send
- * moving objects flying across the screen in one frame.
- *
- * Returns an entry shape, not a branded Subscription. Pass it into
- * `Subscription.make` as an entry value.
- */
-export const animationFrameEntry = <Model, Message>(
-  config: AnimationFrameConfig<Model, Message>,
-) => ({
-  dependenciesSchema: Schema.Struct({ isActive: Schema.Boolean }),
-  modelToDependencies: (model: Model) => ({
-    isActive: config.isActive(model),
-  }),
-  dependenciesToStream: ({ isActive }: { readonly isActive: boolean }) =>
-    Stream.when(
-      makeAnimationFrameStream(config.toMessage),
-      Effect.sync(() => isActive),
-    ),
-})

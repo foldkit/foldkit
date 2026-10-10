@@ -1,8 +1,7 @@
 import { Effect, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
-import { Runtime } from 'foldkit'
 
-import { BrowserKeyValueStore } from '@effect/platform-browser'
+import * as UI from '@foldkit/ui'
 import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
 
 import {
@@ -30,24 +29,25 @@ export const Flags = Schema.Struct({
 })
 export type Flags = typeof Flags.Type
 
-export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
-  const store = yield* KeyValueStore.KeyValueStore
-  const json = yield* Effect.fromOption(
-    Option.fromNullishOr(yield* store.get(STORAGE_KEY)),
+export const flags: Effect.Effect<Flags, never, KeyValueStore.KeyValueStore> =
+  Effect.gen(function* () {
+    const store = yield* KeyValueStore.KeyValueStore
+    const json = yield* Effect.fromOption(
+      Option.fromNullishOr(yield* store.get(STORAGE_KEY)),
+    )
+    const decoded = yield* Schema.decodeEffect(SavedCanvasJsonString)(json)
+
+    return Flags.make({ maybeSavedCanvas: Option.some(decoded) })
+  }).pipe(
+    Effect.catch(() =>
+      Effect.succeed(Flags.make({ maybeSavedCanvas: Option.none() })),
+    ),
   )
-  const decoded = yield* Schema.decodeEffect(SavedCanvasJsonString)(json)
-  return Flags.make({ maybeSavedCanvas: Option.some(decoded) })
-}).pipe(
-  Effect.catch(() =>
-    Effect.succeed(Flags.make({ maybeSavedCanvas: Option.none() })),
-  ),
-  Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-)
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
-  model: {
+export const init = (flags: Flags) => ({
+  model: Model.make({
     grid: Option.match(flags.maybeSavedCanvas, {
       onNone: () => createEmptyGrid(DEFAULT_GRID_SIZE),
       onSome: ({ grid }) => grid,
@@ -78,7 +78,9 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
     toolRadioGroup: RadioGroup.init({ id: TOOL_RADIO_GROUP_ID }),
     gridSizeRadioGroup: RadioGroup.init({ id: GRID_SIZE_RADIO_GROUP_ID }),
     paletteRadioGroup: RadioGroup.init({ id: PALETTE_RADIO_GROUP_ID }),
-  },
+  }),
 })
 
 export { Message, Model, subscriptions, update, view }
+
+export const mounts = UI.mounts

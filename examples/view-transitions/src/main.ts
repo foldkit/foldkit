@@ -1,5 +1,5 @@
-import { Array, Effect, Option, Schema, String } from 'effect'
-import { Command, Runtime, type Update } from 'foldkit'
+import { Array, Effect, Layer, Option, Schema, String } from 'effect'
+import { Command, Runtime, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
@@ -34,37 +34,44 @@ export type Message = typeof Message.Type
 
 // INIT
 
-export const init: Runtime.RoutingApplicationInit<Model, Message> = (
-  url: Url,
-) => ({ model: { route: urlToAppRoute(url), filterText: '' } })
+export const init = (url: Url) => ({
+  model: Model.make({ route: urlToAppRoute(url), filterText: '' }),
+})
 
 // COMMAND
 
 const NavigateInternal = Command.define('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
-  execute: ({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+  handler: function* () {
+    return ({ url }) =>
+      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
+  },
 })
 
 const LoadExternal = Command.define('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
-  execute: ({ href }) =>
-    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+  handler: function* () {
+    return ({ href }) =>
+      load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
+  },
 })
+
+export const EffectsLayer = Layer.mergeAll(
+  NavigateInternal.layer,
+  LoadExternal.layer,
+)
 
 // UPDATE
 
-type UpdateReturn = Update.Return<Model, Message>
-
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
 
     ClickedLink: ({ request }) =>
-      UrlRequest.match<UpdateReturn>(request, {
+      UrlRequest.match(request, {
         Internal: ({ url }) => ({
           model,
           commands: [NavigateInternal({ url: urlToString(url) })],
@@ -82,7 +89,8 @@ export const update = (model: Model, message: Message) =>
     UpdatedFilterText: ({ filterText }) => ({
       model: modifyFields(model, { filterText: () => filterText }),
     }),
-  })
+  }),
+)
 
 // NOTE: every arm past the guard is a navigation, so none return `false`.
 // `true` is "animate, with no direction to declare": the root fade in

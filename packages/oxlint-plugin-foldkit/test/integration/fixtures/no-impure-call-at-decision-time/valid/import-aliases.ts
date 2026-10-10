@@ -9,16 +9,30 @@ export const secondEffect = EffectApi.sync(() => Math.random())
 
 export const FirstCommand = C.define('FirstCommand', {
   messages: [CompletedFirstCommand],
-  execute: () => Fx.succeed(CompletedFirstCommand({ timestamp: Date.now() })),
 })
+
+export const FirstCommandLayer = FirstCommand.toLayer(
+  Fx.succeed(() =>
+    Fx.succeed(CompletedFirstCommand({ timestamp: Date.now() })),
+  ),
+)
 
 export const SecondCommand = CommandApi.define('SecondCommand', {
   messages: [CompletedSecondCommand],
-  execute: () =>
-    Fx.succeed(CompletedSecondCommand({ id: crypto.randomUUID() })),
 })
+
+export const SecondCommandLayer = SecondCommand.toLayer(
+  Fx.succeed(() =>
+    Fx.succeed(CompletedSecondCommand({ id: crypto.randomUUID() })),
+  ),
+)
 
 export const Measure = MountApi.define('Measure', {
   messages: [CompletedMeasure],
-  execute: () => Fx.succeed(CompletedMeasure({ now: performance.now() })),
 })
+
+export const MeasureLayer = Measure.toLayer(
+  Fx.succeed(({ element }) =>
+    Fx.succeed(CompletedMeasure({ element, now: performance.now() })),
+  ),
+)

@@ -1,8 +1,8 @@
 // subscription.ts
-import { Effect, Option, Schema, Stream } from 'effect'
+import { Effect, Layer, Option, Schema, Stream } from 'effect'
 import { Dom, Subscription } from 'foldkit'
 
-import { ChangedSystemTheme, GotSettingsMessage, type Message } from './message'
+import { Message } from './message'
 import type { Model } from './model'
 import * as Settings from './settings'
 
@@ -11,25 +11,31 @@ const settingsSubscriptions = Subscription.lift(Settings.subscriptions)<
   Message
 >({
   read: model => Option.some(model.settings),
-  toParentMessage: message => GotSettingsMessage({ message }),
+  toParentMessage: message => Message.GotSettingsMessage({ message }),
 })
 
 const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
-  systemTheme: entry(
+  systemThemeChanges: entry(
+    'SystemThemeChanges',
     { isSystemPreference: Schema.Boolean },
     {
+      messages: [Message.ChangedSystemTheme],
       modelToDependencies: model => ({
         isSystemPreference: model.themePreference === 'System',
       }),
-      dependenciesToStream: ({ isSystemPreference }) =>
-        Stream.when(
-          Dom.streamFromMediaQuery({
-            query: '(prefers-color-scheme: dark)',
-            mapMatches: isDark =>
-              ChangedSystemTheme({ theme: isDark ? 'Dark' : 'Light' }),
-          }),
-          Effect.sync(() => isSystemPreference),
-        ),
+      handler: function* () {
+        return ({ isSystemPreference }) =>
+          Stream.when(
+            Dom.streamFromMediaQuery({
+              query: '(prefers-color-scheme: dark)',
+              mapMatches: isDark =>
+                Message.ChangedSystemTheme({
+                  theme: isDark ? 'Dark' : 'Light',
+                }),
+            }),
+            Effect.sync(() => isSystemPreference),
+          )
+      },
     },
   ),
 }))
@@ -37,4 +43,9 @@ const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
 export const subscriptions = Subscription.aggregate(
   settingsSubscriptions,
   localSubscriptions,
+)
+
+export const EffectsLayer = Layer.mergeAll(
+  Settings.EffectsLayer,
+  localSubscriptions.systemThemeChanges.layer,
 )

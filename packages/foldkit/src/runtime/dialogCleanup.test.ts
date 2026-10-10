@@ -1,11 +1,11 @@
-import { Effect, Fiber, Schema } from 'effect'
+import { Effect, Fiber, Layer, Schema } from 'effect'
 import { describe, expect, it, vi } from 'vitest'
 
 import * as Command from '../command/index.js'
 import * as Dom from '../dom/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import type * as Update from '../update/index.js'
-import { makeElement } from './makeElement.js'
+import * as Application from './application.js'
 
 const Model = Schema.Struct({})
 type Model = typeof Model.Type
@@ -20,43 +20,53 @@ type Message = typeof Message.Type
 
 const ShowDialog = Command.define('ShowDialog', {
   messages: [Message.SucceededShowDialog, Message.FailedShowDialog],
-  execute: Dom.lockScroll.pipe(
-    Effect.andThen(() => Dom.showDialog('#owned-dialog', { isModal: true })),
-    Effect.as(Message.SucceededShowDialog()),
-    Effect.catch(() =>
-      Dom.unlockScroll.pipe(Effect.as(Message.FailedShowDialog())),
+})
+
+const ShowDialogLayer = ShowDialog.toLayer(
+  Effect.succeed(() =>
+    Dom.lockScroll.pipe(
+      Effect.andThen(() => Dom.showDialog('#owned-dialog', { isModal: true })),
+      Effect.as(Message.SucceededShowDialog()),
+      Effect.catch(() =>
+        Dom.unlockScroll.pipe(Effect.as(Message.FailedShowDialog())),
+      ),
     ),
   ),
-})
+)
 
 const ShowNestedDialogs = Command.define('ShowNestedDialogs', {
   messages: [
     Message.SucceededShowNestedDialogs,
     Message.FailedShowNestedDialogs,
   ],
-  execute: Effect.gen(function* () {
-    yield* Dom.lockScroll
-    yield* Dom.showDialog('#parent-dialog', { isModal: true }).pipe(
-      Effect.onError(() => Dom.unlockScroll),
-    )
+})
 
-    yield* Dom.lockScroll
-    yield* Dom.showDialog('#child-dialog', { isModal: true }).pipe(
-      Effect.onError(() => Dom.unlockScroll),
-    )
+const ShowNestedDialogsLayer = ShowNestedDialogs.toLayer(
+  Effect.succeed(() =>
+    Effect.gen(function* () {
+      yield* Dom.lockScroll
+      yield* Dom.showDialog('#parent-dialog', { isModal: true }).pipe(
+        Effect.onError(() => Dom.unlockScroll),
+      )
 
-    return Message.SucceededShowNestedDialogs()
-  }).pipe(
-    Effect.catch(() =>
-      Dom.releaseDialogResources('parent-dialog').pipe(
-        Effect.as(Message.FailedShowNestedDialogs()),
+      yield* Dom.lockScroll
+      yield* Dom.showDialog('#child-dialog', { isModal: true }).pipe(
+        Effect.onError(() => Dom.unlockScroll),
+      )
+
+      return Message.SucceededShowNestedDialogs()
+    }).pipe(
+      Effect.catch(() =>
+        Dom.releaseDialogResources('parent-dialog').pipe(
+          Effect.as(Message.FailedShowNestedDialogs()),
+        ),
       ),
     ),
   ),
-})
+)
 
 const makeDialogProgram = (container: HTMLElement) =>
-  makeElement({
+  Application.makeElement({
     Model,
     init: () => ({ model: Model.make({}), commands: [ShowDialog()] }),
     update: (model: Model, message: Message) =>
@@ -72,7 +82,7 @@ const makeDialogProgram = (container: HTMLElement) =>
   })
 
 const makeNestedDialogProgram = (container: HTMLElement) =>
-  makeElement({
+  Application.makeElement({
     Model,
     init: () => ({ model: Model.make({}), commands: [ShowNestedDialogs()] }),
     update: (model: Model, message: Message) =>
@@ -108,7 +118,12 @@ describe('runtime dialog cleanup', () => {
     container.id = 'dialog-cleanup-app'
     document.body.append(background, container)
 
-    const runtime = Effect.runFork(makeDialogProgram(container).start())
+    const runtime = Effect.runFork(
+      Application.provide(
+        makeDialogProgram(container),
+        Layer.mergeAll(ShowDialogLayer, ShowNestedDialogsLayer),
+      ).start(),
+    )
     const disconnectObserver = vi.spyOn(
       MutationObserver.prototype,
       'disconnect',
@@ -150,7 +165,10 @@ describe('runtime dialog cleanup', () => {
     document.body.append(background, firstContainer)
 
     const firstRuntime = Effect.runFork(
-      makeDialogProgram(firstContainer).start(),
+      Application.provide(
+        makeDialogProgram(firstContainer),
+        Layer.mergeAll(ShowDialogLayer, ShowNestedDialogsLayer),
+      ).start(),
     )
     let secondRuntime: Fiber.Fiber<void, never> | undefined
 
@@ -171,7 +189,12 @@ describe('runtime dialog cleanup', () => {
       const secondContainer = document.createElement('div')
       secondContainer.id = 'second-dialog-app'
       document.body.appendChild(secondContainer)
-      secondRuntime = Effect.runFork(makeDialogProgram(secondContainer).start())
+      secondRuntime = Effect.runFork(
+        Application.provide(
+          makeDialogProgram(secondContainer),
+          Layer.mergeAll(ShowDialogLayer, ShowNestedDialogsLayer),
+        ).start(),
+      )
 
       await vi.waitFor(() => {
         expect(background.inert).toBe(true)
@@ -208,7 +231,12 @@ describe('runtime dialog cleanup', () => {
     document.body.append(trigger, container)
     trigger.focus()
 
-    const runtime = Effect.runFork(makeNestedDialogProgram(container).start())
+    const runtime = Effect.runFork(
+      Application.provide(
+        makeNestedDialogProgram(container),
+        Layer.mergeAll(ShowDialogLayer, ShowNestedDialogsLayer),
+      ).start(),
+    )
 
     try {
       await vi.waitFor(() => {

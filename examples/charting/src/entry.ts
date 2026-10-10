@@ -1,23 +1,25 @@
-import { Runtime } from 'foldkit'
+import { Application, Runtime } from 'foldkit'
 
 import { registerEcharts } from './echarts'
 import { init } from './init'
+import { AppLayer, mounts } from './layer'
 import { Message } from './message'
 import { Model } from './model'
 import { update } from './update'
-import { view } from './view/index'
+import { view } from './view'
 
 registerEcharts()
 
-const application = Runtime.makeApplication({
+const application = Application.make({
   Model,
   init,
   update,
   view,
+  mounts,
   container: document.getElementById('root'),
   devTools: {
     Message,
   },
 })
 
-Runtime.run(application)
+Runtime.run(Application.provide(application, AppLayer))

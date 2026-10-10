@@ -8,35 +8,37 @@ const validateEmail = validate(emailRules)
 const CheckEmailAvailable = Command.define('CheckEmailAvailable', {
   args: { email: Schema.String, validationId: Schema.Number },
   messages: [CompletedCheckEmailAvailable],
-  execute: ({ email, validationId }) =>
-    Effect.gen(function* () {
-      const isAvailable = yield* apiCheckEmail(email)
-      return CompletedCheckEmailAvailable({
-        validationId,
-        field: isAvailable
-          ? Valid({ value: email })
-          : Invalid({
-              value: email,
-              errors: ['This email is already taken'],
+  handler: function* () {
+    return ({ email, validationId }) =>
+      Effect.gen(function* () {
+        const isAvailable = yield* apiCheckEmail(email)
+        return CompletedCheckEmailAvailable({
+          validationId,
+          field: isAvailable
+            ? Valid({ value: email })
+            : Invalid({
+                value: email,
+                errors: ['This email is already taken'],
+              }),
+        })
+      }).pipe(
+        Effect.catch(() =>
+          Effect.succeed(
+            CompletedCheckEmailAvailable({
+              validationId,
+              field: Invalid({
+                value: email,
+                errors: ['Could not check this email. Try again.'],
+              }),
             }),
-      })
-    }).pipe(
-      Effect.catch(() =>
-        Effect.succeed(
-          CompletedCheckEmailAvailable({
-            validationId,
-            field: Invalid({
-              value: email,
-              errors: ['Could not check this email. Try again.'],
-            }),
-          }),
+          ),
         ),
-      ),
-    ),
+      )
+  },
 })
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ChangedEmail: ({ value }) => {
       const syncResult = validateEmail(value)
       const validationId = Number.increment(model.emailValidationId)
@@ -65,4 +67,5 @@ const update = (model: Model, message: Message) =>
         return { model }
       }
     },
-  })
+  }),
+)

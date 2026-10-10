@@ -1,14 +1,16 @@
-import { Runtime } from 'foldkit'
+import { Application, Runtime } from 'foldkit'
 
-const application = Runtime.makeApplication({
+import { Message } from './message'
+
+const application = Application.make({
   Model,
   init,
   update,
   view,
   container: document.getElementById('root'),
   routing: {
-    onUrlRequest: request => ClickedLink({ request }),
-    onUrlChange: url => ChangedUrl({ url }),
+    onUrlRequest: request => Message.ClickedLink({ request }),
+    onUrlChange: url => Message.ChangedUrl({ url }),
   },
   viewTransition: ({ message }) => message._tag === 'ChangedUrl',
 })

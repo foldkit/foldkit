@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { Array, Duration, Effect, Option, Schema, String, pipe } from 'effect'
-import { Command, FieldValidation, Submodel, type Update } from 'foldkit'
+import { Command, FieldValidation, Submodel, Update } from 'foldkit'
 import {
   Field,
   Invalid,
@@ -83,78 +83,80 @@ export const SimulateAuthRequest = Command.define('SimulateAuthRequest', {
     Message.SucceededSimulateAuthRequest,
     Message.FailedSimulateAuthRequest,
   ],
-  execute: ({ email, password }) =>
-    Effect.gen(function* () {
-      yield* Effect.sleep(Duration.seconds(1))
+  handler: function* () {
+    return ({ email, password }) =>
+      Effect.gen(function* () {
+        yield* Effect.sleep(Duration.seconds(1))
 
-      if (password !== 'password') {
-        return Message.FailedSimulateAuthRequest({
-          error: 'Invalid credentials',
-        })
-      }
+        if (password !== 'password') {
+          return Message.FailedSimulateAuthRequest({
+            error: 'Invalid credentials',
+          })
+        }
 
-      const name = pipe(
-        email,
-        String.split('@'),
-        Array.head,
-        Option.getOrElse(() => email),
-      )
+        const name = pipe(
+          email,
+          String.split('@'),
+          Array.head,
+          Option.getOrElse(() => email),
+        )
 
-      const session: Session = { userId: '1', email, name }
+        const session: Session = { userId: '1', email, name }
 
-      return Message.SucceededSimulateAuthRequest({ session })
-    }),
+        return Message.SucceededSimulateAuthRequest({ session })
+      })
+  },
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
-    message,
-    {
-      ChangedEmail: ({ value }) => ({
-        model: modifyFields(model, { email: () => validateEmail(value) }),
-      }),
+export const EffectsLayer = SimulateAuthRequest.layer
 
-      ChangedPassword: ({ value }) => ({
-        model: modifyFields(model, { password: () => validatePassword(value) }),
-      }),
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
+    ChangedEmail: ({ value }) => ({
+      model: modifyFields(model, { email: () => validateEmail(value) }),
+    }),
 
-      SubmittedForm: () => {
-        if (model.isSubmitting) {
-          return { model }
-        }
+    ChangedPassword: ({ value }) => ({
+      model: modifyFields(model, { password: () => validatePassword(value) }),
+    }),
 
-        if (!isFormValid(model)) {
-          return { model }
-        }
+    SubmittedForm: () => {
+      if (model.isSubmitting) {
+        return { model }
+      }
 
-        return {
-          model: modifyFields(model, { isSubmitting: () => true }),
-          commands: [
-            SimulateAuthRequest({
-              email: model.email.value,
-              password: model.password.value,
-            }),
-          ],
-        }
-      },
+      if (!isFormValid(model)) {
+        return { model }
+      }
 
-      SucceededSimulateAuthRequest: ({ session }) => ({
-        model,
-        outMessage: OutMessage.SucceededLogin({ session }),
-      }),
-
-      FailedSimulateAuthRequest: ({ error }) => ({
-        model: modifyFields(model, {
-          password: () =>
-            Invalid({
-              value: model.password.value,
-              errors: [error],
-            }),
-          isSubmitting: () => false,
-        }),
-      }),
+      return {
+        model: modifyFields(model, { isSubmitting: () => true }),
+        commands: [
+          SimulateAuthRequest({
+            email: model.email.value,
+            password: model.password.value,
+          }),
+        ],
+      }
     },
-  )
+
+    SucceededSimulateAuthRequest: ({ session }) => ({
+      model,
+      outMessage: OutMessage.SucceededLogin({ session }),
+    }),
+
+    FailedSimulateAuthRequest: ({ error }) => ({
+      model: modifyFields(model, {
+        password: () =>
+          Invalid({
+            value: model.password.value,
+            errors: [error],
+          }),
+        isSubmitting: () => false,
+      }),
+    }),
+  }),
+)
 
 // VIEW
 

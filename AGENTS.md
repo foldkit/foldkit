@@ -39,10 +39,11 @@ The principles below apply broadly. Calibrate to the right context: library desi
 - Messages are verb-first, past-tense facts: `SubmittedUsernameForm`, `CreatedRoom`, `PressedKey`. Verb prefixes: `Clicked*`, `Updated*`, `Succeeded*`/`Failed*` (when failure is meaningful), `Completed*` (every other Command result), `Got*` (child Submodel results only).
 - Never name a Message `NoOp`. This is a rule about the name, not about the behavior: a Message whose update handler changes nothing is fine and often necessary, and it gets a descriptive name stating the fact like any other. For example: `IgnoredMouseClick`, `SuppressedSpaceScroll`. Dispatch the Message even when update leaves the Model unchanged. `Completed*` mirrors the Command name verb-first: `LockScroll` produces `CompletedLockScroll`.
 - A Command's result Message is named from the Command, not from the fact it reports, and that holds whether or not it carries a payload: `DetermineStartTime` produces `CompletedDetermineStartTime`, never `DeterminedStartTime`. A Message with more than one cause is named for the fact, such as `EndedAnimation`, which both `WaitForAnimationSettled` and each component's `DetectMovementOrAnimationEnd` race produce. When a generic factory returns an instance-owned Command and Message namespace, name the result Message from the Command member rather than its generated runtime name. An instance suffix used only to distinguish runtime Command identities does not join the Message tag: `postsQuery.Fetch` has the runtime name `FetchPosts` and produces `postsQuery.Message.CompletedFetch`.
-- Commands are verb-first imperatives: `FetchWeather`, `FocusButton`, `LockScroll`. Name the effect the Command's execute body performs, not the later Model transition caused when update handles its result. A timer that only waits before update starts a dismissal is `WaitBeforeDismissal`, not `DismissAfter`.
+- Commands are verb-first imperatives: `FetchWeather`, `FocusButton`, `LockScroll`. Name the effect the Command's handler body performs, not the later Model transition caused when update handles its result. A timer that only waits before update starts a dismissal is `WaitBeforeDismissal`, not `DismissAfter`.
 - Mount Definitions are verb-first imperatives like Commands: `AnchorPopover`, `PortalPopoverBackdrop`, `SyncSidebarScroll`. Result Messages follow the standard Message convention.
 - Use names that are immediately understandable in context. Avoid opaque abbreviations and unexplained single-letter names: `callbacks`, not `cbs`; `context`, not `c`; `(tickCount)`, not `(t)`. Conventional technical shorthand is allowed when it is the normal spelling for the domain, including `attrs`, `props`, `args`, `dir`, `ctx`, `fn`, `DOM`, `URL`, and `VNode`. Established API and DSL bindings such as `h` are also allowed, as is `ih` for `inertHtml`, which reads as the inert counterpart to `h` and keeps the two builders distinguishable at every call site. Conventional single-letter Effect type parameters such as `A`, `E`, and `R` are allowed when they stand alone. When several parameters have the same role, spell out each complete semantic name and name it for its actual source, such as `ChildRequirements` and `OutMessageStepRequirements`, not `ChildR` and `ParentR`. Prefer a more precise semantic name when one exists, such as `toMessage` instead of `f`.
 - Don't suffix Command variables with `Command`. The type already says so.
+- Compose attached handler recipes directly as `Foo.layer` in a feature's `EffectsLayer`. Name a standalone provider binding `FooLayer` only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly, and name external test alternatives `FooTestLayer`. A feature's `layer.ts` imports its definitions and composes their `.layer` recipes. Access a feature's composed Layer through its namespace (`Search.EffectsLayer`). Name the assembled root provider `AppLayer` and an alternative test root `AppTestLayer`. Use `EffectsLayer` and `ServicesLayer` for intermediate root bundles. Reserve `Layer` for the Effect module.
 - Prefix `Option`-typed values with `maybe`. Never prefix `T | undefined` values with `nullable`; name them plainly and let the type carry the optionality.
 - Prefix booleans with `is`.
 - Name functions by their precise effect: `enqueueMessage`, not `addMessage`. A reader should never need to check a type signature to understand what a name refers to.
@@ -148,6 +149,7 @@ Don't add inline or block comments to explain code. If code needs explanation, r
 - `index.ts` is always a barrel; real code lives in a named file. For a module `foo/`, the shape is `foo/foo.ts` for the code and `foo/index.ts` for the barrel. Re-export the intended public names explicitly so adding an internal export does not silently expand the barrel. Use `export *` only when the whole module surface is intentionally public. Nest children as namespaces via `export * as Child from './child'`.
 - Extract Messages to a dedicated `message.ts` when Commands need Message constructors. This breaks the circular dependency between `command.ts` and `main.ts`.
 - Commands are colocated with the update function that returns them. Never centralize all Commands in one file.
+- Keep handlers attached to their definitions by passing the constructor Effect as the final `define` or `entry` argument, after the config. Do not put `handler` in the config. Compose attached `.layer` recipes directly in `EffectsLayer`. Compose a split feature's Layers in `layer.ts` and re-export `EffectsLayer` from its barrel; application entry imports the root `AppLayer`. Import Effect's Layer module as `Layer`.
 - Expose a `boot()` helper alongside `init()` when a submodel applies a boot-time Message. `init()` returns clean state with no boot effects. `boot()` applies the boot Message via `update` and returns the update record.
 
 ## Test Imports
@@ -158,6 +160,7 @@ Don't add inline or block comments to explain code. If code needs explanation, r
 
 ## Test Fixtures
 
+- Test framework contracts in `packages/foldkit/`. Do not add tests to example apps solely to verify handler construction, context propagation, or other framework internals.
 - Keep complete executable programs used by tests in source fixture files, not template strings embedded in test code. Supply per-test paths and values through data files or explicit inputs. Inline source strings are appropriate when the source text itself is what the test checks.
 
 ## Session Echoes
@@ -172,12 +175,12 @@ Don't add inline or block comments to explain code. If code needs explanation, r
 Five primitives: Command, Mount, Subscription, ManagedResource, CustomElement. Pick by what causes the side effect. The `skills/foldkit` skill and the docs at `packages/website/src/page/core/` cover this in depth. Read them when ambiguous. Quick rule:
 
 - A Message just dispatched? Command.
-- An element exists in the rendered tree, and `execute` uses the element to do DOM work? Mount. Use `Mount.define` for one-shot acquire-with-cleanup, `Mount.defineStream` for continuous events from listeners or observers. Both require at least one declared result Message.
+- An element exists in the rendered tree, and its handler uses the element to do DOM work? Mount. Use `Mount.define` for one-shot acquire-with-cleanup, `Mount.defineStream` for continuous events from listeners or observers. Both require at least one declared result Message.
 - An external event source gated by a Model condition? Subscription.
 - Model condition plus Commands need a stateful handle? ManagedResource.
 - Rendering a native web component? CustomElement.
 
-If a Mount's `execute` doesn't read or write its element, you've misidentified the cause. Mount args are captured at mount, not refreshed across renders.
+If a Mount's handler doesn't read or write its element, you've misidentified the cause. Mount args are captured at mount, not refreshed across renders.
 
 ## Reference Repos
 

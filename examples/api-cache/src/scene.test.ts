@@ -49,7 +49,7 @@ describe('view', () => {
       Command.expectExact(FetchPostDetail({ postId: 'first-post' })),
       Command.resolve(
         FetchPostDetail,
-        Message.SettledFetchPostDetail({
+        Message.CompletedFetchPostDetail({
           postId: 'first-post',
           result: Result.succeed({
             detail: firstPostDetail,
@@ -84,7 +84,7 @@ describe('view', () => {
       click(role('button', { name: /First Post/ })),
       Command.resolve(
         FetchPostDetail,
-        Message.SettledFetchPostDetail({
+        Message.CompletedFetchPostDetail({
           postId: 'first-post',
           result: Result.fail('The connection dropped.'),
         }),
@@ -104,7 +104,7 @@ describe('view', () => {
       Command.expectExact(FetchStats()),
       Command.resolve(
         FetchStats,
-        Message.SettledFetchStats({
+        Message.CompletedFetchStats({
           result: Result.succeed({
             stats: fixtureStats,
             fetchedAt: FETCHED_AT,

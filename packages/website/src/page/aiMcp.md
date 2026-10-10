@@ -44,7 +44,7 @@ If automatic discovery is unavailable, set a fixed `devToolsMcpPort` in `vite.co
 
 ::Snippet{name="aiMcpViteConfig" label="Vite configuration for a fixed port"}
 
-To let an agent dispatch Messages, pass the application's `Message` Schema to `Runtime.makeApplication`:
+To let an agent dispatch Messages, pass the application's `Message` Schema to `Application.make`:
 
 ::Snippet{name="aiMcpApplicationConfig" label="Application configuration"}
 

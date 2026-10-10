@@ -7,8 +7,8 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedPlaceOrder: () => ({
       model: modifyFields(model, {
         order: () => OrderData.Loading(),
@@ -28,4 +28,5 @@ const update = (model: Model, message: Message) =>
         order: () => OrderData.Failure({ error }),
       }),
     }),
-  })
+  }),
+)

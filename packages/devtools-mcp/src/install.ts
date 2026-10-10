@@ -48,7 +48,7 @@ const printNextSteps = (alreadyRegistered: boolean): void => {
   console.log('Next steps:')
   console.log('')
   console.log(
-    '  1. Pass your Message Schema to Runtime.makeApplication (enables dispatch):',
+    '  1. Pass your Message Schema to Application.make (enables dispatch):',
   )
   console.log('')
   console.log('       devTools: { Message }')

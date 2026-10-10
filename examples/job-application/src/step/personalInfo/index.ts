@@ -4,6 +4,7 @@ export {
   init,
   update,
   ValidateEmailAsync,
+  EffectsLayer,
   hasErrors,
   isComplete,
   revealErrors,

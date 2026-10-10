@@ -1,5 +1,5 @@
 import { Array, Number, Option, Result } from 'effect'
-import { Command, Update } from 'foldkit'
+import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { Slider } from '@foldkit/ui'
@@ -34,8 +34,6 @@ import {
 import { Message } from './message'
 import { Model, Particle, Point } from './model'
 import { fractalNoise } from './noise'
-
-type UpdateReturn = Update.Return<Model, Message>
 
 const computeFieldAngle = (
   point: Point,
@@ -174,11 +172,7 @@ const computeBurstHueAnchor = (elapsedSeconds: number): number =>
 const burstAngleAt = (index: number): number =>
   (index / BURST_PARTICLE_COUNT) * TWO_PI
 
-const spawnBurstParticles = (
-  x: number,
-  y: number,
-  hueAnchor: number,
-): ReadonlyArray<Command.Command<Message>> =>
+const spawnBurstParticles = (x: number, y: number, hueAnchor: number) =>
   Array.makeBy(BURST_PARTICLE_COUNT, index =>
     GenerateBurstParticle({
       x,
@@ -188,9 +182,7 @@ const spawnBurstParticles = (
     }),
   )
 
-const spawnAmbientParticles = (
-  particleCount: number,
-): ReadonlyArray<Command.Command<Message>> => {
+const spawnAmbientParticles = (particleCount: number) => {
   const missing = TARGET_PARTICLE_COUNT - particleCount
   const clamped = Math.max(0, Math.min(missing, SPAWN_PER_FRAME_MAX))
   return Array.makeBy(clamped, () => GenerateAmbientParticle())
@@ -202,7 +194,7 @@ const appendGeneratedParticle =
     generatedParticle:
       | typeof Message.CompletedGenerateAmbientParticle.Type
       | typeof Message.CompletedGenerateBurstParticle.Type,
-  ): UpdateReturn => {
+  ) => {
     const newParticle: Particle = {
       id: model.nextId,
       trail: [{ x: generatedParticle.x, y: generatedParticle.y }],
@@ -223,13 +215,15 @@ const appendGeneratedParticle =
     }
   }
 
-const foldFlowStrengthSliderOutMessage = Slider.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ChangedValue:
-    ({ value }) =>
-    model => ({ model: modifyFields(model, { flowStrength: () => value }) }),
-})
+const foldFlowStrengthSliderOutMessage = (
+  outMessage: typeof Slider.OutMessage.Type,
+) =>
+  Slider.OutMessage.match(outMessage, {
+    ChangedValue: ({ value }) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, { flowStrength: () => value }),
+      })),
+  })
 
 const foldFlowStrengthSlider = Update.foldChild({
   update: Slider.update,
@@ -240,13 +234,15 @@ const foldFlowStrengthSlider = Update.foldChild({
   foldOutMessage: foldFlowStrengthSliderOutMessage,
 })
 
-const foldNoiseScaleSliderOutMessage = Slider.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ChangedValue:
-    ({ value }) =>
-    model => ({ model: modifyFields(model, { noiseScale: () => value }) }),
-})
+const foldNoiseScaleSliderOutMessage = (
+  outMessage: typeof Slider.OutMessage.Type,
+) =>
+  Slider.OutMessage.match(outMessage, {
+    ChangedValue: ({ value }) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, { noiseScale: () => value }),
+      })),
+  })
 
 const foldNoiseScaleSlider = Update.foldChild({
   update: Slider.update,
@@ -257,8 +253,8 @@ const foldNoiseScaleSlider = Update.foldChild({
   foldOutMessage: foldNoiseScaleSliderOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     TickedFrame: ({ deltaTimeMs }) => {
       const deltaSeconds = cappedDeltaSeconds(deltaTimeMs)
       const nextElapsedSeconds = model.elapsedSeconds + deltaSeconds
@@ -317,4 +313,5 @@ export const update = (model: Model, message: Message) =>
 
     GotNoiseScaleSliderMessage: ({ message }) =>
       foldNoiseScaleSlider(model, message),
-  })
+  }),
+)

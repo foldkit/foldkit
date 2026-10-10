@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { Array, Duration, Effect, Match, Number, Schema, pipe } from 'effect'
-import { Command, Submodel, type Update } from 'foldkit'
+import { Command, Submodel, Update } from 'foldkit'
 import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -58,45 +58,52 @@ export const Message = defineMessageUnion({
   ClickedDemoIncrement: {},
   ChangedDemoResetDuration: { seconds: Schema.Number },
   ClickedDemoReset: {},
-  CompletedDelayAdvancePhase: { generation: Schema.Number },
+  CompletedDelayAdvanceAsyncCounterPhase: { generation: Schema.Number },
 })
 export type Message = typeof Message.Type
 
 // INIT
 
-type UpdateReturn = Update.Return<Model, Message>
-
-export const init = (): UpdateReturn => ({
-  model: {
+export const init = () => ({
+  model: Model.make({
     count: 0,
     isResetting: false,
     resetDuration: 2,
     phase: 'Idle',
     generation: 0,
     messageLog: [],
-  },
+  }),
 })
 
 // UPDATE
 
-const withUpdateReturn = Match.withReturnType<UpdateReturn>()
+export const DelayAdvanceAsyncCounterPhase = Command.define(
+  'DelayAdvanceAsyncCounterPhase',
+  {
+    args: { generation: Schema.Number, duration: Schema.DurationFromMillis },
+    messages: [Message.CompletedDelayAdvanceAsyncCounterPhase],
+    handler: function* () {
+      return ({ generation, duration }) =>
+        Effect.sleep(duration).pipe(
+          Effect.as(
+            Message.CompletedDelayAdvanceAsyncCounterPhase({ generation }),
+          ),
+        )
+    },
+  },
+)
 
-export const DelayAdvancePhase = Command.define('DelayAdvancePhase', {
-  args: { generation: Schema.Number, duration: Schema.DurationFromMillis },
-  messages: [Message.CompletedDelayAdvancePhase],
-  execute: ({ generation, duration }) =>
-    Effect.sleep(duration).pipe(
-      Effect.as(Message.CompletedDelayAdvancePhase({ generation })),
-    ),
-})
+export const EffectsLayer = DelayAdvanceAsyncCounterPhase.layer
+
+export type UpdateRequirements = Update.RequirementsOf<typeof update>
 
 const prependToLog =
   (entry: string) =>
   (messageLog: ReadonlyArray<string>): ReadonlyArray<string> =>
     pipe([entry, ...messageLog], Array.take(MAX_LOG_ENTRIES))
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedDemoIncrement: () => {
       const nextModel = modifyFields(model, {
         count: Number.increment,
@@ -107,7 +114,7 @@ export const update = (model: Model, message: Message) =>
       return {
         model: nextModel,
         commands: [
-          DelayAdvancePhase({
+          DelayAdvanceAsyncCounterPhase({
             generation: nextModel.generation,
             duration: Duration.fromInputUnsafe(PHASE_DURATION),
           }),
@@ -127,7 +134,7 @@ export const update = (model: Model, message: Message) =>
       return {
         model: nextModel,
         commands: [
-          DelayAdvancePhase({
+          DelayAdvanceAsyncCounterPhase({
             generation: nextModel.generation,
             duration: Duration.fromInputUnsafe(PHASE_DURATION),
           }),
@@ -145,7 +152,7 @@ export const update = (model: Model, message: Message) =>
       return {
         model: nextModel,
         commands: [
-          DelayAdvancePhase({
+          DelayAdvanceAsyncCounterPhase({
             generation: nextModel.generation,
             duration: Duration.fromInputUnsafe(PHASE_DURATION),
           }),
@@ -153,16 +160,15 @@ export const update = (model: Model, message: Message) =>
       }
     },
 
-    CompletedDelayAdvancePhase: ({ generation }) => {
+    CompletedDelayAdvanceAsyncCounterPhase: ({ generation }) => {
       if (generation !== model.generation) {
         return { model }
       } else {
         return Match.value(model.phase).pipe(
-          withUpdateReturn,
           Match.when('IncrementMessage', () => ({
             model: modifyFields(model, { phase: () => 'IncrementUpdate' }),
             commands: [
-              DelayAdvancePhase({
+              DelayAdvanceAsyncCounterPhase({
                 generation,
                 duration: Duration.fromInputUnsafe(PHASE_DURATION),
               }),
@@ -171,7 +177,7 @@ export const update = (model: Model, message: Message) =>
           Match.when('IncrementUpdate', () => ({
             model: modifyFields(model, { phase: () => 'IncrementModel' }),
             commands: [
-              DelayAdvancePhase({
+              DelayAdvanceAsyncCounterPhase({
                 generation,
                 duration: Duration.fromInputUnsafe(PHASE_DURATION),
               }),
@@ -183,7 +189,7 @@ export const update = (model: Model, message: Message) =>
           Match.when('DurationMessage', () => ({
             model: modifyFields(model, { phase: () => 'DurationUpdate' }),
             commands: [
-              DelayAdvancePhase({
+              DelayAdvanceAsyncCounterPhase({
                 generation,
                 duration: Duration.fromInputUnsafe(PHASE_DURATION),
               }),
@@ -192,7 +198,7 @@ export const update = (model: Model, message: Message) =>
           Match.when('DurationUpdate', () => ({
             model: modifyFields(model, { phase: () => 'DurationModel' }),
             commands: [
-              DelayAdvancePhase({
+              DelayAdvanceAsyncCounterPhase({
                 generation,
                 duration: Duration.fromInputUnsafe(PHASE_DURATION),
               }),
@@ -204,7 +210,7 @@ export const update = (model: Model, message: Message) =>
           Match.when('ResetMessage', () => ({
             model: modifyFields(model, { phase: () => 'ResetUpdate' }),
             commands: [
-              DelayAdvancePhase({
+              DelayAdvanceAsyncCounterPhase({
                 generation,
                 duration: Duration.fromInputUnsafe(PHASE_DURATION),
               }),
@@ -213,7 +219,7 @@ export const update = (model: Model, message: Message) =>
           Match.when('ResetUpdate', () => ({
             model: modifyFields(model, { phase: () => 'ResetCommand' }),
             commands: [
-              DelayAdvancePhase({
+              DelayAdvanceAsyncCounterPhase({
                 generation,
                 duration: Duration.fromInputUnsafe(
                   `${clampResetSeconds(model.resetDuration)} seconds`,
@@ -224,7 +230,7 @@ export const update = (model: Model, message: Message) =>
           Match.when('ResetCommand', () => ({
             model: modifyFields(model, { phase: () => 'ResetCommandMessage' }),
             commands: [
-              DelayAdvancePhase({
+              DelayAdvanceAsyncCounterPhase({
                 generation,
                 duration: Duration.fromInputUnsafe(PHASE_DURATION),
               }),
@@ -236,7 +242,7 @@ export const update = (model: Model, message: Message) =>
               messageLog: prependToLog('CompletedDelayReset'),
             }),
             commands: [
-              DelayAdvancePhase({
+              DelayAdvanceAsyncCounterPhase({
                 generation,
                 duration: Duration.fromInputUnsafe(PHASE_DURATION),
               }),
@@ -249,7 +255,7 @@ export const update = (model: Model, message: Message) =>
               phase: () => 'ResetModel',
             }),
             commands: [
-              DelayAdvancePhase({
+              DelayAdvanceAsyncCounterPhase({
                 generation,
                 duration: Duration.fromInputUnsafe(PHASE_DURATION),
               }),
@@ -263,7 +269,8 @@ export const update = (model: Model, message: Message) =>
         )
       }
     },
-  })
+  }),
+)
 
 // VIEW
 

@@ -1,6 +1,7 @@
 import {
   Array,
   Effect,
+  Fiber,
   Option,
   PubSub,
   Schema,
@@ -154,11 +155,18 @@ export const makeDevToolsIntegration = <Model, Message>({
     // stay a bare comparison.
     let devToolsStore: DevToolsStore | null = null
 
+    const mountFibers = new Set<Fiber.Fiber<void>>()
+
     const mountRuntime = MountRuntime.of({
       captureViewStateChanges: () =>
         Stream.concat(Stream.make(currentViewState), viewStateChanges).pipe(
           Stream.changes,
         ),
+      registerFiber: fiber => {
+        mountFibers.add(fiber)
+        fiber.addObserver(() => mountFibers.delete(fiber))
+      },
+      interruptFibers: Effect.suspend(() => Fiber.interruptAll(mountFibers)),
     })
 
     const isPausedNow = (): boolean =>

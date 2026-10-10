@@ -8,7 +8,7 @@ import * as Animation from '../animation/index.js'
 import { Message, SwipeState, make } from './index.js'
 
 const TestPayload = Schema.Struct({ body: Schema.String })
-const Toast = make(TestPayload)
+const Toast = make('TestToast', TestPayload)
 
 type Model = typeof Toast.Model.Type
 type Entry = typeof Toast.Entry.Type
@@ -58,7 +58,7 @@ describe('Toast Subscriptions', () => {
         Effect.sync(() => {
           received.push(message)
         }),
-      ),
+      ).pipe(Effect.provide(Toast.EffectsLayer)),
     )
 
     try {
@@ -93,7 +93,9 @@ describe('Toast Subscriptions', () => {
     expect(dependencies.isAnyDragging).toBe(true)
     const stream =
       Toast.subscriptions.swipePointer.dependenciesToStream(dependencies)
-    const fiber = Effect.runFork(Stream.runDrain(stream))
+    const fiber = Effect.runFork(
+      Stream.runDrain(stream).pipe(Effect.provide(Toast.EffectsLayer)),
+    )
 
     try {
       await vi.waitFor(() => {

@@ -1,5 +1,5 @@
-import { Effect, Schema, pipe } from 'effect'
-import { Command, Runtime, type Update } from 'foldkit'
+import { Effect, Layer, Schema, pipe } from 'effect'
+import { Command, Runtime, Update } from 'foldkit'
 import { type Document, type Html, type HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
@@ -39,28 +39,35 @@ export const init: Runtime.RoutingApplicationInit<Model, Message> = url => ({
 const NavigateInternal = Command.define('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
-  execute: ({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+  handler: function* () {
+    return ({ url }) =>
+      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
+  },
 })
 
 const LoadExternal = Command.define('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
-  execute: ({ href }) =>
-    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+  handler: function* () {
+    return ({ href }) =>
+      load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
+  },
 })
+
+export const EffectsLayer = Layer.mergeAll(
+  NavigateInternal.layer,
+  LoadExternal.layer,
+)
 
 // UPDATE
 
-type UpdateReturn = Update.Return<Model, Message>
-
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: count => count + 1 }),
     }),
     ClickedLink: ({ request }) =>
-      UrlRequest.match<UpdateReturn>(request, {
+      UrlRequest.match(request, {
         Internal: ({ url }) => ({
           model,
           commands: [NavigateInternal({ url: urlToString(url) })],
@@ -75,7 +82,8 @@ export const update = (model: Model, message: Message) =>
     }),
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
-  })
+  }),
+)
 
 // VIEW
 

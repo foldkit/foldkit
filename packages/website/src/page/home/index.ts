@@ -1,4 +1,5 @@
 export { init } from './init'
+export { EffectsLayer } from './layer'
 export { managedResources } from './managedResources'
 export { Message, OutMessage } from './message'
 export { Model } from './model'

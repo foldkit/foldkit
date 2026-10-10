@@ -4,6 +4,7 @@ import { defineView } from 'foldkit/submodel'
 
 import { Message, Model, OutMessage, TransitionState, init } from './schema.js'
 import {
+  EffectsLayer,
   WaitForAnimationSettled,
   WaitForPaint,
   defaultLeaveCommand,
@@ -19,6 +20,7 @@ export { init, Message, Model, OutMessage, TransitionState }
 export {
   WaitForAnimationSettled,
   WaitForPaint,
+  EffectsLayer,
   defaultLeaveCommand,
   hide,
   show,

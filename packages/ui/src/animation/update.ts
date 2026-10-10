@@ -1,5 +1,5 @@
-import { Effect, Match, Number, Schema } from 'effect'
-import { type Update } from 'foldkit'
+import { Effect, Layer, Match, Number, Schema } from 'effect'
+import { Update } from 'foldkit'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
 import * as Render from 'foldkit/render'
@@ -18,19 +18,19 @@ import {
 
 const elementSelector = (id: string): string => idSelector(id)
 
-type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
-const withUpdateReturn = Match.withReturnType<UpdateReturn>()
-
 /** Waits for paint via double-rAF, then reports the transition generation that
  *  scheduled the wait. */
 export const WaitForPaint = Command.define('WaitForPaint', {
   args: { generation: Schema.Number },
   messages: [Message.CompletedWaitForPaint],
-  execute: ({ generation }) =>
-    Render.afterPaint.pipe(
-      Effect.as(Message.CompletedWaitForPaint({ generation })),
-    ),
+  handler: function* () {
+    return ({ generation }) =>
+      Render.afterPaint.pipe(
+        Effect.as(Message.CompletedWaitForPaint({ generation })),
+      )
+  },
 })
+
 /** Waits for all CSS transitions and keyframe animations on the element to
  *  settle, then reports the transition generation that scheduled the wait. */
 export const WaitForAnimationSettled = Command.define(
@@ -38,11 +38,19 @@ export const WaitForAnimationSettled = Command.define(
   {
     args: { id: Schema.String, generation: Schema.Number },
     messages: [Message.EndedAnimation],
-    execute: ({ id, generation }) =>
-      Dom.waitForAnimationSettled(elementSelector(id)).pipe(
-        Effect.as(Message.EndedAnimation({ generation })),
-      ),
+    handler: function* () {
+      return ({ id, generation }) =>
+        Dom.waitForAnimationSettled(elementSelector(id)).pipe(
+          Effect.as(Message.EndedAnimation({ generation })),
+        )
+    },
   },
+)
+
+/** Effect providers used by the Animation component. */
+export const EffectsLayer = Layer.mergeAll(
+  WaitForPaint.layer,
+  WaitForAnimationSettled.layer,
 )
 
 /** Processes an Animation Message and returns the next Model, optional
@@ -50,13 +58,8 @@ export const WaitForAnimationSettled = Command.define(
  *  but cannot finish one, so direct calls with either Message return a plain
  *  update result. Results from an earlier transition generation leave the Model
  *  unchanged. */
-export function update(
-  model: Model,
-  message: Showed | Hid,
-): Update.Return<Model, Message>
-export function update(model: Model, message: Message): UpdateReturn
-export function update(model: Model, message: Message): UpdateReturn {
-  return Message.match<UpdateReturn>(message, {
+const updateInferred = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     Showed: () => {
       if (model.isShowing) {
         return { model }
@@ -105,7 +108,6 @@ export function update(model: Model, message: Message): UpdateReturn {
       }
 
       return Match.value(model.transitionState).pipe(
-        withUpdateReturn,
         Match.when('EnterStart', () => ({
           model: modifyFields(model, {
             transitionState: () => 'EnterAnimating',
@@ -135,7 +137,6 @@ export function update(model: Model, message: Message): UpdateReturn {
       }
 
       return Match.value(model.transitionState).pipe(
-        withUpdateReturn,
         Match.when('EnterAnimating', () => ({
           model: modifyFields(model, { transitionState: () => 'Idle' }),
         })),
@@ -146,19 +147,34 @@ export function update(model: Model, message: Message): UpdateReturn {
         Match.orElse(() => ({ model })),
       )
     },
-  })
+  }),
+)
+
+type UpdateRequirements = Update.RequirementsOf<typeof updateInferred>
+type UpdateReturn = Update.ReturnWithOutMessage<
+  Model,
+  Message,
+  OutMessage,
+  UpdateRequirements
+>
+
+export function update(
+  model: Model,
+  message: Showed | Hid,
+): Update.Return<Model, Message, UpdateRequirements>
+export function update(model: Model, message: Message): UpdateReturn
+export function update(model: Model, message: Message): UpdateReturn {
+  return updateInferred(model, message)
 }
 
 /** Programmatically starts the enter lifecycle. */
-export const show = (model: Model): Update.Return<Model, Message> =>
-  update(model, Message.Showed())
+export const show = (model: Model) => update(model, Message.Showed())
 
 /** Programmatically starts the leave lifecycle. */
-export const hide = (model: Model): Update.Return<Model, Message> =>
-  update(model, Message.Hid())
+export const hide = (model: Model) => update(model, Message.Hid())
 
 /** Toggles the animation between its shown and hidden states. */
-export const toggle = (model: Model): Update.Return<Model, Message> => {
+export const toggle = (model: Model) => {
   if (model.isShowing) {
     return hide(model)
   } else {
@@ -169,7 +185,7 @@ export const toggle = (model: Model): Update.Return<Model, Message> => {
 /** Creates the standard leave Command for the Model's current transition. Use
  *  this when handling `StartedLeaveAnimating` unless the component needs its
  *  own settlement strategy. */
-export const defaultLeaveCommand = (model: Model): Command.Command<Message> =>
+export const defaultLeaveCommand = (model: Model) =>
   WaitForAnimationSettled({
     id: model.id,
     generation: model.transitionGeneration,

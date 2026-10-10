@@ -18,7 +18,7 @@ import {
 const TestPayload = Schema.Struct({ body: Schema.String })
 type TestPayload = typeof TestPayload.Type
 
-const Toast = make(TestPayload)
+const Toast = make('TestToast', TestPayload)
 
 type Model = typeof Toast.Model.Type
 type Entry = typeof Toast.Entry.Type

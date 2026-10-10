@@ -17,10 +17,8 @@ const foldLogin = Update.foldChild({
   }),
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
-    message,
-    {
-      GotLoginMessage: ({ message }) => foldLogin(model, message),
-    },
-  )
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
+    GotLoginMessage: ({ message }) => foldLogin(model, message),
+  }),
+)

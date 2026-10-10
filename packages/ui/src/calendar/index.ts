@@ -2,6 +2,7 @@ import {
   Array,
   Effect,
   Function,
+  Layer,
   Match,
   Number,
   Option,
@@ -135,9 +136,6 @@ export const init = (config: InitConfig): Model => {
 
 // UPDATE
 
-type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
-const withUpdateReturn = Match.withReturnType<UpdateReturn>()
-
 const gridId = (modelId: string): string => `${modelId}-grid`
 const gridSelector = (modelId: string): string => idSelector(gridId(modelId))
 
@@ -146,12 +144,17 @@ const gridSelector = (modelId: string): string => idSelector(gridId(modelId))
 export const FocusGrid = Command.define('FocusGrid', {
   args: { id: Schema.String },
   messages: [Message.CompletedFocusGrid],
-  execute: ({ id }) =>
-    Dom.focus(gridSelector(id)).pipe(
-      Effect.ignore,
-      Effect.as(Message.CompletedFocusGrid()),
-    ),
+  handler: function* () {
+    return ({ id }) =>
+      Dom.focus(gridSelector(id)).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedFocusGrid()),
+      )
+  },
 })
+
+/** Effect providers used by the Calendar component. */
+export const EffectsLayer = Layer.mergeAll(FocusGrid.layer)
 
 /** Programmatically selects a date on the calendar, committing it as the
  * chosen value and moving the cursor onto it. Use this in controlled-mode
@@ -159,7 +162,7 @@ export const FocusGrid = Command.define('FocusGrid', {
  * the selection back to the calendar's internal state.
  *
  * Equivalent to dispatching `ClickedDay({ date })` through `update`. */
-export const selectDate = (model: Model, date: CalendarDate): UpdateReturn =>
+export const selectDate = (model: Model, date: CalendarDate) =>
   update(model, Message.ClickedDay({ date }))
 
 /** Moves the calendar's view and cursor to a date without changing the
@@ -359,7 +362,7 @@ const currentOrFallbackFocus = (model: Model): CalendarDate =>
  * month boundary. Always emits `SelectedDate` carrying the committed date;
  * the parent infers month transitions from the date itself rather than from
  * a separate `ChangedViewMonth` signal that would race with the selection. */
-const commitSelection = (model: Model, date: CalendarDate): UpdateReturn => ({
+const commitSelection = (model: Model, date: CalendarDate) => ({
   model: modifyFields(model, {
     maybeFocusedDate: () => Option.some(date),
     viewYear: () => date.year,
@@ -376,7 +379,7 @@ const applyFocusMove = (
   candidate: CalendarDate,
   direction: 1 | -1,
   cap: number,
-): UpdateReturn => {
+) => {
   const clamped = clampToRange(model, candidate)
   const nextFocus = skipDisabled(model, clamped, direction, cap)
   const crossedMonth =
@@ -482,10 +485,7 @@ const resolveYearsKey = (key: string): Option.Option<number> =>
 /** Applies a months-grid focus shift, updating `maybeFocusedDate` and
  * `viewYear` to reflect the new focused date. `viewMonth` is preserved.
  * Months mode keyboard navigation moves the cursor without committing. */
-const applyMonthsFocusShift = (
-  model: Model,
-  monthShift: number,
-): UpdateReturn => {
+const applyMonthsFocusShift = (model: Model, monthShift: number) => {
   const focused = currentOrFallbackFocus(model)
   const nextFocus = Calendar.addMonths(focused, monthShift)
   return {
@@ -500,10 +500,7 @@ const applyMonthsFocusShift = (
  * `viewYear` is preserved so the "selected" highlight (`year === viewYear`)
  * stays on the calendar's centered year while the cursor moves freely. The
  * visible 12-year page is derived from the cursor in the view layer. */
-const applyYearsFocusShift = (
-  model: Model,
-  yearShift: number,
-): UpdateReturn => {
+const applyYearsFocusShift = (model: Model, yearShift: number) => {
   const focused = currentOrFallbackFocus(model)
   const nextFocus = Calendar.addYears(focused, yearShift)
   return {
@@ -515,8 +512,8 @@ const applyYearsFocusShift = (
 
 /** Processes a Calendar Message and returns the next Model, optional Commands,
  *  and an optional OutMessage. */
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedDay: ({ date }) => {
       if (isDateDisabled(model, date)) {
         return { model }
@@ -527,7 +524,6 @@ export const update = (model: Model, message: Message) =>
 
     PressedKeyOnGrid: ({ key, isShift }) =>
       Match.value(model.viewMode).pipe(
-        withUpdateReturn,
         Match.when('Days', () => {
           const focused = currentOrFallbackFocus(model)
 
@@ -586,7 +582,6 @@ export const update = (model: Model, message: Message) =>
 
     ClickedHeading: () =>
       Match.value(model.viewMode).pipe(
-        withUpdateReturn,
         Match.when('Days', () => ({
           model: modifyFields(model, { viewMode: () => 'Months' }),
           commands: [FocusGrid({ id: model.id })],
@@ -609,7 +604,7 @@ export const update = (model: Model, message: Message) =>
           month,
           jumpDirection(model, model.viewYear, month),
         )
-        const monthSelection: Update.Return<Model, Message> = {
+        const monthSelection = {
           model: modifyFields(viewMonthChange.model, {
             viewMode: () => 'Days',
           }),
@@ -633,7 +628,7 @@ export const update = (model: Model, message: Message) =>
           model.viewMonth,
           jumpDirection(model, year, model.viewMonth),
         )
-        const yearSelection: Update.Return<Model, Message> = {
+        const yearSelection = {
           model: modifyFields(yearViewMonthChange.model, {
             viewMode: () => 'Months',
           }),
@@ -663,7 +658,8 @@ export const update = (model: Model, message: Message) =>
     }),
 
     CompletedFocusGrid: () => ({ model }),
-  })
+  }),
+)
 
 // VIEW
 

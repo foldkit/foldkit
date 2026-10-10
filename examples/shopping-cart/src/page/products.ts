@@ -1,5 +1,5 @@
 import { Array, Effect, Option, Schema } from 'effect'
-import { Command, Submodel, type Update } from 'foldkit'
+import { Command, Submodel, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { replaceUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
@@ -55,45 +55,50 @@ export const init = (products: ReadonlyArray<Item.Item>): Model => ({
 export const ReplaceSearchUrl = Command.define('ReplaceSearchUrl', {
   args: { url: Schema.String },
   messages: [Message.CompletedReplaceSearchUrl],
-  execute: ({ url }) =>
-    replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceSearchUrl())),
+  handler: function* () {
+    return ({ url }) =>
+      replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceSearchUrl()))
+  },
 })
+
+export const EffectsLayer = ReplaceSearchUrl.layer
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
-    message,
-    {
-      CompletedReplaceSearchUrl: () => ({ model }),
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
+    CompletedReplaceSearchUrl: () => ({ model }),
 
-      ChangedSearchInput: ({ value }) => ({
-        model: modifyFields(model, { searchText: () => value }),
-        commands: [
-          ReplaceSearchUrl({
-            url: productsRouter({
-              searchText: Option.fromNullishOr(value || null),
-            }),
+    ChangedSearchInput: ({ value }) => ({
+      model: modifyFields(model, { searchText: () => value }),
+      commands: [
+        ReplaceSearchUrl({
+          url: productsRouter({
+            searchText: Option.filter(
+              Option.some(value),
+              value => value !== '',
+            ),
           }),
-        ],
-      }),
+        }),
+      ],
+    }),
 
-      ClickedAddToCart: ({ item }) => ({
-        model,
-        outMessage: OutMessage.AddedToCart({ item }),
-      }),
+    ClickedAddToCart: ({ item }) => ({
+      model,
+      outMessage: OutMessage.AddedToCart({ item }),
+    }),
 
-      ClickedIncrementQuantity: ({ itemId }) => ({
-        model,
-        outMessage: OutMessage.IncrementedQuantity({ itemId }),
-      }),
+    ClickedIncrementQuantity: ({ itemId }) => ({
+      model,
+      outMessage: OutMessage.IncrementedQuantity({ itemId }),
+    }),
 
-      ClickedDecrementQuantity: ({ itemId }) => ({
-        model,
-        outMessage: OutMessage.DecrementedQuantity({ itemId }),
-      }),
-    },
-  )
+    ClickedDecrementQuantity: ({ itemId }) => ({
+      model,
+      outMessage: OutMessage.DecrementedQuantity({ itemId }),
+    }),
+  }),
+)
 
 // VIEW
 

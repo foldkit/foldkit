@@ -20,7 +20,7 @@ Avoid imperative names such as `SetCartItems`, `UpdateSearchText`, and `MutateUs
 
 For an infallible Command, add `Completed` to the Command name. `FocusSearchInput` produces `CompletedFocusSearchInput`, and `LockScroll` produces `CompletedLockScroll`.
 
-Name the Command for what its `execute` body does, not the later Model transition. A timer that only waits before update begins a dismissal is `WaitBeforeDismissal`, not `DismissAfter`. Its result is `CompletedWaitBeforeDismissal`.
+Name the Command for what its handler does, not the later Model transition. A timer that only waits before update begins a dismissal is `WaitBeforeDismissal`, not `DismissAfter`. Its result is `CompletedWaitBeforeDismissal`.
 
 A payload does not change the rule. `DetermineStartTime` produces `CompletedDetermineStartTime({ startTime })`, and `GenerateCardId` produces `CompletedGenerateCardId({ cardId })`. Names such as `DeterminedStartTime` hide the Command-to-Message pair.
 

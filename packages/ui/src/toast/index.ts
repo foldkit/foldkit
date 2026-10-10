@@ -40,6 +40,7 @@ export {
 export {
   WaitBeforeDismissal,
   WaitForSwipeSettled,
+  EffectsLayer,
   swipeOffset,
 } from './update.js'
 
@@ -123,10 +124,13 @@ const DEFAULT_ARIA_LABEL = 'Notifications'
 
 const LEFT_MOUSE_BUTTON = 0
 
-/** Factory that binds `Toast` to a user-provided payload schema. The
+/** Factory that binds `Toast` to a stable instance name and user-provided
+ *  payload schema. The name identifies this instance's Subscription handlers,
+ *  so every Toast instance in an application must use a distinct name. The
  *  returned module contains everything needed to wire a toast stack into an
  *  app: `Model`, `Message`, `Entry`, `Added`, `init`, `update`, `show` /
- *  `dismiss` / `dismissAll` helpers, and the headless `view`.
+ *  `dismiss` / `dismissAll` helpers, the headless `view`, `subscriptions`, and
+ *  `EffectsLayer`.
  *
  *  The payload is whatever content shape the consumer supplies via Schema.
  *  The component never reads it. It flows through to `entryToView`. The
@@ -149,11 +153,14 @@ const LEFT_MOUSE_BUTTON = 0
  *      text: Schema.String,
  *    })),
  *  })
- *  export const Toast = Toast.make(ToastPayload)
+ *  export const Toast = Toast.make('AppToast', ToastPayload)
  *  ```
  */
-export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
-  const toast = makeRuntime(payloadSchema)
+export const make = <const Name extends string, A, I>(
+  name: Name,
+  payloadSchema: Schema.Codec<A, I>,
+) => {
+  const toast = makeRuntime(name, payloadSchema)
   type Entry = typeof toast.Entry.Type
 
   type ToastModel = typeof toast.Model.Type
@@ -338,5 +345,5 @@ export const make = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   return {
     ...toast,
     view,
-  } as const
+  }
 }

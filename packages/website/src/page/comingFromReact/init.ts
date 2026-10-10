@@ -1,5 +1,5 @@
 import { Array, Record, pipe } from 'effect'
-import { type Update } from 'foldkit'
+import { Update } from 'foldkit'
 
 import { FAQ_IDS } from './faq'
 import type { Message } from './message'

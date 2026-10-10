@@ -3,5 +3,7 @@ const postQuery = Query.define({
   data: Post,
   error: Schema.String,
   args: { postId: Schema.String },
-  execute: ({ postId }) => fetchPost(postId),
+  handler: function* () {
+    return ({ postId }) => fetchPost(postId)
+  },
 })

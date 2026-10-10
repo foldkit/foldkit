@@ -8,7 +8,13 @@ The [embedding example](/example-apps/embedding) runs everything on this page: a
 
 ## Choosing an Entry Point
 
-Embedded apps are usually built with `makeElement`: the view returns `Html` and the runtime stays scoped to its container, never touching the document `<head>`, the URL bar, or anything else the host owns. Use `makeApplication` only when the embedded app should own page-level concerns like the document title. `embed` accepts programs from both.
+Embedded apps are usually built with `Application.makeElement`: the view returns `Html` and the runtime stays scoped to its container, never touching the document `<head>`, the URL bar, or anything else the host owns. Use `Application.make` when the embedded app should own page-level concerns like the document title. `embed` accepts programs from both. Both forms carry their Effect requirements until `Application.provide` supplies the needed Layers.
+
+## Providing Host Implementations
+
+An embedded feature can declare a Command whose implementation belongs to its host. For example, an editor can request `SaveDocument` while the host supplies the persistence handler through `SaveDocument.toLayer`. The handler returns the editor's declared result Messages, which its update handles through the usual data flow.
+
+Provide that handler and its required services before calling `Runtime.embed`. [Host implementations for reusable features](/core/layers#host-implementations-for-reusable-features) shows the feature contract and a browser-storage host. When the feature owns the handler's workflow, provide its attached `.layer` and choose the underlying services at the host boundary instead.
 
 ## Declaring Ports
 
@@ -22,15 +28,15 @@ Host interop maps onto primitives the architecture already has. Data crosses the
 
 ### Flags: Initial Data In {#flags}
 
-Data the app needs once, at startup, enters through `Flags`, exactly as in a page-owning app. The host passes values when it constructs the program, and `init` folds them into the initial Model.
+Data the app needs once, at startup, enters through `Flags`, exactly as in a page-owning app. The host passes values when it constructs the program, and `init` folds them into the initial Model. An embedded Element config includes its Flags Effect; any services that Effect requires join the Element's requirements.
 
 ### Inbound Ports: a Subscription {#inbound-ports}
 
-Data the host pushes while the app runs arrives on an inbound Port, which the app consumes as a Subscription source. `Port.subscriptionEntry` wraps every value into a Message, so host input drives `update` the same way any other external event does:
+Data the host pushes while the app runs arrives on an inbound Port, which the app consumes as a named Subscription source. `Port.stream(port)` produces the decoded values. The Subscription handler maps each value into a Message, so host input drives `update` the same way any other external event does:
 
 ::Snippet{name="embeddingInboundSubscription" label="Inbound Subscription"}
 
-For a Model-gated entry, build one from `Port.stream` inside `Subscription.make`. Values sent while no Stream for the Port is running are dropped, with one exception: values sent before the first Stream attaches are buffered and delivered to it in order, so sends issued right after `embed` are not lost during startup.
+Values sent while no Stream for the Port is running are dropped, with one exception: values sent before the first Stream attaches are buffered and delivered to it in order, so sends issued right after `embed` are not lost during startup.
 
 ### Outbound Ports: a Command {#outbound-ports}
 

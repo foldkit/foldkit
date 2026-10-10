@@ -40,7 +40,7 @@ export const init = (config: InitConfig): Model => baseInit(config)
  *  membership.
  *  Closing never emits `ClearedSelection` because its input rests empty by
  *  design. Clear the selection by toggling each value off. */
-export const update = makeUpdate<Model>({
+export const update = makeUpdate<Model>('KeepOpen', {
   handleClose: model => ({
     model: modifyFields(closedBaseModel(model), { inputValue: () => '' }),
   }),
@@ -87,7 +87,8 @@ const internalView = makeView<Model>({ ariaMultiSelectable: true })
 type BundleUpdateReturn<Item extends string> = Update.ReturnWithOutMessage<
   Model,
   Message,
-  OutMessage<Item>
+  OutMessage<Item>,
+  Update.RequirementsOf<typeof update>
 >
 
 /** The `view`, `update`, and programmatic helpers that
@@ -110,7 +111,8 @@ export const create = <Item extends string = string>(): Bundle<Item> => {
   type UpdateReturn = Update.ReturnWithOutMessage<
     Model,
     Message,
-    OutMessage<Item>
+    OutMessage<Item>,
+    Update.RequirementsOf<typeof update>
   >
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const typedUpdate = update as (model: Model, message: Message) => UpdateReturn

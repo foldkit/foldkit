@@ -17,6 +17,8 @@ export {
   type PressedPointerOnTrigger,
   WaitBeforeShowing,
   AnchorTooltip,
+  EffectsLayer,
+  mounts,
 } from './index.js'
 
 export type { InitConfig, ViewInputs, RenderInfo } from './index.js'

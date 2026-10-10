@@ -8,13 +8,12 @@ import {
   Option,
   Schema,
 } from 'effect'
-import { Command, ManagedResource, Runtime, type Update } from 'foldkit'
+import { Command, ManagedResource, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
-import { BrowserCrypto } from '@effect/platform-browser'
 import { Button } from '@foldkit/ui'
 
 // ENGINE
@@ -29,7 +28,11 @@ class ComputeEngineService extends Context.Service<
   ComputeEngine
 >()('ComputeEngineService') {}
 
-const engineLayer: Layer.Layer<ComputeEngineService> = Layer.effect(
+const ComputeEngineLayer: Layer.Layer<
+  ComputeEngineService,
+  never,
+  Crypto.Crypto
+> = Layer.effect(
   ComputeEngineService,
   Effect.acquireRelease(
     Effect.gen(function* () {
@@ -37,13 +40,12 @@ const engineLayer: Layer.Layer<ComputeEngineService> = Layer.effect(
       const id = yield* Effect.orDie(crypto.randomUUIDv4)
       const engineId = `engine-${id.slice(0, 8)}`
       return { engineId, square: (value: number) => value * value }
-    }).pipe(Effect.provide(BrowserCrypto.layer)),
+    }),
     ({ engineId }) => Effect.log(`Tore down ${engineId}`),
   ),
 )
 
 const Engine = ManagedResource.tag<ComputeEngine>()('ComputeEngine')
-type EngineService = ManagedResource.ServiceOf<typeof Engine>
 
 // MODEL
 
@@ -71,8 +73,8 @@ export const Message = defineMessageUnion({
   StoppedEngine: {},
   FailedStartEngine: { reason: Schema.String },
   ClickedCompute: {},
-  CompletedCompute: { result: Schema.Number },
-  SkippedCompute: {},
+  SucceededCompute: { result: Schema.Number },
+  FailedCompute: {},
 })
 
 export type Message = typeof Message.Type
@@ -81,22 +83,25 @@ export type Message = typeof Message.Type
 
 export const Compute = Command.define('Compute', {
   args: { value: Schema.Number },
-  messages: [Message.CompletedCompute, Message.SkippedCompute],
-  execute: ({ value }) =>
-    Effect.gen(function* () {
-      const engine = yield* Engine.get
-      return Message.CompletedCompute({ result: engine.square(value) })
-    }).pipe(
-      Effect.catchTag('ResourceNotAvailable', () =>
-        Effect.succeed(Message.SkippedCompute()),
-      ),
-    ),
+  messages: [Message.SucceededCompute, Message.FailedCompute],
+  handler: function* () {
+    return ({ value }) =>
+      Effect.gen(function* () {
+        const engine = yield* Engine.get
+
+        return Message.SucceededCompute({ result: engine.square(value) })
+      }).pipe(
+        Effect.catchTag('ResourceNotAvailable', () =>
+          Effect.succeed(Message.FailedCompute()),
+        ),
+      )
+  },
 })
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message, EngineService>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedStartEngine: () => ({
       model: modifyFields(model, { engine: () => EngineState.Booting() }),
     }),
@@ -127,18 +132,19 @@ export const update = (model: Model, message: Message) =>
       }
     },
 
-    CompletedCompute: ({ result }) => ({
+    SucceededCompute: ({ result }) => ({
       model: modifyFields(model, {
         maybeSquareResult: () => Option.some(result),
       }),
     }),
 
-    SkippedCompute: () => ({ model }),
-  })
+    FailedCompute: () => ({ model }),
+  }),
+)
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+export const init = () => ({
   model: {
     engine: EngineState.Off(),
     computeCount: 0,
@@ -150,7 +156,7 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 
 export const managedResources = ManagedResource.make<Model, Message>()(
   entry => ({
-    engine: entry(Schema.Option(Schema.Null), {
+    engine: entry('ManageEngine', Schema.Option(Schema.Null), {
       resource: Engine,
       modelToMaybeRequirements: model =>
         Match.value(model.engine).pipe(
@@ -158,17 +164,26 @@ export const managedResources = ManagedResource.make<Model, Message>()(
           Match.tag('Off', 'Failed', () => Option.none()),
           Match.exhaustive,
         ),
-      acquire: () =>
-        Layer.build(engineLayer).pipe(
-          Effect.map(context => Context.get(context, ComputeEngineService)),
-        ),
-      release: () => Effect.void,
       onAcquired: ({ engineId }) => Message.StartedEngine({ engineId }),
       onReleased: () => Message.StoppedEngine(),
       onAcquireError: error =>
         Message.FailedStartEngine({ reason: String(error) }),
+      handler: function* () {
+        return {
+          acquire: () =>
+            Layer.build(ComputeEngineLayer).pipe(
+              Effect.map(context => Context.get(context, ComputeEngineService)),
+            ),
+          release: () => Effect.void,
+        }
+      },
     }),
   }),
+)
+
+export const EffectsLayer = Layer.mergeAll(
+  Compute.layer,
+  managedResources.engine.layer,
 )
 
 // VIEW

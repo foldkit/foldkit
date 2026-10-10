@@ -15,6 +15,7 @@ export {
   OutMessage,
   FocusItem,
   ResolveKeyboardMove,
+  EffectsLayer,
 } from './index.js'
 
 export type { InitConfig, DraggableConfig, DraggableMessage } from './index.js'

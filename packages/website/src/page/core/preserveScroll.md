@@ -12,6 +12,6 @@ Scroll preservation runs only under Vite's dev server. Set `preserveScroll` to `
 
 Only the window scroll offset is preserved. Scroll positions of nested `overflow` containers are not.
 
-Restoration applies to document-owning apps built with `makeApplication`. An embedded `makeElement` app does not control the host page's scroll, so Foldkit disables the feature for it.
+Restoration applies to document-owning apps built with `Application.make`. An embedded Element built with `Application.makeElement` does not control the host page's scroll, so Foldkit disables the feature for it.
 
 Foldkit restores the offset as soon as the first view renders. Later layout shifts can still move the final position. For example: images without dimensions may load after restoration and push content farther down the page.

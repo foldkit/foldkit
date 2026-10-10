@@ -7,10 +7,11 @@ const Message = defineMessageUnion({
   SucceededMountChart: {},
   FailedMountChart: { reason: Schema.String },
 })
+type Message = typeof Message.Type
 
 // Mount.define gives the action a name and constrains what Messages it can
 // produce, plus an args record so the chart's per-instance data flows through
-// declared values rather than a closure. The runtime calls execute with the
+// declared values rather than a closure. The runtime calls the handler with the
 // live element on insert, runs the Effect to produce one Message, dispatches
 // it, and closes the scope on destroy (firing any acquireRelease finalizers).
 
@@ -20,24 +21,26 @@ type ChartData = typeof ChartData.Type
 const MountChart = Mount.define('MountChart', {
   args: { data: ChartData },
   messages: [Message.SucceededMountChart, Message.FailedMountChart],
-  execute: ({ element, data }) =>
-    Effect.gen(function* () {
-      yield* Effect.acquireRelease(
-        Effect.tryPromise(() => import('some-chart-library')).pipe(
-          Effect.map(({ Chart }) => new Chart(element, { data })),
+  handler: function* () {
+    return ({ element, data }) =>
+      Effect.gen(function* () {
+        yield* Effect.acquireRelease(
+          Effect.tryPromise(() => import('some-chart-library')).pipe(
+            Effect.map(({ Chart }) => new Chart(element, { data })),
+          ),
+          chart => Effect.sync(() => chart.destroy()),
+        )
+        return Message.SucceededMountChart()
+      }).pipe(
+        Effect.catch(error =>
+          Effect.succeed(
+            Message.FailedMountChart({
+              reason: error instanceof Error ? error.message : String(error),
+            }),
+          ),
         ),
-        chart => Effect.sync(() => chart.destroy()),
       )
-      return Message.SucceededMountChart()
-    }).pipe(
-      Effect.catch(error =>
-        Effect.succeed(
-          Message.FailedMountChart({
-            reason: error instanceof Error ? error.message : String(error),
-          }),
-        ),
-      ),
-    ),
+  },
 })
 
 const chartView = (data: ChartData, h: HtmlBuilder<Message>): Html =>

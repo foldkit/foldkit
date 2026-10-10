@@ -1,15 +1,13 @@
-import { type Update } from 'foldkit'
+import { Update } from 'foldkit'
 
 import { Message, OutMessage } from './message'
 import { Model } from './model'
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
-    message,
-    {
-      ClickedLogout: () => ({
-        model,
-        outMessage: OutMessage.RequestedLogout(),
-      }),
-    },
-  )
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
+    ClickedLogout: () => ({
+      model,
+      outMessage: OutMessage.RequestedLogout(),
+    }),
+  }),
+)

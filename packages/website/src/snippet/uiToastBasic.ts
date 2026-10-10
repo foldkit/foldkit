@@ -22,7 +22,11 @@ const ToastPayload = Schema.Struct({
 // Bind a Toast module to your payload schema. The factory returns Model,
 // Message, OutMessage, update, view, show/dismiss/dismissAll, and the
 // DismissedToast OutMessage variant:
-export const Toast = UiToast.make(ToastPayload)
+export const Toast = UiToast.make('AppToast', ToastPayload)
+
+// Provide the handlers for this named Toast instance with the feature's
+// EffectsLayer. The default UI bundle provides only Toast's static handlers.
+export const EffectsLayer = Toast.EffectsLayer
 
 // Add Toast.Model to your app Model. Track anything you want to lift from
 // a toast's lifecycle alongside it. Here, the last dismissed bodyText so
@@ -106,7 +110,7 @@ ClickedSave: () =>
     },
   })
 
-// Wire pointer subscriptions once at the app root so swipe tracking
+// Wire this instance's pointer subscriptions once at the app root so swipe tracking
 // continues when the pointer leaves the entry. Without this lift the
 // view still sets data-swipe on pointerdown but never receives move/up.
 export const subscriptions = Subscription.lift(Toast.subscriptions)<

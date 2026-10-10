@@ -23,7 +23,7 @@ Before writing any code, analyze the description to identify:
 9. **File handling**: uploads, attachments, images → `File` module + `FileDrop` from `@foldkit/ui`
 10. **Remote data**: anything fetched, cached, refreshed, or revalidated → the `AsyncData` module (see Phase 4). Don't hand-roll a loading/error union
 11. **Multi-state flows**: a described process that moves through several named steps with rules about which step follows which (checkout, onboarding, multi-step approval, a connection lifecycle) → consider the `Machine` module (`foldkit/experimental`). Writing the transitions as a table lets `unreachableStates()` and `deadTransitions()` inspect reachability through the declared Edges from `initial` and any caller-supplied extra roots. The analysis cannot see state changes made outside the Machine, so pass restored, deep-linked, hydrated, and other externally entered states as extra roots before treating its findings as application defects. Present it as an experimental option and let the user choose. For a flow with only two or three states, use `defineTaggedUnion` and one `match`. `repos/foldkit/examples/state-machine/` is the reference
-12. **Host embedding**: the program runs inside another app ("a widget in our React app", "embed this in an existing page", "the host needs to control it") → `Runtime.makeElement` plus the `Runtime.embed` lifecycle handle, with Flags for initial data and Ports for ongoing communication in both directions. `repos/foldkit/examples/embedding/` is the canonical reference: a plain TypeScript host driving a Foldkit widget end to end
+12. **Host embedding**: the program runs inside another app ("a widget in our React app", "embed this in an existing page", "the host needs to control it") → `Application.makeElement` plus the `Runtime.embed` lifecycle handle, with Flags for initial data and Ports for ongoing communication in both directions. `repos/foldkit/examples/embedding/` is the canonical reference: a plain TypeScript host driving a Foldkit widget end to end
 
 Present this analysis to the user before proceeding.
 
@@ -137,7 +137,7 @@ Before generating, check if any part of the app maps to a built-in component:
 
 The package is not one shape.
 
-**Stateful Submodels** carry their own Model, Message, update, and (mostly) OutMessage, and are embedded via `h.submodel`: `Menu`, `Listbox`, `Combobox`, `Calendar`, `DatePicker`, `Dialog`, `Popover`, `RadioGroup`, `Tabs`, `Tooltip`, `FileDrop`, `DragAndDrop`, `Slider`, `VirtualList`, plus `Toast` once built through `Toast.make(PayloadSchema)`.
+**Stateful Submodels** carry their own Model, Message, update, and (mostly) OutMessage, and are embedded via `h.submodel`: `Menu`, `Listbox`, `Combobox`, `Calendar`, `DatePicker`, `Dialog`, `Popover`, `RadioGroup`, `Tabs`, `Tooltip`, `FileDrop`, `DragAndDrop`, `Slider`, `VirtualList`, plus `Toast` once built through `Toast.make('AppToast', PayloadSchema)`.
 
 **Stateless render helpers** have no Model at all. You call `view` directly with a ViewConfig and your own `h`, and store the value in your own Model: `Button`, `Input`, `Textarea`, `Select`, `Fieldset`, `Checkbox`, `Switch`, `Disclosure`, `Nav`.
 
@@ -151,6 +151,8 @@ To use a stateful Submodel:
 4. Delegate in update: `GotConfirmDialogMessage: ({ message }) => ...`
 5. Embed in view via `h.submodel`: `h.submodel({ slotId: 'confirm-dialog', view: Dialog.view, model: model.confirmDialog, toParentMessage: message => Message.GotConfirmDialogMessage({ message }) })` (add `viewInputs` for components whose view takes them)
 
+Provide UI handlers through the feature's `EffectsLayer` and register their Mount definitions in the application. The default is `UI.EffectsLayer` with `UI.mounts`; selective composition uses each chosen component's `EffectsLayer` and `mounts`. Lift component Subscriptions into the owning feature's Model and Message types. View and `Html` do not carry Mount requirements, so typechecking alone cannot confirm that these registrations are present.
+
 **Always prefer Foldkit UI components over hand-rolling interactive widgets.** They make accessibility the default, not an afterthought.
 
 **For form inputs specifically:** every text input, textarea, and button in a form MUST go through `Input`, `Textarea`, and `Button`. This is not optional, even though raw `input`/`textarea` HTML elements are available on the view's builder `h`. The form example (`examples/form/src/main.ts`) defines `inputFieldView` and `textareaFieldView` helpers that wrap `Input.view` and `Textarea.view` with label + validation feedback. Copy that helper pattern. Raw `input`/`textarea` are for non-form cases (search fields, inline editors) where you're intentionally working below the component layer, and even then, reach for the component first.
@@ -161,8 +163,9 @@ If the app uses UI components, **always read the ui-showcase example first** to 
 - `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/message.ts`: how component Messages are structured
 - `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/model.ts`: how component Models are composed
 - `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/update.ts`: how component updates are delegated
+- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/layer.ts`: the default UI handler bundle, named factory instance Layers, and Mount registrations
 - `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/subscriptions.ts`: which components need Subscriptions lifted into the parent (`DragAndDrop`, `Slider`)
-- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/toast.ts`: read when using `Toast`. It's unique in that it's parameterized on a payload schema via `Toast.make(PayloadSchema)`, returning a typed module you import from
+- `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/toast.ts`: read when using `Toast`. It's unique in that it is parameterized with a stable instance name and payload Schema via `Toast.make('AppToast', PayloadSchema)`, returning a typed module with its own Subscriptions and `EffectsLayer`
 
 Directory names under `examples/ui-showcase/src/` have moved before. List the directory rather than trusting these paths blind.
 
@@ -188,16 +191,18 @@ A common mistake (because kanban colocates `SavedBoard` in `model.ts`): putting 
 
 ```
 src/main.ts          ← Model, Message, init, update, view
-src/entry.ts         ← Runtime.makeApplication + Runtime.run
+src/entry.ts         ← Application.make + Runtime.run
 ```
 
 **Split commands + messages** (Tier 3, has async operations):
 
 ```
 src/main.ts          ← Model, init, update, view
-src/entry.ts         ← Runtime.makeApplication + Runtime.run
+src/application.ts   ← Root registrations + application assembly
+src/entry.ts         ← Application.provide + Runtime.run
+src/layer.ts         ← Root Layer composed from handler Layers
 src/message.ts       ← Message definitions
-src/command.ts       ← Command functions
+src/command.ts       ← Command definitions + handler Layers
 ```
 
 **Important rule:** if you extract `command.ts`, you MUST also extract `message.ts`. Commands reference Message constructors (for example, `Message.SucceededFetchWeather({...})`) as their Effect return values. If Messages live in `main.ts` and Commands live in `command.ts`, `command.ts` imports from `main.ts` _and_ `main.ts` uses Commands from `command.ts`, a circular import. Pull Messages out first, then both `main.ts` and `command.ts` import the `Message` namespace from `message.ts`.
@@ -206,10 +211,12 @@ src/command.ts       ← Command functions
 
 ```
 src/main.ts          ← init, update, view
-src/entry.ts         ← Runtime.makeApplication + Runtime.run
+src/application.ts   ← Root registrations + application assembly
+src/entry.ts         ← Application.provide + Runtime.run
+src/layer.ts         ← AppLayer composed from feature Layers
 src/model.ts         ← Model schema
 src/message.ts       ← Message definitions
-src/command.ts       ← Command functions
+src/command.ts       ← Command definitions + handler Layers
 src/route.ts         ← Route parser (if routing)
 src/view.ts          ← View functions (if view is large)
 src/domain/          ← Shared domain schemas (if multiple entities)
@@ -219,17 +226,20 @@ src/domain/          ← Shared domain schemas (if multiple entities)
 
 ```
 src/main.ts          ← Root init, update, view
-src/entry.ts         ← Runtime.makeApplication + Runtime.run
+src/application.ts   ← Root registrations + application assembly
+src/entry.ts         ← Application.provide + Runtime.run
+src/layer.ts         ← AppLayer composed from feature Layers
 src/model.ts         ← Root model (contains submodels)
 src/message.ts       ← Root messages + Got* bridging
-src/command.ts       ← Shared commands
+src/command.ts       ← Shared Command definitions + handler Layers
 src/route.ts         ← Route parser
 src/domain/          ← Shared domain schemas
 src/page/
   featureA/
     main.ts          ← Submodel init, update, view
+    layer.ts         ← Feature Layer composed from local and child Layers
     message.ts       ← Submodel messages + OutMessage
-    command.ts       ← Submodel commands
+    command.ts       ← Submodel Command definitions + handler Layers
   featureB/
     ...
 ```
@@ -336,7 +346,8 @@ For each Foldkit module you plan to use, read the `.d.ts` at the paths below. Re
 <project>/node_modules/foldkit/dist/schema/public.d.ts  # defineTaggedUnion(), taggedStruct()
 <project>/node_modules/foldkit/dist/struct/index.d.ts   # modifyFields(): check nested-update signature
 <project>/node_modules/foldkit/dist/update/public.d.ts  # Update.Return, Update.ReturnWithOutMessage, Update.foldChildInit, Update.foldChildInits, Update.withOutMessage, Update.combine, Update.refresh
-<project>/node_modules/foldkit/dist/runtime/runtime.d.ts # ApplicationInit, RoutingApplicationInit, makeApplication, makeElement
+<project>/node_modules/foldkit/dist/runtime/application.d.ts # Application.make, Application.makeElement, Application.provide
+<project>/node_modules/foldkit/dist/runtime/runtime.d.ts     # Runtime.run, Runtime.hydrate, Runtime.embed
 
 # If using routing
 <project>/node_modules/foldkit/dist/route/public.d.ts   # defineRouteUnion, literal, slash, string, int, Route.root, Route.mapTo, Route.oneOf, Route.parseUrlWithFallback
@@ -344,10 +355,10 @@ For each Foldkit module you plan to use, read the `.d.ts` at the paths below. Re
 <project>/node_modules/foldkit/dist/navigation/index.d.ts # pushUrl, load: all return Effect<void> (no Effect.ignore needed)
 
 # If using async / side effects
-<project>/node_modules/foldkit/dist/command/index.d.ts  # Command.define: config object with args/messages/interrupt/execute. Command.mapMessages for parent<-child mapping
+<project>/node_modules/foldkit/dist/command/index.d.ts  # Command.define, Definition.layer, Definition.toLayer, Command.mapMessages
 <project>/node_modules/foldkit/dist/asyncData/public.d.ts # AsyncData: Idle/Loading/Refreshing/Failure/Stale/Success + Schema, match, isPending, hasData, revalidate
-<project>/node_modules/foldkit/dist/http/public.d.ts     # Http.layer: provide it to Commands that use HttpClient
-<project>/node_modules/foldkit/dist/dom/index.d.ts      # focus, advanceFocus, scrollIntoView, showDialog, closeDialog, clickElement, lockScroll, unlockScroll, inertOthers, restoreInert, detectElementMovement, waitForAnimationSettled. For time/random/delay use Effect's Clock, Random, Effect.sleep + Duration directly. For UUIDs use Crypto.Crypto's randomUUIDv4 with BrowserCrypto.layer.
+<project>/node_modules/foldkit/dist/http/public.d.ts     # Http.layer: provide it beneath handlers at the application root
+<project>/node_modules/foldkit/dist/dom/index.d.ts      # focus, advanceFocus, scrollIntoView, showDialog, closeDialog, clickElement, lockScroll, unlockScroll, inertOthers, restoreInert, detectElementMovement, waitForAnimationSettled. For time/random/delay use Effect's Clock, Random, Effect.sleep + Duration directly. For UUIDs use Crypto.Crypto's randomUUIDv4 and provide BrowserCrypto.layer at the application root.
 
 # If using subscriptions
 <project>/node_modules/foldkit/dist/subscription/index.d.ts # Subscription.make<Model, Message>, Subscription.lift, Subscription.aggregate
@@ -391,14 +402,15 @@ AsyncData.match(value, { onIdle, onLoading, onRefreshing, onFailure, onStale, on
   //   onIdle: () => B          onLoading: () => B
   //   onRefreshing: (data) => B     onSuccess: (data) => B
   //   onFailure: (error) => B       onStale: ({ error, data }) => B
-Command.define(name, { args, messages, execute }): every input is a named field.
-  `execute` binds at DEFINITION and receives the decoded args object directly, so
-  you destructure the fields themselves; the call site passes args:
+Command.define(name, { args, messages, handler }): every input is a named field.
+  The handler generator returns the production function, which receives the decoded args object
+  directly, so you destructure the fields themselves; the call site passes args:
   const Fetch = Command.define('Fetch', {
     args: { id: Schema.String },
-    messages: [Ok, Err],
-    execute: ({ id }) => ...,
+    messages: [Message.SucceededFetch, Message.FailedFetch],
+    handler: function* () { return ({ id }) => ... },
   })
+  const EffectsLayer = Fetch.layer
   update: [Fetch({ id })]     // NOT Fetch({ id })(effect)
 Document: NOT generic, and `body` is a single Html, not an array
 Input.view({ id, value, onInput, isInvalid?, type?, placeholder?, toView: (attrs) => Html }, h)
@@ -417,18 +429,18 @@ Record these in the crib and keep them visible while generating:
 - **`OnClick` and `OnSubmit` take a Message directly**, not a `() => Message`. Only `OnInput` takes `(value) => Message` because it needs the input value.
 - **`keyed`, `empty` are properties on the builder `h`** the view receives as its last parameter. They are not top-level exports of `foldkit/html`.
 - **Attribute helpers are specific**: `Value(...)`, `Type(...)`, `Placeholder(...)`, `Href(...)`, `Target(...)`, `Rel(...)`, `Rows(n)`, `Id(...)`, `For(...)`, `Role(...)`, `AriaLabel(...)`. There is no generic `Attr('...', '...')`.
-- **`ApplicationInit<Model, Message, Flags>` has no URL parameter.** For routed apps, use `RoutingApplicationInit<Model, Message, Flags>`: the second arg is `url: Url`.
+- **Let `Application.make` infer init from the config.** A non-routing init receives Flags when declared. A routing init receives Flags first when declared and `url: Url` last. Wrap update with `Update.make` so every Command handler requirement from its Message branches reaches the application type.
 - **`Route.mapTo` takes the route schema, not a factory function.** `pipe(literal('new'), Route.mapTo(AppRoute.NewLink))`. NOT `Route.mapTo(() => AppRoute.NewLink())`.
 - **`Effect.ignore` is ONLY for fallible Effects.** `pushUrl(path).pipe(Effect.as(Message()))`. No `Effect.ignore` because `pushUrl` returns `Effect<void>`.
-- **`Command.define` takes a config object with a `messages` array**: `Command.define('Fetch', { messages: [Message.SucceededFetch, Message.FailedFetch], execute })`. `messages` is required and is always an array, even for one Message: `Command.define('ReadClock', { messages: [Message.RecordedTime], execute })`.
+- **`Command.define` stores the handler generator in its config**: `const Fetch = Command.define('Fetch', { messages: [Message.SucceededFetch, Message.FailedFetch], handler: function* () { return fetch } })`. Foldkit applies `Effect.gen` internally. Definitions have no `execute` field. `messages` is required and is always an array, even for one Message. Merge `Fetch.layer` into the owning feature's `EffectsLayer` export. Omit `handler` only for a contract whose implementation belongs to an external host; that definition has no `.layer` and the host uses `toLayer` with an Effect constructor.
 - **`makeRules` takes `{ required?: Rule.RuleMessage, rules: Array<Rule.Rule> }` where `Rule.Rule = [Predicate, Rule.RuleMessage]`**: a tuple, NOT `{ test, message }`. Rule constructors live on the `Rule` namespace (`Rule.url({ message })`, `Rule.email(message?)`, `Rule.minLength(n, message?)`, `Rule.pattern(regex, message?)`, `Rule.fromSchema(schema, message)`).
 - **`Field.Invalid` has `errors: NonEmptyArray<string>`, not `error: string`.** Use `Array.headNonEmpty(errors)` to get the first message; use `Rule.resolveMessage(message, value)` to resolve a rule message to its final string.
 - **Route variants stay on `AppRoute` and drop the repeated `Route` suffix.** Write `AppRoute.Home` and `AppRoute.NewLink`, not sibling bindings named `HomeRoute` and `NewLinkRoute`.
 - **Routers are callable for printing**: `homeRouter()` returns `'/'`, `tagFilterRouter({ tag: 'foo' })` returns `'/tag/foo'`. Never hand-construct URLs.
 - **UI components come from `@foldkit/ui`, not from a `Ui` namespace on `foldkit`.** `import { Dialog, Input } from '@foldkit/ui'`, then `Dialog.view(...)`. There is no `Ui` export on the `foldkit` package.
-- **`HttpClient` and `HttpClientRequest` come from `effect/http`**, not `@effect/platform`. Provide the client to the Command's Effect with `Effect.provide(effect, Http.layer)`, where `Http` is imported from `foldkit`. `@effect/platform-browser` is a different thing, used for `BrowserKeyValueStore` and `BrowserCrypto`.
+- **`HttpClient` and `HttpClientRequest` come from `effect/http`**, not `@effect/platform`. Leave `HttpClient.HttpClient` in the handler's requirements and provide `Http.layer`, imported from `foldkit`, at the application root. This keeps the real handler reusable with a deterministic HTTP Layer in an execution test. `@effect/platform-browser` is a different thing, used for `BrowserKeyValueStore` and `BrowserCrypto`.
 - **Use `Update.foldChildInit` for one child init or boot result, and `Update.foldChildInits` when several child results enter one parent Model.** Use `Update.foldChild` for a child update that receives input or `Update.foldChildStep` for a child helper that receives only its Model. The folds lift the child's Commands through `toParentMessage`. Use `Command.mapMessages` directly only for lower-level helpers or route-gated initialization.
-- **Inline a one-use update return type.** Use `Message.match<Update.Return<Model, Message>>` when the matcher is its only use. Create an `UpdateReturn` alias when another matcher, helper, or exported signature reuses the type. The match generic constrains the whole update, so omit a redundant return annotation. Constrain a domain union match inside a handler the same way, through its own `match` or `matchOrElse` generic (`Submission.match<UpdateReturn>(submission, { ... })`); `Match.withReturnType<UpdateReturn>()` is only for Effect `Match` (partial Message matches, shared multi-tag handlers, or unions without their own matcher).
+- **Let `Update.make` infer Command requirements.** Inside it, use `Message.match(message, handlers)` without `Update.Return<Model, Message>`; that two-argument type fixes the requirement channel to `never`. When another matcher, helper, or exported signature needs an `UpdateReturn` alias and any branch returns Commands, derive the relevant requirements with `Update.RequirementsOf<typeof update>` when the update contract is available. Pass them to `Update.Return<Model, Message, Requirements>` or `Update.ReturnWithOutMessage<Model, Message, OutMessage, Requirements>`. The match generic constrains the whole update, so omit a redundant return annotation. Use `Match.withReturnType<UpdateReturn>()` only for Effect `Match`.
 - **Preserve the plain-return OutMessage guard.** Use `Update.Return<Model, Message>` when an update cannot emit an OutMessage. It prevents a result containing an OutMessage from entering code that would keep only its Model and Commands. A result with no `outMessage` can still be used where `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is expected. The missing field means that update emitted no OutMessage. A hand-written plain-return type must preserve the `outMessage?: never` field.
 - **Omit only statically empty Commands.** A producer with statically no Commands omits `commands`. A producer with a computed collection returns it without checking whether it is empty. Never write `commands: []`.
 - **Keep update-like results together.** Bind each result to a value named after the operation and use dot access. Use a trailing underscore such as `init_` when the operation name collides with the function. Do not destructure or rename `model`, `commands`, or `outMessage`. Name a child fold's `write` parameter after the next child Model, such as `nextSettings`. Pass optional Commands directly to `Command.mapMessages`; use `result.commands ?? []` only when the next operation requires a concrete array. Dot access keeps the operation and all of its returned fields visible together but does not prevent someone from ignoring `outMessage`.
@@ -488,7 +500,7 @@ Every message must carry meaning. No `NoOp`.
 
 - Define a `Flags` Schema for data the initial Model needs from side effects
 - Define `flags` as an `Effect<Flags>` that computes the values (localStorage reads, current time, etc.)
-- Pass `flags` to `Runtime.run(application, { flags })` for a fresh browser boot. Hydrated applications call `Runtime.hydrate(application)` and use only the server-encoded Flags payload. `@foldkit/vite-plugin` compiles the shared deployment identity into Foldkit for coordinated client and server builds
+- For a page-owning application, declare `Flags` in `Application.make` and pass `flags` to `Runtime.run(application, { flags })` for a fresh browser boot. For an Element, declare both `Flags` and `flags` in `Application.makeElement`. Hydrated applications call `Runtime.hydrate(application)` and use only the server-encoded Flags payload. `@foldkit/vite-plugin` compiles the shared deployment identity into Foldkit for coordinated client and server builds
 - Pass the result into init. Never perform side effects at module level or inside init directly
 - See the Flags section in [architecture.md](architecture.md) for the full pattern
 
@@ -501,7 +513,8 @@ Every message must carry meaning. No `NoOp`.
 
 ### Update
 
-- Use `Message.match<Update.Return<Model, Message>>(message, {...})` when the return type appears only at that matcher. Create an `UpdateReturn` alias when another matcher, helper, or exported signature reuses it. `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is the Submodel counterpart. Match an OutMessage exhaustively through its owning union's `match`; pass a structurally refined OutMessage type as the second generic when a generic child narrows the Schema-backed payload type. A hand-written plain-return type is equivalent only when it includes `outMessage?: never`. Never switch. Use a `defineTaggedUnion` or `defineRouteUnion` namespace's `matchOrElse` for partial matches with fallbacks. Keep Effect `Match` for partial Message matches, handlers shared across several tags, and unions without their own matcher
+- Wrap root and feature updates that can return Commands with `Update.make`. It preserves their handler requirements so `Application.make` can carry them to `Application.provide`
+- Inside `Update.make`, call `Message.match(message, {...})` without an explicit return generic so Command requirements stay inferred. Wrap a Command-producing Step helper with `Update.makeStep`. When another matcher or exported signature needs an explicit requirement union, derive child update requirements with `Update.RequirementsOf<typeof Child.update>` and include requirements from any other Command-producing helper. Do not derive update requirements from `Layer.Success<typeof EffectsLayer>` because that bundle may also implement Subscriptions, Mounts, or ManagedResources. Match an OutMessage exhaustively through its owning union's `match`; pass a structurally refined OutMessage type as the second generic when a generic child narrows the Schema-backed payload type. A hand-written plain-return type is equivalent only when it includes `outMessage?: never`. Never switch. Use a `defineTaggedUnion` or `defineRouteUnion` namespace's `matchOrElse` for partial matches with fallbacks. Keep Effect `Match` for partial Message matches, handlers shared across several tags, and unions without their own matcher
 - Omit `commands` when an update, init, boot, or component helper statically creates no Commands. Return a computed Commands collection directly without checking whether it is empty. Never write the literal `commands: []`
 - When composing an update, init, boot, or component helper result, bind the whole result to a value named after the operation and use dot access. Use a trailing underscore such as `init_` when the name collides with the function. Do not destructure or rename `model`, `commands`, or `outMessage`. Name a child fold's `write` parameter after the next child Model. Pass optional Commands directly to `Command.mapMessages`, and use `result.commands ?? []` only where the next operation requires a concrete array. Dot access keeps the operation and all of its returned fields visible together but does not prevent someone from ignoring `outMessage`. Use `Update.foldChildInit` for one init or boot result, `Update.foldChildInits` when several child results enter one parent Model, `Update.foldChild` for a child update that receives input, or `Update.foldChildStep` for a child helper that receives only its Model
 - Use `Update.combine` when a later Step should receive the Model produced by an earlier Step. It takes two or more Steps. Do not wrap one Step in `Update.combine`; call that operation directly. Name an inline Step parameter `stepModel` when combining several. When the OutMessage is already known while constructing a new result, include it directly. Use `Update.withOutMessage` for an existing plain return or a value with the type `OutMessage | undefined`: pipe an existing return into the helper, and pass a new result literal first. Add `toParentOutMessage` only when at least one child OutMessage should continue to the current Submodel's parent. For partial forwarding, match every child variant and return `undefined` for the variants that stop here. Omit `toParentOutMessage` when every variant stops here. `foldOutMessage` still handles each variant locally, including variants that continue upward
@@ -514,19 +527,18 @@ Every message must carry meaning. No `NoOp`.
 
 ### Commands
 
-- Define Command identities with `Command.define`, whose second argument is a config object: `args` (optional) declares the args Schema, `messages` lists every Message the Command can produce, and `execute` holds the Effect. With args the shape is `Command.define('Fetch', { args: { id: Schema.String }, messages: [Message.SucceededFetch, Message.FailedFetch], execute: ({ id }) => Effect })`: `execute` binds at definition and receives the args, and the update returns `Fetch({ id })`
+- Define Command identities with `Command.define`, whose config declares `args` (optional), `messages`, `interrupt` (optional), and `handler`. The handler is a generator constructor; Foldkit applies `Effect.gen` internally, captures services, and returns the invocation function. Definitions omit `execute`. Compose `Fetch.layer` directly in the owning feature's `EffectsLayer`. Return the invocation function directly when construction has no work to perform. The Runtime constructs the handler once per application start; each invocation receives current args and performs fresh work. Update returns `Fetch({ id })`. Create a standalone `FetchLayer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly. Omit `handler` only for an external host contract and use `toLayer` at that host boundary
 - To make a Command interruptible, add `interrupt`. `interrupt: true` keys every invocation by the Command name; `interrupt: { keyFields, toKey }` selects the args that identify an invocation and derives its key so concurrent invocations can be cancelled independently. The selected fields become the args required by the Definition's `Interrupt` constructor
 - Always assign definitions to PascalCase constants. Never inline in pipe chains
 - Definitions live where they're produced, colocated with the update function
 - Let TypeScript infer return types. No explicit `Command<typeof A>` annotations
 - Use `Effect.gen` for multi-step async
-- Always `Effect.catch(() => Effect.succeed(Message.FailedX(...)))` for fallible Effects. Commands never throw. **Exception:** if the Effect is infallible at the type level (`Clock.currentTimeMillis`, `Random.nextIntBetween`, etc.), no `catch` is needed and no `Failed*` Message is needed. Follow the types: if there's no error channel, there's nothing to catch.
-- Use `Effect.provide` for services
-- Factory functions named by action: `fetchWeather`, not `fetchWeatherCommand`
-- Name each Command for the effect its `execute` body performs, not the later Model transition caused when update handles its result. A timer that only waits before update starts a dismissal is `WaitBeforeDismissal`, not `DismissAfter`
+- Convert expected failures with `Effect.catch(() => Effect.succeed(Message.FailedX(...)))`. **Exception:** if the Effect is infallible at the type level (`Clock.currentTimeMillis`, `Random.nextIntBetween`, etc.), no `catch` is needed and no `Failed*` Message is needed. Follow the types: if there's no error channel, there's nothing to catch. Defects may follow the runtime's crash path.
+- Use `Effect.provide` inside a handler only when the operation deliberately owns a private per-execution service and the application should not substitute it. Put a shared business service owned by a feature beneath its handler Layers with `Layer.provide`. Leave concrete HTTP, storage, RPC, and browser providers open for the application root. Use `Layer.provideMerge` there when the provider must stay exposed to Flags or another application consumer
+- Name each Command for the effect its handler performs, not the later Model transition caused when update handles its result. A timer that only waits before update starts a dismissal is `WaitBeforeDismissal`, not `DismissAfter`
 - Commands that can't meaningfully fail return `Completed*` Messages named from the Command, payload-carrying ones included: `DetermineStartTime` → `CompletedDetermineStartTime`, not `DeterminedStartTime`
 - Use Foldkit's `Dom` module for DOM operations (`Dom.focus`, `Dom.scrollIntoView`, `Dom.showDialog`, `Dom.lockScroll`, etc.) and Effect built-ins for everything else (`Clock.currentTimeMillis`, `Random.nextIntBetween`, `Effect.sleep(Duration.millis(...))`). For UUIDs, use the `Crypto.Crypto` service's `randomUUIDv4` with a platform Crypto layer. See DOM and Effect Helpers in [architecture.md](architecture.md)
-- For HTTP requests, use `HttpClient` and `HttpClientRequest` from `effect/http`, and provide the client with `Effect.provide(effect, Http.layer)` where `Http` comes from `foldkit`. See `examples/weather/src/main.ts` for the pattern
+- For HTTP requests, use `HttpClient` and `HttpClientRequest` from `effect/http`. Leave the client in the handler's requirements and provide `Http.layer` from `foldkit` at the application root. See `examples/weather/src/main.ts` and `examples/weather/src/entry.ts` for the handler and root composition
 - Let `Update.foldChildInit`, `Update.foldChildInits`, `Update.foldChild`, or `Update.foldChildStep` re-tag a child Submodel's Commands through `toParentMessage` when applicable. Use `Command.mapMessages` directly only for lower-level helpers or route-gated initialization
 
 ### Form Validation
@@ -596,12 +608,18 @@ For file uploads (resumes, images, attachments):
 
 ### Runtime Wiring
 
-- Use `Runtime.makeApplication` for apps that own the page. Add `routing: { onUrlRequest, onUrlChange }` for apps with URL routing. The `view` returns a `Document` (`{ title, lang?, dir?, canonical?, ogUrl?, body }`). Derive `canonical` from the typed route in the Model, never from the address bar. The runtime applies `title`, `lang`, and `dir`. For `canonical` and `ogUrl`, a later omission restores the value recorded before the first client write or removes an element the runtime created. An omitted `ogUrl` uses an explicit `canonical`
-- Use `Runtime.makeElement` for a widget embedded on a page it does not own. The `view` returns `Html` and the runtime never touches the document `<head>` or the `<html>` element. No `routing` config
+- Use `Application.make` for apps that own the page. Add `routing: { onUrlRequest, onUrlChange }` for apps with URL routing. The `view` returns a `Document` (`{ title, lang?, dir?, canonical?, ogUrl?, body }`). Derive `canonical` from the typed route in the Model, never from the address bar. The runtime applies `title`, `lang`, and `dir`. For `canonical` and `ogUrl`, a later omission restores the value recorded before the first client write or removes an element the runtime created. An omitted `ogUrl` uses an explicit `canonical`
+- Use `Application.makeElement` for a widget embedded on a page it does not own. The `view` returns `Html` and the runtime never touches the document `<head>` or the `<html>` element. No `routing` config
 - See the With and Without URL Routing section in [architecture.md](architecture.md) for the full pattern
 - Include `ClickedLink` and `ChangedUrl` Messages for programs with routing, with proper `UrlRequest.Internal` / `UrlRequest.External` handling in update
-- Always end with `Runtime.run(application)` for a page-owning app. When a host application controls the program's lifecycle, end with `Runtime.embed(element)` instead and hand the returned handle to the host; mirror `repos/foldkit/examples/embedding/src/host.ts` for the host side and its `main.ts` for the widget side
-- Name the variable holding a `makeApplication` result `application`, and the variable holding a `makeElement` result `element`
+- Each feature that owns Commands, Subscriptions, Mounts, or ManagedResources exports one `EffectsLayer`. Compose child and local Layers with `Layer.mergeAll` at the feature boundary, importing Effect's module as `Layer` without an alias. A feature may provide business services it owns while leaving concrete environment requirements open. At the application root, export `EffectsLayer` and `ServicesLayer`, then compose them into `AppLayer`. An alternate `AppTestLayer` reuses `EffectsLayer` with `ServicesTestLayer`. Supply the selected Layer with `Application.provide`. Keep the entry at feature granularity instead of importing every handler Layer there. There is no `resources` field on `Application.make` or `Application.makeElement`
+- Build a second, parallel graph for runtime registrations. A feature exports its `subscriptions`, `managedResources`, and `mounts` beside its `EffectsLayer`. For a large app, `application.ts` lifts child registrations into root Model and Message types, aggregates records, collects Mount definitions, and exposes application assembly. Use a `makeApplication(container)` factory whenever tests or server tooling import the registration module, or when the entry chooses the DOM container. A static `application` export is acceptable only when every importer is browser-side and runs after the intended container exists. The entry imports that assembly and `AppLayer`. A small app may assemble and provide the application directly in `entry.ts`
+- `Application.provide` Layers build eagerly once for every runtime start, including a restored-Model start, before a fresh Flags Effect, init, or the first render. Command lookup, Subscription restart, Mount insertion, and ManagedResource reacquisition reuse those app-scoped handlers and providers. `Runtime.hydrate` validates the server handoff before acquiring Layers. A Layer construction failure stops startup before the first render. The runtime releases the Layer Scope when that start stops
+- Keep four lifetimes distinct: application services such as RPC clients last for one Runtime start; one Command Effect lasts for one dispatch; Subscription Streams and ManagedResource handles follow Model conditions; Mount acquisition follows one DOM element. Keep the `ManagedResource` name for the Model-scoped handle primitive
+- A definition's handler generator captures application services. It must not capture current time, Command args, Subscription dependencies, a DOM element, or an active ManagedResource handle. Service lookup retrieves the instance built for that application start; it does not construct the provider
+- A page-owning app with Flags declares the `Flags` Schema in `Application.make` and passes the Flags Effect to `Runtime.run(application, { flags })`. A self-contained Element declares both `Flags` and `flags` in the `Application.makeElement` config. Requirements of either Flags Effect can be supplied through `Application.provide`
+- End with `Runtime.run(application)` for a page-owning app after its requirements are provided. When a host application controls the program's lifecycle, end with `Runtime.embed(element)` instead and hand the returned handle to the host; mirror `repos/foldkit/examples/embedding/src/host.ts` for the host side and its `main.ts` for the widget side
+- Name an application factory `makeApplication`, the variable holding its `Application.make` result `application`, and the variable holding an `Application.makeElement` result `element`
 
 ### Routes (if multi-page)
 
@@ -616,21 +634,22 @@ For file uploads (resumes, images, attachments):
 
 ### Subscriptions (if real-time)
 
-- Define with `Subscription.make<Model, Message>()(entry => ({ key: entry(fields, callbacks) }))`. The builder callback receives an `entry(fields, callbacks)` helper. `fields` is the bare field map (no `Schema.Struct` wrap), `callbacks` carries `modelToDependencies`, `dependenciesToStream`, and optional `equivalence`
+- Define named entries with `Subscription.make<Model, Message>()(entry => ({ roomUpdates: entry('RoomUpdates', fields, { messages: [Message.ReceivedRoomUpdate], modelToDependencies, handler: function* () { return dependencies => stream } }) }))`. The stable handler name describes the supplied Stream or scoped behavior, while the record key identifies its registration. `messages` is the exact Message Schema collection the handler can emit; use `messages: []` for a silent scoped Stream. Compose `subscriptions.roomUpdates.layer` directly in the feature's `EffectsLayer`
 - `modelToDependencies` extracts Subscription parameters from Model
-- `dependenciesToStream` builds `Stream<Message>` from dependencies
+- The `handler` generator constructs a Stream function limited to the declared `messages`. A dependency change invokes that function with the latest dependencies and restarts the Stream scope without reconstructing the handler or its providers. Omit `handler` only for an external host contract and use `toLayer` at that boundary
 - Subscriptions auto-start/stop based on Model state. Never manually managed
-- For Subscriptions with no Model dependencies (always active), pass `{}` as the `entry` fields argument and return `{}` from `modelToDependencies`
-- To embed child Subscriptions, use `Subscription.lift(childRecord)<Parent, Parent>({ read, toParentMessage })`. Its `read` returns `Option<ChildModel>`, matching `Update.foldChild` and `ManagedResource.lift`; `None` stops every child Stream without reading child dependencies. Use `Option.some` for always-present children. Every lifted entry wraps its dependencies in `GatedDependencies`. Add `when` on the parent's lift call to gate on a parent fact the child cannot see (the route a page Submodel sits behind); the parent owns the gate and reads the parent Model, and a closed gate tears the entry's Stream down. `when: parentModel => boolean` gates every entry; `when: { entryName: parentModel => boolean }` adds a condition only to the entries it names; child absence still stops every entry, so a child never splits its record to suit its parent's gating. To combine multiple records, use `Subscription.aggregate(...records)`, which reads the Model, Message, and any Effect services off the records
+- For Subscriptions with no local Model dependencies, use `entry('KeyboardPresses', { messages: [Message.PressedKey], handler: function* () { return () => stream } })` with no dependency fields or callback; a parent can still gate the entry when lifting it
+- To embed child Subscriptions, use `Subscription.lift(childRecord)<Parent, Parent>({ read, toParentMessage })`. Its `read` returns `Option<ChildModel>`, matching `Update.foldChild` and `ManagedResource.lift`; `None` stops every child Stream without reading child dependencies. Use `Option.some` for always-present children. Every lifted entry wraps its dependencies in `GatedDependencies`. Add `when` on the parent's lift call to gate on a parent fact the child cannot see (the route a page Submodel sits behind); the parent owns the gate and reads the parent Model, and a closed gate tears the entry's Stream down. `when: parentModel => boolean` gates every entry; `when: { entryName: parentModel => boolean }` adds a condition only to the entries it names; child absence still stops every entry, so a child never splits its record to suit its parent's gating. Direct `Subscription.aggregate(first, second)` preserves the individual entry contracts. Use an explicitly typed aggregate only when one broader Message channel is the intended boundary
 
 ### Managed Resources (if stateful runtime handles)
 
-- Define with `ManagedResource.make<Model, Message>()(entry => ({ key: entry(requirementsSchema, config) }))`. `requirementsSchema` is the positional first argument (usually `Schema.Option(...)`); `config` carries the `resource` tag, `modelToMaybeRequirements`, the `acquire`/`release` Effects, and the `onAcquired`/`onReleased`/`onAcquireError` Messages
+- Define with `ManagedResource.make<Model, Message>()(entry => ({ key: entry('ManageFeatureResource', requirementsSchema, { ...config, handler: function* () { return { acquire, release } } }) }))`. The stable handler name precedes the requirements Schema. `config` carries the `resource` tag, `modelToMaybeRequirements`, and the `onAcquired`/`onReleased`/`onAcquireError` Messages. Both lifecycle functions are required whenever `handler` is supplied. Compose `managedResources.key.layer` directly in the feature's `EffectsLayer`
 - `modelToMaybeRequirements` returns `Option.some(params)` to acquire (or re-acquire when params change) and `Option.none()` to release. Resources auto-acquire/release on Model state, like Subscriptions
 - For a resource with no params, use `Schema.Option(Schema.Null)` and return `Option.some(null)`
 - Read the service union with `ManagedResource.ServicesOf<typeof managedResources>`
 - To embed a child Submodel's resources, use `ManagedResource.lift(childRecord)<Parent, Parent>({ read, toParentMessage })` (its `read` returns `Option<ChildModel>`, so lifted requirements must be `Schema.Option`-wrapped). Combine records with `ManagedResource.aggregate(...records)`, which reads the Model and Message off the records
-- App-lifetime handles go in `resources`, not here; there is no `persistent`
+- App-lifetime services and handler Layers go in the feature's `EffectsLayer` and enter through `Application.provide`; there is no `resources` config field or `persistent` ManagedResource
+- Keep app service and handler scope separate from ManagedResource handle scope. Releasing or reacquiring a Model-driven handle does not rebuild the handler Layer or its providers
 
 ## Phase 4.5: Self-check before verification
 
@@ -677,7 +696,9 @@ Fix ALL output from all four before declaring Phase 5 done. "Typecheck clean and
 
 ### Type errors first
 
-Then generate tests using `foldkit/test`. There are two test styles. Name each test file for its style, beside the code under test: `story.test.ts` for Story tests (the state machine, driving `update`) and `scene.test.ts` for Scene tests (the rendered view). The name describes how the test works, not a source file, so it holds whether `update` and `view` live in `main.ts` or their own files. When a folder holds more than one test of a kind (sibling pages, component variants), prefix with the subject: `login.story.test.ts`. Scene runs at any level: `Submodel.defineView` produces a plain `(model, h) => Html`, so a page's view drops into `scene` unmodified, and a Submodel declaring `ViewInputs` takes a second argument the test supplies through `withViewInputs(view, defaults)`, whose returned factory takes per-test overrides for everything except `toView`. A page-level Scene asserts the OutMessage a Submodel emits with `expectOutMessage` / `expectNoOutMessage`, and drives Messages from the non-view lifecycle causes with cause-named steps: `Subscription.emit` (only when the Message has no DOM affordance; click the actual button when it does), `ManagedResource.acquire` / `release` / `failAcquire` (gated on the entry's `modelToMaybeRequirements`, so drive the Model transition first), and `CustomElement.emit` (typed by the spec's event Schemas). An interaction whose handler returns `Option.none()` lets the event fall through, and Scene requires that be stated: follow it with `expectIgnored()`, or Scene fails at the next interaction or the end of the scene. Use `expectHandled()` where the event should have been consumed, which is the assertion behind a key being consumed so the browser default is prevented. Put a `scene.test.ts` in the page folder for behavior that page owns, and keep a root-level `scene.test.ts` for flows that cross pages, which covers how the parent folds an OutMessage, a Command the parent lifts, a route change, and view inputs the parent computes.
+Then generate tests using `foldkit/test`. There are two test styles. Name each test file for its style, beside the code under test: `story.test.ts` for Story tests (the state machine, driving `update`) and `scene.test.ts` for Scene tests (the rendered view). The name describes how the test works, not a source file, so it holds whether `update` and `view` live in `main.ts` or their own files. When a folder holds more than one test of a kind (sibling pages, component variants), prefix with the subject: `login.story.test.ts`. Scene runs at any level: `Submodel.defineView` produces a plain `(model, h) => Html`, so a page's view drops into `scene` unmodified, and a Submodel declaring `ViewInputs` takes a second argument the test supplies through `withViewInputs(view, defaults)`, whose returned factory takes per-test overrides for everything except `toView`. A page-level Scene asserts the OutMessage a Submodel emits with `expectOutMessage` / `expectNoOutMessage`, and drives Messages from the non-view lifecycle causes with cause-named steps. To use `Subscription.emit`, pass the registered `subscriptions` record in the `scene` config and declare each emittable Message Schema in the entry's `messages`. Pass the exact entry and its raw Message; Scene replays a lifted entry's `toParentMessage` chain. Registrations that need selection must use distinct entry objects, so create a separate lifted entry for each path instead of reusing one entry object under several keys. Silent entries with `messages: []` accept no emissions. Use `Subscription.emit` for a Subscription-origin fact; use a DOM interaction when testing the same Message from a DOM-origin path. `ManagedResource.acquire` / `release` / `failAcquire` are gated on the entry's `modelToMaybeRequirements`, so drive the Model transition first. `CustomElement.emit` is typed by the spec's event Schemas. An interaction whose handler returns `Option.none()` lets the event fall through, and Scene requires that be stated: follow it with `expectIgnored()`, or Scene fails at the next interaction or the end of the scene. Use `expectHandled()` where the event should have been consumed, which is the assertion behind a key being consumed so the browser default is prevented. Put a `scene.test.ts` in the page folder for behavior that page owns, and keep a root-level `scene.test.ts` for flows that cross pages, which covers how the parent folds an OutMessage, a Command the parent lifts, a route change, and view inputs the parent computes.
+
+When adding a whole-application execution test, keep the real feature handler Layers and replace their external service providers before building the application Layer. Choose the lowest boundary whose code the test needs to exercise: when `ApiLayer` owns decoding, retries, or business behavior, keep it and replace its HTTP or RPC transport. Replacing `ApiLayer` with `ApiTestLayer` narrows coverage to code above that service. This approach exercises real Command result mapping, Subscription Stream transformation, Mount element lifecycle, and ManagedResource acquire and release behavior. Replace an entire handler only when the test is intentionally orchestrating a result path; do not claim that path tests the replaced handler. Handler stubs are the narrower tool for orchestration. Use Effect Layer substitution directly; do not invent another testing DSL.
 
 Import the steps as named imports from `foldkit/story` or `foldkit/scene`: `import { Command, given, message, model, story } from 'foldkit/story'`. A test file needs only one of the two modules, so this keeps call sites short. In the rare case a single file tests both a story and a scene, import the namespaces instead (`import { Scene, Story } from 'foldkit'`) so `Story.given` and `Scene.given` stay distinguishable.
 

@@ -6,7 +6,7 @@ import { type Command, mapMessage, mapMessages } from '../command/index.js'
 /** The Commands collection an update return may include. The collection keeps
  *  the order in which the update returned them, but the runtime forks the
  *  Commands independently. `R` is the services the Commands need and defaults
- *  to `never` for applications without resources.
+ *  to `never` for updates without service requirements.
  *
  *  Name an alias when a module reuses the same Message and service types:
  *
@@ -33,7 +33,9 @@ export type Commands<Message, R = never> = ReadonlyArray<
  *  ```
  *
  *  Give it a local `UpdateReturn` alias when another matcher or helper in the
- *  module needs the same type. */
+ *  module needs the same type. When Commands use handler Layers, wrap the
+ *  update with {@link make} to infer their requirements across branches.
+ *  An explicit `Return<Model, Message>` annotation fixes `R` to `never`. */
 export type Return<Model, Message, R = never> = Readonly<{
   model: Model
   commands?: Commands<Message, R>
@@ -42,6 +44,170 @@ export type Return<Model, Message, R = never> = Readonly<{
    *  where a caller would keep only the Model and Commands. */
   outMessage?: never
 }>
+
+type AnyUpdate = (...args: ReadonlyArray<any>) => any
+
+type AnyStep = (model: any, ...context: ReadonlyArray<any>) => any
+
+type CommandRequirements<Output> = Output extends unknown
+  ? 'commands' extends keyof Output
+    ? Output extends Readonly<{ commands?: infer Commands }>
+      ? NonNullable<Commands> extends ReadonlyArray<infer CommandValue>
+        ? CommandValue extends Command<any, any, infer R>
+          ? R
+          : never
+        : never
+      : never
+    : never
+  : never
+
+type CommandMessage<Output> = Output extends unknown
+  ? 'commands' extends keyof Output
+    ? Output extends Readonly<{ commands?: infer Commands }>
+      ? NonNullable<Commands> extends ReadonlyArray<infer CommandValue>
+        ? CommandValue extends Command<infer Message, any, any>
+          ? Message
+          : never
+        : never
+      : never
+    : never
+  : never
+
+/** The Effect services required by the Commands an update can return. This
+ * reads the update's return contract, including requirements carried through
+ * child folds, without including services used only by Subscriptions, Mounts,
+ * or ManagedResources. */
+export type RequirementsOf<
+  Update extends (...args: ReadonlyArray<any>) => any,
+> = CommandRequirements<ReturnType<Update>>
+
+type OutMessageOf<Output> = Output extends unknown
+  ? 'outMessage' extends keyof Output
+    ? Output extends Readonly<{ outMessage?: infer OutMessage }>
+      ? Exclude<OutMessage, undefined>
+      : never
+    : never
+  : never
+
+type ValidateUpdate<Update extends AnyUpdate> =
+  Parameters<Update> extends readonly [
+    model: infer Model,
+    message: infer Message,
+    ...context: ReadonlyArray<any>,
+  ]
+    ? [ReturnType<Update>] extends [
+        ReturnWithOutMessage<Model, Message, unknown, unknown>,
+      ]
+      ? unknown
+      : never
+    : Update extends (
+          model: infer Model,
+          message: infer Message,
+        ) => infer Output
+      ? [Output] extends [
+          ReturnWithOutMessage<Model, Message, unknown, unknown>,
+        ]
+        ? unknown
+        : never
+      : never
+
+type MadeUpdate<Update extends AnyUpdate> = (
+  ...args: Parameters<Update>
+) => [OutMessageOf<ReturnType<Update>>] extends [never]
+  ? Return<
+      Parameters<Update>[0],
+      Parameters<Update>[1],
+      CommandRequirements<ReturnType<Update>>
+    >
+  : ReturnWithOutMessage<
+      Parameters<Update>[0],
+      Parameters<Update>[1],
+      OutMessageOf<ReturnType<Update>>,
+      CommandRequirements<ReturnType<Update>>
+    >
+
+/** Defines an update while inferring the union of services required by the
+ * Commands returned across all Message branches. If a branch emits an
+ * OutMessage, the returned function has a {@link ReturnWithOutMessage}
+ * contract so a parent must handle it. Otherwise it has a {@link Return}
+ * contract. Required, optional, and rest context parameters are preserved in
+ * the returned function.
+ *
+ * Use this when Command implementations come from Layers, so application
+ * assembly can infer every required handler service without a hand-written
+ * requirements union:
+ *
+ * ```ts
+ * export const update = Update.make((model: Model, message: Message) =>
+ *   Message.match(message, {
+ *     ClickedSave: () => ({ model, commands: [Save()] }),
+ *     CompletedSave: () => ({ model }),
+ *   }),
+ * )
+ * ``` */
+export function make<const Update extends AnyUpdate>(
+  update: Update & ValidateUpdate<Update>,
+): MadeUpdate<Update>
+export function make(update: AnyUpdate): AnyUpdate {
+  return update
+}
+
+type ValidateStep<Step extends AnyStep> =
+  Parameters<Step> extends readonly [
+    model: infer Model,
+    ...context: ReadonlyArray<any>,
+  ]
+    ? [ReturnType<Step>] extends [
+        ReturnWithOutMessage<
+          Model,
+          CommandMessage<ReturnType<Step>>,
+          unknown,
+          unknown
+        >,
+      ]
+      ? unknown
+      : never
+    : never
+
+type MadeStep<Step extends AnyStep> = (
+  ...args: Parameters<Step>
+) => [OutMessageOf<ReturnType<Step>>] extends [never]
+  ? Return<
+      Parameters<Step>[0],
+      CommandMessage<ReturnType<Step>>,
+      CommandRequirements<ReturnType<Step>>
+    >
+  : ReturnWithOutMessage<
+      Parameters<Step>[0],
+      CommandMessage<ReturnType<Step>>,
+      OutMessageOf<ReturnType<Step>>,
+      CommandRequirements<ReturnType<Step>>
+    >
+
+/**
+ * Defines an update Step while inferring its Message and service
+ * requirements from the Commands it returns. If a branch emits an OutMessage,
+ * the returned function has a {@link StepWithOutMessage} contract. Optional
+ * and rest context parameters after the Model are preserved.
+ *
+ * Use this for standalone Step producers, including OutMessage folds, whose
+ * Commands come from handler Layers:
+ *
+ * ```ts
+ * const foldSavedDraft = OutMessage.match({
+ *   SavedDraft: () => Update.makeStep((model: Model) => ({
+ *     model,
+ *     commands: [RefreshDraft()],
+ *   })),
+ * })
+ * ```
+ */
+export function makeStep<const Step extends AnyStep>(
+  step: Step & ValidateStep<Step>,
+): MadeStep<Step>
+export function makeStep(step: AnyStep): AnyStep {
+  return step
+}
 
 /** The return shape of an update that can also surface an OutMessage to its
  *  parent. Omit `commands` when the update statically creates none. Return a
@@ -112,6 +278,29 @@ export type StepWithOutMessage<Model, Message, OutMessage, R = never> = (
   model: Model,
 ) => ReturnWithOutMessage<Model, Message, OutMessage, R>
 
+type NonEmptySteps = readonly [AnyStep, ...ReadonlyArray<AnyStep>]
+
+type FirstStepModel<Steps extends NonEmptySteps> = Parameters<Steps[0]>[0]
+
+type CombinedStepMessage<Steps extends ReadonlyArray<AnyStep>> = CommandMessage<
+  ReturnType<Steps[number]>
+>
+
+type CombinedStepRequirements<Steps extends ReadonlyArray<AnyStep>> =
+  CommandRequirements<ReturnType<Steps[number]>>
+
+type ValidateCombinedSteps<Model, Steps extends ReadonlyArray<AnyStep>> = {
+  readonly [Index in keyof Steps]: Steps[Index] extends (
+    model: Model,
+  ) => infer Output
+    ? [Output] extends [
+        Return<Model, CommandMessage<Output>, CommandRequirements<Output>>,
+      ]
+      ? Steps[Index]
+      : never
+    : never
+}
+
 /** Composes a list of update steps into one. Each step runs against the
  *  Model the previous step produced, and every step's Commands are
  *  concatenated into a single batch, in step order.
@@ -138,6 +327,17 @@ export type StepWithOutMessage<Model, Message, OutMessage, R = never> = (
  *    ])
  *  ``` */
 export const combine: {
+  <const Steps extends NonEmptySteps>(
+    steps: Steps & ValidateCombinedSteps<FirstStepModel<Steps>, Steps>,
+  ): Step<
+    FirstStepModel<Steps>,
+    CombinedStepMessage<Steps>,
+    CombinedStepRequirements<Steps>
+  >
+  <Model, const Steps extends NonEmptySteps>(
+    model: Model,
+    steps: Steps & ValidateCombinedSteps<Model, Steps>,
+  ): Return<Model, CombinedStepMessage<Steps>, CombinedStepRequirements<Steps>>
   <Model, Message, R = never>(
     steps: ReadonlyArray<Step<Model, Message, R>>,
   ): Step<Model, Message, R>

@@ -713,10 +713,10 @@ export const view = (
           lazyDocsContent(Core.CoreServerRendering.view, docContentArgs),
           Core.CoreServerRendering.tableOfContents,
         ),
-      CoreResources: () =>
+      CoreLayers: () =>
         withTableOfContents(
-          lazyDocsContent(Core.Resources.view, docContentArgs),
-          Core.Resources.tableOfContents,
+          lazyDocsContent(Core.Layers.view, docContentArgs),
+          Core.Layers.tableOfContents,
         ),
       CoreManagedResources: () =>
         withTableOfContents(

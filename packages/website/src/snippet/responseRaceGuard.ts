@@ -1,6 +1,6 @@
 import { Effect, Schema, pipe } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
-import { AsyncData, Command, Http, type Update } from 'foldkit'
+import { AsyncData, Command, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -35,29 +35,31 @@ type Message = typeof Message.Type
 const Search = Command.define('Search', {
   args: { query: Schema.String },
   messages: [Message.SettledSearch],
-  execute: ({ query }) =>
-    pipe(
-      Effect.gen(function* () {
-        const client = yield* HttpClient.HttpClient
-        const request = HttpClientRequest.get('/api/search').pipe(
-          HttpClientRequest.setUrlParams({ q: query }),
-        )
-        const response = yield* client.execute(request)
-        return yield* Schema.decodeUnknownEffect(Schema.Array(SearchResult))(
-          yield* response.json,
-        )
-      }),
-      Effect.mapError(error => String(error)),
-      Effect.result,
-      Effect.map(result => Message.SettledSearch({ query, result })),
-      Effect.provide(Http.layer),
-    ),
+  handler: function* () {
+    const client = yield* HttpClient.HttpClient
+
+    return ({ query }) =>
+      pipe(
+        Effect.gen(function* () {
+          const request = HttpClientRequest.get('/api/search').pipe(
+            HttpClientRequest.setUrlParams({ q: query }),
+          )
+          const response = yield* client.execute(request)
+          return yield* Schema.decodeUnknownEffect(Schema.Array(SearchResult))(
+            yield* response.json,
+          )
+        }),
+        Effect.mapError(error => String(error)),
+        Effect.result,
+        Effect.map(result => Message.SettledSearch({ query, result })),
+      )
+  },
 })
 
 // UPDATE
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     UpdatedQuery: ({ query }) => ({
       model: modifyFields(model, {
         queryInput: () => query,
@@ -74,4 +76,5 @@ const update = (model: Model, message: Message) =>
         model: modifyFields(model, { searchResults: AsyncData.settle(result) }),
       }
     },
-  })
+  }),
+)

@@ -30,6 +30,8 @@ Pass `orientation: 'Vertical'` to map pointer movement along the Y axis, with `m
 
 Pointer drag needs document-level `pointermove` / `pointerup` tracking (the cursor can leave the slider element). Slider exposes this as a Subscription you wire into your app’s `subscriptions` alongside an Escape-key Subscription that cancels an in-progress drag. The example snippet above shows the full wiring.
 
+The default `Slider.subscriptions` use `document` and their handlers are included in `UI.EffectsLayer`. For a Slider inside a Shadow DOM, call `Slider.forRoot('SettingsSlider', getTrackRoot)`. The returned `subscriptions` and `EffectsLayer` belong to that named instance; lift its registrations and merge its Layer in the feature that created it. Pass the same `getTrackRoot` resolver in `Slider.view`'s `viewInputs` so track presses and click-to-jump resolve the track inside that Shadow DOM too.
+
 ## Styling
 
 Slider exposes its state and geometry through data attributes. The root and track carry `data-orientation` plus either `data-horizontal` or `data-vertical`. The track also carries `data-thumb-alignment`. `data-dragging`, `data-disabled`, and `data-readonly` identify the current interaction state.

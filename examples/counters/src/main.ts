@@ -56,8 +56,8 @@ const foldCounter = (id: string) =>
     toParentMessage: message => Message.GotCounterMessage({ id, message }),
   })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedAddRow: () => ({
       model: modifyFields(model, {
         rows: Array.append({
@@ -73,7 +73,8 @@ export const update = (model: Model, message: Message) =>
       }),
     }),
     GotCounterMessage: ({ id, message }) => foldCounter(id)(model, message),
-  })
+  }),
+)
 
 // INIT
 

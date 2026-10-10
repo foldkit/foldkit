@@ -1,5 +1,5 @@
 import { Array, Effect, Option, Record, Schema, pipe } from 'effect'
-import { AsyncData, Command, type Update } from 'foldkit'
+import { AsyncData, Command, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import {
@@ -18,39 +18,43 @@ import {
 
 const LoadApiData = Command.define('LoadApiData', {
   messages: [Message.SucceededLoadApiData, Message.FailedLoadApiData],
-  execute: Effect.gen(function* () {
-    const [parsedApiModule, highlightsModule] = yield* Effect.tryPromise({
-      try: () =>
-        Promise.all([
-          import('virtual:parsed-api'),
-          import('virtual:api-highlights'),
-        ]),
-      catch: error =>
-        error instanceof Error ? error.message : 'Unknown error',
-    })
+  handler: function* () {
+    return () =>
+      Effect.gen(function* () {
+        const [parsedApiModule, highlightsModule] = yield* Effect.tryPromise({
+          try: () =>
+            Promise.all([
+              import('virtual:parsed-api'),
+              import('virtual:api-highlights'),
+            ]),
+          catch: error =>
+            error instanceof Error ? error.message : 'Unknown error',
+        })
 
-    const parsedApi = yield* Schema.decodeUnknownEffect(ParsedApiReference)(
-      parsedApiModule.default,
-    )
+        const parsedApi = yield* Schema.decodeUnknownEffect(ParsedApiReference)(
+          parsedApiModule.default,
+        )
 
-    return Message.SucceededLoadApiData({
-      apiData: {
-        parsedApi,
-        highlights: highlightsModule.default,
-      },
-    })
-  }).pipe(
-    Effect.catch(error =>
-      Effect.succeed(
-        Message.FailedLoadApiData({
-          error: typeof error === 'string' ? error : 'Failed to load API data',
-        }),
-      ),
-    ),
-  ),
+        return Message.SucceededLoadApiData({
+          apiData: {
+            parsedApi,
+            highlights: highlightsModule.default,
+          },
+        })
+      }).pipe(
+        Effect.catch(error =>
+          Effect.succeed(
+            Message.FailedLoadApiData({
+              error:
+                typeof error === 'string' ? error : 'Failed to load API data',
+            }),
+          ),
+        ),
+      )
+  },
 })
 
-export type UpdateReturn = Update.Return<Model, Message>
+export const EffectsLayer = LoadApiData.layer
 
 const disclosuresForApiData = (apiData: ApiData): Disclosures =>
   pipe(
@@ -71,8 +75,8 @@ const disclosuresForApiData = (apiData: ApiData): Disclosures =>
     Record.fromEntries,
   )
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     RequestedApiData: () =>
       Option.match(AsyncData.loadIfMissing(model.apiData), {
         onNone: () => ({ model }),
@@ -100,7 +104,8 @@ export const update = (model: Model, message: Message) =>
         disclosures: disclosures => Record.set(disclosures, id, isOpen),
       }),
     }),
-  })
+  }),
+)
 
 export const informRouteChanged = (model: Model) =>
   update(model, Message.RequestedApiData())

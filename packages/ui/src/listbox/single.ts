@@ -36,9 +36,10 @@ export const init = (config: InitConfig): Model => baseInit(config)
 /** Processes a Listbox Message and returns the next Model, optional Commands,
  *  and an optional OutMessage. Selection closes the Listbox and emits
  *  `Selected({ value })` for the parent to store. */
-export const update = makeUpdate<Model>((model, item, context) =>
-  context.closeWithFocus(model, OutMessage.Selected({ value: item })),
-)
+export const update = makeUpdate<Model>('CloseWithFocus', (model, item) => ({
+  model,
+  outMessage: OutMessage.Selected({ value: item }),
+}))
 
 type UpdateReturn = ReturnType<typeof update>
 
@@ -94,7 +95,8 @@ const singleViewImpl = defineView<Model, Message, ViewInputs<unknown, string>>(
 type BundleUpdateReturn<Value extends string> = Update.ReturnWithOutMessage<
   Model,
   Message,
-  OutMessage<Value>
+  OutMessage<Value>,
+  Update.RequirementsOf<typeof update>
 >
 
 /** The `view`, `update`, and programmatic helpers that `Listbox.create`
@@ -139,7 +141,8 @@ export const create = <
   type UpdateReturn = Update.ReturnWithOutMessage<
     Model,
     Message,
-    OutMessage<Value>
+    OutMessage<Value>,
+    Update.RequirementsOf<typeof update>
   >
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const typedUpdate = update as (model: Model, message: Message) => UpdateReturn

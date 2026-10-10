@@ -13,14 +13,16 @@ const COLLAPSIBLE_HEIGHT_PX =
 export const MeasureSnippetHeight = Mount.define('MeasureSnippetHeight', {
   args: { snippetId: Schema.String },
   messages: [Message.CompletedMeasureSnippetHeight],
-  execute: ({ element, snippetId }) =>
-    Effect.sync(() =>
-      Message.CompletedMeasureSnippetHeight({
-        snippetId,
-        snippetSize:
-          element.scrollHeight > COLLAPSIBLE_HEIGHT_PX
-            ? SnippetSize.Overflows()
-            : SnippetSize.Fits(),
-      }),
-    ),
+  handler: function* () {
+    return ({ element, snippetId }) =>
+      Effect.sync(() =>
+        Message.CompletedMeasureSnippetHeight({
+          snippetId,
+          snippetSize:
+            element.scrollHeight > COLLAPSIBLE_HEIGHT_PX
+              ? SnippetSize.Overflows()
+              : SnippetSize.Fits(),
+        }),
+      )
+  },
 })

@@ -1,9 +1,9 @@
-import { Runtime } from 'foldkit'
+import { Application, Runtime } from 'foldkit'
 
-import { Message, Model, init, update, view } from './main'
+import { EffectsLayer, Message, Model, init, update, view } from './main'
 import './styles.css'
 
-const application = Runtime.makeApplication({
+const application = Application.make({
   Model,
   init,
   update,
@@ -18,4 +18,4 @@ const application = Runtime.makeApplication({
   },
 })
 
-Runtime.hydrate(application)
+Runtime.hydrate(Application.provide(application, EffectsLayer))

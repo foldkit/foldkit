@@ -1,10 +1,10 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 
 import * as Command from '../../command/index.js'
 import type { Document, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
-import type * as Update from '../../update/index.js'
+import * as Update from '../../update/index.js'
 
 // MODEL
 
@@ -35,8 +35,10 @@ export const SaveDraft = Command.define('SaveDraft', {
   args: SaveDraftArgs.fields,
   messages: [Message.SucceededSaveDraft],
   interrupt: true,
-  execute: ({ revision }) =>
-    Effect.as(Effect.never, Message.SucceededSaveDraft({ revision })),
+  handler: function* () {
+    return ({ revision }) =>
+      Effect.as(Effect.never, Message.SucceededSaveDraft({ revision }))
+  },
 })
 
 // INIT
@@ -45,8 +47,8 @@ export const initialModel: Model = { revision: 0, status: 'Editing' }
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedSaveDraft: () => ({
       model: modifyFields(model, { status: () => 'Saving' }),
       commands: [SaveDraft({ revision: model.revision })],
@@ -54,7 +56,8 @@ export const update = (model: Model, message: Message) =>
     SucceededSaveDraft: () => ({
       model: modifyFields(model, { status: () => 'Saved' }),
     }),
-  })
+  }),
+)
 
 // VIEW
 
@@ -69,3 +72,5 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
 
   return { title: 'Drafts', body }
 }
+
+export const EffectsLayer = Layer.mergeAll(SaveDraft.layer)

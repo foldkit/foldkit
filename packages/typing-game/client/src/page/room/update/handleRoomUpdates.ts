@@ -10,7 +10,6 @@ import {
   WaitForExitCountdownInterval,
 } from '../command'
 import { Model, RoomAsyncData } from '../model'
-import type { UpdateReturn } from './update'
 
 const EXIT_COUNTDOWN_SECONDS = 3
 
@@ -22,7 +21,7 @@ export const handleRoomUpdated =
   }: {
     room: Shared.Room
     maybePlayerProgress: Option.Option<Shared.PlayerProgress>
-  }): UpdateReturn => {
+  }) => {
     const maybePreviousRoom = AsyncData.getData(model.roomAsyncData)
     const hadRoom = Option.isSome(maybePreviousRoom)
     const hadStatusPlaying = Option.exists(

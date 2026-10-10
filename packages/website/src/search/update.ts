@@ -21,75 +21,83 @@ const SEARCH_RESULT_SELECTOR = '[data-search-result-index='
 export const FetchSearchResults = Command.define('FetchSearchResults', {
   args: { query: Schema.String },
   messages: [Message.CompletedFetchSearchResults],
-  execute: ({ query }) =>
-    Effect.gen(function* () {
-      const pagefind = yield* PagefindService
+  handler: function* () {
+    const pagefind = yield* PagefindService
 
-      const searchResponse = yield* Effect.tryPromise({
-        try: () => pagefind.search(query),
-        catch: () => new Error('Pagefind search failed'),
-      })
+    return ({ query }) =>
+      Effect.gen(function* () {
+        const searchResponse = yield* Effect.tryPromise({
+          try: () => pagefind.search(query),
+          catch: () => new Error('Pagefind search failed'),
+        })
 
-      const topResults = Array.take(searchResponse.results, MAX_RESULTS)
+        const topResults = Array.take(searchResponse.results, MAX_RESULTS)
 
-      const loadedResults = yield* Effect.tryPromise({
-        try: () => Promise.all(topResults.map(result => result.data())),
-        catch: () => new Error('Failed to load result data'),
-      })
+        const loadedResults = yield* Effect.tryPromise({
+          try: () => Promise.all(topResults.map(result => result.data())),
+          catch: () => new Error('Failed to load result data'),
+        })
 
-      const results = Array.map(loadedResults, data =>
-        SearchResult.make({
-          url: data.url,
-          title: data.meta?.title ?? 'Untitled',
-          excerpt: data.excerpt,
-          section: data.meta?.section ?? '',
-          kind: data.meta?.kind ?? '',
-        }),
-      )
+        const results = Array.map(loadedResults, data =>
+          SearchResult.make({
+            url: data.url,
+            title: data.meta?.title ?? 'Untitled',
+            excerpt: data.excerpt,
+            section: data.meta?.section ?? '',
+            kind: data.meta?.kind ?? '',
+          }),
+        )
 
-      return Message.CompletedFetchSearchResults({ results, query })
-    }).pipe(
-      Effect.catch(() =>
-        Effect.succeed(
-          Message.CompletedFetchSearchResults({ results: [], query }),
+        return Message.CompletedFetchSearchResults({ results, query })
+      }).pipe(
+        Effect.catch(() =>
+          Effect.succeed(
+            Message.CompletedFetchSearchResults({ results: [], query }),
+          ),
         ),
-      ),
-    ),
+      )
+  },
 })
 
 export const ScrollToResult = Command.define('ScrollToResult', {
   args: { index: Schema.Number },
   messages: [Message.CompletedScrollToResult],
-  execute: ({ index }) =>
-    Dom.scrollIntoView(`${SEARCH_RESULT_SELECTOR}"${index}"]`).pipe(
-      Effect.ignore,
-      Effect.as(Message.CompletedScrollToResult()),
-    ),
+  handler: function* () {
+    return ({ index }) =>
+      Dom.scrollIntoView(`${SEARCH_RESULT_SELECTOR}"${index}"]`).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedScrollToResult()),
+      )
+  },
 })
 
 export const NavigateToResult = Command.define('NavigateToResult', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateToResult],
-  execute: ({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateToResult())),
+  handler: function* () {
+    return ({ url }) =>
+      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateToResult()))
+  },
 })
 
 export const FocusSearchInput = Command.define('FocusSearchInput', {
   messages: [Message.CompletedFocusSearchInput],
-  execute: Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
-    Effect.ignore,
-    Effect.as(Message.CompletedFocusSearchInput()),
-  ),
+  handler: function* () {
+    return () =>
+      Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedFocusSearchInput()),
+      )
+  },
 })
 
-export type UpdateReturn = Update.Return<Model, Message, PagefindService>
-
-const foldSearchDialogOutMessage = Dialog.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Opened: () => model => ({ model }),
-  Closed: () => model => ({ model }),
-})
+const foldSearchDialogOutMessage = (
+  outMessage: typeof Dialog.OutMessage.Type,
+) =>
+  Dialog.OutMessage.match(outMessage, {
+    Opened: () => Update.makeStep((model: Model) => ({ model })),
+    Closed: () => Update.makeStep((model: Model) => ({ model })),
+  })
 
 const foldSearchDialog = Update.foldChild({
   update: Dialog.update,
@@ -100,7 +108,7 @@ const foldSearchDialog = Update.foldChild({
   foldOutMessage: foldSearchDialogOutMessage,
 })
 
-const foldSearchDialogOpen: Update.Step<Model, Message> = Update.foldChildStep({
+const foldSearchDialogOpen = Update.foldChildStep({
   update: Dialog.open,
   read: (model: Model) => Option.some(model.dialog),
   write: (model, nextDialog) =>
@@ -118,7 +126,7 @@ const foldSearchDialogClose = Update.foldChildStep({
   foldOutMessage: foldSearchDialogOutMessage,
 })
 
-export const open = (model: Model): UpdateReturn =>
+export const open = (model: Model) =>
   Update.combine(model, [
     foldSearchDialogOpen,
     stepModel => ({
@@ -127,8 +135,8 @@ export const open = (model: Model): UpdateReturn =>
     }),
   ])
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     UpdatedSearchQuery: ({ query }) => {
       if (query === model.query) {
         return { model }
@@ -228,9 +236,10 @@ export const update = (model: Model, message: Message) =>
     CompletedNavigateToResult: () => ({ model }),
     CompletedScrollToResult: () => ({ model }),
     CompletedFocusSearchInput: () => ({ model }),
-  })
+  }),
+)
 
-export const informRouteChanged = (model: Model): UpdateReturn =>
+export const informRouteChanged = (model: Model) =>
   Update.combine(model, [
     stepModel => update(stepModel, Message.ClearedSearchQuery()),
     foldSearchDialogClose,

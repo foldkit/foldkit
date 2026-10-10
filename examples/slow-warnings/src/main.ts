@@ -1,5 +1,14 @@
-import { Array, Match, Number, Option, Schema, Stream, pipe } from 'effect'
-import { Dom, Runtime, Subscription, type Update } from 'foldkit'
+import {
+  Array,
+  Layer,
+  Match,
+  Number,
+  Option,
+  Schema,
+  Stream,
+  pipe,
+} from 'effect'
+import { Dom, Runtime, Subscription, Update } from 'foldkit'
 import { type Document, type Html, HtmlBuilder, createLazy } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -154,8 +163,8 @@ const prependWarning =
   (warnings: ReadonlyArray<SlowWarning>): ReadonlyArray<SlowWarning> =>
     pipe(warnings, Array.prepend(warning), Array.take(MAX_WARNING_COUNT))
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedRunUpdateWork: () => {
       burnCpu(UPDATE_WORK_MS)
 
@@ -202,7 +211,8 @@ export const update = (model: Model, message: Message) =>
         }),
       }
     },
-  })
+  }),
+)
 
 // INIT
 
@@ -219,36 +229,45 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  slowWarnings: Subscription.persistentEntry(
-    Dom.streamFromEventFilterMap({
-      target: slowWarningTarget,
-      type: SLOW_WARNING_EVENT,
-      filterMapEvent: event =>
-        pipe(
-          event.detail,
-          Schema.decodeOption(SlowWarningReport),
-          Option.map(report => Message.RecordedSlowWarning({ report })),
-        ),
-    }),
-  ),
-  burnCpuDuringDependencyExtraction: entry(
-    {
-      activeWorkload: Workload,
+  slowWarningReports: entry('SlowWarningReports', {
+    messages: [Message.RecordedSlowWarning],
+    handler: function* () {
+      return () =>
+        Dom.streamFromEventFilterMap({
+          target: slowWarningTarget,
+          type: SLOW_WARNING_EVENT,
+          filterMapEvent: event =>
+            pipe(
+              event.detail,
+              Schema.decodeOption(SlowWarningReport),
+              Option.map(report => Message.RecordedSlowWarning({ report })),
+            ),
+        })
     },
+  }),
+  dependencyExtractionWork: entry(
+    'DependencyExtractionWork',
+    { activeWorkload: Workload },
     {
       modelToDependencies: model => {
         if (model.activeWorkload === 'SubscriptionDependencies') {
           burnCpu(SUBSCRIPTION_DEPENDENCIES_WORK_MS)
         }
 
-        return {
-          activeWorkload: model.activeWorkload,
-        }
+        return { activeWorkload: model.activeWorkload }
       },
-      dependenciesToStream: () => Stream.empty,
+      messages: [],
+      handler: function* () {
+        return () => Stream.empty
+      },
     },
   ),
 }))
+
+export const EffectsLayer = Layer.mergeAll(
+  subscriptions.slowWarningReports.layer,
+  subscriptions.dependencyExtractionWork.layer,
+)
 
 // VIEW
 

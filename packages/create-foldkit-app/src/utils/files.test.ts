@@ -90,7 +90,10 @@ describe('rendering templates', () => {
       'export const prerenderPaths',
     )
     expect(readTemplateFile('rendering/ssg/src/entry.ts')).toContain(
-      'Runtime.hydrate(application)',
+      'Runtime.hydrate(Application.provide(application, EffectsLayer))',
+    )
+    expect(readTemplateFile('rendering/ssg/src/entry.ts')).toContain(
+      'Application.make({',
     )
   })
 
@@ -120,7 +123,7 @@ describe('rendering templates', () => {
       'flags: flagsForRequest(',
     )
     expect(readTemplateFile('rendering/ssr/src/entry.ts')).toContain(
-      'Runtime.hydrate(application)',
+      'Runtime.hydrate(Application.provide(application, EffectsLayer))',
     )
   })
 

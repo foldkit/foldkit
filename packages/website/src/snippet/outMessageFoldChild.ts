@@ -2,16 +2,13 @@ import { Option } from 'effect'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-const foldLoginOutMessage = Login.OutMessage.match<Update.Step<Model, Message>>(
-  {
-    SucceededLogin:
-      ({ sessionId }) =>
-      () => ({
-        model: LoggedIn({ sessionId }),
-        commands: [SaveSession(sessionId)],
-      }),
-  },
-)
+const foldLoginOutMessage = Login.OutMessage.match({
+  SucceededLogin: ({ sessionId }) =>
+    Update.makeStep((_model: Model) => ({
+      model: LoggedIn({ sessionId }),
+      commands: [SaveSession(sessionId)],
+    })),
+})
 
 const foldLogin = Update.foldChild({
   update: Login.update,
@@ -21,7 +18,8 @@ const foldLogin = Update.foldChild({
   foldOutMessage: foldLoginOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     GotLoginMessage: ({ message }) => foldLogin(model, message),
-  })
+  }),
+)

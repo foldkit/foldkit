@@ -19,19 +19,23 @@ type Model = typeof Model.Type
 // SUBSCRIPTION
 
 const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  shortcut: entry(
+  shortcutKeyPresses: entry(
+    'ShortcutKeyPresses',
     { isListening: Schema.Boolean },
     {
+      messages: [Message.PressedKey],
       modelToDependencies: model => ({ isListening: model.isListening }),
-      dependenciesToStream: ({ isListening }) =>
-        Stream.when(
-          Dom.streamFromEvent({
-            target: window,
-            type: 'keydown',
-            mapEvent: event => Message.PressedKey({ key: event.key }),
-          }),
-          Effect.sync(() => isListening),
-        ),
+      handler: function* () {
+        return ({ isListening }) =>
+          Stream.when(
+            Dom.streamFromEvent({
+              target: window,
+              type: 'keydown',
+              mapEvent: event => Message.PressedKey({ key: event.key }),
+            }),
+            Effect.sync(() => isListening),
+          )
+      },
     },
   ),
 }))

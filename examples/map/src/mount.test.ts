@@ -123,7 +123,7 @@ const mountAndInteract = (host: HTMLElement): Effect.Effect<Array<Message>> =>
       ])
       return received
     }),
-  )
+  ).pipe(Effect.provide(MountMap.layer))
 
 describe('MountMap', () => {
   beforeEach(() => {

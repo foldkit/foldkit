@@ -1,5 +1,6 @@
 import {
   Array,
+  Context,
   Duration,
   Effect,
   Exit,
@@ -20,6 +21,7 @@ import {
   __htmlBuilder as htmlBuilderFor,
 } from '../html/index.js'
 import type { ManagedResources } from '../managedResource/index.js'
+import type { LayeredMountDefinition } from '../mount/index.js'
 import type { Ports } from '../port/index.js'
 import { RenderCommit, createCommitNotifier } from '../render/commit.js'
 import type { Subscriptions } from '../subscription/subscription.js'
@@ -115,6 +117,7 @@ export type RuntimeConfig<
     Message,
     Resources | ManagedResourceServices
   >
+  mounts?: ReadonlyArray<LayeredMountDefinition>
   container: HTMLElement
   /**
    * Present when `makeApplication` found a server-rendered root stamped with
@@ -180,44 +183,11 @@ export type RuntimeConfig<
    */
   preserveScroll?: boolean
   /**
-   * An Effect Layer providing services shared by the fresh-boot Flags Effect
-   * and every Command and Subscription. The runtime builds the Layer once,
-   * the first time it is needed: at startup when a fresh boot supplies Flags
-   * (they resolve before `init`) or Subscriptions (their pipelines run for the
-   * application's lifetime), otherwise when the first Command runs. The
-   * built services are reused for the application's lifetime and released
-   * at runtime teardown.
-   *
-   * Put a service here when it is a genuine app-wide singleton: when
-   * construction is expensive relative to how often Commands need it (an
-   * RPC client rebuilt on every invocation), or when every Command must
-   * share one instance (an AudioContext whose oscillators feed one audio
-   * graph, an RTCPeerConnection). A Layer that fails to build crashes the
-   * app with the crash view: the runtime provides this Layer to every
-   * Command, so a service that cannot be constructed leaves no Command
-   * safe to run. The one exception is a Layer that fails while Flags are
-   * resolving and the Flags Effect needs it: that lands before the first
-   * render, where there is no Model to render a crash view against, so
-   * startup fails instead. Neither cause is swallowed, so a Flags Effect
-   * that fails for its own unrelated reason stays visible alongside the
-   * build error.
-   *
-   * Provide a service inside the Command's Effect instead when
-   * construction is cheap and stateless (an HTTP client via `foldkit/http`
-   * is a thin `fetch` wrapper), when different Commands want different
-   * implementations of the same tag (`KeyValueStore` over localStorage in
-   * one Command and sessionStorage in another), or when a service that can
-   * fail to construct should only take down the Commands that use it. An
-   * HTTP client can graduate here once many Commands share one configured
-   * client, but it starts per-Command.
-   */
-  resources?: Layer.Layer<Resources>
-  /**
-   * Model-driven resources with acquire/release lifecycle. Unlike `resources`
-   * which persist for the application's lifetime, Managed Resources are
-   * acquired and released based on the current model state. Create with
-   * `ManagedResource.make`, compose child Submodels with `ManagedResource.lift`,
-   * and combine records with `ManagedResource.aggregate`.
+   * Model-driven resources with acquire/release lifecycle. Managed Resources
+   * are acquired and released based on the current model state. Create with
+   * `ManagedResource.make`, compose child Submodels with
+   * `ManagedResource.lift`, and combine records with
+   * `ManagedResource.aggregate`.
    */
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
   devTools?: DevToolsConfig
@@ -257,6 +227,11 @@ export type MakeRuntimeReturn<
   }>
 }>
 
+type EmbedLifecycle = {
+  isEmbedActive: boolean
+  maybeActiveFiber: Option.Option<Fiber.Fiber<void>>
+}
+
 type RuntimeInternals = {
   startWith: (
     maybeConnector: Option.Option<HostConnector>,
@@ -265,9 +240,17 @@ type RuntimeInternals = {
     flags?: Effect.Effect<any, never, any>,
     buildId?: string,
   ) => Effect.Effect<void>
+  startWithApplicationLayer: (
+    maybeConnector: Option.Option<HostConnector>,
+    preservedModel: unknown,
+    bootMode: BootMode,
+    flags: Effect.Effect<any, never, any> | undefined,
+    buildId: string | undefined,
+    applicationLayer: Layer.Layer<any, any, any>,
+  ) => Effect.Effect<void>
+  applicationLayer?: Layer.Layer<any, any, any>
   kind: 'Application' | 'Element'
-  isEmbedActive: boolean
-  maybeActiveFiber: Option.Option<Fiber.Fiber<void>>
+  embedLifecycle: EmbedLifecycle
 }
 
 export const runtimeInternals = new WeakMap<object, RuntimeInternals>()
@@ -292,6 +275,7 @@ export const makeRuntime = <
   view,
   manageDocument,
   subscriptions,
+  mounts,
   container,
   hydration,
   routing: routingConfig,
@@ -300,7 +284,6 @@ export const makeRuntime = <
   viewTransition,
   freezeModel,
   preserveScroll,
-  resources,
   managedResources,
   devTools,
 }: RuntimeConfig<
@@ -376,6 +359,7 @@ export const makeRuntime = <
     bootMode: BootMode = 'Fresh',
     bootFlags?: Effect.Effect<Flags, never, Resources>,
     buildId?: string,
+    applicationLayer?: Layer.Layer<any, any, any>,
   ): Effect.Effect<void> => {
     // NOTE: one notifier per runtime, provided across the whole runtime
     // Effect so Commands, Subscriptions, and Mount-forked Effects all resolve
@@ -403,6 +387,19 @@ export const makeRuntime = <
         // detached fork would outlive the runtime.
         const runtimeScope = yield* Effect.scope
 
+        const { maybeHydrationRoot, resolveFlags } =
+          yield* resolveHydrationHandoff({
+            bootMode,
+            hydration,
+            bootFlags,
+            configuredFlags,
+            isFlagsRequired,
+            FlagsCodec,
+            preservedModel,
+            container,
+            buildId,
+          })
+
         const maybePortChannels: Option.Option<PortChannelsBundle> = pipe(
           Option.fromNullishOr(ports),
           Option.map(portsConfig =>
@@ -425,27 +422,17 @@ export const makeRuntime = <
           },
         )
 
-        const { managedResourceRefs, provideAllResources, provideResources } =
-          yield* makeResourceProvider({
-            resources,
-            managedResources,
-            runtimeScope,
-            maybePortChannels,
-          })
-
-        const { maybeHydrationRoot, resolveFlags } =
-          yield* resolveHydrationHandoff({
-            bootMode,
-            hydration,
-            bootFlags,
-            configuredFlags,
-            isFlagsRequired,
-            FlagsCodec,
-            preservedModel,
-            container,
-            buildId,
-            provideResources,
-          })
+        const {
+          applicationContext,
+          managedResourceRefs,
+          provideAllResources,
+          provideApplicationServices,
+        } = yield* makeResourceProvider({
+          managedResources,
+          runtimeScope,
+          maybePortChannels,
+          applicationLayer,
+        })
 
         const ModelJsonCodec = Schema.toCodecJson(
           /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -460,15 +447,14 @@ export const makeRuntime = <
 
         type InitResult = ReturnType<typeof init>
 
-        // NOTE: a restored Model skips `init`, so resolving Flags on that
-        // path would build the `resources` Layer only to discard what it
-        // produced. Gating the resolution on the restore decision is what
-        // stops a reload from reconnecting whatever the Layer holds. It has
-        // to stay ahead of the preserve-scheduler and preservation finalizers: a
-        // Flags Effect that fails after those are registered tears down more
-        // than it used to, and their release defects would bury its cause.
+        // NOTE: a restored Model skips `init`, so resolving Flags on that path
+        // would perform startup work only to discard what it produced. This
+        // has to stay ahead of the preserve-scheduler and preservation
+        // finalizers: a Flags Effect that fails after those are registered
+        // tears down more than it used to, and their release defects would
+        // bury its cause.
         const runInit: Effect.Effect<InitResult> = Effect.map(
-          resolveFlags,
+          provideApplicationServices(resolveFlags),
           flags => init(flags, Option.getOrUndefined(currentUrl)),
         )
 
@@ -617,7 +603,10 @@ export const makeRuntime = <
         // NOTE: the runtime context for OnMount forking and Command forking
         // is captured once here; it is constant for the lifetime of the
         // runtime.
-        const runtimeContext = yield* Effect.context<never>()
+        const runtimeContext = Context.merge(
+          yield* Effect.context<never>(),
+          applicationContext,
+        )
 
         const {
           crashWith,
@@ -641,6 +630,7 @@ export const makeRuntime = <
           duplicateIdScanner,
           maybeResolvedViewTransition,
           commitNotifier,
+          mounts: mounts ?? [],
           runtimeContext,
           readLiveModel: () => liveModel,
           messageQueue,
@@ -825,6 +815,7 @@ export const makeRuntime = <
           modelPubSub,
           runtimeScope,
           enqueueMessageEffect,
+          provideAllResources,
           crashWith,
         })
 
@@ -913,9 +904,27 @@ export const makeRuntime = <
   runtimeInternals.set(program, {
     startWith: (maybeConnector, preservedModel, bootMode, flags, buildId) =>
       startWith(maybeConnector, preservedModel, bootMode, flags, buildId),
+    startWithApplicationLayer: (
+      maybeConnector,
+      preservedModel,
+      bootMode,
+      flags,
+      buildId,
+      applicationLayer,
+    ) =>
+      startWith(
+        maybeConnector,
+        preservedModel,
+        bootMode,
+        flags,
+        buildId,
+        applicationLayer,
+      ),
     kind,
-    isEmbedActive: false,
-    maybeActiveFiber: Option.none(),
+    embedLifecycle: {
+      isEmbedActive: false,
+      maybeActiveFiber: Option.none(),
+    },
   })
   return program
 }

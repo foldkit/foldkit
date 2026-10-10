@@ -3,6 +3,7 @@ import {
   Effect,
   Equal,
   Function,
+  Layer,
   Match,
   Number,
   Option,
@@ -79,34 +80,47 @@ export const init = (config: InitConfig): Model => ({
 export const WaitBeforeShowing = Command.define('WaitBeforeShowing', {
   args: { delay: Schema.DurationFromMillis, version: Schema.Number },
   messages: [Message.CompletedWaitBeforeShowing],
-  execute: ({ delay, version }) =>
-    Effect.sleep(delay).pipe(
-      Effect.as(Message.CompletedWaitBeforeShowing({ version })),
-    ),
+  handler: function* () {
+    return ({ delay, version }) =>
+      Effect.sleep(delay).pipe(
+        Effect.as(Message.CompletedWaitBeforeShowing({ version })),
+      )
+  },
 })
 
 /** The anchor-positioning Mount this Tooltip renders on its panel. */
 export const AnchorTooltip = Mount.define('AnchorTooltip', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchorTooltip],
-  execute: ({ element, buttonId, anchor }) =>
-    Effect.gen(function* () {
-      yield* Effect.acquireRelease(
-        Effect.sync(() =>
-          anchorSetup(element, {
-            buttonId,
-            anchor,
-            interceptTab: false,
-          }),
-        ),
-        cleanup => Effect.sync(cleanup),
-      )
-      return Message.CompletedAnchorTooltip()
-    }),
+  handler: function* () {
+    return ({ element, buttonId, anchor }) =>
+      Effect.gen(function* () {
+        yield* Effect.acquireRelease(
+          Effect.sync(() =>
+            anchorSetup(element, {
+              buttonId,
+              anchor,
+              interceptTab: false,
+            }),
+          ),
+          cleanup => Effect.sync(cleanup),
+        )
+        return Message.CompletedAnchorTooltip()
+      })
+  },
 })
 
-const computeUpdate = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+/** Mount definitions rendered by Tooltip. */
+export const mounts = [AnchorTooltip]
+
+/** Effect providers used by the Tooltip component. */
+export const EffectsLayer = Layer.mergeAll(
+  WaitBeforeShowing.layer,
+  AnchorTooltip.layer,
+)
+
+const computeUpdate = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     EnteredTrigger: () => {
       if (model.isOpen || model.isDismissed) {
         return { model: modifyFields(model, { isHovered: () => true }) }
@@ -202,7 +216,8 @@ const computeUpdate = (model: Model, message: Message) =>
     },
 
     CompletedAnchorTooltip: () => ({ model }),
-  })
+  }),
+)
 
 const toVisibilityOutMessage = (
   isOpen: boolean,
@@ -221,10 +236,7 @@ const toVisibilityOutMessage = (
  *  and an optional OutMessage. `Shown`/`Hidden` fire only on `isOpen`
  *  transitions, so consumers don't get spurious events for messages that
  *  only update hover/focus/delay state without changing visibility. */
-export const update = (
-  model: Model,
-  message: Message,
-): Update.ReturnWithOutMessage<Model, Message, OutMessage> => {
+export const update = Update.make((model: Model, message: Message) => {
   const tooltipUpdate = computeUpdate(model, message)
   const outMessage = toVisibilityOutMessage(
     model.isOpen,
@@ -232,7 +244,7 @@ export const update = (
   )
 
   return pipe(tooltipUpdate, Update.withOutMessage(outMessage))
-}
+})
 
 /** Reflects an externally-sourced hover show-delay onto the Model without
  *  emitting an OutMessage. Use to mirror an external config value (a user

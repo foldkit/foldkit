@@ -3,20 +3,17 @@ import {
   DateTime,
   Duration,
   Effect,
+  Layer,
   Match,
   Option,
+  Predicate,
   Queue,
   Schema,
   Stream,
   String,
 } from 'effect'
-import {
-  Command,
-  ManagedResource,
-  Runtime,
-  Subscription,
-  type Update,
-} from 'foldkit'
+import { Socket } from 'effect/socket'
+import { Command, ManagedResource, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
@@ -41,8 +38,7 @@ const ChatMessage = Schema.Struct({
 
 type ChatMessage = typeof ChatMessage.Type
 
-const ChatSocket = ManagedResource.tag<WebSocket>()('ChatSocket')
-type ChatSocketService = ManagedResource.ServiceOf<typeof ChatSocket>
+const ChatSocket = ManagedResource.tag<Socket.WebSocketLike>()('ChatSocket')
 
 export const ConnectionState = defineTaggedUnion({
   Disconnected: {},
@@ -85,10 +81,8 @@ export type Message = typeof Message.Type
 
 // UPDATE
 
-type UpdateReturn = Update.Return<Model, Message, ChatSocketService>
-
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedConnect: () => ({
       model: modifyFields(model, {
         connection: () => ConnectionState.Connecting(),
@@ -142,7 +136,6 @@ export const update = (model: Model, message: Message) =>
       }
 
       return Match.value(model.connection).pipe(
-        Match.withReturnType<UpdateReturn>(),
         Match.tag('Connected', () => ({
           model: modifyFields(model, {
             messageInput: () => '',
@@ -172,11 +165,12 @@ export const update = (model: Model, message: Message) =>
         }),
       }
     },
-  })
+  }),
+)
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+export const init = () => ({
   model: {
     connection: ConnectionState.Disconnected(),
     messages: [],
@@ -189,12 +183,14 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 export const TimestampSentMessage = Command.define('TimestampSentMessage', {
   args: { text: Schema.String },
   messages: [Message.TimestampedMessage],
-  execute: ({ text }) =>
-    getZonedTime.pipe(
-      Effect.map(zoned =>
-        Message.TimestampedMessage({ text, zoned, isSent: true }),
-      ),
-    ),
+  handler: function* () {
+    return ({ text }) =>
+      getZonedTime.pipe(
+        Effect.map(zoned =>
+          Message.TimestampedMessage({ text, zoned, isSent: true }),
+        ),
+      )
+  },
 })
 
 export const TimestampReceivedMessage = Command.define(
@@ -202,46 +198,50 @@ export const TimestampReceivedMessage = Command.define(
   {
     args: { text: Schema.String },
     messages: [Message.TimestampedMessage],
-    execute: ({ text }) =>
-      getZonedTime.pipe(
-        Effect.map(zoned =>
-          Message.TimestampedMessage({ text, zoned, isSent: false }),
-        ),
-      ),
+    handler: function* () {
+      return ({ text }) =>
+        getZonedTime.pipe(
+          Effect.map(zoned =>
+            Message.TimestampedMessage({ text, zoned, isSent: false }),
+          ),
+        )
+    },
   },
 )
 
 export const SendMessage = Command.define('SendMessage', {
   args: { text: Schema.String },
   messages: [Message.SucceededSendMessage, Message.FailedSendMessage],
-  execute: ({ text }) =>
-    ChatSocket.get.pipe(
-      Effect.flatMap(socket =>
-        Effect.try({
-          try: () => {
-            socket.send(text)
-            return Message.SucceededSendMessage({ text })
-          },
-          catch: error =>
-            error instanceof Error ? error.message : 'Failed to send message',
-        }),
-      ),
-      Effect.catchTag('ResourceNotAvailable', () =>
-        Effect.succeed(
-          Message.FailedSendMessage({ error: 'Socket unavailable' }),
+  handler: function* () {
+    return ({ text }) =>
+      ChatSocket.get.pipe(
+        Effect.flatMap(socket =>
+          Effect.try({
+            try: () => {
+              socket.send(text)
+              return Message.SucceededSendMessage({ text })
+            },
+            catch: error =>
+              error instanceof Error ? error.message : 'Failed to send message',
+          }),
         ),
-      ),
-      Effect.catch(error =>
-        Effect.succeed(Message.FailedSendMessage({ error })),
-      ),
-    ),
+        Effect.catchTag('ResourceNotAvailable', () =>
+          Effect.succeed(
+            Message.FailedSendMessage({ error: 'Socket unavailable' }),
+          ),
+        ),
+        Effect.catch(error =>
+          Effect.succeed(Message.FailedSendMessage({ error })),
+        ),
+      )
+  },
 })
 
 // MANAGED RESOURCE
 
 export const managedResources = ManagedResource.make<Model, Message>()(
   entry => ({
-    chatSocket: entry(Schema.Option(Schema.Null), {
+    chatSocket: entry('ManageChatSocket', Schema.Option(Schema.Null), {
       resource: ChatSocket,
       modelToMaybeRequirements: model =>
         Match.value(model.connection).pipe(
@@ -249,50 +249,65 @@ export const managedResources = ManagedResource.make<Model, Message>()(
           Match.tag('Connected', () => Option.some(null)),
           Match.orElse(() => Option.none()),
         ),
-      acquire: () =>
-        Effect.callback<WebSocket, Error>(resume => {
-          const ws = new WebSocket(WS_URL)
-
-          const handleOpen = () => {
-            ws.removeEventListener('error', handleError)
-            resume(Effect.succeed(ws))
-          }
-
-          const handleError = () => {
-            ws.removeEventListener('open', handleOpen)
-            resume(Effect.fail(new Error('Failed to connect to WebSocket')))
-          }
-
-          ws.addEventListener('open', handleOpen)
-          ws.addEventListener('error', handleError)
-
-          return Effect.sync(() => {
-            ws.removeEventListener('open', handleOpen)
-            ws.removeEventListener('error', handleError)
-          })
-        }).pipe(
-          Effect.timeout(Duration.millis(CONNECTION_TIMEOUT_MS)),
-          Effect.catchTag('TimeoutError', () =>
-            Effect.fail(new Error('Connection timeout')),
-          ),
-        ),
-      release: socket =>
-        Effect.sync(() => {
-          socket.close()
-        }),
       onAcquired: () => Message.ConnectedChatSocket(),
       onReleased: () => Message.ReleasedChatSocket(),
       onAcquireError: error =>
         Message.FailedConnectChatSocket({
           error: error instanceof Error ? error.message : 'Unknown error',
         }),
+      handler: function* () {
+        const makeWebSocket = yield* Socket.WebSocketConstructor
+
+        return {
+          acquire: () =>
+            Effect.gen(function* () {
+              const socket = yield* Effect.acquireRelease(
+                Effect.sync(() => makeWebSocket(WS_URL)),
+                socket =>
+                  Effect.sync(() => {
+                    socket.close()
+                  }),
+              )
+
+              yield* Effect.callback<void, Error>(resume => {
+                const removeListeners = () => {
+                  socket.removeEventListener('open', handleOpen)
+                  socket.removeEventListener('error', handleError)
+                }
+                const handleOpen = () => {
+                  removeListeners()
+                  resume(Effect.void)
+                }
+                const handleError = () => {
+                  removeListeners()
+                  resume(
+                    Effect.fail(new Error('Failed to connect to WebSocket')),
+                  )
+                }
+
+                socket.addEventListener('open', handleOpen)
+                socket.addEventListener('error', handleError)
+
+                return Effect.sync(removeListeners)
+              }).pipe(
+                Effect.timeout(Duration.millis(CONNECTION_TIMEOUT_MS)),
+                Effect.catchTag('TimeoutError', () =>
+                  Effect.fail(new Error('Connection timeout')),
+                ),
+              )
+
+              return socket
+            }),
+          release: () => Effect.void,
+        }
+      },
     }),
   }),
 )
 
 // SUBSCRIPTION
 
-const streamChatSocketMessages = (socket: WebSocket) =>
+const streamChatSocketMessages = (socket: Socket.WebSocketLike) =>
   Stream.callback<
     | typeof Message.ReceivedMessage.Type
     | typeof Message.DisconnectedChatSocket.Type
@@ -300,11 +315,13 @@ const streamChatSocketMessages = (socket: WebSocket) =>
   >(queue =>
     Effect.acquireRelease(
       Effect.sync(() => {
-        const handleMessage = (event: MessageEvent) => {
-          Queue.offerUnsafe(
-            queue,
-            Message.ReceivedMessage({ text: event.data }),
-          )
+        const handleMessage = (event: Socket.WebSocketEvent) => {
+          if (Predicate.isString(event.data)) {
+            Queue.offerUnsafe(
+              queue,
+              Message.ReceivedMessage({ text: event.data }),
+            )
+          }
         }
         const handleClose = () => {
           Queue.offerUnsafe(queue, Message.DisconnectedChatSocket())
@@ -333,32 +350,44 @@ const streamChatSocketMessages = (socket: WebSocket) =>
     ).pipe(Effect.flatMap(() => Effect.never)),
   )
 
-export const subscriptions = Subscription.make<
-  Model,
-  Message,
-  ChatSocketService
->()(entry => ({
-  isConnected: entry(
+export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  chatSocketMessages: entry(
+    'ChatSocketMessages',
     { isConnected: Schema.Boolean },
     {
+      messages: [
+        Message.ReceivedMessage,
+        Message.DisconnectedChatSocket,
+        Message.FailedChatSocket,
+      ],
       modelToDependencies: model => ({
         isConnected: model.connection._tag === 'Connected',
       }),
-      dependenciesToStream: ({ isConnected }) =>
-        Stream.when(
-          Stream.unwrap(
-            ChatSocket.get.pipe(
-              Effect.map(streamChatSocketMessages),
-              Effect.catchTag('ResourceNotAvailable', () =>
-                Effect.succeed(Stream.empty),
+      handler: function* () {
+        return ({ isConnected }) =>
+          Stream.when(
+            Stream.unwrap(
+              ChatSocket.get.pipe(
+                Effect.map(streamChatSocketMessages),
+                Effect.catchTag('ResourceNotAvailable', () =>
+                  Effect.succeed(Stream.empty),
+                ),
               ),
             ),
-          ),
-          Effect.sync(() => isConnected),
-        ),
+            Effect.sync(() => isConnected),
+          )
+      },
     },
   ),
 }))
+
+export const EffectsLayer = Layer.mergeAll(
+  TimestampSentMessage.layer,
+  TimestampReceivedMessage.layer,
+  SendMessage.layer,
+  managedResources.chatSocket.layer,
+  subscriptions.chatSocketMessages.layer,
+)
 
 // VIEW
 

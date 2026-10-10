@@ -1,12 +1,9 @@
-const foldSettingsOutMessage = Settings.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  RestoredTheme:
-    ({ theme }) =>
-    model => ({
+const foldSettingsOutMessage = Settings.OutMessage.match({
+  RestoredTheme: ({ theme }) =>
+    Update.makeStep((model: Model) => ({
       model,
       commands: [ApplyTheme({ theme })],
-    }),
+    })),
 })
 
 const init = (username: string, savedTheme: Settings.Theme) =>

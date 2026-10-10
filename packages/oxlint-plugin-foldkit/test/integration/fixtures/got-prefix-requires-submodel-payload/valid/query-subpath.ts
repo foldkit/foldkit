@@ -6,7 +6,7 @@ const commentsQuery = Query.define({
   name: 'Comments',
   data: Schema.Array(Schema.String),
   error: Schema.String,
-  execute: Effect.succeed([]),
+  handler: function* () { return [] },
 })
 
 const Message = defineMessageUnion({

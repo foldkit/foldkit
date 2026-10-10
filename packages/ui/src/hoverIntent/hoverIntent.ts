@@ -1,4 +1,4 @@
-import { Duration, Effect, Match, Number, Option, Schema } from 'effect'
+import { Duration, Effect, Layer, Match, Number, Option, Schema } from 'effect'
 import * as Command from 'foldkit/command'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
@@ -60,23 +60,31 @@ export const init = (config: InitConfig = {}): Model => ({
 export const WaitBeforeOpening = Command.define('WaitBeforeOpening', {
   args: { delay: Schema.DurationFromMillis, version: Schema.Number },
   messages: [Message.CompletedWaitBeforeOpening],
-  execute: ({ delay, version }) =>
-    Effect.sleep(delay).pipe(
-      Effect.as(Message.CompletedWaitBeforeOpening({ version })),
-    ),
+  handler: function* () {
+    return ({ delay, version }) =>
+      Effect.sleep(delay).pipe(
+        Effect.as(Message.CompletedWaitBeforeOpening({ version })),
+      )
+  },
 })
 
 /** Waits before closing, then emits the version that scheduled the wait. */
 export const WaitBeforeClosing = Command.define('WaitBeforeClosing', {
   args: { delay: Schema.DurationFromMillis, version: Schema.Number },
   messages: [Message.CompletedWaitBeforeClosing],
-  execute: ({ delay, version }) =>
-    Effect.sleep(delay).pipe(
-      Effect.as(Message.CompletedWaitBeforeClosing({ version })),
-    ),
+  handler: function* () {
+    return ({ delay, version }) =>
+      Effect.sleep(delay).pipe(
+        Effect.as(Message.CompletedWaitBeforeClosing({ version })),
+      )
+  },
 })
 
-type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
+/** Effect providers used by the HoverIntent component. */
+export const EffectsLayer = Layer.mergeAll(
+  WaitBeforeOpening.layer,
+  WaitBeforeClosing.layer,
+)
 
 const isPointerOver = (model: Model): boolean =>
   model.isTriggerHovered || model.isPanelHovered
@@ -84,7 +92,7 @@ const isPointerOver = (model: Model): boolean =>
 const isEngaged = (model: Model): boolean =>
   isPointerOver(model) || Option.isSome(model.maybeFocusLocation)
 
-const open = (model: Model): UpdateReturn => {
+const open = (model: Model) => {
   if (model.isOpen) {
     return { model }
   }
@@ -95,7 +103,7 @@ const open = (model: Model): UpdateReturn => {
   }
 }
 
-const finishClosing = (model: Model): UpdateReturn => {
+const finishClosing = (model: Model) => {
   if (!model.isOpen) {
     return { model }
   }
@@ -106,26 +114,24 @@ const finishClosing = (model: Model): UpdateReturn => {
   }
 }
 
-const scheduleOpen = (model: Model): UpdateReturn => {
+const scheduleOpen = Update.makeStep((model: Model) => {
   const version = Number.increment(model.pendingOpenVersion)
   return {
     model: modifyFields(model, { pendingOpenVersion: () => version }),
     commands: [WaitBeforeOpening({ delay: model.openDelay, version })],
   }
-}
+})
 
-const scheduleClose = (
-  model: Model,
-  delay: Duration.Duration,
-): UpdateReturn => {
-  const version = Number.increment(model.pendingCloseVersion)
-  return {
-    model: modifyFields(model, { pendingCloseVersion: () => version }),
-    commands: [WaitBeforeClosing({ delay, version })],
-  }
-}
+const scheduleClose = (delay: Duration.Duration) =>
+  Update.makeStep((model: Model) => {
+    const version = Number.increment(model.pendingCloseVersion)
+    return {
+      model: modifyFields(model, { pendingCloseVersion: () => version }),
+      commands: [WaitBeforeClosing({ delay, version })],
+    }
+  })
 
-const entered = (model: Model): UpdateReturn => {
+const entered = (model: Model) => {
   const enteredModel = modifyFields(model, {
     pendingCloseVersion: Number.increment,
   })
@@ -137,7 +143,7 @@ const entered = (model: Model): UpdateReturn => {
   return scheduleOpen(enteredModel)
 }
 
-const left = (model: Model): UpdateReturn => {
+const left = (model: Model) => {
   const leftModel = modifyFields(model, {
     pendingOpenVersion: Number.increment,
   })
@@ -154,10 +160,10 @@ const left = (model: Model): UpdateReturn => {
     return { model: leftModel }
   }
 
-  return scheduleClose(leftModel, leftModel.closeDelay)
+  return scheduleClose(leftModel.closeDelay)(leftModel)
 }
 
-const focused = (model: Model, focusLocation: FocusLocation): UpdateReturn => {
+const focused = (model: Model, focusLocation: FocusLocation) => {
   const focusedModel = modifyFields(model, {
     maybeFocusLocation: () => Option.some(focusLocation),
     pendingOpenVersion: Number.increment,
@@ -171,7 +177,7 @@ const focused = (model: Model, focusLocation: FocusLocation): UpdateReturn => {
   return open(focusedModel)
 }
 
-const blurred = (model: Model): UpdateReturn => {
+const blurred = (model: Model) => {
   const blurredModel = modifyFields(model, {
     maybeFocusLocation: () => Option.none(),
     pendingOpenVersion: Number.increment,
@@ -189,10 +195,10 @@ const blurred = (model: Model): UpdateReturn => {
     return { model: blurredModel }
   }
 
-  return scheduleClose(blurredModel, Duration.zero)
+  return scheduleClose(Duration.zero)(blurredModel)
 }
 
-const dismiss = (model: Model, isTriggerFocused: boolean): UpdateReturn => {
+const dismiss = (model: Model, isTriggerFocused: boolean) => {
   const maybeFocusLocation = Option.liftPredicate<FocusLocation>(
     'Trigger',
     () => isTriggerFocused,
@@ -215,7 +221,7 @@ const dismiss = (model: Model, isTriggerFocused: boolean): UpdateReturn => {
 
 /** Programmatically closes HoverIntent immediately, invalidating pending
  *  transitions and suppressing reopening until the trigger disengages. */
-export const close = (model: Model): UpdateReturn =>
+export const close = (model: Model) =>
   dismiss(
     model,
     Option.exists(
@@ -225,8 +231,8 @@ export const close = (model: Model): UpdateReturn =>
   )
 
 /** Processes a HoverIntent Message and returns the next Model, optional Commands, and an optional OutMessage. */
-export const update = (model: Model, message: Message): UpdateReturn =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     EnteredTrigger: () =>
       entered(modifyFields(model, { isTriggerHovered: () => true })),
     LeftTrigger: () =>
@@ -269,7 +275,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
       return finishClosing(model)
     },
-  })
+  }),
+)
 
 // VIEW
 

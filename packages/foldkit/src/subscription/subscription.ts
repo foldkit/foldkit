@@ -1,13 +1,30 @@
 import {
   Array,
+  Effect,
   type Equivalence,
   Function,
+  Layer,
   Option,
+  Predicate,
   Record,
   Schema,
+  type Scope,
   Stream,
   pipe,
 } from 'effect'
+
+import {
+  type Handler,
+  type ToLayerWithKeepAlive,
+  type ToLayerWithoutKeepAlive,
+  makeHandler,
+} from './handler.js'
+
+export type {
+  Handler,
+  ToLayerWithKeepAlive,
+  ToLayerWithoutKeepAlive,
+} from './handler.js'
 
 type SubscriptionBrand = {
   readonly __subscription: never
@@ -18,9 +35,9 @@ type DependenciesSchema<Dependencies> = Schema.Schema<Dependencies> & {
 }
 
 /**
- * The entry shape produced by helpers like `Subscription.persistentEntry` and
- * `Port.subscriptionEntry` before branding. Pass values of this shape into
- * `Subscription.make` as entry values.
+ * The runtime shape of a Subscription entry without
+ * `keepAliveEquivalence`. Applications declare entries with
+ * {@link make} rather than constructing this shape directly.
  */
 export type EntryWithoutKeepAlive<Model, Message, Dependencies, Services> = {
   readonly dependenciesSchema: DependenciesSchema<Dependencies>
@@ -45,13 +62,42 @@ type Entry<Model, Message, Dependencies, Services = never> =
   | EntryWithoutKeepAlive<Model, Message, Dependencies, Services>
   | EntryWithKeepAlive<Model, Message, Dependencies, Services>
 
+/** A Subscription entry whose Stream implementation is supplied by a Layer.
+ * `messages` declares the schemas the handler Stream may emit; `toLayer`
+ * accepts only that Message union. */
+export type LayeredEntryWithoutKeepAlive<
+  Name extends string,
+  Model,
+  Message,
+  Dependencies,
+  Messages extends ReadonlyArray<Schema.Top> = ReadonlyArray<Schema.Top>,
+> = EntryWithoutKeepAlive<Model, Message, Dependencies, Handler<Name>> &
+  Readonly<{
+    name: Name
+    messages: Messages
+    toLayer: ToLayerWithoutKeepAlive<Name, Dependencies, Message>
+  }>
+
+/** A keep-alive Subscription entry whose Stream implementation is supplied by
+ * a Layer. Its declared `messages` constrain the handler Stream output. */
+export type LayeredEntryWithKeepAlive<
+  Name extends string,
+  Model,
+  Message,
+  Dependencies,
+  Messages extends ReadonlyArray<Schema.Top> = ReadonlyArray<Schema.Top>,
+> = EntryWithKeepAlive<Model, Message, Dependencies, Handler<Name>> &
+  Readonly<{
+    name: Name
+    messages: Messages
+    toLayer: ToLayerWithKeepAlive<Name, Dependencies, Message>
+  }>
+
 /**
  * A single subscription entry produced by `Subscription.make`,
  * `Subscription.lift`, or `Subscription.aggregate`. The brand field is
  * `never`, so application code cannot manually construct a `Subscription`
- * value: it must go through one of those constructors (or a helper like
- * `Subscription.persistentEntry` that returns an entry shape, then through
- * `make`).
+ * value: it must go through one of those constructors.
  *
  * Two variants by `keepAliveEquivalence` presence:
  *
@@ -82,76 +128,261 @@ export type Subscriptions<Model, Message, Services = never> = Readonly<
   Record<string, Subscription<Model, Message, any, Services>>
 >
 
-/**
- * Callbacks for a subscription entry without `keepAliveEquivalence`. Dependencies
- * are inferred from the field map passed to `entry`.
- */
-type EntryCallbacksWithoutKeepAlive<Model, Message, Dependencies, Services> = {
+type LayeredEntryCallbacksWithoutKeepAlive<
+  Model,
+  Dependencies,
+  Messages extends ReadonlyArray<Schema.Top>,
+> = {
+  readonly messages: Messages
   readonly modelToDependencies: (model: Model) => Dependencies
   readonly keepAliveEquivalence?: never
-  readonly dependenciesToStream: (
-    dependencies: Dependencies,
-  ) => Stream.Stream<Message, never, Services>
+  readonly dependenciesToStream?: never
+  readonly handler?: never
 }
 
-/**
- * Callbacks for a subscription entry with `keepAliveEquivalence`. Dependencies
- * are inferred from the field map passed to `entry`.
- */
-type EntryCallbacksWithKeepAlive<Model, Message, Dependencies, Services> = {
+type LayeredEntryCallbacksWithKeepAlive<
+  Model,
+  Dependencies,
+  Messages extends ReadonlyArray<Schema.Top>,
+> = {
+  readonly messages: Messages
   readonly modelToDependencies: (model: Model) => Dependencies
   readonly keepAliveEquivalence: Equivalence.Equivalence<Dependencies>
-  readonly dependenciesToStream: (
-    dependencies: Dependencies,
-    readDependencies: () => Dependencies,
-  ) => Stream.Stream<Message, never, Services>
+  readonly dependenciesToStream?: never
+  readonly handler?: never
 }
 
+type EmittedMessage<Messages extends ReadonlyArray<Schema.Top>> =
+  Messages[number]['Type']
+
 /**
- * Builds a single subscription entry from a field map and callbacks.
+ * Builds a single Subscription entry from a handler name, field map, and
+ * lifecycle callbacks. Supplying a `handler` generator in the callbacks object
+ * attaches its application Layer as `layer`. Omitting it declares a host
+ * contract whose implementation is supplied through `toLayer`. The handler
+ * name identifies that Layer
+ * requirement; the key returned from `Subscription.make` continues to identify
+ * the entry's running fiber.
  *
- * The field map is the same shape you would pass to `Schema.Struct`. Reading the
- * schema as a positional argument (rather than a property on the entry
- * literal) lets TypeScript fully resolve the `Dependencies` type before
- * contextually typing `modelToDependencies` and `dependenciesToStream`, so
- * destructuring patterns like `({ maybeMapHostId })` are inferred correctly
- * even when the field schemas use transforms (e.g. `Schema.Option`).
+ * The field map is the same shape you would pass to `Schema.Struct`. Keeping it
+ * positional lets TypeScript fully resolve the `Dependencies` type before
+ * contextually typing the callbacks, including fields that use Schema
+ * transforms such as `Schema.Option`.
  *
- * Two overloads, one per `keepAliveEquivalence` presence:
- *
- * - Without `keepAliveEquivalence`, `dependenciesToStream` takes a single
+ * - Without `keepAliveEquivalence`, the Layer handler takes a single
  *   `dependencies` argument.
- * - With `keepAliveEquivalence`, `dependenciesToStream` also receives a
+ * - With `keepAliveEquivalence`, the Layer handler also receives a
  *   `readDependencies` thunk for accessing the latest value while the Stream
  *   stays running across Model changes the equivalence accepts as equal.
+ * - Entries declare the Messages their handler Stream can emit. An empty
+ *   `messages` collection describes a silent scoped Stream.
+ * - The `handler` field is an Effect generator. Its build error plus the
+ *   constructor and Stream requirements flow into `layer`; `Scope.Scope` is
+ *   supplied by Foldkit.
+ * - With a handler name and Message declarations but no field map, the entry
+ *   has no local Model dependencies. Its Stream stays active across Model
+ *   updates unless a parent gates it.
  */
-export type EntryBuilder<Model, Message, Services> = <
-  const Fields extends Schema.Struct.Fields,
-  Callbacks extends
-    | EntryCallbacksWithoutKeepAlive<
-        Model,
-        Message,
-        Schema.Struct.Type<Fields>,
-        Services
+export interface EntryBuilder<Model> {
+  <
+    const Name extends string,
+    const Fields extends Schema.Struct.Fields,
+    const Messages extends ReadonlyArray<Schema.Top>,
+    StreamRequirements = never,
+    Yielded extends Effect.Effect<unknown, unknown, unknown> = Effect.Effect<
+      never,
+      never,
+      never
+    >,
+  >(
+    name: Name,
+    fields: Fields,
+    callbacks: Readonly<{
+      messages: Messages
+      modelToDependencies: (model: Model) => Schema.Struct.Type<NoInfer<Fields>>
+      keepAliveEquivalence: Equivalence.Equivalence<
+        Schema.Struct.Type<NoInfer<Fields>>
       >
-    | EntryCallbacksWithKeepAlive<
-        Model,
-        Message,
-        Schema.Struct.Type<Fields>,
-        Services
-      >,
->(
-  fields: Fields,
-  callbacks: Callbacks,
-) => Callbacks extends {
-  readonly keepAliveEquivalence: Equivalence.Equivalence<any>
+      dependenciesToStream?: never
+      handler: () => Generator<
+        Yielded,
+        (
+          dependencies: Schema.Struct.Type<NoInfer<Fields>>,
+          readDependencies: () => Schema.Struct.Type<NoInfer<Fields>>,
+        ) => Stream.Stream<
+          NoInfer<EmittedMessage<Messages>>,
+          never,
+          StreamRequirements
+        >,
+        unknown
+      >
+    }>,
+  ): LayeredEntryWithKeepAlive<
+    Name,
+    Model,
+    EmittedMessage<Messages>,
+    Schema.Struct.Type<Fields>,
+    Messages
+  > &
+    Readonly<{
+      layer: Layer.Layer<
+        Handler<Name>,
+        Effect.Error<Yielded>,
+        Exclude<StreamRequirements | Effect.Services<Yielded>, Scope.Scope>
+      >
+    }>
+
+  <
+    const Name extends string,
+    const Fields extends Schema.Struct.Fields,
+    const Messages extends ReadonlyArray<Schema.Top>,
+    StreamRequirements = never,
+    Yielded extends Effect.Effect<unknown, unknown, unknown> = Effect.Effect<
+      never,
+      never,
+      never
+    >,
+  >(
+    name: Name,
+    fields: Fields,
+    callbacks: Readonly<{
+      messages: Messages
+      modelToDependencies: (model: Model) => Schema.Struct.Type<NoInfer<Fields>>
+      keepAliveEquivalence?: never
+      dependenciesToStream?: never
+      handler: () => Generator<
+        Yielded,
+        (
+          dependencies: Schema.Struct.Type<NoInfer<Fields>>,
+        ) => Stream.Stream<
+          NoInfer<EmittedMessage<Messages>>,
+          never,
+          StreamRequirements
+        >,
+        unknown
+      >
+    }>,
+  ): LayeredEntryWithoutKeepAlive<
+    Name,
+    Model,
+    EmittedMessage<Messages>,
+    Schema.Struct.Type<Fields>,
+    Messages
+  > &
+    Readonly<{
+      layer: Layer.Layer<
+        Handler<Name>,
+        Effect.Error<Yielded>,
+        Exclude<StreamRequirements | Effect.Services<Yielded>, Scope.Scope>
+      >
+    }>
+
+  <
+    const Name extends string,
+    const Messages extends ReadonlyArray<Schema.Top>,
+    StreamRequirements = never,
+    Yielded extends Effect.Effect<unknown, unknown, unknown> = Effect.Effect<
+      never,
+      never,
+      never
+    >,
+  >(
+    name: Name,
+    config: Readonly<{
+      messages: Messages
+      dependenciesToStream?: never
+      handler: () => Generator<
+        Yielded,
+        (
+          dependencies: Record<string, never>,
+        ) => Stream.Stream<
+          NoInfer<EmittedMessage<Messages>>,
+          never,
+          StreamRequirements
+        >,
+        unknown
+      >
+    }>,
+  ): LayeredEntryWithoutKeepAlive<
+    Name,
+    Model,
+    EmittedMessage<Messages>,
+    Record<string, never>,
+    Messages
+  > &
+    Readonly<{
+      layer: Layer.Layer<
+        Handler<Name>,
+        Effect.Error<Yielded>,
+        Exclude<StreamRequirements | Effect.Services<Yielded>, Scope.Scope>
+      >
+    }>
+
+  <const Name extends string, const Messages extends ReadonlyArray<Schema.Top>>(
+    name: Name,
+    config: Readonly<{
+      messages: Messages
+      dependenciesToStream?: never
+      handler?: never
+    }>,
+  ): LayeredEntryWithoutKeepAlive<
+    Name,
+    Model,
+    EmittedMessage<Messages>,
+    Record<string, never>,
+    Messages
+  >
+
+  <
+    const Name extends string,
+    const Fields extends Schema.Struct.Fields,
+    const Messages extends ReadonlyArray<Schema.Top>,
+  >(
+    name: Name,
+    fields: Fields,
+    callbacks: LayeredEntryCallbacksWithKeepAlive<
+      Model,
+      Schema.Struct.Type<NoInfer<Fields>>,
+      Messages
+    >,
+  ): LayeredEntryWithKeepAlive<
+    Name,
+    Model,
+    EmittedMessage<Messages>,
+    Schema.Struct.Type<Fields>,
+    Messages
+  >
+
+  <
+    const Name extends string,
+    const Fields extends Schema.Struct.Fields,
+    const Messages extends ReadonlyArray<Schema.Top>,
+  >(
+    name: Name,
+    fields: Fields,
+    callbacks: LayeredEntryCallbacksWithoutKeepAlive<
+      Model,
+      Schema.Struct.Type<NoInfer<Fields>>,
+      Messages
+    >,
+  ): LayeredEntryWithoutKeepAlive<
+    Name,
+    Model,
+    EmittedMessage<Messages>,
+    Schema.Struct.Type<Fields>,
+    Messages
+  >
 }
-  ? EntryWithKeepAlive<Model, Message, Schema.Struct.Type<Fields>, Services>
-  : EntryWithoutKeepAlive<Model, Message, Schema.Struct.Type<Fields>, Services>
+
+type RuntimeHandlerGenerator = () => Generator<
+  Effect.Effect<any, any, any>,
+  (...args: ReadonlyArray<any>) => Stream.Stream<any, never, any>,
+  unknown
+>
 
 /**
- * Declares a Subscriptions record. The Model, Message, and optional Services
- * generics are provided up front; the entries record follows, built from
+ * Declares a Subscriptions record. The Model and Message generics are provided
+ * up front; the entries record follows, built from
  * calls to the `entry` builder passed into the inner function.
  *
  * Reach for `Subscription.aggregate` to combine multiple records, and
@@ -160,37 +391,98 @@ export type EntryBuilder<Model, Message, Services> = <
  *
  * @example
  * ```ts
- * Subscription.make<Model, Message>()(entry => ({
+ * const subscriptions = Subscription.make<Model, Message>()(entry => ({
  *   tick: entry(
+ *     'CounterTicks',
  *     { isRunning: Schema.Boolean },
  *     {
+ *       messages: [Message.Ticked],
  *       modelToDependencies: model => ({ isRunning: model.isRunning }),
- *       dependenciesToStream: ({ isRunning }) =>
- *         Stream.when(..., Effect.sync(() => isRunning)),
+ *       handler: function* () {
+ *         return ({ isRunning }) =>
+ *           isRunning
+ *             ? Stream.tick(Duration.seconds(1)).pipe(
+ *                 Stream.drop(1),
+ *                 Stream.map(Message.Ticked),
+ *               )
+ *             : Stream.empty
+ *       },
  *     },
  *   ),
  * }))
+ *
+ * const EffectsLayer = subscriptions.tick.layer
  * ```
  */
 export const make =
-  <Model, Message, Services = never>() =>
+  <Model, Message>() =>
   <
     Entries extends Readonly<
-      Record<string, Entry<Model, Message, any, Services>>
+      Record<string, Entry<Model, Message, any, Handler<string>>>
     >,
   >(
-    build: (entry: EntryBuilder<Model, Message, Services>) => Entries,
+    build: (entry: EntryBuilder<Model>) => Entries,
   ): {
     readonly [K in keyof Entries]: Entries[K] & SubscriptionBrand
   } => {
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const entryBuilder = ((
-      fields: Schema.Struct.Fields,
-      callbacks: Record<string, unknown>,
-    ) => ({
-      dependenciesSchema: Schema.Struct(fields),
-      ...callbacks,
-    })) as unknown as EntryBuilder<Model, Message, Services>
+      name: string,
+      fieldsOrCallbacks?: Schema.Struct.Fields | Record<string, unknown>,
+      maybeCallbacks?: Record<string, unknown>,
+    ) => {
+      const handler = makeHandler(name)
+
+      if (Predicate.isUndefined(maybeCallbacks)) {
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        const config = fieldsOrCallbacks as Readonly<{
+          messages: ReadonlyArray<Schema.Top>
+          handler?: RuntimeHandlerGenerator
+        }>
+        const entry = {
+          name,
+          messages: config.messages,
+          dependenciesSchema: Schema.Struct({}),
+          modelToDependencies: () => ({}),
+          dependenciesToStream: handler.toStream,
+          toLayer: handler.toLayer,
+        }
+
+        if (Predicate.isUndefined(config.handler)) {
+          return entry
+        } else {
+          // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
+          const layer = handler.toLayer(Effect.gen(config.handler))
+          // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
+          return { ...entry, layer }
+        }
+      }
+
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      const callbacks = maybeCallbacks as Record<string, unknown> & {
+        readonly handler?: RuntimeHandlerGenerator
+      }
+      const { handler: configuredHandler, ...entryCallbacks } = callbacks
+      const entry = {
+        name,
+        dependenciesSchema: Schema.Struct(
+          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+          fieldsOrCallbacks as Schema.Struct.Fields,
+        ),
+        ...entryCallbacks,
+        dependenciesToStream: handler.toStream,
+        toLayer: handler.toLayer,
+      }
+
+      if (Predicate.isUndefined(configuredHandler)) {
+        return entry
+      } else {
+        // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
+        const layer = handler.toLayer(Effect.gen(configuredHandler))
+        // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
+        return { ...entry, layer }
+      }
+    }) as unknown as EntryBuilder<Model>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     return build(entryBuilder) as any
   }
@@ -310,15 +602,15 @@ const mergeSubscriptions = (
  * the union across all records, which is what lets a record that needs an
  * Effect service sit beside records that need none.
  *
- * The result keeps each record's keys and each entry's exact dependency type,
- * schema, and `keepAliveEquivalence` variant, so a lifted entry's
+ * The direct form keeps each record's keys and each entry's exact dependency
+ * type, declared Messages, attached `.layer` recipe when present, `toLayer`
+ * helper, schema, and
+ * `keepAliveEquivalence` variant, so a lifted entry's
  * {@link GatedDependencies} survives aggregation.
  *
- * The curried form remains available for a record that has to be typed before
- * its entries exist, such as a value annotated as
- * `Subscriptions<Model, Message>` at a module boundary. It erases keys and
- * per-entry dependency types, so reach for it only when the explicit contract
- * is the point.
+ * The curried form supplies the Model and Message context before the records
+ * exist. Its inner call infers the records and preserves their keys, dependency
+ * types, declared Messages, and exact handler requirements.
  *
  * @example
  * ```ts
@@ -328,16 +620,20 @@ const mergeSubscriptions = (
  * )
  * ```
  *
- * @example Curried, when the record is typed before its entries exist:
+ * @example Curried, when the Model and Message context is needed first:
  * ```ts
- * export const subscriptions: Subscription.Subscriptions<Model, Message> =
+ * export const subscriptions =
  *   Subscription.aggregate<Model, Message>()(...records)
  * ```
  */
 export const aggregate: {
-  <Model, Message, Services = never>(): (
-    ...records: ReadonlyArray<Subscriptions<Model, Message, Services>>
-  ) => Subscriptions<Model, Message, Services>
+  <Model, Message>(): <
+    Records extends ReadonlyArray<
+      Record<string, Subscription<Model, Message, any, any>>
+    >,
+  >(
+    ...records: Records
+  ) => MergeSubscriptions<Records>
   <Records extends AnySubscriptionsList>(
     ...records: CompatibleSubscriptions<Records>
   ): MergeSubscriptions<Records>
@@ -352,29 +648,6 @@ export const aggregate: {
   })
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
 }) as any
-
-/**
- * Wraps a Stream as a Subscription entry with no dependencies on its own
- * Model. Local Model changes do not restart the Stream. A parent can still
- * gate the entry when lifting it, so the Stream starts and stops with that
- * parent condition. Use for work such as system theme listeners, viewport
- * width observers, or route-independent timers.
- *
- * Returns an entry shape, not a branded Subscription. Pass it into `make`
- * as an entry value.
- */
-export const persistentEntry = <Message, Services = never>(
-  stream: Stream.Stream<Message, never, Services>,
-): EntryWithoutKeepAlive<
-  unknown,
-  Message,
-  Record<string, never>,
-  Services
-> => ({
-  dependenciesSchema: Schema.Struct({}),
-  modelToDependencies: () => ({}),
-  dependenciesToStream: () => stream,
-})
 
 type ChildModelOf<ChildSubscriptions> =
   ChildSubscriptions[keyof ChildSubscriptions] extends Subscription<
@@ -434,7 +707,19 @@ type LiftedSubscriptions<ParentModel, ParentMessage, Subscriptions> = {
         ParentMessage,
         GatedDependencies<Dependencies>,
         Services
-      >
+      > &
+        (Subscriptions[K] extends { readonly messages: infer Messages }
+          ? Readonly<{ messages: Messages }>
+          : unknown) &
+        (Subscriptions[K] extends {
+          readonly name: infer Name
+          readonly toLayer: infer ToLayer
+        }
+          ? Readonly<{ name: Name; toLayer: ToLayer }>
+          : unknown) &
+        (Subscriptions[K] extends { readonly layer: infer EntryLayer }
+          ? Readonly<{ layer: EntryLayer }>
+          : unknown)
     : never
 }
 
@@ -468,11 +753,24 @@ const toParentStream = (
   stream: Stream.Stream<any, never, any>,
 ) => Stream.map(stream, config.toParentMessage)
 
+const SubscriptionMessageMappersTypeId = Symbol(
+  'foldkit/SubscriptionMessageMappers',
+)
+
+type SubscriptionWithMessageMetadata = Readonly<{
+  messages?: ReadonlyArray<Schema.Top>
+  [SubscriptionMessageMappersTypeId]?: ReadonlyArray<
+    (message: unknown) => unknown
+  >
+}>
+
 const toLiftedEntry = (
   subscription: Subscription<any, any, any, any>,
   config: AnyLiftConfig,
   when: (parentModel: any) => boolean,
 ) => {
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const messageMetadata = subscription as SubscriptionWithMessageMetadata
   const dependenciesSchema = Schema.Struct({
     maybeDependencies: Schema.Option(subscription.dependenciesSchema),
   })
@@ -492,6 +790,11 @@ const toLiftedEntry = (
     )
 
     return {
+      ...subscription,
+      [SubscriptionMessageMappersTypeId]: [
+        ...(messageMetadata[SubscriptionMessageMappersTypeId] ?? []),
+        config.toParentMessage,
+      ],
       dependenciesSchema,
       modelToDependencies,
       keepAliveEquivalence: (
@@ -523,6 +826,11 @@ const toLiftedEntry = (
   }
 
   return {
+    ...subscription,
+    [SubscriptionMessageMappersTypeId]: [
+      ...(messageMetadata[SubscriptionMessageMappersTypeId] ?? []),
+      config.toParentMessage,
+    ],
     dependenciesSchema,
     modelToDependencies,
     dependenciesToStream: (gatedDependencies: GatedDependencies<any>) =>
@@ -552,7 +860,8 @@ const toLiftedEntry = (
  * is absent.
  *
  * Every lifted entry wraps its dependencies in {@link GatedDependencies}.
- * The child's dependency Schema, service requirements, and
+ * The child's dependency Schema, declared Messages, handler Layer helper,
+ * service requirements, and
  * `keepAliveEquivalence` are preserved inside that wrapper. A running child
  * Stream's `readDependencies` receives current child dependencies while
  * active, with its starting dependencies as a fallback during teardown.
@@ -592,3 +901,36 @@ export const lift =
     Record.map(subscriptions, (subscription, key) =>
       toLiftedEntry(subscription, config, toEntryWhen(config.when, key)),
     ) as any
+
+/** @internal A declared Subscription Message and the lift chain production
+ * applies before dispatching it to the root update. */
+export type MessageDeclaration = Readonly<{
+  entry: Subscription<any, any, any, any>
+  entryKey: string
+  schemas: ReadonlyArray<Schema.Top>
+  messageMappers: ReadonlyArray<(message: unknown) => unknown>
+}>
+
+/** @internal Reads Message declarations retained by `make`, `lift`, and
+ * `aggregate` for Scene's Subscription boundary. */
+export const __messageDeclarations = (
+  subscriptions: Readonly<Record<string, Subscription<any, any, any, any>>>,
+): ReadonlyArray<MessageDeclaration> => {
+  const declarations: Array<MessageDeclaration> = []
+
+  for (const [entryKey, subscription] of Object.entries(subscriptions)) {
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const metadata = subscription as SubscriptionWithMessageMetadata
+
+    if (metadata.messages !== undefined) {
+      declarations.push({
+        entry: subscription,
+        entryKey,
+        schemas: metadata.messages,
+        messageMappers: metadata[SubscriptionMessageMappersTypeId] ?? [],
+      })
+    }
+  }
+
+  return declarations
+}

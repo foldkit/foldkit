@@ -3,12 +3,18 @@ import {
   Context,
   Data,
   Effect,
+  Layer,
   Option,
+  Predicate,
   Record,
   Ref,
   type Schema,
   type Scope,
 } from 'effect'
+
+import { type Handler, type ToLayer, makeHandler } from './handler.js'
+
+export type { Handler, ToLayer } from './handler.js'
 
 /** Typed error raised when a command accesses a managed resource that is not currently acquired. */
 export class ResourceNotAvailable extends Data.TaggedError(
@@ -80,22 +86,26 @@ export type Value<T> = T extends ManagedResource<infer V, any> ? V : never
 /** Type-level utility to extract the service identity type from a ManagedResource. */
 export type ServiceOf<T> = T extends ManagedResource<any, infer S> ? S : never
 
-/** Internal configuration for a single Managed Resource, used by the runtime. */
-export type ManagedResourceConfig<Model, Message> = {
+/** Internal configuration for a single ManagedResource, used by the runtime. */
+export type ManagedResourceConfig<Model, Message, LifecycleServices = never> = {
   readonly schema: Schema.Schema<any>
   readonly resource: ManagedResource<any>
   readonly modelToMaybeRequirements: (model: Model) => any
-  readonly acquire: (params: any) => Effect.Effect<any, unknown, Scope.Scope>
-  readonly release: (value: any) => Effect.Effect<void>
+  readonly acquire: (
+    params: any,
+  ) => Effect.Effect<any, unknown, Scope.Scope | LifecycleServices>
+  readonly release: (
+    value: any,
+  ) => Effect.Effect<void, unknown, Scope.Scope | LifecycleServices>
   readonly onAcquired: (value: any) => Message
   readonly onReleased: () => Message
   readonly onAcquireError: (error: unknown) => Message
 }
 
-/** A record of named Managed Resource configurations, keyed by resource name. */
+/** A record of named ManagedResource configurations, keyed by resource name. */
 export type ManagedResources<Model, Message, Services = never> = Record<
   string,
-  ManagedResourceConfig<Model, Message>
+  ManagedResourceConfig<Model, Message, any>
 > & {
   readonly __managedResourceServices?: Services
 }
@@ -112,11 +122,18 @@ type EntryBrand<Model, Message> = {
 type AcquireParams<Requirements> =
   Requirements extends Option.Option<infer Params> ? Params : Requirements
 
+type AcquireParamsFromSchema<RequirementsSchema extends Schema.Schema<any>> =
+  RequirementsSchema extends Schema.Option<infer ParamsSchema>
+    ? ParamsSchema['Type']
+    : RequirementsSchema extends Schema.Struct<infer Fields>
+      ? Schema.Struct.Type<Fields>
+      : AcquireParams<RequirementsSchema['Type']>
+
 /**
- * A single Managed Resource entry produced by `ManagedResource.make`,
- * `ManagedResource.lift`, or `ManagedResource.aggregate`. The brand field is
- * `never`, so application code cannot manually construct one: it must go
- * through a constructor.
+ * A single ManagedResource entry produced by `ManagedResource.make`,
+ * `ManagedResource.lift`, or `ManagedResource.aggregate`. A private function
+ * brand prevents application code from manually constructing one, so an entry
+ * must come from a Foldkit constructor.
  *
  * The `Value` parameter is the type the resource holds while active: what
  * `acquire` produces, what `release` and `onAcquired` receive, and what the
@@ -138,20 +155,49 @@ export type Entry<
   Value,
   Service = unknown,
   OnAcquired extends (...args: any) => Message = (value: Value) => Message,
+  LifecycleServices = never,
+  Params = AcquireParams<Requirements>,
 > = {
   readonly schema: Schema.Schema<Requirements>
   readonly resource: ManagedResource<Value, Service>
   readonly modelToMaybeRequirements: (model: Model) => Requirements
   readonly acquire: (
-    params: AcquireParams<Requirements>,
-  ) => Effect.Effect<Value, unknown, Scope.Scope>
-  readonly release: (value: Value) => Effect.Effect<void>
+    params: Params,
+  ) => Effect.Effect<Value, unknown, Scope.Scope | LifecycleServices>
+  readonly release: (
+    value: Value,
+  ) => Effect.Effect<void, unknown, Scope.Scope | LifecycleServices>
   readonly onAcquired: OnAcquired
   readonly onReleased: () => Message
   readonly onAcquireError: (error: unknown) => Message
 } & EntryBrand<Model, Message>
 
-/** Type-level utility to extract the service union from a Managed Resources record. */
+/** A ManagedResource entry whose lifecycle implementation is supplied by a Layer. */
+export type LayeredEntry<
+  Name extends string,
+  Model,
+  Message,
+  Requirements,
+  Value,
+  Service,
+  OnAcquired extends (...args: any) => Message = (value: Value) => Message,
+  Params = AcquireParams<Requirements>,
+> = Entry<
+  Model,
+  Message,
+  Requirements,
+  Value,
+  Service,
+  OnAcquired,
+  Handler<Name>,
+  Params
+> &
+  Readonly<{
+    name: Name
+    toLayer: ToLayer<Name, Params, Value>
+  }>
+
+/** Type-level utility to extract the service union from a ManagedResources record. */
 export type ServicesOf<Resources> = {
   [Key in keyof Resources]: Resources[Key] extends {
     readonly resource: ManagedResource<any, infer Service>
@@ -160,63 +206,147 @@ export type ServicesOf<Resources> = {
     : never
 }[keyof Resources]
 
-/**
- * Builds a single Managed Resource entry from a requirements schema and a
- * config. Reading the schema as a positional argument (rather than a property
- * on the config literal) lets TypeScript fully resolve the requirements type
- * before contextually typing `modelToMaybeRequirements` and `acquire`, so
- * destructuring patterns are inferred correctly even when the schema uses
- * transforms like `Schema.Option`.
- *
- * The `onAcquired` field is typed as `OnAcquired` intersected with the
- * concrete `(value: Value) => Message` signature: the concrete member keeps
- * contextual typing intact for destructured handler parameters, while the
- * naked generic captures the handler's own type so the Entry records its
- * arity.
- */
-export type EntryBuilder<Model, Message> = <
-  RequirementsSchema extends Schema.Schema<any>,
-  Value,
-  Service,
-  OnAcquired extends (value: Value) => Message,
->(
-  schema: RequirementsSchema,
-  config: {
-    readonly resource: ManagedResource<Value, Service>
-    readonly modelToMaybeRequirements: (
-      model: Model,
-    ) => Schema.Schema.Type<RequirementsSchema>
-    readonly acquire: (
-      params: AcquireParams<Schema.Schema.Type<RequirementsSchema>>,
-    ) => Effect.Effect<Value, unknown, Scope.Scope>
-    readonly release: (value: Value) => Effect.Effect<void>
-    readonly onAcquired: OnAcquired & ((value: Value) => Message)
-    readonly onReleased: () => Message
-    readonly onAcquireError: (error: unknown) => Message
-  },
-) => Entry<
+type LayeredEntryConfig<
   Model,
   Message,
-  Schema.Schema.Type<RequirementsSchema>,
-  Value,
-  Service,
-  OnAcquired
->
+  RequirementsSchema extends Schema.Schema<any>,
+  Resource extends ManagedResource<any, any>,
+  OnAcquired extends (value: Value<Resource>) => Message,
+> = Readonly<{
+  resource: Resource
+  modelToMaybeRequirements: (
+    model: Model,
+  ) => Schema.Schema.Type<RequirementsSchema>
+  onAcquired: OnAcquired
+  onReleased: () => Message
+  onAcquireError: (error: unknown) => Message
+  acquire?: never
+  release?: never
+}>
 
 /**
- * Declares a Managed Resources record. The Model and Message generics are
+ * Builds a single ManagedResource entry from a handler name, requirements
+ * schema, and config. Supplying a lifecycle `handler` generator in the config
+ * attaches its application Layer as `layer`. Omitting it declares a
+ * host contract whose required `acquire` and `release` implementation is
+ * supplied through `toLayer`. Reading the schema as a positional argument (rather
+ * than a property on the config literal) lets TypeScript fully resolve the
+ * requirements type before contextually typing `modelToMaybeRequirements` and
+ * `acquire`, so destructuring patterns are inferred correctly even when the
+ * schema uses transforms like `Schema.Option`.
+ *
+ * The `onAcquired` field keeps the callback's own arity while its generic
+ * constraint supplies the resource value's exact contextual type.
+ */
+export interface EntryBuilder<Model, Message> {
+  <
+    const Name extends string,
+    RequirementsSchema extends Schema.Schema<any>,
+    Resource extends ManagedResource<any, any>,
+    OnAcquired extends (value: Value<Resource>) => Message,
+    AcquireRequirements = never,
+    ReleaseRequirements = never,
+    Yielded extends Effect.Effect<unknown, unknown, unknown> = Effect.Effect<
+      never,
+      never,
+      never
+    >,
+  >(
+    name: Name,
+    schema: RequirementsSchema,
+    config: LayeredEntryConfig<
+      Model,
+      Message,
+      RequirementsSchema,
+      Resource,
+      OnAcquired
+    > &
+      Readonly<{
+        handler: () => Generator<
+          Yielded,
+          Readonly<{
+            acquire: (
+              params: AcquireParamsFromSchema<RequirementsSchema>,
+            ) => Effect.Effect<
+              NoInfer<Value<Resource>>,
+              unknown,
+              AcquireRequirements
+            >
+            release: (
+              value: NoInfer<Value<Resource>>,
+            ) => Effect.Effect<void, unknown, ReleaseRequirements>
+          }>,
+          unknown
+        >
+      }>,
+  ): LayeredEntry<
+    Name,
+    Model,
+    Message,
+    Schema.Schema.Type<RequirementsSchema>,
+    Value<Resource>,
+    ServiceOf<Resource>,
+    OnAcquired,
+    AcquireParamsFromSchema<RequirementsSchema>
+  > &
+    Readonly<{
+      layer: Layer.Layer<
+        Handler<Name>,
+        Effect.Error<Yielded>,
+        Exclude<
+          AcquireRequirements | ReleaseRequirements | Effect.Services<Yielded>,
+          Scope.Scope
+        >
+      >
+    }>
+
+  <
+    const Name extends string,
+    RequirementsSchema extends Schema.Schema<any>,
+    Resource extends ManagedResource<any, any>,
+    OnAcquired extends (value: Value<Resource>) => Message,
+  >(
+    name: Name,
+    schema: RequirementsSchema,
+    config: LayeredEntryConfig<
+      Model,
+      Message,
+      RequirementsSchema,
+      Resource,
+      OnAcquired
+    > &
+      Readonly<{ handler?: never }>,
+  ): LayeredEntry<
+    Name,
+    Model,
+    Message,
+    Schema.Schema.Type<RequirementsSchema>,
+    Value<Resource>,
+    ServiceOf<Resource>,
+    OnAcquired,
+    AcquireParamsFromSchema<RequirementsSchema>
+  >
+}
+
+/**
+ * Declares a ManagedResources record. The Model and Message generics are
  * provided up front; the entries record follows, built from calls to the
  * `entry` builder passed into the inner function.
  *
  * Use this when a resource is expensive or stateful and should only exist while
  * the model is in a particular state: a camera stream during a video call, a
  * WebSocket connection while on a chat page, or a Web Worker pool during a
- * computation. For resources that live for the entire application lifetime, use
- * the static `resources` config instead.
+ * computation. For services that live for the entire application lifetime,
+ * supply a Layer through `Application.provide` instead.
  *
  * Reach for `ManagedResource.aggregate` to combine multiple records, and
  * `ManagedResource.lift` to translate a child Submodel's record into a parent
  * context.
+ *
+ * Pass a handler name before the requirements schema. An attached lifecycle
+ * handler supplies both functions and exposes its Layer as `layer`. The
+ * handler name identifies the Layer requirement;
+ * the record key continues to identify the lifecycle the runtime watches.
  *
  * **Lifecycle** — The runtime watches each entry's `modelToMaybeRequirements`
  * after every model update, structurally comparing the result against the
@@ -233,7 +363,7 @@ export type EntryBuilder<Model, Message> = <
  * continues watching for the next requirements change: a failed acquisition
  * does not crash the application.
  *
- * **Config fields:**
+ * **Entry and handler fields:**
  *
  * - `resource` — The identity tag created with `ManagedResource.tag`. Appears
  *   in the Effect R channel so commands that call `.get` are type-checked.
@@ -248,8 +378,8 @@ export type EntryBuilder<Model, Message> = <
  *   it can build an Effect `Layer` with `Layer.build` or register finalizers
  *   with `Effect.addFinalizer` whose teardown is tied to the resource. Those
  *   finalizers run when the resource is released or re-acquired, after the
- *   explicit `release` callback (scope finalizers run in last-in-first-out
- *   order, and the runtime registers `release` after `acquire` completes). A
+ *   explicit `release` callback. Finalizers registered during a partially
+ *   completed acquisition also run if `acquire` fails or is interrupted. A
  *   `Layer`-built resource therefore needs only `release: () => Effect.void`:
  *   the `Layer` finalizers run automatically when the scope closes.
  * - `release` — Tears down the resource. Errors thrown here are silently
@@ -257,37 +387,53 @@ export type EntryBuilder<Model, Message> = <
  *   dispatches `onReleased()` so bookkeeping completes. Resources that
  *   register their teardown as scope finalizers in `acquire` leave this as
  *   `() => Effect.void`.
+ * - `handler`: An Effect generator for the `acquire` and `release`
+ *   callbacks. When present, the entry exposes the resulting Layer as `layer`.
  * - `onAcquired` — Message dispatched when `acquire` succeeds.
  * - `onAcquireError` — Message dispatched when `acquire` fails.
- * - `onReleased` — Message dispatched after `release` is attempted.
+ * - `onReleased` — Message dispatched after `release` and the activation scope's
+ *   finalizers complete.
  *
  * @example
  * ```ts
  * const CameraStream = ManagedResource.tag<MediaStream>()('CameraStream')
  *
  * const managedResources = ManagedResource.make<Model, Message>()(entry => ({
- *   camera: entry(Schema.Option(Schema.Struct({ facingMode: Schema.String })), {
- *     resource: CameraStream,
- *     modelToMaybeRequirements: model =>
- *       pipe(
- *         model.callState,
- *         Option.liftPredicate(
- *           (callState): callState is typeof InCall.Type =>
- *             callState._tag === 'InCall',
+ *   camera: entry(
+ *     'CameraStream',
+ *     Schema.Option(Schema.Struct({ facingMode: Schema.String })),
+ *     {
+ *       resource: CameraStream,
+ *       modelToMaybeRequirements: model =>
+ *         pipe(
+ *           model.callState,
+ *           Option.liftPredicate(
+ *             (callState): callState is typeof InCall.Type =>
+ *               callState._tag === 'InCall',
+ *           ),
+ *           Option.map(callState => ({ facingMode: callState.facingMode })),
  *         ),
- *         Option.map(callState => ({ facingMode: callState.facingMode })),
- *       ),
- *     acquire: ({ facingMode }) =>
- *       Effect.tryPromise(() =>
- *         navigator.mediaDevices.getUserMedia({ video: { facingMode } }),
- *       ),
- *     release: stream =>
- *       Effect.sync(() => stream.getTracks().forEach(track => track.stop())),
- *     onAcquired: () => AcquiredCamera(),
- *     onAcquireError: error => FailedAcquireCamera({ error: String(error) }),
- *     onReleased: () => ReleasedCamera(),
- *   }),
+ *       onAcquired: () => Message.AcquiredCamera(),
+ *       onAcquireError: error =>
+ *         Message.FailedAcquireCamera({ error: String(error) }),
+ *       onReleased: () => Message.ReleasedCamera(),
+ *       handler: function* () {
+ *         return {
+ *           acquire: ({ facingMode }) =>
+ *             Effect.tryPromise(() =>
+ *               navigator.mediaDevices.getUserMedia({ video: { facingMode } }),
+ *             ),
+ *           release: stream =>
+ *             Effect.sync(() =>
+ *               stream.getTracks().forEach(track => track.stop()),
+ *             ),
+ *         }
+ *       },
+ *     },
+ *   ),
  * }))
+ *
+ * const EffectsLayer = managedResources.camera.layer
  * ```
  *
  * @see {@link ManagedResource.tag} for creating the resource identity.
@@ -303,17 +449,51 @@ export const make =
   ): Entries => {
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const entry = ((
+      name: string,
       schema: Schema.Schema<any>,
-      config: Record<string, unknown>,
-    ) => ({
-      schema,
-      ...config,
-    })) as unknown as EntryBuilder<Model, Message>
+      config: Record<string, unknown> & {
+        readonly handler?: () => Generator<
+          Effect.Effect<any, any, any>,
+          any,
+          unknown
+        >
+      },
+    ) => {
+      const handler = makeHandler(name)
+      const { handler: configuredHandler, ...callbacks } = config
+
+      const resource = {
+        name,
+        schema,
+        ...callbacks,
+        acquire: handler.acquire,
+        release: handler.release,
+        toLayer: handler.toLayer,
+      }
+
+      if (Predicate.isUndefined(configuredHandler)) {
+        return resource
+      } else {
+        // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
+        const layer = handler.toLayer(Effect.gen(configuredHandler))
+        // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
+        return { ...resource, layer }
+      }
+    }) as unknown as EntryBuilder<Model, Message>
     return build(entry)
   }
 
 type ChildModelOf<Resources> =
-  Resources[keyof Resources] extends Entry<infer ChildModel, any, any, any, any>
+  Resources[keyof Resources] extends Entry<
+    infer ChildModel,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any
+  >
     ? ChildModel
     : never
 
@@ -323,13 +503,16 @@ type ChildMessageOf<Resources> =
     infer ChildMessage,
     any,
     any,
+    any,
+    any,
+    any,
     any
   >
     ? ChildMessage
     : never
 
 /**
- * Lifts a record of child Managed Resources into a parent's Model and Message
+ * Lifts a record of child ManagedResources into a parent's Model and Message
  * context, applying a Model accessor and a Message wrapper uniformly to every
  * entry. Per-entry requirements schemas and resource services are preserved.
  *
@@ -344,7 +527,7 @@ export const lift =
   <
     Resources extends Record<
       string,
-      Entry<any, any, Option.Option<any>, any, any>
+      Entry<any, any, Option.Option<any>, any, any, any, any, any>
     >,
   >(
     resources: Resources,
@@ -363,7 +546,9 @@ export const lift =
       infer Requirements,
       infer Value,
       infer Service,
-      infer OnAcquired extends (...args: ReadonlyArray<any>) => any
+      infer OnAcquired extends (...args: ReadonlyArray<any>) => any,
+      infer LifecycleServices,
+      infer Params
     >
       ? Entry<
           ParentModel,
@@ -371,12 +556,24 @@ export const lift =
           Requirements,
           Value,
           Service,
-          (...args: Parameters<OnAcquired>) => ParentMessage
-        >
+          (...args: Parameters<OnAcquired>) => ParentMessage,
+          LifecycleServices,
+          Params
+        > &
+          (Resources[Key] extends {
+            readonly name: infer Name
+            readonly toLayer: infer EntryToLayer
+          }
+            ? Readonly<{ name: Name; toLayer: EntryToLayer }>
+            : unknown) &
+          (Resources[Key] extends { readonly layer: infer EntryLayer }
+            ? Readonly<{ layer: EntryLayer }>
+            : unknown)
       : never
   } =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     Record.map(resources, resource => ({
+      ...resource,
       schema: resource.schema,
       resource: resource.resource,
       modelToMaybeRequirements: (parentModel: ParentModel) =>
@@ -409,7 +606,9 @@ type MergeRecords<Records extends ReadonlyArray<unknown>> =
         (Rest extends ReadonlyArray<unknown> ? MergeRecords<Rest> : {})
     : {}
 
-type AnyResources = Readonly<Record<string, Entry<any, any, any, any, any>>>
+type AnyResources = Readonly<
+  Record<string, Entry<any, any, any, any, any, any, any, any>>
+>
 
 // NOTE: requiring one record keeps `aggregate()` unambiguously curried.
 type AnyResourcesList = readonly [AnyResources, ...ReadonlyArray<AnyResources>]
@@ -419,7 +618,7 @@ type EntriesOfRecord<ResourcesRecord> = ResourcesRecord extends unknown
   : never
 
 type ModelOfEntry<AnyEntry> = [AnyEntry] extends [
-  Entry<infer Model, any, any, any, any>,
+  Entry<infer Model, any, any, any, any, any, any, any>,
 ]
   ? unknown extends Model
     ? never
@@ -427,7 +626,9 @@ type ModelOfEntry<AnyEntry> = [AnyEntry] extends [
   : never
 
 type MessageOfEntry<AnyEntry> =
-  AnyEntry extends Entry<any, infer Message, any, any, any> ? Message : never
+  AnyEntry extends Entry<any, infer Message, any, any, any, any, any, any>
+    ? Message
+    : never
 
 type MessageOf<Records extends AnyResourcesList> = MessageOfEntry<
   EntriesOfRecord<Records[number]>
@@ -450,15 +651,27 @@ type CompatibleResources<Records extends AnyResourcesList> = {
     Readonly<
       Record<
         string,
-        Entry<ReferenceModel<Records>, MessageOf<Records>, any, any, any>
+        Entry<
+          ReferenceModel<Records>,
+          MessageOf<Records>,
+          any,
+          any,
+          any,
+          any,
+          any,
+          any
+        >
       >
     >
 }
 
 const mergeResources = (
   records: ReadonlyArray<AnyResources>,
-): Record<string, Entry<any, any, any, any, any>> => {
-  const result: Record<string, Entry<any, any, any, any, any>> = {}
+): Record<string, Entry<any, any, any, any, any, any, any, any>> => {
+  const result: Record<
+    string,
+    Entry<any, any, any, any, any, any, any, any>
+  > = {}
   for (const record of records) {
     for (const key of Object.keys(record)) {
       if (Object.hasOwn(result, key)) {
@@ -478,7 +691,7 @@ const mergeResources = (
 }
 
 /**
- * Combines multiple Managed Resources records into one. Throws on duplicate
+ * Combines multiple ManagedResources records into one. Throws on duplicate
  * keys so a misconfigured aggregate fails loudly at startup rather than
  * silently overriding.
  *
@@ -505,7 +718,7 @@ const mergeResources = (
 export const aggregate: {
   <Model, Message>(): <
     Records extends ReadonlyArray<
-      Record<string, Entry<Model, Message, any, any, any>>
+      Record<string, Entry<Model, Message, any, any, any, any, any, any>>
     >,
   >(
     ...records: Records

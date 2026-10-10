@@ -6,6 +6,7 @@ import {
   Function,
   HashMap,
   HashSet,
+  Layer,
   Match,
   Number,
   Option,
@@ -19,7 +20,7 @@ import {
   pipe,
 } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
-import { Update } from 'foldkit'
+import { Application, Update } from 'foldkit'
 import * as Command from 'foldkit/command'
 import {
   type CommandRecord,
@@ -43,7 +44,6 @@ import {
   createLazy,
 } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { makeElement } from 'foldkit/runtime'
 import type { DevToolsMode, DevToolsPosition } from 'foldkit/runtime'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
@@ -384,18 +384,15 @@ const taggedPayload = (
 
 // UPDATE
 
-type UpdateReturn = Update.Return<Model, Message>
-
-const foldInspectorTabsOutMessage = Tabs.OutMessage.match<
-  Update.Step<Model, Message>,
-  Tabs.OutMessage<InspectorTab>
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { activeInspectorTab: () => value }),
-    }),
-})
+const foldInspectorTabsOutMessage = (
+  outMessage: Tabs.OutMessage<InspectorTab>,
+) =>
+  Tabs.OutMessage.match(outMessage, {
+    Selected: ({ value }: Tabs.Selected<InspectorTab>) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, { activeInspectorTab: () => value }),
+      })),
+  })
 
 const foldInspectorTabs = Update.foldChild({
   update: InspectorTabs.update,
@@ -406,19 +403,16 @@ const foldInspectorTabs = Update.foldChild({
   foldOutMessage: foldInspectorTabsOutMessage,
 })
 
-const foldSubmodelFilterOutMessage = Listbox.OutMessage.match<
-  Update.Step<Model, Message>,
-  Listbox.OutMessage<string>
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeSubmodelFilter: () =>
-          Option.liftPredicate(value, String.isNonEmpty),
-      }),
-    }),
-})
+const foldSubmodelFilterOutMessage = (outMessage: Listbox.OutMessage<string>) =>
+  Listbox.OutMessage.match(outMessage, {
+    Selected: ({ value }: Listbox.Selected<string>) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, {
+          maybeSubmodelFilter: () =>
+            Option.liftPredicate(value, String.isNonEmpty),
+        }),
+      })),
+  })
 
 const foldSubmodelFilter = Update.foldChild({
   update: SubmodelFilterListbox.update,
@@ -434,19 +428,17 @@ const foldSubmodelFilter = Update.foldChild({
 // NOTE: Pointer Messages update the thumb immediately, but jumping to and
 // inspecting the corresponding state is expensive. Keep only the latest host
 // index until TickedScrubFrame flushes one navigation on the next frame.
-const foldScrubberSliderOutMessage = Slider.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ChangedValue:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, {
-        scrubberValue: () => value,
-        maybePendingScrubIndex: () =>
-          Option.some(sliderValueToHostIndex(value, model.startIndex)),
-      }),
-    }),
-})
+const foldScrubberSliderOutMessage = (outMessage: Slider.OutMessage) =>
+  Slider.OutMessage.match(outMessage, {
+    ChangedValue: ({ value }: typeof Slider.OutMessage.ChangedValue.Type) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, {
+          scrubberValue: () => value,
+          maybePendingScrubIndex: () =>
+            Option.some(sliderValueToHostIndex(value, model.startIndex)),
+        }),
+      })),
+  })
 
 const foldScrubberSlider = Update.foldChild({
   update: Slider.update,
@@ -468,12 +460,16 @@ class ShadowRootService extends Context.Service<
 
 export const LockScroll = Command.define('LockScroll', {
   messages: [Message.CompletedLockScroll],
-  execute: lockScroll.pipe(Effect.as(Message.CompletedLockScroll())),
+  handler: function* () {
+    return () => lockScroll.pipe(Effect.as(Message.CompletedLockScroll()))
+  },
 })
 
 export const UnlockScroll = Command.define('UnlockScroll', {
   messages: [Message.CompletedUnlockScroll],
-  execute: unlockScroll.pipe(Effect.as(Message.CompletedUnlockScroll())),
+  handler: function* () {
+    return () => unlockScroll.pipe(Effect.as(Message.CompletedUnlockScroll()))
+  },
 })
 
 const maybeToggleScrollLock = (isEnabled: boolean, shouldLock: boolean) =>
@@ -497,52 +493,51 @@ const DEFAULT_PERSISTED_STATE: DevToolsPersistedState = {
   isFlattened: false,
 }
 
-const readPersistedState: Effect.Effect<DevToolsPersistedState> = Effect.gen(
-  function* () {
-    const store = yield* KeyValueStore.KeyValueStore
-    const json = yield* Effect.fromOption(
-      Option.fromNullishOr(yield* store.get(DEVTOOLS_STORAGE_KEY)),
-    )
-    return yield* Schema.decodeEffect(DevToolsPersistedStateJson)(json)
-  },
-).pipe(
-  Effect.catch(() => Effect.succeed(DEFAULT_PERSISTED_STATE)),
-  Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-)
+const readPersistedState = Effect.gen(function* () {
+  const store = yield* KeyValueStore.KeyValueStore
+  const json = yield* Effect.fromOption(
+    Option.fromNullishOr(yield* store.get(DEVTOOLS_STORAGE_KEY)),
+  )
+  return yield* Schema.decodeEffect(DevToolsPersistedStateJson)(json)
+}).pipe(Effect.catch(() => Effect.succeed(DEFAULT_PERSISTED_STATE)))
 
 export const PersistDevToolsState = Command.define('PersistDevToolsState', {
   args: { isOpen: Schema.Boolean, isFlattened: Schema.Boolean },
   messages: [Message.CompletedPersistDevToolsState],
-  execute: ({ isOpen, isFlattened }) =>
-    Effect.gen(function* () {
-      const store = yield* KeyValueStore.KeyValueStore
-      const json = yield* Schema.encodeEffect(DevToolsPersistedStateJson)({
-        isOpen,
-        isFlattened,
-      })
-      yield* store.set(DEVTOOLS_STORAGE_KEY, json)
-      return Message.CompletedPersistDevToolsState()
-    }).pipe(
-      Effect.catch(() =>
-        Effect.succeed(Message.CompletedPersistDevToolsState()),
-      ),
-      Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-    ),
+  handler: function* () {
+    const store = yield* KeyValueStore.KeyValueStore
+
+    return ({ isOpen, isFlattened }) =>
+      Effect.gen(function* () {
+        const json = yield* Schema.encodeEffect(DevToolsPersistedStateJson)({
+          isOpen,
+          isFlattened,
+        })
+        yield* store.set(DEVTOOLS_STORAGE_KEY, json)
+        return Message.CompletedPersistDevToolsState()
+      }).pipe(
+        Effect.catch(() =>
+          Effect.succeed(Message.CompletedPersistDevToolsState()),
+        ),
+      )
+  },
 })
 
-const buildInspectionFromModel = (index: number, model: unknown) =>
+const buildInspectionFromModel = (
+  store: DevToolsStore,
+  index: number,
+  model: unknown,
+) =>
   Effect.gen(function* () {
-    const store = yield* StoreService
     const maybeMessage = yield* store.getMessageAtIndex(index)
     const diff = yield* store.getDiffAtIndex(index)
     return Message.ReceivedInspectedState({ model, maybeMessage, ...diff })
   })
 
-const buildInspectionEffect = (index: number) =>
+const buildInspectionEffect = (store: DevToolsStore, index: number) =>
   Effect.gen(function* () {
-    const store = yield* StoreService
     const model = yield* store.getModelAtIndex(index)
-    return yield* buildInspectionFromModel(index, model)
+    return yield* buildInspectionFromModel(store, index, model)
   })
 
 // NOTE: jump and inspect both need the model at `index`. Resolving it twice
@@ -554,45 +549,56 @@ const buildInspectionEffect = (index: number) =>
 export const JumpToAndInspect = Command.define('JumpToAndInspect', {
   args: { index: Schema.Number },
   messages: [Message.ReceivedInspectedState],
-  execute: ({ index }) =>
-    Effect.gen(function* () {
-      const store = yield* StoreService
-      const model = yield* store.jumpTo(index)
-      return yield* buildInspectionFromModel(index, model)
-    }),
+  handler: function* () {
+    const store = yield* StoreService
+
+    return ({ index }) =>
+      Effect.gen(function* () {
+        const model = yield* store.jumpTo(index)
+        return yield* buildInspectionFromModel(store, index, model)
+      })
+  },
 })
 
 export const InspectState = Command.define('InspectState', {
   args: { index: Schema.Number },
   messages: [Message.ReceivedInspectedState],
-  execute: ({ index }) => buildInspectionEffect(index),
+  handler: function* () {
+    const store = yield* StoreService
+
+    return ({ index }) => buildInspectionEffect(store, index)
+  },
 })
 
 export const InspectLatest = Command.define('InspectLatest', {
   messages: [Message.ReceivedInspectedState],
-  execute: Effect.gen(function* () {
+  handler: function* () {
     const store = yield* StoreService
-    const state = yield* SubscriptionRef.get(store.stateRef)
-    return yield* buildInspectionEffect(latestEntryIndex(state))
-  }),
+
+    return () =>
+      Effect.gen(function* () {
+        const state = yield* SubscriptionRef.get(store.stateRef)
+        return yield* buildInspectionEffect(store, latestEntryIndex(state))
+      })
+  },
 })
 
 export const Resume = Command.define('Resume', {
   messages: [Message.CompletedResume],
-  execute: Effect.gen(function* () {
+  handler: function* () {
     const store = yield* StoreService
-    yield* store.resume
-    return Message.CompletedResume()
-  }),
+
+    return () => store.resume.pipe(Effect.as(Message.CompletedResume()))
+  },
 })
 
 export const Clear = Command.define('Clear', {
   messages: [Message.CompletedClear],
-  execute: Effect.gen(function* () {
+  handler: function* () {
     const store = yield* StoreService
-    yield* store.clear
-    return Message.CompletedClear()
-  }),
+
+    return () => store.clear.pipe(Effect.as(Message.CompletedClear()))
+  },
 })
 
 export const CopyPayloadToClipboard = Command.define('CopyPayloadToClipboard', {
@@ -605,22 +611,26 @@ export const CopyPayloadToClipboard = Command.define('CopyPayloadToClipboard', {
     Message.SucceededCopyPayloadToClipboard,
     Message.FailedCopyPayloadToClipboard,
   ],
-  execute: ({ targetId, requestId, payload }) =>
-    Effect.gen(function* () {
-      const text = yield* serializePayload(payload)
-      yield* Effect.tryPromise({
-        try: () => navigator.clipboard.writeText(text),
-        catch: () => new Error('Failed to copy payload to clipboard'),
-      })
-      return Message.SucceededCopyPayloadToClipboard({ targetId, requestId })
-    }).pipe(
-      Effect.catch(() =>
-        Effect.succeed(
-          Message.FailedCopyPayloadToClipboard({ targetId, requestId }),
+  handler: function* () {
+    return ({ targetId, requestId, payload }) =>
+      Effect.gen(function* () {
+        const text = yield* serializePayload(payload)
+        yield* Effect.tryPromise({
+          try: () => navigator.clipboard.writeText(text),
+          catch: () => new Error('Failed to copy payload to clipboard'),
+        })
+        return Message.SucceededCopyPayloadToClipboard({ targetId, requestId })
+      }).pipe(
+        Effect.catch(() =>
+          Effect.succeed(
+            Message.FailedCopyPayloadToClipboard({ targetId, requestId }),
+          ),
         ),
-      ),
-    ),
+      )
+  },
 })
+/** Provides the DevTools clipboard Command handler. */
+export const CopyPayloadToClipboardLayer = CopyPayloadToClipboard.layer
 
 const COPY_INDICATOR_DURATION = '1 second'
 
@@ -629,55 +639,39 @@ export const WaitBeforeHidingCopyIndicator = Command.define(
   {
     args: { targetId: Schema.String, requestId: Schema.Number },
     messages: [Message.CompletedWaitBeforeHidingCopyIndicator],
-    execute: ({ targetId, requestId }) =>
-      Effect.sleep(COPY_INDICATOR_DURATION).pipe(
-        Effect.as(
-          Message.CompletedWaitBeforeHidingCopyIndicator({
-            targetId,
-            requestId,
-          }),
-        ),
-      ),
+    handler: function* () {
+      return ({ targetId, requestId }) =>
+        Effect.sleep(COPY_INDICATOR_DURATION).pipe(
+          Effect.as(
+            Message.CompletedWaitBeforeHidingCopyIndicator({
+              targetId,
+              requestId,
+            }),
+          ),
+        )
+    },
   },
 )
 
 export const ScrollToTop = Command.define('ScrollToTop', {
   messages: [Message.CompletedScrollToTop],
-  execute: Effect.gen(function* () {
+  handler: function* () {
     const shadow = yield* ShadowRootService
-    const messageList = shadow.querySelector(MESSAGE_LIST_SELECTOR)
-    if (messageList instanceof HTMLElement) {
-      messageList.scrollTop = 0
-    }
-    return Message.CompletedScrollToTop()
-  }),
+
+    return () =>
+      Effect.sync(() => {
+        const messageList = shadow.querySelector(MESSAGE_LIST_SELECTOR)
+        if (messageList instanceof HTMLElement) {
+          messageList.scrollTop = 0
+        }
+        return Message.CompletedScrollToTop()
+      })
+  },
 })
 
-const makeUpdate = (
-  store: DevToolsStore,
-  shadow: ShadowRoot,
-  mode: DevToolsMode,
-) => {
-  const provideContext = <A, E>(
-    effect: Effect.Effect<A, E, StoreService | ShadowRootService>,
-  ): Effect.Effect<A, E, never> =>
-    effect.pipe(
-      Effect.provideService(StoreService, store),
-      Effect.provideService(ShadowRootService, shadow),
-    )
-
-  const inspectLatest = Command.mapEffect(InspectLatest(), provideContext)
-  const resume = Command.mapEffect(Resume(), provideContext)
-  const clear = Command.mapEffect(Clear(), provideContext)
-  const scrollToTop = Command.mapEffect(ScrollToTop(), provideContext)
-
-  const jumpToAndInspect = (index: number) =>
-    Command.mapEffect(JumpToAndInspect({ index }), provideContext)
-  const inspectState = (index: number) =>
-    Command.mapEffect(InspectState({ index }), provideContext)
-
-  return (model: Model, message: Message) =>
-    Message.match<UpdateReturn>(message, {
+const makeUpdate = (mode: DevToolsMode) =>
+  Update.make((model: Model, message: Message) =>
+    Message.match(message, {
       ClickedToggle: () => {
         const nextIsOpen = !model.isOpen
         return {
@@ -722,17 +716,16 @@ const makeUpdate = (
       },
       ClickedRow: ({ index }) =>
         Match.value(mode).pipe(
-          Match.withReturnType<UpdateReturn>(),
           Match.when('TimeTravel', () => ({
             model,
-            commands: [jumpToAndInspect(index)],
+            commands: [JumpToAndInspect({ index })],
           })),
           Match.when('Inspect', () => ({
             model: modifyFields(model, {
               selectedIndex: () => index,
               isFollowingLatest: () => false,
             }),
-            commands: [inspectState(index)],
+            commands: [InspectState({ index })],
           })),
           Match.exhaustive,
         ),
@@ -743,7 +736,7 @@ const makeUpdate = (
           changedPaths: () => HashSet.empty<string>(),
           affectedPaths: () => HashSet.empty<string>(),
         }),
-        commands: [resume, inspectLatest, scrollToTop],
+        commands: [Resume(), InspectLatest(), ScrollToTop()],
       }),
       ClickedClear: () => ({
         model: modifyFields(model, {
@@ -756,7 +749,7 @@ const makeUpdate = (
           affectedPaths: () => HashSet.empty<string>(),
           copyStates: () => HashMap.empty(),
         }),
-        commands: [clear, inspectLatest, scrollToTop],
+        commands: [Clear(), InspectLatest(), ScrollToTop()],
       }),
       ClickedFollowLatest: () => {
         const latestIndex = Array.match(model.entries, {
@@ -773,14 +766,14 @@ const makeUpdate = (
             changedPaths: () => HashSet.empty<string>(),
             affectedPaths: () => HashSet.empty<string>(),
           }),
-          commands: [inspectLatest, scrollToTop],
+          commands: [InspectLatest(), ScrollToTop()],
         }
       },
       ClickedScrollToTopPill: () => ({
         model: modifyFields(model, {
           isFollowingTop: () => true,
         }),
-        commands: [scrollToTop],
+        commands: [ScrollToTop()],
       }),
       ScrolledMessageList: ({ scrollTop }) => {
         const isAtTop = scrollTop <= SCROLL_FOLLOW_THRESHOLD_PX
@@ -889,8 +882,8 @@ const makeUpdate = (
               ),
           }),
           commands: [
-            ...(shouldFollowSelection ? [inspectLatest] : []),
-            ...(shouldFollowScroll ? [scrollToTop] : []),
+            ...(shouldFollowSelection ? [InspectLatest()] : []),
+            ...(shouldFollowScroll ? [ScrollToTop()] : []),
           ],
         }
       },
@@ -901,12 +894,12 @@ const makeUpdate = (
         foldScrubberSlider(model, sliderMessage),
       TickedScrubFrame: () =>
         Option.match(model.maybePendingScrubIndex, {
-          onNone: (): UpdateReturn => ({ model }),
-          onSome: (hostIndex): UpdateReturn => ({
+          onNone: () => ({ model }),
+          onSome: hostIndex => ({
             model: modifyFields(model, {
               maybePendingScrubIndex: () => Option.none(),
             }),
-            commands: [jumpToAndInspect(hostIndex)],
+            commands: [JumpToAndInspect({ index: hostIndex })],
           }),
         }),
       CompletedResume: () => ({ model }),
@@ -952,42 +945,55 @@ const makeUpdate = (
             })
           : model,
       }),
-    })
-}
+    }),
+  )
 
 // SUBSCRIPTION
 
-const makeOverlaySubscriptions = (store: DevToolsStore, shadow: ShadowRoot) => {
-  const sliderSubscriptions = Slider.subscriptionsForRoot(() => shadow)
-
-  const scrubberSubscriptions = Subscription.lift({
-    scrubberPointer: sliderSubscriptions.dragPointer,
-    scrubberEscape: sliderSubscriptions.dragEscape,
-  })<Model, Message>({
-    read: model => Option.some(model.scrubberSlider),
-    toParentMessage: message => Message.GotScrubberSliderMessage({ message }),
-  })
-
-  const ownSubscriptions = Subscription.make<Model, Message>()(_entry => ({
-    scrubFrame: Subscription.animationFrameEntry<Model, Message>({
-      isActive: model => Option.isSome(model.maybePendingScrubIndex),
-      toMessage: () => Message.TickedScrubFrame(),
-    }),
-    storeUpdates: Subscription.persistentEntry(
-      SubscriptionRef.changes(store.stateRef).pipe(
-        Stream.map(state => Message.ReceivedStoreUpdate(toDisplayState(state))),
-      ),
-    ),
-    mobileBreakpoint: Subscription.persistentEntry(
-      Dom.streamFromMediaQuery({
-        query: MOBILE_BREAKPOINT_QUERY,
-        mapMatches: isMobile => Message.ObservedMobileBreakpoint({ isMobile }),
+const overlaySubscriptions = Subscription.make<Model, Message>()(entry => ({
+  scrubFrameTicks: entry(
+    'ScrubFrameTicks',
+    { isActive: Schema.Boolean },
+    {
+      messages: [Message.TickedScrubFrame],
+      modelToDependencies: model => ({
+        isActive: Option.isSome(model.maybePendingScrubIndex),
       }),
-    ),
-  }))
+      handler: function* () {
+        return ({ isActive }) =>
+          isActive
+            ? Subscription.animationFrameStream.pipe(
+                Stream.map(() => Message.TickedScrubFrame()),
+              )
+            : Stream.empty
+      },
+    },
+  ),
+  storeUpdates: entry('StoreUpdates', {
+    messages: [Message.ReceivedStoreUpdate],
+    handler: function* () {
+      const store = yield* StoreService
 
-  return Subscription.aggregate(ownSubscriptions, scrubberSubscriptions)
-}
+      return () =>
+        SubscriptionRef.changes(store.stateRef).pipe(
+          Stream.map(state =>
+            Message.ReceivedStoreUpdate(toDisplayState(state)),
+          ),
+        )
+    },
+  }),
+  mobileBreakpointChanges: entry('MobileBreakpointChanges', {
+    messages: [Message.ObservedMobileBreakpoint],
+    handler: function* () {
+      return () =>
+        Dom.streamFromMediaQuery({
+          query: MOBILE_BREAKPOINT_QUERY,
+          mapMatches: isMobile =>
+            Message.ObservedMobileBreakpoint({ isMobile }),
+        })
+    },
+  }),
+}))
 
 // VIEW
 
@@ -2852,7 +2858,47 @@ export const createOverlay = (
     )
     container.id = '__foldkit_devtools_overlay__'
 
-    const flags: Effect.Effect<typeof Flags.Type> = Effect.gen(function* () {
+    const scrubberSlider = Slider.forRoot('DevToolsScrubber', () => shadow)
+    const scrubberSubscriptions = Subscription.lift({
+      scrubberPointer: scrubberSlider.subscriptions.dragPointer,
+      scrubberEscape: scrubberSlider.subscriptions.dragEscape,
+    })<Model, Message>({
+      read: model => Option.some(model.scrubberSlider),
+      toParentMessage: message => Message.GotScrubberSliderMessage({ message }),
+    })
+    const subscriptions = Subscription.aggregate(
+      overlaySubscriptions,
+      scrubberSubscriptions,
+    )
+
+    const EffectsLayer = Layer.mergeAll(
+      LockScroll.layer,
+      UnlockScroll.layer,
+      PersistDevToolsState.layer,
+      JumpToAndInspect.layer,
+      InspectState.layer,
+      InspectLatest.layer,
+      Resume.layer,
+      Clear.layer,
+      CopyPayloadToClipboardLayer,
+      WaitBeforeHidingCopyIndicator.layer,
+      ScrollToTop.layer,
+      overlaySubscriptions.scrubFrameTicks.layer,
+      overlaySubscriptions.storeUpdates.layer,
+      overlaySubscriptions.mobileBreakpointChanges.layer,
+      Listbox.EffectsLayer,
+      Tabs.EffectsLayer,
+      scrubberSlider.EffectsLayer,
+    )
+    const ServicesLayer = Layer.mergeAll(
+      Layer.succeed(StoreService, store),
+      Layer.succeed(ShadowRootService, shadow),
+      BrowserKeyValueStore.layerLocalStorage,
+    )
+    const AppLayer = EffectsLayer.pipe(Layer.provideMerge(ServicesLayer))
+
+    const flags = Effect.gen(function* () {
+      const store = yield* StoreService
       const storeState = yield* SubscriptionRef.get(store.stateRef)
       const { isOpen, isFlattened } = yield* readPersistedState
       return {
@@ -2863,7 +2909,7 @@ export const createOverlay = (
       }
     })
 
-    const init = (flags: typeof Flags.Type): UpdateReturn => {
+    const init = (flags: typeof Flags.Type) => {
       const { isFlattened, ...displayFlags } = flags
       const sliderMax = flags.entries.length
       const initialSliderValue = flags.isPaused
@@ -2871,7 +2917,7 @@ export const createOverlay = (
         : sliderMax
 
       return {
-        model: {
+        model: Model.make({
           screen: 'Messages',
           ...displayFlags,
           isFlattened,
@@ -2905,23 +2951,25 @@ export const createOverlay = (
             sliderMax,
             1,
           ),
-        },
+        }),
         commands: Option.toArray(maybeLockScroll(flags.isOpen, flags.isMobile)),
       }
     }
 
-    const overlayRuntime = makeElement({
+    const pendingOverlay = Application.makeElement({
       Model,
       Flags,
       flags,
       init,
-      update: makeUpdate(store, shadow, mode),
+      update: makeUpdate(mode),
       view: makeView(position, mode, shadow, maybeBanner),
       container,
-      subscriptions: makeOverlaySubscriptions(store, shadow),
+      subscriptions,
+      mounts: Listbox.mounts,
       devTools: false,
       freezeModel: false,
     })
+    const overlay = Application.provide(pendingOverlay, AppLayer)
 
-    yield* Effect.forkScoped(overlayRuntime.start())
+    yield* Effect.forkScoped(overlay.start())
   })

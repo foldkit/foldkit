@@ -1,30 +1,73 @@
-import { Effect } from 'effect'
-import { Command, type Update } from 'foldkit'
+import { Effect, Number, Schema } from 'effect'
+import { Command, Update } from 'foldkit'
+import type { Document, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-const Message = defineMessageUnion({
+// MODEL
+
+export const Model = Schema.Struct({ count: Schema.Int })
+export type Model = typeof Model.Type
+
+// MESSAGE
+
+export const Message = defineMessageUnion({
+  ClickedIncrement: {},
   ClickedResetAfterDelay: {},
-  CompletedDelayReset: {},
+  CompletedWaitBeforeReset: {},
+})
+export type Message = typeof Message.Type
+
+// COMMAND
+
+export const WaitBeforeReset = Command.define('WaitBeforeReset', {
+  messages: [Message.CompletedWaitBeforeReset],
+  handler: function* () {
+    return () =>
+      Effect.sleep('1 second').pipe(
+        Effect.as(Message.CompletedWaitBeforeReset()),
+      )
+  },
 })
 
-const DelayReset = Command.define(
-  // The identifier for the Command, surfaces in DevTools and Story/Scene tests
-  'DelayReset',
-  {
-    // Every Message this Command can produce
-    messages: [Message.CompletedDelayReset],
-    // The Effect
-    execute: Effect.sleep('1 second').pipe(
-      Effect.as(Message.CompletedDelayReset()),
-    ),
-  },
-)
+export const EffectsLayer = WaitBeforeReset.layer
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
-    ClickedResetAfterDelay: () => ({ model, commands: [DelayReset()] }),
-    CompletedDelayReset: () => ({
+// INIT
+
+export const init = () => ({
+  model: Model.make({ count: 0 }),
+})
+
+// UPDATE
+
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
+    ClickedIncrement: () => ({
+      model: modifyFields(model, { count: Number.increment }),
+    }),
+    ClickedResetAfterDelay: () => ({
+      model,
+      commands: [WaitBeforeReset()],
+    }),
+    CompletedWaitBeforeReset: () => ({
       model: modifyFields(model, { count: () => 0 }),
     }),
-  })
+  }),
+)
+
+// VIEW
+
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+  title: `Counter: ${model.count}`,
+  body: h.main(
+    [],
+    [
+      h.p([], [`Count: ${model.count}`]),
+      h.button([h.OnClick(Message.ClickedIncrement())], ['Increment']),
+      h.button(
+        [h.OnClick(Message.ClickedResetAfterDelay())],
+        ['Reset after one second'],
+      ),
+    ],
+  ),
+})

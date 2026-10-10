@@ -18,6 +18,8 @@ export {
   type SelectedDate,
   type ClearedDate,
   type ChangedViewMonth,
+  EffectsLayer,
+  mounts,
 } from './index.js'
 
 export type { InitConfig, ViewInputs } from './index.js'

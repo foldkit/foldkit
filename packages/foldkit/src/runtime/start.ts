@@ -232,15 +232,16 @@ export function embed<P extends Ports | undefined = undefined>(
       '[foldkit] embed expects a program created by makeApplication or makeElement.',
     )
   }
+  const embedLifecycle = internals.embedLifecycle
 
-  if (internals.isEmbedActive) {
+  if (embedLifecycle.isEmbedActive) {
     throw new Error(
       '[foldkit] This program is already embedded. Dispose the existing ' +
         'handle first, or create a separate program: each program owns one ' +
         'container.',
     )
   }
-  internals.isEmbedActive = true
+  embedLifecycle.isEmbedActive = true
 
   const connector = makeHostConnector()
 
@@ -250,7 +251,7 @@ export function embed<P extends Ports | undefined = undefined>(
   // container element back in the DOM. Awaiting the previous fiber's exit
   // sequences the two.
   const startEffect = pipe(
-    Option.match(internals.maybeActiveFiber, {
+    Option.match(embedLifecycle.maybeActiveFiber, {
       onNone: () => Effect.void,
       onSome: previousFiber => Effect.asVoid(Fiber.await(previousFiber)),
     }),
@@ -268,7 +269,7 @@ export function embed<P extends Ports | undefined = undefined>(
   const fiber = Effect.runFork(
     withUnhandledCauseReporting(provideBrowserScheduler(startEffect)),
   )
-  internals.maybeActiveFiber = Option.some(fiber)
+  embedLifecycle.maybeActiveFiber = Option.some(fiber)
 
   let isHandleDisposed = false
   const dispose = (): void => {
@@ -277,7 +278,7 @@ export function embed<P extends Ports | undefined = undefined>(
     }
     isHandleDisposed = true
     connector.dispose()
-    internals.isEmbedActive = false
+    embedLifecycle.isEmbedActive = false
     Effect.runFork(Fiber.interrupt(fiber))
   }
 

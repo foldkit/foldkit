@@ -21,6 +21,7 @@ export {
   type PressedEscape,
   WaitBeforeClosing,
   WaitBeforeOpening,
+  EffectsLayer,
 } from './index.js'
 
 export type { InitConfig, RenderInfo, ViewInputs } from './index.js'

@@ -1,11 +1,11 @@
-import { Effect, Match, Option, Schema } from 'effect'
+import { Effect, Layer, Match, Option, Schema } from 'effect'
 
 import * as Command from '../../command/index.js'
 import * as File from '../../file/index.js'
 import type { Html, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
-import type * as Update from '../../update/index.js'
+import * as Update from '../../update/index.js'
 
 // MODEL
 
@@ -34,24 +34,29 @@ export type Message = typeof Message.Type
 
 export const SelectResume = Command.define('SelectResume', {
   messages: [Message.CompletedSelectResume, Message.CancelledSelectResume],
-  execute: File.select(['application/pdf']).pipe(
-    Effect.map(
-      Option.match({
-        onNone: () => Message.CancelledSelectResume(),
-        onSome: file => Message.CompletedSelectResume({ file }),
-      }),
-    ),
-  ),
+  handler: function* () {
+    return () =>
+      File.select(['application/pdf']).pipe(
+        Effect.map(
+          Option.match({
+            onNone: () => Message.CancelledSelectResume(),
+            onSome: file => Message.CompletedSelectResume({ file }),
+          }),
+        ),
+      )
+  },
 })
 
 export const ReadResumePreview = Command.define('ReadResumePreview', {
   args: { file: File.File },
   messages: [Message.SucceededReadPreview, Message.FailedReadPreview],
-  execute: ({ file }) =>
-    File.readAsDataUrl(file).pipe(
-      Effect.map(dataUrl => Message.SucceededReadPreview({ dataUrl })),
-      Effect.catch(() => Effect.succeed(Message.FailedReadPreview())),
-    ),
+  handler: function* () {
+    return ({ file }) =>
+      File.readAsDataUrl(file).pipe(
+        Effect.map(dataUrl => Message.SucceededReadPreview({ dataUrl })),
+        Effect.catch(() => Effect.succeed(Message.FailedReadPreview())),
+      )
+  },
 })
 
 // INIT
@@ -64,8 +69,8 @@ export const initialModel: Model = {
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedChooseResume: () => ({ model, commands: [SelectResume()] }),
     CompletedSelectResume: ({ file }) => ({
       model: modifyFields(model, {
@@ -92,7 +97,8 @@ export const update = (model: Model, message: Message) =>
         readStatus: () => 'Idle',
       }),
     }),
-  })
+  }),
+)
 
 // VIEW
 
@@ -137,3 +143,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
     ],
   )
 }
+
+export const EffectsLayer = Layer.mergeAll(
+  SelectResume.layer,
+  ReadResumePreview.layer,
+)

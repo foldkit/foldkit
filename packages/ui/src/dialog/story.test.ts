@@ -1,4 +1,13 @@
-import { Array, Effect, Fiber, Option, Predicate, Schema, Stream } from 'effect'
+import {
+  Array,
+  Effect,
+  Fiber,
+  Layer,
+  Option,
+  Predicate,
+  Schema,
+  Stream,
+} from 'effect'
 import { Scene, Story } from 'foldkit'
 import { DEVTOOLS_HOST_ID } from 'foldkit/devtools-host'
 import * as Dom from 'foldkit/dom'
@@ -15,6 +24,7 @@ import * as Animation from '../animation/index.js'
 import {
   AcquireResources,
   CloseDialog,
+  EffectsLayer,
   Message,
   Model,
   OutMessage,
@@ -30,6 +40,8 @@ import {
   update,
   view,
 } from './index.js'
+
+const provideEffects = Effect.provide(EffectsLayer)
 
 const acknowledgeAcquireResources = Scene.Mount.resolve(
   AcquireResources,
@@ -67,7 +79,12 @@ const foldDialogOutMessage = OutMessage.match<
   }),
 })
 
-const parentInit: Runtime.ApplicationInit<ParentModel, ParentMessage> = () =>
+const parentInit: Runtime.ApplicationInit<
+  ParentModel,
+  ParentMessage,
+  void,
+  Layer.Success<typeof EffectsLayer>
+> = () =>
   Update.foldChildInit(boot({ id: 'initial-dialog' }), {
     toParentModel: dialog => ({ dialog, dialogEvents: [] }),
     toParentMessage: toGotDialogMessage,
@@ -984,7 +1001,7 @@ describe('Dialog', () => {
           const showDialog = yield* ShowDialog({
             id: 'missing-dialog',
             focusSelector: initialFocusMarkerSelector,
-          }).effect
+          }).effect.pipe(provideEffects)
 
           expect(showDialog).toEqual(Message.FailedShowDialog())
           expect(document.documentElement.style.overflow).not.toBe('hidden')
@@ -999,7 +1016,7 @@ describe('Dialog', () => {
             ShowDialog({
               id: 'missing-dialog',
               focusSelector: initialFocusMarkerSelector,
-            }).effect,
+            }).effect.pipe(provideEffects),
           )
 
           yield* Effect.yieldNow
@@ -1033,7 +1050,8 @@ describe('Dialog', () => {
           const showDialogCommand = Option.getOrThrow(
             Array.head(dialogBoot.commands ?? []),
           )
-          const showDialog = yield* showDialogCommand.effect
+          const showDialog =
+            yield* showDialogCommand.effect.pipe(provideEffects)
 
           expect(dialogBoot.model.isOpen).toBe(true)
           expect(showDialog).toEqual(Message.SucceededShowDialog())
@@ -1041,7 +1059,7 @@ describe('Dialog', () => {
           expect(background.getAttribute('aria-hidden')).toBe('true')
           expect(devToolsHost.inert).toBe(false)
 
-          yield* CloseDialog({ id: 'modal-dialog' }).effect
+          yield* CloseDialog({ id: 'modal-dialog' }).effect.pipe(provideEffects)
 
           expect(background.inert).toBe(false)
           expect(background.hasAttribute('aria-hidden')).toBe(false)
@@ -1074,7 +1092,7 @@ describe('Dialog', () => {
           const showDialog = yield* ShowDialog({
             id: 'command-owned-dialog',
             focusSelector: initialFocusMarkerSelector,
-          }).effect
+          }).effect.pipe(provideEffects)
 
           const mount = AcquireResources({
             id: 'command-owned-dialog',
@@ -1082,7 +1100,7 @@ describe('Dialog', () => {
           })
           const mountMessage = yield* Stream.runHead(
             mount.f(dialog, Stream.make('Live')),
-          )
+          ).pipe(provideEffects)
 
           expect(showDialog).toEqual(Message.SucceededShowDialog())
           expect(mountMessage).toEqual(
@@ -1116,15 +1134,16 @@ describe('Dialog', () => {
           const showDialog = yield* ShowDialog({
             id: 'vanishing-dialog',
             focusSelector: initialFocusMarkerSelector,
-          }).effect
+          }).effect.pipe(provideEffects)
 
           expect(showDialog).toEqual(Message.SucceededShowDialog())
           expect(document.documentElement.style.overflow).toBe('hidden')
 
           dialog.remove()
 
-          const closeDialog = yield* CloseDialog({ id: 'vanishing-dialog' })
-            .effect
+          const closeDialog = yield* CloseDialog({
+            id: 'vanishing-dialog',
+          }).effect.pipe(provideEffects)
 
           expect(closeDialog).toEqual(Message.CompletedCloseDialog())
           expect(document.documentElement.style.overflow).not.toBe('hidden')
@@ -1149,8 +1168,9 @@ describe('Dialog', () => {
         return Effect.gen(function* () {
           yield* Dom.lockScroll
 
-          const closeDialog = yield* CloseDialog({ id: 'phantom-dialog' })
-            .effect
+          const closeDialog = yield* CloseDialog({
+            id: 'phantom-dialog',
+          }).effect.pipe(provideEffects)
 
           expect(closeDialog).toEqual(Message.CompletedCloseDialog())
           expect(document.documentElement.style.overflow).toBe('hidden')
@@ -1178,11 +1198,13 @@ describe('Dialog', () => {
             ShowDialog({
               id: 'racing-dialog',
               focusSelector: initialFocusMarkerSelector,
-            }).effect,
+            }).effect.pipe(provideEffects),
           )
 
           yield* Effect.yieldNow
-          yield* CloseDialog({ id: 'racing-dialog' }).effect
+          yield* CloseDialog({ id: 'racing-dialog' }).effect.pipe(
+            provideEffects,
+          )
 
           expect(document.documentElement.style.overflow).toBe('hidden')
 

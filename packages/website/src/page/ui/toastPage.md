@@ -4,7 +4,7 @@
 
 A stack of transient notifications positioned along an edge of the viewport. Each entry has its own enter and leave animation and hover state. Non-sticky entries have independent auto-dismiss timers that pause on hover. Swipe-to-dismiss is opt-in for the container. Keep the container at the app root and add entries with `Toast.show`.
 
-Toast is parameterized on a payload Schema that you provide. The component owns entry IDs, variants, animations, optional dismiss timers, hover state, and swipe state. Your payload holds the content rendered by `entryToView`. `Toast.make(PayloadSchema)` returns a module whose Model, helpers, and view are bound to that payload type.
+Toast is parameterized on a stable instance name and a payload Schema that you provide. The component owns entry IDs, variants, animations, optional dismiss timers, hover state, and swipe state. Your payload holds the content rendered by `entryToView`. `Toast.make('AppToast', PayloadSchema)` returns a module whose Model, helpers, view, Subscriptions, and `EffectsLayer` are bound to that instance.
 
 :::Info{label="See it in an app"}
 Check out how Toast is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/toast.ts).
@@ -28,7 +28,7 @@ Each entry’s enter and leave phases flow through [Animation](/ui/animation). S
 
 Swipe is pointer-driven and opt-in. Pass `swipeToDismiss` to `Toast.init`. For example: `{}` enables a rightward swipe with a 40px threshold, `{ threshold: 120 }` requires a longer swipe, and `{ direction: 'Left' }` enables a leftward swipe. Without it, `Toast.view` attaches no `pointerdown` handler or `touch-action` restriction. Direction is independent of `position`, so configure it explicitly for a left-anchored stack.
 
-With swipe enabled, `Toast.view` handles `pointerdown` on each entry. Wire `Toast.subscriptions` at the app root with `Subscription.lift(Toast.subscriptions)` to track `pointermove`, `pointerup`, and `pointercancel` even when the pointer leaves the entry. Without those subscriptions, a drag cannot finish. Escape cancels active drags. While dragging, Toast prevents text selection and shows the grabbing cursor. The example above includes the lift; see also [Toast subscriptions in the demo app](https://github.com/foldkit/foldkit/blob/main/packages/website/src/page/ui/subscriptions.ts).
+With swipe enabled, `Toast.view` handles `pointerdown` on each entry. Wire `Toast.subscriptions` at the app root with `Subscription.lift(Toast.subscriptions)` and merge `Toast.EffectsLayer` into the owning feature's effect bundle. The Subscriptions track `pointermove`, `pointerup`, and `pointercancel` even when the pointer leaves the entry. Without those registrations, a drag cannot finish. Escape cancels active drags. While dragging, Toast prevents text selection and shows the grabbing cursor. The example above includes the lift; see also [Toast subscriptions in the demo app](https://github.com/foldkit/foldkit/blob/main/packages/website/src/page/ui/subscriptions.ts).
 
 Presses on buttons, links, form controls, and editable elements do not start a swipe, so a close button keeps its normal pointer behavior. To make text selectable with a mouse or pen, put `data-toast-swipe-ignore` on a span around the text, as the demo does. A touch can still start a swipe over that text. Other areas of the entry remain draggable.
 
@@ -98,9 +98,9 @@ Toast helpers are child entry points. Fold `show` and `dismiss` with `Update.fol
 | `dismiss`    | `(model: Model, entryId: string) => Update.ReturnWithOutMessage<Model, Message, OutMessage>`  | —       | Begins dismissing a specific entry. Calling it for an entry that is already leaving or has been removed is a no-op.                                                                          |
 | `dismissAll` | `(model: Model) => Update.ReturnWithOutMessage<Model, Message, OutMessage>`                   | —       | Begins dismissing every currently-visible entry.                                                                                                                                             |
 
-### Subscriptions
+### Effects and Subscriptions
 
-Toast exposes `Toast.subscriptions` with `swipePointer` and `swipeEscape`. Lift them once at the app root so pointer tracking continues even when the pointer leaves the entry. The [example above](#examples) shows the lift alongside the Toast Model and Message, and the [demo app](https://github.com/foldkit/foldkit/blob/main/packages/website/src/page/ui/subscriptions.ts) shows it in context.
+Each module returned by `Toast.make` exposes `Toast.EffectsLayer` and `Toast.subscriptions` with `swipePointer` and `swipeEscape`. Merge the Layer into the feature's `EffectsLayer`, and lift the Subscriptions once at the app root so pointer tracking continues even when the pointer leaves the entry. The stable factory name keeps the handlers for separate Toast instances distinct. The [example above](#examples) shows the lift alongside the Toast Model and Message, and the [demo app](https://github.com/foldkit/foldkit/blob/main/packages/website/src/page/ui/subscriptions.ts) shows it in context.
 
 Without the lift the view still renders `data-swipe="move"` for the initial `pointerdown`, but `pointermove` and `pointerup` never reach the update and the gesture cannot complete.
 

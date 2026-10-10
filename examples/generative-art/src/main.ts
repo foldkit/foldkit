@@ -1,6 +1,6 @@
 import { Array, Option } from 'effect'
-import { Runtime } from 'foldkit'
 
+import * as UI from '@foldkit/ui'
 import { Slider } from '@foldkit/ui'
 
 import { GenerateAmbientParticle } from './command'
@@ -21,7 +21,7 @@ import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+export const init = () => ({
   model: {
     particles: [],
     nextId: 0,
@@ -59,3 +59,5 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 })
 
 export { Message, Model, subscriptions, update, view }
+
+export const mounts = UI.mounts

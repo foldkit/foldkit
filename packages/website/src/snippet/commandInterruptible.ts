@@ -1,79 +1,50 @@
-import { Array, Effect, Schema } from 'effect'
-import { Command, type Update } from 'foldkit'
+import { Effect } from 'effect'
+import { Command, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-const Message = defineMessageUnion({
-  ClickedCancelUpload: { uploadId: Schema.Number },
-  SucceededUploadFile: { uploadId: Schema.Number },
-  FailedUploadFile: { uploadId: Schema.Number },
-  CompletedCancelUploadFile: {
-    uploadId: Schema.Number,
+import type { Model } from './main'
+
+export const Message = defineMessageUnion({
+  ClickedResetAfterDelay: {},
+  ClickedCancelReset: {},
+  CompletedWaitBeforeReset: {},
+  CompletedCancelWaitBeforeReset: {
     outcome: Command.Interruptible.Outcome,
   },
 })
+export type Message = typeof Message.Type
 
-const UploadKey = Schema.Struct({ uploadId: Schema.Number })
-type UploadKey = typeof UploadKey.Type
-
-const UploadFile = Command.define('UploadFile', {
-  args: { ...UploadKey.fields, file: Schema.instanceOf(File) },
-  messages: [Message.SucceededUploadFile, Message.FailedUploadFile],
-  // The key function maps args to what distinguishes invocations. Foldkit
-  // prefixes the Command name automatically, so the full key for upload 7
-  // is "UploadFile:7".
-  interrupt: {
-    keyFields: ['uploadId'],
-    toKey: ({ uploadId }) => String(uploadId),
+export const WaitBeforeReset = Command.define('WaitBeforeReset', {
+  messages: [Message.CompletedWaitBeforeReset],
+  interrupt: true,
+  handler: function* () {
+    return () =>
+      Effect.sleep('1 second').pipe(
+        Effect.as(Message.CompletedWaitBeforeReset()),
+      )
   },
-  execute: ({ uploadId, file }) =>
-    postFile(file).pipe(
-      Effect.as(Message.SucceededUploadFile({ uploadId })),
-      Effect.catch(() =>
-        Effect.succeed(Message.FailedUploadFile({ uploadId })),
-      ),
-    ),
 })
 
-const setStatusForId = (uploadId: number, status: UploadStatus) =>
-  Array.map((upload: Upload) =>
-    upload.id === uploadId
-      ? modifyFields(upload, { status: () => status })
-      : upload,
-  )
+export const EffectsLayer = WaitBeforeReset.layer
 
-type UpdateReturn = Update.Return<Model, Message>
-
-const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
-    // Interrupt only the upload with this uploadId.
-    ClickedCancelUpload: ({ uploadId }) => ({
+const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
+    ClickedResetAfterDelay: () => ({
+      model,
+      commands: [WaitBeforeReset()],
+    }),
+    ClickedCancelReset: () => ({
       model,
       commands: [
-        UploadFile.Interrupt({ uploadId }, outcome =>
-          Message.CompletedCancelUploadFile({ uploadId, outcome }),
+        WaitBeforeReset.Interrupt(outcome =>
+          Message.CompletedCancelWaitBeforeReset({ outcome }),
         ),
       ],
     }),
-    CompletedCancelUploadFile: ({ uploadId, outcome }) =>
-      Command.Interruptible.Outcome.match<UpdateReturn>(outcome, {
-        // The upload was stopped. Its result Message will never arrive,
-        // so this branch owns the state transition.
-        Interrupted: () => ({
-          model: modifyFields(model, {
-            uploads: setStatusForId(uploadId, 'Cancelled'),
-          }),
-        }),
-        // Nothing held the key: the upload already completed (or never
-        // started), and its own result Message handles the Model.
-        NotFound: () => ({ model }),
-      }),
-    SucceededUploadFile: ({ uploadId }) => ({
-      model: modifyFields(model, { uploads: setStatusForId(uploadId, 'Done') }),
+    CompletedWaitBeforeReset: () => ({
+      model: modifyFields(model, { count: () => 0 }),
     }),
-    FailedUploadFile: ({ uploadId }) => ({
-      model: modifyFields(model, {
-        uploads: setStatusForId(uploadId, 'Failed'),
-      }),
-    }),
-  })
+    CompletedCancelWaitBeforeReset: () => ({ model }),
+  }),
+)

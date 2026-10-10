@@ -13,9 +13,9 @@ export const Message = defineMessageUnion({
   BlurredRoomIdInput: {},
   SubmittedJoinRoomForm: {},
   SucceededCreateRoom: { roomId: Schema.String, player: Shared.Player },
-  SucceededJoinRoom: { roomId: Schema.String, player: Shared.Player },
+  SucceededJoinRoomFromHome: { roomId: Schema.String, player: Shared.Player },
   FailedCreateRoom: { error: Schema.String },
-  FailedJoinRoom: { error: Schema.String },
+  FailedJoinRoomFromHome: { error: Schema.String },
   PressedKey: { key: Schema.String },
 })
 export type Message = typeof Message.Type

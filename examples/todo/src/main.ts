@@ -3,6 +3,7 @@ import {
   Array,
   Clock,
   Effect,
+  Layer,
   Match,
   Option,
   Random,
@@ -10,13 +11,12 @@ import {
   String,
 } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
-import { Command, Runtime, type Update } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
-import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Button, Checkbox, Input } from '@foldkit/ui'
 
 // CONSTANT
@@ -88,21 +88,19 @@ export type Flags = typeof Flags.Type
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
-  model: {
+export const init = (flags: Flags) => ({
+  model: Model.make({
     todos: Option.getOrElse(flags.todos, () => []),
     newTodoText: '',
     filter: 'All',
     editing: EditingState.NotEditing(),
-  },
+  }),
 })
 
 // UPDATE
 
-type UpdateReturn = Update.Return<Model, Message>
-
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     UpdatedNewTodo: ({ text }) => ({
       model: modifyFields(model, {
         newTodoText: () => text,
@@ -192,7 +190,7 @@ export const update = (model: Model, message: Message) =>
     },
 
     SavedEdit: () =>
-      EditingState.match<UpdateReturn>(model.editing, {
+      EditingState.match(model.editing, {
         NotEditing: () => ({ model }),
 
         Editing: ({ id, text }) => {
@@ -266,37 +264,46 @@ export const update = (model: Model, message: Message) =>
     }),
 
     FailedSaveTodos: () => ({ model }),
-  })
+  }),
+)
 
 // COMMAND
 
 export const GenerateTodo = Command.define('GenerateTodo', {
   args: { text: Schema.String },
   messages: [Message.CompletedGenerateTodo],
-  execute: ({ text }) =>
-    Effect.gen(function* () {
-      const id = yield* Random.nextIntBetween(0, Number.MAX_SAFE_INTEGER).pipe(
-        Effect.map(value => value.toString(36)),
-      )
-      const timestamp = yield* Clock.currentTimeMillis
-      return Message.CompletedGenerateTodo({ id, timestamp, text })
-    }),
+  handler: function* () {
+    const clock = yield* Clock.Clock
+
+    return ({ text }) =>
+      Effect.gen(function* () {
+        const id = yield* Random.nextIntBetween(
+          0,
+          Number.MAX_SAFE_INTEGER,
+        ).pipe(Effect.map(value => value.toString(36)))
+        const timestamp = yield* clock.currentTimeMillis
+
+        return Message.CompletedGenerateTodo({ id, timestamp, text })
+      })
+  },
 })
 
 export const SaveTodos = Command.define('SaveTodos', {
   args: { todos: Todos },
   messages: [Message.SucceededSaveTodos, Message.FailedSaveTodos],
-  execute: ({ todos }) =>
-    Effect.gen(function* () {
-      const store = yield* KeyValueStore.KeyValueStore
-      const encodedTodos = yield* Schema.encodeEffect(TodosJsonString)(todos)
-      yield* store.set(TODOS_STORAGE_KEY, encodedTodos)
-      return Message.SucceededSaveTodos({ todos })
-    }).pipe(
-      Effect.catch(() => Effect.succeed(Message.FailedSaveTodos())),
-      Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-    ),
+  handler: function* () {
+    const store = yield* KeyValueStore.KeyValueStore
+
+    return ({ todos }) =>
+      Effect.gen(function* () {
+        const encodedTodos = yield* Schema.encodeEffect(TodosJsonString)(todos)
+        yield* store.set(TODOS_STORAGE_KEY, encodedTodos)
+        return Message.SucceededSaveTodos({ todos })
+      }).pipe(Effect.catch(() => Effect.succeed(Message.FailedSaveTodos())))
+  },
 })
+
+export const EffectsLayer = Layer.mergeAll(GenerateTodo.layer, SaveTodos.layer)
 
 // VIEW
 
@@ -648,17 +655,15 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
 
 // FLAG
 
-export const flags: Effect.Effect<Flags> = Effect.gen(function* () {
-  const store = yield* KeyValueStore.KeyValueStore
-  const todosJson = yield* Effect.fromOption(
-    Option.fromNullishOr(yield* store.get(TODOS_STORAGE_KEY)),
-  )
+export const flags: Effect.Effect<Flags, never, KeyValueStore.KeyValueStore> =
+  Effect.gen(function* () {
+    const store = yield* KeyValueStore.KeyValueStore
+    const todosJson = yield* Effect.fromOption(
+      Option.fromNullishOr(yield* store.get(TODOS_STORAGE_KEY)),
+    )
 
-  const decodeTodos = Schema.decodeEffect(TodosJsonString)
-  const todos = yield* decodeTodos(todosJson)
+    const decodeTodos = Schema.decodeEffect(TodosJsonString)
+    const todos = yield* decodeTodos(todosJson)
 
-  return { todos: Option.some(todos) }
-}).pipe(
-  Effect.catch(() => Effect.succeed({ todos: Option.none() })),
-  Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-)
+    return { todos: Option.some(todos) }
+  }).pipe(Effect.catch(() => Effect.succeed({ todos: Option.none() })))

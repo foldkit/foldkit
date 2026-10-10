@@ -1,4 +1,5 @@
 import {
+  Clock,
   DateTime,
   Effect,
   Layer,
@@ -8,22 +9,12 @@ import {
   Schema,
   pipe,
 } from 'effect'
-import { KeyValueStore } from 'effect/persistence'
-import {
-  Calendar,
-  Command,
-  Dom,
-  ManagedResource,
-  Runtime,
-  Subscription,
-  Update,
-} from 'foldkit'
+import { Calendar, Command, Dom, Update } from 'foldkit'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 import { githubStarCount } from 'virtual:landing-data'
 
-import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { Dialog, Menu } from '@foldkit/ui'
 import { inject } from '@vercel/analytics'
 import * as SpeedInsights from '@vercel/speed-insights'
@@ -62,19 +53,13 @@ import {
 } from './sidebarStorage'
 import * as SnippetCopy from './snippetCopy'
 import * as SnippetDisclosure from './snippetDisclosure'
-import * as Subscriptions from './subscription'
+import { LocalStorage, SessionStorage } from './storage'
 import { ThemeSelector } from './view'
 
 export type { Message } from './message'
 export { Model } from './model'
 export type { TableOfContentsEntry } from './tableOfContentsEntry'
 export { view } from './view/application'
-
-export type AppResources = Search.PagefindService
-
-export type AppManagedResources = ManagedResource.ServicesOf<
-  typeof managedResources
->
 
 // THEME
 
@@ -116,7 +101,7 @@ const detectPlaygroundSupport = (): boolean =>
 const loadBrowserEnvironment = Effect.gen(function* () {
   const themePreference: Option.Option<ThemePreference> = yield* Effect.gen(
     function* () {
-      const store = yield* KeyValueStore.KeyValueStore
+      const store = yield* LocalStorage
       const json = yield* Effect.fromOption(
         Option.fromNullishOr(yield* store.get(THEME_STORAGE_KEY)),
       )
@@ -125,24 +110,19 @@ const loadBrowserEnvironment = Effect.gen(function* () {
       )(json)
       return Option.some(theme)
     },
-  ).pipe(
-    Effect.catch(() => Effect.succeed(Option.none<ThemePreference>())),
-    Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-  )
+  ).pipe(Effect.catch(() => Effect.succeed(Option.none<ThemePreference>())))
 
   const maybeSidebarState: Option.Option<SidebarState> = yield* Effect.gen(
     function* () {
-      const store = yield* KeyValueStore.KeyValueStore
+      const store = yield* SessionStorage
       const json = yield* Effect.fromOption(
         Option.fromNullishOr(yield* store.get(SIDEBAR_STORAGE_KEY)),
       )
       const state = yield* Schema.decodeEffect(SidebarStateJsonString)(json)
+
       return Option.some(state)
     },
-  ).pipe(
-    Effect.catch(() => Effect.succeed(Option.none<SidebarState>())),
-    Effect.provide(BrowserKeyValueStore.layerSessionStorage),
-  )
+  ).pipe(Effect.catch(() => Effect.succeed(Option.none<SidebarState>())))
 
   const systemTheme: ResolvedTheme = yield* Effect.sync(() =>
     window.matchMedia(DARK_COLOR_SCHEME_QUERY).matches ? 'Dark' : 'Light',
@@ -198,13 +178,7 @@ const initialSidebarGroups = (
   return sidebarGroups
 }
 
-export const init: Runtime.RoutingApplicationInit<
-  Model,
-  Message,
-  Flags,
-  AppResources,
-  AppManagedResources
-> = (flags: Flags, url: Url) => {
+export const init = (flags: Flags, url: Url) => {
   const maybeThemePreference = Option.none<ThemePreference>()
   const systemTheme: ResolvedTheme = 'Light'
   const resolvedTheme = systemTheme
@@ -322,35 +296,28 @@ export const init: Runtime.RoutingApplicationInit<
 
 // UPDATE
 
-type UpdateStep = Update.Step<
-  Model,
-  Message,
-  AppResources | AppManagedResources
->
-
 const isPathnameEqual = (a: Url, b: Url): boolean => a.pathname === b.pathname
 
-const foldThemeMenuOutMessage = Menu.OutMessage.match<
-  Update.Step<Model, Message>,
-  Menu.OutMessage<ThemePreference>
->({
-  Selected:
-    ({ value: preference }) =>
-    model => {
-      const resolvedTheme = resolveTheme(preference, model.systemTheme)
+const foldThemeMenuOutMessage = (
+  outMessage: Menu.OutMessage<ThemePreference>,
+) =>
+  Menu.OutMessage.match(outMessage, {
+    Selected: ({ value: preference }) =>
+      Update.makeStep((model: Model) => {
+        const resolvedTheme = resolveTheme(preference, model.systemTheme)
 
-      return {
-        model: modifyFields(model, {
-          maybeThemePreference: () => Option.some(preference),
-          resolvedTheme: () => resolvedTheme,
-        }),
-        commands: [
-          ApplyTheme({ theme: resolvedTheme }),
-          SaveThemePreference({ preference }),
-        ],
-      }
-    },
-})
+        return {
+          model: modifyFields(model, {
+            maybeThemePreference: () => Option.some(preference),
+            resolvedTheme: () => resolvedTheme,
+          }),
+          commands: [
+            ApplyTheme({ theme: resolvedTheme }),
+            SaveThemePreference({ preference }),
+          ],
+        }
+      }),
+  })
 
 const readThemeMenu = (model: Model): Option.Option<Menu.Model> =>
   Option.some(model.themeMenu)
@@ -377,12 +344,13 @@ const foldThemeMenuClose = Update.foldChildStep({
   foldOutMessage: foldThemeMenuOutMessage,
 })
 
-const foldMobileMenuDialogOutMessage = Dialog.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Opened: () => model => ({ model }),
-  Closed: () => model => ({ model }),
-})
+const foldMobileMenuDialogOutMessage = (
+  outMessage: typeof Dialog.OutMessage.Type,
+) =>
+  Dialog.OutMessage.match(outMessage, {
+    Opened: () => Update.makeStep((model: Model) => ({ model })),
+    Closed: () => Update.makeStep((model: Model) => ({ model })),
+  })
 
 const readMobileMenuDialog = (model: Model): Option.Option<Dialog.Model> =>
   Option.some(model.mobileMenuDialog)
@@ -455,13 +423,12 @@ const toGotHomeMessage = (message: Home.Message): Message =>
   Message.GotHomeMessage({ message })
 
 const foldHomeOutMessage = (outMessage: Home.OutMessage) =>
-  Home.OutMessage.match<Update.Step<Model, Message>>(outMessage, {
-    SelectedPlaygroundExample:
-      ({ exampleSlug }) =>
-      model => ({
+  Home.OutMessage.match(outMessage, {
+    SelectedPlaygroundExample: ({ exampleSlug }) =>
+      Update.makeStep((model: Model) => ({
         model,
         commands: [LoadPlayground({ exampleSlug })],
-      }),
+      })),
   })
 
 const foldHome = Update.foldChild({
@@ -472,22 +439,19 @@ const foldHome = Update.foldChild({
   foldOutMessage: foldHomeOutMessage,
 })
 
-const reconcileHomePresence =
-  (route: AppRoute): UpdateStep =>
-  model =>
-    Match.value(route).pipe(
-      Match.withReturnType<ReturnType<UpdateStep>>(),
-      Match.tag('Home', () => {
-        const nextHome = Option.orElse(model.maybeHome, () =>
-          Option.some(Home.init().model),
-        )
+const reconcileHomePresence = (route: AppRoute) => (model: Model) =>
+  Match.value(route).pipe(
+    Match.tag('Home', () => {
+      const nextHome = Option.orElse(model.maybeHome, () =>
+        Option.some(Home.init().model),
+      )
 
-        return { model: modifyFields(model, { maybeHome: () => nextHome }) }
-      }),
-      Match.orElse(() => ({
-        model: modifyFields(model, { maybeHome: () => Option.none() }),
-      })),
-    )
+      return { model: modifyFields(model, { maybeHome: () => nextHome }) }
+    }),
+    Match.orElse(() => ({
+      model: modifyFields(model, { maybeHome: () => Option.none() }),
+    })),
+  )
 
 const foldComingFromReact = Update.foldChild({
   update: ComingFromReact.update,
@@ -596,16 +560,10 @@ const foldPlayground = Update.foldChild({
   toParentMessage: message => Message.GotPlaygroundMessage({ message }),
 })
 
-type UpdateReturn = Update.Return<
-  Model,
-  Message,
-  AppResources | AppManagedResources
->
-
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedLink: ({ request }) =>
-      UrlRequest.match<UpdateReturn>(request, {
+      UrlRequest.match(request, {
         Internal: ({ url }) => {
           // NOTE: WebContainer requires `window.crossOriginIsolated`,
           // which only becomes true when the document is loaded with
@@ -653,7 +611,6 @@ export const update = (model: Model, message: Message) =>
       })
 
       const routeSteps = Match.value(nextRoute).pipe(
-        Match.withReturnType<ReadonlyArray<UpdateStep>>(),
         Match.tag('ApiModule', () => [foldApiReferenceRouteChanged]),
         Match.tag('ExampleDetail', ({ exampleSlug }) => [
           foldExampleDetailRouteChanged(exampleSlug),
@@ -677,7 +634,7 @@ export const update = (model: Model, message: Message) =>
         Option.map(({ exampleSlug }) => Playground.init(exampleSlug)),
       )
 
-      const writeRouteFields: UpdateStep = model => ({
+      const writeRouteFields = (model: Model) => ({
         model: modifyFields(model, {
           route: () => nextRoute,
           url: () => url,
@@ -686,7 +643,7 @@ export const update = (model: Model, message: Message) =>
         }),
       })
 
-      const scrollToRoute: UpdateStep = model => ({
+      const scrollToRoute = (model: Model) => ({
         model,
         commands: [
           ...Option.match(url.hash, {
@@ -786,7 +743,7 @@ export const update = (model: Model, message: Message) =>
         model.route._tag,
         maybeExampleSlug,
       )
-      const applyBrowserEnvironment: UpdateStep = stepModel => ({
+      const applyBrowserEnvironment = (stepModel: Model) => ({
         model: modifyFields(stepModel, {
           currentYear: () => currentYear,
           maybeIsPlaygroundSupported: () => Option.some(isPlaygroundSupported),
@@ -801,7 +758,7 @@ export const update = (model: Model, message: Message) =>
 
       return Update.combine(model, [
         applyBrowserEnvironment,
-        stepModel =>
+        (stepModel: Model) =>
           Update.foldChildInit(Ui.init(today), {
             toParentModel: uiPages =>
               modifyFields(stepModel, { uiPages: () => uiPages }),
@@ -862,71 +819,99 @@ export const update = (model: Model, message: Message) =>
     CompletedSaveSidebarState: () => ({ model }),
     SucceededCopyLink: () => ({ model }),
     FailedCopyLink: () => ({ model }),
-  })
+  }),
+)
 
 // COMMAND
 
 const InjectAnalytics = Command.define('InjectAnalytics', {
   messages: [Message.CompletedInjectAnalytics],
-  execute: Effect.sync(() => inject()).pipe(
-    Effect.as(Message.CompletedInjectAnalytics()),
-  ),
+  handler: function* () {
+    return () =>
+      Effect.sync(() => inject()).pipe(
+        Effect.as(Message.CompletedInjectAnalytics()),
+      )
+  },
 })
 
 const LoadBrowserEnvironment = Command.define('LoadBrowserEnvironment', {
   messages: [Message.CompletedLoadBrowserEnvironment],
-  execute: loadBrowserEnvironment,
+  handler: function* () {
+    const localStorage = yield* LocalStorage
+    const sessionStorage = yield* SessionStorage
+    const clock = yield* Clock.Clock
+
+    return () =>
+      loadBrowserEnvironment.pipe(
+        Effect.provideService(LocalStorage, localStorage),
+        Effect.provideService(SessionStorage, sessionStorage),
+        Effect.provideService(Clock.Clock, clock),
+      )
+  },
 })
 
 const InjectSpeedInsights = Command.define('InjectSpeedInsights', {
   messages: [Message.CompletedInjectSpeedInsights],
-  execute: Effect.sync(() => SpeedInsights.injectSpeedInsights()).pipe(
-    Effect.as(Message.CompletedInjectSpeedInsights()),
-  ),
+  handler: function* () {
+    return () =>
+      Effect.sync(() => SpeedInsights.injectSpeedInsights()).pipe(
+        Effect.as(Message.CompletedInjectSpeedInsights()),
+      )
+  },
 })
 
 const CopyLink = Command.define('CopyLink', {
   args: { url: Schema.String },
   messages: [Message.SucceededCopyLink, Message.FailedCopyLink],
-  execute: ({ url }) =>
-    Effect.tryPromise({
-      try: () => navigator.clipboard.writeText(url),
-      catch: () => new Error('Failed to copy link to clipboard'),
-    }).pipe(
-      Effect.as(Message.SucceededCopyLink()),
-      Effect.catch(() => Effect.succeed(Message.FailedCopyLink())),
-    ),
+  handler: function* () {
+    return ({ url }) =>
+      Effect.tryPromise({
+        try: () => navigator.clipboard.writeText(url),
+        catch: () => new Error('Failed to copy link to clipboard'),
+      }).pipe(
+        Effect.as(Message.SucceededCopyLink()),
+        Effect.catch(() => Effect.succeed(Message.FailedCopyLink())),
+      )
+  },
 })
 
 export const ScrollToTop = Command.define('ScrollToTop', {
   messages: [Message.CompletedScrollToTop],
-  execute: Effect.sync(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' })
-    return Message.CompletedScrollToTop()
-  }),
+  handler: function* () {
+    return () =>
+      Effect.sync(() => {
+        window.scrollTo({ top: 0, behavior: 'instant' })
+        return Message.CompletedScrollToTop()
+      })
+  },
 })
 
 const ScrollToAnchor = Command.define('ScrollToAnchor', {
   args: { hash: Schema.String },
   messages: [Message.CompletedScrollToAnchor],
-  execute: ({ hash }) =>
-    Effect.gen(function* () {
-      const target = `#${CSS.escape(hash)}`
-      yield* Dom.scrollIntoViewAfterPaint(target, { block: 'start' })
-      yield* Dom.focus(target, { preventScroll: true, makeFocusable: true })
-    }).pipe(Effect.ignore, Effect.as(Message.CompletedScrollToAnchor())),
+  handler: function* () {
+    return ({ hash }) =>
+      Effect.gen(function* () {
+        const target = `#${CSS.escape(hash)}`
+        yield* Dom.scrollIntoViewAfterPaint(target, { block: 'start' })
+        yield* Dom.focus(target, { preventScroll: true, makeFocusable: true })
+      }).pipe(Effect.ignore, Effect.as(Message.CompletedScrollToAnchor()))
+  },
 })
 
 export const ScrollSidebarActiveLinkIntoView = Command.define(
   'ScrollSidebarActiveLinkIntoView',
   {
     messages: [Message.CompletedScrollSidebarActiveLinkIntoView],
-    execute: Dom.scrollIntoViewIfNotVisible(
-      `#${DOCS_SIDEBAR_NAV_ID} [aria-current="page"]`,
-    ).pipe(
-      Effect.ignore,
-      Effect.as(Message.CompletedScrollSidebarActiveLinkIntoView()),
-    ),
+    handler: function* () {
+      return () =>
+        Dom.scrollIntoViewIfNotVisible(
+          `#${DOCS_SIDEBAR_NAV_ID} [aria-current="page"]`,
+        ).pipe(
+          Effect.ignore,
+          Effect.as(Message.CompletedScrollSidebarActiveLinkIntoView()),
+        )
+    },
   },
 )
 
@@ -936,12 +921,15 @@ const ScrollMobileMenuActiveLinkIntoView = Command.define(
   'ScrollMobileMenuActiveLinkIntoView',
   {
     messages: [Message.CompletedScrollMobileMenuActiveLinkIntoView],
-    execute: Dom.scrollIntoViewIfNotVisible(MOBILE_MENU_ACTIVE_LINK, {
-      when: 'Commit',
-    }).pipe(
-      Effect.ignore,
-      Effect.as(Message.CompletedScrollMobileMenuActiveLinkIntoView()),
-    ),
+    handler: function* () {
+      return () =>
+        Dom.scrollIntoViewIfNotVisible(MOBILE_MENU_ACTIVE_LINK, {
+          when: 'Commit',
+        }).pipe(
+          Effect.ignore,
+          Effect.as(Message.CompletedScrollMobileMenuActiveLinkIntoView()),
+        )
+    },
   },
 )
 
@@ -960,52 +948,56 @@ const setThemeColorMeta = (color: string): void => {
 const ApplyTheme = Command.define('ApplyTheme', {
   args: { theme: ResolvedTheme },
   messages: [Message.CompletedApplyTheme],
-  execute: ({ theme }) =>
-    Effect.sync(() => {
-      Match.value(theme).pipe(
-        Match.when('Dark', () => {
-          document.documentElement.classList.add('dark')
-          setThemeColorMeta(DARK_THEME_COLOR)
-        }),
-        Match.when('Light', () => {
-          document.documentElement.classList.remove('dark')
-          setThemeColorMeta(LIGHT_THEME_COLOR)
-        }),
-        Match.exhaustive,
-      )
-      return Message.CompletedApplyTheme()
-    }),
+  handler: function* () {
+    return ({ theme }) =>
+      Effect.sync(() => {
+        Match.value(theme).pipe(
+          Match.when('Dark', () => {
+            document.documentElement.classList.add('dark')
+            setThemeColorMeta(DARK_THEME_COLOR)
+          }),
+          Match.when('Light', () => {
+            document.documentElement.classList.remove('dark')
+            setThemeColorMeta(LIGHT_THEME_COLOR)
+          }),
+          Match.exhaustive,
+        )
+        return Message.CompletedApplyTheme()
+      })
+  },
 })
 
 const SaveThemePreference = Command.define('SaveThemePreference', {
   args: { preference: ThemePreference },
   messages: [Message.CompletedSaveThemePreference],
-  execute: ({ preference }) =>
-    Effect.gen(function* () {
-      const store = yield* KeyValueStore.KeyValueStore
-      yield* store.set(THEME_STORAGE_KEY, JSON.stringify(preference))
-      return Message.CompletedSaveThemePreference()
-    }).pipe(
-      Effect.catch(() =>
-        Effect.succeed(Message.CompletedSaveThemePreference()),
-      ),
-      Effect.provide(BrowserKeyValueStore.layerLocalStorage),
-    ),
+  handler: function* () {
+    const store = yield* LocalStorage
+
+    return ({ preference }) =>
+      store.set(THEME_STORAGE_KEY, JSON.stringify(preference)).pipe(
+        Effect.as(Message.CompletedSaveThemePreference()),
+        Effect.catch(() =>
+          Effect.succeed(Message.CompletedSaveThemePreference()),
+        ),
+      )
+  },
 })
 
 const SaveSidebarState = Command.define('SaveSidebarState', {
   args: { state: SidebarState },
   messages: [Message.CompletedSaveSidebarState],
-  execute: ({ state }) =>
-    Effect.gen(function* () {
-      const store = yield* KeyValueStore.KeyValueStore
-      const json = yield* Schema.encodeEffect(SidebarStateJsonString)(state)
-      yield* store.set(SIDEBAR_STORAGE_KEY, json)
-      return Message.CompletedSaveSidebarState()
-    }).pipe(
-      Effect.catch(() => Effect.succeed(Message.CompletedSaveSidebarState())),
-      Effect.provide(BrowserKeyValueStore.layerSessionStorage),
-    ),
+  handler: function* () {
+    const store = yield* SessionStorage
+
+    return ({ state }) =>
+      Effect.gen(function* () {
+        const json = yield* Schema.encodeEffect(SidebarStateJsonString)(state)
+        yield* store.set(SIDEBAR_STORAGE_KEY, json)
+        return Message.CompletedSaveSidebarState()
+      }).pipe(
+        Effect.catch(() => Effect.succeed(Message.CompletedSaveSidebarState())),
+      )
+  },
 })
 
 const modelToSidebarState = (model: Model): SidebarState => ({
@@ -1018,79 +1010,45 @@ const saveSidebarState = (model: Model) =>
 const NavigateInternal = Command.define('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
-  execute: ({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+  handler: function* () {
+    return ({ url }) =>
+      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
+  },
 })
 
 const LoadExternal = Command.define('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
-  execute: ({ href }) =>
-    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+  handler: function* () {
+    return ({ href }) =>
+      load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
+  },
 })
 
 export const LoadPlayground = Command.define('LoadPlayground', {
   args: { exampleSlug: Example.ExampleSlug },
   messages: [Message.CompletedLoadPlayground],
-  execute: ({ exampleSlug }) =>
-    load(playgroundRouter({ exampleSlug })).pipe(
-      Effect.as(Message.CompletedLoadPlayground()),
-    ),
-})
-
-// SUBSCRIPTION
-
-const homeSubscriptions = Subscription.lift(Home.subscriptions)<Model, Message>(
-  {
-    read: model => model.maybeHome,
-    toParentMessage: toGotHomeMessage,
+  handler: function* () {
+    return ({ exampleSlug }) =>
+      load(playgroundRouter({ exampleSlug })).pipe(
+        Effect.as(Message.CompletedLoadPlayground()),
+      )
   },
-)
-
-const uiPagesSubscriptions = Subscription.lift(Ui.subscriptions)<
-  Model,
-  Message
->({
-  read: model => Option.some(model.uiPages),
-  toParentMessage: message => Message.GotUiPageMessage({ message }),
 })
 
-export const subscriptions = Subscription.aggregate(
-  Subscriptions.ActiveSection.subscriptions,
-  homeSubscriptions,
-  uiPagesSubscriptions,
-  Subscriptions.SearchShortcut.subscriptions,
-  Subscriptions.SystemTheme.subscriptions,
-  Subscriptions.ViewportWidth.subscriptions,
+export const EffectsLayer = Layer.mergeAll(
+  InjectAnalytics.layer,
+  LoadBrowserEnvironment.layer,
+  InjectSpeedInsights.layer,
+  ScrollToTop.layer,
+  ScrollToAnchor.layer,
+  ScrollSidebarActiveLinkIntoView.layer,
+  ScrollMobileMenuActiveLinkIntoView.layer,
+  NavigateInternal.layer,
+  LoadExternal.layer,
+  LoadPlayground.layer,
+  ApplyTheme.layer,
+  SaveThemePreference.layer,
+  SaveSidebarState.layer,
+  CopyLink.layer,
 )
-
-// MANAGED RESOURCE
-
-const playgroundManagedResources = ManagedResource.lift(
-  Playground.managedResources,
-)<Model, Message>({
-  read: model =>
-    Option.filter(model.playground, () =>
-      Option.contains(model.maybeIsPlaygroundSupported, true),
-    ),
-  toParentMessage: message => Message.GotPlaygroundMessage({ message }),
-})
-
-const homeManagedResources = ManagedResource.lift(Home.managedResources)<
-  Model,
-  Message
->({
-  read: model => model.maybeHome,
-  toParentMessage: toGotHomeMessage,
-})
-
-export const managedResources = ManagedResource.aggregate(
-  homeManagedResources,
-  playgroundManagedResources,
-)
-
-// TRACER
-// NOTE: Custom dev tracer disabled pending Effect v4 beta Tracer/Layer API rewrite.
-// v4 beta removed Layer.setTracer and changed Tracer.make's signature; restore
-// once we adopt the new Tracer construction pattern.
-export const devTracerLayer: Layer.Layer<never> = Layer.empty

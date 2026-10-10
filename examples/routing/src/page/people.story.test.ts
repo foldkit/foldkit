@@ -49,14 +49,14 @@ describe('people', () => {
     )
   })
 
-  test('SucceededFetchPeople stores the loaded results', () => {
+  test('CompletedFetchPeople stores the loaded results', () => {
     const people = searchPeople('designer')
 
     story(
       update,
       givenLoaded(''),
       message(
-        Message.SucceededFetchPeople({
+        Message.CompletedFetchPeople({
           query: 'designer',
           people,
         }),

@@ -23,9 +23,8 @@ export const foldCheckout = Machine.fold({
     modifyFields(model, { checkout: () => nextCheckout }),
 })
 
-export const update = (model: Model, message: Message) =>
+export const update = Update.make((model: Model, message: Message) =>
   Match.value(message).pipe(
-    Match.withReturnType<Update.Return<Model, Message>>(),
     Match.tag('ToggledHelp', ({ isOpen }) => ({
       model: modifyFields(model, { isHelpOpen: () => isOpen }),
     })),
@@ -37,4 +36,5 @@ export const update = (model: Model, message: Message) =>
       () => foldCheckout(model, message),
     ),
     Match.exhaustive,
-  )
+  ),
+)

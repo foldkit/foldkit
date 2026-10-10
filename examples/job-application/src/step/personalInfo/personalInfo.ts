@@ -134,39 +134,39 @@ const isEmailTaken = (emailInput: string): Effect.Effect<boolean> =>
 export const ValidateEmailAsync = Command.define('ValidateEmailAsync', {
   args: { emailInput: Schema.String, validationId: Schema.Number },
   messages: [Message.CompletedValidateEmailAsync],
-  execute: ({ emailInput, validationId }) =>
-    Effect.gen(function* () {
-      if (yield* isEmailTaken(emailInput)) {
+  handler: function* () {
+    return ({ emailInput, validationId }) =>
+      Effect.gen(function* () {
+        if (yield* isEmailTaken(emailInput)) {
+          return Message.CompletedValidateEmailAsync({
+            validationId,
+            field: Invalid({
+              value: emailInput,
+              errors: ['This email is already in use'],
+            }),
+          })
+        }
         return Message.CompletedValidateEmailAsync({
           validationId,
-          field: Invalid({
-            value: emailInput,
-            errors: ['This email is already in use'],
-          }),
+          field: Valid({ value: emailInput }),
         })
-      }
-      return Message.CompletedValidateEmailAsync({
-        validationId,
-        field: Valid({ value: emailInput }),
       })
-    }),
+  },
 })
+
+export const EffectsLayer = ValidateEmailAsync.layer
 
 // UPDATE
 
-type UpdateReturn = Update.Return<Model, Message>
-
-const foldPronounsOutMessage = Listbox.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeSelectedPronoun: () => Option.some(value),
-      }),
-    }),
-})
+const foldPronounsOutMessage = (outMessage: typeof Listbox.OutMessage.Type) =>
+  Listbox.OutMessage.match(outMessage, {
+    Selected: ({ value }) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, {
+          maybeSelectedPronoun: () => Option.some(value),
+        }),
+      })),
+  })
 
 const foldPronouns = Update.foldChild({
   update: PronounsListbox.update,
@@ -177,21 +177,22 @@ const foldPronouns = Update.foldChild({
   foldOutMessage: foldPronounsOutMessage,
 })
 
-const foldAvailableDateOutMessage = DatePicker.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  SelectedDate:
-    ({ date }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeAvailableDate: () => Option.some(date),
-      }),
-    }),
-  ClearedDate: () => model => ({
-    model: modifyFields(model, { maybeAvailableDate: () => Option.none() }),
-  }),
-  ChangedViewMonth: () => model => ({ model }),
-})
+const foldAvailableDateOutMessage = (
+  outMessage: typeof DatePicker.OutMessage.Type,
+) =>
+  DatePicker.OutMessage.match(outMessage, {
+    SelectedDate: ({ date }) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, {
+          maybeAvailableDate: () => Option.some(date),
+        }),
+      })),
+    ClearedDate: () =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, { maybeAvailableDate: () => Option.none() }),
+      })),
+    ChangedViewMonth: () => Update.makeStep((model: Model) => ({ model })),
+  })
 
 const foldAvailableDate = Update.foldChild({
   update: DatePicker.update,
@@ -202,8 +203,8 @@ const foldAvailableDate = Update.foldChild({
   foldOutMessage: foldAvailableDateOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     UpdatedFirstName: ({ value }) => ({
       model: modifyFields(model, { firstName: () => validateFirstName(value) }),
     }),
@@ -215,7 +216,6 @@ export const update = (model: Model, message: Message) =>
     UpdatedEmail: ({ value }) => {
       const validationId = Number.increment(model.emailValidationId)
       return Match.value(validateEmail(value)).pipe(
-        Match.withReturnType<UpdateReturn>(),
         Match.tag('Valid', () => ({
           model: modifyFields(model, {
             email: () => Validating({ value }),
@@ -257,7 +257,8 @@ export const update = (model: Model, message: Message) =>
     }),
 
     GotAvailableDateMessage: ({ message }) => foldAvailableDate(model, message),
-  })
+  }),
+)
 
 // VALIDATION SUMMARY
 

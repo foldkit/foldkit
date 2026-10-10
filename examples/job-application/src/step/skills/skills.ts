@@ -3,8 +3,6 @@ import { Command, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import { BrowserCrypto } from '@effect/platform-browser'
-
 import * as Entry from './entry'
 
 // MODEL
@@ -18,8 +16,8 @@ export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ClickedAddEntry: {},
-  SucceededGenerateEntryId: { entryId: Schema.String },
-  FailedGenerateEntryId: {},
+  SucceededGenerateSkillsEntryId: { entryId: Schema.String },
+  FailedGenerateSkillsEntryId: {},
   RemovedEntry: { entryId: Schema.String },
   GotEntryMessage: {
     entryId: Schema.String,
@@ -37,28 +35,40 @@ export const init = (initialEntryId: string): Model => ({
 
 // COMMAND
 
-export const GenerateEntryId = Command.define('GenerateEntryId', {
-  messages: [Message.SucceededGenerateEntryId, Message.FailedGenerateEntryId],
-  execute: Effect.gen(function* () {
+export const GenerateSkillsEntryId = Command.define('GenerateSkillsEntryId', {
+  messages: [
+    Message.SucceededGenerateSkillsEntryId,
+    Message.FailedGenerateSkillsEntryId,
+  ],
+  handler: function* () {
     const crypto = yield* Crypto.Crypto
-    const entryId = yield* crypto.randomUUIDv4
-    return Message.SucceededGenerateEntryId({ entryId })
-  }).pipe(
-    Effect.provide(BrowserCrypto.layer),
-    Effect.catch(() => Effect.succeed(Message.FailedGenerateEntryId())),
-  ),
+
+    return () =>
+      crypto.randomUUIDv4.pipe(
+        Effect.map(entryId =>
+          Message.SucceededGenerateSkillsEntryId({ entryId }),
+        ),
+        Effect.catch(() =>
+          Effect.succeed(Message.FailedGenerateSkillsEntryId()),
+        ),
+      )
+  },
 })
+
+export const EffectsLayer = GenerateSkillsEntryId.layer
 
 // UPDATE
 
-const foldEntryOutMessage = (entryId: string) =>
-  Entry.OutMessage.match<Update.Step<Model, Message>>({
-    Removed: () => model => ({
-      model: modifyFields(model, {
-        entries: Array.filter(entry => entry.id !== entryId),
-      }),
-    }),
-  })
+const foldEntryOutMessage =
+  (entryId: string) => (outMessage: typeof Entry.OutMessage.Type) =>
+    Entry.OutMessage.match(outMessage, {
+      Removed: () =>
+        Update.makeStep((model: Model) => ({
+          model: modifyFields(model, {
+            entries: Array.filter(entry => entry.id !== entryId),
+          }),
+        })),
+    })
 
 const foldEntry = Update.foldChildAt({
   update: Entry.update,
@@ -73,17 +83,17 @@ const foldEntry = Update.foldChildAt({
   foldOutMessage: foldEntryOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
-    ClickedAddEntry: () => ({ model, commands: [GenerateEntryId()] }),
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
+    ClickedAddEntry: () => ({ model, commands: [GenerateSkillsEntryId()] }),
 
-    SucceededGenerateEntryId: ({ entryId }) => ({
+    SucceededGenerateSkillsEntryId: ({ entryId }) => ({
       model: modifyFields(model, {
         entries: Array.append(Entry.init(entryId)),
       }),
     }),
 
-    FailedGenerateEntryId: () => ({ model }),
+    FailedGenerateSkillsEntryId: () => ({ model }),
 
     RemovedEntry: ({ entryId }) => ({
       model: modifyFields(model, {
@@ -93,7 +103,8 @@ export const update = (model: Model, message: Message) =>
 
     GotEntryMessage: ({ entryId, message }) =>
       foldEntry(model, entryId, message),
-  })
+  }),
+)
 
 // VALIDATION SUMMARY
 

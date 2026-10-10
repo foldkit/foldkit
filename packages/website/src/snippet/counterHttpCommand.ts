@@ -1,44 +1,55 @@
 import { Effect, Schema } from 'effect'
-import { HttpClient, HttpClientRequest } from 'effect/http'
-import { Command, Http, type Update } from 'foldkit'
+import { HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/http'
+import { Command, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-const Message = defineMessageUnion({
+import type { Model } from './main'
+
+export const Message = defineMessageUnion({
   ClickedFetchCount: {},
-  SucceededFetchCount: { count: Schema.Number },
+  SucceededFetchCount: { count: Schema.Int },
   FailedFetchCount: { error: Schema.String },
 })
+export type Message = typeof Message.Type
 
-const CountResponse = Schema.Struct({ count: Schema.Number })
+const CountResponse = Schema.Struct({ count: Schema.Int })
 
-const FetchCount = Command.define('FetchCount', {
+export const FetchCount = Command.define('FetchCount', {
   messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
-  execute: Effect.gen(function* () {
+  handler: function* () {
     const client = yield* HttpClient.HttpClient
-    const response = yield* client.execute(HttpClientRequest.get('/api/count'))
 
-    if (response.status !== 200) {
-      return yield* Effect.fail('API request failed')
-    }
+    return () => fetchCount(client)
+  },
+})
+
+export const fetchCount = (client: HttpClient.HttpClient) =>
+  Effect.gen(function* () {
+    const response = yield* client.execute(HttpClientRequest.get('/api/count'))
+    const successfulResponse =
+      yield* HttpClientResponse.filterStatusOk(response)
 
     const { count } = yield* Schema.decodeUnknownEffect(CountResponse)(
-      yield* response.json,
+      yield* successfulResponse.json,
     )
     return Message.SucceededFetchCount({ count })
   }).pipe(
     Effect.catch(error =>
-      Effect.succeed(Message.FailedFetchCount({ error: String(error) })),
+      Effect.succeed(
+        Message.FailedFetchCount({ error: globalThis.String(error) }),
+      ),
     ),
-    Effect.provide(Http.layer),
-  ),
-})
+  )
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const FetchCountLayer = FetchCount.layer
+
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedFetchCount: () => ({ model, commands: [FetchCount()] }),
     SucceededFetchCount: ({ count }) => ({
       model: modifyFields(model, { count: () => count }),
     }),
     FailedFetchCount: () => ({ model }),
-  })
+  }),
+)

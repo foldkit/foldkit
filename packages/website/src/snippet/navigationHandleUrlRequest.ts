@@ -1,5 +1,5 @@
 import { Effect, Schema, pipe } from 'effect'
-import { Command, Navigation, Route, type Update, Url } from 'foldkit'
+import { Command, Navigation, Route, Update, Url } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineRouteUnion, int, literal, slash } from 'foldkit/route'
 import { modifyFields } from 'foldkit/struct'
@@ -42,30 +42,32 @@ type Message = typeof Message.Type
 const NavigateInternal = Command.define('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
-  execute: ({ url }) =>
-    Navigation.pushUrl(url).pipe(
-      Effect.as(Message.CompletedNavigateInternal()),
-    ),
+  handler: function* () {
+    return ({ url }) =>
+      Navigation.pushUrl(url).pipe(
+        Effect.as(Message.CompletedNavigateInternal()),
+      )
+  },
 })
 
 const LoadExternal = Command.define('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
-  execute: ({ href }) =>
-    Navigation.load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+  handler: function* () {
+    return ({ href }) =>
+      Navigation.load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
+  },
 })
 
 // UPDATE
 
-type UpdateReturn = Update.Return<Model, Message>
-
-const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
 
     ClickedLink: ({ request }) =>
-      Navigation.UrlRequest.match<UpdateReturn>(request, {
+      Navigation.UrlRequest.match(request, {
         Internal: ({ url }) => ({
           model,
           commands: [NavigateInternal({ url: Url.toString(url) })],
@@ -81,4 +83,5 @@ const update = (model: Model, message: Message) =>
         route: () => urlToAppRoute(url),
       }),
     }),
-  })
+  }),
+)

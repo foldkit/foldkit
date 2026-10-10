@@ -3,6 +3,7 @@ import {
   Array,
   Duration,
   Effect,
+  Layer,
   Match,
   Number,
   Option,
@@ -131,7 +132,7 @@ export const Message = defineMessageUnion({
   ClickedPause: {},
   ClickedStop: {},
   CompletedPlayNote: { noteIndex: Schema.Number },
-  CompletedDelayAdvancePhase: { generation: Schema.Number },
+  CompletedDelayAdvanceNotePlayerPhase: { generation: Schema.Number },
   SucceededAcquireAudioContext: {},
   FailedAcquireAudioContext: {},
   ReleasedAudioContext: {},
@@ -158,10 +159,8 @@ const parseNotes = (value: string) =>
 
 const INITIAL_NOTE_SEQUENCE = 'CDEFGABC'
 
-type UpdateReturn = Update.Return<Model, Message, AudioContextService>
-
-export const init = (): UpdateReturn => ({
-  model: {
+export const init = () => ({
+  model: Model.make({
     noteInput: validateNoteInput(INITIAL_NOTE_SEQUENCE),
     noteDurationRadioGroup: RadioGroup.init({
       id: NOTE_DURATION_RADIO_GROUP_ID,
@@ -172,32 +171,39 @@ export const init = (): UpdateReturn => ({
     generation: 0,
     messageLog: [],
     audio: AudioState.Acquiring(),
-  },
+  }),
 })
 
 // UPDATE
-
-const withUpdateReturn = Match.withReturnType<UpdateReturn>()
 
 const prependToLog =
   (entry: string) =>
   (messageLog: ReadonlyArray<string>): ReadonlyArray<string> =>
     Array.take([entry, ...messageLog], MAX_LOG_ENTRIES)
 
-const DelayAdvancePhase = Command.define('DelayAdvancePhase', {
-  args: { generation: Schema.Number },
-  messages: [Message.CompletedDelayAdvancePhase],
-  execute: ({ generation }) =>
-    Effect.sleep(PHASE_DURATION).pipe(
-      Effect.as(Message.CompletedDelayAdvancePhase({ generation })),
-    ),
-})
+const DelayAdvanceNotePlayerPhase = Command.define(
+  'DelayAdvanceNotePlayerPhase',
+  {
+    args: { generation: Schema.Number },
+    messages: [Message.CompletedDelayAdvanceNotePlayerPhase],
+    handler: function* () {
+      return ({ generation }) =>
+        Effect.sleep(PHASE_DURATION).pipe(
+          Effect.as(
+            Message.CompletedDelayAdvanceNotePlayerPhase({ generation }),
+          ),
+        )
+    },
+  },
+)
+
+export type UpdateRequirements = Update.RequirementsOf<typeof update>
 
 const enterNoteCommandPhase = (
   model: Model,
   noteSequence: ReadonlyArray<Note>,
   noteIndex: number,
-): UpdateReturn => ({
+) => ({
   model: modifyFields(model, {
     playbackState: () =>
       PlaybackState.Playing({
@@ -215,19 +221,18 @@ const enterNoteCommandPhase = (
   ],
 })
 
-const foldNoteDurationRadioGroupOutMessage = RadioGroup.OutMessage.match<
-  Update.Step<Model, Message>,
-  RadioGroup.OutMessage<NoteDuration>
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, {
-        noteDuration: () => value,
-        messageLog: prependToLog(`Selected(${value})`),
-      }),
-    }),
-})
+const foldNoteDurationRadioGroupOutMessage = (
+  outMessage: RadioGroup.OutMessage<NoteDuration>,
+) =>
+  RadioGroup.OutMessage.match(outMessage, {
+    Selected: ({ value }) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, {
+          noteDuration: () => value,
+          messageLog: prependToLog(`Selected(${value})`),
+        }),
+      })),
+  })
 
 const foldNoteDurationRadioGroup = Update.foldChild({
   update: NoteDurationRadioGroup.update,
@@ -240,8 +245,8 @@ const foldNoteDurationRadioGroup = Update.foldChild({
   foldOutMessage: foldNoteDurationRadioGroupOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ChangedNoteInput: ({ value }) => {
       const uppercased = String.toUpperCase(value)
       const fieldState = String.isEmpty(uppercased)
@@ -261,7 +266,7 @@ export const update = (model: Model, message: Message) =>
       foldNoteDurationRadioGroup(model, message),
 
     ClickedPlay: () =>
-      PlaybackState.match<UpdateReturn>(model.playbackState, {
+      PlaybackState.match(model.playbackState, {
         Playing: () => ({ model }),
         Paused: ({ noteSequence, currentNoteIndex }) => {
           const resumeIndex = currentNoteIndex + 1
@@ -289,7 +294,9 @@ export const update = (model: Model, message: Message) =>
               generation: () => nextGeneration,
               messageLog: prependToLog('ClickedPlay'),
             }),
-            commands: [DelayAdvancePhase({ generation: nextGeneration })],
+            commands: [
+              DelayAdvanceNotePlayerPhase({ generation: nextGeneration }),
+            ],
           }
         },
         Idle: () => {
@@ -315,14 +322,15 @@ export const update = (model: Model, message: Message) =>
               generation: () => nextGeneration,
               messageLog: prependToLog('ClickedPlay'),
             }),
-            commands: [DelayAdvancePhase({ generation: nextGeneration })],
+            commands: [
+              DelayAdvanceNotePlayerPhase({ generation: nextGeneration }),
+            ],
           }
         },
       }),
 
     ClickedPause: () =>
       Match.value(model.playbackState).pipe(
-        withUpdateReturn,
         Match.tag('Playing', ({ noteSequence, currentNoteIndex }) => {
           const nextGeneration = model.generation + 1
 
@@ -337,7 +345,9 @@ export const update = (model: Model, message: Message) =>
               generation: () => nextGeneration,
               messageLog: prependToLog('ClickedPause'),
             }),
-            commands: [DelayAdvancePhase({ generation: nextGeneration })],
+            commands: [
+              DelayAdvanceNotePlayerPhase({ generation: nextGeneration }),
+            ],
           }
         }),
         Match.orElse(() => ({ model })),
@@ -367,27 +377,26 @@ export const update = (model: Model, message: Message) =>
           generation: () => nextGeneration,
           messageLog: prependToLog(`CompletedPlayNote(${noteIndex})`),
         }),
-        commands: [DelayAdvancePhase({ generation: nextGeneration })],
+        commands: [DelayAdvanceNotePlayerPhase({ generation: nextGeneration })],
       }
     },
 
-    CompletedDelayAdvancePhase: ({ generation }) => {
+    CompletedDelayAdvanceNotePlayerPhase: ({ generation }) => {
       if (generation !== model.generation) {
         return { model }
       }
 
       return Match.value(model.highlightPhase).pipe(
-        withUpdateReturn,
         Match.when('PlayMessage', () => ({
           model: modifyFields(model, { highlightPhase: () => 'PlayUpdate' }),
-          commands: [DelayAdvancePhase({ generation: generation })],
+          commands: [DelayAdvanceNotePlayerPhase({ generation: generation })],
         })),
         Match.when('PauseMessage', () => ({
           model: modifyFields(model, { highlightPhase: () => 'Idle' }),
         })),
         Match.when('PlayUpdate', () => ({
           model: modifyFields(model, { highlightPhase: () => 'PlayModel' }),
-          commands: [DelayAdvancePhase({ generation: generation })],
+          commands: [DelayAdvanceNotePlayerPhase({ generation: generation })],
         })),
         Match.when('PlayModel', () => {
           if (model.playbackState._tag !== 'Playing') {
@@ -402,11 +411,11 @@ export const update = (model: Model, message: Message) =>
         }),
         Match.when('NoteMessage', () => ({
           model: modifyFields(model, { highlightPhase: () => 'NoteUpdate' }),
-          commands: [DelayAdvancePhase({ generation: generation })],
+          commands: [DelayAdvanceNotePlayerPhase({ generation: generation })],
         })),
         Match.when('NoteUpdate', () => ({
           model: modifyFields(model, { highlightPhase: () => 'NoteModel' }),
-          commands: [DelayAdvancePhase({ generation: generation })],
+          commands: [DelayAdvanceNotePlayerPhase({ generation: generation })],
         })),
         Match.when('NoteModel', () => {
           if (model.playbackState._tag !== 'Playing') {
@@ -443,31 +452,33 @@ export const update = (model: Model, message: Message) =>
     }),
 
     ReleasedAudioContext: () => ({ model }),
-  })
+  }),
+)
 
 // MANAGED RESOURCE
 
 const AudioContextResource = ManagedResource.tag<AudioContext>()('AudioContext')
-type AudioContextService = ManagedResource.ServiceOf<
-  typeof AudioContextResource
->
 
 export const managedResources = ManagedResource.make<Model, Message>()(
   entry => ({
-    audioContext: entry(Schema.Option(Schema.Null), {
+    audioContext: entry('ManageAudioContext', Schema.Option(Schema.Null), {
       resource: AudioContextResource,
       modelToMaybeRequirements: () => Option.some(null),
-      acquire: () =>
-        Effect.try({
-          try: () => new AudioContext(),
-          catch: () =>
-            new Error('The Web Audio API is unavailable in this browser.'),
-        }),
-      release: audioContext =>
-        Effect.promise(() => audioContext.close().catch(() => undefined)),
       onAcquired: () => Message.SucceededAcquireAudioContext(),
       onReleased: () => Message.ReleasedAudioContext(),
       onAcquireError: () => Message.FailedAcquireAudioContext(),
+      handler: function* () {
+        return {
+          acquire: () =>
+            Effect.try({
+              try: () => new AudioContext(),
+              catch: () =>
+                new Error('The Web Audio API is unavailable in this browser.'),
+            }),
+          release: audioContext =>
+            Effect.promise(() => audioContext.close().catch(() => undefined)),
+        }
+      },
     }),
   }),
 )
@@ -477,61 +488,71 @@ export const managedResources = ManagedResource.make<Model, Message>()(
 const PlayNote = Command.define('PlayNote', {
   args: { note: Note, duration: NoteDuration, noteIndex: Schema.Number },
   messages: [Message.CompletedPlayNote],
-  execute: ({ note, duration, noteIndex }) =>
-    Effect.gen(function* () {
-      const audioContext = yield* AudioContextResource.get
-      yield* Effect.promise(() => audioContext.resume().catch(() => undefined))
+  handler: function* () {
+    return ({ note, duration, noteIndex }) =>
+      Effect.gen(function* () {
+        const audioContext = yield* AudioContextResource.get
+        yield* Effect.promise(() =>
+          audioContext.resume().catch(() => undefined),
+        )
 
-      return yield* Effect.callback<typeof Message.CompletedPlayNote.Type>(
-        resume => {
-          if (audioContext.state === 'closed') {
-            resume(Effect.succeed(Message.CompletedPlayNote({ noteIndex })))
-            return
-          }
+        return yield* Effect.callback<typeof Message.CompletedPlayNote.Type>(
+          resume => {
+            if (audioContext.state === 'closed') {
+              resume(Effect.succeed(Message.CompletedPlayNote({ noteIndex })))
+              return
+            }
 
-          const oscillator = audioContext.createOscillator()
-          const gainNode = audioContext.createGain()
-          const durationSeconds = DURATION_MILLISECONDS[duration] / 1000
+            const oscillator = audioContext.createOscillator()
+            const gainNode = audioContext.createGain()
+            const durationSeconds = DURATION_MILLISECONDS[duration] / 1000
 
-          oscillator.type = 'triangle'
-          oscillator.frequency.setValueAtTime(
-            NOTE_FREQUENCIES[note],
-            audioContext.currentTime,
-          )
+            oscillator.type = 'triangle'
+            oscillator.frequency.setValueAtTime(
+              NOTE_FREQUENCIES[note],
+              audioContext.currentTime,
+            )
 
-          const releaseEnd =
-            audioContext.currentTime + durationSeconds - GAIN_RELEASE_TIME
+            const releaseEnd =
+              audioContext.currentTime + durationSeconds - GAIN_RELEASE_TIME
 
-          gainNode.gain.setValueAtTime(0, audioContext.currentTime)
-          gainNode.gain.linearRampToValueAtTime(
-            0.1,
-            audioContext.currentTime + GAIN_ATTACK_TIME,
-          )
-          gainNode.gain.exponentialRampToValueAtTime(
-            GAIN_NEAR_SILENT,
-            releaseEnd,
-          )
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime)
+            gainNode.gain.linearRampToValueAtTime(
+              0.1,
+              audioContext.currentTime + GAIN_ATTACK_TIME,
+            )
+            gainNode.gain.exponentialRampToValueAtTime(
+              GAIN_NEAR_SILENT,
+              releaseEnd,
+            )
 
-          oscillator.connect(gainNode)
-          gainNode.connect(audioContext.destination)
+            oscillator.connect(gainNode)
+            gainNode.connect(audioContext.destination)
 
-          oscillator.start()
-          oscillator.stop(audioContext.currentTime + durationSeconds)
+            oscillator.start()
+            oscillator.stop(audioContext.currentTime + durationSeconds)
 
-          oscillator.onended = () => {
-            gainNode.disconnect()
-            resume(Effect.succeed(Message.CompletedPlayNote({ noteIndex })))
-          }
-        },
-      )
-    }).pipe(
-      Effect.catchTag('ResourceNotAvailable', () =>
-        Effect.sleep(Duration.millis(DURATION_MILLISECONDS[duration])).pipe(
-          Effect.map(() => Message.CompletedPlayNote({ noteIndex })),
+            oscillator.onended = () => {
+              gainNode.disconnect()
+              resume(Effect.succeed(Message.CompletedPlayNote({ noteIndex })))
+            }
+          },
+        )
+      }).pipe(
+        Effect.catchTag('ResourceNotAvailable', () =>
+          Effect.sleep(Duration.millis(DURATION_MILLISECONDS[duration])).pipe(
+            Effect.map(() => Message.CompletedPlayNote({ noteIndex })),
+          ),
         ),
-      ),
-    ),
+      )
+  },
 })
+
+export const EffectsLayer = Layer.mergeAll(
+  DelayAdvanceNotePlayerPhase.layer,
+  PlayNote.layer,
+  managedResources.audioContext.layer,
+)
 
 // VIEW
 

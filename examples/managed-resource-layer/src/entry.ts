@@ -1,8 +1,21 @@
-import { Runtime } from 'foldkit'
+import { Layer } from 'effect'
+import { Application, Runtime } from 'foldkit'
 
-import { Message, Model, init, managedResources, update, view } from './main'
+import { BrowserCrypto } from '@effect/platform-browser'
 
-const application = Runtime.makeApplication({
+import {
+  EffectsLayer,
+  Message,
+  Model,
+  init,
+  managedResources,
+  update,
+  view,
+} from './main'
+
+const AppLayer = Layer.provide(EffectsLayer, BrowserCrypto.layer)
+
+const application = Application.make({
   Model,
   init,
   update,
@@ -14,4 +27,4 @@ const application = Runtime.makeApplication({
   },
 })
 
-Runtime.run(application)
+Runtime.run(Application.provide(application, AppLayer))

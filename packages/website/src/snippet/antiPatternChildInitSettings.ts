@@ -17,18 +17,16 @@ export const OutMessage = defineMessageUnion({
 
 export const init = () => ({ model: Model.make({ theme: 'Light' }) })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
-    message,
-    {
-      RestoredTheme: ({ theme }) => ({
-        model: modifyFields(model, { theme: () => theme }),
-        commands: [RefreshAvailableThemes()],
-        outMessage: OutMessage.RestoredTheme({ theme }),
-      }),
-      CompletedRefreshAvailableThemes: () => ({ model }),
-    },
-  )
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
+    RestoredTheme: ({ theme }) => ({
+      model: modifyFields(model, { theme: () => theme }),
+      commands: [RefreshAvailableThemes()],
+      outMessage: OutMessage.RestoredTheme({ theme }),
+    }),
+    CompletedRefreshAvailableThemes: () => ({ model }),
+  }),
+)
 
 export const boot = ({ theme }: BootArgs) =>
   update(init().model, Message.RestoredTheme({ theme }))

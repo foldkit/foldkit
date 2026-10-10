@@ -1,6 +1,6 @@
 import clsx from 'clsx'
-import { Array, Duration, Effect, Random, Schema } from 'effect'
-import { Command, FieldValidation, Runtime, type Update } from 'foldkit'
+import { Array, Duration, Effect, Layer, Random, Schema } from 'effect'
+import { Command, FieldValidation, Runtime, Update } from 'foldkit'
 import {
   Field,
   Invalid,
@@ -76,6 +76,8 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 
 // FIELD VALIDATION
 
+const FAKE_API_DELAY_MS = 500
+
 const EMAILS_ON_WAITLIST = [
   'test@example.com',
   'demo@email.com',
@@ -91,21 +93,23 @@ const isEmailOnWaitlist = (email: string): Effect.Effect<boolean> =>
 export const ValidateEmail = Command.define('ValidateEmail', {
   args: { email: Schema.String },
   messages: [Message.CompletedValidateEmail],
-  execute: ({ email }) =>
-    Effect.gen(function* () {
-      if (yield* isEmailOnWaitlist(email)) {
-        return Message.CompletedValidateEmail({
-          field: Invalid({
-            value: email,
-            errors: ['This email is already on our waitlist'],
-          }),
-        })
-      } else {
-        return Message.CompletedValidateEmail({
-          field: Valid({ value: email }),
-        })
-      }
-    }),
+  handler: function* () {
+    return ({ email }) =>
+      Effect.gen(function* () {
+        if (yield* isEmailOnWaitlist(email)) {
+          return Message.CompletedValidateEmail({
+            field: Invalid({
+              value: email,
+              errors: ['This email is already on our waitlist'],
+            }),
+          })
+        } else {
+          return Message.CompletedValidateEmail({
+            field: Valid({ value: email }),
+          })
+        }
+      })
+  },
 })
 
 const validateName = validate(nameRules)
@@ -119,8 +123,8 @@ const isFormValid = (model: Model): boolean =>
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     UpdatedName: ({ value }) => ({
       model: modifyFields(model, {
         name: () => validateName(value),
@@ -205,11 +209,10 @@ export const update = (model: Model, message: Message) =>
           }),
       }),
     }),
-  })
+  }),
+)
 
 // COMMAND
-
-const FAKE_API_DELAY_MS = 500
 
 export const SubmitForm = Command.define('SubmitForm', {
   args: {
@@ -218,18 +221,25 @@ export const SubmitForm = Command.define('SubmitForm', {
     messageText: Schema.String,
   },
   messages: [Message.SucceededSubmitForm, Message.FailedSubmitForm],
-  execute: ({ name }) =>
-    Effect.gen(function* () {
-      yield* Effect.sleep(`${FAKE_API_DELAY_MS} millis`)
+  handler: function* () {
+    return ({ name }) =>
+      Effect.gen(function* () {
+        yield* Effect.sleep(`${FAKE_API_DELAY_MS} millis`)
 
-      const isSuccess = yield* Random.nextBoolean
-      if (isSuccess) {
-        return Message.SucceededSubmitForm({ name })
-      } else {
-        return Message.FailedSubmitForm()
-      }
-    }),
+        const isSuccess = yield* Random.nextBoolean
+        if (isSuccess) {
+          return Message.SucceededSubmitForm({ name })
+        } else {
+          return Message.FailedSubmitForm()
+        }
+      })
+  },
 })
+
+export const EffectsLayer = Layer.mergeAll(
+  ValidateEmail.layer,
+  SubmitForm.layer,
+)
 
 // VIEW
 

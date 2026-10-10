@@ -166,7 +166,7 @@ const fetchOptionalGitHubStat =
     )
   }
 
-export const GitHubApiLive: Layer.Layer<
+export const GitHubApiLayer: Layer.Layer<
   GitHubApi,
   never,
   HttpClient.HttpClient

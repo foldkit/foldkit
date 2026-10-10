@@ -659,6 +659,20 @@ test('the developer portal path redirects to the AI overview', () => {
   )
 })
 
+test('the previous Layers paths redirect to the canonical document', () => {
+  for (const pathname of ['/core/resources', '/core/resources/']) {
+    const result = resolveRequest(productionConfig, pathname)
+    assert.equal(result.kind, 'redirect', pathname)
+    assert.equal(result.status, 308, pathname)
+    assert.equal(result.location, '/core/layers', pathname)
+  }
+
+  const markdown = resolveRequest(productionConfig, '/core/resources.md')
+  assert.equal(markdown.kind, 'redirect')
+  assert.equal(markdown.status, 308)
+  assert.equal(markdown.location, '/core/layers.md')
+})
+
 test('the old manifesto paths redirect to Why Foldkit', () => {
   for (const pathname of [
     '/manifesto',

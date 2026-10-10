@@ -1,9 +1,13 @@
-// page/home/index.ts
+// page/products/index.ts
 export { Model } from './model'
 export { Message } from './message'
-export * from './init'
-export * from './update'
-export * from './view'
+export { EffectsLayer } from './layer'
+export { subscriptions } from './subscription'
+export { managedResources } from './managedResource'
+export { mounts } from './mount'
+export { init } from './init'
+export { update } from './update'
+export { view } from './view'
 
 // page/index.ts
 export * as Home from './home'

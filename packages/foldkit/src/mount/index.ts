@@ -1,13 +1,25 @@
 import {
   Context,
   Effect,
+  type Fiber,
   Function,
+  Layer,
   Predicate,
   Queue,
   Schema,
   Scope,
   Stream,
 } from 'effect'
+
+import {
+  type Handler,
+  type ToEffectLayer,
+  type ToStreamLayer,
+  makeEffectHandler,
+  makeStreamHandler,
+} from './handler.js'
+
+export type { Handler, ToEffectLayer, ToStreamLayer } from './handler.js'
 
 /** Effect service tag that observes Mount lifecycle events. The runtime
  *  provides an implementation that buffers events for DevTools history;
@@ -37,6 +49,8 @@ export class MountRuntime extends Context.Service<
   MountRuntime,
   {
     readonly captureViewStateChanges: () => Stream.Stream<ViewState>
+    readonly registerFiber: (fiber: Fiber.Fiber<void>) => void
+    readonly interruptFibers: Effect.Effect<void>
   }
 >()('@foldkit/MountRuntime') {}
 
@@ -49,6 +63,19 @@ export const MountDefinitionTypeId: unique symbol = Symbol.for(
 /** Type-level brand for MountDefinition values. */
 export type MountDefinitionTypeId = typeof MountDefinitionTypeId
 
+/** @internal Runtime identity shared by a layered Mount Definition and every
+ *  action constructed from it. */
+export type MountRegistration = Readonly<{ name: string }>
+
+/** @internal Property carrying a layered Mount's registration identity. */
+/* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+export const MountRegistrationTypeId: unique symbol = Symbol.for(
+  'foldkit/MountRegistration',
+) as unknown as MountRegistrationTypeId
+
+/** @internal Property carrying a layered Mount's registration identity. */
+export type MountRegistrationTypeId = typeof MountRegistrationTypeId
+
 /** A named, type-constrained per-element side effect, optionally carrying the
  *  args used to construct it. The runtime invokes `f` with the live `Element`
  *  and required view-state Stream when the element mounts. A Mount acquired by
@@ -59,21 +86,25 @@ export type MountDefinitionTypeId = typeof MountDefinitionTypeId
  *  element unmounts, the runtime interrupts the fiber, which closes the
  *  Stream's scope and runs any registered `acquireRelease` finalizers.
  *
- *  Authors don't construct this shape directly. `Mount.define` builds it from
- *  an `execute` returning `Effect<Message>` for the one-shot case; only
- *  `Mount.defineStream` exposes the raw Stream shape for continuous-event
- *  cases. */
-export type MountAction<Message, E = never> = Readonly<{
+ *  Authors don't construct this shape directly. `Mount.define` builds the
+ *  one-shot case, while `Mount.defineStream` exposes the continuous-event
+ *  shape. */
+export type MountAction<Message, E = never, R = never> = Readonly<{
   name: string
   args?: Record<string, unknown>
+  [MountRegistrationTypeId]?: MountRegistration
   f: (
     element: Element,
     viewStateChanges: Stream.Stream<ViewState>,
-  ) => Stream.Stream<Message, E>
+  ) => Stream.Stream<Message, E, R>
 }>
 
 /** A Mount definition for a Mount with no declared args. Call as `Definition()` to produce a MountAction. */
-export interface MountDefinitionNoArgs<Name extends string, ResultMessage> {
+export interface MountDefinitionNoArgs<
+  Name extends string,
+  ResultMessage,
+  R = never,
+> {
   readonly [MountDefinitionTypeId]: MountDefinitionTypeId
   readonly name: Name
   (): Readonly<{
@@ -81,7 +112,7 @@ export interface MountDefinitionNoArgs<Name extends string, ResultMessage> {
     f: (
       element: Element,
       viewStateChanges: Stream.Stream<ViewState>,
-    ) => Stream.Stream<ResultMessage>
+    ) => Stream.Stream<ResultMessage, never, R>
   }>
 }
 
@@ -90,6 +121,7 @@ export interface MountDefinitionWithArgs<
   Name extends string,
   Fields extends Schema.Struct.Fields,
   ResultMessage,
+  R = never,
 > {
   readonly [MountDefinitionTypeId]: MountDefinitionTypeId
   readonly name: Name
@@ -99,9 +131,65 @@ export interface MountDefinitionWithArgs<
     f: (
       element: Element,
       viewStateChanges: Stream.Stream<ViewState>,
-    ) => Stream.Stream<ResultMessage>
+    ) => Stream.Stream<ResultMessage, never, R>
   }>
 }
+
+/** A one-shot Mount Definition whose implementation is supplied by a Layer. */
+export interface LayeredMountDefinitionNoArgs<
+  Name extends string,
+  ResultMessage,
+> extends MountDefinitionNoArgs<Name, ResultMessage, Handler<Name>> {
+  readonly [MountRegistrationTypeId]: MountRegistration
+  readonly toLayer: ToEffectLayer<Name, ExecuteRuntimeInput, ResultMessage>
+}
+
+/** An argument-bearing one-shot Mount Definition whose implementation is supplied by a Layer. */
+export interface LayeredMountDefinitionWithArgs<
+  Name extends string,
+  Fields extends Schema.Struct.Fields,
+  ResultMessage,
+> extends MountDefinitionWithArgs<Name, Fields, ResultMessage, Handler<Name>> {
+  readonly [MountRegistrationTypeId]: MountRegistration
+  readonly toLayer: ToEffectLayer<
+    Name,
+    ExecuteRuntimeInput & Schema.Schema.Type<Schema.Struct<Fields>>,
+    ResultMessage
+  >
+}
+
+/** A streaming Mount Definition whose implementation is supplied by a Layer. */
+export interface LayeredStreamMountDefinitionNoArgs<
+  Name extends string,
+  ResultMessage,
+> extends MountDefinitionNoArgs<Name, ResultMessage, Handler<Name>> {
+  readonly [MountRegistrationTypeId]: MountRegistration
+  readonly toLayer: ToStreamLayer<Name, ExecuteRuntimeInput, ResultMessage>
+}
+
+/** An argument-bearing streaming Mount Definition whose implementation is supplied by a Layer. */
+export interface LayeredStreamMountDefinitionWithArgs<
+  Name extends string,
+  Fields extends Schema.Struct.Fields,
+  ResultMessage,
+> extends MountDefinitionWithArgs<Name, Fields, ResultMessage, Handler<Name>> {
+  readonly [MountRegistrationTypeId]: MountRegistration
+  readonly toLayer: ToStreamLayer<
+    Name,
+    ExecuteRuntimeInput & Schema.Schema.Type<Schema.Struct<Fields>>,
+    ResultMessage
+  >
+}
+
+/** A Layer-backed Mount Definition registered with an application. */
+export type LayeredMountDefinition<
+  Name extends string = any,
+  ResultMessage = any,
+> =
+  | LayeredMountDefinitionNoArgs<Name, ResultMessage>
+  | LayeredMountDefinitionWithArgs<Name, any, ResultMessage>
+  | LayeredStreamMountDefinitionNoArgs<Name, ResultMessage>
+  | LayeredStreamMountDefinitionWithArgs<Name, any, ResultMessage>
 
 /** A Mount definition created with `Mount.define` or `Mount.defineStream`.
  *  Union over the no-args and with-args shapes; consumers that only need
@@ -109,20 +197,21 @@ export interface MountDefinitionWithArgs<
 export type MountDefinition<
   Name extends string = string,
   ResultMessage = any,
+  R = any,
 > =
-  | MountDefinitionNoArgs<Name, ResultMessage>
-  | MountDefinitionWithArgs<Name, any, ResultMessage>
+  | MountDefinitionNoArgs<Name, ResultMessage, R>
+  | MountDefinitionWithArgs<Name, any, ResultMessage, R>
 
-/** @internal Rejects an args field named `element`. `execute` receives the live
+/** @internal Rejects an args field named `element`. The handler receives the live
  *  element under that name, so an arg of the same name would shadow it. The
  *  literal is the type error a colliding declaration produces. */
 type ElementFieldIsReserved =
-  'Mount args cannot declare `element`: execute already receives the live element'
+  'Mount args cannot declare `element`: the handler already receives the live element'
 
-/** @internal Rejects an args field named `viewStateChanges`. `execute`
+/** @internal Rejects an args field named `viewStateChanges`. The handler
  *  receives the runtime-owned Stream under that name. */
 type ViewStateChangesFieldIsReserved =
-  'Mount args cannot declare `viewStateChanges`: execute already receives the view-state Stream'
+  'Mount args cannot declare `viewStateChanges`: the handler already receives the view-state Stream'
 
 /** @internal Fields the runtime supplies to every Mount execution. */
 type ExecuteRuntimeInput = Readonly<{
@@ -139,11 +228,16 @@ type ReservedExecuteFields = Readonly<{
 /** @internal The shape {@link define} and {@link defineStream} read at
  *  runtime. The public overloads carry the precise types; this is only what
  *  the implementations destructure. */
-type DefineConfig = Readonly<{
-  args?: Schema.Struct.Fields
-  messages: ReadonlyArray<Schema.Top>
-  execute: any
-}>
+type DefineConfig<Implementation, ConstructorError, ConstructorRequirements> =
+  Readonly<{
+    args?: Schema.Struct.Fields
+    messages: ReadonlyArray<Schema.Top>
+    handler?: () => Generator<
+      Effect.Effect<unknown, ConstructorError, ConstructorRequirements>,
+      Implementation,
+      unknown
+    >
+  }>
 
 /** @internal Stamps a callable Definition with its Mount name and the
  *  {@link MountDefinitionTypeId} brand, so `Scene` matchers and the runtime
@@ -158,6 +252,21 @@ const brandAsDefinition = (definition: unknown, name: string): void => {
   })
 }
 
+const attachHandler = (
+  definition: unknown,
+  registration: MountRegistration,
+  toLayer: unknown,
+  layer?: unknown,
+): void => {
+  Object.defineProperty(definition, MountRegistrationTypeId, {
+    value: registration,
+  })
+  Object.defineProperty(definition, 'toLayer', { value: toLayer })
+  if (Predicate.isNotUndefined(layer)) {
+    Object.defineProperty(definition, 'layer', { value: layer })
+  }
+}
+
 /** A never-ending view-state Stream for renderers without time travel.
  *  It emits `Live` immediately and never completes. Custom renderers and
  *  low-level MountAction wrappers can pass it as the required second argument
@@ -168,46 +277,59 @@ export const liveViewStateChanges: Stream.Stream<ViewState> = Stream.concat(
 )
 
 const wrapEffectAsStream =
-  <Message>(
+  <Message, R>(
     toEffect: (
       element: Element,
       viewStateChanges: Stream.Stream<ViewState>,
-    ) => Effect.Effect<Message, never, Scope.Scope>,
+    ) => Effect.Effect<Message, never, R>,
   ) =>
   (
     element: Element,
     viewStateChanges: Stream.Stream<ViewState>,
-  ): Stream.Stream<Message> =>
-    Stream.callback<Message>(queue =>
-      Effect.gen(function* () {
-        const message = yield* toEffect(element, viewStateChanges)
-        Queue.offerUnsafe(queue, message)
-        return yield* Effect.never
+  ): Stream.Stream<Message, never, Exclude<R, Scope.Scope>> =>
+    Stream.callback<Message, never, R>(queue =>
+      Effect.matchCauseEffect(toEffect(element, viewStateChanges), {
+        onFailure: cause =>
+          Effect.sync(() => Queue.failCauseUnsafe(queue, cause)),
+        onSuccess: message =>
+          Effect.sync(() => Queue.offerUnsafe(queue, message)).pipe(
+            Effect.andThen(Effect.never),
+          ),
       }),
     )
 
 /**
  * Defines a one-shot Mount. Every input is a named field: `args` declares the
- * args Schema, `messages` lists the Messages this Mount can produce, and
- * `execute` holds the work. `execute` receives the live `Element` as `element`
- * and the runtime's `viewStateChanges` Stream alongside the declared args, and
- * returns an `Effect<Message>` that runs once when the element mounts and
- * produces exactly one Message.
+ * args Schema, and `messages` lists the Messages this Mount can produce.
+ * `handler` is a generator function that constructs the handler. Foldkit
+ * applies `Effect.gen` to the generator. The
+ * Definition's `layer` provides that handler to the application. The returned
+ * handler receives the live `Element` as `element` and the runtime's
+ * `viewStateChanges` Stream alongside the declared args, and returns an
+ * `Effect<Message>` that runs once when the element mounts.
+ * Register the Definition in
+ * `Application.make({ mounts: [...] })` so the application carries its handler
+ * requirement. The Layer lives for the application; each element controls
+ * its own Mount acquisition and release.
+ *
+ * Omit `handler` to declare a host contract. A host contract has no
+ * `layer`; use its `toLayer` method to supply an implementation at the
+ * application boundary or in a test.
  *
  * `args` is optional. Omit it and the Definition is callable as `Definition()`;
- * declare it and the Definition is callable as `Definition(args)`. `execute`
+ * declare it and the Definition is callable as `Definition(args)`. The handler
  * keeps the same shape either way, because a Mount always has an element and a
  * view-state Stream. Args fields named `element` or `viewStateChanges` are
  * rejected where you declare them, since they would collide with the runtime
- * fields `execute` receives.
+ * fields the handler receives.
  *
- * Constructing a MountAction never runs `execute`. The runtime calls it when
+ * Constructing a MountAction never runs the handler. The runtime calls it when
  * the element enters the DOM, so nothing the body does happens inside the pure
  * view that built the action.
  *
  * `viewStateChanges` begins with the rendered view's `Live | Paused` state at
  * the moment the Mount is acquired, followed by changes. This acquisition
- * state stays available when `execute` performs asynchronous setup before
+ * state stays available when the handler performs asynchronous setup before
  * consuming the Stream, so a Mount inserted by a historical render always
  * observes `Paused` first. Time travel pauses the rendered view, not the live
  * application. Use this Stream to make an imperative integration read-only
@@ -226,7 +348,7 @@ const wrapEffectAsStream =
  *
  * At least one result Message schema is required. The Effect's success
  * type is `Schema.Schema.Type<Messages[number]>`; without a declared
- * result, `execute` would have to return `Effect.never`, leaving
+ * result, the handler would have to return `Effect.never`, leaving
  * `update` with no record of the work and removing DevTools, Scene,
  * and time-travel replay's reference point. Fire-and-forget Mounts
  * follow the same convention as fire-and-forget Commands: declare a
@@ -260,49 +382,41 @@ const wrapEffectAsStream =
  * that emit a continuum of events (scroll listeners, IntersectionObservers,
  * MutationObservers), reach for `Mount.defineStream`.
  *
- * @example One-shot, no cleanup (read element geometry on mount)
+ * @example Read element geometry on mount
  * ```ts
  * const MeasurePanelWidth = Mount.define('MeasurePanelWidth', {
- *   messages: [MeasuredPanelWidth],
- *   execute: ({ element }) =>
- *     Effect.sync(() =>
- *       MeasuredPanelWidth({ width: element.getBoundingClientRect().width }),
- *     ),
+ *   messages: [Message.CompletedMeasurePanelWidth],
+ *   handler: function* () {
+ *     return ({ element }) =>
+ *       Effect.sync(() =>
+ *         Message.CompletedMeasurePanelWidth({
+ *           width: element.getBoundingClientRect().width,
+ *         }),
+ *       )
+ *   },
  * })
+ * const EffectsLayer = MeasurePanelWidth.layer
  * ```
  *
- * @example One-shot with cleanup (portal-to-body)
+ * @example Portal to the document body with cleanup
  * ```ts
  * const PortalToBody = Mount.define('PortalToBody', {
- *   messages: [CompletedPortalToBody],
- *   execute: ({ element }) =>
- *     Effect.gen(function* () {
- *       yield* Effect.acquireRelease(
- *         Effect.sync(() => document.body.appendChild(element)),
- *         () => Effect.sync(() => element.remove()),
- *       )
- *       return CompletedPortalToBody()
- *     }),
+ *   messages: [Message.CompletedPortalToBody],
+ *   handler: function* () {
+ *     return ({ element }) =>
+ *       Effect.gen(function* () {
+ *         yield* Effect.acquireRelease(
+ *           Effect.sync(() => document.body.appendChild(element)),
+ *           () => Effect.sync(() => element.remove()),
+ *         )
+ *         return Message.CompletedPortalToBody()
+ *       })
+ *   },
  * })
+ * const EffectsLayer = PortalToBody.layer
  * ```
  *
- * @example With args
- * ```ts
- * const AnchorPopover = Mount.define('AnchorPopover', {
- *   args: { buttonId: Schema.String, anchor: AnchorConfig },
- *   messages: [CompletedAnchorPopover],
- *   execute: ({ element, buttonId, anchor }) =>
- *     Effect.gen(function* () {
- *       yield* Effect.acquireRelease(
- *         Effect.sync(() => anchorSetup(element, { buttonId, anchor })),
- *         cleanup => Effect.sync(cleanup),
- *       )
- *       return CompletedAnchorPopover()
- *     }),
- * })
- * ```
- *
- * **Args are captured at mount, not refreshed across renders.** `execute`
+ * **Args are captured at mount, not refreshed across renders.** The handler
  * runs once when the element enters the DOM. Subsequent renders construct
  * fresh `MountAction` values with updated arg values, but those values are
  * captured in closures that never execute. `OnMount` only binds to
@@ -329,16 +443,88 @@ export function define<
   const Name extends string,
   Fields extends Schema.Struct.Fields,
   const Messages extends readonly [Schema.Top, ...ReadonlyArray<Schema.Top>],
+  Yielded extends Effect.Effect<unknown, unknown, unknown>,
+  HandlerRequirements = never,
 >(
   name: Name,
   config: Readonly<{
-    args: Fields & ReservedExecuteFields
+    args: Fields & NoInfer<ReservedExecuteFields>
     messages: Messages
-    execute: (
-      input: ExecuteRuntimeInput & Schema.Schema.Type<Schema.Struct<Fields>>,
-    ) => Effect.Effect<Schema.Schema.Type<Messages[number]>, never, Scope.Scope>
+    execute?: never
+    handler: () => Generator<
+      Yielded,
+      (
+        input: ExecuteRuntimeInput & Schema.Struct.Type<NoInfer<Fields>>,
+      ) => Effect.Effect<
+        NoInfer<Schema.Schema.Type<Messages[number]>>,
+        never,
+        HandlerRequirements
+      >,
+      unknown
+    >
   }>,
-): MountDefinitionWithArgs<Name, Fields, Schema.Schema.Type<Messages[number]>>
+): LayeredMountDefinitionWithArgs<
+  Name,
+  Fields,
+  Schema.Schema.Type<Messages[number]>
+> &
+  Readonly<{
+    layer: Layer.Layer<
+      Handler<Name>,
+      Effect.Error<Yielded>,
+      Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
+    >
+  }>
+
+export function define<
+  const Name extends string,
+  const Messages extends readonly [Schema.Top, ...ReadonlyArray<Schema.Top>],
+  Yielded extends Effect.Effect<unknown, unknown, unknown>,
+  HandlerRequirements = never,
+>(
+  name: Name,
+  config: Readonly<{
+    args?: never
+    messages: Messages
+    execute?: never
+    handler: () => Generator<
+      Yielded,
+      (
+        input: ExecuteRuntimeInput,
+      ) => Effect.Effect<
+        NoInfer<Schema.Schema.Type<Messages[number]>>,
+        never,
+        HandlerRequirements
+      >,
+      unknown
+    >
+  }>,
+): LayeredMountDefinitionNoArgs<Name, Schema.Schema.Type<Messages[number]>> &
+  Readonly<{
+    layer: Layer.Layer<
+      Handler<Name>,
+      Effect.Error<Yielded>,
+      Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
+    >
+  }>
+
+export function define<
+  const Name extends string,
+  Fields extends Schema.Struct.Fields,
+  const Messages extends readonly [Schema.Top, ...ReadonlyArray<Schema.Top>],
+>(
+  name: Name,
+  config: Readonly<{
+    args: Fields & NoInfer<ReservedExecuteFields>
+    messages: Messages
+    handler?: never
+    execute?: never
+  }>,
+): LayeredMountDefinitionWithArgs<
+  Name,
+  Fields,
+  Schema.Schema.Type<Messages[number]>
+>
 
 export function define<
   const Name extends string,
@@ -348,42 +534,68 @@ export function define<
   config: Readonly<{
     args?: never
     messages: Messages
-    execute: (
-      input: ExecuteRuntimeInput,
-    ) => Effect.Effect<Schema.Schema.Type<Messages[number]>, never, Scope.Scope>
+    handler?: never
+    execute?: never
   }>,
-): MountDefinitionNoArgs<Name, Schema.Schema.Type<Messages[number]>>
+): LayeredMountDefinitionNoArgs<Name, Schema.Schema.Type<Messages[number]>>
 
-export function define(name: string, config: DefineConfig): unknown {
+export function define<
+  ResultMessage,
+  HandlerRequirements,
+  ConstructorError,
+  ConstructorRequirements,
+>(
+  name: string,
+  config: DefineConfig<
+    (input: any) => Effect.Effect<ResultMessage, never, HandlerRequirements>,
+    ConstructorError,
+    ConstructorRequirements
+  >,
+): unknown {
   const isArgsDeclared = Predicate.isNotUndefined(config.args)
+  const handler = makeEffectHandler<string, any, ResultMessage>(name)
+  const registration: MountRegistration = { name }
+  const layer = Predicate.isUndefined(config.handler)
+    ? undefined
+    : handler.toLayer(Effect.gen(config.handler))
+  const makeEffect = (input: ExecuteRuntimeInput & Record<string, unknown>) =>
+    handler.execute(input)
 
   if (isArgsDeclared) {
     const definition = (args: any) => ({
       name,
       args,
+      [MountRegistrationTypeId]: registration,
       f: wrapEffectAsStream((element, viewStateChanges) =>
-        config.execute({ ...args, element, viewStateChanges }),
+        makeEffect({ ...args, element, viewStateChanges }),
       ),
     })
     brandAsDefinition(definition, name)
+    attachHandler(definition, registration, handler.toLayer, layer)
     return definition
   } else {
     const definition = () => ({
       name,
+      [MountRegistrationTypeId]: registration,
       f: wrapEffectAsStream((element, viewStateChanges) =>
-        config.execute({ element, viewStateChanges }),
+        makeEffect({ element, viewStateChanges }),
       ),
     })
     brandAsDefinition(definition, name)
+    attachHandler(definition, registration, handler.toLayer, layer)
     return definition
   }
 }
 
 /**
  * Defines a streaming Mount. Every input is a named field, exactly as in
- * `Mount.define`: `args` declares the args Schema, `messages` lists the
- * Messages this Mount can produce, and `execute` holds the work. `execute`
- * receives the live `Element` as `element` and the runtime's
+ * `Mount.define`: `args` declares the args Schema, and `messages` lists the
+ * Messages this Mount can produce. `handler` is a generator function that
+ * constructs a Stream handler. Foldkit applies `Effect.gen` to the generator.
+ * The Definition's `layer` provides that handler
+ * to the application, and the Definition must be registered in
+ * `Application.make({ mounts: [...] })`. The returned handler receives the
+ * live `Element` as `element` and the runtime's
  * `viewStateChanges` Stream alongside the declared args, and returns a
  * `Stream<Message>` whose lifetime is bound to the element's lifetime: each
  * emitted Message is dispatched, and the Stream's scope is closed (running any
@@ -391,14 +603,18 @@ export function define(name: string, config: DefineConfig): unknown {
  * Use this form when the Mount emits a continuum of events from observers or
  * listeners attached to the element.
  *
+ * Omit `handler` to declare a host contract. A host contract has no
+ * `layer`; use its `toLayer` method to supply an implementation at the
+ * application boundary or in a test.
+ *
  * `args` is optional. Omit it and the Definition is callable as `Definition()`;
- * declare it and the Definition is callable as `Definition(args)`. `execute`
+ * declare it and the Definition is callable as `Definition(args)`. The handler
  * keeps the same shape either way, because a Mount always has an element and a
  * view-state Stream. Args fields named `element` or `viewStateChanges` are
  * rejected where you declare them, since they would collide with the runtime
- * fields `execute` receives.
+ * fields the handler receives.
  *
- * Constructing a MountAction never runs `execute`. The runtime calls it when
+ * Constructing a MountAction never runs the handler. The runtime calls it when
  * the element enters the DOM, so nothing the body does happens inside the pure
  * view that built the action.
  *
@@ -416,13 +632,13 @@ export function define(name: string, config: DefineConfig): unknown {
  *
  * At least one result Message schema is required. The Stream's emission
  * type is `Schema.Schema.Type<Messages[number]>`; without a declared
- * result, `execute` would have to return `Stream<never>`, leaving
+ * result, the handler would have to return `Stream<never>`, leaving
  * `update` with no record of the work and removing DevTools, Scene,
  * and time-travel replay's reference point. Fire-and-forget Mounts
  * follow the same convention as fire-and-forget Commands: declare a
  * `Completed*` result Message that `update` no-ops on. The side
  * effect stays observable; `update` simply has nothing meaningful to
- * do with the acknowledgment. Re-check the cause.
+ * do with the acknowledgment.
  *
  * Cleanup timing relative to snabbdom's `destroy` hook is the same as
  * `Mount.define` (asynchronous via `Fiber.interrupt`).
@@ -432,67 +648,28 @@ export function define(name: string, config: DefineConfig): unknown {
  * That form encodes "exactly one Message" in the type system. Reserve
  * `defineStream` for cases that genuinely emit a stream of events.
  *
- * @example Continuous scroll events from an element
+ * @example Observe element scroll events
  * ```ts
- * const SyncSidebarScroll = Mount.defineStream('SyncSidebarScroll', {
- *   messages: [ScrolledSidebar],
- *   execute: ({ element }) =>
- *     Stream.callback<typeof ScrolledSidebar.Type>(queue =>
- *       Effect.gen(function* () {
- *         yield* Effect.acquireRelease(
- *           Effect.sync(() => {
- *             const handler = () =>
- *               Queue.offerUnsafe(
- *                 queue,
- *                 ScrolledSidebar({ scroll: element.scrollTop }),
- *               )
- *             element.addEventListener('scroll', handler, { passive: true })
- *             return handler
- *           }),
- *           handler =>
- *             Effect.sync(() =>
- *               element.removeEventListener('scroll', handler),
- *             ),
- *         )
- *         return yield* Effect.never
- *       }),
- *     ),
+ * const ObservePanelScroll = Mount.defineStream('ObservePanelScroll', {
+ *   messages: [Message.ScrolledPanel],
+ *   handler: function* () {
+ *     return ({ element }) =>
+ *       Stream.callback(queue =>
+ *         Effect.gen(function* () {
+ *           const onScroll = () =>
+ *             Queue.offerUnsafe(queue, Message.ScrolledPanel({
+ *               scroll: element.scrollTop,
+ *             }))
+ *           yield* Effect.acquireRelease(
+ *             Effect.sync(() => element.addEventListener('scroll', onScroll)),
+ *             () => Effect.sync(() => element.removeEventListener('scroll', onScroll)),
+ *           )
+ *           return yield* Effect.never
+ *         }),
+ *       )
+ *   },
  * })
- * ```
- *
- * @example IntersectionObserver events
- * ```ts
- * const ObserveHeroVisibility = Mount.defineStream('ObserveHeroVisibility', {
- *   messages: [ChangedHeroVisibility],
- *   execute: ({ element }) =>
- *     Stream.callback<typeof ChangedHeroVisibility.Type>(queue =>
- *       Effect.gen(function* () {
- *         yield* Effect.acquireRelease(
- *           Effect.sync(() => {
- *             const observer = new IntersectionObserver(entries => {
- *               pipe(
- *                 Array.head(entries),
- *                 Option.match({
- *                   onNone: Function.constVoid,
- *                   onSome: entry =>
- *                     Queue.offerUnsafe(
- *                       queue,
- *                       ChangedHeroVisibility({
- *                         isVisible: entry.isIntersecting,
- *                       }),
- *                     ),
- *                 }),
- *               )
- *             })
- *             observer.observe(element)
- *             return observer
- *           }),
- *           observer => Effect.sync(() => observer.disconnect()),
- *         )
- *         return yield* Effect.never
- *       }),
- *     ),
- * })
+ * const EffectsLayer = ObservePanelScroll.layer
  * ```
  *
  * The args-captured-at-mount and Subscriptions-vs-Mount guidance from
@@ -503,16 +680,91 @@ export function defineStream<
   const Name extends string,
   Fields extends Schema.Struct.Fields,
   const Messages extends readonly [Schema.Top, ...ReadonlyArray<Schema.Top>],
+  Yielded extends Effect.Effect<unknown, unknown, unknown>,
+  HandlerRequirements = never,
 >(
   name: Name,
   config: Readonly<{
-    args: Fields & ReservedExecuteFields
+    args: Fields & NoInfer<ReservedExecuteFields>
     messages: Messages
-    execute: (
-      input: ExecuteRuntimeInput & Schema.Schema.Type<Schema.Struct<Fields>>,
-    ) => Stream.Stream<Schema.Schema.Type<Messages[number]>, never, never>
+    execute?: never
+    handler: () => Generator<
+      Yielded,
+      (
+        input: ExecuteRuntimeInput & Schema.Struct.Type<NoInfer<Fields>>,
+      ) => Stream.Stream<
+        NoInfer<Schema.Schema.Type<Messages[number]>>,
+        never,
+        HandlerRequirements
+      >,
+      unknown
+    >
   }>,
-): MountDefinitionWithArgs<Name, Fields, Schema.Schema.Type<Messages[number]>>
+): LayeredStreamMountDefinitionWithArgs<
+  Name,
+  Fields,
+  Schema.Schema.Type<Messages[number]>
+> &
+  Readonly<{
+    layer: Layer.Layer<
+      Handler<Name>,
+      Effect.Error<Yielded>,
+      Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
+    >
+  }>
+
+export function defineStream<
+  const Name extends string,
+  const Messages extends readonly [Schema.Top, ...ReadonlyArray<Schema.Top>],
+  Yielded extends Effect.Effect<unknown, unknown, unknown>,
+  HandlerRequirements = never,
+>(
+  name: Name,
+  config: Readonly<{
+    args?: never
+    messages: Messages
+    execute?: never
+    handler: () => Generator<
+      Yielded,
+      (
+        input: ExecuteRuntimeInput,
+      ) => Stream.Stream<
+        NoInfer<Schema.Schema.Type<Messages[number]>>,
+        never,
+        HandlerRequirements
+      >,
+      unknown
+    >
+  }>,
+): LayeredStreamMountDefinitionNoArgs<
+  Name,
+  Schema.Schema.Type<Messages[number]>
+> &
+  Readonly<{
+    layer: Layer.Layer<
+      Handler<Name>,
+      Effect.Error<Yielded>,
+      Exclude<HandlerRequirements | Effect.Services<Yielded>, Scope.Scope>
+    >
+  }>
+
+export function defineStream<
+  const Name extends string,
+  Fields extends Schema.Struct.Fields,
+  const Messages extends readonly [Schema.Top, ...ReadonlyArray<Schema.Top>],
+>(
+  name: Name,
+  config: Readonly<{
+    args: Fields & NoInfer<ReservedExecuteFields>
+    messages: Messages
+    handler?: never
+    execute?: never
+  }>,
+): LayeredStreamMountDefinitionWithArgs<
+  Name,
+  Fields,
+  Schema.Schema.Type<Messages[number]>
+>
 
 export function defineStream<
   const Name extends string,
@@ -522,38 +774,63 @@ export function defineStream<
   config: Readonly<{
     args?: never
     messages: Messages
-    execute: (
-      input: ExecuteRuntimeInput,
-    ) => Stream.Stream<Schema.Schema.Type<Messages[number]>, never, never>
+    handler?: never
+    execute?: never
   }>,
-): MountDefinitionNoArgs<Name, Schema.Schema.Type<Messages[number]>>
+): LayeredStreamMountDefinitionNoArgs<
+  Name,
+  Schema.Schema.Type<Messages[number]>
+>
 
-export function defineStream(name: string, config: DefineConfig): unknown {
+export function defineStream<
+  ResultMessage,
+  HandlerRequirements,
+  ConstructorError,
+  ConstructorRequirements,
+>(
+  name: string,
+  config: DefineConfig<
+    (input: any) => Stream.Stream<ResultMessage, never, HandlerRequirements>,
+    ConstructorError,
+    ConstructorRequirements
+  >,
+): unknown {
   const isArgsDeclared = Predicate.isNotUndefined(config.args)
+  const handler = makeStreamHandler<string, any, ResultMessage>(name)
+  const registration: MountRegistration = { name }
+  const layer = Predicate.isUndefined(config.handler)
+    ? undefined
+    : handler.toLayer(Effect.gen(config.handler))
+  const makeStream = (input: ExecuteRuntimeInput & Record<string, unknown>) =>
+    handler.execute(input)
 
   if (isArgsDeclared) {
     const definition = (args: any) => ({
       name,
       args,
+      [MountRegistrationTypeId]: registration,
       f: (element: Element, viewStateChanges: Stream.Stream<ViewState>) =>
-        config.execute({
+        makeStream({
           ...args,
           element,
           viewStateChanges,
         }),
     })
     brandAsDefinition(definition, name)
+    attachHandler(definition, registration, handler.toLayer, layer)
     return definition
   } else {
     const definition = () => ({
       name,
+      [MountRegistrationTypeId]: registration,
       f: (element: Element, viewStateChanges: Stream.Stream<ViewState>) =>
-        config.execute({
+        makeStream({
           element,
           viewStateChanges,
         }),
     })
     brandAsDefinition(definition, name)
+    attachHandler(definition, registration, handler.toLayer, layer)
     return definition
   }
 }
@@ -565,14 +842,17 @@ export function defineStream(name: string, config: DefineConfig): unknown {
 export const mapMessage: {
   <A, B>(
     f: (message: A) => B,
-  ): <E>(action: MountAction<A, E>) => MountAction<B, E>
-  <A, B, E>(action: MountAction<A, E>, f: (message: A) => B): MountAction<B, E>
+  ): <E, R>(action: MountAction<A, E, R>) => MountAction<B, E, R>
+  <A, B, E, R>(
+    action: MountAction<A, E, R>,
+    f: (message: A) => B,
+  ): MountAction<B, E, R>
 } = Function.dual(
   2,
-  <A, B, E>(
-    action: MountAction<A, E>,
+  <A, B, E, R>(
+    action: MountAction<A, E, R>,
     f: (message: A) => B,
-  ): MountAction<B, E> => ({
+  ): MountAction<B, E, R> => ({
     ...action,
     f: (element: Element, viewStateChanges: Stream.Stream<ViewState>) =>
       action.f(element, viewStateChanges).pipe(Stream.map(f)),

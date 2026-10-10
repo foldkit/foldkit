@@ -1,4 +1,4 @@
-import { Effect, Exit, Queue, Schema, Stream } from 'effect'
+import { Effect, Exit, Layer, Queue, Schema, Stream } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Command from '../command/index.js'
@@ -8,9 +8,8 @@ import * as Mount from '../mount/index.js'
 import * as Port from '../port/index.js'
 import { modifyFields } from '../struct/index.js'
 import * as Subscription from '../subscription/subscription.js'
-import type * as Update from '../update/index.js'
-import { makeApplication } from './makeApplication.js'
-import { makeElement } from './makeElement.js'
+import * as Update from '../update/index.js'
+import * as Application from './application.js'
 import { embed } from './start.js'
 
 const Message = defineMessageUnion({
@@ -35,14 +34,18 @@ const ports = {
 const ReportCount = Command.define('ReportCount', {
   args: { count: Schema.Number },
   messages: [Message.CompletedReportCount],
-  execute: ({ count }) =>
+})
+
+const ReportCountLayer = ReportCount.toLayer(
+  Effect.succeed(({ count }) =>
     Port.emit(ports.outbound.countChanged, count).pipe(
       Effect.as(Message.CompletedReportCount()),
     ),
-})
+  ),
+)
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ChangedStep: ({ step }) => ({
       model: modifyFields(model, { step: () => step }),
     }),
@@ -56,7 +59,8 @@ const update = (model: Model, message: Message) =>
     CompletedReportCount: () => ({ model }),
     CompletedTrackHost: () => ({ model }),
     Ticked: () => ({ model }),
-  })
+  }),
+)
 
 let isTickStreamActive = false
 let isMountActive = false
@@ -64,11 +68,37 @@ let isMountActive = false
 const TICK_INTERVAL_MS = 5
 const FLAGS_STARTUP_FAILURE = 'flags blew up on embed startup'
 
-const subscriptions = Subscription.make<Model, Message>()(_entry => ({
-  hostStep: Port.subscriptionEntry(ports.inbound.stepChanged, step =>
-    Message.ChangedStep({ step }),
+const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  hostStep: entry('HostStep', {
+    messages: [
+      Message.ChangedStep,
+      Message.ClickedIncrement,
+      Message.CompletedReportCount,
+      Message.CompletedTrackHost,
+      Message.Ticked,
+    ],
+  }),
+  tick: entry('Tick', {
+    messages: [
+      Message.ChangedStep,
+      Message.ClickedIncrement,
+      Message.CompletedReportCount,
+      Message.CompletedTrackHost,
+      Message.Ticked,
+    ],
+  }),
+}))
+
+const HostStepLayer = subscriptions.hostStep.toLayer(
+  Effect.succeed(() =>
+    Port.stream(ports.inbound.stepChanged).pipe(
+      Stream.map(step => Message.ChangedStep({ step })),
+    ),
   ),
-  tick: Subscription.persistentEntry(
+)
+
+const TickLayer = subscriptions.tick.toLayer(
+  Effect.succeed(() =>
     Stream.callback<Message>(queue =>
       Effect.acquireRelease(
         Effect.sync(() => {
@@ -85,11 +115,14 @@ const subscriptions = Subscription.make<Model, Message>()(_entry => ({
       ).pipe(Effect.flatMap(() => Effect.never)),
     ),
   ),
-}))
+)
 
 const TrackHost = Mount.define('TrackHost', {
   messages: [Message.CompletedTrackHost],
-  execute: () =>
+})
+
+const TrackHostLayer = TrackHost.toLayer(
+  Effect.succeed(() =>
     Effect.gen(function* () {
       yield* Effect.acquireRelease(
         Effect.sync(() => {
@@ -102,7 +135,15 @@ const TrackHost = Mount.define('TrackHost', {
       )
       return Message.CompletedTrackHost()
     }),
-})
+  ),
+)
+
+const EffectsLayer = Layer.mergeAll(
+  ReportCountLayer,
+  HostStepLayer,
+  TickLayer,
+  TrackHostLayer,
+)
 
 const h = __htmlBuilder<Message>()
 
@@ -118,18 +159,24 @@ const view = (model: Model): Html =>
 
 let container: HTMLElement
 
-const makeWidget = (
-  initCommands: ReadonlyArray<Command.Command<Message>> = [],
+const makeWidget = <Requirements = never>(
+  initCommands: ReadonlyArray<
+    Command.Command<Message, never, Requirements>
+  > = [],
 ) =>
-  makeElement({
-    Model,
-    init: () => ({ model: { count: 0, step: 1 }, commands: initCommands }),
-    update,
-    view,
-    subscriptions,
-    ports,
-    container,
-  })
+  Application.provide(
+    Application.makeElement({
+      Model,
+      init: () => ({ model: { count: 0, step: 1 }, commands: initCommands }),
+      update,
+      view,
+      subscriptions,
+      mounts: [TrackHost],
+      ports,
+      container,
+    }),
+    EffectsLayer,
+  )
 
 beforeEach(() => {
   isTickStreamActive = false
@@ -286,17 +333,21 @@ describe('embed', () => {
     const Flags = Schema.Struct({ initialCount: Schema.Number })
 
     const handle = embed(
-      makeElement({
-        Model,
-        Flags,
-        flags: Effect.succeed({ initialCount: 41 }),
-        init: flags => ({ model: { count: flags.initialCount, step: 1 } }),
-        update,
-        view,
-        subscriptions,
-        ports,
-        container,
-      }),
+      Application.provide(
+        Application.makeElement({
+          Model,
+          Flags,
+          flags: Effect.succeed({ initialCount: 41 }),
+          init: flags => ({ model: { count: flags.initialCount, step: 1 } }),
+          update,
+          view,
+          subscriptions,
+          mounts: [TrackHost],
+          ports,
+          container,
+        }),
+        EffectsLayer,
+      ),
     )
 
     try {
@@ -314,19 +365,23 @@ describe('embed', () => {
       .mockImplementation(() => {})
 
     const handle = embed(
-      makeElement({
-        Model,
-        Flags,
-        flags: Effect.sync((): { initialCount: number } => {
-          throw new Error(FLAGS_STARTUP_FAILURE)
+      Application.provide(
+        Application.makeElement({
+          Model,
+          Flags,
+          flags: Effect.sync((): { initialCount: number } => {
+            throw new Error(FLAGS_STARTUP_FAILURE)
+          }),
+          init: flags => ({ model: { count: flags.initialCount, step: 1 } }),
+          update,
+          view,
+          subscriptions,
+          mounts: [TrackHost],
+          ports,
+          container,
         }),
-        init: flags => ({ model: { count: flags.initialCount, step: 1 } }),
-        update,
-        view,
-        subscriptions,
-        ports,
-        container,
-      }),
+        EffectsLayer,
+      ),
     )
 
     try {
@@ -431,15 +486,19 @@ describe('embed', () => {
 
   it('works with a makeApplication program', async () => {
     const handle = embed(
-      makeApplication({
-        Model,
-        init: () => ({ model: { count: 0, step: 1 } }),
-        update,
-        view: model => ({ title: 'Widget', body: view(model) }),
-        subscriptions,
-        ports,
-        container,
-      }),
+      Application.provide(
+        Application.make({
+          Model,
+          init: () => ({ model: { count: 0, step: 1 } }),
+          update,
+          view: model => ({ title: 'Widget', body: view(model) }),
+          subscriptions,
+          mounts: [TrackHost],
+          ports,
+          container,
+        }),
+        EffectsLayer,
+      ),
     )
     const received: Array<number> = []
 

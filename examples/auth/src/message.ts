@@ -7,6 +7,9 @@ import { LoggedIn, LoggedOut } from './page'
 
 export const Message = defineMessageUnion({
   CompletedNavigateInternal: {},
+  CompletedRedirectToLogin: {},
+  CompletedRedirectToDashboard: {},
+  CompletedRedirectToHome: {},
   CompletedLoadExternal: {},
   CompletedLogError: {},
   ClickedLink: { request: UrlRequest },

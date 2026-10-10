@@ -4,13 +4,13 @@
 
 The browser’s View Transitions API animates between two DOM states. The browser snapshots the page, you mutate the DOM inside a callback, and CSS animates from the old snapshot to the new state: cross-fades, slides, and shared-element morphs, all off the main thread.
 
-The API expects the DOM update to happen inside `document.startViewTransition(callback)`. Foldkit owns the render schedule, so application code has no correct place to make that call. The `viewTransition` option on `makeApplication` and `makeElement` closes the gap: when a render qualifies, the runtime calls `startViewTransition` itself and performs that render inside the callback. It defaults to `undefined`, so nothing animates until an application passes a predicate.
+The API expects the DOM update to happen inside `document.startViewTransition(callback)`. Foldkit owns the render schedule, so application code has no correct place to make that call. The `viewTransition` option on `Application.make` and `Application.makeElement` closes the gap: when a render qualifies, the runtime calls `startViewTransition` itself and performs that render inside the callback. It defaults to `undefined`, so nothing animates until an application passes a predicate.
 
 ## Animating Route Changes
 
 Pass a predicate. Before each render it decides whether that render should animate. It is a total function over your Message union, so animation is opted into one Message at a time. Returning `true` only for `ChangedUrl` animates navigation and leaves every other Message, whatever your application has, rendering plainly:
 
-::Snippet{name="viewTransitionRouteChanges" label="Using viewTransition on makeApplication"}
+::Snippet{name="viewTransitionRouteChanges" label="Using viewTransition on Application.make"}
 
 Return `false` for a plain render, exactly as cheap as before. Return `true` to wrap the render in a transition. With no extra CSS, the browser cross-fades the whole page.
 

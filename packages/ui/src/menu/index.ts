@@ -2,6 +2,7 @@ import {
   Array,
   Effect,
   Equal,
+  Layer,
   Match,
   Option,
   Predicate,
@@ -24,6 +25,7 @@ import { AnchorConfig, anchorSetup, portalBackdrop } from '../anchor/index.js'
 // The barrel (../animation) imports from html, which starts the cycle.
 import * as Animation from '../animation/schema.js'
 import {
+  EffectsLayer as AnimationEffectsLayer,
   hide as animationHide,
   show as animationShow,
   update as animationUpdate,
@@ -85,20 +87,20 @@ export const Message = defineMessageUnion({
     key: Schema.String,
     maybeTargetIndex: Schema.Option(Schema.Number),
   },
-  CompletedDelayClearSearch: { version: Schema.Number },
+  CompletedDelayClearMenuSearch: { version: Schema.Number },
   MovedPointerOverItem: {
     index: Schema.Number,
     screenX: Schema.Number,
     screenY: Schema.Number,
   },
-  CompletedFocusItems: {},
-  CompletedFocusButton: {},
-  CompletedLockScroll: {},
-  CompletedUnlockScroll: {},
-  CompletedInertOthers: {},
-  CompletedRestoreInert: {},
-  CompletedScrollIntoView: {},
-  CompletedClickItem: {},
+  CompletedFocusMenuItems: {},
+  CompletedFocusMenuButton: {},
+  CompletedLockMenuScroll: {},
+  CompletedUnlockMenuScroll: {},
+  CompletedInertMenuOthers: {},
+  CompletedRestoreMenuInert: {},
+  CompletedScrollMenuItemIntoView: {},
+  CompletedClickMenuItem: {},
   IgnoredMouseClick: {},
   SuppressedSpaceScroll: {},
   CompletedAnchorMenu: {},
@@ -148,8 +150,8 @@ export type SelectedItem = typeof Message.SelectedItem.Type
 export type MovedPointerOverItem = typeof Message.MovedPointerOverItem.Type
 export type RequestedItemClick = typeof Message.RequestedItemClick.Type
 export type Searched = typeof Message.Searched.Type
-export type CompletedDelayClearSearch =
-  typeof Message.CompletedDelayClearSearch.Type
+export type CompletedDelayClearMenuSearch =
+  typeof Message.CompletedDelayClearMenuSearch.Type
 export type IgnoredMouseClick = typeof Message.IgnoredMouseClick.Type
 export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
 export type PressedPointerOnButton = typeof Message.PressedPointerOnButton.Type
@@ -209,119 +211,138 @@ const itemsSelector = (id: string): string => idSelector(`${id}-items`)
 const itemSelector = (id: string, index: number): string =>
   idSelector(`${id}-item-${index}`)
 
-type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
-
 /** Prevents page scrolling while the menu is open. */
-export const LockScroll = Command.define('LockScroll', {
-  messages: [Message.CompletedLockScroll],
-  execute: Dom.lockScroll.pipe(Effect.as(Message.CompletedLockScroll())),
+export const LockMenuScroll = Command.define('LockMenuScroll', {
+  messages: [Message.CompletedLockMenuScroll],
+  handler: function* () {
+    return () =>
+      Dom.lockScroll.pipe(Effect.as(Message.CompletedLockMenuScroll()))
+  },
 })
 /** Re-enables page scrolling after the menu closes. */
-export const UnlockScroll = Command.define('UnlockScroll', {
-  messages: [Message.CompletedUnlockScroll],
-  execute: Dom.unlockScroll.pipe(Effect.as(Message.CompletedUnlockScroll())),
+export const UnlockMenuScroll = Command.define('UnlockMenuScroll', {
+  messages: [Message.CompletedUnlockMenuScroll],
+  handler: function* () {
+    return () =>
+      Dom.unlockScroll.pipe(Effect.as(Message.CompletedUnlockMenuScroll()))
+  },
 })
 /** Marks all elements outside the menu as inert for modal behavior. */
-export const InertOthers = Command.define('InertOthers', {
+export const InertMenuOthers = Command.define('InertMenuOthers', {
   args: { id: Schema.String },
-  messages: [Message.CompletedInertOthers],
-  execute: ({ id }) =>
-    Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]).pipe(
-      Effect.as(Message.CompletedInertOthers()),
-    ),
+  messages: [Message.CompletedInertMenuOthers],
+  handler: function* () {
+    return ({ id }) =>
+      Dom.inertOthers(id, [buttonSelector(id), itemsSelector(id)]).pipe(
+        Effect.as(Message.CompletedInertMenuOthers()),
+      )
+  },
 })
 /** Removes the inert attribute from elements outside the menu. */
-export const RestoreInert = Command.define('RestoreInert', {
+export const RestoreMenuInert = Command.define('RestoreMenuInert', {
   args: { id: Schema.String },
-  messages: [Message.CompletedRestoreInert],
-  execute: ({ id }) =>
-    Dom.restoreInert(id).pipe(Effect.as(Message.CompletedRestoreInert())),
+  messages: [Message.CompletedRestoreMenuInert],
+  handler: function* () {
+    return ({ id }) =>
+      Dom.restoreInert(id).pipe(Effect.as(Message.CompletedRestoreMenuInert()))
+  },
 })
 /** Moves focus to the menu items container after opening. */
-export const FocusItems = Command.define('FocusItems', {
+export const FocusMenuItems = Command.define('FocusMenuItems', {
   args: { id: Schema.String },
-  messages: [Message.CompletedFocusItems],
-  execute: ({ id }) =>
-    Dom.focus(itemsSelector(id)).pipe(
-      Effect.ignore,
-      Effect.as(Message.CompletedFocusItems()),
-    ),
+  messages: [Message.CompletedFocusMenuItems],
+  handler: function* () {
+    return ({ id }) =>
+      Dom.focus(itemsSelector(id)).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedFocusMenuItems()),
+      )
+  },
 })
 /** Moves focus back to the menu button after closing. */
-export const FocusButton = Command.define('FocusButton', {
+export const FocusMenuButton = Command.define('FocusMenuButton', {
   args: { id: Schema.String },
-  messages: [Message.CompletedFocusButton],
-  execute: ({ id }) =>
-    Dom.focus(buttonSelector(id)).pipe(
-      Effect.ignore,
-      Effect.as(Message.CompletedFocusButton()),
-    ),
+  messages: [Message.CompletedFocusMenuButton],
+  handler: function* () {
+    return ({ id }) =>
+      Dom.focus(buttonSelector(id)).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedFocusMenuButton()),
+      )
+  },
 })
 /** Scrolls the active menu item into view after keyboard navigation. */
-export const ScrollIntoView = Command.define('ScrollIntoView', {
+export const ScrollMenuItemIntoView = Command.define('ScrollMenuItemIntoView', {
   args: { id: Schema.String, index: Schema.Number },
-  messages: [Message.CompletedScrollIntoView],
-  execute: ({ id, index }) =>
-    Dom.scrollIntoView(itemSelector(id, index)).pipe(
-      Effect.ignore,
-      Effect.as(Message.CompletedScrollIntoView()),
-    ),
+  messages: [Message.CompletedScrollMenuItemIntoView],
+  handler: function* () {
+    return ({ id, index }) =>
+      Dom.scrollIntoView(itemSelector(id, index)).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedScrollMenuItemIntoView()),
+      )
+  },
 })
 /** Programmatically clicks the active menu item's DOM element. */
-export const ClickItem = Command.define('ClickItem', {
+export const ClickMenuItem = Command.define('ClickMenuItem', {
   args: { id: Schema.String, index: Schema.Number },
-  messages: [Message.CompletedClickItem],
-  execute: ({ id, index }) =>
-    Dom.clickElement(itemSelector(id, index)).pipe(
-      Effect.ignore,
-      Effect.as(Message.CompletedClickItem()),
-    ),
+  messages: [Message.CompletedClickMenuItem],
+  handler: function* () {
+    return ({ id, index }) =>
+      Dom.clickElement(itemSelector(id, index)).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedClickMenuItem()),
+      )
+  },
 })
 /** Waits for the typeahead search debounce period before clearing the query. */
-export const DelayClearSearch = Command.define('DelayClearSearch', {
+export const DelayClearMenuSearch = Command.define('DelayClearMenuSearch', {
   args: { version: Schema.Number },
-  messages: [Message.CompletedDelayClearSearch],
-  execute: ({ version }) =>
-    Effect.sleep(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
-      Effect.as(Message.CompletedDelayClearSearch({ version })),
-    ),
+  messages: [Message.CompletedDelayClearMenuSearch],
+  handler: function* () {
+    return ({ version }) =>
+      Effect.sleep(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
+        Effect.as(Message.CompletedDelayClearMenuSearch({ version })),
+      )
+  },
 })
 /** Detects whether the menu button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation submodel that leave is complete. */
-export const DetectMovementOrAnimationEnd = Command.define(
-  'DetectMovementOrAnimationEnd',
+export const DetectMenuMovementOrAnimationEnd = Command.define(
+  'DetectMenuMovementOrAnimationEnd',
   {
     args: { id: Schema.String, generation: Schema.Number },
     messages: [Message.GotAnimationMessage],
-    execute: ({ id, generation }) =>
-      Effect.raceFirst(
-        Dom.detectElementMovement(buttonSelector(id)).pipe(
-          Effect.as(
-            Message.GotAnimationMessage({
-              message: Animation.Message.EndedAnimation({ generation }),
-            }),
+    handler: function* () {
+      return ({ id, generation }) =>
+        Effect.raceFirst(
+          Dom.detectElementMovement(buttonSelector(id)).pipe(
+            Effect.as(
+              Message.GotAnimationMessage({
+                message: Animation.Message.EndedAnimation({ generation }),
+              }),
+            ),
           ),
-        ),
-        Dom.waitForAnimationSettled(itemsSelector(id)).pipe(
-          Effect.as(
-            Message.GotAnimationMessage({
-              message: Animation.Message.EndedAnimation({ generation }),
-            }),
+          Dom.waitForAnimationSettled(itemsSelector(id)).pipe(
+            Effect.as(
+              Message.GotAnimationMessage({
+                message: Animation.Message.EndedAnimation({ generation }),
+              }),
+            ),
           ),
-        ),
-      ),
+        )
+    },
   },
 )
 
-const foldAnimationOutMessage = Animation.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  StartedLeaveAnimating:
-    ({ generation }) =>
-    model => ({
+const foldAnimationOutMessage = Animation.OutMessage.match({
+  StartedLeaveAnimating: ({ generation }) =>
+    Update.makeStep((model: Model) => ({
       model,
-      commands: [DetectMovementOrAnimationEnd({ id: model.id, generation })],
-    }),
-  TransitionedOut: () => model => ({ model }),
+      commands: [
+        DetectMenuMovementOrAnimationEnd({ id: model.id, generation }),
+      ],
+    })),
+  TransitionedOut: () => Update.makeStep((model: Model) => ({ model })),
 })
 
 const foldAnimation = Update.foldChild({
@@ -351,35 +372,37 @@ const foldAnimationHide = Update.foldChildStep({
 
 /** Processes a Menu Message and returns the next Model, optional Commands, and
  *  an optional OutMessage. */
-export const update = (model: Model, message: Message) => {
-  const maybeLockScroll = OptionExt.when(model.isModal, LockScroll())
+export const update = Update.make((model: Model, message: Message) => {
+  const maybeLockScroll = OptionExt.when(model.isModal, LockMenuScroll())
 
-  const maybeUnlockScroll = OptionExt.when(model.isModal, UnlockScroll())
+  const maybeUnlockScroll = OptionExt.when(model.isModal, UnlockMenuScroll())
 
   const maybeInertOthers = OptionExt.when(
     model.isModal,
-    InertOthers({ id: model.id }),
+    InertMenuOthers({ id: model.id }),
   )
 
   const maybeRestoreInert = OptionExt.when(
     model.isModal,
-    RestoreInert({ id: model.id }),
+    RestoreMenuInert({ id: model.id }),
   )
 
-  const openCommands: ReadonlyArray<Command.Command<Message>> = [
+  const openCommands = [
     ...Array.getSomes([maybeLockScroll, maybeInertOthers]),
-    FocusItems({ id: model.id }),
+    FocusMenuItems({ id: model.id }),
   ]
 
-  const closeWithFocusCommands: ReadonlyArray<Command.Command<Message>> = [
-    FocusButton({ id: model.id }),
+  const closeWithFocusCommands = [
+    FocusMenuButton({ id: model.id }),
     ...Array.getSomes([maybeUnlockScroll, maybeRestoreInert]),
   ]
 
-  const closeWithoutFocusCommands: ReadonlyArray<Command.Command<Message>> =
-    Array.getSomes([maybeUnlockScroll, maybeRestoreInert])
+  const closeWithoutFocusCommands = Array.getSomes([
+    maybeUnlockScroll,
+    maybeRestoreInert,
+  ])
 
-  const openMenu = (baseModel: Model): Update.Return<Model, Message> => {
+  const openMenu = (baseModel: Model) => {
     if (model.isAnimated) {
       return Update.combine(baseModel, [
         stepModel => ({ model: stepModel, commands: openCommands }),
@@ -398,8 +421,8 @@ export const update = (model: Model, message: Message) => {
 
   const closeMenu = (
     baseModel: Model,
-    commands: ReadonlyArray<Command.Command<Message>>,
-  ): Update.Return<Model, Message> => {
+    commands: typeof closeWithFocusCommands,
+  ) => {
     if (!baseModel.isOpen) {
       return { model: baseModel }
     }
@@ -416,15 +439,15 @@ export const update = (model: Model, message: Message) => {
     return { model: closed, commands }
   }
 
-  return Message.match<UpdateReturn>(message, {
-    CompletedFocusItems: () => ({ model }),
-    CompletedFocusButton: () => ({ model }),
-    CompletedLockScroll: () => ({ model }),
-    CompletedUnlockScroll: () => ({ model }),
-    CompletedInertOthers: () => ({ model }),
-    CompletedRestoreInert: () => ({ model }),
-    CompletedScrollIntoView: () => ({ model }),
-    CompletedClickItem: () => ({ model }),
+  return Message.match(message, {
+    CompletedFocusMenuItems: () => ({ model }),
+    CompletedFocusMenuButton: () => ({ model }),
+    CompletedLockMenuScroll: () => ({ model }),
+    CompletedUnlockMenuScroll: () => ({ model }),
+    CompletedInertMenuOthers: () => ({ model }),
+    CompletedRestoreMenuInert: () => ({ model }),
+    CompletedScrollMenuItemIntoView: () => ({ model }),
+    CompletedClickMenuItem: () => ({ model }),
     SuppressedSpaceScroll: () => ({ model }),
     CompletedAnchorMenu: () => ({ model }),
     CompletedPortalMenuBackdrop: () => ({ model }),
@@ -463,7 +486,7 @@ export const update = (model: Model, message: Message) => {
       }),
       commands:
         activationTrigger === 'Keyboard'
-          ? [ScrollIntoView({ id: model.id, index })]
+          ? [ScrollMenuItemIntoView({ id: model.id, index })]
           : [],
     }),
 
@@ -504,7 +527,7 @@ export const update = (model: Model, message: Message) => {
 
     RequestedItemClick: ({ index }) => ({
       model,
-      commands: [ClickItem({ id: model.id, index })],
+      commands: [ClickMenuItem({ id: model.id, index })],
     }),
 
     Searched: ({ key, maybeTargetIndex }) => {
@@ -518,11 +541,11 @@ export const update = (model: Model, message: Message) => {
           maybeActiveItemIndex: () =>
             Option.orElse(maybeTargetIndex, () => model.maybeActiveItemIndex),
         }),
-        commands: [DelayClearSearch({ version: nextSearchVersion })],
+        commands: [DelayClearMenuSearch({ version: nextSearchVersion })],
       }
     },
 
-    CompletedDelayClearSearch: ({ version }) => {
+    CompletedDelayClearMenuSearch: ({ version }) => {
       if (version !== model.searchVersion) {
         return { model }
       }
@@ -604,7 +627,7 @@ export const update = (model: Model, message: Message) => {
       return {
         model,
         commands: [
-          ClickItem({
+          ClickMenuItem({
             id: model.id,
             index: model.maybeActiveItemIndex.value,
           }),
@@ -618,7 +641,7 @@ export const update = (model: Model, message: Message) => {
       }),
     }),
   })
-}
+})
 
 /** The anchor-positioning Mount this Menu renders on its panel. The panel is
  *  always anchored to the button via Floating UI and portaled to the document
@@ -628,9 +651,9 @@ export const update = (model: Model, message: Message) => {
  *
  *  It also carries the open-focus for the anchored panel. An anchored panel
  *  renders `visibility: hidden` until Floating UI resolves its first position,
- *  and `.focus()` does not land on a hidden element, so `FocusItems` alone
+ *  and `.focus()` does not land on a hidden element, so `FocusMenuItems` alone
  *  cannot focus it. `focusAfterPosition` focuses the panel as part of that
- *  first reveal. `FocusItems` still focuses the panel when no anchor is
+ *  first reveal. `FocusMenuItems` still focuses the panel when no anchor is
  *  configured, where the panel is visible as soon as the render commits.
  *
  *  Exposed so Scene tests can call
@@ -638,20 +661,22 @@ export const update = (model: Model, message: Message) => {
 export const AnchorMenu = Mount.define('AnchorMenu', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchorMenu],
-  execute: ({ element, buttonId, anchor }) =>
-    Effect.gen(function* () {
-      yield* Effect.acquireRelease(
-        Effect.sync(() =>
-          anchorSetup(element, {
-            buttonId,
-            anchor,
-            focusAfterPosition: true,
-          }),
-        ),
-        cleanup => Effect.sync(cleanup),
-      )
-      return Message.CompletedAnchorMenu()
-    }),
+  handler: function* () {
+    return ({ element, buttonId, anchor }) =>
+      Effect.gen(function* () {
+        yield* Effect.acquireRelease(
+          Effect.sync(() =>
+            anchorSetup(element, {
+              buttonId,
+              anchor,
+              focusAfterPosition: true,
+            }),
+          ),
+          cleanup => Effect.sync(cleanup),
+        )
+        return Message.CompletedAnchorMenu()
+      })
+  },
 })
 
 /** The backdrop-portaling Mount this Menu renders. Exposed so Scene tests can
@@ -659,35 +684,53 @@ export const AnchorMenu = Mount.define('AnchorMenu', {
  *  acknowledge the mount produced by the rendered backdrop. */
 export const PortalMenuBackdrop = Mount.define('PortalMenuBackdrop', {
   messages: [Message.CompletedPortalMenuBackdrop],
-  execute: ({ element }) =>
-    Effect.gen(function* () {
-      yield* Effect.acquireRelease(
-        Effect.sync(() => portalBackdrop(element)),
-        cleanup => Effect.sync(cleanup),
-      )
-      return Message.CompletedPortalMenuBackdrop()
-    }),
+  handler: function* () {
+    return ({ element }) =>
+      Effect.gen(function* () {
+        yield* Effect.acquireRelease(
+          Effect.sync(() => portalBackdrop(element)),
+          cleanup => Effect.sync(cleanup),
+        )
+        return Message.CompletedPortalMenuBackdrop()
+      })
+  },
 })
+
+/** Mount definitions rendered by Menu. */
+export const mounts = [AnchorMenu, PortalMenuBackdrop]
+
+/** Effect providers used by the Menu component. */
+export const EffectsLayer = Layer.mergeAll(
+  LockMenuScroll.layer,
+  UnlockMenuScroll.layer,
+  InertMenuOthers.layer,
+  RestoreMenuInert.layer,
+  FocusMenuItems.layer,
+  FocusMenuButton.layer,
+  ScrollMenuItemIntoView.layer,
+  ClickMenuItem.layer,
+  DelayClearMenuSearch.layer,
+  DetectMenuMovementOrAnimationEnd.layer,
+  AnchorMenu.layer,
+  PortalMenuBackdrop.layer,
+  AnimationEffectsLayer,
+)
 
 /** Programmatically opens the Menu, updating the Model and returning focus and
  *  modal Commands. Use this in domain-event handlers. */
-export const open = (model: Model): UpdateReturn =>
+export const open = (model: Model) =>
   update(model, Message.Opened({ maybeActiveItemIndex: Option.none() }))
 
 /** Programmatically closes the menu. If it is open, returns the closed Model
  *  with focus and modal Commands. If it is already closed, returns the Model
  *  unchanged with no Commands. Use this in domain-event handlers to close the
  *  menu. */
-export const close = (model: Model): UpdateReturn =>
-  update(model, Message.Closed())
+export const close = (model: Model) => update(model, Message.Closed())
 
 /** Programmatically selects a Menu item, closing the Menu and returning focus
  *  Commands plus a `Selected` OutMessage. Use this in domain-event handlers. */
-export const selectItem = (
-  model: Model,
-  item: string,
-  index: number,
-): UpdateReturn => update(model, Message.SelectedItem({ index, item }))
+export const selectItem = (model: Model, item: string, index: number) =>
+  update(model, Message.SelectedItem({ index, item }))
 
 // VIEW
 
@@ -1216,7 +1259,8 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
 type BundleUpdateReturn<Item extends string> = Update.ReturnWithOutMessage<
   Model,
   Message,
-  OutMessage<Item>
+  OutMessage<Item>,
+  Update.RequirementsOf<typeof update>
 >
 
 export type Bundle<Item extends string = string> = Readonly<{
@@ -1250,9 +1294,10 @@ export const create = <Item extends string = string>(): Bundle<Item> => {
   type GenericReturn = Update.ReturnWithOutMessage<
     Model,
     Message,
-    OutMessage<Item>
+    OutMessage<Item>,
+    Update.RequirementsOf<typeof update>
   >
-  const cast = (result: UpdateReturn): GenericReturn =>
+  const cast = (result: ReturnType<typeof update>): GenericReturn =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     result as unknown as GenericReturn
 

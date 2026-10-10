@@ -121,7 +121,9 @@ export const MountChart = Mount.defineStream('MountChart', {
     Message.FailedMountChart,
     Message.ClickedChartDatum,
   ],
-  execute: ({ element, hostId }) => mountChart(element, hostId),
+  handler: function* () {
+    return ({ element, hostId }) => mountChart(element, hostId)
+  },
 })
 
 export const chartPanelView = (

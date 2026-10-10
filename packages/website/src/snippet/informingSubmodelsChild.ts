@@ -1,5 +1,5 @@
 import { Option, Schema, String } from 'effect'
-import { type Update } from 'foldkit'
+import { Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -26,8 +26,8 @@ export type Message = typeof Message.Type
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ChangedSearchInput: ({ value }) => ({
       model: modifyFields(model, { searchInput: () => value }),
     }),
@@ -62,7 +62,8 @@ export const update = (model: Model, message: Message) =>
         results: () => SearchLoaded({ query, people }),
       }),
     }),
-  })
+  }),
+)
 
 export const informRouteChanged = (model: Model, route: PeopleRoute) =>
   update(model, Message.ChangedRoute({ route }))

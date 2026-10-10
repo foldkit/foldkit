@@ -14,7 +14,11 @@ const collectTsFiles = (dir: string): ReadonlyArray<string> => {
     const full = join(dir, entry)
     if (statSync(full).isDirectory()) {
       out.push(...collectTsFiles(full))
-    } else if (entry.endsWith('.ts') && !entry.endsWith('.d.ts')) {
+    } else if (
+      entry.endsWith('.ts') &&
+      !entry.endsWith('.d.ts') &&
+      !entry.endsWith('.test.ts')
+    ) {
       out.push(full)
     }
   }
@@ -93,7 +97,9 @@ const foldkitNamespaces = (() => {
   return all
 })()
 
-const pluginIncludes = toPluginEffectIncludes(readForcedEffectEntries())
+const pluginIncludes = toPluginEffectIncludes(
+  readForcedEffectEntries(PLUGIN_FILE),
+)
 
 if (!pluginIncludes.isBareEffectIncluded) {
   console.error(`ERROR: ${LIST_NAME} in ${PLUGIN_FILE} must include 'effect'.`)

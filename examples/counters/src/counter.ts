@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { Submodel, type Update } from 'foldkit'
+import { Submodel, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -23,15 +23,16 @@ export type Message = typeof Message.Type
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedDecrement: () => ({
       model: modifyFields(model, { count: count => count - 1 }),
     }),
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: count => count + 1 }),
     }),
-  })
+  }),
+)
 
 // VIEW
 

@@ -4,17 +4,19 @@ import {
   Duration,
   Effect,
   HashMap,
+  Layer,
   Match,
   Option,
   Schema,
   Stream,
   pipe,
 } from 'effect'
-import { AsyncData, Command, Runtime, Subscription, Update } from 'foldkit'
+import { AsyncData, Command, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
+import * as UI from '@foldkit/ui'
 import { Button, Tabs } from '@foldkit/ui'
 
 import {
@@ -81,24 +83,22 @@ export const Message = defineMessageUnion({
   ClickedRefreshStats: {},
   ClickedRetryStats: {},
   TickedRevalidateStats: {},
-  SettledFetchPosts: { result: Schema.Result(FetchedPosts, Schema.String) },
-  SettledFetchPostDetail: {
+  CompletedFetchPosts: { result: Schema.Result(FetchedPosts, Schema.String) },
+  CompletedFetchPostDetail: {
     postId: Schema.String,
     result: Schema.Result(FetchedPostDetail, Schema.String),
   },
-  SettledFetchStats: { result: Schema.Result(FetchedStats, Schema.String) },
+  CompletedFetchStats: { result: Schema.Result(FetchedStats, Schema.String) },
 })
 
 export type Message = typeof Message.Type
 
 // UPDATE
 
-type UpdateReturn = Update.Return<Model, Message>
-
 const applyPostsTransition = (
   model: Model,
   maybeNextPosts: Option.Option<PostsData>,
-): UpdateReturn =>
+) =>
   Option.match(maybeNextPosts, {
     onNone: () => ({ model }),
     onSome: nextPosts => ({
@@ -110,7 +110,7 @@ const applyPostsTransition = (
 const applyStatsTransition = (
   model: Model,
   maybeNextStats: Option.Option<StatsData>,
-): UpdateReturn =>
+) =>
   Option.match(maybeNextStats, {
     onNone: () => ({ model }),
     onSome: nextStats => ({
@@ -122,11 +122,10 @@ const applyStatsTransition = (
 const setPostDetail = (postId: string, postDetail: PostDetailData) =>
   HashMap.set(postId, postDetail)
 
-const activateTab = (model: Model, tab: Tab): UpdateReturn => {
+const activateTab = (model: Model, tab: Tab) => {
   const modelWithActiveTab = modifyFields(model, { activeTab: () => tab })
 
   return Match.value(tab).pipe(
-    Match.withReturnType<UpdateReturn>(),
     Match.when('Posts', () =>
       applyPostsTransition(
         modelWithActiveTab,
@@ -143,15 +142,11 @@ const activateTab = (model: Model, tab: Tab): UpdateReturn => {
   )
 }
 
-const foldTabsOutMessage = Tabs.OutMessage.match<
-  Update.Step<Model, Message>,
-  Tabs.OutMessage<Tab>
->({
-  Selected:
-    ({ value }) =>
-    model =>
-      activateTab(model, value),
-})
+const foldTabsOutMessage = (outMessage: Tabs.OutMessage<Tab>) =>
+  Tabs.OutMessage.match(outMessage, {
+    Selected: ({ value }) =>
+      Update.makeStep((model: Model) => activateTab(model, value)),
+  })
 
 const foldTabs = Update.foldChild({
   update: AppTabs.update,
@@ -161,8 +156,8 @@ const foldTabs = Update.foldChild({
   foldOutMessage: foldTabsOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     GotTabsMessage: ({ message }) => foldTabs(model, message),
 
     ClickedPost: ({ postId }) => {
@@ -207,101 +202,133 @@ export const update = (model: Model, message: Message) =>
     TickedRevalidateStats: () =>
       applyStatsTransition(model, AsyncData.revalidate(model.stats)),
 
-    SettledFetchPosts: ({ result }) => ({
+    CompletedFetchPosts: ({ result }) => ({
       model: modifyFields(model, { posts: AsyncData.settle(result) }),
     }),
 
-    SettledFetchPostDetail: ({ postId, result }) => ({
+    CompletedFetchPostDetail: ({ postId, result }) => ({
       model: modifyFields(model, {
         postDetailById: HashMap.modify(postId, AsyncData.settle(result)),
       }),
     }),
 
-    SettledFetchStats: ({ result }) => ({
+    CompletedFetchStats: ({ result }) => ({
       model: modifyFields(model, { stats: AsyncData.settle(result) }),
     }),
-  })
+  }),
+)
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
-  model: {
+export const init = () => ({
+  model: Model.make({
     tabs: Tabs.init({ id: TABS_ID }),
     activeTab: 'Posts',
     posts: PostsData.Loading(),
     postDetailById: HashMap.empty(),
     maybeSelectedPostId: Option.none(),
     stats: StatsData.Idle(),
-  },
+  }),
   commands: [FetchPosts()],
 })
 
 // COMMAND
 
 export const FetchPosts = Command.define('FetchPosts', {
-  messages: [Message.SettledFetchPosts],
-  execute: pipe(
-    Effect.gen(function* () {
-      const posts = yield* fetchPosts
-      const fetchedAt = yield* Clock.currentTimeMillis
-      return FetchedPosts.make({ posts, fetchedAt })
-    }),
-    Effect.result,
-    Effect.map(result => Message.SettledFetchPosts({ result })),
-  ),
+  messages: [Message.CompletedFetchPosts],
+  handler: function* () {
+    const clock = yield* Clock.Clock
+
+    return () =>
+      pipe(
+        Effect.gen(function* () {
+          const posts = yield* fetchPosts
+          const fetchedAt = yield* clock.currentTimeMillis
+
+          return FetchedPosts.make({ posts, fetchedAt })
+        }),
+        Effect.result,
+        Effect.map(result => Message.CompletedFetchPosts({ result })),
+      )
+  },
 })
 
 export const FetchPostDetail = Command.define('FetchPostDetail', {
   args: { postId: Schema.String },
-  messages: [Message.SettledFetchPostDetail],
-  execute: ({ postId }) =>
-    pipe(
-      Effect.gen(function* () {
-        const detail = yield* fetchPostDetail(postId)
-        const fetchedAt = yield* Clock.currentTimeMillis
-        return FetchedPostDetail.make({ detail, fetchedAt })
-      }),
-      Effect.result,
-      Effect.map(result => Message.SettledFetchPostDetail({ postId, result })),
-    ),
+  messages: [Message.CompletedFetchPostDetail],
+  handler: function* () {
+    const clock = yield* Clock.Clock
+
+    return ({ postId }) =>
+      pipe(
+        Effect.gen(function* () {
+          const detail = yield* fetchPostDetail(postId)
+          const fetchedAt = yield* clock.currentTimeMillis
+
+          return FetchedPostDetail.make({ detail, fetchedAt })
+        }),
+        Effect.result,
+        Effect.map(result =>
+          Message.CompletedFetchPostDetail({ postId, result }),
+        ),
+      )
+  },
 })
 
 export const FetchStats = Command.define('FetchStats', {
-  messages: [Message.SettledFetchStats],
-  execute: pipe(
-    Effect.gen(function* () {
-      const stats = yield* fetchStats
-      const fetchedAt = yield* Clock.currentTimeMillis
-      return FetchedStats.make({ stats, fetchedAt })
-    }),
-    Effect.result,
-    Effect.map(result => Message.SettledFetchStats({ result })),
-  ),
+  messages: [Message.CompletedFetchStats],
+  handler: function* () {
+    const clock = yield* Clock.Clock
+
+    return () =>
+      pipe(
+        Effect.gen(function* () {
+          const stats = yield* fetchStats
+          const fetchedAt = yield* clock.currentTimeMillis
+
+          return FetchedStats.make({ stats, fetchedAt })
+        }),
+        Effect.result,
+        Effect.map(result => Message.CompletedFetchStats({ result })),
+      )
+  },
 })
 
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  revalidateStats: entry(
+  statsRevalidationTicks: entry(
+    'StatsRevalidationTicks',
     { isObservingStats: Schema.Boolean },
     {
+      messages: [Message.TickedRevalidateStats],
       modelToDependencies: model => ({
         isObservingStats:
           model.activeTab === 'Stats' && AsyncData.hasData(model.stats),
       }),
-      dependenciesToStream: ({ isObservingStats }) =>
-        Stream.when(
-          // NOTE: Stream.tick emits once immediately. Drop that first
-          // emission so freshly loaded stats are not refetched instantly.
-          Stream.tick(STATS_REFETCH_INTERVAL).pipe(
-            Stream.drop(1),
-            Stream.map(Message.TickedRevalidateStats),
-          ),
-          Effect.sync(() => isObservingStats),
-        ),
+      handler: function* () {
+        return ({ isObservingStats }) =>
+          Stream.when(
+            // NOTE: Stream.tick emits once immediately. Drop that first
+            // emission so freshly loaded stats are not refetched instantly.
+            Stream.tick(STATS_REFETCH_INTERVAL).pipe(
+              Stream.drop(1),
+              Stream.map(Message.TickedRevalidateStats),
+            ),
+            Effect.sync(() => isObservingStats),
+          )
+      },
     },
   ),
 }))
+
+export const EffectsLayer = Layer.mergeAll(
+  UI.EffectsLayer,
+  FetchPosts.layer,
+  FetchPostDetail.layer,
+  FetchStats.layer,
+  subscriptions.statsRevalidationTicks.layer,
+)
 
 // VIEW
 
@@ -741,3 +768,5 @@ const errorPanel = (
       ),
     ],
   )
+
+export const mounts = UI.mounts

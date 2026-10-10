@@ -2,6 +2,7 @@ import {
   Effect,
   Equal,
   Function,
+  Layer,
   Match,
   Option,
   Schema,
@@ -412,14 +413,17 @@ export const valueFromPointer = (
   }
 }
 
-/** Builds Slider drag Subscriptions that find the track through the supplied
- *  root resolver. Use this when the Slider is rendered inside a Shadow DOM.
- *  The resolver runs at subscription time. */
-export const subscriptionsForRoot = (
+/** Builds named Slider drag Subscriptions and their handlers for a track root.
+ *  Use this when the Slider is rendered inside a Shadow DOM. The resolver runs
+ *  only while the drag Subscription is active. Each custom Slider bundle in
+ *  an application must use a distinct name. */
+export const forRoot = <const Name extends string>(
+  name: Name,
   getTrackRoot: () => Document | ShadowRoot,
-) =>
-  Subscription.make<Model, Message>()(entry => ({
+) => {
+  const subscriptions = Subscription.make<Model, Message>()(entry => ({
     dragPointer: entry(
+      `${name}DragPointer`,
       {
         dragActivity: DragActivity,
         id: Schema.String,
@@ -427,69 +431,93 @@ export const subscriptionsForRoot = (
         max: Schema.Number,
       },
       {
+        messages: [Message.MovedDragPointer, Message.ReleasedDragPointer],
         modelToDependencies: model => ({
           dragActivity: dragActivityFromModel(model),
           id: model.id,
           min: model.min,
           max: model.max,
         }),
-        dependenciesToStream: ({ dragActivity, id, min, max }) => {
-          const pointerEvents = Stream.merge(
-            Stream.fromEventListener<PointerEvent>(
-              document,
-              'pointermove',
-            ).pipe(
-              Stream.mapEffect(event =>
-                Effect.sync(() =>
-                  Option.map(findTrackElement(id, getTrackRoot()), track =>
-                    Message.MovedDragPointer({
-                      value: valueFromPointer(
-                        event.clientX,
-                        event.clientY,
-                        track,
-                        min,
-                        max,
-                      ),
-                    }),
+        handler: function* () {
+          return ({ dragActivity, id, min, max }) => {
+            const pointerEvents = Stream.merge(
+              Stream.fromEventListener<PointerEvent>(
+                document,
+                'pointermove',
+              ).pipe(
+                Stream.mapEffect(event =>
+                  Effect.sync(() =>
+                    Option.map(findTrackElement(id, getTrackRoot()), track =>
+                      Message.MovedDragPointer({
+                        value: valueFromPointer(
+                          event.clientX,
+                          event.clientY,
+                          track,
+                          min,
+                          max,
+                        ),
+                      }),
+                    ),
                   ),
                 ),
+                Stream.filter(Option.isSome),
+                Stream.map(option => option.value),
               ),
-              Stream.filter(Option.isSome),
-              Stream.map(option => option.value),
-            ),
-            Stream.fromEventListener<PointerEvent>(document, 'pointerup').pipe(
-              Stream.map(() => Message.ReleasedDragPointer()),
-            ),
-          )
+              Stream.fromEventListener<PointerEvent>(
+                document,
+                'pointerup',
+              ).pipe(Stream.map(() => Message.ReleasedDragPointer())),
+            )
 
-          return Stream.when(
-            Stream.merge(pointerEvents, documentDragStyles),
-            Effect.sync(() => dragActivity === 'Active'),
-          )
+            return Stream.when(
+              Stream.merge(pointerEvents, documentDragStyles),
+              Effect.sync(() => dragActivity === 'Active'),
+            )
+          }
         },
       },
     ),
 
     dragEscape: entry(
+      `${name}DragEscape`,
       { dragActivity: DragActivity },
       {
+        messages: [Message.CancelledDrag],
         modelToDependencies: model => ({
           dragActivity: dragActivityFromModel(model),
         }),
-        dependenciesToStream: ({ dragActivity }) =>
-          Stream.when(
-            Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-              Stream.filter(({ key }) => key === 'Escape'),
-              Stream.map(() => Message.CancelledDrag()),
-            ),
-            Effect.sync(() => dragActivity === 'Active'),
-          ),
+        handler: function* () {
+          return ({ dragActivity }) =>
+            Stream.when(
+              Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
+                Stream.filter(({ key }) => key === 'Escape'),
+                Stream.map(() => Message.CancelledDrag()),
+              ),
+              Effect.sync(() => dragActivity === 'Active'),
+            )
+        },
       },
     ),
   }))
 
+  /** Provides this Slider instance's Subscription handlers. */
+  const EffectsLayer = Layer.mergeAll(
+    subscriptions.dragPointer.layer,
+    subscriptions.dragEscape.layer,
+  )
+
+  return {
+    subscriptions,
+    EffectsLayer,
+  }
+}
+
+const defaultHandlers = forRoot('Slider', () => document)
+
 /** Default drag Subscriptions, with the track looked up via `document`. */
-export const subscriptions = subscriptionsForRoot(() => document)
+export const subscriptions = defaultHandlers.subscriptions
+/** Provides the default Slider Subscription handlers. */
+export const EffectsLayer = defaultHandlers.EffectsLayer
 
 // VIEW
 

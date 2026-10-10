@@ -9,8 +9,6 @@ import { Column } from './domain'
 import { Message } from './message'
 import type { Model } from './model'
 
-type UpdateReturn = Update.Return<Model, Message>
-
 const findCardTitle = (
   columns: ReadonlyArray<Column.Column>,
   cardId: string,
@@ -93,11 +91,11 @@ const screenReaderTextForDrop = (
       }),
   })
 
-const foldDragAndDropOutMessage: (
-  previousModel: Model,
-) => (outMessage: DragAndDrop.OutMessage) => Update.Step<Model, Message> =
-  previousModel => outMessage => model =>
-    DragAndDrop.OutMessage.match<UpdateReturn>(outMessage, {
+const foldDragAndDropOutMessage =
+  (previousModel: Model) =>
+  (outMessage: DragAndDrop.OutMessage) =>
+  (model: Model) =>
+    DragAndDrop.OutMessage.match(outMessage, {
       Reordered: ({ itemId, fromContainerId, toContainerId, toIndex }) => {
         const nextColumns = Column.reorder(
           model.columns,
@@ -136,8 +134,8 @@ const foldDragAndDrop = (previousModel: Model) =>
     foldOutMessage: foldDragAndDropOutMessage(previousModel),
   })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     GotDragAndDropMessage: ({ message }) =>
       foldDragAndDrop(model)(model, message),
 
@@ -202,4 +200,5 @@ export const update = (model: Model, message: Message) =>
     CompletedSaveBoard: () => ({ model }),
 
     CompletedFocusAddCardInput: () => ({ model }),
-  })
+  }),
+)

@@ -2,6 +2,7 @@ import { clsx } from 'clsx'
 import {
   Array,
   Effect,
+  Layer,
   Match,
   Option,
   Order,
@@ -11,7 +12,7 @@ import {
   Types,
   pipe,
 } from 'effect'
-import { Command, Route, Runtime, Update } from 'foldkit'
+import { Command, Route, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl, replaceUrl } from 'foldkit/navigation'
@@ -20,6 +21,7 @@ import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
+import * as UI from '@foldkit/ui'
 import { Button, Input, Listbox } from '@foldkit/ui'
 import { AnchorConfig } from '@foldkit/ui/listbox'
 
@@ -193,9 +195,7 @@ const routeToBrowseFields = (route: AppRoute): BrowseFields =>
     Match.orElse(() => emptyBrowseFields),
   )
 
-export const init: Runtime.RoutingApplicationInit<Model, Message> = (
-  url: Url,
-) => {
+export const init = (url: Url) => {
   const route = urlToAppRoute(url)
 
   return {
@@ -254,49 +254,58 @@ export const ReplaceFilters = Command.define('ReplaceFilters', {
     period: Schema.Option(Period),
   },
   messages: [Message.CompletedReplaceFilters],
-  execute: fields =>
-    replaceUrl(browseRouter(fields)).pipe(
-      Effect.as(Message.CompletedReplaceFilters()),
-    ),
+  handler: function* () {
+    return fields =>
+      replaceUrl(browseRouter(fields)).pipe(
+        Effect.as(Message.CompletedReplaceFilters()),
+      )
+  },
 })
 
 const NavigateInternal = Command.define('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
-  execute: ({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+  handler: function* () {
+    return ({ url }) =>
+      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
+  },
 })
 
 const LoadExternal = Command.define('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
-  execute: ({ href }) =>
-    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+  handler: function* () {
+    return ({ href }) =>
+      load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
+  },
 })
 
-type UpdateReturn = Update.Return<Model, Message>
+export const EffectsLayer = Layer.mergeAll(
+  UI.EffectsLayer,
+  ReplaceFilters.layer,
+  NavigateInternal.layer,
+  LoadExternal.layer,
+)
 
 const DietListbox = Listbox.create<string>()
 const PeriodListbox = Listbox.create<string>()
 
-const foldDietListboxOutMessage = Listbox.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Selected:
-    ({ value }) =>
-    model => {
-      const fields = routeToBrowseFields(model.route)
-      return {
-        model,
-        commands: [
-          ReplaceFilters({
-            ...fields,
-            diet: selectionToParam(Option.some(value), Diet),
-          }),
-        ],
-      }
-    },
-})
+const foldDietListboxOutMessage = (outMessage: Listbox.OutMessage<string>) =>
+  Listbox.OutMessage.match(outMessage, {
+    Selected: ({ value }) =>
+      Update.makeStep((model: Model) => {
+        const fields = routeToBrowseFields(model.route)
+        return {
+          model,
+          commands: [
+            ReplaceFilters({
+              ...fields,
+              diet: selectionToParam(Option.some(value), Diet),
+            }),
+          ],
+        }
+      }),
+  })
 
 const foldDietListbox = Update.foldChild({
   update: DietListbox.update,
@@ -307,24 +316,22 @@ const foldDietListbox = Update.foldChild({
   foldOutMessage: foldDietListboxOutMessage,
 })
 
-const foldPeriodListboxOutMessage = Listbox.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Selected:
-    ({ value }) =>
-    model => {
-      const fields = routeToBrowseFields(model.route)
-      return {
-        model,
-        commands: [
-          ReplaceFilters({
-            ...fields,
-            period: selectionToParam(Option.some(value), Period),
-          }),
-        ],
-      }
-    },
-})
+const foldPeriodListboxOutMessage = (outMessage: Listbox.OutMessage<string>) =>
+  Listbox.OutMessage.match(outMessage, {
+    Selected: ({ value }) =>
+      Update.makeStep((model: Model) => {
+        const fields = routeToBrowseFields(model.route)
+        return {
+          model,
+          commands: [
+            ReplaceFilters({
+              ...fields,
+              period: selectionToParam(Option.some(value), Period),
+            }),
+          ],
+        }
+      }),
+  })
 
 const foldPeriodListbox = Update.foldChild({
   update: PeriodListbox.update,
@@ -335,14 +342,14 @@ const foldPeriodListbox = Update.foldChild({
   foldOutMessage: foldPeriodListboxOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
     CompletedReplaceFilters: () => ({ model }),
 
     ClickedLink: ({ request }) =>
-      UrlRequest.match<UpdateReturn>(request, {
+      UrlRequest.match(request, {
         Internal: ({ url }) => ({
           model,
           commands: [NavigateInternal({ url: urlToString(url) })],
@@ -390,7 +397,8 @@ export const update = (model: Model, message: Message) =>
     GotDietListboxMessage: ({ message }) => foldDietListbox(model, message),
 
     GotPeriodListboxMessage: ({ message }) => foldPeriodListbox(model, message),
-  })
+  }),
+)
 
 // VIEW
 
@@ -891,3 +899,5 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
 
   return { title: routeTitle(model.route), body }
 }
+
+export const mounts = UI.mounts

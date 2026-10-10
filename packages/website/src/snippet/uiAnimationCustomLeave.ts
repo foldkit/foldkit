@@ -15,10 +15,12 @@ import { Animation } from '@foldkit/ui'
 const WaitForPanelSettled = Command.define('WaitForPanelSettled', {
   args: { generation: Schema.Number },
   messages: [Animation.Message.EndedAnimation],
-  execute: ({ generation }) =>
-    Dom.waitForAnimationSettled('#drawer-panel').pipe(
-      Effect.as(Animation.Message.EndedAnimation({ generation })),
-    ),
+  handler: function* () {
+    return ({ generation }) =>
+      Dom.waitForAnimationSettled('#drawer-panel').pipe(
+        Effect.as(Animation.Message.EndedAnimation({ generation })),
+      )
+  },
 })
 
 // StartedLeaveAnimating carries the generation. Pass it straight to the Command:
@@ -26,12 +28,13 @@ const foldAnimationOutMessage = (
   outMessage: Animation.OutMessage,
   { liftCommand }: Update.FoldContext<Animation.Message, Message>,
 ) =>
-  Animation.OutMessage.match<Update.Step<Model, Message>>(outMessage, {
-    StartedLeaveAnimating:
-      ({ generation }) =>
-      model => ({
+  Animation.OutMessage.match<
+    Update.Step<Model, Message, Command.Handler<'WaitForPanelSettled'>>
+  >(outMessage, {
+    StartedLeaveAnimating: ({ generation }) =>
+      Update.makeStep((model: Model) => ({
         model,
         commands: [liftCommand(WaitForPanelSettled({ generation }))],
-      }),
+      })),
     TransitionedOut: () => model => ({ model }),
   })

@@ -1,4 +1,4 @@
-import { Effect, Fiber, Option, Schema, Stream } from 'effect'
+import { Effect, Fiber, Layer, Option, Schema, Stream } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { __htmlBuilder } from '../html/index.js'
@@ -7,8 +7,8 @@ import { defineMessageUnion } from '../message/index.js'
 import * as Mount from '../mount/index.js'
 import { modifyFields } from '../struct/index.js'
 import * as Subscription from '../subscription/subscription.js'
-import type * as Update from '../update/index.js'
-import { makeElement } from './makeElement.js'
+import * as Update from '../update/index.js'
+import * as Application from './application.js'
 
 const Message = defineMessageUnion({
   ActivatedApplication: {},
@@ -30,6 +30,7 @@ const BootResource = ManagedResource.tag<string>()('BootResource')
 
 const managedResources = ManagedResource.make<Model, Message>()(entry => ({
   bootResource: entry(
+    'ManageBootResource',
     Schema.Option(Schema.Struct({ activation: Schema.Literals(['Active']) })),
     {
       resource: BootResource,
@@ -37,8 +38,6 @@ const managedResources = ManagedResource.make<Model, Message>()(entry => ({
         model.activation === 'Active'
           ? Option.some({ activation: model.activation })
           : Option.none(),
-      acquire: () => Effect.succeed('ready'),
-      release: () => Effect.void,
       onAcquired: () => Message.AcquiredBootResource(),
       onReleased: () => Message.ReleasedBootResource(),
       onAcquireError: () => Message.FailedBootResource(),
@@ -46,26 +45,48 @@ const managedResources = ManagedResource.make<Model, Message>()(entry => ({
   ),
 }))
 
+const BootResourceLayer = managedResources.bootResource.toLayer(
+  Effect.succeed({
+    acquire: () => Effect.succeed('ready'),
+    release: () => Effect.void,
+  }),
+)
+
 const subscriptions = Subscription.make<Model, Message>()(entry => ({
   bootPulse: entry(
+    'BootPulse',
     { activation: Schema.Literals(['Inactive', 'Active']) },
     {
       modelToDependencies: model => ({ activation: model.activation }),
-      dependenciesToStream: ({ activation }) =>
-        activation === 'Active'
-          ? Stream.make(Message.ReceivedBootPulse())
-          : Stream.empty,
+      messages: [
+        Message.ActivatedApplication,
+        Message.AcquiredBootResource,
+        Message.ReleasedBootResource,
+        Message.FailedBootResource,
+        Message.ReceivedBootPulse,
+      ],
     },
   ),
 }))
 
+const BootPulseLayer = subscriptions.bootPulse.toLayer(
+  Effect.succeed(({ activation }) =>
+    activation === 'Active'
+      ? Stream.make(Message.ReceivedBootPulse())
+      : Stream.empty,
+  ),
+)
+
 const ActivateApplication = Mount.define('ActivateApplication', {
   messages: [Message.ActivatedApplication],
-  execute: () => Effect.succeed(Message.ActivatedApplication()),
 })
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const ActivateApplicationLayer = ActivateApplication.toLayer(
+  Effect.succeed(() => Effect.succeed(Message.ActivatedApplication())),
+)
+
+const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ActivatedApplication: () => ({
       model: modifyFields(model, { activation: () => 'Active' }),
     }),
@@ -77,7 +98,8 @@ const update = (model: Model, message: Message) =>
     ReceivedBootPulse: () => ({
       model: modifyFields(model, { pulseStatus: () => 'Received' }),
     }),
-  })
+  }),
+)
 
 const h = __htmlBuilder<Message>()
 
@@ -107,21 +129,29 @@ afterEach(() => {
 
 describe('boot Model changes', () => {
   it('reaches Subscription and ManagedResource fibers when an OnMount Message changes the Model during the init render', async () => {
-    const element = makeElement({
-      Model,
-      init: (): Update.Return<Model, Message> => ({
-        model: {
-          activation: 'Inactive',
-          resourceStatus: 'Idle',
-          pulseStatus: 'Waiting',
-        },
+    const element = Application.provide(
+      Application.makeElement({
+        Model,
+        init: (): Update.Return<Model, Message> => ({
+          model: {
+            activation: 'Inactive',
+            resourceStatus: 'Idle',
+            pulseStatus: 'Waiting',
+          },
+        }),
+        update,
+        view,
+        container,
+        managedResources,
+        subscriptions,
+        mounts: [ActivateApplication],
       }),
-      update,
-      view,
-      container,
-      managedResources,
-      subscriptions,
-    })
+      Layer.mergeAll(
+        BootResourceLayer,
+        BootPulseLayer,
+        ActivateApplicationLayer,
+      ),
+    )
     const fiber = Effect.runFork(element.start())
 
     try {

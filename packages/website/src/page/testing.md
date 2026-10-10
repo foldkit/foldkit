@@ -2,7 +2,7 @@
 
 ## Story and Scene {#overview}
 
-Foldkit tests at two boundaries. Story calls update directly. Scene enters through the rendered view. Neither test runs a browser or executes the Effects inside Commands, so both stay deterministic and fast.
+Story and Scene test two parts of a Foldkit application. Story calls update directly. Scene enters through the rendered view. Neither test runs a browser or executes the Effects inside Commands, so both stay deterministic and fast.
 
 |                | Story                                        | Scene                                              |
 | -------------- | -------------------------------------------- | -------------------------------------------------- |
@@ -38,3 +38,11 @@ Scene can also start at the root or at a child Submodel. `withViewInputs` adapts
 Choose the level by ownership. Test a Submodel's rendering, interactions, Commands, and OutMessages at the Submodel. Test parent folding, lifted Commands, route changes, and parent-computed ViewInputs at the root. Those behaviors cross the boundary and cannot be observed from the child.
 
 ::Snippet{name="sceneWeatherFlow" label="Weather search Scene test"}
+
+## Executing Effects
+
+To test a Command's work, execute its Effect with the application's real handler Layer and controlled service providers. The [Commands guide](/core/commands#testing-the-handler-through-its-services) shows an HTTP test that runs the real request, decoding, and result Message mapping.
+
+Choose the lowest service boundary whose behavior the test needs to exercise. If an API service contains authentication or retry policy, retain that service and replace its transport. The same principle applies to Subscription Streams, Mount integrations, and ManagedResource acquisition and cleanup. [Testing through service boundaries](/core/layers#testing-through-service-boundaries) explains how to compose these providers at the application root.
+
+Replacing an entire handler tests a narrower orchestration path and excludes the replaced implementation. Story and Scene already supply results explicitly; execution tests use Effect and Layer composition to run the application's handlers.

@@ -37,23 +37,23 @@ export const init = (): Model => ({
 
 // UPDATE
 
-const foldResumeDropOutMessage = FileDrop.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ReceivedFiles:
-    ({ files }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeResume: () =>
-          pipe(
-            files,
-            Array.head,
-            Option.orElse(() => model.maybeResume),
-          ),
-      }),
-    }),
-  RejectedNonFiles: () => model => ({ model }),
-})
+const foldResumeDropOutMessage = (
+  outMessage: typeof FileDrop.OutMessage.Type,
+) =>
+  FileDrop.OutMessage.match(outMessage, {
+    ReceivedFiles: ({ files }) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, {
+          maybeResume: () =>
+            pipe(
+              files,
+              Array.head,
+              Option.orElse(() => model.maybeResume),
+            ),
+        }),
+      })),
+    RejectedNonFiles: () => Update.makeStep((model: Model) => ({ model })),
+  })
 
 const foldResumeDrop = Update.foldChild({
   update: FileDrop.update,
@@ -64,18 +64,18 @@ const foldResumeDrop = Update.foldChild({
   foldOutMessage: foldResumeDropOutMessage,
 })
 
-const foldAdditionalFilesDropOutMessage = FileDrop.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ReceivedFiles:
-    ({ files }) =>
-    model => ({
-      model: modifyFields(model, {
-        additionalFiles: Array.appendAll(files),
-      }),
-    }),
-  RejectedNonFiles: () => model => ({ model }),
-})
+const foldAdditionalFilesDropOutMessage = (
+  outMessage: typeof FileDrop.OutMessage.Type,
+) =>
+  FileDrop.OutMessage.match(outMessage, {
+    ReceivedFiles: ({ files }) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, {
+          additionalFiles: Array.appendAll(files),
+        }),
+      })),
+    RejectedNonFiles: () => Update.makeStep((model: Model) => ({ model })),
+  })
 
 const foldAdditionalFilesDrop = Update.foldChild({
   update: FileDrop.update,
@@ -87,8 +87,8 @@ const foldAdditionalFilesDrop = Update.foldChild({
   foldOutMessage: foldAdditionalFilesDropOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     GotResumeDropMessage: ({ message }) => foldResumeDrop(model, message),
 
     GotAdditionalFilesDropMessage: ({ message }) =>
@@ -103,4 +103,5 @@ export const update = (model: Model, message: Message) =>
         additionalFiles: Array.remove(fileIndex),
       }),
     }),
-  })
+  }),
+)

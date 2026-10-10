@@ -1,4 +1,13 @@
-import { Array, Effect, Option, Queue, Schema, Stream, pipe } from 'effect'
+import {
+  Array,
+  Effect,
+  Layer,
+  Option,
+  Queue,
+  Schema,
+  Stream,
+  pipe,
+} from 'effect'
 import { AsyncData, Command, Mount, Submodel, Update } from 'foldkit'
 import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { modifyFields } from 'foldkit/struct'
@@ -17,7 +26,7 @@ import {
 import type { TableOfContentsEntry } from '../../tableOfContentsEntry'
 import { Message } from './message'
 import { type ExampleMeta, findBySlug } from './meta'
-import { CurrentSourcesAsyncData, type Model } from './model'
+import { CurrentSourcesAsyncData, Model } from './model'
 import {
   type ExampleSourceFile,
   ExampleSources,
@@ -38,17 +47,19 @@ export const LoadExampleSources = Command.define('LoadExampleSources', {
     Message.SucceededLoadExampleSources,
     Message.FailedLoadExampleSources,
   ],
-  execute: ({ slug }) =>
-    Effect.tryPromise({
-      try: () => loadSourcesForSlug(slug),
-      catch: error =>
-        error instanceof Error ? error.message : `Unknown example: ${slug}`,
-    }).pipe(
-      Effect.map(sources => Message.SucceededLoadExampleSources({ sources })),
-      Effect.catch(error =>
-        Effect.succeed(Message.FailedLoadExampleSources({ error })),
-      ),
-    ),
+  handler: function* () {
+    return ({ slug }) =>
+      Effect.tryPromise({
+        try: () => loadSourcesForSlug(slug),
+        catch: error =>
+          error instanceof Error ? error.message : `Unknown example: ${slug}`,
+      }).pipe(
+        Effect.map(sources => Message.SucceededLoadExampleSources({ sources })),
+        Effect.catch(error =>
+          Effect.succeed(Message.FailedLoadExampleSources({ error })),
+        ),
+      )
+  },
 })
 
 // MOUNT
@@ -103,22 +114,29 @@ const ObserveExampleUrlMessages = Mount.defineStream(
   'ObserveExampleUrlMessages',
   {
     messages: [Message.ChangedExampleUrl],
-    execute: ({ element }) => observeExampleUrlMessages(element),
+    handler: function* () {
+      return ({ element }) => observeExampleUrlMessages(element)
+    },
   },
+)
+
+export const mounts = [ObserveExampleUrlMessages]
+
+export const EffectsLayer = Layer.mergeAll(
+  LoadExampleSources.layer,
+  ObserveExampleUrlMessages.layer,
 )
 
 // INIT
 
-type UpdateReturn = Update.Return<Model, Message>
-
-export const init = (): UpdateReturn => ({
-  model: {
+export const init = () => ({
+  model: Model.make({
     sourceFileTabs: Tabs.init({ id: 'source-file-tabs' }),
     maybeActiveSourceFilePath: Option.none(),
     maybeExampleUrl: Option.none(),
     isLivePreviewOpen: true,
     currentSources: CurrentSourcesAsyncData.Idle(),
-  },
+  }),
 })
 
 const isSourceAvailable = (slug: string): boolean =>
@@ -132,7 +150,7 @@ export const boot = (
   maybeExampleSources: Option.Option<
     typeof ExampleSources.Type
   > = Option.none(),
-): UpdateReturn => {
+) => {
   const init_ = init()
   return Option.match(maybeExampleSources, {
     onNone: () =>
@@ -150,8 +168,8 @@ export const boot = (
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     GotSourceFileTabsMessage: ({ message }) =>
       foldSourceFileTabs(model, message),
     ChangedExampleUrl: ({ url }) => ({
@@ -189,7 +207,8 @@ export const update = (model: Model, message: Message) =>
         currentSources: () => CurrentSourcesAsyncData.Failure({ error }),
       }),
     }),
-  })
+  }),
+)
 
 export const informRouteChanged = (model: Model, slug: string) =>
   isSourceAvailable(slug)
@@ -426,17 +445,17 @@ const livePreviewDisclosureView = (
 
 const SourceFileTabs = Tabs.create()
 
-const foldSourceFileTabsOutMessage = Tabs.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeActiveSourceFilePath: () => Option.some(value),
-      }),
-    }),
-})
+const foldSourceFileTabsOutMessage = (
+  outMessage: typeof Tabs.OutMessage.Type,
+) =>
+  Tabs.OutMessage.match(outMessage, {
+    Selected: ({ value }) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, {
+          maybeActiveSourceFilePath: () => Option.some(value),
+        }),
+      })),
+  })
 
 const foldSourceFileTabs = Update.foldChild({
   update: SourceFileTabs.update,

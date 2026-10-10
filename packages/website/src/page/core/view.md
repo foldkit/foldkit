@@ -16,7 +16,7 @@ React functional components can hold local state and run effects through hooks, 
 
 ## The Document
 
-A `makeApplication` view returns a `Document`, not bare HTML. The Document contains the body to patch into the application container and the document-level state that should track the Model.
+An `Application.make` view returns a `Document`, not bare HTML. The Document contains the body to patch into the application container and the document-level state that should track the Model.
 
 | Field       | Type                       | Required | What the runtime does with it                                                                                                                  |
 | ----------- | -------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -29,7 +29,7 @@ A `makeApplication` view returns a `Document`, not bare HTML. The Document conta
 
 Every field is a function of the Model, just like `body`. There is no imperative `setTitle` or separate head-management API. Return the values you want, and the runtime makes the document match after each render.
 
-A `makeElement` view returns `Html` directly. An embedded app does not own the page, so it cannot declare the title or document metadata. Everything outside this section applies to both kinds of view. See [Runtime](/core/runtime#make-element) for when to use each one.
+An `Application.makeElement` view returns `Html` directly. An embedded app does not own the page, so it cannot declare the title or document metadata. Everything outside this section applies to both kinds of view. See [Runtime](/core/runtime#make-element) for when to use each one.
 
 ### Language and Direction
 

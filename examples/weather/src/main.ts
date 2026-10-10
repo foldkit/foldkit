@@ -1,6 +1,6 @@
 import { Array, Effect, Match, Option, Schema, String } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
-import { AsyncData, Command, Http, Runtime, type Update } from 'foldkit'
+import { AsyncData, Command, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -39,8 +39,8 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     UpdatedZipCodeInput: ({ value }) => ({
       model: modifyFields(model, {
         zipCodeInput: () => value,
@@ -70,15 +70,16 @@ export const update = (model: Model, message: Message) =>
         weather: () => WeatherAsyncData.Failure({ error }),
       }),
     }),
-  })
+  }),
+)
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
-  model: {
+export const init = () => ({
+  model: Model.make({
     zipCodeInput: '',
     weather: WeatherAsyncData.Idle(),
-  },
+  }),
 })
 
 // COMMAND
@@ -121,15 +122,13 @@ const weatherCodeToDescription = (code: number): string =>
     Match.orElse(() => 'Unknown'),
   )
 
-export const fetchWeatherEffect = (zipCode: string) =>
+const fetchWeather = (zipCode: string, client: HttpClient.HttpClient) =>
   Effect.gen(function* () {
     if (String.isEmpty(zipCode.trim())) {
       return yield* Effect.fail(
         Message.FailedFetchWeather({ error: 'Zip code required' }),
       )
     }
-
-    const client = yield* HttpClient.HttpClient
 
     const geocodeRequest = HttpClientRequest.get(GEOCODING_API).pipe(
       HttpClientRequest.setUrlParams({
@@ -207,9 +206,14 @@ export const fetchWeatherEffect = (zipCode: string) =>
 export const FetchWeather = Command.define('FetchWeather', {
   args: { zipCode: Schema.String },
   messages: [Message.SucceededFetchWeather, Message.FailedFetchWeather],
-  execute: ({ zipCode }) =>
-    Effect.provide(fetchWeatherEffect(zipCode), Http.layer),
+  handler: function* () {
+    const client = yield* HttpClient.HttpClient
+
+    return ({ zipCode }) => fetchWeather(zipCode, client)
+  },
 })
+
+export const EffectsLayer = FetchWeather.layer
 
 // VIEW
 
