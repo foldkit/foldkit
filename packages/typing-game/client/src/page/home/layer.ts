@@ -1,6 +1,6 @@
-import { Layer as EffectLayer } from 'effect'
+import { Layer } from 'effect'
 
 import { CommandsLayer } from './command'
 import { SubscriptionsLayer } from './subscription'
 
-export const Layer = EffectLayer.mergeAll(CommandsLayer, SubscriptionsLayer)
+export const EffectsLayer = Layer.mergeAll(CommandsLayer, SubscriptionsLayer)

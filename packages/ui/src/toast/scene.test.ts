@@ -18,7 +18,7 @@ import {
 const TestPayload = Schema.Struct({ body: Schema.String })
 type TestPayload = typeof TestPayload.Type
 
-const Toast = make(TestPayload)
+const Toast = make('TestToast', TestPayload)
 
 type Message = typeof Toast.Message.Type
 type Model = typeof Toast.Model.Type
@@ -297,6 +297,7 @@ describe('Toast', () => {
         Scene.pointerDown(entryZero, { clientX: 100 }),
         Scene.expect(entryZero).toHaveAttr('data-swipe', 'move'),
         Scene.Subscription.emit(
+          Toast.subscriptions.swipePointer,
           Toast.Message.MovedSwipePointer({
             pointerId: POINTER_ID,
             clientX: 200,
@@ -304,6 +305,7 @@ describe('Toast', () => {
         ),
         Scene.expect(entryZero).toHaveStyle('translate', '100px'),
         Scene.Subscription.emit(
+          Toast.subscriptions.swipePointer,
           Toast.Message.ReleasedSwipePointer({
             pointerId: POINTER_ID,
             clientX: 200,
@@ -340,12 +342,14 @@ describe('Toast', () => {
         Scene.given(withEntry()),
         Scene.pointerDown(entryZero, { clientX: 100 }),
         Scene.Subscription.emit(
+          Toast.subscriptions.swipePointer,
           Toast.Message.MovedSwipePointer({
             pointerId: POINTER_ID,
             clientX: 130,
           }),
         ),
         Scene.Subscription.emit(
+          Toast.subscriptions.swipePointer,
           Toast.Message.ReleasedSwipePointer({
             pointerId: POINTER_ID,
             clientX: 130,

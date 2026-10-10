@@ -50,11 +50,13 @@ const managedResources = ManagedResource.make<Model, Message>()(entry => ({
   }),
 }))
 
-const ManageEngineLayer = managedResources.engine.toLayer({
-  acquire: () =>
-    Layer.build(ChessEngineLayer).pipe(
-      Effect.map(context => Context.get(context, ChessEngineService)),
-    ),
-  // The scope closes on release, so the Layer finalizers run automatically.
-  release: () => Effect.void,
-})
+const ManageEngineLayer = managedResources.engine.toLayer(
+  Effect.succeed({
+    acquire: () =>
+      Layer.build(ChessEngineLayer).pipe(
+        Effect.map(context => Context.get(context, ChessEngineService)),
+      ),
+    // The scope closes on release, so the Layer finalizers run automatically.
+    release: () => Effect.void,
+  }),
+)

@@ -1,7 +1,7 @@
 import {
   Array,
   Effect,
-  Layer as EffectLayer,
+  Layer,
   Option,
   Queue,
   Schema,
@@ -49,15 +49,17 @@ export const LoadExampleSources = Command.define('LoadExampleSources', {
   ],
 })
 
-const LoadExampleSourcesLayer = LoadExampleSources.toLayer(({ slug }) =>
-  Effect.tryPromise({
-    try: () => loadSourcesForSlug(slug),
-    catch: error =>
-      error instanceof Error ? error.message : `Unknown example: ${slug}`,
-  }).pipe(
-    Effect.map(sources => Message.SucceededLoadExampleSources({ sources })),
-    Effect.catch(error =>
-      Effect.succeed(Message.FailedLoadExampleSources({ error })),
+const LoadExampleSourcesLayer = LoadExampleSources.toLayer(
+  Effect.succeed(({ slug }) =>
+    Effect.tryPromise({
+      try: () => loadSourcesForSlug(slug),
+      catch: error =>
+        error instanceof Error ? error.message : `Unknown example: ${slug}`,
+    }).pipe(
+      Effect.map(sources => Message.SucceededLoadExampleSources({ sources })),
+      Effect.catch(error =>
+        Effect.succeed(Message.FailedLoadExampleSources({ error })),
+      ),
     ),
   ),
 )
@@ -118,12 +120,12 @@ const ObserveExampleUrlMessages = Mount.defineStream(
 )
 
 const ObserveExampleUrlMessagesLayer = ObserveExampleUrlMessages.toLayer(
-  ({ element }) => observeExampleUrlMessages(element),
+  Effect.succeed(({ element }) => observeExampleUrlMessages(element)),
 )
 
 export const mounts = [ObserveExampleUrlMessages]
 
-export const Layer = EffectLayer.mergeAll(
+export const EffectsLayer = Layer.mergeAll(
   LoadExampleSourcesLayer,
   ObserveExampleUrlMessagesLayer,
 )
@@ -446,17 +448,17 @@ const livePreviewDisclosureView = (
 
 const SourceFileTabs = Tabs.create()
 
-const foldSourceFileTabsOutMessage = Tabs.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeActiveSourceFilePath: () => Option.some(value),
-      }),
-    }),
-})
+const foldSourceFileTabsOutMessage = (
+  outMessage: typeof Tabs.OutMessage.Type,
+) =>
+  Tabs.OutMessage.match(outMessage, {
+    Selected: ({ value }) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, {
+          maybeActiveSourceFilePath: () => Option.some(value),
+        }),
+      })),
+  })
 
 const foldSourceFileTabs = Update.foldChild({
   update: SourceFileTabs.update,

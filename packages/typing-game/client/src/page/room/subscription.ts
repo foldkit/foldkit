@@ -7,7 +7,7 @@ import { Message } from './message'
 import { Model, capturesKeyboard } from './model'
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  roomStream: entry(
+  roomUpdates: entry(
     'RoomUpdates',
     {
       maybeRoomStream: Schema.Option(
@@ -25,7 +25,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     },
   ),
 
-  roomKeyboard: entry(
+  roomKeyPresses: entry(
     'RoomKeyPresses',
     { shouldCaptureKeyboard: Schema.Boolean },
     {
@@ -37,7 +37,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-const RoomUpdatesLayer = subscriptions.roomStream.toLayer(
+const RoomUpdatesLayer = subscriptions.roomUpdates.toLayer(
   Effect.gen(function* () {
     const client = yield* RoomsClient
 
@@ -64,12 +64,13 @@ const RoomUpdatesLayer = subscriptions.roomStream.toLayer(
   }),
 )
 
-const RoomKeyPressesLayer = subscriptions.roomKeyboard.toLayer(
-  ({ shouldCaptureKeyboard }) =>
+const RoomKeyPressesLayer = subscriptions.roomKeyPresses.toLayer(
+  Effect.succeed(({ shouldCaptureKeyboard }) =>
     Stream.when(
       capturedKeyDownStream(key => Message.PressedKey({ key })),
       Effect.sync(() => shouldCaptureKeyboard),
     ),
+  ),
 )
 
 export const SubscriptionsLayer = Layer.mergeAll(

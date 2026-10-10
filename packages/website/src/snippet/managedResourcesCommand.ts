@@ -9,22 +9,24 @@ const TakePhoto = Command.define('TakePhoto', {
   messages: [Message.SucceededTakePhoto, Message.FailedTakePhoto],
 })
 
-const TakePhotoLayer = TakePhoto.toLayer(() =>
-  Effect.gen(function* () {
-    const stream = yield* CameraStream.get
+const TakePhotoLayer = TakePhoto.toLayer(
+  Effect.succeed(() =>
+    Effect.gen(function* () {
+      const stream = yield* CameraStream.get
 
-    const maybeTrack = Array.head(stream.getVideoTracks())
-    const bitmap = yield* Option.match(maybeTrack, {
-      onNone: () => Effect.fail(new Error('No video track available')),
-      onSome: track => {
-        const imageCapture = new ImageCapture(track)
-        return Effect.tryPromise(() => imageCapture.grabFrame())
-      },
-    })
+      const maybeTrack = Array.head(stream.getVideoTracks())
+      const bitmap = yield* Option.match(maybeTrack, {
+        onNone: () => Effect.fail(new Error('No video track available')),
+        onSome: track => {
+          const imageCapture = new ImageCapture(track)
+          return Effect.tryPromise(() => imageCapture.grabFrame())
+        },
+      })
 
-    return Message.SucceededTakePhoto({
-      width: bitmap.width,
-      height: bitmap.height,
-    })
-  }).pipe(Effect.catch(() => Effect.succeed(Message.FailedTakePhoto()))),
+      return Message.SucceededTakePhoto({
+        width: bitmap.width,
+        height: bitmap.height,
+      })
+    }).pipe(Effect.catch(() => Effect.succeed(Message.FailedTakePhoto()))),
+  ),
 )

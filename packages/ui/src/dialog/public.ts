@@ -22,9 +22,15 @@ export {
   type Unmounted,
   type CompletedReleaseDialogResources,
   ShowDialog,
+  ShowDialogLayer,
   AcquireResources,
+  AcquireResourcesLayer,
   CloseDialog,
+  CloseDialogLayer,
   ReleaseDialogResources,
+  ReleaseDialogResourcesLayer,
+  EffectsLayer,
+  mounts,
 } from './index.js'
 
 export type { InitConfig, ViewInputs, RenderInfo } from './index.js'

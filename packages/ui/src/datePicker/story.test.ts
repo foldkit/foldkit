@@ -121,8 +121,8 @@ describe('DatePicker', () => {
           }),
           Story.message(Message.Closed()),
           Story.Command.resolve(
-            Popover.FocusButton,
-            Popover.Message.CompletedFocusButton(),
+            Popover.FocusPopoverButton,
+            Popover.Message.CompletedFocusPopoverButton(),
           ),
           Story.message(Message.Opened()),
           Story.model(model => {
@@ -139,8 +139,8 @@ describe('DatePicker', () => {
           givenOpen,
           Story.message(Message.Closed()),
           Story.Command.resolve(
-            Popover.FocusButton,
-            Popover.Message.CompletedFocusButton(),
+            Popover.FocusPopoverButton,
+            Popover.Message.CompletedFocusPopoverButton(),
           ),
           Story.model(model => {
             expect(model.popover.isOpen).toBe(false)
@@ -176,8 +176,8 @@ describe('DatePicker', () => {
           }),
           Story.message(Message.Closed()),
           Story.Command.resolve(
-            Popover.FocusButton,
-            Popover.Message.CompletedFocusButton(),
+            Popover.FocusPopoverButton,
+            Popover.Message.CompletedFocusPopoverButton(),
           ),
           Story.model(model => {
             expect(model.calendar.viewMode).toBe('Days')
@@ -214,8 +214,8 @@ describe('DatePicker', () => {
           ),
           Story.message(Message.Closed()),
           Story.Command.resolve(
-            Popover.FocusButton,
-            Popover.Message.CompletedFocusButton(),
+            Popover.FocusPopoverButton,
+            Popover.Message.CompletedFocusPopoverButton(),
           ),
           Story.model(model => {
             expect(model.calendar.viewMode).toBe('Days')
@@ -238,8 +238,8 @@ describe('DatePicker', () => {
           Story.message(Message.RequestedSelectDate({ date: target })),
           Story.expectOutMessage(OutMessage.SelectedDate({ date: target })),
           Story.Command.resolve(
-            Popover.FocusButton,
-            Popover.Message.CompletedFocusButton(),
+            Popover.FocusPopoverButton,
+            Popover.Message.CompletedFocusPopoverButton(),
           ),
           Story.model(model => {
             expect(model.calendar.maybeFocusedDate).toStrictEqual(
@@ -257,8 +257,8 @@ describe('DatePicker', () => {
           givenOpen,
           Story.message(Message.RequestedSelectDate({ date: target })),
           Story.Command.resolve(
-            Popover.FocusButton,
-            Popover.Message.CompletedFocusButton(),
+            Popover.FocusPopoverButton,
+            Popover.Message.CompletedFocusPopoverButton(),
           ),
           Story.model(model => {
             expect(model.calendar.viewYear).toBe(2026)
@@ -339,8 +339,8 @@ describe('DatePicker', () => {
             }),
           ),
           Story.Command.resolve(
-            Popover.FocusButton,
-            Popover.Message.CompletedFocusButton(),
+            Popover.FocusPopoverButton,
+            Popover.Message.CompletedFocusPopoverButton(),
           ),
           Story.model(model => {
             expect(model.popover.isOpen).toBe(false)

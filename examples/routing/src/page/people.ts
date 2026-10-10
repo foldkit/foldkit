@@ -2,7 +2,7 @@ import {
   Array,
   Duration,
   Effect,
-  Layer as EffectLayer,
+  Layer,
   Option,
   Schema,
   String,
@@ -112,20 +112,14 @@ export type Message = typeof Message.Type
 
 // INIT
 
-type InitReturn = Update.Return<
-  Model,
-  Message,
-  Command.HandlerOf<typeof FetchPeople>
->
-
-export const init = (route: PeopleRoute): InitReturn => {
+export const init = (route: PeopleRoute) => {
   const searchText = routeSearchText(route)
   return {
-    model: {
+    model: Model.make({
       searchInput: searchText,
       searchHistory: addSearchToHistory([], searchText),
       results: SearchResults.Loading(),
-    },
+    }),
     commands: [FetchPeople({ searchText })],
   }
 }
@@ -142,13 +136,16 @@ export const FetchPeople = Command.define('FetchPeople', {
   messages: [Message.CompletedFetchPeople],
 })
 
-export const Layer = EffectLayer.mergeAll(
-  PushSearchUrl.toLayer(({ searchText }) =>
+const PushSearchUrlLayer = PushSearchUrl.toLayer(
+  Effect.succeed(({ searchText }) =>
     pushUrl(peopleRouter({ searchText })).pipe(
       Effect.as(Message.CompletedPushSearchUrl()),
     ),
   ),
-  FetchPeople.toLayer(({ searchText }) =>
+)
+
+const FetchPeopleLayer = FetchPeople.toLayer(
+  Effect.succeed(({ searchText }) =>
     Effect.sleep(SEARCH_LATENCY).pipe(
       Effect.as(
         Message.CompletedFetchPeople({
@@ -160,13 +157,14 @@ export const Layer = EffectLayer.mergeAll(
   ),
 )
 
+export const EffectsLayer = Layer.mergeAll(PushSearchUrlLayer, FetchPeopleLayer)
+
 // UPDATE
 
-export type UpdateRequirements = EffectLayer.Success<typeof Layer>
-export type UpdateReturn = Update.Return<Model, Message, UpdateRequirements>
+export type UpdateRequirements = Update.RequirementsOf<typeof update>
 
 export const update = Update.make((model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+  Message.match(message, {
     ChangedSearchInput: ({ value }) => ({
       model: modifyFields(model, { searchInput: () => value }),
     }),

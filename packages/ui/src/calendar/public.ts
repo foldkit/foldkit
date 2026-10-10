@@ -1,4 +1,5 @@
 export {
+  EffectsLayer,
   init,
   update,
   view,
@@ -20,6 +21,7 @@ export {
   type SelectedMonth,
   type SelectedYear,
   FocusGrid,
+  FocusGridLayer,
 } from './index.js'
 
 export type {

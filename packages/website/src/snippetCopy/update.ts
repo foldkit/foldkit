@@ -1,4 +1,4 @@
-import { Effect, Layer as EffectLayer, HashSet, Schema } from 'effect'
+import { Effect, HashSet, Layer, Schema } from 'effect'
 import { Command, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
@@ -40,13 +40,15 @@ export const CopySnippet = Command.define('CopySnippet', {
   args: { snippetId: Schema.String, text: Schema.String },
   messages: [Message.SucceededCopySnippet, Message.FailedCopySnippet],
 })
-const CopySnippetLayer = CopySnippet.toLayer(({ snippetId, text }) =>
-  Effect.tryPromise({
-    try: () => navigator.clipboard.writeText(text),
-    catch: () => new Error('Failed to copy to clipboard'),
-  }).pipe(
-    Effect.as(Message.SucceededCopySnippet({ snippetId })),
-    Effect.catch(() => Effect.succeed(Message.FailedCopySnippet())),
+const CopySnippetLayer = CopySnippet.toLayer(
+  Effect.succeed(({ snippetId, text }) =>
+    Effect.tryPromise({
+      try: () => navigator.clipboard.writeText(text),
+      catch: () => new Error('Failed to copy to clipboard'),
+    }).pipe(
+      Effect.as(Message.SucceededCopySnippet({ snippetId })),
+      Effect.catch(() => Effect.succeed(Message.FailedCopySnippet())),
+    ),
   ),
 )
 
@@ -60,15 +62,17 @@ export const WaitBeforeHidingCopiedIndicator = Command.define(
   },
 )
 const WaitBeforeHidingCopiedIndicatorLayer =
-  WaitBeforeHidingCopiedIndicator.toLayer(({ snippetId }) =>
-    Effect.sleep(COPY_INDICATOR_DURATION).pipe(
-      Effect.as(
-        Message.CompletedWaitBeforeHidingCopiedIndicator({ snippetId }),
+  WaitBeforeHidingCopiedIndicator.toLayer(
+    Effect.succeed(({ snippetId }) =>
+      Effect.sleep(COPY_INDICATOR_DURATION).pipe(
+        Effect.as(
+          Message.CompletedWaitBeforeHidingCopiedIndicator({ snippetId }),
+        ),
       ),
     ),
   )
 
-export const Layer = EffectLayer.mergeAll(
+export const EffectsLayer = Layer.mergeAll(
   CopySnippetLayer,
   WaitBeforeHidingCopiedIndicatorLayer,
 )

@@ -1,4 +1,4 @@
-import { Function, Option, Predicate, Schema } from 'effect'
+import { Function, Layer, Option, Predicate, Schema } from 'effect'
 import * as Calendar from 'foldkit/calendar'
 import type { CalendarDate } from 'foldkit/calendar'
 import type { ChildAttribute, Html } from 'foldkit/html'
@@ -104,11 +104,18 @@ export const init = (config: InitConfig): Model => ({
 
 // UPDATE
 
-type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
+/** Provides DatePicker's Calendar and Popover handlers. */
+export const EffectsLayer = Layer.mergeAll(
+  UiCalendar.EffectsLayer,
+  Popover.EffectsLayer,
+)
 
-const dropCalendarToDays: Update.Step<Model, Message> = model => ({
+/** Mount Definitions rendered by DatePicker's Popover child. */
+export const mounts = Popover.mounts
+
+const dropCalendarToDays = Update.makeStep((model: Model) => ({
   model: modifyFields(model, { calendar: UiCalendar.dropToDays }),
-})
+}))
 
 const readPopover = (model: Model): Option.Option<Popover.Model> =>
   Option.some(model.popover)
@@ -119,9 +126,7 @@ const writePopover = (model: Model, nextPopover: Popover.Model): Model =>
 const toGotPopoverMessage = (message: Popover.Message): Message =>
   Message.GotPopoverMessage({ message })
 
-const foldPopoverOutMessage = Popover.OutMessage.match<
-  Update.Step<Model, Message>
->({
+const foldPopoverOutMessage = Popover.OutMessage.match({
   Opened: () => dropCalendarToDays,
   Closed: () => dropCalendarToDays,
 })
@@ -150,10 +155,8 @@ const foldPopoverClose = Update.foldChildStep({
   foldOutMessage: foldPopoverOutMessage,
 })
 
-const foldCalendarOutMessage = UiCalendar.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ChangedViewMonth: () => model => ({ model }),
+const foldCalendarOutMessage = UiCalendar.OutMessage.match({
+  ChangedViewMonth: () => Update.makeStep((model: Model) => ({ model })),
   SelectedDate: () => foldPopoverClose,
 })
 
@@ -185,8 +188,8 @@ const foldCalendarSelectDate = Update.foldChild({
 
 /** Processes a DatePicker Message and returns the next Model, optional
  *  Commands, and an optional OutMessage. */
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     GotCalendarMessage: ({ message: calendarMessage }) =>
       foldCalendar(model, calendarMessage),
 
@@ -200,24 +203,22 @@ export const update = (model: Model, message: Message) =>
     RequestedSelectDate: ({ date }) => foldCalendarSelectDate(model, date),
 
     Cleared: () => ({ model, outMessage: OutMessage.ClearedDate() }),
-  })
+  }),
+)
 
 /** Programmatically opens the DatePicker, updating the Model and returning
  *  focus and Popover Commands. Use this in domain-event handlers. */
-export const open = (model: Model): UpdateReturn =>
-  update(model, Message.Opened())
+export const open = (model: Model) => update(model, Message.Opened())
 
 /** Programmatically closes the date picker. Use this in domain-event handlers. */
-export const close = (model: Model): UpdateReturn =>
-  update(model, Message.Closed())
+export const close = (model: Model) => update(model, Message.Closed())
 
 /** Programmatically selects a date, committing it and closing the popover. Emits a `SelectedDate` OutMessage just like a user-initiated selection. */
-export const selectDate = (model: Model, date: CalendarDate): UpdateReturn =>
+export const selectDate = (model: Model, date: CalendarDate) =>
   update(model, Message.RequestedSelectDate({ date }))
 
 /** Programmatically clears the selected date. */
-export const clear = (model: Model): UpdateReturn =>
-  update(model, Message.Cleared())
+export const clear = (model: Model) => update(model, Message.Cleared())
 
 /** Moves the embedded calendar's view and cursor to a date without changing
  *  the selection (which the parent owns). Use it to navigate the picker onto a

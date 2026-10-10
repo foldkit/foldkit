@@ -163,7 +163,10 @@ describe('view', () => {
           connection: () => ConnectionState.Connected(),
         }),
       ),
-      Subscription.emit(Message.ReceivedMessage({ text: 'hello from echo' })),
+      Subscription.emit(
+        subscriptions.chatSocketMessages,
+        Message.ReceivedMessage({ text: 'hello from echo' }),
+      ),
       Command.expectExact(
         TimestampReceivedMessage({ text: 'hello from echo' }),
       ),

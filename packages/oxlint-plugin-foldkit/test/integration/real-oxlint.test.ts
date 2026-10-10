@@ -125,7 +125,7 @@ describe('real-oxlint rule fixtures', () => {
 
   it('reports every direct decision-time operation in its invalid fixture', () => {
     expect(countDiagnostics('no-impure-call-at-decision-time', 'invalid')).toBe(
-      23,
+      24,
     )
   })
 

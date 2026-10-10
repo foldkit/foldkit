@@ -27,3 +27,5 @@ export * as Tabs from './tabs/public.js'
 export * as Toast from './toast/public.js'
 export * as Tooltip from './tooltip/public.js'
 export * as VirtualList from './virtualList/public.js'
+
+export { EffectsLayer, mounts } from './effects.js'

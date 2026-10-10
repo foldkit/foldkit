@@ -4,9 +4,13 @@ import { Command } from 'foldkit'
 const SaveDraftWithId = Command.define('SaveDraftWithId', {
   args: { body: Schema.String, draftId: Schema.String },
   messages: [Message.CompletedSaveDraftWithId],
-  execute: ({ draftId }) =>
-    Effect.succeed(Message.CompletedSaveDraftWithId({ draftId })),
 })
+
+const SaveDraftWithIdLayer = SaveDraftWithId.toLayer(
+  Effect.succeed(({ draftId }) =>
+    Effect.succeed(Message.CompletedSaveDraftWithId({ draftId })),
+  ),
+)
 
 // ❌ Bad: assigning the UUID first does not defer the call.
 const saveBad = (body: string) => {

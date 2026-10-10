@@ -45,7 +45,7 @@ const EXPECTED_SKIP_EXTENSIONS = new Set([
   '.txt',
   '.webp',
 ])
-const EXCLUDED_DIRECTORIES = new Set(['node_modules', 'dist'])
+const EXCLUDED_DIRECTORIES = new Set(['node_modules', 'dist', 'test'])
 
 // NOTE: The playground keeps only the development dependencies its shipped
 // commands execute: `vite`, the Foldkit plugins its Vite config loads, and

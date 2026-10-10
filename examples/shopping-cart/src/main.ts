@@ -1,4 +1,4 @@
-import { Effect, Layer as EffectLayer, Match, Option, Schema } from 'effect'
+import { Effect, Layer, Match, Option, Schema } from 'effect'
 import { Command, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -72,38 +72,41 @@ const LoadExternal = Command.define('LoadExternal', {
   messages: [Message.CompletedLoadExternal],
 })
 
-export const Layer = EffectLayer.mergeAll(
-  NavigateInternal.toLayer(({ url }) =>
+const NavigateInternalLayer = NavigateInternal.toLayer(
+  Effect.succeed(({ url }) =>
     pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
   ),
-  LoadExternal.toLayer(({ href }) =>
+)
+
+const LoadExternalLayer = LoadExternal.toLayer(
+  Effect.succeed(({ href }) =>
     load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
   ),
-  Products.Layer,
+)
+
+export const EffectsLayer = Layer.mergeAll(
+  NavigateInternalLayer,
+  LoadExternalLayer,
+  Products.EffectsLayer,
 )
 
 // UPDATE
 
-type UpdateRequirements = EffectLayer.Success<typeof Layer>
-type UpdateReturn = Update.Return<Model, Message, UpdateRequirements>
-
-const foldProductsOutMessage = Products.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  AddedToCart:
-    ({ item }) =>
-    model => ({ model: modifyFields(model, { cart: Cart.addItem(item) }) }),
-  IncrementedQuantity:
-    ({ itemId }) =>
-    model => ({
-      model: modifyFields(model, { cart: Cart.incrementQuantity(itemId) }),
-    }),
-  DecrementedQuantity:
-    ({ itemId }) =>
-    model => ({
-      model: modifyFields(model, { cart: Cart.decrementQuantity(itemId) }),
-    }),
-})
+const foldProductsOutMessage = (outMessage: typeof Products.OutMessage.Type) =>
+  Products.OutMessage.match(outMessage, {
+    AddedToCart: ({ item }) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, { cart: Cart.addItem(item) }),
+      })),
+    IncrementedQuantity: ({ itemId }) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, { cart: Cart.incrementQuantity(itemId) }),
+      })),
+    DecrementedQuantity: ({ itemId }) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, { cart: Cart.decrementQuantity(itemId) }),
+      })),
+  })
 
 const foldProducts = Update.foldChild({
   update: Products.update,
@@ -115,12 +118,12 @@ const foldProducts = Update.foldChild({
 })
 
 export const update = Update.make((model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+  Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
 
     ClickedLink: ({ request }) =>
-      UrlRequest.match<UpdateReturn>(request, {
+      UrlRequest.match(request, {
         Internal: ({ url }) => ({
           model,
           commands: [NavigateInternal({ url: urlToString(url) })],

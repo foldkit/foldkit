@@ -52,37 +52,48 @@ CompletedItemsFocus
 
 ```ts
 // RIGHT: the Message is named from the Command that caused it
-Command.define('DetermineStartTime', {
+const DetermineStartTime = Command.define('DetermineStartTime', {
   args: { elapsedMs: Schema.Number },
   messages: [Message.CompletedDetermineStartTime],
-  execute: ({ elapsedMs }) =>
+})
+const DetermineStartTimeLayer = DetermineStartTime.toLayer(
+  Effect.succeed(({ elapsedMs }) =>
     Clock.currentTimeMillis.pipe(
       Effect.map(now =>
         Message.CompletedDetermineStartTime({ startTime: now - elapsedMs }),
       ),
     ),
-})
-Command.define('GenerateCardId', {
+  ),
+)
+const GenerateCardId = Command.define('GenerateCardId', {
   args: { columnId: Schema.String },
   messages: [Message.CompletedGenerateCardId],
-  execute: ({ columnId }) =>
-    Effect.gen(function* () {
-      const crypto = yield* Crypto.Crypto
-      const cardId = yield* Effect.orDie(crypto.randomUUIDv4)
-      return Message.CompletedGenerateCardId({ cardId, columnId })
-    }),
 })
-Command.define('SaveTodos', {
+const GenerateCardIdLayer = GenerateCardId.toLayer(
+  Effect.gen(function* () {
+    const crypto = yield* Crypto.Crypto
+
+    return ({ columnId }) =>
+      Effect.gen(function* () {
+        const cardId = yield* Effect.orDie(crypto.randomUUIDv4)
+        return Message.CompletedGenerateCardId({ cardId, columnId })
+      })
+  }),
+)
+const SaveTodos = Command.define('SaveTodos', {
   args: { todos: Todos },
   messages: [Message.SucceededSaveTodos, Message.FailedSaveTodos],
-  execute: ({ todos }) =>
+})
+const SaveTodosLayer = SaveTodos.toLayer(
+  Effect.succeed(({ todos }) =>
     saveTodos(todos).pipe(
       Effect.match({
         onFailure: () => Message.FailedSaveTodos(),
         onSuccess: () => Message.SucceededSaveTodos({ todos }),
       }),
     ),
-})
+  ),
+)
 
 // WRONG: the Command verb conjugated to past tense
 DeterminedStartTime
@@ -90,7 +101,7 @@ GeneratedCardId
 SavedTodos
 ```
 
-The exception is a Message with more than one cause. When several Commands resolve to the same Message, or a Command synthesizes a Message that a Subscription also emits, name it for the fact instead: `EndedAnimation` is produced both by the `WaitForAnimationSettled` Command and by each component's `DetectMovementOrAnimationEnd` race, so no single Command owns the name.
+The exception is a Message with more than one cause. When several Commands resolve to the same Message, or a Command synthesizes a Message that a Subscription also emits, name it for the fact instead: `EndedAnimation` is produced both by the `WaitForAnimationSettled` Command and by component-specific movement or animation races, so no single Command owns the name.
 
 Keep each `defineMessageUnion()` case's payload object on one line when it fits. Let Oxfmt wrap payloads that need more space, so the declaration remains easy to scan as one variant per line.
 

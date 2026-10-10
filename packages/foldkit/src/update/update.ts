@@ -47,12 +47,26 @@ export type Return<Model, Message, R = never> = Readonly<{
 
 type AnyUpdate = (...args: ReadonlyArray<any>) => any
 
+type AnyStep = (model: any, ...context: ReadonlyArray<any>) => any
+
 type CommandRequirements<Output> = Output extends unknown
   ? 'commands' extends keyof Output
     ? Output extends Readonly<{ commands?: infer Commands }>
-      ? Commands extends ReadonlyArray<infer CommandValue>
+      ? NonNullable<Commands> extends ReadonlyArray<infer CommandValue>
         ? CommandValue extends Command<any, any, infer R>
           ? R
+          : never
+        : never
+      : never
+    : never
+  : never
+
+type CommandMessage<Output> = Output extends unknown
+  ? 'commands' extends keyof Output
+    ? Output extends Readonly<{ commands?: infer Commands }>
+      ? NonNullable<Commands> extends ReadonlyArray<infer CommandValue>
+        ? CommandValue extends Command<infer Message, any, any>
+          ? Message
           : never
         : never
       : never
@@ -138,6 +152,63 @@ export function make(update: AnyUpdate): AnyUpdate {
   return update
 }
 
+type ValidateStep<Step extends AnyStep> =
+  Parameters<Step> extends readonly [
+    model: infer Model,
+    ...context: ReadonlyArray<any>,
+  ]
+    ? [ReturnType<Step>] extends [
+        ReturnWithOutMessage<
+          Model,
+          CommandMessage<ReturnType<Step>>,
+          unknown,
+          unknown
+        >,
+      ]
+      ? unknown
+      : never
+    : never
+
+type MadeStep<Step extends AnyStep> = (
+  ...args: Parameters<Step>
+) => [OutMessageOf<ReturnType<Step>>] extends [never]
+  ? Return<
+      Parameters<Step>[0],
+      CommandMessage<ReturnType<Step>>,
+      CommandRequirements<ReturnType<Step>>
+    >
+  : ReturnWithOutMessage<
+      Parameters<Step>[0],
+      CommandMessage<ReturnType<Step>>,
+      OutMessageOf<ReturnType<Step>>,
+      CommandRequirements<ReturnType<Step>>
+    >
+
+/**
+ * Defines an update Step while inferring its Message and service
+ * requirements from the Commands it returns. If a branch emits an OutMessage,
+ * the returned function has a {@link StepWithOutMessage} contract. Optional
+ * and rest context parameters after the Model are preserved.
+ *
+ * Use this for standalone Step producers, including OutMessage folds, whose
+ * Commands come from handler Layers:
+ *
+ * ```ts
+ * const foldSavedDraft = OutMessage.match({
+ *   SavedDraft: () => Update.makeStep((model: Model) => ({
+ *     model,
+ *     commands: [RefreshDraft()],
+ *   })),
+ * })
+ * ```
+ */
+export function makeStep<const Step extends AnyStep>(
+  step: Step & ValidateStep<Step>,
+): MadeStep<Step>
+export function makeStep(step: AnyStep): AnyStep {
+  return step
+}
+
 /** The return shape of an update that can also surface an OutMessage to its
  *  parent. Omit `commands` when the update statically creates none. Return a
  *  computed Commands collection directly, even when it may be empty. Omit
@@ -207,6 +278,29 @@ export type StepWithOutMessage<Model, Message, OutMessage, R = never> = (
   model: Model,
 ) => ReturnWithOutMessage<Model, Message, OutMessage, R>
 
+type NonEmptySteps = readonly [AnyStep, ...ReadonlyArray<AnyStep>]
+
+type FirstStepModel<Steps extends NonEmptySteps> = Parameters<Steps[0]>[0]
+
+type CombinedStepMessage<Steps extends ReadonlyArray<AnyStep>> = CommandMessage<
+  ReturnType<Steps[number]>
+>
+
+type CombinedStepRequirements<Steps extends ReadonlyArray<AnyStep>> =
+  CommandRequirements<ReturnType<Steps[number]>>
+
+type ValidateCombinedSteps<Model, Steps extends ReadonlyArray<AnyStep>> = {
+  readonly [Index in keyof Steps]: Steps[Index] extends (
+    model: Model,
+  ) => infer Output
+    ? [Output] extends [
+        Return<Model, CommandMessage<Output>, CommandRequirements<Output>>,
+      ]
+      ? Steps[Index]
+      : never
+    : never
+}
+
 /** Composes a list of update steps into one. Each step runs against the
  *  Model the previous step produced, and every step's Commands are
  *  concatenated into a single batch, in step order.
@@ -233,6 +327,17 @@ export type StepWithOutMessage<Model, Message, OutMessage, R = never> = (
  *    ])
  *  ``` */
 export const combine: {
+  <const Steps extends NonEmptySteps>(
+    steps: Steps & ValidateCombinedSteps<FirstStepModel<Steps>, Steps>,
+  ): Step<
+    FirstStepModel<Steps>,
+    CombinedStepMessage<Steps>,
+    CombinedStepRequirements<Steps>
+  >
+  <Model, const Steps extends NonEmptySteps>(
+    model: Model,
+    steps: Steps & ValidateCombinedSteps<Model, Steps>,
+  ): Return<Model, CombinedStepMessage<Steps>, CombinedStepRequirements<Steps>>
   <Model, Message, R = never>(
     steps: ReadonlyArray<Step<Model, Message, R>>,
   ): Step<Model, Message, R>

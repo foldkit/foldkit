@@ -23,7 +23,7 @@ const noiseScaleSliderSubscriptions = Subscription.lift({
 })
 
 const frameSubscription = Subscription.make<Model, Message>()(entry => ({
-  frame: entry(
+  animationFrameTicks: entry(
     'AnimationFrameTicks',
     { isActive: Schema.Boolean },
     {
@@ -33,10 +33,8 @@ const frameSubscription = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-const makeAnimationFrameStream = (): Stream.Stream<
-  typeof Message.TickedFrame.Type
-> =>
-  Stream.callback<typeof Message.TickedFrame.Type>(queue =>
+const animationFrameStream = Stream.callback<typeof Message.TickedFrame.Type>(
+  queue =>
     Effect.acquireRelease(
       Effect.sync(() => {
         const state = {
@@ -56,15 +54,17 @@ const makeAnimationFrameStream = (): Stream.Stream<
       }),
       state => Effect.sync(() => cancelAnimationFrame(state.frameId)),
     ).pipe(Effect.flatMap(() => Effect.never)),
-  )
-
-export const AnimationFrameTicksLayer = frameSubscription.frame.toLayer(
-  ({ isActive }) =>
-    Stream.when(
-      makeAnimationFrameStream(),
-      Effect.sync(() => isActive),
-    ),
 )
+
+export const AnimationFrameTicksLayer =
+  frameSubscription.animationFrameTicks.toLayer(
+    Effect.succeed(({ isActive }) =>
+      Stream.when(
+        animationFrameStream,
+        Effect.sync(() => isActive),
+      ),
+    ),
+  )
 
 export const subscriptions = Subscription.aggregate(
   frameSubscription,

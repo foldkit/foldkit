@@ -1,56 +1,68 @@
 import { Effect, Fiber, Schema } from 'effect'
+import { Application } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
-import * as Runtime from 'foldkit/runtime'
 import { modifyFields } from 'foldkit/struct'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { Message, Model, boot, update, view } from './index.js'
+import {
+  EffectsLayer,
+  Message,
+  Model,
+  boot,
+  mounts,
+  update,
+  view,
+} from './index.js'
 
 const dialogId = 'preserved-dialog'
 
 const makeDialogProgram = (container: HTMLElement) =>
-  Runtime.makeElement({
-    Model,
-    init: () => {
-      const dialogBoot = boot({ id: dialogId })
+  Application.provide(
+    Application.makeElement({
+      Model,
+      init: () => {
+        const dialogBoot = boot({ id: dialogId })
 
-      if (dialogBoot.commands === undefined) {
-        return { model: dialogBoot.model }
-      }
+        if (dialogBoot.commands === undefined) {
+          return { model: dialogBoot.model }
+        }
 
-      return { model: dialogBoot.model, commands: dialogBoot.commands }
-    },
-    update: (model, message) => {
-      const dialogUpdate = update(model, message)
+        return { model: dialogBoot.model, commands: dialogBoot.commands }
+      },
+      update: (model, message) => {
+        const dialogUpdate = update(model, message)
 
-      if (dialogUpdate.commands === undefined) {
-        return { model: dialogUpdate.model }
-      }
+        if (dialogUpdate.commands === undefined) {
+          return { model: dialogUpdate.model }
+        }
 
-      return { model: dialogUpdate.model, commands: dialogUpdate.commands }
-    },
-    view: (model: Model, h: HtmlBuilder<Message>) =>
-      view(
-        model,
-        {
-          toView: ({ dialog, title, panel }) =>
-            h.dialog(
-              [...dialog],
-              [
-                h.div(
-                  [...panel],
-                  [
-                    h.h2([...title], ['Preserved Dialog']),
-                    h.button([h.Id('dialog-button')], ['Close']),
-                  ],
-                ),
-              ],
-            ),
-        },
-        h,
-      ),
-    container,
-  })
+        return { model: dialogUpdate.model, commands: dialogUpdate.commands }
+      },
+      view: (model: Model, h: HtmlBuilder<Message>) =>
+        view(
+          model,
+          {
+            toView: ({ dialog, title, panel }) =>
+              h.dialog(
+                [...dialog],
+                [
+                  h.div(
+                    [...panel],
+                    [
+                      h.h2([...title], ['Preserved Dialog']),
+                      h.button([h.Id('dialog-button')], ['Close']),
+                    ],
+                  ),
+                ],
+              ),
+          },
+          h,
+        ),
+      mounts,
+      container,
+    }),
+    EffectsLayer,
+  )
 
 describe('Dialog runtime lifecycle', () => {
   beforeEach(() => {

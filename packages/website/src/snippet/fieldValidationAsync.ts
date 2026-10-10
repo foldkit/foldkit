@@ -8,7 +8,10 @@ const validateEmail = validate(emailRules)
 const CheckEmailAvailable = Command.define('CheckEmailAvailable', {
   args: { email: Schema.String, validationId: Schema.Number },
   messages: [CompletedCheckEmailAvailable],
-  execute: ({ email, validationId }) =>
+})
+
+const CheckEmailAvailableLayer = CheckEmailAvailable.toLayer(
+  Effect.succeed(({ email, validationId }) =>
     Effect.gen(function* () {
       const isAvailable = yield* apiCheckEmail(email)
       return CompletedCheckEmailAvailable({
@@ -33,10 +36,11 @@ const CheckEmailAvailable = Command.define('CheckEmailAvailable', {
         ),
       ),
     ),
-})
+  ),
+)
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ChangedEmail: ({ value }) => {
       const syncResult = validateEmail(value)
       const validationId = Number.increment(model.emailValidationId)
@@ -65,4 +69,5 @@ const update = (model: Model, message: Message) =>
         return { model }
       }
     },
-  })
+  }),
+)

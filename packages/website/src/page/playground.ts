@@ -3,8 +3,8 @@ import {
   Array,
   Deferred,
   Effect,
-  Layer as EffectLayer,
   FiberMap,
+  Layer,
   Match,
   Option,
   Order,
@@ -164,16 +164,18 @@ export const managedResources = ManagedResource.make<Model, Message>()(
 )
 
 const ManageWebContainerPlaygroundLayer =
-  managedResources.webContainerPlayground.toLayer({
-    acquire: ({ slug }) =>
-      Effect.gen(function* () {
-        const fileEntry = yield* Effect.fromOption(
-          Record.get(filesBySlug, slug),
-        )
-        return yield* acquirePlaygroundWebContainer(fileEntry.files)
-      }),
-    release: () => Effect.void,
-  })
+  managedResources.webContainerPlayground.toLayer(
+    Effect.succeed({
+      acquire: ({ slug }) =>
+        Effect.gen(function* () {
+          const fileEntry = yield* Effect.fromOption(
+            Record.get(filesBySlug, slug),
+          )
+          return yield* acquirePlaygroundWebContainer(fileEntry.files)
+        }),
+      release: () => Effect.void,
+    }),
+  )
 
 // MOUNT
 
@@ -446,7 +448,7 @@ export const MountPlaygroundEditor = Mount.defineStream(
 )
 
 export const MountPlaygroundEditorLayer = MountPlaygroundEditor.toLayer(
-  ({ element, path, initialContent, files, viewStateChanges }) =>
+  Effect.succeed(({ element, path, initialContent, files, viewStateChanges }) =>
     streamPlaygroundEditorMessages(
       element,
       path,
@@ -454,6 +456,7 @@ export const MountPlaygroundEditorLayer = MountPlaygroundEditor.toLayer(
       files,
       viewStateChanges,
     ),
+  ),
 )
 
 // COMMAND
@@ -475,19 +478,21 @@ export const WaitForPlaygroundServerFailure = Command.define(
 )
 
 const WaitForPlaygroundServerFailureLayer =
-  WaitForPlaygroundServerFailure.toLayer(() =>
-    Effect.gen(function* () {
-      const { serverFailure } = yield* WebContainerPlayground.get
-      return yield* Deferred.await(serverFailure).pipe(
-        Effect.catch(error =>
-          Effect.succeed(
-            Message.CompletedWaitForPlaygroundServerFailure({
-              reason: reasonFromError(error),
-            }),
+  WaitForPlaygroundServerFailure.toLayer(
+    Effect.succeed(() =>
+      Effect.gen(function* () {
+        const { serverFailure } = yield* WebContainerPlayground.get
+        return yield* Deferred.await(serverFailure).pipe(
+          Effect.catch(error =>
+            Effect.succeed(
+              Message.CompletedWaitForPlaygroundServerFailure({
+                reason: reasonFromError(error),
+              }),
+            ),
           ),
-        ),
-      )
-    }).pipe(Effect.catchTag('ResourceNotAvailable', () => Effect.interrupt)),
+        )
+      }).pipe(Effect.catchTag('ResourceNotAvailable', () => Effect.interrupt)),
+    ),
   )
 
 export const SchedulePlaygroundFileWrite = Command.define(
@@ -502,7 +507,7 @@ export const SchedulePlaygroundFileWrite = Command.define(
 )
 
 const SchedulePlaygroundFileWriteLayer = SchedulePlaygroundFileWrite.toLayer(
-  ({ path, content }) =>
+  Effect.succeed(({ path, content }) =>
     Effect.gen(function* () {
       const { container, pendingWrites } = yield* WebContainerPlayground.get
       yield* FiberMap.run(
@@ -539,11 +544,12 @@ const SchedulePlaygroundFileWriteLayer = SchedulePlaygroundFileWrite.toLayer(
         ),
       ),
     ),
+  ),
 )
 
 export const mounts = [MountPlaygroundEditor]
 
-export const Layer = EffectLayer.mergeAll(
+export const EffectsLayer = Layer.mergeAll(
   ManageWebContainerPlaygroundLayer,
   MountPlaygroundEditorLayer,
   WaitForPlaygroundServerFailureLayer,
@@ -897,15 +903,15 @@ const responsiveEditorView = (model: Model, h: HtmlBuilder<Message>): Html =>
 
 const PlaygroundFileTabs = Tabs.create<string>()
 
-const foldPlaygroundFileTabsOutMessage = Tabs.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { activeFilePath: () => value }),
-    }),
-})
+const foldPlaygroundFileTabsOutMessage = (
+  outMessage: typeof Tabs.OutMessage.Type,
+) =>
+  Tabs.OutMessage.match(outMessage, {
+    Selected: ({ value }) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, { activeFilePath: () => value }),
+      })),
+  })
 
 const foldPlaygroundFileTabs = Update.foldChild({
   update: PlaygroundFileTabs.update,

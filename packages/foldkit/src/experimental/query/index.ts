@@ -1,13 +1,8 @@
 export { define } from './define.js'
 export type {
   KeyedQuery,
+  KeyedQueryConfig,
   KeyedQueryToLayer,
-  LayeredKeyedQueryConfig,
   LayeredKeyedQuery,
 } from './keyedQuery.js'
-export type {
-  LayeredQuery,
-  LayeredQueryConfig,
-  Query,
-  QueryToLayer,
-} from './query.js'
+export type { LayeredQuery, Query, QueryConfig, QueryToLayer } from './query.js'

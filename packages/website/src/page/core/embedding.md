@@ -26,11 +26,11 @@ Data the app needs once, at startup, enters through `Flags`, exactly as in a pag
 
 ### Inbound Ports: a Subscription {#inbound-ports}
 
-Data the host pushes while the app runs arrives on an inbound Port, which the app consumes as a Subscription source. `Port.subscriptionEntry` wraps every value into a Message, so host input drives `update` the same way any other external event does:
+Data the host pushes while the app runs arrives on an inbound Port, which the app consumes as a named Subscription source. `Port.stream(port)` produces the decoded values. The Subscription handler maps each value into a Message, so host input drives `update` the same way any other external event does:
 
 ::Snippet{name="embeddingInboundSubscription" label="Inbound Subscription"}
 
-For a Model-gated entry, build one from `Port.stream` inside `Subscription.make`. Values sent while no Stream for the Port is running are dropped, with one exception: values sent before the first Stream attaches are buffered and delivered to it in order, so sends issued right after `embed` are not lost during startup.
+Values sent while no Stream for the Port is running are dropped, with one exception: values sent before the first Stream attaches are buffered and delivered to it in order, so sends issued right after `embed` are not lost during startup.
 
 ### Outbound Ports: a Command {#outbound-ports}
 

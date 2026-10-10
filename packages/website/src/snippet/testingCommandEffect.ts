@@ -2,7 +2,7 @@ import { Effect, Layer, Match, String } from 'effect'
 import { HttpClient, HttpClientResponse } from 'effect/http'
 import { expect, test } from 'vitest'
 
-import { FetchWeather, Layer as WeatherLayer } from './main'
+import { EffectsLayer as WeatherEffectsLayer, FetchWeather } from './main'
 
 test('the FetchWeather handler returns a success Message from HTTP responses', async () => {
   const testClient = HttpClient.make(request =>
@@ -40,7 +40,7 @@ test('the FetchWeather handler returns a success Message from HTTP responses', a
   )
 
   const TestLayer = Layer.provide(
-    WeatherLayer,
+    WeatherEffectsLayer,
     Layer.succeed(HttpClient.HttpClient, testClient),
   )
 

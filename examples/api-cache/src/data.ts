@@ -115,13 +115,12 @@ export const fetchPostDetail = (
     )
   })
 
-export const fetchStats = (random: Random.Random) =>
-  Effect.gen(function* () {
-    yield* Effect.sleep(SERVER_LATENCY)
+export const fetchStats = Effect.gen(function* () {
+  yield* Effect.sleep(SERVER_LATENCY)
 
-    const activeUsers = yield* Random.nextIntBetween(80, 140)
-    const requestsPerSecond = yield* Random.nextIntBetween(900, 1600)
-    const cacheHitRatePercent = yield* Random.nextIntBetween(86, 99)
+  const activeUsers = yield* Random.nextIntBetween(80, 140)
+  const requestsPerSecond = yield* Random.nextIntBetween(900, 1600)
+  const cacheHitRatePercent = yield* Random.nextIntBetween(86, 99)
 
-    return Stats.make({ activeUsers, requestsPerSecond, cacheHitRatePercent })
-  }).pipe(Effect.provideService(Random.Random, random))
+  return Stats.make({ activeUsers, requestsPerSecond, cacheHitRatePercent })
+})

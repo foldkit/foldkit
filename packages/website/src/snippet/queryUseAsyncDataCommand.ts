@@ -9,11 +9,15 @@ type Message = typeof Message.Type
 const SubmitOrder = Command.define('SubmitOrder', {
   args: { orderDraft: OrderDraft },
   messages: [Message.SucceededSubmitOrder, Message.FailedSubmitOrder],
-  execute: ({ orderDraft }) =>
+})
+
+const SubmitOrderLayer = SubmitOrder.toLayer(
+  Effect.succeed(({ orderDraft }) =>
     Orders.place(orderDraft).pipe(
       Effect.map(order => Message.SucceededSubmitOrder({ order })),
       Effect.catch(error =>
         Effect.succeed(Message.FailedSubmitOrder({ error })),
       ),
     ),
-})
+  ),
+)

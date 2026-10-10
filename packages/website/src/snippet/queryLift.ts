@@ -22,10 +22,11 @@ const init = () => {
   return posts.loadIfMissing(model)
 }
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     // Run Query's update, then write its Model back into the parent.
     GotPostsMessage: ({ message }) => posts.fold(model, message),
     // Return the transition and Command for either missing or retained data.
     ClickedRefreshPosts: () => posts.revalidateOrLoad(model),
-  })
+  }),
+)

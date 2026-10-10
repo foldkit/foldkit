@@ -1,6 +1,6 @@
 import { Application, Runtime } from 'foldkit'
 
-import { Layer, Message, Model, init, update, view } from './main'
+import { EffectsLayer, Message, Model, init, update, view } from './main'
 
 const application = Application.make({
   Model,
@@ -17,4 +17,4 @@ const application = Application.make({
   },
 })
 
-Runtime.run(Application.provide(application, Layer))
+Runtime.run(Application.provide(application, EffectsLayer))

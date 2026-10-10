@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { Schema } from 'effect'
-import { CustomElement, Runtime, type Update } from 'foldkit'
+import { CustomElement, Runtime, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -44,8 +44,8 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     UpdatedContent: ({ value }) => ({
       model: modifyFields(model, { content: () => value }),
     }),
@@ -55,7 +55,8 @@ export const update = (model: Model, message: Message) =>
     ChangedBackgroundColor: ({ value }) => ({
       model: modifyFields(model, { backgroundColor: () => value }),
     }),
-  })
+  }),
+)
 
 // WEB COMPONENT
 

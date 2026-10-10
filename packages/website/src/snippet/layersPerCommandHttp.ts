@@ -30,7 +30,7 @@ const FetchWeatherLayer = FetchWeather.toLayer(
   }),
 )
 
-export const HandlersLayer = FetchWeatherLayer
-const ServicesLayer = Http.layer
+export const EffectsLayer = FetchWeatherLayer
+export const ServicesLayer = Http.layer
 
-export const AppLayer = Layer.provide(HandlersLayer, ServicesLayer)
+export const AppLayer = Layer.provide(EffectsLayer, ServicesLayer)

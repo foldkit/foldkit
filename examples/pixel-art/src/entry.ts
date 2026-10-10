@@ -4,18 +4,19 @@ import { Application, Runtime } from 'foldkit'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 
 import {
+  EffectsLayer,
   Flags,
-  Layer as HandlersLayer,
   Message,
   Model,
   flags,
   init,
+  mounts,
   subscriptions,
   update,
   view,
 } from './main'
 
-const AppLayer = HandlersLayer.pipe(
+const AppLayer = EffectsLayer.pipe(
   Layer.provideMerge(BrowserKeyValueStore.layerLocalStorage),
 )
 
@@ -26,6 +27,7 @@ const application = Application.make({
   update,
   view,
   subscriptions,
+  mounts,
   container: document.getElementById('root'),
   devTools: {
     Message,

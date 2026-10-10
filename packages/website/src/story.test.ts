@@ -38,7 +38,7 @@ const flags = {
 
 const initAt = (url: Url.Url): Model => init(flags, url).model
 
-const aiHeadingSubscription = subscriptions.aiHeading
+const aiHeadingSubscription = subscriptions.aiHeadingToggleTicks
 
 const expectHomePresent = (model: Model): void => {
   expect(Option.isSome(model.maybeHome)).toBe(true)

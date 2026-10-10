@@ -2,26 +2,22 @@ import { Context, Effect, Layer, type Scope } from 'effect'
 
 declare const HandlerTypeId: unique symbol
 
-/** The service required by a Managed Resource whose lifecycle is supplied by a Layer. */
+/** The service required by a ManagedResource whose lifecycle is supplied by a Layer. */
 export interface Handler<Name extends string> {
   readonly [HandlerTypeId]: Name
 }
 
-type LifecycleHandler<
-  Params,
-  Value,
-  AcquireRequirements,
-  ReleaseRequirements,
-  AcquireError,
-  ReleaseError,
-> = Readonly<{
-  acquire: (
-    params: Params,
-  ) => Effect.Effect<Value, AcquireError, AcquireRequirements | Scope.Scope>
-  release: (
-    value: Value,
-  ) => Effect.Effect<void, ReleaseError, ReleaseRequirements>
+type LifecycleHandler<Params, Value> = Readonly<{
+  acquire: (params: Params) => Effect.Effect<Value, any, any>
+  release: (value: Value) => Effect.Effect<void, any, any>
 }>
+
+type LifecycleRequirements<Lifecycle> =
+  Lifecycle extends LifecycleHandler<any, any>
+    ?
+        | Effect.Services<ReturnType<Lifecycle['acquire']>>
+        | Effect.Services<ReturnType<Lifecycle['release']>>
+    : never
 
 type HandlerService<Params, Value> = Readonly<{
   identity: symbol
@@ -31,8 +27,8 @@ type HandlerService<Params, Value> = Readonly<{
 }>
 
 /**
- * Creates a Layer recipe from a ManagedResource lifecycle handler or an Effect
- * that constructs one. The constructor runs once when the application Layer
+ * Creates a Layer recipe from an Effect that constructs a ManagedResource
+ * lifecycle handler. The constructor runs once when the application Layer
  * is built and may capture shared services. The returned acquire and release
  * functions manage each handle according to Model state. Acquire scoped
  * resources inside acquire so their finalizers follow the handle's lifetime.
@@ -42,45 +38,19 @@ type HandlerService<Params, Value> = Readonly<{
  */
 export interface ToLayer<Name extends string, Params, Value> {
   <
-    AcquireRequirements,
-    ReleaseRequirements,
+    Lifecycle extends LifecycleHandler<Params, Value>,
     BuildError = never,
     BuildRequirements = never,
-    AcquireError = unknown,
-    ReleaseError = unknown,
   >(
-    build:
-      | LifecycleHandler<
-          Params,
-          Value,
-          AcquireRequirements,
-          ReleaseRequirements,
-          AcquireError,
-          ReleaseError
-        >
-      | Effect.Effect<
-          LifecycleHandler<
-            Params,
-            Value,
-            AcquireRequirements,
-            ReleaseRequirements,
-            AcquireError,
-            ReleaseError
-          >,
-          BuildError,
-          BuildRequirements
-        >,
+    build: Effect.Effect<Lifecycle, BuildError, BuildRequirements>,
   ): Layer.Layer<
     Handler<Name>,
     BuildError,
-    Exclude<
-      AcquireRequirements | ReleaseRequirements | BuildRequirements,
-      Scope.Scope
-    >
+    Exclude<LifecycleRequirements<Lifecycle> | BuildRequirements, Scope.Scope>
   >
 }
 
-/** @internal Builds the service-backed lifecycle functions for a Managed Resource entry. */
+/** @internal Builds the service-backed lifecycle functions for a ManagedResource entry. */
 export const makeHandler = <Name extends string, Params, Value>(name: Name) => {
   const identity = Symbol(name)
   const service = Context.Service<Handler<Name>, HandlerService<Params, Value>>(
@@ -124,50 +94,24 @@ export const makeHandler = <Name extends string, Params, Value>(name: Name) => {
     })
 
   const toLayer: ToLayer<Name, Params, Value> = <
-    AcquireRequirements,
-    ReleaseRequirements,
+    Lifecycle extends LifecycleHandler<Params, Value>,
     BuildError = never,
     BuildRequirements = never,
-    AcquireError = unknown,
-    ReleaseError = unknown,
   >(
-    build:
-      | LifecycleHandler<
-          Params,
-          Value,
-          AcquireRequirements,
-          ReleaseRequirements,
-          AcquireError,
-          ReleaseError
-        >
-      | Effect.Effect<
-          LifecycleHandler<
-            Params,
-            Value,
-            AcquireRequirements,
-            ReleaseRequirements,
-            AcquireError,
-            ReleaseError
-          >,
-          BuildError,
-          BuildRequirements
-        >,
+    build: Effect.Effect<Lifecycle, BuildError, BuildRequirements>,
   ): Layer.Layer<
     Handler<Name>,
     BuildError,
-    Exclude<
-      AcquireRequirements | ReleaseRequirements | BuildRequirements,
-      Scope.Scope
-    >
+    Exclude<LifecycleRequirements<Lifecycle> | BuildRequirements, Scope.Scope>
   > =>
     Layer.effect(
       service,
       Effect.gen(function* () {
         const context = yield* Effect.context<
-          | Exclude<AcquireRequirements | ReleaseRequirements, Scope.Scope>
+          | Exclude<LifecycleRequirements<Lifecycle>, Scope.Scope>
           | BuildRequirements
         >()
-        const handler = Effect.isEffect(build) ? yield* build : build
+        const handler = yield* build
         return { identity, context, ...handler }
       }),
     )

@@ -1,7 +1,7 @@
 import { Array, Effect, Fiber, Option } from 'effect'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { makeApplication } from '../../runtime/index.js'
+import * as Application from '../../runtime/application.js'
 import * as App from './uploads.js'
 
 let maybeRunningFiber = Option.none<Fiber.Fiber<void>>()
@@ -11,14 +11,17 @@ const boot = (): void => {
   container.id = 'app'
   document.body.appendChild(container)
 
-  const application = makeApplication<App.Model, App.Message>({
-    Model: App.Model,
-    init: () => ({ model: App.initialModel }),
-    update: App.update,
-    view: App.view,
-    container,
-    devTools: false,
-  })
+  const application = Application.provide(
+    Application.make({
+      Model: App.Model,
+      init: () => ({ model: App.initialModel }),
+      update: App.update,
+      view: App.view,
+      container,
+      devTools: false,
+    }),
+    App.EffectsLayer,
+  )
 
   maybeRunningFiber = Option.some(Effect.runFork(application.start()))
 }

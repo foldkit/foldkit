@@ -15,30 +15,20 @@ import {
   applyTransition,
   isParentFieldConfig,
   parentFieldToLens,
-  runExecute,
 } from './internal.js'
 
-export type QueryConfig<Name extends string, A, AI, E, EI, R> = Readonly<{
-  name: Name
-  data: Schema.Codec<A, AI, never, never>
-  error: Schema.Codec<E, EI, never, never>
-  execute: Effect.Effect<A, E, R>
-}>
-
-/** Definition fields for a Query whose fetch handler is supplied by a Layer. */
-export type LayeredQueryConfig<Name extends string, A, AI, E, EI> = Readonly<{
+/** Definition fields for a Query. */
+export type QueryConfig<Name extends string, A, AI, E, EI> = Readonly<{
   name: Name
   data: Schema.Codec<A, AI, never, never>
   error: Schema.Codec<E, EI, never, never>
   execute?: never
 }>
 
-/** Builds a Query fetch handler Layer from a fetch or an Effect that constructs one. */
+/** Builds a Query fetch handler Layer from an Effect that constructs a fetch. */
 export interface QueryToLayer<Name extends string, A, E> {
   <R, BuildE = never, BuildR = never>(
-    build:
-      | (() => Effect.Effect<A, E, R>)
-      | Effect.Effect<() => Effect.Effect<A, E, R>, BuildE, BuildR>,
+    build: Effect.Effect<() => Effect.Effect<A, E, R>, BuildE, BuildR>,
   ): Layer.Layer<
     Command.Handler<`Fetch${Name}`>,
     BuildE,
@@ -177,12 +167,12 @@ export interface Query<Name extends string, A, AI, E, EI, R = never> {
     QueryMessage<A, AI, E, EI>['Type'],
     R
   >
-  /** Executes the configured fetch directly and returns settled `AsyncData`. */
+  /** Executes the fetch handler directly and returns settled `AsyncData`. */
   readonly run: Effect.Effect<AsyncData.AsyncData<A, E>, never, R>
 }
 
 const makeQuery = <Name extends string, A, AI, E, EI, R>(
-  config: Pick<QueryConfig<Name, A, AI, E, EI, R>, 'name' | 'data' | 'error'>,
+  config: QueryConfig<Name, A, AI, E, EI>,
   Message: QueryMessage<A, AI, E, EI>,
   Fetch: Command.CommandDefinitionWithArgs<
     `Fetch${Name}`,
@@ -299,38 +289,13 @@ const makeQuery = <Name extends string, A, AI, E, EI, R>(
   } satisfies Query<Name, A, AI, E, EI, R>
 }
 
-export function defineQuery<Name extends string, A, AI, E, EI, R>(
-  config: QueryConfig<Name, A, AI, E, EI, R>,
-): Query<Name, A, AI, E, EI, R>
 export function defineQuery<Name extends string, A, AI, E, EI>(
-  config: LayeredQueryConfig<Name, A, AI, E, EI>,
+  config: QueryConfig<Name, A, AI, E, EI>,
 ): LayeredQuery<Name, A, AI, E, EI>
-export function defineQuery<Name extends string, A, AI, E, EI, R>(
-  config:
-    | QueryConfig<Name, A, AI, E, EI, R>
-    | LayeredQueryConfig<Name, A, AI, E, EI>,
-): Query<Name, A, AI, E, EI, R> | LayeredQuery<Name, A, AI, E, EI>
-export function defineQuery<Name extends string, A, AI, E, EI, R>(
-  config:
-    | QueryConfig<Name, A, AI, E, EI, R>
-    | LayeredQueryConfig<Name, A, AI, E, EI>,
-): Query<Name, A, AI, E, EI, R> | LayeredQuery<Name, A, AI, E, EI> {
+export function defineQuery<Name extends string, A, AI, E, EI>(
+  config: QueryConfig<Name, A, AI, E, EI>,
+): LayeredQuery<Name, A, AI, E, EI> {
   const Message = makeQueryMessage(config.data, config.error)
-
-  if (config.execute !== undefined) {
-    const Fetch = Command.define(`Fetch${config.name}`, {
-      args: { generation: Schema.Number },
-      messages: [Message.CompletedFetch],
-      execute: ({ generation }) =>
-        pipe(
-          config.execute,
-          Effect.result,
-          Effect.map(result => Message.CompletedFetch({ generation, result })),
-        ),
-    })
-
-    return makeQuery(config, Message, Fetch, runExecute(config.execute))
-  }
 
   const Fetch = Command.define(`Fetch${config.name}`, {
     args: { generation: Schema.Number },
@@ -347,13 +312,11 @@ export function defineQuery<Name extends string, A, AI, E, EI, R>(
     BuildE = never,
     BuildR = never,
   >(
-    build:
-      | (() => Effect.Effect<A, E, HandlerR>)
-      | Effect.Effect<() => Effect.Effect<A, E, HandlerR>, BuildE, BuildR>,
+    build: Effect.Effect<() => Effect.Effect<A, E, HandlerR>, BuildE, BuildR>,
   ) =>
     Fetch.toLayer(
       Effect.map(
-        Effect.isEffect(build) ? build : Effect.succeed(build),
+        build,
         execute =>
           ({ generation }) =>
             pipe(

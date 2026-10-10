@@ -1,5 +1,5 @@
 import { Array, Effect, Number, Schema } from 'effect'
-import { Command, Runtime, type Update } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import { Document, type HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -53,14 +53,20 @@ const heavyPayload = makeHeavyArray(HEAVY_ITEM_COUNT)
 const FillHistoryStep = Command.define('FillHistoryStep', {
   args: { remaining: Schema.Number },
   messages: [Message.CompletedFillHistoryStep],
-  execute: ({ remaining }) =>
-    Effect.sync(() => Message.CompletedFillHistoryStep({ remaining })),
 })
+
+const FillHistoryStepLayer = FillHistoryStep.toLayer(
+  Effect.succeed(({ remaining }) =>
+    Effect.sync(() => Message.CompletedFillHistoryStep({ remaining })),
+  ),
+)
+
+export const EffectsLayer = FillHistoryStepLayer
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedTick: () => ({
       model: modifyFields(model, { tickCount: tickCount => tickCount + 1 }),
     }),
@@ -88,16 +94,17 @@ export const update = (model: Model, message: Message) =>
           ? [FillHistoryStep({ remaining: Number.decrement(remaining) })]
           : [],
     }),
-  })
+  }),
+)
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
-  model: {
+export const init = () => ({
+  model: Model.make({
     tickCount: 0,
     lastReceivedPayloadSize: 0,
     largeArray: [],
-  },
+  }),
 })
 
 // VIEW

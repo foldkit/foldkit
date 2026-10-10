@@ -88,14 +88,13 @@ const foldAttachments = Update.foldChild({
   toParentMessage: message => Message.GotAttachmentsMessage({ message }),
 })
 
-const foldStepMenuOutMessage = Menu.OutMessage.match<
-  Update.Step<Model, Message>,
-  Menu.OutMessage<Step.Step>
->({
-  Selected:
-    ({ value }) =>
-    model => ({ model: modifyFields(model, { currentStep: () => value }) }),
-})
+const foldStepMenuOutMessage = (outMessage: Menu.OutMessage<Step.Step>) =>
+  Menu.OutMessage.match(outMessage, {
+    Selected: ({ value }) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, { currentStep: () => value }),
+      })),
+  })
 
 const foldStepMenu = Update.foldChild({
   update: StepMenu.update,
@@ -106,14 +105,13 @@ const foldStepMenu = Update.foldChild({
   foldOutMessage: foldStepMenuOutMessage,
 })
 
-const foldStepTabsOutMessage = Tabs.OutMessage.match<
-  Update.Step<Model, Message>,
-  Tabs.OutMessage<Step.Step>
->({
-  Selected:
-    ({ value }) =>
-    model => ({ model: modifyFields(model, { currentStep: () => value }) }),
-})
+const foldStepTabsOutMessage = (outMessage: Tabs.OutMessage<Step.Step>) =>
+  Tabs.OutMessage.match(outMessage, {
+    Selected: ({ value }) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, { currentStep: () => value }),
+      })),
+  })
 
 const foldStepTabs = Update.foldChild({
   update: StepTabs.update,

@@ -67,6 +67,7 @@ describe('Playground WebContainer processes', () => {
       Effect.scoped(
         Effect.gen(function* () {
           const captured = yield* captureProcessOutput(output, 'test process')
+
           return yield* Fiber.join(captured.fiber).pipe(Effect.flip)
         }),
       ),

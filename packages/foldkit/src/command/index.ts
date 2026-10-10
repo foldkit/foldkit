@@ -5,7 +5,7 @@ import { type Handler, type ToLayer, makeHandler } from './handler.js'
 import * as Interruptible from './interruptible/index.js'
 
 export { CommandDefinitionTypeId }
-export type { Handler, HandlerOf } from './handler.js'
+export type { Handler, HandlerOf, ToLayer } from './handler.js'
 
 /** A named Effect that produces a message, optionally carrying the args used
  *  to construct it. `key` is present on Commands built by
@@ -140,42 +140,20 @@ type DefineConfig = Readonly<{
         keyFields?: ReadonlyArray<string>
         toKey?: (keyArgs: any) => string
       }>
-  execute?: any
 }>
-
-// NOTE: The suspend is load bearing, not a redundant wrapper. Without it the
-// `execute` body runs the moment update constructs the Command, so any
-// expression it evaluates on the way to returning its Effect runs inside a pure
-// reducer. Every side effect the body performs runs there, and every exception
-// it raises escapes update, even when update discards the Command instead of
-// returning it. Reading a missing browser global is one instance, the one that
-// surfaced this, not the boundary of it. Suspending defers the body to
-// execution, where the runtime can contain any failure it produces.
-// A no-args `execute` is already an Effect value and needs no equivalent.
-const suspendExecute = (
-  config: DefineConfig,
-  args: any,
-): Effect.Effect<any, any, any> => Effect.suspend(() => config.execute(args))
 
 /**
  * Defines a Command. `args` declares the args Schema, `messages` lists the
  * Messages this Command can produce, and `interrupt` opts into interruption.
  *
- * Omit `execute` to give the Definition a `toLayer` method. The resulting
- * Command requires a handler service named for the Definition. A Layer built
- * with `toLayer` supplies the implementation and captures its construction
- * context. The current execution context takes precedence when the Command
- * runs, so runtime-provided services are available to the handler.
+ * The Definition exposes `toLayer`, which accepts an Effect that constructs
+ * its handler. The constructor runs when the application Layer is built and
+ * may capture services. The returned handler runs for each Command invocation.
+ * The current execution context takes precedence over the construction context.
  *
- * `execute` defines the implementation inline. With no `args`, it is a bare
- * Effect and the Definition is callable as
- * `Definition()`. With `args`, it receives the declared args and the Definition
- * is callable as `Definition(args)`.
- *
- * Constructing a Command never runs its implementation. An argument-bearing
- * inline `execute` body and a Layer-backed handler body are both deferred until
- * the runtime executes the Command. Side effects and exceptions from either
- * body cannot reach update, and a Command that update discards runs nothing.
+ * Constructing a Command never runs its implementation. The handler body is
+ * deferred until the runtime executes the Command, and a Command that update
+ * discards runs nothing.
  *
  * With `interrupt`, every invocation registers under a key in the runtime's
  * interrupt registry for the duration of its Effect, and the returned Definition
@@ -209,17 +187,23 @@ const suspendExecute = (
  *   args: { text: Schema.String },
  *   messages: [Message.CompletedSendMessage],
  * })
- * const SendMessageLayer = SendMessage.toLayer(({ text }) =>
- *   Effect.log(text).pipe(Effect.as(Message.CompletedSendMessage())),
+ * const SendMessageLayer = SendMessage.toLayer(
+ *   Effect.succeed(({ text }) =>
+ *     Effect.log(text).pipe(Effect.as(Message.CompletedSendMessage())),
+ *   ),
  * )
  * ```
  *
- * @example Inline execution with no args
+ * @example With no args
  * ```ts
  * const LockScroll = Command.define('LockScroll', {
  *   messages: [Message.CompletedLockScroll],
- *   execute: Dom.lockScroll.pipe(Effect.as(Message.CompletedLockScroll())),
  * })
+ * const LockScrollLayer = LockScroll.toLayer(
+ *   Effect.succeed(() =>
+ *     Dom.lockScroll.pipe(Effect.as(Message.CompletedLockScroll())),
+ *   ),
+ * )
  * // Call site:
  * LockScroll()
  * ```
@@ -229,8 +213,10 @@ const suspendExecute = (
  * const FetchWeather = Command.define('FetchWeather', {
  *   args: { zipCode: Schema.String },
  *   messages: [Message.SucceededFetchWeather, Message.FailedFetchWeather],
- *   execute: ({ zipCode }) => Effect.gen(function* () { ... }),
  * })
+ * const FetchWeatherLayer = FetchWeather.toLayer(
+ *   Effect.succeed(({ zipCode }) => Effect.gen(function* () { ... })),
+ * )
  * // Call site:
  * FetchWeather({ zipCode: '90210' })
  * ```
@@ -241,8 +227,10 @@ const suspendExecute = (
  *   args: { draftId: Schema.String, body: Schema.String },
  *   messages: [Message.SucceededSaveDraft, Message.FailedSaveDraft],
  *   interrupt: true,
- *   execute: ({ draftId, body }) => Effect.gen(function* () { ... }),
  * })
+ * const SaveDraftLayer = SaveDraft.toLayer(
+ *   Effect.succeed(({ draftId, body }) => Effect.gen(function* () { ... })),
+ * )
  * // Call sites:
  * SaveDraft({ draftId: 'abc', body })
  * SaveDraft.Interrupt(outcome => Message.CompletedCancelSaveDraft({ outcome }))
@@ -257,8 +245,10 @@ const suspendExecute = (
  *     keyFields: ['uploadId'],
  *     toKey: ({ uploadId }) => String(uploadId),
  *   },
- *   execute: ({ uploadId, file }) => Effect.gen(function* () { ... }),
  * })
+ * const UploadFileLayer = UploadFile.toLayer(
+ *   Effect.succeed(({ uploadId, file }) => Effect.gen(function* () { ... })),
+ * )
  * // Call sites:
  * UploadFile({ uploadId: 1, file })
  * UploadFile.Interrupt({ uploadId: 1 }, outcome =>
@@ -277,13 +267,13 @@ export function define<
   config: Readonly<{
     args: Fields
     messages: Messages
+    execute?: never
     interrupt: Readonly<{
       keyFields: Array.NonEmptyReadonlyArray<KeyField>
       toKey: (
         keyArgs: Pick<Schema.Schema.Type<Schema.Struct<Fields>>, KeyField>,
       ) => string
     }>
-    execute?: never
   }>,
 ): Interruptible.DefinitionWithArgs<
   Name,
@@ -308,8 +298,8 @@ export function define<
   config: Readonly<{
     args: Fields
     messages: Messages
-    interrupt: true
     execute?: never
+    interrupt: true
   }>,
 ): Interruptible.DefinitionWithArgsNameKeyed<
   Name,
@@ -333,8 +323,8 @@ export function define<
   config: Readonly<{
     args: Fields
     messages: Messages
-    interrupt?: never
     execute?: never
+    interrupt?: never
   }>,
 ): LayeredCommandDefinitionWithArgs<
   Name,
@@ -349,8 +339,8 @@ export function define<
   name: Name,
   config: Readonly<{
     messages: Messages
-    interrupt: true
     execute?: never
+    interrupt: true
   }>,
 ): Interruptible.DefinitionNoArgs<
   Name,
@@ -367,115 +357,19 @@ export function define<
   name: Name,
   config: Readonly<{
     messages: Messages
-    interrupt?: never
     execute?: never
+    interrupt?: never
   }>,
 ): LayeredCommandDefinitionNoArgs<Name, Schema.Schema.Type<Messages[number]>>
-
-export function define<
-  const Name extends string,
-  Fields extends Schema.Struct.Fields,
-  const Messages extends ReadonlyArray<Schema.Top>,
-  const KeyField extends keyof Schema.Schema.Type<Schema.Struct<Fields>> &
-    string,
-  Eff extends Effect.Effect<Schema.Schema.Type<Messages[number]>, any, any>,
->(
-  name: Name,
-  config: Readonly<{
-    args: Fields
-    messages: Messages
-    interrupt: Readonly<{
-      keyFields: Array.NonEmptyReadonlyArray<KeyField>
-      toKey: (
-        keyArgs: Pick<Schema.Schema.Type<Schema.Struct<Fields>>, KeyField>,
-      ) => string
-    }>
-    execute: (args: Schema.Schema.Type<Schema.Struct<Fields>>) => Eff
-  }>,
-): Interruptible.DefinitionWithArgs<
-  Name,
-  Fields,
-  Pick<Schema.Schema.Type<Schema.Struct<Fields>>, KeyField>,
-  Eff
->
-
-export function define<
-  const Name extends string,
-  Fields extends Schema.Struct.Fields,
-  const Messages extends ReadonlyArray<Schema.Top>,
-  Eff extends Effect.Effect<Schema.Schema.Type<Messages[number]>, any, any>,
->(
-  name: Name,
-  config: Readonly<{
-    args: Fields
-    messages: Messages
-    interrupt: true
-    execute: (args: Schema.Schema.Type<Schema.Struct<Fields>>) => Eff
-  }>,
-): Interruptible.DefinitionWithArgsNameKeyed<Name, Fields, Eff>
-
-export function define<
-  const Name extends string,
-  Fields extends Schema.Struct.Fields,
-  const Messages extends ReadonlyArray<Schema.Top>,
-  Eff extends Effect.Effect<Schema.Schema.Type<Messages[number]>, any, any>,
->(
-  name: Name,
-  config: Readonly<{
-    args: Fields
-    messages: Messages
-    interrupt?: never
-    execute: (args: Schema.Schema.Type<Schema.Struct<Fields>>) => Eff
-  }>,
-): CommandDefinitionWithArgs<Name, Fields, Eff>
-
-export function define<
-  const Name extends string,
-  const Messages extends ReadonlyArray<Schema.Top>,
-  Eff extends Effect.Effect<Schema.Schema.Type<Messages[number]>, any, any>,
->(
-  name: Name,
-  config: Readonly<{
-    messages: Messages
-    interrupt: true
-    execute: Eff
-  }>,
-): Interruptible.DefinitionNoArgs<Name, Eff>
-
-export function define<
-  const Name extends string,
-  const Messages extends ReadonlyArray<Schema.Top>,
-  Eff extends Effect.Effect<Schema.Schema.Type<Messages[number]>, any, any>,
->(
-  name: Name,
-  config: Readonly<{
-    messages: Messages
-    interrupt?: never
-    execute: Eff
-  }>,
-): CommandDefinitionNoArgs<Name, Eff>
 
 export function define(name: string, config: DefineConfig): unknown {
   const isArgsDeclared = Predicate.isNotUndefined(config.args)
   const maybeInterrupt = Option.fromNullishOr(config.interrupt)
-  const handler = Predicate.isUndefined(config.execute)
-    ? makeHandler<string, any, any>(name)
-    : undefined
-  const makeEffect = (args: any): Effect.Effect<any, any, any> => {
-    if (handler) {
-      return handler.execute(args)
-    }
-
-    if (isArgsDeclared) {
-      return suspendExecute(config, args)
-    }
-
-    return config.execute
-  }
+  const handler = makeHandler<string, any, any>(name)
+  const makeEffect = (args: any): Effect.Effect<any, any, any> =>
+    handler.execute(args)
   const attachHandler = (definition: unknown): void => {
-    if (handler) {
-      Object.defineProperty(definition, 'toLayer', { value: handler.toLayer })
-    }
+    Object.defineProperty(definition, 'toLayer', { value: handler.toLayer })
   }
 
   if (Option.isNone(maybeInterrupt)) {
@@ -686,15 +580,36 @@ export const mapMessage: {
  *  generic combinator over a type-parameter Message unifies with
  *  `Command.Command<Message>` directly. */
 export const mapMessages: {
+  <const Commands extends ReadonlyArray<Command<any, any, any>>, ToMessage>(
+    commands: Commands,
+    f: (message: Effect.Success<Commands[number]['effect']>) => ToMessage,
+  ): ReadonlyArray<
+    Command<
+      ToMessage,
+      Effect.Error<Commands[number]['effect']>,
+      Effect.Services<Commands[number]['effect']>
+    >
+  >
   <FromMessage, ToMessage, E = never, R = never>(
     commands: ReadonlyArray<Command<FromMessage, E, R>> | undefined,
     f: (message: FromMessage) => ToMessage,
   ): ReadonlyArray<Command<ToMessage, E, R>>
   <FromMessage, ToMessage>(
     f: (message: FromMessage) => ToMessage,
-  ): <E = never, R = never>(
-    commands: ReadonlyArray<Command<FromMessage, E, R>> | undefined,
-  ) => ReadonlyArray<Command<ToMessage, E, R>>
+  ): {
+    <const Commands extends ReadonlyArray<Command<FromMessage, any, any>>>(
+      commands: Commands,
+    ): ReadonlyArray<
+      Command<
+        ToMessage,
+        Effect.Error<Commands[number]['effect']>,
+        Effect.Services<Commands[number]['effect']>
+      >
+    >
+    <E = never, R = never>(
+      commands: ReadonlyArray<Command<FromMessage, E, R>> | undefined,
+    ): ReadonlyArray<Command<ToMessage, E, R>>
+  }
 } = Function.dual(
   2,
   <FromMessage, ToMessage, E = never, R = never>(

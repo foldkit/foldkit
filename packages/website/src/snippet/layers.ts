@@ -27,6 +27,7 @@ const LoadUser = Command.define('LoadUser', {
 const LoadUserLayer = LoadUser.toLayer(
   Effect.gen(function* () {
     const apiClient = yield* ApiClientService
+
     return ({ userId }) =>
       apiClient.getUser(userId).pipe(
         Effect.map(user => Message.SucceededLoadUser({ user })),
@@ -57,9 +58,9 @@ const ApiTestLayer = Layer.succeed(ApiClientService, {
     Effect.succeed(User.make({ id: userId, name: 'Test User' })),
 })
 
-export const HandlersLayer = LoadUserLayer
-const ServicesLayer = Layer.provide(ApiLayer, Http.layer)
+export const EffectsLayer = LoadUserLayer
+export const ServicesLayer = Layer.provide(ApiLayer, Http.layer)
 const ServicesTestLayer = ApiTestLayer
 
-export const AppLayer = Layer.provide(HandlersLayer, ServicesLayer)
-export const AppTestLayer = Layer.provide(HandlersLayer, ServicesTestLayer)
+export const AppLayer = Layer.provide(EffectsLayer, ServicesLayer)
+export const AppTestLayer = Layer.provide(EffectsLayer, ServicesTestLayer)

@@ -10,7 +10,15 @@ import {
   Schema,
   Stream,
 } from 'effect'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  expectTypeOf,
+  it,
+  vi,
+} from 'vitest'
 
 import * as Command from '../command/index.js'
 import type { HtmlBuilder } from '../html/index.js'
@@ -21,7 +29,7 @@ import * as Subscription from '../subscription/public.js'
 import * as Update from '../update/index.js'
 import * as Application from './application.js'
 import { makeApplication } from './makeApplication.js'
-import type { ElementConfigWithFlags } from './makeElement.js'
+import { makeElement } from './makeElement.js'
 import * as ModelPreservationBridge from './modelPreservationBridge.js'
 import { embed, run } from './start.js'
 
@@ -49,18 +57,28 @@ class DerivedService extends Context.Service<DerivedService, ValueShape>()(
 
 const ReadValue = Command.define('ReadValue', {
   messages: [Message.SucceededReadValue],
-  execute: Effect.map(ValueService, ({ value }) =>
-    Message.SucceededReadValue({ value }),
-  ),
 })
 
-const update = (model: Model, message: Message) =>
+const ReadValueLayer = ReadValue.toLayer(
+  Effect.succeed(() =>
+    Effect.map(ValueService, ({ value }) =>
+      Message.SucceededReadValue({ value }),
+    ),
+  ),
+)
+
+const update = Update.make((model: Model, message: Message) =>
   Message.match(message, {
     ClickedReadValue: () => ({ model, commands: [ReadValue()] }),
     SucceededReadValue: ({ value }) => ({
       model: modifyFields(model, { label: label => `${label} ${value}` }),
     }),
-  })
+  }),
+)
+
+expectTypeOf<Update.RequirementsOf<typeof update>>().toEqualTypeOf<
+  Command.Handler<'ReadValue'>
+>()
 
 const documentView = (model: Model, h: HtmlBuilder<Message>) => ({
   title: '',
@@ -343,7 +361,10 @@ describe('Application Layers', () => {
       view: (model, h) => h.div([], [model.label]),
       container,
     })
-    const provided = Application.provide(element, ValueLayer)
+    const provided = Application.provide(
+      Application.provide(element, ReadValueLayer),
+      ValueLayer,
+    )
     const fiber = Effect.runFork(provided.start())
 
     try {
@@ -745,10 +766,12 @@ const checkApplicationLayerTypes = (): void => {
   })
   const runnableManagedApplication = Application.provide(
     managedApplication,
-    managedResources.engine.toLayer({
-      acquire: () => Effect.succeed(1),
-      release: () => Effect.void,
-    }),
+    managedResources.engine.toLayer(
+      Effect.succeed({
+        acquire: () => Effect.succeed(1),
+        release: () => Effect.void,
+      }),
+    ),
   )
   run(runnableManagedApplication, {
     flags: Effect.succeed({ initialLabel: 'ready' }),
@@ -813,29 +836,47 @@ const checkApplicationLayerTypes = (): void => {
     ),
   )
 
-  const rawApplication = makeApplication({
+  const pureRawApplication = makeApplication({
     Model,
-    Flags,
-    init: ({ initialLabel }) => ({ model: { label: initialLabel } }),
+    init: () => ({ model: { label: 'ready' } }),
     update: (model: Model) => ({ model }),
     view: documentView,
     container,
   })
+
+  run(pureRawApplication)
+
+  makeApplication({
+    Model,
+    init: () => ({ model: { label: 'ready' } }),
+    // @ts-expect-error Raw Runtime constructors require self-contained Command handlers.
+    update,
+    view: documentView,
+    container,
+  })
+
+  const rawApplication = makeApplication({
+    Model,
+    Flags,
+    init: ({ initialLabel }: Flags) => ({ model: { label: initialLabel } }),
+    update: (model: Model) => ({ model }),
+    view: documentView,
+    container,
+  })
+
   // @ts-expect-error Raw Runtime constructors cannot supply application services to Flags.
   run(rawApplication, { flags: flagsNeedingService })
 
-  const rawElementFlags = {
+  makeElement({
     Model,
     Flags,
-    // @ts-expect-error Raw Runtime Elements accept only self-contained Flags Effects.
     flags: flagsNeedingService,
-    init: ({ initialLabel }) => ({ model: { label: initialLabel } }),
+    // @ts-expect-error Raw Runtime Elements require self-contained Flags Effects.
+    init: ({ initialLabel }: Flags) => ({ model: { label: initialLabel } }),
     update: (model: Model) => ({ model }),
-    view: (model, h) => h.div([], [model.label]),
+    view: (model: Model, h: HtmlBuilder<Message>) => h.div([], [model.label]),
     container,
-  } satisfies ElementConfigWithFlags<Model, Message, Flags>
-
-  void rawElementFlags
+  })
 }
 
 void checkApplicationLayerTypes

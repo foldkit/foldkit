@@ -342,7 +342,11 @@ describe('streamFromEventFilterMapPreventDefault', () => {
   })
 })
 
-type InferenceMessage = Readonly<{ _tag: 'Pressed'; key: string }>
+const InferenceMessage = Schema.Struct({
+  _tag: Schema.Literal('Pressed'),
+  key: Schema.String,
+})
+type InferenceMessage = typeof InferenceMessage.Type
 
 const pressed = (key: string): InferenceMessage => ({ _tag: 'Pressed', key })
 
@@ -392,17 +396,22 @@ describe('event type inference', () => {
         }),
       ).toEqualTypeOf<Stream.Stream<KeyboardEvent>>()
 
-      make<{ isActive: boolean }, InferenceMessage>()(entry => ({
+      const subscriptions = make<{ isActive: boolean }, InferenceMessage>()(
+        entry => ({
+          keyboard: entry(
+            'RawEventKeyboardEvents',
+            { isActive: Schema.Boolean },
+            {
+              messages: [InferenceMessage],
+              modelToDependencies: model => ({ isActive: model.isActive }),
+            },
+          ),
+        }),
+      )
+      subscriptions.keyboard.toLayer(
         // @ts-expect-error a raw KeyboardEvent is not an application Message
-        keyboard: entry(
-          { isActive: Schema.Boolean },
-          {
-            modelToDependencies: model => ({ isActive: model.isActive }),
-            // @ts-expect-error a raw KeyboardEvent is not an application Message
-            dependenciesToStream: () => rawEventStream,
-          },
-        ),
-      }))
+        Effect.succeed(() => rawEventStream),
+      )
 
       expectTypeOf(
         streamFromEvent({

@@ -1,5 +1,6 @@
 import {
   Context,
+  Deferred,
   Effect,
   Equivalence,
   Layer,
@@ -19,7 +20,6 @@ import {
   aggregate,
   lift,
   make,
-  persistentEntry,
 } from './subscription.js'
 
 type ChildModel = Readonly<{
@@ -57,24 +57,32 @@ const readChild = (model: ChildPresence) =>
     Option.map(({ child }) => child),
   )
 
-const makeChildSubscriptions = (projectedModels: Array<ChildModel>) =>
-  make<ChildModel, string>()(entry => ({
-    ticks: entry(childFields, {
+const makeChildSubscriptions = (projectedModels: Array<ChildModel>) => {
+  const subscriptions = make<ChildModel, string>()(entry => ({
+    ticks: entry('ChildTicks', childFields, {
+      messages: [Schema.String],
       modelToDependencies: model => {
         projectedModels.push(model)
         return { isRunning: model.isRunning, label: model.label }
       },
-      dependenciesToStream: ({ isRunning, label }) =>
-        Stream.when(
-          Stream.make(`${label}-1`, `${label}-2`),
-          Effect.sync(() => isRunning),
-        ),
     }),
   }))
+  const layer = subscriptions.ticks.toLayer(
+    Effect.succeed(({ isRunning, label }) =>
+      Stream.when(
+        Stream.make(`${label}-1`, `${label}-2`),
+        Effect.sync(() => isRunning),
+      ),
+    ),
+  )
 
-const makeKeepAliveChildSubscriptions = () =>
-  make<ChildModel, string>()(entry => ({
-    ticks: entry(childFields, {
+  return { layer, subscriptions }
+}
+
+const makeKeepAliveChildSubscriptions = () => {
+  const subscriptions = make<ChildModel, string>()(entry => ({
+    ticks: entry('KeepAliveChildTicks', childFields, {
+      messages: [Schema.String],
       modelToDependencies: model => ({
         isRunning: model.isRunning,
         label: model.label,
@@ -82,19 +90,28 @@ const makeKeepAliveChildSubscriptions = () =>
       keepAliveEquivalence: Equivalence.make(
         (left, right) => left.isRunning === right.isRunning,
       ),
-      dependenciesToStream: (_dependencies, readDependencies) =>
-        Stream.fromEffect(Effect.sync(() => readDependencies().label)),
     }),
   }))
+  const layer = subscriptions.ticks.toLayer(
+    Effect.succeed((_dependencies, readDependencies) =>
+      Stream.fromEffect(Effect.sync(() => readDependencies().label)),
+    ),
+  )
 
-const collect = (
-  stream: Stream.Stream<ParentMessage>,
-): Promise<Array<ParentMessage>> => Effect.runPromise(Stream.runCollect(stream))
+  return { layer, subscriptions }
+}
+
+const collect = <Message, R>(
+  stream: Stream.Stream<Message, never, R>,
+  layer: Layer.Layer<R>,
+): Promise<Array<Message>> =>
+  Effect.runPromise(Stream.runCollect(stream).pipe(Effect.provide(layer)))
 
 describe('lift', () => {
   it('wraps every lifted entry and maps child Messages', async () => {
     const projectedModels: Array<ChildModel> = []
-    const subscriptions = lift(makeChildSubscriptions(projectedModels))<
+    const childSubscriptions = makeChildSubscriptions(projectedModels)
+    const subscriptions = lift(childSubscriptions.subscriptions)<
       ParentModel,
       ParentMessage
     >({
@@ -116,13 +133,15 @@ describe('lift', () => {
           dependencies,
           () => dependencies,
         ),
+        childSubscriptions.layer,
       ),
     ).toEqual([toParentMessage('a-1'), toParentMessage('a-2')])
   })
 
   it('skips child dependencies and stops the Stream when read returns None', async () => {
     const projectedModels: Array<ChildModel> = []
-    const subscriptions = lift(makeChildSubscriptions(projectedModels))<
+    const childSubscriptions = makeChildSubscriptions(projectedModels)
+    const subscriptions = lift(childSubscriptions.subscriptions)<
       ChildPresence,
       ParentMessage
     >({
@@ -142,24 +161,33 @@ describe('lift', () => {
           dependencies,
           () => dependencies,
         ),
+        childSubscriptions.layer,
       ),
     ).toEqual([])
   })
 
   it('finalizes a running child Stream when read later returns None', async () => {
     const finalizations: Array<string> = []
+    const acquired = Deferred.makeUnsafe<void>()
     const childSubscriptions = make<ChildModel, string>()(entry => ({
-      ticks: entry(childFields, {
+      ticks: entry('FinalizedChildTicks', childFields, {
+        messages: [Schema.String],
         modelToDependencies: model => ({
           isRunning: model.isRunning,
           label: model.label,
         }),
-        dependenciesToStream: () =>
-          Stream.never.pipe(
-            Stream.ensuring(Effect.sync(() => finalizations.push('ticks'))),
-          ),
       }),
     }))
+    const childSubscriptionsLayer = childSubscriptions.ticks.toLayer(
+      Effect.succeed(() =>
+        Stream.fromEffect(
+          Effect.sync(() => Deferred.doneUnsafe(acquired, Effect.void)),
+        ).pipe(
+          Stream.flatMap(() => Stream.never),
+          Stream.ensuring(Effect.sync(() => finalizations.push('ticks'))),
+        ),
+      ),
+    )
     const subscriptions = lift(childSubscriptions)<
       ChildPresence,
       ParentMessage
@@ -176,7 +204,10 @@ describe('lift', () => {
 
     await Effect.runPromise(
       Stream.runDrain(
-        Stream.fromIterable([present, absent]).pipe(
+        Stream.make(present).pipe(
+          Stream.concat(
+            Stream.fromEffect(Deferred.await(acquired).pipe(Effect.as(absent))),
+          ),
           Stream.switchMap(dependencies =>
             subscriptions.ticks.dependenciesToStream(
               dependencies,
@@ -184,7 +215,7 @@ describe('lift', () => {
             ),
           ),
         ),
-      ),
+      ).pipe(Effect.provide(childSubscriptionsLayer)),
     )
 
     expect(finalizations).toEqual(['ticks'])
@@ -193,15 +224,19 @@ describe('lift', () => {
 
 describe('lift with a when gate', () => {
   const liftGated = (projectedModels: Array<ChildModel>) =>
-    lift(makeChildSubscriptions(projectedModels))<ParentModel, ParentMessage>({
+    makeChildSubscriptions(projectedModels)
+
+  it('projects the child dependencies while the gate is open', async () => {
+    const projectedModels: Array<ChildModel> = []
+    const childSubscriptions = liftGated(projectedModels)
+    const subscriptions = lift(childSubscriptions.subscriptions)<
+      ParentModel,
+      ParentMessage
+    >({
       read: model => Option.some(model.child),
       toParentMessage,
       when: model => model.isChildActive,
     })
-
-  it('projects the child dependencies while the gate is open', async () => {
-    const projectedModels: Array<ChildModel> = []
-    const subscriptions = liftGated(projectedModels)
 
     const dependencies = subscriptions.ticks.modelToDependencies({
       isChildActive: true,
@@ -218,6 +253,7 @@ describe('lift with a when gate', () => {
           dependencies,
           () => dependencies,
         ),
+        childSubscriptions.layer,
       ),
     ).toEqual([toParentMessage('a-1'), toParentMessage('a-2')])
   })
@@ -225,7 +261,8 @@ describe('lift with a when gate', () => {
   it('checks the gate before it reads or projects the child Model', async () => {
     const projectedModels: Array<ChildModel> = []
     const readModels: Array<ParentModel> = []
-    const subscriptions = lift(makeChildSubscriptions(projectedModels))<
+    const childSubscriptions = makeChildSubscriptions(projectedModels)
+    const subscriptions = lift(childSubscriptions.subscriptions)<
       ParentModel,
       ParentMessage
     >({
@@ -251,13 +288,22 @@ describe('lift with a when gate', () => {
           dependencies,
           () => dependencies,
         ),
+        childSubscriptions.layer,
       ),
     ).toEqual([])
   })
 
   it('holds the dependencies equal across child changes behind a closed gate', () => {
     const projectedModels: Array<ChildModel> = []
-    const subscriptions = liftGated(projectedModels)
+    const childSubscriptions = liftGated(projectedModels)
+    const subscriptions = lift(childSubscriptions.subscriptions)<
+      ParentModel,
+      ParentMessage
+    >({
+      read: model => Option.some(model.child),
+      toParentMessage,
+      when: model => model.isChildActive,
+    })
 
     const isEquivalent = Schema.toEquivalence(
       subscriptions.ticks.dependenciesSchema,
@@ -286,7 +332,8 @@ describe('lift with a when gate', () => {
   })
 
   it('uses starting dependencies while a keepAlive Stream observes child absence', async () => {
-    const subscriptions = lift(makeKeepAliveChildSubscriptions())<
+    const childSubscriptions = makeKeepAliveChildSubscriptions()
+    const subscriptions = lift(childSubscriptions.subscriptions)<
       ParentModel,
       ParentMessage
     >({
@@ -322,10 +369,14 @@ describe('lift with a when gate', () => {
     expect(
       await collect(
         entry.dependenciesToStream(open, () => openAfterLabelChange),
+        childSubscriptions.layer,
       ),
     ).toEqual([toParentMessage('b')])
     expect(
-      await collect(entry.dependenciesToStream(open, () => closed)),
+      await collect(
+        entry.dependenciesToStream(open, () => closed),
+        childSubscriptions.layer,
+      ),
     ).toEqual([toParentMessage('a')])
   })
 })
@@ -335,35 +386,46 @@ type ChildDependencies = Readonly<{
   label: string
 }>
 
-const makeTwoEntryChildSubscriptions = () =>
-  make<ChildModel, string>()(entry => ({
-    ticks: entry(childFields, {
+const makeTwoEntryChildSubscriptions = () => {
+  const subscriptions = make<ChildModel, string>()(entry => ({
+    ticks: entry('ChildTicks', childFields, {
+      messages: [Schema.String],
       modelToDependencies: model => ({
         isRunning: model.isRunning,
         label: model.label,
       }),
-      dependenciesToStream: ({ label }) => Stream.make(`ticks-${label}`),
     }),
-    pulses: entry(childFields, {
+    pulses: entry('ChildPulses', childFields, {
+      messages: [Schema.String],
       modelToDependencies: model => ({
         isRunning: model.isRunning,
         label: model.label,
       }),
-      dependenciesToStream: ({ label }) => Stream.make(`pulses-${label}`),
     }),
   }))
+  const layer = Layer.mergeAll(
+    subscriptions.ticks.toLayer(
+      Effect.succeed(({ label }) => Stream.make(`ticks-${label}`)),
+    ),
+    subscriptions.pulses.toLayer(
+      Effect.succeed(({ label }) => Stream.make(`pulses-${label}`)),
+    ),
+  )
+
+  return { layer, subscriptions }
+}
 
 describe('lift with a per-entry when gate', () => {
-  const liftPerEntry = () =>
-    lift(makeTwoEntryChildSubscriptions())({
+  const liftPerEntry = () => makeTwoEntryChildSubscriptions()
+
+  it('gates the named entry and wraps an omitted entry through read', async () => {
+    const childSubscriptions = liftPerEntry()
+    const subscriptions = lift(childSubscriptions.subscriptions)({
       read: (model: ParentModel) => Option.some(model.child),
       toParentMessage: (message: string): ParentMessage =>
         toParentMessage(message),
       when: { ticks: (model: ParentModel) => model.isChildActive },
     })
-
-  it('gates the named entry and wraps an omitted entry through read', async () => {
-    const subscriptions = liftPerEntry()
 
     const closedModel: ParentModel = {
       isChildActive: false,
@@ -386,6 +448,7 @@ describe('lift with a per-entry when gate', () => {
           gatedDependencies,
           () => gatedDependencies,
         ),
+        childSubscriptions.layer,
       ),
     ).toEqual([])
     expect(
@@ -394,12 +457,14 @@ describe('lift with a per-entry when gate', () => {
           omittedDependencies,
           () => omittedDependencies,
         ),
+        childSubscriptions.layer,
       ),
     ).toEqual([toParentMessage('pulses-a')])
   })
 
   it('stops named and omitted entries while the child is absent', async () => {
-    const subscriptions = lift(makeTwoEntryChildSubscriptions())<
+    const childSubscriptions = makeTwoEntryChildSubscriptions()
+    const subscriptions = lift(childSubscriptions.subscriptions)<
       ChildPresence,
       ParentMessage
     >({
@@ -419,6 +484,7 @@ describe('lift with a per-entry when gate', () => {
           tickDependencies,
           () => tickDependencies,
         ),
+        childSubscriptions.layer,
       ),
     ).toEqual([])
     expect(
@@ -427,12 +493,17 @@ describe('lift with a per-entry when gate', () => {
           pulseDependencies,
           () => pulseDependencies,
         ),
+        childSubscriptions.layer,
       ),
     ).toEqual([])
   })
 
   it('types every lifted entry with its gated dependencies', () => {
-    const subscriptions = liftPerEntry()
+    const childSubscriptions = liftPerEntry()
+    const subscriptions = lift(childSubscriptions.subscriptions)({
+      read: (model: ParentModel) => Option.some(model.child),
+      toParentMessage,
+    })
 
     expectTypeOf(subscriptions.ticks.modelToDependencies).returns.toEqualTypeOf<
       GatedDependencies<ChildDependencies>
@@ -458,14 +529,10 @@ const toGrandparentMessage = (message: ParentMessage): GrandparentMessage => ({
   message,
 })
 
-const collectGrandparent = (
-  stream: Stream.Stream<GrandparentMessage>,
-): Promise<Array<GrandparentMessage>> =>
-  Effect.runPromise(Stream.runCollect(stream))
-
 describe('lift over lift', () => {
   const liftTwice = (projectedModels: Array<ChildModel>) => {
-    const parentSubscriptions = lift(makeChildSubscriptions(projectedModels))<
+    const childSubscriptions = makeChildSubscriptions(projectedModels)
+    const parentSubscriptions = lift(childSubscriptions.subscriptions)<
       ParentModel,
       ParentMessage
     >({
@@ -474,11 +541,17 @@ describe('lift over lift', () => {
       when: model => model.isChildActive,
     })
 
-    return lift(parentSubscriptions)<GrandparentModel, GrandparentMessage>({
-      read: model => Option.some(model.parent),
-      toParentMessage: toGrandparentMessage,
-      when: model => model.isParentActive,
-    })
+    return {
+      layer: childSubscriptions.layer,
+      subscriptions: lift(parentSubscriptions)<
+        GrandparentModel,
+        GrandparentMessage
+      >({
+        read: model => Option.some(model.parent),
+        toParentMessage: toGrandparentMessage,
+        when: model => model.isParentActive,
+      }),
+    }
   }
 
   const openModel: GrandparentModel = {
@@ -498,7 +571,8 @@ describe('lift over lift', () => {
 
   it('nests the gates and wraps the Messages through both levels', async () => {
     const projectedModels: Array<ChildModel> = []
-    const subscriptions = liftTwice(projectedModels)
+    const lifted = liftTwice(projectedModels)
+    const { subscriptions } = lifted
 
     const dependencies = subscriptions.ticks.modelToDependencies(openModel)
 
@@ -509,11 +583,12 @@ describe('lift over lift', () => {
     })
     expect(projectedModels).toEqual([{ isRunning: true, label: 'a' }])
     expect(
-      await collectGrandparent(
+      await collect(
         subscriptions.ticks.dependenciesToStream(
           dependencies,
           () => dependencies,
         ),
+        lifted.layer,
       ),
     ).toEqual([
       toGrandparentMessage(toParentMessage('a-1')),
@@ -523,7 +598,8 @@ describe('lift over lift', () => {
 
   it('stops at the outer gate without running the inner projection', async () => {
     const projectedModels: Array<ChildModel> = []
-    const subscriptions = liftTwice(projectedModels)
+    const lifted = liftTwice(projectedModels)
+    const { subscriptions } = lifted
 
     const dependencies =
       subscriptions.ticks.modelToDependencies(outerClosedModel)
@@ -531,18 +607,20 @@ describe('lift over lift', () => {
     expect(dependencies).toEqual({ maybeDependencies: Option.none() })
     expect(projectedModels).toEqual([])
     expect(
-      await collectGrandparent(
+      await collect(
         subscriptions.ticks.dependenciesToStream(
           dependencies,
           () => dependencies,
         ),
+        lifted.layer,
       ),
     ).toEqual([])
   })
 
   it('stops at the inner gate with the outer gate open', async () => {
     const projectedModels: Array<ChildModel> = []
-    const subscriptions = liftTwice(projectedModels)
+    const lifted = liftTwice(projectedModels)
+    const { subscriptions } = lifted
 
     const dependencies =
       subscriptions.ticks.modelToDependencies(innerClosedModel)
@@ -552,17 +630,19 @@ describe('lift over lift', () => {
     })
     expect(projectedModels).toEqual([])
     expect(
-      await collectGrandparent(
+      await collect(
         subscriptions.ticks.dependenciesToStream(
           dependencies,
           () => dependencies,
         ),
+        lifted.layer,
       ),
     ).toEqual([])
   })
 
   it('preserves keepAliveEquivalence through both gated wrappings', async () => {
-    const parentSubscriptions = lift(makeKeepAliveChildSubscriptions())<
+    const childSubscriptions = makeKeepAliveChildSubscriptions()
+    const parentSubscriptions = lift(childSubscriptions.subscriptions)<
       ParentModel,
       ParentMessage
     >({
@@ -602,19 +682,22 @@ describe('lift over lift', () => {
     expect(entry.keepAliveEquivalence(outerClosed, outerClosed)).toBe(true)
 
     expect(
-      await collectGrandparent(
+      await collect(
         entry.dependenciesToStream(open, () => openAfterLabelChange),
+        childSubscriptions.layer,
       ),
     ).toEqual([toGrandparentMessage(toParentMessage('b'))])
     expect(
-      await collectGrandparent(
+      await collect(
         entry.dependenciesToStream(open, () => outerClosed),
+        childSubscriptions.layer,
       ),
     ).toEqual([toGrandparentMessage(toParentMessage('a'))])
   })
 
   it('carries a per-entry gate through an outer whole record gate', async () => {
-    const parentSubscriptions = lift(makeTwoEntryChildSubscriptions())({
+    const childSubscriptions = makeTwoEntryChildSubscriptions()
+    const parentSubscriptions = lift(childSubscriptions.subscriptions)({
       read: (model: ParentModel) => Option.some(model.child),
       toParentMessage: (message: string): ParentMessage =>
         toParentMessage(message),
@@ -654,8 +737,9 @@ describe('lift over lift', () => {
 
     const pulses = subscriptions.pulses.modelToDependencies(openModel)
     expect(
-      await collectGrandparent(
+      await collect(
         subscriptions.pulses.dependenciesToStream(pulses, () => pulses),
+        childSubscriptions.layer,
       ),
     ).toEqual([toGrandparentMessage(toParentMessage('pulses-a'))])
   })
@@ -666,78 +750,6 @@ type StreamMessage<AnyStream> =
 
 type StreamServices<AnyStream> =
   AnyStream extends Stream.Stream<any, any, infer Services> ? Services : never
-
-describe('inline Message declarations', () => {
-  const Message = defineMessageUnion({
-    ObservedTick: {},
-    IgnoredTick: {},
-  })
-  type Message = typeof Message.Type
-
-  const subscriptions = make<ChildModel, Message>()(entry => ({
-    ticks: entry(childFields, {
-      messages: [Message.ObservedTick],
-      modelToDependencies: model => ({
-        isRunning: model.isRunning,
-        label: model.label,
-      }),
-      dependenciesToStream: () => Stream.succeed(Message.ObservedTick()),
-    }),
-  }))
-
-  const keepAliveSubscriptions = make<ChildModel, Message>()(entry => ({
-    ticks: entry(childFields, {
-      messages: [Message.ObservedTick],
-      modelToDependencies: model => ({
-        isRunning: model.isRunning,
-        label: model.label,
-      }),
-      keepAliveEquivalence: Equivalence.make(
-        (left, right) => left.isRunning === right.isRunning,
-      ),
-      dependenciesToStream: () => Stream.succeed(Message.ObservedTick()),
-    }),
-  }))
-
-  it('retains the declaration on an inline entry', () => {
-    expect(subscriptions.ticks.messages).toEqual([Message.ObservedTick])
-    expectTypeOf(subscriptions.ticks.messages).toEqualTypeOf<
-      readonly [typeof Message.ObservedTick]
-    >()
-    expectTypeOf(keepAliveSubscriptions.ticks.messages).toEqualTypeOf<
-      readonly [typeof Message.ObservedTick]
-    >()
-  })
-
-  if (false) {
-    make<ChildModel, Message>()(entry => ({
-      ticks: entry(childFields, {
-        // @ts-expect-error The inline Stream can emit only its declared Messages.
-        messages: [Message.ObservedTick],
-        modelToDependencies: model => ({
-          isRunning: model.isRunning,
-          label: model.label,
-        }),
-        dependenciesToStream: () => Stream.succeed(Message.IgnoredTick()),
-      }),
-    }))
-
-    make<ChildModel, Message>()(entry => ({
-      ticks: entry(childFields, {
-        // @ts-expect-error A keep-alive inline Stream can emit only its declared Messages.
-        messages: [Message.ObservedTick],
-        modelToDependencies: model => ({
-          isRunning: model.isRunning,
-          label: model.label,
-        }),
-        keepAliveEquivalence: Equivalence.make(
-          (left, right) => left.isRunning === right.isRunning,
-        ),
-        dependenciesToStream: () => Stream.succeed(Message.IgnoredTick()),
-      }),
-    }))
-  }
-})
 
 describe('Layer-backed entries', () => {
   const HandlerMessage = defineMessageUnion({
@@ -785,25 +797,29 @@ describe('Layer-backed entries', () => {
   })
 
   if (false) {
-    contracted.observed.toLayer(() =>
-      Stream.succeed(HandlerMessage.ObservedTick()),
+    contracted.observed.toLayer(
+      Effect.succeed(() => Stream.succeed(HandlerMessage.ObservedTick())),
     )
-    contracted.observedWhileRunning.toLayer(() =>
-      Stream.succeed(HandlerMessage.ObservedTick()),
+    contracted.observedWhileRunning.toLayer(
+      Effect.succeed(() => Stream.succeed(HandlerMessage.ObservedTick())),
     )
-    contracted.silent.toLayer(() => Stream.empty)
+    contracted.silent.toLayer(Effect.succeed(() => Stream.empty))
+    contracted.observed.toLayer<never, never, never>(
+      // @ts-expect-error toLayer accepts an Effect that constructs the handler.
+      () => Stream.succeed(HandlerMessage.ObservedTick()),
+    )
 
-    // @ts-expect-error An undeclared Message cannot be emitted by this Subscription.
-    contracted.observed.toLayer(() =>
-      Stream.succeed(HandlerMessage.IgnoredTick()),
+    contracted.observed.toLayer(
+      // @ts-expect-error An undeclared Message cannot be emitted by this Subscription.
+      Effect.succeed(() => Stream.succeed(HandlerMessage.IgnoredTick())),
     )
-    // @ts-expect-error A dependency-bearing handler has the same declared output limit.
-    contracted.observedWhileRunning.toLayer(() =>
-      Stream.succeed(HandlerMessage.IgnoredTick()),
+    contracted.observedWhileRunning.toLayer(
+      // @ts-expect-error A dependency-bearing handler has the same declared output limit.
+      Effect.succeed(() => Stream.succeed(HandlerMessage.IgnoredTick())),
     )
-    // @ts-expect-error Silent Subscriptions cannot emit Messages.
-    contracted.silent.toLayer(() =>
-      Stream.succeed(HandlerMessage.ObservedTick()),
+    contracted.silent.toLayer(
+      // @ts-expect-error Silent Subscriptions cannot emit Messages.
+      Effect.succeed(() => Stream.succeed(HandlerMessage.ObservedTick())),
     )
 
     const lifted = lift(contracted)<
@@ -813,28 +829,77 @@ describe('Layer-backed entries', () => {
       read: model => Option.some(model.child),
       toParentMessage: message => ({ _tag: 'GotObserved', message }),
     })
-    lifted.observed.toLayer(() => Stream.succeed(HandlerMessage.ObservedTick()))
-    // @ts-expect-error The lifted handler still emits the child Message.
-    lifted.observed.toLayer(() =>
-      Stream.succeed({
-        _tag: 'GotObserved',
-        message: HandlerMessage.ObservedTick(),
-      }),
+    lifted.observed.toLayer(
+      Effect.succeed(() => Stream.succeed(HandlerMessage.ObservedTick())),
+    )
+    lifted.observed.toLayer(
+      // @ts-expect-error The lifted handler still emits the child Message.
+      Effect.succeed(() =>
+        Stream.succeed({
+          _tag: 'GotObserved',
+          message: HandlerMessage.ObservedTick(),
+        }),
+      ),
     )
 
     const combined = aggregate(lifted)
-    combined.observed.toLayer(() =>
-      Stream.succeed(HandlerMessage.ObservedTick()),
+    combined.observed.toLayer(
+      Effect.succeed(() => Stream.succeed(HandlerMessage.ObservedTick())),
     )
-    // @ts-expect-error Aggregation retains the declared child Message contract.
-    combined.observed.toLayer(() =>
-      Stream.succeed(HandlerMessage.IgnoredTick()),
+    combined.observed.toLayer(
+      // @ts-expect-error Aggregation retains the declared child Message contract.
+      Effect.succeed(() => Stream.succeed(HandlerMessage.IgnoredTick())),
+    )
+
+    const optionalDependencies = make<ChildModel, HandlerMessage>()(entry => ({
+      observed: entry(
+        'ObservedOptionalTicks',
+        { maybeLabel: Schema.Option(Schema.String) },
+        {
+          messages: [HandlerMessage.ObservedTick],
+          modelToDependencies: model => ({
+            maybeLabel: Option.some(model.label),
+          }),
+        },
+      ),
+    }))
+    expectTypeOf(
+      optionalDependencies.observed.dependenciesToStream,
+    ).parameters.toEqualTypeOf<
+      [Readonly<{ maybeLabel: Option.Option<string> }>]
+    >()
+    optionalDependencies.observed.toLayer(
+      Effect.succeed(({ maybeLabel }) =>
+        Stream.succeed(
+          Option.match(maybeLabel, {
+            onNone: () => HandlerMessage.ObservedTick(),
+            onSome: () => HandlerMessage.ObservedTick(),
+          }),
+        ),
+      ),
     )
 
     make<ChildModel, HandlerMessage>()(entry => ({
       // @ts-expect-error A declared schema must produce a Message in the enclosing union.
       wrong: entry('Wrong', { messages: [Schema.Number] }),
     }))
+
+    const inlineCallbacks = {
+      messages: [HandlerMessage.ObservedTick],
+      modelToDependencies: (model: ChildModel) => ({
+        isRunning: model.isRunning,
+      }),
+      dependenciesToStream: () => Stream.succeed(HandlerMessage.ObservedTick()),
+    }
+    make<ChildModel, HandlerMessage>()(entry => {
+      entry(
+        'InlineSubscription',
+        { isRunning: Schema.Boolean },
+        // @ts-expect-error Subscription implementations belong in handler Layers.
+        inlineCallbacks,
+      )
+      return {}
+    })
   }
 
   class Prefix extends Context.Service<Prefix, { readonly value: string }>()(
@@ -869,7 +934,9 @@ describe('Layer-backed entries', () => {
     const persistent = make<ChildModel, string>()(entry => ({
       heartbeat: entry('HeartbeatTicks', { messages: [Schema.String] }),
     }))
-    const layer = persistent.heartbeat.toLayer(() => Stream.succeed('tick'))
+    const layer = persistent.heartbeat.toLayer(
+      Effect.succeed(() => Stream.succeed('tick')),
+    )
     const dependencies = persistent.heartbeat.modelToDependencies({
       isRunning: true,
       label: 'first',
@@ -895,8 +962,12 @@ describe('Layer-backed entries', () => {
   })
 
   it('separates the registration key from the handler name and carries its requirements', () => {
-    const layer = subscriptions.registrationKey.toLayer(({ label }) =>
-      Stream.fromEffect(Effect.map(Prefix, ({ value }) => `${value}${label}`)),
+    const layer = subscriptions.registrationKey.toLayer(
+      Effect.succeed(({ label }) =>
+        Stream.fromEffect(
+          Effect.map(Prefix, ({ value }) => `${value}${label}`),
+        ),
+      ),
     )
 
     expect(Object.keys(subscriptions)).toEqual([
@@ -929,8 +1000,12 @@ describe('Layer-backed entries', () => {
   })
 
   it('uses invocation context over the context captured by the handler Layer', async () => {
-    const layer = subscriptions.registrationKey.toLayer(({ label }) =>
-      Stream.fromEffect(Effect.map(Prefix, ({ value }) => `${value}${label}`)),
+    const layer = subscriptions.registrationKey.toLayer(
+      Effect.succeed(({ label }) =>
+        Stream.fromEffect(
+          Effect.map(Prefix, ({ value }) => `${value}${label}`),
+        ),
+      ),
     )
     const handlerLayer = Layer.provide(
       layer,
@@ -963,8 +1038,8 @@ describe('Layer-backed entries', () => {
         }),
       }),
     }))
-    const otherLayer = other.registrationKey.toLayer(() =>
-      Stream.succeed('wrong'),
+    const otherLayer = other.registrationKey.toLayer(
+      Effect.succeed(() => Stream.succeed('wrong')),
     )
     const dependencies = subscriptions.registrationKey.modelToDependencies({
       isRunning: true,
@@ -1018,8 +1093,9 @@ describe('Layer-backed entries', () => {
 
   it('passes current dependencies to a keep-alive handler', async () => {
     const layer = subscriptions.latestLabel.toLayer(
-      (_dependencies, readDependencies) =>
+      Effect.succeed((_dependencies, readDependencies) =>
         Stream.sync(() => readDependencies().label),
+      ),
     )
     const initial = subscriptions.latestLabel.modelToDependencies({
       isRunning: true,
@@ -1073,31 +1149,31 @@ describe('Layer-backed entries', () => {
 })
 
 describe('lift types', () => {
-  it('keeps the optional reader, services, and keepAlive dependencies', () => {
+  it('keeps the optional reader, handler requirement, and keepAlive dependencies', () => {
     class Clock extends Context.Service<Clock, { readonly now: number }>()(
       'LiftedSubscriptionClock',
     ) {}
 
-    const liftChild = lift(
-      make<ChildModel, string, Clock>()(entry => ({
-        ticks: entry(childFields, {
-          modelToDependencies: model => ({
-            isRunning: model.isRunning,
-            label: model.label,
-          }),
-          keepAliveEquivalence: Equivalence.make(
-            (left, right) => left.isRunning === right.isRunning,
-          ),
-          dependenciesToStream: (_dependencies, readDependencies) =>
-            Stream.fromEffect(
-              Effect.gen(function* () {
-                yield* Clock
-                return readDependencies().label
-              }),
-            ),
+    const childSubscriptions = make<ChildModel, string>()(entry => ({
+      ticks: entry('LiftedTicks', childFields, {
+        messages: [Schema.String],
+        modelToDependencies: model => ({
+          isRunning: model.isRunning,
+          label: model.label,
         }),
-      })),
-    )<ParentModel, ParentMessage>
+        keepAliveEquivalence: Equivalence.make(
+          (left, right) => left.isRunning === right.isRunning,
+        ),
+      }),
+    }))
+    const LiftedTicksLayer = childSubscriptions.ticks.toLayer(
+      Effect.map(
+        Clock,
+        () => (_dependencies, readDependencies) =>
+          Stream.succeed(readDependencies().label),
+      ),
+    )
+    const liftChild = lift(childSubscriptions)<ParentModel, ParentMessage>
     const subscriptions = liftChild({
       read: model =>
         model.isChildActive ? Option.some(model.child) : Option.none(),
@@ -1114,7 +1190,10 @@ describe('lift types', () => {
       StreamServices<
         ReturnType<typeof subscriptions.ticks.dependenciesToStream>
       >
-    >().toEqualTypeOf<Clock>()
+    >().toEqualTypeOf<Handler<'LiftedTicks'>>()
+    expectTypeOf(LiftedTicksLayer).toEqualTypeOf<
+      Layer.Layer<Handler<'LiftedTicks'>, never, Clock>
+    >()
   })
 })
 
@@ -1131,67 +1210,90 @@ describe('aggregate', () => {
     'Clock',
   ) {}
 
+  const ThemeMessageSchema = Schema.Struct({
+    _tag: Schema.Literal('ChangedTheme'),
+    isDark: Schema.Boolean,
+  })
+  const ViewportMessageSchema = Schema.Struct({
+    _tag: Schema.Literal('ResizedViewport'),
+    width: Schema.Number,
+  })
+
   const themeSubscriptions = make<ThemeModel, ThemeMessage>()(entry => ({
     systemTheme: entry(
+      'SystemTheme',
       { isDark: Schema.Boolean },
       {
+        messages: [ThemeMessageSchema],
         modelToDependencies: model => ({ isDark: model.isDark }),
-        dependenciesToStream: ({ isDark }) =>
-          Stream.succeed<ThemeMessage>({ _tag: 'ChangedTheme', isDark }),
       },
     ),
     scroll: entry(
+      'ScrollTheme',
       { isDark: Schema.Boolean },
       {
+        messages: [ThemeMessageSchema],
         modelToDependencies: model => ({ isDark: model.isDark }),
         keepAliveEquivalence: Equivalence.make<{ readonly isDark: boolean }>(
           (left, right) => left.isDark === right.isDark,
         ),
-        dependenciesToStream: (_dependencies, readDependencies) =>
-          Stream.succeed<ThemeMessage>({
-            _tag: 'ChangedTheme',
-            isDark: readDependencies().isDark,
-          }),
       },
     ),
   }))
+  const SystemThemeLayer = themeSubscriptions.systemTheme.toLayer(
+    Effect.succeed(({ isDark }) =>
+      Stream.succeed<ThemeMessage>({ _tag: 'ChangedTheme', isDark }),
+    ),
+  )
+  const ScrollThemeLayer = themeSubscriptions.scroll.toLayer(
+    Effect.succeed((_dependencies, readDependencies) =>
+      Stream.succeed<ThemeMessage>({
+        _tag: 'ChangedTheme',
+        isDark: readDependencies().isDark,
+      }),
+    ),
+  )
 
-  const viewportSubscriptions = make<ThemeModel, ViewportMessage>()(() => ({
-    viewportWidth: persistentEntry(
+  const viewportSubscriptions = make<ThemeModel, ViewportMessage>()(entry => ({
+    viewportWidth: entry('ViewportWidth', {
+      messages: [ViewportMessageSchema],
+    }),
+  }))
+  const ViewportWidthLayer = viewportSubscriptions.viewportWidth.toLayer(
+    Effect.succeed(() =>
       Stream.succeed<ViewportMessage>({ _tag: 'ResizedViewport', width: 0 }),
     ),
-  }))
+  )
 
-  const clockSubscriptions = make<ThemeModel, ViewportMessage, Clock>()(
-    entry => ({
-      clockTick: entry(
-        {},
-        {
-          modelToDependencies: () => ({}),
-          dependenciesToStream: () =>
-            Stream.fromEffect(
-              Effect.map(
-                Effect.gen(function* () {
-                  return yield* Clock
-                }),
-                ({ now }): ViewportMessage => ({
-                  _tag: 'ResizedViewport',
-                  width: now,
-                }),
-              ),
-            ),
-        },
-      ),
-    }),
+  const clockSubscriptions = make<ThemeModel, ViewportMessage>()(entry => ({
+    clockTick: entry(
+      'ClockTick',
+      {},
+      {
+        messages: [ViewportMessageSchema],
+        modelToDependencies: () => ({}),
+      },
+    ),
+  }))
+  const ClockTickLayer = clockSubscriptions.clockTick.toLayer(
+    Effect.map(
+      Clock,
+      ({ now }) =>
+        () =>
+          Stream.succeed<ViewportMessage>({
+            _tag: 'ResizedViewport',
+            width: now,
+          }),
+    ),
   )
 
   const focusSubscriptions = make<ThemeModel, ThemeMessage>()(entry => ({
     windowFocus: entry(
+      'WindowFocus',
       { isDark: Schema.Boolean },
       {
+        messages: [ThemeMessageSchema],
         modelToDependencies: model => ({ isDark: model.isDark }),
-        dependenciesToStream: ({ isDark }) =>
-          Stream.succeed<ThemeMessage>({ _tag: 'ChangedTheme', isDark }),
       },
     ),
   }))
@@ -1201,16 +1303,17 @@ describe('aggregate', () => {
     ThemeMessage
   >()(entry => ({
     unrelated: entry(
+      'UnrelatedTheme',
       {},
       {
+        messages: [ThemeMessageSchema],
         modelToDependencies: () => ({}),
-        dependenciesToStream: () =>
-          Stream.succeed<ThemeMessage>({ _tag: 'ChangedTheme', isDark: false }),
       },
     ),
   }))
 
-  const gatedChildSubscriptions = lift(makeChildSubscriptions([]))({
+  const childSubscriptions = makeChildSubscriptions([])
+  const gatedChildSubscriptions = lift(childSubscriptions.subscriptions)({
     read: (model: ParentModel) => Option.some(model.child),
     toParentMessage: (message: string): ParentMessage =>
       toParentMessage(message),
@@ -1270,11 +1373,11 @@ describe('aggregate', () => {
     const applicationSubscriptions = make<ApplicationModel, ThemeMessage>()(
       entry => ({
         applicationTheme: entry(
+          'ApplicationTheme',
           { isDark: Schema.Boolean },
           {
+            messages: [ThemeMessageSchema],
             modelToDependencies: model => ({ isDark: model.isDark }),
-            dependenciesToStream: ({ isDark }) =>
-              Stream.succeed<ThemeMessage>({ _tag: 'ChangedTheme', isDark }),
           },
         ),
       }),
@@ -1291,6 +1394,26 @@ describe('aggregate', () => {
       clockSubscriptions,
     )
 
+    const curried = aggregate<ThemeModel, ThemeMessage | ViewportMessage>()(
+      themeSubscriptions,
+      viewportSubscriptions,
+      clockSubscriptions,
+    )
+
+    expectTypeOf<keyof typeof curried>().toEqualTypeOf<
+      'systemTheme' | 'scroll' | 'viewportWidth' | 'clockTick'
+    >()
+
+    expectTypeOf<
+      StreamServices<
+        ReturnType<typeof curried.systemTheme.dependenciesToStream>
+      >
+    >().toEqualTypeOf<Handler<'SystemTheme'>>()
+
+    expectTypeOf<
+      StreamServices<ReturnType<typeof curried.clockTick.dependenciesToStream>>
+    >().toEqualTypeOf<Handler<'ClockTick'>>()
+
     expectTypeOf<keyof typeof combined>().toEqualTypeOf<
       'systemTheme' | 'scroll' | 'viewportWidth' | 'clockTick'
     >()
@@ -1306,18 +1429,31 @@ describe('aggregate', () => {
     >().toEqualTypeOf<ThemeMessage>()
 
     expectTypeOf(combined).toExtend<
-      Subscriptions<ThemeModel, ThemeMessage | ViewportMessage, Clock>
+      Subscriptions<ThemeModel, ThemeMessage | ViewportMessage, Handler<string>>
     >()
 
     expectTypeOf<
       StreamServices<
         ReturnType<typeof combined.systemTheme.dependenciesToStream>
       >
-    >().toEqualTypeOf<never>()
+    >().toEqualTypeOf<Handler<'SystemTheme'>>()
 
     expectTypeOf<
       StreamServices<ReturnType<typeof combined.clockTick.dependenciesToStream>>
-    >().toEqualTypeOf<Clock>()
+    >().toEqualTypeOf<Handler<'ClockTick'>>()
+
+    expectTypeOf(ClockTickLayer).toEqualTypeOf<
+      Layer.Layer<Handler<'ClockTick'>, never, Clock>
+    >()
+    expectTypeOf(SystemThemeLayer).toEqualTypeOf<
+      Layer.Layer<Handler<'SystemTheme'>>
+    >()
+    expectTypeOf(ScrollThemeLayer).toEqualTypeOf<
+      Layer.Layer<Handler<'ScrollTheme'>>
+    >()
+    expectTypeOf(ViewportWidthLayer).toEqualTypeOf<
+      Layer.Layer<Handler<'ViewportWidth'>>
+    >()
 
     expectTypeOf(combined.scroll.keepAliveEquivalence).toEqualTypeOf<
       Equivalence.Equivalence<Readonly<{ isDark: boolean }>>

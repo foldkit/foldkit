@@ -1,5 +1,8 @@
 Mount.define(name, {
   args: argSchemas,
   messages: [ResultMessage],
-  execute: ({ element, ...argValues }) => Effect<Message>,
 })
+
+Definition.toLayer(
+  Effect.succeed(({ element, ...argValues }) => Effect<Message>),
+)

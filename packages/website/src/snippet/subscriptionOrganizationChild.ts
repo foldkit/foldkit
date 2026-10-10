@@ -6,7 +6,7 @@ import { Message } from './message'
 import type { Model } from './model'
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  escapeKey: entry(
+  themeMenuEscapePresses: entry(
     'ThemeMenuEscapePresses',
     { isOpen: Schema.Boolean },
     {
@@ -16,15 +16,17 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const ThemeMenuEscapePressesLayer = subscriptions.escapeKey.toLayer(
-  ({ isOpen }) =>
-    Stream.when(
-      Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-        Stream.filter(event => event.key === 'Escape'),
-        Stream.map(Message.PressedEscape),
+export const ThemeMenuEscapePressesLayer =
+  subscriptions.themeMenuEscapePresses.toLayer(
+    Effect.succeed(({ isOpen }) =>
+      Stream.when(
+        Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
+          Stream.filter(event => event.key === 'Escape'),
+          Stream.map(Message.PressedEscape),
+        ),
+        Effect.sync(() => isOpen),
       ),
-      Effect.sync(() => isOpen),
     ),
-)
+  )
 
-export { ThemeMenuEscapePressesLayer as Layer }
+export { ThemeMenuEscapePressesLayer as EffectsLayer }

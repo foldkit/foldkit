@@ -1,4 +1,4 @@
-import { Duration, Schema, Stream } from 'effect'
+import { Duration, Effect, Schema, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -11,14 +11,16 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  heartbeat: entry('HeartbeatTicks', {
+  heartbeatTicks: entry('HeartbeatTicks', {
     messages: [Message.TickedHeartbeat],
   }),
 }))
 
-export const HeartbeatTicksLayer = subscriptions.heartbeat.toLayer(() =>
-  Stream.tick(Duration.seconds(30)).pipe(
-    Stream.drop(1),
-    Stream.map(Message.TickedHeartbeat),
+export const HeartbeatTicksLayer = subscriptions.heartbeatTicks.toLayer(
+  Effect.succeed(() =>
+    Stream.tick(Duration.seconds(30)).pipe(
+      Stream.drop(1),
+      Stream.map(Message.TickedHeartbeat),
+    ),
   ),
 )

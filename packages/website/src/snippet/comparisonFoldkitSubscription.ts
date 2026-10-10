@@ -1,31 +1,49 @@
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  undoRedoKeys: Subscription.persistentEntry(
+  undoRedoKeyPresses: entry('UndoRedoKeyPresses', {
+    messages: [ClickedUndo, ClickedRedo],
+  }),
+
+  toolKeyPresses: entry('ToolKeyPresses', {
+    messages: [SelectedTool],
+  }),
+
+  mouseReleases: entry(
+    'MouseReleases',
+    { isDrawing: Schema.Boolean },
+    {
+      messages: [ReleasedMouse],
+      modelToDependencies: model => ({ isDrawing: model.isDrawing }),
+    },
+  ),
+}))
+
+const UndoRedoKeyPressesLayer = subscriptions.undoRedoKeyPresses.toLayer(
+  Effect.succeed(() =>
     Dom.streamFromEventFilterMapPreventDefault({
       target: document,
       type: 'keydown',
       filterMapEvent: toUndoRedoMessage,
     }),
   ),
+)
 
-  toolKeys: Subscription.persistentEntry(
+const ToolKeyPressesLayer = subscriptions.toolKeyPresses.toLayer(
+  Effect.succeed(() =>
     Dom.streamFromEventFilterMap({
       target: document,
       type: 'keydown',
       filterMapEvent: toToolMessage,
     }),
   ),
+)
 
-  mouseRelease: entry(
-    { isDrawing: Schema.Boolean },
-    {
-      modelToDependencies: model => ({ isDrawing: model.isDrawing }),
-      dependenciesToStream: ({ isDrawing }) =>
-        Stream.when(
-          Stream.fromEventListener(document, 'mouseup').pipe(
-            Stream.map(() => ReleasedMouse()),
-          ),
-          Effect.sync(() => isDrawing),
-        ),
-    },
+const MouseReleasesLayer = subscriptions.mouseReleases.toLayer(
+  Effect.succeed(({ isDrawing }) =>
+    Stream.when(
+      Stream.fromEventListener(document, 'mouseup').pipe(
+        Stream.map(() => ReleasedMouse()),
+      ),
+      Effect.succeed(isDrawing),
+    ),
   ),
-}))
+)

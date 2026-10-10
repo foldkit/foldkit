@@ -6,7 +6,7 @@ import { Message } from '../message'
 import { type Model } from '../model'
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  systemTheme: entry(
+  systemThemeChanges: entry(
     'SystemThemeChanges',
     { isSystemPreference: Schema.Boolean },
     {
@@ -21,8 +21,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const SystemThemeChangesLayer = subscriptions.systemTheme.toLayer(
-  ({ isSystemPreference }) =>
+export const SystemThemeChangesLayer = subscriptions.systemThemeChanges.toLayer(
+  Effect.succeed(({ isSystemPreference }) =>
     Stream.when(
       Dom.streamFromMediaQuery({
         query: DARK_COLOR_SCHEME_QUERY,
@@ -31,6 +31,7 @@ export const SystemThemeChangesLayer = subscriptions.systemTheme.toLayer(
       }),
       Effect.sync(() => isSystemPreference),
     ),
+  ),
 )
 
-export { SystemThemeChangesLayer as Layer }
+export { SystemThemeChangesLayer as EffectsLayer }

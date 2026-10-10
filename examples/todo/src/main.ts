@@ -3,7 +3,7 @@ import {
   Array,
   Clock,
   Effect,
-  Layer as EffectLayer,
+  Layer,
   Match,
   Option,
   Random,
@@ -282,17 +282,15 @@ export const SaveTodos = Command.define('SaveTodos', {
 const GenerateTodoLayer = GenerateTodo.toLayer(
   Effect.gen(function* () {
     const clock = yield* Clock.Clock
-    const random = yield* Random.Random
+
     return ({ text }) =>
       Effect.gen(function* () {
         const id = yield* Random.nextIntBetween(
           0,
           Number.MAX_SAFE_INTEGER,
-        ).pipe(
-          Effect.provideService(Random.Random, random),
-          Effect.map(value => value.toString(36)),
-        )
+        ).pipe(Effect.map(value => value.toString(36)))
         const timestamp = yield* clock.currentTimeMillis
+
         return Message.CompletedGenerateTodo({ id, timestamp, text })
       })
   }),
@@ -301,6 +299,7 @@ const GenerateTodoLayer = GenerateTodo.toLayer(
 const SaveTodosLayer = SaveTodos.toLayer(
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
+
     return ({ todos }) =>
       Effect.gen(function* () {
         const encodedTodos = yield* Schema.encodeEffect(TodosJsonString)(todos)
@@ -310,7 +309,7 @@ const SaveTodosLayer = SaveTodos.toLayer(
   }),
 )
 
-export const Layer = EffectLayer.mergeAll(GenerateTodoLayer, SaveTodosLayer)
+export const EffectsLayer = Layer.mergeAll(GenerateTodoLayer, SaveTodosLayer)
 
 // VIEW
 

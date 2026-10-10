@@ -14,24 +14,22 @@ export const FetchTelemetry = Command.define('FetchTelemetry', {
 })
 
 const FetchTelemetryLayer = FetchTelemetry.toLayer(
-  makeFetchRawTelemetry.pipe(
-    Effect.map(
-      fetch => () =>
-        fetch().pipe(
-          Effect.map(transformTelemetry),
-          Effect.map(telemetry =>
-            Message.SucceededFetchTelemetry({ telemetry }),
-          ),
-          Effect.catch(error =>
-            Effect.succeed(
-              Message.FailedFetchTelemetry({
-                error: error instanceof Error ? error.message : `${error}`,
-              }),
-            ),
+  Effect.gen(function* () {
+    const fetchRawTelemetry = yield* makeFetchRawTelemetry
+
+    return () =>
+      fetchRawTelemetry().pipe(
+        Effect.map(transformTelemetry),
+        Effect.map(telemetry => Message.SucceededFetchTelemetry({ telemetry })),
+        Effect.catch(error =>
+          Effect.succeed(
+            Message.FailedFetchTelemetry({
+              error: error instanceof Error ? error.message : `${error}`,
+            }),
           ),
         ),
-    ),
-  ),
+      )
+  }),
 )
 
 export const SyncChart = Command.define('SyncChart', {
@@ -46,26 +44,28 @@ export const SyncChart = Command.define('SyncChart', {
   messages: [Message.SucceededSyncChart, Message.FailedSyncChart],
 })
 
-const SyncChartLayer = SyncChart.toLayer(args =>
-  Option.match(getChart(args.hostId), {
-    onNone: () =>
-      Effect.succeed(
-        Message.FailedSyncChart({
-          reason: `Could not find a live chart for hostId ${args.hostId}.`,
-        }),
-      ),
-    onSome: chart =>
-      Effect.try(() => chart.setOption(makeChartOption(args), true)).pipe(
-        Effect.as(Message.SucceededSyncChart()),
-        Effect.catch(error =>
-          Effect.succeed(
-            Message.FailedSyncChart({
-              reason: error instanceof Error ? error.message : `${error}`,
-            }),
+const SyncChartLayer = SyncChart.toLayer(
+  Effect.succeed(args =>
+    Option.match(getChart(args.hostId), {
+      onNone: () =>
+        Effect.succeed(
+          Message.FailedSyncChart({
+            reason: `Could not find a live chart for hostId ${args.hostId}.`,
+          }),
+        ),
+      onSome: chart =>
+        Effect.try(() => chart.setOption(makeChartOption(args), true)).pipe(
+          Effect.as(Message.SucceededSyncChart()),
+          Effect.catch(error =>
+            Effect.succeed(
+              Message.FailedSyncChart({
+                reason: error instanceof Error ? error.message : `${error}`,
+              }),
+            ),
           ),
         ),
-      ),
-  }),
+    }),
+  ),
 )
 
 export const CommandsLayer = Layer.mergeAll(FetchTelemetryLayer, SyncChartLayer)

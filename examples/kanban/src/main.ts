@@ -1,6 +1,7 @@
-import { Effect, Option, Schema } from 'effect'
+import { Effect, Layer, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 
+import * as UI from '@foldkit/ui'
 import { DragAndDrop } from '@foldkit/ui'
 
 import { CommandsLayer } from './command'
@@ -25,6 +26,7 @@ export const flags: Effect.Effect<Flags, never, KeyValueStore.KeyValueStore> =
       Option.fromNullishOr(yield* store.get(STORAGE_KEY)),
     )
     const decoded = yield* Schema.decodeEffect(SavedBoardJsonString)(json)
+
     return Flags.make({ maybeSavedBoard: Option.some(decoded) })
   }).pipe(
     Effect.catch(() =>
@@ -51,6 +53,8 @@ export const init = (flags: Flags) => {
   }
 }
 
-export const Layer = CommandsLayer
+export const EffectsLayer = Layer.mergeAll(UI.EffectsLayer, CommandsLayer)
 
 export { Message, Model, subscriptions, update, view }
+
+export const mounts = UI.mounts

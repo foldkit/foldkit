@@ -6,7 +6,7 @@ import { Message } from './message'
 import { Model, capturesKeyboard } from './model'
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  homeKeyboard: entry(
+  homeKeyPresses: entry(
     'HomeKeyPresses',
     { shouldCaptureKeyboard: Schema.Boolean },
     {
@@ -18,12 +18,13 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-const HomeKeyPressesLayer = subscriptions.homeKeyboard.toLayer(
-  ({ shouldCaptureKeyboard }) =>
+const HomeKeyPressesLayer = subscriptions.homeKeyPresses.toLayer(
+  Effect.succeed(({ shouldCaptureKeyboard }) =>
     Stream.when(
       capturedKeyDownStream(key => Message.PressedKey({ key })),
       Effect.sync(() => shouldCaptureKeyboard),
     ),
+  ),
 )
 
 export const SubscriptionsLayer = HomeKeyPressesLayer

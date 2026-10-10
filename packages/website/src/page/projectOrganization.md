@@ -16,7 +16,7 @@ When one file becomes hard to navigate, separate the root pieces and give each [
 
 Each feature folder owns its Model, Messages, update, view, Commands, Subscriptions, Mounts, ManagedResources, handler Layers, and tests. Do not create empty files only to match the diagram. Add a file when the feature has that concern.
 
-In the diagram, `products/service.ts` owns the feature's `ProductCatalogLayer` business service. The feature's `Layer` export provides it beneath the product handlers. Root `environment.ts` owns concrete HTTP, RPC, and browser provider Layers. Root `storage.ts` defines separate `LocalStorage` and `SessionStorage` service tags and binds them to their platform providers. Applications that do not need those concerns omit the files.
+In the diagram, `products/service.ts` owns the feature's `ProductCatalogLayer` business service. The feature's `EffectsLayer` export provides it beneath the product handlers. Root `environment.ts` owns concrete HTTP, RPC, and browser provider Layers. Root `storage.ts` defines separate `LocalStorage` and `SessionStorage` service tags and binds them to their platform providers. Applications that do not need those concerns omit the files.
 
 Keep Commands beside the update that returns them. A feature that fetches its own data owns that Command instead of importing it from a root Command collection. Extract `message.ts` when a Command needs to import its result Message constructors without creating a cycle.
 
@@ -26,21 +26,21 @@ Split a large feature again only when its own files become difficult to navigate
 
 ## Composing Handler Layers
 
-Keep each handler Layer beside the Command, Subscription, Mount, or ManagedResource definition it implements. Name an individual production Layer after that definition, such as `LoadProductsLayer` or `ProductUpdatesLayer`. The handler owns the translation from Foldkit args or dependencies into an Effect or Stream. External clients stay in its Effect requirements.
+Keep each handler Layer beside the Command, Subscription, Mount, or ManagedResource definition it implements. Name an individual production Layer after that definition, such as `LoadProductsLayer` or `ProductUpdatesLayer`, and name an alternate test implementation `LoadProductsTestLayer`. The handler owns the translation from Foldkit args or dependencies into an Effect or Stream. External clients stay in its Effect requirements.
 
-When a feature is split across modules, its `layer.ts` combines the handler Layers under one `Layer` export. The bundle also includes the `Layer` exports from child features. It may provide business services that the feature owns while leaving concrete HTTP, storage, RPC, and browser providers open for the application root. Import Effect's module as `EffectLayer` inside a file that exports `Layer`, so `EffectLayer.mergeAll` and the feature's public `Layer` stay distinct.
+When a feature is split across modules, its `layer.ts` combines the handler Layers under one `EffectsLayer` export. The bundle also includes each child feature's `EffectsLayer`. It may provide business services that the feature owns while leaving concrete HTTP, storage, RPC, and browser providers open for the application root. Import Effect's module as `Layer`; the public bundle has a different name, so no alias is needed.
 
-In a small application, `main.ts` can export a Layer with the handlers it owns, and `entry.ts` can assemble and run the application directly. Add separate `application.ts` and `layer.ts` roots when several features make those responsibilities useful: `application.ts` lifts registrations and exposes application assembly, while `layer.ts` composes `AppLayer` and any alternate `AppTestLayer`.
+In a small application, `main.ts` can export an `EffectsLayer` with the handlers it owns, and `entry.ts` can assemble and run the application directly. Add separate `application.ts` and `layer.ts` roots when several features make those responsibilities useful: `application.ts` lifts registrations and exposes application assembly, while `layer.ts` composes root `EffectsLayer`, `ServicesLayer`, `AppLayer`, and any alternate `AppTestLayer`.
 
 ::Snippet{name="applicationFeatureLayer" label="Feature handler Layer composition"}
 
-Products provides `ProductCatalogLayer` privately inside its `Layer` bundle. The catalog's external dependencies stay open for the root's production or test providers.
+Products provides `ProductCatalogLayer` privately inside its `EffectsLayer` bundle. The catalog's external dependencies stay open for the root's production or test providers.
 
-The application root repeats the same composition with its own handlers and the `Layer` export from each top-level feature. It also chooses the concrete providers for the environment where the app runs.
+The application root repeats the same composition with its own handlers and the `EffectsLayer` export from each top-level feature. It also chooses the concrete providers for the environment where the app runs.
 
 ::Snippet{name="applicationRootLayer" label="Root handler Layer composition"}
 
-`LocalStorageLayer` and `SessionStorageLayer` implement distinct application service tags, so both stores can coexist without changing the platform `KeyValueStore` identity inside either provider. `HandlersLayer` exports the real handlers for both roots. `AppLayer` provides `ServicesLayer`; `AppTestLayer` provides `ServicesTestLayer` beneath that same handler bundle.
+`LocalStorageLayer` and `SessionStorageLayer` implement distinct application service tags, so both stores can coexist without changing the platform `KeyValueStore` identity inside either provider. Root `EffectsLayer` exports the real handlers for both roots. `AppLayer` provides `ServicesLayer`; `AppTestLayer` provides `ServicesTestLayer` beneath that same handler bundle.
 
 The entry imports the application assembly and `AppLayer`, then supplies the Layer with one `Application.provide` call. In the factory form shown below, `application.ts` exports `makeApplication(container)` and the entry chooses the DOM container before calling it. Use this form whenever tests or server tooling import the registration module, or when the entry chooses the container. A static `application` export is acceptable only when every importer is browser-side and runs after the intended container exists.
 
@@ -48,15 +48,17 @@ Adding another handler or changing an environment provider changes Layer composi
 
 ## Composing Runtime Registrations
 
-Handler Layers and runtime registrations are parallel graphs with different jobs. A feature's `Layer` supplies implementations. Its `subscriptions`, `managedResources`, and `mounts` say which behaviors Foldkit manages for that feature. Keep both exports at the feature boundary, then let `application.ts` assemble the root program.
+Handler Layers and runtime registrations are parallel graphs with different jobs. A feature's `EffectsLayer` supplies implementations. Its `subscriptions`, `managedResources`, and `mounts` say which behaviors Foldkit manages for that feature. Keep both exports at the feature boundary, then let `application.ts` assemble the root program.
 
 ::Snippet{name="applicationRegistrations" label="Root runtime registration composition"}
 
-`Subscription.lift` and `ManagedResource.lift` connect a child feature's Model and Messages to its parent. Direct `Subscription.aggregate(first, second)` keeps the individual Subscription definitions, including their declared Messages and `toLayer` helpers. Use the curried aggregate form only for a record already widened or annotated at a module boundary; it erases that per-entry metadata.
+`Subscription.lift` and `ManagedResource.lift` connect a child feature's Model and Messages to its parent. Direct `Subscription.aggregate(first, second)` keeps the individual Subscription definitions, including their declared Messages and `toLayer` helpers. The curried form, `Subscription.aggregate<Model, Message>()(first, second)`, constrains the parent Model and Message while preserving those definitions and their exact handler requirements. Let the assembled record infer its type so a module boundary does not erase its entry metadata.
 
 `Application.make` receives the completed registration graph inside `makeApplication`. `entry.ts` imports that factory and `AppLayer`, resolves the container, then starts the provided application. It does not import feature Commands, Subscription handlers, Mount handlers, or ManagedResource handlers.
 
-When a parent update needs an explicit requirement union, derive each child branch from `Update.RequirementsOf<typeof Child.update>` and include other Command-producing helpers. Do not derive it from `EffectLayer.Success<typeof Child.Layer>`: a feature Layer may also implement Subscriptions, Mounts, or ManagedResources that the update never returns.
+The same propagation applies to UI component bundles. A feature using the standard UI set merges `UI.EffectsLayer` into its effect bundle and adds `UI.mounts` to its registration bundle. A feature using a selective component set composes those components' `EffectsLayer` and `mounts`. Instance factories such as Slider and Toast return their own effect and Subscription bundles; the feature that creates an instance also owns those returned registrations.
+
+When a parent update needs an explicit requirement union, derive each child branch from `Update.RequirementsOf<typeof Child.update>` and include other Command-producing helpers. Do not derive it from `Layer.Success<typeof Child.EffectsLayer>`: a feature effect bundle may also implement Subscriptions, Mounts, or ManagedResources that the update never returns.
 
 ## Where Tests Live
 
@@ -82,7 +84,7 @@ Import the module as a namespace and call operations such as `Cart.addItem` and 
 
 ## Index Re-exports {#index-reexports}
 
-Use `index.ts` only as a barrel. Re-export the feature's application surface: `Layer`, plus `subscriptions`, `managedResources`, or `mounts` when the feature owns them.
+Use `index.ts` only as a barrel. Re-export the feature's application surface: `EffectsLayer`, plus `subscriptions`, `managedResources`, or `mounts` when the feature owns them.
 
 ::Snippet{name="indexReexports" label="Index re-exports"}
 

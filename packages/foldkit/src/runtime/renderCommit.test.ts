@@ -6,8 +6,8 @@ import { __htmlBuilder } from '../html/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { RenderCommit, createCommitNotifier } from '../render/commit.js'
 import { afterCommit } from '../render/render.js'
-import type * as Update from '../update/index.js'
-import { makeElement } from './makeElement.js'
+import * as Update from '../update/index.js'
+import * as Application from './application.js'
 
 describe('afterCommit', () => {
   it('resumes on a commit that lands after it registered', async () => {
@@ -136,22 +136,28 @@ const h = __htmlBuilder<Message>()
 
 const ProbeCommittedDom = Command.define('ProbeCommittedDom', {
   messages: [Message.CompletedProbeCommittedDom],
-  execute: Effect.gen(function* () {
-    yield* afterCommit
-    const label = document.getElementById(LABEL_ELEMENT_ID)
-    observedLabels.push(label?.textContent ?? '')
-    return Message.CompletedProbeCommittedDom()
-  }),
 })
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const ProbeCommittedDomLayer = ProbeCommittedDom.toLayer(
+  Effect.succeed(() =>
+    Effect.gen(function* () {
+      yield* afterCommit
+      const label = document.getElementById(LABEL_ELEMENT_ID)
+      observedLabels.push(label?.textContent ?? '')
+      return Message.CompletedProbeCommittedDom()
+    }),
+  ),
+)
+
+const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedTransition: () => ({
       model: { label: 'transitioned' },
       commands: [ProbeCommittedDom()],
     }),
     CompletedProbeCommittedDom: () => ({ model }),
-  })
+  }),
+)
 
 describe('Render.afterCommit inside a View Transition', () => {
   let container: HTMLElement
@@ -170,21 +176,24 @@ describe('Render.afterCommit inside a View Transition', () => {
 
   const startElement = () =>
     Effect.runFork(
-      makeElement({
-        Model,
-        init: () => ({ model: { label: 'initial' } }),
-        update,
-        view: model =>
-          h.div(
-            [],
-            [
-              h.button([h.OnClick(Message.ClickedTransition())], ['go']),
-              h.div([h.Id(LABEL_ELEMENT_ID)], [model.label]),
-            ],
-          ),
-        container,
-        viewTransition: ({ message }) => message._tag === 'ClickedTransition',
-      }).start(),
+      Application.provide(
+        Application.makeElement({
+          Model,
+          init: () => ({ model: { label: 'initial' } }),
+          update,
+          view: model =>
+            h.div(
+              [],
+              [
+                h.button([h.OnClick(Message.ClickedTransition())], ['go']),
+                h.div([h.Id(LABEL_ELEMENT_ID)], [model.label]),
+              ],
+            ),
+          container,
+          viewTransition: ({ message }) => message._tag === 'ClickedTransition',
+        }),
+        ProbeCommittedDomLayer,
+      ).start(),
     )
 
   const nextFrames = (count: number): Promise<void> =>
@@ -278,20 +287,23 @@ describe('Render.afterCommit inside a View Transition', () => {
 
   it('resumes a waiter on a plain render with no transition configured', async () => {
     const fiber = Effect.runFork(
-      makeElement({
-        Model,
-        init: () => ({ model: { label: 'initial' } }),
-        update,
-        view: model =>
-          h.div(
-            [],
-            [
-              h.button([h.OnClick(Message.ClickedTransition())], ['go']),
-              h.div([h.Id(LABEL_ELEMENT_ID)], [model.label]),
-            ],
-          ),
-        container,
-      }).start(),
+      Application.provide(
+        Application.makeElement({
+          Model,
+          init: () => ({ model: { label: 'initial' } }),
+          update,
+          view: model =>
+            h.div(
+              [],
+              [
+                h.button([h.OnClick(Message.ClickedTransition())], ['go']),
+                h.div([h.Id(LABEL_ELEMENT_ID)], [model.label]),
+              ],
+            ),
+          container,
+        }),
+        ProbeCommittedDomLayer,
+      ).start(),
     )
 
     try {
@@ -334,25 +346,28 @@ describe('a frame that abandons its render', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const fiber = Effect.runFork(
-      makeElement({
-        Model,
-        init: () => ({ model: { label: 'initial' } }),
-        update,
-        view: model => {
-          if (model.label === 'transitioned') {
-            throw new Error('boom from view')
-          }
-          return h.div(
-            [],
-            [
-              h.button([h.OnClick(Message.ClickedTransition())], ['go']),
-              h.div([h.Id(LABEL_ELEMENT_ID)], [model.label]),
-            ],
-          )
-        },
-        container,
-        crash: { view: () => h.div([], ['Crashed']) },
-      }).start(),
+      Application.provide(
+        Application.makeElement({
+          Model,
+          init: () => ({ model: { label: 'initial' } }),
+          update,
+          view: model => {
+            if (model.label === 'transitioned') {
+              throw new Error('boom from view')
+            }
+            return h.div(
+              [],
+              [
+                h.button([h.OnClick(Message.ClickedTransition())], ['go']),
+                h.div([h.Id(LABEL_ELEMENT_ID)], [model.label]),
+              ],
+            )
+          },
+          container,
+          crash: { view: () => h.div([], ['Crashed']) },
+        }),
+        ProbeCommittedDomLayer,
+      ).start(),
     )
 
     try {
@@ -380,20 +395,23 @@ describe('a frame that abandons its render', () => {
 
   it('does not patch a frame scheduled before the runtime was disposed', async () => {
     const fiber = Effect.runFork(
-      makeElement({
-        Model,
-        init: () => ({ model: { label: 'initial' } }),
-        update,
-        view: model =>
-          h.div(
-            [],
-            [
-              h.button([h.OnClick(Message.ClickedTransition())], ['go']),
-              h.div([h.Id(LABEL_ELEMENT_ID)], [model.label]),
-            ],
-          ),
-        container,
-      }).start(),
+      Application.provide(
+        Application.makeElement({
+          Model,
+          init: () => ({ model: { label: 'initial' } }),
+          update,
+          view: model =>
+            h.div(
+              [],
+              [
+                h.button([h.OnClick(Message.ClickedTransition())], ['go']),
+                h.div([h.Id(LABEL_ELEMENT_ID)], [model.label]),
+              ],
+            ),
+          container,
+        }),
+        ProbeCommittedDomLayer,
+      ).start(),
     )
 
     await vi.waitFor(() => {

@@ -1,5 +1,5 @@
 import { Option } from 'effect'
-import { Calendar, type Update } from 'foldkit'
+import { Calendar, Update } from 'foldkit'
 
 import {
   Animation,

@@ -1,4 +1,14 @@
-import { Array, Effect, Number, Option, Random, Schema, pipe } from 'effect'
+import {
+  Array,
+  Effect,
+  Layer,
+  Number,
+  Option,
+  Random,
+  Schema,
+  Stream,
+  pipe,
+} from 'effect'
 import { Canvas, Command, Subscription, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -79,34 +89,29 @@ export const GenerateBall = Command.define('GenerateBall', {
 })
 
 export const GenerateBallLayer = GenerateBall.toLayer(
-  Effect.gen(function* () {
-    const random = yield* Random.Random
-    return ({ x, y }) =>
-      Effect.gen(function* () {
-        const angle = yield* Random.nextBetween(0, FULL_CIRCLE_RADIANS)
-        const speed = yield* Random.nextBetween(BALL_SPEED_MIN, BALL_SPEED_MAX)
-        const radius = yield* Random.nextBetween(
-          BALL_RADIUS_MIN,
-          BALL_RADIUS_MAX,
-        )
-        const colorIndex = yield* Random.nextIntBetween(0, PALETTE.length, {
-          halfOpen: true,
-        })
-        const color = pipe(
-          PALETTE,
-          Array.get(colorIndex),
-          Option.getOrElse(() => FALLBACK_COLOR),
-        )
-        return Message.CompletedGenerateBall({
-          x,
-          y,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          radius,
-          color,
-        })
-      }).pipe(Effect.provideService(Random.Random, random))
-  }),
+  Effect.succeed(({ x, y }) =>
+    Effect.gen(function* () {
+      const angle = yield* Random.nextBetween(0, FULL_CIRCLE_RADIANS)
+      const speed = yield* Random.nextBetween(BALL_SPEED_MIN, BALL_SPEED_MAX)
+      const radius = yield* Random.nextBetween(BALL_RADIUS_MIN, BALL_RADIUS_MAX)
+      const colorIndex = yield* Random.nextIntBetween(0, PALETTE.length, {
+        halfOpen: true,
+      })
+      const color = pipe(
+        PALETTE,
+        Array.get(colorIndex),
+        Option.getOrElse(() => FALLBACK_COLOR),
+      )
+      return Message.CompletedGenerateBall({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        radius,
+        color,
+      })
+    }),
+  ),
 )
 
 // UPDATE
@@ -168,12 +173,31 @@ export const update = Update.make((model: Model, message: Message) =>
 
 // SUBSCRIPTION
 
-export const subscriptions = Subscription.make<Model, Message>()(_entry => ({
-  frame: Subscription.animationFrameEntry({
-    isActive: model => model.isRunning,
-    toMessage: deltaTime => Message.TickedFrame({ deltaTime }),
-  }),
+export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  animationFrameTicks: entry(
+    'AnimationFrameTicks',
+    { isActive: Schema.Boolean },
+    {
+      messages: [Message.TickedFrame],
+      modelToDependencies: model => ({ isActive: model.isRunning }),
+    },
+  ),
 }))
+
+const AnimationFrameTicksLayer = subscriptions.animationFrameTicks.toLayer(
+  Effect.succeed(({ isActive }) =>
+    isActive
+      ? Subscription.animationFrameStream.pipe(
+          Stream.map(deltaTime => Message.TickedFrame({ deltaTime })),
+        )
+      : Stream.empty,
+  ),
+)
+
+export const EffectsLayer = Layer.mergeAll(
+  GenerateBallLayer,
+  AnimationFrameTicksLayer,
+)
 
 // VIEW
 

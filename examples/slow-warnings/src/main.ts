@@ -1,4 +1,14 @@
-import { Array, Match, Number, Option, Schema, Stream, pipe } from 'effect'
+import {
+  Array,
+  Effect,
+  Layer,
+  Match,
+  Number,
+  Option,
+  Schema,
+  Stream,
+  pipe,
+} from 'effect'
 import { Dom, Runtime, Subscription, Update } from 'foldkit'
 import { type Document, type Html, HtmlBuilder, createLazy } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -220,10 +230,11 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  slowWarnings: entry('SlowWarningReports', {
+  slowWarningReports: entry('SlowWarningReports', {
     messages: [Message.RecordedSlowWarning],
   }),
-  burnCpuDuringDependencyExtraction: entry(
+  dependencyExtractionWork: entry(
+    'DependencyExtractionWork',
     { activeWorkload: Workload },
     {
       modelToDependencies: model => {
@@ -233,25 +244,35 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
 
         return { activeWorkload: model.activeWorkload }
       },
-      dependenciesToStream: () => Stream.empty,
+      messages: [],
     },
   ),
 }))
 
-const SlowWarningReportsLayer = subscriptions.slowWarnings.toLayer(() =>
-  Dom.streamFromEventFilterMap({
-    target: slowWarningTarget,
-    type: SLOW_WARNING_EVENT,
-    filterMapEvent: event =>
-      pipe(
-        event.detail,
-        Schema.decodeOption(SlowWarningReport),
-        Option.map(report => Message.RecordedSlowWarning({ report })),
-      ),
-  }),
+const SlowWarningReportsLayer = subscriptions.slowWarningReports.toLayer(
+  Effect.succeed(() =>
+    Dom.streamFromEventFilterMap({
+      target: slowWarningTarget,
+      type: SLOW_WARNING_EVENT,
+      filterMapEvent: event =>
+        pipe(
+          event.detail,
+          Schema.decodeOption(SlowWarningReport),
+          Option.map(report => Message.RecordedSlowWarning({ report })),
+        ),
+    }),
+  ),
 )
 
-export const Layer = SlowWarningReportsLayer
+const DependencyExtractionWorkLayer =
+  subscriptions.dependencyExtractionWork.toLayer(
+    Effect.succeed(() => Stream.empty),
+  )
+
+export const EffectsLayer = Layer.mergeAll(
+  SlowWarningReportsLayer,
+  DependencyExtractionWorkLayer,
+)
 
 // VIEW
 

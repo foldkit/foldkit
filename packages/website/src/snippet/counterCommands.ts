@@ -24,11 +24,15 @@ export const WaitBeforeReset = Command.define('WaitBeforeReset', {
   messages: [Message.CompletedWaitBeforeReset],
 })
 
-export const WaitBeforeResetLayer = WaitBeforeReset.toLayer(() =>
-  Effect.sleep('1 second').pipe(Effect.as(Message.CompletedWaitBeforeReset())),
+export const WaitBeforeResetLayer = WaitBeforeReset.toLayer(
+  Effect.succeed(() =>
+    Effect.sleep('1 second').pipe(
+      Effect.as(Message.CompletedWaitBeforeReset()),
+    ),
+  ),
 )
 
-export const Layer = WaitBeforeResetLayer
+export const EffectsLayer = WaitBeforeResetLayer
 
 // INIT
 

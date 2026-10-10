@@ -7,8 +7,8 @@ import * as ManagedResource from '../managedResource/index.js'
 import { make } from '../managedResource/managedResource.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
-import type * as Update from '../update/index.js'
-import { makeElement } from './makeElement.js'
+import * as Update from '../update/index.js'
+import * as Application from './application.js'
 
 type EngineShape = Readonly<{ id: string }>
 
@@ -58,7 +58,6 @@ const releaseEngine = ({ id }: EngineShape) =>
   })
 
 const Engine = ManagedResource.tag<EngineShape>()('Engine')
-type EngineServiceId = ManagedResource.ServiceOf<typeof Engine>
 
 const Message = defineMessageUnion({
   RequestedEngine: { id: Schema.String },
@@ -81,16 +80,21 @@ type Model = typeof Model.Type
 
 const ReadEngine = Command.define('ReadEngine', {
   messages: [Message.SucceededRead, Message.FailedRead],
-  execute: Engine.get.pipe(
-    Effect.map(({ id }) => Message.SucceededRead({ value: id })),
-    Effect.catchTag('ResourceNotAvailable', () =>
-      Effect.succeed(Message.FailedRead()),
-    ),
-  ),
 })
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message, EngineServiceId>>(message, {
+const ReadEngineLayer = ReadEngine.toLayer(
+  Effect.succeed(() =>
+    Engine.get.pipe(
+      Effect.map(({ id }) => Message.SucceededRead({ value: id })),
+      Effect.catchTag('ResourceNotAvailable', () =>
+        Effect.succeed(Message.FailedRead()),
+      ),
+    ),
+  ),
+)
+
+const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     RequestedEngine: ({ id }) => ({
       model: modifyFields(model, { requested: () => Option.some(id) }),
     }),
@@ -113,23 +117,33 @@ const update = (model: Model, message: Message) =>
     FailedRead: () => ({
       model: modifyFields(model, { readValue: () => 'unavailable' }),
     }),
-  })
+  }),
+)
 
 const managedResources = make<Model, Message>()(entry => ({
-  engine: entry(Schema.Option(Schema.Struct({ id: Schema.String })), {
-    resource: Engine,
-    modelToMaybeRequirements: model =>
-      Option.map(model.requested, id => ({ id })),
+  engine: entry(
+    'ManageEngine',
+    Schema.Option(Schema.Struct({ id: Schema.String })),
+    {
+      resource: Engine,
+      modelToMaybeRequirements: model =>
+        Option.map(model.requested, id => ({ id })),
+      onAcquired: () => Message.AcquiredEngine(),
+      onReleased: () => Message.ReleasedEngine(),
+      onAcquireError: error => Message.FailedEngine({ error: String(error) }),
+    },
+  ),
+}))
+
+const EngineLayer = managedResources.engine.toLayer(
+  Effect.succeed({
     acquire: ({ id }) =>
       Layer.build(makeEngineLayer(id)).pipe(
         Effect.map(context => Context.get(context, EngineService)),
       ),
     release: releaseEngine,
-    onAcquired: () => Message.AcquiredEngine(),
-    onReleased: () => Message.ReleasedEngine(),
-    onAcquireError: error => Message.FailedEngine({ error: String(error) }),
   }),
-}))
+)
 
 const h = __htmlBuilder<Message>()
 
@@ -169,7 +183,7 @@ afterEach(() => {
 })
 
 const startEngineApp = (initialId: string) =>
-  makeElement({
+  Application.makeElement({
     Model,
     init: () => ({
       model: {
@@ -206,7 +220,12 @@ const clickButton = (label: string): void => {
 describe('managed resource lifecycle with a Layer-built resource', () => {
   it('acquires and exposes the bare service value via the resource ref', async () => {
     const element = startEngineApp('a')
-    const fiber = Effect.runFork(element.start())
+    const fiber = Effect.runFork(
+      Application.provide(
+        element,
+        Layer.mergeAll(ReadEngineLayer, EngineLayer),
+      ).start(),
+    )
 
     try {
       await awaitBodyText('status:acquired')
@@ -221,7 +240,12 @@ describe('managed resource lifecycle with a Layer-built resource', () => {
 
   it('runs the Layer finalizer when the resource is released', async () => {
     const element = startEngineApp('a')
-    const fiber = Effect.runFork(element.start())
+    const fiber = Effect.runFork(
+      Application.provide(
+        element,
+        Layer.mergeAll(ReadEngineLayer, EngineLayer),
+      ).start(),
+    )
 
     try {
       await awaitBodyText('status:acquired')
@@ -236,7 +260,12 @@ describe('managed resource lifecycle with a Layer-built resource', () => {
 
   it('closes the old scope before building the new one on a param change', async () => {
     const element = startEngineApp('a')
-    const fiber = Effect.runFork(element.start())
+    const fiber = Effect.runFork(
+      Application.provide(
+        element,
+        Layer.mergeAll(ReadEngineLayer, EngineLayer),
+      ).start(),
+    )
 
     try {
       await awaitBodyText('status:acquired')
@@ -258,7 +287,12 @@ describe('managed resource lifecycle with a Layer-built resource', () => {
 
   it('dispatches onAcquireError and leaves the ref empty when acquire fails', async () => {
     const element = startEngineApp(ACQUIRE_FAILURE_ID)
-    const fiber = Effect.runFork(element.start())
+    const fiber = Effect.runFork(
+      Application.provide(
+        element,
+        Layer.mergeAll(ReadEngineLayer, EngineLayer),
+      ).start(),
+    )
 
     try {
       await awaitBodyText(`failed:Error: ${LAYER_BUILD_ERROR}`)
@@ -275,7 +309,12 @@ describe('managed resource lifecycle with a Layer-built resource', () => {
 
   it('runs the explicit release before the Layer finalizer on teardown', async () => {
     const element = startEngineApp('a')
-    const fiber = Effect.runFork(element.start())
+    const fiber = Effect.runFork(
+      Application.provide(
+        element,
+        Layer.mergeAll(ReadEngineLayer, EngineLayer),
+      ).start(),
+    )
 
     try {
       await awaitBodyText('status:acquired')
@@ -291,7 +330,12 @@ describe('managed resource lifecycle with a Layer-built resource', () => {
 
   it('clears the ref and dispatches onReleased after a release defect', async () => {
     const element = startEngineApp(RELEASE_DEFECT_ID)
-    const fiber = Effect.runFork(element.start())
+    const fiber = Effect.runFork(
+      Application.provide(
+        element,
+        Layer.mergeAll(ReadEngineLayer, EngineLayer),
+      ).start(),
+    )
 
     try {
       await awaitBodyText('status:acquired')

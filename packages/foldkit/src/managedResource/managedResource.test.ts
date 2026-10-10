@@ -35,17 +35,21 @@ const SessionResource = tag<Readonly<{ token: string }>>()('SessionResource')
 const sessionSchema = Schema.Option(Schema.Struct({ token: Schema.String }))
 
 const childManagedResources = make<ChildModel, ChildMessage>()(entry => ({
-  session: entry(sessionSchema, {
+  session: entry('ManageChildSession', sessionSchema, {
     resource: SessionResource,
     modelToMaybeRequirements: model =>
       Option.map(model.maybeToken, token => ({ token })),
-    acquire: ({ token }) => Effect.succeed({ token }),
-    release: () => Effect.void,
     onAcquired: () => childMessage('AcquiredSession'),
     onReleased: () => childMessage('ReleasedSession'),
     onAcquireError: () => childMessage('FailedSession'),
   }),
 }))
+const ManageChildSessionLayer = childManagedResources.session.toLayer(
+  Effect.succeed({
+    acquire: ({ token }) => Effect.succeed({ token }),
+    release: () => Effect.void,
+  }),
+)
 
 class Prefix extends Context.Service<Prefix, { readonly value: string }>()(
   'ManagedResourceHandlerTestPrefix',
@@ -77,6 +81,33 @@ const layeredManagedResources = make<ChildModel, ChildMessage>()(entry => ({
   }),
 }))
 
+if (false) {
+  layeredManagedResources.session.toLayer({
+    // @ts-expect-error toLayer accepts an Effect that constructs the lifecycle handler.
+    acquire: ({ token }: { readonly token: string }) => Effect.succeed(token),
+    release: () => Effect.void,
+  })
+
+  const inlineConfig = {
+    resource: LayeredSessionResource,
+    modelToMaybeRequirements: (model: ChildModel) =>
+      Option.map(model.maybeToken, token => ({ token })),
+    onAcquired: () => childMessage('AcquiredSession'),
+    onReleased: () => childMessage('ReleasedSession'),
+    onAcquireError: () => childMessage('FailedSession'),
+    acquire: ({ token }: { readonly token: string }) => Effect.succeed(token),
+    release: () => Effect.void,
+  }
+  make<ChildModel, ChildMessage>()(entry => ({
+    inline: entry(
+      'InlineManagedResource',
+      sessionSchema,
+      // @ts-expect-error ManagedResource lifecycle implementations belong in handler Layers.
+      inlineConfig,
+    ),
+  }))
+}
+
 // A parent embeds the child as an Option and holds its own local resource.
 
 type ParentModel = Readonly<{ maybeChild: Option.Option<ChildModel> }>
@@ -96,15 +127,19 @@ const PingResource = tag<number>()('PingResource')
 
 const parentLocalManagedResources = make<ParentModel, ParentMessage>()(
   entry => ({
-    ping: entry(Schema.Option(Schema.Null), {
+    ping: entry('ManagePing', Schema.Option(Schema.Null), {
       resource: PingResource,
       modelToMaybeRequirements: () => Option.some(null),
-      acquire: () => Effect.succeed(1),
-      release: () => Effect.void,
       onAcquired: pinged,
       onReleased: pinged,
       onAcquireError: pinged,
     }),
+  }),
+)
+const ManagePingLayer = parentLocalManagedResources.ping.toLayer(
+  Effect.succeed({
+    acquire: () => Effect.succeed(1),
+    release: () => Effect.void,
   }),
 )
 
@@ -134,18 +169,31 @@ describe('make', () => {
     expectTypeOf(
       childManagedResources.session.acquire({ token: 'abc' }),
     ).toEqualTypeOf<
-      Effect.Effect<Readonly<{ token: string }>, unknown, Scope.Scope>
+      Effect.Effect<
+        Readonly<{ token: string }>,
+        unknown,
+        Scope.Scope | Handler<'ManageChildSession'>
+      >
+    >()
+    expectTypeOf(ManageChildSessionLayer).toEqualTypeOf<
+      Layer.Layer<Handler<'ManageChildSession'>>
+    >()
+    expectTypeOf(ManagePingLayer).toEqualTypeOf<
+      Layer.Layer<Handler<'ManagePing'>>
     >()
   })
 
   it('carries a named lifecycle Handler and the Layer dependencies', () => {
-    const layer = layeredManagedResources.session.toLayer({
-      acquire: ({ token }) => Effect.map(Prefix, ({ value }) => value + token),
-      release: value =>
-        Effect.asVoid(
-          Effect.map(Suffix, ({ value: suffix }) => value + suffix),
-        ),
-    })
+    const layer = layeredManagedResources.session.toLayer(
+      Effect.succeed({
+        acquire: ({ token }) =>
+          Effect.map(Prefix, ({ value }) => value + token),
+        release: value =>
+          Effect.asVoid(
+            Effect.map(Suffix, ({ value: suffix }) => value + suffix),
+          ),
+      }),
+    )
 
     expectTypeOf(
       layeredManagedResources.session.acquire({ token: 'abc' }),
@@ -158,43 +206,23 @@ describe('make', () => {
     expect(layeredManagedResources.session.name).toBe('ManageSession')
   })
 
-  it('constrains lifecycle callback errors without changing the Layer construction error', () => {
-    layeredManagedResources.session.toLayer<
-      Prefix,
-      Suffix,
-      never,
-      never,
-      AcquireFailure,
-      ReleaseFailure
-    >({
-      // @ts-expect-error The acquire callback must fail with AcquireFailure.
-      acquire: () => Effect.fail(new ReleaseFailure()),
-      release: () => Effect.fail(new ReleaseFailure()),
-    })
+  it('infers fallible lifecycle handlers from an Effect supplied object', () => {
+    const layer = layeredManagedResources.session.toLayer(
+      Effect.succeed({
+        acquire: ({ token }) =>
+          Effect.try({
+            try: () => token,
+            catch: () => new AcquireFailure(),
+          }),
+        release: () =>
+          Effect.try({
+            try: () => undefined,
+            catch: () => new ReleaseFailure(),
+          }),
+      }),
+    )
 
-    const layer = layeredManagedResources.session.toLayer<
-      Prefix,
-      Suffix,
-      never,
-      never,
-      AcquireFailure,
-      ReleaseFailure
-    >({
-      acquire: () =>
-        Effect.callback<string, AcquireFailure, Prefix>(resume => {
-          resume(Effect.fail(new AcquireFailure()))
-          return Effect.asVoid(Prefix)
-        }),
-      release: () =>
-        Effect.callback<void, ReleaseFailure, Suffix>(resume => {
-          resume(Effect.fail(new ReleaseFailure()))
-          return Effect.asVoid(Suffix)
-        }),
-    })
-
-    expectTypeOf(layer).toEqualTypeOf<
-      Layer.Layer<Handler<'ManageSession'>, never, Prefix | Suffix>
-    >()
+    expectTypeOf(layer).toEqualTypeOf<Layer.Layer<Handler<'ManageSession'>>>()
   })
 
   it('infers lifecycle requirements from an Effect supplied handler', () => {
@@ -220,13 +248,16 @@ describe('make', () => {
 
   it('uses invocation context for both acquire and release', async () => {
     const released: Array<string> = []
-    const layer = layeredManagedResources.session.toLayer({
-      acquire: ({ token }) => Effect.map(Prefix, ({ value }) => value + token),
-      release: value =>
-        Effect.flatMap(Suffix, ({ value: suffix }) =>
-          Effect.sync(() => released.push(value + suffix)),
-        ),
-    })
+    const layer = layeredManagedResources.session.toLayer(
+      Effect.succeed({
+        acquire: ({ token }) =>
+          Effect.map(Prefix, ({ value }) => value + token),
+        release: value =>
+          Effect.flatMap(Suffix, ({ value: suffix }) =>
+            Effect.sync(() => released.push(value + suffix)),
+          ),
+      }),
+    )
 
     const result = await Effect.runPromise(
       Effect.scoped(
@@ -267,10 +298,12 @@ describe('make', () => {
         onAcquireError: () => childMessage('FailedSession'),
       }),
     }))
-    const otherLayer = other.session.toLayer({
-      acquire: ({ token }) => Effect.succeed(token),
-      release: () => Effect.void,
-    })
+    const otherLayer = other.session.toLayer(
+      Effect.succeed({
+        acquire: ({ token }) => Effect.succeed(token),
+        release: () => Effect.void,
+      }),
+    )
 
     await expect(
       Effect.runPromise(
@@ -285,19 +318,21 @@ describe('make', () => {
 
   it('uses the resource lifetime Scope for lifecycle finalizers', async () => {
     const finalizations: Array<string> = []
-    const layer = layeredManagedResources.session.toLayer({
-      acquire: ({ token }) =>
-        Effect.gen(function* () {
-          yield* Effect.addFinalizer(() =>
-            Effect.sync(() => finalizations.push('acquire')),
-          )
-          return token
-        }),
-      release: () =>
-        Effect.addFinalizer(() =>
-          Effect.sync(() => finalizations.push('release')),
-        ),
-    })
+    const layer = layeredManagedResources.session.toLayer(
+      Effect.succeed({
+        acquire: ({ token }) =>
+          Effect.gen(function* () {
+            yield* Effect.addFinalizer(() =>
+              Effect.sync(() => finalizations.push('acquire')),
+            )
+            return token
+          }),
+        release: () =>
+          Effect.addFinalizer(() =>
+            Effect.sync(() => finalizations.push('release')),
+          ),
+      }),
+    )
     const constructionScope = await Effect.runPromise(Scope.make())
     const handlerContext = await Effect.runPromise(
       Layer.buildWithScope(layer, constructionScope),
@@ -440,11 +475,9 @@ const incompatibleModelManagedResources = make<
   IncompatibleModel,
   ParentMessage
 >()(entry => ({
-  incompatible: entry(Schema.Option(Schema.Null), {
+  incompatible: entry('ManageIncompatible', Schema.Option(Schema.Null), {
     resource: IncompatibleResource,
     modelToMaybeRequirements: () => Option.some(null),
-    acquire: () => Effect.succeed('value'),
-    release: () => Effect.void,
     onAcquired: pinged,
     onReleased: pinged,
     onAcquireError: pinged,
@@ -503,15 +536,17 @@ describe('aggregate', () => {
 
     const applicationManagedResources = make<ApplicationModel, ParentMessage>()(
       entry => ({
-        applicationPing: entry(Schema.Option(Schema.Null), {
-          resource: PingResource,
-          modelToMaybeRequirements: () => Option.some(null),
-          acquire: () => Effect.succeed(1),
-          release: () => Effect.void,
-          onAcquired: pinged,
-          onReleased: pinged,
-          onAcquireError: pinged,
-        }),
+        applicationPing: entry(
+          'ManageApplicationPing',
+          Schema.Option(Schema.Null),
+          {
+            resource: PingResource,
+            modelToMaybeRequirements: () => Option.some(null),
+            onAcquired: pinged,
+            onReleased: pinged,
+            onAcquireError: pinged,
+          },
+        ),
       }),
     )
 

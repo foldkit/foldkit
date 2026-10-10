@@ -16,11 +16,13 @@ const MeasurePanel = Mount.define('MeasurePanel', {
   messages: [Message.CompletedMeasurePanel],
 })
 
-const MeasurePanelLayer = MeasurePanel.toLayer(({ element }) =>
-  Effect.sync(() =>
-    Message.CompletedMeasurePanel({
-      height: element.getBoundingClientRect().height,
-    }),
+const MeasurePanelLayer = MeasurePanel.toLayer(
+  Effect.succeed(({ element }) =>
+    Effect.sync(() =>
+      Message.CompletedMeasurePanel({
+        height: element.getBoundingClientRect().height,
+      }),
+    ),
   ),
 )
 

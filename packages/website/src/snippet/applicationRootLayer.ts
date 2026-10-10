@@ -15,12 +15,12 @@ import {
   SessionStorageTestLayer,
 } from './storage'
 
-export const HandlersLayer = Layer.mergeAll(
+export const EffectsLayer = Layer.mergeAll(
   NavigationLayer,
-  Home.Layer,
-  Products.Layer,
+  Home.EffectsLayer,
+  Products.EffectsLayer,
 )
-const ServicesLayer = Layer.mergeAll(
+export const ServicesLayer = Layer.mergeAll(
   BrowserHttpLayer,
   LocalStorageLayer,
   SessionStorageLayer,
@@ -33,5 +33,5 @@ const ServicesTestLayer = Layer.mergeAll(
   RpcTestLayer,
 )
 
-export const AppLayer = Layer.provide(HandlersLayer, ServicesLayer)
-export const AppTestLayer = Layer.provide(HandlersLayer, ServicesTestLayer)
+export const AppLayer = Layer.provide(EffectsLayer, ServicesLayer)
+export const AppTestLayer = Layer.provide(EffectsLayer, ServicesTestLayer)

@@ -40,17 +40,11 @@ export interface ToLayerWithoutKeepAlive<
   Message,
 > {
   <StreamRequirements, E = never, BuildRequirements = never>(
-    build:
-      | StreamHandlerWithoutKeepAlive<Dependencies, Message, StreamRequirements>
-      | Effect.Effect<
-          StreamHandlerWithoutKeepAlive<
-            Dependencies,
-            Message,
-            StreamRequirements
-          >,
-          E,
-          BuildRequirements
-        >,
+    build: Effect.Effect<
+      StreamHandlerWithoutKeepAlive<Dependencies, Message, StreamRequirements>,
+      E,
+      BuildRequirements
+    >,
   ): Layer.Layer<
     Handler<Name>,
     E,
@@ -74,13 +68,11 @@ export interface ToLayerWithKeepAlive<
   Message,
 > {
   <StreamRequirements, E = never, BuildRequirements = never>(
-    build:
-      | StreamHandlerWithKeepAlive<Dependencies, Message, StreamRequirements>
-      | Effect.Effect<
-          StreamHandlerWithKeepAlive<Dependencies, Message, StreamRequirements>,
-          E,
-          BuildRequirements
-        >,
+    build: Effect.Effect<
+      StreamHandlerWithKeepAlive<Dependencies, Message, StreamRequirements>,
+      E,
+      BuildRequirements
+    >,
   ): Layer.Layer<
     Handler<Name>,
     E,
@@ -123,17 +115,13 @@ export const makeHandler = <Name extends string, Dependencies, Message>(
     )
 
   const toLayer = <StreamRequirements, E = never, BuildRequirements = never>(
-    build:
-      | ((
-          ...args: ReadonlyArray<any>
-        ) => Stream.Stream<Message, never, StreamRequirements>)
-      | Effect.Effect<
-          (
-            ...args: ReadonlyArray<any>
-          ) => Stream.Stream<Message, never, StreamRequirements>,
-          E,
-          BuildRequirements
-        >,
+    build: Effect.Effect<
+      (
+        ...args: ReadonlyArray<any>
+      ) => Stream.Stream<Message, never, StreamRequirements>,
+      E,
+      BuildRequirements
+    >,
   ): Layer.Layer<
     Handler<Name>,
     E,
@@ -145,7 +133,7 @@ export const makeHandler = <Name extends string, Dependencies, Message>(
         const context = yield* Effect.context<
           Exclude<StreamRequirements, Scope.Scope> | BuildRequirements
         >()
-        const handler = Effect.isEffect(build) ? yield* build : build
+        const handler = yield* build
         return { identity, context, dependenciesToStream: handler }
       }),
     )

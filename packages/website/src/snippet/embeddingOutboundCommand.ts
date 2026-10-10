@@ -13,9 +13,11 @@ export const ReportCount = Command.define('ReportCount', {
   messages: [Message.CompletedReportCount],
 })
 
-export const ReportCountLayer = ReportCount.toLayer(({ count }) =>
-  Port.emit(ports.outbound.countChanged, count).pipe(
-    Effect.as(Message.CompletedReportCount()),
+export const ReportCountLayer = ReportCount.toLayer(
+  Effect.succeed(({ count }) =>
+    Port.emit(ports.outbound.countChanged, count).pipe(
+      Effect.as(Message.CompletedReportCount()),
+    ),
   ),
 )
 

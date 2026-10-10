@@ -4,15 +4,14 @@ const foldLoginOutMessage = (
   outMessage: Login.OutMessage,
   { liftCommand }: Update.FoldContext<Login.Message, Message>,
 ) =>
-  Login.OutMessage.match<Update.Step<Model, Message>>(outMessage, {
-    RequestedMagicLink:
-      ({ email }) =>
-      model => ({
+  Login.OutMessage.match(outMessage, {
+    RequestedMagicLink: ({ email }) =>
+      Update.makeStep((model: Model) => ({
         model,
         commands: [
           liftCommand(
             Login.SendMagicLink({ email, redirectRoute: model.route }),
           ),
         ],
-      }),
+      })),
   })

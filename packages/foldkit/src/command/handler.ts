@@ -22,7 +22,7 @@ type HandlerService<Args, Message> = Readonly<{
 }>
 
 /**
- * Creates a Layer recipe from a Command handler or an Effect that constructs one.
+ * Creates a Layer recipe from an Effect that constructs a Command handler.
  * The runtime builds the application Layer once before init. An Effect
  * constructor can capture shared services and return the handler; its body
  * receives arguments and performs work on each Command execution.
@@ -33,13 +33,11 @@ type HandlerService<Args, Message> = Readonly<{
  */
 export interface ToLayer<Name extends string, Args, Message> {
   <ExecuteRequirements, E = never, BuildRequirements = never>(
-    build:
-      | ((args: Args) => Effect.Effect<Message, never, ExecuteRequirements>)
-      | Effect.Effect<
-          (args: Args) => Effect.Effect<Message, never, ExecuteRequirements>,
-          E,
-          BuildRequirements
-        >,
+    build: Effect.Effect<
+      (args: Args) => Effect.Effect<Message, never, ExecuteRequirements>,
+      E,
+      BuildRequirements
+    >,
   ): Layer.Layer<
     Handler<Name>,
     E,
@@ -75,13 +73,11 @@ export const makeHandler = <Name extends string, Args, Message>(name: Name) => {
     E = never,
     BuildRequirements = never,
   >(
-    build:
-      | ((args: Args) => Effect.Effect<Message, never, ExecuteRequirements>)
-      | Effect.Effect<
-          (args: Args) => Effect.Effect<Message, never, ExecuteRequirements>,
-          E,
-          BuildRequirements
-        >,
+    build: Effect.Effect<
+      (args: Args) => Effect.Effect<Message, never, ExecuteRequirements>,
+      E,
+      BuildRequirements
+    >,
   ): Layer.Layer<
     Handler<Name>,
     E,
@@ -93,7 +89,7 @@ export const makeHandler = <Name extends string, Args, Message>(name: Name) => {
         const context = yield* Effect.context<
           Exclude<ExecuteRequirements, Scope.Scope> | BuildRequirements
         >()
-        const handler = Effect.isEffect(build) ? yield* build : build
+        const handler = yield* build
         return { identity, context, execute: handler }
       }),
     )

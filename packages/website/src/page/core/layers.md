@@ -2,25 +2,25 @@
 
 ## Overview
 
-An Effect Layer is a recipe for constructing services and managing their lifetime. Foldkit uses Layers for shared application services and for handlers that implement Commands, Subscriptions, Mounts, and ManagedResources. The Runtime builds the provided Layers once when the application starts and releases their scoped resources when it stops.
+An Effect Layer is a recipe for constructing services and managing their lifetime. Foldkit uses Layers for shared application services and for handlers that implement Commands, Subscriptions, Mounts, and ManagedResources. The Runtime builds the application Layer once when the application starts and releases its scoped resources when the application stops.
 
 :::Info{label="Think of it like a restaurant kitchen"}
 Shared services are the kitchen equipment available all night. Every dish can use the same oven. A Model-driven handle, such as a camera stream, belongs to a [ManagedResource](/core/managed-resources) instead: it exists only while the Model needs it.
 :::
 
-`Application.make` defines the application and carries its unsatisfied Effect requirements. `Application.provide` adds a Layer recipe before `Runtime.run` starts the program. Looking up a Command handler or restarting a Subscription reuses the services that the Layer already built. A hydrating start validates the server handoff before acquiring any Layer.
+`Application.make` defines the application and carries its unsatisfied Effect requirements. `Application.provide` adds the application Layer before `Runtime.run` starts the program. Command execution, Subscription restart, Mount insertion, and ManagedResource acquisition reuse the handlers and services that Layer built. A hydrating start validates the server handoff before acquiring the Layer.
 
-A Command definition names the operation and its result Messages. Its `toLayer` handler can use an Effect service. `Layer.provide` composes that service Layer beneath the handler Layer. An Effect constructor can capture the provided instance when the application Layer is built, while a plain handler can look it up during each invocation. The same boundary applies to Layer-backed Subscriptions, Mounts, and ManagedResources.
+A Command definition names the operation and its result Messages. Its `toLayer` constructor captures any services the implementation needs, then returns the function that handles each invocation. `Layer.provide` composes those service Layers beneath the handler Layer. Subscriptions, Mounts, and ManagedResources use the same constructor boundary.
 
 ::Snippet{name="layers" label="Shared API client service"}
 
 The application requires the `LoadUser` handler service. `LoadUserLayer` is the real handler in both compositions. `AppLayer` supplies `ApiLayer`; `AppTestLayer` supplies `ApiTestLayer`. The API client starts once with the application, rather than once per `LoadUser` execution. This substitution exercises the real `LoadUser` mapping and error policy. Code inside the replaced `ApiLayer` is outside that test path.
 
-Calling `toLayer` creates a recipe for providing the handler service. Passing an Effect to `toLayer` makes that recipe run a constructor once when the Runtime builds the application Layer. For a Command, the returned handler receives serializable args each time the Command runs.
+Calling `toLayer` with an Effect creates a recipe for providing the handler service. The Effect runs once when the Runtime builds the application Layer. For a Command, the function it returns receives serializable args each time the Command runs. For a Subscription, the returned function receives the current Model dependencies each time Foldkit starts or restarts its Stream. Mount and ManagedResource handlers likewise receive their element or Model-scoped requirements when that lifecycle begins.
 
-The Effect constructor is useful when capturing a stable injected service or accessor makes the dependency boundary clear. It may capture `ApiClientService`, for example. Do not capture current time, Command args, Subscription dependencies, a Mount's element, or an active ManagedResource handle. Those values belong to the shorter-lived operation or lifecycle that supplies them.
+Use `Effect.gen` to capture services, then leave a blank line before returning the invocation function. When construction has no work to perform, use `Effect.succeed(handler)`. The consistent shape makes application dependencies visible in the Layer graph even for a small handler.
 
-Looking up an Effect service uses an instance from the current context; the lookup does not construct its provider. A service captured by the constructor remains that instance for the runtime start. A later invocation context cannot replace the captured value. A handler that performs the lookup during invocation can see invocation-specific services instead, because Foldkit merges contexts with invocation services taking precedence.
+Do not capture current time, Command args, Subscription dependencies, a Mount's element, or an active ManagedResource handle. Those values belong to the shorter-lived operation or lifecycle that supplies them. Looking up a service in the constructor retrieves the instance built for the application; the lookup does not construct its provider again.
 
 ## Testing Through Service Boundaries
 
@@ -30,7 +30,7 @@ Choose the lowest service boundary whose code the test needs to exercise. If `Ap
 
 For a Subscription, the test service supplies the upstream events while the real handler still builds the Stream and Foldkit still starts, restarts, and stops it from Model dependencies. For a Mount, the test capability sits beneath the real element-scoped handler. For a ManagedResource, the test capability sits beneath the real acquire and release handler, so the Model-driven handle scope remains under test.
 
-A handler stub is a narrower orchestration choice. It can drive a result path directly, but it does not test the handler that was replaced. Inline Command, Subscription, and ManagedResource definitions are also testable through their Effect requirements; they do not need to be converted to `toLayer` only to substitute dependencies. An inline Mount cannot leave an app service requirement open, so use a Layer-backed Mount when the application or a whole-application test must choose that provider.
+A handler stub is a narrower orchestration choice. It can drive a result path directly, but it does not test the handler that was replaced. Ordinary execution tests need no new testing DSL: compose the production handler Layers with test Layers for the external services, then execute the application or operation through Effect.
 
 ## Choosing the Lifetime
 
@@ -66,7 +66,7 @@ Foldkit’s `Http.layer` uses Effect’s Fetch-backed client with trace-header p
 
 ## Services in Flags
 
-The Flags Effect can require services too. `Runtime.run` resolves Flags before calling init, so an application Layer that supplies a Flags dependency must build during startup.
+Flags remain startup Effects rather than handler definitions. The Flags Effect can require services too. `Runtime.run` resolves Flags before calling init, so an application Layer that supplies a Flags dependency must build during startup.
 
 ::Snippet{name="layersFlags" label="Flags consuming a service"}
 
@@ -74,10 +74,24 @@ If the service Layer fails to build, startup cannot reach init or the first rend
 
 `Application.make` carries requirements from init, update, Subscriptions, registered Mounts, and ManagedResources. `Runtime.run` requires those requirements to be supplied. A Flags Effect can use a service produced by `Application.provide`, as shown above.
 
-## Providing Multiple Services
+## Layer Naming and Composition
 
-Use `Layer.mergeAll` to combine service Layers. A reusable feature's `Layer` export combines its real handlers and may provide business services owned by that feature. Leave concrete HTTP, storage, RPC, and browser providers as requirements for the application root to choose. The root combines feature implementations in `HandlersLayer`, combines providers in `ServicesLayer`, and exports `AppLayer` from their composition. The entry imports and provides `AppLayer`. The next snippet shows only that root composition. Its Command, Subscription, and ManagedResource modules export the handler Layers, while `environment.ts` exports the concrete provider Layers.
+Import Effect's `Layer` module as `Layer`. Name an individual production implementation after its definition, such as `LoadUserLayer`, and name an alternate test implementation `LoadUserTestLayer`. A feature exports its combined implementation bundle as `EffectsLayer`, accessed through the feature namespace as `Search.EffectsLayer`.
+
+Each Submodel includes its own Commands, Subscriptions, Mounts, and ManagedResources in that bundle. Its parent merges the child `EffectsLayer` with its own handler Layers. Repeating this at each Submodel boundary produces one root `EffectsLayer` without making the entry point import every leaf implementation.
+
+At the root, `EffectsLayer` combines the real handler Layers and top-level feature bundles. `ServicesLayer` combines concrete HTTP, storage, RPC, and browser providers. `AppLayer` supplies `ServicesLayer` to `EffectsLayer`. An `AppTestLayer` can supply alternate service providers to the same `EffectsLayer`.
+
+Use `Layer.mergeAll` to combine Layers. A feature may provide a business service it owns beneath its `EffectsLayer`. Leave concrete environment providers as requirements for the root to choose. The entry imports and provides only `AppLayer`.
 
 ::Snippet{name="layersMultiple" label="Multiple shared services"}
 
 The provider Layer and its handler Layers live for the application runtime. Resources acquired in their Scope release when the runtime stops. When a camera stream, `WebSocket`, or other handle should exist only while the Model is in a particular state, use [Managed Resources](/core/managed-resources) instead.
+
+## UI Effects and Mount Registrations
+
+`@foldkit/ui` exposes `UI.EffectsLayer` and `UI.mounts` for the standard component bundle. Add `UI.EffectsLayer` to the root `EffectsLayer`, and add `UI.mounts` to the application's Mount registrations. A selective bundle can merge only the component `EffectsLayer` exports and collect only their `mounts` exports.
+
+Some component factories own instance-specific effects. `Slider.forRoot(name, getTrackRoot)` returns that instance's `subscriptions` and `EffectsLayer`. `Toast.make(name, payloadSchema)` returns its typed component module with the same two exports. Compose them at the feature boundary that owns the factory instance.
+
+Mount registration is separate from providing a Mount handler Layer because view and `Html` have no Effect requirement parameter. Registering a Mount tells `Application.make` which handler requirements may appear in the rendered tree. A registered Mount that never appears in the view is inert: Foldkit performs no setup and installs no behavior for it.

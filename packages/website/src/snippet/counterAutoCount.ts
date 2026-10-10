@@ -22,8 +22,8 @@ type Model = typeof Model.Type
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  tick: entry(
-    'AutoCountTicks',
+  gameClockTicks: entry(
+    'GameClockTicks',
     { isAutoCounting: Schema.Boolean },
     {
       messages: [Message.Ticked],
@@ -34,8 +34,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const AutoCountTicksLayer = subscriptions.tick.toLayer(
-  ({ isAutoCounting }) =>
+export const GameClockTicksLayer = subscriptions.gameClockTicks.toLayer(
+  Effect.succeed(({ isAutoCounting }) =>
     Stream.when(
       Stream.tick(Duration.seconds(1)).pipe(
         Stream.drop(1),
@@ -43,4 +43,5 @@ export const AutoCountTicksLayer = subscriptions.tick.toLayer(
       ),
       Effect.sync(() => isAutoCounting),
     ),
+  ),
 )

@@ -4,20 +4,20 @@ import {
   DateTime,
   Duration,
   Effect,
-  Layer as EffectLayer,
+  Layer,
   Match,
   Option,
-  Random,
   Schema,
   Stream,
   pipe,
 } from 'effect'
-import { AsyncData, Command, Subscription, Update } from 'foldkit'
+import { AsyncData, Subscription, Update } from 'foldkit'
 import { Query } from 'foldkit/experimental'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
+import * as UI from '@foldkit/ui'
 import { Button, Tabs } from '@foldkit/ui'
 
 import {
@@ -54,10 +54,12 @@ export const postsQuery = Query.define({
 const FetchPostsLayer = postsQuery.toLayer(
   Effect.gen(function* () {
     const clock = yield* Clock.Clock
+
     return () =>
       Effect.gen(function* () {
         const posts = yield* fetchPosts
         const fetchedAt = yield* clock.currentTimeMillis
+
         return { posts, fetchedAt }
       })
   }),
@@ -72,11 +74,12 @@ export const statsQuery = Query.define({
 const FetchStatsLayer = statsQuery.toLayer(
   Effect.gen(function* () {
     const clock = yield* Clock.Clock
-    const random = yield* Random.Random
+
     return () =>
       Effect.gen(function* () {
-        const stats = yield* fetchStats(random)
+        const stats = yield* fetchStats
         const fetchedAt = yield* clock.currentTimeMillis
+
         return { stats, fetchedAt }
       })
   }),
@@ -92,10 +95,12 @@ export const postQuery = Query.define({
 const FetchPostLayer = postQuery.toLayer(
   Effect.gen(function* () {
     const clock = yield* Clock.Clock
+
     return ({ postId }) =>
       Effect.gen(function* () {
         const post = yield* fetchPostDetail(postId)
         const fetchedAt = yield* clock.currentTimeMillis
+
         return { post, fetchedAt }
       })
   }),
@@ -132,13 +137,6 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-type QueryHandlers =
-  | Command.HandlerOf<typeof postsQuery.Fetch>
-  | Command.HandlerOf<typeof statsQuery.Fetch>
-  | Command.HandlerOf<typeof postQuery.Fetch>
-
-type UpdateReturn = Update.Return<Model, Message, QueryHandlers>
-
 const posts = postsQuery.lift<Model, Message>({
   parentField: 'posts',
   toParentMessage: message => Message.GotPostsMessage({ message }),
@@ -154,26 +152,21 @@ const postDetails = postQuery.lift<Model, Message>({
   toParentMessage: message => Message.GotPostMessage({ message }),
 })
 
-const activateTab = (model: Model, tab: Tab): UpdateReturn => {
+const activateTab = (model: Model, tab: Tab) => {
   const modelWithActiveTab = modifyFields(model, { activeTab: () => tab })
 
   return Match.value(tab).pipe(
-    Match.withReturnType<UpdateReturn>(),
     Match.when('Posts', () => posts.loadIfMissing(modelWithActiveTab)),
     Match.when('Stats', () => stats.loadIfMissing(modelWithActiveTab)),
     Match.exhaustive,
   )
 }
 
-const foldTabsOutMessage = Tabs.OutMessage.match<
-  Update.Step<Model, Message, QueryHandlers>,
-  Tabs.OutMessage<Tab>
->({
-  Selected:
-    ({ value }) =>
-    model =>
-      activateTab(model, value),
-})
+const foldTabsOutMessage = (outMessage: Tabs.OutMessage<Tab>) =>
+  Tabs.OutMessage.match(outMessage, {
+    Selected: ({ value }) =>
+      Update.makeStep((model: Model) => activateTab(model, value)),
+  })
 
 const foldTabs = Update.foldChild({
   update: AppTabs.update,
@@ -184,7 +177,7 @@ const foldTabs = Update.foldChild({
 })
 
 export const update = Update.make((model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+  Message.match(message, {
     GotTabsMessage: ({ message }) => foldTabs(model, message),
     GotPostsMessage: ({ message }) => posts.fold(model, message),
     GotStatsMessage: ({ message }) => stats.fold(model, message),
@@ -223,7 +216,7 @@ export const init = () => {
 }
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  revalidateStats: entry(
+  statsRefreshTicks: entry(
     'StatsRefreshTicks',
     { isStatsRefreshActive: Schema.Boolean },
     {
@@ -237,8 +230,8 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-const StatsRefreshTicksLayer = subscriptions.revalidateStats.toLayer(
-  ({ isStatsRefreshActive }) =>
+const StatsRefreshTicksLayer = subscriptions.statsRefreshTicks.toLayer(
+  Effect.succeed(({ isStatsRefreshActive }) =>
     Stream.when(
       Stream.tick(STATS_REFETCH_INTERVAL).pipe(
         Stream.drop(1),
@@ -246,9 +239,11 @@ const StatsRefreshTicksLayer = subscriptions.revalidateStats.toLayer(
       ),
       Effect.sync(() => isStatsRefreshActive),
     ),
+  ),
 )
 
-export const Layer = EffectLayer.mergeAll(
+export const EffectsLayer = Layer.mergeAll(
+  UI.EffectsLayer,
   FetchPostsLayer,
   FetchStatsLayer,
   FetchPostLayer,
@@ -690,3 +685,5 @@ const errorPanel = (
       ),
     ],
   )
+
+export const mounts = UI.mounts

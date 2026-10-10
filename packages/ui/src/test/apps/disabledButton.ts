@@ -32,11 +32,9 @@ export const initialModel: Model = {
 
 // UPDATE
 
-const foldDialogOutMessage = Dialog.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Opened: () => model => ({ model }),
-  Closed: () => model => ({ model }),
+const foldDialogOutMessage = Dialog.OutMessage.match({
+  Opened: () => Update.makeStep((model: Model) => ({ model })),
+  Closed: () => Update.makeStep((model: Model) => ({ model })),
 })
 
 const foldDialog = Update.foldChild({
@@ -48,15 +46,16 @@ const foldDialog = Update.foldChild({
   foldOutMessage: foldDialogOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedToggle: () => ({
       model: modifyFields(model, { isEnabled: isEnabled => !isEnabled }),
     }),
     ClickedSubmit: () => ({ model }),
     GotDialogMessage: ({ message: dialogMessage }) =>
       foldDialog(model, dialogMessage),
-  })
+  }),
+)
 
 // VIEW
 

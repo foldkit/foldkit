@@ -47,45 +47,60 @@ if (false) {
   void wrapWithoutViewState
 
   Mount.define('MeasurePanel', {
-    // @ts-expect-error `element` names the live element execute receives, so an arg cannot claim it
+    // @ts-expect-error `element` names the live element the handler receives, so an arg cannot claim it
     args: {
       element: Schema.String,
     },
     messages: [Message.CompletedMeasurePanel],
-    execute: ({ element }) =>
-      Effect.succeed(
-        Message.CompletedMeasurePanel({
-          panelId: 'panel',
-          width: measuredWidth(element),
-        }),
-      ),
   })
 
   Mount.define('ObserveViewState', {
-    // @ts-expect-error `viewStateChanges` names the runtime Stream execute receives, so an arg cannot claim it
+    // @ts-expect-error `viewStateChanges` names the runtime Stream the handler receives, so an arg cannot claim it
     args: {
       viewStateChanges: Schema.String,
     },
     messages: [Message.CompletedMeasurePanel],
-    execute: ({ element }) =>
+  })
+
+  const LayerOnly = Mount.define('LayerOnlyMount', {
+    messages: [Message.CompletedMeasurePanel],
+  })
+  LayerOnly.toLayer<never, never, never>(
+    // @ts-expect-error toLayer accepts an Effect that constructs the handler.
+    ({ element }) =>
       Effect.succeed(
         Message.CompletedMeasurePanel({
           panelId: 'panel',
           width: measuredWidth(element),
         }),
       ),
-  })
+  )
+
+  const inlineConfig = {
+    messages: [Message.CompletedMeasurePanel],
+    execute: ({ element }: { readonly element: Element }) =>
+      Effect.succeed(
+        Message.CompletedMeasurePanel({
+          panelId: 'panel',
+          width: measuredWidth(element),
+        }),
+      ),
+  }
+  // @ts-expect-error Mount definitions cannot carry inline implementations.
+  Mount.define('InlineMount', inlineConfig)
 }
 
-describe('Mount.define defers its execute body', () => {
-  it.effect('does not run execute until the element mounts', () =>
+describe('Mount.define defers its handler body', () => {
+  it.effect('does not run the handler until the element mounts', () =>
     Effect.gen(function* () {
       let bodyRunCount = 0
 
       const MeasurePanel = Mount.define('MeasurePanel', {
         args: { panelId: Schema.String },
         messages: [Message.CompletedMeasurePanel],
-        execute: ({ element, panelId }) => {
+      })
+      const MeasurePanelLayer = MeasurePanel.toLayer(
+        Effect.succeed(({ element, panelId }) => {
           bodyRunCount = bodyRunCount + 1
           return Effect.succeed(
             Message.CompletedMeasurePanel({
@@ -93,15 +108,15 @@ describe('Mount.define defers its execute body', () => {
               width: measuredWidth(element),
             }),
           )
-        },
-      })
+        }),
+      )
 
       const action = MeasurePanel({ panelId: 'panel' })
       expect(bodyRunCount).toBe(0)
 
       const maybeMessage = yield* Stream.runHead(
         action.f(panelElement(), Mount.liveViewStateChanges),
-      )
+      ).pipe(Effect.provide(MeasurePanelLayer))
 
       expect(bodyRunCount).toBe(1)
       expect(maybeMessage).toStrictEqual(
@@ -115,13 +130,15 @@ describe('Mount.define defers its execute body', () => {
     }),
   )
 
-  it('never runs execute for a MountAction a view constructs and discards', () => {
+  it('does not run the handler for a MountAction a view discards', () => {
     let bodyRunCount = 0
 
     const MeasurePanel = Mount.define('MeasurePanel', {
       args: { panelId: Schema.String },
       messages: [Message.CompletedMeasurePanel],
-      execute: ({ element, panelId }) => {
+    })
+    void MeasurePanel.toLayer(
+      Effect.succeed(({ element, panelId }) => {
         bodyRunCount = bodyRunCount + 1
         return Effect.succeed(
           Message.CompletedMeasurePanel({
@@ -129,20 +146,22 @@ describe('Mount.define defers its execute body', () => {
             width: measuredWidth(element),
           }),
         )
-      },
-    })
+      }),
+    )
 
     MeasurePanel({ panelId: 'discarded' })
 
     expect(bodyRunCount).toBe(0)
   })
 
-  it('does not run a no-args execute when the action is constructed', () => {
+  it('does not run a no-args handler when the action is constructed', () => {
     let bodyRunCount = 0
 
     const MeasurePanel = Mount.define('MeasurePanel', {
       messages: [Message.CompletedMeasurePanel],
-      execute: ({ element }) => {
+    })
+    void MeasurePanel.toLayer(
+      Effect.succeed(({ element }) => {
         bodyRunCount = bodyRunCount + 1
         return Effect.succeed(
           Message.CompletedMeasurePanel({
@@ -150,8 +169,8 @@ describe('Mount.define defers its execute body', () => {
             width: measuredWidth(element),
           }),
         )
-      },
-    })
+      }),
+    )
 
     MeasurePanel()
 
@@ -166,12 +185,14 @@ describe('Layer-backed Mount.define handlers', () => {
   })
 
   it('carries the handler requirement and its implementation dependencies', () => {
-    const layer = MeasurePanel.toLayer(({ element, panelId }) =>
-      Effect.map(Prefix, ({ value }) =>
-        Message.CompletedMeasurePanel({
-          panelId: value + panelId,
-          width: measuredWidth(element),
-        }),
+    const layer = MeasurePanel.toLayer(
+      Effect.succeed(({ element, panelId }) =>
+        Effect.map(Prefix, ({ value }) =>
+          Message.CompletedMeasurePanel({
+            panelId: value + panelId,
+            width: measuredWidth(element),
+          }),
+        ),
       ),
     )
 
@@ -202,12 +223,14 @@ describe('Layer-backed Mount.define handlers', () => {
 
   it.effect('uses invocation context over handler Layer context', () =>
     Effect.gen(function* () {
-      const layer = MeasurePanel.toLayer(({ element, panelId }) =>
-        Effect.map(Prefix, ({ value }) =>
-          Message.CompletedMeasurePanel({
-            panelId: value + panelId,
-            width: measuredWidth(element),
-          }),
+      const layer = MeasurePanel.toLayer(
+        Effect.succeed(({ element, panelId }) =>
+          Effect.map(Prefix, ({ value }) =>
+            Message.CompletedMeasurePanel({
+              panelId: value + panelId,
+              width: measuredWidth(element),
+            }),
+          ),
         ),
       )
       const handlerLayer = Layer.provide(
@@ -291,12 +314,14 @@ describe('Layer-backed Mount.define handlers', () => {
           args: { panelId: Schema.String },
           messages: [Message.CompletedMeasurePanel],
         })
-        const otherLayer = otherMeasurePanel.toLayer(({ element, panelId }) =>
-          Effect.succeed(
-            Message.CompletedMeasurePanel({
-              panelId,
-              width: measuredWidth(element),
-            }),
+        const otherLayer = otherMeasurePanel.toLayer(
+          Effect.succeed(({ element, panelId }) =>
+            Effect.succeed(
+              Message.CompletedMeasurePanel({
+                panelId,
+                width: measuredWidth(element),
+              }),
+            ),
           ),
         )
 
@@ -316,30 +341,32 @@ describe('Layer-backed Mount.define handlers', () => {
   )
 })
 
-describe('Mount.defineStream defers its execute body', () => {
-  it.effect('does not run execute until the element mounts', () =>
+describe('Mount.defineStream defers its handler body', () => {
+  it.effect('does not run the handler until the element mounts', () =>
     Effect.gen(function* () {
       let bodyRunCount = 0
 
       const WatchPanelScroll = Mount.defineStream('WatchPanelScroll', {
         args: { initialScroll: Schema.Number },
         messages: [Message.ScrolledPanel],
-        execute: ({ element, initialScroll }) => {
+      })
+      const WatchPanelScrollLayer = WatchPanelScroll.toLayer(
+        Effect.succeed(({ element, initialScroll }) => {
           bodyRunCount = bodyRunCount + 1
           return Stream.make(
             Message.ScrolledPanel({
               scroll: initialScroll + measuredWidth(element),
             }),
           )
-        },
-      })
+        }),
+      )
 
       const action = WatchPanelScroll({ initialScroll: 8 })
       expect(bodyRunCount).toBe(0)
 
       const maybeMessage = yield* Stream.runHead(
         action.f(panelElement(), Mount.liveViewStateChanges),
-      )
+      ).pipe(Effect.provide(WatchPanelScrollLayer))
 
       expect(bodyRunCount).toBe(1)
       expect(maybeMessage).toStrictEqual(
@@ -348,18 +375,20 @@ describe('Mount.defineStream defers its execute body', () => {
     }),
   )
 
-  it('never runs execute for a MountAction a view constructs and discards', () => {
+  it('does not run the handler for a MountAction a view discards', () => {
     let bodyRunCount = 0
 
     const WatchPanelScroll = Mount.defineStream('WatchPanelScroll', {
       messages: [Message.ScrolledPanel],
-      execute: ({ element }) => {
+    })
+    void WatchPanelScroll.toLayer(
+      Effect.succeed(({ element }) => {
         bodyRunCount = bodyRunCount + 1
         return Stream.make(
           Message.ScrolledPanel({ scroll: measuredWidth(element) }),
         )
-      },
-    })
+      }),
+    )
 
     WatchPanelScroll()
 
@@ -372,18 +401,25 @@ describe('Mount.defineStream defers its execute body', () => {
 
       const WatchViewState = Mount.defineStream('WatchViewState', {
         messages: [Message.ScrolledPanel],
-        execute: ({ viewStateChanges }) =>
+      })
+      const WatchViewStateLayer = WatchViewState.toLayer(
+        Effect.succeed(({ viewStateChanges }) =>
           viewStateChanges.pipe(
             Stream.tap(viewState =>
               Effect.sync(() => observedViewStates.push(viewState)),
             ),
             Stream.map(() => Message.ScrolledPanel({ scroll: 0 })),
           ),
-      })
+        ),
+      )
 
       const fiber = yield* WatchViewState()
         .f(panelElement(), Mount.liveViewStateChanges)
-        .pipe(Stream.runCollect, Effect.forkChild)
+        .pipe(
+          Stream.runCollect,
+          Effect.provide(WatchViewStateLayer),
+          Effect.forkChild,
+        )
 
       yield* Effect.yieldNow
 
@@ -402,11 +438,13 @@ describe('Layer-backed Mount.defineStream handlers', () => {
         args: { initialScroll: Schema.Number },
         messages: [Message.ScrolledPanel],
       })
-      const layer = WatchPanelScroll.toLayer(({ element, initialScroll }) =>
-        Stream.make(
-          Message.ScrolledPanel({
-            scroll: initialScroll + measuredWidth(element),
-          }),
+      const layer = WatchPanelScroll.toLayer(
+        Effect.succeed(({ element, initialScroll }) =>
+          Stream.make(
+            Message.ScrolledPanel({
+              scroll: initialScroll + measuredWidth(element),
+            }),
+          ),
         ),
       )
 
@@ -431,8 +469,8 @@ describe('Layer-backed Mount.defineStream handlers', () => {
           messages: [Message.ScrolledPanel],
         },
       )
-      const otherLayer = otherWatchPanelScroll.toLayer(() =>
-        Stream.make(Message.ScrolledPanel({ scroll: 0 })),
+      const otherLayer = otherWatchPanelScroll.toLayer(
+        Effect.succeed(() => Stream.make(Message.ScrolledPanel({ scroll: 0 }))),
       )
 
       const result = yield* Effect.exit(

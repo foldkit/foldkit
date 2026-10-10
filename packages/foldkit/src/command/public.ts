@@ -8,6 +8,7 @@ export type {
   InterruptOption,
   LayeredCommandDefinitionNoArgs,
   LayeredCommandDefinitionWithArgs,
+  ToLayer,
 } from './index.js'
 export {
   CommandDefinitionTypeId,

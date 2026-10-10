@@ -47,13 +47,13 @@ const toToolMessage = (
 }
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  undoRedoKeys: entry('UndoRedoKeyPresses', {
+  undoRedoKeyPresses: entry('UndoRedoKeyPresses', {
     messages: [Message.ClickedUndo, Message.ClickedRedo],
   }),
 
-  toolKeys: entry('ToolKeyPresses', { messages: [Message.SelectedTool] }),
+  toolKeyPresses: entry('ToolKeyPresses', { messages: [Message.SelectedTool] }),
 
-  mouseRelease: entry(
+  mouseReleases: entry(
     'MouseReleases',
     { isDrawing: Schema.Boolean },
     {
@@ -63,28 +63,34 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-const UndoRedoKeyPressesLayer = subscriptions.undoRedoKeys.toLayer(() =>
-  Dom.streamFromEventFilterMapPreventDefault({
-    target: document,
-    type: 'keydown',
-    filterMapEvent: toUndoRedoMessage,
-  }),
+const UndoRedoKeyPressesLayer = subscriptions.undoRedoKeyPresses.toLayer(
+  Effect.succeed(() =>
+    Dom.streamFromEventFilterMapPreventDefault({
+      target: document,
+      type: 'keydown',
+      filterMapEvent: toUndoRedoMessage,
+    }),
+  ),
 )
 
-const ToolKeyPressesLayer = subscriptions.toolKeys.toLayer(() =>
-  Dom.streamFromEventFilterMap({
-    target: document,
-    type: 'keydown',
-    filterMapEvent: toToolMessage,
-  }),
+const ToolKeyPressesLayer = subscriptions.toolKeyPresses.toLayer(
+  Effect.succeed(() =>
+    Dom.streamFromEventFilterMap({
+      target: document,
+      type: 'keydown',
+      filterMapEvent: toToolMessage,
+    }),
+  ),
 )
 
-const MouseReleasesLayer = subscriptions.mouseRelease.toLayer(({ isDrawing }) =>
-  Stream.when(
-    Stream.fromEventListener(document, 'mouseup').pipe(
-      Stream.map(() => Message.ReleasedMouse()),
+const MouseReleasesLayer = subscriptions.mouseReleases.toLayer(
+  Effect.succeed(({ isDrawing }) =>
+    Stream.when(
+      Stream.fromEventListener(document, 'mouseup').pipe(
+        Stream.map(() => Message.ReleasedMouse()),
+      ),
+      Effect.sync(() => isDrawing),
     ),
-    Effect.sync(() => isDrawing),
   ),
 )
 

@@ -97,17 +97,20 @@ describe('streamFromKeyBindings', () => {
 
       expectTypeOf(rawEventStream).toEqualTypeOf<Stream.Stream<KeyboardEvent>>()
 
-      make<{ isActive: boolean }, Message>()(entry => ({
-        // @ts-expect-error a raw KeyboardEvent is not an application Message
+      const subscriptions = make<{ isActive: boolean }, Message>()(entry => ({
         keyboard: entry(
+          'RawBindingKeyboardEvents',
           { isActive: Schema.Boolean },
           {
+            messages: [Message.PressedKeys],
             modelToDependencies: model => ({ isActive: model.isActive }),
-            // @ts-expect-error a raw KeyboardEvent is not an application Message
-            dependenciesToStream: () => rawEventStream,
           },
         ),
       }))
+      subscriptions.keyboard.toLayer(
+        // @ts-expect-error a raw KeyboardEvent is not an application Message
+        Effect.succeed(() => rawEventStream),
+      )
     }
   })
 

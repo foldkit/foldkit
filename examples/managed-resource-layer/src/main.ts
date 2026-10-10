@@ -2,7 +2,7 @@ import {
   Context,
   Crypto,
   Effect,
-  Layer as EffectLayer,
+  Layer,
   Match,
   Number,
   Option,
@@ -28,11 +28,11 @@ class ComputeEngineService extends Context.Service<
   ComputeEngine
 >()('ComputeEngineService') {}
 
-const ComputeEngineLayer: EffectLayer.Layer<
+const ComputeEngineLayer: Layer.Layer<
   ComputeEngineService,
   never,
   Crypto.Crypto
-> = EffectLayer.effect(
+> = Layer.effect(
   ComputeEngineService,
   Effect.acquireRelease(
     Effect.gen(function* () {
@@ -86,13 +86,16 @@ export const Compute = Command.define('Compute', {
   messages: [Message.SucceededCompute, Message.FailedCompute],
 })
 
-export const ComputeLayer = Compute.toLayer(({ value }) =>
-  Effect.gen(function* () {
-    const engine = yield* Engine.get
-    return Message.SucceededCompute({ result: engine.square(value) })
-  }).pipe(
-    Effect.catchTag('ResourceNotAvailable', () =>
-      Effect.succeed(Message.FailedCompute()),
+export const ComputeLayer = Compute.toLayer(
+  Effect.succeed(({ value }) =>
+    Effect.gen(function* () {
+      const engine = yield* Engine.get
+
+      return Message.SucceededCompute({ result: engine.square(value) })
+    }).pipe(
+      Effect.catchTag('ResourceNotAvailable', () =>
+        Effect.succeed(Message.FailedCompute()),
+      ),
     ),
   ),
 )
@@ -171,15 +174,17 @@ export const managedResources = ManagedResource.make<Model, Message>()(
   }),
 )
 
-export const ManageEngineLayer = managedResources.engine.toLayer({
-  acquire: () =>
-    EffectLayer.build(ComputeEngineLayer).pipe(
-      Effect.map(context => Context.get(context, ComputeEngineService)),
-    ),
-  release: () => Effect.void,
-})
+export const ManageEngineLayer = managedResources.engine.toLayer(
+  Effect.succeed({
+    acquire: () =>
+      Layer.build(ComputeEngineLayer).pipe(
+        Effect.map(context => Context.get(context, ComputeEngineService)),
+      ),
+    release: () => Effect.void,
+  }),
+)
 
-export const Layer = EffectLayer.mergeAll(ComputeLayer, ManageEngineLayer)
+export const EffectsLayer = Layer.mergeAll(ComputeLayer, ManageEngineLayer)
 
 // VIEW
 

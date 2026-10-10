@@ -5,7 +5,7 @@ import { Products } from './page'
 Products.Model
 Products.view
 Products.update
-Products.Layer
+Products.EffectsLayer
 Products.subscriptions
 Products.managedResources
 Products.mounts

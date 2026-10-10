@@ -6,7 +6,7 @@ import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import * as Subscription from '../subscription/subscription.js'
 import type * as Update from '../update/index.js'
-import { makeElement } from './makeElement.js'
+import * as Application from './application.js'
 import {
   type SlowContext,
   type SlowSubscriptionDependenciesContext,
@@ -57,13 +57,17 @@ const sameModelReferenceView = (model: Model) => {
 
 const subscriptions = Subscription.make<Model, Message>()(entry => ({
   count: entry(
+    'MeasureCountDependencies',
     { count: Schema.Number },
     {
+      messages: [],
       modelToDependencies: model => ({ count: model.count }),
-      dependenciesToStream: () => Stream.empty,
     },
   ),
 }))
+const MeasureCountDependenciesLayer = subscriptions.count.toLayer(
+  Effect.succeed(() => Stream.empty),
+)
 
 let container: HTMLElement
 const FORCE_SLOW_WARNING_THRESHOLD_MS = -1
@@ -167,7 +171,7 @@ describe('slow warnings', () => {
   it('reports measured phases with tagged contexts', async () => {
     const contexts: Array<SlowContext<Model, Message>> = []
 
-    const element = makeElement({
+    const element = Application.makeElement({
       Model,
       init: () => ({ model: { count: 0 } }),
       update,
@@ -188,7 +192,8 @@ describe('slow warnings', () => {
       },
     })
 
-    const fiber = Effect.runFork(element.start())
+    const provided = Application.provide(element, MeasureCountDependenciesLayer)
+    const fiber = Effect.runFork(provided.start())
 
     try {
       await awaitBodyText('count:0')
@@ -227,7 +232,7 @@ describe('slow warnings', () => {
   it('reports only phases selected by measuredPhases', async () => {
     const contexts: Array<SlowContext<Model, Message>> = []
 
-    const element = makeElement({
+    const element = Application.makeElement({
       Model,
       init: () => ({ model: { count: 0 } }),
       update,
@@ -246,7 +251,8 @@ describe('slow warnings', () => {
       },
     })
 
-    const fiber = Effect.runFork(element.start())
+    const provided = Application.provide(element, MeasureCountDependenciesLayer)
+    const fiber = Effect.runFork(provided.start())
 
     try {
       await awaitBodyText('count:0')
@@ -265,7 +271,7 @@ describe('slow warnings', () => {
   it('reports update work when update returns the same Model reference', async () => {
     const contexts: Array<SlowContext<Model, Message>> = []
 
-    const element = makeElement({
+    const element = Application.makeElement({
       Model,
       init: () => ({ model: { count: 0 } }),
       update,
@@ -284,7 +290,8 @@ describe('slow warnings', () => {
       },
     })
 
-    const fiber = Effect.runFork(element.start())
+    const provided = Application.provide(element, MeasureCountDependenciesLayer)
+    const fiber = Effect.runFork(provided.start())
 
     try {
       await awaitBodyText('count:0')

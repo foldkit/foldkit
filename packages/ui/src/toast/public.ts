@@ -22,7 +22,10 @@ export {
   type PressedEscape,
   type CompletedWaitForSwipeSettled,
   WaitBeforeDismissal,
+  WaitBeforeDismissalLayer,
   WaitForSwipeSettled,
+  WaitForSwipeSettledLayer,
+  EffectsLayer,
 } from './index.js'
 
 export * as test from './test.js'

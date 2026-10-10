@@ -86,7 +86,7 @@ export const SimulateAuthRequest = Command.define('SimulateAuthRequest', {
 })
 
 export const SimulateAuthRequestLayer = SimulateAuthRequest.toLayer(
-  ({ email, password }) =>
+  Effect.succeed(({ email, password }) =>
     Effect.gen(function* () {
       yield* Effect.sleep(Duration.seconds(1))
 
@@ -107,6 +107,7 @@ export const SimulateAuthRequestLayer = SimulateAuthRequest.toLayer(
 
       return Message.SucceededSimulateAuthRequest({ session })
     }),
+  ),
 )
 
 export const update = Update.make((model: Model, message: Message) =>

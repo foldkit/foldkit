@@ -98,7 +98,7 @@ Choose the boundary whose lifetime matches the work:
 | A service shared for the entire application Runtime                   | [Layer](/core/layers)                      |
 | A native web component whose properties and events remain declarative | [CustomElement](/core/custom-element)      |
 
-If a Mount's `execute` function never uses its element, the work should not be tied to that element's lifetime. Choose the boundary based on what actually starts and stops the work. The [Mount comparison](/core/mount#when-to-reach-for-mount) and [Managed Resources](/core/managed-resources) guides cover these choices in depth.
+If a Mount handler never uses its element, the work should not be tied to that element's lifetime. Choose the boundary based on what actually starts and stops the work. The [Mount comparison](/core/mount#when-to-reach-for-mount) and [Managed Resources](/core/managed-resources) guides cover these choices in depth.
 
 ## Name Messages After Facts
 
@@ -204,4 +204,4 @@ If any child fold can emit a parent OutMessage, `resolveOutMessage` must decide 
 
 ## Know What Linting Can Catch {#what-linting-can-catch}
 
-The [Foldkit linter](/tooling/oxlint-plugin) can recognize code shapes such as a module-level `let`, `Date.now()` inside update, a parent constructing a child Message, or a Mount whose `execute` function never uses its element. It also flags direct child Model edits and manual child Return copies when an in-file fold establishes the Submodel boundary. It cannot decide whether two domain states may coexist, whether an async result can become stale, or which part of an application should own a value without that boundary evidence. Those questions still require design review.
+The [Foldkit linter](/tooling/oxlint-plugin) can recognize code shapes such as a module-level `let`, `Date.now()` inside update, a parent constructing a child Message, or a Mount handler that never uses its element. It also flags direct child Model edits and manual child Return copies when an in-file fold establishes the Submodel boundary. It cannot decide whether two domain states may coexist, whether an async result can become stale, or which part of an application should own a value without that boundary evidence. Those questions still require design review.

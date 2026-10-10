@@ -123,8 +123,8 @@ export const MountChart = Mount.defineStream('MountChart', {
   ],
 })
 
-export const MountChartLayer = MountChart.toLayer(({ element, hostId }) =>
-  mountChart(element, hostId),
+export const MountChartLayer = MountChart.toLayer(
+  Effect.succeed(({ element, hostId }) => mountChart(element, hostId)),
 )
 
 export const chartPanelView = (

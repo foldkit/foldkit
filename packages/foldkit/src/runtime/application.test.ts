@@ -14,6 +14,7 @@ import * as Command from '../command/index.js'
 import * as ManagedResource from '../managedResource/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import * as Subscription from '../subscription/subscription.js'
+import * as Update from '../update/index.js'
 import * as Application from './application.js'
 import { __startProgram, run } from './start.js'
 
@@ -47,7 +48,7 @@ const DatabaseLayer = Layer.succeed(Database, {
   store: text => `${text} stored`,
 })
 
-const update = (model: Model, message: Message) =>
+const update = Update.make((model: Model, message: Message) =>
   Message.match(message, {
     ClickedSend: () => ({
       model: { status: 'sending' },
@@ -56,7 +57,8 @@ const update = (model: Model, message: Message) =>
     CompletedSend: ({ text }) => ({
       model: { status: `${model.status}: ${text}` },
     }),
-  })
+  }),
+)
 
 const updateWithoutRequirements = (model: Model, message: Message) =>
   Message.match(message, {
@@ -280,9 +282,11 @@ describe('Application', () => {
     })
     const provided = Application.provide(
       application,
-      subscriptions.ready.toLayer(() =>
-        Stream.fromEffect(
-          Effect.succeed(Message.CompletedSend({ text: 'watched' })),
+      subscriptions.ready.toLayer(
+        Effect.succeed(() =>
+          Stream.fromEffect(
+            Effect.succeed(Message.CompletedSend({ text: 'watched' })),
+          ),
         ),
       ),
     )
@@ -317,8 +321,10 @@ describe('Application', () => {
     })
     const provided = Application.provide(
       application,
-      Send.toLayer(({ text }) =>
-        Effect.succeed(Message.CompletedSend({ text })),
+      Send.toLayer(
+        Effect.succeed(({ text }) =>
+          Effect.succeed(Message.CompletedSend({ text })),
+        ),
       ),
     )
     const fiber = Effect.runFork(
@@ -360,15 +366,21 @@ const checkApplicationTypes = (): void => {
   // @ts-expect-error The inferred Send handler has not been provided.
   run(application)
 
-  const otherLayer = Other.toLayer(() =>
-    Effect.succeed(Message.CompletedSend({ text: 'other' })),
+  const otherLayer = Other.toLayer(
+    Effect.succeed(() =>
+      Effect.succeed(Message.CompletedSend({ text: 'other' })),
+    ),
   )
 
   // @ts-expect-error A different Command handler leaves Send unsatisfied.
   run(Application.provide(application, otherLayer))
 
   const combinedLayer = Layer.mergeAll(
-    Send.toLayer(({ text }) => Effect.succeed(Message.CompletedSend({ text }))),
+    Send.toLayer(
+      Effect.succeed(({ text }) =>
+        Effect.succeed(Message.CompletedSend({ text })),
+      ),
+    ),
     otherLayer,
     DatabaseLayer,
   )
@@ -393,7 +405,11 @@ const checkApplicationTypes = (): void => {
   })
   const withOneHandler = Application.provide(
     applicationWithTwoHandlers,
-    Send.toLayer(({ text }) => Effect.succeed(Message.CompletedSend({ text }))),
+    Send.toLayer(
+      Effect.succeed(({ text }) =>
+        Effect.succeed(Message.CompletedSend({ text })),
+      ),
+    ),
   )
 
   // @ts-expect-error The Other handler is still required.
@@ -419,15 +435,19 @@ const checkApplicationTypes = (): void => {
   run(
     Application.provide(
       applicationWithInitCommand,
-      Send.toLayer(({ text }) =>
-        Effect.succeed(Message.CompletedSend({ text })),
+      Send.toLayer(
+        Effect.succeed(({ text }) =>
+          Effect.succeed(Message.CompletedSend({ text })),
+        ),
       ),
     ),
   )
 
-  const handlerNeedingDatabase = Send.toLayer(({ text }) =>
-    Effect.map(Database, database =>
-      Message.CompletedSend({ text: database.store(text) }),
+  const handlerNeedingDatabase = Send.toLayer(
+    Effect.succeed(({ text }) =>
+      Effect.map(Database, database =>
+        Message.CompletedSend({ text: database.store(text) }),
+      ),
     ),
   )
   const withHandler = pipe(
@@ -441,16 +461,20 @@ const checkApplicationTypes = (): void => {
   const provided = pipe(withHandler, Application.provide(DatabaseLayer))
   run(provided)
 
-  const subscriptions = Subscription.make<Model, Message, Database>()(
-    _entry => ({
-      storedValue: Subscription.persistentEntry(
-        Stream.fromEffect(
-          Effect.map(Database, database =>
-            Message.CompletedSend({ text: database.store('subscription') }),
-          ),
+  const subscriptions = Subscription.make<Model, Message>()(entry => ({
+    storedValue: entry('StoredValue', {
+      messages: [Message.ClickedSend, Message.CompletedSend],
+    }),
+  }))
+
+  const StoredValueLayer = subscriptions.storedValue.toLayer(
+    Effect.succeed(() =>
+      Stream.fromEffect(
+        Effect.map(Database, database =>
+          Message.CompletedSend({ text: database.store('subscription') }),
         ),
       ),
-    }),
+    ),
   )
   const applicationWithSubscription = Application.make({
     Model,
@@ -464,9 +488,16 @@ const checkApplicationTypes = (): void => {
     container,
   })
 
-  // @ts-expect-error The Subscription's Database requirement is unsatisfied.
+  // @ts-expect-error The Subscription handler is unsatisfied.
   run(applicationWithSubscription)
-  run(Application.provide(applicationWithSubscription, DatabaseLayer))
+  const withSubscriptionHandler = Application.provide(
+    applicationWithSubscription,
+    StoredValueLayer,
+  )
+
+  // @ts-expect-error Database remains after the Subscription handler is provided.
+  run(withSubscriptionHandler)
+  run(Application.provide(withSubscriptionHandler, DatabaseLayer))
 
   const layeredSubscriptions = Subscription.make<Model, Message>()(entry => ({
     storedValue: entry(
@@ -495,7 +526,9 @@ const checkApplicationTypes = (): void => {
   run(
     Application.provide(
       applicationWithLayeredSubscription,
-      layeredSubscriptions.storedValue.toLayer(() => Stream.empty),
+      layeredSubscriptions.storedValue.toLayer(
+        Effect.succeed(() => Stream.empty),
+      ),
     ),
   )
 
@@ -522,8 +555,10 @@ const checkApplicationTypes = (): void => {
   run(
     Application.provide(
       routingApplication,
-      Send.toLayer(({ text }) =>
-        Effect.succeed(Message.CompletedSend({ text })),
+      Send.toLayer(
+        Effect.succeed(({ text }) =>
+          Effect.succeed(Message.CompletedSend({ text })),
+        ),
       ),
     ),
   )
@@ -549,7 +584,11 @@ const checkApplicationTypes = (): void => {
   })
   const providedFlagsApplication = Application.provide(
     flagsApplication,
-    Send.toLayer(({ text }) => Effect.succeed(Message.CompletedSend({ text }))),
+    Send.toLayer(
+      Effect.succeed(({ text }) =>
+        Effect.succeed(Message.CompletedSend({ text })),
+      ),
+    ),
   )
 
   // @ts-expect-error Flags must be supplied when starting a fresh runtime.
@@ -600,7 +639,11 @@ const checkApplicationTypes = (): void => {
   })
   const withRoutingFlagsCommand = Application.provide(
     routingFlagsApplication,
-    Send.toLayer(({ text }) => Effect.succeed(Message.CompletedSend({ text }))),
+    Send.toLayer(
+      Effect.succeed(({ text }) =>
+        Effect.succeed(Message.CompletedSend({ text })),
+      ),
+    ),
   )
 
   // @ts-expect-error The named Subscription handler remains required.
@@ -610,7 +653,9 @@ const checkApplicationTypes = (): void => {
   run(
     Application.provide(
       withRoutingFlagsCommand,
-      routingFlagsSubscriptions.location.toLayer(() => Stream.empty),
+      routingFlagsSubscriptions.location.toLayer(
+        Effect.succeed(() => Stream.empty),
+      ),
     ),
     { flags: Effect.succeed({ initialStatus: 'configured' }) },
   )

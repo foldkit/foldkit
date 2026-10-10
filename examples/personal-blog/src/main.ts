@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { Effect, Layer as EffectLayer, Option, Schema } from 'effect'
+import { Effect, Layer, Option, Schema } from 'effect'
 import { Command, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -54,13 +54,21 @@ const LoadExternal = Command.define('LoadExternal', {
   messages: [Message.CompletedLoadExternal],
 })
 
-export const Layer = EffectLayer.mergeAll(
-  NavigateInternal.toLayer(({ url }) =>
+const NavigateInternalLayer = NavigateInternal.toLayer(
+  Effect.succeed(({ url }) =>
     pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
   ),
-  LoadExternal.toLayer(({ href }) =>
+)
+
+const LoadExternalLayer = LoadExternal.toLayer(
+  Effect.succeed(({ href }) =>
     load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
   ),
+)
+
+export const EffectsLayer = Layer.mergeAll(
+  NavigateInternalLayer,
+  LoadExternalLayer,
 )
 
 // UPDATE

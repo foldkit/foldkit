@@ -1,12 +1,27 @@
+import { Effect, Schema, Stream } from 'effect'
 import { Canvas, Subscription } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 
-const subscriptions = Subscription.make<Model, Message>()(_entry => ({
-  frame: Subscription.animationFrameEntry({
-    isActive: model => model.isPlaying,
-    toMessage: deltaTime => TickedFrame({ deltaTime }),
-  }),
+const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  animationFrameTicks: entry(
+    'AnimationFrameTicks',
+    { isActive: Schema.Boolean },
+    {
+      messages: [TickedFrame],
+      modelToDependencies: model => ({ isActive: model.isPlaying }),
+    },
+  ),
 }))
+
+const AnimationFrameTicksLayer = subscriptions.animationFrameTicks.toLayer(
+  Effect.succeed(({ isActive }) =>
+    isActive
+      ? Subscription.animationFrameStream.pipe(
+          Stream.map(deltaTime => TickedFrame({ deltaTime })),
+        )
+      : Stream.empty,
+  ),
+)
 
 const view = (model: Model, h: HtmlBuilder<Message>): Html =>
   Canvas.view(

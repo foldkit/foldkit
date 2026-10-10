@@ -1,6 +1,7 @@
-import { Crypto, Effect, Layer as EffectLayer, Schema } from 'effect'
+import { Crypto, Effect, Layer, Schema } from 'effect'
 import { Calendar } from 'foldkit'
 
+import * as UI from '@foldkit/ui'
 import { Menu, Tabs } from '@foldkit/ui'
 
 import { SubmitApplicationLayer } from './command'
@@ -29,8 +30,9 @@ export type Flags = typeof Flags.Type
 
 export const flags: Effect.Effect<Flags, never, Crypto.Crypto> = Effect.gen(
   function* () {
-    const today = yield* Calendar.today.local
     const crypto = yield* Crypto.Crypto
+
+    const today = yield* Calendar.today.local
     const initialWorkHistoryEntryId = yield* Effect.orDie(crypto.randomUUIDv4)
     const initialEducationEntryId = yield* Effect.orDie(crypto.randomUUIDv4)
     const initialSkillsEntryId = yield* Effect.orDie(crypto.randomUUIDv4)
@@ -68,12 +70,15 @@ export const init = ({
   }),
 })
 
-export const Layer = EffectLayer.mergeAll(
+export const EffectsLayer = Layer.mergeAll(
+  UI.EffectsLayer,
   SubmitApplicationLayer,
-  PersonalInfo.Layer,
-  WorkHistory.Layer,
-  Education.Layer,
-  Skills.Layer,
+  PersonalInfo.EffectsLayer,
+  WorkHistory.EffectsLayer,
+  Education.EffectsLayer,
+  Skills.EffectsLayer,
 )
 
 export { Message, Model, update, view }
+
+export const mounts = UI.mounts

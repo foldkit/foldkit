@@ -48,7 +48,7 @@ import {
 } from '../page'
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  activeSection: entry(
+  activeSectionChanges: entry(
     'ActiveSectionChanges',
     {
       pageId: Schema.String,
@@ -195,60 +195,65 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const ActiveSectionChangesLayer = subscriptions.activeSection.toLayer(
-  ({ sections }) =>
-    Stream.callback<typeof Message.ChangedActiveSection.Type>(queue =>
-      Effect.gen(function* () {
-        if (!Array.isReadonlyArrayNonEmpty(sections)) {
-          return yield* Effect.never
-        }
+export const ActiveSectionChangesLayer =
+  subscriptions.activeSectionChanges.toLayer(
+    Effect.succeed(({ sections }) =>
+      Stream.callback<typeof Message.ChangedActiveSection.Type>(queue =>
+        Effect.gen(function* () {
+          if (!Array.isReadonlyArrayNonEmpty(sections)) {
+            return yield* Effect.never
+          }
 
-        yield* Render.afterCommit
+          yield* Render.afterCommit
 
-        yield* Effect.acquireRelease(
-          Effect.sync(() => {
-            const visibleSections = MutableRef.make(HashSet.empty<string>())
-            const observer = new IntersectionObserver(
-              entries => {
-                Array.forEach(entries, ({ isIntersecting, target: { id } }) => {
-                  if (isIntersecting) {
-                    MutableRef.update(visibleSections, HashSet.add(id))
-                  } else {
-                    MutableRef.update(visibleSections, HashSet.remove(id))
-                  }
-                })
-
-                const activeSectionId = Array.findFirst(sections, sectionId =>
-                  HashSet.has(MutableRef.get(visibleSections), sectionId),
-                )
-
-                if (Option.isSome(activeSectionId)) {
-                  Queue.offerUnsafe(
-                    queue,
-                    Message.ChangedActiveSection({
-                      sectionId: activeSectionId.value,
-                    }),
+          yield* Effect.acquireRelease(
+            Effect.sync(() => {
+              const visibleSections = MutableRef.make(HashSet.empty<string>())
+              const observer = new IntersectionObserver(
+                entries => {
+                  Array.forEach(
+                    entries,
+                    ({ isIntersecting, target: { id } }) => {
+                      if (isIntersecting) {
+                        MutableRef.update(visibleSections, HashSet.add(id))
+                      } else {
+                        MutableRef.update(visibleSections, HashSet.remove(id))
+                      }
+                    },
                   )
+
+                  const activeSectionId = Array.findFirst(sections, sectionId =>
+                    HashSet.has(MutableRef.get(visibleSections), sectionId),
+                  )
+
+                  if (Option.isSome(activeSectionId)) {
+                    Queue.offerUnsafe(
+                      queue,
+                      Message.ChangedActiveSection({
+                        sectionId: activeSectionId.value,
+                      }),
+                    )
+                  }
+                },
+                { rootMargin: '-100px 0px -80% 0px' },
+              )
+
+              Array.forEach(sections, sectionId => {
+                const element = document.getElementById(sectionId)
+                if (element) {
+                  observer.observe(element)
                 }
-              },
-              { rootMargin: '-100px 0px -80% 0px' },
-            )
+              })
 
-            Array.forEach(sections, sectionId => {
-              const element = document.getElementById(sectionId)
-              if (element) {
-                observer.observe(element)
-              }
-            })
+              return observer
+            }),
+            observer => Effect.sync(() => observer.disconnect()),
+          )
 
-            return observer
-          }),
-          observer => Effect.sync(() => observer.disconnect()),
-        )
-
-        return yield* Effect.never
-      }),
+          return yield* Effect.never
+        }),
+      ),
     ),
-)
+  )
 
-export { ActiveSectionChangesLayer as Layer }
+export { ActiveSectionChangesLayer as EffectsLayer }

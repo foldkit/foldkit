@@ -8,6 +8,10 @@ import {
 } from 'effect-oxlint'
 
 import {
+  effectConstructorValue,
+  unwrapExpression,
+} from '../effect-constructor.ts'
+import {
   indexReferences,
   isIdentifierReference,
   isMemberExpression,
@@ -674,36 +678,6 @@ const isEffectOrStreamCallback = (
   )
 }
 
-const isInlineConfigFunction = (
-  references: WeakMap<ESTree.Node, Reference> | undefined,
-  fn: ESTree.ArrowFunctionExpression | ESTree.Function,
-  propertyNames: ReadonlySet<string>,
-  factoryKeys: ReadonlySet<string>,
-): boolean => {
-  const maybeProperty = enclosingPropertyValue(fn)
-  if (Option.isNone(maybeProperty)) {
-    return false
-  }
-  const property = maybeProperty.value
-  if (
-    property.parent.type !== 'ObjectExpression' ||
-    !Option.exists(staticPropertyName(property), name =>
-      propertyNames.has(name),
-    )
-  ) {
-    return false
-  }
-
-  const maybeCall = enclosingCallArgument(property.parent)
-  if (Option.isNone(maybeCall)) {
-    return false
-  }
-
-  return Option.exists(apiCallKey(references, maybeCall.value.call), key =>
-    factoryKeys.has(key),
-  )
-}
-
 const isToLayerCall = (call: ESTree.CallExpression): boolean => {
   const callee = innermostExpression(call.callee)
   return (
@@ -712,125 +686,70 @@ const isToLayerCall = (call: ESTree.CallExpression): boolean => {
   )
 }
 
-const isToLayerArgument = (
-  argument: ESTree.Node,
-  call: ESTree.CallExpression,
-): boolean =>
-  call.arguments.length === 1 &&
-  Option.contains(Array.head(call.arguments), argument) &&
-  isToLayerCall(call)
-
 const toLayerLifecycleEffectProperties = new Set(['acquire', 'release'])
 
-const isToLayerHandlerFunction = (
-  fn: ESTree.ArrowFunctionExpression | ESTree.Function,
-): boolean => {
-  const maybeDirectCall = enclosingCallArgument(fn)
-  if (Option.isSome(maybeDirectCall)) {
-    return isToLayerArgument(
-      maybeDirectCall.value.argument,
-      maybeDirectCall.value.call,
-    )
-  }
-
-  const maybeProperty = enclosingPropertyValue(fn)
-  if (Option.isNone(maybeProperty)) {
-    return false
-  }
-  const property = maybeProperty.value
-  if (
-    property.parent.type !== 'ObjectExpression' ||
-    !Option.exists(staticPropertyName(property), name =>
-      toLayerLifecycleEffectProperties.has(name),
-    )
-  ) {
-    return false
-  }
-
-  const maybeCall = enclosingCallArgument(property.parent)
-  return (
-    Option.isSome(maybeCall) &&
-    isToLayerArgument(maybeCall.value.argument, maybeCall.value.call)
-  )
-}
-
-const hasFactoryAncestor = (
-  references: WeakMap<ESTree.Node, Reference> | undefined,
+const enclosingToLayerCall = (
   node: ESTree.Node,
-  factoryKey: string,
-): boolean => {
+): Option.Option<ESTree.CallExpression> => {
   const parent = node.parent
   if (parent === null) {
-    return false
+    return Option.none()
   }
+
   if (
     parent.type === 'CallExpression' &&
-    Option.contains(apiCallKey(references, parent), factoryKey)
+    parent.arguments.length === 1 &&
+    isToLayerCall(parent)
   ) {
-    return true
+    return Option.some(parent)
   }
-  return hasFactoryAncestor(references, parent, factoryKey)
+
+  return enclosingToLayerCall(parent)
 }
 
-const isNestedLifecycleFunction = (
+const isToLayerHandlerFunction = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
   fn: ESTree.ArrowFunctionExpression | ESTree.Function,
 ): boolean => {
-  const maybeProperty = enclosingPropertyValue(fn)
-  if (Option.isNone(maybeProperty)) {
-    return false
-  }
-  const property = maybeProperty.value
-  if (property.parent.type !== 'ObjectExpression') {
+  const maybeCall = enclosingToLayerCall(fn)
+  if (Option.isNone(maybeCall)) {
     return false
   }
 
-  if (Option.isNone(enclosingCallArgument(property.parent))) {
+  const maybeBuild = Array.head(maybeCall.value.arguments)
+  if (Option.isNone(maybeBuild)) {
     return false
   }
 
-  const maybePropertyName = staticPropertyName(property)
-  const isSubscriptionEffect = Option.contains(
-    maybePropertyName,
-    'dependenciesToStream',
-  )
-  if (
-    isSubscriptionEffect &&
-    hasFactoryAncestor(references, fn, 'Subscription.make')
-  ) {
+  const maybeHandler = effectConstructorValue(maybeBuild.value, references)
+  if (Option.isNone(maybeHandler)) {
+    return false
+  }
+
+  if (unwrapExpression(maybeHandler.value) === fn) {
     return true
   }
 
-  const isManagedResourceEffect = Option.exists(
-    maybePropertyName,
-    name => name === 'acquire' || name === 'release',
-  )
-  return (
-    isManagedResourceEffect &&
-    hasFactoryAncestor(references, fn, 'ManagedResource.make')
+  const maybeProperty = enclosingPropertyValue(fn)
+  if (
+    Option.isNone(maybeProperty) ||
+    maybeProperty.value.parent.type !== 'ObjectExpression' ||
+    maybeProperty.value.parent !== unwrapExpression(maybeHandler.value)
+  ) {
+    return false
+  }
+
+  return Option.exists(staticPropertyName(maybeProperty.value), name =>
+    toLayerLifecycleEffectProperties.has(name),
   )
 }
-
-const commandAndMountEffectProperties = new Set(['execute'])
-const commandAndMountFactories = new Set([
-  'Command.define',
-  'Mount.define',
-  'Mount.defineStream',
-])
 
 const isDeferredFunction = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
   fn: ESTree.ArrowFunctionExpression | ESTree.Function,
 ): boolean =>
   isEffectOrStreamCallback(references, fn) ||
-  isInlineConfigFunction(
-    references,
-    fn,
-    commandAndMountEffectProperties,
-    commandAndMountFactories,
-  ) ||
-  isNestedLifecycleFunction(references, fn) ||
-  isToLayerHandlerFunction(fn)
+  isToLayerHandlerFunction(references, fn)
 
 const isInsideEffectBoundary = (
   references: WeakMap<ESTree.Node, Reference> | undefined,

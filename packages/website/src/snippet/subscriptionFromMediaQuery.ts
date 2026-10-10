@@ -1,4 +1,4 @@
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { Dom, Subscription } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -18,12 +18,18 @@ type Model = typeof Model.Type
 
 // SUBSCRIPTION
 
-const subscriptions = Subscription.make<Model, Message>()(_entry => ({
-  reducedMotion: Subscription.persistentEntry(
+const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  reducedMotionChanges: entry('ReducedMotionChanges', {
+    messages: [Message.ChangedReducedMotion],
+  }),
+}))
+
+const ReducedMotionChangesLayer = subscriptions.reducedMotionChanges.toLayer(
+  Effect.succeed(() =>
     Dom.streamFromMediaQuery({
       query: '(prefers-reduced-motion: reduce)',
       mapMatches: isMatching =>
         Message.ChangedReducedMotion({ isReducedMotion: isMatching }),
     }),
   ),
-}))
+)

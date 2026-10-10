@@ -2,7 +2,7 @@ import {
   Clock,
   Duration,
   Effect,
-  Layer as EffectLayer,
+  Layer,
   Schema,
   Stream,
   String,
@@ -54,6 +54,7 @@ export const DetermineStartTimeLayer = DetermineStartTime.toLayer(
     return ({ elapsedMs }) =>
       Effect.gen(function* () {
         const now = yield* clock.currentTimeMillis
+
         return Message.CompletedDetermineStartTime({
           startTime: now - elapsedMs,
         })
@@ -73,6 +74,7 @@ export const DetermineTickTimeLayer = DetermineTickTime.toLayer(
     return ({ startTime }) =>
       Effect.gen(function* () {
         const now = yield* clock.currentTimeMillis
+
         return Message.CompletedDetermineTickTime({
           elapsedMs: now - startTime,
         })
@@ -136,7 +138,7 @@ export const init = () => ({
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  tick: entry(
+  stopwatchTicks: entry(
     'StopwatchTicks',
     { isRunning: Schema.Boolean },
     {
@@ -146,17 +148,19 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const StopwatchTicksLayer = subscriptions.tick.toLayer(({ isRunning }) =>
-  Stream.when(
-    Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
-      Stream.drop(1),
-      Stream.map(Message.Ticked),
+export const StopwatchTicksLayer = subscriptions.stopwatchTicks.toLayer(
+  Effect.succeed(({ isRunning }) =>
+    Stream.when(
+      Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
+        Stream.drop(1),
+        Stream.map(Message.Ticked),
+      ),
+      Effect.sync(() => isRunning),
     ),
-    Effect.sync(() => isRunning),
   ),
 )
 
-export const Layer = EffectLayer.mergeAll(
+export const EffectsLayer = Layer.mergeAll(
   DetermineStartTimeLayer,
   DetermineTickTimeLayer,
   StopwatchTicksLayer,

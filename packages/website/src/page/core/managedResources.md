@@ -10,13 +10,15 @@ Application-scoped Layers are the kitchen equipment available all night. A Manag
 
 Define the handle’s identity with `ManagedResource.tag`, then wire its lifecycle with `ManagedResource.make`. The `modelToMaybeRequirements` function returns `Option.some(params)` while the handle should be active and `Option.none()` while it should be absent.
 
-To separate a lifecycle implementation from its definition, give an entry a stable handler name and supply its acquire and release functions with `entry.toLayer({ acquire, release })` or an Effect that builds that handler. The `managedResources` record stays in the application: it declares the Model condition, the handle identity, and the lifecycle Messages. `Application.provide` supplies the handler Layer. The Layer lasts for the application lifetime; the handle it acquires still starts and stops according to the Model.
+Give each entry a stable handler name and supply its acquire and release functions with `entry.toLayer(Effect<handler>)`. The `managedResources` record stays in the application: it declares the Model condition, the handle identity, and the lifecycle Messages. `Application.provide` supplies the handler Layer. The Layer lasts for the application lifetime; the handle it acquires still starts and stops according to the Model.
 
-Calling `toLayer` creates a Layer recipe. When it receives an Effect, the Runtime runs that constructor once while building the application Layer and obtains the lifecycle handler. The constructor may capture a stable injected service or accessor. It must not capture an active resource handle or the current requirements; each Model-scoped acquisition supplies those values. Model changes call the returned `acquire` and `release` functions without rebuilding the handler or its providers.
+Calling `toLayer` creates a Layer recipe. The Runtime runs its Effect constructor once while building the application Layer and obtains the lifecycle handler. Use `Effect.succeed({ acquire, release })` when construction has no dependencies. The constructor must not capture an active resource handle or the current requirements; each Model-scoped acquisition supplies those values. Model changes call the returned `acquire` and `release` functions without rebuilding the handler or its providers.
 
 Distinct ManagedResource definitions within one application need distinct handler names. A lifted use of the same definition can share its handler Layer. `Application.make` rejects duplicate names from different definitions.
 
-The record key identifies the lifecycle that Foldkit watches. The handler name identifies the acquire-and-release implementation supplied by a Layer. Use a verb-first name such as `ManageCamera` or `ManageChatSocket`, name its production Layer `ManageCameraLayer` or `ManageChatSocketLayer`, and include that Layer in the feature's `Layer` export.
+Each registered `ManagedResource.tag` key has one handle accessor and one lifecycle owner. `Application.make` and `Application.makeElement` reject that tag key under two record keys, including separately created tags whose key strings match. Give independent resource instances distinct tag keys. Lifting an entry through its parents preserves its existing handle identity.
+
+The record key identifies the lifecycle that Foldkit watches. The handler name identifies the acquire-and-release implementation supplied by a Layer. Use a verb-first name such as `ManageCamera` or `ManageChatSocket`, name its production Layer `ManageCameraLayer` or `ManageChatSocketLayer`, and include that Layer in the feature's `EffectsLayer` export.
 
 ::Snippet{name="managedResources" label="Camera ManagedResource lifecycle"}
 

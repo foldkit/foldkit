@@ -33,7 +33,6 @@ import {
   isParentFieldConfig,
   liftChildFold,
   parentFieldToLens,
-  runExecute,
 } from './internal.js'
 
 export type SyncFields = {
@@ -82,27 +81,8 @@ const encodeKey = <A, I>(schema: Schema.Codec<A, I, never, never>) => {
     encodeJsonString(canonicalizeJson(encodeJson(value)))
 }
 
+/** Definition fields for a KeyedQuery. */
 export type KeyedQueryConfig<
-  Name extends string,
-  A,
-  AI,
-  E,
-  EI,
-  Fields extends SyncFields,
-  R,
-> = Readonly<{
-  name: Name
-  data: Schema.Codec<A, AI, never, never>
-  error: Schema.Codec<E, EI, never, never>
-  args: Fields
-  toKey?: (args: Schema.Schema.Type<Schema.Struct<Fields>>) => string
-  execute: (
-    args: Schema.Schema.Type<Schema.Struct<Fields>>,
-  ) => Effect.Effect<A, E, R>
-}>
-
-/** Definition fields for a KeyedQuery whose fetch handler is supplied by a Layer. */
-export type LayeredKeyedQueryConfig<
   Name extends string,
   A,
   AI,
@@ -118,7 +98,7 @@ export type LayeredKeyedQueryConfig<
   execute?: never
 }>
 
-/** Builds a KeyedQuery fetch handler Layer from a fetch or an Effect that constructs one. */
+/** Builds a KeyedQuery fetch handler Layer from an Effect that constructs a fetch. */
 export interface KeyedQueryToLayer<
   Name extends string,
   A,
@@ -126,13 +106,11 @@ export interface KeyedQueryToLayer<
   Fields extends SyncFields,
 > {
   <R, BuildE = never, BuildR = never>(
-    build:
-      | ((args: KeyedArgs<Fields>) => Effect.Effect<A, E, R>)
-      | Effect.Effect<
-          (args: KeyedArgs<Fields>) => Effect.Effect<A, E, R>,
-          BuildE,
-          BuildR
-        >,
+    build: Effect.Effect<
+      (args: KeyedArgs<Fields>) => Effect.Effect<A, E, R>,
+      BuildE,
+      BuildR
+    >,
   ): Layer.Layer<
     Command.Handler<`Fetch${Name}`>,
     BuildE,
@@ -317,7 +295,7 @@ export interface KeyedQuery<
     KeyedArgs<Fields>,
     R
   >
-  /** Executes one keyed fetch directly and returns settled `AsyncData`. */
+  /** Executes the fetch handler for one key and returns settled `AsyncData`. */
   readonly run: (
     args: KeyedArgs<Fields>,
   ) => Effect.Effect<AsyncData.AsyncData<A, E>, never, R>
@@ -333,7 +311,7 @@ const makeKeyedQuery = <
   R,
 >(
   config: Pick<
-    KeyedQueryConfig<Name, A, AI, E, EI, Fields, R>,
+    KeyedQueryConfig<Name, A, AI, E, EI, Fields>,
     'name' | 'data' | 'error' | 'args' | 'toKey'
   >,
   Message: KeyedQueryMessage<A, AI, E, EI, Fields>,
@@ -500,19 +478,8 @@ export function defineKeyedQuery<
   E,
   EI,
   Fields extends SyncFields,
-  R,
 >(
-  config: KeyedQueryConfig<Name, A, AI, E, EI, Fields, R>,
-): KeyedQuery<Name, A, AI, E, EI, Fields, R>
-export function defineKeyedQuery<
-  Name extends string,
-  A,
-  AI,
-  E,
-  EI,
-  Fields extends SyncFields,
->(
-  config: LayeredKeyedQueryConfig<Name, A, AI, E, EI, Fields>,
+  config: KeyedQueryConfig<Name, A, AI, E, EI, Fields>,
 ): LayeredKeyedQuery<Name, A, AI, E, EI, Fields>
 export function defineKeyedQuery<
   Name extends string,
@@ -521,29 +488,9 @@ export function defineKeyedQuery<
   E,
   EI,
   Fields extends SyncFields,
-  R,
 >(
-  config:
-    | KeyedQueryConfig<Name, A, AI, E, EI, Fields, R>
-    | LayeredKeyedQueryConfig<Name, A, AI, E, EI, Fields>,
-):
-  | KeyedQuery<Name, A, AI, E, EI, Fields, R>
-  | LayeredKeyedQuery<Name, A, AI, E, EI, Fields>
-export function defineKeyedQuery<
-  Name extends string,
-  A,
-  AI,
-  E,
-  EI,
-  Fields extends SyncFields,
-  R,
->(
-  config:
-    | KeyedQueryConfig<Name, A, AI, E, EI, Fields, R>
-    | LayeredKeyedQueryConfig<Name, A, AI, E, EI, Fields>,
-):
-  | KeyedQuery<Name, A, AI, E, EI, Fields, R>
-  | LayeredKeyedQuery<Name, A, AI, E, EI, Fields> {
+  config: KeyedQueryConfig<Name, A, AI, E, EI, Fields>,
+): LayeredKeyedQuery<Name, A, AI, E, EI, Fields> {
   const Args = Schema.Struct(config.args)
   const Message = makeKeyedQueryMessage(config.data, config.error, Args)
   const completedFetch = (
@@ -557,23 +504,6 @@ export function defineKeyedQuery<
     generation,
     result,
   })
-
-  if (config.execute !== undefined) {
-    const Fetch = Command.define(`Fetch${config.name}`, {
-      args: { args: Args, generation: Schema.Number },
-      messages: [Message.CompletedFetch],
-      execute: ({ args, generation }) =>
-        pipe(
-          config.execute(args),
-          Effect.result,
-          Effect.map(result => completedFetch(args, generation, result)),
-        ),
-    })
-
-    return makeKeyedQuery(config, Message, Fetch, args =>
-      runExecute(config.execute(args)),
-    )
-  }
 
   const Fetch = Command.define(`Fetch${config.name}`, {
     args: { args: Args, generation: Schema.Number },
@@ -591,17 +521,15 @@ export function defineKeyedQuery<
     BuildE = never,
     BuildR = never,
   >(
-    build:
-      | ((args: KeyedArgs<Fields>) => Effect.Effect<A, E, HandlerR>)
-      | Effect.Effect<
-          (args: KeyedArgs<Fields>) => Effect.Effect<A, E, HandlerR>,
-          BuildE,
-          BuildR
-        >,
+    build: Effect.Effect<
+      (args: KeyedArgs<Fields>) => Effect.Effect<A, E, HandlerR>,
+      BuildE,
+      BuildR
+    >,
   ) =>
     Fetch.toLayer(
       Effect.map(
-        Effect.isEffect(build) ? build : Effect.succeed(build),
+        build,
         execute =>
           ({ args, generation }) =>
             pipe(

@@ -1,4 +1,4 @@
-import { Duration, Stream } from 'effect'
+import { Duration, Effect, Stream } from 'effect'
 import { Subscription } from 'foldkit'
 
 import { Message } from './message'
@@ -9,16 +9,18 @@ import { type Model } from './model'
 const TOGGLE_INTERVAL = Duration.seconds(3)
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  aiHeading: entry('AiHeadingToggleTicks', {
+  aiHeadingToggleTicks: entry('AiHeadingToggleTicks', {
     messages: [Message.ToggledAiHeading],
   }),
 }))
 
-const AiHeadingToggleTicksLayer = subscriptions.aiHeading.toLayer(() =>
-  Stream.tick(TOGGLE_INTERVAL).pipe(
-    Stream.drop(1),
-    Stream.map(Message.ToggledAiHeading),
+const AiHeadingToggleTicksLayer = subscriptions.aiHeadingToggleTicks.toLayer(
+  Effect.succeed(() =>
+    Stream.tick(TOGGLE_INTERVAL).pipe(
+      Stream.drop(1),
+      Stream.map(Message.ToggledAiHeading),
+    ),
   ),
 )
 
-export const Layer = AiHeadingToggleTicksLayer
+export const EffectsLayer = AiHeadingToggleTicksLayer

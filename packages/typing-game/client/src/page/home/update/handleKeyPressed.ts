@@ -1,37 +1,21 @@
-import { Array, Layer, Match, Number, Option, flow, pipe } from 'effect'
-import { type Update } from 'foldkit'
+import { Array, Match, Number, Option, flow, pipe } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import {
-  CommandsLayer,
-  CreateRoom,
-  FocusRoomIdInput,
-  FocusUsernameInput,
-} from '../command'
-import { Message } from '../message'
+import { CreateRoom, FocusRoomIdInput, FocusUsernameInput } from '../command'
 import { HOME_ACTIONS, HomeAction, HomeStep, Model } from '../model'
-
-type UpdateReturn = Update.Return<
-  Model,
-  Message,
-  Layer.Success<typeof CommandsLayer>
->
-const withUpdateReturn = Match.withReturnType<UpdateReturn>()
 
 export const handleKeyPressed =
   (model: Model) =>
-  ({ key }: { key: string }): UpdateReturn =>
+  ({ key }: { key: string }) =>
     Match.value(model.homeStep).pipe(
-      withUpdateReturn,
       Match.tag('SelectAction', whenSelectAction(model, key)),
       Match.orElse(() => ({ model })),
     )
 
 const whenSelectAction =
   (model: Model, key: string) =>
-  (selectAction: typeof HomeStep.SelectAction.Type): UpdateReturn =>
+  (selectAction: typeof HomeStep.SelectAction.Type) =>
     Match.value(key).pipe(
-      withUpdateReturn,
       Match.when('ArrowUp', () =>
         moveSelection(Number.decrement)(model, selectAction),
       ),
@@ -47,7 +31,7 @@ const moveSelection =
   (
     model: Model,
     { username, selectedAction }: typeof HomeStep.SelectAction.Type,
-  ): UpdateReturn => ({
+  ) => ({
     model: modifyFields(model, {
       homeStep: () =>
         HomeStep.SelectAction({
@@ -78,10 +62,8 @@ const cycleAction =
   }
 
 const confirmSelection =
-  (model: Model) =>
-  (selectAction: typeof HomeStep.SelectAction.Type): UpdateReturn =>
+  (model: Model) => (selectAction: typeof HomeStep.SelectAction.Type) =>
     Match.value(selectAction.selectedAction).pipe(
-      withUpdateReturn,
       Match.when('CreateRoom', () => ({
         model,
         commands: [CreateRoom({ username: selectAction.username })],

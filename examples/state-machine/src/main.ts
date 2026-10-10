@@ -2,6 +2,7 @@ import {
   Array,
   Duration,
   Effect,
+  Layer,
   Match,
   Number,
   Option,
@@ -17,6 +18,7 @@ import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
+import * as UI from '@foldkit/ui'
 import { RadioGroup } from '@foldkit/ui'
 
 // MODEL
@@ -115,13 +117,15 @@ export const PlaceOrder = Command.define('PlaceOrder', {
   messages: [Message.CompletedPlaceOrder],
 })
 
-export const PlaceOrderLayer = PlaceOrder.toLayer(({ isShippingRequired }) =>
-  Effect.gen(function* () {
-    yield* Effect.sleep(PLACE_ORDER_DELAY)
-    return Message.CompletedPlaceOrder({
-      orderId: isShippingRequired ? 'SHIP-1001' : 'DIGI-1001',
-    })
-  }),
+export const PlaceOrderLayer = PlaceOrder.toLayer(
+  Effect.succeed(({ isShippingRequired }) =>
+    Effect.gen(function* () {
+      yield* Effect.sleep(PLACE_ORDER_DELAY)
+      return Message.CompletedPlaceOrder({
+        orderId: isShippingRequired ? 'SHIP-1001' : 'DIGI-1001',
+      })
+    }),
+  ),
 )
 
 // MACHINE
@@ -346,12 +350,6 @@ export const init = () => ({
 
 // UPDATE
 
-type UpdateReturn = Update.Return<
-  Model,
-  Message,
-  Command.HandlerOf<typeof PlaceOrder>
->
-
 export const TRANSITION_LOG_LIMIT = 20
 
 const resultToTransitionSummary = (
@@ -366,48 +364,47 @@ const resultToTransitionSummary = (
     }),
   )
 
-const stepMachine =
-  (message: Message) =>
-  (model: Model): UpdateReturn => {
-    const result = checkoutMachine.step(model.checkout, message)
+const stepMachine = (message: Message) => (model: Model) => {
+  const result = checkoutMachine.step(model.checkout, message)
 
-    const { state: nextCheckout } = result
+  const { state: nextCheckout } = result
 
-    const transitionCommands = Match.value(result).pipe(
-      Match.tagsExhaustive({
-        Transitioned: ({ commands }) => commands,
-        Ignored: () => [],
-      }),
-    )
+  const transitionCommands = Match.value(result).pipe(
+    Match.tagsExhaustive({
+      Transitioned: ({ commands }) => commands,
+      Ignored: () => [],
+    }),
+  )
 
-    const transitionLogEntry: TransitionLogEntry = {
-      id: model.nextTransitionLogId,
-      summary: resultToTransitionSummary(result),
-    }
-
-    return {
-      model: modifyFields(model, {
-        checkout: () => nextCheckout,
-        transitionLog: flow(
-          Array.prepend(transitionLogEntry),
-          Array.take(TRANSITION_LOG_LIMIT),
-        ),
-        nextTransitionLogId: Number.increment,
-      }),
-      commands: transitionCommands,
-    }
+  const transitionLogEntry: TransitionLogEntry = {
+    id: model.nextTransitionLogId,
+    summary: resultToTransitionSummary(result),
   }
 
-const foldEditionRadioGroupOutMessage = RadioGroup.OutMessage.match<
-  Update.Step<Model, Message, Command.HandlerOf<typeof PlaceOrder>>
->({
-  Selected: ({ value }) =>
-    stepMachine(
-      Message.SelectedEdition({
-        isShippingRequired: value === HARDCOVER_EDITION,
-      }),
-    ),
-})
+  return {
+    model: modifyFields(model, {
+      checkout: () => nextCheckout,
+      transitionLog: flow(
+        Array.prepend(transitionLogEntry),
+        Array.take(TRANSITION_LOG_LIMIT),
+      ),
+      nextTransitionLogId: Number.increment,
+    }),
+    commands: transitionCommands,
+  }
+}
+
+const foldEditionRadioGroupOutMessage = (
+  outMessage: typeof RadioGroup.OutMessage.Type,
+) =>
+  RadioGroup.OutMessage.match(outMessage, {
+    Selected: ({ value }) =>
+      stepMachine(
+        Message.SelectedEdition({
+          isShippingRequired: value === HARDCOVER_EDITION,
+        }),
+      ),
+  })
 
 const foldEditionRadioGroup = Update.foldChild({
   update: EditionRadioGroup.update,
@@ -420,7 +417,6 @@ const foldEditionRadioGroup = Update.foldChild({
 
 export const update = Update.make((model: Model, message: Message) =>
   Match.value(message).pipe(
-    Match.withReturnType<UpdateReturn>(),
     Match.tag('GotEditionRadioGroupMessage', ({ message }) =>
       foldEditionRadioGroup(model, message),
     ),
@@ -441,3 +437,7 @@ export const update = Update.make((model: Model, message: Message) =>
     Match.exhaustive,
   ),
 )
+
+export const EffectsLayer = Layer.mergeAll(UI.EffectsLayer, PlaceOrderLayer)
+
+export const mounts = UI.mounts

@@ -1,10 +1,9 @@
-import { Array, Layer, Match, Option, String } from 'effect'
-import { type Update } from 'foldkit'
+import { Array, Match, Option, String } from 'effect'
+import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { optionWhen } from '../../../optionWhen'
 import {
-  CommandsLayer,
   FocusRoomIdInput,
   FocusUsernameInput,
   JoinRoomFromHome,
@@ -13,24 +12,14 @@ import { Message, OutMessage } from '../message'
 import { HomeStep, Model } from '../model'
 import { handleKeyPressed } from './handleKeyPressed'
 
-export type UpdateReturn = Update.ReturnWithOutMessage<
-  Model,
-  Message,
-  OutMessage,
-  Layer.Success<typeof CommandsLayer>
->
-export type UpdateRequirements = Layer.Success<typeof CommandsLayer>
-const withUpdateReturn = Match.withReturnType<UpdateReturn>()
-
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     CompletedFocusUsernameInput: () => ({ model }),
 
     CompletedFocusRoomIdInput: () => ({ model }),
 
     SubmittedUsernameForm: () =>
       Match.value(model.homeStep).pipe(
-        withUpdateReturn,
         Match.tag('EnterUsername', ({ username }) => {
           const nextModel = String.isNonEmpty(username)
             ? modifyFields(model, {
@@ -51,7 +40,6 @@ export const update = (model: Model, message: Message) =>
 
     ChangedUsername: ({ value }) =>
       Match.value(model.homeStep).pipe(
-        withUpdateReturn,
         Match.tag('EnterUsername', () => ({
           model: modifyFields(model, {
             homeStep: () => HomeStep.EnterUsername({ username: value }),
@@ -67,7 +55,6 @@ export const update = (model: Model, message: Message) =>
 
     ChangedRoomId: ({ value }) =>
       Match.value(model.homeStep).pipe(
-        withUpdateReturn,
         Match.tag('EnterRoomId', ({ username }) => ({
           model: modifyFields(model, {
             homeStep: () =>
@@ -83,7 +70,6 @@ export const update = (model: Model, message: Message) =>
 
     SubmittedJoinRoomForm: () =>
       Match.value(model.homeStep).pipe(
-        withUpdateReturn,
         Match.tag('EnterRoomId', ({ username, roomId }) => {
           if (roomId === 'exit') {
             return {
@@ -127,4 +113,7 @@ export const update = (model: Model, message: Message) =>
         formError: () => Option.some(error),
       }),
     }),
-  })
+  }),
+)
+
+export type UpdateRequirements = Update.RequirementsOf<typeof update>

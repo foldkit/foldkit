@@ -17,7 +17,7 @@ import * as Command from '../../command/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
 import * as Story from '../../test/story.js'
-import type * as Update from '../../update/index.js'
+import * as Update from '../../update/index.js'
 import * as Query from './index.js'
 import type { SyncFields } from './keyedQuery.js'
 
@@ -28,24 +28,26 @@ const notes = Query.define({
   name: 'Notes',
   data: Schema.Array(Note),
   error: Schema.String,
-  execute: Effect.succeed([{ id: '1', body: 'hello' }]),
 })
+const NotesLayer = notes.toLayer(
+  Effect.succeed(() => Effect.succeed([{ id: '1', body: 'hello' }])),
+)
 
 const noteById = Query.define({
   name: 'Note',
   data: Note,
   error: Schema.String,
   args: { noteId: Schema.String },
-  execute: ({ noteId }) => Effect.succeed({ id: noteId, body: 'hello' }),
 })
+const NoteLayer = noteById.toLayer(
+  Effect.succeed(({ noteId }) => Effect.succeed({ id: noteId, body: 'hello' })),
+)
 
 const noteByIdAndLocale = Query.define({
   name: 'NoteLocale',
   data: Note,
   error: Schema.String,
   args: { noteId: Schema.String, locale: Schema.String },
-  execute: ({ noteId, locale }) =>
-    Effect.succeed({ id: `${noteId}:${locale}`, body: 'hello' }),
 })
 
 const noteByIdPreview = Query.define({
@@ -54,7 +56,6 @@ const noteByIdPreview = Query.define({
   error: Schema.String,
   args: { noteId: Schema.String, preview: Schema.Boolean },
   toKey: ({ noteId }) => noteId,
-  execute: ({ noteId }) => Effect.succeed({ id: noteId, body: 'hello' }),
 })
 
 const hello = [{ id: '1', body: 'hello' }]
@@ -141,7 +142,6 @@ describe('Query.define Schema inputs', () => {
         data: Note,
         error: Schema.String,
         args: {},
-        execute: () => Effect.succeed({ id: '1', body: 'hello' }),
       }),
     ).toThrowError('keyed args must include at least one field')
   })
@@ -537,11 +537,12 @@ describe('Query.lift', () => {
     toParentMessage: message => Message.GotNotesMessage({ message }),
   })
 
-  const update = (model: Model, message: Message) =>
-    Message.match<Update.Return<Model, Message>>(message, {
+  const update = Update.make((model: Model, message: Message) =>
+    Message.match(message, {
       GotNotesMessage: ({ message }) => notesChild.fold(model, message),
       ClickedLoad: () => notesChild.revalidateOrLoad(model),
-    })
+    }),
+  )
 
   it('routes loading and completion through the parent Model', () => {
     Story.story(
@@ -720,7 +721,6 @@ describe('KeyedQuery keys', () => {
       data: Note,
       error: Schema.String,
       args: { noteId: Schema.String, preview: Schema.Boolean },
-      execute: ({ noteId }) => Effect.succeed({ id: noteId, body: 'hello' }),
     })
     const first = previewById.loadIfMissing(previewById.init(), {
       noteId: '1',
@@ -741,7 +741,6 @@ describe('KeyedQuery keys', () => {
       args: {
         filter: Schema.Record(Schema.String, Schema.String),
       },
-      execute: () => Effect.succeed(hello),
     })
     const firstArgs = {
       filter: { status: 'open', owner: 'devin' },
@@ -770,7 +769,6 @@ describe('KeyedQuery keys', () => {
           status: Schema.String,
         }),
       },
-      execute: () => Effect.succeed(hello),
     })
     const firstLoad = notesByFilter.loadIfMissing(notesByFilter.init(), {
       filter: { status: 'open', owner: 'devin' },
@@ -789,7 +787,6 @@ describe('KeyedQuery keys', () => {
       data: Schema.Array(Note),
       error: Schema.String,
       args: { ids: Schema.Array(Schema.String) },
-      execute: () => Effect.succeed(hello),
     })
     const firstLoad = notesByIds.loadIfMissing(notesByIds.init(), {
       ids: ['1', '2'],
@@ -804,29 +801,34 @@ describe('KeyedQuery keys', () => {
 })
 
 describe('Query.run', () => {
-  it.effect('returns Success when execute succeeds', () =>
+  it.effect('returns Success when the fetch handler succeeds', () =>
     Effect.gen(function* () {
-      const data = yield* notes.run
+      const data = yield* Effect.provide(notes.run, NotesLayer)
       expect(data).toEqual(AsyncData.Success({ data: hello }))
     }),
   )
 
-  it.effect('returns Failure when execute fails', () =>
+  it.effect('returns Failure when the fetch handler fails', () =>
     Effect.gen(function* () {
       const failing = Query.define({
         name: 'FailingNotes',
         data: Schema.Array(Note),
         error: Schema.String,
-        execute: Effect.fail('boom'),
       })
-      const data = yield* failing.run
+      const FailingNotesLayer = failing.toLayer(
+        Effect.succeed(() => Effect.fail('boom')),
+      )
+      const data = yield* Effect.provide(failing.run, FailingNotesLayer)
       expect(data).toEqual(AsyncData.Failure({ error: 'boom' }))
     }),
   )
 
   it.effect('runs a keyed fetch for the given arguments', () =>
     Effect.gen(function* () {
-      const data = yield* noteById.run({ noteId: '1' })
+      const data = yield* Effect.provide(
+        noteById.run({ noteId: '1' }),
+        NoteLayer,
+      )
       expect(data).toEqual(
         AsyncData.Success({ data: { id: '1', body: 'hello' } }),
       )
@@ -847,6 +849,22 @@ describe('Layer-backed Query handlers', () => {
     args: { noteId: Schema.String },
   })
 
+  if (false) {
+    layeredNotes.toLayer<never, never, never>(
+      // @ts-expect-error toLayer accepts an Effect that constructs the fetch handler.
+      () => Effect.succeed([hello]),
+    )
+
+    const inlineConfig = {
+      name: 'InlineNotes',
+      data: Schema.Array(Note),
+      error: Schema.String,
+      execute: Effect.succeed([hello]),
+    }
+    // @ts-expect-error Query definitions cannot carry inline implementations.
+    Query.define(inlineConfig)
+  }
+
   it('carries each fetch handler through loading operations', () => {
     expectTypeOf(layeredNotes.loadIfMissing).returns.toEqualTypeOf<
       Update.Return<
@@ -866,7 +884,9 @@ describe('Layer-backed Query handlers', () => {
 
   it.effect('settles an unkeyed fetch through its Layer', () =>
     Effect.gen(function* () {
-      const handlerLayer = layeredNotes.toLayer(() => Effect.succeed(hello))
+      const handlerLayer = layeredNotes.toLayer(
+        Effect.succeed(() => Effect.succeed(hello)),
+      )
       const data = yield* Effect.provide(layeredNotes.run, handlerLayer)
       const completion = yield* Effect.provide(
         layeredNotes.Fetch({ generation: 4 }).effect,
@@ -885,10 +905,12 @@ describe('Layer-backed Query handlers', () => {
 
   it.effect('passes keyed args to its Layer and settles failures', () =>
     Effect.gen(function* () {
-      const handlerLayer = layeredNoteById.toLayer(({ noteId }) =>
-        noteId === 'missing'
-          ? Effect.fail('missing')
-          : Effect.succeed({ id: noteId, body: 'hello' }),
+      const handlerLayer = layeredNoteById.toLayer(
+        Effect.succeed(({ noteId }) =>
+          noteId === 'missing'
+            ? Effect.fail('missing')
+            : Effect.succeed({ id: noteId, body: 'hello' }),
+        ),
       )
       const success = yield* Effect.provide(
         layeredNoteById.run({ noteId: '1' }),
@@ -949,7 +971,7 @@ describe('Layer-backed Query handlers', () => {
   )
 })
 
-describe('Query execute requirements', () => {
+describe('Query handler requirements', () => {
   class NoteService extends Context.Service<
     NoteService,
     { readonly body: string }
@@ -959,25 +981,27 @@ describe('Query execute requirements', () => {
     name: 'ServedNotes',
     data: Schema.Array(Note),
     error: Schema.String,
-    execute: Effect.gen(function* () {
-      const service = yield* NoteService
-      return [{ id: '1', body: service.body }]
-    }),
   })
+  const ServedNotesLayer = served.toLayer(
+    Effect.map(
+      NoteService,
+      service => () => Effect.succeed([{ id: '1', body: service.body }]),
+    ),
+  )
   type ServedModel = (typeof served.Model)['Type']
   type ServedMessage = (typeof served.Message)['Type']
 
-  it('run requires the execute services', () => {
+  it('run requires the fetch handler', () => {
     expectTypeOf(served.run).toEqualTypeOf<
       Effect.Effect<
         AsyncData.AsyncData<ReadonlyArray<Note>, string>,
         never,
-        NoteService
+        Command.Handler<'FetchServedNotes'>
       >
     >()
   })
 
-  it('only fetch-starting operations require the execute services', () => {
+  it('only fetch-starting operations require the fetch handler', () => {
     expectTypeOf(served.update).returns.toEqualTypeOf<
       Update.Return<ServedModel, ServedMessage>
     >()
@@ -985,7 +1009,11 @@ describe('Query execute requirements', () => {
       Update.Return<ServedModel, ServedMessage>
     >()
     expectTypeOf(served.loadIfMissing).returns.toEqualTypeOf<
-      Update.Return<ServedModel, ServedMessage, NoteService>
+      Update.Return<
+        ServedModel,
+        ServedMessage,
+        Command.Handler<'FetchServedNotes'>
+      >
     >()
 
     const ParentModel = Schema.Struct({ notes: served.Model })
@@ -1006,27 +1034,36 @@ describe('Query execute requirements', () => {
       Update.Step<ParentModel, ParentMessage>
     >()
     expectTypeOf(servedNotes.loadIfMissing).toEqualTypeOf<
-      Update.Step<ParentModel, ParentMessage, NoteService>
+      Update.Step<
+        ParentModel,
+        ParentMessage,
+        Command.Handler<'FetchServedNotes'>
+      >
     >()
   })
 
-  it.effect('run settles after the execute services are provided', () =>
-    Effect.gen(function* () {
-      const data = yield* Effect.provide(
-        served.run,
-        Layer.succeed(NoteService, { body: 'from-layer' }),
-      )
-      expect(data).toEqual(
-        AsyncData.Success({ data: [{ id: '1', body: 'from-layer' }] }),
-      )
-    }),
+  it.effect(
+    'run settles after the handler construction service is provided',
+    () =>
+      Effect.gen(function* () {
+        const data = yield* Effect.provide(
+          served.run,
+          Layer.provide(
+            ServedNotesLayer,
+            Layer.succeed(NoteService, { body: 'from-layer' }),
+          ),
+        )
+        expect(data).toEqual(
+          AsyncData.Success({ data: [{ id: '1', body: 'from-layer' }] }),
+        )
+      }),
   )
 })
 
 describe('Query types', () => {
   it('define returns the precise Query type', () => {
     expectTypeOf(notes).toExtend<
-      Query.Query<
+      Query.LayeredQuery<
         'Notes',
         ReadonlyArray<Note>,
         ReadonlyArray<typeof Note.Encoded>,
@@ -1035,7 +1072,7 @@ describe('Query types', () => {
       >
     >()
     expectTypeOf(noteById).toExtend<
-      Query.KeyedQuery<
+      Query.LayeredKeyedQuery<
         'Note',
         Note,
         typeof Note.Encoded,
@@ -1062,11 +1099,16 @@ describe('Query types', () => {
       Update.Fold<
         (typeof noteById.Model)['Type'],
         (typeof noteById.Message)['Type'],
-        { readonly noteId: string }
+        { readonly noteId: string },
+        Command.Handler<'FetchNote'>
       >
     >()
     expectTypeOf(noteById.run).returns.toEqualTypeOf<
-      Effect.Effect<AsyncData.AsyncData<Note, string>>
+      Effect.Effect<
+        AsyncData.AsyncData<Note, string>,
+        never,
+        Command.Handler<'FetchNote'>
+      >
     >()
   })
 
@@ -1122,7 +1164,12 @@ describe('Query types', () => {
     })
 
     expectTypeOf(noteByIdChild.loadIfMissing).toExtend<
-      Update.Fold<KeyedParent, KeyedParentMessage, { readonly noteId: string }>
+      Update.Fold<
+        KeyedParent,
+        KeyedParentMessage,
+        { readonly noteId: string },
+        Command.Handler<'FetchNote'>
+      >
     >()
   })
 

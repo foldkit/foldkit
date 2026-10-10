@@ -3,7 +3,7 @@ import { Socket } from 'effect/socket'
 import { Application, Runtime } from 'foldkit'
 
 import {
-  Layer as HandlersLayer,
+  EffectsLayer,
   Message,
   Model,
   init,
@@ -27,7 +27,7 @@ const application = Application.make({
 })
 
 const AppLayer = Layer.provide(
-  HandlersLayer,
+  EffectsLayer,
   Socket.layerWebSocketConstructorGlobal,
 )
 

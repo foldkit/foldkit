@@ -4,22 +4,23 @@ import { Application, Runtime } from 'foldkit'
 import { BrowserCrypto, BrowserKeyValueStore } from '@effect/platform-browser'
 
 import {
+  EffectsLayer,
   Flags,
-  Layer as HandlersLayer,
   Message,
   Model,
   flags,
   init,
+  mounts,
   subscriptions,
   update,
   view,
 } from './main'
 
-const BrowserServicesLayer = Layer.mergeAll(
+const ServicesLayer = Layer.mergeAll(
   BrowserCrypto.layer,
   BrowserKeyValueStore.layerLocalStorage,
 )
-const AppLayer = HandlersLayer.pipe(Layer.provideMerge(BrowserServicesLayer))
+const AppLayer = EffectsLayer.pipe(Layer.provideMerge(ServicesLayer))
 
 const application = Application.make({
   Model,
@@ -28,6 +29,7 @@ const application = Application.make({
   update,
   view,
   subscriptions,
+  mounts,
   container: document.getElementById('root'),
   devTools: {
     Message,

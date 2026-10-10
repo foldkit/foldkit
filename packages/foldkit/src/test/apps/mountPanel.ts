@@ -1,10 +1,10 @@
-import { Effect, Number, Option, Schema } from 'effect'
+import { Effect, Layer, Number, Option, Schema } from 'effect'
 
 import type { Html, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import * as Mount from '../../mount/index.js'
 import { modifyFields } from '../../struct/index.js'
-import type * as Update from '../../update/index.js'
+import * as Update from '../../update/index.js'
 
 // MODEL
 
@@ -41,25 +41,37 @@ export type Message = typeof Message.Type
 
 export const MeasurePanel = Mount.define('MeasurePanel', {
   messages: [Message.MeasuredPanel, Message.FailedMountSidebar],
-  execute: () => Effect.succeed(Message.MeasuredPanel({ width: 320 })),
 })
+
+export const MeasurePanelLayer = MeasurePanel.toLayer(
+  Effect.succeed(() => Effect.succeed(Message.MeasuredPanel({ width: 320 }))),
+)
 
 export const FocusButton = Mount.define('FocusButton', {
   messages: [Message.CompletedFocusButton],
-  execute: () => Effect.succeed(Message.CompletedFocusButton()),
 })
+
+export const FocusButtonLayer = FocusButton.toLayer(
+  Effect.succeed(() => Effect.succeed(Message.CompletedFocusButton())),
+)
 
 export const ScrollList = Mount.define('ScrollList', {
   args: { offset: Schema.Number },
   messages: [Message.ScrolledTo],
-  execute: ({ element, offset }) =>
+})
+
+export const ScrollListLayer = ScrollList.toLayer(
+  Effect.succeed(({ element, offset }) =>
     Effect.sync(() => {
       if (element instanceof HTMLElement) {
         element.scrollTop = offset
       }
       return Message.ScrolledTo({ offset })
     }),
-})
+  ),
+)
+
+export const Mounts = [MeasurePanel, FocusButton, ScrollList]
 
 // INIT
 
@@ -71,8 +83,8 @@ export const initialModel: Model = {
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedToggle: () => ({
       model: modifyFields(model, { isOpen: isOpen => !isOpen }),
     }),
@@ -86,7 +98,8 @@ export const update = (model: Model, message: Message) =>
     }),
     ScrolledTo: () => ({ model }),
     Ticked: () => ({ model }),
-  })
+  }),
+)
 
 // VIEW
 
@@ -154,3 +167,9 @@ export const scrollListView = (
     [h.div([h.Key('list'), h.OnMount(ScrollList({ offset }))])],
   )
 }
+
+export const EffectsLayer = Layer.mergeAll(
+  MeasurePanelLayer,
+  FocusButtonLayer,
+  ScrollListLayer,
+)

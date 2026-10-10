@@ -136,13 +136,15 @@ export const CopyRoomId = Command.define('CopyRoomId', {
   messages: [Message.SucceededCopyRoomId, Message.FailedCopyRoomId],
 })
 
-const CopyRoomIdLayer = CopyRoomId.toLayer(({ roomId }) =>
-  Effect.tryPromise({
-    try: () => navigator.clipboard.writeText(roomId),
-    catch: () => new Error('Failed to copy to clipboard'),
-  }).pipe(
-    Effect.as(Message.SucceededCopyRoomId()),
-    Effect.catch(() => Effect.succeed(Message.FailedCopyRoomId())),
+const CopyRoomIdLayer = CopyRoomId.toLayer(
+  Effect.succeed(({ roomId }) =>
+    Effect.tryPromise({
+      try: () => navigator.clipboard.writeText(roomId),
+      catch: () => new Error('Failed to copy to clipboard'),
+    }).pipe(
+      Effect.as(Message.SucceededCopyRoomId()),
+      Effect.catch(() => Effect.succeed(Message.FailedCopyRoomId())),
+    ),
   ),
 )
 
@@ -154,10 +156,11 @@ export const WaitForExitCountdownInterval = Command.define(
 )
 
 const WaitForExitCountdownIntervalLayer = WaitForExitCountdownInterval.toLayer(
-  () =>
+  Effect.succeed(() =>
     Effect.sleep('1 second').pipe(
       Effect.as(Message.CompletedWaitForExitCountdownInterval()),
     ),
+  ),
 )
 
 const COPY_INDICATOR_DURATION = '2 seconds'
@@ -170,9 +173,11 @@ export const WaitBeforeHidingRoomIdCopiedIndicator = Command.define(
 )
 
 const WaitBeforeHidingRoomIdCopiedIndicatorLayer =
-  WaitBeforeHidingRoomIdCopiedIndicator.toLayer(() =>
-    Effect.sleep(COPY_INDICATOR_DURATION).pipe(
-      Effect.as(Message.CompletedWaitBeforeHidingRoomIdCopiedIndicator()),
+  WaitBeforeHidingRoomIdCopiedIndicator.toLayer(
+    Effect.succeed(() =>
+      Effect.sleep(COPY_INDICATOR_DURATION).pipe(
+        Effect.as(Message.CompletedWaitBeforeHidingRoomIdCopiedIndicator()),
+      ),
     ),
   )
 
@@ -224,10 +229,12 @@ export const FocusRoomPageUsernameInput = Command.define(
   },
 )
 
-const FocusRoomPageUsernameInputLayer = FocusRoomPageUsernameInput.toLayer(() =>
-  Dom.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
-    Effect.ignore,
-    Effect.as(Message.CompletedFocusRoomPageUsernameInput()),
+const FocusRoomPageUsernameInputLayer = FocusRoomPageUsernameInput.toLayer(
+  Effect.succeed(() =>
+    Dom.focus(`#${ROOM_PAGE_USERNAME_INPUT_ID}`).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedFocusRoomPageUsernameInput()),
+    ),
   ),
 )
 
@@ -235,10 +242,12 @@ export const FocusUserGameTextInput = Command.define('FocusUserGameTextInput', {
   messages: [Message.CompletedFocusUserGameTextInput],
 })
 
-const FocusUserGameTextInputLayer = FocusUserGameTextInput.toLayer(() =>
-  Dom.focus(`#${USER_GAME_TEXT_INPUT_ID}`).pipe(
-    Effect.ignore,
-    Effect.as(Message.CompletedFocusUserGameTextInput()),
+const FocusUserGameTextInputLayer = FocusUserGameTextInput.toLayer(
+  Effect.succeed(() =>
+    Dom.focus(`#${USER_GAME_TEXT_INPUT_ID}`).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedFocusUserGameTextInput()),
+    ),
   ),
 )
 

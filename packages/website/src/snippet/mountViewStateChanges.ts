@@ -10,7 +10,10 @@ const Message = defineMessageUnion({
 
 const MountEditor = Mount.define('MountEditor', {
   messages: [Message.CompletedMountEditor],
-  execute: ({ element, viewStateChanges }) =>
+})
+
+const MountEditorLayer = MountEditor.toLayer(
+  Effect.succeed(({ element, viewStateChanges }) =>
     Effect.gen(function* () {
       const editor = yield* Effect.acquireRelease(
         Effect.sync(() => new Editor({ element })),
@@ -26,4 +29,5 @@ const MountEditor = Mount.define('MountEditor', {
 
       return Message.CompletedMountEditor()
     }),
-})
+  ),
+)

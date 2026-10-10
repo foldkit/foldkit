@@ -63,8 +63,10 @@ describe('Layer-backed Mount runtime', () => {
     const application = makeApplication([AnchorPanel])
     const provided = Application.provide(
       application,
-      AnchorPanel.toLayer(({ label }) =>
-        Effect.succeed(Message.CompletedAnchorPanel({ label })),
+      AnchorPanel.toLayer(
+        Effect.succeed(({ label }) =>
+          Effect.succeed(Message.CompletedAnchorPanel({ label })),
+        ),
       ),
     )
     const fiber = Effect.runFork(__startProgram(provided, undefined, 'Fresh'))
@@ -183,10 +185,12 @@ describe('Layer-backed Mount runtime', () => {
     })
     const provided = Application.provide(
       application,
-      AnchorPanel.toLayer(({ label }) => {
-        executions += 1
-        return Effect.succeed(Message.CompletedAnchorPanel({ label }))
-      }),
+      AnchorPanel.toLayer(
+        Effect.succeed(({ label }) => {
+          executions += 1
+          return Effect.succeed(Message.CompletedAnchorPanel({ label }))
+        }),
+      ),
     )
     const fiber = Effect.runFork(__startProgram(provided, undefined, 'Fresh'))
 
@@ -269,8 +273,10 @@ const checkApplicationTypes = (): void => {
   run(
     Application.provide(
       application,
-      AnchorPanel.toLayer(({ label }) =>
-        Effect.succeed(Message.CompletedAnchorPanel({ label })),
+      AnchorPanel.toLayer(
+        Effect.succeed(({ label }) =>
+          Effect.succeed(Message.CompletedAnchorPanel({ label })),
+        ),
       ),
     ),
   )

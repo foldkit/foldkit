@@ -28,8 +28,8 @@ const resolveFocusTab = Command.resolve(
 )
 
 const resolveFocusMenuButton = Command.resolve(
-  Menu.FocusButton,
-  Menu.Message.CompletedFocusButton(),
+  Menu.FocusMenuButton,
+  Menu.Message.CompletedFocusMenuButton(),
 )
 
 describe('update', () => {
@@ -106,7 +106,10 @@ describe('update', () => {
             }),
           }),
         ),
-        Command.resolve(Menu.FocusItems, Menu.Message.CompletedFocusItems()),
+        Command.resolve(
+          Menu.FocusMenuItems,
+          Menu.Message.CompletedFocusMenuItems(),
+        ),
         message(
           Message.GotStepMenuMessage({
             message: Menu.Message.SelectedItem({

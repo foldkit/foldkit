@@ -26,4 +26,4 @@ const postsQuery = Query.define({
   error: Schema.String,
 })
 
-const FetchPostsLayer = postsQuery.toLayer(() => fetchPosts)
+const FetchPostsLayer = postsQuery.toLayer(Effect.succeed(() => fetchPosts))

@@ -50,10 +50,14 @@ const RpcAppLayer = RpcServer.layerHttp({
   protocol: 'http',
 }).pipe(
   Layer.provide(RoomLayer),
-  Layer.provide(RpcSerialization.layerNdjson),
-  Layer.provide(RoomByIdStoreLayer),
-  Layer.provide(ProgressByGamePlayerStoreLayer),
-  Layer.provide(PendingCleanupPlayerIdsStoreLayer),
+  Layer.provide(
+    Layer.mergeAll(
+      RpcSerialization.layerNdjson,
+      RoomByIdStoreLayer,
+      ProgressByGamePlayerStoreLayer,
+      PendingCleanupPlayerIdsStoreLayer,
+    ),
+  ),
 )
 
 const HttpAppLayer = Layer.unwrap(

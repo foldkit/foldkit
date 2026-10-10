@@ -6,7 +6,7 @@ A Submodel owns the Subscriptions that produce its Messages. Its parent lifts th
 
 This mirrors the other halves of the boundary. `Update.foldChild` lifts child update, `h.submodel` lifts child view, and `Subscription.lift` lifts child Streams.
 
-Each feature also exports `Layer` for its Subscription handlers. The parent combines that Layer with its own handlers, so the application entry provides feature Layers without importing every Subscription definition.
+Each feature also exports `EffectsLayer` for its Subscription handlers. The parent combines that bundle with its own handlers, so the application entry provides feature Layers without importing every Subscription definition.
 
 ## The Composition Levels {#composition-levels}
 
@@ -48,7 +48,7 @@ Three functions build the hierarchy.
 | `Subscription.lift`      | Reads a child Model and wraps each emitted child Message. An optional `when` adds a parent-owned gate. | A child exports a Subscriptions record.           |
 | `Subscription.aggregate` | Combines records, infers their shared types, and rejects duplicate keys at startup.                    | A level has more than one local or lifted record. |
 
-`entry.toLayer` supplies the Stream implementation for a named entry. `Layer.mergeAll` combines the local handler Layer with each child's `Layer` export. This Layer composition follows the same feature hierarchy as the Subscription records.
+`entry.toLayer` supplies the Stream implementation for a named entry. `Layer.mergeAll` combines the local handler Layer with each child's `EffectsLayer` export. This Layer composition follows the same feature hierarchy as the Subscription records.
 
 ## Organization Principles
 
@@ -76,7 +76,7 @@ A leaf declares its entries with `Subscription.make` and supplies each named han
 
 ### The Composing Submodel {#composing-submodel}
 
-A composing Submodel lifts child records, declares any local entries, and aggregates the results. It combines its local handler Layer with the child's `Layer` export. Each lift supplies a `read` that returns an `Option` of the child Model. An always-present child is wrapped in `Option.some`.
+A composing Submodel lifts child records, declares any local entries, and aggregates the results. It combines its local handler Layer with the child's `EffectsLayer` export. Each lift supplies a `read` that returns an `Option` of the child Model. An always-present child is wrapped in `Option.some`.
 
 ::Snippet{name="subscriptionOrganizationComposing" label="Composing Submodel Subscription file"}
 

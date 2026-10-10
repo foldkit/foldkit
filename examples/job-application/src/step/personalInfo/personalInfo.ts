@@ -137,7 +137,7 @@ export const ValidateEmailAsync = Command.define('ValidateEmailAsync', {
 })
 
 export const ValidateEmailAsyncLayer = ValidateEmailAsync.toLayer(
-  ({ emailInput, validationId }) =>
+  Effect.succeed(({ emailInput, validationId }) =>
     Effect.gen(function* () {
       if (yield* isEmailTaken(emailInput)) {
         return Message.CompletedValidateEmailAsync({
@@ -153,27 +153,20 @@ export const ValidateEmailAsyncLayer = ValidateEmailAsync.toLayer(
         field: Valid({ value: emailInput }),
       })
     }),
+  ),
 )
 
 // UPDATE
 
-type UpdateReturn = Update.Return<
-  Model,
-  Message,
-  Command.HandlerOf<typeof ValidateEmailAsync>
->
-
-const foldPronounsOutMessage = Listbox.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeSelectedPronoun: () => Option.some(value),
-      }),
-    }),
-})
+const foldPronounsOutMessage = (outMessage: typeof Listbox.OutMessage.Type) =>
+  Listbox.OutMessage.match(outMessage, {
+    Selected: ({ value }) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, {
+          maybeSelectedPronoun: () => Option.some(value),
+        }),
+      })),
+  })
 
 const foldPronouns = Update.foldChild({
   update: PronounsListbox.update,
@@ -184,21 +177,22 @@ const foldPronouns = Update.foldChild({
   foldOutMessage: foldPronounsOutMessage,
 })
 
-const foldAvailableDateOutMessage = DatePicker.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  SelectedDate:
-    ({ date }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeAvailableDate: () => Option.some(date),
-      }),
-    }),
-  ClearedDate: () => model => ({
-    model: modifyFields(model, { maybeAvailableDate: () => Option.none() }),
-  }),
-  ChangedViewMonth: () => model => ({ model }),
-})
+const foldAvailableDateOutMessage = (
+  outMessage: typeof DatePicker.OutMessage.Type,
+) =>
+  DatePicker.OutMessage.match(outMessage, {
+    SelectedDate: ({ date }) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, {
+          maybeAvailableDate: () => Option.some(date),
+        }),
+      })),
+    ClearedDate: () =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, { maybeAvailableDate: () => Option.none() }),
+      })),
+    ChangedViewMonth: () => Update.makeStep((model: Model) => ({ model })),
+  })
 
 const foldAvailableDate = Update.foldChild({
   update: DatePicker.update,
@@ -210,7 +204,7 @@ const foldAvailableDate = Update.foldChild({
 })
 
 export const update = Update.make((model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+  Message.match(message, {
     UpdatedFirstName: ({ value }) => ({
       model: modifyFields(model, { firstName: () => validateFirstName(value) }),
     }),
@@ -222,7 +216,6 @@ export const update = Update.make((model: Model, message: Message) =>
     UpdatedEmail: ({ value }) => {
       const validationId = Number.increment(model.emailValidationId)
       return Match.value(validateEmail(value)).pipe(
-        Match.withReturnType<UpdateReturn>(),
         Match.tag('Valid', () => ({
           model: modifyFields(model, {
             email: () => Validating({ value }),

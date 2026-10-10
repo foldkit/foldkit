@@ -84,25 +84,26 @@ export const init = (entryId: string, today: CalendarDate): Model => ({
 
 // UPDATE
 
-const foldStartDateOutMessage = DatePicker.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ChangedViewMonth: () => model => ({ model }),
-  SelectedDate:
-    ({ date }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeStartDate: () => Option.some(date),
-        endDate: DatePicker.reflectMinDate(Option.some(date)),
-      }),
-    }),
-  ClearedDate: () => model => ({
-    model: modifyFields(model, {
-      maybeStartDate: () => Option.none(),
-      endDate: DatePicker.reflectMinDate(Option.none()),
-    }),
-  }),
-})
+const foldStartDateOutMessage = (
+  outMessage: typeof DatePicker.OutMessage.Type,
+) =>
+  DatePicker.OutMessage.match(outMessage, {
+    ChangedViewMonth: () => Update.makeStep((model: Model) => ({ model })),
+    SelectedDate: ({ date }) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, {
+          maybeStartDate: () => Option.some(date),
+          endDate: DatePicker.reflectMinDate(Option.some(date)),
+        }),
+      })),
+    ClearedDate: () =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, {
+          maybeStartDate: () => Option.none(),
+          endDate: DatePicker.reflectMinDate(Option.none()),
+        }),
+      })),
+  })
 
 const foldStartDate = Update.foldChild({
   update: DatePicker.update,
@@ -113,25 +114,24 @@ const foldStartDate = Update.foldChild({
   foldOutMessage: foldStartDateOutMessage,
 })
 
-const foldEndDateOutMessage = DatePicker.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ChangedViewMonth: () => model => ({ model }),
-  SelectedDate:
-    ({ date }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeEndDate: () => Option.some(date),
-        startDate: DatePicker.reflectMaxDate(Option.some(date)),
-      }),
-    }),
-  ClearedDate: () => model => ({
-    model: modifyFields(model, {
-      maybeEndDate: () => Option.none(),
-      startDate: DatePicker.reflectMaxDate(Option.none()),
-    }),
-  }),
-})
+const foldEndDateOutMessage = (outMessage: typeof DatePicker.OutMessage.Type) =>
+  DatePicker.OutMessage.match(outMessage, {
+    ChangedViewMonth: () => Update.makeStep((model: Model) => ({ model })),
+    SelectedDate: ({ date }) =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, {
+          maybeEndDate: () => Option.some(date),
+          startDate: DatePicker.reflectMaxDate(Option.some(date)),
+        }),
+      })),
+    ClearedDate: () =>
+      Update.makeStep((model: Model) => ({
+        model: modifyFields(model, {
+          maybeEndDate: () => Option.none(),
+          startDate: DatePicker.reflectMaxDate(Option.none()),
+        }),
+      })),
+  })
 
 const foldEndDate = Update.foldChild({
   update: DatePicker.update,
@@ -142,33 +142,31 @@ const foldEndDate = Update.foldChild({
   foldOutMessage: foldEndDateOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
-    message,
-    {
-      UpdatedCompany: ({ value }) => ({
-        model: modifyFields(model, { company: () => validateCompany(value) }),
-      }),
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
+    UpdatedCompany: ({ value }) => ({
+      model: modifyFields(model, { company: () => validateCompany(value) }),
+    }),
 
-      UpdatedTitle: ({ value }) => ({
-        model: modifyFields(model, { title: () => validateTitle(value) }),
-      }),
+    UpdatedTitle: ({ value }) => ({
+      model: modifyFields(model, { title: () => validateTitle(value) }),
+    }),
 
-      GotStartDateMessage: ({ message }) => foldStartDate(model, message),
+    GotStartDateMessage: ({ message }) => foldStartDate(model, message),
 
-      GotEndDateMessage: ({ message }) => foldEndDate(model, message),
+    GotEndDateMessage: ({ message }) => foldEndDate(model, message),
 
-      ToggledCurrentlyEmployed: ({ isChecked }) => ({
-        model: modifyFields(model, { isCurrentlyEmployed: () => isChecked }),
-      }),
+    ToggledCurrentlyEmployed: ({ isChecked }) => ({
+      model: modifyFields(model, { isCurrentlyEmployed: () => isChecked }),
+    }),
 
-      UpdatedDescription: ({ value }) => ({
-        model: modifyFields(model, { description: () => value }),
-      }),
+    UpdatedDescription: ({ value }) => ({
+      model: modifyFields(model, { description: () => value }),
+    }),
 
-      ClickedRemoveSelf: () => ({ model, outMessage: OutMessage.Removed() }),
-    },
-  )
+    ClickedRemoveSelf: () => ({ model, outMessage: OutMessage.Removed() }),
+  }),
+)
 
 // VALIDATION SUMMARY
 

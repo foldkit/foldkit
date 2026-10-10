@@ -1,12 +1,13 @@
 import { Application, Runtime } from 'foldkit'
 
 import {
+  EffectsLayer,
   Flags,
-  Layer,
   Message,
   Model,
   flags,
   init,
+  mounts,
   subscriptions,
   update,
   view,
@@ -19,6 +20,7 @@ const application = Application.make({
   update,
   view,
   subscriptions,
+  mounts,
   container: document.getElementById('root'),
   routing: {
     onUrlRequest: request => Message.ClickedLink({ request }),
@@ -29,4 +31,4 @@ const application = Application.make({
   },
 })
 
-Runtime.run(Application.provide(application, Layer), { flags })
+Runtime.run(Application.provide(application, EffectsLayer), { flags })

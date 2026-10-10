@@ -1,20 +1,12 @@
-import { Layer, Option } from 'effect'
-import { type Update } from 'foldkit'
+import { Option } from 'effect'
 
-import { CommandsLayer, FocusUsernameInput } from './command'
-import { Message } from './message'
+import { FocusUsernameInput } from './command'
 import { HomeStep, Model } from './model'
 
-export type InitReturn = Update.Return<
-  Model,
-  Message,
-  Layer.Success<typeof CommandsLayer>
->
-
-export const init = (): InitReturn => ({
-  model: {
+export const init = () => ({
+  model: Model.make({
     homeStep: HomeStep.EnterUsername({ username: '' }),
     formError: Option.none(),
-  },
+  }),
   commands: [FocusUsernameInput()],
 })

@@ -38,7 +38,7 @@ export const init = (config: InitConfig): Model => baseInit(config)
  *  and an optional OutMessage. Selection closes the Combobox and emits
  *  `Selected({ value })` for the parent to store. A nullable Combobox also
  *  emits `ClearedSelection` when it closes with an empty input. */
-export const update = makeUpdate<Model>({
+export const update = makeUpdate<Model>('CloseWithFocus', {
   handleClose: (model, restingInputValue, isClearable) => {
     if (isClearable && model.nullable && model.inputValue === '') {
       return {
@@ -54,15 +54,15 @@ export const update = makeUpdate<Model>({
     }
   },
 
-  handleSelectedItem: (model, item, displayText, wasSelected, context) => {
+  handleSelectedItem: (model, item, displayText, wasSelected) => {
     const nullableDeselect = model.nullable && wasSelected
 
-    return context.closeWithFocus(
-      modifyFields(closedBaseModel(model), {
+    return {
+      model: modifyFields(closedBaseModel(model), {
         inputValue: () => (nullableDeselect ? '' : displayText),
       }),
-      OutMessage.Selected({ value: item }),
-    )
+      outMessage: OutMessage.Selected({ value: item }),
+    }
   },
 
   handleImmediateActivation: (model, item) => ({
@@ -115,7 +115,8 @@ const internalView = makeView<Model>({ ariaMultiSelectable: false })
 type BundleUpdateReturn<Item extends string> = Update.ReturnWithOutMessage<
   Model,
   Message,
-  OutMessage<Item>
+  OutMessage<Item>,
+  Update.RequirementsOf<typeof update>
 >
 
 /** The `view`, `update`, and programmatic helpers that `Combobox.create`
@@ -145,7 +146,8 @@ export const create = <Item extends string = string>(): Bundle<Item> => {
   type UpdateReturn = Update.ReturnWithOutMessage<
     Model,
     Message,
-    OutMessage<Item>
+    OutMessage<Item>,
+    Update.RequirementsOf<typeof update>
   >
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const typedUpdate = update as (model: Model, message: Message) => UpdateReturn

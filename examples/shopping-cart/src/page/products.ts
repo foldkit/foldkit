@@ -1,5 +1,5 @@
 import { Array, Effect, Option, Schema } from 'effect'
-import { Command, Submodel, type Update } from 'foldkit'
+import { Command, Submodel, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { replaceUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
@@ -57,20 +57,18 @@ export const ReplaceSearchUrl = Command.define('ReplaceSearchUrl', {
   messages: [Message.CompletedReplaceSearchUrl],
 })
 
-export const ReplaceSearchUrlLayer = ReplaceSearchUrl.toLayer(({ url }) =>
-  replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceSearchUrl())),
+export const ReplaceSearchUrlLayer = ReplaceSearchUrl.toLayer(
+  Effect.succeed(({ url }) =>
+    replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceSearchUrl())),
+  ),
 )
 
-export { ReplaceSearchUrlLayer as Layer }
+export { ReplaceSearchUrlLayer as EffectsLayer }
 
 // UPDATE
 
-export type UpdateRequirements = Command.HandlerOf<typeof ReplaceSearchUrl>
-
-export const update = (model: Model, message: Message) =>
-  Message.match<
-    Update.ReturnWithOutMessage<Model, Message, OutMessage, UpdateRequirements>
-  >(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     CompletedReplaceSearchUrl: () => ({ model }),
 
     ChangedSearchInput: ({ value }) => ({
@@ -78,7 +76,10 @@ export const update = (model: Model, message: Message) =>
       commands: [
         ReplaceSearchUrl({
           url: productsRouter({
-            searchText: Option.fromNullishOr(value || null),
+            searchText: Option.filter(
+              Option.some(value),
+              value => value !== '',
+            ),
           }),
         }),
       ],
@@ -98,7 +99,8 @@ export const update = (model: Model, message: Message) =>
       model,
       outMessage: OutMessage.DecrementedQuantity({ itemId }),
     }),
-  })
+  }),
+)
 
 // VIEW
 

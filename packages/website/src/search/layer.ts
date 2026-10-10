@@ -1,4 +1,4 @@
-import { Layer as EffectLayer } from 'effect'
+import { Layer } from 'effect'
 
 import {
   FetchSearchResultsLayer,
@@ -7,7 +7,7 @@ import {
   ScrollToResultLayer,
 } from './update'
 
-export const Layer = EffectLayer.mergeAll(
+export const EffectsLayer = Layer.mergeAll(
   FetchSearchResultsLayer,
   FocusSearchInputLayer,
   NavigateToResultLayer,

@@ -16,7 +16,7 @@ export const MeasureSnippetHeight = Mount.define('MeasureSnippetHeight', {
 })
 
 export const MeasureSnippetHeightLayer = MeasureSnippetHeight.toLayer(
-  ({ element, snippetId }) =>
+  Effect.succeed(({ element, snippetId }) =>
     Effect.sync(() =>
       Message.CompletedMeasureSnippetHeight({
         snippetId,
@@ -26,4 +26,5 @@ export const MeasureSnippetHeightLayer = MeasureSnippetHeight.toLayer(
             : SnippetSize.Fits(),
       }),
     ),
+  ),
 )

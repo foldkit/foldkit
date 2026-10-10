@@ -64,6 +64,7 @@ export const makeApplication = (container: HTMLElement | null) =>
     subscriptions,
     managedResources,
     mounts: [
+      ...Ui.mounts,
       SnippetDisclosure.MeasureSnippetHeight,
       ...Playground.mounts,
       ...Example.mounts,

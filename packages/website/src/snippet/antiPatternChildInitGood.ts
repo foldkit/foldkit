@@ -2,9 +2,11 @@
 
 // main.ts
 
-const applyRestoredTheme =
-  (theme: Settings.Theme): Update.Step<Model, Message> =>
-  stepModel => ({ model: stepModel, commands: [ApplyTheme({ theme })] })
+const applyRestoredTheme = (theme: Settings.Theme) =>
+  Update.makeStep((stepModel: Model) => ({
+    model: stepModel,
+    commands: [ApplyTheme({ theme })],
+  }))
 
 const recordRestoredTheme =
   (theme: Settings.Theme): Update.Step<Model, Message> =>
@@ -14,9 +16,7 @@ const recordRestoredTheme =
     }),
   })
 
-const foldSettingsOutMessage = Settings.OutMessage.match<
-  Update.Step<Model, Message>
->({
+const foldSettingsOutMessage = Settings.OutMessage.match({
   RestoredTheme:
     ({ theme }) =>
     stepModel =>

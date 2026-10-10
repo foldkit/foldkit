@@ -2,10 +2,9 @@ import {
   Array,
   Duration,
   Effect,
-  Layer as EffectLayer,
+  Layer,
   Match,
   Option,
-  Random,
   Schema,
   Stream,
   pipe,
@@ -72,17 +71,10 @@ export const init = () => {
 
 // UPDATE
 
-type UpdateReturn = Update.Return<
-  Model,
-  Message,
-  Command.HandlerOf<typeof GenerateApplePosition>
->
-
 export const update = Update.make((model: Model, message: Message) =>
   Message.match(message, {
     PressedKey: ({ key }) =>
       Match.value(key).pipe(
-        Match.withReturnType<UpdateReturn>(),
         Match.whenOr(
           'ArrowUp',
           'ArrowDown',
@@ -232,21 +224,19 @@ export const GenerateApplePosition = Command.define('GenerateApplePosition', {
 })
 
 const GenerateApplePositionLayer = GenerateApplePosition.toLayer(
-  Effect.gen(function* () {
-    const random = yield* Random.Random
-    return ({ snake }) =>
-      Apple.generatePosition(random, snake).pipe(
-        Effect.map(position =>
-          Message.CompletedGenerateApplePosition({ position }),
-        ),
-      )
-  }),
+  Effect.succeed(({ snake }) =>
+    Apple.generatePosition(snake).pipe(
+      Effect.map(position =>
+        Message.CompletedGenerateApplePosition({ position }),
+      ),
+    ),
+  ),
 )
 
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  gameClock: entry(
+  gameClockTicks: entry(
     'GameClockTicks',
     {
       isPlaying: Schema.Boolean,
@@ -264,11 +254,11 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
     },
   ),
 
-  keyboard: entry('KeyboardPresses', { messages: [Message.PressedKey] }),
+  keyboardPresses: entry('KeyboardPresses', { messages: [Message.PressedKey] }),
 }))
 
-const GameClockTicksLayer = subscriptions.gameClock.toLayer(
-  ({ isPlaying, interval }) =>
+const GameClockTicksLayer = subscriptions.gameClockTicks.toLayer(
+  Effect.succeed(({ isPlaying, interval }) =>
     Stream.when(
       Stream.tick(Duration.millis(interval)).pipe(
         Stream.drop(1),
@@ -276,18 +266,21 @@ const GameClockTicksLayer = subscriptions.gameClock.toLayer(
       ),
       Effect.sync(() => isPlaying),
     ),
+  ),
 )
 
-const KeyboardPressesLayer = subscriptions.keyboard.toLayer(() =>
-  Dom.streamFromEventFilterMapPreventDefault({
-    target: document,
-    type: 'keydown',
-    filterMapEvent: keyboardEvent =>
-      Option.some(Message.PressedKey({ key: keyboardEvent.key })),
-  }),
+const KeyboardPressesLayer = subscriptions.keyboardPresses.toLayer(
+  Effect.succeed(() =>
+    Dom.streamFromEventFilterMapPreventDefault({
+      target: document,
+      type: 'keydown',
+      filterMapEvent: keyboardEvent =>
+        Option.some(Message.PressedKey({ key: keyboardEvent.key })),
+    }),
+  ),
 )
 
-export const Layer = EffectLayer.mergeAll(
+export const EffectsLayer = Layer.mergeAll(
   GenerateApplePositionLayer,
   GameClockTicksLayer,
   KeyboardPressesLayer,

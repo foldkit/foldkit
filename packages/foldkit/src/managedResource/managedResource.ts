@@ -4,7 +4,6 @@ import {
   Data,
   Effect,
   Option,
-  Predicate,
   Record,
   Ref,
   type Schema,
@@ -13,7 +12,7 @@ import {
 
 import { type Handler, type ToLayer, makeHandler } from './handler.js'
 
-export type { Handler } from './handler.js'
+export type { Handler, ToLayer } from './handler.js'
 
 /** Typed error raised when a command accesses a managed resource that is not currently acquired. */
 export class ResourceNotAvailable extends Data.TaggedError(
@@ -85,7 +84,7 @@ export type Value<T> = T extends ManagedResource<infer V, any> ? V : never
 /** Type-level utility to extract the service identity type from a ManagedResource. */
 export type ServiceOf<T> = T extends ManagedResource<any, infer S> ? S : never
 
-/** Internal configuration for a single Managed Resource, used by the runtime. */
+/** Internal configuration for a single ManagedResource, used by the runtime. */
 export type ManagedResourceConfig<Model, Message, LifecycleServices = never> = {
   readonly schema: Schema.Schema<any>
   readonly resource: ManagedResource<any>
@@ -101,7 +100,7 @@ export type ManagedResourceConfig<Model, Message, LifecycleServices = never> = {
   readonly onAcquireError: (error: unknown) => Message
 }
 
-/** A record of named Managed Resource configurations, keyed by resource name. */
+/** A record of named ManagedResource configurations, keyed by resource name. */
 export type ManagedResources<Model, Message, Services = never> = Record<
   string,
   ManagedResourceConfig<Model, Message, any>
@@ -122,7 +121,7 @@ type AcquireParams<Requirements> =
   Requirements extends Option.Option<infer Params> ? Params : Requirements
 
 /**
- * A single Managed Resource entry produced by `ManagedResource.make`,
+ * A single ManagedResource entry produced by `ManagedResource.make`,
  * `ManagedResource.lift`, or `ManagedResource.aggregate`. The brand field is
  * `never`, so application code cannot manually construct one: it must go
  * through a constructor.
@@ -163,7 +162,7 @@ export type Entry<
   readonly onAcquireError: (error: unknown) => Message
 } & EntryBrand<Model, Message>
 
-/** A Managed Resource entry whose lifecycle implementation is supplied by a Layer. */
+/** A ManagedResource entry whose lifecycle implementation is supplied by a Layer. */
 export type LayeredEntry<
   Name extends string,
   Model,
@@ -186,7 +185,7 @@ export type LayeredEntry<
     toLayer: ToLayer<Name, AcquireParams<Requirements>, Value>
   }>
 
-/** Type-level utility to extract the service union from a Managed Resources record. */
+/** Type-level utility to extract the service union from a ManagedResources record. */
 export type ServicesOf<Resources> = {
   [Key in keyof Resources]: Resources[Key] extends {
     readonly resource: ManagedResource<any, infer Service>
@@ -196,9 +195,9 @@ export type ServicesOf<Resources> = {
 }[keyof Resources]
 
 /**
- * Builds a single Managed Resource entry from a requirements schema and a
- * config. The named form supplies `acquire` and `release` through the returned
- * entry's `toLayer` method. Reading the schema as a positional argument (rather
+ * Builds a single ManagedResource entry from a handler name, requirements
+ * schema, and config. The entry's `toLayer` method supplies `acquire` and
+ * `release`. Reading the schema as a positional argument (rather
  * than a property on the config literal) lets TypeScript fully resolve the
  * requirements type before contextually typing `modelToMaybeRequirements` and
  * `acquire`, so destructuring patterns are inferred correctly even when the
@@ -228,6 +227,8 @@ export interface EntryBuilder<Model, Message> {
       readonly onAcquired: OnAcquired & ((value: Value) => Message)
       readonly onReleased: () => Message
       readonly onAcquireError: (error: unknown) => Message
+      readonly acquire?: never
+      readonly release?: never
     },
   ): LayeredEntry<
     Name,
@@ -238,44 +239,10 @@ export interface EntryBuilder<Model, Message> {
     Service,
     OnAcquired
   >
-
-  <
-    RequirementsSchema extends Schema.Schema<any>,
-    Value,
-    Service,
-    OnAcquired extends (value: Value) => Message,
-    AcquireRequirements,
-    ReleaseRequirements,
-  >(
-    schema: RequirementsSchema,
-    config: {
-      readonly resource: ManagedResource<Value, Service>
-      readonly modelToMaybeRequirements: (
-        model: Model,
-      ) => Schema.Schema.Type<RequirementsSchema>
-      readonly acquire: (
-        params: AcquireParams<Schema.Schema.Type<RequirementsSchema>>,
-      ) => Effect.Effect<Value, unknown, Scope.Scope | AcquireRequirements>
-      readonly release: (
-        value: Value,
-      ) => Effect.Effect<void, unknown, ReleaseRequirements>
-      readonly onAcquired: OnAcquired & ((value: Value) => Message)
-      readonly onReleased: () => Message
-      readonly onAcquireError: (error: unknown) => Message
-    },
-  ): Entry<
-    Model,
-    Message,
-    Schema.Schema.Type<RequirementsSchema>,
-    Value,
-    Service,
-    OnAcquired,
-    AcquireRequirements | ReleaseRequirements
-  >
 }
 
 /**
- * Declares a Managed Resources record. The Model and Message generics are
+ * Declares a ManagedResources record. The Model and Message generics are
  * provided up front; the entries record follows, built from calls to the
  * `entry` builder passed into the inner function.
  *
@@ -289,12 +256,10 @@ export interface EntryBuilder<Model, Message> {
  * `ManagedResource.lift` to translate a child Submodel's record into a parent
  * context.
  *
- * Pass a handler name before the requirements schema to keep `acquire` and
- * `release` in a Layer. The returned entry's `toLayer` method supplies both
+ * Pass a handler name before the requirements schema. The returned entry's
+ * `toLayer` method supplies both
  * lifecycle functions. The handler name identifies the Layer requirement;
  * the record key continues to identify the lifecycle the runtime watches.
- * The two-argument inline form puts `acquire` and `release` in the entry
- * config when the lifecycle does not need a separate handler Layer.
  *
  * **Lifecycle** — The runtime watches each entry's `modelToMaybeRequirements`
  * after every model update, structurally comparing the result against the
@@ -311,7 +276,7 @@ export interface EntryBuilder<Model, Message> {
  * continues watching for the next requirements change: a failed acquisition
  * does not crash the application.
  *
- * **Config fields:**
+ * **Entry and handler fields:**
  *
  * - `resource` — The identity tag created with `ManagedResource.tag`. Appears
  *   in the Effect R channel so commands that call `.get` are type-checked.
@@ -344,27 +309,35 @@ export interface EntryBuilder<Model, Message> {
  * const CameraStream = ManagedResource.tag<MediaStream>()('CameraStream')
  *
  * const managedResources = ManagedResource.make<Model, Message>()(entry => ({
- *   camera: entry(Schema.Option(Schema.Struct({ facingMode: Schema.String })), {
- *     resource: CameraStream,
- *     modelToMaybeRequirements: model =>
- *       pipe(
- *         model.callState,
- *         Option.liftPredicate(
- *           (callState): callState is typeof InCall.Type =>
- *             callState._tag === 'InCall',
+ *   camera: entry(
+ *     'CameraStream',
+ *     Schema.Option(Schema.Struct({ facingMode: Schema.String })),
+ *     {
+ *       resource: CameraStream,
+ *       modelToMaybeRequirements: model =>
+ *         pipe(
+ *           model.callState,
+ *           Option.liftPredicate(
+ *             (callState): callState is typeof InCall.Type =>
+ *               callState._tag === 'InCall',
+ *           ),
+ *           Option.map(callState => ({ facingMode: callState.facingMode })),
  *         ),
- *         Option.map(callState => ({ facingMode: callState.facingMode })),
- *       ),
- *     acquire: ({ facingMode }) =>
- *       Effect.tryPromise(() =>
- *         navigator.mediaDevices.getUserMedia({ video: { facingMode } }),
- *       ),
- *     release: stream =>
- *       Effect.sync(() => stream.getTracks().forEach(track => track.stop())),
- *     onAcquired: () => AcquiredCamera(),
- *     onAcquireError: error => FailedAcquireCamera({ error: String(error) }),
- *     onReleased: () => ReleasedCamera(),
- *   }),
+ *       onAcquired: () => Message.AcquiredCamera(),
+ *       onAcquireError: error =>
+ *         Message.FailedAcquireCamera({ error: String(error) }),
+ *       onReleased: () => Message.ReleasedCamera(),
+ *     },
+ *   ),
+ * }))
+ *
+ * const CameraStreamLayer = managedResources.camera.toLayer(Effect.succeed({
+ *   acquire: ({ facingMode }) =>
+ *     Effect.tryPromise(() =>
+ *       navigator.mediaDevices.getUserMedia({ video: { facingMode } }),
+ *     ),
+ *   release: stream =>
+ *     Effect.sync(() => stream.getTracks().forEach(track => track.stop())),
  * }))
  * ```
  *
@@ -381,26 +354,19 @@ export const make =
   ): Entries => {
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const entry = ((
-      nameOrSchema: string | Schema.Schema<any>,
-      schemaOrConfig: Schema.Schema<any> | Record<string, unknown>,
-      maybeConfig?: Record<string, unknown>,
+      name: string,
+      schema: Schema.Schema<any>,
+      config: Record<string, unknown>,
     ) => {
-      if (Predicate.isString(nameOrSchema)) {
-        const handler = makeHandler(nameOrSchema)
-
-        return {
-          name: nameOrSchema,
-          schema: schemaOrConfig,
-          ...maybeConfig,
-          acquire: handler.acquire,
-          release: handler.release,
-          toLayer: handler.toLayer,
-        }
-      }
+      const handler = makeHandler(name)
 
       return {
-        schema: nameOrSchema,
-        ...schemaOrConfig,
+        name,
+        schema,
+        ...config,
+        acquire: handler.acquire,
+        release: handler.release,
+        toLayer: handler.toLayer,
       }
     }) as unknown as EntryBuilder<Model, Message>
     return build(entry)
@@ -433,7 +399,7 @@ type ChildMessageOf<Resources> =
     : never
 
 /**
- * Lifts a record of child Managed Resources into a parent's Model and Message
+ * Lifts a record of child ManagedResources into a parent's Model and Message
  * context, applying a Model accessor and a Message wrapper uniformly to every
  * entry. Per-entry requirements schemas and resource services are preserved.
  *
@@ -603,7 +569,7 @@ const mergeResources = (
 }
 
 /**
- * Combines multiple Managed Resources records into one. Throws on duplicate
+ * Combines multiple ManagedResources records into one. Throws on duplicate
  * keys so a misconfigured aggregate fails loudly at startup rather than
  * silently overriding.
  *

@@ -1,7 +1,5 @@
 import { Context, Effect, Option, Queue, Schema, Stream } from 'effect'
 
-import { persistentEntry } from '../subscription/subscription.js'
-
 /** Type-level brand for inbound Port values. */
 /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
 export const InboundTypeId: unique symbol = Symbol.for(
@@ -22,8 +20,8 @@ export type OutboundTypeId = typeof OutboundTypeId
 
 /**
  * A typed channel for values flowing from the host into the app. The app
- * consumes the decoded values as a Subscription source via `Port.stream` or
- * `Port.subscriptionEntry`; the host pushes encoded values through the
+ * consumes the decoded values as a Subscription source via `Port.stream`; the
+ * host pushes encoded values through the
  * `EmbedHandle` returned by `Runtime.embed`. Create with `Port.inbound`.
  */
 export interface Inbound<Value, Encoded> {
@@ -167,8 +165,7 @@ const unknownPortMessage = (functionName: string): string =>
 
 /**
  * The decoded values arriving on an inbound Port, as a Stream. This is the
- * atomic primitive for consuming a Port inside a Subscription entry; reach
- * for `Port.subscriptionEntry` when you want the common always-on form. Values
+ * primitive for consuming a Port inside a Subscription handler. Values
  * sent while no Stream for the Port is running are dropped, except for
  * values sent before the first Stream attaches, which are buffered and
  * delivered to it in order (so host sends issued right after `Runtime.embed`
@@ -202,27 +199,6 @@ export const stream = <Value, Encoded>(
   )
 
 /**
- * Builds a Subscription entry that wraps every decoded value arriving on an
- * inbound Port into a Message. The entry has no Model dependencies of its own,
- * though a parent can gate it when lifting the Subscription. Pass it as an
- * entry value inside `Subscription.make`. For an entry gated by its own Model,
- * build one from `Port.stream`.
- *
- * @example
- * ```ts
- * const subscriptions = Subscription.make<Model, Message>()(_entry => ({
- *   hostStep: Port.subscriptionEntry(ports.inbound.stepChanged, step =>
- *     ChangedStep({ step }),
- *   ),
- * }))
- * ```
- */
-export const subscriptionEntry = <Value, Encoded, Message>(
-  port: Inbound<Value, Encoded>,
-  toMessage: (value: Value) => Message,
-) => persistentEntry(Stream.map(stream(port), toMessage))
-
-/**
  * Emits a value on an outbound Port. The value is encoded against the Port's
  * Schema and delivered to every host listener subscribed through the
  * `EmbedHandle`. Compose it into the app's own Commands like any other
@@ -231,12 +207,15 @@ export const subscriptionEntry = <Value, Encoded, Message>(
  * ```ts
  * const ReportCount = Command.define('ReportCount', {
  *   args: { count: Schema.Number },
- *   messages: [CompletedReportCount],
- *   execute: ({ count }) =>
- *     Port.emit(ports.outbound.countChanged, count).pipe(
- *       Effect.as(CompletedReportCount()),
- *     ),
+ *   messages: [Message.CompletedReportCount],
  * })
+ * const ReportCountLayer = ReportCount.toLayer(
+ *   Effect.succeed(({ count }) =>
+ *     Port.emit(ports.outbound.countChanged, count).pipe(
+ *       Effect.as(Message.CompletedReportCount()),
+ *     ),
+ *   ),
+ * )
  * ```
  *
  * When the program runs without an embed handle (started with `Runtime.run`),

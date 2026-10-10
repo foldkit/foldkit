@@ -1,12 +1,5 @@
 import clsx from 'clsx'
-import {
-  Array,
-  Duration,
-  Effect,
-  Layer as EffectLayer,
-  Random,
-  Schema,
-} from 'effect'
+import { Array, Duration, Effect, Layer, Random, Schema } from 'effect'
 import { Command, FieldValidation, Runtime, Update } from 'foldkit'
 import {
   Field,
@@ -102,21 +95,23 @@ export const ValidateEmail = Command.define('ValidateEmail', {
   messages: [Message.CompletedValidateEmail],
 })
 
-const ValidateEmailLayer = ValidateEmail.toLayer(({ email }) =>
-  Effect.gen(function* () {
-    if (yield* isEmailOnWaitlist(email)) {
-      return Message.CompletedValidateEmail({
-        field: Invalid({
-          value: email,
-          errors: ['This email is already on our waitlist'],
-        }),
-      })
-    } else {
-      return Message.CompletedValidateEmail({
-        field: Valid({ value: email }),
-      })
-    }
-  }),
+const ValidateEmailLayer = ValidateEmail.toLayer(
+  Effect.succeed(({ email }) =>
+    Effect.gen(function* () {
+      if (yield* isEmailOnWaitlist(email)) {
+        return Message.CompletedValidateEmail({
+          field: Invalid({
+            value: email,
+            errors: ['This email is already on our waitlist'],
+          }),
+        })
+      } else {
+        return Message.CompletedValidateEmail({
+          field: Valid({ value: email }),
+        })
+      }
+    }),
+  ),
 )
 
 const validateName = validate(nameRules)
@@ -231,23 +226,21 @@ export const SubmitForm = Command.define('SubmitForm', {
 })
 
 const SubmitFormLayer = SubmitForm.toLayer(
-  Effect.gen(function* () {
-    const random = yield* Random.Random
-    return ({ name }) =>
-      Effect.gen(function* () {
-        yield* Effect.sleep(`${FAKE_API_DELAY_MS} millis`)
+  Effect.succeed(({ name }) =>
+    Effect.gen(function* () {
+      yield* Effect.sleep(`${FAKE_API_DELAY_MS} millis`)
 
-        const isSuccess = yield* Random.nextBoolean
-        if (isSuccess) {
-          return Message.SucceededSubmitForm({ name })
-        } else {
-          return Message.FailedSubmitForm()
-        }
-      }).pipe(Effect.provideService(Random.Random, random))
-  }),
+      const isSuccess = yield* Random.nextBoolean
+      if (isSuccess) {
+        return Message.SucceededSubmitForm({ name })
+      } else {
+        return Message.FailedSubmitForm()
+      }
+    }),
+  ),
 )
 
-export const Layer = EffectLayer.mergeAll(ValidateEmailLayer, SubmitFormLayer)
+export const EffectsLayer = Layer.mergeAll(ValidateEmailLayer, SubmitFormLayer)
 
 // VIEW
 

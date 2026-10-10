@@ -5,5 +5,8 @@ import { CompletedMountAnalytics } from './message'
 
 export const MountAnalytics = Mounts.define('MountAnalytics', {
   messages: [CompletedMountAnalytics],
-  execute: () => Effect.sync(() => startAnalytics()),
 })
+
+export const MountAnalyticsLayer = MountAnalytics.toLayer(
+  Effect.succeed(() => Effect.sync(() => startAnalytics())),
+)

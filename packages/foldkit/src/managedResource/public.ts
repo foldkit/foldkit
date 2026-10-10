@@ -17,4 +17,5 @@ export type {
   ManagedResources,
   ManagedResourceConfig,
   ServicesOf,
+  ToLayer,
 } from './managedResource.js'

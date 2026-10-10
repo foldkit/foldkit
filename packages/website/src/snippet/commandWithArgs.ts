@@ -16,9 +16,11 @@ const WaitBeforeReset = Command.define('WaitBeforeReset', {
   messages: [Message.CompletedWaitBeforeReset],
 })
 
-const WaitBeforeResetLayer = WaitBeforeReset.toLayer(({ delayMs }) =>
-  Effect.sleep(Duration.millis(delayMs)).pipe(
-    Effect.as(Message.CompletedWaitBeforeReset()),
+const WaitBeforeResetLayer = WaitBeforeReset.toLayer(
+  Effect.succeed(({ delayMs }) =>
+    Effect.sleep(Duration.millis(delayMs)).pipe(
+      Effect.as(Message.CompletedWaitBeforeReset()),
+    ),
   ),
 )
 

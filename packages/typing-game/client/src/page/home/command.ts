@@ -53,10 +53,12 @@ export const FocusUsernameInput = Command.define('FocusUsernameInput', {
   messages: [Message.CompletedFocusUsernameInput],
 })
 
-const FocusUsernameInputLayer = FocusUsernameInput.toLayer(() =>
-  Dom.focus(`#${USERNAME_INPUT_ID}`).pipe(
-    Effect.ignore,
-    Effect.as(Message.CompletedFocusUsernameInput()),
+const FocusUsernameInputLayer = FocusUsernameInput.toLayer(
+  Effect.succeed(() =>
+    Dom.focus(`#${USERNAME_INPUT_ID}`).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedFocusUsernameInput()),
+    ),
   ),
 )
 
@@ -64,10 +66,12 @@ export const FocusRoomIdInput = Command.define('FocusRoomIdInput', {
   messages: [Message.CompletedFocusRoomIdInput],
 })
 
-const FocusRoomIdInputLayer = FocusRoomIdInput.toLayer(() =>
-  Dom.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
-    Effect.ignore,
-    Effect.as(Message.CompletedFocusRoomIdInput()),
+const FocusRoomIdInputLayer = FocusRoomIdInput.toLayer(
+  Effect.succeed(() =>
+    Dom.focus(`#${ROOM_ID_INPUT_ID}`).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedFocusRoomIdInput()),
+    ),
   ),
 )
 

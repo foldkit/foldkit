@@ -1,4 +1,4 @@
-import { Option, Schema } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { expect, expectTypeOf } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
@@ -10,8 +10,11 @@ import {
   type FoldWithOutMessage,
   type Return,
   type ReturnWithOutMessage,
+  type Step,
+  combine,
   foldChild,
   make,
+  makeStep,
 } from './update.js'
 
 const Message = defineMessageUnion({
@@ -103,6 +106,28 @@ const optionalContextUpdate = make(
 )
 
 const modelOnlyUpdate = make((model: Model) => ({ model }))
+
+const loadProfileStep = makeStep(
+  (model: Model, _context?: DispatchContext) => ({
+    model,
+    commands: [LoadProfile()],
+  }),
+)
+
+const outwardStep = makeStep(
+  (model: Model, ..._contexts: ReadonlyArray<DispatchContext>) => ({
+    model,
+    commands: [LoadPreferences()],
+    outMessage: OutMessage.LoadedProfile(),
+  }),
+)
+
+const modelOnlyStep = makeStep((model: Model) => ({ model }))
+
+const loadPreferencesStep = makeStep((model: Model) => ({
+  model,
+  commands: [LoadPreferences()],
+}))
 
 const restContextUpdate = make(
   (
@@ -230,5 +255,103 @@ describe('make', () => {
     const result = foldChildUpdate(parentModel, Message.CompletedLoadProfile())
 
     expect(result.outMessage).toEqual(OutMessage.LoadedProfile())
+  })
+})
+
+describe('makeStep', () => {
+  it('infers Message, requirements, OutMessage, and context parameters', () => {
+    expectTypeOf(loadProfileStep).toEqualTypeOf<
+      (
+        model: Model,
+        context?: DispatchContext,
+      ) => Return<
+        Model,
+        typeof Message.CompletedLoadProfile.Type,
+        Command.Handler<'LoadProfile'>
+      >
+    >()
+    expectTypeOf(outwardStep).toEqualTypeOf<
+      (
+        model: Model,
+        ...contexts: ReadonlyArray<DispatchContext>
+      ) => ReturnWithOutMessage<
+        Model,
+        typeof Message.CompletedLoadPreferences.Type,
+        OutMessage,
+        Command.Handler<'LoadPreferences'>
+      >
+    >()
+    expectTypeOf(modelOnlyStep).toEqualTypeOf<
+      (model: Model) => Return<Model, never>
+    >()
+  })
+
+  it('returns the Step unchanged at runtime', () => {
+    const model = Model.make({ count: 0 })
+
+    expect(loadProfileStep(model).commands?.map(({ name }) => name)).toEqual([
+      'LoadProfile',
+    ])
+  })
+
+  it('validates the Model return and Command error channel', () => {
+    // @ts-expect-error A Step must return its Model type.
+    makeStep((_model: Model) => ({ model: 42 }))
+
+    // @ts-expect-error Update Commands cannot fail in the typed error channel.
+    makeStep((model: Model) => ({
+      model,
+      commands: [
+        {
+          name: 'Failing',
+          effect: Effect.fail('boom'),
+        },
+      ],
+    }))
+  })
+})
+
+describe('combine inference', () => {
+  it('unions Message and handler requirements across heterogeneous Steps', () => {
+    const combined = combine([loadProfileStep, loadPreferencesStep])
+    const model = Model.make({ count: 0 })
+    const result = combine(model, [loadProfileStep, loadPreferencesStep])
+
+    expectTypeOf(combined).toEqualTypeOf<
+      Step<
+        Model,
+        | typeof Message.CompletedLoadProfile.Type
+        | typeof Message.CompletedLoadPreferences.Type,
+        Command.Handler<'LoadProfile'> | Command.Handler<'LoadPreferences'>
+      >
+    >()
+    expectTypeOf(result).toEqualTypeOf<
+      Return<
+        Model,
+        | typeof Message.CompletedLoadProfile.Type
+        | typeof Message.CompletedLoadPreferences.Type,
+        Command.Handler<'LoadProfile'> | Command.Handler<'LoadPreferences'>
+      >
+    >()
+    expect(combined(model).commands?.map(({ name }) => name)).toEqual([
+      'LoadProfile',
+      'LoadPreferences',
+    ])
+  })
+
+  it('validates every Model return and rejects OutMessages', () => {
+    if (false) {
+      combine([
+        loadProfileStep,
+        // @ts-expect-error Every Step must return the shared Model.
+        (_model: Model) => ({ model: 'wrong' }),
+      ])
+
+      combine([
+        loadProfileStep,
+        // @ts-expect-error combine cannot discard an OutMessage.
+        outwardStep,
+      ])
+    }
   })
 })

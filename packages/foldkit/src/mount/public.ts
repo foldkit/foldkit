@@ -9,6 +9,8 @@ export type {
   MountDefinition,
   MountDefinitionNoArgs,
   MountDefinitionWithArgs,
+  ToEffectLayer,
+  ToStreamLayer,
 } from './index.js'
 export {
   MountDefinitionTypeId,

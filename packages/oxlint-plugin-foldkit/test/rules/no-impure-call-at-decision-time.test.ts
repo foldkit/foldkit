@@ -151,6 +151,54 @@ const inPositionedObjectCallback = (
   return operation
 }
 
+const inToLayerHandler = (
+  operation: Readonly<{ type: string }>,
+  definitionName: string,
+) => {
+  const handler = Testing.arrowFn(operation)
+  const build = Testing.callOfMember('Effect', 'succeed', [handler])
+  const boundary = atProgram(
+    Testing.callOfMember(definitionName, 'toLayer', [build]),
+  )
+
+  Object.assign(operation, { parent: handler })
+  Object.assign(handler, { parent: build })
+  Object.assign(build, { parent: boundary })
+
+  return operation
+}
+
+const inToLayerLifecycleHandler = (
+  operation: Readonly<{ type: string }>,
+  propertyName: string,
+  isWrapped = false,
+) => {
+  const handler = Testing.arrowFn(operation)
+  const property = {
+    type: 'Property',
+    kind: 'init',
+    key: Testing.id(propertyName),
+    value: handler,
+    method: false,
+    shorthand: false,
+    computed: false,
+  }
+  const lifecycle = { type: 'ObjectExpression', properties: [property] }
+  const argument = isWrapped ? wrapExpression(lifecycle) : lifecycle
+  const build = Testing.callOfMember('Effect', 'succeed', [argument])
+  const boundary = atProgram(
+    Testing.callOfMember('sessionResource', 'toLayer', [build]),
+  )
+
+  Object.assign(operation, { parent: handler })
+  Object.assign(handler, { parent: property })
+  Object.assign(property, { parent: lifecycle })
+  Object.assign(argument, { parent: build })
+  Object.assign(build, { parent: boundary })
+
+  return operation
+}
+
 const inNestedLifecycleConfig = (
   operation: Readonly<{ type: string }>,
   namespace: string,
@@ -307,9 +355,8 @@ describe('no-impure-call-at-decision-time', () => {
       ),
     )
     const lifecycleResult = run(
-      inNestedLifecycleConfig(
+      inToLayerLifecycleHandler(
         Testing.callOfMember('crypto', 'randomUUID'),
-        'ManagedResource',
         'acquire',
         true,
       ),
@@ -521,95 +568,64 @@ describe('no-impure-call-at-decision-time', () => {
     expect(onHaltResult).toHaveLength(0)
   })
 
-  it('allows Command and Mount execute callbacks', () => {
+  it('allows handlers returned by Effect constructors passed to toLayer', () => {
     const commandResult = run(
-      inInlineConfig(
+      inToLayerHandler(
         Testing.callOfMember('crypto', 'randomUUID'),
-        'Command',
-        'define',
-        'execute',
-      ),
-    )
-    const mountResult = run(
-      inInlineConfig(
-        Testing.callOfMember('performance', 'now'),
-        'Mount',
-        'define',
-        'execute',
-      ),
-    )
-    const mountStreamResult = run(
-      inInlineConfig(
-        Testing.callOfMember('performance', 'now'),
-        'Mount',
-        'defineStream',
-        'execute',
-      ),
-    )
-
-    expect(commandResult).toHaveLength(0)
-    expect(mountResult).toHaveLength(0)
-    expect(mountStreamResult).toHaveLength(0)
-  })
-
-  it('allows plain handlers supplied to toLayer', () => {
-    const commandResult = run(
-      inDirectCallback(
-        Testing.callOfMember('Date', 'now'),
         'ReadClock',
-        'toLayer',
       ),
     )
     const subscriptionResult = run(
-      inDirectCallback(
-        Testing.callOfMember('Math', 'random'),
-        'clockSubscription',
-        'toLayer',
-      ),
-    )
-    const acquireResult = run(
-      inPositionedObjectCallback(
-        Testing.callOfMember('crypto', 'randomUUID'),
-        'sessionResource',
-        'toLayer',
-        'acquire',
-        [],
-        [],
-      ),
-    )
-    const releaseResult = run(
-      inPositionedObjectCallback(
+      inToLayerHandler(
         Testing.callOfMember('performance', 'now'),
-        'sessionResource',
-        'toLayer',
-        'release',
-        [],
-        [],
+        'clockSubscription',
       ),
     )
 
     expect(commandResult).toHaveLength(0)
     expect(subscriptionResult).toHaveLength(0)
+  })
+
+  it('allows lifecycle handlers on an object returned by an Effect constructor', () => {
+    const acquireResult = run(
+      inToLayerLifecycleHandler(
+        Testing.callOfMember('crypto', 'randomUUID'),
+        'acquire',
+      ),
+    )
+    const releaseResult = run(
+      inToLayerLifecycleHandler(
+        Testing.callOfMember('performance', 'now'),
+        'release',
+      ),
+    )
+
     expect(acquireResult).toHaveLength(0)
     expect(releaseResult).toHaveLength(0)
   })
 
   it('does not treat eager toLayer arguments or unrelated callbacks as handlers', () => {
     const eagerOperation = Testing.callOfMember('Date', 'now')
+    const eagerBuild = Testing.callOfMember('Effect', 'succeed', [
+      eagerOperation,
+    ])
     const eagerBoundary = atProgram(
-      Testing.callOfMember('ReadClock', 'toLayer', [eagerOperation]),
+      Testing.callOfMember('ReadClock', 'toLayer', [eagerBuild]),
     )
-    Object.assign(eagerOperation, { parent: eagerBoundary })
+    Object.assign(eagerOperation, { parent: eagerBuild })
+    Object.assign(eagerBuild, { parent: eagerBoundary })
 
     const nestedOperation = Testing.callOfMember('Math', 'random')
     const nestedCallback = Testing.arrowFn(nestedOperation)
     const wrapper = Testing.callExpr('wrapHandler', [nestedCallback])
+    const wrappedBuild = Testing.callOfMember('Effect', 'succeed', [wrapper])
     const wrappedBoundary = atProgram(
-      Testing.callOfMember('ReadClock', 'toLayer', [wrapper]),
+      Testing.callOfMember('ReadClock', 'toLayer', [wrappedBuild]),
     )
     Object.assign(nestedOperation, { parent: nestedCallback })
     Object.assign(nestedCallback, { parent: wrapper })
-    Object.assign(wrapper, { parent: wrappedBoundary })
+    Object.assign(wrapper, { parent: wrappedBuild })
+    Object.assign(wrappedBuild, { parent: wrappedBoundary })
 
     const misplacedResult = run(
       inPositionedCallback(
@@ -621,13 +637,9 @@ describe('no-impure-call-at-decision-time', () => {
       ),
     )
     const unrelatedPropertyResult = run(
-      inPositionedObjectCallback(
+      inToLayerLifecycleHandler(
         Testing.callOfMember('crypto', 'randomUUID'),
-        'sessionResource',
-        'toLayer',
         'build',
-        [],
-        [],
       ),
     )
 
@@ -637,21 +649,7 @@ describe('no-impure-call-at-decision-time', () => {
     expect(unrelatedPropertyResult).toHaveLength(1)
   })
 
-  it('allows only the deferred Subscription and ManagedResource callbacks', () => {
-    const subscriptionResult = run(
-      inNestedLifecycleConfig(
-        Testing.callOfMember('Date', 'now'),
-        'Subscription',
-        'dependenciesToStream',
-      ),
-    )
-    const managedResourceResult = run(
-      inNestedLifecycleConfig(
-        Testing.callOfMember('crypto', 'randomUUID'),
-        'ManagedResource',
-        'acquire',
-      ),
-    )
+  it('does not treat declaration projection callbacks as execution boundaries', () => {
     const dependencyResult = run(
       inNestedLifecycleConfig(
         Testing.callOfMember('Date', 'now'),
@@ -660,8 +658,6 @@ describe('no-impure-call-at-decision-time', () => {
       ),
     )
 
-    expect(subscriptionResult).toHaveLength(0)
-    expect(managedResourceResult).toHaveLength(0)
     expect(dependencyResult).toHaveLength(1)
   })
 })

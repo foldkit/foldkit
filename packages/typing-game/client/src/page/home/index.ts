@@ -1,7 +1,7 @@
 export * as Model from './model'
 export { Message, OutMessage } from './message'
 export { CommandsLayer } from './command'
-export { Layer } from './layer'
+export { EffectsLayer } from './layer'
 export * from './subscription'
 export * from './init'
 export * from './update'

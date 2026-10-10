@@ -8,11 +8,17 @@ import {
   RuleContext,
 } from 'effect-oxlint'
 
+import { effectConstructorValue } from '../effect-constructor.ts'
 import {
   indexReferences,
   isCallExpression,
-  isObjectExpression,
+  isIdentifier,
+  isIdentifierReference,
+  isMemberExpression,
+  isVariableDeclarator,
   resolveFoldkitApiPath,
+  resolvedVariable,
+  staticMemberName,
 } from '../guards.ts'
 
 const MOUNT_DEFINITION_METHODS = ['define', 'defineStream']
@@ -39,24 +45,28 @@ const isMountDefinitionCall = (
 
 const ELEMENT_FIELD = 'element'
 
-const NO_ELEMENT_BINDING_MESSAGE = `This Mount's \`execute\` never receives the element: it does not destructure \`element\` from its input. A Mount exists for element-caused, element-targeted work. If the element is irrelevant, use a Command, Subscription, or ManagedResource instead.`
+const NO_ELEMENT_BINDING_MESSAGE = `This Mount handler never receives the element: it does not destructure \`element\` from its input. A Mount exists for element-caused, element-targeted work. If the element is irrelevant, use a Command, Subscription, or ManagedResource instead.`
 
 const ignoredElementBindingMessage = (bindingName: string): string =>
-  `The element binding \`${bindingName}\` is named as ignored. A Mount's \`execute\` must read or write its live element; if the element does not matter here, the side effect has a different cause and belongs in a Command, Subscription, or ManagedResource.`
+  `The element binding \`${bindingName}\` is named as ignored. A Mount handler must read or write its live element; if the element does not matter here, the side effect has a different cause and belongs in a Command, Subscription, or ManagedResource.`
 
 const unusedElementBindingMessage = (bindingName: string): string =>
-  `The element binding \`${bindingName}\` is never referenced in this Mount's \`execute\`. A Mount's \`execute\` must use its live element; work that does not need the element belongs in a Command, Subscription, or ManagedResource.`
+  `The element binding \`${bindingName}\` is never referenced in this Mount handler. A Mount handler must use its live element; work that does not need the element belongs in a Command, Subscription, or ManagedResource.`
 
 const unreadElementFieldMessage = (bindingName: string): string =>
-  `This Mount's \`execute\` reads other fields off \`${bindingName}\` but never its \`element\`. Destructure \`element\` from the input so the check can see the read, or if the element is irrelevant, use a Command, Subscription, or ManagedResource instead.`
+  `This Mount handler reads other fields off \`${bindingName}\` but never its \`element\`. Destructure \`element\` from the input so the check can see the read, or if the element is irrelevant, use a Command, Subscription, or ManagedResource instead.`
 
 const unusedInputMessage = (bindingName: string): string =>
-  `This Mount's \`execute\` never references \`${bindingName}\`, so it never reaches the live element. Destructure \`element\` from the input so the check can see the read, or if the element is irrelevant, use a Command, Subscription, or ManagedResource instead.`
+  `This Mount handler never references \`${bindingName}\`, so it never reaches the live element. Destructure \`element\` from the input so the check can see the read, or if the element is irrelevant, use a Command, Subscription, or ManagedResource instead.`
 
-type ExecuteFunction = ESTree.ArrowFunctionExpression | ESTree.Function
+type MountHandler = ESTree.ArrowFunctionExpression | ESTree.Function
 
-const isExecuteFunction = (node: ESTree.Node): node is ExecuteFunction =>
-  node.type === 'ArrowFunctionExpression' || node.type === 'FunctionExpression'
+const isMountHandler = (node: unknown): node is MountHandler =>
+  typeof node === 'object' &&
+  node !== null &&
+  'type' in node &&
+  (node.type === 'ArrowFunctionExpression' ||
+    node.type === 'FunctionExpression')
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
@@ -181,22 +191,22 @@ const withoutDefault = (value: ESTree.Node): ESTree.Node =>
   value.type === 'AssignmentPattern' ? value.left : value
 
 const bindingDiagnostic = (
-  execute: ExecuteFunction,
+  handler: MountHandler,
   bindingName: string,
 ): Option.Option<string> => {
   if (bindingName.startsWith('_')) {
     return Option.some(ignoredElementBindingMessage(bindingName))
   }
-  return referencesName(execute.body, bindingName)
+  return referencesName(handler.body, bindingName)
     ? Option.none()
     : Option.some(unusedElementBindingMessage(bindingName))
 }
 
 const unpackedDiagnostic = (
-  execute: ExecuteFunction,
+  handler: MountHandler,
   bindingName: string,
 ): Option.Option<string> => {
-  const uses = inputUses(execute.body, bindingName)
+  const uses = inputUses(handler.body, bindingName)
 
   if (Array.isReadonlyArrayEmpty(uses)) {
     return Option.some(unusedInputMessage(bindingName))
@@ -207,15 +217,15 @@ const unpackedDiagnostic = (
     : Option.none()
 }
 
-const executeDiagnostic = (execute: ExecuteFunction): Option.Option<string> => {
-  const [firstParameter] = execute.params
+const handlerDiagnostic = (handler: MountHandler): Option.Option<string> => {
+  const [firstParameter] = handler.params
 
   if (firstParameter === undefined) {
     return Option.some(NO_ELEMENT_BINDING_MESSAGE)
   }
 
   if (firstParameter.type === 'Identifier') {
-    return unpackedDiagnostic(execute, firstParameter.name)
+    return unpackedDiagnostic(handler, firstParameter.name)
   }
 
   if (firstParameter.type !== 'ObjectPattern') {
@@ -226,57 +236,114 @@ const executeDiagnostic = (execute: ExecuteFunction): Option.Option<string> => {
     onNone: () =>
       Option.match(restBindingName(firstParameter), {
         onNone: () => Option.some(NO_ELEMENT_BINDING_MESSAGE),
-        onSome: restName => unpackedDiagnostic(execute, restName),
+        onSome: restName => unpackedDiagnostic(handler, restName),
       }),
     onSome: property => {
       const pattern = withoutDefault(property.value)
 
       return pattern.type === 'Identifier'
-        ? bindingDiagnostic(execute, pattern.name)
+        ? bindingDiagnostic(handler, pattern.name)
         : Option.none<string>()
     },
   })
 }
 
-const executeFunction = (
-  node: ESTree.CallExpression,
-): Option.Option<ExecuteFunction> =>
-  pipe(
-    Array.get(node.arguments, 1),
-    Option.filter(isObjectExpression),
-    Option.flatMap(config => AST.objectGetValue(config, 'execute')),
-    Option.filter(isExecuteFunction),
-  )
+const isLocalMountDefinition = (
+  node: ESTree.Node,
+  localMountDefinitions: ReadonlySet<string>,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean => {
+  if (isCallExpression(node)) {
+    return isMountDefinitionCall(node, references)
+  }
 
-/** Flags Mount.define and Mount.defineStream definitions whose `execute` never uses its element. A Mount exists for element-caused, element-targeted work; work that ignores the element belongs in a Command, Subscription, or ManagedResource. */
+  if (!isIdentifierReference(node)) {
+    return false
+  }
+
+  if (references === undefined) {
+    return localMountDefinitions.has(node.name)
+  }
+
+  return Option.exists(resolvedVariable(references, node), variable =>
+    variable.defs.some(
+      definition =>
+        definition.type === 'Variable' &&
+        isVariableDeclarator(definition.node) &&
+        isCallExpression(definition.node.init) &&
+        isMountDefinitionCall(definition.node.init, references),
+    ),
+  )
+}
+
+const mountHandler = (
+  node: ESTree.CallExpression,
+  localMountDefinitions: ReadonlySet<string>,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): Option.Option<MountHandler> => {
+  if (
+    !isMemberExpression(node.callee) ||
+    !Option.exists(staticMemberName(node.callee), name => name === 'toLayer') ||
+    !isLocalMountDefinition(
+      node.callee.object,
+      localMountDefinitions,
+      references,
+    )
+  ) {
+    return Option.none()
+  }
+
+  return pipe(
+    Array.head(node.arguments),
+    Option.flatMap(build => effectConstructorValue(build, references)),
+    Option.filter(isMountHandler),
+  )
+}
+
+/** Flags local Mount handlers whose implementation never uses its element. A Mount exists for element-caused, element-targeted work; work that ignores the element belongs in a Command, Subscription, or ManagedResource. */
 export const mountFactoryMustUseElement = Rule.define({
   name: 'mount-factory-must-use-element',
   meta: Rule.meta({
     type: 'suggestion',
-    description: "Require a Mount's execute to use its live element.",
+    description: 'Require a Mount handler to use its live element.',
   }),
   create: function* () {
     const ctx = yield* RuleContext
     const scopes = ctx.sourceCode.scopeManager?.scopes
     const references =
       scopes === undefined ? undefined : indexReferences(scopes)
+    const localMountDefinitions = new Set<string>()
     return {
-      CallExpression: (node: ESTree.Node) => {
+      VariableDeclarator: (node: ESTree.Node) => {
         if (
-          !isCallExpression(node) ||
-          !isMountDefinitionCall(node, references)
+          references === undefined &&
+          isVariableDeclarator(node) &&
+          isIdentifier(node.id) &&
+          isCallExpression(node.init) &&
+          isMountDefinitionCall(node.init, references)
         ) {
+          localMountDefinitions.add(node.id.name)
+        }
+
+        return Effect.void
+      },
+      CallExpression: (node: ESTree.Node) => {
+        if (!isCallExpression(node)) {
           return Effect.void
         }
-        return Option.match(executeFunction(node), {
-          onNone: () => Effect.void,
-          onSome: execute =>
-            Option.match(executeDiagnostic(execute), {
-              onNone: () => Effect.void,
-              onSome: message =>
-                ctx.report(Diagnostic.make({ node: execute, message })),
-            }),
-        })
+
+        return Option.match(
+          mountHandler(node, localMountDefinitions, references),
+          {
+            onNone: () => Effect.void,
+            onSome: handler =>
+              Option.match(handlerDiagnostic(handler), {
+                onNone: () => Effect.void,
+                onSome: message =>
+                  ctx.report(Diagnostic.make({ node: handler, message })),
+              }),
+          },
+        )
       },
     }
   },

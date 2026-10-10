@@ -23,22 +23,28 @@ export const UploadFile = Command.define('UploadFile', {
     keyFields: ['uploadId'],
     toKey: ({ uploadId }) => globalThis.String(uploadId),
   },
-  execute: ({ uploadId, file }) =>
-    Effect.gen(function* () {
-      const client = yield* HttpClient.HttpClient
-      const formData = new FormData()
-      formData.set('file', file)
-
-      const request = HttpClientRequest.post(`/api/uploads/${uploadId}`).pipe(
-        HttpClientRequest.bodyFormData(formData),
-      )
-      const response = yield* client.execute(request)
-      yield* HttpClientResponse.filterStatusOk(response)
-
-      return Message.SucceededUploadFile({ uploadId })
-    }).pipe(
-      Effect.catch(() =>
-        Effect.succeed(Message.FailedUploadFile({ uploadId })),
-      ),
-    ),
 })
+
+export const UploadFileLayer = UploadFile.toLayer(
+  Effect.gen(function* () {
+    const client = yield* HttpClient.HttpClient
+
+    return ({ uploadId, file }) =>
+      Effect.gen(function* () {
+        const formData = new FormData()
+        formData.set('file', file)
+
+        const request = HttpClientRequest.post(`/api/uploads/${uploadId}`).pipe(
+          HttpClientRequest.bodyFormData(formData),
+        )
+        const response = yield* client.execute(request)
+        yield* HttpClientResponse.filterStatusOk(response)
+
+        return Message.SucceededUploadFile({ uploadId })
+      }).pipe(
+        Effect.catch(() =>
+          Effect.succeed(Message.FailedUploadFile({ uploadId })),
+        ),
+      )
+  }),
+)

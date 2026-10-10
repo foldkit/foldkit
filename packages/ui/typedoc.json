@@ -11,8 +11,11 @@
     "BaseInitConfig",
     "BaseViewInputs",
     "BundleUpdateReturn",
-    "ScrollReturn",
+    "FoldAnimationRequirements",
     "UpdateReturn",
-    "ViewForItem"
+    "ViewForItem",
+    "src/animation/update.ts:UpdateRequirements",
+    "src/radioGroup/index.ts:update",
+    "src/tabs/index.ts:update"
   ]
 }

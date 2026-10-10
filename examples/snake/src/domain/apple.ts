@@ -4,7 +4,7 @@ import { GAME } from '../constants'
 import { Position } from './position'
 import * as Snake from './snake'
 
-export const generatePosition = (random: Random.Random, snake: Snake.Snake) =>
+export const generatePosition = (snake: Snake.Snake) =>
   Effect.gen(function* () {
     const x = yield* Random.nextIntBetween(0, GAME.GRID_SIZE, {
       halfOpen: true,
@@ -19,8 +19,4 @@ export const generatePosition = (random: Random.Random, snake: Snake.Snake) =>
     } else {
       return pos
     }
-  }).pipe(
-    Effect.provideService(Random.Random, random),
-    Effect.retry(Schedule.forever),
-    Effect.orDie,
-  )
+  }).pipe(Effect.retry(Schedule.forever), Effect.orDie)

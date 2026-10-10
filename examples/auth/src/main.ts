@@ -1,13 +1,10 @@
 import { Effect, Match, Option, Schema } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
-import { Command, type Update } from 'foldkit'
 import { Url } from 'foldkit/url'
 
 import { RedirectToDashboard, RedirectToLogin } from './command'
 import { SESSION_STORAGE_KEY } from './constant'
 import { Session, SessionJsonString } from './domain/session'
-import { Message } from './message'
-import { Model } from './model'
 import { LoggedIn, LoggedOut } from './page'
 import { AppRoute, urlToAppRoute } from './route'
 
@@ -20,6 +17,7 @@ export const Flags = Schema.Struct({
 export const flags: Effect.Effect<Flags, never, KeyValueStore.KeyValueStore> =
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
+
     const sessionJson = yield* Effect.fromOption(
       Option.fromNullishOr(yield* store.get(SESSION_STORAGE_KEY)),
     )
@@ -38,21 +36,12 @@ export type Flags = typeof Flags.Type
 
 // INIT
 
-type InitReturn = Update.Return<
-  Model,
-  Message,
-  | Command.HandlerOf<typeof RedirectToLogin>
-  | Command.HandlerOf<typeof RedirectToDashboard>
->
-const withInitReturn = Match.withReturnType<InitReturn>()
-
-export const init = (flags: Flags, url: Url): InitReturn => {
+export const init = (flags: Flags, url: Url) => {
   const route = urlToAppRoute(url)
 
   return Option.match(flags.maybeSession, {
     onNone: () =>
       Match.value(route).pipe(
-        withInitReturn,
         Match.tag('Home', 'Login', 'NotFound', route => ({
           model: LoggedOut.init(route),
         })),
@@ -64,7 +53,6 @@ export const init = (flags: Flags, url: Url): InitReturn => {
 
     onSome: session =>
       Match.value(route).pipe(
-        withInitReturn,
         Match.tag('Dashboard', 'Settings', 'NotFound', route => ({
           model: LoggedIn.init(route, session),
         })),
@@ -76,4 +64,4 @@ export const init = (flags: Flags, url: Url): InitReturn => {
   })
 }
 
-export { Layer } from './update'
+export { EffectsLayer } from './layer'

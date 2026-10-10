@@ -1,6 +1,7 @@
 import {
   Array,
   Effect,
+  Layer,
   Match,
   Option,
   Predicate,
@@ -8,7 +9,7 @@ import {
   String,
   pipe,
 } from 'effect'
-import { type Update } from 'foldkit'
+import { Update } from 'foldkit'
 import * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
@@ -105,21 +106,27 @@ const descriptionId = (id: string, index: number): string =>
 export const FocusOption = Command.define('FocusOption', {
   args: { id: Schema.String, index: Schema.Number },
   messages: [Message.CompletedFocusOption],
-  execute: ({ id, index }) =>
+})
+
+/** Effect provider for {@link FocusOption}. */
+export const FocusOptionLayer = FocusOption.toLayer(
+  Effect.succeed(({ id, index }) =>
     Dom.focus(idSelector(optionId(id, index))).pipe(
       Effect.ignore,
       Effect.as(Message.CompletedFocusOption()),
     ),
-})
+  ),
+)
 
-type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
+/** Effect providers used by the RadioGroup component. */
+export const EffectsLayer = Layer.mergeAll(FocusOptionLayer)
 
 /** Processes a RadioGroup Message and returns the next Model, optional
  *  Commands, and an optional OutMessage. `Selected` fires when an option is
  *  committed via click or keyboard; the parent stores the new value and passes
  *  it back in as `selectedValue`. */
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     SelectedOption: ({ index, value }) => ({
       model: modifyFields(model, { maybeFocusedIndex: () => Option.none() }),
       commands: [FocusOption({ id: model.id, index })],
@@ -132,7 +139,8 @@ export const update = (model: Model, message: Message) =>
       commands: [FocusOption({ id: model.id, index })],
     }),
     CompletedFocusOption: () => ({ model }),
-  })
+  }),
+)
 
 // VIEW
 
@@ -439,7 +447,12 @@ export type Bundle<Value extends string = string> = Readonly<{
   update: (
     model: Model,
     message: Message,
-  ) => Update.ReturnWithOutMessage<Model, Message, OutMessage<Value>>
+  ) => Update.ReturnWithOutMessage<
+    Model,
+    Message,
+    OutMessage<Value>,
+    Update.RequirementsOf<typeof update>
+  >
 }>
 
 /** Pairs the radio group `view` and `update` behind a single Value-typed
@@ -464,9 +477,10 @@ export const create = <Value extends string = string>(): Bundle<Value> => {
   type GenericReturn = Update.ReturnWithOutMessage<
     Model,
     Message,
-    OutMessage<Value>
+    OutMessage<Value>,
+    Update.RequirementsOf<typeof update>
   >
-  const cast = (result: UpdateReturn): GenericReturn =>
+  const cast = (result: ReturnType<typeof update>): GenericReturn =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     result as unknown as GenericReturn
 

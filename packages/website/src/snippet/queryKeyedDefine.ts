@@ -5,4 +5,6 @@ const postQuery = Query.define({
   args: { postId: Schema.String },
 })
 
-const FetchPostLayer = postQuery.toLayer(({ postId }) => fetchPost(postId))
+const FetchPostLayer = postQuery.toLayer(
+  Effect.succeed(({ postId }) => fetchPost(postId)),
+)

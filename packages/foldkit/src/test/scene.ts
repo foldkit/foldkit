@@ -226,19 +226,6 @@ type RegisteredSubscriptions<Model, Message> = Readonly<
  *  or scene simulation transform. */
 export type SceneStep<Model, Message, OutMessage, Subscriptions = undefined> =
   | GivenStep<NoInfer<Model>>
-  | SubscriptionMessageStep<
-      NoInfer<Subscriptions> extends Readonly<
-        Record<string, RuntimeSubscription<any, any, any, any>>
-      >
-        ? NoInfer<Subscriptions>[keyof NoInfer<Subscriptions>] extends infer Entry
-          ? Entry extends Readonly<{
-              messages: infer Messages extends ReadonlyArray<Schema.Top>
-            }>
-            ? Schema.Schema.Type<Messages[number]>
-            : never
-          : never
-        : never
-    >
   | (NoInfer<Subscriptions> extends Readonly<
       Record<string, RuntimeSubscription<any, any, any, any>>
     >
@@ -755,19 +742,15 @@ const resolveSubscriptionMessage = (
     declarations,
     Array.filter(
       declaration =>
-        (entry === undefined || declaration.entry === entry) &&
+        declaration.entry === entry &&
         Array.some(declaration.schemas, schema => Schema.is(schema)(message)),
     ),
   )
 
   return Array.matchLeft(matchingDeclarations, {
     onEmpty: () => {
-      const target =
-        entry === undefined
-          ? 'the registered Subscriptions'
-          : 'the selected Subscription'
       throw new Error(
-        `Scene.Subscription.emit received a Message that is not declared by ${target}:\n\n` +
+        'Scene.Subscription.emit received a Message that is not declared by the selected Subscription:\n\n' +
           `    ${JSON.stringify(message)}`,
       )
     },
@@ -779,20 +762,10 @@ const resolveSubscriptionMessage = (
           Array.join(', '),
         )
 
-        if (entry !== undefined) {
-          throw new Error(
-            'Scene.Subscription.emit selected a Subscription entry ' +
-              `registered under multiple keys: ${entryKeys}.\n\n` +
-              'Register a distinct Subscription entry object for each key ' +
-              'before selecting one with `Scene.Subscription.emit(entry, message)`.',
-          )
-        }
-
         throw new Error(
-          'Scene.Subscription.emit matched multiple registered ' +
-            `Subscriptions: ${entryKeys}.\n\n` +
-            'Pass the intended entry as the first argument, such as ' +
-            '`Scene.Subscription.emit(subscriptions.ticks, Message.Ticked())`.',
+          'Scene.Subscription.emit selected a Subscription entry ' +
+            `registered under multiple keys: ${entryKeys}.\n\n` +
+            'Register a distinct Subscription entry object for each key.',
         )
       }
 
@@ -1373,48 +1346,24 @@ const applyExternalMessage = <Model, Message, OutMessage>(
   return applyExternalMessages(simulation, [message], context)
 }
 
-const SubscriptionMessageNotProvided = Symbol(
-  'foldkit/Scene/SubscriptionMessageNotProvided',
-)
-
 /** Feeds a declared Message through update as if a registered Subscription
  *  emitted it, then re-renders. A lifted Subscription accepts its raw child
- *  Message and applies the same `toParentMessage` chain as production. Pass
- *  the entry first when the same raw Message is registered through multiple
- *  lift paths. The one-argument form keeps root calls concise. */
-const emitSubscriptionMessage: {
-  <Message>(message: Message): SubscriptionMessageStep<Message>
-  <
-    Entry extends Readonly<{
-      messages: ReadonlyArray<Schema.Top>
-    }>,
-  >(
-    entry: Entry,
-    message: NoInfer<Schema.Schema.Type<Entry['messages'][number]>>,
-  ): SubscriptionMessageStep<
-    Schema.Schema.Type<Entry['messages'][number]>,
-    Entry
-  >
-} = <Message, Entry>(
-  entryOrMessage: Entry | Message,
-  maybeMessage:
-    | Message
-    | typeof SubscriptionMessageNotProvided = SubscriptionMessageNotProvided,
-): SubscriptionMessageStep<Message, Entry | undefined> => {
-  /* eslint-disable @typescript-eslint/consistent-type-assertions */
-  return {
-    _tag: 'SubscriptionMessageStep',
-    entry:
-      maybeMessage === SubscriptionMessageNotProvided
-        ? undefined
-        : (entryOrMessage as Entry),
-    message:
-      maybeMessage === SubscriptionMessageNotProvided
-        ? (entryOrMessage as Message)
-        : maybeMessage,
-  }
-  /* eslint-enable @typescript-eslint/consistent-type-assertions */
-}
+ *  Message and applies the same `toParentMessage` chain as production. */
+const emitSubscriptionMessage = <
+  Entry extends Readonly<{
+    messages: ReadonlyArray<Schema.Top>
+  }>,
+>(
+  entry: Entry,
+  message: NoInfer<Schema.Schema.Type<Entry['messages'][number]>>,
+): SubscriptionMessageStep<
+  Schema.Schema.Type<Entry['messages'][number]>,
+  Entry
+> => ({
+  _tag: 'SubscriptionMessageStep',
+  entry,
+  message,
+})
 
 const MANAGED_RESOURCE_CONTEXT =
   'when a ManagedResource dispatched a new Message'
@@ -1662,13 +1611,10 @@ export const Mount = {
 export const Subscription = {
   /** Feeds a Message declared by the Scene's registered Subscriptions through
    *  update, then re-renders. Pass the raw child Message for a lifted
-   *  Subscription; Scene applies its `toParentMessage` chain. The one-argument
-   *  form works when exactly one registered entry declares the Message. Pass
-   *  the entry first to select one of several lift paths.
-   *
-   *  Inline Subscriptions participate when their callbacks declare
-   *  `messages`. Silent and undeclared inline Subscriptions accept no
-   *  Messages. Use this only for Messages whose real cause is a Subscription;
+   *  Subscription; Scene applies its `toParentMessage` chain. The selected
+   *  entry must be registered in the Scene config and declare the Message.
+   *  Silent Subscriptions accept no Messages. Use this only for Messages whose
+   *  real cause is a Subscription;
    *  interact with the rendered DOM for DOM Messages. */
   emit: emitSubscriptionMessage,
 } as const

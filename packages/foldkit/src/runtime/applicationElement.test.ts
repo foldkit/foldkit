@@ -7,6 +7,7 @@ import { defineMessageUnion } from '../message/index.js'
 import * as Mount from '../mount/index.js'
 import * as Port from '../port/index.js'
 import * as Subscription from '../subscription/subscription.js'
+import * as Update from '../update/index.js'
 import * as Application from './application.js'
 import { embed, run } from './start.js'
 
@@ -40,7 +41,7 @@ const AnchorPanel = Mount.define('AnchorPanel', {
   messages: [Message.CompletedAnchorPanel],
 })
 
-const update = (model: Model, message: Message) =>
+const update = Update.make((model: Model, message: Message) =>
   Message.match(message, {
     ChangedStatus: ({ status }) => ({ model: Model.make({ status }) }),
     ClickedSend: () => ({
@@ -49,7 +50,8 @@ const update = (model: Model, message: Message) =>
     }),
     CompletedAnchorPanel: ({ status }) => ({ model: Model.make({ status }) }),
     CompletedSend: ({ status }) => ({ model: Model.make({ status }) }),
-  })
+  }),
+)
 
 let container: HTMLElement
 
@@ -173,10 +175,12 @@ describe('Application.makeElement', () => {
     })
     const provided = Application.provide(
       element,
-      managedResources.token.toLayer({
-        acquire: () => Effect.succeed('token'),
-        release: () => Effect.void,
-      }),
+      managedResources.token.toLayer(
+        Effect.succeed({
+          acquire: () => Effect.succeed('token'),
+          release: () => Effect.void,
+        }),
+      ),
     )
     const handle = embed(provided)
 
@@ -190,24 +194,42 @@ describe('Application.makeElement', () => {
   })
 
   it('keeps inbound Ports available through Layer provision', async () => {
+    const subscriptions = Subscription.make<Model, Message>()(entry => ({
+      hostStatus: entry('HostStatus', {
+        messages: [
+          Message.ChangedStatus,
+          Message.ClickedSend,
+          Message.CompletedAnchorPanel,
+          Message.CompletedSend,
+        ],
+      }),
+    }))
     const element = Application.makeElement({
       Model,
       init: () => ({ model: Model.make({ status: 'ready' }) }),
       update,
       view: (model, h) => h.div([], [model.status]),
-      subscriptions: Subscription.make<Model, Message>()(_entry => ({
-        hostStatus: Port.subscriptionEntry(
-          ports.inbound.statusChanged,
-          status => Message.ChangedStatus({ status }),
-        ),
-      })),
+      subscriptions,
       ports,
       container,
     })
+
+    const HostStatusLayer = subscriptions.hostStatus.toLayer(
+      Effect.succeed(() =>
+        Port.stream(ports.inbound.statusChanged).pipe(
+          Stream.map(status => Message.ChangedStatus({ status })),
+        ),
+      ),
+    )
     const provided = Application.provide(
       element,
-      Send.toLayer(({ text }) =>
-        Effect.succeed(Message.CompletedSend({ status: text })),
+      Layer.mergeAll(
+        HostStatusLayer,
+        Send.toLayer(
+          Effect.succeed(({ text }) =>
+            Effect.succeed(Message.CompletedSend({ status: text })),
+          ),
+        ),
       ),
     )
     const handle = embed(provided)
@@ -246,8 +268,10 @@ describe('Application.makeElement', () => {
     })
     const provided = Application.provide(
       element,
-      AnchorPanel.toLayer(() =>
-        Effect.succeed(Message.CompletedAnchorPanel({ status: 'anchored' })),
+      AnchorPanel.toLayer(
+        Effect.succeed(() =>
+          Effect.succeed(Message.CompletedAnchorPanel({ status: 'anchored' })),
+        ),
       ),
     )
     const handle = embed(provided)
@@ -309,8 +333,10 @@ const checkElementTypes = (): void => {
 
   const withHandler = Application.provide(
     element,
-    Send.toLayer(({ text }) =>
-      Effect.succeed(Message.CompletedSend({ status: text })),
+    Send.toLayer(
+      Effect.succeed(({ text }) =>
+        Effect.succeed(Message.CompletedSend({ status: text })),
+      ),
     ),
   )
 
@@ -351,7 +377,7 @@ const checkElementTypes = (): void => {
   embed(
     Application.provide(
       subscriptionElement,
-      subscriptions.status.toLayer(() => Stream.empty),
+      subscriptions.status.toLayer(Effect.succeed(() => Stream.empty)),
     ),
   )
 
@@ -370,8 +396,10 @@ const checkElementTypes = (): void => {
   embed(
     Application.provide(
       mountElement,
-      AnchorPanel.toLayer(() =>
-        Effect.succeed(Message.CompletedAnchorPanel({ status: 'anchored' })),
+      AnchorPanel.toLayer(
+        Effect.succeed(() =>
+          Effect.succeed(Message.CompletedAnchorPanel({ status: 'anchored' })),
+        ),
       ),
     ),
   )
@@ -401,10 +429,12 @@ const checkElementTypes = (): void => {
   embed(
     Application.provide(
       managedElement,
-      managedResources.token.toLayer({
-        acquire: () => Effect.succeed('token'),
-        release: () => Effect.void,
-      }),
+      managedResources.token.toLayer(
+        Effect.succeed({
+          acquire: () => Effect.succeed('token'),
+          release: () => Effect.void,
+        }),
+      ),
     ),
   )
 }

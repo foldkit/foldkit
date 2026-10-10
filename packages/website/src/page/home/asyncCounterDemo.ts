@@ -64,20 +64,18 @@ export type Message = typeof Message.Type
 
 // INIT
 
-export const init = (): Update.Return<Model, Message> => ({
-  model: {
+export const init = () => ({
+  model: Model.make({
     count: 0,
     isResetting: false,
     resetDuration: 2,
     phase: 'Idle',
     generation: 0,
     messageLog: [],
-  },
+  }),
 })
 
 // UPDATE
-
-const withUpdateReturn = Match.withReturnType<UpdateReturn>()
 
 export const DelayAdvanceAsyncCounterPhase = Command.define(
   'DelayAdvanceAsyncCounterPhase',
@@ -88,19 +86,19 @@ export const DelayAdvanceAsyncCounterPhase = Command.define(
 )
 
 const DelayAdvanceAsyncCounterPhaseLayer =
-  DelayAdvanceAsyncCounterPhase.toLayer(({ generation, duration }) =>
-    Effect.sleep(duration).pipe(
-      Effect.as(Message.CompletedDelayAdvanceAsyncCounterPhase({ generation })),
+  DelayAdvanceAsyncCounterPhase.toLayer(
+    Effect.succeed(({ generation, duration }) =>
+      Effect.sleep(duration).pipe(
+        Effect.as(
+          Message.CompletedDelayAdvanceAsyncCounterPhase({ generation }),
+        ),
+      ),
     ),
   )
 
-export const Layer = DelayAdvanceAsyncCounterPhaseLayer
+export const EffectsLayer = DelayAdvanceAsyncCounterPhaseLayer
 
-export type UpdateRequirements = Command.HandlerOf<
-  typeof DelayAdvanceAsyncCounterPhase
->
-
-type UpdateReturn = Update.Return<Model, Message, UpdateRequirements>
+export type UpdateRequirements = Update.RequirementsOf<typeof update>
 
 const prependToLog =
   (entry: string) =>
@@ -170,7 +168,6 @@ export const update = Update.make((model: Model, message: Message) =>
         return { model }
       } else {
         return Match.value(model.phase).pipe(
-          withUpdateReturn,
           Match.when('IncrementMessage', () => ({
             model: modifyFields(model, { phase: () => 'IncrementUpdate' }),
             commands: [

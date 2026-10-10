@@ -4,7 +4,7 @@ import { Subscription, given, scene } from 'foldkit/scene'
 
 const rootSubscriptions = SubscriptionDefinition.make<Model, Message>()(
   entry => ({
-    ticks: entry('ClockTicks', { messages: [Message.Ticked] }),
+    clockTicks: entry('ClockTicks', { messages: [Message.Ticked] }),
   }),
 )
 
@@ -12,7 +12,7 @@ const chatSubscriptions = SubscriptionDefinition.make<
   Chat.Model,
   Chat.Message
 >()(entry => ({
-  serverFrames: entry('ChatServerFrames', {
+  chatServerFrames: entry('ChatServerFrames', {
     messages: [Chat.Message.ReceivedServerFrame],
   }),
 }))
@@ -33,14 +33,14 @@ const subscriptions = SubscriptionDefinition.aggregate(
 scene(
   { update, view, subscriptions },
   given(initialModel),
-  Subscription.emit(Message.Ticked()),
+  Subscription.emit(rootSubscriptions.clockTicks, Message.Ticked()),
 )
 
 scene(
   { update, view, subscriptions },
   given(initialModel),
   Subscription.emit(
-    liftedChatSubscriptions.serverFrames,
+    liftedChatSubscriptions.chatServerFrames,
     Chat.Message.ReceivedServerFrame({ frame }),
   ),
 )

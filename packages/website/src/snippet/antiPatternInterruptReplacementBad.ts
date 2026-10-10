@@ -1,10 +1,10 @@
 // ❌ Bad: interruption and replacement start independently.
 
 import { Number } from 'effect'
-import type { Update } from 'foldkit'
+import { Update } from 'foldkit'
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     UpdatedQuery: ({ query }) => {
       const nextSearchGeneration = Number.increment(model.searchGeneration)
 
@@ -21,4 +21,5 @@ const update = (model: Model, message: Message) =>
         ],
       }
     },
-  })
+  }),
+)

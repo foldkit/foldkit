@@ -24,9 +24,11 @@ export const FocusAddCardInput = Command.define('FocusAddCardInput', {
 const GenerateCardIdLayer = GenerateCardId.toLayer(
   Effect.gen(function* () {
     const crypto = yield* Crypto.Crypto
+
     return ({ columnId, title }) =>
       Effect.gen(function* () {
         const cardId = yield* Effect.orDie(crypto.randomUUIDv4)
+
         return Message.CompletedGenerateCardId({ cardId, columnId, title })
       })
   }),
@@ -35,6 +37,7 @@ const GenerateCardIdLayer = GenerateCardId.toLayer(
 const SaveBoardLayer = SaveBoard.toLayer(
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
+
     return ({ columns }) =>
       Effect.gen(function* () {
         const encodedBoard = yield* Schema.encodeEffect(SavedBoardJsonString)({
@@ -46,10 +49,12 @@ const SaveBoardLayer = SaveBoard.toLayer(
   }),
 )
 
-const FocusAddCardInputLayer = FocusAddCardInput.toLayer(() =>
-  Dom.focus(`#${ADD_CARD_INPUT_ID}`).pipe(
-    Effect.ignore,
-    Effect.as(Message.CompletedFocusAddCardInput()),
+const FocusAddCardInputLayer = FocusAddCardInput.toLayer(
+  Effect.succeed(() =>
+    Dom.focus(`#${ADD_CARD_INPUT_ID}`).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedFocusAddCardInput()),
+    ),
   ),
 )
 

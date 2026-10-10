@@ -34,7 +34,10 @@ type Message = typeof Message.Type
 const FetchUser = Command.define('FetchUser', {
   args: { userId: Schema.String },
   messages: [Message.SucceededFetchUser, Message.FailedFetchUser],
-  execute: ({ userId }) =>
+})
+
+const FetchUserLayer = FetchUser.toLayer(
+  Effect.succeed(({ userId }) =>
     Effect.gen(function* () {
       const response = yield* Effect.tryPromise(() =>
         fetch(`/api/users/${userId}`).then(response => response.json()),
@@ -46,7 +49,8 @@ const FetchUser = Command.define('FetchUser', {
         Effect.succeed(Message.FailedFetchUser({ error: String(error) })),
       ),
     ),
-})
+  ),
+)
 
 // UPDATE
 

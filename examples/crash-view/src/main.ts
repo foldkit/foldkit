@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { Runtime, type Update } from 'foldkit'
+import { Runtime, Update } from 'foldkit'
 import { Document, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -20,12 +20,9 @@ export type Message = typeof Message.Type
 
 // UPDATE
 
-export const update = (
-  _model: Model,
-  _message: Message,
-): Update.Return<Model, Message> => {
+export const update = Update.make((_model: Model, _message: Message) => {
   throw new Error('This is a simulated crash!')
-}
+})
 
 // INIT
 

@@ -42,7 +42,7 @@ const foldAnimationOutMessage = (
   outMessage: Animation.OutMessage,
   { liftCommand }: Update.FoldContext<Animation.Message, Message>,
 ) =>
-  Animation.OutMessage.match<Update.Step<Model, Message>>(outMessage, {
+  Animation.OutMessage.match(outMessage, {
     // Animation handles enter completion internally but hands leave
     // settlement detection to you here, because the strategy varies
     // by consumer. For example, Foldkit's Dialog just waits for CSS,
@@ -51,10 +51,11 @@ const foldAnimationOutMessage = (
     // waits for every CSS transition and keyframe animation on the
     // element to settle, then dispatches EndedAnimation back into
     // Animation.update. Use it unless you need a custom strategy.
-    StartedLeaveAnimating: () => model => ({
-      model,
-      commands: [liftCommand(Animation.defaultLeaveCommand(model.animation))],
-    }),
+    StartedLeaveAnimating: () =>
+      Update.makeStep((model: Model) => ({
+        model,
+        commands: [liftCommand(Animation.defaultLeaveCommand(model.animation))],
+      })),
     // TransitionedOut is Animation's signal that the leave has fully
     // settled (your leave Command's EndedAnimation message has been
     // processed). Return Commands for any post-animation work, for

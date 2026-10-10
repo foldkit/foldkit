@@ -37,7 +37,10 @@ const FetchProfile = Command.define('FetchProfile', {
   // 3. Require a Redacted value because DevTools records Command arguments.
   args: { accessToken: AccessToken },
   messages: [Message.CompletedFetchProfile, Message.FailedFetchProfile],
-  execute: ({ accessToken }) =>
+})
+
+const FetchProfileLayer = FetchProfile.toLayer(
+  Effect.succeed(({ accessToken }) =>
     Effect.tryPromise(() =>
       fetch('/api/profile', {
         headers: {
@@ -49,7 +52,8 @@ const FetchProfile = Command.define('FetchProfile', {
       Effect.as(Message.CompletedFetchProfile()),
       Effect.catch(() => Effect.succeed(Message.FailedFetchProfile())),
     ),
-})
+  ),
+)
 
 const fetchProfile = (model: Model) =>
   FetchProfile({ accessToken: model.accessToken })

@@ -2,6 +2,7 @@ import {
   Array,
   Effect,
   HashSet,
+  Layer,
   Match,
   Number,
   Option,
@@ -466,7 +467,10 @@ export const ApplyScroll = Command.define('ApplyScroll', {
     version: Schema.Number,
   },
   messages: [Message.CompletedApplyScroll],
-  execute: ({ id, request, version }) =>
+})
+/** Provides the handler for {@link ApplyScroll}. */
+export const ApplyScrollLayer = ApplyScroll.toLayer(
+  Effect.succeed(({ id, request, version }) =>
     Effect.gen(function* () {
       yield* Render.afterCommit
 
@@ -522,35 +526,35 @@ export const ApplyScroll = Command.define('ApplyScroll', {
         }),
       })
     }),
-})
+  ),
+)
 
-type ScrollReturn = Update.Return<Model, Message>
+/** @internal */
+export const CommandsLayer = Layer.mergeAll(ApplyScrollLayer)
 
 /** Options shared by row-targeted programmatic scrolling helpers. */
 export type ScrollToOptions = Readonly<{
   alignment?: ScrollAlignment
 }>
 
-const buildScrollRequest = (
-  model: Model,
-  request: typeof ScrollRequest.Type,
-): ScrollReturn => {
-  const nextVersion = Number.increment(model.pendingScrollVersion)
-  return {
-    model: modifyFields(model, {
-      pendingScrollVersion: () => nextVersion,
-      pendingScroll: () =>
-        PendingScroll.Pending({ request, version: nextVersion }),
-    }),
-    commands: [
-      ApplyScroll({
-        id: model.id,
-        request,
-        version: nextVersion,
+const buildScrollRequest = (request: typeof ScrollRequest.Type) =>
+  Update.makeStep((model: Model) => {
+    const nextVersion = Number.increment(model.pendingScrollVersion)
+    return {
+      model: modifyFields(model, {
+        pendingScrollVersion: () => nextVersion,
+        pendingScroll: () =>
+          PendingScroll.Pending({ request, version: nextVersion }),
       }),
-    ],
-  }
-}
+      commands: [
+        ApplyScroll({
+          id: model.id,
+          request,
+          version: nextVersion,
+        }),
+      ],
+    }
+  })
 
 const currentScrollRequest = (model: Model): typeof ScrollRequest.Type =>
   PendingScroll.match<typeof ScrollRequest.Type>(model.pendingScroll, {
@@ -563,8 +567,8 @@ const currentScrollRequest = (model: Model): typeof ScrollRequest.Type =>
     Pending: ({ request }) => request,
   })
 
-const reconcileLayout = (model: Model): ScrollReturn =>
-  buildScrollRequest(model, currentScrollRequest(model))
+const reconcileLayout = (model: Model) =>
+  buildScrollRequest(currentScrollRequest(model))(model)
 
 const anchorFromSnapshot = (
   model: Model,
@@ -618,16 +622,13 @@ const measureContainer = (
   model: Model,
   containerWidth: number,
   containerHeight: number,
-): ScrollReturn => {
+) => {
   const wasUnmeasured = model.measurement._tag === 'Unmeasured'
   const didWidthChange = Measurement.match<boolean>(model.measurement, {
     Unmeasured: () => false,
     Measured: measurement => measurement.containerWidth !== containerWidth,
   })
-  const recordContainerMeasurement: Update.Step<
-    Model,
-    Message
-  > = stepModel => ({
+  const recordContainerMeasurement = Update.makeStep((stepModel: Model) => ({
     model: modifyFields(stepModel, {
       measurement: () =>
         Measurement.Measured({ containerWidth, containerHeight }),
@@ -636,20 +637,18 @@ const measureContainer = (
       layoutVersion: layoutVersion =>
         didWidthChange ? Number.increment(layoutVersion) : layoutVersion,
     }),
-  })
+  }))
 
   const { initialScroll } = model
   if (initialScroll._tag === 'Pending') {
     return Update.combine(model, [
       recordContainerMeasurement,
-      stepModel =>
-        buildScrollRequest(
-          stepModel,
-          ScrollRequest.Target({
-            target: initialScroll.target,
-            alignment: initialScroll.alignment,
-          }),
-        ),
+      buildScrollRequest(
+        ScrollRequest.Target({
+          target: initialScroll.target,
+          alignment: initialScroll.alignment,
+        }),
+      ),
     ])
   }
 
@@ -689,7 +688,7 @@ const applyRowMeasurements = (
     height: number
     layoutVersion: number
   }>,
-): ScrollReturn => {
+) => {
   const changedMeasurements = Array.filter(measurements, measurement =>
     hasChangedMeasurement(model, measurement),
   )
@@ -714,8 +713,8 @@ const applyRowMeasurements = (
 }
 
 /** Processes a VirtualList Message and returns the next Model and optional Commands. */
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ObservedContainerScroll: snapshot => {
       const nextPendingScrollVersion = PendingScroll.match<number>(
         model.pendingScroll,
@@ -744,7 +743,7 @@ export const update = (model: Model, message: Message) =>
         return { model }
       }
 
-      return ApplyScrollOutcome.match<ScrollReturn>(outcome, {
+      return ApplyScrollOutcome.match(outcome, {
         Applied: snapshot => {
           const scrolledModel = applyScrollSnapshot(model, snapshot)
           return {
@@ -764,7 +763,8 @@ export const update = (model: Model, message: Message) =>
         }),
       })
     },
-  })
+  }),
+)
 
 type RowOffsets = Readonly<{
   startOffset: number
@@ -776,21 +776,19 @@ export const scrollTo = (
   model: Model,
   target: ScrollTarget,
   options: ScrollToOptions = {},
-): ScrollReturn =>
+) =>
   Update.combine(model, [
     stepModel => ({
       model: modifyFields(stepModel, {
         initialScroll: () => InitialScroll.Applied(),
       }),
     }),
-    stepModel =>
-      buildScrollRequest(
-        stepModel,
-        ScrollRequest.Target({
-          target,
-          alignment: options.alignment ?? 'Start',
-        }),
-      ),
+    buildScrollRequest(
+      ScrollRequest.Target({
+        target,
+        alignment: options.alignment ?? 'Start',
+      }),
+    ),
   ])
 
 /** Programmatically scrolls the container so the row at `index` is visible.
@@ -800,7 +798,7 @@ export const scrollToIndex = (
   model: Model,
   index: number,
   options: ScrollToOptions = {},
-): ScrollReturn => scrollTo(model, ScrollTarget.Index({ index }), options)
+) => scrollTo(model, ScrollTarget.Index({ index }), options)
 
 /** Programmatically scrolls to the row whose `itemToKey` result matches
  *  `key`. The next view resolves the key against its current items. */
@@ -808,16 +806,15 @@ export const scrollToKey = (
   model: Model,
   key: string,
   options: ScrollToOptions = {},
-): ScrollReturn => scrollTo(model, ScrollTarget.Key({ key }), options)
+) => scrollTo(model, ScrollTarget.Key({ key }), options)
 
 /** Programmatically scrolls to an exact pixel offset from the start of the
  *  list. Negative offsets clamp to zero. */
-export const scrollToOffset = (model: Model, offset: number): ScrollReturn =>
+export const scrollToOffset = (model: Model, offset: number) =>
   scrollTo(model, ScrollTarget.Offset({ offset }))
 
 /** Programmatically scrolls to the end of the list. */
-export const scrollToEnd = (model: Model): ScrollReturn =>
-  scrollTo(model, ScrollTarget.End())
+export const scrollToEnd = (model: Model) => scrollTo(model, ScrollTarget.End())
 
 /** Notifies VirtualList that its parent-owned items changed. The next view
  *  resolves the stored stable-key anchor against the new items, and the
@@ -825,7 +822,7 @@ export const scrollToEnd = (model: Model): ScrollReturn =>
 export const informItemsChanged = (
   model: Model,
   itemKeys: ReadonlyArray<string>,
-): ScrollReturn => {
+) => {
   const currentKeys = HashSet.fromIterable(itemKeys)
   return Update.combine(model, [
     stepModel => ({
@@ -1276,13 +1273,26 @@ export const ObserveVirtualList = Mount.defineStream('ObserveVirtualList', {
     Message.ResizedContainer,
     Message.MeasuredRows,
   ],
-  execute: ({ element, id, viewStateChanges }) =>
+})
+/** Provides the handler for {@link ObserveVirtualList}. */
+export const ObserveVirtualListLayer = ObserveVirtualList.toLayer(
+  Effect.succeed(({ element, id, viewStateChanges }) =>
     viewStateChanges.pipe(
       Stream.switchMap(viewState =>
         viewState === 'Live' ? observeVirtualList(element, id) : Stream.never,
       ),
     ),
-})
+  ),
+)
+
+/** Mount Definitions rendered by VirtualList views. */
+export const mounts = [ObserveVirtualList]
+
+/** Provides VirtualList's Command and Mount handlers. */
+export const EffectsLayer = Layer.mergeAll(
+  CommandsLayer,
+  ObserveVirtualListLayer,
+)
 
 // VIEW
 

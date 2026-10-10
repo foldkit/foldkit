@@ -6,7 +6,7 @@ import type { Model } from '../model'
 import { isSearchRoute } from '../route'
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  searchShortcut: entry(
+  searchShortcutPresses: entry(
     'SearchShortcutPresses',
     { isSearchAvailable: Schema.Boolean },
     {
@@ -18,21 +18,23 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const SearchShortcutPressesLayer = subscriptions.searchShortcut.toLayer(
-  ({ isSearchAvailable }) =>
-    Stream.when(
-      Dom.streamFromEventFilterMapPreventDefault({
-        target: document,
-        type: 'keydown',
-        filterMapEvent: event => {
-          if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
-            return Option.some(Message.PressedSearchShortcut())
-          }
-          return Option.none()
-        },
-      }),
-      Effect.sync(() => isSearchAvailable),
+export const SearchShortcutPressesLayer =
+  subscriptions.searchShortcutPresses.toLayer(
+    Effect.succeed(({ isSearchAvailable }) =>
+      Stream.when(
+        Dom.streamFromEventFilterMapPreventDefault({
+          target: document,
+          type: 'keydown',
+          filterMapEvent: event => {
+            if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+              return Option.some(Message.PressedSearchShortcut())
+            }
+            return Option.none()
+          },
+        }),
+        Effect.sync(() => isSearchAvailable),
+      ),
     ),
-)
+  )
 
-export { SearchShortcutPressesLayer as Layer }
+export { SearchShortcutPressesLayer as EffectsLayer }

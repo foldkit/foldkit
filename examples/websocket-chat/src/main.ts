@@ -3,7 +3,7 @@ import {
   DateTime,
   Duration,
   Effect,
-  Layer as EffectLayer,
+  Layer,
   Match,
   Option,
   Predicate,
@@ -81,12 +81,6 @@ export type Message = typeof Message.Type
 
 // UPDATE
 
-type UpdateReturn = Update.Return<
-  Model,
-  Message,
-  EffectLayer.Success<typeof CommandsLayer>
->
-
 export const update = Update.make((model: Model, message: Message) =>
   Message.match(message, {
     ClickedConnect: () => ({
@@ -142,7 +136,6 @@ export const update = Update.make((model: Model, message: Message) =>
       }
 
       return Match.value(model.connection).pipe(
-        Match.withReturnType<UpdateReturn>(),
         Match.tag('Connected', () => ({
           model: modifyFields(model, {
             messageInput: () => '',
@@ -192,10 +185,12 @@ export const TimestampSentMessage = Command.define('TimestampSentMessage', {
   messages: [Message.TimestampedMessage],
 })
 
-const TimestampSentMessageLayer = TimestampSentMessage.toLayer(({ text }) =>
-  getZonedTime.pipe(
-    Effect.map(zoned =>
-      Message.TimestampedMessage({ text, zoned, isSent: true }),
+const TimestampSentMessageLayer = TimestampSentMessage.toLayer(
+  Effect.succeed(({ text }) =>
+    getZonedTime.pipe(
+      Effect.map(zoned =>
+        Message.TimestampedMessage({ text, zoned, isSent: true }),
+      ),
     ),
   ),
 )
@@ -209,12 +204,13 @@ export const TimestampReceivedMessage = Command.define(
 )
 
 const TimestampReceivedMessageLayer = TimestampReceivedMessage.toLayer(
-  ({ text }) =>
+  Effect.succeed(({ text }) =>
     getZonedTime.pipe(
       Effect.map(zoned =>
         Message.TimestampedMessage({ text, zoned, isSent: false }),
       ),
     ),
+  ),
 )
 
 export const SendMessage = Command.define('SendMessage', {
@@ -222,28 +218,32 @@ export const SendMessage = Command.define('SendMessage', {
   messages: [Message.SucceededSendMessage, Message.FailedSendMessage],
 })
 
-const SendMessageLayer = SendMessage.toLayer(({ text }) =>
-  ChatSocket.get.pipe(
-    Effect.flatMap(socket =>
-      Effect.try({
-        try: () => {
-          socket.send(text)
-          return Message.SucceededSendMessage({ text })
-        },
-        catch: error =>
-          error instanceof Error ? error.message : 'Failed to send message',
-      }),
-    ),
-    Effect.catchTag('ResourceNotAvailable', () =>
-      Effect.succeed(
-        Message.FailedSendMessage({ error: 'Socket unavailable' }),
+const SendMessageLayer = SendMessage.toLayer(
+  Effect.succeed(({ text }) =>
+    ChatSocket.get.pipe(
+      Effect.flatMap(socket =>
+        Effect.try({
+          try: () => {
+            socket.send(text)
+            return Message.SucceededSendMessage({ text })
+          },
+          catch: error =>
+            error instanceof Error ? error.message : 'Failed to send message',
+        }),
+      ),
+      Effect.catchTag('ResourceNotAvailable', () =>
+        Effect.succeed(
+          Message.FailedSendMessage({ error: 'Socket unavailable' }),
+        ),
+      ),
+      Effect.catch(error =>
+        Effect.succeed(Message.FailedSendMessage({ error })),
       ),
     ),
-    Effect.catch(error => Effect.succeed(Message.FailedSendMessage({ error }))),
   ),
 )
 
-const CommandsLayer = EffectLayer.mergeAll(
+const CommandsLayer = Layer.mergeAll(
   TimestampSentMessageLayer,
   TimestampReceivedMessageLayer,
   SendMessageLayer,
@@ -381,7 +381,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
 }))
 
 const ChatSocketMessagesLayer = subscriptions.chatSocketMessages.toLayer(
-  ({ isConnected }) =>
+  Effect.succeed(({ isConnected }) =>
     Stream.when(
       Stream.unwrap(
         ChatSocket.get.pipe(
@@ -393,9 +393,10 @@ const ChatSocketMessagesLayer = subscriptions.chatSocketMessages.toLayer(
       ),
       Effect.sync(() => isConnected),
     ),
+  ),
 )
 
-export const Layer = EffectLayer.mergeAll(
+export const EffectsLayer = Layer.mergeAll(
   CommandsLayer,
   ManageChatSocketLayer,
   ChatSocketMessagesLayer,

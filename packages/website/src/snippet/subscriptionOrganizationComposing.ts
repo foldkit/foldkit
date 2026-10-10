@@ -1,5 +1,5 @@
 // page/settings/subscription.ts
-import { Effect, Layer as EffectLayer, Option, Schema, Stream } from 'effect'
+import { Effect, Layer, Option, Schema, Stream } from 'effect'
 import { Dom, Subscription } from 'foldkit'
 
 import { Message } from './message'
@@ -15,7 +15,7 @@ const themeMenuSubscriptions = Subscription.lift(ThemeMenu.subscriptions)<
 })
 
 const localSubscriptions = Subscription.make<Model, Message>()(entry => ({
-  unsavedChangesWarning: entry(
+  unsavedChangesNavigationWarnings: entry(
     'UnsavedChangesNavigationWarnings',
     { hasUnsavedChanges: Schema.Boolean },
     {
@@ -33,21 +33,23 @@ export const subscriptions = Subscription.aggregate(
 )
 
 const UnsavedChangesNavigationWarningsLayer =
-  localSubscriptions.unsavedChangesWarning.toLayer(({ hasUnsavedChanges }) =>
-    Stream.when(
-      Dom.streamFromEventFilterMapPreventDefault({
-        target: window,
-        type: 'beforeunload',
-        filterMapEvent: event => {
-          event.returnValue = true
-          return Option.some(Message.StartedNavigationAway())
-        },
-      }),
-      Effect.sync(() => hasUnsavedChanges),
+  localSubscriptions.unsavedChangesNavigationWarnings.toLayer(
+    Effect.succeed(({ hasUnsavedChanges }) =>
+      Stream.when(
+        Dom.streamFromEventFilterMapPreventDefault({
+          target: window,
+          type: 'beforeunload',
+          filterMapEvent: event => {
+            event.returnValue = true
+            return Option.some(Message.StartedNavigationAway())
+          },
+        }),
+        Effect.sync(() => hasUnsavedChanges),
+      ),
     ),
   )
 
-export const Layer = EffectLayer.mergeAll(
-  ThemeMenu.Layer,
+export const EffectsLayer = Layer.mergeAll(
+  ThemeMenu.EffectsLayer,
   UnsavedChangesNavigationWarningsLayer,
 )

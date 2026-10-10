@@ -15,7 +15,10 @@ const Message = defineMessageUnion({
 
 const PortalToBody = Mount.define('PortalToBody', {
   messages: [Message.CompletedPortalToBody],
-  execute: ({ element }) =>
+})
+
+const PortalToBodyLayer = PortalToBody.toLayer(
+  Effect.succeed(({ element }) =>
     Effect.gen(function* () {
       yield* Effect.acquireRelease(
         Effect.sync(() => document.body.appendChild(element)),
@@ -23,7 +26,8 @@ const PortalToBody = Mount.define('PortalToBody', {
       )
       return Message.CompletedPortalToBody()
     }),
-})
+  ),
+)
 
 const overlayView = (h: HtmlBuilder<Message>): Html =>
   h.div([h.Class('fixed inset-0 bg-black/50'), h.OnMount(PortalToBody())])

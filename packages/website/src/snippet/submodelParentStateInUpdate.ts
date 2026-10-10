@@ -12,21 +12,16 @@ type Context = Readonly<{
   currentUser: User
 }>
 
-export const update = (
-  model: SettingsModel,
-  message: SettingsMessage,
-  context: Context,
-) =>
-  SettingsMessage.match<Update.Return<SettingsModel, SettingsMessage>>(
-    message,
-    {
+export const update = Update.make(
+  (model: SettingsModel, message: SettingsMessage, context: Context) =>
+    SettingsMessage.match(message, {
       ChangedTheme: ({ theme }) => ({
         model: modifyFields(model, { theme: () => theme }),
         commands: [PersistSettings({ userId: context.currentUser.id, theme })],
       }),
       // ...other arms
-    },
-  )
+    }),
+)
 
 // PARENT UPDATE
 

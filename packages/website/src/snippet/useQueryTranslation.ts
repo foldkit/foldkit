@@ -21,12 +21,17 @@ const Message = defineMessageUnion({
 
 const FetchPosts = Command.define('FetchPosts', {
   messages: [Message.CompletedFetchPosts],
-  execute: pipe(
-    fetchPosts,
-    Effect.result,
-    Effect.map(result => Message.CompletedFetchPosts({ result })),
-  ),
 })
+
+const FetchPostsLayer = FetchPosts.toLayer(
+  Effect.succeed(() =>
+    pipe(
+      fetchPosts,
+      Effect.result,
+      Effect.map(result => Message.CompletedFetchPosts({ result })),
+    ),
+  ),
+)
 
 // UPDATE
 

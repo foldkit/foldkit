@@ -51,6 +51,7 @@ export const GenerateEducationEntryId = Command.define(
 export const GenerateEducationEntryIdLayer = GenerateEducationEntryId.toLayer(
   Effect.gen(function* () {
     const crypto = yield* Crypto.Crypto
+
     return () =>
       crypto.randomUUIDv4.pipe(
         Effect.map(entryId =>
@@ -65,14 +66,16 @@ export const GenerateEducationEntryIdLayer = GenerateEducationEntryId.toLayer(
 
 // UPDATE
 
-const foldEntryOutMessage = (entryId: string) =>
-  Entry.OutMessage.match<Update.Step<Model, Message>>({
-    Removed: () => model => ({
-      model: modifyFields(model, {
-        entries: Array.filter(entry => entry.id !== entryId),
-      }),
-    }),
-  })
+const foldEntryOutMessage =
+  (entryId: string) => (outMessage: typeof Entry.OutMessage.Type) =>
+    Entry.OutMessage.match(outMessage, {
+      Removed: () =>
+        Update.makeStep((model: Model) => ({
+          model: modifyFields(model, {
+            entries: Array.filter(entry => entry.id !== entryId),
+          }),
+        })),
+    })
 
 const foldEntry = Update.foldChildAt({
   update: Entry.update,

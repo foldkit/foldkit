@@ -2,7 +2,7 @@ import {
   Array,
   Duration,
   Effect,
-  Layer as EffectLayer,
+  Layer,
   Match,
   Option,
   Schema,
@@ -104,28 +104,48 @@ export const SaveDraft = Command.define('SaveDraft', {
   messages: [Message.CompletedSaveDraft],
 })
 
-export const Layer = EffectLayer.mergeAll(
-  NavigateInternal.toLayer(({ url }) =>
+const NavigateInternalLayer = NavigateInternal.toLayer(
+  Effect.succeed(({ url }) =>
     pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
   ),
-  LoadExternal.toLayer(({ href }) =>
+)
+
+const LoadExternalLayer = LoadExternal.toLayer(
+  Effect.succeed(({ href }) =>
     load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
   ),
-  LoadCatalog.toLayer(() =>
+)
+
+const LoadCatalogLayer = LoadCatalog.toLayer(
+  Effect.succeed(() =>
     Effect.sleep(CATALOG_LATENCY).pipe(
       Effect.as(Message.CompletedLoadCatalog()),
     ),
   ),
-  LoadPainting.toLayer(({ paintingId }) =>
+)
+
+const LoadPaintingLayer = LoadPainting.toLayer(
+  Effect.succeed(({ paintingId }) =>
     Effect.sleep(PAINTING_LATENCY).pipe(
       Effect.as(Message.CompletedLoadPainting({ paintingId })),
     ),
   ),
-  SaveDraft.toLayer(({ draft }) =>
+)
+
+const SaveDraftLayer = SaveDraft.toLayer(
+  Effect.succeed(({ draft }) =>
     Effect.sleep(SAVE_LATENCY).pipe(
       Effect.as(Message.CompletedSaveDraft({ draft })),
     ),
   ),
+)
+
+export const EffectsLayer = Layer.mergeAll(
+  NavigateInternalLayer,
+  LoadExternalLayer,
+  LoadCatalogLayer,
+  LoadPaintingLayer,
+  SaveDraftLayer,
 )
 
 // UPDATE

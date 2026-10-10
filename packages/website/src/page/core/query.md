@@ -38,7 +38,7 @@ With no `args`, `Query.define` returns a Query that retains one value. In this d
 - `toLayer` supplies the fetch Effect for the generated Command. The Query definition can be reused with a different Layer.
 - `name: 'Posts'` gives the generated Command the name `FetchPosts` in DevTools and tests.
 
-Add the resulting Layer to the owning feature's `Layer` export and pass the root `AppLayer` to `Application.provide` at the entry point. Loading operations carry `FetchPosts` as a handler requirement, so an application that starts this Query cannot run without a Layer for it. The Layer can also acquire stable services while its handler is constructed; those services are available when the fetch Command executes later.
+Add the resulting Layer to the owning feature's `EffectsLayer` export and pass the root `AppLayer` to `Application.provide` at the entry point. Loading operations carry `FetchPosts` as a handler requirement, so an application that starts this Query cannot run without a Layer for it. The Effect constructor can capture stable services while the application Layer is built; those services are available when the fetch Command executes later.
 
 The `data` and `error` values must be Schema Codecs that require no encoding or decoding services. Query uses them to build its Model and completion Message Schemas.
 

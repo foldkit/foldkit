@@ -1,11 +1,16 @@
 const LoadAllNotes = Command.define('LoadAllNotes', {
   messages: [SettledLoadAllNotes],
-  execute: pipe(
-    fetchAllNotes,
-    Effect.result,
-    Effect.map(result => SettledLoadAllNotes({ result })),
-  ),
 })
+
+const LoadAllNotesLayer = LoadAllNotes.toLayer(
+  Effect.succeed(() =>
+    pipe(
+      fetchAllNotes,
+      Effect.result,
+      Effect.map(result => SettledLoadAllNotes({ result })),
+    ),
+  ),
+)
 
 Match.tagsExhaustive({
   SettledLoadAllNotes: ({ result }) => ({

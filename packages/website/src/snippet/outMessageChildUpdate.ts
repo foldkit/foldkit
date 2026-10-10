@@ -1,16 +1,14 @@
-import { type Update } from 'foldkit'
+import { Update } from 'foldkit'
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
-    message,
-    {
-      SubmittedLoginForm: () => ({
-        model,
-        commands: [Authenticate(model.email, model.password)],
-      }),
-      SucceededAuthenticate: ({ sessionId }) => ({
-        model,
-        outMessage: OutMessage.SucceededLogin({ sessionId }),
-      }),
-    },
-  )
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
+    SubmittedLoginForm: () => ({
+      model,
+      commands: [Authenticate(model.email, model.password)],
+    }),
+    SucceededAuthenticate: ({ sessionId }) => ({
+      model,
+      outMessage: OutMessage.SucceededLogin({ sessionId }),
+    }),
+  }),
+)

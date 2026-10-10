@@ -121,25 +121,29 @@ it('provides layered ManagedResource acquire and release with runtime-owned acce
 
   const withLifecycle = Application.provide(
     application,
-    managedResources.engine.toLayer({
-      acquire: () =>
-        Effect.sync(() => {
-          acquireCount += 1
-          return 7
-        }),
-      release: () =>
-        Effect.sync(() => {
-          releaseCount += 1
-        }),
-    }),
+    managedResources.engine.toLayer(
+      Effect.succeed({
+        acquire: () =>
+          Effect.sync(() => {
+            acquireCount += 1
+            return 7
+          }),
+        release: () =>
+          Effect.sync(() => {
+            releaseCount += 1
+          }),
+      }),
+    ),
   )
   const provided = Application.provide(
     withLifecycle,
-    ReadEngine.toLayer(() =>
-      Engine.get.pipe(
-        Effect.map(value => Message.CompletedReadEngine({ value })),
-        Effect.catchTag('ResourceNotAvailable', () =>
-          Effect.succeed(Message.SkippedReadEngine()),
+    ReadEngine.toLayer(
+      Effect.succeed(() =>
+        Engine.get.pipe(
+          Effect.map(value => Message.CompletedReadEngine({ value })),
+          Effect.catchTag('ResourceNotAvailable', () =>
+            Effect.succeed(Message.SkippedReadEngine()),
+          ),
         ),
       ),
     ),
@@ -198,21 +202,25 @@ it('releases an active Layer-backed ManagedResource when the runtime stops', asy
   })
   const withLifecycle = Application.provide(
     application,
-    managedResources.engine.toLayer({
-      acquire: () => Effect.succeed(7),
-      release: () =>
-        Effect.sync(() => {
-          releaseCount += 1
-        }),
-    }),
+    managedResources.engine.toLayer(
+      Effect.succeed({
+        acquire: () => Effect.succeed(7),
+        release: () =>
+          Effect.sync(() => {
+            releaseCount += 1
+          }),
+      }),
+    ),
   )
   const provided = Application.provide(
     withLifecycle,
-    ReadEngine.toLayer(() =>
-      Engine.get.pipe(
-        Effect.map(value => Message.CompletedReadEngine({ value })),
-        Effect.catchTag('ResourceNotAvailable', () =>
-          Effect.succeed(Message.SkippedReadEngine()),
+    ReadEngine.toLayer(
+      Effect.succeed(() =>
+        Engine.get.pipe(
+          Effect.map(value => Message.CompletedReadEngine({ value })),
+          Effect.catchTag('ResourceNotAvailable', () =>
+            Effect.succeed(Message.SkippedReadEngine()),
+          ),
         ),
       ),
     ),
@@ -234,4 +242,175 @@ it('releases an active Layer-backed ManagedResource when the runtime stops', asy
   }
 
   expect(releaseCount).toBe(1)
+})
+
+it('rejects registering the same ManagedResource entry under two keys', () => {
+  const resources = ManagedResource.make<Model, Message>()(entry => ({
+    engine: entry('ManageSharedEngine', Schema.Option(Schema.Null), {
+      resource: Engine,
+      modelToMaybeRequirements: () => Option.none(),
+      onAcquired: () => Message.StartedEngine(),
+      onReleased: () => Message.StoppedEngine(),
+      onAcquireError: () => Message.FailedStartEngine(),
+    }),
+  }))
+  const duplicateResources = {
+    primaryEngine: resources.engine,
+    secondaryEngine: resources.engine,
+  }
+
+  expect(() =>
+    Application.make({
+      Model,
+      init: () => ({
+        model: Model.make({
+          engine: EngineState.Off(),
+          maybeValue: Option.none(),
+        }),
+      }),
+      update,
+      view: (_model, h) => ({
+        title: 'Duplicate ManagedResource entry test',
+        body: h.div([]),
+      }),
+      managedResources: duplicateResources,
+      container,
+    }),
+  ).toThrow(
+    'ManagedResource registrations "primaryEngine" and "secondaryEngine" use the same resource tag key "Engine"',
+  )
+})
+
+it('rejects different ManagedResource handlers for the same tag', () => {
+  const duplicateResources = ManagedResource.make<Model, Message>()(entry => ({
+    primaryEngine: entry('ManagePrimaryEngine', Schema.Option(Schema.Null), {
+      resource: Engine,
+      modelToMaybeRequirements: () => Option.none(),
+      onAcquired: () => Message.StartedEngine(),
+      onReleased: () => Message.StoppedEngine(),
+      onAcquireError: () => Message.FailedStartEngine(),
+    }),
+    secondaryEngine: entry(
+      'ManageSecondaryEngine',
+      Schema.Option(Schema.Null),
+      {
+        resource: Engine,
+        modelToMaybeRequirements: () => Option.none(),
+        onAcquired: () => Message.StartedEngine(),
+        onReleased: () => Message.StoppedEngine(),
+        onAcquireError: () => Message.FailedStartEngine(),
+      },
+    ),
+  }))
+
+  expect(() =>
+    Application.makeElement({
+      Model,
+      init: () => ({
+        model: Model.make({
+          engine: EngineState.Off(),
+          maybeValue: Option.none(),
+        }),
+      }),
+      update,
+      view: (_model, h) => h.div([]),
+      managedResources: duplicateResources,
+      container,
+    }),
+  ).toThrow(
+    'ManagedResource registrations "primaryEngine" and "secondaryEngine" use the same resource tag key "Engine"',
+  )
+})
+
+it('rejects separately created ManagedResource tags with the same key', () => {
+  const FirstEngine = ManagedResource.tag<number>()('SharedEngine')
+  const SecondEngine = ManagedResource.tag<number>()('SharedEngine')
+  const duplicateResources = ManagedResource.make<Model, Message>()(entry => ({
+    firstEngine: entry('ManageFirstEngine', Schema.Option(Schema.Null), {
+      resource: FirstEngine,
+      modelToMaybeRequirements: () => Option.none(),
+      onAcquired: () => Message.StartedEngine(),
+      onReleased: () => Message.StoppedEngine(),
+      onAcquireError: () => Message.FailedStartEngine(),
+    }),
+    secondEngine: entry('ManageSecondEngine', Schema.Option(Schema.Null), {
+      resource: SecondEngine,
+      modelToMaybeRequirements: () => Option.none(),
+      onAcquired: () => Message.StartedEngine(),
+      onReleased: () => Message.StoppedEngine(),
+      onAcquireError: () => Message.FailedStartEngine(),
+    }),
+  }))
+
+  expect(() =>
+    Application.make({
+      Model,
+      init: () => ({
+        model: Model.make({
+          engine: EngineState.Off(),
+          maybeValue: Option.none(),
+        }),
+      }),
+      update,
+      view: (_model, h) => ({
+        title: 'Duplicate ManagedResource tag key test',
+        body: h.div([]),
+      }),
+      managedResources: duplicateResources,
+      container,
+    }),
+  ).toThrow(
+    'ManagedResource registrations "firstEngine" and "secondEngine" use the same resource tag key "SharedEngine"',
+  )
+})
+
+it('allows lifted handlers for distinct ManagedResource tags', () => {
+  const PrimaryEngine = ManagedResource.tag<number>()('PrimaryEngine')
+  const SecondaryEngine = ManagedResource.tag<number>()('SecondaryEngine')
+  const childResources = ManagedResource.make<Model, Message>()(entry => ({
+    primaryEngine: entry('ManagePrimaryEngine', Schema.Option(Schema.Null), {
+      resource: PrimaryEngine,
+      modelToMaybeRequirements: () => Option.none(),
+      onAcquired: () => Message.StartedEngine(),
+      onReleased: () => Message.StoppedEngine(),
+      onAcquireError: () => Message.FailedStartEngine(),
+    }),
+    secondaryEngine: entry(
+      'ManageSecondaryEngine',
+      Schema.Option(Schema.Null),
+      {
+        resource: SecondaryEngine,
+        modelToMaybeRequirements: () => Option.none(),
+        onAcquired: () => Message.StartedEngine(),
+        onReleased: () => Message.StoppedEngine(),
+        onAcquireError: () => Message.FailedStartEngine(),
+      },
+    ),
+  }))
+  const distinctResources = ManagedResource.lift(childResources)<
+    Model,
+    Message
+  >({
+    read: Option.some,
+    toParentMessage: message => message,
+  })
+
+  expect(() =>
+    Application.make({
+      Model,
+      init: () => ({
+        model: Model.make({
+          engine: EngineState.Off(),
+          maybeValue: Option.none(),
+        }),
+      }),
+      update,
+      view: (_model, h) => ({
+        title: 'Distinct ManagedResource tag test',
+        body: h.div([]),
+      }),
+      managedResources: distinctResources,
+      container,
+    }),
+  ).not.toThrow()
 })

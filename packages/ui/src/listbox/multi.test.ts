@@ -11,11 +11,11 @@ import { create, init, update } from './multi.js'
 import type { Model, ViewInputs } from './multi.js'
 import {
   AnchorListbox,
-  FocusItems,
+  FocusListboxItems,
   Message,
   OutMessage,
   PortalListboxBackdrop,
-  ScrollIntoView,
+  ScrollListboxItemIntoView,
   buttonId,
 } from './shared.js'
 
@@ -36,7 +36,10 @@ const givenClosed = Story.given(init({ id: 'test' }))
 const givenOpenMulti = Story.steps(
   givenClosed,
   Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
-  Story.Command.resolve(FocusItems, Message.CompletedFocusItems()),
+  Story.Command.resolve(
+    FocusListboxItems,
+    Message.CompletedFocusListboxItems(),
+  ),
 )
 
 describe('Listbox.Multi', () => {
@@ -111,8 +114,8 @@ describe('Listbox.Multi', () => {
             Message.ActivatedItem({ index: 2, activationTrigger: 'Keyboard' }),
           ),
           Story.Command.resolve(
-            ScrollIntoView,
-            Message.CompletedScrollIntoView(),
+            ScrollListboxItemIntoView,
+            Message.CompletedScrollListboxItemIntoView(),
           ),
           Story.message(Message.SelectedItem({ item: 'apple' })),
           Story.model(model => {

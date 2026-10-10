@@ -14,7 +14,14 @@ export {
   Message,
   OutMessage,
   FocusItem,
+  FocusItemLayer,
   ResolveKeyboardMove,
+  ResolveKeyboardMoveLayer,
+  DocumentPointerLayer,
+  DocumentEscapeLayer,
+  DocumentKeyboardLayer,
+  AutoScrollLayer,
+  EffectsLayer,
 } from './index.js'
 
 export type { InitConfig, DraggableConfig, DraggableMessage } from './index.js'

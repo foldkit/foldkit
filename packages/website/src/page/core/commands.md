@@ -22,6 +22,8 @@ Three pieces connect the work to update:
 - `WaitBeforeResetLayer` supplies the handler: wait one second, then produce `CompletedWaitBeforeReset`.
 - `WaitBeforeReset()` creates the Command value that update returns. Creating that value does not start the timer.
 
+The definition always omits `execute`. A Command definition belongs to pure application logic; its Layer supplies the effects at application assembly. `toLayer` always receives an Effect that constructs the invocation function. Use `Effect.succeed` when construction has no work to do.
+
 `Update.make` infers the handler requirements from every update branch. It does not execute Commands or change the function's behavior.
 
 The entry point supplies the handler Layer and starts the application:
@@ -68,7 +70,7 @@ Network work follows the same loop. This excerpt also uses the counter's Model. 
 
 ::Snippet{name="counterHttpCommand" label="Fetching and decoding a count"}
 
-`FetchCountLayer` looks up the application's `HttpClient` when the handler runs. `fetchCount` constructs the request, checks for a successful status, and decodes the JSON with Schema. It produces `SucceededFetchCount` with the decoded count. Update then puts that value in the Model.
+`FetchCountLayer` captures the application's `HttpClient` when its handler is constructed. `fetchCount` constructs the request, checks for a successful status, and decodes the JSON with Schema. It produces `SucceededFetchCount` with the decoded count. Update then puts that value in the Model.
 
 `Effect.catch` converts request, status, and decoding failures into `FailedFetchCount`. A failed request becomes a fact for update to handle. This small counter keeps its current count on failure; an application can store an error state and render a retry button in that branch.
 
@@ -78,7 +80,7 @@ A Command handler must convert its expected failures into declared result Messag
 
 ## Handler Layers
 
-Separating the Command definition from its handler lets update declare work without choosing how that work is implemented. Update imports `FetchCount`; application assembly supplies `FetchCountLayer` and the HTTP service it needs. A feature can expose its Commands to a parent while keeping its implementations in one composed Layer.
+Separating the Command definition from its handler lets update declare work without choosing how that work is implemented. Update imports `FetchCount`; application assembly supplies `FetchCountLayer` and the HTTP service it needs. A feature can expose its Commands to a parent while keeping its implementations in one `EffectsLayer`.
 
 The two Layers serve different purposes:
 
@@ -95,35 +97,27 @@ Compose the HTTP provider beneath the handler at the application root:
 
 ::Snippet{name="commandHttpLayer" label="Providing the HTTP service"}
 
-The entry point provides `AppLayer` to the application, as it provided the counter's `Layer` earlier. `Application.make` carries the unsatisfied requirements, `Application.provide` satisfies them, and `Runtime.run` requires a runnable application.
+The entry point provides `AppLayer` to the application, as it provided the counter's `EffectsLayer` earlier. `Application.make` carries the unsatisfied requirements, `Application.provide` satisfies them, and `Runtime.run` requires a runnable application.
 
 `Http.layer` is Foldkit's Fetch-backed client. The [Http guide](/core/http) explains its browser tracing defaults and customization. Keep the concrete provider at the root so the application and execution tests can select it, and so Commands share the same client.
 
 ### Constructing the Handler {#implementing-the-handler}
 
-`toLayer` accepts either a handler or an Effect that constructs a handler. The plain handler above looks up `HttpClient` during each invocation. An Effect constructor can capture the stable client when the application Layer is built:
+`toLayer` accepts an Effect that constructs the handler. The constructor captures dependencies when the application Layer is built, then returns the function that performs each invocation:
 
 ::Snippet{name="commandHandlerConstructor" label="Capturing a client during handler construction"}
 
 The constructor runs once at application startup and returns a function. That function calls the same `fetchCount` operation on every invocation. The HTTP request happens when the returned function runs, not while the Layer is being built.
 
-Looking up a service does not construct it. Both forms use an instance supplied by the application Layer. Choose an Effect constructor when preparing the handler requires acquisition or when capturing a stable service makes its dependency boundary clearer.
+This constructor shape gives Commands, Subscriptions, Mounts, and ManagedResources one dependency injection boundary. Services are selected once at application assembly, while each Command invocation still receives its own args and performs fresh work. Looking up a service in the constructor retrieves the instance supplied by the application Layer; it does not construct that service again.
 
-Keep changing values inside the invocation. Command args, the current time, and an active ManagedResource handle belong to the operation that uses them. Capturing a value in the constructor gives it application lifetime. [Layers](/core/layers) explains acquisition, context lookup, and provider lifetimes in depth.
+When a handler has no dependencies or setup, pass `Effect.succeed(handler)`. This keeps the same boundary without inventing construction work.
 
-### Inline Execution
-
-When the definition and implementation belong together, put the handler in `execute`:
-
-::Snippet{name="commandInlineExecution" label="Defining an inline handler"}
-
-This alternative runs the same `fetchCount` logic and can use the same HTTP test service. Its HTTP service requirement flows directly to the application. A definition with a separate handler Layer contributes a named handler requirement instead, and the handler Layer carries its own service requirements.
-
-Both forms describe work as data and produce declared result Messages. Use a separate handler Layer when application assembly should collect or select named implementations. Inline execution is useful for a small operation whose implementation belongs with its definition.
+Keep changing values inside the invocation. Command args, the current time, and an active ManagedResource handle belong to the operation that uses them. Capturing a value in the constructor gives it application lifetime. [Layers](/core/layers) explains acquisition and provider lifetimes in depth.
 
 ### Naming and Composition
 
-Name an individual handler Layer after its definition: `FetchCountLayer`. A feature with several handlers combines them under one `Layer` export, consumed through its namespace, such as `Search.Layer`. The root combines feature handlers and shared services into `AppLayer`; the entry point imports that bundle. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows the file layout and composition.
+Name an individual handler Layer after its definition: `FetchCountLayer`. A feature with several effect handlers combines them under one `EffectsLayer` export, consumed through its namespace, such as `Search.EffectsLayer`. The root combines feature effect handlers in `EffectsLayer`, shared providers in `ServicesLayer`, and both in `AppLayer`. The entry point imports `AppLayer`. The [Project Organization](/patterns/project-organization#composing-handler-layers) guide shows the file layout and composition.
 
 Give each Layer-backed Command definition a distinct name within an application. A Command accepts a Layer built from its own definition. Providing a Layer from a different definition with the same name fails when the Command runs.
 

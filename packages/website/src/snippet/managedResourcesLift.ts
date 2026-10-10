@@ -1,5 +1,5 @@
 // page/call/managedResource.ts
-import { Effect, Layer as EffectLayer, Option, Schema } from 'effect'
+import { Effect, Layer, Option, Schema } from 'effect'
 import { ManagedResource } from 'foldkit'
 
 import { Message } from './message'
@@ -28,17 +28,19 @@ const localManagedResources = ManagedResource.make<Model, Message>()(entry => ({
 }))
 
 const ManageSignalingSocketLayer =
-  localManagedResources.signalingSocket.toLayer({
-    acquire: () => Effect.try(() => new WebSocket(SIGNALING_URL)),
-    release: socket => Effect.sync(() => socket.close()),
-  })
+  localManagedResources.signalingSocket.toLayer(
+    Effect.succeed({
+      acquire: () => Effect.try(() => new WebSocket(SIGNALING_URL)),
+      release: socket => Effect.sync(() => socket.close()),
+    }),
+  )
 
 export const managedResources = ManagedResource.aggregate(
   videoCallManagedResources,
   localManagedResources,
 )
 
-export const Layer = EffectLayer.mergeAll(
-  VideoCall.Layer,
+export const EffectsLayer = Layer.mergeAll(
+  VideoCall.EffectsLayer,
   ManageSignalingSocketLayer,
 )

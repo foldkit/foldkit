@@ -6,7 +6,7 @@ import { AppLayer, mounts } from './layer'
 import { Message } from './message'
 import { Model } from './model'
 import { update } from './update'
-import { view } from './view/index'
+import { view } from './view'
 
 registerEcharts()
 

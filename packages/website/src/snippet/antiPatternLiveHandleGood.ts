@@ -1,6 +1,6 @@
 // ✅ Good: Model state controls the WebSocket's lifetime.
 
-import { Effect, Layer as EffectLayer, Schema } from 'effect'
+import { Effect, Layer, Schema } from 'effect'
 import { Command, ManagedResource } from 'foldkit'
 
 import { Message } from './message'
@@ -19,28 +19,33 @@ const managedResources = ManagedResource.make<Model, Message>()(entry => ({
   }),
 }))
 
-const ManageChatSocketLayer = managedResources.chatSocket.toLayer({
-  acquire: ({ roomId }) => Effect.try(() => new WebSocket(`/rooms/${roomId}`)),
-  release: socket => Effect.sync(() => socket.close()),
-})
+const ManageChatSocketLayer = managedResources.chatSocket.toLayer(
+  Effect.succeed({
+    acquire: ({ roomId }) =>
+      Effect.try(() => new WebSocket(`/rooms/${roomId}`)),
+    release: socket => Effect.sync(() => socket.close()),
+  }),
+)
 
 const SendChatMessage = Command.define('SendChatMessage', {
   args: { text: Schema.String },
   messages: [Message.SucceededSendChatMessage, Message.FailedSendChatMessage],
 })
 
-const SendChatMessageLayer = SendChatMessage.toLayer(({ text }) =>
-  ChatSocket.get.pipe(
-    Effect.flatMap(socket => Effect.try(() => socket.send(text))),
-    Effect.match({
-      onFailure: error =>
-        Message.FailedSendChatMessage({ error: globalThis.String(error) }),
-      onSuccess: () => Message.SucceededSendChatMessage(),
-    }),
+const SendChatMessageLayer = SendChatMessage.toLayer(
+  Effect.succeed(({ text }) =>
+    ChatSocket.get.pipe(
+      Effect.flatMap(socket => Effect.try(() => socket.send(text))),
+      Effect.match({
+        onFailure: error =>
+          Message.FailedSendChatMessage({ error: globalThis.String(error) }),
+        onSuccess: () => Message.SucceededSendChatMessage(),
+      }),
+    ),
   ),
 )
 
-export const Layer = EffectLayer.mergeAll(
+export const EffectsLayer = Layer.mergeAll(
   ManageChatSocketLayer,
   SendChatMessageLayer,
 )

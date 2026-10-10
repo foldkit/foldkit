@@ -20,6 +20,22 @@ Stateless render helpers, including Button, Input, Textarea, Select, Checkbox, S
 
 The Kind column below identifies each component category.
 
+## Application Wiring
+
+Some components use Commands, Subscriptions, or Mounts for focus, positioning, animation, and other effects. The default bundle exposes `UI.EffectsLayer` and `UI.mounts`. Merge the Layer into the application's `EffectsLayer`, and include the Mount definitions in the application's `mounts` registration.
+
+The examples below assume `./main` exports the application's Model, init, update, view, and its own handler `EffectsLayer`. Supply any external service providers beneath the combined Layer as described in [Layers](/core/layers).
+
+::Snippet{name="uiEffects" label="Providing Foldkit UI effects"}
+
+Mount registration is necessary because view and `Html` do not carry Effect requirements. Registering the complete UI Mount collection is inert for components the view never renders.
+
+Applications that need a smaller bundle can merge individual component exports such as `Dialog.EffectsLayer` and `Menu.EffectsLayer`, then collect those components' `mounts`.
+
+::Snippet{name="uiEffectsSelective" label="Providing selected UI component effects"}
+
+Component factories with instance-specific behavior return their own bundles. `Slider.forRoot(name, getTrackRoot)` returns its `EffectsLayer` and `subscriptions`; `Toast.make(name, payloadSchema)` returns the corresponding effect and Subscription exports for that Toast instance. Compose those values in the feature that owns the instance.
+
 ## Components
 
 | Component                          | Kind     | Description                                                                                                                                                                                          |

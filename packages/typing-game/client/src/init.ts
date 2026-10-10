@@ -1,22 +1,17 @@
-import { Command, type Update, Url } from 'foldkit'
+import { Command, Url } from 'foldkit'
 
 import { Message } from './message'
 import { Model } from './model'
 import { Home, Room } from './page'
 import { AppRoute, urlToAppRoute } from './route'
 
-type InitRequirements = Home.UpdateRequirements | Room.UpdateRequirements
-type InitCommands = Update.Commands<Message, InitRequirements>
-
-export const init = (
-  url: Url.Url,
-): Update.Return<Model, Message, InitRequirements> => {
+export const init = (url: Url.Url) => {
   const route = urlToAppRoute(url)
 
   const homeInit = Home.init()
   const roomInit = Room.init(route)
 
-  const commands = AppRoute.match<InitCommands>(route, {
+  const commands = AppRoute.match(route, {
     Home: () =>
       Command.mapMessages(homeInit.commands, message =>
         Message.GotHomeMessage({ message }),
@@ -28,10 +23,10 @@ export const init = (
     NotFound: () => [],
   })
 
-  const model = {
+  const model = Model.make({
     route,
     home: homeInit.model,
     room: roomInit.model,
-  }
+  })
   return { model, commands }
 }

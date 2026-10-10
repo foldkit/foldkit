@@ -1,7 +1,7 @@
 src/
 +-- entry.ts               Runtime bootstrap
 +-- application.ts         Root registrations + application assembly
-+-- layer.ts               AppLayer and alternate AppTestLayer
++-- layer.ts               EffectsLayer, ServicesLayer, and AppLayer
 +-- init.ts                App-level init
 +-- model.ts               App-level state
 +-- message.ts             App-level messages
@@ -18,7 +18,7 @@ src/
 |   +-- index.ts           Re-exports all pages
 |   +-- home/
 |   |   +-- index.ts       Re-exports Home module
-|   |   +-- layer.ts       Home handler Layer
+|   |   +-- layer.ts       Home EffectsLayer
 |   |   +-- init.ts        Home init
 |   |   +-- model.ts       Home state
 |   |   +-- message.ts     Home events

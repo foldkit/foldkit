@@ -14,7 +14,7 @@ const Model = Schema.Struct({
 type Model = typeof Model.Type
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  autoScroll: entry(
+  autoScrollDuringDrag: entry(
     'AutoScrollDuringDrag',
     {
       isDragging: Schema.Boolean,
@@ -36,28 +36,30 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-export const AutoScrollDuringDragLayer = subscriptions.autoScroll.toLayer(
-  ({ isDragging }, readDependencies) =>
-    Stream.when(
-      Stream.callback<typeof Message.AdvancedAutoScrollFrame.Type>(queue =>
-        Effect.acquireRelease(
-          Effect.sync(() => {
-            const animationFrameIdRef = { current: 0 }
-            const step = () => {
-              const { clientY } = readDependencies()
-              window.scrollBy(0, clientY > window.innerHeight - 40 ? 5 : 0)
-              Queue.offerUnsafe(queue, Message.AdvancedAutoScrollFrame())
+export const AutoScrollDuringDragLayer =
+  subscriptions.autoScrollDuringDrag.toLayer(
+    Effect.succeed(({ isDragging }, readDependencies) =>
+      Stream.when(
+        Stream.callback<typeof Message.AdvancedAutoScrollFrame.Type>(queue =>
+          Effect.acquireRelease(
+            Effect.sync(() => {
+              const animationFrameIdRef = { current: 0 }
+              const step = () => {
+                const { clientY } = readDependencies()
+                window.scrollBy(0, clientY > window.innerHeight - 40 ? 5 : 0)
+                Queue.offerUnsafe(queue, Message.AdvancedAutoScrollFrame())
+                animationFrameIdRef.current = requestAnimationFrame(step)
+              }
               animationFrameIdRef.current = requestAnimationFrame(step)
-            }
-            animationFrameIdRef.current = requestAnimationFrame(step)
-            return animationFrameIdRef
-          }),
-          animationFrameIdRef =>
-            Effect.sync(() =>
-              cancelAnimationFrame(animationFrameIdRef.current),
-            ),
-        ).pipe(Effect.flatMap(() => Effect.never)),
+              return animationFrameIdRef
+            }),
+            animationFrameIdRef =>
+              Effect.sync(() =>
+                cancelAnimationFrame(animationFrameIdRef.current),
+              ),
+          ).pipe(Effect.flatMap(() => Effect.never)),
+        ),
+        Effect.sync(() => isDragging),
       ),
-      Effect.sync(() => isDragging),
     ),
-)
+  )

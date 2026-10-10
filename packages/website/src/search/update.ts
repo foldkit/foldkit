@@ -67,10 +67,12 @@ export const ScrollToResult = Command.define('ScrollToResult', {
   messages: [Message.CompletedScrollToResult],
 })
 
-export const ScrollToResultLayer = ScrollToResult.toLayer(({ index }) =>
-  Dom.scrollIntoView(`${SEARCH_RESULT_SELECTOR}"${index}"]`).pipe(
-    Effect.ignore,
-    Effect.as(Message.CompletedScrollToResult()),
+export const ScrollToResultLayer = ScrollToResult.toLayer(
+  Effect.succeed(({ index }) =>
+    Dom.scrollIntoView(`${SEARCH_RESULT_SELECTOR}"${index}"]`).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedScrollToResult()),
+    ),
   ),
 )
 
@@ -79,27 +81,32 @@ export const NavigateToResult = Command.define('NavigateToResult', {
   messages: [Message.CompletedNavigateToResult],
 })
 
-export const NavigateToResultLayer = NavigateToResult.toLayer(({ url }) =>
-  pushUrl(url).pipe(Effect.as(Message.CompletedNavigateToResult())),
+export const NavigateToResultLayer = NavigateToResult.toLayer(
+  Effect.succeed(({ url }) =>
+    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateToResult())),
+  ),
 )
 
 export const FocusSearchInput = Command.define('FocusSearchInput', {
   messages: [Message.CompletedFocusSearchInput],
 })
 
-export const FocusSearchInputLayer = FocusSearchInput.toLayer(() =>
-  Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
-    Effect.ignore,
-    Effect.as(Message.CompletedFocusSearchInput()),
+export const FocusSearchInputLayer = FocusSearchInput.toLayer(
+  Effect.succeed(() =>
+    Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedFocusSearchInput()),
+    ),
   ),
 )
 
-const foldSearchDialogOutMessage = Dialog.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Opened: () => model => ({ model }),
-  Closed: () => model => ({ model }),
-})
+const foldSearchDialogOutMessage = (
+  outMessage: typeof Dialog.OutMessage.Type,
+) =>
+  Dialog.OutMessage.match(outMessage, {
+    Opened: () => Update.makeStep((model: Model) => ({ model })),
+    Closed: () => Update.makeStep((model: Model) => ({ model })),
+  })
 
 const foldSearchDialog = Update.foldChild({
   update: Dialog.update,
@@ -110,7 +117,7 @@ const foldSearchDialog = Update.foldChild({
   foldOutMessage: foldSearchDialogOutMessage,
 })
 
-const foldSearchDialogOpen: Update.Step<Model, Message> = Update.foldChildStep({
+const foldSearchDialogOpen = Update.foldChildStep({
   update: Dialog.open,
   read: (model: Model) => Option.some(model.dialog),
   write: (model, nextDialog) =>
@@ -240,8 +247,6 @@ export const update = Update.make((model: Model, message: Message) =>
     CompletedFocusSearchInput: () => ({ model }),
   }),
 )
-
-export type UpdateReturn = ReturnType<typeof update>
 
 export const informRouteChanged = (model: Model) =>
   Update.combine(model, [

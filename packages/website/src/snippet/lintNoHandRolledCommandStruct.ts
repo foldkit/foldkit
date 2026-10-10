@@ -1,3 +1,4 @@
+import { Effect } from 'effect'
 import { Command } from 'foldkit'
 
 // ❌ Bad
@@ -11,5 +12,8 @@ const SaveDraft = {
 // ✅ Good
 const FetchWeather = Command.define('FetchWeather', {
   messages: [SucceededFetchWeather],
-  execute: fetchWeatherEffect,
 })
+
+const FetchWeatherLayer = FetchWeather.toLayer(
+  Effect.succeed(() => fetchWeatherEffect),
+)

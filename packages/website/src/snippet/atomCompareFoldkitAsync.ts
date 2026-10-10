@@ -1,5 +1,5 @@
 import { Effect, Schema } from 'effect'
-import { AsyncData, Command, type Update } from 'foldkit'
+import { AsyncData, Command, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 import { Api, ApiLayer } from './api'
@@ -29,20 +29,29 @@ type Message = typeof Message.Type
 // Api is an Effect service; ApiLayer provides it.
 const FetchUser = Command.define('FetchUser', {
   messages: [Message.SucceededLoadUser, Message.FailedLoadUser],
-  execute: Effect.gen(function* () {
-    const api = yield* Api
-    const user = yield* api.getUser()
-    return Message.SucceededLoadUser({ user })
-  }).pipe(
-    Effect.catch(error => Effect.succeed(Message.FailedLoadUser({ error }))),
-    Effect.provide(ApiLayer),
-  ),
 })
+
+const FetchUserLayer = FetchUser.toLayer(
+  Effect.gen(function* () {
+    const api = yield* Api
+
+    return () =>
+      api.getUser().pipe(
+        Effect.map(user => Message.SucceededLoadUser({ user })),
+        Effect.catch(error =>
+          Effect.succeed(Message.FailedLoadUser({ error })),
+        ),
+      )
+  }),
+)
+
+export const EffectsLayer = FetchUserLayer
+export const ServicesLayer = ApiLayer
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedLoadUser: () => ({
       model: modifyFields(model, { user: () => UserAsyncData.Loading() }),
       commands: [FetchUser()],
@@ -57,4 +66,5 @@ export const update = (model: Model, message: Message) =>
         user: () => UserAsyncData.Failure({ error }),
       }),
     }),
-  })
+  }),
+)

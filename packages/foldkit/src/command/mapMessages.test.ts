@@ -17,7 +17,16 @@ type ParentMessage = Readonly<{
 
 const FetchNotes = Command.define('FetchNotes', {
   messages: [CompletedFetchNotes],
-  execute: Effect.succeed(CompletedFetchNotes.make({ noteCount: 3 })),
+})
+
+const FetchNotesLayer = FetchNotes.toLayer(
+  Effect.succeed(() =>
+    Effect.succeed(CompletedFetchNotes.make({ noteCount: 3 })),
+  ),
+)
+
+const FetchArchivedNotes = Command.define('FetchArchivedNotes', {
+  messages: [CompletedFetchNotes],
 })
 
 const toGotNotesMessage = (message: ChildMessage): ParentMessage => ({
@@ -29,27 +38,29 @@ const toGotNotesMessage = (message: ChildMessage): ParentMessage => ({
 // Message types, where Command stays a deferred conditional, so each compiles
 // only while the mappers are typed against Command itself rather than a
 // structural command shape.
-const liftCommands = <FromMessage, ToMessage>(
-  commands: ReadonlyArray<Command.Command<FromMessage>>,
+const liftCommands = <FromMessage, ToMessage, Requirements>(
+  commands: ReadonlyArray<Command.Command<FromMessage, never, Requirements>>,
   toParent: (message: FromMessage) => ToMessage,
-): ReadonlyArray<Command.Command<ToMessage>> =>
+): ReadonlyArray<Command.Command<ToMessage, never, Requirements>> =>
   Command.mapMessages(commands, toParent)
 
-const liftCommand = <FromMessage, ToMessage>(
-  command: Command.Command<FromMessage>,
+const liftCommand = <FromMessage, ToMessage, Requirements>(
+  command: Command.Command<FromMessage, never, Requirements>,
   toParent: (message: FromMessage) => ToMessage,
-): Command.Command<ToMessage> => Command.mapMessage(command, toParent)
+): Command.Command<ToMessage, never, Requirements> =>
+  Command.mapMessage(command, toParent)
 
-const withCrashOnFailure = <Message>(
-  command: Command.Command<Message>,
-): Command.Command<Message> => Command.mapEffect(command, Effect.orDie)
+const withCrashOnFailure = <Message, Requirements>(
+  command: Command.Command<Message, never, Requirements>,
+): Command.Command<Message, never, Requirements> =>
+  Command.mapEffect(command, Effect.orDie)
 
 describe('Command.mapMessages', () => {
   it('unifies with Command inside a combinator generic over both Message types', () => {
     const mappedCommands = liftCommands([FetchNotes()], toGotNotesMessage)
 
     const dispatchedMessages = Array.map(mappedCommands, command =>
-      Effect.runSync(command.effect),
+      Effect.runSync(command.effect.pipe(Effect.provide(FetchNotesLayer))),
     )
     expect(dispatchedMessages).toEqual([
       {
@@ -65,7 +76,9 @@ describe('Command.mapMessages', () => {
       toGotNotesMessage,
     )
     expectTypeOf(mappedCommands).toEqualTypeOf<
-      ReadonlyArray<Command.Command<ParentMessage>>
+      ReadonlyArray<
+        Command.Command<ParentMessage, never, Command.Handler<'FetchNotes'>>
+      >
     >()
   })
 
@@ -74,7 +87,26 @@ describe('Command.mapMessages', () => {
       FetchNotes(),
     ])
     expectTypeOf(mappedCommands).toEqualTypeOf<
-      ReadonlyArray<Command.Command<ParentMessage>>
+      ReadonlyArray<
+        Command.Command<ParentMessage, never, Command.Handler<'FetchNotes'>>
+      >
+    >()
+  })
+
+  it('unions handler requirements from distinct Command definitions', () => {
+    const mappedCommands = Command.mapMessages(
+      [FetchNotes(), FetchArchivedNotes()],
+      toGotNotesMessage,
+    )
+
+    expectTypeOf(mappedCommands).toEqualTypeOf<
+      ReadonlyArray<
+        Command.Command<
+          ParentMessage,
+          never,
+          Command.Handler<'FetchNotes'> | Command.Handler<'FetchArchivedNotes'>
+        >
+      >
     >()
   })
 
@@ -102,7 +134,11 @@ describe('Command.mapMessage', () => {
     const mappedCommand = liftCommand(FetchNotes(), toGotNotesMessage)
 
     expect(mappedCommand.name).toBe('FetchNotes')
-    expect(Effect.runSync(mappedCommand.effect)).toEqual({
+    expect(
+      Effect.runSync(
+        mappedCommand.effect.pipe(Effect.provide(FetchNotesLayer)),
+      ),
+    ).toEqual({
       _tag: 'GotNotesMessage',
       message: CompletedFetchNotes.make({ noteCount: 3 }),
     })
@@ -113,9 +149,11 @@ describe('Command.mapEffect', () => {
   it('unifies with Command inside a combinator generic over the Message type', () => {
     const mappedCommand = withCrashOnFailure(FetchNotes())
 
-    expect(Effect.runSync(mappedCommand.effect)).toEqual(
-      CompletedFetchNotes.make({ noteCount: 3 }),
-    )
+    expect(
+      Effect.runSync(
+        mappedCommand.effect.pipe(Effect.provide(FetchNotesLayer)),
+      ),
+    ).toEqual(CompletedFetchNotes.make({ noteCount: 3 }))
   })
 
   it('does not transform the result Message type', () => {
@@ -129,6 +167,8 @@ describe('Command.mapEffect', () => {
   it('preserves the result Message type in the curried form', () => {
     const mappedCommand = Command.mapEffect(Effect.orDie)(FetchNotes())
 
-    expectTypeOf(mappedCommand).toEqualTypeOf<Command.Command<ChildMessage>>()
+    expectTypeOf(mappedCommand).toEqualTypeOf<
+      Command.Command<ChildMessage, never, Command.Handler<'FetchNotes'>>
+    >()
   })
 })

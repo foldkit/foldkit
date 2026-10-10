@@ -202,13 +202,10 @@ The rule reports the call wherever it is written. Assigning its result to a loca
 
 Obtain time or randomness inside the Command handler instead. Use `Clock` or `Random` for time and ordinary randomness. For UUIDs and cryptographic randomness, use the `Crypto.Crypto` service and supply the platform Crypto Layer at the application root. Return the value in the result Message. An effectful handler constructor can capture the service when the application Layer builds; obtain the changing value inside the returned handler.
 
-The rule recognizes the deferred callback positions in Effect and Stream. It also recognizes these Foldkit lifecycle callbacks when they are declared inline:
+The rule recognizes the deferred callback positions in Effect and Stream. It also recognizes the handler functions returned by Foldkit effect constructors:
 
-- The single handler argument in `Definition.toLayer(handler)` for Commands, Mounts, Subscriptions, and Queries
-- `acquire` and `release` in `resource.toLayer({ acquire, release })`
-- `execute` in `Command.define`, `Mount.define`, and `Mount.defineStream`
-- `dependenciesToStream` in `Subscription.make`
-- `acquire` and `release` in `ManagedResource.make`
+- The Command, Mount, Subscription, and Query handler returned inside `Definition.toLayer(Effect<handler>)`
+- `acquire` and `release` in the handler returned inside `resource.toLayer(Effect<{ acquire, release }>)`
 
 Not every function passed to Effect is deferred. The rule still checks functions stored as Effect values, `Effect.fromOption`'s `onNone`, callbacks passed to `Effect.run*`, transform callbacks after the body of `Effect.fn` or `Effect.fnUntraced`, and callbacks passed to Effect APIs whose names end in `Eager`. It also checks the surrounding lifecycle builders and their synchronous Model projections. For example, `Subscription.make`'s builder and `modelToDependencies` are not execution callbacks.
 
@@ -296,7 +293,7 @@ Requires selection component factories, such as Combobox, Listbox, Menu, and Tab
 
 ### foldkit/mount-factory-must-use-element {#mount-factory-must-use-element}
 
-Requires a Mount's `execute` to read or write its element. If it never touches the element, the cause was misidentified and Mount is the wrong primitive.
+Requires the handler supplied by a Mount's `toLayer` constructor to read or write its element. If it never touches the element, the cause was misidentified and Mount is the wrong primitive.
 
 ::Snippet{name="lintMountFactoryMustUseElement" label="Rule: foldkit/mount-factory-must-use-element"}
 

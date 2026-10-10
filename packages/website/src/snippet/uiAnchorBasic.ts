@@ -16,7 +16,7 @@ const Message = defineMessageUnion({
 })
 
 // Mount.define takes the Definition name and a config: a Schema for the args
-// captured at mount, the result Messages, and execute. execute receives the
+// captured at mount and the result Messages. The Layer handler receives the
 // live element alongside those args. anchorSetup is a plain DOM function that
 // returns a cleanup, so it goes inside Effect.sync and the cleanup is
 // registered with Effect.acquireRelease. Construct the resource inside the
@@ -24,7 +24,10 @@ const Message = defineMessageUnion({
 const AnchorPanel = Mount.define('AnchorPanel', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchorPanel],
-  execute: ({ element, buttonId, anchor }) =>
+})
+
+const AnchorPanelLayer = AnchorPanel.toLayer(
+  Effect.succeed(({ element, buttonId, anchor }) =>
     Effect.gen(function* () {
       yield* Effect.acquireRelease(
         Effect.sync(() => anchorSetup(element, { buttonId, anchor })),
@@ -32,7 +35,8 @@ const AnchorPanel = Mount.define('AnchorPanel', {
       )
       return Message.CompletedAnchorPanel()
     }),
-})
+  ),
+)
 
 // The trigger needs a stable id, because that is what anchorSetup resolves
 // the button by. Render the panel only while it is open, and spread the Mount

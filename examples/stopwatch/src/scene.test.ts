@@ -99,7 +99,7 @@ describe('view', () => {
       { update, view, subscriptions },
       given(runningModel),
       expect(text('00:00.00')).toExist(),
-      Subscription.emit(Message.Ticked()),
+      Subscription.emit(subscriptions.stopwatchTicks, Message.Ticked()),
       Command.expectExact(DetermineTickTime({ startTime })),
       Command.resolve(
         DetermineTickTime,

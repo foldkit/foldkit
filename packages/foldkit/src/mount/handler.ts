@@ -28,7 +28,7 @@ type StreamHandlerService<Input, Message> = Readonly<{
 }>
 
 /**
- * Creates a Layer recipe from a one-shot Mount handler or an Effect that constructs one.
+ * Creates a Layer recipe from an Effect that constructs a one-shot Mount handler.
  * An Effect constructor runs once when the application Layer is built and may
  * capture shared services. The returned handler receives the rendered element
  * and executes in that element's scope. Perform DOM work inside the handler.
@@ -38,13 +38,11 @@ type StreamHandlerService<Input, Message> = Readonly<{
  */
 export interface ToEffectLayer<Name extends string, Input, Message> {
   <ExecuteRequirements, E = never, BuildRequirements = never>(
-    build:
-      | EffectHandler<Input, Message, ExecuteRequirements>
-      | Effect.Effect<
-          EffectHandler<Input, Message, ExecuteRequirements>,
-          E,
-          BuildRequirements
-        >,
+    build: Effect.Effect<
+      EffectHandler<Input, Message, ExecuteRequirements>,
+      E,
+      BuildRequirements
+    >,
   ): Layer.Layer<
     Handler<Name>,
     E,
@@ -53,7 +51,7 @@ export interface ToEffectLayer<Name extends string, Input, Message> {
 }
 
 /**
- * Creates a Layer recipe from a streaming Mount handler or an Effect that constructs one.
+ * Creates a Layer recipe from an Effect that constructs a streaming Mount handler.
  * An Effect constructor runs once when the application Layer is built and may
  * capture shared services. The returned handler receives the rendered element
  * and produces a Stream whose resources follow that element's scope.
@@ -63,13 +61,11 @@ export interface ToEffectLayer<Name extends string, Input, Message> {
  */
 export interface ToStreamLayer<Name extends string, Input, Message> {
   <StreamRequirements, E = never, BuildRequirements = never>(
-    build:
-      | StreamHandler<Input, Message, StreamRequirements>
-      | Effect.Effect<
-          StreamHandler<Input, Message, StreamRequirements>,
-          E,
-          BuildRequirements
-        >,
+    build: Effect.Effect<
+      StreamHandler<Input, Message, StreamRequirements>,
+      E,
+      BuildRequirements
+    >,
   ): Layer.Layer<
     Handler<Name>,
     E,
@@ -110,13 +106,11 @@ export const makeEffectHandler = <Name extends string, Input, Message>(
     E = never,
     BuildRequirements = never,
   >(
-    build:
-      | EffectHandler<Input, Message, ExecuteRequirements>
-      | Effect.Effect<
-          EffectHandler<Input, Message, ExecuteRequirements>,
-          E,
-          BuildRequirements
-        >,
+    build: Effect.Effect<
+      EffectHandler<Input, Message, ExecuteRequirements>,
+      E,
+      BuildRequirements
+    >,
   ): Layer.Layer<
     Handler<Name>,
     E,
@@ -128,7 +122,7 @@ export const makeEffectHandler = <Name extends string, Input, Message>(
         const context = yield* Effect.context<
           Exclude<ExecuteRequirements, Scope.Scope> | BuildRequirements
         >()
-        const handler = Effect.isEffect(build) ? yield* build : build
+        const handler = yield* build
         return { identity, context, execute: handler }
       }),
     )
@@ -172,13 +166,11 @@ export const makeStreamHandler = <Name extends string, Input, Message>(
     E = never,
     BuildRequirements = never,
   >(
-    build:
-      | StreamHandler<Input, Message, StreamRequirements>
-      | Effect.Effect<
-          StreamHandler<Input, Message, StreamRequirements>,
-          E,
-          BuildRequirements
-        >,
+    build: Effect.Effect<
+      StreamHandler<Input, Message, StreamRequirements>,
+      E,
+      BuildRequirements
+    >,
   ): Layer.Layer<
     Handler<Name>,
     E,
@@ -190,7 +182,7 @@ export const makeStreamHandler = <Name extends string, Input, Message>(
         const context = yield* Effect.context<
           Exclude<StreamRequirements, Scope.Scope> | BuildRequirements
         >()
-        const handler = Effect.isEffect(build) ? yield* build : build
+        const handler = yield* build
         return { identity, context, execute: handler }
       }),
     )

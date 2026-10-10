@@ -36,7 +36,7 @@ export const init = (config: InitConfig): Model => baseInit(config)
  *  and an optional OutMessage. Selection leaves the multi-select Listbox open
  *  and emits `Selected({ value })` for the parent to fold by toggling
  *  membership. */
-export const update = makeUpdate<Model>((model, item) => ({
+export const update = makeUpdate<Model>('KeepOpen', (model, item) => ({
   model,
   outMessage: OutMessage.Selected({ value: item }),
 }))
@@ -72,7 +72,8 @@ const internalView = makeView<Model>({ ariaMultiSelectable: true })
 type BundleUpdateReturn<Value extends string> = Update.ReturnWithOutMessage<
   Model,
   Message,
-  OutMessage<Value>
+  OutMessage<Value>,
+  Update.RequirementsOf<typeof update>
 >
 
 /** The `view`, `update`, and programmatic helpers that
@@ -103,7 +104,8 @@ export const create = <
   type UpdateReturn = Update.ReturnWithOutMessage<
     Model,
     Message,
-    OutMessage<Value>
+    OutMessage<Value>,
+    Update.RequirementsOf<typeof update>
   >
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const typedUpdate = update as (model: Model, message: Message) => UpdateReturn

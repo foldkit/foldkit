@@ -1,5 +1,6 @@
-import { Array, Layer as EffectLayer, Option } from 'effect'
+import { Array, Layer, Option } from 'effect'
 
+import * as UI from '@foldkit/ui'
 import { Slider } from '@foldkit/ui'
 
 import { CommandsLayer, GenerateAmbientParticle } from './command'
@@ -57,9 +58,12 @@ export const init = () => ({
   ),
 })
 
-export const Layer = EffectLayer.mergeAll(
+export const EffectsLayer = Layer.mergeAll(
+  UI.EffectsLayer,
   CommandsLayer,
   AnimationFrameTicksLayer,
 )
 
 export { Message, Model, subscriptions, update, view }
+
+export const mounts = UI.mounts

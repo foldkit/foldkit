@@ -22,6 +22,7 @@ export const SaveCanvas = Command.define('SaveCanvas', {
 const SaveCanvasLayer = SaveCanvas.toLayer(
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
+
     return ({ grid, gridSize, paletteThemeIndex, selectedColorIndex }) =>
       Effect.gen(function* () {
         const data: SavedCanvas = {
@@ -57,7 +58,7 @@ export const ExportPng = Command.define('ExportPng', {
 })
 
 const ExportPngLayer = ExportPng.toLayer(
-  ({ grid, gridSize, paletteThemeIndex }) =>
+  Effect.succeed(({ grid, gridSize, paletteThemeIndex }) =>
     Effect.gen(function* () {
       const theme = PALETTE_THEMES[paletteThemeIndex] ?? PALETTE_THEMES[0]
       const scale =
@@ -87,6 +88,7 @@ const ExportPngLayer = ExportPng.toLayer(
 
       return Message.SucceededExportPng()
     }).pipe(Effect.catchTag('FailedExportPng', error => Effect.succeed(error))),
+  ),
 )
 
 export const CommandsLayer = Layer.mergeAll(SaveCanvasLayer, ExportPngLayer)

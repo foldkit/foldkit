@@ -213,13 +213,13 @@ UI components export their Mount definitions (`Popover.AnchorPopover`, `Listbox.
 
 ## Subscriptions
 
-`Subscription.emit` supplies a declared Subscription output, such as a timer tick, WebSocket frame, or global listener result. Register the application's `subscriptions` in the `scene` config, then emit the raw Message to run update and render the next view. A Scene with no `subscriptions` config accepts no Subscription Message.
+`Subscription.emit` supplies a declared Subscription output, such as a timer tick, WebSocket frame, or global listener result. Register the application's `subscriptions` in the `scene` config, then pass the exact entry and its raw Message to run update and render the next view. A Scene with no `subscriptions` config accepts no Subscription Message.
 
 ::Snippet{name="testingSubscription" label="Emitting declared Subscription Messages"}
 
-Each Subscription entry's `messages` collection is its emission contract. `emit` accepts only a raw Message declared by a registered entry and validates its payload at runtime. An inline entry must declare `messages` to participate; an entry with no declaration or `messages: []` has no Message that Scene can emit.
+Each Subscription entry's `messages` collection is its emission contract. `emit(entry, message)` accepts only a raw Message declared by that registered entry and validates its payload at runtime. An entry with `messages: []` has no Message that Scene can emit.
 
-For a lifted Subscription, pass the child Message. Scene replays the entry's `toParentMessage` mapping through every lift boundary before calling the update under test. The one-argument form must match exactly one registered entry. When the same Message is declared by more than one registration, call `Subscription.emit(entry, message)` with the exact registered entry to select the path. Those registrations need distinct entry objects: assigning one entry object to two keys does not let the exact-entry form distinguish the keys, so create a separate lifted entry for each path.
+For a lifted Subscription, pass the child Message. Scene replays the entry's `toParentMessage` mapping through every lift boundary before calling the update under test. The entry argument always makes the event source explicit, including when several Subscriptions declare the same Message.
 
 `emit` supplies an output from the registered Subscription graph; it does not evaluate `modelToDependencies` against the current Model. This allows a test to represent an event that was already queued when its Subscription became inactive.
 

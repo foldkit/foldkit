@@ -9,16 +9,16 @@ import {
 import { ComputePreviewLayer } from './managedResource'
 import { TrackPageViewLayer } from './subscription'
 
-export const HandlersLayer = Layer.mergeAll(
+export const EffectsLayer = Layer.mergeAll(
   LoadUserLayer,
   TrackPageViewLayer,
   ComputePreviewLayer,
 )
 
-const ServicesLayer = Layer.mergeAll(
+export const ServicesLayer = Layer.mergeAll(
   ApiClientLayer,
   AnalyticsLayer,
   ComputeWorkerLayer,
 )
 
-export const AppLayer = Layer.provide(HandlersLayer, ServicesLayer)
+export const AppLayer = Layer.provide(EffectsLayer, ServicesLayer)

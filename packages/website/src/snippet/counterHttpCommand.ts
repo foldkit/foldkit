@@ -37,10 +37,11 @@ export const fetchCount = (client: HttpClient.HttpClient) =>
     ),
   )
 
-export const FetchCountLayer = FetchCount.toLayer(() =>
+export const FetchCountLayer = FetchCount.toLayer(
   Effect.gen(function* () {
     const client = yield* HttpClient.HttpClient
-    return yield* fetchCount(client)
+
+    return () => fetchCount(client)
   }),
 )
 

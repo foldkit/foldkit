@@ -2,8 +2,8 @@ import clsx from 'clsx'
 import {
   Array,
   Effect,
-  Layer as EffectLayer,
   Equal,
+  Layer,
   Option,
   Queue,
   Schema,
@@ -20,6 +20,7 @@ import { modifyFields } from 'foldkit/struct'
 import type { Map as MapInstance } from 'maplibre-gl'
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 
+import * as UI from '@foldkit/ui'
 import { Button, Input } from '@foldkit/ui'
 
 import { Location, featuredLocations } from './locations'
@@ -129,56 +130,60 @@ export const FlyTo = Command.define('FlyTo', {
   messages: [Message.SucceededFlyTo, Message.FailedFlyTo],
 })
 
-const FlyToLayer = FlyTo.toLayer(({ maybeHostId, lng, lat, zoom }) =>
-  Option.match(maybeHostId, {
-    onNone: () =>
-      Effect.succeed(
-        Message.FailedFlyTo({
-          reason: 'FlyTo dispatched before the map mounted.',
-        }),
-      ),
-    onSome: hostId => flyToMap(hostId, lng, lat, zoom),
-  }),
+const FlyToLayer = FlyTo.toLayer(
+  Effect.succeed(({ maybeHostId, lng, lat, zoom }) =>
+    Option.match(maybeHostId, {
+      onNone: () =>
+        Effect.succeed(
+          Message.FailedFlyTo({
+            reason: 'FlyTo dispatched before the map mounted.',
+          }),
+        ),
+      onSome: hostId => flyToMap(hostId, lng, lat, zoom),
+    }),
+  ),
 )
 
 export const Geolocate = Command.define('Geolocate', {
   messages: [Message.SucceededGeolocate, Message.FailedGeolocate],
 })
 
-const GeolocateLayer = Geolocate.toLayer(() =>
-  Effect.gen(function* () {
-    const position = yield* Effect.callback<GeolocationPosition, Error>(
-      resume => {
-        if (typeof navigator === 'undefined' || !navigator.geolocation) {
-          resume(
-            Effect.fail(
-              new Error(
-                'Geolocation is not available in this browser context.',
+const GeolocateLayer = Geolocate.toLayer(
+  Effect.succeed(() =>
+    Effect.gen(function* () {
+      const position = yield* Effect.callback<GeolocationPosition, Error>(
+        resume => {
+          if (typeof navigator === 'undefined' || !navigator.geolocation) {
+            resume(
+              Effect.fail(
+                new Error(
+                  'Geolocation is not available in this browser context.',
+                ),
               ),
-            ),
+            )
+            return
+          }
+          navigator.geolocation.getCurrentPosition(
+            position => resume(Effect.succeed(position)),
+            error => resume(Effect.fail(new Error(error.message))),
+            {
+              enableHighAccuracy: false,
+              timeout: GEOLOCATION_TIMEOUT_MS,
+            },
           )
-          return
-        }
-        navigator.geolocation.getCurrentPosition(
-          position => resume(Effect.succeed(position)),
-          error => resume(Effect.fail(new Error(error.message))),
-          {
-            enableHighAccuracy: false,
-            timeout: GEOLOCATION_TIMEOUT_MS,
-          },
-        )
-      },
-    )
-    return Message.SucceededGeolocate({
-      lng: position.coords.longitude,
-      lat: position.coords.latitude,
-    })
-  }).pipe(
-    Effect.catch(error =>
-      Effect.succeed(
-        Message.FailedGeolocate({
-          reason: error instanceof Error ? error.message : `${error}`,
-        }),
+        },
+      )
+      return Message.SucceededGeolocate({
+        lng: position.coords.longitude,
+        lat: position.coords.latitude,
+      })
+    }).pipe(
+      Effect.catch(error =>
+        Effect.succeed(
+          Message.FailedGeolocate({
+            reason: error instanceof Error ? error.message : `${error}`,
+          }),
+        ),
       ),
     ),
   ),
@@ -190,10 +195,12 @@ export const FocusSearchInput = Command.define('FocusSearchInput', {
   messages: [Message.CompletedFocusSearchInput],
 })
 
-const FocusSearchInputLayer = FocusSearchInput.toLayer(() =>
-  Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
-    Effect.ignore,
-    Effect.as(Message.CompletedFocusSearchInput()),
+const FocusSearchInputLayer = FocusSearchInput.toLayer(
+  Effect.succeed(() =>
+    Dom.focus(`#${SEARCH_INPUT_ID}`).pipe(
+      Effect.ignore,
+      Effect.as(Message.CompletedFocusSearchInput()),
+    ),
   ),
 )
 
@@ -201,25 +208,29 @@ export const LockBodyScroll = Command.define('LockBodyScroll', {
   messages: [Message.CompletedLockBodyScroll],
 })
 
-const LockBodyScrollLayer = LockBodyScroll.toLayer(() =>
-  Effect.sync(() => {
-    document.body.classList.add('overflow-hidden')
-    return Message.CompletedLockBodyScroll()
-  }),
+const LockBodyScrollLayer = LockBodyScroll.toLayer(
+  Effect.succeed(() =>
+    Effect.sync(() => {
+      document.body.classList.add('overflow-hidden')
+      return Message.CompletedLockBodyScroll()
+    }),
+  ),
 )
 
 export const UnlockBodyScroll = Command.define('UnlockBodyScroll', {
   messages: [Message.CompletedUnlockBodyScroll],
 })
 
-const UnlockBodyScrollLayer = UnlockBodyScroll.toLayer(() =>
-  Effect.sync(() => {
-    document.body.classList.remove('overflow-hidden')
-    return Message.CompletedUnlockBodyScroll()
-  }),
+const UnlockBodyScrollLayer = UnlockBodyScroll.toLayer(
+  Effect.succeed(() =>
+    Effect.sync(() => {
+      document.body.classList.remove('overflow-hidden')
+      return Message.CompletedUnlockBodyScroll()
+    }),
+  ),
 )
 
-const CommandsLayer = EffectLayer.mergeAll(
+const CommandsLayer = Layer.mergeAll(
   FlyToLayer,
   GeolocateLayer,
   FocusSearchInputLayer,
@@ -408,60 +419,6 @@ const listenToMapMovesAndMarkerClicks = (
       }),
   )
 
-const mountMap = (element: Element, hostId: string) =>
-  Stream.callback<MountMapMessage>(queue =>
-    Effect.gen(function* () {
-      if (!(element instanceof HTMLElement)) {
-        Queue.offerUnsafe(
-          queue,
-          Message.FailedMountMap({
-            reason: 'Map host is not an HTMLElement.',
-          }),
-        )
-        return yield* Effect.never
-      }
-
-      const mapResource = yield* Effect.acquireRelease(
-        Effect.gen(function* () {
-          const maplibre = yield* Effect.tryPromise(() => import('maplibre-gl'))
-          const map = yield* Effect.try({
-            try: () => {
-              maplibre.setWorkerUrl(maplibreWorkerUrl)
-              return new maplibre.Map({
-                container: element,
-                style: 'https://demotiles.maplibre.org/style.json',
-                center: [0, 20],
-                zoom: INITIAL_MAP_ZOOM,
-              })
-            },
-            catch: toMapMountError,
-          })
-          return { map, maplibre }
-        }),
-        ({ map }) => Effect.sync(() => removeMap(hostId, map)),
-      )
-      const { map, maplibre } = mapResource
-
-      yield* addLocationMarkers(map, maplibre)
-      setMap(hostId, map)
-
-      yield* listenToMapMovesAndMarkerClicks(map, queue)
-
-      Queue.offerUnsafe(queue, Message.SucceededMountMap({ hostId }))
-      Queue.offerUnsafe(queue, Message.MovedMap({ bounds: boundsFromMap(map) }))
-      return yield* Effect.never
-    }).pipe(
-      Effect.catch(error =>
-        Effect.sync(() =>
-          Queue.offerUnsafe(
-            queue,
-            Message.FailedMountMap({ reason: toMapMountError(error).message }),
-          ),
-        ),
-      ),
-    ),
-  )
-
 export const MountMap = Mount.defineStream('MountMap', {
   args: { hostId: Schema.String },
   messages: [
@@ -472,13 +429,77 @@ export const MountMap = Mount.defineStream('MountMap', {
   ],
 })
 
-export const MountMapLayer = MountMap.toLayer(({ element, hostId }) =>
-  mountMap(element, hostId),
+export const MountMapLayer = MountMap.toLayer(
+  Effect.succeed(({ element, hostId }) =>
+    Stream.callback<MountMapMessage>(queue =>
+      Effect.gen(function* () {
+        if (!(element instanceof HTMLElement)) {
+          Queue.offerUnsafe(
+            queue,
+            Message.FailedMountMap({
+              reason: 'Map host is not an HTMLElement.',
+            }),
+          )
+          return yield* Effect.never
+        }
+
+        const mapResource = yield* Effect.acquireRelease(
+          Effect.gen(function* () {
+            const maplibre = yield* Effect.tryPromise(
+              () => import('maplibre-gl'),
+            )
+            const map = yield* Effect.try({
+              try: () => {
+                maplibre.setWorkerUrl(maplibreWorkerUrl)
+                return new maplibre.Map({
+                  container: element,
+                  style: 'https://demotiles.maplibre.org/style.json',
+                  center: [0, 20],
+                  zoom: INITIAL_MAP_ZOOM,
+                })
+              },
+              catch: toMapMountError,
+            })
+            return { map, maplibre }
+          }),
+          ({ map }) => Effect.sync(() => removeMap(hostId, map)),
+        )
+        const { map, maplibre } = mapResource
+
+        yield* addLocationMarkers(map, maplibre)
+        setMap(hostId, map)
+
+        yield* listenToMapMovesAndMarkerClicks(map, queue)
+
+        Queue.offerUnsafe(queue, Message.SucceededMountMap({ hostId }))
+        Queue.offerUnsafe(
+          queue,
+          Message.MovedMap({ bounds: boundsFromMap(map) }),
+        )
+        return yield* Effect.never
+      }).pipe(
+        Effect.catch(error =>
+          Effect.sync(() =>
+            Queue.offerUnsafe(
+              queue,
+              Message.FailedMountMap({
+                reason: toMapMountError(error).message,
+              }),
+            ),
+          ),
+        ),
+      ),
+    ),
+  ),
 )
 
-export const mounts = [MountMap]
+export const mounts = [...UI.mounts, MountMap]
 
-export const Layer = EffectLayer.mergeAll(CommandsLayer, MountMapLayer)
+export const EffectsLayer = Layer.mergeAll(
+  UI.EffectsLayer,
+  CommandsLayer,
+  MountMapLayer,
+)
 
 const boundsFromMap = (map: MapInstance): Bounds => {
   const bounds = map.getBounds()

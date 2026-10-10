@@ -1,14 +1,5 @@
-import {
-  Array,
-  Effect,
-  Layer,
-  Match,
-  Number,
-  Option,
-  String,
-  pipe,
-} from 'effect'
-import { AsyncData, Command, type Update } from 'foldkit'
+import { Array, Effect, Match, Number, Option, String, pipe } from 'effect'
+import { AsyncData, Command, Update } from 'foldkit'
 import { pushUrl } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 
@@ -18,7 +9,6 @@ import { optionWhen } from '../../../optionWhen'
 import { homeRouter } from '../../../route'
 import {
   ClearSession,
-  CommandsLayer,
   CopyRoomId,
   FocusRoomPageUsernameInput,
   JoinRoom,
@@ -37,15 +27,11 @@ const NavigateHome = Command.define('NavigateHome', {
   messages: [Message.CompletedNavigateHome],
 })
 
-export const NavigateHomeLayer = NavigateHome.toLayer(() =>
-  pushUrl(homeRouter()).pipe(Effect.as(Message.CompletedNavigateHome())),
+export const NavigateHomeLayer = NavigateHome.toLayer(
+  Effect.succeed(() =>
+    pushUrl(homeRouter()).pipe(Effect.as(Message.CompletedNavigateHome())),
+  ),
 )
-
-export type UpdateRequirements =
-  | Layer.Success<typeof CommandsLayer>
-  | Command.HandlerOf<typeof NavigateHome>
-export type UpdateReturn = Update.Return<Model, Message, UpdateRequirements>
-const withUpdateReturn = Match.withReturnType<UpdateReturn>()
 
 /** Per-dispatch parent state the Room page needs from the root.
  *  `roomId` comes from the current Room route when the user is on the
@@ -55,196 +41,190 @@ export type Context = Readonly<{
   roomId: string
 }>
 
-export const update = (model: Model, message: Message, context: Context) =>
-  Message.match<UpdateReturn>(message, {
-    PressedKey: handleKeyPressed(model),
+export const update = Update.make(
+  (model: Model, message: Message, context: Context) =>
+    Message.match(message, {
+      PressedKey: handleKeyPressed(model),
 
-    ChangedUserText: ({ value }) => {
-      const maybeRoom = AsyncData.getData(model.roomAsyncData)
+      ChangedUserText: ({ value }) => {
+        const maybeRoom = AsyncData.getData(model.roomAsyncData)
 
-      const maybeGameText = pipe(
-        maybeRoom,
-        Option.flatMap(({ maybeGame }) => maybeGame),
-        Option.map(({ text }) => text),
-      )
+        const maybeGameText = pipe(
+          maybeRoom,
+          Option.flatMap(({ maybeGame }) => maybeGame),
+          Option.map(({ text }) => text),
+        )
 
-      const userGameText = validateUserTextInput(value, maybeGameText)
+        const userGameText = validateUserTextInput(value, maybeGameText)
 
-      const newCharsTyped = pipe(
-        String.length(userGameText) - String.length(model.userGameText),
-        Number.max(0),
-      )
-      const nextCharsTyped = model.charsTyped + newCharsTyped
+        const newCharsTyped = pipe(
+          String.length(userGameText) - String.length(model.userGameText),
+          Number.max(0),
+        )
+        const nextCharsTyped = model.charsTyped + newCharsTyped
 
-      const commands = pipe(
-        Option.all([
-          model.maybeSession,
-          Option.flatMap(maybeRoom, ({ maybeGame }) => maybeGame),
-        ]),
-        Option.map(([session, game]) =>
-          UpdatePlayerProgress({
-            playerId: session.player.id,
-            gameId: game.id,
-            userGameText,
-            charsTyped: nextCharsTyped,
-          }),
-        ),
-      )
-
-      return {
-        model: modifyFields(model, {
-          userGameText: () => userGameText,
-          charsTyped: () => nextCharsTyped,
-        }),
-        commands: Array.fromOption(commands),
-      }
-    },
-
-    BlurredRoomPageUsernameInput: () => ({
-      model,
-      commands: [FocusRoomPageUsernameInput()],
-    }),
-
-    ChangedRoomPageUsername: ({ value }) => ({
-      model: modifyFields(model, {
-        username: () => value,
-      }),
-    }),
-
-    SubmittedJoinRoomFromPage: () => {
-      const maybeJoinRoom = optionWhen(String.isNonEmpty(model.username), () =>
-        JoinRoom({ username: model.username, roomId: context.roomId }),
-      )
-
-      return { model, commands: Array.fromOption(maybeJoinRoom) }
-    },
-
-    UpdatedRoom: handleRoomUpdated(model),
-
-    FailedStreamRoom: ({ error: _error }) => {
-      return { model }
-    },
-
-    CompletedLoadSession: ({ maybeSession }) => {
-      const maybeFocus = optionWhen(
-        Option.isNone(maybeSession) && AsyncData.isSuccess(model.roomAsyncData),
-        () => FocusRoomPageUsernameInput(),
-      )
-      return {
-        model: modifyFields(model, {
-          maybeSession: () => maybeSession,
-        }),
-        commands: Array.fromOption(maybeFocus),
-      }
-    },
-
-    SucceededFetchRoom: ({ room }) => {
-      const maybeFocus = optionWhen(Option.isNone(model.maybeSession), () =>
-        FocusRoomPageUsernameInput(),
-      )
-      return {
-        model: modifyFields(model, {
-          roomAsyncData: () => RoomAsyncData.Success({ data: room }),
-        }),
-        commands: Array.fromOption(maybeFocus),
-      }
-    },
-
-    FailedFetchRoom: () => ({
-      model: modifyFields(model, {
-        roomAsyncData: () => RoomAsyncData.Failure({ error: 'Room not found' }),
-      }),
-    }),
-
-    ClickedCopyRoomId: () => ({
-      model,
-      commands: [CopyRoomId({ roomId: context.roomId })],
-    }),
-
-    SucceededCopyRoomId: () =>
-      model.isRoomIdCopyIndicatorVisible
-        ? { model }
-        : {
-            model: modifyFields(model, {
-              isRoomIdCopyIndicatorVisible: () => true,
+        const commands = pipe(
+          Option.all([
+            model.maybeSession,
+            Option.flatMap(maybeRoom, ({ maybeGame }) => maybeGame),
+          ]),
+          Option.map(([session, game]) =>
+            UpdatePlayerProgress({
+              playerId: session.player.id,
+              gameId: game.id,
+              userGameText,
+              charsTyped: nextCharsTyped,
             }),
-            commands: [WaitBeforeHidingRoomIdCopiedIndicator()],
-          },
+          ),
+        )
 
-    CompletedWaitBeforeHidingRoomIdCopiedIndicator: () => ({
-      model: modifyFields(model, {
-        isRoomIdCopyIndicatorVisible: () => false,
+        return {
+          model: modifyFields(model, {
+            userGameText: () => userGameText,
+            charsTyped: () => nextCharsTyped,
+          }),
+          commands: Array.fromOption(commands),
+        }
+      },
+
+      BlurredRoomPageUsernameInput: () => ({
+        model,
+        commands: [FocusRoomPageUsernameInput()],
       }),
+
+      ChangedRoomPageUsername: ({ value }) => ({
+        model: modifyFields(model, {
+          username: () => value,
+        }),
+      }),
+
+      SubmittedJoinRoomFromPage: () => {
+        const maybeJoinRoom = optionWhen(
+          String.isNonEmpty(model.username),
+          () => JoinRoom({ username: model.username, roomId: context.roomId }),
+        )
+
+        return { model, commands: Array.fromOption(maybeJoinRoom) }
+      },
+
+      UpdatedRoom: handleRoomUpdated(model),
+
+      FailedStreamRoom: ({ error: _error }) => {
+        return { model }
+      },
+
+      CompletedLoadSession: ({ maybeSession }) => {
+        const maybeFocus = optionWhen(
+          Option.isNone(maybeSession) &&
+            AsyncData.isSuccess(model.roomAsyncData),
+          () => FocusRoomPageUsernameInput(),
+        )
+        return {
+          model: modifyFields(model, {
+            maybeSession: () => maybeSession,
+          }),
+          commands: Array.fromOption(maybeFocus),
+        }
+      },
+
+      SucceededFetchRoom: ({ room }) => {
+        const maybeFocus = optionWhen(Option.isNone(model.maybeSession), () =>
+          FocusRoomPageUsernameInput(),
+        )
+        return {
+          model: modifyFields(model, {
+            roomAsyncData: () => RoomAsyncData.Success({ data: room }),
+          }),
+          commands: Array.fromOption(maybeFocus),
+        }
+      },
+
+      FailedFetchRoom: () => ({
+        model: modifyFields(model, {
+          roomAsyncData: () =>
+            RoomAsyncData.Failure({ error: 'Room not found' }),
+        }),
+      }),
+
+      ClickedCopyRoomId: () => ({
+        model,
+        commands: [CopyRoomId({ roomId: context.roomId })],
+      }),
+
+      SucceededCopyRoomId: () =>
+        model.isRoomIdCopyIndicatorVisible
+          ? { model }
+          : {
+              model: modifyFields(model, {
+                isRoomIdCopyIndicatorVisible: () => true,
+              }),
+              commands: [WaitBeforeHidingRoomIdCopiedIndicator()],
+            },
+
+      CompletedWaitBeforeHidingRoomIdCopiedIndicator: () => ({
+        model: modifyFields(model, {
+          isRoomIdCopyIndicatorVisible: () => false,
+        }),
+      }),
+
+      CompletedWaitForExitCountdownInterval: () => {
+        const nextSecondsLeft = Number.decrement(model.exitCountdownSecondsLeft)
+        const maybeTick = optionWhen(nextSecondsLeft > 0, () =>
+          WaitForExitCountdownInterval(),
+        )
+
+        return {
+          model: modifyFields(model, {
+            exitCountdownSecondsLeft: () => nextSecondsLeft,
+          }),
+          commands: Array.fromOption(maybeTick),
+        }
+      },
+
+      SucceededJoinRoom: ({ player }) => {
+        const session = { roomId: context.roomId, player }
+        return {
+          model: modifyFields(model, {
+            maybeSession: () => Option.some(session),
+          }),
+          commands: [SavePlayerSession({ session })],
+        }
+      },
+      CompletedFocusRoomPageUsernameInput: () => ({ model }),
+      CompletedFocusUserGameTextInput: () => ({ model }),
+      CompletedNavigateHome: () => ({ model }),
+      SucceededStartGame: () => ({ model }),
+      FailedStartGame: () => ({ model }),
+      CompletedUpdatePlayerProgress: () => ({ model }),
+      CompletedSavePlayerSession: () => ({ model }),
+      CompletedClearSession: () => ({ model }),
+      FailedJoinRoom: () => ({ model }),
+      FailedCopyRoomId: () => ({ model }),
     }),
-
-    CompletedWaitForExitCountdownInterval: () => {
-      const nextSecondsLeft = Number.decrement(model.exitCountdownSecondsLeft)
-      const maybeTick = optionWhen(nextSecondsLeft > 0, () =>
-        WaitForExitCountdownInterval(),
-      )
-
-      return {
-        model: modifyFields(model, {
-          exitCountdownSecondsLeft: () => nextSecondsLeft,
-        }),
-        commands: Array.fromOption(maybeTick),
-      }
-    },
-
-    SucceededJoinRoom: ({ player }) => {
-      const session = { roomId: context.roomId, player }
-      return {
-        model: modifyFields(model, {
-          maybeSession: () => Option.some(session),
-        }),
-        commands: [SavePlayerSession({ session })],
-      }
-    },
-    CompletedFocusRoomPageUsernameInput: () => ({ model }),
-    CompletedFocusUserGameTextInput: () => ({ model }),
-    CompletedNavigateHome: () => ({ model }),
-    SucceededStartGame: () => ({ model }),
-    FailedStartGame: () => ({ model }),
-    CompletedUpdatePlayerProgress: () => ({ model }),
-    CompletedSavePlayerSession: () => ({ model }),
-    CompletedClearSession: () => ({ model }),
-    FailedJoinRoom: () => ({ model }),
-    FailedCopyRoomId: () => ({ model }),
-  })
+)
 
 const handleKeyPressed =
   (model: Model) =>
-  ({ key }: { key: string }): UpdateReturn =>
+  ({ key }: { key: string }) =>
     Option.match(AsyncData.getData(model.roomAsyncData), {
       onNone: () => ({ model }),
       onSome: room =>
         Match.value(room.status).pipe(
-          withUpdateReturn,
           Match.tag('Waiting', () => whenWaiting(model, key, room)),
           Match.tag('Finished', () => whenFinished(model, key, room)),
           Match.orElse(() => ({ model })),
         ),
     })
 
-const whenWaiting = (
-  model: Model,
-  key: string,
-  room: Shared.Room,
-): UpdateReturn =>
+const whenWaiting = (model: Model, key: string, room: Shared.Room) =>
   Match.value(key).pipe(
-    withUpdateReturn,
     Match.when('Backspace', () => leaveRoom(model)),
     Match.when('Enter', handleStartGame(model, room)),
     Match.orElse(() => ({ model })),
   )
 
-const whenFinished = (
-  model: Model,
-  key: string,
-  room: Shared.Room,
-): UpdateReturn =>
+const whenFinished = (model: Model, key: string, room: Shared.Room) =>
   Match.value(key).pipe(
-    withUpdateReturn,
     Match.when('Backspace', () =>
       model.exitCountdownSecondsLeft === 0 ? leaveRoom(model) : { model },
     ),
@@ -252,7 +232,7 @@ const whenFinished = (
     Match.orElse(() => ({ model })),
   )
 
-const leaveRoom = (model: Model): UpdateReturn => ({
+const leaveRoom = (model: Model) => ({
   model: modifyFields(model, {
     maybeSession: () => Option.none(),
     roomAsyncData: () => RoomAsyncData.Loading(),
@@ -260,7 +240,7 @@ const leaveRoom = (model: Model): UpdateReturn => ({
   commands: [ClearSession(), NavigateHome()],
 })
 
-const handleStartGame = (model: Model, room: Shared.Room) => (): UpdateReturn =>
+const handleStartGame = (model: Model, room: Shared.Room) => () =>
   Option.match(model.maybeSession, {
     onSome: session => {
       const isHost = session.player.id === room.hostId
@@ -276,4 +256,6 @@ export const informJoined = (
   model: Model,
   player: Shared.Player,
   context: Context,
-): UpdateReturn => update(model, Message.SucceededJoinRoom({ player }), context)
+) => update(model, Message.SucceededJoinRoom({ player }), context)
+
+export type UpdateRequirements = Update.RequirementsOf<typeof update>

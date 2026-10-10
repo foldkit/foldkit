@@ -3,7 +3,7 @@ import { Socket } from 'effect/socket'
 import { TestClock } from 'effect/testing'
 import { describe, expect, test } from 'vitest'
 
-import { ManageChatSocketLayer, managedResources } from './main'
+import { ManageChatSocketLayer, managedResources } from '../src/main'
 
 type WebSocketEventName = 'open' | 'message' | 'error' | 'close'
 type WebSocketEventListener = (event: Socket.WebSocketEvent) => void

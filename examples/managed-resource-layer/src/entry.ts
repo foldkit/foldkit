@@ -4,7 +4,7 @@ import { Application, Runtime } from 'foldkit'
 import { BrowserCrypto } from '@effect/platform-browser'
 
 import {
-  Layer as HandlersLayer,
+  EffectsLayer,
   Message,
   Model,
   init,
@@ -13,7 +13,7 @@ import {
   view,
 } from './main'
 
-const AppLayer = Layer.provide(HandlersLayer, BrowserCrypto.layer)
+const AppLayer = Layer.provide(EffectsLayer, BrowserCrypto.layer)
 
 const application = Application.make({
   Model,

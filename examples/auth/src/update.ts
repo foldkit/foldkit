@@ -1,4 +1,4 @@
-import { Layer as EffectLayer, Match, Option } from 'effect'
+import { Match, Option } from 'effect'
 import { Update } from 'foldkit'
 import { UrlRequest } from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
@@ -6,7 +6,6 @@ import { toString as urlToString } from 'foldkit/url'
 
 import {
   ClearSession,
-  CommandsLayer,
   LoadExternal,
   LogError,
   NavigateInternal,
@@ -20,23 +19,14 @@ import { Model } from './model'
 import { LoggedIn, LoggedOut } from './page'
 import { AppRoute, urlToAppRoute } from './route'
 
-export const Layer = EffectLayer.mergeAll(CommandsLayer, LoggedOut.Layer)
-
-type CommandServices = EffectLayer.Success<typeof Layer>
-
-type UpdateReturn = Update.Return<Model, Message, CommandServices>
-const withUpdateReturn = Match.withReturnType<UpdateReturn>()
-
-const foldLoggedOutOutMessage = LoggedOut.OutMessage.match<
-  Update.Step<Model, Message, CommandServices>
->({
-  SucceededLogin:
-    ({ session }) =>
-    () => ({
-      model: LoggedIn.init(AppRoute.Dashboard(), session),
-      commands: [SaveSession({ session }), RedirectToDashboard()],
-    }),
-})
+const foldLoggedOutOutMessage = (outMessage: LoggedOut.OutMessage) =>
+  LoggedOut.OutMessage.match(outMessage, {
+    SucceededLogin: ({ session }) =>
+      Update.makeStep((_model: Model) => ({
+        model: LoggedIn.init(AppRoute.Dashboard(), session),
+        commands: [SaveSession({ session }), RedirectToDashboard()],
+      })),
+  })
 
 const foldLoggedOut = Update.foldChild({
   update: LoggedOut.update,
@@ -52,14 +42,14 @@ const foldLoggedOut = Update.foldChild({
   foldOutMessage: foldLoggedOutOutMessage,
 })
 
-const foldLoggedInOutMessage = LoggedIn.OutMessage.match<
-  Update.Step<Model, Message, CommandServices>
->({
-  RequestedLogout: () => () => ({
-    model: LoggedOut.init(AppRoute.Home()),
-    commands: [ClearSession(), RedirectToHome()],
-  }),
-})
+const foldLoggedInOutMessage = (outMessage: LoggedIn.OutMessage) =>
+  LoggedIn.OutMessage.match(outMessage, {
+    RequestedLogout: () =>
+      Update.makeStep((_model: Model) => ({
+        model: LoggedOut.init(AppRoute.Home()),
+        commands: [ClearSession(), RedirectToHome()],
+      })),
+  })
 
 const foldLoggedIn = Update.foldChild({
   update: LoggedIn.update,
@@ -76,9 +66,9 @@ const foldLoggedIn = Update.foldChild({
 })
 
 export const update = Update.make((model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+  Message.match(message, {
     ClickedLink: ({ request }) =>
-      UrlRequest.match<UpdateReturn>(request, {
+      UrlRequest.match(request, {
         Internal: ({ url }) => ({
           model,
           commands: [NavigateInternal({ url: urlToString(url) })],
@@ -93,11 +83,9 @@ export const update = Update.make((model: Model, message: Message) =>
       const route = urlToAppRoute(url)
 
       return Match.value(model).pipe(
-        withUpdateReturn,
         Match.tagsExhaustive({
           LoggedOut: loggedOutModel =>
             Match.value(route).pipe(
-              withUpdateReturn,
               Match.tag('Home', 'Login', 'NotFound', route => ({
                 model: modifyFields(loggedOutModel, { route: () => route }),
               })),
@@ -106,7 +94,6 @@ export const update = Update.make((model: Model, message: Message) =>
 
           LoggedIn: loggedInModel =>
             Match.value(route).pipe(
-              withUpdateReturn,
               Match.tag('Dashboard', 'Settings', 'NotFound', route => ({
                 model: modifyFields(loggedInModel, { route: () => route }),
               })),

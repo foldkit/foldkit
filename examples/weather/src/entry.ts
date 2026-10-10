@@ -1,16 +1,9 @@
 import { Layer } from 'effect'
 import { Application, Http, Runtime } from 'foldkit'
 
-import {
-  Layer as HandlersLayer,
-  Message,
-  Model,
-  init,
-  update,
-  view,
-} from './main'
+import { EffectsLayer, Message, Model, init, update, view } from './main'
 
-const AppLayer = Layer.provide(HandlersLayer, Http.layer)
+const AppLayer = Layer.provide(EffectsLayer, Http.layer)
 
 const application = Application.make({
   Model,

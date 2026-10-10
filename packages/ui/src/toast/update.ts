@@ -2,6 +2,7 @@ import {
   Array,
   Duration,
   Effect,
+  Layer,
   Match,
   Number,
   Option,
@@ -22,6 +23,7 @@ import {
   init as animationInit,
 } from '../animation/schema.js'
 import {
+  EffectsLayer as AnimationEffectsLayer,
   defaultLeaveCommand as animationDefaultLeaveCommand,
   update as animationUpdate,
 } from '../animation/update.js'
@@ -63,12 +65,16 @@ export const WaitBeforeDismissal = Command.define('WaitBeforeDismissal', {
     duration: Schema.DurationFromMillis,
   },
   messages: [Message.CompletedWaitBeforeDismissal],
-  execute: ({ entryId, version, duration }) =>
+})
+/** Provides the handler for {@link WaitBeforeDismissal}. */
+export const WaitBeforeDismissalLayer = WaitBeforeDismissal.toLayer(
+  Effect.succeed(({ entryId, version, duration }) =>
     Effect.gen(function* () {
       yield* Effect.sleep(duration)
       return Message.CompletedWaitBeforeDismissal({ entryId, version })
     }),
-})
+  ),
+)
 
 const DEFAULT_VARIANT: Variant = 'Info'
 
@@ -80,12 +86,25 @@ export const WaitForSwipeSettled = Command.define('WaitForSwipeSettled', {
     version: Schema.Number,
   },
   messages: [Message.CompletedWaitForSwipeSettled],
-  execute: ({ entryId, version }) =>
+})
+/** Provides the handler for {@link WaitForSwipeSettled}. */
+export const WaitForSwipeSettledLayer = WaitForSwipeSettled.toLayer(
+  Effect.succeed(({ entryId, version }) =>
     Effect.gen(function* () {
       yield* Effect.sleep(SWIPE_SETTLE_DURATION)
       return Message.CompletedWaitForSwipeSettled({ entryId, version })
     }),
-})
+  ),
+)
+
+/** @internal */
+export const CommandsLayer = Layer.mergeAll(
+  WaitBeforeDismissalLayer,
+  WaitForSwipeSettledLayer,
+)
+
+/** Provides Toast's payload-independent Command handlers. */
+export const EffectsLayer = Layer.mergeAll(CommandsLayer, AnimationEffectsLayer)
 
 /** Horizontal offset in pixels for an entry's swipe state. `Dragging`
  *  reports the distance travelled from the press point; `Dismissing` reports
@@ -137,9 +156,12 @@ const documentStylesWhileSwiping = Stream.callback<never>(() =>
  *  over the payload-specific Entry / Model / Added types so generics don't
  *  have to propagate through every helper signature.
  *
- *  @internal Consumers should use `Toast.make(PayloadSchema)`. This is
+ *  @internal Consumers should use `Toast.make(name, PayloadSchema)`. This is
  *  only exported so `index.ts` can wire the view into the bound runtime. */
-export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
+export const makeRuntime = <const Name extends string, A, I>(
+  name: Name,
+  payloadSchema: Schema.Codec<A, I>,
+) => {
   const EntrySchema = makeEntry(payloadSchema)
   const ModelSchema = makeModel(payloadSchema)
   const MessageSchema = makeMessage(payloadSchema)
@@ -151,8 +173,6 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   type Model = typeof ModelSchema.Type
   type Message = typeof MessageSchema.Type
   type OutMessage = typeof OutMessageSchema.Type
-
-  type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage>
 
   const updateEntry = (
     model: Model,
@@ -207,9 +227,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       ),
     )
 
-  const scheduleWaitBeforeDismissal = (
-    entry: Entry,
-  ): Option.Option<Command.Command<Message>> => {
+  const scheduleWaitBeforeDismissal = (entry: Entry) => {
     if (
       isEntryLeaving(entry) ||
       entry.isHovered ||
@@ -227,9 +245,8 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     }
   }
 
-  const settleSnapBack =
-    (entry: Entry): Update.Step<Model, Message> =>
-    model => {
+  const settleSnapBack = (entry: Entry) =>
+    Update.makeStep((model: Model) => {
       const nextSwipeVersion = Number.increment(entry.swipeVersion)
       const nextEntry = modifyFields(entry, {
         pendingDismissVersion: Number.increment,
@@ -244,7 +261,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           ...Array.fromOption(scheduleWaitBeforeDismissal(nextEntry)),
         ],
       }
-    }
+    })
 
   const readEntryAnimation =
     (entryId: string) =>
@@ -273,31 +290,35 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         TransitionedOut: () => OutMessageSchema.DismissedToast({ payload }),
       })
 
-  const foldEntryAnimationOutMessage: (
-    entryId: string,
-  ) => (
-    outMessage: AnimationOutMessage,
-    context: Update.FoldContext<AnimationMessage, Message>,
-  ) => Update.Step<Model, Message> =
-    entryId =>
-    (outMessage, { liftCommand }) =>
-      AnimationOutMessage.match<Update.Step<Model, Message>>(outMessage, {
-        StartedLeaveAnimating: () => model =>
-          Option.match(readEntryAnimation(entryId)(model), {
-            onNone: () => ({ model }),
-            onSome: animation => ({
-              model,
-              commands: [liftCommand(animationDefaultLeaveCommand(animation))],
+  const foldEntryAnimationOutMessage =
+    (entryId: string) =>
+    (
+      outMessage: AnimationOutMessage,
+      { liftCommand }: Update.FoldContext<AnimationMessage, Message>,
+    ) =>
+      AnimationOutMessage.match(outMessage, {
+        StartedLeaveAnimating: () =>
+          Update.makeStep((model: Model) =>
+            Option.match(readEntryAnimation(entryId)(model), {
+              onNone: () => ({ model }),
+              onSome: animation => ({
+                model,
+                commands: [
+                  liftCommand(animationDefaultLeaveCommand(animation)),
+                ],
+              }),
             }),
-          }),
-        TransitionedOut: () => model => ({
-          model: removeEntry(model, entryId),
-        }),
+          ),
+        TransitionedOut: () =>
+          Update.makeStep((model: Model) => ({
+            model: removeEntry(model, entryId),
+          })),
       })
 
   const foldEntryAnimation = (entry: Entry) =>
     Update.foldChild({
-      update: animationUpdate,
+      update: (animation: AnimationModel, message: AnimationMessage) =>
+        animationUpdate(animation, message),
       read: readEntryAnimation(entry.id),
       write: writeEntryAnimation(entry.id),
       toParentMessage: toGotAnimationMessage(entry.id),
@@ -327,7 +348,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     model: Model,
     entryId: string,
     animationMessage: AnimationMessage,
-  ): UpdateReturn =>
+  ) =>
     Option.match(
       Array.findFirst(model.entries, ({ id }) => id === entryId),
       {
@@ -381,8 +402,8 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   /** Processes a Toast Message and returns the next Model, optional Commands,
    *  and an optional `DismissedToast` OutMessage emitted once an entry has
    *  finished its leave animation. */
-  const update = (model: Model, message: Message) =>
-    MessageSchema.match<UpdateReturn>(message, {
+  const update = Update.make((model: Model, message: Message) =>
+    MessageSchema.match(message, {
       Added: ({ entry }) => {
         return Update.combine(model, [
           stepModel => ({
@@ -621,18 +642,19 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
       GotAnimationMessage: ({ entryId, message: animationMessage }) =>
         delegateToEntryAnimation(model, entryId, animationMessage),
-    })
+    }),
+  )
 
   /** Adds a new toast entry. */
-  const show = (model: Model, input: ShowInput<A>): UpdateReturn =>
+  const show = (model: Model, input: ShowInput<A>) =>
     update(model, MessageSchema.Added({ entry: createEntry(model, input) }))
 
   /** Begins dismissing a specific entry. */
-  const dismiss = (model: Model, entryId: string): UpdateReturn =>
+  const dismiss = (model: Model, entryId: string) =>
     update(model, MessageSchema.Dismissed({ entryId }))
 
   /** Begins dismissing every currently-visible entry. */
-  const dismissAll = (model: Model): UpdateReturn =>
+  const dismissAll = (model: Model) =>
     update(model, MessageSchema.DismissedAll())
 
   const swipeDependencies = (model: Model) => ({
@@ -647,6 +669,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
   const subscriptions = Subscription.make<Model, Message>()(entry => ({
     swipePointer: entry(
+      `${name}SwipePointer`,
       {
         isSwipeEnabled: Schema.Boolean,
         isAnyDragging: Schema.Boolean,
@@ -658,48 +681,11 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           MessageSchema.CancelledSwipe,
         ],
         modelToDependencies: swipeDependencies,
-        dependenciesToStream: ({ isSwipeEnabled, isAnyDragging }) => {
-          const pointerMoveStream = Dom.streamFromEvent({
-            target: document,
-            type: 'pointermove',
-            mapEvent: event =>
-              MessageSchema.MovedSwipePointer({
-                pointerId: event.pointerId,
-                clientX: event.clientX,
-              }),
-          })
-          const pointerUpStream = Dom.streamFromEvent({
-            target: document,
-            type: 'pointerup',
-            mapEvent: event =>
-              MessageSchema.ReleasedSwipePointer({
-                pointerId: event.pointerId,
-                clientX: event.clientX,
-              }),
-          })
-          const pointerCancelStream = Dom.streamFromEvent({
-            target: document,
-            type: 'pointercancel',
-            mapEvent: event =>
-              MessageSchema.CancelledSwipe({ pointerId: event.pointerId }),
-          })
-          const pointerMessages = Stream.mergeAll<
-            SwipePointerMessage,
-            never,
-            never
-          >([pointerMoveStream, pointerUpStream, pointerCancelStream], {
-            concurrency: 'unbounded',
-          })
-
-          return Stream.when(
-            Stream.merge(pointerMessages, documentStylesWhileSwiping),
-            Effect.sync(() => isSwipeEnabled && isAnyDragging),
-          )
-        },
       },
     ),
 
     swipeEscape: entry(
+      `${name}SwipeEscape`,
       {
         isSwipeEnabled: Schema.Boolean,
         isAnyDragging: Schema.Boolean,
@@ -707,22 +693,77 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       {
         messages: [MessageSchema.PressedEscape],
         modelToDependencies: swipeDependencies,
-        dependenciesToStream: ({ isSwipeEnabled, isAnyDragging }) =>
-          Stream.when(
-            Dom.streamFromEventFilterMap({
-              target: document,
-              type: 'keydown',
-              filterMapEvent: event =>
-                pipe(
-                  Option.liftPredicate(event.key, key => key === 'Escape'),
-                  Option.map(() => MessageSchema.PressedEscape()),
-                ),
-            }),
-            Effect.sync(() => isSwipeEnabled && isAnyDragging),
-          ),
       },
     ),
   }))
+
+  /** Provides the pointer handler for `subscriptions.swipePointer`. */
+  const SwipePointerLayer = subscriptions.swipePointer.toLayer(
+    Effect.succeed(({ isSwipeEnabled, isAnyDragging }) => {
+      const pointerMoveStream = Dom.streamFromEvent({
+        target: document,
+        type: 'pointermove',
+        mapEvent: event =>
+          MessageSchema.MovedSwipePointer({
+            pointerId: event.pointerId,
+            clientX: event.clientX,
+          }),
+      })
+      const pointerUpStream = Dom.streamFromEvent({
+        target: document,
+        type: 'pointerup',
+        mapEvent: event =>
+          MessageSchema.ReleasedSwipePointer({
+            pointerId: event.pointerId,
+            clientX: event.clientX,
+          }),
+      })
+      const pointerCancelStream = Dom.streamFromEvent({
+        target: document,
+        type: 'pointercancel',
+        mapEvent: event =>
+          MessageSchema.CancelledSwipe({ pointerId: event.pointerId }),
+      })
+      const pointerMessages = Stream.mergeAll<
+        SwipePointerMessage,
+        never,
+        never
+      >([pointerMoveStream, pointerUpStream, pointerCancelStream], {
+        concurrency: 'unbounded',
+      })
+
+      return Stream.when(
+        Stream.merge(pointerMessages, documentStylesWhileSwiping),
+        Effect.sync(() => isSwipeEnabled && isAnyDragging),
+      )
+    }),
+  )
+
+  /** Provides the keyboard handler for `subscriptions.swipeEscape`. */
+  const SwipeEscapeLayer = subscriptions.swipeEscape.toLayer(
+    Effect.succeed(({ isSwipeEnabled, isAnyDragging }) =>
+      Stream.when(
+        Dom.streamFromEventFilterMap({
+          target: document,
+          type: 'keydown',
+          filterMapEvent: event =>
+            pipe(
+              Option.liftPredicate(event.key, key => key === 'Escape'),
+              Option.map(() => MessageSchema.PressedEscape()),
+            ),
+        }),
+        Effect.sync(() => isSwipeEnabled && isAnyDragging),
+      ),
+    ),
+  )
+
+  /** Provides this Toast instance's Command and Subscription handlers. */
+  const EffectsLayer = Layer.mergeAll(
+    CommandsLayer,
+    SwipePointerLayer,
+    SwipeEscapeLayer,
+    AnimationEffectsLayer,
+  )
 
   return {
     Entry: EntrySchema,
@@ -737,6 +778,9 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     dismiss,
     dismissAll,
     subscriptions,
+    SwipePointerLayer,
+    SwipeEscapeLayer,
+    EffectsLayer,
     swipeOffset,
-  } as const
+  }
 }

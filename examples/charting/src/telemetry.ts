@@ -318,6 +318,7 @@ export const makeFetchRawTelemetry = Effect.gen(function* () {
   const github = yield* GitHubApi
   const npm = yield* NpmApi
   const clock = yield* Clock.Clock
+
   return () =>
     Effect.gen(function* () {
       const fetchedAt = yield* clock.currentTimeMillis

@@ -1,10 +1,10 @@
-import { Array, Effect, Number, Schema } from 'effect'
+import { Array, Effect, Layer, Number, Schema } from 'effect'
 
 import * as Command from '../../command/index.js'
 import type { Html, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
-import type * as Update from '../../update/index.js'
+import * as Update from '../../update/index.js'
 
 // MODEL
 
@@ -36,15 +36,24 @@ export type Message = typeof Message.Type
 
 export const FetchCount = Command.define('FetchCount', {
   messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
-  execute: Effect.sync(() => Message.SucceededFetchCount({ count: 0 })),
 })
+
+export const FetchCountLayer = FetchCount.toLayer(
+  Effect.succeed(() =>
+    Effect.sync(() => Message.SucceededFetchCount({ count: 0 })),
+  ),
+)
 
 export const FetchCountById = Command.define('FetchCountById', {
   args: { id: Schema.Number },
   messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
-  execute: ({ id }) =>
-    Effect.sync(() => Message.SucceededFetchCount({ count: id })),
 })
+
+export const FetchCountByIdLayer = FetchCountById.toLayer(
+  Effect.succeed(({ id }) =>
+    Effect.sync(() => Message.SucceededFetchCount({ count: id })),
+  ),
+)
 
 // INIT
 
@@ -52,8 +61,8 @@ export const initialModel: Model = { count: 0, log: [] }
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedIncrement: () => ({
       model: modifyFields(model, { count: Number.increment }),
     }),
@@ -91,7 +100,8 @@ export const update = (model: Model, message: Message) =>
       }),
     }),
     FailedFetchCount: () => ({ model }),
-  })
+  }),
+)
 
 // VIEW
 
@@ -111,3 +121,5 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
     ],
   )
 }
+
+export const EffectsLayer = Layer.mergeAll(FetchCountLayer, FetchCountByIdLayer)

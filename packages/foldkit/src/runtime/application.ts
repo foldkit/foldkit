@@ -221,6 +221,40 @@ const assertDistinctHandlerNames = (
   }
 }
 
+const assertDistinctManagedResourceKeys = (
+  entries: Readonly<Record<string, unknown>>,
+): void => {
+  const registrations = new Map<string, string>()
+
+  for (const [registrationKey, entry] of globalThis.Object.entries(entries)) {
+    if (!Predicate.isObject(entry)) {
+      continue
+    }
+
+    const { resource } = entry
+
+    if (!Predicate.isObject(resource)) {
+      continue
+    }
+
+    const { key: resourceKey } = resource
+
+    if (!Predicate.isString(resourceKey)) {
+      continue
+    }
+
+    const previousRegistrationKey = registrations.get(resourceKey)
+
+    if (previousRegistrationKey !== undefined) {
+      throw new Error(
+        `[foldkit] ManagedResource registrations "${previousRegistrationKey}" and "${registrationKey}" use the same resource tag key "${resourceKey}". Give each lifecycle owner a distinct ManagedResource tag key.`,
+      )
+    }
+
+    registrations.set(resourceKey, registrationKey)
+  }
+}
+
 const assertDistinctMountNames = (
   mounts: ReadonlyArray<LayeredMountDefinition>,
 ): void => {
@@ -443,6 +477,7 @@ export function make(
   }
 
   if (config.managedResources) {
+    assertDistinctManagedResourceKeys(config.managedResources)
     assertDistinctHandlerNames('ManagedResource', config.managedResources)
   }
 
@@ -524,6 +559,7 @@ export function makeElement(
   }
 
   if (config.managedResources) {
+    assertDistinctManagedResourceKeys(config.managedResources)
     assertDistinctHandlerNames('ManagedResource', config.managedResources)
   }
 
@@ -555,35 +591,30 @@ export function makeElement(
 export const provide: {
   <Provided, E, Needed>(
     layer: Layer.Layer<Provided, E, Needed>,
-  ): <
-    P extends Ports | undefined,
-    Flags,
-    CurrentRequirements,
-    RuntimeServices,
-    ProvidedServices,
-    Kind extends 'Application' | 'Element',
-  >(
-    application: PendingApplication<
-      P,
-      Flags,
-      CurrentRequirements,
-      RuntimeServices,
-      ProvidedServices,
-      Kind
-    >,
-  ) => Program<
-    P,
-    Flags,
-    ResidualRequirements<
-      CurrentRequirements,
-      Provided,
-      Needed,
-      RuntimeServices
-    >,
-    RuntimeServices,
-    ProvidedServices | Provided,
-    Kind
+  ): <ApplicationProgram extends Readonly<{ ports: Ports | undefined }>>(
+    application: ApplicationProgram,
+  ) => ApplicationProgram extends PendingApplication<
+    infer P,
+    infer Flags,
+    infer CurrentRequirements,
+    infer RuntimeServices,
+    infer ProvidedServices,
+    infer Kind
   >
+    ? Program<
+        P,
+        Flags,
+        ResidualRequirements<
+          CurrentRequirements,
+          Provided,
+          Needed,
+          RuntimeServices
+        >,
+        RuntimeServices,
+        ProvidedServices | Provided,
+        Kind
+      >
+    : never
   <
     P extends Ports | undefined,
     Flags,

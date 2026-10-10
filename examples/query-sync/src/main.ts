@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import {
   Array,
   Effect,
-  Layer as EffectLayer,
+  Layer,
   Match,
   Option,
   Order,
@@ -21,6 +21,7 @@ import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
+import * as UI from '@foldkit/ui'
 import { Button, Input, Listbox } from '@foldkit/ui'
 import { AnchorConfig } from '@foldkit/ui/listbox'
 
@@ -265,44 +266,52 @@ const LoadExternal = Command.define('LoadExternal', {
   messages: [Message.CompletedLoadExternal],
 })
 
-export const Layer = EffectLayer.mergeAll(
-  ReplaceFilters.toLayer(fields =>
+const ReplaceFiltersLayer = ReplaceFilters.toLayer(
+  Effect.succeed(fields =>
     replaceUrl(browseRouter(fields)).pipe(
       Effect.as(Message.CompletedReplaceFilters()),
     ),
   ),
-  NavigateInternal.toLayer(({ url }) =>
+)
+
+const NavigateInternalLayer = NavigateInternal.toLayer(
+  Effect.succeed(({ url }) =>
     pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
   ),
-  LoadExternal.toLayer(({ href }) =>
+)
+
+const LoadExternalLayer = LoadExternal.toLayer(
+  Effect.succeed(({ href }) =>
     load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
   ),
 )
 
-type UpdateRequirements = EffectLayer.Success<typeof Layer>
-type UpdateReturn = Update.Return<Model, Message, UpdateRequirements>
+export const EffectsLayer = Layer.mergeAll(
+  UI.EffectsLayer,
+  ReplaceFiltersLayer,
+  NavigateInternalLayer,
+  LoadExternalLayer,
+)
 
 const DietListbox = Listbox.create<string>()
 const PeriodListbox = Listbox.create<string>()
 
-const foldDietListboxOutMessage = Listbox.OutMessage.match<
-  Update.Step<Model, Message, UpdateRequirements>
->({
-  Selected:
-    ({ value }) =>
-    model => {
-      const fields = routeToBrowseFields(model.route)
-      return {
-        model,
-        commands: [
-          ReplaceFilters({
-            ...fields,
-            diet: selectionToParam(Option.some(value), Diet),
-          }),
-        ],
-      }
-    },
-})
+const foldDietListboxOutMessage = (outMessage: Listbox.OutMessage<string>) =>
+  Listbox.OutMessage.match(outMessage, {
+    Selected: ({ value }) =>
+      Update.makeStep((model: Model) => {
+        const fields = routeToBrowseFields(model.route)
+        return {
+          model,
+          commands: [
+            ReplaceFilters({
+              ...fields,
+              diet: selectionToParam(Option.some(value), Diet),
+            }),
+          ],
+        }
+      }),
+  })
 
 const foldDietListbox = Update.foldChild({
   update: DietListbox.update,
@@ -313,24 +322,22 @@ const foldDietListbox = Update.foldChild({
   foldOutMessage: foldDietListboxOutMessage,
 })
 
-const foldPeriodListboxOutMessage = Listbox.OutMessage.match<
-  Update.Step<Model, Message, UpdateRequirements>
->({
-  Selected:
-    ({ value }) =>
-    model => {
-      const fields = routeToBrowseFields(model.route)
-      return {
-        model,
-        commands: [
-          ReplaceFilters({
-            ...fields,
-            period: selectionToParam(Option.some(value), Period),
-          }),
-        ],
-      }
-    },
-})
+const foldPeriodListboxOutMessage = (outMessage: Listbox.OutMessage<string>) =>
+  Listbox.OutMessage.match(outMessage, {
+    Selected: ({ value }) =>
+      Update.makeStep((model: Model) => {
+        const fields = routeToBrowseFields(model.route)
+        return {
+          model,
+          commands: [
+            ReplaceFilters({
+              ...fields,
+              period: selectionToParam(Option.some(value), Period),
+            }),
+          ],
+        }
+      }),
+  })
 
 const foldPeriodListbox = Update.foldChild({
   update: PeriodListbox.update,
@@ -342,13 +349,13 @@ const foldPeriodListbox = Update.foldChild({
 })
 
 export const update = Update.make((model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+  Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
     CompletedReplaceFilters: () => ({ model }),
 
     ClickedLink: ({ request }) =>
-      UrlRequest.match<UpdateReturn>(request, {
+      UrlRequest.match(request, {
         Internal: ({ url }) => ({
           model,
           commands: [NavigateInternal({ url: urlToString(url) })],
@@ -898,3 +905,5 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
 
   return { title: routeTitle(model.route), body }
 }
+
+export const mounts = UI.mounts

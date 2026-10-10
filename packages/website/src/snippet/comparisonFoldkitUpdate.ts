@@ -1,7 +1,7 @@
-import { type Update } from 'foldkit'
+import { Update } from 'foldkit'
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.make((model: Model, message: Message) =>
+  Message.match(message, {
     PressedCell: ({ x, y }) =>
       Match.value(model.tool).pipe(
         withUpdateReturn,
@@ -36,4 +36,5 @@ export const update = (model: Model, message: Message) =>
         },
       }),
     // ... 23 more handlers
-  })
+  }),
+)

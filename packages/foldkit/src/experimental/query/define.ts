@@ -1,47 +1,19 @@
 import { Predicate } from 'effect'
 
 import {
-  type KeyedQuery,
   type KeyedQueryConfig,
   type LayeredKeyedQuery,
-  type LayeredKeyedQueryConfig,
   type SyncFields,
   defineKeyedQuery,
 } from './keyedQuery.js'
-import {
-  type LayeredQuery,
-  type LayeredQueryConfig,
-  type Query,
-  type QueryConfig,
-  defineQuery,
-} from './query.js'
+import { type LayeredQuery, type QueryConfig, defineQuery } from './query.js'
 
 type DefineConfig =
-  | (QueryConfig<string, unknown, unknown, unknown, unknown, any> & {
+  | (QueryConfig<string, unknown, unknown, unknown, unknown> & {
       readonly args?: never
       readonly toKey?: never
     })
-  | KeyedQueryConfig<
-      string,
-      unknown,
-      unknown,
-      unknown,
-      unknown,
-      SyncFields,
-      any
-    >
-  | (LayeredQueryConfig<string, unknown, unknown, unknown, unknown> & {
-      readonly args?: never
-      readonly toKey?: never
-    })
-  | LayeredKeyedQueryConfig<
-      string,
-      unknown,
-      unknown,
-      unknown,
-      unknown,
-      SyncFields
-    >
+  | KeyedQueryConfig<string, unknown, unknown, unknown, unknown, SyncFields>
 
 const isKeyedQueryConfig = (
   config: DefineConfig,
@@ -53,6 +25,11 @@ const isKeyedQueryConfig = (
  * Model. Add `args` to define a {@link KeyedQuery}; omit them to define a
  * {@link Query}.
  *
+ * The returned Query exposes `toLayer`, which accepts an Effect that constructs
+ * its fetch handler. The constructor runs when the application Layer is built;
+ * the returned fetch runs lazily for each Query operation. A KeyedQuery handler
+ * receives the declared args, while a Query handler receives no arguments.
+ *
  * @experimental Ships from `foldkit/experimental/query`; expect breaking changes while the API settles.
  */
 export function define<
@@ -62,28 +39,11 @@ export function define<
   E,
   EI,
   Fields extends SyncFields,
-  R = never,
 >(
-  config: KeyedQueryConfig<Name, A, AI, E, EI, Fields, R>,
-): KeyedQuery<Name, A, AI, E, EI, Fields, R>
-export function define<
-  Name extends string,
-  A,
-  AI,
-  E,
-  EI,
-  Fields extends SyncFields,
->(
-  config: LayeredKeyedQueryConfig<Name, A, AI, E, EI, Fields>,
+  config: KeyedQueryConfig<Name, A, AI, E, EI, Fields>,
 ): LayeredKeyedQuery<Name, A, AI, E, EI, Fields>
-export function define<Name extends string, A, AI, E, EI, R = never>(
-  config: QueryConfig<Name, A, AI, E, EI, R> & {
-    readonly args?: never
-    readonly toKey?: never
-  },
-): Query<Name, A, AI, E, EI, R>
 export function define<Name extends string, A, AI, E, EI>(
-  config: LayeredQueryConfig<Name, A, AI, E, EI> & {
+  config: QueryConfig<Name, A, AI, E, EI> & {
     readonly args?: never
     readonly toKey?: never
   },

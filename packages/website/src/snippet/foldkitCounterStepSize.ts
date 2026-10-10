@@ -28,23 +28,29 @@ type Message = typeof Message.Type
 // SUBSCRIPTION
 
 const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  tick: entry(
+  gameClockTicks: entry(
+    'GameClockTicks',
     { isAutoCounting: Schema.Boolean },
     {
+      messages: [Message.Ticked],
       modelToDependencies: model => ({
         isAutoCounting: model.isAutoCounting,
       }),
-      dependenciesToStream: ({ isAutoCounting }) =>
-        Stream.when(
-          Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
-            Stream.drop(1),
-            Stream.map(Message.Ticked),
-          ),
-          Effect.sync(() => isAutoCounting),
-        ),
     },
   ),
 }))
+
+const GameClockTicksLayer = subscriptions.gameClockTicks.toLayer(
+  Effect.succeed(({ isAutoCounting }) =>
+    Stream.when(
+      Stream.tick(Duration.millis(TICK_INTERVAL_MS)).pipe(
+        Stream.drop(1),
+        Stream.map(Message.Ticked),
+      ),
+      Effect.sync(() => isAutoCounting),
+    ),
+  ),
+)
 
 // UPDATE
 

@@ -35,23 +35,29 @@ type Message = typeof Message.Type
 const Search = Command.define('Search', {
   args: { query: Schema.String },
   messages: [Message.SettledSearch],
-  execute: ({ query }) =>
-    pipe(
-      Effect.gen(function* () {
-        const client = yield* HttpClient.HttpClient
-        const request = HttpClientRequest.get('/api/search').pipe(
-          HttpClientRequest.setUrlParams({ q: query }),
-        )
-        const response = yield* client.execute(request)
-        return yield* Schema.decodeUnknownEffect(Schema.Array(SearchResult))(
-          yield* response.json,
-        )
-      }),
-      Effect.mapError(error => String(error)),
-      Effect.result,
-      Effect.map(result => Message.SettledSearch({ query, result })),
-    ),
 })
+
+const SearchLayer = Search.toLayer(
+  Effect.gen(function* () {
+    const client = yield* HttpClient.HttpClient
+
+    return ({ query }) =>
+      pipe(
+        Effect.gen(function* () {
+          const request = HttpClientRequest.get('/api/search').pipe(
+            HttpClientRequest.setUrlParams({ q: query }),
+          )
+          const response = yield* client.execute(request)
+          return yield* Schema.decodeUnknownEffect(Schema.Array(SearchResult))(
+            yield* response.json,
+          )
+        }),
+        Effect.mapError(error => String(error)),
+        Effect.result,
+        Effect.map(result => Message.SettledSearch({ query, result })),
+      )
+  }),
+)
 
 // UPDATE
 

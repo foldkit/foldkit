@@ -3,11 +3,10 @@ import {
   Clock,
   Duration,
   Effect,
-  Layer as EffectLayer,
   HashMap,
+  Layer,
   Match,
   Option,
-  Random,
   Schema,
   Stream,
   pipe,
@@ -17,6 +16,7 @@ import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
+import * as UI from '@foldkit/ui'
 import { Button, Tabs } from '@foldkit/ui'
 
 import {
@@ -95,17 +95,10 @@ export type Message = typeof Message.Type
 
 // UPDATE
 
-type UpdateRequirements =
-  | Command.HandlerOf<typeof FetchPosts>
-  | Command.HandlerOf<typeof FetchPostDetail>
-  | Command.HandlerOf<typeof FetchStats>
-
-type UpdateReturn = Update.Return<Model, Message, UpdateRequirements>
-
 const applyPostsTransition = (
   model: Model,
   maybeNextPosts: Option.Option<PostsData>,
-): UpdateReturn =>
+) =>
   Option.match(maybeNextPosts, {
     onNone: () => ({ model }),
     onSome: nextPosts => ({
@@ -117,7 +110,7 @@ const applyPostsTransition = (
 const applyStatsTransition = (
   model: Model,
   maybeNextStats: Option.Option<StatsData>,
-): UpdateReturn =>
+) =>
   Option.match(maybeNextStats, {
     onNone: () => ({ model }),
     onSome: nextStats => ({
@@ -129,11 +122,10 @@ const applyStatsTransition = (
 const setPostDetail = (postId: string, postDetail: PostDetailData) =>
   HashMap.set(postId, postDetail)
 
-const activateTab = (model: Model, tab: Tab): UpdateReturn => {
+const activateTab = (model: Model, tab: Tab) => {
   const modelWithActiveTab = modifyFields(model, { activeTab: () => tab })
 
   return Match.value(tab).pipe(
-    Match.withReturnType<UpdateReturn>(),
     Match.when('Posts', () =>
       applyPostsTransition(
         modelWithActiveTab,
@@ -150,15 +142,11 @@ const activateTab = (model: Model, tab: Tab): UpdateReturn => {
   )
 }
 
-const foldTabsOutMessage = Tabs.OutMessage.match<
-  Update.Step<Model, Message, UpdateRequirements>,
-  Tabs.OutMessage<Tab>
->({
-  Selected:
-    ({ value }) =>
-    model =>
-      activateTab(model, value),
-})
+const foldTabsOutMessage = (outMessage: Tabs.OutMessage<Tab>) =>
+  Tabs.OutMessage.match(outMessage, {
+    Selected: ({ value }) =>
+      Update.makeStep((model: Model) => activateTab(model, value)),
+  })
 
 const foldTabs = Update.foldChild({
   update: AppTabs.update,
@@ -169,7 +157,7 @@ const foldTabs = Update.foldChild({
 })
 
 export const update = Update.make((model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+  Message.match(message, {
     GotTabsMessage: ({ message }) => foldTabs(model, message),
 
     ClickedPost: ({ postId }) => {
@@ -253,11 +241,13 @@ export const FetchPosts = Command.define('FetchPosts', {
 const FetchPostsLayer = FetchPosts.toLayer(
   Effect.gen(function* () {
     const clock = yield* Clock.Clock
+
     return () =>
       pipe(
         Effect.gen(function* () {
           const posts = yield* fetchPosts
           const fetchedAt = yield* clock.currentTimeMillis
+
           return FetchedPosts.make({ posts, fetchedAt })
         }),
         Effect.result,
@@ -274,11 +264,13 @@ export const FetchPostDetail = Command.define('FetchPostDetail', {
 const FetchPostDetailLayer = FetchPostDetail.toLayer(
   Effect.gen(function* () {
     const clock = yield* Clock.Clock
+
     return ({ postId }) =>
       pipe(
         Effect.gen(function* () {
           const detail = yield* fetchPostDetail(postId)
           const fetchedAt = yield* clock.currentTimeMillis
+
           return FetchedPostDetail.make({ detail, fetchedAt })
         }),
         Effect.result,
@@ -296,12 +288,13 @@ export const FetchStats = Command.define('FetchStats', {
 const FetchStatsLayer = FetchStats.toLayer(
   Effect.gen(function* () {
     const clock = yield* Clock.Clock
-    const random = yield* Random.Random
+
     return () =>
       pipe(
         Effect.gen(function* () {
-          const stats = yield* fetchStats(random)
+          const stats = yield* fetchStats
           const fetchedAt = yield* clock.currentTimeMillis
+
           return FetchedStats.make({ stats, fetchedAt })
         }),
         Effect.result,
@@ -313,7 +306,7 @@ const FetchStatsLayer = FetchStats.toLayer(
 // SUBSCRIPTION
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  revalidateStats: entry(
+  statsRevalidationTicks: entry(
     'StatsRevalidationTicks',
     { isObservingStats: Schema.Boolean },
     {
@@ -326,20 +319,23 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   ),
 }))
 
-const StatsRevalidationTicksLayer = subscriptions.revalidateStats.toLayer(
-  ({ isObservingStats }) =>
-    Stream.when(
-      // NOTE: Stream.tick emits once immediately. Drop that first
-      // emission so freshly loaded stats are not refetched instantly.
-      Stream.tick(STATS_REFETCH_INTERVAL).pipe(
-        Stream.drop(1),
-        Stream.map(Message.TickedRevalidateStats),
+const StatsRevalidationTicksLayer =
+  subscriptions.statsRevalidationTicks.toLayer(
+    Effect.succeed(({ isObservingStats }) =>
+      Stream.when(
+        // NOTE: Stream.tick emits once immediately. Drop that first
+        // emission so freshly loaded stats are not refetched instantly.
+        Stream.tick(STATS_REFETCH_INTERVAL).pipe(
+          Stream.drop(1),
+          Stream.map(Message.TickedRevalidateStats),
+        ),
+        Effect.sync(() => isObservingStats),
       ),
-      Effect.sync(() => isObservingStats),
     ),
-)
+  )
 
-export const Layer = EffectLayer.mergeAll(
+export const EffectsLayer = Layer.mergeAll(
+  UI.EffectsLayer,
   FetchPostsLayer,
   FetchPostDetailLayer,
   FetchStatsLayer,
@@ -784,3 +780,5 @@ const errorPanel = (
       ),
     ],
   )
+
+export const mounts = UI.mounts

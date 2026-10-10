@@ -7,11 +7,11 @@ import { Home, Room } from './page'
 import { RoomsClientLayer } from './rpc'
 import { NavigationLayer } from './update'
 
-export const HandlersLayer = Layer.mergeAll(
+export const EffectsLayer = Layer.mergeAll(
   NavigateToRoomLayer,
   NavigationLayer,
-  Home.Layer,
-  Room.Layer,
+  Home.EffectsLayer,
+  Room.EffectsLayer,
 )
 
 const ServicesLayer = Layer.mergeAll(
@@ -19,4 +19,4 @@ const ServicesLayer = Layer.mergeAll(
   BrowserKeyValueStore.layerSessionStorage,
 )
 
-export const AppLayer = Layer.provide(HandlersLayer, ServicesLayer)
+export const AppLayer = Layer.provide(EffectsLayer, ServicesLayer)
