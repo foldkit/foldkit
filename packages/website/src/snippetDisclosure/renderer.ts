@@ -38,8 +38,17 @@ export const renderer =
     renderCopyButton: CodeBlock.RenderCopyButton,
     h: HtmlBuilder<ParentMessage>,
   ): CodeBlock.RenderSnippet =>
-  ({ id, title, content, rawCode, copyAriaLabel, className }) => {
-    const isOpen = HashSet.has(model.openSnippetIds, id)
+  ({
+    id,
+    disclosureGroupId,
+    title,
+    content,
+    rawCode,
+    copyAriaLabel,
+    className,
+  }) => {
+    const disclosureId = disclosureGroupId ?? id
+    const isOpen = HashSet.has(model.openDisclosureIds, disclosureId)
     const isCollapsible = isMeasuredToOverflow(model, id, rawCode)
     const hasTitle = Predicate.isNotUndefined(title)
     const titleId = `${id}-title`
@@ -105,7 +114,10 @@ export const renderer =
         isOpen,
         onToggle: nextIsOpen =>
           toParentMessage(
-            Message.ToggledSnippet({ snippetId: id, isOpen: nextIsOpen }),
+            Message.ToggledCodeDisclosure({
+              disclosureId,
+              isOpen: nextIsOpen,
+            }),
           ),
         toView: ({ button, panel, animatePanel }) =>
           shell(shellAttributes, [

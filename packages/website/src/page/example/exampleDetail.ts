@@ -467,8 +467,6 @@ const sourceCodeView = (
   renderSnippet: CodeBlock.RenderSnippet,
   h: HtmlBuilder<Message>,
 ): Html => {
-  const highlightedView = CodeBlock.highlightedViewFor(renderSnippet)
-
   const filePaths = Array.map(files, file => file.path)
 
   return h.submodel({
@@ -523,16 +521,17 @@ const sourceCodeView = (
                         h.div(
                           [h.Class('code-embed-scroll')],
                           [
-                            highlightedView(
-                              `example-${exampleSlug}-source-${file.path}`,
-                              h.div([
+                            renderSnippet({
+                              id: `example-${exampleSlug}-source-${file.path}`,
+                              disclosureGroupId: `example-${exampleSlug}-source`,
+                              content: h.div([
                                 h.Class('code-embed'),
                                 h.InnerHTML(file.highlightedHtml),
                               ]),
-                              file.rawCode,
-                              `Copy ${file.path} to clipboard`,
-                              '!mt-0',
-                            ),
+                              rawCode: file.rawCode,
+                              copyAriaLabel: `Copy ${file.path} to clipboard`,
+                              className: '!mt-0',
+                            }),
                           ],
                         ),
                     }),

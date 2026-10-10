@@ -7,11 +7,11 @@ import { type Model } from './model'
 
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
-    ToggledSnippet: ({ snippetId, isOpen }) => ({
+    ToggledCodeDisclosure: ({ disclosureId, isOpen }) => ({
       model: modifyFields(model, {
-        openSnippetIds: isOpen
-          ? HashSet.add(snippetId)
-          : HashSet.remove(snippetId),
+        openDisclosureIds: isOpen
+          ? HashSet.add(disclosureId)
+          : HashSet.remove(disclosureId),
       }),
     }),
     CompletedMeasureSnippetHeight: ({ snippetId, snippetSize }) => ({
