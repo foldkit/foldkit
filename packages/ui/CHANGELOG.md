@@ -1,5 +1,17 @@
 # @foldkit/ui
 
+## 0.168.0
+
+### Minor Changes
+
+- [#1638](https://github.com/foldkit/foldkit/pull/1638) [`77c7b3f`](https://github.com/foldkit/foldkit/commit/77c7b3fa12ca9dd920c8c9328a8a620fc6b586ab) Thanks [@Awjin](https://github.com/Awjin)! - Export `Meter`, `Nav`, and `Progress` on their own subpaths: `@foldkit/ui/meter`, `@foldkit/ui/nav`, and `@foldkit/ui/progress`. Consumers can import or re-export these components without using the main package entry.
+
+  These imports expose the same component APIs as the main entry.
+
+### Patch Changes
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
 ## 0.167.0
 
 ### Minor Changes

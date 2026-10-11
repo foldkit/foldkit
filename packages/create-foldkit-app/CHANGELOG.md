@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.39.1
+
+### Patch Changes
+
+- [#1644](https://github.com/foldkit/foldkit/pull/1644) [`0cc0d50`](https://github.com/foldkit/foldkit/commit/0cc0d50dab9fc7757f495bd05ae70c4a10fd865c) Thanks [@devinjameson](https://github.com/devinjameson)! - Fresh SSR projects pin `@effect/platform-node-shared` to the same version as `effect` and `@effect/platform-node`, so npm can install their dependencies when newer Effect versions are available.
+
 ## 0.39.0
 
 ### Minor Changes

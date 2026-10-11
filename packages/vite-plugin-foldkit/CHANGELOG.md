@@ -1,5 +1,13 @@
 # @foldkit/vite-plugin
 
+## 0.27.1
+
+### Patch Changes
+
+- [#1614](https://github.com/foldkit/foldkit/pull/1614) [`49dc36e`](https://github.com/foldkit/foldkit/commit/49dc36ef672d1caee23f153f88c09d98c8241670) Thanks [@devinjameson](https://github.com/devinjameson)! - Keep the development relay running when a preserved Model or DevTools request cannot be encoded or sent. Report the error as a warning so later messages can still be processed.
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
 ## 0.27.0
 
 ### Minor Changes
