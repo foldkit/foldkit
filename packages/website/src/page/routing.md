@@ -78,6 +78,12 @@ Query parameters use [Effect Schema](https://effect.website/docs/schema/introduc
 
 `Schema.OptionFromOptional` makes parameters optional. Missing params become `Option.none()`. `Schema.FiniteFromString` automatically parses string query values into numbers.
 
+A `Schema.Struct` field whose encoded form is an array uses one parameter for each element. `Schema.Array(Schema.String)` on a `tags` field builds `?tags=rent&tags=lease` from `['rent', 'lease']`, and that URL parses back to the same array. Each element must encode to a string, as every query value does.
+
+An empty array builds no parameter. When the URL has no `tags` parameter, a required array field parses to an empty array, and an optional array field parses as a missing key. An optional field therefore does not keep an empty array: it parses back as absent, or as its decoding default.
+
+Every other field reads the last value of its parameter.
+
 `Schema.withConstructorDefault` does not provide a query-string default. Constructor defaults run only when calling a Schema’s `make` constructor, while `Route.query` decodes and encodes values. Use `Schema.withDecodingDefaultKey` when a missing query key should decode to a concrete value, or `Schema.OptionFromOptional` when the Route should preserve its absence. The [`foldkit/no-route-query-constructor-default`](/tooling/oxlint-plugin#no-route-query-constructor-default) lint rule catches the inert constructor-default form.
 
 For a complete routing example, see the [Routing example](/example-apps/routing). For a deeper look at query parameters (custom schema transforms, lenient parsing, and bidirectional URL sync), see the [Query Sync example](/example-apps/query-sync).
