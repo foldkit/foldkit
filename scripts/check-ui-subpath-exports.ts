@@ -1,5 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
+
+import { foldkitAliases } from '../examples/vite.aliases.ts'
 
 const UI_SRC = 'packages/ui/src'
 const UI_INDEX = 'packages/ui/src/index.ts'
@@ -22,19 +24,18 @@ const subpaths = Object.keys(manifest.exports)
   .filter(key => key !== '.')
   .map(key => key.slice('./'.length))
 
-const captures = (source: string, pattern: RegExp): ReadonlyArray<string> =>
-  [...source.matchAll(pattern)].flatMap(match =>
-    match[1] === undefined ? [] : [match[1]],
-  )
-
-const namespaces = captures(
-  readFileSync(UI_INDEX, 'utf8'),
-  /^export \* as \w+ from '\.\/(\w+)\/public\.js'$/gm,
+const namespaces = new Map(
+  [
+    ...readFileSync(UI_INDEX, 'utf8').matchAll(
+      /^export \* as (\w+) from '\.\/(\w+)\/public\.js'$/gm,
+    ),
+  ].map(([, name, component]) => [component, name]),
 )
 
-const aliases = captures(
-  readFileSync(ALIASES_FILE, 'utf8'),
-  /'@foldkit\/ui\/(\w+)':/g,
+const aliases = new Map(
+  Object.entries(
+    foldkitAliases(join(process.cwd(), 'examples', 'ui-showcase')),
+  ),
 )
 
 const problems: Array<string> = []
@@ -52,13 +53,19 @@ for (const component of components) {
       `"./${component}" in ${UI_PACKAGE} must point at ${expectedTypes} and ${expectedImport}`,
     )
   }
-  if (!namespaces.includes(component)) {
+  const expectedNamespace =
+    component.charAt(0).toUpperCase() + component.slice(1)
+  if (namespaces.get(component) !== expectedNamespace) {
     problems.push(
-      `${UI_INDEX} has no namespace export for ./${component}/public.js`,
+      `${UI_INDEX} must export ${expectedNamespace} from ./${component}/public.js`,
     )
   }
-  if (!aliases.includes(component)) {
-    problems.push(`'@foldkit/ui/${component}' is missing from ${ALIASES_FILE}`)
+  const alias = `@foldkit/ui/${component}`
+  const expectedAlias = resolve(UI_SRC, component, 'public')
+  if (aliases.get(alias) !== expectedAlias) {
+    problems.push(
+      `'${alias}' in ${ALIASES_FILE} must point at ${expectedAlias}`,
+    )
   }
 }
 
@@ -70,10 +77,15 @@ for (const subpath of subpaths) {
   }
 }
 
-for (const alias of aliases) {
-  if (!components.includes(alias)) {
+for (const alias of aliases.keys()) {
+  if (!alias.startsWith('@foldkit/ui/')) {
+    continue
+  }
+
+  const component = alias.slice('@foldkit/ui/'.length)
+  if (!components.includes(component)) {
     problems.push(
-      `'@foldkit/ui/${alias}' in ${ALIASES_FILE} has no ${UI_SRC}/${alias}/public.ts`,
+      `'${alias}' in ${ALIASES_FILE} has no ${UI_SRC}/${component}/public.ts`,
     )
   }
 }

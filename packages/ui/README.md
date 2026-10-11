@@ -58,7 +58,7 @@ import { Calendar as UiCalendar } from '@foldkit/ui'
 
 ## Components
 
-Animation, Button, Calendar, Checkbox, Combobox, DatePicker, Dialog, Disclosure, DragAndDrop, Fieldset, FileDrop, HoverIntent, Input, Listbox, Menu, Popover, RadioGroup, Select, Slider, Switch, Tabs, Textarea, Toast, Tooltip, and VirtualList.
+Animation, Button, Calendar, Checkbox, Combobox, DatePicker, Dialog, Disclosure, DragAndDrop, Fieldset, FileDrop, HoverIntent, Input, Listbox, Menu, Meter, Nav, Popover, Progress, RadioGroup, Select, Slider, Switch, Tabs, Textarea, Toast, Tooltip, and VirtualList.
 
 See the [component documentation](https://foldkit.dev/ui/overview) for the full API and a live example of each.
 
