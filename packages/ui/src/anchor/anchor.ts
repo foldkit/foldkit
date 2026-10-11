@@ -226,6 +226,8 @@ const toSide = (placement: FloatingPlacement): string =>
  *    resolves. Defaults to `false`.
  *  - `focusSelector`: focuses this descendant instead of the element itself.
  *    Read only when `focusAfterPosition` is true.
+ *  - `shiftCrossAxis`: lets Floating UI shift across the anchored side when
+ *    neither side has enough room. Defaults to `false`.
  *  - `arrowId`: id of an arrow element inside the panel, resolved through the
  *    element's own root. An id that resolves to an element outside the panel is
  *    ignored, and any element type is accepted, so an `<svg>` arrow works. When
@@ -243,6 +245,7 @@ export type SetupConfig = Readonly<{
   interceptTab?: boolean
   focusAfterPosition?: boolean
   focusSelector?: string
+  shiftCrossAxis?: boolean
   arrowId?: string
   arrowPadding?: number
 }>
@@ -294,6 +297,19 @@ const setOrResetLength = (
 export const anchorSetup = (
   element: Element,
   config: SetupConfig,
+): (() => void) => setupAnchor(element, config, true)
+
+/** Positions an anchored panel without relocating it. A parent may portal
+ * the layer containing several such panels. */
+export const anchorSetupWithoutRelocation = (
+  element: Element,
+  config: SetupConfig,
+): (() => void) => setupAnchor(element, config, false)
+
+const setupAnchor = (
+  element: Element,
+  config: SetupConfig,
+  isRelocated: boolean,
 ): (() => void) => {
   // NOTE: resolve the button and any focus target within the element's own
   // root, which is a shadow root when the app is hosted in one (e.g. the
@@ -328,7 +344,8 @@ export const anchorSetup = (
   }
 
   const isPortal = config.anchor.portal ?? true
-  const portalCleanup = isPortal ? portalToContainingRoot(element) : undefined
+  const portalCleanup =
+    isPortal && isRelocated ? portalToContainingRoot(element) : undefined
 
   // NOTE: inside a shadow root the panel's offsetParent resolves to the
   // light-DOM host element, so Floating UI's absolute strategy mis-measures
@@ -412,7 +429,10 @@ export const anchorSetup = (
           crossAxis: crossAxis ?? 0,
         }),
         ...(isLocked ? [] : [flip({ padding: padding ?? 0 })]),
-        shift({ padding: padding ?? 0 }),
+        shift({
+          padding: padding ?? 0,
+          crossAxis: config.shiftCrossAxis ?? false,
+        }),
         size({
           padding: padding ?? 0,
           apply({ rects, availableHeight }) {

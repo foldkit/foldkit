@@ -121,6 +121,8 @@ export const Model = Schema.Struct({
   maybeListboxGroupedDemoSelectedItem: Schema.Option(Schema.String),
   menuBasicDemo: Menu.Model,
   menuAnimatedDemo: Menu.Model,
+  menuSubmenuDemo: Menu.Model,
+  maybeMenuSubmenuDemoSelection: Schema.Option(Schema.String),
   popoverBasicDemo: Popover.Model,
   popoverAnimatedDemo: Popover.Model,
   popoverArrowDemo: Popover.Model,

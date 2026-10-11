@@ -123,6 +123,8 @@ export const init = (today: Calendar.CalendarDate): InitReturn => ({
       id: 'menu-animated-demo',
       isAnimated: true,
     }),
+    menuSubmenuDemo: Menu.init({ id: 'menu-submenu-demo', isModal: true }),
+    maybeMenuSubmenuDemoSelection: Option.none(),
     popoverBasicDemo: Popover.init({ id: 'popover-basic-demo' }),
     popoverAnimatedDemo: Popover.init({
       id: 'popover-animated-demo',

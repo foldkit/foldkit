@@ -9,10 +9,9 @@ import raw from './menuPage.md'
 import type { Message } from './message'
 import type { Model } from './model'
 
-const { tableOfContents, view: renderPage } = slotDocPage<'basic' | 'animated'>(
-  raw,
-  'ui/menu',
-)
+const { tableOfContents, view: renderPage } = slotDocPage<
+  'basic' | 'animated' | 'submenu'
+>(raw, 'ui/menu')
 
 export { tableOfContents }
 
@@ -29,6 +28,13 @@ export const view = Submodel.defineView<Model, Message, ViewInputs>(
         basic: demoContainer(...Menu.basicDemo(model.menuBasicDemo, h)),
         animated: demoContainer(
           ...Menu.animatedDemo(model.menuAnimatedDemo, h),
+        ),
+        submenu: demoContainer(
+          ...Menu.submenuDemo(
+            model.menuSubmenuDemo,
+            model.maybeMenuSubmenuDemoSelection,
+            h,
+          ),
         ),
       },
       renderCopyButton,

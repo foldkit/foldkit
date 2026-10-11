@@ -7,7 +7,11 @@ import type {
   Strategy,
 } from '@floating-ui/dom'
 
-import { type AnchorConfig, anchorSetup } from './index.js'
+import {
+  type AnchorConfig,
+  anchorSetup,
+  anchorSetupWithoutRelocation,
+} from './index.js'
 
 type MockComputePositionReturn = {
   x: number
@@ -65,7 +69,12 @@ describe('anchorSetup strategy', () => {
   const mountAnchor = (
     anchor: AnchorConfig,
     containerPosition: string,
-  ): Readonly<{ element: HTMLElement; cleanup: () => void }> => {
+    setup: typeof anchorSetup = anchorSetup,
+  ): Readonly<{
+    element: HTMLElement
+    layer: HTMLElement
+    cleanup: () => void
+  }> => {
     computePositionMock.mockResolvedValue({
       x: 10,
       y: 20,
@@ -82,9 +91,11 @@ describe('anchorSetup strategy', () => {
     container.append(nav)
     const element = document.createElement('div')
     element.style.position = 'absolute'
-    document.body.append(container, element)
-    const cleanup = anchorSetup(element, { buttonId: BUTTON_ID, anchor })
-    return { element, cleanup }
+    const layer = document.createElement('div')
+    layer.append(element)
+    document.body.append(container, layer)
+    const cleanup = setup(element, { buttonId: BUTTON_ID, anchor })
+    return { element, layer, cleanup }
   }
 
   it('positions a portaled panel with the fixed strategy when the button sits inside a fixed container', () => {
@@ -103,6 +114,21 @@ describe('anchorSetup strategy', () => {
     expect(element.style.position).toBe('absolute')
 
     cleanup()
+  })
+
+  it('keeps a layer-owned panel in place while using the portal strategy', () => {
+    const { element, layer, cleanup } = mountAnchor(
+      {},
+      'fixed',
+      anchorSetupWithoutRelocation,
+    )
+
+    expect(element.parentElement).toBe(layer)
+    expect(strategyOfCall(0)).toBe('fixed')
+    expect(element.style.position).toBe('fixed')
+
+    cleanup()
+    expect(element.parentElement).toBe(layer)
   })
 
   it('keeps the absolute strategy for a panel that is not portaled', () => {
