@@ -9,6 +9,7 @@ import {
 import { HYDRATION_BUILD_ATTRIBUTE } from '../../buildToken.js'
 import {
   FOLDKIT_APP_ATTRIBUTE,
+  FOLDKIT_EMBED_ATTRIBUTE,
   FOLDKIT_FLAGS_ATTRIBUTE,
 } from '../../hydrationMarker.js'
 import { escapeAttributeValue, escapeText } from './serialize.js'
@@ -571,6 +572,18 @@ const runtimeIdInMode = (
     parsed,
     element => attributeValue(element, FOLDKIT_FLAGS_ATTRIBUTE) !== undefined,
   )
+  const embedMarkers = collectMatchingIncludingTemplateContent(
+    parsed,
+    element => attributeValue(element, FOLDKIT_EMBED_ATTRIBUTE) !== undefined,
+  )
+  if (embedMarkers.length > 0) {
+    throw new Error(
+      '[foldkit] injectIntoTemplate received markup rendered with ' +
+        '`isEmbedded`. A template holds the page-owning application, and an ' +
+        'embedded root belongs where the host places it, beside the ' +
+        'container the client passes to `makeElement`.',
+    )
+  }
   const buildMarkers = collectMatchingIncludingTemplateContent(
     parsed,
     element => attributeValue(element, HYDRATION_BUILD_ATTRIBUTE) !== undefined,
@@ -779,7 +792,9 @@ export const injectIntoTemplate = (
     }
     const existingApplications = collectMatching(
       document,
-      element => attributeValue(element, FOLDKIT_APP_ATTRIBUTE) !== undefined,
+      element =>
+        attributeValue(element, FOLDKIT_APP_ATTRIBUTE) !== undefined &&
+        attributeValue(element, FOLDKIT_EMBED_ATTRIBUTE) === undefined,
     )
     if (existingApplications.length > 0) {
       throw new Error(
