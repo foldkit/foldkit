@@ -264,8 +264,11 @@ type RuntimeInternals = {
     bootMode?: BootMode,
     flags?: Effect.Effect<any, never, any>,
     buildId?: string,
+    embedHydration?: HydrationConfig,
   ) => Effect.Effect<void>
   kind: 'Application' | 'Element'
+  container: HTMLElement
+  isFlagsRequired: boolean
   isEmbedActive: boolean
   maybeActiveFiber: Option.Option<Fiber.Fiber<void>>
 }
@@ -376,6 +379,7 @@ export const makeRuntime = <
     bootMode: BootMode = 'Fresh',
     bootFlags?: Effect.Effect<Flags, never, Resources>,
     buildId?: string,
+    embedHydration?: HydrationConfig,
   ): Effect.Effect<void> => {
     // NOTE: one notifier per runtime, provided across the whole runtime
     // Effect so Commands, Subscriptions, and Mount-forked Effects all resolve
@@ -436,7 +440,7 @@ export const makeRuntime = <
         const { maybeHydrationRoot, resolveFlags } =
           yield* resolveHydrationHandoff({
             bootMode,
-            hydration,
+            hydration: embedHydration ?? hydration,
             bootFlags,
             configuredFlags,
             isFlagsRequired,
@@ -911,9 +915,25 @@ export const makeRuntime = <
     ports,
   }
   runtimeInternals.set(program, {
-    startWith: (maybeConnector, preservedModel, bootMode, flags, buildId) =>
-      startWith(maybeConnector, preservedModel, bootMode, flags, buildId),
+    startWith: (
+      maybeConnector,
+      preservedModel,
+      bootMode,
+      flags,
+      buildId,
+      embedHydration,
+    ) =>
+      startWith(
+        maybeConnector,
+        preservedModel,
+        bootMode,
+        flags,
+        buildId,
+        embedHydration,
+      ),
     kind,
+    container,
+    isFlagsRequired,
     isEmbedActive: false,
     maybeActiveFiber: Option.none(),
   })

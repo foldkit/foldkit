@@ -9,3 +9,11 @@ export const FOLDKIT_APP_ATTRIBUTE = 'data-foldkit-app'
  *  running the client `flags` Effect, so both sides call `init` with the
  *  same value. */
 export const FOLDKIT_FLAGS_ATTRIBUTE = 'data-foldkit-flags'
+
+/** Attribute stamped, with an empty value, on a hydratable root that an
+ *  embedded program owns instead of the page. It sits beside
+ *  {@link FOLDKIT_APP_ATTRIBUTE}, whose value is still the runtime id. A page
+ *  holds at most one root without it, because that root's application owns the
+ *  document, and any number of roots with it. `makeApplication` leaves roots
+ *  that carry it alone; `Runtime.embed` adopts them. */
+export const FOLDKIT_EMBED_ATTRIBUTE = 'data-foldkit-embed'

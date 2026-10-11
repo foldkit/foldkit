@@ -10,7 +10,7 @@ import {
   buildPortHandles,
   makeHostConnector,
 } from './hostConnector.js'
-import type { BootMode } from './hydrationHandoff.js'
+import { type BootMode, findEmbeddedHydration } from './hydrationHandoff.js'
 import { resolvePreservedModel } from './modelPreservationBridge.js'
 import { type MakeRuntimeReturn, runtimeInternals } from './runtime.js'
 
@@ -20,6 +20,22 @@ import { type MakeRuntimeReturn, runtimeInternals } from './runtime.js'
  */
 export type RunOptions<Flags, Resources = never> = Readonly<{
   flags: Effect.Effect<Flags, never, Resources>
+}>
+
+/** Options for {@link embed} that adopt a server-rendered root instead of
+ *  building the container's DOM fresh. */
+export type EmbedHydrationOptions = Readonly<{
+  /**
+   * Adopt the container's server-rendered markup, when it carries the root
+   * stamp `renderToString` writes with `isEmbedded: true`. The program keeps
+   * the existing nodes and reconstructs its Model from the Flags payload the
+   * server embedded. A container with no stamp builds fresh, and a program
+   * that declares Flags then uses the `flags` option as `embed` always has.
+   * Only a program created by `makeElement` can adopt a root.
+   */
+  isHydratable?: boolean
+  /** The deployment this client belongs to. See {@link HydrateOptions}. */
+  buildId?: string
 }>
 
 type RuntimeProgram = Readonly<{
@@ -197,6 +213,16 @@ export const hydrate = <P extends Ports | undefined, Flags, Resources>(
  * A program can be embedded once at a time (it owns one container). After
  * `dispose`, the same container can be embedded again with a fresh program.
  *
+ * On a page the server rendered, pass `isHydratable: true` to adopt the
+ * container's markup in place instead of rebuilding it. The container must be
+ * the root `renderToString` stamped with `isEmbedded: true`, and its `runtimeId`
+ * must be the container's `id`. Each embedded program reads its own Flags
+ * payload, so a page can hold any number of them, beside at most one
+ * application adopted with `hydrate`. A container without the stamp builds
+ * fresh. Every other hydration refusal behaves as it does for `hydrate`: it
+ * contains the page and stops startup. Only `makeElement` programs can adopt a
+ * root.
+ *
  * ```ts
  * const handle = Runtime.embed(element)
  *
@@ -212,7 +238,10 @@ export function embed<
   P extends Ports | undefined = undefined,
   Resources = never,
   Kind extends 'Application' | 'Element' = 'Application' | 'Element',
->(program: MakeRuntimeReturn<P, void, Resources, Kind>): EmbedHandle<P>
+>(
+  program: MakeRuntimeReturn<P, void, Resources, Kind>,
+  options?: EmbedHydrationOptions,
+): EmbedHandle<P>
 export function embed<
   P extends Ports | undefined,
   Flags,
@@ -220,16 +249,25 @@ export function embed<
   Kind extends 'Application' | 'Element',
 >(
   program: MakeRuntimeReturn<P, Flags, Resources, Kind>,
-  options: RunOptions<Flags, Resources>,
+  options: RunOptions<Flags, Resources> & EmbedHydrationOptions,
 ): EmbedHandle<P>
 export function embed<P extends Ports | undefined = undefined>(
   program: RuntimeProgram & Readonly<{ ports: P }>,
-  options?: RunOptions<unknown, any>,
+  options?: Partial<RunOptions<unknown, any>> & EmbedHydrationOptions,
 ): EmbedHandle<P> {
   const internals = runtimeInternals.get(program)
   if (Predicate.isUndefined(internals)) {
     throw new Error(
       '[foldkit] embed expects a program created by makeApplication or makeElement.',
+    )
+  }
+
+  const isHydratable = options?.isHydratable === true
+  if (isHydratable && internals.kind !== 'Element') {
+    throw new Error(
+      '[foldkit] embed can adopt a server-rendered root only for a program ' +
+        'created by makeElement. A program created by makeApplication owns ' +
+        'the page: adopt it with Runtime.hydrate.',
     )
   }
 
@@ -255,14 +293,29 @@ export function embed<P extends Ports | undefined = undefined>(
       onSome: previousFiber => Effect.asVoid(Fiber.await(previousFiber)),
     }),
     Effect.andThen(resolvePreservedModel(program.runtimeId)),
-    Effect.flatMap(preservedModel =>
-      internals.startWith(
+    Effect.flatMap(preservedModel => {
+      // NOTE: the root is looked up here, after the previous embed's teardown,
+      // so a dispose-then-embed remount finds the stamp already consumed and
+      // builds fresh instead of adopting a root it has already rendered over.
+      const maybeHydration = isHydratable
+        ? Option.fromNullishOr(
+            findEmbeddedHydration(
+              internals.container,
+              internals.isFlagsRequired,
+            ),
+          )
+        : Option.none()
+      return internals.startWith(
         Option.some(connector),
         preservedModel,
-        'Fresh',
+        Option.isSome(maybeHydration) ? 'Hydrate' : 'Fresh',
         options?.flags,
-      ),
-    ),
+        Option.isSome(maybeHydration)
+          ? buildIdOrInjected(options?.buildId)
+          : undefined,
+        Option.getOrUndefined(maybeHydration),
+      )
+    }),
   )
 
   const fiber = Effect.runFork(
