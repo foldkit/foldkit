@@ -143,6 +143,8 @@ import {
   view as scorePanelView,
 } from './apps/scorePanel.js'
 import {
+  Message as SelectiveKeysMessage,
+  type Model as SelectiveKeysModel,
   appId as selectiveKeysAppId,
   initialModel as selectiveKeysInitialModel,
   resetId as selectiveKeysResetId,
@@ -6458,6 +6460,36 @@ describe('attribute builders map to DOM names', () => {
       )
     },
   )
+})
+
+describe('keydown on an element with two claiming handlers', () => {
+  const commitOnEnter = (key: string): Option.Option<SelectiveKeysMessage> =>
+    key === 'Enter'
+      ? Option.some(SelectiveKeysMessage.Committed())
+      : Option.none()
+
+  const chainedView = (
+    model: SelectiveKeysModel,
+    h: HtmlBuilder<SelectiveKeysMessage>,
+  ) =>
+    h.div(
+      [
+        h.Id(selectiveKeysAppId),
+        h.OnKeyDownPreventDefault(commitOnEnter),
+        h.OnKeyDownPreventDefault(commitOnEnter),
+      ],
+      [h.span([h.Class('commits')], [`${model.commits}`])],
+    )
+
+  test('dispatches from the first handler only, as the browser does', () => {
+    Scene.scene(
+      { update: selectiveKeysUpdate, view: chainedView },
+      Scene.given(selectiveKeysInitialModel),
+      Scene.keydown(Scene.selector(`#${selectiveKeysAppId}`), 'Enter'),
+      Scene.expectHandled(),
+      Scene.expect(Scene.selector('.commits')).toHaveText('1'),
+    )
+  })
 })
 
 describe('expectHandled and expectIgnored', () => {
