@@ -1,5 +1,5 @@
-import { Array, Match, Number, Option, Schema, pipe } from 'effect'
-import { Update } from 'foldkit'
+import { Array, Effect, Match, Number, Option, Schema, pipe } from 'effect'
+import { Command, Update } from 'foldkit'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
@@ -28,9 +28,20 @@ import { DemoMenu, type MenuItem } from './demo/menu'
 import { PlanRadioGroup } from './demo/radioGroup'
 import { DemoTabs } from './demo/tabs'
 import { Toast } from './demo/toastModule'
-import { ROW_COUNT as VIRTUAL_LIST_ROW_COUNT } from './demo/virtualList'
+import {
+  CHAT_HISTORY_PREFETCH_VIEWPORTS,
+  COLLAPSED_HISTORY_MESSAGE_HEIGHT_PX,
+  HistoryModeRadioGroup,
+  ROW_COUNT as VIRTUAL_LIST_ROW_COUNT,
+  chatHistoryRows,
+} from './demo/virtualList'
+import { initVirtualListChatDemo, initialVirtualListChatMessages } from './init'
 import { Message } from './message'
-import { VirtualListChatStartProximity } from './model'
+import {
+  VirtualListChatHistoryLoad,
+  VirtualListChatHistorySource,
+  historyModeForSource,
+} from './model'
 import type { Model } from './model'
 import type {
   City,
@@ -39,6 +50,7 @@ import type {
   DemoTab,
   ListboxItem,
   Plan,
+  VirtualListChatHistoryMode,
   VirtualListChatMessage,
 } from './model'
 
@@ -1087,6 +1099,20 @@ const foldVirtualListChatItemsChanged = Update.foldChild({
     Message.GotVirtualListChatDemoMessage({ message }),
 })
 
+const foldVirtualListChatItemsPrepended = Update.foldChild({
+  update: (
+    virtualListModel: VirtualList.Model,
+    input: VirtualList.HistoryPrependInput<VirtualListChatMessage>,
+  ) => VirtualList.informHistoryPrepended(virtualListModel, input),
+  read: (model: Model) => Option.some(model.virtualListChatDemo),
+  write: (model, nextVirtualListChatDemo) =>
+    modifyFields(model, {
+      virtualListChatDemo: () => nextVirtualListChatDemo,
+    }),
+  toParentMessage: message =>
+    Message.GotVirtualListChatDemoMessage({ message }),
+})
+
 const foldVirtualListChatScrollToKey = Update.foldChild({
   update: (virtualListModel: VirtualList.Model, key: string) =>
     VirtualList.scrollToKey(virtualListModel, key, { alignment: 'Center' }),
@@ -1099,8 +1125,65 @@ const foldVirtualListChatScrollToKey = Update.foldChild({
     Message.GotVirtualListChatDemoMessage({ message }),
 })
 
-const VIRTUAL_LIST_CHAT_START_THRESHOLD_PX = 48
-const VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE = 8
+const VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE = 32
+const VIRTUAL_LIST_CHAT_UNBOUNDED_HISTORY_BATCH_SIZE = 64
+const VIRTUAL_LIST_CHAT_FINITE_HISTORY_COUNT = 64
+const VIRTUAL_LIST_CHAT_FETCH_DELAY = '150 millis'
+
+const FetchVirtualListChatHistory = Command.define(
+  'FetchVirtualListChatHistory',
+  {
+    args: {
+      requestVersion: Schema.Number,
+      beforeId: Schema.Number,
+      requestedCount: Schema.Number,
+      source: VirtualListChatHistorySource,
+    },
+    messages: [Message.SucceededFetchVirtualListChatHistory],
+    execute: ({ requestVersion, beforeId, requestedCount, source }) =>
+      VirtualListChatHistorySource.match(source, {
+        Unbounded: () => Effect.void,
+        Finite: () => Effect.sleep(VIRTUAL_LIST_CHAT_FETCH_DELAY),
+      }).pipe(
+        Effect.map(() => {
+          const count = VirtualListChatHistorySource.match(source, {
+            Unbounded: () => requestedCount,
+            Finite: ({ remainingCount }) =>
+              Math.min(requestedCount, remainingCount),
+          })
+          const messages = Array.makeBy(count, index => {
+            const id = beforeId - count + index
+            return {
+              id,
+              body: `Older message ${id}`,
+              isExpanded: false,
+            }
+          })
+          const nextSource = VirtualListChatHistorySource.match(source, {
+            Unbounded: () => VirtualListChatHistorySource.Unbounded(),
+            Finite: ({ remainingCount }) =>
+              VirtualListChatHistorySource.Finite({
+                remainingCount: remainingCount - count,
+              }),
+          })
+          const page = VirtualListChatHistorySource.match(source, {
+            Unbounded: () => VirtualList.HistoryPage.More(),
+            Finite: ({ remainingCount }) =>
+              remainingCount - count <= 0
+                ? VirtualList.HistoryPage.Complete()
+                : VirtualList.HistoryPage.More(),
+          })
+
+          return Message.SucceededFetchVirtualListChatHistory({
+            requestVersion,
+            messages,
+            source: nextSource,
+            page,
+          })
+        }),
+      ),
+  },
+)
 
 const updateVirtualListChatMessages = (
   model: Model,
@@ -1117,7 +1200,22 @@ const updateVirtualListChatMessages = (
   )
 }
 
-const prependVirtualListChatMessages = (model: Model) => {
+const requestVirtualListChatHistory = (
+  model: Model,
+  requestedCount: number,
+  trigger: 'Scroll' | 'Button',
+): Update.Return<Model, Message> => {
+  if (model.virtualListChatHistoryLoad._tag === 'Loading') {
+    return { model }
+  }
+
+  if (
+    model.virtualListChatHistorySource._tag === 'Finite' &&
+    model.virtualListChatHistorySource.remainingCount <= 0
+  ) {
+    return { model }
+  }
+
   const firstId = pipe(
     model.virtualListChatMessages,
     Array.head,
@@ -1126,41 +1224,126 @@ const prependVirtualListChatMessages = (model: Model) => {
       onSome: message => message.id,
     }),
   )
-  const olderMessages = Array.makeBy(
-    VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE,
-    index => {
-      const id = firstId - VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE + index
-      return {
-        id,
-        body: `Older message ${id} loaded above the viewport.`,
-        isExpanded: id % 3 === 0,
-      }
-    },
-  )
-  const nextMessages = [...olderMessages, ...model.virtualListChatMessages]
-  return updateVirtualListChatMessages(model, nextMessages)
+  const count = Math.max(0, requestedCount)
+  if (count <= 0) {
+    return { model }
+  }
+
+  const nextVirtualListChatHistoryRequestVersion =
+    model.virtualListChatHistoryRequestVersion + 1
+
+  return {
+    model: modifyFields(model, {
+      virtualListChatHistoryLoad: () =>
+        VirtualListChatHistoryLoad.Loading({ trigger }),
+      virtualListChatHistoryRequestVersion: () =>
+        nextVirtualListChatHistoryRequestVersion,
+    }),
+    commands: [
+      FetchVirtualListChatHistory({
+        requestVersion: nextVirtualListChatHistoryRequestVersion,
+        beforeId: firstId,
+        requestedCount: count,
+        source: model.virtualListChatHistorySource,
+      }),
+    ],
+  }
 }
 
-const prependVirtualListChatMessagesOnStartThresholdEntry =
-  (scrollTop: number): Update.Step<Model, Message> =>
-  stepModel => {
-    const isNearStart = scrollTop <= VIRTUAL_LIST_CHAT_START_THRESHOLD_PX
-    const nextVirtualListChatStartProximity = isNearStart
-      ? VirtualListChatStartProximity.Near()
-      : VirtualListChatStartProximity.Away()
-    const nextModel = modifyFields(stepModel, {
-      virtualListChatStartProximity: () => nextVirtualListChatStartProximity,
-    })
+const prependVirtualListChatMessagesNearStart =
+  (
+    distanceToLoadedStartPx: number,
+    containerHeight: number,
+  ): Update.Step<Model, Message> =>
+  model => {
+    const neededHeight =
+      containerHeight * CHAT_HISTORY_PREFETCH_VIEWPORTS -
+      distanceToLoadedStartPx
+    const minimumCount = VirtualListChatHistorySource.match(
+      model.virtualListChatHistorySource,
+      {
+        Unbounded: () => VIRTUAL_LIST_CHAT_UNBOUNDED_HISTORY_BATCH_SIZE,
+        Finite: () => VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE,
+      },
+    )
+    const requestedCount = Math.max(
+      minimumCount,
+      Math.ceil(neededHeight / COLLAPSED_HISTORY_MESSAGE_HEIGHT_PX),
+    )
 
-    if (
-      !isNearStart ||
-      stepModel.virtualListChatStartProximity._tag === 'Near'
-    ) {
-      return { model: nextModel }
-    }
-
-    return prependVirtualListChatMessages(nextModel)
+    return requestVirtualListChatHistory(model, requestedCount, 'Scroll')
   }
+
+const markVirtualListChatHistoryAnnounced: Update.Step<
+  Model,
+  Message
+> = model => {
+  const nextAnnouncedOlderCount = model.virtualListChatLoadedOlderCount
+  if (nextAnnouncedOlderCount <= model.virtualListChatAnnouncedOlderCount) {
+    return { model }
+  }
+
+  return {
+    model: modifyFields(model, {
+      virtualListChatAnnouncedOlderCount: () => nextAnnouncedOlderCount,
+    }),
+  }
+}
+
+const selectVirtualListChatHistoryMode = (
+  model: Model,
+  mode: VirtualListChatHistoryMode,
+): Update.Return<Model, Message> => {
+  if (mode === historyModeForSource(model.virtualListChatHistorySource)) {
+    return { model }
+  }
+
+  const nextHistorySource = Match.value(mode).pipe(
+    Match.withReturnType<typeof VirtualListChatHistorySource.Type>(),
+    Match.when('Infinite', () => VirtualListChatHistorySource.Unbounded()),
+    Match.when('Finite', () =>
+      VirtualListChatHistorySource.Finite({
+        remainingCount: VIRTUAL_LIST_CHAT_FINITE_HISTORY_COUNT,
+      }),
+    ),
+    Match.exhaustive,
+  )
+
+  return {
+    model: modifyFields(model, {
+      virtualListChatDemo: () => initVirtualListChatDemo(nextHistorySource),
+      virtualListChatMessages: () => initialVirtualListChatMessages,
+      virtualListChatNextId: () => initialVirtualListChatMessages.length,
+      virtualListChatHistorySource: () => nextHistorySource,
+      virtualListChatHistoryLoad: () => VirtualListChatHistoryLoad.Idle(),
+      virtualListChatHistoryRequestVersion: Number.increment,
+      virtualListChatLoadedOlderCount: () => 0,
+      virtualListChatAnnouncedOlderCount: () => 0,
+    }),
+  }
+}
+
+const foldVirtualListChatHistoryModeOutMessage = RadioGroup.OutMessage.match<
+  Update.Step<Model, Message>,
+  RadioGroup.OutMessage<VirtualListChatHistoryMode>
+>({
+  Selected:
+    ({ value }) =>
+    model =>
+      selectVirtualListChatHistoryMode(model, value),
+})
+
+const foldVirtualListChatHistoryModeGroup = Update.foldChild({
+  update: HistoryModeRadioGroup.update,
+  read: (model: Model) => Option.some(model.virtualListChatHistoryModeGroup),
+  write: (model, nextHistoryModeGroup) =>
+    modifyFields(model, {
+      virtualListChatHistoryModeGroup: () => nextHistoryModeGroup,
+    }),
+  toParentMessage: message =>
+    Message.GotVirtualListChatHistoryModeGroupMessage({ message }),
+  foldOutMessage: foldVirtualListChatHistoryModeOutMessage,
+})
 
 // UPDATE
 
@@ -1472,16 +1655,79 @@ export const update = (model: Model, message: Message) =>
     GotVirtualListChatDemoMessage: ({ message }) =>
       Match.value(message).pipe(
         Match.withReturnType<Update.Return<Model, Message>>(),
-        Match.tag('ObservedContainerScroll', ({ scrollTop }) =>
+        Match.tag(
+          'ApproachedLoadedStart',
+          ({ distanceToLoadedStartPx, containerHeight }) =>
+            Update.combine(model, [
+              foldVirtualListChatDemo(message),
+              prependVirtualListChatMessagesNearStart(
+                distanceToLoadedStartPx,
+                containerHeight,
+              ),
+            ]),
+        ),
+        Match.tag('EndedContainerScroll', () =>
           Update.combine(model, [
             foldVirtualListChatDemo(message),
-            prependVirtualListChatMessagesOnStartThresholdEntry(scrollTop),
+            markVirtualListChatHistoryAnnounced,
           ]),
         ),
         Match.orElse(() => foldVirtualListChatDemo(model, message)),
       ),
 
-    ClickedVirtualListChatPrepend: () => prependVirtualListChatMessages(model),
+    ClickedVirtualListChatPrepend: () =>
+      requestVirtualListChatHistory(
+        model,
+        VIRTUAL_LIST_CHAT_HISTORY_BATCH_SIZE,
+        'Button',
+      ),
+
+    GotVirtualListChatHistoryModeGroupMessage: ({ message }) =>
+      foldVirtualListChatHistoryModeGroup(model, message),
+
+    SucceededFetchVirtualListChatHistory: ({
+      requestVersion,
+      messages,
+      source,
+      page,
+    }) => {
+      if (
+        model.virtualListChatHistoryLoad._tag === 'Idle' ||
+        requestVersion !== model.virtualListChatHistoryRequestVersion
+      ) {
+        return { model }
+      }
+
+      const shouldAnnounceLoaded = VirtualListChatHistoryLoad.match(
+        model.virtualListChatHistoryLoad,
+        {
+          Idle: () => false,
+          Loading: ({ trigger }) => trigger === 'Button',
+        },
+      )
+      const nextMessages = [...messages, ...model.virtualListChatMessages]
+      return Update.combine(model, [
+        stepModel => ({
+          model: modifyFields(stepModel, {
+            virtualListChatMessages: () => nextMessages,
+            virtualListChatHistorySource: () => source,
+            virtualListChatHistoryLoad: () => VirtualListChatHistoryLoad.Idle(),
+            virtualListChatLoadedOlderCount: loadedCount =>
+              loadedCount + messages.length,
+          }),
+        }),
+        foldVirtualListChatItemsPrepended({
+          items: nextMessages,
+          prependedItems: messages,
+          itemToKey: chatHistoryRows(model.virtualListChatDemo).itemToKey,
+          page,
+        }),
+        stepModel =>
+          shouldAnnounceLoaded
+            ? markVirtualListChatHistoryAnnounced(stepModel)
+            : { model: stepModel },
+      ])
+    },
 
     ClickedVirtualListChatScrollToMessage: () =>
       foldVirtualListChatScrollToKey(model, '7'),

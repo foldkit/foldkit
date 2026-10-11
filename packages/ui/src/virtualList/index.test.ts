@@ -1,16 +1,19 @@
 import { Array, Deferred, Effect, Option, Stream, pipe } from 'effect'
 import * as Mount from 'foldkit/mount'
 import * as Story from 'foldkit/story'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
   ApplyScroll,
   ApplyScrollOutcome,
+  HistoryPage,
+  type HistoryRows,
   Message,
   type Model,
   ObserveVirtualList,
   type ScrollAlignment,
   ScrollTarget,
+  informHistoryPrepended,
   informItemsChanged,
   init,
   scrollToEnd,
@@ -21,6 +24,49 @@ import {
 } from './index.js'
 
 const defaultInit = (): Model => init({ id: 'test', rowHeightPx: 30 })
+
+type HistoryItem = Readonly<{ key: string; estimatedHeightPx: number }>
+
+const historyRows: HistoryRows<HistoryItem> = {
+  itemToKey: (item: HistoryItem) => item.key,
+  dynamicRowHeights: true,
+  itemToEstimatedRowHeightPx: (item: HistoryItem) => item.estimatedHeightPx,
+}
+
+const historyInit = (reservePx = 1000): Model =>
+  init({
+    id: 'test',
+    rowHeightPx: 30,
+    history: { reservePx, prefetchViewports: 4 },
+  })
+
+const activeHistoryModel = (reservePx = 1000): Model =>
+  update(
+    historyInit(reservePx),
+    Message.ApproachedLoadedStart({
+      distanceToLoadedStartPx: 0,
+      containerHeight: 100,
+    }),
+  ).model
+
+const prependHistory = (
+  model: Model,
+  itemKeys: ReadonlyArray<string>,
+  prependedItems: ReadonlyArray<HistoryItem>,
+  page: HistoryPage = HistoryPage.More(),
+) =>
+  informHistoryPrepended(model, {
+    items: Array.map(itemKeys, key =>
+      pipe(
+        prependedItems,
+        Array.findFirst(item => item.key === key),
+        Option.getOrElse(() => ({ key, estimatedHeightPx: 30 })),
+      ),
+    ),
+    prependedItems,
+    itemToKey: historyRows.itemToKey,
+    page,
+  })
 
 type ScrollReturn = ReturnType<typeof scrollToIndex>
 
@@ -37,6 +83,11 @@ const createScrollElement = (
   const element = document.createElement('div')
   element.id = 'test'
   element.scrollTop = currentScrollTop
+  element.scrollTo = options => {
+    if (typeof options === 'object' && options.top !== undefined) {
+      element.scrollTop = options.top
+    }
+  }
   element.setAttribute(
     'data-virtual-list-scroll-version',
     String(activeScrollVersion),
@@ -362,6 +413,47 @@ describe('VirtualList', () => {
       })
     })
 
+    it('keeps an end scroll from a previous layout while rejecting its row index', () => {
+      const model = init({
+        id: 'test',
+        rowHeightPx: 30,
+        followEnd: { thresholdPx: 5 },
+      })
+      const observed = update(
+        model,
+        Message.ObservedContainerScroll({
+          scrollTop: 600,
+          scrollHeight: 1000,
+          containerHeight: 300,
+          anchor: {
+            _tag: 'Row',
+            key: 'visible',
+            index: 20,
+            viewportOffset: -4,
+          },
+        }),
+      )
+      const changed = informItemsChanged(observed.model, ['visible'])
+      const atEnd = update(
+        changed.model,
+        Message.ObservedContainerScroll({
+          scrollTop: 700,
+          scrollHeight: 1000,
+          containerHeight: 300,
+          layoutVersion: 0,
+          anchor: {
+            _tag: 'Row',
+            key: 'visible',
+            index: 20,
+            viewportOffset: -4,
+          },
+        }),
+      )
+
+      expect(atEnd.model.viewportAnchor._tag).toBe('End')
+      expect(atEnd.model.scrollTop).toBe(700)
+    })
+
     it('replaces an in-flight request with the live user scroll anchor', () => {
       const requested = scrollToEnd(defaultInit())
       const scrolled = update(
@@ -386,6 +478,7 @@ describe('VirtualList', () => {
       if (changed.model.pendingScroll._tag === 'Pending') {
         expect(changed.model.pendingScroll.request).toStrictEqual({
           _tag: 'Anchor',
+          baselineScrollTop: 600,
           anchor: {
             _tag: 'Row',
             key: 'row-20',
@@ -394,6 +487,98 @@ describe('VirtualList', () => {
           },
         })
       }
+    })
+
+    it('rebases an in-flight anchor correction to the latest visible row', () => {
+      const observed = update(
+        defaultInit(),
+        Message.ObservedContainerScroll({
+          scrollTop: 40,
+          scrollHeight: 1000,
+          containerHeight: 300,
+          anchor: {
+            _tag: 'Row',
+            key: 'first',
+            index: 0,
+            viewportOffset: -40,
+          },
+        }),
+      )
+      const changed = informItemsChanged(observed.model, ['older', 'first'])
+      const advanced = update(
+        changed.model,
+        Message.ObservedContainerScroll({
+          scrollTop: 140,
+          scrollHeight: 1100,
+          containerHeight: 300,
+          anchor: {
+            _tag: 'Row',
+            key: 'first',
+            index: 1,
+            viewportOffset: -20,
+          },
+        }),
+      )
+
+      expect(advanced.model.pendingScrollVersion).toBe(
+        changed.model.pendingScrollVersion + 1,
+      )
+      expect(advanced.model.pendingScroll).toMatchObject({
+        _tag: 'Pending',
+        request: {
+          _tag: 'Anchor',
+          anchor: {
+            _tag: 'Row',
+            key: 'first',
+            index: 1,
+            viewportOffset: -20,
+          },
+        },
+      })
+      expect(advanced.commands ?? []).toHaveLength(1)
+
+      const staleCompletion = update(
+        advanced.model,
+        completedApplyScroll(changed.model.pendingScrollVersion),
+      )
+      expect(staleCompletion.model.pendingScroll).toEqual(
+        advanced.model.pendingScroll,
+      )
+    })
+
+    it('uses the current offset when no row is visible during an anchor correction', () => {
+      const observed = update(
+        defaultInit(),
+        Message.ObservedContainerScroll({
+          scrollTop: 40,
+          scrollHeight: 1000,
+          containerHeight: 300,
+          anchor: {
+            _tag: 'Row',
+            key: 'first',
+            index: 0,
+            viewportOffset: -40,
+          },
+        }),
+      )
+      const changed = informItemsChanged(observed.model, ['older', 'first'])
+      const advanced = update(
+        changed.model,
+        Message.ObservedContainerScroll({
+          scrollTop: 360,
+          scrollHeight: 1100,
+          containerHeight: 300,
+          anchor: { _tag: 'None' },
+        }),
+      )
+
+      expect(advanced.model.pendingScroll).toMatchObject({
+        _tag: 'Pending',
+        request: {
+          _tag: 'Anchor',
+          anchor: { _tag: 'Offset', scrollTop: 360 },
+        },
+      })
     })
   })
 
@@ -964,9 +1149,446 @@ describe('VirtualList', () => {
       }
       expect(itemChange.commands ?? []).toHaveLength(1)
     })
+
+    it('does not write scrollTop when the visible row already has its anchored position', async () => {
+      const observed = update(
+        defaultInit(),
+        Message.ObservedContainerScroll({
+          scrollTop: 40,
+          scrollHeight: 1000,
+          containerHeight: 100,
+          anchor: {
+            _tag: 'Row',
+            key: 'first',
+            index: 0,
+            viewportOffset: -40,
+          },
+        }),
+      )
+      const itemChange = informItemsChanged(observed.model, ['first'])
+      const element = createScrollElement(
+        40,
+        100,
+        [{ index: 0, key: 'first', start: 0, height: 80 }],
+        1000,
+        itemChange.model.pendingScrollVersion,
+      )
+      let scrollTop = element.scrollTop
+      let scrollWrites = 0
+      Object.defineProperty(element, 'scrollTop', {
+        get: () => scrollTop,
+        set: (value: number) => {
+          scrollTop = value
+          scrollWrites += 1
+        },
+      })
+      document.body.append(element)
+
+      try {
+        expect(await runMountedScroll(itemChange, element)).toBe(40)
+        expect(scrollWrites).toBe(0)
+      } finally {
+        element.remove()
+      }
+    })
+
+    it('restores the keyed row when native anchoring does not preserve its position', async () => {
+      const observed = update(
+        defaultInit(),
+        Message.ObservedContainerScroll({
+          scrollTop: 40,
+          scrollHeight: 1000,
+          containerHeight: 100,
+          anchor: {
+            _tag: 'Row',
+            key: 'first',
+            index: 0,
+            viewportOffset: -40,
+          },
+        }),
+      )
+      const itemChange = informItemsChanged(observed.model, ['first'])
+      const element = createScrollElement(
+        40,
+        100,
+        [{ index: 0, key: 'first', start: 120, height: 80 }],
+        1000,
+        itemChange.model.pendingScrollVersion,
+      )
+      let scrollTop = element.scrollTop
+      let scrollWrites = 0
+      Object.defineProperty(element, 'scrollTop', {
+        get: () => scrollTop,
+        set: (value: number) => {
+          scrollTop = value
+          scrollWrites += 1
+        },
+      })
+      document.body.append(element)
+      const scrollTo = vi.spyOn(element, 'scrollTo')
+
+      try {
+        expect(await runMountedScroll(itemChange, element)).toBe(160)
+        expect(scrollTo).toHaveBeenCalledWith({ top: 160 })
+        expect(scrollWrites).toBe(1)
+      } finally {
+        element.remove()
+      }
+    })
+
+    it('does not undo a user scroll that overtakes a pending anchor correction', async () => {
+      const observed = update(
+        defaultInit(),
+        Message.ObservedContainerScroll({
+          scrollTop: 40,
+          scrollHeight: 1000,
+          containerHeight: 100,
+          anchor: {
+            _tag: 'Row',
+            key: 'first',
+            index: 0,
+            viewportOffset: -40,
+          },
+        }),
+      )
+      const itemChange = informItemsChanged(observed.model, ['first'])
+      const element = createScrollElement(
+        180,
+        100,
+        [{ index: 0, key: 'first', start: 120, height: 80 }],
+        1000,
+        itemChange.model.pendingScrollVersion,
+      )
+      const scrollTo = vi.spyOn(element, 'scrollTo')
+      document.body.append(element)
+
+      try {
+        expect(await runMountedScroll(itemChange, element)).toBe(180)
+        expect(scrollTo).not.toHaveBeenCalled()
+      } finally {
+        element.remove()
+      }
+    })
+  })
+
+  describe('informHistoryPrepended', () => {
+    it('extends history without consuming the loading buffer or issuing a scroll', () => {
+      const model = activeHistoryModel()
+      const prepend = prependHistory(
+        model,
+        ['older', 'first'],
+        [{ key: 'older', estimatedHeightPx: 80 }],
+      )
+
+      expect(prepend.model.startPaddingPx).toBe(1000)
+      expect(prepend.model.pendingScroll._tag).toBe('Idle')
+      expect(prepend.commands).toBeUndefined()
+    })
+
+    it('records a measured prepended row without changing the loading buffer', () => {
+      const model = activeHistoryModel()
+      const prepend = prependHistory(
+        model,
+        ['older', 'first'],
+        [{ key: 'older', estimatedHeightPx: 80 }],
+      )
+      const measurement = update(
+        prepend.model,
+        Message.MeasuredRows({
+          measurements: [
+            {
+              key: 'older',
+              height: 100,
+              layoutHeightPx: 80,
+              index: 0,
+              layoutVersion: prepend.model.layoutVersion,
+            },
+          ],
+        }),
+      )
+
+      expect(measurement.model.startPaddingPx).toBe(1000)
+      expect(measurement.model.measuredRowHeights).toStrictEqual({ older: 100 })
+      expect(measurement.commands).toBeUndefined()
+    })
+
+    it('removes the loading buffer when the final page arrives', () => {
+      const prepend = prependHistory(
+        historyInit(),
+        ['older', 'first'],
+        [{ key: 'older', estimatedHeightPx: 80 }],
+        HistoryPage.Complete(),
+      )
+
+      expect(prepend.model.startPaddingPx).toBe(0)
+      expect(prepend.model.history).toMatchObject({
+        _tag: 'Enabled',
+        page: { _tag: 'Complete' },
+      })
+      expect(prepend.commands).toBeUndefined()
+    })
+
+    it('finishes history without a scroll even when the final page is tall', () => {
+      const model = activeHistoryModel(70)
+      const prepend = prependHistory(
+        model,
+        ['older', 'first'],
+        [{ key: 'older', estimatedHeightPx: 80 }],
+        HistoryPage.Complete(),
+      )
+
+      expect(prepend.model.startPaddingPx).toBe(0)
+      expect(prepend.model.history).toMatchObject({
+        _tag: 'Enabled',
+        page: { _tag: 'Complete' },
+      })
+      expect(prepend.commands).toBeUndefined()
+    })
+  })
+
+  describe('EndedContainerScroll', () => {
+    it('leaves an ordinary list unchanged for history events', () => {
+      const model = defaultInit()
+      const approached = update(
+        model,
+        Message.ApproachedLoadedStart({
+          distanceToLoadedStartPx: 100,
+          containerHeight: 300,
+        }),
+      )
+      const settled = update(model, Message.EndedContainerScroll())
+
+      expect(approached.model).toBe(model)
+      expect(settled.model).toBe(model)
+      expect(settled.commands).toBeUndefined()
+    })
+
+    it('ends history scrolling without moving the viewport', () => {
+      const model = activeHistoryModel()
+      const prepend = prependHistory(
+        model,
+        ['older', 'first'],
+        [{ key: 'older', estimatedHeightPx: 100 }],
+      )
+      const replenished = update(prepend.model, Message.EndedContainerScroll())
+
+      expect(replenished.model.startPaddingPx).toBe(1000)
+      expect(replenished.model.pendingScroll._tag).toBe('Idle')
+      expect(replenished.commands).toBeUndefined()
+
+      const unchanged = update(
+        replenished.model,
+        Message.EndedContainerScroll(),
+      )
+      expect(unchanged.model.startPaddingPx).toBe(1000)
+      expect(unchanged.commands).toBeUndefined()
+    })
+  })
+
+  describe('ObservedContainerScroll with history', () => {
+    it('keeps a stable loading buffer throughout repeated page loads', () => {
+      const scrolled = update(
+        activeHistoryModel(),
+        Message.ObservedContainerScroll({
+          scrollTop: 900,
+          scrollHeight: 1300,
+          containerHeight: 100,
+          anchor: { _tag: 'None' },
+        }),
+      )
+      const prepend = prependHistory(
+        scrolled.model,
+        ['older', 'first'],
+        [{ key: 'older', estimatedHeightPx: 300 }],
+      )
+      const continuedScroll = update(
+        prepend.model,
+        Message.ObservedContainerScroll({
+          scrollTop: 800,
+          scrollHeight: 1300,
+          containerHeight: 100,
+          anchor: { _tag: 'None' },
+        }),
+      )
+
+      expect(continuedScroll.model.startPaddingPx).toBe(1000)
+      expect(continuedScroll.commands).toBeUndefined()
+
+      const replenished = update(
+        continuedScroll.model,
+        Message.EndedContainerScroll(),
+      )
+      expect(replenished.model.startPaddingPx).toBe(1000)
+      expect(replenished.model.pendingScroll._tag).toBe('Idle')
+      expect(replenished.commands).toBeUndefined()
+    })
+  })
+
+  describe('ObserveVirtualList', () => {
+    it('reports scroll settling when native scrollend is not delivered', async () => {
+      const element = document.createElement('div')
+      element.id = 'test'
+      Object.defineProperty(element, 'onscrollend', { value: null })
+      document.body.append(element)
+
+      try {
+        const ended = await Effect.runPromise(
+          Effect.scoped(
+            Effect.gen(function* () {
+              const mounted = yield* Deferred.make<void>()
+              const settled = yield* Deferred.make<void>()
+              yield* ObserveVirtualList({
+                id: 'test',
+                observeHistory: true,
+              })
+                .f(element, Mount.liveViewStateChanges)
+                .pipe(
+                  Stream.runForEach(message =>
+                    message._tag === 'EndedContainerScroll'
+                      ? Deferred.succeed(settled, undefined)
+                      : Deferred.succeed(mounted, undefined),
+                  ),
+                  Effect.forkScoped,
+                )
+              yield* Deferred.await(mounted)
+              element.dispatchEvent(new Event('scroll'))
+              yield* Deferred.await(settled)
+              return true
+            }),
+          ).pipe(Effect.timeout('2 seconds')),
+        )
+
+        expect(ended).toBe(true)
+      } finally {
+        element.remove()
+      }
+    })
   })
 
   describe('MeasuredRows', () => {
+    it('leaves the Model unchanged when a row matches its layout height', () => {
+      const initialModel = defaultInit()
+      Story.story(
+        update,
+        Story.given(initialModel),
+        Story.message(
+          Message.MeasuredRows({
+            measurements: [
+              {
+                key: 'row-1',
+                height: 30,
+                layoutHeightPx: 30,
+                layoutVersion: initialModel.layoutVersion,
+              },
+            ],
+          }),
+        ),
+        Story.model(model => {
+          expect(model).toBe(initialModel)
+        }),
+        Story.Command.expectNone(),
+      )
+    })
+
+    it('records a height correction above the visible row without scrolling', () => {
+      const model = historyInit()
+      const observed = update(
+        model,
+        Message.ObservedContainerScroll({
+          scrollTop: 1300,
+          scrollHeight: 2000,
+          containerHeight: 100,
+          anchor: {
+            _tag: 'Row',
+            key: 'visible',
+            index: 10,
+            viewportOffset: 0,
+          },
+        }),
+      )
+      const prepend = prependHistory(
+        observed.model,
+        ['new', 'earlier', 'visible'],
+        [{ key: 'new', estimatedHeightPx: 30 }],
+      )
+      const staleScroll = update(
+        prepend.model,
+        Message.ObservedContainerScroll({
+          scrollTop: 1300,
+          scrollHeight: 2000,
+          containerHeight: 100,
+          layoutVersion: 0,
+          anchor: {
+            _tag: 'Row',
+            key: 'visible',
+            index: 10,
+            viewportOffset: 0,
+          },
+        }),
+      )
+      expect(staleScroll.model.viewportAnchor).toStrictEqual({
+        _tag: 'Row',
+        key: 'visible',
+        index: 11,
+        viewportOffset: 0,
+      })
+      const measurement = update(
+        staleScroll.model,
+        Message.MeasuredRows({
+          measurements: [
+            {
+              key: 'earlier',
+              index: 6,
+              height: 50,
+              layoutHeightPx: 30,
+              layoutVersion: prepend.model.layoutVersion,
+            },
+          ],
+        }),
+      )
+
+      expect(measurement.model.startPaddingPx).toBe(1000)
+      expect(measurement.commands).toBeUndefined()
+    })
+
+    it('reconciles a visible row when a later history row measures taller', () => {
+      const initialModel = historyInit()
+      const scrolled = update(
+        initialModel,
+        Message.ObservedContainerScroll({
+          scrollTop: -160,
+          scrollHeight: 2000,
+          containerHeight: 100,
+          anchor: {
+            _tag: 'Row',
+            key: 'visible',
+            index: 10,
+            viewportOffset: 0,
+          },
+        }),
+      )
+
+      Story.story(
+        update,
+        Story.given(scrolled.model),
+        Story.message(
+          Message.MeasuredRows({
+            measurements: [
+              {
+                key: 'later',
+                index: 12,
+                height: 80,
+                layoutHeightPx: 30,
+                layoutVersion: scrolled.model.layoutVersion,
+              },
+            ],
+          }),
+        ),
+        Story.Command.expectHas(ApplyScroll),
+        Story.Command.resolve(ApplyScroll, completedApplyScroll(1)),
+      )
+    })
+
     it('stores measurements from the current layout and reconciles the anchor', () => {
       const measurement = update(
         defaultInit(),

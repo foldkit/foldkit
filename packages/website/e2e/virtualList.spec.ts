@@ -7,9 +7,18 @@ const waitForClientRuntime = async (page: Page) => {
 }
 
 const distanceFromEnd = (container: Locator): Promise<number> =>
-  container.evaluate(
-    element => element.scrollHeight - element.clientHeight - element.scrollTop,
+  container.evaluate(element => -element.scrollTop)
+
+const waitForInitialEnd = async (container: Locator) => {
+  await expect.poll(() => distanceFromEnd(container)).toBeLessThanOrEqual(1)
+  await container.evaluate(
+    () =>
+      new Promise<void>(resolve => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      }),
   )
+  await expect.poll(() => distanceFromEnd(container)).toBeLessThanOrEqual(1)
+}
 
 type VisibleAnchor = Readonly<{ key: string; top: number; index: number }>
 
@@ -43,10 +52,7 @@ const scrollAwayFromEnd = async (container: Locator) => {
   await container.evaluate(
     element =>
       new Promise<void>(resolve => {
-        element.scrollTop = Math.max(
-          0,
-          element.scrollHeight - element.clientHeight - 160,
-        )
+        element.scrollTop = -160
         element.dispatchEvent(new Event('scroll'))
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
       }),
@@ -73,6 +79,38 @@ const expectAnchorTop = async (container: Locator, anchor: VisibleAnchor) => {
     .toBeLessThanOrEqual(1)
 }
 
+const loadedChatMessageCount = async (page: Page): Promise<number> =>
+  Number.parseInt(
+    (await page.getByText(/^\d+ messages loaded$/).textContent()) ?? '',
+    10,
+  )
+
+test('waits for upward scrolling before loading chat history in either mode', async ({
+  page,
+}) => {
+  await page.goto('/ui/virtual-list')
+  await waitForClientRuntime(page)
+
+  const container = page.getByRole('list', {
+    name: 'End-anchored chat messages',
+  })
+  await waitForInitialEnd(container)
+  await page.waitForTimeout(500)
+  expect(await loadedChatMessageCount(page)).toBe(24)
+
+  const historyMode = page.getByRole('radiogroup', { name: 'History mode' })
+  await expect(historyMode).toHaveAccessibleDescription(
+    'Changing modes resets the conversation.',
+  )
+  await expect(
+    historyMode.getByRole('radio', { name: 'Infinite', exact: true }),
+  ).toHaveAttribute('aria-checked', 'true')
+  await historyMode.getByRole('radio', { name: 'Finite', exact: true }).click()
+  await waitForInitialEnd(container)
+  await page.waitForTimeout(500)
+  expect(await loadedChatMessageCount(page)).toBe(24)
+})
+
 test('keeps end-anchored dynamic lists stable across append, prepend, and row growth', async ({
   page,
 }) => {
@@ -85,12 +123,18 @@ test('keeps end-anchored dynamic lists stable across append, prepend, and row gr
   await expect(
     container.locator('[data-virtual-list-item-key]'),
   ).not.toHaveCount(0)
-  await expect.poll(() => distanceFromEnd(container)).toBeLessThanOrEqual(1)
+  await waitForInitialEnd(container)
+  await expect(
+    container.locator('[data-virtual-list-item-key]').first(),
+  ).toHaveAttribute('aria-setsize', '-1')
 
   await scrollAwayFromEnd(container)
   const prependAnchor = await visibleAnchor(container)
   await page.locator('[data-virtual-list-chat-prepend]').click()
   await expectAnchorTop(container, prependAnchor)
+  await expect(page.locator('[data-virtual-list-chat-status]')).toContainText(
+    'older messages',
+  )
 
   const appendAnchor = await visibleAnchor(container)
   await page.getByRole('button', { name: 'Add message' }).click()
@@ -115,12 +159,12 @@ test('keeps end-anchored dynamic lists stable across append, prepend, and row gr
     element.scrollTop = element.scrollHeight
     element.dispatchEvent(new Event('scroll'))
   })
-  await expect.poll(() => distanceFromEnd(container)).toBeLessThanOrEqual(1)
+  await waitForInitialEnd(container)
   await page.getByRole('button', { name: 'Add message' }).click()
   await expect.poll(() => distanceFromEnd(container)).toBeLessThanOrEqual(1)
 })
 
-test('loads older messages when scrolling near the start and preserves the visible row', async ({
+test('resolves delayed finite history and exposes its actual beginning', async ({
   page,
 }) => {
   await page.goto('/ui/virtual-list')
@@ -129,40 +173,93 @@ test('loads older messages when scrolling near the start and preserves the visib
   const container = page.getByRole('list', {
     name: 'End-anchored chat messages',
   })
-  await expect.poll(() => distanceFromEnd(container)).toBeLessThanOrEqual(1)
-  const initialScrollHeight = await container.evaluate(
-    element => element.scrollHeight,
-  )
+  await waitForInitialEnd(container)
+  const historyMode = page.getByRole('radiogroup', { name: 'History mode' })
+  const finiteHistoryOption = historyMode.getByRole('radio', {
+    name: 'Finite',
+    exact: true,
+  })
+  await expect(finiteHistoryOption).toHaveAttribute('aria-checked', 'false')
+  await finiteHistoryOption.click()
+  await expect(finiteHistoryOption).toHaveAttribute('aria-checked', 'true')
+  await expect(page.locator('[data-virtual-list-chat-prepend]')).toHaveCount(0)
+  await waitForInitialEnd(container)
 
   await container.evaluate(element => {
-    element.scrollTop = 120
+    element.scrollTop = -100
     element.dispatchEvent(new Event('scroll'))
   })
-  await expect(
-    container.locator('[data-virtual-list-item-key="0"]'),
-  ).toHaveCount(1)
+  await expect(page.locator('[data-virtual-list-chat-status]')).toContainText(
+    'Loading older messages',
+  )
+  await expect.poll(() => loadedChatMessageCount(page)).toBeGreaterThan(24)
 
-  const startAnchor = await container.evaluate(element => {
-    element.scrollTop = 40
-    const row = element.querySelector<HTMLElement>(
-      '[data-virtual-list-item-key="0"]',
-    )
-    if (row === null) {
-      throw new Error('Expected the first row to be rendered')
-    }
-    const top =
-      row.getBoundingClientRect().top - element.getBoundingClientRect().top
-    element.dispatchEvent(new Event('scroll'))
-    return { key: '0', top, index: 0 }
+  await container.evaluate(element => {
+    element.dispatchEvent(new Event('scrollend'))
   })
-
   await expect
-    .poll(() => container.evaluate(element => element.scrollHeight))
-    .toBeGreaterThan(initialScrollHeight + 200)
-  await expectAnchorTop(container, startAnchor)
+    .poll(() =>
+      container.evaluate(element =>
+        Number(element.dataset['virtualListStartPadding']),
+      ),
+    )
+    .toBe(1_200)
+
+  await container.evaluate(element => {
+    element.scrollTop = -element.scrollHeight
+    element.dispatchEvent(new Event('scroll'))
+  })
+  await expect(page.locator('[data-virtual-list-chat-status]')).toContainText(
+    'Loading older messages',
+  )
+  await expect.poll(() => loadedChatMessageCount(page)).toBe(88)
+  await expect(page.locator('[data-virtual-list-chat-prepend]')).toHaveCount(0)
+  await expect(page.locator('[data-virtual-list-chat-status]')).toHaveText(
+    'All older messages loaded',
+  )
+  await expect
+    .poll(() =>
+      container.evaluate(element =>
+        Number(element.dataset['virtualListStartPadding']),
+      ),
+    )
+    .toBe(0)
+
+  await container.evaluate(element => {
+    element.scrollTop = -element.scrollHeight
+    element.dispatchEvent(new Event('scroll'))
+  })
+  await expect
+    .poll(() =>
+      container.evaluate(
+        element =>
+          element.scrollHeight - element.clientHeight + element.scrollTop,
+      ),
+    )
+    .toBeLessThanOrEqual(1)
+  await expect(
+    container.locator('[data-virtual-list-item-index="0"]'),
+  ).toBeVisible()
+  expect(await loadedChatMessageCount(page)).toBe(88)
+  await expect(
+    container.locator('[data-virtual-list-item-index="0"]'),
+  ).toHaveAttribute('aria-setsize', '88')
+  await expect(
+    container.locator('[data-virtual-list-item-index="0"]'),
+  ).toHaveAttribute('aria-posinset', '1')
+
+  await historyMode
+    .getByRole('radio', { name: 'Infinite', exact: true })
+    .click()
+  await expect(finiteHistoryOption).toHaveAttribute('aria-checked', 'false')
+  await expect.poll(() => loadedChatMessageCount(page)).toBe(24)
+  await waitForInitialEnd(container)
+  await expect(
+    container.locator('[data-virtual-list-item-key]').first(),
+  ).toHaveAttribute('aria-setsize', '-1')
 })
 
-test('loads older messages after jumping directly from the end to the start', async ({
+test('keeps the history mode radio group stable while a page loads and ignores its late result after switching modes', async ({
   page,
 }) => {
   await page.goto('/ui/virtual-list')
@@ -171,19 +268,70 @@ test('loads older messages after jumping directly from the end to the start', as
   const container = page.getByRole('list', {
     name: 'End-anchored chat messages',
   })
-  await expect.poll(() => distanceFromEnd(container)).toBeLessThanOrEqual(1)
+  const historyMode = page.getByRole('radiogroup', { name: 'History mode' })
+  const finiteHistoryOption = historyMode.getByRole('radio', {
+    name: 'Finite',
+    exact: true,
+  })
+  await waitForInitialEnd(container)
+  await finiteHistoryOption.click()
+  await waitForInitialEnd(container)
 
+  const optionElement = await finiteHistoryOption.elementHandle()
   await container.evaluate(element => {
-    element.scrollTop = 0
+    element.scrollTop = -100
     element.dispatchEvent(new Event('scroll'))
+  })
+  await expect(page.locator('[data-virtual-list-chat-status]')).toContainText(
+    'Loading older messages',
+  )
+  expect(await optionElement?.evaluate(element => element.isConnected)).toBe(
+    true,
+  )
+  await expect(finiteHistoryOption).not.toHaveAttribute('aria-disabled')
+  expect(
+    await finiteHistoryOption.evaluate(
+      element => getComputedStyle(element).opacity,
+    ),
+  ).toBe('1')
+
+  await finiteHistoryOption.press('ArrowLeft')
+  await expect(
+    historyMode.getByRole('radio', { name: 'Infinite', exact: true }),
+  ).toHaveAttribute('aria-checked', 'true')
+  await expect.poll(() => loadedChatMessageCount(page)).toBe(24)
+  await page.waitForTimeout(300)
+  expect(await loadedChatMessageCount(page)).toBe(24)
+  await expect(
+    container.locator('[data-virtual-list-item-key]').first(),
+  ).toHaveAttribute('aria-setsize', '-1')
+})
+
+test('keeps the focused message mounted when older history is prepended', async ({
+  page,
+}) => {
+  await page.goto('/ui/virtual-list')
+  await waitForClientRuntime(page)
+
+  const container = page.getByRole('list', {
+    name: 'End-anchored chat messages',
+  })
+  await waitForInitialEnd(container)
+  const message = container
+    .locator('[data-virtual-list-chat-message-id]')
+    .last()
+  const id = await message.getAttribute('data-virtual-list-chat-message-id')
+  await message.focus()
+
+  await page.locator('[data-virtual-list-chat-prepend]').evaluate(element => {
+    if (element instanceof HTMLElement) {
+      element.click()
+    }
   })
 
   await expect(
-    container.locator('[data-virtual-list-item-key="-8"]'),
-  ).toHaveCount(1)
-  await expect
-    .poll(() => container.evaluate(element => element.scrollTop))
-    .toBeLessThanOrEqual(1)
+    container.locator(`[data-virtual-list-chat-message-id="${id}"]`),
+  ).toBeFocused()
 })
 
 test('keeps a distant key centered while correcting a low row-height estimate', async ({
@@ -195,7 +343,7 @@ test('keeps a distant key centered while correcting a low row-height estimate', 
   const container = page.getByRole('list', {
     name: 'End-anchored chat messages',
   })
-  await expect.poll(() => distanceFromEnd(container)).toBeLessThanOrEqual(1)
+  await waitForInitialEnd(container)
   await page.locator('[data-virtual-list-chat-scroll-to-message]').click()
 
   await expect
@@ -216,4 +364,53 @@ test('keeps a distant key centered while correcting a low row-height estimate', 
       }),
     )
     .toBeLessThanOrEqual(1)
+})
+
+test('keeps a visible row stable when a lower row measures taller', async ({
+  page,
+}) => {
+  await page.goto('/ui/virtual-list')
+  await waitForClientRuntime(page)
+
+  const container = page.getByRole('list', {
+    name: 'End-anchored chat messages',
+  })
+  await waitForInitialEnd(container)
+  await scrollAwayFromEnd(container)
+  const anchor = await visibleAnchor(container)
+
+  const growth = await container.evaluate((element, anchorIndex) => {
+    const rows = Array.from(
+      element.querySelectorAll<HTMLElement>('[data-virtual-list-item-index]'),
+    )
+    const rowBelow = rows.find(row => {
+      const index = Number(row.getAttribute('data-virtual-list-item-index'))
+      return Number.isFinite(index) && index > anchorIndex
+    })
+    if (rowBelow === undefined) {
+      throw new Error('Expected a row below the visible anchor')
+    }
+    const key = rowBelow.getAttribute('data-virtual-list-item-key')
+    if (key === null) {
+      throw new Error('Expected a keyed row below the visible anchor')
+    }
+    const beforeHeight = rowBelow.getBoundingClientRect().height
+    const message = rowBelow.querySelector<HTMLElement>(
+      '[data-virtual-list-chat-message-id]',
+    )
+    if (message === null) {
+      throw new Error('Expected a message below the visible anchor')
+    }
+    message.style.minHeight = `${beforeHeight + 80}px`
+    return { key, beforeHeight }
+  }, anchor.index)
+
+  await expect
+    .poll(() =>
+      container
+        .locator(`[data-virtual-list-item-key="${growth.key}"]`)
+        .evaluate(element => element.getBoundingClientRect().height),
+    )
+    .not.toBe(growth.beforeHeight)
+  await expectAnchorTop(container, anchor)
 })
