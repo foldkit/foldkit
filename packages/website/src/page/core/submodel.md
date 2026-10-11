@@ -164,7 +164,7 @@ When the selected child emits an OutMessage, `foldOutMessage` takes the key and 
 
 By default, a parent render runs each child view again. If profiling finds repeated work in a long list or expensive child view, place the embed site behind `createKeyedLazy` from `foldkit/html`.
 
-Foldkit keeps the boundary registration alive across cache hits and removes it when the VNode leaves the tree. Key the lazy view with the same stable identifier used by `slotId`.
+Foldkit keeps the boundary registration alive across cache hits and removes it when the child view's element leaves the tree. Key the lazy view with the same stable identifier used by `slotId`.
 
 The [View Memoization](/core/view-memoization) page covers cache identity, limits, and measurement.
 
@@ -382,6 +382,6 @@ Snapshots the Submodel’s dispatcher at publish time and brands each attribute 
 
 ### ChildAttribute {#api-child-attribute}
 
-`ChildAttribute` is the branded attribute type returned by `childAttributes`. Element constructors (`h.button`, `h.input`, etc.) accept `ChildAttribute` alongside ordinary `Attribute<Message>` values, using the carried dispatcher when present.
+`ChildAttribute` is the opaque attribute type returned by `childAttributes`. You can spread a group into an element’s attributes, but you cannot read its fields. Element constructors (`h.button`, `h.input`, etc.) accept `ChildAttribute` alongside ordinary `Attribute<Message>` values, using the carried dispatcher when present.
 
 With Model, Messages, update, view, Commands, and Submodels in place, you have the full vocabulary for describing a Foldkit app. The next page covers the [Runtime](/core/runtime): the engine that executes Commands, runs Subscriptions, manages Mount and ManagedResource lifecycles, and routes Messages back into update.

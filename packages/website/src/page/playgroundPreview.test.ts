@@ -1,13 +1,6 @@
 import { type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import {
-  type SceneSimulation,
-  expect,
-  given,
-  scene,
-  selector,
-  text,
-} from 'foldkit/scene'
+import { expect, given, scene, selector, text } from 'foldkit/scene'
 import { describe, expect as expectValue, test } from 'vitest'
 
 import * as PlaygroundPreview from './playgroundPreview'
@@ -30,20 +23,6 @@ const previewApp = {
       h,
     ),
 }
-
-const expectPreviewKey =
-  (expectedKey: string) =>
-  (simulation: SceneSimulation<PlaygroundPreview.State, Message>) => {
-    const frame = simulation.html.children?.find(
-      child => typeof child !== 'string' && child.sel === 'iframe',
-    )
-    if (frame === undefined || typeof frame === 'string') {
-      throw new Error('The preview iframe was not rendered')
-    } else {
-      expectValue(frame.key).toBe(expectedKey)
-      return simulation
-    }
-  }
 
 describe('playground preview', () => {
   test('loads only the current preview', () => {
@@ -69,7 +48,7 @@ describe('playground preview', () => {
       expect(preview).toHaveClass('invisible'),
       expect(preview).toHaveClass('pointer-events-none'),
       expect(text('Preparing preview…')).toExist(),
-      expectPreviewKey(PREVIEW_URL),
+      expect(preview).toHaveKey(PREVIEW_URL),
     )
   })
 
@@ -82,7 +61,7 @@ describe('playground preview', () => {
       expect(preview).toHaveAttr('tabIndex', '0'),
       expect(preview).toHaveClass('opacity-100'),
       expect(selector('.hidden')).toContainText('Preparing preview…'),
-      expectPreviewKey(PREVIEW_URL),
+      expect(preview).toHaveKey(PREVIEW_URL),
     )
   })
 
@@ -90,7 +69,7 @@ describe('playground preview', () => {
     scene(
       previewApp,
       given(PlaygroundPreview.start(STALE_PREVIEW_URL)),
-      expectPreviewKey(STALE_PREVIEW_URL),
+      expect(preview).toHaveKey(STALE_PREVIEW_URL),
     )
   })
 })

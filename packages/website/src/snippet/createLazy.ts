@@ -27,8 +27,8 @@ const lazyStats = createLazy()
 
 // In your view, wrap the call with the lazy slot.
 // If revenue, orderCount, and topProducts are the same references
-// as last render, the cached VNode is returned instantly.
-// both VNode construction and subtree diffing are skipped.
+// as last render, the cached Html is returned instantly.
+// both Html construction and subtree diffing are skipped.
 // The builder travels through the args array like any other argument.
 // The runtime hands every render the same builder object, so it never
 // invalidates the cache.

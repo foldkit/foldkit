@@ -14,7 +14,7 @@ import {
  *  the OnMount snabbdom hooks call `started` synchronously when an element
  *  with an OnMount attribute is inserted and `ended` when it is destroyed.
  *  Test renderers do not provide this service, since snabbdom hooks never
- *  fire in their VNode-only environment. */
+ *  fire when nothing is inserted into a document. */
 export class MountTracker extends Context.Service<
   MountTracker,
   {

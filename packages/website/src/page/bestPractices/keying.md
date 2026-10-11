@@ -4,7 +4,7 @@
 
 Keys identify Model entities across renders. Write a key when one view function renders several entities, either in a dynamic collection or at one fixed position over time. Use a stable identifier such as an id or slug.
 
-Foldkit handles the other kind of identity for you. The `@foldkit/vite-plugin` build stamps the VNodes returned by each view function. The same function at one position patches the existing DOM; a different function replaces it. Focus, uncontrolled input values, scroll position, and other element-owned state therefore stay with the view that owns them.
+Foldkit handles the other kind of identity for you. The `@foldkit/vite-plugin` build stamps the `Html` returned by each view function. The same function at one position patches the existing DOM; a different function replaces it. Focus, uncontrolled input values, scroll position, and other element-owned state therefore stay with the view that owns them.
 
 :::Info{label="Coming from React"}
 A Foldkit view function plays the role a component type plays during reconciliation. The same function patches; a different function replaces. Keys still identify list items and entities, but the build handles branch identity for every branching syntax.

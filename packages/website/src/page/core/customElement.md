@@ -7,7 +7,7 @@ Native web components are browser elements with hyphenated tags, JavaScript prop
 `CustomElement.define` gives that declarative interface a typed Foldkit binding. Properties become PascalCase factories on an element builder, events become `On{PascalCase}` factories, and the builder renders beside standard elements such as `h.div` and `h.button`. Properties flow from the Model into the element; event details return as Messages.
 
 :::Info{label="A declarative boundary"}
-The browser owns the custom element's implementation. Foldkit owns the typed property and event wiring. The view remains a pure function from Model to VNode, with no manual property assignment or separate Mount.
+The browser owns the custom element's implementation. Foldkit owns the typed property and event wiring. The view remains a pure function from Model to `Html`, with no manual property assignment or separate Mount.
 :::
 
 ## Defining a Binding

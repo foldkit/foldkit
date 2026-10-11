@@ -10,6 +10,7 @@ import {
   Record,
   Schema,
   Stream,
+  type Types,
 } from 'effect'
 
 import {
@@ -61,6 +62,7 @@ import {
   processDragEnter,
   processDragLeave,
 } from './dragZoneTracking.js'
+import type { Html, HtmlNode } from './htmlNode.js'
 import {
   type DispatchSync,
   type MountDispatchResolver,
@@ -198,10 +200,7 @@ const isFocusInsideCurrentTarget = (event: FocusEvent): boolean =>
   event.relatedTarget instanceof Node &&
   event.currentTarget.contains(event.relatedTarget)
 
-/** A virtual DOM element. Constructed synchronously by the element factories
- *  on {@link HtmlBuilder}. The runtime patches a `VNode` (or `null` to
- *  render nothing) into the application container. */
-export type Html = VNode | null
+export type { Html, HtmlNode } from './htmlNode.js'
 export type Child = Html | string
 
 /** Whether an event handler leaves the browser's default action in place or
@@ -566,16 +565,7 @@ export type FoldkitMountMarker = Readonly<{
   messageMappers?: ReadonlyArray<(message: unknown) => unknown>
 }>
 
-/** Union of all HTML, SVG, and MathML attributes a virtual DOM element can carry.
- *
- *  When a Submodel publishes attribute groups to a consumer's `toView`
- *  slot, those attributes are wrapped via {@link childAttributes} into
- *  {@link ChildAttribute}, a distinct type that carries the Submodel's
- *  own dispatcher. Element constructors accept the union
- *  `ReadonlyArray<Attribute<Message> | ChildAttribute>`, so consumers
- *  can spread published bundles directly into their own attribute
- *  arrays. */
-export type Attribute<Message> = Data.TaggedEnum<{
+type InternalAttribute<Message> = Data.TaggedEnum<{
   Key: { readonly value: string }
   Class: { readonly value: string }
   Id: { readonly value: string }
@@ -970,8 +960,37 @@ export type Attribute<Message> = Data.TaggedEnum<{
   }
 }>
 
+declare const ElementAttributeTypeId: unique symbol
+declare const InnerHtmlAttributeTypeId: unique symbol
+
+/** An attribute for an element, built by an `HtmlBuilder` attribute
+ *  constructor. Opaque: it can be created, composed, and passed to an element,
+ *  but its representation is not part of the API. Covariant in `Message`, so
+ *  an attribute that dispatches nothing (`ElementAttribute<never>`) fits every
+ *  Message type. */
+export interface ElementAttribute<Message> {
+  readonly [ElementAttributeTypeId]: Readonly<{ message: () => Message }>
+}
+
+/** The attribute `h.InnerHTML` produces. Kept apart from
+ *  {@link ElementAttribute} so a textarea can reject it. */
+export interface InnerHtmlAttribute {
+  readonly [InnerHtmlAttributeTypeId]: typeof InnerHtmlAttributeTypeId
+}
+
+/** Union of all HTML, SVG, and MathML attributes an element can carry.
+ *
+ *  When a Submodel publishes attribute groups to a consumer's `toView`
+ *  slot, those attributes are wrapped via {@link childAttributes} into
+ *  {@link ChildAttribute}, a distinct type that carries the Submodel's
+ *  own dispatcher. Element constructors accept the union
+ *  `ReadonlyArray<Attribute<Message> | ChildAttribute>`, so consumers
+ *  can spread published bundles directly into their own attribute
+ *  arrays. */
+export type Attribute<Message> = ElementAttribute<Message> | InnerHtmlAttribute
+
 interface AttributeDefinition extends Data.TaggedEnum.WithGenerics<1> {
-  readonly taggedEnum: Attribute<this['A']>
+  readonly taggedEnum: InternalAttribute<this['A']>
 }
 
 const {
@@ -1617,12 +1636,12 @@ const sanitizeUrl = (value: string): string => {
 // their mutation to a per-VNode BuildContext directly, so applying an
 // attribute is one map lookup and one call with no per-attribute closure
 // allocation. The mapped type keeps the record exhaustive over the Attribute
-// union exactly like `Match.tagsExhaustive` did. `Attribute<unknown>` is the
-// runtime-erased shape. Message is purely a TypeScript parameter at this
+// union exactly like `Match.tagsExhaustive` did. `InternalAttribute<unknown>`
+// is the runtime-erased shape. Message is purely a TypeScript parameter at this
 // level and DispatchSync already accepts unknown.
 type AttributeHandlers = {
-  readonly [Tag in Attribute<unknown>['_tag']]: (
-    attribute: Extract<Attribute<unknown>, Readonly<{ _tag: Tag }>>,
+  readonly [Tag in InternalAttribute<unknown>['_tag']]: (
+    attribute: Extract<InternalAttribute<unknown>, Readonly<{ _tag: Tag }>>,
     ctx: BuildContext,
   ) => void
 }
@@ -2606,7 +2625,7 @@ const attributeHandlers: AttributeHandlers = {
 }
 
 const applyAttribute = (
-  attribute: Attribute<unknown>,
+  attribute: InternalAttribute<unknown>,
   ctx: BuildContext,
 ): void => {
   // NOTE: the mapped record type correlates each handler's attribute
@@ -2614,7 +2633,7 @@ const applyAttribute = (
   // widened call site.
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const handler = attributeHandlers[attribute._tag] as (
-    attribute: Attribute<unknown>,
+    attribute: InternalAttribute<unknown>,
     ctx: BuildContext,
   ) => void
   handler(attribute, ctx)
@@ -2798,7 +2817,7 @@ const buildVNodeData = <Message>(
         boundaryCtxByDispatch.set(item.dispatch, ctx)
       }
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      applyAttribute(item.attribute as Attribute<unknown>, ctx)
+      applyAttribute(item.attribute as InternalAttribute<unknown>, ctx)
     } else {
       if (mainCtx === undefined) {
         mainCtx = {
@@ -2811,7 +2830,7 @@ const buildVNodeData = <Message>(
         }
       }
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      applyAttribute(item as Attribute<unknown>, mainCtx)
+      applyAttribute(item as unknown as InternalAttribute<unknown>, mainCtx)
     }
   }
 
@@ -2836,7 +2855,8 @@ const copyChildrenDroppingEmpty = (
   for (let index = 0; index < children.length; index++) {
     const child = children[index]
     if (child !== null && child !== undefined) {
-      next.push(child)
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      next.push(child as unknown as VNode | string)
     }
   }
   return next
@@ -2881,7 +2901,7 @@ const VOID_CONTENT_ELEMENTS: ReadonlySet<string> = new Set([
 const assertSingleContentOwner = (
   tagName: string,
   data: VNodeData,
-  children: ReadonlyArray<Child>,
+  children: ReadonlyArray<VNode | string>,
 ): void => {
   const lowerTagName = tagName.toLowerCase()
   if (
@@ -3181,7 +3201,7 @@ const buildElement = (
   tagName: string,
   data: VNodeData,
   children: ReadonlyArray<Child>,
-): Html => {
+): HtmlNode => {
   const copiedChildren = copyChildrenDroppingEmpty(children)
   markUnreflectedHtmlPropertiesClientOnly(tagName, data)
   assertSingleContentOwner(tagName, data, copiedChildren)
@@ -3199,7 +3219,8 @@ const buildElement = (
   }
   const built = h(tagName, data, copiedChildren)
   assertForeignPropertiesAreRepresentable(built)
-  return built
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  return built as unknown as HtmlNode
 }
 
 const createElement = <Message>(
@@ -3259,7 +3280,7 @@ type VoidElementFunction<Message> = (
  *  the field is dirty. */
 export type TextareaAttribute<Message> = Exclude<
   Attribute<Message>,
-  Readonly<{ _tag: 'InnerHTML' }>
+  InnerHtmlAttribute
 >
 
 type TextValueElementFunction<Message> = (
@@ -3726,52 +3747,22 @@ const htmlElements = <Message>(): HtmlElements<Message> => {
 }
 
 type HtmlAttributes<Message> = {
-  Key: (value: string) => { readonly _tag: 'Key'; readonly value: string }
-  Class: (value: string) => { readonly _tag: 'Class'; readonly value: string }
-  Id: (value: string) => { readonly _tag: 'Id'; readonly value: string }
-  Title: (value: string) => { readonly _tag: 'Title'; readonly value: string }
-  Lang: (value: string) => { readonly _tag: 'Lang'; readonly value: string }
-  Dir: (value: string) => { readonly _tag: 'Dir'; readonly value: string }
-  Tabindex: (value: number) => {
-    readonly _tag: 'Tabindex'
-    readonly value: number
-  }
-  Hidden: (value: boolean) => {
-    readonly _tag: 'Hidden'
-    readonly value: boolean
-  }
-  Contenteditable: (value: string) => {
-    readonly _tag: 'Contenteditable'
-    readonly value: string
-  }
-  Draggable: (value: boolean) => {
-    readonly _tag: 'Draggable'
-    readonly value: boolean
-  }
-  Accesskey: (value: string) => {
-    readonly _tag: 'Accesskey'
-    readonly value: string
-  }
-  Translate: (value: string) => {
-    readonly _tag: 'Translate'
-    readonly value: string
-  }
-  Inert: (value: boolean) => {
-    readonly _tag: 'Inert'
-    readonly value: boolean
-  }
-  Popover: (value: string) => {
-    readonly _tag: 'Popover'
-    readonly value: string
-  }
-  Popovertarget: (value: string) => {
-    readonly _tag: 'Popovertarget'
-    readonly value: string
-  }
-  Popovertargetaction: (value: string) => {
-    readonly _tag: 'Popovertargetaction'
-    readonly value: string
-  }
+  Key: (value: string) => ElementAttribute<never>
+  Class: (value: string) => ElementAttribute<never>
+  Id: (value: string) => ElementAttribute<never>
+  Title: (value: string) => ElementAttribute<never>
+  Lang: (value: string) => ElementAttribute<never>
+  Dir: (value: string) => ElementAttribute<never>
+  Tabindex: (value: number) => ElementAttribute<never>
+  Hidden: (value: boolean) => ElementAttribute<never>
+  Contenteditable: (value: string) => ElementAttribute<never>
+  Draggable: (value: boolean) => ElementAttribute<never>
+  Accesskey: (value: string) => ElementAttribute<never>
+  Translate: (value: string) => ElementAttribute<never>
+  Inert: (value: boolean) => ElementAttribute<never>
+  Popover: (value: string) => ElementAttribute<never>
+  Popovertarget: (value: string) => ElementAttribute<never>
+  Popovertargetaction: (value: string) => ElementAttribute<never>
   /** Dispatches `message` when the element is clicked. The optional controls
    *  can synchronously prevent the browser default, stop DOM propagation, and
    *  focus an existing element before dispatch. Omitted controls preserve the
@@ -3798,63 +3789,25 @@ type HtmlAttributes<Message> = {
   OnClick: (
     message: Message,
     options?: ClickOptions,
-  ) => {
-    readonly _tag: 'OnClick'
-    readonly message: Message
-    readonly options?: ClickOptions
-  }
-  OnDoubleClick: (message: Message) => {
-    readonly _tag: 'OnDoubleClick'
-    readonly message: Message
-  }
-  OnMouseDown: (message: Message) => {
-    readonly _tag: 'OnMouseDown'
-    readonly message: Message
-  }
-  OnMouseUp: (message: Message) => {
-    readonly _tag: 'OnMouseUp'
-    readonly message: Message
-  }
-  OnMouseEnter: (message: Message) => {
-    readonly _tag: 'OnMouseEnter'
-    readonly message: Message
-  }
-  OnMouseLeave: (message: Message) => {
-    readonly _tag: 'OnMouseLeave'
-    readonly message: Message
-  }
-  OnMouseOver: (message: Message) => {
-    readonly _tag: 'OnMouseOver'
-    readonly message: Message
-  }
-  OnMouseOut: (message: Message) => {
-    readonly _tag: 'OnMouseOut'
-    readonly message: Message
-  }
-  OnMouseMove: (message: Message) => {
-    readonly _tag: 'OnMouseMove'
-    readonly message: Message
-  }
+  ) => ElementAttribute<Message>
+  OnDoubleClick: (message: Message) => ElementAttribute<Message>
+  OnMouseDown: (message: Message) => ElementAttribute<Message>
+  OnMouseUp: (message: Message) => ElementAttribute<Message>
+  OnMouseEnter: (message: Message) => ElementAttribute<Message>
+  OnMouseLeave: (message: Message) => ElementAttribute<Message>
+  OnMouseOver: (message: Message) => ElementAttribute<Message>
+  OnMouseOut: (message: Message) => ElementAttribute<Message>
+  OnMouseMove: (message: Message) => ElementAttribute<Message>
   OnPointerMove: (
     toMaybeMessage: (
       screenX: number,
       screenY: number,
       pointerType: string,
     ) => Option.Option<Message>,
-  ) => {
-    readonly _tag: 'OnPointerMove'
-    readonly f: (
-      screenX: number,
-      screenY: number,
-      pointerType: string,
-    ) => Option.Option<Message>
-  }
+  ) => ElementAttribute<Message>
   OnPointerLeave: (
     toMaybeMessage: (pointerType: string) => Option.Option<Message>,
-  ) => {
-    readonly _tag: 'OnPointerLeave'
-    readonly f: (pointerType: string) => Option.Option<Message>
-  }
+  ) => ElementAttribute<Message>
   /** Dispatches an optional Message on pointerdown. The final callback
    *  arguments identify the pointer and its originating target, so a parent
    *  gesture handler can distinguish touches and ignore nested controls. */
@@ -3870,20 +3823,7 @@ type HtmlAttributes<Message> = {
       pointerId: number,
       target: EventTarget | null,
     ) => Option.Option<Message>,
-  ) => {
-    readonly _tag: 'OnPointerDown'
-    readonly f: (
-      pointerType: string,
-      button: number,
-      screenX: number,
-      screenY: number,
-      timeStamp: number,
-      clientX: number,
-      clientY: number,
-      pointerId: number,
-      target: EventTarget | null,
-    ) => Option.Option<Message>
-  }
+  ) => ElementAttribute<Message>
   OnPointerUp: (
     toMaybeMessage: (
       screenX: number,
@@ -3891,95 +3831,45 @@ type HtmlAttributes<Message> = {
       pointerType: string,
       timeStamp: number,
     ) => Option.Option<Message>,
-  ) => {
-    readonly _tag: 'OnPointerUp'
-    readonly f: (
-      screenX: number,
-      screenY: number,
-      pointerType: string,
-      timeStamp: number,
-    ) => Option.Option<Message>
-  }
+  ) => ElementAttribute<Message>
   OnKeyDown: (
     toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
-  ) => {
-    readonly _tag: 'OnKeyDown'
-    readonly f: (key: string, modifiers: KeyboardModifiers) => Message
-  }
+  ) => ElementAttribute<Message>
   OnKeyDownFocus: (
     toMaybeFocusAndMessage: (
       key: string,
       modifiers: KeyboardModifiers,
     ) => Option.Option<Readonly<{ focusSelector: string; message: Message }>>,
-  ) => {
-    readonly _tag: 'OnKeyDownFocus'
-    readonly f: (
-      key: string,
-      modifiers: KeyboardModifiers,
-    ) => Option.Option<Readonly<{ focusSelector: string; message: Message }>>
-  }
+  ) => ElementAttribute<Message>
   OnKeyDownPreventDefault: (
     toMaybeMessage: (
       key: string,
       modifiers: KeyboardModifiers,
     ) => Option.Option<Message>,
-  ) => {
-    readonly _tag: 'OnKeyDownPreventDefault'
-    readonly f: (
-      key: string,
-      modifiers: KeyboardModifiers,
-    ) => Option.Option<Message>
-  }
+  ) => ElementAttribute<Message>
   OnKeyDownSelf: (
     toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
-  ) => {
-    readonly _tag: 'OnKeyDownSelf'
-    readonly f: (key: string, modifiers: KeyboardModifiers) => Message
-  }
+  ) => ElementAttribute<Message>
   OnKeyDownSelfPreventDefault: (
     toMaybeMessage: (
       key: string,
       modifiers: KeyboardModifiers,
     ) => Option.Option<Message>,
-  ) => {
-    readonly _tag: 'OnKeyDownSelfPreventDefault'
-    readonly f: (
-      key: string,
-      modifiers: KeyboardModifiers,
-    ) => Option.Option<Message>
-  }
+  ) => ElementAttribute<Message>
   OnKeyUp: (
     toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
-  ) => {
-    readonly _tag: 'OnKeyUp'
-    readonly f: (key: string, modifiers: KeyboardModifiers) => Message
-  }
+  ) => ElementAttribute<Message>
   OnKeyUpPreventDefault: (
     toMaybeMessage: (
       key: string,
       modifiers: KeyboardModifiers,
     ) => Option.Option<Message>,
-  ) => {
-    readonly _tag: 'OnKeyUpPreventDefault'
-    readonly f: (
-      key: string,
-      modifiers: KeyboardModifiers,
-    ) => Option.Option<Message>
-  }
+  ) => ElementAttribute<Message>
   OnKeyPress: (
     toMessage: (key: string, modifiers: KeyboardModifiers) => Message,
-  ) => {
-    readonly _tag: 'OnKeyPress'
-    readonly f: (key: string, modifiers: KeyboardModifiers) => Message
-  }
-  OnFocus: (message: Message) => {
-    readonly _tag: 'OnFocus'
-    readonly message: Message
-  }
-  OnBlur: (message: Message) => {
-    readonly _tag: 'OnBlur'
-    readonly message: Message
-  }
+  ) => ElementAttribute<Message>
+  OnFocus: (message: Message) => ElementAttribute<Message>
+  OnBlur: (message: Message) => ElementAttribute<Message>
   /**
    * Dispatches `message` when focus enters this element's subtree from
    * outside it. Moving focus between descendants does not dispatch.
@@ -3988,10 +3878,7 @@ type HtmlAttributes<Message> = {
    * need to be focusable. Pair it with {@link OnFocusLeave} to model whether
    * a compound region such as an editor and its toolbar contains focus.
    */
-  OnFocusEnter: (message: Message) => {
-    readonly _tag: 'OnFocusEnter'
-    readonly message: Message
-  }
+  OnFocusEnter: (message: Message) => ElementAttribute<Message>
   /**
    * Dispatches `message` when focus leaves this element's subtree. Moving
    * focus between descendants does not dispatch.
@@ -4001,940 +3888,350 @@ type HtmlAttributes<Message> = {
    * focusable. Pair it with {@link OnFocusEnter} to model whether a compound
    * region such as an editor and its toolbar contains focus.
    */
-  OnFocusLeave: (message: Message) => {
-    readonly _tag: 'OnFocusLeave'
-    readonly message: Message
-  }
-  OnInput: (toMessage: (value: string) => Message) => {
-    readonly _tag: 'OnInput'
-    readonly f: (value: string) => Message
-  }
-  OnChange: (toMessage: (value: string) => Message) => {
-    readonly _tag: 'OnChange'
-    readonly f: (value: string) => Message
-  }
+  OnFocusLeave: (message: Message) => ElementAttribute<Message>
+  OnInput: (toMessage: (value: string) => Message) => ElementAttribute<Message>
+  OnChange: (toMessage: (value: string) => Message) => ElementAttribute<Message>
   OnBeforeInput: (
     toMessage: (inputType: string, data: Option.Option<string>) => Message,
-  ) => {
-    readonly _tag: 'OnBeforeInput'
-    readonly f: (inputType: string, data: Option.Option<string>) => Message
-  }
+  ) => ElementAttribute<Message>
   OnBeforeInputPreventDefault: (
     toMaybeMessage: (
       inputType: string,
       data: Option.Option<string>,
     ) => Option.Option<Message>,
-  ) => {
-    readonly _tag: 'OnBeforeInputPreventDefault'
-    readonly f: (
-      inputType: string,
-      data: Option.Option<string>,
-    ) => Option.Option<Message>
-  }
-  OnFileChange: (toMessage: (files: ReadonlyArray<File>) => Message) => {
-    readonly _tag: 'OnFileChange'
-    readonly f: (files: ReadonlyArray<File>) => Message
-  }
-  OnSubmit: (message: Message) => {
-    readonly _tag: 'OnSubmit'
-    readonly message: Message
-  }
-  OnReset: (message: Message) => {
-    readonly _tag: 'OnReset'
-    readonly message: Message
-  }
-  OnScroll: (toMessage: (scrollTop: number) => Message) => {
-    readonly _tag: 'OnScroll'
-    readonly f: (scrollTop: number) => Message
-  }
-  OnWheel: (message: Message) => {
-    readonly _tag: 'OnWheel'
-    readonly message: Message
-  }
-  OnCopy: (message: Message) => {
-    readonly _tag: 'OnCopy'
-    readonly message: Message
-  }
-  OnCut: (message: Message) => {
-    readonly _tag: 'OnCut'
-    readonly message: Message
-  }
-  OnPaste: (message: Message) => {
-    readonly _tag: 'OnPaste'
-    readonly message: Message
-  }
+  ) => ElementAttribute<Message>
+  OnFileChange: (
+    toMessage: (files: ReadonlyArray<File>) => Message,
+  ) => ElementAttribute<Message>
+  OnSubmit: (message: Message) => ElementAttribute<Message>
+  OnReset: (message: Message) => ElementAttribute<Message>
+  OnScroll: (
+    toMessage: (scrollTop: number) => Message,
+  ) => ElementAttribute<Message>
+  OnWheel: (message: Message) => ElementAttribute<Message>
+  OnCopy: (message: Message) => ElementAttribute<Message>
+  OnCut: (message: Message) => ElementAttribute<Message>
+  OnPaste: (message: Message) => ElementAttribute<Message>
   OnPastePreventDefault: (
     toMaybeMessage: (text: string) => Option.Option<Message>,
-  ) => {
-    readonly _tag: 'OnPastePreventDefault'
-    readonly f: (text: string) => Option.Option<Message>
-  }
-  OnCopyText: (text: string) => {
-    readonly _tag: 'OnCopyText'
-    readonly text: string
-  }
-  OnCutText: (
-    text: string,
-    message: Message,
-  ) => {
-    readonly _tag: 'OnCutText'
-    readonly text: string
-    readonly message: Message
-  }
-  OnCancel: (message: Message) => {
-    readonly _tag: 'OnCancel'
-    readonly message: Message
-  }
+  ) => ElementAttribute<Message>
+  OnCopyText: (text: string) => ElementAttribute<never>
+  OnCutText: (text: string, message: Message) => ElementAttribute<Message>
+  OnCancel: (message: Message) => ElementAttribute<Message>
   /** Prevents the default action of a `cancel` event. When a
    *  `customEventMessage` is provided, dispatches it only for a `CustomEvent`,
    *  allowing a synthetic cancel signal to be distinguished from the native
    *  event. Native `cancel` events never dispatch a Message. */
-  OnCancelPreventDefault: (customEventMessage?: Message) => {
-    readonly _tag: 'OnCancelPreventDefault'
-    readonly maybeCustomEventMessage: Option.Option<Message>
-  }
-  OnToggle: (toMessage: (isOpen: boolean) => Message) => {
-    readonly _tag: 'OnToggle'
-    readonly f: (isOpen: boolean) => Message
-  }
-  OnContextMenu: (message: Message) => {
-    readonly _tag: 'OnContextMenu'
-    readonly message: Message
-  }
-  OnDragStart: (message: Message) => {
-    readonly _tag: 'OnDragStart'
-    readonly message: Message
-  }
-  OnDrag: (message: Message) => {
-    readonly _tag: 'OnDrag'
-    readonly message: Message
-  }
-  OnDragEnd: (message: Message) => {
-    readonly _tag: 'OnDragEnd'
-    readonly message: Message
-  }
-  OnDragEnter: (message: Message) => {
-    readonly _tag: 'OnDragEnter'
-    readonly message: Message
-  }
-  OnDragLeave: (message: Message) => {
-    readonly _tag: 'OnDragLeave'
-    readonly message: Message
-  }
-  OnDragOver: (message: Message) => {
-    readonly _tag: 'OnDragOver'
-    readonly message: Message
-  }
-  AllowDrop: () => { readonly _tag: 'AllowDrop' }
-  OnDrop: (message: Message) => {
-    readonly _tag: 'OnDrop'
-    readonly message: Message
-  }
-  OnDropFiles: (toMessage: (files: ReadonlyArray<File>) => Message) => {
-    readonly _tag: 'OnDropFiles'
-    readonly f: (files: ReadonlyArray<File>) => Message
-  }
-  OnTouchStart: (message: Message) => {
-    readonly _tag: 'OnTouchStart'
-    readonly message: Message
-  }
-  OnTouchEnd: (message: Message) => {
-    readonly _tag: 'OnTouchEnd'
-    readonly message: Message
-  }
-  OnTouchMove: (message: Message) => {
-    readonly _tag: 'OnTouchMove'
-    readonly message: Message
-  }
-  OnTouchCancel: (message: Message) => {
-    readonly _tag: 'OnTouchCancel'
-    readonly message: Message
-  }
-  OnAnimationStart: (message: Message) => {
-    readonly _tag: 'OnAnimationStart'
-    readonly message: Message
-  }
-  OnAnimationEnd: (message: Message) => {
-    readonly _tag: 'OnAnimationEnd'
-    readonly message: Message
-  }
-  OnAnimationIteration: (message: Message) => {
-    readonly _tag: 'OnAnimationIteration'
-    readonly message: Message
-  }
-  OnTransitionEnd: (message: Message) => {
-    readonly _tag: 'OnTransitionEnd'
-    readonly message: Message
-  }
-  OnLoad: (message: Message) => {
-    readonly _tag: 'OnLoad'
-    readonly message: Message
-  }
-  OnError: (message: Message) => {
-    readonly _tag: 'OnError'
-    readonly message: Message
-  }
-  OnPlay: (message: Message) => {
-    readonly _tag: 'OnPlay'
-    readonly message: Message
-  }
-  OnPause: (message: Message) => {
-    readonly _tag: 'OnPause'
-    readonly message: Message
-  }
-  OnEnded: (message: Message) => {
-    readonly _tag: 'OnEnded'
-    readonly message: Message
-  }
-  OnTimeUpdate: (message: Message) => {
-    readonly _tag: 'OnTimeUpdate'
-    readonly message: Message
-  }
-  OnVolumeChange: (message: Message) => {
-    readonly _tag: 'OnVolumeChange'
-    readonly message: Message
-  }
-  OnSelect: (message: Message) => {
-    readonly _tag: 'OnSelect'
-    readonly message: Message
-  }
-  Value: (value: string) => { readonly _tag: 'Value'; readonly value: string }
-  Checked: (value: boolean) => {
-    readonly _tag: 'Checked'
-    readonly value: boolean
-  }
-  Selected: (value: boolean) => {
-    readonly _tag: 'Selected'
-    readonly value: boolean
-  }
-  Open: (value: boolean) => { readonly _tag: 'Open'; readonly value: boolean }
-  Placeholder: (value: string) => {
-    readonly _tag: 'Placeholder'
-    readonly value: string
-  }
-  Name: (value: string) => { readonly _tag: 'Name'; readonly value: string }
-  Disabled: (value: boolean) => {
-    readonly _tag: 'Disabled'
-    readonly value: boolean
-  }
-  Readonly: (value: boolean) => {
-    readonly _tag: 'Readonly'
-    readonly value: boolean
-  }
-  Required: (value: boolean) => {
-    readonly _tag: 'Required'
-    readonly value: boolean
-  }
-  Autofocus: (value: boolean) => {
-    readonly _tag: 'Autofocus'
-    readonly value: boolean
-  }
-  Spellcheck: (value: boolean) => {
-    readonly _tag: 'Spellcheck'
-    readonly value: boolean
-  }
-  Autocorrect: (value: string) => {
-    readonly _tag: 'Autocorrect'
-    readonly value: string
-  }
-  Autocapitalize: (value: string) => {
-    readonly _tag: 'Autocapitalize'
-    readonly value: string
-  }
-  InputMode: (value: string) => {
-    readonly _tag: 'InputMode'
-    readonly value: string
-  }
-  EnterKeyHint: (value: string) => {
-    readonly _tag: 'EnterKeyHint'
-    readonly value: string
-  }
-  Multiple: (value: boolean) => {
-    readonly _tag: 'Multiple'
-    readonly value: boolean
-  }
-  Type: (value: string) => { readonly _tag: 'Type'; readonly value: string }
-  Accept: (value: string) => { readonly _tag: 'Accept'; readonly value: string }
-  Autocomplete: (value: string) => {
-    readonly _tag: 'Autocomplete'
-    readonly value: string
-  }
-  Pattern: (value: string) => {
-    readonly _tag: 'Pattern'
-    readonly value: string
-  }
-  Maxlength: (value: number) => {
-    readonly _tag: 'Maxlength'
-    readonly value: number
-  }
-  Minlength: (value: number) => {
-    readonly _tag: 'Minlength'
-    readonly value: number
-  }
-  Size: (value: number) => { readonly _tag: 'Size'; readonly value: number }
-  Cols: (value: number) => { readonly _tag: 'Cols'; readonly value: number }
-  Rows: (value: number) => { readonly _tag: 'Rows'; readonly value: number }
-  Max: (value: string) => { readonly _tag: 'Max'; readonly value: string }
-  Min: (value: string) => { readonly _tag: 'Min'; readonly value: string }
-  Step: (value: string) => { readonly _tag: 'Step'; readonly value: string }
-  For: (value: string) => { readonly _tag: 'For'; readonly value: string }
-  Href: (value: string) => { readonly _tag: 'Href'; readonly value: string }
-  Src: (value: string) => { readonly _tag: 'Src'; readonly value: string }
-  Alt: (value: string) => { readonly _tag: 'Alt'; readonly value: string }
-  Target: (value: string) => { readonly _tag: 'Target'; readonly value: string }
-  Rel: (value: string) => { readonly _tag: 'Rel'; readonly value: string }
-  Download: (value: string) => {
-    readonly _tag: 'Download'
-    readonly value: string
-  }
-  Action: (value: string) => { readonly _tag: 'Action'; readonly value: string }
-  Method: (value: string) => { readonly _tag: 'Method'; readonly value: string }
-  Enctype: (value: string) => {
-    readonly _tag: 'Enctype'
-    readonly value: string
-  }
-  Novalidate: (value: boolean) => {
-    readonly _tag: 'Novalidate'
-    readonly value: boolean
-  }
-  Formaction: (value: string) => {
-    readonly _tag: 'Formaction'
-    readonly value: string
-  }
-  Formmethod: (value: string) => {
-    readonly _tag: 'Formmethod'
-    readonly value: string
-  }
-  Formnovalidate: (value: boolean) => {
-    readonly _tag: 'Formnovalidate'
-    readonly value: boolean
-  }
-  Formtarget: (value: string) => {
-    readonly _tag: 'Formtarget'
-    readonly value: string
-  }
-  Formenctype: (value: string) => {
-    readonly _tag: 'Formenctype'
-    readonly value: string
-  }
-  Colspan: (value: number) => {
-    readonly _tag: 'Colspan'
-    readonly value: number
-  }
-  Rowspan: (value: number) => {
-    readonly _tag: 'Rowspan'
-    readonly value: number
-  }
-  Scope: (value: string) => {
-    readonly _tag: 'Scope'
-    readonly value: string
-  }
-  Headers: (value: string) => {
-    readonly _tag: 'Headers'
-    readonly value: string
-  }
-  Span: (value: number) => { readonly _tag: 'Span'; readonly value: number }
-  Start: (value: number) => { readonly _tag: 'Start'; readonly value: number }
-  Reversed: (value: boolean) => {
-    readonly _tag: 'Reversed'
-    readonly value: boolean
-  }
-  CiteAttr: (value: string) => {
-    readonly _tag: 'CiteAttr'
-    readonly value: string
-  }
-  Datetime: (value: string) => {
-    readonly _tag: 'Datetime'
-    readonly value: string
-  }
-  Wrap: (value: string) => { readonly _tag: 'Wrap'; readonly value: string }
-  List: (value: string) => { readonly _tag: 'List'; readonly value: string }
-  FormAttr: (value: string) => {
-    readonly _tag: 'FormAttr'
-    readonly value: string
-  }
-  LabelAttr: (value: string) => {
-    readonly _tag: 'LabelAttr'
-    readonly value: string
-  }
-  ContentAttr: (value: string) => {
-    readonly _tag: 'ContentAttr'
-    readonly value: string
-  }
-  Charset: (value: string) => {
-    readonly _tag: 'Charset'
-    readonly value: string
-  }
-  HttpEquiv: (value: string) => {
-    readonly _tag: 'HttpEquiv'
-    readonly value: string
-  }
-  Srcset: (value: string) => {
-    readonly _tag: 'Srcset'
-    readonly value: string
-  }
-  Sizes: (value: string) => { readonly _tag: 'Sizes'; readonly value: string }
-  Loading: (value: string) => {
-    readonly _tag: 'Loading'
-    readonly value: string
-  }
-  Decoding: (value: string) => {
-    readonly _tag: 'Decoding'
-    readonly value: string
-  }
-  Fetchpriority: (value: string) => {
-    readonly _tag: 'Fetchpriority'
-    readonly value: string
-  }
-  Crossorigin: (value: string) => {
-    readonly _tag: 'Crossorigin'
-    readonly value: string
-  }
-  Referrerpolicy: (value: string) => {
-    readonly _tag: 'Referrerpolicy'
-    readonly value: string
-  }
-  Integrity: (value: string) => {
-    readonly _tag: 'Integrity'
-    readonly value: string
-  }
-  Hreflang: (value: string) => {
-    readonly _tag: 'Hreflang'
-    readonly value: string
-  }
-  Ping: (value: string) => { readonly _tag: 'Ping'; readonly value: string }
-  Sandbox: (value: string) => {
-    readonly _tag: 'Sandbox'
-    readonly value: string
-  }
-  Allow: (value: string) => { readonly _tag: 'Allow'; readonly value: string }
-  Srcdoc: (value: string) => {
-    readonly _tag: 'Srcdoc'
-    readonly value: string
-  }
-  Autoplay: (value: boolean) => {
-    readonly _tag: 'Autoplay'
-    readonly value: boolean
-  }
-  Controls: (value: boolean) => {
-    readonly _tag: 'Controls'
-    readonly value: boolean
-  }
-  Loop: (value: boolean) => { readonly _tag: 'Loop'; readonly value: boolean }
-  Muted: (value: boolean) => {
-    readonly _tag: 'Muted'
-    readonly value: boolean
-  }
-  Poster: (value: string) => {
-    readonly _tag: 'Poster'
-    readonly value: string
-  }
-  Preload: (value: string) => {
-    readonly _tag: 'Preload'
-    readonly value: string
-  }
-  Playsinline: (value: boolean) => {
-    readonly _tag: 'Playsinline'
-    readonly value: boolean
-  }
-  High: (value: number) => { readonly _tag: 'High'; readonly value: number }
-  Low: (value: number) => { readonly _tag: 'Low'; readonly value: number }
-  Optimum: (value: number) => {
-    readonly _tag: 'Optimum'
-    readonly value: number
-  }
-  Usemap: (value: string) => {
-    readonly _tag: 'Usemap'
-    readonly value: string
-  }
-  Ismap: (value: boolean) => {
-    readonly _tag: 'Ismap'
-    readonly value: boolean
-  }
-  Role: (value: string) => { readonly _tag: 'Role'; readonly value: string }
-  AriaLabel: (value: string) => {
-    readonly _tag: 'AriaLabel'
-    readonly value: string
-  }
-  AriaLabelledBy: (value: string) => {
-    readonly _tag: 'AriaLabelledBy'
-    readonly value: string
-  }
-  AriaDescribedBy: (value: string) => {
-    readonly _tag: 'AriaDescribedBy'
-    readonly value: string
-  }
-  AriaHidden: (value: boolean) => {
-    readonly _tag: 'AriaHidden'
-    readonly value: boolean
-  }
-  AriaExpanded: (value: boolean) => {
-    readonly _tag: 'AriaExpanded'
-    readonly value: boolean
-  }
-  AriaSelected: (value: boolean) => {
-    readonly _tag: 'AriaSelected'
-    readonly value: boolean
-  }
-  AriaChecked: (value: boolean | 'mixed') => {
-    readonly _tag: 'AriaChecked'
-    readonly value: boolean | 'mixed'
-  }
-  AriaDisabled: (value: boolean) => {
-    readonly _tag: 'AriaDisabled'
-    readonly value: boolean
-  }
-  AriaRequired: (value: boolean) => {
-    readonly _tag: 'AriaRequired'
-    readonly value: boolean
-  }
-  AriaInvalid: (value: boolean) => {
-    readonly _tag: 'AriaInvalid'
-    readonly value: boolean
-  }
-  AriaLive: (value: string) => {
-    readonly _tag: 'AriaLive'
-    readonly value: string
-  }
-  AriaControls: (value: string) => {
-    readonly _tag: 'AriaControls'
-    readonly value: string
-  }
-  AriaCurrent: (value: string) => {
-    readonly _tag: 'AriaCurrent'
-    readonly value: string
-  }
-  AriaOrientation: (value: string) => {
-    readonly _tag: 'AriaOrientation'
-    readonly value: string
-  }
-  AriaPressed: (value: string) => {
-    readonly _tag: 'AriaPressed'
-    readonly value: string
-  }
-  AriaHasPopup: (value: string) => {
-    readonly _tag: 'AriaHasPopup'
-    readonly value: string
-  }
-  AriaActiveDescendant: (value: string) => {
-    readonly _tag: 'AriaActiveDescendant'
-    readonly value: string
-  }
-  AriaSort: (value: string) => {
-    readonly _tag: 'AriaSort'
-    readonly value: string
-  }
-  AriaMultiSelectable: (value: boolean) => {
-    readonly _tag: 'AriaMultiSelectable'
-    readonly value: boolean
-  }
-  AriaModal: (value: boolean) => {
-    readonly _tag: 'AriaModal'
-    readonly value: boolean
-  }
-  AriaBusy: (value: boolean) => {
-    readonly _tag: 'AriaBusy'
-    readonly value: boolean
-  }
-  AriaErrorMessage: (value: string) => {
-    readonly _tag: 'AriaErrorMessage'
-    readonly value: string
-  }
-  AriaRoleDescription: (value: string) => {
-    readonly _tag: 'AriaRoleDescription'
-    readonly value: string
-  }
-  AriaAtomic: (value: boolean) => {
-    readonly _tag: 'AriaAtomic'
-    readonly value: boolean
-  }
-  AriaAutocomplete: (value: string) => {
-    readonly _tag: 'AriaAutocomplete'
-    readonly value: string
-  }
-  AriaColcount: (value: number) => {
-    readonly _tag: 'AriaColcount'
-    readonly value: number
-  }
-  AriaColindex: (value: number) => {
-    readonly _tag: 'AriaColindex'
-    readonly value: number
-  }
-  AriaColspan: (value: number) => {
-    readonly _tag: 'AriaColspan'
-    readonly value: number
-  }
-  AriaDescription: (value: string) => {
-    readonly _tag: 'AriaDescription'
-    readonly value: string
-  }
-  AriaDetails: (value: string) => {
-    readonly _tag: 'AriaDetails'
-    readonly value: string
-  }
-  AriaFlowto: (value: string) => {
-    readonly _tag: 'AriaFlowto'
-    readonly value: string
-  }
-  AriaKeyshortcuts: (value: string) => {
-    readonly _tag: 'AriaKeyshortcuts'
-    readonly value: string
-  }
-  AriaLevel: (value: number) => {
-    readonly _tag: 'AriaLevel'
-    readonly value: number
-  }
-  AriaOwns: (value: string) => {
-    readonly _tag: 'AriaOwns'
-    readonly value: string
-  }
-  AriaPlaceholder: (value: string) => {
-    readonly _tag: 'AriaPlaceholder'
-    readonly value: string
-  }
-  AriaPosinset: (value: number) => {
-    readonly _tag: 'AriaPosinset'
-    readonly value: number
-  }
-  AriaReadonly: (value: boolean) => {
-    readonly _tag: 'AriaReadonly'
-    readonly value: boolean
-  }
-  AriaRelevant: (value: string) => {
-    readonly _tag: 'AriaRelevant'
-    readonly value: string
-  }
-  AriaRowcount: (value: number) => {
-    readonly _tag: 'AriaRowcount'
-    readonly value: number
-  }
-  AriaRowindex: (value: number) => {
-    readonly _tag: 'AriaRowindex'
-    readonly value: number
-  }
-  AriaRowspan: (value: number) => {
-    readonly _tag: 'AriaRowspan'
-    readonly value: number
-  }
-  AriaSetsize: (value: number) => {
-    readonly _tag: 'AriaSetsize'
-    readonly value: number
-  }
-  AriaValuemax: (value: number) => {
-    readonly _tag: 'AriaValuemax'
-    readonly value: number
-  }
-  AriaValuemin: (value: number) => {
-    readonly _tag: 'AriaValuemin'
-    readonly value: number
-  }
-  AriaValuenow: (value: number) => {
-    readonly _tag: 'AriaValuenow'
-    readonly value: number
-  }
-  AriaValuetext: (value: string) => {
-    readonly _tag: 'AriaValuetext'
-    readonly value: string
-  }
-  Attribute: (
-    key: string,
-    value: string,
-  ) => {
-    readonly _tag: 'Attribute'
-    readonly key: string
-    readonly value: string
-  }
-  DataAttribute: (
-    key: string,
-    value: string,
-  ) => {
-    readonly _tag: 'DataAttribute'
-    readonly key: string
-    readonly value: string
-  }
-  Style: (value: Record<string, string>) => {
-    readonly _tag: 'Style'
-    readonly value: Record<string, string>
-  }
-  InnerHTML: (value: string) => {
-    readonly _tag: 'InnerHTML'
-    readonly value: string
-  }
-  ViewBox: (value: string) => {
-    readonly _tag: 'ViewBox'
-    readonly value: string
-  }
-  Xmlns: (value: string) => { readonly _tag: 'Xmlns'; readonly value: string }
-  Fill: (value: string) => { readonly _tag: 'Fill'; readonly value: string }
-  FillRule: (value: string) => {
-    readonly _tag: 'FillRule'
-    readonly value: string
-  }
-  ClipRule: (value: string) => {
-    readonly _tag: 'ClipRule'
-    readonly value: string
-  }
-  Stroke: (value: string) => { readonly _tag: 'Stroke'; readonly value: string }
-  StrokeWidth: (value: string) => {
-    readonly _tag: 'StrokeWidth'
-    readonly value: string
-  }
-  StrokeLinecap: (value: string) => {
-    readonly _tag: 'StrokeLinecap'
-    readonly value: string
-  }
-  StrokeLinejoin: (value: string) => {
-    readonly _tag: 'StrokeLinejoin'
-    readonly value: string
-  }
-  D: (value: string) => { readonly _tag: 'D'; readonly value: string }
-  Cx: (value: string) => { readonly _tag: 'Cx'; readonly value: string }
-  Cy: (value: string) => { readonly _tag: 'Cy'; readonly value: string }
-  R: (value: string) => { readonly _tag: 'R'; readonly value: string }
-  X: (value: string) => { readonly _tag: 'X'; readonly value: string }
-  Y: (value: string) => { readonly _tag: 'Y'; readonly value: string }
-  Width: (value: string) => { readonly _tag: 'Width'; readonly value: string }
-  Height: (value: string) => { readonly _tag: 'Height'; readonly value: string }
-  X1: (value: string) => { readonly _tag: 'X1'; readonly value: string }
-  Y1: (value: string) => { readonly _tag: 'Y1'; readonly value: string }
-  X2: (value: string) => { readonly _tag: 'X2'; readonly value: string }
-  Y2: (value: string) => { readonly _tag: 'Y2'; readonly value: string }
-  Points: (value: string) => { readonly _tag: 'Points'; readonly value: string }
-  Transform: (value: string) => {
-    readonly _tag: 'Transform'
-    readonly value: string
-  }
-  Opacity: (value: string) => {
-    readonly _tag: 'Opacity'
-    readonly value: string
-  }
-  StrokeDasharray: (value: string) => {
-    readonly _tag: 'StrokeDasharray'
-    readonly value: string
-  }
-  StrokeDashoffset: (value: string) => {
-    readonly _tag: 'StrokeDashoffset'
-    readonly value: string
-  }
-  Dx: (value: string) => { readonly _tag: 'Dx'; readonly value: string }
-  Dy: (value: string) => { readonly _tag: 'Dy'; readonly value: string }
-  Rotate: (value: string) => { readonly _tag: 'Rotate'; readonly value: string }
-  TextAnchor: (value: string) => {
-    readonly _tag: 'TextAnchor'
-    readonly value: string
-  }
-  DominantBaseline: (value: string) => {
-    readonly _tag: 'DominantBaseline'
-    readonly value: string
-  }
-  AlignmentBaseline: (value: string) => {
-    readonly _tag: 'AlignmentBaseline'
-    readonly value: string
-  }
-  BaselineShift: (value: string) => {
-    readonly _tag: 'BaselineShift'
-    readonly value: string
-  }
-  TextLength: (value: string) => {
-    readonly _tag: 'TextLength'
-    readonly value: string
-  }
-  LengthAdjust: (value: string) => {
-    readonly _tag: 'LengthAdjust'
-    readonly value: string
-  }
-  FontFamily: (value: string) => {
-    readonly _tag: 'FontFamily'
-    readonly value: string
-  }
-  FontSize: (value: string) => {
-    readonly _tag: 'FontSize'
-    readonly value: string
-  }
-  FontWeight: (value: string) => {
-    readonly _tag: 'FontWeight'
-    readonly value: string
-  }
-  FontStyle: (value: string) => {
-    readonly _tag: 'FontStyle'
-    readonly value: string
-  }
-  LetterSpacing: (value: string) => {
-    readonly _tag: 'LetterSpacing'
-    readonly value: string
-  }
-  WordSpacing: (value: string) => {
-    readonly _tag: 'WordSpacing'
-    readonly value: string
-  }
-  TextDecoration: (value: string) => {
-    readonly _tag: 'TextDecoration'
-    readonly value: string
-  }
-  WritingMode: (value: string) => {
-    readonly _tag: 'WritingMode'
-    readonly value: string
-  }
-  Rx: (value: string) => { readonly _tag: 'Rx'; readonly value: string }
-  Ry: (value: string) => { readonly _tag: 'Ry'; readonly value: string }
-  PathLength: (value: string) => {
-    readonly _tag: 'PathLength'
-    readonly value: string
-  }
-  FillOpacity: (value: string) => {
-    readonly _tag: 'FillOpacity'
-    readonly value: string
-  }
-  StrokeOpacity: (value: string) => {
-    readonly _tag: 'StrokeOpacity'
-    readonly value: string
-  }
-  StrokeMiterlimit: (value: string) => {
-    readonly _tag: 'StrokeMiterlimit'
-    readonly value: string
-  }
-  PaintOrder: (value: string) => {
-    readonly _tag: 'PaintOrder'
-    readonly value: string
-  }
-  VectorEffect: (value: string) => {
-    readonly _tag: 'VectorEffect'
-    readonly value: string
-  }
-  Color: (value: string) => { readonly _tag: 'Color'; readonly value: string }
-  Visibility: (value: string) => {
-    readonly _tag: 'Visibility'
-    readonly value: string
-  }
-  Display: (value: string) => {
-    readonly _tag: 'Display'
-    readonly value: string
-  }
-  Overflow: (value: string) => {
-    readonly _tag: 'Overflow'
-    readonly value: string
-  }
-  PointerEvents: (value: string) => {
-    readonly _tag: 'PointerEvents'
-    readonly value: string
-  }
-  Cursor: (value: string) => { readonly _tag: 'Cursor'; readonly value: string }
-  ShapeRendering: (value: string) => {
-    readonly _tag: 'ShapeRendering'
-    readonly value: string
-  }
-  TextRendering: (value: string) => {
-    readonly _tag: 'TextRendering'
-    readonly value: string
-  }
-  ImageRendering: (value: string) => {
-    readonly _tag: 'ImageRendering'
-    readonly value: string
-  }
-  ClipPath: (value: string) => {
-    readonly _tag: 'ClipPath'
-    readonly value: string
-  }
-  Mask: (value: string) => { readonly _tag: 'Mask'; readonly value: string }
-  Filter: (value: string) => { readonly _tag: 'Filter'; readonly value: string }
-  ClipPathUnits: (value: string) => {
-    readonly _tag: 'ClipPathUnits'
-    readonly value: string
-  }
-  MaskUnits: (value: string) => {
-    readonly _tag: 'MaskUnits'
-    readonly value: string
-  }
-  MaskContentUnits: (value: string) => {
-    readonly _tag: 'MaskContentUnits'
-    readonly value: string
-  }
-  FilterUnits: (value: string) => {
-    readonly _tag: 'FilterUnits'
-    readonly value: string
-  }
-  PrimitiveUnits: (value: string) => {
-    readonly _tag: 'PrimitiveUnits'
-    readonly value: string
-  }
-  Offset: (value: string) => { readonly _tag: 'Offset'; readonly value: string }
-  StopColor: (value: string) => {
-    readonly _tag: 'StopColor'
-    readonly value: string
-  }
-  StopOpacity: (value: string) => {
-    readonly _tag: 'StopOpacity'
-    readonly value: string
-  }
-  GradientUnits: (value: string) => {
-    readonly _tag: 'GradientUnits'
-    readonly value: string
-  }
-  GradientTransform: (value: string) => {
-    readonly _tag: 'GradientTransform'
-    readonly value: string
-  }
-  SpreadMethod: (value: string) => {
-    readonly _tag: 'SpreadMethod'
-    readonly value: string
-  }
-  Fx: (value: string) => { readonly _tag: 'Fx'; readonly value: string }
-  Fy: (value: string) => { readonly _tag: 'Fy'; readonly value: string }
-  Fr: (value: string) => { readonly _tag: 'Fr'; readonly value: string }
-  PatternUnits: (value: string) => {
-    readonly _tag: 'PatternUnits'
-    readonly value: string
-  }
-  PatternContentUnits: (value: string) => {
-    readonly _tag: 'PatternContentUnits'
-    readonly value: string
-  }
-  PatternTransform: (value: string) => {
-    readonly _tag: 'PatternTransform'
-    readonly value: string
-  }
-  MarkerStart: (value: string) => {
-    readonly _tag: 'MarkerStart'
-    readonly value: string
-  }
-  MarkerMid: (value: string) => {
-    readonly _tag: 'MarkerMid'
-    readonly value: string
-  }
-  MarkerEnd: (value: string) => {
-    readonly _tag: 'MarkerEnd'
-    readonly value: string
-  }
-  MarkerWidth: (value: string) => {
-    readonly _tag: 'MarkerWidth'
-    readonly value: string
-  }
-  MarkerHeight: (value: string) => {
-    readonly _tag: 'MarkerHeight'
-    readonly value: string
-  }
-  MarkerUnits: (value: string) => {
-    readonly _tag: 'MarkerUnits'
-    readonly value: string
-  }
-  RefX: (value: string) => { readonly _tag: 'RefX'; readonly value: string }
-  RefY: (value: string) => { readonly _tag: 'RefY'; readonly value: string }
-  Orient: (value: string) => { readonly _tag: 'Orient'; readonly value: string }
-  PreserveAspectRatio: (value: string) => {
-    readonly _tag: 'PreserveAspectRatio'
-    readonly value: string
-  }
-  OnMount: (action: MountAction<Message, any>) => {
-    readonly _tag: 'OnMount'
-    readonly action: MountAction<Message, any>
-  }
-  OnUnmount: (message: Message) => {
-    readonly _tag: 'OnUnmount'
-    readonly message: Message
-  }
+  OnCancelPreventDefault: (
+    customEventMessage?: Message,
+  ) => ElementAttribute<Message>
+  OnToggle: (
+    toMessage: (isOpen: boolean) => Message,
+  ) => ElementAttribute<Message>
+  OnContextMenu: (message: Message) => ElementAttribute<Message>
+  OnDragStart: (message: Message) => ElementAttribute<Message>
+  OnDrag: (message: Message) => ElementAttribute<Message>
+  OnDragEnd: (message: Message) => ElementAttribute<Message>
+  OnDragEnter: (message: Message) => ElementAttribute<Message>
+  OnDragLeave: (message: Message) => ElementAttribute<Message>
+  OnDragOver: (message: Message) => ElementAttribute<Message>
+  AllowDrop: () => ElementAttribute<never>
+  OnDrop: (message: Message) => ElementAttribute<Message>
+  OnDropFiles: (
+    toMessage: (files: ReadonlyArray<File>) => Message,
+  ) => ElementAttribute<Message>
+  OnTouchStart: (message: Message) => ElementAttribute<Message>
+  OnTouchEnd: (message: Message) => ElementAttribute<Message>
+  OnTouchMove: (message: Message) => ElementAttribute<Message>
+  OnTouchCancel: (message: Message) => ElementAttribute<Message>
+  OnAnimationStart: (message: Message) => ElementAttribute<Message>
+  OnAnimationEnd: (message: Message) => ElementAttribute<Message>
+  OnAnimationIteration: (message: Message) => ElementAttribute<Message>
+  OnTransitionEnd: (message: Message) => ElementAttribute<Message>
+  OnLoad: (message: Message) => ElementAttribute<Message>
+  OnError: (message: Message) => ElementAttribute<Message>
+  OnPlay: (message: Message) => ElementAttribute<Message>
+  OnPause: (message: Message) => ElementAttribute<Message>
+  OnEnded: (message: Message) => ElementAttribute<Message>
+  OnTimeUpdate: (message: Message) => ElementAttribute<Message>
+  OnVolumeChange: (message: Message) => ElementAttribute<Message>
+  OnSelect: (message: Message) => ElementAttribute<Message>
+  Value: (value: string) => ElementAttribute<never>
+  Checked: (value: boolean) => ElementAttribute<never>
+  Selected: (value: boolean) => ElementAttribute<never>
+  Open: (value: boolean) => ElementAttribute<never>
+  Placeholder: (value: string) => ElementAttribute<never>
+  Name: (value: string) => ElementAttribute<never>
+  Disabled: (value: boolean) => ElementAttribute<never>
+  Readonly: (value: boolean) => ElementAttribute<never>
+  Required: (value: boolean) => ElementAttribute<never>
+  Autofocus: (value: boolean) => ElementAttribute<never>
+  Spellcheck: (value: boolean) => ElementAttribute<never>
+  Autocorrect: (value: string) => ElementAttribute<never>
+  Autocapitalize: (value: string) => ElementAttribute<never>
+  InputMode: (value: string) => ElementAttribute<never>
+  EnterKeyHint: (value: string) => ElementAttribute<never>
+  Multiple: (value: boolean) => ElementAttribute<never>
+  Type: (value: string) => ElementAttribute<never>
+  Accept: (value: string) => ElementAttribute<never>
+  Autocomplete: (value: string) => ElementAttribute<never>
+  Pattern: (value: string) => ElementAttribute<never>
+  Maxlength: (value: number) => ElementAttribute<never>
+  Minlength: (value: number) => ElementAttribute<never>
+  Size: (value: number) => ElementAttribute<never>
+  Cols: (value: number) => ElementAttribute<never>
+  Rows: (value: number) => ElementAttribute<never>
+  Max: (value: string) => ElementAttribute<never>
+  Min: (value: string) => ElementAttribute<never>
+  Step: (value: string) => ElementAttribute<never>
+  For: (value: string) => ElementAttribute<never>
+  Href: (value: string) => ElementAttribute<never>
+  Src: (value: string) => ElementAttribute<never>
+  Alt: (value: string) => ElementAttribute<never>
+  Target: (value: string) => ElementAttribute<never>
+  Rel: (value: string) => ElementAttribute<never>
+  Download: (value: string) => ElementAttribute<never>
+  Action: (value: string) => ElementAttribute<never>
+  Method: (value: string) => ElementAttribute<never>
+  Enctype: (value: string) => ElementAttribute<never>
+  Novalidate: (value: boolean) => ElementAttribute<never>
+  Formaction: (value: string) => ElementAttribute<never>
+  Formmethod: (value: string) => ElementAttribute<never>
+  Formnovalidate: (value: boolean) => ElementAttribute<never>
+  Formtarget: (value: string) => ElementAttribute<never>
+  Formenctype: (value: string) => ElementAttribute<never>
+  Colspan: (value: number) => ElementAttribute<never>
+  Rowspan: (value: number) => ElementAttribute<never>
+  Scope: (value: string) => ElementAttribute<never>
+  Headers: (value: string) => ElementAttribute<never>
+  Span: (value: number) => ElementAttribute<never>
+  Start: (value: number) => ElementAttribute<never>
+  Reversed: (value: boolean) => ElementAttribute<never>
+  CiteAttr: (value: string) => ElementAttribute<never>
+  Datetime: (value: string) => ElementAttribute<never>
+  Wrap: (value: string) => ElementAttribute<never>
+  List: (value: string) => ElementAttribute<never>
+  FormAttr: (value: string) => ElementAttribute<never>
+  LabelAttr: (value: string) => ElementAttribute<never>
+  ContentAttr: (value: string) => ElementAttribute<never>
+  Charset: (value: string) => ElementAttribute<never>
+  HttpEquiv: (value: string) => ElementAttribute<never>
+  Srcset: (value: string) => ElementAttribute<never>
+  Sizes: (value: string) => ElementAttribute<never>
+  Loading: (value: string) => ElementAttribute<never>
+  Decoding: (value: string) => ElementAttribute<never>
+  Fetchpriority: (value: string) => ElementAttribute<never>
+  Crossorigin: (value: string) => ElementAttribute<never>
+  Referrerpolicy: (value: string) => ElementAttribute<never>
+  Integrity: (value: string) => ElementAttribute<never>
+  Hreflang: (value: string) => ElementAttribute<never>
+  Ping: (value: string) => ElementAttribute<never>
+  Sandbox: (value: string) => ElementAttribute<never>
+  Allow: (value: string) => ElementAttribute<never>
+  Srcdoc: (value: string) => ElementAttribute<never>
+  Autoplay: (value: boolean) => ElementAttribute<never>
+  Controls: (value: boolean) => ElementAttribute<never>
+  Loop: (value: boolean) => ElementAttribute<never>
+  Muted: (value: boolean) => ElementAttribute<never>
+  Poster: (value: string) => ElementAttribute<never>
+  Preload: (value: string) => ElementAttribute<never>
+  Playsinline: (value: boolean) => ElementAttribute<never>
+  High: (value: number) => ElementAttribute<never>
+  Low: (value: number) => ElementAttribute<never>
+  Optimum: (value: number) => ElementAttribute<never>
+  Usemap: (value: string) => ElementAttribute<never>
+  Ismap: (value: boolean) => ElementAttribute<never>
+  Role: (value: string) => ElementAttribute<never>
+  AriaLabel: (value: string) => ElementAttribute<never>
+  AriaLabelledBy: (value: string) => ElementAttribute<never>
+  AriaDescribedBy: (value: string) => ElementAttribute<never>
+  AriaHidden: (value: boolean) => ElementAttribute<never>
+  AriaExpanded: (value: boolean) => ElementAttribute<never>
+  AriaSelected: (value: boolean) => ElementAttribute<never>
+  AriaChecked: (value: boolean | 'mixed') => ElementAttribute<never>
+  AriaDisabled: (value: boolean) => ElementAttribute<never>
+  AriaRequired: (value: boolean) => ElementAttribute<never>
+  AriaInvalid: (value: boolean) => ElementAttribute<never>
+  AriaLive: (value: string) => ElementAttribute<never>
+  AriaControls: (value: string) => ElementAttribute<never>
+  AriaCurrent: (value: string) => ElementAttribute<never>
+  AriaOrientation: (value: string) => ElementAttribute<never>
+  AriaPressed: (value: string) => ElementAttribute<never>
+  AriaHasPopup: (value: string) => ElementAttribute<never>
+  AriaActiveDescendant: (value: string) => ElementAttribute<never>
+  AriaSort: (value: string) => ElementAttribute<never>
+  AriaMultiSelectable: (value: boolean) => ElementAttribute<never>
+  AriaModal: (value: boolean) => ElementAttribute<never>
+  AriaBusy: (value: boolean) => ElementAttribute<never>
+  AriaErrorMessage: (value: string) => ElementAttribute<never>
+  AriaRoleDescription: (value: string) => ElementAttribute<never>
+  AriaAtomic: (value: boolean) => ElementAttribute<never>
+  AriaAutocomplete: (value: string) => ElementAttribute<never>
+  AriaColcount: (value: number) => ElementAttribute<never>
+  AriaColindex: (value: number) => ElementAttribute<never>
+  AriaColspan: (value: number) => ElementAttribute<never>
+  AriaDescription: (value: string) => ElementAttribute<never>
+  AriaDetails: (value: string) => ElementAttribute<never>
+  AriaFlowto: (value: string) => ElementAttribute<never>
+  AriaKeyshortcuts: (value: string) => ElementAttribute<never>
+  AriaLevel: (value: number) => ElementAttribute<never>
+  AriaOwns: (value: string) => ElementAttribute<never>
+  AriaPlaceholder: (value: string) => ElementAttribute<never>
+  AriaPosinset: (value: number) => ElementAttribute<never>
+  AriaReadonly: (value: boolean) => ElementAttribute<never>
+  AriaRelevant: (value: string) => ElementAttribute<never>
+  AriaRowcount: (value: number) => ElementAttribute<never>
+  AriaRowindex: (value: number) => ElementAttribute<never>
+  AriaRowspan: (value: number) => ElementAttribute<never>
+  AriaSetsize: (value: number) => ElementAttribute<never>
+  AriaValuemax: (value: number) => ElementAttribute<never>
+  AriaValuemin: (value: number) => ElementAttribute<never>
+  AriaValuenow: (value: number) => ElementAttribute<never>
+  AriaValuetext: (value: string) => ElementAttribute<never>
+  Attribute: (key: string, value: string) => ElementAttribute<never>
+  DataAttribute: (key: string, value: string) => ElementAttribute<never>
+  Style: (value: Record<string, string>) => ElementAttribute<never>
+  InnerHTML: (value: string) => InnerHtmlAttribute
+  ViewBox: (value: string) => ElementAttribute<never>
+  Xmlns: (value: string) => ElementAttribute<never>
+  Fill: (value: string) => ElementAttribute<never>
+  FillRule: (value: string) => ElementAttribute<never>
+  ClipRule: (value: string) => ElementAttribute<never>
+  Stroke: (value: string) => ElementAttribute<never>
+  StrokeWidth: (value: string) => ElementAttribute<never>
+  StrokeLinecap: (value: string) => ElementAttribute<never>
+  StrokeLinejoin: (value: string) => ElementAttribute<never>
+  D: (value: string) => ElementAttribute<never>
+  Cx: (value: string) => ElementAttribute<never>
+  Cy: (value: string) => ElementAttribute<never>
+  R: (value: string) => ElementAttribute<never>
+  X: (value: string) => ElementAttribute<never>
+  Y: (value: string) => ElementAttribute<never>
+  Width: (value: string) => ElementAttribute<never>
+  Height: (value: string) => ElementAttribute<never>
+  X1: (value: string) => ElementAttribute<never>
+  Y1: (value: string) => ElementAttribute<never>
+  X2: (value: string) => ElementAttribute<never>
+  Y2: (value: string) => ElementAttribute<never>
+  Points: (value: string) => ElementAttribute<never>
+  Transform: (value: string) => ElementAttribute<never>
+  Opacity: (value: string) => ElementAttribute<never>
+  StrokeDasharray: (value: string) => ElementAttribute<never>
+  StrokeDashoffset: (value: string) => ElementAttribute<never>
+  Dx: (value: string) => ElementAttribute<never>
+  Dy: (value: string) => ElementAttribute<never>
+  Rotate: (value: string) => ElementAttribute<never>
+  TextAnchor: (value: string) => ElementAttribute<never>
+  DominantBaseline: (value: string) => ElementAttribute<never>
+  AlignmentBaseline: (value: string) => ElementAttribute<never>
+  BaselineShift: (value: string) => ElementAttribute<never>
+  TextLength: (value: string) => ElementAttribute<never>
+  LengthAdjust: (value: string) => ElementAttribute<never>
+  FontFamily: (value: string) => ElementAttribute<never>
+  FontSize: (value: string) => ElementAttribute<never>
+  FontWeight: (value: string) => ElementAttribute<never>
+  FontStyle: (value: string) => ElementAttribute<never>
+  LetterSpacing: (value: string) => ElementAttribute<never>
+  WordSpacing: (value: string) => ElementAttribute<never>
+  TextDecoration: (value: string) => ElementAttribute<never>
+  WritingMode: (value: string) => ElementAttribute<never>
+  Rx: (value: string) => ElementAttribute<never>
+  Ry: (value: string) => ElementAttribute<never>
+  PathLength: (value: string) => ElementAttribute<never>
+  FillOpacity: (value: string) => ElementAttribute<never>
+  StrokeOpacity: (value: string) => ElementAttribute<never>
+  StrokeMiterlimit: (value: string) => ElementAttribute<never>
+  PaintOrder: (value: string) => ElementAttribute<never>
+  VectorEffect: (value: string) => ElementAttribute<never>
+  Color: (value: string) => ElementAttribute<never>
+  Visibility: (value: string) => ElementAttribute<never>
+  Display: (value: string) => ElementAttribute<never>
+  Overflow: (value: string) => ElementAttribute<never>
+  PointerEvents: (value: string) => ElementAttribute<never>
+  Cursor: (value: string) => ElementAttribute<never>
+  ShapeRendering: (value: string) => ElementAttribute<never>
+  TextRendering: (value: string) => ElementAttribute<never>
+  ImageRendering: (value: string) => ElementAttribute<never>
+  ClipPath: (value: string) => ElementAttribute<never>
+  Mask: (value: string) => ElementAttribute<never>
+  Filter: (value: string) => ElementAttribute<never>
+  ClipPathUnits: (value: string) => ElementAttribute<never>
+  MaskUnits: (value: string) => ElementAttribute<never>
+  MaskContentUnits: (value: string) => ElementAttribute<never>
+  FilterUnits: (value: string) => ElementAttribute<never>
+  PrimitiveUnits: (value: string) => ElementAttribute<never>
+  Offset: (value: string) => ElementAttribute<never>
+  StopColor: (value: string) => ElementAttribute<never>
+  StopOpacity: (value: string) => ElementAttribute<never>
+  GradientUnits: (value: string) => ElementAttribute<never>
+  GradientTransform: (value: string) => ElementAttribute<never>
+  SpreadMethod: (value: string) => ElementAttribute<never>
+  Fx: (value: string) => ElementAttribute<never>
+  Fy: (value: string) => ElementAttribute<never>
+  Fr: (value: string) => ElementAttribute<never>
+  PatternUnits: (value: string) => ElementAttribute<never>
+  PatternContentUnits: (value: string) => ElementAttribute<never>
+  PatternTransform: (value: string) => ElementAttribute<never>
+  MarkerStart: (value: string) => ElementAttribute<never>
+  MarkerMid: (value: string) => ElementAttribute<never>
+  MarkerEnd: (value: string) => ElementAttribute<never>
+  MarkerWidth: (value: string) => ElementAttribute<never>
+  MarkerHeight: (value: string) => ElementAttribute<never>
+  MarkerUnits: (value: string) => ElementAttribute<never>
+  RefX: (value: string) => ElementAttribute<never>
+  RefY: (value: string) => ElementAttribute<never>
+  Orient: (value: string) => ElementAttribute<never>
+  PreserveAspectRatio: (value: string) => ElementAttribute<never>
+  OnMount: (action: MountAction<Message, any>) => ElementAttribute<Message>
+  OnUnmount: (message: Message) => ElementAttribute<Message>
 }
 
-const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
+type InternalHtmlAttributes<Message> = {
+  readonly [Name in keyof HtmlAttributes<Message>]: (
+    ...args: Parameters<HtmlAttributes<Message>[Name]>
+  ) => Extract<InternalAttribute<Message>, Readonly<{ _tag: Name }>>
+}
+
+type MessageProbe = 'MessageProbe'
+type OtherMessageProbe = 'OtherMessageProbe'
+
+type HtmlAttributeName = keyof HtmlAttributes<MessageProbe>
+
+type InternalAttributeVariant<
+  Message,
+  Name extends HtmlAttributeName,
+> = Extract<InternalAttribute<Message>, Readonly<{ _tag: Name }>>
+
+type ElementAttributeFor<Name extends HtmlAttributeName> = [
+  InternalAttributeVariant<MessageProbe, Name>,
+  InternalAttributeVariant<OtherMessageProbe, Name>,
+] extends [
+  InternalAttributeVariant<OtherMessageProbe, Name>,
+  InternalAttributeVariant<MessageProbe, Name>,
+]
+  ? ElementAttribute<never>
+  : ElementAttribute<MessageProbe>
+
+type PublicAttributeFor<Name extends HtmlAttributeName> =
+  Name extends 'InnerHTML' ? InnerHtmlAttribute : ElementAttributeFor<Name>
+
+/** Names each attribute constructor whose public return type disagrees with
+ *  its payload. A constructor returns `ElementAttribute<Message>` when its
+ *  payload carries a Message and `ElementAttribute<never>` otherwise, and
+ *  `InnerHTML` returns `InnerHtmlAttribute`. A type test requires this to be
+ *  `never`.
+ *
+ * @internal */
+export type MisclassifiedHtmlAttributeName = {
+  readonly [Name in HtmlAttributeName]: Types.EqualsWith<
+    ReturnType<HtmlAttributes<MessageProbe>[Name]>,
+    PublicAttributeFor<Name>,
+    never,
+    Name
+  >
+}[HtmlAttributeName]
+
+const htmlAttributes = <Message>(): InternalHtmlAttributes<Message> => ({
   Key: (value: string) => Key({ value }),
   Class: (value: string) => Class({ value }),
   Id: (value: string) => Id({ value }),
@@ -5550,7 +4847,8 @@ const buildHtmlFactory = <Message>(): Omit<
   typeof messageUniverse
 > => ({
   ...htmlElements<Message>(),
-  ...htmlAttributes<Message>(),
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  ...(htmlAttributes<Message>() as unknown as HtmlAttributes<Message>),
   empty: null,
   keyed: keyed<Message>(),
   submodel: <View extends AnySubmodelView>(

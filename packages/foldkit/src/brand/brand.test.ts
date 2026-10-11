@@ -1,6 +1,7 @@
 import { Context, Effect } from 'effect'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
+import { fromHtml, toHtml } from '../html/htmlNode.js'
 import { createLazy } from '../html/lazy.js'
 import {
   type DispatchSync,
@@ -99,19 +100,19 @@ describe('brandViewResult', () => {
     })
 
     it('brands a memoized vnode without breaking cache identity', () => {
-      const view = (label: string) => h('div', {}, [label])
+      const view = (label: string) => toHtml(h('div', {}, [label]))
       const lazy = createLazy()
 
       const first = lazy(view, ['x'])
       expect(first).not.toBeNull()
       brandViewResult(first, 'memo/site')
-      expect(first?.identity).toBe('memo/site')
+      expect(fromHtml(first)?.identity).toBe('memo/site')
 
       const second = lazy(view, ['x'])
       expect(second).toBe(first)
 
       brandViewResult(second, 'other/site')
-      expect(second?.identity).toBe('memo/site')
+      expect(fromHtml(second)?.identity).toBe('memo/site')
     })
   })
 })

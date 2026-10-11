@@ -326,6 +326,41 @@ export const parseSelector = (input: string): Selector => {
   )
 }
 
+// SCENE ELEMENT
+
+declare const SceneElementTypeId: unique symbol
+
+/** An element of the rendered view tree that Scene inspects. Opaque: Scene
+ *  queries and matchers read it, but its representation is not part of the
+ *  API. */
+export interface SceneElement {
+  readonly [SceneElementTypeId]: typeof SceneElementTypeId
+}
+
+/** Views a renderer node as a Scene element.
+ *
+ * @internal */
+export const toSceneElement = (vnode: VNode): SceneElement =>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  vnode as unknown as SceneElement
+
+/** Views a Scene element as the renderer node it is.
+ *
+ * @internal */
+export const fromSceneElement = (element: SceneElement): VNode =>
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  element as unknown as VNode
+
+const toSceneElementQuery =
+  (query: (html: VNode) => Option.Option<VNode>) =>
+  (html: SceneElement): Option.Option<SceneElement> =>
+    Option.map(query(fromSceneElement(html)), toSceneElement)
+
+const toSceneElementQueryAll =
+  (query: (html: VNode) => ReadonlyArray<VNode>) =>
+  (html: SceneElement): ReadonlyArray<SceneElement> =>
+    Array.map(query(fromSceneElement(html)), toSceneElement)
+
 // NODE UTILITIES
 
 const lookupAttribute =
@@ -735,7 +770,7 @@ const accessibleTextContent = (vnode: VNode): string => {
 }
 
 const referencedTextContent = (vnode: VNode): string =>
-  isHidden(vnode) ? textContent(vnode) : accessibleTextContent(vnode)
+  isHidden(vnode) ? textContentOfNode(vnode) : accessibleTextContent(vnode)
 
 const nameFromLabelledBy =
   (root: VNode) =>
@@ -909,43 +944,55 @@ const findAllImpl =
     )
   }
 
-/** Finds the first VNode matching the CSS selector. */
+/** Finds the first element matching the CSS selector. */
 export const find: {
-  (html: VNode, selectorString: string): Option.Option<VNode>
-  (selectorString: string): (html: VNode) => Option.Option<VNode>
-} = dual(2, (html: VNode, selectorString: string): Option.Option<VNode> =>
-  pipe(html, findAllImpl(selectorString), Array.head),
+  (html: SceneElement, selectorString: string): Option.Option<SceneElement>
+  (selectorString: string): (html: SceneElement) => Option.Option<SceneElement>
+} = dual(2, (html: SceneElement, selectorString: string) =>
+  toSceneElementQuery(flow(findAllImpl(selectorString), Array.head))(html),
 )
 
-/** Finds all VNodes matching the CSS selector. */
+/** Finds all elements matching the CSS selector. */
 export const findAll: {
-  (html: VNode, selectorString: string): ReadonlyArray<VNode>
-  (selectorString: string): (html: VNode) => ReadonlyArray<VNode>
-} = dual(2, (html: VNode, selectorString: string) =>
-  findAllImpl(selectorString)(html),
+  (html: SceneElement, selectorString: string): ReadonlyArray<SceneElement>
+  (selectorString: string): (html: SceneElement) => ReadonlyArray<SceneElement>
+} = dual(2, (html: SceneElement, selectorString: string) =>
+  toSceneElementQueryAll(findAllImpl(selectorString))(html),
 )
 
-/** Extracts all text content from a VNode tree, depth-first. */
-export const textContent = (vnode: VNode): string => {
+/** Extracts all text content from a renderer node's tree, depth-first.
+ *
+ * @internal */
+export const textContentOfNode = (vnode: VNode): string => {
   if (Predicate.isString(vnode.text)) return vnode.text
 
   return pipe(
     vnode.children ?? [],
     Array.map(child =>
-      Predicate.isString(child) ? child : textContent(child),
+      Predicate.isString(child) ? child : textContentOfNode(child),
     ),
     Array.join(''),
   )
 }
 
+/** Extracts all text content from an element's tree, depth-first. */
+export const textContent = (element: SceneElement): string =>
+  textContentOfNode(fromSceneElement(element))
+
 const hasDirectTextNodeMatch = (node: VNode, target: string): boolean =>
   Array.some(node.children ?? [], child =>
     Predicate.isString(child)
       ? child === target
-      : !isElement(child) && textContent(child) === target,
+      : !isElement(child) && textContentOfNode(child) === target,
   )
 
-const attrImpl = (vnode: VNode, name: string): Option.Option<string> => {
+/** Reads an attribute or prop value from a renderer node.
+ *
+ * @internal */
+export const attrOfNode = (
+  vnode: VNode,
+  name: string,
+): Option.Option<string> => {
   if (name === 'class') {
     return pipe(
       vnode.data?.class,
@@ -965,11 +1012,13 @@ const attrImpl = (vnode: VNode, name: string): Option.Option<string> => {
   return lookupStringAttribute(name)(vnode)
 }
 
-/** Reads an attribute or prop value from a VNode. */
+/** Reads an attribute or prop value from an element. */
 export const attr: {
-  (vnode: VNode, name: string): Option.Option<string>
-  (name: string): (vnode: VNode) => Option.Option<string>
-} = dual(2, attrImpl)
+  (element: SceneElement, name: string): Option.Option<string>
+  (name: string): (element: SceneElement) => Option.Option<string>
+} = dual(2, (element: SceneElement, name: string) =>
+  attrOfNode(fromSceneElement(element), name),
+)
 
 // ACCESSIBLE LOCATORS
 
@@ -1129,10 +1178,7 @@ const roleOptionsMatch =
     return true
   }
 
-/** Finds the first element with the given ARIA role and optional matching options.
- *  Supports `name` (accessible name), `level` (heading level), `checked`,
- *  `selected`, `pressed`, `expanded`, `disabled`, and `current` state filters. */
-export const getByRole =
+const getByRoleImpl =
   (role: string, options?: RoleOptions) =>
   (html: VNode): Option.Option<VNode> => {
     const matchesOptions = roleOptionsMatch(options, html)
@@ -1145,8 +1191,13 @@ export const getByRole =
     )
   }
 
-/** Finds all elements with the given ARIA role and optional matching options. */
-export const getAllByRole =
+/** Finds the first element with the given ARIA role and optional matching options.
+ *  Supports `name` (accessible name), `level` (heading level), `checked`,
+ *  `selected`, `pressed`, `expanded`, `disabled`, and `current` state filters. */
+export const getByRole = (role: string, options?: RoleOptions) =>
+  toSceneElementQuery(getByRoleImpl(role, options))
+
+const getAllByRoleImpl =
   (role: string, options?: RoleOptions) =>
   (html: VNode): ReadonlyArray<VNode> => {
     const matchesOptions = roleOptionsMatch(options, html)
@@ -1159,6 +1210,10 @@ export const getAllByRole =
     )
   }
 
+/** Finds all elements with the given ARIA role and optional matching options. */
+export const getAllByRole = (role: string, options?: RoleOptions) =>
+  toSceneElementQueryAll(getAllByRoleImpl(role, options))
+
 const matchesText = (
   target: string | RegExp,
   options?: Readonly<{ exact?: boolean }>,
@@ -1169,13 +1224,13 @@ const matchesText = (
     return node => {
       pattern.lastIndex = 0
 
-      return pattern.test(textContent(node))
+      return pattern.test(textContentOfNode(node))
     }
   } else {
     const isExact = options?.exact !== false
 
     return node => {
-      const nodeText = textContent(node)
+      const nodeText = textContentOfNode(node)
 
       return isExact
         ? nodeText === target || hasDirectTextNodeMatch(node, target)
@@ -1184,13 +1239,7 @@ const matchesText = (
   }
 }
 
-/** Finds the first element whose text matches `target`.
- *  A string matches the element's full text or one direct text node. When
- *  `exact` is false, it instead matches a substring of the full text. A `RegExp`
- *  tests the full text from index zero without changing its `lastIndex`, and
- *  `exact` has no effect. When an ancestor and descendant both match, the query
- *  returns the descendant. Never returns text VNodes. */
-export const getByText =
+const getByTextImpl =
   (target: string | RegExp, options?: Readonly<{ exact?: boolean }>) =>
   (html: VNode): Option.Option<VNode> => {
     const textMatches = matchesText(target, options)
@@ -1208,8 +1257,18 @@ export const getByText =
     )
   }
 
-/** Finds the first element with the given placeholder attribute. */
-export const getByPlaceholder =
+/** Finds the first element whose text matches `target`.
+ *  A string matches the element's full text or one direct text node. When
+ *  `exact` is false, it instead matches a substring of the full text. A `RegExp`
+ *  tests the full text from index zero without changing its `lastIndex`, and
+ *  `exact` has no effect. When an ancestor and descendant both match, the query
+ *  returns the descendant. Never returns text nodes. */
+export const getByText = (
+  target: string | RegExp,
+  options?: Readonly<{ exact?: boolean }>,
+) => toSceneElementQuery(getByTextImpl(target, options))
+
+const getByPlaceholderImpl =
   (placeholderValue: string) =>
   (html: VNode): Option.Option<VNode> =>
     Array.findFirst(
@@ -1217,10 +1276,11 @@ export const getByPlaceholder =
       attributeEquals('placeholder', placeholderValue),
     )
 
-/** Finds the first element with the given label text. Checks `aria-label`
- *  first, then `<label for="id">` association, then `<label>` nesting,
- *  then `aria-labelledby` reverse lookup. */
-export const getByLabel =
+/** Finds the first element with the given placeholder attribute. */
+export const getByPlaceholder = (placeholderValue: string) =>
+  toSceneElementQuery(getByPlaceholderImpl(placeholderValue))
+
+const getByLabelImpl =
   (labelValue: string) =>
   (html: VNode): Option.Option<VNode> => {
     const allNodes = allNodesIn(html)
@@ -1231,7 +1291,8 @@ export const getByLabel =
         pipe(
           Array.filter(
             allNodes,
-            node => node.sel === 'label' && textContent(node) === labelValue,
+            node =>
+              node.sel === 'label' && textContentOfNode(node) === labelValue,
           ),
           Array.filterMap(labelNode =>
             Result.fromOption(
@@ -1261,10 +1322,13 @@ export const getByLabel =
     )
   }
 
-/** Finds every element with the given label text. Applies the same four
- *  resolution strategies as `getByLabel` (`aria-label`, `<label for="id">`,
- *  `<label>` nesting, `aria-labelledby`) and returns deduplicated matches. */
-export const getAllByLabel =
+/** Finds the first element with the given label text. Checks `aria-label`
+ *  first, then `<label for="id">` association, then `<label>` nesting,
+ *  then `aria-labelledby` reverse lookup. */
+export const getByLabel = (labelValue: string) =>
+  toSceneElementQuery(getByLabelImpl(labelValue))
+
+const getAllByLabelImpl =
   (labelValue: string) =>
   (html: VNode): ReadonlyArray<VNode> => {
     const allNodes = allNodesIn(html)
@@ -1277,7 +1341,7 @@ export const getAllByLabel =
     const viaLabelElement = pipe(
       Array.filter(
         allNodes,
-        node => node.sel === 'label' && textContent(node) === labelValue,
+        node => node.sel === 'label' && textContentOfNode(node) === labelValue,
       ),
       Array.flatMap(labelNode =>
         pipe(
@@ -1304,20 +1368,31 @@ export const getAllByLabel =
     )
   }
 
-/** Finds the first element with the given `alt` attribute. */
-export const getByAltText =
+/** Finds every element with the given label text. Applies the same four
+ *  resolution strategies as `getByLabel` (`aria-label`, `<label for="id">`,
+ *  `<label>` nesting, `aria-labelledby`) and returns deduplicated matches. */
+export const getAllByLabel = (labelValue: string) =>
+  toSceneElementQueryAll(getAllByLabelImpl(labelValue))
+
+const getByAltTextImpl =
   (altValue: string) =>
   (html: VNode): Option.Option<VNode> =>
     Array.findFirst(allNodesIn(html), attributeEquals('alt', altValue))
 
-/** Finds the first element with the given `title` attribute. */
-export const getByTitle =
+/** Finds the first element with the given `alt` attribute. */
+export const getByAltText = (altValue: string) =>
+  toSceneElementQuery(getByAltTextImpl(altValue))
+
+const getByTitleImpl =
   (titleValue: string) =>
   (html: VNode): Option.Option<VNode> =>
     Array.findFirst(allNodesIn(html), attributeEquals('title', titleValue))
 
-/** Finds the first element with the given `data-testid` attribute. */
-export const getByTestId =
+/** Finds the first element with the given `title` attribute. */
+export const getByTitle = (titleValue: string) =>
+  toSceneElementQuery(getByTitleImpl(titleValue))
+
+const getByTestIdImpl =
   (testIdValue: string) =>
   (html: VNode): Option.Option<VNode> =>
     Array.findFirst(
@@ -1325,10 +1400,11 @@ export const getByTestId =
       attributeEquals('data-testid', testIdValue),
     )
 
-/** Finds every element whose text matches `target`.
- *  Uses the same string and `RegExp` rules as `getByText`, but returns matching
- *  ancestors and descendants in traversal order. Never returns text VNodes. */
-export const getAllByText =
+/** Finds the first element with the given `data-testid` attribute. */
+export const getByTestId = (testIdValue: string) =>
+  toSceneElementQuery(getByTestIdImpl(testIdValue))
+
+const getAllByTextImpl =
   (target: string | RegExp, options?: Readonly<{ exact?: boolean }>) =>
   (html: VNode): ReadonlyArray<VNode> => {
     const textMatches = matchesText(target, options)
@@ -1339,8 +1415,15 @@ export const getAllByText =
     )
   }
 
-/** Finds all elements with the given placeholder attribute. */
-export const getAllByPlaceholder =
+/** Finds every element whose text matches `target`.
+ *  Uses the same string and `RegExp` rules as `getByText`, but returns matching
+ *  ancestors and descendants in traversal order. Never returns text nodes. */
+export const getAllByText = (
+  target: string | RegExp,
+  options?: Readonly<{ exact?: boolean }>,
+) => toSceneElementQueryAll(getAllByTextImpl(target, options))
+
+const getAllByPlaceholderImpl =
   (placeholderValue: string) =>
   (html: VNode): ReadonlyArray<VNode> =>
     Array.filter(
@@ -1348,26 +1431,38 @@ export const getAllByPlaceholder =
       attributeEquals('placeholder', placeholderValue),
     )
 
-/** Finds all elements with the given `alt` attribute. */
-export const getAllByAltText =
+/** Finds all elements with the given placeholder attribute. */
+export const getAllByPlaceholder = (placeholderValue: string) =>
+  toSceneElementQueryAll(getAllByPlaceholderImpl(placeholderValue))
+
+const getAllByAltTextImpl =
   (altValue: string) =>
   (html: VNode): ReadonlyArray<VNode> =>
     Array.filter(allNodesIn(html), attributeEquals('alt', altValue))
 
-/** Finds all elements with the given `title` attribute. */
-export const getAllByTitle =
+/** Finds all elements with the given `alt` attribute. */
+export const getAllByAltText = (altValue: string) =>
+  toSceneElementQueryAll(getAllByAltTextImpl(altValue))
+
+const getAllByTitleImpl =
   (titleValue: string) =>
   (html: VNode): ReadonlyArray<VNode> =>
     Array.filter(allNodesIn(html), attributeEquals('title', titleValue))
 
-/** Finds all elements with the given `data-testid` attribute. */
-export const getAllByTestId =
+/** Finds all elements with the given `title` attribute. */
+export const getAllByTitle = (titleValue: string) =>
+  toSceneElementQueryAll(getAllByTitleImpl(titleValue))
+
+const getAllByTestIdImpl =
   (testIdValue: string) =>
   (html: VNode): ReadonlyArray<VNode> =>
     Array.filter(allNodesIn(html), attributeEquals('data-testid', testIdValue))
 
-/** Finds all form controls whose current value matches. */
-export const getAllByDisplayValue =
+/** Finds all elements with the given `data-testid` attribute. */
+export const getAllByTestId = (testIdValue: string) =>
+  toSceneElementQueryAll(getAllByTestIdImpl(testIdValue))
+
+const getAllByDisplayValueImpl =
   (displayValueString: string) =>
   (html: VNode): ReadonlyArray<VNode> =>
     Array.filter(
@@ -1377,9 +1472,11 @@ export const getAllByDisplayValue =
         attributeEquals('value', displayValueString)(node),
     )
 
-/** Finds the first form control whose current value matches. Checks the `value`
- *  attribute on inputs, textareas, and selects. */
-export const getByDisplayValue =
+/** Finds all form controls whose current value matches. */
+export const getAllByDisplayValue = (displayValueString: string) =>
+  toSceneElementQueryAll(getAllByDisplayValueImpl(displayValueString))
+
+const getByDisplayValueImpl =
   (displayValue: string) =>
   (html: VNode): Option.Option<VNode> =>
     Array.findFirst(
@@ -1388,28 +1485,33 @@ export const getByDisplayValue =
         isFormControl(node) && attributeEquals('value', displayValue)(node),
     )
 
+/** Finds the first form control whose current value matches. Checks the `value`
+ *  attribute on inputs, textareas, and selects. */
+export const getByDisplayValue = (displayValue: string) =>
+  toSceneElementQuery(getByDisplayValueImpl(displayValue))
+
 // LOCATORS
 
-/** A deferred element query that resolves against a VNode tree. Callable as a
+/** A deferred element query that resolves against the rendered tree. Callable as a
  *  function (`locator(html)`) so it composes directly in `flow` and `pipe` chains.
  *  Used by interaction steps (`click`, `type`, `submit`, `keydown`) to
  *  target elements by accessible attributes instead of CSS selectors. */
-export type Locator = ((html: VNode) => Option.Option<VNode>) &
+export type Locator = ((html: SceneElement) => Option.Option<SceneElement>) &
   Readonly<{ description: string }>
 
-/** A deferred multi-element query that resolves to all matching VNodes.
+/** A deferred multi-element query that resolves to all matching elements.
  *  Produced by `all*` locator factories and by `filter(...)`. Convert to a
  *  single-match `Locator` via `first`, `last`, or `nth(n)`. */
-export type LocatorAll = ((html: VNode) => ReadonlyArray<VNode>) &
+export type LocatorAll = ((html: SceneElement) => ReadonlyArray<SceneElement>) &
   Readonly<{ description: string }>
 
 const makeLocator = (
-  resolve: (html: VNode) => Option.Option<VNode>,
+  resolve: (html: SceneElement) => Option.Option<SceneElement>,
   description: string,
 ): Locator => Object.assign(resolve, { description } as const)
 
 const makeLocatorAll = (
-  resolve: (html: VNode) => ReadonlyArray<VNode>,
+  resolve: (html: SceneElement) => ReadonlyArray<SceneElement>,
   description: string,
 ): LocatorAll => Object.assign(resolve, { description } as const)
 
@@ -1487,7 +1589,10 @@ export const text = (
  *  may use double or single quotes and may contain whitespace. Any other
  *  syntax throws. */
 export const selector = (css: string): Locator =>
-  makeLocator(flow(findAllImpl(css), Array.head), `"${css}"`)
+  makeLocator(
+    toSceneElementQuery(flow(findAllImpl(css), Array.head)),
+    `"${css}"`,
+  )
 
 /** Creates a scoped Locator that finds the child within the parent.
  *  Composes via `Option.flatMap` — the parent is resolved first, then
@@ -1559,7 +1664,7 @@ export const allDisplayValue = (valueString: string): LocatorAll =>
 /** Creates a LocatorAll that returns every element matching a CSS
  *  selector. Accepts the same syntax as `selector`. */
 export const allSelector = (css: string): LocatorAll =>
-  makeLocatorAll(findAllImpl(css), `all "${css}"`)
+  makeLocatorAll(toSceneElementQueryAll(findAllImpl(css)), `all "${css}"`)
 
 // LOCATOR-ALL COMBINATORS
 
@@ -1633,16 +1738,24 @@ export const filter: {
   ),
 )
 
-/** Resolves a target (CSS selector string or Locator) against a VNode tree. */
+/** Resolves a target (CSS selector string or Locator) against the rendered
+ *  tree, returning the renderer node it finds. */
 export const resolveTarget = (
-  html: VNode,
+  html: SceneElement,
   target: string | Locator,
 ): Readonly<{ maybeElement: Option.Option<VNode>; description: string }> => {
   if (typeof target === 'string') {
     return {
-      maybeElement: pipe(html, findAllImpl(target), Array.head),
+      maybeElement: pipe(
+        fromSceneElement(html),
+        findAllImpl(target),
+        Array.head,
+      ),
       description: `"${target}"`,
     }
   }
-  return { maybeElement: target(html), description: target.description }
+  return {
+    maybeElement: Option.map(target(html), fromSceneElement),
+    description: target.description,
+  }
 }

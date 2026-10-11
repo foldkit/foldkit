@@ -2,9 +2,9 @@
 
 ## Testing Through the View
 
-`Scene` runs update and view together. It clicks buttons, types into inputs, presses keys, and checks the rendered VNode tree. The view runs after every step, so the test sees both state transitions and their rendered result.
+`Scene` runs update and view together. It clicks buttons, types into inputs, presses keys, and checks the rendered view tree. The view runs after every step, so the test sees both state transitions and their rendered result.
 
-Scene operates on VNodes directly. It needs no DOM, jsdom, or browser.
+Scene operates on the view directly. It needs no DOM, jsdom, or browser.
 
 Import the steps you need from `foldkit/scene`. Use named imports when the file contains only Scene tests. If a file contains both Story and Scene tests, import the namespaces from `foldkit` so `Story.given` and `Scene.given` stay distinct.
 
@@ -34,7 +34,7 @@ A `RegExp` always tests the element's full text, including text from nested elem
 
 Scene starts every regular expression match at index zero and leaves the expression's `lastIndex` unchanged. Global and sticky expressions therefore produce the same results every time a query runs.
 
-When an ancestor and one of its descendants both match, `text` returns the descendant. `all.text` returns both in traversal order. Neither query returns text VNodes.
+When an ancestor and one of its descendants both match, `text` returns the descendant. `all.text` returns both in traversal order. Neither query returns text nodes.
 
 ### The role Locator
 
@@ -110,7 +110,7 @@ An interaction invokes the matched element's event handler. If the handler produ
 
 Pass `Option.some(text)` to `beforeInput` for an edit that carries text and `Option.none()` for one that does not, such as a backward deletion.
 
-`tap(fn)` runs a function for side effects (like ad-hoc assertions on raw VNodes or accumulated Commands) without breaking the step chain.
+`tap(fn)` runs a function for side effects (like ad-hoc assertions on the rendered tree, through `find`, `attr`, and `textContent`, or on accumulated Commands) without breaking the step chain.
 
 `click` keeps default action and propagation separate, like the browser. A target `OnClick` with `propagation: 'Stop'` skips ancestor click handlers but still submits a surrounding form when the clicked element is a submit button. Add `defaultAction: 'Prevent'` to suppress that submission. When neither control is present, Scene dispatches every click Message from the target through its ancestor chain, then dispatches the form's submit Message when applicable.
 
@@ -138,6 +138,7 @@ Property, state, and accessibility matchers require the Locator to match an elem
 | `.toHaveValue(value)`                       | Has the given current form-control value                                                                                                           |
 | `.toHaveAttr(name, value)`                  | Has the given attribute set to the given value                                                                                                     |
 | `.toHaveId(id)`                             | Has the given id                                                                                                                                   |
+| `.toHaveKey(key)`                           | Was rendered with the given key through `h.keyed` or `h.Key`                                                                                       |
 | `.toHaveClass(name)`                        | Has the given CSS class                                                                                                                            |
 | `.toHaveStyle(name, value)`                 | Has the given inline style property                                                                                                                |
 

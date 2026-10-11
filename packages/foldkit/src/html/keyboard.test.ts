@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { defineMessageUnion } from '../message/index.js'
 import { MountTracker } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
+import { fromHtml } from './htmlNode.js'
 import { type HtmlBuilder, __htmlBuilder } from './index.js'
 import {
   type DispatchSync,
@@ -65,7 +66,7 @@ const handlerOf = (
   vnode: ReturnType<HtmlBuilder<Message>['div']>,
   eventName: string,
 ): ((event: unknown) => void) =>
-  vnode?.data?.on?.[eventName] as unknown as (event: unknown) => void
+  fromHtml(vnode)?.data?.on?.[eventName] as unknown as (event: unknown) => void
 /* eslint-enable @typescript-eslint/consistent-type-assertions */
 
 describe('keyboard self-scoped attributes', () => {

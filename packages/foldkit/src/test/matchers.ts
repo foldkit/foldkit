@@ -1,13 +1,21 @@
-import { Option, String } from 'effect'
+import { Option, Predicate, String } from 'effect'
 
 import { serializedStylePropertyName } from '../domReflection.js'
-import type { VNode } from '../vdom.js'
-import { attr, isHidden, textContent } from './query.js'
+import {
+  type SceneElement,
+  attrOfNode,
+  fromSceneElement,
+  isHidden,
+  textContentOfNode,
+} from './query.js'
 
 type MatcherContext = Readonly<{ isNot: boolean }>
 
 const describeExpected = (expected: string | RegExp): string =>
   expected instanceof RegExp ? `${expected}` : `"${expected}"`
+
+const describeKey = (key: PropertyKey): string =>
+  Predicate.isString(key) ? `"${key}"` : globalThis.String(key)
 
 const textMatches = (value: string, expected: string | RegExp): boolean =>
   expected instanceof RegExp ? expected.test(value) : value === expected
@@ -17,15 +25,15 @@ const textIncludes = (value: string, expected: string | RegExp): boolean =>
 
 /** Custom Vitest matchers for scene testing. Register with `expect.extend(Scene.sceneMatchers)`. */
 export const sceneMatchers = {
-  toHaveText(received: Option.Option<VNode>, expected: string | RegExp) {
-    return Option.match(received, {
+  toHaveText(received: Option.Option<SceneElement>, expected: string | RegExp) {
+    return Option.match(Option.map(received, fromSceneElement), {
       onNone: () => ({
         pass: false,
         message: () =>
           `Expected element to have text ${describeExpected(expected)} but the element does not exist.`,
       }),
       onSome: vnode => {
-        const actualText = textContent(vnode)
+        const actualText = textContentOfNode(vnode)
         return {
           pass: textMatches(actualText, expected),
           message: () =>
@@ -38,15 +46,18 @@ export const sceneMatchers = {
     })
   },
 
-  toContainText(received: Option.Option<VNode>, expected: string | RegExp) {
-    return Option.match(received, {
+  toContainText(
+    received: Option.Option<SceneElement>,
+    expected: string | RegExp,
+  ) {
+    return Option.match(Option.map(received, fromSceneElement), {
       onNone: () => ({
         pass: false,
         message: () =>
           `Expected element to contain text ${describeExpected(expected)} but the element does not exist.`,
       }),
       onSome: vnode => {
-        const actualText = textContent(vnode)
+        const actualText = textContentOfNode(vnode)
         return {
           pass: textIncludes(actualText, expected),
           message: () =>
@@ -59,8 +70,8 @@ export const sceneMatchers = {
     })
   },
 
-  toHaveClass(received: Option.Option<VNode>, expected: string) {
-    return Option.match(received, {
+  toHaveClass(received: Option.Option<SceneElement>, expected: string) {
+    return Option.match(Option.map(received, fromSceneElement), {
       onNone: () => ({
         pass: false,
         message: () =>
@@ -78,11 +89,11 @@ export const sceneMatchers = {
   },
 
   toHaveAttr(
-    received: Option.Option<VNode>,
+    received: Option.Option<SceneElement>,
     name: string,
     expectedValue?: string,
   ) {
-    return Option.match(received, {
+    return Option.match(Option.map(received, fromSceneElement), {
       onNone: () => ({
         pass: false,
         message: () =>
@@ -91,7 +102,7 @@ export const sceneMatchers = {
             : `Expected element to have attribute ${name}="${expectedValue}" but the element does not exist.`,
       }),
       onSome: vnode => {
-        const actualValue = attr(vnode, name)
+        const actualValue = attrOfNode(vnode, name)
 
         if (expectedValue === undefined) {
           return {
@@ -123,7 +134,7 @@ export const sceneMatchers = {
     })
   },
 
-  toExist(received: Option.Option<VNode>) {
+  toExist(received: Option.Option<SceneElement>) {
     return {
       pass: Option.isSome(received),
       message: () =>
@@ -134,7 +145,7 @@ export const sceneMatchers = {
     }
   },
 
-  toBeAbsent(received: Option.Option<VNode>) {
+  toBeAbsent(received: Option.Option<SceneElement>) {
     return {
       pass: Option.isNone(received),
       message: () =>
@@ -146,11 +157,11 @@ export const sceneMatchers = {
   },
 
   toHaveStyle(
-    received: Option.Option<VNode>,
+    received: Option.Option<SceneElement>,
     name: string,
     expectedValue?: string,
   ) {
-    return Option.match(received, {
+    return Option.match(Option.map(received, fromSceneElement), {
       onNone: () => ({
         pass: false,
         message: () =>
@@ -196,8 +207,8 @@ export const sceneMatchers = {
     })
   },
 
-  toHaveHook(received: Option.Option<VNode>, name: string) {
-    return Option.match(received, {
+  toHaveHook(received: Option.Option<SceneElement>, name: string) {
+    return Option.match(Option.map(received, fromSceneElement), {
       onNone: () => ({
         pass: false,
         message: () =>
@@ -218,8 +229,8 @@ export const sceneMatchers = {
     })
   },
 
-  toHaveHandler(received: Option.Option<VNode>, name: string) {
-    return Option.match(received, {
+  toHaveHandler(received: Option.Option<SceneElement>, name: string) {
+    return Option.match(Option.map(received, fromSceneElement), {
       onNone: () => ({
         pass: false,
         message: () =>
@@ -236,15 +247,41 @@ export const sceneMatchers = {
     })
   },
 
-  toHaveValue(received: Option.Option<VNode>, expected: string) {
-    return Option.match(received, {
+  toHaveKey(received: Option.Option<SceneElement>, expected: PropertyKey) {
+    return Option.match(Option.map(received, fromSceneElement), {
+      onNone: () => ({
+        pass: false,
+        message: () =>
+          `Expected element to have key ${describeKey(expected)} but the element does not exist.`,
+      }),
+      onSome: vnode =>
+        Option.match(Option.fromNullishOr(vnode.key), {
+          onNone: () => ({
+            pass: false,
+            message: () =>
+              `Expected element to have key ${describeKey(expected)} but the element has no key.`,
+          }),
+          onSome: actual => ({
+            pass: actual === expected,
+            message: () =>
+              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+              (this as unknown as MatcherContext).isNot
+                ? `Expected element not to have key ${describeKey(expected)} but it does.`
+                : `Expected element to have key ${describeKey(expected)} but received key ${describeKey(actual)}.`,
+          }),
+        }),
+    })
+  },
+
+  toHaveValue(received: Option.Option<SceneElement>, expected: string) {
+    return Option.match(Option.map(received, fromSceneElement), {
       onNone: () => ({
         pass: false,
         message: () =>
           `Expected element to have value "${expected}" but the element does not exist.`,
       }),
       onSome: vnode => {
-        const actualValue = attr(vnode, 'value')
+        const actualValue = attrOfNode(vnode, 'value')
         return Option.match(actualValue, {
           onNone: () => ({
             pass: false,
@@ -264,16 +301,16 @@ export const sceneMatchers = {
     })
   },
 
-  toBeDisabled(received: Option.Option<VNode>) {
-    return Option.match(received, {
+  toBeDisabled(received: Option.Option<SceneElement>) {
+    return Option.match(Option.map(received, fromSceneElement), {
       onNone: () => ({
         pass: false,
         message: () =>
           'Expected element to be disabled but the element does not exist.',
       }),
       onSome: vnode => {
-        const disabled = attr(vnode, 'disabled')
-        const ariaDisabled = attr(vnode, 'aria-disabled')
+        const disabled = attrOfNode(vnode, 'disabled')
+        const ariaDisabled = attrOfNode(vnode, 'aria-disabled')
         const pass =
           (Option.isSome(disabled) && disabled.value !== 'false') ||
           (Option.isSome(ariaDisabled) && ariaDisabled.value === 'true')
@@ -289,16 +326,16 @@ export const sceneMatchers = {
     })
   },
 
-  toBeEnabled(received: Option.Option<VNode>) {
-    return Option.match(received, {
+  toBeEnabled(received: Option.Option<SceneElement>) {
+    return Option.match(Option.map(received, fromSceneElement), {
       onNone: () => ({
         pass: false,
         message: () =>
           'Expected element to be enabled but the element does not exist.',
       }),
       onSome: vnode => {
-        const disabled = attr(vnode, 'disabled')
-        const ariaDisabled = attr(vnode, 'aria-disabled')
+        const disabled = attrOfNode(vnode, 'disabled')
+        const ariaDisabled = attrOfNode(vnode, 'aria-disabled')
         const isDisabled =
           (Option.isSome(disabled) && disabled.value !== 'false') ||
           (Option.isSome(ariaDisabled) && ariaDisabled.value === 'true')
@@ -314,8 +351,8 @@ export const sceneMatchers = {
     })
   },
 
-  toBeEmpty(received: Option.Option<VNode>) {
-    return Option.match(received, {
+  toBeEmpty(received: Option.Option<SceneElement>) {
+    return Option.match(Option.map(received, fromSceneElement), {
       onNone: () => ({
         pass: false,
         message: () =>
@@ -323,7 +360,7 @@ export const sceneMatchers = {
       }),
       onSome: vnode => {
         const childCount = (vnode.children ?? []).length
-        const text = textContent(vnode)
+        const text = textContentOfNode(vnode)
         const pass = String.isEmpty(text) && childCount === 0
         const actual: string = String.isNonEmpty(text)
           ? `received text "${text}"`
@@ -340,8 +377,8 @@ export const sceneMatchers = {
     })
   },
 
-  toBeVisible(received: Option.Option<VNode>) {
-    return Option.match(received, {
+  toBeVisible(received: Option.Option<SceneElement>) {
+    return Option.match(Option.map(received, fromSceneElement), {
       onNone: () => ({
         pass: false,
         message: () =>
@@ -360,15 +397,15 @@ export const sceneMatchers = {
     })
   },
 
-  toHaveId(received: Option.Option<VNode>, expected: string) {
-    return Option.match(received, {
+  toHaveId(received: Option.Option<SceneElement>, expected: string) {
+    return Option.match(Option.map(received, fromSceneElement), {
       onNone: () => ({
         pass: false,
         message: () =>
           `Expected element to have id "${expected}" but the element does not exist.`,
       }),
       onSome: vnode => {
-        const actualId = attr(vnode, 'id')
+        const actualId = attrOfNode(vnode, 'id')
         return Option.match(actualId, {
           onNone: () => ({
             pass: false,
@@ -388,16 +425,16 @@ export const sceneMatchers = {
     })
   },
 
-  toBeChecked(received: Option.Option<VNode>) {
-    return Option.match(received, {
+  toBeChecked(received: Option.Option<SceneElement>) {
+    return Option.match(Option.map(received, fromSceneElement), {
       onNone: () => ({
         pass: false,
         message: () =>
           'Expected element to be checked but the element does not exist.',
       }),
       onSome: vnode => {
-        const checked = attr(vnode, 'checked')
-        const ariaChecked = attr(vnode, 'aria-checked')
+        const checked = attrOfNode(vnode, 'checked')
+        const ariaChecked = attrOfNode(vnode, 'aria-checked')
         const pass =
           (Option.isSome(checked) && checked.value !== 'false') ||
           (Option.isSome(ariaChecked) && ariaChecked.value === 'true')

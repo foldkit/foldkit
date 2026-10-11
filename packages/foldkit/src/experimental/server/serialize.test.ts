@@ -9,12 +9,8 @@ import {
   beginRender,
   createBoundaryRegistry,
 } from '../../html/boundary.js'
-import {
-  type Html,
-  Prop,
-  __htmlBuilder,
-  customElement,
-} from '../../html/index.js'
+import { fromHtml, toHtml } from '../../html/htmlNode.js'
+import { type Html, __htmlBuilder, customElement } from '../../html/index.js'
 import { clearRuntime, setRuntime } from '../../html/runtimeSingleton.js'
 import {
   HYDRATION_IDENTITY_ATTRIBUTE,
@@ -26,8 +22,9 @@ import { defineMessageUnion } from '../../message/index.js'
 import { markTrustedInnerHtml } from '../../propertyProvenance.js'
 import { h as snabbdomH } from '../../snabbdom/index.js'
 import type { VNode } from '../../snabbdom/vnode.js'
+import { prop } from '../../test/rendererNodes.js'
 import { __patchVNode } from '../../vdom.js'
-import { serializeHtml } from './serialize.js'
+import { type SerializeOptions, serializeHtml } from './serialize.js'
 
 const Message = defineMessageUnion({
   ClickedButton: {},
@@ -38,13 +35,17 @@ type Message = typeof Message.Type
 
 const h = __htmlBuilder<Message>()
 const unrestrictedTextarea = customElement<Message>()('textarea')
+
+const serializeView = (view: Html, options?: SerializeOptions): string =>
+  serializeHtml(fromHtml(view), options)
+
 const elementWithTrustedInnerHtml = (
   tagName: string,
   innerHtml: string,
-): VNode => {
+): Html => {
   const props = { innerHTML: innerHtml }
   markTrustedInnerHtml(props, innerHtml)
-  return snabbdomH(tagName, { props })
+  return toHtml(snabbdomH(tagName, { props }))
 }
 
 const nestedInDivs = (leaf: Html, levels: number): Html => {
@@ -55,14 +56,15 @@ const nestedInDivs = (leaf: Html, levels: number): Html => {
   return node
 }
 
-const spanWithRawStringChild = (text: string): VNode => ({
-  sel: 'span',
-  data: {},
-  children: [text],
-  elm: undefined,
-  text: undefined,
-  key: undefined,
-})
+const spanWithRawStringChild = (text: string): Html =>
+  toHtml({
+    sel: 'span',
+    data: {},
+    children: [text],
+    elm: undefined,
+    text: undefined,
+    key: undefined,
+  })
 
 describe('serializeHtml', () => {
   let registry: BoundaryRegistry
@@ -83,12 +85,12 @@ describe('serializeHtml', () => {
 
   it('escapes text content', () => {
     const view = h.div([], ['a < b & "c" > d'])
-    expect(serializeHtml(view)).toBe('<div>a &lt; b &amp; "c" &gt; d</div>')
+    expect(serializeView(view)).toBe('<div>a &lt; b &amp; "c" &gt; d</div>')
   })
 
   it('escapes a carriage return so text round-trips through an HTML parser', () => {
     const view = h.p([], ['a\r\nb'])
-    const serialized = serializeHtml(view)
+    const serialized = serializeView(view)
     expect(serialized).toBe('<p>a&#13;\nb</p>')
 
     const container = document.createElement('div')
@@ -98,14 +100,14 @@ describe('serializeHtml', () => {
 
   it('escapes attribute values', () => {
     const view = h.div([h.Title('a "quoted" <value> & more')])
-    expect(serializeHtml(view)).toBe(
+    expect(serializeView(view)).toBe(
       '<div title="a &quot;quoted&quot; &lt;value> &amp; more"></div>',
     )
   })
 
   it('rejects attribute names that cannot be represented safely', () => {
     const view = h.div([h.Attribute('x=y onmouseover', 'alert(1)')])
-    expect(() => serializeHtml(view)).toThrow('invalid attribute name')
+    expect(() => serializeView(view)).toThrow('invalid attribute name')
   })
 
   it('does not treat a non-authored innerHTML property as raw markup', () => {
@@ -122,7 +124,7 @@ describe('serializeHtml', () => {
 
   it('renders builder-authored innerHTML as raw markup', () => {
     const view = h.div([h.InnerHTML('<b>trusted</b>')])
-    expect(serializeHtml(view)).toBe('<div><b>trusted</b></div>')
+    expect(serializeView(view)).toBe('<div><b>trusted</b></div>')
   })
 
   it('does not treat innerHTML as raw markup when a later property overwrites it', () => {
@@ -131,9 +133,9 @@ describe('serializeHtml', () => {
     // wrote never reaches the raw sink.
     const view = h.div([
       h.InnerHTML('<b>trusted</b>'),
-      Prop({ key: 'innerHTML', value: '<img src=x onerror=alert(1)>' }),
+      prop({ key: 'innerHTML', value: '<img src=x onerror=alert(1)>' }),
     ])
-    const serialized = serializeHtml(view)
+    const serialized = serializeView(view)
 
     expect(serialized).not.toContain('onerror')
     expect(serialized).toBe('<div></div>')
@@ -143,10 +145,10 @@ describe('serializeHtml', () => {
     // The mirror of the case above: the last write owns the name, and here it is
     // the trusted one, so the trusted markup is what is emitted.
     const view = h.div([
-      Prop({ key: 'innerHTML', value: '<img src=x onerror=alert(1)>' }),
+      prop({ key: 'innerHTML', value: '<img src=x onerror=alert(1)>' }),
       h.InnerHTML('<b>trusted</b>'),
     ])
-    const serialized = serializeHtml(view)
+    const serialized = serializeView(view)
 
     expect(serialized).not.toContain('onerror')
     expect(serialized).toBe('<div><b>trusted</b></div>')
@@ -171,8 +173,8 @@ describe('serializeHtml', () => {
       h.InnerHTML('<b>trusted</b>'),
     ])
 
-    expect(serializeHtml(propertyLast)).toBe('<x-inner></x-inner>')
-    expect(serializeHtml(trustedLast)).toBe('<x-inner><b>trusted</b></x-inner>')
+    expect(serializeView(propertyLast)).toBe('<x-inner></x-inner>')
+    expect(serializeView(trustedLast)).toBe('<x-inner><b>trusted</b></x-inner>')
   })
 
   it('does not reflect declared custom element properties that collide with global attribute names', () => {
@@ -206,7 +208,7 @@ describe('serializeHtml', () => {
       card.Draggable(true),
     ])
 
-    expect(serializeHtml(view)).toBe('<x-card></x-card>')
+    expect(serializeView(view)).toBe('<x-card></x-card>')
   })
 
   it('reflects builder-authored global attributes on a custom element', () => {
@@ -224,10 +226,10 @@ describe('serializeHtml', () => {
       h.Autofocus(true),
       h.Draggable(true),
     ])
-    expect(serializeHtml(view)).toBe(
+    expect(serializeView(view)).toBe(
       '<x-plain id="card-1" title="Card" autofocus="" draggable="true"></x-plain>',
     )
-    expect(serializeHtml(plain([h.Draggable(false)]))).toBe(
+    expect(serializeView(plain([h.Draggable(false)]))).toBe(
       '<x-plain draggable="false"></x-plain>',
     )
   })
@@ -247,21 +249,21 @@ describe('serializeHtml', () => {
       [],
       ['<meta http-equiv="refresh" content="0;url=/evil">'],
     )
-    expect(() => serializeHtml(view)).toThrow(
+    expect(() => serializeView(view)).toThrow(
       '<noscript> text content contains markup',
     )
   })
 
   it('renders trusted innerHTML fallback markup inside a noscript element', () => {
     const view = h.noscript([h.InnerHTML('<p>Enable JavaScript</p>')])
-    expect(serializeHtml(view)).toBe(
+    expect(serializeView(view)).toBe(
       '<noscript><p>Enable JavaScript</p></noscript>',
     )
   })
 
   it('escapes carriage returns in attribute values so they round-trip', () => {
     const view = h.div([h.Title('a\r\nb')])
-    const serialized = serializeHtml(view)
+    const serialized = serializeView(view)
     expect(serialized).toBe('<div title="a&#13;\nb"></div>')
 
     const container = document.createElement('div')
@@ -270,8 +272,8 @@ describe('serializeHtml', () => {
   })
 
   it('rejects NUL characters in text and attribute values', () => {
-    expect(() => serializeHtml(h.div([], ['a\u0000b']))).toThrow('NUL')
-    expect(() => serializeHtml(h.div([h.Title('a\u0000b')]))).toThrow('NUL')
+    expect(() => serializeView(h.div([], ['a\u0000b']))).toThrow('NUL')
+    expect(() => serializeView(h.div([h.Title('a\u0000b')]))).toThrow('NUL')
   })
 
   it('serializes class, style, and data attributes', () => {
@@ -280,7 +282,7 @@ describe('serializeHtml', () => {
       h.Style({ backgroundColor: 'red', '--accent': 'blue' }),
       h.DataAttribute('itemId', '42'),
     ])
-    expect(serializeHtml(view)).toBe(
+    expect(serializeView(view)).toBe(
       '<div data-itemid="42" class="card highlighted" style="background-color: red; --accent: blue"></div>',
     )
   })
@@ -295,7 +297,7 @@ describe('serializeHtml', () => {
       }),
     ])
 
-    expect(serializeHtml(view)).toContain(
+    expect(serializeView(view)).toContain(
       'style="--Accent-色: blue; float: left; text-align: center; -webkit-line-clamp: 2"',
     )
   })
@@ -325,7 +327,7 @@ describe('serializeHtml', () => {
       cssText: 'position: fixed; inset: 0',
     })
 
-    expect(serializeHtml(h.div([h.Style(inherited)]))).toBe('<div></div>')
+    expect(serializeView(h.div([h.Style(inherited)]))).toBe('<div></div>')
   })
 
   it('refuses two owners of the style attribute under either ASCII casing', () => {
@@ -345,7 +347,7 @@ describe('serializeHtml', () => {
       h.Attribute('style', 'color: red'),
     ])
 
-    expect(serializeHtml(view)).toBe(
+    expect(serializeView(view)).toBe(
       '<div class="client-only" style="color: red"></div>',
     )
   })
@@ -366,7 +368,7 @@ describe('serializeHtml', () => {
   })
 
   it('accepts escaped delimiters and balanced CSS value syntax', () => {
-    const serialized = serializeHtml(
+    const serialized = serializeView(
       h.div([
         h.Style({
           backgroundImage: 'url("data:image/svg+xml;a=b")',
@@ -382,7 +384,7 @@ describe('serializeHtml', () => {
   })
 
   it('accepts a semicolon inside a single CSS value', () => {
-    const serialized = serializeHtml(
+    const serialized = serializeView(
       h.div([
         h.Style({
           backgroundImage:
@@ -401,7 +403,7 @@ describe('serializeHtml', () => {
       [h.Id('username-label'), h.For('username'), h.Tabindex(2)],
       ['Username'],
     )
-    expect(serializeHtml(view)).toBe(
+    expect(serializeView(view)).toBe(
       '<label id="username-label" for="username" tabindex="2">Username</label>',
     )
   })
@@ -413,59 +415,59 @@ describe('serializeHtml', () => {
       h.Disabled(false),
       h.Required(true),
     ])
-    expect(serializeHtml(view)).toBe(
+    expect(serializeView(view)).toBe(
       '<input type="checkbox" checked="" required="">',
     )
   })
 
   it('serializes draggable as an enumerated attribute', () => {
     const view = h.div([h.Draggable(false)])
-    expect(serializeHtml(view)).toBe('<div draggable="false"></div>')
+    expect(serializeView(view)).toBe('<div draggable="false"></div>')
   })
 
   it('serializes the value property on inputs', () => {
     const view = h.input([h.Type('text'), h.Value('hello')])
-    expect(serializeHtml(view)).toBe('<input type="text" value="hello">')
+    expect(serializeView(view)).toBe('<input type="text" value="hello">')
   })
 
   it('serializes textarea value as escaped content', () => {
     const view = h.textarea([h.Value('line <one> & two')])
-    expect(serializeHtml(view)).toBe(
+    expect(serializeView(view)).toBe(
       '<textarea>line &lt;one&gt; &amp; two</textarea>',
     )
   })
 
   it('serializes script and style content raw', () => {
     const script = h.script([], ['const x = 1 && 2;'])
-    expect(serializeHtml(script)).toBe('<script>const x = 1 && 2;</script>')
+    expect(serializeView(script)).toBe('<script>const x = 1 && 2;</script>')
     const style = h.style([], ['.a { color: red }'])
-    expect(serializeHtml(style)).toBe('<style>.a { color: red }</style>')
+    expect(serializeView(style)).toBe('<style>.a { color: red }</style>')
   })
 
   it('rejects a closing-tag sequence inside raw-text content', () => {
     const script = h.script([], ['</script><script>alert(1)</script>'])
-    expect(() => serializeHtml(script)).toThrow('</script')
+    expect(() => serializeView(script)).toThrow('</script')
     const dynamicScript = customElement<never>()('SCRIPT')(
       [],
       ['</script><script>alert(1)</script>'],
     )
-    expect(() => serializeHtml(dynamicScript)).toThrow('</script')
+    expect(() => serializeView(dynamicScript)).toThrow('</script')
     const style = h.style([], ['</style><script>evil()</script>'])
-    expect(() => serializeHtml(style)).toThrow('</style')
+    expect(() => serializeView(style)).toThrow('</style')
   })
 
   it('allows a closing-tag prefix that continues into a longer name', () => {
     const script = h.script([], ['const tag = "</scripting"'])
-    expect(serializeHtml(script)).toBe(
+    expect(serializeView(script)).toBe(
       '<script>const tag = "</scripting"</script>',
     )
   })
 
   it('rejects a raw-text closing-tag sequence followed by a carriage return', () => {
     const script = h.script([], ['const html = "</script\r>"'])
-    expect(() => serializeHtml(script)).toThrow('</script')
+    expect(() => serializeView(script)).toThrow('</script')
     const style = h.style([], ['.a::after { content: "</style\r>" }'])
-    expect(() => serializeHtml(style)).toThrow('</style')
+    expect(() => serializeView(style)).toThrow('</style')
   })
 
   it('rejects a tag name carrying markup so it cannot inject elements', () => {
@@ -482,41 +484,41 @@ describe('serializeHtml', () => {
 
   it('rejects a <!-- sequence in script content that would escape the parser', () => {
     const script = h.script([], ['<!--<script>globalThis.pwned=1;'])
-    expect(() => serializeHtml(script)).toThrow('<!--')
+    expect(() => serializeView(script)).toThrow('<!--')
     const throughInnerHtml = h.script([h.InnerHTML('<!--<script>evil()')])
-    expect(() => serializeHtml(throughInnerHtml)).toThrow('<!--')
+    expect(() => serializeView(throughInnerHtml)).toThrow('<!--')
   })
 
   it('leaves a <!-- sequence in non-script raw text alone', () => {
     const style = h.style([], ['/* <!-- not special in CSS --> */'])
-    expect(serializeHtml(style)).toBe(
+    expect(serializeView(style)).toBe(
       '<style>/* <!-- not special in CSS --> */</style>',
     )
   })
 
   it('serializes a tree nested exactly to the maximum render depth', () => {
     const node = nestedInDivs(h.span([], ['leaf']), 999)
-    expect(serializeHtml(node)).toContain('<span>leaf</span>')
+    expect(serializeView(node)).toContain('<span>leaf</span>')
   })
 
   it('refuses a tree nested one level past the maximum render depth', () => {
     const node = nestedInDivs(h.span([], ['leaf']), 1000)
-    expect(() => serializeHtml(node)).toThrow('maximum render depth')
+    expect(() => serializeView(node)).toThrow('maximum render depth')
   })
 
   it('refuses a tree nested far past the maximum render depth', () => {
     const node = nestedInDivs(h.span([], ['leaf']), 100_000)
-    expect(() => serializeHtml(node)).toThrow('maximum render depth')
+    expect(() => serializeView(node)).toThrow('maximum render depth')
   })
 
   it('serializes a raw string child nested exactly to the maximum render depth', () => {
     const node = nestedInDivs(spanWithRawStringChild('leaf'), 999)
-    expect(serializeHtml(node)).toContain('<span>leaf</span>')
+    expect(serializeView(node)).toContain('<span>leaf</span>')
   })
 
   it('refuses a raw string child nested one level past the maximum render depth', () => {
     const node = nestedInDivs(spanWithRawStringChild('leaf'), 1000)
-    expect(() => serializeHtml(node)).toThrow('maximum render depth')
+    expect(() => serializeView(node)).toThrow('maximum render depth')
   })
 
   it('rejects a terminating sequence inside comment text', () => {
@@ -533,24 +535,24 @@ describe('serializeHtml', () => {
 
   it('preserves a leading newline in controlled textarea content', () => {
     const view = h.textarea([h.Value('\nfirst line')])
-    expect(serializeHtml(view)).toBe('<textarea>\n\nfirst line</textarea>')
+    expect(serializeView(view)).toBe('<textarea>\n\nfirst line</textarea>')
   })
 
   it('preserves a leading newline in internally built textarea content', () => {
     const view = unrestrictedTextarea([], ['\nfirst line'])
-    expect(serializeHtml(view)).toBe('<textarea>\n\nfirst line</textarea>')
+    expect(serializeView(view)).toBe('<textarea>\n\nfirst line</textarea>')
   })
 
   it('preserves a leading newline in pre content', () => {
     const view = h.pre([], ['\nline1'])
-    expect(serializeHtml(view)).toBe('<pre>\n\nline1</pre>')
+    expect(serializeView(view)).toBe('<pre>\n\nline1</pre>')
   })
 
   it('rejects a closing-tag sequence arriving through InnerHTML on raw-text elements', () => {
     const script = h.script([h.InnerHTML('</script><script>alert(1)</script>')])
-    expect(() => serializeHtml(script)).toThrow('</script')
+    expect(() => serializeView(script)).toThrow('</script')
     const div = h.div([h.InnerHTML('</script> is fine outside raw text')])
-    expect(serializeHtml(div)).toBe(
+    expect(serializeView(div)).toBe(
       '<div></script> is fine outside raw text</div>',
     )
   })
@@ -563,7 +565,7 @@ describe('serializeHtml', () => {
         h.option([h.Value('us')], ['United States']),
       ],
     )
-    expect(serializeHtml(view)).toBe(
+    expect(serializeView(view)).toBe(
       '<select><option value="">Choose</option><option value="us">United States</option></select>',
     )
   })
@@ -576,7 +578,7 @@ describe('serializeHtml', () => {
         h.option([h.Value('us')], ['United States']),
       ],
     )
-    expect(serializeHtml(view)).toBe(
+    expect(serializeView(view)).toBe(
       '<select><option value="">Choose</option><option value="us" selected="">United States</option></select>',
     )
   })
@@ -586,7 +588,7 @@ describe('serializeHtml', () => {
       [h.Value('Two')],
       [h.option([], ['One']), h.option([], ['Two'])],
     )
-    expect(serializeHtml(view)).toBe(
+    expect(serializeView(view)).toBe(
       '<select><option>One</option><option selected="">Two</option></select>',
     )
   })
@@ -596,19 +598,19 @@ describe('serializeHtml', () => {
       [h.Value('Two words')],
       [h.option([], ['One']), h.option([], ['Two\n      words'])],
     )
-    expect(serializeHtml(view)).toBe(
+    expect(serializeView(view)).toBe(
       '<select><option>One</option><option selected="">Two\n      words</option></select>',
     )
   })
 
   it('serializes the default state of an empty controlled input', () => {
     const view = h.input([h.Type('text'), h.Value('')])
-    expect(serializeHtml(view)).toBe('<input type="text" value="">')
+    expect(serializeView(view)).toBe('<input type="text" value="">')
   })
 
   it('omits end tags for void elements', () => {
     const view = h.div([], [h.br([]), h.img([h.Src('/cat.png'), h.Alt('cat')])])
-    expect(serializeHtml(view)).toBe(
+    expect(serializeView(view)).toBe(
       '<div><br><img src="/cat.png" alt="cat"></div>',
     )
   })
@@ -628,7 +630,7 @@ describe('serializeHtml', () => {
       ],
       ['Send'],
     )
-    expect(serializeHtml(view)).toBe('<button id="submit">Send</button>')
+    expect(serializeView(view)).toBe('<button id="submit">Send</button>')
   })
 
   it('drops focus boundary handlers', () => {
@@ -641,7 +643,7 @@ describe('serializeHtml', () => {
       [h.input([h.AriaLabel('Editor input')])],
     )
 
-    expect(serializeHtml(view)).toBe(
+    expect(serializeView(view)).toBe(
       '<div id="editor"><input aria-label="Editor input"></div>',
     )
   })
@@ -651,7 +653,7 @@ describe('serializeHtml', () => {
     // the view never renders, so hydration compares fingerprints and the key
     // itself never reaches the markup.
     const view = h.keyed('li')('user@example.com', [], ['Ada'])
-    const serialized = serializeHtml(view, { emitHydrationMarkers: true })
+    const serialized = serializeView(view, { emitHydrationMarkers: true })
 
     expect(serialized).not.toContain('user@example.com')
     expect(serialized).toBe(
@@ -662,7 +664,7 @@ describe('serializeHtml', () => {
   it('stamps a hydratable view identity as a fingerprint rather than the source path', () => {
     // The compiler's identity spells out a relative source path and function
     // name. Fingerprinting it keeps the build's file layout out of public HTML.
-    const view = h.div([], ['Home'])
+    const view = fromHtml(h.div([], ['Home']))
     if (view === null) {
       throw new Error('expected the view to produce a vnode')
     }
@@ -680,10 +682,10 @@ describe('serializeHtml', () => {
     // The runtime compares keys with `===`, so 1 and '1' are different keys. A
     // fingerprint that collapsed them would let a numeric server row adopt a
     // string client row, carrying one row's typed state onto another.
-    const numeric = serializeHtml(h.keyed('li')(1, [], ['one']), {
+    const numeric = serializeView(h.keyed('li')(1, [], ['one']), {
       emitHydrationMarkers: true,
     })
-    const string = serializeHtml(h.keyed('li')('1', [], ['one']), {
+    const string = serializeView(h.keyed('li')('1', [], ['one']), {
       emitHydrationMarkers: true,
     })
 
@@ -695,24 +697,24 @@ describe('serializeHtml', () => {
     expect(hydrationKeyMarker(Number.NaN)).toBeUndefined()
 
     const view = h.keyed('li')(Number.NaN, [], ['one'])
-    expect(() => serializeHtml(view, { emitHydrationMarkers: true })).toThrow(
+    expect(() => serializeView(view, { emitHydrationMarkers: true })).toThrow(
       'keyed by NaN',
     )
-    expect(serializeHtml(view)).toBe('<li>one</li>')
+    expect(serializeView(view)).toBe('<li>one</li>')
   })
 
   it('refuses to render an element keyed by a symbol as hydratable', () => {
     // A local symbol is a new value in every realm, so the server's key and the
     // client's cannot be compared. Rejecting beats adopting on a guess.
     const view = h.keyed('li')(Symbol('row'), [], ['one'])
-    expect(() => serializeHtml(view, { emitHydrationMarkers: true })).toThrow(
+    expect(() => serializeView(view, { emitHydrationMarkers: true })).toThrow(
       'keyed by a symbol',
     )
   })
 
   it('filters null children', () => {
     const view = h.ul([], [h.li([], ['one']), h.empty, h.li([], ['two'])])
-    expect(serializeHtml(view)).toBe('<ul><li>one</li><li>two</li></ul>')
+    expect(serializeView(view)).toBe('<ul><li>one</li><li>two</li></ul>')
   })
 
   it('serializes svg subtrees', () => {
@@ -720,7 +722,7 @@ describe('serializeHtml', () => {
       [h.ViewBox('0 0 10 10')],
       [h.path([h.D('M0 0L10 10'), h.Fill('none')])],
     )
-    expect(serializeHtml(view)).toBe(
+    expect(serializeView(view)).toBe(
       '<svg viewBox="0 0 10 10"><path d="M0 0L10 10" fill="none"></path></svg>',
     )
   })
@@ -732,43 +734,43 @@ describe('serializeHtml', () => {
     ])
     const math = h.math([h.Attribute('definitionurl', '/definition')])
 
-    expect(serializeHtml(svg)).toBe(
+    expect(serializeView(svg)).toBe(
       '<svg viewBox="0 0 10 10" data-foo="value"></svg>',
     )
-    expect(serializeHtml(math)).toBe(
+    expect(serializeView(math)).toBe(
       '<math definitionURL="/definition"></math>',
     )
   })
 
   it('neutralizes a javascript: URL on navigation and resource attributes', () => {
-    expect(serializeHtml(h.a([h.Href('javascript:evil()')], ['go']))).toBe(
+    expect(serializeView(h.a([h.Href('javascript:evil()')], ['go']))).toBe(
       '<a href="">go</a>',
     )
-    expect(serializeHtml(h.img([h.Src('vbscript:evil()')]))).toBe(
+    expect(serializeView(h.img([h.Src('vbscript:evil()')]))).toBe(
       '<img src="">',
     )
-    expect(serializeHtml(h.form([h.Action('JavaScript:evil()')]))).toBe(
+    expect(serializeView(h.form([h.Action('JavaScript:evil()')]))).toBe(
       '<form action=""></form>',
     )
   })
 
   it('neutralizes a javascript: URL obfuscated with control characters', () => {
     const view = h.a([h.Href('java\tscript:evil()')], ['go'])
-    expect(serializeHtml(view)).toBe('<a href="">go</a>')
+    expect(serializeView(view)).toBe('<a href="">go</a>')
   })
 
   it('leaves safe URLs on navigation attributes unchanged', () => {
-    expect(serializeHtml(h.a([h.Href('/route?x=a:b')], ['go']))).toBe(
+    expect(serializeView(h.a([h.Href('/route?x=a:b')], ['go']))).toBe(
       '<a href="/route?x=a:b">go</a>',
     )
     expect(
-      serializeHtml(h.a([h.Href('mailto:hi@example.com')], ['mail'])),
+      serializeView(h.a([h.Href('mailto:hi@example.com')], ['mail'])),
     ).toBe('<a href="mailto:hi@example.com">mail</a>')
   })
 
   it('escapes text children of a foreign-namespace script instead of emitting raw text', () => {
     const view = h.svg([], [h.script([], ['<img src=x onerror="evil()">'])])
-    const serialized = serializeHtml(view)
+    const serialized = serializeView(view)
     expect(serialized).not.toContain('<img')
     expect(serialized).toBe(
       '<svg><script>&lt;img src=x onerror="evil()"&gt;</script></svg>',
@@ -777,56 +779,56 @@ describe('serializeHtml', () => {
 
   it('closes an HTML void element name in the SVG namespace so siblings stay siblings', () => {
     const view = h.svg([], [h.input([]), h.circle([])])
-    expect(serializeHtml(view)).toBe(
+    expect(serializeView(view)).toBe(
       '<svg><input></input><circle></circle></svg>',
     )
   })
 
   it('treats an HTML void element as void inside a foreignObject integration point', () => {
     const view = h.svg([], [h.foreignObject([], [h.input([])])])
-    expect(serializeHtml(view)).toBe(
+    expect(serializeView(view)).toBe(
       '<svg><foreignObject><input></foreignObject></svg>',
     )
   })
 
   it('serializes HTML content inside an SVG desc in the HTML namespace', () => {
     const view = h.svg([], [h.desc([], [h.input([])])])
-    expect(serializeHtml(view)).toBe('<svg><desc><input></desc></svg>')
+    expect(serializeView(view)).toBe('<svg><desc><input></desc></svg>')
   })
 
   it('serializes HTML content wrapped in a foreignObject', () => {
     const view = h.svg([], [h.foreignObject([], [h.div([], ['inside'])])])
-    expect(serializeHtml(view)).toBe(
+    expect(serializeView(view)).toBe(
       '<svg><foreignObject><div>inside</div></foreignObject></svg>',
     )
   })
 
   it('serializes iframe text children as raw text, not escaped', () => {
     const view = h.iframe([], ['<b>&'])
-    expect(serializeHtml(view)).toBe('<iframe><b>&</iframe>')
+    expect(serializeView(view)).toBe('<iframe><b>&</iframe>')
   })
 
   it('rejects iframe content that contains a closing-tag sequence', () => {
     const view = h.iframe([], ['</iframe>'])
-    expect(() => serializeHtml(view)).toThrow(/<\/iframe/)
+    expect(() => serializeView(view)).toThrow(/<\/iframe/)
   })
 
   it('emits InnerHTML raw', () => {
     const view = h.div([h.InnerHTML('<em>raw</em>')])
-    expect(serializeHtml(view)).toBe('<div><em>raw</em></div>')
+    expect(serializeView(view)).toBe('<div><em>raw</em></div>')
   })
 
   it('stamps root attributes on the root element only', () => {
     const view = h.div([h.Class('page')], [h.span([], ['inner'])])
     expect(
-      serializeHtml(view, { rootAttributes: { 'data-mark': 'yes' } }),
+      serializeView(view, { rootAttributes: { 'data-mark': 'yes' } }),
     ).toBe('<div class="page" data-mark="yes"><span>inner</span></div>')
   })
 
   it('lets a root attribute win over a same-named attribute from the view', () => {
     const view = h.div([h.DataAttribute('mark', 'spoofed')])
     expect(
-      serializeHtml(view, { rootAttributes: { 'data-mark': 'yes' } }),
+      serializeView(view, { rootAttributes: { 'data-mark': 'yes' } }),
     ).toBe('<div data-mark="yes"></div>')
   })
 
@@ -834,7 +836,7 @@ describe('serializeHtml', () => {
     const item = (label: string): Html =>
       h.li([h.Class('item')], [h.span([], [label])])
     const view = h.main([], [h.section([], [h.ul([], [item('a'), item('b')])])])
-    expect(serializeHtml(view)).toBe(
+    expect(serializeView(view)).toBe(
       '<main><section><ul><li class="item"><span>a</span></li><li class="item"><span>b</span></li></ul></section></main>',
     )
   })
@@ -845,23 +847,23 @@ describe('unrepresentable serialized values', () => {
     // The value survives in memory and is destroyed by the UTF-8 encoding every
     // HTTP response and generated file performs, so what a visitor receives is
     // not what the view rendered.
-    expect(() => serializeHtml(h.p([], ['before\uD800after']))).toThrow(
+    expect(() => serializeView(h.p([], ['before\uD800after']))).toThrow(
       /unpaired surrogate/,
     )
     expect(() =>
-      serializeHtml(h.p([h.Title('before\uDC00after')], ['x'])),
+      serializeView(h.p([h.Title('before\uDC00after')], ['x'])),
     ).toThrow(/unpaired surrogate/)
   })
 
   it('accepts a well-formed surrogate pair', () => {
-    expect(serializeHtml(h.p([], ['\uD83D\uDE80']))).toContain('\uD83D\uDE80')
+    expect(serializeView(h.p([], ['\uD83D\uDE80']))).toContain('\uD83D\uDE80')
   })
 
   it('rejects a NUL or carriage return in raw-text content', () => {
-    expect(() => serializeHtml(h.style([h.InnerHTML('a\u0000b')]))).toThrow(
+    expect(() => serializeView(h.style([h.InnerHTML('a\u0000b')]))).toThrow(
       /NUL/,
     )
-    expect(() => serializeHtml(h.style([h.InnerHTML('a\rb')]))).toThrow(
+    expect(() => serializeView(h.style([h.InnerHTML('a\rb')]))).toThrow(
       /carriage return/,
     )
   })
@@ -885,7 +887,7 @@ describe('raw text and RCDATA coverage', () => {
   it('treats xmp, noembed, and noframes as raw text', () => {
     for (const tagName of ['xmp', 'noembed', 'noframes']) {
       expect(() =>
-        serializeHtml(
+        serializeView(
           customElement<never>()(tagName)([
             h.InnerHTML(`</${tagName}><img src=x onerror=alert(1)>`),
           ]),
@@ -898,7 +900,7 @@ describe('raw text and RCDATA coverage', () => {
     // RCDATA ends at the element's own closing tag, so markup written here
     // closes it and puts the rest of the fragment in the document.
     expect(() =>
-      serializeHtml(
+      serializeView(
         elementWithTrustedInnerHtml(
           'textarea',
           '</textarea><img src=x onerror=alert(1)>',
@@ -906,7 +908,7 @@ describe('raw text and RCDATA coverage', () => {
       ),
     ).toThrow(/<\/textarea sequence/)
     expect(() =>
-      serializeHtml(
+      serializeView(
         h.title([h.InnerHTML('</title><img src=x onerror=alert(1)>')]),
       ),
     ).toThrow(/<\/title sequence/)
@@ -933,7 +935,7 @@ describe('trusted InnerHTML in newline-dropping elements', () => {
         '&#xA;foo',
         '&NewLine;foo',
       ]) {
-        const html = serializeHtml(
+        const html = serializeView(
           elementWithTrustedInnerHtml(tagName, fragment),
         )
 
@@ -951,7 +953,7 @@ describe('trusted InnerHTML in newline-dropping elements', () => {
     // leading newline the parser then drops.
     for (const tagName of ['pre', 'listing']) {
       for (const fragment of ['\rfoo', '\r\nfoo']) {
-        const html = serializeHtml(
+        const html = serializeView(
           customElement<never>()(tagName)([h.InnerHTML(fragment)]),
         )
 
@@ -962,12 +964,12 @@ describe('trusted InnerHTML in newline-dropping elements', () => {
     }
 
     expect(() =>
-      serializeHtml(elementWithTrustedInnerHtml('textarea', '\rfoo')),
+      serializeView(elementWithTrustedInnerHtml('textarea', '\rfoo')),
     ).toThrow(/carriage return/)
   })
 
   it('does not pad an element that keeps its leading newline', () => {
-    expect(serializeHtml(h.div([h.InnerHTML('\nfoo')]))).toContain(
+    expect(serializeView(h.div([h.InnerHTML('\nfoo')]))).toContain(
       '<div>\nfoo</div>',
     )
   })
@@ -995,7 +997,7 @@ describe('one owner for an element\u2019s content', () => {
   it('rejects a client-only innerHTML property alongside children', () => {
     expect(() =>
       h.div(
-        [Prop({ key: 'innerHTML', value: '<b>property</b>' })],
+        [prop({ key: 'innerHTML', value: '<b>property</b>' })],
         [h.span([], ['child'])],
       ),
     ).toThrow(/both a client-only innerHTML property and children/)
@@ -1016,7 +1018,7 @@ describe('one owner for an element\u2019s content', () => {
     )
     expect(() =>
       unrestrictedTextarea([
-        Prop({ key: 'innerHTML', value: '<b>property</b>' }),
+        prop({ key: 'innerHTML', value: '<b>property</b>' }),
       ]),
     ).toThrow(/must use h.Value/)
   })
@@ -1024,7 +1026,7 @@ describe('one owner for an element\u2019s content', () => {
   it('rejects a client-only innerHTML property alongside a controlled value', () => {
     expect(() =>
       h.output([
-        Prop({ key: 'innerHTML', value: '<b>property</b>' }),
+        prop({ key: 'innerHTML', value: '<b>property</b>' }),
         h.Value('model'),
       ]),
     ).toThrow(/both a client-only innerHTML property and a controlled value/)
@@ -1041,15 +1043,15 @@ describe('one owner for an element\u2019s content', () => {
 
   it('rejects a client-only innerHTML property on a void element', () => {
     expect(() =>
-      h.input([Prop({ key: 'innerHTML', value: '<b>property</b>' })]),
+      h.input([prop({ key: 'innerHTML', value: '<b>property</b>' })]),
     ).toThrow(/cannot hold content/)
   })
 
   it('accepts InnerHTML as the only owner', () => {
-    expect(serializeHtml(h.div([h.InnerHTML('<b>raw</b>')]))).toContain(
+    expect(serializeView(h.div([h.InnerHTML('<b>raw</b>')]))).toContain(
       '<div><b>raw</b></div>',
     )
-    expect(serializeHtml(h.textarea([h.Value('model')]))).toContain('model')
+    expect(serializeView(h.textarea([h.Value('model')]))).toContain('model')
   })
 })
 
@@ -1060,11 +1062,11 @@ describe('controlled select selection ownership', () => {
     events: {},
   })
   const expectClientOnlyValueRefusal = (view: Html, name: string): void => {
-    expect(() => serializeHtml(view), name).toThrow(
+    expect(() => serializeView(view), name).toThrow(
       /client-only value property/,
     )
     expect(
-      () => serializeHtml(view, { emitHydrationMarkers: true }),
+      () => serializeView(view, { emitHydrationMarkers: true }),
       name,
     ).toThrow(/client-only value property/)
   }
@@ -1161,7 +1163,7 @@ describe('controlled select selection ownership', () => {
       'client-only property written last',
     )
     expect(
-      serializeHtml(h.select([selectLike.Value('b'), h.Value('a')], options)),
+      serializeView(h.select([selectLike.Value('b'), h.Value('a')], options)),
     ).toBe(
       '<select><option value="a" selected="">A</option>' +
         '<option value="b">B</option></select>',
@@ -1174,7 +1176,7 @@ describe('controlled select selection ownership', () => {
         [h.Value('b')],
         [h.option([h.Value('a')], ['A']), h.option([h.Value('b')], ['B'])],
       )
-    const html = serializeHtml(dynamicSelect())
+    const html = serializeView(dynamicSelect())
     expect(html).toBe(
       '<select><option value="a">A</option>' +
         '<option value="b" selected="">B</option></select>',
@@ -1186,7 +1188,11 @@ describe('controlled select selection ownership', () => {
     const freshHost = document.createElement('div')
     const mount = document.createElement('div')
     freshHost.appendChild(mount)
-    const fresh = __patchVNode(Option.none(), dynamicSelect(), mount).elm
+    const fresh = __patchVNode(
+      Option.none(),
+      fromHtml(dynamicSelect()),
+      mount,
+    ).elm
     if (!(served instanceof HTMLSelectElement)) {
       throw new Error('expected the serialized view to parse as a select')
     }
@@ -1209,7 +1215,7 @@ describe('controlled select selection ownership', () => {
     // other one unselected. Emitting both selected attributes let a browser
     // give the later option ownership (value "b", index 1) while a fresh client
     // render reasserted the select's value and chose the earlier one.
-    const html = serializeHtml(
+    const html = serializeView(
       h.select(
         [h.Value('a')],
         [
@@ -1226,7 +1232,7 @@ describe('controlled select selection ownership', () => {
   })
 
   it('lets an option own its selection when the select is uncontrolled', () => {
-    const html = serializeHtml(
+    const html = serializeView(
       h.select(
         [],
         [
@@ -1243,7 +1249,7 @@ describe('controlled select selection ownership', () => {
     // HTML gives the first option the selection when none carries `selected`,
     // while the client sets `value` and lands on no selection at all.
     expect(() =>
-      serializeHtml(
+      serializeView(
         h.select([h.Value('zzz')], [h.option([h.Value('a')], ['A'])]),
       ),
     ).toThrow(/no option carries it/)
@@ -1253,7 +1259,7 @@ describe('controlled select selection ownership', () => {
     // A multiple select, and one showing more than one row, can hold no
     // selection in source markup, which is what the client also produces.
     expect(
-      serializeHtml(
+      serializeView(
         h.select(
           [h.Value('zzz'), h.Multiple(true)],
           [h.option([h.Value('a')], ['A'])],
@@ -1262,7 +1268,7 @@ describe('controlled select selection ownership', () => {
     ).toBe('<select multiple=""><option value="a">A</option></select>')
 
     expect(
-      serializeHtml(
+      serializeView(
         h.select(
           [h.Value('zzz'), h.Size(2)],
           [h.option([h.Value('a')], ['A'])],
@@ -1275,7 +1281,7 @@ describe('controlled select selection ownership', () => {
     // `String.prototype.trim` also strips a non-breaking space, which the
     // option-value algorithm keeps, so the select matched the wrong option.
     const label = '\u00a0A\u00a0'
-    const html = serializeHtml(
+    const html = serializeView(
       h.select([h.Value(label)], [h.option([], [label])]),
     )
 
@@ -1283,7 +1289,7 @@ describe('controlled select selection ownership', () => {
   })
 
   it('still collapses ASCII whitespace in an option label', () => {
-    const html = serializeHtml(
+    const html = serializeView(
       h.select(
         [h.Value('United States')],
         [h.option([], ['  United\n  States  '])],
@@ -1294,7 +1300,7 @@ describe('controlled select selection ownership', () => {
   })
 
   it('takes the first of two options sharing a value', () => {
-    const html = serializeHtml(
+    const html = serializeView(
       h.select(
         [h.Value('a')],
         [h.option([h.Value('a')], ['1']), h.option([h.Value('a')], ['2'])],
@@ -1311,14 +1317,14 @@ describe('controlled select selection ownership', () => {
     // The option's value would come from text this render cannot see, so the
     // select could select the wrong option or none at all.
     expect(() =>
-      serializeHtml(
+      serializeView(
         h.select([h.Value('a')], [h.option([h.InnerHTML('<b>a</b>')])]),
       ),
     ).toThrow(/h.InnerHTML and no value/)
   })
 
   it('accepts raw option markup when the value is explicit', () => {
-    const html = serializeHtml(
+    const html = serializeView(
       h.select(
         [h.Value('a')],
         [h.option([h.Value('a'), h.InnerHTML('<b>A</b>')])],
@@ -1382,7 +1388,7 @@ describe('typed properties over raw attributes', () => {
 
   it('keeps a typed property client-only on an element that does not reflect it', () => {
     expect(
-      serializeHtml(
+      serializeView(
         h.div([
           h.Href('/target'),
           h.Disabled(true),
@@ -1394,16 +1400,16 @@ describe('typed properties over raw attributes', () => {
   })
 
   it('canonicalizes string values assigned to numeric IDL attributes', () => {
-    expect(serializeHtml(h.meter([h.Value('1e-3')]))).toBe(
+    expect(serializeView(h.meter([h.Value('1e-3')]))).toBe(
       '<meter value="0.001"></meter>',
     )
-    expect(serializeHtml(h.meter([h.Value('01')]))).toBe(
+    expect(serializeView(h.meter([h.Value('01')]))).toBe(
       '<meter value="1"></meter>',
     )
-    expect(serializeHtml(h.meter([h.Value('-0')]))).toBe(
+    expect(serializeView(h.meter([h.Value('-0')]))).toBe(
       '<meter value="0"></meter>',
     )
-    expect(serializeHtml(h.li([h.Value('007')]))).toBe('<li value="7"></li>')
+    expect(serializeView(h.li([h.Value('007')]))).toBe('<li value="7"></li>')
   })
 
   it('reads a raw option value when matching the select value', () => {
@@ -1411,7 +1417,7 @@ describe('typed properties over raw attributes', () => {
     // analysis reading only `data.props` matched the option's text instead and
     // selected the wrong one.
     expect(
-      serializeHtml(
+      serializeView(
         h.select(
           [h.Value('actual')],
           [h.option([h.Attribute('value', 'actual')], ['label'])],
@@ -1422,7 +1428,7 @@ describe('typed properties over raw attributes', () => {
 
   it('reads raw multiple and size when deciding whether nothing may be selected', () => {
     expect(
-      serializeHtml(
+      serializeView(
         h.select(
           [h.Value('zzz'), h.Attribute('multiple', '')],
           [h.option([h.Value('a')], ['A'])],
@@ -1430,7 +1436,7 @@ describe('typed properties over raw attributes', () => {
       ),
     ).toContain('<option value="a">A</option>')
     expect(
-      serializeHtml(
+      serializeView(
         h.select(
           [h.Value('zzz'), h.Attribute('size', '4')],
           [h.option([h.Value('a')], ['A'])],
@@ -1442,12 +1448,12 @@ describe('typed properties over raw attributes', () => {
   it('allows a controlled value on a select with no options', () => {
     // A served empty select and a freshly built one both hold no selection, so
     // there is nothing for the two to disagree about.
-    expect(serializeHtml(h.select([h.Value('zzz')]))).toBe('<select></select>')
+    expect(serializeView(h.select([h.Value('zzz')]))).toBe('<select></select>')
   })
 
   it('still refuses a single-line select that lists options', () => {
     expect(() =>
-      serializeHtml(
+      serializeView(
         h.select(
           [h.Value('zzz'), h.Attribute('size', '1')],
           [h.option([h.Value('a')], ['A'])],
@@ -1480,10 +1486,10 @@ describe('numeric builder ranges', () => {
   })
 
   it('accepts a size of zero where assignment and parsing agree', () => {
-    expect(serializeHtml(h.select([h.Size(0)]))).toBe(
+    expect(serializeView(h.select([h.Size(0)]))).toBe(
       '<select size="0"></select>',
     )
-    expect(serializeHtml(h.hr([h.Size(0)]))).toBe('<hr size="0">')
+    expect(serializeView(h.hr([h.Size(0)]))).toBe('<hr size="0">')
   })
 
   it('refuses values past the signed long maximum', () => {
@@ -1501,24 +1507,24 @@ describe('numeric builder ranges', () => {
   })
 
   it('accepts an ordered list starting at a negative number', () => {
-    expect(serializeHtml(h.ol([h.Start(-5)]))).toBe('<ol start="-5"></ol>')
+    expect(serializeView(h.ol([h.Start(-5)]))).toBe('<ol start="-5"></ol>')
   })
 
   it('accepts ordinary values', () => {
-    expect(serializeHtml(h.input([h.Maxlength(10), h.Size(4)]))).toBe(
+    expect(serializeView(h.input([h.Maxlength(10), h.Size(4)]))).toBe(
       '<input maxlength="10" size="4">',
     )
-    expect(serializeHtml(h.td([h.Colspan(2), h.Rowspan(3)]))).toBe(
+    expect(serializeView(h.td([h.Colspan(2), h.Rowspan(3)]))).toBe(
       '<td colspan="2" rowspan="3"></td>',
     )
   })
 
   it('serializes normalized numeric defaults and legacy reflecting elements', () => {
-    expect(serializeHtml(h.textarea([h.Cols(0), h.Rows(0)]))).toBe(
+    expect(serializeView(h.textarea([h.Cols(0), h.Rows(0)]))).toBe(
       '<textarea cols="20" rows="2"></textarea>',
     )
-    expect(serializeHtml(h.hr([h.Size(4)]))).toBe('<hr size="4">')
-    expect(serializeHtml(h.ul([h.Type('square')]))).toBe(
+    expect(serializeView(h.hr([h.Size(4)]))).toBe('<hr size="4">')
+    expect(serializeView(h.ul([h.Type('square')]))).toBe(
       '<ul type="square"></ul>',
     )
   })

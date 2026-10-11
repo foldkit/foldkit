@@ -13,6 +13,7 @@ import {
   isHtmlPropertyRepresentable,
   reflectedAttributeName,
 } from '../packages/foldkit/dist/domReflection.js'
+import { fromHtml } from '../packages/foldkit/dist/html/htmlNode.js'
 
 // The state a served element is in, compared against the state the client puts
 // the same element in.
@@ -848,7 +849,7 @@ const renderCase = async (parityCase: ParityCase): Promise<RenderedCase> => {
         init: () => ({ model: null }),
         view: (_model: null, h: HtmlBuilder<never>) => {
           const element = parityCase.build(h)
-          captured = element?.data ?? {}
+          captured = fromHtml(element)?.data ?? {}
           return {
             title: 'dom state parity',
             body: containedBy(h, parityCase.container ?? 'Block', element),

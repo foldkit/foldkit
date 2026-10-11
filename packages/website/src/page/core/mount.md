@@ -38,7 +38,7 @@ Work that happens when an element appears is not necessarily caused by that elem
 
 ## Side Effects on Mount
 
-A Mount follows the lifetime of a DOM node, not a VNode. Foldkit reconstructs VNodes on every render, but the differ reuses an existing DOM node when its tag and identity still match. A reused node keeps its Mount running. A replaced node closes the old Mount's scope, runs its finalizers, and starts a fresh Mount on the new node.
+A Mount follows the lifetime of a DOM node, not of the `Html` that describes it. Foldkit builds new `Html` on every render, but the differ reuses an existing DOM node when its tag and identity still match. A reused node keeps its Mount running. A replaced node closes the old Mount's scope, runs its finalizers, and starts a fresh Mount on the new node.
 
 View-function identity and stable keys keep that lifecycle attached to the right logical element. This matters in mapped lists, where an unkeyed reorder can reuse the same DOM position for different data. Key each item by a stable Model identifier so its DOM node and Mount move together.
 
@@ -51,7 +51,7 @@ First, `execute` must use the live element. If it does not read or write that el
 :::
 
 :::Warning{label="Attach one Mount per element"}
-A VNode has one `insert` and `destroy` hook. If the same element receives `[h.OnMount(A), h.OnMount(B)]`, the second action silently replaces the first and `A` never runs. Combine both behaviors in one Mount and register both releases in its scope.
+An element has one Mount slot. If the same element receives `[h.OnMount(A), h.OnMount(B)]`, the second action silently replaces the first and `A` never runs. Combine both behaviors in one Mount and register both releases in its scope.
 :::
 
 :::Warning{label="Mounts re-run during DevTools time-travel"}

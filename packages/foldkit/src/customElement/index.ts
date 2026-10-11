@@ -4,6 +4,7 @@ import type {
   Attribute,
   Child,
   ChildAttribute,
+  ElementAttribute,
   Html,
   HtmlBuilder,
 } from '../html/index.js'
@@ -21,11 +22,11 @@ type KebabToPascal<S extends string> = S extends `${infer Head}-${infer Tail}`
 
 type PropertyFactory<Message, ValueType> = (
   value: ValueType,
-) => Attribute<Message>
+) => ElementAttribute<Message>
 
 type EventFactory<Message, DetailType> = (
   toMessage: (detail: DetailType) => Message,
-) => Attribute<Message>
+) => ElementAttribute<Message>
 
 /** Constraint on a declared event's `detail` Schema. The runtime decodes
  * `detail` synchronously inside the DOM event handler, where there is no
@@ -222,7 +223,12 @@ export const define = <
     for (const propertyName of propertyNames) {
       builder[propertyFactoryName(propertyName)] = (
         value: unknown,
-      ): Attribute<unknown> => Prop({ key: propertyName, value })
+      ): ElementAttribute<unknown> =>
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        Prop({
+          key: propertyName,
+          value,
+        }) as unknown as ElementAttribute<unknown>
     }
 
     for (const [eventName, detailSchema] of Object.entries(config.events)) {
@@ -246,7 +252,8 @@ export const define = <
 
       builder[eventFactoryName(eventName)] = (
         toMessage: (detail: unknown) => unknown,
-      ): Attribute<unknown> =>
+      ): ElementAttribute<unknown> =>
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
         OnCustomEvent({
           name: eventName,
           f: event =>
@@ -260,7 +267,7 @@ export const define = <
               },
               onSuccess: detail => Option.some(toMessage(detail)),
             }),
-        })
+        }) as unknown as ElementAttribute<unknown>
     }
 
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */

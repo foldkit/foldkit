@@ -6,13 +6,13 @@ import { describe, it } from '@effect/vitest'
 import { MountTracker } from '../mount/index.js'
 import { Dispatch } from '../runtime/index.js'
 import { h } from '../snabbdom/index.js'
+import { createVNodeKeyedLazy, createVNodeLazy } from '../test/rendererNodes.js'
 import { type VNode, dedupeSharedVNodes, memoizedVNodes } from '../vdom.js'
 import {
   type BoundaryRegistry,
   beginRender,
   createBoundaryRegistry,
 } from './boundary.js'
-import { createKeyedLazy, createLazy } from './lazy.js'
 import {
   type DispatchSync,
   clearRuntime,
@@ -64,7 +64,7 @@ describe('memoized views dedupe shared consts', () => {
   it('clones a const reused at two positions inside one memoized view', () => {
     const icon = h('span', {}, ['icon'])
     const view = () => h('div', {}, [icon, icon])
-    const lazy = createLazy()
+    const lazy = createVNodeLazy()
 
     const result = lazy(view, [])
 
@@ -76,7 +76,7 @@ describe('memoized views dedupe shared consts', () => {
     const icon = h('span', {}, ['icon'])
     const rowView = (label: string) =>
       h('div', {}, [icon, h('span', {}, [label])])
-    const lazyRows = createKeyedLazy()
+    const lazyRows = createVNodeKeyedLazy()
 
     const rowA = lazyRows('a', rowView, ['a'])
     const rowB = lazyRows('b', rowView, ['b'])
@@ -96,7 +96,7 @@ describe('memoized views dedupe shared consts', () => {
     // A prior render patched the icon, recording its live DOM node on .elm.
     icon.elm = document.createElement('span')
     const rowView = (isShown: boolean) => h('div', {}, isShown ? [icon] : [])
-    const lazyRows = createKeyedLazy()
+    const lazyRows = createVNodeKeyedLazy()
 
     const rowB = lazyRows('b', rowView, [true])
 
@@ -107,7 +107,7 @@ describe('memoized views dedupe shared consts', () => {
 
   it('keeps a memoized result identical on a cache hit so the short-circuit survives', () => {
     const view = (label: string) => h('div', {}, [h('span', {}, [label])])
-    const lazy = createLazy()
+    const lazy = createVNodeLazy()
 
     const first = lazy(view, ['x'])
     beginRender(registry)
@@ -124,7 +124,7 @@ describe('memoized views dedupe shared consts', () => {
   it('clones a const shared between a memoized view and a plain sibling', () => {
     const icon = h('span', {}, ['icon'])
     const memoizedView = () => h('div', {}, [icon])
-    const lazy = createLazy()
+    const lazy = createVNodeLazy()
 
     const memoized = lazy(memoizedView, [])
     const tree = dedupeSharedVNodes(
@@ -139,7 +139,7 @@ describe('memoized views dedupe shared consts', () => {
   it('clones a plain-sibling const even when the memoized view is a cache hit', () => {
     const icon = h('span', {}, ['icon'])
     const memoizedView = () => h('div', {}, [icon])
-    const lazy = createLazy()
+    const lazy = createVNodeLazy()
 
     lazy(memoizedView, [])
     // A prior render patched the icon, recording its live DOM node on .elm.
@@ -173,7 +173,7 @@ describe('createLazy', () => {
       return h('div', {}, [label])
     }
 
-    const lazy = createLazy()
+    const lazy = createVNodeLazy()
     lazy(viewFn, ['hello'])
 
     expect(callCount).toBe(1)
@@ -186,7 +186,7 @@ describe('createLazy', () => {
       return h('div', {}, [label])
     }
 
-    const lazy = createLazy()
+    const lazy = createVNodeLazy()
     const firstVNode = lazy(viewFn, ['hello'])
     const secondVNode = lazy(viewFn, ['hello'])
 
@@ -197,7 +197,7 @@ describe('createLazy', () => {
   it('records its result so dedupeSharedVNodes preserves the cached identity', () => {
     const viewFn = (label: string) => h('div', {}, [label])
 
-    const lazy = createLazy()
+    const lazy = createVNodeLazy()
     const vnode = lazy(viewFn, ['hello'])
 
     expect(vnode).not.toBeNull()
@@ -217,7 +217,7 @@ describe('createLazy', () => {
       return h('div', {}, [`count: ${count}`])
     }
 
-    const lazy = createLazy()
+    const lazy = createVNodeLazy()
     const firstVNode = lazy(viewFn, [1])
     const secondVNode = lazy(viewFn, [2])
 
@@ -232,7 +232,7 @@ describe('createLazy', () => {
       return h('div', {}, [label])
     }
 
-    const lazy = createLazy()
+    const lazy = createVNodeLazy()
     lazy(makeViewFn(), ['hello'])
     lazy(makeViewFn(), ['hello'])
 
@@ -246,7 +246,7 @@ describe('createLazy', () => {
       return h('div', {}, [`${label}: ${count}`])
     }
 
-    const lazy = createLazy()
+    const lazy = createVNodeLazy()
     lazy(viewFn, ['hello', 42])
     lazy(viewFn, ['hello', 42])
 
@@ -260,7 +260,7 @@ describe('createLazy', () => {
       return h('div', {}, [`${label}: ${count}`])
     }
 
-    const lazy = createLazy()
+    const lazy = createVNodeLazy()
     lazy(viewFn, ['hello', 1])
     lazy(viewFn, ['hello', 2])
 
@@ -275,7 +275,7 @@ describe('createLazy', () => {
     }
 
     const model = { value: 1 }
-    const lazy = createLazy()
+    const lazy = createVNodeLazy()
     lazy(viewFn, [model])
     lazy(viewFn, [model])
 
@@ -289,7 +289,7 @@ describe('createLazy', () => {
       return h('div', {}, [`${model.value}`])
     }
 
-    const lazy = createLazy()
+    const lazy = createVNodeLazy()
     lazy(viewFn, [{ value: 1 }])
     lazy(viewFn, [{ value: 1 }])
 
@@ -303,8 +303,8 @@ describe('createLazy', () => {
       return h('div', {}, [label])
     }
 
-    const lazyA = createLazy()
-    const lazyB = createLazy()
+    const lazyA = createVNodeLazy()
+    const lazyB = createVNodeLazy()
     lazyA(viewFn, ['hello'])
     lazyB(viewFn, ['hello'])
 
@@ -318,7 +318,7 @@ describe('createLazy', () => {
       return null
     }
 
-    const lazy = createLazy()
+    const lazy = createVNodeLazy()
     const firstResult = lazy(viewFn, [])
     const secondResult = lazy(viewFn, [])
 
@@ -342,7 +342,7 @@ describe('createLazy', () => {
       }),
     )
 
-    const lazy = createLazy()
+    const lazy = createVNodeLazy()
     lazy(viewFn, ['hello'])
     clearRuntime()
     setRuntime(otherDispatchSync, otherContext)
@@ -358,7 +358,7 @@ describe('createLazy', () => {
       return h('div', {}, [label])
     }
 
-    const lazy = createLazy()
+    const lazy = createVNodeLazy()
     lazy(viewFn, ['hello'])
     clearRuntime()
     setRuntime(noOpDispatchSync, noOpContext, undefined, 'Replay')
@@ -383,7 +383,7 @@ describe('createKeyedLazy', () => {
       return h('div', {}, [label])
     }
 
-    const lazy = createKeyedLazy()
+    const lazy = createVNodeKeyedLazy()
     lazy('a', viewFn, ['hello'])
     lazy('b', viewFn, ['world'])
 
@@ -397,7 +397,7 @@ describe('createKeyedLazy', () => {
       return h('div', {}, [label])
     }
 
-    const lazy = createKeyedLazy()
+    const lazy = createVNodeKeyedLazy()
     lazy('a', viewFn, ['hello'])
     lazy('b', viewFn, ['world'])
     lazy('a', viewFn, ['hello'])
@@ -415,7 +415,7 @@ describe('createKeyedLazy', () => {
 
     const firstSymbol = Symbol('1')
     const secondSymbol = Symbol('1')
-    const lazy = createKeyedLazy()
+    const lazy = createVNodeKeyedLazy()
     lazy(1, viewFn, ['number'])
     lazy('1', viewFn, ['string'])
     lazy(firstSymbol, viewFn, ['first symbol'])
@@ -435,7 +435,7 @@ describe('createKeyedLazy', () => {
       return h('div', {}, [label])
     }
 
-    const lazy = createKeyedLazy()
+    const lazy = createVNodeKeyedLazy()
     lazy('a', viewFn, ['hello'])
     lazy('b', viewFn, ['world'])
     lazy('a', viewFn, ['hello'])
@@ -447,7 +447,7 @@ describe('createKeyedLazy', () => {
   it('returns cached VNode reference on cache hit', () => {
     const viewFn = (label: string) => h('div', {}, [label])
 
-    const lazy = createKeyedLazy()
+    const lazy = createVNodeKeyedLazy()
     const first = lazy('a', viewFn, ['hello'])
     const second = lazy('a', viewFn, ['hello'])
 
@@ -457,7 +457,7 @@ describe('createKeyedLazy', () => {
   it('returns different VNode references on cache miss', () => {
     const viewFn = (active: boolean) => h('div', {}, [String(active)])
 
-    const lazy = createKeyedLazy()
+    const lazy = createVNodeKeyedLazy()
     const first = lazy('a', viewFn, [false])
     const second = lazy('a', viewFn, [true])
 
@@ -479,7 +479,7 @@ describe('createKeyedLazy', () => {
       }),
     )
 
-    const lazy = createKeyedLazy()
+    const lazy = createVNodeKeyedLazy()
     lazy('a', viewFn, ['hello'])
     clearRuntime()
     setRuntime(otherDispatchSync, otherContext)

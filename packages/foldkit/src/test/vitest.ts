@@ -12,6 +12,9 @@ declare module 'vitest' {
     toHaveStyle(name: string, value?: string): this
     toHaveHook(name: string): this
     toHaveHandler(name: string): this
+    /** Asserts the key the view gave the element through `h.keyed` or
+     *  `h.Key`. */
+    toHaveKey(expected: PropertyKey): this
     toHaveValue(expected: string): this
     toBeDisabled(): this
     toBeEnabled(): this

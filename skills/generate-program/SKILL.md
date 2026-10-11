@@ -353,7 +353,7 @@ For each Foldkit module you plan to use, read the `.d.ts` at the paths below. Re
 <project>/node_modules/foldkit/dist/subscription/index.d.ts # Subscription.make<Model, Message>, Subscription.lift, Subscription.aggregate
 
 # If using mount / managed-resource / custom-element
-<project>/node_modules/foldkit/dist/mount/public.d.ts            # Mount.define (one-shot) / Mount.defineStream (continuous): per-instance VNode lifecycle
+<project>/node_modules/foldkit/dist/mount/public.d.ts            # Mount.define (one-shot) / Mount.defineStream (continuous): per-element lifecycle
 <project>/node_modules/foldkit/dist/managedResource/public.d.ts  # ManagedResource.make / lift / aggregate + tag: for stateful runtime objects keyed on Model condition
 <project>/node_modules/foldkit/dist/customElement/index.d.ts     # CustomElement.define: for typed bindings to native web components
 

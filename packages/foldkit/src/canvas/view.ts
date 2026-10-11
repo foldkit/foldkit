@@ -1,5 +1,6 @@
 import { Array, Predicate, Record, String, pipe } from 'effect'
 
+import { toHtml } from '../html/htmlNode.js'
 import {
   type Html,
   type HtmlBuilder,
@@ -154,5 +155,5 @@ export const view = <Message>(
     },
   }
 
-  return h('canvas', data)
+  return toHtml(h('canvas', data))
 }

@@ -20,6 +20,7 @@ import {
   toVNode,
 } from '../snabbdom/index.js'
 import type { VNode } from '../vdom.js'
+import { type Html, fromHtml } from './htmlNode.js'
 import {
   __htmlBuilder,
   __clearRuntime as clearHtmlRuntime,
@@ -80,7 +81,7 @@ const createCapturingDispatch = () => {
 }
 
 const renderView = (
-  buildView: () => VNode | null,
+  buildView: () => Html,
   dispatch: typeof Dispatch.Service,
   mountRenderOwner: MountRenderOwner = 'Live',
 ): VNode => {
@@ -99,7 +100,7 @@ const renderView = (
   )
   let vnode: VNode | null
   try {
-    vnode = buildView()
+    vnode = fromHtml(buildView())
   } finally {
     clearHtmlRuntime()
   }

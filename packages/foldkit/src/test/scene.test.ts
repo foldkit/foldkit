@@ -2,6 +2,7 @@ import { Array, Option, Schema, pipe } from 'effect'
 import { describe, expect, expectTypeOf, test } from 'vitest'
 
 import * as CustomElement from '../customElement/index.js'
+import { fromHtml, toHtml } from '../html/htmlNode.js'
 import {
   type HtmlBuilder,
   __htmlBuilder as attributeHtml,
@@ -156,7 +157,12 @@ import {
   update as uploadsUpdate,
   view as uploadsView,
 } from './apps/uploads.js'
-import { parseSelector } from './query.js'
+import {
+  type SceneElement,
+  fromSceneElement,
+  parseSelector,
+  toSceneElement,
+} from './query.js'
 import {
   accessibleDescription,
   accessibleName,
@@ -310,16 +316,18 @@ describe('parseSelector', () => {
 })
 
 describe('selector grammar', () => {
-  const tree: VNode = h('header', {}, [
-    h('a', { attrs: { href: '/', 'aria-label': 'Home' } }, [
-      h('svg', {}, [h('path', { attrs: { d: 'M0 0' } })]),
+  const tree = toSceneElement(
+    h('header', {}, [
+      h('a', { attrs: { href: '/', 'aria-label': 'Home' } }, [
+        h('svg', {}, [h('path', { attrs: { d: 'M0 0' } })]),
+      ]),
+      h('a', { attrs: { href: '/x', 'aria-label': 'Open menu' } }, [
+        h('svg', {}, [h('path', { attrs: { d: '' } })]),
+      ]),
     ]),
-    h('a', { attrs: { href: '/x', 'aria-label': 'Open menu' } }, [
-      h('svg', {}, [h('path', { attrs: { d: '' } })]),
-    ]),
-  ])
+  )
 
-  const attrOfEach = (matches: ReadonlyArray<VNode>, name: string) =>
+  const attrOfEach = (matches: ReadonlyArray<SceneElement>, name: string) =>
     matches.map(match => attr(match, name))
 
   test('excludes matches of a :not() attribute selector', () => {
@@ -349,7 +357,12 @@ describe('selector grammar', () => {
 
   test('matches :not() without a tag', () => {
     const matches = findAll(tree, 'header :not(svg)')
-    expect(matches.map(match => match.sel)).toEqual(['a', 'path', 'a', 'path'])
+    expect(matches.map(match => fromSceneElement(match).sel)).toEqual([
+      'a',
+      'path',
+      'a',
+      'path',
+    ])
   })
 
   test('accepts whitespace and compound selectors inside :not()', () => {
@@ -361,11 +374,13 @@ describe('selector grammar', () => {
   })
 
   test('ignores parentheses inside a quoted value in a :not() argument', () => {
-    const buttonTree: VNode = h('div', {}, [
-      h('button', { attrs: { title: 'x)' } }),
-      h('button', { attrs: { title: '(y' } }),
-      h('button', { attrs: { title: 'z' } }),
-    ])
+    const buttonTree = toSceneElement(
+      h('div', {}, [
+        h('button', { attrs: { title: 'x)' } }),
+        h('button', { attrs: { title: '(y' } }),
+        h('button', { attrs: { title: 'z' } }),
+      ]),
+    )
     const matches = findAll(
       buttonTree,
       'button:not([title="x)"]):not([title="(y"])',
@@ -391,21 +406,27 @@ describe('selector grammar', () => {
   })
 
   test('treats a false attribute as absent inside :not()', () => {
-    const buttonTree: VNode = h('div', {}, [
-      h('button', { attrs: { title: 'enabled', disabled: false } }),
-      h('button', { attrs: { title: 'disabled', disabled: true } }),
-    ])
+    const buttonTree = toSceneElement(
+      h('div', {}, [
+        h('button', { attrs: { title: 'enabled', disabled: false } }),
+        h('button', { attrs: { title: 'disabled', disabled: true } }),
+      ]),
+    )
     const matches = findAll(buttonTree, 'button:not([disabled])')
     expect(attrOfEach(matches, 'title')).toEqual([Option.some('enabled')])
   })
 
   describe('quotes, parentheses, and whitespace', () => {
-    const quotedTree: VNode = h('div', {}, [
-      h('p', { attrs: { title: "it's" } }, [h('span', {}, ['apostrophe'])]),
-      h('p', { attrs: { title: 'say "hi"' } }, [h('span', {}, ['quotation'])]),
-      h('p', { attrs: { title: 'a (b' } }, [h('span', {}, ['parenthesis'])]),
-      h('p', { attrs: { title: 'x y' } }, [h('span', {}, ['space'])]),
-    ])
+    const quotedTree = toSceneElement(
+      h('div', {}, [
+        h('p', { attrs: { title: "it's" } }, [h('span', {}, ['apostrophe'])]),
+        h('p', { attrs: { title: 'say "hi"' } }, [
+          h('span', {}, ['quotation']),
+        ]),
+        h('p', { attrs: { title: 'a (b' } }, [h('span', {}, ['parenthesis'])]),
+        h('p', { attrs: { title: 'x y' } }, [h('span', {}, ['space'])]),
+      ]),
+    )
 
     const textOfEach = (selector: string) =>
       findAll(quotedTree, selector).map(textContent)
@@ -435,23 +456,25 @@ describe('selector grammar', () => {
 })
 
 describe('query functions', () => {
-  const tree: VNode = h('div', { props: { id: 'root' } }, [
-    h('form', { class: { 'login-form': true } }, [
-      h('input', { props: { id: 'email', type: 'email' } }),
-      h('input', { props: { id: 'password', type: 'password' } }),
-      h('button', { props: { type: 'submit' }, class: { primary: true } }, [
-        'Sign in',
+  const tree = toSceneElement(
+    h('div', { props: { id: 'root' } }, [
+      h('form', { class: { 'login-form': true } }, [
+        h('input', { props: { id: 'email', type: 'email' } }),
+        h('input', { props: { id: 'password', type: 'password' } }),
+        h('button', { props: { type: 'submit' }, class: { primary: true } }, [
+          'Sign in',
+        ]),
+      ]),
+      h('p', { attrs: { role: 'alert' }, class: { error: true } }, [
+        'Something went wrong',
+      ]),
+      h('div', { key: 'tablist' }, [
+        h('button', { key: 'tab-0' }, ['First']),
+        h('button', { key: 'tab-1' }, ['Second']),
+        h('button', { key: 'tab-2' }, ['Third']),
       ]),
     ]),
-    h('p', { attrs: { role: 'alert' }, class: { error: true } }, [
-      'Something went wrong',
-    ]),
-    h('div', { key: 'tablist' }, [
-      h('button', { key: 'tab-0' }, ['First']),
-      h('button', { key: 'tab-1' }, ['Second']),
-      h('button', { key: 'tab-2' }, ['Third']),
-    ]),
-  ])
+  )
 
   describe('find', () => {
     test('finds by tag', () => {
@@ -463,7 +486,7 @@ describe('query functions', () => {
       expect(
         pipe(
           find(tree, '#email'),
-          Option.map(vnode => vnode.data?.props?.['type']),
+          Option.map(vnode => fromSceneElement(vnode).data?.props?.['type']),
         ),
       ).toEqual(Option.some('email'))
     })
@@ -590,9 +613,11 @@ describe('accessible name hidden content', () => {
   test('includes a descendant with Hidden(false)', () => {
     const option = Option.getOrThrow(
       Option.fromNullishOr(
-        inertHtml.div(
-          [inertHtml.Role('option')],
-          ['Triage ', inertHtml.span([inertHtml.Hidden(false)], ['visible'])],
+        fromHtml(
+          inertHtml.div(
+            [inertHtml.Role('option')],
+            ['Triage ', inertHtml.span([inertHtml.Hidden(false)], ['visible'])],
+          ),
         ),
       ),
     )
@@ -626,7 +651,9 @@ describe('accessible name hidden content', () => {
       ]),
       h('button', { attrs: { 'aria-labelledby': 'hidden-label' } }, []),
     ])
-    const button = Option.getOrThrow(find(tree, 'button'))
+    const button = fromSceneElement(
+      Option.getOrThrow(find(toSceneElement(tree), 'button')),
+    )
 
     expect(accessibleName(tree)(button)).toBe('Hidden label')
   })
@@ -641,7 +668,9 @@ describe('accessible name hidden content', () => {
         attrs: { 'aria-describedby': 'hidden-description' },
       }),
     ])
-    const button = Option.getOrThrow(find(tree, 'button'))
+    const button = fromSceneElement(
+      Option.getOrThrow(find(toSceneElement(tree), 'button')),
+    )
 
     expect(accessibleDescription(tree)(button)).toBe('Hidden description')
   })
@@ -664,75 +693,80 @@ describe('accessible name hidden content', () => {
 })
 
 describe('accessible locators', () => {
-  const locatorTree: VNode = h('div', {}, [
-    h('h1', {}, ['Welcome']),
-    h('form', { attrs: { 'aria-label': 'Login form' } }, [
-      h('label', { props: { htmlFor: 'email' } }, ['Email']),
-      h('input', {
-        props: { id: 'email', type: 'email', placeholder: 'Email address' },
-      }),
-      h('label', { props: { htmlFor: 'pw' } }, ['Password']),
-      h('input', {
-        props: { id: 'pw', type: 'password', placeholder: 'Password' },
-      }),
-      h('button', { props: { type: 'submit' } }, ['Sign in']),
-    ]),
-    h('p', { attrs: { role: 'alert' } }, ['Invalid credentials']),
-    h('nav', { attrs: { 'aria-label': 'Main navigation' } }, [
-      h('a', { props: { href: '/' } }, ['Home']),
-      h('a', { props: { href: '/about' } }, ['About']),
-    ]),
+  const locatorTree = toSceneElement(
     h('div', {}, [
-      h('h2', { props: { id: 'section-title' } }, ['Section A']),
-      h('ul', { attrs: { role: 'list', 'aria-labelledby': 'section-title' } }, [
-        h('li', {}, ['Item 1']),
-        h('li', {}, ['Item 2']),
+      h('h1', {}, ['Welcome']),
+      h('form', { attrs: { 'aria-label': 'Login form' } }, [
+        h('label', { props: { htmlFor: 'email' } }, ['Email']),
+        h('input', {
+          props: { id: 'email', type: 'email', placeholder: 'Email address' },
+        }),
+        h('label', { props: { htmlFor: 'pw' } }, ['Password']),
+        h('input', {
+          props: { id: 'pw', type: 'password', placeholder: 'Password' },
+        }),
+        h('button', { props: { type: 'submit' } }, ['Sign in']),
+      ]),
+      h('p', { attrs: { role: 'alert' } }, ['Invalid credentials']),
+      h('nav', { attrs: { 'aria-label': 'Main navigation' } }, [
+        h('a', { props: { href: '/' } }, ['Home']),
+        h('a', { props: { href: '/about' } }, ['About']),
+      ]),
+      h('div', {}, [
+        h('h2', { props: { id: 'section-title' } }, ['Section A']),
+        h(
+          'ul',
+          { attrs: { role: 'list', 'aria-labelledby': 'section-title' } },
+          [h('li', {}, ['Item 1']), h('li', {}, ['Item 2'])],
+        ),
+      ]),
+      h('label', {}, ['Agree', h('input', { props: { type: 'checkbox' } })]),
+      h('div', {}, [
+        h('label', { props: { id: 'phone-label' } }, ['Phone']),
+        h('input', {
+          attrs: { 'aria-labelledby': 'phone-label' },
+          props: { type: 'tel' },
+        }),
+      ]),
+      h('img', { attrs: { alt: 'Company logo', src: '/logo.png' } }),
+      h('button', { attrs: { title: 'Close dialog' } }, ['X']),
+      h('div', { attrs: { 'data-testid': 'cart-summary' } }, ['2 items']),
+      h('input', {
+        attrs: { 'data-testid': 'search-box' },
+        props: { type: 'text', value: 'hello world' },
+      }),
+      h('textarea', { props: { value: 'lorem ipsum' } }),
+      h('select', { props: { value: 'apple' } }, [
+        h('option', { props: { value: 'apple' } }, ['Apple']),
+        h('option', { props: { value: 'banana' } }, ['Banana']),
+      ]),
+      h('h3', {}, ['Subsection']),
+      h('div', { attrs: { role: 'heading', 'aria-level': '4' } }, [
+        'ARIA heading',
+      ]),
+      h('input', {
+        attrs: { 'aria-label': 'Subscribe' },
+        props: { type: 'checkbox', checked: true },
+      }),
+      h('div', {
+        attrs: {
+          role: 'checkbox',
+          'aria-checked': 'mixed',
+          'aria-label': 'Mixed',
+        },
+      }),
+      h('div', { attrs: { role: 'option', 'aria-selected': 'true' } }, [
+        'Selected option',
+      ]),
+      h('button', { attrs: { 'aria-pressed': 'true' } }, ['Bold']),
+      h('button', { attrs: { 'aria-expanded': 'false' } }, ['Menu']),
+      h('button', { props: { disabled: true } }, ['Submit form']),
+      h('button', { attrs: { 'aria-disabled': 'true' } }, ['Archived']),
+      h('div', { attrs: { role: 'doc-subtitle heading' } }, [
+        'Fallback heading',
       ]),
     ]),
-    h('label', {}, ['Agree', h('input', { props: { type: 'checkbox' } })]),
-    h('div', {}, [
-      h('label', { props: { id: 'phone-label' } }, ['Phone']),
-      h('input', {
-        attrs: { 'aria-labelledby': 'phone-label' },
-        props: { type: 'tel' },
-      }),
-    ]),
-    h('img', { attrs: { alt: 'Company logo', src: '/logo.png' } }),
-    h('button', { attrs: { title: 'Close dialog' } }, ['X']),
-    h('div', { attrs: { 'data-testid': 'cart-summary' } }, ['2 items']),
-    h('input', {
-      attrs: { 'data-testid': 'search-box' },
-      props: { type: 'text', value: 'hello world' },
-    }),
-    h('textarea', { props: { value: 'lorem ipsum' } }),
-    h('select', { props: { value: 'apple' } }, [
-      h('option', { props: { value: 'apple' } }, ['Apple']),
-      h('option', { props: { value: 'banana' } }, ['Banana']),
-    ]),
-    h('h3', {}, ['Subsection']),
-    h('div', { attrs: { role: 'heading', 'aria-level': '4' } }, [
-      'ARIA heading',
-    ]),
-    h('input', {
-      attrs: { 'aria-label': 'Subscribe' },
-      props: { type: 'checkbox', checked: true },
-    }),
-    h('div', {
-      attrs: {
-        role: 'checkbox',
-        'aria-checked': 'mixed',
-        'aria-label': 'Mixed',
-      },
-    }),
-    h('div', { attrs: { role: 'option', 'aria-selected': 'true' } }, [
-      'Selected option',
-    ]),
-    h('button', { attrs: { 'aria-pressed': 'true' } }, ['Bold']),
-    h('button', { attrs: { 'aria-expanded': 'false' } }, ['Menu']),
-    h('button', { props: { disabled: true } }, ['Submit form']),
-    h('button', { attrs: { 'aria-disabled': 'true' } }, ['Archived']),
-    h('div', { attrs: { role: 'doc-subtitle heading' } }, ['Fallback heading']),
-  ])
+  )
 
   describe('getByRole', () => {
     test('finds by explicit role', () => {
@@ -775,13 +809,13 @@ describe('accessible locators', () => {
     test('filters by accessible name', () => {
       const result = getByRole('heading', { name: 'Section A' })(locatorTree)
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('h2')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('h2')
     })
 
     test('filters by accessible name with RegExp', () => {
       const result = getByRole('heading', { name: /Section/ })(locatorTree)
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('h2')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('h2')
     })
 
     test('returns None when RegExp name does not match', () => {
@@ -808,13 +842,13 @@ describe('accessible locators', () => {
     test('resolves accessible name via aria-labelledby', () => {
       const result = getByRole('list', { name: 'Section A' })(locatorTree)
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('ul')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('ul')
     })
 
     test('resolves accessible name via label for association', () => {
       const result = getByRole('textbox', { name: 'Email' })(locatorTree)
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('input')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('input')
     })
 
     test('returns None for nonexistent role', () => {
@@ -836,13 +870,13 @@ describe('accessible locators', () => {
     test('filters headings by level via tag', () => {
       const result = getByRole('heading', { level: 3 })(locatorTree)
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('h3')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('h3')
     })
 
     test('filters headings by level via aria-level', () => {
       const result = getByRole('heading', { level: 4 })(locatorTree)
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('div')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('div')
     })
 
     test('filters checkbox by checked=true', () => {
@@ -856,7 +890,7 @@ describe('accessible locators', () => {
     test('filters checkbox by aria-checked=mixed', () => {
       const result = getByRole('checkbox', { checked: 'mixed' })(locatorTree)
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('div')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('div')
     })
 
     test('filters option by selected=true', () => {
@@ -913,22 +947,30 @@ describe('accessible locators', () => {
       ])
 
       test('a token matches itself exactly', () => {
-        const result = getByRole('link', { current: 'page' })(navigation)
+        const result = getByRole('link', { current: 'page' })(
+          toSceneElement(navigation),
+        )
         expect(Option.isSome(result)).toBe(true)
         expect(textContent(Option.getOrThrow(result))).toBe('Work')
         expect(
-          Option.isNone(getByRole('link', { current: 'step' })(navigation)),
+          Option.isNone(
+            getByRole('link', { current: 'step' })(toSceneElement(navigation)),
+          ),
         ).toBe(true)
       })
 
       test('false matches an absent attribute and an explicit false alike', () => {
-        const links = getAllByRole('link', { current: false })(navigation)
+        const links = getAllByRole('link', { current: false })(
+          toSceneElement(navigation),
+        )
         const names = links.map(textContent)
         expect(names).toEqual(['Contact', 'About'])
       })
 
       test('true matches only aria-current="true"', () => {
-        const links = getAllByRole('link', { current: true })(navigation)
+        const links = getAllByRole('link', { current: true })(
+          toSceneElement(navigation),
+        )
         const names = links.map(textContent)
         expect(names).toEqual(['Team'])
       })
@@ -939,9 +981,11 @@ describe('accessible locators', () => {
             'Work',
           ]),
         ])
-        expect(Option.isNone(getByRole('link', { current: true })(page))).toBe(
-          true,
-        )
+        expect(
+          Option.isNone(
+            getByRole('link', { current: true })(toSceneElement(page)),
+          ),
+        ).toBe(true)
       })
 
       test('reads aria-current from props', () => {
@@ -951,7 +995,9 @@ describe('accessible locators', () => {
             'Work',
           ]),
         ])
-        const result = getByRole('link', { current: 'page' })(page)
+        const result = getByRole('link', { current: 'page' })(
+          toSceneElement(page),
+        )
         expect(Option.isSome(result)).toBe(true)
         expect(textContent(Option.getOrThrow(result))).toBe('Work')
       })
@@ -1011,13 +1057,13 @@ describe('accessible locators', () => {
     test('finds by exact text', () => {
       const result = getByText('Sign in')(locatorTree)
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('button')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('button')
     })
 
     test('returns the most specific match', () => {
       const result = getByText('Item 1')(locatorTree)
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('li')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('li')
     })
 
     test('finds by substring when exact is false', () => {
@@ -1039,9 +1085,9 @@ describe('accessible locators', () => {
         'Hello',
         h('span', {}, ['→']),
       ])
-      const result = getByText('Hello')(tree)
+      const result = getByText('Hello')(toSceneElement(tree))
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('a')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('a')
     })
   })
 
@@ -1049,7 +1095,7 @@ describe('accessible locators', () => {
     test('finds input by placeholder', () => {
       const result = getByPlaceholder('Email address')(locatorTree)
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('input')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('input')
     })
 
     test('returns None for non-matching placeholder', () => {
@@ -1063,28 +1109,34 @@ describe('accessible locators', () => {
     test('finds by aria-label', () => {
       const result = getByLabel('Main navigation')(locatorTree)
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('nav')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('nav')
     })
 
     test('finds input via label for association', () => {
       const result = getByLabel('Email')(locatorTree)
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('input')
-      expect(Option.getOrThrow(result).data?.props?.['id']).toBe('email')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('input')
+      expect(
+        fromSceneElement(Option.getOrThrow(result)).data?.props?.['id'],
+      ).toBe('email')
     })
 
     test('finds input via label nesting', () => {
       const result = getByLabel('Agree')(locatorTree)
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('input')
-      expect(Option.getOrThrow(result).data?.props?.['type']).toBe('checkbox')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('input')
+      expect(
+        fromSceneElement(Option.getOrThrow(result)).data?.props?.['type'],
+      ).toBe('checkbox')
     })
 
     test('finds input via aria-labelledby', () => {
       const result = getByLabel('Phone')(locatorTree)
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('input')
-      expect(Option.getOrThrow(result).data?.props?.['type']).toBe('tel')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('input')
+      expect(
+        fromSceneElement(Option.getOrThrow(result)).data?.props?.['type'],
+      ).toBe('tel')
     })
 
     test('returns None for non-matching label', () => {
@@ -1096,7 +1148,7 @@ describe('accessible locators', () => {
     test('finds element by alt attribute', () => {
       const result = getByAltText('Company logo')(locatorTree)
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('img')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('img')
     })
 
     test('returns None for non-matching alt text', () => {
@@ -1108,7 +1160,7 @@ describe('accessible locators', () => {
     test('finds element by title attribute', () => {
       const result = getByTitle('Close dialog')(locatorTree)
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('button')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('button')
     })
 
     test('returns None for non-matching title', () => {
@@ -1120,14 +1172,14 @@ describe('accessible locators', () => {
     test('finds element by data-testid attribute', () => {
       const result = getByTestId('cart-summary')(locatorTree)
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('div')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('div')
       expect(textContent(Option.getOrThrow(result))).toBe('2 items')
     })
 
     test('finds form controls by data-testid', () => {
       const result = getByTestId('search-box')(locatorTree)
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('input')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('input')
     })
 
     test('returns None for non-matching testid', () => {
@@ -1139,13 +1191,13 @@ describe('accessible locators', () => {
     test('finds input by current value', () => {
       const result = getByDisplayValue('hello world')(locatorTree)
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('input')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('input')
     })
 
     test('finds textarea by current value', () => {
       const result = getByDisplayValue('lorem ipsum')(locatorTree)
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('textarea')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('textarea')
     })
 
     test('finds select by current value', () => {
@@ -1153,7 +1205,7 @@ describe('accessible locators', () => {
       expect(Option.isSome(result)).toBe(true)
       // The first match will be the select (form control). Option elements
       // aren't form controls in our allow-list, so they don't match.
-      expect(Option.getOrThrow(result).sel).toBe('select')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('select')
     })
 
     test('returns None for non-matching value', () => {
@@ -1172,9 +1224,11 @@ describe('AccName 1.2 native host language', () => {
           attrs: { alt: 'Documentation link', href: '/docs' },
         }),
       ])
-      const result = getByRole('link', { name: 'Documentation link' })(tree)
+      const result = getByRole('link', { name: 'Documentation link' })(
+        toSceneElement(tree),
+      )
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('area')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('area')
     })
 
     test('resolves name from input[type=image] alt', () => {
@@ -1183,36 +1237,44 @@ describe('AccName 1.2 native host language', () => {
           attrs: { type: 'image', alt: 'Submit photo', src: '/go.png' },
         }),
       ])
-      const result = getByRole('button', { name: 'Submit photo' })(tree)
+      const result = getByRole('button', { name: 'Submit photo' })(
+        toSceneElement(tree),
+      )
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('input')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('input')
     })
 
     test('resolves name from input[type=submit] value', () => {
       const tree = h('form', {}, [
         h('input', { attrs: { type: 'submit', value: 'Save changes' } }),
       ])
-      const result = getByRole('button', { name: 'Save changes' })(tree)
+      const result = getByRole('button', { name: 'Save changes' })(
+        toSceneElement(tree),
+      )
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('input')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('input')
     })
 
     test('resolves name from input[type=button] value', () => {
       const tree = h('form', {}, [
         h('input', { attrs: { type: 'button', value: 'Add row' } }),
       ])
-      const result = getByRole('button', { name: 'Add row' })(tree)
+      const result = getByRole('button', { name: 'Add row' })(
+        toSceneElement(tree),
+      )
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('input')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('input')
     })
 
     test('resolves name from input[type=reset] value', () => {
       const tree = h('form', {}, [
         h('input', { attrs: { type: 'reset', value: 'Clear form' } }),
       ])
-      const result = getByRole('button', { name: 'Clear form' })(tree)
+      const result = getByRole('button', { name: 'Clear form' })(
+        toSceneElement(tree),
+      )
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('input')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('input')
     })
   })
 
@@ -1224,9 +1286,11 @@ describe('AccName 1.2 native host language', () => {
           h('input', { attrs: { type: 'text' } }),
         ]),
       ])
-      const result = getByRole('group', { name: 'Billing address' })(tree)
+      const result = getByRole('group', { name: 'Billing address' })(
+        toSceneElement(tree),
+      )
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('fieldset')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('fieldset')
     })
 
     test('resolves figure name from its <figcaption>', () => {
@@ -1238,9 +1302,9 @@ describe('AccName 1.2 native host language', () => {
       ])
       const result = getByRole('figure', {
         name: 'Quarterly revenue, 2025',
-      })(tree)
+      })(toSceneElement(tree))
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('figure')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('figure')
     })
 
     test('resolves table name from its <caption>', () => {
@@ -1252,62 +1316,66 @@ describe('AccName 1.2 native host language', () => {
       ])
       const result = getByRole('table', {
         name: 'Employees by department',
-      })(tree)
+      })(toSceneElement(tree))
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('table')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('table')
     })
 
     test('returns None when child element is missing', () => {
       const tree = h('form', {}, [
         h('fieldset', {}, [h('input', { attrs: { type: 'text' } })]),
       ])
-      const result = getByRole('group', { name: 'Billing address' })(tree)
+      const result = getByRole('group', { name: 'Billing address' })(
+        toSceneElement(tree),
+      )
       expect(Option.isNone(result)).toBe(true)
     })
   })
 })
 
 describe('expanded implicit role map', () => {
-  const tree: VNode = h('div', {}, [
-    h('p', {}, ['A paragraph']),
-    h('hr', {}),
-    h('main', {}, [h('h1', {}, ['Main content'])]),
-    h('aside', {}, ['Sidebar']),
-    h('dialog', { attrs: { 'aria-label': 'Confirm delete' } }, [
-      h('p', {}, ['Are you sure?']),
-    ]),
-    h('article', {}, [h('h2', {}, ['Post title'])]),
-    h('figure', {}, [
-      h('img', { attrs: { alt: '', src: '/fig.png' } }),
-      h('figcaption', {}, ['Figure one']),
-    ]),
-    h('details', {}, [
-      h('summary', {}, ['More info']),
-      h('p', {}, ['Detail text']),
-    ]),
-    h('fieldset', {}, [
-      h('legend', {}, ['Contact']),
-      h('input', { attrs: { type: 'text' } }),
-    ]),
-    h('output', { attrs: { 'aria-label': 'Total' } }, ['$42']),
-    h('progress', {
-      attrs: { 'aria-label': 'Upload', value: '30', max: '100' },
-    }),
-    h('meter', {
-      attrs: { 'aria-label': 'Disk', value: '0.5' },
-    }),
-    h('table', {}, [
-      h('caption', {}, ['Scores']),
-      h('tr', {}, [
-        h('th', { attrs: { scope: 'col' } }, ['Player']),
-        h('th', { attrs: { scope: 'col' } }, ['Score']),
+  const tree = toSceneElement(
+    h('div', {}, [
+      h('p', {}, ['A paragraph']),
+      h('hr', {}),
+      h('main', {}, [h('h1', {}, ['Main content'])]),
+      h('aside', {}, ['Sidebar']),
+      h('dialog', { attrs: { 'aria-label': 'Confirm delete' } }, [
+        h('p', {}, ['Are you sure?']),
       ]),
-      h('tr', {}, [
-        h('th', { attrs: { scope: 'row' } }, ['Alice']),
-        h('td', {}, ['10']),
+      h('article', {}, [h('h2', {}, ['Post title'])]),
+      h('figure', {}, [
+        h('img', { attrs: { alt: '', src: '/fig.png' } }),
+        h('figcaption', {}, ['Figure one']),
+      ]),
+      h('details', {}, [
+        h('summary', {}, ['More info']),
+        h('p', {}, ['Detail text']),
+      ]),
+      h('fieldset', {}, [
+        h('legend', {}, ['Contact']),
+        h('input', { attrs: { type: 'text' } }),
+      ]),
+      h('output', { attrs: { 'aria-label': 'Total' } }, ['$42']),
+      h('progress', {
+        attrs: { 'aria-label': 'Upload', value: '30', max: '100' },
+      }),
+      h('meter', {
+        attrs: { 'aria-label': 'Disk', value: '0.5' },
+      }),
+      h('table', {}, [
+        h('caption', {}, ['Scores']),
+        h('tr', {}, [
+          h('th', { attrs: { scope: 'col' } }, ['Player']),
+          h('th', { attrs: { scope: 'col' } }, ['Score']),
+        ]),
+        h('tr', {}, [
+          h('th', { attrs: { scope: 'row' } }, ['Alice']),
+          h('td', {}, ['10']),
+        ]),
       ]),
     ]),
-  ])
+  )
 
   test('finds p as paragraph', () => {
     const result = getByRole('paragraph')(tree)
@@ -1351,19 +1419,19 @@ describe('expanded implicit role map', () => {
   test('finds fieldset as group', () => {
     const result = getByRole('group', { name: 'Contact' })(tree)
     expect(Option.isSome(result)).toBe(true)
-    expect(Option.getOrThrow(result).sel).toBe('fieldset')
+    expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('fieldset')
   })
 
   test('finds summary as button', () => {
     const result = getByRole('button', { name: 'More info' })(tree)
     expect(Option.isSome(result)).toBe(true)
-    expect(Option.getOrThrow(result).sel).toBe('summary')
+    expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('summary')
   })
 
   test('finds output as status', () => {
     const result = getByRole('status', { name: 'Total' })(tree)
     expect(Option.isSome(result)).toBe(true)
-    expect(Option.getOrThrow(result).sel).toBe('output')
+    expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('output')
   })
 
   test('finds progress as progressbar', () => {
@@ -1438,7 +1506,7 @@ describe('confirmed implicit role mappings', () => {
     )
     const tree = h(parent, {}, [element])
 
-    expect(Scene.role(role)(tree)).toEqual(Option.some(element))
+    expect(Scene.role(role)(toSceneElement(tree))).toEqual(Option.some(element))
   })
 
   test.each(cases)(
@@ -1451,7 +1519,7 @@ describe('confirmed implicit role mappings', () => {
       )
       const tree = h(parent, {}, [element])
 
-      expect(Scene.all.role(role)(tree)).toEqual([element])
+      expect(Scene.all.role(role)(toSceneElement(tree))).toEqual([element])
     },
   )
 
@@ -1460,8 +1528,13 @@ describe('confirmed implicit role mappings', () => {
     const second = h('blockquote', {}, ['Second'])
     const tree = h('div', {}, [h('div', {}, [first]), second])
 
-    expect(Scene.role('blockquote')(tree)).toEqual(Option.some(first))
-    expect(Scene.all.role('blockquote')(tree)).toEqual([first, second])
+    expect(Scene.role('blockquote')(toSceneElement(tree))).toEqual(
+      Option.some(first),
+    )
+    expect(Scene.all.role('blockquote')(toSceneElement(tree))).toEqual([
+      first,
+      second,
+    ])
   })
 
   test('finds a native blockquote within the target container', () => {
@@ -1476,7 +1549,7 @@ describe('confirmed implicit role mappings', () => {
       Scene.role('blockquote'),
     )
 
-    expect(locator(tree)).toEqual(Option.some(inside))
+    expect(locator(toSceneElement(tree))).toEqual(Option.some(inside))
   })
 
   test('filters native blockquotes by accessible name', () => {
@@ -1490,28 +1563,38 @@ describe('confirmed implicit role mappings', () => {
     )
     const tree = h('div', {}, [first, second])
 
-    expect(Scene.role('blockquote', { name: 'Second quote' })(tree)).toEqual(
-      Option.some(second),
-    )
     expect(
-      Scene.all.role('blockquote', { name: 'Second quote' })(tree),
+      Scene.role('blockquote', { name: 'Second quote' })(toSceneElement(tree)),
+    ).toEqual(Option.some(second))
+    expect(
+      Scene.all.role('blockquote', { name: 'Second quote' })(
+        toSceneElement(tree),
+      ),
     ).toEqual([second])
   })
 
   test('keeps an explicit role authoritative over the native role', () => {
     const element = h('blockquote', { attrs: { role: 'note' } }, ['Example'])
 
-    expect(Scene.role('note')(element)).toEqual(Option.some(element))
-    expect(Scene.all.role('note')(element)).toEqual([element])
-    expect(Scene.role('blockquote')(element)).toEqual(Option.none())
-    expect(Scene.all.role('blockquote')(element)).toEqual([])
+    expect(Scene.role('note')(toSceneElement(element))).toEqual(
+      Option.some(element),
+    )
+    expect(Scene.all.role('note')(toSceneElement(element))).toEqual([element])
+    expect(Scene.role('blockquote')(toSceneElement(element))).toEqual(
+      Option.none(),
+    )
+    expect(Scene.all.role('blockquote')(toSceneElement(element))).toEqual([])
   })
 
   test('finds an explicit blockquote role on a div', () => {
     const element = h('div', { attrs: { role: 'blockquote' } }, ['Example'])
 
-    expect(Scene.role('blockquote')(element)).toEqual(Option.some(element))
-    expect(Scene.all.role('blockquote')(element)).toEqual([element])
+    expect(Scene.role('blockquote')(toSceneElement(element))).toEqual(
+      Option.some(element),
+    )
+    expect(Scene.all.role('blockquote')(toSceneElement(element))).toEqual([
+      element,
+    ])
   })
 
   test.each([
@@ -1523,66 +1606,76 @@ describe('confirmed implicit role mappings', () => {
   ])('does not infer the draft-only $tag to $role mapping', ({ tag, role }) => {
     const element = h(tag, {}, ['Example'])
 
-    expect(Scene.role(role)(element)).toEqual(Option.none())
-    expect(Scene.all.role(role)(element)).toEqual([])
+    expect(Scene.role(role)(toSceneElement(element))).toEqual(Option.none())
+    expect(Scene.all.role(role)(toSceneElement(element))).toEqual([])
   })
 
   test('still finds a native blockquote by selector', () => {
     const element = h('blockquote', {}, ['Example'])
     const tree = h('div', {}, [element])
 
-    expect(Scene.selector('blockquote')(tree)).toEqual(Option.some(element))
+    expect(Scene.selector('blockquote')(toSceneElement(tree))).toEqual(
+      Option.some(element),
+    )
   })
 
   test('does not infer a blockquote role for a neutral element', () => {
     const element = h('div', {}, ['Example'])
 
-    expect(Scene.role('blockquote')(element)).toEqual(Option.none())
-    expect(Scene.all.role('blockquote')(element)).toEqual([])
+    expect(Scene.role('blockquote')(toSceneElement(element))).toEqual(
+      Option.none(),
+    )
+    expect(Scene.all.role('blockquote')(toSceneElement(element))).toEqual([])
   })
 })
 
 describe('implicit role edge cases', () => {
   test('img with non-empty alt has role img', () => {
     const tree = h('img', { attrs: { alt: 'Logo', src: '/logo.png' } })
-    expect(Option.isSome(getByRole('img')(tree))).toBe(true)
-    expect(Option.isNone(getByRole('presentation')(tree))).toBe(true)
+    expect(Option.isSome(getByRole('img')(toSceneElement(tree)))).toBe(true)
+    expect(Option.isNone(getByRole('presentation')(toSceneElement(tree)))).toBe(
+      true,
+    )
   })
 
   test('img with empty alt has role presentation', () => {
     const tree = h('img', { attrs: { alt: '', src: '/spacer.png' } })
-    expect(Option.isNone(getByRole('img')(tree))).toBe(true)
-    expect(Option.isSome(getByRole('presentation')(tree))).toBe(true)
+    expect(Option.isNone(getByRole('img')(toSceneElement(tree)))).toBe(true)
+    expect(Option.isSome(getByRole('presentation')(toSceneElement(tree)))).toBe(
+      true,
+    )
   })
 
   test('img without alt has role img', () => {
     const tree = h('img', { attrs: { src: '/photo.png' } })
-    expect(Option.isSome(getByRole('img')(tree))).toBe(true)
-    expect(Option.isNone(getByRole('presentation')(tree))).toBe(true)
+    expect(Option.isSome(getByRole('img')(toSceneElement(tree)))).toBe(true)
+    expect(Option.isNone(getByRole('presentation')(toSceneElement(tree)))).toBe(
+      true,
+    )
   })
 
   test('a with href has role link', () => {
     const tree = h('a', { props: { href: '/about' } }, ['About'])
-    expect(Option.isSome(getByRole('link')(tree))).toBe(true)
+    expect(Option.isSome(getByRole('link')(toSceneElement(tree)))).toBe(true)
   })
 
   test('a without href has role generic', () => {
     const tree = h('a', {}, ['Plain anchor'])
-    expect(Option.isNone(getByRole('link')(tree))).toBe(true)
-    expect(Option.isSome(getByRole('generic')(tree))).toBe(true)
+    expect(Option.isNone(getByRole('link')(toSceneElement(tree)))).toBe(true)
+    expect(Option.isSome(getByRole('generic')(toSceneElement(tree)))).toBe(true)
   })
 
   test('area with href has role link', () => {
     const tree = h('map', {}, [
       h('area', { attrs: { href: '/region', alt: 'Region' } }),
     ])
-    expect(Option.isSome(getByRole('link')(tree))).toBe(true)
+    expect(Option.isSome(getByRole('link')(toSceneElement(tree)))).toBe(true)
   })
 
   test('area without href has role generic', () => {
     const tree = h('map', {}, [h('area', { attrs: { alt: 'No link' } })])
-    expect(Option.isNone(getByRole('link')(tree))).toBe(true)
-    expect(Option.isSome(getByRole('generic')(tree))).toBe(true)
+    expect(Option.isNone(getByRole('link')(toSceneElement(tree)))).toBe(true)
+    expect(Option.isSome(getByRole('generic')(toSceneElement(tree)))).toBe(true)
   })
 })
 
@@ -1593,9 +1686,9 @@ describe('context-sensitive implicit roles', () => {
         h('header', {}, [h('h1', {}, ['Site title'])]),
         h('main', {}, [h('p', {}, ['Main content'])]),
       ])
-      const result = getByRole('banner')(tree)
+      const result = getByRole('banner')(toSceneElement(tree))
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('header')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('header')
     })
 
     test('has role generic when inside main', () => {
@@ -1603,8 +1696,12 @@ describe('context-sensitive implicit roles', () => {
         h('header', {}, [h('h2', {}, ['Article title'])]),
         h('p', {}, ['Body']),
       ])
-      expect(Option.isNone(getByRole('banner')(tree))).toBe(true)
-      expect(Option.isSome(getByRole('generic')(tree))).toBe(true)
+      expect(Option.isNone(getByRole('banner')(toSceneElement(tree)))).toBe(
+        true,
+      )
+      expect(Option.isSome(getByRole('generic')(toSceneElement(tree)))).toBe(
+        true,
+      )
     })
 
     test('has role generic when inside article', () => {
@@ -1614,7 +1711,9 @@ describe('context-sensitive implicit roles', () => {
           h('p', {}, ['Body']),
         ]),
       ])
-      expect(Option.isNone(getByRole('banner')(tree))).toBe(true)
+      expect(Option.isNone(getByRole('banner')(toSceneElement(tree)))).toBe(
+        true,
+      )
     })
 
     test('has role generic when inside section', () => {
@@ -1623,7 +1722,9 @@ describe('context-sensitive implicit roles', () => {
           h('header', {}, ['Section header']),
         ]),
       ])
-      expect(Option.isNone(getByRole('banner')(tree))).toBe(true)
+      expect(Option.isNone(getByRole('banner')(toSceneElement(tree)))).toBe(
+        true,
+      )
     })
   })
 
@@ -1633,9 +1734,9 @@ describe('context-sensitive implicit roles', () => {
         h('main', {}, [h('p', {}, ['Body'])]),
         h('footer', {}, [h('p', {}, ['Copyright'])]),
       ])
-      const result = getByRole('contentinfo')(tree)
+      const result = getByRole('contentinfo')(toSceneElement(tree))
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('footer')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('footer')
     })
 
     test('has role generic when inside article', () => {
@@ -1645,12 +1746,16 @@ describe('context-sensitive implicit roles', () => {
           h('footer', {}, ['Author info']),
         ]),
       ])
-      expect(Option.isNone(getByRole('contentinfo')(tree))).toBe(true)
+      expect(
+        Option.isNone(getByRole('contentinfo')(toSceneElement(tree))),
+      ).toBe(true)
     })
 
     test('has role generic when inside aside', () => {
       const tree = h('aside', {}, [h('footer', {}, ['Sidebar footer'])])
-      expect(Option.isNone(getByRole('contentinfo')(tree))).toBe(true)
+      expect(
+        Option.isNone(getByRole('contentinfo')(toSceneElement(tree))),
+      ).toBe(true)
     })
   })
 
@@ -1659,9 +1764,11 @@ describe('context-sensitive implicit roles', () => {
       const tree = h('section', { attrs: { 'aria-label': 'Introduction' } }, [
         h('p', {}, ['Body']),
       ])
-      const result = getByRole('region', { name: 'Introduction' })(tree)
+      const result = getByRole('region', { name: 'Introduction' })(
+        toSceneElement(tree),
+      )
       expect(Option.isSome(result)).toBe(true)
-      expect(Option.getOrThrow(result).sel).toBe('section')
+      expect(fromSceneElement(Option.getOrThrow(result)).sel).toBe('section')
     })
 
     test('has role region when labeled with aria-labelledby', () => {
@@ -1671,7 +1778,9 @@ describe('context-sensitive implicit roles', () => {
           h('p', {}, ['Body']),
         ]),
       ])
-      const result = getByRole('region', { name: 'Introduction' })(tree)
+      const result = getByRole('region', { name: 'Introduction' })(
+        toSceneElement(tree),
+      )
       expect(Option.isSome(result)).toBe(true)
     })
 
@@ -1679,37 +1788,47 @@ describe('context-sensitive implicit roles', () => {
       const tree = h('section', { attrs: { title: 'Summary' } }, [
         h('p', {}, ['Body']),
       ])
-      expect(Option.isSome(getByRole('region')(tree))).toBe(true)
+      expect(Option.isSome(getByRole('region')(toSceneElement(tree)))).toBe(
+        true,
+      )
     })
 
     test('has role generic when unlabeled', () => {
       const tree = h('section', {}, [h('p', {}, ['Body content'])])
-      expect(Option.isNone(getByRole('region')(tree))).toBe(true)
-      expect(Option.isSome(getByRole('generic')(tree))).toBe(true)
+      expect(Option.isNone(getByRole('region')(toSceneElement(tree)))).toBe(
+        true,
+      )
+      expect(Option.isSome(getByRole('generic')(toSceneElement(tree)))).toBe(
+        true,
+      )
     })
 
     test('text content alone does not confer region role', () => {
       const tree = h('section', {}, [h('h2', {}, ['Unlabeled section'])])
-      expect(Option.isNone(getByRole('region')(tree))).toBe(true)
+      expect(Option.isNone(getByRole('region')(toSceneElement(tree)))).toBe(
+        true,
+      )
     })
   })
 })
 
 describe('multi-match locators', () => {
-  const tree: VNode = h('ul', { attrs: { role: 'list' } }, [
-    h('li', { attrs: { role: 'row' } }, [
-      h('span', {}, ['Alice']),
-      h('button', {}, ['Edit']),
+  const tree = toSceneElement(
+    h('ul', { attrs: { role: 'list' } }, [
+      h('li', { attrs: { role: 'row' } }, [
+        h('span', {}, ['Alice']),
+        h('button', {}, ['Edit']),
+      ]),
+      h('li', { attrs: { role: 'row' } }, [
+        h('span', {}, ['Bob']),
+        h('button', {}, ['Edit']),
+      ]),
+      h('li', { attrs: { role: 'row' } }, [
+        h('span', {}, ['Carol']),
+        h('button', {}, ['Delete']),
+      ]),
     ]),
-    h('li', { attrs: { role: 'row' } }, [
-      h('span', {}, ['Bob']),
-      h('button', {}, ['Edit']),
-    ]),
-    h('li', { attrs: { role: 'row' } }, [
-      h('span', {}, ['Carol']),
-      h('button', {}, ['Delete']),
-    ]),
-  ])
+  )
 
   test('all.role returns every matching element', () => {
     const matches = Scene.all.role('row')(tree)
@@ -1795,53 +1914,63 @@ describe('multi-match locators', () => {
   })
 
   test('all.label finds every element matching via aria-label', () => {
-    const labelTree: VNode = h('form', {}, [
-      h('input', { attrs: { 'aria-label': 'Accept' } }),
-      h('input', { attrs: { 'aria-label': 'Accept' } }),
-      h('input', { attrs: { 'aria-label': 'Decline' } }),
-    ])
+    const labelTree = toSceneElement(
+      h('form', {}, [
+        h('input', { attrs: { 'aria-label': 'Accept' } }),
+        h('input', { attrs: { 'aria-label': 'Accept' } }),
+        h('input', { attrs: { 'aria-label': 'Decline' } }),
+      ]),
+    )
     expect(Scene.all.label('Accept')(labelTree)).toHaveLength(2)
     expect(Scene.all.label('Decline')(labelTree)).toHaveLength(1)
   })
 
   test('all.label finds controls via <label for="id"> association', () => {
-    const labelTree: VNode = h('form', {}, [
-      h('label', { props: { htmlFor: 'a' } }, ['Item']),
-      h('input', { props: { id: 'a' } }),
-      h('label', { props: { htmlFor: 'b' } }, ['Item']),
-      h('input', { props: { id: 'b' } }),
-    ])
+    const labelTree = toSceneElement(
+      h('form', {}, [
+        h('label', { props: { htmlFor: 'a' } }, ['Item']),
+        h('input', { props: { id: 'a' } }),
+        h('label', { props: { htmlFor: 'b' } }, ['Item']),
+        h('input', { props: { id: 'b' } }),
+      ]),
+    )
     expect(Scene.all.label('Item')(labelTree)).toHaveLength(2)
   })
 
   test('all.label finds controls via nested <label>', () => {
-    const labelTree: VNode = h('form', {}, [
-      h('label', {}, ['Item', h('input', {})]),
-      h('label', {}, ['Item', h('input', {})]),
-    ])
+    const labelTree = toSceneElement(
+      h('form', {}, [
+        h('label', {}, ['Item', h('input', {})]),
+        h('label', {}, ['Item', h('input', {})]),
+      ]),
+    )
     expect(Scene.all.label('Item')(labelTree)).toHaveLength(2)
   })
 
   test('all.label dedupes when multiple strategies match the same element', () => {
-    const labelTree: VNode = h('form', {}, [
-      h('label', { props: { htmlFor: 'email' } }, ['Email']),
-      h('input', {
-        attrs: { id: 'email', 'aria-label': 'Email' },
-      }),
-    ])
+    const labelTree = toSceneElement(
+      h('form', {}, [
+        h('label', { props: { htmlFor: 'email' } }, ['Email']),
+        h('input', {
+          attrs: { id: 'email', 'aria-label': 'Email' },
+        }),
+      ]),
+    )
     expect(Scene.all.label('Email')(labelTree)).toHaveLength(1)
   })
 })
 
 describe('custom matchers', () => {
-  const element: VNode = h(
-    'button',
-    {
-      props: { type: 'submit' },
-      attrs: { 'aria-expanded': 'false' },
-      class: { primary: true },
-    },
-    ['Sign in'],
+  const element = toSceneElement(
+    h(
+      'button',
+      {
+        props: { type: 'submit' },
+        attrs: { 'aria-expanded': 'false' },
+        class: { primary: true },
+      },
+      ['Sign in'],
+    ),
   )
   const styledElement = Option.getOrThrow(
     Option.fromNullishOr(
@@ -1965,14 +2094,14 @@ describe('custom matchers', () => {
   })
 
   test('toBeVisible fails for element with hidden attribute', () => {
-    const hidden: VNode = h('div', { attrs: { hidden: 'true' } }, [])
+    const hidden = toSceneElement(h('div', { attrs: { hidden: 'true' } }, []))
     expect(() => expect(Option.some(hidden)).toBeVisible()).toThrow(
       'Expected element to be visible',
     )
   })
 
   test('toBeVisible fails for hidden="false"', () => {
-    const hidden: VNode = h('div', { attrs: { hidden: 'false' } }, [])
+    const hidden = toSceneElement(h('div', { attrs: { hidden: 'false' } }, []))
     expect(() => expect(Option.some(hidden)).toBeVisible()).toThrow(
       'Expected element to be visible',
     )
@@ -1986,26 +2115,28 @@ describe('custom matchers', () => {
   })
 
   test('toBeVisible fails for element with aria-hidden="true"', () => {
-    const hidden: VNode = h('div', { attrs: { 'aria-hidden': 'true' } }, [])
+    const hidden = toSceneElement(
+      h('div', { attrs: { 'aria-hidden': 'true' } }, []),
+    )
     expect(() => expect(Option.some(hidden)).toBeVisible()).toThrow(
       'Expected element to be visible',
     )
   })
 
   test('toBeVisible fails for display:none', () => {
-    const hidden: VNode = h('div', { style: { display: 'none' } }, [])
+    const hidden = toSceneElement(h('div', { style: { display: 'none' } }, []))
     expect(() => expect(Option.some(hidden)).toBeVisible()).toThrow(
       'Expected element to be visible',
     )
   })
 
   test('toHaveId passes for matching id', () => {
-    const withId: VNode = h('div', { attrs: { id: 'main' } }, [])
+    const withId = toSceneElement(h('div', { attrs: { id: 'main' } }, []))
     expect(Option.some(withId)).toHaveId('main')
   })
 
   test('toHaveId fails for non-matching id', () => {
-    const withId: VNode = h('div', { attrs: { id: 'main' } }, [])
+    const withId = toSceneElement(h('div', { attrs: { id: 'main' } }, []))
     expect(() => expect(Option.some(withId)).toHaveId('sidebar')).toThrow(
       'Expected element to have id "sidebar"',
     )
@@ -4085,29 +4216,44 @@ describe('scene with inside', () => {
 describe('RegExp text locators', () => {
   test('accepts a RegExp in a single locator', () => {
     const button = h('button', {}, 'Save 3 items')
-    expect(Option.getOrThrow(Scene.text(/Save \d+ items/)(button))).toBe(button)
+    expect(
+      Option.getOrThrow(Scene.text(/Save \d+ items/)(toSceneElement(button))),
+    ).toBe(button)
   })
 
   test('accepts a RegExp in a multi-match locator', () => {
     const button = h('button', {}, 'Save 3 items')
-    expect(Scene.all.text(/Save \d+ items/)(button)).toEqual([button])
+    expect(Scene.all.text(/Save \d+ items/)(toSceneElement(button))).toEqual([
+      button,
+    ])
   })
 
   test('honors anchors and the case-insensitive flag', () => {
     const button = h('button', {}, 'SAVE 3 items')
-    expect(Option.getOrThrow(Scene.text(/^save \d+ items$/i)(button))).toBe(
-      button,
+    expect(
+      Option.getOrThrow(
+        Scene.text(/^save \d+ items$/i)(toSceneElement(button)),
+      ),
+    ).toBe(button)
+    expect(Scene.all.text(/^save \d+ items$/i)(toSceneElement(button))).toEqual(
+      [button],
     )
-    expect(Scene.all.text(/^save \d+ items$/i)(button)).toEqual([button])
-    expect(Option.isNone(Scene.text(/^save$/i)(button))).toBe(true)
-    expect(Scene.all.text(/^save$/i)(button)).toEqual([])
+    expect(Option.isNone(Scene.text(/^save$/i)(toSceneElement(button)))).toBe(
+      true,
+    )
+    expect(Scene.all.text(/^save$/i)(toSceneElement(button))).toEqual([])
   })
 
   test('returns the descendant from a single locator and both matches from a multi-match locator', () => {
     const button = h('button', {}, 'Save 3 items')
     const tree = h('div', {}, [button])
-    expect(Option.getOrThrow(Scene.text(/Save \d+ items/)(tree))).toBe(button)
-    expect(Scene.all.text(/Save \d+ items/)(tree)).toEqual([tree, button])
+    expect(
+      Option.getOrThrow(Scene.text(/Save \d+ items/)(toSceneElement(tree))),
+    ).toBe(button)
+    expect(Scene.all.text(/Save \d+ items/)(toSceneElement(tree))).toEqual([
+      tree,
+      button,
+    ])
   })
 
   test('restarts a global RegExp for every element and query', () => {
@@ -4116,10 +4262,10 @@ describe('RegExp text locators', () => {
     const tree = h('div', {}, [firstButton, secondButton])
     const single = Scene.text(/^Save$/g)
     const multiple = Scene.all.text(/^Save$/g)
-    expect(Option.getOrThrow(single(tree))).toBe(firstButton)
-    expect(multiple(tree)).toEqual([firstButton, secondButton])
-    expect(Option.getOrThrow(single(tree))).toBe(firstButton)
-    expect(multiple(tree)).toEqual([firstButton, secondButton])
+    expect(Option.getOrThrow(single(toSceneElement(tree)))).toBe(firstButton)
+    expect(multiple(toSceneElement(tree))).toEqual([firstButton, secondButton])
+    expect(Option.getOrThrow(single(toSceneElement(tree)))).toBe(firstButton)
+    expect(multiple(toSceneElement(tree))).toEqual([firstButton, secondButton])
   })
 
   test("restarts a sticky RegExp without changing the caller's lastIndex", () => {
@@ -4130,12 +4276,12 @@ describe('RegExp text locators', () => {
     pattern.lastIndex = 2
     const single = Scene.text(pattern)
     const multiple = Scene.all.text(pattern)
-    expect(Option.getOrThrow(single(tree))).toBe(firstButton)
+    expect(Option.getOrThrow(single(toSceneElement(tree)))).toBe(firstButton)
     expect(pattern.lastIndex).toBe(2)
-    expect(multiple(tree)).toEqual([firstButton])
+    expect(multiple(toSceneElement(tree))).toEqual([firstButton])
     expect(pattern.lastIndex).toBe(2)
-    expect(Option.getOrThrow(single(tree))).toBe(firstButton)
-    expect(multiple(tree)).toEqual([firstButton])
+    expect(Option.getOrThrow(single(toSceneElement(tree)))).toBe(firstButton)
+    expect(multiple(toSceneElement(tree))).toEqual([firstButton])
     expect(pattern.lastIndex).toBe(2)
   })
 
@@ -4145,20 +4291,26 @@ describe('RegExp text locators', () => {
       const button = h('button', {}, ['Save ', h('strong', {}, '3'), ' items'])
       const options = exact === undefined ? undefined : { exact }
       expect(
-        Option.getOrThrow(Scene.text(/^Save 3 items$/, options)(button)),
+        Option.getOrThrow(
+          Scene.text(/^Save 3 items$/, options)(toSceneElement(button)),
+        ),
       ).toBe(button)
-      expect(Scene.all.text(/^Save 3 items$/, options)(button)).toEqual([
-        button,
-      ])
+      expect(
+        Scene.all.text(/^Save 3 items$/, options)(toSceneElement(button)),
+      ).toEqual([button])
     },
   )
 
   test("uses the element's full text for a RegExp", () => {
     const link = h('a', {}, ['Hello', h('span', {}, '→')])
-    expect(Option.getOrThrow(Scene.text(/Hello/)(link))).toBe(link)
-    expect(Scene.all.text(/Hello/)(link)).toEqual([link])
-    expect(Option.isNone(Scene.text(/^Hello$/)(link))).toBe(true)
-    expect(Scene.all.text(/^Hello$/)(link)).toEqual([])
+    expect(Option.getOrThrow(Scene.text(/Hello/)(toSceneElement(link)))).toBe(
+      link,
+    )
+    expect(Scene.all.text(/Hello/)(toSceneElement(link))).toEqual([link])
+    expect(Option.isNone(Scene.text(/^Hello$/)(toSceneElement(link)))).toBe(
+      true,
+    )
+    expect(Scene.all.text(/^Hello$/)(toSceneElement(link))).toEqual([])
   })
 
   test('includes RegExp syntax in locator and assertion descriptions', () => {
@@ -4185,7 +4337,7 @@ describe('RegExp text locators', () => {
         Scene.within(
           Scene.testId('second'),
           Scene.text(/Save \d+ items/),
-        )(tree),
+        )(toSceneElement(tree)),
       ),
     ).toBe(secondButton)
     Scene.scene(
@@ -4203,30 +4355,36 @@ describe('RegExp text locators', () => {
       const multiple = PublicScene.all.text(/Save/, { exact })
       expectTypeOf(single).toEqualTypeOf<PublicScene.Locator>()
       expectTypeOf(multiple).toEqualTypeOf<PublicScene.LocatorAll>()
-      expect(Option.getOrThrow(single(button))).toBe(button)
-      expect(multiple(button)).toEqual([button])
+      expect(Option.getOrThrow(single(toSceneElement(button)))).toBe(button)
+      expect(multiple(toSceneElement(button))).toEqual([button])
       expectTypeOf(
-        PublicScene.getByText(/Save/, { exact })(button),
-      ).toEqualTypeOf<Option.Option<VNode>>()
+        PublicScene.getByText(/Save/, { exact })(toSceneElement(button)),
+      ).toEqualTypeOf<Option.Option<PublicScene.Element>>()
       expectTypeOf(
-        PublicScene.getAllByText(/Save/, { exact })(button),
-      ).toEqualTypeOf<ReadonlyArray<VNode>>()
+        PublicScene.getAllByText(/Save/, { exact })(toSceneElement(button)),
+      ).toEqualTypeOf<ReadonlyArray<PublicScene.Element>>()
       expect(
-        Option.getOrThrow(PublicScene.getByText(/Save/, { exact })(button)),
+        Option.getOrThrow(
+          PublicScene.getByText(/Save/, { exact })(toSceneElement(button)),
+        ),
       ).toBe(button)
-      expect(PublicScene.getAllByText(/Save/, { exact })(button)).toEqual([
-        button,
-      ])
+      expect(
+        PublicScene.getAllByText(/Save/, { exact })(toSceneElement(button)),
+      ).toEqual([button])
     },
   )
 
   test('keeps existing string matching behavior', () => {
     const button = h('button', {}, 'Save 3 items')
-    expect(Scene.all.text('Save')(button)).toEqual([])
-    expect(Scene.all.text('Save', { exact: false })(button)).toEqual([button])
+    expect(Scene.all.text('Save')(toSceneElement(button))).toEqual([])
+    expect(
+      Scene.all.text('Save', { exact: false })(toSceneElement(button)),
+    ).toEqual([button])
     const link = h('a', {}, ['Hello', h('span', {}, '→')])
-    expect(Option.getOrThrow(Scene.text('Hello')(link))).toBe(link)
-    expect(Scene.all.text('Hello')(link)).toEqual([link])
+    expect(Option.getOrThrow(Scene.text('Hello')(toSceneElement(link)))).toBe(
+      link,
+    )
+    expect(Scene.all.text('Hello')(toSceneElement(link))).toEqual([link])
     expect(Scene.text('Hello').description).toBe('text "Hello"')
     expect(Scene.all.text('Hello').description).toBe('all text "Hello"')
   })
@@ -4234,29 +4392,41 @@ describe('RegExp text locators', () => {
   test('does not normalize whitespace or exclude hidden text for strings', () => {
     const hidden = h('span', { attrs: { hidden: true } }, '  Save  ')
     const tree = h('div', {}, [hidden])
-    expect(Option.getOrThrow(Scene.text('  Save  ')(tree))).toBe(hidden)
-    expect(Scene.all.text('  Save  ')(tree)).toEqual([tree, hidden])
-    expect(Option.isNone(Scene.text('Save')(tree))).toBe(true)
+    expect(
+      Option.getOrThrow(Scene.text('  Save  ')(toSceneElement(tree))),
+    ).toBe(hidden)
+    expect(Scene.all.text('  Save  ')(toSceneElement(tree))).toEqual([
+      tree,
+      hidden,
+    ])
+    expect(Option.isNone(Scene.text('Save')(toSceneElement(tree)))).toBe(true)
   })
 
   test('does not normalize whitespace or exclude hidden text for a RegExp', () => {
     const hidden = h('span', { attrs: { hidden: true } }, '  Save  ')
     const tree = h('div', {}, [hidden])
-    expect(Option.getOrThrow(Scene.text(/^  Save  $/)(tree))).toBe(hidden)
-    expect(Scene.all.text(/^  Save  $/)(tree)).toEqual([tree, hidden])
-    expect(Option.isNone(Scene.text(/^Save$/)(tree))).toBe(true)
+    expect(
+      Option.getOrThrow(Scene.text(/^  Save  $/)(toSceneElement(tree))),
+    ).toBe(hidden)
+    expect(Scene.all.text(/^  Save  $/)(toSceneElement(tree))).toEqual([
+      tree,
+      hidden,
+    ])
+    expect(Option.isNone(Scene.text(/^Save$/)(toSceneElement(tree)))).toBe(true)
   })
 
   test('continues to match an empty string', () => {
     const empty = h('div', {})
-    expect(Option.getOrThrow(Scene.text('')(empty))).toBe(empty)
-    expect(Scene.all.text('')(empty)).toEqual([empty])
+    expect(Option.getOrThrow(Scene.text('')(toSceneElement(empty)))).toBe(empty)
+    expect(Scene.all.text('')(toSceneElement(empty))).toEqual([empty])
   })
 
   test('matches empty element text with an empty RegExp', () => {
     const empty = h('div', {})
-    expect(Option.getOrThrow(Scene.text(/(?:)/)(empty))).toBe(empty)
-    expect(Scene.all.text(/(?:)/)(empty)).toEqual([empty])
+    expect(Option.getOrThrow(Scene.text(/(?:)/)(toSceneElement(empty)))).toBe(
+      empty,
+    )
+    expect(Scene.all.text(/(?:)/)(toSceneElement(empty))).toEqual([empty])
   })
 })
 
@@ -4279,29 +4449,41 @@ describe('scene with text locator', () => {
 })
 
 describe('new matchers', () => {
-  const inputWithValue: VNode = h('input', {
-    props: { value: 'hello' },
-  })
+  const inputWithValue = toSceneElement(
+    h('input', {
+      props: { value: 'hello' },
+    }),
+  )
 
-  const disabledButton: VNode = h('button', {
-    props: { disabled: true },
-  })
+  const disabledButton = toSceneElement(
+    h('button', {
+      props: { disabled: true },
+    }),
+  )
 
-  const ariaDisabledButton: VNode = h('button', {
-    attrs: { 'aria-disabled': 'true' },
-  })
+  const ariaDisabledButton = toSceneElement(
+    h('button', {
+      attrs: { 'aria-disabled': 'true' },
+    }),
+  )
 
-  const enabledButton: VNode = h('button', {
-    props: { disabled: false },
-  })
+  const enabledButton = toSceneElement(
+    h('button', {
+      props: { disabled: false },
+    }),
+  )
 
-  const checkedCheckbox: VNode = h('input', {
-    props: { type: 'checkbox', checked: true },
-  })
+  const checkedCheckbox = toSceneElement(
+    h('input', {
+      props: { type: 'checkbox', checked: true },
+    }),
+  )
 
-  const ariaCheckedOption: VNode = h('div', {
-    attrs: { role: 'option', 'aria-checked': 'true' },
-  })
+  const ariaCheckedOption = toSceneElement(
+    h('div', {
+      attrs: { role: 'option', 'aria-checked': 'true' },
+    }),
+  )
 
   test('toHaveValue passes for matching value', () => {
     expect(Option.some(inputWithValue)).toHaveValue('hello')
@@ -4394,6 +4576,177 @@ describe('new matchers', () => {
       Scene.expect(Scene.role('button', { name: /Sign/ })).toExist(),
       Scene.expect(Scene.role('button', { name: /sign/i })).toExist(),
       Scene.expect(Scene.role('button', { name: /Nonexistent/ })).not.toExist(),
+    )
+  })
+})
+
+describe('toHaveKey', () => {
+  const keyedFrameUpdate = (model: null, _message: never) => ({ model })
+
+  const keyedFrameView = (_model: null, h: HtmlBuilder<never>) =>
+    h.div([], [h.keyed('iframe')('a', [h.Title('Preview')])])
+
+  const unkeyedFrameView = (_model: null, h: HtmlBuilder<never>) =>
+    h.div([], [h.iframe([h.Title('Preview')])])
+
+  const keyAttributeFrameView = (_model: null, h: HtmlBuilder<never>) =>
+    h.div([], [h.iframe([h.Key('a'), h.Title('Preview')])])
+
+  const numericKeyFrameView = (_model: null, h: HtmlBuilder<never>) =>
+    h.div([], [h.keyed('iframe')(1, [h.Title('Preview')])])
+
+  test('Scene.expect toHaveKey passes for the key the view gave the element', () => {
+    Scene.scene(
+      { update: keyedFrameUpdate, view: keyedFrameView },
+      Scene.given(null),
+      Scene.expect(Scene.selector('iframe')).toHaveKey('a'),
+    )
+  })
+
+  test('Scene.expect toHaveKey passes for a key given through h.Key', () => {
+    Scene.scene(
+      { update: keyedFrameUpdate, view: keyAttributeFrameView },
+      Scene.given(null),
+      Scene.expect(Scene.selector('iframe')).toHaveKey('a'),
+      Scene.expect(Scene.selector('iframe')).not.toHaveKey('b'),
+    )
+  })
+
+  test('Scene.expect toHaveKey fails for a different key', () => {
+    expect(() =>
+      Scene.scene(
+        { update: keyedFrameUpdate, view: keyedFrameView },
+        Scene.given(null),
+        Scene.expect(Scene.selector('iframe')).toHaveKey('b'),
+      ),
+    ).toThrow(
+      'Expected element matching "iframe" to have key "b" but received key "a".',
+    )
+  })
+
+  test('Scene.expect toHaveKey tells a numeric key from a string key', () => {
+    Scene.scene(
+      { update: keyedFrameUpdate, view: numericKeyFrameView },
+      Scene.given(null),
+      Scene.expect(Scene.selector('iframe')).toHaveKey(1),
+    )
+
+    expect(() =>
+      Scene.scene(
+        { update: keyedFrameUpdate, view: numericKeyFrameView },
+        Scene.given(null),
+        Scene.expect(Scene.selector('iframe')).toHaveKey('1'),
+      ),
+    ).toThrow(
+      'Expected element matching "iframe" to have key "1" but received key 1.',
+    )
+  })
+
+  test('Scene.expect toHaveKey fails for an element without a key', () => {
+    expect(() =>
+      Scene.scene(
+        { update: keyedFrameUpdate, view: unkeyedFrameView },
+        Scene.given(null),
+        Scene.expect(Scene.selector('iframe')).toHaveKey('a'),
+      ),
+    ).toThrow(
+      'Expected element matching "iframe" to have key "a" but the element has no key.',
+    )
+  })
+
+  test('Scene.expect not.toHaveKey passes for a different key', () => {
+    Scene.scene(
+      { update: keyedFrameUpdate, view: keyedFrameView },
+      Scene.given(null),
+      Scene.expect(Scene.selector('iframe')).not.toHaveKey('b'),
+    )
+  })
+
+  test('Scene.expect not.toHaveKey fails for the same key', () => {
+    expect(() =>
+      Scene.scene(
+        { update: keyedFrameUpdate, view: keyedFrameView },
+        Scene.given(null),
+        Scene.expect(Scene.selector('iframe')).not.toHaveKey('a'),
+      ),
+    ).toThrow(
+      'Expected element matching "iframe" not to have key "a" but it does.',
+    )
+  })
+
+  test('toHaveKey matcher passes for the key the view gave the element', () => {
+    Scene.scene(
+      { update: keyedFrameUpdate, view: keyedFrameView },
+      Scene.given(null),
+      Scene.tap(simulation => {
+        expect(Scene.find(simulation.html, 'iframe')).toHaveKey('a')
+        expect(Scene.find(simulation.html, 'iframe')).not.toHaveKey('b')
+      }),
+    )
+  })
+
+  test('toHaveKey matcher fails for a different key', () => {
+    Scene.scene(
+      { update: keyedFrameUpdate, view: keyedFrameView },
+      Scene.given(null),
+      Scene.tap(simulation => {
+        expect(() =>
+          expect(Scene.find(simulation.html, 'iframe')).toHaveKey('b'),
+        ).toThrow('Expected element to have key "b" but received key "a".')
+      }),
+    )
+  })
+
+  test('toHaveKey matcher tells a numeric key from a string key', () => {
+    Scene.scene(
+      { update: keyedFrameUpdate, view: numericKeyFrameView },
+      Scene.given(null),
+      Scene.tap(simulation => {
+        expect(Scene.find(simulation.html, 'iframe')).toHaveKey(1)
+        expect(() =>
+          expect(Scene.find(simulation.html, 'iframe')).toHaveKey('1'),
+        ).toThrow('Expected element to have key "1" but received key 1.')
+      }),
+    )
+  })
+
+  test('toHaveKey matcher fails a negated assertion for the same key', () => {
+    Scene.scene(
+      { update: keyedFrameUpdate, view: keyedFrameView },
+      Scene.given(null),
+      Scene.tap(simulation => {
+        expect(() =>
+          expect(Scene.find(simulation.html, 'iframe')).not.toHaveKey('a'),
+        ).toThrow('Expected element not to have key "a" but it does.')
+      }),
+    )
+  })
+
+  test('toHaveKey matcher fails for an element without a key', () => {
+    Scene.scene(
+      { update: keyedFrameUpdate, view: unkeyedFrameView },
+      Scene.given(null),
+      Scene.tap(simulation => {
+        expect(() =>
+          expect(Scene.find(simulation.html, 'iframe')).toHaveKey('a'),
+        ).toThrow(
+          'Expected element to have key "a" but the element has no key.',
+        )
+      }),
+    )
+  })
+
+  test('toHaveKey matcher fails when the element does not exist', () => {
+    Scene.scene(
+      { update: keyedFrameUpdate, view: keyedFrameView },
+      Scene.given(null),
+      Scene.tap(simulation => {
+        expect(() =>
+          expect(Scene.find(simulation.html, 'video')).toHaveKey('a'),
+        ).toThrow(
+          'Expected element to have key "a" but the element does not exist.',
+        )
+      }),
     )
   })
 })
@@ -4733,7 +5086,7 @@ describe('scene mounts', () => {
           typeof mountInitialModel,
           MountPanelMessage
         > => ({ model: mountInitialModel }),
-        view: () => h('div', {}, []),
+        view: () => toHtml(h('div', {}, [])),
       },
       Scene.given(mountInitialModel),
       Scene.Mount.expectNone(),

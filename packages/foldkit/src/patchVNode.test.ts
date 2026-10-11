@@ -2,6 +2,7 @@ import { Context, Option } from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import { beginRender, createBoundaryRegistry } from './html/boundary.js'
+import { fromHtml } from './html/htmlNode.js'
 import { __htmlBuilder } from './html/index.js'
 import { clearRuntime, setRuntime } from './html/runtimeSingleton.js'
 import { h } from './snabbdom/index.js'
@@ -77,7 +78,7 @@ describe('controlled select on a fresh render', () => {
           ],
         ),
       )
-      const mounted = __patchVNode(Option.none(), view, container)
+      const mounted = __patchVNode(Option.none(), fromHtml(view), container)
 
       expect(mounted.elm).toBeInstanceOf(HTMLSelectElement)
       if (mounted.elm instanceof HTMLSelectElement) {
@@ -105,7 +106,7 @@ describe('controlled select on a fresh render', () => {
           ],
         ),
       )
-      const mounted = __patchVNode(Option.none(), view, container)
+      const mounted = __patchVNode(Option.none(), fromHtml(view), container)
 
       expect(mounted.elm).toBeInstanceOf(HTMLSelectElement)
       if (mounted.elm instanceof HTMLSelectElement) {

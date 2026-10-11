@@ -106,7 +106,7 @@ const detailsForSlowContext = (
       Update: () =>
         'CPU work ran inside update before Foldkit could return the next Model.',
       View: () =>
-        'The view function performed expensive synchronous work while building the next VNode tree.',
+        'The view function performed expensive synchronous work while building the next Html tree.',
       Patch: () =>
         'The patch phase inserted thousands of keyed rows into the live DOM.',
       SubscriptionDependencies: () =>
@@ -516,7 +516,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
                     phase: 'View',
                     thresholdMs: 16,
                     title: 'Slow view',
-                    body: 'Runs CPU work while the view builds the VNode tree.',
+                    body: 'Runs CPU work while the view builds the Html tree.',
                     buttonText: 'Run view work',
                     message: Message.ClickedRunViewWork(),
                   },

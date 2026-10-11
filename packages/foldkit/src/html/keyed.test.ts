@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { fromHtml } from './htmlNode.js'
 import { inertHtml as ih } from './index.js'
 
 describe('keyed', () => {
@@ -8,7 +9,7 @@ describe('keyed', () => {
 
     for (const key of keys) {
       const vnode = ih.keyed('div')(key)
-      expect(vnode?.key).toBe(key)
+      expect(fromHtml(vnode)?.key).toBe(key)
     }
   })
 })

@@ -130,7 +130,7 @@ Yes. [Server rendering](/core/server-rendering) runs the same program on the ser
 :::Faq{id="faq-testing" question="How do I test my app?"}
 Foldkit includes two testing APIs that use the same update and view pipeline as the runtime.
 
-[Story](/testing/story) tests the state machine. It dispatches Messages, inspects the Model, and resolves Commands by providing their result Messages. [Scene](/testing/scene) tests through the rendered VNode tree, locating elements by accessible role, label, or text and dispatching their events.
+[Story](/testing/story) tests the state machine. It dispatches Messages, inspects the Model, and resolves Commands by providing their result Messages. [Scene](/testing/scene) tests through the rendered view tree, locating elements by accessible role, label, or text and dispatching their events.
 
 When a test resolves Commands inline, both APIs stay synchronous and need no jsdom or network mocks. See the [Weather example](/example-apps/weather) for Story and Scene tests of the same application.
 :::

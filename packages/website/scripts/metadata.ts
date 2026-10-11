@@ -122,7 +122,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
   ),
   TestingScene: docs(
     'Scene',
-    'Drive the rendered VNode tree with accessible locators, dispatch interactions, resolve lifecycle results, and assert on the resulting HTML.',
+    'Drive the rendered view with accessible locators, dispatch interactions, resolve lifecycle results, and assert on the resulting HTML.',
     'Testing',
   ),
   Examples: docs(

@@ -22,6 +22,7 @@ import {
 import { type VNode, dedupeSharedVNodes } from '../vdom.js'
 import type { BoundaryRegistry } from './boundary.js'
 import { childAttributes } from './childAttribute.js'
+import { type Html, fromHtml, toHtml } from './htmlNode.js'
 import {
   type ChildAttribute,
   __htmlBuilder,
@@ -63,7 +64,7 @@ const createCapturingDispatch = () => {
 }
 
 const renderView = (
-  buildView: () => VNode | null,
+  buildView: () => Html,
   dispatch: typeof Dispatch.Service,
 ): VNode => {
   const testContext = Context.make(Dispatch, dispatch).pipe(
@@ -76,7 +77,7 @@ const renderView = (
   setHtmlRuntime(dispatch.dispatchSync, testContext)
   let vnode: VNode | null
   try {
-    vnode = buildView()
+    vnode = fromHtml(buildView())
   } finally {
     clearHtmlRuntime()
   }
@@ -253,11 +254,11 @@ describe('OnUnmount', () => {
       toVNode(makeRootContainer()),
       renderView(() => {
         const shared = h.span([h.OnUnmount(Message.Unmounted())])
-        const root = h.div([], [shared, shared])
+        const root = fromHtml(h.div([], [shared, shared]))
         if (root === null) {
           throw new Error('Expected a VNode')
         }
-        return dedupeSharedVNodes(root)
+        return toHtml(dedupeSharedVNodes(root))
       }, dispatch),
     )
 
@@ -299,11 +300,11 @@ describe('OnUnmount', () => {
         mounted,
         renderView(() => {
           const shared = h.span([])
-          const root = h.div([], [shared, shared])
+          const root = fromHtml(h.div([], [shared, shared]))
           if (root === null) {
             throw new Error('Expected a VNode')
           }
-          return dedupeSharedVNodes(root)
+          return toHtml(dedupeSharedVNodes(root))
         }, Dispatch.of(noOpDispatch)),
       )
       patch(
@@ -460,7 +461,7 @@ const ParentUnmounted: ParentUnmounted = { _tag: 'ParentUnmounted' }
 type ParentMessage = GotChildMessage | ParentUnmounted
 
 type ChildViewInputs = Readonly<{
-  toView: (dialog: ReadonlyArray<ChildAttribute>) => VNode | null
+  toView: (dialog: ReadonlyArray<ChildAttribute>) => Html
 }>
 
 // A Submodel that publishes an OnUnmount attribute through its boundary,
@@ -484,7 +485,7 @@ const childView = defineView<
 // boundaries. The plain `renderView` above creates a fresh registry per call,
 // which is fine for boundary-free elements but would break boundary continuity.
 const renderViewWithRegistry = (
-  buildView: () => VNode | null,
+  buildView: () => Html,
   dispatch: typeof Dispatch.Service,
   registry: BoundaryRegistry,
 ): VNode => {
@@ -499,7 +500,7 @@ const renderViewWithRegistry = (
   setHtmlRuntime(dispatch.dispatchSync, testContext, registry)
   let vnode: VNode | null
   try {
-    vnode = buildView()
+    vnode = fromHtml(buildView())
   } finally {
     clearHtmlRuntime()
   }

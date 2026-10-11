@@ -4,6 +4,7 @@ import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
+import { toHtml } from '../../html/htmlNode.js'
 import type { Document } from '../../html/index.js'
 import type { Html } from '../../html/index.js'
 import { __htmlBuilder, customElement } from '../../html/index.js'
@@ -1830,7 +1831,7 @@ describe('renderToString render depth', () => {
           [],
           [
             h.select([h.Value('missing')], [h.option([h.Value('a')], ['a'])]),
-            invalidTag,
+            toHtml(invalidTag),
           ],
         ),
         'has the controlled value "missing" but no option carries it',
