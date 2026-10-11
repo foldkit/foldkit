@@ -235,6 +235,16 @@ The client opts into the handoff in its entry (`src/entry.ts` in the examples):
 
 Use `run` from a separate client entry when the page must also support a fresh SPA boot.
 
+#### Embedded programs
+
+A program created by `makeElement` can also adopt a server-rendered root. Render it with `isEmbedded: true` and a `runtimeId` equal to the `id` of the container the client gives `makeElement`. Pass `isHydratable: true` to `Runtime.embed`:
+
+::Snippet{name="serverRenderingEmbedHydrate" label="Hydrating an embedded program"}
+
+Each embedded root carries its own Flags payload, so one page can hold any number of them, beside at most one page-owning application adopted with `Runtime.hydrate`. `embed` still takes a client Flags Effect when the program declares Flags. Foldkit uses it only when the container carries no stamp, and the program then builds fresh.
+
+Mismatch healing and the build id check match `Runtime.hydrate`. A root from another deployment, a root stamped as page-owning, or a stamp that differs from the container id stops startup and puts the page out of reach. `injectIntoTemplate` places the page-owning application only. The host places an embedded root where its container belongs.
+
 #### DOM adoption and mismatches
 
 `Runtime.hydrate` accepts no client Flags producer. It reads the serialized Flags, calls the same `init`, and adopts matching server DOM nodes. Element identity, focus, scroll position, and media state survive while listeners and Mounts attach.
@@ -577,7 +587,7 @@ Components that measure the DOM before deciding what to render, such as `Ui.Virt
 
 #### Supported applications and markup
 
-`makeElement` and `embed` applications do not hydrate. Server rendering supports page-owning `makeApplication` programs.
+Server rendering supports page-owning `makeApplication` programs and, through `Runtime.embed` with `isHydratable: true`, programs created by `makeElement`. A program created by `makeApplication` cannot be embedded with hydration.
 
 Ordinary element children under `template` cannot be server-rendered because browsers place them in a separate content fragment that the differ does not walk. Element children under `noscript` become raw text while scripting is enabled and cannot hydrate as the declared nodes. Keep template markup in the HTML shell. Use plain text, trusted `h.InnerHTML`, or shell markup for a noscript fallback.
 
