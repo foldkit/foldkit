@@ -40,6 +40,7 @@ import {
 } from '../../html/runtimeSingleton.js'
 import {
   FOLDKIT_APP_ATTRIBUTE,
+  FOLDKIT_EMBED_ATTRIBUTE,
   FOLDKIT_FLAGS_ATTRIBUTE,
 } from '../../hydrationMarker.js'
 import {
@@ -749,6 +750,7 @@ const assertRootIsNotDocumentStructure = (
 
 const RESERVED_HANDOFF_ATTRIBUTES: ReadonlySet<string> = new Set([
   FOLDKIT_APP_ATTRIBUTE,
+  FOLDKIT_EMBED_ATTRIBUTE,
   HYDRATION_BUILD_ATTRIBUTE,
   FOLDKIT_FLAGS_ATTRIBUTE,
   HYDRATION_KEY_ATTRIBUTE,
@@ -971,9 +973,11 @@ const assertSingleStampedRoot = (
   html: string,
   runtimeId: string,
   buildId: string,
+  isEmbedded: boolean,
   root: NonNullable<Document['body']>,
 ): void => {
   const only = parsedRootOf(html, root)
+  const embedMarkers = elementsCarrying(only, FOLDKIT_EMBED_ATTRIBUTE)
   const applicationMarkers = elementsCarrying(only, FOLDKIT_APP_ATTRIBUTE)
   const buildMarkers = elementsCarrying(only, HYDRATION_BUILD_ATTRIBUTE)
   const flagsMarkers = elementsCarrying(only, FOLDKIT_FLAGS_ATTRIBUTE)
@@ -986,6 +990,8 @@ const assertSingleStampedRoot = (
   if (
     applicationMarkers.length !== 1 ||
     applicationMarkers[0] !== only ||
+    embedMarkers.length !== (isEmbedded ? 1 : 0) ||
+    (isEmbedded && embedMarkers[0] !== only) ||
     stamp?.value !== runtimeId ||
     buildMarkers.length !== 1 ||
     buildMarkers[0] !== only ||
@@ -1168,6 +1174,16 @@ export type HydratableRenderOptions = CommonRenderOptions &
      * the same public value.
      */
     buildId?: string
+    /**
+     * Stamps the root as one an embedded program owns, for output the client
+     * adopts with `Runtime.embed(program, { isHydratable: true })`. The
+     * `runtimeId` must equal the `id` of the container the client passes to
+     * `makeElement`. A document holds any number of embedded roots, each with
+     * its own Flags payload, beside at most one page-owning application. An
+     * embedded root is not a page-owning one: `Runtime.hydrate` and
+     * `injectIntoTemplate` refuse it.
+     */
+    isEmbedded?: boolean
   }>
 
 /** Render options for static markup nothing will hydrate. No build id applies,
@@ -1179,6 +1195,7 @@ export type StaticRenderOptions = CommonRenderOptions &
   Readonly<{
     isHydratable: false
     buildId?: undefined
+    isEmbedded?: undefined
   }>
 
 /** Options for {@link renderToString}. `runtimeId` names the application in the
@@ -1409,6 +1426,7 @@ export function renderToString(
     const hasRouting = config.routing !== undefined
     const FlagsCodec = config.Flags
     const isHydratable = options?.isHydratable ?? true
+    const isEmbedded = isHydratable && options?.isEmbedded === true
 
     // A hydratable render must say which deployment it came from. The Vite
     // plugin compiles that identity into Foldkit when it coordinates the client
@@ -1466,6 +1484,7 @@ export function renderToString(
             ? {
                 rootAttributes: {
                   [FOLDKIT_APP_ATTRIBUTE]: runtimeId,
+                  ...(isEmbedded ? { [FOLDKIT_EMBED_ATTRIBUTE]: '' } : {}),
                   [HYDRATION_BUILD_ATTRIBUTE]: buildId,
                 },
                 emitHydrationMarkers: true,
@@ -1482,7 +1501,13 @@ export function renderToString(
         __assertNoLiveBaseElement(html)
         if (nextDocument.body !== null) {
           if (isHydratable) {
-            assertSingleStampedRoot(html, runtimeId, buildId, nextDocument.body)
+            assertSingleStampedRoot(
+              html,
+              runtimeId,
+              buildId,
+              isEmbedded,
+              nextDocument.body,
+            )
           } else {
             assertParsedRootMatchesView(html, nextDocument.body)
           }

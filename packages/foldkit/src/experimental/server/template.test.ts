@@ -29,6 +29,19 @@ describe('injectIntoTemplate', () => {
     )
   })
 
+  it('refuses markup rendered for an embedded program', () => {
+    expect(() =>
+      injectIntoTemplate(
+        TEMPLATE,
+        rendered({
+          html:
+            '<div data-foldkit-app="panel" data-foldkit-embed="" ' +
+            'data-foldkit-build="build-one">hi</div>',
+        }),
+      ),
+    ).toThrow(/rendered with `isEmbedded`/)
+  })
+
   it('rejects a template with a duplicate container id', () => {
     const template =
       '<!doctype html><html lang="en"><head><title>old</title></head>' +
