@@ -252,6 +252,16 @@ export const websiteVercelConfig = channel => {
         headers: { Location: '/ai/overview' },
       },
       {
+        src: '^/core/resources/?$',
+        status: 308,
+        headers: { Location: '/core/layers' },
+      },
+      {
+        src: '^/core/resources\\.md$',
+        status: 308,
+        headers: { Location: '/core/layers.md' },
+      },
+      {
         src: '^/manifesto/?$',
         status: 308,
         headers: { Location: '/introduction/why-foldkit' },

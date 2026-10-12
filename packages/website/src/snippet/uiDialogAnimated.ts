@@ -5,9 +5,12 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 
 import { Dialog } from '@foldkit/ui'
+
+type MountRequirements = Mount.RequirementsOf<typeof Dialog.mounts>
 
 // Add a field to your Model for the Dialog Submodel:
 const Model = Schema.Struct({
@@ -52,7 +55,7 @@ GotDialogMessage: ({ message }) => foldDialog(model, message)
 
 // Inside your view function, use data-[closed] for enter/leave transitions and
 // spread the `closeButton` bundle onto your dismiss buttons:
-const view = (model: Model, h: HtmlBuilder<Message>) => {
+const view = (model: Model, h: HtmlBuilder<Message, MountRequirements>) => {
   const dialogView = ({
     dialog,
     backdrop,

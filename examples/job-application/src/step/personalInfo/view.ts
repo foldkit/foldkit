@@ -1,5 +1,5 @@
 import { Equal, Option } from 'effect'
-import { Submodel } from 'foldkit'
+import { type Mount, Submodel } from 'foldkit'
 import { type CalendarDate } from 'foldkit/calendar'
 import { Valid } from 'foldkit/fieldValidation'
 import { type Html, type HtmlBuilder, childAttributes } from 'foldkit/html'
@@ -8,9 +8,14 @@ import { DatePicker as UiDatePicker } from '@foldkit/ui'
 
 import { PronounOption } from '../../domain'
 import { DatePicker, Field, Icon } from '../../view'
-import { Message, type Model, PronounsListbox } from './personalInfo'
+import { Message, type Model, PronounsListbox, mounts } from './personalInfo'
 
-export const view = Submodel.defineView<Model, Message>((model, h): Html => {
+export const view = Submodel.defineView<
+  Model,
+  Message,
+  void,
+  Mount.RequirementsOf<typeof mounts>
+>((model, h): Html => {
   const {
     firstName,
     lastName,
@@ -184,7 +189,7 @@ export const view = Submodel.defineView<Model, Message>((model, h): Html => {
 const availableDatePickerView = (
   model: UiDatePicker.Model,
   maybeSelectedDate: Option.Option<CalendarDate>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof UiDatePicker.mounts>>,
 ): Html =>
   h.div(
     [h.Class('space-y-1')],

@@ -5,9 +5,12 @@ import { Array, Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 
 import { Listbox } from '@foldkit/ui'
+
+type MountRequirements = Mount.RequirementsOf<typeof Listbox.mounts>
 
 const Person = Schema.Literals([
   'Michael Bluth',
@@ -27,6 +30,7 @@ const Model = Schema.Struct({
   listboxMulti: Listbox.Multi.Model,
   // ...your other fields
 })
+type Model = typeof Model.Type
 
 // In your init function, initialize the Listbox Submodel with a unique id:
 const init = () => ({
@@ -41,6 +45,7 @@ const init = () => ({
 const Message = defineMessageUnion({
   GotListboxMultiMessage: { message: Listbox.Message },
 })
+type Message = typeof Message.Type
 
 // At module scope, fold the OutMessage into your own Model. `Selected` carries
 // the activated value. The parent owns the selection and decides what it
@@ -87,7 +92,7 @@ const people: ReadonlyArray<Person> = [
 
 // Inside your view function, embed the Listbox via h.submodel. Multi-select
 // stays open on selection so the user can toggle several items:
-const view = (model: Model, h: HtmlBuilder<Message>) =>
+const view = (model: Model, h: HtmlBuilder<Message, MountRequirements>) =>
   h.submodel({
     slotId: 'people',
     model: model.listboxMulti,

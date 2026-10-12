@@ -1,5 +1,6 @@
 import { Array, pipe } from 'effect'
 import { type HtmlBuilder } from 'foldkit/html'
+import type * as MountDefinition from 'foldkit/mount'
 import {
   Mount,
   click,
@@ -26,21 +27,35 @@ const longCode = pipe(
   Array.join('\n'),
 )
 
-const testView = (rawCode: string) => (model: Model, h: HtmlBuilder<Message>) =>
-  renderer(
-    model,
-    message => message,
-    () => h.empty,
-    h,
-  )({
-    id: snippetId,
-    title: 'Counter state',
-    content: h.pre([], [rawCode]),
-    rawCode,
-    copyAriaLabel: 'Copy counter state',
-  })
+const testView =
+  (rawCode: string) =>
+  (
+    model: Model,
+    h: HtmlBuilder<
+      Message,
+      MountDefinition.RequirementsOf<typeof MeasureSnippetHeight>
+    >,
+  ) =>
+    renderer(
+      model,
+      message => message,
+      () => h.empty,
+      h,
+    )({
+      id: snippetId,
+      title: 'Counter state',
+      content: h.pre([], [rawCode]),
+      rawCode,
+      copyAriaLabel: 'Copy counter state',
+    })
 
-const groupedView = (model: Model, h: HtmlBuilder<Message>) => {
+const groupedView = (
+  model: Model,
+  h: HtmlBuilder<
+    Message,
+    MountDefinition.RequirementsOf<typeof MeasureSnippetHeight>
+  >,
+) => {
   const renderSnippet = renderer(
     model,
     message => message,

@@ -1,22 +1,34 @@
 import { Match, Option } from 'effect'
+import type { Mount } from 'foldkit'
 import { type Document, type HtmlBuilder } from 'foldkit/html'
+
+import { Dialog, Menu } from '@foldkit/ui'
 
 import { Shared } from '../component'
 import { Deployment } from '../deployment'
 import { Docs, Marketing } from '../layout'
 import { Message } from '../message'
 import { type Model } from '../model'
-import { Home, Newsletter, Playground } from '../page'
+import { Example, Home, Newsletter, Playground, Ui } from '../page'
 import { routeToCanonicalUrl } from '../route'
 import { routeTitle } from '../routeTitle'
 import * as SnippetCopy from '../snippetCopy'
 import * as SnippetDisclosure from '../snippetDisclosure'
 import * as Blog from './blog'
 
+type MountRequirements = Mount.RequirementsOf<
+  | typeof Dialog.mounts
+  | typeof Menu.mounts
+  | typeof Ui.mounts
+  | typeof Example.mounts
+  | typeof Playground.mounts
+  | typeof SnippetDisclosure.mounts
+>
+
 const homeView = (
   model: Model,
   homeModel: Home.Model,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, MountRequirements>,
 ) => {
   const renderCopyButton = SnippetCopy.renderer(
     model.snippetCopy,
@@ -54,7 +66,10 @@ const homeView = (
   )
 }
 
-const newsletterView = (model: Model, h: HtmlBuilder<Message>) =>
+const newsletterView = (
+  model: Model,
+  h: HtmlBuilder<Message, MountRequirements>,
+) =>
   Marketing.view(
     model,
     {
@@ -66,7 +81,10 @@ const newsletterView = (model: Model, h: HtmlBuilder<Message>) =>
     h,
   )
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+export const view = (
+  model: Model,
+  h: HtmlBuilder<Message, MountRequirements>,
+): Document => {
   const body = Match.value(model.route).pipe(
     Match.tag('Home', () =>
       Option.match(model.maybeHome, {

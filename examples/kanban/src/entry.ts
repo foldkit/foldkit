@@ -1,5 +1,7 @@
-import { Runtime } from 'foldkit'
+import { pipe } from 'effect'
+import { Application, Runtime } from 'foldkit'
 
+import { AppLayer } from './layer'
 import {
   Flags,
   Message,
@@ -11,7 +13,7 @@ import {
   view,
 } from './main'
 
-const application = Runtime.makeApplication({
+const application = Application.make({
   Model,
   Flags,
   init,
@@ -24,4 +26,4 @@ const application = Runtime.makeApplication({
   },
 })
 
-Runtime.run(application, { flags })
+pipe(application, Application.provide(AppLayer), Runtime.run({ flags }))

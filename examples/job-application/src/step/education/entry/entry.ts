@@ -85,6 +85,10 @@ export const init = (entryId: string): Model => ({
   isCurrentlyEnrolled: false,
 })
 
+export const EffectsLayer = Listbox.EffectsLayer
+
+export const mounts = Listbox.mounts
+
 // UPDATE
 
 const foldGraduationYearListboxOutMessage = Listbox.OutMessage.match<
@@ -111,34 +115,32 @@ const foldGraduationYearListbox = Update.foldChild({
   foldOutMessage: foldGraduationYearListboxOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
-    message,
-    {
-      UpdatedSchool: ({ value }) => ({
-        model: modifyFields(model, { school: () => validateSchool(value) }),
+export const update = Update.define((model: Model, message: Message) =>
+  Message.match(message, {
+    UpdatedSchool: ({ value }) => ({
+      model: modifyFields(model, { school: () => validateSchool(value) }),
+    }),
+
+    UpdatedDegree: ({ value }) => ({
+      model: modifyFields(model, { degree: () => validateDegree(value) }),
+    }),
+
+    UpdatedFieldOfStudy: ({ value }) => ({
+      model: modifyFields(model, {
+        fieldOfStudy: () => validateFieldOfStudy(value),
       }),
+    }),
 
-      UpdatedDegree: ({ value }) => ({
-        model: modifyFields(model, { degree: () => validateDegree(value) }),
-      }),
+    GotGraduationYearListboxMessage: ({ message }) =>
+      foldGraduationYearListbox(model, message),
 
-      UpdatedFieldOfStudy: ({ value }) => ({
-        model: modifyFields(model, {
-          fieldOfStudy: () => validateFieldOfStudy(value),
-        }),
-      }),
+    ToggledCurrentlyEnrolled: ({ isChecked }) => ({
+      model: modifyFields(model, { isCurrentlyEnrolled: () => isChecked }),
+    }),
 
-      GotGraduationYearListboxMessage: ({ message }) =>
-        foldGraduationYearListbox(model, message),
-
-      ToggledCurrentlyEnrolled: ({ isChecked }) => ({
-        model: modifyFields(model, { isCurrentlyEnrolled: () => isChecked }),
-      }),
-
-      ClickedRemoveSelf: () => ({ model, outMessage: OutMessage.Removed() }),
-    },
-  )
+    ClickedRemoveSelf: () => ({ model, outMessage: OutMessage.Removed() }),
+  }),
+)
 
 // VALIDATION SUMMARY
 

@@ -7,7 +7,6 @@ import { Menu, Tabs } from '@foldkit/ui'
 import { ExampleSlug } from '../example/meta'
 import * as AsyncCounterDemo from './asyncCounterDemo'
 import * as DemoTab from './demoTab'
-import { type ManagedResourceServices } from './managedResources'
 import { Message, OutMessage } from './message'
 import { type Model } from './model'
 import * as NotePlayerDemo from './notePlayerDemo'
@@ -16,17 +15,11 @@ import * as NotePlayerDemo from './notePlayerDemo'
 
 const PlaygroundMenu = Menu.create<ExampleSlug>()
 
-const selectDemoTab = (
-  model: Model,
-  tab: DemoTab.Tab,
-): Update.Return<Model, Message> => ({
+const selectDemoTab = (model: Model, tab: DemoTab.Tab) => ({
   model: modifyFields(model, { activeDemoTab: () => tab }),
 })
 
-const selectPlaygroundExample = (
-  model: Model,
-  exampleSlug: ExampleSlug,
-): Update.ReturnWithOutMessage<Model, Message, OutMessage> => ({
+const selectPlaygroundExample = (model: Model, exampleSlug: ExampleSlug) => ({
   model,
   outMessage: OutMessage.SelectedPlaygroundExample({ exampleSlug }),
 })
@@ -87,15 +80,8 @@ const foldNotePlayerDemo = Update.foldChild({
   toParentMessage: message => Message.GotNotePlayerDemoMessage({ message }),
 })
 
-type UpdateReturn = Update.ReturnWithOutMessage<
-  Model,
-  Message,
-  OutMessage,
-  ManagedResourceServices
->
-
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.define((model: Model, message: Message) =>
+  Message.match(message, {
     GotDemoTabsMessage: ({ message }) => foldDemoTabs(model, message),
     GotPlaygroundMenuMessage: ({ message }) =>
       foldPlaygroundMenu(model, message),
@@ -103,4 +89,5 @@ export const update = (model: Model, message: Message) =>
       foldAsyncCounterDemo(model, message),
     GotNotePlayerDemoMessage: ({ message }) =>
       foldNotePlayerDemo(model, message),
-  })
+  }),
+)

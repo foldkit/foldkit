@@ -8,7 +8,9 @@ Mount is the escape hatch for work whose cause is a particular element existing 
 
 ### Mount Definitions
 
-Use `Mount.define` for work that produces one Message when it starts. Its `execute` receives the live element and the rendered view's state, then returns an `Effect<Message>` that emits that Message. Its scope remains open until unmount so cleanup registered with `Effect.acquireRelease` runs at the right time. Use `Mount.defineStream` when listeners or observers on the element must emit a continuing `Stream<Message>`.
+Use `Mount.define` for work that produces one Message when it starts. Its handler receives the live element and the rendered view's state, then returns an `Effect<Message>` that emits that Message. Its scope remains open until unmount so cleanup registered with `Effect.acquireRelease` runs at the right time. Use `Mount.defineStream` when listeners or observers on the element must emit a continuing `Stream<Message>`.
+
+Mount definitions declare their name, args, and result Messages in the config, then set `config.handler` to a generator constructor. Foldkit applies `Effect.gen` internally. Both `define` and `defineStream` expose the attached recipe as `.layer`.
 
 ### Result Messages
 
@@ -60,10 +62,42 @@ Portal-to-body is a small example. When an overlay enters the DOM, its Mount mov
 
 ::Snippet{name="mountPortalToBody" label="Portal-to-body"}
 
-#### Mount Work Requirements
+### Handler Layers
+
+A Mount starts when its element enters the DOM and stops when that element leaves. Register its definition in `Application.make({ mounts: [...] })` so the application carries its handler requirement, then supply the implementation with `Application.provide`. Registration declares a Mount the view may render; a conditional Mount need not appear in every render.
+
+::Snippet{name="mountHandlerLayers" label="Registering a Mount handler Layer"}
+
+`Application.make` derives the view builder's allowed Mounts from `mounts`. TypeScript rejects a view that requires an unregistered Mount, and supplying the registrations leaves their handler Layers as application requirements. Foldkit also checks each rendered definition before patching the DOM. Use the same definition in the view, registration, and Layer composition. Distinct Mount definitions within one application need distinct names; the same definition can appear on multiple elements. The handler Layer lives for the application lifetime, while each Mount acquisition and cleanup follows its element.
+
+The Runtime runs the attached handler generator once while building the application Layer and obtains the element handler. Return it directly from the generator when construction has no dependencies. The constructor must not capture a DOM element or Mount args; Foldkit supplies those when each element is mounted. Each element receives its own Mount scope. Removing and reinserting an element reruns the real handler without rebuilding its provider.
+
+Omit `handler` only when an external host owns the Mount implementation. That definition has no `.layer`; the host calls `toLayer` with its implementation Effect constructor at its assembly boundary. Ordinary application Mounts keep their implementation attached and include `.layer` in the feature's `EffectsLayer`.
+
+A whole-application execution test retains the real Layer-backed Mount handler and replaces the browser or library capability beneath it. The Mount still receives a live test element, performs its element-scoped transformation, and releases on unmount. Replacing the whole handler can acknowledge or orchestrate a Mount result, but that path does not test the replaced integration.
+
+Name the Mount for the imperative work attached to the element, using a verb-first name such as `MeasurePanel`, `AnchorPopover`, or `PortalMenuBackdrop`. Compose `MeasurePanel.layer` directly in the feature's `EffectsLayer` export. Name an individual provider `MeasurePanelLayer` only when it is intentionally public or independently reused outside that bundle's assembly.
+
+Registering a Mount that the view never renders starts no element lifecycle, listeners, or DOM work. Its provided handler constructor still runs during application startup.
+
+### Mount Requirements in Reusable Views
+
+An inline application view receives a builder whose allowed Mounts are inferred from the registrations. An exported view preserves its required Mounts in its signature. When several helpers share a mounted view path, export one `HtmlBuilder` type from the owning module, derived from its Message type and inferred `mounts` registry. Those helpers use `h: HtmlBuilder`, or `h: Chart.HtmlBuilder` through a module namespace import. `Submodel.defineView` infers the child Model, Message, and Mount requirements from its annotated Model and builder parameters:
+
+::Snippet{name="mountSubmodelView" label="Preserving a Submodel view's Mount requirements"}
+
+The parent must include the child's `mounts` in its application registrations before its builder can embed this view with `h.submodel`. A child with `ViewInputs` annotates them as the second parameter and receives its builder third. The explicit generic form remains available: `Submodel.defineView<Model, Message, ViewInputs, RequiredMounts>`. Use `void` for the third type parameter when the child has no inputs.
+
+The owner derives its builder type from its inferred `mounts` export, and application assembly includes those exported registrations. Missing registrations still fail at the application boundary, and helpers cannot attach Mounts outside their builder's declared set. Keep pure helpers on the framework's `HtmlBuilder<Message>` and pure child views as `Submodel.defineView<Model, Message>`. The returned `Html` type stays the same.
+
+Let TypeScript infer `mounts` arrays and composed spreads. Widening the array to `ReadonlyArray<Mount.LayeredMountDefinition>` discards the contracts required for registration checking, so application assembly rejects it. Forwarded attribute arrays preserve the same evidence: use `Attribute<Message, RequiredMounts>` or `ChildAttribute<RequiredMounts>` when an explicit annotation is necessary. `childAttributes` infers those requirements from its input, and `CustomElement.withMessage(h)` retains the builder's allowed Mounts.
+
+Two distinct definitions with identical names, args, and result Messages have identical structural types. Runtime registration and handler identity checks still reject the wrong definition in that case. Alternate implementations belong to the original definition's `toLayer`.
+
+### Mount Work Requirements
 
 :::Info{label="Two rules for Mount work"}
-First, `execute` must use the live element. If it does not read or write that element, a Message or Model condition is probably the real cause. Second, the work must be safe to repeat whenever that element is inserted again. DOM measurement, paired DOM manipulation, observers, and element-owned library instances fit these rules.
+First, the handler must use the live element. If it does not read or write that element, a Message or Model condition is probably the real cause. Second, the work must be safe to repeat whenever that element is inserted again. DOM measurement, paired DOM manipulation, observers, and element-owned library instances fit these rules.
 :::
 
 #### One Mount per Element
@@ -84,17 +118,17 @@ DevTools re-renders historical Models. Elements inserted during replay run their
 
 #### Definition Shape
 
-A Mount often needs an input that differs by element instance, such as an initial scroll position, chart data, or a stable host id. Declare those under `args`, using the same Schema record shape a [Command](/core/commands) takes. `args`, `messages`, and `execute` are all named fields on one config object. `execute` receives the runtime fields `element` and `viewStateChanges` alongside the declared args, so those names are reserved and rejected under `args`:
+A Mount often needs an input that differs by element instance, such as an initial scroll position, chart data, or a stable host id. Declare those under `args`, using the same Schema record shape a [Command](/core/commands) takes. The handler receives the runtime fields `element` and `viewStateChanges` alongside the declared args, so those names are reserved and rejected under `args`:
 
 ::Snippet{name="mountDefineArgs" label="Mount args definition"}
 
 #### Runtime Invocation
 
-Calling the Definition with an args record creates the MountAction passed to `OnMount`. That call never runs `execute`. The runtime calls it when the element enters the DOM, so nothing `execute` does happens inside the pure view that built the action. `Mount.defineStream` takes the same fields, and its `execute` returns a `Stream<Message>` instead.
+Calling the Definition with an args record creates the MountAction passed to `OnMount`. That call never runs the handler. The Runtime invokes it when the element enters the DOM, so the pure view only describes the action. A `Mount.defineStream` handler returns a `Stream<Message>` instead.
 
 #### What Belongs in Args
 
-Args are only per-instance inputs. Module constants stay in lexical scope, app-wide services come from Foldkit `Resources`, Model-owned handles come from `ManagedResources`, and Effect services remain available through `yield*` inside `execute`.
+Args are only per-instance inputs. Module constants stay in lexical scope, and Model-owned handles come from ManagedResources. Put an app-wide service requirement in the handler constructor so `Application.provide` can supply it once and execution tests can substitute the external provider while retaining the real Mount implementation.
 
 :::Info{label="Args surface in DevTools and tests"}
 DevTools shows the args beside the Mount name. Scene tests can target one instance by passing the same args record to `Mount.expectHas` or `Mount.resolve`. See [Scene](/testing/scene) for the Definition and instance matcher contract.
@@ -103,18 +137,18 @@ DevTools shows the args beside the Mount name. Scene tests can target one instan
 ### Capture Time and Reactivity
 
 :::Warning{label="Args are captured at mount"}
-`execute` receives the args from the render that inserts the element. Later renders create new MountActions, but a reused DOM node does not run `execute` again. Name values for that lifecycle, such as `initialScroll` or `seedValue`, rather than implying that they stay current.
+The handler receives the args from the render that inserts the element. Later renders create new MountActions, but a reused DOM node does not run the handler again. Name values for that lifecycle, such as `initialScroll` or `seedValue`, rather than implying that they stay current.
 :::
 
 When a later Message changes the Model and should trigger new DOM work, return a Command from that Message's update handler. A Subscription is appropriate when a Model dependency controls the lifetime of an external stream or a paired DOM state, or when a browser event must be handled synchronously, such as calling `preventDefault` inside its listener. Mount args are not reactive properties for either case.
 
 ## Paused Historical Views
 
-Time travel pauses the rendered view, not the application. The live Model, history, Commands, Subscriptions, and ManagedResources continue normally behind the historical DOM. A Mount owns imperative behavior attached to an element in that rendered view, so its `execute` input includes `viewStateChanges`, a `Stream<'Live' | 'Paused'>`.
+Time travel pauses the rendered view, not the application. The live Model, history, Commands, Subscriptions, and ManagedResources continue normally behind the historical DOM. A Mount owns imperative behavior attached to an element in that rendered view, so its handler input includes `viewStateChanges`, a `Stream<'Live' | 'Paused'>`.
 
 ### Observing the View State
 
-The Stream begins with the rendered view state at the moment the Mount is acquired, followed by changes. That initial state is retained while `execute` performs asynchronous setup, so a Mount inserted by a historical render receives `Paused` first even if it consumes the Stream only after setup finishes. The Stream stays open for the Mount's lifetime and reports only `Live` when time travel is unavailable. A surviving live Mount is not restarted, interrupted, or reacquired when the view pauses. On resume, Mounts receive `Live` only after Foldkit has patched the latest live view back into the DOM.
+The Stream begins with the rendered view state at the moment the Mount is acquired, followed by changes. That initial state is retained while the handler performs asynchronous setup, so a Mount inserted by a historical render receives `Paused` first even if it consumes the Stream only after setup finishes. The Stream stays open for the Mount's lifetime and reports only `Live` when time travel is unavailable. A surviving live Mount is not restarted, interrupted, or reacquired when the view pauses. On resume, Mounts receive `Live` only after Foldkit has patched the latest live view back into the DOM.
 
 Custom renderers without time travel can pass `Mount.liveViewStateChanges` as the required second argument to a low-level `MountAction.f` call. It emits `Live` immediately and stays open.
 

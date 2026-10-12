@@ -1,4 +1,4 @@
-import { Array, Option, Schema, pipe } from 'effect'
+import { Array, Option, Schema } from 'effect'
 import { File, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -45,11 +45,7 @@ const foldResumeDropOutMessage = FileDrop.OutMessage.match<
     model => ({
       model: modifyFields(model, {
         maybeResume: () =>
-          pipe(
-            files,
-            Array.head,
-            Option.orElse(() => model.maybeResume),
-          ),
+          Option.orElse(Array.head(files), () => model.maybeResume),
       }),
     }),
   RejectedNonFiles: () => model => ({ model }),
@@ -87,8 +83,8 @@ const foldAdditionalFilesDrop = Update.foldChild({
   foldOutMessage: foldAdditionalFilesDropOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.define((model: Model, message: Message) =>
+  Message.match(message, {
     GotResumeDropMessage: ({ message }) => foldResumeDrop(model, message),
 
     GotAdditionalFilesDropMessage: ({ message }) =>
@@ -103,4 +99,5 @@ export const update = (model: Model, message: Message) =>
         additionalFiles: Array.remove(fileIndex),
       }),
     }),
-  })
+  }),
+)

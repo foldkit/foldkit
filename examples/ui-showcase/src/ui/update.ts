@@ -835,18 +835,19 @@ const foldHoverIntentDemo = Update.foldChild({
   foldOutMessage: foldHoverIntentOutMessage,
 })
 
-const foldAnimationDemoOutMessage: (
+const foldAnimationDemoOutMessage = (
   outMessage: Animation.OutMessage,
-  context: Update.FoldContext<Animation.Message, UiMessage>,
-) => Update.Step<UiModel, UiMessage> = (outMessage, { liftCommand }) =>
-  Animation.OutMessage.match<Update.Step<UiModel, UiMessage>>(outMessage, {
-    StartedLeaveAnimating: () => model => ({
-      model,
-      commands: [
-        liftCommand(Animation.defaultLeaveCommand(model.animationDemo)),
-      ],
-    }),
-    TransitionedOut: () => model => ({ model }),
+  { liftCommand }: Update.FoldContext<Animation.Message, UiMessage>,
+) =>
+  Animation.OutMessage.match(outMessage, {
+    StartedLeaveAnimating: () =>
+      Update.defineStep((model: UiModel) => ({
+        model,
+        commands: [
+          liftCommand(Animation.defaultLeaveCommand(model.animationDemo)),
+        ],
+      })),
+    TransitionedOut: () => Update.defineStep((model: UiModel) => ({ model })),
   })
 
 const foldAnimationDemo = Update.foldChild({
@@ -912,8 +913,8 @@ const foldVirtualListVariableDemoScrollToIndex = Update.foldChild({
     UiMessage.GotVirtualListVariableDemoMessage({ message }),
 })
 
-export const uiUpdate = (model: UiModel, message: UiMessage) =>
-  UiMessage.match<Update.Return<UiModel, UiMessage>>(message, {
+export const uiUpdate = Update.define((model: UiModel, message: UiMessage) =>
+  UiMessage.match(message, {
     GotMobileMenuDialogMessage: ({ message }) =>
       foldMobileMenuDialog(model, message),
 
@@ -1188,7 +1189,8 @@ export const uiUpdate = (model: UiModel, message: UiMessage) =>
         model,
         Math.floor(VIRTUAL_LIST_ROW_COUNT / 2),
       ),
-  })
+  }),
+)
 
 export const openMobileMenu = (model: UiModel) =>
   foldMobileMenuDialogOpen(model)

@@ -1,10 +1,16 @@
 import { Submodel } from 'foldkit'
-import type { Html, HtmlBuilder } from 'foldkit/html'
+import type { HtmlBuilder as FoldkitHtmlBuilder, Html } from 'foldkit/html'
+import type * as Mount from 'foldkit/mount'
 
 import { Popover } from '@foldkit/ui'
 
 import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
+
+type HtmlBuilder = FoldkitHtmlBuilder<
+  UiMessage,
+  Mount.RequirementsOf<typeof Popover.mounts>
+>
 
 const triggerClassName =
   'inline-flex items-center gap-1.5 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
@@ -25,7 +31,7 @@ const POPOVER_ANCHOR = {
   padding: 8,
 }
 
-const popoverPanelContent = (h: HtmlBuilder<UiMessage>): Html => {
+const popoverPanelContent = (h: FoldkitHtmlBuilder<UiMessage>): Html => {
   return h.div(
     [],
     [
@@ -43,7 +49,7 @@ const popoverDemo = (
   popoverModel: Popover.Model,
   toParentMessage: (message: Popover.Message) => UiMessage,
   panelClassNameValue: string,
-  h: HtmlBuilder<UiMessage>,
+  h: HtmlBuilder,
 ): Html => {
   const popoverView = ({
     button,
@@ -92,7 +98,7 @@ const nestedChildButtonSelector = '#popover-nested-child-demo-button'
 
 const nestedChildPopover = (
   childPopoverModel: Popover.Model,
-  h: HtmlBuilder<UiMessage>,
+  h: HtmlBuilder,
 ): Html => {
   const childPopoverView = ({
     button,
@@ -147,7 +153,7 @@ const nestedChildPopover = (
 const nestedDemo = (
   parentPopoverModel: Popover.Model,
   childPopoverModel: Popover.Model,
-  h: HtmlBuilder<UiMessage>,
+  h: HtmlBuilder,
 ): Html => {
   const parentPopoverView = ({
     button,
@@ -204,8 +210,8 @@ const nestedDemo = (
   )
 }
 
-export const view = Submodel.defineView<UiModel, UiMessage>(
-  (model, h): Html => {
+export const view = Submodel.defineView(
+  (model: UiModel, h: HtmlBuilder): Html => {
     return h.div(
       [],
       [

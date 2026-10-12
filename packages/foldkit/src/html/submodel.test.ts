@@ -14,7 +14,7 @@ import {
   registerBoundaryWrap,
   resolveMountBoundaryDispatch,
 } from './boundary.js'
-import { __htmlBuilder } from './index.js'
+import { type HtmlBuilder, __htmlBuilder } from './index.js'
 import { createKeyedLazy, createLazy } from './lazy.js'
 import {
   type DispatchSync,
@@ -107,6 +107,13 @@ describe('h.submodel', () => {
 
   afterEach(() => {
     clearRuntime()
+  })
+
+  it('returns an inferred view function unchanged', () => {
+    const view = (_model: { value: number }, _h: HtmlBuilder<ChildMessage>) =>
+      null
+
+    expect(defineView(view)).toBe(view)
   })
 
   it('renders the child view and returns the VNode', () => {

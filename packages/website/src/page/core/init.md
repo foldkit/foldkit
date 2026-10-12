@@ -24,11 +24,11 @@ Define the boundary with a Flags Schema. For a fresh client boot, also define an
 
 ### Fresh Client Boot
 
-Pass the Schema to `Runtime.makeApplication` as `Flags`, then pass the Effect to `Runtime.run`. The runtime resolves the Effect before calling `init`. If the configuration omits the Schema, `init` takes no Flags argument and the compiler rejects mismatched wiring.
+Pass the Schema to `Application.make` as `Flags`, then pass the Effect to `Runtime.run`. The runtime resolves the Effect before calling `init`. If the configuration omits the Schema, `init` takes no Flags argument and the compiler rejects mismatched wiring.
 
 ::Snippet{name="counterEntryWithFlags" label="Flags wiring"}
 
-The example provides `KeyValueStore` inside the Flags Effect because that service is used only during startup. If the same singleton is also needed by Commands or Subscriptions, leave the requirement in the Effect type and provide it through the application's `resources` Layer. The runtime builds that Layer once and shares it. See [Resources](/core/resources) for the full setup.
+The Flags Effect leaves `KeyValueStore` in its requirements, and the application root supplies the browser provider through `Application.provide`. A whole-application test can provide a deterministic store at the same boundary. The runtime builds the Layer once and shares it with Flags, Commands, and Subscriptions that require the same service. See [Layers](/core/layers) for the full setup.
 
 ### Server Rendering and Hydration
 

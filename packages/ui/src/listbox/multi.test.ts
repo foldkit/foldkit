@@ -1,5 +1,6 @@
 import { Option } from 'effect'
 import type { HtmlBuilder } from 'foldkit/html'
+import type * as Mount from 'foldkit/mount'
 import * as Scene from 'foldkit/scene'
 import * as Story from 'foldkit/story'
 import { expect } from 'vitest'
@@ -11,16 +12,19 @@ import { create, init, update } from './multi.js'
 import type { Model, ViewInputs } from './multi.js'
 import {
   AnchorListbox,
-  FocusItems,
+  FocusListboxItems,
   Message,
   OutMessage,
   PortalListboxBackdrop,
-  ScrollIntoView,
+  ScrollListboxItemIntoView,
   buttonId,
+  mounts,
 } from './shared.js'
 
 const TestListbox = create<string>()
 const view = TestListbox.view
+
+type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
 
 const acknowledgeAnchor = Scene.Mount.resolve(
   AnchorListbox,
@@ -36,7 +40,10 @@ const givenClosed = Story.given(init({ id: 'test' }))
 const givenOpenMulti = Story.steps(
   givenClosed,
   Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
-  Story.Command.resolve(FocusItems, Message.CompletedFocusItems()),
+  Story.Command.resolve(
+    FocusListboxItems,
+    Message.CompletedFocusListboxItems(),
+  ),
 )
 
 describe('Listbox.Multi', () => {
@@ -111,8 +118,8 @@ describe('Listbox.Multi', () => {
             Message.ActivatedItem({ index: 2, activationTrigger: 'Keyboard' }),
           ),
           Story.Command.resolve(
-            ScrollIntoView,
-            Message.CompletedScrollIntoView(),
+            ScrollListboxItemIntoView,
+            Message.CompletedScrollListboxItemIntoView(),
           ),
           Story.message(Message.SelectedItem({ item: 'apple' })),
           Story.model(model => {
@@ -145,7 +152,7 @@ describe('Listbox.Multi', () => {
           'items' | 'itemToConfig' | 'buttonContent'
         > = {},
       ) =>
-      (model: Model, h: HtmlBuilder<Message>) =>
+      (model: Model, h: TestHtmlBuilder) =>
         view(
           model,
           {

@@ -1,4 +1,4 @@
-import { Runtime } from 'foldkit'
+import { Application, Runtime } from 'foldkit'
 import { Document, HtmlBuilder } from 'foldkit/html'
 
 const crashView = (
@@ -36,7 +36,7 @@ const crashView = (
   ),
 })
 
-const application = Runtime.makeApplication({
+const application = Application.make({
   Model,
   init,
   update,

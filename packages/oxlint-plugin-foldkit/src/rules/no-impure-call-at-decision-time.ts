@@ -1,20 +1,30 @@
-import { Array, Effect, Option } from 'effect'
+import { Array, Effect, Option, pipe } from 'effect'
 import {
   Diagnostic,
   type ESTree,
+  type OxlintScope,
   type Reference,
   Rule,
   RuleContext,
+  type Variable,
 } from 'effect-oxlint'
 
 import {
+  effectConstructorValue,
+  generatorConstructorValue,
+  resolveLocalValue,
+} from '../effect-constructor.ts'
+import {
   indexReferences,
+  isIdentifier,
   isIdentifierReference,
   isMemberExpression,
   isObjectExpression,
   isObjectProperty,
+  isVariableDeclarator,
   isUnshadowedReference,
   resolveImportedPath,
+  resolvedVariable,
   staticMemberName,
   staticPropertyName,
 } from '../guards.ts'
@@ -206,6 +216,9 @@ const normalizedApiPath = (
   }
   if (path.source === 'foldkit/mount') {
     return Option.some(['Mount', ...path.members])
+  }
+  if (path.source === 'foldkit/experimental/query') {
+    return Option.some(['Query', ...path.members])
   }
   if (path.source === 'foldkit/subscription') {
     return Option.some(['Subscription', ...path.members])
@@ -674,125 +687,468 @@ const isEffectOrStreamCallback = (
   )
 }
 
-const isInlineConfigFunction = (
-  references: WeakMap<ESTree.Node, Reference> | undefined,
-  fn: ESTree.ArrowFunctionExpression | ESTree.Function,
-  propertyNames: ReadonlySet<string>,
-  factoryKeys: ReadonlySet<string>,
-): boolean => {
-  const maybeProperty = enclosingPropertyValue(fn)
-  if (Option.isNone(maybeProperty)) {
-    return false
-  }
-  const property = maybeProperty.value
-  if (
-    property.parent.type !== 'ObjectExpression' ||
-    !Option.exists(staticPropertyName(property), name =>
-      propertyNames.has(name),
-    )
-  ) {
-    return false
-  }
-
-  const maybeCall = enclosingCallArgument(property.parent)
-  if (Option.isNone(maybeCall)) {
-    return false
-  }
-
-  return Option.exists(apiCallKey(references, maybeCall.value.call), key =>
-    factoryKeys.has(key),
+const isToLayerCall = (call: ESTree.CallExpression): boolean => {
+  const callee = innermostExpression(call.callee)
+  return (
+    isMemberExpression(callee) &&
+    Option.contains(staticMemberName(callee), 'toLayer')
   )
 }
 
-const hasFactoryAncestor = (
-  references: WeakMap<ESTree.Node, Reference> | undefined,
+const lifecycleEffectProperties = new Set(['acquire', 'release'])
+
+type HandlerUse = Readonly<{
+  isHandler: boolean
+  isUnsafe: boolean
+}>
+
+const emptyHandlerUse: HandlerUse = {
+  isHandler: false,
+  isUnsafe: false,
+}
+
+const mergeHandlerUse = (left: HandlerUse, right: HandlerUse): HandlerUse => ({
+  isHandler: left.isHandler || right.isHandler,
+  isUnsafe: left.isUnsafe || right.isUnsafe,
+})
+
+const indexVariableDefinitions = (
+  scopes: ReadonlyArray<OxlintScope>,
+): WeakMap<ESTree.Node, Variable> => {
+  const variables = new WeakMap<ESTree.Node, Variable>()
+
+  for (const scope of scopes) {
+    for (const variable of scope.variables) {
+      for (const definition of variable.defs) {
+        variables.set(definition.node, variable)
+      }
+    }
+  }
+
+  return variables
+}
+
+const immutableLocalVariableValue = (
+  variable: Variable,
+): Option.Option<ESTree.Node> => {
+  if (variable.defs.length !== 1) {
+    return Option.none()
+  }
+
+  const [definition] = variable.defs
+  if (definition === undefined) {
+    return Option.none()
+  }
+
+  if (
+    definition.type === 'Variable' &&
+    isVariableDeclarator(definition.node) &&
+    isIdentifier(definition.node.id) &&
+    definition.node.init !== null &&
+    definition.node.parent.type === 'VariableDeclaration' &&
+    definition.node.parent.kind === 'const'
+  ) {
+    return Option.some(definition.node.init)
+  }
+
+  if (
+    definition.type === 'FunctionName' &&
+    definition.node.type === 'FunctionDeclaration' &&
+    !variable.references.some(reference => reference.isWrite())
+  ) {
+    return Option.some(definition.node)
+  }
+
+  return Option.none()
+}
+
+const isImmutableLocalVariable = (variable: Variable): boolean =>
+  Option.isSome(immutableLocalVariableValue(variable))
+
+const isExportedLocalVariable = (variable: Variable): boolean =>
+  variable.defs.some(definition => {
+    if (
+      definition.type === 'Variable' &&
+      isVariableDeclarator(definition.node)
+    ) {
+      return definition.node.parent.parent?.type === 'ExportNamedDeclaration'
+    }
+
+    return (
+      definition.type === 'FunctionName' &&
+      definition.node.type === 'FunctionDeclaration' &&
+      definition.node.parent.type === 'ExportNamedDeclaration'
+    )
+  })
+
+const localValueVariable = (
+  definitions: WeakMap<ESTree.Node, Variable>,
+  value: ESTree.Node,
+): Option.Option<Variable> => {
+  const expression = outermostExpression(value)
+  const parent = expression.parent
+
+  if (
+    isVariableDeclarator(parent) &&
+    isIdentifier(parent.id) &&
+    parent.init === expression &&
+    parent.parent.type === 'VariableDeclaration' &&
+    parent.parent.kind === 'const'
+  ) {
+    return Option.fromNullishOr(definitions.get(parent))
+  }
+
+  return value.type === 'FunctionDeclaration'
+    ? Option.fromNullishOr(definitions.get(value))
+    : Option.none()
+}
+
+const enclosingLocalValueVariable = (
+  definitions: WeakMap<ESTree.Node, Variable>,
   node: ESTree.Node,
-  factoryKey: string,
+): Option.Option<Variable> => {
+  const parent = node.parent
+  if (parent === null) {
+    return Option.none()
+  }
+
+  if (
+    isVariableDeclarator(parent) &&
+    isIdentifier(parent.id) &&
+    parent.init === node &&
+    parent.parent.type === 'VariableDeclaration' &&
+    parent.parent.kind === 'const'
+  ) {
+    return Option.fromNullishOr(definitions.get(parent))
+  }
+
+  return enclosingLocalValueVariable(definitions, parent)
+}
+
+const isDescendantOf = (node: ESTree.Node, ancestor: ESTree.Node): boolean => {
+  if (node === ancestor) {
+    return true
+  }
+
+  return node.parent === null ? false : isDescendantOf(node.parent, ancestor)
+}
+
+const handlerValueContainsFunction = (
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+  handlerValue: ESTree.Node,
+  fn: ESTree.ArrowFunctionExpression | ESTree.Function,
+): boolean =>
+  Option.exists(resolveLocalValue(handlerValue, references), value => {
+    if (value === fn) {
+      return true
+    }
+
+    if (!isObjectExpression(value)) {
+      return false
+    }
+
+    return value.properties.some(property => {
+      if (
+        !isObjectProperty(property) ||
+        !Option.exists(staticPropertyName(property), name =>
+          lifecycleEffectProperties.has(name),
+        )
+      ) {
+        return false
+      }
+
+      return Option.contains(resolveLocalValue(property.value, references), fn)
+    })
+  })
+
+const localVariableCarriesFunction = (
+  references: WeakMap<ESTree.Node, Reference>,
+  variable: Variable,
+  fn: ESTree.ArrowFunctionExpression | ESTree.Function,
+): boolean =>
+  Option.exists(immutableLocalVariableValue(variable), value => {
+    if (handlerValueContainsFunction(references, value, fn)) {
+      return true
+    }
+
+    return Option.exists(handlerConstructorValue(value, references), handler =>
+      handlerValueContainsFunction(references, handler, fn),
+    )
+  })
+
+const isInsideDeferredEffectCallback = (
+  references: WeakMap<ESTree.Node, Reference>,
+  node: ESTree.Node,
 ): boolean => {
   const parent = node.parent
   if (parent === null) {
     return false
   }
-  if (
-    parent.type === 'CallExpression' &&
-    Option.contains(apiCallKey(references, parent), factoryKey)
-  ) {
+
+  if (isFunction(parent) && isEffectOrStreamCallback(references, parent)) {
     return true
   }
-  return hasFactoryAncestor(references, parent, factoryKey)
+
+  return isInsideDeferredEffectCallback(references, parent)
 }
 
-const isNestedLifecycleFunction = (
+const isEntryBuilderCall = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  call: ESTree.CallExpression,
+): boolean => {
+  const callee = innermostExpression(call.callee)
+  if (!isIdentifierReference(callee)) {
+    return false
+  }
+
+  for (
+    let ancestor: ESTree.Node | null = call.parent;
+    ancestor !== null;
+    ancestor = ancestor.parent
+  ) {
+    if (!isFunction(ancestor)) {
+      continue
+    }
+
+    const maybeParameter = Array.head(ancestor.params)
+    if (
+      !Option.exists(
+        maybeParameter,
+        parameter =>
+          isIdentifierReference(parameter) && parameter.name === callee.name,
+      )
+    ) {
+      continue
+    }
+
+    if (
+      references !== undefined &&
+      !Option.exists(resolvedVariable(references, callee), variable =>
+        variable.defs.some(
+          definition =>
+            definition.type === 'Parameter' && definition.node === ancestor,
+        ),
+      )
+    ) {
+      return false
+    }
+
+    return Option.exists(
+      enclosingCallArgument(ancestor),
+      ({ call: builderCall }) =>
+        Option.exists(
+          apiCallKey(references, builderCall),
+          key => key === 'Subscription.make' || key === 'ManagedResource.make',
+        ),
+    )
+  }
+
+  return false
+}
+
+const handlerConfigValue = (
+  config: ESTree.Node,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): Option.Option<ESTree.Node> =>
+  Option.flatMap(resolveLocalValue(config, references), value => {
+    if (!isObjectExpression(value)) {
+      return Option.none()
+    }
+
+    return pipe(
+      value.properties,
+      Array.findFirst(
+        (property): property is ESTree.ObjectProperty =>
+          isObjectProperty(property) &&
+          Option.contains(staticPropertyName(property), 'handler'),
+      ),
+      Option.map(property => property.value),
+    )
+  })
+
+const handlerConstructorArgument = (
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+  call: ESTree.CallExpression,
+): Option.Option<ESTree.Node> => {
+  if (isToLayerCall(call) && call.arguments.length === 1) {
+    return Array.head(call.arguments)
+  }
+
+  const isDefinition = Option.exists(
+    apiCallKey(references, call),
+    key =>
+      (call.arguments.length === 2 &&
+        (key === 'Command.define' ||
+          key === 'Mount.define' ||
+          key === 'Mount.defineStream')) ||
+      (call.arguments.length === 1 && key === 'Query.define'),
+  )
+  const isEntry =
+    (call.arguments.length === 2 || call.arguments.length === 3) &&
+    isEntryBuilderCall(references, call)
+
+  return isDefinition || isEntry
+    ? pipe(
+        call.arguments,
+        Array.last,
+        Option.flatMap(config => handlerConfigValue(config, references)),
+      )
+    : Option.none()
+}
+
+const handlerConstructorValue = (
+  constructor: ESTree.Node,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): Option.Option<ESTree.Node> => {
+  const generatorValue = generatorConstructorValue(constructor, references)
+  return Option.isSome(generatorValue)
+    ? generatorValue
+    : effectConstructorValue(constructor, references)
+}
+
+const enclosingHandlerConstructor = (
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+  node: ESTree.Node,
+): Option.Option<ESTree.Node> => {
+  const parent = node.parent
+  if (parent === null) {
+    return Option.none()
+  }
+
+  if (parent.type === 'CallExpression') {
+    const maybeBuild = handlerConstructorArgument(references, parent)
+    if (Option.isSome(maybeBuild)) {
+      return maybeBuild
+    }
+  }
+
+  return enclosingHandlerConstructor(references, parent)
+}
+
+const variableHandlerUse = (
+  references: WeakMap<ESTree.Node, Reference>,
+  definitions: WeakMap<ESTree.Node, Variable>,
+  variable: Variable,
+  fn: ESTree.ArrowFunctionExpression | ESTree.Function,
+  visited: Set<Variable>,
+): HandlerUse => {
+  if (!isImmutableLocalVariable(variable) || visited.has(variable)) {
+    return { isHandler: false, isUnsafe: true }
+  }
+
+  const path = new Set(visited)
+  path.add(variable)
+  let use = isExportedLocalVariable(variable)
+    ? { isHandler: false, isUnsafe: true }
+    : emptyHandlerUse
+
+  for (const reference of variable.references) {
+    if (!reference.isRead()) {
+      continue
+    }
+
+    const identifier = reference.identifier
+    if (isDescendantOf(identifier, fn)) {
+      continue
+    }
+
+    const maybeBuild = enclosingHandlerConstructor(references, identifier)
+    if (
+      Option.exists(maybeBuild, build =>
+        Option.exists(handlerConstructorValue(build, references), handler =>
+          handlerValueContainsFunction(references, handler, fn),
+        ),
+      )
+    ) {
+      use = mergeHandlerUse(use, { isHandler: true, isUnsafe: false })
+      continue
+    }
+
+    const maybeContainer = enclosingLocalValueVariable(definitions, identifier)
+    if (
+      Option.isSome(maybeContainer) &&
+      maybeContainer.value !== variable &&
+      localVariableCarriesFunction(references, maybeContainer.value, fn)
+    ) {
+      use = mergeHandlerUse(
+        use,
+        variableHandlerUse(
+          references,
+          definitions,
+          maybeContainer.value,
+          fn,
+          path,
+        ),
+      )
+      continue
+    }
+
+    if (isInsideDeferredEffectCallback(references, identifier)) {
+      continue
+    }
+
+    use = mergeHandlerUse(use, { isHandler: false, isUnsafe: true })
+  }
+
+  return use
+}
+
+const isConstructedHandlerFunction = (
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+  definitions: WeakMap<ESTree.Node, Variable> | undefined,
   fn: ESTree.ArrowFunctionExpression | ESTree.Function,
 ): boolean => {
-  const maybeProperty = enclosingPropertyValue(fn)
-  if (Option.isNone(maybeProperty)) {
-    return false
-  }
-  const property = maybeProperty.value
-  if (property.parent.type !== 'ObjectExpression') {
-    return false
-  }
-
-  if (Option.isNone(enclosingCallArgument(property.parent))) {
-    return false
-  }
-
-  const maybePropertyName = staticPropertyName(property)
-  const isSubscriptionEffect = Option.contains(
-    maybePropertyName,
-    'dependenciesToStream',
-  )
+  const maybeBuild = enclosingHandlerConstructor(references, fn)
   if (
-    isSubscriptionEffect &&
-    hasFactoryAncestor(references, fn, 'Subscription.make')
+    Option.exists(maybeBuild, build =>
+      Option.exists(handlerConstructorValue(build, references), handler =>
+        handlerValueContainsFunction(references, handler, fn),
+      ),
+    )
   ) {
     return true
   }
 
-  const isManagedResourceEffect = Option.exists(
-    maybePropertyName,
-    name => name === 'acquire' || name === 'release',
-  )
-  return (
-    isManagedResourceEffect &&
-    hasFactoryAncestor(references, fn, 'ManagedResource.make')
-  )
-}
+  if (references === undefined || definitions === undefined) {
+    return false
+  }
 
-const commandAndMountEffectProperties = new Set(['execute'])
-const commandAndMountFactories = new Set([
-  'Command.define',
-  'Mount.define',
-  'Mount.defineStream',
-])
+  return Option.exists(localValueVariable(definitions, fn), variable => {
+    const use = variableHandlerUse(
+      references,
+      definitions,
+      variable,
+      fn,
+      new Set(),
+    )
+    return use.isHandler && !use.isUnsafe
+  })
+}
 
 const isDeferredFunction = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  definitions: WeakMap<ESTree.Node, Variable> | undefined,
   fn: ESTree.ArrowFunctionExpression | ESTree.Function,
 ): boolean =>
   isEffectOrStreamCallback(references, fn) ||
-  isInlineConfigFunction(
-    references,
-    fn,
-    commandAndMountEffectProperties,
-    commandAndMountFactories,
-  ) ||
-  isNestedLifecycleFunction(references, fn)
+  isConstructedHandlerFunction(references, definitions, fn)
 
 const isInsideEffectBoundary = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
+  definitions: WeakMap<ESTree.Node, Variable> | undefined,
   node: ESTree.Node,
 ): boolean => {
   const parent = node.parent
   if (parent === null) {
     return false
   }
-  if (isFunction(parent) && isDeferredFunction(references, parent)) {
+  if (
+    isFunction(parent) &&
+    isDeferredFunction(references, definitions, parent)
+  ) {
     return true
   }
-  return isInsideEffectBoundary(references, parent)
+  return isInsideEffectBoundary(references, definitions, parent)
 }
 
 const callOperation = (
@@ -832,6 +1188,8 @@ export const noImpureCallAtDecisionTime = Rule.define({
     const scopes = ctx.sourceCode.scopeManager?.scopes
     const references =
       scopes === undefined ? undefined : indexReferences(scopes)
+    const definitions =
+      scopes === undefined ? undefined : indexVariableDefinitions(scopes)
 
     const report = (
       node: ESTree.CallExpression | ESTree.NewExpression,
@@ -840,7 +1198,7 @@ export const noImpureCallAtDecisionTime = Rule.define({
       Option.match(maybeOperation, {
         onNone: () => Effect.void,
         onSome: operation =>
-          isInsideEffectBoundary(references, node)
+          isInsideEffectBoundary(references, definitions, node)
             ? Effect.void
             : ctx.report(
                 Diagnostic.make({

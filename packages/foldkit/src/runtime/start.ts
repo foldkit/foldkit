@@ -1,4 +1,14 @@
-import { Cause, Effect, Fiber, Option, Predicate, Runtime, pipe } from 'effect'
+import {
+  Array,
+  Cause,
+  Effect,
+  Fiber,
+  Function,
+  Option,
+  Predicate,
+  Runtime,
+  pipe,
+} from 'effect'
 
 import { BrowserRuntime } from '@effect/platform-browser'
 
@@ -27,6 +37,27 @@ type RuntimeProgram = Readonly<{
   start: (preservedModel?: unknown) => Effect.Effect<void>
   ports: Ports | undefined
 }>
+
+type ProvidedFlagsRequirements<FlagsRequirements, ProgramResources> = [
+  Exclude<FlagsRequirements, ProgramResources>,
+] extends [never]
+  ? unknown
+  : Readonly<{
+      'Runtime.run Flags requirements are not provided': Exclude<
+        FlagsRequirements,
+        ProgramResources
+      >
+    }>
+
+const isRuntimeProgram = (input: unknown): input is RuntimeProgram =>
+  Predicate.hasProperty(input, 'runtimeId') &&
+  Predicate.isString(input.runtimeId) &&
+  Predicate.hasProperty(input, 'start') &&
+  Predicate.isFunction(input.start) &&
+  Predicate.hasProperty(input, 'ports')
+
+const isRunOptions = (input: unknown): boolean =>
+  Predicate.hasProperty(input, 'flags') && !isRuntimeProgram(input)
 
 /** Starts a program Effect with explicit boot inputs for runtime tests.
  * @internal */
@@ -103,31 +134,52 @@ const startProgram = (
   )
 }
 
-/** Starts a Foldkit runtime that owns the page for the page's whole lifetime,
+/**
+ * Starts a Foldkit runtime that owns the page for the page's whole lifetime,
  *  with state-preserving live reload for development. The first render builds
  *  the DOM fresh in the container, replacing whatever is there. On a
  *  server-rendered page use `hydrate` instead, which adopts the existing DOM.
- *  To start a runtime under a host-controlled lifecycle, use `embed`. */
-export function run<
-  P extends Ports | undefined,
-  Resources,
-  Kind extends 'Application' | 'Element',
->(program: MakeRuntimeReturn<P, void, Resources, Kind>): void
-export function run<
-  P extends Ports | undefined,
-  Flags,
-  Resources,
-  Kind extends 'Application' | 'Element',
->(
-  program: MakeRuntimeReturn<P, Flags, Resources, Kind>,
-  options: RunOptions<Flags, Resources>,
-): void
-export function run(
-  program: RuntimeProgram,
-  options?: RunOptions<unknown, any>,
-): void {
-  startProgram(program, 'Fresh', options?.flags)
-}
+ *  To start a runtime under a host-controlled lifecycle, use `embed`. Call
+ *  data-first, or pass the options alone to use `run` in a pipe.
+ */
+export const run: {
+  <Flags, FlagsRequirements>(
+    options: RunOptions<Flags, FlagsRequirements>,
+  ): <
+    P extends Ports | undefined,
+    ProgramResources,
+    Kind extends 'Application' | 'Element',
+  >(
+    program: MakeRuntimeReturn<P, Flags, ProgramResources, Kind> &
+      ProvidedFlagsRequirements<FlagsRequirements, ProgramResources>,
+  ) => void
+  <
+    P extends Ports | undefined,
+    Flags,
+    Resources,
+    Kind extends 'Application' | 'Element',
+  >(
+    program: MakeRuntimeReturn<P, Flags, Resources, Kind>,
+    options: RunOptions<Flags, Resources>,
+  ): void
+  (
+    program: Readonly<{
+      runtimeId: string
+      start: (preservedModel?: unknown) => Effect.Effect<void>
+      ports: Ports | undefined
+      '~foldkit/RuntimeBoot'?: Readonly<{
+        Flags: (flags: void) => void
+      }>
+    }>,
+  ): void
+} = Function.dual(
+  args =>
+    args.length === 2 ||
+    !isRunOptions(Option.getOrUndefined(Array.head(Array.fromIterable(args)))),
+  (program: RuntimeProgram, options?: RunOptions<unknown, any>): void => {
+    startProgram(program, 'Fresh', options?.flags)
+  },
+)
 
 /** Options for {@link hydrate}. */
 export type HydrateOptions = Readonly<{
@@ -232,15 +284,16 @@ export function embed<P extends Ports | undefined = undefined>(
       '[foldkit] embed expects a program created by makeApplication or makeElement.',
     )
   }
+  const embedLifecycle = internals.embedLifecycle
 
-  if (internals.isEmbedActive) {
+  if (embedLifecycle.isEmbedActive) {
     throw new Error(
       '[foldkit] This program is already embedded. Dispose the existing ' +
         'handle first, or create a separate program: each program owns one ' +
         'container.',
     )
   }
-  internals.isEmbedActive = true
+  embedLifecycle.isEmbedActive = true
 
   const connector = makeHostConnector()
 
@@ -250,7 +303,7 @@ export function embed<P extends Ports | undefined = undefined>(
   // container element back in the DOM. Awaiting the previous fiber's exit
   // sequences the two.
   const startEffect = pipe(
-    Option.match(internals.maybeActiveFiber, {
+    Option.match(embedLifecycle.maybeActiveFiber, {
       onNone: () => Effect.void,
       onSome: previousFiber => Effect.asVoid(Fiber.await(previousFiber)),
     }),
@@ -268,7 +321,7 @@ export function embed<P extends Ports | undefined = undefined>(
   const fiber = Effect.runFork(
     withUnhandledCauseReporting(provideBrowserScheduler(startEffect)),
   )
-  internals.maybeActiveFiber = Option.some(fiber)
+  embedLifecycle.maybeActiveFiber = Option.some(fiber)
 
   let isHandleDisposed = false
   const dispose = (): void => {
@@ -277,7 +330,7 @@ export function embed<P extends Ports | undefined = undefined>(
     }
     isHandleDisposed = true
     connector.dispose()
-    internals.isEmbedActive = false
+    embedLifecycle.isEmbedActive = false
     Effect.runFork(Fiber.interrupt(fiber))
   }
 

@@ -111,6 +111,8 @@ Foldkit runs in the JavaScript ecosystem, so its Commands can use browser APIs a
 
 Each Command declares its arguments and result Messages. Its Effect can use typed failures and recovery operators before returning a Message to update. The application still needs to choose meaningful error behavior. Here `ExportPng` reports failure, while `SaveCanvas` intentionally converts storage failure into the same completion Message as success.
 
+`SaveCanvas` leaves its storage service in the Effect requirements. The application root binds that tag to localStorage, while a whole-application test can bind it to a deterministic store and retain the real Command handler.
+
 :::Info{label="The boundary trade-off"}
 Elm prevents application code from calling arbitrary JavaScript and makes interop explicit through ports or custom elements. Foldkit keeps update pure by convention and framework design, while Command bodies can call the host ecosystem directly. TypeScript cannot enforce Elm’s purity boundary.
 :::
@@ -134,6 +136,8 @@ Foldkit derives both directions from one `SavedCanvas` Schema:
 ::Snippet{name="comparisonFoldkitFlags" label="Foldkit flags"}
 
 The Schema centralizes field names and value constraints. Encoding and decoding therefore evolve from the same definition. Version migrations and fallback behavior still belong to the application.
+
+The Flags Effect requires the same storage service as `SaveCanvas`, so one root Layer supplies one app-lifetime instance to both.
 
 ## Subscriptions
 

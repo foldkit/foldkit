@@ -4,6 +4,7 @@ import {
   Deferred,
   Effect,
   FiberMap,
+  Layer,
   Match,
   Option,
   Order,
@@ -73,8 +74,8 @@ export const Message = defineMessageUnion({
   EditedPlaygroundFile: { path: Schema.String, content: Schema.String },
   SucceededMountPlaygroundEditor: {},
   FailedMountPlaygroundEditor: { reason: Schema.String },
-  ScheduledWritePlaygroundFile: {},
-  FailedWritePlaygroundFile: { reason: Schema.String },
+  SucceededSchedulePlaygroundFileWrite: {},
+  FailedSchedulePlaygroundFileWrite: { reason: Schema.String },
   CompletedWaitForPlaygroundServerFailure: { reason: Schema.String },
 })
 export type Message = typeof Message.Type
@@ -139,29 +140,38 @@ const PlaygroundParams = Schema.Struct({ slug: Schema.String })
 
 export const managedResources = ManagedResource.make<Model, Message>()(
   entry => ({
-    webContainerPlayground: entry(Schema.Option(PlaygroundParams), {
-      resource: WebContainerPlayground,
-      modelToMaybeRequirements: ({ slug, state }) =>
-        state._tag === 'Failed' || state._tag === 'Idle'
-          ? Option.none()
-          : pipe(
-              slug,
-              Option.liftPredicate(() => Record.has(filesBySlug, slug)),
-              Option.map(() => ({ slug })),
-            ),
-      acquire: ({ slug }) =>
-        Effect.gen(function* () {
-          const fileEntry = yield* Effect.fromOption(
-            Record.get(filesBySlug, slug),
-          )
-          return yield* acquirePlaygroundWebContainer(fileEntry.files)
-        }),
-      release: () => Effect.void,
-      onAcquired: ({ previewUrl }) => Message.BootedPlayground({ previewUrl }),
-      onReleased: () => Message.ReleasedPlayground(),
-      onAcquireError: error =>
-        Message.FailedBootPlayground({ reason: reasonFromError(error) }),
-    }),
+    webContainerPlayground: entry(
+      'ManageWebContainerPlayground',
+      Schema.Option(PlaygroundParams),
+      {
+        resource: WebContainerPlayground,
+        modelToMaybeRequirements: ({ slug, state }) =>
+          state._tag === 'Failed' || state._tag === 'Idle'
+            ? Option.none()
+            : pipe(
+                slug,
+                Option.liftPredicate(() => Record.has(filesBySlug, slug)),
+                Option.map(() => ({ slug })),
+              ),
+        onAcquired: ({ previewUrl }) =>
+          Message.BootedPlayground({ previewUrl }),
+        onReleased: () => Message.ReleasedPlayground(),
+        onAcquireError: error =>
+          Message.FailedBootPlayground({ reason: reasonFromError(error) }),
+        handler: function* () {
+          return {
+            acquire: ({ slug }) =>
+              Effect.gen(function* () {
+                const fileEntry = yield* Effect.fromOption(
+                  Record.get(filesBySlug, slug),
+                )
+                return yield* acquirePlaygroundWebContainer(fileEntry.files)
+              }),
+            release: () => Effect.void,
+          }
+        },
+      },
+    ),
   }),
 )
 
@@ -419,26 +429,31 @@ const streamPlaygroundEditorMessages = (
     ),
   )
 
-export const PlaygroundEditor = Mount.defineStream('PlaygroundEditor', {
-  args: {
-    path: Schema.String,
-    initialContent: Schema.String,
-    files: Schema.Record(Schema.String, Schema.String),
+export const MountPlaygroundEditor = Mount.defineStream(
+  'MountPlaygroundEditor',
+  {
+    args: {
+      path: Schema.String,
+      initialContent: Schema.String,
+      files: Schema.Record(Schema.String, Schema.String),
+    },
+    messages: [
+      Message.SucceededMountPlaygroundEditor,
+      Message.FailedMountPlaygroundEditor,
+      Message.EditedPlaygroundFile,
+    ],
+    handler: function* () {
+      return ({ element, path, initialContent, files, viewStateChanges }) =>
+        streamPlaygroundEditorMessages(
+          element,
+          path,
+          initialContent,
+          files,
+          viewStateChanges,
+        )
+    },
   },
-  messages: [
-    Message.SucceededMountPlaygroundEditor,
-    Message.FailedMountPlaygroundEditor,
-    Message.EditedPlaygroundFile,
-  ],
-  execute: ({ element, path, initialContent, files, viewStateChanges }) =>
-    streamPlaygroundEditorMessages(
-      element,
-      path,
-      initialContent,
-      files,
-      viewStateChanges,
-    ),
-})
+)
 
 // COMMAND
 
@@ -455,65 +470,85 @@ export const WaitForPlaygroundServerFailure = Command.define(
   'WaitForPlaygroundServerFailure',
   {
     messages: [Message.CompletedWaitForPlaygroundServerFailure],
-    execute: Effect.gen(function* () {
-      const { serverFailure } = yield* WebContainerPlayground.get
-      return yield* Deferred.await(serverFailure).pipe(
-        Effect.catch(error =>
-          Effect.succeed(
-            Message.CompletedWaitForPlaygroundServerFailure({
-              reason: reasonFromError(error),
-            }),
-          ),
-        ),
-      )
-    }).pipe(Effect.catchTag('ResourceNotAvailable', () => Effect.interrupt)),
+    handler: function* () {
+      return () =>
+        Effect.gen(function* () {
+          const { serverFailure } = yield* WebContainerPlayground.get
+          return yield* Deferred.await(serverFailure).pipe(
+            Effect.catch(error =>
+              Effect.succeed(
+                Message.CompletedWaitForPlaygroundServerFailure({
+                  reason: reasonFromError(error),
+                }),
+              ),
+            ),
+          )
+        }).pipe(Effect.catchTag('ResourceNotAvailable', () => Effect.interrupt))
+    },
   },
 )
 
-export const WritePlaygroundFile = Command.define('WritePlaygroundFile', {
-  args: { path: Schema.String, content: Schema.String },
-  messages: [
-    Message.ScheduledWritePlaygroundFile,
-    Message.FailedWritePlaygroundFile,
-  ],
-  execute: ({ path, content }) =>
-    Effect.gen(function* () {
-      const { container, pendingWrites } = yield* WebContainerPlayground.get
-      yield* FiberMap.run(
-        pendingWrites,
-        path,
+export const SchedulePlaygroundFileWrite = Command.define(
+  'SchedulePlaygroundFileWrite',
+  {
+    args: { path: Schema.String, content: Schema.String },
+    messages: [
+      Message.SucceededSchedulePlaygroundFileWrite,
+      Message.FailedSchedulePlaygroundFileWrite,
+    ],
+    handler: function* () {
+      return ({ path, content }) =>
         Effect.gen(function* () {
-          yield* Effect.sleep(WRITE_DEBOUNCE_MILLIS)
-          yield* Effect.tryPromise(() => container.fs.writeFile(path, content))
-          if (path !== STYLES_CSS_PATH) {
-            const stylesContent = yield* Effect.tryPromise(() =>
-              container.fs.readFile(STYLES_CSS_PATH, 'utf-8'),
-            )
-            yield* Effect.tryPromise(() =>
-              container.fs.writeFile(STYLES_CSS_PATH, stylesContent),
-            )
-          }
+          const { container, pendingWrites } = yield* WebContainerPlayground.get
+          yield* FiberMap.run(
+            pendingWrites,
+            path,
+            Effect.gen(function* () {
+              yield* Effect.sleep(WRITE_DEBOUNCE_MILLIS)
+              yield* Effect.tryPromise(() =>
+                container.fs.writeFile(path, content),
+              )
+              if (path !== STYLES_CSS_PATH) {
+                const stylesContent = yield* Effect.tryPromise(() =>
+                  container.fs.readFile(STYLES_CSS_PATH, 'utf-8'),
+                )
+                yield* Effect.tryPromise(() =>
+                  container.fs.writeFile(STYLES_CSS_PATH, stylesContent),
+                )
+              }
+            }).pipe(
+              Effect.catch(error =>
+                Effect.logError(
+                  `[playground] Debounced write failed for ${path}:`,
+                  error,
+                ),
+              ),
+            ),
+            { startImmediately: true },
+          )
+          return Message.SucceededSchedulePlaygroundFileWrite()
         }).pipe(
-          Effect.catch(error =>
-            Effect.logError(
-              `[playground] Debounced write failed for ${path}:`,
-              error,
+          Effect.catchTag('ResourceNotAvailable', () =>
+            Effect.succeed(
+              Message.FailedSchedulePlaygroundFileWrite({
+                reason: 'WebContainer not yet ready',
+              }),
             ),
           ),
-        ),
-        { startImmediately: true },
-      )
-      return Message.ScheduledWritePlaygroundFile()
-    }).pipe(
-      Effect.catchTag('ResourceNotAvailable', () =>
-        Effect.succeed(
-          Message.FailedWritePlaygroundFile({
-            reason: 'WebContainer not yet ready',
-          }),
-        ),
-      ),
-    ),
-})
+        )
+    },
+  },
+)
+
+export const mounts = [MountPlaygroundEditor]
+
+export const EffectsLayer = Layer.mergeAll(
+  Tabs.EffectsLayer,
+  managedResources.webContainerPlayground.layer,
+  MountPlaygroundEditor.layer,
+  WaitForPlaygroundServerFailure.layer,
+  SchedulePlaygroundFileWrite.layer,
+)
 
 // UPDATE
 
@@ -525,13 +560,11 @@ const appendDeduped = (
 
 const flushDirtyPaths = (
   model: Model,
-): ReadonlyArray<
-  Command.Command<Message, never, WebContainerPlaygroundService>
-> =>
+): ReadonlyArray<ReturnType<typeof SchedulePlaygroundFileWrite>> =>
   model.dirtyPaths.flatMap(path =>
     pipe(
       Record.get(model.files, path),
-      Option.map(content => WritePlaygroundFile({ path, content })),
+      Option.map(content => SchedulePlaygroundFileWrite({ path, content })),
       Option.toArray,
     ),
   )
@@ -555,71 +588,75 @@ const markPreviewLoaded = (
     Match.orElse(() => state),
   )
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message, WebContainerPlaygroundService>>(
-    message,
-    {
-      BootedPlayground: ({ previewUrl }) => ({
-        model: modifyFields(model, {
-          state: () =>
-            PlaygroundState.Booted({
-              preview: PlaygroundPreview.start(previewUrl),
-            }),
-          dirtyPaths: () => [],
-          lastWriteError: () => Option.none(),
-        }),
-        commands: [WaitForPlaygroundServerFailure(), ...flushDirtyPaths(model)],
-      }),
-      FailedBootPlayground: ({ reason }) => ({
-        model: modifyFields(model, {
-          state: () => PlaygroundState.Failed({ reason }),
-        }),
-      }),
-      ReleasedPlayground: () => ({
-        model: modifyFields(model, {
-          state: state =>
-            state._tag === 'Failed' ? state : PlaygroundState.Idle(),
-        }),
-      }),
-      LoadedPlaygroundPreview: ({ previewUrl }) => ({
-        model: modifyFields(model, {
-          state: state => markPreviewLoaded(state, previewUrl),
-        }),
-      }),
-      GotFileTabsMessage: ({ message: tabsMessage }) =>
-        foldPlaygroundFileTabs(model, tabsMessage),
-      EditedPlaygroundFile: ({ path, content }) => {
-        const isBooted = model.state._tag === 'Booted'
-        return {
-          model: modifyFields(model, {
-            files: Record.set(path, content),
-            dirtyPaths: existing =>
-              isBooted ? existing : appendDeduped(existing, path),
+export const update = Update.define((model: Model, message: Message) =>
+  Message.match(message, {
+    BootedPlayground: ({ previewUrl }) => ({
+      model: modifyFields(model, {
+        state: () =>
+          PlaygroundState.Booted({
+            preview: PlaygroundPreview.start(previewUrl),
           }),
-          commands: isBooted ? [WritePlaygroundFile({ path, content })] : [],
+        dirtyPaths: () => [],
+        lastWriteError: () => Option.none(),
+      }),
+      commands: [WaitForPlaygroundServerFailure(), ...flushDirtyPaths(model)],
+    }),
+    FailedBootPlayground: ({ reason }) => ({
+      model: modifyFields(model, {
+        state: () => PlaygroundState.Failed({ reason }),
+      }),
+    }),
+    ReleasedPlayground: () => ({
+      model: modifyFields(model, {
+        state: state =>
+          state._tag === 'Failed' ? state : PlaygroundState.Idle(),
+      }),
+    }),
+    LoadedPlaygroundPreview: ({ previewUrl }) => ({
+      model: modifyFields(model, {
+        state: state => markPreviewLoaded(state, previewUrl),
+      }),
+    }),
+    GotFileTabsMessage: ({ message: tabsMessage }) =>
+      foldPlaygroundFileTabs(model, tabsMessage),
+    EditedPlaygroundFile: ({ path, content }) => {
+      const isBooted = model.state._tag === 'Booted'
+      const nextModel = modifyFields(model, {
+        files: Record.set(path, content),
+        dirtyPaths: existing =>
+          isBooted ? existing : appendDeduped(existing, path),
+      })
+
+      if (isBooted) {
+        return {
+          model: nextModel,
+          commands: [SchedulePlaygroundFileWrite({ path, content })],
         }
-      },
-      FailedMountPlaygroundEditor: ({ reason }) => ({
-        model: modifyFields(model, {
-          state: () => PlaygroundState.Failed({ reason }),
-        }),
-      }),
-      ScheduledWritePlaygroundFile: () => ({
-        model: modifyFields(model, { lastWriteError: () => Option.none() }),
-      }),
-      FailedWritePlaygroundFile: ({ reason }) => ({
-        model: modifyFields(model, {
-          lastWriteError: () => Option.some(reason),
-        }),
-      }),
-      CompletedWaitForPlaygroundServerFailure: ({ reason }) => ({
-        model: modifyFields(model, {
-          state: () => PlaygroundState.Failed({ reason }),
-        }),
-      }),
-      SucceededMountPlaygroundEditor: () => ({ model }),
+      } else {
+        return { model: nextModel }
+      }
     },
-  )
+    FailedMountPlaygroundEditor: ({ reason }) => ({
+      model: modifyFields(model, {
+        state: () => PlaygroundState.Failed({ reason }),
+      }),
+    }),
+    SucceededSchedulePlaygroundFileWrite: () => ({
+      model: modifyFields(model, { lastWriteError: () => Option.none() }),
+    }),
+    FailedSchedulePlaygroundFileWrite: ({ reason }) => ({
+      model: modifyFields(model, {
+        lastWriteError: () => Option.some(reason),
+      }),
+    }),
+    CompletedWaitForPlaygroundServerFailure: ({ reason }) => ({
+      model: modifyFields(model, {
+        state: () => PlaygroundState.Failed({ reason }),
+      }),
+    }),
+    SucceededMountPlaygroundEditor: () => ({ model }),
+  }),
+)
 
 // VIEW
 
@@ -745,14 +782,16 @@ const editorPanelContent = (
   path: string,
   content: string,
   files: Readonly<Record<string, string>>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>,
 ): Html =>
   h.div(
     [h.Class('flex-1 min-w-0 min-h-0 flex flex-col bg-[#1e1e1e] text-sm')],
     [
       h.keyed('div')(`editor-${path}`, [
         h.Class('flex-1 min-h-0 min-w-0 overflow-hidden'),
-        h.OnMount(PlaygroundEditor({ path, initialContent: content, files })),
+        h.OnMount(
+          MountPlaygroundEditor({ path, initialContent: content, files }),
+        ),
       ]),
     ],
   )
@@ -844,7 +883,10 @@ const tooNarrowMessageView = (): Html =>
     ],
   )
 
-const responsiveEditorView = (model: Model, h: HtmlBuilder<Message>): Html =>
+const responsiveEditorView = (
+  model: Model,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>,
+): Html =>
   h.div(
     [h.Class('flex-1 min-h-0 flex flex-col')],
     [
@@ -877,7 +919,10 @@ const foldPlaygroundFileTabs = Update.foldChild({
   foldOutMessage: foldPlaygroundFileTabsOutMessage,
 })
 
-const editorLayoutView = (model: Model, h: HtmlBuilder<Message>): Html => {
+const editorLayoutView = (
+  model: Model,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>,
+): Html => {
   const paths = sortedPaths(model.files)
   return h.div(
     [h.Class('flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden')],
@@ -954,70 +999,73 @@ type ViewInputs = Readonly<{
   maybeIsPlaygroundSupported: Option.Option<boolean>
 }>
 
-export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, { maybeIsPlaygroundSupported }, h): Html => {
-    const maybeMeta = findBySlug(model.slug)
-    const maybeFiles = Option.fromNullishOr(filesBySlug[model.slug])
+export const view = Submodel.defineView<
+  Model,
+  Message,
+  ViewInputs,
+  Mount.RequirementsOf<typeof mounts>
+>((model, { maybeIsPlaygroundSupported }, h): Html => {
+  const maybeMeta = findBySlug(model.slug)
+  const maybeFiles = Option.fromNullishOr(filesBySlug[model.slug])
 
-    const content = Match.value({
-      maybeIsPlaygroundSupported,
-      maybeMeta,
-      maybeFiles,
-    }).pipe(
-      Match.when(
-        ({ maybeMeta }) => isUnavailableExample(maybeMeta),
-        () =>
-          messageView(
-            'Playground unavailable',
-            'This example is paused while we update and verify LiveStore compatibility with Effect 4 stable.',
-            maybeMeta,
-          ),
-      ),
-      Match.when(
-        ({ maybeIsPlaygroundSupported }) =>
-          Option.isNone(maybeIsPlaygroundSupported),
-        () =>
-          messageView(
-            'Playground availability',
-            'The Playground needs SharedArrayBuffer on an isolated page and a compatible embedded preview. If the editor does not open, you can still see the example on its detail page.',
-            maybeMeta,
-          ),
-      ),
-      Match.when(
-        ({ maybeIsPlaygroundSupported }) =>
-          Option.contains(maybeIsPlaygroundSupported, false),
-        () =>
-          messageView(
-            'Playground cannot run here',
-            'The Playground needs SharedArrayBuffer on a cross-origin isolated page and a working embedded preview. This browser session did not provide that combination. You can still see the example running on its detail page.',
-            maybeMeta,
-          ),
-      ),
-      Match.orElse(() =>
-        Option.match(Option.all([maybeMeta, maybeFiles]), {
-          onNone: () =>
-            messageView(
-              'Playground coming soon',
-              'This example is not yet available in the embedded playground. Open its example detail page to see it running.',
-              maybeMeta,
-            ),
-          onSome: () => responsiveEditorView(model, h),
-        }),
-      ),
-    )
-
-    return h.div(
-      [h.Class('flex flex-col h-screen')],
-      [
-        h.main(
-          [
-            h.Id('main-content'),
-            h.Class('flex-1 flex flex-col min-h-0'),
-            h.AriaLabel('Playground'),
-          ],
-          [content],
+  const content = Match.value({
+    maybeIsPlaygroundSupported,
+    maybeMeta,
+    maybeFiles,
+  }).pipe(
+    Match.when(
+      ({ maybeMeta }) => isUnavailableExample(maybeMeta),
+      () =>
+        messageView(
+          'Playground unavailable',
+          'This example is paused while we update and verify LiveStore compatibility with Effect 4 stable.',
+          maybeMeta,
         ),
-      ],
-    )
-  },
-)
+    ),
+    Match.when(
+      ({ maybeIsPlaygroundSupported }) =>
+        Option.isNone(maybeIsPlaygroundSupported),
+      () =>
+        messageView(
+          'Playground availability',
+          'The Playground needs SharedArrayBuffer on an isolated page and a compatible embedded preview. If the editor does not open, you can still see the example on its detail page.',
+          maybeMeta,
+        ),
+    ),
+    Match.when(
+      ({ maybeIsPlaygroundSupported }) =>
+        Option.contains(maybeIsPlaygroundSupported, false),
+      () =>
+        messageView(
+          'Playground cannot run here',
+          'The Playground needs SharedArrayBuffer on a cross-origin isolated page and a working embedded preview. This browser session did not provide that combination. You can still see the example running on its detail page.',
+          maybeMeta,
+        ),
+    ),
+    Match.orElse(() =>
+      Option.match(Option.all([maybeMeta, maybeFiles]), {
+        onNone: () =>
+          messageView(
+            'Playground coming soon',
+            'This example is not yet available in the embedded playground. Open its example detail page to see it running.',
+            maybeMeta,
+          ),
+        onSome: () => responsiveEditorView(model, h),
+      }),
+    ),
+  )
+
+  return h.div(
+    [h.Class('flex flex-col h-screen')],
+    [
+      h.main(
+        [
+          h.Id('main-content'),
+          h.Class('flex-1 flex flex-col min-h-0'),
+          h.AriaLabel('Playground'),
+        ],
+        [content],
+      ),
+    ],
+  )
+})

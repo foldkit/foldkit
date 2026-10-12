@@ -10,7 +10,7 @@ const fetchWeatherEffect = Effect.succeed(Message.CompletedFetchWeather())
 
 export const FetchWeather = Command.define('FetchWeather', {
   messages: [Message.CompletedFetchWeather],
-  execute: fetchWeatherEffect,
+  handler: fetchWeatherEffect,
 })
 
 export const defineLocal = (Command: { define: (name: string) => string }) =>

@@ -5,9 +5,12 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 
 import { Popover } from '@foldkit/ui'
+
+type MountRequirements = Mount.RequirementsOf<typeof Popover.mounts>
 
 // Add one Popover Submodel field for each level:
 const Model = Schema.Struct({
@@ -75,7 +78,7 @@ GotAccountDetailsPopoverMessage: ({ message }) =>
 // Inside your view function, render the child Popover inside the parent
 // panel. `focusSelector` points at the child trigger, which Popover derives
 // from the child id as `${id}-button`.
-const view = (h: HtmlBuilder<Message>) => {
+const view = (h: HtmlBuilder<Message, MountRequirements>) => {
   const accountDetailsPopoverView = ({
     button,
     panel,

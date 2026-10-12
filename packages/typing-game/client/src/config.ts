@@ -17,7 +17,7 @@ export class ViteEnvConfig extends Context.Service<
   ViteEnvConfigShape
 >()('ViteEnvConfig') {}
 
-export const ViteEnvConfigLive = Layer.effect(
+export const ViteEnvConfigLayer = Layer.effect(
   ViteEnvConfig,
   Effect.sync(() =>
     ViteEnvConfig.of({

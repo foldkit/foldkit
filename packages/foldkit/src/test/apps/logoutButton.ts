@@ -14,6 +14,7 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({
   ClickedLogout: {},
   CompletedAction: {},
+  ObservedBackgroundActivity: {},
 })
 
 export type Message = typeof Message.Type
@@ -41,6 +42,7 @@ export const update = (model: Model, message: Message) =>
         outMessage: OutMessage.RequestedLogout(),
       }),
       CompletedAction: () => ({ model }),
+      ObservedBackgroundActivity: () => ({ model }),
     },
   )
 

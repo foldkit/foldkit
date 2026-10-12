@@ -12,6 +12,7 @@ import {
   Prop,
   customElement as customElementVNode,
 } from '../html/index.js'
+import type { AnyMountHandler } from '../mount/index.js'
 
 /** Type-level kebab-case to PascalCase, used to convert event names like
  *  `'change-rating'` into the corresponding factory name `'OnChangeRating'`. */
@@ -19,13 +20,13 @@ type KebabToPascal<S extends string> = S extends `${infer Head}-${infer Tail}`
   ? `${Capitalize<Head>}${KebabToPascal<Tail>}`
   : Capitalize<S>
 
-type PropertyFactory<Message, ValueType> = (
+type PropertyFactory<Message, AllowedMountRequirements, ValueType> = (
   value: ValueType,
-) => Attribute<Message>
+) => Attribute<Message, AllowedMountRequirements>
 
-type EventFactory<Message, DetailType> = (
+type EventFactory<Message, AllowedMountRequirements, DetailType> = (
   toMessage: (detail: DetailType) => Message,
-) => Attribute<Message>
+) => Attribute<Message, AllowedMountRequirements>
 
 /** Constraint on a declared event's `detail` Schema. The runtime decodes
  * `detail` synchronously inside the DOM event handler, where there is no
@@ -36,19 +37,29 @@ export type EventSchema = Schema.Codec<unknown, unknown, never, unknown>
 /** @internal */
 type PropertyFactories<
   Message,
+  AllowedMountRequirements,
   Properties extends Record<string, Schema.Top>,
 > = {
   readonly [K in keyof Properties as Capitalize<string & K>]: PropertyFactory<
     Message,
+    AllowedMountRequirements,
     Schema.Schema.Type<Properties[K]>
   >
 }
 
 /** @internal */
-type EventFactories<Message, Events extends Record<string, EventSchema>> = {
+type EventFactories<
+  Message,
+  AllowedMountRequirements,
+  Events extends Record<string, EventSchema>,
+> = {
   readonly [
     K in keyof Events as `On${KebabToPascal<string & K>}`
-  ]: EventFactory<Message, Schema.Schema.Type<Events[K]>>
+  ]: EventFactory<
+    Message,
+    AllowedMountRequirements,
+    Schema.Schema.Type<Events[K]>
+  >
 }
 
 /** Typed call site for a defined custom element. The element constructor
@@ -61,12 +72,16 @@ export type ElementBuilder<
   Message,
   Properties extends Record<string, Schema.Top>,
   Events extends Record<string, EventSchema>,
+  AllowedMountRequirements = never,
 > = ((
-  attributes?: ReadonlyArray<Attribute<Message> | ChildAttribute>,
+  attributes?: ReadonlyArray<
+    | Attribute<Message, AllowedMountRequirements>
+    | ChildAttribute<AllowedMountRequirements>
+  >,
   children?: ReadonlyArray<Child>,
 ) => Html) &
-  PropertyFactories<Message, Properties> &
-  EventFactories<Message, Events>
+  PropertyFactories<Message, AllowedMountRequirements, Properties> &
+  EventFactories<Message, AllowedMountRequirements, Events>
 
 /** Configuration accepted by `CustomElement.define`. */
 export interface CustomElementConfig<
@@ -79,12 +94,15 @@ export interface CustomElementConfig<
   readonly events: Events
 }
 
-/** A defined custom element, untyped on Message at definition time so the
+/**
+ * A defined custom element, untyped on Message at definition time so the
  *  spec can be exported and shared across modules. Call `.withMessage(h)`
  *  with a view's builder to mint a typed `ElementBuilder` bound to that
- *  frame's Message universe. The builder argument is a type witness: it
- *  fixes `Message` to the frame the element renders in, so the spec cannot
- *  be bound to a Message universe its events will not dispatch into. */
+ *  frame's Message universe and registered Mount capabilities. The builder
+ *  argument is a type witness: it fixes `Message` to the frame the element
+ *  renders in, so the spec cannot be bound to a Message universe its events
+ *  will not dispatch into.
+ */
 export interface CustomElementSpec<
   Tag extends string,
   Properties extends Record<string, Schema.Top>,
@@ -93,17 +111,21 @@ export interface CustomElementSpec<
   readonly tag: Tag
   readonly properties: Properties
   readonly events: Events
-  readonly withMessage: <Message>(
-    h: HtmlBuilder<Message>,
-  ) => ElementBuilder<Message, Properties, Events>
+  readonly withMessage: <Message, AllowedMountRequirements = never>(
+    h: HtmlBuilder<Message, AllowedMountRequirements>,
+  ) => ElementBuilder<Message, Properties, Events, AllowedMountRequirements>
 }
 
-/** The typed builder for a given spec and Message universe. Equivalent to
- *  the value `Spec.withMessage<Message>()` returns, expressed as a type
- *  consumers can name without reaching for `ReturnType<typeof ...>`. */
-export type Builder<Spec, Message> =
+/**
+ * The typed builder for a given spec and Message universe. Equivalent to
+ *  the value `Spec.withMessage(h)` returns, expressed as a type
+ *  consumers can name without reaching for `ReturnType<typeof ...>`. Supply
+ *  the third parameter when the builder forwards mounted attributes, using
+ *  `Mount.RequirementsOf<typeof mounts>` from the owning registrations.
+ */
+export type Builder<Spec, Message, AllowedMountRequirements = never> =
   Spec extends CustomElementSpec<string, infer Properties, infer Events>
-    ? ElementBuilder<Message, Properties, Events>
+    ? ElementBuilder<Message, Properties, Events, AllowedMountRequirements>
     : never
 
 /** @internal Shared with the Scene test helpers so their error messages name
@@ -156,7 +178,7 @@ const eventFactoryName = (eventName: string): string =>
 /**
  * Define a typed binding for a custom element. The returned spec describes
  * the element's properties and events with Schema, and exposes a
- * `.withMessage<Message>()` factory that yields a typed `ElementBuilder` for
+ * `.withMessage(h)` factory that yields a typed `ElementBuilder` for
  * the consumer's Message universe.
  *
  * Property changes diff across renders; declared `CustomEvent` details are
@@ -207,12 +229,17 @@ export const define = <
   const buildElementBuilder = (): ElementBuilder<
     unknown,
     Properties,
-    Events
+    Events,
+    AnyMountHandler
   > => {
-    const createVNode = customElementVNode<unknown>()(config.tag)
+    const createVNode = customElementVNode<unknown, AnyMountHandler>()(
+      config.tag,
+    )
 
     const elementFn = (
-      attributes: ReadonlyArray<Attribute<unknown> | ChildAttribute> = [],
+      attributes: ReadonlyArray<
+        Attribute<unknown, AnyMountHandler> | ChildAttribute<AnyMountHandler>
+      > = [],
       children: ReadonlyArray<Child> = [],
     ): Html => createVNode(attributes, children)
 
@@ -222,7 +249,8 @@ export const define = <
     for (const propertyName of propertyNames) {
       builder[propertyFactoryName(propertyName)] = (
         value: unknown,
-      ): Attribute<unknown> => Prop({ key: propertyName, value })
+      ): Attribute<unknown, AnyMountHandler> =>
+        Prop({ key: propertyName, value })
     }
 
     for (const [eventName, detailSchema] of Object.entries(config.events)) {
@@ -246,7 +274,7 @@ export const define = <
 
       builder[eventFactoryName(eventName)] = (
         toMessage: (detail: unknown) => unknown,
-      ): Attribute<unknown> =>
+      ): Attribute<unknown, AnyMountHandler> =>
         OnCustomEvent({
           name: eventName,
           f: event =>
@@ -264,7 +292,12 @@ export const define = <
     }
 
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    return builder as ElementBuilder<unknown, Properties, Events>
+    return builder as ElementBuilder<
+      unknown,
+      Properties,
+      Events,
+      AnyMountHandler
+    >
   }
 
   // NOTE: `withMessage` is called once per render, so the ElementBuilder is
@@ -272,15 +305,20 @@ export const define = <
   // factories close over nothing Message-specific, exactly like the html
   // builder singleton.
   let cachedElementBuilder:
-    | ElementBuilder<unknown, Properties, Events>
+    | ElementBuilder<unknown, Properties, Events, AnyMountHandler>
     | undefined
 
-  const withMessage = <Message>(
-    _h: HtmlBuilder<Message>,
-  ): ElementBuilder<Message, Properties, Events> => {
+  const withMessage = <Message, AllowedMountRequirements = never>(
+    _h: HtmlBuilder<Message, AllowedMountRequirements>,
+  ): ElementBuilder<Message, Properties, Events, AllowedMountRequirements> => {
     cachedElementBuilder ??= buildElementBuilder()
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    return cachedElementBuilder as ElementBuilder<Message, Properties, Events>
+    return cachedElementBuilder as ElementBuilder<
+      Message,
+      Properties,
+      Events,
+      AllowedMountRequirements
+    >
   }
 
   return {

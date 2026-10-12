@@ -5,15 +5,19 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 
 import { Menu } from '@foldkit/ui'
+
+type MountRequirements = Mount.RequirementsOf<typeof Menu.mounts>
 
 // Add a field to your Model for the Menu Submodel:
 const Model = Schema.Struct({
   menu: Menu.Model,
   // ...your other fields
 })
+type Model = typeof Model.Type
 
 // In your init function, initialize the Menu Submodel with a unique id:
 const init = () => ({
@@ -27,6 +31,7 @@ const init = () => ({
 const Message = defineMessageUnion({
   GotMenuMessage: { message: Menu.Message },
 })
+type Message = typeof Message.Type
 
 type Action = 'Edit' | 'Duplicate' | 'Archive' | 'Delete'
 const actions: ReadonlyArray<Action> = [
@@ -72,7 +77,7 @@ GotMenuMessage: ({ message }) => foldMenu(model, message)
 // label element (target the trigger id with `Menu.buttonId('actions')` for a
 // native `<label for>`). Either attribute is only emitted when provided, so
 // the trigger never carries a dangling `aria-labelledby`.
-const view = (h: HtmlBuilder<Message>) =>
+const view = (h: HtmlBuilder<Message, MountRequirements>) =>
   h.submodel({
     slotId: 'menu',
     model: model.menu,

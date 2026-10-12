@@ -25,8 +25,11 @@ import {
   reflectedAttributeName,
 } from '../domReflection.js'
 import type { File } from '../file/index.js'
-import type { MountAction } from '../mount/index.js'
 import {
+  type AnyMountHandler,
+  type MountAction,
+  type MountRegistration,
+  MountRegistrationTypeId,
   MountRuntime,
   MountTracker,
   liveViewStateChanges,
@@ -77,6 +80,7 @@ import {
 import {
   type AnySubmodelView,
   type SubmodelConfig,
+  type ViewMountRequirementsOf,
   submodel,
 } from './submodel.js'
 
@@ -564,6 +568,7 @@ export type FoldkitMountMarker = Readonly<{
   name: string
   args?: Record<string, unknown>
   messageMappers?: ReadonlyArray<(message: unknown) => unknown>
+  [MountRegistrationTypeId]?: MountRegistration
 }>
 
 /** Union of all HTML, SVG, and MathML attributes a virtual DOM element can carry.
@@ -575,7 +580,10 @@ export type FoldkitMountMarker = Readonly<{
  *  `ReadonlyArray<Attribute<Message> | ChildAttribute>`, so consumers
  *  can spread published bundles directly into their own attribute
  *  arrays. */
-export type Attribute<Message> = Data.TaggedEnum<{
+export type Attribute<
+  Message,
+  AllowedMountRequirements = never,
+> = Data.TaggedEnum<{
   Key: { readonly value: string }
   Class: { readonly value: string }
   Id: { readonly value: string }
@@ -963,7 +971,11 @@ export type Attribute<Message> = Data.TaggedEnum<{
     readonly f: (event: CustomEvent<unknown>) => Option.Option<Message>
   }
   OnMount: {
-    readonly action: MountAction<Message, any>
+    readonly action: MountAction<
+      Message,
+      unknown,
+      never | AllowedMountRequirements
+    >
   }
   OnUnmount: {
     readonly message: Message
@@ -971,7 +983,7 @@ export type Attribute<Message> = Data.TaggedEnum<{
 }>
 
 interface AttributeDefinition extends Data.TaggedEnum.WithGenerics<1> {
-  readonly taggedEnum: Attribute<this['A']>
+  readonly taggedEnum: Attribute<this['A'], any>
 }
 
 const {
@@ -1288,7 +1300,6 @@ const {
   PreserveAspectRatio,
   Prop,
   OnCustomEvent,
-  OnMount,
   OnUnmount,
 } = Data.taggedEnum<AttributeDefinition>()
 
@@ -2497,10 +2508,14 @@ const attributeHandlers: AttributeHandlers = {
     const notifyEnded = Option.isSome(maybeTracker)
       ? () => maybeTracker.value.ended(action.name, action.args)
       : Function.constVoid
-    const markerWithArgs: FoldkitMountMarker =
-      action.args === undefined
-        ? { name: action.name }
-        : { name: action.name, args: action.args }
+    const registration = action[MountRegistrationTypeId]
+    const markerWithArgs: FoldkitMountMarker = {
+      name: action.name,
+      ...(action.args !== undefined && { args: action.args }),
+      ...(registration !== undefined && {
+        [MountRegistrationTypeId]: registration,
+      }),
+    }
     const boundaryLift = ctx.boundaryMappers
     const marker: FoldkitMountMarker = Array.isReadonlyArrayEmpty(boundaryLift)
       ? markerWithArgs
@@ -2585,7 +2600,13 @@ const attributeHandlers: AttributeHandlers = {
         previousFiber === undefined
           ? runMount
           : Fiber.interrupt(previousFiber).pipe(Effect.andThen(runMount))
-      const fiber = Effect.runForkWith(capturedContext)(acquire)
+      const fiber = Effect.runForkWith(capturedContext)(
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+        acquire as Effect.Effect<void>,
+      )
+      if (Option.isSome(maybeMountRuntime)) {
+        maybeMountRuntime.value.registerFiber(fiber)
+      }
       onMountStates.set(element, {
         fiber,
         lifecycle,
@@ -2749,8 +2770,11 @@ const attachControlledContentOwnershipHook = (data: VNodeData): void => {
   }
 }
 
-const buildVNodeData = <Message>(
-  attributes: ReadonlyArray<Attribute<Message> | ChildAttribute>,
+const buildVNodeData = <Message, AllowedMountRequirements>(
+  attributes: ReadonlyArray<
+    | Attribute<Message, AllowedMountRequirements>
+    | ChildAttribute<AllowedMountRequirements>
+  >,
 ): VNodeData => {
   const data: VNodeData = { [vnodeDataMaskKey]: 0 }
   if (attributes.length === 0) {
@@ -3202,42 +3226,62 @@ const buildElement = (
   return built
 }
 
-const createElement = <Message>(
+const createElement = <Message, AllowedMountRequirements>(
   tagName: string,
-  attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
+  attributes: ReadonlyArray<
+    | Attribute<Message, AllowedMountRequirements>
+    | ChildAttribute<AllowedMountRequirements>
+  > = [],
   children: ReadonlyArray<Child> = [],
 ): Html => buildElement(tagName, buildVNodeData(attributes), children)
 
 const element =
-  <Message>() =>
+  <Message, AllowedMountRequirements>() =>
   (tagName: TagName) =>
   (
-    attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
+    attributes: ReadonlyArray<
+      | Attribute<Message, AllowedMountRequirements>
+      | ChildAttribute<AllowedMountRequirements>
+    > = [],
     children: ReadonlyArray<Child> = [],
   ): Html =>
     createElement(tagName, attributes, children)
 
 export const customElement =
-  <Message>() =>
+  <Message, AllowedMountRequirements = never>() =>
   (tagName: string) =>
   (
-    attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
+    attributes: ReadonlyArray<
+      | Attribute<Message, AllowedMountRequirements>
+      | ChildAttribute<AllowedMountRequirements>
+    > = [],
     children: ReadonlyArray<Child> = [],
   ): Html =>
     createElement(tagName, attributes, children)
 
 const voidElement =
-  <Message>() =>
+  <Message, AllowedMountRequirements>() =>
   (tagName: TagName) =>
-  (attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = []): Html =>
+  (
+    attributes: ReadonlyArray<
+      | Attribute<Message, AllowedMountRequirements>
+      | ChildAttribute<AllowedMountRequirements>
+    > = [],
+  ): Html =>
     createElement(tagName, attributes, [])
 
 const keyed =
-  <Message>(): KeyedFunction<Message> =>
+  <Message, AllowedMountRequirements>(): KeyedFunction<
+    Message,
+    AllowedMountRequirements
+  > =>
   (tagName: TagName) =>
   (
     key: PropertyKey,
-    attributes: ReadonlyArray<Attribute<Message> | ChildAttribute> = [],
+    attributes: ReadonlyArray<
+      | Attribute<Message, AllowedMountRequirements>
+      | ChildAttribute<AllowedMountRequirements>
+    > = [],
     children: ReadonlyArray<Child> = [],
   ): Html => {
     const data = buildVNodeData(attributes)
@@ -3245,263 +3289,284 @@ const keyed =
     return buildElement(tagName, data, children)
   }
 
-type ElementFunction<Message> = (
-  attributes: ReadonlyArray<Attribute<Message> | ChildAttribute>,
+type ElementFunction<Message, AllowedMountRequirements> = (
+  attributes: ReadonlyArray<
+    | Attribute<Message, AllowedMountRequirements>
+    | ChildAttribute<AllowedMountRequirements>
+  >,
   children?: ReadonlyArray<Child>,
 ) => Html
 
-type VoidElementFunction<Message> = (
-  attributes: ReadonlyArray<Attribute<Message> | ChildAttribute>,
+type VoidElementFunction<Message, AllowedMountRequirements> = (
+  attributes: ReadonlyArray<
+    | Attribute<Message, AllowedMountRequirements>
+    | ChildAttribute<AllowedMountRequirements>
+  >,
 ) => Html
 
 /** An attribute accepted by textarea builders. Textarea content must use
  *  `h.Value`; innerHTML does not keep the live value tracking the Model after
  *  the field is dirty. */
-export type TextareaAttribute<Message> = Exclude<
-  Attribute<Message>,
+export type TextareaAttribute<
+  Message,
+  AllowedMountRequirements = never,
+> = Exclude<
+  Attribute<Message, AllowedMountRequirements>,
   Readonly<{ _tag: 'InnerHTML' }>
 >
 
-type TextValueElementFunction<Message> = (
-  attributes: ReadonlyArray<TextareaAttribute<Message> | ChildAttribute>,
+type TextValueElementFunction<Message, AllowedMountRequirements> = (
+  attributes: ReadonlyArray<
+    | TextareaAttribute<Message, AllowedMountRequirements>
+    | ChildAttribute<AllowedMountRequirements>
+  >,
 ) => Html
 
-type KeyedElementFunction<Message> = (
+type KeyedElementFunction<Message, AllowedMountRequirements> = (
   key: PropertyKey,
-  attributes?: ReadonlyArray<Attribute<Message> | ChildAttribute>,
+  attributes?: ReadonlyArray<
+    | Attribute<Message, AllowedMountRequirements>
+    | ChildAttribute<AllowedMountRequirements>
+  >,
   children?: ReadonlyArray<Child>,
 ) => Html
 
-type KeyedTextValueElementFunction<Message> = (
+type KeyedTextValueElementFunction<Message, AllowedMountRequirements> = (
   key: PropertyKey,
-  attributes?: ReadonlyArray<TextareaAttribute<Message> | ChildAttribute>,
+  attributes?: ReadonlyArray<
+    | TextareaAttribute<Message, AllowedMountRequirements>
+    | ChildAttribute<AllowedMountRequirements>
+  >,
 ) => Html
 
-type KeyedFunction<Message> = <Name extends TagName>(
+type KeyedFunction<Message, AllowedMountRequirements> = <Name extends TagName>(
   tagName: Name,
 ) => Name extends 'textarea'
-  ? KeyedTextValueElementFunction<Message>
-  : KeyedElementFunction<Message>
+  ? KeyedTextValueElementFunction<Message, AllowedMountRequirements>
+  : KeyedElementFunction<Message, AllowedMountRequirements>
 
-type HtmlElements<Message> = {
-  a: ElementFunction<Message>
-  abbr: ElementFunction<Message>
-  address: ElementFunction<Message>
-  area: VoidElementFunction<Message>
-  article: ElementFunction<Message>
-  aside: ElementFunction<Message>
-  audio: ElementFunction<Message>
-  b: ElementFunction<Message>
-  base: VoidElementFunction<Message>
-  bdi: ElementFunction<Message>
-  bdo: ElementFunction<Message>
-  blockquote: ElementFunction<Message>
-  body: ElementFunction<Message>
-  br: VoidElementFunction<Message>
-  button: ElementFunction<Message>
-  canvas: ElementFunction<Message>
-  caption: ElementFunction<Message>
-  cite: ElementFunction<Message>
-  code: ElementFunction<Message>
-  col: VoidElementFunction<Message>
-  colgroup: ElementFunction<Message>
-  data: ElementFunction<Message>
-  datalist: ElementFunction<Message>
-  dd: ElementFunction<Message>
-  del: ElementFunction<Message>
-  details: ElementFunction<Message>
-  dfn: ElementFunction<Message>
-  dialog: ElementFunction<Message>
-  div: ElementFunction<Message>
-  dl: ElementFunction<Message>
-  dt: ElementFunction<Message>
-  em: ElementFunction<Message>
-  embed: VoidElementFunction<Message>
-  fieldset: ElementFunction<Message>
-  figcaption: ElementFunction<Message>
-  figure: ElementFunction<Message>
-  footer: ElementFunction<Message>
-  form: ElementFunction<Message>
-  h1: ElementFunction<Message>
-  h2: ElementFunction<Message>
-  h3: ElementFunction<Message>
-  h4: ElementFunction<Message>
-  h5: ElementFunction<Message>
-  h6: ElementFunction<Message>
-  head: ElementFunction<Message>
-  header: ElementFunction<Message>
-  hgroup: ElementFunction<Message>
-  hr: VoidElementFunction<Message>
-  html: ElementFunction<Message>
-  i: ElementFunction<Message>
-  iframe: ElementFunction<Message>
-  img: VoidElementFunction<Message>
-  input: VoidElementFunction<Message>
-  ins: ElementFunction<Message>
-  kbd: ElementFunction<Message>
-  label: ElementFunction<Message>
-  legend: ElementFunction<Message>
-  li: ElementFunction<Message>
-  link: VoidElementFunction<Message>
-  main: ElementFunction<Message>
-  map: ElementFunction<Message>
-  mark: ElementFunction<Message>
-  menu: ElementFunction<Message>
-  meta: VoidElementFunction<Message>
-  meter: ElementFunction<Message>
-  nav: ElementFunction<Message>
-  noscript: ElementFunction<Message>
-  object: ElementFunction<Message>
-  ol: ElementFunction<Message>
-  optgroup: ElementFunction<Message>
-  option: ElementFunction<Message>
-  output: ElementFunction<Message>
-  p: ElementFunction<Message>
-  picture: ElementFunction<Message>
-  portal: ElementFunction<Message>
-  pre: ElementFunction<Message>
-  progress: ElementFunction<Message>
-  q: ElementFunction<Message>
-  rp: ElementFunction<Message>
-  rt: ElementFunction<Message>
-  ruby: ElementFunction<Message>
-  s: ElementFunction<Message>
-  samp: ElementFunction<Message>
-  script: ElementFunction<Message>
-  search: ElementFunction<Message>
-  section: ElementFunction<Message>
-  select: ElementFunction<Message>
-  slot: ElementFunction<Message>
-  small: ElementFunction<Message>
-  source: VoidElementFunction<Message>
-  span: ElementFunction<Message>
-  strong: ElementFunction<Message>
-  style: ElementFunction<Message>
-  sub: ElementFunction<Message>
-  summary: ElementFunction<Message>
-  sup: ElementFunction<Message>
-  table: ElementFunction<Message>
-  tbody: ElementFunction<Message>
-  td: ElementFunction<Message>
-  template: ElementFunction<Message>
-  textarea: TextValueElementFunction<Message>
-  tfoot: ElementFunction<Message>
-  th: ElementFunction<Message>
-  thead: ElementFunction<Message>
-  time: ElementFunction<Message>
-  title: ElementFunction<Message>
-  tr: ElementFunction<Message>
-  track: VoidElementFunction<Message>
-  u: ElementFunction<Message>
-  ul: ElementFunction<Message>
-  var: ElementFunction<Message>
-  video: ElementFunction<Message>
-  wbr: VoidElementFunction<Message>
-  svg: ElementFunction<Message>
-  animate: ElementFunction<Message>
-  animateMotion: ElementFunction<Message>
-  animateTransform: ElementFunction<Message>
-  circle: ElementFunction<Message>
-  clipPath: ElementFunction<Message>
-  defs: ElementFunction<Message>
-  desc: ElementFunction<Message>
-  ellipse: ElementFunction<Message>
-  feBlend: ElementFunction<Message>
-  feColorMatrix: ElementFunction<Message>
-  feComponentTransfer: ElementFunction<Message>
-  feComposite: ElementFunction<Message>
-  feConvolveMatrix: ElementFunction<Message>
-  feDiffuseLighting: ElementFunction<Message>
-  feDisplacementMap: ElementFunction<Message>
-  feDistantLight: ElementFunction<Message>
-  feDropShadow: ElementFunction<Message>
-  feFlood: ElementFunction<Message>
-  feFuncA: ElementFunction<Message>
-  feFuncB: ElementFunction<Message>
-  feFuncG: ElementFunction<Message>
-  feFuncR: ElementFunction<Message>
-  feGaussianBlur: ElementFunction<Message>
-  feImage: ElementFunction<Message>
-  feMerge: ElementFunction<Message>
-  feMergeNode: ElementFunction<Message>
-  feMorphology: ElementFunction<Message>
-  feOffset: ElementFunction<Message>
-  fePointLight: ElementFunction<Message>
-  feSpecularLighting: ElementFunction<Message>
-  feSpotLight: ElementFunction<Message>
-  feTile: ElementFunction<Message>
-  feTurbulence: ElementFunction<Message>
-  filter: ElementFunction<Message>
-  foreignObject: ElementFunction<Message>
-  g: ElementFunction<Message>
-  image: ElementFunction<Message>
-  line: ElementFunction<Message>
-  linearGradient: ElementFunction<Message>
-  marker: ElementFunction<Message>
-  mask: ElementFunction<Message>
-  metadata: ElementFunction<Message>
-  mpath: ElementFunction<Message>
-  path: ElementFunction<Message>
-  pattern: ElementFunction<Message>
-  polygon: ElementFunction<Message>
-  polyline: ElementFunction<Message>
-  radialGradient: ElementFunction<Message>
-  rect: ElementFunction<Message>
-  set: ElementFunction<Message>
-  stop: ElementFunction<Message>
-  switch: ElementFunction<Message>
-  symbol: ElementFunction<Message>
-  text: ElementFunction<Message>
-  textPath: ElementFunction<Message>
-  tspan: ElementFunction<Message>
-  use: ElementFunction<Message>
-  view: ElementFunction<Message>
-  math: ElementFunction<Message>
-  annotation: ElementFunction<Message>
-  'annotation-xml': ElementFunction<Message>
-  maction: ElementFunction<Message>
-  menclose: ElementFunction<Message>
-  merror: ElementFunction<Message>
-  mfenced: ElementFunction<Message>
-  mfrac: ElementFunction<Message>
-  mglyph: ElementFunction<Message>
-  mi: ElementFunction<Message>
-  mlabeledtr: ElementFunction<Message>
-  mlongdiv: ElementFunction<Message>
-  mmultiscripts: ElementFunction<Message>
-  mn: ElementFunction<Message>
-  mo: ElementFunction<Message>
-  mover: ElementFunction<Message>
-  mpadded: ElementFunction<Message>
-  mphantom: ElementFunction<Message>
-  mprescripts: ElementFunction<Message>
-  mroot: ElementFunction<Message>
-  mrow: ElementFunction<Message>
-  ms: ElementFunction<Message>
-  mscarries: ElementFunction<Message>
-  mscarry: ElementFunction<Message>
-  msgroup: ElementFunction<Message>
-  msline: ElementFunction<Message>
-  mspace: ElementFunction<Message>
-  msqrt: ElementFunction<Message>
-  msrow: ElementFunction<Message>
-  mstack: ElementFunction<Message>
-  mstyle: ElementFunction<Message>
-  msub: ElementFunction<Message>
-  msubsup: ElementFunction<Message>
-  msup: ElementFunction<Message>
-  mtable: ElementFunction<Message>
-  mtd: ElementFunction<Message>
-  mtext: ElementFunction<Message>
-  mtr: ElementFunction<Message>
-  munder: ElementFunction<Message>
-  munderover: ElementFunction<Message>
-  semantics: ElementFunction<Message>
+type HtmlElements<Message, AllowedMountRequirements> = {
+  a: ElementFunction<Message, AllowedMountRequirements>
+  abbr: ElementFunction<Message, AllowedMountRequirements>
+  address: ElementFunction<Message, AllowedMountRequirements>
+  area: VoidElementFunction<Message, AllowedMountRequirements>
+  article: ElementFunction<Message, AllowedMountRequirements>
+  aside: ElementFunction<Message, AllowedMountRequirements>
+  audio: ElementFunction<Message, AllowedMountRequirements>
+  b: ElementFunction<Message, AllowedMountRequirements>
+  base: VoidElementFunction<Message, AllowedMountRequirements>
+  bdi: ElementFunction<Message, AllowedMountRequirements>
+  bdo: ElementFunction<Message, AllowedMountRequirements>
+  blockquote: ElementFunction<Message, AllowedMountRequirements>
+  body: ElementFunction<Message, AllowedMountRequirements>
+  br: VoidElementFunction<Message, AllowedMountRequirements>
+  button: ElementFunction<Message, AllowedMountRequirements>
+  canvas: ElementFunction<Message, AllowedMountRequirements>
+  caption: ElementFunction<Message, AllowedMountRequirements>
+  cite: ElementFunction<Message, AllowedMountRequirements>
+  code: ElementFunction<Message, AllowedMountRequirements>
+  col: VoidElementFunction<Message, AllowedMountRequirements>
+  colgroup: ElementFunction<Message, AllowedMountRequirements>
+  data: ElementFunction<Message, AllowedMountRequirements>
+  datalist: ElementFunction<Message, AllowedMountRequirements>
+  dd: ElementFunction<Message, AllowedMountRequirements>
+  del: ElementFunction<Message, AllowedMountRequirements>
+  details: ElementFunction<Message, AllowedMountRequirements>
+  dfn: ElementFunction<Message, AllowedMountRequirements>
+  dialog: ElementFunction<Message, AllowedMountRequirements>
+  div: ElementFunction<Message, AllowedMountRequirements>
+  dl: ElementFunction<Message, AllowedMountRequirements>
+  dt: ElementFunction<Message, AllowedMountRequirements>
+  em: ElementFunction<Message, AllowedMountRequirements>
+  embed: VoidElementFunction<Message, AllowedMountRequirements>
+  fieldset: ElementFunction<Message, AllowedMountRequirements>
+  figcaption: ElementFunction<Message, AllowedMountRequirements>
+  figure: ElementFunction<Message, AllowedMountRequirements>
+  footer: ElementFunction<Message, AllowedMountRequirements>
+  form: ElementFunction<Message, AllowedMountRequirements>
+  h1: ElementFunction<Message, AllowedMountRequirements>
+  h2: ElementFunction<Message, AllowedMountRequirements>
+  h3: ElementFunction<Message, AllowedMountRequirements>
+  h4: ElementFunction<Message, AllowedMountRequirements>
+  h5: ElementFunction<Message, AllowedMountRequirements>
+  h6: ElementFunction<Message, AllowedMountRequirements>
+  head: ElementFunction<Message, AllowedMountRequirements>
+  header: ElementFunction<Message, AllowedMountRequirements>
+  hgroup: ElementFunction<Message, AllowedMountRequirements>
+  hr: VoidElementFunction<Message, AllowedMountRequirements>
+  html: ElementFunction<Message, AllowedMountRequirements>
+  i: ElementFunction<Message, AllowedMountRequirements>
+  iframe: ElementFunction<Message, AllowedMountRequirements>
+  img: VoidElementFunction<Message, AllowedMountRequirements>
+  input: VoidElementFunction<Message, AllowedMountRequirements>
+  ins: ElementFunction<Message, AllowedMountRequirements>
+  kbd: ElementFunction<Message, AllowedMountRequirements>
+  label: ElementFunction<Message, AllowedMountRequirements>
+  legend: ElementFunction<Message, AllowedMountRequirements>
+  li: ElementFunction<Message, AllowedMountRequirements>
+  link: VoidElementFunction<Message, AllowedMountRequirements>
+  main: ElementFunction<Message, AllowedMountRequirements>
+  map: ElementFunction<Message, AllowedMountRequirements>
+  mark: ElementFunction<Message, AllowedMountRequirements>
+  menu: ElementFunction<Message, AllowedMountRequirements>
+  meta: VoidElementFunction<Message, AllowedMountRequirements>
+  meter: ElementFunction<Message, AllowedMountRequirements>
+  nav: ElementFunction<Message, AllowedMountRequirements>
+  noscript: ElementFunction<Message, AllowedMountRequirements>
+  object: ElementFunction<Message, AllowedMountRequirements>
+  ol: ElementFunction<Message, AllowedMountRequirements>
+  optgroup: ElementFunction<Message, AllowedMountRequirements>
+  option: ElementFunction<Message, AllowedMountRequirements>
+  output: ElementFunction<Message, AllowedMountRequirements>
+  p: ElementFunction<Message, AllowedMountRequirements>
+  picture: ElementFunction<Message, AllowedMountRequirements>
+  portal: ElementFunction<Message, AllowedMountRequirements>
+  pre: ElementFunction<Message, AllowedMountRequirements>
+  progress: ElementFunction<Message, AllowedMountRequirements>
+  q: ElementFunction<Message, AllowedMountRequirements>
+  rp: ElementFunction<Message, AllowedMountRequirements>
+  rt: ElementFunction<Message, AllowedMountRequirements>
+  ruby: ElementFunction<Message, AllowedMountRequirements>
+  s: ElementFunction<Message, AllowedMountRequirements>
+  samp: ElementFunction<Message, AllowedMountRequirements>
+  script: ElementFunction<Message, AllowedMountRequirements>
+  search: ElementFunction<Message, AllowedMountRequirements>
+  section: ElementFunction<Message, AllowedMountRequirements>
+  select: ElementFunction<Message, AllowedMountRequirements>
+  slot: ElementFunction<Message, AllowedMountRequirements>
+  small: ElementFunction<Message, AllowedMountRequirements>
+  source: VoidElementFunction<Message, AllowedMountRequirements>
+  span: ElementFunction<Message, AllowedMountRequirements>
+  strong: ElementFunction<Message, AllowedMountRequirements>
+  style: ElementFunction<Message, AllowedMountRequirements>
+  sub: ElementFunction<Message, AllowedMountRequirements>
+  summary: ElementFunction<Message, AllowedMountRequirements>
+  sup: ElementFunction<Message, AllowedMountRequirements>
+  table: ElementFunction<Message, AllowedMountRequirements>
+  tbody: ElementFunction<Message, AllowedMountRequirements>
+  td: ElementFunction<Message, AllowedMountRequirements>
+  template: ElementFunction<Message, AllowedMountRequirements>
+  textarea: TextValueElementFunction<Message, AllowedMountRequirements>
+  tfoot: ElementFunction<Message, AllowedMountRequirements>
+  th: ElementFunction<Message, AllowedMountRequirements>
+  thead: ElementFunction<Message, AllowedMountRequirements>
+  time: ElementFunction<Message, AllowedMountRequirements>
+  title: ElementFunction<Message, AllowedMountRequirements>
+  tr: ElementFunction<Message, AllowedMountRequirements>
+  track: VoidElementFunction<Message, AllowedMountRequirements>
+  u: ElementFunction<Message, AllowedMountRequirements>
+  ul: ElementFunction<Message, AllowedMountRequirements>
+  var: ElementFunction<Message, AllowedMountRequirements>
+  video: ElementFunction<Message, AllowedMountRequirements>
+  wbr: VoidElementFunction<Message, AllowedMountRequirements>
+  svg: ElementFunction<Message, AllowedMountRequirements>
+  animate: ElementFunction<Message, AllowedMountRequirements>
+  animateMotion: ElementFunction<Message, AllowedMountRequirements>
+  animateTransform: ElementFunction<Message, AllowedMountRequirements>
+  circle: ElementFunction<Message, AllowedMountRequirements>
+  clipPath: ElementFunction<Message, AllowedMountRequirements>
+  defs: ElementFunction<Message, AllowedMountRequirements>
+  desc: ElementFunction<Message, AllowedMountRequirements>
+  ellipse: ElementFunction<Message, AllowedMountRequirements>
+  feBlend: ElementFunction<Message, AllowedMountRequirements>
+  feColorMatrix: ElementFunction<Message, AllowedMountRequirements>
+  feComponentTransfer: ElementFunction<Message, AllowedMountRequirements>
+  feComposite: ElementFunction<Message, AllowedMountRequirements>
+  feConvolveMatrix: ElementFunction<Message, AllowedMountRequirements>
+  feDiffuseLighting: ElementFunction<Message, AllowedMountRequirements>
+  feDisplacementMap: ElementFunction<Message, AllowedMountRequirements>
+  feDistantLight: ElementFunction<Message, AllowedMountRequirements>
+  feDropShadow: ElementFunction<Message, AllowedMountRequirements>
+  feFlood: ElementFunction<Message, AllowedMountRequirements>
+  feFuncA: ElementFunction<Message, AllowedMountRequirements>
+  feFuncB: ElementFunction<Message, AllowedMountRequirements>
+  feFuncG: ElementFunction<Message, AllowedMountRequirements>
+  feFuncR: ElementFunction<Message, AllowedMountRequirements>
+  feGaussianBlur: ElementFunction<Message, AllowedMountRequirements>
+  feImage: ElementFunction<Message, AllowedMountRequirements>
+  feMerge: ElementFunction<Message, AllowedMountRequirements>
+  feMergeNode: ElementFunction<Message, AllowedMountRequirements>
+  feMorphology: ElementFunction<Message, AllowedMountRequirements>
+  feOffset: ElementFunction<Message, AllowedMountRequirements>
+  fePointLight: ElementFunction<Message, AllowedMountRequirements>
+  feSpecularLighting: ElementFunction<Message, AllowedMountRequirements>
+  feSpotLight: ElementFunction<Message, AllowedMountRequirements>
+  feTile: ElementFunction<Message, AllowedMountRequirements>
+  feTurbulence: ElementFunction<Message, AllowedMountRequirements>
+  filter: ElementFunction<Message, AllowedMountRequirements>
+  foreignObject: ElementFunction<Message, AllowedMountRequirements>
+  g: ElementFunction<Message, AllowedMountRequirements>
+  image: ElementFunction<Message, AllowedMountRequirements>
+  line: ElementFunction<Message, AllowedMountRequirements>
+  linearGradient: ElementFunction<Message, AllowedMountRequirements>
+  marker: ElementFunction<Message, AllowedMountRequirements>
+  mask: ElementFunction<Message, AllowedMountRequirements>
+  metadata: ElementFunction<Message, AllowedMountRequirements>
+  mpath: ElementFunction<Message, AllowedMountRequirements>
+  path: ElementFunction<Message, AllowedMountRequirements>
+  pattern: ElementFunction<Message, AllowedMountRequirements>
+  polygon: ElementFunction<Message, AllowedMountRequirements>
+  polyline: ElementFunction<Message, AllowedMountRequirements>
+  radialGradient: ElementFunction<Message, AllowedMountRequirements>
+  rect: ElementFunction<Message, AllowedMountRequirements>
+  set: ElementFunction<Message, AllowedMountRequirements>
+  stop: ElementFunction<Message, AllowedMountRequirements>
+  switch: ElementFunction<Message, AllowedMountRequirements>
+  symbol: ElementFunction<Message, AllowedMountRequirements>
+  text: ElementFunction<Message, AllowedMountRequirements>
+  textPath: ElementFunction<Message, AllowedMountRequirements>
+  tspan: ElementFunction<Message, AllowedMountRequirements>
+  use: ElementFunction<Message, AllowedMountRequirements>
+  view: ElementFunction<Message, AllowedMountRequirements>
+  math: ElementFunction<Message, AllowedMountRequirements>
+  annotation: ElementFunction<Message, AllowedMountRequirements>
+  'annotation-xml': ElementFunction<Message, AllowedMountRequirements>
+  maction: ElementFunction<Message, AllowedMountRequirements>
+  menclose: ElementFunction<Message, AllowedMountRequirements>
+  merror: ElementFunction<Message, AllowedMountRequirements>
+  mfenced: ElementFunction<Message, AllowedMountRequirements>
+  mfrac: ElementFunction<Message, AllowedMountRequirements>
+  mglyph: ElementFunction<Message, AllowedMountRequirements>
+  mi: ElementFunction<Message, AllowedMountRequirements>
+  mlabeledtr: ElementFunction<Message, AllowedMountRequirements>
+  mlongdiv: ElementFunction<Message, AllowedMountRequirements>
+  mmultiscripts: ElementFunction<Message, AllowedMountRequirements>
+  mn: ElementFunction<Message, AllowedMountRequirements>
+  mo: ElementFunction<Message, AllowedMountRequirements>
+  mover: ElementFunction<Message, AllowedMountRequirements>
+  mpadded: ElementFunction<Message, AllowedMountRequirements>
+  mphantom: ElementFunction<Message, AllowedMountRequirements>
+  mprescripts: ElementFunction<Message, AllowedMountRequirements>
+  mroot: ElementFunction<Message, AllowedMountRequirements>
+  mrow: ElementFunction<Message, AllowedMountRequirements>
+  ms: ElementFunction<Message, AllowedMountRequirements>
+  mscarries: ElementFunction<Message, AllowedMountRequirements>
+  mscarry: ElementFunction<Message, AllowedMountRequirements>
+  msgroup: ElementFunction<Message, AllowedMountRequirements>
+  msline: ElementFunction<Message, AllowedMountRequirements>
+  mspace: ElementFunction<Message, AllowedMountRequirements>
+  msqrt: ElementFunction<Message, AllowedMountRequirements>
+  msrow: ElementFunction<Message, AllowedMountRequirements>
+  mstack: ElementFunction<Message, AllowedMountRequirements>
+  mstyle: ElementFunction<Message, AllowedMountRequirements>
+  msub: ElementFunction<Message, AllowedMountRequirements>
+  msubsup: ElementFunction<Message, AllowedMountRequirements>
+  msup: ElementFunction<Message, AllowedMountRequirements>
+  mtable: ElementFunction<Message, AllowedMountRequirements>
+  mtd: ElementFunction<Message, AllowedMountRequirements>
+  mtext: ElementFunction<Message, AllowedMountRequirements>
+  mtr: ElementFunction<Message, AllowedMountRequirements>
+  munder: ElementFunction<Message, AllowedMountRequirements>
+  munderover: ElementFunction<Message, AllowedMountRequirements>
+  semantics: ElementFunction<Message, AllowedMountRequirements>
 }
 
-const htmlElements = <Message>(): HtmlElements<Message> => {
-  const el = element<Message>()
-  const voidEl = voidElement<Message>()
+const htmlElements = <Message, AllowedMountRequirements>(): HtmlElements<
+  Message,
+  AllowedMountRequirements
+> => {
+  const el = element<Message, AllowedMountRequirements>()
+  const voidEl = voidElement<Message, AllowedMountRequirements>()
 
   return {
     // HTML
@@ -3725,7 +3790,7 @@ const htmlElements = <Message>(): HtmlElements<Message> => {
   }
 }
 
-type HtmlAttributes<Message> = {
+type HtmlAttributes<Message, AllowedMountRequirements> = {
   Key: (value: string) => { readonly _tag: 'Key'; readonly value: string }
   Class: (value: string) => { readonly _tag: 'Class'; readonly value: string }
   Id: (value: string) => { readonly _tag: 'Id'; readonly value: string }
@@ -4924,9 +4989,17 @@ type HtmlAttributes<Message> = {
     readonly _tag: 'PreserveAspectRatio'
     readonly value: string
   }
-  OnMount: (action: MountAction<Message, any>) => {
+  OnMount: <
+    Action extends MountAction<
+      Message,
+      unknown,
+      never | AllowedMountRequirements
+    >,
+  >(
+    action: Action,
+  ) => {
     readonly _tag: 'OnMount'
-    readonly action: MountAction<Message, any>
+    readonly action: Action
   }
   OnUnmount: (message: Message) => {
     readonly _tag: 'OnUnmount'
@@ -4934,7 +5007,10 @@ type HtmlAttributes<Message> = {
   }
 }
 
-const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
+const htmlAttributes = <Message, AllowedMountRequirements>(): HtmlAttributes<
+  Message,
+  AllowedMountRequirements
+> => ({
   Key: (value: string) => Key({ value }),
   Class: (value: string) => Class({ value }),
   Id: (value: string) => Id({ value }),
@@ -5457,7 +5533,7 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
   RefY: (value: string) => RefY({ value }),
   Orient: (value: string) => Orient({ value }),
   PreserveAspectRatio: (value: string) => PreserveAspectRatio({ value }),
-  OnMount: (action: MountAction<Message, any>) => OnMount({ action }),
+  OnMount: action => ({ _tag: 'OnMount', action }),
   /**
    * Dispatches `message` when this element is removed from the DOM by a
    * structural patch (a key change, a parent re-render that drops it, route
@@ -5496,6 +5572,7 @@ const htmlAttributes = <Message>(): HtmlAttributes<Message> => ({
 })
 
 declare const messageUniverse: unique symbol
+declare const allowedMountRequirements: unique symbol
 
 /**
  * Phantom marker carrying the builder's Message universe invariantly, so a
@@ -5506,6 +5583,23 @@ declare const messageUniverse: unique symbol
 type MessageUniverse<Message> = Readonly<{
   [messageUniverse]: (message: Message) => Message
 }>
+
+type MountRequirementsUniverse<AllowedMountRequirements> = Readonly<{
+  [allowedMountRequirements]: (requirements: AllowedMountRequirements) => void
+}>
+
+type CheckedSubmodelConfig<
+  View extends AnySubmodelView,
+  ParentMessage,
+  AllowedMountRequirements,
+> = SubmodelConfig<View, ParentMessage> &
+  ([Exclude<ViewMountRequirementsOf<View>, AllowedMountRequirements>] extends [
+    never,
+  ]
+    ? unknown
+    : Readonly<{
+        'Submodel view requires Mounts that are not registered by this application': never
+      }>)
 
 /**
  * The typed Html builder a view builds DOM with: all HTML, SVG, and MathML
@@ -5534,27 +5628,31 @@ type MessageUniverse<Message> = Readonly<{
  * handlers resolve in the ancestor's boundary. Where no builder is in scope
  * at all, typically module scope, use {@link inertHtml}.
  */
-export type HtmlBuilder<Message> = MessageUniverse<Message> &
-  HtmlElements<Message> &
-  HtmlAttributes<Message> &
+export type HtmlBuilder<
+  Message,
+  AllowedMountRequirements = never,
+> = MessageUniverse<Message> &
+  MountRequirementsUniverse<AllowedMountRequirements> &
+  HtmlElements<Message, AllowedMountRequirements> &
+  HtmlAttributes<Message, AllowedMountRequirements> &
   Readonly<{
     empty: null
-    keyed: KeyedFunction<Message>
+    keyed: KeyedFunction<Message, AllowedMountRequirements>
     submodel: <View extends AnySubmodelView>(
-      config: SubmodelConfig<View, Message>,
+      config: CheckedSubmodelConfig<View, Message, AllowedMountRequirements>,
     ) => Html
   }>
 
-const buildHtmlFactory = <Message>(): Omit<
-  HtmlBuilder<Message>,
-  typeof messageUniverse
+const buildHtmlFactory = <Message, AllowedMountRequirements>(): Omit<
+  HtmlBuilder<Message, AllowedMountRequirements>,
+  typeof messageUniverse | typeof allowedMountRequirements
 > => ({
-  ...htmlElements<Message>(),
-  ...htmlAttributes<Message>(),
+  ...htmlElements<Message, AllowedMountRequirements>(),
+  ...htmlAttributes<Message, AllowedMountRequirements>(),
   empty: null,
-  keyed: keyed<Message>(),
+  keyed: keyed<Message, AllowedMountRequirements>(),
   submodel: <View extends AnySubmodelView>(
-    config: SubmodelConfig<View, Message>,
+    config: CheckedSubmodelConfig<View, Message, AllowedMountRequirements>,
   ) => submodel(config, cachedHtmlBuilder),
 })
 
@@ -5566,9 +5664,12 @@ const buildHtmlFactory = <Message>(): Omit<
 // reaches every view. That keeps the builder referentially stable across
 // renders, which `createLazy`'s `===` args comparison relies on when `h` is
 // passed through a memoized helper's args array.
-const cachedHtmlBuilder: HtmlBuilder<unknown> =
+const cachedHtmlBuilder: HtmlBuilder<unknown, AnyMountHandler> =
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  buildHtmlFactory<unknown>() as HtmlBuilder<unknown>
+  buildHtmlFactory<unknown, AnyMountHandler>() as HtmlBuilder<
+    unknown,
+    AnyMountHandler
+  >
 
 /** @internal Returns the process-wide builder singleton retyped to a frame's
  *  Message. Only the runtime, the Scene test harness, and the framework's own
@@ -5577,9 +5678,12 @@ const cachedHtmlBuilder: HtmlBuilder<unknown> =
  *  as a parameter, which is what keeps `index.ts` and `submodel.ts` free of a
  *  runtime import cycle. Application code receives builders exclusively as
  *  view parameters. */
-export const __htmlBuilder = <Message>(): HtmlBuilder<Message> =>
+export const __htmlBuilder = <
+  Message,
+  AllowedMountRequirements = never,
+>(): HtmlBuilder<Message, AllowedMountRequirements> =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  cachedHtmlBuilder as HtmlBuilder<Message>
+  cachedHtmlBuilder as unknown as HtmlBuilder<Message, AllowedMountRequirements>
 
 /**
  * Builder whose Message universe is empty. Its Message type is `never`, so

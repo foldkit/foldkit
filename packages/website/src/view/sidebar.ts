@@ -1,5 +1,6 @@
 import { clsx } from 'clsx'
 import { Array, Equal, Option, pipe } from 'effect'
+import type { Mount } from 'foldkit'
 import { Html, type HtmlBuilder, createKeyedLazy } from 'foldkit/html'
 import apiModuleIndex from 'virtual:api-module-index'
 
@@ -324,7 +325,10 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-export const mobileView = (model: Model, h: HtmlBuilder<Message>): Html => {
+export const mobileView = (
+  model: Model,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Dialog.mounts>>,
+): Html => {
   const mobileNavLinks = lazyNavLinks(MOBILE_ID_PREFIX, computeNavLinks, [
     MOBILE_ID_PREFIX,
     model.route,

@@ -1,14 +1,8 @@
 // page/call/managedResource.ts
-import { Effect, Option, Schema } from 'effect'
+import { Effect, Layer, Option, Schema } from 'effect'
 import { ManagedResource } from 'foldkit'
 
-import {
-  ClosedSignaling,
-  FailedSignaling,
-  GotVideoCallMessage,
-  type Message,
-  OpenedSignaling,
-} from './message'
+import { Message } from './message'
 import type { Model } from './model'
 import * as VideoCall from './videoCall'
 
@@ -20,22 +14,31 @@ const videoCallManagedResources = ManagedResource.lift(
   VideoCall.managedResources,
 )<Model, Message>({
   read: model => model.videoCall,
-  toParentMessage: message => GotVideoCallMessage({ message }),
+  toParentMessage: message => Message.GotVideoCallMessage({ message }),
 })
 
 const localManagedResources = ManagedResource.make<Model, Message>()(entry => ({
-  signalingSocket: entry(Schema.Option(Schema.Null), {
+  signalingSocket: entry('ManageSignalingSocket', Schema.Option(Schema.Null), {
     resource: SignalingSocket,
     modelToMaybeRequirements: model => Option.as(model.videoCall, null),
-    acquire: () => Effect.try(() => new WebSocket(SIGNALING_URL)),
-    release: socket => Effect.sync(() => socket.close()),
-    onAcquired: () => OpenedSignaling(),
-    onReleased: () => ClosedSignaling(),
-    onAcquireError: error => FailedSignaling({ error: String(error) }),
+    onAcquired: () => Message.OpenedSignaling(),
+    onReleased: () => Message.ClosedSignaling(),
+    onAcquireError: error => Message.FailedSignaling({ error: String(error) }),
+    handler: function* () {
+      return {
+        acquire: () => Effect.try(() => new WebSocket(SIGNALING_URL)),
+        release: socket => Effect.sync(() => socket.close()),
+      }
+    },
   }),
 }))
 
 export const managedResources = ManagedResource.aggregate(
   videoCallManagedResources,
   localManagedResources,
+)
+
+export const EffectsLayer = Layer.mergeAll(
+  VideoCall.EffectsLayer,
+  localManagedResources.signalingSocket.layer,
 )

@@ -46,7 +46,7 @@ Variants set but never observed by the view or other updates. Fields written but
 
 The **no-op startup Command**: `init` returns `{ model: DEFAULT_MODEL, commands: [triggerApplicationStarted] }`, the Command resolves to `ApplicationStarted()`, and the handler is `ApplicationStarted: () => ({ model })`. Give the Command real work (load preferences, fetch initial data, focus first input, restore session) or delete the Command and the Message together.
 
-The **navigate-before-save**: a handler returning BOTH a save Command and a navigation Command races the save against the navigation. (`pushUrl` is an `Effect`, not a Command; it reaches a handler wrapped in one, as `Command.define('PushUrl', { args: { url: Schema.String }, messages: [Message.CompletedPushUrl], execute: ({ url }) => pushUrl(url).pipe(Effect.as(Message.CompletedPushUrl())) })`.) Which one lands first is timing, not something the handler decides, and a navigation is local while a save is a round trip, so the route has almost always changed by the time the save resolves. The failure Message still arrives and the handler still runs; the error just renders on a route the user didn't submit from, or on one whose view doesn't render it at all. Idiomatic: emit the save only, then navigate in the `Succeeded*` handler, so errors surface on the page the user is still looking at.
+The **navigate-before-save**: a handler returning BOTH a save Command and a navigation Command races the save against the navigation. (`pushUrl` is an `Effect`, not a Command; define `PushUrl` with its args, result Message, and `handler: function* () { return ({ url }) => pushUrl(url).pipe(Effect.as(Message.CompletedPushUrl())) }`, then include `PushUrl.layer` in the feature's `EffectsLayer`.) Which one lands first is timing, not something the handler decides, and a navigation is local while a save is a round trip, so the route has almost always changed by the time the save resolves. The failure Message still arrives and the handler still runs; the error just renders on a route the user didn't submit from, or on one whose view doesn't render it at all. Idiomatic: emit the save only, then navigate in the `Succeeded*` handler, so errors surface on the page the user is still looking at.
 
 For every union variant, trace whether the view branches on it and whether that branch is reachable. For every Model field, trace whether anything reads it besides its own writes.
 
@@ -78,6 +78,18 @@ Dot access does not prevent someone from ignoring `outMessage`; it keeps the ope
 When the OutMessage is already known while constructing a new result, include it directly. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain return or when the value has the type `OutMessage | undefined`. Pipe an existing return into the helper, and pass a new result literal first. Flag local attachment helpers and conditional object spreads that duplicate it.
 
 A child fold needs `toParentOutMessage` only when at least one child OutMessage should continue to the current Submodel's parent. For partial forwarding, match every child variant and return `undefined` for the variants that stop here. Omit `toParentOutMessage` when every variant stops here. `foldOutMessage` still handles each variant locally, including variants that continue upward. Flag `toParentOutMessage: () => undefined`.
+
+Bind a child union's exhaustive matcher directly as `fold<Child>OutMessage`
+when the fold needs only the OutMessage. Flag a forwarding function that takes
+an OutMessage only to pass it to `Child.OutMessage.match`. Keep a function or
+factory when matcher branches consume other per-dispatch context, including a
+collection key, previous Model state, an entry payload, or `FoldContext`
+lifters. Every matcher names every variant, including a singleton union. A
+`toParentOutMessage` mapper that needs only the OutMessage uses the same direct
+matcher form. A generic child with a refined payload passes its refined
+OutMessage type as the second matcher generic. A Command-producing branch uses
+`Update.defineStep` and keeps its inferred requirements instead of forcing the
+whole matcher to a requirement-free `Update.Step`.
 
 When several operations update the same Model in sequence, use `Update.combine`. Use `Update.foldChildInits` when several child init or boot results enter that Model together.
 

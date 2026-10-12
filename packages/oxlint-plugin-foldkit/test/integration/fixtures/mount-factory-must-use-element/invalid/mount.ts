@@ -1,9 +1,24 @@
 import { Effect } from 'effect'
-import { Mount as Mounts } from 'foldkit'
+import { Mount, Mount as Mounts } from 'foldkit'
 
 import { CompletedMountAnalytics } from './message'
 
+const resizeObserver = {
+  disconnect: () => undefined,
+}
+
 export const MountAnalytics = Mounts.define('MountAnalytics', {
   messages: [CompletedMountAnalytics],
-  execute: () => Effect.sync(() => startAnalytics()),
 })
+
+export const MountAnalyticsLayer = MountAnalytics.toLayer(
+  Effect.succeed(() => Effect.sync(() => startAnalytics())),
+)
+
+export const ObserveWithoutElement = Mount.define(
+  'ObserveWithoutElement',
+  {
+    messages: [CompletedMountAnalytics],
+  handler: function* () { return ({ element }) => Effect.sync(() => resizeObserver.disconnect()) },
+  },
+)

@@ -11,8 +11,12 @@ export type {
   ManagedResourceService,
   Value,
   ServiceOf,
+  Handler,
+  HandlerOf,
   Entry,
+  LayeredEntry,
   ManagedResources,
   ManagedResourceConfig,
   ServicesOf,
+  ToLayer,
 } from './managedResource.js'

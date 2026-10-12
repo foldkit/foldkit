@@ -1,4 +1,5 @@
 import { Option } from 'effect'
+import type { Mount } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Button, Dialog } from '@foldkit/ui'
@@ -14,7 +15,7 @@ const panelClassName =
 export const errorDialogView = (
   errorDialog: typeof Dialog.Model.Type,
   maybeExportError: Option.Option<string>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Dialog.mounts>>,
 ): Html =>
   h.submodel({
     slotId: errorDialog.id,
@@ -74,7 +75,7 @@ export const errorDialogView = (
 export const gridSizeConfirmDialogView = (
   gridSizeConfirmDialog: typeof Dialog.Model.Type,
   maybePendingGridSize: Option.Option<number>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Dialog.mounts>>,
 ): Html =>
   h.submodel({
     slotId: gridSizeConfirmDialog.id,

@@ -4,13 +4,14 @@ import {
   DateTime,
   Duration,
   Effect,
+  Layer,
   Match,
   Option,
   Schema,
   Stream,
   pipe,
 } from 'effect'
-import { AsyncData, Runtime, Subscription, Update } from 'foldkit'
+import { AsyncData, Subscription, Update } from 'foldkit'
 import { Query } from 'foldkit/experimental'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -47,22 +48,34 @@ export const postsQuery = Query.define({
   name: 'Posts',
   data: PostsData,
   error: Schema.String,
-  execute: Effect.gen(function* () {
-    const posts = yield* fetchPosts
-    const fetchedAt = yield* Clock.currentTimeMillis
-    return { posts, fetchedAt }
-  }),
+  handler: function* () {
+    const clock = yield* Clock.Clock
+
+    return () =>
+      Effect.gen(function* () {
+        const posts = yield* fetchPosts
+        const fetchedAt = yield* clock.currentTimeMillis
+
+        return { posts, fetchedAt }
+      })
+  },
 })
 
 export const statsQuery = Query.define({
   name: 'Stats',
   data: StatsData,
   error: Schema.String,
-  execute: Effect.gen(function* () {
-    const stats = yield* fetchStats
-    const fetchedAt = yield* Clock.currentTimeMillis
-    return { stats, fetchedAt }
-  }),
+  handler: function* () {
+    const clock = yield* Clock.Clock
+
+    return () =>
+      Effect.gen(function* () {
+        const stats = yield* fetchStats
+        const fetchedAt = yield* clock.currentTimeMillis
+
+        return { stats, fetchedAt }
+      })
+  },
 })
 
 export const postQuery = Query.define({
@@ -70,12 +83,17 @@ export const postQuery = Query.define({
   args: { postId: Schema.String },
   data: PostData,
   error: Schema.String,
-  execute: ({ postId }) =>
-    Effect.gen(function* () {
-      const post = yield* fetchPostDetail(postId)
-      const fetchedAt = yield* Clock.currentTimeMillis
-      return { post, fetchedAt }
-    }),
+  handler: function* () {
+    const clock = yield* Clock.Clock
+
+    return ({ postId }) =>
+      Effect.gen(function* () {
+        const post = yield* fetchPostDetail(postId)
+        const fetchedAt = yield* clock.currentTimeMillis
+
+        return { post, fetchedAt }
+      })
+  },
 })
 
 const Tab = Schema.Literals(['Posts', 'Stats'])
@@ -109,8 +127,6 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-type UpdateReturn = Update.Return<Model, Message>
-
 const posts = postsQuery.lift<Model, Message>({
   parentField: 'posts',
   toParentMessage: message => Message.GotPostsMessage({ message }),
@@ -126,25 +142,24 @@ const postDetails = postQuery.lift<Model, Message>({
   toParentMessage: message => Message.GotPostMessage({ message }),
 })
 
-const activateTab = (model: Model, tab: Tab): UpdateReturn => {
+const activateTab = (model: Model, tab: Tab) => {
   const modelWithActiveTab = modifyFields(model, { activeTab: () => tab })
 
   return Match.value(tab).pipe(
-    Match.withReturnType<UpdateReturn>(),
     Match.when('Posts', () => posts.loadIfMissing(modelWithActiveTab)),
     Match.when('Stats', () => stats.loadIfMissing(modelWithActiveTab)),
     Match.exhaustive,
   )
 }
 
+const activateTabStep = (tab: Tab) =>
+  Update.defineStep((model: Model) => activateTab(model, tab))
+
 const foldTabsOutMessage = Tabs.OutMessage.match<
-  Update.Step<Model, Message>,
+  ReturnType<typeof activateTabStep>,
   Tabs.OutMessage<Tab>
 >({
-  Selected:
-    ({ value }) =>
-    model =>
-      activateTab(model, value),
+  Selected: ({ value }) => activateTabStep(value),
 })
 
 const foldTabs = Update.foldChild({
@@ -155,8 +170,8 @@ const foldTabs = Update.foldChild({
   foldOutMessage: foldTabsOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.define((model: Model, message: Message) =>
+  Message.match(message, {
     GotTabsMessage: ({ message }) => foldTabs(model, message),
     GotPostsMessage: ({ message }) => posts.fold(model, message),
     GotStatsMessage: ({ message }) => stats.fold(model, message),
@@ -178,9 +193,10 @@ export const update = (model: Model, message: Message) =>
     ClickedRefreshStats: () => stats.revalidateOrLoad(model),
     ClickedRetryStats: () => stats.revalidateOrLoad(model),
     TickedStatsRefreshInterval: () => stats.revalidate(model),
-  })
+  }),
+)
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => {
+export const init = () => {
   const model = Model.make({
     tabs: Tabs.init({ id: TABS_ID }),
     activeTab: 'Posts',
@@ -194,25 +210,39 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => {
 }
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  revalidateStats: entry(
+  statsRefreshTicks: entry(
+    'StatsRefreshTicks',
     { isStatsRefreshActive: Schema.Boolean },
     {
+      messages: [Message.TickedStatsRefreshInterval],
       modelToDependencies: model => ({
         isStatsRefreshActive:
           model.activeTab === 'Stats' &&
           AsyncData.hasData(statsQuery.read(model.stats)),
       }),
-      dependenciesToStream: ({ isStatsRefreshActive }) =>
-        Stream.when(
-          Stream.tick(STATS_REFETCH_INTERVAL).pipe(
-            Stream.drop(1),
-            Stream.map(Message.TickedStatsRefreshInterval),
-          ),
-          Effect.sync(() => isStatsRefreshActive),
-        ),
+      handler: function* () {
+        return ({ isStatsRefreshActive }) =>
+          Stream.when(
+            Stream.tick(STATS_REFETCH_INTERVAL).pipe(
+              Stream.drop(1),
+              Stream.map(Message.TickedStatsRefreshInterval),
+            ),
+            Effect.sync(() => isStatsRefreshActive),
+          )
+      },
     },
   ),
 }))
+
+// EFFECTS LAYER
+
+export const EffectsLayer = Layer.mergeAll(
+  Tabs.EffectsLayer,
+  postsQuery.layer,
+  statsQuery.layer,
+  postQuery.layer,
+  subscriptions.statsRefreshTicks.layer,
+)
 
 // VIEW
 

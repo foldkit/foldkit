@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { Array, Match, Option, String, pipe } from 'effect'
-import { Submodel } from 'foldkit'
+import { type Mount, Submodel } from 'foldkit'
 import { Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 
 import { Dialog } from '@foldkit/ui'
@@ -237,7 +237,12 @@ const keyboardWarmupInput: Html = ih.input([
   ih.Class('fixed top-0 left-0 w-px h-px opacity-0 pointer-events-none -z-10'),
 ])
 
-export const view = Submodel.defineView<Model, Message>((model, h): Html =>
+export const view = Submodel.defineView<
+  Model,
+  Message,
+  void,
+  Mount.RequirementsOf<typeof Dialog.mounts>
+>((model, h): Html =>
   h.div(
     [],
     [

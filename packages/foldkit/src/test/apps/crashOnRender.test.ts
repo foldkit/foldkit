@@ -1,28 +1,27 @@
 import { Effect, Fiber } from 'effect'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import type { Command } from '../../command/index.js'
-import { makeApplication } from '../../runtime/index.js'
+import * as Application from '../../runtime/application.js'
 import * as App from './crashOnRender.js'
 
 let runningFiber: Fiber.Fiber<void> | null = null
 
-const boot = (
-  initialModel: App.Model,
-  commands: ReadonlyArray<Command<App.Message>> = [],
-): void => {
+const boot = (initialModel: App.Model): void => {
   const container = document.createElement('div')
   container.id = 'app'
   document.body.appendChild(container)
 
-  const application = makeApplication<App.Model, App.Message>({
-    Model: App.Model,
-    init: () => ({ model: initialModel, commands }),
-    update: App.update,
-    view: App.view,
-    container,
-    devTools: false,
-  })
+  const application = Application.provide(
+    Application.make({
+      Model: App.Model,
+      init: () => ({ model: initialModel }),
+      update: App.update,
+      view: App.view,
+      container,
+      devTools: false,
+    }),
+    App.EffectsLayer,
+  )
 
   runningFiber = Effect.runFork(application.start())
 }

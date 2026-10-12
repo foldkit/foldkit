@@ -1,4 +1,5 @@
 export {
+  EffectsLayer,
   init,
   update,
   view,

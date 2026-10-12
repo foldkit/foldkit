@@ -1,6 +1,7 @@
 import { Match, Option } from 'effect'
 import * as Calendar from 'foldkit/calendar'
 import { type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
+import type * as Mount from 'foldkit/mount'
 import * as Scene from 'foldkit/scene'
 import { expect } from 'vitest'
 
@@ -9,7 +10,9 @@ import { describe, it } from '@effect/vitest'
 import * as UiCalendar from '../calendar/index.js'
 import * as Popover from '../popover/public.js'
 import type { Model, ViewInputs } from './index.js'
-import { Message, init, triggerId, update, view } from './index.js'
+import { Message, init, mounts, triggerId, update, view } from './index.js'
+
+type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
 
 const acknowledgeAnchorPopover = Scene.Mount.resolve(
   Popover.AnchorPopover,
@@ -132,7 +135,7 @@ const sceneView =
       'anchor' | 'triggerContent' | 'toCalendarView'
     > = {},
   ) =>
-  (model: Model, h: HtmlBuilder<Message>) =>
+  (model: Model, h: TestHtmlBuilder) =>
     view(
       model,
       {

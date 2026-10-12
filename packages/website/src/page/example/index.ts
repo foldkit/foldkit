@@ -1,4 +1,5 @@
 export * as ExampleDetail from './exampleDetail'
+export { EffectsLayer, mounts } from './exampleDetail'
 export {
   ExampleSlug,
   exampleSlugs,

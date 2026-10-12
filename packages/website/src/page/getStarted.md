@@ -53,11 +53,11 @@ The Counter starter begins with these files:
 - `AGENTS.md`: your instructions for AI coding assistants working on the project
 - `FOLDKIT.md`: Foldkit's own conventions for those assistants, [replaced from the current template when you upgrade Foldkit](/ai/overview)
 
-In a small starter, `src/main.ts` holds the Model, Messages, update, init, and view. Larger examples move those definitions into focused modules as the application grows.
+In a small starter, `src/main.ts` holds the Model, Messages, update, init, and view. When it owns Commands, Subscriptions, Mounts, or ManagedResources, it also exports their attached handler recipes as `EffectsLayer`. Larger examples move those definitions and feature bundles into focused modules as the application grows.
 
 ### Runtime Entry
 
-For the Counter starter, `src/entry.ts` imports the application definitions and starts the runtime with `Runtime.makeApplication` and `Runtime.run`. Other starters may compose the application from several modules or start a different host, but they keep runtime startup separate from the pure definitions. That separation lets tests import the application without starting a runtime as a side effect.
+For the Counter starter, `src/entry.ts` imports the application definitions and starts the runtime with `Application.make` and `Runtime.run`. A starter whose attached handlers need no additional providers supplies its root `EffectsLayer` through `Application.provide`. When the root also composes a `ServicesLayer`, it supplies the resulting `AppLayer`. Other starters may compose the application from several modules or start a different host, but they keep runtime startup separate from the definitions. That separation lets tests import the application without starting a runtime as a side effect.
 
 ### Project Scripts
 

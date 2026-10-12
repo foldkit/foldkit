@@ -1,5 +1,7 @@
-import { Submodel } from 'foldkit'
+import { type Mount, Submodel } from 'foldkit'
 import type { Html } from 'foldkit/html'
+
+import { Menu as UiMenu } from '@foldkit/ui'
 
 import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
@@ -22,17 +24,19 @@ type ViewInputs = Readonly<{
   renderHeadingLink: RenderHeadingLink
 }>
 
-export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
-    renderPage({
-      demos: {
-        basic: demoContainer(...Menu.basicDemo(model.menuBasicDemo, h)),
-        animated: demoContainer(
-          ...Menu.animatedDemo(model.menuAnimatedDemo, h),
-        ),
-      },
-      renderCopyButton,
-      renderSnippet,
-      renderHeadingLink,
-    }),
+export const view = Submodel.defineView<
+  Model,
+  Message,
+  ViewInputs,
+  Mount.RequirementsOf<typeof UiMenu.mounts>
+>((model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
+  renderPage({
+    demos: {
+      basic: demoContainer(...Menu.basicDemo(model.menuBasicDemo, h)),
+      animated: demoContainer(...Menu.animatedDemo(model.menuAnimatedDemo, h)),
+    },
+    renderCopyButton,
+    renderSnippet,
+    renderHeadingLink,
+  }),
 )

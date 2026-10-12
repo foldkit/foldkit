@@ -12,7 +12,11 @@ import { DEVTOOLS_HOST_ID } from 'foldkit/devtools-host'
 import type { DevToolsStore, StoreState } from 'foldkit/devtools-host'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { CopyPayloadToClipboard, createOverlay } from './overlay.js'
+import {
+  CopyPayloadToClipboard,
+  CopyPayloadToClipboardLayer,
+  createOverlay,
+} from './overlay.js'
 
 const initialStoreState: StoreState = {
   entries: [],
@@ -383,7 +387,7 @@ describe('DevTools payload copy', () => {
         targetId: 'Model:0',
         requestId: 1,
         payload: { count: 1n },
-      }).effect,
+      }).effect.pipe(Effect.provide(CopyPayloadToClipboardLayer)),
     )
 
     expect(result).toEqual({
@@ -406,7 +410,7 @@ describe('DevTools payload copy', () => {
         targetId: 'Model:0',
         requestId: 1,
         payload: { count: 1 },
-      }).effect,
+      }).effect.pipe(Effect.provide(CopyPayloadToClipboardLayer)),
     )
 
     expect(result).toEqual({

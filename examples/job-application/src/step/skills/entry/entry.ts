@@ -71,6 +71,8 @@ export const init = (entryId: string): Model => ({
   }),
 })
 
+export const EffectsLayer = RadioGroup.EffectsLayer
+
 // UPDATE
 
 const foldProficiencyRadioGroupOutMessage = RadioGroup.OutMessage.match<
@@ -79,7 +81,9 @@ const foldProficiencyRadioGroupOutMessage = RadioGroup.OutMessage.match<
 >({
   Selected:
     ({ value }) =>
-    model => ({ model: modifyFields(model, { proficiency: () => value }) }),
+    model => ({
+      model: modifyFields(model, { proficiency: () => value }),
+    }),
 })
 
 const foldProficiencyRadioGroup = Update.foldChild({
@@ -94,20 +98,18 @@ const foldProficiencyRadioGroup = Update.foldChild({
   foldOutMessage: foldProficiencyRadioGroupOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
-    message,
-    {
-      UpdatedName: ({ value }) => ({
-        model: modifyFields(model, { name: () => validateName(value) }),
-      }),
+export const update = Update.define((model: Model, message: Message) =>
+  Message.match(message, {
+    UpdatedName: ({ value }) => ({
+      model: modifyFields(model, { name: () => validateName(value) }),
+    }),
 
-      GotProficiencyRadioGroupMessage: ({ message }) =>
-        foldProficiencyRadioGroup(model, message),
+    GotProficiencyRadioGroupMessage: ({ message }) =>
+      foldProficiencyRadioGroup(model, message),
 
-      ClickedRemoveSelf: () => ({ model, outMessage: OutMessage.Removed() }),
-    },
-  )
+    ClickedRemoveSelf: () => ({ model, outMessage: OutMessage.Removed() }),
+  }),
+)
 
 // VALIDATION SUMMARY
 

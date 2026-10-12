@@ -3,8 +3,11 @@
 // an excerpt.
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 
 import { Menu } from '@foldkit/ui'
+
+type MountRequirements = Mount.RequirementsOf<typeof Menu.mounts>
 
 // Only init and view differ from the basic menu: init adds isAnimated, the
 // view uses data-[closed] selectors for enter/leave transitions.
@@ -21,12 +24,13 @@ const init = () => ({
 const Message = defineMessageUnion({
   GotMenuMessage: { message: Menu.Message },
 })
+type Message = typeof Message.Type
 
 // Pair view and update behind a single Item-typed factory at module scope:
 const ActionMenu = Menu.create<Action>()
 
 // Inside your view function, use data-[closed] for enter/leave transitions:
-const view = (h: HtmlBuilder<Message>) =>
+const view = (h: HtmlBuilder<Message, MountRequirements>) =>
   h.submodel({
     slotId: 'menu',
     model: model.menu,

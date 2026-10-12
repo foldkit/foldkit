@@ -36,6 +36,12 @@ Return Commands beside the next Model from the Message branch that requests the 
 
 `ClickedIncrement` changes the count and asks the runtime to persist it. `CompletedPersistCount` records that the Command finished, but it has no more work to request, so that branch omits `commands`.
 
+`Update.define` defines an update and infers the handler services required by the Commands across all of its branches. It leaves the function's runtime behavior unchanged. Wrap any update that can return Commands.
+
+`Update.defineStep` does the same inference for a standalone Step producer. Annotate its Model parameter and let the helper infer the returned Command requirements and OutMessage. A pure OutMessage fold can use `OutMessage.match<Update.Step<Model, Message>>` directly; the matcher types its Model parameter without a Step helper. Callers can then compose that Step with pure Steps through `Update.combine` without naming a service union by hand.
+
+`Update.RequirementsOf<typeof update>` extracts the inferred handler service union from an update. Use it when a parent or exported type needs to name those requirements. Application assembly reads the requirements from the update return type directly.
+
 ### Omitting Commands
 
 An update, init, boot, or component helper that statically creates no Commands omits `commands`. When it computes a Commands collection, it returns that collection directly without checking whether it is empty. The [`foldkit/no-empty-commands-array`](/tooling/oxlint-plugin#no-empty-commands-array) lint rule rejects only a literal `commands: []` property.

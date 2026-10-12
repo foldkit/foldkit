@@ -1,13 +1,15 @@
 import { Command, given, message, model, story } from 'foldkit/story'
 import { expect, test } from 'vitest'
 
-test('delayed reset: count resets after the delay fires', () => {
+import { Message, Model, WaitBeforeReset, update } from './main'
+
+test('resets the count after waiting', () => {
   story(
     update,
-    given({ count: 5 }),
-    message(ClickedResetAfterDelay()),
-    Command.expectExact(DelayReset),
-    Command.resolve(DelayReset, CompletedDelayReset()),
+    given(Model.make({ count: 5 })),
+    message(Message.ClickedResetAfterDelay()),
+    Command.expectExact(WaitBeforeReset),
+    Command.resolve(WaitBeforeReset, Message.CompletedWaitBeforeReset()),
     model(model => {
       expect(model.count).toBe(0)
     }),

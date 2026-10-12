@@ -9,8 +9,6 @@ import { Column } from './domain'
 import { Message } from './message'
 import type { Model } from './model'
 
-type UpdateReturn = Update.Return<Model, Message>
-
 const findCardTitle = (
   columns: ReadonlyArray<Column.Column>,
   cardId: string,
@@ -93,12 +91,11 @@ const screenReaderTextForDrop = (
       }),
   })
 
-const foldDragAndDropOutMessage: (
-  previousModel: Model,
-) => (outMessage: DragAndDrop.OutMessage) => Update.Step<Model, Message> =
-  previousModel => outMessage => model =>
-    DragAndDrop.OutMessage.match<UpdateReturn>(outMessage, {
-      Reordered: ({ itemId, fromContainerId, toContainerId, toIndex }) => {
+const foldDragAndDropOutMessage = (previousModel: Model) =>
+  DragAndDrop.OutMessage.match({
+    Reordered: outMessage =>
+      Update.defineStep((model: Model) => {
+        const { itemId, fromContainerId, toContainerId, toIndex } = outMessage
         const nextColumns = Column.reorder(
           model.columns,
           itemId,
@@ -114,14 +111,15 @@ const foldDragAndDropOutMessage: (
           }),
           commands: [SaveBoard({ columns: nextColumns })],
         }
-      },
-      Cancelled: () => ({
+      }),
+    Cancelled: outMessage =>
+      Update.defineStep((model: Model) => ({
         model: modifyFields(model, {
           announcement: () =>
             screenReaderTextForDrop(previousModel, outMessage),
         }),
-      }),
-    })
+      })),
+  })
 
 const foldDragAndDrop = (previousModel: Model) =>
   Update.foldChild({
@@ -136,8 +134,8 @@ const foldDragAndDrop = (previousModel: Model) =>
     foldOutMessage: foldDragAndDropOutMessage(previousModel),
   })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.define((model: Model, message: Message) =>
+  Message.match(message, {
     GotDragAndDropMessage: ({ message }) =>
       foldDragAndDrop(model)(model, message),
 
@@ -202,4 +200,5 @@ export const update = (model: Model, message: Message) =>
     CompletedSaveBoard: () => ({ model }),
 
     CompletedFocusAddCardInput: () => ({ model }),
-  })
+  }),
+)

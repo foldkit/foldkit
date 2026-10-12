@@ -1,4 +1,5 @@
 import type { HtmlBuilder } from 'foldkit/html'
+import type * as Mount from 'foldkit/mount'
 import * as Scene from 'foldkit/scene'
 
 import { describe, it } from '@effect/vitest'
@@ -11,9 +12,12 @@ import {
   ScrollTarget,
   type ViewInputs,
   init,
+  mounts,
   update,
   view,
 } from './index.js'
+
+type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
 
 type DemoItem = Readonly<{ id: number; label: string }>
 
@@ -40,7 +44,7 @@ type SceneViewOverrides = Readonly<{
 
 const sceneView =
   (overrides: SceneViewOverrides = {}) =>
-  (model: Model, h: HtmlBuilder<Message>) => {
+  (model: Model, h: TestHtmlBuilder) => {
     const baseViewInputs = {
       items: demoItems,
       itemToKey: (item: DemoItem) => String(item.id),
@@ -306,7 +310,7 @@ describe('VirtualList', () => {
 
     it('bottom-aligns content shorter than the viewport when requested', () => {
       const shortItems = demoItems.slice(0, 2)
-      const shortView = (model: Model, h: HtmlBuilder<Message>) =>
+      const shortView = (model: Model, h: TestHtmlBuilder) =>
         view<DemoItem>()(
           model,
           {

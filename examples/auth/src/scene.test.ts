@@ -11,7 +11,7 @@ import {
 import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
-import { SaveSession } from './command'
+import { RedirectToDashboard, SaveSession } from './command'
 import { Session } from './domain/session'
 import { Message } from './message'
 import { LoggedOut } from './model'
@@ -21,7 +21,7 @@ import {
   initModel as initLoginModel,
 } from './page/loggedOut/page/login'
 import { AppRoute } from './route'
-import { RedirectToDashboard, update } from './update'
+import { update } from './update'
 import { view } from './view'
 
 const validModel = LoggedOut.Model({
@@ -52,7 +52,7 @@ describe('login flow', () => {
       Command.expectExact(SaveSession, RedirectToDashboard),
       Command.resolveAll(
         [SaveSession, Message.SucceededSaveSession()],
-        [RedirectToDashboard, Message.CompletedNavigateInternal()],
+        [RedirectToDashboard, Message.CompletedRedirectToDashboard()],
       ),
       expect(text('Welcome back, alice!')).toExist(),
     )

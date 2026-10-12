@@ -1,10 +1,13 @@
 import { Match, Option } from 'effect'
+import type { Mount } from 'foldkit'
 import {
   Html,
   type HtmlBuilder,
   createKeyedLazy,
   inertHtml as ih,
 } from 'foldkit/html'
+
+import { Dialog, Menu } from '@foldkit/ui'
 
 import { Shared } from '../component'
 import { Docs } from '../layout'
@@ -28,7 +31,15 @@ const postView = (
   snippetCopy: SnippetCopy.Model,
   snippetDisclosure: SnippetDisclosure.Model,
   uiPages: Ui.Model,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<
+    Message,
+    Mount.RequirementsOf<
+      | typeof Dialog.mounts
+      | typeof Menu.mounts
+      | typeof Ui.mounts
+      | typeof SnippetDisclosure.mounts
+    >
+  >,
 ): Html => {
   const renderCopyButton = SnippetCopy.renderer(
     snippetCopy,
@@ -72,7 +83,15 @@ const lazyPostView = createKeyedLazy()
 export const view = (
   model: Model,
   blogRoute: BlogRoute | BlogPostRoute,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<
+    Message,
+    Mount.RequirementsOf<
+      | typeof Dialog.mounts
+      | typeof Menu.mounts
+      | typeof Ui.mounts
+      | typeof SnippetDisclosure.mounts
+    >
+  >,
 ): Html => {
   const content = Match.value(blogRoute).pipe(
     Match.withReturnType<Html>(),

@@ -6,13 +6,13 @@ import { describe, expect, test } from 'vitest'
 
 import { Dialog, Menu } from '@foldkit/ui'
 
+import { managedResources } from './application'
 import { Deployment } from './deployment'
 import {
   LoadPlayground,
   ScrollSidebarActiveLinkIntoView,
   ScrollToTop,
   init,
-  managedResources,
   update,
 } from './main'
 import { Message } from './message'

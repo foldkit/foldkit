@@ -1,5 +1,6 @@
 import clsx from 'clsx'
 import { Equal, HashSet, Match, Number, flow } from 'effect'
+import type { Mount } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Menu, Tabs } from '@foldkit/ui'
@@ -133,7 +134,7 @@ export const stepMenu = (
   model: Model,
   stepsNeedingAttention: HashSet.HashSet<Step.Step>,
   toParentMessage: (message: Menu.Message) => Message,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Menu.mounts>>,
 ): Html =>
   h.submodel({
     slotId: model.stepMenu.id,

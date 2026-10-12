@@ -6,6 +6,7 @@ import { defineMessageUnion } from 'foldkit/message'
 const Message = defineMessageUnion({
   CompletedPortalToBody: {},
 })
+type Message = typeof Message.Type
 
 // Portal-to-body is a per-instance lifecycle effect that uses the element
 // directly. The Effect's acquireRelease moves the element to document.body
@@ -15,15 +16,19 @@ const Message = defineMessageUnion({
 
 const PortalToBody = Mount.define('PortalToBody', {
   messages: [Message.CompletedPortalToBody],
-  execute: ({ element }) =>
-    Effect.gen(function* () {
-      yield* Effect.acquireRelease(
-        Effect.sync(() => document.body.appendChild(element)),
-        () => Effect.sync(() => element.remove()),
-      )
-      return Message.CompletedPortalToBody()
-    }),
+  handler: function* () {
+    return ({ element }) =>
+      Effect.gen(function* () {
+        yield* Effect.acquireRelease(
+          Effect.sync(() => document.body.appendChild(element)),
+          () => Effect.sync(() => element.remove()),
+        )
+        return Message.CompletedPortalToBody()
+      })
+  },
 })
 
-const overlayView = (h: HtmlBuilder<Message>): Html =>
+const overlayView = (
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof PortalToBody>>,
+): Html =>
   h.div([h.Class('fixed inset-0 bg-black/50'), h.OnMount(PortalToBody())])

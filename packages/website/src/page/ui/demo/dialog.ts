@@ -1,4 +1,5 @@
 import { Option } from 'effect'
+import type { Mount } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { Combobox, Dialog } from '@foldkit/ui'
@@ -92,7 +93,7 @@ const editFiltersContent = (
   description: Dialog.RenderInfo['description'],
   comboboxModel: Combobox.Model,
   maybeSelectedCity: Option.Option<City>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Combobox.mounts>>,
 ): Html =>
   h.div(
     [],
@@ -189,7 +190,10 @@ const deleteProjectContent = (
 
 // VIEW
 
-export const view = (dialogModel: Dialog.Model, h: HtmlBuilder<Message>) => {
+export const view = (
+  dialogModel: Dialog.Model,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Dialog.mounts>>,
+) => {
   return [
     trigger('Open Dialog', Message.ClickedOpenDialog(), h),
     h.submodel({
@@ -237,7 +241,10 @@ export const overlayDialogDemo = (
   dialogModel: Dialog.Model,
   comboboxModel: Combobox.Model,
   maybeSelectedCity: Option.Option<City>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<
+    Message,
+    Mount.RequirementsOf<typeof Dialog.mounts | typeof Combobox.mounts>
+  >,
 ) => {
   return [
     trigger('Edit filters', Message.ClickedEditFilters(), h),
@@ -278,7 +285,7 @@ export const overlayDialogDemo = (
 export const nestedDialogDemo = (
   parentDialogModel: Dialog.Model,
   childDialogModel: Dialog.Model,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Dialog.mounts>>,
 ) => {
   return [
     trigger('Open project settings', Message.ClickedOpenProjectSettings(), h),
@@ -356,7 +363,7 @@ export const nestedDialogDemo = (
 
 export const dialogAnimatedDemo = (
   dialogModel: Dialog.Model,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Dialog.mounts>>,
 ) => {
   return [
     trigger('Open Animated Dialog', Message.ClickedOpenAnimatedDialog(), h),

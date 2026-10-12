@@ -5,12 +5,15 @@ export {
   foldChildInits,
   foldChildStep,
   foldChildAt,
+  define,
+  defineStep,
   refresh,
   withOutMessage,
 } from './index.js'
 
 export type {
   Commands,
+  RequirementsOf,
   Return,
   ReturnWithOutMessage,
   Step,

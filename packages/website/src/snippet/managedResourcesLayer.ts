@@ -1,5 +1,7 @@
-import { Context, Effect, Layer, Option, Schema } from 'effect'
+import { Context, Effect, Layer, Option, Predicate, Schema } from 'effect'
 import { ManagedResource } from 'foldkit'
+
+import { Message } from './message'
 
 // A FEN string is a text description of a chess position.
 interface ChessEngine {
@@ -14,7 +16,7 @@ class ChessEngineService extends Context.Service<
 // A heavy engine whose init and teardown are packaged as an Effect Layer.
 // Building the Layer spawns the worker, and the finalizer registered by
 // acquireRelease terminates it.
-const engineLayer: Layer.Layer<ChessEngineService> = Layer.effect(
+const ChessEngineLayer: Layer.Layer<ChessEngineService> = Layer.effect(
   ChessEngineService,
   Effect.gen(function* () {
     const worker = yield* Effect.acquireRelease(
@@ -23,10 +25,22 @@ const engineLayer: Layer.Layer<ChessEngineService> = Layer.effect(
     )
 
     return {
-      bestMove: (fen: string): Effect.Effect<string> => {
-        // Your engine protocol goes here: post the FEN to the worker and
-        // resolve with its best-move reply.
-      },
+      bestMove: (fen: string): Effect.Effect<string> =>
+        Effect.callback<string>(resume => {
+          const receiveBestMove = (event: MessageEvent<unknown>) => {
+            if (Predicate.isString(event.data)) {
+              worker.removeEventListener('message', receiveBestMove)
+              resume(Effect.succeed(event.data))
+            }
+          }
+
+          worker.addEventListener('message', receiveBestMove)
+          worker.postMessage({ fen })
+
+          return Effect.sync(() =>
+            worker.removeEventListener('message', receiveBestMove),
+          )
+        }),
     }
   }),
 )
@@ -38,17 +52,22 @@ const Engine = ManagedResource.tag<ChessEngine>()('ChessEngine')
 //    Layer.build registers the Layer's finalizers on it. They tear down when
 //    the resource is released or re-acquired.
 const managedResources = ManagedResource.make<Model, Message>()(entry => ({
-  engine: entry(Schema.Option(Schema.Null), {
+  engine: entry('ManageEngine', Schema.Option(Schema.Null), {
     resource: Engine,
     modelToMaybeRequirements: model => Option.as(model.maybeAnalysisSlug, null),
-    acquire: () =>
-      Layer.build(engineLayer).pipe(
-        Effect.map(context => Context.get(context, ChessEngineService)),
-      ),
-    // The scope closes on release, so the Layer finalizers run automatically.
-    release: () => Effect.void,
-    onAcquired: () => StartedEngine(),
-    onReleased: () => StoppedEngine(),
-    onAcquireError: error => FailedStartEngine({ error: String(error) }),
+    onAcquired: () => Message.StartedEngine(),
+    onReleased: () => Message.StoppedEngine(),
+    onAcquireError: error =>
+      Message.FailedStartEngine({ error: String(error) }),
+    handler: function* () {
+      return {
+        acquire: () =>
+          Layer.build(ChessEngineLayer).pipe(
+            Effect.map(context => Context.get(context, ChessEngineService)),
+          ),
+        // The scope closes on release, so the Layer finalizers run automatically.
+        release: () => Effect.void,
+      }
+    },
   }),
 }))

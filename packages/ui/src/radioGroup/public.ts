@@ -8,6 +8,7 @@ export {
   type SelectedOption,
   type FocusedOption,
   FocusOption,
+  EffectsLayer,
   Orientation,
 } from './index.js'
 

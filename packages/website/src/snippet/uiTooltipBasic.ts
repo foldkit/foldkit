@@ -5,15 +5,19 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 
 import { Tooltip } from '@foldkit/ui'
+
+type MountRequirements = Mount.RequirementsOf<typeof Tooltip.mounts>
 
 // Add a field to your Model for the Tooltip Submodel:
 const Model = Schema.Struct({
   tooltip: Tooltip.Model,
   // ...your other fields
 })
+type Model = typeof Model.Type
 
 // In your init function, initialize the Tooltip Submodel with a unique id:
 const init = () => ({
@@ -27,6 +31,7 @@ const init = () => ({
 const Message = defineMessageUnion({
   GotTooltipMessage: { message: Tooltip.Message },
 })
+type Message = typeof Message.Type
 
 // At module scope, fold the OutMessage into your own Model. `Shown` and
 // `Hidden` mark the visibility transitions. Fire analytics or coordinate with
@@ -65,7 +70,7 @@ GotTooltipMessage: ({ message }) => foldTooltip(model, message)
 // an accessible name with `ariaLabel`. (Point `ariaLabelledBy` at a visible
 // label element instead when one exists.) The attribute is only emitted when
 // provided, so the trigger never carries a dangling `aria-labelledby`.
-const view = (h: HtmlBuilder<Message>) => {
+const view = (h: HtmlBuilder<Message, MountRequirements>) => {
   const tooltipView = ({ trigger, panel, isVisible }: Tooltip.RenderInfo) =>
     h.div(
       [h.Class('relative inline-block')],

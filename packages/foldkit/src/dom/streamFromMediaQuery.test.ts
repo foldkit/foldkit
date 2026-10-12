@@ -65,10 +65,10 @@ const settle = async (sink: ReadonlyArray<unknown>, count: number) => {
   }
 }
 
-const drain = <Output>(
-  stream: Stream.Stream<Output>,
+const drain = <Output, Requirements>(
+  stream: Stream.Stream<Output, never, Requirements>,
   sink: Array<Output>,
-): Effect.Effect<void> =>
+): Effect.Effect<void, never, Requirements> =>
   Stream.runForEach(stream, output =>
     Effect.sync(() => {
       sink.push(output)
@@ -189,22 +189,27 @@ describe('streamFromMediaQuery', () => {
 
     const subscriptions = make<Model, string>()(entry => ({
       reducedMotion: entry(
+        'ReducedMotion',
         { isFollowingSystem: Schema.Boolean },
         {
+          messages: [Schema.String],
           modelToDependencies: model => ({
             isFollowingSystem: model.isFollowingSystem,
           }),
-          dependenciesToStream: ({ isFollowingSystem }) =>
-            Stream.when(
-              streamFromMediaQuery({
-                query: REDUCED_MOTION_QUERY,
-                mapMatches: describeMatches,
-              }),
-              Effect.sync(() => isFollowingSystem),
-            ),
         },
       ),
     }))
+    const ReducedMotionLayer = subscriptions.reducedMotion.toLayer(
+      Effect.succeed(({ isFollowingSystem }) =>
+        Stream.when(
+          streamFromMediaQuery({
+            query: REDUCED_MOTION_QUERY,
+            mapMatches: describeMatches,
+          }),
+          Effect.sync(() => isFollowingSystem),
+        ),
+      ),
+    )
 
     const runWhile = (isFollowingSystem: boolean) => {
       const dependencies = { isFollowingSystem }
@@ -212,7 +217,7 @@ describe('streamFromMediaQuery', () => {
         drain(
           subscriptions.reducedMotion.dependenciesToStream(dependencies),
           received,
-        ),
+        ).pipe(Effect.provide(ReducedMotionLayer)),
       )
     }
 

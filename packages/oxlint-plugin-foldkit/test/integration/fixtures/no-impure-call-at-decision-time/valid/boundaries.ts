@@ -8,29 +8,50 @@ import {
 
 export const ReadClock = Command.define('ReadClock', {
   messages: [CompletedReadClock],
-  execute: () =>
-    Effect.succeed(CompletedReadClock({ timestamp: Date.now() })),
 })
+
+export const ReadClockLayer = ReadClock.toLayer(
+  Effect.succeed(() =>
+    Effect.succeed(CompletedReadClock({ timestamp: Date.now() })),
+  ),
+)
 
 export const ReadClockWithEffect = Command.define('ReadClockWithEffect', {
   messages: [CompletedReadClockWithEffect],
-  execute: Effect.sync(() => performance.now()),
 })
+
+export const ReadClockWithEffectLayer = ReadClockWithEffect.toLayer(
+  Effect.succeed(() =>
+    Effect.sync(() =>
+      CompletedReadClockWithEffect({ timestamp: performance.now() }),
+    ),
+  ),
+)
 
 export const WrappedReadClock = Command.define(
   'WrappedReadClock',
   {
     messages: [CompletedWrappedReadClock],
-    execute: () =>
-      Effect.succeed(CompletedWrappedReadClock({ timestamp: Date.now() })),
   } satisfies CommandDefinition,
+)
+
+export const WrappedReadClockLayer = WrappedReadClock.toLayer(
+  Effect.succeed(() =>
+    Effect.succeed(CompletedWrappedReadClock({ timestamp: Date.now() })),
+  ),
 )
 
 export const MeasureElement = Mount.define('MeasureElement', {
   messages: [CompletedMeasureElement],
-  execute: () =>
-    Effect.succeed(CompletedMeasureElement({ timestamp: Date.now() })),
 })
+
+export const MeasureElementLayer = MeasureElement.toLayer(
+  Effect.succeed(({ element }) =>
+    Effect.succeed(
+      CompletedMeasureElement({ element, timestamp: Date.now() }),
+    ),
+  ),
+)
 
 export const effect = Effect.gen(function* () {
   return crypto.randomUUID()
@@ -89,22 +110,64 @@ export const mappedStream = Stream.mapBoth(Stream.make(1), {
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
   clock: entry(
+    'Clock',
     {},
     {
+      messages: [Schema.Number],
       modelToDependencies: () => ({}),
-      dependenciesToStream: () => Stream.make(Date.now()),
     },
   ),
 }))
 
+export const ClockLayer = subscriptions.clock.toLayer(
+  Effect.succeed(() => Stream.make(Date.now())),
+)
+
 export const managedResources = ManagedResource.make<Model, Message>()(
   entry => ({
-    connection: entry(Resource, Schema.Struct({}), {
-      modelToMaybeRequirements: () => SomeRequirements,
-      acquire: () => Effect.succeed(crypto.randomUUID()),
-      release: () => Effect.sync(() => crypto.getRandomValues(bytes)),
-    }),
+    connection: entry(
+      'Connection',
+      Schema.Struct({}),
+      {
+        resource: Resource,
+        modelToMaybeRequirements: () => SomeRequirements,
+        onAcquired: () => AcquiredConnection(),
+        onAcquireError: () => FailedAcquireConnection(),
+        onReleased: () => ReleasedConnection(),
+      },
+    ),
+  }),
+)
+
+export const ConnectionLayer = managedResources.connection.toLayer(
+  Effect.succeed({
+    acquire: () => Effect.succeed(crypto.randomUUID()),
+    release: () => Effect.sync(() => crypto.getRandomValues(bytes)),
   }),
 )
 
 export const fromKnownTime = new Date(timestamp)
+
+export const ReadAttachedClock = Command.define('ReadAttachedClock', {
+  messages: [CompletedReadClock],
+handler: function* () { return () => Effect.succeed(CompletedReadClock({ timestamp: Date.now() })) },
+})
+
+export const attachedSubscriptions = Subscription.make<Model, Message>()(entry => ({
+  clock: entry('AttachedClock', { messages: [Schema.Number], handler: function* () { return () => Stream.make(Date.now()) }},
+  ),
+}))
+
+export const attachedResources = ManagedResource.make<Model, Message>()(entry => ({
+  connection: entry('AttachedConnection', Schema.Struct({}), {
+    resource: Resource,
+    modelToMaybeRequirements: () => SomeRequirements,
+    onAcquired: () => AcquiredConnection(),
+    onAcquireError: () => FailedAcquireConnection(),
+    onReleased: () => ReleasedConnection(),
+  handler: function* () { return {
+    acquire: () => Effect.succeed(crypto.randomUUID()),
+    release: () => Effect.sync(() => crypto.getRandomValues(bytes)),
+  } },
+  }),
+}))

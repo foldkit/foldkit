@@ -28,8 +28,8 @@ const resolveFocusTab = Command.resolve(
 )
 
 const resolveFocusMenuButton = Command.resolve(
-  Menu.FocusButton,
-  Menu.Message.CompletedFocusButton(),
+  Menu.FocusMenuButton,
+  Menu.Message.CompletedFocusMenuButton(),
 )
 
 describe('update', () => {
@@ -106,7 +106,10 @@ describe('update', () => {
             }),
           }),
         ),
-        Command.resolve(Menu.FocusItems, Menu.Message.CompletedFocusItems()),
+        Command.resolve(
+          Menu.FocusMenuItems,
+          Menu.Message.CompletedFocusMenuItems(),
+        ),
         message(
           Message.GotStepMenuMessage({
             message: Menu.Message.SelectedItem({
@@ -162,7 +165,7 @@ describe('update', () => {
         givenInitial,
         message(
           Message.GotWorkHistoryMessage({
-            message: WorkHistory.Message.SucceededGenerateEntryId({
+            message: WorkHistory.Message.SucceededGenerateWorkHistoryEntryId({
               entryId: 'test-work-1',
             }),
           }),
@@ -179,7 +182,7 @@ describe('update', () => {
         givenInitial,
         message(
           Message.GotEducationMessage({
-            message: Education.Message.SucceededGenerateEntryId({
+            message: Education.Message.SucceededGenerateEducationEntryId({
               entryId: 'test-edu-1',
             }),
           }),
@@ -196,7 +199,7 @@ describe('update', () => {
         givenInitial,
         message(
           Message.GotSkillsMessage({
-            message: Skills.Message.SucceededGenerateEntryId({
+            message: Skills.Message.SucceededGenerateSkillsEntryId({
               entryId: 'test-skill-1',
             }),
           }),

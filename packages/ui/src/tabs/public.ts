@@ -8,6 +8,7 @@ export {
   type SelectedTab,
   type FocusedTab,
   FocusTab,
+  EffectsLayer,
   Orientation,
   PanelMount,
 } from './index.js'

@@ -1,10 +1,13 @@
 // Pseudocode walkthrough of what an arrow adds to a Popover you already have.
 // Popover positions the arrow. The CSS below the demo draws it.
 import type { HtmlBuilder } from 'foldkit/html'
+import type * as Mount from 'foldkit/mount'
 
 import { Popover } from '@foldkit/ui'
 
-const view = (h: HtmlBuilder<Message>) => {
+type MountRequirements = Mount.RequirementsOf<typeof Popover.mounts>
+
+const view = (h: HtmlBuilder<Message, MountRequirements>) => {
   const popoverView = ({
     button,
     panel,

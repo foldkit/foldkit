@@ -6,6 +6,8 @@ A Submodel owns the Subscriptions that produce its Messages. Its parent lifts th
 
 This mirrors the other halves of the boundary. `Update.foldChild` lifts child update, `h.submodel` lifts child view, and `Subscription.lift` lifts child Streams.
 
+Each feature also exports `EffectsLayer` for its Subscription handlers. The parent combines that bundle with its own handlers, so the application entry provides feature Layers without importing every Subscription definition.
+
 ## The Composition Levels {#composition-levels}
 
 Each level declares local entries with `Subscription.make` and lifts child records with `Subscription.lift`. By the time a Stream reaches the root, it emits root Messages that the Runtime can dispatch through update. This diagram follows one leaf record through those lifts:
@@ -42,9 +44,11 @@ Three functions build the hierarchy.
 
 | Verb                     | What it does                                                                                           | When to reach for it                              |
 | ------------------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
-| `Subscription.make`      | Declares local entries from dependency Schemas, `modelToDependencies`, and `dependenciesToStream`.     | The current level owns a Subscription.            |
+| `Subscription.make`      | Declares local named entries from dependency Schemas and `modelToDependencies`.                        | The current level owns a Subscription.            |
 | `Subscription.lift`      | Reads a child Model and wraps each emitted child Message. An optional `when` adds a parent-owned gate. | A child exports a Subscriptions record.           |
 | `Subscription.aggregate` | Combines records, infers their shared types, and rejects duplicate keys at startup.                    | A level has more than one local or lifted record. |
+
+Each entry attaches its Stream constructor in `config.handler` and exposes the recipe as `.layer`. `Layer.mergeAll` combines the local handler Layer with each child's `EffectsLayer` export. This Layer composition follows the same feature hierarchy as the Subscription records.
 
 ## Organization Principles
 
@@ -66,19 +70,19 @@ The next three snippets trace one record from a leaf, through a composing Submod
 
 ### The Leaf Submodel {#leaf-submodel}
 
-A leaf declares its entries with `Subscription.make`.
+A leaf declares its entries with `Subscription.make`, attaches each named handler, and exports the resulting `.layer` recipes through `EffectsLayer`.
 
 ::Snippet{name="subscriptionOrganizationChild" label="Leaf Submodel Subscription file"}
 
 ### The Composing Submodel {#composing-submodel}
 
-A composing Submodel lifts child records, declares any local entries, and aggregates the results. Each lift supplies a `read` that returns an `Option` of the child Model. An always-present child is wrapped in `Option.some`.
+A composing Submodel lifts child records, declares any local entries, and aggregates the results. It combines its local handler Layer with the child's `EffectsLayer` export. Each lift supplies a `read` that returns an `Option` of the child Model. An always-present child is wrapped in `Option.some`.
 
 ::Snippet{name="subscriptionOrganizationComposing" label="Composing Submodel Subscription file"}
 
 ### The Root {#root}
 
-The root uses the same shape. Its lifts target the root Model and Message.
+The root uses the same shape. Its lifts target the root Model and Message. The entry point passes `AppLayer` to `Application.provide` before starting the Runtime.
 
 ::Snippet{name="subscriptionOrganizationRoot" label="Root Subscription file"}
 

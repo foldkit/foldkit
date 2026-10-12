@@ -5,15 +5,19 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 
 import { Popover } from '@foldkit/ui'
+
+type MountRequirements = Mount.RequirementsOf<typeof Popover.mounts>
 
 // Add a field to your Model for the Popover Submodel:
 const Model = Schema.Struct({
   popover: Popover.Model,
   // ...your other fields
 })
+type Model = typeof Model.Type
 
 // In your init function, initialize the Popover Submodel with a unique id:
 const init = () => ({
@@ -27,6 +31,7 @@ const init = () => ({
 const Message = defineMessageUnion({
   GotPopoverMessage: { message: Popover.Message },
 })
+type Message = typeof Message.Type
 
 // At module scope, fold the OutMessage into your own Model. `Opened` and
 // `Closed` mark the visibility transitions. Fire analytics, coordinate with
@@ -67,7 +72,7 @@ GotPopoverMessage: ({ message }) => foldPopover(model, message)
 // `ariaLabelledBy` so the trigger is named by the label. The attribute is
 // only emitted when provided, so the trigger never carries a dangling
 // `aria-labelledby`.
-const view = (h: HtmlBuilder<Message>) => {
+const view = (h: HtmlBuilder<Message, MountRequirements>) => {
   const labelId = 'info-label'
 
   const popoverView = ({

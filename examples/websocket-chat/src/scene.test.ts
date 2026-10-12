@@ -23,6 +23,7 @@ import {
   TimestampReceivedMessage,
   TimestampSentMessage,
   managedResources,
+  subscriptions,
   update,
   view,
 } from './main'
@@ -156,13 +157,16 @@ describe('view', () => {
 
   test('a message arriving on the socket Subscription lands in the conversation', () => {
     scene(
-      { update, view },
+      { update, view, subscriptions },
       given(
         modifyFields(idleModel, {
           connection: () => ConnectionState.Connected(),
         }),
       ),
-      Subscription.emit(Message.ReceivedMessage({ text: 'hello from echo' })),
+      Subscription.emit(
+        subscriptions.chatSocketMessages,
+        Message.ReceivedMessage({ text: 'hello from echo' }),
+      ),
       Command.expectExact(
         TimestampReceivedMessage({ text: 'hello from echo' }),
       ),

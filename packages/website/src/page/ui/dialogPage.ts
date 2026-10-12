@@ -1,5 +1,7 @@
-import { Submodel } from 'foldkit'
+import { type Mount, Submodel } from 'foldkit'
 import type { Html } from 'foldkit/html'
+
+import { Combobox as UiCombobox, Dialog as UiDialog } from '@foldkit/ui'
 
 import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
@@ -21,32 +23,36 @@ type ViewInputs = Readonly<{
   renderHeadingLink: RenderHeadingLink
 }>
 
-export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
-    renderPage({
-      demos: {
-        dialog: demoContainer(...Dialog.view(model.dialogDemo, h)),
-        animated: demoContainer(
-          ...Dialog.dialogAnimatedDemo(model.dialogAnimatedDemo, h),
+export const view = Submodel.defineView<
+  Model,
+  Message,
+  ViewInputs,
+  Mount.RequirementsOf<typeof UiDialog.mounts | typeof UiCombobox.mounts>
+>((model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
+  renderPage({
+    demos: {
+      dialog: demoContainer(...Dialog.view(model.dialogDemo, h)),
+      animated: demoContainer(
+        ...Dialog.dialogAnimatedDemo(model.dialogAnimatedDemo, h),
+      ),
+      overlay: demoContainer(
+        ...Dialog.overlayDialogDemo(
+          model.overlayDialogDemo,
+          model.overlayComboboxDemo,
+          model.maybeOverlayComboboxDemoSelectedCity,
+          h,
         ),
-        overlay: demoContainer(
-          ...Dialog.overlayDialogDemo(
-            model.overlayDialogDemo,
-            model.overlayComboboxDemo,
-            model.maybeOverlayComboboxDemoSelectedCity,
-            h,
-          ),
+      ),
+      nested: demoContainer(
+        ...Dialog.nestedDialogDemo(
+          model.nestedDialogParentDemo,
+          model.nestedDialogChildDemo,
+          h,
         ),
-        nested: demoContainer(
-          ...Dialog.nestedDialogDemo(
-            model.nestedDialogParentDemo,
-            model.nestedDialogChildDemo,
-            h,
-          ),
-        ),
-      },
-      renderCopyButton,
-      renderSnippet,
-      renderHeadingLink,
-    }),
+      ),
+    },
+    renderCopyButton,
+    renderSnippet,
+    renderHeadingLink,
+  }),
 )

@@ -2,8 +2,10 @@ import { Effect, Layer, Match, String } from 'effect'
 import { HttpClient, HttpClientResponse } from 'effect/http'
 import { expect, test } from 'vitest'
 
-test('fetchWeather returns SucceededFetchWeather on success', async () => {
-  const mockClient = HttpClient.make(request =>
+import { EffectsLayer as WeatherEffectsLayer, FetchWeather } from './main'
+
+test('the FetchWeather handler returns a success Message from HTTP responses', async () => {
+  const testClient = HttpClient.make(request =>
     Effect.sync(() => {
       const responseData = Match.value(request.url).pipe(
         Match.when(String.includes('geocoding'), () => ({
@@ -37,8 +39,13 @@ test('fetchWeather returns SucceededFetchWeather on success', async () => {
     }),
   )
 
-  const message = await fetchWeather('90210').effect.pipe(
-    Effect.provide(Layer.succeed(HttpClient.HttpClient, mockClient)),
+  const TestLayer = Layer.provide(
+    WeatherEffectsLayer,
+    Layer.succeed(HttpClient.HttpClient, testClient),
+  )
+
+  const message = await FetchWeather({ zipCode: '90210' }).effect.pipe(
+    Effect.provide(TestLayer),
     Effect.runPromise,
   )
 

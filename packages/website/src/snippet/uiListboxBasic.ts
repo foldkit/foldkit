@@ -5,9 +5,12 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 
 import { Listbox } from '@foldkit/ui'
+
+type MountRequirements = Mount.RequirementsOf<typeof Listbox.mounts>
 
 const Plan = Schema.Literals(['Free', 'Pro', 'Enterprise'])
 type Plan = typeof Plan.Type
@@ -25,6 +28,7 @@ const Model = Schema.Struct({
   listbox: Listbox.Model,
   // ...your other fields
 })
+type Model = typeof Model.Type
 
 // In your init function, initialize the Listbox Submodel with a unique id:
 const init = () => ({
@@ -39,6 +43,7 @@ const init = () => ({
 const Message = defineMessageUnion({
   GotListboxMessage: { message: Listbox.Message },
 })
+type Message = typeof Message.Type
 
 // At module scope, fold the OutMessage into your own Model. When the user
 // commits a selection it carries `Selected({ value })` where `value: Plan`.
@@ -78,7 +83,7 @@ const plans: ReadonlyArray<Plan> = ['Free', 'Pro', 'Enterprise']
 // `<label for>`: target the trigger id with `Listbox.buttonId('plan')`. The
 // `for` association gives the trigger both its accessible name and
 // click-to-focus, so ariaLabelledBy is not needed here.
-const view = (model: Model, h: HtmlBuilder<Message>) =>
+const view = (model: Model, h: HtmlBuilder<Message, MountRequirements>) =>
   h.div(
     [],
     [

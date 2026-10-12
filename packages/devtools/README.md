@@ -21,9 +21,9 @@ yarn add --dev @foldkit/devtools
 With `@foldkit/vite-plugin`, installing this package as a development dependency is enough to mount the overlay during development. The plugin leaves it out of production builds:
 
 ```typescript
-import { Runtime } from 'foldkit'
+import { Application, Runtime } from 'foldkit'
 
-const application = Runtime.makeApplication({
+const application = Application.make({
   // ...
   devTools: {
     Message,
@@ -38,7 +38,7 @@ The `devTools` configuration is optional unless you need settings such as `Messa
 To include the overlay in production, move `@foldkit/devtools` to regular `dependencies` and set `show: 'Always'`. The dependency section is the build-time opt-in, and `show` controls whether the Runtime mounts it:
 
 ```typescript
-const application = Runtime.makeApplication({
+const application = Application.make({
   // ...
   devTools: {
     show: 'Always',

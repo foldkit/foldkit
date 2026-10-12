@@ -1,5 +1,6 @@
 import clsx from 'clsx'
 import { Array, Option, pipe } from 'effect'
+import type { Mount } from 'foldkit'
 import {
   type Document,
   type Html,
@@ -7,7 +8,7 @@ import {
   createLazy,
 } from 'foldkit/html'
 
-import { Button } from '@foldkit/ui'
+import { Button, Dialog, Listbox } from '@foldkit/ui'
 
 import { isGridEmpty } from '../grid'
 import { Message } from '../message'
@@ -49,7 +50,13 @@ const lazyHistoryPanel = createLazy()
 const lazyErrorDialog = createLazy()
 const lazyGridSizeConfirmDialog = createLazy()
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
+export const view = (
+  model: Model,
+  h: HtmlBuilder<
+    Message,
+    Mount.RequirementsOf<typeof Dialog.mounts | typeof Listbox.mounts>
+  >,
+): Document => ({
   title: 'Pixel Art',
   body: h.div(
     [h.Class('min-h-screen bg-gray-900 text-gray-100 flex flex-col')],
@@ -140,7 +147,10 @@ const headerView = (h: HtmlBuilder<Message>): Html =>
     ],
   )
 
-const contentView = (model: Model, h: HtmlBuilder<Message>): Html => {
+const contentView = (
+  model: Model,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Listbox.mounts>>,
+): Html => {
   const theme = currentPaletteTheme(model)
 
   return h.div(

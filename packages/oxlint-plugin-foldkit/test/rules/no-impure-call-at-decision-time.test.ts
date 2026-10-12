@@ -151,6 +151,173 @@ const inPositionedObjectCallback = (
   return operation
 }
 
+const inToLayerHandler = (
+  operation: Readonly<{ type: string }>,
+  definitionName: string,
+) => {
+  const handler = Testing.arrowFn(operation)
+  const build = Testing.callOfMember('Effect', 'succeed', [handler])
+  const boundary = atProgram(
+    Testing.callOfMember(definitionName, 'toLayer', [build]),
+  )
+
+  Object.assign(operation, { parent: handler })
+  Object.assign(handler, { parent: build })
+  Object.assign(build, { parent: boundary })
+
+  return operation
+}
+
+const inToLayerLifecycleHandler = (
+  operation: Readonly<{ type: string }>,
+  propertyName: string,
+  isWrapped = false,
+) => {
+  const handler = Testing.arrowFn(operation)
+  const property = {
+    type: 'Property',
+    kind: 'init',
+    key: Testing.id(propertyName),
+    value: handler,
+    method: false,
+    shorthand: false,
+    computed: false,
+  }
+  const lifecycle = { type: 'ObjectExpression', properties: [property] }
+  const argument = isWrapped ? wrapExpression(lifecycle) : lifecycle
+  const build = Testing.callOfMember('Effect', 'succeed', [argument])
+  const boundary = atProgram(
+    Testing.callOfMember('sessionResource', 'toLayer', [build]),
+  )
+
+  Object.assign(operation, { parent: handler })
+  Object.assign(handler, { parent: property })
+  Object.assign(property, { parent: lifecycle })
+  Object.assign(argument, { parent: build })
+  Object.assign(build, { parent: boundary })
+
+  return operation
+}
+
+const inAttachedHandler = (
+  operation: Readonly<{ type: string }>,
+  namespace: string,
+  method: string,
+  argumentsBefore: ReadonlyArray<unknown>,
+  propertyName?: string,
+) => {
+  const handler = Testing.arrowFn(operation)
+  const lifecycleProperty = {
+    type: 'Property',
+    kind: 'init',
+    key: Testing.id(propertyName ?? 'acquire'),
+    value: handler,
+    method: false,
+    shorthand: false,
+    computed: false,
+  }
+  const lifecycle = {
+    type: 'ObjectExpression',
+    properties: [lifecycleProperty],
+  }
+  const value = propertyName === undefined ? handler : lifecycle
+  const returnStatement = Testing.returnStmt(value)
+  const body = Testing.blockStmt([returnStatement])
+  const constructor = {
+    type: 'FunctionExpression',
+    id: null,
+    params: [],
+    body,
+    generator: true,
+    async: false,
+  }
+  const handlerProperty = {
+    type: 'Property',
+    kind: 'init',
+    key: Testing.id('handler'),
+    value: constructor,
+    method: false,
+    shorthand: false,
+    computed: false,
+  }
+  const config = { type: 'ObjectExpression', properties: [handlerProperty] }
+  const definition =
+    namespace === 'Subscription' || namespace === 'ManagedResource'
+      ? Testing.callExpr('entry', [...argumentsBefore, config])
+      : Testing.callOfMember(namespace, method, [...argumentsBefore, config])
+
+  Object.assign(operation, { parent: handler })
+  Object.assign(handler, {
+    parent: propertyName === undefined ? returnStatement : lifecycleProperty,
+  })
+  Object.assign(lifecycleProperty, { parent: lifecycle })
+  Object.assign(lifecycle, { parent: returnStatement })
+  Object.assign(returnStatement, { parent: body })
+  Object.assign(body, { parent: constructor })
+  Object.assign(constructor, { parent: handlerProperty })
+  Object.assign(handlerProperty, { parent: config })
+  Object.assign(config, { parent: definition })
+
+  if (namespace === 'Subscription' || namespace === 'ManagedResource') {
+    const builder = Testing.arrowFn(definition, [Testing.id('entry')])
+    const make = Testing.callOfMember(namespace, 'make')
+    const boundary = atProgram({
+      type: 'CallExpression',
+      callee: make,
+      arguments: [builder],
+    })
+    Object.assign(definition, { parent: builder })
+    Object.assign(builder, { parent: boundary })
+    Object.assign(make, { parent: boundary })
+  } else {
+    atProgram(definition)
+  }
+
+  return operation
+}
+
+const inAttachedConstructorSetup = (operation: Readonly<{ type: string }>) => {
+  const setup = Testing.exprStmt(operation)
+  const invocation = Testing.arrowFn(Testing.callOfMember('Effect', 'void'))
+  const returnStatement = Testing.returnStmt(invocation)
+  const body = Testing.blockStmt([setup, returnStatement])
+  const constructor = {
+    type: 'FunctionExpression',
+    id: null,
+    params: [],
+    body,
+    generator: true,
+    async: false,
+  }
+  const handlerProperty = {
+    type: 'Property',
+    kind: 'init',
+    key: Testing.id('handler'),
+    value: constructor,
+    method: false,
+    shorthand: false,
+    computed: false,
+  }
+  const config = { type: 'ObjectExpression', properties: [handlerProperty] }
+  const definition = atProgram(
+    Testing.callOfMember('Command', 'define', [
+      Testing.strLiteral('ReadClock'),
+      config,
+    ]),
+  )
+
+  Object.assign(operation, { parent: setup })
+  Object.assign(setup, { parent: body })
+  Object.assign(invocation, { parent: returnStatement })
+  Object.assign(returnStatement, { parent: body })
+  Object.assign(body, { parent: constructor })
+  Object.assign(constructor, { parent: handlerProperty })
+  Object.assign(handlerProperty, { parent: config })
+  Object.assign(config, { parent: definition })
+
+  return operation
+}
+
 const inNestedLifecycleConfig = (
   operation: Readonly<{ type: string }>,
   namespace: string,
@@ -307,9 +474,8 @@ describe('no-impure-call-at-decision-time', () => {
       ),
     )
     const lifecycleResult = run(
-      inNestedLifecycleConfig(
+      inToLayerLifecycleHandler(
         Testing.callOfMember('crypto', 'randomUUID'),
-        'ManagedResource',
         'acquire',
         true,
       ),
@@ -521,52 +687,174 @@ describe('no-impure-call-at-decision-time', () => {
     expect(onHaltResult).toHaveLength(0)
   })
 
-  it('allows Command and Mount execute callbacks', () => {
+  it('allows handlers returned by Effect constructors passed to toLayer', () => {
     const commandResult = run(
-      inInlineConfig(
+      inToLayerHandler(
         Testing.callOfMember('crypto', 'randomUUID'),
-        'Command',
-        'define',
-        'execute',
+        'ReadClock',
       ),
     )
-    const mountResult = run(
-      inInlineConfig(
+    const subscriptionResult = run(
+      inToLayerHandler(
         Testing.callOfMember('performance', 'now'),
-        'Mount',
-        'define',
-        'execute',
-      ),
-    )
-    const mountStreamResult = run(
-      inInlineConfig(
-        Testing.callOfMember('performance', 'now'),
-        'Mount',
-        'defineStream',
-        'execute',
+        'clockSubscription',
       ),
     )
 
     expect(commandResult).toHaveLength(0)
-    expect(mountResult).toHaveLength(0)
-    expect(mountStreamResult).toHaveLength(0)
+    expect(subscriptionResult).toHaveLength(0)
   })
 
-  it('allows only the deferred Subscription and ManagedResource callbacks', () => {
-    const subscriptionResult = run(
-      inNestedLifecycleConfig(
-        Testing.callOfMember('Date', 'now'),
-        'Subscription',
-        'dependenciesToStream',
-      ),
+  it.each([
+    ['Command', 'define', [Testing.strLiteral('ReadClock')]],
+    ['Mount', 'define', [Testing.strLiteral('MeasurePanel')]],
+    ['Mount', 'defineStream', [Testing.strLiteral('PanelSizes')]],
+    ['Query', 'define', []],
+    ['Subscription', 'entry', [Testing.strLiteral('ClockTicks')]],
+    [
+      'Subscription',
+      'entry',
+      [Testing.strLiteral('ClockTicks'), Testing.id('fields')],
+    ],
+  ])(
+    'allows an attached %s.%s invocation handler',
+    (namespace, method, before) => {
+      expect(
+        run(
+          inAttachedHandler(
+            Testing.callOfMember('Date', 'now'),
+            namespace,
+            method,
+            before,
+          ),
+        ),
+      ).toHaveLength(0)
+    },
+  )
+
+  it.each(['acquire', 'release'])(
+    'allows attached ManagedResource %s handlers',
+    propertyName => {
+      expect(
+        run(
+          inAttachedHandler(
+            Testing.callOfMember('Date', 'now'),
+            'ManagedResource',
+            'entry',
+            [Testing.strLiteral('Session'), Testing.id('schema')],
+            propertyName,
+          ),
+        ),
+      ).toHaveLength(0)
+    },
+  )
+
+  it('checks arbitrary constructors and eager attached handler expressions', () => {
+    const arbitrary = inAttachedHandler(
+      Testing.callOfMember('Date', 'now'),
+      'Other',
+      'define',
+      [Testing.strLiteral('ReadClock'), Testing.id('config')],
     )
-    const managedResourceResult = run(
-      inNestedLifecycleConfig(
+    const operation = Testing.callOfMember('Math', 'random')
+    const eagerHandler = Testing.callExpr('makeHandler', [operation])
+    const handlerProperty = {
+      type: 'Property',
+      kind: 'init',
+      key: Testing.id('handler'),
+      value: eagerHandler,
+      method: false,
+      shorthand: false,
+      computed: false,
+    }
+    const config = { type: 'ObjectExpression', properties: [handlerProperty] }
+    const definition = atProgram(
+      Testing.callOfMember('Command', 'define', [
+        Testing.strLiteral('ReadClock'),
+        config,
+      ]),
+    )
+    Object.assign(operation, { parent: eagerHandler })
+    Object.assign(eagerHandler, { parent: handlerProperty })
+    Object.assign(handlerProperty, { parent: config })
+    Object.assign(config, { parent: definition })
+
+    expect(run(arbitrary)).toHaveLength(1)
+    expect(run(operation)).toHaveLength(1)
+  })
+
+  it('checks direct calls in attached generator constructor setup', () => {
+    const result = run(
+      inAttachedConstructorSetup(Testing.callOfMember('Date', 'now')),
+    )
+
+    expect(result).toHaveLength(1)
+  })
+
+  it('allows lifecycle handlers on an object returned by an Effect constructor', () => {
+    const acquireResult = run(
+      inToLayerLifecycleHandler(
         Testing.callOfMember('crypto', 'randomUUID'),
-        'ManagedResource',
         'acquire',
       ),
     )
+    const releaseResult = run(
+      inToLayerLifecycleHandler(
+        Testing.callOfMember('performance', 'now'),
+        'release',
+      ),
+    )
+
+    expect(acquireResult).toHaveLength(0)
+    expect(releaseResult).toHaveLength(0)
+  })
+
+  it('does not treat eager toLayer arguments or unrelated callbacks as handlers', () => {
+    const eagerOperation = Testing.callOfMember('Date', 'now')
+    const eagerBuild = Testing.callOfMember('Effect', 'succeed', [
+      eagerOperation,
+    ])
+    const eagerBoundary = atProgram(
+      Testing.callOfMember('ReadClock', 'toLayer', [eagerBuild]),
+    )
+    Object.assign(eagerOperation, { parent: eagerBuild })
+    Object.assign(eagerBuild, { parent: eagerBoundary })
+
+    const nestedOperation = Testing.callOfMember('Math', 'random')
+    const nestedCallback = Testing.arrowFn(nestedOperation)
+    const wrapper = Testing.callExpr('wrapHandler', [nestedCallback])
+    const wrappedBuild = Testing.callOfMember('Effect', 'succeed', [wrapper])
+    const wrappedBoundary = atProgram(
+      Testing.callOfMember('ReadClock', 'toLayer', [wrappedBuild]),
+    )
+    Object.assign(nestedOperation, { parent: nestedCallback })
+    Object.assign(nestedCallback, { parent: wrapper })
+    Object.assign(wrapper, { parent: wrappedBuild })
+    Object.assign(wrappedBuild, { parent: wrappedBoundary })
+
+    const misplacedResult = run(
+      inPositionedCallback(
+        Testing.callOfMember('performance', 'now'),
+        'ReadClock',
+        'toLayer',
+        [Testing.id('options')],
+        [],
+      ),
+    )
+    const unrelatedPropertyResult = run(
+      inToLayerLifecycleHandler(
+        Testing.callOfMember('crypto', 'randomUUID'),
+        'build',
+      ),
+    )
+
+    expect(run(eagerOperation)).toHaveLength(1)
+    expect(run(nestedOperation)).toHaveLength(1)
+    expect(misplacedResult).toHaveLength(1)
+    expect(unrelatedPropertyResult).toHaveLength(1)
+  })
+
+  it('does not treat declaration projection callbacks as execution boundaries', () => {
     const dependencyResult = run(
       inNestedLifecycleConfig(
         Testing.callOfMember('Date', 'now'),
@@ -575,8 +863,6 @@ describe('no-impure-call-at-decision-time', () => {
       ),
     )
 
-    expect(subscriptionResult).toHaveLength(0)
-    expect(managedResourceResult).toHaveLength(0)
     expect(dependencyResult).toHaveLength(1)
   })
 })

@@ -1,4 +1,4 @@
-import { Boolean, Effect, Option, Schema } from 'effect'
+import { Boolean, Effect, Layer, Option, Schema } from 'effect'
 
 import type { Html, HtmlBuilder } from '../../html/index.js'
 import * as ManagedResource from '../../managedResource/index.js'
@@ -34,30 +34,47 @@ const FeedSocketResource = ManagedResource.tag<FeedSocket>()('FeedSocket')
 const PresenceResource = ManagedResource.tag<string>()('Presence')
 
 export const feedResources = ManagedResource.make<Model, Message>()(entry => ({
-  feedSocket: entry(Schema.Option(Schema.Struct({ channel: Schema.String })), {
-    resource: FeedSocketResource,
-    modelToMaybeRequirements: model =>
-      model.isFeedOpen ? Option.some({ channel: 'general' }) : Option.none(),
-    acquire: () => Effect.succeed({ socketId: 'live' }),
-    release: () => Effect.void,
-    onAcquired: socket =>
-      Message.AcquiredFeedSocket({ socketId: socket.socketId }),
-    onReleased: () => Message.ReleasedFeedSocket(),
-    onAcquireError: error =>
-      Message.FailedAcquireFeedSocket({ error: String(error) }),
-  }),
-  presence: entry(Schema.Option(Schema.Null), {
+  feedSocket: entry(
+    'ManageFeedSocket',
+    Schema.Option(Schema.Struct({ channel: Schema.String })),
+    {
+      resource: FeedSocketResource,
+      modelToMaybeRequirements: model =>
+        model.isFeedOpen ? Option.some({ channel: 'general' }) : Option.none(),
+      onAcquired: socket =>
+        Message.AcquiredFeedSocket({ socketId: socket.socketId }),
+      onReleased: () => Message.ReleasedFeedSocket(),
+      onAcquireError: error =>
+        Message.FailedAcquireFeedSocket({ error: String(error) }),
+      handler: function* () {
+        return {
+          acquire: () => Effect.succeed({ socketId: 'live' }),
+          release: () => Effect.void,
+        }
+      },
+    },
+  ),
+  presence: entry('ManagePresence', Schema.Option(Schema.Null), {
     resource: PresenceResource,
     modelToMaybeRequirements: model =>
       model.isFeedOpen ? Option.some(null) : Option.none(),
-    acquire: () => Effect.succeed('online'),
-    release: () => Effect.void,
     onAcquired: () => Message.AcquiredFeedSocket({ socketId: 'presence' }),
     onReleased: () => Message.ReleasedFeedSocket(),
     onAcquireError: error =>
       Message.FailedAcquireFeedSocket({ error: String(error) }),
+    handler: function* () {
+      return {
+        acquire: () => Effect.succeed('online'),
+        release: () => Effect.void,
+      }
+    },
   }),
 }))
+
+export const EffectsLayer = Layer.mergeAll(
+  feedResources.feedSocket.layer,
+  feedResources.presence.layer,
+)
 
 // INIT
 

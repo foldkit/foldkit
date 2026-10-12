@@ -5,9 +5,12 @@ import { Effect, Match, Option, Schema } from 'effect'
 import { Calendar, Update } from 'foldkit'
 import type { ChildAttribute, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 
 import { DatePicker, Calendar as UiCalendar } from '@foldkit/ui'
+
+type MountRequirements = Mount.RequirementsOf<typeof DatePicker.mounts>
 
 // Add a field to your Model for the DatePicker Submodel, plus a field the
 // parent owns for the selected date. The picker no longer stores the
@@ -17,12 +20,14 @@ const Model = Schema.Struct({
   maybeSelectedDate: Schema.Option(Calendar.CalendarDate),
   // ...your other fields
 })
+type Model = typeof Model.Type
 
 // Fetch `today` once at the app boundary via flags so init stays pure:
 const Flags = Schema.Struct({
   today: Calendar.CalendarDate,
   // ...your other flags
 })
+type Flags = typeof Flags.Type
 
 const flags = Effect.gen(function* () {
   const today = yield* Calendar.today.local
@@ -49,6 +54,7 @@ const init = (flags: Flags) => ({
 const Message = defineMessageUnion({
   GotDatePickerMessage: { message: DatePicker.Message },
 })
+type Message = typeof Message.Type
 
 // At module scope, fold the OutMessage into your own Model. `SelectedDate`
 // carries the committed date. The popover has already closed by the time it
@@ -130,19 +136,19 @@ const monthYearButtonClassName =
 
 // `ChildAttribute` is the type of the attributes a Submodel publishes to its
 // consumer. Spread them onto whichever element you want to carry them.
-const navButton = (
+const navButton = <AllowedMountRequirements>(
   attributes: ReadonlyArray<ChildAttribute>,
   label: string,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, AllowedMountRequirements>,
 ): Html => h.button([...attributes, h.Class(navButtonClassName)], [label])
 
 // The heading is a button: clicking it drills one level deeper (Days into
 // Months, Months into Years). Pair the text with a chevron so the button reads
 // as interactive at rest.
-const headingButton = (
+const headingButton = <AllowedMountRequirements>(
   heading: UiCalendar.DaysModeAttributes['heading'],
   attributes: ReadonlyArray<ChildAttribute>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, AllowedMountRequirements>,
 ): Html =>
   h.button(
     [h.Id(heading.id), ...attributes, h.Class(headingButtonClassName)],
@@ -151,7 +157,10 @@ const headingButton = (
 
 // Each Week carries its own row attributes and seven day cells, and each cell
 // is a gridcell wrapping a button.
-const weekRow = (week: UiCalendar.Week, h: HtmlBuilder<Message>): Html =>
+const weekRow = <AllowedMountRequirements>(
+  week: UiCalendar.Week,
+  h: HtmlBuilder<Message, AllowedMountRequirements>,
+): Html =>
   h.div(
     [...week.attributes, h.Class(rowClassName)],
     week.cells.map(cell =>
@@ -169,9 +178,9 @@ const weekRow = (week: UiCalendar.Week, h: HtmlBuilder<Message>): Html =>
 
 // One view function per view mode. Each receives the attribute group for its
 // own grid, so the fields it reads are exactly the fields that exist.
-const daysView = (
+const daysView = <AllowedMountRequirements>(
   days: UiCalendar.DaysModeAttributes,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, AllowedMountRequirements>,
 ): Html =>
   h.div(
     [...days.root, h.Class(panelClassName)],
@@ -204,9 +213,9 @@ const daysView = (
 
 // The months grid renders 12 cells (one per month). Clicking the heading again
 // drills further into the years grid.
-const monthsView = (
+const monthsView = <AllowedMountRequirements>(
   months: UiCalendar.MonthsModeAttributes,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, AllowedMountRequirements>,
 ): Html =>
   h.div(
     [...months.root, h.Class(panelClassName)],
@@ -235,9 +244,9 @@ const monthsView = (
 // The years grid renders 12 cells (one paged window). Prev/next page through
 // 12-year windows; clicking a year drills back to the months grid for that
 // year. Years is terminal, so its heading is text rather than a button.
-const yearsView = (
+const yearsView = <AllowedMountRequirements>(
   years: UiCalendar.YearsModeAttributes,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, AllowedMountRequirements>,
 ): Html =>
   h.div(
     [...years.root, h.Class(panelClassName)],
@@ -281,7 +290,7 @@ const yearsView = (
 // `DatePicker.triggerId('date-picker-demo')` for a native `<label for>`. The
 // attribute is only emitted when provided, so the trigger never carries a
 // dangling `aria-labelledby`.
-const view = (model: Model, h: HtmlBuilder<Message>) => {
+const view = (model: Model, h: HtmlBuilder<Message, MountRequirements>) => {
   const labelId = 'date-picker-label'
 
   return h.div(

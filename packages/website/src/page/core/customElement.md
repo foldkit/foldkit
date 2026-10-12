@@ -22,7 +22,9 @@ Foldkit defines the typed binding, but the browser still needs the element's cla
 
 ### Binding to the Application Message
 
-Inside a view, call `.withMessage(h)` on the spec. The view builder acts as a type witness that binds event handlers to the current Message universe. The runtime builder is reusable after that binding.
+Inside a view, call `.withMessage(h)` on the spec. The view builder acts as a type witness that binds event handlers to the current Message universe. The runtime builder is reusable after that binding. The same binding preserves the Mount definitions allowed by the view builder, so ordinary Mount and child-slot attributes can be attached to the CustomElement with the same registration checks as native elements.
+
+Let `.withMessage(h)` infer the builder type. If a helper needs an explicit annotation for a builder that accepts mounted attributes, use `CustomElement.Builder<typeof Widget, Message, Mount.RequirementsOf<typeof mounts>>`. A builder that accepts no Mounts keeps the two-parameter form.
 
 ::Snippet{name="customElementDefine" label="Defining typed custom element bindings"}
 

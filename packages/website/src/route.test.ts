@@ -72,6 +72,17 @@ describe('route canonical URLs', () => {
       'https://foldkit.dev/blog/some-post',
     )
   })
+
+  test('parses the previous Layers URL and builds the canonical URL', () => {
+    for (const path of ['/core/resources', '/core/resources/']) {
+      const route = Route.urlToAppRoute(
+        Option.getOrThrow(urlFromString(`${SITE}${path}`)),
+      )
+
+      expect(route).toEqual(Route.AppRoute.CoreLayers())
+      expect(Route.routeToCanonicalUrl(route)).toBe(`${SITE}/core/layers`)
+    }
+  })
 })
 
 describe('blog routes', () => {

@@ -17,7 +17,7 @@ const roomSubscriptions = Subscription.lift(Room.subscriptions)({
   read: (model: Model) => Option.some(model.room),
   toParentMessage: (message: Room.Message): Message =>
     Message.GotRoomMessage({ message }),
-  when: { roomKeyboard: ({ route }) => route._tag === 'Room' },
+  when: { roomKeyPresses: ({ route }) => route._tag === 'Room' },
 })
 
 export const subscriptions = Subscription.aggregate(

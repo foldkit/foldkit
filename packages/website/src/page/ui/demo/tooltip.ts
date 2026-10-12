@@ -1,3 +1,4 @@
+import type { Mount } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 
 import { Tooltip } from '@foldkit/ui'
@@ -22,7 +23,10 @@ const TOOLTIP_ANCHOR: AnchorConfig = {
   padding: 8,
 }
 
-export const demo = (tooltipModel: Tooltip.Model, h: HtmlBuilder<Message>) => {
+export const demo = (
+  tooltipModel: Tooltip.Model,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Tooltip.mounts>>,
+) => {
   return [
     h.div(
       [h.Class('demo-field')],

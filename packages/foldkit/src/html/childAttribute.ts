@@ -1,5 +1,7 @@
 import { Predicate } from 'effect'
 
+import type { MountAction } from '../mount/index.js'
+import type { Attribute } from './index.js'
 import {
   type DispatchSync,
   type MountDispatchResolver,
@@ -13,6 +15,23 @@ const BRAND = '__childAttribute'
 
 const isOnMountAttribute = (attribute: unknown): boolean =>
   Predicate.isTagged(attribute, 'OnMount')
+
+type AttributeRequirements<Attribute> =
+  Attribute extends Readonly<{
+    _tag: 'OnMount'
+    action: MountAction<infer _Message, infer _Error, infer Requirements>
+  }>
+    ? Requirements
+    : never
+
+type ChildAttributeValue<RequiredMountRequirements> =
+  | Extract<
+      Attribute<unknown, RequiredMountRequirements>,
+      Readonly<{ _tag: 'OnMount' }>
+    >
+  | Readonly<{
+      _tag: Exclude<Attribute<never>['_tag'], 'OnMount'>
+    }>
 
 /** An attribute carrying a handler that dispatches through a Submodel
  *  boundary's wrapping chain. Published by Submodels (typically Foldkit's
@@ -32,16 +51,26 @@ const isOnMountAttribute = (attribute: unknown): boolean =>
  *  Created via {@link childAttributes}. Element constructors accept
  *  `ChildAttribute` alongside `Attribute<Message>` in their attribute
  *  arrays. */
-export type ChildAttribute = Readonly<{
+export type ChildAttribute<RequiredMountRequirements = never> = Readonly<{
   readonly [BRAND]: true
-  readonly attribute: unknown
+  readonly attribute: ChildAttributeValue<RequiredMountRequirements>
   readonly dispatch: DispatchSync
   readonly resolveUnmount: (message: unknown) => () => void
   readonly boundaryMappers: ReadonlyArray<(message: unknown) => unknown>
   readonly resolveMountDispatch?: MountDispatchResolver
 }>
 
-export const isChildAttribute = (value: unknown): value is ChildAttribute =>
+/** @internal Runtime shape shared by ChildAttributes of every capability. */
+export type AnyChildAttribute = Readonly<{
+  readonly [BRAND]: true
+  readonly attribute: Readonly<{ _tag: string }>
+  readonly dispatch: DispatchSync
+  readonly resolveUnmount: (message: unknown) => () => void
+  readonly boundaryMappers: ReadonlyArray<(message: unknown) => unknown>
+  readonly resolveMountDispatch?: MountDispatchResolver
+}>
+
+export const isChildAttribute = (value: unknown): value is AnyChildAttribute =>
   typeof value === 'object' && value !== null && BRAND in value
 
 /** Captures the current boundary's dispatcher and wraps each attribute
@@ -67,21 +96,27 @@ export const isChildAttribute = (value: unknown): value is ChildAttribute =>
  *  process `h.OnClick(Toggled())` using the parent's dispatcher (because
  *  the consumer's `toView` runs in the parent's boundary), bypassing the
  *  Submodel's `toParentMessage`. */
-export const childAttributes = <Attribute>(
-  attributes: ReadonlyArray<Attribute>,
-): ReadonlyArray<ChildAttribute> => {
+export const childAttributes = <
+  const Attributes extends ReadonlyArray<Attribute<unknown, unknown>>,
+>(
+  attributes: Attributes,
+): ReadonlyArray<ChildAttribute<AttributeRequirements<Attributes[number]>>> => {
   const dispatch = requireDispatch()
   const resolveUnmount = requireUnmountResolver()
   const boundaryMappers = requireBoundaryMappers()
   const resolveMountDispatch = attributes.some(isOnMountAttribute)
     ? requireMountDispatchResolver()
     : undefined
-  return attributes.map(attribute => ({
-    [BRAND]: true,
-    attribute,
-    dispatch,
-    resolveUnmount,
-    boundaryMappers,
-    ...(resolveMountDispatch !== undefined && { resolveMountDispatch }),
-  }))
+  return attributes.map(
+    attribute =>
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      ({
+        [BRAND]: true,
+        attribute,
+        dispatch,
+        resolveUnmount,
+        boundaryMappers,
+        ...(resolveMountDispatch !== undefined && { resolveMountDispatch }),
+      }) as ChildAttribute<AttributeRequirements<Attributes[number]>>,
+  )
 }

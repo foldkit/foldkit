@@ -1,4 +1,5 @@
 export { ElementNotFound } from './error.js'
+export { animationFrameTicks } from './animationFrameTicks.js'
 export {
   advanceFocus,
   clickElement,

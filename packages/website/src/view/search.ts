@@ -1,4 +1,5 @@
 import { clsx } from 'clsx'
+import type { Mount } from 'foldkit'
 import { Html, type HtmlBuilder } from 'foldkit/html'
 
 import { Icon } from '../icon'
@@ -13,7 +14,10 @@ const onClickOpenSearch = (h: HtmlBuilder<Message>) =>
     focusSelector: keyboardWarmupSelector,
   })
 
-export const dialogView = (model: Model, h: HtmlBuilder<Message>): Html =>
+export const dialogView = (
+  model: Model,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Search.mounts>>,
+): Html =>
   h.submodel({
     slotId: 'search',
     model: model.search,

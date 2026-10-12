@@ -10,30 +10,24 @@ import { Message } from './message'
 import { Model } from './model'
 import { Home, Room } from './page'
 import { urlToAppRoute } from './route'
-import { RoomsClient } from './rpc'
 
-const NavigateInternal = Command.define('NavigateInternal', {
+export const NavigateInternal = Command.define('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
-  execute: ({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+  handler: function* () {
+    return ({ url }) =>
+      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
+  },
 })
 
-const LoadExternal = Command.define('LoadExternal', {
+export const LoadExternal = Command.define('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
-  execute: ({ href }) =>
-    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+  handler: function* () {
+    return ({ href }) =>
+      load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
+  },
 })
-
-export type UpdateReturn<Model, Message> = Update.Return<
-  Model,
-  Message,
-  RoomsClient
->
-const withUpdateReturn = Match.withReturnType<UpdateReturn<Model, Message>>()
-
-type UpdateStep = Update.Step<Model, Message, RoomsClient>
 
 const readHome = (model: Model): Option.Option<Home.Model.Model> =>
   Option.some(model.home)
@@ -53,11 +47,12 @@ const writeRoom = (model: Model, nextRoom: Room.Model.Model): Model =>
 const toGotRoomMessage = (message: Room.Message): Message =>
   Message.GotRoomMessage({ message })
 
-const navigateToRoom =
-  (roomId: string): UpdateStep =>
-  model => ({ model, commands: [NavigateToRoom({ roomId })] })
+const navigateToRoom = (roomId: string) => (model: Model) => ({
+  model,
+  commands: [NavigateToRoom({ roomId })],
+})
 
-const enterJoinedRoom = (roomId: string, player: Shared.Player): UpdateStep =>
+const enterJoinedRoom = (roomId: string, player: Shared.Player) =>
   Update.combine([
     navigateToRoom(roomId),
     Update.foldChild({
@@ -69,11 +64,10 @@ const enterJoinedRoom = (roomId: string, player: Shared.Player): UpdateStep =>
     })(player),
   ])
 
-const foldHomeOutMessage = (outMessage: Home.OutMessage): UpdateStep =>
-  Home.OutMessage.match<UpdateStep>(outMessage, {
-    CreatedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
-    JoinedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
-  })
+const foldHomeOutMessage = Home.OutMessage.match({
+  CreatedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
+  JoinedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
+})
 
 const foldHomeMessage = Update.foldChild({
   update: Home.update,
@@ -92,10 +86,10 @@ const foldRoomMessage = (roomId: string) =>
     toParentMessage: toGotRoomMessage,
   })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn<Model, Message>>(message, {
+export const update = Update.define((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedLink: ({ request }) =>
-      UrlRequest.match<UpdateReturn<Model, Message>>(request, {
+      UrlRequest.match(request, {
         Internal: ({ url }) => ({
           model,
           commands: [NavigateInternal({ url: Url.toString(url) })],
@@ -116,7 +110,6 @@ export const update = (model: Model, message: Message) =>
 
     GotRoomMessage: ({ message }) =>
       Match.value(model.route).pipe(
-        withUpdateReturn,
         Match.tag('Room', ({ roomId }) =>
           foldRoomMessage(roomId)(model, message),
         ),
@@ -125,4 +118,5 @@ export const update = (model: Model, message: Message) =>
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
     CompletedNavigateToRoom: () => ({ model }),
-  })
+  }),
+)

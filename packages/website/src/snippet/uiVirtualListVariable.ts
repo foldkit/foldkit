@@ -4,9 +4,12 @@
 import { Option } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 
 import { VirtualList } from '@foldkit/ui'
+
+type MountRequirements = Mount.RequirementsOf<typeof VirtualList.mounts>
 
 // Model and init are unchanged from the basic example. Pass any
 // `rowHeightPx` to `init`; fixed and known-variable views still use their
@@ -26,7 +29,7 @@ const init = () => ({
 // math walk the items via a prefix-sum to find the visible window. Tests
 // with 10k items at 60Hz scroll well within budget; larger lists may need
 // a prefix-sum cache if you can profile the regression:
-const view = (h: HtmlBuilder<Message>) =>
+const view = (h: HtmlBuilder<Message, MountRequirements>) =>
   h.submodel({
     slotId: 'activity-list',
     model: model.activityList,

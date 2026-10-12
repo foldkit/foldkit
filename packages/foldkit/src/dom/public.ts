@@ -1,6 +1,7 @@
 export {
   ElementNotFound,
   advanceFocus,
+  animationFrameTicks,
   clickElement,
   closeDialog,
   detectElementMovement,

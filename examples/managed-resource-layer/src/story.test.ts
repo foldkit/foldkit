@@ -89,18 +89,18 @@ describe('update', () => {
           expect(model.computeCount).toBe(3)
         }),
         Command.expectExact(Compute({ value: 3 })),
-        Command.resolve(Compute, Message.CompletedCompute({ result: 9 })),
+        Command.resolve(Compute, Message.SucceededCompute({ result: 9 })),
         model(model => {
           expect(model.maybeSquareResult).toStrictEqual(Option.some(9))
         }),
       )
     })
 
-    test('SkippedCompute leaves the model unchanged', () => {
+    test('FailedCompute leaves the model unchanged', () => {
       story(
         update,
         given(readyModel),
-        message(Message.SkippedCompute()),
+        message(Message.FailedCompute()),
         model(model => {
           expect(model).toStrictEqual(readyModel)
         }),

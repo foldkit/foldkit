@@ -1,8 +1,14 @@
 import clsx from 'clsx'
 import { Array, Equal, HashSet, Match, Option, pipe } from 'effect'
-import type { ChildAttribute, Document, Html, HtmlBuilder } from 'foldkit/html'
+import type { Mount } from 'foldkit'
+import type {
+  ChildAttribute,
+  Document,
+  HtmlBuilder as FoldkitHtmlBuilder,
+  Html,
+} from 'foldkit/html'
 
-import { Button, Tabs } from '@foldkit/ui'
+import { Button, Menu, Tabs } from '@foldkit/ui'
 
 import { Step } from '../domain'
 import { Message } from '../message'
@@ -20,6 +26,18 @@ import { review } from './review'
 import { stepMenu, stepTabButton } from './stepNav'
 
 const StepTabs = Tabs.create<Step.Step>()
+
+export const mounts = [
+  ...Menu.mounts,
+  ...PersonalInfo.mounts,
+  ...WorkHistory.mounts,
+  ...Education.mounts,
+]
+
+export type HtmlBuilder = FoldkitHtmlBuilder<
+  Message,
+  Mount.RequirementsOf<typeof mounts>
+>
 
 const stepHasErrors =
   (model: Model) =>
@@ -61,7 +79,7 @@ const stepsNeedingAttention = (model: Model): ReadonlyArray<Step.Step> =>
 const stepContent = (
   model: Model,
   attentionSteps: ReadonlyArray<Step.Step>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder,
 ): Html =>
   Match.value(model.currentStep).pipe(
     Match.when('PersonalInfo', () =>
@@ -122,7 +140,10 @@ const isFirstStep = (model: Model): boolean =>
 const isLastStep = (model: Model): boolean =>
   pipe(Step.all, Array.last, Option.exists(Equal.equals(model.currentStep)))
 
-const navigationButtons = (model: Model, h: HtmlBuilder<Message>): Html =>
+const navigationButtons = (
+  model: Model,
+  h: FoldkitHtmlBuilder<Message>,
+): Html =>
   h.div(
     [h.Class('flex justify-between pt-6 mt-8 border-t border-gray-200')],
     [
@@ -169,7 +190,7 @@ const navigationButtons = (model: Model, h: HtmlBuilder<Message>): Html =>
     ],
   )
 
-const pageHeader = (h: HtmlBuilder<Message>): Html =>
+const pageHeader = (h: FoldkitHtmlBuilder<Message>): Html =>
   h.div(
     [h.Class('mb-6')],
     [
@@ -188,7 +209,7 @@ const stepContentPanel = (
   model: Model,
   attentionSteps: ReadonlyArray<Step.Step>,
   panelAttributes: ReadonlyArray<ChildAttribute>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder,
 ): Html =>
   h.div(
     [...panelAttributes, h.Class('flex-1 min-w-0')],
@@ -209,7 +230,7 @@ const stepTabsLayout = (
   model: Model,
   attentionSteps: ReadonlyArray<Step.Step>,
   attentionStepSet: HashSet.HashSet<Step.Step>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder,
 ): Html =>
   h.submodel({
     slotId: model.stepTabs.id,
@@ -261,7 +282,10 @@ const stepTabsLayout = (
     toParentMessage: message => Message.GotStepTabsMessage({ message }),
   })
 
-const desktopPreviewSidebar = (model: Model, h: HtmlBuilder<Message>): Html =>
+const desktopPreviewSidebar = (
+  model: Model,
+  h: FoldkitHtmlBuilder<Message>,
+): Html =>
   h.div(
     [h.Class('hidden w-80 shrink-0 xl:block')],
     [
@@ -290,7 +314,10 @@ const desktopPreviewSidebar = (model: Model, h: HtmlBuilder<Message>): Html =>
     ],
   )
 
-const mobilePreviewToggle = (model: Model, h: HtmlBuilder<Message>): Html =>
+const mobilePreviewToggle = (
+  model: Model,
+  h: FoldkitHtmlBuilder<Message>,
+): Html =>
   h.div(
     [h.Class('fixed top-4 right-4 xl:hidden')],
     [
@@ -318,7 +345,10 @@ const mobilePreviewToggle = (model: Model, h: HtmlBuilder<Message>): Html =>
     ],
   )
 
-const mobilePreviewOverlay = (model: Model, h: HtmlBuilder<Message>): Html =>
+const mobilePreviewOverlay = (
+  model: Model,
+  h: FoldkitHtmlBuilder<Message>,
+): Html =>
   h.div(
     [
       h.Class(
@@ -328,7 +358,7 @@ const mobilePreviewOverlay = (model: Model, h: HtmlBuilder<Message>): Html =>
     [preview(model)],
   )
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+export const view = (model: Model, h: HtmlBuilder): Document => {
   const attentionSteps = stepsNeedingAttention(model)
   const attentionStepSet = HashSet.fromIterable(attentionSteps)
   const body = h.div(

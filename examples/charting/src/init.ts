@@ -1,10 +1,8 @@
 import { Option } from 'effect'
-import { Runtime } from 'foldkit'
 
 import { RadioGroup } from '@foldkit/ui'
 
 import { FetchTelemetry } from './command'
-import type { Message } from './message'
 import { Model, TelemetryAsyncData } from './model'
 import {
   CHART_MODE_RADIO_GROUP_ID,
@@ -12,8 +10,8 @@ import {
   PERIOD_RADIO_GROUP_ID,
 } from './radioGroups'
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
-  model: {
+export const init = () => ({
+  model: Model.make({
     telemetry: TelemetryAsyncData.Loading(),
     chartMode: 'Adoption',
     chartModeRadioGroup: RadioGroup.init({ id: CHART_MODE_RADIO_GROUP_ID }),
@@ -24,6 +22,6 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
     maybeChartHostId: Option.none(),
     maybeChartError: Option.none(),
     maybeSelectedDatumId: Option.none(),
-  },
+  }),
   commands: [FetchTelemetry()],
 })

@@ -1,5 +1,6 @@
 import clsx from 'clsx'
 import { Array, Option } from 'effect'
+import type { Mount } from 'foldkit'
 import { type Html, type HtmlBuilder, childAttributes } from 'foldkit/html'
 
 import { Button, Listbox, RadioGroup, Switch } from '@foldkit/ui'
@@ -101,7 +102,7 @@ export const toolPanelView = (
   toolRadioGroup: RadioGroup.Model,
   gridSizeRadioGroup: RadioGroup.Model,
   paletteRadioGroup: RadioGroup.Model,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Listbox.mounts>>,
 ): Html =>
   h.div(
     [h.Class('w-full md:w-44 flex flex-col gap-5 flex-shrink-0')],
@@ -313,7 +314,7 @@ const paletteSectionView = (
   paletteThemeIndex: number,
   themeListbox: typeof Listbox.Model.Type,
   paletteRadioGroup: RadioGroup.Model,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Listbox.mounts>>,
 ): Html => {
   const paletteIndexStrings = theme.colors.map((_, index) => index.toString())
   const selectedHexColor = theme.colors[selectedColorIndex] ?? EMPTY_COLOR
@@ -374,7 +375,7 @@ const themeListboxView = (
   themeListbox: typeof Listbox.Model.Type,
   theme: PaletteTheme,
   paletteThemeIndex: number,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Listbox.mounts>>,
 ): Html =>
   h.submodel({
     slotId: themeListbox.id,

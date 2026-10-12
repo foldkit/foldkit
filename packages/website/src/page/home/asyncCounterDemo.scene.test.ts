@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
 import {
-  DelayAdvancePhase,
+  DelayAdvanceAsyncCounterPhase,
   Message,
   init,
   update,
@@ -20,8 +20,8 @@ const RESET_PHASE_STEPS = 6
 const advancePhases = (steps: number, generation: number) =>
   Array.makeBy(steps, () =>
     Command.resolve(
-      DelayAdvancePhase,
-      Message.CompletedDelayAdvancePhase({ generation }),
+      DelayAdvanceAsyncCounterPhase,
+      Message.CompletedDelayAdvanceAsyncCounterPhase({ generation }),
     ),
   )
 

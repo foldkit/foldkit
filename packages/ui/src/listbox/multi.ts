@@ -1,5 +1,6 @@
 import { Option, Schema } from 'effect'
 import { type Update } from 'foldkit'
+import type * as Mount from 'foldkit/mount'
 import type { View as SubmodelView } from 'foldkit/submodel'
 
 import {
@@ -11,6 +12,7 @@ import {
   baseInit,
   makeUpdate,
   makeView,
+  type mounts,
 } from './shared.js'
 
 // MODEL
@@ -36,7 +38,7 @@ export const init = (config: InitConfig): Model => baseInit(config)
  *  and an optional OutMessage. Selection leaves the multi-select Listbox open
  *  and emits `Selected({ value })` for the parent to fold by toggling
  *  membership. */
-export const update = makeUpdate<Model>((model, item) => ({
+export const update = makeUpdate<Model>('KeepOpen', (model, item) => ({
   model,
   outMessage: OutMessage.Selected({ value: item }),
 }))
@@ -72,7 +74,8 @@ const internalView = makeView<Model>({ ariaMultiSelectable: true })
 type BundleUpdateReturn<Value extends string> = Update.ReturnWithOutMessage<
   Model,
   Message,
-  OutMessage<Value>
+  OutMessage<Value>,
+  Update.RequirementsOf<typeof update>
 >
 
 /** The `view`, `update`, and programmatic helpers that
@@ -84,7 +87,12 @@ export type Bundle<
   Item = string,
   Value extends string = Item extends string ? Item : string,
 > = Readonly<{
-  view: SubmodelView<Model, Message, ViewInputs<Item, Value>>
+  view: SubmodelView<
+    Model,
+    Message,
+    ViewInputs<Item, Value>,
+    Mount.RequirementsOf<typeof mounts>
+  >
   update: (model: Model, message: Message) => BundleUpdateReturn<Value>
   selectItem: (model: Model, item: Value) => BundleUpdateReturn<Value>
   open: (model: Model) => BundleUpdateReturn<Value>
@@ -103,7 +111,8 @@ export const create = <
   type UpdateReturn = Update.ReturnWithOutMessage<
     Model,
     Message,
-    OutMessage<Value>
+    OutMessage<Value>,
+    Update.RequirementsOf<typeof update>
   >
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const typedUpdate = update as (model: Model, message: Message) => UpdateReturn

@@ -3,6 +3,7 @@ import {
   Effect,
   Equal,
   Function,
+  Layer,
   Match,
   Number,
   Option,
@@ -79,34 +80,47 @@ export const init = (config: InitConfig): Model => ({
 export const WaitBeforeShowing = Command.define('WaitBeforeShowing', {
   args: { delay: Schema.DurationFromMillis, version: Schema.Number },
   messages: [Message.CompletedWaitBeforeShowing],
-  execute: ({ delay, version }) =>
-    Effect.sleep(delay).pipe(
-      Effect.as(Message.CompletedWaitBeforeShowing({ version })),
-    ),
+  handler: function* () {
+    return ({ delay, version }) =>
+      Effect.sleep(delay).pipe(
+        Effect.as(Message.CompletedWaitBeforeShowing({ version })),
+      )
+  },
 })
 
 /** The anchor-positioning Mount this Tooltip renders on its panel. */
 export const AnchorTooltip = Mount.define('AnchorTooltip', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchorTooltip],
-  execute: ({ element, buttonId, anchor }) =>
-    Effect.gen(function* () {
-      yield* Effect.acquireRelease(
-        Effect.sync(() =>
-          anchorSetup(element, {
-            buttonId,
-            anchor,
-            interceptTab: false,
-          }),
-        ),
-        cleanup => Effect.sync(cleanup),
-      )
-      return Message.CompletedAnchorTooltip()
-    }),
+  handler: function* () {
+    return ({ element, buttonId, anchor }) =>
+      Effect.gen(function* () {
+        yield* Effect.acquireRelease(
+          Effect.sync(() =>
+            anchorSetup(element, {
+              buttonId,
+              anchor,
+              interceptTab: false,
+            }),
+          ),
+          cleanup => Effect.sync(cleanup),
+        )
+        return Message.CompletedAnchorTooltip()
+      })
+  },
 })
 
-const computeUpdate = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+/** Mount definitions rendered by Tooltip. */
+export const mounts = [AnchorTooltip]
+
+/** Effect providers used by the Tooltip component. */
+export const EffectsLayer = Layer.mergeAll(
+  WaitBeforeShowing.layer,
+  AnchorTooltip.layer,
+)
+
+const computeUpdate = Update.define((model: Model, message: Message) =>
+  Message.match(message, {
     EnteredTrigger: () => {
       if (model.isOpen || model.isDismissed) {
         return { model: modifyFields(model, { isHovered: () => true }) }
@@ -202,7 +216,8 @@ const computeUpdate = (model: Model, message: Message) =>
     },
 
     CompletedAnchorTooltip: () => ({ model }),
-  })
+  }),
+)
 
 const toVisibilityOutMessage = (
   isOpen: boolean,
@@ -221,10 +236,7 @@ const toVisibilityOutMessage = (
  *  and an optional OutMessage. `Shown`/`Hidden` fire only on `isOpen`
  *  transitions, so consumers don't get spurious events for messages that
  *  only update hover/focus/delay state without changing visibility. */
-export const update = (
-  model: Model,
-  message: Message,
-): Update.ReturnWithOutMessage<Model, Message, OutMessage> => {
+export const update = Update.define((model: Model, message: Message) => {
   const tooltipUpdate = computeUpdate(model, message)
   const outMessage = toVisibilityOutMessage(
     model.isOpen,
@@ -232,7 +244,7 @@ export const update = (
   )
 
   return pipe(tooltipUpdate, Update.withOutMessage(outMessage))
-}
+})
 
 /** Reflects an externally-sourced hover show-delay onto the Model without
  *  emitting an OutMessage. Use to mirror an external config value (a user
@@ -259,7 +271,7 @@ export const reflectShowDelay: Reflect<Model, Duration.Input> = Function.dual(
  *    the panel conditionally on this. */
 export type RenderInfo = Readonly<{
   trigger: ReadonlyArray<ChildAttribute>
-  panel: ReadonlyArray<ChildAttribute>
+  panel: ReadonlyArray<ChildAttribute<Mount.RequirementsOf<typeof mounts>>>
   isVisible: boolean
 }>
 
@@ -275,73 +287,76 @@ export type ViewInputs = Readonly<{
 /** Renders a headless tooltip with an anchored non-interactive panel.
  *  Shows on hover (after delay) or focus (from keyboard, touch, or pen;
  *  mouse-click focus is excluded). Hides on leave, blur, or Escape. */
-export const view = defineView<Model, Message, ViewInputs>(
-  (model, viewInputs, h): Html => {
-    const { id, isOpen } = model
-    const { anchor, toView, isDisabled, ariaLabel, ariaLabelledBy } = viewInputs
+export const view = defineView<
+  Model,
+  Message,
+  ViewInputs,
+  Mount.RequirementsOf<typeof mounts>
+>((model, viewInputs, h): Html => {
+  const { id, isOpen } = model
+  const { anchor, toView, isDisabled, ariaLabel, ariaLabelledBy } = viewInputs
 
-    const resolveTriggerLabel = () => {
-      if (Predicate.isNotUndefined(ariaLabel)) {
-        return [h.AriaLabel(ariaLabel)]
-      } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
-        return [h.AriaLabelledBy(ariaLabelledBy)]
-      } else {
-        return []
-      }
+  const resolveTriggerLabel = () => {
+    if (Predicate.isNotUndefined(ariaLabel)) {
+      return [h.AriaLabel(ariaLabel)]
+    } else if (Predicate.isNotUndefined(ariaLabelledBy)) {
+      return [h.AriaLabelledBy(ariaLabelledBy)]
+    } else {
+      return []
     }
+  }
 
-    const triggerLabelAttributes = resolveTriggerLabel()
+  const triggerLabelAttributes = resolveTriggerLabel()
 
-    const handleTriggerKeyDown = (
-      key: string,
-    ): Option.Option<typeof Message.PressedEscape.Type> =>
-      Match.value(key).pipe(
-        Match.when('Escape', () =>
-          OptionExt.when(isOpen, Message.PressedEscape()),
-        ),
-        Match.orElse(() => Option.none()),
-      )
+  const handleTriggerKeyDown = (
+    key: string,
+  ): Option.Option<typeof Message.PressedEscape.Type> =>
+    Match.value(key).pipe(
+      Match.when('Escape', () =>
+        OptionExt.when(isOpen, Message.PressedEscape()),
+      ),
+      Match.orElse(() => Option.none()),
+    )
 
-    const handleTriggerPointerDown = (
-      pointerType: string,
-    ): Option.Option<typeof Message.PressedPointerOnTrigger.Type> =>
-      Option.some(Message.PressedPointerOnTrigger({ pointerType }))
+  const handleTriggerPointerDown = (
+    pointerType: string,
+  ): Option.Option<typeof Message.PressedPointerOnTrigger.Type> =>
+    Option.some(Message.PressedPointerOnTrigger({ pointerType }))
 
-    const triggerAttributes = [
-      h.Id(triggerId(id)),
-      h.Type('button'),
-      h.AriaDescribedBy(panelId(id)),
-      ...triggerLabelAttributes,
-      ...(isOpen ? [h.DataAttribute('open', '')] : []),
-      ...(isDisabled
-        ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
-        : [
-            h.OnMouseEnter(Message.EnteredTrigger()),
-            h.OnMouseLeave(Message.LeftTrigger()),
-            h.OnFocus(Message.FocusedTrigger()),
-            h.OnBlur(Message.BlurredTrigger()),
-            h.OnKeyDownPreventDefault(handleTriggerKeyDown),
-            h.OnPointerDown(handleTriggerPointerDown),
-          ]),
-    ]
+  const triggerAttributes = [
+    h.Id(triggerId(id)),
+    h.Type('button'),
+    h.AriaDescribedBy(panelId(id)),
+    ...triggerLabelAttributes,
+    ...(isOpen ? [h.DataAttribute('open', '')] : []),
+    ...(isDisabled
+      ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
+      : [
+          h.OnMouseEnter(Message.EnteredTrigger()),
+          h.OnMouseLeave(Message.LeftTrigger()),
+          h.OnFocus(Message.FocusedTrigger()),
+          h.OnBlur(Message.BlurredTrigger()),
+          h.OnKeyDownPreventDefault(handleTriggerKeyDown),
+          h.OnPointerDown(handleTriggerPointerDown),
+        ]),
+  ]
 
-    const panelAttributes = [
-      h.Id(panelId(id)),
-      h.Role('tooltip'),
-      h.Style({
-        position: 'absolute',
-        margin: '0',
-        visibility: 'hidden',
-        pointerEvents: 'none',
-      }),
-      h.OnMount(AnchorTooltip({ buttonId: triggerId(id), anchor })),
-      ...(isOpen ? [h.DataAttribute('open', '')] : []),
-    ]
+  const panelAttributes = [
+    h.Id(panelId(id)),
+    h.Role('tooltip'),
+    h.Style({
+      position: 'absolute',
+      margin: '0',
+      visibility: 'hidden',
+      pointerEvents: 'none',
+    }),
+    h.OnMount(AnchorTooltip({ buttonId: triggerId(id), anchor })),
+    ...(isOpen ? [h.DataAttribute('open', '')] : []),
+  ]
 
-    return toView({
-      trigger: childAttributes(triggerAttributes),
-      panel: childAttributes(panelAttributes),
-      isVisible: isOpen,
-    })
-  },
-)
+  return toView({
+    trigger: childAttributes(triggerAttributes),
+    panel: childAttributes(panelAttributes),
+    isVisible: isOpen,
+  })
+})

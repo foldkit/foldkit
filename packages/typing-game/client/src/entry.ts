@@ -1,20 +1,20 @@
-import { Runtime } from 'foldkit'
+import { pipe } from 'effect'
+import { Application, Runtime } from 'foldkit'
 
 import { init } from './init'
+import { AppLayer } from './layer'
 import { Message } from './message'
 import { Model } from './model'
-import { RoomsClientLive } from './rpc'
 import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-const application = Runtime.makeApplication({
+const application = Application.make({
   Model,
   init,
   update,
   view,
   subscriptions,
-  resources: RoomsClientLive,
   container: document.getElementById('root'),
   devTools: {
     Message,
@@ -26,4 +26,4 @@ const application = Runtime.makeApplication({
   },
 })
 
-Runtime.run(application)
+pipe(application, Application.provide(AppLayer), Runtime.run)

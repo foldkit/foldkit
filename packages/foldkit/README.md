@@ -22,6 +22,8 @@ Foldkit is a TypeScript frontend framework built on [Effect](https://effect.webs
 
 Foldkit uses [The Elm Architecture](https://guide.elm-lang.org/architecture/) instead of component-owned state and hook lifecycles. That discipline is a real commitment. Foldkit works best when the team wants shared conventions across the application and is ready to build on Effect throughout. If your backend already uses Effect, Foldkit carries the same tools and patterns into the browser: Schema, services, Streams, and scoped resources.
 
+Each feature declares the effects it needs and bundles their handlers in [Effect Layers](https://foldkit.dev/core/layers). At the application root, compose those bundles with their required services. TypeScript checks that the requirements are satisfied before the application can run. Tests can provide controlled services while running the same effect handlers.
+
 A Foldkit program can own the whole page or run as a widget inside an existing application, React included, through [`Runtime.embed`](https://foldkit.dev/core/embedding). The same program can [render on the server](https://foldkit.dev/core/server-rendering) at build time or per request, then hydrate in place. Coming from React? [Start here](https://foldkit.dev/react/coming-from-react), or compare the [same pixel-art editor built in both frameworks](https://foldkit.dev/react/foldkit-vs-react-side-by-side).
 
 > [!NOTE]
@@ -42,7 +44,7 @@ A complete Foldkit program. State lives in a single Model, events become Message
 ```ts
 // src/main.ts
 import { Schema } from 'effect'
-import { Runtime, Update } from 'foldkit'
+import { Update } from 'foldkit'
 import { Document, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -76,8 +78,8 @@ export const update = (model: Model, message: Message) =>
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
-  model: { count: 0 },
+export const init = () => ({
+  model: Model.make({ count: 0 }),
 })
 
 // VIEW
@@ -98,11 +100,11 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
 
 ```ts
 // src/entry.ts
-import { Runtime } from 'foldkit'
+import { Application, Runtime } from 'foldkit'
 
 import { Model, init, update, view } from './main'
 
-const application = Runtime.makeApplication({
+const application = Application.make({
   Model,
   init,
   update,

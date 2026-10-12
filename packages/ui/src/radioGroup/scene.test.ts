@@ -39,7 +39,8 @@ const modelWith = (maybeSelectedValue: Option.Option<string>): Model => ({
 const nothingSelected = modelWith(Option.none())
 
 const foldRadioGroupOutMessage = RadioGroupOutMessage.match<
-  Update.Step<Model, Message>
+  Update.Step<Model, Message>,
+  RadioGroupOutMessage<string>
 >({
   Selected:
     ({ value }) =>
@@ -59,10 +60,11 @@ const foldRadioGroup = Update.foldChild({
   foldOutMessage: foldRadioGroupOutMessage,
 })
 
-const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+const update = Update.define((model: Model, message: Message) =>
+  Message.match(message, {
     GotRadioGroupMessage: ({ message }) => foldRadioGroup(model, message),
-  })
+  }),
+)
 
 type Overrides = Omit<
   Partial<ViewInputs>,

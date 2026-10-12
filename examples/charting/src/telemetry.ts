@@ -314,53 +314,58 @@ export const contributorSummary = (
 
 // FETCH
 
-export const fetchRawTelemetry: Effect.Effect<
-  RawTelemetry,
-  Error,
-  GitHubApi | NpmApi
-> = Effect.gen(function* () {
-  const github = yield* GitHubApi
-  const npm = yield* NpmApi
-  const fetchedAt = yield* Clock.currentTimeMillis
+export const fetchRawTelemetry = ({
+  github,
+  npm,
+  clock,
+}: Readonly<{
+  github: typeof GitHubApi.Service
+  npm: typeof NpmApi.Service
+  clock: typeof Clock.Clock.Service
+}>): Effect.Effect<RawTelemetry, Error> =>
+  Effect.gen(function* () {
+    const fetchedAt = yield* clock.currentTimeMillis
 
-  const repository = yield* github.fetchRepository
-  const yearCutoff = fetchedAt - LAST_YEAR_MILLISECONDS
-  const [contributors, issues, pullRequests, releases] = yield* Effect.all(
-    [
-      github.fetchContributors,
-      github.fetchIssues,
-      github.fetchPullRequests,
-      github.fetchReleases(yearCutoff),
-    ],
-    { concurrency: 'unbounded' },
-  )
-  const stargazers = yield* github.fetchStargazers(repository.stargazers_count)
-  const commitActivity = yield* github.fetchCommitActivity
-  const packageData = yield* Effect.forEach(
-    packageSpecs,
-    spec =>
-      npm.fetchPackage(spec).pipe(
-        Effect.map(({ downloads, packument }) => ({
-          spec,
-          downloads,
-          packument,
-        })),
-      ),
-    { concurrency: 'unbounded' },
-  )
+    const repository = yield* github.fetchRepository
+    const yearCutoff = fetchedAt - LAST_YEAR_MILLISECONDS
+    const [contributors, issues, pullRequests, releases] = yield* Effect.all(
+      [
+        github.fetchContributors,
+        github.fetchIssues,
+        github.fetchPullRequests,
+        github.fetchReleases(yearCutoff),
+      ],
+      { concurrency: 'unbounded' },
+    )
+    const stargazers = yield* github.fetchStargazers(
+      repository.stargazers_count,
+    )
+    const commitActivity = yield* github.fetchCommitActivity
+    const packageData = yield* Effect.forEach(
+      packageSpecs,
+      spec =>
+        npm.fetchPackage(spec).pipe(
+          Effect.map(({ downloads, packument }) => ({
+            spec,
+            downloads,
+            packument,
+          })),
+        ),
+      { concurrency: 'unbounded' },
+    )
 
-  return {
-    fetchedAt,
-    repository,
-    contributors,
-    issues,
-    pullRequests,
-    releases,
-    stargazers,
-    commitActivity,
-    packageData,
-  }
-})
+    return {
+      fetchedAt,
+      repository,
+      contributors,
+      issues,
+      pullRequests,
+      releases,
+      stargazers,
+      commitActivity,
+      packageData,
+    }
+  })
 
 export const transformTelemetry = (
   raw: RawTelemetry,

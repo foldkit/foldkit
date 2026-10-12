@@ -1,4 +1,5 @@
 import { Array, Option } from 'effect'
+import type { Mount } from 'foldkit'
 import { type HtmlBuilder, childAttributes } from 'foldkit/html'
 
 import { Listbox } from '@foldkit/ui'
@@ -70,7 +71,7 @@ const LISTBOX_ANCHOR: AnchorConfig = {
 export const basicDemo = (
   listboxModel: Listbox.Model,
   maybeSelectedItem: Option.Option<ListboxItem>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Listbox.mounts>>,
 ) => {
   const buttonLabel = Option.getOrElse(
     maybeSelectedItem,
@@ -132,7 +133,7 @@ export const basicDemo = (
 export const multiSelectDemo = (
   listboxModel: Listbox.Multi.Model,
   selectedItems: ReadonlyArray<ListboxItem>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Listbox.mounts>>,
 ) => {
   const buttonLabel = Array.match(selectedItems, {
     onEmpty: () => 'Select Bluths',
@@ -200,7 +201,7 @@ export const multiSelectDemo = (
 export const groupedDemo = (
   listboxModel: Listbox.Model,
   maybeSelectedItem: Option.Option<string>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Listbox.mounts>>,
 ) => {
   const buttonLabel = Option.getOrElse(
     maybeSelectedItem,

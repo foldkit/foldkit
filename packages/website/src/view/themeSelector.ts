@@ -1,4 +1,5 @@
 import { Match, Option } from 'effect'
+import type { Mount } from 'foldkit'
 import {
   type Html,
   type HtmlBuilder,
@@ -36,7 +37,7 @@ const preferenceIcon = (preference: ThemePreference, className: string): Html =>
 export const view = (
   menu: Menu.Model,
   maybeActivePreference: Option.Option<ThemePreference>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Menu.mounts>>,
 ): Html => {
   const activePreference: ThemePreference = Option.getOrElse(
     maybeActivePreference,

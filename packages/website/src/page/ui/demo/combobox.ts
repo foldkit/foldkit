@@ -1,5 +1,6 @@
 import { clsx } from 'clsx'
 import { Array, Option } from 'effect'
+import type { Mount } from 'foldkit'
 import {
   type HtmlBuilder,
   childAttributes,
@@ -109,7 +110,7 @@ export const comboboxViewInputs = ({
 export const view = (
   comboboxModel: Combobox.Model,
   maybeSelectedCity: Option.Option<City>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Combobox.mounts>>,
 ) => {
   return [
     h.div(
@@ -149,7 +150,7 @@ export const view = (
 export const nullableDemo = (
   comboboxNullableModel: Combobox.Model,
   maybeSelectedCity: Option.Option<City>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Combobox.mounts>>,
 ) => {
   return [
     h.div(
@@ -192,7 +193,7 @@ export const nullableDemo = (
 export const selectOnFocusDemo = (
   comboboxSelectOnFocusModel: Combobox.Model,
   maybeSelectedCity: Option.Option<City>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Combobox.mounts>>,
 ) => {
   return [
     h.div(
@@ -235,7 +236,7 @@ export const selectOnFocusDemo = (
 export const placementLockDemo = (
   comboboxPlacementLockModel: Combobox.Model,
   maybeSelectedCity: Option.Option<City>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Combobox.mounts>>,
 ) => [
   h.div(
     [
@@ -296,7 +297,7 @@ const emptyTagClassName = 'text-sm py-0.5 text-gray-700 dark:text-gray-400'
 export const multiDemo = (
   comboboxMultiModel: Combobox.Multi.Model,
   selectedCities: ReadonlyArray<City>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Combobox.mounts>>,
 ) => {
   return [
     h.div(

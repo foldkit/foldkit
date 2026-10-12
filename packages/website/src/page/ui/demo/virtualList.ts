@@ -1,4 +1,5 @@
 import { Array, Match, Option, pipe } from 'effect'
+import type { Mount } from 'foldkit'
 import { type HtmlBuilder, childAttributes } from 'foldkit/html'
 
 import { VirtualList } from '@foldkit/ui'
@@ -147,7 +148,10 @@ const secondaryButtonClassName =
 const headerClassName =
   'flex flex-wrap items-center justify-between gap-3 text-sm text-gray-700 dark:text-gray-400'
 
-export const view = (model: VirtualList.Model, h: HtmlBuilder<Message>) => {
+export const view = (
+  model: VirtualList.Model,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof VirtualList.mounts>>,
+) => {
   return [
     h.div(
       [h.Class('flex flex-col gap-4 w-full')],
@@ -278,7 +282,7 @@ const variableArtifactClassName =
 
 export const virtualListVariableDemo = (
   model: VirtualList.Model,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof VirtualList.mounts>>,
 ) => {
   const variableTallRow = (row: Activity, summary: Summary) =>
     h.div(
@@ -440,7 +444,7 @@ const chatMessageView = (
 export const virtualListChatDemo = (
   model: VirtualList.Model,
   messages: ReadonlyArray<VirtualListChatMessage>,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof VirtualList.mounts>>,
 ) => [
   h.div(
     [h.Class('flex w-full flex-col gap-4')],

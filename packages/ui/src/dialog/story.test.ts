@@ -1,9 +1,19 @@
-import { Array, Effect, Fiber, Option, Predicate, Schema, Stream } from 'effect'
+import {
+  Array,
+  Effect,
+  Fiber,
+  Layer,
+  Option,
+  Predicate,
+  Schema,
+  Stream,
+} from 'effect'
 import { Scene, Story } from 'foldkit'
 import { DEVTOOLS_HOST_ID } from 'foldkit/devtools-host'
 import * as Dom from 'foldkit/dom'
 import type { ChildAttribute, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 import type * as Runtime from 'foldkit/runtime'
 import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
@@ -15,6 +25,7 @@ import * as Animation from '../animation/index.js'
 import {
   AcquireResources,
   CloseDialog,
+  EffectsLayer,
   Message,
   Model,
   OutMessage,
@@ -26,10 +37,15 @@ import {
   init,
   initialFocusMarkerAttribute,
   initialFocusMarkerSelector,
+  mounts,
   titleId,
   update,
   view,
 } from './index.js'
+
+type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
+
+const provideEffects = Effect.provide(EffectsLayer)
 
 const acknowledgeAcquireResources = Scene.Mount.resolve(
   AcquireResources,
@@ -67,7 +83,12 @@ const foldDialogOutMessage = OutMessage.match<
   }),
 })
 
-const parentInit: Runtime.ApplicationInit<ParentModel, ParentMessage> = () =>
+const parentInit: Runtime.ApplicationInit<
+  ParentModel,
+  ParentMessage,
+  void,
+  Layer.Success<typeof EffectsLayer>
+> = () =>
   Update.foldChildInit(boot({ id: 'initial-dialog' }), {
     toParentModel: dialog => ({ dialog, dialogEvents: [] }),
     toParentMessage: toGotDialogMessage,
@@ -77,15 +98,16 @@ const parentInit: Runtime.ApplicationInit<ParentModel, ParentMessage> = () =>
 const isDialogVisible = (model: Model): boolean =>
   model.isOpen || model.animation.transitionState !== 'Idle'
 
-const isOnUnmount = (childAttribute: ChildAttribute): boolean =>
-  Predicate.isTagged(childAttribute.attribute, 'OnUnmount')
+const isOnUnmount = <RequiredMountRequirements>(
+  childAttribute: ChildAttribute<RequiredMountRequirements>,
+): boolean => Predicate.isTagged(childAttribute.attribute, 'OnUnmount')
 
 // Renders the dialog view through the Scene harness (which manages the runtime
 // frame) and reports whether the published `dialog` attribute group carries the
 // OnUnmount backstop.
 const dialogHasOnUnmount = (model: Model): boolean => {
   let hasOnUnmount = false
-  const sceneView = (currentModel: Model, h: HtmlBuilder<Message>) =>
+  const sceneView = (currentModel: Model, h: TestHtmlBuilder) =>
     view(
       currentModel,
       {
@@ -111,13 +133,15 @@ const dialogHasOnUnmount = (model: Model): boolean => {
 
 // Renders the dialog view through the Scene harness and returns the chosen
 // RenderInfo attribute group so a test can inspect what the consumer receives.
-const renderGroup = (
+const renderGroup = <RequiredMountRequirements>(
   model: Model,
-  selectGroup: (render: RenderInfo) => ReadonlyArray<ChildAttribute>,
+  selectGroup: (
+    render: RenderInfo,
+  ) => ReadonlyArray<ChildAttribute<RequiredMountRequirements>>,
   hasDescription = false,
-): ReadonlyArray<ChildAttribute> => {
-  let captured: ReadonlyArray<ChildAttribute> = []
-  const sceneView = (currentModel: Model, h: HtmlBuilder<Message>) =>
+): ReadonlyArray<ChildAttribute<RequiredMountRequirements>> => {
+  let captured: ReadonlyArray<ChildAttribute<RequiredMountRequirements>> = []
+  const sceneView = (currentModel: Model, h: TestHtmlBuilder) =>
     view(
       currentModel,
       {
@@ -164,8 +188,8 @@ const renderGroup = (
   return captured
 }
 
-const hasIdAttribute = (
-  group: ReadonlyArray<ChildAttribute>,
+const hasIdAttribute = <RequiredMountRequirements>(
+  group: ReadonlyArray<ChildAttribute<RequiredMountRequirements>>,
   id: string,
 ): boolean =>
   group.some(
@@ -175,8 +199,8 @@ const hasIdAttribute = (
       attribute.value === id,
   )
 
-const hasDataAttribute = (
-  group: ReadonlyArray<ChildAttribute>,
+const hasDataAttribute = <RequiredMountRequirements>(
+  group: ReadonlyArray<ChildAttribute<RequiredMountRequirements>>,
   key: string,
 ): boolean =>
   group.some(
@@ -186,7 +210,9 @@ const hasDataAttribute = (
       attribute.key === key,
   )
 
-const hasButtonType = (group: ReadonlyArray<ChildAttribute>): boolean =>
+const hasButtonType = <RequiredMountRequirements>(
+  group: ReadonlyArray<ChildAttribute<RequiredMountRequirements>>,
+): boolean =>
   group.some(
     ({ attribute }) =>
       Predicate.isTagged(attribute, 'Type') &&
@@ -194,8 +220,8 @@ const hasButtonType = (group: ReadonlyArray<ChildAttribute>): boolean =>
       attribute.value === 'button',
   )
 
-const hasAriaDescribedBy = (
-  group: ReadonlyArray<ChildAttribute>,
+const hasAriaDescribedBy = <RequiredMountRequirements>(
+  group: ReadonlyArray<ChildAttribute<RequiredMountRequirements>>,
   id: string,
 ): boolean =>
   group.some(
@@ -205,13 +231,15 @@ const hasAriaDescribedBy = (
       attribute.value === id,
   )
 
-const hasCancelPrevention = (group: ReadonlyArray<ChildAttribute>): boolean =>
+const hasCancelPrevention = <RequiredMountRequirements>(
+  group: ReadonlyArray<ChildAttribute<RequiredMountRequirements>>,
+): boolean =>
   group.some(({ attribute }) =>
     Predicate.isTagged(attribute, 'OnCancelPreventDefault'),
   )
 
-const hasEscapeCancelMapping = (
-  group: ReadonlyArray<ChildAttribute>,
+const hasEscapeCancelMapping = <RequiredMountRequirements>(
+  group: ReadonlyArray<ChildAttribute<RequiredMountRequirements>>,
 ): boolean =>
   group.some(
     ({ attribute }) =>
@@ -984,7 +1012,7 @@ describe('Dialog', () => {
           const showDialog = yield* ShowDialog({
             id: 'missing-dialog',
             focusSelector: initialFocusMarkerSelector,
-          }).effect
+          }).effect.pipe(provideEffects)
 
           expect(showDialog).toEqual(Message.FailedShowDialog())
           expect(document.documentElement.style.overflow).not.toBe('hidden')
@@ -999,7 +1027,7 @@ describe('Dialog', () => {
             ShowDialog({
               id: 'missing-dialog',
               focusSelector: initialFocusMarkerSelector,
-            }).effect,
+            }).effect.pipe(provideEffects),
           )
 
           yield* Effect.yieldNow
@@ -1033,7 +1061,8 @@ describe('Dialog', () => {
           const showDialogCommand = Option.getOrThrow(
             Array.head(dialogBoot.commands ?? []),
           )
-          const showDialog = yield* showDialogCommand.effect
+          const showDialog =
+            yield* showDialogCommand.effect.pipe(provideEffects)
 
           expect(dialogBoot.model.isOpen).toBe(true)
           expect(showDialog).toEqual(Message.SucceededShowDialog())
@@ -1041,7 +1070,7 @@ describe('Dialog', () => {
           expect(background.getAttribute('aria-hidden')).toBe('true')
           expect(devToolsHost.inert).toBe(false)
 
-          yield* CloseDialog({ id: 'modal-dialog' }).effect
+          yield* CloseDialog({ id: 'modal-dialog' }).effect.pipe(provideEffects)
 
           expect(background.inert).toBe(false)
           expect(background.hasAttribute('aria-hidden')).toBe(false)
@@ -1074,7 +1103,7 @@ describe('Dialog', () => {
           const showDialog = yield* ShowDialog({
             id: 'command-owned-dialog',
             focusSelector: initialFocusMarkerSelector,
-          }).effect
+          }).effect.pipe(provideEffects)
 
           const mount = AcquireResources({
             id: 'command-owned-dialog',
@@ -1082,7 +1111,7 @@ describe('Dialog', () => {
           })
           const mountMessage = yield* Stream.runHead(
             mount.f(dialog, Stream.make('Live')),
-          )
+          ).pipe(provideEffects)
 
           expect(showDialog).toEqual(Message.SucceededShowDialog())
           expect(mountMessage).toEqual(
@@ -1116,15 +1145,16 @@ describe('Dialog', () => {
           const showDialog = yield* ShowDialog({
             id: 'vanishing-dialog',
             focusSelector: initialFocusMarkerSelector,
-          }).effect
+          }).effect.pipe(provideEffects)
 
           expect(showDialog).toEqual(Message.SucceededShowDialog())
           expect(document.documentElement.style.overflow).toBe('hidden')
 
           dialog.remove()
 
-          const closeDialog = yield* CloseDialog({ id: 'vanishing-dialog' })
-            .effect
+          const closeDialog = yield* CloseDialog({
+            id: 'vanishing-dialog',
+          }).effect.pipe(provideEffects)
 
           expect(closeDialog).toEqual(Message.CompletedCloseDialog())
           expect(document.documentElement.style.overflow).not.toBe('hidden')
@@ -1149,8 +1179,9 @@ describe('Dialog', () => {
         return Effect.gen(function* () {
           yield* Dom.lockScroll
 
-          const closeDialog = yield* CloseDialog({ id: 'phantom-dialog' })
-            .effect
+          const closeDialog = yield* CloseDialog({
+            id: 'phantom-dialog',
+          }).effect.pipe(provideEffects)
 
           expect(closeDialog).toEqual(Message.CompletedCloseDialog())
           expect(document.documentElement.style.overflow).toBe('hidden')
@@ -1178,11 +1209,13 @@ describe('Dialog', () => {
             ShowDialog({
               id: 'racing-dialog',
               focusSelector: initialFocusMarkerSelector,
-            }).effect,
+            }).effect.pipe(provideEffects),
           )
 
           yield* Effect.yieldNow
-          yield* CloseDialog({ id: 'racing-dialog' }).effect
+          yield* CloseDialog({ id: 'racing-dialog' }).effect.pipe(
+            provideEffects,
+          )
 
           expect(document.documentElement.style.overflow).toBe('hidden')
 
@@ -1229,7 +1262,7 @@ describe('Dialog', () => {
   })
 
   describe('view modal semantics', () => {
-    const sceneView = (model: Model, h: HtmlBuilder<Message>) =>
+    const sceneView = (model: Model, h: TestHtmlBuilder) =>
       view(model, { toView: ({ dialog }) => h.dialog([...dialog]) }, h)
 
     it('marks a visible dialog as modal to assistive technology', () => {

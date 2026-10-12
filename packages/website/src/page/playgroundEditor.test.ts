@@ -2,7 +2,7 @@ import { Deferred, Effect, PubSub, Stream } from 'effect'
 import { Mount } from 'foldkit'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-import { PlaygroundEditor } from './playground'
+import { MountPlaygroundEditor } from './playground'
 
 const monaco = vi.hoisted(() => ({
   addExtraLib: vi.fn(),
@@ -53,7 +53,7 @@ vi.mock('monaco-editor', () => {
   }
 })
 
-describe('PlaygroundEditor', () => {
+describe('MountPlaygroundEditor', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -62,12 +62,12 @@ describe('PlaygroundEditor', () => {
     await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* () {
-          const observedInitialLive = yield* Deferred.make<void>()
+          const observedInitialLayer = yield* Deferred.make<void>()
           const observedPaused = yield* Deferred.make<void>()
           const observedResumed = yield* Deferred.make<void>()
           monaco.updateOptions.mockImplementation(() => {
             if (monaco.updateOptions.mock.calls.length === 1) {
-              Effect.runSync(Deferred.succeed(observedInitialLive, undefined))
+              Effect.runSync(Deferred.succeed(observedInitialLayer, undefined))
             } else if (monaco.updateOptions.mock.calls.length === 2) {
               Effect.runSync(Deferred.succeed(observedPaused, undefined))
             } else if (monaco.updateOptions.mock.calls.length === 3) {
@@ -79,15 +79,19 @@ describe('PlaygroundEditor', () => {
             replay: 1,
           })
           yield* PubSub.publish(viewStates, Mount.ViewState.make('Live'))
-          yield* PlaygroundEditor({
+          yield* MountPlaygroundEditor({
             path: 'src/main.ts',
             initialContent: 'initial content',
             files: {},
           })
             .f(document.createElement('div'), Stream.fromPubSub(viewStates))
-            .pipe(Stream.runDrain, Effect.forkScoped)
+            .pipe(
+              Stream.runDrain,
+              Effect.provide(MountPlaygroundEditor.layer),
+              Effect.forkScoped,
+            )
 
-          yield* Deferred.await(observedInitialLive)
+          yield* Deferred.await(observedInitialLayer)
           expect(monaco.createEditor).toHaveBeenCalledOnce()
           expect(monaco.editorDispose).not.toHaveBeenCalled()
 

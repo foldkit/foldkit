@@ -1,4 +1,4 @@
-import { Effect, Option, Predicate, Schema, pipe } from 'effect'
+import { Option, Predicate, Schema } from 'effect'
 
 import * as AsyncData from '../../asyncData/index.js'
 import * as Command from '../../command/index.js'
@@ -157,15 +157,6 @@ export const applyTransition = <Model, Args, A, E, Message, R>(
       }
     },
   })
-
-export const runExecute = <A, E, R>(
-  execute: Effect.Effect<A, E, R>,
-): Effect.Effect<AsyncData.AsyncData<A, E>, never, R> =>
-  pipe(
-    execute,
-    Effect.result,
-    Effect.map(result => AsyncData.settle(AsyncData.Loading(), result)),
-  )
 
 export type CompletedFetchOf<Message extends Schema.Top> = Extract<
   Message['Type'],

@@ -1,4 +1,5 @@
 import type { HtmlBuilder } from 'foldkit/html'
+import type * as Mount from 'foldkit/mount'
 import * as Scene from 'foldkit/scene'
 import { expect } from 'vitest'
 
@@ -9,10 +10,13 @@ import {
   AnchorTooltip,
   Message,
   init,
+  mounts,
   triggerId,
   update,
   view,
 } from './index.js'
+
+type TestHtmlBuilder = HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>
 
 const acknowledgeAnchor = Scene.Mount.resolve(
   AnchorTooltip,
@@ -27,7 +31,7 @@ const sceneView =
       ariaLabelledBy?: string
     } = {},
   ) =>
-  (model: Model, h: HtmlBuilder<Message>) =>
+  (model: Model, h: TestHtmlBuilder) =>
     h.submodel({
       slotId: 'test',
       view,

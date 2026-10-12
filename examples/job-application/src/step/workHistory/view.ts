@@ -1,12 +1,17 @@
-import { Submodel } from 'foldkit'
+import { type Mount, Submodel } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
 import * as Entry from './entry'
-import { Message, type Model } from './workHistory'
+import { Message, type Model, mounts } from './workHistory'
 
-export const view = Submodel.defineView<Model, Message>((model, h): Html =>
+export const view = Submodel.defineView<
+  Model,
+  Message,
+  void,
+  Mount.RequirementsOf<typeof mounts>
+>((model, h): Html =>
   h.div(
     [h.Class('space-y-6')],
     [

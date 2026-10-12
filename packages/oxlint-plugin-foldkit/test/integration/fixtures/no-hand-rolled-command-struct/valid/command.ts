@@ -10,5 +10,5 @@ const saveDraftEffect = Effect.succeed(Message.CompletedSaveDraft())
 
 export const SaveDraft = Command.define('SaveDraft', {
   messages: [Message.CompletedSaveDraft],
-  execute: saveDraftEffect,
+  handler: saveDraftEffect,
 })

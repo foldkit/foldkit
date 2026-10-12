@@ -1,5 +1,7 @@
-import { Submodel } from 'foldkit'
+import { type Mount, Submodel } from 'foldkit'
 import type { Html } from 'foldkit/html'
+
+import { DatePicker as UiDatePicker } from '@foldkit/ui'
 
 import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
@@ -22,14 +24,18 @@ type ViewInputs = Readonly<{
   renderHeadingLink: RenderHeadingLink
 }>
 
-export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
-    renderPage({
-      demos: {
-        basic: demoContainer(...DatePicker.basicDemo(model, h)),
-      },
-      renderCopyButton,
-      renderSnippet,
-      renderHeadingLink,
-    }),
+export const view = Submodel.defineView<
+  Model,
+  Message,
+  ViewInputs,
+  Mount.RequirementsOf<typeof UiDatePicker.mounts>
+>((model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
+  renderPage({
+    demos: {
+      basic: demoContainer(...DatePicker.basicDemo(model, h)),
+    },
+    renderCopyButton,
+    renderSnippet,
+    renderHeadingLink,
+  }),
 )

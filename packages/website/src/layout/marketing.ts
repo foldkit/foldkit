@@ -1,4 +1,7 @@
+import type { Mount } from 'foldkit'
 import { type Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
+
+import { Dialog, Menu } from '@foldkit/ui'
 
 import { Shared } from '../component'
 import { Icon } from '../icon'
@@ -10,7 +13,13 @@ import { HeaderNav, Search, Sidebar, ThemeSelector } from '../view'
 
 const PagefindBody = ih.DataAttribute('pagefind-body', '')
 
-const headerView = (model: Model, h: HtmlBuilder<Message>) =>
+const headerView = (
+  model: Model,
+  h: HtmlBuilder<
+    Message,
+    Mount.RequirementsOf<typeof Dialog.mounts | typeof Menu.mounts>
+  >,
+) =>
   h.header(
     [
       h.Class(
@@ -114,7 +123,10 @@ type ViewOptions = Readonly<{
 export const view = (
   model: Model,
   { content, mainClassName, isPagefindBody }: ViewOptions,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<
+    Message,
+    Mount.RequirementsOf<typeof Dialog.mounts | typeof Menu.mounts>
+  >,
 ): Html =>
   h.div(
     [h.Class('flex flex-col min-h-screen')],

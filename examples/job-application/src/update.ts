@@ -94,7 +94,9 @@ const foldStepMenuOutMessage = Menu.OutMessage.match<
 >({
   Selected:
     ({ value }) =>
-    model => ({ model: modifyFields(model, { currentStep: () => value }) }),
+    model => ({
+      model: modifyFields(model, { currentStep: () => value }),
+    }),
 })
 
 const foldStepMenu = Update.foldChild({
@@ -112,7 +114,9 @@ const foldStepTabsOutMessage = Tabs.OutMessage.match<
 >({
   Selected:
     ({ value }) =>
-    model => ({ model: modifyFields(model, { currentStep: () => value }) }),
+    model => ({
+      model: modifyFields(model, { currentStep: () => value }),
+    }),
 })
 
 const foldStepTabs = Update.foldChild({
@@ -124,8 +128,8 @@ const foldStepTabs = Update.foldChild({
   foldOutMessage: foldStepTabsOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.define((model: Model, message: Message) =>
+  Message.match(message, {
     GotPersonalInfoMessage: ({ message }) => foldPersonalInfo(model, message),
 
     GotWorkHistoryMessage: ({ message }) => foldWorkHistory(model, message),
@@ -184,4 +188,5 @@ export const update = (model: Model, message: Message) =>
         submission: () => Submission.SubmitError({ error }),
       }),
     }),
-  })
+  }),
+)

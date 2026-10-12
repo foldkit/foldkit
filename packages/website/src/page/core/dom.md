@@ -63,7 +63,13 @@ Each Dom Stream helper returns a composable Stream, not a complete Subscription 
 
 ::Snippet{name="domMountEvent" label="Element pointer Stream owned by a Mount"}
 
-The [Subscriptions guide](/core/subscriptions) covers Model-driven lifetimes and `Subscription.persistentEntry`.
+The [Subscriptions guide](/core/subscriptions) covers named entries with Model-driven and always-active lifetimes.
+
+### Animation Frames
+
+`Dom.animationFrameTicks` emits the elapsed milliseconds since the previous browser animation frame. Each subscriber owns its loop, and closing its scope cancels the pending frame. The browser pauses frames in hidden tabs, so cap the elapsed value when using it for motion or physics.
+
+A named Subscription maps these values to declared Messages and controls when the loop is active. See [Animation Frames](/core/subscriptions#animation-frames) for that wiring.
 
 ### Event Streams
 
@@ -129,7 +135,7 @@ Sequences may have any length and expire after one second unless `sequenceTimeou
 
 #### Model-Dependent Key Bindings
 
-The Stream's output type comes from each binding's `mapEvent`. Put a fixed table in `Subscription.persistentEntry`, or build the table inside an entry when availability follows the Model. Derive `isEnabled` from that entry's dependencies, as the example does for Escape. If the meaning of a key depends on the Model, dispatch a factual Message such as `PressedEscape` and make the decision in update; `mapEvent` should not read application state.
+The Stream's output type comes from each binding's `mapEvent`. Put a fixed table in a named entry with no local dependencies, or build the table from entry dependencies when availability follows the Model. Derive `isEnabled` from those dependencies, as the example does for Escape. If the meaning of a key depends on the Model, dispatch a factual Message such as `PressedEscape` and make the decision in update; `mapEvent` should not read application state.
 
 ::Snippet{name="subscriptionKeyBindings" label="Model-dependent key bindings"}
 

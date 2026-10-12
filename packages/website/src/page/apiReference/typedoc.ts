@@ -94,6 +94,11 @@ interface TypeDocTupleType<Self> {
   readonly elements: ReadonlyArray<Self>
 }
 
+interface TypeDocTupleTypeEncoded<Self> {
+  readonly type: 'tuple'
+  readonly elements?: ReadonlyArray<Self> | undefined
+}
+
 interface TypeDocUnionType<Self> {
   readonly type: 'union'
   readonly types: ReadonlyArray<Self>
@@ -189,7 +194,7 @@ type TypeDocTypeEncoded =
   | TypeDocReferenceType<TypeDocTypeEncoded>
   | TypeDocArrayType<TypeDocTypeEncoded>
   | TypeDocRestType<TypeDocTypeEncoded>
-  | TypeDocTupleType<TypeDocTypeEncoded>
+  | TypeDocTupleTypeEncoded<TypeDocTypeEncoded>
   | TypeDocUnionType<TypeDocTypeEncoded>
   | TypeDocIntersectionType<TypeDocTypeEncoded>
   | TypeDocReflectionType<TypeDocItemEncoded>
@@ -234,7 +239,9 @@ export const TypeDocTypeSchema = Schema.suspend(() =>
     }),
     Schema.Struct({
       type: Schema.Literal('tuple'),
-      elements: Schema.Array(TypeDocTypeSchema),
+      elements: Schema.Array(TypeDocTypeSchema).pipe(
+        Schema.withDecodingDefaultKey(Effect.succeed([])),
+      ),
     }),
     Schema.Struct({
       type: Schema.Literal('union'),

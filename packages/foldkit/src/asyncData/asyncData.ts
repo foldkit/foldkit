@@ -145,22 +145,23 @@ export type AsyncDataSchema<A, AI, E, EI> = Readonly<{
   Success: (payload: Readonly<{ data: A }>) => AsyncData<A, E>
 }>
 
-/** Builds the six-state `AsyncData` Schema for the given data and error
+/**
+ * Builds the six-state `AsyncData` Schema for the given data and error
  *  Schemas (value-first). Put `schema` in your Model; use the returned
  *  constructors when you want ones typed to this instance's `A` and `E`.
  *
  *  @example
  *  ```ts
- *  import { AsyncData } from 'foldkit'
- *  import { Schema } from 'effect'
+ * import { AsyncData } from 'foldkit'
+ * import { Schema } from 'effect'
  *
- *  const Note = Schema.Struct({ id: Schema.String, body: Schema.String })
- *  const Notes = AsyncData.Schema(Schema.Array(Note), Schema.String)
+ * const Note = Schema.Struct({ id: Schema.String, body: Schema.String })
+ * const Notes = AsyncData.Schema(Schema.Array(Note), Schema.String)
  *
- *  // Model field: typeof Notes.schema.Type
- *  const initial = AsyncData.Idle()
- *  const loaded = Notes.Success({ data: [] })
- *  ```
+ * // Model field: typeof Notes.schema.Type
+ * const initial = AsyncData.Idle()
+ * const loaded = Notes.Success({ data: [] })
+ * ```
  */
 export const Schema = <A, AI, E, EI>(
   dataSchema: EffectSchema.Codec<A, AI>,
@@ -194,24 +195,25 @@ export const Schema = <A, AI, E, EI>(
 
 // OPERATION
 
-/** Handles all six states exhaustively, passing each handler its unwrapped
+/**
+ * Handles all six states exhaustively, passing each handler its unwrapped
  *  payload. `onStale` alone receives the whole `{ error, data }` payload
  *  object because `Stale` carries two fields. Use `matchData` when the view
  *  does not care which of the data-bearing states it is rendering.
  *
  *  @example
  *  ```ts
- *  import { AsyncData } from 'foldkit'
+ * import { AsyncData } from 'foldkit'
  *
- *  AsyncData.match(notes, {
- *    onIdle: () => 'Not loaded',
- *    onLoading: () => 'Loading',
- *    onRefreshing: notes => `Refreshing ${notes.length} notes`,
- *    onFailure: error => `Failed: ${error}`,
- *    onStale: ({ error, data }) => `${data.length} notes (stale: ${error})`,
- *    onSuccess: notes => `${notes.length} notes`,
- *  })
- *  ```
+ * AsyncData.match(notes, {
+ *   onIdle: () => 'Not loaded',
+ *   onLoading: () => 'Loading',
+ *   onRefreshing: notes => `Refreshing ${notes.length} notes`,
+ *   onFailure: error => `Failed: ${error}`,
+ *   onStale: ({ error, data }) => `${data.length} notes (stale: ${error})`,
+ *   onSuccess: notes => `${notes.length} notes`,
+ * })
+ * ```
  */
 // NOTE: match, matchData, matchDataSplitEmpty, getData, and getError use
 // refinement chains instead of Match because tagsExhaustive returns
@@ -510,14 +512,16 @@ export const getOrElse: {
     Option.getOrElse(getData(self), onEmpty),
 )
 
-/** Collapses a possibly-missing cache entry to an AsyncData: `Some(entry)`
+/**
+ * Collapses a possibly-missing cache entry to an AsyncData: `Some(entry)`
  *  is the entry, `None` is `Idle`. The keyed-cache read idiom, where a key
  *  that was never fetched is simply absent and absence means nothing was
  *  requested yet:
  *
  *  ```ts
- *  const notes = AsyncData.fromOptionOrIdle(HashMap.get(model.notesByNotebook, notebookId))
- *  ``` */
+ * const notes = AsyncData.fromOptionOrIdle(HashMap.get(model.notesByNotebook, notebookId))
+ * ```
+ */
 export const fromOptionOrIdle = <A, E>(
   maybeEntry: Option.Option<AsyncData<A, E>>,
 ): AsyncData<A, E> => Option.getOrElse(maybeEntry, () => Idle())
@@ -802,7 +806,8 @@ export const all: <
   return allRecord(inputs)
 }
 
-/** Folds a settled `Result` into the previous state, keeping the last good
+/**
+ * Folds a settled `Result` into the previous state, keeping the last good
  *  data: a `Result` success becomes `Success`, and a `Result` failure
  *  becomes `Stale({ error, data })` when `self` holds data, else a bare
  *  `Failure`. The primary way to fold a fetch back into the Model, and the
@@ -814,24 +819,27 @@ export const all: <
  *
  *  @example
  *  ```ts
- *  import { Effect, pipe } from 'effect'
- *  import { AsyncData, Command } from 'foldkit'
+ * import { Effect, pipe } from 'effect'
+ * import { AsyncData, Command } from 'foldkit'
  *
- *  // The Command settles the fetch into a Result instead of throwing:
- *  const LoadNotes = Command.define('LoadNotes', {
- *    messages: [SettledLoadNotes],
- *    execute: pipe(
- *      fetchNotes,
- *      Effect.result,
- *      Effect.map(result => SettledLoadNotes({ result })),
- *    ),
- *  })
+ * // The Command settles the fetch into a Result instead of throwing:
+ * const LoadNotes = Command.define(
+ *   'LoadNotes',
+ *   { messages: [Message.SettledLoadNotes], handler: function* () { return () =>
+ *     pipe(
+ *       fetchNotes,
+ *       Effect.result,
+ *       Effect.map(result => Message.SettledLoadNotes({ result })),
+ *     ) }},
+ * )
  *
- *  // One update arm folds it in, whatever the previous state was:
- *  SettledLoadNotes: ({ result }) => ({
- *    model: modifyFields(model, { notes: AsyncData.settle(result) }),
- *  })
- *  ```
+ * const EffectsLayer = LoadNotes.layer
+ *
+ * // One update arm folds it in, whatever the previous state was:
+ * SettledLoadNotes: ({ result }) => ({
+ *   model: modifyFields(model, { notes: AsyncData.settle(result) }),
+ * })
+ * ```
  */
 export const settle: {
   <A, E>(

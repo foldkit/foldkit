@@ -5,6 +5,7 @@ import { expect } from 'vitest'
 import { describe, it } from '@effect/vitest'
 
 import {
+  EffectsLayer,
   FocusItem,
   Message,
   OutMessage,
@@ -506,7 +507,7 @@ describe('DragAndDrop', () => {
           Effect.sync(() => {
             received.push(message)
           }),
-        ),
+        ).pipe(Effect.provide(EffectsLayer)),
       )
 
       await waitForNextTurn()

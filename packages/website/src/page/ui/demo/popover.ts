@@ -1,3 +1,4 @@
+import type { Mount } from 'foldkit'
 import { type Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
 
 import { Popover } from '@foldkit/ui'
@@ -68,7 +69,7 @@ const popoverDemo = (
   popoverModel: Popover.Model,
   toMessage: (message: Popover.Message) => Message,
   panelVariant: PanelVariant,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Popover.mounts>>,
 ): Html => {
   const isArrowDrawn = panelVariant === 'Arrow'
 
@@ -140,7 +141,7 @@ const labeledPopoverDemo = (
   popoverModel: Popover.Model,
   toMessage: (message: Popover.Message) => Message,
   panelVariant: PanelVariant,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Popover.mounts>>,
 ): Array<Html> => [
   h.div(
     [h.Class('demo-field')],
@@ -159,7 +160,7 @@ const labeledPopoverDemo = (
 
 export const basicDemo = (
   popoverModel: Popover.Model,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Popover.mounts>>,
 ): Array<Html> =>
   labeledPopoverDemo(
     popoverModel,
@@ -170,7 +171,7 @@ export const basicDemo = (
 
 export const animatedDemo = (
   popoverModel: Popover.Model,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Popover.mounts>>,
 ): Array<Html> =>
   labeledPopoverDemo(
     popoverModel,
@@ -181,7 +182,7 @@ export const animatedDemo = (
 
 export const arrowDemo = (
   popoverModel: Popover.Model,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Popover.mounts>>,
 ): Array<Html> =>
   labeledPopoverDemo(
     popoverModel,
@@ -192,7 +193,7 @@ export const arrowDemo = (
 
 const nestedChildPopover = (
   childPopoverModel: Popover.Model,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Popover.mounts>>,
 ): Html =>
   h.submodel({
     slotId: childPopoverModel.id,
@@ -243,7 +244,7 @@ const nestedChildPopover = (
 export const nestedDemo = (
   parentPopoverModel: Popover.Model,
   childPopoverModel: Popover.Model,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Popover.mounts>>,
 ) => {
   return [
     h.div(

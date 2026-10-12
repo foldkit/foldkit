@@ -374,5 +374,6 @@ export const acquirePlaygroundWebContainer = (
     yield* installDependencies(container)
     const { previewUrl, serverFailure } = yield* startDevServer(container)
     const pendingWrites = yield* FiberMap.make<string, void, never>()
+
     return { container, previewUrl, pendingWrites, serverFailure }
   }).pipe(Effect.interruptible)

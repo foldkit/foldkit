@@ -1,12 +1,14 @@
 import { clsx } from 'clsx'
 import { Match, Option, String } from 'effect'
-import { AsyncData } from 'foldkit'
+import { AsyncData, type Mount } from 'foldkit'
 import {
   Html,
   type HtmlBuilder,
   createLazy,
   inertHtml as ih,
 } from 'foldkit/html'
+
+import { Dialog, Menu } from '@foldkit/ui'
 
 import { type CodeBlock, Shared } from '../component'
 import { pageNeighbors } from '../docsNav'
@@ -62,13 +64,24 @@ import {
   ThemeSelector,
 } from '../view'
 
+type MountRequirements = Mount.RequirementsOf<
+  | typeof Dialog.mounts
+  | typeof Menu.mounts
+  | typeof Ui.mounts
+  | typeof Example.mounts
+  | typeof SnippetDisclosure.mounts
+>
+
 const PagefindBody = ih.DataAttribute('pagefind-body', '')
 const PagefindIgnore = ih.DataAttribute('pagefind-ignore', '')
 const LlmIgnore = ih.DataAttribute('llm-ignore', '')
 
 // DOCS HEADER
 
-export const headerView = (model: Model, h: HtmlBuilder<Message>) =>
+export const headerView = (
+  model: Model,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Menu.mounts>>,
+) =>
   h.header(
     [
       h.Class(
@@ -347,7 +360,7 @@ const renderApiReference = (
   apiReference: ApiReference.Model,
   module: ApiReference.ApiModule,
   highlights: ApiReference.ApiData['highlights'],
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, MountRequirements>,
 ): Html =>
   h.submodel({
     slotId: `api-reference-${module.name}`,
@@ -376,7 +389,7 @@ const renderDocContent = (
   pageView: DocPageView,
   snippetCopy: SnippetCopy.Model,
   snippetDisclosure: SnippetDisclosure.Model,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, MountRequirements>,
 ): Html => {
   const renderCopyButton = SnippetCopy.renderer(
     snippetCopy,
@@ -398,7 +411,7 @@ const renderDocContent = (
 
 const renderProseContent = (
   pageView: ProseDocPageView,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, MountRequirements>,
 ): Html =>
   pageView(
     Prose.renderHeadingLink(hash => Message.ClickedCopyLink({ hash }), h),
@@ -410,7 +423,7 @@ const memoizedProseContent = createLazy()
 type DocContentArgs = readonly [
   SnippetCopy.Model,
   SnippetDisclosure.Model,
-  HtmlBuilder<Message>,
+  HtmlBuilder<Message, MountRequirements>,
 ]
 
 const lazyDocsContent = (view: DocPageView, args: DocContentArgs): Html =>
@@ -418,7 +431,7 @@ const lazyDocsContent = (view: DocPageView, args: DocContentArgs): Html =>
 
 const lazyProseContent = (
   view: ProseDocPageView,
-  args: readonly [HtmlBuilder<Message>],
+  args: readonly [HtmlBuilder<Message, MountRequirements>],
 ): Html => memoizedProseContent(renderProseContent, [view, ...args])
 
 const lazyApiReference = createLazy()
@@ -429,7 +442,7 @@ const lazyApiReferenceSkeleton = createLazy()
 export const view = (
   model: Model,
   docsRoute: DocsRoute,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, MountRequirements>,
 ) => {
   const renderCopyButton = SnippetCopy.renderer(
     model.snippetCopy,
@@ -713,10 +726,10 @@ export const view = (
           lazyDocsContent(Core.CoreServerRendering.view, docContentArgs),
           Core.CoreServerRendering.tableOfContents,
         ),
-      CoreResources: () =>
+      CoreLayers: () =>
         withTableOfContents(
-          lazyDocsContent(Core.Resources.view, docContentArgs),
-          Core.Resources.tableOfContents,
+          lazyDocsContent(Core.Layers.view, docContentArgs),
+          Core.Layers.tableOfContents,
         ),
       CoreManagedResources: () =>
         withTableOfContents(

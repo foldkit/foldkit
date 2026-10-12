@@ -18,11 +18,13 @@
 
 ---
 
-Foldkit is a TypeScript frontend framework built on [Effect](https://effect.website/). It makes state and side effects explicit, so your team and AI agents can build features, trace behavior, and test changes.
+Foldkit is a TypeScript frontend framework built on [Effect](https://effect.website/). It makes state, side effects, and the services your application needs explicit, so your team and AI agents can build features, trace behavior, and test changes.
 
 React, Vue, Svelte, and Solid solve rendering and leave the architecture to you. Foldkit gives you the architecture, so you can focus on your domain.
 
 Foldkit uses [The Elm Architecture](https://guide.elm-lang.org/architecture/). Application state does not live in component instances or hook lifecycles. The Model is the single source of truth, and every transition stays visible in update. That discipline is a real commitment. Foldkit works best when the team wants one architecture across the application and is ready to build on Effect throughout. [Coming from React?](https://foldkit.dev/react/coming-from-react)
+
+Each feature declares the effects it needs and bundles their handlers in [Effect Layers](https://foldkit.dev/core/layers). At the application root, compose those bundles with their required services. TypeScript checks that the requirements are satisfied before the application can run. Tests can provide controlled services while running the same effect handlers.
 
 > [!NOTE]
 > Foldkit is pre-1.0 and under active development. The architecture is settled and the core API is stable in practice, but breaking changes may occur in minor releases. See the [roadmap](https://foldkit.dev/introduction/roadmap).
@@ -44,7 +46,7 @@ This complete program defines the Model, Messages, update, init, and view in `ma
 ```ts
 // src/main.ts
 import { Schema } from 'effect'
-import { Runtime, Update } from 'foldkit'
+import { Update } from 'foldkit'
 import { Document, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -78,8 +80,8 @@ export const update = (model: Model, message: Message) =>
 
 // INIT
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
-  model: { count: 0 },
+export const init = () => ({
+  model: Model.make({ count: 0 }),
 })
 
 // VIEW
@@ -100,11 +102,11 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
 
 ```ts
 // src/entry.ts
-import { Runtime } from 'foldkit'
+import { Application, Runtime } from 'foldkit'
 
 import { Model, init, update, view } from './main'
 
-const application = Runtime.makeApplication({
+const application = Application.make({
   Model,
   init,
   update,

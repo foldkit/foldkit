@@ -8,7 +8,7 @@ const postsQuery = Query.define({
   name: 'Posts',
   data: Schema.Array(Schema.String),
   error: Schema.String,
-  execute: Effect.succeed([]),
+  handler: function* () { return [] },
 })
 
 const Message = defineMessageUnion({

@@ -1,4 +1,5 @@
 import { Match } from 'effect'
+import type { Mount } from 'foldkit'
 import {
   Html,
   type HtmlBuilder,
@@ -102,7 +103,10 @@ const menuViewConfig = (itemsClassName: string) => {
   }
 }
 
-export const basicDemo = (menuModel: Menu.Model, h: HtmlBuilder<Message>) => {
+export const basicDemo = (
+  menuModel: Menu.Model,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Menu.mounts>>,
+) => {
   return [
     h.div(
       [h.Class('demo-field')],
@@ -133,7 +137,7 @@ export const basicDemo = (menuModel: Menu.Model, h: HtmlBuilder<Message>) => {
 
 export const animatedDemo = (
   menuModel: Menu.Model,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Menu.mounts>>,
 ) => {
   return [
     h.div(

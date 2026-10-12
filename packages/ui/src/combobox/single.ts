@@ -1,5 +1,6 @@
 import { Option, Schema } from 'effect'
 import { type Update } from 'foldkit'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 import { type View as SubmodelView, defineView } from 'foldkit/submodel'
 
@@ -13,6 +14,7 @@ import {
   closedBaseModel,
   makeUpdate,
   makeView,
+  type mounts,
 } from './shared.js'
 
 // MODEL
@@ -38,7 +40,7 @@ export const init = (config: InitConfig): Model => baseInit(config)
  *  and an optional OutMessage. Selection closes the Combobox and emits
  *  `Selected({ value })` for the parent to store. A nullable Combobox also
  *  emits `ClearedSelection` when it closes with an empty input. */
-export const update = makeUpdate<Model>({
+export const update = makeUpdate<Model>('CloseWithFocus', {
   handleClose: (model, restingInputValue, isClearable) => {
     if (isClearable && model.nullable && model.inputValue === '') {
       return {
@@ -54,15 +56,15 @@ export const update = makeUpdate<Model>({
     }
   },
 
-  handleSelectedItem: (model, item, displayText, wasSelected, context) => {
+  handleSelectedItem: (model, item, displayText, wasSelected) => {
     const nullableDeselect = model.nullable && wasSelected
 
-    return context.closeWithFocus(
-      modifyFields(closedBaseModel(model), {
+    return {
+      model: modifyFields(closedBaseModel(model), {
         inputValue: () => (nullableDeselect ? '' : displayText),
       }),
-      OutMessage.Selected({ value: item }),
-    )
+      outMessage: OutMessage.Selected({ value: item }),
+    }
   },
 
   handleImmediateActivation: (model, item) => ({
@@ -112,10 +114,13 @@ export type ViewInputs<Item extends string> = BaseViewInputsCommon<Item> &
 
 const internalView = makeView<Model>({ ariaMultiSelectable: false })
 
+type MountRequirements = Mount.RequirementsOf<typeof mounts>
+
 type BundleUpdateReturn<Item extends string> = Update.ReturnWithOutMessage<
   Model,
   Message,
-  OutMessage<Item>
+  OutMessage<Item>,
+  Update.RequirementsOf<typeof update>
 >
 
 /** The `view`, `update`, and programmatic helpers that `Combobox.create`
@@ -124,7 +129,12 @@ type BundleUpdateReturn<Item extends string> = Update.ReturnWithOutMessage<
  *  function parameter that takes the bundle rather than calling `create`
  *  itself. */
 export type Bundle<Item extends string = string> = Readonly<{
-  view: SubmodelView<Model, Message, ViewInputs<Item>>
+  view: SubmodelView<
+    Model,
+    Message,
+    ViewInputs<Item>,
+    Mount.RequirementsOf<typeof mounts>
+  >
   update: (model: Model, message: Message) => BundleUpdateReturn<Item>
   selectItem: (
     model: Model,
@@ -145,12 +155,13 @@ export const create = <Item extends string = string>(): Bundle<Item> => {
   type UpdateReturn = Update.ReturnWithOutMessage<
     Model,
     Message,
-    OutMessage<Item>
+    OutMessage<Item>,
+    Update.RequirementsOf<typeof update>
   >
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const typedUpdate = update as (model: Model, message: Message) => UpdateReturn
   const arrayBasedView = internalView<Item>()
-  const view = defineView<Model, Message, ViewInputs<Item>>(
+  const view = defineView<Model, Message, ViewInputs<Item>, MountRequirements>(
     (model, { maybeSelectedValue, ...baseInputs }, h) =>
       arrayBasedView(
         model,

@@ -1,3 +1,4 @@
+import type { AnyMountHandler } from '../mount/index.js'
 import { type VNode, memoizedVNodes } from '../vdom.js'
 import {
   type BoundaryRegistry,
@@ -24,6 +25,7 @@ import {
 // module instances (e.g. pnpm hoisting variations) stay structurally
 // compatible.
 const SUBMODEL_MESSAGE_BRAND = '__submodelMessage'
+const SUBMODEL_MOUNT_REQUIREMENTS_BRAND = '__submodelMountRequirements'
 
 /** A view function branded with the Message type it dispatches. Build
  *  one with {@link defineView}:
@@ -54,19 +56,75 @@ const SUBMODEL_MESSAGE_BRAND = '__submodelMessage'
  *
  *  Required at the `h.submodel` call site so unbranded plain functions
  *  fail to type-check there. */
-export type SubmodelView<Model, Message, ViewInputs = void> = ([
-  ViewInputs,
-] extends [void]
-  ? (model: Model, h: HtmlBuilder<Message>) => VNode | null
+export type SubmodelView<
+  Model,
+  Message,
+  ViewInputs = void,
+  RequiredMountRequirements = never,
+> = ([ViewInputs] extends [void]
+  ? (
+      model: Model,
+      h: HtmlBuilder<Message, RequiredMountRequirements>,
+    ) => VNode | null
   : (
       model: Model,
       viewInputs: ViewInputs,
-      h: HtmlBuilder<Message>,
+      h: HtmlBuilder<Message, RequiredMountRequirements>,
     ) => VNode | null) & {
   readonly [SUBMODEL_MESSAGE_BRAND]: Message
+  readonly [SUBMODEL_MOUNT_REQUIREMENTS_BRAND]: RequiredMountRequirements
 }
 
-/** Defines the view function of a Submodel, a child component embedded
+/**
+ * @internal A view function whose parameter types can be recovered without
+ *  contextually widening unannotated parameters to `any`.
+ */
+type InferableSubmodelView = (...args: ReadonlyArray<never>) => VNode | null
+
+/**
+ * @internal Detects explicit or inferred `any`, which would erase a
+ *  Submodel view's Message or Mount contract.
+ */
+type IsAny<Value> = 0 extends 1 & Value ? true : false
+
+/** @internal Builds a branded view from an annotated Model and builder. */
+type InferredSubmodelViewFromBuilder<Model, ViewInputs, Builder> =
+  IsAny<Model> extends true
+    ? never
+    : IsAny<Builder> extends true
+      ? never
+      : Builder extends HtmlBuilder<infer Message, infer Requirements>
+        ? IsAny<Message> extends true
+          ? never
+          : IsAny<Requirements> extends true
+            ? never
+            : SubmodelView<Model, Message, ViewInputs, Requirements>
+        : never
+
+/**
+ * @internal Builds the branded view type from an explicitly annotated
+ *  two- or three-parameter view function.
+ */
+type InferredSubmodelView<View extends InferableSubmodelView> =
+  Parameters<View> extends [infer Model, infer Builder]
+    ? InferredSubmodelViewFromBuilder<Model, void, Builder>
+    : Parameters<View> extends [infer Model, infer ViewInputs, infer Builder]
+      ? IsAny<ViewInputs> extends true
+        ? never
+        : [ViewInputs] extends [void]
+          ? never
+          : InferredSubmodelViewFromBuilder<Model, ViewInputs, Builder>
+      : never
+
+/**
+ * @internal Excludes callbacks whose annotations do not describe one of the
+ *  runtime-supported Submodel view shapes from the inference overload.
+ */
+type ValidInferredSubmodelView<View extends InferableSubmodelView> =
+  InferredSubmodelView<View> extends never ? never : unknown
+
+/**
+ * Defines the view function of a Submodel, a child component embedded
  *  via `h.submodel`.
  *
  *  The runtime supplies the view's `h` builder, typed by the Submodel's
@@ -82,29 +140,46 @@ export type SubmodelView<Model, Message, ViewInputs = void> = ([
  *  that compose Html, etc.) don't need to be defined this way. Write
  *  them as ordinary `(model, h) => Html` functions.
  *
- *  Explicit type arguments are required because the Model and ViewInputs
- *  parameters cannot drive inference on their own.
+ *  Annotate the callback's Model and `h` parameters to infer the branded view
+ *  type. A view with `ViewInputs` annotates all three parameters. Explicit
+ *  type arguments remain available when preferred.
  *
- *  `Message` defaults to `never` so that omitting them fails loudly. Nothing in
- *  the parameter list can infer it, so without the default it would widen to
- *  `unknown` and the builder would accept any Message at all, which is exactly
- *  the confusion this type is meant to prevent. */
-export const defineView = <Model, Message = never, ViewInputs = void>(
+ *  When using explicit type arguments, `Message` defaults to `never` so that
+ *  omitting it fails loudly. An unannotated callback receives the same
+ *  `HtmlBuilder<never>` default instead of widening to a builder that accepts
+ *  any Message.
+ */
+export function defineView<View extends InferableSubmodelView>(
+  fn: View & ValidInferredSubmodelView<View>,
+): InferredSubmodelView<View>
+export function defineView<
+  Model,
+  Message = never,
+  ViewInputs = void,
+  RequiredMountRequirements = never,
+>(
   fn: [ViewInputs] extends [void]
-    ? (model: Model, h: HtmlBuilder<Message>) => VNode | null
+    ? (
+        model: Model,
+        h: HtmlBuilder<Message, RequiredMountRequirements>,
+      ) => VNode | null
     : (
         model: Model,
         viewInputs: ViewInputs,
-        h: HtmlBuilder<Message>,
+        h: HtmlBuilder<Message, RequiredMountRequirements>,
       ) => VNode | null,
-): SubmodelView<Model, Message, ViewInputs> =>
+): SubmodelView<Model, Message, ViewInputs, RequiredMountRequirements>
+export function defineView<View extends InferableSubmodelView>(
+  fn: View,
+): InferredSubmodelView<View> {
   // NOTE: The cast attaches the SUBMODEL_MESSAGE_BRAND to the runtime
   // function value at the type level only. `h.submodel` reads the brand
   // at the embed site to type-check `toParentMessage` and to type the
   // builder it hands this view. There is no runtime brand to add; the
   // cast is the entire mechanism.
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-  fn as SubmodelView<Model, Message, ViewInputs>
+  return fn as InferredSubmodelView<View>
+}
 
 /** Structural bound for any branded {@link SubmodelView}, independent of
  *  its Model, Message, and ViewInputs. `h.submodel` and
@@ -115,6 +190,7 @@ export type AnySubmodelView = ((
   ...args: ReadonlyArray<any>
 ) => VNode | null) & {
   readonly [SUBMODEL_MESSAGE_BRAND]: unknown
+  readonly [SUBMODEL_MOUNT_REQUIREMENTS_BRAND]: AnyMountHandler
 }
 
 type ViewModelOf<View extends AnySubmodelView> = Parameters<View>[0]
@@ -129,6 +205,13 @@ type ViewMessageOf<View extends AnySubmodelView> = View extends {
 }
   ? Message
   : never
+
+export type ViewMountRequirementsOf<View extends AnySubmodelView> =
+  View extends {
+    readonly [SUBMODEL_MOUNT_REQUIREMENTS_BRAND]: infer Requirements
+  }
+    ? Requirements
+    : never
 
 /** Configuration for embedding a child Submodel into a parent's view.
  *
@@ -346,7 +429,7 @@ const withBoundaryCleanup = (
  *  process-wide builder singleton as `htmlBuilderSingleton`. */
 export const submodel = <View extends AnySubmodelView>(
   config: SubmodelConfig<View, unknown>,
-  htmlBuilderSingleton: HtmlBuilder<unknown>,
+  htmlBuilderSingleton: HtmlBuilder<unknown, AnyMountHandler>,
 ): VNode | null => {
   // Snapshot the parent frame BEFORE pushing the child boundary. The
   // snapshot is captured into slot-callback closures by
@@ -375,8 +458,9 @@ export const submodel = <View extends AnySubmodelView>(
     // the cast is the entire mechanism, exactly like the brand cast in
     // `defineView`.
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    const childBuilder = htmlBuilderSingleton as HtmlBuilder<
-      ViewMessageOf<View>
+    const childBuilder = htmlBuilderSingleton as unknown as HtmlBuilder<
+      ViewMessageOf<View>,
+      ViewMountRequirementsOf<View>
     >
 
     let vnode: VNode | null
@@ -386,7 +470,7 @@ export const submodel = <View extends AnySubmodelView>(
         /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
         const view = config.view as (
           model: ViewModelOf<View>,
-          h: HtmlBuilder<ViewMessageOf<View>>,
+          h: HtmlBuilder<ViewMessageOf<View>, ViewMountRequirementsOf<View>>,
         ) => VNode | null
         vnode = view(config.model, childBuilder)
       } else {
@@ -399,7 +483,7 @@ export const submodel = <View extends AnySubmodelView>(
         const view = config.view as (
           model: ViewModelOf<View>,
           viewInputs: ViewInputsOf<View>,
-          h: HtmlBuilder<ViewMessageOf<View>>,
+          h: HtmlBuilder<ViewMessageOf<View>, ViewMountRequirementsOf<View>>,
         ) => VNode | null
         vnode = view(config.model, wrappedViewInputs, childBuilder)
       }

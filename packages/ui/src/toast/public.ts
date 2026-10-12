@@ -23,6 +23,7 @@ export {
   type CompletedWaitForSwipeSettled,
   WaitBeforeDismissal,
   WaitForSwipeSettled,
+  EffectsLayer,
 } from './index.js'
 
 export * as test from './test.js'

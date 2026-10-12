@@ -1,9 +1,12 @@
 import { Array, Option } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 
 import { VirtualList } from '@foldkit/ui'
+
+type MountRequirements = Mount.RequirementsOf<typeof VirtualList.mounts>
 
 // INIT
 
@@ -52,7 +55,7 @@ ReceivedMessage: ({ message }) => {
 
 // VIEW
 
-const view = (model: Model, h: HtmlBuilder<Message>) =>
+const view = (model: Model, h: HtmlBuilder<Message, MountRequirements>) =>
   h.submodel({
     slotId: 'message-list',
     model: model.messageList,

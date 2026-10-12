@@ -2,6 +2,7 @@ import {
   Array,
   Duration,
   Effect,
+  Layer,
   Match,
   Number,
   Option,
@@ -10,7 +11,7 @@ import {
   flow,
   pipe,
 } from 'effect'
-import { Command, Runtime, Update } from 'foldkit'
+import { Command, Update } from 'foldkit'
 import { Machine } from 'foldkit/experimental'
 import { otherwise, to, when } from 'foldkit/experimental/machine'
 import { defineMessageUnion } from 'foldkit/message'
@@ -101,7 +102,7 @@ export const Message = defineMessageUnion({
   ToggledTermsAccepted: { isAccepted: Schema.Boolean },
   UpdatedPromoCode: { value: Schema.String },
   SubmittedPromoCode: {},
-  SucceededPlaceOrder: { orderId: Schema.String },
+  CompletedPlaceOrder: { orderId: Schema.String },
 })
 
 export type Message = typeof Message.Type
@@ -112,14 +113,16 @@ const PLACE_ORDER_DELAY = Duration.seconds(1)
 
 export const PlaceOrder = Command.define('PlaceOrder', {
   args: { isShippingRequired: Schema.Boolean },
-  messages: [Message.SucceededPlaceOrder],
-  execute: ({ isShippingRequired }) =>
-    Effect.gen(function* () {
-      yield* Effect.sleep(PLACE_ORDER_DELAY)
-      return Message.SucceededPlaceOrder({
-        orderId: isShippingRequired ? 'SHIP-1001' : 'DIGI-1001',
+  messages: [Message.CompletedPlaceOrder],
+  handler: function* () {
+    return ({ isShippingRequired }) =>
+      Effect.gen(function* () {
+        yield* Effect.sleep(PLACE_ORDER_DELAY)
+        return Message.CompletedPlaceOrder({
+          orderId: isShippingRequired ? 'SHIP-1001' : 'DIGI-1001',
+        })
       })
-    }),
+  },
 })
 
 // MACHINE
@@ -317,7 +320,7 @@ export const checkoutMachine = Machine.define({
     },
     Placing: {
       on: {
-        SucceededPlaceOrder: to('Confirmed', ({ state, message }) => ({
+        CompletedPlaceOrder: to('Confirmed', ({ state, message }) => ({
           model: CheckoutState.Confirmed({
             isShippingRequired: state.isShippingRequired,
             maybeDiscount: state.maybeDiscount,
@@ -338,18 +341,16 @@ export const initialModel = Model.make({
   nextTransitionLogId: 0,
 })
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+export const init = () => ({
   model: initialModel,
 })
 
 // UPDATE
 
-type UpdateReturn = Update.Return<Model, Message>
-
 export const TRANSITION_LOG_LIMIT = 20
 
 const resultToTransitionSummary = (
-  result: Machine.TransitionResult<typeof CheckoutState.Type, Message>,
+  result: ReturnType<typeof checkoutMachine.step>,
 ): string =>
   Match.value(result).pipe(
     Match.tagsExhaustive({
@@ -360,40 +361,38 @@ const resultToTransitionSummary = (
     }),
   )
 
-const stepMachine =
-  (message: Message) =>
-  (model: Model): UpdateReturn => {
-    const result = checkoutMachine.step(model.checkout, message)
+const stepMachine = (message: Message) => (model: Model) => {
+  const result = checkoutMachine.step(model.checkout, message)
 
-    const { state: nextCheckout } = result
+  const { state: nextCheckout } = result
 
-    const transitionCommands = Match.value(result).pipe(
-      Match.tagsExhaustive({
-        Transitioned: ({ commands }) => commands,
-        Ignored: () => [],
-      }),
-    )
+  const transitionCommands = Match.value(result).pipe(
+    Match.tagsExhaustive({
+      Transitioned: ({ commands }) => commands,
+      Ignored: () => [],
+    }),
+  )
 
-    const transitionLogEntry: TransitionLogEntry = {
-      id: model.nextTransitionLogId,
-      summary: resultToTransitionSummary(result),
-    }
-
-    return {
-      model: modifyFields(model, {
-        checkout: () => nextCheckout,
-        transitionLog: flow(
-          Array.prepend(transitionLogEntry),
-          Array.take(TRANSITION_LOG_LIMIT),
-        ),
-        nextTransitionLogId: Number.increment,
-      }),
-      commands: transitionCommands,
-    }
+  const transitionLogEntry: TransitionLogEntry = {
+    id: model.nextTransitionLogId,
+    summary: resultToTransitionSummary(result),
   }
 
+  return {
+    model: modifyFields(model, {
+      checkout: () => nextCheckout,
+      transitionLog: flow(
+        Array.prepend(transitionLogEntry),
+        Array.take(TRANSITION_LOG_LIMIT),
+      ),
+      nextTransitionLogId: Number.increment,
+    }),
+    commands: transitionCommands,
+  }
+}
+
 const foldEditionRadioGroupOutMessage = RadioGroup.OutMessage.match<
-  Update.Step<Model, Message>
+  ReturnType<typeof stepMachine>
 >({
   Selected: ({ value }) =>
     stepMachine(
@@ -412,9 +411,8 @@ const foldEditionRadioGroup = Update.foldChild({
   foldOutMessage: foldEditionRadioGroupOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
+export const update = Update.define((model: Model, message: Message) =>
   Match.value(message).pipe(
-    Match.withReturnType<UpdateReturn>(),
     Match.tag('GotEditionRadioGroupMessage', ({ message }) =>
       foldEditionRadioGroup(model, message),
     ),
@@ -429,8 +427,16 @@ export const update = (model: Model, message: Message) =>
       'ToggledTermsAccepted',
       'UpdatedPromoCode',
       'SubmittedPromoCode',
-      'SucceededPlaceOrder',
+      'CompletedPlaceOrder',
       () => stepMachine(message)(model),
     ),
     Match.exhaustive,
-  )
+  ),
+)
+
+// EFFECTS LAYER
+
+export const EffectsLayer = Layer.mergeAll(
+  RadioGroup.EffectsLayer,
+  PlaceOrder.layer,
+)

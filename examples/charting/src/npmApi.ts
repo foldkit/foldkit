@@ -55,7 +55,7 @@ export class NpmApi extends Context.Service<NpmApi, NpmApiShape>()(
   'charting/NpmApi',
 ) {}
 
-export const NpmApiLive: Layer.Layer<NpmApi, never, HttpClient.HttpClient> =
+export const NpmApiLayer: Layer.Layer<NpmApi, never, HttpClient.HttpClient> =
   Layer.effect(
     NpmApi,
     Effect.gen(function* () {

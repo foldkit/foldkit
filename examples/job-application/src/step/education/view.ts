@@ -1,10 +1,10 @@
-import { Submodel } from 'foldkit'
+import { type Mount, Submodel } from 'foldkit'
 import type { CalendarDate } from 'foldkit/calendar'
 import { type Html, type HtmlBuilder, createKeyedLazy } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
-import { Message, type Model } from './education'
+import { Message, type Model, mounts } from './education'
 import * as Entry from './entry'
 
 const lazyEntry = createKeyedLazy()
@@ -12,7 +12,7 @@ const lazyEntry = createKeyedLazy()
 const entryView = (
   entry: Entry.Model,
   today: CalendarDate,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>,
 ): Html =>
   h.submodel({
     slotId: entry.id,
@@ -23,7 +23,12 @@ const entryView = (
       Message.GotEntryMessage({ entryId: entry.id, message }),
   })
 
-export const view = Submodel.defineView<Model, Message>((model, h): Html =>
+export const view = Submodel.defineView<
+  Model,
+  Message,
+  void,
+  Mount.RequirementsOf<typeof mounts>
+>((model, h): Html =>
   h.div(
     [h.Class('space-y-6')],
     [

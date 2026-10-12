@@ -6,24 +6,32 @@ import { Message } from '../message'
 import { type Model } from '../model'
 
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  systemTheme: entry(
+  systemThemeChanges: entry(
+    'SystemThemeChanges',
     { isSystemPreference: Schema.Boolean },
     {
+      messages: [Message.ChangedSystemTheme],
       modelToDependencies: model => ({
         isSystemPreference: Option.exists(
           model.maybeThemePreference,
           preference => preference === 'System',
         ),
       }),
-      dependenciesToStream: ({ isSystemPreference }) =>
-        Stream.when(
-          Dom.streamFromMediaQuery({
-            query: DARK_COLOR_SCHEME_QUERY,
-            mapMatches: isDark =>
-              Message.ChangedSystemTheme({ theme: isDark ? 'Dark' : 'Light' }),
-          }),
-          Effect.sync(() => isSystemPreference),
-        ),
+      handler: function* () {
+        return ({ isSystemPreference }) =>
+          Stream.when(
+            Dom.streamFromMediaQuery({
+              query: DARK_COLOR_SCHEME_QUERY,
+              mapMatches: isDark =>
+                Message.ChangedSystemTheme({
+                  theme: isDark ? 'Dark' : 'Light',
+                }),
+            }),
+            Effect.sync(() => isSystemPreference),
+          )
+      },
     },
   ),
 }))
+
+export const EffectsLayer = subscriptions.systemThemeChanges.layer

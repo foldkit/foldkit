@@ -35,3 +35,5 @@ export * as HoverIntentPage from './hoverIntentPage'
 export * as AnimationPage from './animationPage'
 export * as AnchorPage from './anchorPage'
 export * as VirtualListPage from './virtualListPage'
+
+export { EffectsLayer, mounts } from './layer'

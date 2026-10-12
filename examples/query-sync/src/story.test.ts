@@ -146,8 +146,8 @@ describe('update', () => {
           }),
         ),
         Command.resolve(
-          Listbox.FocusItems,
-          Listbox.Message.CompletedFocusItems(),
+          Listbox.FocusListboxItems,
+          Listbox.Message.CompletedFocusListboxItems(),
         ),
         message(
           Message.GotDietListboxMessage({
@@ -155,8 +155,8 @@ describe('update', () => {
           }),
         ),
         Command.resolve(
-          Listbox.FocusButton,
-          Listbox.Message.CompletedFocusButton(),
+          Listbox.FocusListboxButton,
+          Listbox.Message.CompletedFocusListboxButton(),
         ),
         Command.expectHas(ReplaceFilters),
         Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),

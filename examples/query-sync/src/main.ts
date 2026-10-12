@@ -2,6 +2,7 @@ import { clsx } from 'clsx'
 import {
   Array,
   Effect,
+  Layer,
   Match,
   Option,
   Order,
@@ -11,7 +12,7 @@ import {
   Types,
   pipe,
 } from 'effect'
-import { Command, Route, Runtime, Update } from 'foldkit'
+import { Command, type Mount, Route, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl, replaceUrl } from 'foldkit/navigation'
@@ -193,9 +194,7 @@ const routeToBrowseFields = (route: AppRoute): BrowseFields =>
     Match.orElse(() => emptyBrowseFields),
   )
 
-export const init: Runtime.RoutingApplicationInit<Model, Message> = (
-  url: Url,
-) => {
+export const init = (url: Url) => {
   const route = urlToAppRoute(url)
 
   return {
@@ -254,37 +253,47 @@ export const ReplaceFilters = Command.define('ReplaceFilters', {
     period: Schema.Option(Period),
   },
   messages: [Message.CompletedReplaceFilters],
-  execute: fields =>
-    replaceUrl(browseRouter(fields)).pipe(
-      Effect.as(Message.CompletedReplaceFilters()),
-    ),
+  handler: function* () {
+    return fields =>
+      replaceUrl(browseRouter(fields)).pipe(
+        Effect.as(Message.CompletedReplaceFilters()),
+      )
+  },
 })
 
 const NavigateInternal = Command.define('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
-  execute: ({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+  handler: function* () {
+    return ({ url }) =>
+      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
+  },
 })
 
 const LoadExternal = Command.define('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
-  execute: ({ href }) =>
-    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+  handler: function* () {
+    return ({ href }) =>
+      load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
+  },
 })
 
-type UpdateReturn = Update.Return<Model, Message>
+// EFFECTS LAYER
+
+export const EffectsLayer = Layer.mergeAll(
+  Listbox.EffectsLayer,
+  ReplaceFilters.layer,
+  NavigateInternal.layer,
+  LoadExternal.layer,
+)
 
 const DietListbox = Listbox.create<string>()
 const PeriodListbox = Listbox.create<string>()
 
-const foldDietListboxOutMessage = Listbox.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Selected:
-    ({ value }) =>
-    model => {
+const foldDietListboxOutMessage = Listbox.OutMessage.match({
+  Selected: ({ value }) =>
+    Update.defineStep((model: Model) => {
       const fields = routeToBrowseFields(model.route)
       return {
         model,
@@ -295,7 +304,7 @@ const foldDietListboxOutMessage = Listbox.OutMessage.match<
           }),
         ],
       }
-    },
+    }),
 })
 
 const foldDietListbox = Update.foldChild({
@@ -307,12 +316,9 @@ const foldDietListbox = Update.foldChild({
   foldOutMessage: foldDietListboxOutMessage,
 })
 
-const foldPeriodListboxOutMessage = Listbox.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Selected:
-    ({ value }) =>
-    model => {
+const foldPeriodListboxOutMessage = Listbox.OutMessage.match({
+  Selected: ({ value }) =>
+    Update.defineStep((model: Model) => {
       const fields = routeToBrowseFields(model.route)
       return {
         model,
@@ -323,7 +329,7 @@ const foldPeriodListboxOutMessage = Listbox.OutMessage.match<
           }),
         ],
       }
-    },
+    }),
 })
 
 const foldPeriodListbox = Update.foldChild({
@@ -335,14 +341,14 @@ const foldPeriodListbox = Update.foldChild({
   foldOutMessage: foldPeriodListboxOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.define((model: Model, message: Message) =>
+  Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
     CompletedReplaceFilters: () => ({ model }),
 
     ClickedLink: ({ request }) =>
-      UrlRequest.match<UpdateReturn>(request, {
+      UrlRequest.match(request, {
         Internal: ({ url }) => ({
           model,
           commands: [NavigateInternal({ url: urlToString(url) })],
@@ -390,7 +396,8 @@ export const update = (model: Model, message: Message) =>
     GotDietListboxMessage: ({ message }) => foldDietListbox(model, message),
 
     GotPeriodListboxMessage: ({ message }) => foldPeriodListbox(model, message),
-  })
+  }),
+)
 
 // VIEW
 
@@ -645,7 +652,7 @@ const periodLabel = (item: string): string =>
 const browseView = (
   model: Model,
   route: typeof AppRoute.Browse.Type,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof Listbox.mounts>>,
 ): Html => {
   const fields = routeToBrowseFields(route)
   const results = filterAndSort(fields)
@@ -861,7 +868,10 @@ const routeTitle = (route: Model['route']): string =>
     Match.orElse(() => 'Not Found | Dinosaur Explorer'),
   )
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+export const view = (
+  model: Model,
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>,
+): Document => {
   const routeContent = AppRoute.match(model.route, {
     Browse: route => browseView(model, route, h),
     NotFound: ({ path }) => notFoundView(path, h),
@@ -891,3 +901,5 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
 
   return { title: routeTitle(model.route), body }
 }
+
+export const mounts = Listbox.mounts

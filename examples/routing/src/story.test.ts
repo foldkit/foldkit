@@ -46,7 +46,7 @@ const urlOrThrow = (raw: string) =>
 const resolveFetch = (searchText: string) =>
   Command.resolve(
     People.FetchPeople,
-    People.Message.SucceededFetchPeople({
+    People.Message.CompletedFetchPeople({
       query: searchText,
       people: People.searchPeople(searchText),
     }),

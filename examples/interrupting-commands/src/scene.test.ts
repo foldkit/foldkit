@@ -36,7 +36,7 @@ describe('view', () => {
       expect(role('button', { name: 'Cancel upload 0' })).toExist(),
       Command.resolve(
         UploadFile({ uploadId: 0, sizeMegabytes: firstFile.sizeMegabytes }),
-        Message.SucceededUploadFile({ uploadId: 0 }),
+        Message.CompletedUploadFile({ uploadId: 0 }),
       ),
       expect(text('Done')).toExist(),
     )
@@ -61,7 +61,7 @@ describe('view', () => {
       expect(text('Uploading')).toExist(),
       Command.resolve(
         UploadFile({ uploadId: 0, sizeMegabytes: firstFile.sizeMegabytes }),
-        Message.SucceededUploadFile({ uploadId: 0 }),
+        Message.CompletedUploadFile({ uploadId: 0 }),
       ),
       expect(text('Done')).toExist(),
     )

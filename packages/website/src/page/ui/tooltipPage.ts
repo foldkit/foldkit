@@ -1,5 +1,7 @@
-import { Submodel } from 'foldkit'
+import { type Mount, Submodel } from 'foldkit'
 import type { Html } from 'foldkit/html'
+
+import { Tooltip as UiTooltip } from '@foldkit/ui'
 
 import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
@@ -22,14 +24,18 @@ type ViewInputs = Readonly<{
   renderHeadingLink: RenderHeadingLink
 }>
 
-export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
-    renderPage({
-      demos: {
-        demo: demoContainer(...Tooltip.demo(model.tooltipDemo, h)),
-      },
-      renderCopyButton,
-      renderSnippet,
-      renderHeadingLink,
-    }),
+export const view = Submodel.defineView<
+  Model,
+  Message,
+  ViewInputs,
+  Mount.RequirementsOf<typeof UiTooltip.mounts>
+>((model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
+  renderPage({
+    demos: {
+      demo: demoContainer(...Tooltip.demo(model.tooltipDemo, h)),
+    },
+    renderCopyButton,
+    renderSnippet,
+    renderHeadingLink,
+  }),
 )

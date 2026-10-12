@@ -60,7 +60,7 @@ export const AppRoute = defineRouteUnion({
   CoreCanvas: {},
   CoreRuntime: {},
   CoreServerRendering: {},
-  CoreResources: {},
+  CoreLayers: {},
   CoreManagedResources: {},
   CoreDevTools: {},
   CoreCrashView: {},
@@ -165,7 +165,7 @@ export const DocsRoute = AppRoute.subset([
   'CoreCanvas',
   'CoreRuntime',
   'CoreServerRendering',
-  'CoreResources',
+  'CoreLayers',
   'CoreManagedResources',
   'CoreDevTools',
   'CoreCrashView',
@@ -408,7 +408,8 @@ export const coreServerRenderingRouter = core(
   'server-rendering',
   AppRoute.CoreServerRendering,
 )
-export const coreResourcesRouter = core('resources', AppRoute.CoreResources)
+export const coreLayersRouter = core('layers', AppRoute.CoreLayers)
+const coreResourcesParser = core('resources', AppRoute.CoreLayers)
 export const coreManagedResourcesRouter = core(
   'managed-resources',
   AppRoute.CoreManagedResources,
@@ -548,7 +549,8 @@ const coreParser = oneOf(
   coreCanvasRouter,
   coreRuntimeRouter,
   coreServerRenderingRouter,
-  coreResourcesRouter,
+  coreLayersRouter,
+  coreResourcesParser,
   coreManagedResourcesRouter,
   coreDevToolsRouter,
   coreCrashViewRouter,
@@ -730,7 +732,7 @@ export const routeToUrlPath = (route: AppRoute): string =>
     CoreCanvas: () => coreCanvasRouter(),
     CoreRuntime: () => coreRuntimeRouter(),
     CoreServerRendering: () => coreServerRenderingRouter(),
-    CoreResources: () => coreResourcesRouter(),
+    CoreLayers: () => coreLayersRouter(),
     CoreManagedResources: () => coreManagedResourcesRouter(),
     CoreDevTools: () => coreDevToolsRouter(),
     CoreCrashView: () => coreCrashViewRouter(),

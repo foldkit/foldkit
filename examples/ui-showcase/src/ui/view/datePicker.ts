@@ -1,6 +1,11 @@
 import { Match, Option } from 'effect'
 import { Submodel } from 'foldkit'
-import type { ChildAttribute, Html, HtmlBuilder } from 'foldkit/html'
+import type {
+  ChildAttribute,
+  HtmlBuilder as FoldkitHtmlBuilder,
+  Html,
+} from 'foldkit/html'
+import type * as Mount from 'foldkit/mount'
 
 import { Calendar, DatePicker } from '@foldkit/ui'
 import type { AnchorConfig } from '@foldkit/ui/popover'
@@ -8,6 +13,11 @@ import type { AnchorConfig } from '@foldkit/ui/popover'
 import * as Icon from '../../icon'
 import { Message as UiMessage } from '../message'
 import type { UiModel } from '../model'
+
+type HtmlBuilder = FoldkitHtmlBuilder<
+  UiMessage,
+  Mount.RequirementsOf<typeof DatePicker.mounts>
+>
 
 const triggerClassName =
   'inline-flex items-center justify-between gap-2 min-w-48 px-4 py-2 text-base font-normal cursor-pointer transition rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-100 select-none'
@@ -58,20 +68,20 @@ const monthYearButtonClassName =
 const navButton = (
   attributes: ReadonlyArray<ChildAttribute>,
   icon: Html,
-  h: HtmlBuilder<UiMessage>,
+  h: FoldkitHtmlBuilder<UiMessage>,
 ): Html => h.button([...attributes, h.Class(navButtonClassName)], [icon])
 
 const headingButton = (
   heading: Calendar.DaysModeAttributes['heading'],
   attributes: ReadonlyArray<ChildAttribute>,
-  h: HtmlBuilder<UiMessage>,
+  h: FoldkitHtmlBuilder<UiMessage>,
 ): Html =>
   h.button(
     [h.Id(heading.id), ...attributes, h.Class(headingButtonClassName)],
     [heading.text, Icon.chevronDown('w-3 h-3')],
   )
 
-const weekRow = (week: Calendar.Week, h: HtmlBuilder<UiMessage>): Html =>
+const weekRow = (week: Calendar.Week, h: FoldkitHtmlBuilder<UiMessage>): Html =>
   h.div(
     [...week.attributes, h.Class(rowClassName)],
     week.cells.map(cell =>
@@ -91,7 +101,7 @@ const weekRow = (week: Calendar.Week, h: HtmlBuilder<UiMessage>): Html =>
 
 const daysView = (
   days: Calendar.DaysModeAttributes,
-  h: HtmlBuilder<UiMessage>,
+  h: FoldkitHtmlBuilder<UiMessage>,
 ): Html =>
   h.div(
     [...days.root, h.Class(calendarWrapperClassName)],
@@ -124,7 +134,7 @@ const daysView = (
 
 const monthsView = (
   months: Calendar.MonthsModeAttributes,
-  h: HtmlBuilder<UiMessage>,
+  h: FoldkitHtmlBuilder<UiMessage>,
 ): Html =>
   h.div(
     [...months.root, h.Class(calendarWrapperClassName)],
@@ -152,7 +162,7 @@ const monthsView = (
 
 const yearsView = (
   years: Calendar.YearsModeAttributes,
-  h: HtmlBuilder<UiMessage>,
+  h: FoldkitHtmlBuilder<UiMessage>,
 ): Html =>
   h.div(
     [...years.root, h.Class(calendarWrapperClassName)],
@@ -202,7 +212,7 @@ const triggerContent = (
   maybeDate: Option.Option<
     Readonly<{ year: number; month: number; day: number }>
   >,
-  h: HtmlBuilder<UiMessage>,
+  h: FoldkitHtmlBuilder<UiMessage>,
 ): Html => {
   return h.div(
     [h.Class(triggerContentClassName)],
@@ -218,8 +228,8 @@ const triggerContent = (
 
 // VIEW
 
-export const view = Submodel.defineView<UiModel, UiMessage>(
-  (model, h): Html => {
+export const view = Submodel.defineView(
+  (model: UiModel, h: HtmlBuilder): Html => {
     return h.div(
       [],
       [

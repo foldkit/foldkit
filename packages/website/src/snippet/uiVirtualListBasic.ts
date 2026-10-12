@@ -5,9 +5,12 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 
 import { VirtualList } from '@foldkit/ui'
+
+type MountRequirements = Mount.RequirementsOf<typeof VirtualList.mounts>
 
 // Add a field to your Model for the VirtualList Submodel. The list items
 // stay in your domain Model (your own `activities`, `messages`, `rows`,
@@ -64,7 +67,7 @@ ClickedScrollActivityListToMiddle: () =>
 // fixed height the container grows to fit its children and never scrolls.
 // The component sets only `overflow: auto` inline; everything else is
 // yours:
-const view = (model: Model, h: HtmlBuilder<Message>) =>
+const view = (model: Model, h: HtmlBuilder<Message, MountRequirements>) =>
   h.submodel({
     slotId: 'activity-list',
     model: model.activityList,

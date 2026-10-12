@@ -5,9 +5,12 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 
 import { Dialog } from '@foldkit/ui'
+
+type MountRequirements = Mount.RequirementsOf<typeof Dialog.mounts>
 
 // Add a field to your Model for the Dialog Submodel:
 const Model = Schema.Struct({
@@ -69,7 +72,7 @@ GotDialogMessage: ({ message }) => foldDialog(model, message)
 
 // In your view, open from a trigger with the fact, and dismiss from a Cancel
 // button by spreading the `closeButton` bundle, no parent message needed:
-const view = (h: HtmlBuilder<Message>) => {
+const view = (h: HtmlBuilder<Message, MountRequirements>) => {
   const dialogView = ({
     dialog,
     backdrop,

@@ -1,10 +1,10 @@
-import { Effect, Number, Option, Schema } from 'effect'
+import { Effect, Layer, Number, Option, Schema } from 'effect'
 
 import type { Html, HtmlBuilder } from '../../html/index.js'
 import { defineMessageUnion } from '../../message/index.js'
 import * as Mount from '../../mount/index.js'
 import { modifyFields } from '../../struct/index.js'
-import type * as Update from '../../update/index.js'
+import * as Update from '../../update/index.js'
 
 // MODEL
 
@@ -24,6 +24,7 @@ export const Message = defineMessageUnion({
   FailedMountSidebar: { reason: Schema.String },
   ClickedIncrement: {},
   ScrolledTo: { offset: Schema.Number },
+  Ticked: {},
 })
 
 export type Message = typeof Message.Type
@@ -40,25 +41,34 @@ export type Message = typeof Message.Type
 
 export const MeasurePanel = Mount.define('MeasurePanel', {
   messages: [Message.MeasuredPanel, Message.FailedMountSidebar],
-  execute: () => Effect.succeed(Message.MeasuredPanel({ width: 320 })),
+  handler: function* () {
+    return () => Effect.succeed(Message.MeasuredPanel({ width: 320 }))
+  },
 })
 
 export const FocusButton = Mount.define('FocusButton', {
   messages: [Message.CompletedFocusButton],
-  execute: () => Effect.succeed(Message.CompletedFocusButton()),
+  handler: function* () {
+    return () => Effect.succeed(Message.CompletedFocusButton())
+  },
 })
 
 export const ScrollList = Mount.define('ScrollList', {
   args: { offset: Schema.Number },
   messages: [Message.ScrolledTo],
-  execute: ({ element, offset }) =>
-    Effect.sync(() => {
-      if (element instanceof HTMLElement) {
-        element.scrollTop = offset
-      }
-      return Message.ScrolledTo({ offset })
-    }),
+  handler: function* () {
+    return ({ element, offset }) =>
+      Effect.sync(() => {
+        if (element instanceof HTMLElement) {
+          element.scrollTop = offset
+        }
+        return Message.ScrolledTo({ offset })
+      })
+  },
 })
+
+export const Mounts = [MeasurePanel, FocusButton, ScrollList]
+type MountRequirements = Mount.RequirementsOf<typeof Mounts>
 
 // INIT
 
@@ -70,8 +80,8 @@ export const initialModel: Model = {
 
 // UPDATE
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
+export const update = Update.define((model: Model, message: Message) =>
+  Message.match(message, {
     ClickedToggle: () => ({
       model: modifyFields(model, { isOpen: isOpen => !isOpen }),
     }),
@@ -84,11 +94,16 @@ export const update = (model: Model, message: Message) =>
       model: modifyFields(model, { count: Number.increment }),
     }),
     ScrolledTo: () => ({ model }),
-  })
+    Ticked: () => ({ model }),
+  }),
+)
 
 // VIEW
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
+export const view = (
+  model: Model,
+  h: HtmlBuilder<Message, MountRequirements>,
+): Html => {
   return h.div(
     [h.Class('panel-test')],
     [
@@ -125,7 +140,10 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Html => {
 /** A view that always renders both the toggle button and the panel, exposing
  *  two MeasurePanel mounts simultaneously so we can exercise the (name,
  *  occurrence) tracking. */
-export const twoPanelView = (model: Model, h: HtmlBuilder<Message>): Html => {
+export const twoPanelView = (
+  model: Model,
+  h: HtmlBuilder<Message, MountRequirements>,
+): Html => {
   return h.div(
     [h.Class('two-panels')],
     [
@@ -145,10 +163,16 @@ export const twoPanelView = (model: Model, h: HtmlBuilder<Message>): Html => {
  *  args and is observable on the rendered Mount marker. */
 export const scrollListView = (
   offset: number,
-  h: HtmlBuilder<Message>,
+  h: HtmlBuilder<Message, MountRequirements>,
 ): Html => {
   return h.div(
     [h.Class('scroll-list')],
     [h.div([h.Key('list'), h.OnMount(ScrollList({ offset }))])],
   )
 }
+
+export const EffectsLayer = Layer.mergeAll(
+  MeasurePanel.layer,
+  FocusButton.layer,
+  ScrollList.layer,
+)

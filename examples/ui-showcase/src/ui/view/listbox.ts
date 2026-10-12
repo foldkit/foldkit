@@ -1,12 +1,22 @@
 import { Array, Option } from 'effect'
 import { Submodel } from 'foldkit'
-import { type Html, type HtmlBuilder, childAttributes } from 'foldkit/html'
+import {
+  type HtmlBuilder as FoldkitHtmlBuilder,
+  type Html,
+  childAttributes,
+} from 'foldkit/html'
+import type * as Mount from 'foldkit/mount'
 
 import { Listbox } from '@foldkit/ui'
 
 import * as Icon from '../../icon'
 import { Message as UiMessage } from '../message'
 import type { ListboxItem, UiModel } from '../model'
+
+type HtmlBuilder = FoldkitHtmlBuilder<
+  UiMessage,
+  Mount.RequirementsOf<typeof Listbox.mounts>
+>
 
 const LISTBOX_ITEMS: ReadonlyArray<ListboxItem> = [
   'Michael Bluth',
@@ -79,19 +89,19 @@ const LISTBOX_ANCHOR = {
 
 // PIECES
 
-const itemContent = (label: string, h: HtmlBuilder<UiMessage>): Html =>
+const itemContent = (label: string, h: FoldkitHtmlBuilder<UiMessage>): Html =>
   h.div(
     [h.Class('flex items-center gap-2')],
     [Icon.check(checkIconClassName), h.span([], [label])],
   )
 
-const buttonContent = (label: string, h: HtmlBuilder<UiMessage>): Html =>
+const buttonContent = (label: string, h: FoldkitHtmlBuilder<UiMessage>): Html =>
   h.div(
     [h.Class(buttonContentClassName)],
     [h.span([], [label]), Icon.chevronDown('w-4 h-4')],
   )
 
-const chromeAttributes = (h: HtmlBuilder<UiMessage>) => ({
+const chromeAttributes = (h: FoldkitHtmlBuilder<UiMessage>) => ({
   buttonAttributes: childAttributes([h.Class(triggerClassName)]),
   itemsAttributes: childAttributes([h.Class(itemsClassName)]),
   backdropAttributes: childAttributes([h.Class(backdropClassName)]),
@@ -102,7 +112,7 @@ const field = (
   buttonId: string,
   label: string,
   listbox: Html,
-  h: HtmlBuilder<UiMessage>,
+  h: FoldkitHtmlBuilder<UiMessage>,
 ): Html =>
   h.div(
     [h.Class(fieldClassName)],
@@ -117,7 +127,7 @@ const field = (
 const singleSelectDemo = (
   listboxModel: Listbox.Model,
   maybeSelectedItem: Option.Option<ListboxItem>,
-  h: HtmlBuilder<UiMessage>,
+  h: HtmlBuilder,
 ): Html => {
   const buttonLabel = Option.getOrElse(
     maybeSelectedItem,
@@ -151,7 +161,7 @@ const singleSelectDemo = (
 const multiSelectDemo = (
   listboxModel: Listbox.Multi.Model,
   selectedItems: ReadonlyArray<ListboxItem>,
-  h: HtmlBuilder<UiMessage>,
+  h: HtmlBuilder,
 ): Html => {
   const buttonLabel = Array.match(selectedItems, {
     onEmpty: () => 'Select Bluths',
@@ -189,7 +199,7 @@ const multiSelectDemo = (
 const groupedDemo = (
   listboxModel: Listbox.Model,
   maybeSelectedItem: Option.Option<string>,
-  h: HtmlBuilder<UiMessage>,
+  h: HtmlBuilder,
 ): Html => {
   const buttonLabel = Option.getOrElse(
     maybeSelectedItem,
@@ -230,8 +240,8 @@ const groupedDemo = (
 
 // VIEW
 
-export const view = Submodel.defineView<UiModel, UiMessage>(
-  (model, h): Html => {
+export const view = Submodel.defineView(
+  (model: UiModel, h: HtmlBuilder): Html => {
     return h.div(
       [],
       [

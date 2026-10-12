@@ -1,4 +1,13 @@
-import { Array, Duration, Effect, Match, Number, Option, Schema } from 'effect'
+import {
+  Array,
+  Duration,
+  Effect,
+  Layer,
+  Match,
+  Number,
+  Option,
+  Schema,
+} from 'effect'
 import { Command, Update } from 'foldkit'
 import { CalendarDate } from 'foldkit/calendar'
 import {
@@ -134,27 +143,35 @@ const isEmailTaken = (emailInput: string): Effect.Effect<boolean> =>
 export const ValidateEmailAsync = Command.define('ValidateEmailAsync', {
   args: { emailInput: Schema.String, validationId: Schema.Number },
   messages: [Message.CompletedValidateEmailAsync],
-  execute: ({ emailInput, validationId }) =>
-    Effect.gen(function* () {
-      if (yield* isEmailTaken(emailInput)) {
+  handler: function* () {
+    return ({ emailInput, validationId }) =>
+      Effect.gen(function* () {
+        if (yield* isEmailTaken(emailInput)) {
+          return Message.CompletedValidateEmailAsync({
+            validationId,
+            field: Invalid({
+              value: emailInput,
+              errors: ['This email is already in use'],
+            }),
+          })
+        }
         return Message.CompletedValidateEmailAsync({
           validationId,
-          field: Invalid({
-            value: emailInput,
-            errors: ['This email is already in use'],
-          }),
+          field: Valid({ value: emailInput }),
         })
-      }
-      return Message.CompletedValidateEmailAsync({
-        validationId,
-        field: Valid({ value: emailInput }),
       })
-    }),
+  },
 })
 
-// UPDATE
+export const EffectsLayer = Layer.mergeAll(
+  DatePicker.EffectsLayer,
+  Listbox.EffectsLayer,
+  ValidateEmailAsync.layer,
+)
 
-type UpdateReturn = Update.Return<Model, Message>
+export const mounts = [...DatePicker.mounts, ...Listbox.mounts]
+
+// UPDATE
 
 const foldPronounsOutMessage = Listbox.OutMessage.match<
   Update.Step<Model, Message>
@@ -202,8 +219,8 @@ const foldAvailableDate = Update.foldChild({
   foldOutMessage: foldAvailableDateOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.define((model: Model, message: Message) =>
+  Message.match(message, {
     UpdatedFirstName: ({ value }) => ({
       model: modifyFields(model, { firstName: () => validateFirstName(value) }),
     }),
@@ -215,7 +232,6 @@ export const update = (model: Model, message: Message) =>
     UpdatedEmail: ({ value }) => {
       const validationId = Number.increment(model.emailValidationId)
       return Match.value(validateEmail(value)).pipe(
-        Match.withReturnType<UpdateReturn>(),
         Match.tag('Valid', () => ({
           model: modifyFields(model, {
             email: () => Validating({ value }),
@@ -257,7 +273,8 @@ export const update = (model: Model, message: Message) =>
     }),
 
     GotAvailableDateMessage: ({ message }) => foldAvailableDate(model, message),
-  })
+  }),
+)
 
 // VALIDATION SUMMARY
 

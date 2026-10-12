@@ -1,5 +1,5 @@
-import { Option } from 'effect'
-import { Subscription } from 'foldkit'
+import { Effect, Option, Schema, Stream } from 'effect'
+import { Dom, Subscription } from 'foldkit'
 
 import { Slider } from '@foldkit/ui'
 
@@ -22,11 +22,24 @@ const noiseScaleSliderSubscriptions = Subscription.lift({
   toParentMessage: message => Message.GotNoiseScaleSliderMessage({ message }),
 })
 
-const frameSubscription = Subscription.make<Model, Message>()(_entry => ({
-  frame: Subscription.animationFrameEntry({
-    isActive: model => model.isRunning,
-    toMessage: deltaTimeMs => Message.TickedFrame({ deltaTimeMs }),
-  }),
+const frameSubscription = Subscription.make<Model, Message>()(entry => ({
+  animationFrameTicks: entry(
+    'AnimationFrameTicks',
+    { isActive: Schema.Boolean },
+    {
+      messages: [Message.TickedFrame],
+      modelToDependencies: model => ({ isActive: model.isRunning }),
+      handler: function* () {
+        return ({ isActive }) =>
+          Stream.when(
+            Dom.animationFrameTicks.pipe(
+              Stream.map(deltaTimeMs => Message.TickedFrame({ deltaTimeMs })),
+            ),
+            Effect.sync(() => isActive),
+          )
+      },
+    },
+  ),
 }))
 
 export const subscriptions = Subscription.aggregate(

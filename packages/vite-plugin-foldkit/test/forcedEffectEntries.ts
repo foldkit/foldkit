@@ -18,10 +18,12 @@ const findForcedEffectElements = (declaration: ESTree.VariableDeclarator) => {
   return Option.some(declaration.init.elements)
 }
 
-export const readForcedEffectEntries = (): ReadonlyArray<string> => {
+export const readForcedEffectEntries = (
+  pluginSource = PLUGIN_SOURCE,
+): ReadonlyArray<string> => {
   const { program } = parseSync(
-    PLUGIN_SOURCE,
-    readFileSync(PLUGIN_SOURCE, 'utf8'),
+    pluginSource,
+    readFileSync(pluginSource, 'utf8'),
   )
   const elements = pipe(
     program.body,

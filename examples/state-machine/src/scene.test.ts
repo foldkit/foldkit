@@ -55,7 +55,7 @@ describe('scene', () => {
       expect(role('heading', { name: 'Processing your order' })).toExist(),
       Command.resolve(
         PlaceOrder,
-        Message.SucceededPlaceOrder({ orderId: 'DIGI-1001' }),
+        Message.CompletedPlaceOrder({ orderId: 'DIGI-1001' }),
       ),
       expect(text('Order DIGI-1001 confirmed')).toExist(),
     )

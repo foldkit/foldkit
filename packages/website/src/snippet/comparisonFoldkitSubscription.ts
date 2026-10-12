@@ -1,31 +1,43 @@
 export const subscriptions = Subscription.make<Model, Message>()(entry => ({
-  undoRedoKeys: Subscription.persistentEntry(
-    Dom.streamFromEventFilterMapPreventDefault({
-      target: document,
-      type: 'keydown',
-      filterMapEvent: toUndoRedoMessage,
-    }),
-  ),
+  undoRedoKeyPresses: entry('UndoRedoKeyPresses', {
+    messages: [ClickedUndo, ClickedRedo],
+    handler: function* () {
+      return () =>
+        Dom.streamFromEventFilterMapPreventDefault({
+          target: document,
+          type: 'keydown',
+          filterMapEvent: toUndoRedoMessage,
+        })
+    },
+  }),
 
-  toolKeys: Subscription.persistentEntry(
-    Dom.streamFromEventFilterMap({
-      target: document,
-      type: 'keydown',
-      filterMapEvent: toToolMessage,
-    }),
-  ),
+  toolKeyPresses: entry('ToolKeyPresses', {
+    messages: [SelectedTool],
+    handler: function* () {
+      return () =>
+        Dom.streamFromEventFilterMap({
+          target: document,
+          type: 'keydown',
+          filterMapEvent: toToolMessage,
+        })
+    },
+  }),
 
-  mouseRelease: entry(
+  mouseReleases: entry(
+    'MouseReleases',
     { isDrawing: Schema.Boolean },
     {
+      messages: [ReleasedMouse],
       modelToDependencies: model => ({ isDrawing: model.isDrawing }),
-      dependenciesToStream: ({ isDrawing }) =>
-        Stream.when(
-          Stream.fromEventListener(document, 'mouseup').pipe(
-            Stream.map(() => ReleasedMouse()),
-          ),
-          Effect.sync(() => isDrawing),
-        ),
+      handler: function* () {
+        return ({ isDrawing }) =>
+          Stream.when(
+            Stream.fromEventListener(document, 'mouseup').pipe(
+              Stream.map(() => ReleasedMouse()),
+            ),
+            Effect.succeed(isDrawing),
+          )
+      },
     },
   ),
 }))

@@ -88,7 +88,7 @@ A delivery host runs the built `fetch` handler. It does not import the applicati
 
 #### Application config on the server
 
-`renderToString` accepts the server-relevant subset of a `makeApplication` config. That subset contains `init` and `view`, plus `Flags` and `routing` when the application declares them. A full application config satisfies the subset, so an entry can pass it unchanged.
+`renderToString` accepts the server-relevant subset of an `Application.make` config. That subset contains `init` and `view`, plus `Flags` and `routing` when the application declares them. A full application config satisfies the subset, so an entry can pass it unchanged.
 
 The `container`, `update`, `subscriptions`, and `managedResources` fields do not participate in server rendering. The server runs the view once over the Model returned by `init`. There is no DOM to attach to and no Message to dispatch.
 
@@ -169,7 +169,7 @@ The root stamp must have a nonempty id and name the document's single stamped ro
 
 #### Document ownership
 
-A page-owning `makeApplication` controls the document title, language, text direction, canonical URL, and Open Graph URL. It also installs document-wide navigation listeners. With two applications, the last render would own the metadata and the first listener would handle every link. Render one application per page.
+A page-owning `Application.make` program controls the document title, language, text direction, canonical URL, and Open Graph URL. It also installs document-wide navigation listeners. With two applications, the last render would own the metadata and the first listener would handle every link. Render one application per page.
 
 #### Static body output
 
@@ -489,7 +489,7 @@ Every refusal stops before `init` runs. No Command, Subscription, or ManagedReso
 
 For a build-id mismatch, Foldkit compares ids before accessing the Flags payload text, parsing its JSON, or Schema-decoding it. Stale Flags belong to the old deployment. Decoding them first would pass those values to current code before Foldkit noticed the mismatch. Flags-related refusals inspect the payload only far enough to identify the reported error.
 
-Every refusal reports a `[foldkit]` error that names the cause. Failures found while `makeApplication` resolves the container and stamped root throw immediately. Failures found after `Runtime.hydrate` starts use Effect's error reporting. Both reach the console and error monitoring. Neither provides an application hook because startup never reaches a Model.
+Every refusal reports a `[foldkit]` error that names the cause. Failures found while `Application.make` resolves the container and stamped root throw immediately. Failures found after `Runtime.hydrate` starts use Effect's error reporting. Both reach the console and error monitoring. Neither provides an application hook because startup never reaches a Model.
 
 #### Reasons for refusal
 
@@ -502,7 +502,7 @@ Build skew is one reason to refuse. The same policy also covers:
 
 #### Missing container without a handoff
 
-One missing-container case is different. If `makeApplication` cannot find its container and the document contains no `data-foldkit-app`, `data-foldkit-build`, or `data-foldkit-flags`, then no server rendered the page. The application's `<div id="root">` is simply absent, usually because of a typo or because the script ran too early. Foldkit reports the setup error and leaves the page alone.
+One missing-container case is different. If `Application.make` cannot find its container and the document contains no `data-foldkit-app`, `data-foldkit-build`, or `data-foldkit-flags`, then no server rendered the page. The application's `<div id="root">` is simply absent, usually because of a typo or because the script ran too early. Foldkit reports the setup error and leaves the page alone.
 
 Every other refusal contains the page. This includes calling `Runtime.hydrate` with an existing container that has no stamped root, even on a page that was never server-rendered. Calling `hydrate` is the explicit claim that a handoff exists. Use `Runtime.run` for a fresh client boot.
 
@@ -577,7 +577,7 @@ Components that measure the DOM before deciding what to render, such as `Ui.Virt
 
 #### Supported applications and markup
 
-`makeElement` and `embed` applications do not hydrate. Server rendering supports page-owning `makeApplication` programs.
+`Application.makeElement` and `Runtime.embed` programs do not hydrate. Server rendering supports page-owning `Application.make` programs.
 
 Ordinary element children under `template` cannot be server-rendered because browsers place them in a separate content fragment that the differ does not walk. Element children under `noscript` become raw text while scripting is enabled and cannot hydrate as the declared nodes. Keep template markup in the HTML shell. Use plain text, trusted `h.InnerHTML`, or shell markup for a noscript fallback.
 

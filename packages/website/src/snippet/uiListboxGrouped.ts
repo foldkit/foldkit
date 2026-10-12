@@ -5,9 +5,12 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import { type HtmlBuilder, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 
 import { Listbox } from '@foldkit/ui'
+
+type MountRequirements = Mount.RequirementsOf<typeof Listbox.mounts>
 
 type Character = Readonly<{
   firstName: string
@@ -29,6 +32,7 @@ const Model = Schema.Struct({
   listbox: Listbox.Model,
   // ...your other fields
 })
+type Model = typeof Model.Type
 
 // In your init function, initialize the Listbox Submodel with a unique id:
 const init = () => ({
@@ -43,6 +47,7 @@ const init = () => ({
 const Message = defineMessageUnion({
   GotListboxMessage: { message: Listbox.Message },
 })
+type Message = typeof Message.Type
 
 // At module scope, fold the OutMessage into your own Model. On selection, the
 // `Selected` variant carries the chosen item's string value (the result of
@@ -86,7 +91,7 @@ const characters: ReadonlyArray<Character> = [
 // Inside your view function, group items by a key and render a heading for
 // each group. Items are grouped in the order they appear. Make sure items
 // with the same key are contiguous in the items array:
-const view = (model: Model, h: HtmlBuilder<Message>) =>
+const view = (model: Model, h: HtmlBuilder<Message, MountRequirements>) =>
   h.submodel({
     slotId: 'character',
     model: model.listbox,

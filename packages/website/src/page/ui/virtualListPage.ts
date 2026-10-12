@@ -1,5 +1,7 @@
-import { Submodel } from 'foldkit'
+import { type Mount, Submodel } from 'foldkit'
 import type { Html } from 'foldkit/html'
+
+import { VirtualList as UiVirtualList } from '@foldkit/ui'
 
 import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
@@ -21,27 +23,31 @@ type ViewInputs = Readonly<{
   renderHeadingLink: RenderHeadingLink
 }>
 
-export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
-    renderPage({
-      demos: {
-        fixed: demoContainer(...VirtualList.view(model.virtualListDemo, h)),
-        variable: demoContainer(
-          ...VirtualList.virtualListVariableDemo(
-            model.virtualListVariableDemo,
-            h,
-          ),
+export const view = Submodel.defineView<
+  Model,
+  Message,
+  ViewInputs,
+  Mount.RequirementsOf<typeof UiVirtualList.mounts>
+>((model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
+  renderPage({
+    demos: {
+      fixed: demoContainer(...VirtualList.view(model.virtualListDemo, h)),
+      variable: demoContainer(
+        ...VirtualList.virtualListVariableDemo(
+          model.virtualListVariableDemo,
+          h,
         ),
-        chat: demoContainer(
-          ...VirtualList.virtualListChatDemo(
-            model.virtualListChatDemo,
-            model.virtualListChatMessages,
-            h,
-          ),
+      ),
+      chat: demoContainer(
+        ...VirtualList.virtualListChatDemo(
+          model.virtualListChatDemo,
+          model.virtualListChatMessages,
+          h,
         ),
-      },
-      renderCopyButton,
-      renderSnippet,
-      renderHeadingLink,
-    }),
+      ),
+    },
+    renderCopyButton,
+    renderSnippet,
+    renderHeadingLink,
+  }),
 )

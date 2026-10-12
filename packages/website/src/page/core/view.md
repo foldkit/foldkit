@@ -22,7 +22,7 @@ React functional components can hold local state and run effects through hooks, 
 
 ### Document Fields
 
-A `makeApplication` view returns a `Document`, not bare HTML. The Document contains the body to patch into the application container and the document-level state that should track the Model.
+An `Application.make` view returns a `Document`, not bare HTML. The Document contains the body to patch into the application container and the document-level state that should track the Model.
 
 | Field       | Type                       | Required | What the runtime does with it                                                                                                                  |
 | ----------- | -------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -37,7 +37,7 @@ Every field is a function of the Model, just like `body`. There is no imperative
 
 ### Document Ownership
 
-A `makeElement` view returns `Html` directly. An embedded app does not own the page, so it cannot declare the title or document metadata. Everything outside this section applies to both kinds of view. See [Runtime](/core/runtime#make-element) for when to use each one.
+An `Application.makeElement` view returns `Html` directly. An embedded app does not own the page, so it cannot declare the title or document metadata. Everything outside this section applies to both kinds of view. See [Runtime](/core/runtime#make-element) for when to use each one.
 
 ### Language and Direction
 
@@ -87,13 +87,15 @@ Every view receives `h`, an `HtmlBuilder` typed to the application's Message uni
 
 The Message type follows the builder. If `h.OnClick` receives a Message outside the application union, TypeScript rejects it. The root runtime supplies its builder, and `Submodel.defineView` supplies one for each child view.
 
+The builder also carries the Mount definitions the view may render. `Application.make` infers them from its `mounts` registrations. An exported mounted view preserves them in the optional second parameter, `HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>`. Ordinary views keep `HtmlBuilder<Message>`. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for child views and attribute slots.
+
 #### Element Builder Arity
 
 Element builders that accept children take attributes first and optional children second. Omit the children argument when there are no children: `h.div([h.Class('divider')])`. Attributes remain required, so `h.div([])` represents an element with neither attributes nor children. `h.keyed` follows the element's rule, with the key before the attributes and children. Void elements such as `h.img` and `h.br` accept attributes only. A textarea is not void, but `h.textarea` and `h.keyed('textarea')` also accept attributes only; set their live content with `h.Value`, never children or `h.InnerHTML`. The `foldkit/no-empty-children-array` [lint rule](/tooling/oxlint-plugin#no-empty-children-array) catches a trailing `[]` that carries no information.
 
 #### Builder Ownership
 
-Application code cannot construct a builder. It only enters through a view parameter, which keeps its Message type aligned with the boundary that dispatches its handlers. Extracted view helpers should take `h: HtmlBuilder<Message>` as their last parameter. A helper that works under any parent can introduce a `ParentMessage` generic and accept `h: HtmlBuilder<ParentMessage>`.
+Application code cannot construct a builder. It only enters through a view parameter, which keeps its Message type aligned with the boundary that dispatches its handlers. Extracted view helpers take the builder as their last parameter. A helper that attaches a Mount or embeds a mounted child must retain the required Mounts as the second type parameter, such as `HtmlBuilder<Message, Mount.RequirementsOf<typeof mounts>>`. Pure helpers can keep `HtmlBuilder<Message>`. A helper that forwards attributes or a view callback can introduce an `AllowedMountRequirements` generic to preserve the caller's capability. Introduce a `ParentMessage` generic when the helper accepts any parent Message universe.
 
 ### Inert HTML
 

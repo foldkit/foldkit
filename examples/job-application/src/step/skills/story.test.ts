@@ -3,7 +3,7 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
 import * as Entry from './entry'
-import { GenerateEntryId, Message, init, update } from './skills'
+import { GenerateSkillsEntryId, Message, init, update } from './skills'
 
 const givenInitial = given(init('skills-entry-1'))
 
@@ -13,10 +13,10 @@ describe('skills', () => {
       update,
       givenInitial,
       message(Message.ClickedAddEntry()),
-      Command.expectHas(GenerateEntryId),
+      Command.expectHas(GenerateSkillsEntryId),
       Command.resolve(
-        GenerateEntryId,
-        Message.SucceededGenerateEntryId({ entryId: 'test-skill-1' }),
+        GenerateSkillsEntryId,
+        Message.SucceededGenerateSkillsEntryId({ entryId: 'test-skill-1' }),
       ),
       model(model => {
         expect(model.entries).toHaveLength(2)
@@ -24,11 +24,11 @@ describe('skills', () => {
     )
   })
 
-  test('FailedGenerateEntryId leaves the entries unchanged', () => {
+  test('FailedGenerateSkillsEntryId leaves the entries unchanged', () => {
     story(
       update,
       givenInitial,
-      message(Message.FailedGenerateEntryId()),
+      message(Message.FailedGenerateSkillsEntryId()),
       Command.expectNone(),
       model(model => {
         expect(model).toEqual(init('skills-entry-1'))

@@ -1,5 +1,7 @@
-import { Submodel } from 'foldkit'
+import { type Mount, Submodel } from 'foldkit'
 import type { Html } from 'foldkit/html'
+
+import { Listbox as UiListbox } from '@foldkit/ui'
 
 import { type CodeBlock } from '../../component'
 import { slotDocPage } from '../../markdown'
@@ -21,34 +23,38 @@ type ViewInputs = Readonly<{
   renderHeadingLink: RenderHeadingLink
 }>
 
-export const view = Submodel.defineView<Model, Message, ViewInputs>(
-  (model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
-    renderPage({
-      demos: {
-        basic: demoContainer(
-          ...Listbox.basicDemo(
-            model.listboxDemo,
-            model.maybeListboxDemoSelectedItem,
-            h,
-          ),
+export const view = Submodel.defineView<
+  Model,
+  Message,
+  ViewInputs,
+  Mount.RequirementsOf<typeof UiListbox.mounts>
+>((model, { renderCopyButton, renderSnippet, renderHeadingLink }, h): Html =>
+  renderPage({
+    demos: {
+      basic: demoContainer(
+        ...Listbox.basicDemo(
+          model.listboxDemo,
+          model.maybeListboxDemoSelectedItem,
+          h,
         ),
-        'multi-select': demoContainer(
-          ...Listbox.multiSelectDemo(
-            model.listboxMultiDemo,
-            model.listboxMultiDemoSelectedItems,
-            h,
-          ),
+      ),
+      'multi-select': demoContainer(
+        ...Listbox.multiSelectDemo(
+          model.listboxMultiDemo,
+          model.listboxMultiDemoSelectedItems,
+          h,
         ),
-        grouped: demoContainer(
-          ...Listbox.groupedDemo(
-            model.listboxGroupedDemo,
-            model.maybeListboxGroupedDemoSelectedItem,
-            h,
-          ),
+      ),
+      grouped: demoContainer(
+        ...Listbox.groupedDemo(
+          model.listboxGroupedDemo,
+          model.maybeListboxGroupedDemoSelectedItem,
+          h,
         ),
-      },
-      renderCopyButton,
-      renderSnippet,
-      renderHeadingLink,
-    }),
+      ),
+    },
+    renderCopyButton,
+    renderSnippet,
+    renderHeadingLink,
+  }),
 )

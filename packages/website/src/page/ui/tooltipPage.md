@@ -75,11 +75,11 @@ Configuration object passed to `Tooltip.view()`.
 
 Payload delivered to the `toView` callback each render.
 
-| Name        | Type                            | Default | Description                                                                                                                                                   |
-| ----------- | ------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `trigger`   | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the trigger element. Carries `type="button"`, the hover/focus/keyboard handlers, and `aria-describedby` linking to the panel.                     |
-| `panel`     | `ReadonlyArray<ChildAttribute>` | —       | Spread onto the panel element. Carries `role="tooltip"`, the anchor Mount that positions the panel via Floating UI, and a `data-open` attribute when visible. |
-| `isVisible` | `boolean`                       | —       | Whether the tooltip is currently visible. The consumer decides whether to render the panel conditionally on this.                                             |
+| Name        | Type                                                                         | Default | Description                                                                                                                                                   |
+| ----------- | ---------------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `trigger`   | `ReadonlyArray<ChildAttribute>`                                              | —       | Spread onto the trigger element. Carries `type="button"`, the hover/focus/keyboard handlers, and `aria-describedby` linking to the panel.                     |
+| `panel`     | `ReadonlyArray<ChildAttribute<Mount.RequirementsOf<typeof Tooltip.mounts>>>` | —       | Spread onto the panel element. Carries `role="tooltip"`, the anchor Mount that positions the panel via Floating UI, and a `data-open` attribute when visible. |
+| `isVisible` | `boolean`                                                                    | —       | Whether the tooltip is currently visible. The consumer decides whether to render the panel conditionally on this.                                             |
 
 ### Programmatic Helpers
 

@@ -3,6 +3,8 @@ export {
   Message,
   OutMessage,
   init,
+  EffectsLayer,
+  mounts,
   update,
   hasErrors,
   isComplete,

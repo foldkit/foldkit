@@ -56,7 +56,7 @@ test('first visit to the Stats tab fetches stats', () => {
     resolveFocusTab,
     Command.resolve(
       FetchStats,
-      Message.SettledFetchStats({
+      Message.CompletedFetchStats({
         result: Result.succeed({ stats: fixtureStats, fetchedAt: FETCHED_AT }),
       }),
     ),
@@ -95,7 +95,7 @@ test('a revalidation tick keeps stale stats on screen while refetching', () => {
     }),
     Command.resolve(
       FetchStats,
-      Message.SettledFetchStats({
+      Message.CompletedFetchStats({
         result: Result.succeed({
           stats: modifyFields(fixtureStats, { activeUsers: () => 99 }),
           fetchedAt: FETCHED_AT + 5000,
@@ -118,7 +118,7 @@ test('a failed refresh keeps the stale stats on screen with the error', () => {
     message(Message.TickedRevalidateStats()),
     Command.resolve(
       FetchStats,
-      Message.SettledFetchStats({
+      Message.CompletedFetchStats({
         result: Result.fail('The server is down.'),
       }),
     ),
@@ -170,7 +170,7 @@ test('invalidating posts refetches while keeping the current list', () => {
     }),
     Command.resolve(
       FetchPosts,
-      Message.SettledFetchPosts({
+      Message.CompletedFetchPosts({
         result: Result.succeed({
           posts: fixturePosts,
           fetchedAt: FETCHED_AT + 1000,
@@ -197,7 +197,7 @@ test('retrying failed posts shows the loading state and refetches', () => {
     }),
     Command.resolve(
       FetchPosts,
-      Message.SettledFetchPosts({
+      Message.CompletedFetchPosts({
         result: Result.succeed({ posts: fixturePosts, fetchedAt: FETCHED_AT }),
       }),
     ),
@@ -217,7 +217,7 @@ test('opening a post fetches it once and serves revisits from the Model', () => 
     }),
     Command.resolve(
       FetchPostDetail,
-      Message.SettledFetchPostDetail({
+      Message.CompletedFetchPostDetail({
         postId: 'first-post',
         result: Result.succeed({
           detail: firstPostDetail,
@@ -242,7 +242,7 @@ test('a failed post detail fetch lands in Failure and retry refetches', () => {
     message(Message.ClickedPost({ postId: 'first-post' })),
     Command.resolve(
       FetchPostDetail,
-      Message.SettledFetchPostDetail({
+      Message.CompletedFetchPostDetail({
         postId: 'first-post',
         result: Result.fail('The connection dropped.'),
       }),
@@ -256,7 +256,7 @@ test('a failed post detail fetch lands in Failure and retry refetches', () => {
     }),
     Command.resolve(
       FetchPostDetail,
-      Message.SettledFetchPostDetail({
+      Message.CompletedFetchPostDetail({
         postId: 'first-post',
         result: Result.succeed({
           detail: firstPostDetail,

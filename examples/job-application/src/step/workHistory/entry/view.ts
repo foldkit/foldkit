@@ -1,14 +1,19 @@
-import { Submodel } from 'foldkit'
+import { type Mount, Submodel } from 'foldkit'
 import type { Html } from 'foldkit/html'
 
 import { Button, DatePicker as UiDatePicker } from '@foldkit/ui'
 
 import { DatePicker, Field } from '../../../view'
-import { Message, type Model } from './entry'
+import { Message, type Model, mounts } from './entry'
 
 const ANCHOR = { placement: 'bottom-start' as const, gap: 4, padding: 8 }
 
-export const view = Submodel.defineView<Model, Message>((model, h): Html => {
+export const view = Submodel.defineView<
+  Model,
+  Message,
+  void,
+  Mount.RequirementsOf<typeof mounts>
+>((model, h): Html => {
   const showEndDate = !model.isCurrentlyEmployed
 
   const startDatePicker = h.div(

@@ -37,7 +37,10 @@ export const renderer =
     model: Model,
     toParentMessage: (message: Message) => ParentMessage,
     renderCopyButton: CodeBlock.RenderCopyButton,
-    h: HtmlBuilder<ParentMessage>,
+    h: HtmlBuilder<
+      ParentMessage,
+      Mount.RequirementsOf<typeof MeasureSnippetHeight>
+    >,
   ): CodeBlock.RenderSnippet =>
   ({
     id,

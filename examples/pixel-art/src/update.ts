@@ -30,10 +30,6 @@ import {
   ToolRadioGroup,
 } from './view/toolbar'
 
-type UpdateReturn = Update.Return<Model, Message>
-
-const withUpdateReturn = Match.withReturnType<UpdateReturn>()
-
 const applyEraser = (model: Model, x: number, y: number) => {
   const positions = getMirroredPositions(x, y, model.gridSize, model.mirrorMode)
   return erasePixels(model.grid, positions)
@@ -78,12 +74,9 @@ const foldErrorDialogOpen = Update.foldChildStep({
   foldOutMessage: foldErrorDialogOutMessage,
 })
 
-const foldThemeListboxOutMessage = Listbox.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Selected:
-    ({ value }) =>
-    model => {
+const foldThemeListboxOutMessage = Listbox.OutMessage.match({
+  Selected: ({ value }) =>
+    Update.defineStep((model: Model) => {
       const themeIndex = Number(value)
       const maybeNextTheme = Array.get(PALETTE_THEMES, themeIndex)
       if (Option.isNone(maybeNextTheme)) {
@@ -94,7 +87,7 @@ const foldThemeListboxOutMessage = Listbox.OutMessage.match<
         selectedColorIndex: () => DEFAULT_COLOR_INDEX,
       })
       return { model: nextModel, commands: [saveCanvas(nextModel)] }
-    },
+    }),
 })
 
 const foldThemeListbox = Update.foldChild({
@@ -111,7 +104,9 @@ const foldGridSizeConfirmDialogOutMessage = Dialog.OutMessage.match<
 >({
   Opened: () => model => ({ model }),
   Closed: () => model => ({
-    model: modifyFields(model, { maybePendingGridSize: () => Option.none() }),
+    model: modifyFields(model, {
+      maybePendingGridSize: () => Option.none(),
+    }),
   }),
 })
 
@@ -151,11 +146,11 @@ const foldGridSizeConfirmDialogClose = Update.foldChildStep({
   foldOutMessage: foldGridSizeConfirmDialogOutMessage,
 })
 
-const selectTool = (model: Model, tool: Tool): UpdateReturn => ({
+const selectTool = (model: Model, tool: Tool) => ({
   model: modifyFields(model, { tool: () => tool }),
 })
 
-const selectColor = (model: Model, colorIndex: PaletteIndex): UpdateReturn => {
+const selectColor = (model: Model, colorIndex: PaletteIndex) => {
   const nextModel = modifyFields(model, {
     selectedColorIndex: () => colorIndex,
   })
@@ -163,7 +158,7 @@ const selectColor = (model: Model, colorIndex: PaletteIndex): UpdateReturn => {
 }
 
 const foldToolRadioGroupOutMessage = RadioGroup.OutMessage.match<
-  Update.Step<Model, Message>,
+  (model: Model) => ReturnType<typeof selectTool>,
   RadioGroup.OutMessage<Tool>
 >({
   Selected:
@@ -182,7 +177,7 @@ const foldToolRadioGroup = Update.foldChild({
 })
 
 const foldGridSizeRadioGroupOutMessage = RadioGroup.OutMessage.match<
-  Update.Step<Model, Message>
+  (model: Model) => ReturnType<typeof requestGridSizeChange>
 >({
   Selected:
     ({ value }) =>
@@ -200,7 +195,7 @@ const foldGridSizeRadioGroup = Update.foldChild({
 })
 
 const foldPaletteRadioGroupOutMessage = RadioGroup.OutMessage.match<
-  Update.Step<Model, Message>
+  (model: Model) => ReturnType<typeof selectColor>
 >({
   Selected:
     ({ value }) =>
@@ -220,11 +215,10 @@ const foldPaletteRadioGroup = Update.foldChild({
   foldOutMessage: foldPaletteRadioGroupOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.define((model: Model, message: Message) =>
+  Message.match(message, {
     PressedCell: ({ x, y }) =>
       Match.value(model.tool).pipe(
-        withUpdateReturn,
         Match.when('Brush', () => ({
           model: modifyFields(model, {
             grid: () => applyBrush(model, x, y),
@@ -454,9 +448,10 @@ export const update = (model: Model, message: Message) =>
 
     GotGridSizeConfirmDialogMessage: ({ message }) =>
       foldGridSizeConfirmDialog(model, message),
-  })
+  }),
+)
 
-const applyGridSizeChange = (model: Model, size: number): UpdateReturn => ({
+const applyGridSizeChange = (model: Model, size: number) => ({
   model: modifyFields(model, {
     grid: () => createEmptyGrid(size),
     gridSize: () => size,
@@ -467,7 +462,7 @@ const applyGridSizeChange = (model: Model, size: number): UpdateReturn => ({
   }),
 })
 
-const requestGridSizeChange = (model: Model, size: number): UpdateReturn => {
+const requestGridSizeChange = (model: Model, size: number) => {
   if (size === model.gridSize) {
     return { model }
   }

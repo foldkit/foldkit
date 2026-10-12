@@ -20,7 +20,7 @@ export const init: Runtime.ApplicationInit<Model, Message, Flags> = flags => ({
 
 // src/entry.ts (imports Model, Flags, flags, init, update, view, subscriptions from ./main)
 
-const application = Runtime.makeApplication({
+const application = Application.make({
   Model,
   Flags,
   init,

@@ -5,9 +5,12 @@ import { Array, Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import { type HtmlBuilder, childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 
 import { Combobox } from '@foldkit/ui'
+
+type MountRequirements = Mount.RequirementsOf<typeof Combobox.mounts>
 
 const City = Schema.Literals(['Johannesburg', 'Kyiv', 'Oxford', 'Wellington'])
 type City = typeof City.Type
@@ -23,6 +26,7 @@ const Model = Schema.Struct({
   comboboxMulti: Combobox.Multi.Model,
   // ...your other fields
 })
+type Model = typeof Model.Type
 
 // In your init function, initialize the Combobox Submodel with a unique id:
 const init = () => ({
@@ -37,6 +41,7 @@ const init = () => ({
 const Message = defineMessageUnion({
   GotComboboxMultiMessage: { message: Combobox.Message },
 })
+type Message = typeof Message.Type
 
 // At module scope, fold the OutMessage into your own Model. Each `Selected`
 // carries the activated item; the parent owns the selection, so it toggles
@@ -100,7 +105,7 @@ const filteredCities =
 // `<label for>`, and pass `ariaLabelledBy` so the input is named by the label.
 // The attribute is only emitted when provided, so the input never carries a
 // dangling `aria-labelledby`.
-const view = (model: Model, h: HtmlBuilder<Message>) => {
+const view = (model: Model, h: HtmlBuilder<Message, MountRequirements>) => {
   const labelId = 'cities-multi-label'
 
   return h.div(

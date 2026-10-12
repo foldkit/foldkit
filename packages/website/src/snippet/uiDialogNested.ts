@@ -5,9 +5,12 @@ import { Option, Schema } from 'effect'
 import { Update } from 'foldkit'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 import { modifyFields } from 'foldkit/struct'
 
 import { Dialog } from '@foldkit/ui'
+
+type MountRequirements = Mount.RequirementsOf<typeof Dialog.mounts>
 
 // One Model field per dialog level:
 const Model = Schema.Struct({
@@ -80,7 +83,7 @@ ConfirmedDeleteProject: () => foldConfirmDialogClose(model)
 // focus in the topmost, and Escape closes the topmost before the one beneath
 // it. Cancel dismisses the confirmation through the `closeButton` bundle.
 // Delete dispatches a fact that runs the work and closes through Dialog.close.
-const view = (h: HtmlBuilder<Message>) => {
+const view = (h: HtmlBuilder<Message, MountRequirements>) => {
   const confirmDialogView = ({
     dialog,
     backdrop,

@@ -1,5 +1,5 @@
-import { Effect, Schema } from 'effect'
-import { Port, Runtime } from 'foldkit'
+import { Effect, Schema, pipe } from 'effect'
+import { Application, Port } from 'foldkit'
 
 // Each Port carries a Schema. The host works with the Schema's Encoded
 // side, the app with the decoded Type. Record keys name the ports on the
@@ -11,16 +11,19 @@ export const ports = {
 }
 
 export const makeElement = (container: HTMLElement, flags: Flags) =>
-  Runtime.makeElement({
-    Model,
-    Flags,
-    flags: Effect.succeed(flags),
-    init,
-    update,
-    view,
-    subscriptions,
-    // Registering the record makes the ports available to the app and
-    // types the EmbedHandle that Runtime.embed returns.
-    ports,
-    container,
-  })
+  pipe(
+    Application.makeElement({
+      Model,
+      Flags,
+      flags: Effect.succeed(flags),
+      init,
+      update,
+      view,
+      subscriptions,
+      // Registering the record makes the ports available to the app and
+      // types the EmbedHandle that Runtime.embed returns.
+      ports,
+      container,
+    }),
+    Application.provide(Layer),
+  )

@@ -1,4 +1,4 @@
-import { Context, Effect, Function, Queue, Stream } from 'effect'
+import { Context, Effect, Function, Layer, Queue, Stream } from 'effect'
 import { afterEach, beforeEach, expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
@@ -79,10 +79,11 @@ const createCapturingDispatch = () => {
   return { dispatch, dispatched }
 }
 
-const renderView = (
+const renderView = <Requirements = never>(
   buildView: () => VNode | null,
   dispatch: typeof Dispatch.Service,
   mountRenderOwner: MountRenderOwner = 'Live',
+  runtimeContext?: Context.Context<Requirements>,
 ): VNode => {
   const testContext = Context.make(Dispatch, dispatch).pipe(
     Context.add(MountTracker, {
@@ -93,7 +94,7 @@ const renderView = (
 
   setHtmlRuntime(
     dispatch.dispatchSync,
-    testContext,
+    Context.merge(testContext, runtimeContext ?? Context.empty()),
     undefined,
     mountRenderOwner,
   )
@@ -655,14 +656,20 @@ describe('OnMount', () => {
   })
 
   it('Mount.define wraps an Effect: dispatches the result Message and holds the scope open until destroy for acquireRelease finalizers', async () => {
-    const h = __htmlBuilder<typeof Message.MountedRoot.Type>()
     const { dispatch, dispatched } = createCapturingDispatch()
     let acquired = false
     let released = false
 
     const WrappedEffect = Mount.define('WrappedEffect', {
       messages: [Message.MountedRoot],
-      execute: () =>
+    })
+    const h = __htmlBuilder<
+      typeof Message.MountedRoot.Type,
+      Mount.RequirementsOf<typeof WrappedEffect>
+    >()
+
+    const WrappedEffectLayer = WrappedEffect.toLayer(
+      Effect.succeed(() =>
         Effect.gen(function* () {
           yield* Effect.acquireRelease(
             Effect.sync(() => {
@@ -675,14 +682,18 @@ describe('OnMount', () => {
           )
           return Message.MountedRoot()
         }),
-    })
+      ),
+    )
 
     const withChild = () => h.div([], [h.span([h.OnMount(WrappedEffect())])])
     const withoutChild = () => h.div([])
+    const handlerContext = Effect.runSync(
+      Effect.scoped(Layer.build(WrappedEffectLayer)),
+    )
 
     const mounted = patch(
       toVNode(makeRootContainer()),
-      renderView(withChild, dispatch),
+      renderView(withChild, dispatch, 'Live', handlerContext),
     )
 
     await vi.waitFor(() => {

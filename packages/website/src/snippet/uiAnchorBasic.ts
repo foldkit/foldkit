@@ -12,26 +12,31 @@ import { AnchorConfig, anchorSetup } from '@foldkit/ui/anchor'
 // the Definition, the way a Command's result Message is named after the
 // Command:
 const Message = defineMessageUnion({
+  ClickedTrigger: {},
   CompletedAnchorPanel: {},
 })
+type Message = typeof Message.Type
 
-// Mount.define takes the Definition name and a config: a Schema for the args
-// captured at mount, the result Messages, and execute. execute receives the
-// live element alongside those args. anchorSetup is a plain DOM function that
-// returns a cleanup, so it goes inside Effect.sync and the cleanup is
-// registered with Effect.acquireRelease. Construct the resource inside the
-// acquire body, never before it, or it leaks on interruption:
+// Mount.define takes the Definition name and a config containing the args
+// Schema, result Messages, and handler generator. The returned handler
+// receives the live element alongside the args captured at mount.
+// anchorSetup is a plain DOM function that returns a cleanup, so it goes inside
+// Effect.sync and the cleanup is registered with Effect.acquireRelease.
+// Construct the resource inside the acquire body, never before it, or it leaks
+// on interruption:
 const AnchorPanel = Mount.define('AnchorPanel', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchorPanel],
-  execute: ({ element, buttonId, anchor }) =>
-    Effect.gen(function* () {
-      yield* Effect.acquireRelease(
-        Effect.sync(() => anchorSetup(element, { buttonId, anchor })),
-        cleanup => Effect.sync(cleanup),
-      )
-      return Message.CompletedAnchorPanel()
-    }),
+  handler: function* () {
+    return ({ element, buttonId, anchor }) =>
+      Effect.gen(function* () {
+        yield* Effect.acquireRelease(
+          Effect.sync(() => anchorSetup(element, { buttonId, anchor })),
+          cleanup => Effect.sync(cleanup),
+        )
+        return Message.CompletedAnchorPanel()
+      })
+  },
 })
 
 // The trigger needs a stable id, because that is what anchorSetup resolves
@@ -39,12 +44,14 @@ const AnchorPanel = Mount.define('AnchorPanel', {
 // onto it. The panel starts at visibility: hidden so it cannot flash at the
 // top left corner before Floating UI resolves its first position; anchorSetup
 // clears that once the panel is placed:
-const view = (h: HtmlBuilder<Message>): Html =>
+const view = (
+  h: HtmlBuilder<Message, Mount.RequirementsOf<typeof AnchorPanel>>,
+): Html =>
   h.div(
     [],
     [
       h.button(
-        [h.Id('search-select-button'), h.OnClick(ClickedTrigger())],
+        [h.Id('search-select-button'), h.OnClick(Message.ClickedTrigger())],
         ['Open'],
       ),
       ...(model.isOpen

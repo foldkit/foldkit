@@ -82,6 +82,10 @@ export const init = (entryId: string, today: CalendarDate): Model => ({
   description: '',
 })
 
+export const EffectsLayer = DatePicker.EffectsLayer
+
+export const mounts = DatePicker.mounts
+
 // UPDATE
 
 const foldStartDateOutMessage = DatePicker.OutMessage.match<
@@ -142,33 +146,31 @@ const foldEndDate = Update.foldChild({
   foldOutMessage: foldEndDateOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.ReturnWithOutMessage<Model, Message, OutMessage>>(
-    message,
-    {
-      UpdatedCompany: ({ value }) => ({
-        model: modifyFields(model, { company: () => validateCompany(value) }),
-      }),
+export const update = Update.define((model: Model, message: Message) =>
+  Message.match(message, {
+    UpdatedCompany: ({ value }) => ({
+      model: modifyFields(model, { company: () => validateCompany(value) }),
+    }),
 
-      UpdatedTitle: ({ value }) => ({
-        model: modifyFields(model, { title: () => validateTitle(value) }),
-      }),
+    UpdatedTitle: ({ value }) => ({
+      model: modifyFields(model, { title: () => validateTitle(value) }),
+    }),
 
-      GotStartDateMessage: ({ message }) => foldStartDate(model, message),
+    GotStartDateMessage: ({ message }) => foldStartDate(model, message),
 
-      GotEndDateMessage: ({ message }) => foldEndDate(model, message),
+    GotEndDateMessage: ({ message }) => foldEndDate(model, message),
 
-      ToggledCurrentlyEmployed: ({ isChecked }) => ({
-        model: modifyFields(model, { isCurrentlyEmployed: () => isChecked }),
-      }),
+    ToggledCurrentlyEmployed: ({ isChecked }) => ({
+      model: modifyFields(model, { isCurrentlyEmployed: () => isChecked }),
+    }),
 
-      UpdatedDescription: ({ value }) => ({
-        model: modifyFields(model, { description: () => value }),
-      }),
+    UpdatedDescription: ({ value }) => ({
+      model: modifyFields(model, { description: () => value }),
+    }),
 
-      ClickedRemoveSelf: () => ({ model, outMessage: OutMessage.Removed() }),
-    },
-  )
+    ClickedRemoveSelf: () => ({ model, outMessage: OutMessage.Removed() }),
+  }),
+)
 
 // VALIDATION SUMMARY
 

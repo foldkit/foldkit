@@ -193,8 +193,6 @@ const maybeDragAndDropDemoKeyboardAnnouncement = (
     () => Option.none(),
   )
 
-export type UpdateReturn = Update.Return<Model, Message>
-
 // CHILD FOLDS
 
 const foldDialogOutMessage = Dialog.OutMessage.match<
@@ -905,14 +903,15 @@ const foldAnimationDemoOutMessage = (
   outMessage: Animation.OutMessage,
   { liftCommand }: Update.FoldContext<Animation.Message, Message>,
 ) =>
-  Animation.OutMessage.match<Update.Step<Model, Message>>(outMessage, {
-    StartedLeaveAnimating: () => model => ({
-      model,
-      commands: [
-        liftCommand(Animation.defaultLeaveCommand(model.animationDemo)),
-      ],
-    }),
-    TransitionedOut: () => model => ({ model }),
+  Animation.OutMessage.match(outMessage, {
+    StartedLeaveAnimating: () =>
+      Update.defineStep((model: Model) => ({
+        model,
+        commands: [
+          liftCommand(Animation.defaultLeaveCommand(model.animationDemo)),
+        ],
+      })),
+    TransitionedOut: () => Update.defineStep((model: Model) => ({ model })),
   })
 
 const foldAnimationDemo = Update.foldChild({
@@ -1106,7 +1105,7 @@ const updateVirtualListChatMessages = (
   model: Model,
   nextMessages: ReadonlyArray<VirtualListChatMessage>,
   nextId: number = model.virtualListChatNextId,
-): Update.Return<Model, Message> => {
+) => {
   const nextModel = modifyFields(model, {
     virtualListChatMessages: () => nextMessages,
     virtualListChatNextId: () => nextId,
@@ -1142,8 +1141,7 @@ const prependVirtualListChatMessages = (model: Model) => {
 }
 
 const prependVirtualListChatMessagesOnStartThresholdEntry =
-  (scrollTop: number): Update.Step<Model, Message> =>
-  stepModel => {
+  (scrollTop: number) => (stepModel: Model) => {
     const isNearStart = scrollTop <= VIRTUAL_LIST_CHAT_START_THRESHOLD_PX
     const nextVirtualListChatStartProximity = isNearStart
       ? VirtualListChatStartProximity.Near()
@@ -1214,8 +1212,8 @@ const foldHorizontalRadioGroupDemo = Update.foldChild({
   foldOutMessage: foldHorizontalRadioGroupDemoOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.define((model: Model, message: Message) =>
+  Message.match(message, {
     UpdatedInputDemoValue: ({ value }) => ({
       model: modifyFields(model, { inputDemoValue: () => value }),
     }),
@@ -1471,7 +1469,6 @@ export const update = (model: Model, message: Message) =>
 
     GotVirtualListChatDemoMessage: ({ message }) =>
       Match.value(message).pipe(
-        Match.withReturnType<Update.Return<Model, Message>>(),
         Match.tag('ObservedContainerScroll', ({ scrollTop }) =>
           Update.combine(model, [
             foldVirtualListChatDemo(message),
@@ -1506,4 +1503,5 @@ export const update = (model: Model, message: Message) =>
       )
       return updateVirtualListChatMessages(model, nextMessages)
     },
-  })
+  }),
+)

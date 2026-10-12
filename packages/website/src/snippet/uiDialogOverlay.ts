@@ -4,8 +4,13 @@
 import { Option, Schema } from 'effect'
 import type { HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as Mount from 'foldkit/mount'
 
 import { Combobox, Dialog } from '@foldkit/ui'
+
+type MountRequirements = Mount.RequirementsOf<
+  typeof Combobox.mounts | typeof Dialog.mounts
+>
 
 // One Model field for the dialog, one for the overlay it contains, plus
 // the parent-owned selection (`City` and `CityCombobox` are the
@@ -16,6 +21,7 @@ const Model = Schema.Struct({
   maybeCity: Schema.Option(City),
   // ...your other fields
 })
+type Model = typeof Model.Type
 
 const init = () => ({
   model: {
@@ -32,13 +38,14 @@ const Message = defineMessageUnion({
   GotDialogMessage: { message: Dialog.Message },
   GotComboboxMessage: { message: Combobox.Message },
 })
+type Message = typeof Message.Type
 
 // Render the overlay inside the dialog panel. Its panel portals into the
 // dialog, so it renders above the dialog content with no extra anchor config.
 // Give the panel `relative` so it paints above the Dialog backdrop, and the
 // Combobox wrapper `relative` so the input stays above the Combobox backdrop,
 // which goes directly before that wrapper.
-const view = (model: Model, h: HtmlBuilder<Message>) => {
+const view = (model: Model, h: HtmlBuilder<Message, MountRequirements>) => {
   const dialogView = ({
     dialog,
     backdrop,

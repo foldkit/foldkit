@@ -396,11 +396,11 @@ comments to point at the architectural handoff, such as the line that lifts a
 child Message or returns the initial Command. Do not narrate syntax the reader
 can already see.
 
-Keep the important operation visible. If `execute: fetchPosts` is the concept
-being introduced, define `fetchPosts` in the snippet or inline its Effect. If an
-init example teaches the transition from initial Model to loading Model, name
-the Model first and then pass it to the loading operation. Nesting both phases in
-one expression saves lines and hides the lesson.
+Keep the important operation visible. If a handler that calls `fetchPosts` is
+the concept being introduced, define `fetchPosts` in the snippet or inline its
+Effect. If an init example teaches the transition from initial Model to loading
+Model, name the Model first and then pass it to the loading operation. Nesting
+both phases in one expression saves lines and hides the lesson.
 
 ## Link the complete application early
 

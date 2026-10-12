@@ -13,6 +13,10 @@ export {
   ContentAlignment,
   ScrollAlignment,
   ScrollTarget,
+  ApplyScroll,
+  ObserveVirtualList,
+  EffectsLayer,
+  mounts,
 } from './index.js'
 
 export type {

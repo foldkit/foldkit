@@ -1,5 +1,4 @@
 import { Array, Option } from 'effect'
-import { Runtime } from 'foldkit'
 
 import { Slider } from '@foldkit/ui'
 
@@ -21,7 +20,7 @@ import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+export const init = () => ({
   model: {
     particles: [],
     nextId: 0,

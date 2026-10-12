@@ -1,5 +1,5 @@
-import { Effect, Match, Option, Schema } from 'effect'
-import { Command, Runtime, Update } from 'foldkit'
+import { Effect, Layer, Match, Option, Schema } from 'effect'
+import { Command, Update } from 'foldkit'
 import { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
@@ -48,9 +48,7 @@ export type Message = typeof Message.Type
 
 // INIT
 
-export const init: Runtime.RoutingApplicationInit<Model, Message> = (
-  url: Url,
-) => {
+export const init = (url: Url) => {
   return {
     model: {
       route: urlToAppRoute(url),
@@ -67,27 +65,39 @@ export const init: Runtime.RoutingApplicationInit<Model, Message> = (
 const NavigateInternal = Command.define('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
-  execute: ({ url }) =>
-    pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+  handler: function* () {
+    return ({ url }) =>
+      pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal()))
+  },
 })
 
 const LoadExternal = Command.define('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
-  execute: ({ href }) =>
-    load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+  handler: function* () {
+    return ({ href }) =>
+      load(href).pipe(Effect.as(Message.CompletedLoadExternal()))
+  },
 })
 
-// UPDATE
+// EFFECTS LAYER
 
-type UpdateReturn = Update.Return<Model, Message>
+export const EffectsLayer = Layer.mergeAll(
+  NavigateInternal.layer,
+  LoadExternal.layer,
+  Products.EffectsLayer,
+)
+
+// UPDATE
 
 const foldProductsOutMessage = Products.OutMessage.match<
   Update.Step<Model, Message>
 >({
   AddedToCart:
     ({ item }) =>
-    model => ({ model: modifyFields(model, { cart: Cart.addItem(item) }) }),
+    model => ({
+      model: modifyFields(model, { cart: Cart.addItem(item) }),
+    }),
   IncrementedQuantity:
     ({ itemId }) =>
     model => ({
@@ -109,13 +119,13 @@ const foldProducts = Update.foldChild({
   foldOutMessage: foldProductsOutMessage,
 })
 
-export const update = (model: Model, message: Message) =>
-  Message.match<UpdateReturn>(message, {
+export const update = Update.define((model: Model, message: Message) =>
+  Message.match(message, {
     CompletedNavigateInternal: () => ({ model }),
     CompletedLoadExternal: () => ({ model }),
 
     ClickedLink: ({ request }) =>
-      UrlRequest.match<UpdateReturn>(request, {
+      UrlRequest.match(request, {
         Internal: ({ url }) => ({
           model,
           commands: [NavigateInternal({ url: urlToString(url) })],
@@ -172,7 +182,8 @@ export const update = (model: Model, message: Message) =>
         deliveryInstructions: () => '',
       }),
     }),
-  })
+  }),
+)
 
 // VIEW
 
