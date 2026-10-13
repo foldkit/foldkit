@@ -23,6 +23,7 @@ import {
   coreDomRouter,
   coreEmbeddingRouter,
   coreFileRouter,
+  coreFormRouter,
   coreFreezeModelRouter,
   coreHttpRouter,
   coreInitAndFlagsRouter,
@@ -284,6 +285,11 @@ export const docsSections: ReadonlyArray<DocsSection> = [
           _tag: 'CoreHttp',
           href: coreHttpRouter(),
           label: 'Http',
+        },
+        {
+          _tag: 'CoreForm',
+          href: coreFormRouter(),
+          label: 'Form',
         },
         {
           _tag: 'CoreQuery',
