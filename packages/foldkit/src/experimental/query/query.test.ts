@@ -17,6 +17,7 @@ import { defineMessageUnion } from '../../message/index.js'
 import { modifyFields } from '../../struct/index.js'
 import * as Story from '../../test/story.js'
 import type * as Update from '../../update/index.js'
+import type { FoldLens } from '../childLens.js'
 import * as Query from './index.js'
 import type { SyncFields } from './keyedQuery.js'
 
@@ -682,6 +683,123 @@ describe('Query.lift parent field and lens forms', () => {
       AsyncData.Success({ data: hello }),
     )
     expect(Equal.equals(dataFirst.model.notes, dataLast.model.notes)).toBe(true)
+  })
+})
+
+describe('Query.lift class lenses', () => {
+  const Workspace = Schema.Struct({
+    workspaceId: Schema.String,
+    notes: notes.Model,
+    noteById: noteById.Model,
+  })
+  type Workspace = typeof Workspace.Type
+  type NotesMessage = typeof notes.Message.Type
+  type NoteByIdMessage = typeof noteById.Message.Type
+
+  class NotesLens implements FoldLens<
+    Workspace,
+    NotesMessage,
+    typeof notes.Model.Type,
+    NotesMessage
+  > {
+    readonly workspaceId = 'workspace-1'
+
+    read(model: Workspace) {
+      return model.workspaceId === this.workspaceId
+        ? Option.some(model.notes)
+        : Option.none()
+    }
+
+    write(model: Workspace, nextNotes: typeof notes.Model.Type) {
+      return model.workspaceId === this.workspaceId
+        ? modifyFields(model, { notes: () => nextNotes })
+        : model
+    }
+
+    toParentMessage(message: NotesMessage) {
+      return message
+    }
+  }
+
+  class NoteByIdLens implements FoldLens<
+    Workspace,
+    NoteByIdMessage,
+    typeof noteById.Model.Type,
+    NoteByIdMessage
+  > {
+    readonly workspaceId = 'workspace-1'
+
+    read(model: Workspace) {
+      return model.workspaceId === this.workspaceId
+        ? Option.some(model.noteById)
+        : Option.none()
+    }
+
+    write(model: Workspace, nextNoteById: typeof noteById.Model.Type) {
+      return model.workspaceId === this.workspaceId
+        ? modifyFields(model, { noteById: () => nextNoteById })
+        : model
+    }
+
+    toParentMessage(message: NoteByIdMessage) {
+      return message
+    }
+  }
+
+  const workspace = Workspace.make({
+    workspaceId: 'workspace-1',
+    notes: notes.init(),
+    noteById: noteById.init(),
+  })
+
+  it('calls inherited Query lens methods with the lens as their receiver', () => {
+    const notesChild = notes.lift<Workspace, NotesMessage>(new NotesLens())
+
+    const notesLoad = notesChild.revalidateOrLoad(workspace)
+    expect(notes.read(notesLoad.model.notes)).toEqual(AsyncData.Loading())
+
+    const notesFold = notesChild.fold(
+      notesLoad.model,
+      notes.Message.CompletedFetch({
+        generation: notesLoad.model.notes.generation,
+        result: Result.succeed(hello),
+      }),
+    )
+    expect(notes.read(notesFold.model.notes)).toEqual(
+      AsyncData.Success({ data: hello }),
+    )
+
+    const notesReset = notesChild.reset(notesFold.model)
+    expect(notes.read(notesReset.model.notes)).toEqual(AsyncData.Idle())
+  })
+
+  it('calls inherited KeyedQuery lens methods with the lens as their receiver', () => {
+    const noteByIdChild = noteById.lift<Workspace, NoteByIdMessage>(
+      new NoteByIdLens(),
+    )
+    const args = { noteId: '1' }
+
+    const noteLoad = noteByIdChild.loadIfMissing(workspace, args)
+    expect(noteById.read(noteLoad.model.noteById, args)).toEqual(
+      AsyncData.Loading(),
+    )
+
+    const noteFold = noteByIdChild.fold(
+      noteLoad.model,
+      noteById.Message.CompletedFetch({
+        args,
+        generation: noteLoad.model.noteById.generation,
+        result: Result.succeed({ id: '1', body: 'hello' }),
+      }),
+    )
+    expect(noteById.read(noteFold.model.noteById, args)).toEqual(
+      AsyncData.Success({ data: { id: '1', body: 'hello' } }),
+    )
+
+    const noteReset = noteByIdChild.reset(noteFold.model)
+    expect(noteById.read(noteReset.model.noteById, args)).toEqual(
+      AsyncData.Idle(),
+    )
   })
 })
 

@@ -224,6 +224,10 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Http',
     'Provide a Fetch-backed HttpClient to Commands while keeping browser requests CORS-simple by disabling trace header propagation unless it is required.',
   ),
+  CoreForm: core(
+    'Form',
+    'Manage field values, validation, and submission in a reusable Submodel built from Schema-backed fields.',
+  ),
   CoreQuery: core(
     'Query',
     'Fetch, cache, and refresh remote data with reusable Submodels and less boilerplate.',

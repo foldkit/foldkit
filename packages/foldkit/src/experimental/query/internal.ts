@@ -1,41 +1,9 @@
-import { Effect, Option, Predicate, Schema, pipe } from 'effect'
+import { Effect, Option, Schema, pipe } from 'effect'
 
 import * as AsyncData from '../../asyncData/index.js'
 import * as Command from '../../command/index.js'
 import * as Update from '../../update/index.js'
-
-export type FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage> =
-  Pick<
-    Update.ChildFold<
-      ParentModel,
-      ParentMessage,
-      ChildModel,
-      never,
-      ChildMessage
-    >,
-    'read' | 'write' | 'toParentMessage'
-  >
-
-export type ParentFieldOf<ParentModel, ChildModel> = Extract<
-  {
-    [K in keyof ParentModel]-?: ParentModel[K] extends ChildModel ? K : never
-  }[keyof ParentModel],
-  string
->
-
-export type ParentFieldConfig<
-  ParentModel,
-  ParentMessage,
-  ChildModel,
-  ChildMessage,
-> = Readonly<{
-  parentField: ParentFieldOf<ParentModel, ChildModel>
-  toParentMessage: (message: ChildMessage) => ParentMessage
-}>
-
-export type LiftConfig<ParentModel, ParentMessage, ChildModel, ChildMessage> =
-  | ParentFieldConfig<ParentModel, ParentMessage, ChildModel, ChildMessage>
-  | FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage>
+import type { FoldLens, ParentFieldConfig } from '../childLens.js'
 
 export type LiftQuery<ChildModel, ChildMessage, R> = {
   <ParentModel, ParentMessage>(
@@ -64,50 +32,6 @@ export type LiftKeyedQuery<ChildModel, ChildMessage, Args, R> = {
     config: FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage>,
   ): LiftedKeyedQuery<ParentModel, ParentMessage, ChildMessage, Args, R>
 }
-
-export const isParentFieldConfig = <
-  ParentModel,
-  ParentMessage,
-  ChildModel,
-  ChildMessage,
->(
-  config: LiftConfig<ParentModel, ParentMessage, ChildModel, ChildMessage>,
-): config is Extract<
-  LiftConfig<ParentModel, ParentMessage, ChildModel, ChildMessage>,
-  { readonly parentField: string }
-> => Predicate.hasProperty(config, 'parentField')
-
-const setField = <
-  Field extends string,
-  Value,
-  Struct extends Record<Field, Value>,
->(
-  model: Struct,
-  field: Field,
-  value: Value,
-): Struct => ({ ...model, [field]: value })
-
-export const parentFieldToLens = <
-  ParentModel extends Record<
-    ParentFieldOf<ParentModel, ChildModel>,
-    ChildModel
-  >,
-  ParentMessage,
-  ChildModel,
-  ChildMessage,
->(
-  config: ParentFieldConfig<
-    ParentModel,
-    ParentMessage,
-    ChildModel,
-    ChildMessage
-  >,
-): FoldLens<ParentModel, ParentMessage, ChildModel, ChildMessage> => ({
-  read: (model: ParentModel) => Option.some(model[config.parentField]),
-  write: (model: ParentModel, nextChild: ChildModel) =>
-    setField(model, config.parentField, nextChild),
-  toParentMessage: config.toParentMessage,
-})
 
 export const liftChildFold = <
   ParentModel,

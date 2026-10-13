@@ -117,7 +117,7 @@ export const hasMessagePayloadProperty = (
         (isStringLiteral(property.key) && property.key.value === 'message')),
   )
 
-const isLocalQueryMessageReference = (
+const isLocalFactoryMessageReference = (
   node: unknown,
   references: WeakMap<ESTree.Node, Reference>,
 ): boolean =>
@@ -146,7 +146,9 @@ const isLocalQueryMessageReference = (
 
               return (
                 apiName === 'Query.define' ||
-                apiName === 'Experimental.Query.define'
+                apiName === 'Experimental.Query.define' ||
+                apiName === 'Form.define' ||
+                apiName === 'Experimental.Form.define'
               )
             },
           )
@@ -164,7 +166,7 @@ const containsMessageReference = (
   }
 
   visited.add(node)
-  if (isLocalQueryMessageReference(node, references)) {
+  if (isLocalFactoryMessageReference(node, references)) {
     return true
   }
 

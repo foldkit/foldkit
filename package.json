@@ -96,7 +96,8 @@
     "release:promote": "node scripts/coherent-release.mjs promote",
     "release:verify-latest": "node scripts/coherent-release.mjs verify-latest",
     "check:dom-state-parity": "node scripts/check-dom-state-parity.mts",
-    "check:published-versions": "node scripts/check-published-versions.ts"
+    "check:published-versions": "node scripts/check-published-versions.ts",
+    "dev:example:experimental-form": "pnpm --filter experimental-form-example dev"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^1.0.1",

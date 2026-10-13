@@ -109,6 +109,7 @@ export const subscriptions = Subscription.make<Model, Message>()(entry => ({
             CoreFile: () => Core.CoreFile.tableOfContents,
             CoreHttp: () => Core.CoreHttp.tableOfContents,
             CoreQuery: () => Core.CoreQuery.tableOfContents,
+            CoreForm: () => Core.CoreForm.tableOfContents,
             CoreCanvas: () => Core.CoreCanvas.tableOfContents,
             CoreRuntime: () => Core.Runtime.tableOfContents,
             CoreServerRendering: () => Core.CoreServerRendering.tableOfContents,
