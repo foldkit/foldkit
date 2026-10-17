@@ -53,6 +53,12 @@ upstream stay reviewable.
   parent selector (`init.ts`). Gated on `import.meta.hot`, plus an internal
   test-only toggle `__overrideDuplicateKeyWarning`; production builds pay only
   the gate check.
+- `Hooks` gains an optional `postdestroy` vnode hook (`hooks.ts`), which
+  `invokeDestroyHook` calls after the `destroy` hooks of the vnode and of every
+  descendant have run (`init.ts`). `h.submodel` uses it to keep a boundary's
+  wrap registered until every listener inside the removed subtree is detached,
+  so an event that a `destroy` hook causes on an element that still listens
+  reaches `update`.
 
 ## Removals relative to upstream
 

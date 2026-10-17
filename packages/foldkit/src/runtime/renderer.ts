@@ -361,8 +361,8 @@ export const makeRenderer = <Model, Message>({
     // h.submodel persist between renders. The render function calls
     // `beginHtmlRender` at the start of each pass; wraps for
     // unmounted Submodels (e.g. an entry removed from a list) are
-    // dropped from the registry via snabbdom destroy hooks attached
-    // by `h.submodel` to each child vnode.
+    // dropped from the registry via snabbdom `postdestroy` hooks
+    // attached by `h.submodel` to each child vnode.
     const boundaryRegistry: BoundaryRegistry = createHtmlBoundaryRegistry()
 
     // NOTE: callers set `isRenderingFrame` before calling this and clear

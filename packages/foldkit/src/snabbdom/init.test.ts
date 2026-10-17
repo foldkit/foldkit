@@ -573,3 +573,41 @@ describe('duplicate sibling key warning', () => {
     expect(warnSpy).not.toHaveBeenCalled()
   })
 })
+
+describe('postdestroy hook', () => {
+  it('runs after the destroy hooks of the vnode and of every descendant', () => {
+    const calls: Array<string> = []
+    const moduleDestroy = (vnode: VNode): void => {
+      calls.push(`module destroy ${vnode.sel}`)
+    }
+    const hooksFor = (name: string) => ({
+      destroy: () => {
+        calls.push(`destroy ${name}`)
+      },
+      postdestroy: () => {
+        calls.push(`postdestroy ${name}`)
+      },
+    })
+    const hookedPatch = init([{ destroy: moduleDestroy }])
+    const container = document.createElement('div')
+    const mounted = hookedPatch(
+      container,
+      h('div', [
+        h('section', { hook: hooksFor('section') }, [
+          h('span', { hook: hooksFor('span') }),
+        ]),
+      ]),
+    )
+
+    hookedPatch(mounted, h('div'))
+
+    expect(calls).toStrictEqual([
+      'destroy section',
+      'module destroy section',
+      'destroy span',
+      'module destroy span',
+      'postdestroy span',
+      'postdestroy section',
+    ])
+  })
+})
