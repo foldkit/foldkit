@@ -61,7 +61,7 @@ Keep API keys, passwords, access and refresh tokens, authorization headers, sess
 
 ## Tools
 
-Each tool accepts an optional `runtime_id`. When omitted, the tool uses the most recently connected Runtime of the most recently started dev server.
+Every tool except `foldkit_list_runtimes` accepts an optional `runtime_id`. Without one, the tool uses the most recently connected Runtime of the most recently started dev server.
 
 | Tool                            | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -102,16 +102,16 @@ High-frequency flows (drag-paint, scroll, keystroke) can fill the history buffer
 Three components cooperate:
 
 - **Browser bridge** (in `foldkit`): runs alongside DevTools, subscribes to the DevTools store, and exchanges typed frames over Vite's HMR WebSocket.
-- **Vite plugin relay** (in `@foldkit/vite-plugin`): listens by default on a loopback port of its own for each dev server, publishes its address for discovery, and forwards traffic between browsers and MCP clients.
+- **Vite plugin relay** (in `@foldkit/vite-plugin`): gives each dev server its own loopback listener by default, publishes its address, and forwards traffic between browsers and MCP clients.
 - **MCP server** (this package): runs as a Node child process under your AI agent, connects to the plugin's relay over WebSocket, and exposes the typed tools over MCP's stdio transport.
 
 Multiple browser tabs can be connected at once and each is addressable by its connection id. Tabs that close (gracefully or not) are pruned from the live Runtime list automatically.
 
 ## Configuration
 
-The MCP server reaches every dev server whose root is its project directory or inside it, so one agent session at a workspace root sees every application in the workspace. When none matches, it reaches every dev server at the nearest root that encloses the project directory, so a session started in `src/` or through a symlink finds its application. `foldkit_list_runtimes` lists the Runtimes of every dev server it reaches, oldest dev server first, each with the `projectRoot` of its dev server.
+An agent started at a workspace root can inspect every Foldkit app running under it. If no dev server runs under the agent's project root, the MCP server finds the nearest root that encloses it. This also lets an agent started in `src/` or through a symlink find the app. `foldkit_list_runtimes` lists the Runtimes from every matching dev server and includes each server's `projectRoot`.
 
-The server opens no connection until a tool is called. Each call looks up the registry again, so a dev server started or restarted after the agent is reached on the next call.
+The MCP server connects when a tool is called. It checks the registry on every call, so the next call can reach a dev server that started or restarted after the agent.
 
 | Environment variable               | What it changes                                                                                                                                                                                                                                                                            |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -120,9 +120,9 @@ The server opens no connection until a tool is called. Each call looks up the re
 | `FOLDKIT_DEVTOOLS_MCP_HOST`        | Skips discovery and connects to this host, on `FOLDKIT_DEVTOOLS_MCP_PORT` or `9988`. Set it when a `devToolsMcpPort` relay runs on another host.                                                                                                                                           |
 | `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY` | Registry location. Defaults to a directory under `XDG_RUNTIME_DIR` when set, `~/.cache` on macOS and Linux, or the user temporary directory on Windows. Set it in both processes if they use different sandboxes. On Windows, it must be a direct child of the user's temporary directory. |
 
-A relay discovered through the registry requires the token in its published address. The MCP client signs its connection attempt with the token and verifies the relay's response before sending tool requests. The plugin will not publish that token into a directory owned by another user, readable by other users, whose registry path is itself a symlink or junction, or whose parent chain lets another user replace a directory; the MCP server ignores a registry directory that fails the same check. This token keeps unapproved clients from connecting; it does not hide runtime data from the agent that was given the MCP server. A configured `devToolsMcpPort` opens a separate socket on every interface without a token. Do not use a fixed port on a shared or untrusted network.
+An automatically discovered relay's registry record contains a random token. The MCP client uses it to sign a connection challenge and checks the relay's response before sending tool requests. The plugin refuses to publish the record if another user can read or replace the registry directory. The MCP server applies the same check before reading it. Both reject symlinks and junctions; on macOS they also check directory ACLs. Clients without access to the registry cannot connect, but the agent using this MCP server can inspect the Runtime data.
 
-On macOS, both processes refuse a directory or ancestor whose ACL grants access, even if its mode bits appear private. On Windows, they use PowerShell to check the directory's owner and access list, its ancestors, and reparse points. The registry must be a direct child of the user's temporary directory and private to the current user. If the check refuses the directory or cannot run, use `devToolsMcpPort` in the Vite config and set `FOLDKIT_DEVTOOLS_MCP_PORT` to the same port.
+On Windows, both processes use PowerShell to check the directory's owner, access list, ancestors, and reparse points. The registry must be a private direct child of the user's temporary directory. If the check cannot run or refuses the directory, configure `devToolsMcpPort` in Vite and set `FOLDKIT_DEVTOOLS_MCP_PORT` to the same port. A fixed port listens on every interface without a token. Do not use it on a shared or untrusted network.
 
 ## Notes
 

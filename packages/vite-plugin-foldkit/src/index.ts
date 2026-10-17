@@ -90,8 +90,8 @@ export {
 export type FoldkitPluginOptions = Readonly<{
   /**
    * By default, the DevTools MCP relay listens on a loopback port of its own
-   * and publishes its address for the MCP server to find. Published addresses
-   * carry an access token.
+   * and publishes its address for the MCP server to find. Automatically
+   * discovered addresses carry an access token.
    *
    * A number starts an unauthenticated listener on that port on every
    * interface; set `FOLDKIT_DEVTOOLS_MCP_PORT` in the MCP server to match.
@@ -1048,8 +1048,8 @@ const startMcpRelay = (
     const publishedDirectory = yield* Ref.make<Option.Option<string>>(
       Option.none(),
     )
-    // NOTE: A configured port keeps the previous unauthenticated behavior.
-    // An assigned port binds only to loopback and is found through the registry.
+    // NOTE: A configured port accepts unauthenticated connections on every
+    // interface. An assigned port binds to loopback and requires discovery.
     const acquire: Effect.Effect<Relay, RelayBindFailed, Crypto.Crypto> =
       Effect.gen(function* () {
         const id = yield* relayId

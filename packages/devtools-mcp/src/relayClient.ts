@@ -89,27 +89,22 @@ export type ListedRuntime = Readonly<{
 }>
 
 /**
- * A client to the DevTools relays of the Foldkit dev servers it finds.
+ * Connects MCP tool calls to the DevTools relays for a project.
  *
- * It connects only when called. Each call, including `sendRequest` with an
- * explicit Runtime id, looks up the relays in the registry, drops the sockets
- * of relays that are gone, opens one socket to each relay that has none, and
- * lists the Runtimes of every relay before it routes a request. It keeps no
- * Runtime membership between calls. Concurrent calls share one lookup that
- * starts after each of them arrives. A dev server that starts or restarts
- * between calls is reached on the next call, and a relay that drops every
- * connection costs one connection attempt per call.
+ * Each call checks the registry, connects to matching relays, and lists their
+ * Runtimes before routing a request. It closes connections to relays that are
+ * no longer published. Concurrent calls share one registry lookup. A dev server
+ * started or restarted after the previous call is reached on the next one.
  *
- * `listRuntimes` lists the Runtimes of every relay, oldest dev server first,
- * and fails when no relay accepts a connection. `sendRequest` sends to the
- * newest relay that lists the given Runtime, or without an id to the most
- * recently connected Runtime of the most recently started dev server. It fails
- * at once for an id that no relay lists, and with `TimeoutError` when no
- * response arrives in time.
+ * `listRuntimes` returns Runtimes from every connected relay, oldest dev server
+ * first. `sendRequest` uses the newest relay that lists the requested Runtime.
+ * Without an id, it uses the most recently connected Runtime of the most
+ * recently started dev server. An id that no relay lists returns an error
+ * without waiting for the request timeout.
  *
- * `close` interrupts discovery, closes relay sockets, and fails requests that
- * are waiting for a response. A cancelled caller does not cancel a refresh
- * that other callers can use.
+ * Cancelling one call leaves shared discovery available to other calls. `close`
+ * interrupts discovery, closes the relay connections, and fails pending
+ * requests.
  */
 export type RelayClient = Readonly<{
   listRuntimes: Effect.Effect<ReadonlyArray<ListedRuntime>, Error>
@@ -136,9 +131,8 @@ const relayUrlForLog = (url: string): string =>
   })
 
 /**
- * Read a display string from a caught error. Effect's `TimeoutError` carries no
- * `message`, so `error.message` is `undefined` on a relay timeout; fall back to
- * the error's string form (its tag) rather than surfacing `Error: undefined`.
+ * Returns an error message for display. Effect's `TimeoutError` has no
+ * `message`, so its string form is used instead.
  */
 export const errorReason = (error: Error): string =>
   error.message ? error.message : globalThis.String(error)

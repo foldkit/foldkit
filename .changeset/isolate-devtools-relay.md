@@ -3,25 +3,23 @@
 '@foldkit/devtools-mcp': minor
 ---
 
-By default, the DevTools MCP relay now listens on a loopback port of its own instead of on the dev server. Before, it shared the dev server's listener, where every handler of a WebSocket upgrade receives the same socket and none can claim it. A plugin that forwards every other upgrade to its own server, or a `server.proxy` entry with `ws: true` that matched the relay's path, destroyed the relay connection moments after it opened, so MCP tool calls failed and the MCP server reconnected thousands of times a second. On its own listener, the relay answers an upgrade for another path with 404, one it cannot parse with 400, one without the token with 401, and a plain HTTP request with 426.
+By default, the DevTools MCP relay now uses its own loopback port. Other Vite plugins and WebSocket proxies can handle upgrades on the dev server without closing the MCP connection. The MCP server also connects when a tool is called, so an agent can start before the dev server and reach it on the next call.
 
-Several applications, agent sessions, and dev servers now work at once:
+One agent session can now inspect several running Foldkit applications:
 
-- Each dev server publishes its own registry record, named by its relay id, and removes only that record when it stops. Before, a second dev server for the same root replaced the first one's record and deleted it on exit, so the first dev server could no longer be found.
-- The MCP server reaches every dev server under its project root. When none runs there, it reaches every dev server at the nearest root that encloses the project root, so a session started in `src/` or through a symlink finds its application. `foldkit_list_runtimes` lists the Runtimes of every dev server it reaches, oldest dev server first, and adds `projectRoot` to each.
-- The relay lists Runtimes in the order they connected. A tool called without `runtime_id` targets the most recently connected Runtime of the most recently started dev server. Before, the relay listed them in hash order, so the default could be any open tab.
-- The MCP server no longer connects in the background. It looks up the registry and connects when a tool is called, so a dev server started or restarted after the agent is reached on the next call, and a relay that drops connections costs one connection attempt per call. Every call, including one that names a `runtime_id`, lists the Runtimes again before it sends a request, so a request for a Runtime that no dev server lists fails at once instead of after ten seconds.
-- The relay removes the Runtimes of a browser tab whose socket closes, and answers a request for a Runtime it does not list with an error. Before, a closed tab stayed in `foldkit_list_runtimes`, and a request to it waited for the MCP server's ten-second timeout.
-- MCP request cancellation interrupts the waiting tool call while shared discovery remains available to other calls. Closing the MCP session interrupts discovery and releases its relay sockets.
-- The MCP server ignores a registry directory that is owned by another user, that other users can read or write, that is a symlink or junction, or whose parent chain lets another user replace a directory. The plugin applies the same check before publishing. On macOS, both also refuse ACLs that grant access. Registry record files are created exclusively, so an existing path cannot redirect publication. The MCP client signs a challenge with the published token and verifies the relay's proof before sending tool requests, so a replacement listener cannot impersonate a relay from a stale record.
-- On Windows, the Vite plugin and the MCP server inspect the registry directory and its ancestors through the Windows .NET API in PowerShell on every lookup. They refuse reparse-point ancestors and require the registry to be a private direct child of the user's temporary directory, so automatic discovery is no longer limited to macOS and Linux.
+- Each dev server publishes a separate registry record. Stopping one server removes only its record.
+- The MCP server finds every dev server under the agent's project root. If there are none, it finds the servers at the nearest enclosing root. It compares real paths, so a session started in a subdirectory or through a symlink finds its application.
+- `foldkit_list_runtimes` includes each Runtime's `projectRoot`. Without `runtime_id`, a tool targets the most recently connected Runtime of the most recently started dev server.
+- A closed browser tab disappears from the Runtime list. A request for a Runtime that no relay lists returns an error without waiting for the request timeout.
+- Concurrent tool calls share a registry lookup. Cancelling one call does not cancel discovery for the others. Closing the MCP session releases its relay connections.
 
-This breaks five setups:
+Automatic discovery now checks the registry directory before either package uses it. Both reject directories that another user can read, write, or replace, as well as symlinks and junctions. On macOS they also check directory ACLs. On Windows they check ownership, access rights, and reparse points through PowerShell; the registry must be a private direct child of the user's temporary directory. Registry records are created exclusively. The MCP client authenticates a discovered relay with a signed challenge and verifies its response before sending a tool request.
 
-- The relay no longer follows `server.host`, so an agent on another host cannot reach a discovered relay. Set `devToolsMcpPort` in the Vite config, and set `FOLDKIT_DEVTOOLS_MCP_PORT` and `FOLDKIT_DEVTOOLS_MCP_HOST` for the MCP server. That port has no token, so do not use it on a shared or untrusted network.
-- `FOLDKIT_DEVTOOLS_MCP_HOST` no longer replaces the host of a discovered relay. Like `FOLDKIT_DEVTOOLS_MCP_PORT`, it now skips discovery and connects to that host on the configured port, or on `9988`.
-- A new MCP server refuses an older automatic relay that cannot prove its identity. Upgrade the MCP server and Vite plugin together to use the signed connection handshake.
-- Automatic discovery does not connect to port `9988` when no authenticated relay is published. To use a fixed-port relay, set `FOLDKIT_DEVTOOLS_MCP_PORT` to the port configured with `devToolsMcpPort`.
-- When `XDG_RUNTIME_DIR` is unset on macOS or Linux, the default registry moves from the operating system's temporary directory to `~/.cache/foldkit-devtools-relays`. Upgrade the MCP server and Vite plugin together, or set `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY` to the same private directory in both processes.
+### Upgrading
 
-`devToolsMcpPort`, the token, the record format, and every tool name and input are unchanged.
+- The automatic relay no longer follows Vite's `server.host`. To connect from another host, configure `devToolsMcpPort` in Vite and set `FOLDKIT_DEVTOOLS_MCP_PORT` and `FOLDKIT_DEVTOOLS_MCP_HOST` for the MCP server. A fixed port listens on every interface without a token. Do not use it on a shared or untrusted network.
+- Setting either `FOLDKIT_DEVTOOLS_MCP_HOST` or `FOLDKIT_DEVTOOLS_MCP_PORT` now selects a fixed address and skips discovery. A host set without a port uses `9988`. Automatic discovery no longer falls back to that port.
+- Upgrade the MCP server and Vite plugin together. The new MCP server requires a discovered relay to prove its identity, which an older plugin cannot do.
+- When `XDG_RUNTIME_DIR` is unset on macOS or Linux, the default registry moves to `~/.cache/foldkit-devtools-relays`. Upgrade both packages together, or set `FOLDKIT_DEVTOOLS_RELAY_DIRECTORY` to the same private directory in both processes.
+
+`devToolsMcpPort`, the registry record format, and the tool inputs are unchanged.
