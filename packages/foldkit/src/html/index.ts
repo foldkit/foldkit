@@ -45,6 +45,7 @@ import {
   unmarkClientOnlyProperty,
 } from '../propertyProvenance.js'
 import {
+  type FoldkitMountMarker,
   type On,
   type VNodeData,
   VNodeDataMask,
@@ -81,6 +82,7 @@ import {
 } from './submodel.js'
 
 export { createKeyedLazy, createLazy } from './lazy.js'
+export type { FoldkitMountMarker }
 export {
   beginRender as __beginRender,
   createBoundaryRegistry as __createBoundaryRegistry,
@@ -545,26 +547,6 @@ export const __endReplayRender = endReplayUnmountRender
  *  failed and forced the runtime to discard the damaged DOM. */
 export const __flushReplayUnmountsAfterPatchFailure =
   flushReplayUnmountsAfterPatchFailure
-
-/** Key under which the OnMount attribute stamps a `{ name }` marker on the
- *  snabbdom `VNodeData`. Snabbdom passes unknown data fields through without
- *  rendering them to the DOM, so the marker is invisible at runtime but
- *  observable by VNode walkers (Scene tests). */
-export const FOLDKIT_MOUNT_KEY = 'foldkitMount' as const
-
-/** Marker stamped on `VNodeData[FOLDKIT_MOUNT_KEY]` for any element with an
- *  `OnMount` attribute. Carries the Mount Definition's name (and args) so test
- *  introspection can identify pending mounts. When the mount lives inside a
- *  Submodel boundary, it also carries that boundary's `toParentMessage` chain
- *  (innermost first), snapshotted at render time, so `Scene.Mount.resolve` can
- *  replay the lift the result travels through in production. Production keeps
- *  the Mount bound to the dispatcher owned by its acquiring render, then
- *  resolves that owner's latest chain when the Mount emits. */
-export type FoldkitMountMarker = Readonly<{
-  name: string
-  args?: Record<string, unknown>
-  messageMappers?: ReadonlyArray<(message: unknown) => unknown>
-}>
 
 /** Union of all HTML, SVG, and MathML attributes a virtual DOM element can carry.
  *
@@ -2505,8 +2487,7 @@ const attributeHandlers: AttributeHandlers = {
     const marker: FoldkitMountMarker = Array.isReadonlyArrayEmpty(boundaryLift)
       ? markerWithArgs
       : { ...markerWithArgs, messageMappers: boundaryLift }
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    ;(ctx.data as Record<string, unknown>)[FOLDKIT_MOUNT_KEY] = marker
+    ctx.data.foldkitMount = marker
     const existingDestroy = ctx.data.hook?.destroy
     ctx.data.hook = {
       ...ctx.data.hook,
