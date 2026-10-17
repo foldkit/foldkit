@@ -15,6 +15,9 @@ export type {
 
 export { Dispatch } from './dispatch.js'
 
+export { CompositionIdentity } from './lazyComposition.js'
+export type { Composition, LazyCompositionConfig } from './lazyComposition.js'
+
 export type {
   EmbedHandle,
   InboundPortHandle,

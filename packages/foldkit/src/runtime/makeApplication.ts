@@ -14,6 +14,7 @@ import {
   findDocumentHydration,
   hasServerRenderedMarkup,
 } from './hydrationHandoff.js'
+import type { LazyCompositionConfig } from './lazyComposition.js'
 import {
   type FlagsSchemaConfig,
   type MakeRuntimeReturn,
@@ -40,6 +41,12 @@ type BaseApplicationConfig<
     Model,
     Message,
     Resources | ManagedResourceServices
+  >
+  lazyComposition?: LazyCompositionConfig<
+    Model,
+    Message,
+    NoInfer<Resources>,
+    NoInfer<Resources | ManagedResourceServices>
   >
   container: HTMLElement | null
   ports?: P
@@ -316,6 +323,7 @@ export function makeApplication<
     manageDocument: true,
     ports: config.ports,
     ...(config.subscriptions && { subscriptions: config.subscriptions }),
+    ...(config.lazyComposition && { lazyComposition: config.lazyComposition }),
     container: resolvedContainer,
     ...(hydration && { hydration }),
     ...(hasRouting && { routing: config.routing }),

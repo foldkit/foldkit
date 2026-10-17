@@ -43,8 +43,13 @@ import {
 import {
   type BootMode,
   type HydrationConfig,
+  containRefusedPage,
   resolveHydrationHandoff,
 } from './hydrationHandoff.js'
+import {
+  type LazyCompositionConfig,
+  makeLazyComposition,
+} from './lazyComposition.js'
 import { forkManagedResourceFibers } from './managedResourceFibers.js'
 import { type MessageQueue, makeMessageQueue } from './messageQueue.js'
 import { preserveModel } from './modelPreservationBridge.js'
@@ -63,7 +68,10 @@ import {
   measureSlowPhase,
   reportSlowPhase,
 } from './slowPhase.js'
-import { forkSubscriptionFibers } from './subscriptionFibers.js'
+import {
+  forkCompositionSubscriptionFibers,
+  forkSubscriptionFibers,
+} from './subscriptionFibers.js'
 import {
   type ViewTransitionConfig,
   __resolveStartViewTransition,
@@ -113,6 +121,13 @@ export type RuntimeConfig<
   subscriptions?: Subscriptions<
     Model,
     Message,
+    Resources | ManagedResourceServices
+  >
+  /** Runtime-owned lazy root implementations selected by serializable Model identity. */
+  lazyComposition?: LazyCompositionConfig<
+    Model,
+    Message,
+    Resources,
     Resources | ManagedResourceServices
   >
   container: HTMLElement
@@ -292,6 +307,7 @@ export const makeRuntime = <
   view,
   manageDocument,
   subscriptions,
+  lazyComposition,
   container,
   hydration,
   routing: routingConfig,
@@ -396,6 +412,15 @@ export const makeRuntime = <
           )
         }
 
+        if (lazyComposition !== undefined && bootMode === 'Hydrate') {
+          containRefusedPage(container.ownerDocument)
+          return yield* Effect.die(
+            new Error(
+              '[foldkit] Lazy composition supports client rendering only. Hydration requires a statically resolved implementation.',
+            ),
+          )
+        }
+
         // NOTE: every perpetual fiber (for example, Subscription streams
         // and ManagedResource lifecycles) and every Command fiber forks
         // into the runtime scope, so interrupting the runtime fiber (what
@@ -482,6 +507,24 @@ export const makeRuntime = <
         const initModelRaw = init_.model
         const initCommands = init_.commands ?? []
 
+        const composition =
+          lazyComposition === undefined
+            ? undefined
+            : makeLazyComposition(
+                lazyComposition,
+                { update, view },
+                provideAllResources,
+              )
+        if (composition !== undefined) {
+          yield* composition.prepare(initModelRaw)
+        }
+        const resolveUpdate = composition?.update ?? update
+        const resolveView =
+          composition === undefined
+            ? view
+            : (model: Model, h: HtmlBuilder<Message>) =>
+                composition.resolve(model).view(model, h)
+
         // NOTE: keep `encodePreservedModel` off the dispatch hot path. It walks
         // the entire Model graph (O(modelSize) per call) and blocks input
         // on large Models. The scheduler defers encoding to a quiet window
@@ -560,13 +603,15 @@ export const makeRuntime = <
 
         const initModel = maybeFreezeModel(initModelRaw)
 
-        const modelPubSub = yield* PubSub.unbounded<Model>()
+        const modelPubSub = yield* PubSub.unbounded<Model>(
+          composition === undefined ? undefined : { replay: 1 },
+        )
         const devToolsIntegration = yield* makeDevToolsIntegration<
           Model,
           Message
         >({
           devTools,
-          update,
+          update: resolveUpdate,
           maybeFreezeModel,
           enqueueMessageEffect,
         })
@@ -629,7 +674,7 @@ export const makeRuntime = <
         } = yield* makeRenderer<Model, Message>({
           status,
           container,
-          view,
+          view: resolveView,
           htmlBuilder,
           manageDocument,
           crash,
@@ -720,7 +765,7 @@ export const makeRuntime = <
 
           const [messageUpdate, maybeUpdateDuration] = measureSlowPhase(
             maybeSlowUpdate,
-            () => update(currentModel, message),
+            () => resolveUpdate(currentModel, message),
           )
           const nextModelRaw = messageUpdate.model
           const commands = messageUpdate.commands ?? []
@@ -804,6 +849,28 @@ export const makeRuntime = <
           : []
         if (isRecordingCommands) {
           yield* recordInit(initModel, initCommandInvocations)
+        }
+
+        if (composition !== undefined) {
+          yield* composition.startLoading(
+            initModel,
+            modelPubSub,
+            runtimeScope,
+            enqueueMessageEffect,
+            crashWith,
+            () => liveModel,
+          )
+          yield* forkCompositionSubscriptionFibers({
+            composition,
+            initModel,
+            modelPubSub,
+            runtimeScope,
+            maybeSlowSubscriptionDependencies,
+            enqueueMessageEffect,
+            provideAllResources,
+            crashWith,
+            readLiveModel: () => liveModel,
+          })
         }
 
         if (subscriptions) {
