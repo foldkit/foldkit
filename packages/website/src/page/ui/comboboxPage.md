@@ -133,6 +133,8 @@ Focus stays on the input while arrow keys navigate items via `aria-activedescend
 | `Escape`           | Closes the dropdown.                                                                                                 |
 | `Type a character` | Filters the items list. You control filtering in your view by passing filtered items. Frozen when isReadOnly is set. |
 
+While an input method is composing, these keys stay with the composition. Enter confirms the conversion instead of selecting the active item.
+
 Opening, closing, and arrow, `Home`, and `End` navigation are unaffected by `isReadOnly`. See [Read-Only](#read-only).
 
 ### Empty Results

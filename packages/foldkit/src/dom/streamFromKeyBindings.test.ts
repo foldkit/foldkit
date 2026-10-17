@@ -464,6 +464,26 @@ describe('streamFromKeyBindings', () => {
     expect(received).toEqual([])
   })
 
+  it('ignores a keyCode 229 keydown and clears a pending sequence', async () => {
+    const { fiber, received } = await start({
+      bindings: [
+        {
+          keys: ['G', 'H'],
+          mapEvent: toMessage('PressedHomeSequence'),
+        },
+      ],
+    })
+
+    press({ key: 'g' })
+    const compositionKeydown = press({ key: 'h', keyCode: 229 })
+    press({ key: 'h' })
+    await tick()
+    await stop(fiber)
+
+    expect(compositionKeydown.defaultPrevented).toBe(false)
+    expect(received).toEqual([])
+  })
+
   it('ignores repeated presses by default and supports one-press opt-in', async () => {
     const { fiber, received } = await start({
       bindings: [
