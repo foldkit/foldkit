@@ -81,6 +81,31 @@ function createKeyToPreviousIndex(
   return map
 }
 
+function claimVNodeForCreate(vnode: VNode): VNode {
+  if (vnode.elm === undefined) {
+    return vnode
+  }
+
+  // NOTE: the event-listener module stores its listener on the VNode object,
+  // outside the VNode type. The copy owns no element yet, so it starts without
+  // one, as a VNode that was never created does.
+  const claimed: VNode & { listener?: unknown } = {
+    ...vnode,
+    elm: undefined,
+    listener: undefined,
+  }
+
+  if (vnode.children !== undefined) {
+    claimed.children = vnode.children.map(child =>
+      child == null || typeof child === 'string'
+        ? child
+        : claimVNodeForCreate(child),
+    )
+  }
+
+  return claimed
+}
+
 const hooks: Array<ModuleHookName> = [
   'create',
   'update',
@@ -260,9 +285,11 @@ export function init(
         for (let childIndex = 0; childIndex < children.length; ++childIndex) {
           const child = children[childIndex]
           if (child != null) {
+            const claimedChild = claimVNodeForCreate(child as VNode)
+            children[childIndex] = claimedChild
             api.appendChild(
               element,
-              createElm(child as VNode, insertedVnodeQueue),
+              createElm(claimedChild, insertedVnodeQueue),
             )
           }
         }
@@ -305,9 +332,11 @@ export function init(
       ) {
         const child = vnode.children[childIndex]
         if (child != null) {
+          const claimedChild = claimVNodeForCreate(child as VNode)
+          vnode.children[childIndex] = claimedChild
           api.appendChild(
             vnode.elm,
-            createElm(child as VNode, insertedVnodeQueue),
+            createElm(claimedChild, insertedVnodeQueue),
           )
         }
       }
@@ -328,9 +357,11 @@ export function init(
     for (; startIndex <= endIndex; ++startIndex) {
       const child = vnodes[startIndex]
       if (child != null) {
+        const claimedChild = claimVNodeForCreate(child)
+        vnodes[startIndex] = claimedChild
         api.insertBefore(
           parentElement,
-          createElm(child, insertedVnodeQueue),
+          createElm(claimedChild, insertedVnodeQueue),
           before,
         )
       }
@@ -554,6 +585,8 @@ export function init(
             : previousKeyToIndex.get(nextStartKey)
         if (indexInPreviousChildren === undefined) {
           // `nextStartVnode` is new, create and insert it in beginning
+          nextStartVnode = claimVNodeForCreate(nextStartVnode)
+          nextChildren[nextStartIndex] = nextStartVnode
           api.insertBefore(
             parentElement,
             createElm(nextStartVnode, insertedVnodeQueue),
@@ -565,6 +598,8 @@ export function init(
           previousKeyToIndex.get(nextEndVnode.key) === undefined
         ) {
           // `nextEndVnode` is new, create and insert it in the end
+          nextEndVnode = claimVNodeForCreate(nextEndVnode)
+          nextChildren[nextEndIndex] = nextEndVnode
           api.insertBefore(
             parentElement,
             createElm(nextEndVnode, insertedVnodeQueue),
@@ -576,6 +611,8 @@ export function init(
           // moving `nextStartVnode` into position
           vnodeToMove = previousChildren[indexInPreviousChildren]!
           if (!sameVnode(vnodeToMove, nextStartVnode)) {
+            nextStartVnode = claimVNodeForCreate(nextStartVnode)
+            nextChildren[nextStartIndex] = nextStartVnode
             api.insertBefore(
               parentElement,
               createElm(nextStartVnode, insertedVnodeQueue),
@@ -725,6 +762,7 @@ export function init(
       const element = oldVnode.elm!
       const parent = api.parentNode(element)
 
+      vnode = claimVNodeForCreate(vnode)
       createElm(vnode, insertedVnodeQueue)
 
       if (parent !== null) {
