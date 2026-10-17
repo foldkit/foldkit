@@ -419,6 +419,65 @@ describe('inertOthers', () => {
     }),
   )
 
+  it.effect('replaces an earlier isolation for the same id', () =>
+    Effect.gen(function* () {
+      const { header, footer, items } = buildDom()
+
+      yield* inertOthers('test', ['#menu-button'])
+      expect(items.inert).toBe(true)
+      expect(items.getAttribute('aria-hidden')).toBe('true')
+
+      yield* inertOthers('test', ['#menu-button', '#menu-items'])
+      expect(items.inert).toBeFalsy()
+      expect(items.getAttribute('aria-hidden')).toBeNull()
+      expect(header.inert).toBe(true)
+      expect(footer.inert).toBe(true)
+
+      yield* restoreInert('test')
+      expect(header.inert).toBeFalsy()
+      expect(header.getAttribute('aria-hidden')).toBeNull()
+      expect(footer.inert).toBeFalsy()
+      expect(footer.getAttribute('aria-hidden')).toBeNull()
+
+      yield* restoreInert('test')
+      expect(header.inert).toBeFalsy()
+      expect(footer.inert).toBeFalsy()
+
+      cleanupDom()
+    }),
+  )
+
+  it.effect(
+    'leaves attributes in place when the same id repeats the same selectors',
+    () =>
+      Effect.gen(function* () {
+        const { header } = buildDom()
+
+        yield* inertOthers('test', ['#menu-button', '#menu-items'])
+
+        const observer = new MutationObserver(() => undefined)
+        observer.observe(header, {
+          attributes: true,
+          attributeFilter: ['aria-hidden', 'inert'],
+        })
+
+        yield* inertOthers('test', ['#menu-button', '#menu-items'])
+
+        const records = observer.takeRecords()
+        observer.disconnect()
+
+        expect(records).toEqual([])
+        expect(header.inert).toBe(true)
+        expect(header.getAttribute('aria-hidden')).toBe('true')
+
+        yield* restoreInert('test')
+        expect(header.inert).toBeFalsy()
+        expect(header.getAttribute('aria-hidden')).toBeNull()
+
+        cleanupDom()
+      }),
+  )
+
   it.effect('handles missing selectors gracefully', () =>
     Effect.gen(function* () {
       buildDom()

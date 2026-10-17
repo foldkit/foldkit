@@ -188,12 +188,27 @@ export const isolateOutsideElements = (
   return isolation.dispose
 }
 
+const releaseStoredCleanups = (id: string): void => {
+  const cleanupFunctions = inertState.cleanups.get(id)
+
+  if (cleanupFunctions === undefined) {
+    return
+  }
+
+  inertState.cleanups.delete(id)
+  Array.forEach(cleanupFunctions, cleanup => cleanup())
+}
+
 /**
  * Marks all DOM elements outside the given selectors as `inert` and
  * `aria-hidden="true"`. Walks each allowed element up to `document.body`,
  * marking siblings that don't contain an allowed element. Uses reference
- * counting so nested calls are safe. A restore before the pending render
- * commits invalidates the request before it can change the DOM.
+ * counting so nested calls with different ids are safe. A repeated call with
+ * the same id replaces that isolation. The next isolation is taken before the
+ * previous cleanup runs, so an element held by both stays marked, and one
+ * `restoreInert` for the id returns the page to its original state. A restore
+ * before the pending render commits invalidates the request before it can
+ * change the DOM.
  *
  * @example
  * ```typescript
@@ -218,8 +233,10 @@ export const inertOthers = (
     }
 
     const allowedElements = resolveElements(allowedSelectors)
+    const dispose = isolateOutsideElements(allowedElements)
 
-    inertState.cleanups.set(id, [isolateOutsideElements(allowedElements)])
+    releaseStoredCleanups(id)
+    inertState.cleanups.set(id, [dispose])
   })
 
 /**
@@ -235,11 +252,5 @@ export const inertOthers = (
 export const restoreInert = (id: string): Effect.Effect<void> =>
   Effect.sync(() => {
     inertState.requests.delete(id)
-
-    const cleanupFunctions = inertState.cleanups.get(id)
-
-    if (cleanupFunctions) {
-      Array.forEach(cleanupFunctions, cleanup => cleanup())
-      inertState.cleanups.delete(id)
-    }
+    releaseStoredCleanups(id)
   })
