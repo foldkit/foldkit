@@ -24,6 +24,7 @@ export {
   DetectMovementOrAnimationEnd,
   type BlurredPanel,
   type PressedPointerOnButton,
+  type ClickedButton,
   type IgnoredMouseClick,
   type SuppressedSpaceScroll,
 } from './index.js'
