@@ -8,6 +8,7 @@ import {
   Predicate,
   Record,
   Schema,
+  String,
   pipe,
 } from 'effect'
 
@@ -652,6 +653,105 @@ export type DeadTransition<
   reason: DeadTransitionReason
 }>
 
+// MERMAID
+
+const MERMAID_IDENTIFIER_PATTERN = /^[A-Za-z][A-Za-z0-9_]*$/
+const MERMAID_GENERATED_IDENTIFIER_PREFIX = 'state_'
+const MERMAID_GENERATED_IDENTIFIER_PATTERN = new RegExp(
+  `^${MERMAID_GENERATED_IDENTIFIER_PREFIX}[0-9a-f_]*$`,
+)
+const MERMAID_GENERATED_IDENTIFIER_SEPARATOR = '_'
+const HEXADECIMAL_RADIX = 16
+
+const MERMAID_KEYWORDS: ReadonlyArray<string> = [
+  'accdescr',
+  'acctitle',
+  'class',
+  'classdef',
+  'click',
+  'default',
+  'href',
+  'note',
+  'scale',
+  'state',
+  'statediagram',
+  'style',
+]
+
+const MERMAID_START_AND_END_IDENTIFIERS: ReadonlyArray<string> = [
+  'root_start',
+  'root_end',
+]
+
+// NOTE: Mermaid reads `direction` followed by whitespace and `TB`, `BT`,
+// `RL`, or `LR` as a direction statement even across a line break, so a line
+// that ends in `direction` would swallow the next line if its state identifier
+// began with one of those pairs.
+const MERMAID_DIRECTION_VALUE_PREFIX_PATTERN = /^(?:TB|BT|RL|LR)/i
+
+// NOTE: Mermaid renders state diagram labels as Markdown, so an underscore
+// at the start of a word would turn the label into emphasis.
+const MERMAID_LITERAL_LABEL_CHARACTER_PATTERN = /^[\p{L}\p{N}]$/u
+
+// NOTE: Mermaid rejects an empty quoted state description, and a state
+// without a description displays its identifier. A zero-width space displays
+// the empty tag as empty.
+const MERMAID_EMPTY_STATE_LABEL = '#8203;'
+
+const toCodePoints = (text: string): ReadonlyArray<number> =>
+  pipe(
+    text,
+    Array.fromIterable,
+    Array.map(String.codePointAt(0)),
+    Array.getSomes,
+  )
+
+const isVerbatimMermaidIdentifier = (stateTag: string): boolean =>
+  MERMAID_IDENTIFIER_PATTERN.test(stateTag) &&
+  !MERMAID_GENERATED_IDENTIFIER_PATTERN.test(stateTag) &&
+  !MERMAID_DIRECTION_VALUE_PREFIX_PATTERN.test(stateTag) &&
+  !Array.contains(MERMAID_KEYWORDS, String.toLowerCase(stateTag)) &&
+  !Array.contains(MERMAID_START_AND_END_IDENTIFIERS, stateTag)
+
+const toMermaidStateIdentifier = (stateTag: string): string => {
+  if (isVerbatimMermaidIdentifier(stateTag)) {
+    return stateTag
+  } else {
+    return pipe(
+      toCodePoints(stateTag),
+      Array.map(codePoint => codePoint.toString(HEXADECIMAL_RADIX)),
+      Array.join(MERMAID_GENERATED_IDENTIFIER_SEPARATOR),
+      hexadecimalCodePoints =>
+        `${MERMAID_GENERATED_IDENTIFIER_PREFIX}${hexadecimalCodePoints}`,
+    )
+  }
+}
+
+const escapeMermaidLabel = (text: string): string =>
+  pipe(
+    toCodePoints(text),
+    Array.map(codePoint => {
+      const character = globalThis.String.fromCodePoint(codePoint)
+
+      if (MERMAID_LITERAL_LABEL_CHARACTER_PATTERN.test(character)) {
+        return character
+      } else {
+        return `#${codePoint};`
+      }
+    }),
+    Array.join(''),
+  )
+
+const toMermaidStateDeclaration = (stateTag: string): string => {
+  if (isVerbatimMermaidIdentifier(stateTag)) {
+    return stateTag
+  } else if (String.isEmpty(stateTag)) {
+    return `state "${MERMAID_EMPTY_STATE_LABEL}" as ${toMermaidStateIdentifier(stateTag)}`
+  } else {
+    return `state "${escapeMermaidLabel(stateTag)}" as ${toMermaidStateIdentifier(stateTag)}`
+  }
+}
+
 // MACHINE
 
 /** A compiled state Machine: a pure transition function plus static analysis over the Edge set.
@@ -718,6 +818,15 @@ export type Machine<
   deadTransitions: (
     extraRoots?: ReadonlyArray<TagOf<State>>,
   ) => ReadonlyArray<DeadTransition<State, Message>>
+  /**
+   * Renders the Edges as a Mermaid `stateDiagram-v2` definition. A state tag
+   * that is a plain identifier Mermaid cannot mistake for its own syntax is
+   * its own state identifier. Any other state tag gets a generated identifier
+   * that starts with `state_`, and its tag is the display label. Labels escape
+   * every character other than letters and digits as a Mermaid entity code,
+   * so Mermaid shows tags with spaces, pipes, colons, quotes, or underscores as
+   * text instead of reading them as diagram syntax or Markdown.
+   */
   toMermaid: () => string
 }>
 
@@ -1705,24 +1814,40 @@ function defineImplementation<
         Match.value(guard).pipe(
           Match.tagsExhaustive({
             Unguarded: () => '',
-            When: ({ position }) => ` [when ${position + 1}]`,
-            Otherwise: () => ' [otherwise]',
+            When: ({ position }) => `[when ${position + 1}]`,
+            Otherwise: () => '[otherwise]',
           }),
         )
 
-      const stateLines = Array.map(stateTags, stateTag => `  ${stateTag}`)
-
-      const transitionLines = Array.map(
-        edges,
-        edgeSummary =>
-          `  ${edgeSummary.from} --> ${edgeSummary.target}: ${edgeSummary.messageTag}${guardLabel(edgeSummary.guard)}`,
+      const stateLines = Array.map(
+        stateTags,
+        stateTag => `  ${toMermaidStateDeclaration(stateTag)}`,
       )
+
+      const transitionLines = Array.map(edges, edgeSummary => {
+        const transition = `${toMermaidStateIdentifier(edgeSummary.from)} --> ${toMermaidStateIdentifier(edgeSummary.target)}`
+
+        const label = pipe(
+          [
+            escapeMermaidLabel(edgeSummary.messageTag),
+            guardLabel(edgeSummary.guard),
+          ],
+          Array.filter(String.isNonEmpty),
+          Array.join(' '),
+        )
+
+        if (String.isEmpty(label)) {
+          return `  ${transition}`
+        } else {
+          return `  ${transition}: ${label}`
+        }
+      })
 
       return Array.join(
         [
           'stateDiagram-v2',
           ...stateLines,
-          `  [*] --> ${initialTag}`,
+          `  [*] --> ${toMermaidStateIdentifier(initialTag)}`,
           ...transitionLines,
         ],
         '\n',
