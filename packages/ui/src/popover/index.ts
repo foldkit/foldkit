@@ -96,7 +96,7 @@ export type Closed = typeof OutMessage.Closed.Type
 
 const LEFT_MOUSE_BUTTON = 0
 
-/** Configuration for creating a popover model with `init`. `isAnimated` enables animation coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). `contentFocus` hands focus ownership to the consumer. The panel is not focusable and does not close on blur, so the consumer must focus a descendant on open and close the popover on its own blur rules (default `false`). */
+/** Configuration for creating a popover model with `init`. `isAnimated` enables animation coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). `contentFocus` hands focus ownership to the consumer. The panel is not focusable and does not close when focus leaves, so the consumer must focus a descendant on open and close the popover on its own focus-leave rules (default `false`). */
 export type InitConfig = Readonly<{
   id: string
   isAnimated?: boolean
@@ -463,7 +463,7 @@ export const close = (model: Model): UpdateReturn =>
  *  - `button`: attribute bundle for the trigger button.
  *  - `panel`: attribute bundle for the floating panel. Includes the
  *    anchor Mount that positions the panel via Floating UI, ARIA
- *    linkage to the button, and panel keydown/blur handlers.
+ *    linkage to the button, and panel keydown and focus-leave handlers.
  *  - `backdrop`: attribute bundle for the modal backdrop. Includes the
  *    portal Mount that moves the backdrop to document.body. Inside a
  *    `<dialog>`, it moves the backdrop to directly before the element it
@@ -644,7 +644,7 @@ export const view = defineView<Model, Message, ViewInputs>(
         ? []
         : [
             h.OnKeyDownPreventDefault(handlePanelKeyDown),
-            ...(contentFocus ? [] : [h.OnBlur(Message.BlurredPanel())]),
+            ...(contentFocus ? [] : [h.OnFocusLeave(Message.BlurredPanel())]),
           ]),
     ]
 
