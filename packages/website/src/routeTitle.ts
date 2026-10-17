@@ -1,11 +1,14 @@
-import { Array, Match, Option, pipe } from 'effect'
+import { Array, Match, Option } from 'effect'
 import { AsyncData } from 'foldkit'
 
-import { allPages } from './docsNav'
+import { type NavPage, allPages, isNavPageActive } from './docsNav'
 import { ApiReference, Blog } from './page'
-import { type AppRoute } from './route'
+import { AppRoute } from './route'
 
 const SITE_NAME = 'Foldkit'
+
+const findNavPage = (route: AppRoute): Option.Option<NavPage> =>
+  Array.findFirst(allPages, page => isNavPageActive(route, page))
 
 const resolveApiModuleName = (
   apiData: ApiReference.ApiDataAsyncData,
@@ -45,34 +48,23 @@ export const routeTitle = (
       ({ moduleSlug }) =>
         `${resolveApiModuleName(apiData, moduleSlug)} | API | ${SITE_NAME}`,
     ),
-    Match.tag('ExampleDetail', ({ exampleSlug }) =>
-      pipe(
-        allPages,
-        Array.findFirst(({ _tag }) => _tag === `ExampleDetail:${exampleSlug}`),
-        Option.match({
-          onNone: () => `${exampleSlug} | Examples | ${SITE_NAME}`,
-          onSome: ({ label }) => `${label} | Examples | ${SITE_NAME}`,
-        }),
-      ),
+    Match.tag('ExampleDetail', exampleDetailRoute =>
+      Option.match(findNavPage(exampleDetailRoute), {
+        onNone: () =>
+          `${exampleDetailRoute.exampleSlug} | Examples | ${SITE_NAME}`,
+        onSome: ({ label }) => `${label} | Examples | ${SITE_NAME}`,
+      }),
     ),
     Match.tag('Playground', ({ exampleSlug }) =>
-      pipe(
-        allPages,
-        Array.findFirst(({ _tag }) => _tag === `ExampleDetail:${exampleSlug}`),
-        Option.match({
-          onNone: () => `Playground | ${SITE_NAME}`,
-          onSome: ({ label }) => `${label} | Playground | ${SITE_NAME}`,
-        }),
-      ),
+      Option.match(findNavPage(AppRoute.ExampleDetail({ exampleSlug })), {
+        onNone: () => `Playground | ${SITE_NAME}`,
+        onSome: ({ label }) => `${label} | Playground | ${SITE_NAME}`,
+      }),
     ),
-    Match.orElse(({ _tag }) =>
-      pipe(
-        allPages,
-        Array.findFirst(page => page._tag === _tag),
-        Option.match({
-          onNone: () => SITE_NAME,
-          onSome: page => `${page.label} | ${SITE_NAME}`,
-        }),
-      ),
+    Match.orElse(route =>
+      Option.match(findNavPage(route), {
+        onNone: () => SITE_NAME,
+        onSome: page => `${page.label} | ${SITE_NAME}`,
+      }),
     ),
   )
