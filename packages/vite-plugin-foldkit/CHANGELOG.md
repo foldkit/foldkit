@@ -1,5 +1,11 @@
 # @foldkit/vite-plugin
 
+## 0.27.2
+
+### Patch Changes
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
 ## 0.27.1
 
 ### Patch Changes
