@@ -1,5 +1,11 @@
 # create-foldkit-app
 
+## 0.40.0
+
+### Minor Changes
+
+- [#1652](https://github.com/foldkit/foldkit/pull/1652) [`20ce739`](https://github.com/foldkit/foldkit/commit/20ce739c2dc620dba024380735165a8411fc5f7a) Thanks [@devinjameson](https://github.com/devinjameson)! - Scaffold Effect type-aware linting alongside the Foldkit Oxlint rules. Generated apps install compatible, pinned Effect and Oxlint integration versions and run both linters with `lint`.
+
 ## 0.39.1
 
 ### Patch Changes

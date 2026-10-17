@@ -1,5 +1,15 @@
 # @foldkit/ui
 
+## 0.169.0
+
+### Minor Changes
+
+- [#1667](https://github.com/foldkit/foldkit/pull/1667) [`b6c5fa3`](https://github.com/foldkit/foldkit/commit/b6c5fa38ee97a48795d811f43b1ec5ed0d701e87) Thanks [@Tanner-Scadden](https://github.com/Tanner-Scadden)! - Add `DragAndDrop.test.settleFocus` and `DragAndDrop.test.resolveKeyboardMove` to resolve focus and movement Commands in keyboard drag Story tests.
+
+### Patch Changes
+
+- Rebuild with the release's shared tooling configuration so the published packages and website use the same build inputs.
+
 ## 0.168.0
 
 ### Minor Changes
