@@ -1833,6 +1833,108 @@ describe('Menu', () => {
     })
   })
 
+  describe('typeahead', () => {
+    const itemsContainer = Scene.selector('#test-items')
+    const item = (index: number) => Scene.selector(`#test-item-${index}`)
+
+    const acknowledgeMounts = Scene.Mount.resolveAll(
+      [AnchorMenu, Message.CompletedAnchorMenu()],
+      [PortalMenuBackdrop, Message.CompletedPortalMenuBackdrop()],
+    )
+
+    it('moves the active item to the match for a typed character', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.given(openModel()),
+        acknowledgeMounts,
+        Scene.keydown(itemsContainer, 'd'),
+        Scene.expectHandled(),
+        Scene.expect(item(1)).toHaveAttr('data-active', ''),
+        Scene.Command.resolve(
+          DelayClearSearch,
+          Message.CompletedDelayClearSearch({
+            version: STALE_CLEAR_SEARCH_VERSION,
+          }),
+        ),
+      )
+    })
+
+    it.each([
+      { name: 'Ctrl', modifiers: { ctrlKey: true } },
+      { name: 'Meta', modifiers: { metaKey: true } },
+      { name: 'Alt', modifiers: { altKey: true } },
+    ])(
+      'leaves a character pressed with $name to the browser',
+      ({ modifiers }) => {
+        Scene.scene(
+          { update, view: sceneView() },
+          Scene.given(openModel()),
+          acknowledgeMounts,
+          Scene.keydown(itemsContainer, 'd', modifiers),
+          Scene.expectIgnored(),
+          Scene.expect(item(0)).toHaveAttr('data-active', ''),
+        )
+      },
+    )
+
+    it('leaves a character pressed with a modifier to the browser while the button has focus', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.given(openModel()),
+        acknowledgeMounts,
+        Scene.keydown(button, 'd', { metaKey: true }),
+        Scene.expectIgnored(),
+        Scene.expect(item(0)).toHaveAttr('data-active', ''),
+      )
+    })
+
+    it('leaves Space pressed with a modifier to the browser', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.given(openModel()),
+        acknowledgeMounts,
+        Scene.keydown(itemsContainer, ' ', { ctrlKey: true }),
+        Scene.expectIgnored(),
+        Scene.expect(item(0)).toHaveAttr('data-active', ''),
+      )
+    })
+
+    it('leaves Space pressed with a modifier to the browser while a query is pending', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.given(openModel()),
+        acknowledgeMounts,
+        Scene.keydown(itemsContainer, 'd'),
+        Scene.Command.resolve(
+          DelayClearSearch,
+          Message.CompletedDelayClearSearch({
+            version: STALE_CLEAR_SEARCH_VERSION,
+          }),
+        ),
+        Scene.keydown(itemsContainer, ' ', { ctrlKey: true }),
+        Scene.expectIgnored(),
+        Scene.expect(item(1)).toHaveAttr('data-active', ''),
+      )
+    })
+
+    it('searches for a character pressed with Shift', () => {
+      Scene.scene(
+        { update, view: sceneView() },
+        Scene.given(openModel()),
+        acknowledgeMounts,
+        Scene.keydown(itemsContainer, 'D', { shiftKey: true }),
+        Scene.expectHandled(),
+        Scene.expect(item(1)).toHaveAttr('data-active', ''),
+        Scene.Command.resolve(
+          DelayClearSearch,
+          Message.CompletedDelayClearSearch({
+            version: STALE_CLEAR_SEARCH_VERSION,
+          }),
+        ),
+      )
+    })
+  })
+
   describe('button labeling', () => {
     it('no aria-label or aria-labelledby on the button by default', () => {
       Scene.scene(

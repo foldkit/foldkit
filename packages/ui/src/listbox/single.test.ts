@@ -1768,6 +1768,97 @@ describe('Listbox', () => {
       })
     })
 
+    describe('typeahead', () => {
+      const button = Scene.selector('#test-button')
+      const itemsContainer = Scene.selector('#test-items')
+      const item = (index: number) => Scene.selector(`#test-item-${index}`)
+
+      it.each([
+        { name: 'Ctrl', modifiers: { ctrlKey: true } },
+        { name: 'Meta', modifiers: { metaKey: true } },
+        { name: 'Alt', modifiers: { altKey: true } },
+      ])(
+        'leaves a character pressed with $name to the browser',
+        ({ modifiers }) => {
+          Scene.scene(
+            { update, view: sceneView() },
+            Scene.given(openModel()),
+            acknowledgeAnchor,
+            acknowledgeBackdrop,
+            Scene.keydown(itemsContainer, 'b', modifiers),
+            Scene.expectIgnored(),
+            Scene.expect(item(1)).not.toHaveAttr('data-active'),
+          )
+        },
+      )
+
+      it('leaves a character pressed with a modifier to the browser while the button has focus', () => {
+        Scene.scene(
+          { update, view: sceneView() },
+          Scene.given(openModel()),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.keydown(button, 'b', { metaKey: true }),
+          Scene.expectIgnored(),
+          Scene.expect(item(1)).not.toHaveAttr('data-active'),
+        )
+      })
+
+      it('leaves Space pressed with a modifier to the browser while a query is pending', () => {
+        Scene.scene(
+          {
+            update,
+            view: sceneView({
+              isReadOnly: true,
+              items: ['Apple', 'Banana', 'B Team'],
+            }),
+          },
+          Scene.given(openModel()),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.keydown(itemsContainer, 'B'),
+          Scene.Command.resolve(
+            DelayClearSearch,
+            Message.CompletedDelayClearSearch({
+              version: STALE_CLEAR_SEARCH_VERSION,
+            }),
+          ),
+          Scene.keydown(itemsContainer, ' ', { ctrlKey: true }),
+          Scene.expectIgnored(),
+          Scene.expect(item(1)).toHaveAttr('data-active', ''),
+        )
+      })
+
+      it('leaves Space pressed with a modifier to the browser', () => {
+        Scene.scene(
+          { update, view: sceneView() },
+          Scene.given(openModel()),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.keydown(itemsContainer, ' ', { ctrlKey: true }),
+          Scene.expectIgnored(),
+        )
+      })
+
+      it('searches for a character pressed with Shift', () => {
+        Scene.scene(
+          { update, view: sceneView() },
+          Scene.given(openModel()),
+          acknowledgeAnchor,
+          acknowledgeBackdrop,
+          Scene.keydown(itemsContainer, 'B', { shiftKey: true }),
+          Scene.expectHandled(),
+          Scene.expect(item(1)).toHaveAttr('data-active', ''),
+          Scene.Command.resolve(
+            DelayClearSearch,
+            Message.CompletedDelayClearSearch({
+              version: STALE_CLEAR_SEARCH_VERSION,
+            }),
+          ),
+        )
+      })
+    })
+
     describe('form integration', () => {
       it('renders hidden input when name is provided', () => {
         Scene.scene(
