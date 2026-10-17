@@ -42,7 +42,7 @@ Mount args are captured at mount, not refreshed across renders. A changed `ancho
 
 ### The Shared Portal Root
 
-The portal root is a shared `foldkit-portal-root` div in the containing root. The containing root is the shadow root when the app is mounted inside one, and `document.body` otherwise, so a portaled panel keeps that root's scoped styles. The portal root div is prepended rather than appended, which keeps component wrappers painting above a backdrop and leaves click-outside detection working.
+The portal root is a shared `foldkit-portal-root` div in the containing root. The containing root is the shadow root when the app is mounted inside one, and `document.body` otherwise, so a portaled panel keeps that root's scoped styles. The portal root div is prepended rather than appended, which keeps component wrappers painting above a backdrop and leaves click-outside detection working. The div is removed once nothing is portaled into it, so the next open creates a fresh root.
 
 ### Panels Inside Dialogs
 
@@ -114,7 +114,7 @@ The second argument to `anchorSetup`.
 
 `(element: Element) => () => void`
 
-Relocates an element into the portal root and returns a cleanup that removes it. The portal root is inside the enclosing `<dialog>` when there is one, and the shared `foldkit-portal-root` div within the containing root otherwise. The cleanup also removes a dialog's portal root once it is empty. Use it for elements outside the anchored panel, since `anchorSetup` already portals the panel unless `portal: false` says otherwise. For a click-outside backdrop, use `portalBackdrop`.
+Relocates an element into the portal root and returns a cleanup that removes it. The portal root is inside the enclosing `<dialog>` when there is one, and the shared `foldkit-portal-root` div within the containing root otherwise. The cleanup removes that root once it is empty, whether it belongs to a dialog or to the containing root. Use it for elements outside the anchored panel, since `anchorSetup` already portals the panel unless `portal: false` says otherwise. For a click-outside backdrop, use `portalBackdrop`.
 
 ### portalBackdrop {#portal-backdrop}
 
