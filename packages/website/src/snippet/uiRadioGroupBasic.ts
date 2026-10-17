@@ -55,9 +55,8 @@ const descriptions: Record<Plan, string> = {
 // arm carries the chosen value (typed as `Plan`) and its index, and returns
 // an Update.Step. This arm is also where the parent updates its own state or
 // dispatches Commands, for example to persist the choice or price the order.
-const foldPlanRadioGroupOutMessage = RadioGroup.OutMessage.match<
-  Update.Step<Model, Message>,
-  RadioGroup.OutMessage<Plan>
+const foldPlanRadioGroupOutMessage = PlanRadioGroup.OutMessage.match<
+  Update.Step<Model, Message>
 >({
   Selected:
     ({ value }) =>
