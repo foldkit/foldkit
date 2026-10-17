@@ -505,6 +505,215 @@ describe('module data masks', () => {
   })
 })
 
+describe('children moved out of their parent', () => {
+  const keyedChild = (key: string): VNode =>
+    h(key === 'panel' ? 'aside' : 'li', { key }, [key])
+
+  const mountKeyedList = (keys: ReadonlyArray<string>): VNode =>
+    patch(document.createElement('div'), h('ul', {}, keys.map(keyedChild)))
+
+  const movePanelToPortalRoot = (mounted: VNode): HTMLElement => {
+    const panel = elementOf(mounted).querySelector('aside')
+    if (panel === null) {
+      throw new Error('expected a panel')
+    }
+    const portalRoot = document.createElement('div')
+    const portalSibling = document.createElement('span')
+    portalSibling.textContent = 'portal sibling'
+    portalRoot.append(panel, portalSibling)
+    return portalRoot
+  }
+
+  const textsIn = (parent: Element): Array<string | null> =>
+    Array.from(parent.children, child => child.textContent)
+
+  it('inserts a new sibling before a portaled last child', () => {
+    const mounted = mountKeyedList(['trigger', 'panel'])
+    const portalRoot = movePanelToPortalRoot(mounted)
+
+    const patched = patch(
+      mounted,
+      h('ul', {}, ['trigger', 'badge', 'panel'].map(keyedChild)),
+    )
+
+    expect(textsIn(elementOf(patched))).toEqual(['trigger', 'badge'])
+    expect(textsIn(portalRoot)).toEqual(['panel', 'portal sibling'])
+  })
+
+  it('inserts a new sibling between a portaled child and the sibling after it', () => {
+    const mounted = mountKeyedList(['panel', 'footer'])
+    const portalRoot = movePanelToPortalRoot(mounted)
+
+    const patched = patch(
+      mounted,
+      h('ul', {}, ['badge', 'panel', 'footer'].map(keyedChild)),
+    )
+
+    expect(textsIn(elementOf(patched))).toEqual(['badge', 'footer'])
+    expect(textsIn(portalRoot)).toEqual(['panel', 'portal sibling'])
+  })
+
+  it('inserts new siblings before the sibling that follows a portaled first child', () => {
+    const mounted = mountKeyedList(['panel', 'footer'])
+    const portalRoot = movePanelToPortalRoot(mounted)
+
+    const patched = patch(
+      mounted,
+      h('ul', {}, ['badge', 'other', 'footer'].map(keyedChild)),
+    )
+
+    expect(textsIn(elementOf(patched))).toEqual(['badge', 'other', 'footer'])
+    expect(textsIn(portalRoot)).toEqual(['portal sibling'])
+  })
+
+  it('leaves a portaled last child in the portal when it moves to the front', () => {
+    const mounted = mountKeyedList(['first', 'second', 'panel'])
+    const portalRoot = movePanelToPortalRoot(mounted)
+
+    const patched = patch(
+      mounted,
+      h('ul', {}, ['panel', 'first', 'second'].map(keyedChild)),
+    )
+
+    expect(textsIn(elementOf(patched))).toEqual(['first', 'second'])
+    expect(textsIn(portalRoot)).toEqual(['panel', 'portal sibling'])
+  })
+
+  it('replaces a portaled first child and its sibling with new children', () => {
+    const mounted = mountKeyedList(['panel', 'footer'])
+    const portalRoot = movePanelToPortalRoot(mounted)
+
+    const patched = patch(
+      mounted,
+      h('ul', {}, ['first', 'second'].map(keyedChild)),
+    )
+
+    expect(textsIn(elementOf(patched))).toEqual(['first', 'second'])
+    expect(textsIn(portalRoot)).toEqual(['portal sibling'])
+  })
+
+  it('moves a sibling past a portaled last child', () => {
+    const mounted = mountKeyedList(['first', 'second', 'panel'])
+    const portalRoot = movePanelToPortalRoot(mounted)
+
+    const patched = patch(
+      mounted,
+      h('ul', {}, ['second', 'panel', 'first'].map(keyedChild)),
+    )
+
+    expect(textsIn(elementOf(patched))).toEqual(['second', 'first'])
+    expect(textsIn(portalRoot)).toEqual(['panel', 'portal sibling'])
+  })
+
+  it('moves the last sibling to the front of a portaled first child', () => {
+    const mounted = mountKeyedList(['panel', 'first', 'second'])
+    const portalRoot = movePanelToPortalRoot(mounted)
+
+    const patched = patch(
+      mounted,
+      h('ul', {}, ['second', 'panel', 'first'].map(keyedChild)),
+    )
+
+    expect(textsIn(elementOf(patched))).toEqual(['second', 'first'])
+    expect(textsIn(portalRoot)).toEqual(['panel', 'portal sibling'])
+  })
+
+  it('appends a new sibling while it removes a portaled last child', () => {
+    const mounted = mountKeyedList(['first', 'second', 'panel'])
+    const portalRoot = movePanelToPortalRoot(mounted)
+
+    const patched = patch(
+      mounted,
+      h('ul', {}, ['second', 'first', 'badge'].map(keyedChild)),
+    )
+
+    expect(textsIn(elementOf(patched))).toEqual(['second', 'first', 'badge'])
+    expect(textsIn(portalRoot)).toEqual(['portal sibling'])
+  })
+
+  it('replaces a keyed sibling in front of a portaled first child', () => {
+    const mounted = mountKeyedList(['panel', 'first', 'second', 'third'])
+    const portalRoot = movePanelToPortalRoot(mounted)
+
+    const patched = patch(
+      mounted,
+      h('ul', {}, [
+        h('p', { key: 'second' }, ['replaced']),
+        keyedChild('panel'),
+        keyedChild('first'),
+      ]),
+    )
+
+    expect(textsIn(elementOf(patched))).toEqual(['replaced', 'first'])
+    expect(textsIn(portalRoot)).toEqual(['panel', 'portal sibling'])
+  })
+
+  it('moves a middle sibling to the front of a portaled first child', () => {
+    const mounted = mountKeyedList(['panel', 'first', 'second', 'third'])
+    const portalRoot = movePanelToPortalRoot(mounted)
+
+    const patched = patch(
+      mounted,
+      h('ul', {}, ['second', 'panel', 'first'].map(keyedChild)),
+    )
+
+    expect(textsIn(elementOf(patched))).toEqual(['second', 'first'])
+    expect(textsIn(portalRoot)).toEqual(['panel', 'portal sibling'])
+  })
+
+  it('leaves a portaled middle child in the portal when it moves to the front', () => {
+    const mounted = mountKeyedList(['first', 'panel', 'second', 'third'])
+    const portalRoot = movePanelToPortalRoot(mounted)
+
+    const patched = patch(
+      mounted,
+      h('ul', {}, ['panel', 'first', 'second'].map(keyedChild)),
+    )
+
+    expect(textsIn(elementOf(patched))).toEqual(['first', 'second'])
+    expect(textsIn(portalRoot)).toEqual(['panel', 'portal sibling'])
+  })
+
+  it('leaves a portaled child in the portal when its siblings reorder around it', () => {
+    const mounted = mountKeyedList(['panel', 'first', 'second'])
+    const portalRoot = movePanelToPortalRoot(mounted)
+
+    const patched = patch(
+      mounted,
+      h('ul', {}, ['first', 'second', 'panel'].map(keyedChild)),
+    )
+
+    expect(textsIn(elementOf(patched))).toEqual(['first', 'second'])
+    expect(textsIn(portalRoot)).toEqual(['panel', 'portal sibling'])
+  })
+})
+
+describe('new children followed by a null child', () => {
+  it('inserts them before the next child that has an element', () => {
+    const container = document.createElement('div')
+    const mounted = patch(
+      container,
+      h('ul', {}, [h('li', { key: 'z' }, ['z']), h('li', { key: 'p' }, ['p'])]),
+    )
+
+    const patched = patch(
+      mounted,
+      h('ul', {}, [
+        h('li', { key: 'p' }, ['p']),
+        h('li', { key: 'x' }, ['x']),
+        null,
+        h('li', { key: 'z' }, ['z']),
+      ]),
+    )
+
+    expect(listItemsIn(patched).map(item => item.textContent)).toEqual([
+      'p',
+      'x',
+      'z',
+    ])
+  })
+})
+
 describe('duplicate sibling key warning', () => {
   beforeEach(() => {
     __overrideDuplicateKeyWarning(true)
