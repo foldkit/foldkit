@@ -56,6 +56,7 @@ export const Message = defineMessageUnion({
     pointerType: Schema.String,
     button: Schema.Number,
   },
+  MovedPointerOffButton: {},
   CompletedFocusPanel: {},
   CompletedFocusButton: {},
   CompletedLockScroll: {},
@@ -75,6 +76,7 @@ export type BlurredPanel = typeof Message.BlurredPanel.Type
 export type PressedPointerOnButton = typeof Message.PressedPointerOnButton.Type
 export type IgnoredMouseClick = typeof Message.IgnoredMouseClick.Type
 export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
+export type MovedPointerOffButton = typeof Message.MovedPointerOffButton.Type
 
 export type Message = typeof Message.Type
 
@@ -351,8 +353,12 @@ export const update = (model: Model, message: Message) => {
         maybeLastButtonPointerType: () => Option.some(pointerType),
       })
 
-      if (pointerType !== 'mouse' || button !== LEFT_MOUSE_BUTTON) {
+      if (pointerType !== 'mouse') {
         return { model: withPointerType }
+      }
+
+      if (button !== LEFT_MOUSE_BUTTON) {
+        return { model }
       }
 
       if (model.isOpen) {
@@ -370,6 +376,12 @@ export const update = (model: Model, message: Message) => {
 
       return openPopover(withPointerType)
     },
+
+    MovedPointerOffButton: () => ({
+      model: modifyFields(model, {
+        maybeLastButtonPointerType: () => Option.none(),
+      }),
+    }),
 
     GotAnimationMessage: ({ message: animationMessage }) =>
       foldAnimation(model, animationMessage),
@@ -613,6 +625,12 @@ export const view = defineView<Model, Message, ViewInputs>(
       ...(isDisabled
         ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
         : [
+            h.OnPointerLeave(pointerType =>
+              OptionExt.when(
+                pointerType === 'mouse',
+                Message.MovedPointerOffButton(),
+              ),
+            ),
             h.OnPointerDown(handleButtonPointerDown),
             h.OnKeyDownPreventDefault(handleButtonKeyDown),
             h.OnKeyUpPreventDefault(handleSpaceKeyUp),

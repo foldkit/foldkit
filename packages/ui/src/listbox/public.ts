@@ -33,6 +33,7 @@ export {
   type IgnoredMouseClick,
   type SuppressedSpaceScroll,
   type SuppressedItemCommit,
+  type MovedPointerOffButton,
 } from './shared.js'
 
 export type {

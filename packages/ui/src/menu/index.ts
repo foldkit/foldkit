@@ -116,6 +116,7 @@ export const Message = defineMessageUnion({
     screenY: Schema.Number,
     timeStamp: Schema.Number,
   },
+  MovedPointerOffButton: {},
 })
 
 export type Message = typeof Message.Type
@@ -154,6 +155,7 @@ export type IgnoredMouseClick = typeof Message.IgnoredMouseClick.Type
 export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
 export type PressedPointerOnButton = typeof Message.PressedPointerOnButton.Type
 export type ReleasedPointerOnItems = typeof Message.ReleasedPointerOnItems.Type
+export type MovedPointerOffButton = typeof Message.MovedPointerOffButton.Type
 
 // INIT
 
@@ -544,8 +546,12 @@ export const update = (model: Model, message: Message) => {
         maybeLastButtonPointerType: () => Option.some(pointerType),
       })
 
-      if (pointerType !== 'mouse' || button !== LEFT_MOUSE_BUTTON) {
+      if (pointerType !== 'mouse') {
         return { model: withPointerType }
+      }
+
+      if (button !== LEFT_MOUSE_BUTTON) {
+        return { model }
       }
 
       if (model.isOpen) {
@@ -571,6 +577,12 @@ export const update = (model: Model, message: Message) => {
         }),
       )
     },
+
+    MovedPointerOffButton: () => ({
+      model: modifyFields(model, {
+        maybeLastButtonPointerType: () => Option.none(),
+      }),
+    }),
 
     ReleasedPointerOnItems: ({ screenX, screenY, timeStamp }) => {
       const hasNoOrigin = Option.isNone(model.maybePointerOrigin)
@@ -993,6 +1005,12 @@ const menuViewImpl = defineView<Model, Message, ViewInputs<string>>(
       ...(isButtonDisabled
         ? [h.AriaDisabled(true), h.DataAttribute('disabled', '')]
         : [
+            h.OnPointerLeave(pointerType =>
+              OptionExt.when(
+                pointerType === 'mouse',
+                Message.MovedPointerOffButton(),
+              ),
+            ),
             h.OnPointerDown(handleButtonPointerDown),
             h.OnKeyDownPreventDefault(handleButtonKeyDown),
             h.OnKeyUpPreventDefault(handleSpaceKeyUp),
