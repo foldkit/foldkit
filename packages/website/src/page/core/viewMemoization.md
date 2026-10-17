@@ -66,3 +66,11 @@ Foldkit's differ compares the old and new VNode by reference before diffing. Whe
 
 The active dispatch is also part of the internal cache key because event handlers close over it. A DevTools replay uses a non-live dispatch, so Foldkit rebuilds the subtree before returning to the live application even when the function and arguments are unchanged.
 :::
+
+## Testing Cache Reuse {#test-cache-reuse}
+
+A lazy view that misses its cache renders the same output, so the mistake only shows up as a slower page. `Lazy.expectAllReused` from `foldkit/test` catches it in a test. It renders the view twice with the same Model and fails if any `createLazy` or `createKeyedLazy` slot rebuilt its view on the second render.
+
+::Snippet{name="lazyExpectAllReused" label="Asserting that lazy views reuse their cache"}
+
+The failure lists each slot that rebuilt and why. `NoCachedEntry` means the slot was created during the view or its key changed. `FunctionChanged` means the view function was created during the view. `ArgumentsChanged` names the argument positions that received new references for the same Model.
